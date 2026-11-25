@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A stored route that misses its end (docs/design/06a-drafting.md §3.2, FT-1975): no command stores one, but a file
+//! A stored route that misses its end (docs/design/06a-drafting.md §3.2): no command stores one, but a file
 //! written outside the program can, and the page joins the end to it by one straight stretch, a hook. A page-wide
 //! Route takes it as broken, flags it as the person's and draws it to its end.
 

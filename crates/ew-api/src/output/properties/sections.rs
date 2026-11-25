@@ -162,7 +162,7 @@ impl SectionCx<'_, '_> {
             depth == 0 && self.kind == "device" && ew_commands::commands::ASPECTS.contains(&rpath);
         match spec.ty.inner() {
             FieldType::Group(children) => {
-                // A schematic project's supply shows its members while it has none: setting one makes it (FT-1928). A
+                // A schematic project's supply shows its members while it has none: setting one makes it. A
                 // basic or macro project has no supply to set (FR-PRJ-026), so it shows no rows that could only refuse.
                 let supply = self.kind == "project"
                     && (rpath == "supply" || rpath.starts_with("supply."))
@@ -348,7 +348,7 @@ impl Session {
                     .cloned()
                     .unwrap_or_else(|| Value::String("working".into()));
                 j[crate::output::fields::LINE_KIND] = word;
-                // The tube table's cells: the line's tube part override and its manual length (WP-S2.13).
+                // The tube table's cells: the line's tube part override and its manual length.
                 let fluid = j["kind"]["fluid"].clone();
                 j[crate::output::fields::TUBE_PART] =
                     fluid.pointer("/tube/part").cloned().unwrap_or(Value::Null);
@@ -522,7 +522,7 @@ impl Session {
                 in_words(&format!("report_block/added_rows[{i}].cells"), cells.join("; "));
             }
             // A legend list's pages follow its layout page, which its row names (doc 12 §5.4): the first folio and
-            // the section it keeps for older builds are read by nothing (FT-2032).
+            // the section it keeps for older builds are read by nothing.
             if b.layout_page.is_some() {
                 built.retain(|r| {
                     !matches!(
@@ -554,7 +554,7 @@ impl Session {
         }
     }
 
-    /// The derived rows of a section (D9, D15).
+    /// The derived rows of a section.
     fn derived_rows(
         &self,
         q: &Q,

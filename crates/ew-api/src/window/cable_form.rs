@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Cable form below the shell (FT-1685): the selected wires as a cable's cores, in one step.
+//! The Cable form below the shell: the selected wires as a cable's cores, in one step.
 //!
 //! - **The type** is what a person writes: `3G1.5` (three cores, the last green-yellow), `4x0.75` (no green-yellow),
 //!   `2 x 1,5 mm²`, or a cable part's number ([`Session::layout_part_offers`]). A written type's cores follow the

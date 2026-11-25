@@ -197,7 +197,7 @@ fn pages_pair_by_order_when_the_labels_do_not_match() {
     assert!(report.is_clean(), "{report:?}");
 }
 
-/// FT-1748: a page missing on one side leaves the pages after it paired by their labels; the pages no label claims pair
+/// A page missing on one side leaves the pages after it paired by their labels; the pages no label claims pair
 /// in order.
 #[test]
 fn a_missing_page_does_not_shift_the_pairs_after_it() {

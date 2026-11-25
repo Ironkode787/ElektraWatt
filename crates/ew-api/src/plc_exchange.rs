@@ -410,7 +410,7 @@ impl Session {
     }
 
     /// What [`Session::plc_import`] takes from the session (the configuration project, its image, its last exchange and
-    /// its ownership), so that the file can be read and merged on another thread ([`PlcImportRead::run`], FT-1763).
+    /// its ownership), so that the file can be read and merged on another thread ([`PlcImportRead::run`]).
     ///
     /// # Errors
     ///

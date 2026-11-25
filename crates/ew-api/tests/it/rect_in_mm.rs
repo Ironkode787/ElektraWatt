@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A rectangle (an embedded block's area, a legend's) reads as its place and size in millimetres and is typed back
-//! that way (FT-1936), never as the stored nanometres.
+//! that way, never as the stored nanometres.
 
 use ew_api::output::{field_catalogue, format_field_value};
 use serde_json::json;

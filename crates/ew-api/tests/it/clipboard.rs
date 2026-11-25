@@ -687,7 +687,7 @@ fn a_child_whose_parent_is_not_copied() {
     );
 }
 
-/// FT-743: a child device pasted with its parent keeps its counter under the new parent, as `macro.insert` keeps it,
+/// A child device pasted with its parent keeps its counter under the new parent, as `macro.insert` keeps it,
 /// so the pasted valve prints a whole tag, not "Q?".
 #[test]
 fn a_child_pasted_with_its_parent_keeps_its_counter() {

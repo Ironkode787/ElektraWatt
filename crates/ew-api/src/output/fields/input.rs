@@ -129,7 +129,7 @@ impl PartCopyText {
         format!("{} ({})", self.number, self.manufacturer)
     }
 
-    /// The display form with the description, `<part number> (<manufacturer>) · <description>` (D7); the short form
+    /// The display form with the description, `<part number> (<manufacturer>) · <description>`; the short form
     /// when the description is empty.
     pub fn long(&self) -> String {
         if self.description.is_empty() {
@@ -346,7 +346,7 @@ pub(crate) fn parse_input(
     {
         return scale.and_then(plain);
     }
-    // A rectangle is typed as it shows ("20, 15 mm · 60 × 40 mm", FT-1936).
+    // A rectangle is typed as it shows ("20, 15 mm · 60 × 40 mm").
     if matches!(ty, FieldType::Json)
         && let Some(rect) = rect_input(text)
     {
@@ -660,7 +660,7 @@ pub(crate) fn find_part(cx: &dyn ParseCx, text: &str, kinds: Option<&[&str]>) ->
 
 /// A list of part uses typed as text (the minimal part chooser): part numbers separated by commas, each optionally
 /// followed by `× <quantity>` (the row's display form, `533356 × 1`), quantity 1 when left out; an empty text is the
-/// empty list. A text starting with `[` is the list's strict JSON instead (`parse_input`). An ambiguous item (D7)
+/// empty list. A text starting with `[` is the list's strict JSON instead (`parse_input`). An ambiguous item
 /// makes the whole list ambiguous: one choice per match of the first ambiguous item, each the whole list.
 fn parse_part_uses(cx: &dyn ParseCx, text: &str) -> Result<ParsedInput, InputError> {
     let mut uses = Vec::new();

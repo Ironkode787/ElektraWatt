@@ -8,7 +8,7 @@
 //! Every importer call goes through [`front_door`]. A QET project becomes a project through `import.apply`
 //! ([`session_from_import`], D7): the batch on a fork of an empty project, the normalisers, the structural invariants
 //! (prevent rules relaxed to findings) and the import run, committed as the project's first state. The CSV
-//! bootstrap (`ew import csv`) keeps [`session_from_batch`] and writes no run (D13).
+//! bootstrap (`ew import csv`) keeps [`session_from_batch`] and writes no run.
 
 use std::path::Path;
 
@@ -97,7 +97,7 @@ impl std::fmt::Display for Refusal {
 
 impl std::error::Error for Refusal {}
 
-/// What an importer returns through the front door: a batch is checked against the contract (D3), other results
+/// What an importer returns through the front door: a batch is checked against the contract, other results
 /// (library documents of the parts imports) are not batches of project records.
 pub trait FrontDoorOutput {
     /// The contract check of the result, against the lineage the import ran in.
@@ -508,7 +508,7 @@ pub fn import_qet_batch(
     qet_batch(name, bytes, library, &mut ctx)
 }
 
-/// The second half of [`import_qet`]: `batch` committed into an empty project by `import.apply` (D7) with `options`,
+/// The second half of [`import_qet`]: `batch` committed into an empty project by `import.apply` with `options`,
 /// and the live findings of the made project.
 pub fn imported_of(batch: ImportBatch, options: SessionOptions) -> Imported {
     let mode = ew_import_qet::project::new_project_context().mode;
@@ -520,7 +520,7 @@ pub fn imported_of(batch: ImportBatch, options: SessionOptions) -> Imported {
 // -------------------------------------------------------------------------------------------------------------------
 // ApplyImport
 
-/// The import run of a batch's report (D6): its findings in the importer's order, its counts and its source; the ID
+/// The import run of a batch's report: its findings in the importer's order, its counts and its source; the ID
 /// and the record hashes are the transaction's. `lineage` is the lineage imported into.
 pub fn run_of(
     report: &ImportReport,
@@ -634,7 +634,7 @@ impl std::fmt::Display for ApplyError {
 
 impl std::error::Error for ApplyError {}
 
-/// The `import.apply` command of `batch` (D7): the batch's records but its project record, its library documents, and
+/// The `import.apply` command of `batch`: the batch's records but its project record, its library documents, and
 /// the run of its report in `mode` (`as_of` its date); `checkpoint` into an empty project. The lineage is the batch's
 /// own record, else `lineage`.
 ///
@@ -690,7 +690,7 @@ pub fn apply_command(
 
 pub use ew_commands::commands::{MemberChange, ReimportClass, ReimportPlan, ReimportRow, member_text};
 
-/// The lineage of the open project a QET file re-imports into (D10).
+/// The lineage of the open project a QET file re-imports into.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Detected {
     /// The file's own lineage is the project's (the same namespace: the same QET project UUID).
@@ -757,7 +757,7 @@ impl Detected {
     }
 }
 
-/// A re-import of a QET file into a lineage of the open project (D12), previewed, not applied yet.
+/// A re-import of a QET file into a lineage of the open project, previewed, not applied yet.
 #[derive(Debug)]
 pub struct Reimport {
     /// The file's name.
@@ -808,7 +808,7 @@ fn qet_batch(
     })
 }
 
-/// The lineages of an open project that a QET file may re-import into (D10), apart from the session: plain data, so
+/// The lineages of an open project that a QET file may re-import into, apart from the session: plain data, so
 /// that a job can detect a file's lineage and import it on a thread of its own (D4; a `Session` is not `Send`).
 #[derive(Clone, Debug)]
 pub struct QetLineages {
@@ -842,7 +842,7 @@ impl Session {
 }
 
 /// The QET file `bytes` named `name` through the front door once, into the project's context with the file's own
-/// lineage, and the lineage of `lineages` it re-imports into (D10): the file's own lineage when the project holds it
+/// lineage, and the lineage of `lineages` it re-imports into: the file's own lineage when the project holds it
 /// (the same namespace), else a lineage of the same importer and source name that holds at least half of the file's
 /// source keys, proposed (T6). For the file's own lineage the batch is the re-import's, as [`reimport_qet_batch`] makes
 /// it; for a proposed lineage, whose namespace differs, it is `None`.
@@ -928,7 +928,7 @@ pub fn detect_qet_reimport(
 }
 
 /// The QET file `bytes` named `name` through the front door into the lineage `lineage` of the project of `lineages`,
-/// with the lineage's namespace (D11): the batch of a re-import.
+/// with the lineage's namespace: the batch of a re-import.
 ///
 /// # Errors
 ///
@@ -961,7 +961,7 @@ impl Session {
         detect_qet_reimport(&self.qet_lineages()?, name, bytes, library).map(|(detected, _)| detected)
     }
 
-    /// The re-import of the QET file `bytes` named `name` into the lineage `lineage` of this project (D11, D12): the
+    /// The re-import of the QET file `bytes` named `name` into the lineage `lineage` of this project: the
     /// file imported with the lineage's namespace ([`reimport_qet_batch`]), then [`Session::plan_qet_reimport`].
     /// Nothing is changed until [`Session::apply_reimport`].
     ///
@@ -979,7 +979,7 @@ impl Session {
         self.plan_qet_reimport(name, batch, lineage)
     }
 
-    /// The re-import of `batch`, the QET file named `name` imported into the lineage `lineage` of this project (D12):
+    /// The re-import of `batch`, the QET file named `name` imported into the lineage `lineage` of this project:
     /// every record classed against the lineage's last run and the project as it is, and the preview of the
     /// `import.apply` of the records to apply. Nothing is changed until [`Session::apply_reimport`].
     ///
@@ -1067,7 +1067,7 @@ impl Session {
     }
 }
 
-/// The batch of a new-project import applied to an empty project (D7, D13): a session over the batch's project
+/// The batch of a new-project import applied to an empty project: a session over the batch's project
 /// record without its provenance, into which `import.apply` commits the batch as the project's first state (a
 /// checkpoint).
 ///
@@ -1242,7 +1242,7 @@ impl std::fmt::Display for PartsReadError {
 impl std::error::Error for PartsReadError {}
 
 /// The FnDefs that the part templates of a parts table resolve their keys in: the starter's (compiled in,
-/// `ew_library::starter`), then the project's own, a held FnDef with a key the starter has not (FT-1860: a function
+/// `ew_library::starter`), then the project's own, a held FnDef with a key the starter has not (a function
 /// definition of the project's library, such as one a person made for a symbol of their own).
 fn template_fndefs(session: &Session) -> ew_import_tables::BuiltinLibrary {
     let starter: Vec<LibDocument> = ew_library::starter::items()

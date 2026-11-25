@@ -61,7 +61,7 @@ fn parsed(text: &str) -> Value {
 }
 
 /// A session over the sample with members merged into the channel records of `edits`: a state that an import or a
-/// merge brings and that the strict edit path refuses (FT-726).
+/// merge brings and that the strict edit path refuses.
 fn with_channels(edits: &[(&NavNode, Value)]) -> Session {
     let (project, mut records, lib) = common::sample_records();
     for r in &mut records {
@@ -136,7 +136,7 @@ fn each_facet_on_the_sample() {
     let other = cell(&t, &a2_3, "address").to_owned();
 
     // EW-PLC-007's duplicate symbol and EW-PLC-001's overlap (a manual address equal to another channel's): states the
-    // strict edit path refuses (FT-726), which a lenient import or a merge brings; the session opens over them.
+    // strict edit path refuses, which a lenient import or a merge brings; the session opens over them.
     let mut s = with_channels(&[
         (&a2_2, json!({"symbol": "B1_Start"})),
         (&k1_2, json!({"symbol": "B1_Start"})),
@@ -279,7 +279,7 @@ fn the_grid_columns_and_routes() {
     assert!(t.columns[0].key_column);
 }
 
-/// FT-737, FT-738, FT-739: the station's bus port under it with the net as every channel's `bus:` facet; a rack level
+/// The station's bus port under it with the net as every channel's `bus:` facet; a rack level
 /// once a module has an authored rack, the module keeping its key; the data type, signal range and safety cells and
 /// the `safety` flag after the edits that set them; the PLC grid shows the PLC navigator's rows and columns.
 #[test]

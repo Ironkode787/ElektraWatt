@@ -326,7 +326,7 @@ const OTHER_COMMANDS: &[(&str, &str, &str, Option<&str>)] = &[
     ("device", "position", "assembly.attach", None),
     ("representation", "anchor", "rep.set_anchor_policy", None),
     // An external connection point's target is chosen when it is placed (the IP tool's external field); a placed
-    // point is marked as where the supply comes in by `ip.supply_in` (FT-1699).
+    // point is marked as where the supply comes in by `ip.supply_in`.
     (
         "function",
         "kind.ip.external",
@@ -473,13 +473,13 @@ pub(super) fn walk_kind(
         return out;
     };
     for (member, node) in props {
-        // The record's own bookkeeping (`$k` its kind, `$v` its schema version) is no property (FT-1939).
+        // The record's own bookkeeping (`$k` its kind, `$v` its schema version) is no property.
         if member.starts_with('$') {
             continue;
         }
         let ty = node_type(schema, node, 1);
         let category = match Category::of_member(member, true) {
-            // A medium's colour marks its lines on the page: it is no electrical value (FT-1761: a medium's Colour
+            // A medium's colour marks its lines on the page: it is no electrical value (a medium's Colour
             // stood under Electrical).
             Category::Electrical if name == "medium" => Category::Identity,
             c => c,

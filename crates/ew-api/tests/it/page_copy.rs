@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A copy of pages for a second installation (doc 06 §3.6, FT-1862) on the sample: `Session::copy_pages` of its pages
+//! A copy of pages for a second installation (doc 06 §3.6) on the sample: `Session::copy_pages` of its pages
 //! 101 to 103 (supply, control and motor) with a folio offset of 10, committed as one `page.copy`. What the fixture
 //! holds decides what must be true of the copy: the same symbols at the same places on 111 to 113, drawing as many
 //! devices as 101 to 103 draw, each new, with the tag the scheme gives on its new page; the contactor -102Q1, whose coil

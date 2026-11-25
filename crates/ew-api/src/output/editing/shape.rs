@@ -69,7 +69,7 @@ pub struct ShapeCp {
     /// or has no such CP.
     pub designation: String,
     /// Whether the FnDef CP it draws is a fluid port (a pneumatic, vacuum or hydraulic discipline): autoconnect joins a
-    /// fluid port to a fluid port only (FT-1733).
+    /// fluid port to a fluid port only.
     pub fluid: bool,
     /// The FnDef CP's side of EW-FL-012 (a valve's working or exhaust port): autoconnect never joins two sides that
     /// conflict.
@@ -340,7 +340,7 @@ impl Session {
     /// (`body`), every stroked or filled path flattened to polylines with a tolerance of 50 000 nm in paint order
     /// (`outline`). A starter symbol the project does not hold yet has the shape of its starter copy (the copy
     /// ID [`Session::starter_symbol_copy`] gives), its designations from the embedded FnDef, else the starter's
-    /// (FT-656: the Place tool floats it before the placement embeds it). `None` for any other copy.
+    /// (the Place tool floats it before the placement embeds it). `None` for any other copy.
     pub fn symbol_shape(&self, copy: Uuid) -> Option<SymbolShape> {
         let q = self.query();
         if let Some(symbol) = q.symbols().get(Id::from_uuid(copy)).cloned() {
@@ -371,7 +371,7 @@ impl Session {
 
     /// The copy ID the starter symbol `key` has once embedded, `v5(NS_LIBCOPY, library ‖ item)` (the ID of its
     /// starter copy); `None` when `key` is not a starter symbol. The Place tool names the symbol by it before the
-    /// placement embeds it (FT-656).
+    /// placement embeds it.
     pub fn starter_symbol_copy(&self, key: &str) -> Option<Uuid> {
         starter_symbol(key)
             .map(|c| c.id.as_uuid())

@@ -76,7 +76,7 @@ pub struct SurfaceViewOf {
     pub projection: Projection,
 }
 
-/// `page_surface_view(page)`: the surface view of a panel-layout page (D9): its first `surface_view` item by ID (a page
+/// `page_surface_view(page)`: the surface view of a panel-layout page: its first `surface_view` item by ID (a page
 /// holds at most one; a file with more draws the first), projected at the page's scale on paper: divided by the
 /// frame's page-to-sheet factor as well ([`Projection::on_sheet`]). `None` for a missing page, a page of another kind
 /// or a page without a view.
@@ -175,7 +175,7 @@ fn surface_outline(q: &Q, s: &MountingSurface) -> SurfaceOutline {
             let sec = p.sections.enclosure.as_ref()?;
             Some((sec.width?, sec.height?))
         })?;
-        // MVP frames carry no turn (D5): the enclosure's corner lies at minus the frame's offset.
+        // MVP frames carry no turn: the enclosure's corner lies at minus the frame's offset.
         let [tx, ty, _] = s.frame.t;
         let a = Pt2::new(Nm(0i64.checked_sub(tx.0)?), Nm(0i64.checked_sub(ty.0)?));
         let b = Pt2::new(Nm(w.0.checked_sub(tx.0)?), Nm(h.0.checked_sub(ty.0)?));
@@ -546,7 +546,7 @@ pub struct PanelCarrier {
     pub free_length: Option<i128>,
 }
 
-/// One placement on a panel page's surface (D9), by ID.
+/// One placement on a panel page's surface, by ID.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PanelPlacement {
     /// The placement's ID (the entity a click on its footprint or label selects).
@@ -592,7 +592,7 @@ pub struct PanelPlacement {
     pub extent_flipped: RailExtent,
 }
 
-/// One unplaced device of the surface's layout space (D9), in `unplaced` order (natural full tag).
+/// One unplaced device of the surface's layout space, in `unplaced` order (natural full tag).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct UnplacedDevice {
     /// The device's ID.
@@ -622,7 +622,7 @@ pub struct UnplacedDevice {
     pub slots: Vec<(Uuid, i128)>,
 }
 
-/// The panel data of a panel-layout page for the layout tools (D9), all in surface nm.
+/// The panel data of a panel-layout page for the layout tools, all in surface nm.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PanelTables {
     /// The printed folio.
@@ -699,7 +699,7 @@ impl PanelTables {
     }
 }
 
-/// The surface point of the page point `p` by the inverse projection (D9): `u = (x − datum.x)·den/num`,
+/// The surface point of the page point `p` by the inverse projection: `u = (x − datum.x)·den/num`,
 /// `v = (datum.y − y)·den/num`, in i128 with one rounding to the nearest nm, halves away from zero.
 pub fn surface_of_page(projection: &Projection, p: (i64, i64)) -> (i128, i128) {
     let num = projection.num.max(1);
@@ -974,7 +974,7 @@ fn unplaced_of(q: &Q, space: Id<LayoutSpace>, carriers: &[PanelCarrier]) -> Vec<
     out
 }
 
-/// The panel tables of the panel-layout page `page` (D9); `None` without a surface view or a surface.
+/// The panel tables of the panel-layout page `page`; `None` without a surface view or a surface.
 pub(crate) fn panel_tables_of(q: &Q, folio: &str, page: Id<Page>) -> Option<PanelTables> {
     let view = q.get::<PageSurfaceView>(page).as_ref().clone()?;
     let surface = q.table::<MountingSurface>().get(view.surface).cloned()?;

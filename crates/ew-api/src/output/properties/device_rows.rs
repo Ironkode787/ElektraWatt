@@ -408,7 +408,7 @@ impl Session {
         // the junction notation prints (`-X1:1/a`, `-102G1:−#1`), in natural order of the label; over several
         // devices the n-th rows merge.
         // One device's row names its connection point too (`function`, `idx` and whether it is marked unused), so that
-        // it can be marked unused or used again (FT-1649).
+        // it can be marked unused or used again.
         let per_device: Vec<Vec<(String, Value)>> = devices
             .iter()
             .map(|d| {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1899: an enclosure made from a part and its mounting plate take the numbering scheme's tags, not frozen ones, so
+//! An enclosure made from a part and its mounting plate take the numbering scheme's tags, not frozen ones, so
 //! the check reports no "frozen, deviates from scheme" (EW-NUM-001) for them right after they are made. The enclosure's
 //! device, which no page draws, prints no page in its tag; its counter is the next one no other `UC` tag holds.
 
@@ -9,8 +9,8 @@ use crate::common;
 
 use ew_api::AnyCommand;
 use ew_api::checks::{CheckMode, PRE_DELIVERY};
-use ew_ids::{Id, Uuid};
 use ew_derive::{DeviceTag, Q};
+use ew_ids::{Id, Uuid};
 use ew_schema::{Device, Enclosure, MountingSurface};
 use serde_json::json;
 

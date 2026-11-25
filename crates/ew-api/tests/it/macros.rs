@@ -264,7 +264,7 @@ fn the_psu_block_saves_and_its_insertion_lists_the_conflicts() {
 }
 
 /// MC-3: the supply and its breaker inserted on folio 106 yield -106G1 and -106F1 with the IDs
-/// v5(instance, local) (D13), one undo step, no conflict.
+/// v5(instance, local), one undo step, no conflict.
 #[test]
 fn the_psu_inserts_with_new_identities_and_derived_tags() {
     let (_root, t, lib) = user_library("ew-api-mc3");

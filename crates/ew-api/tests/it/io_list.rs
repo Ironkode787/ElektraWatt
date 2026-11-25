@@ -21,8 +21,8 @@ use crate::common;
 
 use ew_api::output::{RowExport, row_export};
 use ew_api::{AnyCommand, CmdError, Session};
-use ew_ids::Id;
 use ew_derive::{DeriveNote, Q};
+use ew_ids::Id;
 use ew_reports::BlockRows;
 use ew_reports::csv::row_texts;
 use ew_schema::{Record, ReportBlock, ReportKind, ReportSource};

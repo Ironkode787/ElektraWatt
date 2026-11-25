@@ -267,7 +267,7 @@ pub fn is_scalar(ty: &FieldType) -> bool {
 }
 
 /// The PLC grid's and the bus navigator's cells whose field is not a scalar but has a typed editor in
-/// `Session::parse_field_input`: a channel's address and target, a module's slot, a bus port's address (FT-856).
+/// `Session::parse_field_input`: a channel's address and target, a module's slot, a bus port's address.
 const TYPED_PLC: [(&str, &str); 5] = [
     ("channel", "address"),
     ("channel", "target"),
@@ -306,9 +306,9 @@ pub fn cell_reason_key(table: &NavTable, node: &NavNode, column: usize) -> Optio
     }
     match route_type(kind, path) {
         Some(ty) if is_scalar(&ty) => None,
-        // FT-429: a cable's length source has its typed editor (`parse_field_input`).
+        // A cable's length source has its typed editor (`parse_field_input`).
         Some(_) if (kind.as_str(), path.as_str()) == ("device", "cable.length") => None,
-        // FT-429: the PLC grid's typed editors.
+        // The PLC grid's typed editors.
         Some(_) if TYPED_PLC.contains(&(kind.as_str(), path.as_str())) => None,
         Some(_) => Some(key!("table-reason-property-grid")),
         None => Some(key!("table-reason-no-command")),
@@ -347,7 +347,7 @@ pub struct GestureCell {
     pub targets: Vec<Uuid>,
     /// The parsed value or why not.
     pub value: CellValue,
-    /// The row number of an earlier cell that sets one of its records to a different value (D13).
+    /// The row number of an earlier cell that sets one of its records to a different value.
     pub conflict: Option<usize>,
     /// Dropped from the gesture (`table.drop`).
     pub dropped: bool,
@@ -358,7 +358,7 @@ pub struct GestureCell {
     /// A defining cell in a gesture with cells of another row or of a defined record (one `potential.define` per
     /// gesture).
     pub define_clash: bool,
-    /// A defining Type or Voltage cell whose row gets no name in the gesture (FT-577: "Name the
+    /// A defining Type or Voltage cell whose row gets no name in the gesture ("Name the
     /// potential first").
     pub define_unnamed: bool,
 }
@@ -541,7 +541,7 @@ pub fn compose_leaf(
     compose(member, path, base.value.as_ref(), leaf)
 }
 
-/// Marks the same-record conflicts of a gesture (D13), in cell order, over the cells that are not dropped and parse.
+/// Marks the same-record conflicts of a gesture, in cell order, over the cells that are not dropped and parse.
 pub fn mark_conflicts(gesture: &mut Gesture) {
     // A defining cell compiles to its own `potential.define`: it may share the gesture only with defining cells of
     // its row.

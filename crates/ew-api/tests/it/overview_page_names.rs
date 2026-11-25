@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1926: the new pages of an overview that runs over several pages are siblings, `104.1`, `104.2`, `104.3`, not
+//! The new pages of an overview that runs over several pages are siblings, `104.1`, `104.2`, `104.3`, not
 //! sub-pages of one another (doc 11 §5.5).
 
 use crate::common;

@@ -26,7 +26,7 @@ struct DeviceRow {
     part: String,
 }
 
-/// A device's row label: its tag; an earth connection, which has none (FT-1820), by its pin's designation (`PE`).
+/// A device's row label: its tag; an earth connection, which has none, by its pin's designation (`PE`).
 fn row_label(q: &Q, d: Id<Device>) -> String {
     let tag = short_tag(q, d);
     if !tag.is_empty() {

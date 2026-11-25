@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The bus and PLC rows of the property sheet: a channel's binding and a net's master in words, a bus port's
-//! address shown and read back (FT-856), and a bus line's cable and plugs (doc 10 §2.7).
+//! address shown and read back, and a bus line's cable and plugs (doc 10 §2.7).
 //!
 //! Not here: the PLC typed editors (`inputs.rs`); the fluid rows (`fluid_rows.rs`).
 
@@ -35,7 +35,7 @@ pub(super) fn binding_in_words(q: &Q, built: &mut [Built]) {
     }
 }
 
-/// FT-856: a bus port's address row in words, as reports print it (`ew_derive::net_address_text`): `TBD` for the
+/// A bus port's address row in words, as reports print it (`ew_derive::net_address_text`): `TBD` for the
 /// open item, nothing for a port without an address, `3`, `cpx-1 192.168.0.10`, `pos 2 alias 1001`, `port 3`.
 pub(super) fn bus_address_in_words(built: &mut [Built]) {
     for b in built.iter_mut().filter(|b| b.row.path == "bus_port.address") {
@@ -64,7 +64,7 @@ impl Session {
     }
 }
 
-/// FT-856: a bus port's address as its row shows it (`bus_address_in_words`), read back: `TBD`, nothing (no
+/// A bus port's address as its row shows it (`bus_address_in_words`), read back: `TBD`, nothing (no
 /// address), a number (a PROFIBUS station address), `port <n>` (an IO-Link port), `pos <n>` and `alias <n>` (EtherCAT),
 /// else a PROFINET device name with its IPv4 address and, after `mask` and `gateway`, those; `None` for a JSON object,
 /// the field's own form, parsed as before.

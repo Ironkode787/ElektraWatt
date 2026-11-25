@@ -210,7 +210,7 @@ fn invalid_path(e: CmdError) -> (String, String) {
     }
 }
 
-/// EM-1 (D7): `embed_command` by reference embeds EW-GEN-PSU-1 with its manufacturer and its template FnDef in one
+/// EM-1: `embed_command` by reference embeds EW-GEN-PSU-1 with its manufacturer and its template FnDef in one
 /// command, and the command replays on a session with no library.
 #[test]
 fn embedding_by_reference_carries_the_closure_and_replays_without_a_library() {
@@ -365,7 +365,7 @@ fn every_rejection_of_part_assign_names_its_pointer() {
     );
 }
 
-/// EM-3 (D8, D10): assigning EW-GEN-MCB-4 to -102F1 from the company library embeds the part and its maker's
+/// EM-3: assigning EW-GEN-MCB-4 to -102F1 from the company library embeds the part and its maker's
 /// manufacturer copy, sets the part use and prints the manufacturer, the part number and the rating in the slots.
 #[test]
 fn assigning_from_a_company_library_embeds_and_prints() {
@@ -629,7 +629,7 @@ fn a_symbol_update_is_minor_with_a_moved_anchor_and_refused_without_a_connected_
     };
     // The attached records in words, a wire by its number, never by its ID; whole: the six outgoing marks of 101
     // (1L1, 1L2, 1L3, PE, 0V and 24V), each with its wire.
-    // Each pin by its interruption point's name and printed designation, never by a raw member (FT-1556).
+    // Each pin by its interruption point's name and printed designation, never by a raw member.
     let list = reason
         .strip_prefix("the update leaves connected CPs without a CP; map them in `cp_maps`: ")
         .unwrap_or_else(|| panic!("{reason}"));
@@ -898,7 +898,7 @@ const PRE_FT698: [&str; 3] = [
 /// function-text fallback and names its FnDef's 0.1 again.
 fn before_ft698(doc: &LibDocument) -> LibDocument {
     let mut v = serde_json::to_value(doc).unwrap();
-    // The Dutch name came later still (FT-1530).
+    // The Dutch name came later still.
     v["name"].as_object_mut().unwrap().remove("nl");
     if v["fndef"]["version_req"] == json!("^0.2") {
         v["fndef"]["version_req"] = json!("^0.1");
@@ -1055,7 +1055,7 @@ fn a_damaged_copy_is_named_by_its_installed_part() {
     );
 }
 
-/// FT-830: a newer version of a part copy that adds a PLC section reaches the devices that use it through
+/// A newer version of a part copy that adds a PLC section reaches the devices that use it through
 /// `library.update` (the copy keeps its ID): N0 gives -102G1 the `plc_module` aspect and N1 its channels in the same
 /// step.
 #[test]

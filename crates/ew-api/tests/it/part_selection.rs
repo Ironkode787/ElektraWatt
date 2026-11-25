@@ -795,7 +795,7 @@ fn the_copy(s: &Session, copy: Uuid) -> (String, String) {
     )
 }
 
-/// PS8 below the shell (D22, FT-396): P1 holds FX-MCB-1PN 1.0.0 on -102F1, P2 holds 1.1.0 (a description change, a
+/// PS8 below the shell: P1 holds FX-MCB-1PN 1.0.0 on -102F1, P2 holds 1.1.0 (a description change, a
 /// patch). -102F1 copied in P1 and pasted in P2: `paste_versions` lists the copy as a patch, not newer; `edit.paste`
 /// refuses without `adapt` and with it reuses P2's copy (one undo step). Pasted the other way the pasted version is
 /// newer: `paste_update` plans `library.update` from the fragment's document, and after it the paste needs no choice
@@ -975,7 +975,7 @@ fn a_strip_without_terminals_is_offered_the_end_bracket() {
     );
 }
 
-/// FT-1766: a new part made without a user library is a project-local part with its bus section, drawn by its first
+/// A new part made without a user library is a project-local part with its bus section, drawn by its first
 /// interface's port function; a second new part of the same number and manufacturer is refused at the part number
 /// (a new part never overwrites another), and so is a port count of 0.
 #[test]
@@ -1041,7 +1041,7 @@ fn a_proposed_interface_name_follows_its_bus() {
     assert_eq!(d.text("bus.0.interface"), "ETH", "a typed name stays");
 }
 
-/// FT-1766: the PLC form of a new part refuses a pin pattern that gives no pin, at the field, and makes a card's PLC
+/// The PLC form of a new part refuses a pin pattern that gives no pin, at the field, and makes a card's PLC
 /// section, its pins as the CP pattern (channel pins, then the supply's L+ and M) and a black-box main function over
 /// them, as the starter cards carry.
 #[test]

@@ -3,7 +3,7 @@
 
 //! FR-PLC-008: a profile file put into a library is chosen by `plc.set_profile` without a code change.
 //! A fixture library holds a third absolute profile (`%Q0.1`-style, its own `profile.id`); the command-log line that
-//! pins it embeds it first (D8), the sample's configuration project's channels then render in it, and the project,
+//! pins it embeds it first, the sample's configuration project's channels then render in it, and the project,
 //! saved and reopened without the library, still renders them from its copy. T1 (a name at hand neither built in nor
 //! held) and T2 (a profile file that does not render: refused by `library.embed`, left out of the profiles at hand,
 //! noted in the library's listing) are asserted whole.

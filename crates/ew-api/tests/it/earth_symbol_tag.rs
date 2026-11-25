@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! An earth symbol has no tag (FT-1820, doc 03 §8.2): it takes no counter of its letter, so the cables of its page
+//! An earth symbol has no tag (doc 03 §8.2): it takes no counter of its letter, so the cables of its page
 //! keep theirs; it prints none; and no check asks for its letter or finds it twice.
 
 use crate::common;

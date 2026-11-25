@@ -90,13 +90,7 @@ fn qet_conversion_details_survive_a_portable_round_trip() {
 }
 
 /// A fresh library `symbols.ewlib` in its own directory, with its registry.
-pub fn library(
-    name: &str,
-) -> (
-    ew_testdir::Tmp,
-    ew_api::library::Registry,
-    ew_ids::Uuid,
-) {
+pub fn library(name: &str) -> (ew_testdir::Tmp, ew_api::library::Registry, ew_ids::Uuid) {
     let dir = ew_testdir::Tmp::new(name);
     let lib = dir.join("symbols.ewlib");
     let tiers = ew_api::library::LibraryTiers::under(&dir, &dir.join("cache"), vec![], vec![lib.clone()]);

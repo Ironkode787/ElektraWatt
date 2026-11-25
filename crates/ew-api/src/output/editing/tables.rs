@@ -298,7 +298,7 @@ pub struct TableIp {
     /// a point without a partner.
     pub continuation: String,
     /// Whether it is an external point: it names an external reference (a supply coming in from another drawing
-    /// set, FT-1699).
+    /// set).
     pub external: bool,
 }
 
@@ -409,7 +409,7 @@ pub struct TableCp {
     /// A terminal CP's level (doc 08 §6.3: a block of two levels); `None` for a CP without one.
     pub level: Option<u8>,
     /// Whether it is a fluid port (a pneumatic, vacuum or hydraulic CP): autoconnect joins a fluid port to a fluid port
-    /// only (FT-1733).
+    /// only.
     pub fluid: bool,
     /// Its side of EW-FL-012 (a valve's working or exhaust port): autoconnect never joins two sides that conflict.
     pub valve_port: Option<ew_derive::ValvePort>,

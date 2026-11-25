@@ -225,7 +225,7 @@ impl ViewParts {
             },
             // The layout's page: a valve terminal drawn as its cells is an outline round its valves, the texts beside a
             // plug's pins are fixed texts the others keep clear of, and a strip's drawn bridge is a line the texts keep
-            // clear of (FT-2021).
+            // clear of.
             Layer::Labels => ViewParts {
                 frame: Form::Plain,
                 grid: true,

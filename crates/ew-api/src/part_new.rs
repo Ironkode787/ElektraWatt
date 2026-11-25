@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A new part made in the window (`part.new`, FT-1766): [`Session::new_part_draft`] opens the part editor on an empty
+//! A new part made in the window (`part.new`): [`Session::new_part_draft`] opens the part editor on an empty
 //! draft; [`Session::new_part_command`] turns the draft into the part and the one command that brings it into the
 //! project.
 //!
@@ -418,7 +418,7 @@ impl Session {
 
     /// The `parts.import` of a project-local part: the manufacturer a part copy of the project names under that name,
     /// else a new project-local manufacturer record.
-    /// Saves a corrected part of My parts (a held copy of the person's own library, FT-1766): the part with the forms'
+    /// Saves a corrected part of My parts (a held copy of the person's own library): the part with the forms'
     /// identity and sections as the library item's next patch version, written into My parts, and the
     /// `library.update` that brings the project's copy to it (Bulk: its card lists the changed fields and the devices,
     /// and the devices that use the copy take the new connection points; a bus port a function carries keeps its
@@ -498,7 +498,7 @@ impl Session {
             .flatten()
     }
 
-    /// Takes part `item` out of My parts, the person's own library `library` (`part.remove_own`, FT-1766, doc 07
+    /// Takes part `item` out of My parts, the person's own library `library` (`part.remove_own`, doc 07
     /// §2.5): the next projects no longer offer it. A project that holds a copy of it keeps the copy, and its devices
     /// keep their part: each project embeds the parts it uses, so no project loses a part this way. The devices of
     /// this project that use its copy are named in the answer.

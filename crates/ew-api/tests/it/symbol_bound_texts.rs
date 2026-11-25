@@ -1,15 +1,15 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Texts bound to a symbol on the sample's page 102 (FT-1875; doc 06 §3.8): a function text over a path prints its
+//! Texts bound to a symbol on the sample's page 102 (doc 06 §3.8): a function text over a path prints its
 //! device's function text and follows a change of it; a strip named on a page by a text bound to one of its terminals
 //! is named there once, by that text.
 
 use ew_api::output::page_layer;
 use ew_api::{AnyCommand, Session};
-use ew_ids::{Id, Uuid};
 use ew_derive::{PageRef, Q};
 use ew_dl::{ItemKind, Layer};
+use ew_ids::{Id, Uuid};
 use ew_schema::{Page, Representation};
 use serde_json::{Value, json};
 

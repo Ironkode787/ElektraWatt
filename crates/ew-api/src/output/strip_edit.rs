@@ -4,16 +4,16 @@
 //! The strip editor's door below the shell: [`Session::strip_edit`]
 //! compiles one strip gesture into one command, and [`Session::strip_edits`] several cell gestures into one.
 //!
-//! - **Group labels** (D8): setting the label L on terminals E of a strip rewrites `strip.groups`: every group that
+//! - **Group labels**: setting the label L on terminals E of a strip rewrites `strip.groups`: every group that
 //!   covers a member of E splits into the parts of its range without E's sequence numbers (each keeps its label and
 //!   unknown members; a part covering no terminal is dropped); the other groups stay verbatim; for a non-empty L, each
 //!   run of E consecutive in the strip's terminal order becomes a group L, merged with a directly adjacent part
 //!   labelled L that has no unknown members; the list is sorted by `from_seq` (stable). An empty L only removes.
 //! - **Bridge parts** (D6, D7): the part of the bridge group of each terminal is set on the group's carrier
 //!   (`overrides.wire_part`), the part text resolved among the `accessory` parts; an empty text clears it.
-//! - **Accessories** (D5, D7): one `fields.set` of `strip.accessories` per strip, kept sorted by `after_seq` (stable);
+//! - **Accessories**: one `fields.set` of `strip.accessories` per strip, kept sorted by `after_seq` (stable);
 //!   an accessory's part text is resolved among the part kinds of its kind ([`accessory_part_kinds`]).
-//! - **Insert and move** (D4, D14): one `terminal.insert` (the reference terminal's function definition and part uses,
+//! - **Insert and move**: one `terminal.insert` (the reference terminal's function definition and part uses,
 //!   the next free whole-number designations) or one `terminal.move`.
 //!
 //! Several field edits are applied in order to working copies of the values they touch and compile to one
@@ -34,32 +34,32 @@ use crate::{AnyCommand, Session};
 /// The strip-editor columns whose cells compile through [`Session::strip_edit`].
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum StripCell {
-    /// A terminal's group label (D8).
+    /// A terminal's group label.
     Group,
-    /// A terminal's bridge part (D6).
+    /// A terminal's bridge part.
     BridgePart,
-    /// An accessory's part (D5).
+    /// An accessory's part.
     AccessoryPart,
 }
 
 /// One strip gesture.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum StripEdit {
-    /// The group label `label` on `terminals` (D8); `""` removes them from every group.
+    /// The group label `label` on `terminals`; `""` removes them from every group.
     GroupLabel {
         /// The terminal devices.
         terminals: Vec<Uuid>,
         /// The label.
         label: String,
     },
-    /// The part of the bridges of `terminals` (D6, D7); `""` clears it.
+    /// The part of the bridges of `terminals`; `""` clears it.
     BridgePart {
         /// The terminal devices.
         terminals: Vec<Uuid>,
         /// The part text.
         part: String,
     },
-    /// The part of accessory `index` of `strip` (D5, D7).
+    /// The part of accessory `index` of `strip`.
     AccessoryPart {
         /// The strip device.
         strip: Uuid,
@@ -86,7 +86,7 @@ pub enum StripEdit {
         /// The indexes in `Strip.accessories`.
         indexes: Vec<u32>,
     },
-    /// `count` new terminals before `before` (absent: at the end), copying the reference terminal (D14).
+    /// `count` new terminals before `before` (absent: at the end), copying the reference terminal.
     Insert {
         /// The strip device.
         strip: Uuid,
@@ -97,7 +97,7 @@ pub enum StripEdit {
         /// The designation (count 1 only).
         designation: Option<String>,
     },
-    /// Moves `terminals` before `before` (absent: to the end) (D4).
+    /// Moves `terminals` before `before` (absent: to the end).
     Move {
         /// The terminal devices.
         terminals: Vec<Uuid>,
@@ -111,13 +111,13 @@ pub enum StripEdit {
 pub enum StripEditError {
     /// A reason key (`reason-no-accessory-part`, `table-no-bridge`).
     Refused(&'static str),
-    /// A sentence by key, for the error line or the card, in the window's language (FT-1555).
+    /// A sentence by key, for the error line or the card, in the window's language.
     Invalid(crate::Text),
-    /// Several part copies fit (D7): every one as a choice, its value the text `id:<uuid>` that resolves to it.
+    /// Several part copies fit: every one as a choice, its value the text `id:<uuid>` that resolves to it.
     Ambiguous(Vec<FieldChoice>),
 }
 
-/// The word an accessory row shows for its kind (D3).
+/// The word an accessory row shows for its kind.
 pub(crate) fn accessory_word(kind: &AccessoryKind) -> &'static str {
     match kind {
         AccessoryKind::EndPlate => "End plate",
@@ -155,7 +155,7 @@ pub fn accessory_part_kinds(word: &str) -> &'static [&'static str] {
     }
 }
 
-/// The part kinds of a bridge's part (D7).
+/// The part kinds of a bridge's part.
 const BRIDGE_PART_KINDS: &[&str] = &["accessory"];
 
 /// The edits of field values on their way to one command.
@@ -415,7 +415,7 @@ impl ParseCx for WithPending<'_> {
     }
 }
 
-/// The copy of a part text among `kinds` (D7).
+/// The copy of a part text among `kinds`.
 fn resolve(cx: &dyn ParseCx, text: &str, kinds: &[&str]) -> Result<String, StripEditError> {
     match find_part(cx, text, Some(kinds)) {
         Ok(id) => Ok(id),
@@ -432,7 +432,7 @@ fn resolve(cx: &dyn ParseCx, text: &str, kinds: &[&str]) -> Result<String, Strip
     }
 }
 
-/// The choices of an ambiguous part (D7): the long display form, the value `id:<uuid>`.
+/// The choices of an ambiguous part: the long display form, the value `id:<uuid>`.
 fn choices(hits: Vec<PartCopyText>) -> Vec<FieldChoice> {
     hits.into_iter()
         .map(|c| FieldChoice {

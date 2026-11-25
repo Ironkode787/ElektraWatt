@@ -23,9 +23,9 @@ use ew_api::output::{RowExport, page_layer, row_export};
 use ew_api::{
     AnyCommand, CmdError, NewProjectKind, Origin, ProjectTemplate, Session, SessionOptions, Submit,
 };
-use ew_ids::Id;
 use ew_derive::{DeriveNote, PageOrder, PageRef, Q};
 use ew_dl::Layer;
+use ew_ids::Id;
 use ew_reports::csv::row_texts;
 use ew_reports::{BlockRows, RowKey, RowSet, RowSetStatus, project_rows};
 use ew_scene::forms::OverflowKind;
@@ -370,9 +370,7 @@ fn new_placeholder(q: &Q, what: &str) -> ew_schema::LibCopy<ew_schema::Part> {
     let item = ew_ids::Uuid::from_u128(0x5306_0002_0000_4000_8000_0000_0000_0001);
     copy.item_id = Id::from_uuid(item);
     // A test library of its own: `part.assign` embeds copies of other libraries only.
-    copy.library_id = Id::from_uuid(ew_ids::Uuid::from_u128(
-        0x5306_0002_0000_4000_8000_0000_0000_0002,
-    ));
+    copy.library_id = Id::from_uuid(ew_ids::Uuid::from_u128(0x5306_0002_0000_4000_8000_0000_0000_0002));
     copy.id = ew_ids::v5::lib_copy_id(copy.library_id.as_uuid(), item);
     copy.item.meta.key = Some("OI3-TBD".parse().expect("a key"));
     copy.item.description = ew_mltext::MlText::neutral(what);

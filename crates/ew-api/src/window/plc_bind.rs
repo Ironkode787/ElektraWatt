@@ -99,7 +99,7 @@ fn channel_pins(q: &Q, module: Id<Device>) -> BTreeSet<(Id<Function>, u16)> {
 }
 
 impl Session {
-    /// The internal coil a channel dropped on a valve's symbol binds (FT-740, FR-PLC-020): a valve draws no
+    /// The internal coil a channel dropped on a valve's symbol binds (FR-PLC-020): a valve draws no
     /// coil CP, since an internal coil is never drawn (doc 11 §3.1), so a drop on any port of a valve function whose
     /// device declares solenoids reaches its coil. Of the declared solenoids with an internal coil CP: the one whose
     /// coil the channel already binds, else the one the channel's module maps the channel to at the valve's position

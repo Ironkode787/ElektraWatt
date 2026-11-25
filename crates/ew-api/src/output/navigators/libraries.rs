@@ -13,7 +13,7 @@
 //! holds under "In this project"; a row's key names the macro (`macro:<library>:<item>`, `held:<copy>`), which
 //! [`Session::macro_detail`] reads.
 //!
-//! Both read [`Session::libraries`] as it is now, never a command: the tables are front-end views (D7).
+//! Both read [`Session::libraries`] as it is now, never a command: the tables are front-end views.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -276,7 +276,7 @@ fn copy_label(q: &Q, kind: Kind, copy: Uuid) -> String {
 }
 
 /// [`copy_label`] without its last fallback, the kind's word: `None` for a copy the project does not hold or one
-/// without a name. The property grid names a referenced copy by it (FT-430: a representation's Symbol row and a
+/// without a name. The property grid names a referenced copy by it (a representation's Symbol row and a
 /// function's Definition row printed the copy's UUID).
 pub(crate) fn copy_name(q: &Q, kind: Kind, copy: Uuid) -> Option<String> {
     fn key<T>(c: &LibCopy<T>, meta: impl Fn(&T) -> &ew_schema::ItemMeta) -> Option<String> {

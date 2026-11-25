@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A wire into a mark stays on the mark's line (FT-1909, docs/design/06a-drafting.md §1.2, C8): on the sample's PLC
+//! A wire into a mark stays on the mark's line (docs/design/06a-drafting.md §1.2, C8): on the sample's PLC
 //! page 104, whose marks' wires run straight to their trunks, Arrange and route's plan lays no trunk off a mark's line.
 
 use ew_drafting::{End, Role, Scope, arrange};

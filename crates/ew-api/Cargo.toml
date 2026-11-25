@@ -29,7 +29,7 @@ ew-import-qet = { path = "../ew-import-qet" }
 ew-import-eplan = { path = "../ew-import-eplan" }
 ew-import-catalog = { path = "../ew-import-catalog" }
 ew-import-tables = { path = "../ew-import-tables" }
-# DXF pages, underlays, symbols and part outlines (WP-S3.19, doc 14 §6).
+# DXF pages, underlays, symbols and part outlines (doc 14 §6).
 ew-import-dxf = { path = "../ew-import-dxf" }
 ew-jobs = { path = "../ew-jobs" }
 # The snapshot type and its revision. Without `raw-read`: the Session hands snapshots out and never reads rows
@@ -37,8 +37,7 @@ ew-jobs = { path = "../ew-jobs" }
 ew-model = { path = "../ew-model" }
 # The derivation queries the Session runs. Tracked reads only: no `raw-read`.
 ew-derive = { path = "../ew-derive" }
-# The report engine: the Session installs it on every `Q` so that `page_order` includes generated report pages
-# (WP-S3.03).
+# The report engine: the Session installs it on every `Q` so that `page_order` includes generated report pages.
 ew-reports = { path = "../ew-reports" }
 # The PLC exchange (doc 10 §4): the exchange image, the merge preview, the tag table's rows, the PLCopen writer.
 ew-plc = { path = "../ew-plc" }
@@ -46,22 +45,22 @@ ew-plc = { path = "../ew-plc" }
 ew-schema = { path = "../ew-schema" }
 # The command log parser (`Session::run_script`, doc 17 §3.5).
 serde_json = "1.0.154"
-# The typed JSON results of the `ew` subcommands and their published schemas (`cli_results`, WP-S1.22 D5); both
+# The typed JSON results of the `ew` subcommands and their published schemas (`cli_results`); both
 # already in the graph.
 serde.workspace = true
 schemars = "1.2.3"
-# The export job (FT-59, `output`): the bundled fonts that shape the page texts and that the writers embed, and the
+# The export job (`output`): the bundled fonts that shape the page texts and that the writers embed, and the
 # display-list types of the per-layer page queries.
 ew-text = { path = "../ew-text" }
 ew-dl = { path = "../ew-dl" }
 # The export job: the PDF document ID hashes the export input (doc 09 §4.3 rule 2); the seal test of the
 # compiled-in generic symbols.
 sha2 = { workspace = true }
-# The property grid's field parser and formatter (WP-S2.05 part 1, `output::fields`): the integer value types and the
-# multi-language text (normal edges since cycle 24, decision log ID-600).
+# The property grid's field parser and formatter (`output::fields`): the integer value types and the
+# multi-language text (normal edges since cycle 24).
 ew-units = { path = "../ew-units" }
 ew-mltext = { path = "../ew-mltext" }
-# Find and replace (WP-S2.05 part 2, `window::find`, §4.1 rule 2): regular expressions, at the version ew-schema uses,
+# Find and replace (`window::find`, §4.1 rule 2): regular expressions, at the version ew-schema uses,
 # with the Unicode case folding and Perl classes a search pattern needs.
 regex = { version = "1.13.1", default-features = false, features = ["std", "unicode-case", "unicode-perl"] }
 # What the session refuses or names as a text by key, and the texts of the crates below it (architecture §18).
@@ -85,17 +84,17 @@ ew-testids = { path = "../ew-testids" }
 # The tests read and count rows through the untracked readers (`tests/it/external.rs`, `persistence.rs`) and apply
 # raw ops to a snapshot (`memo_oracle.rs`).
 ew-model = { path = "../ew-model", features = ["raw-read"] }
-# tests/it/page_output.rs: page display lists, PNG and PDF of the sample's folios (WP-S3.04).
+# tests/it/page_output.rs: page display lists, PNG and PDF of the sample's folios.
 ew-render-cpu = { path = "../ew-render-cpu" }
 ew-ids = { path = "../ew-ids" }
 png = "0.18.1"
 # tests/it/page_output.rs: inflates the PDF content streams to read the line widths.
 flate2 = "1.1.10"
 insta = { version = "1.49.0", default-features = false }
-# tests/it/drawn_path_agreement.rs: the scene's path between any two ends is ew-derive's (decision log ID-1110).
+# tests/it/drawn_path_agreement.rs: the scene's path between any two ends is ew-derive's.
 proptest = { version = "1.12.0", default-features = false, features = ["std"] }
 # The builder DSL (`tests/it/part_selection.rs`) and the synthetic parts library (`libraries.rs`,
 # `library_parts.rs`) of ew-testkit; a dev-only edge, as every edge to ew-testkit (doc 04 §3).
 ew-testkit = { path = "../ew-testkit" }
-# The fresh temporary directory of the tests (FT-569; dev-only edge, `[allowed_dev_edges]`).
+# The fresh temporary directory of the tests (dev-only edge, `[allowed_dev_edges]`).
 ew-testdir = { path = "../ew-testdir" }

@@ -3,7 +3,7 @@
 
 //! The property sheet of a generated page of the sample is titled by the page's folio and
 //! derived title ("901 Partlist 1"), not by its report block's title format, and its Title row shows the title the
-//! page prints (FT-2095).
+//! page prints.
 
 use crate::common;
 
@@ -54,7 +54,7 @@ fn a_generated_page_is_titled_by_its_folio_and_derived_title() {
 }
 
 /// Two pages of one report picked together print a title each: their Title row shows the block's format they share,
-/// in English and Dutch (doc 09 §3.8), not the first page's title (FT-2095).
+/// in English and Dutch (doc 09 §3.8), not the first page's title.
 #[test]
 fn pages_picked_together_show_the_title_format_they_share() {
     let s = common::sample();

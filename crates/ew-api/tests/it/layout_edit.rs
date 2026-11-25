@@ -44,8 +44,7 @@ fn with_accessory() -> Session {
         "mech": {"width": 9000000, "height": 45000000, "depth": 40000000, "mount_kind": "on_parent"}
     });
     let hash =
-        ew_format::library_copy_hash(&ew_schema::LibDocument::from_value(doc.clone()).unwrap())
-            .unwrap();
+        ew_format::library_copy_hash(&ew_schema::LibDocument::from_value(doc.clone()).unwrap()).unwrap();
     doc["sha256"] = json!(ew_schema::Sha256(hash).to_string());
     lib.push(ew_schema::LibDocument::from_value(doc).unwrap());
     common::session_of(project, records, lib)
@@ -989,7 +988,7 @@ fn a_new_panel_page_takes_the_fitting_scale_with_its_surface() {
     assert_eq!(again.params.get("scale"), None);
 }
 
-/// Fit the layout to the sheet (FT-2030): an older layout page, its plate small in a corner, takes the fitting scale
+/// Fit the layout to the sheet: an older layout page, its plate small in a corner, takes the fitting scale
 /// and the centred datum in one command that keeps its labels and moves no stored pose; a fitted page offers nothing.
 #[test]
 fn fit_the_layout_to_the_sheet_changes_the_scale_and_the_datum_only() {

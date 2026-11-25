@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A part whose type is not known yet (doc 07 §3.3, FT-1878): `part.placeholder` gives devices one project-local
+//! A part whose type is not known yet (doc 07 §3.3): `part.placeholder` gives devices one project-local
 //! placeholder part numbered TBD with the person's words, which the parts list prints as a row of its own and the
 //! check notes as a decision (info online, an error in release mode, no manufacturer asked); a real part chosen for
 //! the devices replaces it in one step; a copy of the page carries it.

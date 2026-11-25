@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Add to my parts library as a read (FT-2081): the registry's part is taken first, the file parsed against it off the
+//! Add to my parts library as a read: the registry's part is taken first, the file parsed against it off the
 //! registry's thread and written at the end, into the library as it is then.
 
 use crate::common::{self, Dir};

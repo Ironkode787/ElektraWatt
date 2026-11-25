@@ -485,7 +485,7 @@ fn an_unreadable_generation_holds_saves_until_it_reads() {
     s.save().expect("saves again");
 }
 
-/// XC-6: a crash after an applied external change with unsaved edits recovers the live model (D23): the journal's
+/// XC-6: a crash after an applied external change with unsaved edits recovers the live model: the journal's
 /// segment follows the incoming generation, and nothing is killed: the reopen runs over the leftover segment.
 #[test]
 fn a_crash_after_an_apply_recovers_the_live_model() {
@@ -683,9 +683,7 @@ fn ew_core_013_renumbers_the_newer_after_a_merge() {
     vfs.put(&shard_path, &bytes);
     let manifest_path = ew_store::join(&root(), "manifest.json");
     let mut manifest: Value = serde_json::from_slice(&vfs.read(&manifest_path).unwrap()).unwrap();
-    manifest["files"][&shard] = json!(ew_format::hash_text(&ew_format::sha256(
-        &bytes
-    )));
+    manifest["files"][&shard] = json!(ew_format::hash_text(&ew_format::sha256(&bytes)));
     let mut merged = |m: bool| {
         manifest["merged"] = json!(m);
         vfs.put(
@@ -807,7 +805,7 @@ fn lock_time(vfs: &Arc<MemVfs>) -> std::time::SystemTime {
 }
 
 /// The window's disk poll and a command log's lines refresh the lock once [`ew_store::HEARTBEAT`] has passed, so a
-/// project kept open is not taken over as stale after an hour (FT-1662).
+/// project kept open is not taken over as stale after an hour.
 #[test]
 fn the_disk_poll_and_a_command_log_keep_the_lock_fresh() {
     let vfs = project();

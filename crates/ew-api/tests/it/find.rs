@@ -41,7 +41,7 @@ fn subjects(r: &FindResults) -> Vec<String> {
     r.hits.iter().map(|h| h.subject.clone()).collect()
 }
 
-/// FR3 (D16): "Spare" in the function texts of 201 is the two spare valves of the valve terminal; on 104 none.
+/// FR3: "Spare" in the function texts of 201 is the two spare valves of the valve terminal; on 104 none.
 #[test]
 fn spare_on_201_is_the_two_spare_valves_and_none_on_104() {
     let s = common::sample();

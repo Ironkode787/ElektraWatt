@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A two-level terminal block with a number on each level (doc 08 §6.3, FT-1878): a terminal joined into another
+//! A two-level terminal block with a number on each level (doc 08 §6.3): a terminal joined into another
 //! terminal of its strip is that one's second level, its symbol printing its number, its wires on the level's
 //! connection points, a row of its own in the terminal diagram and no part of its own in the parts list; two terminals
 //! of one number become one block of that number; a copy of the page carries the block.

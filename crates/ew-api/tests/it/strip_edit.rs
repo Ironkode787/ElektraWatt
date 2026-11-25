@@ -269,7 +269,7 @@ fn bridge_groups_are_br1_and_br2() {
     );
 }
 
-/// SE5: the resolver's kind filter, the long form and the ambiguity (D7).
+/// SE5: the resolver's kind filter, the long form and the ambiguity.
 #[test]
 fn the_part_resolver_filters_by_kind_and_lists_every_match() {
     let mut s = common::sample();

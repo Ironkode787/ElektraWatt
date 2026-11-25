@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! AC-37's DXF half (doc 09 §4.4, doc 14 §6.4; FR-OUT-015, FR-IMP-032): the DXF (AC1024) of the sample's drawn pages
-//! 101 to 105 (terminals among them, FT-1921) has the configured layers, its wires on the wires layer and its symbols as inserts, and
+//! 101 to 105 (terminals among them) has the configured layers, its wires on the wires layer and its symbols as inserts, and
 //! re-imports as graphic pages of the sample within 0.01 mm: every corner and curve end the page draws, and every
 //! text's baseline, prints within 0.01 mm of the re-imported page's on the sheet, through the frame's page-to-sheet
 //! map; as an underlay too. The export's bytes do not depend on the run. A symbol insert and a text come back where

@@ -277,7 +277,7 @@ fn plc_row(s: &Session, station: Uuid, channel: Id<Channel>) -> ew_derive::PlcRo
 
 /// A card's channel bound to the card's own pin has no target (no tracing yet, doc 10 §3.5): it is used once a wire
 /// reaches the pin and spare before, where it printed "used" with the card as its target and EW-POT-009 called the
-/// pin unconnected (FT-903).
+/// pin unconnected.
 #[test]
 fn a_card_channel_is_used_once_a_wire_reaches_its_pin() {
     let (mut s, cpu, di, dout) = three(29);

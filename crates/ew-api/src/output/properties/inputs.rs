@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The parse rules of the property sheet's editors (doc 16 §6.3): a row's typed text read back, the PLC typed editors
-//! (FT-429), a cable's length, a frozen tag, and the choices of a choice editor.
+//! The parse rules of the property sheet's editors (doc 16 §6.3): a row's typed text read back, the PLC typed editors,
+//! a cable's length, a frozen tag, and the choices of a choice editor.
 //!
 //! Not here: a bus port's address (`bus_rows.rs`); the field types' own parsers (`output/fields.rs`).
 
@@ -44,13 +44,13 @@ impl Session {
         {
             return parsed;
         }
-        // FT-856: a bus port's address typed as its row shows it.
+        // A bus port's address typed as its row shows it.
         if (kind, row_path) == ("function", "bus_port.address")
             && let Some(parsed) = bus_address_input(text)
         {
             return parsed;
         }
-        // FT-429: the PLC grid's typed editors. A channel's address and a module's start as the
+        // The PLC grid's typed editors. A channel's address and a module's start as the
         // profile's text or a keyword (the command reads it with the configuration project's profile), a channel's
         // target as a device tag (its main function), a module's slot as a number.
         if let Some(parsed) = self.plc_input(kind, row_path, text) {
@@ -95,7 +95,7 @@ fn offers_library_parts(kind: &str, member: &str, ty: &FieldType) -> bool {
 }
 
 impl Session {
-    /// The PLC typed editors of [`Session::parse_field_input`] (FT-429); `None` for another field
+    /// The PLC typed editors of [`Session::parse_field_input`]; `None` for another field
     /// or a JSON object, the field's own form, parsed as before.
     fn plc_input(&self, kind: &str, row_path: &str, text: &str) -> Option<Result<ParsedInput, InputError>> {
         let t = text.trim();
@@ -177,7 +177,7 @@ pub(crate) fn plc_slot_input(t: &str) -> Result<ParsedInput, InputError> {
     })
 }
 
-/// A cable's length source typed as its words (FT-429): `<number> m` (or the number alone, in metres)
+/// A cable's length source typed as its words: `<number> m` (or the number alone, in metres)
 /// is a manual length, `missing` (or `length missing`, the cable overview's text) none, `from part` the part's.
 /// `None` for anything else (a JSON value, the field's own form, parsed as before).
 fn cable_length_input(text: &str) -> Option<Result<ParsedInput, InputError>> {

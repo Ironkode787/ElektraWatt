@@ -78,7 +78,7 @@ fn rule_kind_word(kind: crate::checks::RuleKind) -> &'static str {
 }
 
 /// The drawables of one finding target: a device the representations of its functions, else where it is drawn as
-/// its members (a cable its cores, a strip its terminals: FT-1924, a cable's finding opened no page); a function its
+/// its members (a cable its cores, a strip its terminals: a cable's finding opened no page); a function its
 /// representations; a representation and a connection themselves; a conductor its core connections; every other
 /// record none.
 fn target_drawables(

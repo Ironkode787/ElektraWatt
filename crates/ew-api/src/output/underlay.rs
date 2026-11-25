@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Underlays (doc 14 §5.5, FR-IMP-030; WP-S3.19): a page of a PDF or a DXF drawing placed under a page by an import
+//! Underlays (doc 14 §5.5, FR-IMP-030): a page of a PDF or a DXF drawing placed under a page by an import
 //! (`import.apply` of one `underlay` page item), and drawn by the export job when its options ask for them: the
 //! window's canvas always, an export only when the user prints underlays.
 //!

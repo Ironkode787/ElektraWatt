@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1768: the datum Enclosure… and the Surface row centre a layout with stands the enclosure in the middle of the
+//! The datum Enclosure… and the Surface row centre a layout with stands the enclosure in the middle of the
 //! frame's drawing area on a frame whose page-to-sheet map has an offset (the starter frames' binding margin). The
 //! drawing area is in page coordinates already; mapping it through the sheet map once more moved the plate off
 //! centre by about the offset.
@@ -12,8 +12,8 @@ use ew_api::AnyCommand;
 use ew_api::output::PageFrameOf;
 use ew_derive::PageRef;
 use ew_ids::{Id, Uuid};
-use ew_units::{Nm, Pt2, Rect};
 use ew_schema::{MountingSurface, Page};
+use ew_units::{Nm, Pt2, Rect};
 use serde_json::json;
 
 const MM: i64 = 1_000_000;

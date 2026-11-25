@@ -12,7 +12,7 @@
 //!
 //! **Replaceable** are the authored values only: a function text, a frozen tag's text, an identifier technical value,
 //! a process tag, a page title or description. A derived tag, a quantity and a library copy's part number are found
-//! but not replaced, each with its reason (D11, D16). A replacement may change only the part of the string that is
+//! but not replaced, each with its reason. A replacement may change only the part of the string that is
 //! stored: a tag's structure prefix and a technical value's `key=` are shown, not written, so a match that reaches
 //! into them makes the hit not replaceable.
 //!

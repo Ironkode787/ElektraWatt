@@ -33,8 +33,7 @@ fn fixture(name: &str) -> ImportInput {
 
 /// A library copy of `doc` with its hash.
 fn copy(mut doc: serde_json::Value) -> LibDocument {
-    let hash =
-        ew_format::library_copy_hash(&LibDocument::from_value(doc.clone()).unwrap()).unwrap();
+    let hash = ew_format::library_copy_hash(&LibDocument::from_value(doc.clone()).unwrap()).unwrap();
     doc["sha256"] = json!(ew_schema::Sha256(hash).to_string());
     LibDocument::from_value(doc).unwrap()
 }

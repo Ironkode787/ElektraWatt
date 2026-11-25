@@ -30,7 +30,7 @@ fn fndef_key(q: &Q, f: &Function) -> Option<String> {
 /// lower-cased, then the CP designations of the function's template entry (else of the FnDef, in `idx` order) joined
 /// by `-`. Category `["Relay", "Contact", "NO"]` with CPs 13 and 14 gives `NO contact 13-14`; a last entry equal to
 /// the CP designations run together is dropped and the one before it capitalised (`["Relay", "Coil", "A1A2"]` with
-/// CPs A1 and A2 gives `Coil A1-A2`); a last entry `CO` reads `Changeover` (FT-752: `Changeover contact 11-12-14`);
+/// CPs A1 and A2 gives `Coil A1-A2`); a last entry `CO` reads `Changeover` (`Changeover contact 11-12-14`);
 /// a category of fewer
 /// than two non-empty entries, or a missing FnDef copy, gives [`fndef_name`]. The Properties grid's "Part function"
 /// row and the picker's meta line read it.
@@ -69,7 +69,7 @@ pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<String> {
     let [.., before, last] = cat.as_slice() else {
         return None;
     };
-    // FT-723: a kind outside the contacts and coils reads in plain words from the display mapping, the CP designations
+    // A kind outside the contacts and coils reads in plain words from the display mapping, the CP designations
     // following as the rule below adds them where the mapping keeps them.
     if let Some((words, with_cps)) = kind_words(before, last) {
         let mut out = words.to_owned();
@@ -89,7 +89,7 @@ pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<String> {
             .map(|c| c.to_uppercase().chain(chars).collect())
             .unwrap_or_default()
     } else {
-        // The change-over kind is spelled out; FT-752: in sentence case (`Changeover contact 11-12-14` beside
+        // The change-over kind is spelled out, in sentence case (`Changeover contact 11-12-14` beside
         // `NO contact 13-14`). The FnDef keeps its category.
         let last = LAST_ENTRY_WORDS
             .iter()
@@ -109,10 +109,10 @@ pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<String> {
     Some(out)
 }
 
-/// The display words of FnDef categories by their last two entries (FT-723), where the generic rule of [`kind_text`]
+/// The display words of FnDef categories by their last two entries, where the generic rule of [`kind_text`]
 /// reads poorly ("Generic decoration", "Point ip 1"): the entry before the last, the last entry, the words in sentence
 /// case as the key of the session's text, and whether the CP designations follow. Display text only: the FnDef keeps its
-/// category. The names print in English here; the window words them in its language by the same keys (FT-752).
+/// category. The names print in English here; the window words them in its language by the same keys.
 const KIND_WORDS: &[(&str, &str, &str, bool)] = &[
     ("Decoration", "Generic", key!("kind-words-decoration"), false),
     ("Overview", "Generic", key!("kind-words-overview"), false),

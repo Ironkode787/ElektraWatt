@@ -36,17 +36,17 @@ use ew_api::output::{
     SurfaceLayer, SymbolsLayer, TablesLayer, WiresLayer, export_pdf_with, page_layer, text_style_table,
 };
 use ew_api::{AnyCommand, CmdError, Recovery, Session, SessionOptions, StoreOptions};
-use ew_ids::{Id, Uuid};
-use ew_units::{Nm, Pt2, Rect};
 use ew_derive::layout::PlacementGeometry;
 use ew_derive::{PageOrder, PageRef, Q, Query};
 use ew_dl::{DisplayList, EntityRef, Item, ItemKind, Layer, PathEl, ShapedRun};
+use ew_ids::{Id, Uuid};
 use ew_scene::forms::SheetMap;
 use ew_scene::panel::{LabelFit, Projection, label_fit, place_label};
 use ew_schema::{
     Carrier, CarrierKind, Device, Enclosure, LayoutSpace, LibCopy, LibDocument, MountingSurface, Page,
     PageItem, PageItemKind, Part, Placement, Record, Sha256, SurfaceLabelMode,
 };
+use ew_units::{Nm, Pt2, Rect};
 use serde_json::{Value, json};
 
 const MM: i64 = 1_000_000;
@@ -257,8 +257,7 @@ fn assign_test_part(s: &mut Session, device: &str, key: &str, width: i64, front_
                 .collect()
         })
         .collect();
-    let hash =
-        ew_format::library_copy_hash(&LibDocument::Part(copy.clone())).expect("a part hashes");
+    let hash = ew_format::library_copy_hash(&LibDocument::Part(copy.clone())).expect("a part hashes");
     copy.sha256 = Sha256(hash);
     let device = dev(s, device);
     run(

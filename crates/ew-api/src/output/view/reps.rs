@@ -285,7 +285,7 @@ fn card_cells(q: &Q, rep: &Representation, function: Id<Function>, pins: &mut [P
             .map(|c| q.get::<ew_derive::ChannelTexts>(c.module))
             .and_then(|texts| {
                 let t = &texts.iter().find(|(id, _)| *id == channel)?.1;
-                // Until a device is wired to it the channel prints its own text, its symbol name (FT-2133).
+                // Until a device is wired to it the channel prints its own text, its symbol name.
                 t.function_text
                     .as_ref()
                     .map(|t| t.neutral_or_first().unwrap_or_default().to_owned())

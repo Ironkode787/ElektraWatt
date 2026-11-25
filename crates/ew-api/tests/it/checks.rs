@@ -60,7 +60,7 @@ fn wire(number: &str) -> String {
         .unwrap_or_else(|| panic!("no wire {number}"))
 }
 
-/// The sample under pre-delivery in release mode: no finding at all (its enclosure's tags are the scheme's, FT-1899), and
+/// The sample under pre-delivery in release mode: no finding at all (its enclosure's tags are the scheme's), and
 /// in particular nothing of FR-CHK-016 (designations) and FR-CHK-017 (interruption points).
 #[test]
 fn the_sample_is_clean_under_pre_delivery() {
@@ -355,7 +355,7 @@ fn shield() -> String {
 }
 
 /// The EW-POT pack of the pre-delivery scheme reports nothing on the sample, the online-only rules nothing in the
-/// drafting scheme (the shield takes the 2.5 mm² the rating at its motor proposes, set by nobody, FT-2090); D-38: the
+/// drafting scheme (the shield takes the 2.5 mm² the rating at its motor proposes, set by nobody); D-38: the
 /// shield wire set below its 2.5 mm² line conductors is an undersized PE wire (EW-POT-006, its target that wire), at
 /// 2.5 mm² the finding is gone.
 #[test]

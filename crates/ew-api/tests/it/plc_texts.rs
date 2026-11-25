@@ -273,7 +273,7 @@ fn the_sample_prints_the_addresses_of_its_bound_devices() {
     for key in [
         "ew.iec.lamp@qet10",
         "ew.iec.position-switch-no@qet10",
-        // FT-1734: the terminal has the slot; the sample has no terminal on a traced path, so it prints nothing.
+        // The terminal has the slot; the sample has no terminal on a traced path, so it prints nothing.
         "ew.iec.terminal@qet10",
         "ew.iso.valve-5-2-sol-spring@qet10",
     ] {

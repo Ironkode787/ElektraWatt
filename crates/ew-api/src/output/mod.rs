@@ -47,7 +47,7 @@
 mod dxf_set;
 mod editing;
 mod fields;
-// The export as a job (D4).
+// The export as a job.
 mod job;
 // The devices a placed symbol can join (D1, D2).
 pub(crate) mod join;
@@ -59,16 +59,16 @@ mod list_look;
 mod navigation;
 // What a device is: its natures.
 mod natures;
-// A potential reasoned for an unnamed wire (FT-1700).
+// A potential reasoned for an unnamed wire.
 pub(crate) mod navigators;
 mod potential_offer;
-// The surface view of a panel-layout page (D9, D10).
+// The surface view of a panel-layout page.
 pub(crate) mod panel;
 // The labelled entity list of a preview.
 pub(crate) mod preview;
-// The print set (D5 to D7).
+// The print set.
 pub mod print;
-// `ew diff` and its textconv (D26, D27)
+// `ew diff` and its textconv
 mod project_diff;
 // The rack and slot editor's view (FR-PLC-028).
 pub(crate) mod properties;
@@ -76,7 +76,7 @@ mod rack;
 // Page rasters and the row exports: their XLSX and CSV presets.
 mod raster;
 mod rows;
-// Page digests and the page change status (D6, D7).
+// Page digests and the page change status.
 mod revisions;
 // A page's geometry for the router and the layout measures of `ew layout`.
 mod route_measures;
@@ -88,11 +88,11 @@ mod strip_edit;
 pub mod table_edit;
 // The table round trip.
 mod table_io;
-// What the window's Title block fields form reads of a page (FT-1686).
+// What the window's Title block fields form reads of a page.
 mod title_block_fields;
 // The project's typeface: the font set its texts are shaped and drawn with (doc 09 §4.8).
 mod typeface;
-// Underlays: placed by an import, drawn by the export job (WP-S3.19).
+// Underlays: placed by an import, drawn by the export job.
 mod underlay;
 mod view;
 

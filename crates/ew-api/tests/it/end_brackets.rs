@@ -22,13 +22,13 @@ use crate::common::{self, placement_of, rail_at, run_cmd};
 
 use ew_api::Session;
 use ew_api::output::{RowExport, StripEdit, page_layer, row_export};
-use ew_ids::{Id, Uuid};
-use ew_units::{Nm, Pt2, Rect};
 use ew_derive::layout::{GroupAccessories, PlacementGeometry};
 use ew_derive::{BomMode, BomRow, BomRows, DevicePartLines, LineSource, PageOrder, PageRef, Q};
 use ew_dl::{DisplayList, EntityRef, ItemKind, Layer, Pen, Stroke};
+use ew_ids::{Id, Uuid};
 use ew_schema::{Carrier, Device, Part, Placement};
 use ew_units::Dec3;
+use ew_units::{Nm, Pt2, Rect};
 use serde_json::{Value, json};
 
 const MM: i64 = 1_000_000;

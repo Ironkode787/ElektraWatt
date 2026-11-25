@@ -28,13 +28,13 @@ table-no-bridge = the terminal has no bridge
 table-bridge-how = mark the rows of two or more terminals of the strip and press F2 in this column, or choose Bridge terminals in a terminal's menu on the page
 reason-swap-two-cores = Mark two cores of one cable
 reason-swap-cores-unwired = Neither core has a connection
-# A damaged copy written from its library, with the version written (C53-p4#4, ID-1491).
+# A damaged copy written from its library, with the version written.
 refusal-words-copy-at-version = { $p0 } at version { $p1 }
 refusal-words-part-kind = { $p0 }
 refusal-words-junction-in = the junction in { $p0 }
 refusal-words-a-junction = a junction
 refusal-words-cp-other-page = a connection point of another page
-# The property grid's own parse errors (FT-1493): a typed value that is not one of its field's type.
+# The property grid's own parse errors: a typed value that is not one of its field's type.
 refusal-input-detail = { $p0 }
 refusal-input-scale = `{ $p0 }` is not a scale; type 1:n with n a whole number from 1 to 4294967295
 refusal-input-decimal = `{ $p0 }` is not a decimal number
@@ -87,7 +87,7 @@ refusal-ref-not-text = `ref` is a text `<kind>:<value>`
 refusal-input-plc-slot = `{ $p0 }` is not a slot; give a number (3), <rack>.<slot> (1.3) or auto
 refusal-input-metres = `{ $p0 }` is not a length in metres (for example 12.5 m)
 refusal-input-too-long = `{ $p0 }` is too long a length
-# A clipboard fragment that does not read (FT-1488): its kind of failure and each line's reason.
+# A clipboard fragment that does not read: its kind of failure and each line's reason.
 refusal-fragment-not = the clipboard holds no ElektraWatt fragment
 refusal-fragment-newer = copied from a newer ElektraWatt, which writes a newer format ({ $p0 })
 refusal-fragment-too-large = the fragment is too large: { $p0 }
@@ -124,7 +124,7 @@ refusal-page-copy-code = { $p0 } is not a structure code
 refusal-page-copy-ip-join = the copy's interruption points { $p0 } would join the points they were copied from; give them other names under Rename (for example { $p1 } = { $p1 }.2)
 refusal-macro-value-set-none = no value set `{ $p0 }`: the macro has none
 refusal-macro-value-set-unknown = no value set `{ $p0 }`: the macro has { $p1 }
-# revision.approve, revision.release and project.assets.purge: the refusals of ew-api's own (FT-1421).
+# revision.approve, revision.release and project.assets.purge: the refusals of ew-api's own.
 refusal-revision-approve-direct = the approval is recorded only by Approve revision… on the saved project, which runs the release gate first
 refusal-revision-release-direct = the release is written only by Release revision…, after the release gate, the as-built archive and the git tag
 refusal-purge-read-only = the project is open read-only; a purge needs a project open for editing
@@ -134,12 +134,12 @@ refusal-purge-recovery = a crashed session left unsaved changes in its journal; 
 refusal-purge-incomplete = the last save is incomplete; it completes first
 refusal-purge-external = the project changed on disk; merge the change first
 refusal-purge-stale = { $p0 } of the listed images can no longer be purged; preview again; nothing was removed
-# C52-p5#5: the form for one image.
+# The form for one image.
 refusal-purge-stale-one = 1 of the listed images can no longer be purged; preview again; nothing was removed
 refusal-purge-unreadable = a file of the project could not be read; nothing was removed
 refusal-purge-save = the save that removes the images failed: { $p0 }
 refusal-purge-human-only = the purge is human-only: confirm it in ElektraWatt or with ew project assets purge on a terminal; nothing was removed
-# Update from library of the damaged library copies: the refusals of ew-api's own (FT-1499, ID-1486).
+# Update from library of the damaged library copies: the refusals of ew-api's own.
 refusal-update-copies-no-library = no library on this computer holds a readable version of { $p0 }; nothing was written
 refusal-update-copies-misfit = the libraries' versions of the damaged copies do not fit the project, which would then not open; nothing was written
 refusal-update-copies-locked = another session holds the project; nothing was written
@@ -190,28 +190,28 @@ find-field-title = Title
 find-field-description = Description
 find-field-process-tag = Process tag
 find-field-part-number = Part number
-# FT-1414: why a search cannot run, in words, never the parser's own text.
+# Why a search cannot run, in words, never the parser's own text.
 find-error-regex = The regular expression cannot be used: check its brackets, repeats and escapes, or make it simpler
 find-error-too-long = The regular expression is longer than { $p0 } characters
 find-error-no-page = No page has the folio { $p0 }
 
-# FT-515/FT-535: a cell whose row has no record of the column's kind (a CP-only potential's definition cells).
+# A cell whose row has no record of the column's kind (a CP-only potential's definition cells).
 table-no-record = no record of this kind
 table-define-alone = a potential without a definition is defined on its own row alone
 
-# WP-S1.16 D4 (FT-577): Type or Voltage typed on a potential known only at its CPs, without a name.
+# Type or Voltage typed on a potential known only at its CPs, without a name.
 table-define-name-first = Name the potential first
 
-# The other read-only reasons of a table cell (`cell_reason`, §8.2's precedence; FT-535 follow-up).
+# The other read-only reasons of a table cell (`cell_reason`, §8.2's precedence).
 table-reason-derived = derived
 table-reason-generated = generated
 table-reason-no-command = not editable in this table
 table-reason-property-grid = edit in the property grid
 
-# WP-S3.08 D9 (ID-1174): a strip-editor or a potential's defining cell in a table round trip.
+# A strip-editor or a potential's defining cell in a table round trip.
 table-reason-window = edit in the window
 
-# ID-1174 ruling 3: the texts of table mode's pure rule, which `ew-api` hands as keys (`output::table_edit`).
+# The texts of table mode's pure rule, which `ew-api` hands as keys (`output::table_edit`).
 table-same-record = same record as row { $p0 }
 table-same-bridge = same bridge as row { $p0 }
 table-gesture-edit = edit
@@ -277,7 +277,7 @@ error-part-kind = “{ $p0 }” is not a part kind
 error-part-category = A category has three levels: category/group/definition
 error-part-value = { $p0 }
 error-part-field = The part editor has no field { $p0 }
-# FT-1766: a new part and its bus interfaces, made in the part editor (Edit ▸ New part…).
+# A new part and its bus interfaces, made in the part editor (Edit ▸ New part…).
 error-part-bus-interface = An interface needs a name, such as X1 or DP
 error-part-bus-system = “{ $p0 }” is no bus system; choose one from the list
 error-part-bus-role = “{ $p0 }” is no port role; choose one from the list
@@ -289,7 +289,7 @@ error-part-exists = The project or your parts library has part { $p0 } of { $p1 
 error-part-library = { $p0 } could not be written: { $p1 }
 reason-part-symbol-unsaved = Save the symbol to a library first; the part then names it
 reason-part-not-own = This part is not in your parts library: only a part of your own is taken out of it
-# FT-1766: the PLC section of a new part.
+# The PLC section of a new part.
 error-part-plc-role = “{ $p0 }” is no PLC role; choose station or module
 error-part-plc-kind = “{ $p0 }” is no channel kind; choose one from the list
 error-part-plc-kind-missing = Choose the kind of the channels
@@ -302,7 +302,7 @@ error-part-plc-pin-twice = { $p0 } would be the pin of two channels; each channe
 error-part-plc-slots = “{ $p0 }” is no list of slots: type numbers and ranges, such as 1-8, 10
 error-part-plc-max = “{ $p0 }” is no number of modules: type a whole number, such as 32
 error-part-plc-kind2-way = The second kind is another than the first: inputs or outputs beside its channels, each of DI, DO, AI, AO or counter
-# FT-1378 (ID-1417): an image over the pixel limit that an earlier build took in is kept at open, not drawn, and named.
+# An image over the pixel limit that an earlier build took in is kept at open, not drawn, and named.
 banner-image-not-drawn = The image on folio { $p0 } is { $p1 } × { $p2 } pixels, more than a drawing can show, so it is kept but not drawn; scale it down and add it again.
 banner-image-not-drawn-folios = The image on folios { $p0 } is { $p1 } × { $p2 } pixels, more than a drawing can show, so it is kept but not drawn; scale it down and add it again.
 banner-logo-not-drawn = The company logo is { $p0 } × { $p1 } pixels, more than a drawing can show, so it is kept but not drawn; scale it down and add it again.
@@ -364,10 +364,10 @@ dxf-input-invalid = The file is no DXF drawing this reader understands.
 dxf-no-unit = The drawing names no unit. Choose the unit it is drawn in.
 dxf-no-blocks = The drawing has no named block to make a symbol of.
 
-# A date typed in the project's date format (the owner's test of 0.3.0-rc.1).
+# A date typed in the project's date format.
 refusal-input-date = `{ $p0 }` is not a date: type it as { $p1 }
 
-# The Libraries pane's states and its Update button in words (the owner's test of 0.3.0-rc.1).
+# The Libraries pane's states and its Update button in words.
 library-state-current = Current
 library-state-update = Update available ({ $p0 })
 error-part-pin-unknown = The part has no pin { $p0 }
@@ -433,10 +433,10 @@ column-bus = Bus
 column-role = Role
 column-logical-net = Logical net
 column-physical-net = Physical net
-# FT-1636: the browser's ratings column and its connection points, and the tree's function categories, one per first
+# The browser's ratings column and its connection points, and the tree's function categories, one per first
 # level of an FnDef category (the identifier sets' categories, docs/design/07-symbols-parts-macros.md §2.4).
 column-rating = Ratings
-# FT-1264 and FT-1289 (ID-1315): the navigators' column headers, by key (`column-<navigator>-<key>` where a navigator's header differs), their fixed badge words, the Messages pane's groups and the accessory kinds.
+# The navigators' column headers, by key (`column-<navigator>-<key>` where a navigator's header differs), their fixed badge words, the Messages pane's groups and the accessory kinds.
 column-folio = Folio
 column-title = Title
 column-type = Type

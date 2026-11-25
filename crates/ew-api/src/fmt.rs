@@ -883,7 +883,7 @@ mod tests {
             assert_ne!(a[0].1, records("devices/3f.jsonl", other)[0].1, "{other}");
         }
         // A member holding a value the canonical form omits as a default reads as its absence: form (a hidden slot's
-        // `"visible":false` in a symbol, FT-1879).
+        // `"visible":false` in a symbol).
         for other in [
             "{\"b\":1,\"a\":\"\u{e9}\",\"c\":[1,2],\"d\":null}",
             "{\"b\":1,\"a\":\"\u{e9}\",\"c\":[1,2],\"visible\":false,\"e\":[],\"f\":{\"g\":{}}}",

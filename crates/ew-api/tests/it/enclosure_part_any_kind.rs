@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A part of the project with an enclosure section is offered for an enclosure whatever its kind, as the command
-//! that makes the enclosure takes it (FT-1865: a parts import that named no kind gave `device`, and Enclosure…
+//! that makes the enclosure takes it (a parts import that named no kind gave `device`, and Enclosure…
 //! refused the part as not on offer).
 
 use crate::common;

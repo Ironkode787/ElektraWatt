@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1925: the sample verified against the PDF it writes deviates nowhere, its parts lists' wrapped descriptions
+//! The sample verified against the PDF it writes deviates nowhere, its parts lists' wrapped descriptions
 //! included (doc 14 §4.15).
 
 use std::sync::Arc;

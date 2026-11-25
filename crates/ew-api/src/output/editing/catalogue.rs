@@ -288,7 +288,7 @@ pub struct CatalogueTemplateFn {
     /// CPs, else the pattern entries with their own indices; the whole pattern when the entry names none).
     pub cps: Vec<(u16, String)>,
     /// The function CP indices whose FnDef point is a source's output (`source_output`: the power supply's + and −),
-    /// which a black box placed from the entry lays along its bottom edge (FT-1702); empty when it has none.
+    /// which a black box placed from the entry lays along its bottom edge; empty when it has none.
     pub outputs: Vec<u16>,
     /// The part's device box when the entry is its main function (doc 07 §2.5): a click then places the box as the
     /// part lays it out; `None`: the box is drawn by two clicks.
@@ -362,8 +362,8 @@ pub(super) fn starter_docs() -> &'static [(&'static str, StarterKind, LibDocumen
     })
 }
 
-/// The catalogue key of the starter symbol a part's bus port of `bus` that no symbol draws yet is placed with
-/// (FT-831): the DP port's (`ew.bus.dp-port`) for PROFIBUS DP, the PROFINET port's (`ew.bus.pn-port`) for PROFINET;
+/// The catalogue key of the starter symbol a part's bus port of `bus` that no symbol draws yet is placed with:
+/// the DP port's (`ew.bus.dp-port`) for PROFIBUS DP, the PROFINET port's (`ew.bus.pn-port`) for PROFINET;
 /// `None` for another bus system, which has no starter port symbol yet.
 pub fn bus_port_symbol_key(bus: &ew_schema::BusSystem) -> Option<String> {
     let prefix = match bus {
@@ -723,7 +723,7 @@ fn catalogue_part(
         library,
         library_name: String::new(),
         part_number: part.part_number.as_str().to_owned(),
-        // In the project's language, else English, else the first, as the lists print a text (FT-2066).
+        // In the project's language, else English, else the first, as the lists print a text.
         description: ew_derive::text_in(
             &part.description,
             q.project().languages.as_ref().map(|l| &l.source),

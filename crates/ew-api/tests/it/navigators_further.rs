@@ -12,8 +12,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_api::Session;
 use ew_api::output::{HighlightTarget, NavKind, NavNode, NavRole, NavTable, Uuid};
-use ew_schema::{ConnectionKind, Endpoint, Record, ReportBlock};
 use ew_reports::{BlockRows, RowKind};
+use ew_schema::{ConnectionKind, Endpoint, Record, ReportBlock};
 
 /// The sample's report block whose pages start at folio `first`.
 fn block(s: &Session, first: u32) -> ReportBlock {
@@ -159,7 +159,7 @@ fn strips_are_the_terminal_diagrams() {
             // The sample's terminals: `pos` is the seq (1-based, gapless), no bridge has a part.
             assert_eq!(n.cells[pos], (i + 1).to_string(), "{}: pos", strip.label);
             assert_eq!(n.cells[bridge_part], "", "{}: bridge part", strip.label);
-            // The printed list names the strip first too (FT-1805).
+            // The printed list names the strip first too.
             rows.push(
                 n.cells
                     .iter()
@@ -312,7 +312,7 @@ fn cables_plc_potentials_parts() {
         .map(|n| n.label.as_str())
         .collect();
     assert_eq!(stations, ["-104A1", "-201K1"]);
-    // The CPU's cards; the station's bus ports follow them (FT-739).
+    // The CPU's cards; the station's bus ports follow them.
     let cpu = find(&t, NavRole::Station, "-104A1");
     let modules: Vec<&NavNode> = children(&t, cpu)
         .into_iter()

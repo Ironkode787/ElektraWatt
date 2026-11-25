@@ -1,15 +1,15 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A list never ends on a page of one or two rows (doc 09 §3.2, FT-1842): on a copy of the sample, a list of data rows given
+//! A list never ends on a page of one or two rows (doc 09 §3.2): on a copy of the sample, a list of data rows given
 //! rows of its own until one row would stand alone on its last page prints three there, the page before ending two rows
 //! earlier, and as many pages as before.
 
 use crate::common;
 
 use ew_api::output::{PageFrameOf, PageTableOf};
-use ew_ids::Id;
 use ew_derive::{PageOrder, PageRef};
+use ew_ids::Id;
 use ew_reports::{BlockRows, RowKind};
 use serde_json::{Value, json};
 

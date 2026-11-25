@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1761: a medium's Colour stood in Properties under Electrical. A medium's colour marks its lines on the page and
+//! A medium's Colour stood in Properties under Electrical. A medium's colour marks its lines on the page and
 //! stands under Identity; a cable core's colour stays an electrical value.
 
 use ew_api::output::{Category, field_catalogue};

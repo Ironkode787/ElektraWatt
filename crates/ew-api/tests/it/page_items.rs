@@ -11,17 +11,17 @@ use std::sync::Arc;
 
 use ew_api::output::{PageConnectionsOf, page_layer};
 use ew_api::{AnyCommand, Recovery, Session, SessionOptions, StoreOptions};
-use ew_ids::{Id, Uuid};
-use ew_rds::Aspect;
-use ew_units::Pt2;
 use ew_derive::{
     ConnWireProps, IpStructure, PageLocalNets, PageOrder, PageRef, PhysicalWiresOf, PotentialPartition, Q,
     SlotSource, StructureOf, WireNumbers, anchor_point,
 };
 use ew_dl::{ItemKind, Layer};
+use ew_ids::{Id, Uuid};
+use ew_rds::Aspect;
 use ew_schema::{Connection, ConnectionKind, Device, Function, Page, Record, StructureNode};
 use ew_store::mem::{DirSync, MemVfs};
 use ew_store::{ManualClock, Vfs};
+use ew_units::Pt2;
 
 use serde_json::{Value, json};
 

@@ -1829,7 +1829,7 @@ pub struct QueryExplain {
 }
 
 /// `ew queries --json` ([`QUERIES`]): the query registry. Its text is the committed snapshot
-/// `crates/ew-api/api/queries.json` (D13).
+/// `crates/ew-api/api/queries.json`.
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct QueriesResult {

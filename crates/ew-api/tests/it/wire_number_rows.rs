@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! What a wire's number is where a person reads it (FT-1858, FT-1799; doc 08 §5.2, §5.3), on the sample: a frozen
+//! What a wire's number is where a person reads it (doc 08 §5.2, §5.3), on the sample: a frozen
 //! number in Properties' title and Number row, in the SQL view and in the wire list; the number typed in its row; and
 //! a wire the per-potential scheme gives no code titled in words.
 

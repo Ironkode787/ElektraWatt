@@ -7,8 +7,8 @@
 
 use ew_api::checks::{CheckMode, PRE_DELIVERY};
 use ew_api::sql::{Profile, Projection, SqlError, schema};
-use ew_ids::Uuid;
 use ew_derive::{ValveTerminalRows, VtSlot};
+use ew_ids::Uuid;
 use ew_schema::{DeviceState, Record};
 use serde_json::{Value, json};
 
@@ -133,7 +133,7 @@ fn fr_ext_007_sorts_designations_naturally_and_reads_multilingual_text() {
     assert_eq!(set.rows[0][0], set.rows[0][1], "ew_ml reads the page title");
 }
 
-/// A cross-section from the rating of the protecting device (FT-2055) names that device and its rating in
+/// A cross-section from the rating of the protecting device names that device and its rating in
 /// `prov_csa`, as Properties does: the sample's 102.1 behind the 16 A breaker -102F1. It said "size profile" and the
 /// current table's key, which is no size profile.
 #[test]

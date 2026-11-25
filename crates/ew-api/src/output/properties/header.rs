@@ -58,7 +58,7 @@ pub(in crate::output) fn record_title(q: &Q, id: Uuid, source: Option<&str>) -> 
                     .and_then(Value::as_str)
                     .unwrap_or("working")
             ),
-            // An unnumbered wire in words, not `?` (FT-1799).
+            // An unnumbered wire in words, not `?`.
             None => wire_number(q, Id::from_uuid(id)).unwrap_or_else(|| super::UNNUMBERED_WIRE.to_owned()),
         },
         // A layout record by its device's tag, its label or its words.
@@ -208,7 +208,7 @@ impl Session {
             {
                 let on_target = f.targets.iter().any(|t| targets.contains(&t.id.as_uuid()));
                 // A finding is on a page where Messages and the status bar count it: its own page, else the page of
-                // its first drawn target (FT-1587: a page read "6 Pending" while the status bar said 9, the three
+                // its first drawn target (a page read "6 Pending" while the status bar said 9, the three
                 // "has no part" findings of its devices having no page of their own).
                 let on_page = !pages.is_empty()
                     && !on_target

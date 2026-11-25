@@ -6,17 +6,17 @@
 //! print master). `ew-print`'s adapters hand the bytes to the OS; the binaries build their `PrintJob` from a
 //! [`PrintSet`]'s fields.
 //!
-//! **One geometry (D7).** A print page is the export page unchanged ([`PdfPage::content`], item for item) with a
+//! **One geometry.** A print page is the export page unchanged ([`PdfPage::content`], item for item) with a
 //! [`PagePlacement`]: the paper's size, the uniform scale as an exact ratio, the offset, and an overlay in paper
 //! coordinates that holds the stamp and nothing else. Every renderer draws it by one rule: the content at the target
 //! resolution times the scale, at the offset, then the overlay at the paper's resolution.
 //!
-//! **The paper and the fit (D6).** [`Paper::Sheet`] prints each page on its own sheet size; a named size is turned
+//! **The paper and the fit.** [`Paper::Sheet`] prints each page on its own sheet size; a named size is turned
 //! like each page (landscape for a sheet wider than high). [`Fit::Actual`] prints at 100 % with the sheet's top-left
 //! corner at the paper's: a sheet larger than the paper is clipped from its top-left and the set's notices name the
 //! page ([`PrintNotice::Clipped`]). [`Fit::ToPaper`] scales each page uniformly to the whole paper,
-//! `min(paper width / sheet width, paper height / sheet height)`, up as well as down (an A4 set on A3 at 141 %,
-//! FT-1826), and centres it; at any scale but 100 % the stamp `scaled <n> %` (`n` rounded half up) is drawn in the
+//! `min(paper width / sheet width, paper height / sheet height)`, up as well as down (an A4 set on A3 at 141 %),
+//! and centres it; at any scale but 100 % the stamp `scaled <n> %` (`n` rounded half up) is drawn in the
 //! house font, black, 2 mm cap height, its baseline 4 mm above the paper's bottom edge and its end 5 mm from the right
 //! edge.
 //!
@@ -239,7 +239,7 @@ fn percent((num, den): (u64, u64)) -> u32 {
     u32::try_from((200 * num + den) / (2 * den)).unwrap_or(u32::MAX)
 }
 
-/// The placement of a `width` × `height` sheet on `paper` with `fit`, and whether the sheet is clipped (D6); its stamp
+/// The placement of a `width` × `height` sheet on `paper` with `fit`, and whether the sheet is clipped; its stamp
 /// in the print's language `lang` ([`stamp_text`]).
 pub fn placement(
     width: Nm,
@@ -352,7 +352,7 @@ fn stamp(text: &str, pw: Nm, ph: Nm) -> Item {
     Item::glyphs(Arc::new(run))
 }
 
-/// The print set of the pages `options` selects over `q` (D5): the export's pages, placed and stamped, written by
+/// The print set of the pages `options` selects over `q`: the export's pages, placed and stamped, written by
 /// [`ew_export::pdf`] with the export's options and the [`DrawingFonts`](super::DrawingFonts).
 ///
 /// # Errors
@@ -419,7 +419,7 @@ pub(crate) fn print_set_hooked(
     Ok(set)
 }
 
-/// The print set of export `pages` written with their export `options` (D5 to D7): each page placed on `paper` with
+/// The print set of export `pages` written with their export `options`: each page placed on `paper` with
 /// `fit` and stamped when scaled (in the print's language `lang`), then written by [`ew_export::pdf`] with the bundled
 /// fonts; no findings.
 ///
@@ -523,7 +523,7 @@ mod tests {
         let (p, _) = placement(a4.0, a4.1, Paper::A4, Fit::ToPaper, None);
         assert_eq!((p.scale, p.offset), ((1, 1), Pt2::ORIGIN));
         assert!(p.overlay.items.is_empty());
-        // Enlarged too (FT-1826): an A4 sheet on A3 is min(420/297, 297/210) = 140/99 (141.41 %), stamped, its width
+        // Enlarged too: an A4 sheet on A3 is min(420/297, 297/210) = 140/99 (141.41 %), stamped, its width
         // filling the paper and 297 − 210 × 140 / 99 = 0.030 mm left over in its height.
         let (p, _) = placement(a4.0, a4.1, Paper::A3, Fit::ToPaper, None);
         assert_eq!(p.scale, (140, 99));

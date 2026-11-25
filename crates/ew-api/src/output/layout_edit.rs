@@ -6,7 +6,7 @@
 //! the panel page's Surface, Label mode and Datum rows, and [`Session::layout_edit`], the door that compiles one row's
 //! text into exactly one command (`layout.move`, `layout.lock`, `layout.carrier.edit`, `layout.surface.edit`,
 //! `layout.enclosure.edit`, `layout.space.edit`, `page.surface_view.set`), as `Session::strip_edit` does for a
-//! terminal's Group row. Never `fields.set`: each row writes through the command that checks it (D12).
+//! terminal's Group row. Never `fields.set`: each row writes through the command that checks it.
 //!
 //! Besides, the data the window's set-up dialogs offer: the layout parts of a kind (the project's copies,
 //! then the libraries' parts with the `copies` that embed them) and the project's locations.
@@ -396,7 +396,7 @@ fn derived_of(via: &str) -> Provenance {
     Provenance::Derived { via: via.to_owned() }
 }
 
-/// The rows of a layout record (D12); `None` for any other kind or a missing record. Rows of several records are not
+/// The rows of a layout record; `None` for any other kind or a missing record. Rows of several records are not
 /// built: a section over several layout records shows the first one's rows read-only.
 pub(crate) fn layout_rows(q: &Q, kind: Kind, targets: &[Uuid]) -> Option<Vec<PropRow>> {
     let id = *targets.first()?;
@@ -461,12 +461,12 @@ fn quarter(pose: &ew_units::Pose3) -> u8 {
 const ROTATIONS: [&str; 4] = ["0°", "90°", "180°", "270°"];
 const RAIL_TURNS: [&str; 2] = ["Normal", "Flipped"];
 
-/// A placement's rows (D12).
+/// A placement's rows.
 fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
     let p = q.table::<Placement>().get(id)?;
     let k = "placement";
     let mut rows = Vec::new();
-    // The device as a link (D12), as the sheet's other links are: its ID the value, its tag the words.
+    // The device as a link, as the sheet's other links are: its ID the value, its tag the words.
     rows.push(row(
         k,
         "device",
@@ -545,7 +545,7 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
     rows.push(choice_row(k, "rotation", rotation, options, Some("layout.move")));
     rows.push(bool_row(k, "locked", p.locked, "layout.lock"));
     // Derived rows with provenance. The label as the first panel page, in page order, whose surface view shows the
-    // placement's surface prints it (D12); no row without one.
+    // placement's surface prints it; no row without one.
     if let Some(page) = showing_page(q, &p.carrier) {
         let label = q.get::<LayoutLabel>((id, page, LabelMode::Abbreviated));
         rows.push(text_row(
@@ -628,7 +628,7 @@ pub(crate) fn surface_of(q: &Q, on: &CarrierRef) -> Option<Id<MountingSurface>> 
     }
 }
 
-/// The first panel page, in page order, whose surface view shows the surface of a placement on `on` (D12).
+/// The first panel page, in page order, whose surface view shows the surface of a placement on `on`.
 pub(crate) fn showing_page(q: &Q, on: &CarrierRef) -> Option<Id<Page>> {
     let surface = surface_of(q, on)?;
     let order = q.get::<DrawnPageOrder>(());
@@ -750,7 +750,7 @@ fn carrier_rows(q: &Q, id: Id<Carrier>) -> Option<Vec<PropRow>> {
     Some(rows)
 }
 
-/// The panel page's Surface view rows (D12): Surface (the project's surfaces by "<enclosure tag> plate"), Label mode,
+/// The panel page's Surface view rows: Surface (the project's surfaces by "<enclosure tag> plate"), Label mode,
 /// Labels (tags, item numbers or both) and Datum, committed by `page.surface_view.set`; empty for any other page.
 pub(crate) fn surface_view_rows(q: &Q, page: Id<Page>) -> Vec<PropRow> {
     let Some(pg) = q.pages().get(page) else {
@@ -876,7 +876,7 @@ pub(crate) fn centred_datum(
 ) -> Option<(i64, i64)> {
     q.pages().get(page)?;
     let s = q.table::<MountingSurface>().get(surface)?;
-    // The drawing area's centre on the page: the frame's geometry is in page coordinates already (FT-1768).
+    // The drawing area's centre on the page: the frame's geometry is in page coordinates already.
     let (area, map) = drawing_area(q, page)?;
     let mid = ew_units::Pt2::new(
         ew_units::Nm((area.min().x.0 + area.max().x.0) / 2),
@@ -1287,7 +1287,7 @@ impl Session {
                         // A page still drawn not to scale takes the fitting scale with the view.
                         scale = scale_to_send(&q, page, id);
                         // A page without a view, or one that takes a scale, centres the enclosure in the frame
-                        // (D12) at the scale it draws at.
+                        // at the scale it draws at.
                         if datum.is_none() || surface != Some(id) || scale.is_some() {
                             let at = scale.clone().unwrap_or_else(|| {
                                 q.pages().get(page).map(|p| p.scale.clone()).unwrap_or_default()
@@ -1430,7 +1430,7 @@ impl Session {
         held
     }
 
-    /// The Surface row's choices (D12): the project's mounting surfaces as `(surface, words)`, in the row's
+    /// The Surface row's choices: the project's mounting surfaces as `(surface, words)`, in the row's
     /// order; choosing one commits its ID.
     pub fn surface_choices(&self) -> Vec<(Uuid, String)> {
         surfaces_in_order(&self.query())
@@ -1561,7 +1561,7 @@ impl Session {
         centred_datum(&q, page, surface, &scale)
     }
 
-    /// The command that gives the panel page `page` the whole sheet, as a new view takes it (doc 12 §5.1, FT-2030):
+    /// The command that gives the panel page `page` the whole sheet, as a new view takes it (doc 12 §5.1):
     /// `page.surface_view.set` of its view at the fitting scale, its enclosure centred in the frame's drawing area, its
     /// labels kept; it changes the datum and the scale, never a stored pose. `None` for a page without a view or a frame
     /// grid, and for a page that draws so already.

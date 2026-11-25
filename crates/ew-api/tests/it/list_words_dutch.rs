@@ -1,17 +1,17 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1955: the program's own words in a list's cells and its boxes' titles print in the project's language, as its
-//! headings do since FT-1874 (doc 09 §4.7); a value of the project's data (a tag, a part number, a colour code) stays as
+//! The program's own words in a list's cells and its boxes' titles print in the project's language, as its
+//! headings do (doc 09 §4.7); a value of the project's data (a tag, a part number, a colour code) stays as
 //! it is. Over copies of the sample, whose language is English, once as they are and once made Dutch.
 
 use crate::common;
 
 use ew_api::Session;
 use ew_api::output::page_layer;
-use ew_ids::{Id, Uuid};
 use ew_derive::{PageOrder, PageRef};
 use ew_dl::{ItemKind, Layer};
+use ew_ids::{Id, Uuid};
 use ew_reports::render::{RenderOptions, render};
 use ew_schema::{LengthSource, Record, ReportKind, ReportSource};
 use serde_json::json;

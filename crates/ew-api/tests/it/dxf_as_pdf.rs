@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The DXF set as the PDF (doc 09 §4.9, FT-1877), proven by reading the files back, never by their bytes: every text
+//! The DXF set as the PDF (doc 09 §4.9), proven by reading the files back, never by their bytes: every text
 //! of the PDF's display list of a page comes back through `ew-import-dxf` where the PDF has it, as high and with its
 //! characters, on the sample's pages and on a small project of the test's own; there a device's texts come back as
 //! the attributes of its symbol's insert under their names, the block named by its symbol in words; a cross-reference

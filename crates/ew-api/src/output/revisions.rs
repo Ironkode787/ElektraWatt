@@ -80,7 +80,7 @@ fn is_revision_overview(q: &Q, page: PageRef) -> bool {
 }
 
 /// Whether the digest leaves out the title-block value at `path`: the current revision's values, the page's own
-/// change status and every date (D6).
+/// change status and every date.
 fn excluded(path: &str, value: &TbValue) -> bool {
     path.starts_with("revision.") || path == "page.last_changed_in" || matches!(value, TbValue::Date(_))
 }

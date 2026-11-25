@@ -1,15 +1,15 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A legend belongs to the plate, not to the page (doc 12 §5.4, FT-2031): with a second layout page of the sample's
+//! A legend belongs to the plate, not to the page (doc 12 §5.4): with a second layout page of the sample's
 //! plate before its own, the sample's legend list follows that first page, by its folios and its title, both pages
 //! name it, and neither is given a second.
 
 use crate::common;
 
 use ew_api::Session;
-use ew_ids::{Id, Uuid};
 use ew_derive::{PageOrder, PageRef};
+use ew_ids::{Id, Uuid};
 use ew_schema::{Page, PageItemKind, ReportBlock};
 use serde_json::json;
 

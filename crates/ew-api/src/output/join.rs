@@ -32,7 +32,7 @@ pub struct JoinMisfit {
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct JoinCandidates {
     /// Whether the FnDef can be an auxiliary function: a contact (contact kind NO, NC or change-over), or a function a
-    /// device takes as its own whatever its family (FT-1860). The chooser is offered only then.
+    /// device takes as its own whatever its family. The chooser is offered only then.
     pub auxiliary: bool,
     /// The rows: every unplaced function of the FnDef (a slot), by its device's tag in natural order and then by
     /// its slot; then every other device whose family takes auxiliary functions of it (for a function of the second
@@ -124,7 +124,7 @@ pub(crate) fn slot_of(q: &Q, function: Id<Function>) -> String {
         .join("-")
 }
 
-/// The FnDef copy `def`: the embedded one, else the starter's the placement embeds with its symbol (FT-656).
+/// The FnDef copy `def`: the embedded one, else the starter's the placement embeds with its symbol.
 fn held_or_starter(q: &Q, def: Id<FnDef>) -> Option<FnDef> {
     q.fndefs()
         .get(def)
@@ -134,7 +134,7 @@ fn held_or_starter(q: &Q, def: Id<FnDef>) -> Option<FnDef> {
 
 /// Whether `device`'s family takes auxiliary functions of FnDef `def` (D2): its main function is a coil (a relay or
 /// a contactor), or one of its parts' templates has an entry of `def`; a function a device takes as its own whatever its
-/// family (`ew_commands::commands::joins_any_device`, FT-1860) any device does. Terminals and strips never do.
+/// family (`ew_commands::commands::joins_any_device`) any device does. Terminals and strips never do.
 fn takes_auxiliary(q: &Q, id: Id<Device>, device: &Device, def: Id<FnDef>) -> bool {
     if device.aspects.terminal.is_some() || device.aspects.strip.is_some() {
         return false;
@@ -299,9 +299,9 @@ impl Session {
     }
 
     /// Whether the FnDef copy `fndef` can be an auxiliary function: an embedded contact (contact kind
-    /// NO, NC or change-over) or bus port (a device's port, which normaliser N5 types from its part; FT-831), a function a
-    /// device takes as its own whatever its family (a second symbol of the device, FT-1860:
-    /// `ew_commands::commands::joins_any_device`), or a starter one of these the project does not embed yet (FT-656).
+    /// NO, NC or change-over) or bus port (a device's port, which normaliser N5 types from its part), a function a
+    /// device takes as its own whatever its family (a second symbol of the device:
+    /// `ew_commands::commands::joins_any_device`), or a starter one of these the project does not embed yet.
     pub fn auxiliary_fndef(&self, fndef: Uuid) -> bool {
         held_or_starter(&self.query(), Id::from_uuid(fndef)).is_some_and(|d| {
             matches!(
@@ -329,13 +329,13 @@ impl Session {
     /// representation draws it) on a device; its row comes first, so that a slot is filled before a new auxiliary
     /// function is made (D1). The second group is every other device whose main function is a coil, or one of
     /// whose parts' templates has an entry of the FnDef, and for a function a device takes as its own whatever its family
-    /// (FT-1860) every other device; terminals and strips are never listed. An FnDef neither
-    /// embedded nor a starter FnDef (which a placement embeds with its symbol, FT-656) is not auxiliary and lists
+    /// every other device; terminals and strips are never listed. An FnDef neither
+    /// embedded nor a starter FnDef (which a placement embeds with its symbol) is not auxiliary and lists
     /// nothing.
     pub fn join_candidates(&self, fndef: Uuid) -> JoinCandidates {
         let q = self.query();
         let def: Id<FnDef> = Id::from_uuid(fndef);
-        // A starter FnDef the placement embeds with its symbol counts as held (FT-656).
+        // A starter FnDef the placement embeds with its symbol counts as held.
         let Some(item) = held_or_starter(&q, def) else {
             return JoinCandidates::default();
         };
@@ -406,8 +406,7 @@ impl Session {
     }
 
     /// Whether `function` is a coil (`Some(true)`) or a contact, NO, NC or change-over (`Some(false)`), by its FnDef's
-    /// contact kind; `None` for anything else or a missing function (the canvas menu's Add contact and Go to coil,
-    /// FT-1693).
+    /// contact kind; `None` for anything else or a missing function (the canvas menu's Add contact and Go to coil).
     pub fn coil_or_contact(&self, function: Uuid) -> Option<bool> {
         let q = self.query();
         let def = q.functions().get(Id::<Function>::from_uuid(function))?.def;
@@ -419,7 +418,7 @@ impl Session {
     }
 
     /// The unplaced contacts of `device` as `(function, slot)`, in slot order: its normal functions without a
-    /// representation whose FnDef is a NO, NC or change-over contact (a relay's free contacts, FT-1693).
+    /// representation whose FnDef is a NO, NC or change-over contact (a relay's free contacts).
     pub fn unplaced_contacts(&self, device: Uuid) -> Vec<(Uuid, String)> {
         let q = self.query();
         let idx = q.idx();

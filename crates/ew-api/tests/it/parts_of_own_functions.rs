@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1860: a parts table whose function template names a function definition of the project's own library (a held
+//! A parts table whose function template names a function definition of the project's own library (a held
 //! FnDef with a key the starter has not) is read and imported, so a part can carry a function drawn by a symbol of the
 //! project's own; before, the parts import refused it as an unknown FnDef. A key no FnDef has stays refused.
 

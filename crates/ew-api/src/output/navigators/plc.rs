@@ -22,7 +22,7 @@ use ew_derive::short_tag;
 
 impl Session {
     /// The PLC cards that wait for a CPU with their short tags, in natural order: the devices with `plc_module` and
-    /// no station (FT-926), which the PLC table lists under "Modules without a station" while it has a station (FT-1672).
+    /// no station, which the PLC table lists under "Modules without a station" while it has a station.
     pub fn plc_cards_without_cpu(&self) -> Vec<(Uuid, String)> {
         cards_without_cpu(&self.query())
             .into_iter()
@@ -69,7 +69,7 @@ impl Session {
 
 /// The PLC grid's columns (FR-PLC-021, PBF §2.8). The address is the key column and the target, symbol and
 /// function text follow it, so that a grid at the default rail width shows what a channel is and what it drives; the
-/// data type, signal range and safety data follow the kind (FT-737); station, rack, slot and comment come last.
+/// data type, signal range and safety data follow the kind; station, rack, slot and comment come last.
 pub(super) const PLC_COLUMNS: [(&str, &str); 18] = [
     ("address", key!("column-address")),
     ("target", key!("column-target")),
@@ -132,13 +132,13 @@ fn duplicate_channels(q: &Q, cfgs: &[Id<ew_schema::PlcConfigProject>]) -> std::c
 
 /// PLC (FR-PLC-020, FR-PLC-021): configuration project → station (its role word as the badge) → rack (only where a
 /// module of the station has an authored rack) → module → channel, from `plc_rows(station)` in slot and channel
-/// order, and the station's bus ports after its modules (FT-739: the functions with a `bus_port` of the station and
+/// order, and the station's bus ports after its modules (the functions with a `bus_port` of the station and
 /// of the devices under it). Configuration projects sort by name (natural, then ID), stations by their tag (natural,
 /// as the PLC overview lists them). A channel row carries the grid's cells ([`PLC_COLUMNS`]), the badges `spare` and
 /// `unplaced` (no binding), and the facets `kind`, `state`, `page`, `config:<name>`, `bus:<net>` per logical net of
-/// its station's bus ports (FT-738; the net's name with hyphens for spaces) and the flags `unassigned` (no address:
+/// its station's bus ports (the net's name with hyphens for spaces) and the flags `unassigned` (no address:
 /// excluded or not derivable), `spare`, `unplaced`, `tbd` (an open address), `duplicate` ([`duplicate_channels`]) and
-/// `safety` (safety data on the channel or its module, FT-738).
+/// `safety` (safety data on the channel or its module).
 pub(super) fn plc_table(q: &Q, b: &mut Builder) {
     use ew_derive::{ChannelAddr, EffectiveState, PlcRows};
     use ew_schema::{Channel, PlcConfigProject};
@@ -172,7 +172,7 @@ pub(super) fn plc_table(q: &Q, b: &mut Builder) {
     let ids: Vec<Id<PlcConfigProject>> = cfgs.iter().map(|(_, c, _)| *c).collect();
     let duplicates = duplicate_channels(q, &ids);
     // The cards that wait for a CPU, listed after the configuration projects while the project has a station
-    // (FT-1672: a project with two CPUs leaves a new card on none); without one the empty state names them.
+    // (a project with two CPUs leaves a new card on none); without one the empty state names them.
     if !cfgs.is_empty() {
         let cards = cards_without_cpu(q);
         if !cards.is_empty() {
@@ -485,7 +485,7 @@ fn safety_text(s: &ew_schema::SafetyChannel) -> String {
     }
 }
 
-/// The bus ports of a station (FT-739): the functions with a `bus_port` of the station device and of every device
+/// The bus ports of a station: the functions with a `bus_port` of the station device and of every device
 /// under it, by (interface, port label, ID).
 fn station_bus_ports(q: &Q, station: Id<Device>) -> Vec<(Id<Function>, ew_schema::BusPort)> {
     let mut devices = vec![station];

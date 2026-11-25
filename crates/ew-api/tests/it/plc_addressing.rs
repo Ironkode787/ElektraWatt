@@ -59,7 +59,7 @@ fn all_texts(q: &Q) -> Vec<(Id<Device>, Vec<String>)> {
         .collect()
 }
 
-/// PA-1, PA-6 (D8, D9): `plc.set_start` gives -104A1-A2 the output start Q10; its eight channels print Q10.0 …
+/// PA-1, PA-6: `plc.set_start` gives -104A1-A2 the output start Q10; its eight channels print Q10.0 …
 /// Q10.7, the other modules keep their addresses, `channel_addresses` runs once (the module's own), and one undo
 /// restores every address.
 #[test]
@@ -112,7 +112,7 @@ fn a_start_of_the_wrong_area_is_refused() {
     }
 }
 
-/// PA-3 (D8): `plc.set_profile` to IEC 61131-3 prints `%QX0.1` where TIA printed `Q0.1`; the model changes only in
+/// PA-3: `plc.set_profile` to IEC 61131-3 prints `%QX0.1` where TIA printed `Q0.1`; the model changes only in
 /// the configuration project's `profile`.
 #[test]
 fn the_iec_profile_changes_the_notation_only() {
@@ -345,7 +345,7 @@ fn bind_channel_takes_tags() {
         assert_eq!(
             bound,
             Some(ew_schema::Endpoint::Cp(coil.cast(), 0)),
-            "{form}: channel 1 binds the coil CP 14 (the coil function's CP 0, WP-S1.20 D5)"
+            "{form}: channel 1 binds the coil CP 14 (the coil function's CP 0)"
         );
         assert!(plc_012(&s).iter().all(|f| !on_channel(f, 0)));
         s.undo(&Origin::CmdLog { file: "ft721".into() }).expect("undo");

@@ -4,7 +4,7 @@
 //! Macros in the session (D12, D13; doc 07 §3.5, §4.6). [`Session::save_macro`] writes a selection
 //! (a window macro) or whole pages (a page macro) into a writable library as a macro document, a library write that
 //! is confirmed in the shell and not undoable; [`Session::insert_macro`] composes `macro.insert` with the macro and the
-//! closure documents the project lacks, so the command replays with no library installed (D7);
+//! closure documents the project lacks, so the command replays with no library installed;
 //! [`Session::macro_conflicts`] lists on the preview what the user decides on before Apply (FR-MAC-005).
 //!
 //! A library write is a front-end operation: it takes the session by `&mut` and the registry through
@@ -692,7 +692,7 @@ impl Session {
         })
     }
 
-    /// `macro.insert` by reference (D7, D13): resolves the macro from [`Session::libraries`] and the closure items its
+    /// `macro.insert` by reference: resolves the macro from [`Session::libraries`] and the closure items its
     /// fragment names (`lib`) that the project does not hold, each with its own closure, and builds the command. A
     /// closure item the project holds at any version is not resolved (the records keep naming the held copy); the
     /// macro's document is always carried, and the command reuses a held copy of the same hash.

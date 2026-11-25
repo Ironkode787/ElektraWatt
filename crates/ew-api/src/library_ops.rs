@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The library reference form of the commands (D7). The session resolves a [`LibRef`] with its
+//! The library reference form of the commands. The session resolves a [`LibRef`] with its
 //! closure from [`Session::libraries`] and composes `library.embed`, `part.assign` and `library.update` with the
 //! documents; the commands never read a library, so a command log replays on a machine with no library installed.
-//! Also the library status of the held copies and the update plan the card shows (D9).
+//! Also the library status of the held copies and the update plan the card shows.
 
 use std::collections::BTreeSet;
 
@@ -192,7 +192,7 @@ pub struct UpdatePlan {
     pub derived: DerivedDiff,
 }
 
-/// One library copy a pasted fragment carries in another version than the project holds (FT-396), as
+/// One library copy a pasted fragment carries in another version than the project holds, as
 /// the paste choice card lists it: "FX-MCB-1PN (Fixture): this project 1.1.0, pasted 1.0.0, patch".
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct VersionConflict {
@@ -497,7 +497,7 @@ fn status_of(doc: &LibDocument) -> ItemStatus {
 }
 
 impl Session {
-    /// The documents of `refs` with their closures (D7) that the project does not hold yet: a held copy with
+    /// The documents of `refs` with their closures that the project does not hold yet: a held copy with
     /// the same hash is left out; one with another hash is [`ApiError::OtherVersionHeld`].
     pub(crate) fn closure_docs(&self, refs: &[LibRef]) -> Result<Vec<LibDocument>, ApiError> {
         let q = self.query();
@@ -682,7 +682,7 @@ impl Session {
         AnyCommand::of(&cmd).map_err(ApiError::Cmd)
     }
 
-    /// `part.assign` by reference (D7, D8): resolves the part with its closure (template FnDefs, manufacturer)
+    /// `part.assign` by reference: resolves the part with its closure (template FnDefs, manufacturer)
     /// and builds the command that embeds what the project lacks and sets the part uses of `devices` by `mode`.
     ///
     /// # Errors
@@ -785,7 +785,7 @@ impl Session {
         out
     }
 
-    /// The library copies of a fragment that the project holds in another version (FT-396), in
+    /// The library copies of a fragment that the project holds in another version, in
     /// fragment order: what makes `edit.paste` refuse without `adapt`. `fragment` is `edit.paste`'s `fragment`
     /// member (`ParsedFragment::params`); a copy that does not read as a library document is left out (the paste
     /// refuses it). Empty when the paste needs no choice.
@@ -881,7 +881,7 @@ impl Session {
         self.update_plan(&q, pairs, &embed, cp_maps)
     }
 
-    /// The plan of "update the project's copy" from documents (FT-396): as
+    /// The plan of "update the project's copy" from documents: as
     /// [`Session::update_from_library`], with the new versions taken from `docs` (a pasted fragment's copies) instead
     /// of the installed libraries. A document the project holds with another hash is updated to it; one it holds with
     /// the same hash is left out; one it does not hold travels in the command's `embed` when an updated document names
@@ -919,7 +919,7 @@ impl Session {
     }
 
     /// [`Session::update_from_documents`] with the copies of a pasted fragment (`edit.paste`'s `fragment` member, as
-    /// [`Session::paste_versions`] reads it): FT-396's "Update the project's copy" for a front end that holds the
+    /// [`Session::paste_versions`] reads it): "Update the project's copy" for a front end that holds the
     /// fragment as JSON. A copy that does not read as a library document is left out.
     ///
     /// # Errors

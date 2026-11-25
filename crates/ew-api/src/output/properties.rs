@@ -5,7 +5,7 @@
 //! a set of records — the sections every record reaches, each field's value over the section's targets with its
 //! provenance and actions, and the closed list of derived rows with their authored partners.
 //!
-//! **Sections** (D8). A representation reaches its functions and their devices, a function its device; a section is
+//! **Sections**. A representation reaches its functions and their devices, a function its device; a section is
 //! shown when every selected record reaches it, its targets the union of the records reached, in label order
 //! ([`order_records`], never by ID alone). Section order: device, function, representation, connection,
 //! junction, page, then the other kinds by rank.
@@ -16,7 +16,7 @@
 //!
 //! **Derived rows** (doc 16 §6.2) come first in their category, each with the authored path its actions write.
 //!
-//! Plain functions over `Q` (D14): no memoised family of its own; the derived values are the memoised queries
+//! Plain functions over `Q`: no memoised family of its own; the derived values are the memoised queries
 //! `device_tag`, `structure_of`, `wire_props_of`, `wire_numbers`, `potential_partition`, `potential_name`,
 //! `title_block`, `xref_text`, `rep_anchor_cell` and the online check findings.
 
@@ -147,7 +147,7 @@ pub struct SheetSection {
 /// its cores ("Change it at cable -W1").
 pub const CABLE_SOURCE_ROW: &str = "device/parts";
 
-/// The title of a wire without a number (FT-1799), in English; a window writes it in its language.
+/// The title of a wire without a number, in English; a window writes it in its language.
 pub const UNNUMBERED_WIRE: &str = "wire without a number";
 
 /// One row (doc 16 §6.2).
@@ -175,7 +175,7 @@ pub struct PropRow {
     /// Whether it is an outgoing identifier (FR-UI-044 rule 2).
     pub identifier: bool,
     /// Where a person goes to see or change the source of a derived or inherited value, when it has one (doc 16
-    /// §6.2, "go to source"; FT-1651).
+    /// §6.2, "go to source").
     pub source: Option<SourceLink>,
 }
 
@@ -233,7 +233,7 @@ impl DerivedRow<'_> {
     }
 }
 
-/// The row that holds the source of a derived or inherited value (FT-1651): the cross-section of a wire from the
+/// The row that holds the source of a derived or inherited value: the cross-section of a wire from the
 /// size profile, a colour from a potential definition, a page's description from the project's.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum SourceLink {
@@ -355,8 +355,7 @@ fn lookup(q: &Q, id: Uuid) -> Option<(Kind, Value)> {
     if q.project().id.as_uuid() == id {
         let project = q.project();
         let mut value = serde_json::to_value(&**project).ok()?;
-        // The kind is not written while it is the default (a schematic project): its row names it, not a dash
-        // (FT-1813).
+        // The kind is not written while it is the default (a schematic project): its row names it, not a dash.
         if let (Value::Object(members), Ok(kind)) = (&mut value, serde_json::to_value(&project.kind)) {
             members.entry("kind").or_insert(kind);
         }
@@ -400,7 +399,7 @@ fn lookup(q: &Q, id: Uuid) -> Option<(Kind, Value)> {
         MountingSurface => ew_schema::MountingSurface,
         Enclosure => ew_schema::Enclosure,
         LayoutSpace => ew_schema::LayoutSpace,
-        // The bus navigator's nets and the medium table's media (WP-S2.13): named by their names.
+        // The bus navigator's nets and the medium table's media: named by their names.
         LogicalNet => ew_schema::LogicalNet,
         PhysicalNet => ew_schema::PhysicalNet,
         Medium => ew_schema::Medium,
@@ -576,8 +575,8 @@ impl Session {
     }
 }
 
-/// The device's tag as displayed on its main page, else its short tag; a device without a tag (an earth connection,
-/// FT-1820) by [`untagged_name`].
+/// The device's tag as displayed on its main page, else its short tag; a device without a tag (an earth connection)
+/// by [`untagged_name`].
 pub(crate) fn device_tag_text(q: &Q, device: Id<Device>) -> String {
     let main_page = (*q.get::<MainRep>(device)).and_then(|r| q.reps().get(r).map(|rep| rep.page));
     let tag = match main_page {
@@ -876,7 +875,7 @@ impl Session {
                 }
             }
             // A wire and an interruption point reach the definitions of their potential: its name, type and voltage
-            // are set there (FT-1651).
+            // are set there.
             let ends: Vec<EndpointKey> = match kind {
                 Kind::Connection => q
                     .connections()
@@ -899,7 +898,7 @@ impl Session {
                 page_title,
             });
         }
-        // The sections every record reaches (D8).
+        // The sections every record reaches.
         let mut common: Option<BTreeSet<Kind>> = None;
         for p in &picked {
             let kinds: BTreeSet<Kind> = p.reach.keys().copied().collect();
@@ -940,7 +939,7 @@ impl Session {
             sections.push(self.section(&q, &cx, kind, targets, generated_block.as_deref()));
         }
         // One generated page's Title row is the title it prints ("Legend of layout 920"), not its block's format with
-        // the placeholders; pages picked together, each printing its own, show the format they share (FT-2095).
+        // the placeholders; pages picked together, each printing its own, show the format they share.
         if let [
             Picked {
                 generated: Some(title),

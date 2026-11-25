@@ -832,7 +832,7 @@ pub(crate) fn plc_offer(q: &Q, device: Id<Device>) -> PlcOffer {
 
 impl Session {
     /// The part bus ports of a device that no function of the device carries yet and that a starter symbol can place
-    /// (FT-831: the generic CPU's DP port, typed only once a port symbol is placed onto the CPU), in the part's order:
+    /// (the generic CPU's DP port, typed only once a port symbol is placed onto the CPU), in the part's order:
     /// each interface as `DP` or `X1 P1R`, with the symbol's key ([`super::bus_port_symbol_key`]).
     pub fn uncarried_bus_ports(&self, device: Uuid) -> Vec<(String, String)> {
         let q = self.query();
@@ -878,7 +878,7 @@ impl Session {
     }
 
     /// The drawings of `device` on electrical pages (multi-line, single-line), each as (representation, page): what Move
-    /// to page takes along (FT-2134); empty for a record that is no device or one drawn on no such page.
+    /// to page takes along; empty for a record that is no device or one drawn on no such page.
     pub fn electrical_drawings(&self, device: Uuid) -> Vec<(Uuid, Uuid)> {
         use ew_schema::PageType;
         let q = self.query();
@@ -1091,7 +1091,7 @@ impl Session {
         }
     }
 
-    /// What a device row's fluid actions act on (doc 11 §7, FT-1733): whether it is a valve terminal (Generate
+    /// What a device row's fluid actions act on (doc 11 §7): whether it is a valve terminal (Generate
     /// overview…), the positions of a valve module, its own position when it is a valve or a blanking plate, the part a
     /// new valve takes and its open working ports (EW-FL-001's).
     pub fn fluid_menu(&self, device: Uuid) -> FluidMenu {
@@ -1323,7 +1323,7 @@ impl Session {
         .collect()
     }
 
-    /// The PLC settings a row's form starts with (FT-1752), in the file's JSON shape: a configuration project's
+    /// The PLC settings a row's form starts with, in the file's JSON shape: a configuration project's
     /// `symbols`, a module's `plc_module.safety`, a channel's `{mode, safety}`; `None` for another record.
     pub fn plc_settings(&self, id: Uuid) -> Option<serde_json::Value> {
         use ew_schema::{Channel, PlcConfigProject};

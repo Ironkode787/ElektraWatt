@@ -652,7 +652,7 @@ fn read_back(mut value: Value) -> Result<Record, OpenError> {
 }
 
 /// Copies a basic project directory into a new project: new project ID, new record IDs, the requested kind, and
-/// `basic_project` naming the directory's project and its manifest generation (D14).
+/// `basic_project` naming the directory's project and its manifest generation.
 fn from_directory(dir: &Path, new_id: Id<Project>, kind: NewProjectKind) -> Result<Template, OpenError> {
     let (template, generation) = read_records(dir)?;
     let basic = template.0.id.cast();

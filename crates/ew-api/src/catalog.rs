@@ -120,7 +120,7 @@ pub fn source_key_for(file_name: &str) -> String {
     if key.is_empty() { "parts".to_owned() } else { key }
 }
 
-/// The file of the map saved for `source_key`: `<config_dir>/imports/<source key>.toml` (D11).
+/// The file of the map saved for `source_key`: `<config_dir>/imports/<source key>.toml`.
 ///
 /// # Errors
 ///
@@ -312,7 +312,7 @@ pub fn import_parts_into_library(
     part.write(reg, import, take_over)
 }
 
-/// What a parts import into a library reads of the registry (FT-2081): the library, the manufacturer master, the
+/// What a parts import into a library reads of the registry: the library, the manufacturer master, the
 /// libraries it shares manufacturers with and the parts it holds. Taken on the thread that holds the registry, so that
 /// the parse ([`LibraryPart::parse`]) can run on another; the write ([`LibraryPart::write`]) is the registry's again.
 #[derive(Clone, Debug)]

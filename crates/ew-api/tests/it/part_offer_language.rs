@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The part chooser shows a part's description in one language (FT-2066): the reader's, else English, else its
+//! The part chooser shows a part's description in one language: the reader's, else English, else its
 //! first (`ew_derive::text_in`), never every language joined; its text is searched in every language.
 
 use crate::part_selection::{fixture, sample};

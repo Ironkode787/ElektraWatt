@@ -34,7 +34,7 @@ fn strips(q: &Q) -> Vec<Id<Device>> {
 /// case-folded strip tag).
 pub(super) fn strips_table(q: &Q, b: &mut Builder) {
     let folios = folios(q);
-    // The bridge parts by terminal (D6): the part number of the group's part, when it has one.
+    // The bridge parts by terminal: the part number of the group's part, when it has one.
     let mut bridge_parts: BTreeMap<Id<Device>, String> = BTreeMap::new();
     for (_, _, g) in ew_reports::bridge_groups(q) {
         let number = g

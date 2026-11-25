@@ -21,7 +21,7 @@ use crate::library::{FnCompat, PartQuery, Tier};
 use crate::output::StripEdit;
 use crate::{AnyCommand, ApiError, AssignMode, Session};
 
-/// What the part selection dialog chooses a part for (D16).
+/// What the part selection dialog chooses a part for.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum PartTarget {
     /// The part uses of devices or terminals: one `part.assign` in `mode`.
@@ -59,7 +59,7 @@ pub enum PartPick {
     },
 }
 
-/// How an offer fits the target's function (D17).
+/// How an offer fits the target's function.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum Fit {
     /// The part's function template declares the function's FnDef (the same library and item, any version).
@@ -81,7 +81,7 @@ impl Fit {
     }
 }
 
-/// Which offers the dialog lists (D17).
+/// Which offers the dialog lists.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub enum OfferView {
     /// The project's copies and the catalogue.
@@ -120,7 +120,7 @@ impl OfferView {
     }
 }
 
-/// The dialog's query (D17).
+/// The dialog's query.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PartOfferQuery {
     /// The typed text: a part number in any spelling, or words of the type, manufacturer and description.
@@ -137,11 +137,11 @@ pub struct PartOfferQuery {
     pub view: OfferView,
     /// Also deprecated and withdrawn parts (FR-PRT-034).
     pub include_inactive: bool,
-    /// `(library, item)` of the favourites (D18).
+    /// `(library, item)` of the favourites.
     pub favourites: Vec<(Uuid, Uuid)>,
-    /// `(library, item)` of the recently used parts, most recent first (D18).
+    /// `(library, item)` of the recently used parts, most recent first.
     pub recent: Vec<(Uuid, Uuid)>,
-    /// What the text names a part as being for (FT-1845): first category levels (`SensingPosition`), which the
+    /// What the text names a part as being for: first category levels (`SensingPosition`), which the
     /// caller reads from the text in the words of the categories; a part whose own category, or whose main
     /// function's FnDef category, starts with one is found by it.
     pub purpose_categories: Vec<String>,
@@ -149,7 +149,7 @@ pub struct PartOfferQuery {
     /// one is found by it.
     pub purpose_kinds: Vec<String>,
     /// The reader's language (`nl-NL`): a part's description shows in it, else in English, else in its first
-    /// language ([`ew_derive::text_in`], FT-2066); the text is searched in every language.
+    /// language ([`ew_derive::text_in`]); the text is searched in every language.
     pub lang: Option<String>,
 }
 
@@ -273,12 +273,12 @@ fn category_matches(category: Option<&ew_schema::CategoryKey>, prefix: &[String]
         && prefix.len() <= 3
 }
 
-/// The order key of an offer (D17).
+/// The order key of an offer.
 struct Key {
     recent_pos: usize,
     fit: Fit,
     rank: u8,
-    /// Not found by what it is for (FT-1845): false leads its rank.
+    /// Not found by what it is for: false leads its rank.
     not_purpose: bool,
     not_held: bool,
     boost: u8,
@@ -330,7 +330,7 @@ impl Session {
         }
     }
 
-    /// Whether a held part is for what the query names (FT-1845): its own category's first level, or its main
+    /// Whether a held part is for what the query names: its own category's first level, or its main
     /// template function's FnDef's first category level or contact kind, is among the query's purposes.
     fn held_purpose(&self, q: &Q, part: &Part, query: &PartOfferQuery) -> bool {
         if query.purpose_categories.is_empty() && query.purpose_kinds.is_empty() {
@@ -414,7 +414,7 @@ impl Session {
         kinds.into_iter().map(str::to_owned).collect()
     }
 
-    /// The part selection dialog's list (D17): the project's part copies and the catalogue hits, one row per
+    /// The part selection dialog's list: the project's part copies and the catalogue hits, one row per
     /// `(library, item)` (an item the project holds is listed once, as the held copy), filtered by the query and
     /// ordered for the target: the fit to the function (when the query names one), the rank of the text, held before
     /// not held, favourites then recently used parts, the catalogue's full-text order, the natural part number, the
@@ -618,7 +618,7 @@ impl Session {
 
     /// The names of the functions a part's template declares (the dialog's detail line), in template order: each
     /// entry in words, as the Properties grid's Part function row reads it ("NO contact 13-14", "Coil A1-A2"), else
-    /// its FnDef's key; an entry whose FnDef does not resolve has no name and is left out (FT-819: the line printed
+    /// its FnDef's key; an entry whose FnDef does not resolve has no name and is left out (the line printed
     /// "functions ew.fn.mcb-1pn", or an item ID).
     pub fn part_offer_functions(&self, pick: &PartPick) -> Vec<String> {
         let q = self.query();
@@ -697,7 +697,7 @@ impl Session {
         Some(users)
     }
 
-    /// The one command of a choice (D16): for devices `part.assign` in the target's mode (a held copy without
+    /// The one command of a choice: for devices `part.assign` in the target's mode (a held copy without
     /// `copies`, a catalogue part with its closure); for a bridge or an accessory part the strip cell's `fields.set`
     /// (or `fields.set_many`) with the closure of a catalogue part in `copies`.
     ///

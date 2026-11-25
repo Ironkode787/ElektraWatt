@@ -169,7 +169,7 @@ impl Session {
     }
 
     /// [`Session::dxf_page_batch`] of a drawing [`convert_dxf`] converted already (with the same `options`), so that
-    /// the window converts it on a job's thread and makes the page on its own (FT-1763).
+    /// the window converts it on a job's thread and makes the page on its own.
     ///
     /// # Errors
     ///

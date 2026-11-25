@@ -128,7 +128,7 @@ fn every_settable_path_maps_to_a_node_with_its_own_route() {
             node.ty
         );
     }
-    // Each member `project.supply.set` takes is its row's route (FT-1928).
+    // Each member `project.supply.set` takes is its row's route.
     for path in ew_commands::commands::SETTABLE_SUPPLY {
         let node = project
             .iter()
@@ -259,7 +259,7 @@ fn page(s: &Session, folio: &str) -> ew_ids::Uuid {
     s.resolve_reference(&format!("folio:{folio}")).unwrap()
 }
 
-/// A record's own bookkeeping (`$k`, `$v`) is no row of Properties (FT-1939: a breaker showed a row `$v`).
+/// A record's own bookkeeping (`$k`, `$v`) is no row of Properties (a breaker showed a row `$v`).
 #[test]
 fn a_records_bookkeeping_members_are_no_rows() {
     for k in catalogue_kinds() {
@@ -349,8 +349,8 @@ fn frozen_tags_wire_chips_and_the_page_description() {
         }
     );
     assert_eq!(tag.actions, [RowAction::Edit, RowAction::Unfreeze]);
-    // 102.1 (D15): the rating of the breaker that protects it (its control class's 0.75 mm² carries less than 16 A,
-    // FT-2055) and the colour profile name the supplying rows.
+    // 102.1: the rating of the breaker that protects it (its control class's 0.75 mm² carries less than 16 A)
+    // and the colour profile name the supplying rows.
     let w29 = wire(&s, "102.1");
     let sheet = s.property_sheet(&[w29]);
     let csa = row(&sheet, "connection/derived.csa");
@@ -583,7 +583,7 @@ fn the_project_has_its_settings_rows_and_d06_shows_its_finding() {
     assert!(sheet.header.findings.iter().all(|f| f.rule != "EW-CORE-023"));
 }
 
-/// The Supply rows stand while a schematic project has no supply, the first value set making one (FT-1928); a basic or
+/// The Supply rows stand while a schematic project has no supply, the first value set making one; a basic or
 /// macro project has no supply to set (FR-PRJ-026), so it shows no Supply rows that could only refuse.
 #[test]
 fn only_a_schematic_project_shows_the_rows_of_a_supply_it_lacks() {
@@ -626,7 +626,7 @@ fn the_frozen_tag_takes_the_printed_tag_as_text() {
     ));
 }
 
-/// FT-429: a cable's length is typed in metres or as its words, and shows as it is typed.
+/// A cable's length is typed in metres or as its words, and shows as it is typed.
 #[test]
 fn the_cable_length_is_typed_in_metres_or_words() {
     let s = crate::common::sample();
@@ -1024,8 +1024,7 @@ fn a_templated_function_shows_its_part_function() {
         .expect("the starter closure")
         .expect("the symbol and both FnDefs");
     let symbol = s.starter_symbol_copy(symbol_key).expect("a starter symbol");
-    let before: Vec<ew_ids::Uuid> =
-        s.query().functions().iter().map(|(id, _)| id.as_uuid()).collect();
+    let before: Vec<ew_ids::Uuid> = s.query().functions().iter().map(|(id, _)| id.as_uuid()).collect();
     let step = 7_937_500i64;
     s.execute(&AnyCommand {
         name: "device.place".into(),

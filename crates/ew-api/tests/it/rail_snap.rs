@@ -15,11 +15,11 @@ use crate::common::{self, placement_of, rail_at};
 
 use ew_api::{AnyCommand, CmdError, Origin, Session};
 use ew_derive::Q;
-use ew_ids::{Id, Uuid};
 use ew_derive::layout::{
     CarrierLabel, CarrierLabelKind, GroupAccessories, RailAxis, brackets, carrier_labels, free_length,
     rail_items,
 };
+use ew_ids::{Id, Uuid};
 use ew_schema::{Carrier, Device, LibCopy, LibDocument, Part, Placement, Record, Sha256};
 use ew_units::Nm;
 use serde_json::{Value, json};

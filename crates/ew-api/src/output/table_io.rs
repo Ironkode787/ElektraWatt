@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The table round trip (D8, D9, D11): a navigator table as a [`Table`]
+//! The table round trip: a navigator table as a [`Table`]
 //! ([`Session::table_export`]), and a round-trip file read back against the project's table of the same key
 //! ([`Session::table_import`]), its changed cells compiled by table mode's own rule ([`super::table_edit::compile`]) into
 //! one `fields.set_many` ([`Session::apply_table_import`]).
@@ -11,16 +11,16 @@
 //! `kind:parts_summary/<mode>`); `sql` is never imported. A navigator table is every table row in node order with every
 //! column; its rows' IDs are the node keys.
 //!
-//! **What is editable** (D9): a navigator cell exactly when table mode's [`cell_reason_key`] finds none, except that a
+//! **What is editable**: a navigator cell exactly when table mode's [`cell_reason_key`] finds none, except that a
 //! strip-editor cell and a potential's defining cell are "edit in the window"; `io_list`'s six columns of
 //! [`IO_LIST_ROUTES`] on a channel's row; every other report cell is "derived".
 //!
-//! **The merge** (D11): the file's rows match the table's by `id` (`kind:io_list` also by station, slot and channel);
+//! **The merge**: the file's rows match the table's by `id` (`kind:io_list` also by station, slot and channel);
 //! with an intact `_ew_base` each cell is three-way (only the file changed it: applied; only EW: kept, EW-IMP-302; both,
 //! differently: EW-IMP-304, EW's value unless `take_file`), else two-way against the current value. A read-only cell
 //! edited is EW-IMP-301, an unknown ID EW-IMP-303, a number a spreadsheet wrote for a text (`1.10` read `1.1`)
 //! EW-IMP-305. Each applied cell is parsed as the grid parses it ([`Session::parse_field_input`]). The import is pure
-//! over the bytes and the session: it reads no file, clock or network, and creates or deletes no record (D13).
+//! over the bytes and the session: it reads no file, clock or network, and creates or deletes no record.
 
 use std::collections::BTreeMap;
 use std::fmt;
@@ -77,7 +77,7 @@ pub const IO_LIST_ROUTES: [(&str, &str, &str); 6] = [
 /// The most changed cells one import applies (`fields.set_many`'s bound).
 pub const MAX_IMPORT_CELLS: usize = ew_commands::commands::SET_MANY_MAX_EDITS;
 
-/// Why a table cannot be named or built (D8).
+/// Why a table cannot be named or built.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum TableError {
     /// No table navigator has this word.
@@ -90,7 +90,7 @@ pub enum TableError {
     AmbiguousStrip(String, Vec<String>),
     /// The key names no table (the key).
     UnknownTable(String),
-    /// `sql`: an `ew sql` result is never imported (D8).
+    /// `sql`: an `ew sql` result is never imported.
     Sql,
     /// The rows of a report table do not derive (the report layer's sentence).
     Rows(String),
@@ -140,7 +140,7 @@ impl From<RowsError> for TableError {
     }
 }
 
-/// How a round-trip file is read (D11).
+/// How a round-trip file is read.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct ImportTableOptions {
     /// The table's key (`--table`): needed for a CSV and for a workbook whose `_ew` names none.
@@ -152,7 +152,7 @@ pub struct ImportTableOptions {
     pub take_file: bool,
 }
 
-/// Why a round-trip file is refused as a whole (D11).
+/// Why a round-trip file is refused as a whole.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum TableImportError {
     /// The reader refused the bytes.
@@ -223,7 +223,7 @@ pub fn guard_table_read<T>(
         .unwrap_or_else(|_| Err(TableImportError::Panicked(file.to_owned())))
 }
 
-/// What became of one cell of the file (D11).
+/// What became of one cell of the file.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CellOutcome {
     /// Changed only in the file: applied.
@@ -260,7 +260,7 @@ impl CellOutcome {
     }
 }
 
-/// One cell of the preview: changed in the file, in EW, or both (D11).
+/// One cell of the preview: changed in the file, in EW, or both.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ImportCell {
     /// The row's ID.
@@ -316,7 +316,7 @@ pub struct ImportCounts {
     pub missing: usize,
 }
 
-/// A round-trip file read against the project (D11): the preview and the compiled command.
+/// A round-trip file read against the project: the preview and the compiled command.
 #[derive(Clone, PartialEq, Debug)]
 pub struct TableImport {
     /// The table's key.
@@ -384,7 +384,7 @@ impl fmt::Display for TableApplyError {
 
 impl std::error::Error for TableApplyError {}
 
-/// A table's key, parsed (D8).
+/// A table's key, parsed.
 enum TableKey {
     Nav(NavKind),
     NavStrip(Uuid),
@@ -421,7 +421,7 @@ struct Current {
 }
 
 impl Session {
-    /// The key of a navigator's table (D8): `nav:<word>`, or with `strip` (a printed or full tag) `nav:strips/<uuid>`.
+    /// The key of a navigator's table: `nav:<word>`, or with `strip` (a printed or full tag) `nav:strips/<uuid>`.
     ///
     /// # Errors
     ///
@@ -467,7 +467,7 @@ impl Session {
         }
     }
 
-    /// The table of `key` (D8): a navigator's table rows in node order with every column (a column is editable when
+    /// The table of `key`: a navigator's table rows in node order with every column (a column is editable when
     /// it has a `fields.set` route), or a report table as `ew export` writes it (`io_list`'s round-trip columns
     /// editable, D9).
     ///
@@ -546,7 +546,7 @@ impl Session {
         })
     }
 
-    /// Reads a round-trip file against the project's table of the same key (D11): the preview of every changed cell
+    /// Reads a round-trip file against the project's table of the same key: the preview of every changed cell
     /// with its outcome, the findings EW-IMP-301 to -305, the table's rows missing from the file, and the one
     /// `fields.set_many` of the applied cells. Nothing is committed ([`Session::apply_table_import`] does).
     ///
@@ -637,7 +637,7 @@ impl Session {
         Ok(import)
     }
 
-    /// Commits a round trip's command (D11): one `fields.set_many`, one transaction and one undo step; `None` when no
+    /// Commits a round trip's command: one `fields.set_many`, one transaction and one undo step; `None` when no
     /// cell applies.
     ///
     /// # Errors
@@ -733,7 +733,7 @@ fn intact_base(rows: &[Vec<String>]) -> Option<Base> {
     })
 }
 
-/// The merge of one file against one table (D11).
+/// The merge of one file against one table.
 struct Merge<'a> {
     session: &'a Session,
     current: &'a Current,
@@ -908,7 +908,7 @@ impl Merge<'_> {
     }
 
     /// The route and targets of an editable cell (row `r`, column `c`), or the text key of why it is read-only in a
-    /// round trip (D9).
+    /// round trip.
     fn route(&self, r: usize, c: usize) -> Result<((String, String), Vec<Uuid>), &'static str> {
         let table = &self.current.table;
         if let (Some(nav), Some(&i)) = (&self.current.nav, self.current.nodes.get(r)) {

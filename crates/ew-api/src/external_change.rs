@@ -5,7 +5,7 @@
 //! the manifest, reads a quiet change and merges it three-way with the session's model; a change that collides with
 //! no unsaved edit is committed as one undoable step "External change" (`external.apply`, submitted only here, from
 //! [`Origin::External`]); one that collides is held for [`Session::apply_external`]; one that cannot be read holds
-//! saves (D21). A read-only session reloads instead ([`Session::reload`]).
+//! saves. A read-only session reloads instead ([`Session::reload`]).
 
 use std::collections::BTreeSet;
 
@@ -36,7 +36,7 @@ pub enum DiskPoll {
     Collisions,
     /// The change already held for a choice is still the one on disk: nothing was read again, nothing is new.
     Held,
-    /// The change cannot be read (D21): nothing was applied. On a cloud-synced path it is read again after
+    /// The change cannot be read: nothing was applied. On a cloud-synced path it is read again after
     /// [`CLOUD_RECHECK`] up to [`CLOUD_RECHECKS`] times (`retrying`); then saves are held until it reads.
     Unreadable {
         /// Whether it is read again before saves are held.
@@ -92,7 +92,7 @@ impl std::fmt::Display for ExternalError {
 
 impl std::error::Error for ExternalError {}
 
-/// An external change the session holds (D21, D22).
+/// An external change the session holds.
 pub(crate) enum Held {
     /// Collisions wait for a choice per field.
     Collisions(Box<(Incoming, ExternalMerge)>),
@@ -115,7 +115,7 @@ pub(crate) struct Watch {
 }
 
 impl Session {
-    /// Polls the project directory for an external change (D20): call it every [`external::POLL_EVERY`], on window focus,
+    /// Polls the project directory for an external change: call it every [`external::POLL_EVERY`], on window focus,
     /// and after [`external::QUIESCENCE`] while it answers [`DiskPoll::Settling`]; never while a gesture is in progress
     /// (D22: the apply waits until it ends). A quiet change is read read-only and merged with the session's model per
     /// record against the baseline; without a collision it is applied as one step, with collisions it is held, and an
@@ -177,7 +177,7 @@ impl Session {
         DiskPoll::Collisions
     }
 
-    /// The colliding fields of the held external change, in record and path order (D22); `None` when none is held.
+    /// The colliding fields of the held external change, in record and path order; `None` when none is held.
     pub fn external_collisions(&self) -> Option<&[Collision]> {
         match self.persistence.as_ref()?.watch.held.as_ref()? {
             Held::Collisions(held) => Some(&held.1.collisions),
@@ -185,7 +185,7 @@ impl Session {
         }
     }
 
-    /// Whether saves are held because the project on disk changed and cannot be read (D21).
+    /// Whether saves are held because the project on disk changed and cannot be read.
     pub fn external_unreadable(&self) -> bool {
         self.persistence
             .as_ref()
@@ -199,8 +199,8 @@ impl Session {
     }
 
     /// Records the cloud service whose synced folder holds the project directory, as the front-end found it with
-    /// [`ew_store::cloud::detect`] from its environment (D25): an unreadable external change is then read again after
-    /// [`CLOUD_RECHECK`] before saves are held (D21).
+    /// [`ew_store::cloud::detect`] from its environment: an unreadable external change is then read again after
+    /// [`CLOUD_RECHECK`] before saves are held.
     pub fn set_cloud_service(&mut self, service: Option<CloudService>) {
         if let Some(p) = self.persistence.as_mut() {
             p.watch.cloud = service;
@@ -246,7 +246,7 @@ impl Session {
         self.commit_external(incoming, &merged, choices)
     }
 
-    /// Reopens the generation on disk in a read-only session (D23): the session takes its model and nothing else; the
+    /// Reopens the generation on disk in a read-only session: the session takes its model and nothing else; the
     /// history starts again. A session that edits is not reloaded: its external changes are merged
     /// ([`Session::poll_disk`]).
     ///
@@ -277,7 +277,7 @@ impl Session {
         Ok(report)
     }
 
-    /// The held state after an unreadable incoming generation (D21).
+    /// The held state after an unreadable incoming generation.
     fn unreadable(&mut self) -> DiskPoll {
         let Some(p) = self.persistence.as_mut() else {
             return DiskPoll::Unchanged;
@@ -299,7 +299,7 @@ impl Session {
     }
 
     /// Commits the merged change with `choices` as one step `external.apply` from [`Origin::External`], then adopts the
-    /// incoming generation as the baseline with the journal following it (D22, D23).
+    /// incoming generation as the baseline with the journal following it.
     fn commit_external(
         &mut self,
         incoming: Incoming,
@@ -379,7 +379,7 @@ impl Session {
         })
     }
 
-    /// Refuses a save while an external change is held (D21, D22); `Ok` otherwise.
+    /// Refuses a save while an external change is held; `Ok` otherwise.
     pub(crate) fn external_hold(p: &Persistence) -> Result<(), SaveError> {
         match p.watch.held {
             Some(Held::Collisions(_)) => Err(SaveError::ExternalCollisions),

@@ -653,8 +653,7 @@ fn a_four_way_junction_fires_ew_core_072() {
 #[test]
 fn a_four_way_junction_off_a_frame_grid_is_named_by_its_folio() {
     use ew_api::checks::rules::page::four_way_junction;
-    let page: ew_ids::Id<ew_schema::Page> =
-        ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(7));
+    let page: ew_ids::Id<ew_schema::Page> = ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(7));
     let f = four_way_junction(page, "7", page.cast(), "");
     assert_eq!(
         (

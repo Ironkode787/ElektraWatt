@@ -27,9 +27,9 @@ use ew_api::{
     NewProjectKind, Origin, ProjectTemplate, Recovery, ReleaseContext, ReleaseError, ReleaseOptions,
     Released, Session, SessionOptions, Submit, TroubleKind, checks,
 };
+use ew_format::{self, FilePath, Limits, Manifest};
 use ew_ids::Id;
 use ew_schema::{Date, Party, PartyRole, ReleaseRecord, Revision, RevisionState};
-use ew_format::{self, FilePath, Limits, Manifest};
 use ew_store::lock::{Identity, new_session_id};
 use ew_store::mem::{DirSync, Fault, MemVfs};
 use ew_store::{ManualClock, StoreOptions, Vfs};
@@ -470,7 +470,7 @@ fn the_release_writes_the_archive_and_the_record() {
     assert_eq!(
         os_run_records(&base.join("state")),
         0,
-        "a settled run leaves no record (FT-814)"
+        "a settled run leaves no record"
     );
 
     // RA-6.
@@ -1244,7 +1244,7 @@ fn a_git_failure_leaves_the_revision_open() {
             message.contains(&format!("SHA-256: {}", released.sha256)),
             "{message}"
         );
-        assert!(message.contains("\nRun: "), "the run's mark (FT-814): {message}");
+        assert!(message.contains("\nRun: "), "the run's mark: {message}");
         assert_eq!(
             release_record(&s).git_tag.map(|t| t.as_str().to_owned()),
             Some(tag)
@@ -1819,7 +1819,7 @@ fn two_copies_writing_at_once_keep_each_others_temps() {
     vfs.put(&root.join(&copy_temp), b"the copy's release, still writing");
     vfs.put(
         &root.join(&id_temp),
-        b"a release before FT-814, maybe still writing",
+        b"a release before the run's mark, maybe still writing",
     );
     vfs.put(&root.join(&own_leftover), b"this directory's crashed run");
     s.release(&context(), &integrity, &options(&NoGit, None))
@@ -1833,7 +1833,10 @@ fn two_copies_writing_at_once_keep_each_others_temps() {
         "this directory's leftover temp is removed; the others are kept"
     );
     assert_eq!(left[&copy_temp], b"the copy's release, still writing");
-    assert_eq!(left[&id_temp], b"a release before FT-814, maybe still writing");
+    assert_eq!(
+        left[&id_temp],
+        b"a release before the run's mark, maybe still writing"
+    );
     s.close();
 }
 
@@ -2021,7 +2024,7 @@ fn the_release_commits_and_tags_in_a_git_repository() {
         "{shown}"
     );
     assert!(shown.contains("Archive: V1.0.ewarchive"), "{shown}");
-    assert!(shown.contains("\nRun: "), "the run's mark (FT-814): {shown}");
+    assert!(shown.contains("\nRun: "), "the run's mark: {shown}");
     // The port reads the tag's own message back (a discard deletes the tag only when it carries the SHA-256).
     let message = git
         .tag_message(&dir, "ew/rev/V1.0")

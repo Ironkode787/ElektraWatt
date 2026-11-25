@@ -204,7 +204,7 @@ pub(crate) fn format_with(cx: &dyn DisplayCx, ty: &FieldType, value: &Value) -> 
         FieldType::Json => length_source_text(value)
             .or_else(|| scale_text(value))
             .or_else(|| rect_text(value))
-            // A connection that is a cable's core by its cable and core (`-1W1 BN`, FT-1685), as the strip editor
+            // A connection that is a cable's core by its cable and core (`-1W1 BN`), as the strip editor
             // names it.
             .or_else(|| cx.record_label(value.get("core")?.as_str()?))
             .unwrap_or_else(|| compact_json(value)),
@@ -221,7 +221,7 @@ fn scale_text(value: &Value) -> Option<String> {
     }
 }
 
-/// A cable's length source in the words its typed editor reads back (FT-429): `{"manual": <nm>}` as
+/// A cable's length source in the words its typed editor reads back: `{"manual": <nm>}` as
 /// `<metres> m`, `from_part` as `from part`, `missing` as is; `None` for any other JSON value.
 fn length_source_text(value: &Value) -> Option<String> {
     match value {
@@ -247,7 +247,7 @@ fn length_source_text(value: &Value) -> Option<String> {
 }
 
 /// A rectangle (`[[x1, y1], [x2, y2]]` in nanometres, a legend's area) as its place and size in millimetres, as its
-/// editor reads it back: `20.000, 15.000 mm · 60.000 × 40.000 mm` (FT-1936); `None` for any other JSON value.
+/// editor reads it back: `20.000, 15.000 mm · 60.000 × 40.000 mm`; `None` for any other JSON value.
 fn rect_text(value: &Value) -> Option<String> {
     let corner = |i: usize| -> Option<(i64, i64)> {
         let p = value.get(i)?.as_array().filter(|p| p.len() == 2)?;

@@ -354,7 +354,7 @@ pub enum FieldReadOnly {
         /// Where a person does it (the canvas, a menu, the wizard), if anywhere.
         action: Option<String>,
     },
-    /// Only a `HumanOnly` command edits it; the grid never builds one (D4).
+    /// Only a `HumanOnly` command edits it; the grid never builds one.
     HumanOnly {
         /// The command.
         command: String,

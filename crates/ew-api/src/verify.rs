@@ -194,7 +194,7 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<PotentialNameOf>(memo, cold, keys.potentials.iter().copied(), o);
     check::<ew_derive::ModuleOrder>(memo, cold, keys.cfgs.iter().copied(), o);
     check::<ew_derive::ModuleStarts>(memo, cold, keys.cfgs.iter().copied(), o);
-    // The per-module start (D9) and the address index (EW-PLC-001).
+    // The per-module start and the address index (EW-PLC-001).
     check::<ew_derive::ModuleStartOf>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::AddressIndex>(memo, cold, keys.cfgs.iter().copied(), o);
     check::<ew_derive::ChannelAddresses>(memo, cold, keys.devices.iter().copied(), o);
@@ -210,7 +210,7 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<ew_derive::BusSegments>(memo, cold, keys.pnets.iter().copied(), o);
     check::<ew_derive::NetMembersOf>(memo, cold, keys.lnets.iter().copied(), o);
     check::<ew_derive::PlcRows>(memo, cold, keys.devices.iter().copied(), o);
-    // The printed PLC addresses, and the targets they print on (FT-700).
+    // The printed PLC addresses, and the targets they print on.
     check::<ew_derive::ChannelsByTarget>(memo, cold, [()], o);
     check::<ew_derive::PlcAddressText>(memo, cold, keys.functions.iter().copied(), o);
     check::<DevicePartLines>(memo, cold, keys.devices.iter().copied(), o);

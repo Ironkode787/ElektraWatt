@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A wire's cross-section is proposed from the rating of the device that protects it (doc 08 §4.2, FT-2055): behind
+//! A wire's cross-section is proposed from the rating of the device that protects it (doc 08 §4.2): behind
 //! the sample's C16 breakers, whose mains class's 1.5 mm² carries less than 16 A by the current table, the wires take
 //! the table's 2.5 mm², naming the breaker; a cross-section the person sets wins.
 
 use crate::common;
 
-use ew_ids::Id;
 use ew_derive::{ConnWireProps, PropSource, SizeRule};
+use ew_ids::Id;
 use ew_schema::{Connection, Csa};
 use ew_units::Dec3;
 use serde_json::json;

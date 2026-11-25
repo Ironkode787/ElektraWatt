@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A potential reasoned for a wire that has only a fallback name (FT-1700): the window offers it to accept or decline,
+//! A potential reasoned for a wire that has only a fallback name: the window offers it to accept or decline,
 //! and never sets it without the person's accept.
 //!
 //! Only what is safe to reason: a connection point on the wire's potential whose own role says its type (a part's or a

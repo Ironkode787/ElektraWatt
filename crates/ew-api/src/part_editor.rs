@@ -172,7 +172,7 @@ pub struct DraftMessage {
     pub args: Vec<String>,
 }
 
-/// Why a draft field or the draft cannot be saved (D21).
+/// Why a draft field or the draft cannot be saved.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum PartDraftError {
     /// The whole draft: a reason key (`reason-part-unchanged`).
@@ -181,7 +181,7 @@ pub enum PartDraftError {
     Field(DraftMessage),
 }
 
-/// The part editor's draft (D20, D21): the editable members as texts, their messages, and the read-only members the
+/// The part editor's draft: the editable members as texts, their messages, and the read-only members the
 /// editor shows.
 #[derive(Clone, PartialEq, Debug)]
 pub struct PartDraft {
@@ -666,7 +666,7 @@ impl Session {
         out
     }
 
-    /// The manufacturers the editor offers (D21): the project's manufacturer copies, then the catalogue's that the
+    /// The manufacturers the editor offers: the project's manufacturer copies, then the catalogue's that the
     /// project does not hold, by name in natural order, each name once.
     pub fn part_manufacturers(&self) -> Vec<String> {
         let q = self.query();
@@ -684,7 +684,7 @@ impl Session {
         names
     }
 
-    /// The draft of a held part copy (D20): its editable members as texts and the read-only ones.
+    /// The draft of a held part copy: its editable members as texts and the read-only ones.
     ///
     /// # Errors
     ///
@@ -881,7 +881,7 @@ impl Session {
         ))
     }
 
-    /// Sets a field of the draft from its text and checks it (D21): the text is kept either way, a field that does not
+    /// Sets a field of the draft from its text and checks it: the text is kept either way, a field that does not
     /// parse gets its message ([`PartDraft::message`]) and the error. `tech:<key>` sets a technical value (an empty
     /// text removes it): a text that starts with a digit parses by the property grid's quantity rule, any other as an
     /// identifier; a key given twice (up to case) is refused.
@@ -1069,7 +1069,7 @@ impl Session {
         self.tech_value(key, t).map(|_| ())
     }
 
-    /// A technical value's text as its JSON form (D21).
+    /// A technical value's text as its JSON form.
     fn tech_value(&self, key: &str, t: &str) -> Result<TechVal, DraftMessage> {
         let field = format!("tech:{key}");
         if t.starts_with(|c: char| c.is_ascii_digit()) {
@@ -1169,7 +1169,7 @@ impl Session {
         Ok((p, check.manufacturer.1))
     }
 
-    /// `part.edit_copy` of a draft (D20, D21): in place for a project-local copy, else a fork whose item ID
+    /// `part.edit_copy` of a draft: in place for a project-local copy, else a fork whose item ID
     /// [`Session::next_fork_item`] mints.
     ///
     /// # Errors
@@ -1197,7 +1197,7 @@ impl Session {
             .map_err(|e| PartDraftError::Field(message("part", key!("error-part-value"), &[&e.to_string()])))
     }
 
-    /// [`Session::part_edit_command`] with what the card shows (D20): the field diff, the devices that use the copy
+    /// [`Session::part_edit_command`] with what the card shows: the field diff, the devices that use the copy
     /// and the component BOM rows that change, from a preview of the command on a fork of the current snapshot.
     ///
     /// # Errors

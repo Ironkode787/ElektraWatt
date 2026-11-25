@@ -155,8 +155,8 @@ impl Query for PageCpTargetsOf {
     }
 }
 
-/// The bridges of the strips whose terminals the drawn page `page` shows, alone or in a strip segment (doc 08 §6.5,
-/// FT-1908, FT-2020): every bridge group of such a strip (`ew_derive::StripBridges`, by strip ID, then group) with
+/// The bridges of the strips whose terminals the drawn page `page` shows, alone or in a strip segment (doc 08 §6.5):
+/// every bridge group of such a strip (`ew_derive::StripBridges`, by strip ID, then group) with
 /// the clamp its connections name on each of its terminals, the first in the group's connection order (a bridge shaft,
 /// which no symbol draws, as the terminal's lowest side-1 clamp), in the group's terminal order. The scene draws a
 /// group where its terminals stand in one row.

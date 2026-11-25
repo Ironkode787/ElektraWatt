@@ -11,10 +11,10 @@ use std::collections::BTreeMap;
 
 use ew_api::output::{CellLabel, ExportOptions, GotoError, PageSelection, page_uuid};
 use ew_api::{CmdLog, Session};
-use ew_ids::{Id, Uuid};
-use ew_schema::Representation;
 use ew_derive::{PageOrder, XrefKind, XrefRelationOf, XrefTextOf, anchor_point};
 use ew_dl::{Destination, DisplayList};
+use ew_ids::{Id, Uuid};
+use ew_schema::Representation;
 
 /// The representation of the interruption point `name` on folio `folio`.
 fn ip(s: &Session, folio: &str, name: &str) -> Id<Representation> {

@@ -93,15 +93,15 @@
 // `TEXTS`, `text_english`, `text!` and `key!`, before the modules that name a key.
 ew_l10n::texts!(crate);
 
-// The CSV and XLSX parts import with its column maps (D11).
+// The CSV and XLSX parts import with its column maps.
 pub mod catalog;
-// The JSON results of the `ew` subcommands and their published schemas (D3, D5).
+// The JSON results of the `ew` subcommands and their published schemas.
 pub mod cli_results;
 mod cmdlog;
-// DXF and DWG import and underlays (WP-S3.19).
+// DXF and DWG import and underlays.
 pub mod dxf;
 pub mod eplan;
-// External change (D20 to D23)
+// External change
 mod external_change;
 pub mod fmt;
 pub mod geometry;
@@ -123,15 +123,15 @@ pub mod plc_exchange;
 pub mod qet_collection;
 pub mod symbols;
 pub mod window;
-// The public queries of `ew query` and `--explain` (D11, D12).
+// The public queries of `ew query` and `--explain`.
 pub mod queries;
-// The release gate and the sign-off (D8 to D10).
+// The release gate and the sign-off.
 mod release;
-// The atomic release and the as-built archive (D11 to D13).
+// The atomic release and the as-built archive.
 mod release_run;
 // The router the canvas tools call.
 pub mod routing;
-// `.ewz` opened read-only and the export of the saved generation (D8, D9).
+// `.ewz` opened read-only and the export of the saved generation.
 mod transport;
 pub mod verify;
 
@@ -491,7 +491,7 @@ fn dropped_copies(q: &Q, report: &OpenReport) -> Vec<AnyKey> {
     dropped
 }
 
-/// A library copy the open dropped as damaged and the device that names it ([`Session::damaged_copy`], FT-1383).
+/// A library copy the open dropped as damaged and the device that names it ([`Session::damaged_copy`]).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DamagedCopy {
     /// The tag of the device that names the copy (`-101K1`); `None` for a record of no device.
@@ -512,13 +512,13 @@ pub struct DamagedCopy {
     /// When [`DamagedCopy::left_out`]: every copy the open dropped that a Save As leaves out, each in words as
     /// [`DamagedCopy::words`] names the first, in key order; empty otherwise.
     pub left_out_words: Vec<Text>,
-    /// Whether an installed library holds a readable document of the copy the banner names (FT-1499; of any
+    /// Whether an installed library holds a readable document of the copy the banner names (of any
     /// copy the open dropped when [`DamagedCopy::left_out`], whose banner names them all): the banner then
     /// offers Update from library ([`Session::update_damaged_copies`]).
     pub in_library: bool,
 }
 
-/// What [`Session::update_damaged_copies`] did (FT-1499): the damaged library copies written from their
+/// What [`Session::update_damaged_copies`] did: the damaged library copies written from their
 /// libraries and those no installed library holds a readable document of, each in words as
 /// [`DamagedCopy::words`] names a copy, in key order. Both empty for a project without a damaged copy.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
@@ -576,7 +576,7 @@ const INTEGRITY_RUN: checks::Scheme = checks::Scheme {
 };
 
 /// A save error by key, in the reader's language (its `Display` carries file system paths a person's text must not):
-/// the window's save refusals and the details of the purge's and the update's (FT-1570).
+/// the window's save refusals and the details of the purge's and the update's.
 pub fn save_error_text(e: &SaveError) -> Text {
     match e {
         SaveError::ReadOnly(_) => text!("saveerr-read-only"),
@@ -1379,7 +1379,7 @@ impl Session {
     /// Writes the session's model as a new project into `dir` (a directory without a project) and keeps
     /// it as the session's project (Save As, doc 05 §5.5). Once the new project exists, the previous one is
     /// closed cleanly: its journal (the edits that are now saved in the new project) is deleted and its lock
-    /// released, so reopening it neither offers to recover them nor opens it read-only (FT-499). When the
+    /// released, so reopening it neither offers to recover them nor opens it read-only. When the
     /// write fails, the previous project and its journal stay as they were.
     ///
     /// # Errors
@@ -1406,7 +1406,7 @@ impl Session {
         Ok(())
     }
 
-    /// FT-1383: the first record, in the integrity check's order, that names a library copy the open
+    /// The first record, in the integrity check's order, that names a library copy the open
     /// dropped as damaged, as the device's tag, the copy's project-relative file and, from the installed libraries, the
     /// copy's part, with the copy and that record in words; when the model passes the check, the
     /// first copy the open dropped that no record names ([`DamagedCopy::left_out`]); `None` when there is neither. A
@@ -1483,7 +1483,7 @@ impl Session {
         })
     }
 
-    /// Update from library of the damaged library copies (FT-1499): every copy the open dropped
+    /// Update from library of the damaged library copies: every copy the open dropped
     /// as damaged that an installed library holds is read and checked as `library.embed` reads a library's document,
     /// before anything is written, and the store then writes those copies over their damaged files in one save
     /// ([`Store::update_damaged_copies`]); a copy no library holds, or whose document the check refuses, stays damaged

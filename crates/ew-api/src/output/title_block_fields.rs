@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! What the window's Title block fields form reads of a page (FT-1686): the placeholder paths the page's frame and
+//! What the window's Title block fields form reads of a page: the placeholder paths the page's frame and
 //! title-block forms print, in the order of their cells, each with its text now; and where those values live (the
 //! project's ID, whether the page overrides the project's description, the open revision, the parties).
 
@@ -33,7 +33,7 @@ pub struct TitleBlockFacts {
     pub has_revisions: bool,
     /// The project's parties, in their JSON form.
     pub parties: Value,
-    /// The party roles the current revision names as its author and its checker (their JSON words), FT-1718.
+    /// The party roles the current revision names as its author and its checker (their JSON words).
     pub revision_author: Option<String>,
     /// See [`TitleBlockFacts::revision_author`].
     pub revision_checker: Option<String>,
@@ -70,7 +70,7 @@ fn placeholder_paths(template: &str, out: &mut Vec<String>) {
 impl Session {
     /// The frame form the drawn page `page` draws with while it names none of its own (FR-PAG-018: its page type's
     /// default, else the project's); `None` for a page that is not in the project or a project without a default
-    /// frame. Its Form row names it (FT-1915).
+    /// frame. Its Form row names it.
     pub fn page_default_frame(&self, page: Uuid) -> Option<Uuid> {
         let q = self.query();
         let record = q.pages().get(Id::from_uuid(page))?;

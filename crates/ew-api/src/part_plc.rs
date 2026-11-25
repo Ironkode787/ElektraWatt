@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The PLC section of a new part as a form (FT-1766, doc 10 §2.6): what the part is in the PLC model, its channels,
+//! The PLC section of a new part as a form (doc 10 §2.6): what the part is in the PLC model, its channels,
 //! the pin pattern, the supply pins, the allowed slots and a station's module limit, as texts checked one by one.
 //!
 //! **What it makes.** The `plc` section with the I/O range the channels occupy (a digital channel one bit, an
 //! analogue one a word: `bit_of` `n` or `16n`), the pins as the part's CP pattern (the channel pins in channel order,
 //! then the supply pins with their potential roles) and a black-box main function over that pattern, as the starter
 //! cards carry: so a card made here gets its functions and connection points as EW-GEN-DI-1 does, and N1 and N3 give
-//! its channels and their pins. A card with inputs and outputs has a second kind of channels the other way (FT-1766):
+//! its channels and their pins. A card with inputs and outputs has a second kind of channels the other way:
 //! its channels follow the first kind's in number (`PlcSection::more_channels`), each kind's from bit 0 of its
 //! direction's range (`bit_of` a list), its pins by the one pin pattern over every channel.
 
@@ -284,7 +284,7 @@ pub(crate) fn check_plc(rows: &PlcRows) -> Vec<DraftMessage> {
     if !kind.is_empty() && count.is_empty() {
         say("count", key!("error-part-plc-count-missing"), &[]);
     }
-    // A second kind of channels (FT-1766): checked as the first, and going the other way.
+    // A second kind of channels: checked as the first, and going the other way.
     let (kind2, count2) = (rows.kind2.trim(), rows.count2.trim());
     if !kind2.is_empty() && !word_ok(kind2, &channel_kind_words()) {
         say("kind2", key!("error-part-plc-kind"), &[kind2]);
@@ -305,7 +305,7 @@ pub(crate) fn check_plc(rows: &PlcRows) -> Vec<DraftMessage> {
     if !kind2.is_empty() && count2.is_empty() {
         say("count2", key!("error-part-plc-count-missing"), &[]);
     }
-    // Either way, only not the first kind again (FT-1970).
+    // Either way, only not the first kind again.
     if !kind2.is_empty() && word_ok(kind2, &channel_kind_words()) {
         match (way(kind), way(kind2)) {
             (Some(_), Some(_)) if kind2 != kind => {}
@@ -325,7 +325,7 @@ pub(crate) fn check_plc(rows: &PlcRows) -> Vec<DraftMessage> {
     {
         say("data_type", key!("error-part-value"), &[&e.to_string()]);
     }
-    // The supply pins are lists (FT-2132): each name a pin of its own.
+    // The supply pins are lists: each name a pin of its own.
     let (l_plus, m) = (rows.supply_list("l_plus"), rows.supply_list("m"));
     for (member, pins) in [("l_plus", &l_plus), ("m", &m)] {
         if let Some(e) = pins.iter().find_map(|p| Ident::from_input(p).err()) {
@@ -499,7 +499,7 @@ pub(crate) fn plc_section(rows: &PlcRows) -> Option<(PlcSection, Vec<CpData>)> {
     let ident = |t: &str| (!t.trim().is_empty()).then(|| Ident::from_input(t.trim()).expect("checked"));
     let count = rows.channel_count().filter(|n| *n > 0);
     let kind: Option<ChannelKind> = count.and_then(|_| serde_json::from_value(word(&rows.kind)).ok());
-    // A card's second kind of channels, the other way (FT-1766).
+    // A card's second kind of channels, the other way.
     let kind2: Option<ChannelKind> = kind
         .as_ref()
         .and(rows.second_count().filter(|n| *n > 0))
@@ -508,7 +508,7 @@ pub(crate) fn plc_section(rows: &PlcRows) -> Option<(PlcSection, Vec<CpData>)> {
     let classes = [analogue(&kind), analogue(&kind2)];
     let ways = rows.io();
     // A second kind the same way lies in its direction's one range after the first kind's bits, from the next word;
-    // the range is of the first kind's class (doc 10 §2.6, FT-1970). The other way, from bit 0 of its own range.
+    // the range is of the first kind's class (doc 10 §2.6). The other way, from bit 0 of its own range.
     let same_way = kind2.is_some() && matches!(ways.as_slice(), [(a, _), (b, _)] if a == b);
     let word = |bits: u32| bits.div_ceil(16).saturating_mul(16);
     let second_at = if same_way { word(ways[0].1) } else { 0 };
@@ -564,7 +564,7 @@ pub(crate) fn plc_section(rows: &PlcRows) -> Option<(PlcSection, Vec<CpData>)> {
     for (_, pin) in &pins {
         add_cp(pin, None);
     }
-    // A supply group of each pair of the lists (FT-2132), its pins after the channels' pins, each pin once.
+    // A supply group of each pair of the lists, its pins after the channels' pins, each pin once.
     let supply: Vec<(Ident, Ident)> = rows
         .supply_pairs()
         .unwrap_or_default()
@@ -658,7 +658,7 @@ mod supply_tests {
             .collect()
     }
 
-    /// FT-2132: a supply pin field is a list, by commas or spaces; each L+ pin becomes a pin and a group, with the M
+    /// A supply pin field is a list, by commas or spaces; each L+ pin becomes a pin and a group, with the M
     /// pin of its place or the one M pin of them all, and the form reads the groups back as it was typed.
     #[test]
     fn a_supply_field_takes_a_list_and_makes_a_pin_of_each() {

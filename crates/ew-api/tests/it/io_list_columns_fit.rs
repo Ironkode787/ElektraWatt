@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1923: an I/O list block on the form of the sample's PLC overview prints every CPU tag and part number whole: a
+//! An I/O list block on the form of the sample's PLC overview prints every CPU tag and part number whole: a
 //! column whose text would be cut takes room from the columns that print smaller than their room, down to the smallest
 //! size (doc 09 §7 item 5).
 

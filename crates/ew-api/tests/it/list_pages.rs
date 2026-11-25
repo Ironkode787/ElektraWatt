@@ -1,17 +1,17 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A list's pages print what its block chooses (doc 09 §3.8): FT-1874's columns with their headings and widths, the
-//! caption, the legend and the rows the model does not hold, in the project's language; FT-1826's list pages on the
-//! set's paper; FT-1805's terminal diagram that names each terminal's strip. Over copies of the sample.
+//! A list's pages print what its block chooses (doc 09 §3.8): the columns with their headings and widths, the
+//! caption, the legend and the rows the model does not hold, in the project's language; the list pages on the
+//! set's paper; the terminal diagram that names each terminal's strip. Over copies of the sample.
 
 use crate::common;
 
 use ew_api::Session;
 use ew_api::output::{PageFrameOf, PageTableOf, RowExport, page_layer, row_export};
-use ew_mltext::LangTag;
 use ew_derive::{PageOrder, PageRef, text_in};
 use ew_dl::{Item, ItemKind, Layer};
+use ew_mltext::LangTag;
 use ew_reports::{BlockRows, Registry};
 use ew_scene::table::TableView;
 use serde_json::{Value, json};
@@ -71,7 +71,7 @@ fn frame_texts(s: &Session, page: PageRef) -> Vec<String> {
     out
 }
 
-/// FT-1874: a block's own columns print in its order, each with its width and its heading (or the kind's), and its
+/// A block's own columns print in its order, each with its width and its heading (or the kind's), and its
 /// caption and legend print on every page; the CSV keeps every column of the kind.
 #[test]
 fn a_list_prints_the_columns_headings_widths_caption_and_legend_its_block_chooses() {
@@ -141,7 +141,7 @@ fn english(kind: &str, key: &str) -> String {
         .unwrap_or_else(|| panic!("{kind} has {key}"))
 }
 
-/// FT-1874: in a project whose language is Dutch a list prints its headings and its title block's labels in Dutch;
+/// In a project whose language is Dutch a list prints its headings and its title block's labels in Dutch;
 /// before, every heading and label printed its English.
 #[test]
 fn a_dutch_project_prints_its_list_heads_and_title_block_labels_in_dutch() {
@@ -170,7 +170,7 @@ fn a_dutch_project_prints_its_list_heads_and_title_block_labels_in_dutch() {
     assert!(!texts.iter().any(|t| t.starts_with("Description:")), "{texts:?}");
 }
 
-/// FT-1874: a row of the block's own is listed with the kind's rows, by the block's sorting among them, in the CSV
+/// A row of the block's own is listed with the kind's rows, by the block's sorting among them, in the CSV
 /// too, and stays when the model changes: the list is made anew from the model and the block.
 #[test]
 fn rows_of_your_own_are_listed_sorted_and_kept_when_the_model_changes() {
@@ -218,7 +218,7 @@ fn rows_of_your_own_are_listed_sorted_and_kept_when_the_model_changes() {
     assert_eq!(terminal(&s).map(|(i, _, _)| i), Some(i));
 }
 
-/// FT-1805: the terminal diagram names each terminal's strip, so two strips' terminals of one designation read apart.
+/// The terminal diagram names each terminal's strip, so two strips' terminals of one designation read apart.
 #[test]
 fn two_strips_terminals_of_one_designation_read_apart_in_the_terminal_diagram() {
     let s = common::sample();
@@ -326,7 +326,7 @@ fn a_new_list_starts_on_the_frame_most_pages_print_on() {
     assert_eq!(s.new_list_form(), None);
 }
 
-/// FT-1826: a set whose frame is the starter A3 frame prints its lists on it, as many rows to a page as its list area
+/// A set whose frame is the starter A3 frame prints its lists on it, as many rows to a page as its list area
 /// holds, more than the A4 one.
 #[test]
 fn a_set_on_a3_prints_its_lists_on_a3() {

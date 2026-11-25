@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A connection list whose map names a level column per end lands each connection on the level it names, not every
-//! one on level 1 (doc 14 §5.4 "Levels in a connection list", FT-1985).
+//! one on level 1 (doc 14 §5.4 "Levels in a connection list").
 
 use ew_api::catalog::ImportInput;
 use ew_api::eplan;

@@ -200,7 +200,7 @@ fn the_dp_port_symbol_on_the_generic_cpu_gets_its_port() {
     assert_eq!(open.len(), 1, "{open:?}");
 }
 
-/// FT-841: the DP-port symbol placed as a device of its own joins the CPU with `rep.join_device`, because the CPU's
+/// The DP-port symbol placed as a device of its own joins the CPU with `rep.join_device`, because the CPU's
 /// bus part has a port no function carries yet; N5 then gives the joined function the CPU's DP port. A second port
 /// symbol finds no free port and is refused in words.
 #[test]

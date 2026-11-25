@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The sample's control page 102 draws the bridges of -X1021 (FT-1908, doc 08 §6.5): terminals 1 to 4 and 5 to 8 are
+//! The sample's control page 102 draws the bridges of -X1021 (doc 08 §6.5): terminals 1 to 4 and 5 to 8 are
 //! two bridges, each four terminals in one row, and each is drawn as a line across its terminals' bridged leads with a
 //! dot on each, in the wires layer that every writer draws.
 

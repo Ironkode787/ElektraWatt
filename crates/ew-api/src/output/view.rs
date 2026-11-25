@@ -413,7 +413,7 @@ impl crate::Session {
             .count()
     }
 
-    /// The frame form a new page of type `kind` made from the page `from` takes as its own (FT-1716): `from`'s own
+    /// The frame form a new page of type `kind` made from the page `from` takes as its own: `from`'s own
     /// form, when the project's frame defaults give a page of `kind` none and the project holds no no-grid frame, so
     /// that it would have no frame at all (an imported QElectroTech project, whose folios each carry their template).
     /// `None` when the defaults or the no-grid frame frame the page, or `from` has no form of its own.

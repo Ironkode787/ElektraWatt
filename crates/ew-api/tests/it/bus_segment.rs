@@ -169,7 +169,7 @@ fn the_port_texts() {
     );
 }
 
-/// BU-6 = AC-31 (D12): the sample's line has no bus finding. BU-3: with the valve terminal's end Off, EW-BUS-004
+/// BU-6 = AC-31: the sample's line has no bus finding. BU-3: with the valve terminal's end Off, EW-BUS-004
 /// reports one error at that end, and On again clears it. A TBD station address is one EW-BUS-001 error on its port,
 /// worded in each language, and EW-CORE-044's finding for it is superseded.
 #[test]

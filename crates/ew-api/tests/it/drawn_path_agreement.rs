@@ -13,12 +13,12 @@ use crate::common;
 
 use ew_api::output::{NavKind, NavRole, PageLayer, TableCp, page_layer};
 use ew_api::{AnyCommand, Session};
-use ew_ids::{Id, Uuid};
-use ew_schema::{Connection, Dir4, Page};
-use ew_units::{Nm, Pt2, Rect};
 use ew_derive::{PageOrder, drawn_path};
 use ew_dl::{ItemKind, Layer, PathEl};
+use ew_ids::{Id, Uuid};
 use ew_scene::route::{RouteEnd, connection_polyline};
+use ew_schema::{Connection, Dir4, Page};
+use ew_units::{Nm, Pt2, Rect};
 use proptest::prelude::*;
 use serde_json::json;
 

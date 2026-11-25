@@ -1286,7 +1286,7 @@ fn box_of(points: &[(f64, f64)]) -> (f64, f64, f64, f64) {
         })
 }
 
-/// The command line's line about the page findings says what they are (FT-1670): an imported folio's empty
+/// The command line's line about the page findings says what they are: an imported folio's empty
 /// title-block fields were summed up as "unresolved wire ends, unknown styles, overflowing table texts".
 #[test]
 fn the_page_findings_summary_names_their_kinds() {

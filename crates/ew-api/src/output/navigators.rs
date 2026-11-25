@@ -912,7 +912,7 @@ mod tests {
         assert!(primary_drawables(std::iter::empty::<((), String, Vec<Drawable>)>()).is_empty());
     }
 
-    /// FT-723: kinds outside the contacts and coils read in plain words through the display mapping; the contacts and
+    /// kinds outside the contacts and coils read in plain words through the display mapping; the contacts and
     /// coils keep the generic rule.
     #[test]
     fn function_kinds_read_in_plain_words() {
@@ -941,7 +941,7 @@ mod tests {
         assert_eq!(
             text("ew.fn.contact-co", &["11", "12", "14"]),
             "Changeover contact 11-12-14",
-            "FT-752: sentence case"
+            "sentence case"
         );
     }
 
@@ -1010,7 +1010,7 @@ mod tests {
                 ("connection", "tube_part"),
             ]
             .contains(&(kind, path));
-            // A channel's safety data is a structure: its cell says to edit it in the property grid (FT-737).
+            // A channel's safety data is a structure: its cell says to edit it in the property grid.
             let in_grid = (kind, path) == ("channel", "safety");
             assert!(
                 scalar(&spec.ty) || typed || in_grid,

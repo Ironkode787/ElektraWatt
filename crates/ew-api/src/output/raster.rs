@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Page rasters (D7; FR-EXT-004, FT-254): `ew render --page <folio> --png` and `ew export png`.
+//! Page rasters (D7; FR-EXT-004): `ew render --page <folio> --png` and `ew export png`.
 //!
 //! One function draws a page: [`page_png`] renders a page scene's sheet list through `ew-render-cpu` with the bundled
 //! fonts and the project's typeface ([`DrawingFonts`]) and encodes it as PNG with the resolution in its `pHYs` chunk.
@@ -148,7 +148,7 @@ pub fn png_file_name(label: &str) -> String {
     format!("{}.png", svg.strip_suffix(".svg").unwrap_or(&svg))
 }
 
-/// The PNG of a page scene at `dpi` (D7): its sheet list rendered with the [`DrawingFonts`], encoded with the
+/// The PNG of a page scene at `dpi`: its sheet list rendered with the [`DrawingFonts`], encoded with the
 /// resolution.
 ///
 /// # Errors
@@ -248,7 +248,7 @@ pub fn export_png_with(
 }
 
 impl Session {
-    /// The rasters of the current snapshot at `dpi`, one per selected page (`ew export png`, FT-254).
+    /// The rasters of the current snapshot at `dpi`, one per selected page (`ew export png`).
     ///
     /// # Errors
     ///

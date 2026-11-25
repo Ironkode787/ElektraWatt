@@ -234,7 +234,7 @@ fn cell_text(q: &Q, page: Id<ew_schema::Page>, p: (i64, i64)) -> String {
 }
 
 /// A connection of `tables` named by its ends (`-E55:PE → -X1:PE`, `the junction in C11 → E56:X2`) as the layout
-/// rules' findings name it, each end in the reader's language by the rule messages' words (FT-1600); empty for one
+/// rules' findings name it, each end in the reader's language by the rule messages' words; empty for one
 /// the page does not draw.
 fn connection_text(q: &Q, tables: &PageTables, id: Uuid) -> crate::checks::rules::Named {
     use crate::TextArg;

@@ -108,7 +108,7 @@ fn csv_fields(line: &str) -> Vec<String> {
 // ---------------------------------------------------------------------------------------------------------
 // QU-5: the registry and its snapshot
 
-/// QU-5 (D13): `ew queries --json` lists every entry of the registry with its output schema. The list is written for
+/// QU-5: `ew queries --json` lists every entry of the registry with its output schema. The list is written for
 /// the user guide where `EW_REFERENCE_DIR` asks for it.
 // The variable only chooses whether the generated file is also written out.
 #[allow(clippy::disallowed_methods)]

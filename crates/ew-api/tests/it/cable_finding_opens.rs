@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A finding on a cable opens the page of its cores (FT-1924): the sample's supply cable -101W1 with its length
+//! A finding on a cable opens the page of its cores: the sample's supply cable -101W1 with its length
 //! cleared (EW-CORE-033) names a page, and Enter on its Messages row opens it with the cable's core wires selected.
 
 use ew_api::output::{NavKind, NavRole};

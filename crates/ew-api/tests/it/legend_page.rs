@@ -12,9 +12,9 @@ use crate::common;
 
 use ew_api::Session;
 use ew_api::output::{LEGEND_COLUMNS, page_layer};
-use ew_ids::{Id, Uuid};
 use ew_derive::{PageOrder, PageRef};
 use ew_dl::{ItemKind, Layer};
+use ew_ids::{Id, Uuid};
 use ew_schema::{CarrierRef, MountingSurface, Placement, ReportBlock, ReportKind, ReportSource};
 use serde_json::json;
 
@@ -278,7 +278,7 @@ fn a_legend_of_sixty_devices_runs_on_over_its_pages_with_every_text_whole() {
 }
 
 /// A legend list is named by its printed folio, and its Properties name its layout page, not the first folio and
-/// section that nothing reads (FT-2032).
+/// section that nothing reads.
 #[test]
 fn a_legend_list_is_named_by_its_printed_folio_and_shows_its_layout_page() {
     let s = common::sample();
@@ -362,7 +362,7 @@ fn a_second_legend_list_of_one_layout_page_is_refused() {
     assert_eq!(after, before);
 }
 
-/// FT-2095: a generated legend page's Properties show its title as the page prints it, its layout's folio in place
+/// A generated legend page's Properties show its title as the page prints it, its layout's folio in place
 /// of `{layout}`.
 #[test]
 fn a_legend_pages_properties_show_the_title_it_prints() {
@@ -381,7 +381,7 @@ fn a_legend_pages_properties_show_the_title_it_prints() {
     }
 }
 
-/// FT-2095: the legend's whole-project rows (`ew export report --kind enclosure_legend`) list every plate a layout page
+/// The legend's whole-project rows (`ew export report --kind enclosure_legend`) list every plate a layout page
 /// shows, in page order, each after a heading that names its layout page and with the rows its legend page lists.
 #[test]
 fn the_legend_by_kind_lists_every_layout_as_its_legend_page_does() {

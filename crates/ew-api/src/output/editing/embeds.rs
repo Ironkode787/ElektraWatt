@@ -87,8 +87,8 @@ impl Session {
     /// `part` may name a library's part the project does not hold (a catalogue row with `library`):
     /// its closure (the part, its template FnDefs, its manufacturer; [`Session::embed_command`]'s reference
     /// form) follows in the same parameters; a closure that does not resolve is `Err` with the library's
-    /// message. The picker sends the `copies` with the placement itself (`device.place` or `box.black`,
-    /// FT-656), so the placement is one undo step.
+    /// message. The picker sends the `copies` with the placement itself (`device.place` or `box.black`),
+    /// so the placement is one undo step.
     pub fn starter_embed_part(
         &self,
         part: Uuid,
@@ -185,7 +185,7 @@ impl Session {
     }
 
     /// The library documents of `copies` (`lib/` JSON form) that the project does not hold, by copy ID, in their
-    /// order (FT-656): the Place and black box tools carry the copies they armed with, and the host sends a placement
+    /// order: the Place and black box tools carry the copies they armed with, and the host sends a placement
     /// only those it still needs, so a placement after the first one carries none (and one after an undo of the
     /// first carries them again). A document that does not read, or of a kind the project keeps no table of here,
     /// is kept (the command checks it).

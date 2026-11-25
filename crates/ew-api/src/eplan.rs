@@ -205,7 +205,7 @@ pub fn import_into_library(
 }
 
 /// The parse of [`import_into_library`] against the registry's part `part`, taken first: it needs no registry, so it
-/// runs on a job's thread (File ▸ Import…'s Add to my parts library, FT-2081), and
+/// runs on a job's thread (File ▸ Import…'s Add to my parts library), and
 /// [`crate::catalog::LibraryPart::write`] writes its result at the end. `read` is the import date and whether it bumps
 /// changed parts.
 ///
@@ -485,7 +485,7 @@ impl Session {
     }
 
     /// What [`Session::eplan_parts`] takes from the session (the manufacturers and the project), so that its read can
-    /// run on another thread ([`EplanPartsRead::run`], FT-1763).
+    /// run on another thread ([`EplanPartsRead::run`]).
     pub fn eplan_parts_read(&self, as_of: Option<Date>) -> EplanPartsRead {
         let q = self.query();
         let mut master = crate::catalog::manufacturer_master(self.libraries());

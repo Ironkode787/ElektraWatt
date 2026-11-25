@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `terminal.face_card` (docs/design/06a-drafting.md §4.8, doc 10 §3.6, FT-2083): a terminal between a card and its
+//! `terminal.face_card` (docs/design/06a-drafting.md §4.8, doc 10 §3.6): a terminal between a card and its
 //! field device takes the card's wire on its pin that faces the card, the field's on the other, for the terminals of a
 //! card or of a strip, in one undo step.
 

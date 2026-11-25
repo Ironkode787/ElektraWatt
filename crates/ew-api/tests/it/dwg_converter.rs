@@ -78,7 +78,7 @@ fn a_converter_that_does_not_finish_is_stopped_and_its_folder_removed() {
     }
 }
 
-/// FT-1753: a conversion whose stop signal is set ends as cancelled, the converter stopped, long before the timeout.
+/// A conversion whose stop signal is set ends as cancelled, the converter stopped, long before the timeout.
 #[test]
 fn a_cancelled_conversion_stops_the_converter() {
     let tmp = ew_testdir::Tmp::new("dwg-cancel");

@@ -5,7 +5,7 @@
 //! the gate on the saved generation, [`Session::approve`] records the checker's sign-off bound to that generation's
 //! content digest.
 //!
-//! **Saved state only** (D8). Both need a project directory, no unsaved edits, no incomplete save and a manifest whose
+//! **Saved state only**. Both need a project directory, no unsaved edits, no incomplete save and a manifest whose
 //! hashes are authoritative: the content digest ([`ew_format::content_digest`]) is then a pure function of
 //! one generation, and the snapshot the gate checks is that generation. The gate evaluates every rule cold (a fresh
 //! `Q` over the snapshot, not the session's memo store), so no memoised value can be stale there (doc 15 §4.8).

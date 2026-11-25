@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! An imported page's texts stay where the drawing has them (FT-1875; doc 06a §5.4, doc 14 §4.4.2): a small
+//! An imported page's texts stay where the drawing has them (doc 06a §5.4, doc 14 §4.4.2): a small
 //! QElectroTech file made for this test, a row of three coils with their labels and a contact that prints its coil's
 //! place, imported with and without the symbol map beside it. Every text of an element is a text with a stored place
 //! (a slot shown where the drawing has it, or a text of the element's symbol), so the text placer prints it there; a
@@ -12,11 +12,11 @@ use std::path::{Path, PathBuf};
 use ew_api::Session;
 use ew_api::import::{StarterLibrary, import_qet};
 use ew_api::routing::RouteScope;
-use ew_ids::{Id, Uuid};
-use ew_units::Pt2;
 use ew_derive::{PageRef, Q};
 use ew_dl::Layer;
+use ew_ids::{Id, Uuid};
 use ew_schema::{Page, PageItemKind, Representation};
+use ew_units::Pt2;
 use serde_json::json;
 
 /// A definition `name` of link type `link` with `kind`, numbered `n`, its terminals up and down.

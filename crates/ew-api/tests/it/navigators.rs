@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `Session::navigator_table` on the sample project (acceptance check NV2): the Pages table in the derived page
-//! order, the Devices tree with one device row per non-terminal device, the contactor -102Q1's representation rows
-//! (D16), keys stable across a revision that changes nothing they show, and the index from a representation to its
+//! order, the Devices tree with one device row per non-terminal device, the contactor -102Q1's representation rows,
+//! keys stable across a revision that changes nothing they show, and the index from a representation to its
 //! rows.
 
 use crate::common;

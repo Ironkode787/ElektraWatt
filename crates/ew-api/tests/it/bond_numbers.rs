@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The potential overview numbers its bonds the declared ones first, then the drawn ones (doc 09 §2.4, FT-1827): an
+//! The potential overview numbers its bonds the declared ones first, then the drawn ones (doc 09 §2.4): an
 //! earth wire drawn before a bond was declared does not take its number.
 
 use crate::common;

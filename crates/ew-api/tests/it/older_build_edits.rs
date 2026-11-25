@@ -6,8 +6,8 @@
 
 use crate::common;
 
-use ew_ids::{Id, Uuid};
 use ew_derive::{PageOrder, PageRef};
+use ew_ids::{Id, Uuid};
 use ew_schema::{Record, ReportBlock};
 
 /// The sample's legend list (`layout_page`, on 902) after 0.3.0 deleted its layout page and kept the block: the project

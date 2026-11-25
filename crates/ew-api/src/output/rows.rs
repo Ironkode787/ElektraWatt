@@ -22,7 +22,7 @@
 //!
 //! **The table writers** ([`row_output`]): the same row choice written as XLSX or in a CSV
 //! preset. Each row set becomes an [`ew_reports::table::Table`] named by its kind (a strip's by its printed tag) and
-//! keyed by what it is (D8): `block:<uuid>` for a block's rows (`kind:terminal_diagram` for the strips of several
+//! keyed by what it is: `block:<uuid>` for a block's rows (`kind:terminal_diagram` for the strips of several
 //! blocks), `kind:parts_summary/<mode>` for the bill of materials (`parts` or `assembly`), `kind:<name>` for a kind's
 //! whole-project rows. The XLSX ([`ew_reports::xlsx::xlsx`]) has one sheet per table, `export terminals` without
 //! `--strip` one per strip in the order of the CSV; a preset ([`ew_reports::csv::table_csv`]) writes one table, the
@@ -277,7 +277,7 @@ enum Body {
     Strips(RowSet, Vec<(String, Vec<Row>)>),
 }
 
-/// The row choice of a row export (D8), with what the writers and the summaries name.
+/// The row choice of a row export, with what the writers and the summaries name.
 #[derive(Clone, PartialEq, Eq, Debug)]
 struct Chosen {
     /// The rows.
@@ -292,7 +292,7 @@ struct Chosen {
     notices: Vec<String>,
 }
 
-/// The rows of `what` (D8), from the block `block` names or, without one, the default block of the kind; for
+/// The rows of `what`, from the block `block` names or, without one, the default block of the kind; for
 /// [`RowExport::Kind`] the kind's whole-project rows.
 ///
 /// The `pages` cell of every data row of a `revision_overview` row set is the revision's changed pages as folio 911
@@ -437,7 +437,7 @@ pub fn report_kinds() -> Vec<&'static str> {
 }
 
 /// The registered report kinds whose blocks fill pages of their own (`ReportKindDef::page_oriented`), in name order:
-/// the kinds Output ▸ Reports ▸ Report block… offers (FT-1726).
+/// the kinds Output ▸ Reports ▸ Report block… offers.
 pub fn page_report_kinds() -> Vec<&'static str> {
     let registry = Registry::builtin();
     registry
@@ -773,7 +773,7 @@ pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
     digest.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-/// The table of a row set of `kind` (D4), its editable columns marked: `io_list`'s round-trip columns (D9), every other
+/// The table of a row set of `kind`, its editable columns marked: `io_list`'s round-trip columns, every other
 /// kind's columns read-only.
 fn kind_table(q: &Q, set: &RowSet, name: &str, key: &str, kind: &str) -> Table {
     let mut table = Table::from_rowset(q, set, name, key);

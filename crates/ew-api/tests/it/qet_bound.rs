@@ -5,8 +5,8 @@
 //! `.qet` with a coil and its contact, a strip drawn over two folios, a T junction, an earth symbol and a cable drawn
 //! as marks across its wires, imported through the front door with and without the symbol map beside it.
 //!
-//! FT-1869: the map binds the coil, the contact and the terminals to starter functions, keeping their drawing, and the
-//! terminals' number texts print their designations. FT-1861: the junction element and the earth symbol are no
+//! The map binds the coil, the contact and the terminals to starter functions, keeping their drawing, and the
+//! terminals' number texts print their designations. the junction element and the earth symbol are no
 //! terminals, the strip goes on over the second folio, the marks make a cable with cores, and a stored route with a
 //! corner between the grid's lines keeps its way.
 

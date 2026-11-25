@@ -18,10 +18,10 @@ use ew_api::{
     AnyCommand, Approval, ApproveError, CmdError, CmdLog, CmdLogError, Exposure, GateError, Origin, Recovery,
     Session, SessionOptions, Submit,
 };
+use ew_format::{Limits, Manifest, content_digest};
 use ew_ids::Id;
 use ew_schema::{Date, PartyRole, Revision, Waiver};
 use ew_store::StoreOptions;
-use ew_format::{Limits, Manifest, content_digest};
 
 fn sample() -> PathBuf {
     PathBuf::from(ew_testdir::SAMPLE)
@@ -63,7 +63,7 @@ fn open(dir: &Path, state: &Path) -> (Session, Vec<checks::IntegrityItem>) {
     (session, ew_api::integrity_items(&report))
 }
 
-/// The content digest of the manifest on disk, computed from the file (D8).
+/// The content digest of the manifest on disk, computed from the file.
 fn digest_on_disk(dir: &Path) -> ew_api::Sha256 {
     let bytes = std::fs::read(dir.join("manifest.json")).expect("manifest.json");
     let manifest = Manifest::parse(&bytes, &Limits::default()).expect("a manifest");

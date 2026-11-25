@@ -29,13 +29,13 @@ table-no-bridge = de klem heeft geen brug
 table-bridge-how = markeer de rijen van twee of meer klemmen van de strook en druk op F2 in deze kolom, of kies Klemmen bruggen in het menu van een klem op de pagina
 reason-swap-two-cores = Markeer twee aders van één kabel
 reason-swap-cores-unwired = Geen van beide aders heeft een verbinding
-# A damaged copy written from its library, with the version written (C53-p4#4, ID-1491).
+# A damaged copy written from its library, with the version written.
 refusal-words-copy-at-version = { $p0 } in versie { $p1 }
 refusal-words-part-kind = { $p0 }
 refusal-words-junction-in = de aftakking in { $p0 }
 refusal-words-a-junction = een aftakking
 refusal-words-cp-other-page = een aansluitpunt van een andere pagina
-# The property grid's own parse errors (FT-1493): a typed value that is not one of its field's type.
+# The property grid's own parse errors: a typed value that is not one of its field's type.
 refusal-input-detail = { $p0 }
 refusal-input-scale = `{ $p0 }` is geen schaal; typ 1:n met n een geheel getal van 1 tot en met 4294967295
 refusal-input-decimal = `{ $p0 }` is geen decimaal getal
@@ -88,7 +88,7 @@ refusal-ref-not-text = `ref` is een tekst `<kind>:<value>`
 refusal-input-plc-slot = `{ $p0 }` is geen slot; geef een getal (3), <rack>.<slot> (1.3) of auto
 refusal-input-metres = `{ $p0 }` is geen lengte in meters (bijvoorbeeld 12.5 m)
 refusal-input-too-long = `{ $p0 }` is een te grote lengte
-# A clipboard fragment that does not read (FT-1488): its kind of failure and each line's reason.
+# A clipboard fragment that does not read: its kind of failure and each line's reason.
 refusal-fragment-not = het klembord bevat geen ElektraWatt-fragment
 refusal-fragment-newer = gekopieerd uit een nieuwere ElektraWatt, die een nieuwer formaat schrijft ({ $p0 })
 refusal-fragment-too-large = het fragment is te groot: { $p0 }
@@ -125,7 +125,7 @@ refusal-page-copy-code = { $p0 } is geen structuurcode
 refusal-page-copy-ip-join = de onderbrekingspunten { $p0 } van de kopie zouden samengaan met de punten waarvan ze gekopieerd zijn; geef ze andere namen bij Hernoemen (bijvoorbeeld { $p1 } = { $p1 }.2)
 refusal-macro-value-set-none = geen waardenset `{ $p0 }`: de macro heeft er geen
 refusal-macro-value-set-unknown = geen waardenset `{ $p0 }`: de macro heeft { $p1 }
-# revision.approve, revision.release and project.assets.purge: the refusals of ew-api's own (FT-1421).
+# revision.approve, revision.release and project.assets.purge: the refusals of ew-api's own.
 refusal-revision-approve-direct = de goedkeuring wordt alleen vastgelegd door Revisie goedkeuren… op het opgeslagen project, dat eerst de vrijgavepoort laat draaien
 refusal-revision-release-direct = de vrijgave wordt alleen geschreven door Revisie vrijgeven…, na de vrijgavepoort, het as-built-archief en de git-tag
 refusal-purge-read-only = het project is alleen-lezen geopend; opruimen vraagt een project dat open is om te bewerken
@@ -135,12 +135,12 @@ refusal-purge-recovery = een onverwacht beëindigde sessie liet niet-opgeslagen 
 refusal-purge-incomplete = de laatste opslag is onvolledig; die wordt eerst voltooid
 refusal-purge-external = het project is op schijf gewijzigd; voeg de wijziging eerst samen
 refusal-purge-stale = { $p0 } van de vermelde afbeeldingen kunnen niet meer worden opgeruimd; bekijk het voorbeeld opnieuw; er is niets verwijderd
-# C52-p5#5: the form for one image.
+# The form for one image.
 refusal-purge-stale-one = 1 van de vermelde afbeeldingen kan niet meer worden opgeruimd; bekijk het voorbeeld opnieuw; er is niets verwijderd
 refusal-purge-unreadable = een bestand van het project kon niet worden gelezen; er is niets verwijderd
 refusal-purge-save = de opslag die de afbeeldingen verwijdert is mislukt: { $p0 }
 refusal-purge-human-only = opruimen is alleen voor mensen: bevestig het in ElektraWatt of met ew project assets purge op de opdrachtregel; er is niets verwijderd
-# Update from library of the damaged library copies: the refusals of ew-api's own (FT-1499, ID-1486).
+# Update from library of the damaged library copies: the refusals of ew-api's own.
 refusal-update-copies-no-library = geen bibliotheek op deze computer heeft een leesbare versie van { $p0 }; er is niets geschreven
 refusal-update-copies-misfit = de versies van de beschadigde kopieën in de bibliotheken passen niet bij het project, dat dan niet zou openen; er is niets geschreven
 refusal-update-copies-locked = een andere sessie heeft het project open; er is niets geschreven
@@ -191,7 +191,7 @@ find-field-title = Titel
 find-field-description = Beschrijving
 find-field-process-tag = Proceskenmerk
 find-field-part-number = Artikelnummer
-# FT-1414: why a search cannot run, in words, never the parser's own text.
+# Why a search cannot run, in words, never the parser's own text.
 find-error-regex = De reguliere expressie is niet bruikbaar: controleer haar haakjes, herhalingen en escapetekens, of maak haar eenvoudiger
 find-error-too-long = De reguliere expressie is langer dan { $p0 } tekens
 find-error-no-page = Geen pagina heeft het folio { $p0 }
@@ -266,7 +266,7 @@ error-part-kind = “{ $p0 }” is geen artikelsoort
 error-part-category = Een categorie heeft drie niveaus: categorie/groep/definitie
 error-part-value = { $p0 }
 error-part-field = De artikeleditor heeft geen veld { $p0 }
-# FT-1766: een nieuw artikel en zijn businterfaces, gemaakt in de artikeleditor (Bewerken ▸ Nieuw artikel…).
+# een nieuw artikel en zijn businterfaces, gemaakt in de artikeleditor (Bewerken ▸ Nieuw artikel…).
 error-part-bus-interface = Een interface heeft een naam nodig, zoals X1 of DP
 error-part-bus-system = “{ $p0 }” is geen bussysteem; kies er een uit de lijst
 error-part-bus-role = “{ $p0 }” is geen poortrol; kies er een uit de lijst
@@ -278,7 +278,7 @@ error-part-exists = Het project of uw artikelbibliotheek heeft artikel { $p0 } v
 error-part-library = { $p0 } kon niet worden geschreven: { $p1 }
 reason-part-symbol-unsaved = Sla het symbool eerst op in een bibliotheek; het artikel noemt het dan
 reason-part-not-own = Dit artikel staat niet in uw artikelbibliotheek: alleen een eigen artikel wordt eruit verwijderd
-# FT-1766: de PLC-sectie van een nieuw artikel.
+# de PLC-sectie van een nieuw artikel.
 error-part-plc-role = “{ $p0 }” is geen PLC-rol; kies station of module
 error-part-plc-kind = “{ $p0 }” is geen kanaalsoort; kies er een uit de lijst
 error-part-plc-kind-missing = Kies de soort van de kanalen
@@ -291,7 +291,7 @@ error-part-plc-pin-twice = { $p0 } zou de pen van twee kanalen zijn; elk kanaal 
 error-part-plc-slots = “{ $p0 }” is geen lijst van slots: typ getallen en reeksen, zoals 1-8, 10
 error-part-plc-max = “{ $p0 }” is geen aantal modules: typ een geheel getal, zoals 32
 error-part-plc-kind2-way = De tweede soort is een andere dan de eerste: ingangen of uitgangen naast zijn kanalen, elk DI, DO, AI, AO of teller
-# FT-1378 (ID-1417): an image over the pixel limit that an earlier build took in is kept at open, not drawn, and named.
+# An image over the pixel limit that an earlier build took in is kept at open, not drawn, and named.
 banner-image-not-drawn = De afbeelding op folio { $p0 } is { $p1 } × { $p2 } pixels, meer dan een tekening kan tonen, en wordt daarom bewaard maar niet getekend; verklein haar en voeg haar opnieuw toe.
 banner-image-not-drawn-folios = De afbeelding op folio's { $p0 } is { $p1 } × { $p2 } pixels, meer dan een tekening kan tonen, en wordt daarom bewaard maar niet getekend; verklein haar en voeg haar opnieuw toe.
 banner-logo-not-drawn = Het bedrijfslogo is { $p0 } × { $p1 } pixels, meer dan een tekening kan tonen, en wordt daarom bewaard maar niet getekend; verklein het en voeg het opnieuw toe.
@@ -353,10 +353,10 @@ dxf-input-invalid = Het bestand is geen DXF-tekening die deze lezer begrijpt.
 dxf-no-unit = De tekening noemt geen eenheid. Kies de eenheid waarin ze getekend is.
 dxf-no-blocks = De tekening heeft geen blok met een naam om een symbool van te maken.
 
-# A date typed in the project's date format (the owner's test of 0.3.0-rc.1).
+# A date typed in the project's date format.
 refusal-input-date = `{ $p0 }` is geen datum: typ hem als { $p1 }
 
-# The Libraries pane's states and its Update button in words (the owner's test of 0.3.0-rc.1).
+# The Libraries pane's states and its Update button in words.
 library-state-current = Actueel
 library-state-update = Update beschikbaar ({ $p0 })
 error-part-pin-unknown = Het artikel heeft geen pen { $p0 }

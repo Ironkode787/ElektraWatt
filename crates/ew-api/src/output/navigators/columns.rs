@@ -84,7 +84,7 @@ pub(super) const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 36] = [
     (NavKind::Cables, "colour", "conductor", "colour"),
     (NavKind::Cables, "cross_section", "conductor", "csa"),
     // FR-CBL-016: a core's name (an identifier of its cable), shield and pair; a cable's length
-    // through its typed editor (FT-429).
+    // through its typed editor.
     (NavKind::Cables, "core", "conductor", "core"),
     (NavKind::Cables, "shield", "conductor", "shield"),
     (NavKind::Cables, "pair", "conductor", "pair"),
@@ -107,14 +107,14 @@ pub(super) const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 36] = [
     (NavKind::Plc, "state", "channel", "state"),
     (NavKind::Plc, "target", "channel", "target"),
     (NavKind::Plc, "comment", "channel", "comment"),
-    // FT-737: a channel's data type and signal range in the cell; its safety data in Properties (the cell says so).
+    // A channel's data type and signal range in the cell; its safety data in Properties (the cell says so).
     (NavKind::Plc, "data_type", "channel", "data_type"),
     (NavKind::Plc, "signal_range", "channel", "signal_range"),
     (NavKind::Plc, "safety", "channel", "safety"),
-    // FT-856: a bus port's address through its typed editor, its termination as its choice.
+    // A bus port's address through its typed editor, its termination as its choice.
     (NavKind::Bus, "address", "function", "bus_port.address"),
     (NavKind::Bus, "termination", "function", "bus_port.termination"),
-    // The tube table's tube part and length, the line's (WP-S2.13).
+    // The tube table's tube part and length, the line's.
     (NavKind::Tubes, "part", "connection", "tube_part"),
     (NavKind::Tubes, "length", "connection", "tube_length"),
     (NavKind::Structure, "designation", "structure_node", "code"),

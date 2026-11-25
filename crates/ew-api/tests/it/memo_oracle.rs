@@ -42,10 +42,10 @@ use std::num::NonZeroU32;
 use std::rc::Rc;
 
 use ew_api::{AnyCommand, CmdError, MemoMode, Session, SessionOptions};
-use ew_ids::Id;
 use ew_derive::{
     FunctionCps, Oracle, PotentialId, PotentialNameOf, PotentialPartition, Q, RecordingTracker, XrefTextOf,
 };
+use ew_ids::Id;
 use ew_model::{AnyRow, EndpointKey, Model, Op};
 use ew_schema::{Kind, Page};
 use ew_testids::seeded_ids;
@@ -613,7 +613,7 @@ fn memo_q_notes_equal(session: &Session, model: &Model, state: &str) -> BTreeMap
 fn every_family_the_store_memoises_is_swept() {
     let mut session = session(MemoMode::On);
     run_states(&mut session, STATES, |_, _, _, _| {});
-    // The checks memoise their findings in the same store (FT-1664).
+    // The checks memoise their findings in the same store.
     session.check(&ew_api::checks::PRE_DELIVERY, ew_api::checks::CheckMode::Release);
     let swept = ew_api::verify::sweep(&session.query(), None).keys;
     let memory = session.memo().expect("memoising session").memory();

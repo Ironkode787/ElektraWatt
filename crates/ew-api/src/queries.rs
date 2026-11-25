@@ -804,7 +804,7 @@ fn rec_words(q: &Q, uuid: Uuid, rec: Rec) -> String {
     }
 }
 
-/// A record of a dependency named in words: its kind with its tag, folio or title, else its ID (D12). A device's line
+/// A record of a dependency named in words: its kind with its tag, folio or title, else its ID. A device's line
 /// names its tag specification (letter and counter, or the frozen tag).
 fn id_words(q: &Q, kind: Kind, id: AnyId) -> String {
     let uuid = id.as_uuid();
@@ -1581,7 +1581,7 @@ mod tests {
         sorted.sort_unstable();
         sorted.dedup();
         assert_eq!(names, sorted);
-        // D11 is closed: the twelve names and the two fluid queries of WP-S1.25 are the oracle.
+        // D11 is closed: the twelve names and the two fluid queries are the oracle.
         assert_eq!(
             names,
             [

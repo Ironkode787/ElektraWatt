@@ -459,7 +459,7 @@ fn a_file_that_comes_back_merges_three_ways() {
     assert_eq!(symbol(&s.query()).as_deref(), Some("CL_V_01A"));
 }
 
-/// FT-2080: an applied change's notice names its field and its state by their keys, which the window renders in its
+/// An applied change's notice names its field and its state by their keys, which the window renders in its
 /// language; the command line reads their English ("symbol", "applied").
 #[test]
 fn an_exchange_notice_names_its_field_and_state_by_their_keys() {
@@ -1316,7 +1316,7 @@ fn without_a_snapshot_a_difference_is_a_conflict_with_the_owners_default() {
     assert_eq!((change.state, change.default), (State::Conflict, Choice::Theirs));
 }
 
-/// Doc 10 §4.4 (decided for the review of WP-S3.16): a value the file leaves out is no deletion. It is listed as a
+/// Doc 10 §4.4: a value the file leaves out is no deletion. It is listed as a
 /// rejected PLC change that keeps the project's value, and only a resolution takes the file's side.
 #[test]
 fn a_value_the_file_leaves_out_is_kept() {
@@ -1482,7 +1482,7 @@ fn an_import_freezes_the_starts_so_an_inserted_module_moves_nothing() {
     assert_eq!(after, before, "the inserted module moves no start");
 }
 
-/// Doc 10 §4.4 (review of WP-S3.16): an export records only what its format carries. A PLCopen export, which never
+/// Doc 10 §4.4: an export records only what its format carries. A PLCopen export, which never
 /// comes back, records nothing, and a tag table records no start: a start changed in the project since the AML export
 /// stays a change of the project when the PLC software's file comes back.
 #[test]
@@ -1546,7 +1546,7 @@ fn row_of<'a>(rows: &'a mut [Vec<String>], symbol: &str) -> &'a mut Vec<String> 
     rows.iter_mut().find(|r| r[0] == symbol).expect("the row")
 }
 
-/// Doc 10 §4.5 (review of WP-S3.16): a comment of several languages is never replaced whole by one value. A table's
+/// Doc 10 §4.5: a comment of several languages is never replaced whole by one value. A table's
 /// comment without a language is a conflict that keeps the languages and cannot be taken; a table in a language
 /// gives its comment to that language only.
 #[test]
@@ -1625,7 +1625,7 @@ fn a_tag_the_complete_table_lacks_is_removed_and_kept() {
     channel_of(&s, FIRST);
 }
 
-/// Doc 10 §3.9 (review of WP-S3.16): when symbols are given to the PLC, an import protects them as it protects the
+/// Doc 10 §3.9: when symbols are given to the PLC, an import protects them as it protects the
 /// starts, until `plc.unlock` lifts the protection.
 #[test]
 fn symbols_given_to_the_plc_are_protected() {
@@ -1655,7 +1655,7 @@ fn symbols_given_to_the_plc_are_protected() {
     run(&mut s, "fields.set", rename);
 }
 
-/// Doc 10 §2.2 (review of WP-S3.16): only an import that gives a value of a PLC-owned group starts the protection; a
+/// Doc 10 §2.2: only an import that gives a value of a PLC-owned group starts the protection; a
 /// tag table carries symbols, which are shared, so the starts stay ordinary edits.
 #[test]
 fn a_tag_table_import_protects_no_start() {

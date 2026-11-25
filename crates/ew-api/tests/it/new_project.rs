@@ -907,7 +907,7 @@ fn a_basic_project_without_pages_and_devices() {
     assert!(matches!(err, ew_api::SaveAsBasicError::Write(_)), "{err}");
 }
 
-/// FT-1692 (ADR-0011 decision 6, an additive member of `settings.extra.drawing`): a project saved without
+/// A project saved without
 /// `wire_numbers` opens and saves back with the same `project.jsonl`; the setting turned on is written as
 /// `"wire_numbers": true`, and turned off again leaves the line as it was.
 #[test]
@@ -988,7 +988,7 @@ fn a_project_from_a_template_without_its_pages_starts_with_one_empty_page() {
     assert!(summary.template);
 }
 
-/// FT-1900: the one page a copy without the template's pages makes takes its ID from the session's source, so two
+/// The one page a copy without the template's pages makes takes its ID from the session's source, so two
 /// copies with one seed hold one set of IDs.
 #[test]
 fn a_copy_without_pages_takes_its_page_id_from_the_session_source() {

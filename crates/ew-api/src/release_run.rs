@@ -739,7 +739,7 @@ impl Session {
         }
     }
 
-    /// Removes the archive this run wrote after a failure in steps 5 or 6 (D13), then its run record. When the archive
+    /// Removes the archive this run wrote after a failure in steps 5 or 6, then its run record. When the archive
     /// cannot be removed, the record stays with it: the archive is then an incomplete release that a discard removes.
     fn take_back(&self, archive_path: &Path, run_record: Option<&Path>) {
         let Some(store) = self.store() else { return };
@@ -1275,7 +1275,7 @@ impl Session {
             Ok(report) => (report.generation, false),
             Err(SaveError::Incomplete { generation, .. }) if generation > before => (generation, true),
             // Before its commit point, unless the store could not delete its intent: then the next open rolls the
-            // stamp forward (or finds the intent torn), so the archive and the tag must stay (D13).
+            // stamp forward (or finds the intent torn), so the archive and the tag must stay.
             Err(e) => {
                 return Err(match p.store.leftover_intent() {
                     Ok(None) => ReleaseError::Save(e),

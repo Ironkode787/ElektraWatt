@@ -70,7 +70,7 @@ pub(super) fn potential_of(q: &Q, conn: &Connection) -> Option<ew_derive::Potent
 
 /// The Potential row of a `kind` section whose targets end at `ends` (a wire's two ends, an interruption point's
 /// connection point): the name of the potential at each target, from its definition or from the connectivity;
-/// the definition is where its name, type and voltage are set (FT-1651).
+/// the definition is where its name, type and voltage are set.
 pub(super) fn potential_row(q: &Q, cx: &SheetCx<'_>, kind: &str, ends: &[Vec<EndpointKey>]) -> Built {
     let partition = q.get::<PotentialPartition>(());
     let mut per = Vec::new();
@@ -386,7 +386,7 @@ impl Session {
     }
 }
 
-/// The row that holds the source of the wire property `name` (`csa`, `colour`, `shielded`) (FT-1651): the same
+/// The row that holds the source of the wire property `name` (`csa`, `colour`, `shielded`): the same
 /// property of the connection that holds the override, of the cable's core or of the potential definition; else the
 /// project's profile or wire default, where a profile is chosen when the value is the built-in default.
 fn source_link(q: &Q, source: &PropSource, name: &str) -> SourceLink {
@@ -436,7 +436,7 @@ fn source_link(q: &Q, source: &PropSource, name: &str) -> SourceLink {
     }
 }
 
-/// The chip text of a wire property's source below level 7 (D15).
+/// The chip text of a wire property's source below level 7.
 pub(super) fn prop_via(
     q: &Q,
     source: &PropSource,

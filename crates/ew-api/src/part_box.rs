@@ -333,7 +333,7 @@ impl PartDraft {
 
     /// Whether the places of the pins on the box (each pin's edge and its distance along it) and the box's size are
     /// edited here: on a part drawn as a box, and on a PLC card's or a bus device's box, whose pins' names and
-    /// potentials come from its channels or interfaces (FT-1788); not on a part drawn with a symbol, whose connection
+    /// potentials come from its channels or interfaces; not on a part drawn with a symbol, whose connection
     /// points are the symbol's.
     pub fn places_pins(&self) -> bool {
         !matches!(self.pins_from(), Some(PinsFrom::Symbol))
