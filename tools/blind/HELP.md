@@ -1,6 +1,6 @@
 ---
 prompt: blind-help
-version: 7
+version: 8
 ---
 # The harness: how to work with it
 
@@ -89,6 +89,15 @@ symbol and variant and its position, followed by its `cp` lines (the connection 
 drawn to each and the `potential` where there is one); `wire` lines name the two ends of a drawn connection; a
 `junction` line names its cell, style, wiring and the sequence of the far ends. Words inside quotation marks are the
 user's text (tags, titles, symbol keys); the rest are the application's own words.
+
+## Messages
+
+A message the application gives shows in the `toast` section. A text run has no clock: a message stays there until a
+newer one of its kind takes its place or a fourth pushes it out, where the window would take it away after about eight
+seconds. It is not lost: the notifications list, the bell of the window's status bar (`notifications.show on=true`),
+holds each message with what it offers (Undo and the like) in the `notifications` section, usable as long as it can
+still run (`notifications.run`). So read a message after the step that gives it, and open the list when you want one
+back. A message that has left the `toast` section is no fault to log; one you cannot find in `notifications` is.
 
 ## The friction log
 

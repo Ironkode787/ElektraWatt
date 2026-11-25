@@ -496,6 +496,42 @@ fn the_dwells_follow_the_frame_clock() {
     d.shell_mut().shutdown();
 }
 
+/// A turn is a person looking at its picture and acting: each turn's settled frame line moves the clock on by
+/// `LOOK_S` (a persona run read the toasts as stuck, the clock having moved a few frames per turn). After the turns it
+/// takes a person to read a toast it has gone off the sheet, into the bell's list; a look adds no time.
+#[test]
+fn a_toast_has_gone_to_the_bells_list_after_the_turns_a_person_takes_to_read_it() {
+    let tmp = Tmp::new();
+    let mut d = sample_on_101(&tmp);
+    let turn = |d: &mut Driver, n: u32, settle: bool| {
+        let request = visual::FrameRequest {
+            file: format!("t{n:04}.png"),
+            settle,
+            zoom: None,
+            paint: false,
+        };
+        d.frame_line(&request).unwrap();
+    };
+    let shown = |d: &mut Driver| d.shell_mut().notifications().visible().len();
+    let _ = d.shell_mut().dispatch("edit.select_all", &json!({}));
+    let _ = d.shell_mut().dispatch("edit.cut", &json!({}));
+    // The window shows it in the input's frames, as a person's Ctrl+X would.
+    d.input(&Input::Hover { at: (900, 500) });
+    turn(&mut d, 1, true);
+    assert_eq!(shown(&mut d), 1, "the cut's toast in the turn's picture");
+    turn(&mut d, 1, false);
+    turn(&mut d, 1, false);
+    d.input(&Input::Hover { at: (300, 300) });
+    assert_eq!(shown(&mut d), 1, "looks take no time");
+    turn(&mut d, 2, true);
+    d.input(&Input::Hover { at: (310, 300) });
+    turn(&mut d, 3, true);
+    assert_eq!(shown(&mut d), 0, "gone after two turns of reading");
+    let log = d.shell_mut().notifications().entries().count();
+    assert!(log >= 1, "in the bell's list");
+    d.shell_mut().shutdown();
+}
+
 /// BV5 and BV6: the file dialogs are answered with `project` and `project.pdf` in the run's folder; an export runs to
 /// its end within the input that started it; the caret is drawn in every frame.
 #[test]

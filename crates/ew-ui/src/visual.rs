@@ -22,6 +22,12 @@
 //!   current frame painted to `<frames>/<file>`; one transcript line `{"frame","sha256"}` without a step number (a
 //!   look is not a step). Without `--frames` or with `--no-frames` nothing is painted and `sha256` is null.
 //!
+//! **A turn's time.** A settled frame line is the picture of a turn, which a person looks at before the next input:
+//! after it the clock moves on by [`LOOK_S`], the time a person takes to read the picture and act on it, so that what
+//! goes after its time (a toast's 8 s, a hint's fade) goes for a play-tester as it goes for a person. An input adds
+//! the time it asks for itself (a `wait`'s milliseconds, the pause before a double click, a frame for each event); a
+//! look or a zoom (`"settle":false`) adds none. A replay's frame lines (`"paint":false`) move the clock as the run's did.
+//!
 //! **Geometry.** By default the window is 1920 × 1080 points at 1 pixel per point, the main resolution (doc 16a §2);
 //! above it a title strip of 28 points (28 pixels) shows the window title in the theme's chrome colours, so a frame is
 //! 1920 × 1108 pixels. A run may choose another window and scale (`--window <W>x<H>` in points, `--ppp <n>`; see
@@ -68,6 +74,9 @@ const STRIP_POINTS: u32 = 28;
 const MAX_FRAME_SIDE: (u32, u32) = (3840, 2400);
 /// One frame of the frame clock, in seconds.
 const FRAME_S: f64 = 1.0 / 60.0;
+/// The time a person takes to look at a turn's picture and act on it, in seconds: the clock moves on by it after
+/// each settled frame line (the module text's "A turn's time"). A toast's 8 s are two such turns.
+pub const LOOK_S: f64 = 4.0;
 /// The pause a double click waits after an earlier click, in seconds: the window's double-click interval and one
 /// frame, so that the double click is not counted as a triple click with the click before it.
 const CLICK_PAUSE_S: f64 = crate::canvas::DOUBLE_CLICK_S + FRAME_S;
@@ -1296,9 +1305,17 @@ impl Driver {
         if request.settle || self.frames == 0 {
             self.settle();
         }
-        if !request.paint {
-            return Ok(None);
+        let painted = if request.paint { self.paint_to(request) } else { Ok(None) };
+        // The person looks at a turn's picture before the next input.
+        if request.settle {
+            self.paused_s += LOOK_S;
         }
+        painted
+    }
+
+    /// Paints the frame of `request` to its file and returns the PNG's SHA-256; `None` without a frames folder or
+    /// painters.
+    fn paint_to(&mut self, request: &FrameRequest) -> Result<Option<String>, String> {
         let Some(dir) = self.frames_dir.clone() else {
             return Ok(None);
         };

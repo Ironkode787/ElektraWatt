@@ -314,6 +314,24 @@ mod tests {
         );
     }
 
+    /// The prompts the harness makes from the repository's own files say how messages behave: in a visual run time
+    /// moves about four seconds a turn and a message leaves after about two turns into the bell's list; in a text run
+    /// the list is the `notifications` section.
+    #[test]
+    fn the_prompts_say_how_messages_behave() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+        let mut visual = input(&root, Kind::Free, "free", Some("first-timer"));
+        visual.senses = Senses::Visual;
+        let text = compose(&visual).unwrap().text;
+        for words in ["about four seconds", "about eight seconds", "the bell", "no fault to log"] {
+            assert!(text.contains(words), "the visual prompt says {words:?}");
+        }
+        let text = compose(&input(&root, Kind::Free, "free", Some("first-timer"))).unwrap().text;
+        for words in ["no clock", "notifications.show", "no fault to log"] {
+            assert!(text.contains(words), "the text prompt says {words:?}");
+        }
+    }
+
     /// BD9: `compose` is byte-deterministic, records each file's SHA-256 and substitutes the placeholders.
     #[test]
     fn compose_is_deterministic_and_records_the_digests() {

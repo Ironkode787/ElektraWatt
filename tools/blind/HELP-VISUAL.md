@@ -1,6 +1,6 @@
 ---
 prompt: blind-help-visual
-version: 2
+version: 3
 ---
 # The harness: how to work with it (a visual run)
 
@@ -69,7 +69,19 @@ calls need no note, but you may make at most 3 between two `do` calls.
 
 Three notes in a row with patience 2 or less, or five with flow 2 or less, end the run; you then file your hand-back.
 The run also ends at its caps: {turns} turns, {steps} inputs, {looks} looks and {refusals} refused calls. They are
-counts, never times; there is no clock, so take the time you need to look.
+counts, never times: take the time you need to look.
+
+## Time and messages
+
+Time passes between your turns as it would for a person: each picture you get counts as about four seconds of the
+program's time, the time a person takes to look at the window and act. A `wait` adds the time it asks for; a `look`
+adds none.
+
+A message that appears in the window's top right corner stays for about eight seconds, about two turns, and then
+leaves. It is not lost: the bell at the right end of the status bar shows how many messages there are, and its list
+holds each one with what it offers (Undo and the like), usable as long as it can still run. So read a message in the
+turn it appears, and open the bell's list when you want one back. A message that has left is no fault to log; one you
+cannot find in the list is.
 
 ## What the harness refuses
 

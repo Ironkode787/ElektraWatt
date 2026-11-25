@@ -19,6 +19,13 @@ live here. The method is doc 18 §3.17.
 | `personas/eplan-designer.md`, `personas/eplan-maintainer.md`, `personas/qet-user.md` | The personas of the usability rounds: R0 runs `qet-veteran` and `qet-user`, R1 `eplan-designer`, `eplan-maintainer` and `qet-user` (T6 also `qet-veteran`); every persona is senses-independent, the run's prompt says how it acts |
 | `tasks/brief-ut-<t>-<name>/` | A usability task of doc 16 §19.4 as a brief: `task.toml` adds `task_id`, `rounds` and `start` (`sample`: the run starts on a copy of the sample project, `fixtures/sample/sample.ew`, which the prelude may change first, as T1 and T2 take away the 24 V breaker of folio 102), `acceptance.toml` may decide an item by `actions` done in order, and `hints.toml` holds one to three hints that `{blind} hint` gives one at a time |
 
+**A visual run's clock.** The visual driver runs the window on a frame clock: an input moves it a frame per event,
+a `wait` by its milliseconds, the pause before a double click by that pause. A turn stands for a person looking at its
+picture and acting, so each turn's settled frame line moves the clock on by four seconds more (`ew_ui::visual::LOOK_S`;
+a look or a zoom adds none): a toast leaves after about two turns, as it does for a person, into the bell's list.
+Without it a turn moved the clock a few frames, and the personas read toasts as stuck. A recording's frame lines move
+the clock as the run's did, so a replay keeps its outcomes.
+
 `cargo xtask blind check-brief <task>` checks a task folder first without a product (the sheet and the prelude, and for
 a brief that starts on the sample that every identifier of `task.md` is in the sample's script), then a brief's reference
 solution on the build. It fails where the step `briefs` of `cargo xtask check` fails: on a problem of the folder, a
