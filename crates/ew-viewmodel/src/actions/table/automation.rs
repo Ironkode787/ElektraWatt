@@ -12,61 +12,52 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // A CPU row's Attach cards without a station: the cards that wait for a CPU become children of the station.
     with_params(
         "station:ref, card?:ref",
-        needs_parameters(in_navigator(with_aliases(
-            &[("station", ParamForm::Whole)],
-            placed(
-                place(
-                    Group::Station,
-                    20,
-                    CommandSize::Small,
-                    Some(key!("bar-attach-cards")),
-                ),
-                "cards",
-                act(
-                    "plc.attach_cards",
-                    Command,
-                    Menu::Plc,
-                    &[],
-                    writable,
-                    sub(Menu::Plc, Submenu::AttachCards, false),
-                    |s, p| s.act_plc_attach_cards(p),
-                ),
+        needs_parameters(in_navigator(placed(
+            place(
+                Group::Station,
+                20,
+                CommandSize::Small,
+                Some(key!("bar-attach-cards")),
+            ),
+            "cards",
+            act(
+                "plc.attach_cards",
+                Command,
+                Menu::Plc,
+                &[],
+                writable,
+                sub(Menu::Plc, Submenu::AttachCards, false),
+                |s, p| s.act_plc_attach_cards(p),
             ),
         ))),
     ),
     // A station's Rack… (FR-PLC-028) opens its view as a tab, and the view's own controls.
     with_params(
         "station:ref",
-        needs_parameters(in_navigator(with_aliases(
-            &[("station", ParamForm::Whole)],
-            placed(
-                place(Group::Station, 10, CommandSize::Small, Some(key!("bar-rack"))),
-                "server",
-                act(
-                    "plc.rack_editor",
-                    View,
-                    Menu::Plc,
-                    &[],
-                    project_open,
-                    sub(Menu::Plc, Submenu::RackEditor, false),
-                    |s, p| s.act_plc_rack_editor(p),
-                ),
+        needs_parameters(in_navigator(placed(
+            place(Group::Station, 10, CommandSize::Small, Some(key!("bar-rack"))),
+            "server",
+            act(
+                "plc.rack_editor",
+                View,
+                Menu::Plc,
+                &[],
+                project_open,
+                sub(Menu::Plc, Submenu::RackEditor, false),
+                |s, p| s.act_plc_rack_editor(p),
             ),
         ))),
     ),
     with_params(
         "head?:bool, slot?:uint, rack?:uint, module?:ref, position?:uint, card?:ref, step?:int",
-        hidden(with_aliases(
-            &[("module", ParamForm::Whole), ("card", ParamForm::Whole)],
-            act(
-                "plc.rack_select",
-                View,
-                Menu::Project,
-                &[],
-                project_open,
-                None,
-                |s, p| s.act_plc_rack_select(p),
-            ),
+        hidden(act(
+            "plc.rack_select",
+            View,
+            Menu::Project,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_plc_rack_select(p),
         )),
     ),
     // The commands on the module under a station view's cursor (`plc.module_*`): the view's own controls, in its bar
@@ -123,20 +114,17 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // PLC navigator's row names its part, which the action words its refusal for.
     with_params(
         "device?:ref",
-        hidden(with_aliases(
-            &[("device", ParamForm::Whole)],
-            enabled_when_named(
-                &["device"],
-                writable,
-                act(
-                    "plc.module_place",
-                    Command,
-                    Menu::Plc,
-                    &[],
-                    station_module_placeable,
-                    None,
-                    |s, p| s.act_plc_module_place(p),
-                ),
+        hidden(enabled_when_named(
+            &["device"],
+            writable,
+            act(
+                "plc.module_place",
+                Command,
+                Menu::Plc,
+                &[],
+                station_module_placeable,
+                None,
+                |s, p| s.act_plc_module_place(p),
             ),
         )),
     ),
@@ -290,76 +278,64 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // A configuration project row's Import instrument list… (FR-PLC-050), previewed.
     with_params(
         "config:ref, path?:path",
-        needs_parameters(in_navigator(with_aliases(
-            &[("config", ParamForm::Whole)],
-            placed(
-                place(
-                    Group::PlcLists,
-                    3,
-                    CommandSize::Small,
-                    Some(key!("bar-instrument-list")),
-                ),
-                "file-spreadsheet",
-                act(
-                    "plc.instrument_list",
-                    Command,
-                    Menu::Plc,
-                    &[],
-                    writable,
-                    sub(Menu::Plc, Submenu::InstrumentList, false),
-                    |s, p| s.act_plc_instrument_list(p),
-                ),
+        needs_parameters(in_navigator(placed(
+            place(
+                Group::PlcLists,
+                3,
+                CommandSize::Small,
+                Some(key!("bar-instrument-list")),
+            ),
+            "file-spreadsheet",
+            act(
+                "plc.instrument_list",
+                Command,
+                Menu::Plc,
+                &[],
+                writable,
+                sub(Menu::Plc, Submenu::InstrumentList, false),
+                |s, p| s.act_plc_instrument_list(p),
             ),
         ))),
     ),
     // The PLC navigator rows' settings forms: Symbol policy…, Safety data…, Mode and safety….
     with_params(
         "config:ref, template?:text, tag_table?:text, strict_iec?:text",
-        needs_parameters(in_navigator(with_aliases(
-            &[("config", ParamForm::Whole)],
-            placed(
-                place(Group::Addresses, 4, CommandSize::Small, None),
-                "code",
-                act(
-                    "plc.symbol_policy",
-                    Command,
-                    Menu::Plc,
-                    &[],
-                    writable,
-                    sub(Menu::Plc, Submenu::SymbolPolicy, false),
-                    |s, p| s.act_plc_symbol_policy(p),
-                ),
+        needs_parameters(in_navigator(placed(
+            place(Group::Addresses, 4, CommandSize::Small, None),
+            "code",
+            act(
+                "plc.symbol_policy",
+                Command,
+                Menu::Plc,
+                &[],
+                writable,
+                sub(Menu::Plc, Submenu::SymbolPolicy, false),
+                |s, p| s.act_plc_symbol_policy(p),
             ),
         ))),
     ),
     with_params(
         "module:ref, f_source?:text, f_dest?:text, f_wd_ms?:text",
-        needs_parameters(in_navigator(with_aliases(
-            &[("module", ParamForm::Whole)],
-            act(
-                "plc.module_safety",
-                Command,
-                Menu::Project,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_plc_module_safety(p),
-            ),
+        needs_parameters(in_navigator(act(
+            "plc.module_safety",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_plc_module_safety(p),
         ))),
     ),
     with_params(
         "channel:ref, mode?:text, evaluation?:text, requirement?:text",
-        needs_parameters(in_navigator(with_aliases(
-            &[("channel", ParamForm::Whole)],
-            act(
-                "plc.channel_settings",
-                Command,
-                Menu::Project,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_plc_channel_settings(p),
-            ),
+        needs_parameters(in_navigator(act(
+            "plc.channel_settings",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_plc_channel_settings(p),
         ))),
     ),
     // PLC ▸ Addresses: Process-tag scheme… and Channel addresses at terminals; Fluid ▸ Media: Fluid settings….
@@ -420,24 +396,21 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // selected valve terminal, greyed in words while none is selected.
     with_params(
         "station?:ref",
-        in_navigator(with_aliases(
-            &[("station", ParamForm::Whole)],
-            placed(
-                place(Group::FluidLists, 3, CommandSize::Small, None),
-                "report-analytics",
-                // A valve terminal's row names its terminal.
-                enabled_when_named(
-                    &["station"],
-                    writable,
-                    act(
-                        "fluid.generate_overview",
-                        Command,
-                        Menu::Fluid,
-                        &[],
-                        valve_terminal_selected,
-                        None,
-                        |s, p| s.act_fluid_generate_overview(p),
-                    ),
+        in_navigator(placed(
+            place(Group::FluidLists, 3, CommandSize::Small, None),
+            "report-analytics",
+            // A valve terminal's row names its terminal.
+            enabled_when_named(
+                &["station"],
+                writable,
+                act(
+                    "fluid.generate_overview",
+                    Command,
+                    Menu::Fluid,
+                    &[],
+                    valve_terminal_selected,
+                    None,
+                    |s, p| s.act_fluid_generate_overview(p),
                 ),
             ),
         )),
@@ -445,34 +418,28 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // A valve terminal's Add valve at position n (doc 11 §7): the valve child, then its symbol on the pointer.
     with_params(
         "module:ref, position:uint",
-        needs_parameters(hidden(with_aliases(
-            &[("module", ParamForm::Whole)],
-            act(
-                "fluid.valve_add",
-                Command,
-                Menu::Project,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_fluid_valve_add(p),
-            ),
+        needs_parameters(hidden(act(
+            "fluid.valve_add",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_fluid_valve_add(p),
         ))),
     ),
     // A position of a valve terminal drawn as its positions: Fill position n… and Replace… open the device
     // browser narrowed to valves for a terminal; the valve chosen (or `part`) is placed in that cell.
     with_params(
         "terminal:ref, module:ref, position:uint, replace?:bool, part?:ref",
-        needs_parameters(hidden(with_aliases(
-            &[("terminal", ParamForm::Whole)],
-            act(
-                "fluid.cell_fill",
-                Command,
-                Menu::Project,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_fluid_cell_fill(p),
-            ),
+        needs_parameters(hidden(act(
+            "fluid.cell_fill",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_fluid_cell_fill(p),
         ))),
     ),
     // A terminal valve's Go to output: the channel that drives its solenoid, in the PLC list.
@@ -491,79 +458,67 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // A valve terminal drawn before as a free box: Draw as slots, previewed.
     with_params(
         "rep:ref",
-        needs_parameters(hidden(with_aliases(
-            &[("rep", ParamForm::Whole)],
-            act(
-                "fluid.draw_slots",
-                Command,
-                Menu::Project,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_fluid_draw_slots(p),
-            ),
+        needs_parameters(hidden(act(
+            "fluid.draw_slots",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_fluid_draw_slots(p),
         ))),
     ),
     // Draw its valves in the terminal: valves put on its positions without a symbol stand in its cells.
     with_params(
         "terminal:ref",
-        needs_parameters(hidden(with_aliases(
-            &[("terminal", ParamForm::Whole)],
-            act(
-                "fluid.draw_valves",
-                Command,
-                Menu::Project,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_fluid_draw_valves(p),
-            ),
+        needs_parameters(hidden(act(
+            "fluid.draw_valves",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_fluid_draw_valves(p),
         ))),
     ),
     // A stand-alone valve's Draw solenoid 14 on this page… or on an electrical page…: the coil's symbol on the
     // pointer on the electrical page in front, `page` (a folio or `new`), else the page the window asks for.
     with_params(
         "function:ref, page?:text",
-        needs_parameters(hidden(with_aliases(
-            &[("function", ParamForm::Whole)],
-            act(
-                "fluid.draw_solenoid",
-                Command,
-                Menu::Project,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_fluid_draw_solenoid(p),
-            ),
+        needs_parameters(hidden(act(
+            "fluid.draw_solenoid",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_fluid_draw_solenoid(p),
         ))),
     ),
     // A multipin valve terminal's Draw the plug on an electrical page…: from any page, its menu, its Properties
     // row and the Fluid tab (of the selected terminal, greyed in words while none is selected).
     with_params(
         "terminal?:ref, page?:text",
-        with_aliases(
-            &[("terminal", ParamForm::Whole)],
-            placed(
-                place(
-                    Group::FluidLists,
-                    4,
-                    CommandSize::Small,
-                    Some(key!("bar-draw-plug")),
-                ),
-                "bolt",
-                // A terminal's menu or Properties row names its terminal.
-                enabled_when_named(
-                    &["terminal"],
-                    writable,
-                    act(
-                        "fluid.draw_plug",
-                        Command,
-                        Menu::Fluid,
-                        &[],
-                        multipin_terminal_selected,
-                        None,
-                        |s, p| s.act_fluid_draw_plug(p),
-                    ),
+        placed(
+            place(
+                Group::FluidLists,
+                4,
+                CommandSize::Small,
+                Some(key!("bar-draw-plug")),
+            ),
+            "bolt",
+            // A terminal's menu or Properties row names its terminal.
+            enabled_when_named(
+                &["terminal"],
+                writable,
+                act(
+                    "fluid.draw_plug",
+                    Command,
+                    Menu::Fluid,
+                    &[],
+                    multipin_terminal_selected,
+                    None,
+                    |s, p| s.act_fluid_draw_plug(p),
                 ),
             ),
         ),
@@ -599,33 +554,27 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // A valve terminal made as a station, drawn on a fluid page as its positions: its PLC row, its rack dialog.
     with_params(
         "terminal:ref",
-        needs_parameters(hidden(with_aliases(
-            &[("terminal", ParamForm::Whole)],
-            act(
-                "fluid.draw_terminal",
-                Command,
-                Menu::Project,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_fluid_draw_terminal(p),
-            ),
+        needs_parameters(hidden(act(
+            "fluid.draw_terminal",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_fluid_draw_terminal(p),
         ))),
     ),
     // A fluid line's medium (its context menu) and New medium… (doc 11 §7, FR-FLU-008/-009).
     with_params(
         "line:ref, medium:ref",
-        needs_parameters(in_canvas(with_aliases(
-            &[("line", ParamForm::Whole), ("medium", ParamForm::Whole)],
-            act(
-                "fluid.set_medium",
-                Command,
-                Menu::Draw,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_fluid_set_medium(p),
-            ),
+        needs_parameters(in_canvas(act(
+            "fluid.set_medium",
+            Command,
+            Menu::Draw,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_fluid_set_medium(p),
         ))),
     ),
     with_params(
@@ -646,17 +595,14 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     with_params(
         "module:ref, slot:text",
-        hidden(with_aliases(
-            &[("module", ParamForm::Whole)],
-            act(
-                "plc.rack_move",
-                Command,
-                Menu::Project,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_plc_rack_move(p),
-            ),
+        hidden(act(
+            "plc.rack_move",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_plc_rack_move(p),
         )),
     ),
     // A station is made as a rack and filled; a bus device is given to a PLC.
@@ -729,48 +675,39 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // A station's tag, or a card's, changed in its view; F2 in the view opens it (`shortcut_action`).
     with_params(
         "device?:ref, plc?:bool, text?:text, cancel?:bool",
-        hidden(with_aliases(
-            &[("device", ParamForm::Whole)],
-            act(
-                "plc.rack_rename",
-                Command,
-                Menu::Project,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_plc_rack_rename(p),
-            ),
+        hidden(act(
+            "plc.rack_rename",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_plc_rack_rename(p),
         )),
     ),
     // A channel's symbol or function text typed in the view's channel table.
     with_params(
         "channel?:ref, column?:text, text?:text, next?:bool, cancel?:bool",
-        hidden(with_aliases(
-            &[("channel", ParamForm::Whole)],
-            act(
-                "plc.rack_channel",
-                Command,
-                Menu::Project,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_plc_rack_channel(p),
-            ),
+        hidden(act(
+            "plc.rack_channel",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_plc_rack_channel(p),
         )),
     ),
     with_params(
         "device:ref, config?:ref",
-        needs_parameters(in_canvas(with_aliases(
-            &[("device", ParamForm::Whole), ("config", ParamForm::Whole)],
-            act(
-                "plc.add_to_plc",
-                Command,
-                Menu::Project,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_plc_add_to_plc(p),
-            ),
+        needs_parameters(in_canvas(act(
+            "plc.add_to_plc",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_plc_add_to_plc(p),
         ))),
     ),
 ];

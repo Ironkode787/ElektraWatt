@@ -139,8 +139,6 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             &[
                 ("symbol", ParamForm::Whole),
                 ("part", ParamForm::Whole),
-                ("function", ParamForm::Whole),
-                ("device", ParamForm::Whole),
                 ("strip", ParamForm::Whole),
             ],
             act(

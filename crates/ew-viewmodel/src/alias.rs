@@ -252,16 +252,16 @@ pub enum ParamForm {
 }
 
 /// `params` with every alias resolved through `table` in the parameters `forms` names (an action's
-/// [`crate::actions::ActionMeta::aliases`]): `Ok(None)` when nothing changed; `Err` with the first alias the table
+/// [`crate::actions::ActionMeta::alias_forms`]): `Ok(None)` when nothing changed; `Err` with the first alias the table
 /// does not hold. A parameter of another type than its form expects is left for the action to refuse.
 pub fn resolve_params(
     table: &AliasTable,
-    forms: &[(&str, ParamForm)],
+    forms: &[(String, ParamForm)],
     params: &Map<String, Value>,
 ) -> Result<Option<Map<String, Value>>, String> {
     let mut out: Option<Map<String, Value>> = None;
     for (name, form) in forms {
-        let Some(value) = params.get(*name) else {
+        let Some(value) = params.get(name) else {
             continue;
         };
         let new = match (form, value) {
@@ -298,7 +298,7 @@ pub fn resolve_params(
         };
         if let Some(new) = new {
             out.get_or_insert_with(|| params.clone())
-                .insert((*name).to_owned(), new);
+                .insert(name.clone(), new);
         }
     }
     Ok(out)
@@ -322,7 +322,11 @@ mod tests {
         action: &str,
         params: &Map<String, Value>,
     ) -> Result<Option<Map<String, Value>>, String> {
-        super::resolve_params(table, crate::actions::find(action).unwrap().aliases, params)
+        super::resolve_params(
+            table,
+            &crate::actions::find(action).unwrap().alias_forms(),
+            params,
+        )
     }
 
     #[test]
@@ -522,20 +526,41 @@ mod tests {
         }
     }
 
-    /// Each alias parameter of an action is a parameter of its signature (the form is not derivable from the signature
-    /// type: `list(ref)` reads as a list or a reference list, `text` as a whole, an embedded or an `id:` reference, and
-    /// most `text` parameters take no alias).
+    /// Each alias parameter an action names is a parameter of its signature whose type does not tell its form
+    /// (`list(ref)` reads as a list or a reference list, `text` as a whole, an embedded or an `id:` reference, and
+    /// most `text` parameters take no alias); a `ref` takes its alias from the signature alone.
     #[test]
     fn every_alias_parameter_is_a_parameter_of_its_action() {
         let mut wrong: Vec<String> = Vec::new();
         for meta in crate::actions::ACTIONS {
             let params = crate::actions::parse_signature(meta.params).unwrap_or_default();
             for (name, _) in meta.aliases {
-                if !params.iter().any(|p| p.name == *name) {
-                    wrong.push(format!("{} has no parameter {name}", meta.id));
+                match params.iter().find(|p| p.name == *name) {
+                    None => wrong.push(format!("{} has no parameter {name}", meta.id)),
+                    Some(p) if p.ty == "ref" => wrong.push(format!("{} names its ref {name}", meta.id)),
+                    Some(_) => {}
                 }
             }
         }
         assert_eq!(wrong, Vec::<String>::new());
+    }
+
+    /// An alias `@n` resolves in every `ref` parameter of every action, from its signature alone.
+    #[test]
+    fn an_alias_resolves_in_every_ref_parameter() {
+        let mut t = AliasTable::new();
+        t.number(A);
+        let mut missed: Vec<String> = Vec::new();
+        for meta in crate::actions::ACTIONS {
+            let params = crate::actions::parse_signature(meta.params).unwrap_or_default();
+            for p in params.iter().filter(|p| p.ty == "ref") {
+                let given = obj(json!({ p.name.as_str(): "@1" }));
+                let resolved = resolve_params(&t, meta.id, &given);
+                if resolved != Ok(Some(obj(json!({ p.name.as_str(): A })))) {
+                    missed.push(format!("{} {}", meta.id, p.name));
+                }
+            }
+        }
+        assert_eq!(missed, Vec::<String>::new());
     }
 }

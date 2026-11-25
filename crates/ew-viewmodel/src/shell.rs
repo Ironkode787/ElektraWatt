@@ -1805,7 +1805,7 @@ impl ShellModel {
             return Outcome::Refused { reason_key };
         }
         // An alias `@n` in a parameter that takes a UUID or a reference resolves before the action reads it.
-        let resolved = match crate::alias::resolve_params(&self.aliases.borrow(), meta.aliases, p) {
+        let resolved = match crate::alias::resolve_params(&self.aliases.borrow(), &meta.alias_forms(), p) {
             Ok(r) => r,
             Err(alias) => return failed(key!("error-unknown-alias"), &[&alias]),
         };

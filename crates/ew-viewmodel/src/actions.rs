@@ -332,8 +332,8 @@ pub struct ActionMeta {
     /// snapshots and Escape (which closes it as the topmost popup); every other action (a pointer move, a cursor move,
     /// a view action) clears it.
     pub keeps_link_preview: bool,
-    /// The parameters that take a UUID or a reference, each with the form it takes it in: an alias `@n` in one of
-    /// them resolves before the action reads it ([`crate::alias::resolve_params`]).
+    /// The parameters whose type does not tell how they take a UUID or a reference (a list, a text, JSON), each with
+    /// the form it takes it in; a `ref` of the signature takes it whole without a line here ([`Self::alias_forms`]).
     pub aliases: &'static [(&'static str, ParamForm)],
     /// What the action does (run by [`ShellModel::dispatch`] once the action is enabled).
     pub(crate) handler: Handler,
@@ -344,6 +344,19 @@ impl ActionMeta {
     /// (`file.open_recent` reads `action-file-open-recent`).
     pub fn label_key(&self) -> String {
         format!("action-{}", self.id.replace(['.', '_'], "-"))
+    }
+
+    /// The parameters that take a UUID or a reference, each with its form: every `ref` of the signature whole, then
+    /// those [`Self::aliases`] names. An alias `@n` in one of them resolves before the action reads it
+    /// ([`crate::alias::resolve_params`]).
+    pub fn alias_forms(&self) -> Vec<(String, ParamForm)> {
+        let refs = parse_signature(self.params)
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|p| p.ty == "ref")
+            .map(|p| (p.name, ParamForm::Whole));
+        refs.chain(self.aliases.iter().map(|(n, f)| ((*n).to_owned(), *f)))
+            .collect()
     }
 }
 
@@ -472,7 +485,7 @@ const fn with_params(params: &'static str, mut a: ActionMeta) -> ActionMeta {
     a
 }
 
-/// Names the parameters of an action that take a UUID or a reference.
+/// Names the parameters of an action that take a UUID or a reference in a form their type does not tell.
 const fn with_aliases(aliases: &'static [(&'static str, ParamForm)], mut a: ActionMeta) -> ActionMeta {
     a.aliases = aliases;
     a

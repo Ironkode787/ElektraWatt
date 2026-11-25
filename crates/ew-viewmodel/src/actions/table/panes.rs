@@ -562,17 +562,14 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // the drop point with `plc.bind_channel`.
     with_params(
         "channel:ref, x_mm:mm, y_mm:mm, group?:uint",
-        hidden(in_canvas(with_aliases(
-            &[("channel", ParamForm::Whole)],
-            act(
-                "navigator.bind",
-                Command,
-                Menu::Edit,
-                &[],
-                editable_page,
-                None,
-                |s, p| s.act_navigator_bind(p),
-            ),
+        hidden(in_canvas(act(
+            "navigator.bind",
+            Command,
+            Menu::Edit,
+            &[],
+            editable_page,
+            None,
+            |s, p| s.act_navigator_bind(p),
         ))),
     ),
     keeps_banner(with_params(
