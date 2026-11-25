@@ -15,7 +15,8 @@ use common::{SAMPLE, Tmp, actual_size, cursor, done, refused, select_ids, tables
 use ew_api::Session;
 use ew_api::output::TableRep;
 use ew_viewmodel::actions::{ActionItem, Menu, menu_model};
-use ew_viewmodel::canvas::{HOVER_SLOP_PT, pick};
+use ew_viewmodel::canvas::pick;
+use ew_viewmodel::pointer::HOVER_SLOP_PT;
 use ew_viewmodel::shell::ShellModel;
 use serde_json::{Value, json};
 

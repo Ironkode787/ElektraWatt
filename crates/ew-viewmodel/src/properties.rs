@@ -3,7 +3,7 @@
 
 //! The property grid's panel model: the sheet the shell fetched, the focused
 //! row, the edit buffer, the choices and popups, the inline preview card and the toast, and the pure rules over them —
-//! the edit policy of FR-UI-044 ([`policy`]), the composition of a leaf into its settable member ([`compose`]), the
+//! the edit policy of FR-UI-044 ([`policy`]), the composition of a leaf into its settable member (`ew_api::output::table_edit::compose`), the
 //! read-only reasons ([`read_only_reason`]) and the rows on show ([`visible_rows`]).
 //!
 //! Only the shell (`ShellModel`'s `props.*` actions) calls the `Session`: once per sheet key for the sheet
@@ -29,9 +29,6 @@ use serde_json::Value;
 use crate::strings;
 use crate::tools::PreviewState;
 
-/// Above this many targets an edit always goes through the card (FR-UI-044 rule 1, `edit.rs`'s `BULK_ABOVE`).
-pub const BULK_TARGETS: usize = 500;
-
 /// What the edit policy decides on a preview.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Decision {
@@ -45,11 +42,11 @@ pub enum Decision {
 
 /// The edit policy (FR-UI-044, §6.6): `targets` the command's targets, `identifier` whether the row is an outgoing
 /// identifier, `tags` how many tags the preview's derived diff changes, `cost` the command's cost, `ok` whether the
-/// preview succeeded.
+/// preview succeeded. Above [`ew_api::BULK_ABOVE`] targets an edit always goes through the card (FR-UI-044 rule 1).
 pub fn policy(targets: usize, identifier: bool, tags: usize, cost: Cost, ok: bool) -> Decision {
     if !ok {
         Decision::Error
-    } else if targets > BULK_TARGETS {
+    } else if targets > ew_api::BULK_ABOVE {
         Decision::Card(key!("reason-bulk"))
     } else if (identifier && targets > 1) || tags > 1 {
         Decision::Card(key!("reason-identifiers"))
@@ -1493,7 +1490,6 @@ pub fn member_path(route: &EditRoute) -> Option<String> {
 
 /// The settable member's new value with a leaf replaced, moved down to `ew-api` with table mode's pure rule,
 /// re-exported under its old path.
-pub use ew_api::output::table_edit::compose;
 
 /// The kind's plural for the card and the toast (`devices`), in the UI language inside a sentence
 /// (`apparaten`).
@@ -2480,6 +2476,7 @@ pub fn chip_word(p: &Provenance) -> &'static str {
 
 #[cfg(test)]
 mod tests {
+    use ew_api::output::table_edit::compose;
     use serde_json::json;
 
     use super::*;

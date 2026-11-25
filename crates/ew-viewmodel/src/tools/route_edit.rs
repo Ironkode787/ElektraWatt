@@ -181,7 +181,7 @@ pub type PartRef = (EntityRef, Vec<(i64, i64)>, RoutePart);
 /// The part of the selected connections under the sheet point `at` within 4 points: a bend
 /// before a segment (a bend lies on two of them), of each kind the nearest, ties by connection ID.
 pub fn part_at(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<PartRef> {
-    let r = cx.nm_of_points(crate::pointer::HOVER_SLOP_PT).floor().min(9.0e15) as i128;
+    let r = cx.reach_nm(crate::pointer::HOVER_SLOP_PT);
     let mut bend: Option<(i128, PartRef)> = None;
     let mut segment: Option<(i128, PartRef)> = None;
     let nearer = |best: &Option<(i128, PartRef)>, d: i128, id: EntityRef| {

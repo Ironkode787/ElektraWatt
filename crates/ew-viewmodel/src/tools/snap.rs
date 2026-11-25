@@ -172,7 +172,7 @@ impl Snapper {
         if !(reach.is_finite() && reach >= 0.0) {
             return None;
         }
-        let reach = reach.floor().min(9.0e15) as i128;
+        let reach = crate::pointer::reach_nm(reach);
         let limit = reach * reach;
         let mut best: Option<(i128, &SnapCp)> = None;
         for cp in &self.cps {
@@ -220,9 +220,10 @@ impl Snapper {
         (self.to_page(s.0, 0), self.to_page(s.1, 1))
     }
 
-    /// Whether the page's connection grid is the QET grid `7_937_500/3` nm.
+    /// Whether the page's connection grid is the QET grid ([`ew_units::Grid::QET_10PX`]).
     pub fn is_qet(&self) -> bool {
-        (self.num, self.den) == (7_937_500, 3)
+        let qet = ew_units::Grid::QET_10PX;
+        (self.num, self.den) == (i128::from(qet.num()), i128::from(qet.den()))
     }
 
     /// The grid index of the page coordinate `p` (`round(p × den / num)`, halves away from zero).

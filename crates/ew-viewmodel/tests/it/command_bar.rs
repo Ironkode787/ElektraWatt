@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 
 use common::{Tmp, at, click, done, empty_point};
 use ew_viewmodel::actions::{self, ACTIONS, MenuEntry, menu_model};
-use ew_viewmodel::canvas::HOVER_SLOP_PT;
+use ew_viewmodel::pointer::HOVER_SLOP_PT;
 use ew_viewmodel::command_bar::{self, ButtonKind, CommandSize, Group, Tab, command_bar_of, hud, next_step};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use ew_viewmodel::{help, strings};

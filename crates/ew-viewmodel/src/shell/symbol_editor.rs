@@ -41,7 +41,10 @@ pub const GRID_STEPS: [(i64, i64); 5] = [
     (1_000_000, 1),
     (2_000_000, 1),
     (4_000_000, 1),
-    (7_937_500, 3),
+    (
+        ew_units::Grid::QET_10PX.num() as i64,
+        ew_units::Grid::QET_10PX.den() as i64,
+    ),
 ];
 
 /// The potential roles a connection point takes, in the role list's order after "None".

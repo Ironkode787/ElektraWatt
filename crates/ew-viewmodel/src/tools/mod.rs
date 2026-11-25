@@ -113,7 +113,6 @@ use ew_api::output::PageTables;
 use ew_dl::{Destination, EntityRef};
 use ew_units::{Nm, Rect};
 
-pub use crate::pointer::CP_SNAP_PT;
 pub(crate) use host::{GridFit, PasteFit, ResultNote, ToolHost};
 pub use host::{
     LINK_PREVIEW_DWELL_MS, LINK_PREVIEW_PANE, LinkPreview, PREVIEW_DWELL_MS, PreviewState, PreviewStatus,
@@ -728,6 +727,11 @@ impl ToolCx<'_> {
         if v.is_finite() { v.max(0.0) } else { 0.0 }
     }
 
+    /// `pt` screen points as a reach in whole nanometres on the page ([`crate::pointer::reach_nm`]).
+    pub fn reach_nm(&self, pt: f64) -> i128 {
+        crate::pointer::reach_nm(self.nm_of_points(pt))
+    }
+
     /// The entity under `at`: the smallest entity rectangle containing it inflated by 4 points, ties to the later
     /// in paint order (the hover pick).
     pub fn entity_at(&self, at: (i64, i64)) -> Option<EntityRef> {
@@ -791,11 +795,7 @@ pub fn pick_stack(page: &CanvasPage, snapper: &Snapper, at: (i64, i64), reach: f
         .copied()
         .collect();
     let rects = crate::canvas::rect_hits(&others, at, reach);
-    let r = if reach.is_finite() {
-        reach.max(0.0).floor().min(9.0e15) as i128
-    } else {
-        0
-    };
+    let r = crate::pointer::reach_nm(reach);
     let within = |pts: Vec<(i64, i64)>, closed: bool| -> Option<i128> {
         let d = match pts.as_slice() {
             [] => return None,

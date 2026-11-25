@@ -11,7 +11,8 @@ use crate::common;
 
 use common::{Tmp, actual_size, at, canvas, done, grid_point, select_ids, sheet, tables};
 use ew_api::output::{PageTables, TableEnd, TableItem, TableRep, TableStructureBox};
-use ew_viewmodel::canvas::{HOVER_SLOP_PT, pick};
+use ew_viewmodel::canvas::pick;
+use ew_viewmodel::pointer::HOVER_SLOP_PT;
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 

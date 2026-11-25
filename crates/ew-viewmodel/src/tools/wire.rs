@@ -303,7 +303,7 @@ pub fn resolve_target(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> WireTarget 
         return grid_point();
     }
     let tables = &cx.page.tables;
-    let reach = cx.nm_of_points(CP_SNAP_PT).floor().min(9.0e15) as i128;
+    let reach = cx.reach_nm(CP_SNAP_PT);
     let limit = reach * reach;
     let d2 = |p: (i64, i64)| super::dist2(cx.snapper.page_to_sheet(p), at);
     // 1. A connection point.
@@ -435,7 +435,7 @@ fn cp_beside(cx: &ToolCx<'_>, p: (i64, i64), but: Option<(Uuid, u16)>) -> Option
         cx.snapper.page_to_sheet((0, 0)),
         cx.snapper.page_to_sheet((grid.step(), 0)),
     );
-    let reach = cx.nm_of_points(CP_SNAP_PT).floor().min(9.0e15) as i128;
+    let reach = cx.reach_nm(CP_SNAP_PT);
     let at = cx.snapper.page_to_sheet(p);
     tables
         .cps
@@ -451,7 +451,7 @@ fn cp_beside(cx: &ToolCx<'_>, p: (i64, i64), but: Option<(Uuid, u16)>) -> Option
 /// point (the Wire tool's hint).
 fn near_full_junction(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> bool {
     let tables = &cx.page.tables;
-    let reach = cx.nm_of_points(CP_SNAP_PT).floor().min(9.0e15) as i128;
+    let reach = cx.reach_nm(CP_SNAP_PT);
     let near = |p: (i64, i64)| super::dist2(cx.snapper.page_to_sheet(p), at) <= reach * reach;
     !alt && !tables.cps.iter().any(|cp| near(cp.at))
         && tables
@@ -668,7 +668,7 @@ fn passes<'t>(
         return None;
     }
     let tables = &cx.page.tables;
-    let reach = cx.nm_of_points(CP_SNAP_PT).floor().min(9.0e15) as i128;
+    let reach = cx.reach_nm(CP_SNAP_PT);
     let limit = reach * reach;
     let grid = PageGridMap::new(tables.grid);
     let on_grid = |p: (i64, i64)| grid.coord(grid.index(p.0)) == p.0 && grid.coord(grid.index(p.1)) == p.1;

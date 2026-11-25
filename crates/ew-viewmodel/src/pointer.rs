@@ -24,3 +24,13 @@ pub const CP_SNAP_PT: f64 = 9.5;
 
 /// How near a rail or a snap target the pointer must come, in screen points.
 pub const LAYOUT_SNAP_PT: f64 = 15.0;
+
+/// A reach of `nm` nanometres as the whole nanometres a squared distance in `i128` is compared with: rounded down, at
+/// most 9 × 10¹⁵ nm (beyond any sheet), and 0 for a value that is no length.
+pub fn reach_nm(nm: f64) -> i128 {
+    if nm.is_finite() {
+        nm.max(0.0).floor().min(9.0e15) as i128
+    } else {
+        0
+    }
+}

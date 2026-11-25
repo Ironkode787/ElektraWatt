@@ -224,7 +224,7 @@ fn a_press_and_its_release_in_one_frame_still_click() {
     // drawn through a symbol's middle first, and the tap's point is rounded to the screen).
     let (entity, p) = {
         let c = h.state().shell().canvas().unwrap();
-        let slop = ew_viewmodel::canvas::HOVER_SLOP_PT / c.points_per_nm();
+        let slop = ew_viewmodel::pointer::HOVER_SLOP_PT / c.points_per_nm();
         let page = c.page();
         page.entities
             .iter()

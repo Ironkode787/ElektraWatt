@@ -235,7 +235,7 @@ const FIRST_VIEW_GAIN: f64 = 1.15;
 /// The margin of fit page on each side, in points.
 pub const FIT_MARGIN_PT: f64 = 16.0;
 
-pub use crate::pointer::HOVER_SLOP_PT;
+use crate::pointer::HOVER_SLOP_PT;
 
 /// The hover outline of a canvas while the active tool shows the hover (doc 16a §7.1): the hovered link's
 /// rectangle, else the rectangle of the hovered entity, the first of the pick stack under the pointer (the one a click
@@ -511,11 +511,7 @@ impl CanvasPage {
     /// The connection point nearest to the sheet point `p` within `slop` nm (ties to the earlier in reading
     /// order): an index into [`CanvasPage::cps`].
     pub fn cp_near(&self, p: (i64, i64), slop: f64) -> Option<usize> {
-        let slop = if slop.is_finite() {
-            slop.max(0.0).floor().min(9.0e15) as i128
-        } else {
-            0
-        };
+        let slop = crate::pointer::reach_nm(slop);
         let mut best: Option<(i128, usize)> = None;
         for (i, cp) in self.cps.iter().enumerate() {
             let d = crate::tools::dist2(cp.at_nm, p);
@@ -1271,7 +1267,8 @@ pub fn zoom_percent_text(zoom: f64) -> String {
 /// The grid as the status bar shows it: `QET 10 px` for the grid `7_937_500/3` nm, otherwise the pitch in mm with
 /// at most three decimals (`4`, `2.5`, `0.265`).
 pub fn grid_label(grid: &PageGrid) -> GridLabel {
-    if (grid.num_nm, grid.den) == (7_937_500, 3) {
+    let qet = ew_units::Grid::QET_10PX;
+    if (u64::try_from(grid.num_nm), u64::try_from(grid.den)) == (Ok(qet.num()), Ok(qet.den())) {
         return GridLabel::Qet10;
     }
     let den = i128::from(grid.den.max(1));

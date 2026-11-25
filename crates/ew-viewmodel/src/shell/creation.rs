@@ -62,7 +62,10 @@ pub const PAGE_GRIDS: &[&str] = &["mm4", "qet_10px"];
 pub(crate) fn page_grid_value(word: &str) -> Option<Value> {
     match word {
         "mm4" => Some(json!({"num": 4_000_000, "den": 1})),
-        "qet_10px" => Some(json!({"num": 7_937_500, "den": 3})),
+        "qet_10px" => {
+            let qet = ew_units::Grid::QET_10PX;
+            Some(json!({"num": qet.num(), "den": qet.den()}))
+        }
         _ => None,
     }
 }

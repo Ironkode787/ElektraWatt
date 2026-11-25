@@ -6,13 +6,14 @@
 use crate::key;
 use crate::properties::{
     Card, CardOrigin, ChoiceKind, Choices, EditBuffer, PendingEdit, Popup, PropRow, Provenance, RowAction,
-    RowMenuItem, RowValue, SheetSection, compose, find_row, is_cp_row, is_derived, item_default, member_path,
+    RowMenuItem, RowValue, SheetSection, find_row, is_cp_row, is_derived, item_default, member_path,
 };
 use crate::shell::navigation::{Focus, bump};
 use crate::shell::{Outcome, ShellModel, failed, string_param};
 use crate::strings;
 use crate::strings::Key;
 use ew_api::AnyCommand;
+use ew_api::output::table_edit::compose;
 use serde_json::{Map, Value, json};
 
 impl ShellModel {

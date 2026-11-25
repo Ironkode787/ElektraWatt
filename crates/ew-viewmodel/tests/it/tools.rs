@@ -363,7 +363,7 @@ fn enter_selects_and_measure_from_the_keyboard_alone() {
         let c = shell.canvas().unwrap();
         // The hover's entity, where the Select tool's pick (where routes overlap) agrees with it.
         let page = c.page();
-        let slop = ew_viewmodel::canvas::HOVER_SLOP_PT / c.points_per_nm();
+        let slop = ew_viewmodel::pointer::HOVER_SLOP_PT / c.points_per_nm();
         if c.cursor_link().is_none()
             && let Some((e, _)) = c.cursor_entity()
             && let Some(p) = c.cursor()

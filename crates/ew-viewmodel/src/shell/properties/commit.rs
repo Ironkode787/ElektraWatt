@@ -7,7 +7,7 @@ use super::{GROUP_ROW, PRINTED_LABEL_ROW, TAG_ROW, form_choices, grid_choices, m
 use crate::key;
 use crate::properties::{
     Card, CardOrigin, ChoiceKind, Choices, Decision, PendingEdit, Popup, PropRow, RowAction, RowMenuItem,
-    RowValue, SheetSection, compose, is_derived, kind_plural, member_path, policy,
+    RowValue, SheetSection, is_derived, kind_plural, member_path, policy,
 };
 use crate::properties::{GRID_ROW, STYLE_ROW};
 use crate::shell::navigation::bump;
@@ -16,6 +16,7 @@ use crate::shell::{Mode, Outcome, ShellModel, failed};
 use crate::strings;
 use crate::strings::Key;
 use crate::tools::PreviewState;
+use ew_api::output::table_edit::compose;
 use ew_api::output::{InputError, ParsedInput};
 use ew_api::{AnyCommand, Exposure};
 use ew_dl::EntityRef;

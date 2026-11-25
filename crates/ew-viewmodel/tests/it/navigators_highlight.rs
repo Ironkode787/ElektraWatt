@@ -299,7 +299,7 @@ fn selecting_a_wire_on_the_canvas_marks_its_rows_in_both_navigators() {
             page,
             &page.snapper,
             p,
-            ew_viewmodel::canvas::HOVER_SLOP_PT / c.points_per_nm(),
+            ew_viewmodel::pointer::HOVER_SLOP_PT / c.points_per_nm(),
         )
     };
     assert_eq!(

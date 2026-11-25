@@ -136,7 +136,7 @@ fn beside_the_end(s: &ShellModel, end: (i64, i64)) -> ((i64, i64), (i64, i64)) {
     assert_eq!(sn.page_of_index(ex), end.0, "the end is on the grid");
     let (e, u) = (sn.page_to_sheet(end), sn.page_to_sheet(up));
     let step = (e.1 - u.1).abs() as f64;
-    let reach = ew_viewmodel::tools::CP_SNAP_PT / c.points_per_nm();
+    let reach = ew_viewmodel::pointer::CP_SNAP_PT / c.points_per_nm();
     let along = 0.45 * step;
     // Half way between the CP's reach (seen from the press, `along` up) and the rail's.
     let off = 0.5 * ((reach * reach - along * along).max(0.0).sqrt() + reach);

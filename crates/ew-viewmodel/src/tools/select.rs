@@ -163,13 +163,13 @@ pub struct SelectTool {
     cp_hover: Option<(i64, i64)>,
 }
 
-/// The connection point within [`super::CP_SNAP_PT`] screen points of the sheet point `at` (the Wire tool's reach,
+/// The connection point within [`crate::pointer::CP_SNAP_PT`] screen points of the sheet point `at` (the Wire tool's reach,
 /// at every zoom), the nearest first, as a sheet point; none on a panel page.
 fn cp_near(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<(i64, i64)> {
     if cx.page.panel.is_some() {
         return None;
     }
-    let reach = cx.nm_of_points(crate::pointer::CP_SNAP_PT).floor().min(9.0e15) as i128;
+    let reach = cx.reach_nm(crate::pointer::CP_SNAP_PT);
     cx.page
         .tables
         .cps

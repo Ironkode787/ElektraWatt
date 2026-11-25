@@ -827,7 +827,7 @@ fn resolve_at(
             let a = sheet_of_surface(cx, panel, axis.point_at(0));
             let b = sheet_of_surface(cx, panel, axis.point_at(len));
             let d2 = super::segment_dist2(at, a, b);
-            let r = reach_sheet.floor().min(9.0e15) as i128;
+            let r = crate::pointer::reach_nm(reach_sheet);
             if d2 <= r * r && best.is_none_or(|(bd, _)| d2 < bd) {
                 best = Some((d2, i));
             }

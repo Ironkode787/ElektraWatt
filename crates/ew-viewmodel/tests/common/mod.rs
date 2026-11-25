@@ -7,7 +7,8 @@
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, mpsc};
 
-use ew_viewmodel::canvas::{CanvasModel, HOVER_SLOP_PT, pick, rect_centre};
+use ew_viewmodel::canvas::{CanvasModel, pick, rect_centre};
+use ew_viewmodel::pointer::HOVER_SLOP_PT;
 use ew_viewmodel::script;
 use ew_viewmodel::shell::{Dialog, FormDialog, Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::{Value, json};
