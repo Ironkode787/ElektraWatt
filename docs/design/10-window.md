@@ -83,13 +83,13 @@ view's own bar above the rack acts on it (`plc.module_replace`, `plc.module_remo
 other menus (Replace, Draw on a page and Move to page a list beside their entry, the part the module has checked),
 Delete empties the slot. *Move to page* puts a drawn module's or head's boxes on electrical pages on the
 schematic page chosen where they stand, with one `rep.move` (one undo step): the device, its channels, bindings and
-slot stay, and a wire between its pins and something that stays behind is refused in the move's words; a cut and its
+slot stay, and a wire between its pins and something that stays behind is kept as a pair of interruption points,
+which a preview lists before anything moves (doc 06 §3.4's cross-page move); a cut and its
 paste bring a module with a set slot, start, part use or integrated I/O back as itself, while a card without settings
 goes with its cut and its paste makes a new one (doc 06 §3.4, §3.6). Its entries read as moves ("To page 101 …", "To a new page") and
 leave out the page the module is drawn on; To a new page makes the page after the module's own in its section, its
 folio the one New page proposes after it, with that page's type, frame, structure and grid, and moves
-the boxes there in the same undo step (`rep.move_to_new_page`), the toast naming the page. Not built: such a wire kept as a pair of interruption points or
-dropped with a count in a preview (doc 06 §3.4's cross-page move). On a valve
+the boxes there in the same undo step (`rep.move_to_new_page`), the toast naming the page. On a valve
 position they speak of the valve (Replace valve, Empty the position), and a move or a drawing of its own, which a
 position does not take, is greyed with the reason; on a free place each says to take a part from the catalogue. They
 are no buttons of the PLC tab: with six more the tab folds at 1920 × 1080 in Dutch and in the long-text locale (doc

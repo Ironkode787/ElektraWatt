@@ -211,14 +211,29 @@ installed library's symbol by its key as well as by its address, before its firs
   the middle of its body (its graphics' bounding box, a black box's outline), not about its insertion point, so a
   turned cylinder does not land on its neighbour. Four quarter turns bring it back exactly; its wires and tubes
   follow its connection points.
-- **Cross-page move** (dragging a representation onto a page tab, or `rep.move` with a target page) keeps
-  identities and, because it is a move, connectivity (FR-CON-004): each connection whose other end stays behind is
-  replaced by an IP pair whose name is proposed from the potential ("24VDC-1" or the next free name of its series),
-  listed and editable in the preview. The user may instead drop those connections; the preview then lists them as
-  removed, so the connectivity change is explicit, never silent (FR-CON-043). **Cut and paste** is a move of the
-  devices and follows §3.6: the devices the cut left unplaced come back as themselves, and the wires the cut took to
-  outside the selection are not pasted. The command rejects a cross-page move that would leave a connection end
-  behind, and leaves page-less connections (bridges) untouched: the IP-pair replacement and the dropping are not built.
+- **Cross-page move** (Move to page… for a selection: the canvas menu of selected symbols and Edit ▸ Move to page…,
+  the other schematic pages and To a new page; a PLC card's Move to page; `rep.move` with a target page) keeps
+  identities and, because it is a move, connectivity (FR-CON-004): each wire whose other end stays behind is
+  kept as a **pair of interruption points**, and the window lists the pairs in a preview before anything changes
+  (FR-CON-043); Apply moves, one undo step. `rep.move` makes the pairs with `keep` (the two forms of the
+  interruption-point symbol and the library documents they need); without it a wire whose other end stays behind is
+  refused, the wire named.
+  - **The name** of a pair is the wire's potential's (its name, a fallback name such as `-K1:13` included; `IP` for
+    a wire the potentials do not know), the next free name of its series (`24VDC-1`, §3.5) where an interruption
+    point of the project, or another pair of the same move, has it already: the rule of a new interruption point.
+  - **The source point** stands on the page left, where the wire left it: on the free grid point of the wire's old
+    path nearest to its moved end (the moved pin's old place, unless a pin or a junction stands there), the wire
+    shortened to it. **The target point** stands on the new page at the moved pin, joined to it by a wire of length
+    zero that takes the old wire's kind and its values.
+  - **A wire with one junction:** the junction stays with the larger part. It stays where it is when at least as
+    many of its wires end at symbols that stay as at moved ones, and each wire from it to a moved pin becomes a pair
+    as above; else it moves to the new page with the moved symbols and the wires between them, and each wire from it
+    to a symbol that stays becomes a pair, the target point at the junction.
+  - **Refused**, in words and with nothing written: a wire whose junction is joined to another junction (two
+    junctions or more: move such a net by hand), and a wire whose old path has no free grid point left.
+  Page-less connections (bridges) stay as they are. **Cut and paste** is a move of the devices and follows §3.6: the
+  devices the cut left unplaced come back as themselves, and the wires the cut took to outside the selection are not
+  pasted.
 - **Structure follows the page** unless the device has an explicit slot; moving the only representation of a device
   to a page of another location asks whether to keep the old location as an explicit slot (FR-PRJ-019).
 - **Deleting a representation** leaves its function unplaced; deleting a device follows the delete policies and
