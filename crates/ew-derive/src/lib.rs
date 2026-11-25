@@ -129,7 +129,7 @@ pub use drawn_path::{
 pub use index::{
     BondIndex, BondVias, DefPoints, Index, IpFunctions, Link, PageIds, PagelessLinks, RailTerminals,
 };
-pub use ip::{IpInfoOf, IpNotes, IpPairing, IpPairingQ};
+pub use ip::{IpInfoOf, IpPairing, IpPairingQ};
 // Page items and structure boxes, derived.
 pub use items::{
     BINDABLE, CableMark, IpStructure, RepStructureBox, SYMBOL_BINDABLE, bound_text, box_caption, cable_mark,
@@ -173,7 +173,7 @@ pub use names::{
     potential_named, ranked_defs,
 };
 pub use nets::{CpRef, NetId, PageIpNets, PageLocalNets, ZeroVoltIps};
-pub use note::{DeriveNote, EW_CORE_018, NoteFact, NoteSeverity, SchemeIssue};
+pub use note::{DeriveNote, NoteFact, NoteSeverity, SchemeIssue};
 pub use numbering::{WireNumber, WireNumbers, orient_wire};
 pub use pages::{
     GeneratedPage, Origin, PageEntry, PageKey, PageOrder, PageOrderV, PageRef, PageRefStructure, PageTitle,

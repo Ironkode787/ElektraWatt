@@ -238,7 +238,7 @@ position map), N3 (a module pin, by `pin_of`) or `plc.bind_channel` (§3.3). The
 expand the part's pattern with one shared function, `ew_derive::expand_pattern`: every
 `{<expression in n>}` of §2.6 is expanded (`"X2:{n+1}"` prints `X2:1` for channel 0), and a pattern that does not
 expand (an unclosed `{`, a stray `}`, an expression that does not parse, one in `p`, an overflow) gives no
-designation and one derivation note per module, as it gives no pin and a notice in N3. The map language has no
+designation, as it gives no pin and a notice in N3. The map language has no
 subtraction, so `{n-1}` does not parse. The derivation finds a module's channels as N1 keys them, by (module, number) and not by their v5
 IDs: the channels-by-module index (below). Of two channels with one number the lower ID is the channel.
 
@@ -403,7 +403,7 @@ The valve part 571334 declares `solenoids = ["14"]` in its fluid section ([11](1
   `pin_of`, §2.4), where only `n` is allowed: `"X2:{n+1}"` is valid and `"X2:{n-1}"` is not. Every reader parses an
   expression with `ew_plcaddr::MapExpr`, and a designation pattern with the one expander built on it,
   `ew_derive::expand_pattern`; what a reader does with an invalid one is its rule
-  (no address, no designation with a derivation note, no pin with N3's notice).
+  (no address, no designation, no pin with N3's notice).
 - **Supply groups** type the card-supply CPs (FR-PLC-024) and say which channels they feed. EW-PLC-013 and EW-PLC-014
   read them (§3.10).
 - **The bus-port signal map** resolves per-core pins where a multi-line representation of the port exists. It

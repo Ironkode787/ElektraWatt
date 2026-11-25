@@ -13,7 +13,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use ew_derive::{
-    BomMode, BomRows, DeriveNote, DrawnPageOrder, GeneratedPage, Origin, PageOrder, PageOrderV, PageRef,
+    BomMode, BomRows, DrawnPageOrder, GeneratedPage, Origin, PageOrder, PageOrderV, PageRef,
     PageRefStructure, PageTitle, Q, RecordingTracker, ReportPagesProvider, TbValue, TitleBlockValues,
 };
 use ew_ids::Id;
@@ -374,18 +374,11 @@ impl ReportPagesProvider for ReadsTheToc {
 }
 
 #[test]
-fn a_row_source_that_reads_the_page_order_gets_a_cycle_note_not_a_panic() {
+fn a_row_source_that_reads_the_page_order_gets_no_panic() {
     let s = common::sample();
-    let mut q = Q::new(&s.world().model).with_report_pages(Arc::new(ReadsTheToc));
+    let q = Q::new(&s.world().model).with_report_pages(Arc::new(ReadsTheToc));
     let order = q.get::<PageOrder>(());
     assert!(order.labels().contains(&"901"));
-    let notes = q.diagnostics().notes();
-    assert!(
-        notes
-            .iter()
-            .any(|n| matches!(n, DeriveNote::QueryCycle { family, .. } if *family == "page_order")),
-        "{notes:?}"
-    );
 }
 
 #[test]

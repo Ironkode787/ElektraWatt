@@ -4,25 +4,11 @@
 //! Derivation notes: what a derivation could not do as the project asks and what it did instead
 //! (ADR-0003 "profiles are never silently replaced", doc 03 §5.1 defaults).
 //!
-//! Queries return values, not findings. Where a value rests on a fallback the user should know about, the
-//! query pushes a [`DeriveNote`] onto its [`Q`](crate::Q): an unknown pinned profile, a numbering scheme the
-//! command layer does not implement, the built-in default frame, a malformed provisional settings member, a
-//! dependency cycle in a model that violates the device inheritance invariant. The notes are request-scoped
-//! like the cache and kept as a set, so their order is the canonical order of [`DeriveNote`] whatever the
-//! evaluation order was. A caller reads them through [`Q::diagnostics`](crate::Q::diagnostics), which needs
-//! `&mut Q` and is therefore out of reach of a query body (a query must not depend on what other queries
-//! happened to evaluate).
-//!
-//! **Memo engine.** A note is a side output of the evaluation that pushed it. A cold `Q` re-evaluates and
-//! re-notes. A memoised family keeps its notes with its value as a [`NoteSet`]: the notes its execution pushed
-//! itself, and **by reference** the note sets of the memoised values it read. A read of a memoised value adds
-//! one reference to the reader's notes, never a copy, so a per-key reader of a global value does not hold
-//! copies of the global value's notes and a memo hit costs one reference whatever the number of notes. The
-//! flattened set is the same as if every note had been copied: same order, no duplicates.
+//! Queries return values, not findings. Where a value rests on a fallback a rule reports, the value holds its
+//! notes (`PhysicalWires::notes`, `RailTerminal::notes`, `IpPairing::notes` …), each a [`DeriveNote`] in the
+//! canonical order of the type whatever the evaluation order was; the checks read them from the value.
 
-use std::collections::BTreeSet;
 use std::fmt;
-use std::sync::Arc;
 
 /// How serious a note is.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -89,26 +75,6 @@ pub enum NoteFact {
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 #[non_exhaustive]
 pub enum DeriveNote {
-    /// The project pins a derivation profile this build does not ship (ADR-0003). Display uses the newest
-    /// shipped profile; profile-dependent commands are refused. Integrity code
-    /// [`EW_CORE_018`].
-    UnknownProfile {
-        /// The pinned key.
-        requested: String,
-        /// The profile used for display.
-        used: String,
-    },
-    /// A numbering scheme was not applied; the pinned profile's default scheme formats the tag instead
-    /// (until every scheme is numbered).
-    SchemeNotApplied {
-        /// The scheme key.
-        scheme: String,
-        /// Why.
-        issue: SchemeIssue,
-    },
-    /// No frame is configured for a page: the built-in default geometry of the QET-compatible A4 frame
-    /// (doc 03 §5.1) gives its cells (one note however many pages used it).
-    DefaultFrame,
     /// A provisional settings member (`ProjectSettings.extra[...]`, `Project.extra[...]`) is malformed;
     /// the default applies.
     MalformedShim {
@@ -156,18 +122,6 @@ pub enum DeriveNote {
         /// What happened and which fallback applied, in English.
         detail: String,
     },
-    /// A cross-reference could not be derived as the model asks: a target without an anchor
-    /// cell (`EW-CORE-053`), an auxiliary whose main function is unplaced (`EW-CORE-053`), a device with two
-    /// main functions (`EW-INV-002`). The text uses the documented fallback. Severity: `Error` for
-    /// `EW-INV-002`, `Warning` otherwise.
-    Xref {
-        /// The finding or integrity code.
-        code: &'static str,
-        /// The subject: the record IDs concerned.
-        subject: String,
-        /// What happened and which fallback applied, in English.
-        detail: String,
-    },
     /// A wire marker lists a connection that does not exist or is not drawn on the marker's page (a file of
     /// an older build, which kept page items verbatim): a load finding, not a refusal (ADR-0009 amendment
     /// 8). The derivation and the drawing ignore the entry; the next edit of the marker may write a clean list.
@@ -179,31 +133,14 @@ pub enum DeriveNote {
         /// What is wrong with it, in English (`does not exist`, `is not drawn on the marker's page`).
         detail: &'static str,
     },
-    /// The designation pattern of a module's part (`ChannelSpec.designation`, doc 10 §2.4, §2.6) does not expand:
-    /// the module's channels get no automatic designation, one note per module.
-    DesignationPattern {
-        /// The module device, as text.
-        module: String,
-        /// The pattern.
-        pattern: String,
-        /// Why it does not expand, in English.
-        detail: String,
-    },
 }
 
-/// The integrity code of an unknown pinned derivation profile (doc 05 §6.3, doc 15 §4).
-pub const EW_CORE_018: &str = "EW-CORE-018";
-
-/// The integrity code of a device with two main functions (EW-INV-002).
-pub(crate) const EW_INV_002: &str = "EW-INV-002";
-
 impl DeriveNote {
-    /// The finding code a front-end reports the note under, where the catalogue assigns one: `EW-CORE-018`
-    /// for an unknown profile. The other notes have no catalogue code yet.
+    /// The finding code a front-end reports the note under, where the catalogue assigns one: a connectivity
+    /// note's. The other notes have no catalogue code yet.
     pub fn code(&self) -> Option<&'static str> {
         match self {
-            DeriveNote::UnknownProfile { .. } => Some(EW_CORE_018),
-            DeriveNote::Connectivity { code, .. } | DeriveNote::Xref { code, .. } => Some(code),
+            DeriveNote::Connectivity { code, .. } => Some(code),
             _ => None,
         }
     }
@@ -213,7 +150,7 @@ impl DeriveNote {
     /// `EW-CORE-051`) and a `Warning` for every other code.
     pub fn severity(&self) -> NoteSeverity {
         match self {
-            DeriveNote::UnknownProfile { .. } | DeriveNote::QueryCycle { .. } => NoteSeverity::Error,
+            DeriveNote::QueryCycle { .. } => NoteSeverity::Error,
             DeriveNote::Connectivity { code, .. } => {
                 if matches!(*code, "EW-POT-001" | "EW-POT-014" | "EW-CORE-051") {
                     NoteSeverity::Error
@@ -221,19 +158,10 @@ impl DeriveNote {
                     NoteSeverity::Warning
                 }
             }
-            DeriveNote::Xref { code, .. } => {
-                if *code == EW_INV_002 {
-                    NoteSeverity::Error
-                } else {
-                    NoteSeverity::Warning
-                }
-            }
-            DeriveNote::SchemeNotApplied { .. }
-            | DeriveNote::MalformedShim { .. }
+            DeriveNote::MalformedShim { .. }
             | DeriveNote::ProfileOverlap { .. }
-            | DeriveNote::DesignationPattern { .. }
             | DeriveNote::StaleMarkerEntry { .. } => NoteSeverity::Warning,
-            DeriveNote::DefaultFrame | DeriveNote::DefaultWireProfile { .. } => NoteSeverity::Info,
+            DeriveNote::DefaultWireProfile { .. } => NoteSeverity::Info,
         }
     }
 }
@@ -241,21 +169,6 @@ impl DeriveNote {
 impl fmt::Display for DeriveNote {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DeriveNote::UnknownProfile { requested, used } => write!(
-                f,
-                "the project pins derivation profile {requested}, which this version does not ship; \
-                 pages are displayed with profile {used} and may differ from the released output"
-            ),
-            DeriveNote::SchemeNotApplied { scheme, issue } => {
-                let why = issue.describe();
-                write!(
-                    f,
-                    "numbering scheme {scheme} is not applied ({why}); tags use the profile's default scheme"
-                )
-            }
-            DeriveNote::DefaultFrame => {
-                f.write_str("no frame is configured; cells use the default A4 frame geometry")
-            }
             DeriveNote::MalformedShim { member, detail } => {
                 write!(f, "{member} is malformed ({detail}); the default applies")
             }
@@ -272,15 +185,6 @@ impl fmt::Display for DeriveNote {
                 f,
                 "the project has no {member}; wire properties use the built-in defaults of the derivation profile"
             ),
-            DeriveNote::DesignationPattern {
-                module,
-                pattern,
-                detail,
-            } => write!(
-                f,
-                "the channel designation pattern `{pattern}` of the part of module {module} does not expand ({detail}); \
-                 its channels have no automatic designation"
-            ),
             DeriveNote::StaleMarkerEntry {
                 marker,
                 connection,
@@ -295,143 +199,8 @@ impl fmt::Display for DeriveNote {
                 subject,
                 detail,
                 ..
-            }
-            | DeriveNote::Xref {
-                code,
-                subject,
-                detail,
             } => write!(f, "{code} {subject}: {detail}"),
         }
-    }
-}
-
-/// The notes of a memoised value: its execution's own notes and the shared note sets of the memoised values
-/// it read (see the module documentation). Immutable once built; shared as `Arc<NoteSet>`.
-#[derive(Debug)]
-pub(crate) struct NoteSet {
-    /// The notes the execution pushed itself, in canonical order, each once.
-    own: Box<[DeriveNote]>,
-    /// The note sets of the memoised values it read, in first-read order, each allocation once.
-    nested: Box<[Arc<NoteSet>]>,
-}
-
-/// The identity of a shared note set (its allocation), to keep each set once in a reader's list.
-fn identity(set: &Arc<NoteSet>) -> usize {
-    Arc::as_ptr(set).cast::<()>().addr()
-}
-
-impl NoteSet {
-    /// The notes of one execution: `None` when there are none; the one nested set itself when the
-    /// execution pushed no note of its own and read one value with notes (no new allocation); a new set
-    /// otherwise.
-    pub(crate) fn of(own: BTreeSet<DeriveNote>, mut nested: Vec<Arc<NoteSet>>) -> Option<Arc<NoteSet>> {
-        if own.is_empty() {
-            match nested.len() {
-                0 => return None,
-                1 => return nested.pop(),
-                _ => {}
-            }
-        }
-        let set = NoteSet {
-            own: own.into_iter().collect(),
-            nested: nested.into(),
-        };
-        Some(Arc::new(set))
-    }
-
-    /// A set of plain notes (a cold evaluation's).
-    pub(crate) fn flat(notes: impl IntoIterator<Item = DeriveNote>) -> Option<Arc<NoteSet>> {
-        NoteSet::of(notes.into_iter().collect(), Vec::new())
-    }
-
-    /// Adds every note reachable from this set to `out`; `seen` holds the sets already visited.
-    pub(crate) fn collect(self: &Arc<NoteSet>, out: &mut BTreeSet<DeriveNote>, seen: &mut BTreeSet<usize>) {
-        if !seen.insert(identity(self)) {
-            return;
-        }
-        out.extend(self.own.iter().cloned());
-        for n in &self.nested {
-            n.collect(out, seen);
-        }
-    }
-
-    /// Every note reachable from this set, each once, in canonical order.
-    pub(crate) fn notes(self: &Arc<NoteSet>) -> BTreeSet<DeriveNote> {
-        let mut out = BTreeSet::new();
-        self.collect(&mut out, &mut BTreeSet::new());
-        out
-    }
-}
-
-/// Whether two optional note sets hold the same notes: the same allocation, or the same flattened notes.
-pub(crate) fn same_notes(a: Option<&Arc<NoteSet>>, b: Option<&Arc<NoteSet>>) -> bool {
-    match (a, b) {
-        (None, None) => true,
-        (Some(a), Some(b)) => {
-            Arc::ptr_eq(a, b)
-                || (a.own == b.own
-                    && a.nested.len() == b.nested.len()
-                    && a.nested
-                        .iter()
-                        .zip(b.nested.iter())
-                        .all(|(x, y)| Arc::ptr_eq(x, y)))
-                || a.notes() == b.notes()
-        }
-        // `NoteSet::of` never builds a set without a note.
-        (Some(_), None) | (None, Some(_)) => false,
-    }
-}
-
-/// The notes a request has collected so far: its own and the shared sets of the memoised values it read
-/// (each set once). One frame per request and per memo execution in progress.
-#[derive(Default)]
-pub(crate) struct NoteFrame {
-    own: BTreeSet<DeriveNote>,
-    nested: Vec<Arc<NoteSet>>,
-    seen: BTreeSet<usize>,
-}
-
-impl NoteFrame {
-    /// A frame holding `own`.
-    pub(crate) fn with(own: BTreeSet<DeriveNote>) -> NoteFrame {
-        NoteFrame {
-            own,
-            ..NoteFrame::default()
-        }
-    }
-
-    /// Records a note pushed in this frame.
-    pub(crate) fn insert(&mut self, note: DeriveNote) {
-        self.own.insert(note);
-    }
-
-    /// Records a read of a memoised value's notes: one reference, once per set.
-    pub(crate) fn replay(&mut self, set: &Arc<NoteSet>) {
-        if self.seen.insert(identity(set)) {
-            self.nested.push(Arc::clone(set));
-        }
-    }
-
-    /// Keeps only the own notes that satisfy `keep` and drops the replayed sets.
-    pub(crate) fn retain_own(&mut self, keep: impl FnMut(&DeriveNote) -> bool) {
-        self.own.retain(keep);
-        self.nested.clear();
-        self.seen.clear();
-    }
-
-    /// Every note of the frame, each once, in canonical order.
-    pub(crate) fn notes(&self) -> BTreeSet<DeriveNote> {
-        let mut out = self.own.clone();
-        let mut seen = BTreeSet::new();
-        for n in &self.nested {
-            n.collect(&mut out, &mut seen);
-        }
-        out
-    }
-
-    /// The frame as a memoised value's note set.
-    pub(crate) fn into_set(self) -> Option<Arc<NoteSet>> {
-        NoteSet::of(self.own, self.nested)
     }
 }
 

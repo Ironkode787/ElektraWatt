@@ -259,12 +259,8 @@ fn texts_track_the_driven_process_tag_and_keep_the_manual_function_text() {
 fn the_designation_pattern_expands_every_placeholder_of_the_language() {
     let designations = |pattern: &str| -> Vec<Option<String>> {
         let m = fixture_with_designation(pattern).build();
-        let mut q = Q::new(&m);
+        let q = Q::new(&m);
         let texts = q.get::<ChannelTexts>(id(M1));
-        assert!(
-            q.diagnostics().notes().is_empty(),
-            "`{pattern}`: no note for a good pattern"
-        );
         texts.iter().map(|(_, t)| t.designation.clone()).collect()
     };
     let some = |v: &[&str]| -> Vec<Option<String>> { v.iter().map(|s| Some((*s).to_owned())).collect() };
@@ -281,17 +277,17 @@ fn the_designation_pattern_expands_every_placeholder_of_the_language() {
     assert_eq!(designations("COM")[5], Some("COM".to_owned()));
 }
 
-/// A pattern that does not expand gives no automatic designation and one note, never a panic; a
-/// manual designation is kept whatever the pattern.
+/// A pattern that does not expand gives no automatic designation, never a panic; a manual designation is kept
+/// whatever the pattern.
 #[test]
-fn a_designation_pattern_that_does_not_expand_gives_no_designation_and_a_note() {
+fn a_designation_pattern_that_does_not_expand_gives_no_designation() {
     for pattern in ["X{n", "n}", "{n-1}", "{p}", "{}", "{x}"] {
         let mut fx = fixture_with_designation(pattern);
         // channel 2 of M1 has a manual designation, which the pattern does not touch
         let manual = v5::plc_channel_id::<Device, ()>(id(M1), 2).as_uuid().as_u128();
         fx.record(manual)["designation"] = json!("MANUAL");
         let m = fx.build();
-        let mut q = Q::new(&m);
+        let q = Q::new(&m);
         let texts = q.get::<ChannelTexts>(id(M1));
         for (_, t) in texts.iter() {
             let manual = t.designation.as_deref() == Some("MANUAL");
@@ -302,14 +298,6 @@ fn a_designation_pattern_that_does_not_expand_gives_no_designation_and_a_note() 
             );
         }
         assert_eq!(texts[2].1.designation.as_deref(), Some("MANUAL"));
-        let notes = q.diagnostics().notes();
-        assert_eq!(notes.len(), 1, "`{pattern}`: one note for the module: {notes:?}");
-        assert!(notes[0].to_string().contains(pattern), "{}", notes[0]);
-        assert!(
-            matches!(notes[0], ew_derive::DeriveNote::DesignationPattern { .. }),
-            "its own note kind: {:?}",
-            notes[0]
-        );
     }
 }
 

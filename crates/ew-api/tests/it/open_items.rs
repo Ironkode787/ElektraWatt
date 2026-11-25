@@ -23,7 +23,7 @@ use ew_api::output::{RowExport, page_layer, row_export};
 use ew_api::{
     AnyCommand, CmdError, NewProjectKind, Origin, ProjectTemplate, Session, SessionOptions, Submit,
 };
-use ew_derive::{DeriveNote, PageOrder, PageRef, Q};
+use ew_derive::{PageOrder, PageRef, Q};
 use ew_dl::Layer;
 use ew_ids::Id;
 use ew_reports::csv::row_texts;
@@ -304,22 +304,10 @@ fn pages_of(q: &Q, folio: &str) -> Vec<(String, PageRef)> {
         .collect()
 }
 
-/// The query-cycle notes of a derivation of the page order over the session's snapshot.
-fn cycle_notes(s: &Session) -> Vec<DeriveNote> {
-    let mut q = s.query();
-    let _ = q.get::<PageOrder>(());
-    q.diagnostics()
-        .notes()
-        .into_iter()
-        .filter(|n| matches!(n, DeriveNote::QueryCycle { .. }))
-        .collect()
-}
-
 /// Ruling 5 for one snapshot: no cycle note, the block's rows derived and paginated without a placeholder page, no
 /// overflow (the sample's descriptions fit the house table), and no EW-CORE-083 finding naming a table rule in the
 /// release run.
 fn assert_paginates(s: &Session, folio: &str) -> Vec<Vec<String>> {
-    assert_eq!(cycle_notes(s), Vec::<DeriveNote>::new());
     let q = s.query();
     let block = block_at(&q, folio.parse().unwrap());
     let rows = q.get::<BlockRows>(block);
@@ -503,7 +491,6 @@ fn no_open_items_print_the_empty_page() {
         json!({"source": {"kind": "open_items"}, "form": nogrid["id"], "form_copies": [nogrid, title_block],
                "first_folio": 914, "title": "Open Items {n}", "empty": {"one_page": "No entries"}}),
     );
-    assert_eq!(cycle_notes(&s), Vec::<DeriveNote>::new());
     let q = s.query();
     let pages = pages_of(&q, "914");
     assert_eq!(pages.len(), 1, "{pages:?}");

@@ -335,7 +335,7 @@ derived:
    verbatim. `ew-derive` applies only the
    schemes the command layer's numbering implements: a project or named scheme whose `counter_scope` is not
    `"page"`, or whose format has no `{page}` token, is not applied; the device keeps the profile's default scheme
-   and a derivation note reports it.
+   (`project.settings.set` refuses such a scheme).
 4. **Main representation:** the smallest-ID representation of the smallest-ID main function, where a `ContactImage`
    representation never counts, in the command layer's numbering and `ew-derive` alike, so that tags stay unique
    wherever the counters are (`ew-commands`' agreement tests pin the two rules equal). The lowest (page order, row,

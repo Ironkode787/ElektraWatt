@@ -296,8 +296,7 @@ pub fn run_with(q: &Q, scheme: &Scheme, mode: CheckMode, evidence: Evidence) -> 
 ///
 /// # Errors
 ///
-/// The [`Cycle`] when a rule's memo [`CheckOf`] is already evaluating for a scope: the caller records it
-/// ([`Q::note_cycle`]) and shows no findings.
+/// The [`Cycle`] when a rule's memo [`CheckOf`] is already evaluating for a scope: the caller shows no findings.
 pub fn run_table_rules(
     q: &Q,
     scheme: &Scheme,

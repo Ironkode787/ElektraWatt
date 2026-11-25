@@ -475,7 +475,7 @@ pub struct IpNet {
 }
 
 /// `page_ip_nets(page)`: the nets of the page that hold an interruption point, joined without the connections that end
-/// on an earth point, in the order of their first point: what [`ZeroVoltIps`] reads of a page. Memo, note-free.
+/// on an earth point, in the order of their first point: what [`ZeroVoltIps`] reads of a page. Memo.
 #[derive(Debug)]
 pub struct PageIpNets;
 
@@ -520,7 +520,7 @@ impl Query for PageIpNets {
 /// of a net of [`PageIpNets`] that holds a 0 V point, and every point their pairs reach from there, net by net and page
 /// by page. A point that carries a 0 V is a 0 V point of its page's nets, so a wire from it to an earth point is an
 /// earth wire wherever the 0 V was named. The pairs are the pairing's ([`IpPairingQ`](crate::ip::IpPairingQ)), which
-/// reads no net. Memo, note-free.
+/// reads no net. Memo.
 #[derive(Debug)]
 pub struct ZeroVoltIps;
 

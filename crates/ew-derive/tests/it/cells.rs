@@ -8,7 +8,7 @@
 use crate::common;
 
 use common::{Fx, id, uid};
-use ew_derive::{CellOf, DeriveNote, Q, RepAnchorCell, default_frame_grid, frame_grid};
+use ew_derive::{CellOf, Q, RepAnchorCell, default_frame_grid, frame_grid};
 use ew_model::Model;
 use ew_schema::{FrameGrid, Page, Representation};
 use ew_units::{Grid, Nm, Pt2};
@@ -211,19 +211,16 @@ fn outside_the_drawing_area_and_without_a_frame() {
     // Extreme coordinates neither panic nor answer.
     assert_eq!(cell_str(&m, PAGE, pt(i64::MIN, i64::MAX)), None);
     assert_eq!(cell_str(&m, PAGE, pt(i64::MAX, i64::MIN)), None);
-    // A page without any frame uses the built-in default frame (the QET A4 grid) and says so; a page that
-    // does not exist has no cells and no note.
-    let mut q = Q::new(&m);
-    assert!(q.diagnostics().notes().is_empty());
+    // A page without any frame uses the built-in default frame (the QET A4 grid); a page that does not exist
+    // has no cells.
+    let q = Q::new(&m);
     let cell = q.get::<CellOf>((id::<Page>(0x999), qet_at(10, 10)));
     assert_eq!(*cell, None);
-    assert!(q.diagnostics().notes().is_empty());
     let cell = q.get::<CellOf>((id::<Page>(0x102), qet_at(10, 10)));
     assert_eq!(
         cell.as_ref().as_ref().map(ToString::to_string).as_deref(),
         Some("B1")
     );
-    assert_eq!(q.diagnostics().notes(), vec![DeriveNote::DefaultFrame]);
 }
 
 #[test]
@@ -265,25 +262,17 @@ fn frame_defaults_from_the_project_settings() {
     );
 }
 
-/// The notes of a `Q` over `m` after asking for the cell of the page at `p`, and that cell.
-fn cell_and_notes(m: &Model, page: u128, p: Pt2) -> (Option<String>, Vec<DeriveNote>) {
-    let mut q = Q::new(m);
+/// The cell of the page at `p` in a `Q` over `m`.
+fn cell_at(m: &Model, page: u128, p: Pt2) -> Option<String> {
+    let q = Q::new(m);
     let cell = q.get::<CellOf>((id::<Page>(page), p));
-    let cell = (*cell).as_ref().map(ToString::to_string);
-    (cell, q.diagnostics().notes())
-}
-
-fn shim_notes(notes: &[DeriveNote]) -> Vec<&DeriveNote> {
-    notes
-        .iter()
-        .filter(|n| matches!(n, DeriveNote::MalformedShim { member, .. } if member == "settings.frames"))
-        .collect()
+    (*cell).as_ref().map(ToString::to_string)
 }
 
 #[test]
 fn malformed_frame_settings_fall_back_to_the_default() {
     // Every malformed `frames` member leaves the QET grid (the built-in default or the valid `default`),
-    // so the cell of a point in the last column and row is H16, and the malformed member is noted.
+    // so the cell of a point in the last column and row is H16.
     for frames in [
         json!("x"),
         json!([1]),
@@ -298,11 +287,10 @@ fn malformed_frame_settings_fall_back_to_the_default() {
         fx.project_set("settings", json!({"frames": frames}));
         grid_page(&mut fx, PAGE, 101);
         let m = fx.build();
-        let (cell, notes) = cell_and_notes(&m, PAGE, qet_at(101, 62));
+        let cell = cell_at(&m, PAGE, qet_at(101, 62));
         assert_eq!(cell.as_deref(), Some("H16"), "{frames}");
-        assert_eq!(shim_notes(&notes).len(), 1, "{frames}: {notes:?}");
     }
-    // An entry of another page type that is malformed does not hide the default, but is noted.
+    // An entry of another page type that is malformed does not hide the default.
     let mut fx = fixture();
     fx.project_set(
         "settings",
@@ -310,10 +298,8 @@ fn malformed_frame_settings_fall_back_to_the_default() {
     );
     grid_page(&mut fx, PAGE, 101);
     let m = fx.build();
-    let (cell, notes) = cell_and_notes(&m, PAGE, qet_at(101, 62));
+    let cell = cell_at(&m, PAGE, qet_at(101, 62));
     assert_eq!(cell.as_deref(), Some("H16"));
-    assert_eq!(shim_notes(&notes).len(), 2, "{notes:?}");
-    assert!(!notes.contains(&DeriveNote::DefaultFrame));
     // A malformed matching entry falls through to the `default`, not to the built-in frame: here a default
     // form with a different grid (3 columns by 2 rows of 10 mm, no bands) decides.
     let mut fx = fixture();
@@ -330,10 +316,8 @@ fn malformed_frame_settings_fall_back_to_the_default() {
     );
     fx.page(PAGE, 101, None, "multi_line", &[], "P");
     let m = fx.build();
-    let (cell, notes) = cell_and_notes(&m, PAGE, pt(25_000_000, 15_000_000));
+    let cell = cell_at(&m, PAGE, pt(25_000_000, 15_000_000));
     assert_eq!(cell.as_deref(), Some("B2"));
-    assert_eq!(shim_notes(&notes).len(), 1, "{notes:?}");
-    assert!(!notes.contains(&DeriveNote::DefaultFrame));
 }
 
 /// The grid of the shipped QET frame file.
@@ -359,14 +343,12 @@ fn default_frame_has_no_grid_on_title_toc_and_divider_pages() {
     }
     let m = fx.build();
     for n in [0x201, 0x202, 0x203] {
-        let mut q = Q::new(&m);
+        let q = Q::new(&m);
         assert_eq!(frame_grid(&q, id::<Page>(n)), None);
         assert_eq!(cell_str(&m, n, qet_at(10, 10)), None);
-        assert!(q.diagnostics().notes().is_empty());
     }
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     assert_eq!(frame_grid(&q, id::<Page>(0x204)), Some(default_frame_grid()));
-    assert_eq!(q.diagnostics().notes(), vec![DeriveNote::DefaultFrame]);
     assert_eq!(cell_str(&m, 0x204, qet_at(10, 10)).as_deref(), Some("B1"));
 }
 
@@ -384,9 +366,8 @@ fn default_frame_matches_the_shipped_qet_frame() {
     let mut fx = Fx::new();
     grid_page(&mut fx, PAGE, 101);
     let m = fx.build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     assert_eq!(frame_grid(&q, id::<Page>(PAGE)), Some(default));
-    assert_eq!(q.diagnostics().notes(), vec![DeriveNote::DefaultFrame]);
     assert_eq!(cell_str(&m, PAGE, qet_at(101, 62)).as_deref(), Some("H16"));
 }
 
@@ -402,12 +383,8 @@ fn form_without_grid_has_no_cells_and_no_default() {
     fx.record(0x101)["form"] = json!(uid(0x600));
     fx.record(0x101)["grid"] = json!({"num": 7_937_500, "den": 3});
     let m = fx.build();
-    let (cell, notes) = cell_and_notes(&m, 0x101, qet_at(101, 62));
+    let cell = cell_at(&m, 0x101, qet_at(101, 62));
     assert_eq!(cell, None);
-    assert!(
-        notes.is_empty(),
-        "something is configured: no default ({notes:?})"
-    );
     // A `frames` shim that names a form whose copy is missing from the project (Page.form cannot: EW-INV-001): the
     // rule falls through to the next, here the built-in frame (as in the page output).
     let mut fx = fixture();
@@ -417,9 +394,8 @@ fn form_without_grid_has_no_cells_and_no_default() {
     );
     grid_page(&mut fx, PAGE, 101);
     let m = fx.build();
-    let (cell, notes) = cell_and_notes(&m, PAGE, qet_at(101, 62));
+    let cell = cell_at(&m, PAGE, qet_at(101, 62));
     assert_eq!(cell.as_deref(), Some("H16"));
-    assert_eq!(notes, vec![DeriveNote::DefaultFrame]);
     // The same through the `frames` shim with a form without a grid.
     let mut fx = fixture();
     fx.lib_item(
@@ -430,9 +406,8 @@ fn form_without_grid_has_no_cells_and_no_default() {
     fx.project_set("settings", json!({"frames": {"default": uid(0x600)}}));
     fx.page(PAGE, 101, None, "multi_line", &[], "P");
     let m = fx.build();
-    let (cell, notes) = cell_and_notes(&m, PAGE, qet_at(101, 62));
+    let cell = cell_at(&m, PAGE, qet_at(101, 62));
     assert_eq!(cell, None);
-    assert!(notes.is_empty(), "{notes:?}");
 }
 
 #[test]

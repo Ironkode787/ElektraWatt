@@ -54,7 +54,6 @@ use ew_schema::{
 
 use crate::Q;
 use crate::channel_index::{ChannelsByCp, ModuleChannelIds};
-use crate::note::DeriveNote;
 use crate::pattern::{PatternError, expand_pattern};
 use crate::query::{Policy, Query};
 
@@ -2022,8 +2021,7 @@ impl Query for ChannelTexts {
                 .as_ref()
                 .map(|t| t.product.clone())
         };
-        // a pattern that does not expand gives no automatic designation, with one note per module
-        let mut noted = false;
+        // a pattern that does not expand gives no automatic designation
         let out = module_channels(q, *key)
             .iter()
             .map(|c| {
@@ -2031,16 +2029,7 @@ impl Query for ChannelTexts {
                     let (pattern, n) = pattern_of(c.number)?;
                     match expand_pattern(&pattern, u32::from(n)) {
                         Ok(text) => (!text.is_empty()).then_some(text),
-                        Err(e) => {
-                            if !std::mem::replace(&mut noted, true) {
-                                q.note(DeriveNote::DesignationPattern {
-                                    module: key.to_string(),
-                                    pattern,
-                                    detail: e.to_string(),
-                                });
-                            }
-                            None
-                        }
+                        Err(_) => None,
                     }
                 });
                 let device = targets.iter().find(|t| t.channel == c.id).and_then(|t| t.device);

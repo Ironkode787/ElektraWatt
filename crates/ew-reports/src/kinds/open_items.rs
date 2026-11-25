@@ -62,7 +62,7 @@ impl ReportKindDef for OpenItems {
             Err(cycle) => {
                 return RowSet {
                     columns,
-                    ..cycle_rows(q, cycle)
+                    ..cycle_rows(&cycle)
                 };
             }
         };

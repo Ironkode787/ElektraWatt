@@ -359,13 +359,11 @@ fn frames_set_stores_the_frame_defaults_in_page_type_order_and_undoes() {
             {"form": form, "page_type": "title_page"},
         ]}))
     );
-    // The derivation reads the member as written: no malformed-shim note.
-    let mut q = ew_derive::Q::new(e.model());
+    // The derivation reads the member as written.
+    let q = ew_derive::Q::new(e.model());
     let frames = q.get::<ew_derive::FrameSettings>(());
     assert_eq!(frames.default, Some(FORM));
     assert_eq!(frames.per_page_type.len(), 2);
-    let notes = q.diagnostics().notes();
-    assert!(notes.is_empty(), "{notes:?}");
     // A default alone still writes the (empty) entry list, a required member of doc 03 §5.1.
     commit(&mut e, &member("frames", json!({"default": form})));
     assert_eq!(

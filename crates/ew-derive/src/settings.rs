@@ -86,14 +86,14 @@ impl Member {
 }
 
 /// Checks a value for a settings member with the parser its derivations read it with, so that a command
-/// can refuse what the derivation would only note: `Err` carries the detail of the `MalformedShim` note
-/// (or, for `ip_pairing`, the record type's error) that the value would cause.
+/// can refuse what the derivation would pass over with its default: `Err` carries what is wrong (or, for
+/// `ip_pairing`, the record type's error).
 ///
 /// Checked:
 /// - `numbering` ([`crate::NumberingSettings`]): `default` must name one of `schemes` (otherwise the
 ///   profile's scheme applies silently); every format must use only the known tokens
 ///   (an unknown one prints into tags); every scheme must be one that `device_tag` applies (the
-///   `SchemeNotApplied` rule: counter scope `"page"` and formats with `{page}`,
+///   rule of [`scheme_issue`](crate::tag): counter scope `"page"` and formats with `{page}`,
 ///   `{letter}` and `{counter}`);
 /// - `xref_format`: the `XrefFormat` shape, its `structure` and `same_page` values, and only known tokens in
 ///   `ip`, `aux_to_main` and `main_to_aux`;

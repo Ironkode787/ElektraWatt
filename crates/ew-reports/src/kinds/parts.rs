@@ -61,7 +61,7 @@ impl ReportKindDef for PartsSummary {
     }
 
     fn rows(&self, q: &Q, block: &ReportBlock) -> RowSet {
-        let assembly = kind_params(q, block).choice(MODE) == "assembly";
+        let assembly = kind_params(block).choice(MODE) == "assembly";
         self.rows_in_mode(
             q,
             if assembly {

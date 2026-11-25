@@ -5,7 +5,7 @@
 #![allow(clippy::disallowed_methods)]
 
 //! Cross-references (doc 06 §2.6-§2.8, FR-XRF-001 ... FR-XRF-025): relation, text, links and the
-//! notes, on small models built with `Fx`. Every page uses the built-in default frame (17 columns of
+//! interruption points' pairing notes, on small models built with `Fx`. Every page uses the built-in default frame (17 columns of
 //! 15.875 mm after a 5.29 mm header band, rows A-H); `at(column, row)` gives a point inside a cell and
 //! `cell(column, row)` the cell's label, so the expected texts are written from the placed cells.
 //!
@@ -16,7 +16,7 @@
 //! - `scope_location_separates_names`
 //! - `external_point_prints_location_and_device`
 //! - `target_without_anchor_cell_prints_question_marks`
-//! - `device_with_two_main_functions_is_noted_on_a_raw_model`
+//! - `device_with_two_main_functions_refers_as_an_auxiliary_on_a_raw_model`
 //! - `aux_inside_its_own_black_box_prints_nothing`
 //! - `same_page_zone_only`
 //! - `structure_prefix_when_different`
@@ -30,7 +30,7 @@
 //! - `empty_formats_print_nothing`
 //! - `star_formats_only_the_shown_items`
 //! - `page_index_counts_dividers_but_not_continuations`
-//! - `dangling_external_ref_prints_nothing_and_is_noted_on_a_raw_model`
+//! - `dangling_external_ref_prints_nothing_on_a_raw_model`
 //! - `the_model_refuses_dangling_references_and_a_second_main_function_at_load`
 //! - `hostile_shapes_on_raw_models_print_nothing`
 //! - `same_function_reps_refer_to_the_main_rep`
@@ -191,25 +191,10 @@ fn shown(t: &XrefText) -> Vec<(String, Id<Representation>)> {
         .collect()
 }
 
-fn xref_notes(q: &mut Q, code: &str) -> Vec<(String, String)> {
-    q.diagnostics()
-        .notes()
-        .into_iter()
-        .filter_map(|n| match n {
-            DeriveNote::Xref {
-                code: c,
-                subject,
-                detail,
-            } if c == code => Some((subject, detail)),
-            _ => None,
-        })
-        .collect()
-}
-
-fn core_051(q: &mut Q) -> usize {
-    q.diagnostics()
-        .notes()
-        .into_iter()
+fn core_051(q: &Q) -> usize {
+    q.get::<ew_derive::IpPairingQ>(())
+        .notes
+        .iter()
         .filter(|n| {
             matches!(
                 n,
@@ -220,17 +205,6 @@ fn core_051(q: &mut Q) -> usize {
             )
         })
         .count()
-}
-
-fn malformed(q: &mut Q) -> Vec<String> {
-    q.diagnostics()
-        .notes()
-        .into_iter()
-        .filter_map(|n| match n {
-            DeriveNote::MalformedShim { member, detail } if member == "settings.xref_format" => Some(detail),
-            _ => None,
-        })
-        .collect()
 }
 
 /// The model of `fx`, or the error that refuses the records (`Fx::build` without the panic).
@@ -280,14 +254,14 @@ fn unpaired_ip_prints_nothing_and_is_noted() {
     let mut fx = base();
     ip(&mut fx, 0x1101, pg(1), "X", "source", (2, 1));
     let m = fx.build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let rel = q.get::<XrefRelationOf>(rid(0x1101));
     assert_eq!(rel.kind, XrefKind::None);
     assert!(rel.targets.is_empty());
     let t = q.get::<XrefTextOf>(rid(0x1101));
     assert_eq!(t.text, "");
     assert!(t.links.is_empty());
-    assert_eq!(core_051(&mut q), 1, "{:?}", q.diagnostics().notes());
+    assert_eq!(core_051(&q), 1);
 }
 
 /// The star of the sort-order tests: a source on page 1 at B1 and five targets on scrambled pages.
@@ -388,7 +362,7 @@ fn chain_mode_odd_count_leaves_the_last_unpaired() {
     ip(&mut fx, 0x1102, pg(1), "C", "undirected", (5, 0));
     ip(&mut fx, 0x1103, pg(2), "C", "undirected", (2, 2));
     let m = fx.build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     assert_eq!(text(&q, rep_of(0x1101)), format!("1-{}", cell(5, 0)));
     assert_eq!(text(&q, rep_of(0x1102)), format!("1-{}", cell(0, 0)));
     assert_eq!(text(&q, rep_of(0x1103)), "");
@@ -402,7 +376,7 @@ fn chain_mode_odd_count_leaves_the_last_unpaired() {
     ));
     assert_eq!(rel.targets.len(), 1);
     assert_eq!(q.get::<XrefRelationOf>(rid(0x1103)).kind, XrefKind::None);
-    assert_eq!(core_051(&mut q), 1, "{:?}", q.diagnostics().notes());
+    assert_eq!(core_051(&q), 1);
 }
 
 #[test]
@@ -421,12 +395,12 @@ fn scope_location_separates_names() {
     ip(&mut fx, 0x1103, pg(3), "L-1", "source", (3, 0));
     ip(&mut fx, 0x1104, pg(4), "L-1", "target", (4, 0));
     let m = fx.build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     assert_eq!(text(&q, rep_of(0x1101)), format!("2-{}", cell(2, 0)));
     assert_eq!(text(&q, rep_of(0x1102)), format!("1-{}", cell(1, 0)));
     assert_eq!(text(&q, rep_of(0x1103)), format!("4-{}", cell(4, 0)));
     assert_eq!(text(&q, rep_of(0x1104)), format!("3-{}", cell(3, 0)));
-    assert_eq!(core_051(&mut q), 0, "{:?}", q.diagnostics().notes());
+    assert_eq!(core_051(&q), 0);
 }
 
 #[test]
@@ -488,20 +462,17 @@ fn external_fixture() -> Fx {
 }
 
 #[test]
-fn dangling_external_ref_prints_nothing_and_is_noted_on_a_raw_model() {
+fn dangling_external_ref_prints_nothing_on_a_raw_model() {
     let m = external_fixture().build();
     assert_eq!(text(&Q::new(&m), rep_of(0x1101)), "+J-E-206 / JE-N1000-03");
     let m = raw(&m, &[Op::delete(row_of::<ExternalRef>(&m, id(0x7101)))]);
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     assert_eq!(text(&q, rep_of(0x1101)), "");
     assert!(q.get::<XrefTextOf>(rid(0x1101)).links.is_empty());
     assert!(matches!(
         q.get::<XrefRelationOf>(rid(0x1101)).kind,
         XrefKind::External(_)
     ));
-    let notes = xref_notes(&mut q, "EW-CORE-053");
-    assert_eq!(notes.len(), 1, "{:?}", q.diagnostics().notes());
-    assert!(notes[0].0.contains(&uid(0x7101)), "{notes:?}");
 }
 
 #[test]
@@ -525,10 +496,8 @@ fn target_without_anchor_cell_prints_question_marks() {
     );
     ip(&mut fx, 0x1102, pg(6), "S", "target", (1, 1));
     let m = fx.build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     assert_eq!(text(&q, rep_of(0x1100)), "2-??, 6-??");
-    let notes = xref_notes(&mut q, "EW-CORE-053");
-    assert_eq!(notes.len(), 2, "{notes:?}");
     // The targets themselves print the source's cell.
     assert_eq!(text(&q, rep_of(0x1101)), format!("1-{}", cell(1, 1)));
     assert_eq!(text(&q, rep_of(0x1102)), format!("1-{}", cell(1, 1)));
@@ -558,7 +527,7 @@ fn two_mains_fixture() -> Fx {
 }
 
 #[test]
-fn device_with_two_main_functions_is_noted_on_a_raw_model() {
+fn device_with_two_main_functions_refers_as_an_auxiliary_on_a_raw_model() {
     // EW-INV-002: the second main function (larger ID) is treated as an auxiliary.
     let m = two_mains_fixture().build();
     let f: Id<Function> = id(0x1003);
@@ -566,12 +535,9 @@ fn device_with_two_main_functions_is_noted_on_a_raw_model() {
     let mut after = (**before.get::<Function>().expect("a function")).clone();
     after.role = FnRole::Main;
     let m = raw(&m, &[Op::update(before, AnyRow::of(after))]);
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     assert_eq!(text(&q, rep_of(0x1003)), format!("(1-{})", cell(1, 0)));
     assert_eq!(q.get::<XrefRelationOf>(rid(0x1003)).kind, XrefKind::AuxToMain);
-    let notes = xref_notes(&mut q, "EW-INV-002");
-    assert_eq!(notes.len(), 1, "{:?}", q.diagnostics().notes());
-    assert!(notes[0].1.contains(&uid(0x1003)), "{}", notes[0].1);
     // The main representation lists both auxiliaries, in page order.
     assert_eq!(
         text(&q, rep_of(0x1001)),
@@ -681,10 +647,8 @@ fn malformed_xref_settings_fall_back_to_the_profile() {
         let mut fx = star_fixture();
         settings(&mut fx, None, &[("xref_format", bad.clone())]);
         let m = fx.build();
-        let mut q = Q::new(&m);
+        let q = Q::new(&m);
         assert_eq!(text(&q, rep_of(0x1100)), reference, "{bad}");
-        let notes = malformed(&mut q);
-        assert!(!notes.is_empty(), "{bad}: {:?}", q.diagnostics().notes());
         let effective = q.get::<XrefSettingsOf>(());
         assert_eq!(effective.format.ip, "{page}-{row}{column}");
     }
@@ -696,9 +660,8 @@ fn malformed_xref_settings_fall_back_to_the_profile() {
         &[("xref_format", format_with(&[("same_page", json!("half"))]))],
     );
     let m = fx.build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     assert_eq!(text(&q, rep_of(0x1100)), reference);
-    assert_eq!(malformed(&mut q).len(), 1);
 }
 
 /// A main function 0x1001 (main representation page 1 at A0, a contact image on page 3 at D4) with
@@ -1013,10 +976,9 @@ fn partial_xref_settings_apply_with_defaults() {
         )],
     );
     let m = fx.build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     assert_eq!(text(&q, rep_of(0x1100)), "X20, X20, X20\nX30, X40");
     assert_eq!(text(&q, rep_of(0x1101)), "X1");
-    assert!(malformed(&mut q).is_empty(), "{:?}", q.diagnostics().notes());
     let effective = q.get::<XrefSettingsOf>(());
     assert_eq!(effective.format.ip, "X{page}");
     assert_eq!(effective.format.structure, "when_different");
@@ -1070,8 +1032,8 @@ fn strip_segments_are_never_main_representations_or_targets() {
 }
 
 #[test]
-fn aux_without_main_representation_is_noted_by_how_the_main_is_drawn() {
-    // The main function is drawn only as a strip segment: the note says so.
+fn aux_without_main_representation_prints_nothing() {
+    // The main function is drawn only as a strip segment.
     let mut fx = base();
     main_function(&mut fx);
     let (x, y) = at(0, 0);
@@ -1079,25 +1041,19 @@ fn aux_without_main_representation_is_noted_by_how_the_main_is_drawn() {
     fx.with("rep_type", json!("strip_segment"));
     func(&mut fx, 0x1002, 0x2000, (FNDEF, SYM), false, pg(3), (3, 2));
     let m = fx.build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     assert_eq!(text(&q, rep_of(0x1002)), "");
-    let notes = xref_notes(&mut q, "EW-CORE-053");
-    assert_eq!(notes.len(), 1, "{notes:?}");
-    assert!(notes[0].1.contains("drawn only as a strip segment"), "{notes:?}");
 
     // The main function is unplaced: it has no representation at all.
     let mut fx = base();
     main_function(&mut fx);
     func(&mut fx, 0x1002, 0x2000, (FNDEF, SYM), false, pg(2), (3, 2));
     let m = fx.build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let t = q.get::<XrefTextOf>(rid(0x1002));
     assert_eq!(t.text, "");
     assert!(t.links.is_empty());
     assert_eq!(q.get::<XrefRelationOf>(rid(0x1002)).kind, XrefKind::None);
-    let notes = xref_notes(&mut q, "EW-CORE-053");
-    assert_eq!(notes.len(), 1, "{notes:?}");
-    assert!(notes[0].1.contains("has no representation"), "{notes:?}");
 }
 
 #[test]

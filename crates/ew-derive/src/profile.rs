@@ -20,7 +20,6 @@ use ew_schema::{Project, RepType};
 use serde::Deserialize;
 
 use crate::Q;
-use crate::note::DeriveNote;
 use crate::query::{Policy, Query};
 
 /// The shipped profiles, oldest first: `(version, TOML source)`.
@@ -249,8 +248,7 @@ pub fn numbering_settings(project: &Project) -> Option<NumberingSettings> {
 }
 
 /// `numbering_settings()`: [`numbering_settings`] parsed once per [`Q`]. A member that is present but does
-/// not parse yields `None` (the profile's default applies) and a [`DeriveNote::MalformedShim`] for
-/// `settings.numbering` with the parser's message.
+/// not parse yields `None` (the profile's default applies).
 #[derive(Debug)]
 pub struct NumberingSettingsOf;
 
@@ -267,13 +265,7 @@ impl Query for NumberingSettingsOf {
         };
         match serde_json::from_value(value.clone()) {
             Ok(settings) => Arc::new(Some(settings)),
-            Err(e) => {
-                q.note(DeriveNote::MalformedShim {
-                    member: "settings.numbering".into(),
-                    detail: e.to_string(),
-                });
-                Arc::new(None)
-            }
+            Err(_) => Arc::new(None),
         }
     }
 }

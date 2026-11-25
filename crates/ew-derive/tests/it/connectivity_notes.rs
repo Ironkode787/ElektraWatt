@@ -106,10 +106,21 @@ fn wire(fx: &mut Fx, n: u128, page: u128, a: Ep, b: Ep) {
     }));
 }
 
-/// The codes of the connectivity notes whose detail contains `needle`.
-fn notes_with(q: &mut Q, code: &str, needle: &str) -> Vec<(String, String)> {
-    q.diagnostics()
-        .notes()
+/// The connectivity notes with `code` whose detail contains `needle`, from the values that hold them: the
+/// interruption points' pairing, the physical wires of every potential and every rail-bonded terminal.
+fn notes_with(q: &Q, code: &str, needle: &str) -> Vec<(String, String)> {
+    let mut notes: Vec<DeriveNote> = q.get::<ew_derive::IpPairingQ>(()).notes.clone();
+    for p in q.get::<PotentialPartition>(()).potentials() {
+        notes.extend(q.get::<PhysicalWiresOf>(p.id).notes.iter().cloned());
+    }
+    for (d, device) in q.devices().iter() {
+        if device.aspects.terminal.as_ref().is_some_and(|t| t.rail_bonded) {
+            notes.extend(q.get::<ew_derive::RailTerminalOf>(d).notes.iter().cloned());
+        }
+    }
+    notes.sort();
+    notes.dedup();
+    notes
         .into_iter()
         .filter_map(|n| match n {
             DeriveNote::Connectivity {
@@ -202,12 +213,12 @@ fn star_of_three(source_ends: &[u128]) -> Fx {
 #[test]
 fn star_source_with_two_drawn_connections_is_no_hub_and_noted() {
     let m = star_of_three(&[0x1001, 0x1002]).build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());
     assert_eq!(part.potential_count(), 1);
     let wires = q.get::<PhysicalWiresOf>(part.potentials().next().unwrap().id);
-    let found = notes_with(&mut q, "EW-POT-011", "has 2 wires");
-    assert_eq!(found.len(), 1, "{:?}", q.diagnostics().notes());
+    let found = notes_with(&q, "EW-POT-011", "has 2 wires");
+    assert_eq!(found.len(), 1);
     assert_eq!(found[0].0, uid(0x1101));
     assert!(found[0].1.contains("group S"), "{}", found[0].1);
     assert!(found[0].1.contains("end open"), "{}", found[0].1);
@@ -224,29 +235,25 @@ fn star_source_with_two_drawn_connections_is_no_hub_and_noted() {
 #[test]
 fn star_source_without_a_drawn_connection_is_no_hub_and_noted() {
     let m = star_of_three(&[]).build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());
     let pid = part
         .potential_at(EndpointKey::Cp(id(0x1003), 0))
         .expect("potential")
         .id;
     let _ = q.get::<PhysicalWiresOf>(pid);
-    let found = notes_with(&mut q, "EW-POT-011", "has 0 wires");
-    assert_eq!(found.len(), 1, "{:?}", q.diagnostics().notes());
+    let found = notes_with(&q, "EW-POT-011", "has 0 wires");
+    assert_eq!(found.len(), 1);
     assert_eq!(found[0].0, uid(0x1101));
 }
 
 #[test]
 fn star_hub_with_one_feed_raises_no_note() {
     let m = star_of_three(&[0x1001]).build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());
     let _ = q.get::<PhysicalWiresOf>(part.potentials().next().unwrap().id);
-    assert!(
-        notes_with(&mut q, "EW-POT-011", "").is_empty(),
-        "{:?}",
-        q.diagnostics().notes()
-    );
+    assert!(notes_with(&q, "EW-POT-011", "").is_empty());
 }
 
 #[test]
@@ -263,12 +270,12 @@ fn two_sources_without_star_flag_pick_the_lowest_source_id() {
     wire(&mut fx, 0x2002, P2, cp(0x1002), cp(0x1101));
     wire(&mut fx, 0x2003, P2, cp(0x1003), cp(0x1102));
     let m = fx.build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let g = q.get::<StitchGraphQ>(());
     assert_eq!(g.ip_groups.len(), 1);
     assert_eq!(g.ip_groups[0].source, Some(id(0x1101)));
-    let found = notes_with(&mut q, "EW-CORE-051", "2 source points and no star_source");
-    assert_eq!(found.len(), 1, "{:?}", q.diagnostics().notes());
+    let found = notes_with(&q, "EW-CORE-051", "2 source points and no star_source");
+    assert_eq!(found.len(), 1);
     assert_eq!(found[0].0, "interruption point S");
     assert!(found[0].1.contains("lowest ID source"), "{}", found[0].1);
 }
@@ -284,11 +291,11 @@ fn ip_without_a_connection_point_is_noted() {
     }));
     fx.rep(0x11_101, P1, 0x514, &[0x1101], 0, 0);
     let m = fx.build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let g = q.get::<StitchGraphQ>(());
     assert!(g.ip_groups.is_empty());
-    let found = notes_with(&mut q, "EW-CORE-051", "no connection point");
-    assert_eq!(found.len(), 1, "{:?}", q.diagnostics().notes());
+    let found = notes_with(&q, "EW-CORE-051", "no connection point");
+    assert_eq!(found.len(), 1);
     assert_eq!(found[0].0, format!("interruption point Z ({})", uid(0x1101)));
     assert!(found[0].1.contains("pairs with nothing"), "{}", found[0].1);
 }
@@ -370,7 +377,7 @@ fn rail_bonding_joins_pe_cps_only() {
     wire(&mut fx, 0x2003, P1, Ep::Cp(0x1002, 0), cp(0x1005));
     wire(&mut fx, 0x2004, P1, Ep::Cp(0x1002, 1), cp(0x1006));
     let m = fx.build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let g = q.get::<StitchGraphQ>(());
     let part = q.get::<PotentialPartition>(());
     let of = |f: u128, idx: u16| {
@@ -394,8 +401,8 @@ fn rail_bonding_joins_pe_cps_only() {
     let bonds = rail_bonds(&g);
     assert_eq!(bonds.len(), 1, "{bonds:?}");
     assert_eq!(bonds[0].2, RailLocation::Node(id(LOC_A)));
-    assert!(notes_with(&mut q, "EW-TERM-005", "").is_empty());
-    assert!(notes_with(&mut q, "EW-POT-008", "").is_empty());
+    assert!(notes_with(&q, "EW-TERM-005", "").is_empty());
+    assert!(notes_with(&q, "EW-POT-008", "").is_empty());
 }
 
 #[test]
@@ -412,11 +419,11 @@ fn rail_bonded_terminal_without_pe_cp_is_noted() {
     wire(&mut fx, 0x2001, P1, Ep::Cp(0x1001, 1), cp(0x1003));
     wire(&mut fx, 0x2002, P1, Ep::Cp(0x1002, 0), cp(0x1004));
     let m = fx.build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let g = q.get::<StitchGraphQ>(());
     assert!(rail_bonds(&g).is_empty(), "{:?}", rail_bonds(&g));
-    let found = notes_with(&mut q, "EW-TERM-005", "no PE CP");
-    assert_eq!(found.len(), 1, "{:?}", q.diagnostics().notes());
+    let found = notes_with(&q, "EW-TERM-005", "no PE CP");
+    assert_eq!(found.len(), 1);
     assert_eq!(found[0].0, uid(T2));
     assert!(found[0].1.contains("joins no location PE node"), "{}", found[0].1);
 }
@@ -444,7 +451,7 @@ fn unlocated_rail_bonded_terminals_join_the_only_own_location() {
         "connection": "PE"}),
     );
     let m = two_unlocated_terminals(fx);
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let g = q.get::<StitchGraphQ>(());
     let bonds = rail_bonds(&g);
     assert_eq!(bonds.len(), 1, "{bonds:?}");
@@ -455,7 +462,7 @@ fn unlocated_rail_bonded_terminals_join_the_only_own_location() {
         1,
         "both PE CPs and their wires are one potential"
     );
-    assert!(notes_with(&mut q, "EW-POT-008", "").is_empty());
+    assert!(notes_with(&q, "EW-POT-008", "").is_empty());
 }
 
 /// A location that an external reference names is still own when an own device sits in
@@ -472,11 +479,11 @@ fn a_location_named_by_an_external_reference_and_used_by_an_own_device_is_own() 
     fx.device(0x4100, "K", Some(1))
         .with("structure", json!({"location": uid(LOC_B)}));
     let m = two_unlocated_terminals(fx);
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let g = q.get::<StitchGraphQ>(());
     assert!(rail_bonds(&g).is_empty(), "{:?}", rail_bonds(&g));
     assert_eq!(q.get::<PotentialPartition>(()).potential_count(), 2);
-    let found = notes_with(&mut q, "EW-POT-008", "2 own locations");
+    let found = notes_with(&q, "EW-POT-008", "2 own locations");
     let subjects: BTreeSet<String> = found.into_iter().map(|(s, _)| s).collect();
     assert_eq!(subjects, BTreeSet::from([uid(0x4001), uid(0x4002)]));
 }
@@ -488,13 +495,13 @@ fn unlocated_rail_bonded_terminals_join_the_implicit_main_location() {
     let mut fx = terminal_base();
     fx.records.retain(|r| r["$k"] != "structure_node");
     let m = two_unlocated_terminals(fx);
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let g = q.get::<StitchGraphQ>(());
     let bonds = rail_bonds(&g);
     assert_eq!(bonds.len(), 1, "{bonds:?}");
     assert_eq!(bonds[0].2, RailLocation::Main);
     assert_eq!(q.get::<PotentialPartition>(()).potential_count(), 1);
-    assert!(notes_with(&mut q, "EW-POT-008", "").is_empty());
+    assert!(notes_with(&q, "EW-POT-008", "").is_empty());
 }
 
 /// With two own locations (A and B), an unlocated terminal joins no rail and is noted (EW-POT-008).
@@ -503,15 +510,15 @@ fn unlocated_rail_bonded_terminals_do_not_bond() {
     let mut fx = terminal_base();
     fx.node(LOC_B, "location", "B", None);
     let m = two_unlocated_terminals(fx);
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let g = q.get::<StitchGraphQ>(());
     assert!(rail_bonds(&g).is_empty(), "{:?}", rail_bonds(&g));
     let part = q.get::<PotentialPartition>(());
     assert_eq!(part.potential_count(), 2);
-    let found = notes_with(&mut q, "EW-POT-008", "no location");
+    let found = notes_with(&q, "EW-POT-008", "no location");
     let subjects: BTreeSet<String> = found.into_iter().map(|(s, _)| s).collect();
     assert_eq!(subjects, BTreeSet::from([uid(0x4001), uid(0x4002)]));
-    assert!(notes_with(&mut q, "EW-TERM-005", "").is_empty());
+    assert!(notes_with(&q, "EW-TERM-005", "").is_empty());
 }
 
 /// Two points `X` on `p` and `r`, each wired to its own plain function; `ip_pairing` scope `scope`.
@@ -534,7 +541,7 @@ fn scoped_pairing_without_the_node_pairs_project_wide_and_notes() {
         let mut fx = base();
         scoped(scope, [P1, P2], &mut fx);
         let m = fx.build();
-        let mut q = Q::new(&m);
+        let q = Q::new(&m);
         let g = q.get::<StitchGraphQ>(());
         assert_eq!(g.ip_groups.len(), 1, "{scope}");
         assert_eq!(g.ip_groups[0].scope, None);
@@ -544,8 +551,8 @@ fn scoped_pairing_without_the_node_pairs_project_wide_and_notes() {
         } else {
             "Function"
         };
-        let found = notes_with(&mut q, "EW-CORE-051", &format!("scope is {aspect}"));
-        assert_eq!(found.len(), 2, "{scope}: {:?}", q.diagnostics().notes());
+        let found = notes_with(&q, "EW-CORE-051", &format!("scope is {aspect}"));
+        assert_eq!(found.len(), 2, "{scope}");
         let subjects: BTreeSet<String> = found.iter().map(|(s, _)| s.clone()).collect();
         assert_eq!(
             subjects,
@@ -559,7 +566,7 @@ fn scoped_pairing_without_the_node_pairs_project_wide_and_notes() {
             "{}",
             found[0].1
         );
-        assert!(notes_with(&mut q, "EW-CORE-051", "no partner").is_empty());
+        assert!(notes_with(&q, "EW-CORE-051", "no partner").is_empty());
     }
 }
 
@@ -573,7 +580,7 @@ fn scoped_pairing_keeps_locations_apart() {
     fx.page(P4, 4, None, "multi_line", &[("location", LOC_B)], "four");
     scoped("location", [P3, P4], &mut fx);
     let m = fx.build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let g = q.get::<StitchGraphQ>(());
     assert_eq!(g.ip_groups.len(), 2);
     assert!(
@@ -581,8 +588,8 @@ fn scoped_pairing_keeps_locations_apart() {
             .iter()
             .all(|g| g.pairs.is_empty() && g.scope.is_some())
     );
-    assert_eq!(notes_with(&mut q, "EW-CORE-051", "no partner").len(), 2);
-    assert!(notes_with(&mut q, "EW-CORE-051", "scope is").is_empty());
+    assert_eq!(notes_with(&q, "EW-CORE-051", "no partner").len(), 2);
+    assert!(notes_with(&q, "EW-CORE-051", "scope is").is_empty());
 
     // The same location node: the points pair.
     let mut fx = base();
@@ -591,17 +598,10 @@ fn scoped_pairing_keeps_locations_apart() {
     fx.page(P5, 5, None, "multi_line", &[("location", LOC_A)], "five");
     scoped("location", [P3, P5], &mut fx);
     let m = fx.build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let g = q.get::<StitchGraphQ>(());
     assert_eq!(g.ip_groups.len(), 1);
     assert_eq!(g.ip_groups[0].scope, Some(id(LOC_A)));
     assert_eq!(g.ip_groups[0].pairs.len(), 1);
-    assert!(
-        q.diagnostics()
-            .notes()
-            .iter()
-            .all(|n| n.code() != Some("EW-CORE-051")),
-        "{:?}",
-        q.diagnostics().notes()
-    );
+    assert!(notes_with(&q, "EW-CORE-051", "").is_empty());
 }

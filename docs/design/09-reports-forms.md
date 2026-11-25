@@ -544,7 +544,7 @@ page_order(q):
   configuration. `ew-derive` never depends on `ew-reports`. Pagination runs inside `page_order`, so no query that
   feeds it reads `page_order`: row sources that order by page position read `drawn_page_order()` (drawn pages and
   dividers, the same relative order), and folio cells are printed from `page_order` when the page is drawn.
-  EW-CORE-025 is a derivation note of `page_order`, surfaced as a finding.
+  EW-CORE-025 reads the page order's `settled` flag, surfaced as a finding.
 - Pages without a section (1, 2, 3) precede section 1 (front matter).
 - **Folio collisions** between a generated page and a drawn page, or two blocks, are the error EW-CORE-022
   (FR-REP-041, FR-CHK-038). The `origin` key places the generated page after the drawn page with the same folio, so
@@ -606,7 +606,7 @@ report_pages(block):
   [ADR-0017](../adr/0017-read-only-sql-projection-api-v1.md) amendment 1. A form without a data area paginates with
   the house layout of 23 rows × 6.52 mm, which moves from `ew-reports` into the derivation profile. An
   invalid layout (a row height ≤ 0, or a capacity below one data row) falls back to the house layout with a form
-  finding (FR-REP-039), for now a `MalformedShim` derivation note (a dedicated `InvalidForm` note is not built yet). A
+  finding (FR-REP-039; not built yet). A
   `NewFolio` group break restarts the form chain at the block's form; `NewPage` continues
   it. Wrapping rows wait for a wrap policy in the schema and measure with `shaped_text` when they come.
 - **Group texts**. `{group}` and the group header texts print a device in its displayed tag

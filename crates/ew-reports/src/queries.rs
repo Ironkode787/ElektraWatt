@@ -144,7 +144,7 @@ impl Query for BlockPages {
         // the block gets one placeholder page instead of a panic of the whole page order.
         let rows = match q.try_get::<BlockRows>(id) {
             Ok(rows) => rows,
-            Err(cycle) => Arc::new(cycle_rows(q, cycle)),
+            Err(cycle) => Arc::new(cycle_rows(&cycle)),
         };
         Arc::new(paginate_block(q, block, spec, &rows, &layouts))
     }
@@ -249,11 +249,9 @@ pub fn toc_rows_per_page(q: &Q, block: &ReportBlock) -> u32 {
         .max(1)
 }
 
-/// An empty, not-derived row set for a query cycle, which is recorded as a note.
-pub(crate) fn cycle_rows(q: &Q, cycle: Cycle) -> RowSet {
-    let family = cycle.family.to_owned();
-    q.note_cycle(cycle);
-    RowSet::not_derived(Vec::new(), NotDerived::Cycle(family))
+/// An empty, not-derived row set for a query cycle.
+pub(crate) fn cycle_rows(cycle: &Cycle) -> RowSet {
+    RowSet::not_derived(Vec::new(), NotDerived::Cycle(cycle.family.to_owned()))
 }
 
 /// The report engine: the [`ReportPagesProvider`] the session installs on every `Q`, so that
@@ -272,14 +270,8 @@ impl ReportPagesProvider for ReportEngine {
             // The block's pages are already being computed: a row source reached the page order from
             // inside the pagination. One placeholder page keeps the folio, never a panic.
             Err(cycle) => match spec_of(q, block, b) {
-                Some(spec) => {
-                    let rows = cycle_rows(q, cycle);
-                    paginate_block(q, b, spec, &rows, &Layouts::of_block(q, b))
-                }
-                None => {
-                    q.note_cycle(cycle);
-                    Vec::new()
-                }
+                Some(spec) => paginate_block(q, b, spec, &cycle_rows(&cycle), &Layouts::of_block(q, b)),
+                None => Vec::new(),
             },
         }
     }

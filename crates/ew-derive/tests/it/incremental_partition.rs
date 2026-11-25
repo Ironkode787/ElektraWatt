@@ -743,28 +743,21 @@ fn reads_of(model: &Model, order: u64) -> Vec<Fam> {
     reads
 }
 
-/// The memoised reads of `store` against a cold `Q` on `after`, then the notes, then the oracle store.
+/// The memoised reads of `store` against a cold `Q` on `after`, then the oracle store.
 fn verify(after: &Model, store: &MemoStore, oracle: &MemoStore, order: u64) -> Result<(), TestCaseError> {
     let reads = reads_of(after, order);
-    let mut memo = store.query();
-    let mut cold = Q::new(after);
+    let memo = store.query();
+    let cold = Q::new(after);
     for fam in &reads {
         read(*fam, &memo, Some(&cold)).map_err(|e| TestCaseError::fail(format!("{fam:?} differs: {e}")))?;
     }
-    let (m, c) = (memo.diagnostics().notes(), cold.diagnostics().notes());
-    if m != c {
-        return Err(TestCaseError::fail(format!(
-            "notes differ\n  memo: {m:?}\n  cold: {c:?}"
-        )));
-    }
-    let mut second = oracle.query();
+    let second = oracle.query();
     // An eighth of the reads (the oracle re-runs every nested read cold: about 40 times the cost of the
     // comparison above). The others stay unread, so that later steps verify memos that missed commits.
     let skip = ((order >> 2) % 8) as usize;
     for fam in reads.iter().skip(skip).step_by(8) {
         read(*fam, &second, None).map_err(TestCaseError::fail)?;
     }
-    let _ = second.diagnostics().notes();
     let mismatches = oracle.take_mismatches();
     if !mismatches.is_empty() {
         let mut text = String::new();

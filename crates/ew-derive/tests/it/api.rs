@@ -21,7 +21,7 @@ use std::sync::Arc;
 
 use common::{Fx, id};
 use ew_derive::{
-    DepKey, DeriveNote, DeviceTag, EW_CORE_018, NoteSeverity, Policy, ProfileStatus, Q, Query,
+    DepKey, DeviceTag, Policy, ProfileStatus, Q, Query,
     RecordingTracker, StructureOf,
 };
 use ew_model::{AnyRow, Entity, IndexName, IxKey, Op, Rev};
@@ -164,27 +164,6 @@ fn the_pinned_profile_is_resolved() {
         }
     );
     assert_eq!(q.profile().version, "2027.1");
-}
-
-/// ADR-0003: an unknown pinned profile is never silent. Every `Q` over the snapshot carries an
-/// error-severity note with the integrity code EW-CORE-018, before any query ran.
-#[test]
-fn an_unknown_profile_is_noted_as_an_error() {
-    let mut fx = small();
-    fx.project_set("derivation_profile", json!("2099.1"));
-    let m = fx.build();
-    let mut q = Q::new(&m);
-    let notes = q.diagnostics().notes();
-    assert_eq!(
-        notes,
-        [DeriveNote::UnknownProfile {
-            requested: "2099.1".into(),
-            used: "2027.1".into()
-        }]
-    );
-    assert_eq!(notes[0].severity(), NoteSeverity::Error);
-    assert_eq!(notes[0].code(), Some(EW_CORE_018));
-    assert!(Q::new(&small().build()).diagnostics().notes().is_empty());
 }
 
 /// `Q` exposes no untracked state: its `Debug` text carries no revision and no cache state (F4), so two

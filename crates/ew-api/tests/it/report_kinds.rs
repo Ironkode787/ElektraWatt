@@ -25,7 +25,7 @@ use crate::common;
 
 use ew_api::output::{RowExport, RowsError, page_layer, report_kinds, row_export};
 use ew_api::{AnyCommand, CmdError, Session};
-use ew_derive::{DeriveNote, PageOrder, PageRef, Q};
+use ew_derive::{PageOrder, PageRef, Q};
 use ew_dl::{Item, ItemKind, Layer};
 use ew_ids::Id;
 use ew_reports::csv::row_texts;
@@ -420,102 +420,36 @@ fn plain(s: &Session) -> Q {
     Q::new(&s.world().model)
 }
 
-/// The malformed-parameter notes of a session's derivation of `block`.
-fn notes_of(s: &Session, block: Id<ReportBlock>) -> (usize, Vec<DeriveNote>) {
-    let mut q = plain(s);
-    let rows = q.get::<BlockRows>(block).rows.len();
-    let notes = q
-        .diagnostics()
-        .notes()
-        .into_iter()
-        .filter(|n| matches!(n, DeriveNote::MalformedShim { .. }))
-        .collect();
-    (rows, notes)
+/// The number of rows of a session's derivation of `block`.
+fn rows_of(s: &Session, block: Id<ReportBlock>) -> usize {
+    plain(s).get::<BlockRows>(block).rows.len()
 }
 
-/// `params.mode` "assembly" gives the assembly rows; "Assembly", 3 and an undeclared key give the
-/// component rows and exactly one note naming the block in words and the key. (The sample has no assembly, so its
-/// assembly rows list the same parts; the mode shows in the assembly mode's Covers column.)
+/// `params.mode` "assembly" gives the assembly rows; "Assembly", 3, an undeclared key and a `params` that is not an
+/// object give the component rows. (The sample has no assembly, so its assembly rows list the same parts; the mode
+/// shows in the assembly mode's Covers column.)
 #[test]
 fn the_parts_summary_mode_parameter() {
     let component = sample_with_block(parts_block(None));
     let block = parts_block(None).id;
-    let (component_rows, notes) = notes_of(&component, block);
-    assert!(notes.is_empty(), "{notes:?}");
+    let component_rows = rows_of(&component, block);
     let assembly = sample_with_block(parts_block(Some(json!({"mode": "assembly"}))));
-    let (_, notes) = notes_of(&assembly, block);
-    assert!(notes.is_empty(), "{notes:?}");
     {
         let q = plain(&assembly);
         let set = q.get::<BlockRows>(block);
         assert!(set.column("covers").is_some(), "assembly mode's Covers column");
     }
-    let cases = [
-        (
-            json!({"mode": "Assembly"}),
-            "report block 960 params.mode",
-            "expected \"component\" or \"assembly\", found \"Assembly\"",
-        ),
-        (
-            json!({"mode": 3}),
-            "report block 960 params.mode",
-            "expected \"component\" or \"assembly\", found 3",
-        ),
-        (
-            json!({"modes": "assembly"}),
-            "report block 960 params.modes",
-            "`parts_summary` has no parameter of this name",
-        ),
-        (
-            json!(["assembly"]),
-            "report block 960 params",
-            "expected an object of parameters, found [\"assembly\"]",
-        ),
-    ];
-    for (params, member, detail) in cases {
+    for params in [
+        json!({"mode": "Assembly"}),
+        json!({"mode": 3}),
+        json!({"modes": "assembly"}),
+        json!(["assembly"]),
+    ] {
         let s = sample_with_block(parts_block(Some(params.clone())));
-        let (rows, notes) = notes_of(&s, block);
-        assert_eq!(rows, component_rows, "{params}: the component rows");
-        assert_eq!(
-            notes,
-            [DeriveNote::MalformedShim {
-                member: member.to_owned(),
-                detail: detail.to_owned(),
-            }],
-            "{params}"
-        );
-        assert_eq!(
-            notes[0].to_string(),
-            format!("{member} is malformed ({detail}); the default applies")
-        );
+        assert_eq!(rows_of(&s, block), component_rows, "{params}: the component rows");
+        let q = plain(&s);
+        assert!(q.get::<BlockRows>(block).column("covers").is_none(), "{params}: no Covers column");
     }
-}
-
-/// A long undeclared key and a long value are quoted cut to 40 characters (hostile input). The diagnostics list
-/// their notes sorted.
-#[test]
-fn a_long_key_or_value_is_quoted_cut() {
-    let long = "k".repeat(1000);
-    let s = sample_with_block(parts_block(Some(
-        json!({ long.clone(): 1, "mode": "x".repeat(1000) }),
-    )));
-    let (_, notes) = notes_of(&s, parts_block(None).id);
-    assert_eq!(
-        notes,
-        [
-            DeriveNote::MalformedShim {
-                member: format!("report block 960 params.{}…", "k".repeat(40)),
-                detail: "`parts_summary` has no parameter of this name".to_owned(),
-            },
-            DeriveNote::MalformedShim {
-                member: "report block 960 params.mode".to_owned(),
-                detail: format!(
-                    "expected \"component\" or \"assembly\", found \"{}…",
-                    "x".repeat(39)
-                ),
-            },
-        ]
-    );
 }
 
 /// The form and section of folio 910's block (the house table on `ew.frame.qet-a4-landscape-nogrid`).

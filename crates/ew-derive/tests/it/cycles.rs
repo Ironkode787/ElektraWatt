@@ -7,13 +7,13 @@
 //! No model content makes a query panic. The device inheritance graph (terminal →
 //! strip, device → parent) is acyclic in every model `Model::from_records` accepts (EW-INV-015); these
 //! tests build the two review probes through `Model::apply_unchecked`, which skips the invariants, and
-//! check that `device_tag`, `structure_of` and `devices_by_structure` answer with a fallback and a
-//! `QueryCycle` note instead of panicking.
+//! check that `device_tag`, `structure_of` and `devices_by_structure` answer with a fallback instead of
+//! panicking.
 
 use crate::common;
 
 use common::{Fx, id, uid};
-use ew_derive::{DeriveNote, DeviceTag, DevicesByStructure, NoteSeverity, Q, StructureOf};
+use ew_derive::{DeviceTag, DevicesByStructure, Q, StructureOf};
 use ew_ids::Id;
 use ew_model::{AnyRow, Entity, Model, Op, Rev};
 use ew_schema::{Device, TagScheme};
@@ -61,16 +61,6 @@ fn unchecked(m: &Model, changes: &[Change<'_>]) -> Model {
     m2
 }
 
-fn assert_cycle_noted(q: &mut Q) {
-    let notes = q.diagnostics().notes();
-    assert!(
-        notes
-            .iter()
-            .any(|n| matches!(n, DeriveNote::QueryCycle { .. }) && n.severity() == NoteSeverity::Error),
-        "{notes:?}"
-    );
-}
-
 /// Review probe 1: terminal B of strip S, where S has scheme `Child` and parent B.
 #[test]
 fn strip_whose_parent_is_its_terminal_does_not_panic() {
@@ -83,7 +73,7 @@ fn strip_whose_parent_is_its_terminal_does_not_panic() {
         })],
     );
     for first in [STRIP, TERMINAL] {
-        let mut q = Q::new(&m);
+        let q = Q::new(&m);
         // Every entry point answers, whichever is asked first.
         let _ = q.get::<DeviceTag>(id(first));
         let _ = q.get::<StructureOf>(id(first));
@@ -91,7 +81,6 @@ fn strip_whose_parent_is_its_terminal_does_not_panic() {
         let terminal = q.get::<DeviceTag>(id(TERMINAL));
         assert!(strip.is_some() && terminal.is_some());
         let _ = q.get::<DevicesByStructure>(());
-        assert_cycle_noted(&mut q);
     }
 }
 
@@ -113,26 +102,10 @@ fn three_device_inheritance_cycle_does_not_panic() {
         ],
     );
     for first in [OTHER, TERMINAL, STRIP] {
-        let mut q = Q::new(&m);
+        let q = Q::new(&m);
         let _ = q.get::<StructureOf>(id(first));
         for d in [OTHER, TERMINAL, STRIP] {
             assert!(q.get::<DeviceTag>(id(d)).is_some());
         }
-        assert_cycle_noted(&mut q);
     }
-}
-
-/// A valid model notes no cycle.
-#[test]
-fn a_valid_model_has_no_cycle_note() {
-    let m = base().build();
-    let mut q = Q::new(&m);
-    for d in [OTHER, TERMINAL, STRIP] {
-        let _ = q.get::<DeviceTag>(id(d));
-    }
-    assert_eq!(
-        q.get::<DeviceTag>(id(TERMINAL)).as_ref().as_ref().unwrap().full,
-        "+J-E-2416-?X1:1"
-    );
-    assert!(q.diagnostics().notes().is_empty());
 }

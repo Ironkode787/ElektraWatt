@@ -85,7 +85,7 @@ impl ReportKindDef for IoList {
     }
 
     fn rows(&self, q: &Q, block: &ReportBlock) -> RowSet {
-        let include_deactivated = kind_params(q, block).bool(INCLUDE_DEACTIVATED);
+        let include_deactivated = kind_params(block).bool(INCLUDE_DEACTIVATED);
         let mut set = RowSet::new(self.columns());
         for station in stations_of(q, block) {
             let head = Station::of(q, station);

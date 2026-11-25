@@ -584,9 +584,6 @@ fn generated_folio(q: &Q, block: Id<ReportBlock>, index: u32) -> (FolioKey, Stri
             Some(g) => numbered(g.number, g.label.clone()),
             None => sub_page(),
         },
-        Err(cycle) => {
-            q.note_cycle(cycle);
-            sub_page()
-        }
+        Err(_) => sub_page(),
     }
 }

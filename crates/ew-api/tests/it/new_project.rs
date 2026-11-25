@@ -543,10 +543,10 @@ fn with_frames(frames: serde_json::Value) -> Session {
     Session::from_records(project.unwrap(), records, lib, options(5)).unwrap()
 }
 
-/// The frame key the page output gives each page of the order (`"-"` without a frame), the drawn pages' cell grids
-/// and whether the cell grid fell back to the built-in frame.
-fn frames_of(session: &Session) -> (Vec<String>, Vec<Option<ew_schema::FrameGrid>>, bool) {
-    let mut q = session.query();
+/// The frame key the page output gives each page of the order (`"-"` without a frame) and the drawn pages' cell
+/// grids.
+fn frames_of(session: &Session) -> (Vec<String>, Vec<Option<ew_schema::FrameGrid>>) {
+    let q = session.query();
     let order = q.get::<ew_derive::PageOrder>(());
     let mut keys = Vec::new();
     let mut grids = Vec::new();
@@ -561,11 +561,7 @@ fn frames_of(session: &Session) -> (Vec<String>, Vec<Option<ew_schema::FrameGrid
             grids.push((*q.get::<ew_derive::FrameGridOf>(p)).clone());
         }
     }
-    let built_in = q
-        .diagnostics()
-        .notes()
-        .contains(&ew_api::DeriveNote::DefaultFrame);
-    (keys, grids, built_in)
+    (keys, grids)
 }
 
 /// A frame-defaults rule that names a copy the project does not hold falls through to the next
@@ -587,7 +583,7 @@ fn a_missing_frame_copy_falls_through_in_the_page_output_and_the_cell_grid_alike
         {"page_type": "multi_line", "form": missing},
         {"page_type": "section_divider", "form": cover},
     ]}));
-    let (keys, grids, built_in) = frames_of(&s);
+    let (keys, grids) = frames_of(&s);
     assert_eq!(
         keys,
         [
@@ -597,14 +593,13 @@ fn a_missing_frame_copy_falls_through_in_the_page_output_and_the_cell_grid_alike
         "folio 1, then the divider of section 1"
     );
     assert_eq!(grids, [Some(grid_form.clone())]);
-    assert!(!built_in);
     // The default is missing too: the built-in frame, in both (the no-grid frame of the page output, the built-in
     // QET grid of the cell grid); the divider without its entry takes the no-grid frame.
     let s = with_frames(serde_json::json!({"default": missing, "per_page_type": [
         {"page_type": "multi_line", "form": missing},
         {"page_type": "section_divider", "form": missing},
     ]}));
-    let (keys, grids, built_in) = frames_of(&s);
+    let (keys, grids) = frames_of(&s);
     assert_eq!(
         keys,
         [
@@ -613,7 +608,6 @@ fn a_missing_frame_copy_falls_through_in_the_page_output_and_the_cell_grid_alike
         ]
     );
     assert_eq!(grids, [Some(ew_derive::default_frame_grid())]);
-    assert!(built_in, "the cell grid says it used the built-in frame");
 }
 
 // ---------------------------------------------------------------------------------------------------------------

@@ -94,12 +94,9 @@ impl Query for StructurePath {
             codes: Vec::new(),
         };
         if let Some(parent) = node.parent {
-            match q.try_get::<StructurePath>(parent) {
-                Ok(above) => {
-                    path.nodes.clone_from(&above.nodes);
-                    path.codes.clone_from(&above.codes);
-                }
-                Err(cycle) => q.note_cycle(cycle),
+            if let Ok(above) = q.try_get::<StructurePath>(parent) {
+                path.nodes.clone_from(&above.nodes);
+                path.codes.clone_from(&above.codes);
             }
         }
         path.nodes.push(*key);
@@ -343,13 +340,7 @@ impl Query for StructureOf {
         };
         let parent = inherit_parent.or(if page.is_none() { dev.parent } else { None });
         let page_structure = page.map(|p| q.get::<PageStructure>(p));
-        let parent_structure = parent.and_then(|p| match q.try_get::<StructureOf>(p) {
-            Ok(s) => Some(s),
-            Err(cycle) => {
-                q.note_cycle(cycle);
-                None
-            }
-        });
+        let parent_structure = parent.and_then(|p| q.try_get::<StructureOf>(p).ok());
         for aspect in DEVICE_ASPECTS {
             let resolved = match slot(&dev.structure, aspect) {
                 Some(Slot::Node(n)) => resolved_slot(q, *n, SlotSource::Explicit),

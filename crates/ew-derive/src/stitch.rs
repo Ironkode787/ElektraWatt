@@ -276,11 +276,7 @@ impl Query for StitchGraphQ {
     const POLICY: Policy = Policy::Memo;
 
     fn run(q: &Q, _: &()) -> Arc<StitchGraph> {
-        let built = build(q, &StitchInputs::read(q));
-        for n in built.graph.notes.iter().chain(&built.cycles) {
-            q.note(n.clone());
-        }
-        Arc::new(built.graph)
+        Arc::new(build(q, &StitchInputs::read(q)).graph)
     }
 }
 
@@ -327,8 +323,6 @@ pub(crate) struct StitchBuild {
     pub(crate) pages: Vec<(Id<Page>, Arc<LocalNets>)>,
     /// The links of every function with a CP in the graph.
     pub(crate) links: BTreeMap<Id<Function>, Arc<FunctionLinks>>,
-    /// The cycle notes of the rail-bonded terminals (pushed beside the graph's notes).
-    pub(crate) cycles: Vec<DeriveNote>,
 }
 
 /// Builds the stitch graph from its inputs (doc 08 §3.3; the algorithm of the module documentation, in the
@@ -448,12 +442,7 @@ pub(crate) fn build(q: &Q, inputs: &StitchInputs) -> StitchBuild {
         node_of: b.node_of,
         partners,
     };
-    StitchBuild {
-        graph,
-        pages,
-        links,
-        cycles: inputs.rail.cycles.clone(),
-    }
+    StitchBuild { graph, pages, links }
 }
 
 /// The short and pass-through edges of function `f` between CPs in the graph (doc 08 §3.3, §6.2).

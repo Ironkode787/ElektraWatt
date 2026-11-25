@@ -78,7 +78,6 @@ fn a_panicking_query_can_be_evaluated_again() {
     // No false cycle: the key evaluates again and returns the value.
     assert_eq!(*q.get::<Plain>(7), 8);
     assert_eq!(q.diagnostics().cached("unwind_plain"), 1);
-    assert!(q.diagnostics().notes().is_empty());
     // The tracker stack is balanced: a read at top level is attributed to no query.
     let before = rec.reads().len();
     let _ = q.project();
@@ -101,7 +100,6 @@ fn a_panicking_inner_query_unwinds_both_levels() {
     assert_eq!(*q.get::<Outer>(5), 11);
     assert_eq!(q.diagnostics().cached("unwind_outer"), 1);
     assert_eq!(q.diagnostics().cached("unwind_inner"), 1);
-    assert!(q.diagnostics().notes().is_empty());
     let before = rec.reads().len();
     let _ = q.project();
     assert_eq!(rec.reads()[before].query, None);

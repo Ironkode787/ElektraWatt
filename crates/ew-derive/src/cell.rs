@@ -42,7 +42,6 @@ use ew_units::{Grid, Nm, Pt2};
 use serde_json::Value;
 
 use crate::Q;
-use crate::note::DeriveNote;
 use crate::query::{Policy, Query};
 use crate::text_frame::{TextFrame, text_frame};
 
@@ -113,26 +112,23 @@ impl Query for RepAnchorCell {
 pub struct FrameTypeEntry {
     /// The page type's snake_case spelling.
     pub page_type: String,
-    /// The frame form; `None` when the entry's `form` is missing or not a form ID (noted).
+    /// The frame form; `None` when the entry's `form` is missing or not a form ID.
     pub form: Option<Id<FormDef>>,
 }
 
 /// The parsed `ProjectSettings.extra["frames"]` member (doc 03 §5.1 `FrameDefaults`), read once per
-/// [`Q`]. Malformed parts are dropped here and reported as [`DeriveNote::MalformedShim`].
+/// [`Q`]. Malformed parts are dropped here.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct FrameSettingsValue {
-    /// The default frame form; `None` when absent or malformed (noted).
+    /// The default frame form; `None` when absent or malformed.
     pub default: Option<Id<FormDef>>,
     /// The per-page-type entries in order; the first with the page's type applies.
     pub per_page_type: Vec<FrameTypeEntry>,
 }
 
-/// `frame_settings()`: the `frames` shim, parsed once per [`Q`] (and its malformed members noted once).
+/// `frame_settings()`: the `frames` shim, parsed once per [`Q`].
 #[derive(Debug)]
 pub struct FrameSettings;
-
-/// The member name notes use for the `frames` shim.
-const FRAMES_MEMBER: &str = "settings.frames";
 
 impl Query for FrameSettings {
     type Key = ();
@@ -142,60 +138,29 @@ impl Query for FrameSettings {
 
     fn run(q: &Q, _key: &()) -> Arc<FrameSettingsValue> {
         let project = q.project();
-        Arc::new(FrameSettingsValue::parse(
-            project.settings.extra.get("frames"),
-            |detail| {
-                q.note(DeriveNote::MalformedShim {
-                    member: FRAMES_MEMBER.into(),
-                    detail: detail.into(),
-                });
-            },
-        ))
+        Arc::new(FrameSettingsValue::parse(project.settings.extra.get("frames")))
     }
 }
 
 impl FrameSettingsValue {
-    /// Parses the `frames` member of `ProjectSettings.extra` (absent: the empty value). Each malformed part is
-    /// dropped and reported once through `malformed`. Pure: [`FrameSettings`] and the command layer's
-    /// model-only cell lookup (`ew_commands::numbering::anchor_cell`) share it.
-    pub fn parse(frames: Option<&Value>, mut malformed: impl FnMut(&str)) -> FrameSettingsValue {
+    /// Parses the `frames` member of `ProjectSettings.extra` (absent: the empty value); each malformed part is
+    /// dropped. Pure: [`FrameSettings`] and the command layer's model-only cell lookup
+    /// (`ew_commands::numbering::anchor_cell`) share it.
+    pub fn parse(frames: Option<&Value>) -> FrameSettingsValue {
         let mut out = FrameSettingsValue::default();
-        let Some(frames) = frames else {
+        let Some(frames) = frames.and_then(Value::as_object) else {
             return out;
         };
-        let Some(frames) = frames.as_object() else {
-            malformed("frames is not an object");
-            return out;
-        };
-        if let Some(default) = frames.get("default") {
-            out.default = form_id(default);
-            if out.default.is_none() {
-                malformed("default is not a form ID");
-            }
-        }
-        match frames.get("per_page_type") {
-            None => {}
-            Some(Value::Array(entries)) => {
-                for entry in entries {
-                    let Some(entry) = entry.as_object() else {
-                        malformed("a per_page_type entry is not an object");
-                        continue;
-                    };
-                    let Some(Value::String(page_type)) = entry.get("page_type") else {
-                        malformed("a per_page_type entry has no page_type string");
-                        continue;
-                    };
-                    let form = entry.get("form").and_then(form_id);
-                    if form.is_none() {
-                        malformed("a per_page_type entry's form is not a form ID");
-                    }
+        out.default = frames.get("default").and_then(form_id);
+        if let Some(Value::Array(entries)) = frames.get("per_page_type") {
+            for entry in entries {
+                if let Some(Value::String(page_type)) = entry.as_object().and_then(|e| e.get("page_type")) {
                     out.per_page_type.push(FrameTypeEntry {
                         page_type: page_type.clone(),
-                        form,
+                        form: entry.get("form").and_then(form_id),
                     });
                 }
             }
-            Some(_) => malformed("per_page_type is not an array"),
         }
         out
     }
@@ -286,9 +251,8 @@ pub fn frame_form_from_settings(
 /// The frame form is `Page.form`, else the entry of the `frames` shim whose `page_type` is the page's type,
 /// else its `default` (doc 03 §5.1 `FrameDefaults`, FR-PAG-018). A malformed matching entry falls through
 /// to the `default`, a malformed `default` to the built-in default (see [`FrameSettings`]). When no form is
-/// configured at all the built-in default grid applies ([`default_frame_grid`]) and the query pushes
-/// [`DeriveNote::DefaultFrame`], except on title, table-of-contents and divider pages, whose default is the
-/// no-grid frame variant (`None`, no note; doc 03 §5.1). A rule that names a form copy the project does not hold
+/// configured at all the built-in default grid applies ([`default_frame_grid`]), except on title, table-of-contents
+/// and divider pages, whose default is the no-grid frame variant (`None`; doc 03 §5.1). A rule that names a form copy the project does not hold
 /// falls through to the next ([`frame_form_of`]). A configured form without a `grid` member has no cells
 /// (`None`), as has a page that does not exist.
 #[derive(Debug)]
@@ -313,7 +277,6 @@ impl Query for FrameGridOf {
             ) {
                 return Arc::new(None);
             }
-            q.note(DeriveNote::DefaultFrame);
             return Arc::new(Some(default_frame_grid()));
         };
         Arc::new(q.forms().get(form).and_then(|f| f.item.grid.clone()))

@@ -25,7 +25,7 @@ use ew_derive::{
     RailTerminalOf, RailTerminals, SettingsMember, StitchGraphQ, TitleBlockValues, TocRows, WireDefaultProps,
     WireNumbers, WireProfileNotes, WireProfilesQ, WirePropsOf, XrefTextOf,
 };
-use ew_derive::{IpFunctions, IpInfoOf, IpNotes, IpPairingQ};
+use ew_derive::{IpFunctions, IpInfoOf, IpPairingQ};
 use ew_ids::Id;
 use ew_reports::{BlockPages, BlockRows, TagClassMembers};
 use ew_schema::{
@@ -189,7 +189,6 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<ew_derive::TubeRows>(memo, cold, [()], o);
     check::<ew_derive::ValveTerminalRows>(memo, cold, [()], o);
     check::<ew_derive::MediumRows>(memo, cold, [()], o);
-    check::<IpNotes>(memo, cold, [()], o);
     check::<PotentialAttrsOf>(memo, cold, keys.potentials.iter().copied(), o);
     check::<PotentialNameOf>(memo, cold, keys.potentials.iter().copied(), o);
     check::<ew_derive::ModuleOrder>(memo, cold, keys.cfgs.iter().copied(), o);

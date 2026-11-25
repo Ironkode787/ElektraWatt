@@ -16,8 +16,7 @@
 //! representation, letter) and nothing else. A scheme is therefore applied only when that makes
 //! its tags unique wherever the counters are: its counter scope is `"page"` and its format and every
 //! rule's format contain `{page}`, `{letter}` and `{counter}`. Any other scheme (from the project's
-//! settings or named by `TagScheme::Named`) is skipped with a [`DeriveNote::SchemeNotApplied`] and the
-//! pinned profile's default scheme formats the tag (until every scheme is
+//! settings or named by `TagScheme::Named`) is skipped and the pinned profile's default scheme formats the tag (until every scheme is
 //! numbered).
 
 use std::collections::BTreeSet;
@@ -32,7 +31,7 @@ use ew_schema::{
 
 use crate::Q;
 use crate::cell::RepAnchorCell;
-use crate::note::{DeriveNote, SchemeIssue};
+use crate::note::SchemeIssue;
 use crate::pages::folio_label;
 use crate::profile::{self, CounterScope, NumberingScheme, NumberingSettings};
 use crate::query::{Policy, Query};
@@ -318,15 +317,11 @@ fn counter_text(counter: Option<u32>) -> String {
 }
 
 /// The tag of the device another tag is built from (a terminal's strip, a child's parent), through
-/// [`Q::try_get`]; `Err` on a cycle, which is noted.
+/// [`Q::try_get`]; `Err` on a cycle.
 fn tag_of(q: &Q, device: Id<Device>) -> Result<Option<Tag>, ()> {
-    match q.try_get::<DeviceTag>(device) {
-        Ok(t) => Ok((*t).clone()),
-        Err(cycle) => {
-            q.note_cycle(cycle);
-            Err(())
-        }
-    }
+    q.try_get::<DeviceTag>(device)
+        .map(|t| (*t).clone())
+        .map_err(|_| ())
 }
 
 /// Why the command layer's counters would not make `scheme`'s tags unique, if they would not.
@@ -349,35 +344,20 @@ pub(crate) fn scheme_issue(scheme: &NumberingScheme) -> Option<SchemeIssue> {
 
 /// The scheme that formats a numbered tag: the requested one ([`profile::scheme_for`]: the named scheme,
 /// else the project's default, else the profile's), or the pinned profile's default scheme when the command
-/// layer's counters would not keep the requested one's tags unique (noted). A named key
-/// the settings do not define is noted too.
+/// layer's counters would not keep the requested one's tags unique.
 fn applied_scheme<'a>(
     q: &'a Q,
     settings: Option<&'a NumberingSettings>,
     named: Option<&str>,
 ) -> &'a NumberingScheme {
     let profile = q.profile();
-    if let (Some(key), Some(settings)) = (named, settings) {
-        if !settings.schemes.iter().any(|s| s.key == key) {
-            q.note(DeriveNote::SchemeNotApplied {
-                scheme: key.to_owned(),
-                issue: SchemeIssue::UnknownKey,
-            });
-        }
-    }
     let requested = profile::scheme_for(settings, profile, named);
     if std::ptr::eq(requested, &profile.numbering) {
         return requested;
     }
     match scheme_issue(requested) {
         None => requested,
-        Some(issue) => {
-            q.note(DeriveNote::SchemeNotApplied {
-                scheme: requested.key.clone(),
-                issue,
-            });
-            &profile.numbering
-        }
+        Some(_) => &profile.numbering,
     }
 }
 

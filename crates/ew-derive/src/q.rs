@@ -4,7 +4,6 @@
 //! The tracked-read context [`Q`] (ADR-0002 decision 1, ARCH §3 rule 1, §6.1).
 
 use std::cell::RefCell;
-use std::collections::BTreeSet;
 use std::fmt;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -19,7 +18,6 @@ use ew_schema::{
 
 use crate::memo_keys::{self, MemoInput, PartKey};
 use crate::memo_store::{self, MemoOf};
-use crate::note::{DeriveNote, NoteFrame, NoteSet};
 use crate::profile::{self, DerivationProfile, ProfileStatus};
 use crate::query::{Cache, Lookup, Policy, Query};
 use crate::tracker::{DepKey, RecordingTracker};
@@ -53,8 +51,7 @@ pub(crate) type DeriveStore = ew_memo::Store<Q>;
 /// A `Q` from [`MemoStore::query`](crate::MemoStore::query) reads the `Memo` families through
 /// the store's `ew-memo` engine (ADR-0002 amendment 4): a read of such a family inside another records one
 /// memo dependency, not the nested family's reads; cold families run inside the execution that reads them
-/// (each memo execution has its own request cache, so their reads are recorded where they are used); the
-/// notes a memoised family pushed are kept with its value and replayed into every `Q` that reads it. A
+/// (each memo execution has its own request cache, so their reads are recorded where they are used). A
 /// query that caught a cycle ([`Q::try_get`]) makes its execution volatile: its value is not kept.
 ///
 /// ```compile_fail
@@ -68,9 +65,6 @@ pub struct Q {
     recorder: Option<Rc<RecordingTracker>>,
     /// The request-scoped caches: the request's, then one per memo execution in progress.
     cache: RefCell<Vec<Cache>>,
-    /// The notes: the request's, then the notes of each memo execution in progress (own notes, and the
-    /// shared note sets of the memoised values read).
-    notes: RefCell<Vec<NoteFrame>>,
     profile: &'static DerivationProfile,
     profile_status: ProfileStatus,
     /// The report engine behind generated pages (`Q::with_report_pages`); none by default.
@@ -78,9 +72,7 @@ pub struct Q {
     pub(crate) report_pages: crate::pages::ProviderSlot,
     /// The memo store of a memoising `Q`, which holds this `Q`'s snapshot at its current revision.
     memo: Option<Rc<DeriveStore>>,
-    /// Per memo execution in progress (innermost last): whether its body declared changed parts
-    /// ([`Q::changed_parts`]; `memo_store` then also declares the notes part when the notes changed), and
-    /// whether its family is a producer ([`Query::PRODUCER`], checked in debug builds).
+    /// Per memo execution in progress (innermost last): whether its family is a producer ([`Query::PRODUCER`], checked in debug builds).
     parts_declared: RefCell<Vec<PartsFrame>>,
 }
 
@@ -92,13 +84,10 @@ impl fmt::Debug for Q {
 }
 
 /// Undoes `start` and `enter` when a query panics: the slot is removed (so a later `get` evaluates again
-/// instead of reporting a false cycle), the note frame of a capturing evaluation is popped and the recorder
-/// stack is balanced. Disarmed on the normal path.
+/// instead of reporting a false cycle) and the recorder stack is balanced. Disarmed on the normal path.
 struct UnwindGuard<'q, Qy: Query> {
     q: &'q Q,
     key: Option<Qy::Key>,
-    /// The evaluation pushed a note frame to capture its notes (inside a detached scope).
-    capture: bool,
 }
 
 impl<Qy: Query> Drop for UnwindGuard<'_, Qy> {
@@ -110,11 +99,6 @@ impl<Qy: Query> Drop for UnwindGuard<'_, Qy> {
             {
                 top.abort::<Qy>(&key);
             }
-            if self.capture
-                && let Ok(mut notes) = self.q.notes.try_borrow_mut()
-            {
-                notes.pop();
-            }
             if let Some(r) = &self.q.recorder {
                 r.exit(Qy::FAMILY);
             }
@@ -125,22 +109,10 @@ impl<Qy: Query> Drop for UnwindGuard<'_, Qy> {
 /// The parts state of one memo execution in progress.
 #[derive(Clone, Copy)]
 struct PartsFrame {
-    /// The body declared changed parts.
-    declared: bool,
     /// The family is a producer of parts.
     producer: bool,
     /// The family.
     family: &'static str,
-}
-
-/// What one memo execution of a family produced ([`Q::memo_frame`]).
-pub(crate) struct MemoFrameOut<V> {
-    /// The value.
-    pub(crate) value: Arc<V>,
-    /// The execution's note set (`None`: no note).
-    pub(crate) notes: Option<Arc<NoteSet>>,
-    /// Whether the body declared the parts it changed.
-    pub(crate) declared: bool,
 }
 
 /// A query needed its own value (ADR-0002 decision 4), as returned by [`Q::try_get`].
@@ -164,7 +136,7 @@ impl fmt::Display for Cycle {
 
 impl std::error::Error for Cycle {}
 
-/// The diagnostics of a [`Q`]: what it evaluated and the [`DeriveNote`]s its queries pushed. Obtained
+/// The diagnostics of a [`Q`]: what it evaluated. Obtained
 /// through [`Q::diagnostics`], which takes `&mut Q`, so a query body (which holds `&Q` only) cannot read
 /// this untracked state.
 #[derive(Debug)]
@@ -177,17 +149,6 @@ impl Diagnostics<'_> {
     /// memoising `Q` keeps its memoised families in the store, not here.
     pub fn cached(&self, family: &str) -> usize {
         self.q.cache.borrow().first().map_or(0, |c| c.len_of(family))
-    }
-
-    /// The notes so far, in the canonical order of [`DeriveNote`] (independent of evaluation order); for a
-    /// memoising `Q` also the notes of the memoised values it read.
-    pub fn notes(&self) -> Vec<DeriveNote> {
-        self.q
-            .notes
-            .borrow()
-            .first()
-            .map(|n| n.notes().into_iter().collect())
-            .unwrap_or_default()
     }
 }
 
@@ -206,20 +167,10 @@ impl Q {
     fn of(model: &Model, recorder: Option<Rc<RecordingTracker>>) -> Q {
         let model = model.clone();
         let (profile, profile_status) = profile::resolve(model.project().derivation_profile.as_str());
-        let mut notes = BTreeSet::new();
-        // ADR-0003: an unknown pinned profile is never silent. It is a property of the snapshot, so every
-        // `Q` over it carries the note from the start.
-        if let ProfileStatus::Unknown { requested } = &profile_status {
-            notes.insert(DeriveNote::UnknownProfile {
-                requested: requested.clone(),
-                used: profile.version.clone(),
-            });
-        }
         Q {
             model,
             recorder,
             cache: RefCell::new(vec![Cache::default()]),
-            notes: RefCell::new(vec![NoteFrame::with(notes)]),
             profile,
             profile_status,
             report_pages: crate::pages::ProviderSlot::default(),
@@ -255,16 +206,13 @@ impl Q {
             .filter(|s| s.current().0 == self.model.rev().0)
     }
 
-    /// Runs one memo execution of `Qy` (the body of [`MemoOf`]): its own request cache and note frame, the
-    /// recorder bracket; returns the value and the execution's note set (its own notes and, by reference,
-    /// those of the memoised values it read; `None` without notes) with whether that set is a new allocation,
-    /// and whether the body declared changed parts ([`Q::changed_parts`]). A panic in `body` unwinds the
-    /// frames.
+    /// Runs one memo execution of `Qy` (the body of [`MemoOf`]): its own request cache, the recorder bracket;
+    /// returns the value. A panic in `body` unwinds the frames.
     pub(crate) fn memo_frame<Qy: Query>(
         &self,
         key: &Qy::Key,
         body: impl FnOnce() -> Arc<Qy::Value>,
-    ) -> MemoFrameOut<Qy::Value> {
+    ) -> Arc<Qy::Value> {
         struct Frames<'q> {
             q: &'q Q,
             family: &'static str,
@@ -276,9 +224,6 @@ impl Q {
                     if let Ok(mut c) = self.q.cache.try_borrow_mut() {
                         c.pop();
                     }
-                    if let Ok(mut n) = self.q.notes.try_borrow_mut() {
-                        n.pop();
-                    }
                     if let Ok(mut d) = self.q.parts_declared.try_borrow_mut() {
                         d.pop();
                     }
@@ -289,9 +234,7 @@ impl Q {
             }
         }
         self.cache.borrow_mut().push(Cache::default());
-        self.notes.borrow_mut().push(NoteFrame::default());
         self.parts_declared.borrow_mut().push(PartsFrame {
-            declared: false,
             producer: Qy::PRODUCER,
             family: Qy::FAMILY,
         });
@@ -309,22 +252,8 @@ impl Q {
             r.exit(Qy::FAMILY);
         }
         self.cache.borrow_mut().pop();
-        let declared = self.parts_declared.borrow_mut().pop().is_some_and(|f| f.declared);
-        let frame = self.notes.borrow_mut().pop().unwrap_or_default();
-        MemoFrameOut {
-            value,
-            notes: frame.into_set(),
-            declared,
-        }
-    }
-
-    /// Adds the notes of a memoised value to the innermost note frame (a read of the value): one shared
-    /// reference, not a copy of the notes.
-    pub(crate) fn replay(&self, notes: Option<&Arc<NoteSet>>) {
-        let Some(notes) = notes else { return };
-        if let Some(top) = self.notes.borrow_mut().last_mut() {
-            top.replay(notes);
-        }
+        self.parts_declared.borrow_mut().pop();
+        value
     }
 
     /// A query caught a cycle: the memo execution it runs in depends on the evaluation context.
@@ -364,8 +293,8 @@ impl Q {
     }
 
     /// The value of `Qy` for `key`, depending on its part `part` only (ADR-0002 amendment 4): in a memoising
-    /// `Q` the reading execution is invalidated when `Qy`'s execution declares `part` changed (or its notes,
-    /// [`PartKey::Notes`]), not on every change of `Qy`. The caller must read only what `part` names. Cold, it
+    /// `Q` the reading execution is invalidated when `Qy`'s execution declares `part` changed, not on every
+    /// change of `Qy`. The caller must read only what `part` names. Cold, it
     /// is [`Q::get`].
     pub(crate) fn get_part<Qy: Query>(&self, key: Qy::Key, part: PartKey) -> Arc<Qy::Value> {
         if Qy::POLICY != Policy::Cold
@@ -395,17 +324,15 @@ impl Q {
 
     /// Declares, in an incremental execution of a producer, that these parts of its value changed (the
     /// readers of other parts stay valid). A producer that declares parts must declare every changed part
-    /// whenever it has a previous value; `memo_store` adds [`PartKey::Notes`] when its notes changed. Only a
-    /// [`Query::PRODUCER`] declares parts (debug builds check it). Cold, it does nothing.
+    /// whenever it has a previous value. Only a [`Query::PRODUCER`] declares parts (debug builds check it). Cold, it does nothing.
     pub(crate) fn changed_parts(&self, parts: impl IntoIterator<Item = PartKey>) {
         if let Some(store) = self.memo_store() {
-            if let Some(top) = self.parts_declared.borrow_mut().last_mut() {
+            if let Some(top) = self.parts_declared.borrow().last() {
                 debug_assert!(
                     top.producer,
                     "ew-derive: `{}` declares parts but is no producer (Query::PRODUCER)",
                     top.family
                 );
-                top.declared = true;
             }
             store.changed_parts(parts.into_iter().map(MemoInput::Part));
         }
@@ -427,7 +354,7 @@ impl Q {
 
     /// [`Q::get`], returning a [`Cycle`] instead of panicking when `Qy` is already evaluating `key`.
     ///
-    /// The caller falls back to a neutral value and records the cycle with [`Q::note_cycle`]. On a model
+    /// The caller falls back to a neutral value. On a model
     /// that breaks the invariant ruling the cycle out (EW-INV-015, which the integrity check enforces on
     /// load), the fallback values depend on which key was asked first; that is acceptable for a rejected
     /// model, a panic is not.
@@ -447,10 +374,7 @@ impl Q {
         }
         let lookup = self.top_cache(|c| c.lookup::<Qy>(&key));
         match lookup {
-            Lookup::Hit(v, notes) => {
-                self.replay(notes.as_ref());
-                Ok(v)
-            }
+            Lookup::Hit(v) => Ok(v),
             Lookup::Running => {
                 self.caught_cycle();
                 Err(Cycle {
@@ -459,76 +383,23 @@ impl Q {
                 })
             }
             Lookup::Miss => {
-                // Inside a detached scope the evaluation captures its notes and keeps them with its value: the
-                // scope drops them, a later read outside the scope replays them.
-                let capture = self.top_cache(|c| {
-                    c.start::<Qy>(key.clone());
-                    c.detached > 0
-                });
-                if capture {
-                    self.notes.borrow_mut().push(NoteFrame::default());
-                }
+                self.top_cache(|c| c.start::<Qy>(key.clone()));
                 if let Some(r) = &self.recorder {
                     r.enter(Qy::FAMILY, &key);
                 }
                 let mut guard = UnwindGuard::<Qy> {
                     q: self,
                     key: Some(key.clone()),
-                    capture,
                 };
                 let value = Qy::run(self, &key);
                 guard.key = None;
                 if let Some(r) = &self.recorder {
                     r.exit(Qy::FAMILY);
                 }
-                let notes = if capture {
-                    let frame = self.notes.borrow_mut().pop().unwrap_or_default();
-                    frame.into_set()
-                } else {
-                    None
-                };
-                self.top_cache(|c| c.finish::<Qy>(key, Arc::clone(&value), notes.clone()));
-                self.replay(notes.as_ref());
+                self.top_cache(|c| c.finish::<Qy>(key, Arc::clone(&value)));
                 Ok(value)
             }
         }
-    }
-
-    /// Runs `f` in a detached scope: the notes pushed inside are dropped afterwards. The reads inside are
-    /// tracked as usual (they are dependencies of the running query), and the scope shares the request cache of
-    /// the frame it runs in (the request's, or the memo execution's): a value computed before the scope is a
-    /// hit inside it, and a value computed inside it is a hit afterwards. A cold family evaluated inside the
-    /// scope keeps the notes it pushed with its cached value, so a read outside the scope replays them as a
-    /// fresh evaluation would push them (a scope with a cache of its own evaluated
-    /// every family it read again, once per scope).
-    ///
-    /// For the note-free connectivity families (ARCH §6.4): an incremental family whose hook re-reads only what
-    /// changed cannot reproduce the notes of what it did not re-read, so it carries no notes; helper queries
-    /// whose notes belong to their own readers (the default frame of an anchor cell, a structure cycle) run
-    /// detached, and the family records what it must report in its value. The scope behaves the same in a
-    /// cold and in a memoising `Q`.
-    pub(crate) fn detached<R>(&self, f: impl FnOnce() -> R) -> R {
-        struct Scope<'q> {
-            q: &'q Q,
-        }
-        impl Drop for Scope<'_> {
-            fn drop(&mut self) {
-                // A memo execution started inside the scope has popped its own cache by now (on a panic too), so
-                // the top cache is the one the scope opened over.
-                if let Ok(mut c) = self.q.cache.try_borrow_mut()
-                    && let Some(top) = c.last_mut()
-                {
-                    top.detached = top.detached.saturating_sub(1);
-                }
-                if let Ok(mut n) = self.q.notes.try_borrow_mut() {
-                    n.pop();
-                }
-            }
-        }
-        self.top_cache(|c| c.detached += 1);
-        self.notes.borrow_mut().push(NoteFrame::default());
-        let _scope = Scope { q: self };
-        f()
     }
 
     /// Runs `f` on the innermost request cache.
@@ -538,18 +409,12 @@ impl Q {
 
     /// This context with the report engine installed: [`PageOrder`](crate::PageOrder) then includes the
     /// generated report pages. The provider is configuration, not a tracked input (see the type
-    /// documentation), so installing it discards every value this `Q` has already cached and every note
-    /// its queries pushed: nothing computed under the previous configuration survives.
+    /// documentation), so installing it discards every value this `Q` has already cached: nothing computed
+    /// under the previous configuration survives.
     #[must_use]
     pub fn with_report_pages(mut self, provider: Arc<dyn crate::ReportPagesProvider>) -> Q {
         self.report_pages = crate::pages::ProviderSlot(Some(provider));
         *self.cache.get_mut() = vec![Cache::default()];
-        // Only the snapshot's own note (an unknown pinned profile) is independent of query evaluation.
-        let notes = self.notes.get_mut();
-        notes.truncate(1);
-        if let Some(n) = notes.first_mut() {
-            n.retain_own(|n| matches!(n, DeriveNote::UnknownProfile { .. }));
-        }
         // A provider switched on a memoising `Q` would mix configurations in one store: memoise no more.
         self.memo = None;
         self
@@ -567,22 +432,7 @@ impl Q {
         self.report_pages.0.is_some()
     }
 
-    /// Records a derivation note (see [`DeriveNote`]). Notes form a set: pushing one twice keeps one.
-    pub fn note(&self, note: DeriveNote) {
-        if let Some(top) = self.notes.borrow_mut().last_mut() {
-            top.insert(note);
-        }
-    }
-
-    /// Records a cycle returned by [`Q::try_get`] as a [`DeriveNote::QueryCycle`].
-    pub fn note_cycle(&self, cycle: Cycle) {
-        self.note(DeriveNote::QueryCycle {
-            family: cycle.family,
-            key: cycle.key,
-        });
-    }
-
-    /// The diagnostics handle: evaluated keys and notes. It takes `&mut self`, so only the owner of the
+    /// The diagnostics handle: the evaluated keys. It takes `&mut self`, so only the owner of the
     /// `Q` reaches it, never a query body:
     ///
     /// ```compile_fail
@@ -1098,153 +948,5 @@ impl<'q> IdxView<'q> {
             self.indexes().structure_boxes_by_page(),
             page,
         )
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::cell::Cell;
-    use std::panic::{AssertUnwindSafe, catch_unwind};
-    use std::sync::Arc;
-
-    use super::*;
-    use crate::memo_keys::test_common::Fx;
-    use crate::query::{Policy, Query};
-
-    thread_local! {
-        /// The evaluations of [`Inner`] on this thread.
-        static INNER_RUNS: Cell<usize> = const { Cell::new(0) };
-    }
-
-    /// A cold family that pushes a note and counts its evaluations; key 99 panics.
-    struct Inner;
-
-    impl Query for Inner {
-        type Key = u8;
-        type Value = u8;
-        const FAMILY: &'static str = "test_detached_inner";
-        const POLICY: Policy = Policy::Cold;
-
-        fn run(q: &Q, key: &u8) -> Arc<u8> {
-            INNER_RUNS.with(|c| c.set(c.get() + 1));
-            assert!(*key != 99, "inner panics on 99");
-            q.note(DeriveNote::DefaultFrame);
-            Arc::new(*key)
-        }
-    }
-
-    /// A cold family that reads `Inner(0)` (or `Inner(99)` for key 99) inside a detached scope, as the
-    /// note-free connectivity families read their helpers.
-    struct Outer;
-
-    impl Query for Outer {
-        type Key = u8;
-        type Value = u8;
-        const FAMILY: &'static str = "test_detached_outer";
-        const POLICY: Policy = Policy::Cold;
-
-        fn run(q: &Q, key: &u8) -> Arc<u8> {
-            let inner = if *key == 99 { 99 } else { 0 };
-            Arc::new(q.detached(|| *q.get::<Inner>(inner)).wrapping_add(*key))
-        }
-    }
-
-    fn runs() -> usize {
-        INNER_RUNS.with(Cell::get)
-    }
-
-    fn reset() {
-        INNER_RUNS.with(|c| c.set(0));
-    }
-
-    /// Every detached scope had a cache of its own, so a family read by many
-    /// scopes was evaluated once per scope. Now it is evaluated once per request, its notes stay out of the
-    /// detached scopes, and a read outside the scopes replays them.
-    #[test]
-    fn detached_scopes_share_the_request_cache_and_keep_notes_out() {
-        let model = Fx::new().build();
-        reset();
-        let mut q = Q::new(&model);
-        for k in 1..=20 {
-            assert_eq!(*q.get::<Outer>(k), k);
-        }
-        assert_eq!(runs(), 1, "Inner(0) is evaluated once for twenty detached scopes");
-        assert!(
-            q.diagnostics().notes().is_empty(),
-            "the notes of a detached read are dropped"
-        );
-        assert_eq!(*q.get::<Inner>(0), 0);
-        assert_eq!(runs(), 1, "the read outside the scopes is a hit");
-        assert_eq!(
-            q.diagnostics().notes(),
-            vec![DeriveNote::DefaultFrame],
-            "the hit replays the notes the detached evaluation captured"
-        );
-    }
-
-    /// A value computed before a detached scope is a hit inside it, and its notes are pushed once.
-    #[test]
-    fn a_value_computed_outside_is_a_hit_inside_a_detached_scope() {
-        let model = Fx::new().build();
-        reset();
-        let mut q = Q::new(&model);
-        assert_eq!(*q.get::<Inner>(0), 0);
-        assert_eq!(*q.get::<Outer>(5), 5);
-        assert_eq!(runs(), 1);
-        assert_eq!(q.diagnostics().notes(), vec![DeriveNote::DefaultFrame]);
-    }
-
-    /// A panic inside a capturing evaluation unwinds the note frames and the detached counter: the `Q` stays
-    /// usable and later reads behave as in a fresh `Q`.
-    #[test]
-    fn a_panic_inside_a_detached_scope_unwinds_its_frames() {
-        let model = Fx::new().build();
-        reset();
-        let mut q = Q::new(&model);
-        let caught = catch_unwind(AssertUnwindSafe(|| q.get::<Outer>(99)));
-        assert!(caught.is_err());
-        assert_eq!(
-            q.notes.borrow().len(),
-            1,
-            "the capture and scope frames are popped"
-        );
-        assert_eq!(q.cache.borrow().len(), 1);
-        assert_eq!(q.cache.borrow()[0].detached, 0, "the scope is closed");
-        assert_eq!(*q.get::<Inner>(0), 0);
-        assert_eq!(q.diagnostics().notes(), vec![DeriveNote::DefaultFrame]);
-    }
-
-    /// A memoised family whose execution reads `Outer` for ten keys.
-    struct Memoised;
-
-    impl Query for Memoised {
-        type Key = ();
-        type Value = u32;
-        const FAMILY: &'static str = "test_detached_memoised";
-        const POLICY: Policy = Policy::Memo;
-
-        fn run(q: &Q, _: &()) -> Arc<u32> {
-            let mut sum = 0u32;
-            for k in 1..=10u8 {
-                sum += u32::from(*q.get::<Outer>(k));
-            }
-            Arc::new(sum)
-        }
-    }
-
-    /// In a memoising `Q` a cold family read inside a detached scope of a memo execution is cached in that
-    /// execution's request cache: the scopes of one execution share it.
-    #[test]
-    fn detached_scopes_inside_a_memo_execution_share_its_cache() {
-        let model = Fx::new().build();
-        reset();
-        let store = crate::MemoStore::new(&model);
-        let mut q = store.query();
-        assert_eq!(*q.get::<Memoised>(()), 55);
-        assert_eq!(runs(), 1, "one evaluation of Inner(0) in the memo execution");
-        assert!(
-            q.diagnostics().notes().is_empty(),
-            "the memoised value carries no detached note"
-        );
     }
 }

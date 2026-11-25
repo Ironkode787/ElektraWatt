@@ -31,11 +31,10 @@
 //!
 //! A block's `params` member is a top-level JSON object kept in the block's `extra` (no schema member):
 //! snake_case keys, JSON scalar values. A kind declares the keys it reads through `ReportKindDef::params()` (key, type
-//! `Bool` or `Choice`, default; none by default), and reads the block's values through `kind_params(q, block)`, one
+//! `Bool` or `Choice`, default; none by default), and reads the block's values through `kind_params(block)`, one
 //! value per declared key in declaration order. A value outside its kind (another JSON type, a word the choice does
 //! not list, "Assembly" for "assembly") takes the default, an undeclared key is ignored, and a `params` that is not an
-//! object gives every default; each pushes one `DeriveNote::MalformedShim` that names the block in words (`report
-//! block 912 params.mode`).
+//! object gives every default.
 //!
 //! # The export by kind
 //!

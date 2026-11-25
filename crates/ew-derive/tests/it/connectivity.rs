@@ -142,9 +142,8 @@ fn bridge() -> Value {
     json!({"bridge": {"kind": "plug_in", "group": 1, "shaft": 1}})
 }
 
-fn has_note(q: &mut Q, code: &str) -> bool {
-    q.diagnostics()
-        .notes()
+fn has_note(q: &Q, code: &str) -> bool {
+    value_notes(q)
         .iter()
         .any(|n| matches!(n, DeriveNote::Connectivity { code: c, .. } if *c == code))
 }
@@ -297,11 +296,11 @@ fn unpaired_ip_is_noted_not_panicking() {
     ip(&mut fx, 0x1101, P1, "LONELY", "source");
     conn(&mut fx, 0x2001, Some(P1), cp(0x1001), cp(0x1101), Value::Null);
     let m = fx.build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let _ = q.get::<PotentialPartition>(());
     // The interruption-point notes are pushed by the stitch graph.
     let _ = q.get::<StitchGraphQ>(());
-    assert!(has_note(&mut q, "EW-CORE-051"), "{:?}", q.diagnostics().notes());
+    assert!(has_note(&q, "EW-CORE-051"));
 }
 
 /// `m` with connection `n`'s end `b` replaced, invariants skipped (CI-01, EW-INV-001).
@@ -458,7 +457,7 @@ fn potential_id_prefers_definitions() {
     };
     // Two definitions, equal names: the smaller ID names the potential, no note.
     let m = build(&[(0x5002, cp(0x1002), "N"), (0x5001, cp(0x1001), "N")]);
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());
     assert_eq!(part.potential_count(), 1);
     assert_eq!(part.potentials().next().unwrap().id, PotentialId::Def(id(0x5001)));
@@ -468,15 +467,13 @@ fn potential_id_prefers_definitions() {
         part.potentials().next().unwrap().defs,
         vec![id::<PotentialDef>(0x5001), id(0x5002)]
     );
-    assert!(!has_note(&mut q, "EW-POT-017"));
-    // Different names: the first wins and the other is noted.
+    // Different names: the first wins.
     let m = build(&[(0x5002, cp(0x1002), "Other"), (0x5001, cp(0x1001), "First")]);
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());
     assert_eq!(part.potentials().next().unwrap().id, PotentialId::Def(id(0x5001)));
     let first = part.potentials().next().unwrap().id;
     assert_eq!(q.get::<PotentialNameOf>(first).name.text, "First");
-    assert!(has_note(&mut q, "EW-POT-017"));
     // No definition: the minimum CP ID.
     let m = build(&[]);
     let q = Q::new(&m);
@@ -863,9 +860,19 @@ fn only_potential(q: &Q) -> PotentialId {
     part.potentials().next().unwrap().id
 }
 
+/// The connectivity notes of the values that hold them: the interruption points' pairing and the physical wires
+/// of every potential.
+fn value_notes(q: &Q) -> Vec<DeriveNote> {
+    let mut notes: Vec<DeriveNote> = q.get::<ew_derive::IpPairingQ>(()).notes.clone();
+    for p in q.get::<PotentialPartition>(()).potentials() {
+        notes.extend(q.get::<PhysicalWiresOf>(p.id).notes.iter().cloned());
+    }
+    notes
+}
+
 /// Whether a note `code` about `subject` is present.
-fn has_note_on(q: &mut Q, code: &str, subject: &str) -> bool {
-    q.diagnostics().notes().iter().any(
+fn has_note_on(q: &Q, code: &str, subject: &str) -> bool {
+    value_notes(q).iter().any(
         |n| matches!(n, DeriveNote::Connectivity { code: c, subject: s, .. } if *c == code && s == subject),
     )
 }
@@ -966,10 +973,10 @@ fn two_junctions(seq1: &[u128], seq2: &[u128]) -> Model {
 fn ambiguous_junction_feed_is_noted() {
     // EW-POT-011, doc 08 §3.2: the arm between two junctions is the feed arm of both ...
     let m = two_junctions(&[0x2001, 0x2002], &[0x2001, 0x2003]);
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let pid = only_potential(&q);
     let wires = q.get::<PhysicalWiresOf>(pid);
-    assert!(has_note(&mut q, "EW-POT-011"), "{:?}", q.diagnostics().notes());
+    assert!(has_note(&q, "EW-POT-011"));
     // ... the tree is rooted at the lowest junction with an arm at a CP: one wire.
     assert_eq!(wires.wires.len(), 1);
     let w = &wires.wires[0];
@@ -983,19 +990,19 @@ fn ambiguous_junction_feed_is_noted() {
 
     // ... or of neither (both junctions list it last).
     let m = two_junctions(&[0x2002, 0x2001], &[0x2003, 0x2001]);
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let pid = only_potential(&q);
     let wires = q.get::<PhysicalWiresOf>(pid);
-    assert!(has_note(&mut q, "EW-POT-011"), "{:?}", q.diagnostics().notes());
+    assert!(has_note(&q, "EW-POT-011"));
     assert_eq!(wires.wires.len(), 1);
     assert_eq!(wires.wires[0].id, id::<Connection>(0x2003));
 
     // A consistent tree is silent: J1 is fed by 0x2002, J2 by 0x2001.
     let m = two_junctions(&[0x2002, 0x2001], &[0x2001, 0x2003]);
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let pid = only_potential(&q);
     let wires = q.get::<PhysicalWiresOf>(pid);
-    assert!(!has_note(&mut q, "EW-POT-011"), "{:?}", q.diagnostics().notes());
+    assert!(!has_note(&q, "EW-POT-011"));
     assert_eq!(wires.wires.len(), 1);
 }
 
@@ -1010,13 +1017,13 @@ fn ring_is_broken_at_its_highest_connection() {
     conn(&mut fx, 0x2003, Some(P1), cp(0x1002), cp(0x1003), Value::Null);
     conn(&mut fx, 0x2001, Some(P1), cp(0x1003), cp(0x1001), Value::Null);
     let m = fx.build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let pid = only_potential(&q);
     let wires = q.get::<PhysicalWiresOf>(pid);
     let ids: Vec<Id<Connection>> = wires.wires.iter().map(|w| w.id).collect();
     assert_eq!(ids, vec![id::<Connection>(0x2001), id(0x2002)]);
     assert!(has_note_on(
-        &mut q,
+        &q,
         "EW-POT-012",
         &id::<Connection>(0x2003).to_string()
     ));
@@ -1058,7 +1065,7 @@ fn conflicting_conductors_are_noted() {
         json!({"core": uid(0x6102)}),
         Value::Null,
     );
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let pid = only_potential(&q);
     let wires = q.get::<PhysicalWiresOf>(pid);
     assert_eq!(wires.wires.len(), 1);
@@ -1066,7 +1073,7 @@ fn conflicting_conductors_are_noted() {
     // The carrier's conductor applies (doc 08 §3.8): the leg at the Target point.
     assert_eq!(w.id, id::<Connection>(0x2002));
     assert_eq!(w.core, Some(id(0x6102)));
-    assert!(has_note_on(&mut q, "EW-POT-014", &w.id.to_string()));
+    assert!(has_note_on(&q, "EW-POT-014", &w.id.to_string()));
     let props = q.get::<WirePropsOf>(pid);
     let csa = props.wires[&w.id].csa.as_ref().expect("a cross-section");
     assert_eq!(csa.source, PropSource::Conductor(id(0x6102)));
@@ -1078,10 +1085,10 @@ fn conflicting_conductors_are_noted() {
         json!({"core": uid(0x6102)}),
         Value::Null,
     );
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let pid = only_potential(&q);
     assert_eq!(q.get::<PhysicalWiresOf>(pid).wires[0].core, Some(id(0x6102)));
-    assert!(!has_note(&mut q, "EW-POT-014"));
+    assert!(!has_note(&q, "EW-POT-014"));
 }
 
 #[test]
@@ -1092,12 +1099,12 @@ fn conflicting_overrides_are_noted() {
         Value::Null,
         json!({"csa": "2.5"}),
     );
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let pid = only_potential(&q);
     let wires = q.get::<PhysicalWiresOf>(pid);
     let w = &wires.wires[0];
     assert_eq!(w.id, id::<Connection>(0x2002));
-    assert!(has_note_on(&mut q, "EW-POT-014", &w.id.to_string()));
+    assert!(has_note_on(&q, "EW-POT-014", &w.id.to_string()));
     // The carrier's value applies and names the carrier.
     let props = q.get::<WirePropsOf>(pid);
     let csa = props.wires[&w.id].csa.as_ref().expect("a cross-section");
@@ -1110,10 +1117,10 @@ fn conflicting_overrides_are_noted() {
         Value::Null,
         json!({"csa": "2.5"}),
     );
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let pid = only_potential(&q);
     let _ = q.get::<PhysicalWiresOf>(pid);
-    assert!(!has_note(&mut q, "EW-POT-014"));
+    assert!(!has_note(&q, "EW-POT-014"));
 }
 
 #[test]
@@ -1270,10 +1277,10 @@ fn malformed_colour_profile_is_noted() {
     let mut fx = pair_fixture();
     fx.project_set("settings", json!({"colour_profile": 42}));
     let m = fx.build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let pid = only_potential(&q);
     let props = q.get::<WirePropsOf>(pid);
-    let notes = q.diagnostics().notes();
+    let notes = (*q.get::<ew_derive::WireProfileNotes>(())).clone();
     assert!(
         notes.iter().any(|n| matches!(
             n,
@@ -1318,10 +1325,10 @@ fn nested_junction_chain_fr_con_041() {
     junction(&mut fx, 0x3002, P1, &[0x2003, 0x2004, 0x2005]);
     fx.with("wiring", json!("chain"));
     let m = fx.build();
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let pid = only_potential(&q);
     let wires = q.get::<PhysicalWiresOf>(pid);
-    assert!(!has_note(&mut q, "EW-POT-011"), "{:?}", q.diagnostics().notes());
+    assert!(!has_note(&q, "EW-POT-011"));
     type Row = (Id<Connection>, [CpRef; 2], Vec<Id<Connection>>, Vec<Id<Junction>>);
     let got: Vec<Row> = wires
         .wires

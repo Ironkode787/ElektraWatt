@@ -17,7 +17,7 @@
 use crate::common;
 
 use common::{Fx, id, uid};
-use ew_derive::{DeriveNote, PotentialAttrsOf, PotentialId, PotentialNameOf, PotentialPartition, Q};
+use ew_derive::{PotentialAttrsOf, PotentialId, PotentialPartition, Q};
 use ew_model::Model;
 use ew_schema::{AcDc, CircuitClass, PotentialEnv, PotentialType};
 use ew_units::Dec3;
@@ -120,26 +120,23 @@ fn attrs_of0(q: &Q, part: &ew_derive::Partition) -> std::sync::Arc<ew_derive::Po
     q.get::<PotentialAttrsOf>(part.potentials().next().unwrap().id)
 }
 
-fn pot_notes(q: &mut Q) -> Vec<String> {
+fn pot_notes(q: &Q) -> Vec<String> {
     let part = q.get::<PotentialPartition>(());
-    // The attribute notes are pushed by the per-potential name family.
-    for p in part.potentials() {
-        q.get::<PotentialNameOf>(p.id);
-    }
-    q.diagnostics()
-        .notes()
-        .iter()
-        .filter_map(|n| match n {
-            DeriveNote::Connectivity { code, detail, .. } if *code == "EW-POT-001" => Some(detail.clone()),
-            _ => None,
+    part.potentials()
+        .flat_map(|p| {
+            q.get::<PotentialAttrsOf>(p.id)
+                .conflicts
+                .iter()
+                .map(|c| c.detail(q))
+                .collect::<Vec<_>>()
         })
         .collect()
 }
 
-/// The EW-POT-001 notes of the model, identical for a second `Q`.
+/// The EW-POT-001 conflicts of the model in English, identical for a second `Q`.
 fn notes_of(m: &Model) -> Vec<String> {
-    let first = pot_notes(&mut Q::new(m));
-    assert_eq!(first, pot_notes(&mut Q::new(m)), "deterministic");
+    let first = pot_notes(&Q::new(m));
+    assert_eq!(first, pot_notes(&Q::new(m)), "deterministic");
     first
 }
 

@@ -25,8 +25,8 @@
 //! Strip segments (doc 08 §6.7) neither refer nor are referred to, and never act as the main
 //! representation here (`MainRep` itself, which feeds tags, numbering and the BOM, only skips contact images;
 //! the cross-reference main representation is `xref_main_rep`).
-//! A second function with role `Main` (the model violates EW-INV-002) is treated as an auxiliary and noted.
-//! A target without an anchor cell prints "?" for its row and column and is noted (EW-CORE-053); the
+//! A second function with role `Main` (the model violates EW-INV-002) is treated as an auxiliary.
+//! A target without an anchor cell prints "?" for its row and column (EW-CORE-053); the
 //! reference's "3-B0" cannot arise because the cell comes from the symbol's anchor policy.
 //!
 //! **Order.** Targets are sorted by (page-order position, anchor row, anchor column, representation ID):
@@ -67,14 +67,13 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_rds::{Aspect, Designation, RdsSyntax};
-use ew_schema::{Device, ExternalRef, FnRole, Function, FunctionKind, IpSpec, Page, RepType, Representation};
+use ew_schema::{Device, ExternalRef, Function, FunctionKind, IpSpec, Page, RepType, Representation};
 use ew_units::Pt2;
 use serde_json::Value;
 
 use crate::cell::{Cell, RepAnchorCell, anchor_point};
-use crate::ip::{IpNotes, IpPairingQ};
+use crate::ip::IpPairingQ;
 use crate::memo_keys::PartKey;
-use crate::note::{DeriveNote, EW_INV_002};
 use crate::pages::{PageOrder, PageOrderV, PageRef, folio_label};
 use crate::profile::XrefFormat;
 use crate::query::{Policy, Query};
@@ -86,12 +85,6 @@ use crate::xref_format::{
     render_list_more, render_wrapper,
 };
 use crate::{FunctionCps, Q};
-
-/// The member name notes use for the cross-reference settings shim.
-const XREF_MEMBER: &str = "settings.xref_format";
-
-/// The finding code of an invalid cross-reference cell (EW-CORE-053, FR-CHK-035).
-const EW_CORE_053: &str = "EW-CORE-053";
 
 // ---------------------------------------------------------------------------------------------------------
 // Settings
@@ -132,8 +125,8 @@ pub struct XrefSettings {
 }
 
 /// `xref_format()`: the project's `settings.xref_format` (doc 03 §5.1, provisional `extra` member), else
-/// the pinned profile's `xref` table. A malformed member is noted and the profile's format applies; an
-/// unknown `structure` or `same_page` value is noted and its default applies.
+/// the pinned profile's `xref` table. For a malformed member the profile's format applies; for an unknown
+/// `structure` or `same_page` value its default.
 #[derive(Debug)]
 pub struct XrefSettingsOf;
 
@@ -144,28 +137,13 @@ impl Query for XrefSettingsOf {
     const POLICY: Policy = Policy::Cold;
 
     fn run(q: &Q, _: &()) -> Arc<XrefSettings> {
-        let malformed = |detail: String| {
-            q.note(DeriveNote::MalformedShim {
-                member: XREF_MEMBER.into(),
-                detail,
-            });
-        };
         let project = q.project();
         let format = match project.settings.extra.get("xref_format") {
             None => q.profile().xref.clone(),
-            Some(v) => read_format(v).unwrap_or_else(|e| {
-                malformed(e);
-                q.profile().xref.clone()
-            }),
+            Some(v) => read_format(v).unwrap_or_else(|_| q.profile().xref.clone()),
         };
-        let structure = structure_rule(&format.structure).unwrap_or_else(|e| {
-            malformed(e);
-            StructureRule::WhenDifferent
-        });
-        let same_page = same_page_rule(&format.same_page).unwrap_or_else(|e| {
-            malformed(e);
-            SamePage::Full
-        });
+        let structure = structure_rule(&format.structure).unwrap_or(StructureRule::WhenDifferent);
+        let same_page = same_page_rule(&format.same_page).unwrap_or(SamePage::Full);
         Arc::new(XrefSettings {
             ip: parse_format(&format.ip),
             aux_to_main: parse_format(&format.aux_to_main),
@@ -206,8 +184,7 @@ fn same_page_rule(s: &str) -> Result<SamePage, String> {
     }
 }
 
-/// Checks a project `xref_format` member as [`XrefSettingsOf`] reads it: `Err` with the detail of the
-/// `MalformedShim` note the query would write.
+/// Checks a project `xref_format` member as [`XrefSettingsOf`] reads it: `Err` with what is wrong.
 pub(crate) fn check_format_member(v: &Value) -> Result<(), String> {
     let format = read_format(v)?;
     structure_rule(&format.structure)?;
@@ -251,7 +228,7 @@ pub struct XrefTarget {
     pub function: Id<Function>,
     /// Its page.
     pub page: Id<Page>,
-    /// Its anchor cell; `None` when the anchor has no cell (noted, EW-CORE-053).
+    /// Its anchor cell; `None` when the anchor has no cell (EW-CORE-053).
     pub cell: Option<Cell>,
     /// What it is to the source.
     pub role: TargetRole,
@@ -324,7 +301,7 @@ impl Query for XrefRelationOf {
         };
         let relation = match (&f.kind, f.device) {
             (FunctionKind::Ip(spec), _) => ip_relation(q, fid, spec),
-            (_, Some(device)) => device_relation(q, rid, rep, fid, f, device),
+            (_, Some(device)) => device_relation(q, rid, rep, fid, device),
             (_, None) => return XrefRelation::none(),
         };
         let mut relation = relation;
@@ -353,15 +330,6 @@ fn target(q: &Q, rep: Id<Representation>, role: TargetRole) -> Option<XrefTarget
     }
     let function = *r.functions.first()?;
     let cell = q.get::<RepAnchorCell>(rep).as_ref().clone();
-    if cell.is_none() {
-        q.note(DeriveNote::Xref {
-            code: EW_CORE_053,
-            subject: format!("representation {rep}"),
-            detail: "the cross-reference target has no anchor cell (outside the frame or no frame grid); \
-                     its row and column print \"?\""
-                .into(),
-        });
-    }
     Some(XrefTarget {
         rep,
         function,
@@ -380,8 +348,6 @@ fn ip_relation(q: &Q, fid: Id<Function>, spec: &IpSpec) -> XrefRelation {
     }
     // The pairing of this point and of its partners only (parts of `ip_pairing`).
     let stitch = q.get_part::<IpPairingQ>((), PartKey::Ip(fid));
-    // The pairing's notes (an unpaired point is noted, EW-CORE-051), as when this read the stitch graph.
-    let _ = q.get_value_part::<IpNotes>(());
     let partners = stitch.partners(fid);
     if partners.is_empty() {
         // Unpaired: `stitch_graph` notes it (EW-CORE-051).
@@ -396,14 +362,8 @@ fn ip_relation(q: &Q, fid: Id<Function>, spec: &IpSpec) -> XrefRelation {
     let mut targets = Vec::with_capacity(partners.len());
     for p in partners {
         let _ = q.get_part::<IpPairingQ>((), PartKey::Ip(*p));
-        match stitch.ips.get(p).and_then(|i| i.rep) {
-            Some(r) => targets.extend(target(q, r, TargetRole::IpPartner)),
-            None => q.note(DeriveNote::Xref {
-                code: EW_CORE_053,
-                subject: format!("interruption point {p}"),
-                detail: "the pair partner has no representation; it is left out of the cross-reference"
-                    .into(),
-            }),
+        if let Some(r) = stitch.ips.get(p).and_then(|i| i.rep) {
+            targets.extend(target(q, r, TargetRole::IpPartner))
         }
     }
     XrefRelation {
@@ -417,21 +377,10 @@ fn device_relation(
     rid: Id<Representation>,
     rep: &Representation,
     fid: Id<Function>,
-    f: &Function,
     device: Id<Device>,
 ) -> XrefRelation {
     let main = *q.get::<MainFunction>(device);
     let main_rep = xref_main_rep(q, device);
-    if f.role == FnRole::Main && main.is_some_and(|m| m != fid) {
-        q.note(DeriveNote::Xref {
-            code: EW_INV_002,
-            subject: format!("device {device}"),
-            detail: format!(
-                "function {fid} is a second main function; its representations refer to the main \
-                 representation as auxiliaries"
-            ),
-        });
-    }
     let none = XrefRelation {
         kind: XrefKind::None,
         targets: Vec::new(),
@@ -487,33 +436,8 @@ fn device_relation(
             },
             None => none,
         },
-        None => {
-            // The main function is unplaced, or drawn only as representations that cannot carry a target.
-            let reps = q.reps();
-            let drawn_as: Vec<RepType> = main
-                .map(|m| {
-                    q.idx()
-                        .reps_of_function(m)
-                        .filter_map(|r| reps.get(r).map(|r| r.rep_type.clone()))
-                        .collect()
-                })
-                .unwrap_or_default();
-            let how = if drawn_as.contains(&RepType::StripSegment) {
-                "is drawn only as a strip segment, which cannot carry a cross-reference target"
-            } else if !drawn_as.is_empty() {
-                "is drawn only as contact images, which cannot carry a cross-reference target"
-            } else {
-                "has no representation"
-            };
-            q.note(DeriveNote::Xref {
-                code: EW_CORE_053,
-                subject: format!("representation {rid}"),
-                detail: format!(
-                    "the main function of device {device} {how}; the auxiliary prints no cross-reference"
-                ),
-            });
-            none
-        }
+        // The main function is unplaced, or drawn only as representations that cannot carry a target.
+        None => none,
     }
 }
 
@@ -929,12 +853,6 @@ fn grouped_before_last(q: &Q, rep: Id<Representation>, e: Id<ExternalRef>) -> bo
 /// project's name and a space in front when it names one (the name alone without a location and a device).
 pub(crate) fn external_text(q: &Q, e: Id<ExternalRef>) -> String {
     let Some(x) = q.external_refs().get(e) else {
-        q.note(DeriveNote::Xref {
-            code: EW_CORE_053,
-            subject: format!("external reference {e}"),
-            detail: "the external connection point names a missing external reference; it prints nothing"
-                .into(),
-        });
         return String::new();
     };
     let location = x.location.map_or_else(String::new, |node| {

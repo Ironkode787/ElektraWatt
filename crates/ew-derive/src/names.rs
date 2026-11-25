@@ -5,7 +5,7 @@
 //! renumber or a move re-derives names and not the topology"; ARCH §6.4 `potential_names`).
 //!
 //! - **`potential_name(p)`** (doc 08 §3.5): the name of the first definition in rank order ([`ranked_defs`]: natural
-//!   order of the name, the defining point's printed text, the ID) (another name is noted as EW-POT-017); else the first non-external source interruption point in page order (page position, anchor
+//!   order of the name, the defining point's printed text, the ID); else the first non-external source interruption point in page order (page position, anchor
 //!   row, anchor column, ID); else the first external source interruption point in that order;
 //!   else (doc 08 §3.5 step 2b) the supply's name `<root>/<tag>:<designation>` when the
 //!   potential is entered through the pass-through pair of a function f (its flow `upstream`): `<root>` is the
@@ -17,7 +17,7 @@
 //!   column) order, ties by that name in natural order and then by CP ID. The aliases are every other distinct IP name on the potential,
 //!   external points included, in natural order; points on a bond's `via` path (doc 03
 //!   §9.6) are named on the bond, not on the potential. A signal takes the first IP name inside it, in page
-//!   order. The family also pushes the EW-POT-001 notes of the potential's attributes, which name it.
+//!   order.
 //! - **`potential_attrs(p)`** (doc 03 §9.4): type, voltage, environment and class from the first definition in
 //!   rank order ([`ranked_defs`]) that sets each; the conflict texts name definitions and CPs by their printed text,
 //!   in printed order, never by ID; the type else from the member CPs' `potential_role`; roles that disagree are
@@ -25,8 +25,8 @@
 //!   undefined), never by the CP order, which follows the random IDs of a new project.
 //!   Nothing merges silently (doc 08 §3.6): every later definition whose value differs, and every member role
 //!   that contradicts a defined type (FE on PE or PEN, PE or N on PEN are compatible, doc 08 §3.7), is a
-//!   conflict, which `potential_name` reports as EW-POT-001 with the potential's name. The family is
-//!   note-free, so a rename does not reach the readers of the attributes (the wire properties, the flow).
+//!   conflict, which EW-POT-001 reports with the potential's name. A rename does not reach the readers of the
+//!   attributes (the wire properties, the flow).
 //!
 //! Both read one part of the partition ([`PartKey::Potential`]): an edit elsewhere does not reach them.
 
@@ -42,7 +42,6 @@ use crate::ip::{IpFnInfo, IpInfoOf};
 use crate::links::BondPathsQ;
 use crate::memo_keys::PartKey;
 use crate::nets::{CpRef, NetId};
-use crate::note::{DeriveNote, NoteFact};
 use crate::potentials::{
     Attr, AttrSource, NameSource, Potential, PotentialAttrs, PotentialId, PotentialName, PotentialPartition,
 };
@@ -103,7 +102,6 @@ impl Query for PotentialNameOf {
         let infos: Vec<(Id<Function>, Arc<IpFnInfo>)> =
             p.ips.iter().map(|f| (*f, q.get::<IpInfoOf>(*f))).collect();
         let info = |f: Id<Function>| infos.iter().find(|(g, _)| *g == f).map(|(_, i)| i);
-        let mut notes: Vec<DeriveNote> = Vec::new();
 
         let mut ip_names: Vec<String> = infos
             .iter()
@@ -115,21 +113,6 @@ impl Query for PotentialNameOf {
 
         let def_rows = ranked_defs(q, p);
         let name = if let Some((d0, first)) = def_rows.first() {
-            for (_, other) in def_rows.iter().skip(1) {
-                if other.name != first.name {
-                    notes.push(DeriveNote::Connectivity {
-                        code: "EW-POT-017",
-                        fact: NoteFact::Other,
-                        subject: format!("potential {}", first.name.as_str()),
-                        detail: format!(
-                            "{} names it {}; the first definition in natural order ({}) wins",
-                            def_text(q, other),
-                            other.name.as_str(),
-                            def_text(q, first)
-                        ),
-                    });
-                }
-            }
             PotentialName {
                 text: first.name.as_str().to_owned(),
                 source: NameSource::Def(*d0),
@@ -182,21 +165,6 @@ impl Query for PotentialNameOf {
                 (s.id, first)
             })
             .collect();
-
-        // The attribute conflicts, named.
-        for conflict in &q.get::<PotentialAttrsOf>(*key).conflicts {
-            notes.push(DeriveNote::Connectivity {
-                code: "EW-POT-001",
-                fact: NoteFact::Other,
-                subject: format!("potential {}", name.text),
-                detail: conflict.detail(q),
-            });
-        }
-        notes.sort();
-        notes.dedup();
-        for n in notes {
-            q.note(n);
-        }
         Arc::new(PotentialNames {
             name,
             aliases,
@@ -432,8 +400,7 @@ pub enum AttrConflict {
 }
 
 impl AttrConflict {
-    /// The conflict in English, as the EW-POT-001 notes of `potential_name` carry it (the check words it for a
-    /// person).
+    /// The conflict in English (the check words it for a person).
     pub fn detail(&self, q: &Q) -> String {
         let defs = q.potential_defs();
         match self {
@@ -488,7 +455,7 @@ impl std::ops::Deref for PotentialAttrsV {
     }
 }
 
-/// `potential_attrs(p)`: see the module documentation. Policy Memo; note-free.
+/// `potential_attrs(p)`: see the module documentation. Policy Memo.
 #[derive(Debug)]
 pub struct PotentialAttrsOf;
 

@@ -306,9 +306,6 @@ impl Query for PhysicalWiresOf {
         wires.dedup_by_key(|w| w.id);
 
         let notes: Vec<DeriveNote> = notes.into_iter().collect();
-        for n in &notes {
-            q.note(n.clone());
-        }
         Arc::new(PhysicalWires { wires, notes })
     }
 }

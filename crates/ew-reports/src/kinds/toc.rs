@@ -37,9 +37,7 @@ impl ReportKindDef for Toc {
         // Read inside the pagination (a row source or provider that reaches a TOC's rows from there), the
         // page order is still being computed: a cycle gives a not-derived set, never a panic.
         if let Err(cycle) = q.try_get::<PageOrder>(()) {
-            let family = cycle.family.to_owned();
-            q.note_cycle(cycle);
-            return RowSet::not_derived(self.columns(), NotDerived::Cycle(family));
+            return RowSet::not_derived(self.columns(), NotDerived::Cycle(cycle.family.to_owned()));
         }
         let mut set = RowSet::new(self.columns());
         for row in q.get::<TocRows>(()).iter() {

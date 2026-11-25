@@ -11,9 +11,8 @@
 //!   memoises the `Memo` families.
 //! - **The bridge** `MemoOf<F>` runs `F::run` (or `F::run_incremental`) on the reading `Q` inside a memo
 //!   frame: the tracked reads of the body and its cold families go to the execution; a nested memoised family
-//!   is one memo dependency. Its value is the family's value with the notes the execution pushed, so that a
-//!   memo hit replays them; equivalence compares both (a changed note is a changed value). Cold (oracle mode),
-//!   it evaluates `F` in a fresh cold `Q`: the cold family stays the reference.
+//!   is one memo dependency. Cold (oracle mode), it evaluates `F` in a fresh cold `Q`: the cold family stays the
+//!   reference.
 
 use std::cell::{Cell, RefCell};
 use std::fmt;
@@ -25,122 +24,64 @@ use ew_memo::{Cx, Durability, Equivalence, FamilyMemory, Mismatch, Oracle, Stats
 use ew_model::{AnyKey, Model};
 
 use crate::memo_keys::{self, MemoInput, PartKey};
-use crate::note::{DeriveNote, NoteSet, same_notes};
 use crate::q::DeriveStore;
 use crate::query::{Changes, Query};
 use crate::{Cycle, Q, ReportPagesProvider};
 
-/// A memoised value with the notes of its execution.
-pub(crate) struct Memoised<V> {
-    pub(crate) value: Arc<V>,
-    /// The execution's notes, sharing the note sets of the memoised values it read (`None`: no note).
-    pub(crate) notes: Option<Arc<NoteSet>>,
-}
-
-impl<V> Memoised<V> {
-    fn new(value: Arc<V>, notes: Option<Arc<NoteSet>>) -> Memoised<V> {
-        Memoised { value, notes }
-    }
-
-    /// Every note of the value, flattened.
-    fn flat_notes(&self) -> Vec<DeriveNote> {
-        self.notes
-            .as_ref()
-            .map(|n| n.notes().into_iter().collect())
-            .unwrap_or_default()
-    }
-}
-
-impl<V: fmt::Debug> fmt::Debug for Memoised<V> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Memoised")
-            .field("value", &self.value)
-            .field("notes", &self.flat_notes())
-            .finish()
-    }
-}
-
 /// The `ew-memo` query that memoises the `ew-derive` family `F`.
 pub(crate) struct MemoOf<F>(PhantomData<F>);
 
-fn same<F: Query>(a: &Memoised<F::Value>, b: &Memoised<F::Value>) -> bool {
-    (Arc::ptr_eq(&a.value, &b.value) || a.value == b.value) && same_notes(a.notes.as_ref(), b.notes.as_ref())
+fn same<F: Query>(a: &Arc<F::Value>, b: &Arc<F::Value>) -> bool {
+    Arc::ptr_eq(a, b) || a == b
 }
 
 /// One memoised (or, in oracle mode, cold) evaluation of `F`.
 fn run<F: Query>(
     cx: &mut Cx<'_, Q>,
     key: &F::Key,
-    previous: Option<(&Memoised<F::Value>, &ew_memo::Changes<MemoInput>)>,
-) -> Memoised<F::Value> {
+    previous: Option<(&Arc<F::Value>, &ew_memo::Changes<MemoInput>)>,
+) -> Arc<F::Value> {
     let q = cx.db();
     if cx.is_cold() {
         // The reference: `F` evaluated cold, nested families too, in a fresh `Q`.
-        let mut twin = q.cold_twin();
-        let value = twin.get::<F>(key.clone());
-        let notes = NoteSet::flat(
-            twin.diagnostics()
-                .notes()
-                .into_iter()
-                .filter(|n| !matches!(n, DeriveNote::UnknownProfile { .. })),
-        );
-        return Memoised::new(value, notes);
+        return q.cold_twin().get::<F>(key.clone());
     }
-    let out = q.memo_frame::<F>(key, || {
+    q.memo_frame::<F>(key, || {
         if F::INCREMENTAL {
-            F::run_incremental(q, key, previous.map(|(p, inner)| (&p.value, Changes { inner })))
+            F::run_incremental(q, key, previous.map(|(p, inner)| (p, Changes { inner })))
         } else {
             F::run(q, key)
         }
-    });
-    debug_assert!(
-        !F::NOTE_FREE || out.notes.is_none(),
-        "ew-derive: the note-free family `{}` pushed notes (ARCH §6.4): {:?}",
-        F::FAMILY,
-        out.notes.as_ref().map(|n| n.notes())
-    );
-    // A producer that declared the parts it changed: its notes travel with every part (part readers replay
-    // them), so a change of the notes is a change of the notes part. A producer that declared nothing
-    // changed every part with its value, the notes included.
-    if out.declared
-        && let Some((p, _)) = previous
-        && !same_notes(p.notes.as_ref(), out.notes.as_ref())
-    {
-        cx.changed_parts([MemoInput::Part(PartKey::Notes)]);
-    }
-    Memoised::new(out.value, out.notes)
+    })
 }
 
 impl<F: Query> ew_memo::Query<Q> for MemoOf<F> {
     type Key = F::Key;
-    type Value = Memoised<F::Value>;
+    type Value = Arc<F::Value>;
     const NAME: &'static str = F::FAMILY;
     const INCREMENTAL: bool = F::INCREMENTAL;
 
-    fn equivalence() -> Equivalence<Memoised<F::Value>> {
+    fn equivalence() -> Equivalence<Arc<F::Value>> {
         Equivalence::Eq(same::<F>)
     }
 
-    fn execute(cx: &mut Cx<'_, Q>, key: &F::Key) -> Result<Memoised<F::Value>, ew_memo::Cycle> {
+    fn execute(cx: &mut Cx<'_, Q>, key: &F::Key) -> Result<Arc<F::Value>, ew_memo::Cycle> {
         Ok(run::<F>(cx, key, None))
     }
 
     fn execute_incremental(
         cx: &mut Cx<'_, Q>,
         key: &F::Key,
-        previous: Option<(&Memoised<F::Value>, &ew_memo::Changes<MemoInput>)>,
-    ) -> Result<Memoised<F::Value>, ew_memo::Cycle> {
+        previous: Option<(&Arc<F::Value>, &ew_memo::Changes<MemoInput>)>,
+    ) -> Result<Arc<F::Value>, ew_memo::Cycle> {
         Ok(run::<F>(cx, key, previous))
     }
 }
 
-/// Reads `F(key)` through the store for `q` and replays its notes.
+/// Reads `F(key)` through the store for `q`.
 pub(crate) fn get<F: Query>(q: &Q, store: &DeriveStore, key: &F::Key) -> Result<Arc<F::Value>, Cycle> {
     match store.get::<MemoOf<F>>(q, key) {
-        Ok(m) => {
-            q.replay(m.notes.as_ref());
-            Ok(Arc::clone(&m.value))
-        }
+        Ok(m) => Ok(Arc::clone(&m)),
         Err(_) => Err(Cycle {
             family: F::FAMILY,
             key: format!("{key:?}"),
@@ -148,8 +89,7 @@ pub(crate) fn get<F: Query>(q: &Q, store: &DeriveStore, key: &F::Key) -> Result<
     }
 }
 
-/// Reads `F(key)` depending on its part `part` only, and replays its notes. The reader also depends on the
-/// notes part ([`PartKey::Notes`]): the notes it replays are the producer's.
+/// Reads `F(key)` depending on its part `part` only.
 pub(crate) fn get_part<F: Query>(
     q: &Q,
     store: &DeriveStore,
@@ -163,14 +103,7 @@ pub(crate) fn get_part<F: Query>(
     let m = store
         .get_part::<MemoOf<F>>(q, key, &MemoInput::Part(part))
         .map_err(|_| cycle())?;
-    if part != PartKey::Value && part != PartKey::Notes {
-        // A hit now: the memo was just brought up to date. It records the notes part.
-        store
-            .get_part::<MemoOf<F>>(q, key, &MemoInput::Part(PartKey::Notes))
-            .map_err(|_| cycle())?;
-    }
-    q.replay(m.notes.as_ref());
-    Ok(Arc::clone(&m.value))
+    Ok(Arc::clone(&m))
 }
 
 /// The memo store of one session: an `ew-memo` store over the session's current snapshot (ADR-0002
@@ -342,118 +275,5 @@ impl MemoStore {
     /// [`Policy::Cold`](crate::Policy::Cold) has no memo.
     pub fn explain<F: Query>(&self, key: &F::Key) -> ew_memo::Explain<MemoInput> {
         self.store().explain::<MemoOf<F>>(key)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    // The test edits a snapshot with the raw `Model::apply_unchecked` (a reader of ew-model's raw API).
-    #![allow(clippy::disallowed_methods)]
-
-    use std::sync::Arc;
-
-    use ew_model::{AnyRow, Entity, Op};
-    use ew_schema::Page;
-    use serde_json::json;
-
-    use super::MemoStore;
-    use crate::Q;
-    use crate::memo_keys::PartKey;
-    use crate::memo_keys::test_common::{Fx, id};
-    use crate::note::DeriveNote;
-    use crate::query::{Changes, Policy, Query};
-
-    const PAGE: u128 = 0x100;
-
-    /// An incremental producer that carries notes (`NOTE_FREE` off, the configuration the notes part exists
-    /// for): its value is the number of pages, its note names the first page's title. A rename changes its
-    /// notes, not its value, and its hook declares no changed part then.
-    struct NotedProducer;
-
-    impl Query for NotedProducer {
-        type Key = ();
-        type Value = usize;
-        const FAMILY: &'static str = "test_noted_producer";
-        const POLICY: Policy = Policy::Memo;
-        const INCREMENTAL: bool = true;
-        const PRODUCER: bool = true;
-        const NOTE_FREE: bool = false;
-
-        fn run(q: &Q, _: &()) -> Arc<usize> {
-            let pages = q.pages();
-            if let Some((_, p)) = pages.iter().next() {
-                q.note(DeriveNote::MalformedShim {
-                    member: "probe".into(),
-                    detail: format!("{:?}", p.title),
-                });
-            }
-            Arc::new(pages.len())
-        }
-
-        fn run_incremental(q: &Q, key: &(), previous: Option<(&Arc<usize>, Changes<'_>)>) -> Arc<usize> {
-            // It re-reads everything and pushes every note on every execution.
-            q.drop_carried();
-            let value = Self::run(q, key);
-            if let Some((prev, _)) = previous {
-                q.changed_parts((**prev != *value).then_some(PartKey::Bonds));
-            }
-            value
-        }
-    }
-
-    /// The producer's value read as one part (`PartKey::Bonds` stands for "the count").
-    struct NotesReader;
-
-    impl Query for NotesReader {
-        type Key = ();
-        type Value = usize;
-        const FAMILY: &'static str = "test_notes_reader";
-        const POLICY: Policy = Policy::Memo;
-
-        fn run(q: &Q, _: &()) -> Arc<usize> {
-            Arc::new(*q.get_part::<NotedProducer>((), PartKey::Bonds))
-        }
-    }
-
-    /// A producer whose notes change while its value and its
-    /// declared parts do not. The part reader replays the producer's notes, so it depends on the notes part:
-    /// it re-executes, and its notes equal a cold run's.
-    #[test]
-    fn a_part_reader_follows_the_producers_notes() {
-        let m0 = Fx::new().page(PAGE, 1, None, "multi_line", &[], "first").build();
-        let store = MemoStore::new(&m0);
-        let mut q = store.query();
-        assert_eq!(*q.get::<NotesReader>(()), 1);
-        let before = q.diagnostics().notes();
-        assert_eq!(before.len(), 1, "{before:?}");
-
-        let old = Arc::clone(Q::new(&m0).pages().get(id(PAGE)).expect("the page"));
-        let mut renamed = serde_json::to_value(&*old).expect("a page serialises");
-        renamed["title"] = json!({"en": "second"});
-        let renamed: Page = serde_json::from_value(renamed).expect("a page parses");
-        let op = Op::update(AnyRow::of((*old).clone()), AnyRow::of(renamed));
-        let m1 = m0
-            .apply_unchecked(&[op], m0.rev().next())
-            .expect("the rename applies");
-        store.advance(&m1, &[Page::key(id(PAGE))]);
-
-        let mut q = store.query();
-        assert_eq!(*q.get::<NotesReader>(()), 1);
-        let mut cold = Q::new(&m1);
-        assert_eq!(*cold.get::<NotesReader>(()), 1);
-        let (memo_notes, cold_notes) = (q.diagnostics().notes(), cold.diagnostics().notes());
-        assert_eq!(memo_notes, cold_notes, "the part reader's notes equal cold");
-        assert_ne!(memo_notes, before, "the rename changed the notes");
-        let stats = store.commit_stats();
-        assert_eq!(
-            stats.family("test_noted_producer").cut_offs,
-            0,
-            "the notes changed the value"
-        );
-        assert_eq!(
-            stats.family("test_notes_reader").re_executions,
-            1,
-            "the reader was reached through the notes part only"
-        );
     }
 }

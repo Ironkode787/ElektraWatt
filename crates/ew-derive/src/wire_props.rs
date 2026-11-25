@@ -238,11 +238,7 @@ impl Query for WirePropsOf {
             wires.sort();
             wires.dedup();
         }
-        let notes = q.get_value_part::<WireProfileNotes>(());
-        for note in notes.iter() {
-            q.note(note.clone());
-        }
-        map.notes = notes.as_ref().clone();
+        map.notes = q.get_value_part::<WireProfileNotes>(()).as_ref().clone();
         Arc::new(map)
     }
 }

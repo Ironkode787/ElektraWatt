@@ -4,7 +4,7 @@
 //! Invalid page geometry (doc 09 §3.2, FR-REP-039): a layout with a row height of 0 or less or a capacity
 //! below one data row is replaced by the house geometry instead of paginating without bound.
 
-use ew_derive::{DeriveNote, GeneratedPage, Q};
+use ew_derive::{GeneratedPage, Q};
 use ew_ids::{Id, Uuid};
 use ew_mltext::MlText;
 use ew_reports::{
@@ -204,33 +204,16 @@ fn area(h: i64, rows: i64) -> serde_json::Value {
 }
 
 #[test]
-fn of_form_replaces_an_invalid_data_area_and_notes_it() {
+fn of_form_replaces_an_invalid_data_area() {
     let id = form(0xF0);
     let m = model_with_form(&area(0, 10));
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let layouts = Layouts::of_form(&q, id);
     assert_eq!(layouts.chain, vec![PageLayout::house(id)]);
-    let notes = q.diagnostics().notes();
-    let found: Vec<&DeriveNote> = notes
-        .iter()
-        .filter(|n| matches!(n, DeriveNote::MalformedShim { member, .. } if member.contains("data area")))
-        .collect();
-    assert_eq!(found.len(), 1, "{notes:?}");
-    let DeriveNote::MalformedShim { member, detail } = found[0] else {
-        unreachable!()
-    };
-    assert!(
-        member.contains(&Uuid::from_u128(0xF0).hyphenated().to_string()),
-        "{member}"
-    );
-    assert!(
-        detail.contains("not positive") && detail.contains("house"),
-        "{detail}"
-    );
 }
 
 #[test]
-fn of_form_notes_a_data_area_lower_than_one_row() {
+fn of_form_replaces_a_data_area_lower_than_one_row() {
     let id = form(0xF0);
     // A 3 mm area under a 5 mm header: capacity 0.
     let m = model_with_form(&serde_json::json!({
@@ -238,20 +221,18 @@ fn of_form_notes_a_data_area_lower_than_one_row() {
         "header": {"height": 5_000_000},
         "rows": {"data": {"height": H}},
     }));
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     assert_eq!(Layouts::of_form(&q, id).chain, vec![PageLayout::house(id)]);
-    assert_eq!(q.diagnostics().notes().len(), 1);
 }
 
 #[test]
-fn of_form_keeps_a_valid_data_area_without_a_note() {
+fn of_form_keeps_a_valid_data_area() {
     let id = form(0xF0);
     let m = model_with_form(&area(H, 10));
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     let layouts = Layouts::of_form(&q, id);
     assert_eq!(layouts.chain.len(), 1);
     assert_eq!(layouts.first().capacity, Nm(H * 10));
     assert_eq!(layouts.first().data, Nm(H));
     assert!(layouts.first().is_valid());
-    assert!(q.diagnostics().notes().is_empty());
 }

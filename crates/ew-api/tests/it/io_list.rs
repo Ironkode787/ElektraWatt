@@ -21,7 +21,7 @@ use crate::common;
 
 use ew_api::output::{RowExport, row_export};
 use ew_api::{AnyCommand, CmdError, Session};
-use ew_derive::{DeriveNote, Q};
+use ew_derive::Q;
 use ew_ids::Id;
 use ew_reports::BlockRows;
 use ew_reports::csv::row_texts;
@@ -167,33 +167,12 @@ fn include_deactivated_lists_24_rows_in_place() {
 }
 
 #[test]
-fn a_parameter_that_is_not_a_boolean_gives_20_rows_and_one_note() {
+fn a_parameter_that_is_not_a_boolean_gives_20_rows() {
     let (_, block) = sample_with_io_list();
-    for (value, shown) in [(json!("yes"), "\"yes\""), (json!(1), "1")] {
+    for value in [json!("yes"), json!(1)] {
         let s = sample_with_block(with_params(block.clone(), json!({"include_deactivated": value})));
-        let mut q = Q::new(&s.world().model);
+        let q = Q::new(&s.world().model);
         assert_eq!(q.get::<BlockRows>(block.id).rows.len(), 20, "{value}");
-        let notes: Vec<DeriveNote> = q
-            .diagnostics()
-            .notes()
-            .into_iter()
-            .filter(|n| matches!(n, DeriveNote::MalformedShim { .. }))
-            .collect();
-        assert_eq!(
-            notes,
-            [DeriveNote::MalformedShim {
-                member: "report block 950 params.include_deactivated".to_owned(),
-                detail: format!("expected true or false, found {shown}"),
-            }],
-            "{value}"
-        );
-        assert_eq!(
-            notes[0].to_string(),
-            format!(
-                "report block 950 params.include_deactivated is malformed (expected true or false, found {shown}); \
-                 the default applies"
-            )
-        );
     }
 }
 

@@ -251,7 +251,7 @@ the spellings of the TOML exchange form (`"L+"`, `"DC"`).
 Vec<{page_type: PageType, form: Id<FormDef>}>}`, keyed by `page_type`. A drawn page's frame is `Page.form`, else the
 entry of its page type, else `default`. Generated report pages take the form of their block (`ReportBlock.form`),
 divider pages the entry for `section_divider`. When neither applies and no embedded form does, the built-in default
-is the QET-compatible A4 frame geometry, and a derivation note says so.
+is the QET-compatible A4 frame geometry.
 
 A `Page.form`, or a page-type entry, that names a copy the project does not
 hold falls through to the next rule, identically in the cell grid and in the page output: both call

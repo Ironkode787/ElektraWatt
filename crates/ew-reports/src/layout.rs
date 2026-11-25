@@ -4,7 +4,7 @@
 //! The pagination geometry of report forms: data-area capacity and row heights per row kind (doc 09 §2.5,
 //! §3.2), the set's own frame a new list starts on and the frame a list's pages print on (§3.8).
 
-use ew_derive::{DeriveNote, DrawnPageOrder, FrameSettings, PageRef, Q, frame_form_of};
+use ew_derive::{DrawnPageOrder, FrameSettings, PageRef, Q, frame_form_of};
 use ew_ids::Id;
 use ew_schema::{
     DataArea, FormDef, HOUSE_ROW_HEIGHT, HOUSE_ROWS_PER_PAGE, ListArea, PageType, ReportBlock, RowTemplate,
@@ -196,8 +196,7 @@ impl Layouts {
     }
 
     /// The chain of `form` in `q`'s snapshot, without a caption or a legend. A form whose data area gives an invalid
-    /// layout uses the house geometry ([`PageLayout::house`], with a [`DeriveNote::MalformedShim`] warning,
-    /// FR-REP-039); one without a data area holds the rows of its list area ([`PageLayout::listed`]), a form copy that
+    /// layout uses the house geometry ([`PageLayout::house`], FR-REP-039); one without a data area holds the rows of its list area ([`PageLayout::listed`]), a form copy that
     /// is missing those of the house table ([`ListArea::house`]); the chain stops at a repeat (cycle-safe) or after
     /// 16 forms.
     pub fn of_form(q: &Q, form: Id<FormDef>) -> Layouts {
@@ -218,16 +217,7 @@ impl Layouts {
                     let layout = PageLayout::of_area(id, area);
                     match layout.problem() {
                         None => layout,
-                        Some(problem) => {
-                            // Stand-in for a dedicated form finding until the findings list has one.
-                            q.note(DeriveNote::MalformedShim {
-                                member: format!("form {} data area", id.as_uuid()),
-                                detail: format!(
-                                    "{problem}; the house report geometry ({HOUSE_ROWS_PER_PAGE} rows of 6.52 mm) applies"
-                                ),
-                            });
-                            PageLayout::house(id)
-                        }
+                        Some(_) => PageLayout::house(id),
                     }
                 }
                 None => {

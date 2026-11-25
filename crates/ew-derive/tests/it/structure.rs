@@ -10,7 +10,7 @@
 use crate::common;
 
 use common::{Fx, id};
-use ew_derive::{DeriveNote, NumberingSettingsOf, Q, StructurePath};
+use ew_derive::{NumberingSettingsOf, Q, StructurePath};
 use ew_rds::Aspect;
 use ew_schema::StructureNode;
 use serde_json::json;
@@ -39,7 +39,6 @@ fn structure_path_of_a_deep_chain_is_built_from_the_parent() {
     let mid = q.get::<StructurePath>(id::<StructureNode>(0x2000 + 9));
     assert_eq!(mid.codes, codes[..10]);
     assert_eq!(q.diagnostics().cached("structure_path"), 50);
-    assert!(q.diagnostics().notes().is_empty());
     // A missing node has an empty path.
     let missing = q.get::<StructurePath>(id::<StructureNode>(0x9999));
     assert!(missing.nodes.is_empty() && missing.codes.is_empty() && missing.aspect.is_none());
@@ -68,7 +67,6 @@ fn numbering_settings_are_parsed_once_per_q() {
         );
     }
     assert_eq!(q.diagnostics().cached("numbering_settings"), 1);
-    assert!(q.diagnostics().notes().is_empty());
     // The public function agrees.
     assert_eq!(
         ew_derive::numbering_settings(m.project()).as_ref(),
@@ -79,21 +77,13 @@ fn numbering_settings_are_parsed_once_per_q() {
 #[test]
 fn absent_numbering_settings_give_none_without_a_note() {
     let m = numbering_model(None);
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     assert!(q.get::<NumberingSettingsOf>(()).is_none());
-    assert!(q.diagnostics().notes().is_empty());
 }
 
 #[test]
 fn malformed_numbering_settings_are_noted() {
     let m = numbering_model(Some(json!({"schemes": 3})));
-    let mut q = Q::new(&m);
+    let q = Q::new(&m);
     assert!(q.get::<NumberingSettingsOf>(()).is_none());
-    let notes = q.diagnostics().notes();
-    assert_eq!(notes.len(), 1, "{notes:?}");
-    assert!(
-        matches!(&notes[0], DeriveNote::MalformedShim { member, detail }
-            if member == "settings.numbering" && !detail.is_empty()),
-        "{notes:?}"
-    );
 }

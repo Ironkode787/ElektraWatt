@@ -23,7 +23,7 @@
 use crate::derive_fixture as common;
 
 use common::{Fx, id, uid};
-use ew_derive::{DeriveNote, DeviceTag, MainRep, Q, SchemeIssue, TagSource};
+use ew_derive::{DeviceTag, MainRep, Q, TagSource};
 use ew_schema::{Device, TagScheme};
 use proptest::prelude::*;
 use serde_json::json;
@@ -253,15 +253,6 @@ fn a_device_without_a_drawn_main_function_is_placed_through_its_auxiliaries() {
     assert_agree(&fx, &[0x1000, 0x2000]);
 }
 
-fn notes_of(fx: &Fx, devices: &[u128]) -> Vec<DeriveNote> {
-    let m = fx.build();
-    let mut q = Q::new(&m);
-    for d in devices {
-        let _ = q.get::<DeviceTag>(id(*d));
-    }
-    q.diagnostics().notes()
-}
-
 fn product_of(fx: &Fx, device: u128) -> String {
     let m = fx.build();
     let q = Q::new(&m);
@@ -284,39 +275,24 @@ fn two_pages(fx: &mut Fx) -> [u128; 2] {
 }
 
 /// A settings scheme that the command layer does not number (project scope, or no `{page}`) is not
-/// applied: the profile's default scheme prints, and a note says why. A page-scoped scheme with all three
-/// tokens is applied.
+/// applied: the profile's default scheme prints. A page-scoped scheme with all three tokens is applied.
 #[test]
 fn settings_schemes_the_command_layer_does_not_number_are_not_applied() {
     let cases = [
         (
             json!({"key": "flat", "format": "{letter}{counter}", "counter_scope": "project"}),
-            Some(SchemeIssue::CounterScope),
             "101F1",
         ),
-        (
-            json!({"key": "flat", "format": "{letter}{counter}"}),
-            Some(SchemeIssue::FormatWithoutPage),
-            "101F1",
-        ),
-        (
-            json!({"key": "flat", "format": "{page}{counter}"}),
-            Some(SchemeIssue::FormatWithoutCounter),
-            "101F1",
-        ),
+        (json!({"key": "flat", "format": "{letter}{counter}"}), "101F1"),
+        (json!({"key": "flat", "format": "{page}{counter}"}), "101F1"),
         (
             json!({"key": "flat", "format": "{page}{letter}{counter}",
                    "rules": [{"select": {"letter": "F"}, "format": "{letter}{counter}"}]}),
-            Some(SchemeIssue::FormatWithoutPage),
             "101F1",
         ),
-        (
-            json!({"key": "flat", "format": "{letter}{page}.{counter}"}),
-            None,
-            "F101.1",
-        ),
+        (json!({"key": "flat", "format": "{letter}{page}.{counter}"}), "F101.1"),
     ];
-    for (scheme, issue, want) in cases {
+    for (scheme, want) in cases {
         let mut fx = base();
         fx.project_set(
             "settings",
@@ -324,25 +300,13 @@ fn settings_schemes_the_command_layer_does_not_number_are_not_applied() {
         );
         let devices = two_pages(&mut fx);
         assert_eq!(product_of(&fx, devices[0]), want, "{scheme}");
-        let notes = notes_of(&fx, &devices);
-        match issue {
-            Some(issue) => assert_eq!(
-                notes,
-                [DeriveNote::SchemeNotApplied {
-                    scheme: "flat".into(),
-                    issue
-                }],
-                "{scheme}"
-            ),
-            None => assert!(notes.is_empty(), "{scheme}: {notes:?}"),
-        }
         assert_agree(&fx, &devices);
         assert_unique_where_counters_are(&fx, &devices);
     }
 }
 
 /// A named scheme is applied when page-scoped and complete, else the profile's default scheme prints; an
-/// unknown key resolves to the project's default and is noted. Named-scheme devices are not numbered by
+/// unknown key resolves to the project's default. Named-scheme devices are not numbered by
 /// the command layer.
 #[test]
 fn named_schemes_agree_with_the_command_layer() {
@@ -368,19 +332,6 @@ fn named_schemes_agree_with_the_command_layer() {
     assert_eq!(product_of(&fx, 0x1000), "K101-7");
     assert_eq!(product_of(&fx, 0x2000), "101K7");
     assert_eq!(product_of(&fx, 0x3000), "101K7");
-    assert_eq!(
-        notes_of(&fx, &devices),
-        [
-            DeriveNote::SchemeNotApplied {
-                scheme: "flat".into(),
-                issue: SchemeIssue::CounterScope
-            },
-            DeriveNote::SchemeNotApplied {
-                scheme: "nope".into(),
-                issue: SchemeIssue::UnknownKey
-            },
-        ]
-    );
     assert_agree(&fx, &devices);
 }
 

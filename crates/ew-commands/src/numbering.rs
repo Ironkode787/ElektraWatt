@@ -250,7 +250,7 @@ fn frame_grid_with(rows: &impl Rows, page: &Page) -> Option<FrameGrid> {
     let held = |id: Id<FormDef>| rows.row::<LibCopy<FormDef>>(id).is_some();
     let form = page.form.filter(|f| held(*f)).or_else(|| {
         let frames = rows.project_settings_frames();
-        let settings = ew_derive::FrameSettingsValue::parse(frames.as_ref(), |_| {});
+        let settings = ew_derive::FrameSettingsValue::parse(frames.as_ref());
         ew_derive::frame_form_from_settings(&settings, &page.kind, true, held)
     });
     match form {

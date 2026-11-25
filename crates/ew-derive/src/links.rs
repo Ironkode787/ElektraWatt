@@ -11,8 +11,7 @@
 //!   per location the PE CPs that the rail joins (doc 08 §3.7).
 //! - **`bond_paths()`**: the interruption points on the `via` path of every bond and their names (doc 03 §9.6).
 //!
-//! All four are note-free (`Q::detached`): `rail_terminal` keeps its EW-TERM-005, EW-POT-008 and cycle notes in
-//! its value, and the stitch graph pushes them.
+//! `rail_terminal` keeps its EW-TERM-005, EW-POT-008 and cycle notes in its value.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -101,7 +100,7 @@ impl Query for FunctionLinksOf {
 
     fn run(q: &Q, fid: &Id<Function>) -> Arc<FunctionLinks> {
         let fid = *fid;
-        Arc::new(q.detached(|| function_links(q, fid)))
+        Arc::new(function_links(q, fid))
     }
 }
 
@@ -272,7 +271,7 @@ impl Query for RailTerminalOf {
 
     fn run(q: &Q, dev: &Id<Device>) -> Arc<RailTerminal> {
         let dev = *dev;
-        Arc::new(q.detached(|| {
+        Arc::new({
             let mut out = RailTerminal::default();
             let mut has_pe = false;
             for f in q.idx().functions_of_device(dev) {
@@ -293,7 +292,7 @@ impl Query for RailTerminalOf {
                         family: cycle.family,
                         key: cycle.key,
                     });
-                    return out;
+                    return Arc::new(out);
                 }
             };
             if !has_pe {
@@ -331,7 +330,7 @@ impl Query for RailTerminalOf {
             };
             out.location = location;
             out
-        }))
+        })
     }
 }
 

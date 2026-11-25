@@ -14,8 +14,7 @@
 //!   pairing of a few points (the physical wires of a potential, a cross-reference text) depends on those
 //!   points only, and a re-pairing declares the points whose pairing changed.
 //!
-//! Both are note-free (ARCH §6.4, `Q::detached`): the EW-CORE-051 notes are part of their values, and the stitch
-//! graph pushes them, in the order the earlier stitch graph did.
+//! The EW-CORE-051 notes are part of the pairing's value (`IpPairing::notes`).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -117,7 +116,7 @@ impl Query for IpInfoOf {
 
     fn run(q: &Q, fid: &Id<Function>) -> Arc<IpFnInfo> {
         let fid = *fid;
-        Arc::new(q.detached(|| {
+        Arc::new({
             let spec = q.functions().get(fid).and_then(|f| match &f.kind {
                 FunctionKind::Ip(spec) => Some(spec.clone()),
                 _ => None,
@@ -174,7 +173,7 @@ impl Query for IpInfoOf {
                 order,
                 notes,
             }
-        }))
+        })
     }
 }
 
@@ -474,26 +473,5 @@ impl Query for IpPairingQ {
                 .map(PartKey::Ip),
         );
         Arc::new(next)
-    }
-}
-
-/// `ip_notes()`: the EW-CORE-051 notes of the pairing (`IpPairing::notes`), pushed. The pairing itself is
-/// note-free; the stitch graph and the interruption points' cross-references read this family, so their
-/// readers see the notes as before the split. Policy Memo.
-#[derive(Debug)]
-pub struct IpNotes;
-
-impl Query for IpNotes {
-    type Key = ();
-    type Value = Vec<DeriveNote>;
-    const FAMILY: &'static str = "ip_notes";
-    const POLICY: Policy = Policy::Memo;
-
-    fn run(q: &Q, _: &()) -> Arc<Vec<DeriveNote>> {
-        let notes = q.get::<IpPairingQ>(()).notes.clone();
-        for n in &notes {
-            q.note(n.clone());
-        }
-        Arc::new(notes)
     }
 }
