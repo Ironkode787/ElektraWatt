@@ -74,7 +74,11 @@ fn a_paste_on_a_page_that_cannot_take_it_is_refused_with_its_reason() {
         let Outcome::Refused { reason } = shell.dispatch("edit.paste_clip", &json!({})) else {
             panic!("paste on folio {folio} is refused");
         };
-        assert_eq!(ew_viewmodel::strings::render(&reason), expected, "paste on folio {folio}");
+        assert_eq!(
+            ew_viewmodel::strings::render(&reason),
+            expected,
+            "paste on folio {folio}"
+        );
         let expected = expected.to_owned();
         assert_ne!(shell.tool().name(), "paste", "no paste tool on folio {folio}");
         done(&mut shell, "tools.palette", json!({}));

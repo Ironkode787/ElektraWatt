@@ -191,7 +191,10 @@ fn the_rack_button_lists_the_stations() {
     let station = s.station_tab().and_then(|t| t.station).expect("the station");
     assert_eq!(s.selection().items, vec![ew_dl::EntityRef(station)]);
     let remove = ew_viewmodel::actions::find("plc.module_remove").expect("Remove module");
-    assert_eq!((remove.enabled)(&s), Err(ew_viewmodel::key!("reason-rack-head").into()));
+    assert_eq!(
+        (remove.enabled)(&s),
+        Err(ew_viewmodel::key!("reason-rack-head").into())
+    );
     done(&mut s, "plc.rack_select", json!({"slot": 1}));
     assert_eq!((remove.enabled)(&s), Ok(()));
     // The module is the window's selection, as a click on a page selects a device.

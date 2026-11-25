@@ -807,7 +807,9 @@ fn an_identical_re_import_says_there_is_nothing_to_re_import() {
         assert_eq!(spec.body, [body]);
         assert_eq!(spec.primary.disabled.as_deref(), Some(reason));
         match run(&mut shell, "file.reimport_qet_apply", json!({})) {
-            Outcome::Refused { reason: reason_key } => assert_eq!(reason_key.key(), "reason-table-import-nothing"),
+            Outcome::Refused { reason: reason_key } => {
+                assert_eq!(reason_key.key(), "reason-table-import-nothing")
+            }
             other => panic!("{other:?}"),
         }
         assert!(

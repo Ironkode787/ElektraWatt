@@ -73,11 +73,7 @@ fn a_designation_on_a_device_says_where_its_tag_is_set() {
             "place.pick",
             &json!({"symbol": "ew.iec.position-switch-no@qet10", name: "S51"}),
         );
-        assert_eq!(
-            out,
-            Outcome::refused(key!("reason-no-strip")),
-            "{name}"
-        );
+        assert_eq!(out, Outcome::refused(key!("reason-no-strip")), "{name}");
     }
     let text = strings::text(key!("reason-no-strip"));
     assert!(text.contains("terminal designation"), "{text}");

@@ -870,7 +870,6 @@ fn copies_of(params: Value) -> Vec<Value> {
 #[cfg(test)]
 mod tests {
     use super::{BLACK_BOX_TOOL, NOT_BLACK_BOX, text_with_key};
-    use crate::key;
 
     /// The two black-box refusals name the key from the keymap, or leave the parenthesis out when the action
     /// has no key.

@@ -1487,9 +1487,6 @@ pub fn member_path(route: &EditRoute) -> Option<String> {
     }
 }
 
-/// The settable member's new value with a leaf replaced, moved down to `ew-api` with table mode's pure rule,
-/// re-exported under its old path.
-
 /// The kind's plural for the card and the toast (`devices`), in the UI language inside a sentence
 /// (`apparaten`).
 pub fn kind_plural(kind: &str, n: usize) -> String {

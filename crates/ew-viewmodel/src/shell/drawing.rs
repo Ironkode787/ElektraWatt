@@ -139,9 +139,7 @@ impl ShellModel {
         // The same guard as `text.edit`'s enabled predicate (`one_free_text`): the double-click path reaches here
         // without it, and a read-only project or a page without symbols has no text to edit.
         if let Err(reason_key) = crate::actions::editable_page(self) {
-            return Outcome::Refused {
-                reason: reason_key.into(),
-            };
+            return Outcome::Refused { reason: reason_key };
         }
         match self.text_edit_target() {
             Ok((item, at, text)) => {

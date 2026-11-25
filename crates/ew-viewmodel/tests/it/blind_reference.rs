@@ -109,4 +109,3 @@ fn the_action_lines_parse_back_and_cover_the_registry() {
     let command = text.lines().find(|l| l.starts_with("command.run ")).unwrap();
     assert!(command.contains(" needs-parameters"), "{command}");
 }
-

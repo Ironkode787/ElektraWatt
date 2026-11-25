@@ -966,7 +966,7 @@ impl ShellModel {
         match self.host_create("page.create", params) {
             Outcome::Done => {}
             Outcome::Failed { message } => return Err(message),
-            Outcome::Refused { reason: reason_key } => return Err(strings::render(&reason_key).into()),
+            Outcome::Refused { reason: reason_key } => return Err(strings::render(&reason_key)),
         }
         if let Some(id) = self.tools.last_primary.clone() {
             self.tools.selection.clear();
@@ -2032,7 +2032,7 @@ impl ShellModel {
         match self.act_command_run(params.as_object().ok_or_else(damaged)?) {
             Outcome::Done => {}
             Outcome::Failed { message } => return Err(message),
-            Outcome::Refused { reason: reason_key } => return Err(strings::render(&reason_key).into()),
+            Outcome::Refused { reason: reason_key } => return Err(strings::render(&reason_key)),
         }
         Ok(())
     }
@@ -2080,7 +2080,7 @@ impl ShellModel {
             match self.run_commit(&command) {
                 Outcome::Done => {}
                 Outcome::Failed { message } => return Err(message),
-                Outcome::Refused { reason: reason_key } => return Err(strings::render(&reason_key).into()),
+                Outcome::Refused { reason: reason_key } => return Err(strings::render(&reason_key)),
             }
         }
         Ok(symbol.to_string())

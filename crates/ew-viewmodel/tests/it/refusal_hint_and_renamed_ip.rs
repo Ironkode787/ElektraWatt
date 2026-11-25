@@ -178,7 +178,9 @@ fn a_greyed_commands_reason_reads_with_a_capital_under_its_title() {
     let mut s = new_project(&tmp);
     let reason = ew_viewmodel::strings::render(&ew_viewmodel::strings::keyed(
         ew_viewmodel::key!("reason-page-type-no-symbols"),
-        vec![ew_viewmodel::ew_api::page_kind_words(&ew_viewmodel::ew_api::PageType::TitlePage)],
+        vec![ew_viewmodel::ew_api::page_kind_words(
+            &ew_viewmodel::ew_api::PageType::TitlePage,
+        )],
     ));
     s.say_refusal(reason.clone());
     let n = *s.notifications().visible().last().expect("the toast");

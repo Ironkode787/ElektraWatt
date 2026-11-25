@@ -125,7 +125,7 @@ fn entry(ui: &mut Ui, e: &JobEntry, elapsed: Option<std::time::Duration>, events
                 ui.label(match pages {
                     Some(pages) => strings::format_counted(
                         ew_viewmodel::count_key!("job-done"),
-                        usize::try_from(*pages).unwrap_or(usize::MAX),
+                        *pages,
                         &[&kib.to_string()],
                     ),
                     None => strings::format(key!("job-done-table"), &[&kib.to_string()]),

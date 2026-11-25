@@ -12,8 +12,8 @@ use crate::common;
 
 use common::{Tmp, click, done, empty_point};
 use ew_dl::EntityRef;
-use ew_viewmodel::pointer::HOVER_SLOP_PT;
 use ew_viewmodel::key;
+use ew_viewmodel::pointer::HOVER_SLOP_PT;
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use ew_viewmodel::tools::{pick_stack, segment_dist2};
 use serde_json::json;

@@ -1039,15 +1039,29 @@ fn a_fluid_table_header_in_the_other_language_is_a_header() {
         "navigator.table",
         json!({"kind": "fluid", "on": true}),
     );
-    let table = shell.nav(NavKind::Fluid).and_then(|n| n.table()).cloned().expect("the tube table");
+    let table = shell
+        .nav(NavKind::Fluid)
+        .and_then(|n| n.table())
+        .cloned()
+        .expect("the tube table");
     let hide: Vec<String> = table
         .columns
         .iter()
         .filter(|c| c.key != "part" && !c.key_column)
         .map(|c| c.key.clone())
         .collect();
-    done(&mut shell, "table.columns", json!({"kind": "fluid", "hide": hide}));
-    let row = table.nodes.iter().find(|n| n.table_row).expect("a tube row").key.clone();
+    done(
+        &mut shell,
+        "table.columns",
+        json!({"kind": "fluid", "hide": hide}),
+    );
+    let row = table
+        .nodes
+        .iter()
+        .find(|n| n.table_row)
+        .expect("a tube row")
+        .key
+        .clone();
     done(
         &mut shell,
         "table.cell",

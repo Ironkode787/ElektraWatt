@@ -1097,10 +1097,7 @@ fn the_draw_tools_texts_read_whole() {
         assert_eq!(free_click_mm(&mut s, u, v), Outcome::Done, "point {i}");
     }
     let out = free_click_mm(&mut s, 900.0, 740.0);
-    assert_eq!(
-        out,
-        Outcome::refused(key!("reason-duct-vertices"))
-    );
+    assert_eq!(out, Outcome::refused(key!("reason-duct-vertices")));
     assert_eq!(s.tool_notice(), Some("A duct takes at most 256 points"));
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "tool.duct_draw", json!({}));

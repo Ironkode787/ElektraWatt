@@ -1036,9 +1036,7 @@ fn step_outcome(
     shell.run_said(
         Some(action),
         |shell| match actions::find(action).map(|m| actions::enabled_with(m, shell, map)) {
-            Some(Err(reason_key)) => Outcome::Refused {
-                reason: reason_key.into(),
-            },
+            Some(Err(reason_key)) => Outcome::Refused { reason: reason_key },
             _ => match ext.handle(shell, action, params) {
                 Some(outcome) => outcome,
                 None => shell.dispatch(action, params),

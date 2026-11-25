@@ -1355,7 +1355,6 @@ mod tests {
     use serde_json::Value;
 
     use super::{approve_words, command_failed, refusal_text, release_words, trouble_text};
-    use crate::key;
     use crate::strings;
 
     const WAIVER: &str = "01900000-0000-7000-8000-000000000001";

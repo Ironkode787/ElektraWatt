@@ -101,7 +101,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 action(events, "file.open_sample", Value::Null);
             }
             if let Some(why) = &refusal {
-                sample.disabled_tip(&strings::render(why));
+                sample.disabled_tip(strings::render(why));
             }
             if ui.button(strings::text(key!("start-import-qet"))).clicked() {
                 action(events, "file.import_qet", Value::Null);

@@ -467,7 +467,9 @@ fn a_tool_a_reorder_or_a_move_refused_on_a_generated_page_offers_tip_3() {
         Outcome::Refused {
             reason: ew_viewmodel::strings::keyed(
                 ew_viewmodel::key!("reason-page-type-no-symbols"),
-                vec![ew_viewmodel::ew_api::page_kind_words(&ew_viewmodel::ew_api::PageType::Report)],
+                vec![ew_viewmodel::ew_api::page_kind_words(
+                    &ew_viewmodel::ew_api::PageType::Report
+                )],
             )
         }
     );
