@@ -101,7 +101,6 @@ reason-strip-mixed-rows = Markeer alleen klemmen of alleen toebehoren
 reason-strip-move-none = De klemmen kunnen niet verder
 reason-unbridge-none = Geen brug verbindt de geselecteerde klemmen
 reason-unbridge-split = Verwijder de brug vanaf een einde, of de hele brug
-reason-strip-delete = Klemmen verwijderen verwijdert ook hun draden en bruggen
 error-accessory-part-ambiguous = Meerdere artikelen passen: { $p0 }; geef part
 reason-not-cables = Open eerst de navigator Kabels
 reason-nav-not-deletable = Deze rijen staan voor niets dat kan worden verwijderd

@@ -1480,16 +1480,12 @@ impl ShellModel {
         if view.acted.is_empty() {
             return Outcome::refused(key!("reason-no-nav-row"));
         }
-        // With the cursor in the Strips table's key column the rows are chosen whole: Delete deletes their terminals.
-        if kind == NavKind::Strips && view.table.columns[col].key_column {
-            let terminals: Vec<Uuid> = view
-                .acted
-                .iter()
-                .filter_map(|i| row_terminal(&view.table.nodes[*i as usize].key))
-                .collect();
-            if !terminals.is_empty() {
-                return self.delete_terminals(&terminals);
-            }
+        // With the cursor in the Strips table's key column the rows are chosen whole: Delete deletes them.
+        if kind == NavKind::Strips
+            && view.table.columns[col].key_column
+            && let Some(out) = self.delete_strip_rows()
+        {
+            return out;
         }
         let cells: Vec<GestureCell> = view
             .acted
@@ -1511,7 +1507,7 @@ impl ShellModel {
 
     /// The Strips table's Delete of whole rows: one `edit.delete` of the terminals `terminals` with their symbols and
     /// the wires drawn to them, whose toast counts the wires as the page's Delete does.
-    fn delete_terminals(&mut self, terminals: &[Uuid]) -> Outcome {
+    pub(super) fn delete_terminals(&mut self, terminals: &[Uuid]) -> Outcome {
         let session = &or_return!(crate::shell::gated(&self.project)).session;
         // The wires drawn on a page (a bridge is drawn on none) that end at the terminals.
         let mut wires: Vec<ew_dl::EntityRef> = Vec::new();

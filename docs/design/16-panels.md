@@ -225,7 +225,7 @@ and tube table are table models with domain commands for insert, delete and move
 | Pattern fill (Ctrl+Shift+D) | `fields.set` with per-row values | 1 | rule §7.5 |
 | Paste from Excel (Ctrl+V) | `fields.set`, plus inserts where the table allows them | 1 | rule §7.5 |
 | Clear cells (Delete) | `fields.set` to empty, which removes overrides | 1 | no |
-| Insert, delete, move rows | the table's domain commands (strip editor: `terminal.insert`, `edit.delete` of the terminal devices, `terminal.move`, the Terminal cell for re-designation, and `fields.set` of `strip.accessories` for accessory rows) | 1 each | ghost of prevent-rule violations (08 §9); a terminal-row delete always opens the table card, the other row gestures commit directly with a toast and an undo step |
+| Insert, delete, move rows | the table's domain commands (strip editor: `terminal.insert`, `edit.delete` of the terminal devices, `terminal.move`, the Terminal cell for re-designation, and `fields.set` of `strip.accessories` for accessory rows) | 1 each | ghost of prevent-rule violations (08 §9); every row gesture commits directly with a toast and an undo step (Delete of whole rows, §4.4 of doc 16) |
 | Sort, filter, resize, reorder columns | none | 0 | — |
 | Excel round-trip import | one `fields.set_many` ([14](14-interop.md) §8.2) | 1 | always |
 

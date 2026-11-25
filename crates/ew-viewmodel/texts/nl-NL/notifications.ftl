@@ -390,7 +390,10 @@ toast-convert = Omzetten in verbinding
 toast-show-block = Rapportblok tonen
 note-action-select-unlisted = Selecteren
 note-action-connect = Verbinden
-note-action-remove-undrawn = Uit het project verwijderen
+note-action-remove-undrawn = { $p0 ->
+        [one] Uit het project verwijderen
+       *[other] Uit het project verwijderen
+    }
 note-action-keep-tag = { $p0 } houden
 note-action-keep-tags = De oude kenmerken houden
 toast-connect-offer = { $p0 } staat tegenover { $p1 }, verder weg of over andere draden, en is dus niet verbonden: Verbinden legt de draad.

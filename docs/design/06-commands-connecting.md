@@ -242,7 +242,7 @@ installed library's symbol by its key as well as by its address, before its firs
 - **Delete on a page takes the wires drawn to the deleted symbols**: Delete (`edit.delete_selection`, and Cut through it) also deletes, in the same step, every
   connection on the page that ends at a connection point the deleted symbols draw, so no connection stays whose end's
   symbol went; the toast counts them. A terminal it leaves drawn by no symbol stays in its strip and the lists (a
-  terminal is never deleted with its symbol, below); the toast says how many, with Remove them from the project beside
+  terminal is never deleted with its symbol, below); the toast says how many, with Remove them from the project (Remove it from the project for one) beside
   Undo, one `edit.delete` of those terminals and of a strip it leaves with no terminal and no segment. The Devices
   tree's menu of a device or a strip has Delete (`navigator.delete`). Cut's toast says what it took instead ("Cut 12
   terminals. 14 wires that ended at them are removed with them; a paste keeps the wires between the cut items only."),

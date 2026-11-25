@@ -19,7 +19,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### The window's finish
 
-- FT-2140 `ew-viewmodel, ew-ui`: The strip table has Delete on whole rows and Ctrl+Delete (`strip.delete_rows`, with its card) for the same thing; and "Remove them from the project" says "them" for one terminal (seen by the lane that built the first, 2026-11-23).
 - FT-2141 `ew-viewmodel`: The Dutch glossary and several action labels say "artikel" for a part where the locale test and the window's other words say "onderdeel" (seen in a fix lane, 2026-11-23).
 - FT-2115 `ew-ui`: A persona run typed an interruption point's name, pressed Enter and then D, and D did nothing; the
   click then placed a source. Not reproduced: the Interruption button of the Draw tab, a typed name, Enter, D, with the

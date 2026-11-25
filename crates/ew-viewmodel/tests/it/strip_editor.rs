@@ -6,7 +6,6 @@
 //! Group row, insert, delete and move, and the describe lines.
 
 use crate::common;
-use ew_viewmodel::key;
 
 use common::{
     Tmp, done, failed, lines_with, refused, strip_at, strip_col, strip_column, strip_cursor, strip_row,
@@ -43,6 +42,12 @@ fn editor(tmp: &Tmp, strip: &str) -> ShellModel {
 /// Marks the rows `keys`.
 fn mark(shell: &mut ShellModel, keys: &[String]) {
     done(shell, "navigator.select", json!({"kind": "strips", "keys": keys}));
+}
+
+/// Delete over the acted rows with the cell cursor in the key column (Strip), which takes them whole.
+fn delete_rows(shell: &mut ShellModel) -> Outcome {
+    done(shell, "table.cell", json!({"kind": "strips", "column": "strip"}));
+    shell.dispatch("table.clear", &json!({"kind": "strips"}))
 }
 
 /// -X1021's terminals, numbered 1 to 8 by the sample's script (BR1 over 1 to 4, BR2 over 5 to 8).
@@ -267,8 +272,9 @@ fn group_labels_through_the_table_and_the_properties_row() {
 }
 
 /// SE9 (FR-TRM-015): Insert before -X1021:5 (one `terminal.insert`, the toast, the cursor on the new
-/// row); Ctrl+Delete on two terminal rows opens the card with their bridges and wires and commits nothing; on an
-/// accessory row it commits with the toast; on a mix it is refused; Alt+Up on :8 three times puts it at seq 5's place
+/// row); Delete with the cursor in the key column on two terminal rows deletes their terminals in one step, as the
+/// page's Delete (Ctrl+Delete did the same through a card); on an accessory row it commits with the toast; on a mix it
+/// is refused; Alt+Up on :8 three times puts it at seq 5's place
 /// in three steps (inside bridge group BR2), undone by three undos; a move that takes :2 out of BR1 fails with
 /// EW-TERM-004 (CI-06, a prevent invariant). (Enter-to-place is descoped from part 1.)
 #[test]
@@ -295,21 +301,20 @@ fn insert_delete_and_move_rows() {
     done(&mut shell, "edit.undo", json!({}));
     assert_eq!(strip_texts(&shell, "Terminal"), SEQ_1_TO_8);
 
-    // Delete two terminal rows: the card, nothing committed.
+    // Delete two terminal rows whole: one `edit.delete` of their terminals, no card.
     let keys: Vec<String> = ["5", "6"]
         .iter()
         .map(|n| strip_row(&shell, "Terminal", n))
         .collect();
     mark(&mut shell, &keys);
-    let (n, rev) = (steps(&shell), shell.revision());
-    done(&mut shell, "strip.delete_rows", json!({}));
-    let card = shell.properties().card().expect("the card (D12)");
-    assert_eq!(card.reason, key!("reason-strip-delete"));
-    assert_eq!(card.preview.name, "edit.delete");
-    // Two devices and two functions, BR2's connection and the wire on terminal 5's side 1, at the least.
-    assert!(card.changes >= 6, "{}", card.changes);
-    assert_eq!((steps(&shell), shell.revision()), (n, rev), "nothing committed");
-    done(&mut shell, "preview.cancel", json!({}));
+    let n = steps(&shell);
+    assert_eq!(delete_rows(&mut shell), Outcome::Done);
+    assert!(shell.properties().card().is_none(), "no card");
+    assert_eq!(steps(&shell), n + 1, "one step");
+    assert_eq!(last(&shell).0, "edit.delete");
+    assert_eq!(strip_texts(&shell, "Terminal"), ["1", "2", "3", "4", "7", "8"]);
+    done(&mut shell, "edit.undo", json!({}));
+    assert_eq!(strip_texts(&shell, "Terminal"), SEQ_1_TO_8);
 
     // Delete an accessory row: committed with the toast.
     let k8 = strip_row(&shell, "Terminal", "8");
@@ -318,7 +323,7 @@ fn insert_delete_and_move_rows() {
     let acc = strip_row(&shell, "Pos", "8.1");
     mark(&mut shell, std::slice::from_ref(&acc));
     let n = steps(&shell);
-    done(&mut shell, "strip.delete_rows", json!({}));
+    assert_eq!(delete_rows(&mut shell), Outcome::Done);
     assert_eq!(steps(&shell), n + 1);
     let (cmd, params) = last(&shell);
     assert_eq!(cmd, "fields.set", "{params}");
@@ -333,8 +338,13 @@ fn insert_delete_and_move_rows() {
     let acc = strip_row(&shell, "Pos", "8.1");
     let k8 = strip_row(&shell, "Terminal", "8");
     mark(&mut shell, &[acc.clone(), k8]);
+    done(
+        &mut shell,
+        "table.cell",
+        json!({"kind": "strips", "column": "strip"}),
+    );
     assert_eq!(
-        refused(&mut shell, "strip.delete_rows", json!({})),
+        refused(&mut shell, "table.clear", json!({"kind": "strips"})),
         "reason-strip-mixed-rows"
     );
     assert_eq!(
@@ -401,7 +411,6 @@ fn gestures_need_the_strip_editor() {
     let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     for (action, params) in [
         ("strip.insert", json!({})),
-        ("strip.delete_rows", json!({})),
         ("strip.move", json!({"step": 1})),
         ("strip.add_accessory", json!({})),
         ("strip.unbridge", json!({})),
@@ -481,8 +490,8 @@ fn alt_arrows_move_strip_rows_while_the_strips_navigator_has_the_focus() {
         json!({"area": "navigator", "kind": "strips"}),
     );
     assert_eq!(
-        shell.shortcut_action("strip.delete_rows"),
-        ("strip.delete_rows", Value::Null)
+        shell.shortcut_action("strip.insert"),
+        ("strip.insert", Value::Null)
     );
     shell.shutdown();
 }

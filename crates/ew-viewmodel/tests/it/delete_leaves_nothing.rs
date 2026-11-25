@@ -92,6 +92,11 @@ fn a_deleted_terminal_takes_its_wire_and_the_toast_offers_to_remove_it() {
          1 terminal is no longer drawn; it stays in the project and its lists."
     );
     assert_eq!(toast.actions(), [NoteAction::Undo, NoteAction::RemoveUndrawn]);
+    // One terminal is "it" (the label said "them" for one).
+    assert_eq!(
+        toast.label(NoteAction::RemoveUndrawn),
+        "Remove it from the project"
+    );
     assert!(
         toast.stays(),
         "a consequence the person may not want stays on screen"

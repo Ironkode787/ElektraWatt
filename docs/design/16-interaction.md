@@ -154,8 +154,8 @@ keymap sheet) lists every binding per preset and context, and [the action map](.
   dialog is owned by the main window, which takes no input while it is open.
 - **Rows of the Terminal strips navigator.** Delete (`table.clear`) with the cell cursor in the key column (Strip)
   takes the rows whole: it deletes the marked terminal rows' terminals with their symbols and the wires drawn to
-  them, one undo step, and its toast counts the wires as the page's Delete does; in any other column it clears the
-  cells.
+  them, one undo step, and its toast counts the wires as the page's Delete does; marked accessory rows it removes in
+  one step with its toast; terminal and accessory rows together it refuses; in any other column it clears the cells.
 
 ### 4.5 Tool host
 

@@ -281,7 +281,6 @@ action-text-edit = Tekst bewerken
 action-strip-bridge = Klemmen bruggen
 action-strip-edit = Klemmenstrookeditor
 action-strip-insert = Klem invoegen
-action-strip-delete-rows = Rijen verwijderen
 action-strip-move = Klemmen verplaatsen
 action-strip-add-accessory = Toebehoren toevoegen
 action-strip-unbridge = Brug verwijderen

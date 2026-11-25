@@ -1316,15 +1316,6 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_strip_insert(p),
         )),
     ),
-    in_navigator(act(
-        "strip.delete_rows",
-        Command,
-        Menu::Edit,
-        &["Ctrl+Delete"],
-        strips_editor,
-        None,
-        |s, _| s.act_strip_delete_rows(),
-    )),
     // Alt+Arrow Up and Alt+Arrow Down stay bound to `pages.move_up` and `pages.move_down` (the keymap test forbids a
     // second binding); while the Terminal strips navigator has the focus they run this action with `step` -1 or 1
     // (`ShellModel::shortcut_action`).

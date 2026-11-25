@@ -520,7 +520,7 @@ impl ShellModel {
     }
 
     /// A delete says the interruption points and the wires it took, the devices it left without a symbol and the
-    /// terminals it left drawn nowhere, with Remove them from the project beside its Undo.
+    /// terminals it left drawn nowhere, with Remove them from the project (it, for one) beside its Undo.
     fn say_deleted(
         &mut self,
         now: &PageTables,
@@ -567,7 +567,7 @@ impl ShellModel {
         if sentences.is_empty() {
             return;
         }
-        // Each sentence ends with its own full stop. Remove them from the project, beside the delete's Undo,
+        // Each sentence ends with its own full stop. Remove it (them) from the project, beside the delete's Undo,
         // removes the terminals the delete left drawn nowhere (and a strip that keeps no terminal and draws
         // nothing); terminals that stay in the project are a consequence the person may not want: a warning, which
         // stays.
@@ -576,8 +576,11 @@ impl ShellModel {
             self.notes.push(Note::of("edit", sentences).offering([undo]));
         } else {
             let terminals: Vec<String> = undrawn.iter().map(|e| e.0.to_string()).collect();
+            let label =
+                strings::format_count(crate::count_key!("note-action-remove-undrawn"), terminals.len());
             let remove = self.undo_offer(NoteAction::RemoveUndrawn).map(|o| Offer {
                 params: Some(json!(terminals)),
+                label: Some(label),
                 ..o
             });
             self.notes.push(

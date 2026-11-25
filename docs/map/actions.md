@@ -228,7 +228,6 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `strip.bridge` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_strip_bridge` `crates/ew-viewmodel/src/shell/bridge.rs` | `action-strip-bridge` |
 | `strip.edit` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_strip_edit` `crates/ew-viewmodel/src/shell/strip_editor.rs` | `action-strip-edit` |
 | `strip.insert` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_strip_insert` `crates/ew-viewmodel/src/shell/strip_editor.rs` | `action-strip-insert`, `refusal-strip-insert-count` |
-| `strip.delete_rows` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_strip_delete_rows` `crates/ew-viewmodel/src/shell/strip_editor.rs` | `action-strip-delete-rows` |
 | `strip.move` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_strip_move` `crates/ew-viewmodel/src/shell/strip_editor.rs` | `action-strip-move`, `reason-strip-move-none` |
 | `strip.add_accessory` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_strip_add_accessory` `crates/ew-viewmodel/src/shell/strip_editor.rs` | `action-strip-add-accessory` |
 | `strip.unbridge` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_strip_unbridge` `crates/ew-viewmodel/src/shell/bridge.rs` | `action-strip-unbridge` |

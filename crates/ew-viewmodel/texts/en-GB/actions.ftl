@@ -248,7 +248,6 @@ action-strip-bridge = Bridge terminals
 # The strip editor (§6.9, §6.10).
 action-strip-edit = Strip editor
 action-strip-insert = Insert terminal
-action-strip-delete-rows = Delete rows
 action-strip-move = Move terminals
 action-strip-add-accessory = Add accessory
 action-strip-unbridge = Remove bridge

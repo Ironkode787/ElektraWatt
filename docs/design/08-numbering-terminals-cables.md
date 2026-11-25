@@ -623,8 +623,9 @@ terminals in `seq` order, with its accessories as rows of their own at their `af
 in the Pos column). The columns add Pos (read-only: "move rows with Alt+Up and Alt+Down") and Bridge part (the
 carrier's part, §2.3); the Group cell edits the strip's group labels on the terminals; an accessory row's Part cell
 edits the accessory's part. Insert (`terminal.insert`: the following terminals, group bounds and accessory positions
-shift by the count; the new terminals copy the reference terminal's definition and parts), delete (terminal rows
-through the table card; accessory rows directly), move (`terminal.move`: only the sequence values of the changed
+shift by the count; the new terminals copy the reference terminal's definition and parts), delete (Delete with the
+cell cursor in the key column: terminal rows with their symbols and wires as the page's Delete, accessory rows; never
+both at once), move (`terminal.move`: only the sequence values of the changed
 range are permuted, so groups and accessories stay where they are and a moved terminal takes the group of its new
 place), add accessory (one `fields.set` of `strip.accessories`), Bridge terminals and Remove bridge are each one
 command and one undo step; designations never change. A terminal's Properties show its function text as "Printed

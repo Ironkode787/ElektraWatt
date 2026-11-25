@@ -438,7 +438,10 @@ toast-convert = Convert to connection
 toast-show-block = Show report block
 note-action-select-unlisted = Select them
 note-action-connect = Connect
-note-action-remove-undrawn = Remove them from the project
+note-action-remove-undrawn = { $p0 ->
+        [one] Remove it from the project
+       *[other] Remove them from the project
+    }
 note-action-keep-tag = Keep { $p0 }
 note-action-keep-tags = Keep the old tags
 toast-connect-offer = { $p0 } faces { $p1 }, further off or across other wires, so it is not connected: Connect draws the wire.

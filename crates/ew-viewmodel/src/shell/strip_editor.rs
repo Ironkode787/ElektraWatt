@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The strip editor: the Terminal strips navigator in table mode, opened by `strip.edit`, and its
-//! row gestures `strip.insert`, `strip.delete_rows`, `strip.move` and `strip.add_accessory` (`strip.unbridge` lives with
-//! the bridge rule in `bridge.rs`).
+//! row gestures `strip.insert`, `strip.move`, `strip.add_accessory` and Delete of whole rows (`table.clear` in the key
+//! column; `strip.unbridge` lives with the bridge rule in `bridge.rs`).
 //!
 //! **One gesture, one command.** Every gesture compiles through `Session::strip_edit` (the only door below the shell)
 //! into one `terminal.insert`, `terminal.move` or `fields.set`, committed directly with the toast and one undo
-//! step; deleting terminal rows is one `edit.delete` that always opens the host card (it removes their wires and
-//! bridges). The shell names no schema type: rows are read from the navigator's table, records through the session's
+//! step; deleting terminal rows is one `edit.delete` of the terminals with their symbols and wires, as the page's
+//! Delete. The shell names no schema type: rows are read from the navigator's table, records through the session's
 //! query by their ID text.
 //!
 //! **Context**: the Terminal strips navigator is open and focused (headless: open); otherwise the gestures refuse
@@ -367,10 +367,12 @@ impl ShellModel {
         })
     }
 
-    /// `strip.delete_rows` (Ctrl+Delete): terminal rows are one `edit.delete` of their devices, always the
-    /// card; accessory rows one `fields.set` per strip, committed with the toast; a mix is refused.
-    pub(crate) fn act_strip_delete_rows(&mut self) -> Outcome {
-        let rows = or_return!(self.strip_rows());
+    /// Delete with the cell cursor in the strip table's key column (`table.clear`) takes the acted rows whole:
+    /// terminal rows are one `edit.delete` of their terminals with their symbols and the wires drawn to them, as the
+    /// page's Delete; accessory rows one `fields.set` per strip, committed with the toast; a mix is refused. `None`
+    /// where no terminal or accessory row is acted (a strip's row: its cell is cleared).
+    pub(super) fn delete_strip_rows(&mut self) -> Option<Outcome> {
+        let rows = self.strip_rows().ok()?;
         let terminals: Vec<usize> = rows
             .rows
             .iter()
@@ -384,25 +386,17 @@ impl ShellModel {
             .filter(|i| rows.node(*i).role == NavRole::Accessory)
             .collect();
         if !terminals.is_empty() && !accessories.is_empty() {
-            return Outcome::refused(key!("reason-strip-mixed-rows"));
+            return Some(Outcome::refused(key!("reason-strip-mixed-rows")));
         }
         if !terminals.is_empty() {
             if !self.is_writable() {
-                return Outcome::refused(key!("reason-read-only"));
+                return Some(Outcome::refused(key!("reason-read-only")));
             }
-            let targets: Vec<Value> = terminals
-                .iter()
-                .filter_map(|i| record(rows.node(*i)))
-                .map(|d| serde_json::json!({"kind": "device", "id": d.to_string()}))
-                .collect();
-            return self.preview_host_card(
-                "edit.delete",
-                serde_json::json!({ "targets": targets }),
-                key!("reason-strip-delete"),
-            );
+            let devices: Vec<Uuid> = terminals.iter().filter_map(|i| record(rows.node(*i))).collect();
+            return Some(self.delete_terminals(&devices));
         }
         if accessories.is_empty() {
-            return Outcome::refused(key!("reason-no-nav-row"));
+            return None;
         }
         // One RemoveAccessories per strip, in row order.
         let mut edits: Vec<StripEdit> = Vec::new();
@@ -425,24 +419,24 @@ impl ShellModel {
             }
         }
         let Some(project) = &self.project else {
-            return Outcome::Done;
+            return Some(Outcome::Done);
         };
         if !self.is_writable() {
-            return Outcome::refused(key!("reason-read-only"));
+            return Some(Outcome::refused(key!("reason-read-only")));
         }
         let cmd = match project.session.strip_edits(&edits) {
             Ok(c) => c,
             Err(StripEditError::Refused(reason_key)) => {
-                return Outcome::Refused {
+                return Some(Outcome::Refused {
                     reason: Key::run_time(reason_key).into(),
-                };
+                });
             }
             Err(StripEditError::Invalid(message)) => {
-                return Outcome::Failed {
+                return Some(Outcome::Failed {
                     message: super::tools::rejected_words("", Some(&message)),
-                };
+                });
             }
-            Err(StripEditError::Ambiguous(_)) => return failed(key!("error-bad-param"), &["rows"]),
+            Err(StripEditError::Ambiguous(_)) => return Some(failed(key!("error-bad-param"), &["rows"])),
         };
         let out = self.run_commit(&cmd);
         if out == Outcome::Done {
@@ -453,7 +447,7 @@ impl ShellModel {
                 n.marked.clear();
             }
         }
-        out
+        Some(out)
     }
 
     /// `strip.move {step?, before?}` (Alt+Up, Alt+Down): the marked terminal rows of one strip (else the

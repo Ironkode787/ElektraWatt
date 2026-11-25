@@ -32,7 +32,6 @@ const KEY_ONLY: &[&str] = &[
     "tool.back",
     // The strip editor's row actions, reached through its row menu and keys.
     "strip.insert",
-    "strip.delete_rows",
     "strip.move",
     "strip.unbridge",
     "command.run",

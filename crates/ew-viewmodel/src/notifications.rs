@@ -177,6 +177,9 @@ pub(crate) struct Offer {
     pub(crate) validity: Validity,
     /// The parameters it runs with; `None` for an action that reads what it acts on when it runs.
     pub(crate) params: Option<serde_json::Value>,
+    /// Its label where it counts what it acts on ("Remove it from the project" for one terminal); `None`: the
+    /// action's fixed words.
+    pub(crate) label: Option<String>,
 }
 
 impl Offer {
@@ -186,6 +189,7 @@ impl Offer {
             action,
             validity,
             params: None,
+            label: None,
         }
     }
 }
@@ -275,8 +279,17 @@ impl Notification {
         self.tone == Some(NoteTone::Warning)
     }
 
-    /// The label of its action `action`: Keep names the one tag it keeps, any other its fixed words.
+    /// The label of its action `action`: the offer's own where it counts what it acts on, Keep names the one tag it
+    /// keeps, any other its fixed words.
     pub fn label(&self, action: NoteAction) -> String {
+        if let Some(label) = self
+            .offers
+            .iter()
+            .find(|o| o.action == action)
+            .and_then(|o| o.label.clone())
+        {
+            return label;
+        }
         match (action, &self.keep) {
             (NoteAction::KeepTag, Some(tag)) => strings::format(key!("note-action-keep-tag"), &[tag]),
             _ => strings::text(action.label_key()).to_owned(),

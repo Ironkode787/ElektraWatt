@@ -110,7 +110,6 @@ reason-strip-mixed-rows = Mark only terminals or only accessories
 reason-strip-move-none = The terminals cannot move further
 reason-unbridge-none = No bridge joins the selected terminals
 reason-unbridge-split = Unbridge from an end of the bridge, or the whole bridge
-reason-strip-delete = Deleting terminals also removes their wires and bridges
 error-accessory-part-ambiguous = Several parts fit: { $p0 }; give part
 reason-not-cables = Open the Cables navigator first
 reason-nav-not-deletable = These rows stand for nothing that can be deleted
