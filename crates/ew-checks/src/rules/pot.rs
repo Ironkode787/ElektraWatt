@@ -243,15 +243,11 @@ fn wire_note_findings(q: &Q, meta: &'static RuleMeta, p: PotentialId) -> Vec<Fin
         .iter()
         .filter_map(|note| match note {
             DeriveNote::Connectivity {
-                code,
-                fact,
-                subject,
-                detail,
+                code, fact, subject, ..
             } if *code == meta.id && note_owner(q, p, &wires.wires, subject) == Some(p) => {
                 // EW-POT-011's message in plain words, from its Fluent pattern: which junction or group of
-                // interruption points, where, and the wires that meet there; the note's detail stays the
-                // derivation's own text. The message leads with the potential, so the Messages row, which shows a
-                // subject the message leads with once, names it once.
+                // interruption points, where, and the wires that meet there. The message leads with the potential,
+                // so the Messages row, which shows a subject the message leads with once, names it once.
                 if meta.id == JUNCTION_FEED_AMBIGUOUS.id {
                     let args = feed_place(q, &wires.wires, subject);
                     let mut f = pt
@@ -262,8 +258,8 @@ fn wire_note_findings(q: &Q, meta: &'static RuleMeta, p: PotentialId) -> Vec<Fin
                     }
                     return Some(f);
                 }
-                // The derivation's text of the other notes in English, with the words of each language's pattern:
-                // the wire or connection the note is about, and its form.
+                // The other notes in each language's pattern, from the note's fact: the wire or connection the note is
+                // about, and its form.
                 let (form, about) = if meta.id == RING_IN_DRAWING_GRAPH.id {
                     ("ring", connection_text(q, subject))
                 } else {
@@ -275,10 +271,8 @@ fn wire_note_findings(q: &Q, meta: &'static RuleMeta, p: PotentialId) -> Vec<Fin
                 };
                 let f = pt
                     .finding(meta, &[], subject.clone(), name.clone())
-                    .arg("detail", detail.clone())
                     .arg("form", form)
                     .arg("wire", about);
-                // A note of a known form in plain words; another keeps the derivation's text.
                 Some(f)
             }
             _ => None,
@@ -1531,12 +1525,10 @@ impl Rule for PeIsland {
                 if let DeriveNote::Connectivity {
                     code: "EW-POT-008",
                     fact,
-                    detail,
                     ..
                 } = note
                 {
-                    // The derivation's text in English; the other languages word it from the terminal and the
-                    // number of own locations the text names.
+                    // Worded from the terminal and the number of the project's own locations.
                     let tag = full_tag(q, id, text!("word-terminal"));
                     let locations = match fact {
                         NoteFact::RailWithoutLocation { locations } => locations.to_string(),
@@ -1545,7 +1537,6 @@ impl Rule for PeIsland {
                     out.push(
                         Finding::new(&PE_ISLAND, [Target::new(Kind::Device, id)], "", tag.clone())
                             .arg("form", "terminal")
-                            .arg("detail", detail.clone())
                             .arg("terminal", tag)
                             .arg("locations", locations),
                     );

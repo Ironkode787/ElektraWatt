@@ -894,7 +894,7 @@ rule-ew-pot-006 = PE wire { $wire } has { $pe } mm², below the { $required } mm
     .hint = Increase the protective conductor's cross-section to the required size.
 
 rule-ew-pot-008 = { $form ->
-        [terminal] { $detail }
+        [terminal] { $terminal } is bonded to the rail but has no location, and the project has { $locations } own locations; the terminal joins no location's PE node
        *[island] The protective earth at { $at } on page { $page } reaches neither the incoming PE nor an earth symbol{ $location ->
             [main] {""}
            *[node] {" "}of { $node }
@@ -934,7 +934,7 @@ rule-ew-pot-011 = { $potential }: it is unclear which wire feeds { $place ->
 
 rule-ew-pot-012 = { $form ->
         [ring] The wire { $wire } closes a ring: its wires lead back to where they started, so it is left out of the wire list. Take one wire of the ring away, or confirm that the ring is meant.
-       *[other] { $detail }
+       *[other] A wire closes a ring in the drawing and is left out of the wire list. Take one wire of the ring away, or confirm that the ring is meant.
     }
     .title = Wires in a ring
     .hint = Remove the wire that closes the ring, or confirm that the ring is intended.
@@ -953,7 +953,7 @@ rule-ew-pot-013 = { $device } { $form ->
 rule-ew-pot-014 = { $form ->
         [conductor] A section of wire { $wire } is drawn on another cable core; the wire keeps the core it starts on. Draw the whole wire on one core.
         [override] A section of wire { $wire } sets a value the wire already has from another section; the first value applies. Set it in one place.
-       *[other] { $detail }
+       *[other] A section of a physical wire conflicts with another section of it. Give the wire one set of properties.
     }
     .title = Physical-wire conflict
     .hint = Give the physical wire one set of properties, or split it into separate wires.
@@ -1094,7 +1094,7 @@ rule-ew-term-004 = bridge group { $group } of { $strip } is invalid: { $gap ->
     .title = Bridge group invalid
     .hint = Bridge only neighbouring terminals of one strip, or move the terminals together.
 
-rule-ew-term-005 = rail_bonded is set but the terminal has no PE CP; it joins no location PE node
+rule-ew-term-005 = { $terminal } is bonded to the rail but has no PE connection point; the terminal joins no location's PE node
     .title = Rail bonding on a non-PE terminal
     .hint = Clear the rail bonding, or make the terminal a PE terminal.
 

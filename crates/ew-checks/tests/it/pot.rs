@@ -1149,3 +1149,37 @@ fn a_0v_on_functional_earth_is_told_where_the_bond_belongs() {
     let (m, _, _) = zero_volt_to_earth(ZeroSide::Pin, EarthSide::Protective);
     assert!(findings_of(&m, "EW-POT-002").is_empty());
 }
+
+/// EW-POT-008 on a rail-bonded terminal without a location in a project of two own locations, and EW-TERM-005 on one
+/// without a PE connection point, are worded by each language's pattern from the terminal and the number of own
+/// locations, not from the derivation's English: the English names the terminal, and the Dutch is Dutch throughout.
+#[test]
+fn the_rail_terminal_findings_are_worded_by_their_patterns() {
+    let mut fx = Fx::base();
+    fx.strip(0x400, 1);
+    for (n, code) in [(0x901u128, "A"), (0x902, "B")] {
+        fx.push(json!({"$k": "structure_node", "id": us(n), "aspect": "location", "code": code}));
+    }
+    fx.rail_terminal(0x4001, 0x400, None, None);
+    let m = fx.build();
+    let words = |rule: &str| -> (String, String) {
+        let f = findings_of(&m, rule);
+        let f = f.iter().find(|f| f.message().starts_with("-?X1:")).expect("the terminal's finding");
+        (
+            ew_checks::messages::render(f, "en-GB"),
+            ew_checks::messages::render(f, "nl-NL"),
+        )
+    };
+    let (en, nl) = words("EW-POT-008");
+    assert!(
+        en.ends_with(
+            "is bonded to the rail but has no location, and the project has 2 own locations; the terminal joins no \
+             location's PE node"
+        ),
+        "{en}"
+    );
+    assert!(nl.contains("heeft geen locatie, en het project heeft 2 eigen locaties"), "{nl}");
+    let (en, nl) = words("EW-TERM-005");
+    assert!(en.starts_with("-?X1:") && en.contains("has no PE connection point"), "{en}");
+    assert!(!nl.contains("rail_bonded") && nl.contains("heeft geen PE-aansluitpunt"), "{nl}");
+}

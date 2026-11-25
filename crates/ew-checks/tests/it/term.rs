@@ -271,11 +271,15 @@ fn term005_cases() {
                 assert_eq!(f[0].discriminator, "", "case {c}");
                 assert_eq!(f[0].targets.len(), 1, "case {c}");
                 assert_eq!(f[0].targets[0].id, uid(0x4001), "case {c}");
+                // Worded by the pattern from the terminal, in English as in Dutch.
                 assert!(
-                    f[0].message().contains("no PE CP"),
+                    f[0].message().ends_with(
+                        "is bonded to the rail but has no PE connection point; the terminal joins no location's PE node"
+                    ),
                     "case {c}: {}",
                     f[0].message()
                 );
+                assert!(f[0].message().starts_with("-?X1:"), "case {c}: {}", f[0].message());
             }),
             Case::silent("a terminal with a PE CP", with_pe),
             Case::silent("a terminal without the rail-bonded flag", unflagged),

@@ -929,7 +929,7 @@ rule-ew-pot-011 = { $potential }: het is niet duidelijk welke draad { $place ->
 
 rule-ew-pot-012 = { $form ->
         [ring] De draad { $wire } sluit een ring: zijn draden lopen terug naar waar ze begonnen, dus hij staat niet in de draadlijst. Haal één draad van de ring weg, of bevestig dat de ring bedoeld is.
-       *[other] { $detail }
+       *[other] Een draad sluit een ring in de tekening en staat niet in de draadlijst. Haal één draad van de ring weg, of bevestig dat de ring bedoeld is.
     }
     .title = Draden in een ring
     .hint = Verwijder de draad die de ring sluit, of bevestig dat de ring bedoeld is.
@@ -948,7 +948,7 @@ rule-ew-pot-013 = { $device } { $form ->
 rule-ew-pot-014 = { $form ->
         [conductor] Een deel van draad { $wire } is op een andere kabelader getekend; de draad houdt de ader waarop hij begint. Teken de hele draad op één ader.
         [override] Een deel van draad { $wire } zet een waarde die de draad al van een ander deel heeft; de eerste waarde geldt. Zet hem op één plaats.
-       *[other] { $detail }
+       *[other] Een deel van een fysieke draad botst met een ander deel ervan. Geef de draad één set eigenschappen.
     }
     .title = Conflict in een fysieke draad
     .hint = Geef de fysieke draad één set eigenschappen, of splits hem in afzonderlijke draden.
