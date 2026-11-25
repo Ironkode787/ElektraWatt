@@ -306,7 +306,7 @@ fn the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
         .into_iter()
         .find(|r| r.key == row.key)
         .unwrap();
-    assert!(shown.finding.is_some_and(|f| f.pending && f.severity == "error"));
+    assert!(shown.finding.is_some_and(|f| f.pending && f.severity.name() == "error"));
     h.state_mut().shell_mut().shutdown();
 }
 

@@ -574,7 +574,7 @@ fn the_project_has_its_settings_rows_and_d06_shows_its_finding() {
             .header
             .findings
             .iter()
-            .any(|f| f.rule == "EW-CORE-023" && f.severity == "info"),
+            .any(|f| f.rule == "EW-CORE-023" && f.severity.name() == "info"),
         "{:?}",
         sheet.header.findings
     );

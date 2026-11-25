@@ -2181,26 +2181,26 @@ mod tests {
     /// under its severity, as the Messages header counts it.
     #[test]
     fn pending_findings_count_as_pending() {
+        use crate::messages::Severity;
+        use ew_viewmodel::ew_api::checks::Severity as S;
         use ew_viewmodel::ew_api::output::FindingChip;
-        let chip = |severity: &str, pending: Option<&str>| FindingChip {
+        let chip = |severity: S, pending: Option<&str>| FindingChip {
             rule: "EW-CORE-041".into(),
-            severity: severity.into(),
+            severity,
             message: "m".into(),
             pending_on: pending.map(str::to_owned),
         };
         let findings = [
-            chip("warning", Some("101")),
-            chip("warning", None),
-            chip("error", Some("102")),
+            chip(S::Warning, Some("101")),
+            chip(S::Warning, None),
+            chip(S::Error, Some("102")),
         ];
         let groups = super::header::severity_groups(&findings, Some("101"));
-        let count = |s: &str| {
-            groups
-                .iter()
-                .find(|(g, _)| *g == crate::messages::Severity::of(s))
-                .map_or(0, |(_, of)| of.len())
-        };
-        assert_eq!((count("error"), count("warning"), count("pending")), (1, 1, 1));
+        let count = |s: Severity| groups.iter().find(|(g, _)| *g == s).map_or(0, |(_, of)| of.len());
+        assert_eq!(
+            (count(Severity::Error), count(Severity::Warning), count(Severity::Pending)),
+            (1, 1, 1)
+        );
         let none = super::header::severity_groups(&findings, None);
         assert!(none.iter().all(|(g, _)| *g != crate::messages::Severity::Pending));
     }

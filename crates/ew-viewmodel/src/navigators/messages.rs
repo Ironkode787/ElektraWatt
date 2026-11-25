@@ -17,6 +17,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::{NavNode, NavRole, NavTable};
+use ew_api::checks::Severity;
 use crate::canvas::PageId;
 use crate::key;
 
@@ -190,16 +191,23 @@ pub fn chip_pending(chip: &ew_api::output::FindingChip, editing: Option<&str>) -
 }
 
 /// The severity word of a finding row (`error`, `warning`, `info`), `None` for any other row.
-pub fn severity(node: &NavNode) -> Option<&'static str> {
+pub fn severity(node: &NavNode) -> Option<Severity> {
     if node.role != NavRole::Finding {
         return None;
     }
-    match node.cells.get(SEVERITY).map(String::as_str) {
-        Some("error") => Some("error"),
-        Some("warning") => Some("warning"),
-        Some("info") => Some("info"),
-        _ => None,
-    }
+    node.cells.get(SEVERITY).and_then(|w| severity_of(w))
+}
+
+/// The severity of a severity group row of the Messages tree (`severity:<word>`), `None` for any other row.
+pub fn group_severity(key: &str) -> Option<Severity> {
+    key.rsplit('/').next()?.strip_prefix("severity:").and_then(severity_of)
+}
+
+/// The severity whose name ([`Severity::name`]) is `word`.
+fn severity_of(word: &str) -> Option<Severity> {
+    [Severity::Error, Severity::Warning, Severity::Info]
+        .into_iter()
+        .find(|s| s.name() == word)
 }
 
 /// The header counts of a Messages table while `editing` is the editing page's folio.
@@ -212,10 +220,10 @@ pub fn counts(table: &NavTable, editing: Option<&str>) -> MessageCounts {
             c.pending += 1;
         } else {
             match severity(n) {
-                Some("error") => c.errors += 1,
-                Some("warning") => c.warnings += 1,
-                Some("info") => c.infos += 1,
-                _ => {}
+                Some(Severity::Error) => c.errors += 1,
+                Some(Severity::Warning) => c.warnings += 1,
+                Some(Severity::Info) => c.infos += 1,
+                None => {}
             }
         }
     }
@@ -544,6 +552,8 @@ mod tests {
         assert!(!d.title.is_empty(), "the shipped rule's title");
         assert_eq!(fingerprint_of("severity:error/rule:X/finding:ab12"), Some("ab12"));
         assert_eq!(fingerprint_of("severity:error/rule:X"), None);
+        assert_eq!(group_severity("severity:warning"), Some(Severity::Warning));
+        assert_eq!(group_severity("severity:error/rule:EW-CORE-033"), None);
     }
 
     /// A severity group as the provider builds it, ranked `rank`.

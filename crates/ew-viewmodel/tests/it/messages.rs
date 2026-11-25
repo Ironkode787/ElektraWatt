@@ -280,7 +280,7 @@ fn a_new_unpaired_point_on_the_editing_page_is_pending_until_the_tab_moves() {
         .into_iter()
         .find(|r| r.key == row.key)
         .unwrap();
-    assert!(shown.finding.is_some_and(|f| f.pending && f.severity == "error"));
+    assert!(shown.finding.is_some_and(|f| f.pending && f.severity.name() == "error"));
     assert!(
         shown.name.ends_with(", finding, error, pending"),
         "{}",

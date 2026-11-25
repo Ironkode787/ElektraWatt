@@ -122,8 +122,8 @@ pub struct SheetWhat {
 pub struct FindingChip {
     /// The rule ID (`EW-CORE-023`).
     pub rule: String,
-    /// `info`, `warning` or `error`.
-    pub severity: String,
+    /// Its severity.
+    pub severity: crate::checks::Severity,
     /// The message.
     pub message: String,
     /// The folio in lower case of a completeness finding's page (its page, else its primary target's), `None` for

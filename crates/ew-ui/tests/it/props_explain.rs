@@ -221,7 +221,7 @@ fn a_connection_point_is_marked_not_used_from_the_page() {
     settle(&mut h);
     assert!(h.state().shell().cp_unused(cp.function, cp.idx));
     // Its finding of an unconnected connection point is an info now.
-    let findings: Vec<(String, String)> = h
+    let findings: Vec<(&str, String)> = h
         .state()
         .shell()
         .properties()
@@ -230,14 +230,14 @@ fn a_connection_point_is_marked_not_used_from_the_page() {
             s.header
                 .findings
                 .iter()
-                .map(|f| (f.severity.clone(), f.message.clone()))
+                .map(|f| (f.severity.name(), f.message.clone()))
                 .collect()
         })
         .unwrap_or_default();
     assert!(
         findings
             .iter()
-            .any(|(severity, message)| severity == "info" && message.contains("marked not used")),
+            .any(|(severity, message)| *severity == "info" && message.contains("marked not used")),
         "{findings:?}"
     );
     h.state_mut().shell_mut().shutdown();

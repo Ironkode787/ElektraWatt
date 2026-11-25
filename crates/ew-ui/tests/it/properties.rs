@@ -246,7 +246,7 @@ fn the_description_override_from_the_keyboard() {
     assert!(
         findings
             .iter()
-            .any(|f| f.rule == "EW-CORE-023" && f.severity == "info"),
+            .any(|f| f.rule == "EW-CORE-023" && f.severity.name() == "info"),
         "{findings:?}"
     );
     assert!(
@@ -737,8 +737,8 @@ fn header_severity_chips_and_the_actions_menu_on_the_dots_button() {
         let of: Vec<_> = findings
             .iter()
             .filter(|f| match severity {
-                "error" | "warning" => f.severity == severity,
-                _ => f.severity != "error" && f.severity != "warning",
+                "error" | "warning" => f.severity.name() == severity,
+                _ => f.severity.name() != "error" && f.severity.name() != "warning",
             })
             .collect();
         if of.is_empty() {

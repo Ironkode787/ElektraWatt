@@ -27,8 +27,8 @@ use serde_json::{Value, json};
 use crate::app::Event;
 use crate::components::Tip as _;
 
-/// A severity as the window draws it (doc 16a §6.24), read from the view-model's word: `error`, `warning`, `pending`
-/// (the Properties header's pending chip); any other word is an info.
+/// A severity as the window draws it (doc 16a §6.24): a finding's, or `pending` (the Properties header's pending
+/// chip).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum Severity {
     Error,
@@ -38,13 +38,13 @@ pub(crate) enum Severity {
 }
 
 impl Severity {
-    /// The severity of the view-model's word `word`.
-    pub(crate) fn of(word: &str) -> Severity {
-        match word {
-            "error" => Severity::Error,
-            "warning" => Severity::Warning,
-            "pending" => Severity::Pending,
-            _ => Severity::Info,
+    /// How a finding of severity `s` is drawn.
+    pub(crate) fn of(s: ew_viewmodel::ew_api::checks::Severity) -> Severity {
+        use ew_viewmodel::ew_api::checks::Severity as S;
+        match s {
+            S::Error => Severity::Error,
+            S::Warning => Severity::Warning,
+            S::Info => Severity::Info,
         }
     }
 
@@ -117,16 +117,6 @@ fn word_colour(t: &Tokens, look: FindingLook) -> Rgba {
         return t.text_tertiary;
     }
     Severity::of(look.severity).word_colour(t)
-}
-
-/// The severity of a severity group row of the Messages tree (`severity:<word>`), `None` for any other row.
-pub(crate) fn group_severity(key: &str) -> Option<&'static str> {
-    match key.rsplit('/').next()? {
-        "severity:error" => Some("error"),
-        "severity:warning" => Some("warning"),
-        "severity:info" => Some("info"),
-        _ => None,
-    }
 }
 
 /// Paints a severity icon of `size.severity_icon` in its colour (doc 16a §6.24).
@@ -550,13 +540,14 @@ mod tests {
     #[test]
     fn the_icon_colour_is_the_severitys_token_and_tertiary_while_pending() {
         use crate::theme::{Density, Theme, tokens};
+        use ew_viewmodel::ew_api::checks::Severity as S;
         for theme in Theme::ALL {
             let t = tokens(theme, Density::Comfortable);
             let look = |severity, pending| FindingLook { severity, pending };
-            assert_eq!(colour_of(&t, look("error", false)), t.error.color32());
-            assert_eq!(colour_of(&t, look("warning", false)), t.warning_icon.color32());
-            assert_eq!(colour_of(&t, look("info", false)), t.accent.color32());
-            for s in ["error", "warning", "info"] {
+            assert_eq!(colour_of(&t, look(S::Error, false)), t.error.color32());
+            assert_eq!(colour_of(&t, look(S::Warning, false)), t.warning_icon.color32());
+            assert_eq!(colour_of(&t, look(S::Info, false)), t.accent.color32());
+            for s in [S::Error, S::Warning, S::Info] {
                 assert_eq!(
                     colour_of(&t, look(s, true)),
                     t.text_tertiary.color32(),
@@ -568,16 +559,17 @@ mod tests {
                     "{s} word pending"
                 );
             }
-            assert_eq!(word_colour(&t, look("error", false)), t.error);
-            assert_eq!(word_colour(&t, look("warning", false)), t.warning);
+            assert_eq!(word_colour(&t, look(S::Error, false)), t.error);
+            assert_eq!(word_colour(&t, look(S::Warning, false)), t.warning);
             assert_ne!(t.error, t.warning_icon, "error and warning differ");
         }
     }
 
-    /// Three distinct icon shapes and the words of the three severities; the group keys map to their severity.
+    /// Three distinct icon shapes and the words of the three severities.
     #[test]
     fn three_distinct_shapes_words_and_group_keys() {
-        let ids: Vec<IconId> = ["error", "warning", "info"]
+        use ew_viewmodel::ew_api::checks::Severity as S;
+        let ids: Vec<IconId> = [S::Error, S::Warning, S::Info]
             .into_iter()
             .map(|s| Severity::of(s).icon())
             .collect();
@@ -589,11 +581,9 @@ mod tests {
         assert_ne!(ids[1].segments(), ids[2].segments());
         assert_ne!(ids[0].segments(), ids[2].segments());
         assert_eq!(
-            ["error", "warning", "info"].map(|s| Severity::of(s).word()),
+            [S::Error, S::Warning, S::Info].map(|s| Severity::of(s).word()),
             ["Error", "Warning", "Info"]
         );
-        assert_eq!(group_severity("severity:warning"), Some("warning"));
-        assert_eq!(group_severity("severity:error/rule:EW-CORE-033"), None);
         assert_eq!(finding_badge("pending"), Some(Badge::Pending));
         assert_eq!(finding_badge("fix"), Some(Badge::Fix));
         assert_eq!(finding_badge("error"), None);

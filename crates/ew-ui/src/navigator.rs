@@ -1131,7 +1131,7 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
             if let Some(look) = row.finding {
                 crate::messages::severity_cell(ui, look);
             } else if kind == NavKind::Messages
-                && let Some(severity) = crate::messages::group_severity(&row.key)
+                && let Some(severity) = ew_viewmodel::navigators::messages::group_severity(&row.key)
             {
                 let look = ew_viewmodel::shell::FindingLook {
                     severity,

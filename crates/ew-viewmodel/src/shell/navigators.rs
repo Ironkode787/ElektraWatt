@@ -144,8 +144,8 @@ pub struct ShownRow {
 /// How a finding row is painted (doc 16a §6.24, FR-UI-025): the severity's icon and colour, muted and outlined when pending.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct FindingLook {
-    /// The severity word: `error`, `warning` or `info`.
-    pub severity: &'static str,
+    /// The severity.
+    pub severity: ew_api::checks::Severity,
     /// Whether the finding is pending.
     pub pending: bool,
 }

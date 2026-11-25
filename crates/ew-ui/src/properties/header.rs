@@ -183,8 +183,8 @@ pub(super) fn severity_groups<'a>(
             .filter(|f| match severity {
                 Severity::Pending => pending(f),
                 _ if pending(f) => false,
-                Severity::Error | Severity::Warning => Severity::of(&f.severity) == severity,
-                Severity::Info => !matches!(Severity::of(&f.severity), Severity::Error | Severity::Warning),
+                Severity::Error | Severity::Warning => Severity::of(f.severity) == severity,
+                Severity::Info => !matches!(Severity::of(f.severity), Severity::Error | Severity::Warning),
             })
             .map(|f| (f.rule.as_str(), f.message.as_str()))
             .collect();

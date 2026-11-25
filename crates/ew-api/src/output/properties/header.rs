@@ -221,7 +221,7 @@ impl Session {
                         f.subject_english(),
                         FindingChip {
                             rule: f.rule.to_owned(),
-                            severity: f.severity.name().to_owned(),
+                            severity: f.severity,
                             message: f.message().clone(),
                             pending_on: checks::rule(f.rule)
                                 .filter(|r| r.meta().kind == checks::RuleKind::Completeness)

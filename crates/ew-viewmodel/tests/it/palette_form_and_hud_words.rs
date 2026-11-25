@@ -118,7 +118,7 @@ fn chips_and_rows_share_the_pending_rule() {
     use ew_viewmodel::navigators::messages::{chip_pending, pending_on};
     let chip = |page: Option<&str>| FindingChip {
         rule: "EW-CORE-041".into(),
-        severity: "warning".into(),
+        severity: ew_api::checks::Severity::Warning,
         message: "m".into(),
         pending_on: page.map(str::to_owned),
     };
