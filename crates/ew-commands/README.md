@@ -10,8 +10,8 @@ project-wide `History` (undo and redo) and the change feed. `ew_api::Session` wr
 
 ## Parameter schemas
 
-The committed JSON Schemas of the command parameters live in `schemas/`. They are regenerated with
-`EW_COMMANDS_BLESS=1 cargo test -p ew-commands --test it schemas::`.
+The JSON Schemas of the command parameters are made by `CommandRegistry::schema_files`; `cargo xtask gen` writes
+them into the reference (`target/reference/commands/`, not committed) for the user guide.
 
 Parameter schemas reject unknown tags of open enums on purpose: the schemas are the client contract, while
 records stay open (unknown tags round-trip through the model).

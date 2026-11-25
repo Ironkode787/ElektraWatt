@@ -9,7 +9,7 @@
 //!   GPL), so each registry's own crate has a test that writes its file when `EW_REFERENCE_DIR` is set, and
 //!   [`reference`] runs those tests.
 //! - **Committed files** that a generator writes from data in the tree: the workspace-hack crate, the book's
-//!   contents and reference pages, the maps of the actions and the crates (`docs/map/`), the icon table, the lint list, the QET symbol edition and the sample project's folder. `--check` compares the
+//!   contents and reference pages, the maps of the actions and the crates (`docs/map/`), the icon table, the lint list, the QET symbol edition, the format's schemas, the identifier sets' tables and the sample project's folder. `--check` compares the
 //!   ones that need no build. The guide's translation catalogue is not among them: `cargo xtask book-po` makes it,
 //!   when the guide is translated and before a release.
 
@@ -69,31 +69,51 @@ const OWN: &[(&str, Own)] = &[
         }
     }),
     ("symbols-qet10", crate::symbols::run),
-    // Comparing needs a build: the test itself compares the folder; here it is only written.
-    ("sample", sample),
+    // Comparing needs a build: each test of [`BLESSED`] compares its files itself; here they are only written.
+    ("blessed", blessed),
     // Not here: the guide's translation catalogue (`cargo xtask book-po`). It is made when the guide is translated
     // and before a release, not with every change of a page: made here, every change of a page rewrote the
     // template and the translations in every branch, and they met at every merge.
 ];
 
-/// The test that writes the sample project's folder `fixtures/sample/sample.ew` from its UI script when `EW_BLESS=1`
-/// is set: the package, then the arguments that choose the test target and the test.
-const SAMPLE_TEST: (&str, &[&str]) = (
-    "ew-viewmodel",
-    &[
-        "--test",
-        "it",
-        "sample::the_committed_sample_is_what_its_script_makes",
-    ],
-);
+/// The tests that write a committed file from data of the tree when their variable is set, and otherwise fail while
+/// it differs: the variable, the package, then the arguments that choose the test target and the test.
+const BLESSED: &[(&str, &str, &[&str])] = &[
+    // The project format's JSON Schemas, `schemas/<format>/`, from the record types.
+    (
+        "EW_SCHEMA_BLESS",
+        "ew-schema",
+        &["--test", "it", "schemas::committed_schemas_match_the_generated_ones"],
+    ),
+    // The identifier sets' tables, `crates/ew-rds/src/sets/data.rs`, from `data/identifier-sets.toml`.
+    (
+        "EW_RDS_BLESS",
+        "ew-rds",
+        &["--test", "identifier_sets", "generated_tables_match_the_data_file"],
+    ),
+    // The sample project's folder, `fixtures/sample/sample.ew`, from its UI script.
+    (
+        "EW_BLESS",
+        "ew-viewmodel",
+        &[
+            "--test",
+            "it",
+            "sample::the_committed_sample_is_what_its_script_makes",
+        ],
+    ),
+];
 
-/// `sample`: runs [`SAMPLE_TEST`] with `EW_BLESS=1`, which writes the folder. In check mode it is up to date by
-/// definition: comparing needs a build, and the test compares it.
-fn sample(root: &Path, check: bool) -> Result<bool> {
+/// `blessed`: runs each test of [`BLESSED`] with its variable set, which writes its files. In check mode they are up
+/// to date by definition: comparing needs a build, and each test compares its files.
+fn blessed(root: &Path, check: bool) -> Result<bool> {
     if check {
         return Ok(true);
     }
-    test_with(root, ("EW_BLESS", "1".as_ref()), SAMPLE_TEST.0, SAMPLE_TEST.1)
+    let mut ok = true;
+    for (var, package, args) in BLESSED {
+        ok &= test_with(root, (var, "1".as_ref()), package, args)?;
+    }
+    Ok(ok)
 }
 
 /// `gen-maps [--check]`: the action map and the crate map under `docs/map/`, read from the source.

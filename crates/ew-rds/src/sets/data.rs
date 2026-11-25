@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 // @generated from data/identifier-sets.toml by tests/identifier_sets.rs. Do not edit: change the
-// TOML file and run `EW_RDS_BLESS=1 cargo test -p ew-rds --test identifier_sets`.
+// TOML file and run `cargo xtask gen`.
 
 //! The shipped identifier sets.
 

@@ -4,8 +4,7 @@
 //! The shipped identifier sets agree with `data/identifier-sets.toml` (ADR-0026 decision 3: sets are data).
 //!
 //! `src/sets/data.rs` is generated from the TOML file by [`generate`]. The test fails while the checked-in
-//! file differs from what the TOML file generates; `EW_RDS_BLESS=1 cargo test -p ew-rds --test
-//! identifier_sets` rewrites it. A second test reads the same TOML file through the public API.
+//! file differs from what the TOML file generates; `cargo xtask gen` rewrites it (the test with `EW_RDS_BLESS=1`). A second test reads the same TOML file through the public API.
 
 // Test target: bless and diagnostic environment flags (EW_*), which only choose whether a committed file is rewritten or a line is printed; the compared result never depends on them.
 #![allow(clippy::disallowed_methods)]
@@ -176,7 +175,7 @@ fn generate(sets: &[SetMeta], categories: &[Category]) -> String {
          // SPDX-License-Identifier: MIT OR Apache-2.0\n\
          \n\
          // @generated from data/identifier-sets.toml by tests/identifier_sets.rs. Do not edit: change the\n\
-         // TOML file and run `EW_RDS_BLESS=1 cargo test -p ew-rds --test identifier_sets`.\n\
+         // TOML file and run `cargo xtask gen`.\n\
          \n\
          //! The shipped identifier sets.\n\
          \n\
@@ -277,8 +276,8 @@ fn generated_tables_match_the_data_file() {
         .replace("\r\n", "\n");
     assert!(
         actual == expected,
-        "src/sets/data.rs is out of date with data/identifier-sets.toml; run \
-         `EW_RDS_BLESS=1 cargo test -p ew-rds --test identifier_sets` and commit the result"
+        "src/sets/data.rs is out of date with data/identifier-sets.toml; run `cargo xtask gen` and commit the \
+         result"
     );
 }
 

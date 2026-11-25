@@ -40,9 +40,9 @@ $ mdbook build docs/book                        # writes target/book
 
 ## Generated pages
 
-`cargo xtask docs-gen` writes `src/reference/commands/` (one page per command, from the parameter schemas in
-`crates/ew-commands/schemas/`) and `src/reference/rules/` (one page per rule and an index page per rule pack, from the
-rule catalogue snapshot `crates/ew-checks/catalogue/rules.json` and the notes of `rule-notes/`), the CLI, query,
+`cargo xtask docs-gen` writes `src/reference/commands/` (one page per command, from the parameter schemas of the
+reference, `target/reference/commands/`) and `src/reference/rules/` (one page per rule and an index page per rule
+pack, from the rule catalogue of the reference, `target/reference/rules.json`, and the notes of `rule-notes/`), the CLI, query,
 `api_v1`, format, glossary and keymap references, and `src/reference/release-notes/` (one page per
 `docs/release-notes/<X.Y.Z>.md`, newest first, with its relative links rewritten to the repository's address; the
 drafts `unreleased.md` and `m1-draft.md` are not shown), and
@@ -51,11 +51,9 @@ them, and the contract files they render stay committed. `SUMMARY.md` is committ
 writes no page and fails when it differs from the sources, and `cargo xtask check` of the whole workspace runs it as a
 step.
 
-When a command or a rule changes, regenerate the sources first, then the pages:
+When a command or a rule changes, regenerate the reference and the pages:
 
 ```console
-$ EW_COMMANDS_BLESS=1 cargo test -p ew-commands --test it schemas::
-$ EW_CHECKS_BLESS=1 cargo test -p ew-checks --test it catalogue::
 $ cargo xtask docs-gen
 ```
 
