@@ -79,3 +79,16 @@ text-style-section-subtitle = Ondertitel sectie
 text-style-imported = Geïmporteerde tekst van { $p0 } pt
 text-style-imported-bold = Geïmporteerde vette tekst van { $p0 } pt
 text-style-own = Een tekststijl van dit project
+
+## A potential type and a circuit class, as the lists print them and the checks name them
+
+potential-type-code = { $p0 }
+potential-type-signal = signaal
+potential-type-undefined = onbepaald
+potential-type-other = overig
+circuit-class-mains = net
+circuit-class-control = sturing
+circuit-class-analogue = analoog
+circuit-class-bus = bus
+circuit-class-pe = PE
+circuit-class-other = overig

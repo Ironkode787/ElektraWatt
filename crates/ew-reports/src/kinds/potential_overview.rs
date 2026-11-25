@@ -7,9 +7,8 @@ use std::collections::BTreeSet;
 
 use ew_derive::{DrawnPageOrder, PageRef, Potential, PotentialId, PropSource, Q};
 use ew_ids::Id;
-use ew_l10n::Text;
 use ew_mltext::{MlText, NaturalKey, natural_key};
-use ew_schema::{CircuitClass, Page, PotentialType, ReportBlock, ReportKind};
+use ew_schema::{Page, PotentialType, ReportBlock, ReportKind};
 
 use super::conn::{Wires, colour_cell, csa_cell, put, words_cell};
 use crate::kind::ReportKindDef;
@@ -169,10 +168,9 @@ fn potential_row(q: &Q, wires: &Wires, p: &Potential, pages: Vec<PageRef>) -> Ro
         };
         Cell::Ident(format!("{}{ac_dc}", v.value))
     });
-    let class = attrs
-        .circuit_class
-        .as_ref()
-        .map_or(Cell::Empty, |c| words_cell(&class_name(&c.value)));
+    let class = attrs.circuit_class.as_ref().map_or(Cell::Empty, |c| {
+        words_cell(&ew_derive::text::circuit_class(&c.value))
+    });
     let mut r = Row::data(
         match p.id {
             PotentialId::Def(d) => RowId::entity(d),
@@ -204,21 +202,5 @@ fn type_name(t: &PotentialType) -> Cell {
     if let Some(code) = ew_derive::potential_type_code(t) {
         return Cell::Text(MlText::neutral(code));
     }
-    words_cell(&match t {
-        PotentialType::Signal => text!("cell-potential-signal"),
-        PotentialType::Undefined => text!("cell-potential-undefined"),
-        _ => text!("cell-other"),
-    })
-}
-
-/// A circuit class in words.
-fn class_name(c: &CircuitClass) -> Text {
-    match c {
-        CircuitClass::Mains => text!("cell-class-mains"),
-        CircuitClass::Control => text!("cell-class-control"),
-        CircuitClass::Analogue => text!("cell-class-analogue"),
-        CircuitClass::Bus => text!("cell-class-bus"),
-        CircuitClass::Pe => text!("cell-class-pe"),
-        CircuitClass::Unknown(_) => text!("cell-other"),
-    }
+    words_cell(&ew_derive::text::potential_type(t))
 }

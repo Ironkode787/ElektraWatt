@@ -234,13 +234,6 @@ cell-bridge-via = { $p0 }, klemmen { $p1 }
 
 ## A potential's type and circuit class, and a bond
 
-cell-potential-signal = signaal
-cell-potential-undefined = onbepaald
-cell-class-mains = net
-cell-class-control = sturing
-cell-class-analogue = analoog
-cell-class-bus = bus
-cell-class-pe = PE
 cell-bond = Potentiaalverbinding
 
 ## A channel's kind, a port's plug, a valve terminal's slot

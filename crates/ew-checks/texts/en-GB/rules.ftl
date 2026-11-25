@@ -1313,25 +1313,9 @@ word-an-f-module = an F-module
 word-the-sensor = the sensor
 word-the-cable = the cable
 word-the-device = the device
-word-type-pe = protective earth PE
-word-type-pen = PEN conductor
-word-type-fe = functional earth FE
-word-type-n = neutral N
-word-type-phase = phase { $p0 }
-word-type-l-plus = plus L+
-word-type-l-minus = minus L−
-word-type-signal = signal
-word-type-none = no type
-word-type-newer = a type of a newer format
 word-current-newer = a current of a newer format
 word-earthing-floating = floating
 word-earthing-newer = an earthing of a newer format
-word-class-mains = mains circuit
-word-class-control = control circuit
-word-class-analogue = analogue circuit
-word-class-bus = bus circuit
-word-class-pe = protective-earth circuit
-word-class-newer = a circuit class of a newer format
 # The text styles by the names the Text styles page lists them under (`messages::text_style_name`).
 
 rule-ew-imp-251 =

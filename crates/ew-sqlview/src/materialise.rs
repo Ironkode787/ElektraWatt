@@ -19,7 +19,7 @@ use ew_derive::{
 use ew_ids::Id;
 use ew_mltext::{NaturalKey, natural_key};
 use ew_rds::{Aspect, RdsSyntax};
-use ew_schema::{AcDc, CircuitClass, Device, DeviceState, FnRole, FunctionKind, LengthSource};
+use ew_schema::{AcDc, Device, DeviceState, FnRole, FunctionKind, LengthSource};
 use rusqlite::types::Value as SqlValue;
 
 use crate::conn::{self, Bridge, WireRec, Wires, cp_of, device_of, ip_name, tag_short};
@@ -696,7 +696,7 @@ pub(crate) fn terminals(s: &Source<'_>) -> Vec<Row> {
                 q.get::<PotentialAttrsOf>(p)
                     .ptype
                     .as_ref()
-                    .map(|a| ew_derive::potential_type_text(&a.value).to_owned())
+                    .map(|a| ew_derive::text::potential_type(&a.value).to_string())
             });
             let state = match &dev.state {
                 DeviceState::Spare => "spare",
@@ -916,18 +916,6 @@ pub(crate) fn conductors(s: &Source<'_>) -> Vec<Row> {
 // ---------------------------------------------------------------------------------------------------------
 // potential, bond
 
-fn class_name(c: &CircuitClass) -> String {
-    match c {
-        CircuitClass::Mains => "mains",
-        CircuitClass::Control => "control",
-        CircuitClass::Analogue => "analogue",
-        CircuitClass::Bus => "bus",
-        CircuitClass::Pe => "PE",
-        CircuitClass::Unknown(_) => "other",
-    }
-    .to_owned()
-}
-
 /// The members of a potential as folio 909 counts them (a potential a bus segment carries counts the
 /// segment's members): [`ew_derive::potential_member_count`], one reader for the report and the view.
 fn member_count(q: &Q, p: &Potential) -> usize {
@@ -1001,7 +989,7 @@ pub(crate) fn potentials(s: &Source<'_>) -> Vec<Row> {
                     attrs
                         .ptype
                         .as_ref()
-                        .map(|t| ew_derive::potential_type_text(&t.value).to_owned()),
+                        .map(|t| ew_derive::text::potential_type(&t.value).to_string()),
                 )
                 .set("voltage", attrs.voltage.as_ref().map(|v| v.value.to_string()))
                 .set(
@@ -1015,7 +1003,10 @@ pub(crate) fn potentials(s: &Source<'_>) -> Vec<Row> {
                 )
                 .set(
                     "circuit_class",
-                    attrs.circuit_class.as_ref().map(|c| class_name(&c.value)),
+                    attrs
+                        .circuit_class
+                        .as_ref()
+                        .map(|c| ew_derive::text::circuit_class(&c.value).to_string()),
                 )
                 .set("colour", colour.map(|c| ew_derive::colour_text(&c.value)))
                 .set("colour_iec", colour.and_then(|c| colour_iec(&c.value)))

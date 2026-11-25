@@ -240,13 +240,31 @@ pub fn potential_type_code(t: &PotentialType) -> Option<&'static str> {
     })
 }
 
-/// A potential type as the checks' messages and the SQL view print it: its code, `signal`, `undefined` for an undefined
-/// type and `other` for a type of a newer format.
-pub fn potential_type_text(t: &PotentialType) -> &'static str {
+/// A potential type in words, as the lists print it and the checks name it: its code (`L1`, `PE`, the same in every
+/// language), `signal`, `undefined` for an undefined type and `other` for a type of a newer format. The SQL view prints
+/// its English.
+pub fn potential_type(t: &PotentialType) -> Text {
+    if let Some(code) = potential_type_code(t) {
+        return text!("potential-type-code", code);
+    }
     match t {
-        PotentialType::Signal => "signal",
-        PotentialType::Unknown(_) => "other",
-        other => potential_type_code(other).unwrap_or("undefined"),
+        PotentialType::Signal => text!("potential-type-signal"),
+        PotentialType::Undefined => text!("potential-type-undefined"),
+        _ => text!("potential-type-other"),
+    }
+}
+
+/// A circuit class in words, as the lists print it and the checks name it (`mains`, `PE`); `other` for a class of a newer
+/// format. The SQL view prints its English.
+pub fn circuit_class(c: &ew_schema::CircuitClass) -> Text {
+    use ew_schema::CircuitClass as C;
+    match c {
+        C::Mains => text!("circuit-class-mains"),
+        C::Control => text!("circuit-class-control"),
+        C::Analogue => text!("circuit-class-analogue"),
+        C::Bus => text!("circuit-class-bus"),
+        C::Pe => text!("circuit-class-pe"),
+        C::Unknown(_) => text!("circuit-class-other"),
     }
 }
 

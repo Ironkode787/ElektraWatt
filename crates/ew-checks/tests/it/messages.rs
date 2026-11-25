@@ -573,11 +573,11 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
     // sides with what each is, the page), each kind a word by key.
     let conflicts = [
         (
-            "conflict-type\t24VDC-1 at -X1:1\tphase L1\tL1 at -X2:1\tplus L+\t3",
-            "24VDC-1 at -X1:1 (phase L1) is wired to L1 at -X2:1 (plus L+) on page 3: a wire joins two different \
+            "conflict-type\t24VDC-1 at -X1:1\tL1\tL1 at -X2:1\tL+\t3",
+            "24VDC-1 at -X1:1 (L1) is wired to L1 at -X2:1 (L+) on page 3: a wire joins two different \
              potentials. If one of them is typed wrongly, correct its type; otherwise the wire goes to the wrong place: \
              move it or take it away.",
-            "24VDC-1 at -X1:1 (fase L1) is verbonden met L1 at -X2:1 (plus L+) op pagina 3: een draad verbindt twee \
+            "24VDC-1 at -X1:1 (L1) is verbonden met L1 at -X2:1 (L+) op pagina 3: een draad verbindt twee \
              verschillende potentialen. Is een van beide verkeerd getypeerd, verbeter dan het type; anders zit de draad \
              op de verkeerde plaats: verplaats hem of haal hem weg.",
         ),
@@ -598,33 +598,33 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
              verplaats hem of haal hem weg.",
         ),
         (
-            "conflict-class\tL at -X1:1\tmains circuit\tS at -X2:1\tcontrol circuit\t1",
-            "L at -X1:1 (mains circuit) is wired to S at -X2:1 (control circuit) on page 1: one conductor cannot be \
+            "conflict-class\tL at -X1:1\tmains\tS at -X2:1\tcontrol\t1",
+            "L at -X1:1 (mains) is wired to S at -X2:1 (control) on page 1: one conductor cannot be \
              in two circuit classes. If one class is wrong, correct it; otherwise the wire goes to the wrong place: move \
              it or take it away.",
-            "L at -X1:1 (netstroomkring) is verbonden met S at -X2:1 (stuurstroomkring) op pagina 1: één geleider kan \
+            "L at -X1:1 (net) is verbonden met S at -X2:1 (sturing) op pagina 1: één geleider kan \
              niet in twee stroomkringklassen zitten. Is een klasse verkeerd, verbeter die dan; anders zit de draad op de \
              verkeerde plaats: verplaats hem of haal hem weg.",
         ),
         (
-            "conflict-role\t-K1:A1\tprotective earth PE\t24VDC at -X1:1\tplus L+\t2",
-            "-K1:A1 (protective earth PE) is wired to 24VDC at -X1:1 (plus L+) on page 2: a wire joins two different \
+            "conflict-role\t-K1:A1\tPE\t24VDC at -X1:1\tL+\t2",
+            "-K1:A1 (PE) is wired to 24VDC at -X1:1 (L+) on page 2: a wire joins two different \
              potentials. If the pin is wired to the wrong conductor, move its wire; if 24VDC at -X1:1 is typed wrongly, \
              correct its type.",
-            "-K1:A1 (beschermingsaarde PE) is verbonden met 24VDC at -X1:1 (plus L+) op pagina 2: een draad verbindt \
+            "-K1:A1 (PE) is verbonden met 24VDC at -X1:1 (L+) op pagina 2: een draad verbindt \
              twee verschillende potentialen. Zit de pen op de verkeerde geleider, verplaats dan zijn draad; is 24VDC at \
              -X1:1 verkeerd getypeerd, verbeter dan het type.",
         ),
         (
-            "conflict-roles\t-G1:+\tplus L+\t-X1:N\tneutral N\t3",
-            "-G1:+ (plus L+) is wired to -X1:N (neutral N) on page 3: a wire joins two different potentials, so one of \
+            "conflict-roles\t-G1:+\tL+\t-X1:N\tN\t3",
+            "-G1:+ (L+) is wired to -X1:N (N) on page 3: a wire joins two different potentials, so one of \
              the two pins is wired to the wrong conductor. Move that wire to the right one, or take it away.",
-            "-G1:+ (plus L+) is verbonden met -X1:N (nulleider N) op pagina 3: een draad verbindt twee verschillende \
+            "-G1:+ (L+) is verbonden met -X1:N (N) op pagina 3: een draad verbindt twee verschillende \
              potentialen, dus een van beide pennen zit op de verkeerde geleider. Verplaats die draad naar de juiste, of \
              haal hem weg.",
         ),
         (
-            "conflict-earth\t-G1:−\t0 V (M)\t-X1:PE\tprotective earth PE\t3",
+            "conflict-earth\t-G1:−\t0 V (M)\t-X1:PE\tPE\t3",
             "-G1:− (0 V) is joined to the protective earth -X1:PE on page 3, but not by a wire drawn from the 0 V \
              straight to an earth point. Select the wire that joins them and choose Draw ▸ Connect ▸ Bond, or take \
              that wire away.",
@@ -636,12 +636,12 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
     let kind = |k: &str| -> TextArg {
         use ew_checks::text;
         match k {
-            "phase L1" => text!("word-type-phase", "L1").into(),
-            "plus L+" => text!("word-type-l-plus").into(),
-            "protective earth PE" => text!("word-type-pe").into(),
-            "neutral N" => text!("word-type-n").into(),
-            "mains circuit" => text!("word-class-mains").into(),
-            "control circuit" => text!("word-class-control").into(),
+            "L1" => ew_derive::text::potential_type(&ew_schema::PotentialType::L1).into(),
+            "L+" => ew_derive::text::potential_type(&ew_schema::PotentialType::LPlus).into(),
+            "PE" => ew_derive::text::potential_type(&ew_schema::PotentialType::Pe).into(),
+            "N" => ew_derive::text::potential_type(&ew_schema::PotentialType::N).into(),
+            "mains" => ew_derive::text::circuit_class(&ew_schema::CircuitClass::Mains).into(),
+            "control" => ew_derive::text::circuit_class(&ew_schema::CircuitClass::Control).into(),
             "DC, floating" => ew_l10n::List::new(
                 vec!["DC".into(), text!("word-earthing-floating").into()],
                 text!("join-comma"),

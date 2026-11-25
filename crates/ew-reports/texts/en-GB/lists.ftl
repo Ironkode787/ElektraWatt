@@ -234,13 +234,6 @@ cell-bridge-via = { $p0 } bridge, terminals { $p1 }
 
 ## A potential's type and circuit class, and a bond
 
-cell-potential-signal = signal
-cell-potential-undefined = undefined
-cell-class-mains = mains
-cell-class-control = control
-cell-class-analogue = analogue
-cell-class-bus = bus
-cell-class-pe = PE
 cell-bond = Bond
 
 ## A channel's kind, a port's plug, a valve terminal's slot

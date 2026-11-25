@@ -32,14 +32,14 @@ fn an_unknown_colour_code_prints_one_word() {
 fn a_newer_potential_type_prints_other() {
     use ew_schema::PotentialType;
     assert_eq!(
-        ew_derive::potential_type_text(&PotentialType::Unknown(serde_json::json!("x"))),
+        ew_derive::text::potential_type(&PotentialType::Unknown(serde_json::json!("x"))).to_string(),
         "other"
     );
     assert_eq!(
-        ew_derive::potential_type_text(&PotentialType::Undefined),
+        ew_derive::text::potential_type(&PotentialType::Undefined).to_string(),
         "undefined"
     );
-    assert_eq!(ew_derive::potential_type_text(&PotentialType::LPlus), "L+");
+    assert_eq!(ew_derive::text::potential_type(&PotentialType::LPlus).to_string(), "L+");
 }
 
 /// A cross-section with its unit is the lists' form, where Properties and the checks' messages print one.

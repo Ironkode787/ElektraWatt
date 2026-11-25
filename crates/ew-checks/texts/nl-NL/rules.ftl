@@ -679,11 +679,7 @@ rule-ew-plc-013 = { $form ->
             [electronics] elektronica-
             [load] belasting
            *[other] {""}
-        }voedingsgroep, wordt gevoed uit een potentiaal van type { $type ->
-            [signal] signaal
-            [undefined] onbepaald
-           *[other] { $type }
-        }; voed hem uit { $role }
+        }voedingsgroep, wordt gevoed uit een potentiaal van type { $type }; voed hem uit { $role }
     }
     .title = Kaartvoeding onjuist
     .hint = Sluit elke voedingspen van de kaart aan op een potentiaal van zijn rol, en zijn FE-pen op functionele aarde.
@@ -1297,25 +1293,9 @@ word-an-f-module = een F-module
 word-the-sensor = de sensor
 word-the-cable = de kabel
 word-the-device = het apparaat
-word-type-pe = beschermingsaarde PE
-word-type-pen = PEN-geleider
-word-type-fe = functionele aarde FE
-word-type-n = nulleider N
-word-type-phase = fase { $p0 }
-word-type-l-plus = plus L+
-word-type-l-minus = min L−
-word-type-signal = signaal
-word-type-none = geen type
-word-type-newer = een type van een nieuwer formaat
 word-current-newer = een stroomsoort van een nieuwer formaat
 word-earthing-floating = zwevend
 word-earthing-newer = een aarding van een nieuwer formaat
-word-class-mains = netstroomkring
-word-class-control = stuurstroomkring
-word-class-analogue = analoge stroomkring
-word-class-bus = busstroomkring
-word-class-pe = beschermingsaardestroomkring
-word-class-newer = een stroomkringklasse van een nieuwer formaat
 
 rule-ew-imp-251 =
     .title = Tekening zonder eenheid, in de gekozen eenheid gelezen

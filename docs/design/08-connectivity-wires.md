@@ -363,7 +363,7 @@ potential_flow(potential):                              // memo per potential; t
   **a fault** for every other pair: a live conductor (L1, L2, L3, L, L+) on PE, PEN, FE, N, 0 V or another live
   conductor, N on PE or FE, AC with DC, a signal on an earth. The conflicts are records of the derivation (the
   definitions or member CPs and the attribute), and EW-POT-001 words each as a sentence in the trade's words: what is
-  wired to what, on which page, why that is a fault and what to do ("-G1:+ (plus L+) is wired to -X1:N (neutral N) on
+  wired to what, on which page, why that is a fault and what to do ("-G1:+ (L+) is wired to -X1:N (N) on
   page 3: a wire joins two different potentials. Take that wire away.").
   A potential's definitions are **ranked** by natural order of the
   name, then the defining point's printed text (`<tag>:<designation>` of its CP; a junction's after every CP's), then

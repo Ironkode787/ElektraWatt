@@ -673,9 +673,10 @@ impl Rule for CardSupply {
                             .arg("group", group_word)
                             .arg(
                                 "type",
-                                ptype.as_ref().map_or_else(String::new, |t| {
-                                    ew_derive::potential_type_text(t).to_owned()
-                                }),
+                                ptype.as_ref().map_or_else(
+                                    || ew_l10n::TextArg::Plain(String::new()),
+                                    |t| ew_derive::text::potential_type(t).into(),
+                                ),
                             )
                             .reading(confidence),
                         );

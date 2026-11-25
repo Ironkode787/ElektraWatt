@@ -543,25 +543,9 @@ fn shown_conflicts(conflicts: &[AttrConflict]) -> (Vec<&AttrConflict>, usize) {
     (shown, members.saturating_sub(SHOWN_MEMBER_CPS))
 }
 
-/// A potential type in the trade's words ("protective earth PE", "phase L1"), in the reader's language.
+/// A potential type as the lists print it ([`ew_derive::text::potential_type`]), in the reader's language.
 pub(crate) fn type_words(t: &PotentialType) -> TextArg {
-    let phase = |p: &str| text!("word-type-phase", p).into();
-    match t {
-        PotentialType::Pe => text!("word-type-pe").into(),
-        PotentialType::Pen => text!("word-type-pen").into(),
-        PotentialType::Fe => text!("word-type-fe").into(),
-        PotentialType::N => text!("word-type-n").into(),
-        PotentialType::L1 => phase("L1"),
-        PotentialType::L2 => phase("L2"),
-        PotentialType::L3 => phase("L3"),
-        PotentialType::L => phase("L"),
-        PotentialType::LPlus => text!("word-type-l-plus").into(),
-        PotentialType::LMinus => text!("word-type-l-minus").into(),
-        PotentialType::M => TextArg::Plain("0 V (M)".to_owned()),
-        PotentialType::Signal => text!("word-type-signal").into(),
-        PotentialType::Undefined => text!("word-type-none").into(),
-        PotentialType::Unknown(_) => text!("word-type-newer").into(),
-    }
+    ew_derive::text::potential_type(t).into()
 }
 
 /// One conflict of an EW-POT-001 message: the message that words it (`pot-conflict-…`) and its arguments, two sides
@@ -629,7 +613,7 @@ fn def_label(q: &Q, def: &ew_schema::PotentialDef) -> String {
 
 /// What a definition sets of `attr`, in words (`24 V`, `DC`, `control circuit`); empty when it sets none.
 fn def_attr_words(def: &ew_schema::PotentialDef, attr: DefAttr) -> TextArg {
-    use ew_schema::{AcDc, CircuitClass};
+    use ew_schema::AcDc;
     let none = || TextArg::Plain(String::new());
     match attr {
         DefAttr::Type => def.ptype.as_ref().map_or_else(none, type_words),
@@ -657,15 +641,10 @@ fn def_attr_words(def: &ew_schema::PotentialDef, attr: DefAttr) -> TextArg {
             }
             listed(parts)
         }
-        DefAttr::Class => match &def.circuit_class {
-            Some(CircuitClass::Mains) => text!("word-class-mains").into(),
-            Some(CircuitClass::Control) => text!("word-class-control").into(),
-            Some(CircuitClass::Analogue) => text!("word-class-analogue").into(),
-            Some(CircuitClass::Bus) => text!("word-class-bus").into(),
-            Some(CircuitClass::Pe) => text!("word-class-pe").into(),
-            Some(CircuitClass::Unknown(_)) => text!("word-class-newer").into(),
-            None => none(),
-        },
+        DefAttr::Class => def
+            .circuit_class
+            .as_ref()
+            .map_or_else(none, |c| ew_derive::text::circuit_class(c).into()),
     }
 }
 

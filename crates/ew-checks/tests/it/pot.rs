@@ -266,7 +266,7 @@ fn pot001_member_role_conflict_does_not_depend_on_the_id_order() {
         assert_eq!(
             f[0].message(),
             format!(
-                "{other_tag} (plus L+) is wired to {pe_tag} (protective earth PE) on page 1: a wire joins two \
+                "{other_tag} (L+) is wired to {pe_tag} (PE) on page 1: a wire joins two \
                  different potentials, so one of the two pins is wired to the wrong conductor. Move that wire to the \
                  right one, or take it away."
             ),
@@ -387,7 +387,7 @@ fn pot001_flow_reports_a_pass_through_between_different_types() {
     );
     assert_eq!(
         f[0].message(),
-        "-1K4099 carries plus L+ through to neutral N: a contact or a fuse passes one potential on, it cannot change \
+        "-1K4099 carries L+ through to N: a contact or a fuse passes one potential on, it cannot change \
          it into another. Correct the type on one side, or put a power supply or a transformer between them."
     );
     // The same type on both sides is no conflict.

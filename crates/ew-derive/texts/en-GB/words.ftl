@@ -83,3 +83,16 @@ text-style-section-subtitle = Section subtitle
 text-style-imported = Imported text of { $p0 } pt
 text-style-imported-bold = Imported bold text of { $p0 } pt
 text-style-own = A text style of this project
+
+## A potential type and a circuit class, as the lists print them and the checks name them
+
+potential-type-code = { $p0 }
+potential-type-signal = signal
+potential-type-undefined = undefined
+potential-type-other = other
+circuit-class-mains = mains
+circuit-class-control = control
+circuit-class-analogue = analogue
+circuit-class-bus = bus
+circuit-class-pe = PE
+circuit-class-other = other
