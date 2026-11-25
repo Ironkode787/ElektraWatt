@@ -172,9 +172,7 @@ pub(crate) fn emit_devices(cx: &mut Cx<'_>, table: Option<&Table>) {
             };
             Cable {
                 length,
-                core_id_mode: None,
-                pre_assembled: false,
-                extra: Default::default(),
+                ..Cable::default()
             }
         });
         if strip.is_some() && cable.is_some() {
