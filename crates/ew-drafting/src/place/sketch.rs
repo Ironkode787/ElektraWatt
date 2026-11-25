@@ -53,10 +53,8 @@ pub(super) enum Kind {
 }
 
 /// How a card that is its tree's root steps along its edge ([`Sketch::card_step`]): clear of its supply's way and of
-/// another card's columns, clear of its supply's way alone, or not at all. Which of them is best the judge finds.
-///
-/// A card that is the root of its tree steps along its edge first, clear of its supply's way and of another card's
-/// columns ([`CardSteps`]): the judge tries the arrangement with that step, with a part of it and without it.
+/// another card's columns, clear of its supply's way alone, or not at all. The judge tries the arrangement with each
+/// and finds which is best.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(super) enum CardSteps {
     Columns,

@@ -112,9 +112,8 @@ impl<'a> Ground<'a> {
         }
     }
 
-    /// The part whose body a label of `owner` may stand on: its own. A part without pins (a mark drawn as a symbol, a
-    /// module's glyph) holds its texts inside its body or keeps them beside it: one across its outline is in its way
-    /// ([`Ground::across_own`]).
+    /// The part whose body a label of `owner` may stand on: its own part, for a label of a part; none for another
+    /// owner.
     fn own_part(&self, owner: Owner) -> Option<PartId> {
         match owner {
             Owner::Part(p) => Some(p),
@@ -122,7 +121,9 @@ impl<'a> Ground<'a> {
         }
     }
 
-    /// Whether `r` lies across the outline of its owner's body, the owner a part without pins.
+    /// Whether `r` lies across the outline of its owner's body, the owner a part without pins: such a part (a mark
+    /// drawn as a symbol, a module's glyph) holds its texts inside its body or keeps them beside it, so one across its
+    /// outline is in its way.
     fn across_own(&self, owner: Owner, r: Rect) -> bool {
         let Owner::Part(p) = owner else { return false };
         self.parts
