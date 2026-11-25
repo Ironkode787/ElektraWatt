@@ -587,7 +587,8 @@ so the outline, the drawing and Properties show the same things: a click selects
 rectangle dragged from empty paper takes what lies inside it (to the right) or what it touches (to the left), and
 Ctrl+A takes everything. A shape that is not filled is met by its line (a click within a few points of it, a
 rectangle that crosses it), a filled one, a text or a picture by its face: inside an empty box is empty paper. The page's own keys act on it whenever no field is typed into, through the keymap
-(`EDIT_KEYS`): the arrows move it one grid step (the connection grid's with a connection point selected), Delete
+(its context `symbol_editor` takes, of the canvas's keys, those of its tools and of what acts on its selection:
+`keymap::context_takes`): the arrows move it one grid step (the connection grid's with a connection point selected), Delete
 removes it (a connection point with its number's text and its pin), Ctrl+C, Ctrl+X, Ctrl+V and Ctrl+D copy, cut, paste
 and duplicate, Escape ends a gesture, then returns to Select, then clears the selection, and Ctrl+Z and Ctrl+Y step the
 editor's own history. A drag on a thing moves the selection with a ghost of where it lands; the one selected shape's

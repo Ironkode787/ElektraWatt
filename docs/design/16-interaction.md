@@ -287,10 +287,10 @@ the item floating at the grid cursor (arrows move it, Enter commits).
 | PLC channel (PLC navigator) | coil or channel symbol | binds the channel (FR-PLC-020) | "Bind to…" with target picker |
 | Unplaced device (layout list) | rail or surface | placement (FR-LAY-013) | "Place device" |
 | Page row (page navigator) | another position | renumber preview (FR-PAG-024) | Alt+Up, Alt+Down |
-| `.qet` file from the OS | window | import wizard ([14](14-interop.md) §13) | File ▸ Import |
-| `.ew` folder or `.ewz` from the OS | window | open | File ▸ Open |
-| SVG or PNG from the OS | page canvas | image page item at the drop point | Insert ▸ Image |
-| CSV or XLSX from the OS | a table | round-trip import preview (§7.7) | table menu ▸ Import |
+| A file from the OS (the first dropped that is no folder) | window | the Image tool armed with it (`image.file`), the picture placed by a click; a file the asset store does not take (a `.qet`, a project, a table) is refused in the store's words and changes nothing | Insert ▸ Image |
+
+A project is opened with File ▸ Open, a QElectroTech project imported with File ▸ Import ([14](14-interop.md) §13)
+and a table imported from its table's menu (§7.7); none of them is a drop.
 
 Drop targets show valid or invalid feedback with a reason in text, for example "Not allowed on a fluid page:
 electrical symbol". Dropping a valve onto the generated overview 202 is refused with "edit -202U2's children in

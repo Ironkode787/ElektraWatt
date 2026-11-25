@@ -96,7 +96,8 @@ content_digest SHA-256 over the sorted (path, sha256) entries of the saved manif
 The gate's named blockers are release-scheme rules at error severity (§4.8): EW-CORE-047 (device without schematic
 representation), EW-LAY-001 (device without layout placement, only where its location has a layout space),
 EW-CORE-033 (cable without length), the `Tbd` rules, EW-REL-001 (author = checker, missing or stale sign-off) and
-EW-REL-002 (stale committed computations).
+EW-REL-002 (stale committed computations). EW-REL-002 is not registered yet: it waits until a committed computation
+has an input hash to compare (1.0, [15](15-rule-catalogue.md) §4.8).
 
 On success they execute the six steps of [05](05-project-format-and-persistence.md) §14.1, in this order: gate;
 freeze the committed computations and save generation g; git commit of the project directory if it is a

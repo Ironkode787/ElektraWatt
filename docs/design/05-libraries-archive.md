@@ -217,7 +217,8 @@ a signature over this hash; it counts only for a signer key the user has trusted
      length);
    - no `Tbd` values;
    - checker ≠ author and a current sign-off (EW-REL);
-   - no stale Class II results or committed computations (EW-REL-002).
+   - no stale Class II results or committed computations (EW-REL-002, not registered yet: it waits until a
+     committed computation has an input hash to compare, 1.0).
 
    The R findings of §6.3, among them conflict records (EW-CORE-011) and unknown data that affects outputs
    (EW-CORE-016), also block.
