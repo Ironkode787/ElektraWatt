@@ -71,7 +71,15 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 FirstRunStep::Privacy => {
                     // This version has no update check, so no box for one.
                     ui.label(strings::text(key!("firstrun-text-privacy")));
-                    if ui.button(strings::text(key!("about-privacy-button"))).clicked() {
+                    if crate::components::button(
+                        ui,
+                        crate::components::Kind::Secondary,
+                        strings::text(key!("about-privacy-button")),
+                        None,
+                        0.0,
+                    )
+                    .clicked()
+                    {
                         events.push(Event::OpenPrivacy);
                     }
                 }
@@ -94,7 +102,15 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 FirstRunStep::Start => {
                     ui.label(strings::text(key!("firstrun-text-start")));
                     for (key, start) in STARTS {
-                        if ui.button(strings::text(key)).clicked() {
+                        if crate::components::button(
+                            ui,
+                            crate::components::Kind::Secondary,
+                            strings::text(key),
+                            None,
+                            0.0,
+                        )
+                        .clicked()
+                        {
                             events.push(Event::Action("first_run.finish", json!({ "start": start })));
                         }
                     }
@@ -109,13 +125,29 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             };
             ui.horizontal(|ui| {
                 for (key, action) in left {
-                    if ui.button(strings::text(*key)).clicked() {
+                    if crate::components::button(
+                        ui,
+                        crate::components::Kind::Secondary,
+                        strings::text(*key),
+                        None,
+                        0.0,
+                    )
+                    .clicked()
+                    {
                         events.push(Event::Action(action, Value::Null));
                     }
                 }
                 if let Some((key, action)) = next {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if ui.button(strings::text(*key)).clicked() {
+                        if crate::components::button(
+                            ui,
+                            crate::components::Kind::Primary,
+                            strings::text(*key),
+                            None,
+                            0.0,
+                        )
+                        .clicked()
+                        {
                             events.push(Event::Action(action, Value::Null));
                         }
                     });

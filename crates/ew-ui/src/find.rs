@@ -171,19 +171,37 @@ impl FindPane {
                         );
                     }
                     let mut buttons = 0.0;
-                    let run = ui.button(strings::text(key!("find-run")));
+                    let run = crate::components::button(
+                        ui,
+                        crate::components::Kind::Primary,
+                        strings::text(key!("find-run")),
+                        None,
+                        0.0,
+                    );
                     buttons += run.rect.width() + gap;
                     if run.clicked() {
                         events.push(Event::Action("find.run", json!({})));
                     }
                     if f.replace_mode() {
-                        let all = ui.button(strings::text(key!("find-replace-all")));
+                        let all = crate::components::button(
+                            ui,
+                            crate::components::Kind::Secondary,
+                            strings::text(key!("find-replace-all")),
+                            None,
+                            0.0,
+                        );
                         buttons += all.rect.width() + gap;
                         if all.clicked() {
                             events.push(Event::Action("find.replace_all", json!({})));
                         }
                     }
-                    let close = ui.button(strings::text(key!("find-close")));
+                    let close = crate::components::button(
+                        ui,
+                        crate::components::Kind::Secondary,
+                        strings::text(key!("find-close")),
+                        None,
+                        0.0,
+                    );
                     buttons += close.rect.width();
                     if close.clicked() {
                         events.push(Event::Action("find.close", json!({})));

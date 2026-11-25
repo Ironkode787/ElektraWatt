@@ -546,12 +546,14 @@ pub(crate) fn chooser(
                 continue;
             };
             // Drawn from the action's label and predicate, disabled with its reason as the tooltip (doc 16a §6.1).
-            let reason = meta.enabled_now(shell).err();
-            let response = ui.add_enabled(reason.is_none(), egui::Button::new(meta.label()));
-            let response = match reason {
-                Some(r) => response.disabled_tip(strings::render(&r)),
-                None => response,
-            };
+            let reason = meta.enabled_now(shell).err().map(|r| strings::render(&r));
+            let response = crate::components::button(
+                ui,
+                crate::components::Kind::Secondary,
+                meta.label(),
+                reason.as_deref(),
+                0.0,
+            );
             if response.clicked() {
                 events.push(Event::Action(
                     "ui.focus",

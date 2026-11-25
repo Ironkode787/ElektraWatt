@@ -111,7 +111,15 @@ fn entry(ui: &mut Ui, e: &JobEntry, elapsed: Option<std::time::Duration>, events
                 if let Some(d) = elapsed {
                     ui.label(strings::format(key!("job-elapsed"), &[&d.as_secs().to_string()]));
                 }
-                if ui.button(strings::text(key!("job-cancel"))).clicked() {
+                if crate::components::button(
+                    ui,
+                    crate::components::Kind::Secondary,
+                    strings::text(key!("job-cancel")),
+                    None,
+                    0.0,
+                )
+                .clicked()
+                {
                     events.push(Event::Action("jobs.cancel", json!({ "job": e.number })));
                 }
             });
@@ -136,7 +144,15 @@ fn entry(ui: &mut Ui, e: &JobEntry, elapsed: Option<std::time::Duration>, events
                         &[&e.rev.to_string(), &m.to_string()],
                     ));
                 }
-                if ui.button(strings::text(key!("toast-open"))).clicked() {
+                if crate::components::button(
+                    ui,
+                    crate::components::Kind::Secondary,
+                    strings::text(key!("toast-open")),
+                    None,
+                    0.0,
+                )
+                .clicked()
+                {
                     events.push(Event::Action("jobs.open_result", json!({ "job": e.number })));
                 }
             });

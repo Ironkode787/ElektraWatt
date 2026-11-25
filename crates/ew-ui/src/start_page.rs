@@ -68,11 +68,27 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             ui.add_space((ui.available_height() * crate::theme::shares::START_TOP_SHARE).min(60.0));
             ui.heading(strings::text(key!("start-title")));
             ui.add_space(t.space_5);
-            if ui.button(strings::text(key!("start-new"))).clicked() {
+            if crate::components::button(
+                ui,
+                crate::components::Kind::Primary,
+                strings::text(key!("start-new")),
+                None,
+                0.0,
+            )
+            .clicked()
+            {
                 action(events, "file.new", Value::Null);
             }
             ui.add_space(t.space_3);
-            if ui.button(strings::text(key!("start-open"))).clicked() {
+            if crate::components::button(
+                ui,
+                crate::components::Kind::Secondary,
+                strings::text(key!("start-open")),
+                None,
+                0.0,
+            )
+            .clicked()
+            {
                 action(events, "file.open", Value::Null);
             }
             let names = shell.recent_names();
@@ -80,7 +96,13 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 ui.add_space(t.space_4);
                 ui.label(strings::text(key!("start-recent")));
                 for (i, name) in names.iter().enumerate() {
-                    let response = ui.button(name.as_str());
+                    let response = crate::components::button(
+                        ui,
+                        crate::components::Kind::Secondary,
+                        name.as_str(),
+                        None,
+                        0.0,
+                    );
                     let response = match shell.recent_paths().get(i) {
                         Some(path) => response.tip(path.as_str()),
                         None => response,
@@ -91,22 +113,39 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 }
             }
             ui.add_space(t.space_4);
-            let refusal =
-                ew_viewmodel::actions::find("file.open_sample").and_then(|m| m.enabled_now(shell).err());
-            let sample = ui.add_enabled(
-                refusal.is_none(),
-                egui::Button::new(strings::text(key!("start-sample"))),
+            let refusal = ew_viewmodel::actions::find("file.open_sample")
+                .and_then(|m| m.enabled_now(shell).err())
+                .map(|why| strings::render(&why));
+            let sample = crate::components::button(
+                ui,
+                crate::components::Kind::Secondary,
+                strings::text(key!("start-sample")),
+                refusal.as_deref(),
+                0.0,
             );
             if sample.clicked() {
                 action(events, "file.open_sample", Value::Null);
             }
-            if let Some(why) = &refusal {
-                sample.disabled_tip(strings::render(why));
-            }
-            if ui.button(strings::text(key!("start-import-qet"))).clicked() {
+            if crate::components::button(
+                ui,
+                crate::components::Kind::Secondary,
+                strings::text(key!("start-import-qet")),
+                None,
+                0.0,
+            )
+            .clicked()
+            {
                 action(events, "file.import_qet", Value::Null);
             }
-            if ui.button(strings::text(key!("start-templates"))).clicked() {
+            if crate::components::button(
+                ui,
+                crate::components::Kind::Secondary,
+                strings::text(key!("start-templates")),
+                None,
+                0.0,
+            )
+            .clicked()
+            {
                 action(events, "templates.open", Value::Null);
             }
             // The tutorials and the how-to guides, as Help lists them (F5).

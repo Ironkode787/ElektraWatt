@@ -1265,18 +1265,15 @@ impl PropertiesPane {
         if let Some(prop) = props.tag_proposal().filter(|prop| prop.row == row.key) {
             ui.horizontal(|ui| {
                 ui.add_space(t.space_4 + t.icon_sm);
-                // "Join -K1" is a Secondary button.
-                let clicked = match prop.join() {
-                    true => crate::components::button(
-                        ui,
-                        crate::components::Kind::Secondary,
-                        &prop.button_text(),
-                        None,
-                        0.0,
-                    )
-                    .clicked(),
-                    false => ui.button(prop.button_text()).clicked(),
-                };
+                // "Join -K1" and "Use -102F3" are Secondary buttons.
+                let clicked = crate::components::button(
+                    ui,
+                    crate::components::Kind::Secondary,
+                    &prop.button_text(),
+                    None,
+                    0.0,
+                )
+                .clicked();
                 if clicked {
                     events.push(Event::Action("props.accept_tag_proposal", json!({})));
                 }
