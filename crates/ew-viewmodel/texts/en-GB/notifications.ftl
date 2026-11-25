@@ -174,8 +174,10 @@ toast-ips-deleted-wire = Deleted the interruption points { $p0 } and the wire co
 toast-ips-deleted-wires = Deleted the interruption points { $p0 } and the { $p1 } wires connected to them.
 # A pasted interruption point keeps its name, so it continues the points of that name.
 toast-paste-ip-continues = The pasted interruption point { $p0 } keeps its name, so it continues { $p0 } at { $p1 }.
-toast-paste-fitted = The paste was fitted to this page's { $p0 } grid: { $p1 } items moved onto it, and their wires were drawn anew. Undo takes it all back in one step.
-toast-paste-fitted-one = The paste was fitted to this page's { $p0 } grid: one item moved onto it, and the wires were drawn anew. Undo takes it all back in one step.
+toast-paste-fitted = { $p0 ->
+        [one] The paste was fitted to this page's { $p1 } grid: one item moved onto it, and the wires were drawn anew. Undo takes it all back in one step
+       *[other] The paste was fitted to this page's { $p1 } grid: { $p0 } items moved onto it, and their wires were drawn anew. Undo takes it all back in one step
+    }.
 toast-page-grid-set = Page { $p0 } now has the { $p1 } grid.
 toast-page-grid-fitted-none = Page { $p0 } now has the { $p1 } grid: every item stood on it already, and its wires were drawn anew. Undo takes it all back in one step.
 toast-page-grid-fitted = Page { $p0 } now has the { $p1 } grid: { $p2 } items moved onto it and its wires were drawn anew. Undo takes it all back in one step.
@@ -210,8 +212,10 @@ toast-terminals-undrawn = { $p0 ->
 toast-devices-unplaced = { $p0 } have no symbol on a page now; they stay in the Devices navigator and the parts list.
 toast-devices-unplaced-no-part = { $p0 } have no symbol on a page now; they stay in the Devices navigator.
 toast-device-retagged = { $p0 } (now { $p1 })
-toast-placed-connected-one = { $p0 } and connected { $p1 } to { $p2 }.
-toast-placed-connected = { $p0 } and connected { $p1 }: { $p2 } to { $p3 } and { $p4 } more.
+toast-placed-connected = { $p0 ->
+        [one] { $p1 } and connected { $p3 } to { $p4 }
+       *[other] { $p1 } and connected { $p2 }: { $p3 } to { $p4 } and { $p5 } more
+    }.
 toast-place-without-wires = Alt+Click or { $p0 } places without connecting.
 toast-placed = Placed { $p0 } at { $p1 }.
 toast-placed-no-cell = Placed { $p0 }.
@@ -377,10 +381,12 @@ toast-table-imported = { $p0 ->
 # when `nav.follow` has no key (the command by its menu path, as the menu table holds it).
 toast-check-qualified = Check · { $p1 }: { $p0 }.
 toast-section-new = Section { $p0 } { $p1 } made, folios { $p2 } to { $p3 }. A new page with a folio in that range joins it.
-history-header = { $p0 } steps · cursor at { $p1 }
+history-header = { $p0 ->
+        [one] { $p0 } step · cursor at { $p1 }
+       *[other] { $p0 } steps · cursor at { $p1 }
+    }
 
 # One step in the singular.
-history-header-one = { $p0 } step · cursor at { $p1 }
 history-empty = Nothing to undo yet
 history-not-undoable = not undoable
 history-changes-title = Changes of step { $p0 }
@@ -402,8 +408,10 @@ history-origin-external = changed on disk
 history-origin-import = import
 history-origin-merge = merge
 history-origin-fix = quick fix { $p0 }
-toast-pages-copied = Copied { $p0 } pages: { $p1 }.
-toast-pages-copied-one = Copied 1 page: { $p0 }.
+toast-pages-copied = { $p0 ->
+        [one] Copied 1 page: { $p1 }
+       *[other] Copied { $p0 } pages: { $p1 }
+    }.
 toast-pages-copied-bus = The copies of { $p0 } join no bus yet: draw their bus line on a bus page and give each its address.
 history-header-kept = oldest kept: step { $p0 } · { $p1 } MB of { $p2 } MB
 note-macro-saved = Saved { $p0 } { $p1 } into { $p2 }
@@ -425,8 +433,10 @@ toast-bus-line-no-cable = Bus line drawn: it has no cable yet.
 note-action-choose-cable = Choose cable…
 toast-locate-devices = Gave { $p0 } the location { $p1 }; Unplaced devices now lists what to drag onto the plate.
 toast-legend-tags = Legend added. The devices show their tags, not the numbers it lists.
-toast-devices-location = Gave { $p0 } devices the location { $p1 }.
-toast-devices-location-one = Gave the device the location { $p0 }.
+toast-devices-location = { $p0 ->
+        [one] Gave the device the location { $p1 }
+       *[other] Gave { $p0 } devices the location { $p1 }
+    }.
 toast-auto-fill = Placed { $p0 } on { $p1 }.
 toast-auto-fill-left = Placed { $p0 } on { $p1 }; { $p2 }.
 # Project ▸ Enclosure…'s toast: the part's words and the location (+K1).
@@ -483,16 +493,20 @@ toast-parts-unlisted = { $p0 ->
     }.
 toast-parts-list-opened = Opened the set's parts list on page { $p0 }; it makes no second one. Report… on the Output tab adds another list.
 toast-back-to-editor = Back to the editor
-toast-route-done = Routed { $p0 } wires: { $p1 }.
-toast-route-done-one = Routed 1 wire: { $p0 }.
+toast-route-done = { $p0 ->
+        [one] Routed 1 wire: { $p1 }
+       *[other] Routed { $p0 } wires: { $p1 }
+    }.
 toast-route-applied = { $p0 ->
         [one] Routed 1 wire on { $p1 }
        *[other] Routed { $p0 } wires on { $p1 }
     }.
 toast-route-nothing = Nothing to route: no wire would run better.
 toast-wire-error = The wire makes an error: { $p0 }.
-toast-route-done-selected = Routed { $p0 } selected wires: { $p1 }.
-toast-route-done-selected-one = Routed 1 selected wire: { $p0 }.
+toast-route-done-selected = { $p0 ->
+        [one] Routed 1 selected wire: { $p1 }
+       *[other] Routed { $p0 } selected wires: { $p1 }
+    }.
 toast-route-nothing-selected = { $p0 ->
         [one] Nothing to route in the 1 selected item: no wire would run better
        *[other] Nothing to route among the { $p0 } selected items: no wire would run better
@@ -524,8 +538,10 @@ banner-second-window-failed = The second window did not start: open the practice
 toast-layout-overruns = At 1:{ $p0 } the layout runs over the frame's drawing area. Fit the layout to the sheet draws it at 1:{ $p1 }, centred.
 toast-legend-own-page = The legend does not fit beside the layout whole, so it has a page of its own: { $p0 }.
 toast-legend-moved = The legend is on a page of its own now: { $p0 }.
-toast-kept-in-place = Kept in place: { $p0 }. Arrange and route arranges the other symbols around them; you can still move them yourself.
-toast-kept-in-place-one = Kept in place: { $p0 }. Arrange and route arranges the other symbols around it; you can still move it yourself.
+toast-kept-in-place = { $p0 ->
+        [one] Kept in place: { $p1 }. Arrange and route arranges the other symbols around it; you can still move it yourself
+       *[other] Kept in place: { $p1 }. Arrange and route arranges the other symbols around them; you can still move them yourself
+    }.
 toast-let-go = No longer kept in place: { $p0 }.
 toast-plc-joined = { $p0 } belongs to { $p1 } now.
 toast-guide-page = The guide's page: { $p0 }.
@@ -545,6 +561,8 @@ toast-arrange-nothing = Nothing to arrange: the page is already arranged as well
 toast-arrange-none-left = Nothing is left to apply: every change of this preview is unticked.
 toast-list-columns = The list { $p0 } prints its columns as chosen.
 toast-legend-columns = The legend on { $p0 } prints its columns as chosen.
-toast-list-rows = The list { $p0 } holds { $p1 } rows of your own.
-toast-list-rows-one = The list { $p0 } holds 1 row of your own.
+toast-list-rows = { $p0 ->
+        [one] The list { $p1 } holds 1 row of your own
+       *[other] The list { $p1 } holds { $p0 } rows of your own
+    }.
 toast-list-rows-none = The list { $p0 } holds no rows of your own.

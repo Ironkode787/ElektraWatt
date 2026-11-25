@@ -232,10 +232,11 @@ impl ShellModel {
             if self.in_form_of(ACTION) {
                 self.dialog = None;
             }
-            let text = match devices.len() {
-                1 => strings::format(key!("toast-devices-location-one"), &[code]),
-                n => strings::format(key!("toast-devices-location"), &[&n.to_string(), code]),
-            };
+            let text = strings::format_counted(
+                crate::count_key!("toast-devices-location"),
+                devices.len(),
+                &[code],
+            );
             self.notify(text, true);
         }
         out

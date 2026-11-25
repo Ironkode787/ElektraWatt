@@ -170,8 +170,10 @@ toast-terminals-undrawn = { $p0 ->
 toast-devices-unplaced = { $p0 } hebben nu geen symbool op een pagina; ze blijven in de navigator Apparaten en de stuklijst.
 toast-devices-unplaced-no-part = { $p0 } hebben nu geen symbool op een pagina; ze blijven in de navigator Apparaten.
 toast-paste-ip-continues = Het geplakte onderbrekingspunt { $p0 } houdt zijn naam en zet daarom { $p0 } voort bij { $p1 }.
-toast-paste-fitted = Het plakken is aangepast aan het raster van { $p0 } van deze pagina: { $p1 } items zijn erop gezet en hun draden zijn opnieuw getekend. Ongedaan maken zet alles in één stap terug.
-toast-paste-fitted-one = Het plakken is aangepast aan het raster van { $p0 } van deze pagina: één item is erop gezet en de draden zijn opnieuw getekend. Ongedaan maken zet alles in één stap terug.
+toast-paste-fitted = { $p0 ->
+        [one] Het plakken is aangepast aan het raster van { $p1 } van deze pagina: één item is erop gezet en de draden zijn opnieuw getekend. Ongedaan maken zet alles in één stap terug
+       *[other] Het plakken is aangepast aan het raster van { $p1 } van deze pagina: { $p0 } items zijn erop gezet en hun draden zijn opnieuw getekend. Ongedaan maken zet alles in één stap terug
+    }.
 toast-page-grid-set = Pagina { $p0 } heeft nu het raster van { $p1 }.
 toast-page-grid-fitted-none = Pagina { $p0 } heeft nu het raster van { $p1 }: elk item stond er al op, en de draden zijn opnieuw getekend. Ongedaan maken zet alles in één stap terug.
 toast-page-grid-fitted = Pagina { $p0 } heeft nu het raster van { $p1 }: { $p2 } items zijn erop gezet en de draden zijn opnieuw getekend. Ongedaan maken zet alles in één stap terug.
@@ -180,8 +182,10 @@ toast-wires-unrouted = { $p0 ->
        *[other] { $p0 } draden vonden geen weg en zijn als dunne gestreepte lijnen getekend: zet de elementen verder uit elkaar en kies Routeren
     }.
 toast-device-retagged = { $p0 } (nu { $p1 })
-toast-placed-connected-one = { $p0 } en { $p1 } verbonden met { $p2 }.
-toast-placed-connected = { $p0 } en { $p1 } verbonden: { $p2 } met { $p3 } en nog { $p4 }.
+toast-placed-connected = { $p0 ->
+        [one] { $p1 } en { $p3 } verbonden met { $p4 }
+       *[other] { $p1 } en { $p2 } verbonden: { $p3 } met { $p4 } en nog { $p5 }
+    }.
 toast-place-without-wires = Alt+klik of { $p0 } plaatst zonder te verbinden.
 toast-placed = { $p0 } geplaatst op { $p1 }.
 toast-placed-no-cell = { $p0 } geplaatst.
@@ -333,8 +337,10 @@ toast-table-imported = { $p0 ->
     }.
 toast-check-qualified = Controle · { $p1 }: { $p0 }.
 toast-section-new = Sectie { $p0 } { $p1 } gemaakt, folio's { $p2 } tot en met { $p3 }. Een nieuwe pagina met een folio in dat bereik komt erin.
-history-header = { $p0 } stappen · cursor op { $p1 }
-history-header-one = { $p0 } stap · cursor op { $p1 }
+history-header = { $p0 ->
+        [one] { $p0 } stap · cursor op { $p1 }
+       *[other] { $p0 } stappen · cursor op { $p1 }
+    }
 history-empty = Nog niets om ongedaan te maken
 history-not-undoable = niet ongedaan te maken
 history-changes-title = Wijzigingen van stap { $p0 }
@@ -355,8 +361,10 @@ history-origin-external = gewijzigd op schijf
 history-origin-import = import
 history-origin-merge = samenvoeging
 history-origin-fix = snelle oplossing { $p0 }
-toast-pages-copied = { $p0 } pagina's gekopieerd: { $p1 }.
-toast-pages-copied-one = 1 pagina gekopieerd: { $p0 }.
+toast-pages-copied = { $p0 ->
+        [one] 1 pagina gekopieerd: { $p1 }
+       *[other] { $p0 } pagina's gekopieerd: { $p1 }
+    }.
 toast-pages-copied-bus = De kopieën van { $p0 } zitten nog op geen bus: teken hun buslijn op een buspagina en geef elk zijn adres.
 history-header-kept = oudste bewaard: stap { $p0 } · { $p1 } MB van { $p2 } MB
 note-macro-saved = { $p0 } { $p1 } opgeslagen in { $p2 }
@@ -378,8 +386,10 @@ toast-bus-line-no-cable = Buslijn getekend: er is nog geen kabel.
 note-action-choose-cable = Kabel kiezen…
 toast-locate-devices = Locatie { $p1 } gegeven aan { $p0 }; Ongeplaatste apparaten toont nu wat op de plaat moet.
 toast-legend-tags = Legenda toegevoegd. De apparaten tonen hun kenmerken, niet de nummers die de legenda opsomt.
-toast-devices-location = { $p0 } apparaten hebben nu de locatie { $p1 }.
-toast-devices-location-one = Het apparaat heeft nu de locatie { $p0 }.
+toast-devices-location = { $p0 ->
+        [one] Het apparaat heeft nu de locatie { $p1 }
+       *[other] { $p0 } apparaten hebben nu de locatie { $p1 }
+    }.
 toast-auto-fill = { $p0 } geplaatst op { $p1 }.
 toast-auto-fill-left = { $p0 } geplaatst op { $p1 }; { $p2 }.
 toast-enclosure-new = Kast { $p0 } bij { $p1 } gemaakt.
@@ -435,16 +445,20 @@ toast-parts-unlisted = { $p0 ->
     }.
 toast-parts-list-opened = De stuklijst van de set op pagina { $p0 } geopend; er komt geen tweede. Rapport… op het tabblad Uitvoer voegt nog een lijst toe.
 toast-back-to-editor = Terug naar de editor
-toast-route-done = { $p0 } draden gerouteerd: { $p1 }.
-toast-route-done-one = 1 draad gerouteerd: { $p0 }.
+toast-route-done = { $p0 ->
+        [one] 1 draad gerouteerd: { $p1 }
+       *[other] { $p0 } draden gerouteerd: { $p1 }
+    }.
 toast-route-applied = { $p0 ->
         [one] 1 draad op { $p1 } gerouteerd
        *[other] { $p0 } draden op { $p1 } gerouteerd
     }.
 toast-route-nothing = Niets te routeren: geen draad zou beter lopen.
 toast-wire-error = De draad geeft een fout: { $p0 }.
-toast-route-done-selected = { $p0 } geselecteerde draden gerouteerd: { $p1 }.
-toast-route-done-selected-one = 1 geselecteerde draad gerouteerd: { $p0 }.
+toast-route-done-selected = { $p0 ->
+        [one] 1 geselecteerde draad gerouteerd: { $p1 }
+       *[other] { $p0 } geselecteerde draden gerouteerd: { $p1 }
+    }.
 toast-route-nothing-selected = { $p0 ->
         [one] Niets te routeren in het ene geselecteerde element: geen draad zou beter lopen
        *[other] Niets te routeren onder de { $p0 } geselecteerde elementen: geen draad zou beter lopen
@@ -476,8 +490,10 @@ banner-second-window-failed = Het tweede venster is niet gestart: open het oefen
 toast-layout-overruns = Op 1:{ $p0 } loopt de layout over het tekenvlak van het kader. Layout aan het blad aanpassen tekent hem op 1:{ $p1 }, gecentreerd.
 toast-legend-own-page = De legenda past niet heel naast de layout en krijgt daarom een eigen pagina: { $p0 }.
 toast-legend-moved = De legenda staat nu op een eigen pagina: { $p0 }.
-toast-kept-in-place = Op hun plaats gehouden: { $p0 }. Schikken en routeren zet de andere symbolen eromheen; zelf verplaatsen kan nog steeds.
-toast-kept-in-place-one = Op zijn plaats gehouden: { $p0 }. Schikken en routeren zet de andere symbolen eromheen; zelf verplaatsen kan nog steeds.
+toast-kept-in-place = { $p0 ->
+        [one] Op zijn plaats gehouden: { $p1 }. Schikken en routeren zet de andere symbolen eromheen; zelf verplaatsen kan nog steeds
+       *[other] Op hun plaats gehouden: { $p1 }. Schikken en routeren zet de andere symbolen eromheen; zelf verplaatsen kan nog steeds
+    }.
 toast-let-go = Niet langer op de plaats gehouden: { $p0 }.
 toast-plc-joined = { $p0 } hoort nu bij { $p1 }.
 toast-guide-page = De pagina van de handleiding: { $p0 }.
@@ -497,6 +513,8 @@ toast-arrange-nothing = Niets te schikken: de pagina staat al zo goed als de reg
 toast-arrange-none-left = Er blijft niets over om toe te passen: elke wijziging van dit voorbeeld is uitgevinkt.
 toast-list-columns = De lijst { $p0 } drukt haar kolommen af zoals gekozen.
 toast-legend-columns = De legenda op { $p0 } drukt haar kolommen af zoals gekozen.
-toast-list-rows = De lijst { $p0 } heeft { $p1 } eigen rijen.
-toast-list-rows-one = De lijst { $p0 } heeft 1 eigen rij.
+toast-list-rows = { $p0 ->
+        [one] De lijst { $p1 } heeft 1 eigen rij
+       *[other] De lijst { $p1 } heeft { $p0 } eigen rijen
+    }.
 toast-list-rows-none = De lijst { $p0 } heeft geen eigen rijen.

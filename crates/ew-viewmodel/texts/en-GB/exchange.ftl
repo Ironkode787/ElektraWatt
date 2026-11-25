@@ -129,8 +129,10 @@ external-deleted = deleted
 external-changed = changed
 external-present = present
 external-title = Keep your changes or the ones on disk?
-external-text = Changed here and on disk: { $p0 }. Choose yours or theirs for each; saving waits until you do.
-external-text-one = Changed here and on disk: { $p0 }. Choose yours or theirs; saving waits until you do.
+external-text = { $p0 ->
+        [one] Changed here and on disk: { $p1 }. Choose yours or theirs; saving waits until you do
+       *[other] Changed here and on disk: { $p1 }. Choose yours or theirs for each; saving waits until you do
+    }.
 external-fields = { $p0 ->
         [one] 1 field
        *[other] { $p0 } fields

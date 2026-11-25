@@ -99,11 +99,11 @@ fn conflict_words(conflicts: &[MacroConflict]) -> Vec<String> {
         match c {
             MacroConflict::Refused { message, .. } => refused.push(message.clone()),
             MacroConflict::Tag(t) => other.push(strings::format(key!("macro-conflict-tag"), &[t])),
-            MacroConflict::Pairs { name, with } => other.push(if *with == 1 {
-                strings::format(key!("macro-conflict-pairs-one"), &[name])
-            } else {
-                strings::format(key!("macro-conflict-pairs"), &[name, &with.to_string()])
-            }),
+            MacroConflict::Pairs { name, with } => other.push(strings::format_counted(
+                crate::count_key!("macro-conflict-pairs"),
+                *with,
+                &[name],
+            )),
             MacroConflict::Address(a) => other.push(strings::format(key!("macro-conflict-address"), &[a])),
             MacroConflict::ProcessTag(t) => {
                 other.push(strings::format(key!("macro-conflict-process-tag"), &[t]))

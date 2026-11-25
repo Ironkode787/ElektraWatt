@@ -712,12 +712,9 @@ fn external_change_spec(rows: usize, count: &str) -> DialogSpec {
         form: true,
         ..small(
             strings::text(key!("external-title")).to_owned(),
-            vec![strings::format(
-                if rows == 1 {
-                    key!("external-text-one")
-                } else {
-                    key!("external-text")
-                },
+            vec![strings::format_counted(
+                crate::count_key!("external-text"),
+                rows,
                 &[count],
             )],
             DialogButton::new(

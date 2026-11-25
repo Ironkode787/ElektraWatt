@@ -22,7 +22,6 @@ use ew_api::output::{SelectionWords, WireEnd};
 use crate::canvas::{GridLabel, grid_label, mm1, zoom_percent_text};
 use crate::shell::{AccessMode, ShellModel};
 use crate::strings;
-use crate::strings::Key;
 use crate::{count_key, key};
 
 /// The grid field of `model`'s canvas: the label, or "Grid off" when it is off or the page has none.
@@ -413,32 +412,12 @@ fn findings(model: &ShellModel) -> Option<(String, Tone)> {
 
 /// The findings field of counts `c` (see [`bar`]'s findings).
 pub fn findings_text(c: crate::navigators::messages::MessageCounts) -> Option<(String, Tone)> {
-    let part = |n: usize, one: Key<'_>, many: Key<'_>| match n {
-        0 => None,
-        1 => Some(strings::text(one).to_owned()),
-        n => Some(strings::format(many, &[&n.to_string()])),
-    };
+    let part = |n: usize, counted: strings::CountKey| (n > 0).then(|| strings::format_count(counted, n));
     let parts: Vec<String> = [
-        part(
-            c.errors,
-            key!("status-findings-error"),
-            key!("status-findings-errors"),
-        ),
-        part(
-            c.warnings,
-            key!("status-findings-warning"),
-            key!("status-findings-warnings"),
-        ),
-        part(
-            c.infos,
-            key!("status-findings-info"),
-            key!("status-findings-infos"),
-        ),
-        part(
-            c.pending,
-            key!("status-findings-pending-one"),
-            key!("status-findings-pending"),
-        ),
+        part(c.errors, count_key!("status-findings-errors")),
+        part(c.warnings, count_key!("status-findings-warnings")),
+        part(c.infos, count_key!("status-findings-infos")),
+        part(c.pending, count_key!("status-findings-pending")),
     ]
     .into_iter()
     .flatten()

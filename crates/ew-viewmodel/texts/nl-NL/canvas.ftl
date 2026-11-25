@@ -351,8 +351,10 @@ marker-saved = Opgeslagen
 renumber-pages-title = Pagina's hernummeren
 renumber-devices-title = Apparaten hernummeren
 page-copy-title = Pagina's kopiëren
-page-copy-lead = { $p0 } pagina's kopiëren: { $p1 }
-page-copy-lead-one = Pagina { $p0 } kopiëren
+page-copy-lead = { $p0 ->
+        [one] Pagina { $p1 } kopiëren
+       *[other] { $p0 } pagina's kopiëren: { $p1 }
+    }
 page-copy-drawn-elsewhere = Ook getekend op pagina's die niet gekopieerd worden, dus hun kopieën tekenen alleen wat op deze pagina's staat: { $p0 }
 page-copy-frozen-cleared = Vastgezette kenmerken die het hernoemen laat zoals ze zijn; de kopieën krijgen het kenmerk van het schema op hun nieuwe pagina: { $p0 }
 page-copy-continued = Onderbrekingspunten waarvan de kopieën de punten buiten de kopie voortzetten: { $p0 }
@@ -375,8 +377,10 @@ macro-slots-turned = gedraaid
 macro-slots-hidden = verborgen
 macro-slots-shown = zichtbaar
 macro-conflict-tag = Het kenmerk { $p0 } wordt door een ander apparaat afgedrukt
-macro-conflict-pairs = { $p0 } vormt een paar met { $p1 } bestaande onderbrekingspunten
-macro-conflict-pairs-one = { $p0 } vormt een paar met een bestaand onderbrekingspunt
+macro-conflict-pairs = { $p0 ->
+        [one] { $p1 } vormt een paar met een bestaand onderbrekingspunt
+       *[other] { $p1 } vormt een paar met { $p0 } bestaande onderbrekingspunten
+    }
 macro-conflict-address = Het PLC-adres { $p0 } is bezet
 macro-conflict-process-tag = Het proceskenmerk { $p0 } is in gebruik
 macro-conflicts = Conflicten
@@ -486,8 +490,10 @@ route-kept = { $p0 ->
         [one] 1 draad houdt de route die hij heeft.
        *[other] { $p0 } draden houden de route die ze hebben.
     }
-route-preview-lead-his = Routeren: { $p0 }. { $p1 } door u getekende draden krijgen een nieuwe route. Er is nog niets veranderd.
-route-preview-lead-his-one = Routeren: { $p0 }. 1 door u getekende draad krijgt een nieuwe route. Er is nog niets veranderd.
+route-preview-lead-his = { $p0 ->
+        [one] Routeren: { $p1 }. 1 door u getekende draad krijgt een nieuwe route. Er is nog niets veranderd
+       *[other] Routeren: { $p1 }. { $p0 } door u getekende draden krijgen een nieuwe route. Er is nog niets veranderd
+    }.
 route-more = nog { $p0 }
 drawing-title = { $p0 } importeren
 drawing-dxf-text = { $p0 } is een DXF-tekening. Voeg haar toe als nieuwe grafische pagina, of leg haar als onderlegger onder de getoonde pagina om over te tekenen.

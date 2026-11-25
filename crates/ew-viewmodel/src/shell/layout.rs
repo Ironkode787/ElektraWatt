@@ -661,12 +661,13 @@ impl ShellModel {
             params: json!({"kind": "representation", "targets": targets, "path": "locked", "value": keep}),
         });
         if out == Outcome::Done {
-            let text = match (keep, names.len()) {
-                (true, 1) => key!("toast-kept-in-place-one"),
-                (true, _) => key!("toast-kept-in-place"),
-                (false, _) => key!("toast-let-go"),
+            let (count, names) = (names.len(), names.join(", "));
+            let text = if keep {
+                strings::format_counted(crate::count_key!("toast-kept-in-place"), count, &[&names])
+            } else {
+                strings::format(key!("toast-let-go"), &[&names])
             };
-            self.notify(strings::format(text, &[&names.join(", ")]), true);
+            self.notify(text, true);
         }
         out
     }

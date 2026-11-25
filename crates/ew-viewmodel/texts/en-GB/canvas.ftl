@@ -382,8 +382,10 @@ renumber-pages-title = Renumber pages
 renumber-devices-title = Renumber devices
 # Copy pages… (doc 06 §3.6).
 page-copy-title = Copy pages
-page-copy-lead = Copy { $p0 } pages: { $p1 }
-page-copy-lead-one = Copy page { $p0 }
+page-copy-lead = { $p0 ->
+        [one] Copy page { $p1 }
+       *[other] Copy { $p0 } pages: { $p1 }
+    }
 page-copy-drawn-elsewhere = Also drawn on pages that are not copied, so their copies draw only what stands on these pages: { $p0 }
 page-copy-frozen-cleared = Frozen tags the rename leaves as they are; the copies take the scheme's tag on their new page: { $p0 }
 page-copy-continued = Interruption points whose copies continue the points outside the copy: { $p0 }
@@ -408,8 +410,10 @@ macro-slots-turned = turned
 macro-slots-hidden = hidden
 macro-slots-shown = shown
 macro-conflict-tag = The tag { $p0 } is printed by another device
-macro-conflict-pairs = { $p0 } pairs with { $p1 } existing interruption points
-macro-conflict-pairs-one = { $p0 } pairs with an existing interruption point
+macro-conflict-pairs = { $p0 ->
+        [one] { $p1 } pairs with an existing interruption point
+       *[other] { $p1 } pairs with { $p0 } existing interruption points
+    }
 macro-conflict-address = The PLC address { $p0 } is taken
 macro-conflict-process-tag = The process tag { $p0 } is in use
 macro-conflicts = Conflicts
@@ -532,8 +536,10 @@ route-kept = { $p0 ->
         [one] 1 wire keeps the route it has.
        *[other] { $p0 } wires keep the routes they have.
     }
-route-preview-lead-his = Route: { $p0 }. { $p1 } wires you drew get a new route. Nothing has changed yet.
-route-preview-lead-his-one = Route: { $p0 }. 1 wire you drew gets a new route. Nothing has changed yet.
+route-preview-lead-his = { $p0 ->
+        [one] Route: { $p1 }. 1 wire you drew gets a new route. Nothing has changed yet
+       *[other] Route: { $p1 }. { $p0 } wires you drew get a new route. Nothing has changed yet
+    }.
 route-more = { $p0 } more
 drawing-title = Import { $p0 }
 drawing-dxf-text = { $p0 } is a DXF drawing. Add it as a new graphic page, or place it under the shown page as an underlay to redraw over.

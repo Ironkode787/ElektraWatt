@@ -123,14 +123,10 @@ impl HistoryPane {
     /// a view.
     pub fn header(&self) -> Option<String> {
         let view = self.view()?;
-        let key = if view.rows.len() == 1 {
-            crate::key!("history-header-one")
-        } else {
-            crate::key!("history-header")
-        };
-        Some(crate::strings::format(
-            key,
-            &[&view.rows.len().to_string(), &view.cursor.to_string()],
+        Some(crate::strings::format_counted(
+            crate::count_key!("history-header"),
+            view.rows.len(),
+            &[&view.cursor.to_string()],
         ))
     }
 

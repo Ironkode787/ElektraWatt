@@ -416,8 +416,7 @@ impl ShellModel {
         let folio = self.folio_on_show();
         let toast = match n {
             0 => strings::format(key!("toast-list-rows-none"), &[&folio]),
-            1 => strings::format(key!("toast-list-rows-one"), &[&folio]),
-            _ => strings::format(key!("toast-list-rows"), &[&folio, &n.to_string()]),
+            _ => strings::format_counted(crate::count_key!("toast-list-rows"), n, &[&folio]),
         };
         self.commit_look(ROWS, edits, toast)
     }

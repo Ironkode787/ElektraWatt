@@ -124,8 +124,10 @@ external-deleted = verwijderd
 external-changed = gewijzigd
 external-present = aanwezig
 external-title = Uw wijzigingen of die op schijf behouden?
-external-text = Hier en op schijf gewijzigd: { $p0 }. Kies voor elk uw versie of die op schijf; opslaan wacht tot u kiest.
-external-text-one = Hier en op schijf gewijzigd: { $p0 }. Kies uw versie of die op schijf; opslaan wacht tot u kiest.
+external-text = { $p0 ->
+        [one] Hier en op schijf gewijzigd: { $p1 }. Kies uw versie of die op schijf; opslaan wacht tot u kiest
+       *[other] Hier en op schijf gewijzigd: { $p1 }. Kies voor elk uw versie of die op schijf; opslaan wacht tot u kiest
+    }.
 external-fields = { $p0 ->
         [one] 1 veld
        *[other] { $p0 } velden

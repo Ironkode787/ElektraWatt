@@ -131,16 +131,24 @@ status-ready = Ready
 # The state field after Help ▸ Tutorials without an installed guide.
 status-guide-missing = The guide is not installed with this copy of the program
 status-selected = { $p0 } selected
-status-findings-errors = { $p0 } errors
-status-findings-error = 1 error
-status-findings-warnings = { $p0 } warnings
-status-findings-warning = 1 warning
-status-findings-infos = { $p0 } infos
-status-findings-info = 1 info
+status-findings-errors = { $p0 ->
+        [one] 1 error
+       *[other] { $p0 } errors
+    }
+status-findings-warnings = { $p0 ->
+        [one] 1 warning
+       *[other] { $p0 } warnings
+    }
+status-findings-infos = { $p0 ->
+        [one] 1 info
+       *[other] { $p0 } infos
+    }
 
 # The pending findings, counted apart; they end when the tab leaves the page.
-status-findings-pending = { $p0 } pending on this page
-status-findings-pending-one = 1 pending on this page
+status-findings-pending = { $p0 ->
+        [one] 1 pending on this page
+       *[other] { $p0 } pending on this page
+    }
 status-renderer-why = The canvas draws on the CPU
 status-bar-saved = Saved
 status-bar-unsaved = Unsaved changes

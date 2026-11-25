@@ -880,13 +880,12 @@ impl ShellModel {
         if out != Outcome::Done {
             return out;
         }
-        let n = changed.len().to_string();
-        let lead = match (changed.len(), selected > 0) {
-            (1, false) => strings::format(key!("toast-route-done-one"), &[&names]),
-            (_, false) => strings::format(key!("toast-route-done"), &[&n, &names]),
-            (1, true) => strings::format(key!("toast-route-done-selected-one"), &[&names]),
-            (_, true) => strings::format(key!("toast-route-done-selected"), &[&n, &names]),
+        let done = if selected > 0 {
+            crate::count_key!("toast-route-done-selected")
+        } else {
+            crate::count_key!("toast-route-done")
         };
+        let lead = strings::format_counted(done, changed.len(), &[&names]);
         let kept = match kept {
             0 => None,
             n => Some(strings::format_count(crate::count_key!("route-kept"), n)),
@@ -924,11 +923,7 @@ impl ShellModel {
         let rows = route_rows(session, &folio, &plan);
         let routed = plan.changed().len();
         let page = strings::format(key!("route-folio"), &[&folio]);
-        let lead = if routed == 1 {
-            strings::format(key!("route-preview-lead-his-one"), &[&page])
-        } else {
-            strings::format(key!("route-preview-lead-his"), &[&page, &routed.to_string()])
-        };
+        let lead = strings::format_counted(crate::count_key!("route-preview-lead-his"), routed, &[&page]);
         self.preview_host_card_as(
             "layout.apply",
             params,

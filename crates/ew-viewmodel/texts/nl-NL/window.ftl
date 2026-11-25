@@ -112,14 +112,22 @@ status-ready = Gereed
 # The state field after Help ▸ Tutorials without an installed guide.
 status-guide-missing = De handleiding is niet met deze kopie van het programma geïnstalleerd
 status-selected = { $p0 } geselecteerd
-status-findings-errors = { $p0 } fouten
-status-findings-error = 1 fout
-status-findings-warnings = { $p0 } waarschuwingen
-status-findings-warning = 1 waarschuwing
-status-findings-infos = { $p0 } info's
-status-findings-info = 1 info
-status-findings-pending = { $p0 } wachtend op deze pagina
-status-findings-pending-one = 1 wachtend op deze pagina
+status-findings-errors = { $p0 ->
+        [one] 1 fout
+       *[other] { $p0 } fouten
+    }
+status-findings-warnings = { $p0 ->
+        [one] 1 waarschuwing
+       *[other] { $p0 } waarschuwingen
+    }
+status-findings-infos = { $p0 ->
+        [one] 1 info
+       *[other] { $p0 } info's
+    }
+status-findings-pending = { $p0 ->
+        [one] 1 wachtend op deze pagina
+       *[other] { $p0 } wachtend op deze pagina
+    }
 status-renderer-why = Het tekenvlak tekent op de CPU
 status-bar-saved = Opgeslagen
 status-bar-unsaved = Niet-opgeslagen wijzigingen

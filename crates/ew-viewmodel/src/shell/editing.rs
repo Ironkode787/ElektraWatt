@@ -434,21 +434,21 @@ impl ShellModel {
             Some((tubes, list)) => {
                 let placed = strings::without_stop(&placed);
                 let (own, to) = &list[0];
-                match list.len() {
-                    1 => strings::format(key!("toast-placed-connected-one"), &[placed, own, to]),
-                    n => {
-                        let count = strings::format(
-                            if tubes {
-                                key!("count-tubes")
-                            } else {
-                                key!("count-wires")
-                            },
-                            &[&n.to_string()],
-                        );
-                        let more = (n - 1).to_string();
-                        strings::format(key!("toast-placed-connected"), &[placed, &count, own, to, &more])
-                    }
-                }
+                let n = list.len();
+                let count = strings::format(
+                    if tubes {
+                        key!("count-tubes")
+                    } else {
+                        key!("count-wires")
+                    },
+                    &[&n.to_string()],
+                );
+                let more = (n - 1).to_string();
+                strings::format_counted(
+                    crate::count_key!("toast-placed-connected"),
+                    n,
+                    &[placed, &count, own, to, &more],
+                )
             }
             None if in_wire => {
                 strings::format(key!("toast-placed-in-wire"), &[strings::without_stop(&placed)])

@@ -278,13 +278,11 @@ impl ShellModel {
             .filter_map(|id| self.page_rows().iter().find(|r| r.id == *id))
             .map(|r| r.folio.clone())
             .collect();
-        let lead = match folios.as_slice() {
-            [one] => strings::format(key!("page-copy-lead-one"), &[one]),
-            _ => strings::format(
-                key!("page-copy-lead"),
-                &[&folios.len().to_string(), &folios.join(", ")],
-            ),
-        };
+        let lead = strings::format_counted(
+            crate::count_key!("page-copy-lead"),
+            folios.len(),
+            &[&folios.join(", ")],
+        );
         copy_refused(self.preview_host_card_as(
             &plan.command.name,
             plan.command.params,
@@ -312,13 +310,11 @@ impl ShellModel {
             .filter(|(id, _)| !rows.iter().any(|r| r.id == *id))
             .map(|(_, folio)| folio)
             .collect();
-        let copied = match new.as_slice() {
-            [one] => strings::format(key!("toast-pages-copied-one"), &[one]),
-            _ => strings::format(
-                key!("toast-pages-copied"),
-                &[&new.len().to_string(), &new.join(", ")],
-            ),
-        };
+        let copied = strings::format_counted(
+            crate::count_key!("toast-pages-copied"),
+            new.len(),
+            &[&new.join(", ")],
+        );
         Some(if bus.is_empty() {
             copied
         } else {
