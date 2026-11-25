@@ -5,7 +5,8 @@
 //! `docs/book/src/how-to/headless-workflow.md` is run in order in a folder that holds a copy of the sample project at
 //! `fixtures/sample/sample.ew`. An `ew` line runs the binary under test; `mkdir` makes the folder; `echo $?` shows the last
 //! exit code. The lines the page shows below a command are its standard output and then its standard error, compared
-//! whole; a line `...` stands for any lines, and a command without lines below it is only run.
+//! whole; a line `...` stands for any lines, and a command without lines below it is only run. A `text` block below a
+//! sentence "Open `<file>` ... It starts like this:" is the start of that file as the commands wrote it.
 
 use crate::support::Tmp;
 
@@ -57,6 +58,31 @@ fn commands(page: &str) -> Vec<(String, Vec<String>)> {
                 None => out.last_mut().expect("a command first").1.push(l.to_owned()),
             },
             _ => {}
+        }
+    }
+    out
+}
+
+/// The file samples of the page: each `text` block whose sentence before it opens a file (`Open \`<file>\``) and
+/// says it starts like this, with that file and the block's lines.
+fn file_starts(page: &str) -> Vec<(String, Vec<String>)> {
+    let lines: Vec<&str> = page.lines().map(str::trim_end).collect();
+    let mut out = Vec::new();
+    for (at, line) in lines.iter().enumerate() {
+        if *line != "```text" {
+            continue;
+        }
+        let Some(before) = lines[..at].iter().rev().find(|l| !l.is_empty()) else {
+            continue;
+        };
+        let file = before
+            .strip_prefix("Open `")
+            .and_then(|rest| rest.split_once('`'))
+            .filter(|_| before.ends_with("It starts like this:"))
+            .map(|(file, _)| file.to_owned());
+        if let Some(file) = file {
+            let block = lines[at + 1..].iter().take_while(|l| **l != "```");
+            out.push((file, block.map(|l| (*l).to_owned()).collect()));
         }
     }
     out
@@ -115,6 +141,13 @@ fn the_headless_tutorials_commands_print_what_its_page_shows() {
             other => panic!("the page runs `{other}`, which the test does not know"),
         }
     }
+    let starts = file_starts(&page);
+    assert!(!starts.is_empty(), "the page shows the start of the cable list");
+    for (file, shown) in starts {
+        let text = std::fs::read_to_string(tmp.path(&file)).unwrap_or_else(|e| panic!("{file}: {e}"));
+        let actual: Vec<String> = text.lines().take(shown.len()).map(str::to_owned).collect();
+        assert_eq!(actual, shown, "the page shows the start of {file}");
+    }
 }
 
 #[test]
@@ -127,4 +160,6 @@ fn the_page_parser_reads_commands_quotes_and_elisions() {
     assert!(shows(&shown(&["a", "...", "z"]), &shown(&["a", "b", "c", "z"])));
     assert!(!shows(&shown(&["a", "...", "z"]), &shown(&["a", "b"])));
     assert!(!shows(&shown(&["a"]), &shown(&["a", "b"])));
+    let page = "Open `out/a.csv` in a viewer. It starts like this:\n\n```text\nh\nr\n```\n\n```text\nx\n```\n";
+    assert_eq!(file_starts(page), [("out/a.csv".to_owned(), shown(&["h", "r"]))]);
 }
