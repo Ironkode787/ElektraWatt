@@ -91,9 +91,9 @@ pub use join::JoinClass;
 pub use layout::{CarrierKindParam, CarrierParamsParam, CarrierThen, FillOrder, PlaceMode, PlaceOnParam};
 pub use library_update::{ChangeClass, CopyDiff, CpMapParam, FieldChange, classify_update};
 pub use macro_insert::{MACRO_KINDS, binding_field_ok, coerce_value, instantiate};
+pub use merge::Take;
 #[cfg(debug_assertions)]
 pub use merge::record_file_of;
-pub use merge::Take;
 pub use move_keep::KeepAsIps;
 pub use page::{LabelModeParam, LabelsParam, PageScope};
 pub use page_copy::{

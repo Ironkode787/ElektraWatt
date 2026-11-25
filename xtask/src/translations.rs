@@ -125,7 +125,10 @@ mod tests {
                 "# A comment = no key\nmenu-file = File\nmenu-edit = Edit\n-term = EW\nlong =\n    .tip = A tip\n",
             ),
             file("crates/a/texts/en-GB/tools.ftl", "tool-wire = Wire\n"),
-            file("crates/a/texts/nl-NL/menu.ftl", "menu-file = Bestand\nonly-dutch = Alleen\n"),
+            file(
+                "crates/a/texts/nl-NL/menu.ftl",
+                "menu-file = Bestand\nonly-dutch = Alleen\n",
+            ),
             file("crates/a/texts/nl-NL/other.ftl", "long =\n    .tip = Een tip\n"),
             file("crates/b/texts/nl-NL/x.ftl", "x = X\n"),
             file("crates/a/src/texts/en-GB/z.rs", "z = 1\n"),
