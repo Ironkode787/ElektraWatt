@@ -15,7 +15,9 @@
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::Path;
 
-use ew_api::{FORMAT, FileMerge, Limits, MIGRATIONS, Manifest, MergeSide, holds_newer_records, merge_file};
+use ew_api::{
+    FORMAT, FileMerge, Limits, MIGRATIONS, Manifest, MergeSide, holds_newer_records, merge_file, newer_than_reader,
+};
 
 use super::tree::{Leaf, MergeDriverCli};
 use crate::catalogue::{Exit, exit};
@@ -180,15 +182,6 @@ fn project_path(worktree: &Path, repo_path: &str, limits: &Limits) -> (String, S
         }
     }
     (repo_path.to_owned(), FORMAT.to_owned())
-}
-
-/// Whether `format` (`major.minor`) is newer than this reader's [`FORMAT`]; a format that does not parse is not.
-fn newer_than_reader(format: &str) -> bool {
-    let parse = |f: &str| -> Option<(u32, u32)> {
-        let (major, minor) = f.split_once('.')?;
-        Some((major.parse().ok()?, minor.parse().ok()?))
-    };
-    matches!((parse(format), parse(FORMAT)), (Some(side), Some(reader)) if side > reader)
 }
 
 #[cfg(test)]

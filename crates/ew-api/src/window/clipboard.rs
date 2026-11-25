@@ -197,12 +197,6 @@ fn depth(line: &str) -> usize {
     max
 }
 
-/// `"0.1"` as `(0, 1)`.
-fn format_version(s: &str) -> Option<(u32, u32)> {
-    let (a, b) = s.split_once('.')?;
-    Some((a.parse().ok()?, b.parse().ok()?))
-}
-
 /// An integer pair `[a, b]`.
 fn pair(v: &Value) -> Option<(i64, i64)> {
     match v.as_array()?.as_slice() {
@@ -398,9 +392,9 @@ fn read_header<'c>(
     let format = member("format")?
         .as_str()
         .ok_or_else(|| invalid(text!("refusal-fragment-format-text")))?;
-    let theirs =
-        format_version(format).ok_or_else(|| invalid(text!("refusal-fragment-format-version", format)))?;
-    let ours = format_version(ew_schema::FORMAT).expect("the format version reads");
+    let theirs = ew_schema::parse_format_lenient(format)
+        .ok_or_else(|| invalid(text!("refusal-fragment-format-version", format)))?;
+    let ours = ew_schema::parse_format_lenient(ew_schema::FORMAT).expect("the format version reads");
     let from = match theirs.cmp(&ours) {
         Ordering::Greater => {
             return Err(FragmentError::Newer {

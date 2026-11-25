@@ -205,7 +205,9 @@ pub use ew_derive::{BomMode, DeriveNote, MemoStore};
 pub use ew_drafting as drafting;
 /// The three-way merge of one project file that `ew merge-driver` runs, with the reader's limits, the
 /// shipped migration chain and the manifest reader that gives ours its format.
-pub use ew_format::{FileMerge, Limits, MIGRATIONS, Manifest, MergeSide, holds_newer_records, merge_file};
+pub use ew_format::{
+    FileMerge, Limits, MIGRATIONS, Manifest, MergeSide, holds_newer_records, merge_file, newer_than_reader,
+};
 pub use ew_format::{FormatStep, MigrationError, Migrations};
 /// The job runner: the shell names it through `ew-api` (no workspace edge of its own).
 pub use ew_jobs;

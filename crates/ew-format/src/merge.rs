@@ -660,14 +660,23 @@ pub fn merge_file(
     }
 }
 
+/// Whether `format` (`major.minor`) is newer than this reader's [`FORMAT`]; a format that does not parse
+/// ([`ew_schema::parse_format`]) is not.
+pub fn newer_than_reader(format: &str) -> bool {
+    matches!(
+        (ew_schema::parse_format(format), ew_schema::parse_format(FORMAT)),
+        (Some(side), Some(reader)) if side > reader
+    )
+}
+
 /// The migration of a side of `format` towards this reader's: none within the reader's major at or below it, the chain
 /// from an older major; `None` for a format newer than the reader's, one that does not parse, or one the chain does not
 /// reach.
 fn migration<'c>(format: &str, chain: &'c Migrations) -> Option<Migration<'c>> {
-    let (side, reader) = (ew_schema::parse_format(format)?, ew_schema::parse_format(FORMAT)?);
-    if side > reader {
+    if newer_than_reader(format) {
         return None;
     }
+    let (side, reader) = (ew_schema::parse_format(format)?, ew_schema::parse_format(FORMAT)?);
     let from = if version::same_major(side, reader) {
         FORMAT
     } else {
