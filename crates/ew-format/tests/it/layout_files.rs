@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The layout files (doc 05 §2.2; LM-1): every layout record lives in `layout/<space>.jsonl`, the space
+//! The layout files (doc 05 §2.2): every layout record lives in `layout/<space>.jsonl`, the space
 //! reached through carrier → surface → enclosure; a broken chain and a newer carrier form still give one
 //! deterministic file; a directory of layout records loads clean, a file written while the kinds were reserved is
 //! rewritten canonically, and a placement in another space's file is EW-CORE-010.
@@ -106,7 +106,7 @@ fn every_layout_record_lives_in_the_file_of_its_space() {
     }
 }
 
-/// LM-1 at the format level: moving the rail to space B's plate moves the rail and the placement on it to B's file;
+/// At the format level: moving the rail to space B's plate moves the rail and the placement on it to B's file;
 /// the placement on A's plate stays in A's.
 #[test]
 fn moving_a_carrier_re_keys_its_placements() {
@@ -159,7 +159,7 @@ fn a_broken_chain_and_a_newer_carrier_form_still_give_one_file() {
     assert_eq!(record_file(&newer, &anchors).unwrap(), layout_file(PL_RAIL));
 }
 
-/// LM-1: a directory of layout records loads clean and gives back the same records.
+/// A directory of layout records loads clean and gives back the same records.
 #[test]
 fn a_layout_directory_loads_clean() {
     let files = files_of(&records());

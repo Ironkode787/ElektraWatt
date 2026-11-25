@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The supply groups of a part's PLC section through the files (FR-PLC-024; PX-2): a part copy in
+//! The supply groups of a part's PLC section through the files (FR-PLC-024): a part copy in
 //! `lib/` whose `sections.plc.supply_groups` carries typed members, unknown members and newer enum values loads and
 //! saves byte-equal, and its stored `sha256` (the hash of the item's compact JSON) verifies.
 
@@ -37,7 +37,7 @@ fn compact(item: &str) -> String {
     )
 }
 
-/// PX-2: the copy is canonical, its hash verifies, and it is written and read back unchanged.
+/// The copy is canonical, its hash verifies, and it is written and read back unchanged.
 #[test]
 fn a_part_copy_with_supply_groups_round_trips_and_its_hash_verifies() {
     let item = item();

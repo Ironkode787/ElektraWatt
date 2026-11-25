@@ -170,7 +170,7 @@ mod tests {
 
     proptest! {
         /// Changing, adding or removing a content file changes the digest; changing the files that are not content
-        /// never does (RG-3 at the format level: a comment or page-note edit does not void a sign-off).
+        /// never does (at the format level: a comment or page-note edit does not void a sign-off).
         #[test]
         fn content_files_and_only_they_move_the_digest(
             names in proptest::collection::btree_set("[a-z]{1,8}", 1..6),

@@ -86,7 +86,7 @@ const FORMAT_STEP: FormatStep = FormatStep {
     record: format_record,
 };
 
-/// The test chain of MG-1.
+/// The test chain.
 static CHAIN: Migrations = Migrations {
     kinds: &[
         KindStep {
@@ -311,7 +311,7 @@ fn the_manifest_takes_the_manifest_steps() {
     assert_eq!(migrated.format, "0.0", "the save writes the format, not the step");
 }
 
-/// MG-1 at the loader: the migrated records and documents are read typed, their files are named apart from the
+/// At the loader: the migrated records and documents are read typed, their files are named apart from the
 /// rewrite set and get no `NonCanonical` finding, and a line kept verbatim keeps its migrated text.
 #[test]
 fn load_migrated_reads_the_older_files_and_names_those_a_step_changed() {
@@ -344,7 +344,7 @@ fn a_file_no_step_changes_is_not_migrated() {
     assert_eq!(loaded.project, Some(project()));
 }
 
-/// MG-2 at the loader: a failing step and a missing step refuse the load with the file, the line and the pointer.
+/// At the loader: a failing step and a missing step refuse the load with the file, the line and the pointer.
 #[test]
 fn a_failing_or_missing_step_refuses_the_load_with_its_file_line_and_pointer() {
     let way = FAILING.towards("0.0", "0.1").unwrap();

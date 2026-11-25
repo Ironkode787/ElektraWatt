@@ -23,7 +23,7 @@
 //!   in production); a side that does not read (a broken line, a limit, a failed step), or that is newer than this
 //!   reader (its format, or a record's `$v` above its kind's), keeps the other side and adds the file-level conflict
 //!   `{"$k":"conflict","id":v5(NS_CONFLICT, path),"kind":"file","path":…,"side":…,"lines":[…]}` with its lines
-//!   verbatim. A base that is not empty but does not read follows D18's no-base rule. A record a side holds unchanged
+//!   verbatim. A base that is not empty but does not read follows the no-base rule. A record a side holds unchanged
 //!   is written as that side's own line.
 //!
 //! [`MIGRATIONS`]: crate::MIGRATIONS
@@ -83,7 +83,7 @@ pub struct RecordMerge {
     /// The merged record; `None` when it is deleted.
     pub merged: Option<Value>,
     /// Its conflict record, when the sides conflict. A `Value` holds its members sorted; [`merge_file`] writes them in
-    /// D14's order.
+    /// The order.
     pub conflict: Option<Value>,
 }
 
@@ -177,7 +177,7 @@ fn members(value: Option<&Value>) -> impl Iterator<Item = &String> {
         .flat_map(|m| m.keys())
 }
 
-/// One record by D18's no-base rule, for a base that is not empty but does not read: equal on
+/// One record by the no-base rule, for a base that is not empty but does not read: equal on
 /// both sides it is kept; different, ours is kept with a conflict of every top-level member that differs; on one side
 /// only, it is kept with a conflict whose other side is `"deleted"`, since the other side may have deleted it. The
 /// base of such a conflict is empty.
@@ -595,10 +595,10 @@ fn merge_set(
 /// **The one loss.** The result never holds a record line longer than `limits.max_line_bytes` or nested deeper than
 /// `limits.max_depth` (a library document: the document), nor a file above `limits.max_file_bytes` or
 /// `limits.max_lines_per_file` (a manifest: `limits.max_manifest_bytes` or `limits.max_files`), which the loader would
-/// refuse (D14: "the file stays loadable"). A conflict record nests its partial objects one level below its target,
+/// refuse ("the file stays loadable"). A conflict record nests its partial objects one level below its target,
 /// `$conflict` holds theirs' document one level below ours', and a file-level record holds a side's lines in one line,
 /// so a merge can pass a limit that neither side passes. Then ours is returned as it is with 1 conflict, and theirs
-/// survives only in git's index (stage 3): D14's "nothing of either side is lost" and MD-2 give way for this case.
+/// survives only in git's index (stage 3): the "nothing of either side is lost" and the merge properties give way for this case.
 ///
 /// **The second case.** A library document that neither side reads while ours still parses (a newer `$v`, no `$k`, a
 /// failed step) is kept as ours is with 1 conflict: a file-level record after it would make it a syntax error, so
@@ -675,7 +675,7 @@ fn migration<'c>(format: &str, chain: &'c Migrations) -> Option<Migration<'c>> {
     chain.towards(from, FORMAT).ok()
 }
 
-/// Whether a value's `$v` is above its kind's schema version (a newer record, MD-4).
+/// Whether a value's `$v` is above its kind's schema version (a newer record).
 fn newer_record(value: &Value) -> bool {
     let Some(kind) = value.get("$k").and_then(Value::as_str).and_then(Kind::from_name) else {
         return false;
@@ -687,7 +687,7 @@ fn newer_record(value: &Value) -> bool {
 }
 
 /// Whether a side of the project file `path` holds a record this reader cannot merge: a record file with a line whose
-/// `$v` is above this reader's version of its kind, or a library document whose own `$v` is (MD-4; ADR-0011 amendment
+/// `$v` is above this reader's version of its kind, or a library document whose own `$v` is (ADR-0011 amendment
 /// 2), which [`merge_file`] cannot read. The merge driver then merges nothing in that file. A
 /// record of a kind or with a member this reader does not know is not one, since the merge keeps every member of a
 /// record's value; nor is a line or a document that does not parse, nor any other file.
@@ -891,7 +891,7 @@ fn merge_records_file(
     limits: &Limits,
     chain: &Migrations,
 ) -> FileMerge {
-    // An empty base has no records (a file added on both sides); one that does not read follows D18's no-base rule.
+    // An empty base has no records (a file added on both sides); one that does not read follows the no-base rule.
     let o = if base.bytes.is_empty() {
         Some(BTreeMap::new())
     } else {
@@ -1003,7 +1003,7 @@ fn record_conflict(value: &Value) -> bool {
             .is_some_and(|kind| kind != "file")
 }
 
-/// One conflict record of a target holding two (D14's one record per target): `later`'s, with each of its `base`,
+/// One conflict record of a target holding two (the one record per target): `later`'s, with each of its `base`,
 /// `ours` and `theirs` partial objects laid over `earlier`'s. `None` where they cannot be held together without a loss:
 /// a member both name with different values, or a side that is not an object on both (`"deleted"`) and differs.
 fn combined(earlier: &Value, later: &Value) -> Option<Value> {
@@ -1123,7 +1123,7 @@ fn merge_document(
         read_document(theirs, limits, chain),
     ) {
         (Some(a), Some(b)) => {
-            // An empty base: added on both sides; a base that does not read: D18's no-base rule.
+            // An empty base: added on both sides; a base that does not read: the no-base rule.
             let merged = match (base.bytes.is_empty(), read_document(base, limits, chain)) {
                 (false, None) => no_base(Some(&a), Some(&b)),
                 (_, o) => merge_record(o.as_ref(), Some(&a), Some(&b)),
@@ -1136,7 +1136,7 @@ fn merge_document(
         }
         (Some(a), None) => (with_conflict(a, text(theirs)), 1),
         (None, Some(b)) => (with_conflict(b, text(ours)), 1),
-        // Neither side reads: theirs is held by the file-level record when ours does not open either (D14's
+        // Neither side reads: theirs is held by the file-level record when ours does not open either (the
         // `$conflict` needs a readable ours); an ours that opens stays as it is, since a line after it would make
         // it a syntax error.
         (None, None) => {
@@ -1198,7 +1198,7 @@ fn three_way<T: PartialEq + Clone>(
     }
 }
 
-/// `manifest.json` (doc 05 §11.3, D16): `generation = max(a, b) + 1`, `format` and `min_reader` the later, `generator`
+/// `manifest.json` (doc 05 §11.3): `generation = max(a, b) + 1`, `format` and `min_reader` the later, `generator`
 /// and `project` ours, `files` three-way per path with `sha256:pending` where both changed, `merged: true`, no `base`;
 /// when a side names a format newer than this reader's, ours as it is with 1 conflict.
 fn merge_manifest(

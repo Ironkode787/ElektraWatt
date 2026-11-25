@@ -332,7 +332,7 @@ enum Hunk {
 /// not a record with a `$k` and an `id`, a key twice, or more lines than the limit: the file then stays EW-CORE-006.
 ///
 /// Per hunk, by `($k, id)`: with a diff3 base (`|||||||`), [`merge_record`] merges the three sides (clean parts merge,
-/// true conflicts become conflict records); without one, D18's no-base rule ([`no_base`]): records equal on both sides
+/// true conflicts become conflict records); without one, the no-base rule ([`no_base`]): records equal on both sides
 /// are kept, records that differ keep ours with a conflict of every differing member, and a record on one side only is
 /// kept with a conflict whose other side is `"deleted"`. A merged line that would pass a line limit leaves the file
 /// EW-CORE-006 as well.
@@ -816,7 +816,7 @@ impl<'a> Loader<'a> {
                     data
                 }
             };
-            // Conflict markers whose hunks hold whole records load as conflict records (D18, FR-COL-025); the file is
+            // Conflict markers whose hunks hold whole records load as conflict records (FR-COL-025); the file is
             // rewritten at the next save. Any other marker stays EW-CORE-006 below.
             if let Some(lines) = unmark(body, self.limits) {
                 st.non_canonical = true;

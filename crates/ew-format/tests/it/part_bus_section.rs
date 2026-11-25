@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The part-level bus section through the files (.1, D15; BU-7d): a part copy in `lib/` whose
+//! The part-level bus section through the files (.1, D15): a part copy in `lib/` whose
 //! `sections.bus` carries typed members, unknown members and newer enum values loads and saves byte-equal, and its
 //! stored `sha256` (the hash of the item's compact JSON) verifies; a copy that an older 0.1 build wrote, with `bus`
 //! in `PartSections.extra`, reads typed and is rewritten canonically.
@@ -19,7 +19,7 @@ const LIB: &str = "6a1d0f3e-8b25-5c74-9e1a-d3f60b8c2e47";
 const COPY: &str = "3d7e1a95-2c48-5b06-9f1d-8a4c0e6b2f73";
 const ITEM: &str = "c19f4b62-7e03-5a8d-b4c5-1e9a0d3f6b28";
 
-/// The part item's compact JSON: a CPU with a PLC section and BU-7a's bus section.
+/// The part item's compact JSON: a CPU with a PLC section and the bus section.
 fn item() -> String {
     concat!(
         r#"{"manufacturer":{"library":"6a1d0f3e-8b25-5c74-9e1a-d3f60b8c2e47","item":"0f7b2c94-5d3a-5e81-a6f9-2b8c0e4d7a13","version_req":"^1"},"#,
@@ -40,7 +40,7 @@ fn compact(item: &str) -> String {
     )
 }
 
-/// BU-7d: the copy is canonical, its hash verifies, and it is written and read back unchanged.
+/// The copy is canonical, its hash verifies, and it is written and read back unchanged.
 #[test]
 fn a_part_copy_with_a_bus_section_round_trips_and_its_hash_verifies() {
     let item = item();

@@ -114,7 +114,7 @@ mod tests {
         assert_eq!(reader_access(&m, "0.1", false), Access::ReadWrite);
     }
 
-    /// SG-1's read side: an unstable file opens read-write only in an unreleased reader of its format.
+    /// The read side: an unstable file opens read-write only in an unreleased reader of its format.
     #[test]
     fn an_unstable_file_is_read_only_in_a_released_or_other_format_reader() {
         let mut m = Manifest::new(

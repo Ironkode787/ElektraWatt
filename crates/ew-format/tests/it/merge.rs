@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The three-way merge core: MD-1 (each row of the record
-//! table and each strategy), MD-2 (the properties), MD-3 (typed inputs merge typed, over the sample's records), MD-4
-//! (a side that does not read or is newer), the manifest merge and a page's merge on a wire. The sample is only read.
+//! The three-way merge core: each row of the record
+//! table and each strategy, the properties, typed inputs merging typed over the sample's records, a side that does not read
+//! or is newer, the manifest merge and a page's merge on a wire. The sample is only read.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -58,7 +58,7 @@ fn merge_text(path: &str, o: &str, a: &str, b: &str) -> (String, usize) {
     (String::from_utf8(bytes).expect("UTF-8"), conflicts)
 }
 
-// ---- MD-1: the record table -------------------------------------------------------------------------------------
+// ---- The record table -------------------------------------------------------------------------------------
 
 #[test]
 fn a_record_on_one_side_only_is_kept() {
@@ -143,11 +143,11 @@ fn an_atomic_member_changed_on_both_sides_conflicts_and_keeps_ours() {
     );
 }
 
-// ---- MD-1: the strategies ---------------------------------------------------------------------------------------
+// ---- The strategies ---------------------------------------------------------------------------------------
 
 #[test]
 fn object_merges_the_overrides_member_by_member() {
-    // AC-41's clean variant: A adds colour BU, B sets csa 2.5.
+    // The clean variant: A adds colour BU, B sets csa 2.5.
     let o = rec(
         "connection",
         json!({"overrides": {"csa": "1.5", "show_marker": true}}),
@@ -174,7 +174,7 @@ fn object_merges_the_overrides_member_by_member() {
 
 #[test]
 fn object_conflict_holds_only_the_conflicting_member() {
-    // AC-41's conflict variant: B also adds colour WH.
+    // The conflict variant: B also adds colour WH.
     let o = rec(
         "connection",
         json!({"overrides": {"csa": "1.5", "show_marker": true}}),
@@ -375,7 +375,7 @@ fn keyed_tech_data_merges_by_key_in_byte_order() {
 
 #[test]
 fn a_part_s_keyed_tech_data_merges_by_key() {
-    // D13's `keyed(key)` names `tech_data` without a kind: a part's list merges as a device's does.
+    // The `keyed(key)` names `tech_data` without a kind: a part's list merges as a device's does.
     let o = rec("part", json!({"tech_data": [{"key": "curve", "value": "B"}]}));
     let a = rec(
         "part",
@@ -396,7 +396,7 @@ fn a_part_s_keyed_tech_data_merges_by_key() {
 
 #[test]
 fn a_device_s_tag_and_the_project_s_settings_merge_member_by_member() {
-    // MD-1's "each row": without its row, either member would merge atomically and conflict here.
+    // The "each row": without its row, either member would merge atomically and conflict here.
     for (kind, member) in [("device", "tag"), ("project", "settings")] {
         let side = |x: u8, y: u8| rec(kind, json!({member: {"x": x, "y": y}}));
         assert_eq!(
@@ -548,7 +548,7 @@ fn a_record_of_a_kind_this_reader_does_not_implement_merges_as_a_whole() {
     }
 }
 
-// ---- MD-2: properties ------------------------------------------------------------------------------------------
+// ---- Properties ------------------------------------------------------------------------------------------
 
 fn member(values: &[Value]) -> BoxedStrategy<Option<Value>> {
     prop::option::of(prop::sample::select(values.to_vec())).boxed()
@@ -718,7 +718,7 @@ fn elements(list: Option<&Value>) -> BTreeSet<String> {
         .unwrap_or_default()
 }
 
-/// Every value a side changed is in the result or in the conflict record (MD-2), by the leaf's strategy.
+/// Every value a side changed is in the result or in the conflict record, by the leaf's strategy.
 fn assert_kept(o: &Value, a: &Value, b: &Value, r: &Value, c: Option<&Value>) {
     let kind = a["$k"].as_str().unwrap_or_default();
     for leaf in leaves(kind) {
@@ -818,7 +818,7 @@ fn unordered(value: Option<Value>) -> Option<Value> {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(512))]
 
-    /// MD-2 on `merge_record`. Not on `merge_file`'s one loss, where a merged file would pass a reader limit and ours is
+    /// On `merge_record`. Not on `merge_file`'s one loss, where a merged file would pass a reader limit and ours is
     /// kept as it is (`a_merge_that_would_pass_a_reader_limit_keeps_ours_as_it_is`).
     #[test]
     fn md2_merge_properties((o, a, b) in sides()) {
@@ -855,7 +855,7 @@ proptest! {
     }
 }
 
-// ---- MD-3: typed inputs merge typed, over the sample -------------------------------------------------------------
+// ---- Typed inputs merge typed, over the sample -------------------------------------------------------------
 
 /// Every file of `fixtures/sample/sample.ew`, read only, by project-relative path.
 fn sample() -> BTreeMap<String, Vec<u8>> {
@@ -1000,7 +1000,7 @@ fn the_project_merges_typed_through_its_strategies() {
     assert_eq!(merged["parties"][1]["name"], json!("c2"));
 }
 
-// ---- files: a page, MD-4 ---------------------------------------------------------------------------------------
+// ---- files: a page ---------------------------------------------------------------------------------------
 
 /// The wire's overrides in the base of these tests.
 const WIRE_OVERRIDES: &str = r#""overrides":{"csa":"1.5","show_marker":true}"#;
@@ -1082,7 +1082,7 @@ fn load_page(bytes: &str) -> ew_format::Loaded {
     load(None, &files, &Limits::default())
 }
 
-/// The record-level conflict record on the wire, holding `members` (D14's order: `base`, `ours`, `theirs`).
+/// The record-level conflict record on the wire, holding `members` (the order: `base`, `ours`, `theirs`).
 fn wire_conflict(members: &str) -> String {
     format!(
         r#"{{"$k":"conflict","id":"{}","kind":"connection",{members}}}"#,
@@ -1104,7 +1104,7 @@ fn both_sides_colouring_a_wire_write_one_conflict_record_and_keep_ours() {
     let (base, ours) = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
     let (_, theirs) = page_with(r#""overrides":{"csa":"2.5","colour":["WH"],"show_marker":true}"#);
     let (_, kept) = page_with(r#""overrides":{"csa":"2.5","colour":["BU"],"show_marker":true}"#);
-    // D14's member order: `$k`, `id`, `kind`, `base`, `ours`, `theirs`.
+    // The member order: `$k`, `id`, `kind`, `base`, `ours`, `theirs`.
     let conflict = wire_conflict(
         r#""base":{"overrides":{}},"ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}"#,
     );
@@ -1123,13 +1123,13 @@ fn both_sides_colouring_a_wire_write_one_conflict_record_and_keep_ours() {
         .map(|r| ew_format::record_line(r).expect("a line"))
         .collect();
     assert_eq!(conflicts, [conflict]);
-    // MD-3: every merged record reads typed.
+    // Every merged record reads typed.
     for line in merged.lines().filter(|l| !l.starts_with(r#"{"$k":"conflict""#)) {
         assert!(typed(&serde_json::from_str(line).expect("JSON")), "{line}");
     }
 }
 
-/// The file-level conflict line of the page holding `side`'s `text`, members in D14's order. Its ID is
+/// The file-level conflict line of the page holding `side`'s `text`, members in the order. Its ID is
 /// `v5(NS_CONFLICT, path)`, which `ew-ids` pins.
 fn file_conflict(side: &str, text: &str) -> String {
     let lines: Vec<&str> = text.strip_suffix('\n').unwrap_or(text).split('\n').collect();
@@ -1167,7 +1167,7 @@ fn a_side_that_does_not_parse_keeps_the_other_with_one_file_level_conflict() {
     assert_eq!(held, [file_conflict("theirs", &broken)]);
 }
 
-// ---- conflict markers, D18 ---------------------------------------------------
+// ---- conflict markers ---------------------------------------------------
 
 /// The page file with the wire's line replaced by a marker hunk: ours, the diff3 base when `base` is given,
 /// theirs; each side `WIRE_OVERRIDES` replaced by its own.
@@ -1211,8 +1211,8 @@ fn rewritten() -> ew_format::Finding {
     )
 }
 
-/// CR-2: a diff3 hunk whose sides are whole record lines merges through `merge_record`: `csa` (theirs only) merges
-/// cleanly, `colour` (both) keeps ours with one conflict record, the same as the merge driver's (MD-6); the file opens
+/// A diff3 hunk whose sides are whole record lines merges through `merge_record`: `csa` (theirs only) merges
+/// cleanly, `colour` (both) keeps ours with one conflict record, the same as the merge driver's; the file opens
 /// editable and is rewritten canonically.
 #[test]
 fn markers_on_a_wire_merge_to_one_conflict_record_and_the_clean_parts() {
@@ -1265,7 +1265,7 @@ fn a_conflict_record_without_its_target_is_kept_verbatim_and_reported() {
     assert!(!loaded.records.iter().any(|r| matches!(r, Record::Conflict(_))));
 }
 
-/// CR-2: without a base the hunk takes D18's no-base rule: ours kept, one conflict holding each member that differs
+/// Without a base the hunk takes the no-base rule: ours kept, one conflict holding each member that differs
 /// whole, base `{}`.
 #[test]
 fn markers_without_a_base_keep_ours_with_a_conflict_of_every_differing_member() {
@@ -1289,7 +1289,7 @@ fn markers_without_a_base_keep_ours_with_a_conflict_of_every_differing_member() 
     );
 }
 
-/// CR-2: a side line that does not parse (torn) leaves the markers as they are: EW-CORE-006 on each marker line, the
+/// A side line that does not parse (torn) leaves the markers as they are: EW-CORE-006 on each marker line, the
 /// lines read as before (the torn one EW-CORE-005, the wire of both sides EW-CORE-009), read-only.
 #[test]
 fn a_torn_line_in_a_hunk_keeps_the_file_ew_core_006_and_read_only() {
@@ -1406,7 +1406,7 @@ fn bond(n: u8, members: Value) -> String {
 
 #[test]
 fn a_base_that_does_not_read_follows_the_no_base_rule() {
-    // A committed marker line makes the base unreadable (doc 05 §11.4). D18's no-base rule holds, never an empty base:
+    // A committed marker line makes the base unreadable (doc 05 §11.4). the no-base rule holds, never an empty base:
     // a record equal on both sides is kept; one that differs keeps ours with a conflict of
     // every member that differs; one on one side only is kept with a conflict whose other side is deleted.
     let base = "<<<<<<< ours\n";
@@ -1548,7 +1548,7 @@ fn a_record_unchanged_on_its_side_is_written_as_that_side_s_own_line() {
 
 #[test]
 fn a_merge_that_would_pass_a_reader_limit_keeps_ours_as_it_is() {
-    // D14's loadable file over its "nothing lost": the result is ours as it is, with 1 conflict.
+    // The loadable file over its "nothing lost": the result is ours as it is, with 1 conflict.
     let merge = |path: &str, sides: [&str; 3], limits: &Limits| {
         let sides = sides.map(str::as_bytes);
         let (bytes, conflicts) = merge_bytes(path, sides, limits);

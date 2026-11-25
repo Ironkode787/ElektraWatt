@@ -19,7 +19,7 @@
 //! the line ([`MigrationError`]). A record whose `$v` is below its kind's with no step, and a format with no step
 //! towards the reader's, are errors too: the open is refused, never a line quarantined.
 //!
-//! [`steward_problems`] is the steward's check of D12: a released list, the format a
+//! [`steward_problems`] is the steward's check: a released list, the format a
 //! build writes, its chain and its fixture corpus.
 
 use std::fmt;
