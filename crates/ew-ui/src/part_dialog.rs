@@ -923,8 +923,8 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
     if d.plc.role.trim().is_empty() {
         return false;
     }
-    // While the section is shown nothing in it changes height because of what is typed into one of its fields
-    // (a persona run typed at fields that had moved): the hints and messages that come and go while it is
+    // While the section is shown nothing in it changes height because of what is typed into one of its fields:
+    // the hints and messages that come and go while it is
     // typed stand in lines kept from the start, each one line high, a longer text cut with the whole of it on hover.
     // Under Channels its own and its kind's messages, else the bits the channels occupy; after the pin pattern's hint
     // the messages of data type, name and pattern, else the preview of the pins; under Supply M pin the supply's

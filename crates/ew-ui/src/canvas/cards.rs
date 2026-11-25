@@ -172,7 +172,7 @@ impl CanvasHost {
             });
     }
 
-    /// The row under the last row of a list that runs on (`ShellModel::list_foot`: a persona read a parts list's
+    /// The row under the last row of a list that runs on (`ShellModel::list_foot`: a parts list's
     /// first page as the whole list): one row of the table as wide as it, its outline in `color.accent` on
     /// `color.accent.subtle`, "The list continues on page 901.1 ›" in the table's text size, a click on it goes there.
     /// The window's own (the printed page has its title block's Next); on the focused canvas.

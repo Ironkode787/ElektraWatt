@@ -321,7 +321,7 @@ pub(crate) fn ip_fields(
     }
     // Every change reaches the tool at once, so the name is the next point's however the field is left: by Enter, or
     // by a click on the canvas, whose press the window dispatches before this card's events and before the field
-    // reports the lost focus (the play-test). Erasing the field sends the empty text, which cancels the
+    // reports the lost focus. Erasing the field sends the empty text, which cancels the
     // typed name. Out of the focus the field follows the tool's typed name.
     if edit.changed() {
         events.push(crate::app::Event::Action(

@@ -1459,7 +1459,7 @@ fn the_hint_says_what_a_click_will_do_while_a_tube_is_drawn() {
     d.shell_mut().shutdown();
 }
 
-/// The prelude's project (the wizard's company standard, then a new project, as the play-test made it) with the fluid
+/// The prelude's project (the wizard's company standard, then a new project) with the fluid
 /// page 201 shown, fitted, and the Fluid panel in the left column.
 fn prelude_fluid_page(tmp: &Tmp) -> Driver {
     let mut d = crate::pages_ip_tool_and_title_block::prelude(tmp, ew_ui::visual::Geometry::DEFAULT);

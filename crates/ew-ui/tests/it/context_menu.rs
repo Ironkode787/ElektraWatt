@@ -149,8 +149,7 @@ fn a_terminals_menu_adds_a_terminal_and_edits_its_strip() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// A terminal's menu is as wide as its widest entry: no label wraps onto a second line, and no entry stretches it
-/// (a persona run saw it about 550 px wide, a wide empty band before each shortcut; the sample's wrapped its labels).
+/// A terminal's menu is as wide as its widest entry: no label wraps onto a second line, and no entry stretches it.
 #[test]
 fn a_terminals_menu_is_as_wide_as_its_widest_entry() {
     let tmp = Tmp::new();

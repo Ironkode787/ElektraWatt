@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! An Arrange and route card's rows scroll in the Preview pane under the mouse wheel (a persona run saw 8 of 18 symbol
-//! rows, the last cut at the pane's edge, and the wheel moved nothing). On a copy of the sample, its page 103.
+//! An Arrange and route card's rows scroll in the Preview pane under the mouse wheel.
+//! On a copy of the sample, its page 103.
 
 use crate::support;
 

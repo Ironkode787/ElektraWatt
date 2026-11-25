@@ -755,8 +755,7 @@ mod tests {
 
     /// Arrange and route's toast for a strip that stays as it stands, the usual thing in the way, reads whole in a
     /// 1920-point window in English and in Dutch: a result's text split as `Notification::lines` splits it, its title
-    /// within the title's rows and its line, with what to look at, within the line's rows (a persona run read it cut
-    /// before "look at").
+    /// within the title's rows and its line, with what to look at, within the line's rows.
     #[test]
     fn the_toast_of_a_strip_that_stays_reads_whole() {
         let ctx = egui::Context::default();

@@ -113,7 +113,7 @@ fn the_wizard_names_its_wire_step_and_shows_no_empty_example() {
     }
 }
 
-/// New project as a first-timer met it: Browse… that comes back with nothing leaves what was typed; Create's reason
+/// New project: Browse… that comes back with nothing leaves what was typed; Create's reason
 /// stands over it for each thing missing or wrong; a folder typed without its whole path is read from the projects
 /// folder; and the dialog's rows stay where they were drawn while it is filled in.
 #[test]

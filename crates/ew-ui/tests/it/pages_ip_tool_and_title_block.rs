@@ -43,7 +43,7 @@ fn tap(d: &mut Driver, at: (i64, i64)) {
     d.input(&Input::Wait { ms: 100 });
 }
 
-/// A driver of a window of `geometry` over a project made as the play-test's prelude makes it: the wizard's company
+/// A driver of a window of `geometry` over a project made as the prelude makes it: the wizard's company
 /// standard, then a new project.
 pub(crate) fn prelude(tmp: &Tmp, geometry: Geometry) -> Driver {
     let mut d = Driver::with_geometry(tmp.config(), None, tmp.0.clone(), geometry).unwrap();
@@ -65,7 +65,7 @@ pub(crate) fn prelude(tmp: &Tmp, geometry: Geometry) -> Driver {
     d
 }
 
-/// The prelude's project on a new schematic page 101, as the play-test began.
+/// The prelude's project on a new schematic page 101.
 fn on_page_101(tmp: &Tmp) -> Driver {
     let mut d = prelude(tmp, Geometry::DEFAULT);
     let page = json!({"folio": "101", "type": "multi_line", "title": "Control supply"});
@@ -148,7 +148,7 @@ fn shown(d: &Driver, text: &str) -> usize {
     d.texts().iter().filter(|t| *t == text).count()
 }
 
-/// The play-test's way to a panel layout, in the prelude's new project, by the pointer: New page… lists every type
+/// The way to a panel layout, in the prelude's new project, by the pointer: New page… lists every type
 /// without a scroll, so Panel layout is clicked where the list shows it (it lay below the fold, t0055); Project ▸
 /// Enclosure… is enabled without a location and its Create with the proposals makes the location, the enclosure and
 /// shows its plate (it was greyed until a location existed, t0060); its toast is whole (t0062); Draw ▸ Rail
@@ -223,7 +223,7 @@ fn a_panel_layout_in_a_new_project_by_the_pointer() {
     d.shell_mut().shutdown();
 }
 
-/// A new strip's toast, the longest a first-timer met (t0011, cut after "Draw ▸ …"), stands whole at 1920 × 1080
+/// A new strip's toast, the longest one (cut after "Draw ▸ …"), stands whole at 1920 × 1080
 /// floor: under the pointer no tooltip repeats it.
 #[test]
 fn a_new_strips_toast_is_whole_at_the_floor() {

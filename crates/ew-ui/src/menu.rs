@@ -86,8 +86,8 @@ pub(crate) fn row_item(ui: &mut Ui, item: &ActionItem, events: &mut Vec<Event>) 
 }
 
 /// Sets a right-click menu of `items` as wide as its widest entry: the icon column, the label, a gap and the
-/// shortcut, so that no label wraps and no entry or reason line stretches the menu (a persona run saw a terminal's
-/// menu about 550 px wide, a wide empty band before each shortcut; another wrapped its labels in 190 px). A greyed
+/// shortcut, so that no label wraps and no entry or reason line stretches the menu.
+/// A greyed
 /// entry's reason wraps within that width.
 pub(crate) fn fit_width<'a>(ui: &mut Ui, items: impl IntoIterator<Item = &'a ActionItem>) {
     let t = crate::theme::current(ui.ctx());

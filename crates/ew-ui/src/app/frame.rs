@@ -9,7 +9,7 @@ use super::*;
 impl App {
     /// The banner of doc 16a §6.11 as an overlay: along the top edge of the canvas below the
     /// page tabs when a page view is shown, else under the command bar, full width of that area. Showing or dismissing
-    /// it never moves the canvas or a panel (the play-test's clicks missed when it pushed the window down). Returns its
+    /// it never moves the canvas or a panel. Returns its
     /// rectangle.
     fn banner_overlay(
         &self,

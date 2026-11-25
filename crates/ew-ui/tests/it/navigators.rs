@@ -491,7 +491,7 @@ fn double_clicking_the_rows_of_100_and_101_shows_each_folio() {
             "a double click on {folio} (one frame: {one_frame})"
         );
     }
-    // The play-test's case: no pause after the double click on 102: egui counts a triple click, so the double click
+    // The case: no pause after the double click on 102: egui counts a triple click, so the double click
     // never reaches 103; its single click opens 103 all the same.
     double_click(&mut h, "102", false, 0.5);
     double_click(&mut h, "103", false, 0.0);

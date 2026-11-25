@@ -773,8 +773,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             .auto_shrink([false, false])
             .show(ui, |ui| {
                 // An Arrange and route card's figures and rows scroll with the lists (wheel and bar), so that the
-                // pane keeps its height and leaves the page in view (a persona run saw 8 of 18 rows, the last cut at
-                // the pane's edge, and no wheel moved them).
+                // pane keeps its height and leaves the page in view.
                 if let CardOrigin::Arrange(a) = &card.origin {
                     inset(ui, &mut |ui| arrange_block(ui, a, events));
                     ui.add_space(t.space_2);

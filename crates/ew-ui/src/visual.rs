@@ -283,7 +283,7 @@ impl Platform for VisualPlatform {
         }
     }
 
-    /// A guide page is named by its file under the run's `book/` folder with its section (`#route-by-hand`): the persona reads
+    /// A guide page is named by its file under the run's `book/` folder with its section (`#route-by-hand`): the run's reader reads
     /// it there, at the section F1 chose (without it every F1 read as the whole page).
     fn guide_file(&self, target: &str) -> Option<String> {
         Some(format!("book/{target}"))

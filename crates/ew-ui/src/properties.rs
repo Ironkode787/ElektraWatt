@@ -1288,7 +1288,7 @@ impl PropertiesPane {
             colour.color32(),
         );
         // The tooltip: the chip's whole text over the chip, else a long value's whole text, a read-only value's reason
-        // under it (a persona run read a cut Frames summary whose tooltip held the reason alone).
+        // under it.
         let long = (cut || (prose.is_none() && value.chars().count() > MAX_SHOWN)).then(|| value.to_owned());
         let tip = if on_chip {
             Some(p.chip.to_owned())

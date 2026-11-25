@@ -191,7 +191,7 @@ impl App {
             if opened {
                 continue;
             }
-            // An offscreen visual run names the page's file, so that a persona can read the page it was sent to.
+            // An offscreen visual run names the page's file, so that a reader can read the page it was sent to.
             match self.platform.guide_file(&request.target) {
                 Some(file) => self.shell.note_guide_page(&file),
                 None => self.shell.show_banner(strings::text(key!("doc-missing"))),

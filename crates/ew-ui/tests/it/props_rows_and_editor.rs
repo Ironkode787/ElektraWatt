@@ -300,8 +300,7 @@ fn typing_over_a_pre_filled_field_replaces_it() {
     assert_eq!(folio, "999");
 }
 
-/// A read-only value cut in its cell shows whole in its tooltip, its reason under it (a persona run read the
-/// project's Frames summary cut after "Title page: Frame QE…", and its tooltip held the reason alone).
+/// A read-only value cut in its cell shows whole in its tooltip, its reason under it.
 #[test]
 fn a_cut_read_only_value_shows_whole_in_its_tooltip() {
     let tmp = Tmp::new();

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A new project, by the window's own path: what a first-timer and an EPLAN designer could not
-//! find or do when they built a PLC and a fieldbus from nothing.
+//! A new project, by the window's own path: what could not be
+//! found or done when building a PLC and a fieldbus from nothing.
 
 use crate::support::Tmp;
 
