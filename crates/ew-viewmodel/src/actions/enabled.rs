@@ -851,11 +851,7 @@ pub(super) fn two_ips(m: &ShellModel) -> Result<(), Text> {
 /// An editable page with exactly one black box selected (Edit ▸ Add connection point, the grips).
 pub(super) fn one_box(m: &ShellModel) -> Result<(), Text> {
     editable_page(m)?;
-    if m.one_black_box_selected() {
-        Ok(())
-    } else {
-        Err(key!("reason-one-black-box").into())
-    }
+    m.selected_box().map(|_| ()).map_err(Into::into)
 }
 
 /// An editable page with one box of a PLC card in the older form selected (Draw the card in one row).

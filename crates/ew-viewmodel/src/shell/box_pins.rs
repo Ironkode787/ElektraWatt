@@ -49,11 +49,9 @@ impl ShellModel {
     /// pins are its own, a new pin on the free grid point of its outline nearest the point, its name then asked in
     /// place; without a point the pin follows the pointer along the edge until a click puts it; on a box of a part, its device box opens, where the part's pins are edited.
     pub(crate) fn act_box_add_cp(&mut self, p: &Map<String, Value>) -> Outcome {
-        let Some(rep) = self.selected_box() else {
-            return Outcome::refused(key!("reason-one-black-box"));
-        };
-        let Some(b) = &rep.black_box else {
-            return Outcome::refused(key!("reason-one-black-box"));
+        let (rep, b) = match self.selected_box() {
+            Ok(one) => one,
+            Err(reason) => return Outcome::refused(reason),
         };
         if !b.own_pins {
             let out = self.act_part_box(&Map::new());
@@ -97,12 +95,13 @@ impl ShellModel {
         else {
             return super::failed(key!("error-missing-param"), &["idx"]);
         };
-        let Some(rep) = self.selected_box() else {
-            return Outcome::refused(key!("reason-one-black-box"));
+        let (rep, b) = match self.selected_box() {
+            Ok(one) => one,
+            Err(reason) => return Outcome::refused(reason),
         };
-        let Some(b) = rep.black_box.as_ref().filter(|b| b.own_pins) else {
+        if !b.own_pins {
             return Outcome::refused(key!("reason-box-pin-of-part"));
-        };
+        }
         if self.pin_wired(&rep, idx) {
             return Outcome::refused(key!("reason-box-pin-wired"));
         }
@@ -124,8 +123,7 @@ impl ShellModel {
     /// The pin of the selected box whose pins are its own at the pointer (a double click's): its index, point,
     /// direction and name.
     fn pin_under_pointer(&self) -> Option<(TableRep, BoxCpAt, String)> {
-        let rep = self.selected_box()?;
-        let b = rep.black_box.as_ref().filter(|b| b.own_pins)?;
+        let (rep, b) = self.selected_box().ok().filter(|(_, b)| b.own_pins)?;
         let c = self.canvas()?;
         let p = c.page().snapper.sheet_to_page(c.pointer()?);
         let grid = PageGridMap::new(c.page().tables.grid);

@@ -827,14 +827,12 @@ impl ShellModel {
         out
     }
 
-    /// The one selected black box and the grid cursor's page point.
-    fn box_and_cursor(&self) -> Result<(TableRep, (i64, i64)), Outcome> {
+    /// The one selected black box, its box and the grid cursor's page point.
+    fn box_and_cursor(&self) -> Result<(TableRep, ew_api::output::TableBox, (i64, i64)), Outcome> {
         let c = self.canvas().ok_or(Outcome::refused(key!("reason-no-page")))?;
-        let rep = self
-            .selected_box()
-            .ok_or(Outcome::refused(key!("reason-one-black-box")))?;
+        let (rep, b) = self.selected_box().map_err(Outcome::refused)?;
         let cursor = c.cursor().ok_or(Outcome::refused(key!("reason-no-cursor")))?;
-        Ok((rep, c.page().snapper.snap_grid(cursor).page_nm))
+        Ok((rep, b, c.page().snapper.snap_grid(cursor).page_nm))
     }
 
     /// `box.grip {grip}`: the keyboard form of a grip drag: grip `grip` of the one selected black box goes to the grid
@@ -847,10 +845,7 @@ impl ShellModel {
         else {
             return failed(key!("error-missing-param"), &["grip"]);
         };
-        let (rep, to) = or_return!(self.box_and_cursor());
-        let Some(b) = &rep.black_box else {
-            return Outcome::refused(key!("reason-one-black-box"));
-        };
+        let (rep, b, to) = or_return!(self.box_and_cursor());
         match reshape_by_grip(&b.outline, grip, to) {
             Ok(outline) => {
                 if outline == b.outline {
@@ -872,11 +867,9 @@ impl ShellModel {
         if self.canvas().is_none() {
             return Outcome::refused(key!("reason-no-page"));
         }
-        let Some(rep) = self.selected_box() else {
-            return Outcome::refused(key!("reason-one-black-box"));
-        };
-        let Some(b) = &rep.black_box else {
-            return Outcome::refused(key!("reason-one-black-box"));
+        let (rep, b) = match self.selected_box() {
+            Ok(one) => one,
+            Err(reason) => return Outcome::refused(reason),
         };
         let mut cmd = reshape_command(&rep, &b.outline, None);
         cmd.params["centre"] = Value::Bool(true);

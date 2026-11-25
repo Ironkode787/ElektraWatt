@@ -6,10 +6,12 @@
 
 use std::collections::BTreeSet;
 
-use ew_api::output::{PageTables, TableRep, Uuid};
+use ew_api::output::{PageTables, TableBox, TableRep, Uuid};
 use ew_dl::EntityRef;
 
 use super::ShellModel;
+use crate::key;
+use crate::strings::Key;
 use crate::tools::{EntityKind, selection_kinds};
 
 /// The interruption points of a page that a selection holds: their table rows, in selection order.
@@ -28,22 +30,20 @@ impl ShellModel {
             .map_or(0, |c| selected_ips(self, &c.page().tables).len())
     }
 
-    /// Exactly one black box of the focused page is selected (`box.grip`, `box.add_cp`).
-    pub fn one_black_box_selected(&self) -> bool {
-        self.selected_box().is_some()
-    }
-
-    /// The one selected black box of the page shown.
-    pub(super) fn selected_box(&self) -> Option<TableRep> {
-        let t = &self.canvas()?.page().tables;
-        match self.selection().items.as_slice() {
-            [one] => t
-                .reps
-                .iter()
-                .find(|r| r.id == one.0 && r.black_box.is_some())
-                .cloned(),
+    /// The one selected black box of the page shown, its representation and its box (`box.grip`, `box.add_cp`, their
+    /// gate).
+    ///
+    /// # Errors
+    ///
+    /// `reason-one-black-box` when the selection is not one black box of the page shown.
+    pub(crate) fn selected_box(&self) -> Result<(TableRep, TableBox), Key<'static>> {
+        let one = match (self.canvas(), self.selection().items.as_slice()) {
+            (Some(c), [one]) => c.page().tables.reps.iter().find(|r| r.id == one.0).cloned(),
             _ => None,
-        }
+        };
+        one.and_then(|r| Some((r.black_box.clone()?, r)))
+            .map(|(b, r)| (r, b))
+            .ok_or(key!("reason-one-black-box"))
     }
 
     /// Exactly one junction is selected on the focused page (`junction.open`'s condition).
