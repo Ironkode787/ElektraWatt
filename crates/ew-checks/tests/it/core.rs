@@ -47,7 +47,11 @@ fn core033_cases() {
                     "case {c}: {}",
                     f[0].message()
                 );
-                assert!(f[0].subject_english().contains("W1"), "case {c}: {}", f[0].subject_english());
+                assert!(
+                    f[0].subject_english().contains("W1"),
+                    "case {c}: {}",
+                    f[0].subject_english()
+                );
             }),
             Case::silent("a cable with a part length", cable(Some("from_part")).build()),
             Case::silent("a model without cables", no_cables.build()),
@@ -157,7 +161,11 @@ fn core051_cases() {
                         "case {c}"
                     );
                     assert_eq!(f[0].discriminator, "unpaired", "case {c}");
-                    assert!(f[0].subject_english().contains("LONELY"), "case {c}: {}", f[0].subject_english());
+                    assert!(
+                        f[0].subject_english().contains("LONELY"),
+                        "case {c}: {}",
+                        f[0].subject_english()
+                    );
                     // Where it stands and what it lacks: a source its targets.
                     assert!(
                         f[0].message()
@@ -532,7 +540,8 @@ fn core053_the_fingerprint_survives_a_renumber_and_a_move() {
     let moved = findings_of(&main_and_aux_at("origin", true, 14_000_000, None), "EW-CORE-053");
     assert_eq!((base.len(), renumbered.len(), moved.len()), (1, 1, 1));
     assert_ne!(
-        renumbered[0].subject_english(), base[0].subject_english(),
+        renumbered[0].subject_english(),
+        base[0].subject_english(),
         "the printed item follows the folio"
     );
     assert_eq!(renumbered[0].fingerprint, base[0].fingerprint);

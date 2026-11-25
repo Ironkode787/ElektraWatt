@@ -272,4 +272,3 @@ fn a_caption_prints_its_external_reference() {
         "External Connection (+J-E-206 / JE-N1000-03)"
     );
 }
-

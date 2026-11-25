@@ -45,7 +45,11 @@ fn rds004_cases() {
                     "case {c}: {}",
                     f[0].message()
                 );
-                assert!(f[0].subject_english().contains("K1"), "case {c}: {}", f[0].subject_english());
+                assert!(
+                    f[0].subject_english().contains("K1"),
+                    "case {c}: {}",
+                    f[0].subject_english()
+                );
             }),
             Case::silent("distinct designations", distinct.build()),
             Case::silent("unnumbered designations are skipped", unnumbered.build()),

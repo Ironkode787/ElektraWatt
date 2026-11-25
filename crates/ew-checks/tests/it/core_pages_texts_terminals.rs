@@ -176,7 +176,10 @@ fn core026_reports_a_cable_and_a_station_their_overviews_leave_out() {
     got.sort_unstable();
     assert_eq!(
         got,
-        [("-?A2".to_owned(), "plc_overview"), ("-W2".to_owned(), "cable_overview_diagrams")],
+        [
+            ("-?A2".to_owned(), "plc_overview"),
+            ("-W2".to_owned(), "cable_overview_diagrams")
+        ],
         "{f:#?}"
     );
 }

@@ -39,7 +39,10 @@ fn a_newer_potential_type_prints_other() {
         ew_derive::text::potential_type(&PotentialType::Undefined).to_string(),
         "undefined"
     );
-    assert_eq!(ew_derive::text::potential_type(&PotentialType::LPlus).to_string(), "L+");
+    assert_eq!(
+        ew_derive::text::potential_type(&PotentialType::LPlus).to_string(),
+        "L+"
+    );
 }
 
 /// A cross-section with its unit is the lists' form, where Properties and the checks' messages print one.
@@ -83,7 +86,10 @@ fn a_record_kind_is_worded_by_one_table() {
     assert_eq!(words(Kind::Comment), "a comment");
     assert_eq!(words(Kind::NetDef), "a net definition");
     let [a, one, many] = ew_derive::text::record_words_named("frobnicator");
-    assert_eq!([a, one, many].map(|t| t.to_string()), ["an item", "item", "items"]);
+    assert_eq!(
+        [a, one, many].map(|t| t.to_string()),
+        ["an item", "item", "items"]
+    );
 }
 
 /// A kind has three forms in the one table: with its article for a sentence, its name, the bare noun, for a cell or a
