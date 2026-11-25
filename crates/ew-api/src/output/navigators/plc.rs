@@ -91,11 +91,6 @@ pub(super) const PLC_COLUMNS: [(&str, &str); 18] = [
     ("comment", key!("column-comment")),
 ];
 
-/// The word of a channel kind as the PLC overview prints it.
-fn channel_kind_word(k: &ew_schema::ChannelKind) -> String {
-    ew_derive::channel_kind_word(k)
-}
-
 /// A station's role as the badge of its row (doc 10 §6: the role word, not its identifier).
 fn station_role_word(r: &ew_schema::StationRole) -> &'static str {
     use ew_schema::StationRole;
@@ -372,7 +367,7 @@ pub(super) fn plc_table(q: &Q, b: &mut Builder) {
                     r.text.designation.clone().unwrap_or_default(),
                     module_tag.clone(),
                     r.number.to_string(),
-                    channel_kind_word(&r.kind).to_owned(),
+                    ew_derive::channel_kind_word(&r.kind),
                     r.data_type.clone().unwrap_or_default(),
                     r.signal_range.clone().unwrap_or_default(),
                     safety.clone().unwrap_or_default(),
