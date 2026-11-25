@@ -1214,7 +1214,7 @@ pub struct IpAtEnd {
 /// grid, a starred point that is no source or is external), as `connection.draw` (a missing endpoint record,
 /// off-grid geometry, a route that does not meet its CPs) and an `a` end that no representation of `page` draws; an IP
 /// symbol whose FnDef has not exactly one CP, or that does not draw it; a fluid line, and another kind from a fluid
-/// end, in words (T1, T2).
+/// end, in words.
 /// `copies`: library documents (`lib/` JSON form) embedded first, in the same transaction, as `ip.place`
 /// embeds them, so ending a wire in a starter IP symbol is one undo step. Interactive. Outcome: the connection.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -1277,8 +1277,8 @@ impl Command for DrawToIp {
             }
         };
         self.a.check(tx)?;
-        // An interruption point's CP is no fluid port (T1), and its start is judged as `connection.draw`
-        // judges an end (T2), in words before EW-INV-024 would judge it.
+        // An interruption point's CP is no fluid port, and its start is judged as `connection.draw`
+        // judges an end, in words before EW-INV-024 would judge it.
         let kind = self.kind.clone().unwrap_or_default();
         if matches!(kind, ConnectionKind::Fluid(_)) {
             return tx.reject(text!("refusal-draw-to-ip-fluid"));

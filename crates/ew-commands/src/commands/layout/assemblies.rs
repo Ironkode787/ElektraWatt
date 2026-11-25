@@ -218,7 +218,7 @@ fn note_choice_reads(tx: &TxBuilder<'_>, placements: bool) {
     }
 }
 
-/// Whether the layout expects a device (`mountable(dev)`, D8); a structure cycle counts as not.
+/// Whether the layout expects a device (`mountable(dev)`); a structure cycle counts as not.
 fn is_mountable(q: &Q, device: Id<Device>) -> bool {
     q.try_get::<Mountable>(device).is_ok_and(|m| m.is_mountable())
 }
@@ -238,7 +238,7 @@ fn unplaced_members(q: &Q, root: Id<Device>) -> Vec<Id<Device>> {
 /// rail in their member order ([`member_order`], the order EW-LAY-016 checks), in one step.
 ///
 /// The assembly of `device` is the device itself when it has children, else its parent's. The members placed are those
-/// of [`member_order`] that are mountable (`mountable(dev)`, D8) and have no placement anywhere; each records its
+/// of [`member_order`] that are mountable (`mountable(dev)`) and have no placement anywhere; each records its
 /// primary part, turned 0°, and must fit the rail's profile (an unfit member refuses the whole command with
 /// `layout.place`'s text). When no member is on the rail yet, the members go as one block at their minimum gaps
 /// whose left edge is `s`, resolved in `mode` (`free` by default, or `push`) as one item. When some members are on the

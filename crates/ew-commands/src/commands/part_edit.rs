@@ -246,7 +246,7 @@ where
 }
 
 /// Whether the command re-points a part-copy link of the link table: `true` for the kinds [`repoint_kind`] is
-/// called with in `run`. A link from another kind fails `part_copy_links_are_all_repointed` (R7).
+/// called with in `run`. A link from another kind fails `part_copy_links_are_all_repointed`.
 #[cfg(test)]
 fn repointed_link(link: &LinkDecl) -> bool {
     matches!(

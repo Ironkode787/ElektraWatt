@@ -217,10 +217,10 @@ fn reimport_entry(code: &str, row: &ReimportRow, file: &str) -> ew_schema::RunEn
 /// - **changed in the source**: the source hash differs, current is the committed one: applied;
 /// - **kept with this project's changes**: the source hash is the base's, current differs, or the record was deleted
 ///   here (it stays deleted);
-/// - **conflict**: both differ: kept, with an EW-IMP-011 entry (T10);
+/// - **conflict**: both differ: kept, with an EW-IMP-011 entry;
 /// - **added**: not in the base: applied; a record of that ID already in `model` is kept as unchanged when equal,
 ///   else as a conflict;
-/// - **removed**: in the base and in `model`, not in the batch: kept, with an EW-IMP-010 entry (T9).
+/// - **removed**: in the base and in `model`, not in the batch: kept, with an EW-IMP-010 entry.
 ///
 /// The project record and the lineage of the batch are not classed. `file` names the source in the entries.
 ///

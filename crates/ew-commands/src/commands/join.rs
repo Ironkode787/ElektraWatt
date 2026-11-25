@@ -48,7 +48,7 @@ fn has_free_bus_port(tx: &TxBuilder<'_>, device: &Device) -> bool {
 
 /// Whether a device takes a function of FnDef `def` as a further function of its own whatever its family: the
 /// device drawn with a second symbol, such as a supply drawn once for its input and once for its outputs, or an element
-/// brought in from another program drawn for a device that has a part. A contact joins by D2's family rule instead and a
+/// brought in from another program drawn for a device that has a part. A contact joins by the family rule instead and a
 /// bus port by its free port; a terminal (it goes into a strip), an interruption point and a graphic join no device.
 pub fn joins_any_device(def: &FnDef) -> bool {
     !matches!(
@@ -75,11 +75,11 @@ pub fn joins_any_device(def: &FnDef) -> bool {
 ///   and the representation's pin map follows.
 /// - **Else a new auxiliary function.** The representation's function moves to `device` as an auxiliary function
 ///   (role aux, no template entry); its record, its CP overrides and everything attached to it stay. A contact needs a
-///   device whose family takes auxiliary functions (D2, below); a function of another kind that a device takes as its
-///   own whatever its family ([`joins_any_device`]) joins any device but a terminal or a strip.
+///   device whose family takes auxiliary functions (the family rule, below); a function of another kind that a device
+///   takes as its own whatever its family ([`joins_any_device`]) joins any device but a terminal or a strip.
 ///
 /// The source device has no other representation and its other functions (of its part) are neither drawn nor wired
-/// (D3, widened so that a coil placed from a valve part joins another valve); it is removed in the same
+/// (so that a coil placed from a valve part joins another valve); it is removed in the same
 /// transaction with its part use and those functions, and with the old function in the slot case. What the removed records carry
 /// besides that (the device's function text, process tag, structure, frozen tag and its other non-default members;
 /// in the slot case the old function's CP overrides and its other own members) goes with them: the join goes ahead
@@ -88,7 +88,7 @@ pub fn joins_any_device(def: &FnDef) -> bool {
 /// representation that draws not exactly one normal function of a device, or whose device is a strip,
 /// has another function that is drawn or wired, or another representation, or takes part in a device link, which the join would lose
 /// (`/rep`; remove the link first); the representation's own device (`/device`); a
-/// device that cannot take the FnDef by D2's rule (`/device`): it has no unplaced function of the FnDef, and the FnDef
+/// device that cannot take the FnDef by its family (`/device`): it has no unplaced function of the FnDef, and the FnDef
 /// is a contact (NO, NC, change-over) and the device's family takes no auxiliary functions (its main function is no
 /// coil and none of its parts' templates names the FnDef; terminals and strips never do), or the FnDef joins no device
 /// ([`joins_any_device`]: a terminal, an interruption point, a graphic), or the device is a terminal or a strip, unless the FnDef is a bus
@@ -415,11 +415,11 @@ impl JoinDevice {
         Ok(others)
     }
 
-    /// D2, where the target has no slot of the FnDef: a contact joins a device whose family takes auxiliary functions,
-    /// a bus port a device whose bus part has a free port, and a function of another kind any device but a
-    /// terminal or a strip.
+    /// The family rule: where the target has no slot of the FnDef, a contact joins a device whose family takes
+    /// auxiliary functions, a bus port a device whose bus part has a free port, and a function of another kind any
+    /// device but a terminal or a strip.
     fn check_takes_fndef(&self, tx: &TxBuilder<'_>, f: &Function, target: &Device) -> Result<(), CmdError> {
-        // D2: a contact joins a device whose family takes auxiliary functions.
+        // A contact joins a device whose family takes auxiliary functions.
         let contact = tx.get::<LibCopy<FnDef>>(f.def).is_some_and(|d| {
             matches!(
                 d.item.contact_kind,

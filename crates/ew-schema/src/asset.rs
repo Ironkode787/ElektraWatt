@@ -7,7 +7,7 @@
 //!
 //! - [`AssetFormat`]: the encodings a project may hold (SVG, PNG, JPEG; PDF and DXF underlay sources; TTF and OTF
 //!   typefaces) and their file extensions.
-//! - [`AssetRef`]: how a record names an asset, `{sha256, format, size}` (decision log ID-61): readers such as the
+//! - [`AssetRef`]: how a record names an asset, `{sha256, format, size}`, so that readers such as the
 //!   forms layer trust it and never sniff the bytes.
 //! - [`sniff`]: what the asset store does once, when bytes are imported: it reads the magic bytes and the
 //!   intrinsic size (PNG `IHDR`, JPEG `SOF`, SVG `viewBox` or `width`/`height`) and applies the size limits. It
@@ -20,7 +20,7 @@
 //! - [`base64_encode`] and [`base64_decode`]: the standard alphabet with padding (RFC 4648 §4), the encoding of
 //!   asset bytes inside JSON (command parameters, journal lines).
 //! - [`company_logo`]: the logo of the provisional company member `Project.extra["ew.company"]` (doc 09 §2.6,
-//!   decision log ID-40), in either of its two forms.
+//!   until `Project` types it), in either of its two forms.
 //!
 //! Hashing is the caller's (the format layer and the command layer own SHA-256).
 
@@ -50,8 +50,7 @@ pub const MAX_SVG_NODES: usize = 100_000;
 /// parameter and a journal line, so it stays well below the command layer's 1 MiB limit of one parameter string.
 pub const MAX_LOGO_BYTES: usize = 512 * 1024;
 
-/// The project-row member that holds the company data of a basic project until `Project` types it (decision log
-/// ID-40).
+/// The project-row member that holds the company data of a basic project until `Project` types it.
 pub const COMPANY_MEMBER: &str = "ew.company";
 
 /// The encoding of an asset.
@@ -214,7 +213,7 @@ impl fmt::Display for AssetError {
 
 impl std::error::Error for AssetError {}
 
-/// The format and intrinsic size of asset bytes, after the size limits (doc 05 §13.3, decision log ID-61). The pixel
+/// The format and intrinsic size of asset bytes, after the size limits (doc 05 §13.3). The pixel
 /// limit of a raster image is [`pixel_limit`]'s, which only the gates that bring an image in apply.
 ///
 /// # Errors

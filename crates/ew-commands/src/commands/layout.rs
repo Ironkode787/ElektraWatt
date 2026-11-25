@@ -181,12 +181,12 @@ fn mech_of(tx: &TxBuilder<'_>, part: Id<Part>) -> Option<MechData> {
     part_copy(tx, part).and_then(|c| c.item.mech.clone())
 }
 
-/// Whether a device is a strip with terminals (D8 (3)): it is placed as one placement without a part.
+/// Whether a device is a strip with terminals: it is placed as one placement without a part.
 fn is_strip_with_terminals(tx: &TxBuilder<'_>, device: &Device) -> bool {
     device.aspects.strip.is_some() && !tx.terminals_of_strip(device.id).is_empty()
 }
 
-/// The part use a placement realises when it names none (D8 (5) and (7)): the first part use whose part mounts
+/// The part use a placement realises when it names none: the first part use whose part mounts
 /// (a mount kind other than `none` and `on_parent`), else the first whose part has no mount kind (an unknown
 /// footprint). `None` for a strip with terminals, a device without parts and one whose parts all mount on their
 /// parent or not at all.
@@ -1337,7 +1337,7 @@ fn move_neighbours(tx: &mut TxBuilder<'_>, neighbours: Vec<(Id<Placement>, Pose3
 ///
 /// The placement always records the part use it realises: the given `part` (a copy the device uses; its use's
 /// reference is copied, variant included), else the device's primary mountable part at this moment (the first part
-/// use whose part mounts, else the first without a mount kind; D8); a strip with terminals and a device without a part
+/// use whose part mounts, else the first without a mount kind); a strip with terminals and a device without a part
 /// record none. `function` places one function of the device separately.
 ///
 /// Rejected: a device, carrier or surface that does not exist (`/device`, `/carrier`); a function that does not exist
