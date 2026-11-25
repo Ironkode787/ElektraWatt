@@ -44,7 +44,7 @@ const REFERENCE: &[(&str, &[&str])] = &[
     // actions.txt: the persona harness's action list
     ACTIONS_TEST,
     // cli.json and results/index.json (each result with its subcommand)
-    ("ew", &["--bin", "ew", "catalogue::tests::the_cli_reference"]),
+    ("ew", &["--lib", "catalogue::tests::the_cli_reference"]),
     // results/: one schema per `--json` result
     ("ew", &["--test", "it", "conventions::the_result_schemas"]),
     // api_v1.json
@@ -277,7 +277,7 @@ fn build_reference_tests(root: &Path) -> Result<()> {
         command.args(["-p", package]);
     }
     command
-        .args(["--test", "it", "--bin", "ew"])
+        .args(["--test", "it", "--lib"])
         .status()
         .context("building the reference tests")?;
     Ok(())
