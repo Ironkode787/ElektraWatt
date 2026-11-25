@@ -34,22 +34,24 @@ fn kind_text(kind: &str, words: bool) -> Option<Text> {
 /// The name of the list kind `kind` (its word) in the shipped language `tag` (`nl-NL`; en-GB where it has none), as
 /// the window offers it; `None` for a kind without a name.
 pub fn kind_name(kind: &str, tag: &str) -> Option<String> {
-    kind_text(kind, false).map(|t| format(&t, tag))
+    kind_text(kind, false).map(|t| crate::catalogue().text_or_english(&t, tag))
 }
 
 /// The words the list kind `kind` is also searched for by, comma-separated, in the shipped language `tag`; `None` for
 /// a kind without them.
 pub fn kind_search_words(kind: &str, tag: &str) -> Option<String> {
-    kind_text(kind, true).map(|t| format(&t, tag))
+    kind_text(kind, true).map(|t| crate::catalogue().text_or_english(&t, tag))
 }
 
 /// The name of the list kind `kind` in every language of this crate's text files, by tag (en-GB first); empty for a
 /// kind without a name.
 pub fn kind_names(kind: &str) -> Vec<(&'static str, String)> {
     kind_text(kind, false).map_or_else(Vec::new, |t| {
-        languages()
-            .iter()
-            .map(|(tag, _)| (*tag, format(&t, tag)))
+        let catalogue = crate::catalogue();
+        catalogue
+            .tags()
+            .into_iter()
+            .map(|tag| (tag, catalogue.text_or_english(&t, tag)))
             .collect()
     })
 }
