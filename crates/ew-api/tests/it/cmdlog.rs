@@ -140,6 +140,46 @@ fn every_line_is_one_transaction_with_the_command_log_origin() {
     assert_eq!(s.world().rev.0, 6, "one undo per line, each a new revision");
 }
 
+/// A command log of an earlier version names the drawing settings, the frame defaults, the languages and a member of
+/// the supply by commands of their own; they are aliases of `project.settings.set` now, so the log replays and leaves
+/// the project as the same settings set by `project.settings.set` do.
+#[test]
+fn an_earlier_log_of_the_settings_commands_replays() {
+    let mut earlier = session();
+    earlier
+        .run_script(
+            &log(&[
+                r#"{"cmd":"project.drawing.set","params":{"crossings":"hops","wire_numbers":true}}"#,
+                r#"{"cmd":"project.frames.set","params":{}}"#,
+                r#"{"cmd":"project.languages.set","params":{"source":"nl-NL","date":"iso8601"}}"#,
+                r#"{"cmd":"project.supply.set","params":{"path":"u_nom","value":"400"}}"#,
+            ]),
+            "earlier.ewcmd",
+        )
+        .unwrap();
+    let mut now = session();
+    now.run_script(
+        &log(&[
+            r#"{"cmd":"project.settings.set","params":{"member":"drawing","value":{"crossings":"hops","wire_numbers":true}}}"#,
+            r#"{"cmd":"project.settings.set","params":{"member":"frames","value":{}}}"#,
+            r#"{"cmd":"project.settings.set","params":{"member":"languages","value":{"source":"nl-NL","date":"iso8601"}}}"#,
+            r#"{"cmd":"project.settings.set","params":{"member":"supply.u_nom","value":"400"}}"#,
+        ]),
+        "now.ewcmd",
+    )
+    .unwrap();
+    let project = earlier.query().project().as_ref().clone();
+    assert_eq!(project.settings.extra["drawing"]["crossings"], "hops");
+    assert_eq!(
+        project.supply.as_ref().map(|s| s.u_nom),
+        Some(ew_units::Dec3(400_000))
+    );
+    assert_eq!(&project, now.query().project().as_ref());
+    for entry in earlier.history().entries() {
+        assert_eq!(entry.label(), "project.settings.set");
+    }
+}
+
 #[test]
 fn an_unknown_command_refuses_the_whole_log_before_its_first_line() {
     let mut s = session();

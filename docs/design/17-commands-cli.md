@@ -130,7 +130,11 @@ accept tags (`.ewcmd`, CLI, MCP) resolve them first through `find` (§3.5).
 
 **`project.settings.set`** (ADR-0008 amendment 3). Edits one whitelisted member of
 `ProjectSettings` per command: `numbering`, `colour_profile`, `size_profile` or `xref_format` (provisional members
-live in `ProjectSettings.extra` until their work packages type them). Parameters `{member, value}`; `value` is the
+live in `ProjectSettings.extra` until their work packages type them), and the other members of its table. Beside
+them it sets the drawing settings (`drawing`, merged member by member), the frame defaults (`frames`), the languages
+and printed formats (`languages`) and one member of the supply (`supply.<path>`); a refusal inside such a value
+names its place below `/value`. The commands `project.drawing.set`, `project.frames.set`, `project.languages.set` and
+`project.supply.set` of earlier versions are its aliases, so their command logs replay. Parameters `{member, value}`; `value` is the
 member's whole new JSON value, `null` removes the member so that the pinned derivation profile's default applies, and
 a value equal to the stored one changes nothing. The command is validated by its schema and then semantically by
 `ew_derive::check_settings_member`, the parser the derivation itself reads the member with, so a setting the
@@ -144,9 +148,8 @@ derivation would not apply never reaches the model. It refuses:
 - colour codes that are neither IEC 60757 nor company codes declared on an IEC 60757 base;
 - cross-sections that are not positive mm², AWG or kcmil;
 - any other member name, with `InvalidParams` at `/member` listing the settable members. The identifier set has its
-  own previewed renumber (FR-NUM-014); `ip_pairing`, `formatting`, `frames`, `wire_default`, `derivation_profile` and
-  newer members are refused. `frames` and `formatting` have their own `Edit` commands,
-  `project.frames.set` and `project.languages.set` (§2.3; [03](03-domain-model.md) §5.1).
+  own previewed renumber (FR-NUM-014); `ip_pairing`, `formatting`, `wire_default`, `derivation_profile` and
+  newer members are refused; `formatting` is set with the languages (§2.3; [03](03-domain-model.md) §5.1).
 
 The command is `Cost::Bulk`: the preview shows `Session::derived_diff` (changed tags and cross-reference texts; adds wire properties, BOM and TOC rows and a covered-kinds flag). It is undoable as one step.
 Only the project record changes; topology stays identical. The journal records it as the top-level `settings` member
@@ -196,7 +199,7 @@ pub enum Origin { Gui, Cli { subcommand: String }, CmdLog { file: String, sha256
 
 | Exposure | Front-ends allowed | Commands (examples) |
 |---|---|---|
-| `Edit` | GUI, CLI (`apply`), scripts, MCP, plugins, Python | `device.place` (aliases `device.place_from_part`, `symbol.place`), `connection.draw`, `fields.set`, `numbering.renumber`, `page.renumber`, `plc.readdress`, `macro.insert`, `project.settings.set`, `project.company.set`, `project.frames.set`, `project.languages.set`, `plugin.data.set` |
+| `Edit` | GUI, CLI (`apply`), scripts, MCP, plugins, Python | `device.place` (aliases `device.place_from_part`, `symbol.place`), `connection.draw`, `fields.set`, `numbering.renumber`, `page.renumber`, `plc.readdress`, `macro.insert`, `project.settings.set`, `project.company.set`, `plugin.data.set` |
 | `HumanOnly` | GUI; a dedicated CLI subcommand confirmed on a terminal (below) | `revision.approve`, `revision.release`, `revision.withdraw`, `check.waive` / `check.unwaive`, `scheme.set_severity` and the other `scheme.*` edits including company locks, `pack.enable` / `pack.disable`, `project.checks.set` (registered), `project.set_strictness`, completing and reopening a project (FR-REV-013, 1.0), `trust.*`, `plugin.install` / `plugin.remove`, `library.write` |
 | `Import` | GUI import wizard, `ew import` | `ApplyImport` (plugins reach it only through the importer contract, §10) |
 | `Internal` | normalisers | CP instantiation, online numbering |
@@ -236,7 +239,7 @@ ARCH §5.2), so no front-end can bypass it; `ew-api` only sets the origin.
 **`project.checks.set` is the first registered `HumanOnly` command**.
 It writes `settings.extra.checks` = `{active_scheme?, release_scheme?}` (shipped schemes only; [03](03-domain-model.md)
 §5.1) and follows the rule above: a settings member that decides a check outcome keeps its own `HumanOnly` command. The
-sibling commands `project.company.set`, `project.frames.set` and `project.languages.set` are `Edit`. A `HumanOnly`
+sibling command `project.company.set` and `project.settings.set` are `Edit`. A `HumanOnly`
 command reaches the headless side only through a dedicated CLI subcommand, never through a UI script, which still
 refuses the registry action with the human-only outcome. The CLI path as
 built (closed) is

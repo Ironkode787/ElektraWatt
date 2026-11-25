@@ -306,30 +306,11 @@ pub const ARMS: &[Arm] = &[
         weight: 1,
         build: project_company_set,
     },
-    Arm {
-        command: "project.drawing.set",
-        weight: 1,
-        build: project_drawing_set,
-    },
-    Arm {
-        command: "project.frames.set",
-        weight: 1,
-        build: project_frames_set,
-    },
-    Arm {
-        command: "project.languages.set",
-        weight: 1,
-        build: project_languages_set,
-    },
+    // With the drawing settings, the frame defaults, the languages and the supply's members (weights 1, 1, 1, 2).
     Arm {
         command: "project.settings.set",
-        weight: 1,
+        weight: 6,
         build: project_settings_set,
-    },
-    Arm {
-        command: "project.supply.set",
-        weight: 2,
-        build: project_supply_set,
     },
     Arm {
         command: "rep.exchange_symbol",

@@ -482,7 +482,7 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // The marker mode action
 
-    /// `project.marker_mode {mode}` (Tools ▸ Wire markers): commits `project.drawing.set` with the mode, or `null`
+    /// `project.marker_mode {mode}` (Tools ▸ Wire markers): commits the drawing setting `marker_mode` (`project.settings.set`) with the mode, or `null`
     /// for `per_wire`; a mode the project already has commits nothing.
     pub(crate) fn act_marker_mode(&mut self, p: &Map<String, Value>) -> Outcome {
         let mode = match p.get("mode") {
@@ -507,8 +507,8 @@ impl ShellModel {
             json!(mode)
         };
         let cmd = AnyCommand {
-            name: "project.drawing.set".into(),
-            params: json!({ "marker_mode": value }),
+            name: "project.settings.set".into(),
+            params: json!({ "member": "drawing", "value": { "marker_mode": value } }),
         };
         let outcome = self.run_commit(&cmd);
         if matches!(outcome, Outcome::Done) {

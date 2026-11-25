@@ -74,7 +74,7 @@ pub use company::COMPANY_MEMBER;
 pub use connection::{IpAtEnd, WiringChoice};
 pub use device::{ConnectHint, PlaceTarget, PortBox, PortsTarget, allowed_rep_types};
 pub use drafting::{JunctionPlace, MarkerPlace};
-pub use drawing::{Crossings, MarkerModeParam};
+pub use drawing::Crossings;
 pub use edit::BULK_ABOVE;
 pub use exchange::{ExchangePin, derive_pin_map};
 pub use fields::{ASPECTS, SET_MANY_MAX_EDITS, SETTABLE};
@@ -211,7 +211,6 @@ commands! {
     bus::CreateLogicalNet,
     bus::CreatePhysicalNet,
     bus::SetBusCable,
-    supply::SetProjectSupply,
     library::EmbedLibraryCopies,
     revision::CreateRevision,
     revision::SetRevisionAuthor,
@@ -222,8 +221,6 @@ commands! {
     revision::ReleaseRevision,
     company::SetCompany,
     typeface::SetTypeface,
-    frames::SetFrameDefaults,
-    languages::SetProjectLanguages,
     checks::SetCheckSchemes,
     // Waiver recording
     checks::WaiveFinding,
@@ -235,7 +232,6 @@ commands! {
     external::ApplyExternal,
     assets::PurgeAssets,
     exchange::ExchangeSymbol,
-    drawing::SetDrawing,
     paste::PasteFragment,
     box_reshape::ReshapeBox,
     box_reshape::RedrawBoxes,

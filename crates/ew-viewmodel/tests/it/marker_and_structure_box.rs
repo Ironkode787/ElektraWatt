@@ -527,8 +527,11 @@ fn the_marker_mode_action_sets_clears_and_skips_an_equal_mode() {
     done(&mut s, "project.marker_mode", json!({"mode": "none"}));
     assert_eq!(s.revision(), rev.map(|r| r + 1));
     let last = s.recorded_commands().last().expect("the commit");
-    assert_eq!(last.cmd, "project.drawing.set");
-    assert_eq!(last.params, json!({"marker_mode": "none"}));
+    assert_eq!(last.cmd, "project.settings.set");
+    assert_eq!(
+        last.params,
+        json!({"member": "drawing", "value": {"marker_mode": "none"}})
+    );
     assert_eq!(s.marker_mode_word(), "none");
     assert!(checked_mode(&s, "none"));
     // The same mode again commits nothing.
@@ -540,7 +543,10 @@ fn the_marker_mode_action_sets_clears_and_skips_an_equal_mode() {
     // `per_wire` removes the member.
     done(&mut s, "project.marker_mode", json!({"mode": "per_wire"}));
     let last = s.recorded_commands().last().expect("the commit");
-    assert_eq!(last.params, json!({"marker_mode": null}));
+    assert_eq!(
+        last.params,
+        json!({"member": "drawing", "value": {"marker_mode": null}})
+    );
     assert_eq!(s.marker_mode_word(), "per_wire");
     assert!(checked_mode(&s, "per_wire"));
     // An unknown mode fails.

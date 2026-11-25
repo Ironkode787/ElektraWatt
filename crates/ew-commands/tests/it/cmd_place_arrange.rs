@@ -3,7 +3,7 @@
 
 //! The placement and arrangement commands: the `from_part` and
 //! `new_terminal` targets of `device.place` and `box.black`, `rep.move` by grid steps, `rep.exchange_symbol` and
-//! `project.drawing.set`.
+//! `project.settings.set`'s drawing settings.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
@@ -14,7 +14,7 @@ use std::fmt::Debug;
 use common::*;
 use ew_commands::commands::{
     Crossings, DeleteConnections, ExchangePin, ExchangeSymbol, MoveReps, PlaceBlackBox, PlaceSymbol,
-    PlaceTarget, SetDrawing, TerminalSpec,
+    PlaceTarget, SetProjectSettings, TerminalSpec,
 };
 use ew_commands::{AnyCommand, CmdError, Engine};
 use ew_ids::{Id, Uuid};
@@ -1656,19 +1656,21 @@ fn exchange_rejections_write_nothing() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// project.drawing.set
+// project.settings.set drawing
 
 fn drawing_of(e: &Engine) -> Option<Value> {
     e.model().project().settings.extra.get("drawing").cloned()
 }
 
-fn set_drawing(crossings: Option<Option<Crossings>>) -> SetDrawing {
-    SetDrawing {
-        crossings,
-        marker_mode: None,
-        wire_numbers: None,
-        wire_numbering: None,
-        plc_address_at_terminals: None,
+/// `project.settings.set` of the drawing setting `crossings`: absent (`None`), `null` (`Some(None)`) or a value.
+fn set_drawing(crossings: Option<Option<Crossings>>) -> SetProjectSettings {
+    let mut value = serde_json::Map::new();
+    if let Some(c) = crossings {
+        value.insert("crossings".to_owned(), serde_json::to_value(c).unwrap());
+    }
+    SetProjectSettings {
+        member: "drawing".into(),
+        value: Value::Object(value),
     }
 }
 
@@ -1723,15 +1725,15 @@ fn drawing_set_keeps_the_members_it_does_not_know() {
 #[test]
 fn drawing_set_rejections() {
     let mut e = engine(mini_model());
-    // No member given: invalid at the root.
-    invalid_at(e.execute(&set_drawing(None)), "");
+    // No member given: invalid at the value.
+    invalid_at(e.execute(&set_drawing(None)), "/value");
     // An unknown value, through the JSON parameters.
     let bad = AnyCommand {
-        name: "project.drawing.set".into(),
-        params: json!({"crossings": "loops"}),
+        name: "project.settings.set".into(),
+        params: json!({"member": "drawing", "value": {"crossings": "loops"}}),
     };
     match e.execute(&bad) {
-        Err(CmdError::InvalidParams { path, .. }) => assert_eq!(path, "/crossings"),
+        Err(CmdError::InvalidParams { path, .. }) => assert_eq!(path, "/value"),
         other => panic!("expected InvalidParams, got {other:?}"),
     }
     assert_eq!(e.model().rev().0, 0);
@@ -1748,24 +1750,22 @@ fn drawing_set_rejections() {
 }
 
 #[test]
-fn drawing_set_json_distinguishes_null_from_absent() {
-    let registry = ew_commands::CommandRegistry::builtin();
-    for (params, expected) in [
-        (json!({"crossings": "hops"}), Some(Some(Crossings::Hops))),
-        (json!({"crossings": null}), Some(None)),
-    ] {
-        let cmd = registry
-            .resolve(&AnyCommand {
-                name: "project.drawing.set".into(),
-                params: params.clone(),
-            })
-            .expect("resolves");
-        let back = AnyCommand::of(&*cmd).expect("serialisable");
-        assert_eq!(back.params, params, "round trip");
-        let typed: SetDrawing = serde_json::from_value(params).unwrap();
-        assert_eq!(typed.crossings, expected);
-    }
-    assert_eq!(serde_json::to_string(&set_drawing(None)).unwrap(), "{}");
+fn drawing_set_tells_null_from_absent() {
+    // `null` removes a setting; a setting the value does not name stays.
+    let mut e = engine(project_with_drawing(
+        json!({"crossings": "hops", "marker_mode": "all"}),
+    ));
+    e.execute(&SetProjectSettings {
+        member: "drawing".into(),
+        value: json!({"marker_mode": "none"}),
+    })
+    .unwrap();
+    assert_eq!(
+        drawing_of(&e),
+        Some(json!({"crossings": "hops", "marker_mode": "none"}))
+    );
+    e.execute(&set_drawing(Some(None))).unwrap();
+    assert_eq!(drawing_of(&e), Some(json!({"marker_mode": "none"})));
 }
 
 // ---------------------------------------------------------------------------------------------------------

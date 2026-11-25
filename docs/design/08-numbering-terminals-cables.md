@@ -56,7 +56,7 @@ A `WireNumberingScheme` holds format groups, an order, a counter scope and an on
 - **By potential.** A drawing specification may ask for wire codes by potential: one code per
   potential (0 V DC D01, 24 V DC D02, AC A01 …), a circuit number in front where a set has several circuits (6A03), every
   wire carrying its potential's code. The project setting `drawing.wire_numbering: per_potential` (Draw ▸ Connect ▸
-  Number wires by potential; `project.drawing.set`) gives every wire the code of its potential: the potential's name
+  Number wires by potential; `project.settings.set`, member `drawing`) gives every wire the code of its potential: the potential's name
   by steps 1 to 2c of §3.5 (a definition's name, an interruption point's, a supply's), exactly as written. *What it is:*
   the person names the potentials as the specification codes them, circuit number included (`6A03`, `7A03`), and every
   wire of the potential prints that code; a frozen number still prints in place of the code; EW-POT-015 counts the

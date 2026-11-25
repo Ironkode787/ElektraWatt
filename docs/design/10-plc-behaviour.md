@@ -264,7 +264,7 @@ target pin), the passed terminals and the ambiguity flag. The passed terminals a
 target (`sig.path(cp, best)`): the walk is breadth first, and a terminal is passed when the shortest path from the pin
 to the target crosses it (two of the path's nodes hold its CPs), so a terminal on a branch to another candidate, or
 one that only hangs off the path, is not. Only a module with a pin-bound channel reads the stitch graph. A traced target gives the channel the state of its device (§3.2 step 3). The "address at terminals" option is
-the drawing setting `plc_address_at_terminals` (`project.drawing.set`): with it, every terminal a traced
+the drawing setting `plc_address_at_terminals` (`project.settings.set`, member `drawing`): with it, every terminal a traced
 signal passes prints the channel's address in its `PlcAddress` slot (`channels_by_target` holds the terminals). The
 shipped terminal symbol `ew.iec.terminal` and its QET twin have the slot to the right of the
 terminal under its function text, in the arrangement `full`; the window's switch is Project ▸ Channel addresses at

@@ -321,7 +321,8 @@ pub enum EditRoute {
         /// The settings member.
         member: String,
     },
-    /// `project.supply.set` with this member path of the supply (`phases`, `origin.ik_max`).
+    /// `project.settings.set` with the member `supply.<path>` of this member path of the supply (`phases`,
+    /// `origin.ik_max`).
     SupplyMember {
         /// The supply's member path.
         path: String,

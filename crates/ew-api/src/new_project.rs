@@ -160,7 +160,7 @@ impl IdSource for ByRef<'_> {
     }
 }
 
-/// The `project.frames.set` parameters that put a project's pages on the shipped frames ([`SHIPPED_FORMS`]): the frame
+/// The value of `project.settings.set`'s member `frames` that puts a project's pages on the shipped frames ([`SHIPPED_FORMS`]): the frame
 /// of key `default` for drawn pages, the cover frame for title pages, and for the table of contents and the section
 /// dividers the A4 frame without the grid when `default` is an A4 one, else `default` itself (the A3 frame has no
 /// variant without the grid, doc 09 §3.8); `None` when a shipped form does not parse.
@@ -201,7 +201,10 @@ fn with_shipped_frames(model: Model) -> Result<Model, OpenError> {
     let mut scratch = Session::new(model, SessionOptions::default());
     for (name, params) in [
         ("library.embed", serde_json::json!({ "copies": copies })),
-        ("project.frames.set", frames),
+        (
+            "project.settings.set",
+            serde_json::json!({ "member": "frames", "value": frames }),
+        ),
     ] {
         let cmd = AnyCommand {
             name: name.into(),

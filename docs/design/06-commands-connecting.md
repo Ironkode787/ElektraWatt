@@ -24,7 +24,7 @@ that states what it does and what it refuses. What holds for all of them:
 - A new optional parameter member is left out when absent, so existing command logs serialise unchanged.
 - A new project is made without a supply: a supply guessed at its creation would print on its cover before the
   person chose it. A schematic project without one takes the default supply with the first member that
-  `project.supply.set` sets, so Properties can give it one; a basic or macro project has none.
+  `project.settings.set` sets (`supply.<path>`), so Properties can give it one; a basic or macro project has none.
 - A part change of a PLC module in the window goes through `plc.set_module_part`, which removes the channels the new
   part does not have; `fields.set` on `parts` never removes a channel ([10](10-plc-and-bus.md) §3.3).
 

@@ -128,7 +128,7 @@ fn every_settable_path_maps_to_a_node_with_its_own_route() {
             node.ty
         );
     }
-    // Each member `project.supply.set` takes is its row's route.
+    // Each member of the supply that `project.settings.set` takes is its row's route.
     for path in ew_commands::commands::SETTABLE_SUPPLY {
         let node = project
             .iter()

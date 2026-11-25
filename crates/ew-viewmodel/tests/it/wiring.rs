@@ -1552,7 +1552,7 @@ fn crossings_toggle_the_drawing_setting() {
     done(
         &mut s,
         "command.run",
-        json!({"cmd": "project.drawing.set", "params": {"crossings": "plain"}}),
+        json!({"cmd": "project.settings.set", "params": {"member": "drawing", "value": {"crossings": "plain"}}}),
     );
     assert_eq!(
         describe_line(&s, "canvas crossings").as_deref(),

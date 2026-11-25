@@ -5,26 +5,17 @@
 
 use super::*;
 
-pub(super) fn project_supply_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+fn project_supply_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     match rng.below(8) {
         // A member set to 1: one phase is taken, any other member or a whole group is refused.
         0 => {
             let path = *rng.pick(&["phases", "u_nom", "earthing", "origin", "origin.ik_max", "bogus"])?;
-            Some(Step::cmd("project.supply.set", json!({"path": path, "value": 1})))
+            Some(member_step(&format!("supply.{path}"), json!(1)))
         }
         // The command refuses: a value the member does not take.
-        1 => Some(Step::cmd(
-            "project.supply.set",
-            json!({"path": "origin.source", "value": 5}),
-        )),
+        1 => Some(member_step("supply.origin.source", json!(5))),
         // Refused: an external reference that does not exist.
-        2 => Some(
-            Step::cmd(
-                "project.supply.set",
-                json!({"path": "origin.source", "value": rng.uuid()}),
-            )
-            .refuse(),
-        ),
+        2 => Some(member_step("supply.origin.source", json!(rng.uuid())).refuse()),
         _ => {
             if !live.has_supply {
                 return None;
@@ -35,34 +26,46 @@ pub(super) fn project_supply_set(live: &Live, rng: &mut SplitMix64) -> Option<St
                 let e = rng.pick(&live.ext_refs)?.clone();
                 (e.clone(), Some(e))
             };
-            Some(
-                Step::cmd(
-                    "project.supply.set",
-                    json!({"path": "origin.source", "value": value}),
-                )
-                .check(move |_, after| {
-                    let have = after
-                        .project()
-                        .supply
-                        .as_ref()
-                        .and_then(|s| s.origin.as_ref())
-                        .and_then(|o| o.source)
-                        .map(id_json);
-                    (have == expect)
-                        .then_some(())
-                        .ok_or_else(|| format!("origin.source is {have:?}, not {expect:?}"))
-                }),
-            )
+            Some(member_step("supply.origin.source", value).check(move |_, after| {
+                let have = after
+                    .project()
+                    .supply
+                    .as_ref()
+                    .and_then(|s| s.origin.as_ref())
+                    .and_then(|o| o.source)
+                    .map(id_json);
+                (have == expect)
+                    .then_some(())
+                    .ok_or_else(|| format!("origin.source is {have:?}, not {expect:?}"))
+            }))
         }
     }
 }
 
+/// A step of `project.settings.set` of the member `member` to `value`.
+fn member_step(member: &str, value: Value) -> Step {
+    Step::cmd("project.settings.set", json!({"member": member, "value": value}))
+}
+
+/// `project.settings.set`: a member of the settable table, the drawing settings, the frame defaults, the languages or
+/// a member of the supply, by the weights 1, 1, 1, 1 and 2.
 pub(super) fn project_settings_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    match rng.below(6) {
+        0 => settings_member_set(live, rng),
+        1 => project_drawing_set(live, rng),
+        2 => project_frames_set(live, rng),
+        3 => project_languages_set(live, rng),
+        _ => project_supply_set(live, rng),
+    }
+}
+
+/// `project.settings.set` of a member of the settable table.
+fn settings_member_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let member = *rng.pick(&["numbering", "colour_profile", "size_profile", "xref_format"])?;
     match rng.below(8) {
         // The command refuses: not a settable member.
         0 => {
-            let m = *rng.pick(&["identifier_set", "frames", "wire_default", "bogus"])?;
+            let m = *rng.pick(&["identifier_set", "wire_default", "supply.origin", "bogus"])?;
             Some(Step::cmd(
                 "project.settings.set",
                 json!({"member": m, "value": {}}),
@@ -245,15 +248,14 @@ pub(super) fn project_company_set(live: &Live, rng: &mut SplitMix64) -> Option<S
     }
 }
 
-/// The page types a frame-defaults entry may name (every type but `report`).
-pub(super) fn project_drawing_set(_live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+fn project_drawing_set(_live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     match rng.below(8) {
         // The command refuses: no member given.
-        0 => Some(Step::cmd("project.drawing.set", json!({}))),
+        0 => Some(member_step("drawing", json!({}))),
         // Refused: an unknown value, a value of the wrong type, an unknown member.
-        1 => Some(Step::cmd("project.drawing.set", json!({"crossings": "loops"})).refuse()),
+        1 => Some(member_step("drawing", json!({"crossings": "loops"})).refuse()),
         // `marker_mode`, an unknown value refused, a known one or `null` accepted.
-        7 if rng.chance(2) => Some(Step::cmd("project.drawing.set", json!({"marker_mode": "some"})).refuse()),
+        7 if rng.chance(2) => Some(member_step("drawing", json!({"marker_mode": "some"})).refuse()),
         7 => {
             let mode = [
                 json!("all"),
@@ -263,21 +265,15 @@ pub(super) fn project_drawing_set(_live: &Live, rng: &mut SplitMix64) -> Option<
                 Value::Null,
             ][rng.below(5)]
             .clone();
-            Some(Step::cmd("project.drawing.set", json!({"marker_mode": mode})))
+            Some(member_step("drawing", json!({"marker_mode": mode})))
         }
-        2 => Some(Step::cmd("project.drawing.set", json!({"crossings": rng.below(9)})).refuse()),
-        3 => Some(
-            Step::cmd(
-                "project.drawing.set",
-                json!({"crossings": "hops", "shadows": true}),
-            )
-            .refuse(),
-        ),
+        2 => Some(member_step("drawing", json!({"crossings": rng.below(9)})).refuse()),
+        3 => Some(member_step("drawing", json!({"crossings": "hops", "shadows": true})).refuse()),
         _ => {
             let value = [json!("plain"), json!("hops"), Value::Null][rng.below(3)].clone();
             let want = value.clone();
             Some(
-                Step::cmd("project.drawing.set", json!({"crossings": value})).check(move |_, after| {
+                member_step("drawing", json!({"crossings": value})).check(move |_, after| {
                     let drawing = after.project().settings.extra.get("drawing").cloned();
                     let crossings = drawing.as_ref().and_then(|d| d.get("crossings")).cloned();
                     match (&want, &crossings, &drawing) {
@@ -294,15 +290,15 @@ pub(super) fn project_drawing_set(_live: &Live, rng: &mut SplitMix64) -> Option<
     }
 }
 
-/// The page types of `project.frames.set`'s entries, read from its schema (the command refuses `report`: report
-/// pages are generated).
+/// The page types a frame-defaults entry may name, read from the schema of `page.create`'s page type (the command
+/// refuses `report`: report pages are generated).
 pub(super) fn frame_page_types() -> &'static [&'static str] {
     static LIST: OnceLock<Vec<&'static str>> = OnceLock::new();
-    LIST.get_or_init(|| registry_strings("project.frames.set", &["per_page_type", "page_type"]))
+    LIST.get_or_init(|| registry_strings("page.create", &["kind"]))
 }
 
-pub(super) fn project_frames_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
-    let cmd = |p: Value| Step::cmd("project.frames.set", p);
+fn project_frames_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let cmd = |p: Value| member_step("frames", p);
     match rng.below(10) {
         // Refused: a form that does not exist.
         0 => Some(cmd(json!({"default": rng.uuid()})).refuse()),
@@ -361,8 +357,8 @@ pub(super) fn project_frames_set(live: &Live, rng: &mut SplitMix64) -> Option<St
     }
 }
 
-pub(super) fn project_languages_set(_live: &Live, rng: &mut SplitMix64) -> Option<Step> {
-    let cmd = |p: Value| Step::cmd("project.languages.set", p);
+fn project_languages_set(_live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let cmd = |p: Value| member_step("languages", p);
     match rng.below(8) {
         // Refused: translations without a source, the source as a translation, an unknown format.
         0 => Some(cmd(json!({"translations": ["de"]}))),

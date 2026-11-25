@@ -1728,7 +1728,7 @@ fn revision_commands_are_refused_off_a_terminal() {
 }
 
 /// The recorded logs replay through `ew apply`: one log on a copy of the sample, applied once, of
-/// - `project.drawing.set` (`marker_mode`), `box.structure`, `item.place`,
+/// - `project.settings.set` (the drawing setting `marker_mode`), `box.structure`, `item.place`,
 ///   `marker.place` and `rep.move`;
 /// - `fields.set` and `fields.set_many`, the commands the property grid and find and replace record, their targets
 ///   named by tag reference (the headless tests of `elektrawatt` replay each script's own `--record` log in-process
@@ -1755,7 +1755,7 @@ fn the_recorded_logs_replay_through_ew_apply() {
     drop(sample);
     let header = "{\"$schema\":\"ew.cmdlog/1\",\"label\":\"logs\"}";
     let mut lines = vec![
-        serde_json::json!({"cmd": "project.drawing.set", "params": {"marker_mode": "explicit"}}),
+        serde_json::json!({"cmd": "project.settings.set", "params": {"member": "drawing", "value": {"marker_mode": "explicit"}}}),
         serde_json::json!({"cmd": "box.structure", "params": {"page": page,
             "outline": [[0, 0], [10_000_000, 0], [10_000_000, 10_000_000]], "style": "dotted", "caption": "Box",
             "assigns": {}}}),

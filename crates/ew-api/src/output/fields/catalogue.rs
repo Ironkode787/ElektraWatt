@@ -280,7 +280,7 @@ const OTHER_COMMANDS: &[(&str, &str, &str, Option<&str>)] = &[
     (
         "project",
         "settings.frames",
-        "project.frames.set",
+        "project.settings.set",
         Some("the template wizard (Project ▸ New template…)"),
     ),
     // The font file comes in with its command, which checks it (doc 09 §4.8).
@@ -293,18 +293,18 @@ const OTHER_COMMANDS: &[(&str, &str, &str, Option<&str>)] = &[
     (
         "project",
         "languages",
-        "project.languages.set",
+        "project.settings.set",
         Some("the template wizard (Project ▸ New template…)"),
     ),
     (
         "project",
         "settings.formatting",
-        "project.languages.set",
+        "project.settings.set",
         Some("the template wizard (Project ▸ New template…)"),
     ),
     // No menu edits the crossings setting yet (doc 16 §3.2: the Project menu's "Drawing" item needs that menu first), so
     // the reason names the command (note).
-    ("project", "settings.drawing", "project.drawing.set", None),
+    ("project", "settings.drawing", "project.settings.set", None),
     ("representation", "pos", "rep.move", Some("the canvas")),
     ("representation", "orient", "rep.transform", Some("the canvas")),
     ("representation", "page", "rep.move", Some("the canvas")),
@@ -421,13 +421,13 @@ pub(crate) fn route_of(kind: &str, path: &str, exposure: &dyn Fn(&str) -> Option
             },
         );
     }
-    // The members of `project.supply.set` (ADR-0008 amendment 6).
+    // The members of the supply, `supply.<path>` of `project.settings.set` (ADR-0008 amendment 6).
     if kind == "project"
         && let Some(member) = path.strip_prefix("supply.")
         && ew_commands::commands::SETTABLE_SUPPLY.contains(&member)
     {
         return through(
-            "project.supply.set",
+            "project.settings.set",
             None,
             EditRoute::SupplyMember {
                 path: member.to_owned(),

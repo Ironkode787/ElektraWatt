@@ -389,7 +389,7 @@ literal braces. The rule covers every unresolvable placeholder (unbound, unresol
 schema change ([05](05-project-format-and-persistence.md) §10.3); the shapes are in [03](03-domain-model.md) §5.1.
 `{project.notice}` reads `Project.extra["ew.company"].notice`, the provisional member that `project.company.set`
 writes. The frame defaults are `settings.extra.frames` = `{default?, per_page_type: [{page_type, form}]}`, written by
-`project.frames.set` with the entries sorted by page type and `per_page_type` always present (`[]` when empty). The rule
+`project.settings.set` (member `frames`) with the entries sorted by page type and `per_page_type` always present (`[]` when empty). The rule
 for a page's frame is the one of §2.7: `Page.form`, else the entry of its page type, else `default`. A form or an entry
 that names a copy the project does not hold falls through to the next rule, identically in the cell grid and in the page
 output (`ew_derive::frame_form_of`). A page without its own form takes the frame defaults

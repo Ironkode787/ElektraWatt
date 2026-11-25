@@ -531,7 +531,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         self.run("rep.exchange_symbol", p).map(|_| ())
     }
 
-    /// `project.drawing.set` (FR-CON-031): how crossing wires are drawn. `crossings`: `None` leaves the setting as
+    /// The drawing setting `crossings` of `project.settings.set` (FR-CON-031): how crossing wires are drawn. `crossings`: `None` leaves the setting as
     /// it is, `Some(Some("plain" | "hops"))` sets it, `Some(None)` removes it (plain).
     ///
     /// # Errors
@@ -542,7 +542,11 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         if let Some(value) = crossings {
             p.insert("crossings".into(), value.map_or(Value::Null, |c| json!(c)));
         }
-        self.run("project.drawing.set", Value::Object(p)).map(|_| ())
+        self.run(
+            "project.settings.set",
+            json!({ "member": "drawing", "value": Value::Object(p) }),
+        )
+        .map(|_| ())
     }
 
     /// `connection.draw_to_ip` (doc 06 §4.4 "P"): a wire from `a` that ends in a new interruption point, in one

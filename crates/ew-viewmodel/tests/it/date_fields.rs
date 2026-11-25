@@ -68,7 +68,7 @@ fn a_date_is_typed_and_shown_in_the_projects_format() {
     done(
         &mut shell,
         "command.run",
-        json!({"cmd": "project.languages.set", "params": {"date": "iso8601"}}),
+        json!({"cmd": "project.settings.set", "params": {"member": "languages", "value": {"date": "iso8601"}}}),
     );
     done(&mut shell, "props.project", json!({}));
     assert_eq!(shown(&shell, CREATED), "2027-02-01");

@@ -1055,11 +1055,17 @@ fn the_new_dsl_verbs_send_the_parameters_of_their_commands() {
     );
     assert_eq!(
         (at(7).0, at(7).1),
-        ("project.drawing.set", &json!({"crossings": "hops"}))
+        (
+            "project.settings.set",
+            &json!({"member": "drawing", "value": {"crossings": "hops"}})
+        )
     );
     assert_eq!(
         (at(8).0, at(8).1),
-        ("project.drawing.set", &json!({"crossings": null}))
+        (
+            "project.settings.set",
+            &json!({"member": "drawing", "value": {"crossings": null}})
+        )
     );
     assert_eq!(at(9).0, "connection.draw_to_ip");
     assert_eq!(

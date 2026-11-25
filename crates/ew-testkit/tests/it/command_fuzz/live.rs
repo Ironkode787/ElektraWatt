@@ -638,7 +638,7 @@ fn join_infos(q: &Q) -> (Vec<JoinInfo>, Vec<Value>) {
     (joins, blocked)
 }
 
-/// Whether a form of this kind can be a page's frame (`project.frames.set`).
+/// Whether a form of this kind can be a page's frame (the frame defaults of `project.settings.set`).
 fn is_frame_form(kind: &ew_schema::FormKind) -> bool {
     matches!(
         kind,

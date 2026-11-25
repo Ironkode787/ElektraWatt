@@ -518,7 +518,11 @@ fn a_ticked_wire_always_prints_a_marker() {
         ("all", true, true),
         ("none", false, false),
     ] {
-        run(&mut s, "project.drawing.set", json!({ "marker_mode": mode }));
+        run(
+            &mut s,
+            "project.settings.set",
+            json!({ "member": "drawing", "value": { "marker_mode": mode } }),
+        );
         assert_eq!(
             markers(&s.query(), p101)[&plain].is_some(),
             ticked,
@@ -619,7 +623,11 @@ fn the_marker_modes_select_the_wires() {
     let as_built = marked(&s);
     assert!(as_built.is_empty(), "{as_built:?}");
     let mode = |s: &mut Session, m: &str| {
-        run(s, "project.drawing.set", json!({"marker_mode": m}));
+        run(
+            s,
+            "project.settings.set",
+            json!({ "member": "drawing", "value": {"marker_mode": m} }),
+        );
         marked(s)
     };
     assert_eq!(
@@ -661,7 +669,11 @@ fn the_marker_modes_select_the_wires() {
     assert!(wired.len() > as_built.len());
     assert_eq!(mode(&mut s, "deviations"), deviating);
     assert!(deviating.is_superset(&as_built));
-    run(&mut s, "project.drawing.set", json!({"marker_mode": null}));
+    run(
+        &mut s,
+        "project.settings.set",
+        json!({ "member": "drawing", "value": {"marker_mode": null} }),
+    );
     assert_eq!(marked(&s), as_built, "absent again: the as-built rule");
 }
 

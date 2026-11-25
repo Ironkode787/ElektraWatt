@@ -777,7 +777,7 @@ mark verified, and the built-in defaults stay code.
 - **Reset to derived** removes the level-7 value (FR-CON-025).
 
 The marker mode is a **project setting**,
-`settings.extra.drawing.marker_mode` (`all`, `deviations`, `explicit` or `none`), set by `project.drawing.set`
+`settings.extra.drawing.marker_mode` (`all`, `deviations`, `explicit` or `none`), set by `project.settings.set`, member `drawing`
 ([17](17-extensibility.md) §2.1); **absent means** a connection shows a marker when its
 `WireOverrides.show_marker` is set, and the four modes are values a project opts into. The group marker text follows
 FR-CON-039: the distinct effective cross-sections of the

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `item.place`, `marker.place` and `box.structure` with every rejection, and
-//! the amendments `rep.move` (`items`), `edit.delete` and `fields.set` (the two kinds) and `project.drawing.set`
+//! the amendments `rep.move` (`items`), `edit.delete` and `fields.set` (the two kinds) and `project.settings.set`'s drawing settings
 //! (`marker_mode`).
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
@@ -12,8 +12,8 @@ use crate::common;
 use common::*;
 use ew_commands::commands::{
     BoxStyleParam, CreateExternalRef, CreateStructureBox, DeleteSelection, FreeTextParam, GraphicParam,
-    ImageParam, ItemKindParam, KindName, MarkerModeParam, MoveReps, PlaceItem, PlaceMarker, SetCompany,
-    SetDrawing, SetManyFields, SetProjectSettings, ShapeParam, StrokeParam, TargetRef,
+    ImageParam, ItemKindParam, KindName, MoveReps, PlaceItem, PlaceMarker, SetCompany, SetManyFields,
+    SetProjectSettings, ShapeParam, StrokeParam, TargetRef,
 };
 use ew_commands::{CmdError, Engine, Origin};
 use ew_ids::Id;
@@ -1255,73 +1255,41 @@ fn an_edit_of_a_stale_marker_writes_a_clean_list() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// project.drawing.set marker_mode
+// project.settings.set drawing (marker_mode)
+
+/// `project.settings.set` of the member `drawing` with `value`.
+fn drawing_set(value: serde_json::Value) -> SetProjectSettings {
+    SetProjectSettings {
+        member: "drawing".into(),
+        value,
+    }
+}
 
 #[test]
 fn drawing_set_writes_and_removes_the_marker_mode() {
     let mut e = engine(mini_model());
-    e.execute(&SetDrawing {
-        crossings: None,
-        marker_mode: Some(Some(MarkerModeParam::Deviations)),
-        wire_numbers: None,
-        wire_numbering: None,
-        plc_address_at_terminals: None,
-    })
-    .unwrap();
+    e.execute(&drawing_set(json!({"marker_mode": "deviations"})))
+        .unwrap();
     let drawing = |e: &Engine| e.model().project().settings.extra.get("drawing").cloned();
     assert_eq!(drawing(&e), Some(json!({"marker_mode": "deviations"})));
-    e.execute(&SetDrawing {
-        crossings: Some(Some(ew_commands::commands::Crossings::Hops)),
-        marker_mode: None,
-        wire_numbers: None,
-        wire_numbering: None,
-        plc_address_at_terminals: None,
-    })
-    .unwrap();
+    e.execute(&drawing_set(json!({"crossings": "hops"}))).unwrap();
     assert_eq!(
         drawing(&e),
         Some(json!({"crossings": "hops", "marker_mode": "deviations"}))
     );
-    e.execute(&SetDrawing {
-        crossings: Some(None),
-        marker_mode: Some(None),
-        wire_numbers: None,
-        wire_numbering: None,
-        plc_address_at_terminals: None,
-    })
-    .unwrap();
+    e.execute(&drawing_set(json!({"crossings": null, "marker_mode": null})))
+        .unwrap();
     assert_eq!(drawing(&e), None, "an object left empty is removed");
     // The wire numbers on, then removed with `null`.
-    let numbers = |on: Option<bool>| SetDrawing {
-        crossings: None,
-        marker_mode: None,
-        wire_numbers: Some(on),
-        wire_numbering: None,
-        plc_address_at_terminals: None,
-    };
-    e.execute(&numbers(Some(true))).unwrap();
+    e.execute(&drawing_set(json!({"wire_numbers": true}))).unwrap();
     assert_eq!(drawing(&e), Some(json!({"wire_numbers": true})));
-    e.execute(&numbers(None)).unwrap();
+    e.execute(&drawing_set(json!({"wire_numbers": null}))).unwrap();
     assert_eq!(drawing(&e), None);
     // The PLC address at terminals on.
-    e.execute(&SetDrawing {
-        crossings: None,
-        marker_mode: None,
-        wire_numbers: None,
-        wire_numbering: None,
-        plc_address_at_terminals: Some(Some(true)),
-    })
-    .unwrap();
+    e.execute(&drawing_set(json!({"plc_address_at_terminals": true})))
+        .unwrap();
     assert_eq!(drawing(&e), Some(json!({"plc_address_at_terminals": true})));
-    let err = e
-        .execute(&SetDrawing {
-            crossings: None,
-            marker_mode: None,
-            wire_numbers: None,
-            wire_numbering: None,
-            plc_address_at_terminals: None,
-        })
-        .unwrap_err();
-    assert_eq!(pointer(err, "project.drawing.set"), "");
+    let err = e.execute(&drawing_set(json!({}))).unwrap_err();
+    assert_eq!(pointer(err, "project.settings.set"), "/value");
     let _ = Kind::PageItem;
 }

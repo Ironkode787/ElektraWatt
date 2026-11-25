@@ -24,6 +24,8 @@ pub struct RegisteredCommand {
     meta: CommandMeta,
     schema: Value,
     parse: ParseFn,
+    /// [`Command::alias_params`] of the type.
+    alias_params: fn(&str, Value) -> Value,
 }
 
 impl RegisteredCommand {
@@ -122,6 +124,7 @@ impl CommandRegistry {
                 meta,
                 schema: params_schema::<C>(),
                 parse: parse::<C>,
+                alias_params: C::alias_params,
             },
         );
     }
@@ -130,6 +133,20 @@ impl CommandRegistry {
     pub fn get(&self, name: &str) -> Option<&RegisteredCommand> {
         let canonical = self.aliases.get(name).copied().unwrap_or(name);
         self.entries.get(canonical)
+    }
+
+    /// The command of `cmd`'s name and its parameters in the command's own form ([`Command::alias_params`] for a name
+    /// that is an alias); [`CmdError::UnknownCommand`] for an unknown name.
+    fn entry_and_params(&self, cmd: &AnyCommand) -> Result<(&RegisteredCommand, Value), CmdError> {
+        let entry = self.get(&cmd.name).ok_or_else(|| CmdError::UnknownCommand {
+            name: cmd.name.clone(),
+        })?;
+        let params = if cmd.name == entry.meta.name {
+            cmd.params.clone()
+        } else {
+            (entry.alias_params)(&cmd.name, cmd.params.clone())
+        };
+        Ok((entry, params))
     }
 
     /// Every registered command in name order.
@@ -147,15 +164,13 @@ impl CommandRegistry {
     /// then the size limits of [`crate::check_limits`] are applied to the parameter document, then the
     /// schema.
     pub fn resolve(&self, cmd: &AnyCommand) -> Result<Box<dyn DynCommand>, CmdError> {
-        let entry = self.get(&cmd.name).ok_or_else(|| CmdError::UnknownCommand {
-            name: cmd.name.clone(),
-        })?;
+        let (entry, params) = self.entry_and_params(cmd)?;
         let name = entry.meta.name;
-        crate::jsonschema::check_limits(&cmd.params)
+        crate::jsonschema::check_limits(&params)
             .map_err(|e| CmdError::invalid_params(name, e.path, text!("refusal-params-detail", e.message)))?;
-        crate::jsonschema::validate(&entry.schema, &cmd.params)
+        crate::jsonschema::validate(&entry.schema, &params)
             .map_err(|e| CmdError::invalid_params(name, e.path, text!("refusal-params-detail", e.message)))?;
-        (entry.parse)(cmd.params.clone())
+        (entry.parse)(params)
             .map_err(|e| CmdError::invalid_params(name, "", text!("refusal-params-detail", e.to_string())))
     }
 
@@ -163,11 +178,9 @@ impl CommandRegistry {
     /// ([`AnyCommand::of`] in a [`crate::Preview`] or a history step) without validating it against the
     /// schema again: the re-run path of [`crate::Engine::commit`].
     pub(crate) fn parse_trusted(&self, cmd: &AnyCommand) -> Result<Box<dyn DynCommand>, CmdError> {
-        let entry = self.get(&cmd.name).ok_or_else(|| CmdError::UnknownCommand {
-            name: cmd.name.clone(),
-        })?;
+        let (entry, params) = self.entry_and_params(cmd)?;
         let name = entry.meta.name;
-        (entry.parse)(cmd.params.clone())
+        (entry.parse)(params)
             .map_err(|e| CmdError::invalid_params(name, "", text!("refusal-params-detail", e.to_string())))
     }
 

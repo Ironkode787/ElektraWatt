@@ -27,9 +27,9 @@ const MAX_HISTORY_PAGES: usize = 8;
 /// that moves none keeps its command's, Route's.
 pub const ARRANGE_STEP: &str = "layout.arrange";
 
-/// The label of a `project.drawing.set` step of one member: this prefix and the member
-/// (`project.drawing.set.wire_numbers`), so that its Undo names what it changed.
-pub const DRAWING_STEP: &str = "project.drawing.set.";
+/// The label of a `project.settings.set` step that changes one drawing setting: this prefix and the setting
+/// (`project.settings.set.drawing.wire_numbers`), so that its Undo names what it changed.
+pub const DRAWING_STEP: &str = "project.settings.set.drawing.";
 
 /// One entry of the history.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -37,7 +37,7 @@ pub struct HistoryRow {
     /// The entry's index in the stack (0 the oldest kept).
     pub index: usize,
     /// The label: the command's, or [`ARRANGE_STEP`] for a `layout.apply` that moves symbols, or [`DRAWING_STEP`] and
-    /// the member for a `project.drawing.set` of one member.
+    /// the setting for a `project.settings.set` of one drawing setting.
     pub label: String,
     /// The origin as the panel prints it.
     pub origin: String,
@@ -158,8 +158,9 @@ pub(super) fn view_of(history: &History, q: &Q) -> HistoryView {
                     .is_some_and(|p| !p.is_empty())
             {
                 ARRANGE_STEP.to_owned()
-            } else if let Some(member) = (e.label() == "project.drawing.set")
-                .then(|| e.command().params.as_object().filter(|m| m.len() == 1))
+            } else if let Some(member) = (e.label() == "project.settings.set"
+                && e.command().params["member"] == "drawing")
+                .then(|| e.command().params["value"].as_object().filter(|m| m.len() == 1))
                 .flatten()
                 .and_then(|m| m.keys().next())
             {

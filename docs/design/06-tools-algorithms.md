@@ -293,7 +293,7 @@ document keeps of it:
 
 - Routes are stored as nm vertices, the full list from end to end (FR-CON-007, ADR-0033 decision 2); a connection
   point's point is the grid's own number of its position (06a §2.1).
-- Crossings render as plain crossings or as hops by the project's `crossings` setting (`project.drawing.set`,
+- Crossings render as plain crossings or as hops by the project's `crossings` setting (`project.settings.set`, member `drawing`,
   FR-CON-031): each proper crossing of a horizontal and a vertical segment of two connections is a half circle of 1 mm
   radius above the horizontal one; a crossing closer than 2 mm to a segment end or to another hop is drawn plain.
 - The Wire tool refuses an end that already sits on one line with its start, in words where its hint stands ("These

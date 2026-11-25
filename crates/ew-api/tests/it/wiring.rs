@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Below the shell: crossings drawn as hops. `project.drawing.set
-//! {crossings: hops}` changes folio 101's display list only by the hop arcs of the rule (`ew_scene::hops`), the
+//! Below the shell: crossings drawn as hops. `project.settings.set {member: drawing, value:
+//! {crossings: hops}}` changes folio 101's display list only by the hop arcs of the rule (`ew_scene::hops`), the
 //! derived diff is empty and no connection changes; absent and `plain` draw the sample's bytes.
 
 use crate::common;
@@ -55,8 +55,8 @@ fn connections(s: &Session) -> Vec<String> {
 
 fn drawing(crossings: &str) -> AnyCommand {
     AnyCommand {
-        name: "project.drawing.set".into(),
-        params: json!({ "crossings": crossings }),
+        name: "project.settings.set".into(),
+        params: json!({ "member": "drawing", "value": { "crossings": crossings } }),
     }
 }
 
@@ -130,8 +130,8 @@ fn crossings_as_hops_change_only_the_wires_by_the_hop_arcs() {
     assert!(hopped > 0, "folio 101 has crossings of the rule");
     // Back to absent (`null`): the same bytes again.
     s.execute(&AnyCommand {
-        name: "project.drawing.set".into(),
-        params: json!({ "crossings": null }),
+        name: "project.settings.set".into(),
+        params: json!({ "member": "drawing", "value": { "crossings": null } }),
     })
     .unwrap();
     assert_eq!(layers(&s, page), before);

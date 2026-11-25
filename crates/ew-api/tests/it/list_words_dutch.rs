@@ -79,8 +79,8 @@ fn sample(dutch: bool) -> (Session, Uuid) {
     if dutch {
         common::run_cmd(
             &mut s,
-            "project.languages.set",
-            json!({"source": "nl-NL", "date": "dd_mm_yyyy", "decimal_separator": "comma"}),
+            "project.settings.set",
+            json!({ "member": "languages", "value": {"source": "nl-NL", "date": "dd_mm_yyyy", "decimal_separator": "comma"} }),
         );
     }
     (s, terminal)

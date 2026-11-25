@@ -57,6 +57,15 @@ pub trait Command: Serialize + DeserializeOwned + JsonSchema + Send + Sync + 'st
         Self::meta().cost
     }
 
+    /// The parameters of this command for parameters given under its alias `alias` (one of `meta().aliases`): the
+    /// parameters as given, unless the alias was a command of its own whose parameters this command takes in another
+    /// form (`project.drawing.set`'s are the value of `project.settings.set`'s member `drawing`), so that a command log
+    /// of an earlier version replays.
+    fn alias_params(alias: &str, params: serde_json::Value) -> serde_json::Value {
+        let _ = alias;
+        params
+    }
+
     /// Runs the command against the transaction builder.
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError>;
 }

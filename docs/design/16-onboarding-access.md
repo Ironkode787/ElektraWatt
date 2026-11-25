@@ -99,21 +99,21 @@ name holds something, so a full folder is never a dead end; **Choose another fol
 folder in another one. `wizard.finish` without `dir` makes it there; without a projects folder a script names `dir`
 and the window asks for one. **What the wizard writes**: `wizard.finish {dir}`
 needs an empty or absent directory and builds a basic project from the built-in one through registered
-commands only, in one script. The wizard uses four commands of its own (`project.company.set`, `project.frames.set`, `project.languages.set` and
-`project.checks.set`; no record kind and no schema change of their own), so every field has a
+commands only, in one script. The wizard uses commands of its own (`project.company.set`, the members `frames` and `languages` of
+`project.settings.set`, and `project.checks.set`; no record kind and no schema change of their own), so every field has a
 command except the title-block cell mapping; `project.company.set` takes the logo and `report_block.create`
 embeds its form. The table shows each field's state:
 
 | Step | Written now, by | Kept in the draft until |
 |---|---|---|
 | 1 Company | `project.company.set`: the panel builder's name (the first `Party` with the role panel builder, else a new one), the notice text (kept in `Project.extra["ew.company"].notice`, which the provisional `title_block` member already reads) and `personal_data` (true by default, NFR-PRIV-06; nothing reads it); only non-empty members are sent, so a typed notice alone leaves the name alone. **The logo:** the `logo` member takes the base64 of an SVG, PNG or JPEG file and writes `ew.company.logo = {sha256, format, size}`, the bytes going to the project's asset store (doc 05 §13.3); the file is at most `MAX_LOGO_BYTES` = 512 KiB, checked from the file size before it is read and again after, and an empty value removes the logo; a raster logo gets the notice that it prints rasterised (D-07) | — |
-| 2 Frame and title block | `project.frames.set`: the default form and the per-page-type forms, chosen among the four shipped forms (frame, cover, divider; compiled in from `content/forms` and embedded as copies), merged into `settings.extra.frames`; `per_page_type` is always written, `[]` when empty; a page without a form of its own takes the frame defaults | the mapping of cells to bound fields (a command that forks a form copy, so that the mapping can be edited) |
+| 2 Frame and title block | `project.settings.set`, member `frames`: the default form and the per-page-type forms, chosen among the four shipped forms (frame, cover, divider; compiled in from `content/forms` and embedded as copies), merged into `settings.extra.frames`; `per_page_type` is always written, `[]` when empty; a page without a form of its own takes the frame defaults | the mapping of cells to bound fields (a command that forks a form copy, so that the mapping can be edited) |
 | 3 Colour profile | `project.settings.set`: the chosen shipped profile, "EN 60204-1 machine" or "IEC 60445 installation" (our own tables from doc 08 §4.3, shipped with `verified: false` and the project's basis note), or the sample project's convention "DBU/WH 24 V" | — |
 | 4 Wire cross-sections | `project.settings.set` | — |
 | 5 Identifiers and numbering | `project.settings.set` (the numbering schemes and the cross-reference format) | — |
 | 6 Structure and sections | `structure.create_node`, `section.create` | — |
 | 7 Revisions | `revision.create` (the first revision) | — |
-| 8 Languages and formats | `project.languages.set`: the source and translation languages (`Project.languages`) and the date format and decimal separator (`settings.formatting`); the decimal separator prints in the tables of the generated pages when no output language is set | — |
+| 8 Languages and formats | `project.settings.set`, member `languages`: the source and translation languages (`Project.languages`) and the date format and decimal separator (`settings.formatting`); the decimal separator prints in the tables of the generated pages when no output language is set | — |
 | 9 Reports and checks | report blocks: the standard layout through `report_block.create`, each call with `form_copies` (the form and the title block the form names, embedded from the library in the same transaction; a copy already held at the same version is reused, another version is refused; one undo step removes the block and its new copies): the table of contents on folio 2, the part list on 901, **one** terminal-diagram block on 903 (a basic project has no terminal strips and one block covers all of them, so 904 and 905 are absent), and 906 to 911 (cables, wires, PLC, potentials, device tags, revisions); a title that named a strip or a device uses `{n}`; in the window the check level (`project.checks.set`, below) | a script's template: the check level, which no script sets |
 | 11 Review and create | the basic project directory; the default basic project in the user settings | — |
 

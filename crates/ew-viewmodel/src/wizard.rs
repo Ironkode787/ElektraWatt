@@ -7,9 +7,9 @@
 //!
 //! **What is written.** The wizard builds a basic project (`Project.kind = Basic`) from the built-in one, and only
 //! through model commands (`Session::run_script`): the shipped frame and title-block forms (`library.embed`), the
-//! company (`project.company.set`: the panel-builder party, the title-block notice and the logo as a project asset), the frame defaults (`project.frames.set`), the colour profile (the sample's convention or one of the
+//! company (`project.company.set`: the panel-builder party, the title-block notice and the logo as a project asset), the frame defaults (`project.settings.set`), the colour profile (the sample's convention or one of the
 //! shipped EN 60204-1 and IEC 60445 profiles), the size profile, the numbering schemes and the
-//! cross-reference format (`project.settings.set`), the languages and printed formats (`project.languages.set`),
+//! cross-reference format (`project.settings.set`), the languages and printed formats (`project.settings.set`),
 //! the structure nodes, the sections, the report blocks of the standard layout (`report_block.create`, each
 //! with its form from the library) and the first revision. The check level is validated in the draft and written by
 //! Create in the window: its command, `project.checks.set`, is `HumanOnly` (ADR-0008 amendment 3: it decides a check
@@ -831,7 +831,7 @@ impl Draft {
         self.company_command_with(|logo| ew_api::base64_encode(&logo.bytes))
     }
 
-    /// The frame-defaults command (`project.frames.set`): the frame of the `frame` field for drawn pages, the cover
+    /// The frame-defaults command (`project.settings.set`, member `frames`): the frame of the `frame` field for drawn pages, the cover
     /// frame for title pages, the no-grid frame for the table of contents and the section dividers (doc 03 §5.1; on A3
     /// the A3 frame, `ew_api::shipped_frames`). `None` when a shipped form does not parse.
     fn frames_command(&self) -> Option<(&'static str, Value)> {
@@ -840,17 +840,23 @@ impl Draft {
             "qet-a3-grid" => A3_GRID_FRAME,
             _ => GRID_FRAME,
         };
-        Some(("project.frames.set", ew_api::shipped_frames(default)?))
+        Some((
+            "project.settings.set",
+            json!({ "member": "frames", "value": ew_api::shipped_frames(default)? }),
+        ))
     }
 
-    /// The languages and formats command (`project.languages.set`).
+    /// The languages and formats command (`project.settings.set`, member `languages`).
     fn languages_command(&self) -> (&'static str, Value) {
         (
-            "project.languages.set",
+            "project.settings.set",
             json!({
-                "source": self.get("language"),
-                "date": self.get("date_format"),
-                "decimal_separator": self.get("decimal"),
+                "member": "languages",
+                "value": {
+                    "source": self.get("language"),
+                    "date": self.get("date_format"),
+                    "decimal_separator": self.get("decimal"),
+                },
             }),
         )
     }
@@ -1784,12 +1790,12 @@ mod tests {
             names,
             [
                 "library.embed",
-                "project.frames.set",
                 "project.settings.set",
                 "project.settings.set",
                 "project.settings.set",
                 "project.settings.set",
-                "project.languages.set",
+                "project.settings.set",
+                "project.settings.set",
                 "structure.create_node",
                 "section.create",
                 "section.create",
@@ -1850,14 +1856,14 @@ mod tests {
             Some(SHIPPED_FORMS.len()),
             "every shipped form parses and is embedded"
         );
-        let frames = &cmds[1].1;
+        let frames = &cmds[1].1["value"];
         assert_eq!(frames["default"], shipped_form_id(GRID_FRAME).unwrap());
         assert_eq!(
             frames["per_page_type"][0]["form"],
             shipped_form_id(ew_api::output::COVER_FRAME).unwrap()
         );
         assert_eq!(
-            cmds[6].1,
+            cmds[6].1["value"],
             json!({"source": "en", "date": "dd_mm_yyyy", "decimal_separator": "point"})
         );
         let numbering = &cmds[4].1["value"];
@@ -1897,7 +1903,9 @@ mod tests {
         let written: Vec<&Value> = cmds
             .iter()
             .filter(|(n, p)| {
-                *n == "project.settings.set" && p["member"] != "numbering" && p["member"] != "text_styles"
+                *n == "project.settings.set"
+                    && !["numbering", "text_styles", "frames", "languages"]
+                        .contains(&p["member"].as_str().unwrap_or_default())
             })
             .map(|(_, p)| &p["value"])
             .collect();
@@ -1917,7 +1925,10 @@ mod tests {
             .filter(|(n, _)| *n == "project.settings.set")
             .filter_map(|(_, p)| p["member"].as_str())
             .collect();
-        assert_eq!(members, ["numbering", "xref_format", "text_styles"]);
+        assert_eq!(
+            members,
+            ["frames", "numbering", "xref_format", "text_styles", "languages"]
+        );
         assert_eq!(
             cmds.iter().filter(|(n, _)| *n == "structure.create_node").count(),
             2
@@ -1935,10 +1946,16 @@ mod tests {
             company.1,
             json!({"name": "Example Panels", "notice": "Property of Example Panels."})
         );
-        let frames = cmds.iter().find(|(n, _)| *n == "project.frames.set").unwrap();
-        assert_eq!(frames.1["default"], shipped_form_id(NOGRID_FRAME).unwrap());
-        let languages = cmds.iter().find(|(n, _)| *n == "project.languages.set").unwrap();
-        assert_eq!(languages.1["date"], "iso8601");
+        let member = |m: &str| {
+            cmds.iter()
+                .find(|(n, p)| *n == "project.settings.set" && p["member"] == m)
+                .unwrap()
+        };
+        assert_eq!(
+            member("frames").1["value"]["default"],
+            shipped_form_id(NOGRID_FRAME).unwrap()
+        );
+        assert_eq!(member("languages").1["value"]["date"], "iso8601");
         assert_ne!(c.preview_key(), Draft::default().preview_key());
         // A field that is only kept in the draft (the check scheme) does not change the preview or the commands.
         let mut e = Draft::default();

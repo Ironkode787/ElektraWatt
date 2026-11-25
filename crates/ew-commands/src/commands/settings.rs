@@ -1,17 +1,23 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `project.settings.set` (`SetProjectSettings`): edits one whitelisted member of `ProjectSettings`
-//! (doc 03 §5.1), previewed like a renumber because one stored value changes many derived ones.
+//! `project.settings.set` (`SetProjectSettings`): edits one member of the project's settings (doc 03 §5.1), its
+//! drawing settings, frame defaults, languages and formats, or one member of its supply; a member that changes many
+//! derived values is previewed like a renumber.
 
 use ew_derive::Member;
 use schemars::JsonSchema;
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Value, json};
 
 use crate::command::{Command, Outcome};
+use crate::commands::drawing::DRAWING_MEMBER;
+use crate::commands::frames::FRAMES_MEMBER;
+use crate::commands::languages::LANGUAGES_MEMBER;
+use crate::commands::supply::{SETTABLE_SUPPLY, SUPPLY_PREFIX};
 use crate::error::CmdError;
-use crate::meta::CommandMeta;
+use crate::meta::{CommandMeta, Cost};
 use crate::tx::TxBuilder;
 
 /// One member that `project.settings.set` may edit.
@@ -82,14 +88,61 @@ pub const SETTABLE_SETTINGS: &[SettableSetting] = &[
     },
 ];
 
+/// The commands of an earlier version whose parameters are the value of a member of `project.settings.set`, each with
+/// its member: aliases of the command, so that their command logs replay.
+const MEMBER_ALIASES: [(&str, &str); 3] = [
+    ("project.drawing.set", DRAWING_MEMBER),
+    ("project.frames.set", FRAMES_MEMBER),
+    ("project.languages.set", LANGUAGES_MEMBER),
+];
+
+/// The command of an earlier version that set one member of the supply, `{path, value}`: an alias of the command.
+const SUPPLY_ALIAS: &str = "project.supply.set";
+
+/// Every member `project.settings.set` sets, in this order in messages: [`SETTABLE_SETTINGS`], the drawing settings,
+/// the frame defaults, the languages and each member of the supply.
+fn settable_members() -> Vec<String> {
+    SETTABLE_SETTINGS
+        .iter()
+        .map(|s| s.name.to_owned())
+        .chain([DRAWING_MEMBER, FRAMES_MEMBER, LANGUAGES_MEMBER].map(str::to_owned))
+        .chain(SETTABLE_SUPPLY.iter().map(|p| format!("{SUPPLY_PREFIX}{p}")))
+        .collect()
+}
+
+/// `value` as the parameters of the member `member`, or the refusal at `/value` in serde's words.
+pub(crate) fn member_value<T: DeserializeOwned>(member: &str, value: &Value) -> Result<T, CmdError> {
+    serde_json::from_value(value.clone()).map_err(|e| {
+        CmdError::invalid_params(
+            SetProjectSettings::NAME,
+            "/value",
+            text!(
+                "refusal-settings-value",
+                member.to_owned(),
+                crate::error::serde_error_text(&e)
+            ),
+        )
+    })
+}
+
 /// `project.settings.set` (`SetProjectSettings`): sets one member of the project settings.
 ///
-/// `member` must name an entry of [`SETTABLE_SETTINGS`]; any other name is rejected with
-/// [`CmdError::InvalidParams`] at `/member`, listing the settable members. `value` is the member's whole
-/// new value in its JSON shape (doc 03 §5.1), checked with the derivation's parser
-/// ([`ew_derive::check_settings_member`]); a value it does not accept is rejected at `/value` with the
-/// parser's message. A JSON `null` removes the member, so the pinned derivation profile's default applies.
-/// A value equal to the stored one changes nothing.
+/// `member` names an entry of [`SETTABLE_SETTINGS`], `drawing`, `frames`, `languages` or `supply.<path>` for a path
+/// of [`SETTABLE_SUPPLY`]; any other name is rejected with [`CmdError::InvalidParams`] at `/member`, listing the
+/// settable members. For an entry of [`SETTABLE_SETTINGS`], `value` is the member's whole new value in its JSON shape
+/// (doc 03 §5.1), checked with the derivation's parser ([`ew_derive::check_settings_member`]); a value it does not
+/// accept is rejected at `/value` with the parser's message. A JSON `null` removes the member, so the pinned
+/// derivation profile's default applies. A value equal to the stored one changes nothing.
+///
+/// - `drawing`: the drawing settings, merged member by member (`crossings`, `marker_mode`, `wire_numbers`,
+///   `wire_numbering`, `plc_address_at_terminals`; [`crate::commands::drawing`]); `null` removes them all.
+/// - `frames`: the frame defaults `{default, per_page_type}` as a whole ([`crate::commands::frames`]); `null` as `{}`.
+/// - `languages`: the project's languages and printed formats `{source, translations, date, decimal_separator}` as a
+///   whole ([`crate::commands::languages`]); `null` as `{}`.
+/// - `supply.<path>`: one member of the project's supply ([`crate::commands::supply`]); `null` removes an optional
+///   member.
+///
+/// A refusal inside a value names its place below `/value` (`/value/per_page_type/0/page_type`).
 ///
 /// `text_styles` (ADR-0032 decision 6) replaces the whole object: `{"tag.main": {"size": 4000000}}` sets the device
 /// tag style to a 4 mm em height and drops every other override (a dropped key prints with its built-in row again);
@@ -101,12 +154,18 @@ pub const SETTABLE_SETTINGS: &[SettableSetting] = &[
 /// Only the project record changes: no device, page or connection record is touched, so the topology is
 /// identical, and the derived values that follow the member (tags, cross-reference texts, wire
 /// properties) change on every page at once. Bulk: front-ends preview it and show the derived diff
-/// (`ew_commands::derived_diff`, `Session::derived_diff`). Undoable as one step. Outcome: none.
+/// (`ew_commands::derived_diff`, `Session::derived_diff`); a change of the drawing settings is interactive. Undoable
+/// as one step. Outcome: none.
+///
+/// The commands `project.drawing.set`, `project.frames.set` and `project.languages.set` of an earlier version are
+/// aliases, their parameters the value of their member; `project.supply.set {path, value}` is an alias too, as the
+/// member `supply.<path>`.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SetProjectSettings {
     /// The member to set: a name of the settable table (`numbering`, `colour_profile`, `size_profile`,
-    /// `xref_format`, `text_styles`, `process_tag_scheme`, `fluid`).
+    /// `xref_format`, `text_styles`, `process_tag_scheme`, `fluid`), `drawing`, `frames`, `languages` or
+    /// `supply.<path>` (`supply.u_nom`).
     pub member: String,
     /// The member's new value in its JSON shape; `null` removes it (the profile's default applies).
     pub value: Value,
@@ -116,19 +175,58 @@ impl Command for SetProjectSettings {
     const NAME: &'static str = "project.settings.set";
 
     fn meta() -> CommandMeta {
-        CommandMeta::edit(Self::NAME).bulk()
+        CommandMeta {
+            aliases: &[
+                "project.drawing.set",
+                "project.frames.set",
+                "project.languages.set",
+                SUPPLY_ALIAS,
+            ],
+            ..CommandMeta::edit(Self::NAME).bulk()
+        }
+    }
+
+    fn cost(&self, _model: &ew_model::Model) -> Cost {
+        if self.member == DRAWING_MEMBER {
+            Cost::Interactive
+        } else {
+            Cost::Bulk
+        }
+    }
+
+    fn alias_params(alias: &str, params: Value) -> Value {
+        if let Some((_, member)) = MEMBER_ALIASES.iter().find(|(a, _)| *a == alias) {
+            return json!({ "member": member, "value": params });
+        }
+        if alias == SUPPLY_ALIAS
+            && let (Some(Value::String(path)), Some(value)) = (params.get("path"), params.get("value"))
+        {
+            return json!({ "member": format!("{SUPPLY_PREFIX}{path}"), "value": value });
+        }
+        params
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        match self.member.as_str() {
+            DRAWING_MEMBER => return crate::commands::drawing::set(tx, &self.value),
+            FRAMES_MEMBER => return crate::commands::frames::set(tx, &self.value),
+            LANGUAGES_MEMBER => return crate::commands::languages::set(tx, &self.value),
+            m => {
+                if let Some(path) = m.strip_prefix(SUPPLY_PREFIX)
+                    && SETTABLE_SUPPLY.contains(&path)
+                {
+                    return crate::commands::supply::set(tx, path, &self.value);
+                }
+            }
+        }
         let Some(spec) = SETTABLE_SETTINGS.iter().find(|s| s.name == self.member) else {
-            let settable: Vec<&str> = SETTABLE_SETTINGS.iter().map(|s| s.name).collect();
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/member",
                 text!(
                     "refusal-settings-member-unknown",
                     self.member.to_string(),
-                    settable.join(", ")
+                    settable_members().join(", ")
                 ),
             ));
         };

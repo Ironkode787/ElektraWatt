@@ -148,8 +148,8 @@ fn a_dutch_project_prints_its_list_heads_and_title_block_labels_in_dutch() {
     let mut s = common::sample();
     common::run_cmd(
         &mut s,
-        "project.languages.set",
-        json!({"source": "nl-NL", "date": "dd_mm_yyyy", "decimal_separator": "comma"}),
+        "project.settings.set",
+        json!({ "member": "languages", "value": {"source": "nl-NL", "date": "dd_mm_yyyy", "decimal_separator": "comma"} }),
     );
     let nl: LangTag = "nl-NL".parse().expect("a tag");
     let page = pages_of(&s, 907)[0];
@@ -284,7 +284,11 @@ fn a_new_list_starts_on_the_frame_most_pages_print_on() {
     assert_eq!(s.new_list_form(), None, "the sample is on the starter forms");
     let (own, json) = own_frame(&s);
     common::run_cmd(&mut s, "library.embed", json!({ "copies": [json] }));
-    common::run_cmd(&mut s, "project.frames.set", json!({}));
+    common::run_cmd(
+        &mut s,
+        "project.settings.set",
+        json!({ "member": "frames", "value": {} }),
+    );
     let q = s.query();
     let pages: Vec<String> = q
         .pages()
@@ -322,7 +326,11 @@ fn a_new_list_starts_on_the_frame_most_pages_print_on() {
     assert!(!rest.is_empty());
     // Frame defaults on a starter frame: a new list starts on the starter frame.
     let starter = ew_api::shipped_frames(ew_api::output::GRID_FRAME).expect("the shipped frames");
-    common::run_cmd(&mut s, "project.frames.set", starter);
+    common::run_cmd(
+        &mut s,
+        "project.settings.set",
+        json!({ "member": "frames", "value": starter }),
+    );
     assert_eq!(s.new_list_form(), None);
 }
 
@@ -332,7 +340,11 @@ fn a_new_list_starts_on_the_frame_most_pages_print_on() {
 fn a_set_on_a3_prints_its_lists_on_a3() {
     let mut s = common::sample();
     let a3 = ew_api::shipped_frames(ew_api::output::A3_GRID_FRAME).expect("the shipped frames");
-    common::run_cmd(&mut s, "project.frames.set", a3);
+    common::run_cmd(
+        &mut s,
+        "project.settings.set",
+        json!({ "member": "frames", "value": a3 }),
+    );
     let q = s.query();
     let page = pages_of(&s, 907)[0];
     let frame = q.get::<PageFrameOf>(page).as_ref().clone().expect("a frame");

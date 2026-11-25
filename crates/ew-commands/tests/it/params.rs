@@ -189,8 +189,8 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"config_project": DEV_T1.to_string(), "profile": "iec-61131-3"}),
         ),
         (
-            "project.supply.set",
-            json!({"path": "origin.source", "value": null}),
+            "project.settings.set",
+            json!({"member": "supply.origin.source", "value": null}),
         ),
         ("library.embed", json!({"copies": [{"$k": "form"}]})),
         (
@@ -252,13 +252,13 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"name": "Example Panels", "notice": "Property of Example Panels."}),
         ),
         (
-            "project.frames.set",
-            json!({"default": FORM.to_string(),
-                "per_page_type": [{"page_type": "title_page", "form": FORM.to_string()}]}),
+            "project.settings.set",
+            json!({"member": "frames", "value": {"default": FORM.to_string(),
+                "per_page_type": [{"page_type": "title_page", "form": FORM.to_string()}]}}),
         ),
         (
-            "project.languages.set",
-            json!({"source": "en", "date": "dd_mm_yyyy", "decimal_separator": "point"}),
+            "project.settings.set",
+            json!({"member": "languages", "value": {"source": "en", "date": "dd_mm_yyyy", "decimal_separator": "point"}}),
         ),
         ("project.checks.set", json!({"release_scheme": "pre-delivery"})),
         (
@@ -286,8 +286,8 @@ fn examples() -> Vec<(&'static str, Value)> {
                 "pin_map": [{"symbol_cp": 0, "function_cp": 1}], "copies": [{"$k": "symbol"}]}),
         ),
         (
-            "project.drawing.set",
-            json!({"crossings": "hops", "marker_mode": "explicit"}),
+            "project.settings.set",
+            json!({"member": "drawing", "value": {"crossings": "hops", "marker_mode": "explicit"}}),
         ),
         (
             "fields.set_many",

@@ -209,7 +209,7 @@ fn sample_model() -> &'static Model {
 ///
 /// - One waiver, so that `check.unwaive` has a record to remove from the first step on. Its fingerprint matches no
 ///   finding.
-/// - The project's supply (400 V, three phases with N and PE, as 101 draws it), which `project.supply.set` edits: a new
+/// - The project's supply (400 V, three phases with N and PE, as 101 draws it), which `project.settings.set` edits: a new
 ///   project has none.
 /// - A released revision before the open one, which `revision.withdraw` withdraws: a release is the person's.
 /// - A project-local part copy, which `part.edit_copy` edits in place: the sample's copies come from the starter
@@ -1790,7 +1790,7 @@ fn valve_add_with_a_valve_part_counts_its_valve_functions() {
 
 // The placement and arrangement steps on the sample: the `from_part` and `new_terminal` targets of
 /// `device.place`, the `from_part` target of `box.black`, `rep.move` by grid steps, `rep.exchange_symbol`,
-/// `project.drawing.set`, `connection.draw_to_ip`, `ip.arrange` and `box.reshape` are all generated, and each kind
+/// `project.settings.set`, `connection.draw_to_ip`, `ip.arrange` and `box.reshape` are all generated, and each kind
 /// commits at least once and is refused at least once where the arm builds refusals (the invariants are checked by
 /// `apply`; each committed step is undone, and the undo restores the sample, so every attempt starts from the sample).
 ///
@@ -1810,7 +1810,7 @@ const PLACEMENT_GROUPS: [PlacementGroup; 3] = [
         ("box.black", 200, &["box.black from_part"]),
         ("rep.move", 120, &["rep.move steps"]),
         ("rep.exchange_symbol", 200, &["rep.exchange_symbol"]),
-        ("project.drawing.set", 40, &["project.drawing.set"]),
+        ("project.settings.set", 40, &["project.settings.set"]),
     ],
     &[
         ("connection.draw_to_ip", 300, &["connection.draw_to_ip"]),
@@ -1832,7 +1832,7 @@ fn the_placement_groups_hold_every_command_and_kind_once() {
             ("box.black", 200),
             ("rep.move", 120),
             ("rep.exchange_symbol", 200),
-            ("project.drawing.set", 40),
+            ("project.settings.set", 40),
             ("connection.draw_to_ip", 300),
             ("ip.arrange", 200),
             ("box.reshape", 200),
@@ -1850,7 +1850,7 @@ fn the_placement_groups_hold_every_command_and_kind_once() {
             "box.black from_part",
             "rep.move steps",
             "rep.exchange_symbol",
-            "project.drawing.set",
+            "project.settings.set",
             "connection.draw_to_ip",
             "ip.arrange",
             "box.reshape",

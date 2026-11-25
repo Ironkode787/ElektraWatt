@@ -494,8 +494,8 @@ impl ShellModel {
                 json!({ "member": m, "value": new }),
             ),
             crate::properties::EditRoute::SupplyMember { path } => (
-                "project.supply.set".to_owned(),
-                json!({ "path": path, "value": new }),
+                "project.settings.set".to_owned(),
+                json!({ "member": format!("supply.{path}"), "value": new }),
             ),
             crate::properties::EditRoute::FieldsSet { kind, path } => {
                 let mut params = json!({ "kind": kind, "targets": targets, "path": path, "value": new });

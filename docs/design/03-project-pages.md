@@ -159,8 +159,8 @@ The schemes below have a fixed record shape. Each is an optional member of `Proj
 member this build does not type is kept in `ProjectSettings.extra`, unchanged
 ([05](05-project-format-and-persistence.md) §10.3). Member names are JSON names,
 and enums use the snake_case encoding of 05 §3.2. Schemes are copied into the project, so the project level wins
-(FR-PRJ-008); `key` and `name` record which scheme the copy came from. Settings members are edited by the previewed command `project.settings.set` (one whitelisted member per command: `numbering`, `colour_profile`, `size_profile`, `xref_format`; [17](17-extensibility.md) §2.1; ADR-0008 amendment 3).
-The "one previewed command" of ADR-0008 amendment 3 has sibling commands for the members it refuses. `project.company.set`, `project.frames.set` and `project.languages.set` are `Edit`; `project.checks.set` is `HumanOnly`, because a check scheme decides check outcomes ([17](17-extensibility.md) §2.3). The whitelist of `project.settings.set` is unchanged.
+(FR-PRJ-008); `key` and `name` record which scheme the copy came from. Settings members are edited by the previewed command `project.settings.set` (one member per command: `numbering`, `colour_profile`, `size_profile`, `xref_format` and the others of its table, the drawing settings, the frame defaults, the languages and formats, and one member of the supply; [17](17-extensibility.md) §2.1; ADR-0008 amendment 3).
+The "one previewed command" of ADR-0008 amendment 3 has sibling commands for the members it refuses. `project.company.set` is `Edit`; `project.checks.set` is `HumanOnly`, because a check scheme decides check outcomes ([17](17-extensibility.md) §2.3).
 
 | Member | Shape | In the sample project |
 |---|---|---|
@@ -260,28 +260,28 @@ defaults in the page output as well (`PageFrameOf`, [09](09-reports-forms-output
 
 **Stored shapes written by commands.** No new record kind and no
 schema change: each member below already existed and is still kept in `extra` where it was ([05](05-project-format-and-persistence.md)
-§10.3). The four commands below write them:
+§10.3). The commands below write them:
 
 | Command | Stored at | Shape and rules |
 |---|---|---|
-| `project.frames.set` | `settings.extra.frames` | `{default?: Id<FormDef>, per_page_type: [{page_type, form}]}` as `FrameDefaults` above, entries sorted by page type. `per_page_type` is always written, `[]` when empty. The command merges into the existing object (unknown members are kept) and refuses a non-object value. Each form must be an embedded copy of kind frame, cover or divider; a `report` form and a duplicate page type are refused |
+| `project.settings.set`, member `frames` | `settings.extra.frames` | `{default?: Id<FormDef>, per_page_type: [{page_type, form}]}` as `FrameDefaults` above, entries sorted by page type. `per_page_type` is always written, `[]` when empty. The command merges into the existing object (unknown members are kept) and refuses a non-object value. Each form must be an embedded copy of kind frame, cover or divider; a `report` form and a duplicate page type are refused |
 | `project.checks.set` | `settings.extra.checks` | `{active_scheme?, release_scheme?}`, shipped schemes only (an `ew-api` test pins the accepted list against `ew_checks::SCHEMES`). This is the start of `CheckSettings` (§19), not all of it. `ew check` reads it without `--scheme` (`release_scheme` for mode `release`, `active_scheme` for `online`); the release gate and the message panel do not read it |
 | `project.company.set` | the first `Party` of role `panel_builder` in `Project.parties` (added if absent); `Project.extra["ew.company"].notice` and `.logo` | The party's `name` and `personal_data` (true by default; NFR-PRIV-06; nothing reads it). The title-block notice text is the `notice` member of `ew.company`, which the `title_block` member reads. `logo` is an asset reference, `ew.company.logo = {sha256, format, size}` (`format` `svg`, `png` or `jpeg`, `size` `[w, h]` absent when unknown); the command takes the image as base64 (SVG, PNG or JPEG, at most 512 KiB, `MAX_LOGO_BYTES`; empty removes it), and the bytes join the project's asset store, `assets/<sha256>.<ext>` ([05](05-project-format-and-persistence.md) §13.3). The bare form `"logo": "sha256:…"` of an older file is read and kept on re-save, taking its format and size from the held asset ([05](05-project-format-and-persistence.md) §10.3) |
-| `project.languages.set` | `Project.languages{source, translations}` and `settings.formatting{date, decimal_separator}` | The typed members, sent whole; `tag_case` is untouched. `decimal_separator` is read by `ew_reports::render` for a quantity printed without an output language (the printed tables of the generated pages); an output language keeps its own separator |
+| `project.settings.set`, member `languages` | `Project.languages{source, translations}` and `settings.formatting{date, decimal_separator}` | The typed members, sent whole; `tag_case` is untouched. `decimal_separator` is read by `ew_reports::render` for a quantity printed without an output language (the printed tables of the generated pages); an output language keeps its own separator |
 
 **`settings.extra.drawing`.** The presentation settings of the
 drawing, kept in `ProjectSettings.extra` like `frames` and `checks` (no schema change): an object
 `{"crossings"?: "plain" | "hops", "marker_mode"?: "all" | "deviations" | "explicit" | "none"}`. `crossings`
 (FR-CON-031) says how crossing wires are drawn; absent means `plain`. `marker_mode` (FR-CON-024) selects which
 wire markers print; **absent means** a marker where the connection's `show_marker` is set, and the
-modes are defined in §6 (derivation). The command `project.drawing.set` writes the member
-(`Edit`, undoable): it merges into the existing object, keeps members it does not know and takes `null` to remove a
+modes are defined in §6 (derivation). The member `drawing` of `project.settings.set` writes it
+(interactive, undoable): it merges into the existing object, keeps members it does not know and takes `null` to remove a
 member; it refuses a `drawing` member that is not an object, an unknown value and a call that gives no member.
 `crossings` is presentation only (no derived diff); `marker_mode` is read by the derivation, so changing it changes the
 derived marker texts. The per-page marker mode of FR-CON-024 is not built.
 `wire_numbers?: bool` prints every wire's number on its pages, the PDF and print; absent (or anything but
 `true`) means no numbers. It is read by the page view (`ew_derive::connection_number`, the number of the wire a
-connection belongs to; a cable's core prints none) and set by `project.drawing.set` like the other members (`null`
+connection belongs to; a cable's core prints none) and set by `project.settings.set` like the other members (`null`
 removes it), in the window by Draw ▸ Connect ▸ Print wire numbers and by its checkbox in the Main group of the
 project's Properties, each with a toast that says what it now is for the whole project. It is an additive member of
 this open object (ADR-0011 decision 6): an older build keeps the member in `extra` and prints no numbers.

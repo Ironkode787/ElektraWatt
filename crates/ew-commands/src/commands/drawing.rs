@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `project.drawing.set` (`SetDrawing`, FR-CON-031): the project's drawing settings, the member
+//! The member `drawing` of `project.settings.set` (FR-CON-031): the project's drawing settings, the member
 //! `drawing` of the project settings' `extra` (doc 03 §5.1): `crossings`, `marker_mode`, `wire_numbers`, `wire_numbering` and
 //! `plc_address_at_terminals`.
 
@@ -10,8 +10,8 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Map, Value};
 
 use crate::command::{Command, Outcome};
+use crate::commands::settings::{SetProjectSettings, member_value};
 use crate::error::CmdError;
-use crate::meta::CommandMeta;
 use crate::tx::TxBuilder;
 
 /// The member of `ProjectSettings.extra` that holds the drawing settings: an object, such as `{"crossings": "hops"}`.
@@ -57,7 +57,8 @@ fn present<'de, D: Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<Optio
     Option::<T>::deserialize(d).map(Some)
 }
 
-/// `project.drawing.set` (`SetDrawing`): writes the drawing settings `settings.extra.drawing` (doc 03 §5.1).
+/// The value of the member `drawing` of `project.settings.set`: the drawing settings `settings.extra.drawing` (doc 03
+/// §5.1).
 ///
 /// The given members are merged into the object: a value sets the member, `null` removes it; members of the
 /// object this command does not know are kept. An object left empty is removed. `crossings` (`plain` or `hops`,
@@ -70,11 +71,11 @@ fn present<'de, D: Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<Optio
 /// address of a traced channel in the `PlcAddress` slot of every terminal its signal passes; absent means none.
 /// Presentation only: no record changes meaning (the drawing and the
 /// marker derivation read the members). Rejected: a `drawing` member of the project settings that is not an
-/// object (a newer or damaged format; the command never overwrites it); an unknown value (invalid); no member
-/// given (invalid at the root). Interactive. Outcome: none.
+/// object (a newer or damaged format; the command never overwrites it); an unknown value (invalid at `/value`); no
+/// member given (invalid at `/value`). A `null` value removes the drawing settings.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct SetDrawing {
+struct DrawingValue {
     /// How crossing wires are drawn: `plain` or `hops`; `null` removes the member (plain).
     #[serde(
         default,
@@ -82,7 +83,7 @@ pub struct SetDrawing {
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(with = "Option<Crossings>")]
-    pub crossings: Option<Option<Crossings>>,
+    crossings: Option<Option<Crossings>>,
     /// Which wires carry a wire marker: `all`, `deviations`, `explicit` or `none`; `null` removes the member (the
     /// as-built `show_marker` rule).
     #[serde(
@@ -91,7 +92,7 @@ pub struct SetDrawing {
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(with = "Option<MarkerModeParam>")]
-    pub marker_mode: Option<Option<MarkerModeParam>>,
+    marker_mode: Option<Option<MarkerModeParam>>,
     /// Whether every wire prints its number on the page; `null` removes the member (no numbers).
     #[serde(
         default,
@@ -99,7 +100,7 @@ pub struct SetDrawing {
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(with = "Option<bool>")]
-    pub wire_numbers: Option<Option<bool>>,
+    wire_numbers: Option<Option<bool>>,
     /// What a wire's number is: `per_wire` or `per_potential`; `null` removes the member (per wire).
     #[serde(
         default,
@@ -107,7 +108,7 @@ pub struct SetDrawing {
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(with = "Option<WireNumbering>")]
-    pub wire_numbering: Option<Option<WireNumbering>>,
+    wire_numbering: Option<Option<WireNumbering>>,
     /// Whether a terminal on a traced channel's path prints the channel's address; `null` removes the member (none).
     #[serde(
         default,
@@ -115,7 +116,7 @@ pub struct SetDrawing {
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(with = "Option<bool>")]
-    pub plc_address_at_terminals: Option<Option<bool>>,
+    plc_address_at_terminals: Option<Option<bool>>,
 }
 
 /// Sets (`Some`) or removes (`None`) one member of the drawing object.
@@ -130,7 +131,7 @@ fn put_member<T: Serialize>(
         }
         Some(v) => {
             let v = serde_json::to_value(v).map_err(|e| {
-                CmdError::internal(format!("project.drawing.set: cannot serialise `{name}` ({e})"))
+                CmdError::internal(format!("project.settings.set: cannot serialise `{name}` ({e})"))
             })?;
             drawing.insert(name.to_owned(), v);
         }
@@ -138,58 +139,57 @@ fn put_member<T: Serialize>(
     Ok(())
 }
 
-impl Command for SetDrawing {
-    const NAME: &'static str = "project.drawing.set";
-
-    fn meta() -> CommandMeta {
-        CommandMeta::edit(Self::NAME)
-    }
-
-    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
-        if self.crossings.is_none()
-            && self.marker_mode.is_none()
-            && self.wire_numbers.is_none()
-            && self.wire_numbering.is_none()
-            && self.plc_address_at_terminals.is_none()
-        {
-            return Err(CmdError::invalid_params(
-                Self::NAME,
-                "",
-                text!("refusal-drawing-no-member"),
-            ));
-        }
-        let mut project = (*tx.project()).clone();
-        let mut drawing = match project.settings.extra.get(DRAWING_MEMBER) {
-            None => Map::new(),
-            Some(Value::Object(m)) => m.clone(),
-            Some(_) => {
-                return tx.reject(text!("refusal-drawing-member-not-object", DRAWING_MEMBER));
-            }
-        };
-        if let Some(crossings) = self.crossings {
-            put_member(&mut drawing, "crossings", crossings)?;
-        }
-        if let Some(mode) = self.marker_mode {
-            put_member(&mut drawing, "marker_mode", mode)?;
-        }
-        if let Some(on) = self.wire_numbers {
-            put_member(&mut drawing, "wire_numbers", on)?;
-        }
-        if let Some(scheme) = self.wire_numbering {
-            put_member(&mut drawing, "wire_numbering", scheme)?;
-        }
-        if let Some(on) = self.plc_address_at_terminals {
-            put_member(&mut drawing, "plc_address_at_terminals", on)?;
-        }
-        if drawing.is_empty() {
-            project.settings.extra.remove(DRAWING_MEMBER);
-        } else {
-            project
-                .settings
-                .extra
-                .insert(DRAWING_MEMBER.to_owned(), Value::Object(drawing));
-        }
+/// Sets the drawing settings to `value`, the value of the member `drawing` of `project.settings.set` ([`DrawingValue`]).
+pub(crate) fn set(tx: &mut TxBuilder<'_>, value: &Value) -> Result<Outcome, CmdError> {
+    let mut project = (*tx.project()).clone();
+    if value.is_null() {
+        project.settings.extra.remove(DRAWING_MEMBER);
         tx.set_project(project)?;
-        Ok(Outcome::default())
+        return Ok(Outcome::default());
     }
+    let v: DrawingValue = member_value(DRAWING_MEMBER, value)?;
+    if v.crossings.is_none()
+        && v.marker_mode.is_none()
+        && v.wire_numbers.is_none()
+        && v.wire_numbering.is_none()
+        && v.plc_address_at_terminals.is_none()
+    {
+        return Err(CmdError::invalid_params(
+            SetProjectSettings::NAME,
+            "/value",
+            text!("refusal-drawing-no-member"),
+        ));
+    }
+    let mut drawing = match project.settings.extra.get(DRAWING_MEMBER) {
+        None => Map::new(),
+        Some(Value::Object(m)) => m.clone(),
+        Some(_) => {
+            return tx.reject(text!("refusal-drawing-member-not-object", DRAWING_MEMBER));
+        }
+    };
+    if let Some(crossings) = v.crossings {
+        put_member(&mut drawing, "crossings", crossings)?;
+    }
+    if let Some(mode) = v.marker_mode {
+        put_member(&mut drawing, "marker_mode", mode)?;
+    }
+    if let Some(on) = v.wire_numbers {
+        put_member(&mut drawing, "wire_numbers", on)?;
+    }
+    if let Some(scheme) = v.wire_numbering {
+        put_member(&mut drawing, "wire_numbering", scheme)?;
+    }
+    if let Some(on) = v.plc_address_at_terminals {
+        put_member(&mut drawing, "plc_address_at_terminals", on)?;
+    }
+    if drawing.is_empty() {
+        project.settings.extra.remove(DRAWING_MEMBER);
+    } else {
+        project
+            .settings
+            .extra
+            .insert(DRAWING_MEMBER.to_owned(), Value::Object(drawing));
+    }
+    tx.set_project(project)?;
+    Ok(Outcome::default())
 }

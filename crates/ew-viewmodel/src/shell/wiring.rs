@@ -419,7 +419,7 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // Crossings
 
-    /// `project.crossings {on?}`: commits `project.drawing.set` with `crossings: hops`, or with `null` (the
+    /// `project.crossings {on?}`: commits the drawing setting (`project.settings.set`) with `crossings: hops`, or with `null` (the
     /// member removed: plain, as a project without the setting) to turn it off; without `on` it toggles.
     pub(crate) fn act_crossings(&mut self, p: &Map<String, Value>) -> Outcome {
         let on = if p.contains_key("on") {
@@ -429,13 +429,13 @@ impl ShellModel {
         };
         let crossings = if on { json!("hops") } else { Value::Null };
         let cmd = ew_api::AnyCommand {
-            name: "project.drawing.set".into(),
-            params: json!({ "crossings": crossings }),
+            name: "project.settings.set".into(),
+            params: json!({ "member": "drawing", "value": { "crossings": crossings } }),
         };
         self.run_commit(&cmd)
     }
 
-    /// `project.wire_numbers {on?}` (Draw ▸ Connect ▸ Print wire numbers): commits `project.drawing.set`
+    /// `project.wire_numbers {on?}` (Draw ▸ Connect ▸ Print wire numbers): commits the drawing setting (`project.settings.set`)
     /// with `wire_numbers: true`, or with `null` (the member removed: no numbers, as a project without the setting) to
     /// turn it off; without `on` it toggles. The pages, the PDF and print follow the setting; a toast says what it now
     /// is, for the whole project.
@@ -446,8 +446,8 @@ impl ShellModel {
             !self.wire_numbers_on()
         };
         let cmd = ew_api::AnyCommand {
-            name: "project.drawing.set".into(),
-            params: json!({ "wire_numbers": if on { json!(true) } else { Value::Null } }),
+            name: "project.settings.set".into(),
+            params: json!({ "member": "drawing", "value": { "wire_numbers": if on { json!(true) } else { Value::Null } } }),
         };
         let out = self.run_commit(&cmd);
         if out == Outcome::Done {
@@ -462,7 +462,7 @@ impl ShellModel {
     }
 
     /// `project.wire_numbering {on?}` (Draw ▸ Connect ▸ Number wires by potential, doc 08 §5.2): commits
-    /// `project.drawing.set` with `wire_numbering: per_potential` (every wire of a potential prints its potential's
+    /// the drawing setting (`project.settings.set`) with `wire_numbering: per_potential` (every wire of a potential prints its potential's
     /// code), or with `null` (each wire its own number) to turn it off; without `on` it toggles. A toast says what the
     /// wires now get, and while Print wire numbers is off that the numbers show once it is on.
     pub(crate) fn act_wire_numbering(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -472,8 +472,11 @@ impl ShellModel {
             !self.wire_numbering_per_potential()
         };
         let cmd = ew_api::AnyCommand {
-            name: "project.drawing.set".into(),
-            params: json!({ "wire_numbering": if on { json!("per_potential") } else { Value::Null } }),
+            name: "project.settings.set".into(),
+            params: json!({
+                "member": "drawing",
+                "value": { "wire_numbering": if on { json!("per_potential") } else { Value::Null } },
+            }),
         };
         let out = self.run_commit(&cmd);
         if out == Outcome::Done {
@@ -514,7 +517,7 @@ impl ShellModel {
                 },
                 actions: vec![RowAction::Edit],
                 route: crate::properties::EditRoute::Command {
-                    command: "project.drawing.set".to_owned(),
+                    command: "project.settings.set".to_owned(),
                 },
                 identifier: false,
                 source: None,
@@ -549,7 +552,7 @@ impl ShellModel {
     }
 
     /// `project.plc_addresses_at_terminals {on?}` (Project ▸ Channel addresses at terminals, FR-PLC-018, doc 10 §3.5):
-    /// commits `project.drawing.set` with `plc_address_at_terminals: true`, or `null` to turn it off; without `on` it
+    /// commits the drawing setting (`project.settings.set`) with `plc_address_at_terminals: true`, or `null` to turn it off; without `on` it
     /// toggles. A terminal on a traced channel's path then prints the channel's address in its `PlcAddress` slot.
     pub(crate) fn act_plc_addresses_at_terminals(&mut self, p: &Map<String, Value>) -> Outcome {
         let on = if p.contains_key("on") {
@@ -558,8 +561,11 @@ impl ShellModel {
             !self.plc_addresses_at_terminals_on()
         };
         let cmd = ew_api::AnyCommand {
-            name: "project.drawing.set".into(),
-            params: json!({ "plc_address_at_terminals": if on { json!(true) } else { Value::Null } }),
+            name: "project.settings.set".into(),
+            params: json!({
+                "member": "drawing",
+                "value": { "plc_address_at_terminals": if on { json!(true) } else { Value::Null } },
+            }),
         };
         self.run_commit(&cmd)
     }

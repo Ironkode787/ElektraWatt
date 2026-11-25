@@ -474,8 +474,8 @@ fn a_page_without_a_form_takes_the_frame_defaults_in_the_page_output() {
     assert_eq!(frame_of_folio_1(&session), nogrid, "the no-grid frame by key");
     run_cmd(
         &mut session,
-        "project.frames.set",
-        serde_json::json!({ "default": grid }),
+        "project.settings.set",
+        serde_json::json!({ "member": "frames", "value": { "default": grid } }),
     );
     assert_eq!(
         frame_of_folio_1(&session).0.as_deref(),
@@ -484,11 +484,11 @@ fn a_page_without_a_form_takes_the_frame_defaults_in_the_page_output() {
     );
     run_cmd(
         &mut session,
-        "project.frames.set",
-        serde_json::json!({
+        "project.settings.set",
+        serde_json::json!({ "member": "frames", "value": {
             "default": grid,
             "per_page_type": [{ "page_type": "multi_line", "form": cover }],
-        }),
+        } }),
     );
     assert_eq!(
         frame_of_folio_1(&session).0.as_deref(),
@@ -926,15 +926,15 @@ fn the_wire_numbers_member_is_additive() {
     assert_eq!(project_text(&dir), before, "opened and saved unchanged");
     run_cmd(
         &mut s,
-        "project.drawing.set",
-        serde_json::json!({"wire_numbers": true}),
+        "project.settings.set",
+        serde_json::json!({ "member": "drawing", "value": {"wire_numbers": true} }),
     );
     s.save().unwrap();
     assert!(project_text(&dir).contains("\"wire_numbers\":true"));
     run_cmd(
         &mut s,
-        "project.drawing.set",
-        serde_json::json!({"wire_numbers": null}),
+        "project.settings.set",
+        serde_json::json!({ "member": "drawing", "value": {"wire_numbers": null} }),
     );
     s.save().unwrap();
     assert_eq!(

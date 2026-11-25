@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The company-standard commands: `project.company.set`, `project.frames.set`,
-//! `project.languages.set` and `project.checks.set` (doc 16 §9.2 steps 1, 2, 8 and 9).
+//! The company-standard commands: `project.company.set`, the members `frames` and `languages` of
+//! `project.settings.set` and `project.checks.set` (doc 16 §9.2 steps 1, 2, 8 and 9).
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
@@ -48,18 +48,22 @@ fn rejected(e: &mut Engine, cmd: &dyn DynCommand) -> String {
     }
 }
 
+/// `project.settings.set` of the member `m` to `value`.
+fn member(m: &str, value: Value) -> AnyCommand {
+    any("project.settings.set", json!({ "member": m, "value": value }))
+}
+
 fn settings_member(e: &Engine, member: &str) -> Option<Value> {
     e.model().project().settings.extra.get(member).cloned()
 }
 
-/// The registered metadata: three Bulk `Edit` commands and one interactive `HumanOnly` command, all undoable.
+/// The registered metadata: two Bulk `Edit` commands and one interactive `HumanOnly` command, all undoable.
 #[test]
 fn the_company_standard_commands_are_registered_with_their_cost_and_exposure() {
     let registry = CommandRegistry::builtin();
     for (name, cost, exposure) in [
         ("project.company.set", Cost::Bulk, Exposure::Edit),
-        ("project.frames.set", Cost::Bulk, Exposure::Edit),
-        ("project.languages.set", Cost::Bulk, Exposure::Edit),
+        ("project.settings.set", Cost::Bulk, Exposure::Edit),
         ("project.checks.set", Cost::Interactive, Exposure::HumanOnly),
     ] {
         let meta = registry
@@ -320,7 +324,7 @@ fn company_set_refuses_a_logo_above_the_limit() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// project.frames.set
+// project.settings.set frames
 
 /// A model whose library also holds a title-block form copy.
 fn with_title_block() -> (Model, Id<FormDef>) {
@@ -340,8 +344,8 @@ fn frames_set_stores_the_frame_defaults_in_page_type_order_and_undoes() {
     let form = FORM.to_string();
     commit(
         &mut e,
-        &any(
-            "project.frames.set",
+        &member(
+            "frames",
             json!({"default": form, "per_page_type": [
                 {"page_type": "title_page", "form": form},
                 {"page_type": "section_divider", "form": form},
@@ -363,13 +367,13 @@ fn frames_set_stores_the_frame_defaults_in_page_type_order_and_undoes() {
     let notes = q.diagnostics().notes();
     assert!(notes.is_empty(), "{notes:?}");
     // A default alone still writes the (empty) entry list, a required member of doc 03 §5.1.
-    commit(&mut e, &any("project.frames.set", json!({"default": form})));
+    commit(&mut e, &member("frames", json!({"default": form})));
     assert_eq!(
         settings_member(&e, "frames"),
         Some(json!({"default": form, "per_page_type": []}))
     );
     // No default and no entry removes the member.
-    commit(&mut e, &any("project.frames.set", json!({})));
+    commit(&mut e, &member("frames", json!({})));
     assert_eq!(settings_member(&e, "frames"), None);
     e.undo(&Origin::Gui).unwrap();
     e.undo(&Origin::Gui).unwrap();
@@ -390,8 +394,8 @@ fn frames_set_keeps_unknown_members_and_refuses_a_foreign_value() {
     let mut e = engine(Model::from_records(project, records, library()).unwrap());
     commit(
         &mut e,
-        &any(
-            "project.frames.set",
+        &member(
+            "frames",
             json!({"per_page_type": [{"page_type": "fluid", "form": form}]}),
         ),
     );
@@ -401,7 +405,7 @@ fn frames_set_keeps_unknown_members_and_refuses_a_foreign_value() {
         "the default is the new value's (none), the newer member stays"
     );
     // With a newer member, an empty value keeps the member with an empty entry list.
-    commit(&mut e, &any("project.frames.set", json!({})));
+    commit(&mut e, &member("frames", json!({})));
     assert_eq!(
         settings_member(&e, "frames"),
         Some(json!({"ew.newer": {"x": 1}, "per_page_type": []}))
@@ -409,7 +413,7 @@ fn frames_set_keeps_unknown_members_and_refuses_a_foreign_value() {
     let (mut project, records, _) = mini_project_parts();
     project.settings.extra.insert("frames".into(), json!("newer"));
     let mut e = engine(Model::from_records(project, records, library()).unwrap());
-    let reason = rejected(&mut e, &any("project.frames.set", json!({"default": form})));
+    let reason = rejected(&mut e, &member("frames", json!({"default": form})));
     assert!(reason.contains("not an object"), "{reason}");
     assert_eq!(settings_member(&e, "frames"), Some(json!("newer")));
 }
@@ -420,59 +424,56 @@ fn frames_set_refuses_bad_forms_and_page_types() {
     let mut e = engine(model);
     let form = FORM.to_string();
     let err = e
-        .preview(&any(
-            "project.frames.set",
+        .preview(&member(
+            "frames",
             json!({"default": id::<FormDef>(0x999).to_string()}),
         ))
         .unwrap_err();
     assert!(matches!(err, CmdError::NotFound { .. }), "{err:?}");
-    let (path, message) = invalid(
-        &mut e,
-        &any("project.frames.set", json!({"default": tb.to_string()})),
-    );
-    assert_eq!(path, "/default");
+    let (path, message) = invalid(&mut e, &member("frames", json!({"default": tb.to_string()})));
+    assert_eq!(path, "/value/default");
     assert!(message.contains("not a frame"), "{message}");
     let (path, _) = invalid(
         &mut e,
-        &any(
-            "project.frames.set",
+        &member(
+            "frames",
             json!({"per_page_type": [{"page_type": "report", "form": form}]}),
         ),
     );
-    assert_eq!(path, "/per_page_type/0/page_type");
+    assert_eq!(path, "/value/per_page_type/0/page_type");
     let (path, message) = invalid(
         &mut e,
-        &any(
-            "project.frames.set",
+        &member(
+            "frames",
             json!({"per_page_type": [
                 {"page_type": "multi_line", "form": form},
                 {"page_type": "multi_line", "form": form},
             ]}),
         ),
     );
-    assert_eq!(path, "/per_page_type/1/page_type");
+    assert_eq!(path, "/value/per_page_type/1/page_type");
     assert!(message.contains("one entry per page type"), "{message}");
     let (path, _) = invalid(
         &mut e,
-        &any(
-            "project.frames.set",
+        &member(
+            "frames",
             json!({"per_page_type": [{"page_type": "multi_line", "form": tb.to_string()}]}),
         ),
     );
-    assert_eq!(path, "/per_page_type/0/form");
-    // The parameter schema refuses a page type it does not know.
+    assert_eq!(path, "/value/per_page_type/0/form");
+    // A page type it does not know is refused at the value.
     let (path, _) = invalid(
         &mut e,
-        &any(
-            "project.frames.set",
+        &member(
+            "frames",
             json!({"per_page_type": [{"page_type": "hologram", "form": form}]}),
         ),
     );
-    assert!(path.starts_with("/per_page_type/0"), "{path}");
+    assert!(path.starts_with("/value"), "{path}");
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// project.languages.set
+// project.settings.set languages
 
 #[test]
 fn languages_set_writes_the_languages_and_the_formats_as_one_value() {
@@ -482,8 +483,8 @@ fn languages_set_writes_the_languages_and_the_formats_as_one_value() {
     let before = lines(e.model());
     commit(
         &mut e,
-        &any(
-            "project.languages.set",
+        &member(
+            "languages",
             json!({"source": "en", "translations": ["nl", "de"], "date": "iso8601", "decimal_separator": "comma"}),
         ),
     );
@@ -506,10 +507,7 @@ fn languages_set_writes_the_languages_and_the_formats_as_one_value() {
         "the tag case is not this command's"
     );
     // Absent members are removed: the value is the whole step.
-    commit(
-        &mut e,
-        &any("project.languages.set", json!({"date": "dd_mm_yyyy"})),
-    );
+    commit(&mut e, &member("languages", json!({"date": "dd_mm_yyyy"})));
     let project = e.model().project().clone();
     assert_eq!(project.languages, None);
     assert_eq!(
@@ -525,30 +523,21 @@ fn languages_set_writes_the_languages_and_the_formats_as_one_value() {
 #[test]
 fn languages_set_refuses_translations_that_do_not_fit() {
     let mut e = engine(mini_model());
-    let (path, _) = invalid(
-        &mut e,
-        &any("project.languages.set", json!({"translations": ["de"]})),
-    );
-    assert_eq!(path, "/translations");
+    let (path, _) = invalid(&mut e, &member("languages", json!({"translations": ["de"]})));
+    assert_eq!(path, "/value/translations");
     let (path, message) = invalid(
         &mut e,
-        &any(
-            "project.languages.set",
-            json!({"source": "en", "translations": ["en"]}),
-        ),
+        &member("languages", json!({"source": "en", "translations": ["en"]})),
     );
-    assert_eq!(path, "/translations");
+    assert_eq!(path, "/value/translations");
     assert!(message.contains("source language"), "{message}");
     let (path, _) = invalid(
         &mut e,
-        &any(
-            "project.languages.set",
-            json!({"source": "en", "translations": ["de", "de"]}),
-        ),
+        &member("languages", json!({"source": "en", "translations": ["de", "de"]})),
     );
-    assert_eq!(path, "/translations");
-    let (path, _) = invalid(&mut e, &any("project.languages.set", json!({"date": "mm/dd/yy"})));
-    assert!(path.starts_with("/date") || path.is_empty(), "{path}");
+    assert_eq!(path, "/value/translations");
+    let (path, _) = invalid(&mut e, &member("languages", json!({"date": "mm/dd/yy"})));
+    assert!(path.starts_with("/value"), "{path}");
 }
 
 // ---------------------------------------------------------------------------------------------------------

@@ -132,7 +132,7 @@ fn a_lists_title_prints_in_the_projects_language_unless_typed() {
     done(
         &mut s,
         "command.run",
-        json!({"cmd": "project.languages.set", "params": {"source": "nl-NL"}}),
+        json!({"cmd": "project.settings.set", "params": {"member": "languages", "value": {"source": "nl-NL"}}}),
     );
     let title = |s: &ew_viewmodel::shell::ShellModel, folio: &str| {
         s.page_rows()

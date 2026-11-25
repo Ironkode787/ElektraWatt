@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `assembly.attach`, `valve.add`, `device.link`, `plc.config_project.create`, `plc.bind_channel`,
-//! `project.supply.set`, `library.embed`, the `assembly`/`plc_station`/`plc_module`/`tag.scheme` paths of
+//! `project.settings.set`'s supply members, `library.embed`, the `assembly`/`plc_station`/`plc_module`/`tag.scheme` paths of
 //! `fields.set` and the channel instantiation normaliser (N1).
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
@@ -12,7 +12,7 @@ use crate::common;
 use common::*;
 use ew_commands::commands::{
     AddValve, AttachChildren, BindChannel, ChildSpec, CreatePlcConfigProject, EmbedLibraryCopies,
-    EndpointParam, KindName, LinkDevices, SetFields, SetProjectSupply,
+    EndpointParam, KindName, LinkDevices, SetFields, SetProjectSettings,
 };
 use ew_commands::{CmdError, Engine, Receipt};
 use ew_ids::Id;
@@ -702,14 +702,20 @@ fn attach_moves_the_counter_of_a_child_tag_with_its_position() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// project.supply.set
+// project.settings.set supply.<path>
 
-/// `project.supply.set` of `path` to `value`: Bulk, so previewed and committed (ADR-0008 amendment 6).
-fn supply(e: &mut Engine, path: &str, value: Value) -> Result<Receipt, CmdError> {
-    let p = e.preview(&SetProjectSupply {
-        path: path.into(),
+/// `project.settings.set` of the member `supply.<path>` to `value`: Bulk, so previewed and committed (ADR-0008
+/// amendment 6).
+fn supply_set(path: &str, value: Value) -> SetProjectSettings {
+    SetProjectSettings {
+        member: format!("supply.{path}"),
         value,
-    })?;
+    }
+}
+
+/// [`supply_set`], previewed and committed.
+fn supply(e: &mut Engine, path: &str, value: Value) -> Result<Receipt, CmdError> {
+    let p = e.preview(&supply_set(path, value))?;
     e.commit(p)
 }
 
@@ -717,10 +723,7 @@ fn supply(e: &mut Engine, path: &str, value: Value) -> Result<Receipt, CmdError>
 fn supply_set_edits_one_member() {
     let mut e = engine(plc_model());
     assert!(matches!(
-        e.execute(&SetProjectSupply {
-            path: "origin.source".into(),
-            value: json!(XREF),
-        }),
+        e.execute(&supply_set("origin.source", json!(XREF))),
         Err(CmdError::NeedsPreview { .. })
     ));
     supply(&mut e, "origin.source", json!(XREF)).expect("origin.source");
@@ -732,10 +735,10 @@ fn supply_set_edits_one_member() {
         .and_then(|s| s.origin.clone())
         .expect("origin");
     assert_eq!(origin.source, Some(XREF));
-    let c = "project.supply.set";
-    assert_eq!(invalid_path(supply(&mut e, "bogus", json!(1)), c), "/path");
+    let c = "project.settings.set";
+    assert_eq!(invalid_path(supply(&mut e, "bogus", json!(1)), c), "/member");
     // A whole member group is no member.
-    assert_eq!(invalid_path(supply(&mut e, "origin", json!({})), c), "/path");
+    assert_eq!(invalid_path(supply(&mut e, "origin", json!({})), c), "/member");
     // The electrical members (ADR-0008 amendment 6), each set alone.
     for (path, value) in [
         ("phases", json!(3)),

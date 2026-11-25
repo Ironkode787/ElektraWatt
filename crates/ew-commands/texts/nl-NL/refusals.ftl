@@ -296,7 +296,7 @@ refusal-bus-lines-none = kies een of meer buslijnen
 refusal-bus-cable-twice = geef een bestaande kabel of een nieuwe, niet beide
 refusal-bus-cable-length = een kabellengte is groter dan nul, niet { $p0 } mm
 refusal-bus-plug-no-switch = stekker { $p0 } heeft geen afsluitschakelaar; laat de afsluiting leeg
-# The project settings: project.checks.set, project.frames.set, project.drawing.set and project.company.set.
+# The project settings: project.checks.set, project.settings.set (frames, drawing) and project.company.set.
 refusal-settings-member-not-object = het instellingenlid `{ $p0 }` is geen object (een nieuwer of beschadigd formaat); het blijft zoals het is
 refusal-drawing-member-not-object = het lid `{ $p0 }` van de projectinstellingen is geen object (een nieuwer of beschadigd formaat); het blijft zoals het is
 refusal-company-no-party = het project heeft geen paneelbouwer om te markeren; geef de `name` van het bedrijf om hem aan te maken
@@ -321,7 +321,7 @@ refusal-typeface-no-subset = de licentie van het lettertype staat alleen het ins
 refusal-typeface-no-letters = het lettertype mist letters van A tot Z, a tot z of de cijfers 0 tot 9: het is geen lettertype voor de teksten van een tekening
 refusal-typeface-name-missing = geef de naam van het lettertypebestand (`name`)
 refusal-typeface-name = `{ $p0 }` is geen bestandsnaam: geef de naam zonder map, ten hoogste { $p1 } tekens
-# project.languages.set and project.settings.set.
+# project.settings.set (its members, the languages).
 refusal-languages-source-as-translation = `{ $p0 }` is de brontaal, geen vertaling
 refusal-settings-member-unknown = `{ $p0 }` is geen instelbare projectinstelling; instelbaar: { $p1 }
 refusal-settings-value = geen geldige instelling `{ $p0 }`: { $p1 }
@@ -919,13 +919,12 @@ refusal-supply-in-no-point = noem ten minste één onderbrekingspunt waar de voe
 refusal-supply-in-not-ip = alleen een onderbrekingspunt kan de plek zijn waar de voeding binnenkomt
 refusal-report-block-form-not-given = `form` is { $p0 }, en dat is geen van de `form_copies`
 refusal-report-block-not-form = geen bibliotheekdocument van de soort form
-# project.supply.set.
+# project.settings.set (the supply).
 refusal-supply-none = het project heeft geen voeding (een basis- of macroproject); er is niets in te stellen
 refusal-supply-phases = een voeding heeft één, twee of drie fasen
 refusal-supply-voltage = de nominale spanning van de voeding moet boven 0 V liggen, zoals 230 of 400
 refusal-supply-frequency = de frequentie van de voeding is 0 voor gelijkspanning of een aantal hertz, zoals 50
 refusal-supply-current = de voorbeveiliging en de kortsluitstroom moeten boven 0 liggen, zoals 63 A of 10 kA
-refusal-supply-member-unknown = `{ $p0 }` is geen instelbaar veld van de voeding; instelbaar: { $p1 }
 # terminal.add, terminal.insert, terminal.move and conductor.add.
 refusal-terminal-add-none = geef ten minste één klem om toe te voegen
 refusal-terminal-insert-splits-group = invoegen vóór klem { $p0 } zou brugroep { $p1 } splitsen (klemmen { $p2 }); voeg in vóór klem { $p3 } of na klem { $p4 }, of verwijder eerst de brug van de groep daar

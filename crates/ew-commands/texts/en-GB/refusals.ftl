@@ -295,7 +295,7 @@ refusal-bus-lines-none = select one or more bus lines
 refusal-bus-cable-twice = give an existing cable or a new one, not both
 refusal-bus-cable-length = a cable length is longer than zero, not { $p0 } mm
 refusal-bus-plug-no-switch = plug { $p0 } has no termination switch; leave its termination unset
-# The project settings: project.checks.set, project.frames.set, project.drawing.set and project.company.set.
+# The project settings: project.checks.set, project.settings.set (frames, drawing) and project.company.set.
 refusal-settings-member-not-object = the settings member `{ $p0 }` is not an object (a newer or damaged format); it is kept as it is
 refusal-drawing-member-not-object = the project settings' `{ $p0 }` member is not an object (a newer or damaged format); it is kept as it is
 refusal-company-no-party = the project has no panel-builder party to mark; give the company `name` to create it
@@ -320,7 +320,7 @@ refusal-typeface-no-subset = the font's licence allows embedding it only whole, 
 refusal-typeface-no-letters = the font lacks some of the letters A to Z, a to z and the digits 0 to 9: it is no typeface for a drawing's texts
 refusal-typeface-name-missing = give the font file's name (`name`)
 refusal-typeface-name = `{ $p0 }` is no file name: give the name without its folder, at most { $p1 } characters
-# project.languages.set and project.settings.set.
+# project.settings.set (its members, the languages).
 refusal-languages-source-as-translation = `{ $p0 }` is the source language, not a translation
 refusal-settings-member-unknown = `{ $p0 }` is not a settable project setting; settable: { $p1 }
 refusal-settings-value = not a valid `{ $p0 }` setting: { $p1 }
@@ -918,13 +918,12 @@ refusal-supply-in-no-point = name at least one interruption point where the supp
 refusal-supply-in-not-ip = only an interruption point can be where the supply comes in
 refusal-report-block-form-not-given = `form` is { $p0 }, which none of `form_copies` is
 refusal-report-block-not-form = not a library document of kind form
-# project.supply.set.
+# project.settings.set (the supply).
 refusal-supply-none = the project has no supply (a basic or macro project); there is nothing to set
 refusal-supply-phases = a supply has one, two or three phases
 refusal-supply-voltage = the supply's nominal voltage must be above 0 V, such as 230 or 400
 refusal-supply-frequency = the supply's frequency is 0 for DC or a number of hertz, such as 50
 refusal-supply-current = the upstream rating and the short-circuit current must be above 0, such as 63 A or 10 kA
-refusal-supply-member-unknown = `{ $p0 }` is not a settable supply member; settable: { $p1 }
 # terminal.add, terminal.insert, terminal.move and conductor.add.
 refusal-terminal-add-none = give at least one terminal to add
 refusal-terminal-insert-splits-group = inserting before terminal { $p0 } would split bridge group { $p1 } (terminals { $p2 }); insert before terminal { $p3 } or after terminal { $p4 }, or delete the group's bridge there first
