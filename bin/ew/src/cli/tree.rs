@@ -1510,7 +1510,7 @@ pub(crate) struct TableCli {
 }
 
 impl TableCli {
-    /// How the table is written: the navigator and the strip are refused first, in the round trip's words (D8).
+    /// How the table is written: the navigator and the strip are refused first, in the round trip's words.
     pub(super) fn row_format(&self) -> Result<RowFormat, clap::Error> {
         let path = &["export", "table"];
         if ew_api::output::NavKind::from_word(&self.navigator)

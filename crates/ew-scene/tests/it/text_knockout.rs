@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A text a wire runs through stays readable (FT-1786): the labels layer names the texts a line of the page runs
+//! A text a wire runs through stays readable: the labels layer names the texts a line of the page runs
 //! through, and the wires layer leaves the line out across each, with the gap on both sides; a page where no line runs
 //! through a text draws its wires as before.
 

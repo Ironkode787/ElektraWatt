@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1859: QET's own title-block variables become the project's and the pages' fields, and the title block prints
+//! QET's own title-block variables become the project's and the pages' fields, and the title block prints
 //! the fields, not the values as fixed texts (doc 14 §4.9): a page's `=` and `+` its structure, and the values every
 //! folio shares the open revision's label, the designer and the drawing number. A value the folios do not share, and
 //! a variable of the person's own, stay text. A small hand-written project with made-up content.

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A strip's bridge drawn on a schematic page (FT-1908, doc 08 §6.5): a line across the leads of the terminals it
+//! A strip's bridge drawn on a schematic page (doc 08 §6.5): a line across the leads of the terminals it
 //! joins where they stand in one row, with a dot on each; a terminal between them that it does not join is crossed
 //! without a dot; a terminal of it in another row joins no line, and a row with one terminal of it draws nothing.
 
@@ -203,7 +203,7 @@ fn a_bridge_with_one_terminal_in_a_row_draws_nothing() {
     assert_eq!(drawn(&plain), (Vec::new(), Vec::new()));
 }
 
-/// The layout's page keeps texts off a drawn bridge (FT-2021): its line, from the first terminal's point to the last,
+/// The layout's page keeps texts off a drawn bridge: its line, from the first terminal's point to the last,
 /// lies inside a keep-out of the labels layer's draft page, which the same terminals without the bridge do not have.
 #[test]
 fn the_layout_keeps_texts_off_a_bridge() {

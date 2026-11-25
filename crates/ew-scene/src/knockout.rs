@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A text a wire runs through stays readable (FT-1786, ADR-0034 amendment 3): the wires layer leaves out the stretch
+//! A text a wire runs through stays readable (ADR-0034 amendment 3): the wires layer leaves out the stretch
 //! of every line that runs through the box of a text of the labels layer, and [`KNOCKOUT_GAP`] on each side of it
 //! along the line. One rule in the scene, so the window, the PDF, the PNG, the SVG and the DXF all draw the cut line.
 //!

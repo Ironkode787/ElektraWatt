@@ -1069,7 +1069,7 @@ impl Store {
         self.save_inner(&base, Changes::Keys(&BTreeSet::new()), &BTreeSet::new(), true)
     }
 
-    /// Update from library of the damaged library copies `keys` (FT-1499): one save of `model`,
+    /// Update from library of the damaged library copies `keys`: one save of `model`,
     /// which holds the library's documents of those copies, that writes each over its damaged file, which the open kept
     /// as it was found, and lists it in the manifest, as a save writes an updated copy; nothing else is written. A store
     /// that the integrity findings made read-only takes the lock for the save and gives it back after, staying

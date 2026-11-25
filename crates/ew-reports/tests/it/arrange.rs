@@ -3,16 +3,16 @@
 
 //! `arrange`: manual exclusion, filter, sort, grouping (doc 09 §3.3, FR-REP-027).
 
+use ew_derive::{Q, Rev};
 use ew_ids::{Id, Uuid};
 use ew_mltext::MlText;
-use ew_schema::{AnyId, Date, GroupSpec, OrderUnit, Project, Set, SortKey, Unit};
-use ew_units::Dec3;
-use ew_derive::{Q, Rev};
 use ew_reports::arrange::{cell_key, cell_text};
 use ew_reports::{
     Arrangement, Cell, CellType, ColumnDef, MissingReason, NotDerived, QtyUnit, Row, RowId, RowKey, RowKind,
     RowSet, RowSetStatus, arrange,
 };
+use ew_schema::{AnyId, Date, GroupSpec, OrderUnit, Project, Set, SortKey, Unit};
+use ew_units::Dec3;
 use proptest::prelude::*;
 
 const NAME: usize = 0;
@@ -687,8 +687,8 @@ fn group_text_and_header_ids_of_other_key_types() {
 /// The sort and group text of a colour is the printed text, a code of a newer format included.
 #[test]
 fn the_text_of_a_colour_is_its_printed_text() {
-    use ew_schema::{ColourCode, ColourSpec};
     use ew_reports::render::{RenderOptions, render};
+    use ew_schema::{ColourCode, ColourSpec};
     let m = model();
     let q = Q::new(&m);
     let unknown = ColourSpec::one(ColourCode::Unknown(serde_json::json!({"future": 1})));
@@ -920,8 +920,8 @@ fn two_heading_segments_with_one_key_give_two_groups_in_segment_order() {
 // Group texts of tags, folio texts of generated pages, parts_list row IDs (over small JSON models)
 
 use ew_derive::PageRef;
-use ew_schema::{LibDocument, Record, ReportBlock};
 use ew_reports::rows_of;
+use ew_schema::{LibDocument, Record, ReportBlock};
 use serde_json::{Value, json};
 
 fn uid(n: u128) -> String {

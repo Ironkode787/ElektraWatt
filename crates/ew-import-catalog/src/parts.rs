@@ -1166,7 +1166,7 @@ mod tests {
         );
         assert_eq!(tech_value("curve", "C").unwrap()["value"], json!("C"));
         assert!(tech_value("i_n", "40 Amp").unwrap_err().contains("not a unit"));
-        // Every unit of the format, by its spelling or its symbol (FT-1981: `mm`, `piece` and `set` were refused).
+        // Every unit of the format, by its spelling or its symbol (`mm`, `piece` and `set` were refused).
         assert_eq!(
             tech_value("d_outer", "8.5 mm").unwrap()["value"],
             json!({"value": "8.5", "unit": "mm"})

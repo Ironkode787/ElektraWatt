@@ -25,7 +25,7 @@
 //! the feature that needs it.
 
 #![forbid(unsafe_code)]
-// No console window before the application on Windows (FT-1710); the terminal modes attach to their parent's console
+// No console window before the application on Windows; the terminal modes attach to their parent's console
 // ([`attach_console`]).
 #![cfg_attr(windows, windows_subsystem = "windows")]
 
@@ -592,7 +592,7 @@ fn run_gui(initial: Option<PathBuf>, no_gpu: bool) -> i32 {
     }
     let flags = Flags { no_gpu };
     // The last size, position and maximised state, restored (the first start opens maximised, 1280 × 800 its normal
-    // size); the window's icon is the menu button's mark, the application icon (FT-1710: without one eframe showed
+    // size); the window's icon is the menu button's mark, the application icon (without one eframe showed
     // egui's).
     let mut builder = egui::ViewportBuilder::default()
         .with_title(strings::text(key!("window-title-start")))
@@ -638,7 +638,7 @@ fn run_gui(initial: Option<PathBuf>, no_gpu: bool) -> i32 {
 }
 
 /// On Windows the program has no console of its own (`windows_subsystem = "windows"`: no console window opens
-/// before the application, FT-1710), so a mode that writes to a terminal attaches to the console of the process that
+/// before the application), so a mode that writes to a terminal attaches to the console of the process that
 /// started it, unless its output goes to a pipe or a file already. Elsewhere nothing to do.
 fn attach_console() {
     #[cfg(windows)]

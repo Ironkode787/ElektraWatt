@@ -12,7 +12,7 @@ use crate::consts::{ROW_GAP, STUB, TICKS_PER_STEP};
 use crate::model::{LabelKind, Owner, PartId, Pt, Rect, Role, Side, Tick, grid_away, grid_down};
 
 impl<'a> Sketch<'a> {
-    /// The strips that open over or under a card (doc 06a §4.4, FT-2110), each with its units in the order they stand
+    /// The strips that open over or under a card (doc 06a §4.4), each with its units in the order they stand
     /// and its card: a strip is the units joined through mates side by side, three or more and none fixed, of which two
     /// or more hang in line on pins of one card that face up or down (the unit most of them hang on so).
     fn opening(&self) -> Vec<(Vec<usize>, usize)> {
@@ -88,10 +88,10 @@ impl<'a> Sketch<'a> {
         out
     }
 
-    /// Each strip over or under a card opens as one, in its own order (doc 06a §4.4, FT-2110), by
+    /// Each strip over or under a card opens as one, in its own order (doc 06a §4.4), by
     /// [`Sketch::open_strip`]; where that cannot hold, the strip stays as the rows set it.
     ///
-    /// **A strip opens as one** (FT-2110). A strip of terminals over or under a card, two or more of them in line on the
+    /// **A strip opens as one**. A strip of terminals over or under a card, two or more of them in line on the
     /// card's pins, is set anew where the arrangement opens it ([`Sketch::open`]; the judge tries it where the strip's
     /// other terminals held a channel's terminal off its column, or the rows set a row of terminals out of its order):
     /// its other terminals bind nobody while the rows are set, and none of them is set beside or round a corner from its
@@ -353,7 +353,7 @@ impl<'a> Sketch<'a> {
     }
 
     /// The room the spare terminals of a strip between two cards ask for when their columns step apart
-    /// ([`Sketch::card_step`], FT-2097): where the terminal wired to the pin of card `a` at column `xa` and the one
+    /// ([`Sketch::card_step`]): where the terminal wired to the pin of card `a` at column `xa` and the one
     /// wired to the pin of card `b` at column `xb` are mates of one row (a strip), each mate between them that is wired
     /// to nothing (a spare, which keeps its place in the strip) takes the row's pitch as it stood; none otherwise.
     fn spares_between(

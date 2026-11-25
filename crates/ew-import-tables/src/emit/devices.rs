@@ -945,7 +945,7 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
         }
         seen.insert(row.key().to_owned(), ());
         let rep_id = record_id("representations", row.key());
-        // where the symbol, else its black box (FT-1419), draws the CPs of its first function
+        // where the symbol, else its black box, draws the CPs of its first function
         // (`ew_derive::rep_cp_end` without a pin map)
         let drawn: Vec<(u16, Pt2)> = match &box_ {
             Some(b) if sym_cps.is_empty() => b.cps.iter().map(|c| (c.idx, c.pos)).collect(),

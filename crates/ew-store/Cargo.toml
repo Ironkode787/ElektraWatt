@@ -15,18 +15,17 @@ publish = false
 workspace = true
 
 [dependencies]
-# The format: paths, canonical lines, manifest, reader; and, re-exported, the record types of ew-schema.
+# The format: paths, canonical lines, manifest, reader.
 ew-format = { path = "../ew-format" }
 # The writer reads rows untracked (ARCH §3 rule 1, ADR-0001 amendment 2): `ew-store` is one of the three
 # crates allowed to enable `raw-read` (ci/dep-rules.toml).
 ew-model = { path = "../ew-model", features = ["raw-read"] }
 # The lock record and the journal lines (doc 05 §7.1, §8.1); rows as JSON for the journal's field diffs.
 serde_json = "1.0.154"
-# The asset purge hashes asset files while it streams them (FT-380 review fix 9; already in the graph through
+# The asset purge hashes asset files while it streams them (already in the graph through
 # ew-format).
 sha2 = { workspace = true }
-# The as-built archive's container (WP-S1.18 D11): the own deterministic ZIP writer and reader, re-exported as `zip`
-# (decision log ID-827, ID-1145); no ZIP crate.
+# The as-built archive's container: the own deterministic ZIP writer and reader; no ZIP crate.
 ew-zip = { path = "../ew-zip" }
 ew-hack = { version = "0.3.5", path = "../ew-hack" }
 ew-schema = { path = "../ew-schema" }
@@ -34,5 +33,5 @@ ew-schema = { path = "../ew-schema" }
 [dev-dependencies]
 automod.workspace = true
 proptest = { version = "1.12.0", default-features = false, features = ["std"] }
-# The fresh temporary directory of the tests (FT-569; dev-only edge, `[allowed_dev_edges]`).
+# The fresh temporary directory of the tests (dev-only edge, `[allowed_dev_edges]`).
 ew-testdir = { path = "../ew-testdir" }

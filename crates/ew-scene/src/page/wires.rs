@@ -18,7 +18,7 @@ impl Builder<'_> {
         // takes and makes no hop.
         let mut drawn: Vec<(Id<Connection>, Vec<Pt2>)> = Vec::new();
         let mut strokes: Vec<Stroke> = Vec::new();
-        // A flexible fluid line (a hose, ISO 1219-1) is drawn as an arc between its ends (FT-1733).
+        // A flexible fluid line (a hose, ISO 1219-1) is drawn as an arc between its ends.
         let mut flexible: Vec<bool> = Vec::new();
         let mut unrouted: Vec<(Id<Connection>, Vec<Pt2>)> = Vec::new();
         for cv in sorted_connections(view) {

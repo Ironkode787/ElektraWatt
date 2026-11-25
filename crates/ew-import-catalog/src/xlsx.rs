@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The XLSX reader of the parts import (D11): an Office Open XML workbook read from memory, the first or the named
+//! The XLSX reader of the parts import: an Office Open XML workbook read from memory, the first or the named
 //! sheet's cells as their displayed text, a formula's cached value (never evaluated).
 //!
 //! **The archive.** The ZIP central directory is read first; its declared unpacked sizes may not add up to more than

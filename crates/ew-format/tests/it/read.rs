@@ -5,11 +5,11 @@
 
 use std::collections::BTreeMap;
 
-use ew_schema::{LibDocument, Record, Sha256};
 use ew_format::{
     EntryKind, FilePath, Finding, FindingKind, Kept, Limits, Loaded, Manifest, hash_text, lib_document_text,
     lib_file, load, plan, project_files, record_line, sha256,
 };
+use ew_schema::{LibDocument, Record, Sha256};
 
 use crate::{PROJECT, entries_of, project};
 

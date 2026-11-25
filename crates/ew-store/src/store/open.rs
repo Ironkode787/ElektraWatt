@@ -488,7 +488,7 @@ impl Store {
         let Some(project) = loaded.project else {
             return Err(OpenError::NoProject(std::mem::take(&mut o.findings)));
         };
-        // FT-1383: the library copies of the documents with a finding, which the loader may have dropped. A
+        // The library copies of the documents with a finding, which the loader may have dropped. A
         // record that names one is no EW-INV-001 at this open: the project opens read-only, the finding naming the
         // copy's file, and the user updates the copy from its library.
         let missing: BTreeSet<AnyKey> = o

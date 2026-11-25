@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A list's caption and legend (doc 09 §3.8, FT-1874): the caption prints in its own row above the table's header, the
+//! A list's caption and legend (doc 09 §3.8): the caption prints in its own row above the table's header, the
 //! legend in the row under the table's last row, each within its row, and the table takes the frame's list area.
 
 use std::sync::Arc;

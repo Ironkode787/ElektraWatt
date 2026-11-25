@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The program's icon in `elektrawatt.exe` (FT-1710): on a Windows MSVC target the build writes a compiled resource
+//! The program's icon in `elektrawatt.exe`: on a Windows MSVC target the build writes a compiled resource
 //! file holding `assets/icons/app/elektrawatt.ico` (the rendering of the menu button's mark, `elektrawatt.svg`; the
 //! test `app_icon` keeps the two equal) as icon group 1 and hands it to the linker, which takes a `.res` file as an
 //! input (link.exe and lld-link alike). Explorer, the task bar and the setup's shortcut show the first icon group of

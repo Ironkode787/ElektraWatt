@@ -39,7 +39,7 @@ pub(crate) fn register_junctions(cx: &mut Cx<'_>, table: Option<&Table>) {
         if let (Some(page), Some(cell)) = (page, cell) {
             let id = record_id("junctions", key);
             cx.junctions.insert(key.to_owned(), id);
-            // where it lies, as `emit_junctions` places it (FT-1419)
+            // where it lies, as `emit_junctions` places it
             let px = |c: &str| row.get(c).map_or(Some(0), |v| v.parse::<i64>().ok());
             let at = px("dx")
                 .zip(px("dy"))
@@ -315,7 +315,7 @@ fn route_cells(r: &mut Rd<'_>) -> Vec<((i64, i64), i64, i64)> {
 }
 
 /// The stored route of a connection on `page` with the corners `corners` (of [`route_cells`]): from the point where
-/// end `a` is drawn (a CP drawn by a symbol or a black box, or a junction on the page; FT-1419), through the corners,
+/// end `a` is drawn (a CP drawn by a symbol or a black box, or a junction on the page), through the corners,
 /// to the point where end `b` is drawn, as `connection.draw` stores it
 /// (`ew_commands::geometry::require_route`). A CP drawn by a symbol may lie off the page grid by the nm rounding of
 /// QET px, so a corner coordinate that names the same QET px as a coordinate of an end takes the end's exact value;

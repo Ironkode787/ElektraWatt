@@ -163,7 +163,7 @@ fn the_template_becomes_a_title_block_with_the_folios_values() {
     // `colspan` counts the columns beyond the first: the title spans columns 1 and 2, to the right edge.
     assert_eq!(first.item.cells[0].rect.0.max().x, px(1).at(1040).unwrap());
     assert_eq!(first.item.cells[0].style.as_str(), "qet.7");
-    // QET draws a cell's text on the cell's edges: no inset (FT-1765), each advance a whole px of its screen.
+    // QET draws a cell's text on the cell's edges: no inset, each advance a whole px of its screen.
     assert!(
         first
             .item

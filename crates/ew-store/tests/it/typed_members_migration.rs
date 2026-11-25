@@ -17,8 +17,8 @@ use crate::common;
 use std::collections::BTreeSet;
 
 use common::{fixture, mem_project, options, reopen};
-use ew_schema::{LibCopy, LibDocument, MountKind, Part, Sha256};
 use ew_format::{FindingKind, Severity, hash_text, lib_document_text, sha256};
+use ew_schema::{LibCopy, LibDocument, MountKind, Part, Sha256};
 use ew_store::mem::DirSync;
 use ew_store::{Access, Changes, Opened, Store, Vfs, join};
 

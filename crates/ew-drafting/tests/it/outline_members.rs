@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! What joins an outline drawn round other parts (docs/design/06a-drafting.md §4.2, FT-2097): the parts set inside a
+//! What joins an outline drawn round other parts (docs/design/06a-drafting.md §4.2): the parts set inside a
 //! valve terminal's outline move with it, but a cylinder dragged inside it is no part of the terminal and Arrange
 //! moves it out as any other.
 

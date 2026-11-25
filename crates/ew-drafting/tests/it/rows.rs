@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The row rule of the text placer (FT-1870; docs/design/06a-drafting.md §5.3): like parts that stand level take one
+//! The row rule of the text placer (docs/design/06a-drafting.md §5.3): like parts that stand level take one
 //! place for their texts.
 
 use crate::kit::{Page, find, p, s, tag_of};

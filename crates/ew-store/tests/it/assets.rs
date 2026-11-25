@@ -15,9 +15,9 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use common::{apply, manifest, mem_project, open_sample, options, project_files, reopen, with_logo};
+use ew_format::sha256;
 use ew_model::{AnyKey, AnyRow, Asset, Model, Op};
 use ew_schema::{AssetFormat, AssetRef, COMPANY_MEMBER, Sha256, sniff};
-use ew_format::sha256;
 use ew_store::mem::DirSync;
 use ew_store::{Changes, Store};
 
@@ -292,10 +292,7 @@ fn a_damaged_journal_asset_is_a_recovery_finding() {
     let rec = o.store.recover(&o.model).expect("the journal replays");
     assert!(rec.model.asset(x.sha256()).is_none());
     assert_eq!(rec.findings.len(), 1, "{:?}", rec.findings);
-    assert_eq!(
-        rec.findings[0].kind,
-        ew_format::FindingKind::AssetMismatch
-    );
+    assert_eq!(rec.findings[0].kind, ew_format::FindingKind::AssetMismatch);
     let report = o
         .store
         .save(&rec.model, Changes::Keys(&rec.keys))
@@ -343,10 +340,7 @@ fn a_journal_asset_of_an_unknown_format_is_a_recovery_finding() {
     let rec = o.store.recover(&o.model).expect("the journal replays");
     assert!(rec.model.asset(x.sha256()).is_none());
     assert_eq!(rec.findings.len(), 1, "{:?}", rec.findings);
-    assert_eq!(
-        rec.findings[0].kind,
-        ew_format::FindingKind::AssetMismatch
-    );
+    assert_eq!(rec.findings[0].kind, ew_format::FindingKind::AssetMismatch);
 }
 
 #[test]

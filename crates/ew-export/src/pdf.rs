@@ -368,7 +368,7 @@ fn write(
             };
             match placement.filter(|p| !p.is_identity()) {
                 Some(p) => {
-                    // The placement's one transform: the scale, then the offset (D7).
+                    // The placement's one transform: the scale, then the offset.
                     let s = p.factor() as f32;
                     surface.push_transform(&kg::Transform::from_row(
                         s,

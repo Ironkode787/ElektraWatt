@@ -1533,7 +1533,7 @@ fn no_text_of_a_symbol_crosses_a_stub_of_its_connection_points() {
 // 11. STATIC TEXTS APART
 
 /// Two static texts of a symbol that share a column stand at least 0.85 em of their style apart in both editions: the
-/// QET edition scales their positions and not their size, so texts close in the native edition pile up there (FT-1619:
+/// QET edition scales their positions and not their size, so texts close in the native edition pile up there:
 /// "M" over "3~" in the three-phase motor).
 #[test]
 fn static_texts_of_a_symbol_stand_apart_in_both_editions() {

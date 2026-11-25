@@ -388,7 +388,7 @@ fn widened(
     let mut spare = spare_at(&need);
     // Where the room the other columns spare at the full size is not enough (a table of many columns, whose texts
     // print smaller than the full size), each cut column takes what it lacks at the smallest size, from the room the
-    // others spare at that size: no text is cut while the columns hold them all at that size (FT-1923).
+    // others spare at that size: no text is cut while the columns hold them all at that size.
     if spare.iter().sum::<i64>() < lack {
         lacking = lacking_at(&need_floor);
         lack = lacking.iter().sum();

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew import qet --out a/b.ew` where the folder `a` does not exist makes it and writes the project there (FT-1868):
+//! `ew import qet --out a/b.ew` where the folder `a` does not exist makes it and writes the project there:
 //! before, the import ran and then wrote nothing.
 
 use crate::support::{Tmp, args, stderr};

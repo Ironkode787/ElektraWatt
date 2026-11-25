@@ -18,13 +18,13 @@ workspace = true
 ew-dl = { path = "../ew-dl" }
 ew-render-cpu = { path = "../ew-render-cpu" }
 # PDF/A-2b writer (ARCH §3, §8.4; ADR-0015 decision 5). Default features off: no built-in shaper (glyphs come shaped
-# from ew-text). `raster-images` on for PNG and JPEG image items (FT-406, decision log ID-605); it brings krilla's
+# from ew-text). `raster-images` on for PNG and JPEG image items; it brings krilla's
 # png, zune-jpeg, gif, image-webp and imagesize decoders. Only PNG and JPEG reach krilla, after ew-render-cpu has
 # decoded them within its MAX_IMAGE_PIXELS; krilla's GIF and WebP paths are never called (clippy's `disallowed-methods` list in clippy.toml).
 # The versions of the decoders are governed by the committed lockfile with `--locked` and cargo-deny.
 krilla = { version = "0.8.2", default-features = false, features = ["raster-images"] }
 # The DXF writer's width factors read the faces' advance widths (doc 09 §4.9), and the SVG font tests read the embedded
-# subsets back (WP-S3.07 D4): the version and features of ew-text's edge, already in the graph. The subsetter itself
+# subsets back: the version and features of ew-text's edge, already in the graph. The subsetter itself
 # uses the standard library only.
 skrifa = { version = "0.44.0", default-features = false, features = ["std"] }
 # The symbol ids of the DXF writer's block names, and the destination IDs of the test pages; already in the graph.

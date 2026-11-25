@@ -770,7 +770,7 @@ fn point_label(symbol_text: &str, path: &[(i64, i64)]) -> (Rect, Rect) {
     (shown, bare)
 }
 
-/// (FT-1699: "+Supply / -X0" of a supply's entry printed across its own wire.) A point's cross-reference that its own
+/// ("+Supply / -X0" of a supply's entry printed across its own wire.) A point's cross-reference that its own
 /// wire runs through takes another of its places (docs/design/06a-drafting.md §5.2), clear of the wire. A wire that
 /// leaves upwards or sideways does not run through it, and it stays where its symbol puts it.
 #[test]

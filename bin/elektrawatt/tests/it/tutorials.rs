@@ -839,7 +839,7 @@ fn tutorial_a_bus_network_runs_as_its_page_says() {
         [
             "title: bus-network.ew - ElektraWatt",
             "row \"-2A1\" \"DP\" \"TBD\" \"\" \"PROFIBUS DP\" \"master\" \"\" \"\"",
-            // A drawn line gives its ports the physical net too (FT-1922): each X1 port is listed under its logical
+            // A drawn line gives its ports the physical net too: each X1 port is listed under its logical
             // net and again under the physical net's segment.
             "row \"-2A1\" \"X1\" \"plc1 192.168.0.1\" \"\" \"PROFINET\" \"controller\" \"PROFINET\" \"PROFINET\"",
             "row \"-2A1\" \"X1\" \"plc1 192.168.0.1\" \"\" \"PROFINET\" \"controller\" \"PROFINET\" \"PROFINET\"",
@@ -1028,7 +1028,7 @@ fn the_how_to_and_explanation_pages_name_the_windows_menu_paths() {
     for rel in [
         "how-to/choose-parts.md",
         "how-to/upgrade-a-project.md",
-        // FT-1687: the panel layout's how-to.
+        // The panel layout's how-to.
         "how-to/panel-layout.md",
         // The PLC and the fluid guides.
         "how-to/plc-workspace.md",

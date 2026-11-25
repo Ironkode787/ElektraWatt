@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A QElectroTech title block's cell as QElectroTech prints it (FT-1941, doc 14 §4.10): `fit_width` scales a text
+//! A QElectroTech title block's cell as QElectroTech prints it (doc 14 §4.10): `fit_width` scales a text
 //! too wide for its cell whole, without a floor, and where the face's line pitch, not the text, makes the lines the
 //! cell was made for taller than it, closes them up to 1 em before it scales them; `ew.cell.pixel` lays its text out
 //! with every advance a whole pixel of QElectroTech's screen.

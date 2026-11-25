@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The placer opens the room the rings need (docs/design/06a-drafting.md §3.5, Rings, FT-2085): where a part wired
+//! The placer opens the room the rings need (docs/design/06a-drafting.md §3.5, Rings): where a part wired
 //! round a body stays behind it, the body steps away from it until the rings round each end of it, a step each, and a
 //! step clear of the part's stubs fit between.
 

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A strip at a narrow pitch over a card of a wide one opens as one, in the order it stands in
-//! (docs/design/06a-drafting.md §4.4, FT-2110): the channels' terminals that stand in the order of their channels take
+//! (docs/design/06a-drafting.md §4.4): the channels' terminals that stand in the order of their channels take
 //! their columns, every other terminal keeps its place in the order, and no terminal passes another.
 
 use crate::arrange::{at, run};

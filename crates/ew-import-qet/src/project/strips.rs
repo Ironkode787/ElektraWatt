@@ -124,7 +124,7 @@ pub(crate) fn map(mx: &mut Mx<'_, '_>, terminals: &[&Elem<'_>]) {
         });
     }
     // The strip a folio's lines name last (by header or label prefix), per folio: a folio without one continues the
-    // strip the folio before it named last (a strip drawn on over a second folio, FT-1861).
+    // strip the folio before it named last (a strip drawn on over a second folio).
     let mut named_last: BTreeMap<usize, StripKey> = BTreeMap::new();
     for ((diagram, _, _), members) in &lines {
         for e in members {

@@ -161,7 +161,7 @@ pub(super) struct Sketch<'a> {
     /// How a card that is its tree's root steps along its edge ([`Sketch::card_step`]).
     pub card_steps: CardSteps,
     /// A strip over or under a card opens as one ([`Sketch::open_strips`]): its other terminals bind none of the
-    /// channels' terminals while the rows are set, and the strip is set anew afterwards (FT-2110).
+    /// channels' terminals while the rows are set, and the strip is set anew afterwards.
     pub open: bool,
     /// Set by a run without `open` where a strip's other terminals held a channel's terminal off its column: the
     /// arrangement with the strip opened is worth trying.
@@ -277,7 +277,7 @@ impl<'a> Sketch<'a> {
         let n = w.parts.len();
         let mut groups = Groups::new(n);
         // Units by number, the parts inside an outline drawn round other parts (but an actuator or a pressure source,
-        // which is no part of a valve terminal: one set inside its outline is moved out as any other, FT-2097), and a
+        // which is no part of a valve terminal: one set inside its outline is moved out as any other), and a
         // part on another's pin.
         let mut by_number: BTreeMap<u32, usize> = BTreeMap::new();
         for (i, p) in w.parts.iter().enumerate() {
@@ -1113,7 +1113,7 @@ impl<'a> Sketch<'a> {
         self.legal();
     }
 
-    /// The room for the rings of the wires round a body (§3.5, Rings, FT-2085): a unit whose wires leave its pins on one
+    /// The room for the rings of the wires round a body (§3.5, Rings): a unit whose wires leave its pins on one
     /// side and go round its body to parts that stay behind it (beyond its far edge, under the body and facing it:
     /// terminals kept under a card whose pins face up) steps away from them along that side, with what hangs on it,
     /// until the rings round each end of the body, a step each, and a step clear of those parts' stubs fit between;

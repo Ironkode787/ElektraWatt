@@ -18,7 +18,7 @@
 //! - `git rev-parse --git-path hooks`, one path line ([`GitExe::hooks_dir`]: `core.hooksPath` honoured);
 //! - `git config --get`, by its exit status only ([`GitExe::config_has`]).
 //!
-//! Configuration is written only by [`GitExe::config_set`], which `ew git setup` calls after the user's consent (D28).
+//! Configuration is written only by [`GitExe::config_set`], which `ew git setup` calls after the user's consent.
 //!
 //! **What is committed.** Only the project directory, without what the managed `.gitignore` block of doc 05 §11.1
 //! leaves out (`.ew/`, `.~ew.lock`, `.~ew.lock.stale-*`, `.~ew.requests/`, `*.tmp-*`): `git add --all` of those
@@ -68,7 +68,7 @@ pub const ISOLATE: [&str; 9] = [
 /// Why a git step failed.
 #[derive(Debug)]
 pub enum GitError {
-    /// The executable is not found: a release inside a worktree is refused before the archive (D12).
+    /// The executable is not found: a release inside a worktree is refused before the archive.
     Missing,
     /// The process could not be started.
     Spawn(io::Error),
@@ -293,7 +293,7 @@ fn any_of(vfs: &dyn Vfs, dir: &Path, names: &[&str]) -> io::Result<bool> {
     Ok(false)
 }
 
-/// The release's git port (D12). Every method but [`Git::worktree`] runs in the project directory `dir`.
+/// The release's git port. Every method but [`Git::worktree`] runs in the project directory `dir`.
 pub trait Git {
     /// The worktree `dir` lies in ([`worktree_root`]).
     ///
@@ -349,7 +349,7 @@ pub trait Git {
     fn delete_tag(&self, dir: &Path, tag: &str) -> Result<(), GitError>;
 }
 
-/// The `git` executable (D12).
+/// The `git` executable.
 #[derive(Clone, Debug)]
 pub struct GitExe {
     program: OsString,
@@ -588,7 +588,7 @@ impl GitExe {
     }
 
     /// Sets `key` to `value` in git's configuration (`git config [--global] <key> <value>`), by its exit status only.
-    /// Called only by `ew git setup` after the user's consent (D28).
+    /// Called only by `ew git setup` after the user's consent.
     ///
     /// # Errors
     ///
@@ -853,7 +853,7 @@ fn sh_quoted(path: &Path) -> String {
     format!("'{}'", text.replace('\'', "'\\''"))
 }
 
-/// The four keys `ew git setup` writes (D28) for the command `ew` ([`ew_command`]): the driver's name and command line,
+/// The four keys `ew git setup` writes for the command `ew` ([`ew_command`]): the driver's name and command line,
 /// the textconv and its cache.
 pub fn driver_config(ew: &str) -> [(&'static str, String); 4] {
     [
@@ -923,7 +923,7 @@ impl fmt::Display for HookError {
 impl std::error::Error for HookError {}
 
 /// Installs the `post-merge` hook ([`hook_text`]) into the hooks directory `hooks` ([`GitExe::hooks_dir`]), all or
-/// nothing; a hook it did not write ([`HOOK_MARK`]) is refused (D28).
+/// nothing; a hook it did not write ([`HOOK_MARK`]) is refused.
 ///
 /// # Errors
 ///

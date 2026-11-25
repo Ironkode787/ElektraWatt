@@ -263,7 +263,7 @@ impl<'a> Sketch<'a> {
             wished.push(by);
         }
         // The units of the members' strips that are not of the row, with what hangs on them, and the terminals an
-        // opening strip sets anew ([`Sketch::loose`]): where the strip opens (`open`, FT-2110) they are set with it
+        // opening strip sets anew ([`Sketch::loose`]): where the strip opens (`open`) they are set with it
         // afterwards ([`Sketch::open_strips`]), so they stand in no member's way and bind nobody.
         let strip = &self.strips[usize::from(!s.vertical())];
         let here: BTreeSet<usize> = items.iter().map(|(m, _)| *m).collect();

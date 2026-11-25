@@ -387,7 +387,7 @@ fn tags_and_versions(s: &Session) -> (Vec<String>, Vec<(String, String)>) {
     (tags, versions)
 }
 
-/// Headless (FT-396): P1 (a copy of the sample) holds FX-MCB-1PN 1.0.0 on -102F1, P2 holds 1.0.1 (a description
+/// Headless: P1 (a copy of the sample) holds FX-MCB-1PN 1.0.0 on -102F1, P2 holds 1.0.1 (a description
 /// change, a patch), both chosen through the part dialog by setup scripts over one user library written by the test.
 /// The flow: -102F1 copied in P1, pasted in P2: `edit.paste_clip` is refused with `reason-paste-versions` and the choice
 /// card lists the copy; Update the project's copy is refused (`reason-paste-update-older`); `paste.resolve` with

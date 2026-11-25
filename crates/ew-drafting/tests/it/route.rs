@@ -520,7 +520,7 @@ fn a_job_that_would_be_a_fourth_arm_keeps_its_route_and_is_named_so() {
     assert_eq!(plan.unrouted, [(fourth, Reason::FourArms)]);
 }
 
-/// §3.8, FT-2097: a job without a way keeps its stored route as the page holds it, a point twice in a row included (a
+/// §3.8: a job without a way keeps its stored route as the page holds it, a point twice in a row included (a
 /// route the person or an older version stored): the router lays it back as it stands; only what the search finds is
 /// asserted tidy.
 #[test]

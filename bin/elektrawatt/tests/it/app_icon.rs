@@ -5,7 +5,7 @@
 //! rendering of `assets/icons/app/elektrawatt.svg` at 256 × 256 pixels, RGBA with transparent corners, through the
 //! workspace's own SVG path (`ew_scene::images::svg_items`, usvg) and CPU renderer (`ew-render-cpu`, vello_cpu), on
 //! a transparent background. The test renders the SVG and compares the PNG's bytes; `EW_BLESS=1` writes the PNG.
-//! The same SVG, the menu button's mark, is the Windows icon `elektrawatt.ico` at six sizes (FT-1710).
+//! The same SVG, the menu button's mark, is the Windows icon `elektrawatt.ico` at six sizes.
 
 use ew_dl::{Color, DisplayList, FontKey};
 use ew_render_cpu::{FontBytes, RenderOptions, SheetSize};
@@ -71,7 +71,7 @@ fn render() -> Vec<u8> {
     ew_render_cpu::encode_png(&image, None)
 }
 
-/// The sizes of the Windows icon (FT-1710): Explorer's and the task bar's at 100 % to 200 %, and the large view.
+/// The sizes of the Windows icon: Explorer's and the task bar's at 100 % to 200 %, and the large view.
 const ICO_SIDES: [u32; 6] = [16, 24, 32, 48, 64, 256];
 
 /// The Windows icon of the SVG: an ICO file whose images are the SVG rendered at [`ICO_SIDES`], each stored as a PNG
@@ -109,7 +109,7 @@ fn the_application_icon_png_is_the_rendering_of_its_svg() {
     ew_testdir::compare_or_bless(std::path::Path::new(PNG), &png);
 }
 
-/// FT-1710: the program's Windows icon (`elektrawatt.ico`, which `build.rs` embeds in `elektrawatt.exe` and the setup
+/// The program's Windows icon (`elektrawatt.ico`, which `build.rs` embeds in `elektrawatt.exe` and the setup
 /// shows) is the same SVG, the menu button's mark, rendered at each size of [`ICO_SIDES`].
 #[test]
 fn the_windows_icon_is_the_rendering_of_the_same_svg() {

@@ -194,7 +194,7 @@ pub(super) fn open_editing_to(
     match &opened.access {
         ew_api::Access::ReadOnly(ew_api::ReadOnlyReason::Integrity) if repair => {}
         ew_api::Access::ReadOnly(reason) => {
-            // FT-1383: a damaged library copy a device uses is named, with the way out.
+            // A damaged library copy a device uses is named, with the way out.
             let refusal = match (reason, session.damaged_copy()) {
                 (
                     ew_api::ReadOnlyReason::Integrity,

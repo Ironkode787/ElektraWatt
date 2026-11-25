@@ -17,7 +17,7 @@ workspace = true
 [dependencies]
 ew-interop-api = { path = "../ew-interop-api" }
 # The record types and IDs come through ew-interop-api's re-exports (`ew_schema`, `ew_ids`; D11): no other edge.
-# XLSX (D11): the archive's entries inflated with a hard output cap, the workbook's XML streamed.
+# XLSX: the archive's entries inflated with a hard output cap, the workbook's XML streamed.
 miniz_oxide.workspace = true
 quick-xml.workspace = true
 # Parts are built as their JSON form and read back through `ew_schema`'s strict readers; the item hash.

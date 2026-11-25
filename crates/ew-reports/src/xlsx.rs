@@ -11,7 +11,7 @@
 //! sheet last. No shared strings: text is written as inline strings (`t="inlineStr"`), and no `<f>` element is ever
 //! written, so a text such as `=HYPERLINK(…)` stays text (NFR-SEC-17).
 //!
-//! **A table's sheet** (D4): column A is the `id` column (header `id`, the row's ID text, hidden, width 0); the table's
+//! **A table's sheet**: column A is the `id` column (header `id`, the row's ID text, hidden, width 0); the table's
 //! columns follow with their labels; row 1 is bold and frozen, with an autofilter over the header; each column is
 //! `max(header, longest cell)` characters wide, clamped to [`MIN_WIDTH`]..=[`MAX_WIDTH`] (a rule, not a fit);
 //! [`TableCell::Number`] cells are numeric cells, [`TableCell::Date`] cells date serials with the style `yyyy-mm-dd`
@@ -21,7 +21,7 @@
 //! table's with `[]:*?/\`, control characters and an apostrophe at either end replaced by `_`, cut to 31 characters; a
 //! name a sheet already has (ignoring case, `_ew` and `_ew_base` included) gets " (2)", " (3)", ….
 //!
-//! **The `_ew` sheet** (D5), hidden: key/value rows `format` `ew-table/1`, `project`, `table` (the first table's key),
+//! **The `_ew` sheet**, hidden: key/value rows `format` `ew-table/1`, `project`, `table` (the first table's key),
 //! `rev`, `generation` (empty without a store), `locale` `neutral`, `ew` (the program version), then one row per column
 //! of the first table: `column`, key, label, type ([`CellType`] name), editable (`true`/`false`).
 //!
@@ -63,10 +63,10 @@ pub const MAX_SHEET_COLUMNS: usize = 16_384;
 /// The longest sheet name (Excel's limit).
 const MAX_SHEET_NAME: usize = 31;
 
-/// The name of the hidden sheet of the round trip (D5).
+/// The name of the hidden sheet of the round trip.
 pub const EW_SHEET: &str = "_ew";
 
-/// The name of the hidden sheet of an editable table's cells as exported (D5).
+/// The name of the hidden sheet of an editable table's cells as exported.
 pub const BASE_SHEET: &str = "_ew_base";
 
 /// The first cell of the last row of `_ew_base`, the digest's row.
@@ -95,7 +95,7 @@ pub struct DateTime {
     pub second: u8,
 }
 
-/// What a workbook says about where its tables come from (D3, D5).
+/// What a workbook says about where its tables come from.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct WorkbookMeta {
     /// The export date: the created and modified date of `docProps/core.xml`.
@@ -445,7 +445,7 @@ fn workbook_rels(sheets: usize) -> String {
     s
 }
 
-/// The sheet of a table (D4); `first`: the selected sheet.
+/// The sheet of a table; `first`: the selected sheet.
 fn table_sheet(table: &Table, first: bool) -> String {
     let last = format!("{}{}", column_name(table.columns.len()), table.rows.len() + 1);
     let mut s = String::from(XML_DECL);
@@ -516,7 +516,7 @@ fn table_sheet(table: &Table, first: bool) -> String {
     s
 }
 
-/// The hidden `_ew` sheet (D5) of a workbook whose first table is `first`.
+/// The hidden `_ew` sheet of a workbook whose first table is `first`.
 fn ew_sheet(first: &Table, meta: &WorkbookMeta) -> String {
     let mut rows: Vec<Vec<String>> = vec![
         vec!["format".into(), EW_FORMAT.into()],

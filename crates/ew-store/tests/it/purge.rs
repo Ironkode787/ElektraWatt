@@ -16,9 +16,9 @@ use common::{
     edit, manifest, mem_project, mem_project_of, options, par_map, project_files, reopen, root,
     small_fixture, try_reopen, with_logo,
 };
+use ew_format::{Severity, sha256};
 use ew_model::{AnyKey, Asset};
 use ew_schema::{AssetRef, Sha256, sniff};
-use ew_format::{Severity, sha256};
 use ew_store::mem::{DirSync, Fault, MemVfs};
 use ew_store::{Access, Changes, PurgeError, Store, join};
 

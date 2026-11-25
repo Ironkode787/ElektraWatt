@@ -15,9 +15,9 @@ use common::{
     TestProbe, edit, edit_device, file_kinds, fixture, mem_project, mem_project_of, options, par_map,
     project_files, reopen, root, small_fixture, temps, try_reopen,
 };
+use ew_format::{FindingKind, Limits, Manifest, Severity, hash_text, library_copy_hash, sha256};
 use ew_model::{AnyKey, AnyRow, ApplyOptions, Model, Op, Rev};
 use ew_schema::{FnDef, LibCopy, LibDocument, Sha256, SymbolDef};
-use ew_format::{FindingKind, Limits, Manifest, Severity, hash_text, library_copy_hash, sha256};
 use ew_store::journal::{self, Collision, Entry, JournalOp, ReplayError};
 use ew_store::mem::{DirSync, Fault, MemVfs};
 use ew_store::{

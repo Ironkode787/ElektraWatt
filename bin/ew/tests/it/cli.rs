@@ -2473,7 +2473,7 @@ fn fmt_keeps_unknown_members_and_quarantined_lines_verbatim() {
     assert!(tree(&broken) == before, "nothing is written");
 }
 
-/// FT-1383: a writer refused on a project whose damaged library copy a device uses names the
+/// A writer refused on a project whose damaged library copy a device uses names the
 /// device, the copy in words and the way out, and writes nothing.
 #[test]
 fn a_writer_names_the_damaged_copy_a_device_uses() {
@@ -2600,7 +2600,7 @@ fn starter_mcb_project(t: &Tmp) -> (PathBuf, PathBuf) {
     (project, file)
 }
 
-/// FT-1499: `ew update-copies` writes a damaged copy of a starter part from the compiled-in library, byte for
+/// `ew update-copies` writes a damaged copy of a starter part from the compiled-in library, byte for
 /// byte as the assignment's save wrote it, says so with the version written, and the project then opens for
 /// editing (`ew fmt` writes nothing).
 #[test]
@@ -2637,7 +2637,7 @@ fn update_copies_writes_a_damaged_copy_from_its_library() {
     assert_eq!(fmt.status.code(), Some(0), "{}", stderr(&fmt));
 }
 
-/// FT-1499: `ew update-copies` on a project whose damaged copy no library holds (a supplier's part the test tables
+/// `ew update-copies` on a project whose damaged copy no library holds (a supplier's part the test tables
 /// import into the sample, which holds starter parts only) is refused in words, exit 1, and writes nothing.
 #[test]
 fn update_copies_refuses_a_copy_no_library_holds() {

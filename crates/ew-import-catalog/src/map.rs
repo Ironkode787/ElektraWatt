@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The column map (D11): which column of a supplier's table fills which member of a part, `member ← header`,
+//! The column map: which column of a supplier's table fills which member of a part, `member ← header`,
 //! and the TOML file it is saved as per source (`<config dir>/imports/<source key>.toml`; the host reads and writes
 //! the file, this crate only parses and prints its text).
 //!
@@ -185,7 +185,7 @@ impl fmt::Display for MapError {
 
 impl std::error::Error for MapError {}
 
-/// A column map: `member ← header`, and the sheet of a workbook (D11). Several members may read one column
+/// A column map: `member ← header`, and the sheet of a workbook. Several members may read one column
 /// (a supplier whose order number is the part number). Columns the map does not name are reported, never guessed.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct ColumnMap {

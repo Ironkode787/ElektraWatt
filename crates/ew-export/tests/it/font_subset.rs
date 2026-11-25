@@ -3,7 +3,7 @@
 
 //! The font subsetter (SV-2): glyph IDs kept, outlines of the used glyphs and their
 //! components byte for byte, every other glyph empty, `head`'s checksum adjustment valid, the dropped tables
-//! absent; hostile fonts refused with their error, never a panic. The subsets are read back with `skrifa` (D4).
+//! absent; hostile fonts refused with their error, never a panic. The subsets are read back with `skrifa`.
 
 use std::collections::{BTreeMap, BTreeSet};
 

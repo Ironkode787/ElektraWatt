@@ -16,11 +16,11 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use common::{options, project_files};
-use ew_schema::{FORMAT, Kind, LibDocument, Project, Record, Sha256};
 use ew_format::{
     Access as FormatAccess, FileHash, FilePath, FormatStep, KindStep, Limits, MANIFEST, Manifest,
     MigrationError, Migrations, sha256,
 };
+use ew_schema::{FORMAT, Kind, LibDocument, Project, Record, Sha256};
 use ew_store::mem::{DirSync, MemVfs};
 use ew_store::{
     Access, Changes, OpenError, Opened, ReadOnlyReason, SaveError, Store, StoreOptions, Vfs, join,

@@ -178,7 +178,7 @@ fn a_page_too_large_to_rasterise_is_refused_with_words() {
 // ---------------------------------------------------------------------------------------------------------
 // OU-2: `ew export png`
 
-/// FT-254: `ew export png --out <dir>` writes one PNG per folio of the page order, the same bytes on one thread and on
+/// `ew export png --out <dir>` writes one PNG per folio of the page order, the same bytes on one thread and on
 /// four (`--threads` changes the speed only).
 #[test]
 fn export_png_writes_every_folio_alike_in_one_and_four_threads() {
@@ -370,8 +370,8 @@ fn report_refuses_xlsx_without_a_file_and_an_unknown_block() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// `ew export report --kind <kind>` (D4), the revision overview's changed pages (D11), the block
-// parameters on save (D9)
+// `ew export report --kind <kind>`, the revision overview's changed pages, the block
+// parameters on save
 
 /// The refusals of the export by kind, each whole on stderr with
 /// exit 2; the unknown-kind refusal lists the registered kinds, each of which but `terminal_diagram` exports.
@@ -483,7 +483,7 @@ fn report_csv_of_folio_911_prints_the_revisions() {
     assert_eq!(stdout(&by_kind), csv);
 }
 
-/// RK-5 (D9): a block's `params` survive the save protocol byte for byte: `ew fmt` keeps the member verbatim and a
+/// RK-5: a block's `params` survive the save protocol byte for byte: `ew fmt` keeps the member verbatim and a
 /// second check finds nothing to rewrite; `"Assembly"` (a value outside the kind) exports the component rows.
 #[test]
 fn block_params_survive_a_save_and_a_wrong_value_gives_the_default() {

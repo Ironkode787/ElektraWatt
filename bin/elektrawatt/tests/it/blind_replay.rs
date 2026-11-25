@@ -278,7 +278,7 @@ struct Outcome {
 }
 
 /// Replays the recordings of `dir` whose `replay` is `which` twice and reports every failure at once; a recording with
-/// `stale` set is skipped with its reason (D15).
+/// `stale` set is skipped with its reason.
 fn run_recordings(dir: &Path, which: &str) -> Outcome {
     let mut out = Outcome {
         failures: Vec::new(),
@@ -409,11 +409,11 @@ fn a_stale_recording_is_skipped_with_its_reason() {
     );
 
     // Stale: skipped, with its reason, and nothing fails.
-    run["stale"] = Value::from("the wizard's step order changed (WP-X)");
+    run["stale"] = Value::from("the wizard's step order changed");
     std::fs::write(copy.join("run.json"), run.to_string()).unwrap();
     let skipped = run_recordings(&tmp.0, "check");
     assert!(skipped.failures.is_empty(), "{:?}", skipped.failures);
-    assert_eq!(skipped.skipped, ["copy: the wizard's step order changed (WP-X)"]);
+    assert_eq!(skipped.skipped, ["copy: the wizard's step order changed"]);
 }
 
 /// A raw UUID in any replayed line fails the check and names the line.

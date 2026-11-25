@@ -16,12 +16,12 @@ workspace = true
 
 [dependencies]
 ew-derive = { path = "../ew-derive" }
-# The open-items list (`ew_checks::open_items`, WP-S3.06 D8): the open findings of the open-item rules.
+# The open-items list (`ew_checks::open_items`): the open findings of the open-item rules.
 ew-checks = { path = "../ew-checks" }
 # `profile_tables` reads the provisional `colour_profile` and `size_profile` members of the project settings
 # (`ProjectSettings.extra`, doc 03 §5.1) as JSON values.
 serde_json = "1.0.154"
-# The XLSX writer's container (WP-S3.08 D3, decision log ID-1145): the own deterministic ZIP, no ZIP or XLSX crate.
+# The XLSX writer's container: the own deterministic ZIP, no ZIP or XLSX crate.
 ew-zip = { path = "../ew-zip" }
 # The words of the lists by key (`texts/`, `ew_reports::words`), rendered by the one renderer.
 ew-l10n = { path = "../ew-l10n" }

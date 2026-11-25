@@ -58,7 +58,7 @@ use ew_render_cpu::{PagePlacement, RenderOptions, RgbaImage, monochrome, pixel_s
 
 use crate::{PdfPage, PrintAdapter, PrintCancel, PrintError, PrintJob, PrintOutcome};
 
-/// The device rows of one band (D12): about 10 MB of RGBA at 600 dpi on A3.
+/// The device rows of one band: about 10 MB of RGBA at 600 dpi on A3.
 const BAND_ROWS: u32 = 256;
 
 /// D6's named papers that Windows has a `DMPAPER_*` size for, by their short and long sides in nm, as
@@ -124,7 +124,7 @@ impl PrintAdapter for Windows {
 
 /// Attaches the process to the console of the process that started it (a terminal), unless its standard output is
 /// handed over already (a pipe or a file): the window program has no console of its own (`windows_subsystem =
-/// "windows"`, FT-1710), and its headless, smoke and informational modes write to the terminal they are started from.
+/// "windows"`), and its headless, smoke and informational modes write to the terminal they are started from.
 /// `false` when nothing was attached (output handed over, or no parent console).
 pub fn attach_parent_console() -> bool {
     // SAFETY: one system call with a constant argument; it returns the handle or an error and keeps no pointer.

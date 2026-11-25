@@ -5,8 +5,8 @@
 //! `lib/` whose `sections.plc.supply_groups` carries typed members, unknown members and newer enum values loads and
 //! saves byte-equal, and its stored `sha256` (the hash of the item's compact JSON) verifies.
 
-use ew_schema::{LibDocument, SupplyFeeds, SupplyKind};
 use ew_format::{hash_text, lib_document_text, lib_file, library_copy_hash, sha256};
+use ew_schema::{LibDocument, SupplyFeeds, SupplyKind};
 
 use crate::write_and_read;
 

@@ -161,7 +161,7 @@ impl Hash for QuickFixProposal {
 }
 
 /// A record a finding is about: its kind and ID. The migration report folds an import finding into a
-/// live finding on the same records (D9).
+/// live finding on the same records.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct RecordKey {
     /// The record's kind.

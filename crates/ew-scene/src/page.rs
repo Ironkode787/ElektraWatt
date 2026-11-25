@@ -68,10 +68,10 @@
 //!   A mark whose representation or symbol is not in the view draws nothing.
 //! - **Junctions** draw the caller's junction symbol at `at` in the bevel's orientation; without a symbol a
 //!   dot is a filled black disc of radius [`JUNCTION_DOT_RADIUS`].
-//! - **Bridges** (doc 08 §6.5, FT-1908): the program's drawing of a strip's bridge, no record and nothing to select.
+//! - **Bridges** (doc 08 §6.5): the program's drawing of a strip's bridge, no record and nothing to select.
 //!   Each clamp of a [`BridgeView`] that the page draws gives a point half way between the terminal's centre and the
 //!   clamp's point, on the lead the bridge joins: the centre of a terminal drawn alone is its insertion point, that of
-//!   a terminal a strip segment draws half way between its side-1 and side-2 points (FT-2020), so a segment's
+//!   a terminal a strip segment draws half way between its side-1 and side-2 points, so a segment's
 //!   bridged terminals make the bus across its leads. A symbol of a block's level from 2 (drawn through a pin map)
 //!   gives its point three quarters of the way instead, so that a block's level-1 and level-2 bridges along the same
 //!   leads run apart, each with its own dots. Points whose clamps leave the same way and that lie on one line
@@ -119,7 +119,7 @@
 //!   leaving right); [`pin_text_place`], which the symbol editor also gives a new connection point's number text. They
 //!   print after the slot texts and never move: they are fixed texts. An entry without its box
 //!   CP, or a pin of an unknown direction, prints nothing.
-//! - **Wire markers** (FR-OUT-011 keeps them in monochrome; FT-1706: the text stands clear of its wires, as drawing
+//! - **Wire markers** (FR-OUT-011 keeps them in monochrome; the text stands clear of its wires, as drawing
 //!   practice has it): a short line across the wire at the midpoint of the polyline's longest segment (the first of
 //!   equal ones), [`MARKER_REACH`] past the wire on both sides in the page's wire stroke, and the caller's marker text
 //!   in style `marker` [`MARKER_GAP`] beyond the line's end, horizontal: right of the line across a vertical wire
@@ -132,7 +132,7 @@
 //!   (aligned bottom left); the cable's tag in style [`CABLE_TAG_STYLE`] and its type line in [`CABLE_KIND_STYLE`]
 //!   (`TYPE 3G1.5`) where the text placer sets them (the type before the line, the tag after it), or the tag at the
 //!   marker's `tag_at` once moved, with its type line under it. Every text is upright.
-//! - **Wire numbers** (FT-1692): a connection's [`ConnectionView::number`] prints once, in style `marker`, along its
+//! - **Wire numbers**: a connection's [`ConnectionView::number`] prints once, in style `marker`, along its
 //!   wire where the text placer sets it: right of a vertical stretch turned to read from the bottom, above a
 //!   horizontal one; beside the dashed line of an unrouted wire; with a marker of its own it is that marker's text,
 //!   the number first (`101.1 1.5 BK`). A bus line whose cable has no mark on the page prints the cable's tag there in
@@ -213,7 +213,7 @@ pub const CABLE_TAG_STYLE: &str = "tag.main";
 /// The text style of a cable mark's type line.
 pub const CABLE_KIND_STYLE: &str = "data.small";
 
-/// Where a wire marker's text stands beyond its line (FT-1706).
+/// Where a wire marker's text stands beyond its line.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum MarkerText {
     /// The line is horizontal (across vertical wires): the text reads horizontally right of its right end.
@@ -321,7 +321,7 @@ pub struct ConnectionView {
     pub connection: Arc<Connection>,
     /// The wire-marker text, when the connection shows a marker.
     pub marker: Option<String>,
-    /// The wire's printed number, when the project prints wire numbers (FT-1692).
+    /// The wire's printed number, when the project prints wire numbers.
     pub number: Option<String>,
 }
 
@@ -523,7 +523,7 @@ pub struct PageView {
     /// [`Layer::Labels`] after the slot and pin texts.
     pub strip_tags: Vec<StripTagView>,
     /// The boxes of the texts a line of the page runs through, which [`Layer::Wires`] cuts its lines round
-    /// ([`crate::knockout`], FT-1786): the labels layer's [`LayerList::knockouts`], filled by the caller; empty draws
+    /// ([`crate::knockout`]): the labels layer's [`LayerList::knockouts`], filled by the caller; empty draws
     /// every line whole.
     pub knockouts: Vec<Rect>,
     /// The bridges of the strips whose terminals the page draws, drawn into [`Layer::Wires`] after the junctions
@@ -531,7 +531,7 @@ pub struct PageView {
     pub bridges: Vec<BridgeView>,
 }
 
-/// A strip's bridge (doc 08 §6.5, FT-1908): the clamp it joins on each of its terminals, by the function and CP index
+/// A strip's bridge (doc 08 §6.5): the clamp it joins on each of its terminals, by the function and CP index
 /// its connections name there, in the strip's order (`ew_derive::StripBridges`, one bridge per group).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct BridgeView {
@@ -660,7 +660,7 @@ pub struct SlotTextBox {
     /// prints with (its slot's own, where a text placed anew round a symbol turned a quarter prints otherwise), so a
     /// dragged text lands where its ghost showed it; else `at`.
     pub drop_at: Pt2,
-    /// The text turned one, two and three quarters by the Rotate key while it is dragged (FT-2099): the anchor a drop
+    /// The text turned one, two and three quarters by the Rotate key while it is dragged: the anchor a drop
     /// stores, and the box the text prints there at its new angle and with that angle's alignment, which is its box
     /// turned counter-clockwise on the sheet about `drop_at` (the drag's ghost).
     pub turned: [(Pt2, Rect); 3],

@@ -133,9 +133,9 @@ pub const CARD_PINS_MOST: usize = 8;
 // length and these stand the same on every grid. The layout reads a mark's sizes from the scene's drawn pieces
 // (`marks`), never from here.
 
-/// How far a wire marker's line reaches past its outer wires (FT-1706).
+/// How far a wire marker's line reaches past its outer wires.
 pub const MARKER_REACH: Nm = Nm(1_500_000);
-/// The gap between a wire marker's line and its text (FT-1706).
+/// The gap between a wire marker's line and its text.
 pub const MARKER_GAP: Nm = Nm(1_000_000);
 /// Half the run of a cable mark's slanted stroke on a core, along and across the line.
 pub const CABLE_TICK: Nm = Nm(1_000_000);

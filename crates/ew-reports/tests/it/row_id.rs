@@ -4,8 +4,8 @@
 //! The text form of `RowId`: typed, escaped, injective (doc 09 §2.3, FR-EXP-004, FR-REP-048).
 
 use ew_ids::{Id, Uuid};
-use ew_schema::Device;
 use ew_reports::{RowId, RowKey};
+use ew_schema::Device;
 use proptest::prelude::*;
 
 const U: &str = "7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37";

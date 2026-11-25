@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The built-in QET frames and title blocks under `content/forms` (A4, and the A3 pair of FT-1826): strict parse,
+//! The built-in QET frames and title blocks under `content/forms` (A4, and the A3 pair): strict parse,
 //! canonical text, identities, geometry and cell layout.
 
 // Test target: bless and diagnostic environment flags (EW_*), which only choose whether a committed file is rewritten or a line is printed; the compared result never depends on them.
@@ -155,7 +155,7 @@ fn identities_hash_and_meta() {
         assert_eq!(copy.library_id.as_uuid(), BUILTIN_LIBRARY, "{key}");
         assert_eq!(copy.item_id.as_uuid(), item, "{key}");
         assert_eq!(copy.id, id, "{key}");
-        // The A4 title block took its Dutch labels in 1.1.0 (FT-1874).
+        // The A4 title block took its Dutch labels in 1.1.0.
         let version = if key == TITLE_BLOCK_KEY { "1.1.0" } else { "1.0.0" };
         assert_eq!(copy.version, version, "{key}");
         let digest = sha2::Sha256::digest(serde_json::to_string(&copy.item).unwrap().as_bytes());
@@ -255,7 +255,7 @@ fn title_block_cells() {
             (px(x0), px(y0), px(x1), px(y1)),
             "cell {n}"
         );
-        // Every label in English as before, and in Dutch (FT-1874).
+        // Every label in English as before, and in Dutch.
         let english = to_value!(cell.label).get("en-GB").cloned().unwrap_or(Value::Null);
         assert_eq!(english, label.map_or(Value::Null, |l| json!(l)), "cell {n}");
         let dutch = to_value!(cell.label).get("nl-NL").cloned();

@@ -1,18 +1,18 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The three-way merge core (D2, D13, D14, D16): MD-1 (each row of the record
+//! The three-way merge core: MD-1 (each row of the record
 //! table and each strategy), MD-2 (the properties), MD-3 (typed inputs merge typed, over the sample's records), MD-4
 //! (a side that does not read or is newer), the manifest merge and a page's merge on a wire. The sample is only read.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use ew_schema::{FORMAT, Kind, KindStatus, LibDocument, Record};
 use ew_format::{
     FilePath, FormatStep, Limits, MANIFEST, MIGRATIONS, Manifest, MergeSide, MigrationError, Migrations,
     PathClass, classify, load, merge_file, merge_record,
 };
+use ew_schema::{FORMAT, Kind, KindStatus, LibDocument, Record};
 use proptest::prelude::*;
 use serde_json::{Map, Value, json};
 
@@ -147,7 +147,7 @@ fn an_atomic_member_changed_on_both_sides_conflicts_and_keeps_ours() {
 
 #[test]
 fn object_merges_the_overrides_member_by_member() {
-    // AC-41's clean variant (D29): A adds colour BU, B sets csa 2.5.
+    // AC-41's clean variant: A adds colour BU, B sets csa 2.5.
     let o = rec(
         "connection",
         json!({"overrides": {"csa": "1.5", "show_marker": true}}),
@@ -213,7 +213,7 @@ fn an_object_absent_on_one_side_counts_as_empty() {
     );
 }
 
-/// FT-1917: a wire whose record held no overrides takes the cross-section on one side and the colour on the other;
+/// A wire whose record held no overrides takes the cross-section on one side and the colour on the other;
 /// the overrides absent at the base count as the empty object, so the two members merge (doc 05 §11.2).
 #[test]
 fn an_object_absent_at_the_base_counts_as_empty() {
@@ -977,7 +977,7 @@ fn the_project_merges_typed_through_its_strategies() {
     let text = String::from_utf8(files["project.jsonl"].clone()).expect("UTF-8");
     let line = text.lines().next().expect("the project line");
     let mut project: Value = serde_json::from_str(line).expect("JSON");
-    // The edit date a strategy merges must be in the base (D13); the sample's script sets none.
+    // The edit date a strategy merges must be in the base; the sample's script sets none.
     project["master"]["edited"] = json!("2025-04-14");
     let mut a = project.clone();
     a["master"]["edited"] = json!("2025-06-01");
@@ -1129,7 +1129,7 @@ fn both_sides_colouring_a_wire_write_one_conflict_record_and_keep_ours() {
     }
 }
 
-/// The file-level conflict line of the page holding `side`'s `text` (D14), members in D14's order. Its ID is
+/// The file-level conflict line of the page holding `side`'s `text`, members in D14's order. Its ID is
 /// `v5(NS_CONFLICT, path)`, which `ew-ids` pins.
 fn file_conflict(side: &str, text: &str) -> String {
     let lines: Vec<&str> = text.strip_suffix('\n').unwrap_or(text).split('\n').collect();
@@ -1698,7 +1698,7 @@ fn a_library_document_merges_as_one_record_and_a_conflict_holds_theirs_document(
     assert!(LibDocument::load(merged).is_ok());
 }
 
-// ---- manifest.json (D16) -----------------------------------------------------------------------------------------
+// ---- manifest.json -----------------------------------------------------------------------------------------
 
 const PROJECT: &str = "d76f5765-c456-5393-935c-4cec32a87b01";
 
@@ -1868,7 +1868,7 @@ fn an_unreadable_ours_is_held_below_theirs_conflict() {
 
 #[test]
 fn a_second_conflict_on_a_target_joins_its_conflict_record() {
-    // One conflict record per target (D14). Ours and theirs hold the record of an earlier conflict on
+    // One conflict record per target. Ours and theirs hold the record of an earlier conflict on
     // `number`; both now change `page`: one record holds both, never a second line with the same ID.
     let earlier = r#"{"$k":"conflict","id":"0190d8a4-6d3e-7c41-8f00-000000000001","kind":"bond","base":{"number":0},"ours":{"number":1},"theirs":{"number":2}}"#;
     let side = |page: &str| format!("{}\n{earlier}\n", bond(1, json!({"number": 1, "page": page})));
@@ -1911,7 +1911,7 @@ fn a_second_conflict_on_a_target_joins_its_conflict_record() {
         )
     );
     // On one member with different values: ours' record stays as it is and the file is conflicted, so that git keeps
-    // theirs in its index; nothing pending is dropped (D14).
+    // theirs in its index; nothing pending is dropped.
     let b = format!("{o}{}\n", conflict(r#"{"number":1}"#, r#"{"number":3}"#));
     let (bytes, conflicts) = merge_bytes(
         "waivers.jsonl",

@@ -15,7 +15,7 @@ use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, 
 
 /// The open-items list: one row per open item of `ew_checks::open_items` (the open findings of the open-item rules in
 /// release mode of the project's release scheme, else `pre-delivery`), so a finding is listed exactly when `ew check
-/// --mode release` prints it open (D7).
+/// --mode release` prints it open.
 ///
 /// Order: the category's place in `OPEN_ITEM_RULES`, then the natural order of the item (the finding's subject), then
 /// the fingerprint. Row ID `name(<rule>/<fingerprint>)`, which survives a renumber (the fingerprint holds no tag).

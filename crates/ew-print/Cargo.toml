@@ -11,7 +11,7 @@ description = "OS print adapters with per-OS features."
 repository.workspace = true
 publish = false
 
-# WP-S3.07 D12, ruling 6 of ID-1218: the workspace's lint set with `unsafe_code` at `deny` instead of `forbid`, so that
+# The workspace's lint set with `unsafe_code` at `deny` instead of `forbid`, so that
 # the Windows adapter's module alone may allow it (a `forbid` cannot be lifted); the crate and that file are the only
 # exception to the workspace's `unsafe_code = "forbid"`. Keep the rest equal to the root Cargo.toml's lints.
 [lints.rust]
@@ -33,16 +33,16 @@ ew-dl = { path = "../ew-dl" }
 ew-hack = { version = "0.3.5", path = "../ew-hack" }
 ew-units = { path = "../ew-units" }
 
-# WP-S3.07 D11: the xdg-desktop-portal Print adapter on Linux (MIT; MSRV 1.87). No default features (they bring
+# The xdg-desktop-portal Print adapter on Linux (MIT; MSRV 1.87). No default features (they bring
 # tokio): the async-io executor the graph's zbus 5 already runs on for accessibility, and the print portal only.
 [target.'cfg(target_os = "linux")'.dependencies]
 ashpd = { version = "=0.13.13", default-features = false, features = ["async-io", "print"] }
 
-# WP-S3.07 D12 (ruling 5 of ID-1218): the Windows print adapter over GDI, at the version the graph holds (through
+# The Windows print adapter over GDI, at the version the graph holds (through
 # accesskit_windows, gpu-allocator and wgpu-hal; no new package). Its features: the device context, its printing calls
 # and the print dialog; the dialog's owner window; COM on the dialog's thread; and the global memory of the dialog's
-# printer settings (GlobalLock); the console's Ctrl+C handler of `ew print` (FT-1157); the parent's console of the
-# window program's terminal modes (FT-1710).
+# printer settings (GlobalLock); the console's Ctrl+C handler of `ew print`; the parent's console of the
+# window program's terminal modes.
 [target.'cfg(windows)'.dependencies]
 windows = { version = "=0.62.2", features = [
   "Win32_Foundation",

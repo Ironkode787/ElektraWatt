@@ -61,7 +61,7 @@ fn schema_files() -> BTreeMap<String, String> {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// The published schemas (D5)
+// The published schemas
 
 /// The result schemas are written for the user guide where `EW_REFERENCE_DIR` asks for them.
 // The variable only chooses whether the generated files are also written out.

@@ -113,8 +113,8 @@ pub enum NotDerived {
 }
 
 impl NotDerived {
-    /// The reason as a page or a box prints it, in every language of the list texts, in words: no family or kind name
-    /// (FT-1995). The [`Display`](fmt::Display) form, which names them, is for the log and the command line.
+    /// The reason as a page or a box prints it, in every language of the list texts, in words: no family or kind name.
+    /// The [`Display`](fmt::Display) form, which names them, is for the log and the command line.
     pub fn words(&self) -> MlText {
         crate::words::in_languages(&match self {
             NotDerived::Unsupported(_) => text!("not-derived-unsupported"),

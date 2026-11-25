@@ -11,8 +11,8 @@ use std::path::{Path, PathBuf};
 use ew_format::{hash_text, sha256};
 use ew_store::ewz::{self, AsFound, Ewz, EwzError, ExtractError, PackError};
 use ew_store::mem::{DirSync, Fault, MemVfs};
-use ew_zip::{self as zip, Method, ZipLimits};
 use ew_store::{OpenMode, OsVfs, Store, StoreOptions, Vfs};
+use ew_zip::{self as zip, Method, ZipLimits};
 
 use crate::common::{fixture, small_fixture, tree};
 

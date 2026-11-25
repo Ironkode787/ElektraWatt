@@ -28,7 +28,7 @@ pub struct Arranged {
     /// The routes, junctions and marks of the page as it would become (every wire with an end on a moved part
     /// included, an empty route for one without a way), and the page's quality before and after.
     pub plan: Plan,
-    /// The strips of terminals over or under a card that could not open as one (§4.4, FT-2110), each by its first
+    /// The strips of terminals over or under a card that could not open as one (§4.4), each by its first
     /// terminal, with what held it.
     pub held: Vec<(PartId, StripHeld)>,
 }

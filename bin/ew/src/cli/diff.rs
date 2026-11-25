@@ -127,7 +127,7 @@ fn git_project(other: Option<&str>) -> Option<PathBuf> {
     })
 }
 
-/// The project's files at the revision `rev` (D26): `manifest.json`, the files it lists and the two git files, read
+/// The project's files at the revision `rev`: `manifest.json`, the files it lists and the two git files, read
 /// through one `git cat-file --batch` process under the reader's limits, opened from memory.
 fn git_side(rev: &str, spec: &str, other: Option<&str>) -> Result<Session, String> {
     let dir = git_project(other).ok_or_else(|| format!("{spec}: no project directory to read from git"))?;
@@ -184,10 +184,10 @@ fn git_side(rev: &str, spec: &str, other: Option<&str>) -> Result<Session, Strin
     .map_err(|e| format!("{spec}: {e}"))
 }
 
-/// The most folder levels below the current directory that `--textconv` looks for `*.ew` projects in (D27).
+/// The most folder levels below the current directory that `--textconv` looks for `*.ew` projects in.
 const TEXTCONV_DEPTH: usize = 3;
 
-/// `ew diff --textconv <file>` (D27): the file as text lines, labelled from the project found in the current directory
+/// `ew diff --textconv <file>`: the file as text lines, labelled from the project found in the current directory
 /// (the nearest ancestor holding a manifest, else the first `*.ew` folder at most three levels below that names the
 /// file's records). Exit 0, 2 when the file cannot be read.
 fn run_textconv(file: &Path) -> i32 {

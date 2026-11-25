@@ -4,7 +4,7 @@
 //! Through the `ew` binary, on a copy of the sample: the table writers behind every row export and their expected
 //! files (the round trip's tests are `round_trip`, with the helpers here).
 //!
-//! The expected files (D16), under `bin/ew/tests/expected/`: one cell dump per workbook, `xlsx/<name>.cells.txt`
+//! The expected files, under `bin/ew/tests/expected/`: one cell dump per workbook, `xlsx/<name>.cells.txt`
 //! (each sheet read back through the round trip's reader, [`ew_api::output::workbook_dump`]), for `bom_parts.xlsx`,
 //! `wires.xlsx`, `block_908.xlsx` (part 1), `strips_X1031.xlsx` and `io_list.xlsx` (part 2); and the CSV presets,
 //! `csv/presets/bom_parts.<preset>.csv` and `io_list.excel-nl.csv` (`round_trip`). Their IDs are numbered by order of

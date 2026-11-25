@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A symbol's data text that its author set on the line of its own pin (docs/design/06a-drafting.md §5.4, FT-1980):
+//! A symbol's data text that its author set on the line of its own pin (docs/design/06a-drafting.md §5.4):
 //! the text placer moves it off the wire that leaves the pin, as it moves every label a wire runs through.
 
 use crate::kit::{Page, p, s};

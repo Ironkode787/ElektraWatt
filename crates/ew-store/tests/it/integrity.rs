@@ -18,9 +18,9 @@ use std::sync::Arc;
 use common::{
     apply, device_copy, fixture, mem_project, mem_project_of, options, project_files, reopen, small_fixture,
 };
+use ew_format::{FilePath, FindingKind, Limits};
 use ew_model::{AnyRow, Op};
 use ew_schema::Device;
-use ew_format::{FilePath, FindingKind, Limits};
 use ew_store::mem::{DirSync, Fault, MemVfs};
 use ew_store::{Access, BrokenLine, Changes, Opened, ReadOnlyReason, SaveError, Store, StoreOptions, join};
 
@@ -434,7 +434,7 @@ fn a_cloud_synced_open_reads_a_missing_file_again_after_five_seconds() {
     assert_eq!(opened.report.access, Access::Edit);
 }
 
-/// FT-1383: one damaged library copy that a device names (a part copy cut short, so the loader drops it)
+/// One damaged library copy that a device names (a part copy cut short, so the loader drops it)
 /// no longer refuses the whole project with EW-INV-001: the project opens read-only, its finding naming the copy's
 /// file, and the copy is not in the model. A repair open of it stays read-only too.
 #[test]
@@ -490,7 +490,7 @@ fn a_damaged_copy_a_device_names_opens_read_only_with_its_finding() {
 
 /// The damaged definition copy of the sample's double-acting cylinders, whose functions end the tubes
 /// of folio 201, opens read-only with the EW-INV-001 that names the copy; the tubes' ports, whose definition is
-/// gone, are not judged by EW-INV-024 (FT-1569: a port without its definition is exempt, so the update of another
+/// gone, are not judged by EW-INV-024 (a port without its definition is exempt, so the update of another
 /// damaged copy is no misfit). The same damage beside a violation unrelated to it, a page whose location is not in the
 /// project, is still refused by that violation.
 #[test]
@@ -590,7 +590,7 @@ fn with_copy(model: &ew_model::Model, path: &str) -> (ew_model::Model, BTreeSet<
     (next, keys)
 }
 
-/// FT-1499: Update from library of a damaged copy writes the library's document over the damaged file, with
+/// Update from library of a damaged copy writes the library's document over the damaged file, with
 /// its manifest entry, under the lock it takes and gives back; the store stays read-only, and the project then opens
 /// for editing with the copy, every other file as it was.
 #[test]
@@ -629,7 +629,7 @@ fn update_damaged_copies_writes_the_copy_and_the_project_opens_for_editing() {
     again.store.close();
 }
 
-/// FT-1499: another file that does not hold the bytes its manifest lists (here a page file edited outside,
+/// another file that does not hold the bytes its manifest lists (here a page file edited outside,
 /// EW-CORE-002) refuses the update before anything is written, as would another session's lock: the update would hide
 /// that finding.
 #[test]

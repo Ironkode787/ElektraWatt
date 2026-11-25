@@ -201,7 +201,7 @@ fn failures_exit_2_with_their_message() {
     }
 }
 
-/// QU-5 (D13): `ew queries --json` prints `crates/ew-api/api/queries.json` byte for byte; the text form is one line
+/// QU-5: `ew queries --json` prints `crates/ew-api/api/queries.json` byte for byte; the text form is one line
 /// per entry, name, key and description separated by tabs.
 #[test]
 fn queries_prints_the_committed_registry() {

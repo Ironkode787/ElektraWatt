@@ -89,7 +89,7 @@ pub(crate) use text::{BoxSpec, lay_out, min_size, place, split_align};
 pub const EXTRA_MAX_LINES: &str = "ew.cell.max_lines";
 
 /// `FormCell.extra` member: the cell's own inset of its text in nm, 0 to [`MAX_INSET`] (default [`CELL_PADDING`]); a
-/// QElectroTech title block's cells have none (QET draws a cell's text on its edges; FT-1765).
+/// QElectroTech title block's cells have none (QET draws a cell's text on its edges).
 pub const EXTRA_INSET: &str = "ew.cell.inset";
 
 /// The largest inset a cell's [`EXTRA_INSET`] gives: 10 mm; a larger or negative value is the default.

@@ -166,7 +166,7 @@ proptest! {
                 prop_assert_eq!(placed.pos, v.apply(original.pos), "{:?}", v);
             }
             for (placed, original) in g.texts.iter().zip(&base.texts) {
-                // A symbol turned a quarter places its slot texts anew round its body (FT-1929, `turned_symbol_texts`);
+                // A symbol turned a quarter places its slot texts anew round its body (`turned_symbol_texts`);
                 // its pins' designations and its static texts keep their points.
                 let anew = v.quarter_turns() % 2 == 1
                     && matches!(&placed.source, TextSource::Slot(k) if !matches!(k, SlotKind::CpDesignation(_)));

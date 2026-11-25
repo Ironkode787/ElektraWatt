@@ -15,8 +15,8 @@ publish = false
 workspace = true
 
 [dependencies]
-# The raw deflate of the writer and the reader (WP-S1.18 D11, WP-S3.08 D3): already in the graph through
-# ew-import-catalog and png (decision log ID-827, ID-1145); no ZIP crate.
+# The raw deflate of the writer and the reader: already in the graph through
+# ew-import-catalog and png; no ZIP crate.
 miniz_oxide.workspace = true
 ew-hack = { version = "0.3.5", path = "../ew-hack" }
 

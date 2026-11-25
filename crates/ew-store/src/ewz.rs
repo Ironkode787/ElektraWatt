@@ -63,7 +63,7 @@ pub const EXTENSION: &str = "ewz";
 pub const GIT_FILES: [&str; 2] = [".gitattributes", ".gitignore"];
 /// The suffix of the extract's staging directory beside the target.
 pub const STAGING_SUFFIX: &str = ".tmp-ewz";
-/// The refusal of every writer given an `.ewz` (D9).
+/// The refusal of every writer given an `.ewz`.
 pub const READ_ONLY: &str = "an .ewz opens read-only; extract it first";
 /// The most entries an `.ewz` holds (the container has no ZIP64; doc 05 §12's 100,000 is lowered, D8).
 pub const MAX_ENTRIES: usize = 65_535;

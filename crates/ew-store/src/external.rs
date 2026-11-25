@@ -8,10 +8,10 @@
 //!   or wrote, every [`POLL_EVERY`] and on window focus. A change waits for quiescence: two reads [`QUIESCENCE`] apart
 //!   with equal bytes and no git operation in progress ([`crate::git::busy`]). The store's own save writes the hash it
 //!   then holds, so it is never taken for an external change. A file that changes while the manifest stays is caught
-//!   by the save's pre-check (D5).
+//!   by the save's pre-check.
 //! - **The incoming generation** ([`crate::Store::read_incoming`]): read through the store's own open path, read-only
 //!   (never a roll-forward, never a lock). A generation that a finding makes read-only, or whose model does not build,
-//!   is not applied (D21): [`Unreadable`].
+//!   is not applied: [`Unreadable`].
 //! - **The merge** ([`merge`]): per record, the baseline (the last loaded or saved model), ours (the session's model)
 //!   and theirs (the incoming model) through the one three-way core of `ew-format` ([`ew_format::merge_record`], D2).
 //!   The colliding fields ([`Collision`]) are held for a choice of mine or theirs per field ([`ExternalMerge::rows`]).
@@ -30,11 +30,11 @@ use crate::rows::{all_keys, row_value, value_row};
 
 /// How often a session polls the manifest (doc 05 §9, D20; not measured, owner's rule).
 pub const POLL_EVERY: Duration = Duration::from_secs(3);
-/// How long the manifest's bytes stay equal before a change is read (D20).
+/// How long the manifest's bytes stay equal before a change is read.
 pub const QUIESCENCE: Duration = Duration::from_millis(750);
-/// How long a session on a cloud-synced path waits before it reads an unreadable generation again (D21).
+/// How long a session on a cloud-synced path waits before it reads an unreadable generation again.
 pub const CLOUD_RECHECK: Duration = Duration::from_secs(5);
-/// How often a session on a cloud-synced path reads an unreadable generation again before it holds its saves (D21).
+/// How often a session on a cloud-synced path reads an unreadable generation again before it holds its saves.
 pub const CLOUD_RECHECKS: u32 = 3;
 
 /// What a poll of the manifest found ([`crate::Store::poll`]).
@@ -50,7 +50,7 @@ pub enum Poll {
     Changed,
 }
 
-/// Why an incoming generation is not applied (D21): the project keeps its model and its edits.
+/// Why an incoming generation is not applied: the project keeps its model and its edits.
 #[derive(Debug)]
 pub enum Unreadable {
     /// It opens, but a finding makes it read-only (a missing or changed file, an unreadable line, a newer format).
@@ -68,7 +68,7 @@ pub enum Take {
     Theirs,
 }
 
-/// A field that the session and the incoming generation changed differently (D22).
+/// A field that the session and the incoming generation changed differently.
 #[derive(Clone, PartialEq, Debug)]
 pub struct Collision {
     /// The record.
@@ -150,7 +150,7 @@ impl ExternalMerge {
     }
 }
 
-/// The three-way merge of the baseline `base`, the session's model `ours` and the incoming model `theirs` (D22): per
+/// The three-way merge of the baseline `base`, the session's model `ours` and the incoming model `theirs`: per
 /// record that `theirs` changed against `base`, through [`ew_format::merge_record`]. A record that only the session
 /// changed stays as it is.
 ///

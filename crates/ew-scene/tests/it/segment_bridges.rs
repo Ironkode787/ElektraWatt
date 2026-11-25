@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A strip segment draws its bridges (FT-2020, doc 08 §6.5): the terminals of the bridge that the segment shows are
+//! A strip segment draws its bridges (doc 08 §6.5): the terminals of the bridge that the segment shows are
 //! joined by a line across their bridged leads, half way between each terminal's centre and its clamp, with a dot on
 //! each; a terminal of the segment that the bridge does not join is crossed without a dot.
 

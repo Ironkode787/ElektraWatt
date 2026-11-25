@@ -225,7 +225,7 @@ fn resolve_title(q: &Q, block: &ReportBlock, title: &ew_mltext::MlText) -> ew_ml
     })
 }
 
-/// The rows one page of a TOC block holds (doc 09 §3.1, decision D3), on the frame its pages print on
+/// The rows one page of a TOC block holds (doc 09 §3.1), on the frame its pages print on
 /// ([`crate::layout::list_frame`]): the form's data area when it has a valid one (its capacity over its data-row
 /// height), else the rows its list area holds with the block's caption and legend (doc 09 §3.8), else (a form the
 /// project does not hold) the profile's `toc.rows_per_page`. At least 1. `page_order` uses the same value for the TOC
@@ -302,7 +302,7 @@ pub fn rows_of(q: &Q, block: Id<ReportBlock>) -> Arc<RowSet> {
     q.get::<BlockRows>(block)
 }
 
-/// The rows of the built-in report kind `kind` for the whole project (D3): the rows a block of that kind
+/// The rows of the built-in report kind `kind` for the whole project: the rows a block of that kind
 /// would list with no manual selection, no filter, no sort keys, no grouping and no page limits, in the kind's default
 /// order; for `terminal_diagram` the rows of the strip `include`. The navigators read their tables from it, so a
 /// printed list and its navigator never disagree.

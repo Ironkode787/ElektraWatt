@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 SPDX-License-Identifier: CC0-1.0
 -->
 
-# Real exporter raster corpus (FT-436)
+# Real exporter raster corpus
 
 The eight files come from Wikimedia Commons, each public domain or CC0 as its file page states; they are kept byte
 for byte; metadata was checked for personal data; `crates/ew-export/tests/it/raster_exporters.rs` asserts each file's verdict.

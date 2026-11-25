@@ -23,11 +23,10 @@ ew-ui = { path = "../../crates/ew-ui" }
 # The shell model the window shows, named by its own crate (the window's settings, crash log and print requests).
 ew-viewmodel = { path = "../../crates/ew-viewmodel" }
 ew-print = { path = "../../crates/ew-print" }
-# The window on the wgpu renderer, so that WP-S2.02 paints into the same device (ADR-0014 decision 1); no glow,
+# The window on the wgpu renderer, so that the canvas paints into the same device (ADR-0014 decision 1); no glow,
 # no persistence, no default_fonts. `wgpu_no_default_features` instead of `wgpu`: eframe's `wgpu` turns on every
-# wgpu backend through egui-wgpu's defaults; the backends are ew-render2d's, one set per operating system (FT-328:
-# DX12 with WARP on Windows, Vulkan and GL on Linux; the Metal set for macOS is kept for portability, dormant
-# since ID-880).
+# wgpu backend through egui-wgpu's defaults; the backends are ew-render2d's, one set per operating system:
+# DX12 with WARP on Windows, Vulkan and GL on Linux; the Metal set for macOS is kept for portability, dormant.
 # Native Copy/Cut/Paste needs the explicit clipboard feature with defaults disabled.
 eframe = { version = "=0.37.0", default-features = false, features = ["accesskit", "clipboard", "wgpu_no_default_features", "wayland", "x11"] }
 # Open and Save As dialogs; the XDG-portal backend on Linux (no GTK), pollster as its executor.
@@ -37,7 +36,7 @@ ew-hack = { version = "0.3.5", path = "../../crates/ew-hack" }
 # Not used directly: a version floor for a transitive crate (accesskit_unix -> atspi -> zbus-lockstep ->
 # zbus_xml). zbus_xml 5.1.0 pulls quick-xml 0.38.4 (RUSTSEC-2026-0194, RUSTSEC-2026-0195), and resolver 3
 # prefers it because 5.2.1 needs Rust 1.87 while the workspace MSRV is 1.85, so without this line a
-# `cargo update` would bring the advisories back (FT-326). Remove it when the graph no longer needs the hold.
+# `cargo update` would bring the advisories back. Remove it when the graph no longer needs the hold.
 [target.'cfg(any(target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))'.dependencies]
 zbus_xml = "=5.2.1"
 # Not used directly: hold the Wayland clipboard on the existing SCTK 0.19 dependency chain.
@@ -49,14 +48,14 @@ automod.workspace = true
 ew-viewmodel = { path = "../../crates/ew-viewmodel", features = ["testkit"] }
 # Only carries the test-only feature to every test build (ci/dep-rules.toml, `[[uniform_test_features]]`).
 ew-commands = { path = "../../crates/ew-commands", features = ["testkit"] }
-# The starter part versions of the tests (`ew_testkit::library::starter_version`, FT-1041; dev-only edge).
+# The starter part versions of the tests (`ew_testkit::library::starter_version`,; dev-only edge).
 ew-testkit = { path = "../../crates/ew-testkit" }
-# The fresh temporary directory of the tests (FT-1039; dev-only edge, `[allowed_dev_edges]`).
+# The fresh temporary directory of the tests (dev-only edge, `[allowed_dev_edges]`).
 ew-testdir = { path = "../../crates/ew-testdir" }
 serde_json = "1.0.154"
 # tests/it/headless.rs: the 150 dpi snapshot against `ew render`'s PNG of the sample, read back as pixels.
 png = "0.18.1"
-# tests/it/app_icon.rs: the application icon's PNG rendered from its SVG (WP-S6.06 §13 O5, ID-1280): the SVG path of
+# tests/it/app_icon.rs: the application icon's PNG rendered from its SVG: the SVG path of
 # ew-scene and the CPU renderer (dev-only edges, `[allowed_dev_edges]`; no new package).
 ew-scene = { path = "../../crates/ew-scene" }
 ew-render-cpu = { path = "../../crates/ew-render-cpu" }

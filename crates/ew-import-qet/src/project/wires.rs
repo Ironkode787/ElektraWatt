@@ -370,7 +370,7 @@ fn half_grid() -> Grid {
 /// included: `a`, the point after each segment but the last, then `b`. A corner coordinate that names the same
 /// QET px as an end's coordinate takes that end's [`whole_px`] value (the tables importer's rule), any other the
 /// position of the half grid (5 px) nearest to it, so that a path QET stores between the grid's lines keeps its way
-/// (FT-1861: such corners moved at most 2.5 px), and the route is [`finish`]ed. `None` (QET draws its automatic path) without segments,
+/// (such corners moved at most 2.5 px), and the route is [`finish`]ed. `None` (QET draws its automatic path) without segments,
 /// when the segments do not end within 1 px of `b` on both axes (QET's own coherence test,
 /// `Conductor::pathFromXml`), a length does not convert or the arithmetic overflows.
 fn stored_route(a: Pt2, b: Pt2, segments: &[Segment]) -> Option<Vec<Pt2>> {
@@ -1495,7 +1495,7 @@ mod tests {
             ),
             (l_shape.clone(), None)
         );
-        // FT-1861: a stored corner between the grid's lines keeps the stored way, on the half grid (5 px): at 125 px as
+        // A stored corner between the grid's lines keeps the stored way, on the half grid (5 px): at 125 px as
         // stored, and from 126.67 px moved to 125 px; no finding.
         let kept = vec![a, at(100, 125), at(200, 125), b];
         for (down_by, rest) in [("25", "35"), ("26.6667", "33.3333")] {

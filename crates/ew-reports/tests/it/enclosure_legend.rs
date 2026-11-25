@@ -8,9 +8,9 @@
 
 use ew_derive::Q;
 use ew_ids::Uuid;
-use ew_schema::{LibDocument, Project, Record, ReportBlock, ReportKind};
 use ew_model::Model;
 use ew_reports::{Cell, MissingReason, Registry, RowKey, RowSet};
+use ew_schema::{LibDocument, Project, Record, ReportBlock, ReportKind};
 use serde_json::{Value, json};
 
 const MM: i64 = 1_000_000;
@@ -163,7 +163,7 @@ fn a_block_without_a_viewed_surface_has_no_rows() {
     assert!(rows(&q, Some(0x9999)).rows.is_empty(), "a missing page");
 }
 
-/// The printed legend has no Unit column (FT-1938): a rail's length prints with its metre, a count of pieces bare;
+/// The printed legend has no Unit column: a rail's length prints with its metre, a count of pieces bare;
 /// the CSV keeps the quantity a number beside its Unit column.
 #[test]
 fn a_length_prints_with_its_unit_and_stays_a_number_in_the_table() {
@@ -181,7 +181,7 @@ fn a_length_prints_with_its_unit_and_stays_a_number_in_the_table() {
     );
 }
 
-/// A block that names no page (the kind's whole-project rows, `ew export report --kind enclosure_legend`, FT-2095)
+/// A block that names no page (the kind's whole-project rows, `ew export report --kind enclosure_legend`)
 /// lists the legend of the plate the panel page shows, after a heading row that names that page.
 #[test]
 fn a_block_that_names_no_page_lists_every_viewed_plate_after_its_heading() {

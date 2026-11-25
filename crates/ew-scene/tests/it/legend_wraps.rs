@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A legend where its box is narrow (doc 12 §5.4, FT-1782): its identifiers print whole and its descriptions wrap at
+//! A legend where its box is narrow (doc 12 §5.4): its identifiers print whole and its descriptions wrap at
 //! their words while the box has the height for them, else they are cut and every row still prints; a legend draws
 //! no drop shadow and a light header.
 

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A file added to a project by hand that `manifest.json` does not list is not read, and the commands that open the
-//! project say so on stderr instead of the file being silently not there (FT-1879).
+//! project say so on stderr instead of the file being silently not there.
 
 use crate::support::{Tmp, args, stderr};
 
@@ -24,7 +24,7 @@ fn a_reader_and_a_writer_name_a_library_file_the_manifest_does_not_list() {
         args([&"layout", &p]),
         args([&"fmt", &"--check", &p]),
         args([&"fmt", &p]),
-        // `ew route`'s editing open (FT-1930).
+        // `ew route`'s editing open.
         args([&"route", &p]),
     ] {
         let o = t.ew(&run);

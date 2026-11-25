@@ -1,9 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// The canvas shader of ew-render2d's GPU path (WP-S2.02 section 7.1): one instanced vertex stage for the meshes of
-// paths, glyph outlines and LOD bars (fs_main) and for raster images, the unit square with a texture (fs_image,
-// FT-480).
+// The canvas shader of ew-render2d's GPU path: one instanced vertex stage for the meshes of
+// paths, glyph outlines and LOD bars (fs_main) and for raster images, the unit square with a texture (fs_image).
 //
 // Colours are sRGB bytes as authored and are written to an Rgba8Unorm target as they are, so blending happens in
 // gamma space, as in the CPU renderer's u8 pipeline, and egui-wgpu samples the texture as the gamma-space texture

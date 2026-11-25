@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A form cell's own inset (`ew.cell.inset`, FT-1765): a QElectroTech title block's cell holds its text on its edges,
+//! A form cell's own inset (`ew.cell.inset`): a QElectroTech title block's cell holds its text on its edges,
 //! as QET draws it; a cell without the member keeps the house inset, and a value out of range is the house inset.
 
 use ew_dl::ItemKind;

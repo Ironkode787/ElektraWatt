@@ -5,8 +5,8 @@
 //! amendment 4): an older build keeps it in `extra` and writes it after them, so the line it writes is this build's
 //! canonical line too.
 
-use ew_schema::Record;
 use ew_format::record_line;
+use ew_schema::Record;
 
 /// An imported list block with the members 0.3.5 added: its line holds them after `source_ref`, in the order an older
 /// build writes them from `extra`.

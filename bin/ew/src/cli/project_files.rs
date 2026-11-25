@@ -569,7 +569,7 @@ impl Leaf for RecoverCli {
     }
 }
 
-/// `ew recover [--replay|--discard]` (D10): the journal of the crashed session with the latest change, one at
+/// `ew recover [--replay|--discard]`: the journal of the crashed session with the latest change, one at
 /// a time. Without a flag its summary; `--replay` replays it and saves; `--discard` deletes it
 /// after the word typed on a controlling terminal (without one: exit 2 before the project is opened). On a project of
 /// an older format `--replay` asks the upgrade's typed word (or takes `--yes`) before it replays, and saves with the

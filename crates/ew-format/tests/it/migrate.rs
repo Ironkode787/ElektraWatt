@@ -7,11 +7,11 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ew_schema::{Kind, LibDocument, Sha256};
 use ew_format::{
     FilePath, FormatStep, KindStep, Limits, MIGRATIONS, Manifest, MigrationError, Migrations, StewardProblem,
     lib_document_text, lib_file, load_migrated, sha256, steward_problems,
 };
+use ew_schema::{Kind, LibDocument, Sha256};
 use serde_json::{Value, json};
 
 use crate::{PROJECT, project};
@@ -232,7 +232,7 @@ fn trace_format_b(value: Value) -> Result<Value, MigrationError> {
 }
 
 /// Across two hops a kind step runs at the format it names, so the record step of the later format sees the
-/// record at the `$v` that format wrote (FT-1153).
+/// record at the `$v` that format wrote.
 #[test]
 fn a_kind_step_runs_between_the_format_steps_at_the_format_it_names() {
     static TWO_HOPS: Migrations = Migrations {

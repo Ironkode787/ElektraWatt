@@ -207,7 +207,7 @@ fn pilot_steps(dir: &Path) -> Vec<(&'static str, Value)> {
         ),
         // The rest of §6.12: -101F1's part quantity and technical data; -102F1's function text, letter and counter;
         // -UC1's frozen tag unfrozen again; a terminal's designation; the wire's colour and cross-section reset (the
-        // sample sets no cross-section by hand, FT-2090); the name of 24V; a representation's arrangement and text slots; an interruption point
+        // sample sets no cross-section by hand); the name of 24V; a representation's arrangement and text slots; an interruption point
         // read-only.
         ("select.set", json!({"refs": ["tag:-101F1"]})),
         ("props.set", json!({"row": "device/parts[0].qty", "value": "2"})),

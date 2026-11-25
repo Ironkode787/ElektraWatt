@@ -70,7 +70,7 @@ impl ReportKindDef for EnclosureLegend {
             }
             return set;
         }
-        // The whole project (`ew export report --kind enclosure_legend`, FT-2095): every plate a layout page shows,
+        // The whole project (`ew export report --kind enclosure_legend`): every plate a layout page shows,
         // once, in page order, each after a heading that names its first layout page.
         let order = q.get::<DrawnPageOrder>(());
         let mut listed = Vec::new();

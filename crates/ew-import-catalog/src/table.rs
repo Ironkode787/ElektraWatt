@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The two table readers (D11): CSV (UTF-8 with or without a byte-order mark, `,` or `;` found from the header line,
+//! The two table readers: CSV (UTF-8 with or without a byte-order mark, `,` or `;` found from the header line,
 //! RFC 4180 quoting) and XLSX ([`crate::xlsx`], the first or the named sheet, each cell as its displayed text; a formula's
 //! cached value is read and never evaluated). Both give a [`Sheet`]: the header row and the data rows with their
 //! 1-based line (CSV) or row number (XLSX).
@@ -483,7 +483,7 @@ pub fn sheet_names(bytes: &[u8], limits: &Limits) -> Result<Vec<String>, ImportE
 mod tests {
     use super::*;
 
-    /// A title line without a separator is passed over: the delimiter is the header line's (FT-1742).
+    /// A title line without a separator is passed over: the delimiter is the header line's.
     #[test]
     fn the_separator_skips_a_title_line() {
         assert_eq!(csv_separator("Title\nA;B;C\n1;2;3\n"), ';');

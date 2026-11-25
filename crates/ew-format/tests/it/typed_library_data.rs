@@ -8,11 +8,11 @@
 
 use std::collections::BTreeMap;
 
-use ew_schema::{LibDocument, Record, Sha256};
 use ew_format::{
     FilePath, FindingKind, Limits, Severity, hash_text, lib_document_text, lib_file, library_copy_hash, load,
     record_file, record_line, sha256,
 };
+use ew_schema::{LibDocument, Record, Sha256};
 
 use crate::write_and_read;
 

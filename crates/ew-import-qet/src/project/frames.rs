@@ -367,7 +367,7 @@ const BOUND: [(&str, &str); 6] = [
 ];
 
 /// QET's own variables whose values the import writes into a field of the project or of the page, and the field a
-/// cell prints for them (doc 14 §4.9, FT-1859): the page's structure (`=`, `+`), the open revision's label, the
+/// cell prints for them (doc 14 §4.9): the page's structure (`=`, `+`), the open revision's label, the
 /// designer, the drawing number, the project's description and its edited date. [`super::pages`] writes a field only
 /// where it can hold the value (every folio's value one for the project's); elsewhere the cell keeps the text.
 pub(crate) const FIELDS: [(&str, &str); 9] = [
@@ -626,7 +626,7 @@ fn title_block(
         if lines > 1 {
             extra.insert("ew.cell.max_lines".into(), Value::from(lines));
         }
-        // QET draws a cell's text on the cell's edges, without an inset (FT-1765), as its screen lays it out:
+        // QET draws a cell's text on the cell's edges, without an inset, as its screen lays it out:
         // every advance a whole px.
         extra.insert("ew.cell.inset".into(), Value::from(0));
         extra.insert("ew.cell.pixel".into(), Value::from(px(1).0));

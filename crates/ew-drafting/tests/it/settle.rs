@@ -19,7 +19,7 @@ fn apart(settled: &[Settled]) -> bool {
 }
 
 /// Two like parts side by side, the second's tag's first place on the first's body: both tags stand clear, at one
-/// place for the row (the row rule, FT-1870).
+/// place for the row (the row rule).
 #[test]
 fn two_tags_whose_first_places_overlap_both_stand_clear() {
     let mut b = Page::new(40, 30);

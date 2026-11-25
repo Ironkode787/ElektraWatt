@@ -14,7 +14,7 @@
 //!   atomic), `set` and `max`; a strategy settles a member that both sides changed, the side that changed it alone
 //!   winning as for an atomic one. A member above a listed path merges as an `object`. A record of a kind this reader
 //!   does not implement merges as a whole.
-//! - **Conflict records** (D14): one per target, `{"$k":"conflict","id":<target id>,"kind":<target $k>,"base":…,
+//! - **Conflict records**: one per target, `{"$k":"conflict","id":<target id>,"kind":<target $k>,"base":…,
 //!   "ours":…,"theirs":…}`, holding only the conflicting members as partial objects, `"deleted"` for a deleted side.
 //!   A conflict inside a keyed list holds the whole list: ours as merged, theirs as merged with theirs' elements.
 //! - **One file** ([`merge_file`]): a record file per `($k, id)`, a library document as one record whose conflict is a
@@ -253,7 +253,7 @@ fn both_sides(base: Option<&Value>, a: &Value, b: &Value) -> RecordMerge {
             }
             Value::Object(out)
         }
-        // A kind this reader does not implement merges as a whole record (D13).
+        // A kind this reader does not implement merges as a whole record.
         _ => {
             if base == Some(a) {
                 b.clone()
@@ -315,7 +315,7 @@ fn insert_at(out: &mut Map<String, Value>, path: &[String], value: Option<&Value
     }
 }
 
-/// The conflict record of `target` (D14).
+/// The conflict record of `target`.
 fn conflict_record(target: &Value, base: Value, ours: Value, theirs: Value) -> Value {
     let mut out = Map::new();
     out.insert("$k".to_owned(), Value::from("conflict"));
@@ -362,7 +362,7 @@ fn merge_value(
     if a == o {
         return b.cloned();
     }
-    // Both sides changed it: a strategy applies where the member exists at the base (D13); an object absent there
+    // Both sides changed it: a strategy applies where the member exists at the base; an object absent there
     // counts as its default, the empty object (doc 05 §11.2), so two sides that each add another member merge.
     let strategy = strategy_at(kind, path).filter(|s| o.is_some() || *s == MergeStrategy::Object);
     let merged = match strategy {
@@ -806,7 +806,7 @@ fn utf8(bytes: &[u8]) -> &str {
     std::str::from_utf8(bytes).unwrap_or_default()
 }
 
-/// The line of the file-level conflict record of `path` holding `side`'s lines verbatim (D14), written through
+/// The line of the file-level conflict record of `path` holding `side`'s lines verbatim, written through
 /// `ew-schema`'s [`Conflict`](ew_schema::Conflict).
 fn file_conflict(path: &str, side: ConflictSide, text: &str) -> (LineKey, String) {
     let body = text.strip_suffix('\n').unwrap_or(text);
@@ -910,7 +910,7 @@ fn merge_records_file(
                 .collect();
             let mut lines = Vec::new();
             let mut conflicts = 0;
-            // The record-level conflict records by target (its kind and ID), one per target (D14): the sides' record
+            // The record-level conflict records by target (its kind and ID), one per target: the sides' record
             // with its line, and the merge's own; a second conflict on a target joins the first.
             let mut held: BTreeMap<(String, &str), Held> = BTreeMap::new();
             for key in keys {
@@ -956,8 +956,7 @@ fn merge_records_file(
                 }
             }
             // Where the new conflict would replace a member the held one names with another value, the held record
-            // stays as it is and the file is conflicted, so git keeps theirs in its index: nothing pending is dropped
-            // (D14).
+            // stays as it is and the file is conflicted, so git keeps theirs in its index: nothing pending is dropped.
             lines.extend(held.into_values().filter_map(|held| match (held.side, held.own) {
                 (Some((_, line)), None) => Some(line),
                 (Some((side, line)), Some(own)) => {
@@ -1068,7 +1067,7 @@ fn document_text(value: &Value) -> Vec<u8> {
         .into_bytes()
 }
 
-/// `value` with the top-level member `$conflict` holding `other` (D14). One conflict per document: a `$conflict` that
+/// `value` with the top-level member `$conflict` holding `other`. One conflict per document: a `$conflict` that
 /// `value` holds already is held at the end of the chain of `other`'s own `$conflict` members, unless that chain holds
 /// it; an `other` that is no document (the text of a side that does not read) is held at the end of that earlier chain
 /// instead. `None` when the chain ends in a value that is not a document.

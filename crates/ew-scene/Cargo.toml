@@ -16,7 +16,7 @@ workspace = true
 
 [dependencies]
 # Its pure functions only, never a `Q`: the drawn path of a connection (`route::connection_polyline` builds on
-# `ew_derive::stored_path`), one rule for the page, normaliser 7 and EW-TERM-006 (decision log ID-1110, ID-1111), and
+# `ew_derive::stored_path`), one rule for the page, normaliser 7 and EW-TERM-006, and
 # a representation's text frame.
 ew-derive = { path = "../ew-derive" }
 # The page as the layout sees it, and the one text placer that the labels layer draws its texts with
@@ -30,7 +30,7 @@ ew-mltext = { path = "../ew-mltext" }
 ew-ids = { path = "../ew-ids" }
 # `extra` members (layout hints such as `ew.frame.line_width`) are `serde_json::Value`s.
 serde_json = "1.0.154"
-# SVG assets parsed, normalised and turned into display-list paths (FT-384; decision log ID-576: usvg yes, resvg
+# SVG assets parsed, normalised and turned into display-list paths (usvg yes, resvg
 # no). Default features off: no text shaping, no system fonts, no svgz, no writer; external files and images are
 # never resolved (the resolvers are set to nothing). Licence `Apache-2.0 OR MIT` for this exact version.
 usvg = { version = "=0.48.1", default-features = false }

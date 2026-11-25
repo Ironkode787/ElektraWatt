@@ -26,8 +26,8 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 /// Row ID: `(strip, terminal, level)`, the level being 1 for a terminal of one level.
 ///
 /// `level` is the level of a block's row (1, 2), empty for a terminal of one level, so that a block's rows read apart
-/// whatever their numbers. `strip` is the strip's tag, so that two strips' terminals of one number read apart
-/// (FT-1805). `label` is the terminal's function text (the "1+" of the reference), `group` the caption of the strip
+/// whatever their numbers. `strip` is the strip's tag, so that two strips' terminals of one number read apart.
+/// `label` is the terminal's function text (the "1+" of the reference), `group` the caption of the strip
 /// group that holds its `seq`. `side1` and `side2` list what is wired to the terminal's CPs of that side
 /// (a CP without a side lists on side 1): the far end of
 /// each wire, `via` the cable and core when the wire is a core. `bridge` is the label of the bridge the terminal belongs to (`BR1`).

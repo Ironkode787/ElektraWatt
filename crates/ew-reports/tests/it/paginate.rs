@@ -7,13 +7,13 @@
 use ew_derive::GeneratedPage;
 use ew_ids::{Id, Uuid, v5};
 use ew_mltext::MlText;
-use ew_schema::{FormDef, ReportBlock, Section};
-use ew_units::Nm;
 use ew_reports::paginate::Slice;
 use ew_reports::{
     BlockSpec, Break, Cell, CellType, ColumnDef, Continuation, FixedLines, GroupRange, Layouts, NotDerived,
     PageLayout, Row, RowId, RowKey, RowKind, RowLines, RowSet, paginate,
 };
+use ew_schema::{FormDef, ReportBlock, Section};
+use ew_units::Nm;
 
 /// The height of one row of the hand-built layouts (the house height).
 const H: i64 = 6_520_000;
@@ -147,7 +147,7 @@ fn house_layout_page_counts() {
             titles: None, numbers: Some(&[901]) },
         PageCount { name: "23 rows make one page", rows: 23, first: 901, labels: &["901"], ranges: &[(0, 23)],
             titles: None, numbers: Some(&[901]) },
-        // The last page takes rows from the page before, so it holds three (FT-1842).
+        // The last page takes rows from the page before, so it holds three.
         PageCount { name: "24 rows make two pages", rows: 24, first: 901, labels: &["901", "901.1"],
             ranges: &[(0, 21), (21, 24)], titles: None, numbers: None },
         // Both pages carry the folio number of the run.
@@ -303,7 +303,7 @@ fn a_not_derived_set_is_one_placeholder_page_with_the_reason() {
     assert_eq!(pages[0].label, "910");
     assert_eq!(pages[0].rows, 0..0);
     let note = pages[0].note.as_ref().expect("a note");
-    // The reason in words, in English and Dutch, without the family's name (FT-1995).
+    // The reason in words, in English and Dutch, without the family's name.
     let text = |tag: &str| note.get(&tag.parse().unwrap()).unwrap_or_default().to_owned();
     let (en, nl) = (text("en-GB"), text("nl-NL"));
     assert!(

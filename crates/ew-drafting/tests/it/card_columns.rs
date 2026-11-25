@@ -13,7 +13,7 @@ use ew_drafting::{Role, measure};
 /// in the column of the second input, through its last terminal to a lamp. The card of outputs, with one channel in
 /// use, steps right until that channel stands two steps right of the inputs' and a pitch of the strip more for the spare
 /// terminal X3 between them: every terminal stands in its channel's column, the strip in its order with the spare in its
-/// place (FT-2097: it stayed where it stood, away from the strip), and no wire bends or crosses.
+/// place (it stayed where it stood, away from the strip), and no wire bends or crosses.
 #[test]
 fn a_card_whose_used_column_falls_among_another_card_s_steps_aside() {
     let mut b = Page::new(100, 62);

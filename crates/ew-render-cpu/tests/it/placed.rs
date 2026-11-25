@@ -3,7 +3,7 @@
 
 //! `render_placed`: the content at the target resolution times the placement's
 //! scale at its offset, then the overlay at the paper's resolution; an identity placement renders as `render`.
-//! `render_placed_band` (D12): its rows in bands, as a printer is sent them.
+//! `render_placed_band`: its rows in bands, as a printer is sent them.
 
 use crate::common;
 

@@ -360,7 +360,7 @@ pub fn map(
     } = lift("folio property", &props, &folios, |_| true, findings);
 
     // QET's own title-block variables become fields of the project and the pages that the title block prints
-    // (doc 14 §4.9, FT-1859): a page's `=` and `+` its structure, and the values every folio shares the open revision's
+    // (doc 14 §4.9): a page's `=` and `+` its structure, and the values every folio shares the open revision's
     // label, the designer and the drawing number.
     let mut nodes: BTreeMap<String, StructureNode> = BTreeMap::new();
     let mut structures: Vec<StructureAssignment> = Vec::with_capacity(total);

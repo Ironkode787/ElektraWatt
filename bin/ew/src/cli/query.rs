@@ -82,7 +82,7 @@ impl Leaf for QueriesCli {
     const RESULT: Option<&'static str> = Some(results::QueriesResult::SCHEMA);
 }
 
-/// `ew queries` (D11, D13): the query registry, with `--json` the text of `crates/ew-api/api/queries.json`.
+/// `ew queries`: the query registry, with `--json` the text of `crates/ew-api/api/queries.json`.
 pub(super) fn run_queries(json: bool) -> i32 {
     let list = results::queries();
     if json {
