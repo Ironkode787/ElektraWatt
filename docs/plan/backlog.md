@@ -26,7 +26,7 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
   click then placed a source. Not reproduced: the Interruption button of the Draw tab, a typed name, Enter, D, with the
   pointer on the tool strip and on the sheet, turned the direction each time (the window tests of the name field hold
   it too). A repeat needs the run's exact key and pointer order. Round 3 (2026-11-25) tried eight more orders without a repeat: the Interruption button with the focus first in the Pages navigator, in Properties or nowhere, the pointer left on the bar or moved to the sheet, and D sent as its key with its typed letter; D turned the direction each time.
-- FT-2006 `ew-ui`: Two faults a person met and the sample does not show at 1920 × 1080: the first click on a command bar button right after a grid cell edit only ends the edit (Bus table, then Wire), and the Properties header is cut by its chips. Each needs its repro (which grid, which selection) before a fix.
+- FT-2006 `ew-ui`: Two faults a person met and the sample does not show at 1920 × 1080: the first click on a command bar button right after a grid cell edit only ends the edit (Bus table, then Wire), and the Properties header is cut by its chips. Each needs its repro (which grid, which selection) before a fix. Round 3 (2026-11-25) tried without a repeat: the Bus table's Address cell typed into on 105 and on 101 and the Wire button pressed at once and over three frames (one click ended the edit and armed Wire); every symbol of 101 to 105 and 201 selected alone and each page's whole selection, with EW-RDS-003 warnings, in English and in Dutch at 1920 × 1080 (no chip covered the title).
 
 #### The page's drawing
 
