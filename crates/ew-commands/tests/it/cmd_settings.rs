@@ -35,7 +35,7 @@ fn commit(e: &mut Engine, cmd: &SetProjectSettings) {
 
 fn invalid(e: &mut Engine, cmd: &SetProjectSettings) -> (String, String) {
     match e.preview(cmd).unwrap_err() {
-        CmdError::InvalidParams { path, message, .. } => (path, message),
+        CmdError::InvalidParams { path, text, .. } => (path, text.to_string()),
         other => panic!("expected InvalidParams, got {other:?}"),
     }
 }

@@ -247,9 +247,8 @@ fn refuse_label_out_of_order(
     };
     let prevented = |text: ew_l10n::Text, keys| CmdError::Prevented {
         rule: LABEL_ORDER_RULE.into(),
-        finding: text.to_string(),
         keys,
-        text: Some(Box::new(text)),
+        text: Box::new(text),
     };
     let Some(key) = format.order_key(label.as_str()) else {
         return Err(prevented(

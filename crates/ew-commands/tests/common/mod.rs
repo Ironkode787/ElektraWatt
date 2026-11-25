@@ -204,7 +204,7 @@ pub fn invalid_path<T: std::fmt::Debug>(r: Result<T, CmdError>, command: &str) -
 #[track_caller]
 pub fn reason<T: std::fmt::Debug>(r: Result<T, CmdError>) -> String {
     match r {
-        Err(CmdError::Rejected { reason, .. }) => reason,
+        Err(CmdError::Rejected { text, .. }) => text.to_string(),
         other => panic!("expected a refusal, got {other:?}"),
     }
 }

@@ -119,8 +119,8 @@ fn waive_checks_its_parameters_and_refuses_a_second_waiver_of_one_finding() {
     again["fingerprint"] = json!(FP.to_ascii_lowercase());
     match e.execute(&waive(again)).unwrap_err() {
         // The waiver by its rule, never by its ID or the finding's fingerprint.
-        CmdError::Rejected { reason, .. } => {
-            assert_eq!(reason, "a waiver of EW-CORE-041 covers this finding already");
+        CmdError::Rejected { text, .. } => {
+            assert_eq!(text.to_string(), "a waiver of EW-CORE-041 covers this finding already");
         }
         other => panic!("{other:?}"),
     }
@@ -128,9 +128,9 @@ fn waive_checks_its_parameters_and_refuses_a_second_waiver_of_one_finding() {
     let mut again = w1();
     again["subject"] = json!("-102G1");
     match e.execute(&waive(again)).unwrap_err() {
-        CmdError::Rejected { reason, .. } => {
+        CmdError::Rejected { text, .. } => {
             assert_eq!(
-                reason,
+                text.to_string(),
                 "a waiver of EW-CORE-041 for -102G1 covers this finding already"
             );
         }

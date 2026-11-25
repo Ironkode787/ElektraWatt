@@ -72,7 +72,7 @@ impl CommandSink for Sink<'_> {
                 primary: r.outcome.primary,
                 created: r.created,
             })
-            .map_err(|e| format!("{e:?}"))
+            .map_err(|e| e.to_string())
     }
 }
 

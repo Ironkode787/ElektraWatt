@@ -556,9 +556,9 @@ fn values_bind_fields_and_a_false_group_is_dropped() {
             )
             .unwrap_err();
         match e {
-            ew_api::ApiError::Cmd(ew_api::CmdError::InvalidParams { path, message, .. }) => {
+            ew_api::ApiError::Cmd(ew_api::CmdError::InvalidParams { path, text, .. }) => {
                 assert_eq!(path, "/value_set");
-                assert_eq!(message, format!("no value set `{name}`: the macro has a"));
+                assert_eq!(text.to_string(), format!("no value set `{name}`: the macro has a"));
             }
             other => panic!("expected a refusal at /value_set, got {other:?}"),
         }

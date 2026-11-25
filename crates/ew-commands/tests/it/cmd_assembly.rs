@@ -186,7 +186,7 @@ fn valve_add_checks_positions_and_undo_removes_the_valve() {
     let f: Id<Function> = created(&r, Kind::Function)[0];
     // The module and the holder in words.
     let reason = |r: Result<_, CmdError>| match r {
-        Err(CmdError::Rejected { reason, .. }) => reason,
+        Err(CmdError::Rejected { text, .. }) => text.to_string(),
         other => panic!("expected a rejection, got {other:?}"),
     };
     assert_eq!(
@@ -232,8 +232,8 @@ fn device_link_creates_and_validates() {
     );
     // The devices by their tags, no link ID.
     match e.execute(&link(DEV_102F2, DEV_101F1)) {
-        Err(CmdError::Rejected { reason, .. }) => {
-            assert_eq!(reason, "device -102F2 already links to -101F1 with this kind");
+        Err(CmdError::Rejected { text, .. }) => {
+            assert_eq!(text.to_string(), "device -102F2 already links to -101F1 with this kind");
         }
         other => panic!("expected a rejection, got {other:?}"),
     }
@@ -265,9 +265,9 @@ fn config_project_create_validates_name_profile_and_cpu() {
     assert_eq!(p.cpu, None);
     // The name, no ID.
     match e.execute(&config_project("PLC1", "siemens-tia-intl@2027.1", None)) {
-        Err(CmdError::Rejected { reason, .. }) => {
+        Err(CmdError::Rejected { text, .. }) => {
             assert_eq!(
-                reason,
+                text.to_string(),
                 "configuration project PLC1 exists already; names are unique"
             );
         }

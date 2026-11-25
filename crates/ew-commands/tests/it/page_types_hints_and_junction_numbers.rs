@@ -330,9 +330,13 @@ impl PreventHook for RejectAll {
     ) -> Result<(), PreventViolation> {
         Err(PreventViolation {
             rule: "EW-TEST-001".to_owned(),
-            message: "no candidate passes".to_owned(),
             keys: vec![],
-            text: None,
+            // A hook's own words, without a key of a text table.
+            text: Box::new(ew_l10n::Text::checked_by_macro(
+                "test-no-candidate",
+                "no candidate passes",
+                Vec::new(),
+            )),
         })
     }
 }
@@ -361,9 +365,9 @@ fn a_prevent_rule_rejection_carries_its_rule_id() {
         })
         .unwrap_err();
     match &err {
-        CmdError::Prevented { rule, finding, .. } => {
+        CmdError::Prevented { rule, text, .. } => {
             assert_eq!(rule, "EW-TEST-001");
-            assert_eq!(finding, "no candidate passes");
+            assert_eq!(text.to_string(), "no candidate passes");
         }
         other => panic!("expected Prevented, got {other:?}"),
     }

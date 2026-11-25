@@ -337,9 +337,9 @@ fn rep_move_by_steps_lands_on_the_grid_where_one_nm_delta_cannot() {
         "rep.move",
         json!({"reps": reps, "delta": [one_step.0, 0]}),
     ) {
-        Err(CmdError::Rejected { reason, .. }) => {
+        Err(CmdError::Rejected { text, .. }) => {
             assert_eq!(
-                reason,
+                text.to_string(),
                 format!(
                     "the position at x {:.1}, y {:.1} mm on page 101 is not on the drawing grid; move it onto the grid",
                     mm(Nm(off.x.0 + one_step.0)),
@@ -529,10 +529,10 @@ fn exchange_symbol_on_a_lamp_keeps_its_connections_and_follows_the_new_cps() {
         "rep.exchange_symbol",
         json!({"rep": rep_id, "symbol": copy_id::<()>(ITEM_SYM_ONE)}),
     ) {
-        Err(CmdError::Rejected { reason, .. }) => {
+        Err(CmdError::Rejected { text, .. }) => {
             assert!(
-                reason.contains("function CP 1 is connected on this page"),
-                "{reason}"
+                text.to_string().contains("function CP 1 is connected on this page"),
+                "{text}"
             );
         }
         other => panic!("the exchange must be refused, got {other:?}"),

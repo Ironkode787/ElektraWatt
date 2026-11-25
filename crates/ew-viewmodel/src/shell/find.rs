@@ -416,11 +416,9 @@ impl ShellModel {
                 .unwrap_or_else(|| strings::text(key!("props-a-record")).to_owned())
         };
         let text = match e {
-            ew_api::CmdError::InvalidParams {
-                path, message, text, ..
-            } => {
+            ew_api::CmdError::InvalidParams { path, text, .. } => {
                 // The reason in the window's language.
-                let message = super::tools::rejected_words(message, Some(&**text));
+                let message = super::tools::rejected_words("", Some(&**text));
                 let mut parts = path.trim_start_matches('/').split('/');
                 match (parts.next(), parts.next().and_then(|i| i.parse::<usize>().ok())) {
                     (Some("edits"), Some(i)) => {
@@ -439,9 +437,7 @@ impl ShellModel {
                     _ => message,
                 }
             }
-            ew_api::CmdError::Rejected { reason, text, .. } => {
-                super::tools::rejected_words(reason, text.as_deref())
-            }
+            ew_api::CmdError::Rejected { text, .. } => super::tools::rejected_words("", Some(&**text)),
             ew_api::CmdError::NotFound { .. } => strings::text(key!("props-gone")).to_owned(),
             // A prevent rule, a model or history error in the window's language.
             other => super::tools::command_error_words(other),

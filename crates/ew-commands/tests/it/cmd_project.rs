@@ -36,14 +36,14 @@ fn commit(e: &mut Engine, cmd: &dyn DynCommand) {
 
 fn invalid(e: &mut Engine, cmd: &dyn DynCommand) -> (String, String) {
     match e.preview(cmd).unwrap_err() {
-        CmdError::InvalidParams { path, message, .. } => (path, message),
+        CmdError::InvalidParams { path, text, .. } => (path, text.to_string()),
         other => panic!("expected InvalidParams, got {other:?}"),
     }
 }
 
 fn rejected(e: &mut Engine, cmd: &dyn DynCommand) -> String {
     match e.preview(cmd).unwrap_err() {
-        CmdError::Rejected { reason, .. } => reason,
+        CmdError::Rejected { text, .. } => text.to_string(),
         other => panic!("expected Rejected, got {other:?}"),
     }
 }
@@ -585,9 +585,10 @@ fn checks_set_takes_shipped_schemes_only_and_only_from_a_human() {
     let err = e
         .execute(&any("project.checks.set", json!({"release_scheme": "lenient"})))
         .unwrap_err();
-    let CmdError::InvalidParams { path, message, .. } = err else {
+    let CmdError::InvalidParams { path, text, .. } = err else {
         panic!("{err:?}");
     };
+    let message = text.to_string();
     assert_eq!(path, "/release_scheme");
     let schemes: Vec<&str> = ew_checks::SCHEMES.iter().map(|s| s.name).collect();
     assert!(message.contains(&schemes.join(", ")), "{message}");

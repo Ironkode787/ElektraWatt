@@ -182,7 +182,7 @@ fn library_embed_inserts_a_manufacturer_and_a_macro_copy_once_and_undo_removes_t
         ),
     ] {
         match e.execute(&embed(vec![again])) {
-            Err(CmdError::Rejected { reason, .. }) => assert_eq!(reason, want),
+            Err(CmdError::Rejected { text, .. }) => assert_eq!(text.to_string(), want),
             other => panic!("expected a rejection, got {other:?}"),
         }
     }

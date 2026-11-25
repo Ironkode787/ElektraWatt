@@ -25,9 +25,8 @@ pub enum CmdError {
         command: String,
         /// The JSON Pointer of the offending value (`""` for the whole parameter object).
         path: String,
-        /// What is wrong, in English.
-        message: String,
-        /// The same by key, which the window renders in its language; boxed, so that the error stays small.
+        /// What is wrong, by key: the window renders it in its language, the command line in English; boxed, so
+        /// that the error stays small.
         text: Box<Text>,
     },
     /// A record the command names does not exist.
@@ -39,11 +38,8 @@ pub enum CmdError {
     Rejected {
         /// The command's canonical name, or the normaliser's ID.
         source: String,
-        /// Cause and remedy, in English.
-        reason: String,
-        /// The same by key, which the window renders in its language; `None` for a refusal of the
-        /// API's own, which has only its English text.
-        text: Option<Box<Text>>,
+        /// Cause and remedy, by key: the window renders it in its language, the command line in English.
+        text: Box<Text>,
     },
     /// The origin may not submit a command of this exposure class (doc 17 §2.3, FR-EXT-030).
     Exposure {
@@ -66,13 +62,11 @@ pub enum CmdError {
     Prevented {
         /// The rule ID.
         rule: String,
-        /// The finding's message.
-        finding: String,
         /// The records involved.
         keys: Vec<AnyKey>,
-        /// The finding by key, a rule message of the check catalogue or a text of the commands' own (EW-REL-004), which
-        /// the window renders in its language; `None` for a hook without such words.
-        text: Option<Box<Text>>,
+        /// The finding by key, a rule message of the check catalogue or a text of the commands' own (EW-REL-004): the
+        /// window renders it in its language, the command line in English.
+        text: Box<Text>,
     },
     /// The candidate snapshot was rejected by `Model::apply_with`: a structural invariant, a forbid link, the
     /// delete-time rule EW-INV-021 (a library copy that a `LibRef` names), a prevent rule or a stale op. Beside it the
@@ -117,8 +111,7 @@ impl CmdError {
     pub fn rejected(source: impl Into<String>, text: Text) -> CmdError {
         CmdError::Rejected {
             source: source.into(),
-            reason: text.to_string(),
-            text: Some(Box::new(text)),
+            text: Box::new(text),
         }
     }
 
@@ -134,7 +127,6 @@ impl CmdError {
         CmdError::InvalidParams {
             command: command.into(),
             path: path.into(),
-            message: text.to_string(),
             text: Box::new(text),
         }
     }
@@ -144,17 +136,7 @@ impl From<ModelError> for CmdError {
     fn from(e: ModelError) -> CmdError {
         match e {
             ModelError::NotFound { key } => CmdError::NotFound { key },
-            ModelError::Prevented {
-                rule,
-                message,
-                keys,
-                text,
-            } => CmdError::Prevented {
-                rule,
-                finding: message,
-                keys,
-                text,
-            },
+            ModelError::Prevented { rule, keys, text } => CmdError::Prevented { rule, keys, text },
             // Without the model at hand, a record by its kind.
             other => {
                 let text = model_error_text(&other, &|(kind, _)| crate::words::kind_words(kind));
@@ -168,14 +150,11 @@ impl fmt::Display for CmdError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CmdError::UnknownCommand { name } => write!(f, "unknown command `{name}`"),
-            CmdError::InvalidParams {
-                command,
-                path,
-                message,
-                ..
-            } => write!(f, "{command}: invalid parameters at `{path}`: {message}"),
+            CmdError::InvalidParams { command, path, text } => {
+                write!(f, "{command}: invalid parameters at `{path}`: {text}")
+            }
             CmdError::NotFound { key } => write!(f, "no record {}:{}", key.0, key.1),
-            CmdError::Rejected { source, reason, .. } => write!(f, "{source}: {reason}"),
+            CmdError::Rejected { source, text } => write!(f, "{source}: {text}"),
             CmdError::Exposure {
                 command,
                 exposure,
@@ -188,7 +167,10 @@ impl fmt::Display for CmdError {
             CmdError::NeedsPreview { command } => {
                 write!(f, "{command} is a bulk command: run it with preview and commit")
             }
-            CmdError::Prevented { rule, finding, .. } => write!(f, "{rule}: {finding}"),
+            // A rule's pattern names its arguments: the check catalogue renders it.
+            CmdError::Prevented { rule, text, .. } => {
+                write!(f, "{rule}: {}", ew_checks::messages::text(text, "en-GB"))
+            }
             CmdError::Model(e, _) => write!(f, "{e}"),
             CmdError::History { reason, .. } => write!(f, "history: {reason}"),
             CmdError::Internal { reason } => write!(f, "internal error: {reason}"),

@@ -184,9 +184,9 @@ fn a_placeholder_without_words_is_refused() {
         })
         .expect_err("no words");
     match err {
-        ew_api::CmdError::InvalidParams { path, message, .. } => {
+        ew_api::CmdError::InvalidParams { path, text, .. } => {
             assert_eq!(path, "/description");
-            assert!(message.contains("what the part is"), "{message}");
+            assert!(text.to_string().contains("what the part is"), "{text}");
         }
         other => panic!("a parameter refusal: {other}"),
     }

@@ -526,7 +526,7 @@ fn place_on_a_shared_run_is_refused_in_words() {
     let mut e = engine(model);
     let r = e.execute(&place(PAGE_102, pt(0, 0), new_device("F")));
     assert!(
-        matches!(&r, Err(ew_commands::CmdError::Rejected { reason, .. }) if reason.contains("two wires run here")),
+        matches!(&r, Err(ew_commands::CmdError::Rejected { text, .. }) if text.to_string().contains("two wires run here")),
         "{r:?}"
     );
     assert_eq!((&*row(&e, one), &*row(&e, two)), (&a, &b), "nothing changed");

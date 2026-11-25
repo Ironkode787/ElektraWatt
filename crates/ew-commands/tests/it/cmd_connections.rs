@@ -351,8 +351,8 @@ fn draw_many_refuses_no_entry_and_a_bad_entry_whole() {
         connections: vec![bridge(FN_T1, FN_T2), bridge(FN_T3, FN_T3)],
     });
     assert!(
-        matches!(&r, Err(CmdError::Rejected { source, reason, .. })
-            if source == "connection.draw_many" && reason.starts_with("entry 1: ")),
+        matches!(&r, Err(CmdError::Rejected { source, text, .. })
+            if source == "connection.draw_many" && text.to_string().starts_with("entry 1: ")),
         "{r:?}"
     );
     assert_eq!(lines(e.model()), before);
@@ -373,8 +373,8 @@ fn draw_many_cost_and_entry_limit() {
     let before = lines(e.model());
     let r = e.preview(&many(10_001));
     assert!(
-        matches!(&r, Err(CmdError::InvalidParams { path, message, .. })
-            if path == "/connections" && message.contains("10001 connections are more than the 10000")),
+        matches!(&r, Err(CmdError::InvalidParams { path, text, .. })
+            if path == "/connections" && text.to_string().contains("10001 connections are more than the 10000")),
         "{r:?}"
     );
     assert_eq!(lines(e.model()), before);
@@ -602,8 +602,8 @@ fn a_junction_that_cannot_merge_two_numbers_is_named_in_words() {
     match e.execute(&DeleteConnections {
         connections: vec![CON_W27],
     }) {
-        Err(CmdError::Rejected { reason, .. }) => assert_eq!(
-            reason,
+        Err(CmdError::Rejected { text, .. }) => assert_eq!(
+            text.to_string(),
             "the junction at x 120, y 45.5 mm on page 102 would merge a wire numbered \"101\" and a wire \
              numbered \"102\", which carry different numbers; clear one of the numbers or delete the \
              wires separately"
@@ -640,7 +640,7 @@ fn assigned_junction_refusal(first: Id<Connection>, second: Id<Connection>, gone
     match e.execute(&DeleteConnections {
         connections: vec![gone],
     }) {
-        Err(CmdError::Rejected { reason, .. }) => reason,
+        Err(CmdError::Rejected { text, .. }) => text.to_string(),
         other => panic!("expected a rejection, got {other:?}"),
     }
 }
@@ -1030,8 +1030,8 @@ fn define_potential_twice_at_one_point_is_refused_naming_the_first() {
         .expect("potential.define");
     let before = lines(e.model());
     match e.execute(&define(cp_param(FN_102G1, 4), "L2")) {
-        Err(CmdError::Rejected { reason, .. }) => assert_eq!(
-            reason,
+        Err(CmdError::Rejected { text, .. }) => assert_eq!(
+            text.to_string(),
             "this point already defines the potential L1; change that definition instead"
         ),
         other => panic!("expected a rejection, got {other:?}"),

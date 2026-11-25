@@ -38,7 +38,7 @@ fn has<T: Entity<Marker = T>>(e: &Engine, id: Id<T>) -> bool {
 #[track_caller]
 fn rejection<T: Debug>(r: Result<T, CmdError>) -> String {
     match r {
-        Err(CmdError::Rejected { reason, .. }) => reason,
+        Err(CmdError::Rejected { text, .. }) => text.to_string(),
         other => panic!("expected a rejection, got {other:?}"),
     }
 }
@@ -47,8 +47,8 @@ fn rejection<T: Debug>(r: Result<T, CmdError>) -> String {
 #[track_caller]
 fn rejected_with<T: Debug>(r: Result<T, CmdError>, needle: &str) {
     match r {
-        Err(CmdError::Rejected { reason, .. }) => {
-            assert!(reason.contains(needle), "reason `{reason}` lacks `{needle}`");
+        Err(CmdError::Rejected { text, .. }) => {
+            assert!(text.to_string().contains(needle), "text.to_string() `{text}` lacks `{needle}`");
         }
         other => panic!("expected a rejection mentioning `{needle}`, got {other:?}"),
     }
@@ -590,8 +590,8 @@ fn arrange_ips_rejections_write_nothing() {
     // A function that is not an interruption point.
     // The whole text, the function named by its device's tag.
     match e.execute(&arrange(&[IP_A, FN_102F2], false)) {
-        Err(CmdError::Rejected { reason, .. }) => assert_eq!(
-            reason,
+        Err(CmdError::Rejected { text, .. }) => assert_eq!(
+            text.to_string(),
             "-102F2 is not an interruption point; arrange interruption points only"
         ),
         other => panic!("expected a rejection, got {other:?}"),
@@ -1079,11 +1079,11 @@ fn fields_set_refuses_ip_members_on_other_functions_and_bad_values() {
     );
     // The refusal names the function by its device's tag, never by its ID.
     match e.execute(&set_ip(FN_T3, "name", serde_json::json!("L-9"))) {
-        Err(CmdError::InvalidParams { message, .. }) => {
-            assert!(!message.contains(&FN_T3.to_string()), "{message}");
-            assert!(!message.contains('@'), "{message}");
-            assert!(message.starts_with('-'), "a tag first: {message}");
-            assert!(message.contains(" is not an interruption point;"), "{message}");
+        Err(CmdError::InvalidParams { text, .. }) => {
+            assert!(!text.to_string().contains(&FN_T3.to_string()), "{text}");
+            assert!(!text.to_string().contains('@'), "{text}");
+            assert!(text.to_string().starts_with('-'), "a tag first: {text}");
+            assert!(text.to_string().contains(" is not an interruption point;"), "{text}");
         }
         other => panic!("expected InvalidParams, got {other:?}"),
     }

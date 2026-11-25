@@ -45,10 +45,8 @@ mod rows;
 fn refusal_text(e: &CmdError, label: &dyn Fn(usize) -> String) -> String {
     match e {
         // The reason in the window's language.
-        CmdError::InvalidParams {
-            path, message, text, ..
-        } => {
-            let message = super::tools::rejected_words(message, Some(&**text));
+        CmdError::InvalidParams { path, text, .. } => {
+            let message = super::tools::rejected_words("", Some(&**text));
             match path
                 .strip_prefix("/targets/")
                 .and_then(|i| i.parse::<usize>().ok())
@@ -57,7 +55,7 @@ fn refusal_text(e: &CmdError, label: &dyn Fn(usize) -> String) -> String {
                 None => message,
             }
         }
-        CmdError::Rejected { reason, text, .. } => super::tools::rejected_words(reason, text.as_deref()),
+        CmdError::Rejected { text, .. } => super::tools::rejected_words("", Some(&**text)),
         CmdError::NotFound { .. } => strings::text(key!("props-gone")).to_owned(),
         // A prevent rule, a model or history error in the window's language.
         other => super::tools::command_error_words(other),

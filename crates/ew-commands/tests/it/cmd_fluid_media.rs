@@ -79,7 +79,7 @@ fn bulk(e: &mut Engine, cmd: &dyn ew_commands::DynCommand) -> Result<ew_commands
 
 fn refusal(r: Result<ew_commands::Receipt, CmdError>) -> String {
     match r {
-        Err(CmdError::Rejected { reason, .. }) => reason,
+        Err(CmdError::Rejected { text, .. }) => text.to_string(),
         other => panic!("expected a refusal, got {other:?}"),
     }
 }

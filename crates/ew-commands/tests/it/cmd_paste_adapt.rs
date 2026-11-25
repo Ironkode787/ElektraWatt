@@ -73,7 +73,7 @@ fn paste(pasted: &LibCopy<Part>, adapt: &[Id<()>]) -> PasteFragment {
 
 fn refusal(e: &mut Engine, cmd: &PasteFragment) -> (String, String) {
     match e.execute(cmd).unwrap_err() {
-        CmdError::InvalidParams { path, message, .. } => (path, message),
+        CmdError::InvalidParams { path, text, .. } => (path, text.to_string()),
         err => panic!("{err:?}"),
     }
 }

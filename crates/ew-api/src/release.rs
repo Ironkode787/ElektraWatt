@@ -444,12 +444,9 @@ impl Session {
                 origin: origin.clone(),
             });
         }
-        Err(CmdError::Rejected {
-            source: ApproveRevision::NAME.to_owned(),
-            reason: "the sign-off is recorded only by the approval on the saved generation (Revision ▸ Approve, ew \
-                     revision approve), which runs the release gate first"
-                .to_owned(),
-            text: Some(Box::new(text!("refusal-revision-approve-direct"))),
-        })
+        Err(CmdError::rejected(
+            ApproveRevision::NAME,
+            text!("refusal-revision-approve-direct"),
+        ))
     }
 }

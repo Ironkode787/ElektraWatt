@@ -68,7 +68,7 @@ fn run(s: &mut Session, name: &str, params: Value) -> Result<Option<Value>, CmdE
 
 fn refusal(r: Result<Option<Value>, CmdError>) -> String {
     match r {
-        Err(CmdError::Rejected { reason, .. }) => reason,
+        Err(CmdError::Rejected { text, .. }) => text.to_string(),
         other => panic!("expected a refusal, got {other:?}"),
     }
 }

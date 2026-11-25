@@ -35,8 +35,8 @@ use serde_json::{Value, json};
 #[track_caller]
 fn rejected_with<T: Debug>(r: Result<T, CmdError>, needle: &str) {
     match r {
-        Err(CmdError::Rejected { reason, .. }) => {
-            assert!(reason.contains(needle), "reason `{reason}` lacks `{needle}`");
+        Err(CmdError::Rejected { text, .. }) => {
+            assert!(text.to_string().contains(needle), "text.to_string() `{text}` lacks `{needle}`");
         }
         other => panic!("expected a rejection mentioning `{needle}`, got {other:?}"),
     }
@@ -46,7 +46,7 @@ fn rejected_with<T: Debug>(r: Result<T, CmdError>, needle: &str) {
 #[track_caller]
 fn rejection<T: Debug>(r: Result<T, CmdError>) -> String {
     match r {
-        Err(CmdError::Rejected { reason, .. }) => reason,
+        Err(CmdError::Rejected { text, .. }) => text.to_string(),
         other => panic!("expected a rejection, got {other:?}"),
     }
 }
@@ -1159,8 +1159,8 @@ fn the_same_move_as_one_nm_delta_is_refused() {
     let rev = e.model().rev();
     let delta = delta_cmd(reps.clone(), p(one_step, Nm(0)), None);
     match e.execute(&delta) {
-        Err(CmdError::Rejected { reason, .. }) => assert_eq!(
-            reason,
+        Err(CmdError::Rejected { text, .. }) => assert_eq!(
+            text.to_string(),
             "the position at x 13.2, y 15.9 mm on page 102 is not on the drawing grid; move it onto the grid"
         ),
         other => panic!("expected a rejection, got {other:?}"),
@@ -1228,10 +1228,10 @@ fn move_by_steps_rejections() {
         }
     }));
     match off.execute(&steps_cmd(vec![REP_102F2], [1, 0])) {
-        Err(CmdError::Rejected { reason, .. }) => {
+        Err(CmdError::Rejected { text, .. }) => {
             // The symbol by its device's tag, never its ID; the point in mm on its page
             assert_eq!(
-                reason,
+                text.to_string(),
                 "the symbol of -102F2 at x 0, y 0 mm on page 102 is not on the drawing grid, so it cannot be \
                  moved by grid steps; move it onto the grid first"
             );
@@ -1244,8 +1244,8 @@ fn move_by_steps_rejections() {
     not_found(e.execute(&steps_cmd(vec![id(0x999)], [1, 0])));
     // A move out of the drawable range, in words (no JSON pointer, ending with what to do).
     match e.execute(&steps_cmd(vec![REP_102F2], [i64::MAX / 2, 0])) {
-        Err(CmdError::Rejected { reason, .. }) => assert_eq!(
-            reason,
+        Err(CmdError::Rejected { text, .. }) => assert_eq!(
+            text.to_string(),
             "the move takes the symbol of -102F2 outside the drawable range; move it fewer grid steps"
         ),
         other => panic!("expected a rejection, got {other:?}"),
@@ -2254,11 +2254,8 @@ fn held_copies_are_skipped_and_another_hash_is_refused_by_item() {
     cmd.copies = vec![copies[0].clone(), other];
     let rev = e.model().rev();
     match e.execute(&cmd) {
-        Err(CmdError::InvalidParams {
-            path,
-            message: reason,
-            ..
-        }) => {
+        Err(CmdError::InvalidParams { path, text, .. }) => {
+            let reason = text.to_string();
             assert_eq!(path, "/copies/1");
             // The held item by its part number, never its ID.
             assert_eq!(

@@ -62,12 +62,11 @@ impl Strictness {
 pub struct PreventViolation {
     /// The rule ID, such as `EW-TERM-002`.
     pub rule: String,
-    /// The finding's message, ideally with the proposed alternative.
-    pub message: String,
     /// The records involved.
     pub keys: Vec<AnyKey>,
-    /// The finding by key, which the window renders in its language; `None` for a hook without such a catalogue.
-    pub text: Option<Box<ew_l10n::Text>>,
+    /// The finding by key, ideally with the proposed alternative: the window renders it in its language, the command
+    /// line in English.
+    pub text: Box<ew_l10n::Text>,
 }
 
 /// Evaluates prevent rules on a candidate snapshot after the structural invariants passed.

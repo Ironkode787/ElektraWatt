@@ -612,10 +612,10 @@ fn every_rejection_at_its_pointer() {
         .push(json!({"$k": "section", "id": Uuid::from_u128(3).to_string(),
         "number": 9, "folio_range": [1, 2], "title": "x"}));
     match run(page, at, &foreign).unwrap_err() {
-        CmdError::InvalidParams { path, message, .. } => {
+        CmdError::InvalidParams { path, text, .. } => {
             assert_eq!(path, "/fragment/records/3");
             assert_eq!(
-                message,
+                text.to_string(),
                 "a record of kind section is not pasted (only devices, functions, representations, connections, \
                  junctions, potential definitions, page items and structure boxes)"
             );

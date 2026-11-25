@@ -61,7 +61,7 @@ use ew_zip::ZipLimits;
 use crate::output::{
     ExportOptions, OutputError, Parallelism, PdfDate, changed_pages, page_digests, page_uuid,
 };
-use crate::release::{FOUR_EYES_RULE, Gate, GateError};
+use crate::release::{Gate, GateError};
 use crate::{CmdError, OpenError, OpenReport, Origin, Session, Sha256, Submit, checks};
 
 /// The release context (doc 05 §14.1 step 4): the label of the open revision and the release date. The archive is
@@ -1781,14 +1781,10 @@ impl Session {
                 origin: origin.clone(),
             });
         }
-        Err(CmdError::Rejected {
-            source: ReleaseRevision::NAME.to_owned(),
-            reason: format!(
-                "the release's stamp is written only by the release (Revision ▸ Release, ew revision release), after the \
-                 gate ({FOUR_EYES_RULE} and the release scheme), the as-built archive and the git tag"
-            ),
-            text: Some(Box::new(text!("refusal-revision-release-direct"))),
-        })
+        Err(CmdError::rejected(
+            ReleaseRevision::NAME,
+            text!("refusal-revision-release-direct"),
+        ))
     }
 }
 

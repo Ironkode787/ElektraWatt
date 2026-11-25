@@ -403,10 +403,8 @@ impl PreventHook for ShippedPrevent {
             None => Ok(()),
             Some(f) => Err(ew_model::PreventViolation {
                 rule: f.rule.to_owned(),
-                message: f.message(),
                 keys: f.targets.iter().map(|t| (t.kind, t.id)).collect(),
-                // The window renders the rule's message from it in its language.
-                text: Some(Box::new(f.text)),
+                text: Box::new(f.text),
             }),
         }
     }
@@ -1837,20 +1835,14 @@ impl Session {
         if name != PurgeAssets::NAME {
             return Ok(());
         }
-        self.purge_preview().map(|_| ()).map_err(|e| CmdError::Rejected {
-            source: PurgeAssets::NAME.to_owned(),
-            reason: e.to_string(),
-            text: Some(Box::new(purge_refusal(&e))),
-        })
+        self.purge_preview()
+            .map(|_| ())
+            .map_err(|e| CmdError::rejected(PurgeAssets::NAME, purge_refusal(&e)))
     }
 
     /// [`Session::commit`] of a `project.assets.purge` preview: the purge with the listed hashes.
     fn commit_purge(&mut self, preview: Preview) -> Result<Receipt, CmdError> {
-        let rejected = |e: PurgeError| CmdError::Rejected {
-            source: PurgeAssets::NAME.to_owned(),
-            reason: e.to_string(),
-            text: Some(Box::new(purge_refusal(&e))),
-        };
+        let rejected = |e: PurgeError| CmdError::rejected(PurgeAssets::NAME, purge_refusal(&e));
         let cmd: PurgeAssets = serde_json::from_value(preview.command().params.clone()).map_err(|e| {
             CmdError::invalid_params(
                 PurgeAssets::NAME,

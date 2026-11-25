@@ -145,8 +145,8 @@ fn create_is_undoable() {
 fn create_refusals_name_revisions_and_pages_in_words() {
     let (mut e, _, _) = with_history();
     let reason = |err: CmdError| match err {
-        CmdError::Rejected { reason, .. } => reason,
-        CmdError::InvalidParams { message, .. } => message,
+        CmdError::Rejected { text, .. } => text.to_string(),
+        CmdError::InvalidParams { text, .. } => text.to_string(),
         other => panic!("{other:?}"),
     };
     assert_eq!(
@@ -303,8 +303,8 @@ fn a_released_revision_is_not_editable() {
     // A refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and ends
     // with what the user can do
     match &err {
-        CmdError::InvalidParams { message, .. } => assert_eq!(
-            message,
+        CmdError::InvalidParams { text, .. } => assert_eq!(
+            text.to_string(),
             "revision V1.0 is not open; a released or withdrawn revision is immutable: make the change in the open \
              revision"
         ),
@@ -494,7 +494,7 @@ fn open_revision(e: &Engine) -> Option<std::sync::Arc<Revision>> {
 /// `(rule, finding)` of a `Prevented` error.
 fn prevented(err: CmdError) -> (String, String) {
     match err {
-        CmdError::Prevented { rule, finding, .. } => (rule, finding),
+        CmdError::Prevented { rule, text, .. } => (rule, text.to_string()),
         other => panic!("expected Prevented, got {other:?}"),
     }
 }
@@ -721,9 +721,8 @@ fn the_roles_are_not_set_by_fields_set() {
                 .execute_with(&set(&[v2], path, json!("checker")), Submit::from(origin.clone()))
                 .unwrap_err();
             match err {
-                CmdError::InvalidParams {
-                    path: at, message, ..
-                } => {
+                CmdError::InvalidParams { path: at, text, .. } => {
+                    let message = text.to_string();
                     assert_eq!(at, "/path");
                     assert_eq!(
                         message,

@@ -463,12 +463,7 @@ fn any(name: &str, params: Value) -> AnyCommand {
 
 fn invalid(name: &str, params: Value) -> (String, String, String) {
     match CommandRegistry::builtin().resolve(&any(name, params.clone())) {
-        Err(CmdError::InvalidParams {
-            command,
-            path,
-            message,
-            ..
-        }) => (command, path, message),
+        Err(CmdError::InvalidParams { command, path, text }) => (command, path, text.to_string()),
         Err(other) => panic!("expected InvalidParams, got {other:?}"),
         Ok(_) => panic!("{name} {params}: expected the parameters to be rejected"),
     }

@@ -147,14 +147,9 @@ fn declare_house_colour(e: &mut Engine) {
 /// The message of the `fields.set` refusal at `/value` of `path` on `target`.
 fn refused_value(e: &mut Engine, kind: KindName, target: AnyId, path: &str, value: Value) -> String {
     match e.execute(&set_fields(kind, target, path, value)).unwrap_err() {
-        CmdError::InvalidParams {
-            command,
-            path,
-            message,
-            ..
-        } => {
+        CmdError::InvalidParams { command, path, text } => {
             assert_eq!((command.as_str(), path.as_str()), ("fields.set", "/value"));
-            message
+            text.to_string()
         }
         other => panic!("expected InvalidParams, got {other:?}"),
     }
@@ -377,9 +372,10 @@ fn item_place_image_rejections() {
     let err = e
         .execute(&image(unknown, pt(0, 0), pt(10_000_000, 5_000_000)))
         .unwrap_err();
-    let CmdError::InvalidParams { path, message, .. } = &err else {
+    let CmdError::InvalidParams { path, text, .. } = &err else {
         panic!("{err:?}")
     };
+    let message = &text.to_string();
     assert_eq!(path, "/kind/image/asset");
     assert_eq!(
         message,
@@ -502,9 +498,10 @@ fn item_place_data_rejections() {
     };
     for bad in [both, neither] {
         let err = e.execute(&bad).unwrap_err();
-        let CmdError::InvalidParams { path, message, .. } = &err else {
+        let CmdError::InvalidParams { path, text, .. } = &err else {
             panic!("{err:?}")
         };
+        let message = &text.to_string();
         assert_eq!(path, "/kind/image");
         assert_eq!(
             message,
@@ -515,9 +512,10 @@ fn item_place_data_rejections() {
         br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><script>alert(1)</script></svg>"#;
     let hostile_hash = ew_schema::Sha256(sha2::Sha256::digest(hostile).into());
     let err = e.execute(&image_data(hostile, rect.0, rect.1)).unwrap_err();
-    let CmdError::InvalidParams { path, message, .. } = &err else {
+    let CmdError::InvalidParams { path, text, .. } = &err else {
         panic!("{err:?}")
     };
+    let message = &text.to_string();
     assert_eq!(path, "/kind/image/data");
     // The very text the company logo's refusal has for these bytes.
     let logo = e
@@ -529,13 +527,10 @@ fn item_place_data_rejections() {
         })
         .map(|_| ())
         .unwrap_err();
-    let CmdError::InvalidParams {
-        message: logo_message,
-        ..
-    } = &logo
-    else {
+    let CmdError::InvalidParams { text: logo_text, .. } = &logo else {
         panic!("{logo:?}")
     };
+    let logo_message = &logo_text.to_string();
     assert_eq!(message, logo_message);
     assert!(message.contains("script"), "{message}");
     assert!(e.model().asset(&hostile_hash).is_none(), "nothing stored");
@@ -544,9 +539,10 @@ fn item_place_data_rejections() {
         (vec![0u8; 600 * 1024], "larger than 512 KiB"),
     ] {
         let err = e.execute(&image_data(&bytes, rect.0, rect.1)).unwrap_err();
-        let CmdError::InvalidParams { path, message, .. } = &err else {
+        let CmdError::InvalidParams { path, text, .. } = &err else {
             panic!("{err:?}")
         };
+        let message = &text.to_string();
         assert_eq!(path, "/kind/image/data");
         assert!(message.contains(needle), "{message}");
     }
@@ -972,9 +968,10 @@ fn rep_move_refuses_an_unknown_variant() {
     let err = e
         .execute(&mv(vec![], vec![id::<()>(0x4300)], pt(1, 0)))
         .unwrap_err();
-    let CmdError::Rejected { reason, .. } = err else {
+    let CmdError::Rejected { text, .. } = err else {
         panic!("{err:?}");
     };
+    let reason = text.to_string();
     // A refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and
     // ends with what the user can do
     assert_eq!(

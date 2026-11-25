@@ -469,14 +469,9 @@ fn with_pages_103_and_106() -> (Engine, Id<Page>, Id<Page>) {
 
 fn reorder_error(r: Result<Receipt, CmdError>) -> (String, String) {
     match r {
-        Err(CmdError::InvalidParams {
-            command,
-            path,
-            message,
-            ..
-        }) => {
+        Err(CmdError::InvalidParams { command, path, text }) => {
             assert_eq!(command, "page.reorder");
-            (path, message)
+            (path, text.to_string())
         }
         other => panic!("expected InvalidParams, got {other:?}"),
     }

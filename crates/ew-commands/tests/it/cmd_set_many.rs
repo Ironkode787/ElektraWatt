@@ -262,9 +262,9 @@ fn a_counter_collision_is_refused_as_fields_set_refuses_it() {
     let mut e = engine(model);
     let got = e.execute(&many(edits)).map(|_| ());
     match (&oracle, &got) {
-        (Err(CmdError::Rejected { reason: a, .. }), Err(CmdError::Rejected { reason: b, .. })) => {
+        (Err(CmdError::Rejected { text: a, .. }), Err(CmdError::Rejected { text: b, .. })) => {
             assert_eq!(a, b);
-            assert!(a.contains("next free counter"), "{a}");
+            assert!(a.to_string().contains("next free counter"), "{a}");
         }
         (Ok(()), Ok(())) => {}
         _ => panic!("fields.set gave {oracle:?}, fields.set_many {got:?}"),

@@ -1822,23 +1822,18 @@ pub(super) fn command_failed(e: &CmdError, params: &Value) -> Outcome {
 pub(super) fn command_error_message(e: &CmdError, params: &Value) -> String {
     match e {
         // The reason in the window's language.
-        CmdError::InvalidParams {
-            command,
-            path,
-            message,
-            text,
-        } => strings::format(
+        CmdError::InvalidParams { command, path, text } => strings::format(
             key!("error-command-field"),
             &[
                 strings::command_title(command),
                 &param_words(params, path),
-                &rejected_words(message, Some(&**text)),
+                &rejected_words("", Some(&**text)),
             ],
         ),
         // A refusal shows its reason, never the error's Display form ("<source>: <reason>"), and
         // in the window's language
-        CmdError::Rejected { reason, text, .. } => {
-            strings::format(key!("error-command"), &[&rejected_words(reason, text.as_deref())])
+        CmdError::Rejected { text, .. } => {
+            strings::format(key!("error-command"), &[&rejected_words("", Some(&**text))])
         }
         // Every other reason through its own key in the window's language,
         // never the error's Display form (which names the exposure class and the origin, `cmdlog:script.uiscript`).
@@ -1847,7 +1842,7 @@ pub(super) fn command_error_message(e: &CmdError, params: &Value) -> String {
 }
 
 /// A command's own refusal in the window's language: its keyed text, an argument that is
-/// itself a text in the same language; a refusal without a key (one of the API's own) as its English `reason`.
+/// itself a text in the same language; without a text, the caller's English `reason`.
 pub(crate) fn rejected_words(reason: &str, text: Option<&ew_api::Text>) -> String {
     fn words(t: &ew_api::Text) -> String {
         // A JSON Pointer names its member in words, as an invalid parameter does.
@@ -1884,14 +1879,12 @@ pub(crate) fn notices_words(notices: &[ew_api::Text]) -> Vec<String> {
 /// A prevent rule's refusal in the window's language, as a sentence without the rule's code (the code belongs in the
 /// findings list and the help): a finding of the commands' own by its key, a finding of the check catalogue by the
 /// rule's message rendered from its arguments, else the finding as it prints.
-pub(crate) fn prevented_words(finding: &str, text: Option<&ew_api::Text>) -> String {
-    match text {
-        // A rule message of the check catalogue.
-        Some(t) if ew_api::checks::has_key(t.key()) => {
-            ew_api::checks::messages::text(t, strings::rule_language())
-        }
-        Some(t) => rejected_words(finding, Some(t)),
-        None => finding.to_owned(),
+pub(crate) fn prevented_words(text: &ew_api::Text) -> String {
+    // A rule message of the check catalogue.
+    if ew_api::checks::has_key(text.key()) {
+        ew_api::checks::messages::text(text, strings::rule_language())
+    } else {
+        rejected_words("", Some(text))
     }
 }
 
@@ -1955,10 +1948,7 @@ fn command_error_text(e: &CmdError) -> (Key<'static>, Vec<String>) {
         CmdError::NeedsPreview { command } => (key!("error-command-needs-preview"), vec![title(command)]),
         // A prevent rule's and the model's own words, without their rule code, which the IP tool and the card read,
         // in the window's language.
-        CmdError::Prevented { finding, text, .. } => (
-            key!("error-command"),
-            vec![prevented_words(finding, text.as_deref())],
-        ),
+        CmdError::Prevented { text, .. } => (key!("error-command"), vec![prevented_words(text)]),
         CmdError::Model(m, text) => (
             key!("error-command"),
             vec![
@@ -1982,14 +1972,9 @@ fn command_error_text(e: &CmdError) -> (Key<'static>, Vec<String>) {
             ),
         },
         CmdError::Internal { reason } => (key!("error-command-internal"), vec![reason.clone()]),
-        CmdError::InvalidParams { message, text, .. } => (
-            key!("error-command"),
-            vec![rejected_words(message, Some(&**text))],
-        ),
-        CmdError::Rejected { reason, text, .. } => (
-            key!("error-command"),
-            vec![rejected_words(reason, text.as_deref())],
-        ),
+        CmdError::InvalidParams { text, .. } | CmdError::Rejected { text, .. } => {
+            (key!("error-command"), vec![rejected_words("", Some(&**text))])
+        }
     }
 }
 
@@ -2155,15 +2140,14 @@ mod ft779 {
         let meta = ew_api::checks::rule("EW-CORE-052").expect("registered").meta();
         let prevented = CmdError::Prevented {
             rule: "EW-CORE-052".into(),
-            finding: finding.into(),
             keys: Vec::new(),
-            text: Some(Box::new(
+            text: Box::new(
                 ew_api::checks::Finding::new(meta, [], "", "")
                     .arg("name", "0V")
                     .arg("form", "sources")
                     .arg("count", "2")
                     .text,
-            )),
+            ),
         };
         let checkpoint = CmdError::History {
             reason: "`revision.release` is a non-undoable checkpoint; nothing before it can be undone".into(),

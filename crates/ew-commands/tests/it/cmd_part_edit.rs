@@ -342,7 +342,7 @@ fn every_refusal_has_its_pointer() {
     );
     // The unchanged item is refused as a whole.
     match e.preview(&edit(local.id, item(), None)).map(|_| ()).unwrap_err() {
-        CmdError::Rejected { reason, .. } => assert!(reason.contains("unchanged"), "{reason}"),
+        CmdError::Rejected { text, .. } => assert!(text.to_string().contains("unchanged"), "{text}"),
         other => panic!("{other:?}"),
     }
     // A manufacturer the project lacks is accepted when `copies` carries it.
@@ -422,9 +422,9 @@ fn fields_set_embeds_its_copies() {
     );
     other.copies = vec![serde_json::to_value(LibDocument::Part(v2)).unwrap()];
     match e.execute(&other).unwrap_err() {
-        CmdError::InvalidParams { path, message, .. } => {
+        CmdError::InvalidParams { path, text, .. } => {
             assert_eq!(path, "/copies/0");
-            assert!(message.contains("update from library"), "{message}");
+            assert!(text.to_string().contains("update from library"), "{text}");
         }
         err => panic!("{err:?}"),
     }

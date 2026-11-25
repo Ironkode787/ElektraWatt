@@ -56,12 +56,10 @@ pub enum ModelError {
     Prevented {
         /// The rule ID, such as `EW-TERM-002`.
         rule: String,
-        /// The finding's message.
-        message: String,
         /// The records involved.
         keys: Vec<AnyKey>,
         /// The finding by key ([`crate::PreventViolation::text`]).
-        text: Option<Box<ew_l10n::Text>>,
+        text: Box<ew_l10n::Text>,
     },
     /// Two records of one kind share an ID (EW-CORE-009), or the record set holds a second project row.
     DuplicateRecord {
@@ -121,7 +119,7 @@ impl fmt::Display for ModelError {
                 KeyFmt(referrer)
             ),
             ModelError::Invariant { id, message, .. } => write!(f, "{id}: {message}"),
-            ModelError::Prevented { rule, message, .. } => write!(f, "{rule}: {message}"),
+            ModelError::Prevented { rule, text, .. } => write!(f, "{rule}: {text}"),
             ModelError::DuplicateRecord { key } => write!(f, "duplicate record {}", KeyFmt(key)),
             ModelError::DuplicateUnknownRecord { kind, id } => write!(f, "duplicate record {kind}:{id}"),
             ModelError::NotFound { key } => write!(f, "no record {}", KeyFmt(key)),

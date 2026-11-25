@@ -205,7 +205,7 @@ fn commit(s: &mut Session, cmd: &AnyCommand) {
 
 fn invalid_path(e: CmdError) -> (String, String) {
     match e {
-        CmdError::InvalidParams { path, message, .. } => (path, message),
+        CmdError::InvalidParams { path, text, .. } => (path, text.to_string()),
         other => panic!("expected InvalidParams, got {other:?}"),
     }
 }
@@ -549,8 +549,8 @@ fn an_update_embeds_the_new_versions_missing_closure_or_is_refused() {
     let mut bare = plan.command.clone();
     bare.params.as_object_mut().unwrap().remove("embed");
     match s.preview(&bare).unwrap_err() {
-        CmdError::Rejected { reason, .. } => assert_eq!(
-            reason,
+        CmdError::Rejected { text, .. } => assert_eq!(
+            text.to_string(),
             "the new versions name items the project does not hold; give them in `embed`: a manufacturer, named by \
              EW-GEN-PSU-1 at version 1.1.0"
         ),
@@ -624,9 +624,10 @@ fn a_symbol_update_is_minor_with_a_moved_anchor_and_refused_without_a_connected_
             params: json!({"copies": [cut]}),
         })
         .unwrap_err();
-    let CmdError::Rejected { reason, .. } = &e else {
+    let CmdError::Rejected { text, .. } = &e else {
         panic!("{e:?}")
     };
+    let reason = &text.to_string();
     // The attached records in words, a wire by its number, never by its ID; whole: the six outgoing marks of 101
     // (1L1, 1L2, 1L3, PE, 0V and 24V), each with its wire.
     // Each pin by its interruption point's name and printed designation, never by a raw member.

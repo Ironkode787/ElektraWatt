@@ -178,7 +178,6 @@ impl Model {
             hook.check_reproducing(self, &m, &touched, opts.reproduces)
                 .map_err(|v| ModelError::Prevented {
                     rule: v.rule,
-                    message: v.message,
                     keys: v.keys,
                     text: v.text,
                 })?;

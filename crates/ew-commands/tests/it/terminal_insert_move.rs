@@ -136,7 +136,7 @@ fn connections(e: &Engine) -> Vec<String> {
 
 fn invalid<T: std::fmt::Debug>(r: Result<T, CmdError>) -> (String, String) {
     match r {
-        Err(CmdError::InvalidParams { path, message, .. }) => (path, message),
+        Err(CmdError::InvalidParams { path, text, .. }) => (path, text.to_string()),
         other => panic!("expected InvalidParams, got {other:?}"),
     }
 }

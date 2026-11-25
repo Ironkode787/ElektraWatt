@@ -682,18 +682,16 @@ impl ShellModel {
         let raw = project.session.preview_with(&cmd, submit);
         // A typed value the command does not take: its reason under the field, without the variable's name the field
         // already shows.
-        if let Err(ew_api::CmdError::InvalidParams {
-            path, message, text, ..
-        }) = &raw
+        if let Err(ew_api::CmdError::InvalidParams { path, text, .. }) = &raw
             && let Some(name) = path.strip_prefix("/values/")
             && let Some(f) = fields.iter_mut().find(|f| f.name == name)
         {
             // The reason in the window's language, without the `refusal-macro-variable` lead.
             f.error = Some(match (text.key(), text.args()) {
                 ("refusal-macro-variable", [_, ew_api::TextArg::Text(why)]) => {
-                    super::tools::rejected_words(message, Some(why))
+                    super::tools::rejected_words("", Some(why))
                 }
-                _ => super::tools::rejected_words(message, Some(&**text)),
+                _ => super::tools::rejected_words("", Some(&**text)),
             });
         }
         // The refusal in the window's language; a prevent rule's code leads it, as the card's lead line reads it.

@@ -239,7 +239,7 @@ fn rail_cmd(surface: Id<MountingSurface>, y: i64, length: i64) -> AddCarrier {
 
 fn invalid(r: Result<ew_commands::Receipt, CmdError>) -> (String, String) {
     match r {
-        Err(CmdError::InvalidParams { path, message, .. }) => (path, message),
+        Err(CmdError::InvalidParams { path, text, .. }) => (path, text.to_string()),
         other => panic!("expected invalid parameters, got {other:?}"),
     }
 }

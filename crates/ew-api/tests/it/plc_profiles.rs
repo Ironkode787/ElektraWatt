@@ -115,7 +115,7 @@ fn line(cfg: Uuid, profile: &str) -> CmdLog {
 /// The message of a refused command (an invalid parameter).
 fn refusal(e: &CmdError) -> String {
     match e {
-        CmdError::InvalidParams { message, .. } => message.clone(),
+        CmdError::InvalidParams { text, .. } => text.to_string().clone(),
         other => panic!("not an invalid parameter: {other:?}"),
     }
 }

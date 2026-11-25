@@ -126,7 +126,7 @@ fn channels_of(e: &Engine, module: Id<Device>) -> Vec<std::sync::Arc<Channel>> {
 
 fn invalid(r: Result<Receipt, CmdError>) -> (String, String) {
     match r {
-        Err(CmdError::InvalidParams { path, message, .. }) => (path, message),
+        Err(CmdError::InvalidParams { path, text, .. }) => (path, text.to_string()),
         other => panic!("expected InvalidParams, got {other:?}"),
     }
 }

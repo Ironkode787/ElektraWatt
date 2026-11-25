@@ -324,7 +324,7 @@ fn transform(rep: Id<Representation>, rotate: u8, mirror: bool) -> TransformReps
 /// The reason of a rejection, or a panic naming what came back instead.
 fn rejection<T: std::fmt::Debug>(r: Result<T, CmdError>) -> String {
     match r {
-        Err(CmdError::Rejected { reason, .. }) => reason,
+        Err(CmdError::Rejected { text, .. }) => text.to_string(),
         other => panic!("expected a rejection, got {other:?}"),
     }
 }
@@ -772,10 +772,10 @@ fn an_off_grid_paste_point_is_refused_in_words() {
         })
         .unwrap_err();
     match err {
-        CmdError::InvalidParams { path, message, .. } => {
+        CmdError::InvalidParams { path, text, .. } => {
             assert_eq!(path, "/at");
             assert_eq!(
-                message,
+                text.to_string(),
                 "the paste point at x 8.4, y 15.9 mm on page 101 is not on the drawing grid; paste at a point on the grid"
             );
         }

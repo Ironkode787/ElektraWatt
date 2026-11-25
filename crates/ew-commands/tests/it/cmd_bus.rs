@@ -47,14 +47,14 @@ fn set(kind: KindName, target: ew_schema::AnyId, path: &str, value: Value) -> Se
 
 fn invalid(r: Result<Receipt, CmdError>) -> (String, String) {
     match r {
-        Err(CmdError::InvalidParams { path, message, .. }) => (path, message),
+        Err(CmdError::InvalidParams { path, text, .. }) => (path, text.to_string()),
         other => panic!("expected InvalidParams, got {other:?}"),
     }
 }
 
 fn rejected(r: Result<Receipt, CmdError>) -> String {
     match r {
-        Err(CmdError::Rejected { reason, .. }) => reason,
+        Err(CmdError::Rejected { text, .. }) => text.to_string(),
         other => panic!("expected Rejected, got {other:?}"),
     }
 }

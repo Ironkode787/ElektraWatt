@@ -199,9 +199,9 @@ fn wires(e: &Engine, from: Id<Function>, to: Id<Function>) -> BTreeSet<(Id<Conne
 #[track_caller]
 fn invalid_at<T: Debug>(r: Result<T, CmdError>, at: &str, needle: &str) {
     match r {
-        Err(CmdError::InvalidParams { path, message, .. }) => {
-            assert_eq!(path, at, "{message}");
-            assert!(message.contains(needle), "`{message}` lacks `{needle}`");
+        Err(CmdError::InvalidParams { path, text, .. }) => {
+            assert_eq!(path, at, "{text}");
+            assert!(text.to_string().contains(needle), "`{text}` lacks `{needle}`");
         }
         other => panic!("expected InvalidParams at {at}, got {other:?}"),
     }

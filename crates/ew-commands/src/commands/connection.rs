@@ -29,7 +29,7 @@ use crate::meta::CommandMeta;
 use crate::normalise::split_connection;
 use crate::proxy::{Dec3S, IdentS, Orient2S, Pt2S, UuidS};
 use crate::tx::TxBuilder;
-use ew_l10n::{Text, TextArg};
+use ew_l10n::Text;
 
 /// Resolves one end of `connection.draw` to a record endpoint. A point on a connection W creates a
 /// junction there (the bevel form, or with `dot` the dot) and splits W at it, and the junction joins `made`; an
@@ -611,13 +611,10 @@ impl Command for ConnectMany {
                 CmdError::InvalidParams { path, text, .. } => {
                     CmdError::invalid_params(Self::NAME, format!("/connections/{i}{path}"), *text)
                 }
-                CmdError::Rejected { source, reason, text } => {
-                    let why = text.map_or_else(|| TextArg::from(reason), |t| TextArg::from(*t));
-                    CmdError::rejected(
-                        source,
-                        text!("refusal-connection-draw-many-entry", i.to_string(), why),
-                    )
-                }
+                CmdError::Rejected { source, text } => CmdError::rejected(
+                    source,
+                    text!("refusal-connection-draw-many-entry", i.to_string(), *text),
+                ),
                 // NotFound names the missing record by its key; it has no field an index could prefix (see above).
                 other => other,
             })?;
@@ -687,13 +684,10 @@ pub(crate) fn run_routes(
             CmdError::InvalidParams { path, text, .. } => {
                 CmdError::invalid_params(command, format!("/routes/{i}{path}"), *text)
             }
-            CmdError::Rejected { source, reason, text } => {
-                let why = text.map_or_else(|| TextArg::from(reason), |t| TextArg::from(*t));
-                CmdError::rejected(
-                    source,
-                    text!("refusal-connection-draw-many-entry", i.to_string(), why),
-                )
-            }
+            CmdError::Rejected { source, text } => CmdError::rejected(
+                source,
+                text!("refusal-connection-draw-many-entry", i.to_string(), *text),
+            ),
             other => other,
         })?;
         first = first.or(out.primary);

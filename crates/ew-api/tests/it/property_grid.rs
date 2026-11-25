@@ -753,7 +753,7 @@ fn a_counter_collision_names_the_next_free_counter() {
         params: json!({"kind": "device", "targets": [s1.to_string()], "path": "tag.counter", "value": 2}),
     };
     let err = s.execute(&cmd).unwrap_err();
-    let text = format!("{err:?}");
+    let text = err.to_string();
     assert!(text.contains("next free counter"), "{text}");
 }
 

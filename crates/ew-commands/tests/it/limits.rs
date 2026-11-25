@@ -120,12 +120,8 @@ fn a_ten_megabyte_string_is_rejected_at_its_member() {
     };
     let result = CommandRegistry::builtin().resolve(&cmd);
     match result {
-        Err(CmdError::InvalidParams {
-            command,
-            path,
-            message,
-            ..
-        }) => {
+        Err(CmdError::InvalidParams { command, path, text }) => {
+            let message = text.to_string();
             assert_eq!(command, "fields.set");
             assert_eq!(path, "/value");
             assert!(message.contains("10485760"), "{message}");
@@ -142,9 +138,10 @@ fn messages_render_at_most_256_chars_of_the_instance() {
         name: "fields.set".into(),
         params: json!({"kind": big, "targets": [], "path": "function_text", "value": "v"}),
     };
-    let Err(CmdError::InvalidParams { message, .. }) = CommandRegistry::builtin().resolve(&cmd) else {
+    let Err(CmdError::InvalidParams { text, .. }) = CommandRegistry::builtin().resolve(&cmd) else {
         panic!("must be rejected");
     };
+    let message = text.to_string();
     // The refusal names the kinds it takes and quotes at most 256 characters of the string.
     let quoted = message.chars().filter(|c| *c == 'z').count();
     assert!(

@@ -252,8 +252,8 @@ fn a_move_of_a_selection_with_the_surface_view_names_it() {
         into: None,
     });
     match r {
-        Err(ew_commands::CmdError::Rejected { reason, .. }) => assert_eq!(
-            reason,
+        Err(ew_commands::CmdError::Rejected { text, .. }) => assert_eq!(
+            text.to_string(),
             "the surface view on page 902 does not move with a selection; leave it out of the selection, or change \
              it with Set panel view"
         ),

@@ -1114,9 +1114,13 @@ impl PreventHook for NoDevices {
         if touched.iter().any(|k| k.0 == Kind::Device) {
             return Err(PreventViolation {
                 rule: "EW-TERM-002".into(),
-                message: "devices are locked".into(),
                 keys: touched.to_vec(),
-                text: None,
+                // A hook's own words; this crate has no text table.
+                text: Box::new(ew_l10n::Text::checked_by_macro(
+                    "test-devices-locked",
+                    "devices are locked",
+                    Vec::new(),
+                )),
             });
         }
         Ok(())

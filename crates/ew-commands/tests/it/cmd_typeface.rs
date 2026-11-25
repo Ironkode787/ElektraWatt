@@ -31,7 +31,7 @@ fn commit(e: &mut Engine, cmd: &dyn DynCommand) {
 /// The pointer and the words of a refusal.
 fn refused(e: &mut Engine, cmd: &dyn DynCommand) -> (String, String) {
     match e.preview(cmd).unwrap_err() {
-        CmdError::InvalidParams { path, message, .. } => (path, message),
+        CmdError::InvalidParams { path, text, .. } => (path, text.to_string()),
         other => panic!("expected InvalidParams, got {other:?}"),
     }
 }

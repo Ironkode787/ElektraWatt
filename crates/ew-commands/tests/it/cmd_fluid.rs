@@ -95,7 +95,7 @@ fn fluid() -> ConnectionKind {
 
 fn refusal(e: &mut Engine, cmd: &Connect) -> String {
     match e.execute(cmd) {
-        Err(CmdError::Rejected { reason, .. }) => reason,
+        Err(CmdError::Rejected { text, .. }) => text.to_string(),
         other => panic!("expected a refusal, got {other:?}"),
     }
 }
@@ -308,7 +308,7 @@ fn child(e: &Engine, position: u32) -> Option<std::sync::Arc<Device>> {
 fn occupancy_refusals_name_the_module_and_the_position() {
     let mut e = engine(module_model());
     let mut on = |cmd: SetValveOccupancy| match e.execute(&cmd) {
-        Err(CmdError::Rejected { reason, .. }) => reason,
+        Err(CmdError::Rejected { text, .. }) => text.to_string(),
         other => panic!("expected a refusal, got {other:?}"),
     };
     let mut not_module = occupy(1, OccupancyParam::Empty);
@@ -326,7 +326,7 @@ fn occupancy_refusals_name_the_module_and_the_position() {
     e.execute(&occupy(2, valve(ValveStateParam::Used, Some(PART_VALVE))))
         .expect("a valve");
     let name = match e.execute(&occupy(2, valve(ValveStateParam::Used, Some(PART_OTHER)))) {
-        Err(CmdError::Rejected { reason, .. }) => reason,
+        Err(CmdError::Rejected { text, .. }) => text.to_string(),
         other => panic!("expected a refusal, got {other:?}"),
     };
     assert_eq!(
@@ -479,7 +479,7 @@ fn closing_a_fluid_port_sets_its_closure_and_opening_drops_it() {
 
 fn refusal_of(e: &mut Engine, cmd: &dyn ew_commands::DynCommand) -> String {
     match e.execute(cmd) {
-        Err(CmdError::Rejected { reason, .. }) => reason,
+        Err(CmdError::Rejected { text, .. }) => text.to_string(),
         other => panic!("expected a refusal, got {other:?}"),
     }
 }
