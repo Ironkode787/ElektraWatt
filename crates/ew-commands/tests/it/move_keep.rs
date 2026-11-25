@@ -3,7 +3,8 @@
 
 //! `rep.move` to another page with `keep` (doc 06 §3.4): a wire whose other end stays behind is kept as a pair of
 //! interruption points, the source where the wire left the page left, the target at the moved pin; a junction stays
-//! with the larger part; a junction joined to another is refused in words; one undo step.
+//! with the larger part; a pair's name taken goes on in its series; a junction joined to another, and a wire with no
+//! free grid point on its path, are refused in words; one undo step.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
@@ -380,4 +381,106 @@ fn the_points_documents_are_embedded_only_when_the_move_cuts_a_wire() {
         .filter(|r| r.symbol == keep.source)
         .count();
     assert_eq!(drawn, 2, "the pair is drawn with the new symbol");
+}
+
+/// The name of the pair of the plain wire from A to B, the one move of A makes on the mini project.
+fn plain_pair_name() -> String {
+    let mut e = engine(model(
+        &[(0x4a0, cp(FNS[0], 0), cp(FNS[1], 0), vec![at(0), at(1)])],
+        &[],
+    ));
+    e.execute(&move_to_101(&[0])).expect("the move");
+    ips(&e)[0].0.clone()
+}
+
+/// A pair whose name an interruption point of the project has already takes the next name of its series.
+#[test]
+fn a_pair_whose_name_is_taken_goes_on_in_its_series() {
+    let name = plain_pair_name();
+    let mut e = engine(model_with(
+        &[(0x4a0, cp(FNS[0], 0), cp(FNS[1], 0), vec![at(0), at(1)])],
+        &[],
+        |records| {
+            for r in records.iter_mut() {
+                if let Record::Function(f) = r
+                    && [FN_IP_101, FN_IP_102].contains(&f.id)
+                    && let FunctionKind::Ip(spec) = &mut f.kind
+                {
+                    spec.name = name.parse().expect("an identifier");
+                }
+            }
+        },
+    ));
+    e.execute(&move_to_101(&[0])).expect("the move");
+    let pair = ips(&e);
+    let next = ew_commands::commands::next_in_series(&name);
+    assert_eq!(
+        pair.iter().map(|p| p.0.as_str()).collect::<Vec<_>>(),
+        [next.as_str(), next.as_str()],
+        "{name} is taken"
+    );
+}
+
+/// Two wires of one potential cut by one move make two pairs: the second takes the next name of the series, and its
+/// source point the next free grid point of its path, the first pair's standing at the moved pin's old place.
+#[test]
+fn two_pairs_of_one_potential_in_one_move_take_two_names_and_two_places() {
+    let name = plain_pair_name();
+    let mut e = engine(model(
+        &[
+            (0x4a0, cp(FNS[0], 0), cp(FNS[1], 0), vec![at(0), at(1)]),
+            (
+                0x4a1,
+                cp(FNS[0], 0),
+                cp(FNS[2], 0),
+                vec![at(0), pt(8 * G, 6 * G), pt(2 * G, 6 * G), at(2)],
+            ),
+        ],
+        &[],
+    ));
+    let r = e.execute(&move_to_101(&[0])).expect("the move");
+    let next = ew_commands::commands::next_in_series(&name);
+    let pairs = ips(&e);
+    assert_eq!(pairs.len(), 4, "{pairs:?}");
+    // One step of the page's grid down the second wire's first segment.
+    let grid = row::<ew_schema::Page>(&e, PAGE_102).grid;
+    let below = grid.at(grid.snap(at(0).y) + 1).expect("a grid point");
+    for (n, source) in [(&name, at(0)), (&next, Pt2::new(at(0).x, below))] {
+        let of: Vec<_> = pairs.iter().filter(|p| &p.0 == n).collect();
+        assert_eq!(of.len(), 2, "{n}: {pairs:?}");
+        assert!(
+            of.iter()
+                .any(|p| (&p.1, p.2, p.3) == (&IpDirection::Source, PAGE_102, source)),
+            "{n}: {pairs:?}"
+        );
+        assert!(
+            of.iter()
+                .any(|p| (&p.1, p.2, p.3) == (&IpDirection::Target, PAGE_101, at(0))),
+            "{n}: {pairs:?}"
+        );
+    }
+    assert_eq!(r.outcome.notices.len(), 2, "{:?}", r.outcome.notices);
+}
+
+/// A wire whose old path has no free grid point left is refused in words, and nothing is written: the unrouted wire
+/// from A to C runs on no grid line, so its only point is A's pin, where the pin of B stands that stays.
+#[test]
+fn a_wire_without_a_free_grid_point_on_its_path_is_refused_in_words() {
+    let mut e = engine(model_with(
+        &[(0x4a0, cp(FNS[0], 0), cp(FNS[2], 0), Vec::new())],
+        &[],
+        |records| {
+            for r in records.iter_mut() {
+                if let Record::Representation(rep) = r
+                    && rep.id == REPS[1]
+                {
+                    rep.pos = at(0);
+                }
+            }
+        },
+    ));
+    let rev = e.model().rev();
+    let why = reason(e.execute(&move_to_101(&[0])));
+    assert!(why.contains("has no free grid point left on its path"), "{why}");
+    assert_eq!(e.model().rev(), rev, "nothing is written");
 }
