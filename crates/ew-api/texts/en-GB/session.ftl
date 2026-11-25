@@ -387,6 +387,20 @@ nav-bus-segment = Segment { $p0 }
 nav-plc-no-cpu = Modules without a station
 nav-bridges = Bridges
 nav-none = (none)
+nav-fluid-terminals = Valve terminals
+nav-fluid-devices = Fluid devices
+nav-fluid-media = Media
+# A strip accessory's kind (output::strip_edit).
+accessory-end-plate = End plate
+accessory-end-clamp = End bracket
+accessory-partition = Partition plate
+accessory-marker = Marker carrier
+accessory-cover = Cover
+accessory-other = Accessory
+# An interruption point's direction (output::navigators::ips; the context menu's choice too).
+choice-source = Source
+choice-target = Target
+choice-undirected = Undirected
 
 # A library's index in the Libraries navigator (output::navigators::libraries).
 lib-index-fresh = Index up to date

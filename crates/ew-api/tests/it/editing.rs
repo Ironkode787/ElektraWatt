@@ -133,11 +133,19 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
             // The picker's words for the entry, never its FnDef key where the FnDef has a category.
             assert!(!f.kind_text.to_string().is_empty());
             if f.fndef_key == "ew.fn.contact-no" {
-                assert!(f.kind_text.to_string().starts_with("NO contact "), "{}", f.kind_text);
+                assert!(
+                    f.kind_text.to_string().starts_with("NO contact "),
+                    "{}",
+                    f.kind_text
+                );
             }
             // A change-over contact is spelled out, never "CO".
             if f.fndef_key == "ew.fn.contact-co" {
-                assert!(f.kind_text.to_string().starts_with("Changeover contact "), "{}", f.kind_text);
+                assert!(
+                    f.kind_text.to_string().starts_with("Changeover contact "),
+                    "{}",
+                    f.kind_text
+                );
             }
             if let Some(key) = &f.symbol {
                 let r = row(key);

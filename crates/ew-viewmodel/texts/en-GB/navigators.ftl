@@ -287,9 +287,6 @@ nav-mode-structure = By structure
 nav-sort-folio = Sort by folio
 nav-sort-type = Sort by type
 nav-front-matter = Front matter
-nav-fluid-terminals = Valve terminals
-nav-fluid-devices = Fluid devices
-nav-fluid-media = Media
 nav-badge-consumers = { $p0 ->
         [one] 1 consumer
        *[other] { $p0 } consumers

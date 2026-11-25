@@ -635,20 +635,12 @@ impl Session {
     /// merge evidence (the manifest's `merged`, a git merge or rebase in progress, `--after-merge`): a
     /// change of that evidence without a new revision shows at the next revision.
     pub fn navigator_table(&self, kind: NavKind) -> NavTable {
-        self.navigator_texts_in(kind, None).render(ToString::to_string)
+        self.navigator_texts(kind).render(ToString::to_string)
     }
 
     /// [`Session::navigator_table`] before its words are rendered: every heading, label and cell a [`crate::Text`],
     /// which the window renders in its language ([`NavTable::render`]).
     pub fn navigator_texts(&self, kind: NavKind) -> NavTable<crate::Text> {
-        self.navigator_texts_in(kind, None)
-    }
-
-    /// [`Session::navigator_texts`] with the texts of the fluid tables (a port role, a line kind, a length source) and
-    /// the groups the navigators name in words (the connections' Bridges, a group without a potential, a function, a
-    /// location or a manufacturer: "(none)") in language `lang` (`en-GB`, `nl-NL`; `None` or another: neutral, as
-    /// their CSV prints them), as the window shows them.
-    pub fn navigator_texts_in(&self, kind: NavKind, lang: Option<&str>) -> NavTable<crate::Text> {
         let rev = self.world().rev.0;
         let mut b = Builder { nodes: Vec::new() };
         let q = self.query();
@@ -660,13 +652,13 @@ impl Session {
             NavKind::Cables => cables_table(&q, &mut b),
             NavKind::Plc | NavKind::PlcGrid => plc_table(&q, &mut b),
             NavKind::Bus => bus_table(&q, &mut b),
-            NavKind::Fluid => fluid_table(&q, &mut b, lang),
-            NavKind::Tubes => tubes_table(&q, &mut b, lang),
-            NavKind::Media => media_table(&q, &mut b, lang),
+            NavKind::Fluid => fluid_table(&q, &mut b),
+            NavKind::Tubes => tubes_table(&q, &mut b),
+            NavKind::Media => media_table(&q, &mut b),
             NavKind::Potentials => potentials_table(&q, &mut b),
             NavKind::Ips => ips_table(&q, &mut b),
             NavKind::Structure => structure_table(&q, &mut b),
-            NavKind::Parts => parts_table(&q, &mut b, lang),
+            NavKind::Parts => parts_table(&q, &mut b),
             NavKind::Blocks => blocks_table(&q, &mut b),
             NavKind::Unplaced => unplaced_table(&q, &mut b),
             NavKind::Macros => self.macros_table(&q, &mut b),
@@ -677,12 +669,6 @@ impl Session {
         }
         b.finish(kind, rev)
     }
-}
-
-/// A navigator's words `t` in language `lang` (`en-GB`, `nl-NL`; `None`: English).
-pub(super) fn words_in(t: &crate::Text, lang: Option<&str>) -> String {
-    let tag = lang.and_then(|l| l.parse::<ew_mltext::LangTag>().ok());
-    crate::output::print::in_print_language(t, tag.as_ref())
 }
 
 /// The columns of navigator `kind`'s table, their headings as texts: the headings of [`Session::navigator_texts`]
@@ -917,6 +903,33 @@ fn cell_words(q: &Q, cell: &ew_reports::Cell) -> crate::Text {
         Some((lang, ew_reports::render::render(q, cell, &opts)))
     });
     crate::Text::bare(crate::TextArg::Ml(ew_mltext::MlText::from_langs(in_each)))
+}
+
+/// The words of the key `key` of the session's texts with a small first letter, in every language of its texts: a
+/// choice's word as a cell reads it ("source", "bron").
+fn lowered(key: &'static str) -> crate::Text {
+    let catalogue = crate::catalogue();
+    let text = crate::Text::checked_by_macro(key, crate::text_english(key).unwrap_or("?"), Vec::new());
+    let in_each = catalogue.tags().into_iter().filter_map(|tag| {
+        let words = catalogue.text_or_english(&text, tag);
+        let mut chars = words.chars();
+        let lowered: String = chars.next().map(|c| c.to_lowercase().chain(chars).collect())?;
+        Some((tag.parse().ok()?, lowered))
+    });
+    crate::Text::bare(crate::TextArg::Ml(ew_mltext::MlText::from_langs(in_each)))
+}
+
+/// Yes or no, as a list prints them, in every language of the list texts.
+fn yes_no(q: &Q, yes: bool) -> crate::Text {
+    cell_words(q, &ew_reports::Cell::Bool(yes))
+}
+
+/// The cell of `key` among a row's cells as texts (an empty text when the set has no such column).
+fn cell_text(set: &ew_reports::RowSet, cells: &[crate::Text], key: &str) -> crate::Text {
+    set.column(key)
+        .and_then(|c| cells.get(c))
+        .cloned()
+        .unwrap_or_else(|| plain(""))
 }
 
 /// The cell text of `key` in a row's texts.

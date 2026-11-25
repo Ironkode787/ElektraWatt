@@ -13,7 +13,8 @@ use ew_mltext::natural_key;
 use ew_rds::Aspect;
 
 use super::{Builder, NavRole, group, row_entity, tokens};
-use super::{plain, plains};
+use super::{plain, report_cells};
+use crate::Text;
 
 /// Structure identifiers: aspect → structure nodes (nested by `parent`), the structure-node rows of the
 /// structure overview with a `usage` column (the devices and pages that name the node). A node's aliases are filter
@@ -32,17 +33,17 @@ pub(super) fn structure_table(q: &Q, b: &mut Builder) {
         }
     }
     // The structure-node rows, by node.
-    let mut rows: Vec<(Id<StructureNode>, Vec<String>)> = Vec::new();
+    let mut rows: Vec<(Id<StructureNode>, Vec<Text>)> = Vec::new();
     for (i, r) in set.rows.iter().enumerate() {
         let Some(u) = row_entity(&r.id, 0) else { continue };
         let id: Id<StructureNode> = Id::from_uuid(u);
         if !q.structure_nodes().contains(id) {
             continue;
         }
-        let mut texts = ew_reports::csv::row_texts(q, &set, i);
+        let mut cells = report_cells(q, &set, i, &["kind"]);
         let usage = by_device.get(&id).map_or(0, Vec::len) + by_page.get(&id).copied().unwrap_or(0);
-        texts.push(usage.to_string());
-        rows.push((id, texts));
+        cells.push(plain(usage.to_string()));
+        rows.push((id, cells));
     }
     let aspect_of = |id: Id<StructureNode>| match q.structure_nodes().get(id).map(|n| n.aspect.clone()) {
         Some(Open::Known(a)) => Some(a),
@@ -62,14 +63,14 @@ pub(super) fn structure_table(q: &Q, b: &mut Builder) {
             None => (NavRole::StructureNode, "unknown"),
         };
         let anode = group(b, None, role, &format!("aspect:{word}"), plain(word.to_owned()));
-        let mine: Vec<&(Id<StructureNode>, Vec<String>)> =
+        let mine: Vec<&(Id<StructureNode>, Vec<Text>)> =
             rows.iter().filter(|(id, _)| aspect_of(*id) == aspect).collect();
         // Parents first (by depth), then natural designation; a parent outside the aspect puts the node under it.
         let mut order = mine;
         order.sort_by_key(|(id, t)| {
             (
                 depth(q, *id),
-                natural_key(t.first().map_or("", String::as_str)),
+                natural_key(&t.first().map(ToString::to_string).unwrap_or_default()),
                 *id,
             )
         });
@@ -85,11 +86,11 @@ pub(super) fn structure_table(q: &Q, b: &mut Builder) {
                 Some(parent),
                 NavRole::StructureNode,
                 &format!("structure_node:{}", id.as_uuid()),
-                plain(texts.first().cloned().unwrap_or_default()),
+                texts.first().cloned().unwrap_or_else(|| plain("")),
                 Vec::new(),
                 vec![id.as_uuid()],
                 Vec::new(),
-                Some(plains(texts.clone())),
+                Some(texts.clone()),
                 facets,
             );
             if let Some(node) = q.structure_nodes().get(*id) {

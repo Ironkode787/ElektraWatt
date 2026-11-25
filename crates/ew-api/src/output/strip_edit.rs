@@ -117,29 +117,24 @@ pub enum StripEditError {
     Ambiguous(Vec<FieldChoice>),
 }
 
-/// The word an accessory row shows for its kind.
-pub(crate) fn accessory_word(kind: &AccessoryKind) -> &'static str {
+/// The words an accessory row shows for its kind.
+pub(crate) fn accessory_word(kind: &AccessoryKind) -> crate::Text {
     match kind {
-        AccessoryKind::EndPlate => "End plate",
-        AccessoryKind::EndClamp => "End bracket",
-        AccessoryKind::Partition => "Partition plate",
-        AccessoryKind::Marker => "Marker carrier",
-        AccessoryKind::Cover => "Cover",
-        AccessoryKind::Unknown(_) => "Accessory",
+        AccessoryKind::EndPlate => text!("accessory-end-plate"),
+        AccessoryKind::EndClamp => text!("accessory-end-clamp"),
+        AccessoryKind::Partition => text!("accessory-partition"),
+        AccessoryKind::Marker => text!("accessory-marker"),
+        AccessoryKind::Cover => text!("accessory-cover"),
+        AccessoryKind::Unknown(_) => text!("accessory-other"),
     }
 }
 
-/// The word an accessory row shows for the kind's parameter word (`end_clamp` → `End bracket`), for the shell, which
-/// names no schema type.
-pub fn accessory_kind_word(kind: &str) -> &'static str {
-    match kind {
-        "end_plate" => "End plate",
-        "end_clamp" => "End bracket",
-        "partition" => "Partition plate",
-        "marker" => "Marker carrier",
-        "cover" => "Cover",
-        _ => "Accessory",
-    }
+/// The words an accessory row shows for the kind's parameter word (`end_clamp` → `End bracket`), for the shell, which
+/// names no schema type; a word this version does not know is "Accessory".
+pub fn accessory_kind_word(kind: &str) -> crate::Text {
+    let kind = serde_json::from_value(serde_json::Value::String(kind.to_owned()))
+        .unwrap_or(AccessoryKind::Unknown(serde_json::Value::Null));
+    accessory_word(&kind)
 }
 
 /// The accessory kinds' words, in the order of the `kind` parameter.

@@ -1375,5 +1375,3 @@ fn a_block_title_that_reads_as_a_kind_code_stays_as_typed() {
         ]
     );
 }
-
-

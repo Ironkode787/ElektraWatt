@@ -16,7 +16,7 @@ use super::{plain, plains};
 use ew_derive::short_tag;
 
 /// Parts in use: manufacturer → part (the parts summary's rows in component mode) → the devices it counts.
-pub(super) fn parts_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
+pub(super) fn parts_table(q: &Q, b: &mut Builder) {
     let Some(set) = ew_reports::project_rows(q, &ew_schema::ReportKind::PartsSummary, None) else {
         return;
     };
@@ -27,12 +27,12 @@ pub(super) fn parts_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
             continue;
         }
         let texts = ew_reports::csv::row_texts(q, &set, i);
-        let maker = cell_of(&set, &texts, "manufacturer").to_owned();
-        let maker = if maker.is_empty() {
-            super::words_in(&text!("nav-none"), lang)
-        } else {
-            maker
+        // A part without a manufacturer under "(none)", its key in English.
+        let label = match cell_of(&set, &texts, "manufacturer") {
+            "" => text!("nav-none"),
+            maker => plain(maker),
         };
+        let maker = label.to_string();
         let mnode = match makers.get(&maker) {
             Some(n) => *n,
             None => {
@@ -41,7 +41,7 @@ pub(super) fn parts_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
                     None,
                     NavRole::Manufacturer,
                     &format!("manufacturer:{maker}"),
-                    plain(maker.clone()),
+                    label,
                 );
                 makers.insert(maker, n);
                 n

@@ -276,9 +276,6 @@ nav-mode-structure = Per structuur
 nav-sort-folio = Sorteren op folio
 nav-sort-type = Sorteren op type
 nav-front-matter = Voorwerk
-nav-fluid-terminals = Ventieleilanden
-nav-fluid-devices = Fluïdumapparaten
-nav-fluid-media = Media
 nav-badge-consumers = { $p0 ->
         [one] 1 verbruiker
        *[other] { $p0 } verbruikers

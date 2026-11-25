@@ -430,7 +430,7 @@ impl TableUi {
         let max_height = t.size_row * rows as f32;
         let at = anchor.map_or(bound.center(), |r| r.left_bottom() + vec2(0.0, t.space_2));
         let list_id = ui.scope_id().with(("strip-chooser", nav.kind.word()));
-        let word = strings::accessory_text(&ch.kind);
+        let word = strings::render(&ew_viewmodel::ew_api::output::accessory_kind_word(&ch.kind));
         let question = strings::text(key!("chooser-accessory-part"));
         egui::Area::new(list_id.with("area"))
             .order(egui::Order::Foreground)
@@ -442,7 +442,7 @@ impl TableUi {
                     ui.set_width(inner);
                     let sizes = (inner, max_height, t.size_row);
                     let paint = |ui: &Ui, i: usize, r: Rect| {
-                        crate::components::chooser_row(ui, &t, r, IconId::package, &ch.items[i].0, word);
+                        crate::components::chooser_row(ui, &t, r, IconId::package, &ch.items[i].0, &word);
                     };
                     let name = |i: usize| ch.items[i].0.clone();
                     if let Some(i) = crate::components::chooser_list(

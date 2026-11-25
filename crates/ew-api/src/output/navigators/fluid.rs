@@ -14,11 +14,10 @@ use ew_mltext::{NaturalKey, natural_key};
 use ew_schema::Device;
 
 use super::{
-    Builder, NavRole, base_facets, cell_of, connection_drawable, device_drawables, folios, group, row_entity,
-    row_segment, sorted,
+    Builder, NavRole, base_facets, cell_text, cell_words, connection_drawable, device_drawables, folios,
+    group, plain, row_entity, row_segment, sorted,
 };
-use super::{plain, plains};
-use crate::Session;
+use crate::{Session, Text};
 use ew_derive::short_tag;
 
 /// The medium a zone's key names.
@@ -102,18 +101,18 @@ impl Session {
 /// valves, **Fluid devices** (every other device at a fluid line's end), each device with its lines (the tube list's
 /// rows that end at it: `<tag> → <other end>`), then **Media**, each medium with its zones' line count. A line row's
 /// records are its connections, so selecting it selects the line on the page; a medium row highlights its zones. In
-/// table mode the navigator lists its tubes: a tube's first row carries the tube list's cells in `lang`.
-pub(super) fn fluid_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
+/// table mode the navigator lists its tubes: a tube's first row carries the tube list's cells.
+pub(super) fn fluid_table(q: &Q, b: &mut Builder) {
     use ew_derive::TubeRows;
     use ew_schema::Medium;
     let folios = folios(q);
     let tubes = q.get::<TubeRows>(());
     // The tube list's cells by the row's record (the tube), each given to one row only.
-    let mut cells: BTreeMap<Uuid, Vec<String>> = BTreeMap::new();
+    let mut cells: BTreeMap<Uuid, Vec<Text>> = BTreeMap::new();
     if let Some(set) = ew_reports::project_rows(q, &ew_schema::ReportKind::TubeList, None) {
         for (i, r) in set.rows.iter().enumerate() {
             if let (ew_reports::RowKind::Data, Some(record)) = (&r.kind, row_entity(&r.id, 0)) {
-                cells.insert(record, texts_in(q, &set, i, lang));
+                cells.insert(record, texts_in(q, &set, i));
             }
         }
     }
@@ -158,7 +157,7 @@ pub(super) fn fluid_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
                 Vec::new(),
                 records,
                 drawables,
-                row_cells.map(plains),
+                row_cells,
                 facets,
             );
             b.nodes[n as usize].kinds = vec!["connection".to_owned()];
@@ -197,7 +196,7 @@ pub(super) fn fluid_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
             None,
             NavRole::Section,
             "fluid:terminals",
-            plain("Valve terminals".to_owned()),
+            text!("nav-fluid-terminals"),
         );
         for vt in terminals {
             listed.insert(vt);
@@ -234,7 +233,7 @@ pub(super) fn fluid_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
             None,
             NavRole::Section,
             "fluid:devices",
-            plain("Fluid devices".to_owned()),
+            text!("nav-fluid-devices"),
         );
         for d in others {
             let n = device_row(b, Some(g), d);
@@ -251,13 +250,7 @@ pub(super) fn fluid_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
         .collect();
     ranked_m.sort();
     if !ranked_m.is_empty() {
-        let g = group(
-            b,
-            None,
-            NavRole::Section,
-            "fluid:media",
-            plain("Media".to_owned()),
-        );
+        let g = group(b, None, NavRole::Section, "fluid:media", text!("nav-fluid-media"));
         // A medium's badge counts its consumers, as the medium table's Count does (the badge counted its
         // lines, "1 lines", beside a Count of 2).
         let rows = q.get::<ew_derive::MediumRows>(());
@@ -282,23 +275,16 @@ pub(super) fn fluid_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
     }
 }
 
-/// The printed cells of row `i` of `set` in language `lang` (`None`: neutral, as the CSV prints them).
-fn texts_in(q: &Q, set: &ew_reports::RowSet, i: usize, lang: Option<&str>) -> Vec<String> {
-    let opts = ew_reports::render::RenderOptions {
-        lang: lang.and_then(|l| l.parse().ok()),
-        ..Default::default()
-    };
-    set.rows[i]
-        .cells
-        .iter()
-        .map(|c| ew_reports::render::render(q, c, &opts))
-        .collect()
+/// The printed cells of row `i` of `set`, each in every language of the list texts (a port role, a line kind, a
+/// length source).
+fn texts_in(q: &Q, set: &ew_reports::RowSet, i: usize) -> Vec<Text> {
+    set.rows[i].cells.iter().map(|c| cell_words(q, c)).collect()
 }
 
 /// The tube table (doc 11 §7, FR-FLU-011): the tube list's rows (`tube_list`), one per tube, its effective tube spec
 /// and length with their sources; the tube part and the length are edited in their cells (`fields.set` `tube_part`,
 /// `tube_length` on the line).
-pub(super) fn tubes_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
+pub(super) fn tubes_table(q: &Q, b: &mut Builder) {
     let Some(set) = ew_reports::project_rows(q, &ew_schema::ReportKind::TubeList, None) else {
         return;
     };
@@ -310,8 +296,8 @@ pub(super) fn tubes_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
         let Some(record) = row_entity(&r.id, 0) else {
             continue;
         };
-        let texts = texts_in(q, &set, i, lang);
-        let label = cell_of(&set, &texts, "tag").to_owned();
+        let texts = texts_in(q, &set, i);
+        let label = cell_text(&set, &texts, "tag");
         let drawables = sorted(
             connection_drawable(q, &folios, Id::from_uuid(record))
                 .into_iter()
@@ -322,11 +308,11 @@ pub(super) fn tubes_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
             None,
             NavRole::Connection,
             &format!("tube:{}", row_segment(&r.id)),
-            plain(label),
+            label,
             Vec::new(),
             vec![record],
             drawables,
-            Some(plains(texts)),
+            Some(texts),
             facets,
         );
         b.nodes[n as usize].kinds = vec!["connection".to_owned()];
@@ -335,7 +321,7 @@ pub(super) fn tubes_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
 
 /// The medium table (doc 11 §7): the medium overview's rows (`medium_overview`), one per medium; a row highlights the
 /// medium's zones on the page (pattern and colour, doc 11 §7's highlight).
-pub(super) fn media_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
+pub(super) fn media_table(q: &Q, b: &mut Builder) {
     let Some(set) = ew_reports::project_rows(q, &ew_schema::ReportKind::MediumOverview, None) else {
         return;
     };
@@ -346,17 +332,17 @@ pub(super) fn media_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
         let Some(record) = row_entity(&r.id, 0) else {
             continue;
         };
-        let texts = texts_in(q, &set, i, lang);
-        let label = cell_of(&set, &texts, "medium").to_owned();
+        let texts = texts_in(q, &set, i);
+        let label = cell_text(&set, &texts, "medium");
         let n = b.push(
             None,
             NavRole::Medium,
             &format!("medium:{}", row_segment(&r.id)),
-            plain(label),
+            label,
             Vec::new(),
             vec![record],
             Vec::new(),
-            Some(plains(texts)),
+            Some(texts),
             vec![("kind".to_owned(), NavRole::Medium.word().to_owned())],
         );
         b.nodes[n as usize].kinds = vec!["medium".to_owned()];

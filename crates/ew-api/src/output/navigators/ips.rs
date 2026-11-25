@@ -13,7 +13,7 @@ use ew_mltext::{NaturalKey, natural_key};
 use ew_schema::Representation;
 
 use super::{Builder, NavRole, base_facets, drawable, folios, group, sorted};
-use super::{plain, plains};
+use super::{lowered, plain, yes_no};
 
 /// Interruption points: name → point rows, from the interruption-point pairing.
 pub(super) fn ips_table(q: &Q, b: &mut Builder) {
@@ -61,18 +61,18 @@ pub(super) fn ips_table(q: &Q, b: &mut Builder) {
                 .join(", ")
         };
         let direction = match info.direction {
-            IpDirection::Source => "source",
-            IpDirection::Target => "target",
-            IpDirection::Undirected => "undirected",
-            IpDirection::Unknown(_) => "unknown",
+            IpDirection::Source => lowered(key!("choice-source")),
+            IpDirection::Target => lowered(key!("choice-target")),
+            IpDirection::Undirected => lowered(key!("choice-undirected")),
+            IpDirection::Unknown(_) => plain("unknown"),
         };
         let pc = page_cell(info.rep);
         let cells = vec![
-            info.name.clone(),
-            pc.clone(),
-            direction.to_owned(),
-            partner,
-            if info.external { "yes" } else { "no" }.to_owned(),
+            plain(info.name.clone()),
+            plain(pc.clone()),
+            direction,
+            plain(partner),
+            yes_no(q, info.external),
         ];
         let drawables = sorted(
             info.rep
@@ -98,7 +98,7 @@ pub(super) fn ips_table(q: &Q, b: &mut Builder) {
             badges,
             vec![info.function.as_uuid()],
             drawables,
-            Some(plains(cells)),
+            Some(cells),
             facets,
         );
     }

@@ -13,7 +13,7 @@ use ew_ids::{Id, Uuid};
 use super::{
     Builder, NavRole, base_facets, cell_of, connection_drawables, device_drawables, folios, row_entity,
 };
-use super::{plain, plains};
+use super::{plain, plains, yes_no};
 
 // Cables: the per-cable rows of the cable overview as cable rows, the core rows as conductor rows under them;
 /// the headings are dropped.
@@ -84,13 +84,13 @@ pub(super) fn cables_table(q: &Q, b: &mut Builder) {
                     })
                     .unwrap_or_default();
                 let conductor = q.conductors().get(cid);
-                let shield = conductor.map_or("", |c| if c.shield { "yes" } else { "no" });
+                let shield = conductor.map_or_else(|| plain(""), |c| yes_no(q, c.shield));
                 let pair = conductor
                     .and_then(|c| c.pair)
                     .map_or_else(String::new, |p| p.to_string());
                 let label = cell_of(&set, &texts, "core").to_owned();
-                let mut texts = texts;
-                texts.extend([potential, shield.to_owned(), pair]);
+                let mut cells = plains(texts);
+                cells.extend([plain(potential), shield, plain(pair)]);
                 b.push(
                     Some(parent),
                     NavRole::Conductor,
@@ -99,7 +99,7 @@ pub(super) fn cables_table(q: &Q, b: &mut Builder) {
                     Vec::new(),
                     vec![cable, core],
                     drawables,
-                    Some(plains(texts)),
+                    Some(cells),
                     facets,
                 );
             }

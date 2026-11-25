@@ -81,7 +81,7 @@ impl ShellModel {
                 let strip = cursor.parent.and_then(strip_node)?.records.first().copied()?;
                 let kind = ew_api::output::ACCESSORY_KINDS
                     .iter()
-                    .find(|k| strings::accessory_text(k) == cursor.label)
+                    .find(|k| strings::render(&ew_api::output::accessory_kind_word(k)) == cursor.label)
                     .copied()
                     .unwrap_or("partition");
                 let pos = table

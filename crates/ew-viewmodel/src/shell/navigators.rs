@@ -846,10 +846,7 @@ impl ShellModel {
             let table = if k == NavKind::Messages {
                 Self::messages_table_of(project, &self.messages)
             } else {
-                let mut table = project
-                    .session
-                    .navigator_texts_in(k, Some(strings::rule_language()))
-                    .render(nav_words);
+                let mut table = project.session.navigator_texts(k).render(nav_words);
                 table_in_words(&mut table, project);
                 table
             };
@@ -2030,16 +2027,15 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
     });
     let message = table.columns.iter().position(|c| c.key == "message");
     let fix = table.columns.iter().position(|c| c.key == "fix");
-    // A yes-or-no column's cells ("Generated", a core's "Shield", a cable's "External").
+    // A yes-or-no column's cells ("Generated").
     let yes_no: Vec<usize> = (table.columns.iter().enumerate())
-        .filter(|(_, c)| ["generated", "shield", "external"].contains(&c.key.as_str()))
+        .filter(|(_, c)| c.key == "generated")
         .map(|(i, _)| i)
         .collect();
-    // The closed sets' cells, a device's or a node's kind, a terminal's or a channel's state and an
-    // interruption point's direction by their `choice-*` words.
+    // The closed sets' cells, a channel's state by its `choice-*` words.
     let closed: Vec<(usize, &str)> = (table.columns.iter().enumerate())
         .filter_map(|(i, c)| match (nav, c.key.as_str()) {
-            ("structure", "kind") | ("strips" | "plc", "state") | ("ips", "direction") => Some((i, "choice")),
+            ("plc", "state") => Some((i, "choice")),
             _ => None,
         })
         .collect();
@@ -2160,12 +2156,6 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
             node.label = strings::text(key!("nav-bus-no-net")).to_owned();
         } else if segment == "ports:undrawn" {
             node.label = strings::text(key!("nav-bus-undrawn")).to_owned();
-        } else if segment == "fluid:terminals" {
-            node.label = strings::text(key!("nav-fluid-terminals")).to_owned();
-        } else if segment == "fluid:devices" {
-            node.label = strings::text(key!("nav-fluid-devices")).to_owned();
-        } else if segment == "fluid:media" {
-            node.label = strings::text(key!("nav-fluid-media")).to_owned();
         } else if let Some(n) = segment.strip_prefix("segment:") {
             node.label = strings::format(key!("nav-bus-segment"), &[n]);
         } else if let Some(n) = section
@@ -2180,17 +2170,7 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
                     node.label = strings::format(key!("nav-rack"), &[n]);
                 }
             }
-            NavRole::Accessory => {
-                let english = node.label.clone();
-                let words = ew_api::output::ACCESSORY_KINDS
-                    .iter()
-                    .find(|k| ew_api::output::accessory_kind_word(k) == english)
-                    .map_or_else(|| strings::accessory_text(""), |k| strings::accessory_text(k));
-                for cell in node.cells.iter_mut().filter(|c| **c == english) {
-                    *cell = words.to_owned();
-                }
-                node.label = words.to_owned();
-            }
+
             NavRole::Severity => {
                 if let Some(text) = node
                     .key

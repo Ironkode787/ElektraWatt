@@ -96,7 +96,7 @@ pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<Text> {
                 .iter()
                 .find(|(entry, _)| last.eq_ignore_ascii_case(entry))
                 .map_or(*last, |(_, key)| crate::text_english(key).unwrap_or(key));
-            (capitalised(&last), Some(before.to_lowercase()))
+            (capitalised(last), Some(before.to_lowercase()))
         };
         let segment = |entry: &str| segment_text(entry).map(|t| say(&t));
         let (head, rest) = match (segment(&lead), follow.as_deref().and_then(segment)) {

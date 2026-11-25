@@ -12,8 +12,11 @@ use ew_ids::{Id, Uuid};
 use ew_mltext::{NaturalKey, natural_key};
 use ew_schema::{Device, DeviceState};
 
-use super::{Builder, NavRole, base_facets, cell_of, device_drawables, folios, row_entity, state_word};
+use super::{
+    Builder, NavRole, base_facets, cell_of, device_drawables, folios, report_cells, row_entity, state_word,
+};
 use super::{plain, plains};
+use crate::Text;
 use ew_derive::short_tag;
 
 /// The strips of the project in natural tag order.
@@ -107,11 +110,13 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
             while let Some(a) = accessories.get(next_accessory)
                 && a.after == after
             {
-                let cells = vec![
-                    tag.clone(),
-                    a.pos.clone(),
-                    String::new(),
-                    a.word.to_owned(),
+                let mut cells = vec![
+                    plain(tag.clone()),
+                    plain(a.pos.clone()),
+                    plain(""),
+                    a.word.clone(),
+                ];
+                cells.extend(plains(vec![
                     String::new(),
                     a.part.clone(),
                     String::new(),
@@ -120,7 +125,7 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
                     String::new(),
                     String::new(),
                     String::new(),
-                ];
+                ]));
                 let mut facets = vec![("kind".to_owned(), "accessory".to_owned()), strip_facet.clone()];
                 if !a.part.is_empty() {
                     facets.push(("part".to_owned(), a.part.to_lowercase()));
@@ -129,11 +134,11 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
                     Some(snode),
                     NavRole::Accessory,
                     &format!("accessory:{}", a.index),
-                    plain(a.word.to_owned()),
+                    a.word.clone(),
                     Vec::new(),
                     Vec::new(),
                     Vec::new(),
-                    Some(plains(cells)),
+                    Some(cells),
                     facets,
                 );
                 next_accessory += 1;
@@ -186,10 +191,10 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
                 facets.push(("part".to_owned(), part.to_lowercase()));
             }
             let label = cell_of(&set, &texts, "terminal").to_owned();
-            let mut cells = vec![tag.clone(), seqs[k].to_string()];
-            let bridge_part = bridge_parts.get(&id).cloned().unwrap_or_default();
+            let mut cells = vec![plain(tag.clone()), plain(seqs[k].to_string())];
+            let bridge_part = plain(bridge_parts.get(&id).cloned().unwrap_or_default());
             let n = texts.len();
-            for (c, text) in texts.into_iter().enumerate() {
+            for (c, text) in report_cells(q, &set, i, &["state"]).into_iter().enumerate() {
                 if c == bridge_part_at {
                     cells.push(bridge_part.clone());
                 }
@@ -212,7 +217,7 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
                 badges,
                 vec![t],
                 drawables,
-                Some(plains(cells)),
+                Some(cells),
                 facets,
             );
             push_accessories(b, Some(k));
@@ -229,7 +234,7 @@ struct AccessoryRow {
     /// `<after_seq>.<k>`.
     pos: String,
     /// The kind word (`End bracket`).
-    word: &'static str,
+    word: Text,
     /// The part number, empty when the copy is missing.
     part: String,
 }

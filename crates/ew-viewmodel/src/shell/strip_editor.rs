@@ -658,7 +658,7 @@ impl ShellModel {
         }
         // The accessory's word in lower case inside the sentence (doc 16a §8.1), the terminal in words
         // ("terminal 1 of -X1031"); the toast starts with a capital in either language.
-        let word = &strings::in_sentence(strings::accessory_text(&kind));
+        let word = &strings::in_sentence(&strings::render(&ew_api::output::accessory_kind_word(&kind)));
         let terminal = strings::format(
             key!("accessory-at-terminal"),
             &[&rows.words(s), &rows.node(cursor).label],

@@ -121,7 +121,7 @@ The `Session` facade shared by every front-end.
 | `src/output/navigators/connections.rs` |  | The Connections navigator (doc 16 §5.2): the wire list's physical-wire rows under their potential, then the bridges. |
 | `src/output/navigators/devices.rs` |  | The Devices navigator's tree (doc 16 §5.2): functions, locations, devices, their functions and representations. |
 | `src/output/navigators/fluid.rs` |  | The fluid navigators (doc 11 §7): Fluid (valve terminals, fluid devices, media), the tube table and the medium table, and the session's media and line ends they read. |
-| `src/output/navigators/function_kind.rs` |  | A function's FnDef name and its kind in words ("NO contact", "changeover"), which the navigators, the properties, the catalogue and the part card print. |
+| `src/output/navigators/function_kind.rs` |  | A function's FnDef name and its kind in words ("NO contact", "changeover"), which the navigators, the properties, the catalogue and the part card print: a [`Text`] in every language of the session's texts. |
 | `src/output/navigators/highlight.rs` |  | Highlighting: what a highlight shows and the connections it draws. |
 | `src/output/navigators/ips.rs` |  | The Interruption points navigator (doc 16 §5.2): each name with its points, from the interruption-point pairing. |
 | `src/output/navigators/libraries.rs` |  | The tables of the Macros and Libraries navigators and the macro detail. |

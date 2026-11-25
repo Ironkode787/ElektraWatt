@@ -748,14 +748,6 @@ pub fn kinds_heading(kind: &str) -> String {
     sentence_start(&name).into_owned()
 }
 
-/// An accessory kind of the strip editor in the UI language: the text of `accessory-<kind>` (`end_clamp`
-/// is "End bracket", "Eindsteun"), `accessory-other` for a kind this version does not know. The words of
-/// `ew_api::output::accessory_kind_word` in en-GB, which the table round trip keeps.
-pub fn accessory_text(kind: &str) -> &'static str {
-    lookup(&format!("accessory-{}", kind.replace('_', "-")))
-        .unwrap_or_else(|| text(crate::key!("accessory-other")))
-}
-
 /// The key of the title of the command `name`: `command-<name>` with every `.` as `-` (a Fluent identifier has no dot).
 fn command_key(name: &str) -> String {
     format!("command-{}", name.replace('.', "-"))
@@ -1362,7 +1354,10 @@ mod tests {
         );
         // One English word for the accessory (16a §8 item 4).
         assert_eq!(
-            [choice_text("end_clamp"), accessory_text("end_clamp").to_owned()],
+            [
+                choice_text("end_clamp"),
+                render(&ew_api::output::accessory_kind_word("end_clamp"))
+            ],
             ["End bracket", "End bracket"]
         );
     }
