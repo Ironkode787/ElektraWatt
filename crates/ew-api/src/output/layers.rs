@@ -298,6 +298,7 @@ impl ViewParts {
 /// another page, a surface view's layer without one).
 fn view_of(q: &Q, page: PageRef, parts: ViewParts) -> Option<PageView> {
     let mut v = base_view(page);
+    v.language = ew_derive::print_language(q);
     let drawn = match page {
         PageRef::Drawn(p) => Some(p),
         _ => None,

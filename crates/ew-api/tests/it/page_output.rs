@@ -1316,3 +1316,45 @@ fn the_page_findings_summary_names_their_kinds() {
         Some("3 page findings: 2 empty fields in a frame or title block, 1 unresolved wire end")
     );
 }
+
+/// A symbol's own multi-language text prints in the project's print language, as its title block and its lists do;
+/// a project that names no language prints the neutral text.
+#[test]
+fn a_symbols_own_text_prints_in_the_projects_language() {
+    fn glyphs(items: &[ew_dl::Item], out: &mut Vec<String>) {
+        for i in items {
+            match &i.kind {
+                ItemKind::Glyphs(run) => out.push(run.text.clone()),
+                ItemKind::Group(g) => glyphs(&g.items, out),
+                _ => {}
+            }
+        }
+    }
+    let printed = |language: Option<&str>| -> Vec<String> {
+        let (mut project, records, mut lib) = crate::common::sample_records();
+        project.languages =
+            language.map(|l| serde_json::from_value(json!({"source": l})).expect("languages"));
+        for doc in &mut lib {
+            if let ew_schema::LibDocument::Symbol(s) = doc {
+                let mut v = serde_json::to_value(&*s).expect("a symbol");
+                for g in v["graphics"].as_array_mut().into_iter().flatten() {
+                    if g["text"]["text"] == "3~" {
+                        g["text"]["text"] = json!({"en": "3-phase", "nl": "3-fasen"});
+                    }
+                }
+                *s = serde_json::from_value(v).expect("a symbol");
+            }
+        }
+        let s = crate::common::session_of(project, records, lib);
+        let q = s.query();
+        let mut out = Vec::new();
+        for v in page_views(&q) {
+            glyphs(&ew_api::output::page_layer(&q, v.entry.page, Layer::Symbols).list.items, &mut out);
+        }
+        out.retain(|t| t.starts_with("3-"));
+        out.dedup();
+        out
+    };
+    assert_eq!(printed(Some("nl")), ["3-fasen"]);
+    assert_eq!(printed(Some("en")), ["3-phase"]);
+}
