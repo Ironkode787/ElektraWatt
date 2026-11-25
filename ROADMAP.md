@@ -41,7 +41,7 @@ What works today, in short: the desktop window opens, edits and checks a project
 history, the 2D panel layout and printing; the `ew` command-line tool imports QElectroTech projects, checks, exports
 PDF/A-2b, SVG and tables (with the Excel round trip), prints and upgrades a project of an older format. 0.3.0 is an
 early alpha that adds the PLC workspace, bus networks, fluid power, drawing and EPLAN imports, and Arrange and route. The
-[README](README.md#status) lists what is built.
+[README](README.md#where-it-stands) lists what is built.
 
 ## What is not on the roadmap
 
