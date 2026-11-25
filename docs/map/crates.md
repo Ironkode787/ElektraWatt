@@ -9,7 +9,7 @@ A crate depends (normal and build dependencies) only on crates before it: in an 
 | Tier | Crates |
 |---|---|
 | build | `ew-hack` |
-| values | `ew-units`, `ew-ids`, `ew-mltext`, `ew-rds`, `ew-plcaddr`, `ew-memo`, `ew-zip`, `ew-jobs`, `ew-l10n`, `ew-dl` |
+| values | `ew-units`, `ew-ids`, `ew-mltext`, `ew-rds`, `ew-plcaddr`, `ew-memo`, `ew-zip`, `ew-jobs`, `ew-l10n`, `ew-dl`, `ew-signature` |
 | records | `ew-schema`, `ew-format`, `ew-interop-api`, `ew-caex` |
 | importers | `ew-import-catalog`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables` |
 | project | `ew-model`, `ew-derive`, `ew-plc` |
@@ -974,6 +974,16 @@ The persisted record type of every entity kind (plain serde structs), the kind r
 | `src/value.rs` | large | The value types deferred from `ew-units` (ADR-0005, doc 03 §3) and the shared value encodings of doc 05 §3.2: `Quantity`, `Unit`, `Csa`, `ColourCode`, `ColourSpec`, the `Rect` encoding ([`Bounds`]), authored dates, hashes, endpoints, structure slots, part and library references, tech values and import provenance. |
 | `src/waiver.rs` |  | Waivers (doc 03 §19, doc 15 §2.5; FR-CHK-009): the `waiver` record (rank 61, `waivers.jsonl`). |
 
+## ew-signature
+
+`crates/ew-signature` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-viewmodel`, `xtask` · in tests by none
+
+The parameter signature grammar of the window's actions (`ew-viewmodel`'s action table, doc 16 §4.3): one parser, which the window reads its actions' signatures with and the persona harness (`xtask blind`) reads the action list with, so that the two never know different types.
+
+| File | Size | What it holds |
+|---|---|---|
+| `src/lib.rs` |  | The parameter signature grammar of the window's actions (`ew-viewmodel`'s action table, doc 16 §4.3): one parser, which the window reads its actions' signatures with and the persona harness (`xtask blind`) reads the action list with, so that the two never know different types. |
+
 ## ew-sqlview
 
 `crates/ew-sqlview` · GPL-3.0-or-later · tier operations · depends on `ew-checks`, `ew-derive`, `ew-ids`, `ew-mltext`, `ew-rds`, `ew-schema` · used by `ew-api` · in tests by none
@@ -1177,7 +1187,7 @@ Integer units and geometry of ElektraWatt: `Nm`, `Pt2`, `Rect`, rational `Grid`,
 
 ## ew-viewmodel
 
-`crates/ew-viewmodel` · GPL-3.0-or-later · tier shell · depends on `ew-api`, `ew-dl`, `ew-l10n`, `ew-units` · used by `elektrawatt`, `ew-ui` · in tests by none
+`crates/ew-viewmodel` · GPL-3.0-or-later · tier shell · depends on `ew-api`, `ew-dl`, `ew-l10n`, `ew-signature`, `ew-units` · used by `elektrawatt`, `ew-ui` · in tests by none
 
 Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command mapping, property-grid rows with provenance and message lists, each with a revision stamp; and the model of the application shell.
 
@@ -1367,7 +1377,7 @@ The deterministic ZIP writer and its strict reader (doc 05 §12, §14.2): the co
 
 ## xtask
 
-`xtask` · MIT OR Apache-2.0 · tier tools · depends on `ew-ids` · used by none · in tests by none
+`xtask` · MIT OR Apache-2.0 · tier tools · depends on `ew-ids`, `ew-signature` · used by none · in tests by none
 
 The development commands of ElektraWatt: one command that checks a change, one that regenerates the generated files, and the repository rules they share.
 

@@ -19,6 +19,8 @@ anyhow.workspace = true
 cargo_metadata.workspace = true
 # The item and copy IDs of the generated starter symbols (`ew_ids::v5`).
 ew-ids = { path = "../crates/ew-ids" }
+# The persona harness reads the action list by the window's signature grammar (a crate of no product code).
+ew-signature = { path = "../crates/ew-signature" }
 # `gen-icons`: SVG path parsing for the icon table; already in the graph through ew-dl and
 # ew-render2d with the same features, no new package.
 kurbo = { version = "0.13.1", default-features = false, features = ["std"] }

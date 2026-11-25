@@ -79,18 +79,18 @@ fn the_action_list_is_written_for_the_harness() {
     }
 }
 
+/// Every line reads back as the persona harness reads it (`ew_signature::parse_action_line`, the window's own grammar):
+/// its ID, its kind and its signature's parameters, the named sets spelt out. A type the harness could not read fails
+/// here, not in a persona run's first step (`page` did).
 #[test]
-fn the_action_lines_parse_back_and_cover_the_registry() {
+fn the_action_lines_read_back_as_the_harness_reads_them_and_cover_the_registry() {
     let text = actions_text();
     assert_eq!(text.lines().count(), ACTIONS.len());
     for (line, a) in text.lines().zip(ACTIONS) {
-        assert!(line.starts_with(&format!("{} ", a.id)), "{line}");
-        let at = line
-            .rfind(" params \"")
-            .expect("every line ends with its signature");
-        let sig = line[at + " params \"".len()..].strip_suffix('"').unwrap();
-        assert_eq!(sig, a.signature());
-        parse_signature(sig).unwrap_or_else(|e| panic!("{}: {e}", a.id));
+        let read = ew_signature::parse_action_line(line).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(read.id, a.id, "{line}");
+        assert_eq!(read.view, matches!(a.kind, ActionKind::View), "{line}");
+        assert_eq!(Ok(read.params), parse_signature(a.params), "{line}");
     }
     // The harness reads these two actions' lines for its filter; their flags are what the specification says.
     let page = text.lines().find(|l| l.starts_with("page.describe ")).unwrap();

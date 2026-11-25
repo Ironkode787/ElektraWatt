@@ -6098,6 +6098,7 @@ dependencies = [
  "anyhow",
  "cargo_metadata",
  "ew-ids",
+ "ew-signature",
  "ew-testdir",
  "kurbo",
  "serde",

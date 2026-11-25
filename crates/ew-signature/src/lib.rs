@@ -13,7 +13,8 @@
 //! ```
 //!
 //! A named set (`enum(@PAGE_TYPES)`) is spelt out as its words by the reader's own sets ([`parse`]); a reader without
-//! sets (the harness, whose list has them spelt out already) refuses one.
+//! sets (the harness, whose list has them spelt out already) refuses one. A line of the harness's action list is read
+//! here too ([`parse_action_line`]), so that the window's test that writes the list reads it back as the harness does.
 
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
@@ -99,6 +100,49 @@ pub fn parse<'a>(
     Ok(out)
 }
 
+/// One action of the action list `actions.txt`, which `ew-viewmodel`'s `blind_reference` test writes from the action
+/// table and the persona harness reads ([`parse_action_line`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ActionLine {
+    /// The action ID.
+    pub id: String,
+    /// Whether the action is of kind `View` (else `Command`).
+    pub view: bool,
+    /// The parameters of its signature.
+    pub params: Vec<ParamSpec>,
+}
+
+/// Reads one line of `actions.txt`, `<id> <View|Command> "<label>" … params "<signature>"`: the ID, the kind and the
+/// signature, which has its named sets spelt out (a set name is refused). The words between are the writer's and the
+/// reader's own.
+///
+/// # Errors
+///
+/// What is wrong with the line: no ID or kind, a kind of another word, no signature or one not closed, or the
+/// signature's fault ([`parse`]) after the action's ID.
+pub fn parse_action_line(line: &str) -> Result<ActionLine, String> {
+    let mut words = line.split(' ');
+    let (Some(id), Some(kind)) = (words.next().filter(|w| !w.is_empty()), words.next()) else {
+        return Err("no ID or kind".to_owned());
+    };
+    let view = match kind {
+        "View" => true,
+        "Command" => false,
+        other => return Err(format!("kind `{other}`")),
+    };
+    let marker = " params \"";
+    let start = line.rfind(marker).ok_or("no signature")?;
+    let sig = line[start + marker.len()..]
+        .strip_suffix('"')
+        .ok_or("the signature is not closed")?;
+    let params = parse(sig, |_| None).map_err(|e| format!("{id}: {e}"))?;
+    Ok(ActionLine {
+        id: id.to_owned(),
+        view,
+        params,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -119,6 +163,23 @@ mod tests {
         assert!(bare("a:enum()").is_err());
         assert!(bare("a:list(enum(x|y))").is_ok());
         assert!(bare("a:enum(@SET)").is_err(), "a set the reader does not know");
+    }
+
+    #[test]
+    fn an_action_line_gives_its_id_its_kind_and_its_parameters() {
+        let line = r#"edit.move_to_page Command "Move to page…" menu "Page" shortcut none context canvas params "page:page""#;
+        let read = parse_action_line(line).unwrap();
+        assert_eq!((read.id.as_str(), read.view), ("edit.move_to_page", false));
+        assert_eq!(read.params, bare("page:page").unwrap());
+        assert_eq!(
+            parse_action_line("a Other params \"\""),
+            Err("kind `Other`".to_owned())
+        );
+        assert_eq!(
+            parse_action_line("a View params \"x:nope\""),
+            Err("a: `nope` is not a type of the grammar".to_owned())
+        );
+        assert_eq!(parse_action_line("a View"), Err("no signature".to_owned()));
     }
 
     #[test]

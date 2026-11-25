@@ -4,12 +4,14 @@
 //! The harness filter and the typed `key=value` arguments.
 //!
 //! The reference file `actions.txt` (of the reference, written by `ew-viewmodel`'s `blind_reference` test) is the only source of the
-//! actions and their parameter signatures: the filter never imports the product. Every step the agent sends is
-//! checked here before it reaches the product; a refused step is never sent.
+//! actions and their parameter signatures: the filter never imports the product, and reads the file by the window's
+//! own signature grammar (`ew-signature`, a crate of no product code). Every step the agent sends is checked here
+//! before it reaches the product; a refused step is never sent.
 
 use std::collections::BTreeSet;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Result, anyhow, bail};
+use ew_signature::{ActionLine, parse_action_line};
 use serde_json::{Map, Number, Value};
 
 use super::run::{Kind, canonical};
@@ -17,126 +19,30 @@ use super::run::{Kind, canonical};
 /// The most a step's parameters may hold, as compact JSON.
 pub const MAX_PARAMS_BYTES: usize = 64 * 1024;
 
-/// One parameter of a signature.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Param {
-    /// The name.
-    pub name: String,
-    /// Whether it may be left out.
-    pub optional: bool,
-    /// The type as the signature spells it.
-    pub ty: String,
-}
-
-/// One action of `actions.txt`.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct ActionRef {
-    /// The action ID.
-    pub id: String,
-    /// `View` or `Command`.
-    pub view: bool,
-    /// The parameters.
-    pub params: Vec<Param>,
-}
-
 /// The action registry as the harness knows it.
 #[derive(Clone, Default, Debug)]
 pub struct Reference {
     /// The actions, in registry order.
-    pub actions: Vec<ActionRef>,
+    pub actions: Vec<ActionLine>,
 }
 
 impl Reference {
     /// The action `id`.
-    pub fn find(&self, id: &str) -> Option<&ActionRef> {
+    pub fn find(&self, id: &str) -> Option<&ActionLine> {
         self.actions.iter().find(|a| a.id == id)
     }
 }
 
-/// Whether `w` is a word of a signature (`[a-z][a-z0-9_]*`).
-fn is_word(w: &str) -> bool {
-    let mut chars = w.chars();
-    chars.next().is_some_and(|c| c.is_ascii_lowercase())
-        && chars.all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
-}
-
-fn valid_type(ty: &str) -> bool {
-    if ["mm", "int", "uint", "bool", "text", "path", "json", "ref"].contains(&ty) {
-        return true;
-    }
-    if let Some(inner) = ty.strip_prefix("enum(").and_then(|t| t.strip_suffix(')')) {
-        return !inner.is_empty() && inner.split('|').all(is_word);
-    }
-    if let Some(inner) = ty.strip_prefix("list(").and_then(|t| t.strip_suffix(')')) {
-        return valid_type(inner);
-    }
-    false
-}
-
-/// Parses a signature by its grammar.
-pub fn parse_signature(sig: &str) -> Result<Vec<Param>> {
-    if sig.is_empty() {
-        return Ok(Vec::new());
-    }
-    let mut out: Vec<Param> = Vec::new();
-    for part in sig.split(", ") {
-        let (name, ty) = part
-            .split_once(':')
-            .with_context(|| format!("`{part}` has no `:type`"))?;
-        let (name, optional) = match name.strip_suffix('?') {
-            Some(n) => (n, true),
-            None => (name, false),
-        };
-        if !is_word(name) {
-            bail!("`{name}` is not a parameter name");
-        }
-        if !valid_type(ty) {
-            bail!("`{ty}` is not a type of the grammar");
-        }
-        if out.iter().any(|p| p.name == name) {
-            bail!("`{name}` is repeated");
-        }
-        out.push(Param {
-            name: name.to_owned(),
-            optional,
-            ty: ty.to_owned(),
-        });
-    }
-    Ok(out)
-}
-
-/// Parses `actions.txt`: `<id> <View|Command> "<label>" menu … params "<signature>"` per line.
+/// Parses `actions.txt`, one action a line, each read by the window's own grammar ([`ew_signature::parse_action_line`]),
+/// which `ew-viewmodel`'s test that writes the file reads every line back with.
 pub fn parse_reference(text: &str) -> Result<Reference> {
     let mut actions = Vec::new();
     for (i, line) in text.lines().enumerate() {
         if line.trim().is_empty() {
             continue;
         }
-        let at = i + 1;
-        let mut words = line.split(' ');
-        let id = words.next().filter(|w| !w.is_empty());
-        let kind = words.next();
-        let (Some(id), Some(kind)) = (id, kind) else {
-            bail!("actions.txt line {at}: no ID or kind");
-        };
-        let view = match kind {
-            "View" => true,
-            "Command" => false,
-            other => bail!("actions.txt line {at}: kind `{other}`"),
-        };
-        let marker = " params \"";
-        let start = line
-            .rfind(marker)
-            .with_context(|| format!("actions.txt line {at}: no signature"))?;
-        let sig = line[start + marker.len()..]
-            .strip_suffix('"')
-            .with_context(|| format!("actions.txt line {at}: the signature is not closed"))?;
-        let params = parse_signature(sig).with_context(|| format!("actions.txt line {at} ({id})"))?;
-        actions.push(ActionRef {
-            id: id.to_owned(),
-            view,
-            params,
-        });
+        let action = parse_action_line(line).map_err(|e| anyhow!("actions.txt line {}: {e}", i + 1))?;
+        actions.push(action);
     }
     if actions.is_empty() {
         bail!("actions.txt holds no action");
@@ -273,7 +179,7 @@ pub fn check_step(
 }
 
 /// Types the `key=value` arguments of `do <run> <action> …` by the action's signature: `mm`, `int` and `uint`
-/// as numbers, `bool` as `true` or `false`, `text`, `path`, `ref` and `enum(…)` as strings (`folio=101` is the string
+/// as numbers, `bool` as `true` or `false`, `text`, `page`, `path`, `ref` and `enum(…)` as strings (`folio=101` is the string
 /// `"101"`), `json` and `list(…)` as JSON; `null` leaves an optional parameter out.
 ///
 /// # Errors
@@ -676,7 +582,7 @@ mod tests {
         // A drag, should the registry register one, is refused by its family name (the committed registry has none).
         let mut with_drag = test_reference();
         for id in ["canvas.drag", "canvas.drag_to"] {
-            with_drag.actions.push(ActionRef {
+            with_drag.actions.push(ActionLine {
                 id: id.to_owned(),
                 view: true,
                 params: Vec::new(),
