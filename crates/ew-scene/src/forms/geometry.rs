@@ -61,12 +61,12 @@ impl FrameGeometry {
         let grid = form.grid.as_ref()?;
         let header = grid.header_band;
         let column_edges: Vec<Nm> = (0..=i64::from(grid.columns.count))
-            .map(|k| edge(header, grid.columns.width, k))
+            .map(|k| grid_edge(header, grid.columns.width, k))
             .collect();
         let row_edges: Vec<Nm> = (0..=i64::from(grid.rows.count))
-            .map(|k| edge(header, grid.rows.height, k))
+            .map(|k| grid_edge(header, grid.rows.height, k))
             .collect();
-        let header_nm = edge(header, grid.columns.width, 0);
+        let header_nm = grid_edge(header, grid.columns.width, 0);
         let right = *column_edges.last().unwrap_or(&Nm::ZERO);
         let bottom = *row_edges.last().unwrap_or(&Nm::ZERO);
         let (tb_w, tb_h) = title_block.map_or((Nm::ZERO, Nm::ZERO), |tb| (tb.sheet.width, tb.sheet.height));
@@ -120,8 +120,9 @@ pub fn title_block_origin(form: &FormDef, title_block: &FormDef) -> Pt2 {
     }
 }
 
-/// `round(header + k × step)` nm, exact, ties toward zero; header 0 if absent.
-fn edge(header: Option<Grid>, step: Grid, k: i64) -> Nm {
+/// Edge `k` of a frame's columns or rows on the page: `round(header + k × step)` nm, exact, ties toward zero; header 0
+/// if absent. Where the page draws the edge, and where Cell-at and Go to read it.
+pub fn grid_edge(header: Option<Grid>, step: Grid, k: i64) -> Nm {
     let (hn, hd) = header.map_or((0i128, 1i128), |h| (i128::from(h.num()), i128::from(h.den())));
     let (sn, sd) = (i128::from(step.num()), i128::from(step.den()));
     let num = hn * sd + i128::from(k) * sn * hd;
@@ -139,10 +140,10 @@ mod tests {
         let header = Some(Grid::new(15_875_000, 3).unwrap());
         let col = Grid::new(15_875_000, 1).unwrap();
         // 20 px + k × 60 px; 20 px = 5_291_666.67 nm rounds to 5_291_667.
-        assert_eq!(edge(header, col, 0), Nm(5_291_667));
-        assert_eq!(edge(header, col, 1), Nm(21_166_667));
-        assert_eq!(edge(header, col, 17), Nm(275_166_667));
-        assert_eq!(edge(None, col, 2), Nm(31_750_000));
+        assert_eq!(grid_edge(header, col, 0), Nm(5_291_667));
+        assert_eq!(grid_edge(header, col, 1), Nm(21_166_667));
+        assert_eq!(grid_edge(header, col, 17), Nm(275_166_667));
+        assert_eq!(grid_edge(None, col, 2), Nm(31_750_000));
     }
 
     mod props {
@@ -164,7 +165,7 @@ mod tests {
         proptest! {
             #![proptest_config(ProptestConfig { cases: 256, ..ProptestConfig::default() })]
 
-            /// `edge(header, step, k) = round(header + k × step)` over exact rationals, ties toward zero.
+            /// `grid_edge(header, step, k) = round(header + k × step)` over exact rationals, ties toward zero.
             #[test]
             fn edge_is_the_exact_rational(
                 header in proptest::option::of(grid()),
@@ -175,13 +176,13 @@ mod tests {
                 let (sn, sd) = (i128::from(step.num()), i128::from(step.den()));
                 // (hn / hd) + k × (sn / sd) over the common denominator hd × sd.
                 let want = round_ties_toward_zero(hn * sd + i128::from(k) * sn * hd, hd * sd);
-                prop_assert_eq!(i128::from(edge(header, step, k).0), want);
+                prop_assert_eq!(i128::from(grid_edge(header, step, k).0), want);
             }
 
             /// Edges of a grid are non-decreasing in `k`.
             #[test]
             fn edges_are_monotonic(header in proptest::option::of(grid()), step in grid(), k in 0i64..=10_000) {
-                prop_assert!(edge(header, step, k) <= edge(header, step, k + 1));
+                prop_assert!(grid_edge(header, step, k) <= grid_edge(header, step, k + 1));
             }
         }
     }

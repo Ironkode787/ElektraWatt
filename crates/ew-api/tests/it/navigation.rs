@@ -678,3 +678,29 @@ fn page_cps_on_folio_102() {
     assert!(s.page_cps("no such folio").is_empty());
     assert!(s.page_cps("2").is_empty(), "a generated page draws no CP");
 }
+
+/// Cell-at and a cell's rectangle read the sheet by the scene's page-to-sheet map: every cell's rectangle is where the
+/// page draws its frame's edges (`FrameGeometry`, `SheetMap::apply`), and the sheet point of a drawn edge is in the
+/// cell the edge begins.
+#[test]
+fn a_cells_rectangle_is_where_the_page_draws_its_edges() {
+    let s = common::sample();
+    let cells = s.page_cells("102").expect("folio 102 has cells");
+    let text = ew_api::output::SHIPPED_FORMS
+        .iter()
+        .find(|t| t.contains("\"ew.frame.qet-a4-landscape-grid\""))
+        .expect("the starter frame with the grid");
+    let ew_schema::LibDocument::Form(form) = ew_schema::LibDocument::from_json(text).expect("a form") else {
+        panic!("not a form");
+    };
+    let geometry = ew_scene::forms::FrameGeometry::of(&form.item, None).expect("a grid");
+    let map = ew_scene::forms::SheetMap::of(&form.item);
+    let sheet = |x: ew_units::Nm, y: ew_units::Nm| map.apply(ew_units::Pt2::new(x, y));
+    for (label, [x0, y0, x1, y1]) in cells.cells() {
+        let (r, c) = (label.row_index as usize, label.column_index as usize);
+        let top_left = sheet(geometry.column_edges[c], geometry.row_edges[r]);
+        let bottom_right = sheet(geometry.column_edges[c + 1], geometry.row_edges[r + 1]);
+        assert_eq!([x0, y0, x1, y1], [top_left.x.0, top_left.y.0, bottom_right.x.0, bottom_right.y.0], "{label}");
+        assert_eq!(cells.cell_at((x0, y0)).map(|c| c.to_string()), Some(label.to_string()), "{label}");
+    }
+}

@@ -12,9 +12,9 @@
 //! `Session` call (NFR-PERF-20).
 //!
 //! **Sheet and page.** The cells are defined on the page; a viewer works on the sheet. A sheet point maps to the
-//! page by the inverse of the frame's page-to-sheet map, `page = (sheet − offset) × 10⁹ / scale_ppb`, per axis in
-//! `i128`, rounded half away from zero; a page point maps to the sheet by `offset + page × scale_ppb / 10⁹`,
-//! rounded to the nearest nanometre (half away from zero).
+//! page and a page point to the sheet by the scene's page-to-sheet map (`ew_scene::forms::SheetMap::unapply` and
+//! `apply`, ties toward zero), and a cell's edges stand where the page draws them, so Cell-at and Go to agree with
+//! the printed frame.
 //!
 //! **`{page_index}`** is the xref engine's: the 1-based position in the page order counting every page record
 //! but not report continuation pages (doc 06 §2.8, FR-XRF-003), so a printed cell and Go to agree with the
@@ -140,10 +140,7 @@ impl PageCells {
     /// The cell under the sheet point `sheet` (nm), by `ew_derive`'s exact rule on the page point; `None` outside
     /// the drawing area.
     pub fn cell_at(&self, sheet: (i64, i64)) -> Option<CellLabel> {
-        let page = Pt2::new(
-            Nm(self.map.unapply_ties_away(sheet.0, 0)),
-            Nm(self.map.unapply_ties_away(sheet.1, 1)),
-        );
+        let page = self.map.unapply(Pt2::new(Nm(sheet.0), Nm(sheet.1)));
         let cell = cell_in_grid(&self.frame, self.grid, page)?;
         Some(CellLabel {
             row: cell.row_label,
@@ -173,24 +170,15 @@ impl PageCells {
         }
     }
 
-    /// The header band as the exact rational `a/b` nm.
-    fn origin(&self) -> (i128, i128) {
-        self.frame
-            .header_band
-            .map_or((0, 1), |h| (i128::from(h.num()), i128::from(h.den())))
-    }
-
-    /// The cell's rectangle on the sheet, `[x0, y0, x1, y1]` nm, each edge the exact page edge mapped to the sheet
-    /// and rounded to the nearest nm; `None` when the page has no cell with these labels (matched ASCII
-    /// case-insensitively).
+    /// The cell's rectangle on the sheet, `[x0, y0, x1, y1]` nm, where the page draws its edges
+    /// (`ew_scene::forms::grid_edge` mapped by the frame's `SheetMap::apply`); `None` when the page has no cell with
+    /// these labels (matched ASCII case-insensitively).
     pub fn cell_rect(&self, cell: &CellLabel) -> Option<[i64; 4]> {
         let (row, column) = self.position(cell)?;
-        let (a, b) = self.origin();
         let edge = |k: usize, step: Grid, axis: usize| {
-            let (c, d) = (i128::from(step.num()), i128::from(step.den()));
-            let k = k as i128;
-            // a/b + k·c/d = (a·d + k·c·b) / (b·d)
-            self.map.apply_exact_ties_away(a * d + k * c * b, b * d, axis)
+            let at = ew_scene::forms::grid_edge(self.frame.header_band, step, k as i64);
+            let p = self.map.apply(Pt2::new(at, at));
+            if axis == 0 { p.x.0 } else { p.y.0 }
         };
         let (w, h) = (self.frame.columns.width, self.frame.rows.height);
         Some([
@@ -226,12 +214,9 @@ impl PageCells {
         render_item(&self.ip, &values, &ItemOptions::default())
     }
 
-    /// The column width and the row height on the sheet, rounded to nm.
+    /// The column width and the row height on the sheet, rounded to nm as the page rounds a length.
     pub fn pitch_nm(&self) -> (i64, i64) {
-        let len = |g: Grid| {
-            self.map
-                .scale_exact_ties_away(i128::from(g.num()), i128::from(g.den()))
-        };
+        let len = |g: Grid| self.map.scale_len(ew_scene::forms::grid_edge(None, g, 1)).0;
         (len(self.frame.columns.width), len(self.frame.rows.height))
     }
 }
@@ -948,10 +933,8 @@ impl Session {
             let Some(p) = cp_point(&q, function, idx, page) else {
                 continue;
             };
-            let at_nm = (
-                map.apply_exact_ties_away(i128::from(p.x.0), 1, 0),
-                map.apply_exact_ties_away(i128::from(p.y.0), 1, 1),
-            );
+            let on_sheet = map.apply(p);
+            let at_nm = (on_sheet.x.0, on_sheet.y.0);
             let grid_index = grid_index(p.x.0, num, den).zip(grid_index(p.y.0, num, den));
             let id: Id<()> = ew_ids::v5::cp_id(function, u32::from(idx));
             let (column, row) = cp_cell(&q, function, idx, page)

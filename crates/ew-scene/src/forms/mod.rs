@@ -68,7 +68,8 @@ pub use bindings::{
     ml_text,
 };
 pub use geometry::{
-    DEFAULT_FRAME_LINE, EXTRA_LINE_WIDTH, EXTRA_MARGIN, EXTRA_SHOW_GRID, FrameGeometry, title_block_origin,
+    DEFAULT_FRAME_LINE, EXTRA_LINE_WIDTH, EXTRA_MARGIN, EXTRA_SHOW_GRID, FrameGeometry, grid_edge,
+    title_block_origin,
 };
 pub use sheet::{PPB_ONE, SheetMap};
 pub use text::{CELL_PADDING, ELLIPSIS, OverflowKind};
