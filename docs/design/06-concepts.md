@@ -139,20 +139,42 @@ The Wire tool draws the column "Wire tool creates": a `Wire` on MultiLine pages,
 
 A page has three distinct geometric systems. Mixing them up is the most common source of off-by-one cells.
 
-| System | Defined by | Used for | Reference project |
+| System | Defined by | Used for | On the starter A4 frame |
 |---|---|---|---|
-| **Frame grid** (columns, rows) | the frame `FormDef`: column count, start index, width; row count, labels, height; header bands (FR-PAG-014) | anchor cells and cross-reference texts | 17 columns 0–16 of 60 px, 8 rows A–H of 80 px, 20 px header bands (FR-PAG-015) |
+| **Frame grid** (the columns and rows its rulers print) | the frame `FormDef`'s grid ([09](09-reports-forms-output.md) §2.5): per axis the count, how it is counted, its first label, whether letters skip I and O, its step; the header bands; whether the rulers are drawn (FR-PAG-014) | the cell of a point: cross-reference texts, the cursor's cell, Go to, the lists' cell columns, the order of numbering | 17 columns numbered from 0, 8 rows lettered from A, steps of 60 and 80 QET px, 20 px header bands (FR-PAG-015) |
 | **Snap grids** | `Page.grid` (connection grid) plus a fine grid | CPs, wire bends (connection grid); graphics and texts (fine grid) | QET 10 px = `7_937_500/3` nm on imported pages; native 4 mm proposed (ADR-0027) |
 | **Sheet transform** | the frame form's page-to-sheet transform (`FormDef.page_to_sheet`, QET-compatible frames only; FR-PAG-029) | paper output only | scale 0.986282578, offset 9.79 mm; native frames scale 1 |
 
-Shipped frames:
-- **QET-compatible A4 landscape**, grid and no-grid variants with one title block (FR-PAG-015, FR-PAG-017). Title,
-  contents and divider pages and the generated pages use the no-grid variant.
-- **ISO 5457** A4–A0 with 50 mm grid fields and centring marks, and an A3 frame with 10 numbered columns
-  (FR-PAG-016, 1.0).
+**The rulers.** The columns are counted along the top and the rows along the left: the columns with numbers and the
+rows with letters, unless the frame counts an axis the other way. Numbers count up from the first number (0 on the
+starter frames, 1 on a frame a QElectroTech border made); letters count A … Z, then AA, AB …, from the first letter,
+without I and O where the frame skips them. The columns share the width of the drawing area and the rows its height,
+each an exact rational step (§5.1): 10 columns over the starter frame's 269.875 mm are 26.9875 mm each. A frame whose
+rulers are not drawn has no cells: nothing on it prints a column or a row (§2.8, §5.1). A person sets them on the page
+([09](09-reports-forms-output.md) §3.9).
 
-Frames are assigned by project default, page-type default and page override (FR-PAG-018). The frame editor
-(FR-PAG-027) belongs to [09](09-reports-forms-output.md).
+**What a change of the columns and rows changes.** No stored value names a column or a row: a cell is the column and
+row of a stored position, worked out each time it is printed. So a change of a frame's columns, rows or title block
+height, or of the frame a page prints on:
+
+- prints anew every cross-reference into the frame's pages (§2.8), the cursor's cell, Go to and the cell columns of
+  the lists;
+- re-orders the wire numbers of a page where two wires are told apart by their cells ([08](08-connections-terminals-cables.md)
+  §5.2: page, then the cell, column before row); a frozen number keeps its own;
+- prints anew a tag of a numbering scheme that prints `{column}` or `{row}` ([03](03-domain-model.md) §8.2), and a
+  potential's fallback name, which is its first point by page and cell;
+- renumbers no device: a counter is stored, and online numbering orders by cell only the devices one transaction
+  numbers (§3.2).
+
+Each of these is listed in the preview of the change before it is written ([09](09-reports-forms-output.md) §3.9).
+
+**Starter frames:** the QET-compatible A4 landscape frame with columns and rows, the same without them (title,
+contents, divider and list pages, FR-PAG-017), the cover, all three naming one title block, and the A3 landscape frame
+with columns and rows and its wider block. ISO 5457 frames A4–A0 with 50 mm grid fields and centring marks, and an A3
+frame with 10 numbered columns, are specified by FR-PAG-016.
+
+Frames are assigned by project default, page-type default and page override (FR-PAG-018; the rule is
+[09](09-reports-forms-output.md) §2.6).
 
 **Snap grids per page.** The active connection grid is shown in the status bar and as a page badge; QET-grid pages
 carry a "10 px" marker (FR-PAG-021, FR-UI-018). CPs of symbols are always on the page's connection grid
@@ -252,10 +274,10 @@ xref text. The format is a project scheme (FR-PRJ-008), persisted as `ProjectSet
 
 ```toml
 [xref]
-ip          = "{page}-{row}{column}"     # interruption-point partner: "102-A1" (QET %F-%l%c)
-aux_to_main = "({page}-{row}{column})"   # on an auxiliary function: "(201-E1)"
-main_to_aux = "∞ {list}"                 # on the main function: "∞ 3-B2, 106-G3"; list items use `ip`
-structure   = "when-different"           # "+J-E-206/…" only when the target page's structure differs (FR-XRF-004)
+ip          = "{page}-{row}{column}"     # interruption-point partner: "103-C1" (QET %F-%l%c)
+aux_to_main = "({page}-{row}{column})"   # on an auxiliary function: "(102-B4)"
+main_to_aux = "∞ {list}"                 # on the main function: "∞ 102-B4, 103-E2"; list items use `ip`
+structure   = "when-different"           # "+UP/…" only when the target page's structure differs (FR-XRF-004)
 same_page   = "full"                     # or "zone-only" (FR-XRF-025, IEC 61082-1 style "/H16")
 matrix      = { per_row = 3, max = 9, overflow = "…" }   # one-to-many points (FR-XRF-008)
 ```
@@ -267,19 +289,24 @@ matrix      = { per_row = 3, max = 9, overflow = "…" }   # one-to-many points 
 | `{row}`, `{column}` | target anchor cell on the target page's frame (FR-XRF-021) | `%l`, `%c` |
 | `{function}`, `{location}` | structure of the target (`=`, `+`) | `%M`, `%LM` |
 
-| Preset | Example at L-1 on folio 101 | Use |
+| Preset | The sample's 1L1 on page 101, its partner on 103 | Use |
 |---|---|---|
-| QET style (pilot basic project) | `102-A1`; aux `(201-E1)`; main `∞ 203-B4` | the sample project, migrated projects (C-15) |
-| EPLAN column | `/102.1` | native A3 projects without rows |
-| EPLAN cell | `/102.A1` | native projects with rows |
-| Full structure | `=P01+J-E-2416/102.A1` | targets in another structure |
+| QET style | `103-C1` | the sample project, imported QElectroTech projects |
+| EPLAN column | `/103.1` | projects whose frames have columns and no rows |
+| EPLAN cell | `/103.C1` | projects with rows |
+| Full structure | `+CAB/103.C1` | targets in another structure |
 
 The EPLAN presets follow the notation in [standards](../research/standards.md) §2.2 (`/7.8`, `/101.H16`); EPLAN's
 exact option set (separators, order of row and column) is unverified.
 
 Switching presets re-renders every xref in one commit and loses nothing, because nothing was stored (FR-XRF-002).
 Xref texts are freshness class I: every move, renumber and frame change updates them in the same commit
-(FR-XRF-020).
+(FR-XRF-020), and a change of a frame's columns and rows lists them in its preview first (§2.4).
+
+**A target without a cell.** A target on a page whose frame does not draw its rulers prints its page alone: the row
+and the column are left out with the separator between them and the page, as zone-only leaves out the page ("103"
+where the frame shows rulers would print "103-C1"). A target on a page with rulers whose anchor lies outside the
+drawing area prints `?` for its cell, which FR-CHK-035 reports.
 
 **Text placement** per relation kind (FR-XRF-011, FR-XRF-022): IP partner text below the arrow, right-aligned, style
 `data.small`, and so is the partner text of an external arrow; aux text `(…)` under the device tag and the main
@@ -287,8 +314,8 @@ list after the tag, both style `xref.device` (the xref slots of the IEC contact 
 `ew.ovw.module`, `ew.bus.dp-port` and `ew.gen.blackbox` name it). Every xref text is a link on screen and in the PDF (FR-XRF-019, FR-OUT-005).
 
 **Interruption-point glyph.** The arrow shows signal flow, not page side (FR-XRF-009): a **Source** point draws its
-tip away from the wire, a **Target** point draws its tip at the wire. L-1 on 101 (Source, wire from the left) and
-L-1 on 102 (Target, wire to the right) are both ▷; PE-1.1 on 103 (Target, wire to the left) is ◁. The glyph variant
+tip away from the wire, a **Target** point draws its tip at the wire. A source whose wire comes from the left and a
+target whose wire leaves to the right are both ▷; a target whose wire leaves to the left is ◁. The glyph variant
 is derived from `IpSpec.direction` and the side of its CP, so rotating the symbol cannot invert the meaning.
 
 **Contact images** (FR-XRF-017, FR-XRF-018). For a main function with auxiliary contacts (contactor coil, motor

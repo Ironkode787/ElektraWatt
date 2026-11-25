@@ -395,7 +395,7 @@ variable has an EW xref-format token (FR-XRF-003):
 | `%previous-folio-num`, `%next-folio-num` | Prev, Next | derived |
 | `%filename` | proposed as `Project.master.drawing_id` (FR-PRJ-002) | — |
 | `%version` | generator version (derived; QET's version is kept in the import run) | — |
-| `%{var}` (custom) | project property if equal on all folios, else page user property | EW-IMP-104/105 |
+| `%{var}` (custom) | a field of the project's own ([09](09-reports-forms-output.md) §2.10): one value for the project when every folio has the same, else one per page | — |
 
 - The project importer lifts a title-block value or folio property to
   the project only when it is equal on **all** folios, in one linear pass; every other value stays on its page and
@@ -415,7 +415,8 @@ variable has an EW xref-format token (FR-XRF-003):
   outer rectangle starts at the margin (the frame member `ew.frame.margin`), so a cell is the cell QET prints;
   columns are numbered from 1, QET's default (QET keeps the start in its application settings, not in the
   project); `displaycols` and `displayrows` both `false` hide the bands (one hidden band alone is reported and both
-  show). The sheet is A4, landscape unless the drawing is taller than wide, and the page maps to it as QET's PDF
+  show), and such a frame has no cells, so a cross-reference into it prints its folio alone where QET prints the
+  hidden cell ([06](06-schematic-editor.md) §2.8). The sheet is A4, landscape unless the drawing is taller than wide, and the page maps to it as QET's PDF
   export maps the scene: the border's corner on the sheet's corner, scaled to fit the border and title block one
   pixel wider and higher. A title block QET draws at the right is drawn below. Counts and sizes outside 1 to 1000
   and 1 to 10 000 px keep QET's default border (reported).
@@ -432,8 +433,13 @@ variable has an EW xref-format token (FR-XRF-003):
   one atomic code after the sign, else the value stays text); and, when every folio has one value, `%indexrev` to
   `revision.current.label` (an open revision of that label), `%author` to `revision.current.author.name` (the designer,
   a party of the role author), `%filename` to `project.drawing_id`; `%projecttitle` binds to `project.description`
-  and `%saveddate` (`-eu`, `-us`) to `project.edited`, set from the ISO `saveddate` or `saveddate-us`. A variable of the
-  person's own (`%{customer}`) and a value the folios do not share stay text: a field of one's own is not built.
+  and `%saveddate` (`-eu`, `-us`) to `project.edited`, set from the ISO `saveddate` or `saveddate-us`. **A variable of
+  the person's own** (`%{customer}`: a name of the project's or a diagram's own properties, QET's custom variables)
+  becomes a field of the project's own ([09](09-reports-forms-output.md) §2.10), its label the variable's
+  name as written: of the project, with that value, when every diagram that prints it has the same value, else of
+  each page, with each page's value; its cell binds `{project.prop.<key>}` or `{page.prop.<key>}`. So the diagrams'
+  title blocks that differed only in such a value are one form, and the person changes the value in Title block
+  fields… and the block in Edit frame as any other ([09](09-reports-forms-output.md) §3.9).
   Every other variable is filled with the diagram's value, from its
   title-block attributes (`date="null"` is empty), then the project's title (`%projecttitle`) and properties, then
   the diagram's properties, and an unknown variable stays as written, as in QET. `%projectpath`,

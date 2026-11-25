@@ -50,7 +50,7 @@ sample project, rendered with the current choices on a fork by `ew-render-cpu`.
 | Step | Captures | Writes | Default |
 |---|---|---|---|
 | 1 Company | panel-builder name, logo (SVG; PNG accepted with a warning that it prints rasterised, D-07), the company's own notice text for the title-block notice cell | `Party{role: PanelBuilder}`, content-addressed asset | — |
-| 2 Frame and title block | shipped frame and title-block form; mapping of cells to bound fields (descriptions, drawing id, revision, =/+, parties by role, page, Prev/Next, dates); unmapped cells listed | `FormDef` copies, `FrameDefaults` | QET-compatible A4 landscape, 17 columns 0–16, rows A–H |
+| 2 Frame and title block | shipped frame and title-block form; the block's cells, fields and columns are changed afterwards on a page of the template, with Edit frame ([09](09-reports-forms-output.md) §3.9) | `FormDef` copies, `FrameDefaults` | QET-compatible A4 landscape, 17 columns 0–16, rows A–H |
 | 3 Colour profile | start from a shipped profile ("EN 60204-1 machine" or "IEC 60445 installation", [08](08-connections-terminals-cables.md) §4.3) or a company convention; rows voltage class × function → IEC 60757 code and name; a mandatory "basis" text | `ColourProfile` (D-37) | the sample project's convention, "DBU/WH 24 V" (not EN 60204-1 machine, the reason is under the as-built table) |
 | 4 Wire cross-sections | csa per circuit class; PE rule; the cover note toggle | `SizeProfile` | control 0.75 mm², mains 1.5 mm² |
 | 5 Identifiers and numbering | identifier set; device, strip and child schemes; order; wire numbering; xref format; IP pairing | `ProjectSettings` | EN 81346-2:2009 letters (ADR-0026); page-based `{page}{letter}{counter}` (tokens of [03](03-domain-model.md) §8.2) |
@@ -101,13 +101,13 @@ and the window asks for one. **What the wizard writes**: `wizard.finish {dir}`
 needs an empty or absent directory and builds a basic project from the built-in one through registered
 commands only, in one script. The wizard uses commands of its own (`project.company.set`, the members `frames` and `languages` of
 `project.settings.set`, and `project.checks.set`; no record kind and no schema change of their own), so every field has a
-command except the title-block cell mapping; `project.company.set` takes the logo and `report_block.create`
+command; `project.company.set` takes the logo and `report_block.create`
 embeds its form. The table shows each field's state:
 
 | Step | Written now, by | Kept in the draft until |
 |---|---|---|
 | 1 Company | `project.company.set`: the panel builder's name (the first `Party` with the role panel builder, else a new one), the notice text (kept in `Project.extra["ew.company"].notice`, which the provisional `title_block` member already reads) and `personal_data` (true by default, NFR-PRIV-06; nothing reads it); only non-empty members are sent, so a typed notice alone leaves the name alone. **The logo:** the `logo` member takes the base64 of an SVG, PNG or JPEG file and writes `ew.company.logo = {sha256, format, size}`, the bytes going to the project's asset store (doc 05 §13.3); the file is at most `MAX_LOGO_BYTES` = 512 KiB, checked from the file size before it is read and again after, and an empty value removes the logo; a raster logo gets the notice that it prints rasterised (D-07) | — |
-| 2 Frame and title block | `project.settings.set`, member `frames`: the default form and the per-page-type forms, chosen among the four shipped forms (frame, cover, divider; compiled in from `content/forms` and embedded as copies), merged into `settings.extra.frames`; `per_page_type` is always written, `[]` when empty; a page without a form of its own takes the frame defaults | the mapping of cells to bound fields (a command that forks a form copy, so that the mapping can be edited) |
+| 2 Frame and title block | `project.settings.set`, member `frames`: the default form and the per-page-type forms, chosen among the four shipped forms (frame, cover, divider; compiled in from `content/forms` and embedded as copies), merged into `settings.extra.frames`; `per_page_type` is always written, `[]` when empty; a page without a form of its own takes the frame defaults | — |
 | 3 Colour profile | `project.settings.set`: the chosen shipped profile, "EN 60204-1 machine" or "IEC 60445 installation" (our own tables from doc 08 §4.3, shipped with `verified: false` and the project's basis note), or the sample project's convention "DBU/WH 24 V" | — |
 | 4 Wire cross-sections | `project.settings.set` | — |
 | 5 Identifiers and numbering | `project.settings.set` (the numbering schemes and the cross-reference format) | — |

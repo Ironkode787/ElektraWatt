@@ -185,22 +185,29 @@ point; FR-SYM-010, FR-XRF-005), never from rendered geometry (D-14), and maps it
 and whose columns are `w = c/d` wide:
 
 ```text
-column(x) = start_index + floor( (x·b·d − a·d) / (c·b) )       evaluated in i128, exact
-row(y)    = row_labels[ floor( (y·b'·d' − a'·d') / (c'·b') ) ]
+column(x) = floor( (x·b·d − a·d) / (c·b) )        0-based, evaluated in i128, exact
+row(y)    = floor( (y·b'·d' − a'·d') / (c'·b') )
 outside the drawing area → None, reported by FR-CHK-035
+a frame whose rulers are not drawn → None for every point
 ```
 
 - A point exactly on a boundary belongs to the right or lower cell, the documented rule (FR-PAG-020).
-- A cell is labelled as the page draws it (`ew_derive::column_label`, `row_label`): a column by the frame's own label,
-  else the number `start_index + index`, also past the frame's labels; a row by the frame's own label, else the
-  letters `A … Z` (without `I` and `O` when the frame skips them), then `AA, AB …`. Every column and row of the frame
-  has a cell.
+- A cell is labelled as the page draws it (`ew_derive::column_label`, `row_label`), each axis by its own rule: the
+  frame's own label where it has one, else by how the axis is counted, from its first label `start_index`: numbers
+  print `start_index + index`; letters print the letter at `start_index + index` of `A … Z` (without `I` and `O` when
+  the axis skips them), then `AA, AB …`. Columns count with numbers and rows with letters unless the frame says
+  otherwise ([09](09-reports-forms-output.md) §2.5). Every column and row of the frame has a cell.
+- **A frame whose rulers are not drawn** (`ew.frame.show_grid` false) has no printed cells: the printed cell of a point
+  (`cell_of`, the representation's anchor cell, and the command layer's model-only lookup alike) is none, so nothing
+  prints a cell the page does not show (§2.8). Its columns and rows still bound the drawing area, which a layout
+  command and the placer read from the grid itself.
 - **Pitfall.** A stored coordinate is rounded to the nearest nm, so a point on a QET boundary can land up to
   0.5 nm to its left. Anchors always sit on the page's connection grid `g`, so the lookup first converts the point
   to its grid index `k = round(x / g)` and evaluates the formula on the exact rational `k·g`, which rounding cannot
   move across a boundary. On the QET frame with the 10 px grid this reduces to [03](03-domain-model.md) §6's
-  `column = ⌊(k_x − 2)/6⌋`, `row = "ABCDEFGH"[⌊(k_y − 2)/8⌋]`: the L-1 anchor at (1010 px, 620 px) gives
-  `k = (101, 62)` and cell H16. A point on the native 4 mm grid is an exact integer in nm, so the formula applies to
+  `column = ⌊(k_x − 2)/6⌋`, `row = "ABCDEFGH"[⌊(k_y − 2)/8⌋]`: the sample's 1L1 point on page 101, at
+  `k = (101, 14)`, is in cell B16; on a frame of 10 columns from 1 and 6 rows over the same area it is in B10. A point
+  on the native 4 mm grid is an exact integer in nm, so the formula applies to
   it without any rounding. Only off-grid points (free texts) use the stored nm value directly. "On the grid" means
   within the rounding window: a point less than 1 nm from its nearest grid point `k·g` is evaluated at `k·g`, and
   any other point at its exact nm value, never snapped.

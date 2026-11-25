@@ -13,8 +13,10 @@ A chapter of [Reports, forms and page output](09-reports-forms-output.md), whose
   (ADR-0018).
 - **Report blocks are model data; report pages are derived.** No report page is stored, no "update reports" step
   exists, and TOC, Prev/Next, the PDF outline and `/PageLabels` always include generated pages (FR-REP-001).
-- **Forms** (`FormDef`) are declarative nm geometry with typed placeholders. Title blocks are frame forms whose every
-  cell is bound; per-page free-text title-block fields do not exist (FR-REP-035).
+- **Forms** (`FormDef`) are declarative nm geometry with typed placeholders. A title block is a table of cells, each a
+  text and the value it shows; a value the program does not know is a field of the project's own, one value for the
+  project or one per page (§2.10), never text typed into one title block (FR-REP-035). A person changes a frame and
+  its title block on a page that prints them (§3.9).
 - **One display-list IR** (`ew-dl`) feeds screen, PDF, SVG, DXF, PNG and print, so all outputs agree (FR-OUT-018).
 - **Determinism.** The same model, settings, EW version and derivation profile give byte-identical PDF, SVG, XLSX
   and CSV on every platform (FR-OUT-019, NFR-REL-07).
@@ -25,11 +27,11 @@ machine profiles and `.ewpp` ([13](13-manufacturing-outputs.md)); QET title-bloc
 ([14](14-interop.md)); check-report content, revision comparison and the release gate
 ([15](15-checks-revisions-collaboration.md)); shell and dialogs ([16](16-ux-ui.md)); CLI catalogue and `api_v1`
 view schemas ([17](17-extensibility.md)). Frame *grid semantics* (cell lookup, xref anchors) are in
-[06](06-schematic-editor.md) §2.4 and §5.1; this document owns frame and title-block *forms* and the frame editor.
+[06](06-schematic-editor.md) §2.4 and §5.1; this document owns frame and title-block *forms* and how a person changes
+them (§3.9).
 
-**Non-goals in v1:** PDF optional-content layers (ARCH §16, C-11; FR-OUT-023, Later); DWG page export (FR-OUT-016,
-Later); 3D PDF (FR-OUT-024, Later); HPGL (ARCH §16); stored report pages (ADR-0018); a user-writable SQL path
-(ARCH §16, ADR-0017).
+**Not done here:** PDF optional-content layers (FR-OUT-023); DWG page export (FR-OUT-016); 3D PDF (FR-OUT-024); HPGL;
+stored report pages (ADR-0018); a user-writable SQL path (ADR-0017).
 
 ### 1.2 Pipeline
 
@@ -55,16 +57,17 @@ flowchart LR
 
 | Crate | Role here |
 |---|---|
-| `ew-derive` | `page_order`, `toc_rows`, `title_block`, `device_part_lines`, `bom_rows`, `terminal_rows`, `cable_rows`, `plc_rows`, `potential_partition` (ARCH §6.4) |
+| `ew-derive` | `page_order`, `toc_rows`, `title_block`, `device_part_lines`, `bom_rows`, `terminal_rows`, `cable_rows`, `plc_rows`, `potential_partition` |
 | `ew-text` | fonts and the memoised `shaped_text` query (parley 0.12.0, fontique 0.12.0, harfrust 0.14.0, skrifa 0.48.0), below `ew-reports` and `ew-scene`, so pagination and paper measure text with one stack |
-| `ew-reports` | `RowSet`, report-kind registry, filters, sorting, grouping, pagination into `GeneratedPage`s, user SQL reports through the sandboxed query API of `ew-sqlview` (it never links rusqlite, ARCH §3 rule 2), XLSX (rust_xlsxwriter 0.100.0) and CSV (csv 1.4.0) writers |
+| `ew-reports` | `RowSet`, report-kind registry, filters, sorting, grouping, pagination into `GeneratedPage`s, user SQL reports through the sandboxed query API of `ew-sqlview` (it never links rusqlite, [04](04-architecture.md) §3.2 rule 2), XLSX (rust_xlsxwriter 0.100.0) and CSV (csv 1.4.0) writers |
 | `ew-scene` | forms engine: frame, title-block, cover and report-form layout; text through `ew-text`; `page_display_list` |
 | `ew-dl` (permissive) | IR items including `LinkSource`, `LinkTarget`, `EntityRef` |
 | `ew-export` | PDF (krilla 0.8.2, krilla-svg 0.8.1), SVG writer, DXF (dxf 0.6.2), PNG through `ew-render-cpu` (vello_cpu 0.3.0) |
 | `ew-print` | OS print adapters with per-OS features (§4.5); depends on `ew-export` and `ew-render-cpu` |
 | `ew-sqlview` | projection and sandbox for user reports (rusqlite 0.40.2) |
 | `ew-library` | form catalogues; projects embed `FormDef` copies under `lib/forms/` |
-| `ew-ui` | report-block panel, export and print dialogs, forms editor (1.0) |
+| `ew-viewmodel` | Edit frame, the tool that changes a frame and its title block on the page (§3.9); Title block fields… |
+| `ew-ui` | report-block panel, export and print dialogs; the page in Edit frame |
 
 ---
 
@@ -75,9 +78,9 @@ flowchart LR
 | Kind | Records | Persisted in |
 |---|---|---|
 | Authored (A) | page-oriented `ReportBlock` | `report-blocks.jsonl` ([05](05-project-format-and-persistence.md) §2.2) |
-| Authored (A) | embedded `ReportBlock` (anchored by `embedded.page`), `Page.form` override, `Page.title`, `Page.description_override` | the page file `pages/<uuid>.jsonl` |
-| Authored (A) | `Section.divider`, text styles, export schemes (project level) | `structure.jsonl`, `project.jsonl` |
-| Library copy (L) | `FormDef` (frame, title block, cover, report, divider, label) | `lib/forms/<copy_id>.json` |
+| Authored (A) | embedded `ReportBlock` (anchored by `embedded.page`), `Page.form` override, `Page.title`, `Page.description_override`, `Page.user_props` (the page's values of the fields of its own, §2.10) | the page file `pages/<uuid>.jsonl` |
+| Authored (A) | `Section.divider`, text styles, export schemes (project level), `Project.user_prop_defs` and `Project.user_props` (the fields of the project's own and their project values, §2.10) | `structure.jsonl`, `project.jsonl` |
+| Library copy (L) | `FormDef` (frame, title block, cover, report, divider, label); a starter form a person changed is the project's own copy (§3.9) | `lib/forms/<copy_id>.json` |
 | Project SQL | user report queries | `reports/<uuid>.sql` (untrusted until the project is trusted, NFR-SEC-05) |
 | Derived (D) | `RowSet`, `GeneratedPage`, page order, Prev/Next, TOC, title-block values, display lists, PDF and table files | never stored; frozen copies only in the as-built archive (FR-REV-011) |
 
@@ -272,11 +275,26 @@ A form is the library item kind `form`: the struct `FormDef` of `crates/ew-schem
 cells (`FormCell`, with its `Overflow` policy), data area (`DataArea`, one `RowTemplate` per row kind in
 `RowTemplates`) and page-to-sheet transform (`SheetTransform`), each member with what it holds; its stored form is the
 generated schema (`schemas/0.1/form.schema.json`). What the code does not say: the page-to-sheet transform is for
-QET-compatible frames only (FR-PAG-029), and absent means scale 1; the frame grid's columns, rows and header band
-carry the labels of FR-PAG-014; the graphics are rules, boxes, drop shadows (REF-105) and logo asset references
-(FR-SYM-025); the data area is a report form's only; the continuation is EPLAN's "next form" (FR-REP-032); the
-`meta` holds the key, the licence (CC-BY-SA-4.0 with the exception), sources and status ([03](03-domain-model.md) §7);
-no overflow policy clips silently (FR-REP-039).
+QET-compatible frames only (FR-PAG-029), and absent means scale 1; the graphics are rules, boxes, drop shadows
+(REF-105) and pictures (FR-SYM-025); the data area is a report form's only; the continuation is EPLAN's "next form"
+(FR-REP-032); the `meta` holds the key, the licence (CC-BY-SA-4.0 with the exception), sources and status
+([03](03-domain-model.md) §7); no overflow policy clips silently (FR-REP-039).
+
+**The frame grid** (`FrameGrid`) is the frame's columns and rows, which its rulers print (FR-PAG-014; what they mean
+is [06](06-schematic-editor.md) §2.4 and §5.1). Per axis it holds the count, the step (a rational step in nm), how the
+axis is counted (`counting`: `numbers` or `letters`; the columns' default `numbers`, the rows' `letters`), the index of
+its first label (`start_index`, default 0: the number 0, or the letter A) and whether letters skip I and O
+(`skip_io`), and, for a frame brought in with labels of its own, explicit `labels`; for both axes the header bands'
+thickness and whether the rulers are drawn (the member `ew.frame.show_grid`, default drawn). `counting` on both axes,
+`start_index` on the rows and `skip_io` on the columns are additive members: an older build prints a frame that sets
+them with numbered columns from their start and lettered rows from A. The grid also fixes the frame's size: the
+drawing area is the header band plus the columns' and rows' steps, and the title block stands below it, as wide as
+the frame (`ew_scene::forms::FrameGeometry`).
+
+**A title block is a table.** Its cells tile its rectangle, and its lines are the cells' edges where two cells meet,
+each drawn once as a line of its `graphics`; its outline is the frame's. The starter title blocks and the ones the
+QElectroTech import makes are such tables. Its other graphics (a picture of its own) stand apart from its cells. A
+cell's value is a placeholder (§2.6), a picture's place is a cell's rectangle, and a cell's text is its label.
 
 The transform is stored as an integer scale in parts per 10⁹ plus an nm offset (the QET frame: 986 282 578 ppb,
 offset (9.79, 9.79) mm), so every writer applies it with the integer arithmetic of §4.3 rule 4 instead of a float
@@ -313,9 +331,9 @@ placeholder text.
 and, for a report form, the report kind of the block that uses it; a file that carries `form_type` keeps it in
 `extra`.
 
-**The house report form of the reference**: table x 16.31–277.27 mm, header
-and data rows 6.52 mm, header fill #C0C0C0, grid 0.183 mm, text style `text.normal` 8.88 pt, **23 data rows per
-page**. The TOC form's columns are Folio number 16.31–79.73, Title 79.73–214.90, Location (+) 214.90–277.27.
+**The house report form**, the starter A4 list layout: table x 16.31–277.27 mm, header and data rows 6.52 mm, header
+fill #C0C0C0, grid 0.183 mm, text style `text.normal` 8.88 pt, **23 data rows per page**. The TOC form's columns are
+Folio number 16.31–79.73, Title 79.73–214.90, Location (+) 214.90–277.27.
 
 Shipped forms are CC-BY-SA-4.0 with the design exception (ADR-0024). Form copies embedded in projects, and every
 PDF or table produced with them, are not subject to EW's copyleft (NFR-LIC-09).
@@ -335,11 +353,12 @@ literal braces. The rule covers every unresolvable placeholder (unbound, unresol
 
 | Scope | Examples | Valid in |
 |---|---|---|
-| `project` | `{project.description}`, `{project.reference}`, `{project.drawing_id}`, `{project.object}`, `{project.document_title}` (the cover subtitle "Electrical Definition"), `{project.created \| date}`, `{project.edited \| date}`, `{project.supply \| supply}`, `{project.control_voltage}`, `{project.consumption}`; `{project.logo}`, the logo asset reference of the basic project's company data, which a cell draws as the image and prints no text for, and `{project.notice}`, the notice text of the same company data ([07](07-symbols-parts-macros.md) §2.8) | all |
+| `project` | `{project.description}`, `{project.reference}`, `{project.drawing_id}`, `{project.object}`, `{project.document_title}` (the cover subtitle, "Sample conveyor" on the sample), `{project.created \| date}`, `{project.edited \| date}`, `{project.supply \| supply}`, `{project.control_voltage}`, `{project.consumption}`; `{project.logo}`, the logo asset reference of the basic project's company data, which a cell draws as the image and prints no text for, and `{project.notice}`, the notice text of the same company data ([07](07-symbols-parts-macros.md) §2.8) | all |
 | `party.<role>` | `{party.customer.name}`, `{party.end_user.address.city}` (personal data, §7 pitfall 14) | all |
 | `revision` | `{revision.current.label}`, `{revision.current.state}`, `{revision.current.author.name}`, `{revision.current.checker.name}`, `{revision.current.date \| date}` (the current revision: below the table; while it names no author, `{revision.current.author.name}` prints the project's designer, the party of the role author) | frame, title block, cover |
-| `page` | `{page.folio}`, `{page.prev}`, `{page.next}`, `{page.title}` ("Power Supply 1 - Main Current"), `{page.description}` (override or project description, §2.7), `{page.function}` (`=P01`), `{page.location}` (`+J-E-2416`), `{page.scale}` ("1:10" on 902, FR-PAG-023), `{page.document_kind}` (`&EFS`, FR-PAG-028, 1.0), `{page.last_changed_in}` ([15](15-checks-revisions-collaboration.md) §5.6) | frame, title block |
-| `doc` | `{doc.page_index}`, `{doc.page_count}` (position in and length of `page_order`: folio 101 is page 6 of 36) | frame, title block |
+| `page` | `{page.folio}`, `{page.prev}`, `{page.next}`, `{page.title}` ("Supply 400 V AC" on the sample's 101), `{page.description}` (override or project description, §2.7), `{page.function}` (`=P01`), `{page.location}` (`+CAB`), `{page.scale}` ("1:5" on the sample's 902, FR-PAG-023), `{page.document_kind}` (`&EFS`, FR-PAG-028), `{page.last_changed_in}` ([15](15-checks-revisions-collaboration.md) §5.6) | frame, title block |
+| `project.prop`, `page.prop` | `{project.prop.<key>}`, `{page.prop.<key>}`: a field of the project's own, its project value or the page's value (§2.10); a key the project does not define for that scope is unresolved | frame, title block, cover |
+| `doc` | `{doc.page_index}`, `{doc.page_count}` (position in and length of `page_order`) | frame, title block |
 | `block`, `group` | `{block.title}`, `{block.page_index}`, `{block.page_count}`, `{block.as_of}`, `{group.key}`, `{group.strip.tag}`, `{group.cable.part}` | report |
 | `row` | `{row.<column key>}` | report data area |
 | `profile` | colour rows (voltage, function, colour name, code), size rows | cover, embedded |
@@ -377,36 +396,40 @@ tracked reads only (FR-EXT-011).
 
 ### 2.7 Frames and title blocks
 
-- **Frame forms** carry the grid (17 columns 0–16, rows A–H for the QET-compatible A4 frame, FR-PAG-015), grid and
-  no-grid variants sharing one title block (FR-PAG-017), and ISO 5457 frames A4–A0 at 1.0 (FR-PAG-016). Assignment:
-  project default, page-type default, page override (FR-PAG-018; the stored shape and the fall-through rule are in §2.6). Title, contents and divider pages and all
-  generated pages use the no-grid variant.
-- **Title-block cells are bindings** (FR-REP-033, FR-REP-037). The QET-compatible title block
-  binds: the large page-description cell → `page.title` ("Valve Manifold
-  Overview 1"); "Project:" → `project.reference`; "Description:" → `page.description`; "Drawing:" →
-  `project.drawing_id`; "Revision:" → `revision.current.label`; the `=` and `+` cells → `page.function`,
-  `page.location`; the party cell → one party role (below); "Object:" → `project.object` ("J-E-2416");
-  "Checked:", "Author:" → revision checker and author; "Creation:", "Saved:" → `project.created`,
-  `project.edited`; "Page:", "Prev:", "Next:" → page order; the logo and notice → `project.logo` and
-  `project.notice`, the company assets of the basic project (§2.6). Every labelled cell prints label, one space and
-  value (§2.5). This QET-compatible title block has **no scale cell**, by design: it reproduces the reference
-  layout. FR-REP-037's scale cell binds `page.scale` in forms that declare one.
+- **Frame forms** carry the columns and rows (§2.5; the starter A4 frame's 17 columns numbered from 0 and rows A–H,
+  FR-PAG-015), variants with and without columns and rows that share one title block (FR-PAG-017), and the ISO 5457
+  frames A4–A0 (FR-PAG-016). Assignment: project default, page-type default, page override (FR-PAG-018; the stored
+  shape and the fall-through rule are in §2.6). Title, contents and divider pages and all generated pages use the
+  frame without columns and rows. The starter frames for drawn pages, for the cover and for dividers, contents and
+  lists name one title block, so a change of it shows on every page until a frame is given a block of its own (§3.9).
+- **Title-block cells are bindings** (FR-REP-033, FR-REP-037). The starter title block, the QElectroTech-compatible
+  one, binds: the large cell → `page.title` ("Supply 400 V AC" on the sample's 101); "Project:" →
+  `project.reference`; "Description:" → `page.description`; "Drawing:" → `project.drawing_id`; "Revision:" →
+  `revision.current.label`; the `=` and `+` cells → `page.function`, `page.location`; the party cell → one party role
+  (below); "Object:" → `project.object`; "Checked:", "Author:" → revision checker and author; "Creation:", "Saved:" →
+  `project.created`, `project.edited`; "Page:", "Prev:", "Next:" → page order; the logo and notice → `project.logo`
+  and `project.notice`, the company data of the basic project (§2.6). Every labelled cell prints label, one space and
+  value (§2.5). It has **no scale cell**: it is QElectroTech's default block. FR-REP-037's scale cell binds
+  `page.scale` in a block that has one; a person gives a cell that value in its Shows (§3.9).
 - **Project properties name their rows as these cells**: Project, Drawing, Object, Saved and Author (in
   Dutch Project, Tekening, Object, Opgeslagen, Getekend), and each row's explanation names the cell that prints it.
   `project.document_title` prints on the cover frame only, which its row says. The Checker row does not feed
   "Checked:": that cell is the sign-off and prints the checker who approves the current revision, empty until then.
-- **`page.description`** resolves to `Page.description_override` if set, else `project.description` ("Expansion
-  Control Cabinets"). An override raises the info finding EW-CORE-023 naming the page (FR-REP-036, D-06).
-  `Page.title` is the per-page page description and TOC title (FR-PAG-010); it is not an override.
+- **`page.description`** resolves to `Page.description_override` if set, else `project.description` ("Conveyor drive
+  with a pneumatic clamp" on the sample). An override raises the info finding EW-CORE-023 naming the page
+  (FR-REP-036, D-06). `Page.title` is the per-page page description and TOC title (FR-PAG-010); it is not an override.
 - **"Saved"** binds the model's edited date (day precision, merged by maximum; FR-PRJ-029), never a file time.
   Release exports take dates from the release context ([05](05-project-format-and-persistence.md) §14.1).
-- **"Revision"** prints the latest revision record. While V3.0 is open, draft exports print "V3.0" and the status
+- **"Revision"** prints the latest revision record. While V1.1 is open, draft exports print "V1.1" and the status
   mark (FR-OUT-021); after release every page prints the released label (FR-REV-003).
-- **Party cells bind roles** (FR-PRJ-003): the reference's "Customer:" cell showed the end user (D-30); the shipped
-  form labels it "End user:" and binds the end-user role until the pilot answers PQ-11 (U-01).
-- **ISO 7200 coverage.** The QET-compatible title block is the pilot's house style, not ISO 7200. The ISO 5457
-  frames shipped at 1.0 (FR-PAG-016) carry an ISO 7200 title block whose mandatory fields bind as follows
-  (FR-REP-050; field list per [standards](../research/standards.md) §12.2):
+- **Party cells bind roles** (FR-PRJ-003, D-30): the starter block's cell is "End user:" and binds the end-user
+  role; a shop whose drawings name the customer there gives the cell the text "Customer:" and the value Customer ▸
+  Name (§3.9).
+- **A value the program does not know** (an order number, the customer's own sheet number) is a field of the
+  project's own (§2.10): a cell shows it as it shows the program's values.
+- **ISO 7200 coverage.** The starter block is QElectroTech's, not ISO 7200. The ISO 5457 frames (FR-PAG-016) carry an
+  ISO 7200 title block whose mandatory fields bind as follows (FR-REP-050; field list per
+  [standards](../research/standards.md) §12.2):
 
   | ISO 7200 field | Binding |
   |---|---|
@@ -465,6 +488,37 @@ file_name = "{project.drawing_id}_{revision.current.label}_{lang}.pdf"
 
 File-name templates are sanitised like archive labels ([05](05-project-format-and-persistence.md) §14.2) and may
 not use personal-data fields when `omit_personal_data` is set.
+
+### 2.10 Fields of the project's own
+
+A **field of one's own** is a value a title block prints that the program does not know: an order number, the
+customer's own sheet number, a cabinet's position in a plant. It is a user property of the project
+([03](03-domain-model.md) §5 `UserPropDef`, FR-PRJ-007) of the kind text, with one of two scopes: **the project**
+(one value, the same on every page) or **the page** (a value per page). The other kinds and scopes of FR-PRJ-007 are
+not used by a title block.
+
+- **Its definition** is a row of `Project.user_prop_defs`: `{key, label, value_kind: "text", scope: ["project"] or
+  ["page"]}`. `label` is its name as the person typed it (a multi-language text, printed in the window's language).
+  `key` is made once from the first name: its Latin letters lower-cased, its digits, every other run of characters
+  one `_` (`Order number` → `order_number`); a name without a Latin letter or digit gives `field`; a key the project
+  already has gets `_2`, `_3` … The key is never shown and stays when the field is renamed.
+- **Its values** are rows of `Project.user_props` (scope project) and `Page.user_props` (scope page), each
+  `{key, value}`, the value a multi-language text. A field without a value prints nothing.
+- **A cell prints it** through `{project.prop.<key>}` or `{page.prop.<key>}` (§2.6). A key the project does not define
+  for that scope is an unresolved placeholder (§2.6): it prints nothing and the form finding names the cell. The fields
+  are the project's data, not a rule of the derivation, so they resolve under every derivation profile (§3.7).
+- **Where it is typed.** Title block fields… (Page ▸ Frame) lists the page's fields with the page's values first,
+  then the project's, each with the cell that prints it; Project properties ▸ Fields of your own holds each
+  project field's value, and Page properties ▸ Fields of your own each page field's. A row's menu there has Rename…
+  and Remove.
+- **Made, renamed, removed.** A field is made from the cell that will show it (§3.9), or with New field of your own…
+  in Project properties ▸ Fields of your own. Remove deletes the definition and every value in one undo step, and is
+  refused while a form the project holds shows it, in words that name the pages that print it ("The title block of
+  pages 101 to 105 and 201 shows Order; give that cell another value first").
+- **Commands.** `user_prop.define {label, scope, value?}` (it mints the key), `user_prop.rename {key, label}`,
+  `user_prop.remove {key}`, and `fields.set` / `fields.set_many` on a project's or a page's `user_props.<key>`.
+- **A template** passes its fields on with its frames: a project made from it holds the same definitions and the values
+  the template holds (§3.9).
 
 ---
 
@@ -702,7 +756,7 @@ and now and then a row the model does not hold. The lists print so:
 (`ReportBlock.form`: its Form row in Properties, `fields.set` path `form`, §2.2), on the set's paper: when the set's
 frame (the frame defaults' `default`, §2.6, a form the project holds) has another sheet size than the block's form,
 the page prints on the set's frame instead. So a set made A3 prints its lists on A3, the contents too, without a block
-edited; a set that keeps no frame defaults (an older project) prints its lists on their blocks' forms as before.
+edited; a set that keeps no frame defaults prints its lists on their blocks' forms.
 The rule is `ew_reports::layout::list_frame`; the pagination and the page output read it, so a list's pages and their
 frame never disagree. The title block is the frame's.
 
@@ -836,11 +890,157 @@ manner: QElectroTech's 60 px columns and 80 px rows, 25 by 12, printed at the A4
 prints as high on A3 as on A4; the title block is the A4 one 127 mm wider, its title, project and description cells
 taking the width. A new project and a template hold them; the template wizard's Frame offers "A3 landscape, with
 grid", which puts the drawn pages, the contents and the dividers on it (the cover stays the A4 cover). `ew print
---fit` (and the print dialog's Scale to fit) now scales each page to the whole paper up as well as down, so an A4 set
+--fit` (and the print dialog's Scale to fit) scales each page to the whole paper up as well as down, so an A4 set
 prints on A3 at 141 %; a page scaled either way carries the stamp "scaled n %".
 
-**What it does not do.** Edit a form's drawing in the window. Placeholders in the caption or the legend.
+**What it does not do.** Edit a report form's table in the window: a list's columns, caption and legend are List
+columns…, its frame and title block Edit frame's (§3.9). Placeholders in the caption or the legend.
 Rows of a height of the maker's, wrapping cells, a column's alignment. Check a row of the block's own against the
-model, or link it anywhere. Print one list in several languages (one PDF per language is 1.0). An A3 cover, an A3
+model, or link it anywhere. Print one list in several languages (one PDF per language is FR-I18N-005's). An A3 cover, an A3
 frame without the grid, frames A2 to A0.
+
+### 3.9 Changing a frame and its title block
+
+**Who, and when.** A panel builder changes his title block once, when he sets the program up for his company (his
+logo, his fields, the cells his drawings have always had), and again when a customer prescribes a block of his own.
+He does it on a page of his template, so that every project made from it starts with the result: Templates… ▸ Edit
+opens the template as a project, or he changes an ordinary project and saves it with Save as template…. He fills a
+form in and moves things; he never draws one. The tenth job does not open it: a new project from the template has the
+frame and the fields, and Title block fields… takes the values.
+
+**The journey.**
+
+1. He opens his template (Templates… ▸ Edit) and its page 1. He double-clicks the title block; the
+   drawing fades and the card says that a change shows on every page that prints the block.
+2. He clicks "End user: …". Properties shows the cell: Text "End user:", Shows "People · End user ▸ Name". He types
+   "Customer:" and chooses Customer ▸ Name. The page prints "Customer: Sample Customer" at once.
+3. He right-clicks the empty notice cell and chooses Split one above the other. In the upper half he types "Order:",
+   opens Shows and chooses New field of your own…: "Order number", one value for the whole project, "0001". The cell
+   prints "Order: 0001".
+4. The lower half gets "Customer sheet:" and a new field of each page, "Customer sheet". He gives the logo cell
+   Company logo and chooses his logo file. A line between two cells he would drag the same way.
+5. He clicks the column numbers. Properties shows Columns 17, numbered from 0, and Rows 8, lettered from A. He types
+   10 columns from 1 and 6 rows; the page shows them, and the Preview lists the cross-references that print
+   differently. Apply.
+6. Done. He saves the template. The template now holds his frame, his title block and his two fields.
+7. Each job: New project from the template. Page ▸ Title block fields… holds Customer sheet for the page, and Order
+   and the program's values for the project; he types them once.
+8. The day after, he moves a symbol to another column: its cross-references print the new cell, nothing to update.
+   He adds a page: it prints on the project's frame.
+9. A customer prescribes his own block: he makes a template for that customer from his own, gives its block the
+   customer's cells and logo (A picture…), and makes that customer's projects from it. A project begun before takes
+   the new block with Use the frames of a template….
+10. A project brought in from QElectroTech keeps its block; its own variables are fields, and he changes it the same
+    way.
+
+**Where it starts.** Page ▸ Frame ▸ **Edit frame** (`frame.edit`; Dutch "Kader bewerken"), a double-click on the
+title block or on the column numbers or row letters of the page, and Edit frame in the title block's context menu,
+beside Title block fields…. The command search finds it by "frame", "title block", "border", "columns", "rows",
+"rulers" and "logo". The Frame group of the Page tab holds the two: Edit frame for the block, Title block fields…
+for its values. Without an open page Edit frame is greyed with its reason ("Open a page: a frame is changed on a page
+that prints it"); a template made with its pages left out gets one with New page….
+
+**What the page shows.** Edit frame is a tool of the page ([04](04-architecture.md) §9.2): the page's drawing fades to
+a third, and the frame, its columns and rows and its title block stay as they print. Its card says which frame it is
+and where a change shows ("Page 101 prints on the project's frame and title block. Every change shows on each page
+that prints them."), with Done; Done and Esc end the tool. The pointer outlines the cell, the line or the ruler it is
+over. The HUD offers Split side by side, Split one above the other, Join and Picture…, and says what a click does.
+Every change is one undo step and prints at once, on the page in view and on every page of the frame; only a change
+of the columns and rows or of the title block's height waits for Apply (below).
+
+**A cell.** A click chooses a cell (Shift adds one, for Join); Properties shows it under its printed text ("Drawing:
+SAMPLE-E", "Title block cell · prints on every page"):
+
+- **Text**, its label, in the language the project prints in; the label's other languages under More. A double-click
+  on the cell types it on the page. Tab and the arrow keys go to the next cell; Del clears the cell.
+- **Shows**, the value it prints, a list in words, never a path: Project (description, long description, reference,
+  drawing number, object, document title, created, saved, supply, notice), Page (title, description, number,
+  previous, next, `=` function, `+` location, scale, changed in revision, position, number of pages), Revision (label,
+  date, state, designer, checker), People (each role ▸ name, street, postcode, city, country), Fields of your own
+  (each field, then New field of your own…), Other (Company logo, A picture…, Text only). It writes the cell's
+  placeholder (§2.6); a cell of an imported template whose value is text of its own shows "Text only".
+- **Text size**, the project's text styles by their names (as Text styles… names them); a new cell takes the size of
+  the cell it was split from.
+- **Alignment**: Left, Centre, Right; the text stands in the middle of the cell's height.
+- A line under the rows says where the value is typed: Title block fields…, Project properties or Page properties.
+
+A new cell shrinks its text to fit down to a printed capital of 1.2 mm, as the starter cells do (§2.5).
+
+**Lines, splits and joins.** A line between cells is dragged: every cell on either side of it grows or shrinks with
+it, a chip names the two widths ("Description 119.8 mm · Drawing 33.1 mm"), it snaps to 0.5 mm (Alt: free), and no
+cell gets narrower or lower than 2 mm. The block's outline is the frame's and does not move, but for its top: the line
+between the drawing area and the title block makes the block higher or lower (below). The cell's context menu holds
+Split side by side and Split one above the other (two halves; the new one empty, the old one keeps its text and
+value), Join with the cell to the right and Join with the cell below (greyed, with the reason, where the two do not
+make a rectangle), Picture…, Shows…, Clear the cell and Title block fields…. Join keeps the first cell's text and
+value; a text that goes is named in the toast, with Undo. The block's lines are written anew from its cells after
+each change (§2.5).
+
+**Pictures.** **Company logo** prints the project's company logo (`{project.logo}`, §2.6), the one picture every
+block of the company shows; a project without one shows Choose logo… under the row (`project.company.set`). **A
+picture…** puts a file into this title block alone, such as a customer's logo: an SVG, PNG or JPEG of at most
+512 KiB, an asset of the project, fitted into its cell at its proportions and centred, as an imported QElectroTech
+logo is ([14](14-interop.md) §4.9). A drawn logo is not made here.
+
+**A field of one's own.** New field of your own… at the foot of Shows asks the field's name, whether it has one value
+for the whole project or one for each page, and its value now ("Order number", the whole project, "0001"); Create
+field makes it (`user_prop.define`) and gives the cell its value in one undo step, the cell's text becoming the name
+and a colon where it had none. The field then stands in Title block fields…, Project properties and Page properties
+(§2.10).
+
+**Columns and rows.** A click on the column numbers or the row letters chooses the rulers. Properties shows Columns,
+along the top (How many, Counted with Numbers or Letters, First), Rows, along the left (the same, and Skip I and O),
+and Drawn (Yes, No) for both. The paper and the title block keep their size: the columns share the drawing area's
+width and the rows its height, each an exact step ([06](06-schematic-editor.md) §5.1). A count of 1 to 100 and a first
+number of 0 to 999 are taken, anything else is refused under its row in words. The page in view shows the new columns
+at once, and the Preview tab lists what prints differently ([06](06-schematic-editor.md) §2.4): every cross-reference
+into the pages of the frame ("103-C1 → 103-B1", with its page), every wire number whose order changes, every tag of a
+numbering scheme that prints a column or a row. Apply writes it as one undo step (`frame.set_grid`); Cancel leaves the
+frame as it was. A change of the title block's height is previewed the same way, since it changes the rows' height;
+it is refused while a connection point, a bend of a wire or a symbol's anchor of a page of the frame lies where the
+block would grow, naming the page ("Page 101 has drawing where the title block would grow; move it up first").
+
+**One frame, several pages.** The card and the header of Properties say where a change shows: a cell of the title block
+on every page of every frame that names the block, the columns and rows on the pages of this frame. With nothing
+chosen, Properties shows the frame:
+
+- **Paper**, read only;
+- **Used for**: the project's default, a page type's (Title page, Section divider, Table of contents), this page's own,
+  or the lists'; it is set where it is today, Project properties ▸ Frames, Frame of the lists and a page's Frame row;
+- **Title block**: Shared with the other frames, or Its own, a copy of the block for this frame alone (the cover's or
+  the dividers' own block); choosing Shared with the other frames again names the shared block, and the copy stays
+  unused until purged;
+- **Give this page its own frame**: a copy of the frame for this page alone, which its Frame row then names;
+- **Columns and rows**, their summary ("17 numbered from 0, 8 lettered from A"); a click chooses them;
+- **Use the frames of a template…** (below).
+
+By default one title block serves every frame: the starter frames for drawn pages, for the cover and for the dividers,
+contents and lists name the same block, so a first change shows on every page. A page type with a block of its own
+(a cover) is one Its own away.
+
+**Where the result lives.** In the project: its frames and title blocks are copies it holds (§2.1), and its fields
+are its data (§2.10). A starter form is a copy of the program's library, and its first change makes it the project's
+own ([07](07-symbols-parts-macros.md) §3.1, "local edits fork the item"): the changed form, and every starter frame that names a changed title
+block, become copies of the project's own; every page, report block, frame and the frame defaults that named the old
+copies name the new ones; the program's copies stay unused until purged. The toast of that first change says so
+once ("The frame and title block are now this project's own; the program's stay as they were."). A copy of the
+project's own, an imported one included, is changed in place. A page whose frame is the built-in one (no form held)
+gets the starter frame and title block embedded as the project's own on its first change.
+
+**How the next project gets it.** Through the template: a project made from it holds its frames, title blocks and
+fields. A project made before the change takes them with **Use the frames of a template…** (`frames.adopt`, Bulk,
+previewed): a list of the templates, then a preview of the pages whose frame changes, the fields of its own added and
+the cross-references that print differently. It brings the template's frames and title blocks, its frame defaults,
+the frame its lists print on, its fields of its own (their definitions, and their values where this project has none)
+and its company logo and notice; a page with a frame of its own keeps it. One undo step; the replaced forms stay
+until purged.
+
+**Imports.** A QElectroTech project keeps the title block and the frame of each diagram ([14](14-interop.md) §4.9),
+its own variables as fields of its own (§2.10), and is changed in the same way. The EPLAN imports bring symbols, parts
+and lists, and no frame or title block: a page made in such a project prints on the project's frame.
+
+**What it does not do.** Draw a title block: a line or a text anywhere but in a cell, and a drawn logo; a frame's own
+drawing (the cover's lines and boxes) is kept as it is. A title block beside a drawing area that goes on next to it
+(ISO 7200's block in the bottom right corner); columns and rows on all four sides; a frame per section; fields that
+are not text; names for a project's own frames; a report form's table (§3.8).
 

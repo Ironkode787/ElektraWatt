@@ -90,9 +90,11 @@ export start (FR-OUT-001).
 
 ## 8. Edge cases and pitfalls
 
-1. **Frame change re-targets xrefs.** Assigning folio 106 a 10-column frame changes every xref into 106 and no
-   other (FR-XRF-021). `fields.set` on `Page.form` shows a toast with the count of changed xref texts and an undo
-   button.
+1. **Frame change re-targets xrefs.** Giving the sample's page 103 a frame of 10 columns from 1 and 6 rows changes
+   every xref into 103 and no other (FR-XRF-021): 1L1 on 101 then prints `103-B1` where it printed `103-C1`.
+   `fields.set` on `Page.form` shows a toast with the count of changed xref texts and an undo button; a change of a
+   frame's columns and rows lists them in its preview before it is written (§2.4, [09](09-reports-forms-output.md)
+   §3.9).
 2. **Anchors outside the drawing area.** A drop is clamped so that the anchor stays inside; imported violations are
    reported by FR-CHK-035.
 3. **Mixed grids.** Pasting from a QET-grid page onto a native page keeps nm geometry. The fragment's insertion point
