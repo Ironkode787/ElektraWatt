@@ -578,17 +578,18 @@ impl Session {
         self.navigator_table_in(kind, None)
     }
 
-    /// [`Session::navigator_table`] with the texts of the fluid tables (a port role, a line kind, a length source) in
-    /// language `lang` (`en-GB`, `nl-NL`; `None` or another: neutral, as their CSV prints them), as the window shows
-    /// them.
+    /// [`Session::navigator_table`] with the texts of the fluid tables (a port role, a line kind, a length source) and
+    /// the groups the navigators name in words (the connections' Bridges, a group without a potential, a function, a
+    /// location or a manufacturer: "(none)") in language `lang` (`en-GB`, `nl-NL`; `None` or another: neutral, as
+    /// their CSV prints them), as the window shows them.
     pub fn navigator_table_in(&self, kind: NavKind, lang: Option<&str>) -> NavTable {
         let rev = self.world().rev.0;
         let mut b = Builder { nodes: Vec::new() };
         let q = self.query();
         match kind {
             NavKind::Pages => self.pages_table(&mut b),
-            NavKind::Devices => devices_table(&q, &mut b),
-            NavKind::Connections => connections_table(&q, &mut b),
+            NavKind::Devices => devices_table(&q, &mut b, lang),
+            NavKind::Connections => connections_table(&q, &mut b, lang),
             NavKind::Strips => strips_table(&q, &mut b),
             NavKind::Cables => cables_table(&q, &mut b),
             NavKind::Plc | NavKind::PlcGrid => plc_table(&q, &mut b),
@@ -599,7 +600,7 @@ impl Session {
             NavKind::Potentials => potentials_table(&q, &mut b),
             NavKind::Ips => ips_table(&q, &mut b),
             NavKind::Structure => structure_table(&q, &mut b),
-            NavKind::Parts => parts_table(&q, &mut b),
+            NavKind::Parts => parts_table(&q, &mut b, lang),
             NavKind::Blocks => blocks_table(&q, &mut b),
             NavKind::Unplaced => unplaced_table(&q, &mut b),
             NavKind::Macros => self.macros_table(&q, &mut b),
@@ -610,6 +611,12 @@ impl Session {
         }
         b.finish(kind, rev)
     }
+}
+
+/// A navigator's words `t` in language `lang` (`en-GB`, `nl-NL`; `None`: English).
+pub(super) fn words_in(t: &crate::Text, lang: Option<&str>) -> String {
+    let tag = lang.and_then(|l| l.parse::<ew_mltext::LangTag>().ok());
+    crate::output::print::in_print_language(t, tag.as_ref())
 }
 
 /// The page order's folio and position of every drawn page.

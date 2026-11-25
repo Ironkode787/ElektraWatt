@@ -95,6 +95,27 @@ fn page_id(s: &Session, folio: &str) -> Uuid {
 /// The potentials the script names (`potential.draw`): every other potential is derived from its connection points.
 const NAMED: [&str; 7] = ["L1", "L2", "L3", "N", "PE", "24V", "0V"];
 
+/// The navigators' own group words read in the table's language: the connections' Bridges heading and a devices
+/// group without a function aspect, "(none)"; without a language they stay English, as their CSV prints them.
+#[test]
+fn the_navigators_group_words_read_in_the_tables_language() {
+    let s = common::sample();
+    let label = |kind: NavKind, key: &str, lang: Option<&str>| {
+        s.navigator_table_in(kind, lang)
+            .nodes
+            .iter()
+            .find(|n| n.key.ends_with(key))
+            .map(|n| n.label.clone())
+            .unwrap_or_else(|| panic!("a node {key}"))
+    };
+    let both = |kind: NavKind, key: &str| [label(kind, key, None), label(kind, key, Some("nl-NL"))];
+    assert_eq!(
+        both(NavKind::Connections, "section:Bridges"),
+        ["Bridges", "Bruggen"]
+    );
+    assert_eq!(both(NavKind::Devices, "function:-"), ["(none)", "(geen)"]);
+}
+
 #[test]
 fn connections_are_the_wire_list() {
     let s = common::sample();

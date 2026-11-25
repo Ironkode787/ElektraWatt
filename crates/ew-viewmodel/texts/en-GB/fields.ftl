@@ -114,23 +114,7 @@ field-device-derived-solenoid-item = Solenoid
 field-help-device-derived-solenoid-item = A solenoid of the valve: where its coil is drawn, and the PLC output that drives it. Click it to go there, or to draw the coil on an electrical page while it is not drawn.
 field-representation-derived-solenoid-of = Valve
 field-help-representation-derived-solenoid-of = The valve this coil is a solenoid of. Click it to go to the valve.
-# A function's kind by the generic rule, its two category segments joined by kind-generic (a Dutch segment carries its own joint), the library tiers, access and index words, and the Blocks kinds without words of their own.
-kind-generic = { $p0 } { $p1 }
-kind-segment-no = NO
-kind-segment-nc = NC
-kind-segment-1p = 1P
-kind-segment-3p = 3P
-kind-segment-cabinet = cabinet
-kind-segment-fixed = fixed
-kind-segment-contact = contact
-kind-segment-coil = coil
-kind-segment-fuse = fuse
-kind-segment-lamp = lamp
-kind-segment-motor = motor
-kind-segment-pushbutton = pushbutton
-kind-segment-resistor = resistor
-kind-segment-thermostat = thermostat
-kind-segment-transformer = transformer
+# The library tiers, access and index words, and the Blocks kinds without words of their own.
 category-main = Main
 
 # Cycle 44, FIX44d (W44.4 F-d): the heading of a panel page's Surface, Label mode and Datum rows.

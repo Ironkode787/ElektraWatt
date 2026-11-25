@@ -287,8 +287,8 @@ fn table(shell: &ShellModel, kind: NavKind) -> std::sync::Arc<ew_api::output::Na
 /// Every navigator's column header has its text in both locales, the en-GB one
 /// the label `ew-api` gives (`column-<navigator>-<key>` of the navigator whose columns it shows, else `column-<key>`);
 /// in nl-NL the window's tables show the
-/// Dutch headers and the Devices tree its badges and kinds in Dutch; a generic segment without words of its own stays
-/// as written after a pole count ("3P manualswitch").
+/// Dutch headers and the Devices tree its badges, its group without a function ("(geen)") and its kinds in Dutch, the
+/// generic rule's kinds by their segments' words ("3P-handschakelaar", "Geluiddemper").
 #[test]
 fn every_navigator_column_and_badge_reads_in_both_locales() {
     let (session, _) =
@@ -335,24 +335,31 @@ fn every_navigator_column_and_badge_reads_in_both_locales() {
         .iter()
         .map(|r| r.text.clone())
         .collect();
-    // A function's kind of `KIND_WORDS` in Dutch too; the generic rule's segments without words of their own stay as
-    // written ("2P mcb", "Black box"; "3P manualswitch", "3P mcb").
+    // A function's kind of `KIND_WORDS` in Dutch too, and the generic rule's by its segments' words ("Black box"
+    // keeps its English).
     let kinds = [
         ("1P MCB ", "1P-installatieautomaat "),
-        ("3P manualswitch ", "3P manualswitch "),
-        ("3P mcb ", "3P mcb "),
+        ("2P mcb ", "2P-installatieautomaat "),
+        ("3P manualswitch ", "3P-handschakelaar "),
+        ("3P mcb ", "3P-installatieautomaat "),
         ("3P motor ", "3P-motor "),
         ("5/2 valve ", "5/2-ventiel "),
-        ("A1A2 coil ", "A1A2 spoel "),
+        ("A1A2 coil ", "A1A2-spoel "),
+        ("AcDc powersupply ", "AC/DC-voeding "),
         ("Cabinet lamp ", "Kastlamp "),
         ("Coil ", "Spoel "),
         ("Double-acting cylinder ", "Dubbelwerkende cilinder "),
+        ("Generic supplyplate ", "Algemene aansluitplaat "),
         ("NC pushbutton ", "NC-drukknop "),
         ("NO contact ", "NO-contact "),
         ("NO position switch ", "NO-positieschakelaar "),
         ("NO pushbutton ", "NO-drukknop "),
         ("Overview ", "Overzicht "),
         ("PROFIBUS port ", "PROFIBUS-poort "),
+        ("Profinet busport ", "PROFINET-buspoort "),
+        ("Standard silencer ", "Geluiddemper "),
+        ("Supply source ", "Luchtbron "),
+        ("(none)", "(geen)"),
     ];
     let worded: Vec<String> = english
         .iter()
@@ -1373,6 +1380,36 @@ fn a_block_title_that_reads_as_a_kind_code_stays_as_typed() {
             s("revision_overview", "revision_overview", "Revision overview"),
             s("Inhoudsopgave", "Inhoudsopgave", "Inhoudsopgave"),
             s("revision_overview", "revision_overview", "Revisieoverzicht"),
+        ]
+    );
+}
+
+/// A function kind named by the generic rule (outside the table of `ew-api`'s `function_kind.rs`) reads in Dutch by its
+/// category segments' words, the CP designations after them kept, and in English as `ew-api` prints it.
+#[test]
+fn a_function_kind_of_the_generic_rule_reads_in_dutch() {
+    let kinds = [
+        "Standard silencer",
+        "SolenoidSpring valve52 14",
+        "2P mcb 1-2-3-4",
+        "Fluid ip",
+        "Cylinder singleacting",
+        "Gauge regulator",
+    ];
+    let words = || kinds.map(|k| strings::kind_words(k).unwrap_or_else(|| panic!("words for {k}")));
+    assert!(strings::set_locale("nl"));
+    let nl = words();
+    assert!(strings::set_locale("en"));
+    assert_eq!(words(), kinds.map(str::to_owned), "English as ew-api prints it");
+    assert_eq!(
+        nl,
+        [
+            "Geluiddemper",
+            "Spoel/veer-5/2-ventiel 14",
+            "2P-installatieautomaat 1-2-3-4",
+            "Pneumatisch onderbrekingspunt",
+            "Enkelwerkende cilinder",
+            "Manometerdrukregelaar",
         ]
     );
 }

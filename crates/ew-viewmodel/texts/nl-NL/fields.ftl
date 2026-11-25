@@ -114,23 +114,7 @@ field-device-derived-solenoid-item = Magneetspoel
 field-help-device-derived-solenoid-item = Een magneetspoel van het ventiel: waar de spoel getekend staat en welke PLC-uitgang haar stuurt. Klik om ernaartoe te gaan, of om de spoel op een elektrische pagina te tekenen zolang ze niet getekend is.
 field-representation-derived-solenoid-of = Ventiel
 field-help-representation-derived-solenoid-of = Het ventiel waarvan deze spoel een magneetspoel is. Klik om naar het ventiel te gaan.
-# A function's kind by the generic rule, its two category segments joined by kind-generic (a Dutch segment carries its own joint), the library tiers, access and index words, and the Blocks kinds without words of their own.
-kind-generic = { $p0 }{ $p1 }
-kind-segment-no = NO-
-kind-segment-nc = NC-
-kind-segment-1p = 1P-
-kind-segment-3p = 3P-
-kind-segment-cabinet = kast
-kind-segment-fixed = vaste{ " " }
-kind-segment-contact = contact
-kind-segment-coil = spoel
-kind-segment-fuse = zekering
-kind-segment-lamp = lamp
-kind-segment-motor = motor
-kind-segment-pushbutton = drukknop
-kind-segment-resistor = weerstand
-kind-segment-thermostat = thermostaat
-kind-segment-transformer = transformator
+# The library tiers, access and index words, and the Blocks kinds without words of their own.
 category-main = Algemeen
 category-surface_view = Plaataanzicht
 choice-false = Nee

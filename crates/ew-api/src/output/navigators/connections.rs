@@ -148,18 +148,19 @@ pub(super) fn push_wire_row(b: &mut Builder, parent: u32, w: &WireListRow, table
 }
 
 /// Connections: potential → physical-wire rows; a `Bridges` group → the bridge rows.
-pub(super) fn connections_table(q: &Q, b: &mut Builder) {
+pub(super) fn connections_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
     let rows = wire_list_rows(q);
     let mut groups: BTreeMap<String, u32> = BTreeMap::new();
     let mut bridges: Option<u32> = None;
     for w in &rows {
         let parent = if w.bridge {
             *bridges.get_or_insert_with(|| {
-                group(b, None, NavRole::Section, "section:Bridges", "Bridges".to_owned())
+                let words = super::words_in(&text!("nav-bridges"), lang);
+                group(b, None, NavRole::Section, "section:Bridges", words)
             })
         } else {
             let name = if w.potential.is_empty() {
-                "(none)".to_owned()
+                super::words_in(&text!("nav-none"), lang)
             } else {
                 w.potential.clone()
             };

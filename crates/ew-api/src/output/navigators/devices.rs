@@ -39,7 +39,7 @@ fn row_label(q: &Q, d: Id<Device>) -> String {
 /// listed device in natural tag order; child devices under their parent (position, then natural tag); under each
 /// device its functions (main first, FnDef name, ID), under each function its representations. Terminals are not
 /// listed (they are the Terminal strips navigator's rows, as in the structure overview).
-pub(super) fn devices_table(q: &Q, b: &mut Builder) {
+pub(super) fn devices_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
     let Some(set) = ew_reports::project_rows(q, &ew_schema::ReportKind::StructureOverview, None) else {
         return;
     };
@@ -80,13 +80,9 @@ pub(super) fn devices_table(q: &Q, b: &mut Builder) {
         k(&a.0.0).cmp(&k(&b.0.0)).then_with(|| k(&a.0.1).cmp(&k(&b.0.1)))
     });
     let mut fnodes: BTreeMap<String, u32> = BTreeMap::new();
-    let none = "(none)";
+    let none = super::words_in(&text!("nav-none"), lang);
     for ((fun, loc), mut devices) in group_list {
-        let flabel = if fun.is_empty() {
-            none.to_owned()
-        } else {
-            fun.clone()
-        };
+        let flabel = if fun.is_empty() { none.clone() } else { fun.clone() };
         let fseg = format!("function:{}", if fun.is_empty() { "-" } else { &fun });
         let fnode = match fnodes.get(&fseg) {
             Some(n) => *n,
@@ -106,11 +102,7 @@ pub(super) fn devices_table(q: &Q, b: &mut Builder) {
                 n
             }
         };
-        let llabel = if loc.is_empty() {
-            none.to_owned()
-        } else {
-            loc.clone()
-        };
+        let llabel = if loc.is_empty() { none.clone() } else { loc.clone() };
         let lseg = format!("location:{}", if loc.is_empty() { "-" } else { &loc });
         let lnode = b.push(
             Some(fnode),

@@ -285,7 +285,6 @@ nav-badge-external-partner = externe partner
 nav-badge-station = station
 nav-section = Sectie { $p0 } - { $p1 }
 nav-rack = Rek { $p0 }
-nav-none = (geen)
 nav-filter-hint = Filter
 badge-generated = gegenereerd
 badge-qet-grid = QET 10 px

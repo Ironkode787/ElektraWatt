@@ -296,7 +296,6 @@ nav-badge-external-partner = external partner
 nav-badge-station = station
 nav-section = Section { $p0 } - { $p1 }
 nav-rack = Rack { $p0 }
-nav-none = (none)
 nav-filter-hint = Filter
 badge-generated = generated
 badge-qet-grid = QET 10 px

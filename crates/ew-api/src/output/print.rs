@@ -307,7 +307,7 @@ pub fn stamp_text(scale: (u64, u64), lang: Option<&LangTag>) -> String {
 
 /// `t` in the language a print prints for `lang` (the tag, else its primary language, else en-GB): its pattern there
 /// where it resolves, else en-GB's, else its English as the key table holds it.
-fn in_print_language(t: &crate::Text, lang: Option<&LangTag>) -> String {
+pub(crate) fn in_print_language(t: &crate::Text, lang: Option<&LangTag>) -> String {
     use ew_l10n::render::{DEFAULT_LANGUAGE, Language, OnError, language_for};
     static LANGUAGES: OnceLock<Vec<(&'static str, Language)>> = OnceLock::new();
     let languages = LANGUAGES.get_or_init(|| {

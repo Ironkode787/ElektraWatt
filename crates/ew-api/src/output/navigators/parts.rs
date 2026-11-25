@@ -15,7 +15,7 @@ use super::{Builder, NavRole, base_facets, cell_of, device_drawables, folios, gr
 use ew_derive::short_tag;
 
 /// Parts in use: manufacturer → part (the parts summary's rows in component mode) → the devices it counts.
-pub(super) fn parts_table(q: &Q, b: &mut Builder) {
+pub(super) fn parts_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
     let Some(set) = ew_reports::project_rows(q, &ew_schema::ReportKind::PartsSummary, None) else {
         return;
     };
@@ -28,7 +28,7 @@ pub(super) fn parts_table(q: &Q, b: &mut Builder) {
         let texts = ew_reports::csv::row_texts(q, &set, i);
         let maker = cell_of(&set, &texts, "manufacturer").to_owned();
         let maker = if maker.is_empty() {
-            "(none)".to_owned()
+            super::words_in(&text!("nav-none"), lang)
         } else {
             maker
         };
