@@ -370,7 +370,6 @@ impl Command for DeletePages {
             .iter()
             .filter_map(|d| tx.get::<Device>(*d)?.aspects.terminal.as_ref().map(|t| t.strip))
             .collect();
-        let mut kept: Vec<Id<Device>> = Vec::new();
         for device in candidates {
             let placed = tx
                 .functions_of_device(device)
@@ -380,9 +379,8 @@ impl Command for DeletePages {
                 continue;
             }
             match tx.delete_if_exists((Kind::Device, device.cast())) {
-                Ok(()) => {}
                 // A forbid link (a strip with terminals): the device stays, unplaced, unless the delete empties it.
-                Err(CmdError::Model(ModelError::Referenced { .. }, _)) => kept.push(device),
+                Ok(()) | Err(CmdError::Model(ModelError::Referenced { .. }, _)) => {}
                 Err(e) => return Err(e),
             }
         }
@@ -396,29 +394,12 @@ impl Command for DeletePages {
                 continue;
             }
             match tx.delete_if_exists((Kind::Device, strip.cast())) {
-                Ok(()) => kept.retain(|d| *d != strip),
-                Err(CmdError::Model(ModelError::Referenced { .. }, _)) => {
-                    if !kept.contains(&strip) {
-                        kept.push(strip);
-                    }
-                }
+                Ok(()) | Err(CmdError::Model(ModelError::Referenced { .. }, _)) => {}
                 Err(e) => return Err(e),
             }
         }
         crate::commands::revision::drop_notes_on_removed_pages(tx)?;
-        let note = (!kept.is_empty()).then(|| {
-            let ids: Vec<String> = kept.iter().map(|d| d.to_string()).collect();
-            format!(
-                "kept {} device(s) still referenced: {}",
-                kept.len(),
-                ids.join(", ")
-            )
-        });
-        Ok(Outcome {
-            primary: None,
-            note,
-            notices: Vec::new(),
-        })
+        Ok(Outcome::default())
     }
 }
 

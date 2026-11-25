@@ -47,10 +47,10 @@ fn the_parts_table_imports_into_a_new_project_once() {
     let mut s = session();
     let r = import(&mut s);
     let rows = ew_testdir::table_rows("parts.csv");
-    assert_eq!(r.outcome.note, Some(format!("created {rows}, skipped 0")));
+    assert_eq!(r.outcome.counts.map(|c| (c.created, c.skipped)), Some((rows, 0)));
     assert_eq!(s.query().parts().iter().count(), rows);
     let r = import(&mut s);
-    assert_eq!(r.outcome.note, Some(format!("created 0, skipped {rows}")));
+    assert_eq!(r.outcome.counts.map(|c| (c.created, c.skipped)), Some((0, rows)));
     assert_eq!(s.query().parts().iter().count(), rows);
     let folio = s.page_labels().first().cloned().unwrap();
     let cat = s.place_catalogue(&folio).expect("a drawn page");
@@ -144,5 +144,5 @@ fn a_bom_prefixed_parts_table_imports_the_same_copies() {
         .unwrap();
     let r = s.commit(preview).unwrap();
     let rows = ew_testdir::table_rows("parts.csv");
-    assert_eq!(r.outcome.note, Some(format!("created {rows}, skipped 0")));
+    assert_eq!(r.outcome.counts.map(|c| (c.created, c.skipped)), Some((rows, 0)));
 }

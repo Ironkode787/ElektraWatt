@@ -230,7 +230,7 @@ impl Command for PasteFragment {
         let out = insertion.run(tx)?;
         Ok(Outcome {
             primary: out.first_rep,
-            note: None,
+            counts: None,
             notices: out.notices,
         })
     }

@@ -42,21 +42,13 @@ use super::library::read_copy;
 /// transaction is empty.
 ///
 /// Cost `Bulk` (always previewed: the shell shows the card with the created and skipped counts), exposure `Edit` (the
-/// GUI, `ew import parts`, and a command log replayed by `ew apply`). Outcome: the first inserted part copy; the note
-/// `created <n>, skipped <m>`, which counts the part copies.
+/// GUI, `ew import parts`, and a command log replayed by `ew apply`). Outcome: the first inserted part copy; the
+/// counts of the part copies created and skipped.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ImportParts {
     /// The project-local part copies to create, and the manufacturer copies they name (`lib/` JSON form).
     pub copies: Vec<Value>,
-}
-
-/// The counts of a `parts.import` outcome note (`created <n>, skipped <m>`): `(created, skipped)`, `None` for another
-/// note.
-pub fn import_counts(note: &str) -> Option<(usize, usize)> {
-    let rest = note.strip_prefix("created ")?;
-    let (created, skipped) = rest.split_once(", skipped ")?;
-    Some((created.parse().ok()?, skipped.parse().ok()?))
 }
 
 impl Command for ImportParts {
@@ -162,7 +154,7 @@ impl Command for ImportParts {
         }
         Ok(Outcome {
             primary,
-            note: Some(format!("created {created}, skipped {skipped}")),
+            counts: Some(crate::Counts { created, skipped }),
             ..Outcome::default()
         })
     }

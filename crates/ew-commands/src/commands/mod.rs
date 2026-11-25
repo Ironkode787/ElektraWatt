@@ -98,7 +98,7 @@ pub use page_copy::{
     NodeSwap, PAGE_COPY_KINDS, REPRODUCED, Rename, TextNames, designation_moves, names_tag, renamed,
     renamed_mltext, text_names,
 };
-pub use parts::import_counts;
+
 pub use paste::{Fragment, FragmentNode, PASTE_KINDS, PASTE_MAX_RECORDS};
 pub use plc::is_on_module;
 pub use plc_exchange::{field_text, object_text};

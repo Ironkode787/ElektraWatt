@@ -107,7 +107,7 @@ mod transaction;
 mod tx;
 mod words;
 
-pub use command::{Command, DynCommand, Outcome};
+pub use command::{Command, Counts, DynCommand, Outcome};
 pub use derived::{DerivedChange, DerivedDiff, derived_diff};
 pub use diff::{ChangeKind, EntityChange, ModelDiff, diff_model, holds_record};
 pub use engine::{

@@ -31,12 +31,11 @@ fn a_strip_emptied_by_the_delete_goes_with_its_terminals() {
         delete_devices: true,
     };
     let preview = e.preview(&cmd).unwrap();
-    let receipt = e.commit(preview).unwrap();
+    e.commit(preview).unwrap();
     for device in [DEV_T1, DEV_T2, DEV_T3, DEV_X1031] {
         assert!(
             e.model().table::<Device>().get(&device).is_none(),
             "{device} is gone"
         );
     }
-    assert_eq!(receipt.outcome.note, None, "nothing is kept");
 }

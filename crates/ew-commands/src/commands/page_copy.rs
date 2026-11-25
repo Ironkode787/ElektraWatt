@@ -631,7 +631,7 @@ impl Command for CopyPages {
         self.retext(tx, &out.members)?;
         Ok(Outcome {
             primary: out.pages.first().map(|p| (Kind::Page, p.cast())),
-            note: None,
+            counts: None,
             notices: out.notices,
         })
     }

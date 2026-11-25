@@ -317,9 +317,7 @@ pub(super) fn run_import_parts_mapped(a: &ImportPartsArgs, map: &Path, dir: &Pat
                 return 2;
             }
         };
-        (created, skipped) =
-            ew_api::import::parts_import_counts(receipt.outcome.note.as_deref().unwrap_or_default())
-                .unwrap_or((0, 0));
+        (created, skipped) = receipt.outcome.counts.map_or((0, 0), |c| (c.created, c.skipped));
         if let Err(e) = session
             .save()
             .map(|r| warn_unreleased(r.unstable, &mut std::io::stderr()))
@@ -394,9 +392,7 @@ pub(super) fn run_import_parts(a: &ImportPartsArgs) -> i32 {
             return 2;
         }
     };
-    let (created, skipped) =
-        ew_api::import::parts_import_counts(receipt.outcome.note.as_deref().unwrap_or_default())
-            .unwrap_or((0, 0));
+    let (created, skipped) = receipt.outcome.counts.map_or((0, 0), |c| (c.created, c.skipped));
     if let Err(e) = session
         .save()
         .map(|r| warn_unreleased(r.unstable, &mut std::io::stderr()))

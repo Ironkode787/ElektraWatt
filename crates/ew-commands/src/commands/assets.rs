@@ -91,12 +91,7 @@ impl Command for PurgeAssets {
     }
 
     fn run(&self, _tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
-        let mut outcome = Outcome {
-            note: Some(
-                "asset files that nothing names are deleted by the session's save protocol".to_owned(),
-            ),
-            ..Outcome::default()
-        };
+        let mut outcome = Outcome::default();
         if let Some(listed) = self.listed()? {
             outcome.notices.extend(
                 listed

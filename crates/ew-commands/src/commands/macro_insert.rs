@@ -725,7 +725,7 @@ impl Command for InsertMacro {
             .or(Some((Kind::MacroInstance, id.cast())));
         Ok(Outcome {
             primary,
-            note: None,
+            counts: None,
             notices: out.notices,
         })
     }

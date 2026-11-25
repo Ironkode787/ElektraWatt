@@ -727,7 +727,7 @@ impl Command for AutoFill {
         }
         Ok(Outcome {
             primary: Some((Kind::Carrier, carrier.cast())),
-            note: None,
+            counts: None,
             notices,
         })
     }

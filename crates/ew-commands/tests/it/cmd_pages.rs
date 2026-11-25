@@ -277,13 +277,10 @@ fn delete_page_with_devices_removes_the_unplaced_ones() {
 fn delete_devices_skips_a_strip_with_terminals() {
     let mut e = engine(mini_model());
     // Page 102 places the terminal strip X1031, whose terminals still reference it: it is kept, unplaced.
-    let r = bulk(&mut e, &delete(&[PAGE_102], true)).unwrap();
+    bulk(&mut e, &delete(&[PAGE_102], true)).unwrap();
     assert!(!has(&e, PAGE_102));
     assert!(has::<Device>(&e, DEV_X1031));
     assert!(!has::<Device>(&e, DEV_102G1));
-    let note = r.outcome.note.expect("note");
-    assert!(note.starts_with("kept 1 device(s) still referenced"), "{note}");
-    assert!(note.contains(&DEV_X1031.to_string()), "{note}");
 }
 
 #[test]

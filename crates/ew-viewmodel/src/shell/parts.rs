@@ -23,7 +23,7 @@ use std::path::PathBuf;
 
 use ew_api::catalog;
 use ew_api::eplan::{self, ReportMap, ReportTarget};
-use ew_api::import::{PartsImport, parts_import_counts, read_parts_tables};
+use ew_api::import::{PartsImport, read_parts_tables};
 use ew_api::{AnyCommand, Submit};
 use serde_json::{Map, Value};
 
@@ -699,8 +699,8 @@ impl ShellModel {
         let (created, skipped) = result
             .as_ref()
             .ok()
-            .and_then(|p| parts_import_counts(p.outcome().note.as_deref()?))
-            .unwrap_or((0, 0));
+            .and_then(|p| p.outcome().counts)
+            .map_or((0, 0), |c| (c.created, c.skipped));
         let result = result.map_err(|e| super::tools::command_error_message(&e, &params));
         let edit = PendingEdit {
             kind: "part".to_owned(),

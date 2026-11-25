@@ -178,7 +178,7 @@ impl Command for AddTerminals {
         }
         Ok(Outcome {
             primary: first.map(|d| (Kind::Device, d.cast())),
-            note: None,
+            counts: None,
             notices: Vec::new(),
         })
     }
@@ -534,7 +534,7 @@ impl Command for InsertTerminals {
         push_after_growth(tx, self.strip)?;
         Ok(Outcome {
             primary: first.map(|d| (Kind::Device, d.cast())),
-            note: None,
+            counts: None,
             notices: Vec::new(),
         })
     }
@@ -849,7 +849,7 @@ impl Command for AddConductors {
         let first = insert_conductors(tx, self.cable, &self.conductors)?;
         Ok(Outcome {
             primary: first.map(|c| (Kind::Conductor, c.cast())),
-            note: None,
+            counts: None,
             notices: Vec::new(),
         })
     }

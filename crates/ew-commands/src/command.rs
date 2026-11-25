@@ -19,8 +19,9 @@ use ew_l10n::Text;
 pub struct Outcome {
     /// The record the command is about (the new device of `device.place`, the new page of `page.create`).
     pub primary: Option<AnyKey>,
-    /// A short human-readable note for the toast, if any.
-    pub note: Option<String>,
+    /// What the command counted, for the front ends that report it (`parts.import`); `None` for a command that
+    /// counts nothing.
+    pub counts: Option<Counts>,
     /// What the command dropped or adjusted instead of refusing, for the toast (an autoconnect hint whose
     /// target vanished, doc 06 §3.2 row 6), in the order they arose: each by key, so that the window words it in its
     /// language and the command line in English.
@@ -32,10 +33,19 @@ impl Outcome {
     pub fn primary(key: AnyKey) -> Outcome {
         Outcome {
             primary: Some(key),
-            note: None,
+            counts: None,
             notices: Vec::new(),
         }
     }
+}
+
+/// The records a command created and the ones it skipped (`parts.import`: the part copies).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct Counts {
+    /// The records created.
+    pub created: usize,
+    /// The records skipped.
+    pub skipped: usize,
 }
 
 /// A typed command: serialisable intent with a stable dotted name and a JSON Schema for its parameters
