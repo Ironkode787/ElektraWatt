@@ -47,15 +47,38 @@ pub fn model_lines(model: &Model) -> Result<Vec<(AnyKey, String)>, CmdError> {
 /// The fixed size of an op itself (key, two optional `Arc`s and the vector slot).
 const OP_OVERHEAD: usize = std::mem::size_of::<ew_model::Op>();
 
-/// The estimated memory of the `before` row of an op plus the op itself (the part of the 256 MB bound of
-/// the undo stack that the history alone keeps alive, ARCH §5.3; see [`crate::history`]). Does not
-/// serialise: the size comes from [`crate::heap`].
-pub(crate) fn before_bytes(op: &ew_model::Op) -> usize {
-    OP_OVERHEAD + op.before().map_or(0, crate::heap::row_bytes)
+/// Counts the bytes written to it.
+struct Count(usize);
+
+impl std::io::Write for Count {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.0 += buf.len();
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
 }
 
-/// The estimated memory of the `after` row of an op: counted by the history only while the step is in the
-/// redo branch (the live model no longer holds the row).
+/// The length of a row's compact JSON ([`row_text`]), counted without building the text; 0 for a row without a JSON
+/// form, which no committed op holds.
+fn json_len(row: &AnyRow) -> usize {
+    let mut count = Count(0);
+    match row.to_json() {
+        Ok(value) if serde_json::to_writer(&mut count, &value).is_ok() => count.0,
+        _ => 0,
+    }
+}
+
+/// The size of the `before` row of an op as its compact JSON, plus the op itself: the part of the 256 MB bound of the
+/// undo stack that the history alone keeps alive (ARCH §5.3; see [`crate::history`]).
+pub(crate) fn before_bytes(op: &ew_model::Op) -> usize {
+    OP_OVERHEAD + op.before().map_or(0, json_len)
+}
+
+/// The size of the `after` row of an op as its compact JSON: counted by the history only while the step is in the redo
+/// branch (the live model no longer holds the row).
 pub(crate) fn after_bytes(op: &ew_model::Op) -> usize {
-    op.after().map_or(0, crate::heap::row_bytes)
+    op.after().map_or(0, json_len)
 }

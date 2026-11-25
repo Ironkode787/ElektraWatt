@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The memory bound of the undo stack (F8): the budget counts only the rows the history alone keeps alive,
-//! estimated without serialising.
+//! The memory bound of the undo stack (F8): the budget counts only the rows the history alone keeps alive, each by
+//! the length of its compact JSON.
 
 use crate::common;
 
@@ -36,6 +36,28 @@ fn set_text(devices: &[Id<Device>], text: &str) -> SetFields {
         value: json!(text),
         copies: Vec::new(),
     }
+}
+
+/// A step counts the compact JSON length of the rows only the history keeps, and a fixed size per op: its `before`
+/// rows while it is applied, its `after` rows once it is undone.
+#[test]
+fn a_step_counts_the_json_length_of_its_rows() {
+    let mut e = engine_with_limits(mini_model(), unlimited());
+    e.execute(&set_text(&[DEV_102F2, DEV_T1], "spare"))
+        .expect("fields.set");
+    let entry = &e.history().entries()[0];
+    let ops = &entry.transaction().ops;
+    let len =
+        |row: Option<&ew_model::AnyRow>| row.map_or(0, |r| ew_commands::rows::row_text(r).unwrap().len());
+    let before: usize = ops
+        .iter()
+        .map(|op| std::mem::size_of::<ew_model::Op>() + len(op.before()))
+        .sum();
+    let after: usize = ops.iter().map(|op| len(op.after())).sum();
+    assert_eq!((entry.bytes(), entry.after_bytes()), (before, after));
+    assert_eq!(e.history().bytes(), before);
+    e.undo(&Origin::Gui).expect("undo");
+    assert_eq!(e.history().bytes(), before + after);
 }
 
 #[test]
@@ -82,14 +104,11 @@ fn the_budget_holds_after_many_steps() {
 
 #[test]
 fn accounting_is_within_2x_of_a_measured_step() {
-    // Method. A counting `#[global_allocator]` would need `unsafe`, which the workspace forbids
-    // (`unsafe_code = "forbid"`, NFR-SEC-04), so the reference is the known payload of the step instead of
-    // an allocator reading. The history keeps one step (`max_steps: 1`). Step 1 gives every fixture device
-    // a 1 MB text X; step 2 replaces them by a text Y. After step 2 the history alone keeps the eight rows
-    // that hold X (the `before` rows of step 2: the model has Y), and the heap those rows own is at least
-    // the eight texts (the `Device` structs and `Arc` headers come on top, a few KB each). The accounted
-    // size must be within a factor of two of that payload, and it must not count the Y rows the live model
-    // shares.
+    // Method. The reference is the known payload of the step. The history keeps one step (`max_steps: 1`).
+    // Step 1 gives every fixture device a 1 MB text X; step 2 replaces them by a text Y. After step 2 the history
+    // alone keeps the eight rows that hold X (the `before` rows of step 2: the model has Y), and their JSON holds
+    // at least the eight texts (the rest of each record comes on top, well under a KB each). The accounted size
+    // must be within a factor of two of that payload, and it must not count the Y rows the live model shares.
     let devices = [
         DEV_101F1, DEV_102G1, DEV_102F2, DEV_X1031, DEV_T1, DEV_T2, DEV_T3, DEV_3W1,
     ];

@@ -91,7 +91,6 @@ mod diff;
 mod engine;
 mod error;
 pub mod geometry;
-mod heap;
 mod history;
 mod jsonschema;
 mod meta;

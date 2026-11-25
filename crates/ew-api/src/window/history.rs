@@ -58,7 +58,7 @@ pub struct HistoryView {
     pub rows: Vec<HistoryRow>,
     /// The number of applied entries: the entries at and above it are the redo branch.
     pub cursor: usize,
-    /// The estimated size of what the history keeps.
+    /// The size of what the history keeps, its rows as compact JSON.
     pub bytes: usize,
     /// Its bound in bytes.
     pub max_bytes: usize,

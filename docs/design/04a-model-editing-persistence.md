@@ -313,8 +313,8 @@ validated against the command's JSON Schema ([extensibility](17-extensibility.md
   applies the inverse ops as a **new** revision, which keeps `changed_at` monotonic and memo validation sound.
 - **Scope and limits.** One project-wide stack (G3), bounded at 500 steps or 256 MB. Each entry restores the model
   (page, viewport and selection: specified; not built). The stack survives saving, and a saved marker drives the dirty flag. Marker lines count
-  towards the 500; the 256 MB counts only the rows the history alone keeps alive, by in-memory size, and one step
-  larger than that is kept alone. Undo and redo run the structural invariants but not the prevent rules (ADR-0008
+  towards the 500; the 256 MB counts only the rows the history alone keeps alive, each by the length of its compact
+  JSON, and one step larger than that is kept alone. Undo and redo run the structural invariants but not the prevent rules (ADR-0008
   amendment 2), nor the model's delete-time rule EW-INV-021 (ADR-0009 amendment 7): they apply through
   `Model::apply_history`, the history path, and restore a committed state,
   so the undo of `library.embed` removes copies that `LibRef`s name, which then name nothing again.

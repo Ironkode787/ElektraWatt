@@ -3,9 +3,9 @@
 
 //! The project-wide undo stack (ADR-0008, ARCH §5.3).
 //!
-//! - One stack for the whole project, bounded at 500 steps or 256 MB of memory the history alone keeps
-//!   alive (see "Memory accounting"); the oldest entries are dropped first, but the newest entry is always
-//!   kept.
+//! - One stack for the whole project, bounded at 500 steps or 256 MB of the rows the history alone keeps
+//!   alive, counted as their compact JSON (see "Memory accounting"); the oldest entries are dropped first, but the
+//!   newest entry is always kept.
 //! - Undo applies the inverse ops of a step as a **new** revision; redo applies the step's ops again, also
 //!   as a new revision (the session does both; this type only keeps the entries and the cursor).
 //! - Non-undoable transactions are **marker lines**. A marker without ops (an export) is transparent:
@@ -16,8 +16,9 @@
 //!
 //! # Memory accounting
 //!
-//! The bound counts what the history **alone** keeps alive, estimated from the rows' heap sizes without
-//! serialising ([`crate::heap`], F8). Each entry keeps two figures:
+//! The bound counts what the history **alone** keeps alive, each row by the length of its compact JSON (its record
+//! bytes) and each op by its own fixed size: a measure of the rows' size, not of the memory they take. Each entry
+//! keeps two figures:
 //!
 //! - `before_bytes`: the `before` rows of its ops plus the ops themselves. The live model no longer holds
 //!   these rows once the step is applied, so they always count (also while the step is undone: a
@@ -48,7 +49,7 @@ use crate::transaction::Transaction;
 pub struct HistoryLimits {
     /// The maximum number of entries (steps and marker lines).
     pub max_steps: usize,
-    /// The maximum estimated size of the rows only the history keeps alive, in bytes (see the module doc).
+    /// The maximum size of the rows only the history keeps alive, in bytes of their compact JSON (see the module doc).
     pub max_bytes: usize,
 }
 
@@ -120,13 +121,13 @@ impl HistoryEntry {
         self.rev
     }
 
-    /// The estimated size in bytes of the entry's `before` rows and ops: what it counts towards the bound
+    /// The size in bytes of the entry's `before` rows (their compact JSON) and ops: what it counts towards the bound
     /// while it is applied.
     pub fn bytes(&self) -> usize {
         self.before_bytes
     }
 
-    /// The estimated size in bytes of the entry's `after` rows: counted too while the entry is in the redo
+    /// The size in bytes of the entry's `after` rows (their compact JSON): counted too while the entry is in the redo
     /// branch.
     pub fn after_bytes(&self) -> usize {
         self.after_bytes
@@ -218,8 +219,8 @@ impl History {
         Ok(out)
     }
 
-    /// The estimated size in bytes of what the history alone keeps alive: the `before` rows of every entry
-    /// and the `after` rows of the entries at and above the cursor (module doc).
+    /// The size in bytes of what the history alone keeps alive: the `before` rows of every entry and the `after`
+    /// rows of the entries at and above the cursor, as their compact JSON (module doc).
     pub fn bytes(&self) -> usize {
         self.bytes
     }
