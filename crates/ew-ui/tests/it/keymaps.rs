@@ -51,7 +51,7 @@ fn actions_of(h: &mut Harness<'_, App>, modifiers: Modifiers, key: Key) -> Vec<S
 
 const FIRST_RUN_DONE: &str = "first_run_done = true\n";
 
-/// KM-1 (FR-UI-013): the KiCad-like preset in the window: A starts Place, G Move, W Wire and E focuses Properties on
+/// The KiCad-like preset in the window: A starts Place, G Move, W Wire and E focuses Properties on
 /// the canvas.
 #[test]
 fn the_kicad_preset_binds_a_g_w_and_e_on_the_canvas() {
@@ -74,7 +74,7 @@ fn the_kicad_preset_binds_a_g_w_and_e_on_the_canvas() {
     );
 }
 
-/// KM-1: in the EW preset A is not bound and I starts Place. KM-5: Ctrl+Shift+N runs Renumber devices….
+/// In the EW preset A is not bound and I starts Place. Ctrl+Shift+N runs Renumber devices….
 #[test]
 fn the_ew_preset_keeps_i_for_place_and_binds_ctrl_shift_n_to_renumber() {
     let tmp = Tmp::new();
@@ -91,7 +91,7 @@ fn the_ew_preset_keeps_i_for_place_and_binds_ctrl_shift_n_to_renumber() {
     );
 }
 
-/// KM-2: a user keymap's chord runs its action in the window, and the preset's key of that action no longer does.
+/// A user keymap's chord runs its action in the window, and the preset's key of that action no longer does.
 #[test]
 fn a_user_binding_replaces_the_presets_in_the_window() {
     let tmp = Tmp::new();
@@ -110,7 +110,7 @@ fn a_user_binding_replaces_the_presets_in_the_window() {
     assert!(!log.iter().any(|a| a == "tool.wire"), "{log:?}");
 }
 
-/// KM-3 in the window: Record, then a pressed chord sets the binding; a conflict shows as an error line; the row of a
+/// In the window: Record, then a pressed chord sets the binding; a conflict shows as an error line; the row of a
 /// canvas binding over a global one shows its shadowing; the walker passes with the editor open.
 #[test]
 fn the_editor_records_a_pressed_chord_and_shows_conflicts_and_shadowing() {

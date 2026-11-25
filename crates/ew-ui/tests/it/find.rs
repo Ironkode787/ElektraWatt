@@ -251,7 +251,7 @@ fn options<'t>(h: &'t Harness<'_, App>) -> Vec<egui_kittest::Node<'t>> {
     h.get_all_by_role(egui::Role::ListBoxOption).collect()
 }
 
-/// AX-7: a result's accessible name is its line in plain text and its description the same line with the
+/// A result's accessible name is its line in plain text and its description the same line with the
 /// matches marked; a long list builds only the rows on show, and the cursor's row is built wherever it moves.
 #[test]
 fn results_are_named_in_plain_text_and_only_the_rows_on_show_are_built() {

@@ -408,7 +408,7 @@ pub(crate) fn layout_fields(ui: &mut Ui, options: tools::LayoutOptions, events: 
     }
 }
 
-/// Draw rail's and Draw duct's options on the tool options card (D11): the part (the project's parts of the kind, then
+/// Draw rail's and Draw duct's options on the tool options card: the part (the project's parts of the kind, then
 /// the installed libraries'), the grid step 5 mm | 1 mm, and a duct's width and height in millimetres when its part
 /// gives none; each change sends `layout.draw_options` (the grid `layout.options`), which the next drawing keeps.
 pub(crate) fn draw_fields(

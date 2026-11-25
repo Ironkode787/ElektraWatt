@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Preview tab (D11; FR-UI-022), restyled to doc 16a §6.23.
+//! The Preview tab (FR-UI-022), restyled to doc 16a §6.23.
 //!
 //! **The tab** shows the open card: a header row with "Preview: `<command>`", "as of rev `<r>`" and the Stale or Failed
 //! status badge at the left and Apply (Primary) and Cancel at the right, so the actions stay visible above long lists;

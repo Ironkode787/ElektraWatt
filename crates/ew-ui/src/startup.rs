@@ -50,7 +50,7 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Eve
             } else {
                 ui.label(row);
             }
-            // D11, doc 05 §8.3: the project's path under its row.
+            // Doc 05 §8.3: the project's path under its row.
             ui.label(crate::components::small_secondary(&t, p.path.to_string_lossy()));
         }
         if let Some(refusal) = &offer.refusal {

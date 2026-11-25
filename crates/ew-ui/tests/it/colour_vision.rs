@@ -8,7 +8,7 @@
 //!
 //! The render of the sample's folio 101 with L1, N, PE and 24V in slots 1 to 4, at 150 dpi through `ew-render-cpu`
 //! and under each simulation, is written for review with `EW_BLESS=1` under `tests/expected/canvas/cvd/` and never
-//! compared (D15: not gated).
+//! compared (not gated).
 
 use crate::support;
 
@@ -21,7 +21,7 @@ use serde_json::{Value, json};
 use support::Tmp;
 use support::colour::{Simulation, ciede2000, from_linear, lab, to_linear};
 
-/// `canvas.selection`, read from the renderer's light theme, so that a change to it runs D15 again.
+/// `canvas.selection`, read from the renderer's light theme, so that a change to it runs this test again.
 const SELECTION: [u8; 3] = {
     let c = ew_render2d::overlay::LIGHT.selection;
     [c.r, c.g, c.b]

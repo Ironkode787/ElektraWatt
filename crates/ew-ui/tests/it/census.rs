@@ -152,7 +152,7 @@ fn open_navigator(h: &mut Harness<'_, App>, kind: NavKind) {
     }
 }
 
-/// D3: folio 101 with a device and a wire selected, the six command-bar tabs, every menu of the registry, every pane
+/// Folio 101 with a device and a wire selected, the six command-bar tabs, every menu of the registry, every pane
 /// and navigator, with the Preview, History, Find and Messages panes holding content.
 #[test]
 fn census_the_window_its_tabs_menus_panes_and_navigators() {
@@ -377,7 +377,7 @@ fn same(value: Value) -> Result<Value, MigrationError> {
     Ok(value)
 }
 
-/// A chain from the test format `0.0` to this one that changes nothing but the stamp (as `collab.rs`'s XW-6).
+/// A chain from the test format `0.0` to this one that changes nothing but the stamp (as `collab.rs` has it).
 static CHAIN: Migrations = Migrations {
     kinds: &[],
     formats: &[FormatStep {
@@ -406,7 +406,7 @@ fn crashed(tmp: &Tmp) -> std::path::PathBuf {
 }
 
 /// The window with a dialog of `kind` open, in a fixture of its own where it needs one (the shell's own actions and
-/// test hooks only, D5).
+/// test hooks only).
 fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
     let simple = |action: &str, params: Value| {
         let mut h = on_sample(tmp, &format!("{kind:?}.ew"));
@@ -655,7 +655,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
     }
 }
 
-/// D3: every dialog of the shell, each in its state, in four shards that run side by side (`support::shard`: each
+/// Every dialog of the shell, each in its state, in four shards that run side by side (`support::shard`: each
 /// dialog is opened in a window and a folder of its own).
 fn census_dialogs(k: usize, of: usize) {
     let mut census = Census::default();
@@ -1039,7 +1039,7 @@ fn the_macro_and_text_edit_tools_cancel_with_escape_and_change_nothing() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// D3: the start page, the five first-run steps and the ten wizard steps.
+/// The start page, the five first-run steps and the ten wizard steps.
 #[test]
 fn census_the_start_page_the_first_run_and_the_wizard() {
     let mut census = Census::default();
@@ -1097,7 +1097,7 @@ fn census_the_start_page_the_first_run_and_the_wizard() {
     census.assert_clean();
 }
 
-/// GT-3: the walker's lines on a fixture UI: a check box without its toggled state, a combo box without its expanded
+/// The walker's lines on a fixture UI: a check box without its toggled state, a combo box without its expanded
 /// state, a button without a name.
 #[test]
 fn the_walker_names_each_failing_node_in_words() {
@@ -1176,7 +1176,7 @@ fn the_availability_walk_names_an_enabled_button_of_an_unavailable_action() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// GT-3: the form census's source check names a form action it does not open.
+/// The form census's source check names a form action it does not open.
 #[test]
 fn the_form_check_names_a_form_the_census_does_not_open() {
     let built = crate::form_dialog_focus::form_actions();

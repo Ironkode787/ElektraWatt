@@ -279,7 +279,7 @@ fn the_preview_draws_the_papers_whole_edge() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// PW-4 (offscreen, the visual driver): the pre-dialog built, empty and building at 1920 × 1080 and at
+/// The pre-dialog built, empty and building at 1920 × 1080 and at
 /// 2560 × 1440, painted to `target/ew-ui-snapshots/print/` for the window check (not gated: no expected image). The
 /// building frame holds the job at a test gate, which a script cannot (a visual run waits for the build).
 #[test]

@@ -76,7 +76,7 @@ pub(crate) fn item_centre(h: &Harness<'_, App>, name: &str) -> Pos2 {
         + egui::vec2(12.0, 0.0)
 }
 
-/// NV5 in the window (FR-UI-007, D16): View ▸ Navigators ▸ Devices docks the pane and focuses it; its rows
+/// NV5 in the window (FR-UI-007): View ▸ Navigators ▸ Devices docks the pane and focuses it; its rows
 /// are tree items named `<label>, <role>[, <badges>]`; a click on the valve terminal -201K1 with 102 shown keeps 102,
 /// selects the device and shows the chips of its representations as buttons: `Go to page 201, E2` (its box, placed at
 /// E2, the main one first), `Go to page 105, C9` (its bus port, drawn there from C9) and its supply ports under the box;

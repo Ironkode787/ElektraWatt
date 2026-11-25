@@ -286,7 +286,7 @@ fn supply_points_that_stand_together_print_their_place_once() {
     d.shell_mut().shutdown();
 }
 
-/// H9: supply marks placed in one go ask what comes in. Three points L1, N and PE drawn with the Interruption tool, N
+/// Supply marks placed in one go ask what comes in. Three points L1, N and PE drawn with the Interruption tool, N
 /// defined as the neutral first; Supply comes in here… on all three opens the Potential panel at them with a row per
 /// mark whose potential has no type yet (L1 and PE: N continues its potential and is not asked), pre-filled from the
 /// names. A voltage typed in the L1 row and Enter define both potentials in one undo step; Potential… on the marks'

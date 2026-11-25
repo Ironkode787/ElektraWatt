@@ -123,7 +123,7 @@ fn station(d: &mut Driver, kind: &str, head: &str, parts: &[&str]) -> Uuid {
         .expect("the station's view")
 }
 
-/// H2: on a project with a CPU and a card, a remote I/O station with a card, both valve terminals (with a PROFIBUS and
+/// On a project with a CPU and a card, a remote I/O station with a card, both valve terminals (with a PROFIBUS and
 /// with a PROFINET node, valves on their positions) and a bus device of one's own given to a PLC, every line of To do
 /// does its thing: each side lands on a page of its kind (made when the project has none, chosen from the list when
 /// it has), the valve terminal stands on the fluid page as its positions with its valves in their cells, and To do

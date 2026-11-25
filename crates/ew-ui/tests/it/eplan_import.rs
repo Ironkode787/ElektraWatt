@@ -3,7 +3,7 @@
 
 //! File ▸ Import… of EPLAN data in the window (doc 14 §5, §13), at 1920 × 1080: an EDZ shows the Data Portal
 //! terms notice once per session, then what it means for the project; Update previews the changed fields of the
-//! project's part copy on the card (AC-38); Add to my parts library writes the user's library; a report spreadsheet
+//! project's part copy on the card; Add to my parts library writes the user's library; a report spreadsheet
 //! offers the mappings that fit its headers and makes a new project. Not here: that the terms notice cannot be skipped
 //! (`ew-viewmodel`'s `eplan_import.rs`).
 

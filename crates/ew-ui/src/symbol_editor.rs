@@ -265,7 +265,7 @@ impl EditorView {
         let Some((word, caption, icon)) = TOOLS.iter().find(|(w, ..)| *w == word).copied() else {
             return false;
         };
-        // P8: the tooltip names the key of the keymap that chooses the tool.
+        // The tooltip names the key of the keymap that chooses the tool.
         let key = TOOL_KEYS
             .iter()
             .find(|(tool, _)| *tool == word)

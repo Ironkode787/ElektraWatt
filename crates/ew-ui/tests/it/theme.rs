@@ -493,7 +493,7 @@ fn the_tokens_equal_the_mockups_custom_properties() {
 fn g10_and_g15_equal_the_mockups_geometry() {
     let light = tokens(Theme::Light, Density::Comfortable);
     let compact = tokens(Theme::Light, Density::Compact);
-    // G10: row height (via --row) and the property label column.
+    // Row height (via --row) and the property label column.
     assert_eq!(light.size_row, 28.0);
     assert_eq!(compact.size_row, 24.0);
     let columns = rule(".prow", "grid-template-columns");
@@ -501,7 +501,7 @@ fn g10_and_g15_equal_the_mockups_geometry() {
         px(columns.split_whitespace().next().unwrap()),
         light.size_property_label
     );
-    // G15: radii.
+    // radii.
     let r = |selector: &str| px(&rule(selector, "border-radius"));
     for selector in [".qa", ".ghost"] {
         assert_eq!(r(selector), light.radius_sm, "icon buttons: {selector}");

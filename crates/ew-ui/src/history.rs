@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The history panel (D13; FR-UI-023) and its Show changes popup, in the design language of
+//! The history panel (FR-UI-023) and its Show changes popup, in the design language of
 //! doc 16a §6.24.
 //!
 //! **The panel** lists the shell's history lines newest first ([`ew_viewmodel::undo_history::HistoryPane::lines`]).

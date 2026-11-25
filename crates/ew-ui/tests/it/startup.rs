@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The start-up dialog and the bundled `PRIVACY.md` in the window (PV-6's window half, PV-10): the
+//! The start-up dialog and the bundled `PRIVACY.md` in the window (the window half): the
 //! offer of an earlier session's crash log with its buttons, and the privacy buttons opening the bundled copy.
 
 use crate::support;
@@ -147,7 +147,7 @@ fn the_second_of_two_projects_is_chosen_and_recovered() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// PV-10: with `PRIVACY.md` in the installation, About's and the first-run step's privacy buttons open it locally (the
+/// With `PRIVACY.md` in the installation, About's and the first-run step's privacy buttons open it locally (the
 /// fall-back to the repository's copy when there is none is `shell_frame.rs`'s).
 #[test]
 fn the_privacy_buttons_open_the_bundled_privacy_md() {

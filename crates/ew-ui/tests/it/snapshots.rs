@@ -7,7 +7,7 @@
 //! and written as PNG files under `target/ew-ui-snapshots/` (or `EW_SNAPSHOT_DIR`) for the reviewer, who compares
 //! them with the mockup side by side.
 //!
-//! The pixel gate (D7 as amended: no `egui_kittest` render feature): the main window in light and dark at both
+//! The pixel gate (no `egui_kittest` render feature): the main window in light and dark at both
 //! densities and the gallery in the four themes at ppp 1 are compared with the blessed PNG files under
 //! `tests/expected/snapshots/`. A pixel differs when a channel differs by more than
 //! [`offscreen::CHANNEL_TOLERANCE`]; an image fails with more than [`offscreen::MAX_DIFFERING_PIXELS`] differing

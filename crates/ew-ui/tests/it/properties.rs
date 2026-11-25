@@ -714,7 +714,7 @@ fn header_severity_chips_and_the_actions_menu_on_the_dots_button() {
     h.set_size(egui::Vec2::new(1920.0, 1080.0));
     // The breaker -101F1 lettered K, one representation: F8 selects it alone.
     lettered_k(&mut h, "-101F1");
-    // F8: the first finding, its object selected, so the grid shows its sheet with the finding in the header.
+    // The first finding, its object selected, so the grid shows its sheet with the finding in the header.
     dispatch(&mut h, "messages.next", json!({}));
     settle(&mut h);
     settle(&mut h);

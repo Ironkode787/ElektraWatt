@@ -299,7 +299,7 @@ fn bus_page(tmp: &Tmp) -> (ew_ui::visual::Driver, Vec<String>, Vec<String>) {
     (d, cpu, rio)
 }
 
-/// H3: a cable chosen for a line on a bus layout gets the next tag by the project's numbering, with the page as
+/// A cable chosen for a line on a bus layout gets the next tag by the project's numbering, with the page as
 /// a cable marked on a wiring page has it, and its mark at the line (a marker listing the line); a second line gets
 /// the next tag. Each tag stands once on the page.
 #[test]
@@ -338,7 +338,7 @@ fn a_bus_cable_takes_the_next_tag_of_its_page_and_its_mark() {
     }
 }
 
-/// H4: New bus cable… and New plug… in the bus line's Cable form make the parts in a short form, the cable's
+/// New bus cable… and New plug… in the bus line's Cable form make the parts in a short form, the cable's
 /// cores as PROFIBUS has them, the plug angled with its resistor; each is chosen in the form at once, and Apply puts
 /// both into the parts list (H15), the cable by its length.
 #[test]
@@ -493,7 +493,7 @@ fn parts_now(d: &mut ew_ui::visual::Driver, nav: bool) -> (Vec<String>, Vec<Stri
     (page, nav)
 }
 
-/// H15: with the parts list page open before, a bus line's cable and plugs chosen in the Cable form are on that
+/// With the parts list page open before, a bus line's cable and plugs chosen in the Cable form are on that
 /// page and in the Parts navigator at once, without a save; a plug at an end without a device (an interruption point)
 /// counts too, with the cable.
 #[test]

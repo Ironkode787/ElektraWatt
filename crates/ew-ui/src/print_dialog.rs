@@ -7,7 +7,7 @@
 //! place; with no page chosen, §6.17's empty state. The dialog is `size.dialog.preview` wide, growing with the window
 //! ([`crate::dialog::preview_width`]).
 //!
-//! **The preview** is the print set's page rendered by `ew-render-cpu`'s [`render_placed`] (D7's rule, as the PDF
+//! **The preview** is the print set's page rendered by `ew-render-cpu`'s [`render_placed`] (the rule, as the PDF
 //! writer draws it) at the resolution that fills the preview's pixels, on a thread of its own; the image is tagged
 //! with the build's generation, the page, the resolution and the colour mode, and an image whose tag no longer
 //! matches is dropped. On the frame clock (a visual run, the tests) the image is rendered in the frame that asks for

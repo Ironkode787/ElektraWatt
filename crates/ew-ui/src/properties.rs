@@ -744,7 +744,7 @@ impl PropertiesPane {
         } else {
             chip_text(&row.provenance)
         };
-        // D11: the chip stands only by a value that is not authored; where every row shares it, the header says it
+        // The chip stands only by a value that is not authored; where every row shares it, the header says it
         // once.
         let show_chip = !header
             && !matches!(row.provenance, Provenance::Authored)

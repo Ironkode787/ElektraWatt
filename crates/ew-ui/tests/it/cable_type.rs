@@ -36,7 +36,7 @@ fn title(d: &mut Driver) -> String {
     }
 }
 
-/// G8: two wires selected, Cable…, and New cable type… at the end of the list of types: the small form takes the
+/// Two wires selected, Cable…, and New cable type… at the end of the list of types: the small form takes the
 /// series once (its maker, its type, four numbered cores with green-yellow, 1.5 mm²) and reads it as it will show;
 /// Save and add another size keeps everything but the part number and the size; Save comes back to the Cable form with
 /// the new type chosen as the type, and Apply makes the cable of that part. Escape in the small form returns to the
@@ -157,7 +157,7 @@ fn a_new_part_of_kind_cable_has_the_cable_section() {
     d.shell_mut().shutdown();
 }
 
-/// G8, G6: a cable made with a size typed has no part: its finding offers Choose a cable type…, whose part dialog lists the
+/// A cable made with a size typed has no part: its finding offers Choose a cable type…, whose part dialog lists the
 /// cable parts that fit first and the others after them, greyed, each saying why (here: no green-yellow core for the PE
 /// wire).
 #[test]
@@ -215,7 +215,7 @@ fn a_cable_without_a_part_offers_its_cable_types_the_misfits_greyed() {
         }
         other => panic!("no part dialog: {other:?}"),
     }
-    // G6: the cable has no length yet, a warning (not an error) whose offer opens its Length row to type it.
+    // The cable has no length yet, a warning (not an error) whose offer opens its Length row to type it.
     d.input(&key("escape"));
     shown(&mut d);
     let row = d

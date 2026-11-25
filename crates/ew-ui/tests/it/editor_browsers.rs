@@ -220,7 +220,7 @@ fn a_drawn_symbol_is_listed_under_the_category_chosen_in_the_editor() {
     d.input(&Input::Wait { ms: 15_000 });
     press(&mut d, "Close editor");
     press(&mut d, "Symbol");
-    // F28: the symbol browser's groups stand under their trade.
+    // The symbol browser's groups stand under their trade.
     press_starting(&mut d, "Electrical, ");
     press_starting(&mut d, "Relays, ");
     let picker = d.shell_mut().picker().unwrap();

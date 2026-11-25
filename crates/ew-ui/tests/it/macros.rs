@@ -130,7 +130,7 @@ fn reps(h: &Harness<'_, App>) -> usize {
         .map_or(0, |c| c.page().tables.reps.len())
 }
 
-/// UI-1 and UI-2 in the window, each settle followed by the accessible-name walker (UI-6).
+/// In the window, each settle followed by the accessible-name walker.
 #[test]
 fn insert_the_control_macro_on_folio_106_from_the_macros_navigator() {
     let tmp = Tmp::new();
@@ -158,7 +158,7 @@ fn insert_the_control_macro_on_folio_106_from_the_macros_navigator() {
         h.query_all_by_label("Macros").count() >= 1,
         "the Macros navigator"
     );
-    // UI-1: the detail of the macro under the cursor.
+    // The detail of the macro under the cursor.
     dispatch(&mut h, "navigator.row", json!({"kind": "macros", "key": core}));
     settle(&mut h);
     assert!(group_named(&h, "Control 24 V DC"), "the detail block");
@@ -174,7 +174,7 @@ fn insert_the_control_macro_on_folio_106_from_the_macros_navigator() {
     assert!(has_text(&h, "Devices (14)"));
     assert!(has_text_part(&h, "Version 1.0.0 · Mine"));
 
-    // UI-2, the supply block: each of folio 101's sources (1L1, 1L2, 1L3, PE, 24V, 0V) would be a second source of its
+    // The supply block: each of folio 101's sources (1L1, 1L2, 1L3, PE, 24V, 0V) would be a second source of its
     // name, so the card lists the rule's refusal of each (the pairings a card lists: `ew-viewmodel`'s
     // `macros_libraries`).
     dispatch(&mut h, "navigator.row", json!({"kind": "macros", "key": block}));
@@ -193,7 +193,7 @@ fn insert_the_control_macro_on_folio_106_from_the_macros_navigator() {
     dispatch(&mut h, "preview.cancel", json!({}));
     settle(&mut h);
 
-    // UI-2, the core macro: no conflicts; Apply is one undo step.
+    // The core macro: no conflicts; Apply is one undo step.
     dispatch(&mut h, "navigator.row", json!({"kind": "macros", "key": core}));
     settle(&mut h);
     insert_macro(&mut h);

@@ -558,7 +558,7 @@ pub(super) fn paint_highlights(
     }
 }
 
-/// Paints the wire-colour view's strokes of canvas group `group` (D18, [`wire_colour_shapes`]) and returns them for
+/// Paints the wire-colour view's strokes of canvas group `group` ([`wire_colour_shapes`]) and returns them for
 /// their codes ([`paint_wire_codes`]).
 pub(super) fn paint_wire_colours(
     ui: &egui::Ui,

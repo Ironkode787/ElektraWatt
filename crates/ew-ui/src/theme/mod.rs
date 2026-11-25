@@ -6,7 +6,7 @@
 //! [`current`] gives widget code the tokens of the theme egui shows now. Widget code takes every colour, size and
 //! radius from here; a source guard test fails on literals elsewhere in `ew-ui`.
 //!
-//! **Themes.** Light, Dark, High contrast dark and High contrast light; the setting `system` (the default, D5) installs
+//! **Themes.** Light, Dark, High contrast dark and High contrast light; the setting `system` (the default) installs
 //! Light and Dark as egui's light and dark styles and lets egui follow the operating system.
 
 mod apply;
@@ -72,7 +72,7 @@ impl Theme {
     }
 }
 
-/// A density of the design language (doc 16a §4.13, D6).
+/// A density of the design language (doc 16a §4.13).
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum Density {
     /// 28-px rows, the 52-px command row (the default).

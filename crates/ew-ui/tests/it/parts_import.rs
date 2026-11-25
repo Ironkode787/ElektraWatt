@@ -171,7 +171,7 @@ fn cancel_drops_the_card_without_a_change() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// W3: the next frame after the file dialog returns, with no pointer input, shows the menu closed and the import card;
+/// The next frame after the file dialog returns, with no pointer input, shows the menu closed and the import card;
 /// A platform that records the egui pass in which it answered the dialog, so the test can inspect that exact frame.
 struct DialogPlatform {
     path: PathBuf,
@@ -188,7 +188,7 @@ impl Platform for DialogPlatform {
     }
 }
 
-/// W3: the frame that answers the file dialog, with no pointer input, has the menu closed and the import card in the
+/// The frame that answers the file dialog, with no pointer input, has the menu closed and the import card in the
 /// shell; the following frame paints its text, and Apply's next frame shows the banner.
 #[test]
 fn the_card_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {

@@ -42,7 +42,7 @@ fn px(img: &ew_render_cpu::RgbaImage, x: i64, y: i64) -> [u8; 4] {
     img.pixels[i..i + 4].try_into().unwrap()
 }
 
-/// NP3 (FR-UI-018, D14), the snapshot half: with 24V highlighted from the Potentials navigator (slot 0),
+/// NP3 (FR-UI-018), the snapshot half: with 24V highlighted from the Potentials navigator (slot 0),
 /// `canvas.snapshot` of folios 101 and 104 shows the slot colour at every drawn member segment's midpoint (the band, or
 /// a hatch line in the full colour within 3 pixels), the hatch lines run at 45° (a full-colour pixel continues
 /// up-right, not down-right), and without the highlight the same pixels are as before.

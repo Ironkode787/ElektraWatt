@@ -70,7 +70,7 @@ fn take(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, number: &str) {
     settle(h);
 }
 
-/// F18: the PLC panel's New station… opens the view of a station not made yet in a tab beside the page; a double click
+/// The PLC panel's New station… opens the view of a station not made yet in a tab beside the page; a double click
 /// on the CPU in the catalogue makes it the head, two on the input module put two modules into slots 1 and 2; Create
 /// makes the station and its modules, drawn nowhere yet, and the view shows the made station's rack with what is left
 /// to do; one Undo takes it all back, and the tab with it.
@@ -125,7 +125,7 @@ fn a_station_is_made_as_a_rack_and_filled() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// F19: a PROFINET device whose part says nothing of a PLC, drawn on the page: its symbol's menu offers Add to a new
+/// A PROFINET device whose part says nothing of a PLC, drawn on the page: its symbol's menu offers Add to a new
 /// PLC; chosen, it is a station with an open rack whose view says that its part does not describe its modules, and a
 /// double click on a module of the catalogue puts it into its first slot. Its menu then names its PLC and offers
 /// Rack….

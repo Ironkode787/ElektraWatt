@@ -4,7 +4,7 @@
 //! The keymap editor (doc 16 §4.4): Help ▸ Keyboard shortcuts made editable, inside the form
 //! dialog of doc 16a §6.12 (its width grows with the window, `dialog::form_width`). A search field over the actions'
 //! labels, IDs and keys; one row per action with its label, its key chips, where the keys apply (and what they shadow,
-//! D8's info) and Record and Reset; a refused edit's errors in `color.error` above the list; the user keymap's unused
+//! The info) and Record and Reset; a refused edit's errors in `color.error` above the list; the user keymap's unused
 //! bindings; the note that the Menu key cannot be bound. Import… and Export… are the dialog's footer buttons.
 //!
 //! Every control dispatches a `keymap.*` action; Record makes the shell record, and the next key press (not Escape,
@@ -277,7 +277,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
             strings::text(key!("keymap-menu-key")),
         ));
     }
-    // What the user's own bindings shadow (D8's info), in full: the row's cell has room for a tag only.
+    // What the user's own bindings shadow (the info), in full: the row's cell has room for a tag only.
     for note in rows.iter().filter(|r| r.custom).flat_map(|r| &r.notes) {
         ui.label(crate::components::styled(note, &t.type_small, t.info));
     }

@@ -118,7 +118,7 @@ fn the_layout_matches_the_mockup() {
     // The harness's 16 px of margin are the canvas's at a real 1920-px window.
     let share = (pane.width() + 16.0) / (f.width() + 16.0);
     assert!(near(share, 0.708, 0.012), "the canvas share {share}");
-    // G9: Pages above Properties, 50 : 50 within three percentage points.
+    // Pages above Properties, 50 : 50 within three percentage points.
     let props = h
         .get_all_by_role(egui::Role::Button)
         .find(|n| {
@@ -135,7 +135,7 @@ fn the_layout_matches_the_mockup() {
         h.query_all_by_label("Devices")
             .any(|n| n.accesskit_node().role() == egui::Role::Tab)
     );
-    // The default workspace is D10's.
+    // The default workspace is the designed one.
     assert_eq!(h.state().shell().layout(), &Layout::schematic());
     h.state_mut().shell_mut().shutdown();
 }
@@ -277,7 +277,7 @@ fn properties_main_first_and_advanced_on_demand() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// DK4 in the window: "Ready" at the left, the zoom, the save state and the renderer in D12's order left to right; no
+/// DK4 in the window: "Ready" at the left, the zoom, the save state and the renderer in the order left to right; no
 /// page or language field; the findings field opens Messages.
 #[test]
 fn the_status_bar_fields_in_order() {

@@ -755,7 +755,7 @@ fn a_band_release_without_pointer_movement_paints_no_dashed_rectangle() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// R2: a click without moving keeps the pointer known, so the Place tool's ghost is drawn again at it.
+/// A click without moving keeps the pointer known, so the Place tool's ghost is drawn again at it.
 #[test]
 fn a_stationary_click_keeps_the_place_ghost() {
     let tmp = Tmp::new();
@@ -798,7 +798,7 @@ fn a_stationary_click_keeps_the_place_ghost() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// R2: a view change with a stationary pointer replays the pointer from its screen position, so ghosts and the hover
+/// A view change with a stationary pointer replays the pointer from its screen position, so ghosts and the hover
 /// outline follow the new view.
 #[test]
 fn a_view_change_with_a_stationary_pointer_replays_the_pointer() {

@@ -341,7 +341,7 @@ pub fn floating_target(shape: Rect, at: Pos2, reach: f32) -> Rect {
     shape.union(Rect::from_center_size(at, Vec2::splat(2.0 * reach)))
 }
 
-/// The kept preview's chips (by the rule of D13).
+/// The kept preview's chips (by the rule).
 fn preview(
     placer: &mut Placer<'_>,
     input: &ChipInput<'_>,

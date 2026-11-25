@@ -23,7 +23,7 @@ use serde_json::json;
 use std::path::{Path, PathBuf};
 use support::{Scripted, Tmp, dispatch, harness, harness_with, settle, wait_for_page};
 
-/// D14's window, in points.
+/// The window, in points.
 const WINDOW: Vec2 = Vec2::new(1280.0, 720.0);
 
 /// How a dialog is shown: at 300 % (ppp 3.0), or at 100 % with the minimum text size 14 pt.
@@ -344,7 +344,7 @@ fn the_parts_import_card_at_300_and_with_14_pt_text() {
     at_both_sizes(parts_import);
 }
 
-/// AX-2: View ▸ UI scale and the first run's appearance step offer 250 % and 300 %; choosing either writes it to
+/// View ▸ UI scale and the first run's appearance step offer 250 % and 300 %; choosing either writes it to
 /// `settings.toml`, which reads it back.
 #[test]
 fn the_menu_and_the_first_run_offer_250_and_300_percent() {
@@ -423,7 +423,7 @@ fn ctrl_wheel_one_frame(h: &mut Harness<'_, App>) -> (f64, f64) {
     (before, after)
 }
 
-/// AX-4: with reduced motion egui's animation time is zero and a Ctrl+wheel line zooms to its whole factor (egui's
+/// With reduced motion egui's animation time is zero and a Ctrl+wheel line zooms to its whole factor (egui's
 /// `exp(scroll_zoom_speed × line_scroll_speed)`) in its own frame; without it egui spreads the step over frames.
 #[test]
 fn reduced_motion_stops_animation_and_the_zoom_jumps() {
@@ -499,7 +499,7 @@ fn a_failed_gpu_start_leaves_reduced_motion_on() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// AX-4: with the setting unset, the CPU canvas (View ▸ Use the CPU renderer for the canvas) turns reduced motion
+/// With the setting unset, the CPU canvas (View ▸ Use the CPU renderer for the canvas) turns reduced motion
 /// on; the setting, once set, decides.
 #[test]
 fn the_cpu_canvas_reduces_motion_while_the_setting_is_unset() {

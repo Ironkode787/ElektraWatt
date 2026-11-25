@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! In the window without rendering: AC-28's terminal step on folio
+//! In the window without rendering: the terminal step on folio
 //! 103 from the keyboard with the ghost's predicted tag after the window's dwell, the picker popup driven by keys,
 //! and the exact `Session` counts of the place tool, the picker and a move in the window. The accessible-name walker
 //! runs after every step.
