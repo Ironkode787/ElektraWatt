@@ -127,6 +127,14 @@ pub(crate) fn file_of(model: &Model, key: &AnyKey) -> Result<Option<FilePath>, F
     record_file(&record, &ModelAnchors(model)).map(Some)
 }
 
+/// The file the writer writes `record` to, its facts read from `model` ([`ModelAnchors`]), `None` where `record_file`
+/// refuses it. For the test in `ew-api` that holds the three answerers of doc 05 §2.2's facts (the writer's, the
+/// loader's and `merge.resolve`'s) to one file per record (a debug build's, as every test hook).
+#[cfg(debug_assertions)]
+pub fn record_file_in(model: &Model, record: &Record) -> Option<FilePath> {
+    record_file(record, &ModelAnchors(model)).ok()
+}
+
 /// Every key a model holds: the project row's, then every table's rows in kind order (generated from the model's
 /// entity list, so a new record kind is listed by construction).
 pub(crate) fn all_keys(model: &Model) -> BTreeSet<AnyKey> {

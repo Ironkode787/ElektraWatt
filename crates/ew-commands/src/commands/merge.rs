@@ -290,6 +290,15 @@ fn file_of(tx: &TxBuilder<'_>, record: &Record) -> Option<FilePath> {
     record_file(record, &TxAnchors(tx)).ok()
 }
 
+/// The file `merge.resolve` takes `record` to be in, in `model`: [`file_of`] over a transaction on it. For the test in
+/// `ew-api` that holds it equal, record kind by record kind, to the file the writer writes the record to (a debug
+/// build's, as every test hook).
+#[cfg(debug_assertions)]
+pub fn record_file_of(model: &ew_model::Model, record: &Record) -> Option<FilePath> {
+    let mut ids = ew_ids::SystemSource;
+    file_of(&TxBuilder::new(model, &mut ids), record)
+}
+
 /// [`Anchors`] answered from a transaction: the facts of doc 05 §2.2 as the transaction reads them.
 struct TxAnchors<'a, 'm>(&'a TxBuilder<'m>);
 

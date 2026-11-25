@@ -73,3 +73,5 @@ pub use store::{
     StoreOptions, default_state_dir, state_dir_in,
 };
 pub use vfs::{OsVfs, Stat, Vfs, is_transient, join};
+#[cfg(debug_assertions)]
+pub use rows::record_file_in;

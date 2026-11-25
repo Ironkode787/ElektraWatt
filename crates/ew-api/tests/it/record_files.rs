@@ -1,0 +1,228 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! Doc 05 §2.2's rules of which file a record lives in are one function, `ew_format::record_file`; the facts they
+//! read about other records (a function's device, a junction's page, …) come from three answerers: the writer's
+//! over the model (`ew-store`), the loader's over a set of records (`RecordAnchors`) and `merge.resolve`'s over its
+//! transaction (`ew-commands`). This crate sees all three and holds them to one file per record, over the sample's
+//! records, records of the kinds it holds none of, and conflict records, kind by kind: a resolved conflict replaces
+//! the records of the file the writer wrote them to.
+
+// The model is built from records through ew-model's raw API (dev-dependency `ew-model/raw-read`).
+#![allow(clippy::disallowed_methods)]
+
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
+
+use ew_commands::commands::record_file_of;
+use ew_format::{FilePath, Limits, RecordAnchors, load, record_file};
+use ew_model::Model;
+use ew_schema::{Kind, KindStatus, Record};
+use ew_store::record_file_in;
+use serde_json::json;
+
+/// The sample's files, read only, by project-relative path.
+fn sample_files() -> BTreeMap<FilePath, Vec<u8>> {
+    fn walk(dir: &Path, base: &Path, out: &mut BTreeMap<FilePath, Vec<u8>>) {
+        for entry in std::fs::read_dir(dir).unwrap_or_else(|e| panic!("reading {}: {e}", dir.display())) {
+            let path = entry.expect("a directory entry").path();
+            if path.is_dir() {
+                walk(&path, base, out);
+            } else {
+                let rel = path
+                    .strip_prefix(base)
+                    .expect("below the base")
+                    .to_string_lossy()
+                    .replace('\\', "/");
+                if let Ok(rel) = FilePath::new(rel) {
+                    out.insert(rel, std::fs::read(&path).expect("a readable file"));
+                }
+            }
+        }
+    }
+    let dir = Path::new(ew_testdir::SAMPLE);
+    let mut out = BTreeMap::new();
+    walk(dir, dir, &mut out);
+    out
+}
+
+fn record(v: serde_json::Value) -> Record {
+    Record::from_value(v.clone()).unwrap_or_else(|e| panic!("{e}: {v}"))
+}
+
+#[test]
+fn merge_resolve_the_writer_and_the_loader_put_every_record_in_one_file() {
+    let loaded = load(None, &sample_files(), &Limits::default());
+    let project = loaded.project.clone().expect("the sample's project");
+    let mut records = loaded.records.clone();
+    // Conflict records: on a connection of the sample, on a record that does not exist, and of whole record files (the
+    // merge driver writes a file-level conflict only into a record file).
+    let connection = records
+        .iter()
+        .find_map(|r| match r {
+            Record::Connection(c) => Some(c.id.to_string()),
+            _ => None,
+        })
+        .expect("a connection");
+    let page_id = records
+        .iter()
+        .find_map(|r| match r {
+            Record::Page(p) => Some(p.id.to_string()),
+            _ => None,
+        })
+        .expect("a page");
+    let page = format!("pages/{page_id}.jsonl");
+    // The kinds the sample holds no record of.
+    records.push(record(json!({
+        "$k": "structure_box", "id": "5a0c1e2d-3b4f-5a61-8000-000000000005", "page": page_id,
+        "outline": [[0, 0], [10, 0], [10, 10], [0, 10]], "style": "dash_dot", "assigns": {}
+    })));
+    // The window's bus tools make no physical net.
+    records.push(record(json!({
+        "$k": "physical_net", "id": "cc7f9a8a-c6fe-5687-aa61-ae25ef141801", "name": "DP", "medium": "copper"
+    })));
+    records.push(record(json!({
+        "$k": "macro_instance", "id": "4b7d2e91-0c58-5a36-8f1e-d9a3c6b07e24",
+        "macro": "a6e3f0b8-5d12-5c79-9b4a-1e8d7c2f0a63", "variant": "A", "members": [], "page": page_id
+    })));
+    records.push(record(json!({
+        "$k": "waiver", "id": "6c1d0a37-92e4-5f8b-a0d6-3e7b9c2f4a18", "rule": "EW-CORE-041",
+        "target": {"finding": "9c2e5a0b7d14f3e8a6c1b05d2e9f41ab"}, "reason": "a reason", "author": "engineer",
+        "date": "2025-04-14", "expires": "never"
+    })));
+    // An import lineage (the sample was drawn, not imported) and a run of it, in `imports/<run>.jsonl`.
+    let lineage = "763dd2f1-b9b8-558e-8d55-97d7304a4929";
+    records.push(record(json!({
+        "$k": "import_lineage", "id": lineage, "importer": "csv", "source_name": "tables",
+        "anchor": {"fixed": "tables"}, "namespace": "bcd29740-77ac-52c2-8d87-635b0829fedd",
+        "last_source_sha256": format!("sha256:{}", "0".repeat(64))
+    })));
+    records.push(record(json!({
+        "$k": "import_run", "id": "019a4f00-0000-7000-8000-000000000001", "lineage": lineage, "importer": "csv",
+        "importer_version": "1", "source": {"name": "tables", "sha256": format!("sha256:{}", "0".repeat(64)),
+        "size": 0, "format": "csv"}, "mode": "strict"
+    })));
+    // The exchange snapshot of the sample's configuration project, in `exchange/<config project>.jsonl`.
+    let cfg = records
+        .iter()
+        .find_map(|r| match r {
+            Record::PlcConfigProject(c) => Some(c.id.to_string()),
+            _ => None,
+        })
+        .expect("the sample's configuration project");
+    records.push(record(json!({
+        "$k": "exchange_record", "id": "4b1d9e70-2c53-5a86-9f04-e8d1c6a3b752", "config_project": cfg,
+        "object": "station", "target": "5b4bbf7c-cd80-5c39-8f2d-9b944b9cbfb7", "fields": {"name": "-104A1"}
+    })));
+    records.push(record(json!({
+        "$k": "foreign_id", "id": "c05e7a19-8d42-5b63-a1f7-3e9b0d64c285", "config_project": cfg,
+        "object": "station", "target": "5b4bbf7c-cd80-5c39-8f2d-9b944b9cbfb7", "foreign": "a-foreign-id"
+    })));
+    // A medium (project file) and its definition point (the file of the point's function's device).
+    let function = records
+        .iter()
+        .find_map(|r| match r {
+            Record::Function(f) if f.device.is_some() => Some(f.id.to_string()),
+            _ => None,
+        })
+        .expect("a function on a device");
+    records.push(record(json!({
+        "$k": "medium", "id": "7d3c1a90-5e2b-5f48-9a61-0c8e4b2d7f15", "name": "air", "p_nom": "6"
+    })));
+    records.push(record(json!({
+        "$k": "medium_def", "id": "8e4d2b01-6f3c-5a59-8b72-1d9f5c3e8a26", "at": {"cp": [function, 0]},
+        "medium": "7d3c1a90-5e2b-5f48-9a61-0c8e4b2d7f15"
+    })));
+    // A potential defined at a junction (the file of the junction's page): the sample defines its potentials at
+    // connection points only.
+    let junction = records
+        .iter()
+        .find_map(|r| match r {
+            Record::Junction(j) => Some(j.id.to_string()),
+            _ => None,
+        })
+        .expect("a junction");
+    records.push(record(json!({
+        "$k": "potential_def", "id": "9f5e3c12-7a4d-5b6a-9c83-2e0a6d4f9b37", "at": {"junction": junction},
+        "name": "X1", "ptype": "l1"
+    })));
+    records.push(record(json!({
+        "$k": "conflict", "id": connection, "kind": "connection", "base": {}, "ours": {}, "theirs": {}
+    })));
+    records.push(record(json!({
+        "$k": "conflict", "id": "0190d8a4-6d3e-7c41-8f00-000000000001", "kind": "device", "base": {}, "ours": {},
+        "theirs": {}
+    })));
+    for (n, path) in [page.as_str(), "waivers.jsonl"].into_iter().enumerate() {
+        records.push(record(json!({
+            "$k": "conflict", "id": format!("0190d8a4-6d3e-7c41-8f00-00000000001{n}"), "kind": "file", "path": path,
+            "side": "theirs", "lines": []
+        })));
+    }
+    // File-level conflicts of every root file, of each record directory, and of paths that name no record
+    // file (the writer routes those to the conflict's own shard).
+    let id = "0190d8a4-6d3e-7c41-8f00-0000000000aa";
+    let paths: Vec<String> = ew_format::ROOT_FILES
+        .iter()
+        .map(|r| (*r).to_owned())
+        .chain(
+            ["layout", "imports", "exchange"]
+                .iter()
+                .map(|d| format!("{d}/{id}.jsonl")),
+        )
+        .chain(
+            [
+                "devices/0a.jsonl",
+                "devices/0A.jsonl",
+                "devices/0a.json",
+                "pages/not-an-id.jsonl",
+                "pages/a/b.jsonl",
+                "manifest.json",
+                "notes.txt",
+                "assets/x.svg",
+                "lib/fndefs/x.json",
+                ".ew/state.jsonl",
+                "project.jsonl.tmp-3",
+            ]
+            .iter()
+            .map(|p| (*p).to_owned()),
+        )
+        .collect();
+    for (n, path) in paths.iter().enumerate() {
+        records.push(record(json!({
+            "$k": "conflict", "id": format!("0190d8a4-6d3e-7c41-8f00-0000000002{n:02}"), "kind": "file",
+            "path": path, "side": "theirs", "lines": []
+        })));
+    }
+    // A conflict on the project record.
+    records.push(record(json!({
+        "$k": "conflict", "id": project.id.to_string(), "kind": "project", "base": {}, "ours": {}, "theirs": {}
+    })));
+    // The macro instance names a macro the project does not hold: it stays out of the model, which its file (its
+    // page's) does not read.
+    let in_model: Vec<Record> = records
+        .iter()
+        .filter(|r| !matches!(r, Record::MacroInstance(_)))
+        .cloned()
+        .collect();
+    let model =
+        Model::from_records(project.clone(), in_model, loaded.lib.clone()).expect("the model is valid");
+    // The loader reads the project record among the others; the model holds it apart.
+    records.push(Record::Project(project));
+    let anchors = RecordAnchors::new(&records);
+    let mut kinds = BTreeSet::new();
+    for r in &records {
+        let writer = record_file_in(&model, r);
+        assert!(writer.is_some(), "the writer gives no file: {r:?}");
+        assert_eq!(record_file(r, &anchors).ok(), writer, "the loader's facts: {r:?}");
+        assert_eq!(record_file_of(&model, r), writer, "merge.resolve's facts: {r:?}");
+        kinds.extend(r.kind());
+    }
+    // Every kind of record the project writes is compared.
+    let missing: Vec<Kind> = Kind::ALL
+        .into_iter()
+        .filter(|k| k.status() == KindStatus::Implemented && !k.is_library())
+        .filter(|k| !kinds.contains(k))
+        .collect();
+    assert_eq!(missing, [], "kinds no record of the test holds");
+}
