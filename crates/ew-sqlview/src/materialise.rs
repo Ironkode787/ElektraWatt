@@ -696,7 +696,7 @@ pub(crate) fn terminals(s: &Source<'_>) -> Vec<Row> {
                 q.get::<PotentialAttrsOf>(p)
                     .ptype
                     .as_ref()
-                    .map(|a| ew_derive::potential_type_sql(&a.value).to_owned())
+                    .map(|a| ew_derive::potential_type_text(&a.value).to_owned())
             });
             let state = match &dev.state {
                 DeviceState::Spare => "spare",
@@ -1001,7 +1001,7 @@ pub(crate) fn potentials(s: &Source<'_>) -> Vec<Row> {
                     attrs
                         .ptype
                         .as_ref()
-                        .map(|t| ew_derive::potential_type_sql(&t.value).to_owned()),
+                        .map(|t| ew_derive::potential_type_text(&t.value).to_owned()),
                 )
                 .set("voltage", attrs.voltage.as_ref().map(|v| v.value.to_string()))
                 .set(

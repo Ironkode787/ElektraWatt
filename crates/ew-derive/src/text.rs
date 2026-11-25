@@ -206,20 +206,13 @@ pub fn potential_type_code(t: &PotentialType) -> Option<&'static str> {
     })
 }
 
-/// A potential type as the checks' messages print it: its code, `signal`, and `undefined` for an undefined type and for
-/// a type of a newer format.
+/// A potential type as the checks' messages and the SQL view print it: its code, `signal`, `undefined` for an undefined
+/// type and `other` for a type of a newer format.
 pub fn potential_type_text(t: &PotentialType) -> &'static str {
     match t {
         PotentialType::Signal => "signal",
-        other => potential_type_code(other).unwrap_or("undefined"),
-    }
-}
-
-/// A potential type as the SQL view prints it: [`potential_type_text`], but `other` for a type of a newer format.
-pub fn potential_type_sql(t: &PotentialType) -> &'static str {
-    match t {
         PotentialType::Unknown(_) => "other",
-        other => potential_type_text(other),
+        other => potential_type_code(other).unwrap_or("undefined"),
     }
 }
 

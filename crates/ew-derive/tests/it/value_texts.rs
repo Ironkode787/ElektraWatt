@@ -25,3 +25,13 @@ fn an_unknown_colour_code_prints_one_word() {
         "ROSA?"
     );
 }
+
+/// A potential type of a newer format prints as the SQL view publishes it, `other`, in the checks' messages too; an
+/// undefined type prints `undefined`.
+#[test]
+fn a_newer_potential_type_prints_other() {
+    use ew_schema::PotentialType;
+    assert_eq!(ew_derive::potential_type_text(&PotentialType::Unknown(serde_json::json!("x"))), "other");
+    assert_eq!(ew_derive::potential_type_text(&PotentialType::Undefined), "undefined");
+    assert_eq!(ew_derive::potential_type_text(&PotentialType::LPlus), "L+");
+}
