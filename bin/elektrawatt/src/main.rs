@@ -258,12 +258,18 @@ impl Platform for RfdPlatform {
     }
 
     fn open_url(&mut self, url: &str) -> bool {
-        open_with_system(std::ffi::OsStr::new(url))
+        open_in_browser(url)
     }
 
-    /// An exported file by its path.
+    /// An exported file by its path, through the opener the print window's Open in PDF viewer uses
+    /// (`ew_print::Program::opener`: `explorer.exe` on Windows, `xdg-open` elsewhere), no shell.
     fn open_file(&mut self, file: &Path) -> bool {
-        open_with_system(file.as_os_str())
+        let opener = ew_print::Program::opener();
+        std::process::Command::new(&opener.path)
+            .args(&opener.leading)
+            .arg(file)
+            .spawn()
+            .is_ok()
     }
 
     /// A second process of this program with the project's directory, as `elektrawatt <project>` starts; no shell. Two
@@ -332,17 +338,24 @@ fn print_end(result: Result<ew_print::Printed, Vec<(&'static str, ew_print::Prin
     }
 }
 
-/// Opens `target` (a written file's path, or the `file://` URL of the installed user guide) with the system: the
-/// one opener the print window's Open in PDF viewer uses too ([`ew_print::Program::opener`]). A user action, no network
-/// traffic; no shell, so no character of the target has a meaning to a command line (a URL is percent-encoded besides,
-/// `ew_viewmodel`'s `file_url`). Its failure is reported to the caller.
-fn open_with_system(target: &std::ffi::OsStr) -> bool {
-    let opener = ew_print::Program::opener();
-    std::process::Command::new(&opener.path)
-        .args(&opener.leading)
-        .arg(target)
-        .spawn()
-        .is_ok()
+/// Opens `url` (a `file://` URL of the installed user guide) with the system's opener: a user action, no network
+/// traffic. The opener is the one of the platform; its failure is reported to the caller.
+fn open_in_browser(url: &str) -> bool {
+    let (program, args) = opener(std::env::consts::OS, url);
+    std::process::Command::new(program).args(args).spawn().is_ok()
+}
+
+/// The program and arguments that open `url` on the operating system `os` (`std::env::consts::OS`). No shell is
+/// involved on any system, so no character of the URL has a meaning to a command line; the URL is percent-encoded
+/// besides (`ew_viewmodel`'s `file_url`).
+fn opener(os: &str, url: &str) -> (&'static str, Vec<String>) {
+    match os {
+        "windows" => (
+            "rundll32",
+            vec!["url.dll,FileProtocolHandler".to_owned(), url.to_owned()],
+        ),
+        _ => ("xdg-open", vec![url.to_owned()]),
+    }
 }
 
 /// The first of `candidates` that is a directory.
@@ -1025,23 +1038,23 @@ mod tests {
         assert!(parse(&["a", "b"]).is_err());
     }
 
-    /// A file and an address open the one way, the system's file protocol handler on Windows, and never through a
-    /// shell.
     #[test]
-    fn a_file_and_an_address_open_the_one_way_without_a_shell() {
-        let opener = ew_print::Program::opener();
-        if cfg!(windows) {
-            assert_eq!(
-                (opener.path.to_str(), opener.leading.as_slice()),
-                (
-                    Some("rundll32"),
-                    ["url.dll,FileProtocolHandler".into()].as_slice()
-                )
+    fn the_guide_is_opened_without_a_shell() {
+        let url = "file:///C:/docs/a%26b/x.html#y";
+        assert_eq!(
+            opener("windows", url),
+            (
+                "rundll32",
+                vec!["url.dll,FileProtocolHandler".to_owned(), url.to_owned()]
+            )
+        );
+        assert_eq!(opener("linux", url), ("xdg-open", vec![url.to_owned()]));
+        for os in ["windows", "linux", "freebsd"] {
+            assert!(
+                !["cmd", "sh", "bash", "powershell"].contains(&opener(os, url).0),
+                "{os}"
             );
-        } else {
-            assert_eq!(opener.path.to_str(), Some("xdg-open"));
         }
-        assert!(!["cmd", "sh", "bash", "powershell"].contains(&opener.path.to_str().unwrap_or_default()));
     }
 
     #[test]

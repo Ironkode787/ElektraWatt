@@ -342,7 +342,7 @@ pub struct Program {
     pub path: PathBuf,
     /// Arguments before the adapter's.
     pub leading: Vec<OsString>,
-    /// Whether a failing exit status is an error: the system's opener's status is not an answer.
+    /// Whether a failing exit status is an error: `explorer.exe` exits 1 when it has opened the file.
     pub check_status: bool,
 }
 
@@ -356,15 +356,13 @@ impl Program {
         }
     }
 
-    /// The platform's opener of a file or an address in its default application, the program's one way to open
-    /// something with the system: Windows' file protocol handler (`rundll32 url.dll,FileProtocolHandler`, its exit
-    /// status not an answer), `xdg-open` elsewhere. No shell on any system.
+    /// The platform's opener of a file in its default application: `explorer.exe` on Windows (its exit status is
+    /// not an answer), `xdg-open` elsewhere.
     pub fn opener() -> Program {
         if cfg!(windows) {
             Program {
-                leading: vec!["url.dll,FileProtocolHandler".into()],
                 check_status: false,
-                ..Program::named("rundll32")
+                ..Program::named("explorer.exe")
             }
         } else {
             Program::named("xdg-open")
