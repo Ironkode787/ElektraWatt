@@ -91,6 +91,7 @@ cross-file reconciliation after merges is FR-COL-016 (1.0).
 | EW-CORE-054 | Overview without detail link | An overview representation without a detail link | hygiene | o r | warning | device | MVP | FR-CHK-060 (STD XR-04) | D-10 | 15 |
 | EW-CORE-055 | Unplaced contacts | Contacts of the main function's part neither placed nor marked unused; off in `pre-delivery` | completeness | o | info | device | 1.0 | FR-CHK-061 (STD XR-03) | — | 15 |
 | EW-CORE-056 | External reference without target | An external reference to a project that is open but has no matching target | completeness | o | info | project | 1.0 | FR-CHK-061 (G15) | — | 15 |
+| EW-CORE-085 | Variant not in the part | A part use names a variant key its part does not hold; the lists print the part | conflict | o r | warning | device | 1.0 | FR-PRT-003 | — | 07 §2.5 |
 | EW-CORE-062 | Text overflow | Text overflows a title-block cell or report column after shrink-to-fit, per display language | hygiene | o r | warning | page | 1.0 | FR-I18N-012, FR-REP-039 | — | 09 §7 |
 | EW-CORE-064 | *Retired* | Font substitution at import is the import finding EW-IMP-006 | — | — | — | — | — | — | — | — |
 | EW-CORE-066 | Glyph missing | A character that no bundled face drew (it prints as `.notdef`); a character drawn by the bundled symbol fallback face is not a finding | hygiene | o x r | warning/error | page | MVP | FR-OUT-027 | — | 09 §7 |
@@ -216,6 +217,9 @@ Rules 001 … 006 need the export's machine profile; a scheme run without a prof
 | EW-MFG-009 | End override inconsistent | Another colour scheme, a cross-section or sleeve outside the range, the wrong stud | conflict | o r | error | potential | 1.0 | FR-MFG-042 | — | 13 §4.6 |
 | EW-MFG-010 | Unverified manufacturing data | Output based on unverified constants or part sections; one finding per package, listing the sources | hygiene | r | info | project | 1.0 | FR-CHK-058, FR-CHK-046 | — | 13 §4.6 |
 | EW-MFG-011 | Feedback length deviation | A machine feedback length that deviates from the computed length beyond tolerance | hygiene | f | info | project | 1.x | FR-MFG-026 | — | 13 §4.6 |
+| EW-MFG-020 | Strip without an end plate | A strip whose terminals have parts and after whose last terminal no end plate stands: none of its parts names one, it was left off, none was added | completeness | o r | warning | device | 1.0 | FR-MFG-016 | — | 13 §6.3 |
+| EW-MFG-021 | Bridge without a part | A bridge group whose carrier connection names no part, so the parts list and the assembly list cannot name it | completeness | o r | warning; error in release | device | 1.0 | FR-MFG-016 | — | 13 §6.3 |
+| EW-MFG-022 | Wire part does not match the wire | A wire part whose section gives another cross-section or colour than the wire's effective one | conflict | o r | warning | potential | 1.0 | FR-PRT-035 | D-08 | 07 §2.5 |
 
 ### 4.6 EW-THM: IEC 61439 thermal (1.0)
 

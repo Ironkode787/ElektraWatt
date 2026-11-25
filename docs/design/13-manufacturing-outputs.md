@@ -16,7 +16,8 @@ spreadsheet, the package and the machine file, so they cannot disagree.
 3. [The production wire record](#3-the-production-wire-record)
 4. [Ferrule and wire-end engine](#4-ferrule-and-wire-end-engine)
 5. [Wire marking and labels](#5-wire-marking-and-labels)
-6. [Terminal-strip assembly lists](#6-terminal-strip-assembly-lists)
+6. [Terminal-strip assembly lists](13-workshop-lists.md#6-terminal-strip-assembly-lists), with the
+   consumables summary (§3.6) and the cut lists (§9.3) in [the workshop lists](13-workshop-lists.md)
 7. [Machine export profiles](#7-machine-export-profiles)
 8. [The production package `.ewpp`](#8-the-production-package-ewpp)
 9. [Drilling data, hole tables and cut lists](#9-drilling-data-hole-tables-and-cut-lists)
@@ -69,7 +70,7 @@ flowchart LR
   EE --> WR
   S --> EE
   WR --> LB["label_rows(set)"]
-  T --> TA["terminal_assembly_rows(strip)"]
+  T --> TA["assembly_rows(strip)"]
   WR --> RS["RowSet (09)"]
   LB --> RS
   TA --> RS
@@ -214,7 +215,7 @@ persisted except as frozen copies in the as-built archive (FR-REV-011).
 | `clamp_occupancy(potential)` | physical wires, clamp data | Memo | I; shared with EW-POT-010 (§4.3) |
 | `wire_record_set(scope)` | `wire_records_of` over the potentials of a location or layout space | Cold, sorted | I |
 | `label_rows(label_set)` | wire records, terminals, devices, cables, tubes | Memo + LRU | I |
-| `terminal_assembly_rows(strip)` | `terminal_rows(strip)`, accessories, bridges, parts | Memo | I |
+| `assembly_rows(strip)` | `terminal_rows(strip)`, accessories, bridges, parts | Memo | I |
 | `checklist_rows(kind, scope)` | potentials, protective devices, PLC rows, change list | Memo | I |
 | `consumables(scope)` | `wire_record_set`, `label_rows` | Cold | I |
 | `machine_rows(profile)` | `wire_record_set`, profile | Cold, in the export job | II |
@@ -321,12 +322,7 @@ absorbs carrier switches after junction edits ([08](08-connections-terminals-cab
 
 ### 3.6 Consumables summary (FR-MFG-049)
 
-`consumables(scope)` aggregates the wire records of a layout space for ordering and for loading machine
-magazines: per wire type key the wire count and Σ `length_mm`; per ferrule or lug part the end count (a twin
-ferrule counts once); per marker part the label count of each label set. It is a `RowSet` (report block, XLSX,
-CSV, `consumables.csv` in the package), separate from the device-based BOM. Golden A gives 14 × 0.75, 25 × 1.5 and
-8 × 2.5 mm² single ferrules, 4 twin ferrules 2 × 1.5 mm², one M6 and two M4 ring lugs (§15.2) and no wire metres,
-because no wire is routed; Golden A-R adds the metres per type.
+In [the workshop lists](13-workshop-lists.md) §3.6.
 
 ---
 
@@ -528,41 +524,8 @@ Phoenix Contact clipx ENGINEER is a strip configurator, not a marking import; it
 
 ## 6. Terminal-strip assembly lists
 
-### 6.1 Content (FR-MFG-016)
-
-`terminal_assembly_rows(strip)` extends `terminal_rows(strip)` ([03](03-domain-model.md) §11) with mounting data:
-
-| Column | Source |
-|---|---|
-| Position | `seq` in mounting order, accessories interleaved (`StripAccessory.after_seq`) |
-| Item | terminal, end plate or cover, end bracket, partition plate, test plug, marker strip |
-| Part, width | terminal or accessory part (L0, L3) |
-| Designation, level | `Terminal.designation`, levels |
-| Marker | the terminal marker text (§5.3) |
-| Bridge | group, pole count, shaft, part (`BridgeSpec.group`, [08](08-connections-terminals-cables.md) §2.3) |
-| State | used, spare, spare (fed) |
-| Strip length | Σ widths of terminals and accessories in the strip |
-| Rail | carrier (R2 for 1X1, -X1031 and -X1032), its cut length and free length (§6.2) |
-
-Bridges are listed as bridges with their pole count and part, never as wires (FR-TRM-007). A spare terminal that
-receives a feed on side 1 prints "spare (fed)", which is the state of -X1031:5, 7 and 9. A placeholder accessory or
-bridge part ("TBD", Golden A's EF-17) prints as "TBD" and blocks release through FR-CHK-034. The terminal line-up
-diagram (FR-REP-011, report kind `terminal_lineup` of [09](09-reports-forms-output.md) §2.4) is the graphical form of
-the same rows.
-
-### 6.2 Rail cut length
-
-A rail is drawn by two points ([12](12-panel-layout.md) §3.2), so its cut length is `round_up(L, cut_increment)` of
-the carrier path, never of what sits on it. The assembly list prints, per rail, that cut length next to the
-occupied length (Σ strips, end brackets and other placements from `rail_occupancy`) and the free length `L − Σ
-occupied`; an overfull rail is EW-LAY-010 ([12](12-panel-layout.md) §3.4), never an automatic extension. The value
-feeds the cut list (§9.3).
-
-### 6.3 Configurator export (FR-MFG-017, 1.x)
-
-Strip export to Phoenix Contact clipx ENGINEER (AML or project XML) and to the Weidmüller configurator are
-code-level exporters (formats unverified), shipped as built-in exporters or WASM plugins (FR-EXT-019). Re-import of
-the configurator's accessory choices is Later.
+In [the workshop lists](13-workshop-lists.md) §6: the content (§6.1), the rail cut length (§6.2) and what the check
+says (§6.3).
 
 ---
 
@@ -835,12 +798,7 @@ feature that produced the hole, so a merged duplicate hole lists both sources.
 
 ### 9.3 Cut lists (FR-MFG-030)
 
-`cut_list(space)`: rails, ducts, busbars and tubes with length rounded up to the cutting increment, part, quantity
-and fixing positions along the carrier. Duct covers follow their duct. Shop-cut cables add one row per cable with
-part, length and its source (FR-CBL-009); pre-assembled cables (-106W1, -106W2) are listed as "from part", not cut.
-The list is a `RowSet`, a report block and `cutlists.csv`. Golden A-R: rails R1–R3, ducts D1–D5 at their test
-lengths (FR-MFG-030), -3W1 10 m (U-21), and with the test tube spec of [11](11-fluid-power.md) §8.2 one tube line
-PU 6×4 BU, 16 pieces, 19.2 m.
+In [the workshop lists](13-workshop-lists.md) §9.3.
 
 ---
 
@@ -1042,7 +1000,7 @@ produces the PDF, BOM, wire list, terminal plans and the Komax CSV and stops at 
 | Change list | PDF, XLSX | `mfg_change_list` | 1.0 | FR-MFG-004 |
 | Consumables summary | PDF, XLSX, CSV, `consumables.csv` | `consumables` | 1.0 | FR-MFG-049 |
 | Label sets | CSV, XLSX per preset | `label_rows` | 1.0 | FR-MFG-012, -013 |
-| Terminal assembly list | PDF, XLSX, `terminals.json` | `terminal_assembly_rows` | 1.0 | FR-MFG-016 |
+| Terminal assembly list | PDF, XLSX, `terminals.json` | `assembly_rows` | 1.0 | FR-MFG-016 |
 | Machine files | CSV, XLSX per profile, manual list, `preflight.json` | `machine_rows` | 1.0 | FR-MFG-018 … 024 |
 | Drilling DXF, hole tables, cut lists | DXF, CSV, PDF | features, `hole_table`, `cut_list` | 1.0 | FR-MFG-028 … 030 |
 | Checklists | PDF, JSON | `checklist_rows` | 1.0 | FR-MFG-036 … 038 |

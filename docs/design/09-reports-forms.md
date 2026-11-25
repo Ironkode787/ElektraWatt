@@ -233,7 +233,8 @@ built:
 | `load_summary` | Load per potential and protective device | part currents, potentials | potential | 1.0 | FR-REP-026 |
 | `order_list`, `manufacturer_list` | Purchasing views | `bom_rows` | supplier | 1.0 | FR-REP-025 |
 | `check_report` | Findings, waivers, packs, disclaimer | `checks` ([15](15-checks-revisions-collaboration.md)) | severity | MVP | FR-CHK-014, NFR-COMP-04 |
-| `thermal_report`, `checklist_*`, `hole_table`, `cut_list`, `terminal_assembly_list` | Domain reports | [12](12-panel-layout.md), [13](13-manufacturing-outputs.md) | — | 1.0 | FR-THM-009, FR-MFG-016, FR-MFG-029, FR-MFG-030, FR-MFG-036 … FR-MFG-038 |
+| `thermal_report`, `checklist_*`, `hole_table` | Domain reports | [12](12-panel-layout.md), [13](13-manufacturing-outputs.md) | — | 1.0 | FR-THM-009, FR-MFG-029, FR-MFG-036 … FR-MFG-038 |
+| `assembly_list`, `cut_list`, `consumables` | The workshop lists | [13](13-workshop-lists.md) | strip, group | 1.0 | FR-MFG-016, FR-MFG-030, FR-MFG-049 |
 | `untranslated` | Untranslated texts per language | `MlText` fallbacks | language | 1.0 | FR-I18N-005 |
 
 The domain kinds of 02b are registered through one row (FR-REP-045); a labour-estimate report is FR-REP-044 (1.x,

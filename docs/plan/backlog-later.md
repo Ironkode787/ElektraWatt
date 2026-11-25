@@ -101,6 +101,9 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-1677 `ew-library`: A symbol with eleven or more text slots cannot pass both the canonical-order check and the arrangement test (found while adding the three-pole MCB, FT-657).
 - FT-1848 `ew-library, ew-viewmodel, ew-ui`: A valve and cylinder builder (positions, bodies and actuators per side; cylinder kind, cushioning, rod), making the symbol on the 12 mm module, the function definition with port roles and the switching model. Left out of M5 as a new editor; until then an unusual valve is drawn in the symbol editor and given a shipped function definition.
 - FT-1849 `ew-schema, ew-library`: Named anchor points on cylinder symbols for mounted sensors. M5 derives a sensor's place from the cylinder's outline and its ports A and B.
+- FT-2233 `content, ew-derive`: A bridge's part from its terminals: the terminal part names its plug-in bridges by pole count, so a drawn bridge takes the one of its length. Each bridge's part is chosen in the strip editor today (doc 07 §2.5 keeps the bridge's own part beside the accessories).
+- FT-2234 `ew-schema, ew-derive`: Fork lugs and pin lugs as parts: the ferrule section describes a ring lug for a stud only. With a clamp kind that asks for one in a real project.
+- FT-2236 `ew-api, ew-viewmodel, ew-ui`: The part editor's bus, PLC and cable forms as declared rows, as its other sections are (doc 07 §5); they are hand-built forms of their own today.
 
 ## Model, commands and numbering
 
@@ -176,6 +179,10 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-923 `ew-reports, ew-scene`: On 902 the PART DATA codes sit under an empty label column (the enclosure's part lines carry no label); look at it with FT-920.
 - FT-966 `ew-reports`: A generated table of contents reads "A report page…" for the generated report pages.
 - FT-1855 `ew-reports, ew-derive`: A sequence table derived from the actuator list (step, movement, output, the sensor that ends it), in place of drawing GRAFCET or function diagrams. Not in M5.
+- FT-2230 `ew-reports, ew-scene`: The terminal line-up diagram (FR-REP-011, kind `terminal_lineup`): the assembly list's rows drawn as the strip seen from the front. The assembly list gives the fitter the same order in words (doc 13 §6).
+- FT-2231 `ew-export`: A strip exported to a terminal configurator for pre-assembled ordering (FR-MFG-017, FR-TRM-025): no format is published to build it from; with a published format and a shop that orders strips assembled.
+- FT-2232 `ew-reports`: Rail pieces for strips on no drawn rail in the cut list: which rail part a strip goes on is a fact of the layout; without one, the assembly list gives each strip's length with its brackets.
+- FT-2235 `ew-reports`: The cutting plan: how many stock lengths of rail and duct (`sections.rail.stock_length`) a cut list takes, with the order list (WP-S1.38).
 
 ## Revisions and release
 

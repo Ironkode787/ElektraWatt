@@ -117,7 +117,7 @@ preview shows:
 
 `AssignPart{device, part, variant, qty, mode: Keep | Align}` (FR-PRT-015, FR-DEV-015):
 
-1. **Embed.** The part's closure is embedded.
+1. **Embed.** The part's closure is embedded, its accessories (§2.5) with it.
 2. **Device with no functions yet** (part-first placement, IDEA-016). The template functions are created unplaced,
    with IDs `v5(device_id, template_index)` ([03](03-domain-model.md) §4.1; ADR-0004 amendment 2). The
    function matching the chosen symbol is placed (FR-DEV-017, FR-UI-017).
@@ -131,8 +131,13 @@ preview shows:
    description default refresh in the same commit (FR-DEV-016). The device's own `tech_data` wins over the part's.
 5. **Quantity** is in the part's order unit: `-3W1` uses 6XV1830-0EH10 in metres. A cable's conductors are
    generated from the part's cable-core section (FR-CBL-004).
-6. **Several part uses per device** are allowed (-201U1: 195740 and 550208). Each use is matched separately. The
-   first use that provides the main function is the device's main part.
+6. **Several part uses per device** are allowed (a valve terminal and its bus node). Each use is matched separately.
+   The first use that provides the main function is the device's main part.
+7. **Variant.** The variant travels in the part reference (`PartRef.variant`); a variant the part does not hold is
+   refused in words. `fields.set` of a part use's `part.variant` changes the variant alone, which is what Properties
+   ▸ Parts ▸ Variant and the strip editor's Variant cell send; the device keeps its functions and connections.
+8. **Accessories.** Nothing is written on the device: its accessories are derived (§2.5). Replacing a part drops the
+   device's accessory choices that the new part does not name, in the same step.
 
 **Replace part** (FR-PRT-023) is `AssignPart` over a set of devices, as one previewed transaction. **Configured
 products** (FR-PRT-006) assign like parts; their components feed the component-mode BOM (FR-REP-005).
@@ -421,9 +426,9 @@ The stored part number stays verbatim. Duplicate detection uses (manufacturer, `
 **Index tables** (per user, rebuilt from libraries): the SQL schema `SCHEMA` of `crates/ew-library/src/index.rs`.
 A part is a row of `part`, its words a row of the full-text table `part_text` (every language of its description),
 its normalised number a row of the trigram table `part_pn` (substring hits on numbers) and its template functions
-rows of `part_fn`. Symbols, FnDefs and the other library items are rows of `item`, with their words in
-`item_text`. A table of part properties (`Dec3` as a scaled integer) and one of a part's CPs with their
-cross-section ranges, for compatibility, are specified; not built.
+rows of `part_fn`, and its pattern's CPs rows of `part_cp` (the designation and the clamp's cross-section range,
+for the fit below). Symbols, FnDefs and the other library items are rows of `item`, with their words in
+`item_text`. A table of part properties (`Dec3` as a scaled integer) is specified; not built.
 
 **Ranking.** Results are ordered by tier, then by score:
 1. exact `pn_norm` match;
@@ -455,14 +460,17 @@ part gets new data and no list of synonyms is kept.
 - *No row is chosen for the person:* the list opens and refreshes with no active row; a click or Down chooses one,
   Choose and Enter wait for it (Enter took a first row nobody had looked at).
 
-**Compatibility filter.** When a part is chosen for a function `f`, a part is compatible if its template contains a
-function with:
-- the same category (first two levels) and the same contact kind (MVP, FR-PRT-015);
-- at least the CP designations that `f` has connected, natural-normalised, and clamp cross-section ranges that
-  cover the connected wires (1.0, FR-DEV-033).
-
-The filter is a SQL `EXISTS` over `part_fn`, joined with `part_cp` from 1.0. Assigning a part to F55 therefore
-offers MCB 1P+N parts first, and an "incompatible" toggle shows the rest greyed.
+**What fits** (FR-PRT-015, FR-DEV-033). When a part is chosen for a device, an offer fits when its template has a
+function that its main function can become (the same FnDef, else the same first two category levels and contact
+kind), with every connection point the device has wired (its designation, natural-normalised), and each such clamp
+takes the wires on it: their effective cross-sections ([08](08-connections-terminals-cables.md) §4) lie in its
+`csa_min` … `csa_max`. A clamp without a range takes any wire, and the offer says that its clamp sizes are not
+given. An offer that does not fit says why in one sentence, the first reason found in this order: its function
+("A part of another kind: a contactor, not a circuit breaker"), a pin it lacks ("It has no pin 4; -101F1:4 is
+wired"), a clamp's size ("Its clamp 2 takes 0.5 to 1.5 mm²; wire 102.1 is 2.5 mm²"). The order of offers puts
+fitting ones first; Only parts that fit hides the rest, which otherwise stand greyed with their reason. The fit reads
+`part_fn` and `part_cp` for a library part and the copy for a held one, and the device's wires through
+`wire_props_of`; nothing is stored.
 
 ### 4.4 Quality level derivation
 
@@ -552,14 +560,45 @@ is `#[ignore]`d (not measured, the owner's rule).
 | Touchpoint | Behaviour | Persona, journey |
 |---|---|---|
 | **Symbol browser** (left dock tab, `Insert ▸ Symbol`, palette `device.place`, alias `symbol.place`) | tree by library and category, and search by name, category, IEC 60617 number and keyword (FR-SYM-021); previews of all 8 variants and extra variants; filtered by the current page's allowed representation types; drag onto the canvas | P1, J1 |
-| **Part browser and selection** (property grid "Part …", device navigator, `device.place` with `target = FromPart`, alias `device.place_from_part`; the journal records `device.place`, [06](06-schematic-editor.md) §3.1) | search box with the ranking of §4.3 and facets (category, manufacturer, library level, quality level, numeric ranges such as rated current); compatibility toggle; favourites, recently used, used in this project (FR-PRT-015); preview pane with data-level ladder, template functions and CP pattern, symbol preview, provenance and licence | P1, J1 |
-| **Part editor** | tabs Identity, Technical, Functions & CPs, Sections (PLC, cable, thermal), Mechanical, Commercial & Logistics, 3D, Provenance & Licence; schema-driven units and enums; save refused below "basic" (FR-PRT-022); side-by-side compare of up to 10 parts (FR-PRT-029, 1.x) | P6 |
+| **Part browser and selection** (the place browser: Insert ▸ Device from part, `device.place` with `target = FromPart`, alias `device.place_from_part`, the journal records `device.place`, [06](06-schematic-editor.md) §3.1; the part dialog: Properties ▸ Part ▸ Choose…) | one row in both: part number, maker, description in the reader's language, then what choosing it does, in words (below); the dialog adds the fit of §4.3; search with the ranking of §4.3; favourites, recently used, used in this project (FR-PRT-015); the active row's detail: its functions, its pins with each clamp's size range, its accessories and its variants as a choice | P1, J1 |
+| **Part editor** | one dialog, its sections listed on its left and shown one at a time: Identity, Technical data, Pins and clamps, Size and mounting, Accessories, Variants, the kind's own section (Wire, Ferrule or Marker), Cable cores, PLC, Bus interfaces; a section the kind has not is not listed; Save previews; Delete part… for a part of one's own | P6 |
 | **Symbol editor** (FR-SYM-017) | canvas on the symbol grid; tools for primitives, CPs, text slots, anchor and link points; FnDef panel with the CP table (`fn_cp` assignment by drag); live A–H strip; lint panel; "test place" on a scratch page; "fork from QET import" with FnDef assignment | P6 |
 | **Macro browser and insert** | thumbnail and device list on hover (FR-MAC-006); value-set table to pick a row or edit ad hoc; ghost with conflict list (FR-MAC-005) | P1, J1 |
 | **Save as macro** | selection → dialog: name, kind, target library, insertion point; "make variable" from property-grid rows; value-set table | P6 |
 | **Library manager** | installed libraries with level, version, licence, writability and index state; in a project, every embedded copy with status (current, newer available, deprecated with successor, source missing, local fork), where-used, "update", "purge unused" | P6, J5 |
 | **Company-standard wizard** (FR-PRJ-010, FR-UI-030) | steps: logo SVG, title-block form, colour and size profile (with stated basis, D-37), identifier set (ADR-0026 default), numbering rules, structure nodes, sections, revision format, languages, report blocks; writes a basic project and offers it as the default template | P1, J1 |
 | **Import dialogs** | CSV/XLSX column mapper; EDZ with the terms notice; parts XML; BMEcat (1.x); each ends in an import report with jump-to-record | P6, J2 |
+
+**What a part's row says it does.** A part is placed by the first of its functions that has a symbol on the page,
+its main function first, and its row says which in words: "Places the circuit breaker", "Places the coil 14" (a
+valve on an electrical page). A part whose function is a black box says "Drawn as a device box" and arms the box
+tool, as its row said; a part none of whose functions has a symbol on the page stands greyed with why ("No symbol
+draws a valve on a schematic page"). A row that opens to its functions says what it holds ("3 functions: coil, 2
+contacts"). A part with variants places the variant chosen in its detail, the part's own numbers first. The browser
+files a part under its trade by its category's row of the category table (`trade` beside the letter codes,
+`crates/ew-rds/data/identifier-sets.toml`), which also names the part groups that are no function category (bus
+cables, tubes): one table, no list of categories in the window.
+
+**The part editor's sections are declared rows.** A section is a list of rows, each a member of the part by its path
+(`sections.ferrule.csa_min`), its words and its kind of value (a length, a size in mm², a count, a choice of words,
+a colour, a yes or no, a part); a table section (Accessories, Variants, the pins) is a list of such columns over a
+member that is a list. The declaration hands out the reading of the text, its check with the message in words, the
+writing into the draft and the one form renderer per kind of value, so a new member is one line. Size and mounting
+is declared the same way; the bus, PLC and cable forms stay as they are.
+
+**A part of one's own, once it is used.** Save of a part whose devices are drawn as boxes previews, and the card
+names each box it draws anew and why ("-104A1-A1 on 104: a pin added"); a box drawn anew keeps its top-left corner
+and stays inside the page's drawing area. Delete part… (the editor's footer, the Libraries navigator's row) removes a
+part of the person's own; while devices use it, it is refused with their tags and Replace part… beside. The box
+editor's Add pin offers Add bus interface…, which opens the part editor on Bus interfaces. A bus port without an
+address offers Next free address in its Address row's menu and as the quick fix of its finding.
+
+**Accessories and variants of a device.** Properties of a device or a strip show, under Parts, a Variant row (the
+part's own numbers, then each variant by name and number) and an Accessories section: each accessory with its
+quantity, the part it comes with and a switch to take it or leave it off; its menu offers Use another part…, which
+writes the choice. The strip editor lists a strip's accessories at their places in the mounting order, those of its
+parts in secondary text with the part they come from, and has a Variant column; Delete on such a row leaves the
+accessory off for that strip. The place tool's options card shows Variant when the part it places has variants.
 
 The **Macro browser** is the Macros navigator (`NavKind::Macros`): the macros of every tier, then the project's own macro copies under "In this project"; its detail shows name, version and library, description, the devices and the variables, with "No preview" where the thumbnail should be. Enter on a row, its drop on a canvas or Insert macro… (Draw ▸ Place) arms the macro tool; its click opens the `macro` card in the Preview tab with the value set and the conflicts, and Apply is one undo step; a held macro without an installed source is not inserted. **Save as macro** (Edit menu) is a window-only dialog of name, key, description and library, which is the confirmation of a write that cannot be undone; kind, insertion point and the value-set table are not built, and "make variable" is the hidden action `props.make_variable`. The **Library manager** is the Libraries navigator (`NavKind::Libraries`): the libraries by tier with version, licence, access and index state, then "In this project" with each copy's state in words (Current, Update available, Only in this project, Deprecated, Local fork), each with a hover text of what it means, and the devices that use it; Update… names how many items it updates, is disabled with its reason when they have none, and opens `library.update`'s bulk card; "purge unused" is not in it. Its rows show IDs rather than names.
 
@@ -798,10 +837,16 @@ Seven further symbols join the starter set for the pilot corpus (§2.3).
   part's cores generate its conductors (FR-CBL-004), and an imported "BR" is flagged (D-17); a valve module's
   solenoid-position map, with its confidence, decides EW-PLC-012 (D-26); a configured product prints its order
   code in assembly mode and its components in component mode (FR-PRT-006, D-04, D-36).
-- **Accessories.** End brackets are derived from rail occupancy wherever strips are placed (one group of abutting
-  strips on one rail, k strips, needs k + 1 brackets; [12](12-panel-layout.md) §3.4); unplaced strips and bridges
-  use authored part uses, the bridge parts on their `BridgeSpec` connections
-  ([08](08-connections-terminals-cables.md) §2.3). Part-data accessory lists (FR-PRT-005) arrive at 1.0.
+- **Accessories and variants.** The generic terminals `EW-GEN-TRM-1` and `EW-GEN-TRM-2` name the end plate
+  `EW-GEN-EP-1` per strip and the end bracket `EW-GEN-EB-1` per rail group, `EW-GEN-TRM-3` the end plate
+  `EW-GEN-EP-2`; the duct `EW-GEN-DUCT-1` names its cover `EW-GEN-COV-40` per metre. `EW-GEN-TRM-1` is grey (`colour`
+  `GY`) and has the variant `BU`, blue, `EW-GEN-TRM-1-BU`. Plug-in bridges `EW-GEN-BRG-2`, `-3`, `-4` and `-10` serve
+  the generic terminals. The terminals and the circuit breakers carry clamp data (type and cross-section range), as
+  `test`.
+- **The workshop stock.** Generic ferrules `EW-GEN-FER-0.5` … `-6` (insulated, single) and `EW-GEN-FER-2X0.5` …
+  `-2X2.5` (twin), their colours those of DIN 46228-4 and flagged unverified; the markers `EW-GEN-MRK-1` (wire),
+  `EW-GEN-MRK-2` (terminal, 5.2 mm) and `EW-GEN-MRK-3` (device). No wire part is shipped: a wire without one is
+  listed and ordered by its size and colour. A new project takes the ferrules and markers as its stock (§2.5).
 
 ### 9.3 Macros of an assembly
 
@@ -830,7 +875,7 @@ Seven further symbols join the starter set for the pilot corpus (§2.3).
 | Defect | Mechanism in this area |
 |---|---|
 | D-02 | Panel-front graphics from the part's macro (FR-PRT-027), drawn for a placement that references the device; panel-front representations are derived from placements, never stored ([12](12-panel-layout.md)) |
-| D-04 | Parts on devices with quantities; configured products and their components; accessories (1.0) |
+| D-04 | Parts on devices with quantities; configured products and their components; accessories from part data |
 | D-10, D-41 | Macros create assembly children; overviews are generated from children |
 | D-13 | FnDef `PassThrough{opens}` and `switches_n_with_l` give derived "switched" potentials |
 | D-14 | Anchor policy per symbol; never the invisible origin |

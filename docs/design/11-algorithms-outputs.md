@@ -356,7 +356,8 @@ table's (`NavKind::source`), and each tube's first row in the tree carries the t
   asks for it. The house PDF stays monochrome.
 - **Assembly-overview pages** (201, 202) follow §5.5.
 - **Generated report pages** are added for the fluid row sources below, as report blocks
-  ([09](09-reports-forms-output.md) §2.4: `tube_list`, `tube_cut_list`, `valve_terminal_config`, `medium_overview`).
+  ([09](09-reports-forms-output.md) §2.4: `tube_list`, `valve_terminal_config`, `medium_overview`); the tubes to cut
+  are the Tubes group of the cut list ([13](13-workshop-lists.md) §9.3).
 
 ### 8.2 Row sources
 
@@ -366,7 +367,7 @@ alike (ADR-0018, FR-EXP-002).
 | Row source | Columns |
 |---|---|
 | Tube list (FR-FLU-012, 1.0) | tag, from DT:port (role), to DT:port (role), medium, line kind, od×id, material, colour, tube part, length + source, fittings A/B, location change, page/cell |
-| Tube cut list (FR-FLU-013, 1.0) | material, od×id, colour, part, count, Σ length + per-end cut allowance (default 0), order length rounded to the part's order increment |
+| Tube cut list (FR-FLU-013, 1.0) | the Tubes group of the cut list ([13](13-workshop-lists.md) §9.3): per tube part, else material, od×id and colour, and piece length: pieces, piece length rounded up to the cut increment, total |
 | Tube labels (FR-FLU-013, 1.0) | per tube end: text by marking scheme (tag, or destination "-203Q1:A" / "-201U3-Q1:2"), marker part |
 | Valve-terminal configuration (FR-FLU-015, 1.0) | position, module DT, module part, valve DT, valve part, solenoids, channel and address, function text / process tag, occupancy and state |
 | Medium overview (FR-FLU-016, 1.0) | medium, sources (DT:port), p_nom, quality, consumers (devices whose port 1 lies in the zone, and the actuators it reaches), default tube |
@@ -376,9 +377,8 @@ The row sources are `tube_rows()`, `valve_terminal_rows()` and `medium_rows()` o
 `ew-derive`, shared by the report kinds and the SQL views. A terminal that is its own valve module (EW-GEN-VTM-1:
 positions of its own, no child with positions) has a row per position after its own row, and its valves no module
 rows (the sample's -201K1 lists positions 1 to 4 with -201K1-Q1 … -Q4, solenoid 14, Q0.0 … Q0.6). The tube
-list prints lengths in metres. The cut list
-groups by material, size, colour and tube part, with the count and the summed length; it has no per-end cut
-allowance and no order length, since no part data names an order increment. The tube labels give one row per tube
+list prints lengths in metres. The cut list's Tubes group counts the pieces of each tube part and length; it has no
+per-end cut allowance and no order length, since no part data names an order increment. The tube labels give one row per tube
 end with the line tag, else the far end; no marker part. The medium overview counts as consumers the **valves** whose
 port 1 lies in a net carrying the medium (not the supply plates that feed it) and the **actuators** whose consumer port
 (a cylinder's A or B) does, so a medium set on a working line counts the cylinder it feeds. The fluid BOM

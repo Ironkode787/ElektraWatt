@@ -331,10 +331,10 @@ verbatim (`SK 3110.000`) and search uses a normalised form (§4.3); the descript
 These members of a part are specified; not built: a supply CP's load current in `cp_pattern` (`i_load`, `Dec3` in
 A), `classification` (`{scheme: etim | eclass | iec_cdd | native,
 id, version}`), `model3d` (the STEP file's SHA-256, its source and whether it may be embedded, FR-LAY-022), `cp3d`
-(3D connection points, FR-LAY-026), `drilling`, `accessories` (`{part, qty, required, per: part | strip end | strip |
-group}`), `variants` (`{key, overrides of sections and macros}`, FR-PRT-003), `commercial` (suppliers, supplier
+(3D connection points, FR-LAY-026), `drilling`, `commercial` (suppliers, supplier
 numbers, prices with currency and date), `logistics` (pack quantity, minimum order, customs code, origin, lifecycle)
-and `docs` (datasheet references as text, images only as asset hashes).
+and `docs` (datasheet references as text, images only as asset hashes). The accessories, the variants and the
+sections of the parts a wire consumes are below.
 
 **Technical-data keys** (decided 2026-10-18). `tech_data` uses the one `TechValue{key, value}`
 encoding of [05](05-project-format-and-persistence.md) §3.2 on parts and devices alike. A key qualified by a
@@ -372,9 +372,9 @@ Part data is organised in **data levels**. Each level lists its consumers and th
 **Provenance and confidence.**
 - `ItemMeta.sources` lists where each section came from: a datasheet reference, an EDZ file hash, a BMEcat file, a
   CSV import, or manual entry.
-- `ItemMeta.confidence` marks each section `verified`, `unverified` or `test`. The 533361 solenoid map H1 is
-  `test`. The vendor's clamp range of PT 2.5-TWIN is `unverified` until checked. The test parts
-  `TEST-DOORSW-1` and `TEST-LAMP-1` are `test`.
+- `ItemMeta.confidence` marks each section `verified`, `unverified` or `test`. A clamp range copied from a
+  datasheet is `unverified` until checked; the generic starter parts' clamp data, ferrule colours and widths are
+  `test`.
 - Findings computed from non-verified sections carry a "based on non-verified part data" marker. The release
   report lists every non-verified section in use (FR-PRT-031). Who may set `verified` in
   a community pack is governed by [19](19-open-source-governance.md) §3.6.
@@ -392,7 +392,8 @@ copy example of 05 §3.5.
 `ew-schema` types the MVP members of a
 part within format 0.1 (ADR-0011 amendment 4), in this order: `meta, kind, manufacturer,
 part_number, type_designation, order_number, gtin, description, category, tech_data, free_props, unit, cp_pattern,
-function_template, contacts, mech, sections, alternatives, configured, macros`, then `extra`. The order is fixed
+function_template, contacts, mech, sections, accessories, alternatives, configured, variants, macros, box`, then
+`extra`. The order is fixed
 because a copy's `sha256` is taken over the item's compact JSON in member order, so a later
 re-ordering would re-hash every existing copy. The typed members:
 
@@ -402,8 +403,11 @@ re-ordering would re-hash every existing copy. The typed members:
 | `mech` | `MechData{width?, height?, depth?: Nm, mount_kind?: MountKind, rail_offset?: Pt2 (rail pose to part origin), clearance?{top, bottom, left, right, front: Nm, an absent side is 0}, front_2d: Vec<Vec<Pt2>>, mass?: u32 grams}`; `MountKind` is `ts35x7_5, ts35x15, ts32, ts15, screw, busbar_adapter, door_cutout, on_parent, none` | FR-PRT-011 (L3) |
 | `cp_pattern[]` | `CpData` gains, after `clamp`, `clamp_type?: screw \| spring \| push_in \| idc \| ring_stud \| plug`, `csa_min?`, `csa_max?: Dec3` mm², `max_conductors?: u8`, `twin_ferrule: bool` | FR-PRT-008 |
 | `sections` | `PartSections` gains, after `cable_cores` and `plc`, `enclosure?{width, height, depth, wall: Nm, plate?: LibRef}`, `duct?{inner_width, inner_height, slot_pitch}`, `rail?{profile: MountKind, stock_length?}`, `mounting_plate?{width, height, thickness}` | FR-PRT-024 |
+| `sections` (consumables) | after `fluid`: `wire?{csa: Dec3, colour?: ColourSpec, class?: u8}`, `ferrule?{csa_min, csa_max: Dec3, twin: bool, insulated: bool, sleeve?: Nm, colour?: ColourSpec, stud?: Ident}`, `marker?{marks: wire \| terminal \| device \| cable, lines?: u8, chars?: u8}` | FR-PRT-035 |
+| `accessories` | `Vec<PartAccessory{part: LibRef, qty: Dec3, per: unit \| strip \| rail_group, kind?: AccessoryKind, optional: bool}>`; `AccessoryKind` is the strip accessory's (`end_plate`, `end_clamp`, `partition`, `marker`, `cover`) | FR-PRT-005, FR-REP-051 |
 | `alternatives` | `Vec<AlternativeRef{part: LibRef, kind: equivalent \| successor \| approved}>` | FR-PRT-004 |
 | `configured` | `Configured{order_code, components: Vec<{part: LibRef, qty: Dec3}>}` | FR-PRT-006 |
+| `variants` | `KeyedList<PartVariant{key: Ident, name: MlText, part_number?, order_number?, type_designation?, gtin?: Ident, description?: MlText, tech_data: KeyedList<TechValue>}>` | FR-PRT-003 |
 | `macros` | `Vec<MacroLink{rep_type, macro: LibRef}>` | FR-PRT-027 |
 | `box` | `PartBox{width, height: Nm, pins: Vec<PartBoxPin{idx (into `cp_pattern`), side: up \| right \| down \| left (the edge, by the direction a wire leaves in), at: Nm (along the edge from the box's top-left corner)}>}`, after `macros` (added after the lock, 0.3.0) | the device box, below |
 
@@ -440,7 +444,7 @@ drawn with a symbol has no device box to edit. `part.edit_copy` lets the fork of
 project; its sections stay the library's.
 
 Every new member is optional and default-omitted, every new enum keeps `Unknown(Value)` and every new object its own
-`extra`. The members not built (above, and the thermal, wire, ferrule and tube sections) stay in `extra`, and take
+`extra`. The members not built (above, and the thermal section) stay in `extra`, and take
 their place in the member order when they are typed.
 The `LibRef`s of these members name library items, not project records: the library resolves them. A copy that an
 older build wrote, with such a member in `extra` (byte-wise member order), opens with the member typed, is reported
@@ -460,6 +464,91 @@ EW-GEN-CPU-1 carries one port `DP`, `profibus_dp`, `master`.
 
 The fluid section is typed whole ([11](11-fluid-power.md) §2.6); the k-th entry of `solenoids` is the part's k-th
 template entry on a coil FnDef.
+
+**Accessories: what a part brings with it** (FR-PRT-005, FR-REP-051). A part names what is mounted and ordered with
+it: an end plate after the last terminal of a strip, the end brackets of a run of strips, the cover of a duct. Each
+entry of `accessories` names the accessory part, how many (`qty`, in the accessory's order unit) and per what:
+
+- `unit`: per piece of the part a device uses, or per metre of a part sold by the metre, so a duct's cover is as long
+  as the duct;
+- `strip`: once per terminal strip whose terminals use the part, standing after the last of those terminals; a
+  strip whose terminals of two parts name the same accessory takes it once, after the last terminal that names it;
+- `rail_group`: the end brackets of a run of strips on one rail: one before the run and one after each strip, so k
+  abutting strips take k + 1 ([12](12-panel-layout.md) §3.4); a strip on no rail stands alone and takes two.
+
+`kind` says what the accessory is to a strip, in the strip accessory's own words (End plate, End bracket, Partition
+plate, Marker carrier, Cover): the assembly list prints it and the check finds the end plate by it. `optional` marks
+an accessory a person may take that the part does not need; no list counts it until he takes it. A part of kind wire,
+ferrule or marker is never an accessory: the consumables count it ([13](13-manufacturing-outputs.md) §3.6), and the
+part editor refuses it as one. The accessory is a library reference, so embedding a part embeds its accessories
+(its closure, §3.1).
+
+Three hands write it, each above the one before: the library's part; the project's copy (the part editor; its fork
+of a library copy changes `accessories` and `variants` as it changes the pins); and, for one device, that device's
+choice, `Device.accessory_choices: Vec<AccessoryChoice{of: Id<Part>, part?: PartRef}>`. A choice names the accessory
+copy a declaration names (`of`): without `part` the device does not take it, with `part` it takes it as that part
+(`of` itself takes an optional one, another part swaps it). A choice lives on the device the accessory is counted
+for: a `unit` accessory on the device that uses the part, a `strip` and a `rail_group` accessory on the strip.
+Replacing a part (`part.assign`) drops the choices of accessories the new part does not name.
+
+**One path.** `part_accessories(device)` of `ew-derive` gives every accessory of a device from its parts'
+declarations and its choices: the accessory part, the quantity, the part it comes with and where it stands in a
+strip. The parts list, the assembly list, a strip's length on its rail, the end brackets of the layout and the
+checks read it and nothing else. Two other things name a part beside a device, each for a reason of its own:
+
+- a strip's own accessories (`Strip.accessories`, the strip editor's Add accessory): an item the person puts at a
+  place in one strip, a partition plate after terminal 4, an end plate where the terminal type changes, a bracket in
+  the middle of a long strip; no part can name a place in one strip;
+- a bridge's part (the `overrides.wire_part` of its group's carrier, [08](08-connections-terminals-cables.md) §2.3):
+  a bridge is drawn where the circuit asks, over as many terminals as it asks, and its part is chosen for that bridge
+  as a cable's is.
+
+A strip that holds an end bracket as a part use of kind `end_bracket` (a project made before accessories) reads it
+as that strip's choice of end bracket: the rails count it as before, and its terminals' declarations are not asked
+for that strip. No command gives a strip such a part use: the part dialog of a strip offers no end bracket.
+
+**Variants** (FR-PRT-003). A variant is the part as its maker also sells it, in another colour or rating, under its
+own number: one record, the data shared, the numbers its own. It has a key (the `PartRef.variant` a part use
+stores, `BU`), a name in the reader's language ("Blue") and what it changes: its part number, order number, type
+designation, GTIN, description and technical values (the colour among them, the native key `colour`), each absent
+where it is the part's. It changes nothing of the pins, the template, the size, the sections or the accessories, so
+a device keeps its connection points when its variant changes. A variant gives at least one of its own part number,
+order number or description, else the parts list could not tell it from the part, and the part editor refuses it.
+Every list prints a variant's numbers and description where it gives them, else the part's, and its technical
+values where the device has none of its own (a device's own value wins over its variant's, which wins over its
+part's). A part use naming a key its part does not hold prints the part and is reported (EW-CORE-085).
+
+**The parts a wire consumes** (FR-PRT-035). The wire, the ferrule and the marker carry a section each, and every
+member has a reader:
+
+| Section | Member | Read by |
+|---|---|---|
+| `wire` | `csa` (mm²), `colour` | the stock match of a wire's part; EW-MFG-022 |
+| | `class` (IEC 60228: 1, 2, 5, 6) | the treatment of the wire's ends ([13](13-manufacturing-outputs.md) §4) |
+| `ferrule` | `csa_min`, `csa_max` | which ferrule an end takes ([13](13-manufacturing-outputs.md) §4.4) |
+| | `twin` | two wires in one ferrule ([13](13-manufacturing-outputs.md) §4.3) |
+| | `insulated` | the shop's choice of insulated ferrules |
+| | `sleeve` | the strip length the wire list prints |
+| | `colour` | the word the wire list and the consumables print for the ferrule the fitter takes |
+| | `stud` | a ring lug for that stud (`M4`), worded Ring lug |
+| `marker` | `marks` | the default marker of a label kind |
+| | `lines`, `chars` | whether a marker text fits (EW-MFG-004) |
+
+A wire's size and colour come from the project's colour and size rules and the overrides
+([08](08-connections-terminals-cables.md) §4), never from its part: the part is the stock it is cut from. A wire's
+part is the one the chain names (on the wire, on its potential's definition, the project default), else the first
+wire part of the workshop stock whose size and colour are the wire's, else none; a wire without a part is listed by
+its size and colour. A wire part whose size or colour is not the wire's is reported (EW-MFG-022), and every list
+prints the wire's colour, the one the drawing shows: a shop that cut by the part would cut the wrong one.
+
+**The workshop stock.** `ProjectSettings.workshop: WorkshopSettings{stock: Vec<PartRef>, cut_increment?: Nm}`, a
+typed member of the project's settings. `stock` holds the wire, ferrule and marker parts the shop keeps, in its
+order of preference: a wire takes the first stock wire part of its size and colour, an end the first stock ferrule
+that fits it ([13](13-manufacturing-outputs.md) §4.4), a label kind the first stock marker that marks it unless its
+label set names one ([13](13-manufacturing-outputs.md) §5.3). `cut_increment` is what the cut list rounds a piece up
+to ([13](13-manufacturing-outputs.md) §9.3), 5 mm when absent. A new project starts with the starter's generic
+ferrules and markers as its stock (`file.new` embeds and names them in its one step, §9.2); a company's basic project
+names its own; a project made before has none, and Project properties ▸ Workshop offers Add the generic stock.
 
 ### 2.6 Classification: ETIM bundled, ECLASS identifiers only
 

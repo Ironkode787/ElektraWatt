@@ -202,7 +202,7 @@ Optional accuracy fields for robot wiring stay out of v1 (PARK-07); the record i
 | `placement_geometry(p)` | footprint, OBB, CP3D in carrier and world frames, keep-outs, outline ref, quality | I, memo per placement | pose chain, part L3/L5/L6, variant |
 | `layout_label(p)` | label lines, style key | I, memo | `device_tag(dev).displayed(page)`, page label mode (FR-LAY-009) |
 | `rail_occupancy(carrier)` | sorted intervals `(s0, s1, placement, padding, locked)` incl. strips and group accessories | I, memo per carrier | placements on the carrier, geometry |
-| `strip_layout(p)` | per terminal: s, width; end covers, brackets per group | I, memo | strip terminals by `seq`, part widths, accessories |
+| `strip_layout(p)` | the strip's items in mounting order, each with s and width: its terminals by `seq`, the end plates and other accessories standing in it (`part_accessories`, the strip's own) | I, memo | strip terminals by `seq`, part widths, accessories |
 | `carrier_order(carrier)` | placements in physical order | I, cold | rail occupancy (consumed by [10](10-plc-and-bus.md) for EtherCAT and rack order) |
 | `page_display_list(page, layer, lang)` of a PanelLayout page | 2D display list per panel layer (§5.2) | I, memo + LRU | geometry, labels, carriers, features, form |
 | `layout_legend(surface)` | legend rows | I, memo | placements, carriers, parts (FR-LAY-012) |
@@ -225,7 +225,8 @@ the placement records and the part data each time. Values are integer nanometres
 order of their full tag, a device of another location never listed, `Session::unplaced` in the API; `placement_geometry(p)` (memo): the footprint and outline in the surface frame and the unknown
 flag only (no OBB, CP3D or keep-outs at the MVP): on a rail the clip point lies on the axis at u = `path[0].u` + s
 (-102G1 on R1: (101, 675)–(171, 805) mm), an unknown part is the 20 × 20 mm square about the pose, a strip is its
-terminals side by side, and a placement on a duct or a rail without a valid axis has none; `rail_occupancy(carrier)`
+terminals and the accessories standing in it side by side (`strip_layout`), and a placement on a duct or a rail
+without a valid axis has none; `rail_occupancy(carrier)`
 (memo): intervals `(s0, s1, placement, device, locked, unknown)` in s along the rail, sorted, a strip one interval,
 overlaps kept for EW-LAY-006, no clearance padding and no group accessories; `layout_label(p, page, mode)`
 (memo): the device's displayed tag on the page (abbreviated) or its full designation, so renumbering changes the label
@@ -295,7 +296,8 @@ unknown footprint. Assembly children are not exempt by being children: "with its
   edges. The profile comes from the rail part; the axis is a 1-D coordinate space `s ∈ [0, L]` (FR-LAY-004).
 - **Ducts** are orthogonal polylines with explicit width and height (FR-LAY-005). A vertex is a corner or, where two
   ducts meet, a T or cross joint; joints connect routing segments (§8.1). Duct and rail lengths in the BOM and cut
-  list come from the path, rounded up to the cutting increment of the shop policy.
+  list come from the path: the BOM prints it exact to the millimetre, the cut list rounds each piece up to the
+  project's cut increment ([13](13-manufacturing-outputs.md) §9.3).
 - **Moving a carrier moves everything on it**, because placement poses are carrier-relative. A move that makes a
   rail overlap a duct is a collision finding, never an automatic correction.
 - **Free length.** The property grid of a rail shows its free length `L − Σ occupied intervals` from
@@ -349,9 +351,10 @@ snap_on_rail(rail, device, cursor, mode):
 ### 3.4 Strips, assemblies and group accessories
 
 - **Terminal strips are placed as a whole** (FR-LAY-015): one `Placement3D` of the strip device; `strip_layout`
-  positions the terminals by `seq` with their part widths, adds end covers per strip end from the terminal part's
-  accessories, and recomputes on every strip change. Adding a terminal in the schematic lengthens the placed strip in
-  the next derivation; if the rail overflows, EW-LAY-010 reports it. A strip may be split across carriers with
+  positions the terminals by `seq` with their part widths and the accessories that stand in the strip at their
+  places (the end plates its terminals' parts name, after the last terminal that names each, and the strip's own,
+  [07](07-symbols-parts-macros.md) §2.5), and recomputes on every strip change. Adding a terminal in the schematic
+  lengthens the placed strip in the next derivation; if the rail overflows, EW-LAY-010 reports it. A strip may be split across carriers with
   `segment` ranges, and it stays one BOM row (D-42).
   A strip that grows by `terminal.insert` or by a new terminal
   placed in the schematic shifts the items after it on its rail by the overlap, cascading as push does (§3.3), in the
@@ -363,13 +366,16 @@ snap_on_rail(rail, device, cursor, mode):
   strips the bracket of the strip on the left, as EW-LAY-010 judges it, a locked item stops the
   cascade, and past the rail's start the positions are written and EW-LAY-010 reports `bracket_outside`. The pushes of one command cascade from one another: each reads the positions and the strip
   widths the transaction holds.
-- **Group accessories** (FR-LAY-060, MVP). A group is a maximal run of abutting strip placements on one rail.
-  Wherever strips are placed, `rail_occupancy` derives one end bracket per strip boundary in the run plus one at each
-  run end, so k abutting strips need k + 1 brackets. In the example rail R2 holds 1X1, -X1031 and -X1032 abutting: **4**
-  brackets, as on folio 902 and in BOM row 26. Strips that are not placed, and
-  bridges, use authored part uses (bridge parts on their `BridgeSpec` connections). From 1.0 the part-data accessory
-  lists (`AccessoryRef{per: Group}`, [07](07-symbols-parts-macros.md) §2.5; FR-PRT-005, FR-REP-051) declare the
-  bracket part and must reproduce the same count.
+- **Group accessories** (FR-LAY-060). A group is a maximal run of abutting strip placements on one rail. Its end
+  brackets are one before the run and one after each strip, each attributed to the strip it follows (the first to
+  the run's first strip), so k abutting strips need k + 1. A strip's end bracket is, first match wins: its own
+  choice (`Device.accessory_choices`), an end bracket it holds as a part use (a project made before), the
+  `rail_group` accessory of the first of its terminals whose part names one ([07](07-symbols-parts-macros.md) §2.5);
+  a strip without one has no brackets and declares no width to the rail. A strip on no rail is a run of its own and
+  takes two, so the parts list and the assembly list count brackets before a layout is drawn. On the sample, -X1011,
+  -X1021 and -X1031 stand on their rails between other devices: two brackets each, six in the parts list. Bridges
+  are no accessory of a terminal: their parts are on their `BridgeSpec` connections
+  ([08](08-connections-terminals-cables.md) §2.3).
 - **Assemblies and PLC racks.** Children of one assembly (the valve terminal -201U1 … -202U3) or of one PLC station
   on one carrier are kept contiguous and in physical order (`Device.position`, module slot). `PlaceAssembly{device,
   carrier, at}` places all members abutting; inserting a missing member uses push mode. EW-LAY-016 (FR-LAY-061) reports
