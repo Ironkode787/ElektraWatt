@@ -1416,10 +1416,11 @@ fn bar_button(b: &crate::command_bar::CommandButton) -> String {
     text
 }
 
-/// The command bar's lines: the active tab, then one line per group with its commands in bar
-/// order, then the next step; a collapsed bar prints its tab line only.
+/// The command bar's lines as the window shows the bar (`shown_command_bar`: over the symbol editor its one tab, never
+/// collapsed): the active tab, then one line per group with its commands in bar order, then the next step; a collapsed
+/// bar prints its tab line only.
 fn command_bar_lines(model: &ShellModel, lines: &mut Vec<String>) {
-    let bar = crate::command_bar::command_bar(model);
+    let bar = crate::command_bar::shown_command_bar(model);
     let tab = bar
         .tabs
         .iter()

@@ -2426,3 +2426,25 @@ fn the_command_search_in_the_symbol_editor_greys_what_the_editor_refuses() {
         }
     }
 }
+
+/// The describe text prints the command bar the window shows: over the symbol editor its one tab "Symbol editor",
+/// never collapsed, though the project's bar is collapsed under it.
+#[test]
+fn the_describe_text_prints_the_bar_the_window_shows_over_the_editor() {
+    let tmp = Tmp::new("symbol-describe-bar");
+    let mut shell = tmp.empty_shell(Mode::Headless);
+    done(
+        &mut shell,
+        "file.new",
+        json!({"dir":tmp.0.join("project"),"template":"builtin"}),
+    );
+    done(&mut shell, "view.command_bar", json!({}));
+    done(&mut shell, "symbol.new", json!({}));
+    let text = shell.describe();
+    let tab = text
+        .lines()
+        .find(|l| l.starts_with("commandbar tab "))
+        .expect("the command bar's tab line");
+    assert_eq!(tab, "commandbar tab \"Symbol editor\"");
+    shell.shutdown();
+}
