@@ -132,7 +132,7 @@ pub fn check_member(member: Member, value: &Value) -> Result<(), String> {
                 }
                 if let Some(issue) = crate::tag::scheme_issue(scheme) {
                     return Err(format!(
-                        "scheme `{}` would not be applied ({}); until WP-S1.11 a scheme needs counter \
+                        "scheme `{}` would not be applied ({}); a scheme needs counter \
                          scope \"page\" and formats with {{page}}, {{letter}} and {{counter}}",
                         scheme.key,
                         issue.describe()
@@ -362,6 +362,19 @@ mod tests {
         assert!(check_member(Member::ColourProfile, &bad).is_err());
         assert!(company_codes(&bad).is_empty());
         assert!(company_codes(&Value::Null).is_empty());
+    }
+
+    #[test]
+    fn a_refused_numbering_scheme_says_what_a_scheme_needs() {
+        let numbering = json!({"default": "plain", "schemes": [
+            {"key": "plain", "format": "{counter}", "rules": []}]});
+        let message = check_member(Member::Numbering, &numbering).unwrap_err();
+        assert!(
+            message.ends_with(
+                "; a scheme needs counter scope \"page\" and formats with {page}, {letter} and {counter}"
+            ),
+            "{message}"
+        );
     }
 
     #[test]
