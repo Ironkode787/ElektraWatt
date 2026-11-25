@@ -457,7 +457,7 @@ impl Session {
                 _ => None,
             })
             .unwrap_or_else(|| held.version.clone());
-        let version = ew_import_catalog::bump_patch(&current).ok_or_else(|| failed(current.clone()))?;
+        let version = ew_schema::next_patch(&current).ok_or_else(|| failed(current.clone()))?;
         let copy = finish(
             LibCopy {
                 version,

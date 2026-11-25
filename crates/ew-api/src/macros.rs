@@ -183,7 +183,7 @@ fn spec(at: impl Into<String>, message: impl Into<String>) -> MacroError {
 /// number is the largest one (a held version read from a library file has no next minor version then).
 fn next_minor(v: &str) -> Option<String> {
     match ew_schema::semver_core(v) {
-        Some([a, b, _]) => Some(format!("{a}.{}.0", b.checked_add(1)?)),
+        Some(_) => ew_schema::next_minor(v),
         None => Some("1.0.0".to_owned()),
     }
 }

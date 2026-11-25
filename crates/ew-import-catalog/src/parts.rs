@@ -223,22 +223,6 @@ fn caret(version: &str) -> String {
     }
 }
 
-/// The next patch version of `version` (`1.0.0` → `1.0.1`).
-pub fn bump_patch(version: &str) -> Option<String> {
-    let mut it = version.split('.');
-    let (major, minor, patch) = (it.next()?, it.next()?, it.next()?);
-    if it.next().is_some() {
-        return None;
-    }
-    let n = |s: &str| s.parse::<u64>().ok();
-    Some(format!(
-        "{}.{}.{}",
-        n(major)?,
-        n(minor)?,
-        n(patch)?.checked_add(1)?
-    ))
-}
-
 /// A cell's text as the format stores text: trimmed, NFC.
 fn clean(s: &str) -> String {
     let mut v = Value::String(s.trim().to_owned());
@@ -1072,7 +1056,7 @@ impl<'a> Placer<'a> {
                 Some(held) if same_content(&part, &held.item) => (RowStatus::Unchanged, held),
                 Some(held) => {
                     let version = if target.bump {
-                        match bump_patch(&held.version) {
+                        match ew_interop_api::ew_schema::next_patch(&held.version) {
                             Some(v) => v,
                             None => {
                                 let why = format!("the held version `{}` cannot be bumped", held.version);
@@ -1184,8 +1168,6 @@ mod tests {
         assert!(kind("gizmo").is_err());
         assert_eq!(unit("PCS"), Ok(Some("piece")));
         assert!(unit("box").is_err());
-        assert_eq!(bump_patch("1.0.9").as_deref(), Some("1.0.10"));
-        assert_eq!(bump_patch("1.0"), None);
         assert_eq!(caret("0.3.1"), "^0.3");
         assert_eq!(caret("2.0.0"), "^2");
     }

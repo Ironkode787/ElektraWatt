@@ -238,14 +238,6 @@ fn key_of_name(name: &str) -> String {
     format!("user.{}", if slug.is_empty() { "symbol" } else { slug })
 }
 
-/// The version after `version` by its last number (`1.0.0` gives `1.0.1`); `None` for a version that does not end
-/// in a number.
-fn next_patch(version: &str) -> Option<String> {
-    let (head, last) = version.rsplit_once('.')?;
-    let next = last.parse::<u32>().ok()?.checked_add(1)?;
-    Some(format!("{head}.{next}"))
-}
-
 /// Whether the draft's key is the one its name gives, in a draft that no library holds yet: such a key follows the
 /// name and gives way to a free one when the library holds it for another symbol.
 fn key_from_name(draft: &SymbolDraft) -> bool {
@@ -1910,9 +1902,9 @@ impl ShellModel {
                     draft.key = format!("{base}-{number}");
                 }
                 Err(symbols::Error::Library(ew_api::library::LibraryError::Immutable { .. }))
-                    if tries < 1000 && next_patch(&draft.version).is_some() =>
+                    if tries < 1000 && ew_api::next_by_last_number(&draft.version).is_some() =>
                 {
-                    draft.version = next_patch(&draft.version).unwrap_or_default();
+                    draft.version = ew_api::next_by_last_number(&draft.version).unwrap_or_default();
                 }
                 other => break other,
             }

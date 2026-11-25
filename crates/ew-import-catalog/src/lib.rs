@@ -38,7 +38,7 @@ pub use ew_interop_api;
 pub use map::{ColumnMap, MapError, Member, check_source_key};
 pub use parts::{
     CatalogTarget, FIRST_VERSION, IMPORTER_ID, IMPORTER_VERSION, PartsImport, Placer, RowCounts, RowOutcome,
-    RowStatus, bump_patch, manufacturer_item, namespace, parse_parts, part_item,
+    RowStatus, manufacturer_item, namespace, parse_parts, part_item,
 };
 /// The readers of the parts import as the table round trip uses them: a
 /// table of a CSV or an XLSX sheet as header and cell texts ([`sheet::read_sheet`]), every record of one whole, without a

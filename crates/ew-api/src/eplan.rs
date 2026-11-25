@@ -601,7 +601,7 @@ impl Session {
             if item == held.item {
                 continue;
             }
-            let Some(version) = ew_import_catalog::bump_patch(&held.version) else {
+            let Some(version) = ew_schema::next_patch(&held.version) else {
                 continue;
             };
             let mut copy = LibCopy {

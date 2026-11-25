@@ -373,7 +373,7 @@ pub fn import_part_outline(
         })
         .ok_or_else(|| format!("The library holds no part {part_number}."))?;
     let mut part = doc.clone();
-    part.version = ew_import_catalog::bump_patch(&doc.version)
+    part.version = ew_schema::next_patch(&doc.version)
         .ok_or_else(|| format!("The part {part_number} has no version that can be raised."))?;
     part.item.mech.get_or_insert_with(Default::default).front_2d = lines.clone();
     registry

@@ -106,6 +106,33 @@ pub fn semver_core(v: &str) -> Option<[u64; 3]> {
     }
 }
 
+/// The next patch version of `v` (`1.0.0` → `1.0.1`): `v` is exactly three dot-separated decimal numbers; `None` for
+/// any other text and on overflow. The form an import into a library takes for a changed item.
+pub fn next_patch(v: &str) -> Option<String> {
+    let mut it = v.split('.');
+    let (major, minor, patch) = (it.next()?, it.next()?, it.next()?);
+    if it.next().is_some() {
+        return None;
+    }
+    let n = |s: &str| s.parse::<u64>().ok();
+    Some(format!("{}.{}.{}", n(major)?, n(minor)?, n(patch)?.checked_add(1)?))
+}
+
+/// The version after `v` by its last number (`1.0.0` → `1.0.1`, `1.0` → `1.1`); `None` for a version that does not end
+/// in a number up to 2³² − 1 and on overflow. The symbol editor's form for a symbol saved again.
+pub fn next_by_last_number(v: &str) -> Option<String> {
+    let (head, last) = v.rsplit_once('.')?;
+    let next = last.parse::<u32>().ok()?.checked_add(1)?;
+    Some(format!("{head}.{next}"))
+}
+
+/// The next minor version of `v`'s numeric core ([`semver_core`]: `1.2.3` → `1.3.0`); `None` for a version without
+/// one and when the minor number is the largest one. The form a macro saved again takes.
+pub fn next_minor(v: &str) -> Option<String> {
+    let [a, b, _] = semver_core(v)?;
+    Some(format!("{a}.{}.0", b.checked_add(1)?))
+}
+
 /// Whether `v` is a plain version `MAJOR.MINOR.PATCH`, as a symbol drawn in the symbol editor takes it: three
 /// non-empty parts, none with a leading zero, each a number up to 2³² − 1, and no pre-release or build part.
 pub fn is_plain_semver(v: &str) -> bool {
@@ -2849,6 +2876,17 @@ open_enum!(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The three next versions, each by its rule.
+    #[test]
+    fn the_next_versions_follow_their_rules() {
+        assert_eq!(next_patch("1.0.9").as_deref(), Some("1.0.10"));
+        assert_eq!(next_patch("1.0"), None);
+        assert_eq!(next_by_last_number("1.0").as_deref(), Some("1.1"));
+        assert_eq!(next_by_last_number("1.0.0").as_deref(), Some("1.0.1"));
+        assert_eq!(next_minor("1.4.7").as_deref(), Some("1.5.0"));
+        assert_eq!(next_minor("one"), None);
+    }
 
     #[test]
     fn the_core_of_a_semantic_version() {

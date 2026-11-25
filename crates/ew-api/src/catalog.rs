@@ -426,7 +426,7 @@ impl LibraryPart {
                 Some(h) if then.map(mark) != Some(mark(h)) => {
                     if h.sha256 == p.sha256 {
                         p.version.clone_from(&h.version);
-                    } else if let Some(next) = ew_import_catalog::bump_patch(&h.version) {
+                    } else if let Some(next) = ew_schema::next_patch(&h.version) {
                         p.version = next;
                     } else {
                         stale.push(format!("{} ({})", p.item.part_number.as_str(), h.version));

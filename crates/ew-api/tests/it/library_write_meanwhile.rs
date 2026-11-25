@@ -99,7 +99,7 @@ fn a_write_after_a_change_meanwhile_bumps_against_the_library_as_it_is_then() {
     let after = held(&reg);
     assert_eq!(
         Some(after.version.as_str()),
-        ew_import_catalog::bump_patch(&meanwhile).as_deref(),
+        ew_schema::next_patch(&meanwhile).as_deref(),
         "the next patch version of the copy held at the write"
     );
     assert!(

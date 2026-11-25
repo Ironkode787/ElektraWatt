@@ -231,6 +231,7 @@ pub use ew_schema::LabelFormat;
 pub use ew_schema::PageType;
 /// The party roles of a revision's author and checker (doc 03 `Party`): `ew revision approve --as <role>` names one.
 pub use ew_schema::PartyRole;
+pub use ew_schema::next_by_last_number;
 /// A project's kind: a schematic project, a template (`Basic`) or a macro project (FR-PRJ-026).
 pub use ew_schema::ProjectKind;
 /// A list kind (doc 09 §2.4): the new-project wizard's standard layout names its report blocks by it.
