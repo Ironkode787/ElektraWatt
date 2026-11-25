@@ -364,7 +364,7 @@ One path, from the place a thing is found to the words on a screen or a page.
 
 1. **A crate returns facts.** An error is an enum with its data, a kind is an enum, a note of the derivation
    carries typed fields. A `Display` is English for a log and a developer; no window, list or page shows it, and
-   no crate reads a fact back out of a sentence. Only the seven crates of point 2 make a text for a person.
+   no crate reads a fact back out of a sentence. Only the six crates of point 2 make a text for a person.
 2. **A text for a person is a `Text`: a key and its arguments** (`ew-l10n`). An argument is a value as written (a
    tag, a name), a name a person wrote in several languages (printed in the reader's language), a number, another
    `Text` or a list of them joined by the words of the reader's language. It is made by the crate whose concern it is
