@@ -271,7 +271,7 @@ v0 facade.
 
 Tools hand `Box<dyn DynCommand>` to the session ([schematic editor](06-schematic-editor.md) §4.1). The untyped
 `AnyCommand { name, params }` of scripts, plugins and MCP implements `DynCommand` after its parameters have been
-validated against the command's JSON Schema ([extensibility](17-extensibility.md) §2.1).
+read into the command struct ([extensibility](17-extensibility.md) §2.1).
 
 ### 5.2 Commit pipeline (UI thread)
 

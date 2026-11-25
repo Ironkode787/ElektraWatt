@@ -6,14 +6,14 @@
 //! `ew-ids`, `ew-units` and `ew-mltext` carry serde but no schemars, and `ew-schema` keeps its proxies
 //! private, so parameter fields of those types name one of these proxies with `#[schemars(with = "…")]`.
 //! Each describes the strict encoding the type's serde implementation accepts (doc 05 §3.2). What a
-//! schema cannot express (NFC, reduced fractions) is enforced by deserialisation, which runs after the
-//! schema check and reports at the parameter object's root.
+//! schema cannot express (NFC, reduced fractions) is enforced by deserialisation, which reads the parameters and
+//! refuses at the JSON Pointer of the offending value.
 //!
 //! The `$defs` names carry a `Cmd` prefix: `ew-schema` has private proxies of the same types under the plain
 //! names, and a parameter struct that embeds both an `ew-schema` type and one of these would otherwise put two
 //! different definitions under one name. `CmdIdent`, `CmdDec3`, `CmdUuid` and `CmdMlText` carry the same
-//! `pattern` / `propertyNames` as their `ew-schema` counterparts. The in-crate validator (`jsonschema.rs`)
-//! ignores `pattern`; the patterns serve external schema consumers, and deserialisation stays authoritative.
+//! `pattern` / `propertyNames` as their `ew-schema` counterparts. The schemas describe the parameters for the
+//! reference and external schema consumers; deserialisation is what checks them.
 
 use std::borrow::Cow;
 

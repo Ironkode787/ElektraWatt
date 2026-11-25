@@ -1733,7 +1733,7 @@ fn drawing_set_rejections() {
         params: json!({"member": "drawing", "value": {"crossings": "loops"}}),
     };
     match e.execute(&bad) {
-        Err(CmdError::InvalidParams { path, .. }) => assert_eq!(path, "/value"),
+        Err(CmdError::InvalidParams { path, .. }) => assert_eq!(path, "/value/crossings"),
         other => panic!("expected InvalidParams, got {other:?}"),
     }
     assert_eq!(e.model().rev().0, 0);

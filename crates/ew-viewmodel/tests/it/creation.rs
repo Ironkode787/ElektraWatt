@@ -1066,7 +1066,7 @@ fn an_invalid_parameter_names_its_field_in_words_on_every_path() {
     );
     assert_eq!(
         message,
-        "Create page: Number: expected integer or null, found string"
+        "Create page: Number: invalid type: string \"x\", expected a whole number"
     );
     shell.shutdown();
 

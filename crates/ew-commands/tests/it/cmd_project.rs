@@ -461,7 +461,7 @@ fn frames_set_refuses_bad_forms_and_page_types() {
         ),
     );
     assert_eq!(path, "/value/per_page_type/0/form");
-    // A page type it does not know is refused at the value.
+    // A page type it does not know is refused where it stands.
     let (path, _) = invalid(
         &mut e,
         &member(
@@ -469,7 +469,7 @@ fn frames_set_refuses_bad_forms_and_page_types() {
             json!({"per_page_type": [{"page_type": "hologram", "form": form}]}),
         ),
     );
-    assert!(path.starts_with("/value"), "{path}");
+    assert_eq!(path, "/value/per_page_type/0/page_type");
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -537,7 +537,7 @@ fn languages_set_refuses_translations_that_do_not_fit() {
     );
     assert_eq!(path, "/value/translations");
     let (path, _) = invalid(&mut e, &member("languages", json!({"date": "mm/dd/yy"})));
-    assert!(path.starts_with("/value"), "{path}");
+    assert_eq!(path, "/value/date");
 }
 
 // ---------------------------------------------------------------------------------------------------------

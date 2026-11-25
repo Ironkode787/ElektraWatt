@@ -110,16 +110,17 @@ fn settable_members() -> Vec<String> {
         .collect()
 }
 
-/// `value` as the parameters of the member `member`, or the refusal at `/value` in serde's words.
+/// `value` as the value of the member `member`, or the refusal at the JSON Pointer of the offending value below
+/// `/value` ([`crate::error::params_error`]).
 pub(crate) fn member_value<T: DeserializeOwned>(member: &str, value: &Value) -> Result<T, CmdError> {
-    serde_json::from_value(value.clone()).map_err(|e| {
+    ew_schema::from_value_tracked(value).map_err(|e| {
         CmdError::invalid_params(
             SetProjectSettings::NAME,
-            "/value",
+            crate::error::params_pointer("/value", &e),
             text!(
                 "refusal-settings-value",
                 member.to_owned(),
-                crate::error::serde_error_text(&e)
+                crate::error::params_words(&e)
             ),
         )
     })

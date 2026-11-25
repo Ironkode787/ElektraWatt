@@ -317,8 +317,8 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/error.rs` |  | The error of running, normalising, validating, committing, undoing and redoing a command. |
 | `src/geometry.rs` | large | Integer geometry of the editor commands (ARCH §4.5: i64 nanometres, no float equality): the positions of a representation's connection points, the path a connection without a route is drawn along, point-on-route tests, route splitting and the connection-grid checks of doc 06 §5.7. |
 | `src/history.rs` |  | The project-wide undo stack (ADR-0008, ARCH §5.3). |
-| `src/jsonschema.rs` |  | A JSON Schema 2020-12 validator for the subset of keywords that schemars 1.x emits for command parameters, so that `AnyCommand` parameters are rejected with the JSON Pointer of the offending value (doc 17 §2.1) before they are deserialised. |
 | `src/lib.rs` |  | `Command`, `DynCommand`, `TxBuilder`, normalisers, validators, numbering engine, `History`, previews, macros and `ApplyImport`. |
+| `src/limits.rs` |  | The size limits of an untrusted parameter document ([`check_limits`]): its bytes, its nesting, the length of an array and of a string. |
 | `src/meta.rs` |  | Command metadata (doc 17 §2.1, §2.3): cost, exposure class, confirmation and the origin of a transaction. |
 | `src/normalise/bound_texts.rs` |  | Normaliser `bound_texts` (doc 06 §3.2, §3.8): a text of a symbol moves with it. |
 | `src/normalise/bus_nets.rs` |  | Normaliser #14b, bus nets from drawn bus lines (N6; doc 10 §2.7 "nets from drawn lines"; doc 06 §3.2 after row 14a). |

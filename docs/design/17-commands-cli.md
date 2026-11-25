@@ -121,8 +121,13 @@ pub struct CommandMeta {
 Every command is Preview before 1.0 (§11): the catalogue carries no parameters version and no stability level until
 1.0 asks for them. `ew commands --json` prints the catalogue; the reference documentation is generated from it
 (NFR-DOC-06). An
-`AnyCommand { name, params: serde_json::Value }` is validated against `params_schema`, deserialised into the typed
-command and run by the commit pipeline (ARCH §5.2); after validation it implements the object-safe `DynCommand`
+`AnyCommand { name, params: serde_json::Value }` is checked against the size limits of a parameter document (bytes,
+nesting, array and string length), read into the typed command and run by the commit pipeline (ARCH §5.2). The
+reading is serde's over the path-tracking reader of records (`ew_schema::from_value_tracked`): a wrong parameter is
+refused at the JSON Pointer of the offending value (an unknown member at the member), in serde's words with a number
+named by its kind, and a name that is no known variant of an enum is refused with the variants it may name, where a
+record of a newer format would keep it. `params_schema` describes the parameters for the reference and the clients;
+it checks nothing. After reading it implements the object-safe `DynCommand`
 companion of ARCH §5.1, which `Session::preview` and `Session::execute` take. Aliases resolve to one command: the
 placement command `device.place` (`PlaceSymbol` with a `PlaceTarget`) registers `device.place_from_part` and
 `symbol.place` as `CommandMeta.aliases`, and the journal always records `device.place`. Entity references in parameters are UUIDs; front-ends that
@@ -136,7 +141,7 @@ and printed formats (`languages`) and one member of the supply (`supply.<path>`)
 names its place below `/value`. The commands `project.drawing.set`, `project.frames.set`, `project.languages.set` and
 `project.supply.set` of earlier versions are its aliases, so their command logs replay. Parameters `{member, value}`; `value` is the
 member's whole new JSON value, `null` removes the member so that the pinned derivation profile's default applies, and
-a value equal to the stored one changes nothing. The command is validated by its schema and then semantically by
+a value equal to the stored one changes nothing. The command reads its parameters and then checks them semantically by
 `ew_derive::check_settings_member`, the parser the derivation itself reads the member with, so a setting the
 derivation would not apply never reaches the model. It refuses:
 - `numbering` with no applicable scheme (counter scope `"page"`, formats with `{page}`, `{letter}`, `{counter}`), and a `default` that names no scheme;

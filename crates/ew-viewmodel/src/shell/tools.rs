@@ -2134,17 +2134,14 @@ mod ft779 {
         );
         assert_eq!(
             e.to_string(),
-            "fields.set: invalid parameters at `/value`: invalid type: string \"x\", expected u32"
+            "fields.set: invalid parameters at `/value`: invalid type: string \"x\", expected a whole number"
         );
         assert!(strings::set_locale("nl"));
         let nl = command_error_text(&e).1;
         assert!(strings::set_locale("en"));
         assert_eq!(
             nl,
-            vec![
-                "ongeldige invoer: ongeldig type: de tekst \"x\", verwacht: een geheel getal (u32)"
-                    .to_owned()
-            ]
+            vec!["ongeldige invoer: ongeldig type: de tekst \"x\", verwacht: een geheel getal".to_owned()]
         );
     }
 

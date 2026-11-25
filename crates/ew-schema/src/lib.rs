@@ -203,7 +203,7 @@ pub use text_style::{
     em_for_cap, new_project_text_styles, qet_px_em, slot_default_style, standard_text_style,
     text_style_entry, text_style_group, text_style_size_ok,
 };
-pub use track::parse_value;
+pub use track::{from_value_tracked, parse_value};
 pub use value::{
     AnyId, Bounds, ColourCode, ColourSpec, Csa, Date, Endpoint, IecColour, LibRef, PartRef, PartUse,
     Quantity, Sha256, Slot, SourceRef, StructureAssignment, TechVal, TechValue, Unit,

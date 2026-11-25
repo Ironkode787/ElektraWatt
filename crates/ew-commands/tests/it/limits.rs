@@ -6,12 +6,12 @@
 //! fast, and messages never quote more than a short excerpt of the instance.
 
 use ew_commands::{
-    AnyCommand, CmdError, CommandRegistry, MAX_PARAM_BYTES, MAX_PARAM_DEPTH, MAX_PARAM_ITEMS,
-    MAX_PARAM_STRING, SchemaViolation, check_limits, validate_schema,
+    AnyCommand, CmdError, CommandRegistry, LimitViolation, MAX_PARAM_BYTES, MAX_PARAM_DEPTH, MAX_PARAM_ITEMS,
+    MAX_PARAM_STRING, check_limits,
 };
 use serde_json::{Value, json};
 
-fn rejected(doc: &Value) -> SchemaViolation {
+fn rejected(doc: &Value) -> LimitViolation {
     check_limits(doc).expect_err("must be rejected")
 }
 
@@ -137,22 +137,7 @@ fn a_ten_megabyte_string_is_rejected_at_its_member() {
 #[test]
 fn messages_render_at_most_256_chars_of_the_instance() {
     let big = "z".repeat(100_000);
-    for schema in [
-        json!({"const": "a"}),
-        json!({"enum": ["a", "b"]}),
-        json!({"oneOf": [{"const": "a"}, {"const": "b"}]}),
-    ] {
-        let v = validate_schema(&schema, &json!(big)).expect_err("must reject");
-        assert!(v.message.chars().count() < 400, "{schema}: {}", v.message.len());
-    }
-    // A long const is clipped as well.
-    let v = validate_schema(&json!({"const": big}), &json!(big.clone() + "!")).expect_err("rejected");
-    assert!(v.message.chars().count() < 600, "{}", v.message.len());
-    // Many long options: the list is clipped.
-    let options: Vec<Value> = (0..1000).map(|i| json!(format!("option-{i}"))).collect();
-    let v = validate_schema(&json!({"enum": options}), &json!("none")).expect_err("rejected");
-    assert!(v.message.chars().count() < 400, "{}", v.message.len());
-    // Through the registry: a 100 kB string where an enum is expected.
+    // A 100 kB string where an enum is expected.
     let cmd = AnyCommand {
         name: "fields.set".into(),
         params: json!({"kind": big, "targets": [], "path": "function_text", "value": "v"}),
@@ -160,7 +145,13 @@ fn messages_render_at_most_256_chars_of_the_instance() {
     let Err(CmdError::InvalidParams { message, .. }) = CommandRegistry::builtin().resolve(&cmd) else {
         panic!("must be rejected");
     };
-    assert!(message.chars().count() < 400, "{}", message.len());
+    // The refusal names the kinds it takes and quotes at most 256 characters of the string.
+    let quoted = message.chars().filter(|c| *c == 'z').count();
+    assert!(
+        quoted <= 256 && message.contains('…'),
+        "{quoted} of {}",
+        message.len()
+    );
 }
 
 #[test]

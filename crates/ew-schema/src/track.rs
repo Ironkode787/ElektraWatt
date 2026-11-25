@@ -54,6 +54,8 @@ struct Context {
     active: bool,
     /// Keep malformed known variants as `Unknown` and collect them instead of failing.
     lenient: bool,
+    /// Refuse a tag that names no known variant instead of keeping it as `Unknown` (the parameters of a command).
+    closed: bool,
     path: Vec<Seg>,
     findings: Vec<MalformedVariant>,
     /// The JSON Pointer of each member read into an `extra` map: a member this reader does not know.
@@ -83,11 +85,18 @@ impl Drop for Restore {
 
 /// Runs `f` in a fresh active context and returns its result with the malformed variants it kept.
 pub(crate) fn with_context<R>(lenient: bool, f: impl FnOnce() -> R) -> (R, Vec<MalformedVariant>) {
-    let fresh = Context {
-        active: true,
-        lenient,
-        ..Context::default()
-    };
+    run_in(
+        Context {
+            active: true,
+            lenient,
+            ..Context::default()
+        },
+        f,
+    )
+}
+
+/// Runs `f` in the active context `fresh` and returns its result with the malformed variants it kept.
+fn run_in<R>(fresh: Context, f: impl FnOnce() -> R) -> (R, Vec<MalformedVariant>) {
     let outer = CTX.with(|c| std::mem::replace(&mut *c.borrow_mut(), fresh));
     let restore = Restore(Some(outer));
     let result = f();
@@ -399,6 +408,27 @@ impl<'de> Visitor<'de> for StrictVisitor {
 /// string (`{"dot": null}` is not accepted).
 pub(crate) struct ValueDe<'a>(pub(crate) &'a Value);
 
+/// Strict typed reading of `value` as `T` (the parameters of a command), as records are read: every error carries the
+/// JSON Pointer, relative to `value`, of the value it concerns ([`SchemaError::path`]), and a known variant with a
+/// malformed payload is [`SchemaError::MalformedVariant`]. Unlike a record, a tag that names no known variant is
+/// refused with the variants it may name: parameters come from this version, never from a newer format.
+pub fn from_value_tracked<T: DeserializeOwned>(value: &Value) -> Result<T, SchemaError> {
+    let context = Context {
+        active: true,
+        closed: true,
+        ..Context::default()
+    };
+    run_in(context, || de_here(value)).0
+}
+
+/// Whether the current context refuses a tag that names no known variant ([`from_value_tracked`]).
+fn is_closed() -> bool {
+    CTX.with(|c| {
+        let c = c.borrow();
+        c.active && c.closed
+    })
+}
+
 /// Deserialises `value` at the current path.
 pub(crate) fn de_here<T: DeserializeOwned>(value: &Value) -> Result<T, SchemaError> {
     T::deserialize(ValueDe(value)).map_err(|e| e.0)
@@ -494,9 +524,23 @@ impl<'de> Deserializer<'de> for ValueDe<'de> {
         }
     }
 
+    /// A struct of named members is an object; where unknown variants are refused ([`from_value_tracked`]) an array
+    /// is refused too, which serde would read member by member in declaration order.
+    fn deserialize_struct<V: Visitor<'de>>(
+        self,
+        _name: &'static str,
+        _fields: &'static [&'static str],
+        visitor: V,
+    ) -> Result<V::Value, TrackError> {
+        if is_closed() && self.0.is_array() {
+            return Err(de::Error::invalid_type(Unexpected::Seq, &"a map"));
+        }
+        self.deserialize_any(visitor)
+    }
+
     forward_to_deserialize_any! {
         bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string bytes byte_buf unit
-        unit_struct seq tuple tuple_struct map struct identifier ignored_any
+        unit_struct seq tuple tuple_struct map identifier ignored_any
     }
 }
 
@@ -782,10 +826,21 @@ where
     };
     if names.is_empty() {
         // A hand-written foreign enum (`Open<ew_rds::Aspect>`) does not reveal its names: a value it
-        // accepts is known, anything else tag-shaped is kept as unknown.
-        return Ok(closed(ValueDe(&value)).unwrap_or_else(|_| unknown(kept_unknown(value))));
+        // accepts is known, anything else tag-shaped is kept as unknown (refused where unknowns are).
+        return match closed(ValueDe(&value)) {
+            Ok(t) => Ok(t),
+            Err(TrackError(inner)) if is_closed() => Err(raise(inner)),
+            Err(_) => Ok(unknown(kept_unknown(value))),
+        };
     }
     if !names.contains(&tag) {
+        if is_closed() {
+            let expected: Vec<String> = names.iter().map(|n| format!("`{n}`")).collect();
+            return Err(raise(invalid(format!(
+                "unknown variant `{tag}`, expected one of {}",
+                expected.join(", ")
+            ))));
+        }
         return Ok(unknown(kept_unknown(value)));
     }
     let tag = tag.to_owned();

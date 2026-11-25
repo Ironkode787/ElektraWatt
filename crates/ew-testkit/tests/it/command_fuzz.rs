@@ -1440,7 +1440,7 @@ fn the_star_and_scale_arms_reach_their_refusals() {
             false,
         ),
         (
-            "page.surface_view.set: invalid parameters at `/scale/one_to`: 0 is below the minimum 1",
+            "page.surface_view.set: invalid parameters at `/scale`: a scale is 1:n with n at least 1",
             true,
         ),
     ] {

@@ -277,7 +277,8 @@ fn invariant_text(id: &str) -> Option<Text> {
 }
 
 /// A parameter that does not deserialise, by key: serde's sentence, what it got and the expected
-/// value in words where serde names a plain kind, any other part as serde writes it. Its English is serde's own text.
+/// value in words where serde names a plain kind (a number by its kind, not its Rust type), any other part as serde
+/// writes it. Its English is serde's own text, but for those words.
 pub fn serde_error_text(e: &serde_json::Error) -> Text {
     let full = e.to_string();
     let at = format!(" at line {} column {}", e.line(), e.column());
@@ -292,13 +293,26 @@ pub fn serde_error_text(e: &serde_json::Error) -> Text {
     }
 }
 
-/// [`serde_error_text`] of a message without its position.
+/// The most characters of a value or a name of the parameters that a refusal quotes.
+const QUOTE_CHARS: usize = 256;
+
+/// `s` clipped to [`QUOTE_CHARS`] characters, then `…`: a refusal never quotes a long parameter whole.
+fn clip(s: &str) -> String {
+    let mut chars = s.chars();
+    let mut out: String = chars.by_ref().take(QUOTE_CHARS).collect();
+    if chars.next().is_some() {
+        out.push('…');
+    }
+    out
+}
+
+/// [`serde_error_text`] of a message without its position; a value or a name it quotes is clipped ([`clip`]).
 fn serde_message_text(m: &str) -> Text {
     let pair = |rest: &str| {
         rest.rsplit_once(", expected ")
-            .map(|(a, b)| (a.to_owned(), b.to_owned()))
+            .map(|(a, b)| (clip(a), b.to_owned()))
     };
-    let named = |rest: &str, tail: &str| rest.strip_suffix(tail).map(str::to_owned);
+    let named = |rest: &str, tail: &str| rest.strip_suffix(tail).map(clip);
     if let Some((got, want)) = m.strip_prefix("invalid type: ").and_then(pair) {
         return text!("refusal-serde-invalid-type", serde_got(&got), serde_want(&want));
     }
@@ -310,7 +324,7 @@ fn serde_message_text(m: &str) -> Text {
     }
     if let Some(rest) = m.strip_prefix("unknown variant `") {
         if let Some((name, want)) = rest.split_once("`, expected ") {
-            return text!("refusal-serde-unknown-variant", name, want);
+            return text!("refusal-serde-unknown-variant", clip(name), want);
         }
         if let Some(name) = named(rest, "`, there are no variants") {
             return text!("refusal-serde-unknown-variant-none", name);
@@ -318,7 +332,7 @@ fn serde_message_text(m: &str) -> Text {
     }
     if let Some(rest) = m.strip_prefix("unknown field `") {
         if let Some((name, want)) = rest.split_once("`, expected ") {
-            return text!("refusal-serde-unknown-field", name, want);
+            return text!("refusal-serde-unknown-field", clip(name), want);
         }
         if let Some(name) = named(rest, "`, there are no fields") {
             return text!("refusal-serde-unknown-field-none", name);
@@ -331,7 +345,7 @@ fn serde_message_text(m: &str) -> Text {
         return text!("refusal-serde-duplicate-field", name);
     }
     // A type's own message (`Error::custom`) as it is.
-    text!("refusal-serde-other", m)
+    text!("refusal-serde-other", clip(m))
 }
 
 /// What serde got (its `Unexpected`), in words where it is a plain kind.
@@ -361,14 +375,48 @@ fn serde_got(got: &str) -> ew_l10n::TextArg {
 fn serde_want(want: &str) -> ew_l10n::TextArg {
     match want {
         "u8" | "u16" | "u32" | "u64" | "u128" | "usize" | "i8" | "i16" | "i32" | "i64" | "i128" | "isize" => {
-            text!("refusal-serde-want-whole", want).into()
+            text!("refusal-serde-want-whole").into()
         }
-        "f32" | "f64" => text!("refusal-serde-want-number", want).into(),
+        "f32" | "f64" => text!("refusal-serde-want-number").into(),
         "a string" => text!("refusal-serde-want-string").into(),
         "a boolean" => text!("refusal-serde-want-boolean").into(),
         "a sequence" => text!("refusal-serde-want-sequence").into(),
         "a map" => text!("refusal-serde-want-map").into(),
         other => other.into(),
+    }
+}
+
+/// A parameter document that does not read into its command struct ([`ew_schema::from_value_tracked`]), as the
+/// refusal of `command`: at the JSON Pointer of the offending value, in serde's words for a wrong type, a missing or
+/// unknown member or an unknown variant ([`serde_error_text`]'s), else in the words of the value encoding
+/// ([`schema_error_text`]).
+pub fn params_error(command: &'static str, at: &str, e: &ew_schema::SchemaError) -> CmdError {
+    CmdError::invalid_params(
+        command,
+        params_pointer(at, e),
+        text!("refusal-params-detail", params_words(e)),
+    )
+}
+
+/// The JSON Pointer of the value a parameter error of [`params_error`] concerns, below `at`: the place serde names,
+/// and for a member the parameters do not take (serde names its object) the member itself.
+pub(crate) fn params_pointer(at: &str, e: &ew_schema::SchemaError) -> String {
+    let mut pointer = format!("{at}{}", e.path().unwrap_or_default());
+    if let ew_schema::SchemaError::Invalid { message, .. } = e
+        && let Some(rest) = message.strip_prefix("unknown field `")
+        && let Some((name, _)) = rest.split_once('`')
+    {
+        pointer.push('/');
+        pointer.push_str(&name.replace('~', "~0").replace('/', "~1"));
+    }
+    pointer
+}
+
+/// What a parameter error of [`params_error`] says, without its place.
+pub(crate) fn params_words(e: &ew_schema::SchemaError) -> Text {
+    match e {
+        ew_schema::SchemaError::Invalid { message, .. } => serde_message_text(message),
+        other => schema_error_text(other),
     }
 }
 
@@ -647,8 +695,8 @@ mod tests {
         }
     }
 
-    /// Serde's errors keep their English byte for byte through their keys, a position included; a plain kind
-    /// is worded, any other part kept as serde writes it.
+    /// Serde's errors keep their English through their keys, a position included; a plain kind is worded (a number
+    /// by its kind, not its Rust type), any other part kept as serde writes it.
     #[test]
     fn every_serde_refusal_keeps_its_english() {
         #[derive(serde::Deserialize, Debug)]
@@ -684,7 +732,11 @@ mod tests {
         for case in cases {
             let e = serde_json::from_value::<S>(case).unwrap_err();
             let t = serde_error_text(&e);
-            assert_eq!(t.to_string(), e.to_string());
+            // serde's own English, a whole number in words where serde names its Rust type.
+            assert_eq!(
+                t.to_string(),
+                e.to_string().replace("expected u32", "expected a whole number")
+            );
             keys.push(t.key());
         }
         let e = serde_json::from_str::<S>("{\"n\": 1, \"n\": 2}").unwrap_err();

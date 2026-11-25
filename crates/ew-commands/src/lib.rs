@@ -10,8 +10,8 @@
 //!
 //! - **Commands.** [`Command`] (typed, with a stable dotted name, [`CommandMeta`] and a JSON Schema for its
 //!   parameters) and its object-safe companion [`DynCommand`]. [`CommandRegistry`] is the single list of
-//!   commands; [`AnyCommand`] is the untyped form of scripts, plugins and MCP, validated against the
-//!   command's schema. The 37 v0 commands are in [`commands`].
+//!   commands; [`AnyCommand`] is the untyped form of scripts, plugins and MCP, read into the command struct after
+//!   the size limits of its parameters ([`check_limits`]). The 37 v0 commands are in [`commands`].
 //! - **Transactions.** [`TxBuilder`] is a scratch snapshot with read-your-writes over the current model;
 //!   it mints IDs from an injected `IdSource` and records the [`ReadSet`] for the optimistic rebase.
 //! - **Pipeline.** [`Engine`] runs a command, the [`normalise`] registry (at most three passes), validates
@@ -92,7 +92,7 @@ mod engine;
 mod error;
 pub mod geometry;
 mod history;
-mod jsonschema;
+mod limits;
 mod meta;
 pub mod normalise;
 pub mod numbering;
@@ -118,9 +118,8 @@ pub use error::{
     serde_error_text,
 };
 pub use history::{History, HistoryEntry, HistoryLimits};
-pub use jsonschema::{
-    MAX_PARAM_BYTES, MAX_PARAM_DEPTH, MAX_PARAM_ITEMS, MAX_PARAM_STRING, SchemaViolation, check_limits,
-    validate as validate_schema,
+pub use limits::{
+    LimitViolation, MAX_PARAM_BYTES, MAX_PARAM_DEPTH, MAX_PARAM_ITEMS, MAX_PARAM_STRING, check_limits,
 };
 pub use meta::{CommandMeta, Confirmation, Cost, Exposure, Origin};
 pub use registry::{AnyCommand, CommandRegistry, RegisteredCommand};

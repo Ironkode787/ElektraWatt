@@ -16,7 +16,7 @@ use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost};
 use crate::tx::TxBuilder;
 
-type ParseFn = fn(Value) -> Result<Box<dyn DynCommand>, serde_json::Error>;
+type ParseFn = fn(Value) -> Result<Box<dyn DynCommand>, ew_schema::SchemaError>;
 
 /// One registered command type.
 #[derive(Clone)]
@@ -78,8 +78,8 @@ fn params_schema<C: Command>() -> Value {
     schema
 }
 
-fn parse<C: Command>(params: Value) -> Result<Box<dyn DynCommand>, serde_json::Error> {
-    let cmd: C = serde_json::from_value(params)?;
+fn parse<C: Command>(params: Value) -> Result<Box<dyn DynCommand>, ew_schema::SchemaError> {
+    let cmd: C = ew_schema::from_value_tracked(&params)?;
     Ok(Box::new(cmd))
 }
 
@@ -159,29 +159,25 @@ impl CommandRegistry {
         self.entries.keys().copied()
     }
 
-    /// Validates an untyped command against its schema and deserialises it into the typed command. The name
-    /// is looked up first (an unknown name is [`CmdError::UnknownCommand`] whatever the parameters are),
-    /// then the size limits of [`crate::check_limits`] are applied to the parameter document, then the
-    /// schema.
+    /// Deserialises an untyped command into the typed command. The name is looked up first (an unknown name is
+    /// [`CmdError::UnknownCommand`] whatever the parameters are), then the size limits of [`crate::check_limits`]
+    /// are applied to the parameter document, then it is read into the command struct, which refuses a wrong
+    /// parameter at the JSON Pointer of the offending value ([`crate::error::params_error`]).
     pub fn resolve(&self, cmd: &AnyCommand) -> Result<Box<dyn DynCommand>, CmdError> {
         let (entry, params) = self.entry_and_params(cmd)?;
         let name = entry.meta.name;
-        crate::jsonschema::check_limits(&params)
+        crate::limits::check_limits(&params)
             .map_err(|e| CmdError::invalid_params(name, e.path, text!("refusal-params-detail", e.message)))?;
-        crate::jsonschema::validate(&entry.schema, &params)
-            .map_err(|e| CmdError::invalid_params(name, e.path, text!("refusal-params-detail", e.message)))?;
-        (entry.parse)(params)
-            .map_err(|e| CmdError::invalid_params(name, "", text!("refusal-params-detail", e.to_string())))
+        (entry.parse)(params).map_err(|e| crate::error::params_error(name, "", &e))
     }
 
     /// Deserialises an untyped command that this registry's own typed command produced
-    /// ([`AnyCommand::of`] in a [`crate::Preview`] or a history step) without validating it against the
-    /// schema again: the re-run path of [`crate::Engine::commit`].
+    /// ([`AnyCommand::of`] in a [`crate::Preview`] or a history step) without checking its size limits again: the
+    /// re-run path of [`crate::Engine::commit`].
     pub(crate) fn parse_trusted(&self, cmd: &AnyCommand) -> Result<Box<dyn DynCommand>, CmdError> {
         let (entry, params) = self.entry_and_params(cmd)?;
         let name = entry.meta.name;
-        (entry.parse)(params)
-            .map_err(|e| CmdError::invalid_params(name, "", text!("refusal-params-detail", e.to_string())))
+        (entry.parse)(params).map_err(|e| crate::error::params_error(name, "", &e))
     }
 
     /// The snapshot files of `crates/ew-commands/schemas/`: one `<name>.schema.json` per command and an
