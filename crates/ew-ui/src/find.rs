@@ -61,14 +61,6 @@ pub fn result_line(hit: &FindHit, marks: bool) -> String {
     line
 }
 
-/// Whether the replace card of the find pane is open.
-fn has_find_card(shell: &ShellModel) -> bool {
-    shell
-        .properties()
-        .card()
-        .is_some_and(|c| matches!(c.origin, CardOrigin::Find { .. }))
-}
-
 impl FindPane {
     /// A pane with empty fields.
     pub fn new() -> FindPane {
@@ -113,7 +105,6 @@ impl FindPane {
             self.replacement = f.replacement().to_owned();
             self.folios = f.folios().join(", ");
         }
-        let card = has_find_card(shell);
         // Doc 16a §4.9: the field rows and the status line at the header's inset, `space.4` each side.
         let inset = crate::theme::margin_px(crate::theme::current(ui.ctx()).space_4);
         let rows = egui::Frame::new().inner_margin(egui::Margin {
@@ -160,7 +151,7 @@ impl FindPane {
                         width,
                         events,
                         "find.text",
-                        (card, ours),
+                        (shell, ours),
                     );
                     if arrived {
                         response.request_focus();
@@ -174,7 +165,7 @@ impl FindPane {
                             width,
                             events,
                             "find.replacement",
-                            (card, ours),
+                            (shell, ours),
                         );
                     }
                     let mut buttons = 0.0;
@@ -272,7 +263,7 @@ impl FindPane {
                             .collect();
                         events.push(Event::Action("find.folios", json!({ "folios": folios })));
                     }
-                    Self::enter_keys(ui, &response, events, card);
+                    Self::enter_keys(ui, shell, &response, events);
                 });
                 Self::status(ui, shell);
             });
@@ -294,7 +285,7 @@ impl FindPane {
         width: f32,
         events: &mut Vec<Event>,
         action: &'static str,
-        (card, ours): (bool, bool),
+        (shell, ours): (&ShellModel, bool),
     ) -> egui::Response {
         let response = ui.add(TextEdit::singleline(text).desired_width(width).hint_text(name));
         Self::report_focus(&response, ours, events);
@@ -303,20 +294,20 @@ impl FindPane {
         if response.changed() {
             events.push(Event::Action(action, json!({ "text": text.as_str() })));
         }
-        Self::enter_keys(ui, &response, events, card);
+        Self::enter_keys(ui, shell, &response, events);
         response
     }
 
     /// Enter in a field runs the search; Ctrl+Enter replaces: the first builds the card (`find.replace_all`), the
-    /// next applies it (`preview.apply`), as with no field focused and in `app.rs`.
-    fn enter_keys(ui: &Ui, response: &egui::Response, events: &mut Vec<Event>, card: bool) {
+    /// next applies it (the shell's [`ShellModel::shortcut_action`]), as with no field focused and in `app.rs`.
+    fn enter_keys(ui: &Ui, shell: &ShellModel, response: &egui::Response, events: &mut Vec<Event>) {
         if response.has_focus()
             && ui
                 .ctx()
                 .input_mut(|i| i.consume_key(Modifiers::COMMAND, Key::Enter))
         {
-            let action = if card { "preview.apply" } else { "find.replace_all" };
-            events.push(Event::Action(action, json!({})));
+            let (action, params) = shell.shortcut_action("find.replace_all");
+            events.push(Event::Action(action, params));
         } else if response.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter)) {
             events.push(Event::Action("find.run", json!({})));
         }
@@ -325,10 +316,9 @@ impl FindPane {
     /// The pane's keys while it has the focus and no field is edited.
     fn keys(ui: &Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let pressed = |m: Modifiers, k: Key| ui.ctx().input_mut(|i| i.consume_key(m, k));
-        let card = has_find_card(shell);
         if pressed(Modifiers::COMMAND, Key::Enter) {
-            let action = if card { "preview.apply" } else { "find.replace_all" };
-            events.push(Event::Action(action, json!({})));
+            let (action, params) = shell.shortcut_action("find.replace_all");
+            events.push(Event::Action(action, params));
         } else if pressed(Modifiers::NONE, Key::ArrowDown) {
             events.push(Event::Action("find.row", json!({"step": 1})));
         } else if pressed(Modifiers::NONE, Key::ArrowUp) {

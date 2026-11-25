@@ -830,7 +830,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_table_pattern_fill(p),
         )),
     ),
-    with_params(
+    reads_clipboard(with_params(
         "kind?:text, text?:text",
         in_navigator(act(
             "table.paste",
@@ -841,7 +841,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_table_paste(p),
         )),
-    ),
+    )),
     keeps_banner(with_params(
         "kind?:text",
         in_navigator(act(

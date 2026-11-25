@@ -13,7 +13,7 @@ impl App {
     /// focus, `[` and `]` are matched as the physical keys (no AltGr on QWERTZ and AZERTY, doc 16 §4.4).
     pub(super) fn route_keys(&mut self, ctx: &egui::Context, events: &mut Vec<Event>) {
         // The platform answers the last frame's request for the clipboard in this frame, or not at all.
-        let paste_in_place = std::mem::take(&mut self.paste_in_place);
+        let pasting = self.pasting.take();
         let palette_open = self.shell.palette().is_some();
         if self.popup_keys(ctx, palette_open, events) || self.pane_keys(ctx, palette_open, events) {
             return;
@@ -22,7 +22,7 @@ impl App {
         if !palette_open
             && (self.command_bar_keys(ctx, events)
                 || self.physical_keys(ctx, focused, events)
-                || self.clipboard_keys(ctx, focused, paste_in_place, events))
+                || self.clipboard_keys(ctx, focused, pasting, events))
         {
             return;
         }
@@ -215,15 +215,16 @@ impl App {
     }
 
     /// The clipboard events, which the platform layer makes of Ctrl+C, Ctrl+X and Ctrl+V (egui-winit), not key
-    /// presses: on the canvas the clipboard actions (a paste with the system clipboard's text, in place when
-    /// `paste_in_place`), in a navigator's table its copy and paste, in a navigator's list a paste onto the page shown.
+    /// presses: on the canvas the clipboard actions (a paste with the system clipboard's text, by `pasting` when the
+    /// canvas's action asked for it), in a navigator's table its copy and paste, in a navigator's list a paste onto the
+    /// page shown.
     /// A text field never gets here (the routing ended before), so the grid and the find pane keep egui's own copy and
     /// paste. `true` when one was taken.
     fn clipboard_keys(
         &mut self,
         ctx: &egui::Context,
         focused: Context,
-        paste_in_place: bool,
+        pasting: Option<&'static str>,
         events: &mut Vec<Event>,
     ) -> bool {
         if focused == Context::Canvas {
@@ -249,11 +250,9 @@ impl App {
                     return true;
                 }
                 Some(egui::Event::Paste(text)) => {
-                    let action = if paste_in_place {
-                        "edit.paste_in_place"
-                    } else {
-                        "edit.paste_clip"
-                    };
+                    let action = pasting
+                        .filter(|a| ew_viewmodel::actions::find(a).is_some_and(|a| a.context == Context::Canvas))
+                        .unwrap_or("edit.paste_clip");
                     events.push(routed(&self.shell, action, json!({ "text": text })));
                     return true;
                 }
@@ -327,13 +326,12 @@ impl App {
                 continue;
             }
             if ctx.input_mut(|i| i.consume_shortcut(&binding.shortcut)) {
-                // `rail.entry`'s keys pick the left rail's entries in their order (Ctrl+1 to Ctrl+9, doc 16a §5.4).
-                if binding.action == "rail.entry" {
-                    let n = (self.bindings.iter())
-                        .filter(|b| b.action == "rail.entry")
-                        .position(|b| b.shortcut == binding.shortcut)
-                        .map_or(1, |i| i + 1);
-                    events.push(Event::Action("rail.entry", json!({ "n": n })));
+                // A chord that sets a parameter sends its place (`rail.entry`'s Ctrl+1 to Ctrl+9 pick the left rail's
+                // entries in their order, doc 16a §5.4).
+                if let Some((param, n)) = binding.sets {
+                    let mut params = serde_json::Map::new();
+                    params.insert(param.to_owned(), n.into());
+                    events.push(Event::Action(binding.action, Value::Object(params)));
                     return;
                 }
                 let (action, params) = self.shell.shortcut_action(binding.action);

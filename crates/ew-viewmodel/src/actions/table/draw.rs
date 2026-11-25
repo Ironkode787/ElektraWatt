@@ -376,7 +376,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         slot(Menu::Edit),
         |s, _| s.act_copy(),
     )),
-    with_params(
+    reads_clipboard(with_params(
         "text?:text",
         in_canvas(with_icon(
             "clipboard-list",
@@ -390,10 +390,10 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 |s, p| s.act_paste_clip(p),
             ),
         )),
-    ),
+    )),
     // Paste in place: the block where the copy's anchor was; no shortcut (Ctrl+Shift+V is kept for paste as
     // representation, doc 06 §6).
-    with_params(
+    reads_clipboard(with_params(
         "text?:text",
         in_canvas(act(
             "edit.paste_in_place",
@@ -404,7 +404,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             slot(Menu::Edit),
             |s, p| s.act_paste_in_place(p),
         )),
-    ),
+    )),
     in_canvas(act(
         "edit.duplicate",
         Command,

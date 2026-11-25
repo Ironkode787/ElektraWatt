@@ -337,6 +337,12 @@ pub struct ActionMeta {
     /// snapshots and Escape (which closes it as the topmost popup); every other action (a pointer move, a cursor move,
     /// a view action) clears it.
     pub keeps_link_preview: bool,
+    /// Dispatched without its `text`, the action takes the system clipboard's: the window asks the platform for it
+    /// and runs the action again with it (Paste, Paste in place, a table's Paste).
+    pub reads_clipboard: bool,
+    /// The parameter each of its chords sets to the chord's place among them, from 1 (`rail.entry`'s `n`: Ctrl+1 the
+    /// left rail's first entry); `None` for an action whose chords send no parameter.
+    pub chord_param: Option<&'static str>,
     /// The parameters whose type does not tell how they take a UUID or a reference (a list, a text, JSON), each with
     /// the form it takes it in; a `ref` of the signature takes it whole without a line here ([`Self::alias_forms`]).
     pub aliases: &'static [(&'static str, ParamForm)],
@@ -494,6 +500,8 @@ const fn act(
         keeps_banner: false,
         answers_recovery: false,
         keeps_link_preview: false,
+        reads_clipboard: false,
+        chord_param: None,
         aliases: &[],
         handler,
     }
@@ -548,6 +556,18 @@ const fn answers_recovery(mut a: ActionMeta) -> ActionMeta {
 /// Marks an action whose dispatch leaves the link hover preview standing.
 const fn keeps_link_preview(mut a: ActionMeta) -> ActionMeta {
     a.keeps_link_preview = true;
+    a
+}
+
+/// Names the parameter an action's chords set to their place ([`ActionMeta::chord_param`]).
+const fn chord_param(param: &'static str, mut a: ActionMeta) -> ActionMeta {
+    a.chord_param = Some(param);
+    a
+}
+
+/// Marks an action that takes the system clipboard's text ([`ActionMeta::reads_clipboard`]).
+const fn reads_clipboard(mut a: ActionMeta) -> ActionMeta {
+    a.reads_clipboard = true;
     a
 }
 
@@ -708,6 +728,12 @@ pub fn parse_signature(sig: &str) -> Result<Vec<ParamSpec>, String> {
     Ok(out)
 }
 
+/// Whether the action `id` takes the day's date, which the window gives (the shell never reads the clock): a
+/// revision's approval, release and withdrawal.
+pub fn dated(id: &str) -> bool {
+    id.starts_with("revision.")
+}
+
 /// The action with this ID.
 pub fn find(id: &ActionId) -> Option<&'static ActionMeta> {
     ACTIONS.iter().find(|a| a.id == id)
@@ -728,12 +754,6 @@ pub struct PaletteEntry {
     pub enabled: bool,
     /// The reason text of a disabled entry.
     pub reason: Option<String>,
-/// Whether the action `id` takes the day's date, which the window gives (the shell never reads the clock): a
-/// revision's approval, release and withdrawal.
-pub fn dated(id: &str) -> bool {
-    id.starts_with("revision.")
-}
-
     /// Where the action lives in the command bar or the app menu ("Draw · Place", "File"; doc 16a §9.3).
     pub breadcrumb: String,
 }

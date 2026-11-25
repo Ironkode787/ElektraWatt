@@ -272,9 +272,10 @@ pub struct App {
     /// Edit ▸ Paste (or the palette) asked for the system clipboard: the frame sends `ViewportCommand::RequestPaste`,
     /// and the platform answers with a paste event, which runs `edit.paste_clip` with its text like Ctrl+V.
     request_paste: bool,
-    /// The system clipboard was asked for by Edit ▸ Paste in place: the platform's paste event in the next frame runs
-    /// `edit.paste_in_place` with its text instead of `edit.paste_clip`.
-    paste_in_place: bool,
+    /// The action that asked for the system clipboard ([`ew_viewmodel::actions::ActionMeta::reads_clipboard`]): the
+    /// platform's paste event in the next frame runs it with its text where the focus is in its context (Paste in
+    /// place on the canvas instead of `edit.paste_clip`).
+    pasting: Option<&'static str>,
     /// The IP tool's name field in the tool strip: `ip.name` on Enter.
     ip_name: String,
     /// The Wire marker tool's cross-section and colours fields: `marker.fields` on Enter.
@@ -375,7 +376,7 @@ impl App {
             window_zoom: None,
             applied_theme: None,
             request_paste: false,
-            paste_in_place: false,
+            pasting: None,
             ip_name: String::new(),
             drawing_fields_epoch: None,
             marker_csa: String::new(),
@@ -568,19 +569,12 @@ impl App {
         // the platform did not turn into a paste event) asks the platform for the system clipboard first; an action
         // the shell refuses now is dispatched, so its reason shows.
         // The table's paste likewise.
-        if action == "table.paste"
-            && params.get("text").is_none()
-            && ew_viewmodel::actions::find(action).is_some_and(|a| a.enabled_now(&self.shell).is_ok())
+        if params.get("text").is_none()
+            && ew_viewmodel::actions::find(action)
+                .is_some_and(|a| a.reads_clipboard && a.enabled_now(&self.shell).is_ok())
         {
             self.request_paste = true;
-            return;
-        }
-        if matches!(action, "edit.paste_clip" | "edit.paste_in_place")
-            && params.get("text").is_none()
-            && ew_viewmodel::actions::find(action).is_some_and(|a| a.enabled_now(&self.shell).is_ok())
-        {
-            self.request_paste = true;
-            self.paste_in_place = action == "edit.paste_in_place";
+            self.pasting = Some(action);
             return;
         }
         if self.dispatch_log.len() == DISPATCH_LOG {

@@ -25,6 +25,9 @@ pub struct Binding {
     pub action: &'static str,
     /// Where the chord applies.
     pub context: Context,
+    /// The parameter its press sets and its value, the chord's place among its action's chords
+    /// ([`ew_viewmodel::actions::ActionMeta::chord_param`]); `None` for a press without parameters.
+    pub sets: Option<(&'static str, usize)>,
 }
 
 /// Whether `s` is one of the page navigator's own keys (the arrows, Home, End, Enter and Ctrl+Enter), which a global
@@ -123,6 +126,7 @@ pub fn bindings(bound: &[Bound]) -> Vec<Binding> {
                 physical,
                 action: b.action,
                 context: b.context,
+                sets: None,
             })
         })
         .collect();
@@ -130,6 +134,12 @@ pub fn bindings(bound: &[Bound]) -> Vec<Binding> {
         let m = b.shortcut.modifiers;
         std::cmp::Reverse(usize::from(m.shift) + usize::from(m.alt) + usize::from(m.command))
     });
+    for i in 0..out.len() {
+        if let Some(param) = ew_viewmodel::actions::find(out[i].action).and_then(|a| a.chord_param) {
+            let n = out[..i].iter().filter(|b| b.action == out[i].action).count() + 1;
+            out[i].sets = Some((param, n));
+        }
+    }
     out
 }
 
