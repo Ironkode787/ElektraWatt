@@ -9,8 +9,8 @@ use ew_api::import::{
     ContractBreach, ImportBatch, ImportError, ImportReport, Limits, Refusal, check_contract, front_door,
 };
 use ew_ids::Uuid;
-use ew_interop_api::{ImportInput, SourceInfo};
 use ew_import_catalog::{CatalogTarget, ColumnMap, parse_parts};
+use ew_interop_api::{ImportInput, SourceInfo};
 use ew_schema::Record;
 
 fn map() -> ColumnMap {

@@ -13,10 +13,10 @@
 
 use std::borrow::Cow;
 
+use ew_mltext::{LangTag, MlText};
 use fluent_bundle::concurrent::FluentBundle;
 use fluent_bundle::{FluentArgs, FluentResource, FluentValue};
 use fluent_syntax::ast::Entry;
-use ew_mltext::{LangTag, MlText};
 
 use crate::{Text, TextArg};
 
@@ -269,7 +269,11 @@ impl Catalogue {
     /// The catalogue of `sources`, lists of `(language, source)` (a crate's `SOURCES`, another crate's after it whose
     /// patterns it calls), its languages in the order they first appear; each language's patterns may call `functions`,
     /// and Fluent's `NUMBER` too when `builtins`.
-    pub fn new(sources: &[&[(&'static str, &'static str)]], functions: &[Function], builtins: bool) -> Catalogue {
+    pub fn new(
+        sources: &[&[(&'static str, &'static str)]],
+        functions: &[Function],
+        builtins: bool,
+    ) -> Catalogue {
         let mut tags: Vec<&'static str> = Vec::new();
         for (tag, _) in sources.iter().flat_map(|s| s.iter()) {
             if !tags.contains(tag) {
@@ -354,7 +358,9 @@ pub fn parse_errors(source: &str) -> Vec<String> {
 }
 
 /// The languages that write a decimal comma (`1,5 mm²`), by primary language: the one list of them.
-const DECIMAL_COMMA: &[&str] = &["nl", "de", "fr", "it", "es", "pt", "da", "sv", "nb", "fi", "pl", "cs"];
+const DECIMAL_COMMA: &[&str] = &[
+    "nl", "de", "fr", "it", "es", "pt", "da", "sv", "nb", "fi", "pl", "cs",
+];
 
 /// Whether the language `tag` (a BCP 47 tag, or its primary language) writes a decimal comma.
 pub fn writes_decimal_comma(tag: &str) -> bool {

@@ -7,9 +7,18 @@
 
 /// The crates that re-export workspace crates, each with why: their users are confined to them.
 pub(crate) const FACADES: &[(&str, &str)] = &[
-    ("ew-api", "the shell's one door into the workspace: `bin/ew` and the view model reach the session through it"),
-    ("ew-viewmodel", "the window's one door: `ew-ui` reaches the session and its types through it"),
-    ("ew-interop-api", "the importers' one door: an importer reaches the records and the IDs through it"),
+    (
+        "ew-api",
+        "the shell's one door into the workspace: `bin/ew` and the view model reach the session through it",
+    ),
+    (
+        "ew-viewmodel",
+        "the window's one door: `ew-ui` reaches the session and its types through it",
+    ),
+    (
+        "ew-interop-api",
+        "the importers' one door: an importer reaches the records and the IDs through it",
+    ),
 ];
 
 /// The violations among `files` (path and bytes) of the workspace crates `crates` (their package names): each
@@ -44,7 +53,9 @@ pub(crate) fn check(files: &[(String, Vec<u8>)], crates: &[String]) -> Vec<Strin
 
 /// The package whose source `path` is (`crates/<name>/src/…`, `bin/<name>/src/…`); `None` for any other file.
 fn owner(path: &str) -> Option<&str> {
-    let rest = path.strip_prefix("crates/").or_else(|| path.strip_prefix("bin/"))?;
+    let rest = path
+        .strip_prefix("crates/")
+        .or_else(|| path.strip_prefix("bin/"))?;
     let (name, rest) = rest.split_once('/')?;
     (rest.starts_with("src/") && rest.ends_with(".rs")).then_some(name)
 }
@@ -72,7 +83,11 @@ mod tests {
         let lines: Vec<&str> = v.iter().map(|s| s.split(": ").next().unwrap()).collect();
         assert_eq!(
             lines,
-            ["crates/ew-a/src/lib.rs:1", "crates/ew-a/src/lib.rs:2", "crates/ew-a/src/lib.rs:3"]
+            [
+                "crates/ew-a/src/lib.rs:1",
+                "crates/ew-a/src/lib.rs:2",
+                "crates/ew-a/src/lib.rs:3"
+            ]
         );
     }
 }

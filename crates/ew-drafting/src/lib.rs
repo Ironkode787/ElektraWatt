@@ -42,7 +42,8 @@ pub use measure::{Counts, Findings, Passed, Quality, TextRef, measure};
 pub use model::*;
 pub use place::{Arranged, InTheWay, StripHeld, arrange, far_move};
 pub use route::{
-    Jobs, Plan, Reason, Scope, WireEnd, WireRoute, jobs, resolve_move, route, route_wire, unrouted_line, wire_clear,
+    Jobs, Plan, Reason, Scope, WireEnd, WireRoute, jobs, resolve_move, route, route_wire, unrouted_line,
+    wire_clear,
 };
 pub use rules::{Broken, Rule, rules_kept};
 pub use tracks::tracks_needed;

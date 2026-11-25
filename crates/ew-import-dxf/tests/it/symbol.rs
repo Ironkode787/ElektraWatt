@@ -3,9 +3,9 @@
 
 //! The DXF→symbol wizard's automatic steps (doc 14 §6.2, FR-IMP-034) and the part outline (FR-IMP-035).
 
+use ew_import_dxf::{outline, symbols};
 use ew_interop_api::Limits;
 use ew_interop_api::ew_schema::Dir4;
-use ew_import_dxf::{outline, symbols};
 use ew_units::{Grid, Nm, Pt2};
 
 use crate::common::Dxf;

@@ -160,6 +160,7 @@ fn the_page_parser_reads_commands_quotes_and_elisions() {
     assert!(shows(&shown(&["a", "...", "z"]), &shown(&["a", "b", "c", "z"])));
     assert!(!shows(&shown(&["a", "...", "z"]), &shown(&["a", "b"])));
     assert!(!shows(&shown(&["a"]), &shown(&["a", "b"])));
-    let page = "Open `out/a.csv` in a viewer. It starts like this:\n\n```text\nh\nr\n```\n\n```text\nx\n```\n";
+    let page =
+        "Open `out/a.csv` in a viewer. It starts like this:\n\n```text\nh\nr\n```\n\n```text\nx\n```\n";
     assert_eq!(file_starts(page), [("out/a.csv".to_owned(), shown(&["h", "r"]))]);
 }

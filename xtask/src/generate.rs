@@ -83,13 +83,21 @@ const BLESSED: &[(&str, &str, &[&str])] = &[
     (
         "EW_SCHEMA_BLESS",
         "ew-schema",
-        &["--test", "it", "schemas::committed_schemas_match_the_generated_ones"],
+        &[
+            "--test",
+            "it",
+            "schemas::committed_schemas_match_the_generated_ones",
+        ],
     ),
     // The identifier sets' tables, `crates/ew-rds/src/sets/data.rs`, from `data/identifier-sets.toml`.
     (
         "EW_RDS_BLESS",
         "ew-rds",
-        &["--test", "identifier_sets", "generated_tables_match_the_data_file"],
+        &[
+            "--test",
+            "identifier_sets",
+            "generated_tables_match_the_data_file",
+        ],
     ),
     // The sample project's folder, `fixtures/sample/sample.ew`, from its UI script.
     (
@@ -243,7 +251,13 @@ fn test_with(root: &Path, env: (&str, &std::ffi::OsStr), package: &str, args: &[
 fn tests_run(stdout: &str) -> usize {
     stdout
         .lines()
-        .filter_map(|l| l.strip_prefix("running ")?.split(' ').next()?.parse::<usize>().ok())
+        .filter_map(|l| {
+            l.strip_prefix("running ")?
+                .split(' ')
+                .next()?
+                .parse::<usize>()
+                .ok()
+        })
         .sum()
 }
 

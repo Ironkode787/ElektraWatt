@@ -11,8 +11,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use ew_dl::{Destination, DisplayList, FontKey, Item};
-use ew_render_cpu::FontBytes;
 use ew_export::{PdfDate, PdfOptions, PdfPage};
+use ew_render_cpu::FontBytes;
 use ew_units::{Nm, Pt2, Rect};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
@@ -176,10 +176,7 @@ fn every_raster_file_decodes_as_ruled() {
     let mut mismatches = Vec::new();
     for (name, ruled) in CORPUS {
         let bytes = std::fs::read(dir.join(name)).unwrap();
-        match (
-            ew_render_cpu::decode_image(ruled.format, &bytes),
-            ruled.size,
-        ) {
+        match (ew_render_cpu::decode_image(ruled.format, &bytes), ruled.size) {
             (Some(img), Some(size)) => {
                 if (img.width, img.height) != size {
                     mismatches.push(format!(

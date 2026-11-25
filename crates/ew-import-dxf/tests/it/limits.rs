@@ -6,8 +6,8 @@
 
 use std::collections::BTreeSet;
 
-use ew_interop_api::{ImportError, Limits};
 use ew_import_dxf::{MAX_BUDGET, Space, convert};
+use ew_interop_api::{ImportError, Limits};
 
 use crate::common::Dxf;
 
@@ -191,9 +191,7 @@ fn nul_is_no_character_of_an_imported_text() {
     d.end();
     let c = read(&d).unwrap();
     let text = c.items.iter().find_map(|(_, _, k)| match k {
-        ew_interop_api::ew_schema::PageItemKind::FreeText(t) => {
-            t.text.as_neutral().map(str::to_owned)
-        }
+        ew_interop_api::ew_schema::PageItemKind::FreeText(t) => t.text.as_neutral().map(str::to_owned),
         _ => None,
     });
     assert_eq!(text.as_deref(), Some("AB"));

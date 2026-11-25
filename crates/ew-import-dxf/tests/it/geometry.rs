@@ -6,9 +6,9 @@
 
 use std::collections::BTreeSet;
 
+use ew_import_dxf::{Space, convert, probe};
 use ew_interop_api::Limits;
 use ew_interop_api::ew_schema::{GraphicShape, PageItemKind};
-use ew_import_dxf::{Space, convert, probe};
 
 use crate::common::Dxf;
 

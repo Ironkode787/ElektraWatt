@@ -11,9 +11,9 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use ew_caex::ExchangeImage;
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
-use ew_caex::ExchangeImage;
 use ew_plc::instrument::{InstrumentRow, Signal};
 use ew_plc::{Change, Choice, FieldName, MergeOptions, Parked, ParkedModule, Vocabulary};
 use ew_schema::{

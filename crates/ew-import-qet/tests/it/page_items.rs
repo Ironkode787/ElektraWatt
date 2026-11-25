@@ -6,12 +6,12 @@
 
 use ew_import_qet::QetProjectImporter;
 use ew_import_qet::decimal::Decimal;
+use ew_import_qet::project::new_project_context;
 use ew_interop_api::ew_schema::{
     FreeText, Graphic, GraphicShape, ImagePrim, LibDocument, LineDash, PageItemKind, Primitive, Record,
     Representation, SlotKind, TextAlign, base64_decode,
 };
 use ew_interop_api::{Code, ImportBatch, ImportInput};
-use ew_import_qet::project::new_project_context;
 
 /// A 1 × 1 PNG.
 const PNG: &str =

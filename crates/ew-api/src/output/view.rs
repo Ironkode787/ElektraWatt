@@ -126,9 +126,8 @@ use ew_scene::page::{
 };
 use ew_scene::table::{TableColumn, TableLink, TableRow, TableRowKind, TableView};
 use ew_schema::{
-    Device, FormDef, Function, FunctionKind, JunctionStyle, LabelMode, LibCopy, LibDocument, Page,
-    PageType, RepType, ReportBlock, ReportKind, ReportSource, Representation, Side, SlotKind, SymbolDef,
-    TagPrint,
+    Device, FormDef, Function, FunctionKind, JunctionStyle, LabelMode, LibCopy, LibDocument, Page, PageType,
+    RepType, ReportBlock, ReportKind, ReportSource, Representation, Side, SlotKind, SymbolDef, TagPrint,
 };
 use ew_units::{Grid, Nm};
 

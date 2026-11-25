@@ -155,7 +155,8 @@ pub use library::{
     PolygonPrim, PolylinePrim, Primitive, RailSection, RectPrim, RepType, Rgb, RowTemplate, RowTemplates,
     SheetSpec, SheetTransform, ShrinkSpec, Side, SlotFallback, SlotKind, SolenoidPin, Stroke, SwitchPos,
     SymbolCp, SymbolDef, TableStyle, TemplateFn, TextPrim, TextSlot, TubeData, ValueSet, ValveModel,
-    ValvePath, ValveSection, VarBinding, VarDef, VarType, WrapPolicy, is_plain_semver, next_by_last_number, next_minor, next_patch, semver_core,
+    ValvePath, ValveSection, VarBinding, VarDef, VarType, WrapPolicy, is_plain_semver, next_by_last_number,
+    next_minor, next_patch, semver_core,
 };
 pub use list_area::ListArea;
 pub use medium::{FluidSettings, LineKindTube, LineTagScheme, Medium, MediumDef};

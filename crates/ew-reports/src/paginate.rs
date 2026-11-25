@@ -210,7 +210,12 @@ pub fn slice(set: &RowSet, spec: &BlockSpec, layouts: &Layouts) -> Vec<Slice> {
 
 /// The pages of a row set filled in order, each page's room lowered by `short` (by page index), and for each page
 /// whether it ends a run (the last page, or the last before a group break).
-fn fill(set: &RowSet, spec: &BlockSpec, layouts: &Layouts, short: &[(usize, i64)]) -> (Vec<Slice>, Vec<bool>) {
+fn fill(
+    set: &RowSet,
+    spec: &BlockSpec,
+    layouts: &Layouts,
+    short: &[(usize, i64)],
+) -> (Vec<Slice>, Vec<bool>) {
     let n = len_u32(set.rows.len());
     let groups: Vec<(Option<usize>, Range<u32>)> = if set.groups.is_empty() {
         vec![(None, 0..n)]

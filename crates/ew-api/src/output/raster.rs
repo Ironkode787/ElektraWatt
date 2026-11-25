@@ -17,8 +17,8 @@ use std::ops::RangeInclusive;
 
 use ew_derive::{PageOrder, Q};
 use ew_dl::DisplayList;
-use ew_render_cpu;
 use ew_export::{Parallelism, par_map};
+use ew_render_cpu;
 use ew_scene::page::PageScene;
 use ew_units::Nm;
 

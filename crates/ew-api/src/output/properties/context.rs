@@ -118,7 +118,11 @@ impl DisplayCx for SheetCx<'_> {
             lang: ew_derive::print_language(self.q),
             ..ew_reports::render::RenderOptions::default()
         };
-        Some(ew_reports::render::render(self.q, &ew_reports::length_source_cell(source), &opts))
+        Some(ew_reports::render::render(
+            self.q,
+            &ew_reports::length_source_cell(source),
+            &opts,
+        ))
     }
 }
 

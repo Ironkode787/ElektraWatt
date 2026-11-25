@@ -95,7 +95,10 @@ impl Snapper {
                 i128::from(g.den),
                 ew_api::output::SheetMap {
                     scale_ppb: g.sheet_scale_ppb,
-                    offset: ew_units::Pt2::new(ew_units::Nm(g.sheet_offset_nm.0), ew_units::Nm(g.sheet_offset_nm.1)),
+                    offset: ew_units::Pt2::new(
+                        ew_units::Nm(g.sheet_offset_nm.0),
+                        ew_units::Nm(g.sheet_offset_nm.1),
+                    ),
                 },
             ),
             _ => (1_000_000, 1, ew_api::output::SheetMap::IDENTITY),
@@ -121,7 +124,11 @@ impl Snapper {
     }
 
     fn off(&self, axis: usize) -> i128 {
-        i128::from(if axis == 0 { self.map.offset.x.0 } else { self.map.offset.y.0 })
+        i128::from(if axis == 0 {
+            self.map.offset.x.0
+        } else {
+            self.map.offset.y.0
+        })
     }
 
     /// The page coordinate of the sheet coordinate `s` on `axis` (0 x, 1 y).

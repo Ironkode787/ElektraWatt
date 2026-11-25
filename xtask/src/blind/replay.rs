@@ -934,7 +934,9 @@ mod tests {
         let mut inputs = Inputs {
             prelude: vec![step(1), step(2)],
             steps: vec![step(3), step(4), step(5)],
-            outcomes: (1..=5).map(|n| serde_json::json!({"action": format!("a{n}")})).collect(),
+            outcomes: (1..=5)
+                .map(|n| serde_json::json!({"action": format!("a{n}")}))
+                .collect(),
             epilogue: "== page.describe 101 ==\n".to_owned(),
             epilogue_range: Some([5, 5]),
             transcript: None,
@@ -946,7 +948,11 @@ mod tests {
         };
         inputs.until(1);
         assert_eq!(inputs.steps, vec![step(3)]);
-        let kept: Vec<&str> = inputs.outcomes.iter().map(|o| o["action"].as_str().unwrap()).collect();
+        let kept: Vec<&str> = inputs
+            .outcomes
+            .iter()
+            .map(|o| o["action"].as_str().unwrap())
+            .collect();
         assert_eq!(kept, ["a1", "a2", "a3"]);
         assert!(inputs.epilogue.is_empty() && inputs.epilogue_range.is_none());
     }

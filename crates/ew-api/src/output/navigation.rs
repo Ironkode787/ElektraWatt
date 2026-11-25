@@ -499,7 +499,6 @@ fn sheet_map(q: &Q, page: PageRef) -> SheetMap {
     ew_scene::page::sheet_of(form.as_ref().as_ref().map(|f| &*f.form)).2
 }
 
-
 /// The reading-order key of a CP: its cell's column and row index and its sheet `(y, x)`. `page_cps` breaks ties by
 /// the label (natural order, then bytes) and only then by the ID, so two coincident CPs keep their order in every
 /// fresh copy of a project (the IDs of a new project are random).

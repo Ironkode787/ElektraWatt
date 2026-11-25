@@ -16,11 +16,10 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use ew_dl::{Brush, Color, Destination, DisplayList, FontKey, Item, Link, Path, Pen, Stroke};
-use ew_render_cpu::{FontBytes, PagePlacement};
 use ew_export::{
-    Conformance, OutlineEntry, PdfDate, PdfError, PdfOptions, PdfPage, outline_entries, pdf,
-    pdf_bytes,
+    Conformance, OutlineEntry, PdfDate, PdfError, PdfOptions, PdfPage, outline_entries, pdf, pdf_bytes,
 };
+use ew_render_cpu::{FontBytes, PagePlacement};
 use ew_text::{builtin, bundled};
 use ew_units::{Nm, Pt2, Rect};
 use sha2::{Digest, Sha256};

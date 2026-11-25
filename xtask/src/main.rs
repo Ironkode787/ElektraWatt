@@ -238,7 +238,9 @@ fn help() -> String {
             item(&mut out, head, c.does);
         }
     }
-    out.push_str("\nthe repository rules (`rules`, and the last step of `check`), each with what it catches:\n");
+    out.push_str(
+        "\nthe repository rules (`rules`, and the last step of `check`), each with what it catches:\n",
+    );
     for (name, catches, _) in RULES {
         item(&mut out, format!("  {name}"), catches);
     }
@@ -424,7 +426,12 @@ const RULES: &[(&str, &str, Rule)] = &[
         "re-exports",
         "a `pub use` of another workspace crate outside the three facades (ew-api, ew-viewmodel, ew-interop-api)",
         |_, ws| {
-            let crates: Vec<String> = ws.metadata.workspace_packages().iter().map(|p| p.name.to_string()).collect();
+            let crates: Vec<String> = ws
+                .metadata
+                .workspace_packages()
+                .iter()
+                .map(|p| p.name.to_string())
+                .collect();
             Ok(reexports::check(&ws.files, &crates))
         },
     ),

@@ -24,7 +24,7 @@ pub use dxf::{
 pub use font_subset::{MAX_COMPOSITE_DEPTH, MAX_FONT_BYTES, SubsetError, cmap_glyphs, subset_glyf};
 pub use parallel::{Parallelism, par_map};
 pub use pdf::{
-    Conformance, OutlineEntry, PdfDate, PdfError, PdfOptions, PdfOutput, PdfPage, PdfReport,
-    outline_entries, pdf, pdf_bytes,
+    Conformance, OutlineEntry, PdfDate, PdfError, PdfOptions, PdfOutput, PdfPage, PdfReport, outline_entries,
+    pdf, pdf_bytes,
 };
 pub use svg::{SvgError, SvgFace, SvgFile, SvgOptions, SvgOutput, SvgReport, svg, svg_file_name, svg_id};

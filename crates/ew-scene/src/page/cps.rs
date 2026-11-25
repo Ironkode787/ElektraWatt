@@ -73,7 +73,8 @@ pub fn drawn_cps(grid: Grid, reps: &[RepView]) -> BTreeMap<(Uuid, u16), (Pt2, Di
         if !rv.terminals.is_empty() {
             for (k, t) in rv.terminals.iter().enumerate() {
                 let end = |side: ew_schema::Side| ew_derive::strip_terminal_end(rep, def, k, &side);
-                let (Some(side1), Some(side2)) = (end(ew_schema::Side::Side1), end(ew_schema::Side::Side2)) else {
+                let (Some(side1), Some(side2)) = (end(ew_schema::Side::Side1), end(ew_schema::Side::Side2))
+                else {
                     break;
                 };
                 let dir = |d: Option<Dir4>| d.unwrap_or(Dir4::Unknown(serde_json::Value::Null));

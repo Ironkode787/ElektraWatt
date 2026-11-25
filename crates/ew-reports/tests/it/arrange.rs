@@ -1030,12 +1030,18 @@ fn a_date_prints_in_the_projects_date_format() {
     use ew_reports::render::{RenderOptions, render};
     let date = Cell::Date("2025-04-14".parse().unwrap());
     let m = model();
-    assert_eq!(render(&Q::new(&m), &date, &RenderOptions::default()), "14-04-2025");
+    assert_eq!(
+        render(&Q::new(&m), &date, &RenderOptions::default()),
+        "14-04-2025"
+    );
     let project: Project = serde_json::from_str(
         r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1",
             "settings":{"formatting":{"date":"iso8601"}}}"#,
     )
     .unwrap();
     let iso = ew_model::Model::from_records(project, [], []).unwrap();
-    assert_eq!(render(&Q::new(&iso), &date, &RenderOptions::default()), "2025-04-14");
+    assert_eq!(
+        render(&Q::new(&iso), &date, &RenderOptions::default()),
+        "2025-04-14"
+    );
 }

@@ -182,7 +182,11 @@ fn the_workbooks_are_the_committed_dumps() {
             "\new\t<version>\n",
         );
         // The parts list's rows are `ew-api`'s reference: its workbook keeps the form.
-        let dump = if *name == "bom_parts" { head(&dump, 2) } else { dump };
+        let dump = if *name == "bom_parts" {
+            head(&dump, 2)
+        } else {
+            dump
+        };
         expected_file(&format!("xlsx/{name}.cells.txt"), &dump);
     }
 }

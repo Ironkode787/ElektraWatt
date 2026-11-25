@@ -100,13 +100,20 @@ fn the_pages_lines_are_the_as_built_lines() {
     take("flat view", flat.clone());
     done(&mut shell, "pages.sort", json!({"by": "type"}));
     let by_type = pages_lines(&shell);
-    assert_eq!(changed(&flat, &by_type).lines().count(), 2, "the type order changes the header only");
+    assert_eq!(
+        changed(&flat, &by_type).lines().count(),
+        2,
+        "the type order changes the header only"
+    );
     take("flat view by type", folios(&by_type));
     done(&mut shell, "pages.sort", json!({"by": "folio"}));
     done(&mut shell, "pages.mode", json!({"mode": "section"}));
     done(&mut shell, "page.goto", json!({"folio": "103"}));
     done(&mut shell, "pages.row", json!({"step": 1}));
-    take("103 shown, cursor moved down", changed(&section, &pages_lines(&shell)));
+    take(
+        "103 shown, cursor moved down",
+        changed(&section, &pages_lines(&shell)),
+    );
     let path = Path::new(EXPECTED).join("navigator_pages.txt");
     if ew_testdir::bless() {
         std::fs::write(&path, &text).unwrap();

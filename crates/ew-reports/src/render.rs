@@ -230,7 +230,12 @@ fn writes_comma(q: &Q, lang: Option<&LangTag>) -> bool {
         (Some(l), Some(langs)) => l.language().eq_ignore_ascii_case(langs.source.language()),
         (Some(_), None) => false,
     };
-    let setting = project.settings.formatting.decimal_separator.as_ref().filter(|_| own);
+    let setting = project
+        .settings
+        .formatting
+        .decimal_separator
+        .as_ref()
+        .filter(|_| own);
     ew_derive::text::decimal_comma(setting, lang)
 }
 

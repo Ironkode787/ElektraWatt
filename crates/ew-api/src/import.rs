@@ -18,10 +18,10 @@ use ew_schema::{LibDocument, Record};
 
 use crate::{Session, SessionOptions};
 
+pub use ew_import_qet::migration;
 pub use ew_interop_api::{
     Code, ImportBatch, ImportError, ImportReport, ReportEntry, Severity, SourceLocation,
 };
-pub use ew_import_qet::migration;
 
 // -------------------------------------------------------------------------------------------------------------------
 // The front door

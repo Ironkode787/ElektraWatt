@@ -108,7 +108,11 @@ fn the_default_io_list_lists_the_used_and_spare_channels() {
     let q = s.query();
     let rows = printed(&q, block.id);
     let state = |r: &Vec<String>| r[19].clone();
-    assert!(rows.iter().all(|r| ["used", "spare"].contains(&state(r).as_str())), "{rows:?}");
+    assert!(
+        rows.iter()
+            .all(|r| ["used", "spare"].contains(&state(r).as_str())),
+        "{rows:?}"
+    );
     assert!(rows.iter().any(|r| state(r) == "spare"), "{rows:?}");
     assert_eq!(
         key_cells(switch_row(&rows)),
@@ -156,7 +160,11 @@ fn include_deactivated_lists_every_channel_in_place() {
         ["1", "3", "5", "7"],
         "the valve terminal's odd channels, in place"
     );
-    assert_eq!(rows.len() - deactivated.len(), default_rows, "the default leaves out the deactivated");
+    assert_eq!(
+        rows.len() - deactivated.len(),
+        default_rows,
+        "the default leaves out the deactivated"
+    );
     let terminal: Vec<&str> = rows
         .iter()
         .filter(|r| r[5] == "-201K1")

@@ -475,8 +475,7 @@ fn the_mapping_steps_accessors() {
     let names: Vec<String> = catalog::Member::FIXED.iter().map(catalog::Member::name).collect();
     assert_eq!(names[..2], ["manufacturer", "part_number"]);
     assert!(catalog::Member::FIXED.iter().filter(|m| m.required()).count() == 2);
-    let input =
-        ew_interop_api::ImportInput::new("l.csv", LIST.as_bytes().to_vec()).unwrap();
+    let input = ew_interop_api::ImportInput::new("l.csv", LIST.as_bytes().to_vec()).unwrap();
     let cols = catalog::table_columns(&input, None, &catalog::table_limits()).unwrap();
     assert!(
         !cols.is_empty() && cols.iter().all(|c| !c.header.is_empty()),

@@ -115,7 +115,12 @@ pub fn next_patch(v: &str) -> Option<String> {
         return None;
     }
     let n = |s: &str| s.parse::<u64>().ok();
-    Some(format!("{}.{}.{}", n(major)?, n(minor)?, n(patch)?.checked_add(1)?))
+    Some(format!(
+        "{}.{}.{}",
+        n(major)?,
+        n(minor)?,
+        n(patch)?.checked_add(1)?
+    ))
 }
 
 /// The version after `v` by its last number (`1.0.0` → `1.0.1`, `1.0` → `1.1`); `None` for a version that does not end

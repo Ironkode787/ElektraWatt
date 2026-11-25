@@ -137,6 +137,9 @@ fn the_decimal_separator_is_the_projects_else_its_languages() {
     assert!(decimal_comma(None, Some(&tag("de"))));
     assert!(!decimal_comma(None, Some(&tag("en-GB"))));
     assert!(!decimal_comma(None, None));
-    assert!(!decimal_comma(Some(&DecimalSeparator::Point), Some(&tag("nl-NL"))));
+    assert!(!decimal_comma(
+        Some(&DecimalSeparator::Point),
+        Some(&tag("nl-NL"))
+    ));
     assert!(decimal_comma(Some(&DecimalSeparator::Comma), Some(&tag("en-GB"))));
 }

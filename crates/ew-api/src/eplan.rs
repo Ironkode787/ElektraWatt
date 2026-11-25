@@ -16,8 +16,8 @@ use std::path::Path;
 
 use ew_format::library_copy_hash;
 use ew_ids::{Id, Uuid};
-use ew_interop_api::pn_norm;
 use ew_import_eplan::{IMPORTER_ID, IMPORTER_VERSION};
+use ew_interop_api::pn_norm;
 use ew_schema::{
     FreeProp, LibCopy, LibDocument, LibRef, Manufacturer, MechData, Part, PartKind, Sha256, starter,
 };

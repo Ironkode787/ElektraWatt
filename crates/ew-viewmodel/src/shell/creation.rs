@@ -577,9 +577,9 @@ impl ShellModel {
     /// (doc 06 §8 item 3).
     fn set_grid_params(&self, page: ew_api::output::Uuid, grid: Value) -> Value {
         let mut params = json!({"page": page.to_string(), "grid": grid});
-        let area = self.tables_of_page(page).and_then(|(folio, _)| {
-            Some(json!(self.project.as_ref()?.session.page_area_nm(&folio)?))
-        });
+        let area = self
+            .tables_of_page(page)
+            .and_then(|(folio, _)| Some(json!(self.project.as_ref()?.session.page_area_nm(&folio)?)));
         if let (Some(area), Some(p)) = (area, params.as_object_mut()) {
             p.insert("area".into(), area);
         }

@@ -861,7 +861,9 @@ impl SymbolDraft {
         symbol.fndef = match (&self.function_ref, identity.fndef) {
             (Some(r), _) => r.clone(),
             (None, item) => {
-                let item = item.ok_or_else(|| Error::Refused(text!("symbol-function-required")))?.as_uuid();
+                let item = item
+                    .ok_or_else(|| Error::Refused(text!("symbol-function-required")))?
+                    .as_uuid();
                 let key = format!("{}.function", self.key);
                 let mut function = self.function.clone();
                 function.meta = symbol.meta.clone();
@@ -1057,7 +1059,8 @@ fn copy<T: Serialize>(
     if !malformed.is_empty() {
         return Err(Error::Refused(text!("symbol-input-object")));
     }
-    let hash = ew_format::library_copy_hash(&doc).ok_or_else(|| Error::Refused(text!("symbol-input-object")))?;
+    let hash =
+        ew_format::library_copy_hash(&doc).ok_or_else(|| Error::Refused(text!("symbol-input-object")))?;
     match &mut doc {
         LibDocument::Symbol(s) => s.sha256 = Sha256(hash),
         LibDocument::Fndef(f) => f.sha256 = Sha256(hash),
@@ -1210,7 +1213,9 @@ pub fn open(path: &Path, key: &str) -> Result<Vec<SymbolDraft>, Error> {
         if link(&folder)? {
             return Err(Error::Refused(text!("eplan-archive-path")));
         }
-        let root = folder.canonicalize().map_err(|_| Error::Refused(text!("eplan-slk-companion")))?;
+        let root = folder
+            .canonicalize()
+            .map_err(|_| Error::Refused(text!("eplan-slk-companion")))?;
         if root.parent() != Some(parent.as_path()) {
             return Err(Error::Refused(text!("eplan-archive-path")));
         }
@@ -1244,7 +1249,11 @@ pub fn open(path: &Path, key: &str) -> Result<Vec<SymbolDraft>, Error> {
         let name = path.file_name().and_then(|e| e.to_str()).unwrap_or("symbol");
         let hash = format!("{:x}", hash.finalize());
         return front_door(name, &sizes, text!("eplan-input-limit"), || {
-            eplan_drafts(ew_import_eplan::slk::read(&files).map_err(eplan_refusal)?, key, &hash)
+            eplan_drafts(
+                ew_import_eplan::slk::read(&files).map_err(eplan_refusal)?,
+                key,
+                &hash,
+            )
         });
     }
     let eplan = matches!(
@@ -1285,7 +1294,11 @@ pub fn import_eplan(bytes: &[u8], name: &str, key: &str) -> Result<Vec<SymbolDra
     use sha2::{Digest, Sha256};
     front_door(name, &[bytes.len() as u64], text!("eplan-input-limit"), || {
         let hash = format!("{:x}", Sha256::digest(bytes));
-        eplan_drafts(ew_import_eplan::read(bytes, name).map_err(eplan_refusal)?, key, &hash)
+        eplan_drafts(
+            ew_import_eplan::read(bytes, name).map_err(eplan_refusal)?,
+            key,
+            &hash,
+        )
     })
 }
 
@@ -1310,9 +1323,7 @@ pub fn import_dxf(
     front_door(name, &[bytes.len() as u64], text!("dxf-input-limit"), || {
         let blocks =
             ew_import_dxf::symbols(bytes, &limits, unit, ew_units::Grid::MM4, name).map_err(|e| match e {
-                ew_interop_api::ImportError::Unsupported { message }
-                    if message == ew_import_dxf::NO_UNIT =>
-                {
+                ew_interop_api::ImportError::Unsupported { message } if message == ew_import_dxf::NO_UNIT => {
                     Error::Refused(text!("dxf-no-unit"))
                 }
                 ew_interop_api::ImportError::LimitExceeded { .. } => Error::Refused(text!("dxf-input-limit")),
@@ -1379,7 +1390,10 @@ mod tests {
     /// A panic inside a symbol import is the front door's refusal, in words.
     #[test]
     fn a_panic_in_a_symbol_import_is_refused_in_words() {
-        let e = front_door("x.edz", &[1], text!("eplan-input-limit"), || panic!("decoder fault")).unwrap_err();
+        let e = front_door("x.edz", &[1], text!("eplan-input-limit"), || {
+            panic!("decoder fault")
+        })
+        .unwrap_err();
         assert_eq!(
             e.to_string(),
             "The importer stopped on an internal error; nothing was imported."

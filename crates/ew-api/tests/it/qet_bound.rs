@@ -230,7 +230,6 @@ fn library() -> StarterLibrary {
         .expect("the starter content")
 }
 
-
 const MAP: &str = "element,function,cps,tag,number,xref\ncoil.elmt,ew.fn.coil,A1 A2,,,\ncontact.elmt,ew.fn.contact-no,13 14,,,\nklem.elmt,ew.fn.terminal,,,,\n";
 
 fn records<T>(i: &Imported, f: impl Fn(&Record) -> Option<&T>) -> Vec<&T> {

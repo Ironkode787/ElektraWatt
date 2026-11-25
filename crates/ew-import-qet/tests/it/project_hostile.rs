@@ -5,10 +5,8 @@
 //! item problems become findings, nothing panics). No wall-clock bounds (CLAUDE.md "Testing policy").
 
 use ew_import_qet::QetProjectImporter;
-use ew_interop_api::{
-    Code, ImportBatch, ImportContext, ImportError, ImportInput, Limits, ReportEntry,
-};
 use ew_import_qet::project::new_project_context;
+use ew_interop_api::{Code, ImportBatch, ImportContext, ImportError, ImportInput, Limits, ReportEntry};
 
 /// Imports `bytes` as `x.qet` under `ctx`.
 fn import_with(bytes: Vec<u8>, mut ctx: ImportContext) -> Result<ImportBatch, ImportError> {

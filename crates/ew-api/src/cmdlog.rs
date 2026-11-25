@@ -468,8 +468,7 @@ impl Session {
                     "refusal-ref-ambiguous",
                     text,
                     n.to_string(),
-                    ew_commands::comma_joined(names)
-                        .unwrap_or_else(|| crate::Text::bare(""))
+                    ew_commands::comma_joined(names).unwrap_or_else(|| crate::Text::bare(""))
                 ))
             }
         }
@@ -487,8 +486,7 @@ impl Session {
                 match text.split_once(':') {
                     // An `id:` reference stands for its own text, as written.
                     Some(("id", uuid)) => Ok(Value::String(uuid.to_owned())),
-                    _ => serde_json::to_value(id)
-                        .map_err(|e| crate::Text::bare(e.to_string())),
+                    _ => serde_json::to_value(id).map_err(|e| crate::Text::bare(e.to_string())),
                 }
             }
             Value::Object(map) => map

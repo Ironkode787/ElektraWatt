@@ -579,7 +579,8 @@ pub fn page_scene(q: &Q, entry: &PageEntry) -> PageScene {
         layers.push((layer, Arc::clone(&l.list)));
     }
     let frame = q.get::<PageFrameOf>(page);
-    let (sheet_width, sheet_height, map) = ew_scene::page::sheet_of(frame.as_ref().as_ref().map(|f| &*f.form));
+    let (sheet_width, sheet_height, map) =
+        ew_scene::page::sheet_of(frame.as_ref().as_ref().map(|f| &*f.form));
     PageScene {
         page: Id::from_uuid(page_uuid(page)),
         sheet_width,

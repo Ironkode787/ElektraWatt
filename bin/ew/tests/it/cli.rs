@@ -846,7 +846,11 @@ fn export_csv_prints_the_lists() {
     let cables = export(&["cables"]);
     let rows = stdout(&cables).lines().count() - 1;
     assert!(stdout(&cables).starts_with("row,Cable,"), "the header first");
-    assert_eq!(stderr(&cables), format!("{rows} rows\n"), "the rows after the header, counted");
+    assert_eq!(
+        stderr(&cables),
+        format!("{rows} rows\n"),
+        "the rows after the header, counted"
+    );
     assert!(!std::path::Path::new(SAMPLE).join(".~ew.lock").exists());
     let parts = stdout(&export(&["bom"]));
     for mode in ["parts", "component"] {

@@ -22,8 +22,8 @@ use std::collections::BTreeMap;
 use std::sync::OnceLock;
 
 use ew_api::{MemoMode, SessionOptions};
-use ew_interop_api::{ImportBatch, ImportError, ImportInput, ImportMode, Severity};
 use ew_import_tables::{BuiltinLibrary, TablesImporter, bootstrap_context};
+use ew_interop_api::{ImportBatch, ImportError, ImportInput, ImportMode, Severity};
 use ew_schema::LibDocument;
 use serde_json::{Value, json};
 

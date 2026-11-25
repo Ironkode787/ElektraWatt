@@ -785,9 +785,7 @@ impl Builder<'_> {
                 // first cell).
                 let first = match outline {
                     None => true,
-                    Some(o) => {
-                        kind == LabelKind::BoxData && self.box_of(&text).is_some_and(|b| o.holds(b))
-                    }
+                    Some(o) => kind == LabelKind::BoxData && self.box_of(&text).is_some_and(|b| o.holds(b)),
                 };
                 self.label(ctx, text, owner, origin, first, false, Some(record));
             }
