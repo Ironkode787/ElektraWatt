@@ -233,7 +233,10 @@ fn device_link_creates_and_validates() {
     // The devices by their tags, no link ID.
     match e.execute(&link(DEV_102F2, DEV_101F1)) {
         Err(CmdError::Rejected { text, .. }) => {
-            assert_eq!(text.to_string(), "device -102F2 already links to -101F1 with this kind");
+            assert_eq!(
+                text.to_string(),
+                "device -102F2 already links to -101F1 with this kind"
+            );
         }
         other => panic!("expected a rejection, got {other:?}"),
     }

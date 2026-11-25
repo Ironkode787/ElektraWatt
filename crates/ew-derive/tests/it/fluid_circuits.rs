@@ -9,7 +9,10 @@
 use crate::common;
 
 use common::{Fx, LIBRARY, id, uid};
-use ew_derive::{DevicePartLines, Effective, FluidNets, Galleries, LineSource, MediumKey, MediumOrigin, MediumZones, Q, TubePropsOf, TubeSource, node_net, reached_device};
+use ew_derive::{
+    DevicePartLines, Effective, FluidNets, Galleries, LineSource, MediumKey, MediumOrigin, MediumZones, Q,
+    TubePropsOf, TubeSource, node_net, reached_device,
+};
 use ew_model::EndpointKey;
 use ew_schema::{FluidPortRole, Part};
 use ew_units::{Dec3, Nm};

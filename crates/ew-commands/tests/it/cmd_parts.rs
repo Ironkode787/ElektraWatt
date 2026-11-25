@@ -83,17 +83,33 @@ fn a_second_import_skips_every_key_and_undo_removes_the_first() {
     let copies = local_copies(5);
     let r = import(&mut e, copies.clone()).expect("parts.import");
     assert_eq!(parts(&e), before + 5);
-    assert_eq!(r.outcome.counts, Some(Counts { created: 5, skipped: 0 }));
+    assert_eq!(
+        r.outcome.counts,
+        Some(Counts {
+            created: 5,
+            skipped: 0
+        })
+    );
     assert_eq!(r.outcome.primary.map(|k| k.0), Some(Kind::Part));
     let again = import(&mut e, copies).expect("a re-import commits");
     assert_eq!(
-        again.outcome.counts, Some(Counts { created: 0, skipped: 5 })
+        again.outcome.counts,
+        Some(Counts {
+            created: 0,
+            skipped: 5
+        })
     );
     assert_eq!(parts(&e), before + 5);
     // One more key: created 1, skipped 5.
     let mut six = local_copies(6);
     let r = import(&mut e, std::mem::take(&mut six)).unwrap();
-    assert_eq!(r.outcome.counts, Some(Counts { created: 1, skipped: 5 }));
+    assert_eq!(
+        r.outcome.counts,
+        Some(Counts {
+            created: 1,
+            skipped: 5
+        })
+    );
     // The all-skipped import changed nothing and is no undo step.
     e.undo(&Origin::Gui).unwrap();
     assert_eq!(parts(&e), before + 5);
@@ -152,14 +168,26 @@ fn only_the_manufacturers_of_inserted_parts_are_inserted() {
     let mut e = engine(empty_model());
     let before = makers(&e);
     let r = import(&mut e, vec![part.clone(), value(&named), value(&other)]).unwrap();
-    assert_eq!(r.outcome.counts, Some(Counts { created: 1, skipped: 0 }));
+    assert_eq!(
+        r.outcome.counts,
+        Some(Counts {
+            created: 1,
+            skipped: 0
+        })
+    );
     assert_eq!(makers(&e), before + 1, "only the named manufacturer");
     let held = e.model().table::<LibCopy<Manufacturer>>();
     assert!(held.iter().any(|(id, _)| *id == named.id));
     assert!(held.iter().all(|(id, _)| *id != other.id));
     // Every part skipped: no manufacturer inserted, no undo step.
     let r = import(&mut e, vec![part, value(&other)]).unwrap();
-    assert_eq!(r.outcome.counts, Some(Counts { created: 0, skipped: 1 }));
+    assert_eq!(
+        r.outcome.counts,
+        Some(Counts {
+            created: 0,
+            skipped: 1
+        })
+    );
     assert_eq!(makers(&e), before + 1);
     e.undo(&Origin::Gui).unwrap();
     assert_eq!(makers(&e), before, "the undo step was the first import");

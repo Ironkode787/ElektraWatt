@@ -10,7 +10,6 @@ use crate::common;
 
 use common::*;
 use ew_commands::commands::{SetCheckSchemes, SetCompany};
-use ew_schema::COMPANY_MEMBER;
 use ew_commands::{
     AnyCommand, CmdError, CommandRegistry, Cost, DynCommand, Engine, Exposure, Origin, Submit,
 };
@@ -18,6 +17,7 @@ use ew_ids::Id;
 use ew_mltext::MlText;
 use ew_model::Model;
 use ew_model::fixture::{FORM, form, id, mini_project_parts};
+use ew_schema::COMPANY_MEMBER;
 use ew_schema::{FormDef, FormKind, LibDocument, PartyRole};
 use serde_json::{Value, json};
 

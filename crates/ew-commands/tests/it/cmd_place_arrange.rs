@@ -13,8 +13,8 @@ use std::fmt::Debug;
 
 use common::*;
 use ew_commands::commands::{
-    DeleteConnections, ExchangePin, ExchangeSymbol, MoveReps, PlaceBlackBox, PlaceSymbol,
-    PlaceTarget, SetProjectSettings, TerminalSpec,
+    DeleteConnections, ExchangePin, ExchangeSymbol, MoveReps, PlaceBlackBox, PlaceSymbol, PlaceTarget,
+    SetProjectSettings, TerminalSpec,
 };
 use ew_commands::{AnyCommand, CmdError, Engine};
 use ew_ids::{Id, Uuid};
@@ -36,7 +36,10 @@ use serde_json::{Value, json};
 fn rejected_with<T: Debug>(r: Result<T, CmdError>, needle: &str) {
     match r {
         Err(CmdError::Rejected { text, .. }) => {
-            assert!(text.to_string().contains(needle), "text.to_string() `{text}` lacks `{needle}`");
+            assert!(
+                text.to_string().contains(needle),
+                "text.to_string() `{text}` lacks `{needle}`"
+            );
         }
         other => panic!("expected a rejection mentioning `{needle}`, got {other:?}"),
     }
@@ -1741,10 +1744,7 @@ fn drawing_set_rejections() {
     // A `drawing` member that is not an object is never overwritten.
     for odd in [json!("hops"), json!([1]), json!(7), Value::Null] {
         let mut e = engine(project_with_drawing(odd.clone()));
-        rejected_with(
-            e.execute(&set_drawing(Some(Some("hops")))),
-            "not an object",
-        );
+        rejected_with(e.execute(&set_drawing(Some(Some("hops")))), "not an object");
         assert_eq!(drawing_of(&e), Some(odd), "kept as it is");
         assert_eq!(e.model().rev().0, 0);
     }

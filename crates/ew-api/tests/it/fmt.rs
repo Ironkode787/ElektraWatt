@@ -886,8 +886,8 @@ fn after_repair_fault(
 ) -> Result<(u64, bool), String> {
     let take_over =
         || Store::take_over(&root(), repair_options(vfs, 3)).map_err(|e| format!("take-over failed: {e}"));
-    let opened =
-        Store::open(&root(), repair_options(vfs, 3)).map_err(|e| format!("the project does not open: {e}"))?;
+    let opened = Store::open(&root(), repair_options(vfs, 3))
+        .map_err(|e| format!("the project does not open: {e}"))?;
     let opened = match &opened.report.access {
         Access::Edit => opened,
         Access::ReadOnly(ReadOnlyReason::LockedBy(info)) if info.stale => {

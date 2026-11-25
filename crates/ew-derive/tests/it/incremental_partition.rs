@@ -26,9 +26,12 @@ use std::fmt::Write as _;
 
 use crate::common::{Fx, id, uid};
 use ew_derive::Query;
-use ew_derive::{FlowBfs, IpPairingQ, MemoStore, PageLocalNets, PhysicalWiresOf, PotentialAttrsOf, PotentialFlow, PotentialId, PotentialNameOf, PotentialPartition, Q, StitchGraphQ, WirePropsOf};
-use ew_memo::Oracle;
+use ew_derive::{
+    FlowBfs, IpPairingQ, MemoStore, PageLocalNets, PhysicalWiresOf, PotentialAttrsOf, PotentialFlow,
+    PotentialId, PotentialNameOf, PotentialPartition, Q, StitchGraphQ, WirePropsOf,
+};
 use ew_ids::Id;
+use ew_memo::Oracle;
 use ew_model::{AnyKey, AnyRow, Entity, Model, Op};
 use ew_schema::{
     Connection, ConnectionKind, Device, Endpoint, ExternalRef, Function, Page, PotentialDef, Representation,

@@ -4,9 +4,9 @@
 //! `arrange`: manual exclusion, filter, sort, grouping (doc 09 §3.3, FR-REP-027).
 
 use ew_derive::Q;
-use ew_model::Rev;
 use ew_ids::{Id, Uuid};
 use ew_mltext::MlText;
+use ew_model::Rev;
 use ew_reports::arrange::{cell_key, cell_text};
 use ew_reports::{
     Arrangement, Cell, CellType, ColumnDef, MissingReason, NotDerived, QtyUnit, Row, RowId, RowKey, RowKind,

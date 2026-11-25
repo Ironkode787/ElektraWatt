@@ -57,7 +57,11 @@ fn byte_length_bound() {
     );
     let v = rejected(&over);
     assert_eq!(v.path, "");
-    assert!(v.text.to_string().contains(&MAX_PARAM_BYTES.to_string()), "{}", v.text);
+    assert!(
+        v.text.to_string().contains(&MAX_PARAM_BYTES.to_string()),
+        "{}",
+        v.text
+    );
 }
 
 #[test]
@@ -67,7 +71,11 @@ fn nesting_bound() {
     let over = nested(MAX_PARAM_DEPTH + 1);
     let v = rejected(&over);
     assert_eq!(v.path, "/0".repeat(MAX_PARAM_DEPTH));
-    assert!(v.text.to_string().contains(&MAX_PARAM_DEPTH.to_string()), "{}", v.text);
+    assert!(
+        v.text.to_string().contains(&MAX_PARAM_DEPTH.to_string()),
+        "{}",
+        v.text
+    );
     // Objects count as well.
     let mut obj = json!({});
     for _ in 1..MAX_PARAM_DEPTH {
@@ -85,7 +93,11 @@ fn array_item_bound() {
     let over = Value::Array(vec![json!(0); MAX_PARAM_ITEMS + 1]);
     let v = rejected(&json!({ "a": over }));
     assert_eq!(v.path, "/a");
-    assert!(v.text.to_string().contains(&MAX_PARAM_ITEMS.to_string()), "{}", v.text);
+    assert!(
+        v.text.to_string().contains(&MAX_PARAM_ITEMS.to_string()),
+        "{}",
+        v.text
+    );
 }
 
 #[test]
@@ -94,7 +106,11 @@ fn string_bound() {
     assert_eq!(check_limits(&json!({ "s": at })), Ok(()));
     let v = rejected(&json!({ "s": "x".repeat(MAX_PARAM_STRING + 1) }));
     assert_eq!(v.path, "/s");
-    assert!(v.text.to_string().contains(&MAX_PARAM_STRING.to_string()), "{}", v.text);
+    assert!(
+        v.text.to_string().contains(&MAX_PARAM_STRING.to_string()),
+        "{}",
+        v.text
+    );
     // The bound counts UTF-8 bytes, not characters.
     let wide = "é".repeat(MAX_PARAM_STRING / 2 + 1);
     assert_eq!(rejected(&json!([[wide]])).path, "/0/0");
@@ -108,7 +124,11 @@ fn object_keys_count_as_strings() {
     let mut over = serde_json::Map::new();
     over.insert("k".repeat(MAX_PARAM_STRING + 1), json!(1));
     let v = rejected(&Value::Object(over));
-    assert!(v.text.to_string().contains(&MAX_PARAM_STRING.to_string()), "{}", v.text);
+    assert!(
+        v.text.to_string().contains(&MAX_PARAM_STRING.to_string()),
+        "{}",
+        v.text
+    );
 }
 
 #[test]

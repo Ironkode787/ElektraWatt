@@ -120,7 +120,10 @@ fn waive_checks_its_parameters_and_refuses_a_second_waiver_of_one_finding() {
     match e.execute(&waive(again)).unwrap_err() {
         // The waiver by its rule, never by its ID or the finding's fingerprint.
         CmdError::Rejected { text, .. } => {
-            assert_eq!(text.to_string(), "a waiver of EW-CORE-041 covers this finding already");
+            assert_eq!(
+                text.to_string(),
+                "a waiver of EW-CORE-041 covers this finding already"
+            );
         }
         other => panic!("{other:?}"),
     }

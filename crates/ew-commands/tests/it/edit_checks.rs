@@ -14,7 +14,6 @@ use ew_commands::commands::{
     BULK_ABOVE, Connect, CreatePage, DeleteConnections, DeleteSelection, EditJunction, EndpointParam,
     KindName, MoveReps, PlaceIp, PlaceSymbol, PlaceTarget, RouteConnection, SetFields, TargetRef,
 };
-use ew_units::MAX_SAFE_INTEGER;
 use ew_commands::rows::{row_json, row_text};
 use ew_commands::{CmdError, Command, Cost, DynCommand, Engine};
 use ew_ids::Id;
@@ -24,6 +23,7 @@ use ew_schema::{
     Connection, ConnectionKind, Device, Endpoint, FnRole, Function, IpDirection, Junction, JunctionStyle,
     Kind, Page, Record, Representation,
 };
+use ew_units::MAX_SAFE_INTEGER;
 use ew_units::{Grid, Nm, Orient2, Pt2};
 use serde_json::json;
 

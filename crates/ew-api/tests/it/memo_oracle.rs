@@ -42,9 +42,11 @@ use std::num::NonZeroU32;
 use std::rc::Rc;
 
 use ew_api::{AnyCommand, CmdError, MemoMode, Session, SessionOptions};
-use ew_derive::{FunctionCps, PotentialId, PotentialNameOf, PotentialPartition, Q, RecordingTracker, XrefTextOf};
-use ew_memo::Oracle;
+use ew_derive::{
+    FunctionCps, PotentialId, PotentialNameOf, PotentialPartition, Q, RecordingTracker, XrefTextOf,
+};
 use ew_ids::Id;
+use ew_memo::Oracle;
 use ew_model::{AnyRow, EndpointKey, Model, Op};
 use ew_schema::{Kind, Page};
 use ew_testids::seeded_ids;

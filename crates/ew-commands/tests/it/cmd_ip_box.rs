@@ -48,7 +48,10 @@ fn rejection<T: Debug>(r: Result<T, CmdError>) -> String {
 fn rejected_with<T: Debug>(r: Result<T, CmdError>, needle: &str) {
     match r {
         Err(CmdError::Rejected { text, .. }) => {
-            assert!(text.to_string().contains(needle), "text.to_string() `{text}` lacks `{needle}`");
+            assert!(
+                text.to_string().contains(needle),
+                "text.to_string() `{text}` lacks `{needle}`"
+            );
         }
         other => panic!("expected a rejection mentioning `{needle}`, got {other:?}"),
     }
@@ -1083,7 +1086,10 @@ fn fields_set_refuses_ip_members_on_other_functions_and_bad_values() {
             assert!(!text.to_string().contains(&FN_T3.to_string()), "{text}");
             assert!(!text.to_string().contains('@'), "{text}");
             assert!(text.to_string().starts_with('-'), "a tag first: {text}");
-            assert!(text.to_string().contains(" is not an interruption point;"), "{text}");
+            assert!(
+                text.to_string().contains(" is not an interruption point;"),
+                "{text}"
+            );
         }
         other => panic!("expected InvalidParams, got {other:?}"),
     }

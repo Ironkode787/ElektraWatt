@@ -531,7 +531,8 @@ fn exchange_symbol_on_a_lamp_keeps_its_connections_and_follows_the_new_cps() {
     ) {
         Err(CmdError::Rejected { text, .. }) => {
             assert!(
-                text.to_string().contains("function CP 1 is connected on this page"),
+                text.to_string()
+                    .contains("function CP 1 is connected on this page"),
                 "{text}"
             );
         }
