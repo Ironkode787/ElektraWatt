@@ -249,10 +249,11 @@ fn a_new_strips_toast_is_whole_at_the_floor() {
     d.shell_mut().shutdown();
 }
 
-/// L1 typed into the tool's name field and a click near the page's left edge without Enter: the
-/// page's quarters made it a target, and the tool then offered "L1-1 target" ("L1 is taken, so this point is
-/// L1-1"). A point without its partner leaves its name standing and the tool offers the partner; the toast says the
-/// direction the click placed and that the partner is still to come.
+/// L1 typed into the tool's name field and a target placed near the page's left edge without Enter: the tool then
+/// offered "L1-1 target" ("L1 is taken, so this point is L1-1"). A point without its partner leaves its name standing
+/// and the tool offers the partner; the toast says the direction the click placed and that the partner is still to
+/// come. Target chosen on the card, the click places a target wherever it lands; after it the tool keeps Target (a
+/// potential goes on at many targets) and the card's Source makes the next point L1's source.
 #[test]
 fn after_a_lone_target_the_tool_offers_its_source_and_the_toast_says_the_direction() {
     let tmp = Tmp::new();
@@ -260,6 +261,7 @@ fn after_a_lone_target_the_tool_offers_its_source_and_the_toast_says_the_directi
     press(&mut d, "Interruption");
     press(&mut d, "Interruption point name");
     d.input(&typed("L1"));
+    press(&mut d, "Target");
     let first = left_quarter(&mut d, 0);
     let at = page_pixel(&mut d, first);
     d.input(&Input::Hover { at });
@@ -273,7 +275,8 @@ fn after_a_lone_target_the_tool_offers_its_source_and_the_toast_says_the_directi
             && said.contains("has no source yet: place where L1 comes from, its source"),
         "{said:?}"
     );
-    // The next point is L1's source, in the same quarter too.
+    // Source on the card: the next point is L1's source, in the same quarter too.
+    press(&mut d, "Source");
     let second = left_quarter(&mut d, 1);
     let at = page_pixel(&mut d, second);
     d.input(&Input::Hover { at });
@@ -304,7 +307,7 @@ fn after_a_lone_target_the_tool_offers_its_source_and_the_toast_says_the_directi
     d.shell_mut().shutdown();
 }
 
-/// An L1 near the left edge comes out a target with no source, and its wire's Potential must not read the device pin
+/// An L1 placed near the left edge as a target with no source, and its wire's Potential must not read the device pin
 /// ("-101K1:A1"), so the supply's wires had no name, no colour by name and no offer. A point names the potential
 /// it carries whichever its direction: the wire from L1 to the relay's A1 reads L1 in Properties.
 #[test]
@@ -314,6 +317,7 @@ fn a_wire_on_a_lone_target_point_carries_its_name() {
     press(&mut d, "Interruption");
     press(&mut d, "Interruption point name");
     d.input(&typed("L1"));
+    press(&mut d, "Target");
     let first = left_quarter(&mut d, 0);
     let at = page_pixel(&mut d, first);
     tap(&mut d, at);

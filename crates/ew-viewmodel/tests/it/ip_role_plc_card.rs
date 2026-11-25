@@ -31,8 +31,7 @@ fn ghost(s: &ShellModel) -> Value {
     state(s)["canvas"]["ghost"].clone()
 }
 
-/// Arms the IP tool with the typed name `name` and moves the grid cursor into the page's right quarter (a source by
-/// the quarters rule), at height `y` mm.
+/// Arms the IP tool with the typed name `name` and moves the grid cursor to the page's right side, at height `y` mm.
 fn arm_ip(s: &mut ShellModel, name: &str, y: f64) {
     done(s, "tool.ip", json!({}));
     done(s, "ip.name", json!({"text": name}));
@@ -85,8 +84,8 @@ fn a_name_with_a_source_on_another_page_is_offered_as_a_target() {
 }
 
 /// After its source the typed name stays, and the tool floats its target, on
-/// the source's own page too; after the target the name stays for further targets, and with the field erased
-/// the series goes on as before.
+/// the source's own page too; after the target the name stays for further targets; with the field erased the
+/// direction stays, a target of the name that has its source, and with Source chosen the series goes on.
 #[test]
 fn on_the_page_of_the_source_the_target_follows_and_then_the_series_goes_on() {
     let tmp = Tmp::new("g40-series");
@@ -109,6 +108,13 @@ fn on_the_page_of_the_source_the_target_follows_and_then_the_series_goes_on() {
         "the name in the field: one more place its source feeds"
     );
     done(&mut s, "ip.name", json!({"text": ""}));
+    let g = ghost(&s);
+    assert_eq!(
+        (g["name"].as_str(), g["direction"].as_str()),
+        (Some("24VDC-1"), Some("target")),
+        "erased: the direction stays, one more place the source feeds"
+    );
+    done(&mut s, "tool.ip_direction", json!({"direction": "source"}));
     let g = ghost(&s);
     assert_eq!(
         (g["name"].as_str(), g["direction"].as_str()),
@@ -251,11 +257,21 @@ fn key_of(s: &ShellModel, id: &str) -> String {
 fn choosing_source_for_a_proposed_name_offers_the_next_free_name() {
     let tmp = Tmp::new("g40-free");
     let mut s = source_on_101(&tmp);
-    // No typed name: the source on 101 waits for a target, so the proposal is its partner, "0V" as a target.
+    // No typed name: the tool starts at Source, and 0V has its source on 101, so the series' next name is offered.
     done(&mut s, "tool.ip", json!({}));
     done(&mut s, "cursor.set", json!({"x_mm": 330.0, "y_mm": 150.0}));
-    assert_eq!(ghost(&s)["name"], "0V");
-    assert_eq!(ghost(&s)["direction"], "target");
+    let g = ghost(&s);
+    assert_eq!(
+        (g["name"].as_str(), g["direction"].as_str()),
+        (Some("0V-1"), Some("source"))
+    );
+    // Target chosen: the partner the source on 101 waits for, "0V" as a target.
+    done(&mut s, "tool.ip_direction", json!({"direction": "target"}));
+    let g = ghost(&s);
+    assert_eq!(
+        (g["name"].as_str(), g["direction"].as_str()),
+        (Some("0V"), Some("target"))
+    );
     done(&mut s, "tool.ip_direction", json!({"direction": "source"}));
     let g = ghost(&s);
     assert_eq!(

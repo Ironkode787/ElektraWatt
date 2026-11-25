@@ -100,8 +100,8 @@ fn the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle() {
     done(&mut s, "tool.ip", json!({}));
     assert_eq!(s.tool().name(), "ip");
     assert_eq!(s.tool().state(), "floating");
-    // A point in the left quarter of 103 proposes `target`; a typed name stays as typed (24V, whose source is on 101
-    // and whose targets are on 102 and 104).
+    // A typed name stays as typed, and 24V has its source on 101 (its targets are on 102 and 104): the tool starts its
+    // point as a target.
     let left = grid_point(&s, (20, 40));
     cursor(&mut s, left);
     done(&mut s, "ip.name", json!({"text": "24V"}));
@@ -111,8 +111,7 @@ fn the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle() {
     assert_eq!(ghost["name"], "24V", "{ghost}");
     assert_eq!(ghost["star"], false);
     assert_eq!(ghost["at_nm"], json!([left.0, left.1]));
-    // In the right quarter the quarters give a source, but 24V has its source on another page and none on 103: the
-    // tool offers the target of that name (EW-CORE-052 is project-wide).
+    // In the right quarter too: the direction is the tool's, wherever the click lands (EW-CORE-052 is project-wide).
     let area = s.canvas().unwrap().page().sheet;
     let right = s
         .canvas()
@@ -149,9 +148,9 @@ fn the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle() {
     assert_eq!(after.len(), before.len() + 1);
     let placed = ip(&tables(&s), "24V", "source");
     assert_eq!(placed.pos, right);
-    // The direction chosen with D stays after the commit (no flip after a placement), in either quarter; the
-    // star left it alone and is cleared. The typed name stays after its source; erased, the remembered
-    // name's series goes on to its first name that no point of the project has (no point of the sample is 24V-1).
+    // The direction chosen stays after the commit (no flip after a placement), and when the name is erased; the
+    // star left it alone and is cleared. The typed name stays after its source; erased, the remembered name's series
+    // goes on to its first name that no point of the project has (no point of the sample is 24V-1), in either quarter.
 
     assert_eq!(canvas(&s)["ghost"]["direction"], "undirected");
     assert_eq!(canvas(&s)["ghost"]["star"], false);

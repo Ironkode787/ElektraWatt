@@ -321,11 +321,8 @@ pub enum Ghost {
     Ip {
         /// The proposed name.
         name: String,
-        /// `source`, `target` or `undirected`.
+        /// `source`, `target` or `undirected`: the direction the next click places, wherever it lands.
         direction: &'static str,
-        /// Whether the direction is chosen (D, `tool.ip_direction`, the star, an external reference) rather than
-        /// found by the point's place on the page, which the click decides.
-        chosen: bool,
         /// Whether it is the star source of its name.
         star: bool,
         /// The insertion point on the page, nm; `None` before the first pointer or cursor move.

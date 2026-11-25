@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-25T20:37:57Z\n"
+"POT-Creation-Date: 2026-11-25T20:47:05Z\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -5986,40 +5986,47 @@ msgstr ""
 
 #: src/reference/window/tools.md:333
 msgid ""
+"Source and Target beside the name field show the direction the next click "
+"places, wherever on the page it lands. The tool starts at Source, as a new "
+"pair begins with its source, or at Target when the name you type has its "
+"source already. Clicking Source or Target, or pressing D, chooses the "
+"direction, and the choice holds until you change it: with Target chosen, "
+"every click places one more target, its source drawn or not, and the bar "
+"says when the name still has no source (\"next: one more target of 24V, "
+"which has no source yet\")."
+msgstr ""
+
+#: src/reference/window/tools.md:339
+msgid ""
 "Type the name in the field Interruption point name at the page's top left, "
 "once for a pair: the tool then floats the same name as the first point's "
-"partner, on this page or the next: its target after a source, its source "
-"after a target that no source feeds yet. The name stays in the field until "
+"partner, on this page or the next: after its source the tool turns to Target "
+"by itself, as a name has one source, and the bar says so before the click "
+"(\"next: a target, where 24V goes on\"). The name stays in the field until "
 "you change it: once the pair is whole, each further click places one more "
 "target of the same source, and the source's cross-reference lists every "
 "place it goes to. Without a typed name the tool offers the partner of a "
-"point that still waits for one (a target without a source, a source without "
-"a target), and a target of a name that has its source keeps that name; only "
-"otherwise does a point get a new name. A potential comes from one source and "
-"goes on at its targets. Source and Target beside the name field choose the "
-"direction, as D does, and the choice holds until you change it: with Target "
-"chosen, every click places one more target, its source drawn or not, and the "
-"bar says when the name still has no source (\"next: one more target of 24V, "
-"which has no source yet\"). After a source the tool turns to Target by "
-"itself, as a name has one source, and the bar says so before the click "
-"(\"next: a target, where 24V goes on\"). When you choose the tool from the "
-"Draw tab or the menu, the field has the keys with its name selected: type "
-"the name and press Enter or Tab, then click where the point goes. While the "
-"field has the keys, D is a letter of the name and the bar says \"Enter ends "
-"the name\"; after Enter, Tab or a click on the page, D turns the point. The "
-"toast of a placed point says what it is and where its partner is (\"L1: "
-"source here at 101-B2, its target at /102.3\"), or that the partner is still "
-"to come. A point dropped on a pin, or with the pointer as near to it as the "
-"Wire tool catches a pin, joins that pin, whichever its form, and no other "
-"point's text keeps it off the pin. Alt places it without joining; a point "
-"left beside a pin that has no wire says so when it is placed, and the "
-"check's message for that pin offers to join the two. A free point too close "
-"to another says how far apart the two must stand. A point names the "
-"potential it carries whichever its direction, so a wire on a target that no "
-"source feeds yet carries the target's name."
+"point that still waits for one of the direction shown (a target without a "
+"source when Source is shown, a source without a target when Target is), and "
+"a target of a name that has its source keeps that name; only otherwise does "
+"a point get a new name. A potential comes from one source and goes on at its "
+"targets. When you choose the tool from the Draw tab or the menu, the field "
+"has the keys with its name selected: type the name and press Enter or Tab, "
+"then click where the point goes. While the field has the keys, D is a letter "
+"of the name and the bar says \"Enter ends the name\"; after Enter, Tab or a "
+"click on the page, D turns the point. The toast of a placed point says what "
+"it is and where its partner is (\"L1: source here at 101-B2, its target at "
+"/102.3\"), or that the partner is still to come. A point dropped on a pin, "
+"or with the pointer as near to it as the Wire tool catches a pin, joins that "
+"pin, whichever its form, and no other point's text keeps it off the pin. Alt "
+"places it without joining; a point left beside a pin that has no wire says "
+"so when it is placed, and the check's message for that pin offers to join "
+"the two. A free point too close to another says how far apart the two must "
+"stand. A point names the potential it carries whichever its direction, so a "
+"wire on a target that no source feeds yet carries the target's name."
 msgstr ""
 
-#: src/reference/window/tools.md:356
+#: src/reference/window/tools.md:359
 msgid ""
 "A point keeps room for its texts: where its name or its cross-reference "
 "would print over another interruption point's, it is not placed, and the "
@@ -6028,11 +6035,11 @@ msgid ""
 "anyway."
 msgstr ""
 
-#: src/reference/window/tools.md:360
+#: src/reference/window/tools.md:363
 msgid "Interruption point direction"
 msgstr ""
 
-#: src/reference/window/tools.md:362
+#: src/reference/window/tools.md:365
 msgid ""
 "Turns the interruption point that the tool floats from source to target, or "
 "back. Draw ▸ Connect ▸ Interruption point direction. An undirected point, "
@@ -6040,7 +6047,7 @@ msgid ""
 "properties."
 msgstr ""
 
-#: src/reference/window/tools.md:366
+#: src/reference/window/tools.md:369
 msgid ""
 "The point takes the form of its new direction: the wire moves from the tail "
 "to the tip, or back. Changing the direction of a placed point in its "
@@ -6048,21 +6055,21 @@ msgid ""
 "other form yet: place one point of that direction first."
 msgstr ""
 
-#: src/reference/window/tools.md:370
+#: src/reference/window/tools.md:373
 msgid "Star source"
 msgstr ""
 
-#: src/reference/window/tools.md:372
+#: src/reference/window/tools.md:375
 msgid ""
 "Marks the interruption point as the source of its name in star mode: one "
 "source, many targets. Draw ▸ Connect ▸ Star source."
 msgstr ""
 
-#: src/reference/window/tools.md:375
+#: src/reference/window/tools.md:378
 msgid "Wire marker"
 msgstr ""
 
-#: src/reference/window/tools.md:377
+#: src/reference/window/tools.md:380
 msgid ""
 "Places a wire marker, the label that prints the cross-section and colours of "
 "the wires it marks. Open it with **Marker** on the Draw tab or Shift+W. Drag "
@@ -6079,7 +6086,7 @@ msgid ""
 "text beyond the line's end, clear of the wires."
 msgstr ""
 
-#: src/reference/window/tools.md:387
+#: src/reference/window/tools.md:390
 msgid ""
 "The wires' numbers print on the page with **Draw ▸ Connect ▸ Print wire "
 "numbers** or the checkbox of that name in the project's Properties, one "
@@ -6090,62 +6097,62 @@ msgid ""
 "name it."
 msgstr ""
 
-#: src/reference/window/tools.md:392
+#: src/reference/window/tools.md:395
 msgid "Text"
 msgstr ""
 
-#: src/reference/window/tools.md:394
+#: src/reference/window/tools.md:397
 msgid "Places a free text on the page. Open it with Draw ▸ Annotate ▸ Text."
 msgstr ""
 
-#: src/reference/window/tools.md:396
+#: src/reference/window/tools.md:399
 msgid "Graphic"
 msgstr ""
 
-#: src/reference/window/tools.md:398
+#: src/reference/window/tools.md:401
 msgid ""
 "Draws a graphic: a line, polyline, rectangle, circle, arc or polygon, which "
 "has no electrical meaning. Open it with Draw ▸ Annotate ▸ Graphic and the "
 "shape."
 msgstr ""
 
-#: src/reference/window/tools.md:401 src/explanation/eplan-and-ew.md:122
+#: src/reference/window/tools.md:404 src/explanation/eplan-and-ew.md:122
 msgid "Structure box"
 msgstr ""
 
-#: src/reference/window/tools.md:403
+#: src/reference/window/tools.md:406
 msgid ""
 "Draws a structure box: a dashed frame that puts what it encloses into a "
 "function or location of the project's structure. Open it with Draw ▸ "
 "Annotate ▸ Structure box."
 msgstr ""
 
-#: src/reference/window/tools.md:406
+#: src/reference/window/tools.md:409
 msgid "Image"
 msgstr ""
 
-#: src/reference/window/tools.md:408
+#: src/reference/window/tools.md:411
 msgid ""
 "Places an image file (SVG, PNG or JPEG) on the page. Open it with Draw ▸ "
 "Annotate ▸ Image…."
 msgstr ""
 
-#: src/reference/window/tools.md:410
+#: src/reference/window/tools.md:413
 msgid "Place device"
 msgstr ""
 
-#: src/reference/window/tools.md:412
+#: src/reference/window/tools.md:415
 msgid ""
 "On a panel layout page, places a device of the location on a rail or the "
 "mounting plate. Open it from the Unplaced devices navigator, which lists the "
 "devices of the location that have no place yet."
 msgstr ""
 
-#: src/reference/window/tools.md:415
+#: src/reference/window/tools.md:418
 msgid "Rail"
 msgstr ""
 
-#: src/reference/window/tools.md:417
+#: src/reference/window/tools.md:420
 msgid ""
 "On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail. The "
 "page shows an enclosure first: Project ▸ Setup ▸ Enclosure… puts the new "
@@ -6153,11 +6160,11 @@ msgid ""
 "layout](../../how-to/panel-layout.md))."
 msgstr ""
 
-#: src/reference/window/tools.md:420
+#: src/reference/window/tools.md:423
 msgid "Duct"
 msgstr ""
 
-#: src/reference/window/tools.md:422
+#: src/reference/window/tools.md:425
 msgid "On a panel layout page, draws a wiring duct. Open it with Draw ▸ Duct."
 msgstr ""
 

@@ -572,9 +572,8 @@ fn a_row_with_no_value_lets_its_label_run_across_the_value_column() {
     );
 }
 
-/// Source and Target stand beside the name field as two choices; a direction the point's place decides selects
-/// neither (the card showed Source where the click placed a target), and a click on one chooses it and turns the
-/// ghost, as D does.
+/// Source and Target stand beside the name field as two choices, the direction the next click places selected (Source,
+/// as the tool starts), and a click on the other chooses it and turns the ghost, as D does.
 #[test]
 fn source_and_target_are_two_choices_beside_the_name() {
     let tmp = Tmp::new();
@@ -587,11 +586,9 @@ fn source_and_target_are_two_choices_beside_the_name() {
             .accesskit_node()
             .is_selected()
     };
-    let (now, other) = match direction(&h) {
-        "source" => ("Source", "Target"),
-        _ => ("Target", "Source"),
-    };
-    assert_eq!(chosen(&h, now), Some(false), "found by the place, not chosen");
+    let (now, other) = ("Source", "Target");
+    assert_eq!(direction(&h), "source", "the tool starts at Source");
+    assert_eq!(chosen(&h, now), Some(true), "the direction the next click places");
     assert_eq!(chosen(&h, other), Some(false));
     h.get_all_by_role(egui::Role::Tab)
         .find(|n| n.accesskit_node().label().as_deref() == Some(other))
@@ -621,8 +618,8 @@ fn pointer_at(h: &mut Harness<'_, App>, fraction: f64) -> egui::Pos2 {
 }
 
 /// With 24 V carried to the PLC page: the tool proposed Target at the page's left side, the person
-/// clicked Target, and the point he placed further right turned source. A click on the direction the tool only
-/// proposed chooses it: the point placed anywhere is a target, as the button said.
+/// clicked Target, and the point he placed further right turned source. The direction is the tool's, wherever the
+/// pointer stands: the card's Target holds, and the point placed anywhere is a target, as the button said.
 #[test]
 fn a_direction_clicked_where_the_tool_proposed_it_holds() {
     let tmp = Tmp::new();
@@ -631,7 +628,11 @@ fn a_direction_clicked_where_the_tool_proposed_it_holds() {
     type_in_name_field(&mut h, "T5");
     press(&mut h, Key::Enter);
     let _ = pointer_at(&mut h, 0.12);
-    assert_eq!(direction(&h), "target", "the page's left side proposes a target");
+    assert_eq!(
+        direction(&h),
+        "source",
+        "a new name starts with its source, at the left side too"
+    );
     h.get_all_by_role(egui::Role::Tab)
         .find(|n| n.accesskit_node().label().as_deref() == Some("Target"))
         .expect("the Target choice")
@@ -714,12 +715,12 @@ fn the_ip_name_commits_on_enter_and_escape_leaves_it_without_the_name() {
     assert_eq!(ghost_name(&h), "X9", "Enter commits");
 }
 
-/// A persona run: points placed on the supply page while the tool options card showed Source came out as targets
-/// (with the pointer on the card the ghost has the last point's direction, and a click in the page's left quarter
-/// places a target). The card selects a direction only while one is chosen, and a chosen one is placed wherever the
-/// click lands.
+/// Persona runs: points placed on the supply page while the tool options card showed Source came out as targets (a
+/// click in the page's left quarter placed a target), and then a card that selected neither read as no clear state.
+/// The direction is one state of the tool: the card always selects the one the next click places, Source as the tool
+/// starts, and the click places it wherever it lands, in the left quarter too.
 #[test]
-fn the_card_selects_a_direction_only_while_one_is_chosen() {
+fn the_card_shows_the_direction_the_next_click_places() {
     let tmp = Tmp::new();
     let mut h = on_sample(&tmp, "101");
     support::bar_button(&h, "Interruption").click();
@@ -731,11 +732,7 @@ fn the_card_selects_a_direction_only_while_one_is_chosen() {
             .filter(|l| l == "Source" || l == "Target")
             .collect()
     };
-    assert_eq!(
-        selected(&h),
-        Vec::<String>::new(),
-        "the page's place decides: neither"
-    );
+    assert_eq!(selected(&h), ["Source"], "the tool starts at Source");
     let canvas = h
         .get_all_by_role(egui::Role::Canvas)
         .next()
@@ -779,15 +776,16 @@ fn the_card_selects_a_direction_only_while_one_is_chosen() {
     };
     assert_eq!(
         placed(&mut h, left(0.4)),
-        ["target"],
-        "the left quarter's direction"
+        ["source"],
+        "the card's direction, in the left quarter too"
     );
-    // Source chosen on the card: selected there, and placed in the left quarter too.
+    assert_eq!(selected(&h), ["Source"], "it holds after the click");
+    // Target chosen on the card: selected there, and placed where the click lands.
     h.get_all_by_role(egui::Role::Tab)
-        .find(|n| n.accesskit_node().label().as_deref() == Some("Source"))
-        .expect("the card's Source")
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Target"))
+        .expect("the card's Target")
         .click();
     settle(&mut h);
-    assert_eq!(selected(&h), ["Source"]);
-    assert_eq!(placed(&mut h, left(0.6)), ["source"], "the chosen direction");
+    assert_eq!(selected(&h), ["Target"]);
+    assert_eq!(placed(&mut h, left(0.6)), ["target"], "the chosen direction");
 }

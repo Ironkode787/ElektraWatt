@@ -57,12 +57,11 @@ impl App {
         let text_bind = if text { self.shell.text_bind() } else { None };
         // The IP name field shows the typed name, else the ghost's proposal as its hint.
         let ip_typed = self.shell.ip_typed_name().map(str::to_owned);
-        let (ip_proposal, ip_external, ip_direction, ip_chosen) = match self.shell.tool_ghost() {
+        let (ip_proposal, ip_external, ip_direction) = match self.shell.tool_ghost() {
             Some(ew_viewmodel::tools::Ghost::Ip {
                 name,
                 external,
                 direction,
-                chosen,
                 star,
                 ..
             }) if ip => {
@@ -70,9 +69,9 @@ impl App {
                 let choice = external
                     .is_none()
                     .then_some(if star { "source" } else { direction });
-                (Some(name).filter(|n| !n.is_empty()), external, choice, chosen)
+                (Some(name).filter(|n| !n.is_empty()), external, choice)
             }
-            _ => (None, None, None, false),
+            _ => (None, None, None),
         };
         // See below. The card stays whole while it is being used: the pointer on its controls, or a field of it
         // typed into (the ghost follows the pointer, so going to the name field to type put the ghost
@@ -141,7 +140,6 @@ impl App {
                                 externals: &externals,
                                 focus: ip_focus,
                                 direction: ip_direction,
-                                chosen: ip_chosen,
                             },
                             events,
                         );

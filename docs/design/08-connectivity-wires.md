@@ -269,7 +269,7 @@ an undefined one.
 
      2c. the name of the first interruption point of another direction (a target, an undirected point) in page
      order, non-external points before external ones: a point names the potential it carries whichever its
-     direction, so a supply drawn at the page's left edge (a target by the page's quarters) with no source yet, or one
+     direction, so a supply drawn at the page's left edge as a target with no source yet, or one
      coming in from elsewhere (Supply comes in here…), names its wires. Its own rule still reports it unpaired.
   3. a fallback `<displayed tag>:<CP designation>` of the member CP that comes first in (page order, row, column),
      ties by that fallback text in natural order, then by CP ID (so two CPs of one anchor cell, such as a terminal's two sides, give the same name in every fresh copy of a project, whose IDs are random; blind replay, §6 item 3).

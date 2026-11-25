@@ -227,11 +227,14 @@ impl ShellModel {
             return self.wire_end_in_ip();
         }
         let (shape, target, copies) = or_return!(self.ip_forms());
-        let area = self.focused_area();
-        let mut tool = IpTool::new(shape, self.tools.ip_memory.clone(), area)
-            .with_target(target)
-            .with_copies(copies);
-        tool.set_project(self.project_ips(), self.revision());
+        let tool = IpTool::new(
+            shape,
+            self.tools.ip_memory.clone(),
+            self.project_ips(),
+            self.revision(),
+        )
+        .with_target(target)
+        .with_copies(copies);
         self.activate_tool(Box::new(tool));
         // The ghost's name is computed at once, so the HUD leads with it before the pointer is over the
         // canvas (a cursor already there has refreshed it; the overlay stays the one that move drew).
@@ -260,14 +263,13 @@ impl ShellModel {
                         .and_then(|a| quarter_direction(pos, a))
                         .unwrap_or(memory.last_direction);
                     if let Some(typed) = &typed {
-                        let (name, direction) =
-                            propose(typed, true, direction, false, false, &project, tables);
+                        let (name, direction) = propose(typed, true, direction, &project, tables);
                         return (name, direction.word());
                     }
                     // A given potential name, else the last name placed, else the fallback, as the IP tool's.
                     let base = proposal_base(potential_of_end(tables, start), memory.last_name.as_deref());
                     // The first name of the series that no point of the project has, as the IP tool's.
-                    let (name, direction) = propose(&base, false, direction, false, false, &project, tables);
+                    let (name, direction) = propose(&base, false, direction, &project, tables);
                     (name, direction.word())
                 }))
             })

@@ -9,7 +9,7 @@
 //! | floating | `PointerMove` or `CursorMove` to p | floating | `Transient`: the IP symbol's outline at the grid point nearest to p, a `cp` marker, a label `<name> <direction>` |
 //! | floating | `Key(RotateCw, RotateCcw, MirrorX, MirrorY, NextVariant)` | floating | the orientation as the Place tool turns it; `Transient` |
 //! | floating | `Key(ToggleDirection)` (D) | floating | the direction source ⇄ target (an undirected point becomes a source); on a starred point the star is cleared and D steps on from source; `Transient` |
-//! | floating | `Key(ToggleStar)` | floating | the star source toggled (the host refuses it for an external point); while it is on the point is a source, the chosen direction kept for after it; `Transient` |
+//! | floating | `Key(ToggleStar)` | floating | the star source toggled (the host refuses it for an external point); while it is on the point is a source, the tool's direction kept for after it; `Transient` |
 //! | floating | `Text(s)` (`ip.name`) | floating | the name is `s`; `Transient` |
 //! | floating | `Dwell { ms ≥ 80 }` | floating | `Preview` of the command a click commits |
 //! | floating | `Press` primary or `Activate`, the ghost's CP on a free grid point, or Alt held | floating | `Commit(ip.place …)`; sticky |
@@ -17,26 +17,25 @@
 //! | floating | `Press` primary or `Activate`, the ghost's CP on another interruption point | floating | refused by the host ([`IpTool::refusal`]): nothing committed, the ghost stays |
 //! | floating | `Escape` | — | `None` (the host returns to Select) |
 //!
-//! **The name** is the typed one, unchanged; else, while a point of the project waits for its partner (a target
-//! without a source, a source without a target; [`ProjectIps::waiting`]), that name with the partner's direction (placing the partner of IP-1
-//! is the default); else a proposal from a base ([`proposal_base`]; an external point's
+//! **The name** is the typed one, unchanged; else, while a point of the project waits for a partner of the tool's
+//! direction (a target without a source for a source, a source without a target for a target;
+//! [`ProjectIps::waiting`]), that name; else a proposal from a base ([`proposal_base`]; an external point's
 //! is `IP`): the derived potential name of the page's CP that lies exactly under the ghost's CP when it is
 //! given (not a fallback), else the last name this tool or the Wire tool's P committed, else that potential's fallback
 //! name, else `IP`; then, while an interruption point of the project already has the proposal, the next name of its
 //! numbered series ([`next_in_series`]: `24VDC-1` → `24VDC-2`, `L` → `L-1`), so that a new name never joins two points.
-//! **The direction** is `source` while the star is on (a star source is a source point; the chosen
-//! direction is kept for after it), else the one D chose, else `target` for an external point, else `source` in the right or bottom quarter of the page's drawing area and `target` in the left
-//! or top quarter ([`quarter_direction`]: the horizontal quarters first), else the last committed one. After a commit
-//! the star is cleared and the committed name and direction (an external point's are not) are remembered ([`IpMemory`], kept by
+//! **The direction** is one state of the tool, the one the tool options card shows and the next click places, wherever
+//! it lands: `source` while the star is on (a star source is a source point), `target` while an external reference is
+//! set (an external point is a target), the tool's direction otherwise, which both keep for after them. It **starts as
+//! `source`**, as a new pair begins with its source, unless the name typed for the point has its source already: then
+//! `target` (a name has one source). The same rule starts it again when a name is typed, unless a person chose the
+//! direction (D, the card's Source and Target, `tool.ip_direction`): a chosen one stays for the next placements and
+//! names, a `target` too while its name has no source yet; erasing the name leaves it. After a placed source of
+//! a typed name it turns `target`, as the name has its source now, and the rule holds again. After a commit the star
+//! is cleared and the committed name and direction (an external point's are not) are remembered ([`IpMemory`], kept by
 //! the host across tools); **a typed name stays until it is changed**, so the next click places the target of that
-//! name ([`propose`]: a name that has a source is offered as a target), and the clicks after it further targets of
-//! the same source; without a typed name, a target proposed by a name that has a source keeps that name (no
-//! "24V-1" that nothing feeds);
-//! **the chosen direction stays** for the next placements (no flip after a placement, a chosen `target` too while its
-//! name has no source yet; a chosen `source` of a typed name does not, since the name has its source then)
-//! until D or `tool.ip_direction` chooses another, and setting an external reference clears it, so that the external
-//! point is a target. **A typed name that has no source** starts with its source where no direction is chosen and
-//! only the last point's direction says target (the middle of the page): a new pair begins with its source. **Room for the
+//! name, and the clicks after it further targets of the same source; without a typed name, a target proposed by a name
+//! that has a source keeps that name (no "24V-1" that nothing feeds). **Room for the
 //! texts:** a point whose arrow, name or cross-reference would print over another point's ([`ip_footprint`]) is
 //! refused with the reason, unless Alt is held.
 //!
@@ -241,30 +240,24 @@ impl ProjectIps {
         self.targets.insert(name.to_owned());
     }
 
-    /// A name whose point waits for its partner, with the partner's direction: a target without a source (its source
-    /// is offered), else a source without a target (a target is offered); `prefer` first when it waits, then in name
-    /// order. With `want` only a partner of that direction. `None` when no point waits (the tool
-    /// offered IP-3 where the source of IP-1 was wanted).
-    pub fn waiting(&self, prefer: &str, want: Option<IpDir>) -> Option<(String, IpDir)> {
-        let lone_targets = self
-            .targets
-            .iter()
-            .filter(|n| !self.has_source(n))
-            .map(|n| (n.clone(), IpDir::Source));
-        let lone_sources = self
-            .sources
-            .iter()
-            .map(|(n, _)| n)
-            .filter(|n| !self.targets.contains(*n))
-            .map(|n| (n.clone(), IpDir::Target));
-        let open: Vec<(String, IpDir)> = lone_targets
-            .chain(lone_sources)
-            .filter(|(_, d)| want.is_none_or(|w| w == *d))
-            .collect();
+    /// A name whose point waits for a partner of direction `want`: for a source a target without a source, for a
+    /// target a source without a target; `prefer` first when it waits, then in name order. `None` when no point waits
+    /// (the tool offered IP-3 where the source of IP-1 was wanted).
+    pub fn waiting(&self, prefer: &str, want: IpDir) -> Option<String> {
+        let open: Vec<&String> = match want {
+            IpDir::Source => self.targets.iter().filter(|n| !self.has_source(n)).collect(),
+            IpDir::Target => self
+                .sources
+                .iter()
+                .map(|(n, _)| n)
+                .filter(|n| !self.targets.contains(*n))
+                .collect(),
+            IpDir::Undirected => Vec::new(),
+        };
         open.iter()
-            .find(|(n, _)| n == prefer)
+            .find(|n| **n == prefer)
             .or_else(|| open.first())
-            .cloned()
+            .map(|n| (*n).clone())
     }
 
     /// `base`, or the first name of its series ([`next_in_series`]) that no interruption point of the project and none
@@ -303,23 +296,18 @@ impl ProjectIps {
     }
 }
 
-/// The name and direction an interruption point gets from the proposal `base`: `auto` is the direction the page's
-/// quarters or the memory give (`chosen` false) or the one D chose (`chosen` true). With `typed` the name is the
-/// user's, unchanged, and an automatic `source` whose name has a source in the project already, without a star,
-/// becomes `target` with that name (the first point of a name is its source, the next ones its targets, on the
-/// same page too), and an automatic `target` whose name has points but no source becomes its `source`: the tool
-/// offers the partner a lone point lacks, never a second point of its direction (a target placed first by the
-/// page's left quarter, then "L1-1 target" offered). Only a name the user gives
-/// joins two points. Otherwise the point
-/// keeps `auto` and takes the first name of the series that no interruption point of the project has
-/// ([`ProjectIps::free_name`]), read from the model at the moment of naming, so a reopen, an undo or a paste
-/// never repeats a name.
+/// The name and direction the end of a wire ended in an interruption point (the Wire tool's P) gets from the proposal
+/// `base`: `auto` is the direction the page's quarters or the memory give at the end. With `typed` the name is the
+/// user's, unchanged, and a `source` whose name has a source in the project already becomes `target` with that name
+/// (the first point of a name is its source, the next ones its targets, on the same page too), and a `target` whose
+/// name has points but no source becomes its `source`: the end offers the partner a lone point lacks, never a second
+/// point of its direction. Only a name the user gives joins two points. Otherwise the point keeps `auto` and takes the
+/// first name of the series that no interruption point of the project has ([`ProjectIps::free_name`]), read from the
+/// model at the moment of naming, so a reopen, an undo or a paste never repeats a name.
 pub fn propose(
     base: &str,
     typed: bool,
     auto: IpDir,
-    chosen: bool,
-    star: bool,
     project: &ProjectIps,
     tables: &PageTables,
 ) -> (String, IpDir) {
@@ -327,7 +315,6 @@ pub fn propose(
         return (project.free_name(base, tables), auto);
     }
     let direction = match auto {
-        _ if chosen || star => auto,
         IpDir::Source if project.has_source(base) => IpDir::Target,
         IpDir::Target if project.names.contains(base) && !project.has_source(base) => IpDir::Source,
         _ => auto,
@@ -467,11 +454,13 @@ pub struct IpTool {
     /// The snapped insertion point: (sheet nm, page nm).
     at: Option<((i64, i64), (i64, i64))>,
     typed: Option<String>,
-    chosen: Option<IpDir>,
+    /// The direction the next click places (a star places a source; see the module text).
+    direction: IpDir,
+    /// Whether the direction is the start rule's, no person having chosen one since: a name typed starts it again.
+    by_rule: bool,
     star: bool,
     external: Option<IpExternal>,
     memory: IpMemory,
-    area: Option<[i64; 4]>,
     /// The name and direction of the command handed to the host, until it reports the commit.
     pending: Option<(String, IpDir)>,
     /// The name the last overlay showed (the ghost's).
@@ -509,33 +498,49 @@ enum DropOn {
 }
 
 impl IpTool {
-    /// The tool floating the interruption-point symbol `shape`, with the host's memory and the page's drawing area.
-    pub fn new(shape: Arc<SymbolShape>, memory: IpMemory, area: Option<[i64; 4]>) -> IpTool {
+    /// The tool floating the interruption-point symbol `shape`, with the host's memory and the project's interruption
+    /// points read at the model revision `rev`; its direction starts by the rule of the module text.
+    pub fn new(shape: Arc<SymbolShape>, memory: IpMemory, project: ProjectIps, rev: Option<u64>) -> IpTool {
         let outline: Arc<[Vec<(i64, i64)>]> = shape.outline.clone().into();
-        IpTool {
+        let mut tool = IpTool {
             shape,
             outline,
             orient: 0,
             target: None,
             at: None,
             typed: memory.typed.clone(),
-            chosen: None,
+            direction: IpDir::Source,
+            by_rule: true,
             star: false,
             external: None,
             memory,
-            area,
             pending: None,
             shown: String::new(),
             shown_dir: IpDir::default(),
-            project: ProjectIps::default(),
-            project_rev: None,
+            project,
+            project_rev: rev,
             copies: Vec::new(),
             suppressed: false,
             shown_connects: None,
             shown_taken: None,
             shown_beside: None,
             shown_at: None,
+        };
+        tool.follow_typed();
+        tool
+    }
+
+    /// The direction's start (the module text's rule, at the tool's start and when a name is typed while no direction
+    /// is chosen): `target` where the typed name has its source already (a name has one source), else `source`.
+    fn follow_typed(&mut self) {
+        if !self.by_rule {
+            return;
         }
+        self.direction = if self.typed.as_ref().is_some_and(|n| self.project.has_source(n)) {
+            IpDir::Target
+        } else {
+            IpDir::Source
+        };
     }
 
     /// The tool with the library documents its placements embed (`ip.place`'s `copies`).
@@ -609,10 +614,6 @@ impl IpTool {
         shape: Arc<SymbolShape>,
         cx: &ToolCx<'_>,
     ) -> Overlay {
-        // An external connection point is a target (the one change of direction the tool makes itself).
-        if external.is_some() {
-            self.chosen = None;
-        }
         self.external = external;
         self.outline = shape.outline.clone().into();
         self.shape = shape;
@@ -626,7 +627,8 @@ impl IpTool {
         if direction != IpDir::Source {
             self.star = false;
         }
-        self.chosen = Some(direction);
+        self.direction = direction;
+        self.by_rule = false;
         self.refresh(cx)
     }
 
@@ -644,24 +646,16 @@ impl IpTool {
         Some(pin_point(tables, (pos.0 + o.0, pos.1 + o.1)))
     }
 
-    /// The direction at the insertion point `pos` before the project's sources are considered, and whether it is
-    /// chosen (by the star, D, `tool.ip_direction` or an external reference) rather than found.
-    fn auto_direction(&self, pos: Option<(i64, i64)>) -> (IpDir, bool) {
-        // A star source is a source point; the chosen direction is kept for the next point.
+    /// The direction the next click places, wherever it lands: a star source is a source point and an external
+    /// connection point a target (the tool's direction is kept for after them), else the tool's direction.
+    fn placed_direction(&self) -> IpDir {
         if self.star {
-            return (IpDir::Source, true);
+            IpDir::Source
+        } else if self.external.is_some() {
+            IpDir::Target
+        } else {
+            self.direction
         }
-        if let Some(d) = self.chosen {
-            return (d, true);
-        }
-        if self.external.is_some() {
-            return (IpDir::Target, true);
-        }
-        let found = pos
-            .zip(self.area)
-            .and_then(|(p, a)| quarter_direction(p, a))
-            .unwrap_or(self.memory.last_direction);
-        (found, false)
     }
 
     /// The CPs of the page that lie under the ghost's CP at the insertion point `pos`.
@@ -772,11 +766,6 @@ impl IpTool {
             .map(|(_, x)| crate::describe::pin_in_sentence(&x.label))
     }
 
-    /// The direction the ghost shows (the last overlay's).
-    pub fn direction(&self) -> IpDir {
-        self.shown_dir
-    }
-
     /// The name and direction at the insertion point `pos` ([`propose`]).
     fn resolve(&self, cx: &ToolCx<'_>, pos: Option<(i64, i64)>) -> (String, IpDir) {
         let (name, direction, _) = self.proposal(cx, pos);
@@ -786,30 +775,12 @@ impl IpTool {
     /// The name and direction at the insertion point `pos` ([`propose`]), and the base the proposal started from when
     /// it is taken, so that the name differs from it; `None` for a typed name or a free base.
     fn proposal(&self, cx: &ToolCx<'_>, pos: Option<(i64, i64)>) -> (String, IpDir, Option<String>) {
-        let (auto, chosen) = self.auto_direction(pos);
+        let direction = self.placed_direction();
         let tables = &cx.page.tables;
         // A typed name is the user's: the series rule never changes it (a second target of a star source shares the
         // name on purpose).
         if let Some(typed) = &self.typed {
-            // A name nobody feeds yet starts with its source where only the last point's direction says target (the
-            // middle of the page, where the quarters say nothing): after a target, a new name typed for the next
-            // point was offered as a target without a source, an error the moment it was placed.
-            let by_place = pos
-                .zip(self.area)
-                .and_then(|(p, a)| quarter_direction(p, a))
-                .is_some();
-            let auto = if !chosen
-                && !by_place
-                && !self.star
-                && auto == IpDir::Target
-                && !self.project.has_source(typed)
-            {
-                IpDir::Source
-            } else {
-                auto
-            };
-            let (name, direction) = propose(typed, true, auto, chosen, self.star, &self.project, tables);
-            return (name, direction, None);
+            return (typed.clone(), direction, None);
         }
         // An external connection point proposes its own name, never the last interruption point's.
         let base = if self.external.is_some() {
@@ -820,19 +791,18 @@ impl IpTool {
                 .and_then(|c| potential_at(tables, c));
             proposal_base(potential, self.memory.last_name.as_deref())
         };
-        // A point that waits for its partner is offered first: the partner's name and direction (a chosen direction
-        // offers only a partner of that direction); a new name only when none waits.
+        // A point that waits for a partner of the tool's direction is offered first: its name; a new name only when
+        // none waits.
         if self.external.is_none() && !self.star {
-            let want = chosen.then_some(auto);
-            if let Some((name, direction)) = self.project.waiting(&base, want) {
+            if let Some(name) = self.project.waiting(&base, direction) {
                 return (name, direction, None);
             }
             // A target of a name that has its source is one more place that source feeds.
-            if auto == IpDir::Target && self.project.has_source(&base) {
-                return (base, IpDir::Target, None);
+            if direction == IpDir::Target && self.project.has_source(&base) {
+                return (base, direction, None);
             }
         }
-        let (name, direction) = propose(&base, false, auto, chosen, self.star, &self.project, tables);
+        let name = self.project.free_name(&base, tables);
         let taken = (name != base).then_some(base);
         (name, direction, taken)
     }
@@ -1120,12 +1090,11 @@ impl Tool for IpTool {
                 ToolOutput::Transient(self.refresh(cx))
             }
             CanvasEvent::Key(ToolKey::ToggleDirection) => {
-                // D goes on from the direction the ghost shows (a target offered for a name that has a
-                // source elsewhere turns source). On a starred point (a source) D clears the
+                // D goes on from the direction the next click places. On a starred point (a source) D clears the
                 // star and steps on from source; the star stays off when D comes back to source.
-                let _ = self.refresh(cx);
+                self.direction = self.placed_direction().next();
+                self.by_rule = false;
                 self.star = false;
-                self.chosen = Some(self.shown_dir.next());
                 ToolOutput::Transient(self.refresh(cx))
             }
             CanvasEvent::Key(ToolKey::ToggleStar) => {
@@ -1139,6 +1108,9 @@ impl Tool for IpTool {
                 let text = text.trim();
                 self.typed = (!text.is_empty()).then(|| text.to_owned());
                 self.memory.typed = self.typed.clone();
+                if self.typed.is_some() {
+                    self.follow_typed();
+                }
                 ToolOutput::Transient(self.refresh(cx))
             }
             CanvasEvent::Dwell { ms } if *ms >= super::PREVIEW_DWELL_MS => match self.command(cx) {
@@ -1183,15 +1155,15 @@ impl Tool for IpTool {
         let pending = self.pending.take();
         if let (true, Some((name, direction))) = (done, pending) {
             // The name in the field stays until it is changed: after its source, for the target (the tool
-            // renamed itself "L1-1" after the first "L1" and placed a second source), after a target that no source
-            // feeds, for the source, and after the pair is whole, for further
-            // targets of the same source (the next clicks became "24V" and "24V-1" of nothing). A chosen Target
+            // renamed itself "L1-1" after the first "L1" and placed a second source), and after the pair is whole,
+            // for further targets of the same source (the next clicks became "24V" and "24V-1" of nothing). A Target
             // stays until the person chooses another, the source still missing or not (a potential goes on at many
-            // targets; marks turned source one after another and every one was placed as a source
-            // it did not mean); a chosen Source does not, since a name has one source (its next point is a target).
+            // targets; marks turned source one after another and every one was placed as a source it did not mean);
+            // a Source turns Target, since a name has one source (its next point is a target), and the card says so.
             if self.typed.is_some() && self.external.is_none() {
-                if self.chosen == Some(IpDir::Source) && direction == IpDir::Source {
-                    self.chosen = None;
+                if self.direction == IpDir::Source && direction == IpDir::Source {
+                    self.direction = IpDir::Target;
+                    self.by_rule = true;
                 }
             } else {
                 self.typed = None;
@@ -1255,8 +1227,8 @@ impl Tool for IpTool {
         let pos = self.at.and(self.shown_at);
         Some(Ghost::Ip {
             name: self.shown.clone(),
-            direction: self.shown_dir.word(),
-            chosen: self.auto_direction(pos).1,
+            // The direction the next click places, which the tool options card shows.
+            direction: self.placed_direction().word(),
             star: self.star,
             at_nm: pos,
             external: self.external.as_ref().map(|e| e.label.clone()),
@@ -1315,41 +1287,24 @@ mod tests {
         let mut project = ProjectIps::default();
         project.add_source("0V", other);
         project.add_name("0V");
-        let p = |base: &str, typed, auto, chosen, star, project: &ProjectIps| {
-            propose(base, typed, auto, chosen, star, project, &tables)
-        };
+        let p = |base: &str, typed, auto, project: &ProjectIps| propose(base, typed, auto, project, &tables);
         // A source elsewhere does not lend its name to an automatic point; the series' next free name does.
         assert_eq!(
-            p("0V", false, IpDir::Source, false, false, &project),
+            p("0V", false, IpDir::Source, &project),
             ("0V-1".to_owned(), IpDir::Source)
         );
         // Typed: the name stays, and a source elsewhere makes the point its target.
         assert_eq!(
-            p("0V", true, IpDir::Source, false, false, &project),
+            p("0V", true, IpDir::Source, &project),
             ("0V".to_owned(), IpDir::Target)
-        );
-        // Source chosen by D: the series' next free name.
-        assert_eq!(
-            p("0V", false, IpDir::Source, true, false, &project),
-            ("0V-1".to_owned(), IpDir::Source)
-        );
-        // Typed and chosen: the user's name and role (EW-CORE-052 decides).
-        assert_eq!(
-            p("0V", true, IpDir::Source, true, false, &project),
-            ("0V".to_owned(), IpDir::Source)
-        );
-        // The star source with an automatic name: the series' next free name too.
-        assert_eq!(
-            p("0V", false, IpDir::Source, false, true, &project),
-            ("0V-1".to_owned(), IpDir::Source)
         );
         // A target or an undirected point never takes the name of a point of another direction either.
         assert_eq!(
-            p("0V", false, IpDir::Target, false, false, &project),
+            p("0V", false, IpDir::Target, &project),
             ("0V-1".to_owned(), IpDir::Target)
         );
         assert_eq!(
-            p("0V", false, IpDir::Undirected, true, false, &project),
+            p("0V", false, IpDir::Undirected, &project),
             ("0V-1".to_owned(), IpDir::Undirected)
         );
         // Names taken on any page and in any direction are skipped.
@@ -1357,12 +1312,12 @@ mod tests {
         here.add_name("24V");
         here.add_name("24V-1");
         assert_eq!(
-            p("24V", false, IpDir::Source, false, false, &here),
+            p("24V", false, IpDir::Source, &here),
             ("24V-2".to_owned(), IpDir::Source)
         );
         // A free name: unchanged.
         assert_eq!(
-            p("L", false, IpDir::Source, false, false, &project),
+            p("L", false, IpDir::Source, &project),
             ("L".to_owned(), IpDir::Source)
         );
         assert!(project.has_source("0V") && !project.has_source("L"));
@@ -1371,7 +1326,7 @@ mod tests {
         same.add_source("L1", this);
         same.add_name("L1");
         assert_eq!(
-            p("L1", true, IpDir::Source, false, false, &same),
+            p("L1", true, IpDir::Source, &same),
             ("L1".to_owned(), IpDir::Target)
         );
     }

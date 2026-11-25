@@ -330,17 +330,20 @@ arrow's tip and belongs at the left edge. The name is above the arrow and the cr
 never rotated or mirrored: change the point's direction instead. While you draw a wire, the interruption point's key
 ends the wire in a point of the right form for that end.
 
+Source and Target beside the name field show the direction the next click places, wherever on the page it lands. The
+tool starts at Source, as a new pair begins with its source, or at Target when the name you type has its source
+already. Clicking Source or Target, or pressing D, chooses the direction, and the choice holds until you change it:
+with Target chosen, every click places one more target, its source drawn or not, and the bar says when the name still
+has no source ("next: one more target of 24V, which has no source yet").
+
 Type the name in the field Interruption point name at the page's top left, once for a pair: the tool then floats the
-same name as the first point's partner, on this page or the next: its target after a source, its source after a
-target that no source feeds yet. The name stays in the field until you change it: once the pair is whole, each
-further click places one more target of the same source, and the source's cross-reference lists every place it goes
-to. Without a typed name the tool offers the partner of a point that still waits for one (a target without a source,
-a source without a target), and a target of a name that has its source keeps that name; only otherwise does a point
-get a new name. A potential comes from one source and goes on at its targets. Source and Target beside the name field
-choose the direction, as D does, and the choice holds until you change it: with Target chosen, every click places one
-more target, its source drawn or not, and the bar says when the name still has no source ("next: one more target of
-24V, which has no source yet"). After a source the tool turns to Target by itself, as a name has one source, and the
-bar says so before the click ("next: a target, where 24V goes on"). When you
+same name as the first point's partner, on this page or the next: after its source the tool turns to Target by
+itself, as a name has one source, and the bar says so before the click ("next: a target, where 24V goes on"). The name
+stays in the field until you change it: once the pair is whole, each further click places one more target of the same
+source, and the source's cross-reference lists every place it goes to. Without a typed name the tool offers the
+partner of a point that still waits for one of the direction shown (a target without a source when Source is shown, a
+source without a target when Target is), and a target of a name that has its source keeps that name; only otherwise
+does a point get a new name. A potential comes from one source and goes on at its targets. When you
 choose the tool from the Draw tab or the menu, the field has the keys with its name selected: type the
 name and press Enter or Tab, then click where the point goes. While the field has the keys, D is a letter of the name
 and the bar says "Enter ends the name"; after Enter, Tab or a click on the page, D turns the point. The toast of a

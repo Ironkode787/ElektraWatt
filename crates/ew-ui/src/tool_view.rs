@@ -250,12 +250,9 @@ pub(crate) struct IpFields<'a> {
     pub external: Option<&'a str>,
     pub externals: &'a [(String, String)],
     pub focus: bool,
-    /// The ghost's direction word (`source`, `target`; a star source is `source`), for the Source | Target choice.
+    /// The direction the next click places (`source`, `target`; a star source is `source`), the one the Source |
+    /// Target choice selects.
     pub direction: Option<&'a str>,
-    /// Whether that direction is chosen: a direction the point's place on the page decides selects neither choice,
-    /// so the card never shows one the click does not place (Source stood on the card while a click in the page's
-    /// left quarter placed a target).
-    pub chosen: bool,
 }
 
 /// The ID of the IP tool's name field: the HUD reads whether it holds the keys.
@@ -286,7 +283,6 @@ pub(crate) fn ip_fields(
         externals,
         focus,
         direction,
-        chosen,
     } = *shown;
     ui.label(strings::text(key!("action-ip-name")));
     let id = ip_name_field_id();
@@ -344,7 +340,7 @@ pub(crate) fn ip_fields(
         ];
         let labels: Vec<(&str, bool)> = choices
             .iter()
-            .map(|(word, key)| (strings::text(*key), chosen && *word == direction))
+            .map(|(word, key)| (strings::text(*key), *word == direction))
             .collect();
         if let Some(i) = segmented(ui, strings::text(key!("action-tool-ip-direction")), &labels) {
             events.push(crate::app::Event::Action(
@@ -552,8 +548,7 @@ pub(crate) fn segmented(ui: &mut Ui, name: &str, choices: &[(&str, bool)]) -> Op
                 egui::StrokeKind::Inside,
             );
         }
-        // A click on the shown choice says it too: the IP tool shows a proposed direction until one is chosen, and a
-        // click on Target that the tool already proposed must choose it (the next point at a pin turned source).
+        // A click on the shown choice says it too: it is never ignored.
         if response.clicked() {
             clicked = Some(i);
         }

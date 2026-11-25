@@ -290,10 +290,15 @@ installed library's symbol by its key as well as by its address, before its firs
   ([15](15-checks-revisions-collaboration.md) §4.4).
 - **Interruption points.** An IP is a `Function{kind: Ip}` with one CP. It is placed on its own and wired afterwards,
   or created at the free end of a wire being routed (`P`, §4.4). The name field proposes the potential's name,
-  then the next name in a numbered series ("24VDC-2" after "24VDC-1"). The direction defaults to Source at the
-  right or bottom edge of the drawing area and Target at the left or top edge, and is toggled with `D`. A direction chosen (D, Source | Target) holds until the person chooses another; a chosen
-  Target stays after a target whose name has no source yet, and the bar says "next: one more target of 24V, which has no source yet (D makes this point its
-  source)"; only a chosen Source turns to Target after the source, as a name has one source. EW-CORE-051 names where
+  then the next name in a numbered series ("24VDC-2" after "24VDC-1"). **The direction is one state of the tool**:
+  the tool options card's Source and Target show it, and the next click places it wherever it lands. It starts as
+  Source, as a new pair begins with its source, unless the name typed for the point has its source already: then
+  Target, as a name has one source; a name typed while the tool is armed starts it by the same rule, unless the person
+  chose a direction (`D`, the card), which holds until the person chooses another, for every next point and name. A
+  Target stays after a target whose name has no source yet, and the bar says "next: one more target of 24V, which has
+  no source yet (D makes this point its source)"; a Source turns to Target after the source of a typed name, as the
+  name has its source then, and the card shows it. A star source places a source and an external reference a target,
+  the direction kept for after them. EW-CORE-051 names where
   the mark stands and what it lacks: a target its one source, where the potential comes from; a source its targets,
   where it goes on.
   Pairing (star or chain, scope) follows the project's `ip_pairing` setting with per-name overrides (FR-XRF-007,
@@ -312,10 +317,7 @@ installed library's symbol by its key as well as by its address, before its firs
   and fro; undirected is a choice of a placed point's Direction in Properties), and the rotate and mirror
   keys are not offered. The tool takes the name first when it is chosen from the bar or a menu (the name field has
   the keys, its name selected; chosen by its key with the pointer on the sheet, the keys stay with the tool), a typed
-  name without a source starts with its source where the page's quarters say nothing, the tool options card's Source
-  and Target select a direction only while one is chosen (D, the card, the star, an external reference), never one
-  the point's place on the page decides, so the card never shows a direction the click does not place, a typed name stays until it is
-  changed, so that after the pair each click places one more target of the same source,
+  name stays until it is changed, so that after the pair each click places one more target of the same source,
   the pointer as near a pin as the Wire tool catches one puts the point's CP on it, in either form (a source's CP is at its tail), but on a drawn box's pin the arrow never lies along or in the box: on the box's lower side the point stands one grid step below the pin and on its upper side two steps above it (its cross-reference under the arrow needs the room), joined to the pin by a straight wire (`connection.draw_to_ip` with that route; the ghost shows it there), on its left side a target and on its right side a source stand on the pin, and a source on the left side or a target on the right side, whose arrow would point into the box, is refused in words (Alt places it free), a drop on a pin is not refused for room, Alt places a point unjoined and a point left within 6 mm of a pin without a wire says so on placing (EW-POT-009 then offers to join the two), a free point too close to another is refused with the grid steps and millimetres the two must stand apart, the HUD says before the click when the next point is the other half of a name ("next: where 24V arrives (its
   source is drawn)"), and a point whose arrow, name or
   cross-reference would print over another point's is refused with the reason, Alt placing it anyway: the name
