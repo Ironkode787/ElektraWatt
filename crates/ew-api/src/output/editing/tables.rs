@@ -19,12 +19,12 @@ use ew_schema::{
     ConnectionKind, Device, Dir4, Endpoint, Function, FunctionKind, Junction, JunctionStyle, JunctionWiring,
     Page, Representation, SymbolDef,
 };
-use ew_units::{Nm, Pt2, Rect};
+use ew_units::{Pt2, Rect};
 
 use super::catalogue::{connection_kind_word, drawn_page, ip_direction_word, line_kind_word, rep_type_word};
 use super::shape::{SymbolShape, dir_of, pt, shape_of};
 use crate::Session;
-use crate::geometry::{Dir, orient_dir, orient_index, orient_point};
+use crate::geometry::{Dir, orient_dir, orient_index};
 use crate::output::navigation::cp_candidates;
 use crate::output::view::{PageFrameOf, PageRepsOf};
 
@@ -65,8 +65,9 @@ pub struct TableItem {
     /// `graphic`, `free_text`, `wire_marker`, `image`, `surface_view` (its bounds the datum point), or `unknown` for a
     /// variant this build keeps verbatim.
     pub kind: String,
-    /// Its bounds `[x0, y0, x1, y1]`: a graphic's shape (a circle or an arc by its full circle), a drawn text or
-    /// marker group by its drawn items, else its anchor point; an unknown variant `[0, 0, 0, 0]`.
+    /// Its bounds `[x0, y0, x1, y1]`: a graphic, a text or a marker group by what the scene draws of it (a graphic with
+    /// its stroke), a text or a marker group that draws nothing by its anchor point; an unknown variant or shape
+    /// `[0, 0, 0, 0]`.
     pub bounds: [i64; 4],
     /// A wire marker's live connections (existing, on this page) in printed order; empty for the other kinds.
     pub connections: Vec<Uuid>,
@@ -100,26 +101,6 @@ fn bounds_of(points: impl IntoIterator<Item = (i64, i64)>) -> Option<[i64; 4]> {
     })
 }
 
-/// The bounds of a graphic's shape (a circle or an arc by its full circle).
-fn shape_bounds(shape: &ew_schema::GraphicShape) -> Option<[i64; 4]> {
-    use ew_schema::GraphicShape as S;
-    let round = |c: Pt2, r: Nm| {
-        let c = pt(c);
-        bounds_of([
-            (c.0.saturating_sub(r.0), c.1.saturating_sub(r.0)),
-            (c.0.saturating_add(r.0), c.1.saturating_add(r.0)),
-        ])
-    };
-    match shape {
-        S::Line(l) => bounds_of([pt(l.a), pt(l.b)]),
-        S::Polyline(p) | S::Polygon(p) => bounds_of(p.points.iter().map(|p| pt(*p))),
-        S::Rect(r) => bounds_of([pt(r.min), pt(r.max)]),
-        S::Circle(c) => round(c.centre, c.r),
-        S::Arc(a) => round(a.centre, a.r),
-        S::Unknown(_) => None,
-    }
-}
-
 /// The page items of a page as table rows, by position (see [`PageTables::items`]).
 fn item_rows(q: &Q, page: Id<Page>) -> Vec<TableItem> {
     use ew_schema::PageItemKind as K;
@@ -127,17 +108,22 @@ fn item_rows(q: &Q, page: Id<Page>) -> Vec<TableItem> {
     let mut ids: Vec<_> = q.idx().page_items_by_page(page).collect();
     ids.sort();
     let records: Vec<_> = ids.into_iter().filter_map(|id| items.get(id).cloned()).collect();
-    // The drawn items of the page's texts and group markers (the labels layer), read only when the page has one.
-    let texts = records
-        .iter()
-        .any(|i| matches!(i.kind, K::FreeText(_) | K::WireMarker(_)));
-    let drawn: Vec<(ew_dl::EntityRef, Rect)> = if texts {
-        crate::output::layers::page_layer(q, PageRef::Drawn(page), ew_dl::Layer::Labels)
-            .list
-            .entity_bounds()
-    } else {
-        Vec::new()
+    // Each entity's rectangle as the scene draws it: the graphics on the symbols layer, the page's texts and group
+    // markers on the labels layer, each layer read only when the page has such an item.
+    let layer = |wanted: fn(&K) -> bool, layer: ew_dl::Layer| {
+        if records.iter().any(|i| wanted(&i.kind)) {
+            crate::output::layers::page_layer(q, PageRef::Drawn(page), layer)
+                .list
+                .entity_bounds()
+        } else {
+            Vec::new()
+        }
     };
+    let mut drawn: Vec<(ew_dl::EntityRef, Rect)> = layer(
+        |k| matches!(k, K::FreeText(_) | K::WireMarker(_)),
+        ew_dl::Layer::Labels,
+    );
+    drawn.extend(layer(|k| matches!(k, K::Graphic(_)), ew_dl::Layer::Symbols));
     let drawn_bounds = |id: Uuid| {
         drawn
             .iter()
@@ -151,7 +137,7 @@ fn item_rows(q: &Q, page: Id<Page>) -> Vec<TableItem> {
         .map(|item| {
             let id = item.id.as_uuid();
             let (kind, bounds, text, bind) = match &item.kind {
-                K::Graphic(g) => ("graphic", shape_bounds(&g.shape), None, None),
+                K::Graphic(_) => ("graphic", bounds_of(drawn_bounds(id)), None, None),
                 K::FreeText(t) => (
                     "free_text",
                     bounds_of(drawn_bounds(id)).or(bounds_of([pt(t.at)])),
@@ -545,20 +531,6 @@ fn page_rect(q: &Q, page: PageRef) -> Rect {
     )
 }
 
-/// The body of a shape under orientation `o`, translated to `pos`.
-pub(super) fn placed_body(body: [i64; 4], o: u8, pos: (i64, i64)) -> [i64; 4] {
-    let a = orient_point(o, (body[0], body[1]));
-    let b = orient_point(o, (body[2], body[3]));
-    let (x0, x1) = (a.0.min(b.0), a.0.max(b.0));
-    let (y0, y1) = (a.1.min(b.1), a.1.max(b.1));
-    [
-        x0.saturating_add(pos.0),
-        y0.saturating_add(pos.1),
-        x1.saturating_add(pos.0),
-        y1.saturating_add(pos.1),
-    ]
-}
-
 fn table_end(e: &Endpoint) -> Option<TableEnd> {
     match e {
         Endpoint::Cp(f, idx) => Some(TableEnd::Cp {
@@ -599,6 +571,8 @@ impl Session {
         // The tags where the scene's tag rule placed them, from the labels layer the page draws.
         let labels = crate::output::layers::page_layer(&q, page_ref, ew_dl::Layer::Labels);
         let mut shapes: BTreeMap<Id<SymbolDef>, Option<SymbolShape>> = BTreeMap::new();
+        // Each symbol's body as the scene lowers it under each orientation the page draws it in.
+        let mut bodies: BTreeMap<(Id<SymbolDef>, u8), Option<Rect>> = BTreeMap::new();
         let mut rep_ids: Vec<(i64, i64, Id<Representation>)> = q
             .idx()
             .reps_by_page(page_id)
@@ -620,6 +594,10 @@ impl Session {
                 .clone();
             let o = orient_index(rep.orient);
             let pos = pt(rep.pos);
+            let body = *bodies.entry((rep.symbol, o)).or_insert_with(|| {
+                let s = q.symbols().get(rep.symbol)?;
+                super::shape::body_of(&ew_scene::symbol::lower(&s.item, rep.orient))
+            });
             let first = rep.functions.first().and_then(|f| q.functions().get(*f).cloned());
             let ip = first.as_ref().and_then(|f| match &f.kind {
                 FunctionKind::Ip(ip) => Some(TableIp {
@@ -631,8 +609,9 @@ impl Session {
                 _ => None,
             });
             let black_box = rep.box_.as_ref().map(|b| {
+                // A point of the box turned as the scene turns the representation, translated to its place.
                 let abs = |p: Pt2| {
-                    let r = orient_point(o, pt(p));
+                    let r = pt(rep.orient.apply(p));
                     (r.0.saturating_add(pos.0), r.1.saturating_add(pos.1))
                 };
                 TableBox {
@@ -692,9 +671,14 @@ impl Session {
                 orient: o,
                 rep_type: rep_type_word(&rep.rep_type),
                 pos,
-                body: shape
-                    .as_ref()
-                    .map_or([pos.0, pos.1, pos.0, pos.1], |s| placed_body(s.body, o, pos)),
+                body: body.map_or([pos.0, pos.1, pos.0, pos.1], |b| {
+                    [
+                        b.min().x.0.saturating_add(pos.0),
+                        b.min().y.0.saturating_add(pos.1),
+                        b.max().x.0.saturating_add(pos.0),
+                        b.max().y.0.saturating_add(pos.1),
+                    ]
+                }),
                 tag_at,
                 ip,
                 black_box,

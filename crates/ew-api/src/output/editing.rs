@@ -115,7 +115,6 @@ mod tests {
     use ew_units::{Nm, Pt2};
 
     use super::shape::{ExchangeMap, flatten};
-    use super::tables::placed_body;
     use super::*;
     use crate::geometry::Dir;
 
@@ -227,13 +226,6 @@ mod tests {
             &mut out,
         );
         assert_eq!(out, vec![vec![(0, 0), (5, 0), (5, 5), (0, 0)]]);
-    }
-
-    #[test]
-    fn a_placed_body_is_the_oriented_rectangle() {
-        assert_eq!(placed_body([-1, 0, 2, 10], 0, (100, 200)), [99, 200, 102, 210]);
-        // (x, y) → (−y, x).
-        assert_eq!(placed_body([-1, 0, 2, 10], 1, (100, 200)), [90, 199, 100, 202]);
     }
 
     /// A wire without a printed number (`?`) sorts after every numbered wire; between two `?` wires the ends'

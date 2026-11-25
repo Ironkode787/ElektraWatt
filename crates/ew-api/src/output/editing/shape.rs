@@ -291,16 +291,12 @@ fn shape_with(copy: Uuid, def: &SymbolDef, fndef: Option<Arc<LibCopy<FnDef>>>) -
     };
     let geometry = ew_scene::symbol::lower(def, Orient2::R0);
     let mut outline = Vec::new();
-    let mut bounds: Option<Rect> = None;
     for item in &geometry.graphics.items {
         if let ItemKind::Path(p) = &item.kind {
-            if let Some(b) = p.path.bounds() {
-                bounds = Some(bounds.map_or(b, |a| a.union(b)));
-            }
             flatten(&p.path.els, OUTLINE_TOLERANCE_NM, &mut outline);
         }
     }
-    let body = bounds.map_or([0; 4], |b| [b.min().x.0, b.min().y.0, b.max().x.0, b.max().y.0]);
+    let body = body_of(&geometry).map_or([0; 4], |b| [b.min().x.0, b.min().y.0, b.max().x.0, b.max().y.0]);
     SymbolShape {
         copy,
         key: key_or_id(def.meta.key.as_ref(), copy),
@@ -332,6 +328,22 @@ fn shape_with(copy: Uuid, def: &SymbolDef, fndef: Option<Arc<LibCopy<FnDef>>>) -
         }),
         fitting: fndef.as_ref().is_some_and(|d| ew_derive::is_fitting(&d.item)),
     }
+}
+
+/// The body of a symbol as the scene lowers it under an orientation: the bounds of its paths (its graphics without
+/// texts, without their strokes), relative to its insertion point; `None` without a path.
+pub(super) fn body_of(geometry: &ew_scene::symbol::SymbolGeometry) -> Option<Rect> {
+    geometry
+        .graphics
+        .items
+        .iter()
+        .fold(None, |acc, item| match &item.kind {
+            ItemKind::Path(p) => match (acc, p.path.bounds()) {
+                (Some(a), Some(b)) => Some(a.union(b)),
+                (a, b) => a.or(b),
+            },
+            _ => acc,
+        })
 }
 
 impl Session {
