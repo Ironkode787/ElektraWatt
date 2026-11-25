@@ -32,7 +32,7 @@ use crate::{ExternalRef, SchemaError};
 ///
 /// Aspects follow the known members, flattened in the order of doc 05 §3.1: `strip`, `terminal`, `cable`,
 /// `assembly`, `plc_station`, `plc_module`, then `bus_node` and `valve_terminal`. Typed: `strip`, `terminal`,
-/// `cable`, `assembly` (cycle 15, D-41), `plc_station` and `plc_module`; `bus_node` and `valve_terminal` arrive
+/// `cable`, `assembly` (D-41), `plc_station` and `plc_module`; `bus_node` and `valve_terminal` arrive
 /// with their work packages and are kept in `extra` until then, which places them after the typed aspects.
 /// `user_props` has no field-level definition yet and is kept in `extra` too.
 ///

@@ -1160,7 +1160,7 @@
           "type": "null"
         }
       ],
-      "description": "The cross-reference anchor policy of this representation (FR-SYM-010, D-14, MF-13); absent: the symbol\ncopy's policy. Set by `rep.set_anchor_policy`; an optional member without cascade semantics, additive\nwithin format 0.1 (ADR-0011 amendment 4)."
+      "description": "The cross-reference anchor policy of this representation (FR-SYM-010, D-14); absent: the symbol\ncopy's policy. Set by `rep.set_anchor_policy`; an optional member without cascade semantics, additive\nwithin format 0.1 (ADR-0011 amendment 4)."
     },
     "arrangement": {
       "anyOf": [
