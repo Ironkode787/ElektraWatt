@@ -128,27 +128,18 @@ separate named set (up to four at once, §10.3), so highlighting 24VDC-1 does no
 Menus, toolbar, palette, keymaps, context menus, F1 and the generated command catalogue (NFR-DOC-06) are all
 built from one registry, so a menu entry, its shortcut and its palette entry cannot disagree.
 
-```rust
-pub struct ActionMeta {
-    pub id: &'static str,              // = CommandMeta.name for model commands ("numbering.renumber"); "view.fit_page"
-    pub kind: ActionKind,              // Command(&'static CommandMeta) | View
-    pub label: FluentKey,              // "cmd-numbering-renumber"
-    pub aliases: &'static [FluentKey], // per-locale palette aliases (EPLAN, QET, KiCad terms; NFR-UX-03)
-    pub category: Category,            // File, Edit, Insert, Page, Device, Check, …
-    pub enabled: ContextPredicate,     // e.g. selection has ≥1 Device; canvas is Page2D; project writable
-    pub docs: DocsAnchor,              // "ui/tools/wire"; resolved by F1 (§13)
-    pub icon: Option<IconId>,
-}
-```
+The registry is the table of `ActionMeta` in `crates/ew-viewmodel/src/actions.rs`, one entry per action; its
+members, each with what it holds, are the struct's, and [the action map](../map/actions.md) lists every action from
+it. A model command's action has the command's name as its ID (`numbering.renumber`), a view action its own
+(`view.fit_page`); its category is the menu the palette groups it under.
 
 For a model command, name, parameter schema, cost, undoability and the language-neutral aliases (retired names,
 such as `device.place_from_part` and `symbol.place` for `device.place`) come from its `CommandMeta` ([17](17-extensibility.md) §2.1, FR-EXT-015), shared with the
-CLI, rhai, MCP and plugins; `ActionMeta` adds only what the GUI needs. The palette searches both alias lists. A
-predicate that fails carries a reason key ("needs a selected device", "project is read-only") shown in the
-palette and in tooltips.
+CLI, rhai, MCP and plugins; `ActionMeta` adds only what the GUI needs. An enable check that fails carries its reason
+as a text ("needs a selected device", "project is read-only"), shown in the palette and in tooltips.
 
-The toolkit-neutral part of the registry (ID, kind, label key,
-category, default chords as text, the predicate with its reason key) and the shell model that every action is
+The toolkit-neutral part of the registry (ID, kind, category, default chords as text, the enable check with its
+reason) and the shell model that every action is
 dispatched on live in `ew-viewmodel`; `ew-ui` binds keys and paints menus, palette and toolbar from it. The same
 dispatch serves the headless mode `elektrawatt --headless --script`, so CI and agents can drive every action without
 a display.

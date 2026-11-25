@@ -74,21 +74,24 @@ flowchart LR
 
 ### 2.2 Records used
 
-| Record | Fields this document relies on | Kind, file |
-|---|---|---|
-| `Connection` | `a`, `b: Endpoint`, `page?`, `route`, `kind`, `overrides: WireOverrides`, `number: NumberSpec` | A; page file, or the shard of the device owning `a` when `page = None` ([05](05-project-format-and-persistence.md) §2.2) |
-| `Junction` | `page`, `at`, `style: Dot \| Bevel`, `wiring: Star \| Chain`, `sequence: Vec<ConnectionId>` | A; page file |
-| `PotentialDef` | `at`, `name`, `ptype?` (`None` = name only), `voltage`, `env` (with `earthing?`), `circuit_class?`, `props` | A; shard |
-| `NetDef` | `at`, `scope: Signal \| Net`, `props` | A; shard |
-| `Bond` | `a`, `b`, `kind: Pelv0vPe \| FePe \| Equipotential \| Shield`, `via?: WireId` | A; shard |
-| `Function.cp_overrides` | `designation`, `alias`, `unused` | A |
-| `Terminal` aspect | `strip`, `seq`, `designation`, `levels`, `rail_bonded`, plus `Device.state` and `function_text` | A; shard |
-| `Strip` aspect | `label_mode`, `designation_scheme?`, `accessories`, `tag_print`, `groups`, `field_side` | A; shard |
-| `Cable` aspect | `length: LengthSource`, `core_id_mode`, `pre_assembled` | A; shard |
-| `Conductor` | `cable`, `core`, `colour?: ColourSpec`, `csa?: Csa`, `shield`, `pair?` | A; the cable's shard |
-| `ColourProfile`, `SizeProfile`, `WireNumberingScheme` | §4.2, §5.2 | A; in `ProjectSettings` (`project.jsonl`), record shapes in [03](03-domain-model.md) §5.1 |
-| `CpDef` (library) | `designation`, `discipline`, `potential_role`, `source_output`, `optional`, `level`, `side`, `clamp`, `physical` | L; [07](07-symbols-parts-macros.md) §2.4 |
-| `FnDef` (library) | `category`, `internal: [{a, b, Short \| PassThrough{opens}}]`, `flags{switches_n_with_l, n_isolation}` | L |
+The members of each record, with what each holds, are its struct in `ew-schema` and its generated schema
+(`schemas/0.1/`); this table says where each record lives.
+
+| Record | Kind, file |
+|---|---|
+| `Connection` | A; page file, or the shard of the device owning `a` when it has no page ([05](05-project-format-and-persistence.md) §2.2) |
+| `Junction` | A; page file |
+| `PotentialDef` (a `ptype` absent: a name only) | A; shard |
+| `NetDef` (not built) | A; shard |
+| `Bond` | A; shard |
+| `Function.cp_overrides` | A |
+| `Terminal` aspect, with `Device.state` and `function_text` | A; shard |
+| `Strip` aspect | A; shard |
+| `Cable` aspect | A; shard |
+| `Conductor` | A; the cable's shard |
+| `ColourProfile`, `SizeProfile`, `WireNumberingScheme` (§4.2, §5.2) | A; in `ProjectSettings` (`project.jsonl`), record shapes in [03](03-domain-model.md) §5.1 |
+| `CpDef` (library) | L; [07](07-symbols-parts-macros.md) §2.4 |
+| `FnDef` (library) | L |
 
 ### 2.3 Detail and schema additions
 
@@ -96,29 +99,15 @@ These refine [03](03-domain-model.md) without changing its concepts. They are pa
 (ARCH §7.6) that 03 §1.2 records before `ew-schema` v0 freezes; `SingleLine` is the connection kind of
 FR-CON-044.
 
-```rust
-pub enum ConnectionKind {
-    Wire,                          // one conductor
-    Core(Id<Conductor>),           // a cable core or shield
-    Bridge(BridgeSpec),            // terminal bridge; joins potentials; never a wire
-    Fluid(FluidLine),              // see 11
-    Bus(BusLine),                  // single-line bus connection between bus-port CPs
-    Overview,                      // excluded from nets; MVP stand-in for single-line power lines (FR-CON-044)
-    Internal,                      // link between CPs of two functions of one part's template that no FnDef declares
-    SingleLine { conductors: u8 }, // 1.0 (FR-CON-029): excluded from nets, mapped onto multi-line connections
-}
-pub struct BridgeSpec { kind: BridgeKind /* PlugIn | Saddle | Wire | InterLevel */, group: u16, shaft: u8 }
-pub struct BusLine    { cable: Option<Id<Device>> }      // the cable that carries the line (FR-CBL-008)
-pub enum ClampKey     { Clamp(char) /* a, b, c */, Shaft(u8) /* bridge shaft */, RailFoot }
-// Strip aspect additions
-pub struct TerminalGroup { from_seq: u32, to_seq: u32, label: MlText }   // "Pneumatics", "Spare" (FR-TRM-010)
-//   Strip { …, groups: Vec<TerminalGroup>, field_side: Side1 | Side2 }
-// Env addition on PotentialDef
-//   env { ac_dc, frequency, earthing: Option<Pelv | Selv | Floating> }
-// WireOverrides additions (on the carrier connection, moved by the number-transfer normaliser, §5.1)
-//   length: Option<Nm>                       // manual wire length; works without a layout space
-//   ends: SmallVec<[EndOverride{at: CpRef, treatment?, part?, strip_len?, marker?, no_marker}; 2]>   // see 13
-```
+A connection is of one kind (`ConnectionKind`, `crates/ew-schema/src/connect.rs`): a wire (one conductor), a cable
+core or shield, a terminal bridge (it joins potentials and is never a wire), a fluid line ([11](11-fluid-power.md)), a
+single-line bus connection between bus-port CPs (its cable, FR-CBL-008), an overview line (excluded from nets: the
+stand-in for single-line power lines, FR-CON-044), or an internal link between CPs of two functions of one part's
+template that no FnDef declares. A single-line connection of several conductors, excluded from nets and mapped onto
+multi-line connections, is 1.0 (FR-CON-029). The members of a bridge (`BridgeSpec`), a clamp key, a strip's terminal
+groups and field side, a potential's environment (its earthing among them) and a wire's overrides (its manual
+`length`, which works without a layout space, moved by the number-transfer normaliser of §5.1) are the structs of
+`ew-schema`, and the stored forms are the generated schemas (`schemas/0.1/`).
 
 - **No connection for PLC bindings.** A channel binds the coil's non-physical CP directly (`Channel.binding`,
   [10](10-plc-and-bus.md) §3.3), so wire lists and length calculations have nothing to exclude. `Internal` is kept

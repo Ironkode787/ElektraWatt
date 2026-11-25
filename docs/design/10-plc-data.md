@@ -68,19 +68,11 @@ CODESYS application. It lives in `project.jsonl` ([05](05-project-format-and-per
 address and symbol uniqueness (FR-PLC-002). A new project contains one default, `PLC1`, with the profile "Siemens TIA
 (international)".
 
-```rust
-pub struct PlcConfigProject {
-    pub name: Ident,                     // "PLC1"
-    pub profile: AddressProfileRef,      // "siemens-tia-intl@2027.1" (§2.5)
-    pub cpu: Option<Id<Device>>,         // None when the DP master sits outside the project
-    pub allocation: Allocation,          // Packed (default) | SlotBased (1.x); not typed, kept in `extra`
-    pub ownership: Ownership,            // an Owner per field group, see the table below (FR-PLC-033)
-    pub symbols: SymbolPolicy,           // { template: Option<String>, strict_iec: bool, tag_table: Ident }
-    pub exchange: Option<ExchangeStamp>, // { format, version, file_sha256, direction, date }; body in exchange/ (§4.2)
-}
-pub enum Owner { Ecad, Plc, Shared }     // added (replaces EcadOwns | PlcOwns); Shared: a one-sided change
-                                         //   applies, a two-sided change is a conflict
-```
+Its members, each with what it holds, are the struct `PlcConfigProject` of `crates/ew-schema/src/plc.rs`, and its
+stored form is the generated schema (`schemas/0.1/plc_config_project.schema.json`). Its `cpu` is absent when the DP master sits outside the
+project; its `ownership` gives an `Owner` (`Ecad`, `Plc` or `Shared`) per field group (FR-PLC-033), where under
+`Shared` a one-sided change applies and a two-sided change is a conflict; the exchange's body is in `exchange/`
+(§4.2). The allocation (packed, or slot-based in 1.x) is not typed and is kept in `extra`.
 
 | Field group | Default owner | After the first PLC import | Configurable |
 |---|---|---|---|
@@ -119,24 +111,9 @@ means nothing in another session, and the date is the exchange's document date.
 
 ### 2.3 Stations and modules
 
-```rust
-pub struct PlcStation {                  // device aspect (ARCH §4.3)
-    pub config_project: Id<PlcConfigProject>,
-    pub role: StationRole,               // Cpu | HeadStation | IoDevice | ValveTerminal | IoLinkMaster | Drive | ExternalPartner
-    pub firmware: Option<Ident>,
-    pub dd: Option<DeviceDescRef>,       // §2.8
-    pub order: Option<u32>,              // added: address-allocation order; never derived from tags
-}
-pub struct PlcModule {                   // device aspect on the station device or on a child device
-    pub slot: SlotPath,                  // Rack{rack, slot, subslot} | Positional
-    pub type_ident: TypeIdent,           // { order_number: "533361", dd_module: Option<Ident> }
-    pub start: IoStarts,                 // added, one start per direction: { input: AddrSpec, output: AddrSpec }
-    pub part_use: Option<u8>,            // added, replaces the `address_map` ref: which PartUse supplies the
-                                         //   PLC section (maps included) if the device has several parts
-    pub integrated: bool,                // created with the station; not deletable alone (FR-PLC-003)
-    pub safety: Option<SafetyModule>,    // added: §2.9
-}
-```
+`PlcStation` and `PlcModule` are aspects of a device (ARCH §4.3); their members, each with what it holds, are the
+structs of `crates/ew-schema/src/plc.rs`, and their stored form is the generated schema
+(`schemas/0.1/device.schema.json`). What the code does not say is below.
 
 **Where the aspects go.** The `PlcStation` aspect sits on the device that owns the bus port and the address window.
 The `Assembly` aspect sits on the device that carries the configurator order codes. On -201U1 both coincide with
@@ -196,25 +173,10 @@ module with every channel unbound (an earlier build's drawing), its fix `plc.bin
 
 ### 2.4 Channels
 
-```rust
-pub struct Channel {                     // shard of its module device; id = v5(module_id, "channel", number)
-    pub module: Id<Device>,
-    pub number: u16,                     // 0-based, = AML Channel/Number
-    pub designation: Option<Ident>,      // manual; automatic from the part pattern ("{n}", "DO {n}", "X2:{n+1}")
-    pub kind: ChannelKind,               // Di | Do | Ai | Ao | Counter | MultiFunction{mode} | IoLinkPort | PowerSupply
-    pub data_type: PlcDataType,          // profile vocabulary + canonical bit width ("Bool" = 1)
-    pub address: AddrSpec,               // Auto | Manual(PlcAddress) | Excluded | Tbd
-    pub state: Option<ChannelState>,     // added Option: explicit Spare | Reserved | Deactivated;
-                                         //   None = derived (§3.2, FR-PLC-019)
-    pub symbol: Option<Ident>,           // manual; automatic from the template (§3.4)
-    pub comment: MlText,                 // PLC comment; exported as AML/TIA comment
-    pub binding: Option<Endpoint>,       // signal CP: a module pin, or the served coil's internal CP
-    pub aux_pins: SmallVec<ChannelPin>,  // { role: Supply | M | Shield, cp }
-    pub target: Option<Id<Function>>,    // added: manual target override (§3.5, FR-PLC-054)
-    pub signal_range: Option<Ident>,     // added: "4..20 mA"
-    pub safety: Option<SafetyChannel>,   // added: §2.9
-}
-```
+A channel is a record in the shard of its module device. Its members, each with what it holds, are the struct
+`Channel` of `crates/ew-schema/src/plc.rs`, and its stored form is the generated schema
+(`schemas/0.1/channel.schema.json`). Its `number` is AML's `Channel/Number`, its `comment` is exported as the AML and
+TIA comment, and its automatic designation comes from the part's pattern (`"{n}"`, `"DO {n}"`, `"X2:{n+1}"`).
 
 - **Identity.** Channels are created by a normaliser from the module's part data when the `PlcModule` aspect is
   added (§3.3). They are stored, because they carry authored data, but their IDs are
@@ -461,17 +423,10 @@ port, a map entry or such a pin prints none (the `housing` of a shield is no CP)
 **The bus section** (D15 to D17). A part's bus interfaces are `sections.bus`, typed within format 0.1
 (ADR-0011 amendment 4), appended to `PartSections` after `mounting_plate`:
 
-```rust
-pub struct BusSection  { pub ports: Vec<PartBusPort>, pub extra: Extra }     // `ports` omitted when empty
-pub struct PartBusPort {
-    pub interface: Ident,                // required: "DP", "X1"
-    pub port_label: Option<Ident>,       // "P1R"
-    pub bus: BusSystem,                  // required: §2.7's enum, newer values kept verbatim
-    pub role: PortRole,                  // required: the role a port made from it takes
-    pub termination: Option<OnOff>,      // present: the port has a termination switch, in this state
-    pub extra: Extra,                    // members this build does not know, kept verbatim
-}                                        // (`connector`, `rates`, `address_range`, `iolink`, `signals`: above)
-```
+Its members, each with what it holds, are the structs `BusSection` and `PartBusPort` of
+`crates/ew-schema/src/bus.rs`; the stored form is the generated schema of a part (`schemas/0.1/part.schema.json`). A port's `interface` (`"DP"`, `"X1"`),
+`bus` and `role` are required; a `termination` that is present says the port has a termination switch, in that
+state.
 
 - **What the part holds and what it does not.** The part states which interfaces exist, their bus, role and
   termination switch, and the connector type, the signal map (FR-BUS-023), the address range and the supported rates
@@ -582,17 +537,10 @@ and the macro. The rack/slot editor (§6) combines both.
 
 ### 2.9 Safety data
 
-```rust
-pub struct SafetyModule  { pub f_dest: Option<u16>, pub f_source: Option<u16>, pub f_wd_ms: Option<u16>,
-                           pub range: Option<RangeU16> }        // range from GSDML, e.g. 1..=65534
-pub struct SafetyChannel { pub evaluation: Evaluation,          // OneOoOne | OneOoTwo
-                           pub pair: Option<Id<Channel>>,
-                           pub requirement: Option<Ident>,      // "SIL 2", "PL d": a field, never calculated
-                           pub test_pulse: Option<Endpoint> }   // the module's sensor-supply pin
-```
-
-`SafetyModule` and `SafetyChannel` are typed as above (`RangeU16 {min, max}`, `Evaluation`
-`1oo1` or `1oo2`), on `PlcModule.safety` and `Channel.safety`; the `safety_io_list` of §5 lists them. The distinct
+`SafetyModule` and `SafetyChannel` (`crates/ew-schema/src/plc.rs`) are typed on `PlcModule.safety` and
+`Channel.safety`: a module's F-destination, F-source and watchdog with the address range the GSDML gives (`1..=65534`
+for one), and a channel's evaluation (`1oo1` or `1oo2`), its pair, its requirement (`"SIL 2"`, `"PL d"`: a field,
+never calculated) and its test pulse (the module's sensor-supply pin); the `safety_io_list` of §5 lists them. The distinct
 style below is the window's.
 
 Safety channels render in a distinct style (hatched channel field plus an "F" marker, never colour alone,
