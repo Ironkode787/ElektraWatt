@@ -485,7 +485,7 @@ All outputs follow NFR-REL-07: no wall-clock times, sorted rows and stable IDs.
 
 ---
 
-## 10. The reference project
+## 10. The named findings
 
 ### 10.1 The named findings and their final rule IDs
 

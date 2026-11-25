@@ -25,7 +25,7 @@ spreadsheet, the package and the machine file, so they cannot disagree.
 12. [UI and UX touchpoints](#12-ui-and-ux-touchpoints)
 13. [Outputs](#13-outputs)
 14. [Edge cases and pitfalls](#14-edge-cases-and-pitfalls)
-15. [The reference project](#15-the-reference-project)
+15. [Defects prevented](#15-defects-prevented)
 
 ---
 
@@ -1080,9 +1080,9 @@ produces the PDF, BOM, wire list, terminal plans and the Komax CSV and stops at 
 
 ---
 
-## 15. The reference project
+## 15. Defects prevented
 
-No reference project is mapped here: the tests open the sample project (`fixtures/sample/`).
+The tests open the sample project (`fixtures/sample/`).
 
 ### 15.7 Defects prevented
 

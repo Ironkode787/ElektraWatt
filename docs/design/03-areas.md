@@ -660,6 +660,6 @@ P005xxx connections, P017xxx numbering). QET: none beyond import warnings.
 
 ## 20. The reference drawing and the sample project
 
-No reference project is mapped here: the tests open the sample project (`fixtures/sample/`), which its script
+The tests open the sample project (`fixtures/sample/`), which its script
 draws, and [reference-drawing.md](../research/reference-drawing.md) §4 keeps the analysis of the reference drawing.
 

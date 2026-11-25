@@ -22,4 +22,4 @@ the accepted [architecture](04-architecture.md) (§8, §10.2, §11; ADR-0015, AD
 | [§5. UI and UX touchpoints](09-output.md#5-ui-and-ux-touchpoints) | [the page output pipeline and exports](09-output.md) |
 | [§6. Outputs](09-output.md#6-outputs) | [the page output pipeline and exports](09-output.md) |
 | [§7. Edge cases and pitfalls](09-output.md#7-edge-cases-and-pitfalls) | [the page output pipeline and exports](09-output.md) |
-| [§8. The reference project](09-output.md#8-the-reference-project) | [the page output pipeline and exports](09-output.md) |
+| [§8. The tests](09-output.md#8-the-tests) | [the page output pipeline and exports](09-output.md) |

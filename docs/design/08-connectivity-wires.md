@@ -584,7 +584,7 @@ rows = [
   { group = "230 VAC",          function = "Neutral",  select = { ptype = "N", ac_dc = "AC", u_min = "50", u_max = "250" }, colour = "BU" },
   { group = "230 VAC",          function = "Earth",    select = { ptype = "PE" },                                   colour = "GNYE" },
   { group = "Analogue Signals", function = "Earth",    select = { ptype = "PE" },                                   colour = "GNYE" },
-  # … 15 rows in total ([20] §7.1); the three PE rows overlap and agree
+  # … 15 rows in total; the three PE rows overlap and agree
 ]
 
 # Size profile "0.75/1.5"

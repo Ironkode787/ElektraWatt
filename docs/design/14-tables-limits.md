@@ -295,11 +295,11 @@ The body already covers default formulas (§4.8), shared UUIDs (§4.7), NaN and 
 
 ---
 
-## 15. The reference project
+## 15. Migration findings
 
 ### 15.1 Walk-through
 
-No reference project is walked through here: the tests open the sample project (`fixtures/sample/`) and the QET
+The tests open the sample project (`fixtures/sample/`) and the QET
 corpus. The migration findings MF-01 … MF-27 below name the cases of a QET import that the importer and the
 migration report handle.
 

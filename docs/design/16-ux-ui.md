@@ -33,5 +33,5 @@ domain panels in their area documents; this document owns the shell they live in
 | [§15. Algorithms](16-theming-help.md#15-algorithms) | [theming, language, help and the rest](16-theming-help.md) |
 | [§16. Outputs](16-theming-help.md#16-outputs) | [theming, language, help and the rest](16-theming-help.md) |
 | [§17. Edge cases and pitfalls](16-theming-help.md#17-edge-cases-and-pitfalls) | [theming, language, help and the rest](16-theming-help.md) |
-| [§18. The reference project in the UI](16-theming-help.md#18-the-reference-project-in-the-ui) | [theming, language, help and the rest](16-theming-help.md) |
+| [§18. Defects prevented at the interface](16-theming-help.md#18-defects-prevented-at-the-interface) | [theming, language, help and the rest](16-theming-help.md) |
 | [§19. Usability test plan](16-theming-help.md#19-usability-test-plan) | [theming, language, help and the rest](16-theming-help.md) |

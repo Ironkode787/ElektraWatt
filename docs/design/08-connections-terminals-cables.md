@@ -30,4 +30,4 @@ drawing set's project, the running example. ▲ and ▲U-nn mark test inputs tha
 | [§10. Outputs](08-numbering-terminals-cables.md#10-outputs) | [wire numbering, terminals, cables and checks](08-numbering-terminals-cables.md) |
 | [§11. Performance and determinism](08-numbering-terminals-cables.md#11-performance-and-determinism) | [wire numbering, terminals, cables and checks](08-numbering-terminals-cables.md) |
 | [§12. Edge cases and pitfalls](08-numbering-terminals-cables.md#12-edge-cases-and-pitfalls) | [wire numbering, terminals, cables and checks](08-numbering-terminals-cables.md) |
-| [§13. The reference project](08-numbering-terminals-cables.md#13-the-reference-project) | [wire numbering, terminals, cables and checks](08-numbering-terminals-cables.md) |
+| [§13. Defects prevented](08-numbering-terminals-cables.md#13-defects-prevented) | [wire numbering, terminals, cables and checks](08-numbering-terminals-cables.md) |

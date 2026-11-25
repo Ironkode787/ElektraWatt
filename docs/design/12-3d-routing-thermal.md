@@ -560,9 +560,9 @@ Every output is deterministic: no wall-clock times, members and rows in derived 
 
 ---
 
-## 16. The reference project
+## 16. Defects prevented
 
-No reference project is mapped here: the tests open the sample project (`fixtures/sample/`).
+The tests open the sample project (`fixtures/sample/`).
 
 ### 16.4 Defects prevented
 

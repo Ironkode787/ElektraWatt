@@ -504,9 +504,9 @@ never see the model (ADR-0021, ARCH §3 rule 4):
 
 ---
 
-## 11. The reference project
+## 11. The valve terminal as data
 
-No reference project is mapped here: the tests open the sample project (`fixtures/sample/`), whose page 201 draws a
+The tests open the sample project (`fixtures/sample/`), whose page 201 draws a
 valve terminal with two used and two spare valves.
 
 ### 11.1 Folios 201–206 as data

@@ -598,7 +598,7 @@ same query, so they cannot disagree. Rows come from the same `RowSet` as XLSX an
 PART DATA box of folio 902 is kept for fidelity with the reference and is bound to -UC1's part lines (REF-069).
 
 The legend is the embedded report block
-`legend-902` of kind `enclosure_legend` on 902, rect 108.00–278.00 × 19.50–167.50 mm printed (doc 20 §17.3), drawn as
+`legend-902` of kind `enclosure_legend` on 902, rect 108.00–278.00 × 19.50–167.50 mm printed, drawn as
 a boxed table titled "LEGEND" in two flow columns of a header and up to 20 rows of 6.52 mm each (40 rows); printed columns position, DT, quantity and part number at weights
 10 : 22 : 16 : 35; the manufacturer, the description and the unit stay in the rows and the CSV, which `ew export
 report --block <its ID> --format csv` writes ([09](09-reports-forms-output.md) §2.2). PART DATA on 902 lists -UC1's

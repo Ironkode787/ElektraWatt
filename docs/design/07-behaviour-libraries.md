@@ -759,9 +759,9 @@ the plugin-signing infrastructure in 1.x.
 
 ---
 
-## 9. The reference project
+## 9. The starter set
 
-No reference project is mapped here: the tests open the sample project (`fixtures/sample/`). What stays are the
+The tests open the sample project (`fixtures/sample/`). This section holds the
 starter set's keys, the sample's parts library and the rules of an assembly's macros.
 
 ### 9.1 The starter set

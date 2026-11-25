@@ -605,8 +605,8 @@ title block, cover, divider and report forms reproduce the reference set's house
 
 ---
 
-## 8. The reference project
+## 8. The tests
 
-No reference project is mapped here: the tests open the sample project (`fixtures/sample/`), and each report
+The tests open the sample project (`fixtures/sample/`), and each report
 kind is specified in §2.4 and §4.
 

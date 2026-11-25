@@ -31,4 +31,4 @@ ADR-0020, ADR-0021 and ADR-0024.
 | [§14. UI/UX touchpoints](17-scripting-sql-plugins.md#14-uiux-touchpoints) | [scripting, SQL, MCP, plugins and stability](17-scripting-sql-plugins.md) |
 | [§15. Outputs](17-scripting-sql-plugins.md#15-outputs) | [scripting, SQL, MCP, plugins and stability](17-scripting-sql-plugins.md) |
 | [§16. Edge cases and pitfalls](17-scripting-sql-plugins.md#16-edge-cases-and-pitfalls) | [scripting, SQL, MCP, plugins and stability](17-scripting-sql-plugins.md) |
-| [§17. The reference project](17-scripting-sql-plugins.md#17-the-reference-project) | [scripting, SQL, MCP, plugins and stability](17-scripting-sql-plugins.md) |
+| [§17. A user report over the projection](17-scripting-sql-plugins.md#17-a-user-report-over-the-projection) | [scripting, SQL, MCP, plugins and stability](17-scripting-sql-plugins.md) |

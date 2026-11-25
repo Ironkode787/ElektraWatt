@@ -23,4 +23,4 @@ The symbol editor's authoring profile is specified in [07a: Symbol design standa
 | [§6. Library governance and the community library](07-behaviour-libraries.md#6-library-governance-and-the-community-library) | [behaviour, algorithms, the window and library governance](07-behaviour-libraries.md) |
 | [§7. Outputs](07-behaviour-libraries.md#7-outputs) | [behaviour, algorithms, the window and library governance](07-behaviour-libraries.md) |
 | [§8. Edge cases and pitfalls](07-behaviour-libraries.md#8-edge-cases-and-pitfalls) | [behaviour, algorithms, the window and library governance](07-behaviour-libraries.md) |
-| [§9. The reference project](07-behaviour-libraries.md#9-the-reference-project) | [behaviour, algorithms, the window and library governance](07-behaviour-libraries.md) |
+| [§9. The starter set](07-behaviour-libraries.md#9-the-starter-set) | [behaviour, algorithms, the window and library governance](07-behaviour-libraries.md) |

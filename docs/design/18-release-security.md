@@ -690,8 +690,8 @@ and any commercial edition needs a liability review first.
 
 ---
 
-## 17. The reference project in the quality system
+## 17. The sample project in the quality system
 
-No reference project is used here: the tests open the sample project (`fixtures/sample/`), and each test layer of
+The tests open the sample project (`fixtures/sample/`), and each test layer of
 §3 says what it proves on it.
 

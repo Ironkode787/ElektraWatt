@@ -761,12 +761,12 @@ contributor) and P6 (library maintainer) and journey J6 (automated quality gate)
 
 ---
 
-## 17. The reference project
+## 17. A user report over the projection
 
 ### 17.1 Walk-through
 
-No reference project is walked through here: the command-line examples on the sample project are §3.4. One user
-report over the projection stays as the example of D-25, the 24 V loads per protective channel, as an SQL file in
+The command-line examples on the sample project are §3.4. One user
+report over the projection is the example of D-25, the 24 V loads per protective channel, as an SQL file in
 `reports/` (1.0) or as `ew sql` text (MVP):
 
 ```sql

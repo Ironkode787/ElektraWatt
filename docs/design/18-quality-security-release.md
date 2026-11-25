@@ -40,4 +40,4 @@ documents refer to "the CI job in 18": this document owns those pipelines.
 | [§14. UI/UX touchpoints](18-release-security.md#14-uiux-touchpoints) | [toolchain, release, signing, security and privacy](18-release-security.md) |
 | [§15. Outputs](18-release-security.md#15-outputs) | [toolchain, release, signing, security and privacy](18-release-security.md) |
 | [§16. Edge cases and pitfalls](18-release-security.md#16-edge-cases-and-pitfalls) | [toolchain, release, signing, security and privacy](18-release-security.md) |
-| [§17. The reference project in the quality system](18-release-security.md#17-the-reference-project-in-the-quality-system) | [toolchain, release, signing, security and privacy](18-release-security.md) |
+| [§17. The sample project in the quality system](18-release-security.md#17-the-sample-project-in-the-quality-system) | [toolchain, release, signing, security and privacy](18-release-security.md) |

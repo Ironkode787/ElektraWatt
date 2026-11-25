@@ -185,7 +185,7 @@ export start (FR-OUT-001).
 
 ## 9. Walkthrough: drawing folios 101 and 102
 
-No walkthrough on a reference project is kept: the sample project (`fixtures/sample/`) is drawn by its script
+The sample project (`fixtures/sample/`) is drawn by its script
 through the window's own actions, and the tools are specified in §3 and §4.
 
 ---

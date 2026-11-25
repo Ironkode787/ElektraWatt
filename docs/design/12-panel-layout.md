@@ -30,7 +30,7 @@ releases contain.
 | [§13. Performance budgets](12-3d-routing-thermal.md#13-performance-budgets) | [3D, collision, routing, lengths, drilling and thermal](12-3d-routing-thermal.md) |
 | [§14. Outputs](12-3d-routing-thermal.md#14-outputs) | [3D, collision, routing, lengths, drilling and thermal](12-3d-routing-thermal.md) |
 | [§15. Edge cases and pitfalls](12-3d-routing-thermal.md#15-edge-cases-and-pitfalls) | [3D, collision, routing, lengths, drilling and thermal](12-3d-routing-thermal.md) |
-| [§16. The reference project](12-3d-routing-thermal.md#16-the-reference-project) | [3D, collision, routing, lengths, drilling and thermal](12-3d-routing-thermal.md) |
+| [§16. Defects prevented](12-3d-routing-thermal.md#16-defects-prevented) | [3D, collision, routing, lengths, drilling and thermal](12-3d-routing-thermal.md) |
 
 Conventions: ▲ marks a test value for an unknown of the
 reference (U-nn) or a shop-policy default still to be confirmed by the pilot (PQ-22, PQ-24); "DT" is a

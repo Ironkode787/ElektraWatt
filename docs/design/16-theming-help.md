@@ -284,11 +284,11 @@ where one needs Shift.
 
 ---
 
-## 18. The reference project in the UI
+## 18. Defects prevented at the interface
 
 ### 18.1 Walkthrough
 
-No walkthrough on a reference project is kept: the sample project (`fixtures/sample/`) opens from the start page,
+The sample project (`fixtures/sample/`) opens from the start page,
 and each behaviour is specified in its own section of this document.
 
 ### 18.2 Defects prevented at the interface

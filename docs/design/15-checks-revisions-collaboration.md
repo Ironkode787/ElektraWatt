@@ -25,4 +25,4 @@ protocol, lock record, merge-driver internals, archive layout) stay in [05](05-p
 | [§7. UI and UX touchpoints](15-revisions-collaboration.md#7-ui-and-ux-touchpoints) | [revisions and collaboration](15-revisions-collaboration.md) |
 | [§8. Outputs](15-revisions-collaboration.md#8-outputs) | [revisions and collaboration](15-revisions-collaboration.md) |
 | [§9. Edge cases and pitfalls](15-revisions-collaboration.md#9-edge-cases-and-pitfalls) | [revisions and collaboration](15-revisions-collaboration.md) |
-| [§10. The reference project](15-revisions-collaboration.md#10-the-reference-project) | [revisions and collaboration](15-revisions-collaboration.md) |
+| [§10. The named findings](15-revisions-collaboration.md#10-the-named-findings) | [revisions and collaboration](15-revisions-collaboration.md) |

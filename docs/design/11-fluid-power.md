@@ -25,5 +25,5 @@ mapping, and the EW-FL rule pack. It elaborates the FLU area of [02b](02b-requir
 | [§8. Outputs](11-algorithms-outputs.md#8-outputs) | [algorithms, checks, the window, outputs and import](11-algorithms-outputs.md) |
 | [§9. QET pneumatic import](11-algorithms-outputs.md#9-qet-pneumatic-import) | [algorithms, checks, the window, outputs and import](11-algorithms-outputs.md) |
 | [§10. Edge cases and pitfalls](11-algorithms-outputs.md#10-edge-cases-and-pitfalls) | [algorithms, checks, the window, outputs and import](11-algorithms-outputs.md) |
-| [§11. The reference project](11-algorithms-outputs.md#11-the-reference-project) | [algorithms, checks, the window, outputs and import](11-algorithms-outputs.md) |
+| [§11. The valve terminal as data](11-algorithms-outputs.md#11-the-valve-terminal-as-data) | [algorithms, checks, the window, outputs and import](11-algorithms-outputs.md) |
 | [§12. Scope by release](11-algorithms-outputs.md#12-scope-by-release) | [algorithms, checks, the window, outputs and import](11-algorithms-outputs.md) |

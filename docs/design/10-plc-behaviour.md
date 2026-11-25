@@ -593,9 +593,9 @@ rule is online only (doc 15 §4.5.1).
 
 ---
 
-## 9. The reference project
+## 9. Worked cases and defects prevented
 
-No reference project is mapped here: the tests open the sample project (`fixtures/sample/`).
+The tests open the sample project (`fixtures/sample/`).
 
 ### 9.1 Folio by folio
 

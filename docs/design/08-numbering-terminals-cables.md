@@ -735,9 +735,9 @@ derivation profiles keep wire numbers and properties byte-identical across EW re
 
 ---
 
-## 13. The reference project
+## 13. Defects prevented
 
-No reference project is mapped here: the tests open the sample project (`fixtures/sample/`). The defects of the
+The tests open the sample project (`fixtures/sample/`). The defects of the
 reference drawing set that this area prevents:
 
 | Defect | Class | Mechanism here |

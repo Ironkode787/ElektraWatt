@@ -42,4 +42,4 @@ folios 3, 106 and 201–206.
 | [§6. UI and UX touchpoints](10-window.md#6-ui-and-ux-touchpoints) | [the window](10-window.md) |
 | [§7. CLI and automation](10-exchange.md#7-cli-and-automation) | [exchange, outputs and the command line](10-exchange.md) |
 | [§8. Edge cases and pitfalls](10-plc-behaviour.md#8-edge-cases-and-pitfalls) | [the PLC behaviour and rules](10-plc-behaviour.md) |
-| [§9. The reference project](10-plc-behaviour.md#9-the-reference-project) | [the PLC behaviour and rules](10-plc-behaviour.md) |
+| [§9. Worked cases and defects prevented](10-plc-behaviour.md#9-worked-cases-and-defects-prevented) | [the PLC behaviour and rules](10-plc-behaviour.md) |

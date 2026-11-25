@@ -47,4 +47,4 @@ C-15 `%f` versus `%F`).
 | [§12. Test corpora](14-tables-limits.md#12-test-corpora) | [tables, exports, legal limits, hostile input and corpora](14-tables-limits.md) |
 | [§13. UI and UX touchpoints](14-tables-limits.md#13-ui-and-ux-touchpoints) | [tables, exports, legal limits, hostile input and corpora](14-tables-limits.md) |
 | [§14. Edge cases and pitfalls](14-tables-limits.md#14-edge-cases-and-pitfalls) | [tables, exports, legal limits, hostile input and corpora](14-tables-limits.md) |
-| [§15. The reference project](14-tables-limits.md#15-the-reference-project) | [tables, exports, legal limits, hostile input and corpora](14-tables-limits.md) |
+| [§15. Migration findings](14-tables-limits.md#15-migration-findings) | [tables, exports, legal limits, hostile input and corpora](14-tables-limits.md) |
