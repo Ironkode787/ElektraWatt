@@ -2313,16 +2313,16 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// Escape (NFR-UX-07): closes the topmost popup or dialog (the palette, then a dialog, then the
-    /// link preview); with none open it sends `Escape` to the active tool, and when the tool was in its first state
-    /// a tool other than Select is replaced by Select and Select's selection is cleared. A banner has a button of its
-    /// own, [`ShellModel::dismiss_banner`].
-    /// An action only the window runs (`ui.app_menu`, `ui.context_menu`: menus only the window draws), dispatched to
-    /// the shell: refused in words.
+    /// An action only the window runs (`ui.app_menu`, `ui.context_menu`: menus only the window draws, which it opens
+    /// itself from a key, the palette or a script) dispatched to the shell, which has no menu to open: refused in words.
     pub(crate) fn act_window_only(&mut self) -> Outcome {
         Outcome::refused(key!("reason-window-only"))
     }
 
+    /// Escape (NFR-UX-07): closes the topmost popup or dialog (the palette, then a dialog, then the
+    /// link preview); with none open it sends `Escape` to the active tool, and when the tool was in its first state
+    /// a tool other than Select is replaced by Select and Select's selection is cleared. A banner has a button of its
+    /// own, [`ShellModel::dismiss_banner`].
     pub(crate) fn act_dismiss(&mut self) -> Outcome {
         // Escape in the supply marks' Potential panel places the marks without a potential (H9).
         if self.supply_panel.take().is_some() {
