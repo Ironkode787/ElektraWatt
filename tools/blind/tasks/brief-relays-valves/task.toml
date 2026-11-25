@@ -1,4 +1,4 @@
-# An open design brief (WP-S6.13 part 4, visual spec section 6.1), the owner's example. `check-brief
+# An open design brief (visual spec section 6.1), the owner's example. `check-brief
 # brief-relays-valves` proves it runnable by replaying `solution.uiscript` and deciding `acceptance.toml` on its exports.
 kind = "brief"
 grade = 2

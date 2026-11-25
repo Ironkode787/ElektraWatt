@@ -15,7 +15,7 @@
 # locally, keep the digests of the distinctive n-grams (drop the 1-grams of common words such as "de" or "bv":
 # they would block every file that contains them) and append them below. Comments must not name the token.
 #
-# No entries yet: the maintainers add them (owner action of WP-S0.02).
+# No entries yet: the maintainers add them (an owner action).
 
 # Private corpus of the pilot's projects (received 2026-10-20): customer names, project and drawing numbers.
 187794300096063ba03c25f02633be2c4fdf650bc995e3b58a83d52ef37d24dd

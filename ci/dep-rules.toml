@@ -23,8 +23,8 @@
 
 # Crates that may appear as dev-dependencies only (18 §5.2 CI-PR-09: egui_mcp in any non-test target).
 # ew-testids, the seeded ID source of the tests (doc 18 §2.2), likewise; and ew-testkit, the test-only crate of the
-# builder DSL and the hostile corpus (doc 18 §11.2, WP-S6.04 D8).
-# WP-S6.05 D3 (ADR-0029's interim rule): no HTTP, TLS, DNS or crash-upload client in the shipped binaries; a dev edge
+# builder DSL and the hostile corpus (doc 18 §11.2).
+# No HTTP, TLS, DNS or crash-upload client in the shipped binaries; a dev edge
 # (1.0's mock server) stays allowed.
 banned_crates = [
   "egui_mcp", "ew-testids", "ew-testkit",
@@ -127,7 +127,7 @@ reason = "ARCH §3 rule 3 (GPU)"
 
 # 18 §5.2 CI-PR-09 feature bans: test-only or unsafe features that must never be enabled on a non-test edge.
 # allowed_kinds lists the dependency kinds (normal, dev, build) on which enabling the feature is fine.
-# WP-S2.01 part 1, spec section 4 rule 5: the application build needs no system package. wgpu-hal's `gles`
+# spec section 4 rule 5: the application build needs no system package. wgpu-hal's `gles`
 # feature turns on `wayland-sys/dlopen`; without it wayland-sys' build script runs pkg-config for libwayland and
 # links it. The feature rule of `cargo xtask rules` fails when either feature leaves the resolved graph while its crate is in it.
 [[required_features]]
@@ -162,7 +162,7 @@ crate = "ew-model"
 feature = "testkit"
 allowed_kinds = ["dev"]
 
-# WP-S2.03 §7.6: the probe tool's seam (`ShellModel::set_tool_for_tests`) is for tests only; the binaries never build
+# The probe tool's seam (`ShellModel::set_tool_for_tests`) is for tests only; the binaries never build
 # it, so no shipped path can install a tool that commits.
 [[banned_features]]
 crate = "ew-viewmodel"
@@ -192,7 +192,7 @@ feature = "inspection"
 allowed_kinds = []
 
 # `ew` declares no `test-confirm` feature: doc 18 §3.15's test-build confirmation hook is an injected terminal. The
-# ban stays as the guard doc 18 names for it, and CI-R-09's release assertions check it (ID-1082).
+# ban stays as the guard doc 18 names for it, and CI-R-09's release assertions check it.
 [[banned_features]]
 crate = "ew"
 feature = "test-confirm"
@@ -207,7 +207,7 @@ crate = "serde_json"
 feature = "preserve_order"
 allowed_kinds = []
 
-# Doc 18 §3.5, FT-317: identifier and random generators outside the one ID generator (ew-ids, `getrandom` and the
+# Doc 18 §3.5: identifier and random generators outside the one ID generator (ew-ids, `getrandom` and the
 # seeded source of ew-testids). These `uuid` and `rand` features compile `Uuid::new_v4`, `Uuid::now_v7` and an
 # OS-seeded thread generator, whose paths the generated clippy.toml bans with `allow-invalid` (so it only bites
 # once they exist): enabling one is a design change, so it is allowed on dev edges only.
@@ -276,13 +276,12 @@ readers = ["ew-model", "ew-derive", "ew-commands", "ew-store"]
 # The generated clippy configuration, relative to the workspace root.
 clippy_config = "clippy.toml"
 
-# Asset presence (FT-382, decision log ID-575, ARCH §3 rule 1). The bytes under an asset hash never change, so reading
+# Asset presence (ARCH §3 rule 1). The bytes under an asset hash never change, so reading
 # them is no freshness hazard and sits outside the read gate; whether the model HOLDS an asset can change without a
 # revision, so no memoised query may read it. In the non-test source of `packages` (the crate whose queries can reach
 # the model; the reader crates are scanned too), a call `.asset(`, `.assets(`, `.has_asset(` or a path `::asset`,
 # `::assets`, `::has_asset` is a finding unless the innermost function around it is listed below. Each listed reader
-# records a read of the asset store (`DepKey::Assets`), so the memo engine tracks the presence it answers (ADR-0002,
-# ID-575).
+# records a read of the asset store (`DepKey::Assets`), so the memo engine tracks the presence it answers (ADR-0002).
 [raw_read.asset_presence]
 packages = ["ew-derive"]
 accessors = ["asset", "assets", "has_asset"]
@@ -290,7 +289,7 @@ accessors = ["asset", "assets", "has_asset"]
 [[raw_read.asset_presence.allow]]
 path = "crates/ew-derive/src/q.rs"
 function = "logo_asset"
-reason = "Q::logo_asset, the one named exception of ID-575: the format and size of a bare-hash logo; recorded as a read of the project row, safe while an asset becomes present only at open or through project.company.set, which changes that row"
+reason = "Q::logo_asset, the one named exception: the format and size of a bare-hash logo; recorded as a read of the project row, safe while an asset becomes present only at open or through project.company.set, which changes that row"
 
 [[raw_read.asset_presence.allow]]
 path = "crates/ew-derive/src/q.rs"

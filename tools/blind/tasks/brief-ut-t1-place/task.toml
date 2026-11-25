@@ -1,4 +1,4 @@
-# A usability task (WP-S2.12 section 5.1): doc 16 section 19.4's T1 as a brief. `check-brief brief-ut-t1-place` proves
+# A usability task: doc 16 section 19.4's T1 as a brief. `check-brief brief-ut-t1-place` proves
 # it runnable by replaying `solution.uiscript` on a copy of the sample and deciding `acceptance.toml` on its exports.
 kind = "brief"
 grade = 1

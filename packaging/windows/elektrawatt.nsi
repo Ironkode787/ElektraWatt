@@ -1,7 +1,7 @@
 ; SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 ; SPDX-License-Identifier: MIT OR Apache-2.0
 
-; The per-user setup of ElektraWatt (WP-S6.06 D2, D9; doc 18 §8, `ElektraWatt-<v>-x64-user-setup.exe`), compiled by
+; The per-user setup of ElektraWatt (doc 18 §8, `ElektraWatt-<v>-x64-user-setup.exe`), compiled by
 ; makensis (NSIS 3, pinned in packaging/components.toml) from the tree that packaging/stage.py staged:
 ;
 ;   makensis -DVERSION=<v> -DTREE=<staged tree> -DOUTFILE=<dir>\ElektraWatt-<v>-x64-user-setup.exe elektrawatt.nsi
@@ -11,7 +11,7 @@
 ; - Modern UI pages: the folder, the progress, the finish page with NSIS's "Run ElektraWatt" ("ElektraWatt starten").
 ;   English and Dutch, chosen by the user's Windows language; every text is NSIS's own translation but the shortcut's
 ;   name, "ElektraWatt". The setup, its uninstaller and the uninstall entry show the application icon
-;   (assets/icons/app/elektrawatt.ico, the menu button's mark, FT-1710); the shortcut shows the executable's, the same.
+;   (assets/icons/app/elektrawatt.ico, the menu button's mark); the shortcut shows the executable's, the same.
 ; - It installs D3's tree, the uninstaller `uninstall.exe`, a Start-menu shortcut for the current user, and the
 ;   uninstall entry HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\ElektraWatt; nothing under HKLM.
 ; - Upgrade: a setup that finds the entry proposes its folder, runs the old uninstaller silently in its folder and
@@ -52,7 +52,7 @@ InstallDirRegKey HKCU "${UNINSTALL_KEY}" "InstallLocation"
 
 ; Relative to this script's folder, where makensis reads from wherever it is started: `${__FILEDIR__}` is the script's
 ; folder as it was named on the command line, so with a relative script path it was looked up from inside that folder
-; a second time and the setup did not compile (the release build of v0.2.0-rc.2).
+; a second time and the setup did not compile (a release build).
 !define MUI_ICON "..\..\assets\icons\app\elektrawatt.ico"
 !define MUI_UNICON "..\..\assets\icons\app\elektrawatt.ico"
 !define MUI_FINISHPAGE_RUN "$INSTDIR\elektrawatt.exe"

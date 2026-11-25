@@ -1,4 +1,4 @@
-# A usability task (WP-S2.12 section 5.1): doc 16 section 19.4's T6 as a brief, from the wizard's basic project (no
+# A usability task: doc 16 section 19.4's T6 as a brief, from the wizard's basic project (no
 # start project; `start --no-book`, without the guide). `check-brief brief-ut-t6-timed-circuit` proves it runnable.
 kind = "brief"
 grade = 3

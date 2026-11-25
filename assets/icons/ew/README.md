@@ -5,7 +5,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # ElektraWatt glyphs
 
-The glyphs Tabler Icons lacks (WP-S2.17 part 6, D9; doc 16a §4.11), drawn on Tabler's 24-unit grid with the same
+The glyphs Tabler Icons lacks (doc 16a §4.11), drawn on Tabler's 24-unit grid with the same
 rules: stroke-only `path` elements, round caps and joins, stroke 2 at 24 px in the files (the application draws them
 at the token stroke). `cargo xtask gen-icons` reads them with the vendored set and keys them `ew-<name>`.
 
@@ -27,5 +27,5 @@ at the token stroke). `cargo xtask gen-icons` reads them with the vendored set a
 | `shape-polyline.svg` | `ew-shape-polyline` | An open zigzag of three segments: the symbol editor's Polyline tool |
 | `shape-rectangle.svg` | `ew-shape-rectangle` | A landscape rectangle: the symbol editor's Rectangle tool |
 | `structure-box.svg` | `ew-structure-box` | A frame with a "+" in its corner: a location (structure) box |
-| `supply.svg` | `ew-supply` | Three conductors coming in from a bar on the left, each with an arrow: the supply from the mains (rc.5) |
+| `supply.svg` | `ew-supply` | Three conductors coming in from a bar on the left, each with an arrow: the supply from the mains |
 | `terminal-strip.svg` | `ew-terminal-strip` | Three terminals in a row with their leads above and below |

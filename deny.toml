@@ -9,7 +9,7 @@ all-features = true
 # dev-dependencies (proptest and bin/ew's `boon` tree are absent from `cargo deny list`, and a crate-scoped exception
 # for one of them is reported as never encountered). Dev-dependencies are never shipped. bin/ew's `boon` (an
 # independent JSON-Schema validator for its tests) pulls `borrow-or-share`, licensed MIT-0: an OSI-approved licence
-# without the attribution clause, accepted for a dev-only dependency (orchestrator's ruling, cycle 39). MIT-0 is not
+# without the attribution clause, accepted for a dev-only dependency (orchestrator's ruling). MIT-0 is not
 # in the allow list below and is not added to it.
 
 [advisories]

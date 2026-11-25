@@ -1,5 +1,5 @@
-# The acceptance list (WP-S2.12 D7): doc 16 section 19.4's success criterion of T6 ("-102G1, -102F1, -102F2 with parts
-# and wires; PDF") as items; the 30 minutes of NFR-UX-04 are a person's time and no item (D9). `stop` decides each item
+# The acceptance list: doc 16 section 19.4's success criterion of T6 ("-102G1, -102F1, -102F2 with parts
+# and wires; PDF") as items; the 30 minutes of NFR-UX-04 are a person's time and no item. `stop` decides each item
 # mechanically on the saved project; `check-brief` decides them on the reference solution.
 
 [[item]]

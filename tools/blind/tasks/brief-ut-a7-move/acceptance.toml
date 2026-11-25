@@ -1,4 +1,4 @@
-# The acceptance list (WP-S2.12 D7): ADR-0007's probe A7 ("the device back in place with its connection points
+# The acceptance list: ADR-0007's probe A7 ("the device back in place with its connection points
 # connected to those ends") as items. `stop` decides each item mechanically on the saved project; `check-brief`
 # decides them on the reference solution.
 

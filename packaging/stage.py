@@ -2,14 +2,14 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""The staging script of the installed tree, the CLI archives and the AppImage (WP-S6.06 D3, D4, D10, D18;
-standard library only).
+"""The staging script of the installed tree, the CLI archives and the AppImage
+(standard library only).
 
   python3 -I packaging/stage.py tree --bin <dir> --book <dir> --version <v> --out <root>
   python3 -I packaging/stage.py tree --cli --bin <dir> --version <v> --out <root>   # ew alone, for a CLI archive
   python3 -I packaging/stage.py archive --tree <root> --kind zip|tar.gz --out <dir>/ew-<v>-<target>.<kind>
   python3 -I packaging/stage.py pin <name> [--field version|url|sha256]   # a component of packaging/components.toml
-  python3 -I packaging/stage.py snapshot              # the Ubuntu archive snapshot of the Linux container (FT-1222)
+  python3 -I packaging/stage.py snapshot              # the Ubuntu archive snapshot of the Linux container
   python3 -I packaging/stage.py debs [--arch amd64|arm64] <dir>   # the downloaded .deb files against components.toml
   python3 -I packaging/stage.py appdir --tree <root> --out <AppDir>  # D10's AppDir around a staged Linux tree
   python3 -I packaging/stage.py appimage --runtime <file> --image <squashfs> --out <dir>/ElektraWatt-<v>-x86_64.AppImage
@@ -36,7 +36,7 @@ D3's tree without `elektrawatt`, its `.pdb` and `docs/`, so --book is not read.
 `archive` writes a CLI archive of D3 from a staged tree: under the one root folder `ew-<v>-<target>/` (the archive's
 file name without its extension) exactly `ew[.exe]`, `content/`, `samples/`, `THIRD-PARTY-NOTICES.txt`, `NOTICE`,
 `LICENSES/`, `PRIVACY.md`, `SECURITY.md` and `README.md` (ci/cli-artefact-README.md); never `elektrawatt`, a `.pdb`
-or `docs/` (ID-476's hold). Entries are files only, in byte order of their names, with Unix modes 0755 for the
+or `docs/`. Entries are files only, in byte order of their names, with Unix modes 0755 for the
 executable and 0644 for the rest, owner 0, and a fixed time (1980-01-01), so two runs give identical bytes. The file
 is written beside its final name and renamed into place.
 
@@ -81,7 +81,7 @@ LINUX_CLI_BINARIES = ("ew",)
 WINDOWS_CLI_BINARIES = ("ew.exe", "ew.pdb")
 SAMPLE = "sample.ew"
 CLI_README = os.path.join("ci", "cli-artefact-README.md")
-# The CLI archive's entries at the root of a tree, besides the executable (D3).
+# The CLI archive's entries at the root of a tree, besides the executable.
 CLI_ENTRIES = ("content", "samples", NOTICES, "NOTICE", "LICENSES", "PRIVACY.md", "SECURITY.md")
 KINDS = {"zip": ".zip", "tar.gz": ".tar.gz"}
 # 1980-01-01 00:00:00 UTC, the earliest time a zip entry can hold; the tar entries take the same.
@@ -292,7 +292,7 @@ def pin(repo, name, field="version"):
 
 
 def snapshot(repo):
-    """The timestamp of the Ubuntu archive snapshot that the Linux container's apt reads (FT-1222)."""
+    """The timestamp of the Ubuntu archive snapshot that the Linux container's apt reads."""
     value = components(repo).get("apt", {}).get("snapshot", "")
     if not SNAPSHOT.fullmatch(value):
         raise Refusal(f"the apt snapshot of packaging/components.toml is not a time such as 20261102T000000Z: {value}")
@@ -316,7 +316,7 @@ def sha256(path):
 def check_debs(repo, directory, arch="amd64"):
     """`<sha256>  <file>` of each package in `directory`, refused unless the `.deb` files there are exactly the
     packages of packaging/components.toml for `arch` (amd64: the components whose URL is a `.deb`, and `[[apt.deb]]`;
-    arm64: `[[apt.arm64]]`) with their SHA-256 (FT-1223)."""
+    arm64: `[[apt.arm64]]`) with their SHA-256."""
     table = components(repo)
     if arch == "amd64":
         listed = [c for c in table["component"] if c["url"].endswith(".deb")] + table.get("apt", {}).get("deb", [])
@@ -631,7 +631,7 @@ class StageTest(unittest.TestCase):
         fields = {"name", "version", "licence", "url", "sha256", "checked_by", "used_for"}
         hexdigest = re.compile(r"[0-9a-f]{64}")
         for component in table["component"]:
-            # ci/sbom.py reads the two optional keys of a component that reaches an artefact (C50-p2#3).
+            # ci/sbom.py reads the two optional keys of a component that reaches an artefact.
             self.assertTrue(fields <= set(component) <= fields | {"shipped_licence", "no_notice"}, component.get("name"))
             sha = component["sha256"]
             self.assertTrue(sha == "" or hexdigest.fullmatch(sha), sha)
@@ -639,7 +639,7 @@ class StageTest(unittest.TestCase):
             self.assertTrue(pin(REPO, name))
         for name in ("squashfs-tools", "appimage-type2-runtime"):
             self.assertTrue(hexdigest.fullmatch(pin(REPO, name, "sha256")), name)
-        # FT-1222, FT-1223: the packages come from the one snapshot, each with its version and SHA-256.
+        # The packages come from the one snapshot, each with its version and SHA-256.
         pool = f"https://snapshot.ubuntu.com/ubuntu/{snapshot(REPO)}/pool/"
         for component in table["component"]:
             if component["url"].endswith(".deb"):
@@ -657,7 +657,7 @@ class StageTest(unittest.TestCase):
         self.assertEqual({(d["name"], d["version"]) for d in table["apt"]["arm64"]}, arm64)
 
     def test_the_workflow_pins_follow_the_components(self):
-        # FT-1225: the Windows job's setup-python is the version of components.toml, and so is its Python.
+        # The Windows job's setup-python is the version of components.toml, and so is its Python.
         with open(os.path.join(REPO, ".github", "workflows", "package.yml"), encoding="utf-8") as f:
             workflow = f.read()
         # Every job that sets Python up (windows, and D16's windows-11-arm).

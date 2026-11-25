@@ -34,5 +34,4 @@ give and how many pages you use is up to you, as you would do it for a customer.
 ## History
 
 - Version 1: the owner's example brief (grade 2).
-- Version 2: the power supply unit's part is a generic starter part, no longer one the prelude embeds (WP-S2.18 D8,
-  FT-592).
+- Version 2: the power supply unit's part is a generic starter part, no longer one the prelude embeds.

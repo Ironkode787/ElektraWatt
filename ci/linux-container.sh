@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-# The Linux builds in the digest-pinned `ubuntu:22.04` container (WP-S6.06 D6; NFR-MAINT-09, doc 18 §5.3): the
+# The Linux builds in the digest-pinned `ubuntu:22.04` container (NFR-MAINT-09, doc 18 §5.3): the
 # Linux jobs of package.yml (x86_64, and D16's aarch64 in the arm64 image). Runs inside
 # the container as root, from the checkout (mounted at its path on the runner, so the path remaps and the release
 # check see the runner's paths):
@@ -13,7 +13,7 @@
 #       of package.yml, for the AppImage), into the mounted /var/cache/apt/archives and /var/lib/apt/lists, which apt
 #       checks against its signed index. The snapshot's index holds every architecture, so the arm64 image reads the
 #       same source. The archive is Ubuntu's at the time EW_APT_SNAPSHOT (`[apt]` of
-#       packaging/components.toml, FT-1222) on snapshot.ubuntu.com, so it holds the pinned versions for good. The
+#       packaging/components.toml) on snapshot.ubuntu.com, so it holds the pinned versions for good. The
 #       snapshot is served over HTTPS only, and the image has no CA certificates: the runner's bundle is mounted at
 #       /etc/ssl/certs/ca-certificates.crt. `packaging/stage.py debs` then compares the downloaded files with the list.
 #   linux-container.sh check | release | cli
@@ -23,10 +23,10 @@
 #       - check: `cargo check --locked --offline -p elektrawatt -p ew` (the `c-only` job: every build script's C
 #         compilation with a C compiler only);
 #       - release: `ci/release-check.sh env`, `cargo build --release --locked --offline -p elektrawatt -p ew` (a plain
-#         build since ID-1520), `ci/release-check.sh scan` on both binaries (reports `target/release-check-<binary>.md`), and the highest `GLIBC_` symbol version of both,
+#         build), `ci/release-check.sh scan` on both binaries (reports `target/release-check-<binary>.md`), and the highest `GLIBC_` symbol version of both,
 #         which must be at most 2.35 (glibc of Ubuntu 22.04, the oldest Supported Linux); it writes the container's
-#         `dpkg-query --show` to `target/container-packages.txt` for the job summary (FT-1223). The reports go under
-#         target/, so the checkout stays clean (WP-S6.07 D5);
+#         `dpkg-query --show` to `target/container-packages.txt` for the job summary. The reports go under
+#         target/, so the checkout stays clean;
 #       - cli: the same for `ew` alone (D16's aarch64 CLI archive).
 #       The dependencies are fetched on the runner first (`cargo fetch --locked`), into the mounted cargo home.
 #   linux-container.sh appimage
@@ -34,7 +34,7 @@
 #       to `target/squashfs-tools-version.txt` for the job's report (under target/, so the checkout stays clean), and
 #       as the runner's uid and gid writes the squashfs image of the AppDir EW_APPDIR to EW_SQUASHFS: `mksquashfs
 #       <AppDir> <image> -root-owned -noappend -comp zstd`. zstd: the pinned runtime links libzstd and zlib into its
-#       squashfuse (its Makefile), so it reads zstd, which decompresses faster than gzip at a smaller size (D10).
+#       squashfuse (its Makefile), so it reads zstd, which decompresses faster than gzip at a smaller size.
 #   Every mode reads the same apt source, the snapshot, since the downloaded lists are named after it.
 set -euo pipefail
 

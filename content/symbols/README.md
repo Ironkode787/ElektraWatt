@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # Starter symbol library
 
-The IEC 60617 and ISO 1219 style symbols that the golden project needs (WP-S7.02), with their function definitions
+The IEC 60617 and ISO 1219 style symbols that the golden project needs, with their function definitions
 (`../fndefs/`) and the generated QET 10 px edition (`qet10/`). Design background: `docs/design/07-symbols-parts-macros.md`
 §2.3, §2.4, §3.2 and §9.1; grid policy: ADR-0027.
 
@@ -41,7 +41,7 @@ must not share an item id). A reference by key can be re-pointed (`LibRef.extra[
 ## Identity
 
 - `library_id` is the system library `7202fd8b-1024-4bf1-9e99-670772eaa589` (`ew_interop_api::SYSTEM_LIBRARY`,
-  the compiled-in starter `ew-starter`; WP-S1.19 D4, FT-24).
+  the compiled-in starter `ew-starter`).
 - `item_id = v5(SYSTEM_LIBRARY, meta.key)`: UUIDv5 over the key's UTF-8 bytes (the formula of
   `ew_ids::v5::imported_id`). The `@qet10` edition derives its ids from the suffixed key.
 - `id = v5(NS_LIBCOPY, library_id ‖ U+001F ‖ item_id)` (`ew_ids::v5::lib_copy_id`).

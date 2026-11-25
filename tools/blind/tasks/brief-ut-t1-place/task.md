@@ -19,5 +19,5 @@ Leave the project saved when you are done.
 
 ## History
 
-- Version 1: doc 16 §19.4's task T1 as a usability task of the rounds R0 and R1 (WP-S2.12), on GP-UT.
+- Version 1: doc 16 §19.4's task T1 as a usability task of the rounds R0 and R1, on GP-UT.
 - Version 2: on the sample project, its 24 V breaker taken away by the prelude.

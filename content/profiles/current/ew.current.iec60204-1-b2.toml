@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: CC-BY-SA-4.0
 #
 # The current a conductor carries, by cross-section: the table a new wire's cross-section is proposed from when the
-# device that protects it is rated above what its circuit class's size carries (doc 08 §4.2, FT-2055).
+# device that protects it is rated above what its circuit class's size carries (doc 08 §4.2).
 #
 # The values are those of IEC/EN 60204-1:2016 Table 6, installation method B2 (conductors in a duct or a conduit on a
 # wall), PVC-insulated copper, 40 °C ambient, cross-checked against manufacturers' published tables of the same

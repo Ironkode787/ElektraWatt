@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
-"""Draws the shipped ISO 1219 symbols of content/symbols on one module (doc 11 §1 rule 6, as built in rc.2).
+"""Draws the shipped ISO 1219 symbols of content/symbols on one module (doc 11 §1 rule 6).
 
 A valve position is a square of 12 mm with its ports on the 4 mm grid 4 mm apart and 2 mm leads, its paths drawn
 from its function definition's switching model and its actuators 6 mm (the manual override 3 mm); every other
@@ -485,7 +485,7 @@ def cp(i, x, y, d):
 
 
 def additions():
-    """The symbols and function definitions added for the basic pneumatic parts (rc.2, F10)."""
+    """The symbols and function definitions added for the basic pneumatic parts."""
     # --- air preparation ------------------------------------------------------------------------------------------
     fndef_from('ew.fn.filter', 'ew.fn.filter-manual-drain', ['AirPreparation', 'Filter', 'ManualDrain'])
     d = symbol_from('ew.iso.filter', 'ew.iso.filter-manual-drain', 'ew.fn.filter-manual-drain',

@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-# The AppImage's entry point (WP-S6.06 D10): `ew` as the first argument runs the command-line program with the rest,
+# The AppImage's entry point: `ew` as the first argument runs the command-line program with the rest,
 # anything else runs the window's program with every argument. It finds the AppDir beside itself, in the runtime's
 # mount, under --appimage-extract-and-run and in an extracted AppDir run directly; never through an inherited APPDIR,
 # which names another AppImage when this one starts from that one's shell.

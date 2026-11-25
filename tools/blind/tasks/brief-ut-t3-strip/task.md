@@ -19,5 +19,5 @@ Leave the project saved when you are done.
 
 ## History
 
-- Version 1: doc 16 §19.4's task T3 as a usability task of the round R1 (WP-S2.12), on Golden A.
+- Version 1: doc 16 §19.4's task T3 as a usability task of the round R1, on Golden A.
 - Version 2: on the sample project, its 24 V strip -X1021.

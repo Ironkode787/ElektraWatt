@@ -1,4 +1,4 @@
-# The acceptance list (WP-S2.12 D7): doc 16 section 19.4's success criterion of T4 as items. Opening a list of the
+# The acceptance list: doc 16 section 19.4's success criterion of T4 as items. Opening a list of the
 # Preview tab (Tags, Xrefs, Pages) is the window's own state and dispatches nothing, so A3 decides that the renumber went
 # through its preview and was applied from it, and the soft A4 is the checker's.
 

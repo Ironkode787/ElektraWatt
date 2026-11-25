@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""The checks and the publishing steps of the release workflow (WP-S6.07 D5, D8, D13, slimmed by ID-1520; doc 18
+"""The checks and the publishing steps of the release workflow (slimmed down; doc 18
 CI-R-01, CI-R-06, CI-R-11), run by .github/workflows/release.yml.
 
   python3 -I ci/release-verify.py tag <tag>                  CI-R-01: prints `version=<X.Y.Z>` (for GITHUB_OUTPUT)
@@ -13,10 +13,10 @@ CI-R-01, CI-R-06, CI-R-11), run by .github/workflows/release.yml.
 
 `tag` takes a candidate tag `v<X.Y.Z>-rc.<n>` (D2) and refuses it unless `X.Y.Z` is `[workspace.package].version` of
 Cargo.toml and docs/release-notes/<X.Y.Z>.md exists with text beyond its licence comment and a summary: a section
-`## In short` of at most 30 bullets, none longer than 160 characters. It asks for no CI run: CI is off until 1.0
-(ID-1519, ID-1520). `sums` writes `SHA256SUMS` in sha256sum's format (`<hex>  <name>`, sorted by name)
+`## In short` of at most 30 bullets, none longer than 160 characters. It asks for no CI run: CI is off until 1.0.
+`sums` writes `SHA256SUMS` in sha256sum's format (`<hex>  <name>`, sorted by name)
 over the release files of 0.1.x in <dir>: the CLI archives of x86_64 Windows and Linux, the Windows setup and the
-AppImage (ID-476's hold lifted, ID-1331 (2), WP-S6.08 D26); it refuses any other file and a missing one.
+AppImage; it refuses any other file and a missing one.
 
 `draft` creates the draft prerelease <tag> with the summary of its version's notes and every file of <dir>
 (`gh release create --draft --prerelease --verify-tag`, so no tag is created), downloads its files back and verifies
@@ -25,7 +25,7 @@ verifies them; with `--dry` it prints what it would publish and changes nothing;
 release v<X.Y.Z> (published, latest, not a prerelease) with the draft's notes and those files on the candidate's
 commit, which creates the tag there, and verifies the published files again. Verifying a release's files: the files
 are SHA256SUMS and exactly the files it lists, and `sha256sum --check --strict SHA256SUMS` passes (no build provenance
-at 0.1.x, ID-1520). Standard library only; the GitHub CLI and sha256sum are the runner's.
+at 0.1.x). Standard library only; the GitHub CLI and sha256sum are the runner's.
 """
 import argparse
 import contextlib
@@ -44,7 +44,7 @@ import unittest
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CANDIDATE = re.compile(r"v(\d+\.\d+\.\d+)-rc\.\d+")
 SUMS = "SHA256SUMS"
-# ID-1313, ID-1331 (2), ID-1520: the x86_64 CLI archives and the installers.
+# The x86_64 CLI archives and the installers.
 ARCHIVES = ("ew-{v}-x86_64-pc-windows-msvc.zip", "ew-{v}-x86_64-unknown-linux-gnu.tar.gz",
             "ElektraWatt-{v}-x64-user-setup.exe", "ElektraWatt-{v}-x86_64.AppImage")
 # The notes' summary, which is the release's text: the heading of its section and the most bullets it may hold, and
@@ -117,7 +117,7 @@ def check_tag(repo, tag):
 
 
 def release_files(directory, version):
-    """The release files of `directory`, sorted by name: refuses any file that is no release file of ID-1313."""
+    """The release files of `directory`, sorted by name: refuses any file that is no release file."""
     names = sorted(n for n in os.listdir(directory) if n != SUMS)
     archives = [a.format(v=version) for a in ARCHIVES]
     for name in names:
@@ -362,7 +362,7 @@ class ReleaseVerifyTest(unittest.TestCase):
         self.assertEqual(self.refused(write_sums, directory, "0.1.0"), f"{directory} holds a SHA256SUMS already")
 
     def test_sums_refuse_a_stray_file_and_an_sbom(self):
-        # ID-1520: no SBOM is a release file any more, and the aarch64 archives never were.
+        # No SBOM is a release file any more, and the aarch64 archives never were.
         for stray in ("ew-0.1.0-aarch64-unknown-linux-gnu.tar.gz", "ew-0.1.0-x86_64-pc-windows-msvc.zip.cdx.json"):
             directory = self.release_dir(self.FILES + [stray])
             self.assertEqual(self.refused(write_sums, directory, "0.1.0"),
@@ -370,14 +370,14 @@ class ReleaseVerifyTest(unittest.TestCase):
             shutil.rmtree(directory)
 
     def test_sums_require_every_release_file(self):
-        # WP-S6.08 D26 (ID-1331 (2)): the setup and the AppImage are release files as the archives are.
+        # The setup and the AppImage are release files as the archives are.
         for name in self.FILES:
             directory = self.release_dir([f for f in self.FILES if f != name])
             self.assertEqual(self.refused(write_sums, directory, "0.1.0"), f"{name} is missing from {directory}")
             shutil.rmtree(directory)
 
     def test_the_verify_job_requires_nothing_of_main(self):
-        # WP-S6.08 D25 (ID-1412): a candidate is tagged on its release branch `release/<X.Y>`, so the `verify` job
+        # A candidate is tagged on its release branch `release/<X.Y>`, so the `verify` job
         # names no branch: neither `main` nor a branch ref or filter.
         with open(os.path.join(REPO, ".github", "workflows", "release.yml"), encoding="utf-8") as f:
             text = f.read()

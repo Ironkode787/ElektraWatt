@@ -16,6 +16,6 @@ Export the drawing set and show where 24V on folio 101 continues.
 
 ## History
 
-- Version 1: doc 16 §19.4's task T5 as a usability task of the round R1 (WP-S2.12), on Golden A. The PDF's own link
+- Version 1: doc 16 §19.4's task T5 as a usability task of the round R1, on Golden A. The PDF's own link
   cannot be clicked by a tester, so following the cross-reference in the program stands in for it.
 - Version 2: on the sample project, the 24 V of its folio 101.

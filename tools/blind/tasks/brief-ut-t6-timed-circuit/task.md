@@ -22,6 +22,6 @@ Use placeholder data only: no real names, addresses or drawing numbers.
 
 ## History
 
-- Version 1: doc 16 §19.4's task T6 (NFR-UX-04) as a usability task of the round R1 for the QET personas (WP-S2.12),
+- Version 1: doc 16 §19.4's task T6 (NFR-UX-04) as a usability task of the round R1 for the QET personas,
   from the wizard's basic project with three golden part copies embedded in the prelude, as `gpp-101-103` embeds its
-  parts (the parts come from `ew-sample-parts` once the picker offers them, ID-1332 O2). Run with `--no-book`.
+  parts (the parts come from `ew-sample-parts` once the picker offers them). Run with `--no-book`.

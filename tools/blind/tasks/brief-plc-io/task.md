@@ -39,4 +39,4 @@ give, which channels you use and how many pages you use is up to you, as you wou
 
 ## History
 
-- Version 1: the PLC variant of `brief-relays-valves` (grade 3; WP-S2.18 part 4, FT-593).
+- Version 1: the PLC variant of `brief-relays-valves` (grade 3).

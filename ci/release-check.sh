@@ -2,9 +2,9 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-# The release-build assertions of CI-R-03 for the Linux build of `elektrawatt` and `ew` (FT-333; doc 18 §3.5, §5.2,
+# The release-build assertions of CI-R-03 for the Linux build of `elektrawatt` and `ew` (doc 18 §3.5, §5.2,
 # §5.4; NFR-REL-07, NFR-SEC-20), run inside the build container by the `linux` job of `.github/workflows/package.yml`
-# (ci/linux-container.sh, WP-S6.06 D6). Two modes:
+# (ci/linux-container.sh). Two modes:
 #
 #   release-check.sh env
 #       Run in the shell that starts the release build, right before `cargo build`. Fails unless PKG_CONFIG is
@@ -20,14 +20,14 @@
 #   release-check.sh scan [--cli] <binary> <target-dir> <report.md>
 #       After the build. Fails on any hit of
 #       1. a build-host path in the binary (`strings -a`): `/home/`, `/usr/lib/x86_64-linux-gnu`,
-#          `/usr/lib/aarch64-linux-gnu` (WP-S6.06 D16's arm64 build), `/opt/`, and the
+#          `/usr/lib/aarch64-linux-gnu` (the arm64 build), `/opt/`, and the
 #          values of GITHUB_WORKSPACE, CARGO_HOME, RUSTUP_HOME and RUNNER_TEMP when set;
 #       2. a hard link (`readelf -d` NEEDED) to libwayland*, libxkbcommon*, libX11*, libxcb*, libEGL*, libGL* or
 #          libvulkan*: these are dlopen'ed at run time, and a hard link to any of them breaks NFR-PLAT-03's fallback
 #          chain (the program must start, and fall back, where the library is missing);
 #       3. a `Some(..)` library directory in x11-dl's generated `config.rs` under <target-dir>/release/build (with
 #          PKG_CONFIG=false every entry is `None`), or no such file at all (the layout changed under the check).
-#          With `--cli` (a build of `ew` alone, WP-S6.06 D16) section 3 reads "not applicable": x11-dl is a dependency
+#          With `--cli` (a build of `ew` alone) section 3 reads "not applicable": x11-dl is a dependency
 #          of the window's program only, so that build has no such file; sections 1 and 2 run as always.
 #       Writes a Markdown report to <report.md> in every case, `ldd` output included for information. Strings listed
 #       in ALLOWED_STRINGS below are not counted as build-host paths.
@@ -131,7 +131,7 @@ mode_scan() {
   done
 
   {
-    echo "# Release check of \`$(basename "$binary")\` (CI-R-03 before WP-S6.07; FT-333)"
+    echo "# Release check of \`$(basename "$binary")\` (CI-R-03)"
     echo
     echo "- commit: ${GITHUB_SHA:-local}"
     echo "- binary: \`$binary\`, $(stat -c %s "$binary") bytes, sha256 \`$(sha256sum "$binary" | cut -d' ' -f1)\`"

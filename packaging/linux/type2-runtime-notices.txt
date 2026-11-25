@@ -2,8 +2,8 @@ The AppImage type-2 runtime: its licence and notices
 =====================================================
 
 Every ElektraWatt AppImage (ElektraWatt-<version>-x86_64.AppImage) begins with the static type-2 runtime of the
-AppImage project, a separate program aggregated with ElektraWatt's files and never linked into ElektraWatt (WP-S6.06
-D2, D10; decision log ID-1275). The runtime mounts or extracts the image and starts AppRun. packaging/components.toml
+AppImage project, a separate program aggregated with ElektraWatt's files and never linked into ElektraWatt.
+The runtime mounts or extracts the image and starts AppRun. packaging/components.toml
 pins it (`appimage-type2-runtime`): release 20251108, file runtime-x86_64, SHA-256
 2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d.
 

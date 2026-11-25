@@ -1,4 +1,4 @@
-# The hints (WP-S2.12 D8), from where to look to what to do, in the user's words; `hint` gives them one at a time.
+# The hints, from where to look to what to do, in the user's words; `hint` gives them one at a time.
 
 [[hint]]
 text = "Terminal strips are edited in the strip editor, a table of the strip's terminals in the Terminal strips navigator; it is in the Edit menu."

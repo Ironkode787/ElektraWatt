@@ -1,4 +1,4 @@
-# The acceptance list (WP-S2.12 D7): doc 16 section 19.4's success criterion of T5 ("PDF written; the participant
+# The acceptance list: doc 16 section 19.4's success criterion of T5 ("PDF written; the participant
 # follows a link to 103-A1") as items. A followed cross-reference in the program stands in for the PDF's link, which no
 # tester can click; a click on a cross-reference counts as `nav.follow` when it shows another page.
 

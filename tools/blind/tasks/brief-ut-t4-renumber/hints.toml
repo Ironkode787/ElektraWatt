@@ -1,4 +1,4 @@
-# The hints (WP-S2.12 D8), from where to look to what to do, in the user's words; `hint` gives them one at a time.
+# The hints, from where to look to what to do, in the user's words; `hint` gives them one at a time.
 
 [[hint]]
 text = "A folio's number is not typed into the folio: the program renumbers the folios of a section for you and shows what will change before it does."

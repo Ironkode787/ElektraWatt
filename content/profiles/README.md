@@ -5,8 +5,8 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # Shipped profiles
 
-Profile data that ships with the application and that the company-standard wizard offers (doc 16 §9.2 step 3,
-FT-337). Each file is one value of the project-settings member it names, as `project.settings.set` writes it; the
+Profile data that ships with the application and that the company-standard wizard offers (doc 16 §9.2 step 3).
+Each file is one value of the project-settings member it names, as `project.settings.set` writes it; the
 current table is no member: `ew-derive` compiles it in and reads it for every project.
 
 | Path | Member | Profile |
@@ -15,7 +15,7 @@ current table is no member: `ew-derive` compiles it in and reads it for every pr
 | `colour/ew.colour.iec60445-installation.json` | `colour_profile` | "IEC 60445 installation" |
 | `colour/company.dbu-wh-24v.json` | `colour_profile` | "DBU/WH 24 V", the sample project's (basis: company convention, `verified: true`) |
 | `size/company.0.75-1.5.json` | `size_profile` | "0.75/1.5", the sample project's (basis: company convention, `verified: true`) |
-| `current/ew.current.iec60204-1-b2.toml` | — (read by `ew-derive`) | the current a cross-section carries, IEC 60204-1:2016 Table 6, method B2; a wire's size is raised to carry its protecting device's rating (doc 08 §4.2, FT-2055) |
+| `current/ew.current.iec60204-1-b2.toml` | — (read by `ew-derive`) | the current a cross-section carries, IEC 60204-1:2016 Table 6, method B2; a wire's size is raised to carry its protecting device's rating (doc 08 §4.2) |
 
 **Provenance.** The rows are the project's own table of `docs/design/08-connections-terminals-cables.md` §4.3,
 cited by standard and clause (NFR-COMP-05). No text, table or figure of a standard was copied; the group, function
@@ -23,7 +23,7 @@ and colour names are the project's own words, and the colour codes are the IEC 6
 ship with `verified: false` until a reviewed change checks them against licensed copies of the standards; the rows
 that doc 08 marks "(verify)" say so in their function text.
 
-**The company profiles** (WP-S7.03 D5, D6) are the sample project's own convention, byte for byte the values its
+**The company profiles** are the sample project's own convention, byte for byte the values its
 `project.jsonl` holds (compact, sorted keys, no trailing newline); they cite no standard, so they are `verified:
 true`. No standard-based size profile ships at 0.1.0: the built-in sizes stay code.
 

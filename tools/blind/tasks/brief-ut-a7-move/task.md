@@ -21,6 +21,6 @@ Leave the project saved when you are done.
 ## History
 
 - Version 1: the ADR-0007 probe A7 ("Validation before M2", autoconnect on move) as a usability task of the rounds R0
-  and R1 (WP-S2.12): on Golden A, the prelude deletes the wire S56:14 to E56:X1 and moves E56 twelve grid steps to the
+  and R1: on Golden A, the prelude deletes the wire S56:14 to E56:X1 and moves E56 twelve grid steps to the
   right.
 - Version 2: on the sample project, the lamp of its contactor on folio 102.

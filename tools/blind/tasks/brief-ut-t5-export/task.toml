@@ -1,4 +1,4 @@
-# A usability task (WP-S2.12 section 5.1): doc 16 section 19.4's T5 as a brief, on a copy of the sample.
+# A usability task: doc 16 section 19.4's T5 as a brief, on a copy of the sample.
 # `check-brief brief-ut-t5-export` proves it runnable.
 kind = "brief"
 grade = 1

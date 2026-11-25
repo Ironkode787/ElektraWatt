@@ -86,7 +86,7 @@ id = "A11"
 kind = "soft"
 what = "Every channel used shows its derived PLC address (I0.0, Q0.0, ...) on the drawing, at the card's pin or at the device it was assigned to."
 how = "pages"
-infeasible = "not decidable by a query: the cards' pins print their channels' addresses on the reference solution's page, and since FT-753 the PLC navigator's drop on a field device wired to a card pin binds that pin (a valve beside a valve terminal is attached and bound), so the item is reachable from the window; but no api_v1 view carries a channel's binding or address, so only the checker's reading of the pages decides it"
+infeasible = "not decidable by a query: the cards' pins print their channels' addresses on the reference solution's page, and the PLC navigator's drop on a field device wired to a card pin binds that pin (a valve beside a valve terminal is attached and bound), so the item is reachable from the window; but no api_v1 view carries a channel's binding or address, so only the checker's reading of the pages decides it"
 
 [[item]]
 id = "A12"
@@ -95,7 +95,7 @@ what = "The supply potentials are named and typed: L, N, PE, +24 V DC and 0 V."
 how = "connections"
 query = "SELECT name FROM api_v1_potential WHERE ac_dc IS NOT NULL AND voltage IS NOT NULL"
 expect = ">= 4"
-infeasible = "the reference solution defines no potential, so its replay meets no row; the window names and types one with Draw ▸ Connect ▸ Define potential… (FT-1202), so a tester can meet it (FT-1244: check-brief keeps it soft)"
+infeasible = "the reference solution defines no potential, so its replay meets no row; the window names and types one with Draw ▸ Connect ▸ Define potential…, so a tester can meet it (check-brief keeps it soft)"
 
 [[item]]
 id = "A13"

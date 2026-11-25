@@ -1,4 +1,4 @@
-# The acceptance list of RP3 (WP-S2.19 section 11.3), on a copy of the sample, whose check report is clean, so no item
+# The acceptance list of RP3, on a copy of the sample, whose check report is clean, so no item
 # asks for a clean report that the persona's change alone could spoil. Correctness is A1 and A2 (`ew sql`); the
 # measures are A4 and A7 here and `ew layout <project> --page 102` in the round's report: its hard rules must be 0, and
 # its crossings and bends are written beside the keep score and the sample's own `ew layout` line. A finding of the

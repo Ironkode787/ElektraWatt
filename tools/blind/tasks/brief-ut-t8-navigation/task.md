@@ -14,5 +14,5 @@ On folio 101, follow 0V to its continuation and come back.
 
 ## History
 
-- Version 1: doc 16 §19.4's task T8 as a usability task of the rounds R0 and R1 (WP-S2.12), on Golden A.
+- Version 1: doc 16 §19.4's task T8 as a usability task of the rounds R0 and R1, on Golden A.
 - Version 2: on the sample project, the 0 V of its folio 101.

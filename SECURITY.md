@@ -71,4 +71,4 @@ What each release does against each threat, with its controls and evidence, is i
 
 ## What follows at 1.0
 
-The notification process of the EU Cyber Resilience Act and the disclosure exercise follow by 1.0 (WP-S6.10).
+The notification process of the EU Cyber Resilience Act and the disclosure exercise follow by 1.0.

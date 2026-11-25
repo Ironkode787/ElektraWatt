@@ -30,7 +30,7 @@ glob = "bin/**"
 allowed = ["GPL-3.0-or-later"]
 crate = true
 
-# The hostile corpus of WP-S6.04 D10: the project's own attack files, CC0-1.0 (L8), in a folder per class; its index
+# The hostile corpus: the project's own attack files, CC0-1.0 (L8), in a folder per class; its index
 # is CC-BY-4.0 (L9).
 [[path]]
 glob = "crates/ew-testkit/hostile/*/**"
@@ -134,12 +134,12 @@ allowed = ["MIT OR Apache-2.0"]
 glob = "content/**"
 allowed = ["CC-BY-SA-4.0"]
 
-# L8: the generic starter parts (WP-S2.18 D5) are part facts (CC0-1.0); the longer glob beats the L7 rule above.
+# L8: the generic starter parts are part facts (CC0-1.0); the longer glob beats the L7 rule above.
 [[path]]
 glob = "content/libraries/ew-starter-parts.ewlib/**"
 allowed = ["CC0-1.0"]
 
-# L8: the sample project's catalogue parts (WP-S7.03 D3), CC0 part facts (CC0-1.0).
+# L8: the sample project's catalogue parts, CC0 part facts (CC0-1.0).
 [[path]]
 glob = "content/libraries/ew-sample-parts.ewlib/**"
 allowed = ["CC0-1.0"]
@@ -150,17 +150,17 @@ allowed = ["CC0-1.0"]
 glob = "assets/fonts/**"
 allowed = ["OFL-1.1"]
 
-# L14: the vendored Tabler Icons outline SVGs (MIT, WP-S2.17 D9); REUSE.toml annotations, provenance in NOTICE.
+# L14: the vendored Tabler Icons outline SVGs (MIT); REUSE.toml annotations, provenance in NOTICE.
 [[path]]
 glob = "assets/icons/tabler/**"
 allowed = ["MIT"]
 
-# L1: the project's own icon glyphs (WP-S2.17 D9), the application's licence; REUSE.toml annotations.
+# L1: the project's own icon glyphs, the application's licence; REUSE.toml annotations.
 [[path]]
 glob = "assets/icons/ew/**"
 allowed = ["GPL-3.0-or-later"]
 
-# L1 and L14: the application icon (WP-S6.06 §13 O5, ID-1280), Tabler's `bolt` (MIT) on the project's square;
+# L1 and L14: the application icon, Tabler's `bolt` (MIT) on the project's square;
 # REUSE.toml annotation, provenance in NOTICE.
 [[path]]
 glob = "assets/icons/app/**"
@@ -183,17 +183,17 @@ allowed = ["GPL-3.0-or-later"]
 glob = "docs/book/src/reference/rules/**"
 allowed = ["GPL-3.0-or-later"]
 
-# WP-S2.08 part 1 (D5 (b)): the glossary page is generated from ew-viewmodel's glossary file (GPL, like the crate).
+# The glossary page is generated from ew-viewmodel's glossary file (GPL, like the crate).
 [[path]]
 glob = "docs/book/src/reference/glossary.md"
 allowed = ["GPL-3.0-or-later"]
 
-# WP-S2.08 part 2: the keymap page is generated from ew-viewmodel's keymap sheet (GPL, like the crate).
+# The keymap page is generated from ew-viewmodel's keymap sheet (GPL, like the crate).
 [[path]]
 glob = "docs/book/src/reference/keymaps.md"
 allowed = ["GPL-3.0-or-later"]
 
-# WP-S1.22 D15 (the orchestrator's ruling 3, cycle 42: each generated page keeps its source's licence): the CLI, query
+# The CLI, query
 # and api_v1 pages are generated from the snapshots of the GPL crates bin/ew, ew-api and ew-sqlview; the format pages
 # from the project format's JSON Schemas (schemas/0.1, L5, MIT OR Apache-2.0).
 [[path]]
@@ -218,20 +218,20 @@ allowed = ["MIT OR Apache-2.0"]
 glob = "docs/map/**"
 allowed = ["GPL-3.0-or-later"]
 
-# WP-S7.05 D13, D18: the release-notes pages are generated from docs/release-notes/ (CC-BY-4.0, L9), whose licence
+# The release-notes pages are generated from docs/release-notes/ (CC-BY-4.0, L9), whose licence
 # they keep.
 [[path]]
 glob = "docs/book/src/reference/release-notes/**"
 allowed = ["CC-BY-4.0"]
 
-# The blind drafter's files (WP-S6.13, ID-622, FT-415): the prompts, personas, task sheets, recordings and the harness
+# The blind drafter's files: the prompts, personas, task sheets, recordings and the harness
 # help are prose and data written for agents, CC-BY-4.0 like docs/ (L9). The harness code is xtask's (xtask/**,
 # MIT OR Apache-2.0); the action list it reads is of the reference (target/reference), never committed.
 [[path]]
 glob = "tools/blind/**"
 allowed = ["CC-BY-4.0"]
 
-# The ISO 1219 symbol generator (rc.2): authoring code for content/symbols, MIT OR Apache-2.0 like xtask's.
+# The ISO 1219 symbol generator: authoring code for content/symbols, MIT OR Apache-2.0 like xtask's.
 [[path]]
 glob = "tools/iso1219/**"
 allowed = ["MIT OR Apache-2.0"]
@@ -327,7 +327,7 @@ glob = "crates/*/tests/fixtures/**"
 allowed = ["CC0-1.0"]
 
 # L8 (format fixture): fixtures/format/ holds each released format's frozen fixture and its expected save: format
-# 0.1's is the frozen reference project (ADR-0011 amendments 6 and 7, WP-S6.08 D13).
+# 0.1's is the frozen reference project (ADR-0011 amendments 6 and 7).
 [[path]]
 glob = "fixtures/format/**"
 allowed = ["CC0-1.0"]
@@ -367,12 +367,12 @@ allowed = ["MIT OR Apache-2.0"]
 glob = "ci/**.md"
 allowed = ["CC-BY-4.0"]
 
-# The packaging scripts and their component list (WP-S6.06), like ci/.
+# The packaging scripts and their component list, like ci/.
 [[path]]
 glob = "packaging/**"
 allowed = ["MIT OR Apache-2.0"]
 
-# L14: the licence file and notices of the AppImage's type-2 runtime (WP-S6.06 D2, ID-1275), quoted from upstream;
+# L14: the licence file and notices of the AppImage's type-2 runtime, quoted from upstream;
 # the runtime is aggregated with the AppImage, never committed. REUSE.toml annotation, provenance in NOTICE.
 [[path]]
 glob = "packaging/linux/type2-runtime-notices.txt"

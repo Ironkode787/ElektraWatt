@@ -1,19 +1,19 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-# The release packaging of 0.1.x (WP-S6.06 D8, slimmed for an early alpha by ID-1520; doc 18 §5.2 CI-R-03, CI-R-05):
+# The release packaging of 0.1.x (slimmed for an early alpha; doc 18 §5.2 CI-R-03, CI-R-05):
 # one workflow builds, from one commit, the x86_64 release binaries on Windows and Linux, stages the installed tree of
 # D3, writes the CLI archives and the installers. It runs by hand and through release.yml's `workflow_call`.
 #
 # - `book` builds the user guide once (ci/build-book.sh, D7), which the installers ship, and hands it to the OS jobs
 #   as an artifact (HTML, no binary).
-# - `windows` (D5): the third-party notices (cargo-about), `cargo build --release` with the static C runtime and
+# - `windows`: the third-party notices (cargo-about), `cargo build --release` with the static C runtime and
 #   link.exe, the staged tree (packaging/stage.py, D4), its smoke test (`--version` of both programs and `elektrawatt
 #   --smoke` on the staged sample, IN-6), the CLI archive and the per-user setup (makensis, NSIS pinned in
 #   packaging/components.toml, compiles packaging/windows/elektrawatt.nsi).
-# - `linux` (D6): the notices, then the build in the digest-pinned `ubuntu:22.04` container with `gcc` and
+# - `linux`: the notices, then the build in the digest-pinned `ubuntu:22.04` container with `gcc` and
 #   `libc6-dev` (exact versions, packaging/components.toml, downloaded from Ubuntu's archive at its snapshot and
-#   compared with the list, FT-1222, FT-1223) and no C++ compiler, with no network, the release check of CI-R-03 on
+#   compared with the list) and no C++ compiler, with no network, the release check of CI-R-03 on
 #   both binaries and glibc 2.35 at most (ci/linux-container.sh, IN-3); the staged tree, the same smoke test, the CLI
 #   archive, and the AppImage: the AppDir around the staged tree (packaging/stage.py appdir), its squashfs image
 #   written by mksquashfs in the build container (squashfs-tools from the same snapshot, zstd) and the pinned type-2
@@ -22,16 +22,16 @@
 # Every tree ships the licence texts and NOTICE (stage.py) beside THIRD-PARTY-NOTICES.txt; NOTICE names the non-crate
 # components (the fonts, SQLite, the AppImage's runtime).
 #
-# ID-476's hold: no binary that links the UI graph leaves its job. With `upload: false` (a dispatch, and every call
+# The hold: no binary that links the UI graph leaves its job. With `upload: false` (a dispatch, and every call
 # but the release's) a job uploads only its CLI archive, as the artefact `ew-<os>-<arch>-unsigned-dev-<short sha>` for
 # 90 days, and its reports. `upload: true` uploads the same archive under its release name for one day, and, the hold
-# lifted for the release (ID-1331 (2), WP-S6.08 D26), the setup and the AppImage beside it as
+# lifted for the release, the setup and the AppImage beside it as
 # `ew-<v>-<target>-setup` and `ew-<v>-<target>-appimage`, which the release's `sums` job collects into the release
 # files; in every other run they are built but never leave their jobs.
 #
-# `<v>`: the `version` input, or `<workspace version>-dev.<short sha>` (D8). It names the archives, the setup, the
+# `<v>`: the `version` input, or `<workspace version>-dev.<short sha>`. It names the archives, the setup, the
 # staged README and the archive's root folder. The programs print the workspace version (CARGO_PKG_VERSION); the jobs
-# assert that they print the version of Cargo.toml and that `<v>` is that version, alone or followed by `-` (FT-1227).
+# assert that they print the version of Cargo.toml and that `<v>` is that version, alone or followed by `-`.
 #
 # Hardening (§5.4, NFR-SEC-19): actions pinned by commit SHA with a version comment, the image by
 # digest, every download by version and SHA-256, read-only default token, no secret, credentials not persisted by the
@@ -40,7 +40,7 @@
 name: package
 
 on:
-  # Off until 1.0 (owner, 2026-11-08, ID-1519): no push, pull-request or schedule trigger; run it by hand.
+  # Off until 1.0 (owner, 2026-11-08): no push, pull-request or schedule trigger; run it by hand.
   workflow_dispatch:
     inputs:
       version:
@@ -54,7 +54,7 @@ on:
         type: string
         default: ""
       upload:
-        description: "Upload every artefact for one day under its release name (WP-S6.07's release only)"
+        description: "Upload every artefact for one day under its release name (the release's run only)"
         type: boolean
         default: false
 
@@ -123,7 +123,7 @@ jobs:
         with:
           shared-key: package-windows
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      # FT-1225: stage.py needs Python 3.11 or newer (tomllib); the version is packaging/components.toml's, which
+      # stage.py needs Python 3.11 or newer (tomllib); the version is packaging/components.toml's, which
       # stage.py's own tests compare with this step.
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
@@ -163,7 +163,7 @@ jobs:
           mkdir -p target/release
           cargo about generate -o target/release/THIRD-PARTY-NOTICES.txt ci/third-party-notices.hbs
       # D5: an explicit RUSTFLAGS replaces the target rustflags of .cargo/config.toml, so the programs link with
-      # link.exe and not with the local builds' rust-lld (ID-746); the C runtime is linked statically (doc 18 §8: no
+      # link.exe and not with the local builds' rust-lld; the C runtime is linked statically (doc 18 §8: no
       # redistributable), and the release check's three path remaps keep the cargo home, the rustup home and the
       # checkout out of the binaries. link.exe writes elektrawatt.pdb and ew.pdb beside them (public symbols only).
       # The release check's environment step runs in the shell that starts the build, with PKG_CONFIG=false as on
@@ -245,7 +245,7 @@ jobs:
           {
             echo "Windows (x86_64): $(python --version 2>&1)."
             if [ -n "${SETUP:-}" ]; then
-              echo "Compiled \`$(basename "$(cygpath -u "$SETUP")")\` with NSIS ${NSIS_VERSION:-}; it leaves the job only in the release's run (\`upload: true\`, ID-1331 (2))."
+              echo "Compiled \`$(basename "$(cygpath -u "$SETUP")")\` with NSIS ${NSIS_VERSION:-}; it leaves the job only in the release's run (\`upload: true\`)."
             else
               echo "No setup was compiled (see the log)."
             fi
@@ -255,14 +255,14 @@ jobs:
               echo "No CLI archive was uploaded (see the log)."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
-      # The CLI archive; the setup only in the release's run (below), the staged tree never (ID-476).
+      # The CLI archive; the setup only in the release's run (below), the staged tree never.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ env.UPLOAD_NAME }}
           path: ${{ runner.temp }}/dist/${{ env.ARCHIVE }}
           if-no-files-found: error
           retention-days: ${{ env.UPLOAD_DAYS }}
-      # WP-S6.08 D26 (ID-1331 (2), ID-476's hold lifted): with `upload: true` the setup joins the release files, under a
+      # With `upload: true` the setup joins the release files, under a
       # name the release's `sums` job collects with the archive.
       - if: inputs.upload
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -342,8 +342,8 @@ jobs:
           done
           echo "::error::docker pull of $LINUX_BUILD_IMAGE failed three times: the job has no release build without the image"
           exit 1
-      # FT-1222: the archive of Ubuntu at the snapshot of packaging/components.toml, over HTTPS with the runner's CA
-      # bundle (the image has none); squashfs-tools for the AppImage (D2).
+      # The archive of Ubuntu at the snapshot of packaging/components.toml, over HTTPS with the runner's CA
+      # bundle (the image has none); squashfs-tools for the AppImage.
       - name: download gcc, libc6-dev and squashfs-tools in the container
         env:
           EW_GCC_VERSION: ${{ steps.pins.outputs.gcc }}
@@ -360,7 +360,7 @@ jobs:
             --volume "$RUNNER_TEMP/apt/lists:/var/lib/apt/lists" \
             --volume "$PWD/ci/linux-container.sh:/linux-container.sh:ro" \
             "$LINUX_BUILD_IMAGE" bash /linux-container.sh download
-      # FT-1223: the downloaded packages are those of packaging/components.toml, each with its SHA-256.
+      # The downloaded packages are those of packaging/components.toml, each with its SHA-256.
       - name: compare the downloaded packages with packaging/components.toml
         run: python3 -I packaging/stage.py debs "$RUNNER_TEMP/apt/archives"
       # IN-3: no network, no C++ compiler (asserted), PKG_CONFIG=false and the release check's remaps; the checkout,
@@ -410,7 +410,7 @@ jobs:
           archive="ew-$VERSION-$TARGET.tar.gz"
           python3 -I packaging/stage.py archive --tree "$RUNNER_TEMP/tree" --kind tar.gz --out "$RUNNER_TEMP/dist/$archive"
           echo "ARCHIVE=$archive" >> "$GITHUB_ENV"
-      # D2, ID-1275: the static type-2 runtime, pinned by URL and SHA-256 in packaging/components.toml and checked
+      # The static type-2 runtime, pinned by URL and SHA-256 in packaging/components.toml and checked
       # before it is used, so an upstream asset that changes fails here.
       - name: the AppImage runtime (pinned)
         run: |
@@ -484,7 +484,7 @@ jobs:
               echo
             done
             if [ -n "${APPIMAGE:-}" ]; then
-              echo "Built \`$APPIMAGE\` with the type-2 runtime $(python3 -I packaging/stage.py pin appimage-type2-runtime) and $(cat target/squashfs-tools-version.txt 2> /dev/null || echo 'mksquashfs') (zstd); it leaves the job only in the release's run (\`upload: true\`, ID-1331 (2))."
+              echo "Built \`$APPIMAGE\` with the type-2 runtime $(python3 -I packaging/stage.py pin appimage-type2-runtime) and $(cat target/squashfs-tools-version.txt 2> /dev/null || echo 'mksquashfs') (zstd); it leaves the job only in the release's run (\`upload: true\`)."
             else
               echo "No AppImage was built (see the log)."
             fi
@@ -495,7 +495,7 @@ jobs:
               echo "No CLI archive was uploaded (see the log)."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
-      # The reports only; the AppImage leaves the job only in the release's run (below, ID-1331 (2)).
+      # The reports only; the AppImage leaves the job only in the release's run (below).
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
@@ -503,14 +503,14 @@ jobs:
           path: target/release-check-*.md
           if-no-files-found: ignore
           retention-days: 30
-      # The CLI archive; the AppImage only in the release's run (below, ID-1331 (2)).
+      # The CLI archive; the AppImage only in the release's run (below).
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ env.UPLOAD_NAME }}
           path: ${{ runner.temp }}/dist/${{ env.ARCHIVE }}
           if-no-files-found: error
           retention-days: ${{ env.UPLOAD_DAYS }}
-      # WP-S6.08 D26 (ID-1331 (2), ID-476's hold lifted): with `upload: true` the AppImage joins the release files, under
+      # With `upload: true` the AppImage joins the release files, under
       # a name the release's `sums` job collects with the archive.
       - if: inputs.upload
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

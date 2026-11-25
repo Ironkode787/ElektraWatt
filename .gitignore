@@ -5,7 +5,7 @@
 
 **/*.rs.bk
 .DS_Store
-# The bytecode a `python` run of the ci/ or tools/ scripts leaves (FT-1303).
+# The bytecode a `python` run of the ci/ or tools/ scripts leaves.
 __pycache__/
 
 # The book's generated reference pages: built, not committed. `cargo xtask docs-gen` writes them from the committed

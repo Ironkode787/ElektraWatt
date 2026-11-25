@@ -1,4 +1,4 @@
-# The acceptance list of RP2 (WP-S2.19 section 11.3). `check-brief` decides each item on the reference solution; the
+# The acceptance list of RP2. `check-brief` decides each item on the reference solution; the
 # round decides them on the tester's saved project and exports. Correctness is the netlist (A1 to A5, `ew sql`); the
 # measures are A6 and A9 here and `ew layout <project>` in the round's report: its hard rules must be 0 on every page,
 # and its crossings and bends per page are written beside the keep score. A finding of the run is written as a row of

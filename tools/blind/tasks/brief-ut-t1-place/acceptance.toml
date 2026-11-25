@@ -1,4 +1,4 @@
-# The acceptance list (WP-S2.12 D7): doc 16 section 19.4's success criterion of T1 as items. `stop` decides each item
+# The acceptance list: doc 16 section 19.4's success criterion of T1 as items. `stop` decides each item
 # mechanically on the saved project; `check-brief` decides them on the reference solution.
 
 [[item]]

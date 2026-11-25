@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-# Builds the user guide (docs/book) offline into <dest> (WP-S6.06 D7; WP-S0.06, NFR-DOC-01, NFR-DOC-06). The one user
+# Builds the user guide (docs/book) offline into <dest> (NFR-DOC-01, NFR-DOC-06). The one user
 # of the mdBook pin: `docs.yml`'s `docs-book` job and `package.yml`'s `book` job call it, so the installers take the
 # same offline book that `docs-book` checks.
 #
@@ -12,10 +12,10 @@
 # 1. `cargo xtask docs-gen` writes the reference pages, which are built, not committed.
 # 2. mdBook, the prebuilt Linux release archive of github.com/rust-lang/mdBook, is downloaded pinned by version and by
 #    the SHA-256 that the release publishes for the archive, checked before anything is unpacked (resolved
-#    2026-10-22). The pin is the `mdbook` component of packaging/components.toml (FT-1224), read through
+#    2026-10-22). The pin is the `mdbook` component of packaging/components.toml, read through
 #    `packaging/stage.py pin`; `mdbook --version` must print its version. (The names are not MDBOOK_*: mdBook reads
 #    that prefix as configuration overrides.)
-# 3. mdbook-i18n-helpers (WP-S7.05 D14), the `mdbook-i18n-helpers` component, is downloaded as its crate, checked by its
+# 3. mdbook-i18n-helpers, the `mdbook-i18n-helpers` component, is downloaded as its crate, checked by its
 #    SHA-256 before it is unpacked, and built with `cargo install --locked`; it gives `mdbook-gettext`, the one
 #    preprocessor of the Dutch build.
 # 4. The book is built in an empty network namespace, as the runner's user, so a plugin or theme that fetches fails
@@ -76,7 +76,7 @@ sudo -n true || fail "passwordless sudo is not available on this runner: the off
 sudo unshare --net --setuid "$(id -u)" --setgid "$(id -g)" -- true \
   || fail "unshare --net failed on this runner: the offline book build needs a network namespace"
 
-# WP-S7.05 D2: the book is versioned per release; every page's title names the workspace version
+# The book is versioned per release; every page's title names the workspace version
 # (`[workspace.package].version` of Cargo.toml), through mdBook's own configuration override.
 docs_version="$(python3 -I -c 'import sys, tomllib; print(tomllib.load(open(sys.argv[1], "rb"))["workspace"]["package"]["version"])' Cargo.toml)"
 docs_title="ElektraWatt User Guide ${docs_version}"
@@ -94,6 +94,6 @@ sudo unshare --net --setuid "$(id -u)" --setgid "$(id -g)" -- \
 
 # DC-4: the built book's index page carries the version in its title, the Dutch one too.
 grep -qF "${docs_title}</title>" "$dest/index.html" \
-  || fail "$dest/index.html does not carry the title '${docs_title}' (WP-S7.05 D2)"
+  || fail "$dest/index.html does not carry the title '${docs_title}'"
 grep -qF "${docs_title_nl}</title>" "$dest/nl/index.html" \
-  || fail "$dest/nl/index.html does not carry the title '${docs_title_nl}' (WP-S7.05 D2, D14)"
+  || fail "$dest/nl/index.html does not carry the title '${docs_title_nl}'"

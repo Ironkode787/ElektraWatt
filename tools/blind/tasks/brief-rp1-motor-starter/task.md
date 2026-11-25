@@ -31,4 +31,4 @@ do it for a customer.
 
 ## History
 
-- Version 1: the third candidate's persona round (WP-S2.19 §11.3, RP1; RP4 is the same brief as a text run).
+- Version 1: the third candidate's persona round (RP1; RP4 is the same brief as a text run).

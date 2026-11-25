@@ -1,6 +1,6 @@
-# A usability task (WP-S2.12 section 5.1): ADR-0007's probe of autoconnect on move as a brief, on a copy of the sample
-# whose prelude moves the lamp -102E1 off its wire end. How the persona connected it is evidence for ADR-0007's record
-# (D17), not an item. `check-brief brief-ut-a7-move` proves it runnable.
+# A usability task: ADR-0007's probe of autoconnect on move as a brief, on a copy of the sample
+# whose prelude moves the lamp -102E1 off its wire end. How the persona connected it is evidence for ADR-0007's record,
+# not an item. `check-brief brief-ut-a7-move` proves it runnable.
 kind = "brief"
 grade = 1
 version = 1

@@ -3,28 +3,28 @@
 An agent that never sees a picture draws and edits in ElektraWatt through the shell's headless mode, with `ui.describe`
 (`look`) and `page.describe` (`look --page`) as its only senses and the transcript as its evidence. The harness is
 `cargo xtask blind` (Rust, in `xtask/src/blind/`); the prompts, personas, task sheets, reference files and recordings
-live here. The specification is `docs/plan/specs/WP-S6.13-blind-drafter-harness.md`; the method is doc 18 §3.17.
+live here. The method is doc 18 §3.17.
 
 | Path | What it is |
 |---|---|
 | `BLIND_DRAFTER.md`, `CHECKER.md` | The drafter's and the checker's prompts (front matter `prompt`, `version`); a change is a reviewed diff with a version bump |
 | `personas/qet-veteran.md`, `personas/switcher.md` | The personas (front matter `persona`, `version`): fictional roles, never people |
 | `HELP.md` | The protocol as the agent reads it (composed into the prompt, printed by `{blind} help`) |
-| `PLAYTESTER.md`, `HELP-VISUAL.md` | A visual run's (`--senses visual`) play-tester prompt and its harness help (front matter `prompt`, `version`): `compose` uses them in place of `BLIND_DRAFTER.md` and `HELP.md`, and `{blind} help` prints `HELP-VISUAL.md` alone (WP-S6.13 part 4) |
+| `PLAYTESTER.md`, `HELP-VISUAL.md` | A visual run's (`--senses visual`) play-tester prompt and its harness help (front matter `prompt`, `version`): `compose` uses them in place of `BLIND_DRAFTER.md` and `HELP.md`, and `{blind} help` prints `HELP-VISUAL.md` alone |
 | `personas/first-timer.md` | The play-tester persona of part 4: an electrician new to ECAD, who reads every label and opens the guide when lost |
 | `tasks/<task>/` | A task: `task.md`, `prelude.uiscript`, and for the self-test `agent.jsonl`; a brief also `prelude.toml` (the class of each prelude step) |
 | `tasks/free/` | The free task: no oracle, no score |
 | `recordings/<name>/` | A blessed run: the replay inputs and the evidence, never the full transcript |
-| `ROUND.md` | The usability rounds' prompt (WP-S2.12 D11, front matter `prompt`, `version`): the hint command and the proxy questionnaire; `compose` adds it after the task sheet of a brief whose `task.toml` names `rounds` |
-| `personas/eplan-designer.md`, `personas/eplan-maintainer.md`, `personas/qet-user.md` | The personas of the usability rounds (WP-S2.12 D10): R0 runs `qet-veteran` and `qet-user`, R1 `eplan-designer`, `eplan-maintainer` and `qet-user` (T6 also `qet-veteran`); every persona is senses-independent, the run's prompt says how it acts |
-| `tasks/brief-ut-<t>-<name>/` | A usability task of doc 16 §19.4 (WP-S2.12 §5.1) as a brief: `task.toml` adds `task_id`, `rounds` and `start` (`sample`: the run starts on a copy of the sample project, `fixtures/sample/sample.ew`, which the prelude may change first, as T1 and T2 take away the 24 V breaker of folio 102), `acceptance.toml` may decide an item by `actions` done in order, and `hints.toml` holds one to three hints that `{blind} hint` gives one at a time |
+| `ROUND.md` | The usability rounds' prompt (front matter `prompt`, `version`): the hint command and the proxy questionnaire; `compose` adds it after the task sheet of a brief whose `task.toml` names `rounds` |
+| `personas/eplan-designer.md`, `personas/eplan-maintainer.md`, `personas/qet-user.md` | The personas of the usability rounds: R0 runs `qet-veteran` and `qet-user`, R1 `eplan-designer`, `eplan-maintainer` and `qet-user` (T6 also `qet-veteran`); every persona is senses-independent, the run's prompt says how it acts |
+| `tasks/brief-ut-<t>-<name>/` | A usability task of doc 16 §19.4 as a brief: `task.toml` adds `task_id`, `rounds` and `start` (`sample`: the run starts on a copy of the sample project, `fixtures/sample/sample.ew`, which the prelude may change first, as T1 and T2 take away the 24 V breaker of folio 102), `acceptance.toml` may decide an item by `actions` done in order, and `hints.toml` holds one to three hints that `{blind} hint` gives one at a time |
 
 `cargo xtask blind check-brief <task>` checks a task folder first without a product (the sheet and the prelude, and for
 a brief that starts on the sample that every identifier of `task.md` is in the sample's script), then a brief's reference
 solution on the build. Run it after any change of a task folder.
 
 The check run's filter admits the actions of kind `View` and `file.open`, `app.quit`, **except** the canvas actions that can
-reach a tool's commit (FT-442): `canvas.press`, `canvas.release`, `canvas.activate` and `canvas.activate_alt` (a press, a
+reach a tool's commit: `canvas.press`, `canvas.release`, `canvas.activate` and `canvas.activate_alt` (a press, a
 release and a click at the grid cursor), `tool.finish`, and any `canvas.drag*`. It keeps navigation, zoom, pan, tabs, the page
 navigator, pointing (`canvas.pointer`, `canvas.dwell`), the grid cursor, `tool.select`, `tool.measure` and the looks.
 

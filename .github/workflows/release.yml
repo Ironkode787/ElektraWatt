@@ -1,18 +1,18 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-# The release workflow of 0.1.x (WP-S6.07 D2, D3, slimmed for an early alpha by ID-1520; doc 18 §5.2 CI-R-01, CI-R-05,
+# The release workflow of 0.1.x (slimmed for an early alpha; doc 18 §5.2 CI-R-01, CI-R-05,
 # CI-R-06, CI-R-11). The candidate is the release: a tag `v<X.Y.Z>-rc.<n>` builds a draft prerelease holding every
 # release file, and the go publishes those same files as `v<X.Y.Z>`; no tag is built twice or moved. The procedure and
 # the checklist: docs/release/README.md, docs/release/checklist.md.
 #
 # On a candidate tag:
 # - `verify` (CI-R-01; D5): ci/release-verify.py checks that the tag's X.Y.Z is the workspace version and that
-#   docs/release-notes/<X.Y.Z>.md has notes with a summary. It waits for no CI run: CI is off until 1.0 (ID-1519).
+#   docs/release-notes/<X.Y.Z>.md has notes with a summary. It waits for no CI run: CI is off until 1.0.
 # - `package` (CI-R-05): package.yml through workflow_call with `version: X.Y.Z` and `upload: true`: the x86_64 release
 #   builds, the notices, the staged trees with their smoke test, the CLI archives, the setup and the AppImage.
-# - `sums` (CI-R-06, D8): the release files of the run (the x86_64 CLI archives, the setup and the AppImage; ID-1313,
-#   ID-1331 (2)) and `SHA256SUMS` over them, unsigned.
+# - `sums` (CI-R-06, D8): the release files of the run (the x86_64 CLI archives, the setup and the AppImage)
+#   and `SHA256SUMS` over them, unsigned.
 # - `release` (CI-R-11, D13): the draft prerelease `v<X.Y.Z>-rc.<n>` with the notes' summary and every file, then the
 #   files downloaded back and `sha256sum -c SHA256SUMS`. It publishes nothing.
 # On a dispatch with `candidate` (the promote): `release` alone. It refuses when `v<X.Y.Z>` exists, finds the
@@ -20,10 +20,10 @@
 # `v<X.Y.Z>` (latest) on the candidate's commit; with `dry: true` (the default) it prints what it would publish and
 # changes nothing. The draft stays as the record of the candidate.
 #
-# ID-476's hold is lifted for the release (ID-1331 (2), WP-S6.08 D26): `package`'s `upload: true` carries the setup and
-# the AppImage into the release files. The candidate may come from a release branch `release/<X.Y>` (ID-1412): no job
+# The hold on the binaries that link the UI graph is lifted for the release: `package`'s `upload: true` carries the setup and
+# the AppImage into the release files. The candidate may come from a release branch `release/<X.Y>`: no job
 # requires the tagged commit to be on `main`, and the promote is dispatched from `main`. The GitHub settings (the `release` environment and its deployment rule, the tag ruleset,
-# immutable releases, the read-only default token) are the owner's, set before the first candidate (WP-S6.07 §13 O1).
+# immutable releases, the read-only default token) are the owner's, set before the first candidate.
 #
 # Hardening (doc 18 §5.4, NFR-SEC-19): top-level `contents: read`; `release` is the only job with a write scope and
 # runs in the protected `release` environment (no other job may hold a write scope); no
@@ -55,7 +55,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # CI-R-01 (D5)
+  # CI-R-01
   verify:
     name: verify
     if: github.event_name == 'push'
@@ -75,7 +75,7 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: python3 -I ci/release-verify.py tag "$TAG" >> "$GITHUB_OUTPUT"
 
-  # CI-R-05: WP-S6.06's packaging, slimmed (ID-1520).
+  # CI-R-05: the packaging, slimmed.
   package:
     name: package
     needs: verify
@@ -86,7 +86,7 @@ jobs:
       version: ${{ needs.verify.outputs.version }}
       upload: true
 
-  # CI-R-06 (D8)
+  # CI-R-06
   sums:
     name: sums
     needs: [verify, package]
@@ -96,7 +96,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # The x86_64 archives, the setup and the AppImage (ID-1313, ID-1331).
+      # The x86_64 archives, the setup and the AppImage.
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           pattern: ew-${{ needs.verify.outputs.version }}-x86_64-*
@@ -113,7 +113,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # CI-R-11 (D13): the draft on a candidate tag; the promote on a dispatch.
+  # CI-R-11: the draft on a candidate tag; the promote on a dispatch.
   release:
     name: release
     needs: [verify, sums]

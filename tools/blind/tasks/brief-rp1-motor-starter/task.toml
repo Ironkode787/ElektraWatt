@@ -1,4 +1,4 @@
-# A persona brief of the third candidate's round (WP-S2.19 section 11.3): RP1 visual by `eplan-designer` and RP4, the
+# A persona brief of the third candidate's round: RP1 visual by `eplan-designer` and RP4, the
 # same brief as a text run by `qet-veteran`, both greenfield at 1920 x 1080. `check-brief brief-rp1-motor-starter`
 # proves it runnable by replaying `solution.uiscript` and deciding `acceptance.toml` on its exports.
 kind = "brief"

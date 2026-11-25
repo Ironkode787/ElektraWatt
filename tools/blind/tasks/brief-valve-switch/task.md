@@ -32,4 +32,4 @@ and how many pages you use is up to you, as you would do it for a customer.
 
 - Version 1: the calibration brief of the first visual round (grade 1).
 - Version 2: the reference solution takes the fuse, the switch and the valve from the generic starter parts, so the
-  parts item is no longer infeasible (WP-S2.18 D8, FT-592).
+  parts item is no longer infeasible.

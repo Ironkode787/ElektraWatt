@@ -47,7 +47,7 @@ third-party = [
   { name = "naga-types" },
   { name = "rusqlite" },
   { name = "libsqlite3-sys" },
-  # Crates only the text stack or one platform reaches: unifying them widened every narrow GPL build, FT-1000.
+  # Crates only the text stack or one platform reaches: unifying them widened every narrow GPL build.
   # harfrust and regex are in the hack: left out, their features differed between the window's package sets and the
   # others (harfrust `default` from epaint, regex `default` from the dev edge of `ew` to boon), and every GPL crate
   # above them was compiled once for each.

@@ -1,4 +1,4 @@
-# The acceptance list (WP-S2.12 D7): doc 16 section 19.4's success criterion of T8 ("xref jump and Back used") as
+# The acceptance list: doc 16 section 19.4's success criterion of T8 ("xref jump and Back used") as
 # items. `actions` items are decided from the run's outcomes: a click on a cross-reference is the Select tool's follow
 # and counts as `nav.follow` when it shows another page (xtask/src/blind/brief.rs, `step_outcomes`).
 
