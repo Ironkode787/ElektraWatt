@@ -97,3 +97,27 @@ fn a_drawing_that_cannot_be_read_says_so_in_the_banner() {
     assert_eq!(s.banner(), Some("Cannot read absent.dxf."));
     s.shutdown();
 }
+
+/// A file the DXF reader refuses is said in the window's language: in Dutch the session's words of the refusal, never
+/// the reader's English sentence.
+#[test]
+fn a_dxf_refusal_reads_in_the_windows_language() {
+    let tmp = Tmp::new("drawing-refused");
+    let dxf = tmp.0.join("plan.dxf");
+    std::fs::write(&dxf, "no drawing at all\n").unwrap();
+    let mut s = tmp.sample_in(Mode::Gui, true, "101");
+    done(&mut s, "view.language", json!({"value": "nl"}));
+    let pages = s.page_rows().len();
+    let _ = s.dispatch(
+        "file.import_drawing",
+        &json!({"file": dxf.to_string_lossy(), "as": "page", "units": "mm"}),
+    );
+    s.wait_jobs();
+    assert_eq!(s.page_rows().len(), pages, "nothing imported");
+    let banner = s.banner().unwrap_or_default().to_owned();
+    assert!(
+        banner.contains("Het bestand is geen DXF-tekening die deze lezer begrijpt"),
+        "{banner}"
+    );
+    s.shutdown();
+}

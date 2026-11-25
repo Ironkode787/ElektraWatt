@@ -36,10 +36,10 @@ pub enum DxfError {
 impl std::fmt::Display for DxfError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            DxfError::NoUnit => f.write_str("The drawing names no unit. Choose the unit it is drawn in."),
+            DxfError::NoUnit => write!(f, "{}", text!("dxf-no-unit")),
             DxfError::Refused(r) => write!(f, "{r}"),
             DxfError::Apply(e) => write!(f, "{e}"),
-            DxfError::NoPage(folio) => write!(f, "The project has no drawn page {folio}."),
+            DxfError::NoPage(folio) => write!(f, "{}", text!("dxf-no-page", folio.as_str())),
             DxfError::Cache(words) => f.write_str(words),
         }
     }

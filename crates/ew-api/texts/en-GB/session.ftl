@@ -359,6 +359,7 @@ dxf-input-limit = The DXF file exceeds the supported size or complexity.
 dxf-input-invalid = The file is no DXF drawing this reader understands.
 dxf-no-unit = The drawing names no unit. Choose the unit it is drawn in.
 dxf-no-blocks = The drawing has no named block to make a symbol of.
+dxf-no-page = The project has no drawn page { $p0 }.
 
 # A date typed in the project's date format.
 refusal-input-date = `{ $p0 }` is not a date: type it as { $p1 }

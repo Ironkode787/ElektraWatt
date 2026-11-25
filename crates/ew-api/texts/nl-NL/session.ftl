@@ -348,6 +348,7 @@ dxf-input-limit = Het DXF-bestand overschrijdt de ondersteunde grootte of comple
 dxf-input-invalid = Het bestand is geen DXF-tekening die deze lezer begrijpt.
 dxf-no-unit = De tekening noemt geen eenheid. Kies de eenheid waarin ze getekend is.
 dxf-no-blocks = De tekening heeft geen blok met een naam om een symbool van te maken.
+dxf-no-page = Het project heeft geen getekende pagina { $p0 }.
 
 # A date typed in the project's date format.
 refusal-input-date = `{ $p0 }` is geen datum: typ hem als { $p1 }

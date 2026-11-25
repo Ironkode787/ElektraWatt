@@ -148,7 +148,7 @@ impl ShellModel {
                         |mut drawn| {
                             if let Some(options) = &page {
                                 let converted = ew_api::dxf::convert_dxf(&drawn.name, &drawn.bytes, options)
-                                    .map_err(|e| DrawingError::Refused(e.to_string()))?;
+                                    .map_err(|e| DrawingError::Refused(drawing_why(&e, true)))?;
                                 drawn.converted = Some(converted);
                             }
                             Ok(drawn)
@@ -272,7 +272,7 @@ impl ShellModel {
                         );
                         Outcome::Done
                     }
-                    Err(e) => self.import_failed(&name, &e.to_string()),
+                    Err(e) => self.import_failed(&name, &drawing_why(&e, kind != DrawingKind::Pdf)),
                 };
                 self.refresh_rows();
                 outcome
@@ -320,7 +320,7 @@ impl ShellModel {
                 );
                 Outcome::Done
             }
-            Err(e) => self.import_failed(name, &e.to_string()),
+            Err(e) => self.import_failed(name, &drawing_why(&e, true)),
         }
     }
 
@@ -408,7 +408,7 @@ fn read_drawing(
     if probe {
         let unitless = match kind {
             DrawingKind::Dxf => ew_api::dxf::probe_dxf(name, &bytes)
-                .map_err(|e| DrawingError::Refused(e.to_string()))?
+                .map_err(|e| DrawingError::Refused(refusal_why(&e)))?
                 .unit
                 .is_none(),
             DrawingKind::Dwg | DrawingKind::Pdf => false,
@@ -443,6 +443,33 @@ fn read_drawing(
         }),
         Err(ew_api::dxf::DwgError::Cancelled) => Err(DrawingError::Cancelled),
         Err(e) => Err(DrawingError::Refused(e.to_string())),
+    }
+}
+
+/// Why a drawing's reading or import did nothing, in words: a missing unit or page, and (`dxf`) the DXF reader's
+/// refusals, by the session's `dxf-*` texts; a PDF's refusal, a refused transaction and a source the cache could not
+/// keep as they read.
+fn drawing_why(e: &ew_api::dxf::DxfError, dxf: bool) -> String {
+    use ew_api::dxf::DxfError;
+    match e {
+        DxfError::NoUnit => strings::text(key!("dxf-no-unit")).to_owned(),
+        DxfError::NoPage(folio) => strings::format(key!("dxf-no-page"), &[folio]),
+        DxfError::Refused(r) if dxf => refusal_why(r),
+        other => other.to_string(),
+    }
+}
+
+/// Why the DXF reader refused a file, in words: a file past the reader's limits, or one it does not read as a DXF
+/// drawing (the reader's own sentence gives way to the words), by the session's `dxf-*` texts; the reader's stop and
+/// a breach of the import contract as they read.
+fn refusal_why(r: &ew_api::import::Refusal) -> String {
+    use ew_api::import::{ImportError, Refusal};
+    match r {
+        Refusal::Import(ImportError::LimitExceeded { .. }) => {
+            strings::text(key!("dxf-input-limit")).to_owned()
+        }
+        Refusal::Import(_) => strings::text(key!("dxf-input-invalid")).to_owned(),
+        other => other.to_string(),
     }
 }
 
