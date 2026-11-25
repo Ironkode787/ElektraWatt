@@ -3,8 +3,9 @@
 
 //! The rule of `cargo xtask rules` that a design document says what is (docs/design/04-architecture.md §19): no file of
 //! `docs/design` holds a note headed "As built", a dated amendment (the word "amended" or "amendment" with a date on
-//! its line) or the number of a backlog row, a decision of the owner's list or a work package (`FT-`, `ID-`, `WP-`); and
-//! none is larger than [`CEILING`], but the documents read by identifier ([`BY_IDENTIFIER`]).
+//! its line), the words in any case, or the number of a backlog row, a decision of the owner's list or a work package
+//! (`FT-`, `ID-`, `WP-`); and none is larger than [`CEILING`], but the documents read by identifier
+//! ([`BY_IDENTIFIER`]).
 
 use std::path::Path;
 
@@ -54,12 +55,15 @@ pub(crate) fn check(root: &Path) -> Result<Vec<String>> {
 fn history(rel: &str, text: &str) -> Vec<String> {
     let mut out = Vec::new();
     for (i, line) in text.lines().enumerate() {
-        let what = if line
+        // The words whatever their case: "As built", "AS BUILT", "Amended".
+        let lower = line.to_lowercase();
+        let what = if lower
             .trim_start_matches(|c: char| c.is_whitespace() || "#>*-_".contains(c))
-            .starts_with("As built")
+            .strip_prefix("as built")
+            .is_some_and(|rest| !rest.starts_with(|c: char| c.is_alphanumeric() || c == '-'))
         {
             Some("a note headed \"As built\"".to_owned())
-        } else if (line.contains("amended") || line.contains("amendment")) && has_date(line) {
+        } else if (lower.contains("amended") || lower.contains("amendment")) && has_date(line) {
             Some("a dated amendment".to_owned())
         } else {
             row_number(line).map(|n| format!("the number {n}"))
@@ -114,13 +118,15 @@ fn row_number(line: &str) -> Option<&str> {
 mod tests {
     use super::history;
 
-    /// A note headed "As built", a dated amendment and a row's number are named by their line; the words "built"
-    /// and "amendment" alone, a requirement's identifier and a date of another kind are not.
+    /// A note headed "As built", a dated amendment and a row's number are named by their line, the words in any
+    /// case; the words "built" and "amendment" alone, a line that begins "As built-in", a requirement's identifier and
+    /// a date of another kind are not.
     #[test]
     fn history_is_named_by_its_line() {
         let text = "# Title\n\n**As built (0.3.5).** The grid.\nA rule (ADR-0034, amended 2026-11-20).\n\
                     The fix of FT-1936 and WP-S2.18.\nShipped as built-in exporters; ADR-0003 amendment 1.\n\
-                    FR-PLC-021 and NFR-SEC-04, released 2026-10-20.\n";
+                    FR-PLC-021 and NFR-SEC-04, released 2026-10-20.\n> AS BUILT: the old grid.\n\
+                    Amended on 2026-11-21.\nAs built-in exporters ship.\n";
         assert_eq!(
             history("docs/design/x.md", text),
             [
@@ -129,6 +135,10 @@ mod tests {
                 "docs/design/x.md:4: a dated amendment; a design document says what is, and git holds how it came \
                  to be (§19)",
                 "docs/design/x.md:5: the number FT-1936; a design document says what is, and git holds how it came \
+                 to be (§19)",
+                "docs/design/x.md:8: a note headed \"As built\"; a design document says what is, and git holds how \
+                 it came to be (§19)",
+                "docs/design/x.md:9: a dated amendment; a design document says what is, and git holds how it came \
                  to be (§19)",
             ]
         );
