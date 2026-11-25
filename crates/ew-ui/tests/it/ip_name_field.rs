@@ -770,7 +770,7 @@ fn the_card_selects_a_direction_only_while_one_is_chosen() {
             .reps
             .iter()
             .filter(|r| !before.iter().any(|(id, _)| *id == r.id.to_string()))
-            .filter_map(|r| r.ip.as_ref().map(|ip| ip.direction.clone()))
+            .filter_map(|r| r.ip.as_ref().map(|ip| ew_viewmodel::ew_api::output::ip_direction_word(&ip.direction).to_owned()))
             .collect();
         new
     };
