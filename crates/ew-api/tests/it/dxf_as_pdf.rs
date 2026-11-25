@@ -495,10 +495,17 @@ fn a_moved_text_keeps_the_name_of_its_own_slot() {
         json!({"new_device": {"letter": "K"}}),
     );
     let (device, rep) = (created(&coil, Kind::Device), created(&coil, Kind::Representation));
-    let (k, symbol) = (tag(&s, device), s.starter_symbol_copy("ew.iec.coil@qet10").expect("the coil"));
+    let (k, symbol) = (
+        tag(&s, device),
+        s.starter_symbol_copy("ew.iec.coil@qet10").expect("the coil"),
+    );
     let slot_of = |kind: ew_schema::SlotKind| -> (u16, Pt2) {
         let q = s.query();
-        let copy = q.symbols().get(Id::from_uuid(symbol)).expect("the coil's copy").clone();
+        let copy = q
+            .symbols()
+            .get(Id::from_uuid(symbol))
+            .expect("the coil's copy")
+            .clone();
         let (i, slot) = copy
             .item
             .text_slots
@@ -526,7 +533,12 @@ fn a_moved_text_keeps_the_name_of_its_own_slot() {
             .copied()
             .expect("the slot's box")
     };
-    let middle = |r: ew_units::Rect| Pt2::new(Nm((r.min().x.0 + r.max().x.0) / 2), Nm((r.min().y.0 + r.max().y.0) / 2));
+    let middle = |r: ew_units::Rect| {
+        Pt2::new(
+            Nm((r.min().x.0 + r.max().x.0) / 2),
+            Nm((r.min().y.0 + r.max().y.0) / 2),
+        )
+    };
     let (to, pin) = (middle(printed(tag_slot).rect), printed(pin_slot));
     let from = middle(pin.rect);
     let moved = Pt2::new(
@@ -546,6 +558,9 @@ fn a_moved_text_keeps_the_name_of_its_own_slot() {
         .find(|i| i.attributes.iter().any(|(_, v, _)| *v == k))
         .expect("the coil's insert");
     let names: BTreeSet<&str> = insert.attributes.iter().map(|(n, _, _)| n.as_str()).collect();
-    assert!(names.contains("TAG") && names.contains("DESIGNATION_1"), "{insert:?}");
+    assert!(
+        names.contains("TAG") && names.contains("DESIGNATION_1"),
+        "{insert:?}"
+    );
     assert!(!names.contains("TAG_2"), "{insert:?}");
 }

@@ -1349,7 +1349,12 @@ fn a_symbols_own_text_prints_in_the_projects_language() {
         let q = s.query();
         let mut out = Vec::new();
         for v in page_views(&q) {
-            glyphs(&ew_api::output::page_layer(&q, v.entry.page, Layer::Symbols).list.items, &mut out);
+            glyphs(
+                &ew_api::output::page_layer(&q, v.entry.page, Layer::Symbols)
+                    .list
+                    .items,
+                &mut out,
+            );
         }
         out.retain(|t| t.starts_with("3-"));
         out.dedup();

@@ -41,7 +41,13 @@ fn rel(findings: &[Finding]) -> Vec<(&'static str, String, String)> {
 fn gated(records: Vec<Record>, content_digest: Option<Sha256>) -> Vec<(&'static str, String, String)> {
     let m = model(records);
     let q = Q::new(&m);
-    rel(&gate(&q, &PRE_DELIVERY, &GateInput { content_digest }, Evidence::default()).findings)
+    rel(&gate(
+        &q,
+        &PRE_DELIVERY,
+        &GateInput { content_digest },
+        Evidence::default(),
+    )
+    .findings)
 }
 
 /// The EW-REL rules are gate-only integrity rules of pack EW-REL (doc 15 §4.8): no scheme runs them online or in a
@@ -175,7 +181,11 @@ fn four_eyes_judges_the_title_blocks_open_revision() {
     ];
     let m = model(records.clone());
     assert!(ew_derive::open_revision(&Q::new(&m)).is_none());
-    assert!(gated(records, Some(digest(1))).iter().all(|(r, _, _)| *r != "EW-REL-001"));
+    assert!(
+        gated(records, Some(digest(1)))
+            .iter()
+            .all(|(r, _, _)| *r != "EW-REL-001")
+    );
 }
 
 /// EW-REL-004's gate half (FR-REV-002): a label out of the project's format, and an open revision whose label does not

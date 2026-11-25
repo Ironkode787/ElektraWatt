@@ -679,9 +679,17 @@ fn a_layout_finding_takes_a_waiver_as_any_other() {
         ..Evidence::default()
     };
     let report = run_with(&Q::new(&m), &PRE_DELIVERY, CheckMode::Release, evidence);
-    let found: Vec<&ew_checks::Finding> = report.findings.iter().filter(|f| f.rule == junction.rule).collect();
+    let found: Vec<&ew_checks::Finding> = report
+        .findings
+        .iter()
+        .filter(|f| f.rule == junction.rule)
+        .collect();
     assert_eq!(found.len(), 1, "{:#?}", report.findings);
     assert!(matches!(found[0].state, FindingState::Waived { .. }));
     assert_eq!(report.counts.waived, 1);
-    assert!(report.findings.iter().all(|f| f.rule != "EW-CORE-081"), "{:#?}", report.findings);
+    assert!(
+        report.findings.iter().all(|f| f.rule != "EW-CORE-081"),
+        "{:#?}",
+        report.findings
+    );
 }
