@@ -166,7 +166,7 @@ pub struct CopyUpdate {
     pub major_reasons: Vec<String>,
 }
 
-/// What [`Session::update_from_library`] would change (D9's card): the command to preview and commit, the copies with
+/// What [`Session::update_from_library`] would change (the card): the command to preview and commit, the copies with
 /// their class and field diff, the devices and representations touched, the BOM rows that change and the derived
 /// texts (device tags and cross-reference texts) that change.
 #[derive(Clone, Debug)]
@@ -827,7 +827,7 @@ impl Session {
         out
     }
 
-    /// The plan of "update from library" (D9, doc 07 §4.5, FR-PRT-014): for each held copy, the item as
+    /// The plan of "update from library" (doc 07 §4.5, FR-PRT-014): for each held copy, the item as
     /// [`Session::libraries`] holds it now; copies whose hash did not change are left out. The plan carries the
     /// `library.update` command (Bulk: preview and commit it), each copy's class and field diff, the devices and
     /// representations touched, the component BOM rows that change and the printed tags and cross-reference texts

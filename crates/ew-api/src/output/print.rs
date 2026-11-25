@@ -504,7 +504,7 @@ mod tests {
         assert_eq!(percent((1, 1)), 100);
     }
 
-    /// PR-1's and PR-2's factors: an A4 landscape sheet on A5 is min(210/297, 148/210) = 74/105 (70.48 %), an A3
+    /// The and the factors: an A4 landscape sheet on A5 is min(210/297, 148/210) = 74/105 (70.48 %), an A3
     /// landscape sheet on A4 is 70/99 (70.71 %), both centred; A4 on A4 is 100 % with no stamp.
     #[test]
     fn the_fit_is_the_smaller_ratio_exactly_and_centred() {
@@ -554,7 +554,7 @@ mod tests {
         assert_eq!((p.width, p.height), (Nm::from_mm(420), Nm::from_mm(297)));
     }
 
-    /// PR-2 in miniature (the sample project has no A3 sheet): an A3 landscape page printed on A4 with the fit carries
+    /// In miniature (the sample project has no A3 sheet): an A3 landscape page printed on A4 with the fit carries
     /// "scaled 71 %", without it is clipped and the notice names the page; its content stays the page's item for item,
     /// and on its own sheet at actual size the set is the export's PDF byte for byte.
     #[test]

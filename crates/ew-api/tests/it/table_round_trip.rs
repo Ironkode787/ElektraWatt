@@ -23,7 +23,7 @@ fn column(table: &ew_api::output::Table, key: &str) -> Vec<String> {
     table.rows.iter().map(|r| r.cells[c].text().to_owned()).collect()
 }
 
-/// RT-2 (FR-EXP-004) and D11: five Function text cells changed in an `excel-en` CSV preview as five applied cells,
+/// FR-EXP-004: five Function text cells changed in an `excel-en` CSV preview as five applied cells,
 /// compile to one `fields.set_many`, change exactly those five labels when applied, and one undo restores the table.
 #[test]
 fn a_round_trip_applies_in_one_undo_step() {
@@ -92,7 +92,7 @@ fn a_round_trip_applies_in_one_undo_step() {
     );
 }
 
-/// D8, D11 and RT-6: the refusals of a round trip as whole texts; a file over the reader's limit is refused unread.
+/// The refusals of a round trip as whole texts; a file over the reader's limit is refused unread.
 #[test]
 fn the_round_trip_refuses_in_words() {
     let (session, key, table) = x1021();
@@ -158,7 +158,7 @@ fn the_round_trip_refuses_in_words() {
     );
 }
 
-/// SE-9 (NFR-REL-12): a read that panics under `guard_table_read`, after it read the file against
+/// A read that panics under `guard_table_read`, after it read the file against
 /// the project, is S2 whole with the file's name, and the session's model is unchanged; a refusal keeps its own text.
 #[test]
 fn a_panicking_read_gives_s2_and_changes_nothing() {

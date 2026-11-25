@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A minimal PDF reader for the acceptance harness (doc 18 §3.9; FR-OUT-008, AC-01, AC-06, AC-13): it reads
+//! A minimal PDF reader for the acceptance harness (doc 18 §3.9; FR-OUT-008): it reads
 //! back the PDF the project itself writes (krilla 0.8, ew-export) and returns, per page, the **text layer**
 //! (content streams decoded through the fonts' ToUnicode maps) and the **stroked line segments** in printed
 //! mm.

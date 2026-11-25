@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The panel page 902 of the sample (acceptance LP-1 to LP-5):
+//! The panel page 902 of the sample:
 //!
 //! - `the_surface_view_round_trips_and_is_refused_elsewhere`: `page.surface_view.set` replaces 902's view in
 //!   place (one view, its ID kept) and the edit survives a save and a reopen of a copy of the sample; a view on a
@@ -23,7 +23,7 @@
 //! The display lists are in page coordinates; 902's frame maps the page to paper (its `page_to_sheet`), and the
 //! projection divides by that factor, so the stated scale holds on paper (`printed` maps a page rectangle).
 
-// LP-1 copies the sample into a clock-named scratch directory (`ew-testdir`).
+// The first test copies the sample into a clock-named scratch directory (`ew-testdir`).
 #![allow(clippy::disallowed_methods)]
 
 use crate::common;
@@ -224,7 +224,7 @@ fn views_on(q: &Q, p: Id<Page>) -> Vec<PageItem> {
 }
 
 /// A part copy of `device`'s placed part with `width` mm, the clip point at its centre and the `front_2d` polylines
-/// given (in part mm), assigned to the device in place of that part (as `golden_layout.rs` LQ-4 does).
+/// given (in part mm), assigned to the device in place of that part (as `golden_layout.rs` does).
 fn assign_test_part(s: &mut Session, device: &str, key: &str, width: i64, front_2d: &[&[(i64, i64)]]) {
     let placement = common::placement_of(s, device);
     let q = s.query();
@@ -269,7 +269,7 @@ fn assign_test_part(s: &mut Session, device: &str, key: &str, width: i64, front_
     );
 }
 
-/// LP-1. `page.surface_view.set` on 902 keeps its one view and that view's ID (a page holds at most one:
+/// `page.surface_view.set` on 902 keeps its one view and that view's ID (a page holds at most one:
 /// "set replaces in place"); the edit is saved and read back; a
 /// schematic page and a missing surface are refused, each with its whole text; a view this build only partly knows
 /// writes back as read.
@@ -358,7 +358,7 @@ fn the_surface_view_round_trips_and_is_refused_elsewhere() {
     assert_eq!(serde_json::to_value(&record).expect("it writes"), line);
 }
 
-/// LP-2. Folio 902's surface, carriers and placements layers ("draw from placement_geometry
+/// Folio 902's surface, carriers and placements layers ("draw from placement_geometry
 /// and carrier_geometry; never re-derive geometry" — the expected footprints are `placement_geometry`'s, projected).
 #[test]
 fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
@@ -638,7 +638,7 @@ fn the_carriers_are_cut_around_the_labels_of_902() {
     }
 }
 
-/// LP-3. The labels of 902 with the tags as labels ("the ink box uses ew-text's existing API: Shaped::advance() along
+/// The labels of 902 with the tags as labels ("the ink box uses ew-text's existing API: Shaped::advance() along
 /// the text; across it, cap_height + 0.1 mm per side, plus descent only for descender glyphs").
 #[test]
 fn labels_print_in_the_device_style_turn_inside_or_take_a_leader() {
@@ -728,7 +728,7 @@ fn labels_print_in_the_device_style_turn_inside_or_take_a_leader() {
     );
 }
 
-/// LP-4. The title block of 902 prints the scale; the TOC row of 902 keeps the plain title; 902 at 1:10 changes no
+/// The title block of 902 prints the scale; the TOC row of 902 keeps the plain title; 902 at 1:10 changes no
 /// layout record and keeps the label height.
 #[test]
 fn the_title_block_reads_the_scale_and_a_new_scale_writes_no_layout_record() {
@@ -916,7 +916,7 @@ fn pick(entities: &[(EntityRef, Rect)], at: Pt2) -> Option<EntityRef> {
     best.map(|(_, e)| e)
 }
 
-/// LP-5. A `layout.move` of -101G1 runs only 902's placements, labels and carriers layers again (the carriers are cut
+/// A `layout.move` of -101G1 runs only 902's placements, labels and carriers layers again (the carriers are cut
 /// around the labels, so they read the labels' fit), and the second export equals the cold one; a press at a
 /// footprint's centre picks its placement.
 #[test]

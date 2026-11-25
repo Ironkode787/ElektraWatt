@@ -3,13 +3,13 @@
 
 //! A module typical as a macro (doc 07 §9.3), and the orientation of an inserted window macro, on the sample project.
 //!
-//! - **MC-5.** The typical of the sample's PLC input card -104A1-A1 with the position switch -104B1 on its input,
+//! - The typical of the sample's PLC input card -104A1-A1 with the position switch -104B1 on its input,
 //!   inserted again under the station -104A1 at the card's own slot, lists the doubled addresses; with the card
 //!   moved to a free slot the commit is one undo step.
 //! - **The window macros** and their rotation: the card typical inserts at 90° with every representation turned about
 //!   the anchor; the power supply with its input breaker at 90° keeps its wires on their CPs; interruption points are
 //!   refused turned.
-//! - **MC-7** for the typicals: twice-run determinism of the saved documents and the composed commands, and a command
+//! For the typicals: twice-run determinism of the saved documents and the composed commands, and a command
 //!   log without `orient`.
 //!
 //! The variables, value sets and groups of a macro are `macros.rs`'; the valve manifold of doc 07 §9.3 as it stood on
@@ -170,7 +170,7 @@ fn slot_of(s: &Session, tag: &str) -> u32 {
         .expect("a slot")
 }
 
-/// MC-5 (FR-MAC-005): the card typical inserted a second time at the card's own slot of -104A1 doubles it: the
+/// The card typical inserted a second time at the card's own slot of -104A1 doubles it: the
 /// conflicts list exactly the eight addresses of its inputs, and nothing else; with -104A1-A1 moved to a free slot the
 /// commit is one undo step that undoes exactly. (A second module at a held position of a valve terminal, FI-07, is
 /// EW-FL-013's, `ew-checks`' `fluid.rs`.)
@@ -556,7 +556,7 @@ fn cp_nets(links: &[(String, String)]) -> BTreeSet<BTreeSet<String>> {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// MC-7 and the old logs
+// The old logs
 
 fn saved_twice(name: &str, spec: fn(&Session) -> MacroSpec, orient: Orient2) -> (Value, AnyCommand) {
     let (_root, t, lib) = user_library(name);
@@ -589,7 +589,7 @@ fn saved_twice(name: &str, spec: fn(&Session) -> MacroSpec, orient: Orient2) -> 
     (doc, cmd)
 }
 
-/// MC-7: two runs save equal documents and compose equal commands, for the page macro and for the window macro at 90°.
+/// Two runs save equal documents and compose equal commands, for the page macro and for the window macro at 90°.
 #[test]
 fn the_typicals_save_and_insert_deterministically() {
     let strip = |mut v: Value| {

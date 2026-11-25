@@ -22,7 +22,7 @@
 //!    or [`ew_export::svg`] (one `<label>.svg` per page), with the bundled fonts and the project's typeface only
 //!    ([`DrawingFonts`], doc 09 §4.8).
 //!
-//! Serial and parallel runs give the same bytes (AC-14). The `Session` is not `Send`, so phase 1 of
+//! Serial and parallel runs give the same bytes. The `Session` is not `Send`, so phase 1 of
 //! [`Session::export_pdf`] stays on its thread: the layers are memoised in the session's store and a second export
 //! after an edit rebuilds only the layers the edit touched.
 //!
@@ -49,7 +49,7 @@ mod editing;
 mod fields;
 // The export as a job.
 mod job;
-// The devices a placed symbol can join (D1, D2).
+// The devices a placed symbol can join.
 pub(crate) mod join;
 mod layers;
 // Properties for layout records and the Surface view rows.

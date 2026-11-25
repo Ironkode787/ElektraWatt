@@ -535,7 +535,7 @@ pub struct ExportRowsResult {
     pub out: Option<String>,
     /// The CSV text when there is no `--out`; `null` with one.
     pub csv: Option<String>,
-    /// The format written: `csv` or `xlsx` (TX-7).
+    /// The format written: `csv` or `xlsx`.
     pub format: Option<String>,
     /// The CSV preset (`ew`, `excel-nl`, `excel-en`, `rfc4180`); `null` for XLSX.
     pub preset: Option<String>,
@@ -770,7 +770,7 @@ pub struct ExportTerminalsResult {
     pub out: Option<String>,
     /// The CSV text when there is no `--out`; `null` with one.
     pub csv: Option<String>,
-    /// The format written: `csv` or `xlsx` (TX-7).
+    /// The format written: `csv` or `xlsx`.
     pub format: Option<String>,
     /// The CSV preset (`ew`, `excel-nl`, `excel-en`, `rfc4180`); `null` for XLSX.
     pub preset: Option<String>,
@@ -804,7 +804,7 @@ pub struct ExportReportResult {
     pub out: Option<String>,
     /// The CSV text when it goes to stdout; else `null`.
     pub csv: Option<String>,
-    /// The CSV preset (`ew`, `excel-nl`, `excel-en`, `rfc4180`); `null` for XLSX and PDF (TX-7).
+    /// The CSV preset (`ew`, `excel-nl`, `excel-en`, `rfc4180`); `null` for XLSX and PDF.
     pub preset: Option<String>,
     /// The session revision the rows or pages were read at.
     pub rev: Option<u64>,
@@ -1806,7 +1806,7 @@ impl QueryResult {
     pub const SCHEMA: &str = "ew.query-result/1";
 }
 
-/// The explanation of a query's value (`ew query --explain`, D12): the memo's policy and state, its dependencies and
+/// The explanation of a query's value (`ew query --explain`): the memo's policy and state, its dependencies and
 /// the property row's provenance. No wall-clock time: revisions are the session's.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

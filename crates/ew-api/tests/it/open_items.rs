@@ -10,7 +10,7 @@
 //!   `open_item_of` some row".
 //! - The release scheme that `project.checks.set` writes is the one the list runs in (so the settings member
 //!   of the check layer and of the command layer agree).
-//! - OI-3 "asserts, with an `open_items` block, no cycle note, no `NotDerived::Cycle`, and no
+//! - "asserts, with an `open_items` block, no cycle note, no `NotDerived::Cycle`, and no
 //!   EW-CORE-083 finding whose subject names a table rule in the same snapshot's release run".
 //! - "Order: the category's index in `OPEN_ITEM_RULES`, then `natural_key(subject)`, then the fingerprint".
 
@@ -208,7 +208,7 @@ fn the_sample_lists_its_open_items() {
     assert_eq!(kind_rows(&common::sample().query()).rows.len(), 0);
 }
 
-/// OI-2: a TBD channel address is listed once, by EW-PLC-015, and EW-CORE-044's finding for it is superseded.
+/// A TBD channel address is listed once, by EW-PLC-015, and EW-CORE-044's finding for it is superseded.
 #[test]
 fn a_tbd_channel_address_is_listed_once() {
     let (project, mut records, lib) = common::sample_records();
@@ -475,7 +475,7 @@ fn the_open_items_block_paginates_inside_the_page_order() {
     assert_eq!(rest, rows_before);
 }
 
-/// OI-3 (doc 09 §7 item 4): a project without open items gives no rows, and the block with `empty` "No entries"
+/// A project without open items gives no rows, and the block with `empty` "No entries"
 /// prints that one page.
 #[test]
 fn no_open_items_print_the_empty_page() {

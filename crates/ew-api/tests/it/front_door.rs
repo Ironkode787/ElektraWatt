@@ -95,7 +95,7 @@ fn limit_text(what: &str, limit: u64) -> String {
     format!("input exceeds the {what} limit of {limit}")
 }
 
-/// IC-1: the smallest workbook above each archive member, and the table members, refuse the import by name.
+/// The smallest workbook above each archive member, and the table members, refuse the import by name.
 #[test]
 fn each_new_limit_refuses_the_smallest_input_above_it() {
     let book = workbook(3);
@@ -167,7 +167,7 @@ fn each_new_limit_refuses_the_smallest_input_above_it() {
     );
 }
 
-/// IC-1: the front door's own checks come before the importer runs: a set of more files than `max_input_files`, a
+/// The front door's own checks come before the importer runs: a set of more files than `max_input_files`, a
 /// total above `max_expanded_bytes`, a file above `max_input_bytes`.
 #[test]
 fn the_front_door_refuses_a_set_before_the_importer_runs() {
@@ -197,7 +197,7 @@ fn batch(records: Vec<Record>) -> ImportBatch {
     }
 }
 
-/// IC-4 (NFR-REL-12): an importer that panics refuses the import with T1, and the session it would have changed is
+/// An importer that panics refuses the import with T1, and the session it would have changed is
 /// unchanged.
 #[test]
 fn an_importer_that_panics_is_refused_with_t1() {
@@ -232,7 +232,7 @@ fn an_importer_that_panics_is_refused_with_t1() {
     assert_eq!(session.world().rev, before);
 }
 
-/// IC-3 (FR-IMP-002): four hand-made batches, one per breach, each refused with T2's reason; their repaired form passes.
+/// Four hand-made batches, one per breach, each refused with T2's reason; their repaired form passes.
 #[test]
 fn the_contract_refuses_each_breach_with_its_reason() {
     use ew_import_qet::ew_interop_api::LineageInfo;

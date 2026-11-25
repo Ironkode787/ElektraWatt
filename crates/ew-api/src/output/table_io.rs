@@ -63,7 +63,7 @@ pub const TABLE_NAVIGATORS: [NavKind; 12] = [
     NavKind::Unplaced,
 ];
 
-/// The editable columns of `io_list` (D9): (column key, route kind, route path), the PLC navigator's routes, the target
+/// The editable columns of `io_list`: (column key, route kind, route path), the PLC navigator's routes, the target
 /// being the row's channel.
 pub const IO_LIST_ROUTES: [(&str, &str, &str); 6] = [
     ("designation", "channel", "designation"),
@@ -469,7 +469,7 @@ impl Session {
 
     /// The table of `key`: a navigator's table rows in node order with every column (a column is editable when
     /// it has a `fields.set` route), or a report table as `ew export` writes it (`io_list`'s round-trip columns
-    /// editable, D9).
+    /// editable).
     ///
     /// # Errors
     ///
@@ -562,7 +562,7 @@ impl Session {
     ) -> Result<TableImport, TableImportError> {
         let limits = ew_import_catalog::table_limits();
         let read = |e: ImportError| TableImportError::Read(e.to_string());
-        // The reader's size bound first, before any other refusal reads the bytes (RT-6).
+        // The reader's size bound first, before any other refusal reads the bytes.
         if bytes.len() as u64 > limits.max_input_bytes {
             return Err(read(ImportError::LimitExceeded {
                 what: "input size".into(),
@@ -1103,7 +1103,7 @@ impl Merge<'_> {
         });
     }
 
-    /// Compiles the applicable cells into one `fields.set_many` (D10's rule); a cell that sets a record an earlier row
+    /// Compiles the applicable cells into one `fields.set_many` (the rule); a cell that sets a record an earlier row
     /// of the file sets to another value is refused.
     fn compile(&self, import: &mut TableImport, pending: Vec<Pending>) -> Result<(), TableImportError> {
         if pending.len() > MAX_IMPORT_CELLS {
@@ -1159,7 +1159,7 @@ pub fn reason_words(key: &str) -> &'static str {
 mod tests {
     use super::*;
 
-    /// D11: a CSV's guard apostrophe is dropped before `=+-@`, tab and CR only, and never in `rfc4180`; the lossy rule.
+    /// A CSV's guard apostrophe is dropped before `=+-@`, tab and CR only, and never in `rfc4180`; the lossy rule.
     #[test]
     fn the_csv_guard_and_the_lossy_rule() {
         assert!(is_lossy("1.1", "1.10"));
@@ -1181,7 +1181,7 @@ mod tests {
         assert_eq!(csv_preset(b"Terminal list\nid,label\ne:1;x\n"), Preset::ExcelEn);
     }
 
-    /// D5: an `_ew_base` sheet whose digest matches its rows is intact, an edited one is not.
+    /// An `_ew_base` sheet whose digest matches its rows is intact, an edited one is not.
     #[test]
     fn an_edited_base_is_detected() {
         let rows = vec![

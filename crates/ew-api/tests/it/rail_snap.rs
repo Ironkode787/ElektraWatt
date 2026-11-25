@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The rails of the sample's plate (doc 12 §3): the derived end brackets (SN-1), the free lengths, the carrier labels
-//! (SN-7), and `layout.place` and `layout.move` with `mode` (SN-2 to SN-4, SN-6), every refusal text whole. Positions
+//! The rails of the sample's plate (doc 12 §3): the derived end brackets, the free lengths, the carrier labels,
+//! and `layout.place` and `layout.move` with `mode`, every refusal text whole. Positions
 //! are clip points in tenths of a millimetre.
 //!
 //! The set-up is `common::strips_on_a_test_rail` (the three strips with the TBD end bracket in one run on a third rail
@@ -138,7 +138,7 @@ fn owned(v: &[(i128, i128, &str)]) -> Vec<(i128, i128, String)> {
     v.iter().map(|(a, b, t)| (*a, *b, (*t).to_owned())).collect()
 }
 
-/// SN-1 (FR-LAY-060): the run's brackets are exactly [20, 30], [56, 66], [107.6, 117.6], [143.6, 153.6] mm attributed
+/// The run's brackets are exactly [20, 30], [56, 66], [107.6, 117.6], [143.6, 153.6] mm attributed
 /// -X1011, -X1011, -X1021, -X1031, each the strip's TBD end bracket part use (10 mm); -X1031 moved to s = 167.6 mm opens
 /// a run of its own, with a bracket on each side: five.
 #[test]
@@ -184,7 +184,7 @@ fn the_test_rail_has_four_brackets() {
     );
 }
 
-/// D12's free lengths (`L − Σ items − Σ brackets`): rail 1 121 mm (470 mm less its 10 devices, 349 mm, -102F1 being
+/// The free lengths (`L − Σ items − Σ brackets`): rail 1 121 mm (470 mm less its 10 devices, 349 mm, -102F1 being
 /// unplaced), rail 2 140 mm, the test rail 336.4 mm (470 mm less the three strips, 93.6 mm, and four brackets).
 #[test]
 fn free_lengths_of_the_rails() {
@@ -199,7 +199,7 @@ fn free_lengths_of_the_rails() {
     assert_eq!((free(r1), free(r2), free(rail)), (1210, 1400, 3364));
 }
 
-/// D8, SN-7: the sample's carriers are Rail 1, Rail 2 and Duct 1.
+/// The sample's carriers are Rail 1, Rail 2 and Duct 1.
 #[test]
 fn carrier_labels_are_numbered_by_kind() {
     let s = common::sample();
@@ -253,7 +253,7 @@ fn widen_f1(s: &mut Session) {
     .unwrap();
 }
 
-/// SN-2 (free): -102F1 (18 mm) dropped at clip 300 mm (on -102Q1) lands in the nearer gap, at its end; at clip 200 mm
+/// -102F1 (18 mm) dropped at clip 300 mm (on -102Q1) lands in the nearer gap, at its end; at clip 200 mm
 /// (in the gap) it stays; the 300 mm test part fits no gap.
 #[test]
 fn sn2_free_on_rail_1() {
@@ -271,7 +271,7 @@ fn sn2_free_on_rail_1() {
     assert_eq!(refused, "No gap on rail 1 is wide enough for -102F1 (300 mm).");
 }
 
-/// SN-3 (push): -102F1 dropped with its left edge at -102S2's (clip 244.6 mm) stays and pushes -102S2 … -103F1 18 mm
+/// -102F1 dropped with its left edge at -102S2's (clip 244.6 mm) stays and pushes -102S2 … -103F1 18 mm
 /// to the right, into the gap [394.6, 420.6], in one step; one undo restores them; a locked one refuses; the 300 mm
 /// test part pushes past the rail end.
 #[test]
@@ -323,7 +323,7 @@ fn sn3_push_on_rail_1() {
     );
 }
 
-/// SN-4 (swap): -101F1 [80, 116] dropped onto -102S2 [235.6, 255.6] trades places with it within the span they bound:
+/// -101F1 [80, 116] dropped onto -102S2 [235.6, 255.6] trades places with it within the span they bound:
 /// -102S2 at 80 mm (clip 90), -101G1 after it at 100 mm (clip 130), -101F1 ending at 255.6 mm (clip 237.6), and nothing
 /// else moves; two valves on rail 2 swap; a swap onto another rail or onto an empty spot is refused.
 #[test]
@@ -364,7 +364,7 @@ fn swap_on_rail_1_and_rail_2() {
     );
 }
 
-/// SN-6 (strips): on the test rail an 18 mm non-strip (-102F1) dropped in free mode at left edge 150 mm lands at
+/// On the test rail an 18 mm non-strip (-102F1) dropped in free mode at left edge 150 mm lands at
 /// 153.6 mm, after -X1031's run-end bracket; the 26 mm fourth strip with the 10 mm bracket dropped at left edge 150 mm
 /// (on that bracket) lands at 153.6 mm, joins the run, and the rail then has five brackets.
 #[test]

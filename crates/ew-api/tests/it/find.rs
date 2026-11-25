@@ -171,7 +171,7 @@ fn every_string_and_the_cap() {
     }
 }
 
-/// D11, D16: a derived tag and a part number are found but not replaced, with their reasons.
+/// A derived tag and a part number are found but not replaced, with their reasons.
 #[test]
 fn derived_tags_and_part_numbers_are_found_but_not_replaced() {
     let mut s = common::sample();

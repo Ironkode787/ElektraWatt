@@ -12,8 +12,8 @@
 //! What these tests rely on, quoted:
 //! - "a strip with no segment representation prints the cell of its `MainRep` ...; a strip with neither prints an
 //!   empty cell".
-//! - "`RowsError` gains four variants whose `Display` is D4's text exactly".
-//! - "Every registered kind other than `terminal_diagram` exports (D4's refusal list is closed)".
+//! - "`RowsError` gains four variants whose `Display` is the text exactly".
+//! - "Every registered kind other than `terminal_diagram` exports (the refusal list is closed)".
 //! - "`member` = `report block <first folio> params.<key>` ..., `detail` the lane's sentence".
 //! - "`row_export` replaces the `pages` cell of every data row of a `revision_overview` row set with it,
 //!   for `--block` and `--kind` alike".
@@ -117,7 +117,7 @@ fn tags_of_910(q: &Q) -> Vec<String> {
         .collect()
 }
 
-/// RK-1 (FR-REP-008): the header and a row per device, the devices of folio 910 in its order, and the rows the sample's
+/// The header and a row per device, the devices of folio 910 in its order, and the rows the sample's
 /// script gives.
 #[test]
 fn the_device_list_lists_the_devices_of_folio_910() {
@@ -214,7 +214,7 @@ fn the_terminal_overview_lists_the_three_strips() {
     assert_eq!(locations, ["+CAB", "+CAB", "+CAB"]);
 }
 
-/// RK-2: per strip, used, spare and other equal the counts of its `terminal_diagram` rows' State column.
+/// Per strip, used, spare and other equal the counts of its `terminal_diagram` rows' State column.
 #[test]
 fn the_counts_agree_with_the_terminal_diagram_states() {
     let s = common::sample();
@@ -261,7 +261,7 @@ fn device(s: &Session, tag: &str) -> Id<ew_schema::Device> {
     )
 }
 
-/// RK-2: a `reserved` terminal counts in Other; renumbering -X1031 to -X1041 (a frozen tag) keeps the row ID.
+/// A `reserved` terminal counts in Other; renumbering -X1031 to -X1041 (a frozen tag) keeps the row ID.
 #[test]
 fn a_reserved_terminal_counts_in_other_and_a_renumber_keeps_the_row() {
     let mut s = common::sample();
@@ -370,7 +370,7 @@ fn every_registered_kind_but_terminal_diagram_exports() {
     }
 }
 
-/// RK-3: `--kind parts_summary` writes the component-mode rows, the rows of the bill of materials' export.
+/// `--kind parts_summary` writes the component-mode rows, the rows of the bill of materials' export.
 #[test]
 fn the_parts_summary_kind_is_the_component_bom() {
     let s = common::sample();
@@ -491,7 +491,7 @@ fn the_parts_summary_mode_parameter() {
     }
 }
 
-/// RK-5: a long undeclared key and a long value are quoted cut to 40 characters (hostile input). The diagnostics list
+/// A long undeclared key and a long value are quoted cut to 40 characters (hostile input). The diagnostics list
 /// their notes sorted.
 #[test]
 fn a_long_key_or_value_is_quoted_cut() {
@@ -539,7 +539,7 @@ fn folios_but(q: &Q, but: &[&str]) -> Vec<String> {
         .collect()
 }
 
-/// RK-4 (stop 1): `device_list` and `terminal_overview` blocks made by `report_block.create` at folios 912 and 913
+/// `device_list` and `terminal_overview` blocks made by `report_block.create` at folios 912 and 913
 /// paginate with the house layout, no placeholder page and no overflow (no cell below the 1.8 mm floor); the TOC
 /// lists them; every other page keeps its folio and order.
 #[test]

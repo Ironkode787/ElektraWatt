@@ -161,7 +161,7 @@ pub const PART_KINDS: [&str; 15] = [
     "configured",
 ];
 
-/// One field's message: the strings key and its arguments (the shell words it, D21).
+/// One field's message: the strings key and its arguments (the shell words it).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DraftMessage {
     /// The field (`manufacturer`, `tech:rated_current`).
@@ -195,7 +195,7 @@ pub struct PartDraft {
     pub size: Vec<(&'static str, String)>,
     /// The messages of the fields that do not parse, in the order they were found.
     pub messages: Vec<DraftMessage>,
-    /// Whether saving forks the copy (a copy from a library, D20).
+    /// Whether saving forks the copy (a copy from a library).
     pub fork: bool,
     /// The source library's name of a copy from a library (its ID when it is not installed); `None` for a
     /// project-local copy.
@@ -598,7 +598,7 @@ fn bus_field(field: &str) -> Option<(usize, &'static str)> {
     Some((row.parse().ok()?, m))
 }
 
-/// What saving a draft does (D20's card): the command, the fork item, the field diff, the devices that use the copy
+/// What saving a draft does (the card): the command, the fork item, the field diff, the devices that use the copy
 /// and the component BOM rows that change.
 #[derive(Clone, Debug)]
 pub struct PartEditPlan {
@@ -1347,7 +1347,7 @@ mod part_kinds_tests {
 
     use super::{PART_KINDS, kind_word};
 
-    /// M39: every kind of [`PART_KINDS`] reads as a schema part kind and writes back the same word, and every schema
+    /// Every kind of [`PART_KINDS`] reads as a schema part kind and writes back the same word, and every schema
     /// part kind (but the verbatim unknown one) is in the list, so the editor offers exactly the schema's kinds.
     #[test]
     fn the_part_kinds_are_the_schemas() {

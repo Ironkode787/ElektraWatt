@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The PLC exchange on the sample (doc 10 §4, AC-30): the AML, tag table and PLCopen exports of the CPU station
+//! The PLC exchange on the sample (doc 10 §4): the AML, tag table and PLCopen exports of the CPU station
 //! -104A1 with its input module -104A1-A1 and output module -104A1-A2 and of the valve terminal -201K1, with the
 //! symbol template `{target.process_tag}` and a process tag on the target of each used channel (set in the set-up,
 //! [`exchange`]), the file that comes back with its three-way merge, ownership and the parking list, the drift rule
@@ -168,7 +168,7 @@ fn findings(s: &Session, rule: &str) -> Vec<ew_api::checks::Finding> {
         .collect()
 }
 
-/// AC-30, FR-PLC-029, FR-PLC-056, FR-EXP-009: the AML export of station -104A1 is AR APC 1.4.0 on CAEX 2.15 with its
+/// FR-PLC-029, FR-PLC-056, FR-EXP-009: the AML export of station -104A1 is AR APC 1.4.0 on CAEX 2.15 with its
 /// input module on I0 and its output module on Q1, 16 channels and the three tags linked to their channels; it
 /// carries the project's own IDs and IEC designations and no person field; the same model gives the same bytes; 1.2.0
 /// differs in its version.
@@ -263,7 +263,7 @@ fn the_aml_export_of_a_station_is_ar_apc_on_caex_2_15() {
     );
 }
 
-/// AC-30, FR-PLC-036, FR-PLC-037: the tag table has exactly the ten columns and one row per used channel with its
+/// FR-PLC-036, FR-PLC-037: the tag table has exactly the ten columns and one row per used channel with its
 /// symbol and its TIA address; the PLCopen list has the same seven variables with IEC addresses.
 #[test]
 fn the_tag_table_and_the_gvl_hold_the_used_channels() {

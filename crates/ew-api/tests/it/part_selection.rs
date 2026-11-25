@@ -507,7 +507,7 @@ fn field_error(e: PartDraftError) -> (String, &'static str, Vec<String>) {
     }
 }
 
-/// PS5: the draft refuses each case of D21 under its field and as the save's refusal; the history is unchanged.
+/// PS5: the draft refuses each case under its field and as the save's refusal; the history is unchanged.
 #[test]
 fn the_part_editor_refuses_with_a_message() {
     let s = wizard_with_parts();

@@ -116,7 +116,7 @@ fn a_selection_the_page_order_does_not_have_fails_with_its_cause() {
 
 // The print set as a job.
 
-/// PW-1's set: section 1 on A5, scaled to fit.
+/// The set: section 1 on A5, scaled to fit.
 fn section_1_on_a5() -> ew_api::output::print::PrintOptions {
     ew_api::output::print::PrintOptions {
         pages: ew_api::output::PageSelection::parse_sections("1").unwrap(),
@@ -138,7 +138,7 @@ fn print_job(gate: Option<Gate>, job: ew_api::output::PrintSetJob) -> Job<ew_api
     .unwrap()
 }
 
-/// PW-1 and PW-2 at the API: the job's set is `Session::print_set`'s, and a job made before an edit builds the
+/// At the API: the job's set is `Session::print_set`'s, and a job made before an edit builds the
 /// revision it was made on.
 #[test]
 fn the_print_job_builds_the_print_set_of_its_revision() {
@@ -164,7 +164,7 @@ fn the_print_job_builds_the_print_set_of_its_revision() {
     s.close();
 }
 
-/// PW-2 at the API: a cancel at the held gate ends the print job `Cancelled`.
+/// At the API: a cancel at the held gate ends the print job `Cancelled`.
 #[test]
 fn a_cancelled_print_job_is_cancelled() {
     let tmp = Tmp::new("ew-api-job-print-cancel");

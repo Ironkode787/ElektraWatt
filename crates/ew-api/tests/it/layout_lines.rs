@@ -298,7 +298,7 @@ fn the_legend_of_the_plate_lists_its_rows_and_renumbers() {
     }
 }
 
-/// LB-4 (FR-LAY-008): a free graphic on 902 appears in neither the BOM nor the legend nor `unplaced`.
+/// A free graphic on 902 appears in neither the BOM nor the legend nor `unplaced`.
 #[test]
 fn a_free_graphic_on_902_is_counted_nowhere() {
     let mut s = session(MemoMode::Off);

@@ -232,7 +232,7 @@ mod tests {
     #[test]
     fn a_placed_body_is_the_oriented_rectangle() {
         assert_eq!(placed_body([-1, 0, 2, 10], 0, (100, 200)), [99, 200, 102, 210]);
-        // R90: (x, y) → (−y, x).
+        // (x, y) → (−y, x).
         assert_eq!(placed_body([-1, 0, 2, 10], 1, (100, 200)), [90, 199, 100, 202]);
     }
 

@@ -115,7 +115,7 @@ fn a_bus_node_in_the_rack_is_found_and_taken_out_again() {
     );
 }
 
-/// F17: a copy of a valve terminal is a valve terminal, a station of its own, not the terminal's own module alone.
+/// A copy of a valve terminal is a valve terminal, a station of its own, not the terminal's own module alone.
 #[test]
 fn a_pasted_valve_terminal_is_a_station_again() {
     let mut s = new_project(172);
@@ -156,7 +156,7 @@ fn a_pasted_valve_terminal_is_a_station_again() {
     );
 }
 
-/// F17: a valve terminal is one row of the PLC navigator with its channels under it; a station drawn on no page carries
+/// A valve terminal is one row of the PLC navigator with its channels under it; a station drawn on no page carries
 /// the badge `not drawn`.
 #[test]
 fn a_station_that_is_its_own_module_is_one_row() {
@@ -200,7 +200,7 @@ fn a_station_that_is_its_own_module_is_one_row() {
     );
 }
 
-/// F18: `plc.add_station` makes the CPU with its two modules, drawn nowhere, in a new configuration project, in one
+/// `plc.add_station` makes the CPU with its two modules, drawn nowhere, in a new configuration project, in one
 /// undo step; the modules have their channels and addresses.
 #[test]
 fn a_new_station_is_made_with_its_modules_in_one_step() {
@@ -305,7 +305,7 @@ fn a_new_stations_letter_follows_its_part() {
     );
 }
 
-/// F19: a bus device whose part says nothing of a PLC becomes a station of a PLC with an open rack: an I/O device that
+/// A bus device whose part says nothing of a PLC becomes a station of a PLC with an open rack: an I/O device that
 /// takes modules; a module part is refused as a station.
 #[test]
 fn a_bus_device_is_given_to_a_plc() {

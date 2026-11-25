@@ -75,29 +75,29 @@ pub struct PageLayout {
     pub detour: i64,
     /// The texts the program placed off their first place.
     pub labels_moved: usize,
-    /// F2: the connections running through a connection point or a junction they do not end at.
+    /// The connections running through a connection point or a junction they do not end at.
     pub touches: Vec<LayoutTouch>,
-    /// F3: the pairs of connections running along each other.
+    /// The pairs of connections running along each other.
     pub overlaps: Vec<LayoutPair>,
-    /// F4: the connections through a symbol's body (or a black box), but straight out of their own pins.
+    /// The connections through a symbol's body (or a black box), but straight out of their own pins.
     pub through_symbols: Vec<LayoutThrough>,
-    /// F5: the junctions with four or more arms.
+    /// The junctions with four or more arms.
     pub four_way_junctions: Vec<LayoutJunction>,
-    /// F6: the pairs of connections whose corners meet without a junction.
+    /// The pairs of connections whose corners meet without a junction.
     pub false_joints: Vec<LayoutCrossing>,
-    /// F7: the symbols on another symbol or outside the drawing area.
+    /// The symbols on another symbol or outside the drawing area.
     pub parts_on_parts: Vec<LayoutParts>,
-    /// C4: the connections through a text.
+    /// The connections through a text.
     pub through_texts: Vec<LayoutThrough>,
-    /// C5: the texts on another text.
+    /// The texts on another text.
     pub texts_on_texts: Vec<LayoutTexts>,
-    /// C5: the texts on a symbol they do not belong to.
+    /// The texts on a symbol they do not belong to.
     pub texts_on_symbols: Vec<LayoutTexts>,
-    /// C5: the texts outside the drawing area.
+    /// The texts outside the drawing area.
     pub texts_outside: Vec<String>,
-    /// C3: the points where two connections cross.
+    /// The points where two connections cross.
     pub crossings: Vec<LayoutCrossing>,
-    /// C2: the connections with bends.
+    /// The connections with bends.
     pub bends: Vec<LayoutBends>,
     /// The connections with turn-backs (three runs in a row of which the third runs against the first).
     pub turn_backs: Vec<LayoutBends>,
@@ -115,7 +115,7 @@ impl PageLayout {
     }
 }
 
-/// F2: a connection running through a point it does not end at.
+/// A connection running through a point it does not end at.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LayoutTouch {
@@ -129,7 +129,7 @@ pub struct LayoutTouch {
     pub cell: String,
 }
 
-/// F3: two connections running along each other.
+/// Two connections running along each other.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LayoutPair {
@@ -182,7 +182,7 @@ pub struct LayoutBends {
     pub bends: usize,
 }
 
-/// F5: a junction with four or more arms.
+/// A junction with four or more arms.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LayoutJunction {
@@ -194,7 +194,7 @@ pub struct LayoutJunction {
     pub cell: String,
 }
 
-/// F7: a symbol on another symbol, or outside the drawing area.
+/// A symbol on another symbol, or outside the drawing area.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LayoutParts {
@@ -204,7 +204,7 @@ pub struct LayoutParts {
     pub other: String,
 }
 
-/// C5: a text on another text or on a symbol.
+/// A text on another text or on a symbol.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LayoutTexts {

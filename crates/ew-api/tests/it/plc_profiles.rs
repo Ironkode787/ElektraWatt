@@ -134,7 +134,7 @@ fn a_library_profile_is_chosen_without_a_code_change_and_stays_with_the_project(
         "the built-in TIA profile the sample pins"
     );
 
-    // T1: a name neither built in nor held, nor in a library.
+    // A name neither built in nor held, nor in a library.
     let e = s
         .run_script(&line(cfg, "no-such-profile"), "profiles")
         .unwrap_err();
@@ -146,7 +146,7 @@ fn a_library_profile_is_chosen_without_a_code_change_and_stays_with_the_project(
         "`no-such-profile` is not an address profile of this build or of the project; the profiles at hand are \
          siemens-tia-intl@2027.1, iec-61131-3@2027.1, rockwell-logix@2027.1"
     );
-    // T2: the library's profile that does not render is noted in its listing and left out of the profiles at hand.
+    // The library's profile that does not render is noted in its listing and left out of the profiles at hand.
     assert_eq!(
         ew_api::unreadable_profiles(s.libraries(), lib),
         ["the address profile fixture-hex@1 cannot be read: only base 10 is rendered"]

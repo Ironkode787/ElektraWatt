@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! PX-1 over the sample project: the `io_list` report kind (FR-PLC-023; doc 10 §5).
+//! Over the sample project: the `io_list` report kind (FR-PLC-023; doc 10 §5).
 //!
 //! What these tests rely on, quoted:
 //! - "the 20 that this build fills ..., the three added with their writers".

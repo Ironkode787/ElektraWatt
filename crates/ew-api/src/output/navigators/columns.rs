@@ -65,7 +65,7 @@ fn kind_columns(kind: &ReportKind) -> Vec<NavColumn> {
         .unwrap_or_default()
 }
 
-/// The editable columns of table mode (D10): (navigator, column key, route kind, route path).
+/// The editable columns of table mode: (navigator, column key, route kind, route path).
 /// Every other column is read-only.
 pub(super) const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 36] = [
     (NavKind::Pages, "title", "page", "title"),

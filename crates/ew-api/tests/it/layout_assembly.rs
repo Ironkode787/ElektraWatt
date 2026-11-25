@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! On the sample (doc 12 §3): `layout.place_assembly` beside `layout.place` with push on rail 2 (AS-1), the CPU
-//! station -104A1 with its two cards placed as one block on an emptied rail 2 in its member order (AS-2),
-//! `layout.auto_fill` on an emptied rail 1 with and without clearance pads (AS-3), and EW-LAY-003's quick fix run
-//! through the session (AS-8). Positions are clip points in tenths of a millimetre; on rail 2 the CPU (100 mm) and its
+//! On the sample (doc 12 §3): `layout.place_assembly` beside `layout.place` with push on rail 2, the CPU
+//! station -104A1 with its two cards placed as one block on an emptied rail 2 in its member order,
+//! `layout.auto_fill` on an emptied rail 1 with and without clearance pads, and EW-LAY-003's quick fix run
+//! through the session. Positions are clip points in tenths of a millimetre; on rail 2 the CPU (100 mm) and its
 //! cards (25 mm each) stand from its start, then the valve terminal and its valves.
 
 use crate::common;
@@ -100,7 +100,7 @@ fn empty(s: &mut Session, rail: Id<Carrier>) -> usize {
 /// The CPU station -104A1 in its member order: the station, then its cards by slot.
 const MEMBERS: [&str; 3] = ["-104A1", "-104A1-A1", "-104A1-A2"];
 
-/// AS-1: with the output card -104A1-A2 unplaced, `layout.place` of it with push at its old clip 137.5 mm, and
+/// With the output card -104A1-A2 unplaced, `layout.place` of it with push at its old clip 137.5 mm, and
 /// `layout.place_assembly` of -104A1 (its one unplaced member goes after its predecessor -104A1-A1), each give the
 /// card at 137.5 mm, every other placement unchanged (the gap it left takes it); one undo restores all.
 #[test]
@@ -131,7 +131,7 @@ fn as1_the_unplaced_member_goes_after_its_predecessor() {
     }
 }
 
-/// AS-2: rail 2 emptied of its 11 placements, `layout.place_assembly` of -104A1 at s = 20 mm lays the three members
+/// Rail 2 emptied of its 11 placements, `layout.place_assembly` of -104A1 at s = 20 mm lays the three members
 /// abutting in member order: -104A1 70 (100 mm wide), -104A1-A1 132.5, -104A1-A2 157.5 mm (25 mm each); EW-LAY-016
 /// reports nothing on the result.
 #[test]
@@ -164,7 +164,7 @@ fn as2_the_assembly_as_one_block_on_an_empty_rail() {
     assert!(order_findings.is_empty(), "{order_findings:#?}");
 }
 
-/// A copy of -102F1's part with clearance pads of 5 mm left and right (SN-5's fixture), given to -102F1 only.
+/// A copy of -102F1's part with clearance pads of 5 mm left and right (the fixture), given to -102F1 only.
 fn pad_102f1(s: &mut Session) {
     let f1 = dev(s, "-102F1");
     let q = s.query();
@@ -208,7 +208,7 @@ fn fill_r1(s: &mut Session, r1: Id<Carrier>) -> Vec<String> {
     .unwrap()
 }
 
-/// AS-3: rail 1 emptied, `layout.auto_fill` of -101F1 (36 mm), -101Q1 (54 mm), -102F1 (18 mm) and -103F1 (54 mm) in DT
+/// Rail 1 emptied, `layout.auto_fill` of -101F1 (36 mm), -101Q1 (54 mm), -102F1 (18 mm) and -103F1 (54 mm) in DT
 /// order lays them abutting from the rail's start: clips 18, 63, 99 and 135 mm; with -102F1's pads of 5 mm, 18, 63,
 /// 104 and 145 mm; the cylinder -201M1, which mounts on no rail, is not placed, with its notice.
 #[test]
@@ -253,7 +253,7 @@ fn lay003(s: &Session) -> Vec<ew_checks::Finding> {
         .collect()
 }
 
-/// AS-8: -102F1's placement made to realise a part the device then loses (append -101F1's part, move onto it, replace
+/// -102F1's placement made to realise a part the device then loses (append -101F1's part, move onto it, replace
 /// every part use by -102F1's own again, which the placement does not follow: the part is not new to the device) gives
 /// EW-LAY-003 with "Realise the primary part"; running its command through the session clears the finding.
 #[test]

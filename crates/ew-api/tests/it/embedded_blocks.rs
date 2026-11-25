@@ -128,7 +128,7 @@ fn sample_with(edit: impl FnOnce(&mut Vec<Record>)) -> Session {
     common::session_of(project, records, lib)
 }
 
-/// LB-3: a PART DATA box on the panel page 902 lists exactly the enclosure's and the plate's parts, EW-GEN-ENC-1 and
+/// A PART DATA box on the panel page 902 lists exactly the enclosure's and the plate's parts, EW-GEN-ENC-1 and
 /// EW-GEN-PLT-1 (no carrier line), under the title "PART DATA" (the source through the surface view). It stands in
 /// place of the legend, whose rows the sample's box does not hold.
 #[test]
@@ -147,8 +147,8 @@ fn part_data_on_902_lists_the_enclosure_and_the_plate_under_its_title() {
     assert_eq!(texts, ["PART DATA", "EW-GEN-ENC-1", "EW-GEN-PLT-1"]);
 }
 
-/// LB-8: `ew export report --block <the legend's ID> --format csv` writes a header and every row of the legend, all
-/// of them, whatever its box draws (D18: the named-block path); the default blocks of `bom`, `cables`, `wires` and
+/// `ew export report --block <the legend's ID> --format csv` writes a header and every row of the legend, all
+/// of them, whatever its box draws (the named-block path); the default blocks of `bom`, `cables`, `wires` and
 /// `terminals` are not embedded blocks.
 #[test]
 fn the_legend_exports_through_the_named_block_path_and_no_default_export_changes() {
@@ -182,7 +182,7 @@ fn the_legend_exports_through_the_named_block_path_and_no_default_export_changes
     }
 }
 
-/// LB-6: a `wire_list` block (a kind that declares no layout) embedded on schematic page 101 draws every column under
+/// A `wire_list` block (a kind that declares no layout) embedded on schematic page 101 draws every column under
 /// a header row, the rows its rect holds, and reports the rest.
 #[test]
 fn a_kind_without_a_layout_draws_every_column_and_reports_the_rows_it_cannot_hold() {
@@ -234,7 +234,7 @@ fn a_kind_without_a_layout_draws_every_column_and_reports_the_rows_it_cannot_hol
     }
 }
 
-/// LB-6: a block whose rows do not derive draws its reason.
+/// A block whose rows do not derive draws its reason.
 #[test]
 fn a_block_whose_rows_do_not_derive_draws_its_reason() {
     let s = sample_with(|records| {
@@ -253,7 +253,7 @@ fn a_block_whose_rows_do_not_derive_draws_its_reason() {
     assert_eq!(texts, ["Not derived: this build does not make this list"]);
 }
 
-/// LB-6 and LB-10: the tables layer of the page with the embedded legend does not depend on the record order.
+/// The tables layer of the page with the embedded legend does not depend on the record order.
 #[test]
 fn the_tables_layer_does_not_depend_on_record_order() {
     let a = common::sample_with_legend_box();

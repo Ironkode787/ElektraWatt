@@ -5,7 +5,7 @@
 //!
 //! [`REGISTRY`] is the closed set of named queries: the twelve of the MVP and the fluid queries `medium_zones` and
 //! `tube_props` (doc 11 §8.3). Each entry has a name, the grammar of its key, an
-//! output type (`serde` and `schemars`, as D5 rules for the CLI's results) with `output_version` 1, and an
+//! output type (`serde` and `schemars`, as for the CLI's results) with `output_version` 1, and an
 //! example key on the sample project. A key is a reference of the `.ewcmd` grammar (`tag:`, `id:`, `folio:`, a bare tag),
 //! resolved by [`Session::resolve_reference`], or `-` for a query without a key. Every adapter checks the kind of
 //! the record its key resolves to and maps the user's key onto the memo family's key:
@@ -95,7 +95,7 @@ impl QueryDef {
 
 const DEVICE: &str = "a device (`tag:-101F1` or `id:<uuid>`)";
 
-/// The closed MVP set of D11, in name order.
+/// The closed MVP set, in name order.
 pub const REGISTRY: &[QueryDef] = &[
     QueryDef {
         name: "bom_rows",
@@ -547,7 +547,7 @@ struct Cx<'s> {
 }
 
 impl Session {
-    /// Answers the public query `name` for `key` (doc 17 §3.4), with the explanation of D12 when
+    /// Answers the public query `name` for `key` (doc 17 §3.4), with the explanation when
     /// `explain` is set. Reads only: no command runs and no memo is written by the explanation (the value itself is
     /// computed, and memoised, as any read of the session's queries is).
     ///
@@ -1581,7 +1581,7 @@ mod tests {
         sorted.sort_unstable();
         sorted.dedup();
         assert_eq!(names, sorted);
-        // D11 is closed: the twelve names and the two fluid queries are the oracle.
+        // The twelve names and the two fluid queries are the oracle.
         assert_eq!(
             names,
             [

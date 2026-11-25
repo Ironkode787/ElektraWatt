@@ -301,7 +301,7 @@ fn a_drawing_is_found_on_a_page_of_any_size() {
 
 #[test]
 fn a_page_too_large_for_the_comparison_is_refused_in_words() {
-    // A1: about 4970 pixels wide at 150 dpi, more than the raster the reference can be drawn at.
+    // About 4970 pixels wide at 150 dpi, more than the raster the reference can be drawn at.
     let session = project_on(&[(1, "Cover")], Some((841, 594)));
     let e = verify_migration(&session, pdf_of(&session), &[]).expect_err("too large");
     let text = e.to_string();

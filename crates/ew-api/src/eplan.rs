@@ -9,7 +9,7 @@
 //! - **a library** ([`import_into_library`]): the write of [`crate::catalog::import_parts_into_library`], the terms
 //!   notice's entry in its report ([`terms_entry`]);
 //! - **a project** ([`Session::update_parts_from_import`]): the previewed update of the project's part copies from
-//!   the parts a file holds (FR-PRT-014, AC-38). An import never creates a part in a project; the copies the file
+//!   the parts a file holds (FR-PRT-014). An import never creates a part in a project; the copies the file
 //!   names (by manufacturer and normalised part number) are updated, field by field, through `library.update`.
 
 use std::path::Path;
@@ -533,7 +533,7 @@ impl EplanPartsRead {
 
 impl Session {
     /// The previewed update of this project's part copies from the parts of `import` (an EDZ or parts XML read by
-    /// [`parts_import`]; FR-PRT-014, AC-38): each part of the import is matched to the project's copy of the same
+    /// [`parts_import`]; FR-PRT-014): each part of the import is matched to the project's copy of the same
     /// manufacturer and normalised part number, laid over it ([`merged`]) as the copy's next patch version, and the plan of the
     /// differing copies is made as [`Session::update_from_documents`] makes it (the card's field diff, the devices and
     /// the BOM rows touched). A part the project holds no copy of is listed, never created; a part number two copies

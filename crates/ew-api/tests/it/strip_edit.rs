@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The strip editor below the shell on the sample: the strips table's rows, columns and accessory rows
-//! (SE7, D2, D3), the bridge groups (SE4, D6), the part resolver's kinds and ambiguity (SE5, D7), the group labels
-//! (SE8, D8, D13) and the commands `Session::strip_edit` compiles.
+//! (SE7), the bridge groups (SE4), the part resolver's kinds and ambiguity (SE5), the group labels
+//! (SE8) and the commands `Session::strip_edit` compiles.
 
 use crate::common;
 
@@ -163,7 +163,7 @@ fn with_groups() -> Session {
     s
 }
 
-/// SE8: D8's three examples on -X1021, each one `fields.set` of `strip.groups` and one undo step.
+/// SE8: the three examples on -X1021, each one `fields.set` of `strip.groups` and one undo step.
 #[test]
 fn group_labels_rewrite_the_groups() {
     let mut s = with_groups();
@@ -196,7 +196,7 @@ fn group_labels_rewrite_the_groups() {
     }
 }
 
-/// D13: a terminal's Properties list "Printed label" and "Group" after Designation; the Group row shows the label.
+/// A terminal's Properties list "Printed label" and "Group" after Designation; the Group row shows the label.
 #[test]
 fn terminal_properties_show_the_printed_label_and_the_group() {
     let s = with_groups();
@@ -406,7 +406,7 @@ fn add_accessory_takes_the_one_copy_or_refuses() {
     assert_eq!(cmd.params["value"][0]["part"]["copy"], json!(bracket));
 }
 
-/// SE7, D3: accessory rows after_seq 0, 8 and two at 4, placed and numbered; the remove and part edits.
+/// Accessory rows after_seq 0, 8 and two at 4, placed and numbered; the remove and part edits.
 #[test]
 fn accessory_rows_are_placed_and_numbered() {
     let mut s = common::sample();
@@ -498,7 +498,7 @@ fn the_provider_order_and_the_strip_facet() {
         .filter(|n| n.role == NavRole::Strip)
         .map(|n| n.label.as_str())
         .collect();
-    // D2: natural tag order (the sign sorts before the digits).
+    // Natural tag order (the sign sorts before the digits).
     assert_eq!(strips, ["-X1011", "-X1021", "-X1031"]);
     let x = strip_node(&t, "-X1021");
     let labels: Vec<String> = children(&t, x).iter().map(|n| n.label.clone()).collect();
@@ -509,7 +509,7 @@ fn the_provider_order_and_the_strip_facet() {
     }
 }
 
-/// D14: insert compiles to `terminal.insert` with the reference terminal's definition and parts and the next whole
+/// Insert compiles to `terminal.insert` with the reference terminal's definition and parts and the next whole
 /// number; move to `terminal.move`; both alone.
 #[test]
 fn insert_and_move_compile_to_one_command() {

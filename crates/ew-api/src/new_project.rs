@@ -18,10 +18,10 @@
 //! reference between records follows the new IDs. Unknown records are carried over the same way.
 //!
 //! A project made from a directory records `Project.basic_project = {id, generation}`: the basic project's project
-//! ID and its manifest generation when it was copied (D14, doc 07 §2.8). The built-in basic
+//! ID and its manifest generation when it was copied (doc 07 §2.8). The built-in basic
 //! project is no directory and records nothing.
 //!
-//! **Save as basic project** (FR-MAC-011, D14): [`Session::save_as_basic`] writes the session's model as a new
+//! **Save as basic project** (FR-MAC-011): [`Session::save_as_basic`] writes the session's model as a new
 //! basic project directory under new identities, optionally without its pages, its devices or both.
 
 use std::collections::BTreeMap;
@@ -285,7 +285,7 @@ impl Session {
         Ok(Session::new(model, options))
     }
 
-    /// Save as basic project (FR-MAC-011, D14): writes the session's model into `dir` (a directory without a
+    /// Save as basic project (FR-MAC-011): writes the session's model into `dir` (a directory without a
     /// project) as a new project of kind [`NewProjectKind::Basic`] under a new project ID (a UUIDv7 of the system
     /// clock) and new record IDs, as [`Session::new_project`] copies a directory. Schemes, profiles, frames and
     /// forms, sections, structure, report blocks and library copies are kept; `omit_pages` leaves out every page

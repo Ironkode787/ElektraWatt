@@ -10,7 +10,7 @@
 //! 1. **Gate** on the saved generation ([`Session::release_gate`]): every blocker refuses. The archive root, an existing
 //!    archive of the label (an incomplete release), the git worktree, the executable, the consent and an existing tag
 //!    are judged here too, so that every refusal comes before anything is written.
-//! 2. **Freeze**: the freeze transactions (none at MVP: no numbering scheme freezes at release yet, D13) through the
+//! 2. **Freeze**: the freeze transactions (none at MVP: no numbering scheme freezes at release yet) through the
 //!    ordinary path, then the save of generation g. Every page digest must be equal before and after the freeze, or
 //!    the freeze is undone and the release aborts.
 //! 3. **Git commit** of the project directory (`Release <label>`) when it lies in a worktree.
@@ -21,7 +21,7 @@
 //! 6. **Stamp**: `revision.release` with the release record, prepared on a fork, saved as generation g+1, then
 //!    committed (a barrier in the history; the session stays saved).
 //!
-//! **Atomicity** (D13, NFR-REL-15). A failure in steps 4 to 6 leaves the revision open and removes the temp and the
+//! **Atomicity** (NFR-REL-15). A failure in steps 4 to 6 leaves the revision open and removes the temp and the
 //! archive and tag this run created; the freeze stays as an ordinary undoable transaction. The stamp is saved before
 //! the session commits it, so a failed save leaves the model as it was. A crash leaves at most one complete archive
 //! that no release record names; [`Session::incomplete_release`] reports it at the next open.
@@ -65,7 +65,7 @@ use crate::release::{FOUR_EYES_RULE, Gate, GateError};
 use crate::{CmdError, OpenError, OpenReport, Origin, Session, Sha256, Submit, checks};
 
 /// The release context (doc 05 §14.1 step 4): the label of the open revision and the release date. The archive is
-/// built from generation g plus this context only, so the same saved state and context give the same bytes (RA-5).
+/// built from generation g plus this context only, so the same saved state and context give the same bytes.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ReleaseContext {
     /// The open revision's label, typed to confirm.
@@ -177,7 +177,7 @@ pub struct Discarded {
     pub tag_kept: Option<String>,
 }
 
-/// An as-built archive opened for reproduction (D14, FR-REV-010; [`Session::open_archive`]): `project/` as a read-only
+/// An as-built archive opened for reproduction (FR-REV-010; [`Session::open_archive`]): `project/` as a read-only
 /// session in memory, with the release context and the archive's other entries.
 pub struct OpenedArchive {
     /// The archived generation as a read-only session (no lock, no journal, no state directory).
@@ -227,7 +227,7 @@ impl OpenedArchive {
             .collect()
     }
 
-    /// The PDF re-exported from `project/` with the release context (RU-1: equal to [`OpenedArchive::archived_pdf`]),
+    /// The PDF re-exported from `project/` with the release context (equal to [`OpenedArchive::archived_pdf`]),
     /// with its path in the archive's layout.
     ///
     /// # Errors
@@ -237,7 +237,7 @@ impl OpenedArchive {
         self.session.archived_pdf(&self.context, parallelism)
     }
 
-    /// The report rows re-derived from `project/` (RU-2: equal to [`OpenedArchive::archived_reports`]), by path.
+    /// The report rows re-derived from `project/` (equal to [`OpenedArchive::archived_reports`]), by path.
     pub fn derived_reports(&self) -> BTreeMap<String, Vec<u8>> {
         self.session.archived_reports()
     }
@@ -1105,7 +1105,7 @@ impl Session {
 
     /// The archive's PDF entry (doc 05 §14.2): its path `pdf/<drawing id>_<label>.pdf` and the PDF/A-2b of the current
     /// snapshot dated with the release context. [`Session::open_archive`]'s reproduction calls the same function on the
-    /// archived `project/` (D14, RU-1).
+    /// archived `project/`.
     fn archived_pdf(
         &self,
         ctx: &ReleaseContext,
@@ -1135,7 +1135,7 @@ impl Session {
     }
 
     /// The archive's frozen report rows (FR-REV-011): `reports/<report-block id>.csv` of every report block of the
-    /// current snapshot. [`OpenedArchive::derived_reports`] calls it on the archived `project/` (D14, RU-2).
+    /// current snapshot. [`OpenedArchive::derived_reports`] calls it on the archived `project/`.
     fn archived_reports(&self) -> BTreeMap<String, Vec<u8>> {
         let q = self.query();
         q.report_blocks()
@@ -1150,7 +1150,7 @@ impl Session {
             .collect()
     }
 
-    /// The archive's bytes (doc 05 §14.2, D11) from generation g read back from disk and the release context, with the
+    /// The archive's bytes (doc 05 §14.2) from generation g read back from disk and the release context, with the
     /// manifest and its bytes the verification checks `project/` against.
     #[allow(clippy::type_complexity)]
     fn archive_bytes(

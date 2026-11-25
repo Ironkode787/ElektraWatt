@@ -94,7 +94,7 @@ fn folios_of(targets: &[Target]) -> Vec<&str> {
     targets.iter().map(|(f, _)| f.as_str()).collect()
 }
 
-/// BL-1: on 901 the Folios cell of -101F1's row links "101" whole to -101F1's representation, which the window follows
+/// On 901 the Folios cell of -101F1's row links "101" whole to -101F1's representation, which the window follows
 /// to 101-E8; the earth terminals' row with two folios links each over its own folio's text; the feed-through
 /// terminals' run "101–103" links its two ends; the layout objects' rows link page 902.
 #[test]
@@ -153,7 +153,7 @@ fn the_bom_folios_link_each_listed_folio() {
     }
 }
 
-/// D10: a folio link never picks a contact image. A contact image of -101F1 on 101 with an ID below every
+/// A folio link never picks a contact image. A contact image of -101F1 on 101 with an ID below every
 /// other representation's leaves the Folios link of -101F1's row on its main representation (101-E8).
 #[test]
 fn a_folio_link_skips_contact_images() {
@@ -191,7 +191,7 @@ fn a_folio_link_skips_contact_images() {
     );
 }
 
-/// D10: a `parts_list` block links each row's device tag to the device's main representation, whole; a device without
+/// A `parts_list` block links each row's device tag to the device's main representation, whole; a device without
 /// one links nothing: the enclosure and its plate, and the cables, which the sample draws by their cores.
 #[test]
 fn a_parts_list_links_each_device_to_its_main_representation() {
@@ -228,7 +228,7 @@ fn a_parts_list_links_each_device_to_its_main_representation() {
     assert_eq!(targets(&s, &links_of(f1, 0)), [target("101", Some("101-E8"))]);
 }
 
-/// BL-1, R5: the whole-cell link of -101F1's "101" is on the text, so its box is the text's: on 901 the items that
+/// The whole-cell link of -101F1's "101" is on the text, so its box is the text's: on 901 the items that
 /// carry it are -101F1's Tags text and its Folios text, glyph runs both, and nothing else.
 #[test]
 fn the_folio_of_101f1_carries_its_link_on_its_text() {
@@ -253,7 +253,7 @@ fn the_folio_of_101f1_carries_its_link_on_its_text() {
     assert_eq!(carriers, ["-101F1", "101"]);
 }
 
-/// BL-2: every TOC row links its page; every device row of 910 links its device's main representation but the
+/// Every TOC row links its page; every device row of 910 links its device's main representation but the
 /// enclosure, its plate and the cables, which have none; 908's connection-point links are one per bound channel row,
 /// and 908 links nothing else.
 #[test]
@@ -310,7 +310,7 @@ fn the_toc_and_the_device_tag_overview_link_their_pages_and_devices() {
     assert_eq!(plc.iter().flat_map(|r| &r.links).count(), cp);
 }
 
-/// BL-3: RK-4's and OI-3's fixture blocks (912 `device_list`, 913 `terminal_overview`, 914 `open_items`) draw D10's
+/// The and the fixture blocks (912 `device_list`, 913 `terminal_overview`, 914 `open_items`) draw the
 /// links: a device's tag and main-representation cell link the cell the latter prints; a strip links its main
 /// representation; an open item links its page, else its first device's main representation, else nothing. Two open
 /// items are made for it: the valve terminal's DP address left TBD (neither a page nor a device: no link) and the

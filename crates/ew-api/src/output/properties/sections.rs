@@ -390,7 +390,7 @@ impl Session {
             closed,
         };
         let mut built: Vec<Built> = Vec::new();
-        // A layout record shows D12's rows only, each committed by its own command.
+        // A layout record shows the rows only, each committed by its own command.
         if let Some(rows) = crate::output::layout_edit::layout_rows(q, kind, &targets) {
             return SheetSection {
                 kind: name.to_owned(),

@@ -329,7 +329,7 @@ fn a_crash_at_every_call_of_a_format_leaves_the_old_or_the_new_generation() {
     assert!(seen[0] && seen[2], "the sweep reaches both generations: {seen:?}");
 }
 
-/// D9: "It never changes a record's content, only order and form; a file whose records do not survive the round trip
+/// "It never changes a record's content, only order and form; a file whose records do not survive the round trip
 /// byte-for-byte in content is refused". An explicit `"$v":1` is dropped by the canonical form (version 1 is the
 /// default): the member is content here, so the format is refused and writes nothing.
 #[test]
@@ -448,7 +448,7 @@ fn open_repair(vfs: &Arc<MemVfs>, pid: u32) -> (Session, ew_api::OpenReport) {
     .unwrap()
 }
 
-/// EZ-5: `ew fmt --repair` on a page file with one broken line writes the backup `.ewz` (generation 1 as it was on
+/// `ew fmt --repair` on a page file with one broken line writes the backup `.ewz` (generation 1 as it was on
 /// disk, the broken line included: the pack's read-back takes it), then a project without the line, which opens
 /// editable. An editing open without the repair flag stays read-only.
 #[test]
@@ -601,7 +601,7 @@ fn pend(disk: &mut BTreeMap<String, Vec<u8>>, name: &str, before: &[u8]) {
     disk.insert("manifest.json".to_owned(), merged.into_bytes());
 }
 
-/// EZ-5 on a hand-edited project: the broken line written by hand with the
+/// On a hand-edited project: the broken line written by hand with the
 /// manifest untouched (an edit outside ElektraWatt since the last save, the case a repair exists for), and the same
 /// with the page file's hash pending in a merged manifest. The backup holds the files as found, its manifest the loaded
 /// one with the page file's hash that of its bytes, and counts the page file as edited; it verifies, opens read-only

@@ -124,7 +124,7 @@ pub fn channel_text_cell(table: &NavTable, node: &NavNode, column: usize) -> Opt
     })
 }
 
-/// The records of a row of the route's kind (D10): a conductor route takes a core row's conductor (the records after
+/// The records of a row of the route's kind: a conductor route takes a core row's conductor (the records after
 /// its cable), a potential definition route a potential row's record when it is a `potential_def` (not the bond row's,
 /// nor a connection point naming the potential), every other route the row's records; deduplicated, in record order.
 pub fn row_targets(node: &NavNode, route_kind: &str) -> Vec<Uuid> {
@@ -247,7 +247,7 @@ pub fn route_identifier(kind: &str, path: &str) -> bool {
         .unwrap_or(false)
 }
 
-/// Whether a type is a scalar of D10 (Text, Ident, MlText, Bool, Int, Dec3, Quantity, Csa, Nm, Colour, Enum, or
+/// Whether a type is a scalar (Text, Ident, MlText, Bool, Int, Dec3, Quantity, Csa, Nm, Colour, Enum, or
 /// Optional of one).
 pub fn is_scalar(ty: &FieldType) -> bool {
     matches!(

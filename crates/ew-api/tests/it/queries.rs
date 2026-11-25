@@ -106,9 +106,9 @@ fn csv_fields(line: &str) -> Vec<String> {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// QU-5: the registry and its snapshot
+// The registry and its snapshot
 
-/// QU-5: `ew queries --json` lists every entry of the registry with its output schema. The list is written for
+/// `ew queries --json` lists every entry of the registry with its output schema. The list is written for
 /// the user guide where `EW_REFERENCE_DIR` asks for it.
 // The variable only chooses whether the generated file is also written out.
 #[allow(clippy::disallowed_methods)]
@@ -141,9 +141,9 @@ fn the_query_list_names_the_registry_with_its_output_schemas() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// QU-1 and QU-3: the examples on the sample
+// The examples on the sample
 
-/// QU-1: `device_tag tag:-101F1` prints the full designation and the displayed tag.
+/// `device_tag tag:-101F1` prints the full designation and the displayed tag.
 #[test]
 fn device_tag_prints_the_full_and_the_displayed_tag() {
     let s = sample(MemoMode::On);
@@ -153,7 +153,7 @@ fn device_tag_prints_the_full_and_the_displayed_tag() {
     assert_eq!(a.explain, None);
 }
 
-/// QU-3: every registry entry answers on the sample. The facts come from the sample's script (27 folios; -101F1 on
+/// Every registry entry answers on the sample. The facts come from the sample's script (27 folios; -101F1 on
 /// folio 101; the output card's eight addresses from Q1) and from its other exports (the wire list's numbers on folio
 /// 102, the parts list's rows).
 #[test]
@@ -345,9 +345,9 @@ fn refusals_name_the_key_and_what_the_query_takes() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// QU-2 and QU-4: `--explain`
+// `--explain`
 
-/// QU-2 (FR-EXT-005's acceptance; doc 17 §3.4's example without the time and the file paths): `--explain` adds the
+/// `--explain` adds the
 /// policy line, the dependencies (the tag specification, the identifier set and the numbering rule, the main
 /// representation on folio 101, the location +CAB) and the provenance of the tag row's `via`. A fresh
 /// open prints a miss: the hit flag is read before the key is resolved ("explain reads memo_info and the trail before
@@ -457,7 +457,7 @@ fn explain_without_a_memo_store_says_so() {
     assert_eq!((e.hit, e.verified_at), (None, None));
 }
 
-/// QU-4: two fresh opens print the same text for every query with `--explain`; `--explain` changes no memo state (the
+/// Two fresh opens print the same text for every query with `--explain`; `--explain` changes no memo state (the
 /// memory per family is equal before and after an explained query whose value was already read), and the
 /// derived-data oracle of `ew verify-derived` (`verify_derived`, unchanged) finds no difference after it.
 #[test]

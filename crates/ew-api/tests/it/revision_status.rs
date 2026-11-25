@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Page digests, the page change status, the revision overview and the
-//! `{page.last_changed_in}` placeholder over the sample with a revision history (acceptance PD-1 to PD-4): its V1.0
+//! `{page.last_changed_in}` placeholder over the sample with a revision history: its V1.0
 //! released before page digests (historic) and an open V2.0 whose page notes name 101 and 105.
 
 use crate::common;
@@ -137,8 +137,8 @@ fn history() -> Session {
     history_variant(false, None)
 }
 
-/// [`history`] with its title block's "Revision:" cell bound to `{page.last_changed_in}` (a fixture title block for
-/// PD-4), and, when given, V1.0 released with these page digests (a digest-based release for PD-2).
+/// [`history`] with its title block's "Revision:" cell bound to `{page.last_changed_in}` (a fixture title block),
+/// and, when given, V1.0 released with these page digests (a digest-based release).
 fn history_variant(placeholder: bool, digests: Option<BTreeMap<Id<Page>, Digest128>>) -> Session {
     let pages: BTreeMap<String, String> = common::sample()
         .page_rows()
@@ -198,7 +198,7 @@ fn store_options(state: &Path) -> StoreOptions {
     o
 }
 
-/// PD-1: the digest of every page is the same in two sessions, on 1 and 4 threads, page by page and as a map, and
+/// The digest of every page is the same in two sessions, on 1 and 4 threads, page by page and as a map, and
 /// after the project is written to a directory and opened again; the pages' digests differ.
 #[test]
 fn the_digests_are_stable_across_runs_threads_and_a_save() {
@@ -246,7 +246,7 @@ fn the_digests_are_stable_across_runs_threads_and_a_save() {
     reopened.close();
 }
 
-/// PD-1: moving a representation on folio 101 changes 101's digest and no other (undo restores it); changing only
+/// Moving a representation on folio 101 changes 101's digest and no other (undo restores it); changing only
 /// the open revision's label, which every title block prints, changes none.
 #[test]
 fn a_move_on_101_changes_101_only_and_a_label_changes_none() {
@@ -280,7 +280,7 @@ fn a_move_on_101_changes_101_only_and_a_label_changes_none() {
     );
 }
 
-/// PD-3: V1.0 is historic (no digests), so V2.0's changes are its page notes, 101 and 105; folio 911 lists V1.0
+/// V1.0 is historic (no digests), so V2.0's changes are its page notes, 101 and 105; folio 911 lists V1.0
 /// released and V2.0 open with those pages, a withdrawal record directly after the revision it withdraws; the page
 /// navigator's "Changed in" is V2.0 on 101 and 105 and V1.0 on every other page.
 #[test]
@@ -353,7 +353,7 @@ fn the_history_changes_101_and_105_in_v2() {
     );
 }
 
-/// PD-2: with V1.0 released with page digests (the digest branch), a drawn page is changed now when its digest
+/// With V1.0 released with page digests (the digest branch), a drawn page is changed now when its digest
 /// differs or V2.0's page notes name it (doc 15 §5.6: the release's `changed_pages(r)` unions `r.page_notes` into the
 /// digest-changed pages). V2.0 notes 101 and 105, whose digests did not change: they are changed
 /// in V2.0 in the overview and the "Changed in" column, 102 stays at V1.0 until an edit on it, and folio 911 lists
@@ -408,7 +408,7 @@ fn a_digest_based_release_follows_the_digests_and_the_page_notes() {
     assert_eq!(table.rows[1].cells[5], "101, 102, 105, 911");
 }
 
-/// PD-4: a title block that binds `{page.last_changed_in}` prints V2.0 on 101 and 105 and V1.0 on every other drawn
+/// A title block that binds `{page.last_changed_in}` prints V2.0 on 101 and 105 and V1.0 on every other drawn
 /// page; in the digest branch the page bindings take the digest-based value (102 after an edit on it; the noted
 /// pages 101 and 105 stay V2.0) and an unnoted, unchanged page keeps V1.0.
 #[test]

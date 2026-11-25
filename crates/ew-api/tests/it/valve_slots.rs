@@ -159,7 +159,7 @@ fn rep_of(s: &Session, device: Uuid) -> ew_api::output::TableRep {
         .expect("the symbol")
 }
 
-/// F15: placed, the terminal is one cell per position; a valve placed in cell 3 is the valve at position 3 and stands
+/// Placed, the terminal is one cell per position; a valve placed in cell 3 is the valve at position 3 and stands
 /// in that cell; dragged to cell 1 it moves there, dragged onto a held cell the two swap; a stand-alone valve placed in
 /// the box stays a valve of its own, and Properties' seat words say so.
 #[test]
@@ -257,7 +257,7 @@ fn a_terminal_is_drawn_as_its_positions_and_filled_where_its_cells_are() {
     assert!(cells(&s, vt)[3].holder.is_none());
 }
 
-/// F15: a terminal drawn before as a free box keeps it until Draw as slots: then its box is its cells, its valve drawn
+/// A terminal drawn before as a free box keeps it until Draw as slots: then its box is its cells, its valve drawn
 /// elsewhere on the page stands in its cell, and the valve's tube follows it.
 #[test]
 fn a_free_box_is_redrawn_as_its_positions_with_its_valves_and_tubes() {
@@ -409,7 +409,7 @@ fn place_terminal_of(s: &mut Session, number: &str, at: (i64, i64)) -> Uuid {
     made[0]
 }
 
-/// F15: the two kinds are said apart, and a terminal valve's solenoid says where it is driven from: inside a terminal
+/// The two kinds are said apart, and a terminal valve's solenoid says where it is driven from: inside a terminal
 /// with a bus node, or through a pin of a multipin terminal's plug (solenoid 14 of position 2 on pin 3), never drawn.
 #[test]
 fn the_two_kinds_of_terminal_drive_their_valves_solenoids_apart() {
@@ -788,7 +788,7 @@ fn findings(s: &Session, rule: &str, device: Uuid) -> Vec<ew_api::checks::Findin
         .collect()
 }
 
-/// G16: a position filled from the rack stood as a tag in its cell, without a port. Now each valve stands in its
+/// A position filled from the rack stood as a tag in its cell, without a port. Now each valve stands in its
 /// cell as its symbol, its working ports 2 and 4 on the cell's top edge, and tubes reach them from a cylinder: all four
 /// positions filled (the owner's terminal held four valves), four valves in four cells, each with its own cylinder.
 /// The terminal's supply ports 1, 3 and 5 stand in its left end, where a tube from the air supply quiets EW-FL-010;

@@ -6,7 +6,7 @@
 //! its migration report and the derived pages without naming the record types.
 //!
 //! Every importer call goes through [`front_door`]. A QET project becomes a project through `import.apply`
-//! ([`session_from_import`], D7): the batch on a fork of an empty project, the normalisers, the structural invariants
+//! ([`session_from_import`]): the batch on a fork of an empty project, the normalisers, the structural invariants
 //! (prevent rules relaxed to findings) and the import run, committed as the project's first state. The CSV
 //! bootstrap (`ew import csv`) keeps [`session_from_batch`] and writes no run.
 
@@ -479,7 +479,7 @@ pub fn import_qet(name: &str, bytes: Vec<u8>, library: &StarterLibrary) -> Resul
     import_qet_with(name, bytes, library, SessionOptions::default())
 }
 
-/// [`import_qet`] with the session's `options` (a seeded ID source makes the run's ID reproducible, IC-6).
+/// [`import_qet`] with the session's `options` (a seeded ID source makes the run's ID reproducible).
 ///
 /// # Errors
 ///
@@ -660,7 +660,7 @@ pub fn apply_command(
         .ok_or(ApplyError::NoLineage)?;
     let mut run = run_of(&batch.report, lineage_id, mode, as_of);
     // The run's line with a hash for every record (two 32-digit hashes and an ID each, about 140 bytes) must stay
-    // within the loader's line limit (D6, R2).
+    // within the loader's line limit (R2).
     let line = serde_json::to_string(&Record::ImportRun(run.clone())).map_or(0, |l| l.len());
     if line.saturating_add(batch.records.len().saturating_mul(140))
         > ew_format::Limits::default().max_line_bytes
@@ -767,7 +767,7 @@ pub struct Reimport {
     /// Every record classed (the added and changed ones named as the preview commits them), the records to apply and
     /// the run entries.
     pub plan: ReimportPlan,
-    /// The preview of the plan's `import.apply` (one undoable transaction), `None` when it writes nothing (IC-12).
+    /// The preview of the plan's `import.apply` (one undoable transaction), `None` when it writes nothing.
     pub preview: Option<ew_commands::Preview>,
 }
 
@@ -809,7 +809,7 @@ fn qet_batch(
 }
 
 /// The lineages of an open project that a QET file may re-import into, apart from the session: plain data, so
-/// that a job can detect a file's lineage and import it on a thread of its own (D4; a `Session` is not `Send`).
+/// that a job can detect a file's lineage and import it on a thread of its own (a `Session` is not `Send`).
 #[derive(Clone, Debug)]
 pub struct QetLineages {
     /// The project's ID: a re-imported batch carries it, so that the project keeps its own record.
@@ -947,7 +947,7 @@ pub fn reimport_qet_batch(
 }
 
 impl Session {
-    /// The lineage of this project that the QET file `bytes` named `name` re-imports into (D10, [`detect_qet_reimport`]).
+    /// The lineage of this project that the QET file `bytes` named `name` re-imports into ([`detect_qet_reimport`]).
     ///
     /// # Errors
     ///
@@ -1023,7 +1023,7 @@ impl Session {
         })
     }
 
-    /// Applies a re-import: one undoable transaction, or nothing when it writes nothing (IC-12).
+    /// Applies a re-import: one undoable transaction, or nothing when it writes nothing.
     ///
     /// # Errors
     ///
@@ -1037,7 +1037,7 @@ impl Session {
 }
 
 impl Session {
-    /// The preview of an import (D7, `Session::import_preview`): `import.apply` of `cmd` on a fork, from the origin
+    /// The preview of an import (`Session::import_preview`): `import.apply` of `cmd` on a fork, from the origin
     /// `import`. Commit it with [`Session::commit_import`]; dropping it leaves the session unchanged.
     ///
     /// # Errors

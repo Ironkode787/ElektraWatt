@@ -71,7 +71,7 @@ impl std::fmt::Display for LayoutEditError {
 
 impl std::error::Error for LayoutEditError {}
 
-/// The layout kinds whose sheet is built here (their catalogue rows are not shown: D12's rows replace them).
+/// The layout kinds whose sheet is built here (their catalogue rows are not shown: the rows replace them).
 pub(crate) const LAYOUT_KINDS: [Kind; 5] = [
     Kind::Placement,
     Kind::Carrier,
@@ -585,7 +585,7 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
     Some(rows)
 }
 
-/// The part copies of the device's part uses that the Realised part row offers for a placement on `on`: D12's
+/// The part copies of the device's part uses that the Realised part row offers for a placement on `on`: the
 /// mountable uses, those whose part mounts (a mount kind other than `none` and `on_parent`) or has no mount
 /// kind (an unknown footprint), and on a rail only those whose mount kind the rail's profile does not refuse.
 /// `layout.move {part}` judges the same: on a surface it refuses a `none` or `on_parent` part use, so
@@ -657,7 +657,7 @@ fn project_parts_of(q: &Q, kind: PartKind) -> Vec<(Id<Part>, String)> {
     out
 }
 
-/// A carrier's rows (D12).
+/// A carrier's rows.
 fn carrier_rows(q: &Q, id: Id<Carrier>) -> Option<Vec<PropRow>> {
     let c = q.table::<Carrier>().get(id)?;
     let k = "carrier";
@@ -865,7 +865,7 @@ fn scale_to_send(q: &Q, page: Id<Page>, surface: Id<MountingSurface>) -> Option<
 }
 
 /// The datum that centres the enclosure of `surface` (its outer rectangle, else the usable polygon's bounds) in the
-/// drawing area of `page`'s frame grid at `scale` (D12; the page's, or the one sent with the view; the grid
+/// drawing area of `page`'s frame grid at `scale` (the page's, or the one sent with the view; the grid
 /// the page's cells read, the built-in default one on a page without a frame form); `None` without a frame
 /// grid: no centred datum is offered, and a page without a view then keeps the datum (0, 0), one with a view its own.
 pub(crate) fn centred_datum(
@@ -882,7 +882,7 @@ pub(crate) fn centred_datum(
         ew_units::Nm((area.min().x.0 + area.max().x.0) / 2),
         ew_units::Nm((area.min().y.0 + area.max().y.0) / 2),
     );
-    // The enclosure's rectangle in the surface's frame: its corner at minus the frame's offset (D5's MVP frames).
+    // The enclosure's rectangle in the surface's frame: its corner at minus the frame's offset (the MVP frames).
     let enclosure = q
         .table::<Enclosure>()
         .get(s.enclosure)
@@ -1536,7 +1536,7 @@ impl Session {
     }
 
     /// The location and function nodes the page `page` names (its structure's explicit slots), for the Create
-    /// enclosure dialog's defaults and the enclosure device's function (D7: "the focused page's function").
+    /// enclosure dialog's defaults and the enclosure device's function ("the focused page's function").
     pub fn page_structure(&self, page: Uuid) -> (Option<Uuid>, Option<Uuid>) {
         let q = self.query();
         let Some(p) = q.pages().get(Id::from_uuid(page)) else {
@@ -1549,7 +1549,7 @@ impl Session {
         (node(&p.structure.location), node(&p.structure.function))
     }
 
-    /// The datum `page.surface_view.set` takes to show `surface` centred on the panel page `page` (D12; PS-1):
+    /// The datum `page.surface_view.set` takes to show `surface` centred on the panel page `page`:
     /// the enclosure's rectangle centred in the frame's drawing area at the scale the page draws the view at (its
     /// own, or the fitting scale a page still drawn not to scale takes with the view). `None` for a page
     /// without a frame grid or an unknown page or surface.

@@ -128,7 +128,7 @@ pub struct FindingChip {
     pub message: String,
     /// The folio in lower case of a completeness finding's page (its page, else its primary target's), `None` for
     /// any other kind: the finding is pending while that page is the editing page, as the Messages pane counts it
-    /// (M39: the chip counts what the pane counts).
+    /// The chip counts what the pane counts).
     pub pending_on: Option<String>,
 }
 
@@ -470,7 +470,7 @@ fn page_item_kind_words(kind: &Value) -> Option<String> {
     Some(name.replace('_', " "))
 }
 
-/// The provenance of a device's tag row (doc 16 §6.2, D15): frozen, or derived as a child, a terminal or by a numbering
+/// The provenance of a device's tag row (doc 16 §6.2): frozen, or derived as a child, a terminal or by a numbering
 /// scheme. Shared with `ew query device_tag --explain` ([`Session::tag_provenance`]).
 fn tag_provenance(q: &Q, device: Id<Device>, tag: Option<&ew_derive::Tag>) -> Provenance {
     match tag.map(|t| &t.source) {

@@ -117,7 +117,7 @@ pub(crate) struct Watch {
 impl Session {
     /// Polls the project directory for an external change: call it every [`external::POLL_EVERY`], on window focus,
     /// and after [`external::QUIESCENCE`] while it answers [`DiskPoll::Settling`]; never while a gesture is in progress
-    /// (D22: the apply waits until it ends). A quiet change is read read-only and merged with the session's model per
+    /// (the apply waits until it ends). A quiet change is read read-only and merged with the session's model per
     /// record against the baseline; without a collision it is applied as one step, with collisions it is held, and an
     /// unreadable one holds saves. A read-only session reloads ([`Session::reload`]). The lock's heartbeat rides on
     /// the poll ([`Session::heartbeat_if_due`]).
@@ -192,7 +192,7 @@ impl Session {
             .is_some_and(|p| matches!(p.watch.held, Some(Held::Unreadable)))
     }
 
-    /// The cloud service whose synced folder holds the project directory (D25; [`Session::set_cloud_service`]); `None`
+    /// The cloud service whose synced folder holds the project directory ([`Session::set_cloud_service`]); `None`
     /// elsewhere.
     pub fn cloud_service(&self) -> Option<CloudService> {
         self.persistence.as_ref().and_then(|p| p.watch.cloud)

@@ -6,7 +6,7 @@
 //! this once per (revision, FnDef) and hands the rows to the chooser.
 //!
 //! **Joining** is `device.place` with `existing_function` when the device has an unplaced function of the symbol's
-//! FnDef (a part's template slot, FR-UI-017), else with `join_device {device, role: aux}` (D1): a slot is filled
+//! FnDef (a part's template slot, FR-UI-017), else with `join_device {device, role: aux}`: a slot is filled
 //! before a new auxiliary function is made.
 
 use std::cmp::Ordering;
@@ -327,7 +327,7 @@ impl Session {
     /// What a symbol drawing the FnDef copy `fndef` can join: whether the FnDef can be an auxiliary
     /// function, and the rows of the Join chooser. A slot is an unplaced normal function of the FnDef (no
     /// representation draws it) on a device; its row comes first, so that a slot is filled before a new auxiliary
-    /// function is made (D1). The second group is every other device whose main function is a coil, or one of
+    /// function is made. The second group is every other device whose main function is a coil, or one of
     /// whose parts' templates has an entry of the FnDef, and for a function a device takes as its own whatever its family
     /// every other device; terminals and strips are never listed. An FnDef neither
     /// embedded nor a starter FnDef (which a placement embeds with its symbol) is not auxiliary and lists

@@ -130,7 +130,7 @@ fn set_address(s: &mut Session, c: Id<Channel>, value: &str) {
     );
 }
 
-/// PT-1: after PW-1 (the CPU, then the input card and the output card with their pins drawn), the input card's pins
+/// After the placing (the CPU, then the input card and the output card with their pins drawn), the input card's pins
 /// print I0.0 … I0.7 and the output card's Q0.0 … Q0.7 in the page's labels layer; `fields.set address "I4.0"` on
 /// channel 0 changes the print, undo restores it; an excluded address prints nothing.
 #[test]
@@ -196,7 +196,7 @@ fn a_pin_text_is_placed_inside_the_box_beside_its_pin() {
     assert!(xs.iter().all(|x| (x - x0).abs() < 3_000_000), "{quad:?}");
 }
 
-/// The restated PT-2: in a new project with the CPU and the output card, a starter coil attached to the card and
+/// Restated: in a new project with the CPU and the output card, a starter coil attached to the card and
 /// bound to its channel 0 prints Q0.0 in its `PlcAddress` slot; `fields.set address` changes it and undo restores it.
 #[test]
 fn a_starter_coil_bound_to_an_output_channel_prints_its_address() {

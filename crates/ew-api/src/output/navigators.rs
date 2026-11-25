@@ -81,7 +81,7 @@ use strips::strips_table;
 use structure::structure_table;
 use unplaced::unplaced_table;
 
-/// The navigators (D4; adds the message panel last), in View ▸ Navigators order.
+/// The navigators (adds the message panel last), in View ▸ Navigators order.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum NavKind {
     /// Pages.
@@ -953,7 +953,7 @@ mod tests {
         assert_eq!(NavRole::StructureNode.word(), "structure_node");
     }
 
-    /// Whether a value type is a scalar of D10: Text, Ident, MlText, Bool, Int, Dec3, Quantity, Csa, Nm, Colour, Enum,
+    /// Whether a value type is a scalar: Text, Ident, MlText, Bool, Int, Dec3, Quantity, Csa, Nm, Colour, Enum,
     /// or Optional of one.
     fn scalar(ty: &crate::output::FieldType) -> bool {
         use crate::output::FieldType as T;
@@ -973,7 +973,7 @@ mod tests {
         )
     }
 
-    /// TB1 (D10): each route of the editable-column table is an `EditRoute::FieldsSet` of `field_catalogue` with
+    /// TB1: each route of the editable-column table is an `EditRoute::FieldsSet` of `field_catalogue` with
     /// a scalar `FieldType`, and the catalogue's identifier flag (which table mode's policy reads) is set exactly for
     /// the identifier rows (the terminal designation, the potential's name and the structure node's code); every
     /// column of every navigator carries the route or the read-only reason of the precedence at column level

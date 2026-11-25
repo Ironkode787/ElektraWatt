@@ -102,7 +102,7 @@ fn cell<'t>(t: &'t NavTable, n: &'t NavNode, key: &str) -> &'t str {
     &n.cells[i]
 }
 
-/// UI-4: without libraries (the compiled-in ones only), the sample's symbols are current; the compiled-in libraries
+/// Without libraries (the compiled-in ones only), the sample's symbols are current; the compiled-in libraries
 /// stand under "System", read-only. Tiers and the group of the project's copies are words.
 #[test]
 fn the_sample_s_copies_without_libraries() {
@@ -157,7 +157,7 @@ fn the_sample_s_copies_without_libraries() {
     assert!(lamp.records.len() > 1);
 }
 
-/// UI-4: the power supply's part assigned to -101G1 from a fixture user library is current; once the library holds
+/// The power supply's part assigned to -101G1 from a fixture user library is current; once the library holds
 /// its next patch version the copy has an update available. The library stands under "User", writable.
 #[test]
 fn a_fixture_library_offers_an_update() {
@@ -226,7 +226,7 @@ fn free_point() -> ew_units::Pt2 {
     ew_units::Pt2::new(g.at(20).unwrap(), g.at(20).unwrap())
 }
 
-/// UI-1 (data): the PSU macro (the sample's breaker -101F1, the power supply -101G1 it feeds and their two wires) saved
+/// The PSU macro (the sample's breaker -101F1, the power supply -101G1 it feeds and their two wires) saved
 /// into a user library is listed under "User" with its kind, version, library and device count; the detail lists its
 /// two devices, has no thumbnail and names the macro by reference. A new instance ID is the same twice and moves on
 /// after an insertion.

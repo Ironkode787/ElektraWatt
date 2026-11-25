@@ -96,7 +96,7 @@ fn rows(q: &Q, id: Id<ReportBlock>) -> Vec<Vec<String>> {
         .collect()
 }
 
-/// PX-3: the box of -201K1 on 201 draws "PLC OVERVIEW", the six headers and the eight channels Q0.0 … Q0.7 with their
+/// The box of -201K1 on 201 draws "PLC OVERVIEW", the six headers and the eight channels Q0.0 … Q0.7 with their
 /// numbers, symbols, function texts and states; the bound rows print the frame cells of their valves on folio 201; the
 /// cells link to the bound CPs; nothing overflows.
 #[test]
@@ -158,7 +158,7 @@ const EXPECTED_ROWS: [[&str; 6]; 8] = [
     ["7", "Q0.7", "", "", "deactivated", ""],
 ];
 
-/// PX-3: a selection naming a module lists that module's rows only; one naming the CPU's station lists the rows of
+/// A selection naming a module lists that module's rows only; one naming the CPU's station lists the rows of
 /// its two cards, as folio 908's block lists them.
 #[test]
 fn a_module_selection_lists_that_module_only_and_a_station_selection_its_cards() {
@@ -188,7 +188,7 @@ fn a_module_selection_lists_that_module_only_and_a_station_selection_its_cards()
     assert_eq!(modules, expected, "in plc_rows order");
 }
 
-/// PX-3: "drawing on it changes no potential": the box has no connection points, so the sample's potential partition
+/// "drawing on it changes no potential": the box has no connection points, so the sample's potential partition
 /// is the same with and without it.
 #[test]
 fn the_box_changes_no_potential() {

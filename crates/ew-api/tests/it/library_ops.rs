@@ -210,7 +210,7 @@ fn invalid_path(e: CmdError) -> (String, String) {
     }
 }
 
-/// EM-1: `embed_command` by reference embeds EW-GEN-PSU-1 with its manufacturer and its template FnDef in one
+/// `embed_command` by reference embeds EW-GEN-PSU-1 with its manufacturer and its template FnDef in one
 /// command, and the command replays on a session with no library.
 #[test]
 fn embedding_by_reference_carries_the_closure_and_replays_without_a_library() {
@@ -267,7 +267,7 @@ fn embedding_by_reference_carries_the_closure_and_replays_without_a_library() {
     );
 }
 
-/// EM-2: every rejection of `part.assign`, with its pointer.
+/// Every rejection of `part.assign`, with its pointer.
 #[test]
 fn every_rejection_of_part_assign_names_its_pointer() {
     let (_root, t, lib) = company("ew-api-em2");
@@ -365,7 +365,7 @@ fn every_rejection_of_part_assign_names_its_pointer() {
     );
 }
 
-/// EM-3: assigning EW-GEN-MCB-4 to -102F1 from the company library embeds the part and its maker's
+/// Assigning EW-GEN-MCB-4 to -102F1 from the company library embeds the part and its maker's
 /// manufacturer copy, sets the part use and prints the manufacturer, the part number and the rating in the slots.
 #[test]
 fn assigning_from_a_company_library_embeds_and_prints() {
@@ -402,7 +402,7 @@ fn assigning_from_a_company_library_embeds_and_prints() {
     );
 }
 
-/// EM-4 (FR-PRT-023): replacing EW-GEN-MCB-4 by another MCB across the devices that use it lists -101F1 in the preview and
+/// Replacing EW-GEN-MCB-4 by another MCB across the devices that use it lists -101F1 in the preview and
 /// commits once.
 #[test]
 fn replacing_a_part_across_devices_lists_them_and_commits_once() {
@@ -446,7 +446,7 @@ fn replacing_a_part_across_devices_lists_them_and_commits_once() {
     );
 }
 
-/// EM-5 (FR-PRT-014, D9): updating EW-GEN-PSU-1 with a description change is a patch; the plan shows the field diff and
+/// Updating EW-GEN-PSU-1 with a description change is a patch; the plan shows the field diff and
 /// -101G1 before the commit; the library status says so before and after.
 #[test]
 fn a_patch_update_shows_the_field_diff_and_the_device() {
@@ -585,7 +585,7 @@ fn rehashed(mut v: Value) -> Value {
     with_hash(v)
 }
 
-/// EM-6 (FR-SYM-016, D9): a symbol update that moves the anchor is minor and changes cross-reference texts, which the
+/// A symbol update that moves the anchor is minor and changes cross-reference texts, which the
 /// preview lists; one that removes a connected CP is refused with the list.
 #[test]
 fn a_symbol_update_is_minor_with_a_moved_anchor_and_refused_without_a_connected_cp() {
@@ -655,7 +655,7 @@ fn a_symbol_update_is_minor_with_a_moved_anchor_and_refused_without_a_connected_
     }
 }
 
-/// EM-7 (doc 07 §4.5): a declared patch that removes a CP is classified major, whatever its version says.
+/// A declared patch that removes a CP is classified major, whatever its version says.
 #[test]
 fn a_declared_patch_that_removes_a_cp_is_major() {
     let old = sample_part("EW-GEN-PSU-1");
@@ -822,7 +822,7 @@ fn library_update_refuses_what_it_cannot_update() {
     assert_eq!(p, "/cp_maps/0/map/0/0");
 }
 
-/// EM-8 (FR-PRT-034): deprecating EW-GEN-MCB-4 with a successor; the sample still opens unchanged with the library, and
+/// Deprecating EW-GEN-MCB-4 with a successor; the sample still opens unchanged with the library, and
 /// `library_status` offers the successor for -101F1 once it holds the library's copy.
 #[test]
 fn a_deprecated_part_offers_its_successor() {

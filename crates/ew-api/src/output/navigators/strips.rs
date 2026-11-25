@@ -30,7 +30,7 @@ fn strips(q: &Q) -> Vec<Id<Device>> {
 /// Terminal strips: strip → its rows in mounting order: the accessories placed before the
 /// first terminal, then each terminal (from the strip's terminal diagram) followed by the accessories placed after it.
 /// The table has a leading `strip` column, `pos` (the terminal's `seq`, an accessory's `<after_seq>.<k>`) and
-/// `bridge_part` (the part number of the terminal's bridge, D6). Every node of a strip carries the facet `strip` (the
+/// `bridge_part` (the part number of the terminal's bridge). Every node of a strip carries the facet `strip` (the
 /// case-folded strip tag).
 pub(super) fn strips_table(q: &Q, b: &mut Builder) {
     let folios = folios(q);
@@ -89,7 +89,7 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
             None,
             facets,
         );
-        // D3: the accessories in (after_seq, list index) order, each with its `pos` and the index of the terminal
+        // The accessories in (after_seq, list index) order, each with its `pos` and the index of the terminal
         // it follows (`None`: before the first terminal).
         let seqs: Vec<u32> = terminals
             .iter()

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! External change in the session (XC-1 to XC-7; D20 to D23).
+//! External change in the session.
 //!
 //! Each test opens a copy of the sample project in memory for editing. The external change is a colleague's save made
 //! by a second session on a copy of the project, whose changed files and manifest are then copied into the live
@@ -198,7 +198,7 @@ fn lines(s: &Session) -> Vec<(ew_model::AnyKey, String)> {
     ew_commands::rows::model_lines(&s.world().model).expect("the rows serialise")
 }
 
-/// XC-1: a second store's save that changes folio 103 is detected after quiescence and applied as one step "External
+/// A second store's save that changes folio 103 is detected after quiescence and applied as one step "External
 /// change"; undo restores the pre-change model; saving after the undo writes the earlier state.
 #[test]
 fn a_colleague_s_save_is_applied_as_one_undoable_step() {
@@ -253,8 +253,8 @@ fn a_colleague_s_save_is_applied_as_one_undoable_step() {
     );
 }
 
-/// XC-2: a local unsaved edit on folio 101 stays through the external change on 103, the project stays dirty, and the
-/// next save writes only the edit's file and passes D5.
+/// A local unsaved edit on folio 101 stays through the external change on 103, the project stays dirty, and the
+/// next save writes only the edit's file and passes the safeguards.
 #[test]
 fn a_local_edit_survives_and_saves_alone() {
     let vfs = project();
@@ -297,7 +297,7 @@ fn wire_with_overrides(s: &Session) -> String {
     crate::common::sample_shield(s).to_string()
 }
 
-/// XC-3 setup: the colour of a wire with overrides BU locally and WH on disk; the poll holds the collision.
+/// Setup: the colour of a wire with overrides BU locally and WH on disk; the poll holds the collision.
 fn collided() -> (Arc<MemVfs>, Arc<ManualClock>, Session, String) {
     let vfs = project();
     let c = clock();
@@ -314,7 +314,7 @@ fn collided() -> (Arc<MemVfs>, Arc<ManualClock>, Session, String) {
     (vfs, c, s, w)
 }
 
-/// XC-3: a local and an external change of one wire's colour collide: nothing applies, saves are refused, the collision
+/// A local and an external change of one wire's colour collide: nothing applies, saves are refused, the collision
 /// names the field; choosing theirs, then (on a fresh collision) mine, gives the expected models in one step each.
 #[test]
 fn a_collision_is_held_until_mine_or_theirs_is_chosen() {
@@ -407,7 +407,7 @@ fn a_held_change_is_kept_and_merged_again_at_the_apply() {
     assert!(s.external_collisions().is_none());
 }
 
-/// XC-4: a git operation in progress (a test `index.lock`) defers detection until it is gone; the session's own save
+/// A git operation in progress (a test `index.lock`) defers detection until it is gone; the session's own save
 /// is never taken for an external change.
 #[test]
 fn a_git_operation_defers_detection_and_an_own_save_is_no_change() {
@@ -443,7 +443,7 @@ fn a_git_operation_defers_detection_and_an_own_save_is_no_change() {
     assert_eq!(overrides(&s, &theirs)["colour"], json!(["RD"]));
 }
 
-/// XC-5: an incoming generation with a missing listed file applies nothing, keeps the edits and holds saves with D21's
+/// An incoming generation with a missing listed file applies nothing, keeps the edits and holds saves with the
 /// text; it applies once the file appears.
 #[test]
 fn an_unreadable_generation_holds_saves_until_it_reads() {
@@ -485,7 +485,7 @@ fn an_unreadable_generation_holds_saves_until_it_reads() {
     s.save().expect("saves again");
 }
 
-/// XC-6: a crash after an applied external change with unsaved edits recovers the live model: the journal's
+/// A crash after an applied external change with unsaved edits recovers the live model: the journal's
 /// segment follows the incoming generation, and nothing is killed: the reopen runs over the leftover segment.
 #[test]
 fn a_crash_after_an_apply_recovers_the_live_model() {
@@ -530,7 +530,7 @@ fn a_crash_after_an_apply_recovers_the_live_model() {
     assert_eq!(lines(&r), live, "the recovery equals the live model");
 }
 
-/// XC-7: a read-only session reloads on each of the holder's saves and writes nothing.
+/// A read-only session reloads on each of the holder's saves and writes nothing.
 #[test]
 fn a_read_only_follower_reloads_and_writes_nothing() {
     let vfs = project();
@@ -769,7 +769,7 @@ fn ew_core_013_renumbers_the_newer_after_a_merge() {
     assert!(findings(&s, "EW-CORE-013").is_empty());
 }
 
-/// XW-5 (D25, doc 05 §15 row 8): a sync client's unlisted `pages/<id> (conflicted copy).jsonl` is listed at open as
+/// A sync client's unlisted `pages/<id> (conflicted copy).jsonl` is listed at open as
 /// EW-CORE-004 with its path, a warning the window counts in its banner; the project still opens for editing.
 #[test]
 fn a_conflicted_copy_is_listed_as_an_orphan_file() {

@@ -186,7 +186,7 @@ fn an_earth_connection_s_row_says_so() {
     );
 }
 
-/// D16: the contactor -102Q1's row lists its five representations under its functions: the coil (102-E4), the three
+/// The contactor -102Q1's row lists its five representations under its functions: the coil (102-E4), the three
 /// main contacts on 103 and the auxiliary contact 13-14 on 102; its drawables run main first, then in page order.
 #[test]
 fn the_102q1_row_has_its_representations_and_the_index_finds_them() {

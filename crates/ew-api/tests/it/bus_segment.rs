@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The bus segment of the sample project (page 105, AC-31's derived half): the PROFIBUS DP line runs from the CPU's
+//! The bus segment of the sample project (page 105, the derived half): the PROFIBUS DP line runs from the CPU's
 //! port -104A1:DP over the cable -105W1 to the valve terminal's port -201K1:DP; the CPU is the master; the ports print
 //! their addresses and terminations; EW-BUS-004 reports an end switched off and EW-BUS-001 a TBD station address,
 //! which supersedes EW-CORE-044. The segment's rules and their in-code fixtures are `ew-checks`' and `ew-derive`'s
@@ -97,7 +97,7 @@ fn the_bus_overview_walks_the_segment_from_the_master() {
     assert!(rows[2].contains("-201K1"), "{}", rows[2]);
 }
 
-/// BU-2 (D11, A5): the DP line is one segment, ordered from the master end: the CPU's port, the cable -105W1 and the
+/// The DP line is one segment, ordered from the master end: the CPU's port, the cable -105W1 and the
 /// valve terminal's port; both ports are its ends, neither is external, and it is on a logical net.
 #[test]
 fn one_segment_from_the_master_port_to_the_station_port() {
@@ -128,7 +128,7 @@ fn one_segment_from_the_master_port_to_the_station_port() {
     assert!(!segment.branched);
 }
 
-/// BU-4 (FR-BUS-005): the master of the logical net is the CPU's port, and the valve terminal's port is a member.
+/// The master of the logical net is the CPU's port, and the valve terminal's port is a member.
 #[test]
 fn the_cpu_port_is_the_master_of_the_net() {
     let s = common::sample();
@@ -146,7 +146,7 @@ fn the_cpu_port_is_the_master_of_the_net() {
     assert_eq!(members.master, Some(NetMaster::Port(master)));
 }
 
-/// BU-5's derived half: a port prints its station address ("Node 3") and its termination switch; an open address
+/// The derived half: a port prints its station address ("Node 3") and its termination switch; an open address
 /// prints "Node TBD"; a switch Off prints "Switch to "OFF"".
 #[test]
 fn the_port_texts() {
@@ -169,7 +169,7 @@ fn the_port_texts() {
     );
 }
 
-/// BU-6 = AC-31: the sample's line has no bus finding. BU-3: with the valve terminal's end Off, EW-BUS-004
+/// The sample's line has no bus finding. With the valve terminal's end Off, EW-BUS-004
 /// reports one error at that end, and On again clears it. A TBD station address is one EW-BUS-001 error on its port,
 /// worded in each language, and EW-CORE-044's finding for it is superseded.
 #[test]

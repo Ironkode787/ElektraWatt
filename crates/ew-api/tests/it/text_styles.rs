@@ -122,7 +122,7 @@ fn core061(s: &Session) -> Vec<String> {
         .collect()
 }
 
-/// TS-1: the sample, made as a new project, holds the new-project overrides and no EW-CORE-061 finding; without the
+/// The sample, made as a new project, holds the new-project overrides and no EW-CORE-061 finding; without the
 /// member its pages print small pin numbers below the readable size, and EW-CORE-061 reports that style (the sample
 /// prints no text in `marker`: its wire markers are page items).
 #[test]
@@ -132,7 +132,7 @@ fn a_project_without_the_member_has_the_two_findings() {
     assert_eq!(core061(&without_overrides(1)), ["cp.small"]);
 }
 
-/// TS-2: a new project's `project.jsonl` holds exactly the two overrides, and they round-trip.
+/// A new project's `project.jsonl` holds exactly the two overrides, and they round-trip.
 #[test]
 fn a_new_project_writes_its_overrides() {
     let work = temp("ts2");
@@ -158,7 +158,7 @@ fn a_new_project_writes_its_overrides() {
     assert_eq!(project_text(&dir), text);
 }
 
-/// TS-2: with the new-project overrides, every wire marker and small pin number prints at 7 px in the export job's
+/// With the new-project overrides, every wire marker and small pin number prints at 7 px in the export job's
 /// scenes, and EW-CORE-061 reports nothing (over the sample's pages without the overrides, which print pin numbers).
 #[test]
 fn the_new_project_overrides_print_markers_and_pin_numbers_at_7_px() {
@@ -176,7 +176,7 @@ fn the_new_project_overrides_print_markers_and_pin_numbers_at_7_px() {
     assert!(core061(&s).is_empty());
 }
 
-/// TS-3 (FR-SYM-013's acceptance): `tag.main` at 4 mm changes every device tag on every page in one undo step, and
+/// `tag.main` at 4 mm changes every device tag on every page in one undo step, and
 /// leaves the terminals' numbers, which print in `terminal` at the same built-in size; undo restores; a size of
 /// 100 nm is refused at `/text_styles/tag.main/size`.
 #[test]
@@ -204,7 +204,7 @@ fn a_tag_style_override_resizes_every_tag_in_one_undo_step() {
     }
 }
 
-/// TS-5: an entry's unknown member is written back as read, through a save and a reopen.
+/// An entry's unknown member is written back as read, through a save and a reopen.
 #[test]
 fn an_unknown_member_of_an_entry_survives_a_save() {
     let work = temp("ts5");
@@ -232,7 +232,7 @@ fn an_unknown_member_of_an_entry_survives_a_save() {
     assert_eq!(project_text(&dir), text);
 }
 
-/// TS-6: a company basic project's member is copied as it is (the sample's overrides); `save_as_basic` of a new project
+/// A company basic project's member is copied as it is (the sample's overrides); `save_as_basic` of a new project
 /// keeps the overrides, and a project made from that basic project has them.
 #[test]
 fn a_basic_project_is_copied_as_it_is() {

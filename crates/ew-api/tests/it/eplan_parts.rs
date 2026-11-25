@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! EPLAN part data through the host (doc 14 §5.2, §5.3): AC-38 (an EDZ for a held part updates the project's copy
-//! through a previewed command that lists the changed fields), the library write, the function-definition table.
+//! EPLAN part data through the host (doc 14 §5.2, §5.3): an EDZ for a held part updates the project's copy
+//! through a previewed command that lists the changed fields, the library write, the function-definition table.
 //! The held part is Phoenix Contact's power supply 2904602, which the synthetic EDZ describes: the sample's power
 //! supply -101G1 is given a copy of it in the test.
 
@@ -124,7 +124,7 @@ fn held_part(s: &Session, number: &str) -> ew_schema::LibCopy<ew_schema::Part> {
         .expect("a held part")
 }
 
-/// AC-38: an EDZ for the held part 2904602 updates the project's copy through a previewed `library.update` that
+/// An EDZ for the held part 2904602 updates the project's copy through a previewed `library.update` that
 /// lists the changed fields and the device that uses the part; what the EDZ does not carry stays; nothing changes
 /// before the commit; the commit is one undo step.
 #[test]

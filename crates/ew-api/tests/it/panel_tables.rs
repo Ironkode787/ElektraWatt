@@ -131,7 +131,7 @@ fn a_schematic_page_has_no_panel_tables() {
     assert_eq!(s.panel_tables("no such folio"), None);
 }
 
-/// PW-1 in `ew-api`: the Unplaced devices navigator lists the unplaced device under +CAB with its part, size and mount
+/// In `ew-api`: the Unplaced devices navigator lists the unplaced device under +CAB with its part, size and mount
 /// kind; after `layout.place` of -102F1 on rail 2 its row is gone in the same revision.
 #[test]
 fn the_unplaced_navigator_lists_the_unplaced_device() {

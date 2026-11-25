@@ -94,7 +94,7 @@ fn an_import_is_written_with_its_run_and_reproducibly() {
     assert_eq!(run["source"]["name"], "synthetic.qet");
     assert!(run["record_hashes"].as_object().is_some_and(|h| !h.is_empty()));
 
-    // IC-9, IC-10: the migration scheme lists every entry of the run once, as an EW-IMP finding with the
+    // The migration scheme lists every entry of the run once, as an EW-IMP finding with the
     // entry's severity and message, and lists the same after the project is reopened.
     let import_findings = |s: &Session| -> Vec<(String, String, String)> {
         let report = s.check(&ew_api::checks::MIGRATION, ew_api::checks::CheckMode::Release);
@@ -128,7 +128,7 @@ fn an_import_is_written_with_its_run_and_reproducibly() {
     );
     plain.close();
 
-    // IC-8: reopened and saved again, the run's file is unchanged.
+    // Reopened and saved again, the run's file is unchanged.
     let (mut reopened, _) = Session::open(&a, store(), SessionOptions::default(), Recovery::Keep).unwrap();
     reopened.save().unwrap();
     reopened.close();

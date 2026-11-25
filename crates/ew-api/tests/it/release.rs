@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The atomic release and the as-built archive through the `Session` facade, RA-1 to
-//! RA-7, on the release fixture `fixtures/release-min` (one page, two devices, an author and a checker party,
+//! The atomic release and the as-built archive through the `Session` facade.
+//! On the release fixture `fixtures/release-min` (one page, two devices, an author and a checker party,
 //! the open revision V1.0 with its author; built by [`build_release_min`] and compared with the checked-in copy).
 //!
 //! Every release runs on a **copy** of the fixture (a fresh directory or a [`MemVfs`]); nothing under `fixtures/`
 //! changes. The tests that need no git pass [`NoGit`], which reports no worktree without looking at the disk, so no
-//! test walks up into the repository it runs in; RA-7's git test creates its own repository under its temporary
+//! test walks up into the repository it runs in; the git test creates its own repository under its temporary
 //! directory.
 
 use crate::common;
@@ -365,7 +365,7 @@ fn approved_copy(tag: &str) -> (ew_testdir::Tmp, PathBuf, Session, Vec<checks::I
     (base, dir, s, integrity)
 }
 
-/// The gate of the approved fixture passes (D15's fixture: no finding besides those the approval settles).
+/// The gate of the approved fixture passes (the fixture: no finding besides those the approval settles).
 #[test]
 fn the_approved_fixture_passes_the_gate() {
     let (_base, _, s, integrity) = approved_copy("gate");
@@ -406,7 +406,7 @@ fn a_release_reports_an_unreleased_format() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// RA-1, RA-2, RA-6: the release and its archive
+// The release and its archive
 
 fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
@@ -425,15 +425,15 @@ fn entries(bytes: &[u8]) -> BTreeMap<String, Vec<u8>> {
     archive::read(bytes, &limits).expect("the archive reads and its sums verify")
 }
 
-/// RA-1, RA-2 and RA-6 on the approved fixture, outside a worktree:
-/// - RA-1: the release runs the six steps; the revision is released at g+1 with a complete record, the session is
+/// On the approved fixture, outside a worktree:
+/// - The release runs the six steps; the revision is released at g+1 with a complete record, the session is
 ///   clean, and the project reopens released;
-/// - RA-2: the archive holds exactly D11's entries (no report block in the fixture, so no `reports/`); every line of
+/// - The archive holds exactly the entries (no report block in the fixture, so no `reports/`); every line of
 ///   `SHA256SUMS` matches its entry as `sha256sum -c` checks it and every other entry is listed; `project/` is
 ///   generation g byte for byte and its hashes equal manifest g; `ARCHIVE.json` names the project, the revision, g,
 ///   the release context, the profile, the packs, the generator and the format; `check/report.json` carries the
 ///   scheme, the packs, the waivers in force and the disclaimer;
-/// - RA-6: the record carries the sign-off as `approval`, the packs, the derivation profile, the content digest of g,
+/// - The record carries the sign-off as `approval`, the packs, the derivation profile, the content digest of g,
 ///   every page digest and the changed pages (every page: the first release has no earlier one).
 #[test]
 fn the_release_writes_the_archive_and_the_record() {
@@ -448,7 +448,6 @@ fn the_release_writes_the_archive_and_the_record() {
         .release(&context(), &integrity, &options(&NoGit, Some(&root)))
         .expect("released");
 
-    // RA-1.
     assert_eq!(released.generation, g);
     assert_eq!(released.stamped, g + 1);
     assert_eq!(released.archive, root.join("V1.0.ewarchive"));
@@ -473,7 +472,6 @@ fn the_release_writes_the_archive_and_the_record() {
         "a settled run leaves no record"
     );
 
-    // RA-6.
     let record = release_record(&s);
     assert_eq!(record.approval, Some(sign_off.clone()));
     assert_eq!(
@@ -515,7 +513,6 @@ fn the_release_writes_the_archive_and_the_record() {
         .collect();
     assert_eq!(packs, expected);
 
-    // RA-2.
     let entries = entries(&bytes);
     let mut names: BTreeSet<String> = [
         "mimetype",
@@ -660,7 +657,7 @@ fn the_release_report_lists_the_waivers_in_force() {
     s.close();
 }
 
-/// RA-5: two releases of the same saved state (two copies in directories of different names, one with one thread
+/// Two releases of the same saved state (two copies in directories of different names, one with one thread
 /// and one with four) write byte-identical archives: no clock, no locale, no hash-map order, no host path.
 #[test]
 fn two_releases_of_the_same_saved_state_write_the_same_bytes() {
@@ -861,7 +858,7 @@ fn only_a_human_path_reaches_the_release() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// RA-3: kill points through the Vfs seam and injected git failures
+// Kill points through the Vfs seam and injected git failures
 
 /// The approved fixture as files, by `/`-separated path.
 fn approved_image() -> Vec<(String, Vec<u8>)> {
@@ -1117,7 +1114,7 @@ fn sweep(fault: fn(u64) -> Fault, in_worktree: bool) -> Seen {
     panic!("the release made more than 2000 file-system calls")
 }
 
-/// RA-3 (process kill): a kill at every file-system call of the release, inside a worktree (the fake port keeps the
+/// A kill at every file-system call of the release, inside a worktree (the fake port keeps the
 /// tag across the crash). The outcomes of [`after_the_crash`] occur: open with nothing written, an incomplete release
 /// completed and discarded, and released; never one a discard keeps, since the run's record is durable before the
 /// archive has its name (finding 3: a crash right after the rename is discardable by this directory).
@@ -1131,7 +1128,7 @@ fn a_kill_at_every_call_leaves_a_settled_or_incomplete_release() {
     assert!(seen.released > 0, "{seen:?}");
 }
 
-/// RA-3 (power loss): the state reverts to what was durable at every call; a released project's archive is durable
+/// The state reverts to what was durable at every call; a released project's archive is durable
 /// (the archive is synced and renamed before the stamp's save), and an open one has at most an incomplete release,
 /// which a run record of this directory proves its own.
 #[test]
@@ -1142,7 +1139,7 @@ fn a_power_loss_at_every_call_never_loses_a_named_archive() {
     assert_eq!(seen.kept, 0, "{seen:?}");
 }
 
-/// RA-3 (a failure in steps 4 to 6, D13): one failing file-system call at every position, the process alive. A
+/// One failing file-system call at every position, the process alive. A
 /// failed release leaves the revision open, no archive, no temp and no tag in place, the session saved; the next
 /// release in the same session succeeds.
 #[test]
@@ -1199,7 +1196,7 @@ fn one_failing_call_cleans_up_what_the_run_created() {
     panic!("the release made more than 2000 file-system calls")
 }
 
-/// RA-3 (git, D12): a refused commit refuses the release before the archive (step 3); a refused tag (step 5) removes
+/// A refused commit refuses the release before the archive (step 3); a refused tag (step 5) removes
 /// the archive of the run; both leave the revision open and the session saved, and the release succeeds once git
 /// does.
 #[test]
@@ -1255,7 +1252,7 @@ fn a_git_failure_leaves_the_revision_open() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// RA-3: what a discard may remove (a shared archive root, a shared tag namespace)
+// What a discard may remove (a shared archive root, a shared tag namespace)
 
 /// The released archive of the approved fixture in the memory file system (the bytes a crash after the rename leaves
 /// as an incomplete release of the same project and revision).
@@ -1928,7 +1925,7 @@ fn a_foreign_tag_and_another_runs_temp_are_kept() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// RA-7: a real git repository
+// A real git repository
 
 /// `git` in `dir` for the test's own set-up and inspection.
 fn git_in(dir: &Path, args: &[&str]) -> Option<String> {
@@ -1946,7 +1943,7 @@ fn git_in(dir: &Path, args: &[&str]) -> Option<String> {
         .then(|| String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
-/// RA-7 in a temporary git repository under the test's directory: the plan names the worktree and the tag; the
+/// In a temporary git repository under the test's directory: the plan names the worktree and the tag; the
 /// release commits only the project directory ("Release V1.0") and creates the annotated tag `ew/rev/V1.0` on that
 /// commit with the archive's SHA-256 in its message; the stamp's generation g+1 is left for the user's next commit;
 /// the default archive root beside the project lies in the worktree and is flagged. Without `git` on the path, a
@@ -1954,7 +1951,7 @@ fn git_in(dir: &Path, args: &[&str]) -> Option<String> {
 #[test]
 fn the_release_commits_and_tags_in_a_git_repository() {
     if git_in(Path::new("."), &["--version"]).is_none() {
-        eprintln!("RA-7 skipped: no git executable on the path");
+        eprintln!("skipped: no git executable on the path");
         return;
     }
     let base = ew_testdir::Tmp::new("ew-release-git");
@@ -2114,7 +2111,7 @@ fn a_release_whose_archive_time_cannot_be_set_goes_on() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Part 5: the per-submission gate and the archive's use (D14, RU-1, RU-2)
+// Part 5: the per-submission gate and the archive's use
 
 /// The `HumanOnly` gate is per submission: the release, the approval and the settling of an
 /// incomplete release judge the origin of the submission that asks, never the session's. A GUI session refuses every
@@ -2203,7 +2200,7 @@ fn shipped_report_forms() -> (serde_json::Value, serde_json::Value) {
     (frame, title)
 }
 
-/// RU-1 and RU-2 (D14, FR-REV-010, FR-REV-011): the archive of a release opens read-only from memory with its
+/// The archive of a release opens read-only from memory with its
 /// release context; the PDF exported from its `project/` is byte-equal to the archived `pdf/` entry, and the report rows
 /// re-derived from `project/` equal the frozen `reports/` entries. A copy of the release fixture gets a parts list on
 /// 901 first (the fixture itself is unchanged), so that the archive holds report rows.
@@ -2240,7 +2237,7 @@ fn the_archive_reproduces_its_pdf_and_its_report_rows() {
             .is_some_and(|st| !matches!(st.access(), ew_api::Access::Edit)),
         "read-only"
     );
-    // RU-1: the PDF.
+    // The PDF.
     let (name, archived) = opened.archived_pdf().expect("the archived PDF");
     assert_eq!(name, "pdf/RM-001_V1.0.pdf");
     let (again_name, again) = opened
@@ -2251,7 +2248,7 @@ fn the_archive_reproduces_its_pdf_and_its_report_rows() {
         again == archived,
         "the re-exported PDF is byte-equal to the archived one"
     );
-    // RU-2: the report rows.
+    // The report rows.
     let frozen = opened.archived_reports();
     assert!(!frozen.is_empty(), "the archive holds the parts list's rows");
     let derived = opened.derived_reports();

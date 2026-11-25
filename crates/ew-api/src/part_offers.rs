@@ -31,12 +31,12 @@ pub enum PartTarget {
         /// How their part uses change.
         mode: AssignMode,
     },
-    /// The bridge part of terminals (the strip editor's Bridge part cell, D6).
+    /// The bridge part of terminals (the strip editor's Bridge part cell).
     BridgePart {
         /// The terminal devices.
         terminals: Vec<Uuid>,
     },
-    /// The part of one accessory of a strip (the strip editor's accessory Part cell, D5).
+    /// The part of one accessory of a strip (the strip editor's accessory Part cell).
     AccessoryPart {
         /// The strip device.
         strip: Uuid,
@@ -221,7 +221,7 @@ fn inactive(s: &ItemStatus) -> bool {
     matches!(s, ItemStatus::Deprecated(_) | ItemStatus::Withdrawn)
 }
 
-/// The rank of a held copy for the text (D17 (2)): 0 without text, 1 the normalised part number equals it, 2 starts
+/// The rank of a held copy for the text: 0 without text, 1 the normalised part number equals it, 2 starts
 /// with it, 3 contains it (three characters or more), 4 every word is in the part number, type, manufacturer or
 /// description (in every language), or the part is for what the text names (`purpose`); `None` when it does not
 /// match.
@@ -354,7 +354,7 @@ impl Session {
             })
     }
 
-    /// The fit of a held part to a function (D17, by the rules the catalogue applies to its hits).
+    /// The fit of a held part to a function (by the rules the catalogue applies to its hits).
     fn held_fit(&self, q: &Q, part: &Part, compat: &FnCompat) -> Fit {
         let mut same_category = false;
         for t in &part.function_template {

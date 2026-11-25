@@ -171,7 +171,7 @@ fn free_point() -> ew_units::Pt2 {
 
 const INSTANCE: Uuid = Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_0105);
 
-/// MC-1 and MC-3 (the card): the whole supply page 101 saves as one window macro into a user library; the parts and
+/// The whole supply page 101 saves as one window macro into a user library; the parts and
 /// symbols are named by reference, and the sample's (the starter's) all resolve; a second save of the key is the next
 /// minor version of the same item. Inserted on a new folio 106, the conflicts list the second sources of 101's six
 /// outgoing marks (1L1, 1L2, 1L3, PE, 0V, 24V), which EW-CORE-052 refuses until they are resolved; the control page
@@ -263,7 +263,7 @@ fn the_psu_block_saves_and_its_insertion_lists_the_conflicts() {
     }
 }
 
-/// MC-3: the supply and its breaker inserted on folio 106 yield -106G1 and -106F1 with the IDs
+/// The supply and its breaker inserted on folio 106 yield -106G1 and -106F1 with the IDs
 /// v5(instance, local), one undo step, no conflict.
 #[test]
 fn the_psu_inserts_with_new_identities_and_derived_tags() {
@@ -312,7 +312,7 @@ fn the_psu_inserts_with_new_identities_and_derived_tags() {
     assert!(s.resolve_reference("tag:-106G1").is_err());
 }
 
-/// MC-2: the pneumatics page 201 saved as a page macro and inserted after 201 creates folio 202 with the valve
+/// The pneumatics page 201 saved as a page macro and inserted after 201 creates folio 202 with the valve
 /// terminal, its channels and the valves.
 #[test]
 fn a_page_macro_inserted_after_201_proposes_202() {
@@ -361,7 +361,7 @@ fn a_page_macro_inserted_after_201_proposes_202() {
     s.page_tables("202").expect("a drawn page 202");
 }
 
-/// MC-6: the command carries the macro and replays from a command log on a session with no library.
+/// The command carries the macro and replays from a command log on a session with no library.
 #[test]
 fn the_insertion_replays_with_no_library() {
     let (_root, t, lib) = user_library("ew-api-mc6");
@@ -439,7 +439,7 @@ fn saved_bytes(name: &str) -> (SavedMacro, Value, AnyCommand) {
     (saved, doc, cmd)
 }
 
-/// MC-7: two runs save byte-equal macro documents and compose equal commands.
+/// Two runs save byte-equal macro documents and compose equal commands.
 #[test]
 fn save_and_insert_are_deterministic() {
     let (a, doc_a, cmd_a) = saved_bytes("ew-api-mc7a");

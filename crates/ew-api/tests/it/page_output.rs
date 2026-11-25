@@ -558,7 +558,7 @@ fn session_page_grid_gives_the_grid_and_the_sheet_map() {
 // ---------------------------------------------------------------------------------------------------------
 // The print set
 
-/// The print set of the sample's section 1 on A5 with the fit (D8's command `ew print … --sections 1 --paper A5
+/// The print set of the sample's section 1 on A5 with the fit (the command `ew print … --sections 1 --paper A5
 /// --fit`).
 fn section_1_on_a5(s: &ew_api::Session) -> ew_api::output::print::PrintSet {
     use ew_api::output::PageSelection;
@@ -572,7 +572,7 @@ fn section_1_on_a5(s: &ew_api::Session) -> ew_api::output::print::PrintSet {
     .expect("section 1 prints")
 }
 
-/// D6: a section selection is the section's pages in page order with its divider; an unknown
+/// A section selection is the section's pages in page order with its divider; an unknown
 /// number is refused naming the sections; `--pages` and `--sections` resolve through the same `resolve`.
 #[test]
 fn a_section_selection_is_the_sections_pages_with_its_divider() {
@@ -608,7 +608,7 @@ fn a_section_selection_is_the_sections_pages_with_its_divider() {
     );
 }
 
-/// PR-1, PR-3 and D8: section 1 on A5 with the fit prints the six pages on A5 landscape sheets, each stamped
+/// Section 1 on A5 with the fit prints the six pages on A5 landscape sheets, each stamped
 /// "scaled 70 %" (min(210/297, 148/210)); each page's content is the export page's list item for
 /// item and its overlay is the stamp alone; read back, every page is 210 × 148 mm and prints its stamp once; the set
 /// is the same bytes twice and after a record shuffle.
@@ -668,7 +668,7 @@ fn the_print_set_of_section_1_on_a5_is_stamped_and_stable() {
     }
 }
 
-/// PR-1's other cases and PR-3's monochrome: A4 with the fit is 100 % with no stamp; the folio range prints its five
+/// The other cases and the monochrome: A4 with the fit is 100 % with no stamp; the folio range prints its five
 /// folios; a set on its own sheets at actual size, in monochrome, is the monochrome export PDF byte for byte.
 #[test]
 fn a4_with_the_fit_has_no_stamp_and_a_set_on_its_sheets_is_the_export() {
@@ -713,7 +713,7 @@ fn a4_with_the_fit_has_no_stamp_and_a_set_on_its_sheets_is_the_export() {
     );
 }
 
-/// D6's stop: on every page of section 1 printed on A5 with the fit, the stamp's box, taken back to
+/// The stop: on every page of section 1 printed on A5 with the fit, the stamp's box, taken back to
 /// the sheet, covers no drawn item, tested exactly ([`stamp_clearance`]). The clearance to the nearest drawn item is
 /// printed.
 #[test]
@@ -742,7 +742,7 @@ fn the_stamp_covers_no_drawn_item_of_section_1() {
     eprintln!("the stamp's clearance on the sheet: {:.3} mm", nearest / 1e6);
 }
 
-/// The check behind D6's stop on items made to meet a 10 × 10 box between the points a sampling check looks at, or
+/// The check behind the stop on items made to meet a 10 × 10 box between the points a sampling check looks at, or
 /// under it: a long thin line touching a corner, a stroke reaching it by its width, a fill holding the box, a fill
 /// whose closing edge crosses it, a curve whose control hull meets it; and the exact clearance of items that miss it.
 #[test]

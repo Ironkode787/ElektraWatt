@@ -607,7 +607,7 @@ impl Session {
             .ok()?;
         engine.execute(create.as_ref()).ok()?;
         // A project that holds another version of the macro first takes the library's (an insertion refuses a held
-        // copy of another version, D13); nothing to do when the held copy is current or there is none.
+        // copy of another version); nothing to do when the held copy is current or there is none.
         if let Ok(plan) = self.update_from_library(&[detail.copy], &[]) {
             let update = engine.resolve(&plan.command).ok()?;
             let preview = engine.preview(update.as_ref()).ok()?;

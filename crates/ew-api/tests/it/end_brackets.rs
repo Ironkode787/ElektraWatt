@@ -236,7 +236,7 @@ fn drawn(q: &Q, folio: &str) -> PageRef {
         .unwrap_or_else(|| panic!("no folio {folio}"))
 }
 
-/// EB-2: the run's four brackets on 902.
+/// The run's four brackets on 902.
 #[test]
 fn eb2_902_draws_the_four_brackets_at_their_positions() {
     let (s, _) = session();

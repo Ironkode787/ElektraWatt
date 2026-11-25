@@ -98,8 +98,8 @@ fn three(seed: u64) -> (Session, Uuid, Uuid, Uuid) {
     (s, cpu, di, dout)
 }
 
-/// PW-1: one station (role `cpu`), two modules at positions 1 and 2, sixteen channels with v5 IDs, each bound to
-/// the card pin n + 1, and the addresses I0.0 … I0.7 and Q0.0 … Q0.7. PW-2: the first placement created `PLC1` with
+/// One station (role `cpu`), two modules at positions 1 and 2, sixteen channels with v5 IDs, each bound to
+/// the card pin n + 1, and the addresses I0.0 … I0.7 and Q0.0 … Q0.7. The first placement created `PLC1` with
 /// the TIA profile and the CPU as its `cpu`.
 #[test]
 fn a_cpu_and_two_cards_from_the_picker_give_a_station_modules_channels_and_addresses() {
@@ -160,7 +160,7 @@ fn a_cpu_and_two_cards_from_the_picker_give_a_station_modules_channels_and_addre
     assert_eq!(addresses(&s, dout), texts("Q"));
 }
 
-/// PW-2: a second CPU joins `PLC1` with the notice of D3.
+/// A second CPU joins `PLC1` with the notice.
 #[test]
 fn a_second_cpu_joins_plc1() {
     let (mut s, ..) = three(12);
@@ -182,7 +182,7 @@ fn a_second_cpu_joins_plc1() {
     );
 }
 
-/// PW-3: a card placed without a station has no parent, its channels exist and its addresses are not derived; the
+/// A card placed without a station has no parent, its channels exist and its addresses are not derived; the
 /// notice reads "no PLC station: place a CPU first". With two stations a card placed on their page goes to the one
 /// drawn beside it, the nearer.
 #[test]
@@ -229,7 +229,7 @@ fn a_card_without_one_station_stays_unattached() {
     assert_eq!(device(&s, card).parent.map(|p| p.as_uuid()), Some(near));
 }
 
-/// PW-4: each placement is one undo step; undo of the first removes the station and `PLC1` and nothing else; redo
+/// Each placement is one undo step; undo of the first removes the station and `PLC1` and nothing else; redo
 /// restores identical IDs.
 #[test]
 fn each_placement_is_one_undo_step() {
@@ -354,7 +354,7 @@ fn an_idle_channels_pin_is_not_reported_unconnected() {
     );
 }
 
-/// PW-5: `fields.set` on a channel: symbol, comment, state, the address forms (a manual address refused for I4.9
+/// `fields.set` on a channel: symbol, comment, state, the address forms (a manual address refused for I4.9
 /// with the profile's example), each one undo step, and the rows of `PlcRows` follow. The property sheet of the
 /// selected channel shows the members with their `fields.set` routes.
 #[test]
@@ -456,7 +456,7 @@ fn plc_records_show_no_raw_structs_in_properties() {
     );
 }
 
-/// PW-6: renumbering the devices after PW-1 changes no address (FR-PLC-055).
+/// Renumbering the devices after the placing changes no address (FR-PLC-055).
 #[test]
 fn renumbering_changes_no_address() {
     let (mut s, _, di, dout) = three(17);
@@ -478,7 +478,7 @@ fn renumbering_changes_no_address() {
     assert_eq!((addresses(&s, di), addresses(&s, dout)), before);
 }
 
-/// PW-8: two runs with one seed give the same model.
+/// Two runs with one seed give the same model.
 #[test]
 fn twice_run_determinism() {
     let (a, ..) = three(18);

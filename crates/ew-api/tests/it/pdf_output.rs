@@ -2,9 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The written PDF of the sample project, read back with `page_output/pdf_read.rs`: the frame lines of a drawn page
-//! against its frame form's geometry (AC-01), the document's structure (AC-13), the text layer of a page against the
-//! glyph runs it prints (AC-06, AC-13) and the same bytes for a shuffled record order and a parallel export
-//! (AC-14).
+//! against its frame form's geometry, the document's structure, the text layer of a page against the
+//! glyph runs it prints and the same bytes for a shuffled record order and a parallel export.
 
 use std::collections::BTreeMap;
 
@@ -81,7 +80,7 @@ fn deviation(l: &Line, s: &Segment) -> f64 {
     d(l.0, s.a).max(d(l.1, s.b)).min(d(l.0, s.b).max(d(l.1, s.a)))
 }
 
-/// AC-01: folio 101 of the written PDF strokes every line of its frame form within 0.2 mm at the frame's line width
+/// Folio 101 of the written PDF strokes every line of its frame form within 0.2 mm at the frame's line width
 /// (the outer rectangle, the title-block separator, the two header-band lines and the inner column and row ticks),
 /// its media box is the form's sheet, and no other line lies in the header bands. The title block's inner lines are
 /// not compared: the form's geometry gives its box only.
@@ -183,7 +182,7 @@ fn the_frame_lines_of_a_written_page_lie_on_the_form_geometry() {
     }
 }
 
-/// AC-13: the PDF of the whole sample has its folio labels as page labels in page order; its outline holds every page
+/// The PDF of the whole sample has its folio labels as page labels in page order; its outline holds every page
 /// once in page order, a page of a section under the section's entry and a front-matter page at the top; every link
 /// the pages draw is one link annotation that reaches its target (a cross-reference item, a linked row of the PLC
 /// overview, a report row), none prints as plain text; and every font it needs is a bundled face embedded in it,
@@ -306,7 +305,7 @@ fn the_pdf_has_page_labels_an_outline_by_section_links_and_embedded_fonts() {
     );
 }
 
-/// AC-13, AC-06: the text layer of folio 101, read back from its content stream through the fonts' ToUnicode maps,
+/// The text layer of folio 101, read back from its content stream through the fonts' ToUnicode maps,
 /// equals the glyph runs the page prints, run by run and character by character: a lost, unmapped (U+FFFD) or merged
 /// space is a mismatch, and every device tag the page prints reads back as often as it prints.
 #[test]
@@ -326,7 +325,7 @@ fn the_text_layer_of_a_written_page_equals_its_printed_texts_with_spaces() {
     );
 }
 
-/// AC-14: the sample loaded with its records in a shuffled order, and the export's page phase on 2 and 8 threads,
+/// The sample loaded with its records in a shuffled order, and the export's page phase on 2 and 8 threads,
 /// give the serial file-order export byte for byte: the page display lists, the PDF, the SVG files and the CSV of every
 /// report block and of the cable and parts exports. Two runs give the same PDF.
 #[test]

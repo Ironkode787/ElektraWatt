@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! On the sample (AC-29): the start command re-addresses one module with one recompute of its channel addresses and
+//! On the sample: the start command re-addresses one module with one recompute of its channel addresses and
 //! one undo step; the profile command changes the printed notation and nothing else in the files; EW-PLC-012 reports
 //! none of the valve terminal's four coil bindings under its part's map and all four under the swapped map; the tag
 //! form of `plc.bind_channel`. The modules: the CPU -104A1's input card -104A1-A1 and output card -104A1-A2, and the
@@ -59,7 +59,7 @@ fn all_texts(q: &Q) -> Vec<(Id<Device>, Vec<String>)> {
         .collect()
 }
 
-/// PA-1, PA-6: `plc.set_start` gives -104A1-A2 the output start Q10; its eight channels print Q10.0 …
+/// `plc.set_start` gives -104A1-A2 the output start Q10; its eight channels print Q10.0 …
 /// Q10.7, the other modules keep their addresses, `channel_addresses` runs once (the module's own), and one undo
 /// restores every address.
 #[test]
@@ -93,7 +93,7 @@ fn a_start_re_addresses_one_module_in_one_step() {
     assert_eq!(all_texts(&s.query()), before);
 }
 
-/// PA-1's refusals: a start of the other direction's area, and a text that is no start.
+/// The refusals: a start of the other direction's area, and a text that is no start.
 #[test]
 fn a_start_of_the_wrong_area_is_refused() {
     let mut s = crate::common::sample();
@@ -112,7 +112,7 @@ fn a_start_of_the_wrong_area_is_refused() {
     }
 }
 
-/// PA-3: `plc.set_profile` to IEC 61131-3 prints `%QX0.1` where TIA printed `Q0.1`; the model changes only in
+/// `plc.set_profile` to IEC 61131-3 prints `%QX0.1` where TIA printed `Q0.1`; the model changes only in
 /// the configuration project's `profile`.
 #[test]
 fn the_iec_profile_changes_the_notation_only() {
@@ -233,9 +233,9 @@ fn on_channel(f: &ew_api::checks::Finding, number: u16) -> bool {
     f.subject.ends_with(&format!("-201K1:{number}"))
 }
 
-/// AC-29 (D10, EF-02): under the part's own map (14 → 2p, 12 → 2p + 1) EW-PLC-012 reports none of the valve
+/// Under the part's own map (14 → 2p, 12 → 2p + 1) EW-PLC-012 reports none of the valve
 /// terminal's coil bindings; under the swapped map (14 → 2p + 1) it reports the four, each with the rebind quick fix;
-/// folio 908 prints the same rows either way. PA-5: a `plc` section of confidence `test` marks the findings.
+/// folio 908 prints the same rows either way. A `plc` section of confidence `test` marks the findings.
 #[test]
 fn ac29_ew_plc_012_follows_the_part_map() {
     let s = crate::common::sample();
@@ -257,7 +257,7 @@ fn ac29_ew_plc_012_follows_the_part_map() {
         "the addresses do not follow the map"
     );
 
-    // PA-5: the same swapped data marked `test`
+    // The same swapped data marked `test`
     let s3 = sample_over(|lib| {
         lib_with_map(lib, &swapped())
             .into_iter()

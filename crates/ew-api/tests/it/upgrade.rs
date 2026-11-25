@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The upgrade of a project of an older format through the session:
-//! MG-3 (the consent, the verified backup before any project byte, the backup extracting byte-equal to the original
-//! folder, no second question) and MG-4 (declining, or closing between the consent and the save, leaves every project
-//! file byte-identical), with the backup's name sequence and a backup that cannot be written. The `"0.0"` fixture is a
+//! The consent, the verified backup before any project byte, the backup extracting byte-equal to the original
+//! folder, no second question; declining, or closing between the consent and the save, leaves every project
+//! file byte-identical; also the backup's name sequence and a backup that cannot be written. The `"0.0"` fixture is a
 //! small project built here whose project record is at `$v` 0 under its member's old name.
 
 use std::collections::BTreeMap;
@@ -216,7 +216,7 @@ fn consent_text() -> String {
     )
 }
 
-/// MG-3: the first save asks; after the consent the backup is written and read back before any project file is
+/// The first save asks; after the consent the backup is written and read back before any project file is
 /// written, extracts byte-equal to the original folder, and the project is then saved in this version's format; a
 /// second save does not ask and writes no second backup.
 #[test]
@@ -287,7 +287,7 @@ fn the_consented_save_writes_the_backup_first_and_then_the_project() {
     s.close();
 }
 
-/// MG-4: declining (no consent, the session closed) and a session closed between the consent and the save leave
+/// Declining (no consent, the session closed) and a session closed between the consent and the save leave
 /// every project file byte-identical and write no backup; the next open asks again.
 #[test]
 fn declining_or_closing_before_the_save_changes_nothing() {

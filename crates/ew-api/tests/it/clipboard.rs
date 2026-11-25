@@ -1453,7 +1453,7 @@ fn at_v0(text: &str) -> String {
     lines.join("\n") + "\n"
 }
 
-/// MG-6's fragment half: a fragment of the test format "0.0", its device and FnDef copy at `$v` 0, reads
+/// The fragment half: a fragment of the test format "0.0", its device and FnDef copy at `$v` 0, reads
 /// through the test chain to the current fragment's parameters and pastes; the shipped chain, which reaches no older
 /// format, refuses it with the text it always had, as it refuses an older record of the current format.
 #[test]

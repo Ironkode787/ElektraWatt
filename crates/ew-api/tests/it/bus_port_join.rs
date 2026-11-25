@@ -124,7 +124,7 @@ fn dp_master() -> BusPort {
     }
 }
 
-/// BU-7f: the CPU from the picker has no bus port and N5 says nothing; the DP-port symbol joining it gets the typed
+/// The CPU from the picker has no bus port and N5 says nothing; the DP-port symbol joining it gets the typed
 /// port `{DP, profibus_dp, master, tbd}` with no termination and no nets, listed by the placement's preview and
 /// committed in its one undo step (undo removes the function and its port, redo restores identical IDs); the checks
 /// then report one EW-CORE-044 finding with discriminator `bus_address` for that port.

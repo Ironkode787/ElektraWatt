@@ -7,7 +7,7 @@
 //! The views are the product's: `ew_api::output` owns the glue rules (frame forms,
 //! bindings, slot texts, wire markers, strip segments, report tables, embedded blocks) and builds one memoised
 //! `page_display_list` family per layer. What stays here is test-only: the sample's records (with a record
-//! shuffle for AC-14), and a symbol of `content/symbols` for the hostile page.
+//! shuffle), and a symbol of `content/symbols` for the hostile page.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -61,7 +61,7 @@ pub fn builtin_symbol(key: &str) -> Option<SymbolRef> {
     })
 }
 
-/// The sample project over its records; with `shuffle`, the records are handed over in a permuted order (AC-14).
+/// The sample project over its records; with `shuffle`, the records are handed over in a permuted order.
 pub fn sample_session(shuffle: Option<u64>) -> Session {
     let (project, mut records, lib) = crate::common::sample_records();
     if let Some(seed) = shuffle {

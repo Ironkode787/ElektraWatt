@@ -33,7 +33,7 @@ fn csv(session: &ew_api::Session, what: &RowExport, preset: Preset) -> String {
     text
 }
 
-/// TX-5: the workbooks of a model loaded with its records shuffled equal the file-order ones, byte for byte, for a
+/// The workbooks of a model loaded with its records shuffled equal the file-order ones, byte for byte, for a
 /// block's rows, the bill of materials and every strip of the terminal diagrams.
 #[test]
 fn the_workbooks_do_not_depend_on_record_order() {
@@ -54,7 +54,7 @@ fn the_workbooks_do_not_depend_on_record_order() {
     }
 }
 
-/// TX-4 (NFR-SEC-17): -101F1's function text is `=HYPERLINK("x")`. The workbook holds it as an inline string and no
+/// -101F1's function text is `=HYPERLINK("x")`. The workbook holds it as an inline string and no
 /// part has an `<f>` element; `excel-nl` writes it guarded and quoted as RFC 4180 asks, `rfc4180` verbatim; a tag
 /// that starts with `+` is guarded in the Excel presets only.
 #[test]
@@ -125,7 +125,7 @@ fn a_formula_function_text_stays_text() {
     );
 }
 
-/// D6: the default preset `ew` is the dialect of `row_export` byte for byte, and the table model written in `ew` is
+/// The default preset `ew` is the dialect of `row_export` byte for byte, and the table model written in `ew` is
 /// the same text where the project writes a decimal point (the sample).
 #[test]
 fn the_ew_preset_is_the_row_export_dialect() {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew import csv`'s library half (FM-6): the test tables (`fixtures/tables/`) read from their directory, imported
+//! `ew import csv`'s library half: the test tables (`fixtures/tables/`) read from their directory, imported
 //! with the starter content and written as a new project, which opens with the model and the check findings of the
 //! imported batch, all or nothing at its target.
 
@@ -51,7 +51,7 @@ fn store() -> StoreOptions {
     o
 }
 
-/// FM-6: the tables import to a project that opens, holds the rows of the bootstrapped model and checks with the same
+/// The tables import to a project that opens, holds the rows of the bootstrapped model and checks with the same
 /// findings.
 #[test]
 fn the_tables_import_to_a_project_with_the_bootstrapped_model() {
@@ -93,7 +93,7 @@ fn the_tables_import_to_a_project_with_the_bootstrapped_model() {
     opened.close();
 }
 
-/// An unreadable table refuses the import with the reader's line (FM-6), before anything is written; a non-empty
+/// An unreadable table refuses the import with the reader's line, before anything is written; a non-empty
 /// target refuses the write and keeps what is there; an empty one is replaced by the project.
 #[test]
 fn an_unreadable_table_and_a_non_empty_target_are_refused() {

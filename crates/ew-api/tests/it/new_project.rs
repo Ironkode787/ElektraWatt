@@ -662,7 +662,7 @@ fn report_blocks_with_own_pages(session: &Session) -> Vec<String> {
     out
 }
 
-/// BP-1 (FR-PRJ-009): a project made from a company basic project records `basic_project` with the basic
+/// A project made from a company basic project records `basic_project` with the basic
 /// project's ID and its manifest generation when copied; the built-in basic project records nothing.
 #[test]
 fn a_project_from_a_basic_project_records_it() {
@@ -731,10 +731,10 @@ fn folio_1_frame(
     ((*frame.form).clone(), tb, geometry)
 }
 
-/// BP-2 (FR-MAC-011, D14): the sample saved as a basic project without devices is a project of kind basic under a
+/// The sample saved as a basic project without devices is a project of kind basic under a
 /// new ID that keeps the frames and forms, the project's profiles and settings, the sections, the structure, the
 /// report blocks and the pages, and has no device, function, representation or connection.
-/// BP-3 (FR-PRJ-010's check): a project made from it draws folio 1 in the frame and title block of the sample, exactly
+/// A project made from it draws folio 1 in the frame and title block of the sample, exactly
 /// (stricter than the ±0.2 mm of REF-096).
 #[test]
 fn the_sample_saved_as_basic_without_devices_keeps_its_conventions() {
@@ -791,7 +791,7 @@ fn the_sample_saved_as_basic_without_devices_keeps_its_conventions() {
         "folio 1 keeps its frame"
     );
 
-    // BP-3: a project from this basic project draws folio 1 as the sample does.
+    // A project from this basic project draws folio 1 as the sample does.
     let copy = Session::new_project(
         ProjectTemplate::Directory(&dir),
         NewProjectKind::Schematic,

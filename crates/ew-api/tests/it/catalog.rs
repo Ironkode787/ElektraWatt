@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! In the Session: the column map saved per source key, the import into a project through
-//! `parts.import` (IM-1), and the import into a writable library (IM-6): a second import of a changed list updates
+//! `parts.import`, and the import into a writable library: a second import of a changed list updates
 //! in place, changed content under a held version is refused unless bumped, and the library lock is taken over only
 //! when it is stale and the caller says so. The parts are invented generic data and public catalogue numbers.
 
@@ -167,7 +167,7 @@ fn held(reg: &Registry, library: Uuid, item: Uuid) -> (String, serde_json::Value
     }
 }
 
-/// IM-1: a list with other headers imports into a project through the map saved for its source; `parts.import`
+/// A list with other headers imports into a project through the map saved for its source; `parts.import`
 /// creates the new parts in one step, and a second run finds them held.
 #[test]
 fn a_list_imports_into_a_project_through_its_saved_map() {
@@ -229,7 +229,7 @@ fn a_list_imports_into_a_project_through_its_saved_map() {
     assert!(cmd.is_none());
 }
 
-/// IM-6: into a writable library. The first import writes the parts and the new manufacturer; a second import of
+/// Into a writable library. The first import writes the parts and the new manufacturer; a second import of
 /// the changed list keeps the item IDs, is refused for a part changed under its held version (nothing written)
 /// and, bumped, writes it as the next patch version while the unchanged parts stay as they are.
 #[test]

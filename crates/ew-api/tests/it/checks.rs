@@ -499,7 +499,7 @@ fn the_core_rds_and_term_rules_are_quiet_on_the_sample() {
     }
 }
 
-/// D-15 (P3-2, PA-4): a `Tbd` channel address is an open item: EW-PLC-015 reports it as an error in release
+/// D-15 (P3-2): a `Tbd` channel address is an open item: EW-PLC-015 reports it as an error in release
 /// mode and supersedes EW-CORE-044's finding for the same value, so it prints once.
 #[test]
 fn a_tbd_channel_address_is_an_open_item() {

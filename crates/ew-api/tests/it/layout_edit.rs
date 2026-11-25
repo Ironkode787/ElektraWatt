@@ -730,7 +730,7 @@ fn the_layout_rows_refusals_read_whole() {
     assert!(edit(&s, "page", page, "datum", "1, 2").is_ok());
 }
 
-/// PS-5: Position on a rail and on the plate, Realised part, Rotation on the plate, a duct's Width and
+/// Position on a rail and on the plate, Realised part, Rotation on the plate, a duct's Width and
 /// Height and the page's Datum each commit their command, and the row then reads the new value.
 #[test]
 fn position_realised_part_rotation_duct_size_and_datum_commit() {

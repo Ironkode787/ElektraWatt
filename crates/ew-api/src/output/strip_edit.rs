@@ -9,7 +9,7 @@
 //!   unknown members; a part covering no terminal is dropped); the other groups stay verbatim; for a non-empty L, each
 //!   run of E consecutive in the strip's terminal order becomes a group L, merged with a directly adjacent part
 //!   labelled L that has no unknown members; the list is sorted by `from_seq` (stable). An empty L only removes.
-//! - **Bridge parts** (D6, D7): the part of the bridge group of each terminal is set on the group's carrier
+//! - **Bridge parts**: the part of the bridge group of each terminal is set on the group's carrier
 //!   (`overrides.wire_part`), the part text resolved among the `accessory` parts; an empty text clears it.
 //! - **Accessories**: one `fields.set` of `strip.accessories` per strip, kept sorted by `after_seq` (stable);
 //!   an accessory's part text is resolved among the part kinds of its kind ([`accessory_part_kinds`]).
@@ -145,7 +145,7 @@ pub fn accessory_kind_word(kind: &str) -> &'static str {
 /// The accessory kinds' words, in the order of the `kind` parameter.
 pub const ACCESSORY_KINDS: [&str; 5] = ["end_plate", "end_clamp", "partition", "marker", "cover"];
 
-/// The part kinds an accessory of kind `word` takes (D7): an end bracket `end_bracket`; a marker carrier `marker` and
+/// The part kinds an accessory of kind `word` takes: an end bracket `end_bracket`; a marker carrier `marker` and
 /// `accessory`; every other accessory (and a bridge) `accessory`.
 pub fn accessory_part_kinds(word: &str) -> &'static [&'static str] {
     match word {
@@ -498,7 +498,7 @@ fn accessories_of<'w>(q: &Q, work: &'w mut Work, strip: Uuid) -> Result<&'w mut 
     Ok(&mut work.accessories[last].1)
 }
 
-/// D8 on the working copies: the label on the terminals, strip by strip in first-appearance order.
+/// On the working copies: the label on the terminals, strip by strip in first-appearance order.
 fn group_label(q: &Q, work: &mut Work, terminals: &[Uuid], label: &str) -> Result<(), StripEditError> {
     let mut by_strip: Vec<(Id<Device>, Vec<u32>)> = Vec::new();
     for t in terminals {
@@ -532,7 +532,7 @@ fn group_label(q: &Q, work: &mut Work, terminals: &[Uuid], label: &str) -> Resul
     Ok(())
 }
 
-/// D8 on one strip's groups: `order` the strip's terminal seqs in order, `set` the edited seqs (sorted).
+/// On one strip's groups: `order` the strip's terminal seqs in order, `set` the edited seqs (sorted).
 pub(crate) fn relabel(
     groups: Vec<TerminalGroup>,
     order: &[u32],
@@ -623,7 +623,7 @@ pub(crate) fn relabel(
     out
 }
 
-/// D6 on the working copies: the part of the bridge group of every terminal, on its carrier.
+/// On the working copies: the part of the bridge group of every terminal, on its carrier.
 fn bridge_part(
     q: &Q,
     cx: &dyn ParseCx,
@@ -725,7 +725,7 @@ impl Work {
     }
 }
 
-/// D14: `terminal.insert` before `before` (absent: at the end) with `count` terminals copying the reference terminal
+/// `terminal.insert` before `before` (absent: at the end) with `count` terminals copying the reference terminal
 /// (`before`, else the strip's last terminal).
 fn insert(
     q: &Q,
@@ -859,7 +859,7 @@ mod tests {
         (from, to, l.to_owned())
     }
 
-    /// SE8: the three examples of D8 on -X1031's groups.
+    /// SE8: the three examples on -X1031's groups.
     #[test]
     fn relabel_splits_merges_and_clears() {
         let out = relabel(strip_groups(), &order(), &[7, 8], "Reserve");

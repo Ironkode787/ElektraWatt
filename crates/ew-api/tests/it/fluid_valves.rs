@@ -253,7 +253,7 @@ fn fl9_closed_ports_are_exempt_from_ew_fl_001() {
         s.execute(&close(idx, Some(json!({"kind": "plug"})))).unwrap();
     }
     assert_eq!(open_ports(&s), 0);
-    // T9: the coil's CP 14 is no fluid port; T10: -201K1-Q1:2 has a tube
+    // The coil's CP 14 is no fluid port; T10: -201K1-Q1:2 has a tube
     let coil = {
         let q = s.query();
         q.idx()
@@ -367,7 +367,7 @@ fn fl10_the_first_working_line_links_the_valve() {
     let r = s.execute(&draw(3, 1)).unwrap();
     assert!(r.outcome.notices.is_empty(), "{:?}", r.outcome.notices);
     assert_eq!(links(&s), [actuator]);
-    // T18: the link of -201K1-Q1 pointing at -201M2 while its lines reach -201M1
+    // The link of -201K1-Q1 pointing at -201M2 while its lines reach -201M1
     let other = device(&s, "-201M2");
     let s = without_q1s_lines(Some(other));
     let online = s.check(&ew_api::checks::DRAFTING, ew_api::checks::CheckMode::Online);
@@ -383,7 +383,7 @@ fn fl10_the_first_working_line_links_the_valve() {
     );
 }
 
-/// D14 (FR-FLU-005): the function-text slot of the 5/2 valve falls back to the tracked process tag, so the two used
+/// FR-FLU-005: the function-text slot of the 5/2 valve falls back to the tracked process tag, so the two used
 /// valves print their cylinder's tag; the spare valves keep their manual text "Spare".
 #[test]
 fn d14_the_used_valves_print_the_process_tag_of_their_field_device() {
@@ -406,7 +406,7 @@ fn meets(a: Pt2, b: Pt2, lo: Pt2, hi: Pt2) -> bool {
 }
 
 /// The tubes on folio 201 carry stored routes. Each starts and ends where its CPs are drawn, runs orthogonally, is
-/// taken again by `connection.route` (its ends and the connection grid, D3), keeps clear of every cylinder body, and
+/// taken again by `connection.route` (its ends and the connection grid), keeps clear of every cylinder body, and
 /// the two working lines of a valve never meet.
 #[test]
 fn the_working_lines_are_routed_clear_of_the_cylinder_bodies() {

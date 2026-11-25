@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The surface view of a panel-layout page as the scene reads it (D9 and D10;
-//! [`ew_scene::panel`]): the parts of a [`PanelView`] each panel layer reads, filled from the derived layout queries
+//! The surface view of a panel-layout page as the scene reads it
+//! ([`ew_scene::panel`]): the parts of a [`PanelView`] each panel layer reads, filled from the derived layout queries
 //! of `ew_derive::layout` (`placement_geometry`, `carrier_geometry`, `layout_label`), never re-derived here.
 //!
 //! | Part | Layer | Reads |
@@ -15,7 +15,7 @@
 //!
 //! The carriers layer reads the labels for their knockout boxes (the carriers are cut around the labels).
 //! So a `layout.move` rebuilds the `placements`, `labels` and `carriers` families of its page
-//! only, never `surface`, `frame` or `tables` (LP-5 as built).
+//! only, never `surface`, `frame` or `tables`.
 
 use std::sync::Arc;
 
@@ -45,7 +45,7 @@ use super::layout_edit::comma;
 use super::view::PageFrameOf;
 
 /// `shaped_text((text, style))`: a text shaped in a style by the project's fonts (ADR-0015's memoised `shaped_text`;
-/// the fit test of a panel page's labels reads it, D10). A function of its key and [`super::ProjectFontsQ`], so it
+/// the fit test of a panel page's labels reads it). A function of its key and [`super::ProjectFontsQ`], so it
 /// runs again for a text it has shaped only when the project's typeface changes.
 #[derive(Debug)]
 pub struct ShapedText;
@@ -477,7 +477,7 @@ pub(crate) fn legend_pages(q: &Q, placement: Id<Placement>) -> Vec<PageRef> {
 // in surface nm; sheet <-> surface goes through the page (the frame's page-to-sheet map, then the inverse
 // projection [`surface_of_page`]).
 
-/// A rail's axis in the surface frame (D9): the clip point at `s` along it lies at `start + dir · s`.
+/// A rail's axis in the surface frame: the clip point at `s` along it lies at `start + dir · s`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct PanelAxis {
     /// `path[0]`, surface nm.
@@ -509,7 +509,7 @@ impl PanelAxis {
     }
 }
 
-/// One carrier of a panel page's surface (D9), in `carrier_labels` order (rails, then ducts).
+/// One carrier of a panel page's surface, in `carrier_labels` order (rails, then ducts).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PanelCarrier {
     /// The carrier's ID.
@@ -518,7 +518,7 @@ pub struct PanelCarrier {
     pub carrier: Id<Carrier>,
     /// `rail` or `duct`.
     pub kind: &'static str,
-    /// Its label (D8): "Rail 1", "Duct 2".
+    /// Its label: "Rail 1", "Duct 2".
     pub label: String,
     /// Its label in a sentence: "rail 1".
     pub sentence: String,
@@ -538,11 +538,11 @@ pub struct PanelCarrier {
     pub height: Option<i128>,
     /// The outline rectangles (`carrier_geometry`), surface nm.
     pub outline: Vec<Rect>,
-    /// A rail's items (`rail_items`: the list the commands resolve over, D4).
+    /// A rail's items (`rail_items`: the list the commands resolve over).
     pub items: Vec<RailItem>,
     /// A rail's derived end brackets (`group_accessories`): `[s0, s1]` along the axis.
     pub brackets: Vec<(i128, i128)>,
-    /// A rail's free length (`free_length`, D12): `L − Σ items − Σ brackets`.
+    /// A rail's free length (`free_length`): `L − Σ items − Σ brackets`.
     pub free_length: Option<i128>,
 }
 
@@ -618,7 +618,7 @@ pub struct UnplacedDevice {
     /// What it takes along a rail turned 180°.
     pub extent_flipped: RailExtent,
     /// Per rail of the surface that holds a member of its assembly: the left edge it is pushed in at
-    /// (`member_slot`, PW-5), in carrier order.
+    /// (`member_slot`), in carrier order.
     pub slots: Vec<(Uuid, i128)>,
 }
 
@@ -753,7 +753,7 @@ fn xy(p: Pt2) -> (i64, i64) {
     (p.x.0, p.y.0)
 }
 
-/// The carriers of a surface (D9).
+/// The carriers of a surface.
 fn carriers_of(q: &Q, surface: Id<MountingSurface>) -> Vec<PanelCarrier> {
     let table = q.table::<Carrier>();
     let mut out = Vec::new();
@@ -820,7 +820,7 @@ fn mount_of(q: &Q, part: Option<&ew_schema::PartRef>) -> Option<MountKind> {
         .and_then(|c| c.item.mech.as_ref().and_then(|m| m.mount_kind.clone()))
 }
 
-/// The placements of a surface with their rail data (D9).
+/// The placements of a surface with their rail data.
 fn placements_of(q: &Q, page: Id<Page>, surface: Id<MountingSurface>) -> Vec<PanelPlacement> {
     let Some(view) = q.get::<PageSurfaceView>(page).as_ref().clone() else {
         return Vec::new();
@@ -882,7 +882,7 @@ fn placements_of(q: &Q, page: Id<Page>, surface: Id<MountingSurface>) -> Vec<Pan
     out
 }
 
-/// The unplaced devices of a layout space with their slots on the surface's rails (D9, PW-5).
+/// The unplaced devices of a layout space with their slots on the surface's rails.
 fn unplaced_of(q: &Q, space: Id<LayoutSpace>, carriers: &[PanelCarrier]) -> Vec<UnplacedDevice> {
     let devices = q.devices();
     let parts = q.table::<LibCopy<Part>>();

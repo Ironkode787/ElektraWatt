@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The release gate on the saved generation and the checker's sign-off bound to its
-//! content digest, through the `Session` facade (RG-1 to RG-5).
+//! content digest, through the `Session` facade.
 //!
-//! The sample is opened read-only only (RG-4). The approvals run on a **copy** of the sample in a fresh directory
+//! The sample is opened read-only only. The approvals run on a **copy** of the sample in a fresh directory
 //! whose open revision V1.0 gets the engineer as its author and whose shield wire on 103 is set to 1.5 mm², below
 //! its line conductors, so that EW-POT-006, a safety-kind error, counts it as an undersized protective-earth wire; the
 //! release-scheme errors are each waived first, and the safety-kind waivers are the ones a checker acknowledges.
@@ -128,7 +128,7 @@ fn open_revision(s: &Session) -> std::sync::Arc<Revision> {
         .expect("an open revision")
 }
 
-/// RG-4 (D15's refusal half): the gate on the sample lists exactly the findings of `ew check --scheme pre-delivery
+/// The gate on the sample lists exactly the findings of `ew check --scheme pre-delivery
 /// --mode release` (with the integrity findings of opening) plus EW-REL-001 "author not set" and "checker not set";
 /// it refuses. The gate runs on a read-only session (no lock); the label must be the open revision's.
 #[test]
@@ -188,7 +188,7 @@ fn the_gate_on_the_sample_is_the_release_run_plus_author_and_checker_not_set() {
     s.close();
 }
 
-/// D8: the gate and the approval need a saved generation: a session without a project directory has none, and
+/// The gate and the approval need a saved generation: a session without a project directory has none, and
 /// approving needs the write lock.
 #[test]
 fn the_gate_needs_a_saved_generation_and_approval_the_write_lock() {
@@ -213,13 +213,13 @@ fn the_gate_needs_a_saved_generation_and_approval_the_write_lock() {
     s.close();
 }
 
-/// RG-1, RG-2, RG-3 and RG-5 on a prepared copy of the sample whose release-scheme errors are waived:
-/// - RG-2: approval is refused with unsaved edits, for the author's party, and with the gate's errors (listed);
+/// On a prepared copy of the sample whose release-scheme errors are waived:
+/// - Approval is refused with unsaved edits, for the author's party, and with the gate's errors (listed);
 /// - safety-kind waivers in force must be acknowledged ("unacknowledged safety waivers: …");
-/// - RG-1: after a save, the approval writes the checker and the sign-off with the saved manifest's content digest, the
+/// - After a save, the approval writes the checker and the sign-off with the saved manifest's content digest, the
 ///   scheme, the pack versions and the acknowledged waivers; saving it leaves the digest as it is, and the gate passes;
-/// - RG-3: a page-note edit keeps the sign-off valid; a content edit makes EW-REL-001 report it stale;
-/// - RG-5: the facade refuses `revision.approve` outside the approval, a script gets the exposure error, and a
+/// - A page-note edit keeps the sign-off valid; a content edit makes EW-REL-001 report it stale;
+/// - The facade refuses `revision.approve` outside the approval, a script gets the exposure error, and a
 ///   `.ewcmd` line naming it is refused with the exposure error before any line runs.
 #[test]
 fn approve_the_saved_revision_bound_to_its_content() {
@@ -227,7 +227,7 @@ fn approve_the_saved_revision_bound_to_its_content() {
     let state = ew_testdir::Tmp::new("ew-part3-approve-state");
     let (mut s, integrity) = release_copy(&copy, &state);
 
-    // RG-2: the gate's errors besides EW-REL-001 refuse the approval, listed.
+    // The gate's errors besides EW-REL-001 refuse the approval, listed.
     let gate = s.release_gate("V1.0", &integrity).expect("the gate runs");
     let blocked = gate.approval_blockers().len();
     assert!(blocked > 0);
@@ -256,7 +256,7 @@ fn approve_the_saved_revision_bound_to_its_content() {
         )
         .unwrap_or_else(|e| panic!("{rule} waives: {e}"));
     }
-    // RG-2: unsaved edits refuse the gate and the approval.
+    // Unsaved edits refuse the gate and the approval.
     assert_eq!(s.content_digest(), Err(GateError::Unsaved));
     assert_eq!(
         s.approve(&approval(PartyRole::Checker, Vec::new()), &integrity)
@@ -287,7 +287,7 @@ fn approve_the_saved_revision_bound_to_its_content() {
     assert!(!safety.is_empty());
     assert_eq!(gate.safety_waivers.len(), safety.len());
 
-    // RG-2: the author's party may not check.
+    // The author's party may not check.
     assert_eq!(
         s.approve(
             &approval(PartyRole::Engineer, gate.safety_waivers.clone()),
@@ -314,7 +314,7 @@ fn approve_the_saved_revision_bound_to_its_content() {
     );
     assert!(open_revision(&s).sign_off.is_none(), "nothing written");
 
-    // RG-1: the approval.
+    // The approval.
     let (approved, _) = s
         .approve(
             &approval(PartyRole::Checker, gate.safety_waivers.clone()),
@@ -357,7 +357,7 @@ fn approve_the_saved_revision_bound_to_its_content() {
     let gate = s.release_gate("V1.0", &integrity).expect("the gate runs");
     assert!(gate.passes(), "{:#?}", gate.blockers());
 
-    // RG-5: only the approval submits `revision.approve`.
+    // Only the approval submits `revision.approve`.
     let forged = cmd(
         "revision.approve",
         serde_json::json!({"revision": r.id.to_string(), "checker": "checker", "date": "2025-06-02",
@@ -390,7 +390,7 @@ fn approve_the_saved_revision_bound_to_its_content() {
     }
     assert_eq!(s.world().rev, before, "no line ran");
 
-    // RG-3: a page-note edit (revisions.jsonl) keeps the sign-off.
+    // A page-note edit (revisions.jsonl) keeps the sign-off.
     s.execute(&cmd(
         "fields.set",
         serde_json::json!({"kind": "revision", "targets": [r.id.to_string()], "path": "page_notes", "value": []}),
@@ -417,7 +417,7 @@ fn approve_the_saved_revision_bound_to_its_content() {
     assert!(comments.contains(COMMENT_ID), "{comments}");
     assert_eq!(digest_on_disk(&copy), approved.content_digest);
     assert!(s.release_gate("V1.0", &integrity).expect("gate").passes());
-    // RG-3: a content edit voids it.
+    // A content edit voids it.
     let device = s.query().devices().ids().next().expect("a device");
     s.execute(&cmd(
         "fields.set",
