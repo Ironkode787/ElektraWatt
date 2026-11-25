@@ -86,7 +86,6 @@ refusal-ref-candidate = { $p0 } as `id:{ $p1 }`
 refusal-ref-not-text = `ref` is a text `<kind>:<value>`
 refusal-input-plc-slot = `{ $p0 }` is not a slot; give a number (3), <rack>.<slot> (1.3) or auto
 refusal-input-metres = `{ $p0 }` is not a length in metres (for example 12.5 m)
-refusal-input-too-long = `{ $p0 }` is too long a length
 # A clipboard fragment that does not read: its kind of failure and each line's reason.
 refusal-fragment-not = the clipboard holds no ElektraWatt fragment
 refusal-fragment-newer = copied from a newer ElektraWatt, which writes a newer format ({ $p0 })

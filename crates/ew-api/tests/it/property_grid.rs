@@ -640,7 +640,9 @@ fn the_cable_length_is_typed_in_metres_or_words() {
     assert_eq!(value("from part"), json!("from_part"));
     // The JSON form is parsed as before.
     assert_eq!(value(r#"{"manual": 7}"#), json!({"manual": 7}));
-    for bad in ["1.2.3 m", "1.0000000001 m", ".5 m"] {
+    assert_eq!(value(".5 m"), json!({"manual": 500_000_000_i64}));
+    assert_eq!(value("1250 mm"), json!({"manual": 1_250_000_000_i64}));
+    for bad in ["1.2.3 m", "1.0000000001 m"] {
         assert!(
             matches!(
                 s.parse_field_input("device", "cable.length", bad),

@@ -217,50 +217,12 @@ fn parse_csa(text: &str) -> Result<Value, InputError> {
     parse_dec3(number, &Value::String)
 }
 
-/// A length in millimetres (at most six fraction digits, an optional `mm`), or with its unit `cm` or `m` (`2 m`, `35
-/// cm`), as whole nanometres.
+/// A length typed as [`parse_mm`](crate::output::parse_mm) reads it, as whole nanometres.
 fn parse_nm(text: &str) -> Result<Value, InputError> {
-    let typed = text.trim();
-    let bad = || invalid(text!("refusal-input-mm", typed));
-    let lower = typed.to_ascii_lowercase();
-    // The unit's fraction digits down to the nanometre, and its size in nanometres.
-    let (t, places, unit) = if lower.ends_with("mm") {
-        (&typed[..typed.len() - 2], 6, 1_000_000)
-    } else if lower.ends_with("cm") {
-        (&typed[..typed.len() - 2], 7, 10_000_000)
-    } else if lower.ends_with('m') {
-        (&typed[..typed.len() - 1], 9, 1_000_000_000)
-    } else {
-        (typed, 6, 1_000_000)
-    };
-    let t = t.trim();
-    let (neg, digits) = match t.strip_prefix('-') {
-        Some(rest) => (true, rest),
-        None => (false, t),
-    };
-    let (int, frac) = match digits.split_once(['.', ',']) {
-        Some((i, f)) => (i, f),
-        None => (digits, ""),
-    };
-    if int.is_empty() && frac.is_empty()
-        || frac.len() > places
-        || !int.bytes().all(|b| b.is_ascii_digit())
-        || !frac.bytes().all(|b| b.is_ascii_digit())
-    {
-        return Err(bad());
-    }
-    let int: i64 = if int.is_empty() {
-        0
-    } else {
-        int.parse().map_err(|_| bad())?
-    };
-    let frac: i64 = format!("{frac:0<places$}").parse().map_err(|_| bad())?;
-    let nm = int
-        .checked_mul(unit)
-        .and_then(|v| v.checked_add(frac))
-        .filter(|v| *v <= ew_units::MAX_SAFE_INTEGER)
-        .ok_or_else(bad)?;
-    Ok(Value::from(if neg { -nm } else { nm }))
+    crate::output::parse_mm(text)
+        .and_then(|nm| i64::try_from(nm).ok())
+        .map(Value::from)
+        .ok_or_else(|| invalid(text!("refusal-input-mm", text.trim())))
 }
 
 /// One or two colour codes separated by space, `/` or nothing (`GNYE`).

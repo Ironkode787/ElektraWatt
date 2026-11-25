@@ -86,8 +86,7 @@ refusal-ref-ambiguous = `{ $p0 }` is dubbelzinnig: { $p1 } apparaten drukken dit
 refusal-ref-candidate = { $p0 } als `id:{ $p1 }`
 refusal-ref-not-text = `ref` is een tekst `<kind>:<value>`
 refusal-input-plc-slot = `{ $p0 }` is geen slot; geef een getal (3), <rack>.<slot> (1.3) of auto
-refusal-input-metres = `{ $p0 }` is geen lengte in meters (bijvoorbeeld 12.5 m)
-refusal-input-too-long = `{ $p0 }` is een te grote lengte
+refusal-input-metres = `{ $p0 }` is geen lengte in meters (bijvoorbeeld 12,5 m)
 # A clipboard fragment that does not read: its kind of failure and each line's reason.
 refusal-fragment-not = het klembord bevat geen ElektraWatt-fragment
 refusal-fragment-newer = gekopieerd uit een nieuwere ElektraWatt, die een nieuwer formaat schrijft ({ $p0 })

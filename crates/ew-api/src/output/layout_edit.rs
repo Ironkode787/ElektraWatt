@@ -114,37 +114,40 @@ pub(super) fn comma(q: &Q) -> bool {
     )
 }
 
-/// A length typed in millimetres (`158`, `158.5`, `158,5`, `158 mm`): nm, or `None` for any other text. At most six
-/// fraction digits; at most 10⁹ mm either way, so the value stays well inside the `Nm` range.
+/// A length typed in millimetres (`158`, `158.5`, `158,5`, `158 mm`) or with its unit `cm` or `m` (`35 cm`, `2 m`), with
+/// an optional sign: nm, or `None` for any other text. The program's one reader of a typed length: at most the digits
+/// of a nanometre (six fraction digits in millimetres, seven in centimetres, nine in metres) and at most
+/// [`ew_units::MAX_SAFE_INTEGER`] nm either way, so the value stays an exact JSON integer well inside the `Nm` range.
 pub fn parse_mm(text: &str) -> Option<i128> {
     let t = text.trim();
-    let t = t.strip_suffix("mm").unwrap_or(t).trim();
+    let lower = t.to_ascii_lowercase();
+    // The unit's fraction digits down to the nanometre, and its size in nanometres.
+    let (t, places, unit): (&str, usize, i128) = if lower.ends_with("mm") {
+        (&t[..t.len() - 2], 6, 1_000_000)
+    } else if lower.ends_with("cm") {
+        (&t[..t.len() - 2], 7, 10_000_000)
+    } else if lower.ends_with('m') {
+        (&t[..t.len() - 1], 9, 1_000_000_000)
+    } else {
+        (t, 6, 1_000_000)
+    };
+    let t = t.trim();
     let (neg, t) = match t.strip_prefix('-') {
         Some(rest) => (true, rest.trim_start()),
         None => (false, t),
     };
-    let t = t.replace(',', ".");
-    let (int, frac) = t.split_once('.').unwrap_or((t.as_str(), ""));
-    if int.is_empty() && frac.is_empty() {
-        return None;
-    }
-    if int.len() > 10
-        || frac.len() > 6
+    let (int, frac) = t.split_once(['.', ',']).unwrap_or((t, ""));
+    if int.is_empty() && frac.is_empty()
+        || frac.len() > places
         || !int.bytes().all(|b| b.is_ascii_digit())
         || !frac.bytes().all(|b| b.is_ascii_digit())
     {
         return None;
     }
     let whole: i128 = if int.is_empty() { 0 } else { int.parse().ok()? };
-    if whole > 1_000_000_000 {
-        return None;
-    }
-    let mut f = frac.to_owned();
-    while f.len() < 6 {
-        f.push('0');
-    }
-    let v = whole * 1_000_000 + f.parse::<i128>().ok()?;
-    Some(if neg { -v } else { v })
+    let frac: i128 = format!("{frac:0<places$}").parse().ok()?;
+    let v = whole.checked_mul(unit)?.checked_add(frac)?;
+    (v <= i128::from(ew_units::MAX_SAFE_INTEGER)).then_some(if neg { -v } else { v })
 }
 
 /// Two or three lengths typed in millimetres, separated by `;`, or by `,` when the project writes a decimal point
@@ -1605,6 +1608,18 @@ mod tests {
         assert_eq!(parse_bool("Yes"), Some(true));
         assert_eq!(parse_bool("off"), Some(false));
         assert_eq!(parse_bool("maybe"), None);
+    }
+
+    /// The one reader of a typed length (the layout's fields, Properties, a cable's length): a unit `mm`, `cm` or `m`,
+    /// to the nanometre, bounded by the exact JSON integers.
+    #[test]
+    fn a_length_is_read_with_its_unit_to_the_nanometre() {
+        assert_eq!(parse_mm("2 m"), Some(2_000_000_000));
+        assert_eq!(parse_mm("35 cm"), Some(350_000_000));
+        assert_eq!(parse_mm("0,000000001 m"), Some(1));
+        assert_eq!(parse_mm("0.0000000001 m"), None, "below the nanometre");
+        assert_eq!(parse_mm("9007199254 mm"), Some(9_007_199_254_000_000));
+        assert_eq!(parse_mm("9007199255 mm"), None, "past the exact JSON integers");
     }
 
     /// Two untagged enclosures both read "plate"; the one a page shows first is "plate (1)", the other, which

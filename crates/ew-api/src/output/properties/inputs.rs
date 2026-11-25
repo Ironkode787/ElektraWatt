@@ -177,8 +177,8 @@ pub(crate) fn plc_slot_input(t: &str) -> Result<ParsedInput, InputError> {
     })
 }
 
-/// A cable's length source typed as the lists and the field print it: `<number> m` (or the number alone, in metres,
-/// with a decimal point or comma) is a manual length, `missing` or the lists' words for a missing length in a shipped
+/// A cable's length source typed as the lists and the field print it: a length with its unit or the number alone in
+/// metres (`12.5 m`, `12,5`, `1250 mm`; read as [`parse_mm`](crate::output::parse_mm) reads a length) is a manual length, `missing` or the lists' words for a missing length in a shipped
 /// language none, `from part` or the lists' words for it the part's. `None` for anything else (a JSON value, the
 /// field's own form, parsed as before).
 fn cable_length_input(text: &str) -> Option<Result<ParsedInput, InputError>> {
@@ -203,26 +203,24 @@ fn cable_length_input(text: &str) -> Option<Result<ParsedInput, InputError>> {
     if let Some(source) = ew_reports::cable_length_words(t) {
         return plain(source);
     }
-    let number = t.strip_suffix('m').map_or(t, str::trim_end);
-    let point = |c: char| c == '.' || c == ',';
-    if number.is_empty() || !number.chars().all(|c| c.is_ascii_digit() || point(c)) {
+    // A number with or without its unit is a length; any other text is the field's JSON.
+    let lower = t.to_ascii_lowercase();
+    let number = ["mm", "cm", "m"]
+        .iter()
+        .find_map(|u| lower.strip_suffix(u))
+        .map_or(lower.as_str(), str::trim_end);
+    if number.is_empty() || !number.chars().all(|c| c.is_ascii_digit() || c == '.' || c == ',') {
         return None;
     }
-    let (whole, frac) = number.split_once(point).unwrap_or((number, ""));
-    if whole.is_empty() || frac.contains(point) || frac.len() > 9 {
-        return Some(Err(InputError::Invalid(text!("refusal-input-metres", t))));
-    }
-    let nm = whole
-        .parse::<i64>()
-        .ok()
-        .and_then(|w| w.checked_mul(1_000_000_000))
-        .and_then(|w| {
-            let f: i64 = format!("{frac:0<9}").parse().ok()?;
-            w.checked_add(f)
-        });
-    match nm {
+    // The number alone is metres; the one reader of a typed length reads the rest.
+    let typed = if number.len() == lower.len() {
+        format!("{t} m")
+    } else {
+        t.to_owned()
+    };
+    match crate::output::parse_mm(&typed).and_then(|nm| i64::try_from(nm).ok()) {
         Some(nm) => plain(LengthSource::Manual(Nm(nm))),
-        None => Some(Err(InputError::Invalid(text!("refusal-input-too-long", t)))),
+        None => Some(Err(InputError::Invalid(text!("refusal-input-metres", t)))),
     }
 }
 
