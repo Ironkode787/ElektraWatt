@@ -793,7 +793,7 @@ impl Drop for Dc {
 /// of a path, outside the code page too, and keeps an address's anchor. No shell, no command line. The error names
 /// the call's answer.
 pub(crate) fn shell_open(target: &std::ffi::OsStr) -> Result<(), String> {
-    let wide: Vec<u16> = target.encode_wide().chain(std::iter::once(0)).collect();
+    let wide = shell_open_target(target);
     // SAFETY: `wide` is a NUL-terminated UTF-16 string that outlives the call, the verb a static wide literal; no owner
     // window, parameters or directory are passed (null), and the call keeps no pointer after it returns.
     let answer = unsafe {
@@ -813,6 +813,12 @@ pub(crate) fn shell_open(target: &std::ffi::OsStr) -> Result<(), String> {
     } else {
         Err(format!("ShellExecuteW answered {code}"))
     }
+}
+
+/// The one string [`shell_open`] hands the open call: `target`'s every character in UTF-16, NUL-terminated, with
+/// nothing added before or after it.
+pub(crate) fn shell_open_target(target: &std::ffi::OsStr) -> Vec<u16> {
+    target.encode_wide().chain(std::iter::once(0)).collect()
 }
 
 #[cfg(test)]

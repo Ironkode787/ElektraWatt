@@ -27,14 +27,81 @@ fn stand_in() {
     assert!(!own.iter().any(|a| a == "fail"), "asked to fail");
 }
 
+/// The stand-in of an opener whose application stays open: run with a `--`, it stays alive until
+/// `<last argument>.release` exists (at most 20 s), then writes `<last argument>.done`. Run by the harness (no `--`),
+/// it does nothing.
+#[test]
+fn stand_in_that_stays() {
+    let args: Vec<String> = std::env::args().collect();
+    let Some(last) = args.iter().position(|a| a == "--").and_then(|_| args.last()) else {
+        return;
+    };
+    let release = PathBuf::from(format!("{last}.release"));
+    for _ in 0..2000 {
+        if release.exists() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    std::fs::write(format!("{last}.done"), b"").unwrap();
+}
+
 /// This binary as the stand-in program.
 fn stand_in_program() -> Program {
+    stand_in_named("tests::stand_in")
+}
+
+/// This binary running its test `name` as the stand-in program.
+fn stand_in_named(name: &str) -> Program {
     Program {
         path: std::env::current_exe().unwrap(),
-        leading: ["--exact", "tests::stand_in", "--nocapture", "--"]
+        leading: ["--exact", name, "--nocapture", "--"]
             .map(OsString::from)
             .to_vec(),
     }
+}
+
+/// No shell stands between the program and the system's opener, for a file and for an address: off Windows it starts
+/// `xdg-open` with the target as its one argument, on Windows the open call is handed the target alone.
+#[test]
+fn the_system_opener_starts_no_shell() {
+    for target in ["C:/docs/a&b/set 1.pdf", "file:///C:/docs/a%26b/x.html#y"] {
+        let target = std::ffi::OsStr::new(target);
+        #[cfg(not(windows))]
+        {
+            let (program, args) = system_opener(target);
+            assert_eq!(program, Program::named("xdg-open"));
+            assert_eq!(args, [target.to_os_string()]);
+        }
+        #[cfg(windows)]
+        {
+            use std::os::windows::ffi::OsStrExt as _;
+            let mut want: Vec<u16> = target.encode_wide().collect();
+            want.push(0);
+            assert_eq!(crate::windows::shell_open_target(target), want);
+        }
+    }
+}
+
+/// An opener is started and not waited on: one whose application stays open leaves the call at once, before it has
+/// finished, and finishes on its own once let go.
+#[test]
+fn an_opener_that_stays_open_never_holds_the_caller() {
+    let dir = Dir::new();
+    let target = dir.0.join("set.pdf");
+    let done = dir.0.join("set.pdf.done");
+    stand_in_named("tests::stand_in_that_stays")
+        .launch(&[target.clone().into_os_string()])
+        .unwrap();
+    assert!(!done.exists(), "the call waited for the opener to finish");
+    std::fs::write(dir.0.join("set.pdf.release"), b"").unwrap();
+    for _ in 0..2000 {
+        if done.exists() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    assert!(done.exists(), "the opener ran to its end");
 }
 
 /// A fresh empty directory, removed on drop.

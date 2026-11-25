@@ -22,8 +22,9 @@
 //!
 //! The crate also has the Windows adapter (`Windows`, Windows only): the Windows print dialog, or
 //! the printer [`PrintJob::printer`] names, then each placed page rendered in bands and sent through GDI. Its module
-//! is the product's one place of `unsafe` (doc 18 §11.2): the crate denies `unsafe_code`, and `cargo xtask
-//! check-unsafe` keeps the keyword in that file.
+//! is the product's one place of `unsafe` (doc 18 §11.2): the crate denies `unsafe_code` and that module alone allows
+//! it, clippy's `undocumented_unsafe_blocks` asks each block for its `SAFETY:` comment, and each new block has the
+//! second review NFR-SEC-04 asks for; no rule of `cargo xtask rules` checks where the keyword stands.
 //!
 //! Each adapter takes the program it runs as a [`Program`], so a test runs a stand-in that records its arguments.
 
@@ -337,12 +338,12 @@ impl fmt::Debug for Chain {
 
 /// Opens `target`, a file's path or an address (the guide's `file://` URL with its anchor), in its default
 /// application: the system's one opener for both. On Windows the system's wide open call (`ShellExecuteW`), which
-/// takes every character of a path, outside the code page too, and keeps an address's anchor; elsewhere `xdg-open`.
-/// No shell.
+/// takes every character of a path, outside the code page too, and keeps an address's anchor; elsewhere `xdg-open`,
+/// started and not waited on ([`Program::launch`]), so the application it opens never holds the caller. No shell.
 ///
 /// # Errors
 ///
-/// The opener could not be started, or it answered that it opened nothing, in words.
+/// The opener could not be started, or (on Windows) it answered that it opened nothing, in words.
 pub fn open_with_system(target: &std::ffi::OsStr) -> Result<(), PrintError> {
     #[cfg(windows)]
     {
@@ -353,10 +354,16 @@ pub fn open_with_system(target: &std::ffi::OsStr) -> Result<(), PrintError> {
     }
     #[cfg(not(windows))]
     {
-        Program::named("xdg-open")
-            .run(&[target.to_os_string()], None)
-            .map(|_| ())
+        let (program, args) = system_opener(target);
+        program.launch(&args)
     }
+}
+
+/// Off Windows, the program [`open_with_system`] starts on `target` and its arguments: `xdg-open` with the target
+/// alone, no shell.
+#[cfg(not(windows))]
+fn system_opener(target: &std::ffi::OsStr) -> (Program, Vec<OsString>) {
+    (Program::named("xdg-open"), vec![target.to_os_string()])
 }
 
 /// A program an adapter runs: its path and the arguments that come before the adapter's own.
@@ -413,6 +420,29 @@ impl Program {
             });
         }
         Ok(bounded(&out.stdout))
+    }
+
+    /// Starts the program with its leading arguments and `args`, no shell, its standard streams null, and returns at
+    /// once: the caller never waits on it, nor on what it starts in turn (a browser or a viewer holds no pipe of
+    /// ours). A thread of its own collects its exit, so no finished process is left behind. The error says why it did
+    /// not start, in words.
+    #[cfg(any(not(windows), test))]
+    fn launch(&self, args: &[OsString]) -> Result<(), PrintError> {
+        let mut child = std::process::Command::new(&self.path)
+            .args(&self.leading)
+            .args(args)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .map_err(|e| PrintError::Spawn {
+                program: self.label(),
+                reason: e.to_string(),
+            })?;
+        let _ = std::thread::Builder::new()
+            .name("ew-print-opener".to_owned())
+            .spawn(move || child.wait());
+        Ok(())
     }
 }
 
