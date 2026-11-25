@@ -48,7 +48,7 @@ The `ew` command-line program: its entry point, which parses the arguments, runs
 | `src/cli/assets.rs` |  | `ew project assets purge`. |
 | `src/cli/checks.rs` |  | `ew check`, `ew checks set` and `ew verify`. |
 | `src/cli/collab.rs` |  | `ew git setup [--global] [--hooks] [--yes]` (doc 05 §11.1, §11.5; FR-COL-024): the merge driver and the textconv in git's configuration after the user's consent, the managed `.gitattributes` and `.gitignore` blocks in each project folder of the worktree, and with `--hooks` the `post-merge` hook that runs `ew check --integrity`. |
-| `src/cli/diff.rs` |  | `ew diff <from> <to> [--json] [--exit-code]` and `ew diff --textconv <file>` (D27; doc 05 §11.6; FR-COL-013). |
+| `src/cli/diff.rs` |  | `ew diff <from> <to> [--json] [--exit-code]` and `ew diff --textconv <file>` (doc 05 §11.6; FR-COL-013). |
 | `src/cli/dxf.rs` |  | `ew import dxf`, `ew import dwg` and `ew import pdf` (doc 14 §13): a drawing into the project as a graphic page or an underlay, its blocks as symbol drafts, its lines as a part's front outline; a DWG through the user's ODA File Converter first; a PDF page as an underlay. |
 | `src/cli/eplan.rs` |  | `ew import edz` and `ew import parts-xml` (doc 14 §5.2, §5.3, §13): the parts of an EDZ or an EPLAN parts XML into a writable library, or the previewed update of a project's part copies from them. |
 | `src/cli/export.rs` | large | `ew export` in its kinds, `ew export-ewz`, `ew extract`, `ew export pages` and `ew render`. |
@@ -89,7 +89,7 @@ The `Session` facade shared by every front-end.
 | `src/import.rs` | large | Import front door for the CLI (`ew import qet`, doc 14 §2.1, §2.5): reads the starter content, runs the QElectroTech project importer and opens the batch as a [`Session`], so that front-ends see the import, its migration report and the derived pages without naming the record types. |
 | `src/lib.rs` | large | The `Session` facade shared by every front-end. |
 | `src/library_ops.rs` | large | The library reference form of the commands. |
-| `src/macros.rs` | large | Macros in the session (D12, D13; doc 07 §3.5, §4.6). |
+| `src/macros.rs` | large | Macros in the session (doc 07 §3.5, §4.6). |
 | `src/migration.rs` |  | `ew verify-migration`: an imported project against the drawing it came from (FR-IMP-021, doc 14 §4.15). |
 | `src/new_project.rs` |  | New projects (FR-PRJ-009, FR-PRJ-010; doc 07 §2.8, doc 05 §5.5): [`Session::new_project`] starts a session over a project that has no directory yet, from the built-in basic project or from a company basic project directory. |
 | `src/output/dxf_set.rs` |  | The DXF set's glue (doc 09 §4.9): which texts of a page's labels layer are the attributes of a symbol's insert and under which names (one per kind of slot, few, stable and in words: a receiver reads them), and the symbols' names in words that name their blocks. |
@@ -131,7 +131,7 @@ The `Session` facade shared by every front-end.
 | `src/output/navigators/strips.rs` |  | The Terminal strips navigator (doc 16 §5.2): each strip's terminals in mounting order with the accessories between them. |
 | `src/output/navigators/structure.rs` |  | The Structure identifiers navigator (doc 16 §5.2): each aspect with its structure nodes nested by parent. |
 | `src/output/navigators/unplaced.rs` |  | The Unplaced devices navigator (doc 16 §5.2): each layout space with the devices it holds that the layout does not place yet. |
-| `src/output/panel.rs` | large | The surface view of a panel-layout page as the scene reads it (D9 and D10; [`ew_scene::panel`]): the parts of a [`PanelView`] each panel layer reads, filled from the derived layout queries of `ew_derive::layout` (`placement_geometry`, `carrier_geometry`, `layout_label`), never re-derived here. |
+| `src/output/panel.rs` | large | The surface view of a panel-layout page as the scene reads it ([`ew_scene::panel`]): the parts of a [`PanelView`] each panel layer reads, filled from the derived layout queries of `ew_derive::layout` (`placement_geometry`, `carrier_geometry`, `layout_label`), never re-derived here. |
 | `src/output/potential_offer.rs` |  | A potential reasoned for a wire that has only a fallback name: the window offers it to accept or decline, and never sets it without the person's accept. |
 | `src/output/preview.rs` |  | The labelled entity list of a preview: the Preview tab's Entities list and the history panel's Show changes read the records a transaction changes as [`PreviewEntity`] lines, each with the label the property grid prints for the record (a device's tag, a page's folio and title, a node's path, a name). |
 | `src/output/print.rs` |  | The print set: the export's pages placed on a paper, stamped when scaled, and written by the export's PDF writer with the export's options and fonts (ADR-0015: the PDF is the print master). |
@@ -149,10 +149,10 @@ The `Session` facade shared by every front-end.
 | `src/output/properties/sections.rs` |  | One section of the property sheet: the catalogue's rows in order with their values over the targets, the members the schema does not list, and the derived rows merged over several targets. |
 | `src/output/properties/selection.rs` |  | The selection's live description (NFR-A11Y-02) and the wire-colour view: what the canvas says of a selected record, and a connection's physical wires with their printed numbers and colours. |
 | `src/output/rack.rs` | large | The station view's data (doc 10 §6, FR-PLC-028): a station as its head and its slots with the module in each (its part, what it gives, its addresses, the page it is drawn on, the slots its part allows), the free slots up to the station's limit, a valve terminal's positions beside its stored order codes, a module's channels, and EW-PLC-011's findings on the station. |
-| `src/output/raster.rs` |  | Page rasters (D7; FR-EXT-004): `ew render --page <folio> --png` and `ew export png`. |
+| `src/output/raster.rs` |  | Page rasters (FR-EXT-004): `ew render --page <folio> --png` and `ew export png`. |
 | `src/output/revisions.rs` |  | Page digests and the page change status (doc 15 §5.6; FR-REV-004, FR-REV-012, FR-REV-022). |
 | `src/output/route_measures.rs` | large | A page as the layout sees it and its measure in words: [`Session::page_draft`] is the page in ticks (`ew_drafting::DraftPage`, docs/design/06a-drafting.md §2), the labels layer's (`ew-scene`'s `draft` builds it from the page's view, with the scene's text sizes) with each wire's supply rank from its potential and the page's kind; the router reads it (`crate::routing`). |
-| `src/output/rows.rs` | large | The row exports of a chosen report block (D8; FR-EXT-027): `ew export wires`, `ew export terminals [--strip <tag>]`, `--block <name or id>` on `bom`, `cables`, `wires` and `terminals`, `ew export report --block <name or id> --format csv\|pdf`, and `ew export report --kind <kind>`, the whole-project rows of a registered kind ([`RowExport::Kind`]). |
+| `src/output/rows.rs` | large | The row exports of a chosen report block (FR-EXT-027): `ew export wires`, `ew export terminals [--strip <tag>]`, `--block <name or id>` on `bom`, `cables`, `wires` and `terminals`, `ew export report --block <name or id> --format csv\|pdf`, and `ew export report --kind <kind>`, the whole-project rows of a registered kind ([`RowExport::Kind`]). |
 | `src/output/scale_fit.rs` |  | The fitting scale of a panel-layout page and a mounting surface: the first 1:n of [`FIT_SCALES`] at which the bounding box of the surface's usable outline, drawn at 1:n on paper, fits the drawing area of the page's frame; 1:100 when none fits; none when the surface records no usable outline or the page has no frame. |
 | `src/output/strip_edit.rs` |  | The strip editor's door below the shell: [`Session::strip_edit`] compiles one strip gesture into one command, and [`Session::strip_edits`] several cell gestures into one. |
 | `src/output/table_edit.rs` |  | Table mode's pure rule (doc 16 §7.1, §7.2; moved down from the view model), so that the grid and the table round trip produce the same command for the same cells. |
@@ -380,9 +380,9 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/layout/legend.rs` |  | The layout legend of a mounting surface (doc 12 §5.4), the surface a panel page shows, and the legend order of carriers that the BOM's carrier lines share (part 4). |
 | `src/layout/mod.rs` |  | The layout's pure geometry (doc 12 §2.1–§2.4, §3.3): carrier paths, the mount-kind compatibility table and the pose validator, shared by the `layout.*` commands (`ew-commands`) and part 5's EW-LAY-010. |
 | `src/layout/pose.rs` |  | Poses on carriers (doc 12 §2.3): quarter turns about `w`, the degrees of freedom per carrier kind, the surface pose equivalent to a rail pose and the frame of a plate centred in its enclosure. |
-| `src/layout/queries.rs` |  | The layout queries of the MVP (doc 12 §2.6): `mountable(dev)`, `unplaced(space)`, `placement_geometry(p)` (D5), `rail_occupancy(carrier)`, `layout_label(p)` (D10's text) and `carrier_geometry(carrier)`. |
+| `src/layout/queries.rs` |  | The layout queries of the MVP (doc 12 §2.6): `mountable(dev)`, `unplaced(space)`, `placement_geometry(p)`, `rail_occupancy(carrier)`, `layout_label(p)` (D10's text) and `carrier_geometry(carrier)`. |
 | `src/layout/snap.rs` |  | The rail model and the mode resolution (doc 12 §3.3, §3.4): pure functions over the items of one rail, shared by the layout tool's ghost (part 3) and the `layout.place` and `layout.move` commands, so the ghost and the commit agree by construction. |
-| `src/layout/snap/tests.rs` |  | The rail model and the resolver over two hand-made 570 mm rails (the spec's SN-1 to SN-6 numbers by hand) and over random rails (property tests: every mode's result holds D5's rules). |
+| `src/layout/snap/tests.rs` |  | The rail model and the resolver over two hand-made 570 mm rails (the spec's numbers by hand) and over random rails (property tests: every mode's result holds the rules). |
 | `src/layout/tests.rs` |  | The layout geometry and the compatibility table of doc 12 §3.3. |
 | `src/lib.rs` |  | All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-0003). |
 | `src/links.rs` |  | Per-function and per-terminal inputs of the stitch graph, as memoised families: |
@@ -481,9 +481,9 @@ PDF (outline, links, named destinations, page labels, PDF/A-2b), SVG, DXF and PN
 | `src/dxf/text.rs` |  | The texts of a DXF page (doc 09 §4.8, §4.9): a glyph run as a `TEXT` at the start of its glyphs on its baseline, as high as its face's capitals, at its angle, with the width factor that makes its face's own advances add up to its width in the PDF; a device's text as an `ATTRIB` of its insert and an `ATTDEF` of its block; a link source as a hyperlink (extended data of `PE_URL`); a face's `STYLE` with its family name (extended data of `ACAD`). |
 | `src/font_subset.rs` |  | The font subsetter of the SVG writer: a TrueType (`glyf`) face cut down to the glyphs a page draws, **with the glyph IDs kept** (doc 09 §4.4; FR-OUT-013). |
 | `src/lib.rs` |  | PDF (outline, links, named destinations, page labels, PDF/A-2b), SVG, DXF and PNG export. |
-| `src/parallel.rs` |  | The parallel page phase of an export (doc 09 §4.2, §4.3 rule 3; FR-OUT-019, NFR-REL-07, AC-14). |
+| `src/parallel.rs` |  | The parallel page phase of an export (doc 09 §4.2, §4.3 rule 3; FR-OUT-019, NFR-REL-07). |
 | `src/pdf.rs` | large | The PDF writer: sheet display lists to a deterministic PDF/A-2b with krilla (doc 09 §4.2, §4.3; ADR-0015 decision 5; FR-OUT-001 … FR-OUT-011, FR-OUT-019, FR-OUT-020, FR-OUT-022, FR-OUT-026). |
-| `src/svg.rs` |  | The SVG writer: one SVG document per page from the same sheet display lists the PDF writer draws (doc 09 §4.4; FR-OUT-013, FR-OUT-019; AC-14). |
+| `src/svg.rs` |  | The SVG writer: one SVG document per page from the same sheet display lists the PDF writer draws (doc 09 §4.4; FR-OUT-013, FR-OUT-019). |
 
 ## ew-format
 
@@ -532,7 +532,7 @@ Parts import from CSV and XLSX (MVP), BMEcat and ETIM xChange (1.x), behind `ew-
 |---|---|---|
 | `src/lib.rs` |  | Parts import from CSV and XLSX (MVP), BMEcat and ETIM xChange (1.x), behind `ew-interop-api`. |
 | `src/map.rs` |  | The column map: which column of a supplier's table fills which member of a part, `member ← header`, and the TOML file it is saved as per source (`<config dir>/imports/<source key>.toml`; the host reads and writes the file, this crate only parses and prints its text). |
-| `src/parts.rs` | large | [`parse_parts`]: a mapped parts table into part documents, the new manufacturers they name, and the row report (D11, FR-PRT-016). |
+| `src/parts.rs` | large | [`parse_parts`]: a mapped parts table into part documents, the new manufacturers they name, and the row report (FR-PRT-016). |
 | `src/table.rs` |  | The two table readers: CSV (UTF-8 with or without a byte-order mark, `,` or `;` found from the header line, RFC 4180 quoting) and XLSX ([`crate::xlsx`], the first or the named sheet, each cell as its displayed text; a formula's cached value is read and never evaluated). |
 | `src/xlsx.rs` |  | The XLSX reader of the parts import: an Office Open XML workbook read from memory, the first or the named sheet's cells as their displayed text, a formula's cached value (never evaluated). |
 
@@ -681,7 +681,7 @@ Parts, symbol, form and macro libraries as canonical `.ewlib` text directories a
 | `src/manifest.rs` |  | `library.json`, the manifest of a `.ewlib` directory (doc 07 §2.2), written last. |
 | `src/record.rs` |  | Library record lines and the files of a `.ewlib` directory (doc 07 §2.2, §7.2). |
 | `src/registry.rs` | large | [`Registry`]: the opened tiers, the one resolver and the search index (§7). |
-| `src/search.rs` |  | Part and item search: the queries, the hits and the order of D6 (doc 07 §4.3). |
+| `src/search.rs` |  | Part and item search: the queries, the hits and the order (doc 07 §4.3). |
 | `src/starter.rs` |  | The starter library: the shipped symbols and function definitions of `content/symbols`, `content/symbols/qet10` and `content/fndefs`, and the shipped forms of `content/forms`, compiled in, so that a new project without symbol copies can place symbols. |
 | `src/starter_parts.rs` |  | The system library `ew-starter-parts` compiled in: the files of `content/libraries/ew-starter-parts.ewlib`, which the build script lists from the folder. |
 | `src/tiers.rs` |  | The four library tiers and where they live (doc 07 §2.1; doc 05 §1, §13.1). |
@@ -747,7 +747,7 @@ Multilingual text `MlText` with neutral-xor-languages semantics, BCP 47 `LangTag
 | `src/tests/content_diff.rs` |  | `Model::content_diff`: the first difference between two models, per part. |
 | `src/tests/field_mask.rs` |  | The field-mask exhaustiveness test (ARCH §4.1, ADR-0001 "Verification"): every ID-valued member of an implemented kind's JSON Schema (`schemas/0.1/<kind>.schema.json`) must be declared, either as a link in [`LINKS`], as a non-link in [`NOT_LINKS`], or as the kind's own `id`; and every declaration must exist in the schema. |
 | `src/tests/invariants.rs` | large | One positive and at least one negative test per structural invariant of `invariants.md`. |
-| `src/tests/layout_links.rs` |  | The links of the layout kinds (LM-2, LM-6; doc 03 §4.2, §16): a placement cannot outlive its device or function (cascade, EW-LAY-002), an occupied carrier and an enclosure's device cannot be removed (forbid), a separate surface part's device leaves the surface without one (unlink), the containment chain cascades, and a location with a layout space cannot be deleted. |
+| `src/tests/layout_links.rs` |  | The links of the layout kinds (doc 03 §4.2, §16): a placement cannot outlive its device or function (cascade, EW-LAY-002), an occupied carrier and an enclosure's device cannot be removed (forbid), a separate surface part's device leaves the surface without one (unlink), the containment chain cascades, and a location with a layout space cannot be deleted. |
 | `src/tests/macro_links.rs` |  | The links of `macro_instance` (L1-4; doc 03 §7): deleting the anchor page removes the instance (cascade), a deleted member leaves it (the kind-erased unlink `members[][1]`), and the macro copy cannot be removed while an instance names it (a stored copy ID: a structural forbid, as `representation.symbol`). |
 | `src/tests/mod.rs` |  | In-crate tests: they see the crate-private internals (tables, scopes) and share the `mini_project()` fixture of `crate::fixture`. |
 | `src/tests/ops.rs` | large | Tests of the op layer, the delete plans (FR-DEV-030, doc 03 §4.2), loading and snapshots. |
@@ -795,10 +795,10 @@ OS print adapters with per-OS features (ADR-0015 amendment 1).
 | `src/lib.rs` |  | OS print adapters with per-OS features (ADR-0015 amendment 1). |
 | `src/lp.rs` |  | The CUPS adapter: `lp [-d <printer>] -t <title> <file>`, spawned with arguments. |
 | `src/portal.rs` |  | The Linux portal adapter: xdg-desktop-portal Print through `ashpd`, the sandbox-safe print path that also works in Flatpak. |
-| `src/tests.rs` |  | The adapters with a stand-in program (PR-4): this test binary itself, run with `--exact tests::stand_in --nocapture --` before the adapter's arguments, records them in `<last argument>.args`. |
+| `src/tests.rs` |  | The adapters with a stand-in program: this test binary itself, run with `--exact tests::stand_in --nocapture --` before the adapter's arguments, records them in `<last argument>.args`. |
 | `src/viewer.rs` |  | The viewer adapter: the set written to a fresh file `<dir>/<project>-print-<process>-<n>.pdf` and opened in the default PDF application, which prints it. |
 | `src/windows.rs` |  | The Windows adapter: each placed page of the print set rendered by `ew-render-cpu` in bands of [`BAND_ROWS`] device rows and sent to a printer through GDI. |
-| `src/windows/tests.rs` |  | The Windows adapter without a dialog (WN-3's automated half): its words, its paper requests, the dialog's printer name, and four placed pages printed to "Microsoft Print to PDF". |
+| `src/windows/tests.rs` |  | The Windows adapter without a dialog (the automated half): its words, its paper requests, the dialog's printer name, and four placed pages printed to "Microsoft Print to PDF". |
 
 ## ew-rds
 
@@ -1102,7 +1102,7 @@ The window of the desktop program in egui: it paints the shell model of `ew-view
 | `src/gpu.rs` |  | The GPU host of the canvas: which renderer draws, the GPU canvas on eframe's device, the scene preparation worker, and the canvas texture registered with egui-wgpu's renderer. |
 | `src/headless.rs` |  | The headless mode: `elektrawatt --headless --script <file\|->` runs a UI script on the same `ShellModel::dispatch` as the window, with no window, no GPU and no display, and writes a deterministic transcript. |
 | `src/help.rs` |  | What the window names under the pointer for F1 (`ew_viewmodel::help`): a widget with a topic (a button of the command bar, a menu item, a row of a list or of Properties, a part of a screen) offers it with the words it is named by while the pointer is on it. |
-| `src/history.rs` |  | The history panel (D13; FR-UI-023) and its Show changes popup, in the design language of doc 16a §6.24. |
+| `src/history.rs` |  | The history panel (FR-UI-023) and its Show changes popup, in the design language of doc 16a §6.24. |
 | `src/hud.rs` |  | The tool HUD and the zoom control of the page view (doc 16a §5.5), from `ew_viewmodel::command_bar::hud`. |
 | `src/icons/generated.rs` | large | The icon table: one `IconId` per icon, its key and its path segments on the 24-unit grid. |
 | `src/icons/mod.rs` |  | The icon set (doc 16a §4.11): Tabler Icons 3.50.0 (MIT) and the project's own glyphs, converted by `cargo xtask gen-icons` into `generated.rs` and drawn through epaint. |
@@ -1126,7 +1126,7 @@ The window of the desktop program in egui: it paints the shell model of `ew-view
 | `src/parts_card.rs` |  | The inline preview card of File, Import, Parts table…: a card floating at the top centre while the card's origin is an import. |
 | `src/parts_map.rs` |  | The column mapping step of File, Import, Parts table…: a card floating in the window's centre, where a dialog stands (at the top of the window it read as a strip left behind), while `ShellModel::parts_map` is open, before the import card (doc 16a §6.9, `elevation.1`). |
 | `src/picker.rs` | large | The device and symbol browser: one overlay for Insert symbol, Insert device, Change symbol, Insert black box and the strip chooser, over a backdrop, the window less `space.6` on each side and most of its height. |
-| `src/preview.rs` |  | The Preview tab (D11; FR-UI-022), restyled to doc 16a §6.23. |
+| `src/preview.rs` |  | The Preview tab (FR-UI-022), restyled to doc 16a §6.23. |
 | `src/print_dialog.rs` |  | The print pre-dialog (doc 16a §6.12): the options on the left on §6.12's form rows, the preview of the print set on the right at the page's aspect ratio, `<n> of <m>` with Previous and Next under it, the stamp visible. |
 | `src/properties.rs` | large | The property grid pane: the shell's sheet drawn as the inline preview card, the header and one block per section with collapsible groups; each row its label, its value or editor, the provenance chip (an icon glyph and words, never colour alone) and its actions. |
 | `src/rail.rs` |  | The rails (doc 16a §5.4 and §5.6): the navigator rail at the window's left with History at its foot, the palettes rail at its right, both views of `ew_viewmodel::rail::rail`. |
@@ -1211,23 +1211,23 @@ Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command 
 | `src/first_run.rs` |  | The first-run flow (UX/UI doc 16 section 9.1, FR-UI-030): language, what the user comes from, the privacy choice, the appearance, and where to start. |
 | `src/glossary.rs` |  | The product glossary (FR-UI-045): `glossary/glossary.toml`, compiled in and parsed once. |
 | `src/help.rs` | large | Documentation anchors and F1 (UX/UI doc 16 section 13, FR-UI-031). |
-| `src/highlight.rs` |  | Potential and net highlighting (D14; FR-UI-018): view state of the window, never a model edit, never an undo entry, never saved. |
+| `src/highlight.rs` |  | Potential and net highlighting (FR-UI-018): view state of the window, never a model edit, never an undo entry, never saved. |
 | `src/history.rs` |  | The jump history of a canvas tab: Back and Forward walk the locations a tab jumped from, per tab and not persisted. |
 | `src/jobs.rs` |  | The shell's jobs (doc 16 §8.3): the PDF export as a job of `ew_jobs`, its entries in the Jobs pane, and the file rule. |
 | `src/keymap.rs` | large | Keymaps (FR-UI-013, NFR-I18N-06; doc 16 §4.4 and §15.5). |
 | `src/layout.rs` |  | The dock layout of the project view (UX/UI doc 16 section 2.6 and 3.4): a tree of panes in splits and tab groups, toolkit-neutral. |
 | `src/lib.rs` |  | Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command mapping, property-grid rows with provenance and message lists, each with a revision stamp; and the model of the application shell. |
 | `src/navigator.rs` |  | The page navigator (FR-PAG-024, the viewing part): the pages of the derived page order as a flat list, by section, or by structure (function, location, section), sorted by folio (page order) or by page type, with a filter and a row cursor. |
-| `src/navigators.rs` |  | The navigator framework (doc 16 §5; D5, D6, D7): the state of an open navigator over its [`NavTable`], the visible rows (a depth-first walk over the expanded nodes, or the flat list), the filter over the precomputed tokens and facets, the sort, and the marked rows. |
+| `src/navigators.rs` |  | The navigator framework (doc 16 §5): the state of an open navigator over its [`NavTable`], the visible rows (a depth-first walk over the expanded nodes, or the flat list), the filter over the precomputed tokens and facets, the sort, and the marked rows. |
 | `src/navigators/messages.rs` |  | The message panel on the navigator framework: the view state that the table of `NavKind::Messages` does not hold, and the pure rules over that table. |
 | `src/navigators/paste.rs` |  | Paste from Excel and copy: the tab-separated text Excel puts on the clipboard. |
 | `src/navigators/pattern.rs` |  | The pattern fill's template language: a closed grammar, parsed once and rendered per marked row. |
 | `src/navigators/table.rs` |  | Table mode: the state of a navigator's table, its rows, the cell cursor, the closed table of editable cells, and the compile rule that turns one gesture (a cell, a column over several rows, a fill-down, a pattern fill, a paste or a clear) into exactly one command. |
 | `src/notifications.rs` |  | The notifications (FR-UI-042, NFR-A11Y-04): the toasts on screen and the log of the session's last notifications, with the actions that stay usable while they are valid. |
-| `src/palette.rs` |  | The command palette's matching (FR-UI-012): the scorer and the ranking of D2 (doc 16 §15.1), the recents of D3, the prefixes of D4 and the parameter forms of D5 (a). |
+| `src/palette.rs` |  | The command palette's matching (FR-UI-012): the scorer and the ranking (doc 16 §15.1), the recents, the prefixes and the parameter forms. |
 | `src/part_card.rs` |  | A part's data at a glance in the UI language (F22): the words of [`ew_api::window::PartCard`] that the device browser's detail, a device's row in the Devices list and Part details show, read only. |
 | `src/pointer.rs` |  | The pointer's tolerances (architecture §3.4): how far around a thing the pointer still takes it, in screen points at every zoom. |
-| `src/preview.rs` |  | The Preview tab (D11; FR-UI-022): the one card of the window (every origin: the property grid's, the find pane's replace, the parts import's, the Pages navigator's reorder and the renumber dialogs' `bulk`) shown in a dockable tab of the bottom dock, with its Summary, Entities, Tags, Xrefs and Pages. |
+| `src/preview.rs` |  | The Preview tab (FR-UI-022): the one card of the window (every origin: the property grid's, the find pane's replace, the parts import's, the Pages navigator's reorder and the renumber dialogs' `bulk`) shown in a dockable tab of the bottom dock, with its Summary, Entities, Tags, Xrefs and Pages. |
 | `src/properties.rs` | large | The property grid's panel model: the sheet the shell fetched, the focused row, the edit buffer, the choices and popups, the inline preview card and the toast, and the pure rules over them — the edit policy of FR-UI-044 ([`policy`]), the composition of a leaf into its settable member ([`compose`]), the read-only reasons ([`read_only_reason`]) and the rows on show ([`visible_rows`]). |
 | `src/rail.rs` |  | The rails (doc 16a §5.4 and §5.6): the left rail's navigator entries and History at its foot, the right rail's palettes, as a toolkit-neutral model. |
 | `src/script.rs` | large | The UI script and its transcript: the headless mode's input and output. |
@@ -1262,7 +1262,7 @@ Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command 
 | `src/shell/interruption.rs` |  | The tool host's duties: arming the IP tool and its keys and fields, the Wire tool's end in an interruption point (P while routing), continue and arrange, the black box tool, and the grips of a selected black box with their keyboard forms. |
 | `src/shell/jobs.rs` | large | The shell's part of the jobs and notifications (doc 16 §8.2, §8.3): the PDF export as a job with its entries and actions, the notifications and their log, and the recovery dialog's answers. |
 | `src/shell/join.rs` |  | Joining an existing device from the window (FR-DEV-038, FR-DEV-005, FR-UI-017). |
-| `src/shell/keymaps.rs` |  | The keymaps in the shell (D6 to D8; the files and the rules in [`crate::keymap`]): the active preset (the `keymap` setting) with the user's `keymap.toml` over it, the effective bindings the window binds and the menus, the palette and the describe text show, and the keymap editor's actions (search, record, reset, import, export). |
+| `src/shell/keymaps.rs` |  | The keymaps in the shell (the files and the rules in [`crate::keymap`]): the active preset (the `keymap` setting) with the user's `keymap.toml` over it, the effective bindings the window binds and the menus, the palette and the describe text show, and the keymap editor's actions (search, record, reset, import, export). |
 | `src/shell/layout.rs` | large | The panel page's host duties (doc 12 §12.4): arming the layout place tool, the keyboard placement (Tab and Shift+Tab cycle a rail's placements, the arrows nudge, R turns on the plate, X flips on a rail), Lock and Unlock, the placing options and the canvas's live region for a selected placement. |
 | `src/shell/list_look.rs` |  | List columns… and Rows of your own… (`report_block.columns`, `report_block.rows`, doc 09 §3.8): what the list on show prints, each in one form, written to its report block in one undo step (`fields.set_many`). |
 | `src/shell/macros.rs` | large | The host duties of the Macros and Libraries navigators, Save as macro… and Make variable. |
@@ -1271,7 +1271,7 @@ Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command 
 | `src/shell/navigators.rs` | large | The navigators in the shell (doc 16 §5): the open navigators with their tables, the `navigator.*` actions (which also take `kind = pages` and then do what the six `pages.*` actions do), multi-selection, selection synchronisation both ways with the chip line "Not on this page" (doc 16a §6.24), the reorder of pages through `page.reorder` and its card, and the New page pre-fill. |
 | `src/shell/onboarding.rs` |  | First run, the company-standard wizard, the quick switches and F1. |
 | `src/shell/page_copy.rs` |  | Page ▸ Copy pages… (`pages.copy`, doc 06 §3.6, "A copy of pages"): the marked pages copied for a second installation by the rule of its form (a folio offset or the page after which the copies go, a structure node of the copy's own, renamed titles, frozen tags and interruption-point names). |
-| `src/shell/palette.rs` |  | The command palette in the shell (FR-UI-012; the matching in [`crate::palette`]): the entries of a query by its prefix, ranked with the aliases of the glossary (D5 (b)) and the recents, and Enter: an action runs (or opens its parameter form, D5 (a)), a page is shown, a cell is gone to, an object is selected and a rule shows Messages filtered to it. |
+| `src/shell/palette.rs` |  | The command palette in the shell (FR-UI-012; the matching in [`crate::palette`]): the entries of a query by its prefix, ranked with the aliases of the glossary and the recents, and Enter: an action runs (or opens its parameter form), a page is shown, a cell is gone to, an object is selected and a rule shows Messages filtered to it. |
 | `src/shell/part_dialog.rs` | large | The part selection dialog and the part editor. |
 | `src/shell/part_dialog/editor.rs` |  | The part editor of the part dialog: the copy it edits, Edit part, New part, a bus port's row, a field, the own-part removal and Save. |
 | `src/shell/part_dialog/targets.rs` |  | What the part dialog gives a part to: the terminals of a strip and the cells of a grid, and the dialog's refresh. |
@@ -1309,7 +1309,7 @@ Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command 
 | `src/shell/tips.rs` |  | The one-time tips (FR-UI-048), each a toast with one action of the registry: three for a user who comes from EPLAN or QET, and one for everyone, where the mouse wheel's zoom is first met. |
 | `src/shell/title_block.rs` |  | Title block fields… (`page.title_block`): every field the focused page's title block prints from the project's data, in one form, written where its value comes from in one undo step: the page's title and description, the project's master data, its parties' names, the open revision's label and the names of the parties the current revision names as author and checker. |
 | `src/shell/tools.rs` | large | The tool host in the shell: one active tool per window acting on the focused group's canvas, its overlay, the preview protocol over `Session::preview_with`, the Escape chain, the keyboard tool input, the link hover preview and the selection. |
-| `src/shell/undo_panel.rs` |  | The history panel's host duties and context restore (doc 16 §8.1, D13; FR-UI-023). |
+| `src/shell/undo_panel.rs` |  | The history panel's host duties and context restore (doc 16 §8.1, FR-UI-023). |
 | `src/shell/wire_colours.rs` |  | The wire-colour view's host duties (FR-UI-047). |
 | `src/shell/wiring.rs` | large | The tool host's duties: arming the Wire tool and the keyboard route editor, the junction sequence editor popup and its commits, the crossings and wire-number settings (Print wire numbers also as a row of the project's Properties), and the Wire tool's live region. |
 | `src/shell/workspaces.rs` |  | Named workspaces (UX/UI doc 16 section 2.5, 2.6 and 3.4): the dock layout of the project view, the workspace files `workspaces/<name>.json` in the configuration directory, and the actions that load, save and reset them. |
@@ -1347,7 +1347,7 @@ Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command 
 | `src/tools/text.rs` |  | The Text tool (`text`) and text edit (F2, a double click on a selected free text), with the six bindable names a free text may show instead of its own text. |
 | `src/tools/transform.rs` |  | Transform and delete on a selection: with Select active and representations selected, R commits `rep.transform {reps, rotate: 1}`, Shift+R `rotate: 3`, X `rotate: 0, mirror: true`, Y `rotate: 2, mirror: true`; V on exactly one representation commits the `rep.transform` whose composition gives the next variant letter. |
 | `src/tools/wire.rs` | large | The Wire tool (`wire`; doc 06 §4.4, FR-UI-015, FR-CON-001, FR-CON-006): a connection drawn from a connection point, a junction or a point on a wire to another, routed by `ew_api::routing::route_wire` (`ew-drafting`'s router) and committed as `connection.draw` with the route the ghost showed. |
-| `src/undo_history.rs` |  | The history panel and context restore (doc 16 §8.1, D13; FR-UI-023): the undo steps of the open project with their origins and pages, the shell's marker lines (saves, exports, recoveries) by revision, the row cursor, Show changes, and the editor context each commit was made in. |
+| `src/undo_history.rs` |  | The history panel and context restore (doc 16 §8.1, FR-UI-023): the undo steps of the open project with their origins and pages, the shell's marker lines (saves, exports, recoveries) by revision, the row cursor, Show changes, and the editor context each commit was made in. |
 | `src/window.rs` |  | Window memory (item 9, check DK6; the rest): the main window's size, position and maximised state, kept in `settings.toml` as `[window]` and restored at the next start, clamped so that the window opens on a monitor the system still has. |
 | `src/wire_colours.rs` |  | The wire-colour view (FR-UI-047, doc 16 §10.3): view state of the window, never a model edit and never in a display list, so the PDF and the PNG exports never see it. |
 | `src/wizard.rs` | large | The company-standard wizard's data (UX/UI doc 16 section 9.2, FR-PRJ-010): the steps, the fields of each step, their validation, the draft that is kept in the configuration directory until the wizard finishes, and the model commands the draft becomes. |
@@ -1380,9 +1380,9 @@ The development commands of ElektraWatt: one command that checks a change, one t
 | `src/blind/compose.rs` |  | `compose`: the prompt of a run as the concatenation of its versioned files, deterministically. |
 | `src/blind/filter.rs` |  | The harness filter and the typed `key=value` arguments. |
 | `src/blind/friction.rs` |  | The friction log (visual spec §7.1): `friction <run> --severity <s> --category <c> --wanted "…" --expected "…" --saw "…" [--frame <name>] [--region <x>,<y>,<w>,<h>] [--workaround "…"]` appends one entry to the run's `friction.jsonl` (`ew.blindfriction/1`), in a text run as in a visual one. |
-| `src/blind/keeper.rs` |  | The session keeper (D6): the run's copied harness holds the product as a child and serves steps over a loopback socket with a per-run token. |
+| `src/blind/keeper.rs` |  | The session keeper: the run's copied harness holds the product as a child and serves steps over a loopback socket with a per-run token. |
 | `src/blind/mod.rs` | large | `cargo xtask blind`: the blind-drafter harness. |
-| `src/blind/normalise.rs` |  | The normalisation of product output (D14) and the guards that go with it. |
+| `src/blind/normalise.rs` |  | The normalisation of product output and the guards that go with it. |
 | `src/blind/protocol.rs` | large | The protocol: a turn is one `do` call followed by exactly one note; the harness forwards the steps in order and stops at the first step that is not done; `look` calls are free within a cap; a step that fails twice in a row is marked broken; the quit rules end a run on low scores; caps are counts, never wall time. |
 | `src/blind/replay.rs` |  | Recording, bless and replay. |
 | `src/blind/round.rs` |  | The usability rounds' additions to a run: hints on request and the proxy questionnaire. |
