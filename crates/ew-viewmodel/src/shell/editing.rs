@@ -451,9 +451,12 @@ impl ShellModel {
             }
             None => placed,
         };
-        // A terminal that left the click point says where and why, after the result.
+        // A terminal that left the click point says where and why, in the order of the language's pattern.
         let text = match moved {
-            Some(moved) => format!("{}, {moved}", strings::without_stop(&text)),
+            Some(moved) => strings::format(
+                key!("toast-placed-and-moved"),
+                &[strings::without_stop(&text), strings::without_stop(&moved)],
+            ),
             None => text,
         };
         // A valve dropped into a valve terminal's box says where it sits now.

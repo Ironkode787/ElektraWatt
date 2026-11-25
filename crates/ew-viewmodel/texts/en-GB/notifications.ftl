@@ -216,6 +216,8 @@ toast-paste-moved-symbol = Moved 1 symbol to { $p2 }.
 toast-placed-in-wire = { $p0 }, connected into the wire it was dropped on.
 # The end of the toast of a terminal placed where a terminal of its strip stands ({0} the strip, {1} the grid steps).
 toast-placed-moved = { $p1 } grid steps right: { $p0 } has a terminal on the click point.
+# A placement's result ({0}) and where and why a terminal left the click point ({1}), each without its full stop.
+toast-placed-and-moved = { $p0 }, { $p1 }.
 
 # FIXPT41: an interruption point dropped on a pin ({3} the key of `canvas.activate_alt`).
 toast-ip-connected = Placed the interruption point { $p0 } at { $p1 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting.

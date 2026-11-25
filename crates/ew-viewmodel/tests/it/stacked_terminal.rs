@@ -61,6 +61,29 @@ fn language(s: &mut ShellModel, value: &str) {
     done(s, "view.language", json!({ "value": value }));
 }
 
+/// The toast of a terminal that left the click point orders its result and its reason by the language's pattern:
+/// a language that says the reason first gets it first.
+#[test]
+fn a_moved_terminals_toast_orders_its_parts_by_the_languages_pattern() {
+    let tmp = Tmp::new("toast-order");
+    let mut s = tmp.sample_in(Mode::Headless, true, "103");
+    done(&mut s, "view.zoom_actual", json!({}));
+    placed(&mut s, "70", (60, 28));
+    ew_viewmodel::strings::register_locale_for_tests(
+        "en-x-order",
+        "toast-placed-and-moved = { $p1 }. { $p0 }.\n",
+    );
+    assert!(ew_viewmodel::strings::set_locale("en-x-order"));
+    placed(&mut s, "71", (60, 28));
+    let text = toast(&s);
+    assert!(ew_viewmodel::strings::set_locale("en"));
+    assert_eq!(
+        text,
+        "3 grid steps right: -X1031 has a terminal on the click point. Placed -X1031 terminal 71 at 103-D10."
+    );
+    s.shutdown();
+}
+
 #[test]
 fn a_terminal_moved_off_its_strip_s_terminal_shows_where_it_lands_and_says_why() {
     let tmp = Tmp::new("ft1208");
