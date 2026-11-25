@@ -865,7 +865,6 @@ Built-in report row queries (a user SQL report gives an empty row set marked not
 |---|---|---|
 | `src/arrange.rs` |  | Manual selection, sorting and grouping of report rows (doc 09 §3.3, FR-REP-027, FR-I18N-010). |
 | `src/csv.rs` |  | The CSV text of a report block's rows (doc 09 §1.3; `ew export cables\|bom`). |
-| `src/export.rs` |  | The row sources of the export commands `ew export cables` and `ew export bom` (doc 17 §3.3, FR-EXT-003, FR-EXP-005): the rows of the project's report block of the matching kind, as a folio of that block prints them, written by the one CSV writer ([`crate::csv::rows_csv`]). |
 | `src/kind.rs` |  | The report-kind registry (doc 09 §2.4): each built-in kind is a registered Rust row query with a column schema. |
 | `src/kinds/cable_overview.rs` |  | `cable_overview_diagrams`: the cable overview and the per-cable core lists (FR-REP-012, FR-REP-013; folio 906 of the standard layout). |
 | `src/kinds/conn.rs` |  | What the connectivity kinds (`wire_list`, `potential_overview`, `terminal_diagram`, `cable_overview_diagrams`) share: the project's physical wires with their effective properties, wire ends as cells, terminal bridges and the cell formatting of wire properties. |

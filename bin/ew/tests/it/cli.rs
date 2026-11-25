@@ -1003,8 +1003,8 @@ fn verify_derived_tiny_project_is_clean() {
 }
 
 /// The parts list of a project without a `parts_summary` block (a new project from the built-in template, as the
-/// blind drafter's self-test makes) is a refusal, exit 2, and the one-line message names the block, the export, where the
-/// block comes from, and that there is nothing to export; no file is written.
+/// blind drafter's self-test makes) is a refusal, exit 2, and the one-line message names the block, the export, and the
+/// command that exports the rows of the whole project instead; no file is written.
 #[test]
 fn export_bom_without_the_block_is_exit_2_and_names_the_cause() {
     let t = Tmp::new("ew-cli-test");
@@ -1026,27 +1026,33 @@ fn export_bom_without_the_block_is_exit_2_and_names_the_cause() {
         for want in [
             "error: the project has no report block of kind `parts_summary`",
             "the bill of materials is the rows of that block",
-            "company-standard wizard creates it as folio 901",
             "a project from the built-in template has none",
-            "nothing to export",
+            "`ew export report --kind parts_summary` exports the rows of the whole project instead",
         ] {
             assert!(err.contains(want), "{mode}: `{want}` not in `{err}`");
         }
         assert!(!out.exists(), "a refused export writes no file");
     }
-    // The cable list says the same about its own block, and names it.
+    // The cable list says the same about its own block, and names the command that replaces it, which runs.
     let o = ew(&["export".as_ref(), "cables".as_ref(), dir.as_os_str()]);
     assert_eq!(o.status.code(), Some(2));
-    assert!(
-        stderr(&o).contains("no report block of kind `cable_overview_diagrams`"),
-        "{}",
-        stderr(&o)
+    assert_eq!(
+        stderr(&o).trim_end(),
+        concat!(
+            "error: the project has no report block of kind `cable_overview_diagrams`: the cable list is the rows of ",
+            "that block (a project from the built-in template has none); `ew export report --kind ",
+            "cable_overview_diagrams` exports the rows of the whole project instead"
+        )
     );
-    assert!(
-        stderr(&o).contains("the cable list is the rows of that block") && stderr(&o).contains("folio 906"),
-        "{}",
-        stderr(&o)
-    );
+    let o = ew(&[
+        "export".as_ref(),
+        "report".as_ref(),
+        dir.as_os_str(),
+        "--kind".as_ref(),
+        "cable_overview_diagrams".as_ref(),
+    ]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert!(stdout(&o).starts_with("row,"), "{}", stdout(&o));
 }
 
 /// `--out` to a path that cannot be written is exit 2 with the path in the message, and writes nothing.

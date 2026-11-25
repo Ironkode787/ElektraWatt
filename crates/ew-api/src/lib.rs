@@ -209,8 +209,6 @@ pub use ew_library as library;
 /// NFC normalisation (the form every `Ident` and text key takes): the shell names it through `ew-api` (no workspace
 /// edge of its own).
 pub use ew_mltext::to_nfc;
-/// The row sources of `ew export cables|bom` (doc 17 §3.3): what to export and why it could not.
-pub use ew_reports::export::{Export, ExportError, Exported};
 /// The project's decimal separator (`settings.formatting.decimal_separator`): the shell writes millimetres
 /// with it.
 pub use ew_schema::DecimalSeparator;
@@ -1370,26 +1368,6 @@ impl Session {
         if let Some(p) = self.persistence.as_mut() {
             p.watch.after_merge = true;
         }
-    }
-
-    /// The CSV text of an export over the current snapshot (`ew export cables|bom`, doc 17 §3.3): the rows
-    /// of the project's report block of the matching kind, through the same row source and CSV writer as
-    /// the folio (`ew_reports::export`).
-    ///
-    /// # Errors
-    ///
-    /// [`ExportError`] when the project has no block of the kind or the block does not derive.
-    pub fn export_csv(&self, what: Export) -> Result<String, ExportError> {
-        ew_reports::export::export_csv(&self.query(), what)
-    }
-
-    /// [`Session::export_csv`] with the number of rows written.
-    ///
-    /// # Errors
-    ///
-    /// [`ExportError`] when the project has no block of the kind or the block does not derive.
-    pub fn export(&self, what: Export) -> Result<Exported, ExportError> {
-        ew_reports::export::export(&self.query(), what)
     }
 
     /// Writes the session's model as a new project into `dir` (a directory without a project) and keeps

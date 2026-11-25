@@ -11,7 +11,8 @@ use crate::common;
 use common::{Tmp, click, done, empty_point, failed, state};
 use ew_api::checks;
 use ew_api::output::Uuid;
-use ew_api::{BomMode, Export, Session};
+use ew_api::output::{RowExport, row_export};
+use ew_api::{BomMode, Session};
 use ew_viewmodel::properties::{RowValue, find_row};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;
@@ -25,7 +26,9 @@ fn writable(tmp: &Tmp, folio: &str) -> ShellModel {
 fn bom(tmp: &Tmp, s: &mut ShellModel) -> Vec<String> {
     done(s, "file.save", json!({}));
     let (session, _) = Session::open_read_only(&tmp.sample_copy(), "test").unwrap();
-    let csv = session.export_csv(Export::Bom(BomMode::Component)).unwrap();
+    let csv = row_export(&session.query(), &RowExport::Bom(BomMode::Component), None)
+        .unwrap()
+        .csv;
     csv.lines().map(str::to_owned).collect()
 }
 

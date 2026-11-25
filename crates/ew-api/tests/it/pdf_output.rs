@@ -343,12 +343,14 @@ fn a_record_shuffle_and_a_parallel_export_give_the_same_files() {
             })
             .collect();
         for what in [
-            ew_api::Export::Cables,
-            ew_api::Export::Bom(ew_api::BomMode::Component),
+            ew_api::output::RowExport::Cables,
+            ew_api::output::RowExport::Bom(ew_api::BomMode::Component),
         ] {
             out.insert(
                 format!("{what:?}"),
-                s.export_csv(what).expect("the sample exports it"),
+                ew_api::output::row_export(&q, &what, None)
+                    .expect("the sample exports it")
+                    .csv,
             );
         }
         out

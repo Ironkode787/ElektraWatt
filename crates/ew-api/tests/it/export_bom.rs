@@ -2,10 +2,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The CSV exports of a project without their blocks (FR-REP-005): a project that holds no parts summary or cable
-//! overview block has nothing to export. The assembly mode of the parts list and the break marks of an assembly's
+//! overview block has no block rows to export. The assembly mode of the parts list and the break marks of an assembly's
 //! overview are `ew-derive`'s `bom.rs` and `fixture_tables.rs`.
 
-use ew_api::{BomMode, Export, ExportError, Session, SessionOptions};
+use ew_api::output::{RowExport, RowsError, row_export};
+use ew_api::{BomMode, Session, SessionOptions};
 
 #[test]
 fn a_project_without_the_block_cannot_export() {
@@ -14,12 +15,13 @@ fn a_project_without_the_block_cannot_export() {
     )
     .expect("a project row");
     let s = Session::from_records(project, [], [], SessionOptions::default()).expect("an empty model");
+    let q = s.query();
     assert_eq!(
-        s.export_csv(Export::Cables),
-        Err(ExportError::NoBlock("cable_overview_diagrams"))
+        row_export(&q, &RowExport::Cables, None),
+        Err(RowsError::NoBlock("cable_overview_diagrams"))
     );
     assert_eq!(
-        s.export_csv(Export::Bom(BomMode::Component)),
-        Err(ExportError::NoBlock("parts_summary"))
+        row_export(&q, &RowExport::Bom(BomMode::Component), None),
+        Err(RowsError::NoBlock("parts_summary"))
     );
 }

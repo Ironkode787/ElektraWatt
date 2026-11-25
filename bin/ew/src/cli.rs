@@ -14,7 +14,7 @@ use ew_api::output::{
     CsvOptions, ExportOptions, PageSelection, Parallelism, Preset, RowExport, RowsFormat, RowsOutput,
     date_from_epoch,
 };
-use ew_api::{BomMode, CmdLog, Export};
+use ew_api::{BomMode, CmdLog};
 
 mod apply;
 mod assets;

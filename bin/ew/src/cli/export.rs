@@ -5,30 +5,6 @@
 
 use super::*;
 
-/// The message of a refused export. A project without the report block of the export's kind has no row source:
-/// the export is the rows of that block (doc 17 §3.3), so it is refused, not empty, and the message names the block, the
-/// export and where the block comes from. A block that does not derive keeps the report layer's own text.
-pub(super) fn export_refusal(what: Export, e: &ew_api::ExportError) -> String {
-    match e {
-        ew_api::ExportError::NoBlock(kind) => {
-            let (export, made) = match what {
-                Export::Cables => (
-                    "the cable list",
-                    "the company-standard wizard creates it as folio 906",
-                ),
-                Export::Bom(_) => (
-                    "the bill of materials",
-                    "the company-standard wizard creates it as folio 901",
-                ),
-            };
-            format!(
-                "the project has no report block of kind `{kind}`: {export} is the rows of that block ({made}; a project from the built-in template has none), so there is nothing to export"
-            )
-        }
-        other => other.to_string(),
-    }
-}
-
 impl Leaf for CablesCli {
     const EXITS: &'static [Exit] = &[OK, ROW_EXPORT_ERRORS];
     const RESULT: Option<&'static str> = Some(results::ExportRowsResult::CABLES);
@@ -110,20 +86,6 @@ pub(super) fn run_export(a: &ExportArgs) -> i32 {
     };
     let rev = session.world().rev.0;
     let rows = match (&a.kind, &a.block) {
-        // The default blocks of `cables` and `bom`: the report layer's export, as before `--block`.
-        (ExportKind::Cables, None) | (ExportKind::Bom(_), None) => {
-            let what = match a.kind {
-                ExportKind::Bom(mode) => Export::Bom(mode),
-                _ => Export::Cables,
-            };
-            match session.export(what) {
-                Ok(e) => (e.csv, e.rows, Vec::new()),
-                Err(e) => {
-                    error(export_refusal(what, &e));
-                    return 2;
-                }
-            }
-        }
         (ExportKind::Report { pdf: true }, Some(block)) => return run_export_report_pdf(a, &session, block),
         (kind, block) => {
             let what = match kind {
@@ -244,17 +206,7 @@ pub(super) fn run_export_table(a: &ExportArgs, session: &ew_api::Session) -> i32
     let file = match ew_api::output::row_output(&session.query(), &what, a.block.as_deref(), &format) {
         Ok(f) => f,
         Err(e) => {
-            // `cables` and `bom` without `--block` refuse a project without the block as the `ew` path does.
-            let text = match (&e, &a.kind, &a.block) {
-                (ew_api::output::RowsError::NoBlock(kind), ExportKind::Cables, None) => {
-                    export_refusal(Export::Cables, &ew_api::ExportError::NoBlock(kind))
-                }
-                (ew_api::output::RowsError::NoBlock(kind), ExportKind::Bom(mode), None) => {
-                    export_refusal(Export::Bom(*mode), &ew_api::ExportError::NoBlock(kind))
-                }
-                (e, _, _) => rows_refusal(e),
-            };
-            error(text);
+            error(rows_refusal(&e));
             return 2;
         }
     };
@@ -461,8 +413,10 @@ pub(super) fn write_rows(a: &ExportArgs, csv: &str, rows: usize) -> i32 {
     0
 }
 
-/// The message of a refused row export of a chosen block: as [`export_refusal`] for a project without
-/// the block of the kind, else the report layer's own text.
+/// The message of a refused row export. A project without the report block of the export's kind has no block rows:
+/// the export is the rows of that block (doc 17 §3.3), so it is refused, not empty, and the message names the block,
+/// the export and, for a kind with rows of the whole project, the command that writes those (`ew export report
+/// --kind`). Each other refusal is the report layer's own text.
 pub(super) fn rows_refusal(e: &ew_api::output::RowsError) -> String {
     match e {
         ew_api::output::RowsError::NoBlock(kind) => {
@@ -473,8 +427,15 @@ pub(super) fn rows_refusal(e: &ew_api::output::RowsError) -> String {
                 "parts_summary" => "the bill of materials",
                 _ => "the export",
             };
+            let instead = match *kind {
+                // The terminal diagram lists one strip: no rows of the whole project.
+                "terminal_diagram" => "so there is nothing to export".to_owned(),
+                _ => {
+                    format!("`ew export report --kind {kind}` exports the rows of the whole project instead")
+                }
+            };
             format!(
-                "the project has no report block of kind `{kind}`: {export} is the rows of that block (a project from the built-in template has none), so there is nothing to export"
+                "the project has no report block of kind `{kind}`: {export} is the rows of that block (a project from the built-in template has none); {instead}"
             )
         }
         // Each other refusal of the export is its own whole text.

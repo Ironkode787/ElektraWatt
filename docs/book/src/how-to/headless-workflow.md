@@ -137,7 +137,9 @@ typed in its Properties. Below these rows come the cores of each cable, one row 
 
 `--mode` of `ew export bom` is `parts` (the default; every component part) or `assembly`, which replaces the parts a
 configured product covers by one row for the product. Both write the rows of the project's own report page, so the
-CSV equals what the drawing prints.
+CSV equals what the drawing prints. A project without that page (a new project from the built-in template) refuses
+them and names the command that writes the rows of the whole project instead, such as
+`ew export report --kind cable_overview_diagrams`.
 
 ## Step 4: ask the project questions with SQL
 

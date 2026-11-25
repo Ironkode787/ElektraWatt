@@ -8,7 +8,8 @@ use crate::own_parts::{new_project, place_box, press_cp};
 use crate::relays_paste_and_ip_wires::key;
 use crate::support::Tmp;
 
-use ew_viewmodel::ew_api::{BomMode, Export, Session};
+use ew_viewmodel::ew_api::output::{RowExport, row_export};
+use ew_viewmodel::ew_api::{BomMode, Session};
 use ew_viewmodel::shell::{Dialog, Outcome};
 use serde_json::{Value, json};
 
@@ -219,9 +220,7 @@ fn a_bus_line_takes_a_dp_cable_and_a_plug_at_each_end() {
         .and_then(|(_, dev)| serde_json::to_value(&dev.aspects.cable).ok())
         .unwrap_or(Value::Null);
     assert_eq!(length["length"], json!({"manual": 12_500_000_000_i64}));
-    let bom = saved
-        .export_csv(Export::Bom(BomMode::Component))
-        .expect("the parts list");
+    let bom = csv(&saved, &RowExport::Bom(BomMode::Component)).expect("the parts list");
     for number in ["EW-GEN-CBL-2", "EW-GEN-PLG-1", "EW-GEN-PLG-5"] {
         assert!(bom.contains(number), "{number} in the parts list:\n{bom}");
     }
@@ -231,8 +230,13 @@ fn a_bus_line_takes_a_dp_cable_and_a_plug_at_each_end() {
             .any(|l| l.contains("EW-GEN-CBL-2") && l.contains(",12.5,m,")),
         "{bom}"
     );
-    let cables = saved.export_csv(Export::Cables).expect("the cable overview");
+    let cables = csv(&saved, &RowExport::Cables).expect("the cable overview");
     assert!(cables.contains("EW-GEN-CBL-2"), "the cable overview:\n{cables}");
+}
+
+/// The CSV of the row export `what` of `s`.
+fn csv(s: &Session, what: &RowExport) -> Option<String> {
+    row_export(&s.query(), what, None).ok().map(|r| r.csv)
 }
 
 /// A line drawn on the bus layout between the starter CPU's and the remote I/O head's sockets, DP (`dp`) or PROFINET,
@@ -431,9 +435,7 @@ fn a_new_bus_cable_and_plug_are_made_in_the_cable_form() {
     d.settle();
     assert_eq!(d.shell_mut().dispatch("file.save", &json!({})), Outcome::Done);
     let (saved, _) = Session::open_read_only(&tmp.0.join("p.ew"), "test").unwrap();
-    let bom = saved
-        .export_csv(Export::Bom(BomMode::Component))
-        .expect("the parts list");
+    let bom = csv(&saved, &RowExport::Bom(BomMode::Component)).expect("the parts list");
     let row = |number: &str| {
         bom.lines()
             .find(|l| l.contains(number))
@@ -597,9 +599,7 @@ fn the_parts_list_shows_a_bus_lines_plugs_at_once() {
     // The plug at the interruption point counts with the line's cable, its line's page as its place.
     assert_eq!(d.shell_mut().dispatch("file.save", &json!({})), Outcome::Done);
     let (saved, _) = Session::open_read_only(&tmp.0.join("p.ew"), "test").unwrap();
-    let bom = saved
-        .export_csv(Export::Bom(BomMode::Component))
-        .expect("the order list");
+    let bom = csv(&saved, &RowExport::Bom(BomMode::Component)).expect("the order list");
     let row = bom
         .lines()
         .find(|l| l.contains("EW-GEN-PLG-2"))

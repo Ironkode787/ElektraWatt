@@ -22,8 +22,9 @@ use serde_json::Value;
 
 use crate::library::ItemQuery;
 use crate::output::{FieldType, InputError};
+use crate::output::{RowExport, row_export};
 use crate::part_offers::{PartPick, kind_word, lib_ref, text_of};
-use crate::{AnyCommand, BomMode, Export, Session};
+use crate::{AnyCommand, BomMode, Session};
 
 /// The fields of a draft in the editor's order (`part.field`'s `field`; `tech:<key>` names a technical value).
 pub const DRAFT_FIELDS: [&str; 9] = [
@@ -1286,7 +1287,8 @@ pub(crate) fn lost_sockets(before: &Q, after: &Q) -> Vec<String> {
 pub(crate) fn bom_changes(before: &Q, after: &Q) -> (Vec<String>, Vec<String>, Vec<String>) {
     // The component BOM as its header and rows of cells.
     let bom = |q: &Q| -> Vec<Vec<String>> {
-        let csv = ew_reports::export::export_csv(q, Export::Bom(BomMode::Component)).unwrap_or_default();
+        let csv = row_export(q, &RowExport::Bom(BomMode::Component), None)
+            .map_or_else(|_| String::new(), |r| r.csv);
         ew_import_catalog::sheet::read_rows(
             csv.as_bytes(),
             ew_import_catalog::SourceFormat::Csv,

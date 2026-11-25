@@ -8,7 +8,8 @@
 use crate::common;
 
 use ew_api::output::page_view;
-use ew_api::{BomMode, Export, Session};
+use ew_api::output::{RowExport, row_export};
+use ew_api::{BomMode, Session};
 use ew_derive::PageOrder;
 use ew_schema::{LibDocument, Sha256};
 
@@ -89,16 +90,17 @@ fn every_page_and_export_equals_the_file_written_before_part_3() {
     for (i, (a, b)) in a.iter().zip(&b).enumerate() {
         assert!(a == b, "page {i} differs");
     }
+    let csv = |s: &Session, what: &RowExport| row_export(&s.query(), what, None).map(|r| r.csv);
     for what in [
-        Export::Bom(BomMode::Component),
-        Export::Bom(BomMode::Assembly),
-        Export::Cables,
+        RowExport::Bom(BomMode::Component),
+        RowExport::Bom(BomMode::Assembly),
+        RowExport::Cables,
     ] {
-        let (a, b) = (now.export_csv(what), old.export_csv(what));
+        let (a, b) = (csv(&now, &what), csv(&old, &what));
         assert_eq!(a, b, "{what:?}");
         assert!(a.is_ok(), "{what:?}");
     }
     // The manufacturer's name prints, from the copy now and from the key before.
-    let bom = now.export_csv(Export::Bom(BomMode::Component)).expect("the BOM");
+    let bom = csv(&now, &RowExport::Bom(BomMode::Component)).expect("the BOM");
     assert!(bom.contains("Generic"), "{bom}");
 }
