@@ -266,7 +266,7 @@ fn eplan_symbol_inputs() {
     );
 }
 
-/// The same files as the EDZ and parts XML part reader takes them (`eplan::parts_import`, WP-S3.18), through the
+/// The same files as the EDZ and parts XML part reader takes them (`eplan::parts_import`), through the
 /// front door: the verdict is the kind of refusal; a file the reader reads gives its parts, never more than the pin
 /// budget.
 #[test]

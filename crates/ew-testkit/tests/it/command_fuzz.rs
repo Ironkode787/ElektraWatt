@@ -1770,7 +1770,7 @@ fn device_create_with_a_valve_part_counts_its_valve_functions() {
 }
 
 /// The same cause in the `valve.add` arm: with the sample's valve part the command ignores `fndef`
-///  and N-FL-1 makes the valve and coil functions (D6). The arm's well-formed steps on that part, with
+///  and N-FL-1 makes the valve and coil functions. The arm's well-formed steps on that part, with
 /// `fndef` and without, commit and pass its oracle.
 #[test]
 fn valve_add_with_a_valve_part_counts_its_valve_functions() {
@@ -2289,7 +2289,7 @@ fn embed_then_undo_of_a_named_fndef_restores_the_sample() {
         .unwrap_or_else(|e| panic!("with the shape: {e}"));
     session
         .undo(&ew_api::Origin::Gui)
-        .expect("FT-316: the undo of the function definition's embedding");
+        .expect("the undo of the function definition's embedding");
     session
         .undo(&ew_api::Origin::Gui)
         .expect("the undo of the symbol's embedding");

@@ -286,7 +286,7 @@ pub(super) fn part_edit_copy(live: &Live, rng: &mut SplitMix64) -> Option<Step> 
     }
 }
 
-/// `macro.insert` (D12, D13): a window macro of one device with its main function drawn by an embedded symbol,
+/// `macro.insert`: a window macro of one device with its main function drawn by an embedded symbol,
 /// carried in the command and inserted at a grid point of a page that takes it; the new device's ID is
 /// v5(instance, local). Refused: the macro not carried, no anchor, an unknown value set, a fragment of another grid,
 /// a point off the grid, a macro whose hash is not its item's.

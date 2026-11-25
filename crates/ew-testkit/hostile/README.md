@@ -5,14 +5,14 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # The hostile corpus
 
-Files made to attack a parser of external bytes (WP-S6.04 D10; doc 18 §3.12; NFR-SEC-02, NFR-SEC-06). They are the
+Files made to attack a parser of external bytes (doc 18 §3.12; NFR-SEC-02, NFR-SEC-06). They are the
 project's own work, CC0-1.0 (the REUSE annotations hold the licence, since a data file carries no header). Each file
 stands in the folder of its class and is named after what it tries; this index names its parser and the verdict
 expected. A test asserts each verdict whole; the files of `sql/` are also the seed corpus of the fuzz target
 `sql_sandbox` (`fuzz/corpus/sql_sandbox/`, the same bytes).
 
 Every class but `sql/` runs in the test binary `hostile_corpus` of `ew-testkit` (`tests/hostile_corpus/`): each file
-through its parser's public entry point, the importers through WP-S3.09's front door (`ew_api::import::front_door`),
+through its parser's public entry point, the importers through the import front door (`ew_api::import::front_door`),
 its verdict asserted whole and its extra peak allocation at most 256 MiB, counted by that binary's own global allocator
 (NFR-SEC-02; no time is asserted). The binary files are made by its generator (`tests/hostile_corpus/generate.rs`):
 those marked *generated* below are made at each run and never committed (they are large on disk); the other binary
@@ -20,7 +20,7 @@ files are committed small, and the test compares them with the generator's bytes
 copy whose page file is a symbolic link (NFR-SEC-16) is made by the test itself, on Unix only: it opens read-only with
 the page missing, `EW-CORE-003 …: listed in the manifest but is not a regular file; links are not followed`.
 
-## `sql/`: hostile SQL text (FT-223)
+## `sql/`: hostile SQL text
 
 Parser: the SQL sandbox, `ew_sqlview::Reader::query`, under `ew sql`'s profile with a 200 ms deadline, on the small
 image of the sandbox tests (`t_item` behind `api_v1_item`, `t_other` behind `api_v1_other`). The test is
@@ -84,7 +84,7 @@ prints them.
 | `seven-zip-dictionary-4-gib.edz` | an LZMA2 folder that declares a 4 GiB dictionary | Refused by the 7z header walk before decoding |
 | `seven-zip-entries-over-the-limit.edz` | a 7z header that declares 5,000 entries | Refused by the 7z header walk: over 4,096 entries |
 
-The same files are read a second time by the EDZ and parts XML part reader of WP-S3.18 (`ew_api::eplan::parts_import`,
+The same files are read a second time by the EDZ and parts XML part reader (`ew_api::eplan::parts_import`,
 the test `eplan_part_inputs`): the verdict is the kind of refusal, `limit` for a limit of the XML or of the archive and
 `malformed` for a DOCTYPE, an unsafe member name or a file that is no part data; `parts-pins-over-the-budget.xml` is
 read (its 17 parts cut to the pin budget of 4,096 a part and 262,144 a file), as the other class's test allows.
@@ -129,7 +129,7 @@ Parser: the `.ewz` reader as every reader opens one, `ew_api::Session::open_ewz`
 
 | File | Tries | Verdict |
 |---|---|---|
-| `65536-entries.ewz` | 65,536 entries, one more than the 16-bit counts hold (*generated*) | Refused: bytes between the central directory and the end record. Not by `MAX_ENTRIES` (65,535, `crates/ew-store/src/ewz.rs`): without ZIP64 the end record's 16-bit count cannot pass 65,535, so the entry limit equals the format's cap and no file can be refused by the limit alone; the 65,536th entry shows as bytes past the counted directory, and this file stands for the limit (FT-1377) |
+| `65536-entries.ewz` | 65,536 entries, one more than the 16-bit counts hold (*generated*) | Refused: bytes between the central directory and the end record. Not by `MAX_ENTRIES` (65,535, `crates/ew-store/src/ewz.rs`): without ZIP64 the end record's 16-bit count cannot pass 65,535, so the entry limit equals the format's cap and no file can be refused by the limit alone; the 65,536th entry shows as bytes past the counted directory, and this file stands for the limit |
 | `parent-entry.ewz` | an entry named `../x` | Refused: a `..` segment |
 
 ## `jsonl/`: project files

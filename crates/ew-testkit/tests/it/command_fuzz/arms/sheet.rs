@@ -779,7 +779,7 @@ pub(super) fn box_black(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let (t, i, _) = template_entry(live, rng, true, true)?;
             p["target"] = from_part_target(&t.part, i, "A");
             let entries = isize::try_from(t.entries.len()).unwrap_or(1);
-            // FT-656: one in three brings its part as another library's item in `copies`.
+            // One in three brings its part as another library's item in `copies`.
             let mut parts = 0;
             if rng.chance(3)
                 && let Some(c) = part_of_another_library(live, &t.part, rng)

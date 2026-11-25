@@ -500,7 +500,7 @@ pub const ARMS: &[Arm] = &[
         weight: 2,
         build: page_surface_view_set,
     },
-    // FT-840: appended last, for the same reason.
+    // appended last, for the same reason.
     Arm {
         command: "layout.place_assembly",
         weight: 2,

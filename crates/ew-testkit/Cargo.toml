@@ -11,8 +11,8 @@ description = "The builder DSL and a synthetic parts library, for the tests."
 repository.workspace = true
 publish = false
 
-# The workspace's lints with `unsafe_code` at deny (WP-S6.04 D7): the hostile corpus test's
-# counting allocator, `tests/hostile_corpus/alloc.rs`, allows it; the library keeps `#![forbid(unsafe_code)]` (ID-1334).
+# The workspace's lints with `unsafe_code` at deny: the hostile corpus test's
+# counting allocator, `tests/hostile_corpus/alloc.rs`, allows it; the library keeps `#![forbid(unsafe_code)]`.
 [lints.rust]
 unsafe_code = "deny"
 missing_docs = "warn"
@@ -50,8 +50,8 @@ ew-rds = { path = "../ew-rds" }
 serde_json = "1.0.154"
 # The command fuzz test reads the derived connectivity (dev-only edge, `[allowed_dev_edges]`).
 ew-derive = { path = "../ew-derive" }
-# The fresh temporary directory of the tests (FT-569; dev-only edge, `[allowed_dev_edges]`).
+# The fresh temporary directory of the tests (dev-only edge, `[allowed_dev_edges]`).
 ew-testdir = { path = "../ew-testdir" }
-# The hostile corpus test (WP-S6.04 D10) decodes a raster asset as the renderers do (dev-only edge,
+# The hostile corpus test decodes a raster asset as the renderers do (dev-only edge,
 # `[allowed_dev_edges]`).
 ew-render-cpu = { path = "../ew-render-cpu" }

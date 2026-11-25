@@ -114,14 +114,14 @@ pub(super) fn from_part_target(part: &Value, template: usize, letter: &str) -> V
     json!({"from_part": {"part": part, "template": template, "letter": letter}})
 }
 
-/// FT-656: the held part copy `part` as an item of another library (a new copy with a consistent lineage and hash),
+/// The held part copy `part` as an item of another library (a new copy with a consistent lineage and hash),
 /// for a placement that embeds it through `copies`; `None` when the fixture has no JSON of the part.
 pub(super) fn part_of_another_library(live: &Live, part: &Value, rng: &mut SplitMix64) -> Option<Value> {
     let (_, template) = live.fixture.part_json.iter().find(|(id, _)| id == part)?;
     relineaged(template, &rng.uuid(), &rng.uuid())
 }
 
-/// FT-656: the held part copy `part` at another hash (its part number changed, the hash made consistent, the lineage
+/// The held part copy `part` at another hash (its part number changed, the hash made consistent, the lineage
 /// kept), which a placement's `copies` must refuse ("update from library first"); `None` without the fixture's JSON.
 pub(super) fn part_at_another_hash(live: &Live, part: &Value) -> Option<Value> {
     let (_, template) = live.fixture.part_json.iter().find(|(id, _)| id == part)?;
@@ -161,7 +161,7 @@ pub(super) fn device_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let mut p = base(from_part_target(&t.part, i, letter(rng)));
             p["symbol"] = symbol.id.clone();
             let entries = isize::try_from(t.entries.len()).unwrap_or(1);
-            // FT-656: one in three placements brings its part as another library's item in `copies`, embedded in the
+            // One in three placements brings its part as another library's item in `copies`, embedded in the
             // same transaction (one more part copy).
             let mut parts = 0;
             if rng.chance(3)
@@ -181,7 +181,7 @@ pub(super) fn device_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         // A `from_part` target that cannot be made: the command refuses it; refused: a part copy that does not exist.
         21 => {
             let target = match rng.below(8) {
-                // FT-656: `copies` holding a held part at another hash ("update from library first"), or the same copy
+                // `copies` holding a held part at another hash ("update from library first"), or the same copy
                 // twice.
                 6 | 7 => {
                     let (t, i, _) = template_entry(live, rng, false, true)?;
@@ -1173,7 +1173,7 @@ pub(super) fn valve_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             )
             .refuse(),
         ),
-        // A part with a PLC section is refused (FT-1576); the command decides, so the step may be refused.
+        // A part with a PLC section is refused; the command decides, so the step may be refused.
         _ => {
             let mut p = json!({"module": module.id, "part": part});
             let expected = if rng.chance(2) {

@@ -91,7 +91,7 @@ pub(super) fn revision_create(live: &Live, rng: &mut SplitMix64) -> Option<Step>
         }
         // Prevented (EW-REL-004): a historic released revision above the open one.
         13 if open && !live.any_release => Some(create(json!({"label": label, "state": "released"}))),
-        // The command refuses (D4): a checker on an open revision.
+        // The command refuses: a checker on an open revision.
         14 if !open => Some(create(json!({"label": label, "checker": "checker"}))),
         // The command refuses: a label another revision has (EW-INV-017).
         0 => {
@@ -138,7 +138,7 @@ pub(super) fn revision_create(live: &Live, rng: &mut SplitMix64) -> Option<Step>
                 ));
             }
             if rng.chance(2) {
-                // The checker of an open revision is approval's (D4): a historic released revision only.
+                // The checker of an open revision is approval's: a historic released revision only.
                 let (a, b) = (role(rng), role(rng));
                 p["author"] = json!(a);
                 if a != b && state == "released" {
@@ -245,7 +245,7 @@ pub fn revision_fields_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                     .ok_or_else(|| format!("the notes are on {have:?}, expected {pages:?}"))
             }))
         }
-        // The command refuses (D4): the roles are set by `revision.set_author` and by approval, never by fields.set.
+        // The command refuses: the roles are set by `revision.set_author` and by approval, never by fields.set.
         11 => Some(one(&r.id, "author", json!(role(rng)))),
         12 => Some(one(&r.id, "checker", json!(role(rng)))),
         // A new label above every other (the order of labels is the release gate's rule); the title block

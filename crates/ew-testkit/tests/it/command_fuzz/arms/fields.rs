@@ -335,7 +335,7 @@ pub(super) fn edit_paste(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     }
 }
 
-/// `fields.set` with `copies` (D16): a connection's wire part set to a part of another library carried in the command
+/// `fields.set` with `copies`: a connection's wire part set to a part of another library carried in the command
 /// (embedded in the same transaction); refused: the copy listed twice, and a part neither held nor carried.
 pub(super) fn fields_set_copies(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let (_, template) = rng.pick(&live.fixture.part_json)?;
@@ -453,7 +453,7 @@ pub(super) fn edit_delete(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         let target = json!({"kind": "device", "id": rng.uuid()});
         return Some(Step::cmd("edit.delete", json!({"targets": [target]})).refuse());
     }
-    // FT-840: a layout record, drawn after the older branches.
+    // A layout record, drawn after the older branches.
     if rng.chance(10)
         && let Some(step) = edit_delete_layout(live, rng)
     {
