@@ -60,6 +60,23 @@ fn a_step_counts_the_json_length_of_its_rows() {
     assert_eq!(e.history().bytes(), before + after);
 }
 
+/// A fold leaves the count true: what the history keeps is the folded step's own size, the entry folded into it no
+/// longer counted, while it is applied and once it is undone.
+#[test]
+fn a_fold_counts_the_folded_step_alone() {
+    let mut e = engine_with_limits(mini_model(), unlimited());
+    e.execute(&set_text(&[DEV_102F2], "first")).expect("fields.set");
+    e.execute(&set_text(&[DEV_102F2, DEV_T1], "second"))
+        .expect("fields.set");
+    assert!(e.fold_last_step(), "the two steps fold");
+    let entries = e.history().entries();
+    assert_eq!(entries.len(), 1);
+    let (before, after) = (entries[0].bytes(), entries[0].after_bytes());
+    assert_eq!(e.history().bytes(), before);
+    e.undo(&Origin::Gui).expect("undo");
+    assert_eq!(e.history().bytes(), before + after);
+}
+
 #[test]
 fn the_budget_holds_after_many_steps() {
     const BUDGET: usize = 64 * 1024;

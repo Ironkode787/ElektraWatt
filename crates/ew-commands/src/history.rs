@@ -259,6 +259,8 @@ impl History {
         let Some(last) = self.entries.pop() else {
             return false;
         };
+        // The folded entry is applied, so it counted its `before` rows alone; the step below counts the merged ones.
+        self.bytes -= last.before_bytes;
         self.cursor = self.entries.len();
         let Some(below) = self.entries.last_mut() else {
             return false;
