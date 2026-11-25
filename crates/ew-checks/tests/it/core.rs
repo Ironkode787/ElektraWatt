@@ -657,3 +657,31 @@ fn two_targets_of_one_name_are_never_tied_to_each_other() {
     assert_ne!(at(0x1001), at(0x1002), "two potentials");
     assert_eq!(findings_of(&m, "EW-CORE-051").len(), 2);
 }
+
+/// A layout finding the session measured joins the run as evidence and takes a waiver as any other finding: the
+/// waiver waives it, the totals count it waived, and EW-CORE-081 does not report the waiver.
+#[test]
+fn a_layout_finding_takes_a_waiver_as_any_other() {
+    use ew_checks::{Evidence, FindingState, PRE_DELIVERY, run_with};
+    let junction = ew_checks::rules::page::four_way_junction(
+        ew_ids::Id::from_uuid(uid(0x70).as_uuid()),
+        "101",
+        ew_ids::Id::from_uuid(uid(0x71).as_uuid()),
+        "3B",
+    );
+    let waiver = record(json!({
+        "$k": "waiver", "id": us(0x900), "rule": junction.rule,
+        "target": {"finding": junction.fingerprint.to_string()}, "reason": {"en-GB": "accepted for the test"}
+    }));
+    let m = model(vec![waiver]);
+    let evidence = Evidence {
+        layout: vec![junction.clone()],
+        ..Evidence::default()
+    };
+    let report = run_with(&Q::new(&m), &PRE_DELIVERY, CheckMode::Release, evidence);
+    let found: Vec<&ew_checks::Finding> = report.findings.iter().filter(|f| f.rule == junction.rule).collect();
+    assert_eq!(found.len(), 1, "{:#?}", report.findings);
+    assert!(matches!(found[0].state, FindingState::Waived { .. }));
+    assert_eq!(report.counts.waived, 1);
+    assert!(report.findings.iter().all(|f| f.rule != "EW-CORE-081"), "{:#?}", report.findings);
+}

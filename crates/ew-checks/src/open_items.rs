@@ -107,7 +107,13 @@ fn table_rules() -> Vec<&'static dyn Rule> {
 /// The [`Cycle`] when a rule's memo is already evaluating (a rule that reached the list through the page order): the
 /// caller records it and lists nothing.
 pub fn open_items(q: &Q) -> Result<Vec<Finding>, Cycle> {
-    let report = run_table_rules(q, release_scheme_of(q), CheckMode::Release, &table_rules())?;
+    let report = run_table_rules(
+        q,
+        release_scheme_of(q),
+        CheckMode::Release,
+        &table_rules(),
+        crate::Evidence::default(),
+    )?;
     Ok(report
         .findings
         .into_iter()

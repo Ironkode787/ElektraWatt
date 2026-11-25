@@ -61,7 +61,9 @@ mod rule;
 pub mod rules;
 mod scheme;
 
-pub use engine::{CheckOf, CheckReport, Counts, IntegrityItem, prevent, run, run_table_rules, scopes};
+pub use engine::{
+    CheckOf, CheckReport, Counts, Evidence, IntegrityItem, prevent, run, run_table_rules, run_with, scopes,
+};
 pub use finding::{Finding, FindingState, Fingerprint, QuickFix, Severity, Target, sort_findings};
 pub use gate::{
     GateInput, PackVersion, SHIPPED_PACK_VERSION, blockers, gate, pack_definition, pack_versions,

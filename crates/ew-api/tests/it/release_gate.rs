@@ -137,9 +137,7 @@ fn the_gate_on_the_sample_is_the_release_run_plus_author_and_checker_not_set() {
         Session::open_read_only(&sample(), "wp-s1-18-part3").expect("the sample opens read-only");
     let integrity = ew_api::integrity_items(&report);
     let gate = s.release_gate("V1.0", &integrity).expect("the gate runs");
-    let check = s
-        .check(&PRE_DELIVERY, CheckMode::Release)
-        .with_integrity(integrity.clone());
+    let check = s.check_opened(&PRE_DELIVERY, CheckMode::Release, &report);
     let release: Vec<&Finding> = gate
         .report
         .findings

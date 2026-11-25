@@ -1177,7 +1177,7 @@ fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> (String, Vec<(&'static str,
 /// the registered [`ConflictRecords`] and [`MergeCollisions`].
 /// They run on open (mode n, not
 /// modelled) and, where the catalogue lists `r`, in release mode; the engine does not run them:
-/// [`CheckReport::with_integrity`](crate::CheckReport::with_integrity) joins the store's findings.
+/// a run joins the store's findings ([`Evidence::integrity`](crate::Evidence::integrity)).
 pub const INTEGRITY: &[RuleMeta] = &[
     integrity(
         "EW-CORE-001",

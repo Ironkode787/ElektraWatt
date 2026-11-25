@@ -893,7 +893,7 @@ pub const UNROUTED_WIRE: RuleMeta = layout_rule(
 /// A layout rule (EW-CORE-067 to -070 and -072 to -077). Its evidence, a page's drawn geometry with the
 /// texts where the scene places them, exists only where the scene runs, so the rule reports nothing over the model:
 /// the session measures each schematic page (`ew_drafting::measure`) and joins the findings, worded by the
-/// functions below, through [`CheckReport::with_layout_evidence`](crate::CheckReport::with_layout_evidence), where
+/// functions below, as [`Evidence::layout`](crate::Evidence::layout) of the run, where
 /// the scheme, the mode's severity and the waivers apply as they do to any rule.
 #[derive(Clone, Copy, Debug)]
 pub struct LayoutRule(pub &'static RuleMeta);

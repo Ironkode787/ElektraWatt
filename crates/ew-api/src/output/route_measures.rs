@@ -1043,14 +1043,15 @@ fn measured<'a>(q: &'a Q, page_ref: PageRef, tables: &'a PageTables) -> (Reader<
 }
 
 impl Session {
-    /// `report` with the layout rules' findings of every schematic page joined (EW-CORE-067 to -070, -072 and
-    /// -073), when the run evaluated one of them; the scheme, the severities and the waivers apply as
-    /// [`CheckReport::with_layout_evidence`](crate::checks::CheckReport::with_layout_evidence) says.
-    pub(crate) fn with_layout_findings(
+    /// The layout rules' findings of every schematic page (EW-CORE-067 to -070, -072 and -073) for a run of `scheme`
+    /// in `mode`, measured only when the run evaluates one of them; the run applies the severities and the waivers as
+    /// [`Evidence::layout`](crate::checks::Evidence::layout) says.
+    pub(crate) fn layout_evidence(
         &self,
         q: &Q,
-        report: crate::checks::CheckReport,
-    ) -> crate::checks::CheckReport {
+        scheme: &crate::checks::Scheme,
+        mode: crate::checks::CheckMode,
+    ) -> Vec<crate::checks::Finding> {
         use crate::checks::rules::page as rules;
         let layout = [
             &rules::WIRE_THROUGH_CP,
@@ -1064,17 +1065,17 @@ impl Session {
             &rules::TEXT_ON_PART,
             &rules::PART_ON_PART,
         ];
-        if !report.rules.iter().any(|m| layout.iter().any(|l| l.id == m.id)) {
-            return report;
-        }
         let mut found = Vec::new();
+        if !layout.iter().any(|l| scheme.enabled(l, mode)) {
+            return found;
+        }
         for folio in self.schematic_folios() {
             if let (Some(tables), Ok(page)) = (self.page_tables(&folio), entry_of(q, &folio)) {
                 let (reader, quality) = measured(q, page, &tables);
                 layout_findings(&reader, &quality, &mut found);
             }
         }
-        report.with_layout_evidence(q, found)
+        found
     }
 
     /// The folios of every drawn page but the panel-layout pages, in page order: the pages `ew layout` measures and

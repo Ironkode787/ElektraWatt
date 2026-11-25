@@ -154,7 +154,7 @@ impl Session {
     ) {
         use crate::checks;
         // With merge evidence, EW-CORE-013's groups.
-        let report = self.check_over(q, scheme, mode);
+        let report = self.check_over(q, scheme, mode, Vec::new());
         let folios = folios(q);
         for (severity, label) in SEVERITY_GROUPS {
             let of_severity: Vec<&checks::Finding> = report

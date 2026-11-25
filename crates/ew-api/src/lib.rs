@@ -429,7 +429,7 @@ pub fn unread_files(report: &OpenReport) -> Vec<String> {
         .collect()
 }
 
-/// The integrity findings of opening a project as items for [`checks::CheckReport::with_integrity`]: every
+/// The integrity findings of opening a project as items for [`checks::Evidence::integrity`]: every
 /// store finding with a catalogue ID (EW-CORE-001 … 019 but 011, a registered rule over the model; doc 05 §6.3) at its
 /// severity, located by its project-relative file and line. Notices without an ID (line endings, foreign edits) are
 /// left out.
@@ -1287,22 +1287,34 @@ impl Session {
     /// model does not hold ([`Session::merge_evidence`]), EW-CORE-013's groups join a run in a mode that runs the rule,
     /// online (the window: the message panel, its counts, the property grid's chips) and release.
     pub fn check(&self, scheme: &checks::Scheme, mode: checks::CheckMode) -> checks::CheckReport {
-        self.check_over(&self.query(), scheme, mode)
+        self.check_over(&self.query(), scheme, mode, Vec::new())
     }
 
-    /// [`Session::check`] over the snapshot of `q`.
+    /// [`Session::check`] with the integrity findings of opening the project joined (`opened`, [`integrity_items`]):
+    /// `ew check`'s report, where in release mode the "n r" errors count and set the exit code (doc 15 §4.2).
+    pub fn check_opened(
+        &self,
+        scheme: &checks::Scheme,
+        mode: checks::CheckMode,
+        opened: &OpenReport,
+    ) -> checks::CheckReport {
+        self.check_over(&self.query(), scheme, mode, integrity_items(opened))
+    }
+
+    /// [`Session::check`] over the snapshot of `q`, with the integrity findings `integrity` joined.
     pub(crate) fn check_over(
         &self,
         q: &Q,
         scheme: &checks::Scheme,
         mode: checks::CheckMode,
+        integrity: Vec<checks::IntegrityItem>,
     ) -> checks::CheckReport {
-        let report = self.with_layout_findings(q, checks::run(q, scheme, mode));
-        if self.merge_evidence() {
-            report.with_merge_evidence(q)
-        } else {
-            report
-        }
+        let evidence = checks::Evidence {
+            integrity,
+            merged: self.merge_evidence(),
+            layout: self.layout_evidence(q, scheme, mode),
+        };
+        checks::run_with(q, scheme, mode, evidence)
     }
 
     /// The project-integrity check of `ew check --integrity` (FR-CHK-012):
@@ -1322,17 +1334,21 @@ impl Session {
                     .is_some_and(|n| (1..=19).contains(&n))
             })
             .collect();
-        let report = match checks::run_table_rules(&q, &INTEGRITY_RUN, checks::CheckMode::Release, &integrity)
-        {
+        let evidence = checks::Evidence {
+            integrity: integrity_items(opened),
+            merged: self.merge_evidence(),
+            ..checks::Evidence::default()
+        };
+        match checks::run_table_rules(
+            &q,
+            &INTEGRITY_RUN,
+            checks::CheckMode::Release,
+            &integrity,
+            evidence,
+        ) {
             Ok(report) => report,
             Err(cycle) => panic!("{cycle}"),
-        };
-        let report = if self.merge_evidence() {
-            report.with_merge_evidence(&q)
-        } else {
-            report
-        };
-        report.with_integrity(integrity_items(opened))
+        }
     }
 
     /// Whether the project carries merge evidence the model does not hold: its manifest is a merged one

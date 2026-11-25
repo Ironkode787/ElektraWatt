@@ -7,7 +7,7 @@ use crate::common;
 
 use common::{assert_worded, model, model_with, record, us};
 use ew_checks::{
-    CheckMode, FULL, Finding, GateInput, PRE_DELIVERY, RuleKind, blockers, gate, pack_definition,
+    CheckMode, Evidence, FULL, Finding, GateInput, PRE_DELIVERY, RuleKind, blockers, gate, pack_definition,
     pack_versions, rule, run,
 };
 use ew_derive::Q;
@@ -41,7 +41,7 @@ fn rel(findings: &[Finding]) -> Vec<(&'static str, String, String)> {
 fn gated(records: Vec<Record>, content_digest: Option<Sha256>) -> Vec<(&'static str, String, String)> {
     let m = model(records);
     let q = Q::new(&m);
-    rel(&gate(&q, &PRE_DELIVERY, &GateInput { content_digest }).findings)
+    rel(&gate(&q, &PRE_DELIVERY, &GateInput { content_digest }, Evidence::default()).findings)
 }
 
 /// The EW-REL rules are gate-only integrity rules of pack EW-REL (doc 15 §4.8): no scheme runs them online or in a
@@ -224,7 +224,7 @@ fn label_order_cases() {
     );
     let m = model_with(json!({"revision_label": "base36"}), bad);
     let q = Q::new(&m);
-    let report = gate(&q, &PRE_DELIVERY, &GateInput::default());
+    let report = gate(&q, &PRE_DELIVERY, &GateInput::default(), Evidence::default());
     assert!(
         !report.findings.iter().any(|f| f.rule == "EW-REL-004"),
         "a label format of a newer build is not judged"
@@ -249,6 +249,7 @@ fn the_gate_joins_the_release_run_and_ew_rel() {
         &GateInput {
             content_digest: Some(digest(1)),
         },
+        Evidence::default(),
     );
     let without: Vec<&Finding> = g
         .findings
@@ -271,7 +272,7 @@ fn the_gate_joins_the_release_run_and_ew_rel() {
 fn pack_versions_name_every_evaluated_pack() {
     let m = model(vec![revision(1, "V1.0", "open", json!({}))]);
     let q = Q::new(&m);
-    let g = gate(&q, &PRE_DELIVERY, &GateInput::default());
+    let g = gate(&q, &PRE_DELIVERY, &GateInput::default(), Evidence::default());
     let packs = pack_versions(&g);
     let ids: Vec<&str> = packs.iter().map(|p| p.id).collect();
     let mut sorted = ids.clone();

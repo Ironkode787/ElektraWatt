@@ -307,13 +307,13 @@ impl Session {
         let input = checks::GateInput {
             content_digest: Some(digest),
         };
-        let mut report = self
-            .with_layout_findings(&q, checks::gate(&q, scheme, &input))
-            .with_integrity(integrity.iter().cloned());
         // EW-CORE-013 after a merge blocks the gate as `ew check` reports it.
-        if self.merge_evidence() {
-            report = report.with_merge_evidence(&q);
-        }
+        let evidence = checks::Evidence {
+            integrity: integrity.to_vec(),
+            merged: self.merge_evidence(),
+            layout: self.layout_evidence(&q, scheme, checks::CheckMode::Release),
+        };
+        let report = checks::gate(&q, scheme, &input, evidence);
         let packs = checks::pack_versions(&report);
         let safety_waivers = checks::safety_waivers(&report)
             .iter()

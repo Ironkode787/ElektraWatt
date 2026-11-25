@@ -13,7 +13,7 @@ use sha2::Digest;
 
 use ew_derive::Q;
 
-use crate::engine::{CheckReport, run};
+use crate::engine::{CheckReport, Evidence, run_with};
 use crate::finding::{Finding, FindingState, Severity, sort_findings};
 use crate::registry::rules;
 use crate::rule::{RuleKind, RuleMeta};
@@ -23,14 +23,12 @@ use crate::scheme::{CheckMode, Scheme};
 
 pub use crate::rules::rel::GateInput;
 
-/// The release gate over the snapshot of `q` (doc 15 §5.5): [`run`] of `scheme` in release mode, then the EW-REL rules
-/// with `input` (EW-REL-001 against the content digest, EW-REL-002, EW-REL-004's gate half), joined into one report in
-/// canonical order with its totals. The EW-REL findings are integrity findings: never waived. The report's rules list
-/// the EW-REL rules too.
-///
-/// The integrity findings of opening the project join with [`CheckReport::with_integrity`], as for `ew check`.
-pub fn gate(q: &Q, scheme: &Scheme, input: &GateInput) -> CheckReport {
-    let mut report = run(q, scheme, CheckMode::Release);
+/// The release gate over the snapshot of `q` (doc 15 §5.5): [`run_with`] of `scheme` in release mode with `evidence`, as
+/// for `ew check`, then the EW-REL rules with `input` (EW-REL-001 against the content digest, EW-REL-002, EW-REL-004's
+/// gate half), joined into one report in canonical order with its totals. The EW-REL findings are integrity findings:
+/// never waived. The report's rules list the EW-REL rules too.
+pub fn gate(q: &Q, scheme: &Scheme, input: &GateInput, evidence: Evidence) -> CheckReport {
+    let mut report = run_with(q, scheme, CheckMode::Release, evidence);
     let mut rel: Vec<Finding> = four_eyes(q, input);
     rel.extend(label_order(q));
     // EW-REL-002 reports nothing at MVP (no committed computation has an input hash yet).

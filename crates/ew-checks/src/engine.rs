@@ -160,93 +160,29 @@ impl CheckReport {
         }
         out
     }
-
-    /// The report with the integrity findings of opening the project joined (doc 15 §4.2: the integrity
-    /// rules EW-CORE-001 … 019 run on open and, where the catalogue lists `r`, in release mode; EW-CORE-011 is a
-    /// registered rule over the model). In release
-    /// mode every item of a rule whose modes include release joins the findings, the counts and the exit
-    /// code at the item's severity; items of other rules, of unknown IDs, and every item in online mode are
-    /// left out. Integrity findings are never waivable. The findings are re-sorted.
-    #[must_use]
-    pub fn with_integrity(mut self, items: impl IntoIterator<Item = IntegrityItem>) -> CheckReport {
-        for item in items {
-            let Some(meta) = INTEGRITY.iter().find(|m| m.id == item.rule) else {
-                continue;
-            };
-            if !self.mode.runs(meta) {
-                continue;
-            }
-            if !self.rules.iter().any(|m| m.id == meta.id) {
-                self.rules.push(meta);
-            }
-            self.findings.push(
-                Finding::new(meta, [], item.location.clone(), item.location)
-                    .written(item.message)
-                    .with_severity(item.severity),
-            );
-        }
-        self.rules.sort_by_key(|m| m.id);
-        sort_findings(&mut self.findings);
-        self.counts = count(&self.findings);
-        self
-    }
 }
 
-impl CheckReport {
-    /// The report with EW-CORE-013's groups joined for merge evidence that the model does not hold:
-    /// a merged manifest, a merge or rebase in progress, `ew check --integrity --after-merge`.
-    /// In a mode that runs EW-CORE-013 (online and release), when the run evaluated it without findings (the model holds
-    /// no conflict record), every group of [`merge_collisions`](crate::rules::core::merge_collisions) joins the
-    /// findings, the counts and the exit code; in another mode, or when the scheme switched the rule off, nothing
-    /// changes.
-    #[must_use]
-    pub fn with_merge_evidence(mut self, q: &Q) -> CheckReport {
-        let meta = &crate::rules::core::MERGE_COLLISION;
-        let evaluated = self.rules.iter().any(|m| m.id == meta.id);
-        if !self.mode.runs(meta) || !evaluated || self.findings.iter().any(|f| f.rule == meta.id) {
-            return self;
-        }
-        self.findings.extend(crate::rules::core::merge_collisions(q));
-        sort_findings(&mut self.findings);
-        self.counts = count(&self.findings);
-        self
-    }
-
-    /// The report with the layout rules' findings joined (EW-CORE-067 to -070, -072 and -073): the
-    /// session measures the drawn pages and words each finding with [`rules::page`](crate::rules::page)'s functions.
-    /// A finding joins only when the run evaluated its rule (the scheme and the mode enable it), at the mode's
-    /// severity; a waiver that matches it waives it, and the EW-CORE-081 finding that said it matched nothing goes. The
-    /// findings and the counts follow.
-    #[must_use]
-    pub fn with_layout_evidence(mut self, q: &Q, found: impl IntoIterator<Item = Finding>) -> CheckReport {
-        let mut waivers: Option<Vec<Waiver>> = None;
-        for mut f in found {
-            let Some(meta) = self.rules.iter().copied().find(|m| m.id == f.rule) else {
-                continue;
-            };
-            f.severity = self.mode.severity(meta, f.severity);
-            if meta.waivable() {
-                let waivers = waivers.get_or_insert_with(|| self::waivers(q));
-                if let Some(w) = waivers
-                    .iter()
-                    .find(|w| w.rule == f.rule && w.finding == Some(f.fingerprint))
-                {
-                    let unmatched = format!("waiver {}", w.id);
-                    self.findings
-                        .retain(|g| !(g.rule == WAIVER_MATCHES_NOTHING.id && g.subject == unmatched));
-                    f.state = FindingState::Waived { waiver: w.id.clone() };
-                }
-            }
-            self.findings.push(f);
-        }
-        sort_findings(&mut self.findings);
-        self.counts = count(&self.findings);
-        self
-    }
+/// What a run joins besides the findings of the rules it evaluates: evidence the snapshot does not hold. The run joins
+/// it in the one pass of its own findings, so supersession, the waivers and EW-CORE-081 treat it as any other finding.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct Evidence {
+    /// The integrity findings of opening the project (doc 15 §4.2: the integrity rules EW-CORE-001 … 019 run on open
+    /// and, where the catalogue lists `r`, in release mode). In release mode every item of a rule whose modes include
+    /// release joins at the item's severity and its rule joins the report's rules; items of other rules, of unknown
+    /// IDs, and every item in online mode are left out. Integrity findings are never waivable.
+    pub integrity: Vec<IntegrityItem>,
+    /// Whether the project carries merge evidence the model does not hold (a merged manifest, a merge or rebase in
+    /// progress, `ew check --integrity --after-merge`): when the run evaluates EW-CORE-013 and it finds nothing (the
+    /// model holds no conflict record), every group of
+    /// [`merge_collisions`](crate::rules::core::merge_collisions) joins.
+    pub merged: bool,
+    /// The layout rules' findings (EW-CORE-067 to -070, -072 and -073): the session measures the drawn pages and words
+    /// each finding with [`rules::page`](crate::rules::page)'s functions. A finding joins only when the run evaluates
+    /// its rule, at the mode's severity.
+    pub layout: Vec<Finding>,
 }
 
-/// One integrity finding of opening a project (the store's findings, doc 05 §6.3), for
-/// [`CheckReport::with_integrity`].
+/// One integrity finding of opening a project (the store's findings, doc 05 §6.3), for [`Evidence::integrity`].
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct IntegrityItem {
     /// The rule ID, `EW-CORE-001` … `EW-CORE-019`.
@@ -327,7 +263,7 @@ fn supersede(findings: Vec<Finding>) -> Vec<Finding> {
 /// Runs `scheme` in `mode` over the snapshot of `q` (doc 15 §3): every enabled shipped rule in every
 /// scope of its kind, through the memo family [`CheckOf`]; then the effective severities (§3.2),
 /// supersession (§3.6), waivers (§2.5) and EW-CORE-081 for waivers that match nothing; the findings sorted
-/// in canonical order ([`Finding::order_cmp`], §3.9).
+/// in canonical order ([`Finding::order_cmp`], §3.9). [`run_with`] joins evidence the snapshot does not hold.
 ///
 /// A rule that panics in a scope yields EW-CORE-083 there and leaves every other finding as it is; a rule whose data
 /// table does not load is not evaluated and EW-CORE-084 names it.
@@ -337,14 +273,23 @@ fn supersede(findings: Vec<Finding>) -> Vec<Finding> {
 /// On a query cycle through [`CheckOf`] (a rule's memo already evaluating for its scope), with the cycle's text, as
 /// [`Q::get`] does; [`run_table_rules`] returns the cycle instead.
 pub fn run(q: &Q, scheme: &Scheme, mode: CheckMode) -> CheckReport {
-    match run_rules(q, scheme, mode, rules(), &data_tables(), true) {
+    run_with(q, scheme, mode, Evidence::default())
+}
+
+/// [`run`] with `evidence` joined to the rules' findings before supersession, the waivers and EW-CORE-081.
+///
+/// # Panics
+///
+/// As [`run`].
+pub fn run_with(q: &Q, scheme: &Scheme, mode: CheckMode, evidence: Evidence) -> CheckReport {
+    match run_rules(q, scheme, mode, rules(), &data_tables(), true, evidence) {
         Ok(report) => report,
         Err(cycle) => panic!("{cycle}"),
     }
 }
 
-/// [`run`] over the registered rules of `list` only (the open-item rules of
-/// [`open_items`](crate::open_items)): the same path (scheme enablement, effective severities, supersession among the
+/// [`run_with`] over the registered rules of `list` only (the open-item rules of
+/// [`open_items`](crate::open_items), the integrity rules of `ew check --integrity`): the same path (scheme enablement, effective severities, supersession among the
 /// findings of `list`, waivers, EW-CORE-081), with the memo reads through [`Q::try_get`], so a query cycle is
 /// returned, never a panic. Supersession sees only the findings of `list`: a rule outside `list` that supersedes a
 /// rule of `list` hides nothing here.
@@ -358,13 +303,14 @@ pub fn run_table_rules(
     scheme: &Scheme,
     mode: CheckMode,
     list: &[&'static dyn Rule],
+    evidence: Evidence,
 ) -> Result<CheckReport, Cycle> {
-    run_rules(q, scheme, mode, list, &data_tables(), true)
+    run_rules(q, scheme, mode, list, &data_tables(), true, evidence)
 }
 
-/// [`run`] over `list` with the data tables `tables`. With `memo` the rules are evaluated through [`CheckOf`] (they
-/// must be registered), read with [`Q::try_get`]; without it directly, each under `catch_unwind`, which lets the unit
-/// tests add a rule that panics (P4-3). A query cycle of a memo read is returned as it is.
+/// [`run_with`] over `list` with the data tables `tables`. With `memo` the rules are evaluated through [`CheckOf`]
+/// (they must be registered), read with [`Q::try_get`]; without it directly, each under `catch_unwind`, which lets the
+/// unit tests add a rule that panics (P4-3). A query cycle of a memo read is returned as it is.
 fn run_rules(
     q: &Q,
     scheme: &Scheme,
@@ -372,6 +318,7 @@ fn run_rules(
     list: &[&'static dyn Rule],
     tables: &[DataTable],
     memo: bool,
+    evidence: Evidence,
 ) -> Result<CheckReport, Cycle> {
     let (pack_issues, skipped) = pack_findings(tables);
     let mut evaluated: Vec<&'static RuleMeta> = Vec::new();
@@ -409,6 +356,7 @@ fn run_rules(
             findings.push(f);
         }
     }
+    join(q, mode, evidence, &mut evaluated, &mut findings);
     let mut findings = crate::rules::imp::fold(supersede(findings));
 
     let waivers = waivers(q);
@@ -476,6 +424,46 @@ fn run_rules(
         findings,
         counts,
     })
+}
+
+/// Joins `evidence` to the findings of the rules `evaluated` (see [`Evidence`]'s members).
+fn join(
+    q: &Q,
+    mode: CheckMode,
+    evidence: Evidence,
+    evaluated: &mut Vec<&'static RuleMeta>,
+    findings: &mut Vec<Finding>,
+) {
+    for mut f in evidence.layout {
+        if let Some(meta) = evaluated.iter().find(|m| m.id == f.rule) {
+            f.severity = mode.severity(meta, f.severity);
+            findings.push(f);
+        }
+    }
+    let merge = &crate::rules::core::MERGE_COLLISION;
+    if evidence.merged
+        && mode.runs(merge)
+        && evaluated.iter().any(|m| m.id == merge.id)
+        && !findings.iter().any(|f| f.rule == merge.id)
+    {
+        findings.extend(crate::rules::core::merge_collisions(q));
+    }
+    for item in evidence.integrity {
+        let Some(meta) = INTEGRITY.iter().find(|m| m.id == item.rule) else {
+            continue;
+        };
+        if !mode.runs(meta) {
+            continue;
+        }
+        if !evaluated.iter().any(|m| m.id == meta.id) {
+            evaluated.push(meta);
+        }
+        findings.push(
+            Finding::new(meta, [], item.location.clone(), item.location)
+                .written(item.message)
+                .with_severity(item.severity),
+        );
+    }
 }
 
 /// Prevent mode (ADR-0009 decision 3, doc 15 §3.5): the violations the batch from `before` to `after`
@@ -593,7 +581,8 @@ mod tests {
             (CheckMode::Online, Severity::Warning),
             (CheckMode::Release, Severity::Error),
         ] {
-            let base = run_rules(&q, &FULL, mode, rules(), &tables, false).expect("no cycle");
+            let base =
+                run_rules(&q, &FULL, mode, rules(), &tables, false, Evidence::default()).expect("no cycle");
             assert_eq!(
                 printed(&base.findings),
                 printed(&run(&q, &FULL, mode).findings),
@@ -602,7 +591,8 @@ mod tests {
             assert!(base.findings.iter().any(|f| f.rule == "EW-TERM-002"));
             let mut list: Vec<&'static dyn Rule> = rules().to_vec();
             list.push(&PANICS_RULE);
-            let with = run_rules(&q, &FULL, mode, &list, &tables, false).expect("no cycle");
+            let with =
+                run_rules(&q, &FULL, mode, &list, &tables, false, Evidence::default()).expect("no cycle");
             let (caught, rest): (Vec<Finding>, Vec<Finding>) =
                 with.findings.into_iter().partition(|f| f.rule == "EW-CORE-083");
             assert_eq!(caught.len(), 1, "{caught:#?}");
@@ -641,7 +631,16 @@ mod tests {
             file: "data/x.toml",
             error: Some("missing".to_owned()),
         }];
-        let report = run_rules(&q, &FULL, CheckMode::Release, rules(), &tables, false).expect("no cycle");
+        let report = run_rules(
+            &q,
+            &FULL,
+            CheckMode::Release,
+            rules(),
+            &tables,
+            false,
+            Evidence::default(),
+        )
+        .expect("no cycle");
         assert!(!report.findings.iter().any(|f| f.rule == "EW-TERM-002"));
         assert!(!report.rules.iter().any(|m| m.id == "EW-TERM-002"));
         let f: Vec<&Finding> = report

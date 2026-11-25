@@ -6,7 +6,7 @@
 use crate::common;
 
 use common::*;
-use ew_checks::{CheckMode, DRAFTING, MIGRATION, PRE_DELIVERY, Scope, prevent, run};
+use ew_checks::{CheckMode, DRAFTING, Evidence, MIGRATION, PRE_DELIVERY, Scope, prevent, run, run_with};
 use ew_derive::Q;
 use ew_ids::Id;
 use ew_schema::{AnyId, Kind};
@@ -405,7 +405,11 @@ fn integrity_items_join_the_counts_in_release_mode_only() {
     // strip without a terminal diagram): the items add to those counts.
     let base = run(&Q::new(&m), &PRE_DELIVERY, CheckMode::Release);
     assert_eq!(base.counts.errors, 0, "{:#?}", base.findings);
-    let release = run(&Q::new(&m), &PRE_DELIVERY, CheckMode::Release).with_integrity(items());
+    let with = || Evidence {
+        integrity: items(),
+        ..Evidence::default()
+    };
+    let release = run_with(&Q::new(&m), &PRE_DELIVERY, CheckMode::Release, with());
     assert_eq!(release.counts.errors, 1, "{:#?}", release.findings);
     assert_eq!(release.counts.warnings, base.counts.warnings);
     assert_eq!(release.exit_code(), 1);
@@ -416,7 +420,7 @@ fn integrity_items_join_the_counts_in_release_mode_only() {
             .any(|f| f.rule == "EW-CORE-005" && f.code == "100005")
     );
     assert!(release.rules.iter().any(|r| r.id == "EW-CORE-005"));
-    let online = run(&Q::new(&m), &DRAFTING, CheckMode::Online).with_integrity(items());
+    let online = run_with(&Q::new(&m), &DRAFTING, CheckMode::Online, with());
     assert_eq!(online.exit_code(), 0);
 }
 

@@ -374,9 +374,7 @@ pub(super) fn run_check(a: &CheckCli) -> i32 {
     };
     // The integrity findings of opening (EW-CORE-001 … 019) join the report: in release mode the "n r"
     // errors count and set the exit code (doc 15 §4.2).
-    let result = session
-        .check(sch, a.check_mode())
-        .with_integrity(ew_api::integrity_items(&opened));
+    let result = session.check_opened(sch, a.check_mode(), &opened);
     print_check(
         format,
         a.out.as_ref(),

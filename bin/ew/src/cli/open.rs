@@ -82,9 +82,7 @@ pub(super) fn open_projection_and_session(
             return Err(2);
         }
     };
-    let report = session
-        .check(&ew_api::checks::PRE_DELIVERY, CheckMode::Release)
-        .with_integrity(ew_api::integrity_items(&opened));
+    let report = session.check_opened(&ew_api::checks::PRE_DELIVERY, CheckMode::Release, &opened);
     let projection = session.sql_projection(Some(&report)).map_err(|e| {
         error(e);
         2

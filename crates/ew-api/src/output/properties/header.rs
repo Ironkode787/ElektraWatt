@@ -200,7 +200,7 @@ impl Session {
         let folios = crate::output::navigators::folios(q);
         {
             // With merge evidence, EW-CORE-013's groups.
-            let report = self.check_over(q, self.online_scheme(), checks::CheckMode::Online);
+            let report = self.check_over(q, self.online_scheme(), checks::CheckMode::Online, Vec::new());
             for f in report
                 .findings
                 .iter()
