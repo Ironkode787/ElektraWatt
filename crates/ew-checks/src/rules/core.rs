@@ -413,7 +413,7 @@ pub const TITLE_BLOCK_OVERRIDE: RuleMeta = RuleMeta {
     release: Release::Mvp,
 };
 
-/// EW-CORE-023: a title-block value overridden on one page (FR-REP-036, D-06, MF-05). The page's
+/// EW-CORE-023: a title-block value overridden on one page (FR-REP-036, D-06). The page's
 /// `description_override` replaces the bound project description in its title block; the only per-page
 /// title-block override of schema v0. One finding per page, target the page, discriminator
 /// `description_override`, with the quick fix "drop override" (`fields.set` of the member to null).
@@ -488,7 +488,7 @@ pub const XREF_CELL_INVALID: RuleMeta = RuleMeta {
 };
 
 /// EW-CORE-053: a printed cross-reference whose target cell lies outside the frame or contains no graphics
-/// of the target (FR-CHK-035, STD XR-05; D-14, MF-13).
+/// of the target (FR-CHK-035, STD XR-05; D-14).
 ///
 /// For every representation on the page whose cross-reference text shows a target (`xref_relation`,
 /// `xref_text`): the target's anchor cell (from its anchor policy: the representation's override, else its
@@ -501,7 +501,7 @@ pub const XREF_CELL_INVALID: RuleMeta = RuleMeta {
 /// One finding per cross-reference: targets the source and the target representation, no discriminator,
 /// so the fingerprint stays when the target moves between "outside the frame" and "empty cell" or a
 /// renumber changes the printed item (doc 15 §2.5); shown on the page; the message starts with the printed
-/// item, "3-B0: empty cell", and offers the MF-13 quick fix `rep.set_anchor_policy` to the graphics centre.
+/// item, "3-B0: empty cell", and offers the quick fix `rep.set_anchor_policy` to the graphics centre.
 /// The note of an auxiliary whose main function has no cross-reference main
 /// representation is not reported yet.
 #[derive(Clone, Copy, Debug)]
@@ -975,7 +975,7 @@ pub const UNIQUENESS_RULES: [&str; 6] = [
 /// progress, `ew check --integrity --after-merge`) through [`merge_collisions`]. One finding per group, its targets the
 /// group's records, its discriminator the uniqueness rule's ID, its subject that rule's; the keeper is the record a
 /// frozen tag holds, else the oldest ([`keeper_order`]). A group of device tags carries the fix "Renumber the newer"
-/// ([`renumber_newer`]); the five other rules report without a fix (FP-1).
+/// ([`renumber_newer`]); the five other rules report without a fix.
 #[derive(Clone, Copy, Debug)]
 pub struct MergeCollisions;
 
@@ -1039,7 +1039,7 @@ fn frozen(q: &Q, t: &Target) -> bool {
 /// The keeper order of a group (doc 15 §6.4): (1) a device with a frozen tag first; (3) then the older
 /// ID by its UUIDv7 time, bytes 0 to 5 of the ID (RFC 9562's 48-bit Unix milliseconds), an ID that is not a UUIDv7
 /// (an imported or generated record's UUIDv5) counting as the oldest, then the full ID. Step (2), the merge base, is
-/// FP-2; a number published in the last release is not modelled yet.
+/// A number published in the last release is not modelled yet.
 pub fn keeper_order(q: &Q, a: &Target, b: &Target) -> std::cmp::Ordering {
     let time = |t: &Target| {
         let uuid = t.id.as_uuid();

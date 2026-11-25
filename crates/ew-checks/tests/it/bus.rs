@@ -98,7 +98,7 @@ fn a_consistent_line_has_no_bus_finding() {
     }
 }
 
-/// EW-BUS-004 (BU-3): an end element Off is an error at that end (`end`); an element inside the segment On is an
+/// EW-BUS-004: an end element Off is an error at that end (`end`); an element inside the segment On is an
 /// error (`middle`); each with the port as target.
 #[test]
 fn ew_bus_004_reports_an_end_off_and_a_middle_on() {
@@ -138,7 +138,7 @@ fn ew_bus_004_reports_a_missing_termination_and_an_unknown_state() {
     assert_eq!(rows(&f), [row(Severity::Info, "unknown", NAME_C)], "{f:#?}");
 }
 
-/// EW-BUS-001 (BU-6, EF-03): a TBD station address is one error on its port (`address`) and supersedes
+/// EW-BUS-001 (EF-03): a TBD station address is one error on its port (`address`) and supersedes
 /// EW-CORE-044's finding for the same port; a port without an address is not checked.
 #[test]
 fn ew_bus_001_reports_a_tbd_address_and_supersedes_ew_core_044() {

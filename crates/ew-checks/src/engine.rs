@@ -343,7 +343,7 @@ pub fn run(q: &Q, scheme: &Scheme, mode: CheckMode) -> CheckReport {
     }
 }
 
-/// [`run`] over the registered rules of `list` only (D8: the open-item rules of
+/// [`run`] over the registered rules of `list` only (the open-item rules of
 /// [`open_items`](crate::open_items)): the same path (scheme enablement, effective severities, supersession among the
 /// findings of `list`, waivers, EW-CORE-081), with the memo reads through [`Q::try_get`], so a query cycle is
 /// returned, never a panic. Supersession sees only the findings of `list`: a rule outside `list` that supersedes a

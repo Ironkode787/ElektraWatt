@@ -121,7 +121,7 @@ mod tests {
     use crate::rule;
     use crate::scheme::PRE_DELIVERY;
 
-    /// OI-4: every rule of the table is registered, and runs in release mode of the shipped release scheme.
+    /// Every rule of the table is registered, and runs in release mode of the shipped release scheme.
     #[test]
     fn every_open_item_rule_is_registered() {
         for o in OPEN_ITEM_RULES {

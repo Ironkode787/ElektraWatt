@@ -46,7 +46,7 @@ fn printed(findings: &[Finding]) -> Vec<String> {
         .collect()
 }
 
-/// D7: the open items equal the open findings of the release run of `pre-delivery`, in its order; a waived finding
+/// The open items equal the open findings of the release run of `pre-delivery`, in its order; a waived finding
 /// leaves the list.
 #[test]
 fn the_open_items_are_the_open_findings_of_the_release_run() {

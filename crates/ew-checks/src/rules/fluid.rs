@@ -296,7 +296,7 @@ pub const SPARE_POSITIONS: RuleMeta = RuleMeta {
 };
 
 /// EW-FL-004 (FR-FLU-017): one finding per position of a module that holds a spare valve or a blanking
-/// plate (`valve_slots`), target the valve or the plate. It runs in the release run too, where AC-21 counts EF-14.
+/// plate (`valve_slots`), target the valve or the plate. It runs in the release run too, where it counts as EF-14.
 #[derive(Clone, Copy, Debug)]
 pub struct SparePositions;
 
@@ -435,7 +435,7 @@ fn holder(slot: &ValveSlot) -> Option<Id<Device>> {
     }
 }
 
-/// T13: "<parent>: position <p> holds both <a> and <b>", target `b`.
+/// "<parent>: position <p> holds both <a> and <b>", target `b`.
 fn both(q: &Q, parent: Id<Device>, p: u32, a: Id<Device>, b: Id<Device>, form: &str) -> Finding {
     let (parent_t, a_t, b_t) = (tag(q, parent), tag(q, a), tag(q, b));
     Finding::new(
@@ -451,7 +451,7 @@ fn both(q: &Q, parent: Id<Device>, p: u32, a: Id<Device>, b: Id<Device>, form: &
     .arg("b", b_t)
 }
 
-/// T12: "<module>: position <p> is outside its <n> valve positions", target the child; `tail` is the refusal's
+/// "<module>: position <p> is outside its <n> valve positions", target the child; `tail` is the refusal's
 /// proposal (`; free positions: 1, 3` or `; every position is taken`), empty in a report.
 fn outside(q: &Q, module: Id<Device>, n: u16, p: u32, child: Id<Device>, tail: (&str, String)) -> Finding {
     let module_t = tag(q, module);

@@ -7,7 +7,7 @@
 //! 60). On R1 -101F1 (18 mm, s = 140), -102F1 (18 mm, s = 158) and -102F2 (45 mm, s = 189.5); on R2 the strip -X1031 (three
 //! 6.2 mm terminals, left end s = 58.6); on R3 the station -201U1 (50 mm, s = 45) and its modules -201U2 (position 1,
 //! s = 90), -201U3 (2, s = 130) and -201U4 (3, s = 170), 40 mm each. -F55 is mountable and unplaced. Golden A itself is
-//! checked by `ew-api`'s AC-21 subset (`check_messages_waivers.rs`), whose pack list holds EW-LAYOUT.
+//! checked by `ew-api`'s subset (`check_messages_waivers.rs`), whose pack list holds EW-LAYOUT.
 //!
 //! The rules run at the project scope (no new scope kind) and enumerate the layout spaces, surfaces,
 //! carriers and placements through the layout queries.
@@ -34,7 +34,7 @@ const D4: u128 = 0x44;
 
 const P_MCB: u128 = 0x600; // TS 35, 18 × 85 mm, centre clip
 const P_MICO: u128 = 0x601; // TS 35, 45 × 90 mm
-const P_WIDE: u128 = 0x602; // TS 35, 27 × 85 mm, clip (9, 42.5): LQ-4's test part
+const P_WIDE: u128 = 0x602; // TS 35, 27 × 85 mm, clip (9, 42.5): the layout test part
 const P_SCREW: u128 = 0x603; // screw, 50 × 120 mm
 const P_TERM: u128 = 0x604; // TS 35, 6.2 × 47 mm
 const P_COUPLER: u128 = 0x605; // TS 35, 50 × 107 mm (195740)
@@ -382,7 +382,7 @@ fn a_device_of_another_location_placed_on_the_plate() {
 
 #[test]
 fn the_wider_part_overlaps_its_neighbour() {
-    // LQ-4's 27 mm part with its clip at (9, 42.5) at s = 158: 149 … 176 against -102F2's 167 … 212
+    // The 27 mm part with its clip at (9, 42.5) at s = 158: 149 … 176 against -102F2's 167 … 212
     let mut fx = plate();
     fx.with_parts(F102, &[P_WIDE]);
     fx.rec_mut(&us(PL_F102))["part"] = json!({"copy": us(P_WIDE)});
@@ -401,7 +401,7 @@ fn the_wider_part_overlaps_its_neighbour() {
 #[test]
 fn a_placement_over_a_duct_and_a_rail_across_a_duct() {
     let mut fx = plate();
-    // the screw part's footprint (300, 560)–(350, 680) crosses D4's (40, 580)–(610, 620)
+    // the screw part's footprint (300, 560)–(350, 680) crosses the (40, 580)–(610, 620)
     device(&mut fx, 0xdb, "E", 1, LOC, &[P_SCREW]);
     place(
         &mut fx,
@@ -705,7 +705,7 @@ fn swapping_two_modules_and_a_device_between_members() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// EB-4: EW-LAY-010's end-bracket cases
+// EW-LAY-010's end-bracket cases
 
 const P_EB: u128 = 0x609; // an end bracket, 10 mm wide
 const STRIP2: u128 = 0xea; // -X1032, two 6.2 mm terminals (12.4 mm)

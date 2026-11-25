@@ -98,7 +98,7 @@ fn the_catalogue_is_written_where_the_reference_is_asked_for() {
     std::fs::write(dir.join("rules.json"), generated()).expect("write the catalogue");
 }
 
-/// OI-4: the catalogue's `open_item` marks exactly the open-item rules, each with its category,
+/// The catalogue's `open_item` marks exactly the open-item rules, each with its category,
 /// and EW-BUS-001 with the discriminator `address`.
 #[test]
 fn the_catalogue_marks_exactly_the_open_item_rules() {

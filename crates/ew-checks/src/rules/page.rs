@@ -637,7 +637,7 @@ pub const UNSTYLED_TEXT_SIZE: RuleMeta = RuleMeta {
     release: Release::Mvp,
 };
 
-/// EW-CORE-063: a free text whose style is an explicit size that no text style binds (FR-SYM-013; D-29, MF-26): a key
+/// EW-CORE-063: a free text whose style is an explicit size that no text style binds (FR-SYM-013; D-29): a key
 /// that is not one of the project's text styles (`ew_derive::text_styles`), such as the `qet.9` an imported legacy `size`
 /// becomes. One finding per text: target the page item, discriminator `style`, shown on the page. Online only.
 #[derive(Clone, Copy, Debug)]
@@ -879,7 +879,7 @@ pub const FOUR_WAY_JUNCTION: RuleMeta = layout_rule(
     None,
 );
 
-/// EW-CORE-073 "Unrouted wire" (D3): completeness, o r, info (release error), page.
+/// EW-CORE-073 "Unrouted wire": completeness, o r, info (release error), page.
 pub const UNROUTED_WIRE: RuleMeta = layout_rule(
     "EW-CORE-073",
     key!("rule-ew-core-073"),

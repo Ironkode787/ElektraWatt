@@ -111,7 +111,7 @@ impl PotTargets {
 /// The targets of a potential (see [`PotTargets`]).
 ///
 /// The discriminator member of a potential without a definition is its first member CP in printed order:
-/// device CPs before interruption points, then `<tag>:<designation>` in natural order (D1's printed key),
+/// device CPs before interruption points, then `<tag>:<designation>` in natural order (the printed key),
 /// then the CP index, the CP ID only between two CPs that print alike on two functions. Before, it was the
 /// smallest CP ID, random in a new project. The potential is read as its own part of the partition.
 pub(crate) fn potential_targets(q: &Q, p: PotentialId) -> PotTargets {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The MVP rules of the EW-PLC pack (PA-4, PA-5, PA-7) and EW-CORE-008's `duplicate_number`
+//! The MVP rules of the EW-PLC pack and EW-CORE-008's `duplicate_number`
 //! half, on a small valve terminal: a station with two eight-channel output modules (`-1U2`, `-1U3`) whose
 //! part maps solenoid 14 of the valve at position p to channel 2(p − 1) and solenoid 12 to 2(p − 1) + 1, and one
 //! valve `-1Q1` at position 1 of `-1U2`, solenoid 14 bound to channel 0 as the map says.
@@ -504,7 +504,7 @@ fn ew_plc_008_reports_a_used_channel_without_an_address() {
     assert!(findings_of(&fx.build(), "EW-PLC-008").is_empty());
 }
 
-/// EW-PLC-012 `binding` (PA-4): solenoid 14 of the valve at position 1 bound to channel 1 where the map says 0, with
+/// EW-PLC-012 `binding`: solenoid 14 of the valve at position 1 bound to channel 1 where the map says 0, with
 /// the rebind quick fix; `manual`: a manual address that differs from the derived one.
 #[test]
 fn ew_plc_012_reports_a_binding_against_the_map_and_a_manual_deviation() {
@@ -553,7 +553,7 @@ fn ew_plc_012_reports_a_binding_against_the_map_and_a_manual_deviation() {
     assert!(findings_of(&fx.build(), "EW-PLC-012").is_empty());
 }
 
-/// PA-5 (the PLC half): a part whose `plc` section is of confidence `test` marks EW-PLC-012's findings.
+/// A part whose `plc` section is of confidence `test` marks EW-PLC-012's findings.
 #[test]
 fn ew_plc_012_marks_findings_on_a_test_section() {
     let mut fx = fixture_with(&json!({"confidence": {"plc": "test"}}));
@@ -567,7 +567,7 @@ fn ew_plc_012_marks_findings_on_a_test_section() {
     assert!(f[0].unverified_data, "the finding rests on unverified data");
 }
 
-/// EW-PLC-015 (PA-4): a `Tbd` start and a `Tbd` channel address of a module in a configuration project, an info
+/// EW-PLC-015: a `Tbd` start and a `Tbd` channel address of a module in a configuration project, an info
 /// online and an error in release; EW-CORE-044's findings for the same values are superseded, so each open value
 /// prints once.
 #[test]
@@ -627,7 +627,7 @@ fn a_module_without_a_station_stays_ew_core_044s() {
     assert_eq!(findings_of(&m, "EW-CORE-044").len(), 1);
 }
 
-/// EW-CORE-008 `duplicate_number` (PA-7): a second channel numbered 2 on `-1U3` is reported; the v5 one is kept.
+/// EW-CORE-008 `duplicate_number`: a second channel numbered 2 on `-1U3` is reported; the v5 one is kept.
 #[test]
 fn ew_core_008_reports_a_duplicate_channel_number() {
     let mut fx = fixture();

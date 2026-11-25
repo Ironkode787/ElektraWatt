@@ -138,7 +138,7 @@ fn colour_finding(q: &Q, id: Id<Conductor>, c: &Conductor, declared: &BTreeSet<S
 }
 
 /// EW-CORE-031: a cable core whose colour holds a code that is neither an IEC 60757 code nor a company code the
-/// project's colour profile declares (FR-CHK-032, D-17, MF-11). A foreign code (`{"foreign": "BR"}`), which only a
+/// project's colour profile declares (FR-CHK-032, D-17). A foreign code (`{"foreign": "BR"}`), which only a
 /// lenient import stores, and an undeclared company code are reported; a code of a newer format is not judged.
 /// One finding per conductor: target the conductor, discriminator `colour`. Prevent mode refuses a batch that gives
 /// a touched conductor such a colour; a conductor that already held it is reported by the online and
@@ -372,7 +372,7 @@ fn inside_device(q: &Q, cp: CpRef) -> Option<Id<Device>> {
 }
 
 /// EW-CORE-034: a wired external connection point (an interruption point with `IpSpec.external`, FR-CBL-015) whose
-/// wire is not a cable core (FR-CHK-033, D-19, EF-07, MF-27). The external points of one page are grouped by the
+/// wire is not a cable core (FR-CHK-033, D-19, EF-07). The external points of one page are grouped by the
 /// external reference's location: one finding per page and location, "+J-E-206 → 1X1", listing the inside devices
 /// (a terminal by its strip) and the wires in natural order; the points of a reference without a location (an address
 /// alone, or a far end not known, doc 06 §3.5) by their reference, named by what it prints ("Q4.1 → 1X1") or, printing

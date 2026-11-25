@@ -508,7 +508,7 @@ mod tests {
         IMP.iter().find(|m| m.id == id).expect("a registered code")
     }
 
-    /// IC-9 (D9 c): an EW-IMP-114 entry and an EW-CORE-063 finding on the same page make one row, under EW-CORE-063
+    /// An EW-IMP-114 entry and an EW-CORE-063 finding on the same page make one row, under EW-CORE-063
     /// with the import code as its origin and the import's quick fix; an entry on another page stays.
     #[test]
     fn an_entry_and_its_live_finding_on_the_same_records_make_one_row() {

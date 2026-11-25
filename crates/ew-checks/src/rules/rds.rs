@@ -733,7 +733,7 @@ pub const STRUCTURE_CODE_VARIANTS: RuleMeta = RuleMeta {
 };
 
 /// EW-RDS-010: two or more structure nodes of one aspect whose codes differ only in separators or case
-/// (`ew_rds::spelling_key`: `+JE2416` against `+J-E-2416`) (FR-PRJ-018; D-03, MF-02). One finding per group: targets
+/// (`ew_rds::spelling_key`: `+JE2416` against `+J-E-2416`) (FR-PRJ-018; D-03). One finding per group: targets
 /// every node of the group, discriminator `spelling`. The catalogue's merge quick fix waits for a structure-merge
 /// command (none exists; §13.1).
 #[derive(Clone, Copy, Debug)]

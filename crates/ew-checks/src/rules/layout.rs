@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The MVP rules of the EW-LAYOUT pack (doc 15 §4.5.4): EW-LAY-001, -003, -004, -006 (2D), -010
-//! and -016. EW-LAY-002 is the structural invariant of D4 (a placement cannot outlive its device) and has no rule run.
+//! and -016. EW-LAY-002 is the structural invariant (a placement cannot outlive its device) and has no rule run.
 //!
 //! # Scope
 //!
@@ -25,7 +25,7 @@
 //! # Geometry
 //!
 //! Every comparison is exact in integer nanometres (i128): carriers are axis-parallel and turns are quarter turns at
-//! the MVP (D5), so footprints and carrier outlines are axis-parallel rectangles. An overlap is a positive-area
+//! the MVP, so footprints and carrier outlines are axis-parallel rectangles. An overlap is a positive-area
 //! intersection: rectangles that only touch do not overlap.
 
 use std::cmp::Reverse;
@@ -139,7 +139,7 @@ fn placement_targets(pl: &Placement) -> [Target; 2] {
     ]
 }
 
-/// The part use a placement realises: its `part`, else the device's primary part (D6: an imported `None` means the
+/// The part use a placement realises: its `part`, else the device's primary part (an imported `None` means the
 /// primary); `None` for a strip and a device without parts.
 fn realised_part(q: &Q, pl: &Placement) -> Option<PartRef> {
     if let Some(p) = &pl.part {
@@ -174,7 +174,7 @@ fn xy(p: Pt2) -> (i128, i128) {
 
 /// Whether the rectangle `r` lies inside the usable polygon `usable` (its boundary included): its four corners inside,
 /// no vertex of the polygon strictly inside the rectangle, and no axis-parallel edge of the polygon through its open
-/// interior. Exact for the orthogonal polygons of the MVP (the plate rectangle, D5); a polygon with a diagonal edge is
+/// interior. Exact for the orthogonal polygons of the MVP (the plate rectangle); a polygon with a diagonal edge is
 /// judged by the corners and vertices only. `None` for a polygon of fewer than three points (an unknown usable area:
 /// nothing to judge).
 fn inside_usable(usable: &[Pt2], r: Rect) -> Option<bool> {
@@ -286,8 +286,8 @@ pub const PART_NOT_ON_DEVICE: RuleMeta = RuleMeta {
     release: Release::Mvp,
 };
 
-/// EW-LAY-003: a placement whose `part` is not a part use of its device (the copy is compared; D6 writes `part` at
-/// placement, D7 makes a replaced part follow, so a removed part leaves the placement naming a copy the device no
+/// EW-LAY-003: a placement whose `part` is not a part use of its device (the copy is compared; `layout.place` writes `part` at
+/// placement, `part.assign` makes a replaced part follow, so a removed part leaves the placement naming a copy the device no
 /// longer uses). A placement without `part` realises the primary part and is never reported. Targets the device and
 /// the placement, discriminator `part`.
 #[derive(Clone, Copy, Debug)]
@@ -442,7 +442,7 @@ enum Item {
     Duct(Id<Carrier>),
 }
 
-/// Whether two items are a pair EW-LAY-006 judges (D12): two placements, a placement and a duct, a rail and a duct;
+/// Whether two items are a pair EW-LAY-006 judges: two placements, a placement and a duct, a rail and a duct;
 /// never a placement and a rail (a placement sits on its own rail and may overhang another's outline), never two
 /// rails, never two ducts (joints are by design).
 fn judged(a: Item, b: Item) -> bool {
@@ -651,7 +651,7 @@ fn crowded_finding(q: &Q, surface: Id<MountingSurface>) -> Finding {
 }
 
 /// EW-LAY-006 (2D): a positive-area intersection, on one surface, of two placement footprints, of a footprint and a
-/// duct's outline, or of a rail's outline and a duct's (D12), found by a sweep over each surface's rectangles whose
+/// duct's outline, or of a rail's outline and a duct's, found by a sweep over each surface's rectangles whose
 /// active sets are ordered by y (see `surface_overlaps`). One finding per pair, whatever the number of segment
 /// rectangles that overlap; at most [`OVERLAPS_PER_SURFACE`] per surface, then one summary finding on the surface
 /// (`limit`). Two placements of one device read as such (`same`). Targets: the two placements' devices and
@@ -814,11 +814,11 @@ pub const CARRIER_INCOMPATIBLE: RuleMeta = RuleMeta {
 ///   pose is valid, each of: a part whose mount kind does not fit the rail's profile (`profile`, doc 12 §3.3's table)
 ///   or does not mount on the surface itself (`surface`, a rail part on the plate); a footprint whose interval on its
 ///   rail leaves `[0, L]` (`overflow`: a strip grown by added terminals); a footprint outside the surface's usable
-///   polygon (`outside`). A placement on a rail whose path breaks D5 is left to the rail's own finding;
-/// - per carrier: a path that breaks D5 (`path`: a rail that is not two points on one horizontal or vertical line, a
-///   duct that is not an orthogonal polyline; such a carrier has no length, D11), or an outline outside the usable
+///   polygon (`outside`). A placement on a rail whose path is invalid is left to the rail's own finding;
+/// - per carrier: an invalid path (`path`: a rail that is not two points on one horizontal or vertical line, a
+///   duct that is not an orthogonal polyline; such a carrier has no length), or an outline outside the usable
 ///   polygon (`outside`);
-/// - D3's MVP limits: a second layout space of one location (`spaces`), a second enclosure in one layout space
+/// - The MVP limits: a second layout space of one location (`spaces`), a second enclosure in one layout space
 ///   (`enclosures`), a second plate surface of one enclosure (`plates`); the record with the smallest ID is the one
 ///   the layout uses, every other is reported;
 /// - per derived end bracket of a rail (`group_accessories`): one that overlaps
@@ -890,7 +890,7 @@ fn placement_cases(q: &Q, pl: &Placement, out: &mut Vec<Finding>) {
                 CarrierKind::Unknown(_) => return,
                 CarrierKind::Rail => {}
             }
-            // a rail whose path breaks D5 has no axis: its own `path` finding reports it
+            // a rail whose path is invalid has no axis: its own `path` finding reports it
             let Some(axis) = RailAxis::of(&carrier.path) else {
                 return;
             };
@@ -1103,7 +1103,7 @@ fn bracket_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
     }
 }
 
-/// The carrier cases of EW-LAY-010: a path that breaks D5, an outline outside the usable polygon.
+/// The carrier cases of EW-LAY-010: an invalid path, an outline outside the usable polygon.
 fn carrier_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
     let geometry = q.get::<CarrierGeometry>(id);
     let Some(geom) = geometry.as_ref() else {
@@ -1144,7 +1144,7 @@ fn carrier_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
     }
 }
 
-/// D3's MVP limits: one layout space per location, one enclosure per space, one plate surface per enclosure.
+/// The MVP limits: one layout space per location, one enclosure per space, one plate surface per enclosure.
 fn limit_cases(q: &Q, out: &mut Vec<Finding>) {
     let devices_tag = |d: Id<Device>| device_name(q, d);
     // `iter` is in ID order: the first record of each owner is the one the layout uses, every later one is extra
