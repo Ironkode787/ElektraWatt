@@ -414,11 +414,7 @@ fn make_variable_binds_a_property_row() {
     let key = row_key(&shell, NavKind::Macros, NavRole::Macro, "PSU with tag");
     done(&mut shell, "navigator.row", json!({"kind": "macros", "key": key}));
     let d = shell.macro_detail().unwrap();
-    assert!(
-        d.variables.iter().any(|v| v.name == "pt"),
-        "{:?}",
-        d.variables
-    );
+    assert!(d.variables.iter().any(|v| v.name == "pt"), "{:?}", d.variables);
 }
 
 /// With the frames' and title block's copies without a source, Update… of every copy refuses (no

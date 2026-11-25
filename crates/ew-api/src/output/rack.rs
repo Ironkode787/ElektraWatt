@@ -415,7 +415,10 @@ fn device_row(q: &Q, device: Id<Device>) -> RackRow {
         let d = q.devices().get(device)?;
         q.parts().get(d.parts.first()?.part.copy).map(|c| c.item.clone())
     };
-    let part = described.as_ref().map(|(copy, _)| copy.item.clone()).or_else(first);
+    let part = described
+        .as_ref()
+        .map(|(copy, _)| copy.item.clone())
+        .or_else(first);
     let page = drawn_folio(q, device);
     let tag = tag(q, device);
     RackRow {
@@ -590,9 +593,18 @@ impl Session {
             .unwrap_or_default();
         Some(RackView {
             tag: tag(&q, id),
-            part: section.as_ref().map(|(copy, _)| part_text(&copy.item)).unwrap_or_default(),
-            part_number: section.as_ref().map(|(copy, _)| part_number(&copy.item)).unwrap_or_default(),
-            part_description: section.as_ref().map(|(copy, _)| description(&copy.item)).unwrap_or_default(),
+            part: section
+                .as_ref()
+                .map(|(copy, _)| part_text(&copy.item))
+                .unwrap_or_default(),
+            part_number: section
+                .as_ref()
+                .map(|(copy, _)| part_number(&copy.item))
+                .unwrap_or_default(),
+            part_description: section
+                .as_ref()
+                .map(|(copy, _)| description(&copy.item))
+                .unwrap_or_default(),
             head: device_row(&q, id),
             plc,
             plc_project: Some(cfg.as_uuid()),

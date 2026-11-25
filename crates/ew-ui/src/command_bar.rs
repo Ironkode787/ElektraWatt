@@ -751,7 +751,7 @@ impl CommandBarHost {
                 sense: Sense::click(),
             },
         )
-        .tip(strings::format(key!("name-with-key"), &[&menu_name, "Alt"]));
+        .tip(strings::format(key!("name-with-key"), &[menu_name, "Alt"]));
         // The pop-up's expanded state with it.
         let open = egui::Popup::is_id_open(ui.ctx(), app_menu_id());
         ui.ctx().accesskit_node_builder(response.id, |n| {

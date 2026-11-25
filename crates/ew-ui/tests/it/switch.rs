@@ -8,8 +8,8 @@
 use crate::support;
 
 use egui_kittest::Harness;
-use ew_ui::app::App;
 use ew_render2d::gpu::{AdapterSummary, DeviceKind, GpuApi, GpuError};
+use ew_ui::app::App;
 use ew_viewmodel::layout::PaneKind;
 use ew_viewmodel::shell::Outcome;
 use serde_json::json;
