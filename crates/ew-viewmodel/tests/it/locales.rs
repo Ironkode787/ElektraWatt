@@ -947,3 +947,31 @@ fn the_reworded_texts_in_both_languages() {
         ]
     );
 }
+
+/// A member's or a value's word (`field-word-`, `choice-`, a field's own `field-`) names one thing wherever the window
+/// shows it, so the words that read alike in English read alike in Dutch: a field that means another thing has its
+/// own English words.
+#[test]
+fn the_member_words_that_read_alike_in_english_read_alike_in_dutch() {
+    fn words(locale: &str) -> std::collections::BTreeMap<String, String> {
+        shipped_file(locale)
+            .lines()
+            .filter_map(|l| l.split_once(" = "))
+            .filter(|(k, _)| {
+                k.starts_with("field-word-")
+                    || k.starts_with("choice-")
+                    || (k.starts_with("field-") && !k.starts_with("field-help-"))
+            })
+            .map(|(k, v)| (k.to_owned(), v.to_owned()))
+            .collect()
+    }
+    let (en, nl) = (words("en-GB"), words("nl-NL"));
+    let mut dutch: std::collections::BTreeMap<&str, std::collections::BTreeSet<&str>> = Default::default();
+    for (key, english) in &en {
+        if let Some(d) = nl.get(key) {
+            dutch.entry(english.as_str()).or_default().insert(d.as_str());
+        }
+    }
+    let two: Vec<_> = dutch.into_iter().filter(|(_, d)| d.len() > 1).collect();
+    assert_eq!(two, Vec::new());
+}

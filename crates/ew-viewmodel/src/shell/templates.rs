@@ -788,7 +788,7 @@ impl ShellModel {
                 fields: vec![
                     field(
                         "name",
-                        key!("form-template-name"),
+                        key!("form-name"),
                         none,
                         strings::format(key!("save-template-default-name"), &[&project_name]),
                     ),

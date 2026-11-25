@@ -143,7 +143,7 @@ pub(super) static MEDIUM_NEW: Spec = Spec {
     title_key: key!("medium-new-title"),
     fields: &[
         field("preset", key!("form-medium-preset")),
-        field("name", key!("form-medium-name")),
+        field("name", key!("form-name")),
         field("p_nom", key!("form-medium-pressure")),
     ],
 };
@@ -362,7 +362,7 @@ static SECTION_NEW: Spec = Spec {
     title_key: key!("new-section-title"),
     fields: &[
         field("title", key!("form-title")),
-        field("first", key!("form-section-first")),
+        field("first", key!("form-first-folio")),
         field("last", key!("form-section-last")),
         field("number", key!("form-section")),
     ],

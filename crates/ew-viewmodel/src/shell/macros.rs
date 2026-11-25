@@ -1110,13 +1110,13 @@ impl ShellModel {
                 value,
             };
             let mut fields = vec![
-                field("name", key!("form-macro-name"), name),
+                field("name", key!("form-name"), name),
                 field("key", key!("form-macro-key"), key),
                 field("description", key!("form-macro-description"), description),
                 field("library", key!("form-macro-library"), library),
                 FormField {
                     name: "kind",
-                    label_key: key!("form-macro-kind"),
+                    label_key: key!("form-kind"),
                     choices: &super::choices::MACRO_KINDS,
                     options: Vec::new(),
                     value: if page_macro { "page" } else { "window" }.to_owned(),

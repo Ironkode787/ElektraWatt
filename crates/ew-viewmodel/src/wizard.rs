@@ -124,14 +124,14 @@ impl Step {
     /// The key of the step's line on whether and where its settings can be changed later.
     pub fn later_key(self) -> Key<'static> {
         match self {
-            Step::Company => key!("wizard-later-company"),
-            Step::Frame => key!("wizard-later-frame"),
+            Step::Company => key!("wizard-later"),
+            Step::Frame => key!("wizard-later"),
             Step::Colour => key!("wizard-later-colour"),
             Step::Size => key!("wizard-later-size"),
             Step::Numbering => key!("wizard-later-numbering"),
             Step::Structure => key!("wizard-later-structure"),
             Step::Revisions => key!("wizard-later-revisions"),
-            Step::Languages => key!("wizard-later-languages"),
+            Step::Languages => key!("wizard-later"),
             Step::Reports => key!("wizard-later-reports"),
             Step::Review => key!("wizard-later-review"),
         }

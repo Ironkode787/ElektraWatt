@@ -296,7 +296,7 @@ fn rename_field(ui: &mut Ui, t: &theme::Tokens, i: usize, name: &str, events: &m
             .desired_width(t.size_text_measure.min(ui.available_width() * 0.5))
             .min_size(egui::vec2(0.0, t.size_control)),
     );
-    let label = strings::text(key!("form-template-name"));
+    let label = strings::text(key!("form-name"));
     ui.ctx().accesskit_node_builder(edit.id, |n| n.set_label(label));
     if !edit.has_focus() && !edit.lost_focus() && ui.data(|d| d.get_temp::<String>(id)).is_none() {
         edit.request_focus();

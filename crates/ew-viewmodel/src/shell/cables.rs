@@ -650,7 +650,7 @@ impl ShellModel {
                         value,
                     });
                 }
-                fields.push(text("tag", key!("form-cable-tag"), proposed.unwrap_or_default()));
+                fields.push(text("tag", key!("form-tag"), proposed.unwrap_or_default()));
                 fields.push(text("type", key!("form-cable-type"), type_text));
                 fields.push(text("length", key!("form-bus-cable-length"), form.length.clone()));
                 let mut dialog = FormDialog {
@@ -1026,7 +1026,7 @@ impl ShellModel {
         let mut fields = vec![
             field(
                 "cable",
-                key!("form-bus-cable-which"),
+                key!("form-cable"),
                 which,
                 form.cable.map_or_else(|| NEW_CABLE.to_owned(), |c| c.to_string()),
             ),
@@ -1037,12 +1037,7 @@ impl ShellModel {
                 cables,
                 form.part.map(|u| u.to_string()).unwrap_or_default(),
             ),
-            field(
-                "tag",
-                key!("form-cable-tag"),
-                Vec::new(),
-                proposed.unwrap_or_default(),
-            ),
+            field("tag", key!("form-tag"), Vec::new(), proposed.unwrap_or_default()),
             field(
                 "length",
                 key!("form-bus-cable-length"),

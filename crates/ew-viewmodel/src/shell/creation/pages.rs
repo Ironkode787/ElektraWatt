@@ -285,7 +285,7 @@ impl ShellModel {
                 ok_key: key!("dialog-apply"),
                 fields: vec![
                     field("title", key!("form-title"), shown),
-                    field("first", key!("form-section-first"), from.to_string()),
+                    field("first", key!("form-first-folio"), from.to_string()),
                     field("last", key!("form-section-last"), to.to_string()),
                     field("number", key!("form-section"), number),
                 ],

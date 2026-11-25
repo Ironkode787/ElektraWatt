@@ -1571,7 +1571,7 @@ impl ShellModel {
             fields: vec![
                 super::FormField {
                     name: "location",
-                    label_key: key!("form-enclosure-location"),
+                    label_key: key!("form-locate-location"),
                     choices: &super::choices::NONE,
                     options,
                     value: location,
@@ -1832,7 +1832,7 @@ impl ShellModel {
                             name: "devices",
                             heading_key: key!("form-auto-fill-devices"),
                             fixed: true,
-                            key_label: key!("form-locate-device"),
+                            key_label: key!("form-device"),
                             add_key: key!("form-value-set-add"),
                             columns: vec![(
                                 strings::text(key!("form-auto-fill-tick")).to_owned(),
@@ -2065,7 +2065,7 @@ impl ShellModel {
                         name: "devices",
                         heading_key: key!("form-locate-devices"),
                         fixed: true,
-                        key_label: key!("form-locate-device"),
+                        key_label: key!("form-device"),
                         add_key: key!("form-value-set-add"),
                         columns: vec![(tick, super::TICK.to_owned())],
                         rows: candidates

@@ -337,7 +337,7 @@ impl ShellModel {
                     field("strip", key!("form-terminal-strip"), strips.clone(), chosen),
                     field(
                         "kind",
-                        key!("form-terminal-kind"),
+                        key!("form-kind"),
                         kinds.iter().map(|s| (s.key.clone(), s.name.clone())).collect(),
                         kinds[0].key.clone(),
                     ),

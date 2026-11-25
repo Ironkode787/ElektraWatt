@@ -1311,7 +1311,7 @@ mod tests {
                 "Eindsteun"
             ]
         );
-        // One word, two meanings, each field its own words; the merge's sides.
+        // One word, two meanings, each field its own words; the merge's sides take the values' words.
         let fields = [
             ("function", "role", "main"),
             ("device", "terminal.levels[0].role", "main"),
@@ -1329,7 +1329,7 @@ mod tests {
                 "Onze versie"
             ]
         );
-        assert_eq!(choice_text("theirs"), "Versie op schijf");
+        assert_eq!(choice_text("theirs"), "Hun versie");
         assert!(set_locale("en"));
         assert_eq!(
             fields.map(|(k, p, v)| field_choice_text(k, p, v)),
