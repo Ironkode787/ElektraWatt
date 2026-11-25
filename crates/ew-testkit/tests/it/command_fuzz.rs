@@ -56,13 +56,10 @@
 //!   `a_whole_run_is_deterministic`, the regressions of `fuzz/regressions/command_sequence` as step sequences,
 //!   `save_and_reload_of_the_sample_round_trips`, `embed_then_undo_of_a_named_fndef_restores_the_sample`,
 //!   `table_import_oracles_hold`, `layout_command_sequences_save_incrementally_as_a_full_save`.
-//! - `fuzz_long` (ignored, the nightly body; see the function): `EW_FUZZ_SEEDS` (a comma list, or `a..b` /
-//!   `a..=b`, default 1..=20), `EW_FUZZ_STEPS` (default 300), the cadences `EW_FUZZ_SAMPLE_EVERY`,
-//!   `EW_FUZZ_CHECK_EVERY`, `EW_FUZZ_VERIFY_EVERY`, the step mix `EW_FUZZ_SAVE_WEIGHT` and
-//!   `EW_FUZZ_IMPORT_WEIGHT`, the wall-clock budget `EW_FUZZ_BUDGET_SECS` and the findings file
-//!   `EW_FUZZ_REPORT`.
+//! - `fuzz_long` (ignored, the deep run's; see the function): `EW_FUZZ_SEEDS` (a comma list, or `a..b` /
+//!   `a..=b`, default 1..=20), `EW_FUZZ_STEPS` (default 300) and the wall-clock budget `EW_FUZZ_BUDGET_SECS`.
 
-// The command fuzzer (and its modules): seeds, steps and the report path come from EW_FUZZ_* variables, and the step timers feed the report's timing lines only; a finding is a function of the seed.
+// The command fuzzer (and its modules): seeds, steps and the budget come from EW_FUZZ_* variables, and the step timers feed the report's timing lines only; a finding is a function of the seed.
 #![allow(clippy::disallowed_methods)]
 
 mod arms;
@@ -2337,7 +2334,7 @@ fn table_import_oracles_hold() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// The nightly body
+// The long run
 
 /// The wall-clock budget of [`fuzz_long`] without `EW_FUZZ_BUDGET_SECS`: the deep run gives it five minutes, which
 /// stays inside the test's timeout.
@@ -2369,62 +2366,6 @@ fn env_usize(name: &str) -> Option<usize> {
         .map(|s| s.trim().parse().unwrap_or_else(|_| panic!("{name} is a number")))
 }
 
-/// One finding of a nightly run: the seed and the failure text (seed, step, oracle, command log).
-struct Finding {
-    seed: u64,
-    text: String,
-}
-
-/// Writes the findings file of a nightly run: written first and rewritten after every seed, so that a run that
-/// is cut short (a timeout, a killed runner) still leaves what it found. The `FINDINGS: n` line is what the
-/// workflow's verdict step reads.
-fn write_report(
-    path: &Path,
-    status: &str,
-    requested: &[u64],
-    steps: usize,
-    done: &[u64],
-    findings: &[Finding],
-    total: &FuzzStats,
-) {
-    let mut out = String::new();
-    let _ = writeln!(out, "# Command fuzzer report\n");
-    let _ = writeln!(out, "status: {status}");
-    let _ = writeln!(out, "FINDINGS: {}\n", findings.len());
-    let _ = writeln!(
-        out,
-        "- seeds requested: {} ({}), run: {}, steps per seed: {steps}",
-        requested.len(),
-        match (requested.first(), requested.last()) {
-            (Some(a), Some(b)) => format!("{a} to {b}"),
-            _ => "none".to_owned(),
-        },
-        done.len()
-    );
-    let _ = writeln!(
-        out,
-        "- reproduce a finding: `EW_FUZZ_SEEDS=<seed> EW_FUZZ_STEPS={steps} cargo nextest run -p ew-testkit --test it --run-ignored only -E 'test(command_fuzz::fuzz_long)'`\n"
-    );
-    if findings.is_empty() {
-        let _ = writeln!(out, "No finding.\n");
-    }
-    for f in findings {
-        let _ = writeln!(
-            out,
-            "## Finding: seed {}\n\n```text\n{}\n```\n",
-            f.seed,
-            f.text.trim_end()
-        );
-    }
-    let _ = writeln!(out, "## Totals\n\n```text\n{}```", report("total", total));
-    if let Some(dir) = path.parent() {
-        let _ = std::fs::create_dir_all(dir);
-    }
-    if let Err(e) = std::fs::write(path, out) {
-        eprintln!("cannot write the findings file {}: {e}", path.display());
-    }
-}
-
 /// The text of a panic payload.
 fn payload_text(payload: &(dyn std::any::Any + Send)) -> String {
     payload
@@ -2434,14 +2375,14 @@ fn payload_text(payload: &(dyn std::any::Any + Send)) -> String {
         .unwrap_or_else(|| "(non-text panic payload)".to_owned())
 }
 
-/// The long run (no workflow runs it until 1.0): `EW_FUZZ_SEEDS` × `EW_FUZZ_STEPS` runs with every oracle,
-/// the deep round trips and the costly cadences.
+/// The long run of the deep run: `EW_FUZZ_SEEDS` × `EW_FUZZ_STEPS` runs with every oracle, the deep round trips
+/// and the costly cadences.
 ///
-/// A failing seed does not stop the others: its failure text (seed, step, oracle, command log) is a finding,
-/// the run goes on, and the test fails at the end if there was one. With `EW_FUZZ_REPORT=<file>` the findings
-/// file is written first and rewritten after every seed (see [`write_report`]). No new seed and no new step of
-/// the seed in flight starts after `EW_FUZZ_BUDGET_SECS` seconds of wall clock, [`DEFAULT_BUDGET_SECS`] without it (the run is then `status: budget`, not a failure: the
-/// seeds run are listed, and the seed list is deterministic, so the next night's range continues it).
+/// A failing seed does not stop the others: its failure text (seed, step, oracle, command log) is a finding, printed
+/// on stderr, the run goes on, and the test fails at the end if there was one. No new seed and no new step of the seed
+/// in flight starts after `EW_FUZZ_BUDGET_SECS` seconds of wall clock, [`DEFAULT_BUDGET_SECS`] without it (the run
+/// then stops without a failure; the seeds run are printed, and the seed list is deterministic, so a next run's range
+/// continues it).
 #[test]
 #[ignore = "deep run: the long fuzz (EW_FUZZ_SEEDS, EW_FUZZ_STEPS, EW_FUZZ_BUDGET_SECS)"]
 fn fuzz_long() {
@@ -2450,43 +2391,17 @@ fn fuzz_long() {
         Err(_) => (1..=20).collect(),
     };
     let steps = env_usize("EW_FUZZ_STEPS").unwrap_or(300);
-    let default = Cadence::default();
-    let cadence = Cadence {
-        sample_every: env_usize("EW_FUZZ_SAMPLE_EVERY").unwrap_or(default.sample_every),
-        check_every: env_usize("EW_FUZZ_CHECK_EVERY").unwrap_or(default.check_every),
-        verify_every: env_usize("EW_FUZZ_VERIFY_EVERY").unwrap_or(default.verify_every),
-        save_weight: env_usize("EW_FUZZ_SAVE_WEIGHT").unwrap_or(default.save_weight),
-        import_weight: env_usize("EW_FUZZ_IMPORT_WEIGHT").unwrap_or(default.import_weight),
-        ..default
-    };
+    let cadence = Cadence::default();
     let budget = std::time::Duration::from_secs(
         env_usize("EW_FUZZ_BUDGET_SECS").unwrap_or(DEFAULT_BUDGET_SECS) as u64,
     );
-    let report_path = std::env::var_os("EW_FUZZ_REPORT").map(std::path::PathBuf::from);
     let started = std::time::Instant::now();
     let mut total = FuzzStats::default();
-    let (mut done, mut findings) = (Vec::new(), Vec::new());
-    let mut status = "complete";
-    if let Some(p) = &report_path {
-        write_report(p, "running", &seeds, steps, &done, &findings, &total);
-    }
+    let mut findings: Vec<u64> = Vec::new();
     for &seed in &seeds {
         if started.elapsed() >= budget {
-            status = "budget";
+            eprintln!("the budget ended the run before seed {seed}");
             break;
-        }
-        // The seed in flight is on file before it starts: a hang, a stack overflow or an abort leaves
-        // `running seed N` behind, and the workflow turns that into a failed job (a finding).
-        if let Some(p) = &report_path {
-            write_report(
-                p,
-                &format!("running seed {seed}"),
-                &seeds,
-                steps,
-                &done,
-                &findings,
-                &total,
-            );
         }
         let deadline = started + budget;
         match catch_unwind(AssertUnwindSafe(|| {
@@ -2497,29 +2412,15 @@ fn fuzz_long() {
                 total.merge(&stats);
             }
             Err(payload) => {
-                let text = payload_text(&*payload);
-                eprintln!("FINDING at seed {seed}:\n{text}");
-                findings.push(Finding { seed, text });
+                eprintln!("FINDING at seed {seed}:\n{}", payload_text(&*payload));
+                findings.push(seed);
             }
-        }
-        done.push(seed);
-        if let Some(p) = &report_path {
-            write_report(p, "running", &seeds, steps, &done, &findings, &total);
-        }
-        // The budget ended this seed's steps: the run is `budget`, as when it keeps a seed from starting.
-        if started.elapsed() >= budget {
-            status = "budget";
-            break;
         }
     }
     eprintln!("{}", report("total", &total));
-    if let Some(p) = &report_path {
-        write_report(p, status, &seeds, steps, &done, &findings, &total);
-    }
     assert!(
         findings.is_empty(),
-        "{} fuzzer finding(s), seeds {:?}; the failure texts are above and in the findings file",
-        findings.len(),
-        findings.iter().map(|f| f.seed).collect::<Vec<_>>()
+        "{} fuzzer finding(s), seeds {findings:?}; the failure texts are above",
+        findings.len()
     );
 }

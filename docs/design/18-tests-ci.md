@@ -234,8 +234,8 @@ committed undoable step the undo law (undo restores the model before it, redo th
 reads whose oracle mismatches must be empty; the save-and-reload round trip (incremental saves, a reader reopens the
 directory, the models are `content_eq`); the CSV table import, strict and lenient; and a whole run of one seed gives
 the same outcome list and final model. A failure prints the seed, the step and the command log. `fuzz_smoke` (one
-short seed) runs with the targeted tests; `fuzz_long` is `#[ignore]`d and takes `EW_FUZZ_SEEDS`, `EW_FUZZ_STEPS` and
-the other `EW_FUZZ_*` variables.
+short seed) runs with the targeted tests; `fuzz_long` is `#[ignore]`d (the deep run) and takes `EW_FUZZ_SEEDS`,
+`EW_FUZZ_STEPS` and the wall-clock budget `EW_FUZZ_BUDGET_SECS`; `EW_FUZZ_TRACE` prints every step.
 
 *Target for 1.0; not in the repository during the alpha.* A nightly `fuzz_long` run (CI-N-02), the cargo-fuzz form of
 the same generator as a target `command_sequence` whose tape bytes steer the generator's draws, and AddressSanitizer
