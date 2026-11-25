@@ -240,13 +240,6 @@ pub enum OpenError {
     /// An older major's migration failed: a step's error, or no step where one is needed, with the
     /// file and the JSON Pointer.
     Migration(MigrationError),
-    /// A read-only opener met a save in progress for longer than the wait (doc 05 §6.4: exit code 2).
-    ///
-    /// Not returned by [`Store::open`]: after [`StoreOptions::read_only_wait`] a
-    /// read-only opener reads the intent's generation in memory instead (a crashed writer's lock stays
-    /// non-stale for `lock.stale_after` where the process probe cannot tell, on Windows). Kept for the CLI's
-    /// exit code until the design pass settles doc 05 §6.4.
-    SaveInProgress,
     /// The files hold no project record.
     NoProject(Vec<Finding>),
     /// The model refuses the records (a duplicate, a broken invariant, a dangling reference).
@@ -271,7 +264,6 @@ impl fmt::Display for OpenError {
             OpenError::NotADirectory(p) => write!(f, "{} is not a project directory", p.display()),
             OpenError::Format(m) => write!(f, "the project cannot be opened: {m}"),
             OpenError::Migration(e) => write!(f, "the project cannot be migrated from its older format: {e}"),
-            OpenError::SaveInProgress => f.write_str("a save is in progress; try again"),
             OpenError::NoProject(_) => f.write_str("the project holds no project record"),
             OpenError::Model { error, .. } => write!(f, "the project does not load: {error}"),
             OpenError::Takeover(e) => write!(f, "takeover failed: {e:?}"),

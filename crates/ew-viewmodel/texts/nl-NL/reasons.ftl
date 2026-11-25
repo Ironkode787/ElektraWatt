@@ -196,7 +196,6 @@ openerr-io = de bestanden kunnen niet worden gelezen
 openerr-not-dir = het is geen projectmap
 openerr-format = het bestandsformaat wordt niet ondersteund
 openerr-migration = een migratiestap is mislukt, of geen stap bereikt dit formaat
-openerr-busy = er wordt opgeslagen
 openerr-no-project = het bevat geen project
 openerr-model = de projectgegevens zijn niet geldig
 openerr-takeover = de vergrendeling kon niet worden overgenomen

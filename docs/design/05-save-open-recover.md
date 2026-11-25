@@ -228,7 +228,7 @@ flowchart TD
   opener reads the intent's generation **in memory**: each listed file from its target or from its temp, whichever
   matches the intent's hash, after the base check of §5.3. The disk is not changed, the result is exactly one
   generation, and a file that matches neither is EW-CORE-002. A read-only open therefore never waits longer than
-  5 s and never fails because a save is in progress; no `OpenError::SaveInProgress` is produced.
+  5 s and never fails because a save is in progress.
 - **Parallel parse.** Files are parsed in parallel into ordered tables, so the result does not depend on order.
 - **Budget.** Opening stays within NFR-PERF-03 (S ≤ 0.5 s … XL ≤ 20 s). Hashing the roughly 250 MB of an XL
   project takes well under a second in parallel (estimate, to be measured in the performance spike (gate G-SP)).

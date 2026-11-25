@@ -1016,7 +1016,6 @@ fn open_error_key(e: &OpenError) -> Key<'static> {
         OpenError::NotADirectory(_) => key!("openerr-not-dir"),
         OpenError::Format(_) => key!("openerr-format"),
         OpenError::Migration(_) => key!("openerr-migration"),
-        OpenError::SaveInProgress => key!("openerr-busy"),
         OpenError::NoProject(_) => key!("openerr-no-project"),
         OpenError::Model { .. } => key!("openerr-model"),
         OpenError::Takeover(_) => key!("openerr-takeover"),

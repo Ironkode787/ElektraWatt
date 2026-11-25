@@ -215,7 +215,6 @@ openerr-io = the files cannot be read
 openerr-not-dir = it is not a project directory
 openerr-format = the file format is not supported
 openerr-migration = a migration step failed, or no step reaches this format
-openerr-busy = a save is in progress
 openerr-no-project = it holds no project
 openerr-model = the project data is not valid
 openerr-takeover = the lock could not be taken over

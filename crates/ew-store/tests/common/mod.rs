@@ -7,7 +7,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, UNIX_EPOCH};
 
 use ew_format::Manifest;
@@ -15,8 +14,8 @@ use ew_model::{AnyKey, AnyRow, Asset, Model, ModelError, Op, Rev};
 use ew_schema::{COMPANY_MEMBER, Device, Kind, Page, Record};
 use ew_store::mem::{DirSync, MemVfs};
 use ew_store::{
-    Access, Identity, ManualClock, OpenError, Opened, ProcessProbe, ProcessState, ReadOnlyReason, Store,
-    StoreOptions, Vfs,
+    Access, Identity, ManualClock, Opened, ProcessProbe, ProcessState, ReadOnlyReason, Store, StoreOptions,
+    Vfs,
 };
 
 /// A probe that knows exactly one live process.
@@ -35,9 +34,6 @@ impl ProcessProbe for TestProbe {
         }
     }
 }
-
-/// How often [`try_reopen`] met `OpenError::SaveInProgress` behind a stale lock and took over regardless.
-pub static SAVE_IN_PROGRESS: AtomicUsize = AtomicUsize::new(0);
 
 /// The project root in the in-memory file system.
 pub fn root() -> PathBuf {
@@ -213,17 +209,8 @@ pub fn options(vfs: &Arc<MemVfs>, pid: u32) -> StoreOptions {
 /// A description of the failure when the project does not open at all.
 pub fn try_reopen(vfs: &Arc<MemVfs>, pid: u32) -> Result<Opened, String> {
     let root = root();
-    let opened = match Store::open(&root, options(vfs, pid)) {
-        Ok(o) => o,
-        Err(OpenError::SaveInProgress) => {
-            // A crashed save leaves an intent behind a stale lock, and the plain open gives up instead of
-            // reporting the stale lock; go on with the takeover the caller would be offered (counted).
-            SAVE_IN_PROGRESS.fetch_add(1, Ordering::Relaxed);
-            return Store::take_over(&root, options(vfs, pid))
-                .map_err(|e| format!("Store::take_over failed: {e} ({e:?})"));
-        }
-        Err(e) => return Err(format!("Store::open failed: {e} ({e:?})")),
-    };
+    let opened =
+        Store::open(&root, options(vfs, pid)).map_err(|e| format!("Store::open failed: {e} ({e:?})"))?;
     if let Access::ReadOnly(ReadOnlyReason::LockedBy(info)) = &opened.report.access {
         if info.stale {
             drop(opened);

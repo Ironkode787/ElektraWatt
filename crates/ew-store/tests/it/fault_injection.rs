@@ -729,7 +729,7 @@ fn crashed_incomplete_save(mode: DirSync) -> Crashed {
 fn behind_a_lock_that_looks_alive_a_read_only_open_reads_the_intent_after_the_wait() {
     // Where the process probe cannot tell that the writer died (Windows), its lock
     // stays non-stale for `lock.stale_after`. Openers then wait the 5 s for the save in progress, and read
-    // the intent's generation in memory instead of failing with SaveInProgress. Nothing is written.
+    // the intent's generation in memory instead of failing. Nothing is written.
     for mode in MODES {
         let s = crashed_incomplete_save(mode);
         let before = project_files(&s.vfs, &root());
