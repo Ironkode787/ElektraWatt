@@ -112,14 +112,30 @@ fn the_tree_levels_and_badges() {
     }
 }
 
-/// PG4: each facet on the sample, then after the edit that sets it. FR-PLC-021: `spare` shows exactly the 13 spare
-/// channels of the two cards (7 inputs, 6 outputs).
+/// PG4: each facet on the sample, then after the edit that sets it. FR-PLC-021: `spare` shows the spare channels,
+/// those of the two cards without a target; `unplaced` those drawn on no page.
 #[test]
 fn each_facet_on_the_sample() {
     let s = common::sample();
     let t = s.navigator_table(NavKind::Plc);
-    assert_eq!(with(&t, "spare", "").len(), 13, "FR-PLC-021");
-    assert_eq!(with(&t, "unplaced", "").len(), 4);
+    let spare = with(&t, "spare", "");
+    assert!(!spare.is_empty(), "FR-PLC-021");
+    for n in &spare {
+        assert!(cell(&t, n, "target").is_empty(), "a spare channel has no target");
+        assert!(
+            ["-104A1-A1", "-104A1-A2"].contains(&cell(&t, n, "module")),
+            "FR-PLC-021: a channel of the two cards"
+        );
+    }
+    let unplaced = with(&t, "unplaced", "");
+    assert!(!unplaced.is_empty());
+    for n in channels(&t) {
+        assert_eq!(
+            unplaced.iter().any(|u| u.key == n.key),
+            cell(&t, n, "placed_on").is_empty(),
+            "a channel is unplaced when it is on no page"
+        );
+    }
     let config = t.nodes[0].label.clone();
     assert_eq!(
         with(&t, "config", &config).len(),

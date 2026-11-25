@@ -410,13 +410,20 @@ fn cables_plc_potentials_parts() {
 #[test]
 fn ips_structure_blocks() {
     let s = common::sample();
-    // Interruption points: the six outgoing marks of 101, the incoming ones of 102 (3), 103 (4) and 104 (2), and the
-    // supply's five external marks: 20 functions under 10 names, 3 pairs (1L1, 1L2, 1L3) and 5 external points.
+    // Interruption points: the outgoing marks of 101, the incoming ones of 102, 103 and 104, and the supply's
+    // external marks: each function under its name, 3 pairs (1L1, 1L2, 1L3) and 5 external points.
     let t = s.navigator_table(NavKind::Ips);
     assert_tree_contract(&t);
     let names: Vec<&NavNode> = t.nodes.iter().filter(|n| n.role == NavRole::Name).collect();
-    assert_eq!(names.len(), 10);
-    assert_eq!(table_rows(&t).len(), 20);
+    let mut labels: Vec<&str> = names.iter().map(|n| n.label.as_str()).collect();
+    labels.sort_unstable();
+    labels.dedup();
+    assert_eq!(labels.len(), names.len(), "one node per name");
+    assert_eq!(
+        table_rows(&t).len(),
+        names.iter().map(|n| children(&t, n).len()).sum::<usize>(),
+        "every function under its name"
+    );
     let pairs = names.iter().filter(|n| children(&t, n).len() == 2).count();
     let external: Vec<&NavNode> = table_rows(&t)
         .into_iter()

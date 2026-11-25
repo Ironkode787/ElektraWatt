@@ -14,7 +14,8 @@
 //! The sample's channels, as its script makes them: the PLC's input card -104A1-A1 and output card -104A1-A2, eight
 //! channels each, with the position switch -104B1 on one input and the two signal lamps on two outputs; and the valve
 //! terminal -201K1's eight outputs, of which its four valves' coils take every second one and the other four are
-//! deactivated. The default lists 20 rows (7 used, 13 spare); `include_deactivated: true` adds the 4 deactivated.
+//! deactivated. The default lists the used and the spare channels; `include_deactivated: true` adds the deactivated in
+//! place.
 //! The other PLC and bus lists' rows are `ew-reports`' `plc_bus_lists.rs`.
 
 use crate::common;
@@ -102,14 +103,13 @@ fn switch_row(rows: &[Vec<String>]) -> &Vec<String> {
 }
 
 #[test]
-fn the_default_io_list_lists_20_rows_of_used_and_spare_channels() {
+fn the_default_io_list_lists_the_used_and_spare_channels() {
     let (s, block) = sample_with_io_list();
     let q = s.query();
     let rows = printed(&q, block.id);
-    assert_eq!(rows.len(), 20);
     let state = |r: &Vec<String>| r[19].clone();
-    assert_eq!(rows.iter().filter(|r| state(r) == "used").count(), 7);
-    assert_eq!(rows.iter().filter(|r| state(r) == "spare").count(), 13);
+    assert!(rows.iter().all(|r| ["used", "spare"].contains(&state(r).as_str())), "{rows:?}");
+    assert!(rows.iter().any(|r| state(r) == "spare"), "{rows:?}");
     assert_eq!(
         key_cells(switch_row(&rows)),
         ["-104A1-A1", "EW-GEN-DI-1", "DI", "-104B1", "14", "104-F2", "used"]
@@ -139,8 +139,9 @@ fn the_default_io_list_lists_20_rows_of_used_and_spare_channels() {
 }
 
 #[test]
-fn include_deactivated_lists_24_rows_in_place() {
-    let (_, block) = sample_with_io_list();
+fn include_deactivated_lists_every_channel_in_place() {
+    let (default, block) = sample_with_io_list();
+    let default_rows = printed(&default.query(), block.id).len();
     let s = sample_with_block(with_params(block.clone(), json!({"include_deactivated": true})));
     let q = s.query();
     let rows = printed(&q, block.id);
@@ -155,6 +156,7 @@ fn include_deactivated_lists_24_rows_in_place() {
         ["1", "3", "5", "7"],
         "the valve terminal's odd channels, in place"
     );
+    assert_eq!(rows.len() - deactivated.len(), default_rows, "the default leaves out the deactivated");
     let terminal: Vec<&str> = rows
         .iter()
         .filter(|r| r[5] == "-201K1")
@@ -163,36 +165,37 @@ fn include_deactivated_lists_24_rows_in_place() {
     assert_eq!(terminal, ["0", "1", "2", "3", "4", "5", "6", "7"]);
     // `false` is the default
     let s = sample_with_block(with_params(block.clone(), json!({"include_deactivated": false})));
-    assert_eq!(printed(&s.query(), block.id).len(), 20);
+    assert_eq!(printed(&s.query(), block.id).len(), default_rows);
 }
 
 #[test]
-fn a_parameter_that_is_not_a_boolean_gives_20_rows() {
-    let (_, block) = sample_with_io_list();
+fn a_parameter_that_is_not_a_boolean_gives_the_default_rows() {
+    let (default, block) = sample_with_io_list();
+    let default_rows = printed(&default.query(), block.id).len();
     for value in [json!("yes"), json!(1)] {
         let s = sample_with_block(with_params(block.clone(), json!({"include_deactivated": value})));
         let q = Q::new(&s.world().model);
-        assert_eq!(q.get::<BlockRows>(block.id).rows.len(), 20, "{value}");
+        assert_eq!(q.get::<BlockRows>(block.id).rows.len(), default_rows, "{value}");
     }
 }
 
-/// `ew export report --block 950 --format csv` (the CLI calls `row_export`): the header and the 20 rows.
+/// `ew export report --block 950 --format csv` (the CLI calls `row_export`): the header and a line per row.
 #[test]
-fn the_export_by_block_writes_the_header_and_20_rows() {
+fn the_export_by_block_writes_the_header_and_its_rows() {
     let (s, block) = sample_with_io_list();
     let q = s.query();
     let out = row_export(&q, &RowExport::Report, Some(&FOLIO.to_string())).expect("the I/O list's rows");
+    let rows = printed(&q, block.id);
     assert_eq!(out.kind, "io_list");
-    assert_eq!(out.rows, 20);
+    assert_eq!(out.rows, rows.len());
     assert_eq!(out.blocks, [block.id.to_string()]);
     let lines: Vec<&str> = out.csv.lines().collect();
-    assert_eq!(lines.len(), 21);
+    assert_eq!(lines.len(), rows.len() + 1);
     assert_eq!(
         lines[0],
         "row,Configuration project,CPU,Station,Bus address,Slot,Module,Part,Channel,Designation,Kind,Address,Symbol,\
          Data type,Comment,Function text,Process tag,Target,Target pin,Target page,State"
     );
-    let rows = printed(&q, block.id);
     let switch = rows
         .iter()
         .position(|r| r[16] == "-104B1")

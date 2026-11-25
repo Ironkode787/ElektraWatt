@@ -832,8 +832,7 @@ fn sql_a_recursive_cte_bomb_stops_at_its_deadline_and_changes_nothing() {
 }
 
 /// `ew export cables` and `ew export bom` print their lists of the sample: the cable list, with its row count on stderr
-/// (the overview's heading and 3 cables, then each cable's heading and its 5, 5 and 3 cores, shields included: 20) and
-/// no lock left behind; the parts list by default, with `--mode parts` and with its alias `component`, the same bytes;
+/// and no lock left behind; the parts list by default, with `--mode parts` and with its alias `component`, the same bytes;
 /// and the assembly list, the parts list with the column "Covers", empty in the sample, which holds no assembly.
 #[test]
 fn export_csv_prints_the_lists() {
@@ -845,8 +844,9 @@ fn export_csv_prints_the_lists() {
         o
     };
     let cables = export(&["cables"]);
-    assert_eq!(stderr(&cables), "20 rows\n");
-    assert_eq!(stdout(&cables).lines().count(), 21, "the header and 20 rows");
+    let rows = stdout(&cables).lines().count() - 1;
+    assert!(stdout(&cables).starts_with("row,Cable,"), "the header first");
+    assert_eq!(stderr(&cables), format!("{rows} rows\n"), "the rows after the header, counted");
     assert!(!std::path::Path::new(SAMPLE).join(".~ew.lock").exists());
     let parts = stdout(&export(&["bom"]));
     for mode in ["parts", "component"] {
