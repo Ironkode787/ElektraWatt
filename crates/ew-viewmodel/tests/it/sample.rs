@@ -4,7 +4,7 @@
 //! The sample project (`fixtures/sample/`): the committed folder `sample.ew` is what the UI script `sample.uiscript`
 //! makes through the window's own actions, and it is clean under the pre-delivery checks. `EW_BLESS=1` (and so
 //! `cargo xtask gen`) writes the folder again from the script. The helpers that give other tests the sample (in place
-//! read-only, or a copy) are in `tests/common`; the script itself is described in `docs/plan/m3.5-reference-project.md`.
+//! read-only, or a copy) are in `tests/common`; the script itself is described in doc 18 §3.10.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
