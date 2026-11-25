@@ -268,7 +268,9 @@ pub fn rule_of(node: &NavNode) -> Option<String> {
 
 /// The fingerprint text of a finding row's key (`…/finding:<fingerprint>`).
 pub fn fingerprint_of(key: &str) -> Option<&str> {
-    key.rsplit('/').next()?.strip_prefix("finding:")
+    let segment = key.rsplit('/').next()?.strip_prefix("finding:")?;
+    // A second finding of one fingerprint is numbered after the first (`#2`, `NavNode::key`).
+    segment.split('#').next()
 }
 
 /// The key of the rule group of the release's housekeeping warnings under Warnings.
@@ -554,6 +556,11 @@ mod tests {
         );
         assert!(!d.title.is_empty(), "the shipped rule's title");
         assert_eq!(fingerprint_of("severity:error/rule:X/finding:ab12"), Some("ab12"));
+        assert_eq!(
+            fingerprint_of("severity:error/rule:X/finding:ab12#2"),
+            Some("ab12"),
+            "a second of one fingerprint"
+        );
         assert_eq!(fingerprint_of("severity:error/rule:X"), None);
         assert_eq!(group_severity("severity:warning"), Some(Severity::Warning));
         assert_eq!(group_severity("severity:error/rule:EW-CORE-033"), None);

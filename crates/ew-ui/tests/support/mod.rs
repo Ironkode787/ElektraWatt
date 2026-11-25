@@ -104,7 +104,9 @@ pub const CLOCK: Clock = Clock::Frame;
 pub const MAIN: Vec2 = Vec2::new(1920.0, 1080.0);
 
 /// A harness around the frame of a shell the test made itself (resources, a first-run flow already started), in a
-/// window of 1920 × 1080 points, the main resolution (doc 16a §2), on [`CLOCK`].
+/// window of 1920 × 1080 points, the main resolution (doc 16a §2), on [`CLOCK`]. Two widgets of one ID in a view the
+/// test opens fail it in the frame that paints them: egui writes its warning ("First use of widget ID …") behind a
+/// glyph the window's fonts lack (U+1F525), and the harness's missing-glyph policy refuses it ("No glyph for …").
 pub fn harness_with<'a>(shell: ShellModel, platform: Scripted, initial: Option<PathBuf>) -> Harness<'a, App> {
     let app = App::new(shell, Box::new(platform), initial, CLOCK);
     Harness::builder()

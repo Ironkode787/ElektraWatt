@@ -25,7 +25,7 @@
 //! PLC is the PLC navigator and grid: configuration project → station → module →
 //! channel from `plc_rows(station)`, with the grid's own columns, typed editors and facets.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::{PageOrder, PageRef, Q, RepAnchorCell};
 use ew_ids::Id;
@@ -368,7 +368,9 @@ pub struct NavOpen {
 /// rendered ([`NavTable::render`]).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct NavNode<W = String> {
-    /// The node's key, unique in the table and stable across revisions.
+    /// The node's key, unique in the table and stable across revisions: the path of its segments from the top, a
+    /// segment that its parent holds already numbered after it (`#2`, `#3`, in the order the rows are built). The
+    /// window takes a row's identity from it.
     pub key: String,
     /// The index of the parent node, `None` at the top level.
     pub parent: Option<u32>,
@@ -551,6 +553,8 @@ pub(super) fn state_word(s: &DeviceState) -> &'static str {
 /// A table under construction.
 struct Builder {
     nodes: Vec<NavNode<crate::Text>>,
+    /// The keys the table holds, each once ([`Builder::push`]).
+    keys: BTreeSet<String>,
     /// Whether a measured number is written with a point whatever the project sets: the table the command line prints
     /// and the round-trip export reads back ([`Session::navigator_table`]); else as the project prints it.
     point: bool,
@@ -571,10 +575,19 @@ impl Builder {
         cells: Option<Vec<crate::Text>>,
         facets: Vec<(String, String)>,
     ) -> u32 {
-        let key = match parent {
+        let path = match parent {
             Some(p) => format!("{}/{segment}", self.nodes[p as usize].key),
             None => segment.to_owned(),
         };
+        // A key is the row's identity, in the table and in the window: a row whose segment another row of its parent
+        // has already (two findings of one fingerprint: EW-FL-008's two open exhausts of one valve) is numbered after
+        // it, so that no two rows share one.
+        let mut key = path.clone();
+        let mut n = 1;
+        while !self.keys.insert(key.clone()) {
+            n += 1;
+            key = format!("{path}#{n}");
+        }
         let open = drawables.first().map(|d| NavOpen {
             page: d.page,
             select: drawables
@@ -654,6 +667,7 @@ impl Session {
         let rev = self.world().rev.0;
         let mut b = Builder {
             nodes: Vec::new(),
+            keys: BTreeSet::new(),
             point,
         };
         let q = self.query();
@@ -986,6 +1000,48 @@ mod tests {
     use super::columns::EDITABLE_COLUMNS;
     use super::messages::primary_drawables;
     use super::*;
+
+    /// Two rows of one parent with one segment (two findings of one fingerprint) get keys of their own, the second
+    /// numbered after the first, and a child of the second hangs under its key: the window takes a row's identity
+    /// from its key.
+    #[test]
+    fn a_segment_given_twice_is_numbered_so_that_every_key_is_unique() {
+        let mut b = Builder {
+            nodes: Vec::new(),
+            keys: BTreeSet::new(),
+            point: false,
+        };
+        let push = |b: &mut Builder, parent, segment: &str| {
+            let label = crate::Text::bare(crate::TextArg::Plain(segment.into()));
+            b.push(
+                parent,
+                NavRole::Finding,
+                segment,
+                label,
+                Vec::new(),
+                Vec::new(),
+                Vec::new(),
+                None,
+                Vec::new(),
+            )
+        };
+        let rule = push(&mut b, None, "rule:EW-FL-008");
+        let first = push(&mut b, Some(rule), "finding:ab12");
+        let second = push(&mut b, Some(rule), "finding:ab12");
+        let child = push(&mut b, Some(second), "port");
+        let keys: Vec<&str> = [first, second, child]
+            .iter()
+            .map(|i| b.nodes[*i as usize].key.as_str())
+            .collect();
+        assert_eq!(
+            keys,
+            [
+                "rule:EW-FL-008/finding:ab12",
+                "rule:EW-FL-008/finding:ab12#2",
+                "rule:EW-FL-008/finding:ab12#2/port"
+            ]
+        );
+    }
 
     /// A message that leads with its subject, or
     /// names it after a word (the layout rules' "Wire <wire> has no route", in either language), is shown without

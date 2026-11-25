@@ -28,6 +28,7 @@ impl Session {
         let rev = self.world().rev.0;
         let mut b = Builder {
             nodes: Vec::new(),
+            keys: std::collections::BTreeSet::new(),
             point: false,
         };
         let q = self.query();

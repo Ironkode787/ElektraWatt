@@ -979,3 +979,38 @@ fn a_group_rows_count_follows_its_name() {
         h.state_mut().shell_mut().shutdown();
     }
 }
+
+/// A persona run: a red "First use of widget ID" over the last rows of Messages. A valve with its two exhausts open
+/// gives EW-FL-008 two findings of one fingerprint, and their two rows took one key, which the window takes a row's
+/// identity from. Each row has a key of its own, the window draws the two without an ID clash (the settles' check),
+/// and each says its own port.
+#[test]
+fn two_findings_of_one_fingerprint_are_two_rows_of_their_own() {
+    let tmp = Tmp::new();
+    let mut h = on_sample(&tmp, Scripted::default());
+    dispatch(&mut h, "page.goto", json!({"folio": "201"}));
+    dispatch(&mut h, "cursor.set", json!({"x_mm": 250.0, "y_mm": 100.0}));
+    dispatch(&mut h, "tool.place", json!({}));
+    dispatch(&mut h, "place.pick", json!({"part": "EW-GEN-VLV-1"}));
+    dispatch(&mut h, "canvas.activate", json!({"alt": true}));
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    dispatch(&mut h, "messages.check", json!({}));
+    dispatch(&mut h, "messages.show", json!({"on": true}));
+    dispatch(
+        &mut h,
+        "navigator.filter",
+        json!({"kind": "messages", "text": "exhaust"}),
+    );
+    settle(&mut h);
+    let rows: Vec<(String, String)> = h
+        .state()
+        .shell()
+        .shown_rows(NavKind::Messages)
+        .into_iter()
+        .filter(|r| r.role == "finding")
+        .map(|r| (r.key, r.label))
+        .collect();
+    assert_eq!(rows.len(), 2, "{rows:?}");
+    assert_ne!(rows[0].0, rows[1].0, "a key each");
+    assert_ne!(rows[0].1, rows[1].1, "a port each");
+}
