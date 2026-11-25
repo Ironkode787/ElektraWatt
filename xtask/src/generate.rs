@@ -189,22 +189,42 @@ fn reference_test(root: &Path, dir: &Path, package: &str, args: &[&str]) -> Resu
     test_with(root, ("EW_REFERENCE_DIR", dir.as_os_str()), package, args)
 }
 
-/// Runs the test that `args` choose in `package` (plain `cargo test`) with the environment variable `env` set.
+/// Runs the test that `args` choose in `package` (plain `cargo test`) with the environment variable `env` set; `false`
+/// when it fails or when its filter matches no test (which `cargo test` passes, and which would write no file).
 fn test_with(root: &Path, env: (&str, &std::ffi::OsStr), package: &str, args: &[&str]) -> Result<bool> {
     let (target, test) = args.split_at(2);
-    let status = Command::new(crate::cargo())
+    let out = Command::new(crate::cargo())
         .current_dir(root)
         .env(env.0, env.1)
         .args(["test", "--quiet", "--all-features", "-p", package])
         .args(target)
         .arg("--")
         .args(test)
-        .status()
+        .stderr(std::process::Stdio::inherit())
+        .output()
         .with_context(|| format!("running the test of {package}"))?;
-    if !status.success() {
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    print!("{stdout}");
+    if !out.status.success() {
         eprintln!("gen: the test of {package} ({}) FAILED", args.join(" "));
+        return Ok(false);
     }
-    Ok(status.success())
+    if tests_run(&stdout) == 0 {
+        eprintln!(
+            "gen: the filter of {package} ({}) matches no test; was the test renamed?",
+            args.join(" ")
+        );
+        return Ok(false);
+    }
+    Ok(true)
+}
+
+/// The number of tests a `cargo test` run says it ran: the sum of its `running <n> test(s)` lines.
+fn tests_run(stdout: &str) -> usize {
+    stdout
+        .lines()
+        .filter_map(|l| l.strip_prefix("running ")?.split(' ').next()?.parse::<usize>().ok())
+        .sum()
 }
 
 /// Builds the test binaries of [`REFERENCE`] in one cargo invocation, so that they compile and link side by side.
@@ -256,4 +276,19 @@ fn workspace_hack(root: &Path) -> Result<bool> {
         }
     }
     Ok(true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A reference test's filter that matches nothing leaves `cargo test` green with `running 0 tests`, which `gen`
+    /// takes for a failure; a filter that matches counts its tests.
+    #[test]
+    fn a_filter_that_matches_no_test_runs_none() {
+        let none = "\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out\n";
+        let one = "\nrunning 1 test\n.\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 252 filtered out\n";
+        assert_eq!(tests_run(none), 0);
+        assert_eq!(tests_run(one), 1);
+    }
 }
