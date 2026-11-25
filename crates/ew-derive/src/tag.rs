@@ -5,12 +5,11 @@
 //!
 //! **Agreement with the command layer.** The counter of a tag is assigned by the online-numbering
 //! normaliser of `ew-commands` in the scope (page of the main representation, letter). For the
-//! printed tags to be unique wherever the counters are, `device_tag` uses the same two rules as
-//! `ew_commands::numbering`: the main function is the device's function with role `Main` and the smallest
-//! ID, and the main representation is the smallest-ID representation that draws it, contact images
-//! excluded (doc 03 §5.1: a contact image never counts as the main representation). The richer rule of
-//! doc 03 §8.2 step 4 (lowest page order, row, column among the counted representation types) replaces
-//! both at once; `ew-commands`' `tests/it/agreement.rs` holds the two layers together until then.
+//! printed tags to be unique wherever the counters are, the command layer takes the main representation by the
+//! one rule of [`main_rep_with`] over its transaction: the main function is the device's function with role
+//! `Main` and the smallest ID, and the main representation is the smallest-ID representation that draws it,
+//! contact images excluded (doc 03 §5.1: a contact image never counts as the main representation). The richer rule
+//! of doc 03 §8.2 step 4 (lowest page order, row, column among the counted representation types) replaces it later.
 //!
 //! **Schemes the command layer does not number.** The command layer numbers per (page of the main
 //! representation, letter) and nothing else. A scheme is therefore applied only when that makes
@@ -69,18 +68,9 @@ impl Query for MainFunction {
 /// **A device whose main function is not drawn** (a contact placed from a part's function template before its
 /// coil), and a strip without a placed terminal, take the smallest-ID representation of the device's functions that
 /// is not a contact image: the device is placed through it and gets a page for `{page}` and for numbering.
-/// `ew_commands::numbering::main_rep` applies the same rules (`ew-commands`' `tests/it/agreement.rs`).
+/// The rule is [`main_rep_with`], which the command layer also runs over its transaction.
 #[derive(Debug)]
 pub struct MainRep;
-
-/// The own main representation of a device (see [`MainRep`]), without the strip fallback.
-fn own_main_rep(q: &Q, device: Id<Device>) -> Option<Id<Representation>> {
-    let f = (*q.get::<MainFunction>(device))?;
-    let reps = q.reps();
-    q.idx()
-        .reps_of_function(f)
-        .find(|r| reps.get(*r).is_some_and(|r| r.rep_type != RepType::ContactImage))
-}
 
 impl Query for MainRep {
     type Key = Id<Device>;
@@ -89,48 +79,118 @@ impl Query for MainRep {
     const POLICY: Policy = Policy::Cold;
 
     fn run(q: &Q, key: &Self::Key) -> Arc<Option<Id<Representation>>> {
-        if let Some(rep) = own_main_rep(q, *key) {
-            return Arc::new(Some(rep));
-        }
-        let Some(dev) = q.devices().get(*key) else {
-            return Arc::new(None);
-        };
-        if dev.aspects.strip.is_none() {
-            return Arc::new(aux_main_rep(q, *key));
-        }
-        let devices = q.devices();
-        let (reps, pages) = (q.reps(), q.pages());
-        let first = q
-            .idx()
-            .terminals_of_strip(*key)
-            .filter_map(|t| {
-                let designation = devices
-                    .get(t)?
-                    .aspects
-                    .terminal
-                    .as_ref()?
-                    .designation
-                    .natural_key();
-                let rep = own_main_rep(q, t)?;
-                let page_id = reps.get(rep)?.page;
-                let folio = &pages.get(page_id)?.folio;
-                let label = folio.label.as_ref().map(ew_mltext::Ident::natural_key);
-                Some(((folio.number, label, page_id, designation, t), rep))
-            })
-            .min_by(|a, b| a.0.cmp(&b.0))
-            .map(|(_, rep)| rep);
-        Arc::new(first.or_else(|| aux_main_rep(q, *key)))
+        Arc::new(main_rep_with(q, *key))
     }
 }
 
-/// The auxiliary fallback of [`MainRep`]: the smallest-ID representation of any function of the device that is not
-/// a contact image.
-fn aux_main_rep(q: &Q, device: Id<Device>) -> Option<Id<Representation>> {
-    let (reps, idx) = (q.reps(), q.idx());
-    idx.functions_of_device(device)
-        .flat_map(|f| idx.reps_of_function(f))
-        .filter(|r| reps.get(*r).is_some_and(|r| r.rep_type != RepType::ContactImage))
-        .min()
+/// What the rule of [`MainRep`] reads ([`main_rep_with`]): [`Q`] over a snapshot, and the command layer's view of a
+/// transaction with its pending writes, which places and numbers devices by the same rule.
+pub trait MainRepRows {
+    /// The device's main function: role `Main`, the smallest ID.
+    fn main_function(&self, device: Id<Device>) -> Option<Id<Function>>;
+    /// The functions of a device, in ID order.
+    fn functions_of_device(&self, device: Id<Device>) -> impl Iterator<Item = Id<Function>>;
+    /// The representations of a function, in ID order.
+    fn reps_of_function(&self, function: Id<Function>) -> impl Iterator<Item = Id<Representation>>;
+    /// The page of a representation that counts (it exists and is no contact image); `None` for any other.
+    fn counted_rep_page(&self, rep: Id<Representation>) -> Option<Id<Page>>;
+    /// Whether a device has a strip aspect; `None` for a device that does not exist.
+    fn is_strip(&self, device: Id<Device>) -> Option<bool>;
+    /// The terminals of a strip.
+    fn terminals_of_strip(&self, strip: Id<Device>) -> impl Iterator<Item = Id<Device>>;
+    /// A terminal's designation in natural order; `None` for a device that is no terminal.
+    fn terminal_designation(&self, terminal: Id<Device>) -> Option<ew_mltext::NaturalKey>;
+    /// A page's folio number and its label in natural order.
+    fn folio(&self, page: Id<Page>) -> Option<(u32, Option<ew_mltext::NaturalKey>)>;
+}
+
+/// The main representation of `device` by the rule of [`MainRep`], over the records `rows` reads.
+pub fn main_rep_with(rows: &impl MainRepRows, device: Id<Device>) -> Option<Id<Representation>> {
+    // The own main representation: the first representation of the main function that counts.
+    let own = |d: Id<Device>| {
+        let f = rows.main_function(d)?;
+        rows.reps_of_function(f)
+            .find(|r| rows.counted_rep_page(*r).is_some())
+    };
+    // The auxiliary fallback: the smallest-ID representation of any function of the device that counts.
+    let aux = || {
+        rows.functions_of_device(device)
+            .flat_map(|f| rows.reps_of_function(f))
+            .filter(|r| rows.counted_rep_page(*r).is_some())
+            .min()
+    };
+    if let Some(rep) = own(device) {
+        return Some(rep);
+    }
+    if !rows.is_strip(device)? {
+        return aux();
+    }
+    // A strip without a segment: the own main representation of its first placed terminal.
+    rows.terminals_of_strip(device)
+        .filter_map(|t| {
+            let designation = rows.terminal_designation(t)?;
+            let rep = own(t)?;
+            let page = rows.counted_rep_page(rep)?;
+            let (number, label) = rows.folio(page)?;
+            Some(((number, label, page, designation, t), rep))
+        })
+        .min_by(|a, b| a.0.cmp(&b.0))
+        .map(|(_, rep)| rep)
+        .or_else(aux)
+}
+
+impl MainRepRows for Q {
+    fn main_function(&self, device: Id<Device>) -> Option<Id<Function>> {
+        *self.get::<MainFunction>(device)
+    }
+
+    fn functions_of_device(&self, device: Id<Device>) -> impl Iterator<Item = Id<Function>> {
+        // The index view's iterator borrows the view.
+        self.idx()
+            .functions_of_device(device)
+            .collect::<Vec<_>>()
+            .into_iter()
+    }
+
+    fn reps_of_function(&self, function: Id<Function>) -> impl Iterator<Item = Id<Representation>> {
+        // The index view's iterator borrows the view.
+        self.idx()
+            .reps_of_function(function)
+            .collect::<Vec<_>>()
+            .into_iter()
+    }
+
+    fn counted_rep_page(&self, rep: Id<Representation>) -> Option<Id<Page>> {
+        self.reps()
+            .get(rep)
+            .filter(|r| r.rep_type != RepType::ContactImage)
+            .map(|r| r.page)
+    }
+
+    fn is_strip(&self, device: Id<Device>) -> Option<bool> {
+        self.devices().get(device).map(|d| d.aspects.strip.is_some())
+    }
+
+    fn terminals_of_strip(&self, strip: Id<Device>) -> impl Iterator<Item = Id<Device>> {
+        // The index view's iterator borrows the view.
+        self.idx()
+            .terminals_of_strip(strip)
+            .collect::<Vec<_>>()
+            .into_iter()
+    }
+
+    fn terminal_designation(&self, terminal: Id<Device>) -> Option<ew_mltext::NaturalKey> {
+        let t = self.devices().get(terminal)?.aspects.terminal.as_ref()?;
+        Some(t.designation.natural_key())
+    }
+
+    fn folio(&self, page: Id<Page>) -> Option<(u32, Option<ew_mltext::NaturalKey>)> {
+        let folio = &self.pages().get(page)?.folio;
+        Some((
+            folio.number,
+            folio.label.as_ref().map(ew_mltext::Ident::natural_key),
+        ))
+    }
 }
 
 /// How the product designation of a tag was obtained.

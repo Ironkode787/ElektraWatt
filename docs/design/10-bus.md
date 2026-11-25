@@ -131,7 +131,7 @@ pub struct PhysicalNet { pub name: Ident, pub medium: Medium,           // added
   a page…), its tag becomes that page's, by the numbering rule that a device's tag names the page of its main function
   (FR-NUM-007, doc 03 §5.1). Decided for the toast, not for keeping the tag: the tag that names the page with the device's supply
   and channels is the one cross-references, lists and the cabinet take, and keeping the bus page's would need an
-  exception in the rule `ew_commands::numbering` and `ew_derive::MainRep` share. The toast names both tags and why
+  exception in the rule `ew_derive::MainRep`, which the numbering shares. The toast names both tags and why
   ("-105A1 is now -104A1: a device takes its tag from the page that draws its own box, not from a bus page, which shows
   its interfaces").
 - **External partners** are placeholder devices with `PlcStation{role: ExternalPartner}`, `BusNode`, a `BusPort`

@@ -127,10 +127,10 @@ where the documents leave the data open:
 
 ## Agreement with the command layer
 
-`device_tag` takes the main representation by the rule of `ew_commands::numbering` (the smallest-ID
-representation of the smallest-ID main function), so that tags are unique wherever the command layer's counters
-are. The richer rule of doc 03 §8.2 step 4 must replace both rules together; `ew-commands`'
-`tests/it/agreement.rs` pins the agreement.
+`device_tag` and the command layer's numbering take the main representation by one rule, `MainRep` (the
+smallest-ID representation of the smallest-ID main function; the command layer runs it over its transaction through
+`main_rep_with`), so that tags are unique wherever the command layer's counters are. The richer rule of doc 03 §8.2
+step 4 replaces it later.
 
 The main representation excludes contact images in both layers (doc 03 §5.1). Only schemes the command layer
 numbers are applied (counter scope `page`, format and rules containing `{page}`, `{letter}` and `{counter}`); a

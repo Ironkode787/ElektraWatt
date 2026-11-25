@@ -1,17 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Agreement with the command layer: the main representation `device_tag` prints with is the one
-//! whose page scopes the counters `ew-commands` assigns, and the devices the command layer numbers are
-//! exactly the devices whose tag comes from the page-based scheme. If the two drifted, two devices with
-//! distinct counters in the command layer's scope could print the same tag.
-//!
-//! **This test pins a provisional rule (design decision 1).** Both layers take the main
-//! representation as the smallest-ID representation of the smallest-ID main function that is not a contact
-//! image (doc 03 §5.1). Doc 03 §8.2 step 4
-//! (lowest page order, row, column among the counted representation types) replaces that rule later, and it
-//! must replace it in `ew_commands::numbering` and in `ew_derive::MainRep` in the same
-//! change; this test is the guard that fails if only one of them moves.
+//! Agreement with the command layer: the devices the command layer numbers are exactly the devices whose tag comes
+//! from the page-based scheme, so two devices with distinct counters in the command layer's scope never print the
+//! same tag. Both layers take the main representation, whose page scopes the counters, by the one rule of
+//! `ew_derive::MainRep` (the command layer over its transaction, `ew_derive::main_rep_with`); the cases below pin
+//! that rule's fallbacks (a strip, a cable, contact images, auxiliaries).
 //!
 //! **Schemes.** The command layer numbers the default-scheme devices per (page of the main
 //! representation, letter). `device_tag` applies a scheme of the project's settings or a named scheme
@@ -50,15 +44,6 @@ fn assert_agree(fx: &Fx, devices: &[u128]) {
     let q = Q::new(&m);
     for d in devices {
         let dev: ew_ids::Id<Device> = id(*d);
-        let ours = q
-            .get::<MainRep>(dev)
-            .and_then(|r| q.reps().get(r).map(|r| r.page))
-            .or_else(|| ew_derive::cable_core_page(&q, dev));
-        assert_eq!(
-            ours,
-            ew_commands::numbering::main_page_in(&m, dev),
-            "main page of {dev}"
-        );
         let record = q.devices().get(dev).unwrap();
         let tag = q.get::<DeviceTag>(dev);
         let tag = tag.as_ref().as_ref().unwrap();

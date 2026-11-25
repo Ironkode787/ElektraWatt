@@ -209,8 +209,8 @@ pub use structure::{
     StructureOf, StructurePath, would_print_location,
 };
 pub use tag::{
-    DeviceTag, DisplayedTag, MainFunction, MainRep, Tag, TagSource, cable_core_page, level_short_tag,
-    numbering_format, rep_level, rule_product, short_tag,
+    DeviceTag, DisplayedTag, MainFunction, MainRep, MainRepRows, Tag, TagSource, cable_core_page,
+    level_short_tag, main_rep_with, numbering_format, rep_level, rule_product, short_tag,
 };
 // How a value of the domain is printed.
 pub use text::{
