@@ -152,8 +152,8 @@ fn pin_texts(q: &Q, rep: &Representation, def: &SymbolDef) -> Vec<PinText> {
 /// sides apart and inside it (the box collapsed through them), by one rule for the four sides: a pin's text reaches
 /// in from its pin by the scene's `PIN_TEXT_GAP` and its extent along the pin's inward normal as the scene prints it
 /// (on a left or right side horizontal, so its length; on a top or bottom side turned a quarter, so its length, or one
-/// line's height for a text of signs only, which the scene prints horizontally), measured in the built-in text styles
-/// (`ew_scene::page::builtin_pin_text_length`); across the box the longest text of
+/// line's height for a text of signs only, which the scene prints horizontally), measured in the project's text styles
+/// and fonts as the page prints it (`ew_scene::page::pin_text_length`); across the box the longest text of
 /// each of the two sides, with half a millimetre between them. 0 across a box whose two sides there print no pin text,
 /// and both for a representation that is no black box.
 pub(crate) fn box_text_room(q: &Q, r: &Representation) -> (i64, i64) {
@@ -164,7 +164,8 @@ pub(crate) fn box_text_room(q: &Q, r: &Representation) -> (i64, i64) {
         .at(1)
         .map_or(1, |n| n.0.max(1));
     let texts = pin_texts(q, r, &symbol.item);
-    let line = ew_scene::page::builtin_pin_text_line().unwrap_or(0);
+    let (styles, fonts) = (crate::output::text_style_table(q), crate::output::fonts(q));
+    let line = ew_scene::page::pin_text_line(&styles, fonts).unwrap_or(0);
     // How far the longest text of the side `dir` reaches into the box from it.
     let side = |dir: &ew_schema::Dir4| {
         let turned = matches!(dir, ew_schema::Dir4::Up | ew_schema::Dir4::Down);
@@ -181,7 +182,7 @@ pub(crate) fn box_text_room(q: &Q, r: &Representation) -> (i64, i64) {
                 } else if turned && signs {
                     line
                 } else {
-                    ew_scene::page::builtin_pin_text_length(&t.text)
+                    ew_scene::page::pin_text_length(&t.text, &styles, fonts)
                 };
                 ew_scene::page::PIN_TEXT_GAP.0 + reach
             })

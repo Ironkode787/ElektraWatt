@@ -304,3 +304,27 @@ fn a_style_in_the_technical_face_prints_and_exports_in_routed_gothic() {
         "the PDF embeds Routed Gothic"
     );
 }
+
+/// A drawn box measures its pin texts with the project's styles, as the page prints them: with `data.small` twice its
+/// built-in size, the room the sample's boxes need across their texts grows.
+#[test]
+fn a_drawn_box_measures_its_pin_texts_in_the_projects_styles() {
+    let rooms = |s: &Session| -> Vec<(i64, i64)> {
+        s.schematic_folios()
+            .iter()
+            .filter_map(|f| s.page_tables(f))
+            .flat_map(|t| t.reps.into_iter().filter_map(|r| r.black_box.map(|b| b.room)))
+            .filter(|room| *room != (0, 0))
+            .collect()
+    };
+    let mut s = without_overrides(0x0019);
+    let before = rooms(&s);
+    assert!(!before.is_empty(), "the sample draws boxes with pin texts");
+    commit_styles(&mut s, json!({"data.small": {"size": 2 * 2_381_250}}));
+    let after = rooms(&s);
+    assert_eq!(before.len(), after.len());
+    assert!(
+        before.iter().zip(&after).all(|(b, a)| a.0 >= b.0 && a.1 >= b.1) && before != after,
+        "{before:?} {after:?}"
+    );
+}

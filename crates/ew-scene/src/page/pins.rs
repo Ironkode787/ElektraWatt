@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The pin texts of a black box and the notes beside a plug's pins (see the module documentation of `page`, "Pin
-//! texts"): where each stands, its style, and the built-in measures the session sizes a box by.
+//! texts"): where each stands, its style, and the measures the session sizes a box by.
 
 #[allow(clippy::wildcard_imports)]
 use super::*;
@@ -13,22 +13,21 @@ pub const PIN_TEXT_GAP: Nm = Nm(1_000_000);
 /// The text style of a black box's pin texts and of the notes beside a plug's pins.
 pub const PIN_TEXT_STYLE: &str = "data.small";
 
-/// The length in nanometres of the pin text `text` on one line in [`PIN_TEXT_STYLE`] of the built-in table with the
-/// bundled fonts: how far a text of a top or bottom side, turned a quarter, reaches into the box, as the session sizes
-/// a drawn box. The page prints the text in the project's table, so the two differ where a project changes the style.
-pub fn builtin_pin_text_length(text: &str) -> i64 {
-    let Some(style) = ew_text::builtin().resolve(PIN_TEXT_STYLE) else {
+/// The length in nanometres of the pin text `text` on one line in [`PIN_TEXT_STYLE`] of `styles` with `fonts`, the
+/// project's table and fonts the page prints it in: how far a text of a top or bottom side, turned a quarter, reaches
+/// into the box, as the session sizes a drawn box.
+pub fn pin_text_length(text: &str, styles: &TextStyleTable, fonts: &FontSet) -> i64 {
+    let Some(style) = styles.resolve(PIN_TEXT_STYLE) else {
         return 0;
     };
-    ew_text::bundled().shape(text, &style, None).advance().0
+    fonts.shape(text, &style, None).advance().0
 }
 
-/// The height in nanometres of one line of pin text ([`PIN_TEXT_STYLE`] of the built-in table with the bundled fonts:
-/// its ascent and descent, as the scene's text box measures it), as [`builtin_pin_text_length`] measures; `None`
-/// without the style.
-pub fn builtin_pin_text_line() -> Option<i64> {
-    let style = ew_text::builtin().resolve(PIN_TEXT_STYLE)?;
-    let m = ew_text::bundled().vertical_metrics(&style);
+/// The height in nanometres of one line of pin text ([`PIN_TEXT_STYLE`] of `styles` with `fonts`: its ascent and
+/// descent, as the scene's text box measures it), as [`pin_text_length`] measures; `None` without the style.
+pub fn pin_text_line(styles: &TextStyleTable, fonts: &FontSet) -> Option<i64> {
+    let style = styles.resolve(PIN_TEXT_STYLE)?;
+    let m = fonts.vertical_metrics(&style);
     Some(m.ascent.0.saturating_add(m.descent.0))
 }
 
