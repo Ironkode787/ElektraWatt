@@ -97,7 +97,7 @@ impl Rule for FolioOutsideSection {
                     Target::new(Kind::Section, section_id),
                 ],
                 "range",
-                format!("folio {folio}"),
+                text!("word-scope-folio", folio.to_string()),
             )
             .arg("page", folio.to_string())
             .arg("from", lo.to_string())
@@ -170,12 +170,12 @@ fn collisions(q: &Q) -> Vec<(String, Vec<(Target, Origin)>)> {
 /// The finding of one collision.
 fn collision_finding(label: &str, pages: &[(Target, Origin)]) -> Finding {
     let mut kinds: Vec<Named> = pages.iter().map(|(_, o)| origin_text(*o)).collect();
-    kinds.sort_unstable_by(|a, b| a.english().cmp(b.english()));
+    kinds.sort_unstable_by_key(Named::english);
     let finding = Finding::new(
         &FOLIO_COLLISION,
         pages.iter().map(|(t, _)| *t),
         "folio",
-        format!("folio {label}"),
+        text!("word-scope-folio", label.to_string()),
     )
     .arg("page", label)
     .arg("count", pages.len().to_string())
@@ -284,7 +284,7 @@ impl Rule for TocFixpoint {
                 &TOC_FIXPOINT,
                 blocks.iter().map(|b| Target::new(Kind::ReportBlock, *b)),
                 "toc",
-                "table of contents",
+                text!("subject-toc"),
             )
             .arg("pages", order.toc_pages.to_string()),
         ]
@@ -403,11 +403,7 @@ impl Rule for ReportCoverageGap {
                 }
             }
         }
-        rows.sort_by(|a, b| {
-            natural_cmp(&a.0, &b.0)
-                .then_with(|| a.0.cmp(&b.0))
-                .then_with(|| a.1.1.cmp(&b.1.1))
-        });
+        rows.sort_by(|a, b| a.0.order(&b.0).then_with(|| a.1.1.cmp(&b.1.1)));
         rows.into_iter()
             .map(|(tag, (family, m))| {
                 let disc = family.discriminator();
@@ -501,7 +497,7 @@ impl Rule for TextBelowMinimum {
                         value.remove(key);
                     }
                 }
-                Finding::new(&TEXT_BELOW_MINIMUM, [], key, name.english())
+                Finding::new(&TEXT_BELOW_MINIMUM, [], key, name.clone())
                     .arg("name", name.clone())
                     .arg("height", height)
                     .arg("minimum", minimum)
@@ -672,7 +668,7 @@ impl Rule for UnstyledTextSize {
                     &UNSTYLED_TEXT_SIZE,
                     [Target::new(Kind::PageItem, id)],
                     "style",
-                    format!("folio {folio}: {style}"),
+                    text!("subject-folio-style", folio.to_string(), &style),
                 )
                 .arg("page", folio.to_string())
                 .arg("style", style)
@@ -976,7 +972,7 @@ pub fn wire_through_cp(page: Id<Page>, wire: LayoutWire<'_>, point: PassedPoint<
         &WIRE_THROUGH_CP,
         [wire.target(), target],
         discriminator,
-        wire.words.english(),
+        wire.words.clone(),
     )
     .on_page(page)
     .arg("line", wire.line())
@@ -991,7 +987,7 @@ pub fn wire_along_wire(page: Id<Page>, folio: &str, wire: LayoutWire<'_>, other:
         &WIRE_ALONG_WIRE,
         [wire.target(), other.target()],
         "",
-        wire.words.english(),
+        wire.words.clone(),
     )
     .on_page(page)
     .arg("line", wire.line())
@@ -1033,7 +1029,7 @@ pub fn wire_through_symbol(
         &WIRE_THROUGH_SYMBOL,
         [wire.target(), Target::new(Kind::Representation, rep)],
         "",
-        wire.words.english(),
+        wire.words.clone(),
     )
     .on_page(page)
     .arg("line", wire.line())
@@ -1050,7 +1046,7 @@ pub enum TextOwner<'a> {
         /// The representation.
         rep: Id<Representation>,
         /// Its name.
-        device: &'a str,
+        device: &'a Named,
     },
     /// An interruption point's representation, named by the point's name.
     Ip {
@@ -1083,7 +1079,7 @@ pub fn wire_through_text(page: Id<Page>, wire: LayoutWire<'_>, owner: TextOwner<
         &WIRE_THROUGH_TEXT,
         [wire.target(), target],
         "",
-        wire.words.english(),
+        wire.words.clone(),
     )
     .on_page(page)
     .arg("line", wire.line())
@@ -1097,9 +1093,9 @@ pub fn wire_through_text(page: Id<Page>, wire: LayoutWire<'_>, owner: TextOwner<
 /// frame grid (`cell` empty) the junction is named by the folio `folio`. Targets the junction.
 pub fn four_way_junction(page: Id<Page>, folio: &str, junction: Id<Junction>, cell: &str) -> Finding {
     let (place, subject) = if cell.is_empty() {
-        ("off-grid", format!("folio {folio}"))
+        ("off-grid", text!("word-scope-folio", folio.to_owned()).into())
     } else {
-        ("cell", cell.to_owned())
+        ("cell", ew_l10n::TextArg::Plain(cell.to_owned()))
     };
     Finding::new(
         &FOUR_WAY_JUNCTION,
@@ -1115,7 +1111,7 @@ pub fn four_way_junction(page: Id<Page>, folio: &str, junction: Id<Junction>, ce
 
 /// EW-CORE-073: `wire`, a page connection between two different points, has no route. Targets the wire.
 pub fn unrouted_wire(page: Id<Page>, wire: LayoutWire<'_>) -> Finding {
-    Finding::new(&UNROUTED_WIRE, [wire.target()], "", wire.words.english())
+    Finding::new(&UNROUTED_WIRE, [wire.target()], "", wire.words.clone())
         .on_page(page)
         .arg("line", wire.line())
         .arg("wire", wire.words)
@@ -1181,7 +1177,7 @@ pub fn wires_meet(
         &WIRES_MEET,
         [wire.target(), other.target()],
         cell,
-        wire.words.english(),
+        wire.words.clone(),
     )
     .on_page(page)
     .arg("line", wire.line())
@@ -1196,7 +1192,7 @@ pub fn wires_meet(
 fn owned_text(owner: TextOwner<'_>) -> (Target, &'static str, Named) {
     match owner {
         TextOwner::Symbol { rep, device } => {
-            (Target::new(Kind::Representation, rep), "symbol", device.into())
+            (Target::new(Kind::Representation, rep), "symbol", device.clone())
         }
         TextOwner::Ip { rep, name } => (Target::new(Kind::Representation, rep), "ip", name.into()),
         TextOwner::FreeText(id) => (Target::new(Kind::PageItem, id), "free-text", String::new().into()),

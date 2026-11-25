@@ -255,7 +255,7 @@ fn the_unplaced_device_is_reported_and_placing_it_clears_it() {
     let found = findings_of(&m, "EW-LAY-001");
     assert_eq!(found.len(), 1, "{found:#?}");
     assert_eq!(found[0].message(), F55_UNPLACED);
-    assert_eq!(found[0].subject, "+J-E-2416-F55");
+    assert_eq!(found[0].subject_english(), "+J-E-2416-F55");
     assert_eq!(found[0].severity, Severity::Warning, "online: warning");
     assert_eq!(
         found[0].page, None,

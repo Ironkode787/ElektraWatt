@@ -40,7 +40,6 @@ use ew_derive::layout::{
 };
 use ew_derive::part_confidence;
 use ew_ids::Id;
-use ew_mltext::natural_cmp;
 use ew_rds::Aspect;
 use ew_schema::{
     Carrier, CarrierKind, CarrierParams, CarrierRef, Device, Enclosure, Kind, LayoutSpace, LibCopy,
@@ -729,7 +728,7 @@ impl Rule for Collision {
                         continue;
                     }
                     let (mut nx, mut ny) = (device_name(q, px.device), device_name(q, py.device));
-                    if natural_cmp(&nx, &ny).then_with(|| nx.cmp(&ny)).is_gt() {
+                    if nx.order(&ny).is_gt() {
                         std::mem::swap(&mut nx, &mut ny);
                     }
                     Finding::new(
@@ -765,7 +764,7 @@ impl Rule for Collision {
                         continue;
                     };
                     let (rail, duct) = (carrier_at(cr), carrier_at(cd));
-                    let subject = format!("the rail at {rail}");
+                    let subject = text!("subject-rail-at", rail.clone());
                     Finding::new(
                         &COLLISION,
                         [Target::new(Kind::Carrier, r), Target::new(Kind::Carrier, d)],
@@ -1106,13 +1105,12 @@ fn carrier_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
     };
     let word = carrier_word(&c.kind);
     let at = carrier_at(c);
-    let noun = match c.kind {
-        CarrierKind::Rail => "rail",
-        CarrierKind::Duct => "duct",
-        CarrierKind::Unknown(_) => "carrier",
+    let subject = match c.kind {
+        CarrierKind::Rail => text!("subject-rail-at", at.clone()),
+        CarrierKind::Duct => text!("subject-duct-at", at.clone()),
+        CarrierKind::Unknown(_) => text!("subject-carrier-at", at.clone()),
     };
     let target = [Target::new(Kind::Carrier, id)];
-    let subject = format!("the {noun} at {at}");
     if geom.path_error.is_some() {
         let f = Finding::new(&CARRIER_INCOMPATIBLE, target, "path", subject)
             .arg("form", "path")

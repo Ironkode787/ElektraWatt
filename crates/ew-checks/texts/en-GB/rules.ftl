@@ -1272,6 +1272,7 @@ word-a-location = a location
 word-a-device-without-designation = a device without designation
 word-a-missing-part = a missing part
 word-an-unknown-profile = an unknown profile
+word-a-part = a part
 word-a-connector = a connector
 # A scope of EW-CORE-083 by its name.
 word-scope-folio = folio { $p0 }
@@ -1410,6 +1411,40 @@ rule-ew-imp-207 =
 ## Words another part of the program wrote: the store's integrity findings, the text an importer stored, an importer's quick fix
 
 words-as-written = { $p0 }
+# A finding's subject in words (what the message is about), rendered where the message is.
+subject-waiver = waiver { $p0 }
+subject-ip = interruption point { $p0 }
+subject-tbd = TBD { $p0 }
+subject-wire = wire { $p0 }
+subject-toc = table of contents
+subject-folio-style = folio { $p0 }: { $p1 }
+subject-pair = { $p0 } { $p1 }
+subject-revision = revision { $p0 }
+subject-cp = { $p0 }:{ $p1 }
+subject-bridge-group = { $p0 } bridge group { $p1 }
+subject-rail-at = the rail at { $p0 }
+subject-duct-at = the duct at { $p0 }
+subject-carrier-at = the carrier at { $p0 }
+subject-conflict-target = { $target ->
+        [project] the project
+        [device] device { $tag }
+        [page] folio { $page }
+        [a-page] a page
+        [function] a function of device { $tag }
+        [a-function] a function
+        [connection-on] connection from { $from } to { $to } on folio { $page }
+        [connection] connection from { $from } to { $to }
+        [a-connection] a connection
+       *[other] { $kind }
+    }
+subject-conflict-file = { $file ->
+        [page] the file of folio { $name }
+        [layout] the layout file of { $name }
+        [a-layout] a layout file
+        [a-page] a page file
+        [import] an import's file
+       *[path] { $name }
+    }
 
 ## The words that join the items of a list in a finding
 

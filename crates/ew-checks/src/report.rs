@@ -50,7 +50,7 @@ pub fn to_text(report: &CheckReport, lang: &str) -> String {
             f.severity,
             f.rule,
             f.code,
-            f.subject,
+            f.subject_in(lang),
             crate::messages::render(f, lang)
         );
         if let FindingState::Waived { waiver } = &f.state {
@@ -117,7 +117,7 @@ pub fn to_markdown(report: &CheckReport, lang: &str) -> String {
                 f.code,
                 cell(f.rule),
                 sev,
-                cell(&f.subject),
+                cell(&f.subject_in(lang)),
                 cell(&crate::messages::render(f, lang))
             );
         }
@@ -285,7 +285,7 @@ fn finding_result(f: &Finding, lang: &str) -> ResultFinding {
         },
         state,
         waiver,
-        subject: f.subject.clone(),
+        subject: f.subject_in(lang),
         message: crate::messages::render(f, lang),
         page: f.page.map(|p| p.to_string()),
         targets: f

@@ -318,7 +318,7 @@ fn feed_place(q: &Q, wires: &[PhysicalWire], subject: &str) -> Vec<(&'static str
     };
     let wires_listed = |conns: Vec<Id<Connection>>| {
         let mut out: Vec<Named> = conns.into_iter().map(wire_of).collect();
-        out.sort_by(|a, b| natural_cmp(a, b).then_with(|| a.english().cmp(b.english())));
+        out.sort_by(|a, b| a.order(b));
         out.dedup_by(|a, b| a.english() == b.english());
         listed(out)
     };
@@ -2803,7 +2803,7 @@ mod tests {
             ("101.3".to_owned(), w(4)),
         ]);
         assert_eq!(f.len(), 1, "{f:#?}");
-        assert_eq!(f[0].subject, "101.2");
+        assert_eq!(f[0].subject_english(), "101.2");
         assert_eq!(f[0].targets.len(), 2);
         assert_eq!(
             f[0].message(),

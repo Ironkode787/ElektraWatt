@@ -79,7 +79,7 @@ fn a_rule_reading_a_test_section_marks_its_finding() {
     let marks: Vec<(String, bool)> = ReadsPlcSection
         .run(&q, &Scope::Project)
         .into_iter()
-        .map(|f| (f.subject, f.unverified_data))
+        .map(|f| (f.subject_english(), f.unverified_data))
         .collect();
     assert_eq!(
         marks,

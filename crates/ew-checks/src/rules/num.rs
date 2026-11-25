@@ -141,7 +141,7 @@ impl Rule for FrozenValueDeviates {
                     &FROZEN_VALUE_DEVIATES,
                     [Target::new(Kind::Connection, id)],
                     "wire-number",
-                    format!("wire {text}"),
+                    text!("subject-wire", text.clone()),
                 )
                 .arg("number", text)
                 .arg("derived", if rule.is_empty() { "none" } else { "value" })

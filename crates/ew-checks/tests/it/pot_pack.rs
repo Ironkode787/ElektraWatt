@@ -715,7 +715,7 @@ fn pot017_cases() {
                     assert_eq!(f[0].code, "005017", "case {c}");
                     assert_eq!(f[0].severity, Severity::Warning, "case {c}");
                     assert_eq!(f[0].discriminator, "names", "case {c}");
-                    assert_eq!(f[0].subject, "P2", "case {c}");
+                    assert_eq!(f[0].subject_english(), "P2", "case {c}");
                     assert_eq!(
                         f[0].message(),
                         "P2 has more than one name: P2, P10 are wired together. Give them one name, or take away \

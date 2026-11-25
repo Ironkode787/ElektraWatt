@@ -54,7 +54,7 @@ fn ew_core_011_reports_each_conflict_in_words_as_a_release_error() {
         .filter(|f| f.rule == "EW-CORE-011")
         .map(|f| {
             let m = f.message();
-            (f.subject, m, f.severity)
+            (f.subject_english(), m, f.severity)
         })
         .collect();
     let e = |subject: &str, message: &str| (subject.to_owned(), message.to_owned(), Severity::Error);

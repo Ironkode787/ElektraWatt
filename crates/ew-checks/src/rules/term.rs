@@ -10,7 +10,7 @@ use ew_derive::{
     StripBridges, StructurePath, WireNumbers, cp_point, drawn_path, on_segment,
 };
 use ew_ids::Id;
-use ew_mltext::{CaseSensitivity, natural_cmp};
+use ew_mltext::CaseSensitivity;
 use ew_model::EndpointKey;
 use ew_schema::{
     Connection, ConnectionKind, Device, DeviceState, Endpoint, Function, Kind, Side, StructureNode, TagCase,
@@ -242,7 +242,8 @@ impl Rule for DuplicateDesignation {
             .into_values()
             .filter(|(_, members)| members.len() > 1)
             .map(|(designation, members)| {
-                let subject = format!("{strip_tag}:{designation}");
+                let subject: ew_l10n::TextArg =
+                    text!("subject-cp", &strip_tag, designation.to_string()).into();
                 Finding::new(
                     &DUPLICATE_DESIGNATION,
                     members.iter().map(|m| Target::new(Kind::Device, *m)),
@@ -319,7 +320,7 @@ impl Rule for DuplicateDesignation {
                         &DUPLICATE_DESIGNATION,
                         members.iter().map(|m| Target::new(Kind::Device, *m)),
                         "",
-                        format!("{strip_tag}:{designation}"),
+                        text!("subject-cp", &strip_tag, designation.to_string()),
                     )
                     .arg("form", "taken")
                     .arg("designation", designation.clone())
@@ -594,7 +595,7 @@ fn bridge_findings(q: &Q, strip: Id<Device>) -> Vec<Finding> {
                     }
                 })
                 .collect();
-            names.sort_by(|a, b| natural_cmp(a, b).then_with(|| a.english().cmp(b.english())));
+            names.sort_by(|a, b| a.order(b));
             names.dedup_by(|a, b| a.english() == b.english());
             reason(&mut why, ["reaches", "sep_reaches", "reached"], listed(names));
         }
@@ -622,7 +623,7 @@ fn bridge_findings(q: &Q, strip: Id<Device>) -> Vec<Finding> {
             &BRIDGE_GROUP_INVALID,
             s.connections.iter().map(|c| Target::new(Kind::Connection, *c)),
             format!("group-{}", s.group),
-            format!("{strip_tag} bridge group {}", s.group),
+            text!("subject-bridge-group", &strip_tag, s.group.to_string()),
         )
         .arg("group", s.group.to_string())
         .arg("strip", strip_tag.clone());
@@ -915,11 +916,12 @@ impl Rule for TerminalOnUnjoinedWire {
         hits.into_iter()
             .filter_map(|(terminal, id)| {
                 let aspect = q.devices().get(terminal)?.aspects.terminal.clone()?;
-                let subject = format!(
-                    "{}:{}",
+                let subject: ew_l10n::TextArg = text!(
+                    "subject-cp",
                     full_tag(q, aspect.strip, text!("word-strip")),
-                    aspect.designation.as_str()
-                );
+                    aspect.designation.as_str().to_owned()
+                )
+                .into();
                 let wire = wire_number(q, id).unwrap_or_else(|| "?".to_owned());
                 Some(
                     Finding::new(

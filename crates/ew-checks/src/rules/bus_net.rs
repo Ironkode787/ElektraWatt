@@ -24,7 +24,7 @@ use crate::rules::term::full_tag;
 
 /// A port as a message names it ([`end_words`]'s text).
 fn port_words(q: &Q, f: Id<Function>) -> String {
-    end_words(q, f).0
+    end_words(q, f).0.english()
 }
 
 /// The part port that a drawn port comes from: the first port with the same interface and label among the bus
@@ -512,7 +512,7 @@ impl Rule for NoMaster {
                 &NO_MASTER,
                 [Target::new(Kind::LogicalNet, net)],
                 "master",
-                format!("logical net {name}"),
+                text!("word-scope-logical-net", name.to_string()),
             )
             .arg("net", name),
         ]

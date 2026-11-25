@@ -342,7 +342,7 @@ fn subjects(report: &checks::CheckReport, rule: &str) -> Vec<(String, String)> {
         .findings
         .iter()
         .filter(|f| f.is_open() && f.rule == rule)
-        .map(|f| (f.severity.name().to_owned(), f.subject.clone()))
+        .map(|f| (f.severity.name().to_owned(), f.subject_english().clone()))
         .collect();
     out.sort();
     out

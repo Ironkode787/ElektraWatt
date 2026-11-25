@@ -160,7 +160,7 @@ pub fn dutch(m: &Model, rule: &str) -> Vec<String> {
 /// `(subject, message)` of each finding, in report order.
 pub fn texts(f: &[ew_checks::Finding]) -> Vec<(String, String)> {
     f.iter()
-        .map(|f| (f.subject.clone(), f.message().clone()))
+        .map(|f| (f.subject_english().clone(), f.message().clone()))
         .collect()
 }
 
@@ -205,7 +205,15 @@ pub fn printed(m: &Model) -> Vec<String> {
     [ew_checks::CheckMode::Online, ew_checks::CheckMode::Release]
         .into_iter()
         .flat_map(|mode| ew_checks::run(&q, &ew_checks::FULL, mode).findings)
-        .map(|f| format!("{} {} {}: {}", f.rule, f.severity, f.subject, f.message()))
+        .map(|f| {
+            format!(
+                "{} {} {}: {}",
+                f.rule,
+                f.severity,
+                f.subject_english(),
+                f.message()
+            )
+        })
         .collect()
 }
 

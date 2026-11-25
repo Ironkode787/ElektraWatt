@@ -443,7 +443,7 @@ impl Rule for SlotRules {
                         Target::new(Kind::Device, *module),
                     ],
                     "occupied",
-                    format!("{first} {second}"),
+                    text!("subject-pair", &first, &second),
                 )
                 .arg("form", "occupied")
                 .arg("module", first)
@@ -778,7 +778,7 @@ impl Rule for OutputLoad {
                 if let Some(limit) = ratings.channel_ma.map(u64::from).filter(|l| load > *l) {
                     let channel = channel_name(q, module, c.id, c.number);
                     out.push(load_finding(
-                        &channel,
+                        channel.clone(),
                         Target::new(Kind::Channel, c.id),
                         "channel",
                         load,
@@ -803,7 +803,7 @@ impl Rule for OutputLoad {
             for (form, limit) in sums {
                 if let Some(limit) = limit.map(u64::from).filter(|l| total > *l) {
                     out.push(load_finding(
-                        &name,
+                        name.clone(),
                         Target::new(Kind::Device, module),
                         form,
                         total,
@@ -818,16 +818,17 @@ impl Rule for OutputLoad {
 }
 
 fn load_finding(
-    subject: &str,
+    subject: impl Into<ew_l10n::TextArg>,
     target: Target,
     form: &'static str,
     load: u64,
     limit: u64,
     confidence: &ew_schema::Confidence,
 ) -> Finding {
-    Finding::new(&OUTPUT_LOAD, [target], form, subject.to_owned())
+    let subject: ew_l10n::TextArg = subject.into();
+    Finding::new(&OUTPUT_LOAD, [target], form, subject.clone())
         .arg("form", form)
-        .arg("subject", subject.to_owned())
+        .arg("subject", subject)
         .arg("load", load.to_string())
         .arg("limit", limit.to_string())
         .reading(confidence)

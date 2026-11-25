@@ -416,7 +416,7 @@ fn a_wire_through_a_text_fires_ew_core_070() {
     };
     let device = TextOwner::Symbol {
         rep: ew_ids::Id::from_uuid(rep),
-        device: "-103K3",
+        device: &ew_api::checks::rules::Named::from("-103K3"),
     };
     let f = wire_through_text(ew_ids::Id::from_uuid(rep), wire, device, "-103K3");
     assert_eq!(
@@ -657,7 +657,7 @@ fn a_four_way_junction_off_a_frame_grid_is_named_by_its_folio() {
     let f = four_way_junction(page, "7", page.cast(), "");
     assert_eq!(
         (
-            f.subject.as_str(),
+            f.subject_english().as_str(),
             f.message().as_str(),
             ew_api::checks::render(&f, "en-GB"),
             ew_api::checks::render(&f, "nl-NL")

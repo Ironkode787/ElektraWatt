@@ -76,7 +76,7 @@ fn consistent() -> [(&'static str, Value, Option<&'static str>); 3] {
 fn rows(f: &[Finding]) -> Vec<(Severity, String, String)> {
     let mut out: Vec<(Severity, String, String)> = f
         .iter()
-        .map(|f| (f.severity, f.discriminator.clone(), f.subject.clone()))
+        .map(|f| (f.severity, f.discriminator.clone(), f.subject_english().clone()))
         .collect();
     out.sort();
     out

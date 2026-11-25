@@ -43,7 +43,7 @@ fn open(report: &CheckReport, rule: &str) -> Vec<(Severity, String, String)> {
         .findings
         .iter()
         .filter(|f: &&Finding| f.rule == rule && f.is_open())
-        .map(|f| (f.severity, f.subject.clone(), f.discriminator.clone()))
+        .map(|f| (f.severity, f.subject_english().clone(), f.discriminator.clone()))
         .collect()
 }
 

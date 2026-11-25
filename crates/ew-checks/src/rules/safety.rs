@@ -94,7 +94,7 @@ impl Rule for FAddress {
                 .iter()
                 .map(|m| full_tag(q, *m, text!("word-an-f-module")))
                 .collect();
-            names.sort_by(|a, b| ew_mltext::natural_cmp(a, b).then_with(|| a.english().cmp(b.english())));
+            names.sort_by(|a, b| a.order(b));
             let list = listed(names.clone());
             out.push(
                 Finding::new(

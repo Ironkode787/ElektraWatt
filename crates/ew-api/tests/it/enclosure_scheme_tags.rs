@@ -68,15 +68,15 @@ fn a_new_enclosure_and_its_plate_take_the_schemes_tags() {
     drop(q);
 
     let report = s.check(&PRE_DELIVERY, CheckMode::Release);
-    let deviating: Vec<&str> = report
+    let deviating: Vec<String> = report
         .findings
         .iter()
-        .filter(|f| f.rule == "EW-NUM-001" && f.is_open() && f.subject.starts_with("+FLD"))
-        .map(|f| f.subject.as_str())
+        .filter(|f| f.rule == "EW-NUM-001" && f.is_open() && f.subject_english().starts_with("+FLD"))
+        .map(|f| f.subject_english())
         .collect();
     assert_eq!(
         deviating,
-        Vec::<&str>::new(),
+        Vec::<String>::new(),
         "no tag of +FLD's enclosure deviates"
     );
 }

@@ -213,7 +213,7 @@ impl Rule for UnpairedInterruptionPoint {
                 &UNPAIRED_INTERRUPTION_POINT,
                 [Target::new(Kind::Function, f)],
                 discriminator,
-                format!("interruption point {name}"),
+                text!("subject-ip", name.to_owned()),
             )
             .arg("form", discriminator.to_owned())
             .arg("name", name.to_owned())
@@ -310,7 +310,7 @@ fn ambiguous_groups(q: &Q) -> Vec<Finding> {
                 &AMBIGUOUS_INTERRUPTION_POINT,
                 g.members.iter().map(|f| Target::new(Kind::Function, *f)),
                 "star-source",
-                format!("interruption point {}", g.name),
+                text!("subject-ip", g.name.to_string()),
             )
             .arg("form", form)
             .arg("name", g.name.to_string())
@@ -439,7 +439,7 @@ impl Rule for TitleBlockOverride {
                 &TITLE_BLOCK_OVERRIDE,
                 [Target::new(Kind::Page, page)],
                 "description_override",
-                format!("folio {folio}"),
+                text!("word-scope-folio", folio.to_string()),
             )
             .arg("page", folio.to_string())
             .arg("text", shown)
@@ -921,8 +921,12 @@ impl Rule for ConflictRecords {
                         ConflictSide::Theirs => "theirs",
                         ConflictSide::Unknown(_) => "other",
                     };
-                    let (file, file_form, name) = conflict_file(q, path);
-                    Finding::new(&CONFLICT_RECORDS, [], "file", file)
+                    let (file_form, name) = conflict_file(q, path);
+                    let subject =
+                        ew_l10n::Text::checked_by_macro(key!("subject-conflict-file"), "?", Vec::new())
+                            .with("file", file_form)
+                            .with("name", name.clone());
+                    Finding::new(&CONFLICT_RECORDS, [], "file", subject)
                         .arg("form", "file")
                         .arg("side", side)
                         .arg("file", file_form)
@@ -1063,10 +1067,10 @@ pub fn renumber_newer(q: &Q, group: &[Target]) -> Option<QuickFix> {
     })
 }
 
-/// The file of a file-level conflict, in words: a page's file by its folio, a layout file by its space's name; any
-/// other file (a root file, a device shard) by its path, which names no record. With the selector and the name of the
-/// rule's pattern.
-fn conflict_file(q: &Q, path: &str) -> (String, &'static str, String) {
+/// The file of a file-level conflict: a page's file by its folio, a layout file by its space's name; any other file (a
+/// root file, a device shard) by its path, which names no record. The selector and the name of the rule's pattern and of
+/// the subject `subject-conflict-file`.
+fn conflict_file(q: &Q, path: &str) -> (&'static str, String) {
     let id = |dir: &str| {
         path.strip_prefix(dir)?
             .strip_suffix(".jsonl")?
@@ -1075,27 +1079,26 @@ fn conflict_file(q: &Q, path: &str) -> (String, &'static str, String) {
             .map(Id::<()>::from_uuid)
     };
     if let Some(page) = id("pages/").and_then(|p| q.pages().get(p.cast())) {
-        let folio = folio_label(page).to_string();
-        return (format!("the file of folio {folio}"), "page", folio);
+        return ("page", folio_label(page).to_string());
     }
     if let Some(space) = id("layout/").and_then(|s| q.table::<LayoutSpace>().get(s.cast())) {
         if let Some(name) = &space.name {
-            return (format!("the layout file of {name}"), "layout", name.to_string());
+            return ("layout", name.to_string());
         }
-        return ("a layout file".to_owned(), "a-layout", String::new());
+        return ("a-layout", String::new());
     }
     match path.split_once('/') {
-        Some(("pages", _)) => ("a page file".to_owned(), "a-page", String::new()),
-        Some(("layout", _)) => ("a layout file".to_owned(), "a-layout", String::new()),
-        Some(("imports", _)) => ("an import's file".to_owned(), "import", String::new()),
-        _ => (path.to_owned(), "path", path.to_owned()),
+        Some(("pages", _)) => ("a-page", String::new()),
+        Some(("layout", _)) => ("a-layout", String::new()),
+        Some(("imports", _)) => ("import", String::new()),
+        _ => ("path", path.to_owned()),
     }
 }
 
 /// The record a conflict targets, in words: the project, a device by its tag, a page by its folio, a connection by its
 /// ends and folio, a function by its device; any other record by its kind. With the arguments of the rule's pattern:
 /// the selector `target` and the names it words.
-fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> (String, Vec<(&'static str, TextArg)>) {
+fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> (ew_l10n::Text, Vec<(&'static str, TextArg)>) {
     let tag = |d: Id<Device>| full_tag(q, d, text!("word-without-a-tag"));
     let end = |e: &Endpoint| match e {
         Endpoint::Cp(f, idx) => Named::from(ew_derive::cp_label(
@@ -1109,56 +1112,43 @@ fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> (String, Vec<(&'static str,
     };
     let kind_words =
         Kind::from_name(kind).map_or_else(ew_derive::text::record_other, ew_derive::text::record);
-    let (en, target, mut args): (String, &str, Vec<(&'static str, TextArg)>) = match Kind::from_name(kind) {
-        Some(Kind::Project) => ("the project".to_owned(), "project", vec![]),
-        Some(Kind::Device) => {
-            let t = tag(id.cast());
-            (format!("device {t}"), "device", vec![("tag", t.into())])
-        }
+    let (target, mut args): (&str, Vec<(&'static str, TextArg)>) = match Kind::from_name(kind) {
+        Some(Kind::Project) => ("project", vec![]),
+        Some(Kind::Device) => ("device", vec![("tag", tag(id.cast()).into())]),
         Some(Kind::Page) => match q.pages().get(id.cast()) {
-            Some(p) => {
-                let folio = folio_label(p).to_string();
-                (format!("folio {folio}"), "page", vec![("page", folio.into())])
-            }
-            None => ("a page".to_owned(), "a-page", vec![]),
+            Some(p) => ("page", vec![("page", folio_label(p).to_string().into())]),
+            None => ("a-page", vec![]),
         },
         Some(Kind::Function) => match q.functions().get(id.cast()).and_then(|f| f.device) {
-            Some(d) => {
-                let t = tag(d);
-                (
-                    format!("a function of device {t}"),
-                    "function",
-                    vec![("tag", t.into())],
-                )
-            }
-            None => ("a function".to_owned(), "a-function", vec![]),
+            Some(d) => ("function", vec![("tag", tag(d).into())]),
+            None => ("a-function", vec![]),
         },
         Some(Kind::Connection) => match q.table::<Connection>().get(id.cast()) {
             Some(c) => {
                 let (from, to) = (end(&c.a), end(&c.b));
                 match c.page.and_then(|p| q.pages().get(p)) {
-                    Some(p) => {
-                        let folio = folio_label(p).to_string();
-                        (
-                            format!("connection from {from} to {to} on folio {folio}"),
-                            "connection-on",
-                            vec![("from", from.into()), ("to", to.into()), ("page", folio.into())],
-                        )
-                    }
-                    None => (
-                        format!("connection from {from} to {to}"),
-                        "connection",
-                        vec![("from", from.into()), ("to", to.into())],
+                    Some(p) => (
+                        "connection-on",
+                        vec![
+                            ("from", from.into()),
+                            ("to", to.into()),
+                            ("page", folio_label(p).to_string().into()),
+                        ],
                     ),
+                    None => ("connection", vec![("from", from.into()), ("to", to.into())]),
                 }
             }
-            None => ("a connection".to_owned(), "a-connection", vec![]),
+            None => ("a-connection", vec![]),
         },
-        _ => (kind_words.to_string(), "other", vec![]),
+        _ => ("other", vec![]),
     };
     args.push(("target", target.into()));
     args.push(("kind", kind_words.into()));
-    (en, args)
+    let subject = args.iter().fold(
+        ew_l10n::Text::checked_by_macro(key!("subject-conflict-target"), "?", Vec::new()),
+        |t, (name, value)| t.with(name, value.clone()),
+    );
+    (subject, args)
 }
 
 /// The integrity rules EW-CORE-001 … 019 but 011 and 013 (doc 15 §4.2; detection in the store, doc 05 §6.3), which are

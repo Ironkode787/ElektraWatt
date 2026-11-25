@@ -1155,7 +1155,7 @@ pub(crate) fn messages(s: &Source<'_>) -> Vec<Row> {
                 .set("mode", mode)
                 .set("state", state)
                 .set("target_ids", json_array(&ids))
-                .set("target_tags", non_empty(f.subject.clone()))
+                .set("target_tags", non_empty(f.subject_english()))
                 .set("page_id", f.page.map(uuid))
                 .set("message", f.message().as_str())
                 .set("args", non_empty(f.discriminator.clone()))

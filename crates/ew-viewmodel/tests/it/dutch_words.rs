@@ -452,11 +452,12 @@ fn the_messages_rows_and_the_chip_read_in_dutch() {
         };
         let text = messages::render(f, "nl-NL");
         // The subject once: before the message unless the message names it.
-        let leads = ew_api::output::names_subject(&f.subject, &text);
-        let shown = if f.subject.is_empty() || leads {
+        let subject = f.subject_in("nl-NL");
+        let leads = ew_api::output::names_subject(&subject, &text);
+        let shown = if subject.is_empty() || leads {
             text
         } else {
-            format!("{}: {text}", f.subject)
+            format!("{subject}: {text}")
         };
         rows.push(n.label.clone());
         expected.push(shown);

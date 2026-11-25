@@ -40,41 +40,34 @@ use std::fmt;
 
 use ew_l10n::{List, Text, TextArg};
 
-/// A record as a finding names it: its printed name, or the words for one without (`a device`), as the subject prints
-/// it ([`fmt::Display`], English) and as a pattern reads it (in the reader's language).
+/// A record as a finding names it: its printed name, or the words for one without (`a device`), in the reader's
+/// language.
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Named {
-    english: String,
-    words: TextArg,
-}
+pub struct Named(TextArg);
 
 impl Named {
-    /// The name as the subject prints it.
-    pub fn english(&self) -> &str {
-        &self.english
+    /// The name in English, rendered from its words (to sort by, as the canonical order does).
+    pub fn english(&self) -> String {
+        self.0.to_string()
+    }
+
+    /// The order of names: their English in natural order, then by bytes.
+    pub fn order(&self, other: &Named) -> std::cmp::Ordering {
+        let (a, b) = (self.english(), other.english());
+        ew_mltext::natural_cmp(&a, &b).then_with(|| a.cmp(&b))
     }
 }
 
-impl std::ops::Deref for Named {
-    type Target = str;
-
-    fn deref(&self) -> &str {
-        &self.english
-    }
-}
-
+/// English, as [`Named::english`].
 impl fmt::Display for Named {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.english)
+        write!(f, "{}", self.0)
     }
 }
 
 impl From<String> for Named {
     fn from(s: String) -> Named {
-        Named {
-            words: TextArg::Plain(s.clone()),
-            english: s,
-        }
+        Named(TextArg::Plain(s))
     }
 }
 
@@ -86,37 +79,25 @@ impl From<&str> for Named {
 
 impl From<Text> for Named {
     fn from(t: Text) -> Named {
-        Named {
-            english: t.to_string(),
-            words: t.into(),
-        }
+        Named(t.into())
     }
 }
 
 impl From<TextArg> for Named {
     fn from(words: TextArg) -> Named {
-        Named {
-            english: words.to_string(),
-            words,
-        }
-    }
-}
-
-impl From<Named> for String {
-    fn from(n: Named) -> String {
-        n.english
+        Named(words)
     }
 }
 
 impl From<Named> for TextArg {
     fn from(n: Named) -> TextArg {
-        n.words
+        n.0
     }
 }
 
 impl From<&Named> for TextArg {
     fn from(n: &Named) -> TextArg {
-        n.words.clone()
+        n.0.clone()
     }
 }
 

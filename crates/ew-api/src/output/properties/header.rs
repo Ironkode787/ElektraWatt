@@ -218,7 +218,7 @@ impl Session {
                 if on_target || on_page {
                     findings.push((
                         f.rule.to_owned(),
-                        f.subject.clone(),
+                        f.subject_english(),
                         FindingChip {
                             rule: f.rule.to_owned(),
                             severity: f.severity.name().to_owned(),

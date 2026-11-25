@@ -119,7 +119,7 @@ const PLC_RULES: [&str; 7] = [
 
 fn subjects(f: &[ew_checks::Finding]) -> Vec<(String, String)> {
     f.iter()
-        .map(|f| (f.discriminator.clone(), f.subject.clone()))
+        .map(|f| (f.discriminator.clone(), f.subject_english().clone()))
         .collect()
 }
 
@@ -193,7 +193,7 @@ fn ew_plc_001_reports_a_group_of_three_once() {
     let f = findings_of(&manual_bits(&[(0, 0, 3), (1, 0, 3)]), "EW-PLC-001");
     assert_eq!(f.len(), 1, "{f:#?}");
     assert_eq!(f[0].targets.len(), 3);
-    assert_eq!(f[0].subject, "-1U2:3");
+    assert_eq!(f[0].subject_english(), "-1U2:3");
     assert_eq!(
         f[0].message(),
         "addresses overlap in configuration project PLC1: -1U2:3 (Q0.3), -1U3:0 (Q0.3), -1U3:1 (Q0.3); change \
@@ -214,7 +214,7 @@ fn ew_plc_001_reports_a_chained_group_once() {
     let overlap: Vec<&ew_checks::Finding> = f.iter().filter(|f| f.discriminator == "overlap").collect();
     assert_eq!(overlap.len(), 1, "{f:#?}");
     assert_eq!(overlap[0].targets.len(), 3, "{f:#?}");
-    assert_eq!(overlap[0].subject, "-1U3:0");
+    assert_eq!(overlap[0].subject_english(), "-1U3:0");
     assert_eq!(
         overlap[0].message(),
         "addresses overlap in configuration project PLC1: -1U3:0 (IW0), -1U3:1 (I0.0), -1U3:2 (I1.7); change \

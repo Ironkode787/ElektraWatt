@@ -56,7 +56,7 @@ fn the_entries_of_a_lineage_s_last_run_are_findings_of_their_codes() {
     let kept = release_findings_of(&m, "EW-IMP-103");
     assert_eq!(kept.len(), 1, "{kept:#?}");
     assert_eq!(
-        (kept[0].severity, kept[0].subject.as_str()),
+        (kept[0].severity, kept[0].subject_english().as_str()),
         (Severity::Error, "folio 101, B2")
     );
     assert_eq!(
@@ -66,7 +66,7 @@ fn the_entries_of_a_lineage_s_last_run_are_findings_of_their_codes() {
     let font = release_findings_of(&m, "EW-IMP-006");
     assert_eq!(font.len(), 1, "the last run only: {font:#?}");
     assert_eq!(
-        (font[0].severity, font[0].subject.as_str()),
+        (font[0].severity, font[0].subject_english().as_str()),
         (Severity::Warning, "plant.qet")
     );
 }

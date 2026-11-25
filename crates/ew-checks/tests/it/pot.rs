@@ -47,7 +47,7 @@ fn pot001_reports_conflicting_definition_attributes_once_per_potential() {
         f[0].fingerprint,
         ew_checks::Fingerprint::of("EW-POT-001", &[uid(0x5001)], &f[0].discriminator)
     );
-    assert_eq!(f[0].subject, "P");
+    assert_eq!(f[0].subject_english(), "P");
     assert!(f[0].message().contains("voltage"), "{}", f[0].message());
 }
 
@@ -115,7 +115,7 @@ fn the_first_name_in_natural_order_wins_whatever_the_ids() {
         );
         let f = findings_of(&m, "EW-POT-001");
         assert_eq!(f.len(), 1, "swap {swap}: {f:#?}");
-        assert_eq!(f[0].subject, "P2", "swap {swap}");
+        assert_eq!(f[0].subject_english(), "P2", "swap {swap}");
         assert!(
             f[0].message().contains("is wired to P2 at -1K2:1 (24 V)"),
             "swap {swap}: {}",
@@ -411,7 +411,7 @@ fn pot001_fingerprint_ignores_the_potential_name() {
         );
         let f = findings_of(&m, "EW-POT-001");
         assert_eq!(f.len(), 1, "{f:#?}");
-        assert_eq!(f[0].subject, name);
+        assert_eq!(f[0].subject_english(), name);
         f[0].fingerprint
     };
     assert_eq!(fingerprint("L1"), fingerprint("L1-renamed"));
@@ -452,7 +452,7 @@ fn pot011_cases() {
                     assert!(!f[0].discriminator.is_empty(), "case {c}");
                     // Plain words from the Fluent pattern, never the derivation's arm-and-root text:
                     // the potential once, first; then which junction, where, and the wires that meet there.
-                    let p = &f[0].subject;
+                    let p = &f[0].subject_english();
                     assert_eq!(
                         f[0].message(),
                         format!(

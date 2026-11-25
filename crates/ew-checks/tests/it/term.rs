@@ -472,7 +472,7 @@ fn term006_reports(wire: u128, number: &'static str) -> impl Fn(&str, &[ew_check
             (
                 f[0].code,
                 f[0].severity,
-                f[0].subject.as_str(),
+                f[0].subject_english().as_str(),
                 f[0].message().as_str()
             ),
             ("001006", ew_checks::Severity::Warning, "-1X1:5", message.as_str()),

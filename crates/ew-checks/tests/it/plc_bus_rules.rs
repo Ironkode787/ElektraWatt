@@ -676,7 +676,7 @@ fn ew_bus_002_005_007_range_rate_master() {
     assert_eq!(found(&m, "EW-BUS-002").len(), 1, "126 is beyond 0..125");
     assert_eq!(found(&m, "EW-BUS-005").len(), 2, "both slaves lack 12 Mbit/s");
     let masterless = |m: &ew_model::Model| -> Vec<String> {
-        found(m, "EW-BUS-007").into_iter().map(|f| f.subject).collect()
+        found(m, "EW-BUS-007").into_iter().map(|f| f.subject_english()).collect()
     };
     assert_eq!(masterless(&m), ["logical net DP", "logical net DP2"]);
     let m = bus(
@@ -723,7 +723,7 @@ fn ew_bus_003_profinet_names_and_addresses() {
     );
     let f = found(&m, "EW-BUS-003");
     assert_eq!(forms(&f), ["subnet"]);
-    assert_eq!(f[0].subject, "-1A2:X1", "the port outside, not the master");
+    assert_eq!(f[0].subject_english(), "-1A2:X1", "the port outside, not the master");
     // In the master's subnet it is silent.
     let m = bus(
         &json!({"bus": "profinet", "master": {"cp": [us(P_A + 1), 0]}}),
@@ -858,7 +858,7 @@ fn ew_bus_009_reports_ports_mated_with_different_connectors() {
     fx.with_parts(P_B, &[0x606]);
     let f = found(&fx.build(), "EW-BUS-009");
     assert_eq!(forms(&f), ["connector"]);
-    assert_eq!(f[0].subject, "-1A1:X1");
+    assert_eq!(f[0].subject_english(), "-1A1:X1");
 }
 
 /// EW-BUS-006, -009, -010 (FR-BUS-018, FR-BUS-024): a 300 m segment at 1.5 Mbit/s, a cable made for PROFINET, a port

@@ -230,7 +230,7 @@ fn swapped_sample() -> Session {
 
 /// The subject's channel of an EW-PLC-012 finding: what follows the last `-201K1:`.
 fn on_channel(f: &ew_api::checks::Finding, number: u16) -> bool {
-    f.subject.ends_with(&format!("-201K1:{number}"))
+    f.subject_english().ends_with(&format!("-201K1:{number}"))
 }
 
 /// Under the part's own map (14 → 2p, 12 → 2p + 1) EW-PLC-012 reports none of the valve

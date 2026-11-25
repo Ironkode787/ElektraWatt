@@ -83,7 +83,7 @@ impl Rule for ProcessTag {
                 .iter()
                 .map(|d| full_tag(q, *d, text!("word-a-device")))
                 .collect();
-            names.sort_by(|a, b| ew_mltext::natural_cmp(a, b).then_with(|| a.english().cmp(b.english())));
+            names.sort_by(|a, b| a.order(b));
             let list = listed(names.clone());
             out.push(
                 Finding::new(

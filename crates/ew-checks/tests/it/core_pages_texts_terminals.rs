@@ -16,7 +16,7 @@ use ew_schema::{AnyId, Kind};
 use serde_json::{Value, json};
 
 fn subjects(f: &[Finding]) -> Vec<String> {
-    f.iter().map(|f| f.subject.clone()).collect()
+    f.iter().map(|f| f.subject_english().clone()).collect()
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -169,14 +169,14 @@ fn core026_reports_a_cable_and_a_station_their_overviews_leave_out() {
         }));
     }
     let f = findings_of(&fx.build(), "EW-CORE-026");
-    let mut got: Vec<(&str, &str)> = f
+    let mut got: Vec<(String, &str)> = f
         .iter()
-        .map(|f| (f.subject.as_str(), f.discriminator.as_str()))
+        .map(|f| (f.subject_english(), f.discriminator.as_str()))
         .collect();
     got.sort_unstable();
     assert_eq!(
         got,
-        [("-?A2", "plc_overview"), ("-W2", "cable_overview_diagrams")],
+        [("-?A2".to_owned(), "plc_overview"), ("-W2".to_owned(), "cable_overview_diagrams")],
         "{f:#?}"
     );
 }
@@ -325,7 +325,7 @@ fn core061_reads_the_project_text_styles() {
     fx.settings = json!({"text_styles": {"tag.main": {"size": 1_500_000}}});
     let f = findings_of(&fx.build(), "EW-CORE-061");
     assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].subject, "Device tag");
+    assert_eq!(f[0].subject_english(), "Device tag");
     assert!(
         f[0].message().contains("prints 1.07 mm high"),
         "{}",
@@ -383,7 +383,7 @@ fn core063_accepts_a_project_extended_style() {
     fx.settings = json!({"text_styles": {"note.tiny": {"size": 1_000_000}}});
     let f = findings_of(&fx.build(), "EW-CORE-061");
     assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].subject, "A text style of this project");
+    assert_eq!(f[0].subject_english(), "A text style of this project");
 }
 
 /// A line on P1 from the connection point of function 0x1001 (CP 0 at `(0, 0x1001 mm)`) to `b`, offset by `dy` nm.
@@ -439,7 +439,7 @@ fn core008_reports_a_channel_of_a_device_that_is_no_module() {
     assert_eq!(f[0].discriminator, "channel");
     assert_eq!(f[0].severity, Severity::Error);
     // The device is drawn on no page, so its designation keeps the open page number.
-    assert_eq!(f[0].subject, "-?A1:0");
+    assert_eq!(f[0].subject_english(), "-?A1:0");
     assert_eq!(
         f[0].message(),
         "channel -?A1:0 belongs to -?A1, which is not a PLC module; delete the channel or make -?A1 a module again"
@@ -516,7 +516,7 @@ fn rds002_reports_a_separator_in_a_structure_code() {
     assert_eq!(f.len(), 1, "{f:#?}");
     assert_eq!(f[0].code, "017002");
     assert_eq!(f[0].severity, Severity::Info);
-    assert_eq!(f[0].subject, "+J-E-206");
+    assert_eq!(f[0].subject_english(), "+J-E-206");
     assert_eq!(targets(&f[0]), [(Kind::StructureNode, uid(0x900))]);
     assert!(findings_of(&designation_fx("K", Some("JE206")).build(), "EW-RDS-002").is_empty());
 }
@@ -686,7 +686,7 @@ fn num002_reports_a_frozen_wire_number_that_deviates() {
     assert_eq!(f[0].code, "017102");
     assert_eq!(f[0].severity, Severity::Info);
     assert_eq!(f[0].discriminator, "wire-number");
-    assert_eq!(f[0].subject, "wire W99");
+    assert_eq!(f[0].subject_english(), "wire W99");
     assert_eq!(targets(&f[0]), [(Kind::Connection, uid(0x2001))]);
     assert!(
         f[0].message()

@@ -315,7 +315,7 @@ fn finding_node(
         word.to_owned(),
         f.rule.to_owned(),
         f.message().clone(),
-        f.subject.clone(),
+        f.subject_english(),
         page_cell,
         f.fix
             .as_ref()
@@ -340,10 +340,11 @@ fn finding_node(
     facets.push(("state".to_owned(), state.to_owned()));
     // A rule whose message already leads with its subject (EW-BUS-001, EW-CORE-033: "X: X has
     // no ...") shows the subject once; the findings themselves, the CSV and the reports are unchanged.
-    let label = if f.subject.is_empty() || names_subject(&f.subject, &f.message()) {
+    let subject = f.subject_english();
+    let label = if subject.is_empty() || names_subject(&subject, &f.message()) {
         f.message().clone()
     } else {
-        format!("{}: {}", f.subject, f.message())
+        format!("{subject}: {}", f.message())
     };
     let open_page = page
         .as_ref()

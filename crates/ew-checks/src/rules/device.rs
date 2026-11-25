@@ -242,11 +242,7 @@ impl Rule for PlaceholderPart {
                 .filter(|(x, dev)| uses_copy(q, *x, dev, id))
                 .map(|(x, _)| (full_tag(q, x, text!("word-device")), x))
                 .collect();
-            users.sort_by(|a, b| {
-                natural_cmp(&a.0, &b.0)
-                    .then_with(|| a.0.cmp(&b.0))
-                    .then_with(|| a.1.cmp(&b.1))
-            });
+            users.sort_by(|a, b| a.0.order(&b.0).then_with(|| a.1.cmp(&b.1)));
             if users.first().map(|(_, x)| *x) != Some(device) {
                 continue;
             }
@@ -261,14 +257,14 @@ impl Rule for PlaceholderPart {
                         .languages()
                         .find_map(|l| part.item.description.get(l).map(str::to_owned))
                 })
-                .unwrap_or_else(|| "a part".to_owned());
+                .map_or_else(|| text!("word-a-part").into(), ew_l10n::TextArg::Plain);
             out.push(
                 Finding::new(
                     &PLACEHOLDER_PART,
                     std::iter::once(Target::new(Kind::Part, id))
                         .chain(users.iter().map(|(_, x)| Target::new(Kind::Device, *x))),
                     "placeholder",
-                    format!("TBD {what}"),
+                    text!("subject-tbd", what.clone()),
                 )
                 .arg("part", what.clone())
                 .arg("users", listed(users.iter().map(|(t, _)| t.clone())))
@@ -589,11 +585,7 @@ impl Rule for OrderCodesCover {
                 rows.push((child.clone(), d, "uncovered", n));
             }
         }
-        rows.sort_by(|a, b| {
-            natural_cmp(&a.0, &b.0)
-                .then_with(|| a.0.cmp(&b.0))
-                .then_with(|| a.1.cmp(&b.1))
-        });
+        rows.sort_by(|a, b| a.0.order(&b.0).then_with(|| a.1.cmp(&b.1)));
         rows.into_iter()
             .map(|(subject, d, disc, n)| {
                 Finding::new(
@@ -657,12 +649,12 @@ fn duplicate_numbers(q: &Q) -> Vec<Finding> {
     let mut out = Vec::new();
     for module in index.modules_with_duplicates() {
         let kept: BTreeMap<u16, Id<Channel>> = index.of_module(module).into_iter().collect();
-        let tag = full_tag(q, module, "module");
+        let tag = full_tag(q, module, text!("word-a-module"));
         for (number, id) in index.all_of_module(module) {
             if kept.get(&number) == Some(&id) {
                 continue;
             }
-            let subject = format!("{tag}:{number}");
+            let subject = text!("subject-cp", &tag, number.to_string());
             out.push(
                 Finding::new(
                     &DANGLING_REFERENCE,
@@ -770,7 +762,7 @@ fn dangling_frame_forms(q: &Q) -> Vec<Finding> {
                 &DANGLING_REFERENCE,
                 [Target::new(Kind::Page, id)],
                 "form",
-                format!("folio {folio}"),
+                text!("word-scope-folio", folio.to_string()),
             )
             .arg("form", "form")
             .arg("page", folio.to_string())

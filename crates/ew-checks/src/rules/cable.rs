@@ -464,7 +464,7 @@ impl Rule for ExternalWithoutCable {
             wires.dedup();
             let inside = inside.join(", ");
             // A far end that is not known prints nothing: the connection is named by where it goes.
-            let (subject, far) = if at.is_empty() {
+            let (subject, far) = if at.english().is_empty() {
                 (inside.clone(), "unknown")
             } else {
                 (format!("{at} → {inside}"), "known")
@@ -581,7 +581,7 @@ fn twice_finding(q: &Q, id: Id<Conductor>, c: &Conductor) -> Option<Finding> {
             )
         })
         .collect();
-    labels.sort_by(|a, b| natural_cmp(a, b).then_with(|| a.english().cmp(b.english())));
+    labels.sort_by(|a, b| a.order(b));
     let connections: Vec<Target> = wires
         .values()
         .flatten()

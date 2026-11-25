@@ -374,15 +374,20 @@ fn run_rules(
             // implemented, or not enabled in this scheme and mode, was not evaluated (an info).
             let ran = evaluated.iter().any(|m| m.id == w.rule);
             let f = if ran {
-                Finding::new(meta081, target, id_part, format!("waiver {}", w.id))
-                    .arg("form", "unmatched")
-                    .with_severity(mode.severity(meta081, meta081.severity))
+                Finding::new(
+                    meta081,
+                    target,
+                    id_part,
+                    text!("subject-waiver", w.id.to_string()),
+                )
+                .arg("form", "unmatched")
+                .with_severity(mode.severity(meta081, meta081.severity))
             } else {
                 Finding::new(
                     meta081,
                     target,
                     format!("not-evaluated{id_part}"),
-                    format!("waiver {}", w.id),
+                    text!("subject-waiver", w.id.to_string()),
                 )
                 .arg("form", "not-evaluated")
                 .arg("scheme", scheme.name.to_string())
@@ -566,7 +571,7 @@ mod tests {
             assert_eq!(f.code, "105083");
             let own = rule(f.rule).expect("registered").meta();
             assert_eq!(mode.severity(own, f.severity), severity, "{mode:?}");
-            assert_eq!(f.subject, "EW-TERM-099");
+            assert_eq!(f.subject_english(), "EW-TERM-099");
             assert_eq!(f.discriminator, "EW-TERM-099:strip");
             assert_eq!(
                 f.targets,

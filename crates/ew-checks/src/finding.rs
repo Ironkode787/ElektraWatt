@@ -142,8 +142,9 @@ pub struct Finding {
     /// Stable data that tells findings of one rule over the same targets apart (a CP index, a field path);
     /// never a tag, folio, position or count.
     pub discriminator: String,
-    /// What the message is about, as printed: a derived tag or a name (rendered when the rule ran).
-    pub subject: String,
+    /// What the message is about: a derived tag or a name (rendered when the rule ran), or words by key, which are
+    /// rendered where the message is ([`subject_in`](Self::subject_in)).
+    pub subject: TextArg,
     /// The page the finding is shown on, if any.
     pub page: Option<Id<Page>>,
     /// The message by key (doc 15 §3.8): the key of the rule's pattern in `texts/<lang>/rules.ftl` ([`RuleMeta::message`])
@@ -170,7 +171,7 @@ impl Finding {
         rule: &'static RuleMeta,
         targets: impl IntoIterator<Item = Target>,
         discriminator: impl Into<String>,
-        subject: impl Into<String>,
+        subject: impl Into<TextArg>,
     ) -> Finding {
         let mut targets: Vec<Target> = targets.into_iter().collect();
         targets.sort();
@@ -260,6 +261,16 @@ impl Finding {
         crate::messages::render(self, crate::messages::DEFAULT_LANGUAGE)
     }
 
+    /// The subject in `lang`, falling back to en-GB, as the message is rendered there.
+    pub fn subject_in(&self, lang: &str) -> String {
+        crate::messages::text(&text!("words-as-written", self.subject.clone()), lang)
+    }
+
+    /// The subject in en-GB: what `ew check` prints, and what the canonical order sorts by.
+    pub fn subject_english(&self) -> String {
+        self.subject_in(crate::messages::DEFAULT_LANGUAGE)
+    }
+
     /// Whether the finding is open (not waived).
     pub fn is_open(&self) -> bool {
         self.state == FindingState::Open
@@ -270,26 +281,39 @@ impl Finding {
     /// order that follows the project's content: the fingerprint follows record IDs, which are random in a new
     /// project, so it decides only between two findings that print alike.
     pub fn order_cmp(&self, other: &Finding) -> std::cmp::Ordering {
-        self.order_by(&self.message(), other, &other.message())
+        self.order_by(
+            &(self.subject_english(), self.message()),
+            other,
+            &(other.subject_english(), other.message()),
+        )
     }
 
-    /// [`order_cmp`](Self::order_cmp) with the two messages rendered.
-    fn order_by(&self, message: &str, other: &Finding, other_message: &str) -> std::cmp::Ordering {
+    /// [`order_cmp`](Self::order_cmp) with the two subjects and messages rendered in en-GB.
+    fn order_by(
+        &self,
+        (subject, message): &(String, String),
+        other: &Finding,
+        theirs: &(String, String),
+    ) -> std::cmp::Ordering {
+        let (other_subject, other_message) = theirs;
         self.code
             .cmp(other.code)
-            .then_with(|| natural_cmp(&self.subject, &other.subject))
-            .then_with(|| self.subject.cmp(&other.subject))
+            .then_with(|| natural_cmp(subject, other_subject))
+            .then_with(|| subject.cmp(other_subject))
             .then_with(|| message.cmp(other_message))
             .then_with(|| self.fingerprint.cmp(&other.fingerprint))
             .then_with(|| self.rule.cmp(other.rule))
     }
 }
 
-/// Sorts findings in the canonical order ([`Finding::order_cmp`]), each message rendered once, and drops exact
-/// duplicates.
+/// Sorts findings in the canonical order ([`Finding::order_cmp`]), each subject and message rendered once, and drops
+/// exact duplicates.
 pub fn sort_findings(findings: &mut Vec<Finding>) {
-    let mut keyed: Vec<(String, Finding)> = findings.drain(..).map(|f| (f.message(), f)).collect();
-    keyed.sort_by(|(am, a), (bm, b)| a.order_by(am, b, bm));
+    let mut keyed: Vec<((String, String), Finding)> = findings
+        .drain(..)
+        .map(|f| ((f.subject_english(), f.message()), f))
+        .collect();
+    keyed.sort_by(|(ak, a), (bk, b)| a.order_by(ak, b, bk));
     keyed.dedup_by(|(_, a), (_, b)| a == b);
     findings.extend(keyed.into_iter().map(|(_, f)| f));
 }

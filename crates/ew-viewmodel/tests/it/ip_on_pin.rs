@@ -128,7 +128,7 @@ fn pot009(tmp: &Tmp, s: &mut ShellModel) -> Vec<(String, String)> {
         .findings
         .into_iter()
         .filter(|f| f.is_open() && f.rule == "EW-POT-009")
-        .map(|f| (f.severity.name().to_owned(), f.subject))
+        .map(|f| (f.severity.name().to_owned(), f.subject_english()))
         .collect();
     out.sort();
     out

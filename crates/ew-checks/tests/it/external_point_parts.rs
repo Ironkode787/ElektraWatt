@@ -78,12 +78,12 @@ fn a_mark_prints_what_its_reference_holds() {
 #[test]
 fn core034_still_asks_for_the_cable_and_names_what_is_known() {
     let f = findings_of(&marks(), "EW-CORE-034");
-    let subjects: Vec<&str> = f.iter().map(|f| f.subject.as_str()).collect();
-    assert!(subjects.contains(&"+J-E-206 → -1K1"), "{subjects:?}");
-    assert!(subjects.contains(&"Q4.1 → -1K2"), "{subjects:?}");
+    let subjects: Vec<String> = f.iter().map(ew_checks::Finding::subject_english).collect();
+    assert!(subjects.iter().any(|s| s == "+J-E-206 → -1K1"), "{subjects:?}");
+    assert!(subjects.iter().any(|s| s == "Q4.1 → -1K2"), "{subjects:?}");
     let unknown = f
         .iter()
-        .find(|f| f.subject == "-1K3")
+        .find(|f| f.subject_english() == "-1K3")
         .unwrap_or_else(|| panic!("{subjects:?}"));
     assert!(
         unknown

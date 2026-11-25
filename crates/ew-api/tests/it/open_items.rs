@@ -241,7 +241,7 @@ fn the_waived_row_leaves() {
         .check(&PRE_DELIVERY, CheckMode::Release)
         .findings
         .into_iter()
-        .find(|f| f.rule == "EW-CORE-041" && f.subject == "+CAB-102E1")
+        .find(|f| f.rule == "EW-CORE-041" && f.subject_english() == "+CAB-102E1")
         .expect("-102E1's open finding");
     gui(
         &mut s,
@@ -338,7 +338,7 @@ fn assert_paginates(s: &Session, folio: &str) -> Vec<Vec<String>> {
         .check(&PRE_DELIVERY, CheckMode::Release)
         .findings
         .iter()
-        .filter(|f| f.rule == "EW-CORE-083" && checks::OPEN_ITEM_RULES.iter().any(|o| f.subject == o.rule.id))
+        .filter(|f| f.rule == "EW-CORE-083" && checks::OPEN_ITEM_RULES.iter().any(|o| f.subject_english() == o.rule.id))
         .map(|f| f.message().clone())
         .collect();
     assert_eq!(caught, Vec::<String>::new());

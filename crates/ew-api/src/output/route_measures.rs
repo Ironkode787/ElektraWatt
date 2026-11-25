@@ -702,7 +702,7 @@ impl Reader<'_> {
         }
         if self.tables.reps.iter().any(|r| r.id == owner) {
             *words = self.symbol(owner).into();
-            let device: &'b str = words;
+            let device: &'b crate::checks::rules::Named = words;
             return rules::TextOwner::Symbol {
                 rep: Id::from_uuid(owner),
                 device,

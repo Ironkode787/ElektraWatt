@@ -107,22 +107,24 @@ fn runs(q: &Q) -> Vec<std::sync::Arc<ImportRun>> {
 }
 
 /// A run entry's source location in words: its folio, cell and item, else its file.
-fn place(location: Option<&ew_schema::RunLocation>) -> String {
+fn place(location: Option<&ew_schema::RunLocation>) -> ew_l10n::TextArg {
     let Some(l) = location else {
-        return String::new();
+        return String::new().into();
     };
-    let parts: Vec<String> = [
-        l.folio.as_ref().map(|f| format!("folio {f}")),
-        l.cell.clone(),
-        l.item.clone(),
+    let parts: Vec<ew_l10n::TextArg> = [
+        l.folio
+            .as_ref()
+            .map(|f| text!("word-scope-folio", f.to_string()).into()),
+        l.cell.clone().map(Into::into),
+        l.item.clone().map(Into::into),
     ]
     .into_iter()
     .flatten()
     .collect();
     if parts.is_empty() {
-        l.file.clone()
+        l.file.clone().into()
     } else {
-        parts.join(", ")
+        crate::rules::listed(parts)
     }
 }
 

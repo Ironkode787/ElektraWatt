@@ -115,10 +115,11 @@ fn path_free(text: &str, paths: &[PathBuf]) -> String {
 /// Messages renders it (W51 finding F).
 fn finding_line(f: &Finding) -> String {
     let message = ew_api::checks::messages::render(f, strings::rule_language());
-    if f.subject.is_empty() || message.starts_with(&f.subject) {
+    let subject = f.subject_in(strings::rule_language());
+    if subject.is_empty() || message.starts_with(&subject) {
         message
     } else {
-        strings::format(key!("revision-finding"), &[&f.subject, &message])
+        strings::format(key!("revision-finding"), &[&subject, &message])
     }
 }
 
@@ -221,10 +222,11 @@ fn waiver_words(report: &CheckReport, waiver: &str) -> String {
     let title = ew_api::checks::messages::title(f.rule, strings::rule_language()).unwrap_or_else(|| {
         ew_api::checks::rule(f.rule).map_or_else(|| f.rule.to_owned(), |r| r.meta().title())
     });
-    if f.subject.is_empty() {
+    let subject = f.subject_in(strings::rule_language());
+    if subject.is_empty() {
         title
     } else {
-        strings::format(key!("revision-waiver"), &[&title, &f.subject])
+        strings::format(key!("revision-waiver"), &[&title, &subject])
     }
 }
 

@@ -75,7 +75,7 @@ impl ReportKindDef for OpenItems {
                     .position(|o| o.category == row.category)
                     .unwrap_or(usize::MAX);
                 Some((
-                    (category, natural_key(&f.subject), f.fingerprint),
+                    (category, natural_key(&f.subject_english()), f.fingerprint),
                     row_of(&columns, f, row),
                 ))
             })
@@ -98,7 +98,14 @@ fn row_of(columns: &[ColumnDef], f: &Finding, row: &OpenItemRule) -> Row {
             row.category,
         ))),
     );
-    put(columns, &mut cells, "item", text_cell(&f.subject));
+    // The subject as the message words it, in English and Dutch (one neutral text where they agree).
+    let (en, nl) = (f.subject_english(), f.subject_in("nl-NL"));
+    let item = if en == nl {
+        text_cell(&en)
+    } else {
+        Cell::Text(ew_derive::langs(&en, &nl))
+    };
+    put(columns, &mut cells, "item", item);
     // The message as `ew check --lang nl-NL` words it (its en-GB text where the rule has no Dutch pattern).
     let dutch = ew_checks::messages::render(f, "nl-NL");
     put(

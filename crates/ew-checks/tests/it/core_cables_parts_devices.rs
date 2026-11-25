@@ -80,7 +80,7 @@ fn core031_reports_foreign_and_undeclared_company_colours() {
     // With the profile declaring DBU only the foreign code is left.
     let f = findings_of(&colours(colour_profile(), json!(["DBU"])), "EW-CORE-031");
     assert_eq!(f.len(), 1, "{f:#?}");
-    assert_eq!(f[0].subject, "-W1/1");
+    assert_eq!(f[0].subject_english(), "-W1/1");
 }
 
 /// EW-CORE-031 prevent: a batch that gives a touched core a foreign colour is refused; a foreign colour a lenient
@@ -93,7 +93,7 @@ fn core031_prevent_refuses_a_new_invalid_colour_only() {
     let v = prevent(&Q::new(&before), &Q::new(&after), &[key]);
     assert_eq!(v.len(), 1, "{v:#?}");
     assert_eq!(v[0].rule, "EW-CORE-031");
-    assert_eq!(v[0].subject, "-W1/2");
+    assert_eq!(v[0].subject_english(), "-W1/2");
     // The held "BR" of core 1 is not refused when core 1 is touched without a change.
     let v = prevent(
         &Q::new(&before),
@@ -216,7 +216,7 @@ fn core034_reports_an_external_connection_without_cable() {
     assert_eq!(f.len(), 1, "{f:#?}");
     assert_eq!(f[0].code, "003034");
     assert_eq!(f[0].severity, Severity::Warning);
-    assert_eq!(f[0].subject, "+J-E-206 → -1K1, -1K2");
+    assert_eq!(f[0].subject_english(), "+J-E-206 → -1K1, -1K2");
     assert!(
         f[0].message()
             .starts_with("the external connection +J-E-206 → -1K1, -1K2 has no cable: wires "),
@@ -253,7 +253,7 @@ fn core036_reports_a_core_assigned_to_two_wires() {
     let f = findings_of(&cores(&[0x2001, 0x2002]), "EW-CORE-036");
     assert_eq!(f.len(), 1, "{f:#?}");
     assert_eq!(f[0].code, "003036");
-    assert_eq!(f[0].subject, "-1W1/1");
+    assert_eq!(f[0].subject_english(), "-1W1/1");
     assert!(
         f[0].message().starts_with("core -1W1/1 is assigned to 2 wires ("),
         "{}",
@@ -449,7 +449,7 @@ fn core043_reports_each_placeholder_part_once() {
     assert_eq!(f.len(), 1, "{f:#?}");
     assert_eq!(f[0].code, "102043");
     assert_eq!(f[0].severity, Severity::Info);
-    assert_eq!(f[0].subject, "TBD Wiring duct");
+    assert_eq!(f[0].subject_english(), "TBD Wiring duct");
     assert_eq!(
         f[0].message(),
         "placeholder part \"Wiring duct\" (part number TBD) is used by -1K1, -1K2; choose the part before release"
@@ -684,7 +684,7 @@ fn core008_reports_frame_defaults_naming_a_missing_form() {
         f.iter()
             .all(|f| f.discriminator == "form" && f.severity == Severity::Error)
     );
-    assert_eq!(f[0].subject, "folio 1");
+    assert_eq!(f[0].subject_english(), "folio 1");
     assert!(
         f[0].message()
             .contains("the frame for page type multi_line names form copy"),
@@ -724,7 +724,7 @@ fn findings_of_one_code_order_by_printed_subject_under_id_permutation() {
             .findings
             .iter()
             .filter(|f| f.rule == "EW-POT-009")
-            .map(|f| (f.subject.clone(), f.message().clone()))
+            .map(|f| (f.subject_english().clone(), f.message().clone()))
             .collect()
     };
     let subjects = |v: &[(String, String)]| v.iter().map(|(s, _)| s.clone()).collect::<Vec<_>>();

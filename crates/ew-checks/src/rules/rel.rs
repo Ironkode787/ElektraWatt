@@ -71,7 +71,7 @@ pub fn four_eyes(q: &Q, input: &GateInput) -> Vec<Finding> {
         return Vec::new();
     };
     let label = r.label.as_str();
-    let subject = format!("revision {label}");
+    let subject: ew_l10n::TextArg = text!("subject-revision", label.to_owned()).into();
     let target = [Target::new(Kind::Revision, r.id)];
     let finding = |disc: &str| {
         Finding::new(&FOUR_EYES, target, disc, subject.clone())
@@ -122,7 +122,7 @@ pub fn label_order(q: &Q) -> Vec<Finding> {
                     &LABEL_ORDER,
                     [Target::new(Kind::Revision, r.id)],
                     "format",
-                    format!("revision {}", r.label),
+                    text!("subject-revision", r.label.to_string()),
                 )
                 .arg("form", "format")
                 .arg("revision", r.label.to_string())
@@ -144,7 +144,7 @@ pub fn label_order(q: &Q) -> Vec<Finding> {
                     &LABEL_ORDER,
                     [Target::new(Kind::Revision, open.id)],
                     "order",
-                    format!("revision {}", open.label),
+                    text!("subject-revision", open.label.to_string()),
                 )
                 .arg("form", "order")
                 .arg("revision", open.label.to_string())

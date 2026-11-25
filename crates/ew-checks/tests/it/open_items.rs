@@ -42,7 +42,7 @@ fn expected(q: &Q, scheme: &Scheme) -> Vec<Finding> {
 fn printed(findings: &[Finding]) -> Vec<String> {
     findings
         .iter()
-        .map(|f| format!("{} {}", f.rule, f.subject))
+        .map(|f| format!("{} {}", f.rule, f.subject_english()))
         .collect()
 }
 

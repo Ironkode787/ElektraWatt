@@ -16,15 +16,21 @@ use ew_schema::{
 
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
+use crate::rules::Named;
 use crate::rules::term::full_tag;
 
 /// A port as printed: a connector by its tag ("-3X1"), any other port by its tag and interface ("-201U1:DP"); a port
 /// on no device by its interface.
-pub(crate) fn port_name(q: &Q, function: &Function, port: &BusPort) -> String {
+pub(crate) fn port_name(q: &Q, function: &Function, port: &BusPort) -> Named {
     match function.device {
-        Some(d) if port.role == PortRole::Passive => full_tag(q, d, text!("word-a-connector")).into(),
-        Some(d) => format!("{}:{}", full_tag(q, d, text!("word-a-device")), port.interface),
-        None => port.interface.as_str().to_owned(),
+        Some(d) if port.role == PortRole::Passive => full_tag(q, d, text!("word-a-connector")),
+        Some(d) => text!(
+            "subject-cp",
+            full_tag(q, d, text!("word-a-device")),
+            port.interface.to_string()
+        )
+        .into(),
+        None => port.interface.as_str().into(),
     }
 }
 
@@ -34,16 +40,16 @@ fn end_name(q: &Q, f: Id<Function>) -> String {
     if let Some((name, partner)) = external_end(q, f) {
         return format!("external end {name} ({partner})");
     }
-    end_words(q, f).0
+    end_words(q, f).0.english()
 }
 
 /// An end of a segment other than an external one, as the message's arguments word it: the en-GB text, the
 /// selector `end` (`named` a tagged port or a bare interface, `connector` an untagged connector, `device` an untagged
 /// device's interface, `ip` an interruption point, `segment` an end without either) and the argument `port` (the
 /// printed name, interface or interruption point name; empty for the words alone).
-pub(crate) fn end_words(q: &Q, f: Id<Function>) -> (String, &'static str, String) {
+pub(crate) fn end_words(q: &Q, f: Id<Function>) -> (Named, &'static str, String) {
     let Some(function) = q.functions().get(f) else {
-        return ("a segment end".to_owned(), "segment", String::new());
+        return ("a segment end".into(), "segment", String::new());
     };
     if let Some(port) = &function.bus_port {
         let name = port_name(q, function, port);
@@ -51,14 +57,14 @@ pub(crate) fn end_words(q: &Q, f: Id<Function>) -> (String, &'static str, String
             .device
             .is_none_or(|d| q.get::<DeviceTag>(d).as_ref().is_some());
         return match (tagged, port.role == PortRole::Passive) {
-            (true, _) => (name.clone(), "named", name),
+            (true, _) => (name.clone(), "named", name.english()),
             (false, true) => (name, "connector", String::new()),
             (false, false) => (name, "device", port.interface.to_string()),
         };
     }
     match &function.kind {
-        FunctionKind::Ip(ip) => (format!("end {}", ip.name), "ip", ip.name.to_string()),
-        _ => ("a segment end".to_owned(), "segment", String::new()),
+        FunctionKind::Ip(ip) => (format!("end {}", ip.name).into(), "ip", ip.name.to_string()),
+        _ => ("a segment end".into(), "segment", String::new()),
     }
 }
 
@@ -152,7 +158,7 @@ impl Rule for BusAddress {
             let mut untagged = 0_usize;
             for f in &ports {
                 match end_words(q, *f) {
-                    (name, "named", _) => names.push(name),
+                    (name, "named", _) => names.push(name.english()),
                     _ => untagged += 1,
                 }
             }

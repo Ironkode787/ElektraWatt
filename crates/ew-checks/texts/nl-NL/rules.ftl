@@ -1256,6 +1256,7 @@ word-a-location = een locatie
 word-a-device-without-designation = een apparaat zonder aanduiding
 word-a-missing-part = een ontbrekend artikel
 word-an-unknown-profile = een onbekend profiel
+word-a-part = een artikel
 word-a-connector = een connector
 # A scope of EW-CORE-083 by its name.
 word-scope-folio = folio { $p0 }
@@ -1393,6 +1394,40 @@ rule-ew-imp-207 =
 ## Words another part of the program wrote: the store's integrity findings, the text an importer stored, an importer's quick fix
 
 words-as-written = { $p0 }
+# A finding's subject in words (what the message is about), rendered where the message is.
+subject-waiver = vrijstelling { $p0 }
+subject-ip = onderbrekingspunt { $p0 }
+subject-tbd = TBD { $p0 }
+subject-wire = draad { $p0 }
+subject-toc = inhoudsopgave
+subject-folio-style = folio { $p0 }: { $p1 }
+subject-pair = { $p0 } { $p1 }
+subject-revision = revisie { $p0 }
+subject-cp = { $p0 }:{ $p1 }
+subject-bridge-group = { $p0 } bruggroep { $p1 }
+subject-rail-at = de rail bij { $p0 }
+subject-duct-at = de kabelgoot bij { $p0 }
+subject-carrier-at = de drager bij { $p0 }
+subject-conflict-target = { $target ->
+        [project] het project
+        [device] apparaat { $tag }
+        [page] folio { $page }
+        [a-page] een pagina
+        [function] een functie van apparaat { $tag }
+        [a-function] een functie
+        [connection-on] verbinding van { $from } naar { $to } op folio { $page }
+        [connection] verbinding van { $from } naar { $to }
+        [a-connection] een verbinding
+       *[other] { $kind }
+    }
+subject-conflict-file = { $file ->
+        [page] het bestand van folio { $name }
+        [layout] het layoutbestand van { $name }
+        [a-layout] een layoutbestand
+        [a-page] een paginabestand
+        [import] een importbestand
+       *[path] { $name }
+    }
 
 ## The words that join the items of a list in a finding
 

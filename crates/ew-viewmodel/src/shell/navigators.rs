@@ -2229,11 +2229,12 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
                 };
                 let text = ew_api::checks::messages::render(f, lang);
                 // As `ew-api` builds the row: the subject once, before the message unless the message names it.
-                let leads = ew_api::output::names_subject(&f.subject, &text);
-                node.label = if f.subject.is_empty() || leads {
+                let subject = f.subject_in(lang);
+                let leads = ew_api::output::names_subject(&subject, &text);
+                node.label = if subject.is_empty() || leads {
                     text.clone()
                 } else {
-                    format!("{}: {text}", f.subject)
+                    format!("{subject}: {text}")
                 };
                 if let Some(cell) = message.and_then(|i| node.cells.get_mut(i)) {
                     *cell = text;
