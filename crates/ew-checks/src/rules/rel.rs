@@ -130,7 +130,9 @@ pub fn label_order(q: &Q) -> Vec<Finding> {
             );
         }
     }
-    let open = current.iter().find(|r| r.is_open());
+    // The open revision as the title blocks and EW-REL-001 take it: the newest live revision, if it is open.
+    let open_id = ew_derive::open_revision(q).map(|r| r.id);
+    let open = current.iter().find(|r| Some(r.id) == open_id);
     if let Some((open, key)) = open.and_then(|o| format.order_key(o.label.as_str()).map(|k| (o, k))) {
         let later = current
             .iter()

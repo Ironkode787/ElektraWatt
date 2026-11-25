@@ -1321,12 +1321,8 @@ impl Session {
         archive_root: Option<&Path>,
     ) -> Result<Option<IncompleteRelease>, ReleaseError> {
         self.remove_stale_run_records();
-        let Some((revision, label)) = self
-            .query()
-            .table::<Revision>()
-            .iter()
-            .find(|(_, r)| r.is_open())
-            .map(|(_, r)| (r.id, r.label.as_str().to_owned()))
+        let Some((revision, label)) =
+            ew_derive::open_revision(&self.query()).map(|r| (r.id, r.label.as_str().to_owned()))
         else {
             return Ok(None);
         };

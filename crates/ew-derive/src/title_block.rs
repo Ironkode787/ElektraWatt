@@ -503,8 +503,8 @@ pub fn current_revision(q: &Q) -> Option<Arc<Revision>> {
 /// `page_notes` name it. Withdrawal records, and the revisions they withdraw, take no part.
 pub fn last_changed_in(q: &Q, page: Id<Page>, changed_now: Option<bool>) -> Option<String> {
     let revisions = live_revisions(q);
-    let current = revisions.iter().max_by_key(|r| r.order_key());
-    let open = current.filter(|c| c.is_open());
+    let open_id = open_revision(q).map(|r| r.id);
+    let open = revisions.iter().find(|r| Some(r.rev.id) == open_id);
     let changed = |r: &RevisionView<'_>| match changed_now {
         Some(now) => now,
         None => r.noted_pages.contains(&page),

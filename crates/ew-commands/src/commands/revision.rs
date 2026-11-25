@@ -155,7 +155,7 @@ impl Command for CreateRevision {
             NewRevisionState::Released => RevisionState::Released,
         };
         if state == RevisionState::Open {
-            if let Some(open) = revisions.iter().find(|r| r.is_open()) {
+            if let Some(open) = open_record(&revisions) {
                 return tx.reject(text!("refusal-revision-open", open.label.to_string()));
             }
         }
@@ -788,6 +788,13 @@ pub(crate) fn refuse_closed_revision(
     ))
 }
 
+/// A revision record whose state is open (EW-INV-016 keeps at most one), withdrawn or not: what a second open revision
+/// is refused for and what a page's notes are cleaned from. Not `ew_derive::open_revision`, the newest live revision
+/// if it is open, which the title blocks and the release gate take.
+fn open_record(revisions: &[std::sync::Arc<Revision>]) -> Option<&std::sync::Arc<Revision>> {
+    revisions.iter().find(|r| r.is_open())
+}
+
 /// Drops the open revision's notes on the pages this transaction removed, so a deleted page
 /// leaves no note behind in the revision that collects the current edits. The notes of released and withdrawn
 /// revisions stay: they are history (EW-INV-020; a note is not a link). Called by the commands that delete pages
@@ -802,7 +809,7 @@ pub(crate) fn drop_notes_on_removed_pages(tx: &mut TxBuilder<'_>) -> Result<(), 
     if removed.is_empty() {
         return Ok(());
     }
-    let Some(open) = tx.iter::<Revision>().into_iter().find(|r| r.is_open()) else {
+    let Some(open) = open_record(&tx.iter::<Revision>()).cloned() else {
         return Ok(());
     };
     if open.page_notes.iter().any(|n| removed.contains(&n.page)) {

@@ -206,21 +206,13 @@ pub fn role_name(role: &PartyRole) -> String {
 impl Session {
     /// The open revision's label, if the project has an open revision.
     pub fn open_revision_label(&self) -> Option<String> {
-        self.query()
-            .table::<Revision>()
-            .iter()
-            .find(|(_, r)| r.is_open())
-            .map(|(_, r)| r.label.as_str().to_owned())
+        ew_derive::open_revision(&self.query()).map(|r| r.label.as_str().to_owned())
     }
 
     /// The open revision with its author's and its checker's party roles, when set (the revision
     /// dialogs name them, and Set author submits `revision.set_author` for this revision; edits need not be saved).
     pub fn open_revision_roles(&self) -> Option<(Id<Revision>, Option<PartyRole>, Option<PartyRole>)> {
-        self.query()
-            .table::<Revision>()
-            .iter()
-            .find(|(_, r)| r.is_open())
-            .map(|(_, r)| (r.id, r.author.clone(), r.checker.clone()))
+        ew_derive::open_revision(&self.query()).map(|r| (r.id, r.author.clone(), r.checker.clone()))
     }
 
     /// The labels of the released revisions that are not withdrawn, in label order (the Withdraw
@@ -289,8 +281,7 @@ impl Session {
     pub fn release_gate(&self, label: &str, integrity: &[checks::IntegrityItem]) -> Result<Gate, GateError> {
         let (digest, generation) = self.content_digest()?;
         let q = self.query_over(self.engine.model());
-        let table = q.table::<Revision>();
-        let Some(open) = table.iter().map(|(_, r)| r).find(|r| r.is_open()) else {
+        let Some(open) = ew_derive::open_revision(&q) else {
             return Err(GateError::NoOpenRevision {
                 label: label.to_owned(),
             });
