@@ -25,9 +25,6 @@ use super::editing::{PageTables, TableConnection, TableCp, TableEnd};
 use super::layers::page_layer;
 use crate::Session;
 
-/// The order of the supply potentials (doc 06a §2.2): L1, L2, L3, L, N, PEN, PE, FE, L+, M, L−, as a wire's supply rank.
-const SUPPLY_ORDER: [&str; 11] = ["L1", "L2", "L3", "L", "N", "PEN", "PE", "FE", "L+", "M", "L-"];
-
 /// Why a layout report is refused.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum LayoutError {
@@ -397,9 +394,9 @@ fn text_runs(q: &Q, page: PageRef, owners: &BTreeSet<Uuid>) -> Vec<(Uuid, [i64; 
     out
 }
 
-/// The rank of the supply type of a connection's potential in [`SUPPLY_ORDER`] (L1 first), by the potential of an end
-/// CP; `None` for a signal, undefined or unknown potential.
-fn supply_rank(q: &Q, c: &TableConnection) -> Option<u8> {
+/// The supply type of a connection's potential, by the potential of an end CP; `None` for a signal, undefined or
+/// unknown potential.
+fn supply_type(q: &Q, c: &TableConnection) -> Option<ew_schema::PotentialType> {
     let partition = q.get::<PotentialPartition>(());
     [c.a, c.b].into_iter().find_map(|e| {
         let TableEnd::Cp { function, idx } = e else {
@@ -408,11 +405,27 @@ fn supply_rank(q: &Q, c: &TableConnection) -> Option<u8> {
         let p = partition.potential_at(CpRef::new(Id::from_uuid(function), idx).key())?;
         let flow = q.get::<PotentialFlow>(p.id);
         let ptype = flow.as_ref().as_ref()?.ptype.as_ref()?.value.clone();
-        let word = ew_derive::potential_type_code(&ptype)?;
-        SUPPLY_ORDER
-            .iter()
-            .position(|w| *w == word)
-            .and_then(|k| u8::try_from(k).ok())
+        supply_rank(&ptype).map(|_| ptype)
+    })
+}
+
+/// A supply type as a wire's supply rank, in the order of the supply potentials (doc 06a §2.2): L1, L2, L3, L, N, PEN,
+/// PE, FE, L+, M, L−; `None` for a signal, undefined or unknown type.
+fn supply_rank(t: &ew_schema::PotentialType) -> Option<u8> {
+    use ew_schema::PotentialType as P;
+    Some(match t {
+        P::L1 => 0,
+        P::L2 => 1,
+        P::L3 => 2,
+        P::L => 3,
+        P::N => 4,
+        P::Pen => 5,
+        P::Pe => 6,
+        P::Fe => 7,
+        P::LPlus => 8,
+        P::M => 9,
+        P::LMinus => 10,
+        P::Signal | P::Undefined | P::Unknown(_) => return None,
     })
 }
 
@@ -529,16 +542,20 @@ fn draft(q: &Q, page: PageRef, tables: &PageTables) -> DraftPage {
         Some(PageType::BusTopology) => ew_drafting::PageKind::Bus,
         _ => ew_drafting::PageKind::Electrical,
     };
+    // The wires that carry protective or functional earth (PEN, PE, FE).
+    let mut earth: BTreeSet<ew_drafting::WireId> = BTreeSet::new();
     for w in &mut d.wires {
         if let Some(c) = tables.connections.iter().find(|c| c.id == w.id.0) {
-            w.supply = supply_rank(q, c);
+            let ptype = supply_type(q, c);
+            w.supply = ptype.as_ref().and_then(supply_rank);
+            if matches!(
+                ptype,
+                Some(ew_schema::PotentialType::Pen | ew_schema::PotentialType::Pe | ew_schema::PotentialType::Fe)
+            ) {
+                earth.insert(w.id);
+            }
         }
     }
-    // PEN, PE and FE in the order of the supply ranks.
-    let earth = |rank: Option<u8>| {
-        rank.and_then(|r| SUPPLY_ORDER.get(usize::from(r)))
-            .is_some_and(|w| ["PEN", "PE", "FE"].contains(w))
-    };
     // A fence is rounded outward, as the bodies it holds are.
     let ticks = crate::routing::Ticks::new(tables.grid);
     let fences: Vec<ew_drafting::Rect> = tables
@@ -563,7 +580,7 @@ fn draft(q: &Q, page: PageRef, tables: &PageTables) -> DraftPage {
                 .iter()
                 .filter(|w| w.ends.contains(&ew_drafting::End::Pin(p.id)))
                 .collect();
-            !at.is_empty() && at.iter().all(|w| earth(w.supply))
+            !at.is_empty() && at.iter().all(|w| earth.contains(&w.id))
         });
         part.role = role(q, kind, rep, &part.pins, earthed);
         if fences.iter().any(|f| f.holds(part.bounds())) {

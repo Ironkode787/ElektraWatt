@@ -283,8 +283,10 @@ row take one line and a chain whose host moved keep its distance.
 ### 2.1 Units: grid ticks, never nanometres
 
 The layout computes in **ticks**: 1/16 of a grid step, as `i32`. A grid position is a multiple of 16, a half-grid
-position a multiple of 8, and a text box is rounded outward to whole ticks (0.25 mm on a native page). The adapter
-in `ew-api` converts the page into ticks once and a plan back into nanometres once, through `ew_units::Grid`.
+position a multiple of 8, and a text box is rounded outward to whole ticks (0.25 mm on a native page). The scene
+converts the page into ticks once (`ew-scene`'s draft of the labels layer, through `ew_units::Grid`), `ew-api` adds the
+page's kind, the supply ranks, the roles and the parts a structure box holds, and it converts a plan back into
+nanometres once.
 Inside the crate no nanometre exists, so two numbers for one grid position cannot meet.
 
 **A box in ticks.** On the QET grid, whose step is no whole number of nanometres, a grid point is up to half a
