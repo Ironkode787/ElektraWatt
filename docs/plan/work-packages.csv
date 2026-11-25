@@ -38,7 +38,7 @@ WP-S1.24,S1,"PLC and bus 1.0: tracking, symbols, safety, PROFINET, IO-Link, Ethe
 WP-S1.25,S1,"Fluid 1.0: valve models, media, tubes, fluid reports",M3,M3,,1.0,3,4.5,7,WP-S1.20,,FR-FLU-007..FR-FLU-016 FR-FLU-019..FR-FLU-021 FR-FLU-023 FR-FLU-026 FR-FLU-030..FR-FLU-032,AC-32,Core developer
 WP-S1.26,S1,"Model 1.0 completion: connections, terminals, cables, numbering, project",M6,M6,,1.0,4,5.5,8,WP-S1.14 WP-S1.11 WP-S1.12,,FR-CON-016 FR-CON-028..FR-CON-030 FR-CON-032 FR-CON-033 FR-NUM-020 FR-NUM-024..FR-NUM-026 FR-TRM-008 FR-TRM-016 FR-TRM-023 FR-TRM-024 FR-CBL-017..FR-CBL-019 FR-XRF-023 FR-PRJ-014 FR-PRJ-022 FR-PRJ-025 FR-PRJ-026,AC-22,Core developer
 WP-S1.27,S1,Project languages and translation exchange,M6,1.x,c,1.0,2,3,4.5,WP-S1.06 WP-S3.04,,FR-I18N-004..FR-I18N-008 FR-I18N-012 FR-I18N-013 NFR-I18N-05,AC-42,Core developer
-WP-S1.28,S1,"Parts 1.0: accessories, variants, classification, consumables",M4,M4,,1.0,2.5,3.5,5,WP-S1.19,,FR-PRT-003 FR-PRT-005 FR-PRT-018 FR-PRT-019 FR-PRT-021 FR-PRT-025 FR-PRT-032 FR-PRT-035 FR-REP-051 FR-DEV-033,AC-35,Core developer
+WP-S1.28,S1,"Parts for the workshop: accessories, variants, and the wire, ferrule and marker parts",M4,M4,,1.0,2.5,3.5,5,WP-S1.19,,FR-PRT-003 FR-PRT-005 FR-PRT-035 FR-REP-051 FR-DEV-033,AC-35,Core developer
 WP-S1.29,S1,"Macros 1.0: placeholders, variants, updates, table instantiation",M6,1.x,c,1.0,2,3,5,WP-S1.19,,FR-MAC-008..FR-MAC-010 FR-MAC-012..FR-MAC-015 FR-MAC-017,,Core developer
 WP-S1.30,S1,"1.0 rule packs, SQL rules and SARIF",M6,M6,,1.0,3,4.5,7,WP-S1.16 WP-S1.24 WP-S1.25 WP-S4.06,,FR-CHK-005 FR-CHK-007 FR-CHK-021 FR-CHK-029 FR-CHK-040 FR-CHK-041 FR-CHK-046 FR-CHK-049 FR-CHK-050 FR-CHK-052 FR-CHK-054 FR-CHK-061 FR-EXT-025,AC-22,Core developer
 WP-S1.31,S1,"Revision compare, change lists and review",M6,1.x,c,1.0,3,4.5,7,WP-S1.18 WP-S1.17,,FR-REV-013..FR-REV-018 FR-REV-023..FR-REV-025 FR-COL-016 FR-COL-018 FR-COL-022,,Core developer
@@ -48,6 +48,7 @@ WP-S1.34,S1,"Core, collaboration and automation backlog (1.x)",1.x,1.x,,1.x,8,11
 WP-S1.35,S1,"Actuators and their sensors: mounted sensors, wired or plugged, the actuator list",M5,M5,,1.0,3,4,6,WP-S1.25 WP-S2.13,,FR-FLU-035 FR-FLU-036 FR-FLU-029 FR-FLU-046,AC-32 AC-43,Core developer
 WP-S1.36,S1,"Tubes for the workshop: size in the tool, numbering, estimated lengths, fittings, cut list, labels",M5,M5,,1.0,2.5,3.5,5,WP-S1.25 WP-S2.13,,FR-FLU-011 FR-FLU-013 FR-FLU-040 FR-FLU-041 FR-FLU-042 FR-FLU-046,AC-32 AC-43,Core developer
 WP-S1.37,S1,Air consumption and force,M5,M5,,1.0,2,3,4.5,WP-S1.35 WP-S1.36,,FR-FLU-044 FR-FLU-045 FR-FLU-046,AC-43,Core developer
+WP-S1.38,S1,"Parts 1.0, second part: classification, quality level, commercial data and the order list, library lint, render and pack",M6,M6,,1.0,2.5,3.5,5,WP-S1.28,,FR-PRT-018 FR-PRT-019 FR-PRT-021 FR-PRT-025 FR-PRT-032,,Core developer
 WP-S2.01,S2,"Application shell, first run and company-standard wizard UI",M-PP,M-PP,,MVP,4,5.5,8.5,WP-S1.04,,FR-UI-001 FR-UI-002 FR-UI-030 FR-UI-031 FR-UI-033 FR-UI-034 FR-UI-038 FR-UI-049 NFR-PERF-02,NFR-PERF-02 NFR-UX-04,UI developer
 WP-S2.02,S2,2D canvas renderer (ew-render2d) and GPU-less fallback,M-PP,M-PP,,MVP,3,4.5,7,WP-S3.01,,FR-UI-027 FR-UI-028 FR-UI-043 NFR-PERF-04 NFR-PERF-06 NFR-PLAT-02 NFR-PLAT-03,NFR-PERF-06 NFR-PLAT-03,UI developer
 WP-S2.03,S2,"Viewer, view models and canvas tool framework",M-PP,M-PP,,MVP,4.5,6.5,10,WP-S2.01 WP-S2.02 WP-S1.08,,FR-UI-015 FR-UI-016 FR-UI-018 FR-UI-019 FR-UI-035 FR-UI-039 FR-PAG-024 FR-XRF-019 NFR-A11Y-01,AC-28,UI developer
@@ -95,20 +96,20 @@ WP-S4.01,S4,Layout model and 2D panel pages (MVP slice),M2,M2,,MVP,4,5.5,8,WP-S1
 WP-S4.02,S4,2D panel editing tools,M2,M2,,MVP,4,5.5,7,WP-S4.01 WP-S2.03,,FR-LAY-014..FR-LAY-016 FR-LAY-060 FR-LAY-061,AC-33,Physical developer
 WP-S4.03,S4,STEP worker (ew-step-worker),M4,M4,,1.0,4,6,10,WP-S1.02 WP-S0.01,,FR-LAY-020..FR-LAY-022 NFR-PERF-18 NFR-REL-12,NFR-PERF-18,Physical developer
 WP-S4.04,S4,3D renderer and the Panel 3D workspace,M4,M4,,1.0,5.5,8,12,WP-S2.02 WP-S4.01 WP-S2.06,,FR-LAY-019 FR-LAY-064 FR-UI-029 FR-UI-003 FR-UI-006,AC-34,Physical developer
-WP-S4.05,S4,"3D layout model: enclosures, doors, surfaces, panel macros, 3D CPs",M4,M4,,1.0,3.5,5,7.5,WP-S4.01 WP-S4.03,,FR-LAY-003 FR-LAY-023 FR-LAY-024 FR-LAY-026 FR-LAY-027 FR-LAY-032 FR-LAY-063,AC-34,Physical developer
-WP-S4.06,S4,Collision and clearance checking,M4,M4,,1.0,2.5,3.5,5.5,WP-S4.05,,FR-LAY-028..FR-LAY-030 FR-LAY-033 FR-LAY-034 NFR-PERF-17,AC-34 NFR-PERF-17,Physical developer
-WP-S4.07,S4,Routing graph and RouteWires,M4,M4,,1.0,4,6,9,WP-S4.05,,FR-LAY-042 FR-LAY-043 FR-LAY-045..FR-LAY-048 NFR-PERF-16,AC-34 NFR-PERF-16,Physical developer
-WP-S4.08,S4,"Wire lengths, duct fill and wiring manager",M4,M4,,1.0,3,4.5,7,WP-S4.07 WP-S1.14,,FR-LAY-049..FR-LAY-055 FR-CBL-010 FR-CBL-020,AC-34,Physical developer
+WP-S4.05,S4,"The surfaces of an enclosure: door and side walls, devices in cut-outs, a part's front view",M4,M4,,1.0,3.5,5,7.5,WP-S4.01,,FR-LAY-003 FR-LAY-023 FR-LAY-024 FR-LAY-026 FR-LAY-027 FR-LAY-032 FR-LAY-063,AC-34,Physical developer
+WP-S4.06,S4,"Clearance: keep-out on a surface and depth against the closed door",M4,M4,,1.0,2.5,3.5,5.5,WP-S4.05,,FR-LAY-028..FR-LAY-030 FR-LAY-033 FR-LAY-034 NFR-PERF-17,AC-34 NFR-PERF-17,Physical developer
+WP-S4.07,S4,"Wire ways: the routing graph on the 2D layout and Route",M4,M4,,1.0,4,6,9,WP-S4.05,,FR-LAY-042 FR-LAY-043 FR-LAY-045..FR-LAY-048 NFR-PERF-16,AC-34 NFR-PERF-16,Physical developer
+WP-S4.08,S4,Wire lengths and duct fill,M4,M4,,1.0,3,4.5,7,WP-S4.07 WP-S1.14,,FR-LAY-049..FR-LAY-055 FR-CBL-010 FR-CBL-020,AC-34,Physical developer
 WP-S4.09,S4,"Model views, dimensions, busbars, bonding and 3D export",M6,1.x,c,1.0,4,6.5,10,WP-S4.05 WP-S4.04,,FR-PAG-003 FR-LAY-035 FR-LAY-039 FR-LAY-041 FR-LAY-058 FR-CON-015 FR-EXP-007 FR-EXP-008,,Physical developer
 WP-S4.10,S4,Thermal calculation and climate sizing,M4,1.x,c,1.0,3,4,6,WP-S4.05 WP-S1.28,,FR-THM-001..FR-THM-009 FR-THM-012 NFR-PERF-23,AC-36,Physical developer
 WP-S4.11,S4,Physical 1.x backlog,1.x,1.x,,1.x,5,8,12,WP-S4.09,,FR-LAY-025 FR-LAY-031 FR-LAY-037 FR-LAY-038 FR-LAY-040 FR-LAY-044 FR-LAY-065 FR-LAY-066 FR-THM-010 FR-FLU-024 NFR-SEC-21,,Physical developer
-WP-S5.01,S5,"Production wire records, change list and Manufacturing workspace",M4,M4,,1.0,4.5,6.5,10,WP-S1.14 WP-S1.18 WP-S2.06,,FR-MFG-001..FR-MFG-004 FR-MFG-051 FR-UI-003,AC-35,Output and migration developer
+WP-S5.01,S5,The production wire list and the rework list,M4,M4,,1.0,4.5,6.5,10,WP-S1.14 WP-S1.18 WP-S2.06,,FR-MFG-001..FR-MFG-004 FR-MFG-051 FR-UI-003,AC-35,Output and migration developer
 WP-S5.02,S5,Ferrules and end treatments,M4,M4,,1.0,2.5,3.5,5,WP-S5.01 WP-S1.28,,FR-MFG-005..FR-MFG-008 FR-MFG-042 FR-MFG-043 FR-MFG-050,AC-35,Output and migration developer
-WP-S5.03,S5,Marking schemes and label engine,M4,M4,,1.0,2.5,3.5,5,WP-S5.01,,FR-MFG-010..FR-MFG-013 FR-MFG-015 FR-MFG-048,AC-35,Output and migration developer
-WP-S5.04,S5,Machine export profiles and pre-flight,M4,M4,,1.0,3,4.5,7,WP-S5.02 WP-S5.03 WP-S4.08,,FR-MFG-018..FR-MFG-022 FR-MFG-024 FR-MFG-025 FR-MFG-047 FR-CHK-058,AC-35,Output and migration developer
-WP-S5.05,S5,"Terminal assembly lists, cut lists and consumables",M4,M4,,1.0,1.5,2.5,3.5,WP-S5.01 WP-S4.05,,FR-MFG-016 FR-MFG-030 FR-MFG-049,AC-35,Output and migration developer
-WP-S5.06,S5,"Machining features, drilling DXF and hole tables",M4,M4,,1.0,3.5,5,8,WP-S4.05 WP-S3.19,,FR-LAY-056 FR-LAY-057 FR-MFG-028 FR-MFG-029,,Output and migration developer
-WP-S5.07,S5,Production package .ewpp,M4,M4,,1.0,2,3,4.5,WP-S5.04,,FR-MFG-031 FR-MFG-032 FR-MFG-044 FR-MFG-046 FR-EXP-009 NFR-PERF-24,AC-35 NFR-PERF-24,Output and migration developer
+WP-S5.03,S5,Marking schemes and label files,M4,M4,,1.0,2.5,3.5,5,WP-S5.01,,FR-MFG-010..FR-MFG-013 FR-MFG-015 FR-MFG-048,AC-35,Output and migration developer
+WP-S5.04,S5,Export profiles and the check before export,M4,M4,,1.0,3,4.5,7,WP-S5.02 WP-S5.03 WP-S4.08 WP-S5.07,,FR-MFG-018..FR-MFG-022 FR-MFG-024 FR-MFG-025 FR-MFG-047 FR-CHK-058,AC-35,Output and migration developer
+WP-S5.05,S5,"Assembly lists, cut lists and consumables",M4,M4,,1.0,1.5,2.5,3.5,WP-S5.01 WP-S1.28,,FR-MFG-016 FR-MFG-030 FR-MFG-049,AC-35,Output and migration developer
+WP-S5.06,S5,"Holes and cut-outs: drilling patterns, surface features, the hole table, the drawing for drilling",M4,M4,,1.0,3.5,5,8,WP-S4.05 WP-S3.19,,FR-LAY-056 FR-LAY-057 FR-MFG-028 FR-MFG-029,,Output and migration developer
+WP-S5.07,S5,Production package .ewpp,M4,M4,,1.0,2,3,4.5,WP-S5.05 WP-S5.06,,FR-MFG-031 FR-MFG-032 FR-MFG-044 FR-MFG-046 FR-EXP-009 NFR-PERF-24,AC-35 NFR-PERF-24,Output and migration developer
 WP-S5.08,S5,Verification checklists and as-built package,M6,1.x,c,1.0,2,3,4.5,WP-S5.07 WP-S1.18,,FR-MFG-036..FR-MFG-041,,Output and migration developer
 WP-S5.09,S5,Read-only wiring viewer,M6,1.x,c,1.0,2,3,5,WP-S5.07 WP-S2.02,,FR-MFG-033,,Output and migration developer
 WP-S5.10,S5,Manufacturing 1.x backlog,1.x,1.x,,1.x,4,6,9,WP-S5.09,,FR-MFG-009 FR-MFG-014 FR-MFG-017 FR-MFG-023 FR-MFG-026 FR-MFG-034 FR-MFG-045 FR-TRM-025,,Output and migration developer
@@ -130,7 +131,7 @@ WP-S7.02,S7,Starter symbol set,M1,M1,,MVP,2,3,4.5,WP-S3.01 WP-S0.08,,FR-SYM-007 
 WP-S7.03,S7,"Starter parts, profiles, address maps and basic project",M2,M2,,MVP,1.6,2.5,3.8,WP-S1.19 WP-S1.21,,FR-PLC-008 FR-CON-020 FR-CON-021 NFR-LIC-06 NFR-LIC-07,AC-40 NFR-UX-08,Content maintainer
 WP-S7.04,S7,Full IEC 60617 and ISO 1219 libraries with symbol lint,M6,1.x,c,1.0,4,6,9,WP-S7.02 WP-S2.10,,FR-SYM-008 FR-SYM-020,,Content maintainer
 WP-S7.05,S7,"User documentation, rule pages and MVP tutorials",M2,M2,,MVP,4.5,6.5,9.5,WP-S0.06 WP-S1.16,,NFR-DOC-01..NFR-DOC-03 NFR-DOC-05 NFR-DOC-07 NFR-COMP-05 FR-CHK-015 NFR-I18N-07 NFR-I18N-01,NFR-DOC-02 NFR-DOC-03,Docs maintainer
-WP-S7.06,S7,"Golden 1.0 fixtures: A-R, 3D, thermal, exchange, manufacturing",M4,M4,,1.0,2,3,4.5,WP-S7.01 WP-S4.05,,FR-LAY-051 FR-MFG-031 FR-THM-001,AC-34 AC-35 AC-36,Content maintainer
+WP-S7.06,S7,"M4's acceptance on the sample project: its cabinet, routed, with the blessed outputs",M4,M4,,1.0,2,3,4.5,WP-S4.08 WP-S5.07,,FR-LAY-051 FR-MFG-031,AC-34 AC-35,Content maintainer
 WP-S7.07,S7,"Documentation and tutorials 1.0, German translation",M7,M7,,1.0,3.5,5,7.5,WP-S7.05,,NFR-DOC-03 NFR-A11Y-06 NFR-COMP-06 NFR-I18N-01,NFR-DOC-03,Docs maintainer
-WP-S7.08,S7,First manufacturer data pack and content repositories,M7,M7,,1.0,1.5,2.5,4,WP-S1.28,,NFR-LIC-06,,Content maintainer
+WP-S7.08,S7,First manufacturer data pack and content repositories,M7,M7,,1.0,1.5,2.5,4,WP-S1.38,,NFR-LIC-06,,Content maintainer
 WP-S7.09,S7,Pneumatic content 2: the symbols and generic parts a machine needs,M5,M5,,1.0,2,3,4.5,WP-S1.25,,FR-SYM-008 FR-FLU-001 FR-FLU-007,AC-43,Content maintainer
