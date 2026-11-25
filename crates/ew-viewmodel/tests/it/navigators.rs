@@ -50,32 +50,63 @@ fn pages_lines(shell: &ShellModel) -> String {
     out.join("\n")
 }
 
-/// NV10: the Pages lines are byte-equal to the as-built text in the views and states a recording
-/// reaches: the section view, a collapsed section, a filter, the flat view, the type order and a moved cursor.
+/// The lines of `state` that `base` does not hold (`+ `), then the lines of `base` that `state` does not hold
+/// (`- `), each in its own order: what an operation changed in a view whose order it keeps.
+fn changed(base: &str, state: &str) -> String {
+    let mut out: Vec<String> = state
+        .lines()
+        .filter(|l| !base.lines().any(|b| b == *l))
+        .map(|l| format!("+ {l}"))
+        .collect();
+    out.extend(
+        base.lines()
+            .filter(|l| !state.lines().any(|s| s == *l))
+            .map(|l| format!("- {l}")),
+    );
+    out.join("\n")
+}
+
+/// The folios of the page rows of a flat view's lines, in their order.
+fn folios(lines: &str) -> String {
+    let folios: Vec<&str> = lines
+        .lines()
+        .filter_map(|l| l.split_once(" page \"")?.1.split_once('"').map(|(f, _)| f))
+        .collect();
+    format!("folios {}", folios.join(" "))
+}
+
+/// NV10: the Pages lines are byte-equal to the as-built text in the views and states a recording reaches: the
+/// section view whole; of a collapsed section, the filter's rows, the flat view, the type order and a moved cursor,
+/// what each changes (the lines a collapse or a cursor changes, the filter's and the flat view's lines, the type
+/// order's folios).
 #[test]
 fn the_pages_lines_are_the_as_built_lines() {
     let tmp = Tmp::new("navigators");
     let mut shell = open(&tmp, false);
     let mut text = String::new();
-    let mut take = |shell: &ShellModel, what: &str| {
-        text.push_str(&format!("## {what}\n{}\n", pages_lines(shell)));
+    let mut take = |what: &str, lines: String| {
+        text.push_str(&format!("## {what}\n{lines}\n"));
     };
-    take(&shell, "section view");
+    let section = pages_lines(&shell);
+    take("section view", section.clone());
     done(&mut shell, "pages.toggle", json!({"key": "s:1"}));
-    take(&shell, "section 1 collapsed");
+    take("section 1 collapsed", changed(&section, &pages_lines(&shell)));
     done(&mut shell, "pages.toggle", json!({"key": "s:1"}));
     done(&mut shell, "pages.filter", json!({"text": "supply"}));
-    take(&shell, "filter supply");
+    take("filter supply", pages_lines(&shell));
     done(&mut shell, "pages.filter", json!({"text": ""}));
     done(&mut shell, "pages.mode", json!({"mode": "flat"}));
-    take(&shell, "flat view");
+    let flat = pages_lines(&shell);
+    take("flat view", flat.clone());
     done(&mut shell, "pages.sort", json!({"by": "type"}));
-    take(&shell, "flat view by type");
+    let by_type = pages_lines(&shell);
+    assert_eq!(changed(&flat, &by_type).lines().count(), 2, "the type order changes the header only");
+    take("flat view by type", folios(&by_type));
     done(&mut shell, "pages.sort", json!({"by": "folio"}));
     done(&mut shell, "pages.mode", json!({"mode": "section"}));
     done(&mut shell, "page.goto", json!({"folio": "103"}));
     done(&mut shell, "pages.row", json!({"step": 1}));
-    take(&shell, "103 shown, cursor moved down");
+    take("103 shown, cursor moved down", changed(&section, &pages_lines(&shell)));
     let path = Path::new(EXPECTED).join("navigator_pages.txt");
     if ew_testdir::bless() {
         std::fs::write(&path, &text).unwrap();

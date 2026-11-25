@@ -34,34 +34,16 @@ navigator "Pages" mode section sort folio filter ""
   row level 2 page "910.1" "Device Tag Overview 2" generated changed "V1.0"
   row level 2 page "911" "Revision Overview" generated changed "V1.0"
 ## section 1 collapsed
-navigator "Pages" mode section sort folio filter ""
-  row level 1 "Front matter" expanded
-  row level 2 page "1" "Title page" badge "QET 10 px" changed "V1.0" current
-  row level 2 page "2" "Table of Contents 1" generated changed "V1.0"
-  row level 2 page "2.1" "Table of Contents 2" generated changed "V1.0"
-  row level 1 "Section 1 - Wiring Definition" collapsed cursor
-  row level 1 "Section 2 - Pneumatics" expanded
-  row level 2 page "200" "+CAB - Section 2 - Page 200 - 299 - Pneumatics" changed "V1.0"
-  row level 2 page "201" "Pneumatics" badge "QET 10 px" changed "V1.0"
-  row level 1 "Section 9 - Nomenclature" expanded
-  row level 2 page "900" "+CAB - Section 9 - Page 900 - 999 - Nomenclature" changed "V1.0"
-  row level 2 page "901" "Partlist 1" generated changed "V1.0"
-  row level 2 page "901.1" "Partlist 2" generated changed "V1.0"
-  row level 2 page "902" "Panel layout" badge "QET 10 px" changed "V1.0"
-  row level 2 page "902.1" "Legend of layout 902" generated changed "V1.0"
-  row level 2 page "902.2" "Legend of layout 902" generated changed "V1.0"
-  row level 2 page "903" "Terminal Diagram 1" generated changed "V1.0"
-  row level 2 page "906" "Cable Overview and Diagrams" generated changed "V1.0"
-  row level 2 page "907" "Wire List 1" generated changed "V1.0"
-  row level 2 page "907.1" "Wire List 2" generated changed "V1.0"
-  row level 2 page "907.2" "Wire List 3" generated changed "V1.0"
-  row level 2 page "908" "PLC Overview 1" generated changed "V1.0"
-  row level 2 page "908.1" "PLC Overview 2" generated changed "V1.0"
-  row level 2 page "909" "Potential Overview" generated changed "V1.0"
-  row level 2 page "909.1" "Potential Overview" generated changed "V1.0"
-  row level 2 page "910" "Device Tag Overview 1" generated changed "V1.0"
-  row level 2 page "910.1" "Device Tag Overview 2" generated changed "V1.0"
-  row level 2 page "911" "Revision Overview" generated changed "V1.0"
++   row level 2 page "1" "Title page" badge "QET 10 px" changed "V1.0" current
++   row level 1 "Section 1 - Wiring Definition" collapsed cursor
+-   row level 2 page "1" "Title page" badge "QET 10 px" changed "V1.0" current cursor
+-   row level 1 "Section 1 - Wiring Definition" expanded
+-   row level 2 page "100" "+CAB - Section 1 - Page 100 - 199 - Wiring Definition" changed "V1.0"
+-   row level 2 page "101" "Supply 400 V AC" badge "QET 10 px" changed "V1.0"
+-   row level 2 page "102" "Control 24 V DC" badge "QET 10 px" changed "V1.0"
+-   row level 2 page "103" "Motor" badge "QET 10 px" changed "V1.0"
+-   row level 2 page "104" "PLC" badge "QET 10 px" changed "V1.0"
+-   row level 2 page "105" "PROFIBUS DP" badge "QET 10 px" changed "V1.0"
 ## filter supply
 navigator "Pages" mode section sort folio filter "supply"
   row level 1 "Section 1 - Wiring Definition" expanded cursor
@@ -98,68 +80,11 @@ navigator "Pages" mode flat sort folio filter ""
   row level 1 page "910.1" "Device Tag Overview 2" generated changed "V1.0"
   row level 1 page "911" "Revision Overview" generated changed "V1.0"
 ## flat view by type
-navigator "Pages" mode flat sort type filter ""
-  row level 1 page "1" "Title page" badge "QET 10 px" changed "V1.0" current cursor
-  row level 1 page "100" "+CAB - Section 1 - Page 100 - 199 - Wiring Definition" changed "V1.0"
-  row level 1 page "200" "+CAB - Section 2 - Page 200 - 299 - Pneumatics" changed "V1.0"
-  row level 1 page "900" "+CAB - Section 9 - Page 900 - 999 - Nomenclature" changed "V1.0"
-  row level 1 page "101" "Supply 400 V AC" badge "QET 10 px" changed "V1.0"
-  row level 1 page "102" "Control 24 V DC" badge "QET 10 px" changed "V1.0"
-  row level 1 page "103" "Motor" badge "QET 10 px" changed "V1.0"
-  row level 1 page "104" "PLC" badge "QET 10 px" changed "V1.0"
-  row level 1 page "105" "PROFIBUS DP" badge "QET 10 px" changed "V1.0"
-  row level 1 page "201" "Pneumatics" badge "QET 10 px" changed "V1.0"
-  row level 1 page "902" "Panel layout" badge "QET 10 px" changed "V1.0"
-  row level 1 page "2" "Table of Contents 1" generated changed "V1.0"
-  row level 1 page "2.1" "Table of Contents 2" generated changed "V1.0"
-  row level 1 page "901" "Partlist 1" generated changed "V1.0"
-  row level 1 page "901.1" "Partlist 2" generated changed "V1.0"
-  row level 1 page "902.1" "Legend of layout 902" generated changed "V1.0"
-  row level 1 page "902.2" "Legend of layout 902" generated changed "V1.0"
-  row level 1 page "903" "Terminal Diagram 1" generated changed "V1.0"
-  row level 1 page "906" "Cable Overview and Diagrams" generated changed "V1.0"
-  row level 1 page "907" "Wire List 1" generated changed "V1.0"
-  row level 1 page "907.1" "Wire List 2" generated changed "V1.0"
-  row level 1 page "907.2" "Wire List 3" generated changed "V1.0"
-  row level 1 page "908" "PLC Overview 1" generated changed "V1.0"
-  row level 1 page "908.1" "PLC Overview 2" generated changed "V1.0"
-  row level 1 page "909" "Potential Overview" generated changed "V1.0"
-  row level 1 page "909.1" "Potential Overview" generated changed "V1.0"
-  row level 1 page "910" "Device Tag Overview 1" generated changed "V1.0"
-  row level 1 page "910.1" "Device Tag Overview 2" generated changed "V1.0"
-  row level 1 page "911" "Revision Overview" generated changed "V1.0"
+folios 1 100 200 900 101 102 103 104 105 201 902 2 2.1 901 901.1 902.1 902.2 903 906 907 907.1 907.2 908 908.1 909 909.1 910 910.1 911
 ## 103 shown, cursor moved down
-navigator "Pages" mode section sort folio filter ""
-  row level 1 "Front matter" expanded
-  row level 2 page "1" "Title page" badge "QET 10 px" changed "V1.0"
-  row level 2 page "2" "Table of Contents 1" generated changed "V1.0"
-  row level 2 page "2.1" "Table of Contents 2" generated changed "V1.0"
-  row level 1 "Section 1 - Wiring Definition" expanded
-  row level 2 page "100" "+CAB - Section 1 - Page 100 - 199 - Wiring Definition" changed "V1.0"
-  row level 2 page "101" "Supply 400 V AC" badge "QET 10 px" changed "V1.0"
-  row level 2 page "102" "Control 24 V DC" badge "QET 10 px" changed "V1.0"
-  row level 2 page "103" "Motor" badge "QET 10 px" changed "V1.0" current
-  row level 2 page "104" "PLC" badge "QET 10 px" changed "V1.0" cursor
-  row level 2 page "105" "PROFIBUS DP" badge "QET 10 px" changed "V1.0"
-  row level 1 "Section 2 - Pneumatics" expanded
-  row level 2 page "200" "+CAB - Section 2 - Page 200 - 299 - Pneumatics" changed "V1.0"
-  row level 2 page "201" "Pneumatics" badge "QET 10 px" changed "V1.0"
-  row level 1 "Section 9 - Nomenclature" expanded
-  row level 2 page "900" "+CAB - Section 9 - Page 900 - 999 - Nomenclature" changed "V1.0"
-  row level 2 page "901" "Partlist 1" generated changed "V1.0"
-  row level 2 page "901.1" "Partlist 2" generated changed "V1.0"
-  row level 2 page "902" "Panel layout" badge "QET 10 px" changed "V1.0"
-  row level 2 page "902.1" "Legend of layout 902" generated changed "V1.0"
-  row level 2 page "902.2" "Legend of layout 902" generated changed "V1.0"
-  row level 2 page "903" "Terminal Diagram 1" generated changed "V1.0"
-  row level 2 page "906" "Cable Overview and Diagrams" generated changed "V1.0"
-  row level 2 page "907" "Wire List 1" generated changed "V1.0"
-  row level 2 page "907.1" "Wire List 2" generated changed "V1.0"
-  row level 2 page "907.2" "Wire List 3" generated changed "V1.0"
-  row level 2 page "908" "PLC Overview 1" generated changed "V1.0"
-  row level 2 page "908.1" "PLC Overview 2" generated changed "V1.0"
-  row level 2 page "909" "Potential Overview" generated changed "V1.0"
-  row level 2 page "909.1" "Potential Overview" generated changed "V1.0"
-  row level 2 page "910" "Device Tag Overview 1" generated changed "V1.0"
-  row level 2 page "910.1" "Device Tag Overview 2" generated changed "V1.0"
-  row level 2 page "911" "Revision Overview" generated changed "V1.0"
++   row level 2 page "1" "Title page" badge "QET 10 px" changed "V1.0"
++   row level 2 page "103" "Motor" badge "QET 10 px" changed "V1.0" current
++   row level 2 page "104" "PLC" badge "QET 10 px" changed "V1.0" cursor
+-   row level 2 page "1" "Title page" badge "QET 10 px" changed "V1.0" current cursor
+-   row level 2 page "103" "Motor" badge "QET 10 px" changed "V1.0"
+-   row level 2 page "104" "PLC" badge "QET 10 px" changed "V1.0"
