@@ -5,16 +5,13 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Releasing ElektraWatt
 
-The procedure of a binary release in its 0.1.x form (WP-S6.07 D14; [doc 18](../design/18-quality-security-release.md)
-§5.1, §7.4, §9.2), slimmed to an early alpha's size: no CI run is waited for (there is no CI until 1.0,
-one developer cuts the release by hand), and the release builds carry no SBOM, no build provenance and no install tests. The workflow is [`release.yml`](../../.github/workflows/release.yml), its scripts are
+The procedure of a binary release ([doc 18](../design/18-quality-security-release.md) §5.1, §7.4, §9.2), at an
+early alpha's size: no CI run is waited for (there is no CI until 1.0, one developer cuts the release by hand), and
+the release builds carry no SBOM, no build provenance and no install tests. The workflow is
+[`release.yml`](../../.github/workflows/release.yml), its scripts are
 [`ci/release-verify.py`](../../ci/release-verify.py) and the per-artefact steps of
 [`package.yml`](../../.github/workflows/package.yml); the items a pipeline cannot prove are the
-[release checklist](checklist.md). The specification is
-WP-S6.07; the first release, its notes, its candidates and its dossier
-are WP-S6.08's. The next release, 0.2.0, goes through this
-procedure in the same form; it is the first after the format locks at 0.1.0, so its notes name every format change
-and its migration.
+[release checklist](checklist.md). A release's notes name every change of the format.
 
 ## 1. The candidate is the release
 
@@ -30,18 +27,18 @@ fixes are on it, and only candidate fixes land there. The promote is dispatched 
 allows `main` and `v*` tags) and publishes the candidate's own files; no job requires the tagged commit to be on
 `main`.
 
-The release files of 0.1.0 are the x86_64 CLI archives (`ew-<X.Y.Z>-x86_64-pc-windows-msvc.zip`,
+The release files are the x86_64 CLI archives (`ew-<X.Y.Z>-x86_64-pc-windows-msvc.zip`,
 `ew-<X.Y.Z>-x86_64-unknown-linux-gnu.tar.gz`), the per-user Windows setup (`ElektraWatt-<X.Y.Z>-x64-user-setup.exe`)
 and the Linux AppImage (`ElektraWatt-<X.Y.Z>-x86_64.AppImage`), and `SHA256SUMS` over them: five files. The
-aarch64 archives are not built at 0.1.x. Nothing is signed at 0.1.0: no signed tag, no
+aarch64 archives are not built. Nothing is signed until the project has a signing identity: no signed tag, no
 Authenticode, no signed `SHA256SUMS`.
 
 ## 2. Before the first candidate: the repository's settings
 
-These are the owner's (WP-S6.07 §13 O1). Check each before the first tag:
+These are the owner's. Check each before the first tag:
 
-1. The environment `release` exists, its deployment rule allows `v*` tags and `main` only, and it has no reviewer at
-   0.1.0 (the second maintainer's approval comes with 1.0).
+1. The environment `release` exists, its deployment rule allows `v*` tags and `main` only, and it has no reviewer
+   before 1.0 (the second maintainer's approval comes with 1.0).
 2. A tag ruleset on `v*` forbids updating and deleting tags, with no bypass. It does not restrict their creation:
    the promote creates the final tag with the workflow's own token, which a ruleset cannot list as a bypass actor, and
    the repository's only writers are its maintainers.
@@ -96,10 +93,10 @@ Download the files and check them as a user would (§9).
 
 ## 6. The checklist
 
-Fill [the checklist](checklist.md) for the candidate: each item with its evidence and its signature. WP-S6.08 copies
-the filled checklist into the release dossier (GP-11). A failed item is a blocker (§8).
-The dossier of 0.1.0 is [`dossier/0.1.0/`](dossier/0.1.0/README.md): the checklist of each candidate as
-`checklist-rc.<n>.md`, the acceptance run, the translation report, the manual tests and the go.
+Fill [the checklist](checklist.md) for the candidate: each item with its evidence and its signature, and copy the
+filled checklist into the release's dossier. A failed item is a blocker (§8). Each release has its dossier,
+`dossier/<X.Y.Z>/` (the latest, [`dossier/0.3.5/`](dossier/0.3.5/README.md)): the checklist of each candidate as
+`checklist-rc.<n>.md`, the translation report, the manual tests and the go.
 
 ## 7. The promote
 
@@ -138,15 +135,15 @@ sha256sum --check --ignore-missing SHA256SUMS
 
 ## 10. What the workflow proves
 
-| Job (doc 18 §7.4) | Where | 0.1.x's form |
+| Job (doc 18 §7.4) | Where | Its form before 1.0 |
 |---|---|---|
 | CI-R-01 | `release.yml` `verify` | The tag's version is the workspace version; the release notes exist with their summary; no tag signature |
 | CI-R-03 | `package.yml` `windows`, `linux` | `cargo build --release --locked`, network-less on Linux; `ci/release-check.sh env` on both OSes, `scan` and glibc 2.35 at most on Linux |
-| CI-R-05 | `package.yml` (WP-S6.06) | The setup, the AppImage and the CLI archives, after one smoke test of each staged tree |
+| CI-R-05 | `package.yml` | The setup, the AppImage and the CLI archives, after one smoke test of each staged tree |
 | CI-R-06 | `release.yml` `sums` | `SHA256SUMS` over every release file, unsigned |
 | CI-R-11 | `release.yml` `release` | The draft on a candidate tag; the promote, dry or real, on a dispatch |
 
-Not run at 0.1.x: CI-R-02 (the CI runs and the advisory checks), CI-R-07 (the SBOMs), CI-R-08 (build provenance),
+Not run before 1.0: CI-R-02 (the CI runs and the advisory checks), CI-R-07 (the SBOMs), CI-R-08 (build provenance),
 CI-R-09's binary half (the embedded dependency lists, the listening-socket check) and CI-R-10's CI half (the install
 tests); CI-R-04 (`ew-step-worker`) is 1.0's. The advisory waivers in `deny.toml` and `.cargo/audit.toml` are still
 checked by hand at RC-03.
