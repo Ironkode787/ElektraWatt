@@ -295,7 +295,9 @@ one feature is never a member of the host.
 A notification is a record: a tone, a title, its sentences as texts (§18) and the actions it offers. A sentence
 is never glued to another in code or cut back out of one; the window lays the parts out. An offered action is an
 action of the table with its parameters and the records to select, labelled by its own short word (not by the
-action's menu text), with the `Validity` that says how long it can be taken. Whether a toast stays follows from its tone.
+action's menu text), with the `Validity` that says how long it can be taken. A toast's tone says what happened, and
+nothing else: every toast, with an offer or of the warning tone, goes after its time to the notifications list, where
+its offer stays usable while its `Validity` holds (doc 16a §6.10).
 
 ### 9.4 What the window decides
 
