@@ -34,7 +34,6 @@ fn stand_in_program() -> Program {
         leading: ["--exact", "tests::stand_in", "--nocapture", "--"]
             .map(OsString::from)
             .to_vec(),
-        check_status: true,
     }
 }
 
@@ -145,7 +144,7 @@ fn a_missing_or_failing_lp_is_refused_and_leaves_no_file() {
 /// The viewer on `dir` with the stand-in as its opener.
 fn stand_in_viewer(dir: &Dir) -> Viewer {
     Viewer {
-        opener: stand_in_program(),
+        opener: Some(stand_in_program()),
         dir: dir.0.to_path_buf(),
         project: "J-E-2416".to_owned(),
     }

@@ -42,7 +42,7 @@ ashpd = { version = "=0.13.13", default-features = false, features = ["async-io"
 # accesskit_windows, gpu-allocator and wgpu-hal; no new package). Its features: the device context, its printing calls
 # and the print dialog; the dialog's owner window; COM on the dialog's thread; and the global memory of the dialog's
 # printer settings (GlobalLock); the console's Ctrl+C handler of `ew print`; the parent's console of the
-# window program's terminal modes.
+# window program's terminal modes; the system's open call of a file or an address (`ShellExecuteW`).
 [target.'cfg(windows)'.dependencies]
 windows = { version = "=0.62.2", features = [
   "Win32_Foundation",
@@ -52,6 +52,7 @@ windows = { version = "=0.62.2", features = [
   "Win32_System_Console",
   "Win32_System_Memory",
   "Win32_UI_Controls_Dialogs",
+  "Win32_UI_Shell",
   "Win32_UI_WindowsAndMessaging",
 ] }
 

@@ -18,6 +18,8 @@
 //! [`PrintJob::monochrome`] the bands are drawn from the lists `ew_render_cpu::monochrome` gives, the greying the PDF
 //! uses; the driver's colour setting is left as it is. A failure aborts the document. The print set's PDF is not used.
 //!
+//! The system's open call of a file or an address is here too ([`shell_open`]).
+//!
 //! The product's one place of `unsafe` (doc 18 §11.2, NFR-SEC-04): each block is one
 //! system call, or one view of a buffer, with its `SAFETY:` comment; what a call allocates is owned by a guard that
 //! frees it once ([`Dc`], [`Global`], [`Com`]).
@@ -50,8 +52,10 @@ use ::windows::Win32::UI::Controls::Dialogs::{
     DEVNAMES, PD_HIDEPRINTTOFILE, PD_NOCURRENTPAGE, PD_NOPAGENUMS, PD_NOSELECTION, PD_RESULT_PRINT,
     PD_RETURNDC, PD_USEDEVMODECOPIESANDCOLLATE, PRINTDLGEXW, PrintDlgExW, START_PAGE_GENERAL,
 };
+use ::windows::Win32::UI::Shell::ShellExecuteW;
 use ::windows::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DestroyWindow, GetForegroundWindow, GetWindowThreadProcessId, WS_EX_TOOLWINDOW, WS_POPUP,
+    CreateWindowExW, DestroyWindow, GetForegroundWindow, GetWindowThreadProcessId, SW_SHOWNORMAL,
+    WS_EX_TOOLWINDOW, WS_POPUP,
 };
 use ::windows::core::{BOOL, HRESULT, PCWSTR, w};
 use ew_render_cpu::{PagePlacement, RenderOptions, RgbaImage, monochrome, pixel_size, render_placed_band};
@@ -781,6 +785,33 @@ impl Drop for Dc {
         // SAFETY: the device context was created for this guard (`CreateDCW` or the dialog's `PD_RETURNDC`), nothing
         // else deletes it, and it is deleted once.
         let _ = unsafe { DeleteDC(self.0) };
+    }
+}
+
+/// Opens `target`, a file's path or an address (`file:///…/page.html#anchor`, `https://…`), in its default
+/// application through the system's wide open call (`ShellExecuteW` with the `open` verb): it takes every character
+/// of a path, outside the code page too, and keeps an address's anchor. No shell, no command line. The error names
+/// the call's answer.
+pub(crate) fn shell_open(target: &std::ffi::OsStr) -> Result<(), String> {
+    let wide: Vec<u16> = target.encode_wide().chain(std::iter::once(0)).collect();
+    // SAFETY: `wide` is a NUL-terminated UTF-16 string that outlives the call, the verb a static wide literal; no owner
+    // window, parameters or directory are passed (null), and the call keeps no pointer after it returns.
+    let answer = unsafe {
+        ShellExecuteW(
+            None,
+            w!("open"),
+            PCWSTR(wide.as_ptr()),
+            PCWSTR::null(),
+            PCWSTR::null(),
+            SW_SHOWNORMAL,
+        )
+    };
+    // The call answers a value greater than 32 when it opened the target, else an error code.
+    let code = answer.0 as usize;
+    if code > 32 {
+        Ok(())
+    } else {
+        Err(format!("ShellExecuteW answered {code}"))
     }
 }
 

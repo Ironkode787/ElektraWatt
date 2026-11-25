@@ -10,7 +10,7 @@
 //! - [`Lp`] (Linux, CUPS): `lp [-d <printer>] -t <title> <file>`, the set written to a fresh file in the temporary
 //!   directory first and removed after `lp` returns, whatever it returns;
 //! - [`Viewer`] (every platform): the set written to a fresh file `<dir>/<project>-print-<process>-<n>.pdf` and opened
-//!   with the default PDF application ([`Program::opener`]), so the person prints from it; it chooses no printer, and
+//!   with the default PDF application ([`open_with_system`]), so the person prints from it; it chooses no printer, and
 //!   the file stays for the viewer to read (the system's temporary-file clean-up removes it).
 //!
 //! Both write their file only as a new one (`create_new`, mode `0o600` on Unix), never through a name already taken.
@@ -335,6 +335,30 @@ impl fmt::Debug for Chain {
     }
 }
 
+/// Opens `target`, a file's path or an address (the guide's `file://` URL with its anchor), in its default
+/// application: the system's one opener for both. On Windows the system's wide open call (`ShellExecuteW`), which
+/// takes every character of a path, outside the code page too, and keeps an address's anchor; elsewhere `xdg-open`.
+/// No shell.
+///
+/// # Errors
+///
+/// The opener could not be started, or it answered that it opened nothing, in words.
+pub fn open_with_system(target: &std::ffi::OsStr) -> Result<(), PrintError> {
+    #[cfg(windows)]
+    {
+        windows::shell_open(target).map_err(|reason| PrintError::Spawn {
+            program: "ShellExecuteW".to_owned(),
+            reason,
+        })
+    }
+    #[cfg(not(windows))]
+    {
+        Program::named("xdg-open")
+            .run(&[target.to_os_string()], None)
+            .map(|_| ())
+    }
+}
+
 /// A program an adapter runs: its path and the arguments that come before the adapter's own.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Program {
@@ -342,30 +366,14 @@ pub struct Program {
     pub path: PathBuf,
     /// Arguments before the adapter's.
     pub leading: Vec<OsString>,
-    /// Whether a failing exit status is an error: `explorer.exe` exits 1 when it has opened the file.
-    pub check_status: bool,
 }
 
 impl Program {
-    /// The program `name` with no leading argument, its exit status checked.
+    /// The program `name` with no leading argument.
     pub fn named(name: &str) -> Program {
         Program {
             path: PathBuf::from(name),
             leading: Vec::new(),
-            check_status: true,
-        }
-    }
-
-    /// The platform's opener of a file in its default application: `explorer.exe` on Windows (its exit status is
-    /// not an answer), `xdg-open` elsewhere.
-    pub fn opener() -> Program {
-        if cfg!(windows) {
-            Program {
-                check_status: false,
-                ..Program::named("explorer.exe")
-            }
-        } else {
-            Program::named("xdg-open")
         }
     }
 
@@ -394,7 +402,7 @@ impl Program {
                 });
             }
         };
-        if self.check_status && !out.status.success() {
+        if !out.status.success() {
             return Err(PrintError::Failed {
                 program: self.label(),
                 status: match out.status.code() {

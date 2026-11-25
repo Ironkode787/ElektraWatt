@@ -6,15 +6,15 @@
 
 use std::path::PathBuf;
 
-use crate::{PrintAdapter, PrintError, PrintJob, PrintOutcome, Program, fresh_file};
+use crate::{PrintAdapter, PrintError, PrintJob, PrintOutcome, Program, fresh_file, open_with_system};
 
 /// The viewer adapter: the set written to a fresh file named by [`Viewer::stem`] and opened with [`Viewer::opener`];
 /// a printer is asked for by the viewer, so naming one is refused. The file stays after the opener returns, for the
 /// viewer to read; the system's temporary-file clean-up removes it.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Viewer {
-    /// The program that opens the file ([`Program::opener`]).
-    pub opener: Program,
+    /// The program that opens the file; `None`: the system's opener ([`open_with_system`]).
+    pub opener: Option<Program>,
     /// Where the file is written (the system's temporary directory).
     pub dir: PathBuf,
     /// The project's name, the file's stem before `-print-<process>-<n>.pdf`.
@@ -25,7 +25,7 @@ impl Viewer {
     /// The adapter writing its files to `dir` and opening them with the platform's opener.
     pub fn new(dir: PathBuf, project: &str) -> Viewer {
         Viewer {
-            opener: Program::opener(),
+            opener: None,
             dir,
             project: project.to_owned(),
         }
@@ -62,7 +62,10 @@ impl PrintAdapter for Viewer {
             return Err(PrintError::PrinterWithViewer);
         }
         let file = fresh_file(&self.dir, &self.stem(), &job.pdf)?;
-        self.opener.run(&[file.clone().into_os_string()], None)?;
+        match &self.opener {
+            Some(program) => program.run(&[file.clone().into_os_string()], None).map(|_| ())?,
+            None => open_with_system(file.as_os_str())?,
+        }
         Ok(PrintOutcome::Opened { file })
     }
 }

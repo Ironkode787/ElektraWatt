@@ -382,7 +382,8 @@ flowchart LR
 - **Native code.** It is limited to bundled SQLite in process and OCCT out of process.
 
 Crate roots carry `#![forbid(unsafe_code)]` where they declare it. `ew-print` (`src/windows.rs`) uses
-`unsafe` for the Windows print adapters, each block with its `SAFETY:` comment, and `ew-testkit` holds the counting
+`unsafe` for the Windows print adapters and the system's open call of a file or an address (`ShellExecuteW`), each
+block with its `SAFETY:` comment, and `ew-testkit` holds the counting
 `GlobalAlloc` of the `hostile_corpus` test binary (`tests/hostile_corpus/alloc.rs`); the library keeps `forbid`. No lint
 checks that no other file uses `unsafe`.
 
