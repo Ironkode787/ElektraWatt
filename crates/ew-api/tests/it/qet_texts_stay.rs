@@ -7,10 +7,9 @@
 //! (a slot shown where the drawing has it, or a text of the element's symbol), so the text placer prints it there; a
 //! move of an element and Arrange and route keep each text where it stands on its element.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use ew_api::Session;
-use ew_api::import::{StarterLibrary, import_qet};
 use ew_api::routing::RouteScope;
 use ew_derive::{PageRef, Q};
 use ew_dl::Layer;
@@ -18,6 +17,8 @@ use ew_ids::{Id, Uuid};
 use ew_schema::{Page, PageItemKind, Representation};
 use ew_units::Pt2;
 use serde_json::json;
+
+use crate::common::{QetFolder, import_qet_file, qet_folder};
 
 /// A definition `name` of link type `link` with `kind`, numbered `n`, its terminals up and down.
 fn def(name: &str, link: &str, kind: &str, n: u32) -> String {
@@ -109,39 +110,13 @@ fn project() -> String {
 }
 
 /// The QET file and, when `map` is not empty, the symbol map beside it, in a folder of their own.
-fn folder(name: &str, map: &str) -> Folder {
-    let dir = ew_testdir::Tmp::new(&format!("ew-qet-stay-{name}"));
-    let file = dir.join("stay.qet");
-    std::fs::write(&file, project()).expect("the QET file");
-    if !map.is_empty() {
-        std::fs::write(dir.join("symbol-map.csv"), map).expect("the map");
-    }
-    Folder { _dir: dir, file }
-}
-
-/// The QET file of [`folder`], read as its path; its folder is removed with it.
-struct Folder {
-    _dir: ew_testdir::Tmp,
-    file: PathBuf,
-}
-
-impl std::ops::Deref for Folder {
-    type Target = std::path::Path;
-
-    fn deref(&self) -> &std::path::Path {
-        &self.file
-    }
+fn folder(name: &str, map: &str) -> QetFolder {
+    qet_folder(&format!("ew-qet-stay-{name}"), "stay.qet", &project(), map)
 }
 
 /// The session of the import of `file`, the folder removed.
 fn import(file: &Path) -> Session {
-    let lib = StarterLibrary::from_dir(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../../content"))
-        .expect("the starter content")
-        .with_symbol_map_beside(file)
-        .expect("the map reads");
-    let imported = import_qet("stay.qet", std::fs::read(file).unwrap(), &lib).expect("an importable project");
-    std::fs::remove_dir_all(file.parent().unwrap()).expect("the folder goes");
-    imported.session.expect("the import opens")
+    import_qet_file(file).session.expect("the import opens")
 }
 
 const MAP: &str = "element,function,cps,tag,number,xref\ncoil.elmt,ew.fn.coil,A1 A2,,,\ncontact.elmt,ew.fn.contact-no,13 14,,,\n";

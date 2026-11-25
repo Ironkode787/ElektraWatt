@@ -16,6 +16,47 @@ pub fn repo() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
+/// A QET project file in a folder of its own, read as its path; the folder is removed with it.
+pub struct QetFolder {
+    _dir: ew_testdir::Tmp,
+    file: PathBuf,
+}
+
+impl std::ops::Deref for QetFolder {
+    type Target = Path;
+
+    fn deref(&self) -> &Path {
+        &self.file
+    }
+}
+
+/// The QET project `text` as the file `file_name` and, when `map` is not empty, the symbol map beside it, in a folder
+/// of their own named for `name`.
+pub fn qet_folder(name: &str, file_name: &str, text: &str, map: &str) -> QetFolder {
+    let dir = ew_testdir::Tmp::new(name);
+    let file = dir.join(file_name);
+    std::fs::write(&file, text).expect("the QET file");
+    if !map.is_empty() {
+        std::fs::write(dir.join("symbol-map.csv"), map).expect("the map");
+    }
+    QetFolder { _dir: dir, file }
+}
+
+/// The import of the QET file `file` with the starter content and the symbol map beside it, its folder removed
+/// before the result is read; the import opens.
+pub fn import_qet_file(file: &Path) -> ew_api::import::Imported {
+    let lib = ew_api::import::StarterLibrary::from_dir(&repo().join("content"))
+        .expect("the starter content")
+        .with_symbol_map_beside(file)
+        .expect("the map reads");
+    let name = file.file_name().expect("a file name").to_string_lossy();
+    let imported =
+        ew_api::import::import_qet(&name, std::fs::read(file).unwrap(), &lib).expect("an importable project");
+    std::fs::remove_dir_all(file.parent().unwrap()).expect("the folder goes");
+    assert!(imported.session.is_ok(), "{:?}", imported.session.as_ref().err());
+    imported
+}
+
 /// The project and the other records of a batch.
 pub fn split(batch: &ImportBatch) -> (ew_schema::Project, Vec<Record>) {
     let mut project = None;

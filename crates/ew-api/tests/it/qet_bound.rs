@@ -10,9 +10,11 @@
 //! terminals, the strip goes on over the second folio, the marks make a cable with cores, and a stored route with a
 //! corner between the grid's lines keeps its way.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use ew_api::import::{Imported, StarterLibrary, import_qet};
+
+use crate::common::{QetFolder, import_qet_file, qet_folder};
 use ew_ids::Id;
 use ew_schema::{ConnectionKind, Device, FnDef, FnRole, Function, LibDocument, Record, Representation};
 use ew_units::{Nm, Pt2};
@@ -219,28 +221,8 @@ fn project() -> String {
 }
 
 /// The QET file and the symbol map `map` (none when empty) in a folder of their own, named for `name`.
-fn folder(name: &str, map: &str) -> Folder {
-    let dir = ew_testdir::Tmp::new(&format!("ew-qet-bound-{name}"));
-    let file = dir.join("bound.qet");
-    std::fs::write(&file, project()).expect("the QET file");
-    if !map.is_empty() {
-        std::fs::write(dir.join("symbol-map.csv"), map).expect("the map");
-    }
-    Folder { _dir: dir, file }
-}
-
-/// The QET file of [`folder`], read as its path; its folder is removed with it.
-struct Folder {
-    _dir: ew_testdir::Tmp,
-    file: PathBuf,
-}
-
-impl std::ops::Deref for Folder {
-    type Target = std::path::Path;
-
-    fn deref(&self) -> &std::path::Path {
-        &self.file
-    }
+fn folder(name: &str, map: &str) -> QetFolder {
+    qet_folder(&format!("ew-qet-bound-{name}"), "bound.qet", &project(), map)
 }
 
 fn library() -> StarterLibrary {
@@ -248,15 +230,6 @@ fn library() -> StarterLibrary {
         .expect("the starter content")
 }
 
-/// The import of the QET file `file` with the map beside it.
-fn import(file: &Path) -> Imported {
-    let lib = library().with_symbol_map_beside(file).expect("the map reads");
-    let imported =
-        import_qet("bound.qet", std::fs::read(file).unwrap(), &lib).expect("an importable project");
-    std::fs::remove_dir_all(file.parent().unwrap()).expect("the folder goes");
-    assert!(imported.session.is_ok(), "{:?}", imported.session.as_ref().err());
-    imported
-}
 
 const MAP: &str = "element,function,cps,tag,number,xref\ncoil.elmt,ew.fn.coil,A1 A2,,,\ncontact.elmt,ew.fn.contact-no,13 14,,,\nklem.elmt,ew.fn.terminal,,,,\n";
 
@@ -301,8 +274,8 @@ fn device(i: &Imported, id: Id<Device>) -> &Device {
 
 #[test]
 fn the_symbol_map_binds_coils_contacts_and_terminals_and_keeps_their_drawing() {
-    let plain = import(&folder("plain", ""));
-    let bound = import(&folder("bound", MAP));
+    let plain = import_qet_file(&folder("plain", ""));
+    let bound = import_qet_file(&folder("bound", MAP));
     let (coil, coil_rep) = of(&bound, 5);
     assert_eq!(
         coil.def,
@@ -397,7 +370,7 @@ fn px(v: i64) -> Nm {
 
 #[test]
 fn junctions_earths_strips_and_cable_marks_make_the_wired_cabinet() {
-    let i = import(&folder("cabinet", ""));
+    let i = import_qet_file(&folder("cabinet", ""));
     // The T junction is a junction, the earth symbol an earth point: neither is a terminal.
     let junctions = records(&i, |r| match r {
         Record::Junction(j) => Some(j),
@@ -513,8 +486,8 @@ fn shown_slots(i: &Imported, id: u32) -> Vec<String> {
 /// map, and a terminal's number shows its tag where its text stood.
 #[test]
 fn a_bound_element_keeps_the_places_of_its_texts_and_cross_references() {
-    let plain = import(&folder("look-plain", ""));
-    let bound = import(&folder("look-bound", MAP));
+    let plain = import_qet_file(&folder("look-plain", ""));
+    let bound = import_qet_file(&folder("look-bound", MAP));
     let xref = |i: &Imported, id: u32| -> Vec<String> {
         shown_slots(i, id)
             .into_iter()
