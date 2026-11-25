@@ -1305,7 +1305,11 @@ impl Driver {
         if request.settle || self.frames == 0 {
             self.settle();
         }
-        let painted = if request.paint { self.paint_to(request) } else { Ok(None) };
+        let painted = if request.paint {
+            self.paint_to(request)
+        } else {
+            Ok(None)
+        };
         // The person looks at a turn's picture before the next input.
         if request.settle {
             self.paused_s += LOOK_S;

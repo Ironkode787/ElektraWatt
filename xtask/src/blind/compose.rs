@@ -323,10 +323,17 @@ mod tests {
         let mut visual = input(&root, Kind::Free, "free", Some("first-timer"));
         visual.senses = Senses::Visual;
         let text = compose(&visual).unwrap().text;
-        for words in ["about four seconds", "about eight seconds", "the bell", "no fault to log"] {
+        for words in [
+            "about four seconds",
+            "about eight seconds",
+            "the bell",
+            "no fault to log",
+        ] {
             assert!(text.contains(words), "the visual prompt says {words:?}");
         }
-        let text = compose(&input(&root, Kind::Free, "free", Some("first-timer"))).unwrap().text;
+        let text = compose(&input(&root, Kind::Free, "free", Some("first-timer")))
+            .unwrap()
+            .text;
         for words in ["no clock", "notifications.show", "no fault to log"] {
             assert!(text.contains(words), "the text prompt says {words:?}");
         }
