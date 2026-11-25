@@ -18,7 +18,6 @@ use ew_viewmodel::strings;
 use crate::app::Event;
 use crate::components::Tip as _;
 use crate::icons::IconId;
-use crate::keys;
 
 /// The style of the app menu and its submenus (doc 16a §6.13): egui's menu style with a visible 1-px
 /// `color.border.default` container border on `elevation.1`, and `space.3` side padding in the rows, so with the
@@ -105,7 +104,7 @@ fn fit_width<'a>(ui: &mut Ui, items: impl IntoIterator<Item = &'a ActionItem>) {
             let shortcut = if item.shortcut.is_empty() {
                 0.0
             } else {
-                let keys = egui::RichText::new(keys::short_display(&item.shortcut))
+                let keys = egui::RichText::new(ew_viewmodel::keymap::short_display(&item.shortcut))
                     .font(crate::theme::font(&t.type_small));
                 t.space_6 + width(keys.into(), egui::TextStyle::Button)
             };
@@ -149,7 +148,7 @@ fn item_in(ui: &mut Ui, item: &ActionItem, icons: bool, events: &mut Vec<Event>)
     if !item.shortcut.is_empty() {
         button = button.shortcut_text(crate::components::small_secondary(
             &t,
-            keys::short_display(&item.shortcut),
+            ew_viewmodel::keymap::short_display(&item.shortcut),
         ));
     }
     // A checked item shows its check icon; the selection fill stays off (the hover overlay is the only highlight).

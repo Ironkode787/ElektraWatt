@@ -139,7 +139,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
         } else {
             strings::format(
                 key!("keymap-chord-action"),
-                &[&crate::keys::short_display(&refusal.chord), label],
+                &[&ew_viewmodel::keymap::short_display(&refusal.chord), label],
             )
         };
         components::live_line(ui, &strings::format(key!("keymap-refused"), &[&what]), true);
@@ -171,8 +171,10 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
                 .chords
                 .iter()
                 .map(|c| {
-                    measure(crate::keys::short_display(c).replace('+', " "), &t.type_caption)
-                        + 2.0 * t.space_2
+                    measure(
+                        ew_viewmodel::keymap::short_display(c).replace('+', " "),
+                        &t.type_caption,
+                    ) + 2.0 * t.space_2
                 })
                 .sum::<f32>()
                 + t.space_1 * row.chords.len().saturating_sub(1) as f32;

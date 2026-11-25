@@ -71,7 +71,10 @@ fn button(ui: &Ui, t: &Tokens, side: Side, b: &RailButton, rect: Rect, events: &
     let tip = if b.shortcut.is_empty() {
         b.label.clone()
     } else {
-        format!("{} ({})", b.label, crate::keys::short_display(&b.shortcut))
+        ew_viewmodel::strings::format(
+            ew_viewmodel::key!("name-with-key"),
+            &[&b.label, &ew_viewmodel::keymap::short_display(&b.shortcut)],
+        )
     };
     let response = response.tip(tip);
     if response.clicked() {

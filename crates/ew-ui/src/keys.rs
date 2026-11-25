@@ -173,16 +173,6 @@ pub fn chord_text(key: Key, physical: Option<Key>, modifiers: Modifiers) -> Opti
     Chord::parse(&text).ok().map(|c| c.text())
 }
 
-/// The text of a binding for display: a physical key reads as its key cap
-/// (`Ctrl+phys:Digit0` is "Ctrl+0", `phys:Minus` "-"): the window never prints the `phys:` grammar. The
-/// view-model's one display function, under [`short_display`]; only the keymap's findings show it as it is.
-pub use ew_viewmodel::keymap::display;
-
-/// A binding as every surface names it: the keycap form ("Esc", "Del", "Up", "Ctrl+Z") of the menus, the key chips,
-/// the palette, the keymap editor, the command bar, the tooltips and the hints
-/// (doc 16a §8 item 7).
-pub use ew_viewmodel::keymap::short_display;
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -237,6 +227,7 @@ mod tests {
     /// The window shows a physical digit or letter as its key cap, never the `phys:` grammar.
     #[test]
     fn a_physical_digit_displays_as_its_key_cap() {
+        use ew_viewmodel::keymap::display;
         assert_eq!(display("Ctrl+phys:Digit0"), "Ctrl+0");
         assert_eq!(display("phys:KeyA"), "A");
         assert_eq!(display("Ctrl+Shift+W"), "Ctrl+Shift+W");

@@ -512,7 +512,7 @@ fn f1_opens_the_page_of_the_context_in_the_system_browser() {
     settle(&mut h);
     support::open_menu(&mut h, &["File"]);
     settle(&mut h);
-    let item = format!("New project… {}", ew_ui::keys::short_display("Ctrl+N"));
+    let item = format!("New project… {}", ew_viewmodel::keymap::short_display("Ctrl+N"));
     h.get_by_label(&item).hover();
     h.run_ok();
     h.key_press(Key::F1);

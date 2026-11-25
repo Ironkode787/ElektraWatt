@@ -23,10 +23,9 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use egui::TextureId;
-pub use ew_render2d::gpu::{AdapterSummary, DeviceKind, Flags, GpuApi, GpuError, adapter_count};
 use ew_render2d::gpu::{
-    BackendSetting, CanvasBackend as Choice, GpuCanvas, GpuView, PreparedScene, Preparer, RenderOutcome,
-    choose, no_gpu_adapter, sample_count_for,
+    AdapterSummary, BackendSetting, CanvasBackend as Choice, DeviceKind, Flags, GpuCanvas, GpuError, GpuView,
+    PreparedScene, Preparer, RenderOutcome, choose, no_gpu_adapter, sample_count_for,
 };
 use ew_render2d::pool::SharedFonts;
 use ew_render2d::wgpu;

@@ -376,9 +376,9 @@ fn the_file_menu_greys_out_what_needs_a_project() {
     support::open_menu(&mut h, &["File"]);
     settle(&mut h);
     // A menu entry is named by its label and its accelerator.
-    let open = format!("Open… {}", ew_ui::keys::short_display("Ctrl+O"));
+    let open = format!("Open… {}", ew_viewmodel::keymap::short_display("Ctrl+O"));
     assert!(!h.get_by_label(&open).accesskit_node().is_disabled());
-    let save = format!("Save {}", ew_ui::keys::short_display("Ctrl+S"));
+    let save = format!("Save {}", ew_viewmodel::keymap::short_display("Ctrl+S"));
     assert!(
         h.get_by_label(&save).accesskit_node().is_disabled(),
         "Save is disabled without a project"

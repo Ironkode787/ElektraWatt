@@ -570,10 +570,10 @@ fn red_pixels(image: &RgbaImage) -> usize {
         .count()
 }
 
-fn vulkan() -> ew_ui::gpu::AdapterSummary {
-    ew_ui::gpu::AdapterSummary {
-        kind: ew_ui::gpu::DeviceKind::Discrete,
-        api: ew_ui::gpu::GpuApi::Vulkan,
+fn vulkan() -> ew_render2d::gpu::AdapterSummary {
+    ew_render2d::gpu::AdapterSummary {
+        kind: ew_render2d::gpu::DeviceKind::Discrete,
+        api: ew_render2d::gpu::GpuApi::Vulkan,
         name: "test GPU".into(),
     }
 }

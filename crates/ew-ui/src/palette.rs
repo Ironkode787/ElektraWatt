@@ -73,7 +73,7 @@ fn row(ui: &mut egui::Ui, t: &Tokens, entry: &PaletteEntry, query: &str, selecte
     ui.ctx()
         .accesskit_node_builder(response.id, |n| n.set_selected(selected));
     if !entry.shortcut.is_empty() {
-        let shortcut = crate::keys::short_display(&entry.shortcut);
+        let shortcut = ew_viewmodel::keymap::short_display(&entry.shortcut);
         ui.ctx()
             .accesskit_node_builder(response.id, |n| n.set_keyboard_shortcut(shortcut));
     }

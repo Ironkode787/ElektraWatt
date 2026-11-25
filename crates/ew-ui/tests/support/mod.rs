@@ -611,7 +611,11 @@ pub fn menu_label(item: &ew_viewmodel::actions::ActionItem) -> String {
     if item.shortcut.is_empty() {
         item.label.clone()
     } else {
-        format!("{} {}", item.label, ew_ui::keys::short_display(&item.shortcut))
+        format!(
+            "{} {}",
+            item.label,
+            ew_viewmodel::keymap::short_display(&item.shortcut)
+        )
     }
 }
 

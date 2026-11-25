@@ -464,7 +464,7 @@ fn reduced_motion_stops_animation_and_the_zoom_jumps() {
 /// GPU keeps motion, and a GPU start that fails (FR-UI-028's fallback to the CPU) leaves reduced motion on.
 #[test]
 fn a_failed_gpu_start_leaves_reduced_motion_on() {
-    use ew_ui::gpu::{AdapterSummary, DeviceKind, GpuApi, GpuError};
+    use ew_render2d::gpu::{AdapterSummary, DeviceKind, GpuApi, GpuError};
     let vulkan = || AdapterSummary {
         kind: DeviceKind::Discrete,
         api: GpuApi::Vulkan,

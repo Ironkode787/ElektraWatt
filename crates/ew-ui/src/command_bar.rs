@@ -317,7 +317,7 @@ fn tooltip(b: &CommandButton) -> String {
             let (name, rest) = b.label.split_once('\n').unwrap_or((&b.label, ""));
             let line = strings::format(
                 key!("name-with-key"),
-                &[name, &crate::keys::short_display(&b.shortcut)],
+                &[name, &ew_viewmodel::keymap::short_display(&b.shortcut)],
             );
             if rest.is_empty() {
                 line
@@ -380,7 +380,7 @@ pub(crate) fn button_response(ui: &Ui, id: Id, rect: Rect, spec: Spec<'_>) -> Re
         None => egui::WidgetInfo::labeled(egui::Role::Button, enabled, &name),
     });
     if !shortcut.is_empty() {
-        let shortcut = crate::keys::short_display(shortcut);
+        let shortcut = ew_viewmodel::keymap::short_display(shortcut);
         ui.ctx().accesskit_node_builder(id, |n| {
             n.set_keyboard_shortcut(shortcut);
         });
@@ -945,7 +945,7 @@ impl CommandBarHost {
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::SearchInput, true, &placeholder));
         ui.ctx().accesskit_node_builder(response.id, |n| {
             n.set_placeholder(placeholder.clone());
-            n.set_keyboard_shortcut(crate::keys::short_display(&palette_key));
+            n.set_keyboard_shortcut(ew_viewmodel::keymap::short_display(&palette_key));
             // The field holds no text of its own (it opens the palette).
             n.set_value("");
         });

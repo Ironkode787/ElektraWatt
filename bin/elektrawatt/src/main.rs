@@ -36,8 +36,9 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use eframe::egui;
+use ew_render2d::gpu::{Flags, adapter_count};
 use ew_ui::app::{App, Pick, PickReply, Platform, PrintReply, setup, spawn_pick};
-use ew_ui::gpu::{Flags, adapter_count, wgpu_configuration};
+use ew_ui::gpu::wgpu_configuration;
 use ew_ui::headless::{self, HeadlessArgs, ScriptSource};
 use ew_ui::visual::Geometry;
 use ew_ui::window_memory::{Display, FirstFrameStep};
