@@ -370,7 +370,8 @@ impl Model {
         /// every image or underlay page item, each when the model holds its bytes. The save writes these (doc 05 §13.3),
         /// the journal carries them and the purge keeps them.
         fn referenced_assets(&self) -> std::collections::BTreeMap<ew_schema::Sha256, ew_schema::AssetRef> {
-            let mut named: std::collections::BTreeMap<_, _> = ew_schema::company_logo(&self.project.value.extra)
+            let held = |sha: &ew_schema::Sha256| self.assets.get(sha).map(|a| *a.reference());
+            let mut named: std::collections::BTreeMap<_, _> = ew_schema::company_logo(&self.project.value.extra, held)
                 .map(|r| (r.sha256, r))
                 .into_iter()
                 .collect();

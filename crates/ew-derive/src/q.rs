@@ -605,8 +605,9 @@ impl Q {
     }
 
     /// The reference of the held asset with this hash (format, intrinsic size): the company logo of the earlier
-    /// bare-hash form, which names no format, and the asset of an image page item. Recorded as a read of the
-    /// project row (`project.company.set` changes the logo the answer is asked for) and of the asset store
+    /// bare-hash form, which names no format (`ew_schema::company_logo` reads it), and the asset of an image page item.
+    /// Recorded as a read of the project row (`project.company.set` changes the logo the answer is asked for) and of the
+    /// asset store
     /// ([`DepKey::Assets`]): assets are only ever added, and one arrives in any transaction that carries it, e.g.
     /// an image item placed on another page with the file as `data`, which changes no row this reader read.
     pub fn logo_asset(&self, sha256: &ew_schema::Sha256) -> Option<ew_schema::AssetRef> {

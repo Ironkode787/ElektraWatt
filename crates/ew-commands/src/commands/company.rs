@@ -21,8 +21,8 @@ use ew_l10n::Text;
 
 /// The project-row member that holds the company data of a basic project until `Project` types it: an object
 /// `{"logo": <AssetRef>, "notice": <MlText>}` (the provisional source `title_block(page)` reads, doc 09 §2.6;
-/// an earlier `logo` form, a bare `"sha256:…"`, is still read). `project.company.set` writes
-/// `notice` and `logo` and keeps every other member.
+/// the earlier `logo` form of a release before the asset store is read by `ew_schema::company_logo`).
+/// `project.company.set` writes `notice` and `logo` and keeps every other member.
 pub const COMPANY_MEMBER: &str = ew_schema::COMPANY_MEMBER;
 
 /// Brings the image file of `text` (base64, RFC 4648 §4) into the project's asset store: the one path of the company logo

@@ -792,7 +792,7 @@ impl Session {
         };
         // Where each image shows: `None` for the company logo, else a folio, in page order.
         let mut shows: Vec<(ew_schema::Sha256, Option<String>)> = Vec::new();
-        if let Some(logo) = ew_schema::company_logo(&q.project().extra) {
+        if let Some(logo) = ew_schema::company_logo(&q.project().extra, |sha| q.logo_asset(sha)) {
             shows.push((logo.sha256, None));
         }
         let mut pages: Vec<(ew_ids::Id<ew_schema::Page>, ew_schema::Sha256)> = Vec::new();

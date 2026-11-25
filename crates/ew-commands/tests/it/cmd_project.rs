@@ -224,7 +224,7 @@ fn company_set_stores_the_logo_as_an_asset_and_undoes() {
     let p = e.preview(&cmd).unwrap();
     assert!(p.outcome().notices.is_empty(), "an SVG logo has no notice");
     e.commit(p).unwrap();
-    let logo = ew_schema::company_logo(&e.model().project().extra).expect("a logo");
+    let logo = ew_schema::company_logo(&e.model().project().extra, |_| None).expect("a logo");
     assert_eq!(logo.format, ew_schema::AssetFormat::Svg);
     assert_eq!(logo.size, Some((80, 20)));
     assert_eq!(logo.sha256.0, <[u8; 32]>::from(sha2::Sha256::digest(LOGO_SVG)));
@@ -237,7 +237,7 @@ fn company_set_stores_the_logo_as_an_asset_and_undoes() {
     assert_eq!(lines(e.model()), before);
     assert!(e.model().asset(&logo.sha256).is_some(), "undo keeps the bytes");
     e.redo(&Origin::Gui).unwrap();
-    assert_eq!(ew_schema::company_logo(&e.model().project().extra), Some(logo));
+    assert_eq!(ew_schema::company_logo(&e.model().project().extra, |_| None), Some(logo));
     // A raster logo says that it prints rasterised.
     let p = e
         .preview(&any(
@@ -249,7 +249,7 @@ fn company_set_stores_the_logo_as_an_asset_and_undoes() {
     assert!(p.outcome().notices[0].to_string().contains("rasterised"));
     e.commit(p).unwrap();
     assert_eq!(
-        ew_schema::company_logo(&e.model().project().extra).map(|r| (r.format, r.size)),
+        ew_schema::company_logo(&e.model().project().extra, |_| None).map(|r| (r.format, r.size)),
         Some((ew_schema::AssetFormat::Png, Some((4, 2))))
     );
     // Empty removes the logo, and the member with it when nothing else is left.
@@ -313,7 +313,7 @@ fn company_set_refuses_a_logo_above_the_limit() {
             json!({"logo": ew_schema::base64_encode(&bytes)}),
         ),
     );
-    assert!(ew_schema::company_logo(&e.model().project().extra).is_some());
+    assert!(ew_schema::company_logo(&e.model().project().extra, |_| None).is_some());
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -788,7 +788,7 @@ fn the_history_names_the_assets_of_its_entries() {
             json!({"logo": ew_schema::base64_encode(LOGO_SVG)}),
         ),
     );
-    let first = ew_schema::company_logo(&e.model().project().extra)
+    let first = ew_schema::company_logo(&e.model().project().extra, |_| None)
         .unwrap()
         .sha256;
     commit(
@@ -798,7 +798,7 @@ fn the_history_names_the_assets_of_its_entries() {
             json!({"logo": ew_schema::base64_encode(&logo_png())}),
         ),
     );
-    let second = ew_schema::company_logo(&e.model().project().extra)
+    let second = ew_schema::company_logo(&e.model().project().extra, |_| None)
         .unwrap()
         .sha256;
     let named = e.history().asset_mentions().unwrap();

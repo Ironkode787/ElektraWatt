@@ -34,7 +34,7 @@ package types the data in `ew-schema`:
 |---|---|---|
 | Numbering settings | `ProjectSettings.extra["numbering"]` in the JSON shape of doc 03 §5.1 | the typed `ProjectSettings.numbering` |
 | Frame defaults | `ProjectSettings.extra["frames"]` (doc 03 §5.1 `FrameDefaults`); a malformed member falls back to the default and is noted; with no frame configured the built-in QET-compatible A4 frame geometry (17 × 8 cells) applies and is noted | the typed member |
-| Company logo and notice | `Project.extra["ew.company"]` = `{"logo": "sha256:…", "notice": <MlText>}` for `project.logo` and `project.notice` | typed company data of the basic project (doc 07 §2.8) |
+| Company logo and notice | `Project.extra["ew.company"]` = `{"logo": <AssetRef>, "notice": <MlText>}` for `project.logo` and `project.notice` (the earlier `logo` form, a bare `"sha256:…"`, read by `ew_schema::company_logo`) | typed company data of the basic project (doc 07 §2.8) |
 | Revisions | reserved `revision` records, read leniently (`label`, `date`, `state`, `author`, `checker` as party roles); also `page_notes` and `release.changed_pages` for `page.last_changed_in` (the no-digest branch of doc 15 §5.6) | the typed `Revision` record (doc 03 §18) |
 
 ## Connectivity

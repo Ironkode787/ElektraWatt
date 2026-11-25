@@ -2286,17 +2286,21 @@ pub fn base64_decode(text: &str) -> Result<Vec<u8>, AssetError> {
 }
 
 /// The company logo of a project row's `extra` (the member [`COMPANY_MEMBER`], its `logo`): an [`AssetRef`]
-/// object, or the earlier form, a bare `"sha256:<64 hex>"` text, read as a PNG of unknown size (what the title
-/// block assumed before the asset store existed). `None` when absent or not readable (each member is read on its
-/// own).
-pub fn company_logo(extra: &Extra) -> Option<AssetRef> {
+/// object. A project of a release before the asset store holds the earlier form, a bare `"sha256:<64 hex>"` text that
+/// names no format: it is read here and nowhere else, as the reference `held` gives the held asset of that hash, else
+/// as a PNG of unknown size (what the title block assumed before the asset store existed), so that such a project
+/// opens unchanged. `None` when absent or not readable (each member is read on its own).
+pub fn company_logo(extra: &Extra, held: impl FnOnce(&Sha256) -> Option<AssetRef>) -> Option<AssetRef> {
     let logo = extra.get(COMPANY_MEMBER)?.get("logo")?;
     match logo {
-        Value::String(text) => text.parse::<Sha256>().ok().map(|sha256| AssetRef {
-            sha256,
-            format: AssetFormat::Png,
-            size: None,
-        }),
+        Value::String(text) => {
+            let sha256 = text.parse::<Sha256>().ok()?;
+            Some(held(&sha256).unwrap_or(AssetRef {
+                sha256,
+                format: AssetFormat::Png,
+                size: None,
+            }))
+        }
         Value::Object(_) => serde_json::from_value(logo.clone()).ok(),
         _ => None,
     }
@@ -3611,26 +3615,32 @@ mod tests {
         assert_eq!(AssetFormat::from_ext("gif"), None);
     }
 
+    /// The earlier bare-hash form takes the held asset's reference, else reads as a PNG of unknown size; the object
+    /// form is read as it is.
     #[test]
     fn the_company_logo_reads_both_forms() {
         let hash = format!("sha256:{}", "cd".repeat(32));
+        let png = AssetRef {
+            sha256: hash.parse().unwrap(),
+            format: AssetFormat::Png,
+            size: None,
+        };
+        let svg = AssetRef {
+            format: AssetFormat::Svg,
+            size: Some((40, 10)),
+            ..png
+        };
         let mut extra = Extra::new();
-        assert_eq!(company_logo(&extra), None);
+        assert_eq!(company_logo(&extra, |_| None), None);
         extra.insert(COMPANY_MEMBER.into(), serde_json::json!({"logo": hash}));
-        assert_eq!(
-            company_logo(&extra),
-            Some(AssetRef {
-                sha256: hash.parse().unwrap(),
-                format: AssetFormat::Png,
-                size: None
-            })
-        );
+        assert_eq!(company_logo(&extra, |_| None), Some(png));
+        assert_eq!(company_logo(&extra, |sha| (*sha == svg.sha256).then_some(svg)), Some(svg));
         extra.insert(
             COMPANY_MEMBER.into(),
             serde_json::json!({"logo": {"sha256": hash, "format": "svg", "size": [3, 1]}}),
         );
-        assert_eq!(company_logo(&extra).map(|r| r.size), Some(Some((3, 1))));
+        assert_eq!(company_logo(&extra, |_| Some(png)).map(|r| r.size), Some(Some((3, 1))));
         extra.insert(COMPANY_MEMBER.into(), serde_json::json!({"logo": 5}));
-        assert_eq!(company_logo(&extra), None);
+        assert_eq!(company_logo(&extra, |_| None), None);
     }
 }

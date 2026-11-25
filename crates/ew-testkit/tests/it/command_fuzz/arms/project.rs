@@ -194,7 +194,7 @@ pub(super) fn project_company_set(live: &Live, rng: &mut SplitMix64) -> Option<S
             };
             Some(
                 Step::cmd("project.company.set", json!({"logo": text})).check(move |_, after| {
-                    let logo = ew_schema::company_logo(&after.project().extra);
+                    let logo = ew_schema::company_logo(&after.project().extra, |_| None);
                     match (remove, logo) {
                         (true, None) => Ok(()),
                         (false, Some(r)) if r.size == Some((w, h)) => Ok(()),
