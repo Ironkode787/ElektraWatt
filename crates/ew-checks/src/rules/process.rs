@@ -21,7 +21,6 @@ pub const PROCESS_TAG: RuleMeta = RuleMeta {
     id: "EW-PRC-001",
     message: key!("rule-ew-prc-001"),
     code: "110201",
-    title: "Process-tag scheme",
     kind: RuleKind::Hygiene,
     modes: Modes::letters("or"),
     severity: Severity::Warning,

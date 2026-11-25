@@ -57,13 +57,12 @@ fn members(q: &Q, net: NetId, alone: EndpointKey) -> Vec<EndpointKey> {
 }
 
 macro_rules! meta {
-    ($name:ident, $id:literal, $message:literal, $code:literal, $title:literal, $kind:ident, $modes:literal, $sev:ident, $scope:ident) => {
-        #[doc = concat!($id, " \"", $title, "\" (doc 11 §6): 1.0.")]
+    ($name:ident, $id:literal, $message:literal, $code:literal, $kind:ident, $modes:literal, $sev:ident, $scope:ident) => {
+        #[doc = concat!($id, " (doc 11 §6): 1.0.")]
         pub const $name: RuleMeta = RuleMeta {
             id: $id,
             message: key!($message),
             code: $code,
-            title: $title,
             kind: RuleKind::$kind,
             modes: Modes::letters($modes),
             severity: Severity::$sev,
@@ -83,7 +82,6 @@ meta!(
     "EW-FL-005",
     "rule-ew-fl-005",
     "120005",
-    "Two media in one net",
     Conflict,
     "or",
     Error,
@@ -157,7 +155,6 @@ meta!(
     "EW-FL-006",
     "rule-ew-fl-006",
     "120006",
-    "Tube does not fit",
     Conflict,
     "or",
     Warning,
@@ -274,7 +271,6 @@ meta!(
     "EW-FL-007",
     "rule-ew-fl-007",
     "120007",
-    "Tube without specification",
     Completeness,
     "or",
     Warning,
@@ -326,7 +322,6 @@ meta!(
     "EW-FL-008",
     "rule-ew-fl-008",
     "120008",
-    "Exhaust open",
     Completeness,
     "o",
     Info,
@@ -458,7 +453,6 @@ meta!(
     "EW-FL-009",
     "rule-ew-fl-009",
     "120009",
-    "Coil voltage",
     Conflict,
     "or",
     Error,
@@ -626,7 +620,6 @@ meta!(
     "EW-FL-010",
     "rule-ew-fl-010",
     "120010",
-    "No supply",
     Completeness,
     "or",
     Warning,
@@ -740,7 +733,6 @@ meta!(
     "EW-FL-012",
     "rule-ew-fl-012",
     "120012",
-    "Port-role conflict",
     Conflict,
     "or",
     Warning,
@@ -857,7 +849,6 @@ meta!(
     "EW-FL-014",
     "rule-ew-fl-014",
     "120014",
-    "Tube crosses a location",
     Completeness,
     "o",
     Info,

@@ -385,15 +385,16 @@ impl ShellModel {
         let mut ranked: Vec<Ranked> = Vec::new();
         for rule in ew_api::checks::rules() {
             let meta = rule.meta();
+            let rule_title = meta.title();
             let id = score(query, meta.id).map(|s| 10 * i64::from(s));
-            let title = score(query, meta.title).map(|s| 9 * i64::from(s));
+            let title = score(query, &rule_title).map(|s| 9 * i64::from(s));
             let Some(best) = id.into_iter().chain(title).max() else {
                 continue;
             };
             ranked.push(Ranked {
                 entry: PaletteEntry {
                     run: PaletteRun::Rule(meta.id.to_owned()),
-                    label: format!("{} {}", meta.id, meta.title),
+                    label: format!("{} {rule_title}", meta.id),
                     id: meta.id.to_owned(),
                     shortcut: String::new(),
                     enabled,

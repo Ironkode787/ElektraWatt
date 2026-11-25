@@ -18,7 +18,6 @@ const FIXTURE: RuleMeta = RuleMeta {
     // A fixture: its findings are read for their marker, never worded.
     message: ew_checks::key!("words-as-written"),
     code: "999001",
-    title: "A part's PLC section is read",
     kind: RuleKind::Completeness,
     modes: Modes::letters("o"),
     severity: Severity::Info,

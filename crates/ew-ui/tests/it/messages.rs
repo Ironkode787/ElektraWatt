@@ -262,7 +262,7 @@ fn the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
     let title = ew_viewmodel::ew_api::checks::rule("EW-CORE-033")
         .unwrap()
         .meta()
-        .title;
+        .title();
     assert!(
         h.query_by_label(&format!("EW-CORE-033 {title}")).is_some(),
         "the detail block names the rule"

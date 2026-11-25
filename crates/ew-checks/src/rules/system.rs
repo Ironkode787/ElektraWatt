@@ -28,7 +28,6 @@ pub const RULE_NOT_EVALUATED: RuleMeta = RuleMeta {
     id: "EW-CORE-083",
     message: key!("rule-ew-core-083"),
     code: "105083",
-    title: "Rule not evaluated",
     kind: RuleKind::Integrity,
     modes: Modes::letters("opr"),
     severity: Severity::Warning,

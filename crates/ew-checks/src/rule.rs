@@ -152,9 +152,6 @@ pub struct RuleMeta {
     pub message: &'static str,
     /// The six-digit code `CCCNNN` (doc 15 §2.2), for example `001002`.
     pub code: &'static str,
-    /// The English title, the catalogue's; the en-GB `.title` attribute of the rule's Fluent message
-    /// ([`crate::messages`]) is the same text, which a test holds.
-    pub title: &'static str,
     /// The kind.
     pub kind: RuleKind,
     /// The modes.
@@ -211,6 +208,11 @@ impl Release {
 }
 
 impl RuleMeta {
+    /// The English title: the en-GB `.title` of the rule's message (the catalogue's title, the one home of its words).
+    pub fn title(&self) -> String {
+        crate::messages::title(self.id, crate::messages::DEFAULT_LANGUAGE).unwrap_or_default()
+    }
+
     /// The pack, for example `EW-TERM` or `EW-IEC81346`: the pack of the ID's family ([`FAMILIES`]); empty for a
     /// family without a pack.
     pub fn pack(&self) -> &'static str {

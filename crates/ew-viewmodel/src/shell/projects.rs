@@ -724,7 +724,7 @@ impl ShellModel {
                 .filter(|k| k.severity == severity)
                 .map(|k| {
                     let title = ew_api::checks::messages::title(&k.rule, strings::rule_language())
-                        .or_else(|| ew_api::checks::rule(&k.rule).map(|r| r.meta().title.to_owned()))
+                        .or_else(|| ew_api::checks::rule(&k.rule).map(|r| r.meta().title()))
                         .unwrap_or_else(|| k.rule.clone());
                     strings::format(key!("import-card-row"), &[&k.count.to_string(), &title])
                 })

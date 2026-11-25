@@ -51,26 +51,14 @@ fn every_rule_has_its_message_title_and_hint_in_en_gb() {
                 missing.push(format!("{id} {}", attr.unwrap_or("message")));
             }
         }
-        assert_eq!(
-            title(id, DEFAULT_LANGUAGE).as_deref(),
-            Some(r.meta().title),
-            "{id}: the en-GB title is the catalogue title"
-        );
         assert!(
             hint(id, DEFAULT_LANGUAGE).is_some_and(|h| h.ends_with('.') && h.len() > 10),
             "{id}: a hint is a sentence"
         );
     }
     assert!(missing.is_empty(), "en-GB lacks: {missing:#?}");
-    // The integrity rules of opening a project reach the Messages pane too: each has its title in every
-    // language, en-GB's the catalogue's.
+    // The integrity rules of opening a project reach the Messages pane too: each has its title in every language.
     for m in INTEGRITY {
-        assert_eq!(
-            title(m.id, DEFAULT_LANGUAGE).as_deref(),
-            Some(m.title),
-            "{}: the en-GB title is the catalogue title",
-            m.id
-        );
         for lang in LANGUAGES {
             assert!(has(m.id, Some("title"), lang), "{lang} has no title for {}", m.id);
             // And its hint, the remedy the finding's detail shows.

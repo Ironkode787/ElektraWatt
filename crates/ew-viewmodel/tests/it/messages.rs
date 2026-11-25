@@ -230,7 +230,7 @@ fn the_pane_lists_the_findings_and_enter_opens_ef08() {
         line(&shell, "  detail rule "),
         format!(
             "  detail rule \"EW-POT-009\" title \"{}\" kind completeness severity warning",
-            ew_api::checks::rule("EW-POT-009").unwrap().meta().title
+            ew_api::checks::rule("EW-POT-009").unwrap().meta().title()
         )
     );
     assert_eq!(

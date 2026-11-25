@@ -406,7 +406,7 @@ pub fn detail(node: &NavNode) -> Option<FindingDetail> {
     let rule = rule_of(node).filter(|_| node.role == NavRole::Finding)?;
     // The rule's title in the window's language.
     let title = ew_api::checks::messages::title(&rule, crate::strings::rule_language())
-        .or_else(|| ew_api::checks::rule(&rule).map(|r| r.meta().title.to_owned()))
+        .or_else(|| ew_api::checks::rule(&rule).map(|r| r.meta().title()))
         .unwrap_or_default();
     let cell = |i: usize| node.cells.get(i).cloned().unwrap_or_default();
     let fix = cell(FIX);

@@ -1165,10 +1165,10 @@ pub fn lenient_findings(session: &Session) -> Vec<migration::LiveGroup> {
         .iter()
         .filter(|f| f.is_open() && !f.rule.starts_with("EW-IMP-"))
     {
-        let title = crate::checks::rule(f.rule).map_or(f.rule, |r| r.meta().title);
+        let title = crate::checks::rule(f.rule).map_or_else(|| f.rule.to_owned(), |r| r.meta().title());
         let g = groups.entry(f.rule).or_insert_with(|| migration::LiveGroup {
             rule: f.rule.to_owned(),
-            title: title.to_owned(),
+            title,
             count: 0,
             messages: Vec::new(),
         });

@@ -514,7 +514,6 @@ mod tests {
         // It reports nothing: it panics.
         message: key!("rule-ew-core-083"),
         code: "001099",
-        title: "Panics",
         kind: RuleKind::Conflict,
         modes: Modes::letters("por"),
         severity: Severity::Error,

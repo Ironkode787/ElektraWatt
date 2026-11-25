@@ -122,7 +122,7 @@ pub fn pack_definition(pack: &str) -> Option<String> {
             m.scope.name(),
             m.release.name(),
             m.supersedes.join(","),
-            m.title,
+            m.title(),
         ));
     }
     for (p, file, text) in DATA_SOURCES {

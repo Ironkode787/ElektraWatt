@@ -53,7 +53,7 @@ fn generated() -> String {
                 "id": m.id,
                 "code": m.code,
                 "pack": m.pack(),
-                "title": m.title,
+                "title": m.title(),
                 "kind": m.kind.name(),
                 "modes": modes(m.modes),
                 "severity": m.severity.name(),

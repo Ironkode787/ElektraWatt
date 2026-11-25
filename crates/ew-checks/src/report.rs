@@ -329,7 +329,7 @@ pub fn to_result(report: &CheckReport, lang: &str) -> CheckResult {
                 id: r.id.to_owned(),
                 code: r.code.to_owned(),
                 pack: r.pack().to_owned(),
-                title: r.title.to_owned(),
+                title: r.title(),
             })
             .collect(),
         findings: report.findings.iter().map(|f| finding_result(f, lang)).collect(),

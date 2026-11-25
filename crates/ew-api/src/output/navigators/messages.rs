@@ -199,8 +199,8 @@ impl Session {
                     Some(snode),
                     NavRole::Rule,
                     &format!("rule:{rule}"),
-                    match meta {
-                        Some(m) if !m.title.is_empty() => format!("{rule} {}", m.title),
+                    match meta.map(|m| m.title()) {
+                        Some(title) if !title.is_empty() => format!("{rule} {title}"),
                         _ => rule.to_owned(),
                     },
                     badges,
