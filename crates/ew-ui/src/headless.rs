@@ -95,9 +95,7 @@ fn canvas_snapshot(shell: &ShellModel, params: &Value) -> Outcome {
         },
     };
     if shell.canvas_of(group).is_none() {
-        return Outcome::Refused {
-            reason_key: key!("reason-no-page"),
-        };
+        return Outcome::refused(key!("reason-no-page"));
     }
     let (image, dpi) = match crate::canvas::snapshot_image(shell, group) {
         Ok(done) => done,
@@ -119,9 +117,7 @@ fn preview_snapshot(shell: &ShellModel, params: &Value) -> Outcome {
         };
     };
     if shell.link_preview().is_none() {
-        return Outcome::Refused {
-            reason_key: key!("reason-no-preview"),
-        };
+        return Outcome::refused(key!("reason-no-preview"));
     }
     let (image, dpi) = match crate::canvas::preview_snapshot_image(shell) {
         Ok(done) => done,
@@ -154,9 +150,7 @@ fn snapshot(shell: &ShellModel, params: &Value) -> Outcome {
         shell.wizard_preview_content()
     } else {
         let Some(folio) = shell.current_folio() else {
-            return Outcome::Refused {
-                reason_key: key!("reason-no-page"),
-            };
+            return Outcome::refused(key!("reason-no-page"));
         };
         shell.page_content(folio)
     };
@@ -296,8 +290,8 @@ pub fn smoke(mut config: ShellConfig, dir: &Path, out: &mut dyn Write, err: &mut
     );
     let code = match opened {
         Outcome::Done => smoke_first_page(&shell, out, err),
-        Outcome::Refused { reason_key } => {
-            let _ = writeln!(err, "error: {}", strings::text(reason_key));
+        Outcome::Refused { reason: reason_key } => {
+            let _ = writeln!(err, "error: {}", strings::render(&reason_key));
             1
         }
         Outcome::Failed { message } => {

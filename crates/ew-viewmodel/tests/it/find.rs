@@ -408,9 +408,7 @@ fn exact_counts_the_jump_the_escape_chain_and_errors() {
     assert_eq!(state(&shell)["find"], Value::Null);
     assert_eq!(
         shell.dispatch("find.run", &json!({})),
-        Outcome::Refused {
-            reason_key: key!("reason-no-find")
-        }
+        Outcome::refused(key!("reason-no-find"))
     );
     shell.shutdown();
 }

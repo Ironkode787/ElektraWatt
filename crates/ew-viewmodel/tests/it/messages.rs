@@ -456,7 +456,7 @@ fn run_checks_ends_pending_and_a_conflict_is_never_pending() {
     arm_ip(&mut shell, &source, (66, 6), "source");
     // The IP tool's refused click keeps its ghost and says why in the HUD.
     match shell.dispatch("canvas.activate", &json!({})) {
-        Outcome::Refused { reason_key } => assert_eq!(reason_key, key!("reason-ip-not-placed")),
+        Outcome::Refused { reason: reason_key } => assert_eq!(reason_key, key!("reason-ip-not-placed")),
         other => panic!("{other:?}"),
     }
     // H40 item 6: EW-CORE-052 in words, naming the page of the existing source.

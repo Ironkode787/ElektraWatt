@@ -902,9 +902,7 @@ fn selected_page_item_properties_refresh_after_edit() {
     );
     assert_eq!(
         set(&mut shell, "kind"),
-        Outcome::Refused {
-            reason_key: key!("reason-action-not-offered")
-        }
+        Outcome::refused(key!("reason-action-not-offered"))
     );
     assert_eq!(
         shell.session_calls().property_sheet,
@@ -1146,9 +1144,7 @@ fn a_refused_row_action_names_why_the_row_refuses_it() {
     // An editable row that does not offer Reset.
     assert_eq!(
         action(&mut shell, "device/function_text", "reset"),
-        Outcome::Refused {
-            reason_key: key!("reason-action-not-offered")
-        }
+        Outcome::refused(key!("reason-action-not-offered"))
     );
     assert_eq!(
         ew_viewmodel::strings::text(key!("reason-action-not-offered")),
@@ -1163,9 +1159,7 @@ fn a_refused_row_action_names_why_the_row_refuses_it() {
     done(&mut shell, "select.set", json!({"refs": [W29]}));
     assert_eq!(
         action(&mut shell, "connection/derived.potential", "edit"),
-        Outcome::Refused {
-            reason_key: key!("reason-row-computed")
-        }
+        Outcome::refused(key!("reason-row-computed"))
     );
     assert_eq!(
         ew_viewmodel::strings::text(key!("reason-row-computed")),

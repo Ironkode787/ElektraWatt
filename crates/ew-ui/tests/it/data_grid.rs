@@ -1059,7 +1059,7 @@ fn export_and_import_table_follow_their_predicates() {
     settle(&mut h);
     let reason = ew_viewmodel::actions::find("navigator.export_table")
         .and_then(|a| (a.enabled)(h.state().shell()).err());
-    assert_eq!(reason, Some(ew_viewmodel::key!("reason-table-which")));
+    assert_eq!(reason, Some(ew_viewmodel::key!("reason-table-which").into()));
     h.get_all_by_label("Columns")
         .next()
         .expect("a Columns button")

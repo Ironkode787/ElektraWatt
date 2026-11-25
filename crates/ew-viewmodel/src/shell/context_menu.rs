@@ -268,7 +268,7 @@ impl ShellModel {
         if let Some(p) = params.as_object().filter(|p| !p.is_empty()) {
             let state = actions::enabled_with(meta, self, p);
             i.enabled = state.is_ok();
-            i.reason = state.err().map(|k| strings::text(k).to_owned());
+            i.reason = state.err().map(|k| strings::render(&k));
         }
         i.params = params;
         i.label = label;

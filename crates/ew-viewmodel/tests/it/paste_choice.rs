@@ -196,9 +196,7 @@ fn the_paste_choice_in_the_shell() {
     let steps = commands(&p2).len();
     assert_eq!(
         p2.dispatch("edit.paste_clip", &json!({ "text": text })),
-        Outcome::Refused {
-            reason_key: key!("reason-paste-versions")
-        }
+        Outcome::refused(key!("reason-paste-versions"))
     );
     assert_ne!(p2.tool().name(), "paste", "no paste tool before the choice");
     // The prompt is short, since the card holds the choice; the HUD shows the same text.
@@ -260,9 +258,7 @@ fn the_paste_choice_in_the_shell() {
     let steps = commands(&p1).len();
     assert_eq!(
         p1.dispatch("edit.paste_clip", &json!({ "text": text })),
-        Outcome::Refused {
-            reason_key: key!("reason-paste-versions")
-        }
+        Outcome::refused(key!("reason-paste-versions"))
     );
     let lines = card_lines(&p1);
     assert_eq!(
@@ -314,9 +310,7 @@ fn the_paste_choice_in_the_shell() {
     // Cancel on the update card closes the tab the choice card opened and ends its prompt.
     assert_eq!(
         p1.dispatch("edit.paste_clip", &json!({ "text": text })),
-        Outcome::Refused {
-            reason_key: key!("reason-paste-versions")
-        }
+        Outcome::refused(key!("reason-paste-versions"))
     );
     done(&mut p1, "paste.resolve", json!({"choice": "update"}));
     assert!(p1.preview_shown());

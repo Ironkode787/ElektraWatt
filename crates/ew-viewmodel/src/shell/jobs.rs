@@ -382,7 +382,9 @@ impl ShellModel {
     /// Runs `entry`'s action `action`: refused with its reason when it can no longer run.
     fn run_action_of(&mut self, entry: &Notification, action: NoteAction) -> Outcome {
         if let Err(reason_key) = self.note_action_reason(entry, action) {
-            return Outcome::Refused { reason_key };
+            return Outcome::Refused {
+                reason: reason_key.into(),
+            };
         }
         match Some(action) {
             Some(NoteAction::Undo) => {
@@ -1054,7 +1056,7 @@ impl ShellModel {
                 key!("error-unknown-job"),
                 &[&n.to_string(), &number_list(&self.jobs.numbers())],
             )),
-            None => default(&self.jobs).ok_or(Outcome::Refused { reason_key: none }),
+            None => default(&self.jobs).ok_or(Outcome::Refused { reason: none.into() }),
         }
     }
 

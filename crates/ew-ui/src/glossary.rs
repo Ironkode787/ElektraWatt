@@ -327,7 +327,7 @@ fn action_button(ui: &mut Ui, shell: &ShellModel, id: &str, events: &mut Vec<Eve
     b.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, state.is_ok(), &name));
     let b = match state {
         Ok(()) => b.tip(name),
-        Err(reason) => b.disabled_tip_beside(strings::text(reason)),
+        Err(reason) => b.disabled_tip_beside(&strings::render(&reason)),
     };
     if b.clicked() {
         events.push(Event::Action(meta.id, Value::Null));

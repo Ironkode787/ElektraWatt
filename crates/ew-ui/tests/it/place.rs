@@ -545,9 +545,7 @@ fn the_symbol_chooser_of_a_part_says_why_takes_the_keys_and_holds_the_page() {
         .dispatch("canvas.press", &json!({"x_mm": 150, "y_mm": 100}));
     assert_eq!(
         press,
-        Outcome::Refused {
-            reason_key: ew_viewmodel::key!("reason-choose-symbol")
-        }
+        Outcome::refused(ew_viewmodel::key!("reason-choose-symbol"))
     );
     assert!(h.state().shell().picker().is_some(), "the chooser stays open");
     h.state_mut().shell_mut().shutdown();

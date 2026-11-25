@@ -75,9 +75,7 @@ fn fit_the_layout_waits_for_the_legend_box() {
     done(&mut shell, "page.goto", json!({"folio": "980"}));
     assert_ne!(
         shell.dispatch("layout.fit_sheet", &json!({})),
-        Outcome::Refused {
-            reason_key: key!("reason-layout-fit-legend")
-        }
+        Outcome::refused(key!("reason-layout-fit-legend"))
     );
     shell.shutdown();
 }

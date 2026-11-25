@@ -420,7 +420,7 @@ pub(crate) fn action_button(
     let state = ew_viewmodel::actions::find(action).map(|a| a.enabled_now(shell));
     let button = icon_toggle(ui, icon, label, matches!(state, Some(Ok(()))), None);
     let button = match state {
-        Some(Err(reason)) => button.disabled_tip(strings::text(reason)),
+        Some(Err(reason)) => button.disabled_tip(&strings::render(&reason)),
         _ => button,
     };
     if button.clicked() {

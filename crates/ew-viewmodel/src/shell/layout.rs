@@ -260,7 +260,9 @@ impl ShellModel {
         self.tools.notice = Some(text.clone());
         self.tools.notice_sticky = false;
         self.tools.announcement = Some(text);
-        Outcome::Refused { reason_key }
+        Outcome::Refused {
+            reason: reason_key.into(),
+        }
     }
 
     /// `tool.place_layout {device}` (Place device, Enter on an Unplaced devices row, a drop of the row): arms the

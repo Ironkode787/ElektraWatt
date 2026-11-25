@@ -298,7 +298,9 @@ impl ShellModel {
                 }
                 outcome
             }
-            Some(Err(reason_key)) => Outcome::Refused { reason_key },
+            Some(Err(reason_key)) => Outcome::Refused {
+                reason: reason_key.into(),
+            },
             None => Outcome::refused(key!("reason-ip-end-grid")),
         }
     }
@@ -857,7 +859,9 @@ impl ShellModel {
                 let cmd = reshape_command(&rep, &outline, None);
                 self.commit_from_host(cmd.as_ref())
             }
-            Err(reason_key) => Outcome::Refused { reason_key },
+            Err(reason_key) => Outcome::Refused {
+                reason: reason_key.into(),
+            },
         }
     }
 

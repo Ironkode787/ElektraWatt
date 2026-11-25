@@ -92,8 +92,6 @@ fn keep_in_place_without_a_symbol_is_refused() {
     let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     assert_eq!(
         shell.dispatch("rep.keep_in_place", &json!({})),
-        Outcome::Refused {
-            reason_key: key!("reason-keep-in-place-no-symbol")
-        }
+        Outcome::refused(key!("reason-keep-in-place-no-symbol"))
     );
 }

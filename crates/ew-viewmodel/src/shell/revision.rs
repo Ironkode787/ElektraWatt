@@ -266,7 +266,7 @@ fn approve_words(e: &ApproveError, report: Option<&CheckReport>, params: &Value)
 fn refusal_text(out: Outcome) -> String {
     match out {
         Outcome::Failed { message } => message,
-        Outcome::Refused { reason_key } => strings::text(reason_key).to_owned(),
+        Outcome::Refused { reason: reason_key } => strings::render(&reason_key),
         _ => String::new(),
     }
 }

@@ -777,9 +777,7 @@ fn a_mixed_choice_counts_what_came_from_disk() {
     done(&mut s, "help.about", json!({}));
     assert_eq!(
         s.dispatch("external.review", &json!({})),
-        Outcome::Refused {
-            reason_key: ew_viewmodel::key!("reason-dialog-open")
-        }
+        Outcome::refused(ew_viewmodel::key!("reason-dialog-open"))
     );
     assert!(matches!(s.dialog(), Some(Dialog::About)));
     done(&mut s, "ui.dismiss", json!({}));

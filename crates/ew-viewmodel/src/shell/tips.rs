@@ -208,7 +208,9 @@ impl ShellModel {
         let rows = self.page_rows();
         let generated = |i: usize| rows.get(i).filter(|r| r.generated).map(|r| r.id);
         let page = match out {
-            Outcome::Refused { reason_key } if *reason_key == key!("reason-page-type-no-symbols-report") => {
+            Outcome::Refused { reason: reason_key }
+                if *reason_key == key!("reason-page-type-no-symbols-report") =>
+            {
                 generated(self.page_index())
             }
             Outcome::Failed { message }

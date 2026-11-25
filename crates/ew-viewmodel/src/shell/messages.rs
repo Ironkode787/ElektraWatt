@@ -550,13 +550,11 @@ impl ShellModel {
         let Some((_, node)) = nav.node_of(&key) else {
             return Err(failed(key!("error-nav-key"), &[&key, NavKind::Messages.word()]));
         };
-        let refusal = Outcome::Refused {
-            reason_key: if state == "open" {
-                key!("reason-not-open-finding")
-            } else {
-                key!("reason-not-waived")
-            },
-        };
+        let refusal = Outcome::refused(if state == "open" {
+            key!("reason-not-open-finding")
+        } else {
+            key!("reason-not-waived")
+        });
         let Some(d) = messages::detail(node) else {
             return Err(refusal);
         };

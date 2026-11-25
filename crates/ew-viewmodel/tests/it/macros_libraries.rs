@@ -454,9 +454,7 @@ fn update_refuses_without_an_update_and_badges_are_words() {
     assert_eq!(row.badges, ["Only in this project"]);
     assert_eq!(
         shell.dispatch("libraries.update", &json!({"keys": [key]})),
-        Outcome::Refused {
-            reason_key: key!("reason-no-updates")
-        }
+        Outcome::refused(key!("reason-no-updates"))
     );
 }
 

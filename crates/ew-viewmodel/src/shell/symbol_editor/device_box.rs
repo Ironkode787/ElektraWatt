@@ -412,7 +412,7 @@ fn outcome_words(out: Outcome) -> Result<(), String> {
     match out {
         Outcome::Done => Ok(()),
         Outcome::Failed { message } => Err(message),
-        Outcome::Refused { reason_key } => Err(strings::text(reason_key).to_owned()),
+        Outcome::Refused { reason: reason_key } => Err(strings::render(&reason_key)),
     }
 }
 

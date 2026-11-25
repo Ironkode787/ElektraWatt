@@ -422,7 +422,7 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let disabled_reason = |id: &str| {
         ew_viewmodel::actions::find(id)
             .and_then(|a| a.enabled_now(shell).err())
-            .map(strings::text)
+            .map(|r| strings::render(&r))
     };
     let small_link = |ui: &mut Ui, key: strings::Key<'_>, id: &str| {
         let colour = if enabled { t.accent } else { t.text_disabled };

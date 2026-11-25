@@ -196,7 +196,9 @@ impl ShellModel {
                     message: picker.disabled_words(row).unwrap_or_default(),
                 };
             }
-            return Outcome::Refused { reason_key };
+            return Outcome::Refused {
+                reason: reason_key.into(),
+            };
         }
         let (mode, cat, pending) = (picker.mode, Arc::clone(&picker.catalogue), picker.pending.clone());
         // A valve terminal's position being filled: the valve chosen goes in that cell.

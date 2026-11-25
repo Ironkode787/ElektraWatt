@@ -230,7 +230,9 @@ impl ShellModel {
                 self.activate_tool(Box::new(WireTool::new().with_kind(kind)));
                 Outcome::Done
             }
-            Err(reason_key) => Outcome::Refused { reason_key },
+            Err(reason_key) => Outcome::Refused {
+                reason: reason_key.into(),
+            },
         }
     }
 

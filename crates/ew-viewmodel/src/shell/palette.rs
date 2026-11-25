@@ -147,7 +147,7 @@ impl ShellModel {
             let label = strings::text(Key::run_time(&meta.label_key()));
             let aliases = glossary::aliases_of(meta.id);
             let state = match form_plan(meta) {
-                FormPlan::Disabled(reason) => Err(reason),
+                FormPlan::Disabled(reason) => Err(reason.into()),
                 FormPlan::Direct | FormPlan::Form(_) => meta.enabled_now(self),
             };
             let uses = self.recents.uses(meta.id);
@@ -181,7 +181,7 @@ impl ShellModel {
                     id: meta.id.to_owned(),
                     shortcut: self.shortcut_text(meta),
                     enabled: state.is_ok(),
-                    reason: state.err().map(|k| strings::text(k).to_owned()),
+                    reason: state.err().map(|k| strings::render(&k)),
                     breadcrumb,
                 },
                 rank,
@@ -214,7 +214,7 @@ impl ShellModel {
                         id: button.word.to_owned(),
                         shortcut: button.shortcut,
                         enabled: state.is_ok(),
-                        reason: state.err().map(|k| strings::text(k).to_owned()),
+                        reason: state.as_ref().err().map(strings::render),
                         breadcrumb: breadcrumb.clone(),
                     },
                     rank,
@@ -428,12 +428,14 @@ impl ShellModel {
             return match &entry.run {
                 PaletteRun::Action(id) => match actions::find(id) {
                     Some(meta) => match form_plan(meta) {
-                        FormPlan::Disabled(reason_key) => Outcome::Refused { reason_key },
+                        FormPlan::Disabled(reason_key) => Outcome::Refused {
+                            reason: reason_key.into(),
+                        },
                         _ => Outcome::Refused {
-                            reason_key: meta
+                            reason: meta
                                 .enabled_now(self)
                                 .err()
-                                .unwrap_or(key!("reason-parameters-later")),
+                                .unwrap_or_else(|| key!("reason-parameters-later").into()),
                         },
                     },
                     None => Outcome::refused(key!("reason-parameters-later")),
@@ -516,8 +518,8 @@ impl ShellModel {
                 // The action may have opened something else (a dialog); the palette closes either way.
                 self.palette = None;
             }
-            Outcome::Refused { reason_key } => {
-                self.set_palette_form_error(Some(strings::text(*reason_key).to_owned()))
+            Outcome::Refused { reason: reason_key } => {
+                self.set_palette_form_error(Some(strings::render(reason_key)))
             }
             Outcome::Failed { message } => self.set_palette_form_error(Some(message.clone())),
         }

@@ -88,12 +88,12 @@ impl ShellModel {
         let mut refused = false;
         let message = match outcome {
             Outcome::Failed { message } => message,
-            Outcome::Refused { reason_key } if reason_key == key!("reason-cut-incomplete-items") => {
-                strings::text(reason_key).to_owned()
+            Outcome::Refused { reason: reason_key } if reason_key == key!("reason-cut-incomplete-items") => {
+                strings::render(&reason_key)
             }
-            Outcome::Refused { reason_key } => {
+            Outcome::Refused { reason: reason_key } => {
                 refused = true;
-                strings::text(reason_key).to_owned()
+                strings::render(&reason_key)
             }
             // An action that opened its parameter form has not run: its banner stays.
             Outcome::Done

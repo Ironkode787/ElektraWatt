@@ -76,7 +76,7 @@ fn update_bar(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let state = ew_viewmodel::actions::find("libraries.update").map(|m| m.enabled_now(shell));
     let count = shell.libraries_update_count();
     let reason = match state {
-        Some(Err(reason)) => Some(strings::text(reason).to_owned()),
+        Some(Err(reason)) => Some(strings::render(&reason)),
         _ if count == 0 => Some(strings::text(key!("reason-no-updates")).to_owned()),
         _ => None,
     };

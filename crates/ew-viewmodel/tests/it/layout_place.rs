@@ -801,16 +801,12 @@ fn nudge_turn_lock_and_delete_a_selected_placement() {
     // Free: -101F1 touches -101G1 and -101Q1.
     assert_eq!(
         key(&mut shell, "cursor.right"),
-        Outcome::Refused {
-            reason_key: key!("reason-layout-blocked")
-        }
+        Outcome::refused(key!("reason-layout-blocked"))
     );
     assert_eq!(shell.tool_announcement(), Some("Blocked by -101G1"));
     assert_eq!(
         key(&mut shell, "cursor.left"),
-        Outcome::Refused {
-            reason_key: key!("reason-layout-blocked")
-        }
+        Outcome::refused(key!("reason-layout-blocked"))
     );
     assert_eq!(shell.tool_announcement(), Some("Blocked by -101Q1"));
     // Push: -101F1 pushes -101G1 by one grid step.
@@ -832,9 +828,7 @@ fn nudge_turn_lock_and_delete_a_selected_placement() {
     // R on a rail is refused in words with the keymap's keys; X flips.
     assert_eq!(
         key(&mut shell, "tool.rotate_cw"),
-        Outcome::Refused {
-            reason_key: key!("reason-layout-turn")
-        }
+        Outcome::refused(key!("reason-layout-turn"))
     );
     assert_eq!(
         shell.tool_announcement(),
@@ -900,9 +894,7 @@ fn a_refused_turn_names_the_rebound_keys_on_every_path() {
         json!({"action": "tool.mirror_x", "keys": "K"}),
     );
     done(&mut shell, "ui.dismiss", json!({}));
-    let turn_refused = Outcome::Refused {
-        reason_key: key!("reason-layout-turn"),
-    };
+    let turn_refused = Outcome::refused(key!("reason-layout-turn"));
 
     // The shell: the selected placement -101F1 on Rail 1.
     select_placement(&mut shell, "-101F1");
@@ -959,7 +951,7 @@ fn press_until_refused(shell: &mut ShellModel, action: &'static str) -> usize {
     for n in 0..200 {
         match key(shell, action) {
             Outcome::Done => {}
-            Outcome::Refused { reason_key } => {
+            Outcome::Refused { reason: reason_key } => {
                 assert_eq!(reason_key, key!("reason-layout-blocked"), "after {n} presses");
                 return n;
             }
@@ -976,9 +968,7 @@ fn press_until_refused(shell: &mut ShellModel, action: &'static str) -> usize {
 fn a_refused_turn_keeps_the_ghost_and_its_gesture() {
     let tmp = Tmp::new("layout-ft991");
     let mut shell = writable(&tmp);
-    let turn_refused = Outcome::Refused {
-        reason_key: key!("reason-layout-turn"),
-    };
+    let turn_refused = Outcome::refused(key!("reason-layout-turn"));
     let f55 = unplaced(&shell, "-102F1");
     done(
         &mut shell,
@@ -1260,9 +1250,7 @@ fn blocked_by_clears_on_lock_unlock_and_enter() {
     let blocked = |shell: &mut ShellModel| {
         assert_eq!(
             key(shell, "cursor.right"),
-            Outcome::Refused {
-                reason_key: key!("reason-layout-blocked")
-            }
+            Outcome::refused(key!("reason-layout-blocked"))
         );
         assert_eq!(shell.tool_notice(), Some("Blocked by -101G1"));
         assert_eq!(hud(shell).prompt, "Blocked by -101G1");

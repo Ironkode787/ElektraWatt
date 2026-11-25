@@ -411,7 +411,7 @@ impl ShellModel {
             Err(e) => {
                 let out = draft_refusal(e);
                 editor.error = Some(match &out {
-                    Outcome::Refused { reason_key } => strings::text(*reason_key).to_owned(),
+                    Outcome::Refused { reason: reason_key } => strings::render(reason_key),
                     Outcome::Failed { message } => message.clone(),
                     Outcome::Done => String::new(),
                 });

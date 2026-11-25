@@ -324,7 +324,7 @@ impl ShellModel {
                 }
                 let why = match &out {
                     Outcome::Failed { message } => message.clone(),
-                    Outcome::Refused { reason_key } => strings::text(*reason_key).to_owned(),
+                    Outcome::Refused { reason: reason_key } => strings::render(reason_key),
                     _ => String::new(),
                 };
                 panel.error = Some(why);
@@ -346,7 +346,7 @@ impl ShellModel {
     fn refuse_supply_panel(&mut self, row: &SupplyRow, out: Outcome) -> Outcome {
         let why = match &out {
             Outcome::Failed { message } => message.clone(),
-            Outcome::Refused { reason_key } => strings::text(*reason_key).to_owned(),
+            Outcome::Refused { reason: reason_key } => strings::render(reason_key),
             _ => String::new(),
         };
         let message = strings::format(key!("supply-potential-refused"), &[&row.name, &why]);

@@ -229,7 +229,7 @@ impl ShellModel {
         match project.session.strip_edits(&edits) {
             Ok(cmd) => Ok(Some(cmd)),
             Err(StripEditError::Refused(reason_key)) => Err(Outcome::Refused {
-                reason_key: Key::run_time(reason_key),
+                reason: Key::run_time(reason_key).into(),
             }),
             Err(StripEditError::Invalid(message)) => Err(Outcome::Failed {
                 message: super::tools::rejected_words("", Some(&message)),

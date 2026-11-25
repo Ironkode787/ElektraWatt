@@ -955,9 +955,9 @@ impl ShellModel {
     /// save leaves a trace in the window; a failure becomes the banner through the window's report).
     fn save_done(&mut self, out: Outcome) -> Outcome {
         if !self.in_form_of(SAVE)
-            && let Outcome::Refused { reason_key } = &out
+            && let Outcome::Refused { reason: reason_key } = &out
         {
-            self.show_banner(strings::text(*reason_key));
+            self.show_banner(&strings::render(reason_key));
         }
         if self.in_form_of(SAVE) {
             let text = match &out {
@@ -966,7 +966,7 @@ impl ShellModel {
                     None
                 }
                 Outcome::Failed { message } => Some(message.clone()),
-                Outcome::Refused { reason_key } => Some(strings::text(*reason_key).to_owned()),
+                Outcome::Refused { reason: reason_key } => Some(strings::render(reason_key)),
             };
             if let (Some(text), Some(Dialog::Form(f))) = (text, &mut self.dialog) {
                 f.error = Some(text);

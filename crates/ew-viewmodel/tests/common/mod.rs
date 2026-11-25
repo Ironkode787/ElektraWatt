@@ -130,7 +130,7 @@ pub fn done(shell: &mut ShellModel, action: &str, params: Value) {
 #[track_caller]
 pub fn refused(shell: &mut ShellModel, action: &str, params: Value) -> &'static str {
     match shell.dispatch(action, &params) {
-        Outcome::Refused { reason_key } => reason_key.as_str(),
+        Outcome::Refused { reason: reason_key } => reason_key.key(),
         other => panic!("{action}: {other:?}"),
     }
 }

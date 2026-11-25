@@ -167,9 +167,7 @@ fn a_stale_tag_proposal_is_refused() {
     let rev = s.revision();
     assert_eq!(
         s.dispatch("props.accept_tag_proposal", &json!({})),
-        Outcome::Refused {
-            reason_key: key!("reason-no-tag-proposal")
-        },
+        Outcome::refused(key!("reason-no-tag-proposal")),
         "another selection: the proposal is stale"
     );
     assert_eq!(s.revision(), rev, "nothing committed");
@@ -208,8 +206,6 @@ fn an_unknown_strip_in_a_project_without_strips_is_refused_as_no_strip() {
             "place.pick",
             &json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X9"}),
         ),
-        Outcome::Refused {
-            reason_key: key!("reason-no-strip")
-        }
+        Outcome::refused(key!("reason-no-strip"))
     );
 }

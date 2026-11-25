@@ -304,10 +304,11 @@ pub enum Screen {
 pub enum Outcome {
     /// The action ran.
     Done,
-    /// The action is disabled now; the key names why (see [`crate::strings`]).
+    /// The action is disabled now; the text says why (a key of the shell's with its arguments, rendered by
+    /// [`strings::render`]).
     Refused {
-        /// The reason key.
-        reason_key: Key<'static>,
+        /// Why.
+        reason: ew_api::Text,
     },
     /// The action ran and failed, or its parameters were wrong.
     Failed {
@@ -318,8 +319,10 @@ pub enum Outcome {
 
 impl Outcome {
     /// The refusal whose reason is the text of `reason_key`.
-    pub const fn refused(reason_key: Key<'static>) -> Self {
-        Self::Refused { reason_key }
+    pub fn refused(reason_key: Key<'static>) -> Self {
+        Self::Refused {
+            reason: reason_key.into(),
+        }
     }
 }
 
@@ -1132,7 +1135,7 @@ mod dispatch_log_tests {
         let _ = shell.dispatch("help.about", &json!({}));
         let _ = shell.dispatch("no.such_action", &json!({}));
         let refused = shell.dispatch("edit.undo", &json!({}));
-        let super::Outcome::Refused { reason_key } = refused else {
+        let super::Outcome::Refused { reason: reason_key } = refused else {
             panic!("edit.undo without a project: {refused:?}");
         };
         shell.start_first_run_if_needed();
@@ -1142,7 +1145,7 @@ mod dispatch_log_tests {
             [
                 entry("help.about", "done", None),
                 entry("no.such_action", "failed", None),
-                entry("edit.undo", "refused", Some(reason_key.as_str())),
+                entry("edit.undo", "refused", Some(reason_key.key())),
                 entry("first_run.set", "done", None),
                 entry("view.ui_scale", "done", None),
             ]
@@ -1761,7 +1764,7 @@ impl ShellModel {
         if let Some(entry) = slot.and_then(|i| self.dispatch_log.as_mut()?.get_mut(i)) {
             (entry.outcome, entry.reason) = match &outcome {
                 Outcome::Done => ("done", None),
-                Outcome::Refused { reason_key } => ("refused", Some(reason_key.as_str())),
+                Outcome::Refused { reason: reason_key } => ("refused", Some(reason_key.key())),
                 Outcome::Failed { .. } => ("failed", None),
             };
         }
@@ -1794,16 +1797,18 @@ impl ShellModel {
         // and the recovery banner stays.
         if matches!(self.dialog, Some(Dialog::Recovery { .. })) && !meta.answers_recovery {
             return Outcome::Refused {
-                reason_key: actions::enabled_with(meta, self, p)
+                reason: actions::enabled_with(meta, self, p)
                     .err()
-                    .unwrap_or(key!("reason-dialog-open")),
+                    .unwrap_or_else(|| key!("reason-dialog-open").into()),
             };
         }
         if !meta.keeps_banner {
             self.banner = None;
         }
         if let Err(reason_key) = actions::enabled_with(meta, self, p) {
-            return Outcome::Refused { reason_key };
+            return Outcome::Refused {
+                reason: reason_key.into(),
+            };
         }
         // An alias `@n` in a parameter that takes a UUID or a reference resolves before the action reads it.
         let resolved = match crate::alias::resolve_params(&self.aliases.borrow(), &meta.alias_forms(), p) {
@@ -2074,9 +2079,10 @@ impl ShellModel {
         if let Ok(id) = text.parse::<Uuid>() {
             return Ok(id);
         }
-        let project = self.project.as_ref().ok_or(Outcome::Refused {
-            reason_key: key!("reason-no-project"),
-        })?;
+        let project = self
+            .project
+            .as_ref()
+            .ok_or(Outcome::refused(key!("reason-no-project")))?;
         project
             .session
             .resolve_reference(text)

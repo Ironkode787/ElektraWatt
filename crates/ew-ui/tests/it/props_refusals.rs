@@ -228,9 +228,7 @@ fn a_toast_with_a_cut_line_shows_its_whole_text_in_the_inverse_tooltip() {
     dispatch(&mut h, "ip.name", json!({"text": "W465"}));
     assert_eq!(
         h.state_mut().shell_mut().dispatch("canvas.activate", &json!({})),
-        Outcome::Refused {
-            reason_key: key!("reason-ip-not-placed")
-        }
+        Outcome::refused(key!("reason-ip-not-placed"))
     );
     settle(&mut h);
     let whole = format!(
@@ -284,9 +282,7 @@ fn a_toasts_line_is_drawn_with_a_capital() {
     dispatch(&mut h, "cursor.set", json!({"x_mm": 200.284, "y_mm": 161.143}));
     assert_eq!(
         h.state_mut().shell_mut().dispatch("canvas.activate", &json!({})),
-        Outcome::Refused {
-            reason_key: key!("reason-ip-not-placed")
-        }
+        Outcome::refused(key!("reason-ip-not-placed"))
     );
     settle(&mut h);
     let texts: Vec<String> = painted_texts(&h).into_iter().map(|(t, _, _)| t).collect();

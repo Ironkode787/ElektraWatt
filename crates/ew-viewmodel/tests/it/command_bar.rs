@@ -369,7 +369,7 @@ fn a_page_chosen_in_the_page_list_is_not_counted_on_the_canvas() {
     let delete = actions::find("edit.delete_selection").unwrap();
     assert_eq!(
         (delete.enabled)(&s),
-        Err(key!("reason-nothing-selected")),
+        Err(key!("reason-nothing-selected").into()),
         "Delete is not offered for the page record"
     );
     // A device selected by its tag and drawn on the page counts, as Delete takes it.

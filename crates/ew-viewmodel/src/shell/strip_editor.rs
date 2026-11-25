@@ -92,7 +92,9 @@ impl ShellModel {
     /// The strip editor's table and acted rows: the marked rows, else the cursor row.
     fn strip_rows(&self) -> Result<Rows, Outcome> {
         if let Err(reason_key) = self.strip_editor_shown() {
-            return Err(Outcome::Refused { reason_key });
+            return Err(Outcome::Refused {
+                reason: reason_key.into(),
+            });
         }
         let nav = self
             .generic(NavKind::Strips)
@@ -359,7 +361,7 @@ impl ShellModel {
         }
         project.session.strip_edit(edit).map_err(|e| match e {
             StripEditError::Refused(reason_key) => Outcome::Refused {
-                reason_key: Key::run_time(reason_key),
+                reason: Key::run_time(reason_key).into(),
             },
             StripEditError::Invalid(message) => Outcome::Failed {
                 message: super::tools::rejected_words("", Some(&message)),
@@ -442,7 +444,7 @@ impl ShellModel {
             Ok(c) => c,
             Err(StripEditError::Refused(reason_key)) => {
                 return Outcome::Refused {
-                    reason_key: Key::run_time(reason_key),
+                    reason: Key::run_time(reason_key).into(),
                 };
             }
             Err(StripEditError::Invalid(message)) => {
@@ -547,7 +549,9 @@ impl ShellModel {
     /// error listing them headless.
     pub(crate) fn act_strip_add_accessory(&mut self, p: &Map<String, Value>) -> Outcome {
         if let Err(reason_key) = self.strip_editor_shown() {
-            return Outcome::Refused { reason_key };
+            return Outcome::Refused {
+                reason: reason_key.into(),
+            };
         }
         let kind = match string_param(p, "kind") {
             Ok(v) => v.unwrap_or("end_clamp").to_owned(),
@@ -624,7 +628,7 @@ impl ShellModel {
             Ok(c) => c,
             Err(StripEditError::Refused(reason_key)) => {
                 return Outcome::Refused {
-                    reason_key: Key::run_time(reason_key),
+                    reason: Key::run_time(reason_key).into(),
                 };
             }
             Err(StripEditError::Invalid(message)) => {

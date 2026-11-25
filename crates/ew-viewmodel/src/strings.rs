@@ -794,6 +794,32 @@ pub fn format(key: Key<'_>, args: &[&str]) -> String {
         .unwrap_or_else(|| "?".to_owned())
 }
 
+/// The text of the key `key` (a key of the window's texts, [`key!`](crate::key) checked it) with the arguments `args`:
+/// a reason of the shell with its arguments, which [`render`] shows in the UI language. Its English is the key's
+/// en-GB text.
+pub fn keyed(key: Key<'static>, args: Vec<ew_api::TextArg>) -> ew_api::Text {
+    ew_api::Text::checked_by_macro(key.as_str(), source_text(key.as_str()).unwrap_or("?"), args)
+}
+
+/// A key as its text without arguments ([`keyed`]).
+impl From<Key<'static>> for ew_api::Text {
+    fn from(key: Key<'static>) -> ew_api::Text {
+        keyed(key, Vec::new())
+    }
+}
+
+/// A text is the key `key` when it is that key without arguments.
+impl PartialEq<Key<'_>> for ew_api::Text {
+    fn eq(&self, key: &Key<'_>) -> bool {
+        self.key() == key.as_str() && self.args().is_empty() && self.named().is_empty()
+    }
+}
+
+/// `text` in the UI language ([`render_with`] with no words of the caller's own).
+pub fn render(text: &ew_api::Text) -> String {
+    render_with(text, &|_| None)
+}
+
 /// `text`, a text of the session, the commands or the shell, in the UI language through `ew_l10n`'s renderer (en-GB
 /// where the language has no words for its key; the pseudo-locale accents the en-GB words), with the words `own`
 /// gives for an argument that is a text in place of its pattern; `?` for a key without a text.

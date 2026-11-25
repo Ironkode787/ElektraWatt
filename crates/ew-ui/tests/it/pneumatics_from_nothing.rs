@@ -232,8 +232,8 @@ fn a_valve_terminal_is_built_from_nothing_and_its_overview_generated() {
     // Greyed with its reason while no valve terminal is selected.
     let reason = ew_viewmodel::actions::find("fluid.generate_overview").map(|a| (a.enabled)(d.shell_mut()));
     assert_eq!(
-        reason.and_then(Result::err).map(ew_viewmodel::strings::text),
-        Some("Select a valve terminal first: on its page or in the Fluid panel")
+        reason.and_then(Result::err).map(|r| ew_viewmodel::strings::render(&r)),
+        Some("Select a valve terminal first: on its page or in the Fluid panel".to_owned())
     );
     place_terminal(&mut d, (760, 300));
     let nodes = fluid_nodes(&mut d);

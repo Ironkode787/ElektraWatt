@@ -1342,9 +1342,7 @@ fn a_symbol_on_another_grid_is_placed_on_a_new_page_with_its_grid() {
     assert_ne!(at, 0, "a starter symbol of the page's grid leads");
     assert_eq!(
         shell.dispatch("picker.new_page", &json!({})),
-        Outcome::Refused {
-            reason_key: ew_viewmodel::key!("reason-no-grid-mismatch")
-        },
+        Outcome::refused(ew_viewmodel::key!("reason-no-grid-mismatch")),
         "the first row is on this page's grid"
     );
     done(&mut shell, "picker.row", json!({"to": at}));

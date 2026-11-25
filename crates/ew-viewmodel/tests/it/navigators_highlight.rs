@@ -189,9 +189,7 @@ fn highlighting_24v_from_the_potentials_navigator() {
     assert!(shell.highlights().is_empty());
     assert_eq!(
         shell.dispatch("view.clear_highlights", &json!({})),
-        Outcome::Refused {
-            reason_key: key!("reason-no-highlights")
-        }
+        Outcome::refused(key!("reason-no-highlights"))
     );
     done(&mut shell, "page.goto", json!({"folio": "104"}));
     let (w, label) = supply_row(&shell);

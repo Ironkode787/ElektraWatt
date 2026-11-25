@@ -932,9 +932,7 @@ fn the_strip_chooser_says_what_it_waits_for_and_a_canvas_press_starts_nothing() 
     let away = sheet(&s, grid_point(&s, (70, 40)));
     assert_eq!(
         s.dispatch("canvas.press", &at(here, json!({}))),
-        Outcome::Refused {
-            reason_key: key!("reason-choose-strip")
-        }
+        Outcome::refused(key!("reason-choose-strip"))
     );
     done(&mut s, "canvas.pointer", at(away, json!({})));
     done(&mut s, "canvas.release", at(away, json!({})));
@@ -1123,7 +1121,7 @@ fn the_wire_buttons_disabled_reason_names_the_page_kind() {
             .unwrap_or_else(|| panic!("the sample has a {kind} page: {rows:?}"));
         done(&mut s, "page.goto", json!({ "folio": folio }));
         let reason = (wire.enabled)(&s).expect_err(kind);
-        assert_eq!(ew_viewmodel::strings::text(reason), text, "{kind} {folio}");
+        assert_eq!(ew_viewmodel::strings::render(&reason), text, "{kind} {folio}");
     }
 }
 

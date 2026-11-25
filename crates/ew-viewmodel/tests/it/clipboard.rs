@@ -73,7 +73,7 @@ fn a_paste_on_a_page_that_cannot_take_it_is_refused_with_its_reason() {
         done(&mut shell, "page.goto", json!({"folio": folio}));
         assert_eq!(
             shell.dispatch("edit.paste_clip", &json!({})),
-            Outcome::Refused { reason_key: reason },
+            Outcome::refused(reason),
             "paste on folio {folio}"
         );
         let expected = ew_viewmodel::strings::text(reason).to_owned();
@@ -919,9 +919,7 @@ fn assert_incomplete_cut_unchanged(shell: &mut ShellModel, ids: &[String]) {
     let before = shell.canvas().unwrap().page().tables.clone();
     assert_eq!(
         shell.dispatch("edit.cut", &json!({})),
-        Outcome::Refused {
-            reason_key: key!("reason-cut-incomplete-items")
-        }
+        Outcome::refused(key!("reason-cut-incomplete-items"))
     );
     assert_eq!(shell.clipboard().text(), Some(clip.as_str()));
     assert_eq!(shell.clipboard().kind(), kind.as_ref());

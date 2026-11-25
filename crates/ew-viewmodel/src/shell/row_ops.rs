@@ -254,7 +254,9 @@ impl ShellModel {
     /// `cable.swap_cores`: the two marked core rows of one cable swap their connections (FR-CBL-016).
     pub(crate) fn act_cable_swap_cores(&mut self) -> Outcome {
         if let Err(reason_key) = self.cables_shown() {
-            return Outcome::Refused { reason_key };
+            return Outcome::Refused {
+                reason: reason_key.into(),
+            };
         }
         let Some(nav) = self.generic(NavKind::Cables) else {
             return failed(key!("error-nav-closed"), &[NavKind::Cables.word()]);
@@ -287,7 +289,7 @@ impl ShellModel {
             Ok(cmd) => cmd,
             Err(reason_key) => {
                 return Outcome::Refused {
-                    reason_key: Key::run_time(reason_key),
+                    reason: Key::run_time(reason_key).into(),
                 };
             }
         };
@@ -364,13 +366,11 @@ impl ShellModel {
                 .and_then(|n| n.node_of(key).map(|(_, node)| node.clone()))
         });
         let Some(route) = rename_route(kind, node.as_ref()) else {
-            return Outcome::Refused {
-                reason_key: if key.is_some() {
-                    key!("reason-nav-not-renamable")
-                } else {
-                    key!("reason-no-nav-row")
-                },
-            };
+            return Outcome::refused(if key.is_some() {
+                key!("reason-nav-not-renamable")
+            } else {
+                key!("reason-no-nav-row")
+            });
         };
         let Some(key) = key else {
             return Outcome::refused(key!("reason-no-nav-row"));

@@ -227,7 +227,11 @@ impl ShellModel {
         }
         let at = match pin.map_or_else(|| self.potential_point(), Ok) {
             Ok(at) => at,
-            Err(reason_key) => return Outcome::Refused { reason_key },
+            Err(reason_key) => {
+                return Outcome::Refused {
+                    reason: reason_key.into(),
+                };
+            }
         };
         let mut params = json!({ "at": end_param(at) });
         for (param, path, text) in texts {

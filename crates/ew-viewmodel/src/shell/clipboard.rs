@@ -99,7 +99,7 @@ impl ShellModel {
         let copied = project.session.copy_fragment(&ids);
         bump(&self.calls, |c| c.copy_fragment += 1);
         copied.map_err(|e| Outcome::Refused {
-            reason_key: copy_refusal(e),
+            reason: copy_refusal(e).into(),
         })
     }
 
@@ -376,7 +376,9 @@ impl ShellModel {
         match choice.as_str() {
             "adapt" => {
                 if let Some(reason_key) = pending.adapt {
-                    return Outcome::Refused { reason_key };
+                    return Outcome::Refused {
+                        reason: reason_key.into(),
+                    };
                 }
                 self.props.card = None;
                 let adapt: Vec<Uuid> = pending.conflicts.iter().map(|c| c.copy).collect();
@@ -384,7 +386,9 @@ impl ShellModel {
             }
             "update" => {
                 if let Some(reason_key) = pending.update {
-                    return Outcome::Refused { reason_key };
+                    return Outcome::Refused {
+                        reason: reason_key.into(),
+                    };
                 }
                 let plan = match parse_fragment(&pending.text) {
                     Ok(f) => {

@@ -253,13 +253,13 @@ const NEXT_STEPS: [(Key<'static>, Key<'static>); 3] = [
 ];
 
 /// The text a refused form shows: the reason, and what to do next where [`NEXT_STEPS`] has it.
-fn refusal_text(reason: Key<'_>) -> String {
-    match NEXT_STEPS.iter().find(|(r, _)| r.as_str() == reason.as_str()) {
+fn refusal_text(reason: &ew_api::Text) -> String {
+    match NEXT_STEPS.iter().find(|(r, _)| reason == r) {
         Some(&(_, step)) => strings::format(
             key!("form-refused-step"),
-            &[strings::text(reason), strings::text(step)],
+            &[&strings::render(reason), strings::text(step)],
         ),
-        None => strings::text(reason).to_owned(),
+        None => strings::render(reason),
     }
 }
 
@@ -473,11 +473,11 @@ impl ShellModel {
         }
         let out = self.dispatch(action, &Value::Object(params));
         // A refused submit says why under the fields, as a failed one does.
-        if let Outcome::Refused { reason_key } = &out
+        if let Outcome::Refused { reason: reason_key } = &out
             && let Some(Dialog::Form(f)) = &mut self.dialog
             && f.action == action
         {
-            f.error = Some(refusal_text(*reason_key));
+            f.error = Some(refusal_text(reason_key));
         }
         // The project closed under the open dialog: nothing is left to create in.
         if matches!(out, Outcome::Refused { .. }) && !self.has_project() {
@@ -569,7 +569,7 @@ mod tests {
     /// language.
     #[test]
     fn a_refused_form_names_the_next_step() {
-        let texts = || [key!("reason-read-only"), key!("reason-no-page")].map(refusal_text);
+        let texts = || [key!("reason-read-only"), key!("reason-no-page")].map(|k| refusal_text(&k.into()));
         assert_eq!(
             texts(),
             [

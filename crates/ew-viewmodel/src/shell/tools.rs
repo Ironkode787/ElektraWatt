@@ -660,7 +660,9 @@ impl ShellModel {
                 self.tools.notice = Some(text.clone());
                 self.tools.notice_sticky = true;
                 self.tools.announcement = Some(text);
-                Outcome::Refused { reason_key }
+                Outcome::Refused {
+                    reason: reason_key.into(),
+                }
             }
             ToolOutput::Refused(reason_key) => {
                 // The same path as a refused canvas key: the status bar shows the reason until the next canvas input.
@@ -673,7 +675,9 @@ impl ShellModel {
                 }
                 self.tools.notice = Some(self.refusal_text(reason_key));
                 self.tools.notice_sticky = true;
-                Outcome::Refused { reason_key }
+                Outcome::Refused {
+                    reason: reason_key.into(),
+                }
             }
             ToolOutput::Select(change) => {
                 self.tools.overlay = Overlay::default();
@@ -1354,13 +1358,11 @@ impl ShellModel {
     /// fresh, else `cmd` executed. A read-only project refuses before anything runs.
     pub(super) fn run_commit(&mut self, cmd: &dyn DynCommand) -> Outcome {
         if !self.is_writable() {
-            return Outcome::Refused {
-                reason_key: if self.has_project() {
-                    key!("reason-read-only")
-                } else {
-                    key!("reason-no-project")
-                },
-            };
+            return Outcome::refused(if self.has_project() {
+                key!("reason-read-only")
+            } else {
+                key!("reason-no-project")
+            });
         }
         let json = match cmd.to_json() {
             Ok(v) => v,
@@ -1750,13 +1752,11 @@ impl ShellModel {
             .filter(|&i| step != CpStep::NextUnconnected || !page.cps[i].connected)
             .collect();
         let (Some(&first), Some(&end)) = (candidates.first(), candidates.last()) else {
-            return Outcome::Refused {
-                reason_key: if page.cps.is_empty() {
-                    key!("reason-no-cp")
-                } else {
-                    key!("reason-no-unconnected-cp")
-                },
-            };
+            return Outcome::refused(if page.cps.is_empty() {
+                key!("reason-no-cp")
+            } else {
+                key!("reason-no-unconnected-cp")
+            });
         };
         let cursor = c.cursor();
         let key = (page.session, page.rev, page.folio.clone());
@@ -1856,7 +1856,9 @@ pub(crate) fn rejected_words(reason: &str, text: Option<&ew_api::Text>) -> Strin
 /// words; `None` for any other text.
 fn own_words(t: &ew_api::Text) -> Option<String> {
     match (t.key(), t.args()) {
-        ("refusal-words-pointer", [ew_api::TextArg::Plain(pointer)]) => Some(param_words(&Value::Null, pointer)),
+        ("refusal-words-pointer", [ew_api::TextArg::Plain(pointer)]) => {
+            Some(param_words(&Value::Null, pointer))
+        }
         ("refusal-words-part-kind", [ew_api::TextArg::Plain(kind)]) => {
             Some(strings::in_sentence(&strings::choice_text(kind)))
         }

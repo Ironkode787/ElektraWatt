@@ -104,17 +104,13 @@ fn the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
     assert_eq!(shell.canvas().unwrap().zoom(), ZOOM_MAX);
     assert_eq!(
         shell.dispatch("view.zoom_in", &json!({})),
-        Outcome::Refused {
-            reason_key: key!("reason-zoom-max")
-        }
+        Outcome::refused(key!("reason-zoom-max"))
     );
     done(&mut shell, "view.zoom_to", json!({"percent": 1}));
     assert_eq!(shell.canvas().unwrap().zoom(), ZOOM_MIN, "clamped to 5 %");
     assert_eq!(
         shell.dispatch("view.zoom_out", &json!({})),
-        Outcome::Refused {
-            reason_key: key!("reason-zoom-min")
-        }
+        Outcome::refused(key!("reason-zoom-min"))
     );
     // Without a page every canvas action but the pane size and the statistics is refused.
     done(&mut shell, "file.close", json!({}));

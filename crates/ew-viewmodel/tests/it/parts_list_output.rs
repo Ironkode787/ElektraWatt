@@ -41,7 +41,7 @@ fn parts_list_without_a_bom_block_is_refused_in_words() {
     let tmp = Tmp::new("h40-noparts");
     let mut shell = tmp.empty_shell(Mode::Headless);
     let meta = actions::find("lists.parts").expect("registered");
-    assert_eq!((meta.enabled)(&shell), Err(key!("reason-no-project")));
+    assert_eq!((meta.enabled)(&shell), Err(key!("reason-no-project").into()));
     crate::common::make_project(&mut shell, &tmp.0.join("new.ew"), &[]);
     done(
         &mut shell,
@@ -49,7 +49,7 @@ fn parts_list_without_a_bom_block_is_refused_in_words() {
         json!({"folio": "101", "type": "multi_line", "title": "Power"}),
     );
     assert_eq!(shell.parts_list_folio(), None);
-    assert_eq!((meta.enabled)(&shell), Err(key!("reason-no-parts-list")));
+    assert_eq!((meta.enabled)(&shell), Err(key!("reason-no-parts-list").into()));
     assert_eq!(
         strings::text(key!("reason-no-parts-list")),
         "The project has no parts list: it needs a parts list report block"

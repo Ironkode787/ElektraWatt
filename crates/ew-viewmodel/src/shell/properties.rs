@@ -660,7 +660,11 @@ impl ShellModel {
     /// offer the action reads `reason-action-not-offered`.
     fn props_refusal(&self, section: &SheetSection, row: &PropRow, action: RowAction) -> Option<Outcome> {
         let sheet = self.props.sheet()?;
-        let refused = |reason_key: Key<'static>| Some(Outcome::Refused { reason_key });
+        let refused = |reason_key: Key<'static>| {
+            Some(Outcome::Refused {
+                reason: reason_key.into(),
+            })
+        };
         if sheet.read_only.is_some() || !self.is_writable() {
             return refused(key!("reason-read-only"));
         }

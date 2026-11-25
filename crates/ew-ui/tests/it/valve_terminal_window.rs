@@ -247,11 +247,11 @@ fn the_multipin_plug_is_drawn_from_the_terminal_on_the_fluid_page() {
     let reason = |d: &mut Driver| {
         ew_viewmodel::actions::find("fluid.draw_plug")
             .and_then(|a| (a.enabled)(d.shell_mut()).err())
-            .map(ew_viewmodel::strings::text)
+            .map(|r| ew_viewmodel::strings::render(&r))
     };
     assert_eq!(
         reason(&mut d),
-        Some("Select a multipin valve terminal to draw its plug"),
+        Some("Select a multipin valve terminal to draw its plug".to_owned()),
         "the Fluid tab's button, greyed in words"
     );
     let terminal = place_multipin(&mut d, (760, 300));

@@ -110,7 +110,7 @@ fn a_panel_layout_page_says_how_the_devices_reach_the_plate() {
     );
     let out = d.shell_mut().dispatch("tool.place", &json!({}));
     let words = match out {
-        Outcome::Refused { reason_key } => ew_viewmodel::strings::text(reason_key).to_owned(),
+        Outcome::Refused { reason: reason_key } => ew_viewmodel::strings::render(&reason_key),
         other => format!("{other:?}"),
     };
     assert!(words.contains("Unplaced devices"), "{words}");

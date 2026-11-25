@@ -270,7 +270,7 @@ pub struct MenuSlot {
 pub(crate) type Handler = fn(&mut ShellModel, &Map<String, Value>) -> Outcome;
 
 /// Whether an action can run now: `Err` carries the reason key of its refusal (the checks are in `actions/enabled.rs`).
-pub type Enabled = fn(&ShellModel) -> Result<(), Key<'static>>;
+pub type Enabled = fn(&ShellModel) -> Result<(), ew_api::Text>;
 
 /// One action of the registry.
 ///

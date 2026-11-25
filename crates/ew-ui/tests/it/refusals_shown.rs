@@ -106,7 +106,7 @@ fn a_refusal_of_every_bar_and_menu_action_reaches_the_window() {
             let s = h.state().shell();
             assert_eq!(
                 s.refusal_shown(),
-                Some(strings::text(reason)),
+                Some(strings::render(&reason).as_str()),
                 "{} (project open: {project})",
                 a.id
             );
@@ -116,9 +116,7 @@ fn a_refusal_of_every_bar_and_menu_action_reaches_the_window() {
     assert!(walked > 0);
     assert_eq!(
         h.state_mut().shell_mut().dispatch("tool.rotate_cw", &json!({})),
-        Outcome::Refused {
-            reason_key: key!("reason-nothing-selected")
-        },
+        Outcome::refused(key!("reason-nothing-selected")),
         "the project is still open with nothing selected"
     );
     h.state_mut().shell_mut().shutdown();

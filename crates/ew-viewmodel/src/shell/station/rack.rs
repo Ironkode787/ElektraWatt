@@ -540,7 +540,7 @@ impl ShellModel {
         let error = match &out {
             Outcome::Done => None,
             Outcome::Failed { message } => Some(message.clone()),
-            Outcome::Refused { reason_key } => Some(strings::text(*reason_key).to_owned()),
+            Outcome::Refused { reason: reason_key } => Some(strings::render(reason_key)),
         };
         let after = addresses(self);
         let moved = out == Outcome::Done
@@ -1146,7 +1146,7 @@ impl ShellModel {
         let why = match (self.props.error(), out) {
             (Some((_, message)), _) => message.to_owned(),
             (None, Outcome::Failed { message }) => message,
-            (None, Outcome::Refused { reason_key }) => strings::text(reason_key).to_owned(),
+            (None, Outcome::Refused { reason: reason_key }) => strings::render(&reason_key),
             (None, Outcome::Done) => String::new(),
         };
         if let Some(tab) = self.station_tab_mut() {
@@ -1281,7 +1281,7 @@ impl ShellModel {
                 Outcome::Done
             }
             Outcome::Failed { message } => refuse(self, message),
-            Outcome::Refused { reason_key } => refuse(self, strings::text(reason_key).to_owned()),
+            Outcome::Refused { reason: reason_key } => refuse(self, strings::render(&reason_key)),
         }
     }
 
@@ -1443,7 +1443,7 @@ impl ShellModel {
         match self.commit_from_host(&cmd) {
             Outcome::Done => Ok(()),
             Outcome::Failed { message } => Err(message),
-            Outcome::Refused { reason_key } => Err(strings::text(reason_key).to_owned()),
+            Outcome::Refused { reason: reason_key } => Err(strings::render(&reason_key)),
         }
     }
 

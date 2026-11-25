@@ -1036,7 +1036,9 @@ fn step_outcome(
     shell.run_said(
         Some(action),
         |shell| match actions::find(action).map(|m| actions::enabled_with(m, shell, map)) {
-            Some(Err(reason_key)) => Outcome::Refused { reason_key },
+            Some(Err(reason_key)) => Outcome::Refused {
+                reason: reason_key.into(),
+            },
             _ => match ext.handle(shell, action, params) {
                 Some(outcome) => outcome,
                 None => shell.dispatch(action, params),
@@ -1053,7 +1055,7 @@ fn expect_refused(
     shell: &mut ShellModel,
     ext: &mut dyn StepExtension,
     params: &Value,
-) -> Result<Key<'static>, Outcome> {
+) -> Result<ew_api::Text, Outcome> {
     let inner_fail = |key: Key<'_>| Outcome::Failed {
         message: strings::text(key).to_owned(),
     };
@@ -1067,7 +1069,7 @@ fn expect_refused(
         Some(_) => return Err(inner_fail(key!("message-expect-refused-inner"))),
     };
     match step_outcome(shell, ext, &action, &inner) {
-        Outcome::Refused { reason_key } => Ok(reason_key),
+        Outcome::Refused { reason: reason_key } => Ok(reason_key),
         Outcome::Done => Err(inner_fail(key!("message-expected-refusal"))),
         failed @ Outcome::Failed { .. } => Err(failed),
     }
@@ -1129,20 +1131,20 @@ pub fn run_step(
     let (word, reason, message) = match &outcome {
         Outcome::Done => (
             "done",
-            met_refusal.map_or(Value::Null, |k| Value::from(k.as_str())),
+            met_refusal.as_ref().map_or(Value::Null, |k| Value::from(k.key())),
             met_failure.map_or(Value::Null, Value::from),
         ),
-        Outcome::Refused { reason_key } => ("refused", Value::from(reason_key.as_str()), Value::Null),
+        Outcome::Refused { reason: reason_key } => ("refused", Value::from(reason_key.key()), Value::Null),
         Outcome::Failed { message } => ("failed", Value::Null, Value::from(message.as_str())),
     };
     // G-PP triage row 10: the sentence of a refusal's key beside the key (which stays as it is: recordings compare
     // `reason` by key), and the summary of a preview card the step leaves pending.
     let refusal = match &outcome {
-        Outcome::Refused { reason_key } => Some(*reason_key),
+        Outcome::Refused { reason: reason_key } => Some(reason_key.clone()),
         Outcome::Done => met_refusal,
         Outcome::Failed { .. } => None,
     };
-    let reason_text = refusal.map_or(Value::Null, |key| Value::from(strings::text(key)));
+    let reason_text = refusal.map_or(Value::Null, |reason| Value::from(strings::render(&reason)));
     let pending = card_summary(shell).map_or(Value::Null, Value::from);
     let mut members = vec![
         member("step", &Value::from(number)),

@@ -189,7 +189,7 @@ fn refused(key: Key<'static>, param: &str) -> Outcome {
     if key.as_str().starts_with("error-") {
         failed(key, &[param])
     } else {
-        Outcome::Refused { reason_key: key }
+        Outcome::Refused { reason: key.into() }
     }
 }
 

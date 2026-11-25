@@ -183,13 +183,11 @@ impl ShellModel {
             }));
         }
         let Some(cmd) = cmd else {
-            return Outcome::Refused {
-                reason_key: if elsewhere {
-                    key!("reason-not-on-page")
-                } else {
-                    key!("reason-nothing-selected")
-                },
-            };
+            return Outcome::refused(if elsewhere {
+                key!("reason-not-on-page")
+            } else {
+                key!("reason-nothing-selected")
+            });
         };
         // The toast counts the wires the delete takes with the symbols. A device that keeps no symbol but stays in the
         // project (EW-CORE-047) is named, with where it stays; terminals left drawn nowhere are counted, with a way to

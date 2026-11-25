@@ -149,7 +149,12 @@ impl Language {
 
     /// [`Language::text`], with the words `own` gives for an argument that is a text in place of that text's pattern:
     /// a front end's own words for a key whose argument it names in its own terms (a JSON Pointer as a field's label).
-    pub fn text_with(&self, text: &Text, on_error: OnError, own: &dyn Fn(&Text) -> Option<String>) -> Option<String> {
+    pub fn text_with(
+        &self,
+        text: &Text,
+        on_error: OnError,
+        own: &dyn Fn(&Text) -> Option<String>,
+    ) -> Option<String> {
         let mut owned: Vec<(Cow<'_, str>, Formatted)> = Vec::new();
         for (i, arg) in text.args().iter().enumerate() {
             owned.push((Cow::Owned(format!("p{i}")), self.arg(arg, on_error, own)?));
@@ -168,7 +173,12 @@ impl Language {
     }
 
     /// An argument of a text as its pattern reads it.
-    fn arg(&self, arg: &TextArg, on_error: OnError, own: &dyn Fn(&Text) -> Option<String>) -> Option<Formatted> {
+    fn arg(
+        &self,
+        arg: &TextArg,
+        on_error: OnError,
+        own: &dyn Fn(&Text) -> Option<String>,
+    ) -> Option<Formatted> {
         Some(match arg {
             TextArg::Number(n) => Formatted::Number(n.to_string()),
             other => Formatted::Words(self.words(other, on_error, own)?),
@@ -177,7 +187,12 @@ impl Language {
 
     /// An argument in words: a value as it is, a number in digits, a text (by `own` where it has words for it) and
     /// each item of a list in this language.
-    fn words(&self, arg: &TextArg, on_error: OnError, own: &dyn Fn(&Text) -> Option<String>) -> Option<String> {
+    fn words(
+        &self,
+        arg: &TextArg,
+        on_error: OnError,
+        own: &dyn Fn(&Text) -> Option<String>,
+    ) -> Option<String> {
         let text = |t: &Text| match (own(t).or_else(|| self.text_with(t, on_error, own)), on_error) {
             (Some(s), _) => Some(s),
             (None, OnError::Keep) => Some(t.to_string()),

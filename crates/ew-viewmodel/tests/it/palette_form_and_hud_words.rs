@@ -72,7 +72,7 @@ fn delete_is_disabled_with_nothing_selected() {
     let mut shell = tmp.sample_in(Mode::Gui, true, "103");
     let meta = actions::find("edit.delete_selection").expect("the action");
     done(&mut shell, "select.set", json!({"refs": []}));
-    assert_eq!((meta.enabled)(&shell), Err(key!("reason-nothing-selected")));
+    assert_eq!((meta.enabled)(&shell), Err(key!("reason-nothing-selected").into()));
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     done(&mut shell, "select.set", json!({"refs": ["tag:-102F1"]}));
     assert_eq!((meta.enabled)(&shell), Ok(()));

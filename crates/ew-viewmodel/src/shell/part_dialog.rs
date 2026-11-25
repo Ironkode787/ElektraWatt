@@ -363,7 +363,7 @@ fn api_refusal(e: ApiError) -> Outcome {
         ApiError::OtherVersionHeld { .. } => Outcome::refused(key!("reason-part-other-version")),
         ApiError::Library { .. } => Outcome::refused(key!("reason-part-not-installed")),
         ApiError::Strip(ew_api::output::StripEditError::Refused(reason_key)) => Outcome::Refused {
-            reason_key: Key::run_time(reason_key),
+            reason: Key::run_time(reason_key).into(),
         },
         other => Outcome::Failed {
             message: other.to_string(),
@@ -374,10 +374,10 @@ fn api_refusal(e: ApiError) -> Outcome {
 fn draft_refusal(e: PartDraftError) -> Outcome {
     match e {
         PartDraftError::Refused(reason_key) => Outcome::Refused {
-            reason_key: Key::run_time(reason_key),
+            reason: Key::run_time(reason_key).into(),
         },
         PartDraftError::Field(m) if m.args.is_empty() && m.key.starts_with("reason-") => Outcome::Refused {
-            reason_key: Key::run_time(m.key),
+            reason: Key::run_time(m.key).into(),
         },
         PartDraftError::Field(m) => Outcome::Failed {
             message: message_text(Key::run_time(m.key), &m.args),
@@ -726,7 +726,7 @@ impl ShellModel {
                 }
                 let out = draft_refusal(e);
                 editor.error = Some(match &out {
-                    Outcome::Refused { reason_key } => strings::text(*reason_key).to_owned(),
+                    Outcome::Refused { reason: reason_key } => strings::render(reason_key),
                     Outcome::Failed { message } => message.clone(),
                     Outcome::Done => String::new(),
                 });
@@ -749,7 +749,7 @@ impl ShellModel {
             return Outcome::Done;
         };
         let words = |out: &Outcome| match out {
-            Outcome::Refused { reason_key } => strings::text(*reason_key).to_owned(),
+            Outcome::Refused { reason: reason_key } => strings::render(reason_key),
             Outcome::Failed { message } => message.clone(),
             Outcome::Done => String::new(),
         };

@@ -619,7 +619,7 @@ pub(crate) fn chooser(
             let reason = ew_viewmodel::actions::find(action).and_then(|a| a.enabled_now(shell).err());
             let response = ui.add_enabled(reason.is_none(), egui::Button::new(strings::text(label)));
             let response = match reason {
-                Some(r) => response.disabled_tip(strings::text(r)),
+                Some(r) => response.disabled_tip(&strings::render(&r)),
                 None => response,
             };
             if response.clicked() {

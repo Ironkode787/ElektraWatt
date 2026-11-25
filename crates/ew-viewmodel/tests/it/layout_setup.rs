@@ -993,9 +993,7 @@ fn far_points_of_the_draw_tools_are_refused_in_words() {
         json!({"row": "page/derived.datum", "value": "1000000000, 1000000000"}),
     );
     let rev = s.revision();
-    let far_refused = Outcome::Refused {
-        reason_key: key!("reason-point-outside-drawing"),
-    };
+    let far_refused = Outcome::refused(key!("reason-point-outside-drawing"));
     let a = (100_000_000, 100_000_000);
     let b = (300_000_000, 100_000_000);
     done(&mut s, "tool.rail_draw", json!({}));
@@ -1101,9 +1099,7 @@ fn the_draw_tools_texts_read_whole() {
     let out = free_click_mm(&mut s, 900.0, 740.0);
     assert_eq!(
         out,
-        Outcome::Refused {
-            reason_key: key!("reason-duct-vertices")
-        }
+        Outcome::refused(key!("reason-duct-vertices"))
     );
     assert_eq!(s.tool_notice(), Some("A duct takes at most 256 points"));
     done(&mut s, "ui.dismiss", json!({}));

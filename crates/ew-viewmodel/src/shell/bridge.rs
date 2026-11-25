@@ -277,7 +277,9 @@ impl ShellModel {
                 }
                 outcome
             }
-            Err(reason_key) => Outcome::Refused { reason_key },
+            Err(reason_key) => Outcome::Refused {
+                reason: reason_key.into(),
+            },
         }
     }
 }
@@ -391,7 +393,9 @@ impl ShellModel {
                 }
                 outcome
             }
-            Err(reason_key) => Outcome::Refused { reason_key },
+            Err(reason_key) => Outcome::Refused {
+                reason: reason_key.into(),
+            },
         }
     }
 

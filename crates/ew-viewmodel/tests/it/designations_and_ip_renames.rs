@@ -75,9 +75,7 @@ fn a_designation_on_a_device_says_where_its_tag_is_set() {
         );
         assert_eq!(
             out,
-            Outcome::Refused {
-                reason_key: key!("reason-no-strip")
-            },
+            Outcome::refused(key!("reason-no-strip")),
             "{name}"
         );
     }

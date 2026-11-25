@@ -193,9 +193,7 @@ fn the_sample_project_opens_read_only_and_save_as_makes_a_copy() {
     assert!(shell.recent_names().is_empty(), "the sample is no recent project");
     assert_eq!(
         run(&mut shell, "file.save", json!({})),
-        Outcome::Refused {
-            reason_key: key!("reason-read-only")
-        }
+        Outcome::refused(key!("reason-read-only"))
     );
     assert!(
         !Path::new(SAMPLE).join(".~ew.lock").exists(),
@@ -492,7 +490,7 @@ fn a_qelectrotech_project_is_imported_into_a_new_directory() {
     );
     assert!(!plain.messages_offers_migration());
     match run(&mut plain, "messages.migration", json!({})) {
-        Outcome::Refused { reason_key } => assert_eq!(reason_key, key!("reason-no-lineage")),
+        Outcome::Refused { reason: reason_key } => assert_eq!(reason_key, key!("reason-no-lineage")),
         other => panic!("{other:?}"),
     }
     plain.shutdown();
@@ -647,9 +645,7 @@ fn the_import_card_waits_for_an_open_dialog() {
     );
     assert_eq!(
         run(&mut gui, "file.reimport_qet_apply", json!({})),
-        Outcome::Refused {
-            reason_key: key!("reason-no-reimport")
-        }
+        Outcome::refused(key!("reason-no-reimport"))
     );
     assert_eq!(gui.dialog(), Some(&Dialog::About), "the refusal closes nothing");
     done(&mut gui, "ui.dismiss", json!({}));
@@ -808,7 +804,7 @@ fn an_identical_re_import_says_there_is_nothing_to_re_import() {
         assert_eq!(spec.body, [body]);
         assert_eq!(spec.primary.disabled.as_deref(), Some(reason));
         match run(&mut shell, "file.reimport_qet_apply", json!({})) {
-            Outcome::Refused { reason_key } => assert_eq!(reason_key.as_str(), "reason-table-import-nothing"),
+            Outcome::Refused { reason: reason_key } => assert_eq!(reason_key.key(), "reason-table-import-nothing"),
             other => panic!("{other:?}"),
         }
         assert!(
@@ -1159,9 +1155,7 @@ fn the_discard_is_refused_without_a_leftover_journal() {
     let mut shell = tmp.shell();
     assert_eq!(
         run(&mut shell, "file.discard_journal", json!({"confirm": true})),
-        Outcome::Refused {
-            reason_key: key!("reason-no-journal")
-        }
+        Outcome::refused(key!("reason-no-journal"))
     );
     done(
         &mut shell,
@@ -1170,9 +1164,7 @@ fn the_discard_is_refused_without_a_leftover_journal() {
     );
     assert_eq!(
         run(&mut shell, "file.discard_journal", json!({"confirm": true})),
-        Outcome::Refused {
-            reason_key: key!("reason-no-journal")
-        }
+        Outcome::refused(key!("reason-no-journal"))
     );
     shell.shutdown();
 }
@@ -1258,9 +1250,7 @@ fn bad_first_run_answers_are_refused_and_the_flow_ends_where_it_is_told() {
     let mut shell = tmp.shell();
     assert_eq!(
         run(&mut shell, "first_run.next", json!({})),
-        Outcome::Refused {
-            reason_key: key!("reason-no-first-run")
-        }
+        Outcome::refused(key!("reason-no-first-run"))
     );
     done(&mut shell, "help.first_run", json!({}));
     for (field, value) in [
@@ -1383,7 +1373,7 @@ fn the_wizard_writes_a_basic_project_that_new_projects_start_from() {
             "wizard.set",
             json!({"field": "company_name", "value": "Other"})
         ),
-        Outcome::Refused { reason_key } if reason_key == key!("reason-wizard-finished")
+        Outcome::Refused { reason: reason_key } if reason_key == key!("reason-wizard-finished")
     ));
     assert!(matches!(
         run(&mut shell, "wizard.finish", json!({ "dir": path(&basic) })),

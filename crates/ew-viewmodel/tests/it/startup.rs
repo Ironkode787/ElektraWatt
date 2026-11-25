@@ -156,9 +156,7 @@ fn not_now_keeps_the_journal_and_offers_the_log_once() {
     assert!(shell.startup_offer().is_none());
     assert_eq!(
         shell.dispatch("startup.dismiss", &json!({})),
-        Outcome::Refused {
-            reason_key: ew_viewmodel::key!("reason-no-startup")
-        }
+        Outcome::refused(ew_viewmodel::key!("reason-no-startup"))
     );
     drop(shell);
     let shell = started(&tmp);
@@ -209,9 +207,7 @@ fn a_log_alone_is_offered_and_deleted() {
     // Headless, nothing opens a folder.
     assert_eq!(
         shell.dispatch("startup.open_log_folder", &json!({})),
-        Outcome::Refused {
-            reason_key: ew_viewmodel::key!("reason-no-opener")
-        }
+        Outcome::refused(ew_viewmodel::key!("reason-no-opener"))
     );
     done(&mut shell, "startup.delete_log", json!({}));
     assert!(!log.exists());

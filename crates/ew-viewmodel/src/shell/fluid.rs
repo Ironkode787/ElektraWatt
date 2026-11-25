@@ -408,7 +408,11 @@ impl ShellModel {
         };
         match out {
             Outcome::Done => {}
-            Outcome::Refused { reason_key } => return failed(reason_key, &[]),
+            Outcome::Refused { reason: reason_key } => {
+                return Outcome::Failed {
+                    message: strings::render(&reason_key),
+                };
+            }
             failure @ Outcome::Failed { .. } => return failure,
         }
         let folio = self.current_folio().unwrap_or_default().to_owned();

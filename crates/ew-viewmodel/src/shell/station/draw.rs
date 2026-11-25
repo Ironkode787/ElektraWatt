@@ -590,7 +590,7 @@ impl ShellModel {
                 Outcome::Done
             }
             Outcome::Failed { message } => back(self, message),
-            Outcome::Refused { reason_key } => back(self, strings::text(reason_key).to_owned()),
+            Outcome::Refused { reason: reason_key } => back(self, strings::render(&reason_key)),
         }
     }
 
@@ -628,7 +628,7 @@ impl ShellModel {
                 let why = match out {
                     Outcome::Done => return Outcome::Done,
                     Outcome::Failed { message } => message,
-                    Outcome::Refused { reason_key } => strings::text(reason_key).to_owned(),
+                    Outcome::Refused { reason: reason_key } => strings::render(&reason_key),
                 };
                 if self.station_tab().is_none() {
                     let _ = self.open_station(StationTab {

@@ -298,7 +298,7 @@ fn every_output_of_the_host() {
         .push(ToolOutput::Follow(Destination::Page(Default::default())));
     assert!(matches!(
         poke(&mut shell),
-        Outcome::Refused { reason_key } if reason_key == key!("reason-no-link")
+        Outcome::Refused { reason: reason_key } if reason_key == key!("reason-no-link")
     ));
     // Preview: one `preview_with`, the state kept, a repeat ignored; Commit: a new revision headless through
     // `run_script`, and the overlay and preview go.

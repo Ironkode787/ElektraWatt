@@ -175,7 +175,7 @@ pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
         label: strings::text(Key::run_time(&meta.label_key())).to_owned(),
         shortcut: model.shortcut_text(meta),
         enabled: state.is_ok(),
-        reason: state.err().map(|k| strings::text(k).to_owned()),
+        reason: state.err().map(|k| strings::render(&k)),
         // A tool's action `tool.<name>` lights while the tool `<name>` is active (Place lights Symbol in the bar).
         checked: switch_on(model, meta.id)
             .unwrap_or_else(|| meta.id.strip_prefix("tool.") == Some(model.tool().name())),

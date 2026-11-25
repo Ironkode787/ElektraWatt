@@ -99,9 +99,9 @@ impl ShellModel {
     /// The navigator whose table the two actions read ([`ShellModel::table_file_nav`]); the Messages pane refuses as
     /// `navigator.table` does.
     fn file_table_kind(&self) -> Result<NavKind, Outcome> {
-        let kind = self
-            .table_file_nav()
-            .map_err(|reason_key| Outcome::Refused { reason_key })?;
+        let kind = self.table_file_nav().map_err(|reason_key| Outcome::Refused {
+            reason: reason_key.into(),
+        })?;
         if kind == NavKind::Messages {
             return Err(failed(key!("error-nav-no-table"), &[kind.word()]));
         }

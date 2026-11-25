@@ -267,7 +267,7 @@ impl ShellModel {
             Ok(cmd) => cmd,
             Err(refused) if refused.args.is_empty() => {
                 return Outcome::Refused {
-                    reason_key: Key::run_time(refused.key),
+                    reason: Key::run_time(refused.key).into(),
                 };
             }
             Err(refused) => {

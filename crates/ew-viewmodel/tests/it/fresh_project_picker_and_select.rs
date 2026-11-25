@@ -146,9 +146,7 @@ fn a_refused_transform_key_keeps_a_by_reference_selection() {
     let rev = s.revision();
     assert_eq!(
         outcome(&mut s, "tool.next_rep_type", json!({})),
-        Outcome::Refused {
-            reason_key: key!("reason-place-only")
-        }
+        Outcome::refused(key!("reason-place-only"))
     );
     assert_eq!(
         s.selection(),
@@ -164,9 +162,7 @@ fn a_refused_transform_key_keeps_a_by_reference_selection() {
     assert_eq!(before.items.len(), 2);
     assert_eq!(
         outcome(&mut s, "tool.next_variant", json!({})),
-        Outcome::Refused {
-            reason_key: key!("reason-one-rep")
-        }
+        Outcome::refused(key!("reason-one-rep"))
     );
     assert_eq!(s.selection(), &before, "V refused: the selection is unchanged");
     assert_eq!(s.revision(), rev, "nothing was sent");

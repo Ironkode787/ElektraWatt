@@ -450,7 +450,7 @@ impl ShellModel {
             Ok(c) => c,
             Err(ew_api::output::StripEditError::Refused(reason_key)) => {
                 return Outcome::Refused {
-                    reason_key: Key::run_time(reason_key),
+                    reason: Key::run_time(reason_key).into(),
                 };
             }
             Err(e) => {

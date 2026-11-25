@@ -316,9 +316,7 @@ fn a_refused_move_keeps_a_by_reference_selection() {
     let before = s.selection().clone();
     assert_eq!(
         s.dispatch("tool.move", &json!({})),
-        Outcome::Refused {
-            reason_key: key!("reason-no-cursor")
-        }
+        Outcome::refused(key!("reason-no-cursor"))
     );
     assert_eq!(s.selection(), &before, "the device, not its symbol");
     s.shutdown();

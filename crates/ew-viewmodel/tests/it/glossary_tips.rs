@@ -241,9 +241,7 @@ fn refuse_a_derived_tag(s: &mut ShellModel) {
             "props.action",
             &json!({"row": "device/derived.tag", "action": "edit"})
         ),
-        Outcome::Refused {
-            reason_key: ew_viewmodel::key!("reason-row-computed")
-        }
+        Outcome::refused(ew_viewmodel::key!("reason-row-computed"))
     );
 }
 
@@ -431,9 +429,7 @@ fn a_read_only_refusal_leaves_tips_2_and_3_unused() {
         "select.set",
         json!({"refs": ["tag:-102F1", "tag:-102S1"]}),
     );
-    let read_only = Outcome::Refused {
-        reason_key: ew_viewmodel::key!("reason-read-only"),
-    };
+    let read_only = Outcome::refused(ew_viewmodel::key!("reason-read-only"));
     assert_eq!(
         s.dispatch(
             "props.action",
@@ -468,9 +464,7 @@ fn a_tool_a_reorder_or_a_move_refused_on_a_generated_page_offers_tip_3() {
     done(&mut s, "page.goto", json!({ "folio": folio }));
     assert_eq!(
         s.dispatch("tool.wire", &json!({})),
-        Outcome::Refused {
-            reason_key: ew_viewmodel::key!("reason-page-type-no-symbols-report")
-        }
+        Outcome::refused(ew_viewmodel::key!("reason-page-type-no-symbols-report"))
     );
     assert_eq!(tips(&s), [(generated.clone(), Some(NoteAction::ShowBlock))]);
     let serial = s.toast().unwrap().serial;
