@@ -9,7 +9,7 @@
 //! - **The window macros** and their rotation: the card typical inserts at 90° with every representation turned about
 //!   the anchor; the power supply with its input breaker at 90° keeps its wires on their CPs; interruption points are
 //!   refused turned.
-//! For the typicals: twice-run determinism of the saved documents and the composed commands, and a command
+//! - For the typicals: twice-run determinism of the saved documents and the composed commands, and a command
 //!   log without `orient`.
 //!
 //! The variables, value sets and groups of a macro are `macros.rs`'; the valve manifold of doc 07 §9.3 as it stood on
