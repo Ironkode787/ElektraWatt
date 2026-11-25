@@ -1221,3 +1221,39 @@ fn table_set_refuses_a_header_label_of_two_columns() {
     }
     shell.shutdown();
 }
+
+/// A person filters and sorts what they see: in a Dutch window a filter by a Dutch cell word finds its rows, and a
+/// sort by a column orders the rows by the Dutch words shown (the Pages table's Generated, "ja" before "nee", where
+/// the English "no" comes before "yes").
+#[test]
+fn a_dutch_window_filters_and_sorts_by_the_words_shown() {
+    let tmp = Tmp::new("nav-dutch-words");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
+    done(&mut shell, "view.language", json!({"value": "nl"}));
+    done(&mut shell, "navigator.table", json!({"kind": "pages"}));
+    let generated = col(&shell, NavKind::Pages, "Gegenereerd");
+    done(
+        &mut shell,
+        "navigator.filter",
+        json!({"kind": "pages", "text": "ja"}),
+    );
+    let found = texts(&shell, NavKind::Pages, "Gegenereerd");
+    assert!(!found.is_empty(), "the generated pages");
+    assert!(found.iter().all(|t| t == "ja"), "{found:?}");
+    done(
+        &mut shell,
+        "navigator.filter",
+        json!({"kind": "pages", "text": ""}),
+    );
+    done(
+        &mut shell,
+        "navigator.sort",
+        json!({"kind": "pages", "by": generated}),
+    );
+    let shown = texts(&shell, NavKind::Pages, "Gegenereerd");
+    let mut sorted = shown.clone();
+    sorted.sort();
+    assert_eq!(shown, sorted, "by the Dutch words");
+    assert_eq!(shown.first().map(String::as_str), Some("ja"), "{shown:?}");
+    shell.shutdown();
+}

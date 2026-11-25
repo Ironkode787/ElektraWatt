@@ -367,6 +367,10 @@ fn every_navigator_column_and_badge_reads_in_both_locales() {
         })
         .collect();
     assert!(english.iter().any(|t| t.ends_with(" [main]")), "{english:?}");
+    // The same rows, siblings in the order of the words they show ("NO-contact" before "Spoel").
+    let (mut dutch, mut worded) = (dutch, worded);
+    dutch.sort();
+    worded.sort();
     assert_eq!(dutch, worded);
     shell.shutdown();
 }

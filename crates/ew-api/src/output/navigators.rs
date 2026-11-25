@@ -10,7 +10,7 @@
 //! a record node carries its UUID text, a group node its label (`function:=P01/location:+J-E-2416/device:<uuid>`); the
 //! Pages keys stay as built (`s:<n>`, `s:front`, `…/p:<uuid>`). **Labels** are what the drawing prints (a device's
 //! short tag, a folio, a representation's `<folio>-<cell>`); labels, cells and headings are texts, which the
-//! reader renders ([`NavTable::render`]). **Badges** are fixed English words. **Tokens** are the English words of the
+//! reader renders ([`NavTable::render`]). **Badges** are fixed English words. **Tokens** are the rendered words of the
 //! label and every cell, case-folded and NFC, split at whitespace, at `- . _ : / + = ( ) ,` and at every letter/digit
 //! boundary ([`tokens`]). **Facets** come from the closed list `page`, `potential`, `state`, `kind`, `part`, and the
 //! flags `unplaced` and `frozen`. **Drawables** are the representations (and, in part 2, connections) that draw a
@@ -396,12 +396,12 @@ pub struct NavNode<W = String> {
     pub cells: Vec<W>,
     /// Whether the node is a row of the table.
     pub table_row: bool,
-    /// The filter tokens: the label's and the cells' in English, and those the session adds (a structure node's
-    /// aliases), sorted and deduplicated ([`tokens`]).
+    /// The filter tokens: the rendered label's and cells', and those the session adds (a structure node's aliases),
+    /// sorted and deduplicated ([`tokens`]).
     pub tokens: Vec<String>,
     /// The facets `(name, value)`; a flag has the value `""`.
     pub facets: Vec<(String, String)>,
-    /// The natural keys of the English words: the label's, then one per cell. Before rendering, the label's key alone
+    /// The natural keys of the rendered words: the label's, then one per cell. Before rendering, the label's key alone
     /// where the session ranks the node in its own order.
     pub natural: Vec<NaturalKey>,
 }
@@ -424,7 +424,8 @@ pub struct NavTable<W = String> {
 
 impl NavTable<crate::Text> {
     /// The table in words: every heading, label and cell by `words` (the window's in its language, the command
-    /// line's in English), with each node's filter tokens and natural keys of its English words.
+    /// line's in English), with each node's filter tokens and natural keys of those words: a person filters and sorts
+    /// what they see.
     pub fn render(self, words: impl Fn(&crate::Text) -> String) -> NavTable {
         let columns = (self.columns.into_iter())
             .map(|c| NavColumn {
@@ -438,21 +439,18 @@ impl NavTable<crate::Text> {
             .collect();
         let nodes = (self.nodes.into_iter())
             .map(|n| {
-                // The filter tokens and the sort keys of the English words: one order and one filter in every
-                // language.
-                let english = n.label.to_string();
-                let english_cells: Vec<String> = n.cells.iter().map(ToString::to_string).collect();
+                // A person filters and sorts what they see: the tokens and the sort keys of the rendered words.
+                let label = words(&n.label);
+                let cells: Vec<String> = n.cells.iter().map(&words).collect();
                 let mut tokens = n.tokens;
-                tokens.extend(node_tokens(&english, &english_cells));
+                tokens.extend(node_tokens(&label, &cells));
                 tokens.sort();
                 tokens.dedup();
                 let mut natural = n.natural;
                 if natural.is_empty() {
-                    natural.push(natural_key(&english));
+                    natural.push(natural_key(&label));
                 }
-                natural.extend(english_cells.iter().map(|c| natural_key(c)));
-                let label = words(&n.label);
-                let cells: Vec<String> = n.cells.iter().map(&words).collect();
+                natural.extend(cells.iter().map(|c| natural_key(c)));
                 NavNode {
                     key: n.key,
                     parent: n.parent,
