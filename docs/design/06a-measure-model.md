@@ -227,6 +227,7 @@ nothing else in the program repeats them, this section included. What each means
 | `MAX_NODES` | search: the bound of a search area |
 | `GUIDE_SHOW`, `GUIDE_CATCH`, `GUIDE_CATCH_PT` | guides: where one shows, where it catches, and its most in screen points (§6) |
 | `CARD_PIN_PITCH`, `CARD_HEIGHT`, `CARD_PINS_MOST` | cards drawn from the station view (§7.5) |
+| `FAR_MOVE_SHARE` | Arrange and route: a move past this share of the drawing area is far; its dialog lists those first |
 | `MARKER_REACH`, `MARKER_GAP` | the scene: a wire marker's line past its outer wires; its text beyond the line |
 | `CABLE_TICK`, `CABLE_TEXT_GAP` | the scene: half a cable mark's stroke on a core; its texts beside stroke and line |
 | `CABLE_MARK_ROOM`, `SUPPLY_GROUP_REACH` | the commands: the stretch a cable's mark placed with its cores prefers; how far apart two supply points of one group stand in a column |

@@ -365,7 +365,7 @@ fn arrange_card(
             .unwrap_or_default()
     };
     let area = session.page_draft(folio).map(|d| d.area).unwrap_or_default();
-    let far = |d: ew_api::drafting::Pt| 3 * d.x.abs() > area.w() || 3 * d.y.abs() > area.h();
+    let far = |d: ew_api::drafting::Pt| ew_api::drafting::far_move(area, d);
     // The symbols that move, the far ones first, then those unticked.
     let mut parts: Vec<(bool, String, ArrangeRow)> = plan
         .moves

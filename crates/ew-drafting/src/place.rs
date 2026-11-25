@@ -17,6 +17,13 @@ mod sketch;
 
 use sketch::{CardSteps, Held, Sketch};
 
+/// Whether the move `d` of a symbol is far on a page whose drawing area is `area`: more than a third of its width or of
+/// its height ([`crate::consts::FAR_MOVE_SHARE`]).
+pub fn far_move(area: crate::model::Rect, d: Pt) -> bool {
+    use crate::consts::FAR_MOVE_SHARE;
+    FAR_MOVE_SHARE * d.x.abs() > area.w() || FAR_MOVE_SHARE * d.y.abs() > area.h()
+}
+
 /// What Arrange and route plans for a page (§4.9): the parts' moves and the routes of the page as it would become.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct Arranged {

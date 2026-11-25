@@ -128,6 +128,9 @@ pub const CARD_PIN_PITCH: Tick = 8 * TICKS_PER_STEP;
 pub const CARD_HEIGHT: Tick = 6 * TICKS_PER_STEP;
 /// Cards drawn from the station view: the most channel pins of one box of a card wider than the drawing area.
 pub const CARD_PINS_MOST: usize = 8;
+/// Arrange and route: a symbol's move is far when it passes the drawing area's width or height divided by this, 3 (a
+/// third); the plan's dialog lists the far moves first ([`crate::far_move`]).
+pub const FAR_MOVE_SHARE: Tick = 3;
 
 // The sizes of a drawn mark and the commands' drawing distances: in nm, not ticks, for a page's grid step has no fixed
 // length and these stand the same on every grid. The layout reads a mark's sizes from the scene's drawn pieces

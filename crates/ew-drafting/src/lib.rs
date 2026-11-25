@@ -40,7 +40,7 @@ pub use guides::{Guide, GuideKind, Guided, guides};
 pub use labels::{Settled, settle_labels};
 pub use measure::{Counts, Findings, Passed, Quality, TextRef, measure};
 pub use model::*;
-pub use place::{Arranged, InTheWay, StripHeld, arrange};
+pub use place::{Arranged, InTheWay, StripHeld, arrange, far_move};
 pub use route::{
     Jobs, Plan, Reason, Scope, WireEnd, WireRoute, jobs, resolve_move, route, route_wire, unrouted_line, wire_clear,
 };

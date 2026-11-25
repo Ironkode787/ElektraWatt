@@ -1118,6 +1118,18 @@ impl Session {
         Some(draft(&q, page, &tables))
     }
 
+    /// The drawing area of the page labelled `folio` as the router reads it ([`Session::page_draft`]), in page nm:
+    /// its corners `[[x0, y0], [x1, y1]]`.
+    pub fn page_area_nm(&self, folio: &str) -> Option<[[i64; 2]; 2]> {
+        let tables = self.page_tables(folio)?;
+        let area = self.page_draft(folio)?.area;
+        let ticks = crate::routing::Ticks::new(tables.grid);
+        Some([
+            [ticks.nm(area.x0), ticks.nm(area.y0)],
+            [ticks.nm(area.x1), ticks.nm(area.y1)],
+        ])
+    }
+
     /// The layout measure of the page labelled `folio` ([`ew_drafting::measure`]), or with `None` of every drawn page
     /// but the panel-layout pages, in page order, each named in words ([`PageLayout`]), as the layout rules read it.
     ///

@@ -573,17 +573,12 @@ impl ShellModel {
     }
 
     /// `page.set_grid`'s parameters for page `page` and the grid `grid`, with the page's drawing area as the router
-    /// reads it (`Session::page_draft`, its ticks back in nm), so that the fit keeps a pin's wire its way to the edge
+    /// reads it (`Session::page_area_nm`), so that the fit keeps a pin's wire its way to the edge
     /// (doc 06 §8 item 3).
     fn set_grid_params(&self, page: ew_api::output::Uuid, grid: Value) -> Value {
         let mut params = json!({"page": page.to_string(), "grid": grid});
-        let area = self.tables_of_page(page).and_then(|(folio, t)| {
-            let area = self.project.as_ref()?.session.page_draft(&folio)?.area;
-            let ticks = ew_api::routing::Ticks::new(t.grid);
-            Some(json!([
-                [ticks.nm(area.x0), ticks.nm(area.y0)],
-                [ticks.nm(area.x1), ticks.nm(area.y1)]
-            ]))
+        let area = self.tables_of_page(page).and_then(|(folio, _)| {
+            Some(json!(self.project.as_ref()?.session.page_area_nm(&folio)?))
         });
         if let (Some(area), Some(p)) = (area, params.as_object_mut()) {
             p.insert("area".into(), area);
