@@ -417,15 +417,15 @@ pub(super) fn print_check(
         }
     };
     if !matches!(format, CheckFormat::Json) {
-        for notice in notices {
-            eprintln!("notice: {notice}");
+        for text in notices {
+            notice(text);
         }
     }
     match out {
         Some(path) => match write_report(path, &text) {
             Ok(()) => println!("report written to {}", path.display()),
             Err(e) => {
-                eprintln!("error: {}: {e}", path.display());
+                error(format_args!("{}: {e}", path.display()));
                 return 2;
             }
         },
