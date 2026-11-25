@@ -132,7 +132,10 @@ an end on another wire's end, a junction on a crossing and a wire's end on a wir
 each point where two wires meet that is an end of neither, lies on no stretch they share and is no F6. F7
 leaves out an outline drawn round other parts, a part without pins and two parts on one pin's point (an
 interruption point on a pin). Two texts meet when they overlap by more than a tick (a text's box is rounded outward
-to ticks); C4 does not count a wire across a text of a cable mark or of the wire itself. The checks name parts as
+to ticks); C4 does not count a wire across a text of a cable mark or of the wire itself. The measure counts a wire
+across a text (C4) only where it runs strictly inside the text's box, while the text placer keeps a label
+`LABEL_CLEAR` (an eighth of a step) clear of any wire when it weighs a place, so a label it settles beside a wire may
+stand nearer to it than the placer would choose without counting against the page. The checks name parts as
 the program does, "symbols": F7 is EW-CORE-077 "Symbol on a symbol", and C5's text on a part is EW-CORE-076 "Text
 on a symbol".
 
