@@ -30,7 +30,7 @@ ew-export = { path = "../ew-export" }
 ew-render-cpu = { path = "../ew-render-cpu" }
 # The display list it prints, named by its own crate (a foundation edge, ARCH §3 rule 6).
 ew-dl = { path = "../ew-dl" }
-ew-hack = { version = "0.3.5", path = "../ew-hack" }
+ew-hack = { version = "0.4.0", path = "../ew-hack" }
 ew-units = { path = "../ew-units" }
 
 # The xdg-desktop-portal Print adapter on Linux (MIT; MSRV 1.87). No default features (they bring

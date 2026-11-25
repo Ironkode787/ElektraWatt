@@ -41,7 +41,7 @@ toml.workspace = true
 regex = { version = "1.13.1", default-features = false, features = ["std", "unicode-case", "unicode-perl"] }
 # The words of the domain's kinds by key (`texts/`, `ew_derive::text`), rendered by the one renderer.
 ew-l10n = { path = "../ew-l10n" }
-ew-hack = { version = "0.3.5", path = "../ew-hack" }
+ew-hack = { version = "0.4.0", path = "../ew-hack" }
 
 [build-dependencies]
 # The generator of the key table that `build.rs` writes.

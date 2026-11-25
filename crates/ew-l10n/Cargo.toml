@@ -22,4 +22,4 @@ fluent-syntax = { version = "=0.12.0", default-features = false }
 unic-langid = { version = "=0.9.6", default-features = false }
 # A name a person wrote in several languages as an argument (`TextArg::Ml`), in the reader's language.
 ew-mltext = { path = "../ew-mltext" }
-ew-hack = { version = "0.3", path = "../ew-hack" }
+ew-hack = { version = "0.4.0", path = "../ew-hack" }

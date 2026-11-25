@@ -48,7 +48,7 @@ sha2.workspace = true
 # `project.typeface.set` reads the font file it takes in (its tables, its embedding permission, its letters; doc 09
 # §4.8): the version and features of ew-text's edge, already in the graph.
 skrifa = { version = "0.44.0", default-features = false, features = ["std"] }
-ew-hack = { version = "0.3.5", path = "../ew-hack" }
+ew-hack = { version = "0.4.0", path = "../ew-hack" }
 ew-plcaddr = { path = "../ew-plcaddr" }
 
 [build-dependencies]

@@ -72,7 +72,7 @@ ew-mltext = { path = "../ew-mltext" }
 regex = { version = "1.13.1", default-features = false, features = ["std", "unicode-case", "unicode-perl"] }
 # What the session refuses or names as a text by key, and the texts of the crates below it (architecture §18).
 ew-l10n = { path = "../ew-l10n" }
-ew-hack = { version = "0.3.5", path = "../ew-hack" }
+ew-hack = { version = "0.4.0", path = "../ew-hack" }
 ew-format = { path = "../ew-format" }
 ew-ids = { path = "../ew-ids" }
 # The memo engine's oracle mode and its mismatch report (`Session::take_oracle_mismatches`).

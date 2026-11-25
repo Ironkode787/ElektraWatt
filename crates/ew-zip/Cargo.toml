@@ -18,7 +18,7 @@ workspace = true
 # The raw deflate of the writer and the reader: already in the graph through
 # ew-import-catalog and png; no ZIP crate.
 miniz_oxide.workspace = true
-ew-hack = { version = "0.3.5", path = "../ew-hack" }
+ew-hack = { version = "0.4.0", path = "../ew-hack" }
 
 [dev-dependencies]
 proptest = { version = "1.12.0", default-features = false, features = ["std"] }

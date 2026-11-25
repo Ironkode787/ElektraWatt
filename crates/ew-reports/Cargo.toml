@@ -25,7 +25,7 @@ serde_json = "1.0.154"
 ew-zip = { path = "../ew-zip" }
 # The words of the lists by key (`texts/`, `ew_reports::words`), rendered by the one renderer.
 ew-l10n = { path = "../ew-l10n" }
-ew-hack = { version = "0.3.5", path = "../ew-hack" }
+ew-hack = { version = "0.4.0", path = "../ew-hack" }
 ew-ids = { path = "../ew-ids" }
 ew-mltext = { path = "../ew-mltext" }
 # The revision stamp of a row set; the unit tests' model snapshots (`Model::from_records`, no `raw-read`).

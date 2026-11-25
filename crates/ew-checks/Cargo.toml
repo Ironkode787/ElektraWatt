@@ -31,7 +31,7 @@ toml.workspace = true
 # The rule messages in Fluent (doc 15 §3.8): one `rules.ftl` per language, compiled into the binary and
 # rendered by the one renderer (architecture §18).
 ew-l10n = { path = "../ew-l10n" }
-ew-hack = { version = "0.3.5", path = "../ew-hack" }
+ew-hack = { version = "0.4.0", path = "../ew-hack" }
 ew-ids = { path = "../ew-ids" }
 ew-mltext = { path = "../ew-mltext" }
 # The endpoint key of the stitch graph's nodes; the unit tests' model snapshots (no `raw-read`).

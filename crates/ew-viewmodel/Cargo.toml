@@ -30,7 +30,7 @@ serde = { workspace = true }
 # The shell's texts in Fluent: `texts/<locale>/<area>.ftl`, compiled into the binary and rendered by
 # the one renderer, as `ew-checks` renders its rule messages (architecture §18).
 ew-l10n = { path = "../ew-l10n" }
-ew-hack = { version = "0.3.5", path = "../ew-hack" }
+ew-hack = { version = "0.4.0", path = "../ew-hack" }
 
 [build-dependencies]
 # The generator of the key list that `build.rs` writes.
