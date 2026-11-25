@@ -138,7 +138,9 @@ keymap sheet) lists every binding per preset and context, and [the action map](.
   characters on QWERTZ and AZERTY layouts, and the reserved chords (Alt+F4, Alt+Tab, Win+anything) are refused.
   Letters, digits, named keys and `Plus`, `Minus` and `Equals` bind by logical key, punctuation by physical key, so
   every action of a preset is reachable on QWERTY, QWERTZ and AZERTY without AltGr (NFR-I18N-06; §15.5); the keymap
-  rules check it per layout. Checking `]` and `[` on German and French keyboards by hand is an owner item.
+  rules check it per layout. Checking `]` and `[` on German and French keyboards by hand is an owner item. A chord
+  is pressed with its modifiers exactly (Shift+F10 is not F10, Alt+W not W); a digit or a symbol key also takes an
+  extra Shift, which a layout may need to type it (`1` on AZERTY, `+` on US).
 - **Key caps.** One display function (`keymap::display`) shows every physical key as its US key cap (`phys:Minus`
   reads "-", `Shift+phys:BracketLeft` "Shift+[") in every text a person reads: the editor's texts, the chips, the
   menus and the HUD; the `phys:` grammar stays in the keymap file. A text that names a key for a way out takes the

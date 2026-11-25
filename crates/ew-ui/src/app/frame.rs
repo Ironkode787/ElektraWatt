@@ -641,7 +641,7 @@ impl App {
         self.shell.set_help_under(crate::help::take(ctx));
         let help = (self.bindings.iter())
             .filter(|b| b.action == "help.documentation")
-            .any(|b| ctx.input_mut(|i| i.consume_shortcut(&b.shortcut)));
+            .any(|b| ctx.input_mut(|i| crate::keys::take_chord(i, &b.shortcut)));
         if help {
             let params = ew_viewmodel::help::pointer_topic(&self.shell)
                 .map_or(Value::Null, |under| serde_json::json!({ "topic": under.topic }));

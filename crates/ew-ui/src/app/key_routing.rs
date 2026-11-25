@@ -88,7 +88,7 @@ impl App {
             .bindings
             .iter()
             .filter(|b| b.context == Context::SupplyPanel && !b.physical)
-            .find(|b| ctx.input_mut(|i| i.consume_shortcut(&b.shortcut)))
+            .find(|b| ctx.input_mut(|i| crate::keys::take_chord(i, &b.shortcut)))
             .map(|b| b.action);
         let Some(action) = hit else {
             return false;
@@ -141,7 +141,7 @@ impl App {
             && self.shell.import_card_open()
             && (self.bindings.iter())
                 .filter(|b| b.action == "preview.apply")
-                .any(|b| ctx.input_mut(|i| i.consume_shortcut(&b.shortcut)))
+                .any(|b| ctx.input_mut(|i| crate::keys::take_chord(i, &b.shortcut)))
         {
             events.push(Event::Action("preview.apply", Value::Null));
             return true;
@@ -335,7 +335,7 @@ impl App {
             {
                 continue;
             }
-            if ctx.input_mut(|i| i.consume_shortcut(&binding.shortcut)) {
+            if ctx.input_mut(|i| crate::keys::take_chord(i, &binding.shortcut)) {
                 // A chord that sets a parameter sends its place (`rail.entry`'s Ctrl+1 to Ctrl+9 pick the left rail's
                 // entries in their order, doc 16a §5.4).
                 if let Some((param, n)) = binding.sets {
@@ -397,8 +397,9 @@ impl App {
 }
 
 /// The bindings of `bindings` matched by their physical key (`physical`) or by their logical one that take a key press
-/// in `contexts` ([`ew_viewmodel::keymap::context_takes`]), most modifiers first (egui matches an extra Shift or Alt
-/// logically, so Alt+Left must be asked before Left), the earlier context first on a tie.
+/// in `contexts` ([`ew_viewmodel::keymap::context_takes`]), most modifiers first (a digit or a symbol key also takes an
+/// extra Shift, [`crate::keys::chord_held`], so Ctrl+Shift+1 must be asked before Ctrl+1), the earlier context first on
+/// a tie.
 fn candidates<'b>(bindings: &'b [Binding], physical: bool, contexts: &[Context]) -> Vec<&'b Binding> {
     let mut candidates: Vec<(usize, &Binding)> = bindings
         .iter()

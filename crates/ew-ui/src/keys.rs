@@ -41,6 +41,64 @@ pub fn is_navigator_key(s: &KeyboardShortcut) -> bool {
     nav && (plain || (s.modifiers == Modifiers::COMMAND && s.logical_key == Key::Enter))
 }
 
+/// Whether the modifiers `held` with `key` press a chord written with `want`: its modifiers exactly (Shift+F10 is
+/// another chord than F10, Alt+W another than W), except that a digit or a symbol key also takes an extra Shift, which
+/// a layout may need to type it (`1` on AZERTY, `+` on US).
+pub fn chord_held(held: Modifiers, want: Modifiers, key: Key) -> bool {
+    let typed_with_shift = matches!(
+        key,
+        Key::Num0
+            | Key::Num1
+            | Key::Num2
+            | Key::Num3
+            | Key::Num4
+            | Key::Num5
+            | Key::Num6
+            | Key::Num7
+            | Key::Num8
+            | Key::Num9
+            | Key::Plus
+            | Key::Minus
+            | Key::Equals
+            | Key::Colon
+            | Key::Comma
+            | Key::Period
+            | Key::Semicolon
+            | Key::Slash
+            | Key::Backslash
+            | Key::Pipe
+            | Key::Questionmark
+            | Key::Exclamationmark
+            | Key::OpenBracket
+            | Key::CloseBracket
+            | Key::OpenCurlyBracket
+            | Key::CloseCurlyBracket
+            | Key::Backtick
+            | Key::Quote
+    );
+    let held = if typed_with_shift && !want.shift {
+        Modifiers { shift: false, ..held }
+    } else {
+        held
+    };
+    held.matches_exact(want)
+}
+
+/// Takes this frame's presses of the logical chord `shortcut` from `input` ([`chord_held`]); `true` when there was one.
+pub fn take_chord(input: &mut egui::InputState, shortcut: &KeyboardShortcut) -> bool {
+    let mut taken = false;
+    input.events.retain(|e| {
+        let hit = matches!(
+            e,
+            egui::Event::Key { key, modifiers, pressed: true, .. }
+                if *key == shortcut.logical_key && chord_held(*modifiers, shortcut.modifiers, *key)
+        );
+        taken |= hit;
+        !hit
+    });
+    taken
+}
+
 /// The egui key of a physical key code (`BracketRight`, `Digit0`, `KeyA`); `None` for one egui does not name.
 pub fn physical_key(code: &str) -> Option<Key> {
     Some(match code {
@@ -115,8 +173,8 @@ pub fn parse_shortcut(text: &str) -> Option<KeyboardShortcut> {
         .map(|(s, _)| s)
 }
 
-/// The keymap's effective bindings `bound` as egui bindings, most specific first (egui matches extra Shift and Alt
-/// logically, so `Ctrl+Shift+S` must be asked before `Ctrl+S`).
+/// The keymap's effective bindings `bound` as egui bindings, most specific first (a digit or a symbol key also takes an
+/// extra Shift, [`chord_held`], so `Ctrl+Shift+1` must be asked before `Ctrl+1`).
 pub fn bindings(bound: &[Bound]) -> Vec<Binding> {
     let mut out: Vec<Binding> = bound
         .iter()
@@ -187,6 +245,21 @@ mod tests {
         }
         let expected: usize = ACTIONS.iter().map(|a| a.shortcut.len()).sum();
         assert_eq!(effective(Preset::Ew, None).len(), expected);
+    }
+
+    /// A chord is pressed with its modifiers exactly; a digit or a symbol key also takes the Shift a layout may need to
+    /// type it.
+    #[test]
+    fn a_chord_takes_its_own_modifiers_and_a_typed_shift_only() {
+        let shift = Modifiers::SHIFT;
+        assert!(chord_held(Modifiers::NONE, Modifiers::NONE, Key::F10));
+        assert!(!chord_held(shift, Modifiers::NONE, Key::F10), "Shift+F10 is not F10");
+        assert!(!chord_held(shift, Modifiers::NONE, Key::W), "Shift+W is not W");
+        assert!(!chord_held(Modifiers::ALT, Modifiers::NONE, Key::W), "Alt+W is not W");
+        assert!(!chord_held(Modifiers::COMMAND | shift, Modifiers::COMMAND, Key::F), "Ctrl+Shift+F is not Ctrl+F");
+        assert!(chord_held(Modifiers::COMMAND | shift, Modifiers::COMMAND, Key::Num1), "Ctrl+1 on AZERTY");
+        assert!(chord_held(Modifiers::COMMAND | shift, Modifiers::COMMAND, Key::Plus), "Ctrl++ on US");
+        assert!(!chord_held(Modifiers::NONE, shift, Key::Num1), "a Shift written is a Shift held");
     }
 
     #[test]

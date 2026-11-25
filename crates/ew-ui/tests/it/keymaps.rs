@@ -290,3 +290,22 @@ fn a_context_menu_key_with_nothing_selected_opens_no_menu_later() {
     settle(&mut h);
     assert!(egui::Popup::is_any_open(&h.ctx), "Shift+F10 with the symbol selected opens its menu");
 }
+
+/// A chord is pressed with its modifiers exactly: Shift+F10 with the Pages navigator's keys (the canvas's context menu
+/// key, which no menu takes there) opens no app menu, as F10 does.
+#[test]
+fn shift_f10_off_the_canvas_opens_no_app_menu() {
+    let tmp = Tmp::new();
+    let mut h = on_sample(&tmp, FIRST_RUN_DONE, None);
+    let menu_open = |h: &Harness<'_, App>| support::off_chrome(h, "File").is_some();
+    dispatch(&mut h, "ui.focus", json!({"area": "navigator", "kind": "pages"}));
+    settle(&mut h);
+    h.key_press_modifiers(Modifiers::SHIFT, Key::F10);
+    settle(&mut h);
+    settle(&mut h);
+    assert!(!menu_open(&h), "Shift+F10 is not F10");
+    h.key_press(Key::F10);
+    settle(&mut h);
+    settle(&mut h);
+    assert!(menu_open(&h), "F10 opens the app menu");
+}
