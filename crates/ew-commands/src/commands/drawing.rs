@@ -5,7 +5,6 @@
 //! `drawing` of the project settings' `extra` (doc 03 §5.1): `crossings`, `marker_mode`, `wire_numbers`, `wire_numbering` and
 //! `plc_address_at_terminals`.
 
-use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Map, Value};
 
@@ -18,7 +17,7 @@ use crate::tx::TxBuilder;
 pub const DRAWING_MEMBER: &str = "drawing";
 
 /// How crossing wires are drawn (FR-CON-031).
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Crossings {
     /// Plain crossings (the default).
@@ -29,7 +28,7 @@ pub enum Crossings {
 
 /// Which wires carry a wire marker (FR-CON-024); absent: the as-built rule (a connection's
 /// `show_marker`).
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MarkerModeParam {
     /// Every wire.
@@ -43,7 +42,7 @@ pub enum MarkerModeParam {
 }
 
 /// How wires are numbered (doc 08 §5.2).
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WireNumbering {
     /// Each wire its own number, `{page}.{counter}` (the default).
@@ -73,7 +72,7 @@ fn present<'de, D: Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<Optio
 /// marker derivation read the members). Rejected: a `drawing` member of the project settings that is not an
 /// object (a newer or damaged format; the command never overwrites it); an unknown value (invalid at `/value`); no
 /// member given (invalid at `/value`). A `null` value removes the drawing settings.
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct DrawingValue {
     /// How crossing wires are drawn: `plain` or `hops`; `null` removes the member (plain).
@@ -82,7 +81,6 @@ struct DrawingValue {
         deserialize_with = "present",
         skip_serializing_if = "Option::is_none"
     )]
-    #[schemars(with = "Option<Crossings>")]
     crossings: Option<Option<Crossings>>,
     /// Which wires carry a wire marker: `all`, `deviations`, `explicit` or `none`; `null` removes the member (the
     /// as-built `show_marker` rule).
@@ -91,7 +89,6 @@ struct DrawingValue {
         deserialize_with = "present",
         skip_serializing_if = "Option::is_none"
     )]
-    #[schemars(with = "Option<MarkerModeParam>")]
     marker_mode: Option<Option<MarkerModeParam>>,
     /// Whether every wire prints its number on the page; `null` removes the member (no numbers).
     #[serde(
@@ -99,7 +96,6 @@ struct DrawingValue {
         deserialize_with = "present",
         skip_serializing_if = "Option::is_none"
     )]
-    #[schemars(with = "Option<bool>")]
     wire_numbers: Option<Option<bool>>,
     /// What a wire's number is: `per_wire` or `per_potential`; `null` removes the member (per wire).
     #[serde(
@@ -107,7 +103,6 @@ struct DrawingValue {
         deserialize_with = "present",
         skip_serializing_if = "Option::is_none"
     )]
-    #[schemars(with = "Option<WireNumbering>")]
     wire_numbering: Option<Option<WireNumbering>>,
     /// Whether a terminal on a traced channel's path prints the channel's address; `null` removes the member (none).
     #[serde(
@@ -115,7 +110,6 @@ struct DrawingValue {
         deserialize_with = "present",
         skip_serializing_if = "Option::is_none"
     )]
-    #[schemars(with = "Option<bool>")]
     plc_address_at_terminals: Option<Option<bool>>,
 }
 

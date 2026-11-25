@@ -6,14 +6,12 @@
 
 use ew_mltext::LangTag;
 use ew_schema::{DateFormat, DecimalSeparator, ProjectLanguages, Set};
-use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::command::{Command, Outcome};
 use crate::commands::settings::{SetProjectSettings, member_value};
 use crate::error::CmdError;
-use crate::proxy::LangTagS;
 use crate::tx::TxBuilder;
 
 /// The name of the member of `project.settings.set` that sets the languages and printed formats.
@@ -32,16 +30,14 @@ pub(crate) const LANGUAGES_MEMBER: &str = "languages";
 /// `source` or containing it, and the same translation twice (at `/value/translations`); a format of a newer version
 /// (at its pointer below `/value`). Only the project record changes; the date format changes the dates of every
 /// title block.
-#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct LanguagesValue {
     /// The language texts are authored in; absent: the project names no languages.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schemars(with = "Option<LangTagS>")]
     source: Option<LangTag>,
     /// The translation languages (a set; 1.0 content); needs `source`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    #[schemars(with = "Vec<LangTagS>")]
     translations: Vec<LangTag>,
     /// The date format of printed dates; absent: the profile default.
     #[serde(default, skip_serializing_if = "Option::is_none")]

@@ -8,14 +8,12 @@ use std::collections::BTreeSet;
 
 use ew_ids::Id;
 use ew_schema::{FormDef, FormKind, LibCopy, PageType};
-use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::command::{Command, Outcome};
 use crate::commands::settings::{SetProjectSettings, member_value};
 use crate::error::CmdError;
-use crate::proxy::UuidS;
 use crate::tx::TxBuilder;
 
 /// The `ProjectSettings` member that holds the frame defaults (doc 03 §5.1), kept in `ProjectSettings.extra`
@@ -23,13 +21,12 @@ use crate::tx::TxBuilder;
 pub const FRAMES_MEMBER: &str = "frames";
 
 /// One `per_page_type` entry of the frame defaults.
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct FrameForPageType {
     /// The page type the entry applies to.
     pub page_type: PageType,
     /// The frame form copy for pages of that type.
-    #[schemars(with = "UuidS")]
     pub form: Id<FormDef>,
 }
 
@@ -49,12 +46,11 @@ pub struct FrameForPageType {
 /// The cell mapping of the title block is part of the form copies (`library.embed`); this command does not edit
 /// forms. Only the project record changes: one stored value changes the frame of every page that has no form of its
 /// own.
-#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct FramesValue {
     /// The frame form of drawn pages whose type has no entry; absent: none (the built-in frame applies).
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schemars(with = "Option<UuidS>")]
     pub default: Option<Id<FormDef>>,
     /// The frame form per page type, at most one entry per type.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
