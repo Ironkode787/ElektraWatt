@@ -358,8 +358,8 @@ fn check_order(policy: &Policy, graph: &Graph, v: &mut Vec<String>) {
     }
 }
 
-/// A package with an `[allowed_edges]` entry depends on no workspace package outside it, and no permissive crate
-/// depends on a non-permissive one.
+/// A package with an `[allowed_edges]` entry depends on no workspace package outside it. (A permissive crate that
+/// reaches a GPL one is the rule `licences`'s: it walks the whole closure.)
 fn check_edges(policy: &Policy, graph: &Graph, v: &mut Vec<String>) {
     let empty = Vec::new();
     for e in graph.edges.iter().filter(|e| graph.is_workspace(&e.to)) {
@@ -374,14 +374,6 @@ fn check_edges(policy: &Policy, graph: &Graph, v: &mut Vec<String>) {
                     e.kind.label()
                 ));
             }
-        }
-        if policy.is_permissive(&e.from) && !policy.is_permissive(&e.to) {
-            v.push(format!(
-                "licence boundary: permissive crate `{}` depends on non-permissive `{}` ({}) (ADR-0024 decision 2)",
-                e.from,
-                e.to,
-                e.kind.label()
-            ));
         }
     }
 }
@@ -864,19 +856,6 @@ mod tests {
         let mut edges = clean_edges();
         edges.push(("g-model", "g-ui", Kind::Dev));
         assert_eq!(check(&p, &graph(&edges)), Vec::<String>::new());
-    }
-
-    #[test]
-    fn permissive_depending_on_gpl_fails_even_if_policy_lists_the_edge() {
-        let text = POLICY.replace(
-            r#""p-api" = ["p-schema"]"#,
-            r#""p-api" = ["p-schema", "g-model"]"#,
-        );
-        let p = parse(&text);
-        let mut edges = clean_edges();
-        edges.push(("p-api", "g-model", Kind::Normal));
-        let v = check(&p, &graph(&edges));
-        assert_violation(&v, "licence boundary: permissive crate `p-api`");
     }
 
     #[test]
