@@ -233,21 +233,10 @@ fn briefs(root: &Path) -> Result<bool> {
     let tmp = std::env::temp_dir().join(format!("ew-check-briefs-{}", std::process::id()));
     let mut ok = true;
     for task in &tasks {
-        let mut problems = crate::blind::check_task::check_task(root, task)?;
-        let c = crate::blind::brief::check_brief_in(root, task, &bin, &tmp)?;
-        problems.extend(c.problems.iter().cloned());
-        let unmet: Vec<&str> = c
-            .items
-            .iter()
-            .filter(|(_, kind, decision)| kind == "hard" && decision != "met")
-            .map(|(item, _, _)| item.as_str())
-            .collect();
-        if !problems.is_empty() || !c.runnable() || !unmet.is_empty() {
+        let (proven, text) = crate::blind::brief::verdict(root, task, &bin, &tmp)?;
+        if !proven {
             ok = false;
-            eprintln!("briefs: `{task}` is not proven on this build:\n{}", c.text(task));
-            for p in &problems {
-                eprintln!("  - {p}");
-            }
+            eprintln!("briefs: `{task}` is not proven on this build:\n{text}");
         } else {
             println!("briefs: `{task}`: every hard item met");
         }

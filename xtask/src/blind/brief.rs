@@ -494,7 +494,48 @@ fn ew(root: &Path, exe: &Path, args: &[&str], dir: &Path) -> Result<(Option<i32>
 ///
 /// A file that cannot be read, a binary that does not start.
 pub fn check_brief(root: &Path, task: &str, bin: &Path) -> Result<BriefCheck> {
-    check_brief_in(root, task, bin, &std::env::temp_dir().join("ew-blind-brief"))
+    check_brief_in(root, task, bin, &scratch_parent())
+}
+
+/// Where `check-brief` and `start` make their scratch folders.
+pub fn scratch_parent() -> PathBuf {
+    std::env::temp_dir().join("ew-blind-brief")
+}
+
+/// The one verdict on a brief, for `check-brief` and the step `briefs` of `check`: its folder ([`check_task`]), then
+/// its reference solution on the build in `bin` ([`check_brief_in`], scratch under `parent`). It passes when the folder
+/// has no problem, the brief is runnable and every hard item is met; the text says what was found.
+///
+/// [`check_task`]: super::check_task::check_task
+///
+/// # Errors
+///
+/// As [`check_brief`].
+pub fn verdict(root: &Path, task: &str, bin: &Path, parent: &Path) -> Result<(bool, String)> {
+    let problems = super::check_task::check_task(root, task)?;
+    let c = check_brief_in(root, task, bin, parent)?;
+    Ok(judged(&problems, &c, task))
+}
+
+/// The verdict of [`verdict`] on a folder's `problems` and a brief's check `c`.
+fn judged(problems: &[String], c: &BriefCheck, task: &str) -> (bool, String) {
+    let mut text: String = problems.iter().map(|p| format!("{p}\n")).collect();
+    text.push_str(&c.text(task));
+    let unmet: Vec<&str> = c
+        .items
+        .iter()
+        .filter(|(_, kind, decision)| kind == "hard" && decision != "met")
+        .map(|(item, _, _)| item.as_str())
+        .collect();
+    if !unmet.is_empty() {
+        let _ = writeln!(
+            text,
+            "brief `{task}` leaves {} hard item(s) unmet: {}",
+            unmet.len(),
+            unmet.join(", ")
+        );
+    }
+    (problems.is_empty() && c.runnable() && unmet.is_empty(), text)
 }
 
 /// [`check_brief`] with its scratch folder under `parent` (a test passes its own folder, removed after it).
@@ -838,6 +879,22 @@ pub fn decide_items(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A runnable brief with one hard item unmet fails the one verdict that `check-brief` and `check` share, and its
+    /// text names the item; met, it passes.
+    #[test]
+    fn a_runnable_brief_with_an_unmet_hard_item_fails() {
+        let item = |decision: &str| ("A2".to_owned(), "hard".to_owned(), decision.to_owned());
+        let mut c = BriefCheck {
+            items: vec![item("not met: 0 rows")],
+            ..BriefCheck::default()
+        };
+        assert!(c.runnable());
+        let (ok, text) = judged(&[], &c, "brief-x");
+        assert!(!ok && text.contains("unmet: A2"), "{text}");
+        c.items = vec![item("met")];
+        assert!(judged(&[], &c, "brief-x").0);
+    }
 
     #[test]
     fn an_expect_is_an_operator_and_a_count() {

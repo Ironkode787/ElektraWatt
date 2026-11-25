@@ -21,7 +21,8 @@ live here. The method is doc 18 §3.17.
 
 `cargo xtask blind check-brief <task>` checks a task folder first without a product (the sheet and the prelude, and for
 a brief that starts on the sample that every identifier of `task.md` is in the sample's script), then a brief's reference
-solution on the build. Run it after any change of a task folder.
+solution on the build. It fails where the step `briefs` of `cargo xtask check` fails: on a problem of the folder, a
+brief that is not runnable, or a hard item that is not met. Run it after any change of a task folder.
 
 The check run's filter admits the actions of kind `View` and `file.open`, `app.quit`, **except** the canvas actions that can
 reach a tool's commit: `canvas.press`, `canvas.release`, `canvas.activate` and `canvas.activate_alt` (a press, a

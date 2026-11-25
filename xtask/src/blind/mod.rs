@@ -529,22 +529,22 @@ pub fn run(args: &[String], root: &Path) -> Result<bool> {
             let [task] = args.as_slice() else {
                 bail!("check-brief <task> [--bin <dir>]");
             };
-            // The folder first, without a product; a brief's replay after it.
+            if task.starts_with("brief-") {
+                let (ok, text) = brief::verdict(root, task, &bin, &brief::scratch_parent())?;
+                print!("{text}");
+                return Ok(ok);
+            }
+            // A task that is no brief has its folder alone to check, without a product.
             let problems = check_task::check_task(root, task)?;
             for p in &problems {
                 println!("{p}");
             }
-            if !task.starts_with("brief-") {
-                if problems.is_empty() {
-                    println!("task `{task}` is sound");
-                } else {
-                    println!("task `{task}`: {} problem(s)", problems.len());
-                }
-                return Ok(problems.is_empty());
+            if problems.is_empty() {
+                println!("task `{task}` is sound");
+            } else {
+                println!("task `{task}`: {} problem(s)", problems.len());
             }
-            let c = brief::check_brief(root, task, &bin)?;
-            print!("{}", c.text(task));
-            Ok(problems.is_empty() && c.runnable())
+            Ok(problems.is_empty())
         }
         "stop" => {
             let mut f = Flags(rest);
