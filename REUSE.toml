@@ -54,8 +54,7 @@ SPDX-License-Identifier = "CC-BY-4.0"
 # keep those crates' licence (owner ruling); `override` replaces the L9 annotation above for this path.
 # The glossary page is the text of ew-viewmodel's glossary file, so it is GPL too; so is the keymap
 # page, the text of ew-viewmodel's keymap sheet. The CLI, query and api_v1 pages are
-# the text of the GPL crates' snapshots (bin/ew, ew-api, ew-sqlview), so they keep that licence too (the orchestrator's
-# ruling 3, cycle 42: each page keeps its source's licence).
+# the text of the GPL crates' snapshots (bin/ew, ew-api, ew-sqlview), so they keep that licence too.
 [[annotations]]
 path = [
     "docs/book/src/reference/commands/**",
@@ -72,8 +71,8 @@ SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "GPL-3.0-or-later"
 
 # L5: the generated format reference pages of the user guide. Their text is the project format's JSON
-# Schemas (schemas/0.1, MIT OR Apache-2.0, L5 above), so they keep that licence (the orchestrator's ruling 3, cycle
-# 42); `override` replaces the L9 annotation for these paths.
+# Schemas (schemas/0.1, MIT OR Apache-2.0, L5 above), so they keep that licence;
+# `override` replaces the L9 annotation for these paths.
 [[annotations]]
 path = "docs/book/src/reference/format/**"
 precedence = "override"
