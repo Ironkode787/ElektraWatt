@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The lint of the shipped ISO 1219 pneumatic library (doc 11 §12, WP-S1.25): every symbol of representation type
+//! The lint of the shipped ISO 1219 pneumatic library (doc 11 §12): every symbol of representation type
 //! `fluid` under `content/symbols` draws its function definition's ports only, each a fluid CP on the 4 mm grid with
 //! a port role; every definition that needs a switching model has one ([`needs_model`]: a valve, or a component the
 //! medium passes through), whose paths name its CPs, whose rest and actuators select a position it has, and whose

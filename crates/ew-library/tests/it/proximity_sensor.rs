@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1840: the three-wire PNP proximity sensor among the starter parts, on its own starter symbol.
+//! The three-wire PNP proximity sensor among the starter parts, on its own starter symbol.
 
-use ew_schema::{LibDocument, LibRef};
 use ew_library::{PartQuery, Registry, starter};
+use ew_schema::{LibDocument, LibRef};
 
 /// A search for a proximity sensor finds the generic PNP sensor, whose three pins are its cores brown (L+), black
 /// (the switched output) and blue (M), on the function the starter symbol draws, with a pin for each.

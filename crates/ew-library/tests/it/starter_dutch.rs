@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1934: the starter content reads in Dutch. A Dutch project's parts list prints a part's description in the
+//! The starter content reads in Dutch. A Dutch project's parts list prints a part's description in the
 //! project's language first, and the symbol browser names a symbol in the window's language, so every starter part
 //! carries a Dutch description and every starter symbol a Dutch name beside the English one.
 

@@ -32,7 +32,7 @@ use crate::tiers::Tier;
 pub const INDEX_FILE: &str = "library-index-v1.sqlite";
 
 /// The schema version (`PRAGMA user_version`); 2: a part's `descr` holds its description's JSON, its languages
-/// apart, the full-text table every language (FT-2066).
+/// apart, the full-text table every language.
 const SCHEMA_VERSION: i64 = 2;
 
 const SCHEMA: &str = "
@@ -427,7 +427,7 @@ impl Index {
                     &mut found,
                 )?;
             }
-            // What the text names the part as being for (FT-1845): its own category's first level, or its main
+            // What the text names the part as being for: its own category's first level, or its main
             // function's FnDef's first category level or contact kind. Such a part is found in tier 4 (or keeps
             // its better tier) and leads its tier.
             if !q.purpose_categories.is_empty() || !q.purpose_kinds.is_empty() {

@@ -19,7 +19,7 @@ pub enum Tier {
 }
 
 impl Tier {
-    /// Whether the registry accepts writes to libraries of this tier (D4).
+    /// Whether the registry accepts writes to libraries of this tier.
     pub fn writable(self) -> bool {
         matches!(self, Tier::Company | Tier::User)
     }

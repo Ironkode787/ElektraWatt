@@ -20,11 +20,11 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use ew_schema::{Kind, LibDocument, LibRef, PartKind};
 use ew_ids::Uuid;
 use ew_library::{
     LibManifest, LibraryTiers, PartQuery, Registry, STARTER_PARTS_KEY, starter, starter_parts_library,
 };
+use ew_schema::{Kind, LibDocument, LibRef, PartKind};
 use serde_json::{Value, json};
 
 const ZERO: &str = "sha256:0000000000000000000000000000000000000000000000000000000000000000";
@@ -38,13 +38,13 @@ const VERSION: &str = "0.1.0";
 /// moved to the manual-command category, class S, 0.5.0 since the generic cable EW-GEN-CBL-1 was added, 0.5.1 since
 /// the contactor is filed as a contactor ([`own_category`]), 0.6.0 since the three-pole MCB EW-GEN-MCB-3 and the
 /// 3/2 solenoid valve EW-GEN-VLV-2 were added and the supply's outputs became sources, and the generic cable's cores
-/// state their cross-section (FT-1685: its cores printed the control circuit's 0.75 mm²) (unreleased, still 0.6.0),
-/// 0.7.0 since the generic valve terminal (module EW-GEN-VTM-1, valve EW-GEN-VLV-3, supply plate EW-GEN-VTS-1;
-/// FT-1326) was added, 0.8.0 since the fieldbus parts were added (the CPU with PROFINET and PROFIBUS DP
+/// state their cross-section (its cores printed the control circuit's 0.75 mm²) (unreleased, still 0.6.0),
+/// 0.7.0 since the generic valve terminal (module EW-GEN-VTM-1, valve EW-GEN-VLV-3, supply plate EW-GEN-VTS-1)
+/// was added, 0.8.0 since the fieldbus parts were added (the CPU with PROFINET and PROFIBUS DP
 /// EW-GEN-CPU-2, the remote I/O head EW-GEN-RIO-1, the PROFIBUS cable EW-GEN-CBL-2 and the Ethernet cable
 /// EW-GEN-CBL-3) and the tubes EW-GEN-TUB-6, -8, -10 and the fittings EW-GEN-FIT-6, -8 (the persona round of M3), 0.9.0
 /// since the devices with ports were added (the unmanaged switch EW-GEN-ESW-5, the managed switch EW-GEN-ESW-8 and the
-/// generic PROFINET device EW-GEN-PND-1; FT-1767), with the cylinder EW-GEN-CYL-1 and the air supply EW-GEN-AIR-1 (the
+/// generic PROFINET device EW-GEN-PND-1), with the cylinder EW-GEN-CYL-1 and the air supply EW-GEN-AIR-1 (the
 /// persona re-test), 0.10.0 since the two solenoid valves have the valve as their main function, the basic
 /// pneumatic parts were added and the bus plugs (EW-GEN-PLG-1 to -5, a bus line's plugs, doc 10
 /// §2.7), 0.11.0 since the multipin valve terminal EW-GEN-VTP-1 was added and the valve terminal EW-GEN-VTM-1 says
@@ -60,18 +60,18 @@ const VERSION: &str = "0.1.0";
 /// EW-GEN-RCD-1, the stop button EW-GEN-PB-2 and the emergency stop EW-GEN-ESB-1, 0.18.0 since every bus the
 /// program knows has a generic cable and plug (the Ethernet cable EW-GEN-CBL-3 is made for EtherCAT too, the
 /// eight-core Ethernet cable EW-GEN-CBL-26, the CANopen, AS-Interface and IO-Link cables EW-GEN-CBL-27 to -29 and the
-/// plugs EW-GEN-PLG-6 to -10 were added), 0.19.0 since every part carries a Dutch description (FT-1934) and the three-wire PNP proximity sensor
-/// EW-GEN-PRX-1 was added (FT-1840), 0.20.0 since the two-level feed-through terminal EW-GEN-TRM-3 was added (a
+/// plugs EW-GEN-PLG-6 to -10 were added), 0.19.0 since every part carries a Dutch description and the three-wire PNP proximity sensor
+/// EW-GEN-PRX-1 was added, 0.20.0 since the two-level feed-through terminal EW-GEN-TRM-3 was added (a
 /// persona run found no part for a block of two levels).
 const LIBRARY_VERSION: &str = "0.20.0";
-/// The version of a part not in [`BUMPED`]: 0.1.1 since every part gained its Dutch description (FT-1934).
+/// The version of a part not in [`BUMPED`]: 0.1.1 since every part gained its Dutch description.
 const PART_VERSION: &str = "0.1.1";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
 /// and the contactor template their contacts beside the coil. The CPU's bus section, after 0.2.0.
 /// The dimensions. The valve's solenoid 14 leaves the pattern for its fluid section, a
 /// major change. The on/off switch on the manual-command FnDef, letter S. The contactor's own category. The cable's
-/// cores' cross-section), each one patch further since every part gained its Dutch description (FT-1934).
+/// cores' cross-section), each one patch further since every part gained its Dutch description.
 const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-SEL-1", "0.1.2"),
     ("EW-GEN-VLV-1", "0.3.1"),
@@ -120,7 +120,7 @@ fn bus_section(number: &str) -> Option<Value> {
             port("DP", "profibus_dp", "slave"),
             port("X1", "profinet", "device"),
         ]})),
-        // FT-1767: one PROFINET interface with its sockets (doc 10 §2.7): an unmanaged switch passes the net through
+        // One PROFINET interface with its sockets (doc 10 §2.7): an unmanaged switch passes the net through
         // without an address, a managed one and a device are nodes with one address for all their sockets.
         "EW-GEN-ESW-5" => Some(json!({"ports": [sockets("passive", 5)]})),
         "EW-GEN-ESW-8" => Some(json!({"ports": [sockets("device", 8)]})),
@@ -152,8 +152,8 @@ fn bus_section(number: &str) -> Option<Value> {
 
 /// The category of part `number` where it is not its main FnDef's. The contactor's main function is its coil, whose
 /// FnDef is filed under Relay; the part switches a load circuit, so it is filed under SwitchingPower, which IEC
-/// 81346-2 letters Q (QA in the 2019 classes; FT-1667). The valve terminal's main function is its overview box, whose
-/// FnDef is filed under Assembly, where nobody looked for it (persona round 3); the part is a valve terminal that
+/// 81346-2 letters Q (QA in the 2019 classes). The valve terminal's main function is its overview box, whose
+/// FnDef is filed under Assembly, where nobody looked for it; the part is a valve terminal that
 /// drives its valves, filed under ValveTerminalNode ("Valve terminals"), beside its supply plate. No other starter part
 /// differs from its main FnDef.
 fn own_category(number: &str) -> Option<Value> {
@@ -269,7 +269,7 @@ fn mech_json(m: &Mech) -> Value {
     v
 }
 
-/// One generic part: number, part kind, description (English, Dutch; FT-1934), the CP designations (index order, with a potential role), the
+/// One generic part: number, part kind, description (English, Dutch), the CP designations (index order, with a potential role), the
 /// template (FnDef key, main, CP indices), the contacts (kind, CP designations), the technical data, the PLC section,
 /// the mechanical data, the section of a layout part and the order unit.
 struct Def {
@@ -451,7 +451,7 @@ fn solenoid_valve(
     }
 }
 
-/// A device whose one PROFINET interface is its function (FT-1767): no CP pattern, the port function as its main
+/// A device whose one PROFINET interface is its function: no CP pattern, the port function as its main
 /// template entry, whose sockets the bus section counts; on a TS 35 rail, `width` mm wide.
 fn port_device(number: &'static str, description: [&'static str; 2], width: &'static str) -> Def {
     Def {
@@ -759,7 +759,7 @@ fn defs() -> Vec<Def> {
             sections: None,
             unit: None,
         },
-        // FT-1840: the three-wire PNP sensor, wired by its cores: brown L+, black the switched output, blue M.
+        // The three-wire PNP sensor, wired by its cores: brown L+, black the switched output, blue M.
         Def {
             number: "EW-GEN-PRX-1",
             kind: None,
@@ -1040,7 +1040,7 @@ fn defs() -> Vec<Def> {
                 ("-", Some("m")),
                 ("-", Some("m")),
             ],
-            // A black box whose FnDef declares + and - as source outputs, so the potential flow starts there (FT-682)
+            // A black box whose FnDef declares + and - as source outputs, so the potential flow starts there
             template: vec![("ew.fn.psu-ac-dc", true, range(0, 7))],
             contacts: Vec::new(),
             tech: vec![
@@ -1095,7 +1095,7 @@ fn defs() -> Vec<Def> {
             sections: Some(json!({"fluid": {"solenoids": ["12"]}})),
             unit: None,
         },
-        // FT-1326: a generic valve terminal without Golden A's parts: a terminal of four valve positions whose eight
+        // A generic valve terminal without Golden A's parts: a terminal of four valve positions whose eight
         // output channels have no pins (solenoid 14 of position p on channel 2p, 12 on 2p+1), a 5/2 valve with an
         // internal coil, and a supply plate that taps galleries 1, 3 and 5. The persona round: the terminal is a
         // station of its own with integrated outputs, so that a device placed from it is a valve terminal (its
@@ -1808,7 +1808,7 @@ fn defs() -> Vec<Def> {
             sections: None,
             unit: None,
         },
-        // FT-1767: the devices with ports, drawn by their PROFINET port function as a box with every socket.
+        // The devices with ports, drawn by their PROFINET port function as a box with every socket.
         port_device(
             "EW-GEN-ESW-5",
             [
@@ -2349,11 +2349,8 @@ fn every_generic_part_is_usable() {
     let numbers: Vec<&str> = defs().iter().map(|d| d.number).collect();
     let unique: std::collections::BTreeSet<&str> = numbers.iter().copied().collect();
     assert_eq!(unique.len(), numbers.len(), "part numbers are unique");
-    assert!(
-        numbers.contains(&"EW-GEN-SW-1"),
-        "FT-606: the one-pole on/off switch"
-    );
-    assert!(numbers.contains(&"EW-GEN-CPU-1"), "WP-S1.21 D5: the generic CPU");
+    assert!(numbers.contains(&"EW-GEN-SW-1"), "the one-pole on/off switch");
+    assert!(numbers.contains(&"EW-GEN-CPU-1"), "the generic CPU");
     for doc in parts() {
         let LibDocument::Part(c) = doc else { panic!() };
         let p = &c.item;

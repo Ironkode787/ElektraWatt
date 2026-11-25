@@ -11,7 +11,7 @@ use ew_ids::Uuid;
 /// Why a registry operation did not happen.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum LibraryError {
-    /// A write to a system or community library, or a library created inside a read-only tier (D4).
+    /// A write to a system or community library, or a library created inside a read-only tier.
     ReadOnly,
     /// No installed library holds the library, the item, or the item at a version the reference accepts.
     NotFound,

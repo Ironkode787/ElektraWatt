@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `Registry::remove` (FT-1766, a part removed from My parts): an item taken out of a writable library is gone from
+//! `Registry::remove` (a part removed from My parts): an item taken out of a writable library is gone from
 //! its documents, its search and the next open, the rest of its shard stays; taking out an item the library does not
 //! hold changes nothing.
 
-use ew_schema::{Kind, LibDocument};
 use ew_ids::Uuid;
 use ew_library::{LibraryTiers, PartQuery, Registry, starter_parts_library};
+use ew_schema::{Kind, LibDocument};
 use serde_json::json;
 
 const ZERO: &str = "sha256:0000000000000000000000000000000000000000000000000000000000000000";

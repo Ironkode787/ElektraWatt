@@ -22,7 +22,7 @@ ew-format = { path = "../ew-format" }
 ew-store = { path = "../ew-store" }
 # The copy IDs `v5(NS_LIBCOPY, library ‖ item)` and new library IDs (ADR-0004: ew-ids owns the formulas).
 ew-ids = { path = "../ew-ids" }
-# A part hit's description in its languages (FT-2066).
+# A part hit's description in its languages.
 ew-mltext = { path = "../ew-mltext" }
 # The part number's normal form of the index (`pn_norm`, doc 07 §4.3), which the parts import dedupes on too.
 ew-interop-api = { path = "../ew-interop-api" }
@@ -36,9 +36,9 @@ ew-hack = { version = "0.3.5", path = "../ew-hack" }
 
 [dev-dependencies]
 automod.workspace = true
-# The fresh temporary directory of the tests (FT-569; dev-only edge, `[allowed_dev_edges]`).
+# The fresh temporary directory of the tests (dev-only edge, `[allowed_dev_edges]`).
 ew-testdir = { path = "../ew-testdir" }
 # The content audit parses the shipped parts' map expressions and designation patterns with the derivation's own
-# parsers (WP-S7.03 D4; `ew_plcaddr` through its re-export; dev-only edge, `[allowed_dev_edges]`).
+# parsers (`ew_plcaddr` through its re-export; dev-only edge, `[allowed_dev_edges]`).
 ew-derive = { path = "../ew-derive" }
 ew-plcaddr = { path = "../ew-plcaddr" }

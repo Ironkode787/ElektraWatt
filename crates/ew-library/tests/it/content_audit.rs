@@ -11,8 +11,8 @@
 
 use std::path::{Path, PathBuf};
 
-use ew_plcaddr::MapExpr;
 use ew_derive::{PatternError, expand_pattern};
+use ew_plcaddr::MapExpr;
 use serde_json::Value;
 
 /// The repository root.

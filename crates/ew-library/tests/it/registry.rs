@@ -7,13 +7,13 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use ew_schema::{ContactKind, ItemStatus, Kind, LibDocument, LibRef, PartKind};
 use ew_ids::Uuid;
 use ew_library::lock::LOCK;
 use ew_library::{
     FnCompat, INDEX_FILE, IndexState, ItemQuery, LibManifest, LibraryError, LibraryTiers, LockPolicy,
     PartHit, PartQuery, Registry, Tier, WriteFault, starter,
 };
+use ew_schema::{ContactKind, ItemStatus, Kind, LibDocument, LibRef, PartKind};
 use ew_store::lock::Identity;
 use serde_json::{Value, json};
 
@@ -1009,7 +1009,7 @@ fn resolve_and_closure() {
     assert_eq!(reg.closure(&r6), Err(LibraryError::NotFound));
 }
 
-/// A company library's PLC profile resolves by reference, as every other kind does (FT-1559).
+/// A company library's PLC profile resolves by reference, as every other kind does.
 #[test]
 fn a_plc_profile_resolves_by_reference() {
     let f = Fixture::new("ew-library-resolve-plc");

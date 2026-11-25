@@ -35,7 +35,7 @@ pub struct FnCompat {
     pub fndef: Option<(Uuid, Uuid)>,
 }
 
-/// A part search (D6).
+/// A part search.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PartQuery {
     /// The typed text: a part number in any spelling, or words of the type, manufacturer and description.
@@ -79,7 +79,7 @@ pub struct PartHit {
     pub part_number: String,
     /// The manufacturer's name (the manufacturer record's, else the part reference's `key`).
     pub manufacturer: String,
-    /// The description in its languages; a reader shows one (`ew_derive::text_in`), FT-2066.
+    /// The description in its languages; a reader shows one (`ew_derive::text_in`).
     pub description: ew_mltext::MlText,
     /// The part kind.
     pub kind: PartKind,
@@ -171,7 +171,7 @@ pub(crate) fn natural_key(s: &str) -> Result<impl Ord + use<>, String> {
 
 /// The sort key of a hit after its rank: found by what it is for, held, boost, score, natural part number, manufacturer key, library, item.
 pub(crate) struct OrderKey {
-    /// 0 the same FnDef (D17), 1 compatible or no filter, 2 incompatible.
+    /// 0 the same FnDef, 1 compatible or no filter, 2 incompatible.
     pub fit: u8,
     pub rank_tier: u8,
     /// Found by what it is for: first inside its tier.
@@ -185,7 +185,7 @@ pub(crate) struct OrderKey {
     pub item: Uuid,
 }
 
-/// Sorts `items` by their [`OrderKey`]s (D6).
+/// Sorts `items` by their [`OrderKey`]s.
 pub(crate) fn sort_by_order<T>(items: Vec<(OrderKey, T)>) -> Vec<T> {
     let mut keyed: Vec<_> = items
         .into_iter()
@@ -285,7 +285,7 @@ mod tests {
         assert_eq!(sort_by_order(vec![plain, boosted, held, exact]), [4, 1, 2, 3]);
     }
 
-    /// FT-1845: inside a tier a part found by what it is for comes before one found by its words only, held or not.
+    /// inside a tier a part found by what it is for comes before one found by its words only, held or not.
     #[test]
     fn a_part_found_by_what_it_is_for_leads_its_tier() {
         let mut held = key("A1", -9.0, 1);
