@@ -107,10 +107,11 @@ pub(crate) fn mm_text(q: &Q, nm: i128) -> String {
     if comma(q) { text.replace('.', ",") } else { text }
 }
 
+/// Whether the project prints a decimal comma ([`ew_derive::text::decimal_comma`] in its print language).
 pub(super) fn comma(q: &Q) -> bool {
-    matches!(
-        q.project().settings.formatting.decimal_separator,
-        Some(ew_schema::DecimalSeparator::Comma)
+    ew_derive::text::decimal_comma(
+        q.project().settings.formatting.decimal_separator.as_ref(),
+        ew_derive::print_language(q).as_ref(),
     )
 }
 
@@ -915,8 +916,8 @@ pub(crate) fn centred_datum(
 }
 
 impl Session {
-    /// Whether the project writes a decimal comma (`settings.formatting.decimal_separator`): the shell's
-    /// millimetre texts follow it (the Properties position row).
+    /// Whether the project writes a decimal comma (`settings.formatting.decimal_separator`, else its print
+    /// language's): the shell's millimetre texts follow it (the Properties position row).
     pub fn decimal_comma(&self) -> bool {
         comma(&self.query())
     }

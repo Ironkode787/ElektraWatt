@@ -237,6 +237,16 @@ pub fn potential_type_code(t: &PotentialType) -> Option<&'static str> {
     })
 }
 
+/// Whether a number the project prints writes a decimal comma: the project's decimal separator `separator` when it
+/// sets one; else whether its print language `lang` writes one ([`ew_l10n::render::writes_decimal_comma`]); else the
+/// point. The one rule of the lists, Properties and the panel tools.
+pub fn decimal_comma(separator: Option<&ew_schema::DecimalSeparator>, lang: Option<&ew_mltext::LangTag>) -> bool {
+    match separator {
+        Some(separator) => matches!(separator, ew_schema::DecimalSeparator::Comma),
+        None => lang.is_some_and(|l| ew_l10n::render::writes_decimal_comma(l.language())),
+    }
+}
+
 /// A potential type in words, as the lists print it and the checks name it: its code (`L1`, `PE`, the same in every
 /// language), `signal`, `undefined` for an undefined type and `other` for a type of a newer format. The SQL view prints
 /// its English.

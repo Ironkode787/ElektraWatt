@@ -19,7 +19,7 @@ use std::sync::Arc;
 use ew_derive::{DeviceTag, DisplayedTag, PageOrder, PageRef, Policy, Q, Query, folio_label};
 use ew_ids::Id;
 use ew_mltext::{LangTag, MlText, NaturalKey, natural_key};
-use ew_schema::{DecimalSeparator, Device, OrderUnit, Unit};
+use ew_schema::{Device, OrderUnit, Unit};
 use ew_units::Dec3;
 
 use crate::rowset::{Cell, MissingReason, QtyUnit};
@@ -230,20 +230,8 @@ fn writes_comma(q: &Q, lang: Option<&LangTag>) -> bool {
         (Some(l), Some(langs)) => l.language().eq_ignore_ascii_case(langs.source.language()),
         (Some(_), None) => false,
     };
-    match (&project.settings.formatting.decimal_separator, own) {
-        (Some(separator), true) => matches!(separator, DecimalSeparator::Comma),
-        _ => uses_comma(lang),
-    }
-}
-
-/// Whether the language writes a decimal comma.
-fn uses_comma(lang: Option<&LangTag>) -> bool {
-    lang.is_some_and(|l| {
-        matches!(
-            l.language(),
-            "nl" | "de" | "fr" | "it" | "es" | "pt" | "da" | "sv" | "nb" | "fi" | "pl" | "cs"
-        )
-    })
+    let setting = project.settings.formatting.decimal_separator.as_ref().filter(|_| own);
+    ew_derive::text::decimal_comma(setting, lang)
 }
 
 /// A decimal without trailing fractional zeros or a trailing separator and without grouping:

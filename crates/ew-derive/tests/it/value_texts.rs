@@ -125,3 +125,18 @@ fn a_record_kind_has_its_name_beside_its_article_form() {
         ("a part".into(), "een artikel".into())
     );
 }
+
+/// The one rule of the decimal separator: the project's when it sets one; else a comma where its print language
+/// writes one, so a Dutch project without a separator of its own prints "1,5"; else the point.
+#[test]
+fn the_decimal_separator_is_the_projects_else_its_languages() {
+    use ew_derive::text::decimal_comma;
+    use ew_schema::DecimalSeparator;
+    let tag = |s: &str| s.parse::<ew_mltext::LangTag>().unwrap();
+    assert!(decimal_comma(None, Some(&tag("nl-NL"))));
+    assert!(decimal_comma(None, Some(&tag("de"))));
+    assert!(!decimal_comma(None, Some(&tag("en-GB"))));
+    assert!(!decimal_comma(None, None));
+    assert!(!decimal_comma(Some(&DecimalSeparator::Point), Some(&tag("nl-NL"))));
+    assert!(decimal_comma(Some(&DecimalSeparator::Comma), Some(&tag("en-GB"))));
+}

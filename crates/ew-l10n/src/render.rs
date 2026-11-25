@@ -353,13 +353,19 @@ pub fn parse_errors(source: &str) -> Vec<String> {
     }
 }
 
-/// The languages that write a decimal comma (`1,5 mm²`), by tag.
-const DECIMAL_COMMA: &[&str] = &["nl-NL"];
+/// The languages that write a decimal comma (`1,5 mm²`), by primary language: the one list of them.
+const DECIMAL_COMMA: &[&str] = &["nl", "de", "fr", "it", "es", "pt", "da", "sv", "nb", "fi", "pl", "cs"];
+
+/// Whether the language `tag` (a BCP 47 tag, or its primary language) writes a decimal comma.
+pub fn writes_decimal_comma(tag: &str) -> bool {
+    let language = tag.split('-').next().unwrap_or(tag);
+    DECIMAL_COMMA.iter().any(|l| l.eq_ignore_ascii_case(language))
+}
 
 /// `text` with each decimal point between two digits written as the language `tag` writes it: the function `DECIMAL` of
 /// a rule's pattern, which wraps an argument that holds a measured value (`1.5 mm²` is `1,5 mm²` in nl-NL).
 pub fn decimal(tag: &str, text: &str) -> String {
-    if !DECIMAL_COMMA.iter().any(|l| l.eq_ignore_ascii_case(tag)) {
+    if !writes_decimal_comma(tag) {
         return text.to_owned();
     }
     let chars: Vec<char> = text.chars().collect();
