@@ -9,7 +9,8 @@
 //! `wires.xlsx`, `block_908.xlsx` (part 1), `strips_X1031.xlsx` and `io_list.xlsx` (part 2); and the CSV presets,
 //! `csv/presets/bom_parts.<preset>.csv` and `io_list.excel-nl.csv` (`round_trip`). Their IDs are numbered by order of
 //! appearance ([`numbered_ids`]): the sample's IDs are made by its script. The CSVs of the `ew` dialect are pinned by
-//! `ew-api`'s tests, not here.
+//! `ew-api`'s tests, not here; so are the parts list's rows (`kinds/parts_list.csv`), and the parts list's workbook and
+//! presets keep their header and first two rows ([`head`]), where the form is the point.
 //! `EW_BLESS=1 cargo nextest run -p ew --all-features --test it -E 'test(/^(tables|round_trip)::/)'` rewrites them.
 
 use std::ffi::OsString;
@@ -56,6 +57,28 @@ fn numbered_ids(text: &str) -> String {
             out.push(c);
             i += c.len_utf8();
         }
+    }
+    out
+}
+
+/// `text` with each part kept to its header and first `rows` lines: a CSV, or each data sheet of a workbook dump (a
+/// part starts at a line `[<sheet>]`; the `_ew` sheet, the table's description, stays whole).
+fn head(text: &str, rows: usize) -> String {
+    let mut out = String::new();
+    let mut kept = 0;
+    let mut whole = false;
+    for line in text.lines() {
+        if let Some(sheet) = line.strip_prefix('[').and_then(|l| l.strip_suffix(']')) {
+            (kept, whole) = (0, sheet == "_ew");
+            out.push_str(line);
+            out.push('\n');
+            continue;
+        }
+        if whole || kept <= rows {
+            out.push_str(line);
+            out.push('\n');
+        }
+        kept += 1;
     }
     out
 }
@@ -158,6 +181,8 @@ fn the_workbooks_are_the_committed_dumps() {
             concat!("\new\t", env!("CARGO_PKG_VERSION"), "\n"),
             "\new\t<version>\n",
         );
+        // The parts list's rows are `ew-api`'s reference: its workbook keeps the form.
+        let dump = if *name == "bom_parts" { head(&dump, 2) } else { dump };
         expected_file(&format!("xlsx/{name}.cells.txt"), &dump);
     }
 }
@@ -315,7 +340,7 @@ fn the_bom_presets_are_the_committed_files() {
         );
         expected_file(
             &format!("csv/presets/bom_parts.{preset}.csv"),
-            &text.replace("\r\n", "\n"),
+            &head(&text.replace("\r\n", "\n"), 2),
         );
         texts.push(text);
     }
