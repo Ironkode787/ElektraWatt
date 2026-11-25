@@ -19,7 +19,9 @@ input: it is schema-validated with the importer's size limits and never carries 
 Paste (`edit.paste`, FR-DEV-029, FR-UI-036):
 1. **Identity.** Every pasted record gets a new UUIDv7, and references inside the fragment are remapped. After a Cut
    the devices the cut left unplaced are the exception: a cut and its paste are a move, and they come back with
-   their IDs (below).
+   their IDs (below). A PLC card whose module holds no setting (no slot, start, part use or integrated I/O) is not
+   left unplaced: it goes with its last symbol, its channels with it, and its paste makes a new card
+   ([10](10-plc-and-bus.md) §6).
 2. **Numbering.** Tag counters are re-assigned by the target's scheme through the online-numbering normaliser, in
    the order of the fragment's anchor cells, so the result does not depend on record or creation order
    (FR-NUM-028). Frozen tags are not copied: a pasted "S51" is derived like any new device. The ghost shows the
