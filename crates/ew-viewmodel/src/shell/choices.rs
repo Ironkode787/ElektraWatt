@@ -50,6 +50,14 @@ macro_rules! closed_choices {
 
         /// Every closed set of this module (the choice-word test reads it).
         pub static ALL: &[&ClosedChoices] = &[$(&$name),*];
+
+        /// The closed set named `name` (`PAGE_TYPES`), as an action's signature names it (`enum(@PAGE_TYPES)`).
+        pub fn by_name(name: &str) -> Option<&'static ClosedChoices> {
+            match name {
+                $(stringify!($name) => Some(&$name),)*
+                _ => None,
+            }
+        }
     };
 }
 

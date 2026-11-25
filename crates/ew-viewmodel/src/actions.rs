@@ -351,6 +351,21 @@ impl ActionMeta {
         format!("action-{}", self.id.replace(['.', '_'], "-"))
     }
 
+    /// The parameter signature as a reader takes it: [`Self::params`] with each named set spelt out as its words
+    /// (`type?:enum(title_page|…)` for `type?:enum(@PAGE_TYPES)`).
+    pub fn signature(&self) -> String {
+        parse_signature(self.params).map_or_else(
+            |_| self.params.to_owned(),
+            |specs| {
+                specs
+                    .iter()
+                    .map(|p| format!("{}{}:{}", p.name, if p.optional { "?" } else { "" }, p.ty))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            },
+        )
+    }
+
     /// The parameters that take a UUID or a reference, each with its form: every `ref` of the signature whole, then
     /// those [`Self::aliases`] names. An alias `@n` in one of them resolves before the action reads it
     /// ([`crate::alias::resolve_params`]).
@@ -606,7 +621,7 @@ pub struct ParamSpec {
     pub name: String,
     /// Whether the parameter may be left out (`?`).
     pub optional: bool,
-    /// The type, as the signature spells it (`mm`, `enum(a|b)`, `list(text)`, ...).
+    /// The type, as the signature spells it (`mm`, `enum(a|b)`, `list(text)`, ...), a named set by its words.
     pub ty: String,
 }
 
@@ -619,17 +634,32 @@ fn is_word(w: &str) -> bool {
         && chars.all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
 }
 
-fn valid_type(ty: &str) -> bool {
+/// The words of the closed set a signature names as `enum(@<name>)`: a set of [`crate::shell::choices`] by its name,
+/// the command bar's tabs (`TABS`) or the navigators (`NAVIGATORS`), in their order; `None` for another name.
+fn named_set(name: &str) -> Option<Vec<&'static str>> {
+    match name {
+        "TABS" => Some(crate::command_bar::Tab::ALL.iter().map(|t| t.word()).collect()),
+        "NAVIGATORS" => Some(crate::navigators::NavKind::ALL.iter().map(|k| k.word()).collect()),
+        _ => crate::shell::choices::by_name(name).map(|c| c.values().to_vec()),
+    }
+}
+
+/// `ty` with a named set `enum(@<name>)` spelt out as its words (`enum(a|b)`), in a list too; `None` for a type
+/// outside the grammar.
+fn resolved_type(ty: &str) -> Option<String> {
     if PARAM_TYPES.contains(&ty) {
-        return true;
+        return Some(ty.to_owned());
     }
     if let Some(inner) = ty.strip_prefix("enum(").and_then(|t| t.strip_suffix(')')) {
-        return !inner.is_empty() && inner.split('|').all(is_word);
+        if let Some(name) = inner.strip_prefix('@') {
+            return named_set(name).map(|words| format!("enum({})", words.join("|")));
+        }
+        return (!inner.is_empty() && inner.split('|').all(is_word)).then(|| ty.to_owned());
     }
     if let Some(inner) = ty.strip_prefix("list(").and_then(|t| t.strip_suffix(')')) {
-        return valid_type(inner);
+        return resolved_type(inner).map(|t| format!("list({t})"));
     }
-    false
+    None
 }
 
 /// Parses a parameter signature by this grammar:
@@ -638,8 +668,10 @@ fn valid_type(ty: &str) -> bool {
 /// signature := "" | param (", " param)*
 /// param     := name ["?"] ":" type
 /// type      := "mm" | "int" | "uint" | "bool" | "text" | "path" | "json" | "ref"
-///            | "enum(" word ("|" word)* ")" | "list(" type ")"
+///            | "enum(" word ("|" word)* ")" | "enum(@" set ")" | "list(" type ")"
 /// ```
+///
+/// A named set (`enum(@PAGE_TYPES)`) is spelt out as its words in the parsed type ([`named_set`]).
 ///
 /// # Errors
 ///
@@ -661,16 +693,16 @@ pub fn parse_signature(sig: &str) -> Result<Vec<ParamSpec>, String> {
         if !is_word(name) {
             return Err(format!("`{name}` is not a parameter name"));
         }
-        if !valid_type(ty) {
+        let Some(ty) = resolved_type(ty) else {
             return Err(format!("`{ty}` is not a type of the grammar"));
-        }
+        };
         if out.iter().any(|p| p.name == name) {
             return Err(format!("`{name}` is repeated"));
         }
         out.push(ParamSpec {
             name: name.to_owned(),
             optional,
-            ty: ty.to_owned(),
+            ty,
         });
     }
     Ok(out)
@@ -954,7 +986,9 @@ mod tests {
                 .iter()
                 .map(|p| format!("{}{}:{}", p.name, if p.optional { "?" } else { "" }, p.ty))
                 .collect();
-            assert_eq!(again.join(", "), a.params, "{}", a.id);
+            if !a.params.contains('@') {
+                assert_eq!(again.join(", "), a.params, "{}", a.id);
+            }
         }
         assert!(parse_signature("a:nope").is_err());
         assert!(parse_signature("A:int").is_err());

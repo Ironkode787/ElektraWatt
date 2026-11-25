@@ -68,7 +68,7 @@ pub fn actions(model: &ShellModel) -> String {
     for meta in crate::actions::ACTIONS {
         out.push_str(&item_line("", &crate::actions::item_of(meta, model)));
         if !meta.params.is_empty() {
-            out.push_str(&format!(" params: {}", meta.params));
+            out.push_str(&format!(" params: {}", meta.signature()));
         }
         out.push('\n');
     }

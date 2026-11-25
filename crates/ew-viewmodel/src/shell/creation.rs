@@ -37,7 +37,7 @@ mod pages;
 mod forms;
 
 /// The page types `page.new` creates: `PageType`'s snake_case spellings except `report`, whose pages are generated
-/// (EW-INV-012). The signature of the action in `actions.rs` lists the same words (a test compares them).
+/// (EW-INV-012). The action's signature names this set (`enum(@PAGE_TYPES)`).
 pub const PAGE_TYPES: &[&str] = &[
     "title_page",
     "table_of_contents",
@@ -55,7 +55,7 @@ pub const PAGE_TYPES: &[&str] = &[
 ];
 
 /// The connection grids `page.new` gives a page: the native 4 mm grid and QET's 10 px, as `Grid::MM4` and
-/// `Grid::QET_10PX`. The signature of the action lists the same words (a test compares them).
+/// `Grid::QET_10PX`. The action's signature names this set (`enum(@PAGE_GRIDS)`).
 pub const PAGE_GRIDS: &[&str] = &["mm4", "qet_10px"];
 
 /// The grid of a word of [`PAGE_GRIDS`] as `page.create` takes it (`{num, den}` nanometres per step).
@@ -983,21 +983,9 @@ mod tests {
     use super::*;
     use crate::actions::{find, parse_signature};
 
+    /// The signatures of the creation actions name the fields of their forms.
     #[test]
-    fn the_signatures_list_the_words_the_actions_accept() {
-        let enum_of = |action: &str, name: &str| -> Vec<String> {
-            let sig = parse_signature(find(action).unwrap().params).unwrap();
-            let ty = &sig.iter().find(|p| p.name == name).unwrap().ty;
-            ty.strip_prefix("enum(")
-                .and_then(|t| t.strip_suffix(')'))
-                .unwrap()
-                .split('|')
-                .map(str::to_owned)
-                .collect()
-        };
-        assert_eq!(enum_of("page.new", "type"), PAGE_TYPES);
-        assert_eq!(enum_of("page.new", "grid"), PAGE_GRIDS);
-        assert_eq!(enum_of("structure.new", "kind"), STRUCTURE_KINDS);
+    fn the_signatures_name_the_fields_of_their_forms() {
         for spec in [&PAGE_NEW, &STRUCTURE_NEW, &EXTERNAL_REF_NEW] {
             let sig = parse_signature(find(spec.action).unwrap().params).unwrap();
             let names: Vec<&str> = sig.iter().map(|p| p.name.as_str()).collect();

@@ -71,7 +71,7 @@ fn actions_text() -> String {
                 out.push_str(word);
             }
         }
-        out.push_str(&format!(" params \"{}\"\n", a.params));
+        out.push_str(&format!(" params \"{}\"\n", a.signature()));
     }
     out
 }
@@ -98,7 +98,7 @@ fn the_action_lines_parse_back_and_cover_the_registry() {
             .rfind(" params \"")
             .expect("every line ends with its signature");
         let sig = line[at + " params \"".len()..].strip_suffix('"').unwrap();
-        assert_eq!(sig, a.params);
+        assert_eq!(sig, a.signature());
         parse_signature(sig).unwrap_or_else(|e| panic!("{}: {e}", a.id));
     }
     // The harness reads these two actions' lines for its filter; their flags are what the specification says.
@@ -110,18 +110,3 @@ fn the_action_lines_parse_back_and_cover_the_registry() {
     assert!(command.contains(" needs-parameters"), "{command}");
 }
 
-#[test]
-fn navigator_show_lists_every_navigator_kind() {
-    use ew_viewmodel::navigators::NavKind;
-    let action = ACTIONS
-        .iter()
-        .find(|a| a.id == "navigator.show")
-        .expect("navigator.show is registered");
-    let words: Vec<&str> = NavKind::ALL.iter().map(|k| k.word()).collect();
-    let prefix = format!("kind:enum({}),", words.join("|"));
-    assert!(
-        action.params.starts_with(&prefix),
-        "navigator.show params {:?} do not start with {prefix:?}",
-        action.params
-    );
-}

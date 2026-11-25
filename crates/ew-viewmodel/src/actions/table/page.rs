@@ -12,7 +12,7 @@ use super::super::*;
 pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // Page, New page.
     with_params(
-        "folio:text, type?:enum(title_page|table_of_contents|section_divider|graphic|single_line|multi_line|overview|bus_topology|fluid|assembly_overview|panel_layout|model_view|external_document), title?:text, section?:text, place?:enum(after|end), grid?:enum(mm4|qet_10px), at?:text",
+        "folio:text, type?:enum(@PAGE_TYPES), title?:text, section?:text, place?:enum(after|end), grid?:enum(@PAGE_GRIDS), at?:text",
         placed(
             place(Group::Pages, 1, CommandSize::Large, None),
             "file-plus",
@@ -29,7 +29,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     // The question before a page's Connection grid changes under its items: Change and fit.
     with_params(
-        "grid:enum(mm4|qet_10px)",
+        "grid:enum(@PAGE_GRIDS)",
         hidden(act(
             "page.fit_grid",
             Command,

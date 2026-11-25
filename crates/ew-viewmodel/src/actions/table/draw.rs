@@ -100,7 +100,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     )),
     // The structure node and the external reference, one previewed command each.
     with_params(
-        "kind:enum(functional_assignment|function|installation_site|location|document_kind|user_defined|type), designation:text, parent?:text",
+        "kind:enum(@STRUCTURE_KINDS), designation:text, parent?:text",
         placed(
             place(Group::Project, 2, CommandSize::Small, Some(key!("bar-structure"))),
             "sitemap",
@@ -1027,7 +1027,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // End.
     // Supply beside Interruption, what comes in from the mains as supply marks placed in one go.
     keeps_banner(with_params(
-        "system?:enum(supply_1p|supply_3p|supply_3p_no_n|supply_dc|supply_own), names?:text, location?:text, device?:text",
+        "system?:enum(@SUPPLY_SYSTEMS), names?:text, location?:text, device?:text",
         in_canvas(placed(
             place(Group::Connect, 7, CommandSize::Small, Some(key!("bar-supply"))),
             "ew-supply",
@@ -1753,7 +1753,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // Tools, Renumber devices… and Purge unused images…
     // Ctrl+Shift+N, doc 16 §4.4's shell binding.
     with_params(
-        "scope?:enum(project|page|selection), scheme?:text, include_frozen?:bool, only_nonconforming?:bool",
+        "scope?:enum(@DEVICE_SCOPES), scheme?:text, include_frozen?:bool, only_nonconforming?:bool",
         placed(
             place(Group::Arrange, 4, CommandSize::Small, Some(key!("bar-renumber"))),
             "sort-ascending-numbers",
