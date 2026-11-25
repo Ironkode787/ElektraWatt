@@ -95,3 +95,22 @@ circuit-class-other = overig
 
 # Why a library's PLC profile is no address profile at hand (plc::unreadable_profile).
 lib-profile-unreadable = het adresprofiel { $p0 } kan niet worden gelezen: { $p1 }
+
+# Where a wire's property comes from: as the SQL view's provenance column words it (prop-source-*), and as the
+# Properties grid's via chip words it (prop-via-*); a project default reads alike in both.
+prop-source-override = overschreven op de draad
+prop-source-core = ader { $p0 } van { $p1 }
+prop-source-cable-core = kabelader
+prop-source-potential = potentiaaldefinitie
+prop-source-colour-profile = kleurprofiel { $p0 }
+prop-source-rating = beveiligd door { $p0 }, { $p1 } A · { $p2 }
+prop-source-size-profile = maatprofiel { $p0 }
+prop-source-project = projectstandaard
+prop-source-built-in = ingebouwde standaard van afleidingsprofiel { $p0 }
+prop-via-core = kabel { $p0 }, ader { $p1 }
+prop-via-potential = potentiaaldefinitie { $p0 }
+prop-via-colour-profile = potentiaal { $p0 } · kleurprofiel '{ $p1 }'
+prop-via-rating = potentiaal { $p0 } · beveiligd door { $p1 }, { $p2 } A · { $p3 }
+prop-via-size-profile = potentiaal { $p0 } · maatprofiel '{ $p1 }' · klasse { $p2 }
+prop-via-built-in = ingebouwde standaard ({ $p0 })
+prop-via-override = overschreven

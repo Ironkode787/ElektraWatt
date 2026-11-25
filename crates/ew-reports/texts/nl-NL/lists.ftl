@@ -235,11 +235,8 @@ cell-bridge-via = { $p0 }, klemmen { $p1 }
 
 cell-bond = Potentiaalverbinding
 
-## A channel's kind, a port's plug, a valve terminal's slot
+## A port's plug, a valve terminal's slot
 
-cell-channel-counter = teller
-cell-channel-supply = voeding
-cell-channel-multi-function = multifunctie
 cell-end-plug = { $p0 } · stekker { $p1 }
 cell-valve-used = ventiel, in gebruik
 cell-valve-spare = ventiel, reserve

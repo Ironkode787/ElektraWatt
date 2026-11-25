@@ -990,21 +990,11 @@ pub(crate) fn rep_location(q: &Q, rep: Id<Representation>) -> Option<String> {
     })
 }
 
-/// The plural of a kind's name for a header (`12 devices`, `2 potential definitions`).
+/// The plural of a kind's name for a header (`12 devices`, `2 potential definitions`): the derivation's table of the
+/// record kinds' words (`ew_derive::text::record_words_named`).
 pub(crate) fn kind_plural(kind: &str) -> String {
-    match kind {
-        "potential_def" => "potential definitions".into(),
-        "structure_node" => "structure nodes".into(),
-        "external_ref" => "external references".into(),
-        "report_block" => "report blocks".into(),
-        "device_link" => "device links".into(),
-        "plc_config_project" => "PLC configuration projects".into(),
-        "import_lineage" => "import lineages".into(),
-        "page_item" => "page items".into(),
-        "structure_box" => "structure boxes".into(),
-        "switch" | "box" => format!("{kind}es"),
-        other => format!("{other}s"),
-    }
+    let [_, _, names] = ew_derive::text::record_words_named(kind);
+    names.to_string()
 }
 
 #[cfg(test)]

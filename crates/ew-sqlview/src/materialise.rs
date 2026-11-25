@@ -430,32 +430,35 @@ fn source_name(s: &PropSource) -> &'static str {
     }
 }
 
+/// Where a wire's property comes from, in the words of the derivation's `prop-source-*` texts (the Properties grid's
+/// form of the same fact is `prop-via-*`, beside them), in English.
 fn source_words(q: &Q, s: &PropSource) -> String {
+    let tag = |d| tag_short(q, d).unwrap_or_default();
     match s {
-        PropSource::Override(_) => "override on the wire".to_owned(),
+        PropSource::Override(_) => ew_derive::text!("prop-source-override"),
         PropSource::Conductor(c) => match q.conductors().get(*c) {
-            Some(c) => format!(
-                "core {} of {}",
-                c.core.as_str(),
-                tag_short(q, c.cable).unwrap_or_default()
-            ),
-            None => "cable core".to_owned(),
+            Some(c) => ew_derive::text!("prop-source-core", c.core.as_str(), tag(c.cable)),
+            None => ew_derive::text!("prop-source-cable-core"),
         },
-        PropSource::PotentialDef(_) => "potential definition".to_owned(),
-        PropSource::ColourRow { profile, .. } => format!("colour profile {profile}"),
+        PropSource::PotentialDef(_) => ew_derive::text!("prop-source-potential"),
+        PropSource::ColourRow { profile, .. } => {
+            ew_derive::text!("prop-source-colour-profile", profile.as_str())
+        }
         // A size from the rating of the protecting device: the device and its rating, and the table (as Properties).
         PropSource::SizeRow {
             rule: SizeRule::Rating { device, current },
             ..
-        } => format!(
-            "protected by {}, rated {current} A · {}",
-            tag_short(q, *device).unwrap_or_default(),
+        } => ew_derive::text!(
+            "prop-source-rating",
+            tag(*device),
+            current.to_string(),
             ew_derive::current_table_basis()
         ),
-        PropSource::SizeRow { profile, .. } => format!("size profile {profile}"),
-        PropSource::ProjectDefault => "project default".to_owned(),
-        PropSource::BuiltIn { profile } => format!("built-in default of derivation profile {profile}"),
+        PropSource::SizeRow { profile, .. } => ew_derive::text!("prop-source-size-profile", profile.as_str()),
+        PropSource::ProjectDefault => ew_derive::text!("prop-source-project"),
+        PropSource::BuiltIn { profile } => ew_derive::text!("prop-source-built-in", profile.as_str()),
     }
+    .to_string()
 }
 
 /// The columns of one wire end.

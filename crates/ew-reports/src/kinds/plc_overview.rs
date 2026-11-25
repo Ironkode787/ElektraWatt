@@ -149,17 +149,15 @@ fn sorted_by_tag(q: &Q, stations: Vec<Id<Device>>) -> Vec<Id<Device>> {
 }
 
 /// A channel kind as the PLC overview and the I/O list print it: its code as every language writes it
-/// (`ew_derive::channel_kind_word`), or in words where it is a word.
+/// (`ew_derive::channel_kind_word`), or where it is a word, its words of the derivation's table
+/// (`ew_derive::text::channel_kind`) in every language.
 pub(super) fn kind_text(k: &ChannelKind) -> Cell {
-    words_cell(&match k {
-        ChannelKind::Counter => text!("cell-channel-counter"),
-        ChannelKind::PowerSupply => text!("cell-channel-supply"),
-        ChannelKind::MultiFunction => text!("cell-channel-multi-function"),
-        ChannelKind::Unknown(_) => text!("cell-other"),
+    match k {
         ChannelKind::Di | ChannelKind::Do | ChannelKind::Ai | ChannelKind::Ao | ChannelKind::IoLinkPort => {
-            return Cell::Text(MlText::neutral(&ew_derive::channel_kind_word(k)));
+            Cell::Text(MlText::neutral(&ew_derive::channel_kind_word(k)))
         }
-    })
+        _ => Cell::Text(ew_derive::catalogue().in_languages(&ew_derive::text::channel_kind(k))),
+    }
 }
 
 /// A channel's state as the PLC overview and the I/O list print it, in words.

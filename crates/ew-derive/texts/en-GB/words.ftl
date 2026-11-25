@@ -99,3 +99,22 @@ circuit-class-other = other
 
 # Why a library's PLC profile is no address profile at hand (plc::unreadable_profile).
 lib-profile-unreadable = the address profile { $p0 } cannot be read: { $p1 }
+
+# Where a wire's property comes from: as the SQL view's provenance column words it (prop-source-*), and as the
+# Properties grid's via chip words it (prop-via-*); a project default reads alike in both.
+prop-source-override = override on the wire
+prop-source-core = core { $p0 } of { $p1 }
+prop-source-cable-core = cable core
+prop-source-potential = potential definition
+prop-source-colour-profile = colour profile { $p0 }
+prop-source-rating = protected by { $p0 }, rated { $p1 } A · { $p2 }
+prop-source-size-profile = size profile { $p0 }
+prop-source-project = project default
+prop-source-built-in = built-in default of derivation profile { $p0 }
+prop-via-core = cable { $p0 }, core { $p1 }
+prop-via-potential = potential definition { $p0 }
+prop-via-colour-profile = potential { $p0 } · colour profile '{ $p1 }'
+prop-via-rating = potential { $p0 } · protected by { $p1 }, rated { $p2 } A · { $p3 }
+prop-via-size-profile = potential { $p0 } · size profile '{ $p1 }' · class { $p2 }
+prop-via-built-in = built-in default ({ $p0 })
+prop-via-override = override

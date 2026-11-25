@@ -436,7 +436,8 @@ fn source_link(q: &Q, source: &PropSource, name: &str) -> SourceLink {
     }
 }
 
-/// The chip text of a wire property's source below level 7.
+/// The chip text of a wire property's source below level 7, in the words of the derivation's `prop-via-*` texts (the
+/// SQL view's form of the same fact is `prop-source-*`, beside them), in English.
 pub(super) fn prop_via(
     q: &Q,
     source: &PropSource,
@@ -452,7 +453,7 @@ pub(super) fn prop_via(
                 .and_then(|k| serde_json::to_value(&k.core).ok())
                 .map(|v| ml_text(&v, src.as_deref()))
                 .unwrap_or_default();
-            format!("cable {cable}, core {core_id}")
+            ew_derive::text!("prop-via-core", cable, core_id)
         }
         PropSource::PotentialDef(d) => {
             let name = q
@@ -460,18 +461,21 @@ pub(super) fn prop_via(
                 .get(*d)
                 .map(|x| x.name.as_str().to_owned())
                 .unwrap_or_default();
-            format!("potential definition {name}")
+            ew_derive::text!("prop-via-potential", name)
         }
-        PropSource::ColourRow { profile, .. } => format!(
-            "potential {potential} · colour profile '{}'",
+        PropSource::ColourRow { profile, .. } => ew_derive::text!(
+            "prop-via-colour-profile",
+            potential,
             profile_name(q, "colour_profile", profile, src.as_deref())
         ),
         PropSource::SizeRow {
             rule: ew_derive::SizeRule::Rating { device, current },
             ..
-        } => format!(
-            "potential {potential} · protected by {}, rated {current} A · {}",
+        } => ew_derive::text!(
+            "prop-via-rating",
+            potential,
             device_tag_text(q, *device),
+            current.to_string(),
             ew_derive::current_table_basis()
         ),
         PropSource::SizeRow {
@@ -483,13 +487,16 @@ pub(super) fn prop_via(
                 .ok()
                 .and_then(|v| v.as_str().map(str::to_owned))
                 .unwrap_or_default();
-            format!(
-                "potential {potential} · size profile '{}' · class {class}",
-                profile_name(q, "size_profile", profile, src.as_deref())
+            ew_derive::text!(
+                "prop-via-size-profile",
+                potential,
+                profile_name(q, "size_profile", profile, src.as_deref()),
+                class
             )
         }
-        PropSource::ProjectDefault => "project default".into(),
-        PropSource::BuiltIn { profile } => format!("built-in default ({profile})"),
-        PropSource::Override(_) => "override".into(),
+        PropSource::ProjectDefault => ew_derive::text!("prop-source-project"),
+        PropSource::BuiltIn { profile } => ew_derive::text!("prop-via-built-in", profile.as_str()),
+        PropSource::Override(_) => ew_derive::text!("prop-via-override"),
     }
+    .to_string()
 }

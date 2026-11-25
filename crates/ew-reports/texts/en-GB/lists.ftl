@@ -235,11 +235,8 @@ cell-bridge-via = { $p0 } bridge, terminals { $p1 }
 
 cell-bond = Bond
 
-## A channel's kind, a port's plug, a valve terminal's slot
+## A port's plug, a valve terminal's slot
 
-cell-channel-counter = counter
-cell-channel-supply = supply
-cell-channel-multi-function = multi-function
 cell-end-plug = { $p0 } · plug { $p1 }
 cell-valve-used = valve, used
 cell-valve-spare = valve, spare
