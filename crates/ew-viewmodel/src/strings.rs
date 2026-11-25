@@ -575,25 +575,25 @@ pub fn field_helps(kind: &str, path: &str) -> Vec<&'static str> {
         .collect()
 }
 
-/// The word of a macro variable's type: the words `macro.insert`'s coercion refusals use for it (a
-/// `tag_counter` takes "a tag counter (an integer from 1)", so it is "tag counter"); a type this version does not
-/// know is its key with spaces. The window never prints a raw type key.
+/// The word of a macro variable's type in the UI language: the words `macro.insert`'s coercion refusals use for it (a
+/// `tag_counter` takes "a tag counter (an integer from 1)", so it is "tag counter", "kenmerkteller"); a type this
+/// version does not know is its key with spaces. The window never prints a raw type key.
 pub fn var_type_word(ty: &str) -> String {
-    let word = match ty {
-        "text" => "text",
-        "ident" => "identifier",
-        "number" => "number",
-        "bool" => "true or false",
-        "state" => "state",
-        "part" => "part reference",
-        "process_tag" => "process tag",
-        "channel_binding" => "channel number",
-        "address" => "address",
-        "tag_counter" => "tag counter",
-        "device_ref" => "device",
+    let key = match ty {
+        "text" => key!("var-type-text"),
+        "ident" => key!("var-type-ident"),
+        "number" => key!("var-type-number"),
+        "bool" => key!("var-type-bool"),
+        "state" => key!("var-type-state"),
+        "part" => key!("var-type-part"),
+        "process_tag" => key!("var-type-process-tag"),
+        "channel_binding" => key!("var-type-channel-binding"),
+        "address" => key!("var-type-address"),
+        "tag_counter" => key!("var-type-tag-counter"),
+        "device_ref" => key!("var-type-device-ref"),
         other => return other.replace('_', " "),
     };
-    word.to_owned()
+    text(key).to_owned()
 }
 
 /// A choice value of a form dialog in words (doc 16a §8): the text of `choice-<value>`
@@ -1119,6 +1119,16 @@ mod tests {
             render(&keyed(key!("reason-paste-page"), vec![kind])),
             "Nothing can be pasted on a table of contents"
         );
+    }
+
+    /// A macro variable's type reads in the UI language: "process tag", in Dutch "proceskenmerk".
+    #[test]
+    fn a_macro_variable_type_reads_in_the_ui_language() {
+        assert_eq!(var_type_word("process_tag"), "process tag");
+        assert!(set_locale("nl"));
+        assert_eq!(var_type_word("process_tag"), "proceskenmerk");
+        assert_eq!(var_type_word("tag_counter"), "kenmerkteller");
+        assert!(set_locale("en"));
     }
 
     /// A record of a kind without words of its own is "an item" ("een element"), not the jargon "record".
