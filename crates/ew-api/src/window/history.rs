@@ -27,8 +27,13 @@ const MAX_HISTORY_PAGES: usize = 8;
 /// that moves none keeps its command's, Route's.
 pub const ARRANGE_STEP: &str = "layout.arrange";
 
+/// The label of a `project.settings.set` step: this prefix and the member it sets (`project.settings.set.frames`;
+/// `supply` for every member of the supply), so that its Undo names what it changed. An old command log's alias
+/// (`project.frames.set`) is recorded as the command with that member and reads the same.
+pub const SETTINGS_STEP: &str = "project.settings.set.";
+
 /// The label of a `project.settings.set` step that changes one drawing setting: this prefix and the setting
-/// (`project.settings.set.drawing.wire_numbers`), so that its Undo names what it changed.
+/// (`project.settings.set.drawing.wire_numbers`).
 pub const DRAWING_STEP: &str = "project.settings.set.drawing.";
 
 /// One entry of the history.
@@ -36,8 +41,9 @@ pub const DRAWING_STEP: &str = "project.settings.set.drawing.";
 pub struct HistoryRow {
     /// The entry's index in the stack (0 the oldest kept).
     pub index: usize,
-    /// The label: the command's, or [`ARRANGE_STEP`] for a `layout.apply` that moves symbols, or [`DRAWING_STEP`] and
-    /// the setting for a `project.settings.set` of one drawing setting.
+    /// The label: the command's, or [`ARRANGE_STEP`] for a `layout.apply` that moves symbols, or for a
+    /// `project.settings.set` [`DRAWING_STEP`] and the setting of one drawing setting, else [`SETTINGS_STEP`] and the
+    /// member.
     pub label: String,
     /// The origin as the panel prints it.
     pub origin: String,
@@ -77,6 +83,20 @@ fn origin_text(origin: &Origin) -> String {
         Origin::External => "external change".to_owned(),
         Origin::Import { .. } => "import".to_owned(),
         other => other.label(),
+    }
+}
+
+/// The label of a `project.settings.set` step with `params` (see [`HistoryRow::label`]).
+fn settings_step(params: &serde_json::Value) -> String {
+    let member = params["member"].as_str().unwrap_or_default();
+    let one_setting = params["value"]
+        .as_object()
+        .filter(|m| m.len() == 1)
+        .and_then(|m| m.keys().next());
+    match (member, one_setting) {
+        ("drawing", Some(setting)) => format!("{DRAWING_STEP}{setting}"),
+        (m, _) if m.starts_with("supply.") => format!("{SETTINGS_STEP}supply"),
+        (m, _) => format!("{SETTINGS_STEP}{m}"),
     }
 }
 
@@ -158,13 +178,8 @@ pub(super) fn view_of(history: &History, q: &Q) -> HistoryView {
                     .is_some_and(|p| !p.is_empty())
             {
                 ARRANGE_STEP.to_owned()
-            } else if let Some(member) = (e.label() == "project.settings.set"
-                && e.command().params["member"] == "drawing")
-                .then(|| e.command().params["value"].as_object().filter(|m| m.len() == 1))
-                .flatten()
-                .and_then(|m| m.keys().next())
-            {
-                format!("{DRAWING_STEP}{member}")
+            } else if e.label() == "project.settings.set" {
+                settings_step(&e.command().params)
             } else {
                 e.label().to_owned()
             },

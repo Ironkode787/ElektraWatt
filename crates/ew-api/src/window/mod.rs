@@ -30,7 +30,7 @@ pub use clipboard::{
     parse_fragment_with,
 };
 pub use find::{FindError, FindField, FindHit, FindQuery, FindResults};
-pub use history::{ARRANGE_STEP, DRAWING_STEP, HistoryRow, HistoryView};
+pub use history::{ARRANGE_STEP, DRAWING_STEP, HistoryRow, HistoryView, SETTINGS_STEP};
 pub use part_card::{PartCard, PartSize};
 pub use plc_bind::OffCardBind;
 pub use typed::UnknownColour;

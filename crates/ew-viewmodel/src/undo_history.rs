@@ -136,13 +136,12 @@ impl HistoryPane {
 
     /// Doc 16a §8: an entry's label in words, its command's title ("Create page" for
     /// `page.create`); a step that moved symbols is "Arrange and route", one that routed wires alone "Route wires"
-    /// (docs/design/06a-drafting.md §7.3); a drawing setting changed alone is named by its setting ("Print wire
-    /// numbers", where it read "Set drawing data").
+    /// (docs/design/06a-drafting.md §7.3); a step of the project settings is named by what it sets ([`setting_words`]).
     pub fn label_words(row: &HistoryRow) -> String {
         if row.label == ew_api::window::ARRANGE_STEP {
             crate::strings::text(crate::key!("action-layout-arrange")).to_owned()
-        } else if let Some(member) = row.label.strip_prefix(ew_api::window::DRAWING_STEP) {
-            crate::strings::field_label("project", &format!("settings.drawing.{member}"))
+        } else if let Some(member) = row.label.strip_prefix(ew_api::window::SETTINGS_STEP) {
+            setting_words(member)
         } else {
             crate::strings::command_title(&row.label).to_owned()
         }
@@ -225,6 +224,24 @@ impl HistoryPane {
     /// the contexts.
     pub(crate) fn clear(&mut self) {
         *self = HistoryPane::default();
+    }
+}
+
+/// A step of `project.settings.set` in words, by the member it sets (`ew_api::window::SETTINGS_STEP`): a drawing setting
+/// changed alone by its setting ("Print wire numbers"), the drawing settings, the frame defaults, the languages and
+/// the supply by their own words ("Set frames"), a member of the settable table by the command's title ("Set project
+/// settings"). The one place that words a member.
+fn setting_words(member: &str) -> String {
+    use crate::strings::text;
+    if let Some(setting) = member.strip_prefix("drawing.") {
+        return crate::strings::field_label("project", &format!("settings.drawing.{setting}"));
+    }
+    match member {
+        "drawing" => text(crate::key!("step-settings-drawing")).to_owned(),
+        "frames" => text(crate::key!("step-settings-frames")).to_owned(),
+        "languages" => text(crate::key!("step-settings-languages")).to_owned(),
+        "supply" => text(crate::key!("step-settings-supply")).to_owned(),
+        _ => crate::strings::command_title("project.settings.set").to_owned(),
     }
 }
 
@@ -342,5 +359,71 @@ mod tests {
 
     fn uuid_of(n: u128) -> ew_api::output::Uuid {
         ew_api::output::Uuid::from_u128(n)
+    }
+
+    /// A step of `project.settings.set` reads what it set, in both languages: a drawing setting alone, the drawing
+    /// settings, the frame defaults, the languages and a member of the supply, and an earlier log's alias as the
+    /// command with that member.
+    #[test]
+    fn a_settings_step_is_named_by_what_it_sets() {
+        let project = serde_json::from_str(
+            r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1","settings":{"frames":{"per_page_type":[]}}}"#,
+        )
+        .expect("a project");
+        let mut s = ew_api::Session::from_records(project, [], [], ew_api::SessionOptions::default())
+            .expect("a session");
+        let log = ew_api::CmdLog::parse(concat!(
+            r#"{"$schema":"ew.cmdlog/1"}"#,
+            "\n",
+            r#"{"cmd":"project.settings.set","params":{"member":"drawing","value":{"wire_numbers":true}}}"#,
+            "\n",
+            r#"{"cmd":"project.settings.set","params":{"member":"drawing","value":{"crossings":"hops","marker_mode":"all"}}}"#,
+            "\n",
+            r#"{"cmd":"project.settings.set","params":{"member":"frames","value":{}}}"#,
+            "\n",
+            r#"{"cmd":"project.settings.set","params":{"member":"languages","value":{"source":"nl-NL"}}}"#,
+            "\n",
+            r#"{"cmd":"project.settings.set","params":{"member":"supply.u_nom","value":"400"}}"#,
+            "\n",
+            r#"{"cmd":"project.drawing.set","params":{"crossings":"plain","marker_mode":"none"}}"#,
+            "\n",
+            r#"{"cmd":"project.languages.set","params":{"source":"en"}}"#,
+            "\n",
+            r#"{"cmd":"project.supply.set","params":{"path":"phases","value":3}}"#,
+            "\n",
+        ))
+        .expect("a log");
+        s.run_script(&log, "steps.ewcmd").expect("the log runs");
+        let view = s.history_view();
+        let words = || -> Vec<String> { view.rows.iter().map(HistoryPane::label_words).collect() };
+        assert_eq!(
+            words(),
+            [
+                "Print wire numbers",
+                "Set drawing data",
+                "Set frames",
+                "Set languages",
+                "Set supply",
+                "Set drawing data",
+                "Set languages",
+                "Set supply",
+            ]
+        );
+        assert!(crate::strings::set_locale("nl"));
+        let dutch = words();
+        assert!(crate::strings::set_locale("en"));
+        assert_eq!(
+            dutch,
+            [
+                "Draadnummers afdrukken",
+                "Tekeninggegevens instellen",
+                "Kaders instellen",
+                "Talen instellen",
+                "Voeding instellen",
+                "Tekeninggegevens instellen",
+                "Talen instellen",
+                "Voeding instellen",
+            ]
+        );
     }
 }
