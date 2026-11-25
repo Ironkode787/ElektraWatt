@@ -2136,7 +2136,7 @@ pub fn describe(model: &ShellModel) -> String {
         // An open parameter form replaces the list: its action, then one field line per row.
         if let Some(form) = &palette.form {
             let label = actions::find(form.action)
-                .map(|m| strings::text(Key::run_time(&m.label_key())))
+                .map(|m| m.label())
                 .unwrap_or(form.action);
             lines.push(format!("  action {} \"{label}\"", form.action));
             for f in &form.fields {

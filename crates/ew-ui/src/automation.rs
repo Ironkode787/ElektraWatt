@@ -45,10 +45,7 @@ pub(crate) fn plc_import(
     }
     ui.horizontal(|ui| {
         for tab in ImportTab::ALL {
-            let label = strings::format(
-                ew_viewmodel::strings::Key::run_time(&format!("plc-import-tab-{}", tab.word())),
-                &[&card.count(tab).to_string()],
-            );
+            let label = strings::format(tab.label_key(), &[&card.count(tab).to_string()]);
             let on = card.tab == tab;
             let r = ui.selectable_label(on, label.clone());
             if r.clicked() {

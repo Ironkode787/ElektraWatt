@@ -138,20 +138,60 @@ fn start_rows(
 
 /// The drawing tools of the bar: the action's word, the caption's key and the icon. Each has `symbol-tip-<word>`,
 /// what it does and how.
-const TOOLS: [(&str, strings::Key<'static>, &str); 13] = [
-    ("select", key!("symbol-select"), "pointer"),
-    ("line", key!("symbol-line"), "ew-shape-line"),
-    ("rectangle", key!("symbol-rectangle"), "ew-shape-rectangle"),
-    ("circle", key!("symbol-circle"), "ew-shape-circle"),
-    ("ellipse", key!("symbol-ellipse"), "ew-shape-ellipse"),
-    ("arc", key!("symbol-arc"), "ew-shape-arc"),
-    ("polyline", key!("symbol-polyline"), "ew-shape-polyline"),
-    ("polygon", key!("symbol-polygon"), "ew-shape-polygon"),
-    ("text", key!("symbol-text"), "typography"),
-    ("cp", key!("symbol-cp"), "plug-connected"),
-    ("slot", key!("symbol-slot"), "text-size"),
-    ("anchor", key!("symbol-anchor"), "current-location"),
-    ("link", key!("symbol-link"), "link"),
+const TOOLS: [(&str, strings::Key<'static>, strings::Key<'static>, &str); 13] = [
+    (
+        "select",
+        key!("symbol-select"),
+        key!("symbol-tip-select"),
+        "pointer",
+    ),
+    (
+        "line",
+        key!("symbol-line"),
+        key!("symbol-tip-line"),
+        "ew-shape-line",
+    ),
+    (
+        "rectangle",
+        key!("symbol-rectangle"),
+        key!("symbol-tip-rectangle"),
+        "ew-shape-rectangle",
+    ),
+    (
+        "circle",
+        key!("symbol-circle"),
+        key!("symbol-tip-circle"),
+        "ew-shape-circle",
+    ),
+    (
+        "ellipse",
+        key!("symbol-ellipse"),
+        key!("symbol-tip-ellipse"),
+        "ew-shape-ellipse",
+    ),
+    ("arc", key!("symbol-arc"), key!("symbol-tip-arc"), "ew-shape-arc"),
+    (
+        "polyline",
+        key!("symbol-polyline"),
+        key!("symbol-tip-polyline"),
+        "ew-shape-polyline",
+    ),
+    (
+        "polygon",
+        key!("symbol-polygon"),
+        key!("symbol-tip-polygon"),
+        "ew-shape-polygon",
+    ),
+    ("text", key!("symbol-text"), key!("symbol-tip-text"), "typography"),
+    ("cp", key!("symbol-cp"), key!("symbol-tip-cp"), "plug-connected"),
+    ("slot", key!("symbol-slot"), key!("symbol-tip-slot"), "text-size"),
+    (
+        "anchor",
+        key!("symbol-anchor"),
+        key!("symbol-tip-anchor"),
+        "current-location",
+    ),
+    ("link", key!("symbol-link"), key!("symbol-tip-link"), "link"),
 ];
 
 /// A command of the editor's bar, with the main bar's sizing, painting and accessible name: `id` the action it runs (a
@@ -258,7 +298,7 @@ impl EditorView {
         size: CommandSize,
         events: &mut Vec<Event>,
     ) -> bool {
-        let Some((word, caption, icon)) = TOOLS.iter().find(|(w, ..)| *w == word).copied() else {
+        let Some((word, caption, tip, icon)) = TOOLS.iter().find(|(w, ..)| *w == word).copied() else {
             return false;
         };
         // The tooltip names the key of the keymap that chooses the tool.
@@ -269,7 +309,7 @@ impl EditorView {
             .map(|m| shell.shortcut_text(m))
             .unwrap_or_default();
         // What the tool does and how, under its name.
-        let how = label(strings::Key::run_time(&format!("symbol-tip-{word}")));
+        let how = label(tip);
         let clicked = bar_command(
             ui,
             (caption.as_str(), caption, icon),
@@ -831,7 +871,10 @@ impl EditorView {
                         }
                         ui.label(crate::components::small_secondary(
                             &t,
-                            label(strings::Key::run_time(&format!("symbol-tip-{}", editor.tool))),
+                            TOOLS
+                                .iter()
+                                .find(|(w, ..)| *w == editor.tool)
+                                .map_or("", |(_, _, tip, _)| label(*tip)),
                         ));
                     });
                 });
@@ -896,13 +939,7 @@ impl EditorView {
                 if group.rows.is_empty() {
                     ui.horizontal(|ui| {
                         ui.add_space(t.size_tree_indent + t.space_2);
-                        ui.label(crate::components::small_tertiary(
-                            &t,
-                            label(strings::Key::run_time(&format!(
-                                "symbol-outline-empty-{}",
-                                group.key
-                            ))),
-                        ));
+                        ui.label(crate::components::small_tertiary(&t, group.empty.clone()));
                     });
                 }
             }
@@ -995,8 +1032,15 @@ impl EditorView {
                     let line_up =
                         components::button(ui, Kind::Secondary, label(key!("symbol-line-up")), None, 0.0);
                     egui::Popup::menu(&line_up).show(|ui| {
-                        for to in ["left", "centre", "right", "top", "middle", "bottom"] {
-                            let words = label(strings::Key::run_time(&format!("symbol-line-up-{to}")));
+                        for (to, words) in [
+                            ("left", key!("symbol-line-up-left")),
+                            ("centre", key!("symbol-line-up-centre")),
+                            ("right", key!("symbol-line-up-right")),
+                            ("top", key!("symbol-line-up-top")),
+                            ("middle", key!("symbol-line-up-middle")),
+                            ("bottom", key!("symbol-line-up-bottom")),
+                        ] {
+                            let words = label(words);
                             if ui.button(words).clicked() {
                                 action(events, "symbol.align", json!({ "to": to }));
                                 ui.close();

@@ -357,6 +357,11 @@ impl ActionMeta {
         format!("action-{}", self.id.replace(['.', '_'], "-"))
     }
 
+    /// Its label in the UI language (the text of [`Self::label_key`]).
+    pub fn label(&self) -> &'static str {
+        strings::text(Key::run_time(&self.label_key()))
+    }
+
     /// The parameter signature as a reader takes it: [`Self::params`] with each named set spelt out as its words
     /// (`type?:enum(title_page|…)` for `type?:enum(@PAGE_TYPES)`).
     pub fn signature(&self) -> String {

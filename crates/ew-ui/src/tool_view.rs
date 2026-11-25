@@ -166,14 +166,11 @@ pub(crate) fn structure_box_fields(
         ui,
         egui::ComboBox::from_label(strings::text(key!("action-structure-box-style"))).selected_text("…"),
         |ui| {
-            for style in ["dotted", "dash_dot"] {
-                if ui
-                    .selectable_label(
-                        false,
-                        strings::text(strings::Key::run_time(&format!("box-style-{style}"))),
-                    )
-                    .clicked()
-                {
+            for (style, words) in [
+                ("dotted", key!("box-style-dotted")),
+                ("dash_dot", key!("box-style-dash_dot")),
+            ] {
+                if ui.selectable_label(false, strings::text(words)).clicked() {
                     events.push(crate::app::Event::Action(
                         "structure_box.fields",
                         serde_json::json!({ "style": style }),

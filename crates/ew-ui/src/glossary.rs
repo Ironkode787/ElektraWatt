@@ -15,7 +15,7 @@
 
 use egui::{Sense, Ui, Vec2};
 use ew_viewmodel::shell::{GlossaryRow, ShellModel};
-use ew_viewmodel::strings::{self, Key};
+use ew_viewmodel::strings;
 use ew_viewmodel::{actions, key};
 use serde_json::{Value, json};
 
@@ -42,7 +42,7 @@ pub fn column_widths(width: f32, longest: [f32; 3], actions: f32) -> [f32; 5] {
 /// else the action's menu label.
 pub(crate) fn action_words(id: &str) -> Option<(String, String)> {
     let meta = actions::find(id)?;
-    let label = strings::text(Key::run_time(&meta.label_key())).to_owned();
+    let label = meta.label().to_owned();
     Some(if id.starts_with("tool.") {
         let insert = strings::text(key!("glossary-insert")).to_owned();
         (insert, strings::format(key!("glossary-insert-name"), &[&label]))

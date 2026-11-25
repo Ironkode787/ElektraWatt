@@ -172,7 +172,7 @@ pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
     ActionItem {
         id: meta.id,
         params: Value::Object(serde_json::Map::new()),
-        label: strings::text(Key::run_time(&meta.label_key())).to_owned(),
+        label: meta.label().to_owned(),
         shortcut: model.shortcut_text(meta),
         enabled: state.is_ok(),
         reason: state.err().map(|k| strings::render(&k)),

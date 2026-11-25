@@ -799,13 +799,18 @@ impl ShellModel {
     /// (`plc.readdress`, the preview lists every old and new address), Make manual addresses automatic…
     /// (`plc.convert_manual_to_auto`) and, for a configuration project, Freeze addresses… (`plc.freeze`).
     fn addressing_entries(&self, scope: Value, out: &mut Vec<ActionItem>) {
-        let mut commands = vec!["plc.readdress", "plc.convert_manual_to_auto"];
+        let mut commands = vec![
+            ("plc.readdress", key!("menu-plc-readdress")),
+            (
+                "plc.convert_manual_to_auto",
+                key!("menu-plc-convert-manual-to-auto"),
+            ),
+        ];
         if scope.get("config_project").is_some() {
-            commands.push("plc.freeze");
+            commands.push(("plc.freeze", key!("menu-plc-freeze")));
         }
-        for name in commands {
-            let label =
-                strings::text(Key::run_time(&format!("menu-{}", name.replace(['.', '_'], "-")))).to_owned();
+        for (name, words) in commands {
+            let label = strings::text(words).to_owned();
             let params = json!({ "cmd": name, "params": scope });
             out.extend(self.aimed("plc.preview", params, label));
         }

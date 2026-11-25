@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 mod device_box;
 mod selection;
 mod sheet;
-pub use device_box::{DeviceBox, PinLine, SIDES, side_word};
+pub use device_box::{DeviceBox, PinLine, SIDES, side_word, side_words};
 pub use selection::{Clipboard, Item, bounds, grips, role_words};
 pub use sheet::{Outline, OutlineGroup, OutlineRow, RowValue, Sheet, SheetRow, Todo, WHAT, trim_mm};
 

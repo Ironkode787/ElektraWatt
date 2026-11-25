@@ -91,9 +91,8 @@ pub(crate) fn chooser(
         }
         ui.add_space(t.space_3);
         for v in ew_viewmodel::ew_api::OfferView::ALL {
-            let key = format!("part-choose-view-{}", v.word());
             if ui
-                .selectable_label(c.query.view == v, strings::text(strings::Key::run_time(&key)))
+                .selectable_label(c.query.view == v, strings::offer_view_words(v))
                 .clicked()
             {
                 set_active(&ctx, None);

@@ -29,7 +29,6 @@ use std::path::Path;
 use crate::actions::{ACTIONS, ActionMeta, Context};
 use crate::key;
 use crate::strings;
-use crate::strings::Key;
 
 /// The user's keymap file inside the settings directory.
 pub const USER_FILE: &str = "keymap.toml";
@@ -609,12 +608,8 @@ pub fn refusal_text(finding: &Finding, recorded: &str) -> String {
             context,
             actions,
         } if actions.contains(&recorded) => {
-            let label = |id: &str| {
-                crate::actions::find(id).map_or_else(
-                    || id.to_owned(),
-                    |m| strings::text(Key::run_time(&m.label_key())).to_owned(),
-                )
-            };
+            let label =
+                |id: &str| crate::actions::find(id).map_or_else(|| id.to_owned(), |m| m.label().to_owned());
             let others: Vec<String> = actions
                 .iter()
                 .filter(|a| **a != recorded)
@@ -735,12 +730,8 @@ impl Finding {
 
     /// The English text the editor and the banner show.
     pub fn text(&self) -> String {
-        let label = |id: &str| {
-            crate::actions::find(id).map_or_else(
-                || id.to_owned(),
-                |m| strings::text(Key::run_time(&m.label_key())).to_owned(),
-            )
-        };
+        let label =
+            |id: &str| crate::actions::find(id).map_or_else(|| id.to_owned(), |m| m.label().to_owned());
         match self {
             Finding::Conflict {
                 chord,
@@ -868,7 +859,7 @@ pub fn sheet_json() -> String {
         actions.push(serde_json::json!({
             "action": meta.id,
             "label_key": meta.label_key(),
-            "label": strings::text(Key::run_time(&meta.label_key())),
+            "label": meta.label(),
             "context": context_word(meta.context),
             "bindings": bindings,
         }));
@@ -950,7 +941,7 @@ pub fn editor_rows(preset: Preset, user: Option<&Keymap>, query: &str) -> Vec<Ed
             let chords = chords_of(preset, user, meta);
             let row = EditorRow {
                 action: meta.id,
-                label: strings::text(Key::run_time(&meta.label_key())).to_owned(),
+                label: meta.label().to_owned(),
                 context: chords.first().map_or(meta.context, |(_, c)| *c),
                 chords: chords.iter().map(|(c, _)| c.text()).collect(),
                 custom: is_changed(preset, user, meta),
@@ -1177,12 +1168,8 @@ mod tests {
             context: Context::Canvas,
             actions: vec!["tool.move", "tool.wire"],
         };
-        let wire = strings::text(Key::run_time(
-            &crate::actions::find("tool.wire").unwrap().label_key(),
-        ));
-        let r#move = strings::text(Key::run_time(
-            &crate::actions::find("tool.move").unwrap().label_key(),
-        ));
+        let wire = crate::actions::find("tool.wire").unwrap().label();
+        let r#move = crate::actions::find("tool.move").unwrap().label();
         assert_eq!(
             refusal_text(&conflict, "tool.wire"),
             format!("M is already {move} in the canvas.")

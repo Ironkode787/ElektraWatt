@@ -596,6 +596,17 @@ pub fn var_type_word(ty: &str) -> String {
     text(key).to_owned()
 }
 
+/// The words of the part chooser's view `v` (All, In this project, Favourites, Recent).
+pub fn offer_view_words(v: ew_api::OfferView) -> &'static str {
+    use ew_api::OfferView as V;
+    text(match v {
+        V::All => key!("part-choose-view-all"),
+        V::Project => key!("part-choose-view-project"),
+        V::Favourites => key!("part-choose-view-favourites"),
+        V::Recent => key!("part-choose-view-recent"),
+    })
+}
+
 /// What a symbol is for, in words ("Pneumatic"), as the place picker's ratings column says it; empty for a discipline
 /// of a newer format.
 pub fn discipline_words(d: &ew_api::symbols::schema::Discipline) -> String {

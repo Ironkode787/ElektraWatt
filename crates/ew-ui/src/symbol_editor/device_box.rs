@@ -16,7 +16,7 @@ use ew_viewmodel::command_bar::CommandSize;
 use ew_viewmodel::ew_api::part_box::{Dir4, EDIT_STEP};
 use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
-use ew_viewmodel::shell::symbol_editor::{DeviceBox, side_word};
+use ew_viewmodel::shell::symbol_editor::{DeviceBox, side_word, side_words};
 use ew_viewmodel::strings;
 use serde_json::json;
 
@@ -184,10 +184,7 @@ impl EditorView {
             let id = ui.make_persistent_id("box-outline-pins");
             if components::section_header(ui, id, label(key!("box-pins")), Some(table.len()), true) {
                 for line in &table {
-                    let side = strings::text(strings::Key::run_time(&format!(
-                        "box-side-{}",
-                        side_word(&line.side)
-                    )));
+                    let side = side_words(&line.side);
                     let detail = if line.role.is_empty() {
                         side.to_owned()
                     } else {

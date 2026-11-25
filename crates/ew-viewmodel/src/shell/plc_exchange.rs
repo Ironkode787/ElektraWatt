@@ -103,6 +103,16 @@ impl ImportTab {
             ImportTab::Parking => "parking",
         }
     }
+
+    /// The key of the tab's label with its count (`Changed ({ $p0 })`).
+    pub fn label_key(self) -> crate::strings::Key<'static> {
+        match self {
+            ImportTab::Changed => crate::key!("plc-import-tab-changed"),
+            ImportTab::Conflicts => crate::key!("plc-import-tab-conflicts"),
+            ImportTab::Removed => crate::key!("plc-import-tab-removed"),
+            ImportTab::Parking => crate::key!("plc-import-tab-parking"),
+        }
+    }
 }
 
 /// One differing field of the import's preview.

@@ -17,24 +17,32 @@ use ew_api::{PartDraft, PartDraftError};
 use serde_json::{Map, Value, json};
 
 /// The edges of a box in the order the pin table lists them, each with the word an action names it by.
-pub const SIDES: [(&str, Dir4); 4] = [
-    ("top", Dir4::Up),
-    ("bottom", Dir4::Down),
-    ("left", Dir4::Left),
-    ("right", Dir4::Right),
+pub const SIDES: [(&str, Dir4, strings::Key<'static>); 4] = [
+    ("top", Dir4::Up, key!("box-side-top")),
+    ("bottom", Dir4::Down, key!("box-side-bottom")),
+    ("left", Dir4::Left, key!("box-side-left")),
+    ("right", Dir4::Right, key!("box-side-right")),
 ];
 
 /// The word of an edge.
 pub fn side_word(side: &Dir4) -> &'static str {
-    SIDES.iter().find(|(_, d)| d == side).map_or("bottom", |(w, _)| w)
+    SIDES
+        .iter()
+        .find(|(_, d, _)| d == side)
+        .map_or("bottom", |(w, ..)| w)
 }
 
 fn side_of(word: &str) -> Option<Dir4> {
-    SIDES.iter().find(|(w, _)| *w == word).map(|(_, d)| d.clone())
+    SIDES.iter().find(|(w, ..)| *w == word).map(|(_, d, _)| d.clone())
 }
 
-fn side_words(side: &Dir4) -> String {
-    strings::text(strings::Key::run_time(&format!("box-side-{}", side_word(side)))).to_owned()
+/// The words of an edge (Top, Bottom, Left, Right).
+pub fn side_words(side: &Dir4) -> String {
+    let key = SIDES
+        .iter()
+        .find(|(_, d, _)| d == side)
+        .map_or(key!("box-side-bottom"), |(.., k)| *k);
+    strings::text(key).to_owned()
 }
 
 /// One row of the pin table.
@@ -329,7 +337,7 @@ impl DeviceBox {
         }));
         let sides = SIDES
             .iter()
-            .map(|(w, d)| ((*w).to_owned(), side_words(d)))
+            .map(|(w, d, _)| ((*w).to_owned(), side_words(d)))
             .collect();
         let rows = vec![
             SheetRow {

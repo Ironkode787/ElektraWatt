@@ -93,6 +93,8 @@ pub struct OutlineGroup {
     pub label: String,
     /// What it lists.
     pub rows: Vec<OutlineRow>,
+    /// What it says while it lists nothing.
+    pub empty: String,
 }
 
 /// One thing that keeps the symbol from being saved or used.
@@ -458,16 +460,19 @@ impl SymbolEditor {
                 key: "cps",
                 label: label("symbol-pins"),
                 rows: rows((0..s.cps.len()).map(Item::Cp).collect()),
+                empty: strings::text(key!("symbol-outline-empty-cps")).to_owned(),
             },
             OutlineGroup {
                 key: "texts",
                 label: label("symbol-texts"),
                 rows: rows(texts),
+                empty: strings::text(key!("symbol-outline-empty-texts")).to_owned(),
             },
             OutlineGroup {
                 key: "shapes",
                 label: label("symbol-shapes"),
                 rows: rows(graphics.filter(|i| !is_text(i)).map(Item::Graphic).collect()),
+                empty: strings::text(key!("symbol-outline-empty-shapes")).to_owned(),
             },
         ];
         if !marks.is_empty() {
@@ -475,6 +480,7 @@ impl SymbolEditor {
                 key: "marks",
                 label: label("symbol-marks"),
                 rows: rows(marks),
+                empty: strings::text(key!("symbol-outline-empty-marks")).to_owned(),
             });
         }
         let mut todo: Vec<Todo> = self

@@ -158,7 +158,7 @@ fn check_form(h: &mut Harness<'_, App>, action: &str, params: Value) -> String {
     assert_eq!(form.action, action);
     // An action that asks when it is given nothing says so with "…" (doc 16a §8 item 8).
     if let (true, Some(meta)) = (bare, ew_viewmodel::actions::find(action)) {
-        let label = strings::text(strings::Key::run_time(&meta.label_key()));
+        let label = meta.label();
         assert!(
             label.ends_with('…'),
             "{action} asks with a form, so its label \"{label}\" ends with …"

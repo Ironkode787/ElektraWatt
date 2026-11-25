@@ -17,9 +17,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::{NavNode, NavRole, NavTable};
-use ew_api::checks::Severity;
 use crate::canvas::PageId;
 use crate::key;
+use ew_api::checks::Severity;
 
 /// The column of a finding row's severity word.
 const SEVERITY: usize = 0;
@@ -200,7 +200,10 @@ pub fn severity(node: &NavNode) -> Option<Severity> {
 
 /// The severity of a severity group row of the Messages tree (`severity:<word>`), `None` for any other row.
 pub fn group_severity(key: &str) -> Option<Severity> {
-    key.rsplit('/').next()?.strip_prefix("severity:").and_then(severity_of)
+    key.rsplit('/')
+        .next()?
+        .strip_prefix("severity:")
+        .and_then(severity_of)
 }
 
 /// The severity whose name ([`Severity::name`]) is `word`.
