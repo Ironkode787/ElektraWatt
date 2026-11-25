@@ -640,7 +640,7 @@ fn a_module_finds_its_channels_by_number_whatever_their_id() {
     assert_eq!(texts[5].1.designation.as_deref(), Some("LOW"));
 }
 
-/// AC-29: a start edit of one module re-runs the configuration project's starts and every
+/// A start edit of one module re-runs the configuration project's starts and every
 /// module's projection, but `channel_addresses` of that module alone; the other projections cut off.
 #[test]
 fn a_start_edit_re_addresses_its_own_module_only() {

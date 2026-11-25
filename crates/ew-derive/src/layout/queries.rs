@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The layout queries of the MVP (doc 12 §2.6): `mountable(dev)`, `unplaced(space)`,
-//! `placement_geometry(p)` (D5), `rail_occupancy(carrier)`, `layout_label(p)` (D10's text) and
+//! `placement_geometry(p)`, `rail_occupancy(carrier)`, `layout_label(p)` (D10's text) and
 //! `carrier_geometry(carrier)`.
 //!
 //! Every value is integer nanometres in the frame of the mounting surface (`u` right, `v` up), exact: carriers are
@@ -109,7 +109,7 @@ fn is_strip_with_terminals(q: &Q, device: &Device) -> bool {
     device.aspects.strip.is_some() && q.idx().terminals_of_strip(device.id).next().is_some()
 }
 
-/// The primary mountable part of a device (D6, D8 cases 5 and 7), as `layout.place` writes it: the first part use whose
+/// The primary mountable part of a device (D8 cases 5 and 7), as `layout.place` writes it: the first part use whose
 /// part mounts, else the first whose part has no mount kind; `None` for a strip with terminals, a device without parts
 /// and one whose parts all mount on their parent or not at all.
 pub fn primary_part(q: &Q, device: &Device) -> Option<PartRef> {
@@ -521,7 +521,7 @@ pub struct PlacementGeom {
     /// FR-LAY-011).
     pub outline: Vec<Vec<Pt2>>,
     /// The part use realised: the placement's `part`, else the device's primary part (an imported `None` means the
-    /// primary, D6); `None` for a strip and a device without parts.
+    /// primary); `None` for a strip and a device without parts.
     pub part: Option<PartRef>,
 }
 
@@ -587,7 +587,7 @@ fn pt(u: i128, v: i128) -> Option<Pt2> {
 }
 
 /// `placement_geometry(p)`: the footprint and outline of a placement in its surface's frame, and whether it is
-/// unknown (D5, doc 12 §2.6).
+/// unknown (doc 12 §2.6).
 ///
 /// On a rail the pose is `t = (s, 0, 0)`: the part's clip point lies on the rail axis at `s` from `path[0]`, and the
 /// part turns by the rail's direction followed by the pose's 0° or 180°; the part origin is the clip point minus the
@@ -780,7 +780,7 @@ pub struct Occupied {
 }
 
 /// `rail_occupancy(carrier)`: the intervals the placements on a rail occupy along its axis, sorted by `(s0, s1,
-/// placement)` (doc 12 §2.6). Strips are one interval (their terminals side by side, D5). Intervals may overlap: the
+/// placement)` (doc 12 §2.6). Strips are one interval (their terminals side by side). Intervals may overlap: the
 /// overlap is reported (EW-LAY-006), never resolved. Empty for a missing carrier, a duct, a rail without a valid
 /// axis; a placement without geometry is left out. The intervals are the bare footprints; each carries its clearance
 /// pads ([`Occupied::pad`]), which the snapping reads and the overlap check does not.
@@ -835,7 +835,7 @@ impl Query for RailOccupancy {
 // ---------------------------------------------------------------------------------------------------------
 // layout_label(p)
 
-/// How a layout view labels its placements (FR-LAY-009; the `label_mode` of a surface view, D9).
+/// How a layout view labels its placements (FR-LAY-009; the `label_mode` of a surface view).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
 pub enum LabelMode {
     /// The displayed tag on the view's page: identifier suppression against the page's structure ("-X1031").
@@ -903,9 +903,9 @@ pub struct CarrierGeom {
     pub surface: Id<MountingSurface>,
     /// The carrier's kind.
     pub kind: CarrierKind,
-    /// Why the path breaks D5, if it does; the length and outline are then not derived.
+    /// Why the path is invalid, if it is; the length and outline are then not derived.
     pub path_error: Option<PathError>,
-    /// The path length in nanometres (the BOM quantity of part 4); `None` for a path that breaks D5 or a kind this
+    /// The path length in nanometres (the BOM quantity of part 4); `None` for an invalid path or a kind this
     /// build does not know.
     pub length: Option<i128>,
     /// A rail's axis.
@@ -916,7 +916,7 @@ pub struct CarrierGeom {
     pub outline: Vec<Rect>,
 }
 
-/// `carrier_geometry(carrier)`: the axis check, length, rail axis and outline of a carrier (D5, doc 12 §2.4). `None`
+/// `carrier_geometry(carrier)`: the axis check, length, rail axis and outline of a carrier (doc 12 §2.4). `None`
 /// for a missing carrier.
 #[derive(Debug)]
 pub struct CarrierGeometry;

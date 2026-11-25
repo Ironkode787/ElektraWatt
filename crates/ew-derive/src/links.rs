@@ -8,7 +8,7 @@
 //!   flow (protective device, N switched with L, terminal contact, source-output CPs). The stitch graph keeps
 //!   the links between CPs that are in the graph (doc 08 §3.3), so presence is applied by the reader.
 //! - **`rail_terminal(d)`** and **`rail_bonds()`**: the PE CPs and location of every rail-bonded terminal, and
-//!   per location the PE CPs that the rail joins (doc 08 §3.7, review decision D5).
+//!   per location the PE CPs that the rail joins (doc 08 §3.7).
 //! - **`bond_paths()`**: the interruption points on the `via` path of every bond and their names (doc 03 §9.6).
 //!
 //! All four are note-free (`Q::detached`): `rail_terminal` keeps its EW-TERM-005, EW-POT-008 and cycle notes in
@@ -65,10 +65,10 @@ pub struct FunctionLinks {
     pub declared: Vec<DeclaredLink>,
     /// Every declared pass-through pair as (smaller, larger) index, existing CPs or not: a chain skips them.
     pub passes: BTreeSet<(u16, u16)>,
-    /// Duplicated pins (doc 03 §9.3, review decision D2; a black box or a part-pattern-origin function that is no
+    /// Duplicated pins (doc 03 §9.3, a black box or a part-pattern-origin function that is no
     /// terminal): the CP indices of one (designation, level), in CP order, per group in key order.
     pub dup_groups: Vec<Vec<u16>>,
-    /// The terminal level rule (doc 08 §6.2, review decision D3; FnDef contact kind terminal): the CP indices of
+    /// The terminal level rule (doc 08 §6.2, FnDef contact kind terminal): the CP indices of
     /// one level (and one side when the FnDef declares a pass-through), with the level, in key order.
     pub level_groups: Vec<(u8, Vec<u16>)>,
     /// Flow (doc 08 §3.6): the FnDef's category is a protective device.

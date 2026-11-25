@@ -10,7 +10,7 @@ use ew_units::Pt2;
 
 use super::pose::Quarter;
 
-/// Why a carrier path is refused (D5: a rail is two points on one horizontal or vertical line, a duct an orthogonal
+/// Why a carrier path is refused (a rail is two points on one horizontal or vertical line, a duct an orthogonal
 /// polyline; a segment at another angle is refused).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PathError {
@@ -46,7 +46,7 @@ fn delta(a: Pt2, b: Pt2) -> (i128, i128) {
     )
 }
 
-/// Checks a carrier path against D5. A carrier kind of a newer format is not checked (`Ok`): this build cannot
+/// Checks a carrier path against the path rules. A carrier kind of a newer format is not checked (`Ok`): this build cannot
 /// know its geometry, and the commands refuse to create one.
 ///
 /// # Errors

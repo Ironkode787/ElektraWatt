@@ -286,7 +286,7 @@ pub trait ReportPagesProvider: Send + Sync {
     /// The generated pages of `block` when the table of contents has `toc_pages` pages.
     fn pages(&self, q: &Q, block: Id<ReportBlock>, toc_pages: u32) -> Vec<GeneratedPage>;
 
-    /// The rows one page of the TOC block `block` holds (doc 09 §3.1, decision D3: the data area of the
+    /// The rows one page of the TOC block `block` holds (doc 09 §3.1: the data area of the
     /// TOC form when it has a valid one, else the profile's `toc.rows_per_page`). At least 1. The default
     /// is the profile's value.
     fn toc_rows_per_page(&self, q: &Q, block: Id<ReportBlock>) -> u32 {

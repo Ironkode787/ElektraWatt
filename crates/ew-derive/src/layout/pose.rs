@@ -127,7 +127,7 @@ impl fmt::Display for PoseError {
     }
 }
 
-/// Checks a placement's pose against its carrier kind's degrees of freedom (doc 12 §2.3, D5). A pose on a surface is
+/// Checks a placement's pose against its carrier kind's degrees of freedom (doc 12 §2.3). A pose on a surface is
 /// not checked against the usable polygon: whether a footprint lies inside it is EW-LAY-010's (it needs the
 /// footprint).
 ///
@@ -163,7 +163,7 @@ pub fn check_pose(on: PoseOn, pose: &Pose3) -> Result<(), PoseError> {
     }
 }
 
-/// The clip point of a part in the part frame (D5): its `rail_offset`, else the centre of its `W × H` footprint, else
+/// The clip point of a part in the part frame: its `rail_offset`, else the centre of its `W × H` footprint, else
 /// `(0, 0)` (an unknown footprint is a square about the pose).
 pub fn clip_offset(mech: Option<&MechData>) -> (i128, i128) {
     let Some(mech) = mech else {

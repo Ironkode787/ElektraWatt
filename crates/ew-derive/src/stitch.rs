@@ -40,7 +40,7 @@
 //!   +#1/+#2 and −#1/−#2, the MICO with 24VDC#1/#2 and GND#1/#2) declares no links of its own. Equal
 //!   designations of an FnDef-origin function or of a terminal (a double-deck terminal's a/b per level) are
 //!   separate points.
-//! - **Rail bonding at MVP** (doc 08 §3.7, review decision D5): the PE CPs of every rail-bonded terminal
+//! - **Rail bonding at MVP** (doc 08 §3.7): the PE CPs of every rail-bonded terminal
 //!   of one location join one virtual location PE node, expressed as a chain of [`EdgeKind::RailBond`]
 //!   edges in CP order. A PE CP is a CP in the graph whose clamp is the rail foot or whose potential role
 //!   is `Pe` or `Pen`; there is no fallback to another CP. A rail-bonded terminal without a PE CP joins
@@ -456,8 +456,7 @@ pub(crate) fn build(q: &Q, inputs: &StitchInputs) -> StitchBuild {
     }
 }
 
-/// The short and pass-through edges of function `f` between CPs in the graph (doc 08 §3.3, §6.2; review
-/// decisions D2 and D3).
+/// The short and pass-through edges of function `f` between CPs in the graph (doc 08 §3.3, §6.2).
 fn function_edges(b: &mut Builder, f: Id<Function>, links: &FunctionLinks) {
     let present = |b: &Builder, i: u16| b.node_of.contains_key(&EndpointKey::Cp(f, i));
     for d in &links.declared {

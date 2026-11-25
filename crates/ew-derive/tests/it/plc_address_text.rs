@@ -4,7 +4,7 @@
 //! `plc_address_text(function)` (doc 10 §3.6) on one valve-terminal module whose eight
 //! output channels derive Q0.0 … Q0.7: a bistable valve V1 (coil CPs 14 and 12 on its fluid function), a valve V2 whose
 //! coil is a function of its own beside the fluid function, and a plain device V3 bound to an excluded channel and to
-//! an open-item channel. PT-3's fixture is V1.
+//! an open-item channel. the fixture is V1.
 
 use crate::common;
 
@@ -143,7 +143,7 @@ fn solenoids(list: &[(&str, &str)]) -> Vec<(String, String)> {
         .collect()
 }
 
-/// PT-3: a bistable valve prints its coil addresses in solenoid order 14, 12 joined by " / ", whatever the CP or
+/// A bistable valve prints its coil addresses in solenoid order 14, 12 joined by " / ", whatever the CP or
 /// channel order; each bound CP carries its own address, and each solenoid its own for the symbol's place at it.
 #[test]
 fn a_bistable_valve_prints_its_coils_in_solenoid_order() {

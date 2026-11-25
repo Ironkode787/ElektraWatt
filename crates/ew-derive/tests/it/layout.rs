@@ -318,7 +318,7 @@ fn mcb_at(s_um: i64, half: bool) -> Rect {
 proptest::proptest! {
     #![proptest_config(proptest::prelude::ProptestConfig::with_cases(32))]
 
-    /// D5 on a rail: a centre-clipped part covers `[s − W/2, s + W/2]` across the axis' `±H/2` whatever `s`, and the
+    /// On a rail: a centre-clipped part covers `[s − W/2, s + W/2]` across the axis' `±H/2` whatever `s`, and the
     /// 180° flip covers the same rectangle.
     #[test]
     fn a_centre_clipped_part_spans_its_width_about_s_flipped_or_not(s_um in 0i64..500_000) {

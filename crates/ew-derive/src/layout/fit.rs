@@ -70,7 +70,7 @@ pub enum Fit {
     /// The table says it does not fit.
     DoesNotFit,
     /// The part has no mount kind, or a mount kind or profile of a newer format: nothing to judge (an unknown
-    /// footprint, D5).
+    /// footprint).
     Unknown,
 }
 

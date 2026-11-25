@@ -26,7 +26,7 @@ pub struct BridgeGroup {
     pub terminals: Vec<Id<Device>>,
     /// The group's connections in (lower `seq` of their terminal ends, ID) order.
     pub connections: Vec<Id<Connection>>,
-    /// The carrier (D6): the first connection of [`BridgeGroup::connections`] with a part
+    /// The carrier: the first connection of [`BridgeGroup::connections`] with a part
     /// (`overrides.wire_part`), else the first connection.
     pub carrier: Id<Connection>,
     /// The carrier's `overrides.wire_part`: the bridge's part, `None` when the group has none.

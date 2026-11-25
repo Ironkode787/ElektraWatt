@@ -102,7 +102,7 @@ fn segments(fx: &Fx) -> Vec<BusSegment> {
     Q::new(&m).get::<BusSegments>(id(PNET)).as_ref().clone()
 }
 
-/// A5: the master end starts the segment; the walk lists each cable before the node it reaches; the lone port F6 is
+/// The master end starts the segment; the walk lists each cable before the node it reaches; the lone port F6 is
 /// a segment of its own; the connection of the two functions without a port is no segment.
 #[test]
 fn a_line_starts_at_its_master_end() {
@@ -117,7 +117,7 @@ fn a_line_starts_at_its_master_end() {
     assert_eq!(s[1].ends, [id::<Function>(F6)]);
 }
 
-/// A5: without a master the end first in `order_hint` starts, else the smallest ID.
+/// Without a master the end first in `order_hint` starts, else the smallest ID.
 #[test]
 fn without_a_master_the_order_hint_then_the_id_choose_the_start() {
     let s = segments(&fixture(None));
@@ -128,7 +128,7 @@ fn without_a_master_the_order_hint_then_the_id_choose_the_start() {
     assert_eq!(s[0].members, [f(F4), w(W2), f(F3), f(F2), w(W1), f(F1)]);
 }
 
-/// A5: a stub at F2 makes the segment branched; its end is a third end.
+/// A stub at F2 makes the segment branched; its end is a third end.
 #[test]
 fn a_stub_makes_the_segment_branched() {
     let mut fx = fixture(Some(F4));

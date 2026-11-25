@@ -79,7 +79,7 @@ fn the_rockwell_builtin_is_tag_based() {
     assert_eq!(rockwell.example(), "Local:1:O.Data.1");
 }
 
-/// T2: a profile file whose data the engine does not render is refused whole, naming its pin and the reason.
+/// A profile file whose data the engine does not render is refused whole, naming its pin and the reason.
 #[test]
 fn a_profile_that_does_not_render_says_why() {
     let text = std::fs::read_to_string(dir().join("siemens-tia-intl.json")).unwrap();

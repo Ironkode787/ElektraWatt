@@ -6,8 +6,8 @@
 //!
 //! - **`potential_name(p)`** (doc 08 §3.5): the name of the first definition in rank order ([`ranked_defs`]: natural
 //!   order of the name, the defining point's printed text, the ID) (another name is noted as EW-POT-017); else the first non-external source interruption point in page order (page position, anchor
-//!   row, anchor column, ID); else the first external source interruption point in that order (review decision
-//!   D6); else (doc 08 §3.5 step 2b) the supply's name `<root>/<tag>:<designation>` when the
+//!   row, anchor column, ID); else the first external source interruption point in that order;
+//!   else (doc 08 §3.5 step 2b) the supply's name `<root>/<tag>:<designation>` when the
 //!   potential is entered through the pass-through pair of a function f (its flow `upstream`): `<root>` is the
 //!   name of the nearest upstream potential named by a definition or a source point (the walk passes potentials
 //!   named by this step), `<tag>` f's displayed tag without its leading aspect sign and `<designation>` the

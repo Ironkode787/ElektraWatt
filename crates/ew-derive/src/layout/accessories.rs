@@ -6,7 +6,7 @@
 //! [`GroupAccessories`] (`group_accessories(carrier)`) lists the end brackets the strips need. Nothing is stored: a
 //! bracket is derived from the strips' positions each time, so moving a strip away from its run adds two.
 //! [`strip_brackets`] counts the brackets attributed to one strip over its rails: the BOM's line of the strip's
-//! declaring part use reads it (part 5, D13).
+//! declaring part use reads it (part 5).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -59,7 +59,7 @@ pub struct StripBrackets {
     pub surfaces: BTreeSet<Id<MountingSurface>>,
 }
 
-/// The end brackets attributed to `device` over the rails its placements are on (D13): the BOM's line of the declaring
+/// The end brackets attributed to `device` over the rails its placements are on: the BOM's line of the declaring
 /// part use takes its quantity and its panel folios from them. `None` for a missing device, a device that declares no
 /// bracket part and a strip none of whose placements holds a bracket (not placed, or placed on a surface or a duct):
 /// such a strip keeps its authored quantity and folios (doc 12 §3.4).
@@ -95,9 +95,9 @@ pub fn strip_brackets(q: &Q, device: Id<Device>) -> Option<StripBrackets> {
     })
 }
 
-/// The items of a rail (D3), in `rail_occupancy`'s order: each placement's bare interval, its pads, its lock and, for
+/// The items of a rail, in `rail_occupancy`'s order: each placement's bare interval, its pads, its lock and, for
 /// a strip placed as a whole, the width of the bracket part it declares. Empty for a missing carrier, a duct and a
-/// rail without a valid axis. The tool's ghost and the commands read this one function (D4).
+/// rail without a valid axis. The tool's ghost and the commands read this one function.
 pub fn rail_items(q: &Q, carrier: Id<Carrier>) -> Vec<RailItem> {
     let occupancy = q.get::<RailOccupancy>(carrier);
     let placements = q.table::<Placement>();
@@ -126,7 +126,7 @@ pub fn rail_items(q: &Q, carrier: Id<Carrier>) -> Vec<RailItem> {
         .collect()
 }
 
-/// One derived end bracket of a rail (D3).
+/// One derived end bracket of a rail.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Bracket {
     /// Where it starts along the rail axis, in nanometres from `path[0]`.
@@ -178,7 +178,7 @@ impl std::ops::Deref for RailBrackets {
     }
 }
 
-/// `group_accessories(carrier)`: the end brackets of a rail (D3, FR-LAY-060), sorted by `s0` (then `s1`, then the
+/// `group_accessories(carrier)`: the end brackets of a rail (FR-LAY-060), sorted by `s0` (then `s1`, then the
 /// strip's place in the occupancy): per run of strips, one at the run's start attributed to its first strip and one
 /// after each strip attributed to it, from [`rail_items`] and each strip's declaring part use. Empty for a duct, a rail
 /// without a valid axis and a rail without strips. The

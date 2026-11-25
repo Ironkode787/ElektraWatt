@@ -17,14 +17,14 @@
 //! `w(a) + w(b)`; a run of `k` strips has `k + 1` brackets, one at its start attributed to its first strip and one after
 //! each strip attributed to it; a strip that declares no bracket part contributes none.
 //!
-//! **Modes** ([`resolve`]): free, push and swap as D5 states them. Loaded items that overlap or lie outside `[0, L]`
+//! **Modes** ([`resolve`]): free, push and swap as the layout rules state them. Loaded items that overlap or lie outside `[0, L]`
 //! are accepted as given; only the items a mode moves are re-checked. Every function is total: no input panics, and
 //! the arithmetic saturates.
 
 use ew_ids::Id;
 use ew_schema::Placement;
 
-/// One item of a rail (D3): a placement's footprint interval along the axis and what spaces it.
+/// One item of a rail: a placement's footprint interval along the axis and what spaces it.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct RailItem {
     /// Where the bare footprint starts along the axis, in nanometres.
@@ -85,12 +85,12 @@ pub fn min_gap(a: &RailItem, b: &RailItem) -> i128 {
     }
 }
 
-/// The minimum gap between the rail start and a first item `b` (D3): a strip's bracket width, else 0.
+/// The minimum gap between the rail start and a first item `b`: a strip's bracket width, else 0.
 pub fn start_gap(b: &RailItem) -> i128 {
     b.bw()
 }
 
-/// The minimum gap between a last item `a` and the rail end (D3): a strip's bracket width, else 0.
+/// The minimum gap between a last item `a` and the rail end: a strip's bracket width, else 0.
 pub fn end_gap(a: &RailItem) -> i128 {
     a.bw()
 }
@@ -102,7 +102,7 @@ fn order(items: &[RailItem]) -> Vec<usize> {
     idx
 }
 
-/// The runs of strips (D3): each run lists the indices into `items` of its strips in rail order. Consecutive items (in
+/// The runs of strips: each run lists the indices into `items` of its strips in rail order. Consecutive items (in
 /// rail order) that are both strips are in one run when their gap is 0 or less (an overlap) or less than `w(a) + w(b)`;
 /// a non-strip between two strips separates them.
 pub fn runs(items: &[RailItem]) -> Vec<Vec<usize>> {
@@ -185,7 +185,7 @@ pub fn brackets(items: &[RailItem]) -> Vec<BracketSpan> {
     out
 }
 
-/// The free length of a rail (D12): `L − Σ item widths − Σ bracket widths`, in nanometres.
+/// The free length of a rail: `L − Σ item widths − Σ bracket widths`, in nanometres.
 /// Overlapping items count each.
 pub fn free_length(length: i128, items: &[RailItem], brackets: &[BracketSpan]) -> i128 {
     let used = items
@@ -247,7 +247,7 @@ pub struct Resolution {
     pub moved: Vec<(Id<Placement>, i128)>,
 }
 
-/// Why [`resolve`] refuses a drop (D5); the caller words it with the rail's label and the devices' tags.
+/// Why [`resolve`] refuses a drop; the caller words it with the rail's label and the devices' tags.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SnapError {
     /// Free: no gap of the rail is wide enough for the item of this width (nanometres).
@@ -332,7 +332,7 @@ pub fn resolve(
     }
 }
 
-/// D5's free mode over the other items (rail order).
+/// The free mode over the other items (rail order).
 fn free(others: &[RailItem], length: i128, m: &RailItem, s_left: i128) -> Result<Resolution, SnapError> {
     let wm = m.width();
     let rail_lo = start_gap(m);
@@ -372,7 +372,7 @@ fn centre2(i: &RailItem) -> i128 {
     i.s0.saturating_add(i.s1)
 }
 
-/// D5's push mode over the other items (rail order).
+/// The push mode over the other items (rail order).
 fn push(others: &[RailItem], length: i128, m: &RailItem, s_left: i128) -> Result<Resolution, SnapError> {
     let cm = s_left.saturating_mul(2).saturating_add(m.width());
     let (left, right): (Vec<RailItem>, Vec<RailItem>) = others.iter().partition(|o| centre2(o) < cm);
@@ -477,7 +477,7 @@ fn cascade_by(
     Ok(moved)
 }
 
-/// D5's swap mode: `all` in rail order, `oi` the moved placement's index in it.
+/// The swap mode: `all` in rail order, `oi` the moved placement's index in it.
 fn swap(
     all: &[RailItem],
     oi: usize,

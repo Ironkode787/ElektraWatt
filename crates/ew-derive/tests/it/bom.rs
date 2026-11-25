@@ -730,7 +730,7 @@ fn strip_bridges_group_the_connections_and_name_the_carrier() {
     assert_eq!(g1.terminals, [id(0x4010), id(0x4020), id(0x4030)]);
     // (lower seq, ID) order: 1-2 (seq 1) before 2-3 (seq 2) although 2-3 has the smaller ID.
     assert_eq!(g1.connections, [id(0x4102), id(0x4101)]);
-    // D6: the first connection with a part is the carrier.
+    // The first connection with a part is the carrier.
     assert_eq!(g1.carrier, id(0x4101));
     assert_eq!(g1.part.as_ref().map(|p| p.copy), Some(id(P_SPARE)));
     let g2 = &groups[1];

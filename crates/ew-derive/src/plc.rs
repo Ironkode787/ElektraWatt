@@ -815,7 +815,7 @@ impl Query for ModuleStarts {
 /// `module_start_of(module)`: one module's entry of [`ModuleStarts`] of its configuration project, `None` for a module
 /// outside every configuration project. A projection read as a cut-off point: a start edit of one
 /// module re-runs [`ModuleStarts`] and every module's projection, but only the modules whose own start value changed
-/// pass the change on, so [`ChannelAddresses`] re-runs for them alone (AC-29: "only its 8 channels").
+/// pass the change on, so [`ChannelAddresses`] re-runs for them alone ("only its 8 channels").
 #[derive(Debug)]
 pub struct ModuleStartOf;
 
@@ -1103,7 +1103,7 @@ impl Query for ChannelAddresses {
         let channels = module_channels(q, *key);
         let located = module_cfg(q, *key);
         let profile = located.and_then(|(_, c)| profile_of(q, c));
-        // D9: this module's start only, so another module's start edit cuts off before this family
+        // This module's start only, so another module's start edit cuts off before this family
         let start = *q.get::<ModuleStartOf>(*key);
         let bit_of = module_part(q, *key).and_then(|(_, s)| s.bit_of);
         // A tag-based profile renders from the station and the slot (FR-PLC-009); an absolute one needs neither.

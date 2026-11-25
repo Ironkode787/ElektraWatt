@@ -21,7 +21,7 @@ fn pose(t: [i64; 3], q: Quarter) -> Pose3 {
     }
 }
 
-/// D5: a rail is two points on one horizontal or vertical line; a duct an orthogonal polyline; anything else is
+/// A rail is two points on one horizontal or vertical line; a duct an orthogonal polyline; anything else is
 /// refused at the first bad segment.
 #[test]
 fn carrier_paths_are_axis_parallel() {
@@ -235,7 +235,7 @@ fn a_rail_pose_rehomes_to_the_equivalent_surface_pose() {
     assert_eq!(clip_offset(None), (0, 0));
 }
 
-/// LM-3's numbers: a 650 × 900 mm plate in a 750 × 1000 mm enclosure sits at t = (50, 50, 0) mm with the usable
+/// The numbers: a 650 × 900 mm plate in a 750 × 1000 mm enclosure sits at t = (50, 50, 0) mm with the usable
 /// rectangle (0, 0)–(650, 900) mm; unknown sizes give the origin and, without a plate size, no usable polygon.
 #[test]
 fn a_plate_is_centred_in_its_enclosure() {

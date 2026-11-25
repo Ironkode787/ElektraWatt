@@ -107,7 +107,7 @@ fn with_cylinders() -> Fx {
     fx
 }
 
-/// D13 (FL-10, FL-11): a line from a working port reaches the cylinder; the tracked target is the `drives` link's
+/// FL-10, FL-11: a line from a working port reaches the cylinder; the tracked target is the `drives` link's
 /// device first, else the reached device; the process tag follows it, else the valve's own.
 #[test]
 fn the_tracked_target_is_the_drives_link_else_the_reached_device() {

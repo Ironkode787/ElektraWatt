@@ -10,7 +10,7 @@
 //!
 //! | Item | What it answers |
 //! |---|---|
-//! | [`check_path`], [`path_length`], [`RailAxis`] | Whether a carrier path is axis-parallel (D5), its length, a rail's axis |
+//! | [`check_path`], [`path_length`], [`RailAxis`] | Whether a carrier path is axis-parallel, its length, a rail's axis |
 //! | [`Profile`], [`RAIL_FITS`], [`fits_rail`], [`fits_surface`] | The mount-kind compatibility table (doc 12 §3.3) |
 //! | [`Quarter`], [`check_pose`], [`PoseOn`] | The degrees of freedom of a pose per carrier kind (doc 12 §2.3) |
 //! | [`clip_offset`], [`rehome_pose`] | The surface pose equivalent to a rail pose (doc 12 §3.6, `rehome_to_surface`) |
@@ -21,9 +21,9 @@
 //! | [`RailOccupancy`] | `rail_occupancy(carrier)`: the sorted intervals along a rail |
 //! | [`LayoutLabel`] | `layout_label((p, page, mode))`: the label text (D10) |
 //! | [`CarrierGeometry`] | `carrier_geometry(carrier)`: the axis check, length, axis and outline of a carrier |
-//! | [`layout_legend`], [`LegendRow`] | `layout_legend(surface)`: the legend rows of a surface (D11, doc 12 §5.4) |
+//! | [`layout_legend`], [`LegendRow`] | `layout_legend(surface)`: the legend rows of a surface (doc 12 §5.4) |
 //! | [`page_surface`], [`surface_pages`] | The surface a panel-layout page shows, and the pages that show a surface |
-//! | [`carrier_order`], [`metres_of_nm`] | The legend order of carriers and a length in metres exact to the millimetre (D11) |
+//! | [`carrier_order`], [`metres_of_nm`] | The legend order of carriers and a length in metres exact to the millimetre |
 //! | [`carrier_labels`], [`CarrierLabel`] | "Rail n" and "Duct n" of a surface's carriers |
 //! | [`RailItem`], [`min_gap`], [`runs`], [`brackets`], [`free_length`] | The rail model: items, minimum gaps, runs of strips and their end brackets |
 //! | [`resolve`], [`SnapMode`] | Where a dropped item lands in free, push or swap mode and which neighbours move |
@@ -38,7 +38,7 @@
 //! bottom-left corner of its footprint (x along the rail, y up the plate); a part's `rail_offset` is the clip point
 //! in the part frame (absent: the footprint's centre).
 
-// The rail items and the derived end brackets (D3)
+// The rail items and the derived end brackets
 mod accessories;
 // The member order of an assembly
 mod assembly;
@@ -49,7 +49,7 @@ mod legend;
 mod pose;
 // The layout queries (doc 12 §2.6)
 mod queries;
-// The rail model and the mode resolution (D3 to D5)
+// The rail model and the mode resolution
 mod snap;
 
 pub use accessories::{

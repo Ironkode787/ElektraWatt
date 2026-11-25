@@ -47,7 +47,7 @@ const R_A: u128 = 0x23; // rail (0, 700) → (500, 700), 500 mm
 const R_B: u128 = 0x24; // rail (0, 300) → (500, 300), 500 mm
 const D_A: u128 = 0x25; // duct (0, 900) → (500, 900), 500 mm
 const D_B: u128 = 0x26; // duct (20, 850) → (20, 0), 850 mm
-const D_DIAG: u128 = 0x27; // duct (100, 100) → (200, 200): breaks D5 (loaded only), no length
+const D_DIAG: u128 = 0x27; // duct (100, 100) → (200, 200): has an invalid path (loaded only), no length
 const R_NOPART: u128 = 0x28; // rail (0, 100) → (300, 100), no part
 const PL_F2: u128 = 0x52;
 const PL_F1: u128 = 0x51;
@@ -315,7 +315,7 @@ fn row(pos: u32, item: LegendItem, device: Option<u128>, part: Option<u128>, qty
     }
 }
 
-/// D11's legend order: the enclosure, the plate, one row per carrier (rails, then ducts, each top to bottom then left
+/// The legend order: the enclosure, the plate, one row per carrier (rails, then ducts, each top to bottom then left
 /// to right by `path[0]`, the DT empty, the length as quantity), then the placements by DT; positions 1 … n.
 #[test]
 fn the_legend_lists_enclosure_plate_carriers_then_placements_by_dt() {
@@ -340,7 +340,7 @@ fn the_legend_lists_enclosure_plate_carriers_then_placements_by_dt() {
     assert!(layout_legend(&q, id(0x9999)).is_empty(), "a missing surface");
 }
 
-/// LB-2's renumbering: placing a device adds one row at its DT and renumbers the rows after it.
+/// The renumbering: placing a device adds one row at its DT and renumbers the rows after it.
 #[test]
 fn placing_a_device_adds_its_row_and_renumbers_the_rows_after_it() {
     let before = {
@@ -376,7 +376,7 @@ fn placing_a_device_adds_its_row_and_renumbers_the_rows_after_it() {
     }
 }
 
-/// LB-4 (FR-LAY-008): a free graphic on the panel page appears in neither the BOM nor the legend nor `unplaced`.
+/// A free graphic on the panel page appears in neither the BOM nor the legend nor `unplaced`.
 #[test]
 fn a_free_graphic_on_the_panel_page_is_counted_nowhere() {
     let plain = fixture().build();

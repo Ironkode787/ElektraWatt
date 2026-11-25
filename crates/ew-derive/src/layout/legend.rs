@@ -99,7 +99,7 @@ fn kind_rank(kind: &CarrierKind) -> u8 {
     }
 }
 
-/// The sort key of a carrier in the legend (D11): rails, then ducts (then a kind of a newer format), each top to bottom
+/// The sort key of a carrier in the legend: rails, then ducts (then a kind of a newer format), each top to bottom
 /// then left to right by `path[0]` (`v` descending, then `u`), a carrier without a path after those with one, the ID
 /// breaking a tie.
 pub type CarrierOrder = (u8, bool, Reverse<i64>, i64, Id<Carrier>);
@@ -204,7 +204,7 @@ pub fn carrier_label(q: &Q, carrier: Id<Carrier>) -> Option<CarrierLabel> {
         .map(|(_, l)| l)
 }
 
-/// A carrier's path length in nanometres (`carrier_geometry`); `None` for a path that breaks D5 or a kind of a newer
+/// A carrier's path length in nanometres (`carrier_geometry`); `None` for an invalid path or a kind of a newer
 /// format (EW-LAY-010 reports it).
 pub fn carrier_length(q: &Q, carrier: Id<Carrier>) -> Option<i128> {
     q.get::<CarrierGeometry>(carrier).as_ref().as_ref()?.length
@@ -236,8 +236,8 @@ pub struct LegendRow {
     pub pos: u32,
     /// What the row lists.
     pub item: LegendItem,
-    /// The device whose designation the DT cell prints; `None` for a carrier (carriers have no designation member,
-    /// FP-5), for a bracket row and for a surface without a device.
+    /// The device whose designation the DT cell prints; `None` for a carrier (carriers have no designation member),
+    /// for a bracket row and for a surface without a device.
     pub device: Option<Id<Device>>,
     /// The part: the enclosure part of the enclosure device, the plate part of the surface, the carrier's part, the
     /// part use a placement realises (its `part`, else the device's primary part; `None` for a strip), the bracket

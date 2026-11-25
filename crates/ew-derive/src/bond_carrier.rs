@@ -198,7 +198,7 @@ fn carrier(q: &Q, key: PotentialId) -> Option<Carrier> {
         _ => {}
     }
 
-    // The order of D3 on printed keys.
+    // The order on printed keys.
     let wires = q.get::<PhysicalWiresOf>(key);
     let numbers = q.get::<WireNumbers>(());
     let number = |c: Id<Connection>| {

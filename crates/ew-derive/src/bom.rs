@@ -96,7 +96,7 @@ pub struct PartLine {
 /// **carrier line** per part ([`LineSource::Carrier`]): the carriers with a part on the enclosure's mounting
 /// surfaces that share a part copy (and variant) give one line, whose quantity is the sum of their path
 /// lengths in metres exact to the millimetre (summed in nanometres, rounded once, half up). A carrier
-/// without a derivable length (a path that breaks D5, a kind of a newer format; only loaded data has one,
+/// without a derivable length (an invalid path, a kind of a newer format; only loaded data has one,
 /// EW-LAY-010 reports it) adds nothing, and a line all of whose carriers lack a length stays with quantity
 /// 0. The carrier lines come in the legend order of their first carrier (surfaces by ID, then rails before
 /// ducts, each top to bottom then left to right; [`crate::layout::carrier_order`]), after the device's own

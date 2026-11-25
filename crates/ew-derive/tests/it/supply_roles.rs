@@ -61,7 +61,7 @@ fn pattern(roles: bool) -> Value {
     json!(cps)
 }
 
-/// The card part's PLC section: a module with the supply group of PX-2's fixture (`l_plus: "1"`, `m: "2"`) and a
+/// The card part's PLC section: a module with the supply group of the fixture (`l_plus: "1"`, `m: "2"`) and a
 /// group naming the earth pin "3" as its M, which an authored role must win over.
 fn groups() -> Value {
     json!({

@@ -1054,7 +1054,7 @@ fn per_potential_every_wire_of_a_potential_prints_its_code() {
         "settings",
         json!({"drawing": {"wire_numbering": "per_potential"}}),
     );
-    // D02: a source and two loads wired from it, one potential named by its definition.
+    // A source and two loads wired from it, one potential named by its definition.
     node(&mut fx, 0x1001, P1, 1, 0);
     node(&mut fx, 0x1011, P1, 5, 7);
     node(&mut fx, 0x1012, P1, 6, 7);

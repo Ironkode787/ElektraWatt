@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The rail model and the resolver over two hand-made 570 mm rails (the spec's SN-1
-//! to SN-6 numbers by hand) and over random rails (property tests: every mode's result holds D5's rules).
+//! The rail model and the resolver over two hand-made 570 mm rails (the spec's
+//! numbers by hand) and over random rails (property tests: every mode's result holds the rules).
 
 use ew_ids::{Id, Uuid};
 use proptest::prelude::*;
@@ -94,7 +94,7 @@ fn spans(items: &[RailItem]) -> Vec<(i128, i128, u128)> {
         .collect()
 }
 
-/// SN-1 (FR-LAY-060): R2's four brackets attributed 1X1, 1X1, -X1031, -X1032; -X1032 moved to 222.6 mm (gap 60 mm ≥
+/// R2's four brackets attributed 1X1, 1X1, -X1031, -X1032; -X1032 moved to 222.6 mm (gap 60 mm ≥
 /// 20 mm) gives five; a strip without an end-bracket part use gives none; zero-width brackets join touching strips only.
 #[test]
 fn brackets_at_the_strip_boundaries() {
@@ -165,14 +165,14 @@ fn brackets_at_the_strip_boundaries() {
     assert_eq!(runs(&split), vec![vec![0], vec![2]]);
 }
 
-/// D12's free lengths, for part 4: R1 341 mm, R2 381.4 mm.
+/// The free lengths, for part 4: R1 341 mm, R2 381.4 mm.
 #[test]
 fn free_lengths_of_two_rails() {
     assert_eq!(free_length(L1, &r1(), &brackets(&r1())), 341 * MM);
     assert_eq!(free_length(L1, &r2(), &brackets(&r2())), mm10(3814));
 }
 
-/// SN-2 (free): F55 (18 mm, centre clip) at clip 158 mm lands at clip 52 mm (the left gap's end is nearer); at clip
+/// F55 (18 mm, centre clip) at clip 158 mm lands at clip 52 mm (the left gap's end is nearer); at clip
 /// 320 mm it stays; a 300 mm part fits no gap.
 #[test]
 fn free_takes_the_nearest_gap() {
@@ -197,7 +197,7 @@ fn free_takes_the_nearest_gap() {
     assert_eq!(r.s_left, 0);
 }
 
-/// SN-3 (push): F55 at clip 158 mm stays at 158 mm and moves -102F1, -102F2, T55 and S51 18 mm; a locked -102F2
+/// F55 at clip 158 mm stays at 158 mm and moves -102F1, -102F2, T55 and S51 18 mm; a locked -102F2
 /// refuses; a 300 mm part pushes S51 past the rail end by 20 mm.
 #[test]
 fn push_moves_the_right_neighbours() {
@@ -247,7 +247,7 @@ fn push_moves_the_right_neighbours() {
     assert!(resolve(&r1(), L1, item, mm10(3000), SnapMode::Free).is_ok());
 }
 
-/// SN-4 (swap): -101F1 dropped onto -102F2 gives -102F2 153.5, -102F1 185, -101F1 203 mm (clip points) and moves
+/// -101F1 dropped onto -102F2 gives -102F2 153.5, -102F1 185, -101F1 203 mm (clip points) and moves
 /// nothing else; two equal neighbours exchange places; another rail and an empty spot refuse.
 #[test]
 fn swap_exchanges_within_the_segment() {
@@ -302,7 +302,7 @@ fn swap_exchanges_within_the_segment() {
     assert_eq!(r.moved, vec![(pid(2), 0), (pid(3), mm10(400))]);
 }
 
-/// SN-5 (clearance): an item with 5 mm pads keeps a 10 mm gap to a neighbour with the same pads; flipped pads swap;
+/// An item with 5 mm pads keeps a 10 mm gap to a neighbour with the same pads; flipped pads swap;
 /// strips ignore pads.
 #[test]
 fn pads_space_the_items() {
@@ -334,7 +334,7 @@ fn pads_space_the_items() {
     );
 }
 
-/// SN-6 (strips): on R2 an 18 mm non-strip dropped at 200 mm lands at 208.6 mm (after -X1032's bracket); a 26 mm strip
+/// On R2 an 18 mm non-strip dropped at 200 mm lands at 208.6 mm (after -X1032's bracket); a 26 mm strip
 /// with a 10 mm bracket at 205 mm lands at 208.6 mm, joins the run and gives five brackets.
 #[test]
 fn strips_keep_their_brackets() {
@@ -512,15 +512,15 @@ proptest! {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Next-fit (D6, `layout.auto_fill`)
+// Next-fit (`layout.auto_fill`)
 
-/// D6: next-fit takes the first place at or after the floor where the item fits with its gaps (the rail start's on an
+/// Next-fit takes the first place at or after the floor where the item fits with its gaps (the rail start's on an
 /// empty rail; occupied stretches skipped), never a gap before the floor, and `None` when nothing fits.
 #[test]
 fn next_fit_takes_the_first_fit_after_the_floor() {
     let m = new_item(180);
     assert_eq!(next_fit(&[], L1, &m, i128::MIN), Some(0));
-    // R1: the first gap is before -102G1 (61 mm), then after S51 (290 mm).
+    // The first gap is before -102G1 (61 mm), then after S51 (290 mm).
     assert_eq!(next_fit(&r1(), L1, &m, i128::MIN), Some(0));
     assert_eq!(next_fit(&r1(), L1, &m, mm10(500)), Some(mm10(2900)));
     // A floor inside a gap starts there.

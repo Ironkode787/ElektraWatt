@@ -867,7 +867,7 @@ impl Drawing<'_> {
                 Reached::End(c, kind) => {
                     // Doc 08 §3.8: "carrier = connection of a that touches c". The arm is walked from the
                     // hub, so its last connection is the one that touches the end CP `c`; the IP directions
-                    // play no part on a hub arm (review decision D1).
+                    // play no part on a hub arm.
                     if let Some(&carrier) = arm.path.conns.last() {
                         let mut full = base.path.clone();
                         full.append(&arm.path);
