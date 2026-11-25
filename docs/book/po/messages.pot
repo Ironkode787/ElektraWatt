@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-23T09:43:13+01:00\n"
+"POT-Creation-Date: 2026-11-25T08:11:08+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3275,20 +3275,23 @@ msgid ""
 "`--mode` of `ew export bom` is `parts` (the default; every component part) "
 "or `assembly`, which replaces the parts a configured product covers by one "
 "row for the product. Both write the rows of the project's own report page, "
-"so the CSV equals what the drawing prints."
-msgstr ""
-
-#: src/how-to/headless-workflow.md:142
-msgid "Step 4: ask the project questions with SQL"
+"so the CSV equals what the drawing prints. A project without that page (a "
+"new project from the built-in template) refuses them and names the command "
+"that writes the rows of the whole project instead, such as `ew export report "
+"--kind cable_overview_diagrams`."
 msgstr ""
 
 #: src/how-to/headless-workflow.md:144
+msgid "Step 4: ask the project questions with SQL"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:146
 msgid ""
 "`ew sql` runs one read-only `SELECT` over the project's SQL views, which are "
 "named `api_v1_...`:"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:146
+#: src/how-to/headless-workflow.md:148
 msgid ""
 "```console\n"
 "$ ew sql fixtures/sample/sample.ew \"SELECT count(*) FROM api_v1_terminal\"\n"
@@ -3298,14 +3301,14 @@ msgid ""
 "```"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:153
+#: src/how-to/headless-workflow.md:155
 msgid ""
 "The result is CSV with a header line, on the standard output; the row count "
 "goes to the standard error stream. Ask for the cables and where their "
 "lengths come from:"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:156
+#: src/how-to/headless-workflow.md:158
 msgid ""
 "```console\n"
 "$ ew sql fixtures/sample/sample.ew \"SELECT tag, cores, length_source FROM "
@@ -3318,18 +3321,18 @@ msgid ""
 "```"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:165
+#: src/how-to/headless-workflow.md:167
 msgid ""
 "`ew sql schema` prints every view with its columns. Only `SELECT`, `WITH` "
 "and `VALUES` statements run; anything else, such as `ATTACH`, is refused and "
 "the exit code is 2."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:168
+#: src/how-to/headless-workflow.md:170
 msgid "What you have done"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:170
+#: src/how-to/headless-workflow.md:172
 msgid ""
 "You checked a project and read the exit code, wrote its pages as PDF and "
 "SVG, exported a cable list and a bill of materials, and queried the project "
@@ -3338,24 +3341,24 @@ msgid ""
 "display."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:174
+#: src/how-to/headless-workflow.md:176
 msgid "Where to go next"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:176
+#: src/how-to/headless-workflow.md:178
 msgid ""
 "The [command reference](../reference/commands/index.md) lists the commands "
 "that change a project, and the [rule reference](../reference/rules/index.md) "
 "the rules that `ew check` runs."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:178
+#: src/how-to/headless-workflow.md:180
 msgid ""
 "More [how-to guides](index.md) for single tasks, such as checking a project "
 "in a CI job, will follow this one."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:179
+#: src/how-to/headless-workflow.md:181
 msgid ""
 "The [explanation](../explanation/index.md) section links the design of the "
 "model and of the check engine."

@@ -4187,19 +4187,25 @@ msgid ""
 "`--mode` of `ew export bom` is `parts` (the default; every component part) "
 "or `assembly`, which replaces the parts a configured product covers by one "
 "row for the product. Both write the rows of the project's own report page, "
-"so the CSV equals what the drawing prints."
+"so the CSV equals what the drawing prints. A project without that page (a "
+"new project from the built-in template) refuses them and names the command "
+"that writes the rows of the whole project instead, such as `ew export report "
+"--kind cable_overview_diagrams`."
 msgstr ""
 "`--mode` van `ew export bom` is `parts` (de standaard; elk onderdeelartikel) "
 "of `assembly`, dat de artikelen die een geconfigureerd product omvat "
 "vervangt door één rij voor het product. Beide schrijven de rijen van de "
 "eigen rapportpagina van het project, dus de CSV is gelijk aan wat de "
-"tekening afdrukt."
+"tekening afdrukt. Een project zonder die pagina (een nieuw project uit de "
+"ingebouwde sjabloon) weigert ze en noemt de opdracht die in plaats daarvan "
+"de rijen van het hele project schrijft, zoals `ew export report --kind "
+"cable_overview_diagrams`."
 
-#: src/how-to/headless-workflow.md:142
+#: src/how-to/headless-workflow.md:144
 msgid "Step 4: ask the project questions with SQL"
 msgstr "Stap 4: het project vragen stellen met SQL"
 
-#: src/how-to/headless-workflow.md:144
+#: src/how-to/headless-workflow.md:146
 msgid ""
 "`ew sql` runs one read-only `SELECT` over the project's SQL views, which are "
 "named `api_v1_...`:"
@@ -4207,7 +4213,7 @@ msgstr ""
 "`ew sql` voert één alleen-lezen `SELECT` uit op de SQL-views van het "
 "project, die `api_v1_...` heten:"
 
-#: src/how-to/headless-workflow.md:146
+#: src/how-to/headless-workflow.md:148
 msgid ""
 "```console\n"
 "$ ew sql fixtures/sample/sample.ew \"SELECT count(*) FROM api_v1_terminal\"\n"
@@ -4223,7 +4229,7 @@ msgstr ""
 "1 rows\n"
 "```"
 
-#: src/how-to/headless-workflow.md:153
+#: src/how-to/headless-workflow.md:155
 msgid ""
 "The result is CSV with a header line, on the standard output; the row count "
 "goes to the standard error stream. Ask for the cables and where their "
@@ -4233,7 +4239,7 @@ msgstr ""
 "rijen gaat naar de standaardfoutuitvoer. Vraag naar de kabels en waar hun "
 "lengtes vandaan komen:"
 
-#: src/how-to/headless-workflow.md:156
+#: src/how-to/headless-workflow.md:158
 msgid ""
 "```console\n"
 "$ ew sql fixtures/sample/sample.ew \"SELECT tag, cores, length_source FROM "
@@ -4255,7 +4261,7 @@ msgstr ""
 "3 rows\n"
 "```"
 
-#: src/how-to/headless-workflow.md:165
+#: src/how-to/headless-workflow.md:167
 msgid ""
 "`ew sql schema` prints every view with its columns. Only `SELECT`, `WITH` "
 "and `VALUES` statements run; anything else, such as `ATTACH`, is refused and "
@@ -4265,11 +4271,11 @@ msgstr ""
 "`SELECT`, `WITH` en `VALUES` worden uitgevoerd; al het andere, zoals "
 "`ATTACH`, wordt geweigerd en de afsluitcode is 2."
 
-#: src/how-to/headless-workflow.md:168
+#: src/how-to/headless-workflow.md:170
 msgid "What you have done"
 msgstr "Wat u hebt gedaan"
 
-#: src/how-to/headless-workflow.md:170
+#: src/how-to/headless-workflow.md:172
 msgid ""
 "You checked a project and read the exit code, wrote its pages as PDF and "
 "SVG, exported a cable list and a bill of materials, and queried the project "
@@ -4283,11 +4289,11 @@ msgstr ""
 "draaien in een script of een CI-taak, omdat ze het project lezen zonder het "
 "te vergrendelen en nooit een beeldscherm nodig hebben."
 
-#: src/how-to/headless-workflow.md:174
+#: src/how-to/headless-workflow.md:176
 msgid "Where to go next"
 msgstr "Waar u verder kunt"
 
-#: src/how-to/headless-workflow.md:176
+#: src/how-to/headless-workflow.md:178
 msgid ""
 "The [command reference](../reference/commands/index.md) lists the commands "
 "that change a project, and the [rule reference](../reference/rules/index.md) "
@@ -4297,7 +4303,7 @@ msgstr ""
 "een project veranderen, en de [regelnaslag](../reference/rules/index.md) de "
 "regels die `ew check` uitvoert."
 
-#: src/how-to/headless-workflow.md:178
+#: src/how-to/headless-workflow.md:180
 msgid ""
 "More [how-to guides](index.md) for single tasks, such as checking a project "
 "in a CI job, will follow this one."
@@ -4305,7 +4311,7 @@ msgstr ""
 "Meer [instructies](index.md) voor losse taken, zoals een project controleren "
 "in een CI-taak, volgen na deze."
 
-#: src/how-to/headless-workflow.md:179
+#: src/how-to/headless-workflow.md:181
 msgid ""
 "The [explanation](../explanation/index.md) section links the design of the "
 "model and of the check engine."
