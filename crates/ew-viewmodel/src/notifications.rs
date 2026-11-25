@@ -7,9 +7,10 @@
 //! Every toast enters the log (`NotificationLog::push`): at most [`MAX_VISIBLE`] toasts are visible (a toast of a
 //! key that is visible replaces that one; a fourth pushes out the oldest), and the log keeps the last [`MAX_LOG`]
 //! (the oldest dropped). A toast's timeout (8 s) is the window's clock, never the model's: headless, a toast stays
-//! until it is dismissed, replaced or pushed out. An entry's offer is valid while what it acts on still holds: Undo
-//! while the step it undoes is the next undo step of the same project session, Open while the file the job wrote in
-//! this session is known. The shell judges the validity ([`crate::shell::ShellModel::notification_valid`]) and runs an
+//! until it is dismissed, replaced or pushed out. Every toast goes after its time, whatever its tone or offer: its
+//! tone says what happened, and nothing else; its offer stays usable in the log. An entry's offer is valid while what
+//! it acts on still holds: Undo while the step it undoes is the next undo step of the same project session, Open while
+//! the file the job wrote in this session is known. The shell judges the validity ([`crate::shell::ShellModel::notification_valid`]) and runs an
 //! offer; this module keeps the entries. Nothing here reads a clock, a path or a `Session`.
 //!
 //! **An offer** is Undo, Open, Swap, Route these too…, or the one generic offer: actions of the table with their
@@ -289,13 +290,6 @@ pub struct Notification {
 }
 
 impl Notification {
-    /// Whether it stays on screen without a timeout, until dismissed, replaced or the next commit: a toast in the
-    /// warning tone, which reports what the person may not want (terminals that stay in the project, wires a cut
-    /// removed, a check's warnings).
-    pub fn stays(&self) -> bool {
-        self.tone == Some(NoteTone::Warning)
-    }
-
     /// The short label of its offer `word` (empty for a word it does not offer).
     pub fn label(&self, word: &str) -> &str {
         self.offer(word).map_or("", |o| o.label.as_str())

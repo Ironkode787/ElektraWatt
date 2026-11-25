@@ -616,3 +616,50 @@ fn a_greyed_commands_toast_title_stands_whole() {
     assert!(!title.elided, "whole, uncut: {rows:?}");
     h.state_mut().shell_mut().shutdown();
 }
+
+/// A persona run: toasts that stayed covered the sheet (Delete's and Cut's stayed, as warnings, until the next command
+/// committed). A toast's tone says what happened: the Cut's toast, with its Undo, goes at 8 s as any other, and the
+/// notifications list of the status bar's bell keeps it, its Undo usable there.
+#[test]
+fn a_toast_with_an_offer_goes_at_8_s_and_its_offer_stays_usable_in_the_list() {
+    let tmp = Tmp::new();
+    let dir = tmp.sample("s.ew");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    dispatch(&mut h, "view.reduce_motion", json!({"on": false}));
+    dispatch(&mut h, "page.goto", json!({"folio": "102"}));
+    dispatch(&mut h, "select.set", json!({"refs": ["tag:-102E1"]}));
+    dispatch(&mut h, "edit.cut", json!({}));
+    h.step();
+    let shown = h.ctx.input(|i| i.time);
+    let cut = h.state().shell().toast().cloned().expect("the cut's toast");
+    assert!(cut.text.starts_with("Cut 1 symbol."), "{}", cut.text);
+    assert_eq!(cut.tone(), ew_viewmodel::notifications::NoteTone::Success);
+    assert!(opacity_at(&mut h, shown, 4.0).is_some(), "on show");
+    assert_eq!(opacity_at(&mut h, shown, 8.0), None, "gone at 8 s");
+    dispatch(&mut h, "notifications.show", json!({"on": true}));
+    settle(&mut h);
+    let entry = h
+        .root()
+        .children_recursive()
+        .find(|n| {
+            let n = n.accesskit_node();
+            [n.label(), n.value()]
+                .into_iter()
+                .flatten()
+                .any(|t| t == cut.text)
+        })
+        .expect("the cut in the list")
+        .rect();
+    // Its Undo, the link under it, still usable.
+    let undo = h
+        .get_all_by_role(egui::Role::Button)
+        .filter(|n| n.accesskit_node().label().as_deref() == Some("Undo"))
+        .filter(|n| !n.accesskit_node().is_disabled())
+        .find(|n| (n.rect().top() - entry.bottom()).abs() < 40.0)
+        .expect("the list's Undo of the cut");
+    undo.click();
+    settle(&mut h);
+    assert!(h.state().shell().can_redo(), "the cut undone from the list");
+    h.state_mut().shell_mut().shutdown();
+}

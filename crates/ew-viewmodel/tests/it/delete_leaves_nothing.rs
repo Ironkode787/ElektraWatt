@@ -94,16 +94,11 @@ fn a_deleted_terminal_takes_its_wire_and_the_toast_offers_to_remove_it() {
     assert_eq!(toast.actions(), ["undo", "remove_undrawn"]);
     // One terminal is "it" (the label said "them" for one).
     assert_eq!(toast.label("remove_undrawn"), "Remove it from the project");
-    assert!(
-        toast.stays(),
-        "a consequence the person may not want stays on screen"
-    );
-    assert_eq!(
-        toast.tone(),
-        NoteTone::Warning,
-        "it stays as a warning, by its icon too"
-    );
+    // Its tone says what happened, a delete done; the toast goes as any other, and its offer stays in the list.
+    assert_eq!(toast.tone(), NoteTone::Success);
     assert_eq!(rows(&mut s, NavKind::Strips, NavRole::Terminal), 2);
+    s.dismiss_toast(toast.serial);
+    assert!(s.notifications().visible().is_empty(), "off the sheet");
     done(
         &mut s,
         "notifications.run",
@@ -181,18 +176,10 @@ fn a_cut_says_what_it_took_and_its_paste_keeps_the_wires_between_the_cut_termina
         "nothing to remove: the paste brings them back"
     );
     assert_eq!(rows(&mut s, NavKind::Connections, NavRole::Connection), 0);
-    // The wires it removed are a consequence the person may not want: the toast stays until the next commit.
-    assert!(toast.stays());
-    assert_eq!(toast.tone(), NoteTone::Warning, "a warning, which stays");
+    // Its tone says what happened, a cut done.
+    assert_eq!(toast.tone(), NoteTone::Success);
     done(&mut s, "select.set", json!({ "ids": [reps[2].id.to_string()] }));
     done(&mut s, "tool.rotate_cw", json!({}));
-    assert!(
-        s.notifications()
-            .visible()
-            .iter()
-            .all(|n| n.serial != toast.serial),
-        "gone with the next commit"
-    );
     done(&mut s, "edit.paste_in_place", json!({}));
     assert_eq!(
         rows(&mut s, NavKind::Connections, NavRole::Connection),

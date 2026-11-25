@@ -24,7 +24,7 @@ use serde_json::{Map, Value, json};
 
 use super::{Outcome, ShellModel, failed};
 use crate::key;
-use crate::notifications::{Note, NoteTone, Offer};
+use crate::notifications::{Note, Offer};
 use crate::strings;
 use crate::strings::Key;
 use crate::tools::{BlackBoxTool, BoxTarget, Ghost, Picker, PickerRow, PlaceTool, ResultNote, Tool, ToolCx};
@@ -580,8 +580,7 @@ impl ShellModel {
         }
         // Each sentence ends with its own full stop. Remove it (them) from the project, beside the delete's Undo,
         // removes the terminals the delete left drawn nowhere (and a strip that keeps no terminal and draws
-        // nothing); terminals that stay in the project are a consequence the person may not want: a warning, which
-        // stays.
+        // nothing); the notifications list keeps the offer while it can run, after the toast has gone.
         let undo = self.undo_offer();
         if undrawn.is_empty() {
             self.notes.push(Note::of("edit", sentences).offering([undo]));
@@ -600,15 +599,12 @@ impl ShellModel {
                 .once()
                 .labelled(label)
             });
-            self.notes.push(
-                Note::of("edit", sentences)
-                    .offering([undo, remove])
-                    .toned(NoteTone::Warning),
-            );
+            self.notes
+                .push(Note::of("edit", sentences).offering([undo, remove]));
         }
     }
 
-    /// A cut says what it took and the wires it removed with it (the toast stays when it removed wires).
+    /// A cut says what it took and the wires it removed with it.
     fn say_cut(&mut self, now: &PageTables, symbols: usize, terminals: bool, wires: Vec<EntityRef>) {
         let what = if terminals {
             crate::count_key!("toast-cut-terminals")
@@ -622,14 +618,8 @@ impl ShellModel {
         let sentences = std::iter::once(strings::format_count(what, symbols))
             .chain((gone > 0).then(|| strings::format_count(crate::count_key!("toast-cut-wires"), gone)))
             .collect();
-        // Wires a cut removed are a consequence the person may not want: a warning, which stays.
         let undo = self.undo_offer();
-        let note = Note::of("edit", sentences).offering([undo]);
-        self.notes.push(if gone > 0 {
-            note.toned(NoteTone::Warning)
-        } else {
-            note
-        });
+        self.notes.push(Note::of("edit", sentences).offering([undo]));
     }
 
     // -----------------------------------------------------------------------------------------------------------

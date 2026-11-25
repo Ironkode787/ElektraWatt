@@ -489,8 +489,6 @@ impl ToastHost {
             .iter()
             .map(|n| {
                 let age = self.since.get(&n.serial).map_or(0.0, |s| frame_time - s);
-                // A toast that stays fades in and never out.
-                let age = if n.stays() { age.min(fade) } else { age };
                 (n.serial, toast_opacity(age, TOAST_SECONDS, fade))
             })
             .collect();
@@ -510,8 +508,8 @@ impl ToastHost {
     }
 
     /// The toasts' timeouts, which are the window's: 8 seconds each after the frame that first showed it, a Dismiss
-    /// in `events` when it is up; a toast that stays (a consequence the person may not want) has none. Asks for the
-    /// frames that paint the fades.
+    /// in `events` when it is up, whatever its tone or offer (the log keeps it and its offer). Asks for the frames that
+    /// paint the fades.
     pub(crate) fn expire(
         &mut self,
         ctx: &Context,
@@ -521,21 +519,10 @@ impl ToastHost {
     ) {
         let frame_time = ctx.input(|i| i.time);
         let fade = f64::from(tokens.motion_base) / 1000.0;
-        let visible: Vec<(u64, bool)> = shell
-            .notifications()
-            .visible()
-            .iter()
-            .map(|n| (n.serial, n.stays()))
-            .collect();
-        self.since.retain(|s, _| visible.iter().any(|(v, _)| v == s));
-        for (serial, stays) in visible {
+        let visible: Vec<u64> = shell.notifications().visible().iter().map(|n| n.serial).collect();
+        self.since.retain(|s, _| visible.contains(s));
+        for serial in visible {
             let age = frame_time - *self.since.entry(serial).or_insert(frame_time);
-            if stays {
-                if age < fade {
-                    ctx.request_repaint();
-                }
-                continue;
-            }
             if age >= TOAST_SECONDS {
                 events.push(Event::DismissToast(serial));
             } else if age < fade || age >= TOAST_SECONDS - fade {

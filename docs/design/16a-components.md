@@ -230,10 +230,12 @@ its 8 s, all on the window's frame clock; then it leaves. Hovering a toast pause
 while the pointer is on it, once the pointer has moved onto it: a toast that appears under a pointer at rest
 fades on time, and a toast already paused stays paused while the pointer is still.
 
-**A toast that reports a consequence the person may not want is a warning, and a warning stays:** Delete's toast of terminals
-that stay in the project and its lists (with Remove them from the project, Remove it from the project for one terminal) and the Cut's toast of the wires it removed
-carry the warning icon, as a check's toast with warnings does; each fades in and has no timeout; they stay until they are closed, replaced by a toast of their key or the next command
-commits.
+**A toast's tone says what happened, and nothing else; no toast stays over the sheet:** a toast with an offer or of
+the warning tone shows for its 8 s as any other and then goes to the notifications list of the status bar's bell,
+where its offer stays usable as long as it can run (Delete's Remove them from the project, Remove it from the project
+for one terminal, beside its Undo; Cut's Undo). Delete's toast of terminals that stay in the project and the Cut's toast
+of the wires it removed report a step done, with the success icon; a check's toast with warnings carries the warning
+icon.
 
 **Tips** are toasts with the info icon, whatever
 their action, and the key `tip`. A toast with two actions (Undo and Show changes after an

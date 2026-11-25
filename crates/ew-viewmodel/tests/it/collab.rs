@@ -449,10 +449,11 @@ fn a_save_in_an_unreleased_format_says_so_every_time() {
         for (saves, folio) in [(1, "777"), (2, "778")] {
             done(&mut s, "page.new", json!({ "folio": folio }));
             done(&mut s, "file.save", json!({}));
+            // The toast of the second save, its first one still up, counts the times ("(2x)"); its text is S1.
             if marked {
-                assert_eq!(s.toast().map(|n| n.lines().0), Some(s1), "the save's toast");
+                assert_eq!(s.toast().map(|n| n.text.as_str()), Some(s1), "the save's toast");
             }
-            let shown = s.notifications().entries().filter(|n| n.lines().0 == s1).count();
+            let shown = s.notifications().entries().filter(|n| n.text == s1).count();
             assert_eq!(shown, if marked { saves } else { 0 }, "{released:?}");
             let manifest = std::fs::read_to_string(dir.join("manifest.json")).unwrap();
             assert_eq!(manifest.contains("\"unstable\": true"), marked, "{manifest}");
