@@ -111,12 +111,12 @@ fn every_settable_path_maps_to_a_node_with_its_own_route() {
     for s in SETTABLE_SETTINGS {
         let node = project
             .iter()
-            .find(|f| f.path == format!("settings.{}", s.name))
+            .find(|f| f.path == format!("settings.{}", s.name()))
             .unwrap();
         assert_eq!(
             node.route,
             EditRoute::SettingsMember {
-                member: s.name.to_owned()
+                member: s.name().to_owned()
             }
         );
         // a member of the JSON shape, or a text member (`process_tag_scheme`)
@@ -124,7 +124,7 @@ fn every_settable_path_maps_to_a_node_with_its_own_route() {
             matches!(&node.ty, FieldType::Json)
                 || matches!(&node.ty, FieldType::Optional(t) if **t == FieldType::Text),
             "{}: {:?}",
-            s.name,
+            s.name(),
             node.ty
         );
     }

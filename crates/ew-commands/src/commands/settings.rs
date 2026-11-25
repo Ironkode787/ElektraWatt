@@ -21,18 +21,6 @@ use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost};
 use crate::tx::TxBuilder;
 
-/// One member that `project.settings.set` may edit.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct SettableSetting {
-    /// The member's name as stored in `ProjectSettings` (the parameter `member`).
-    pub name: &'static str,
-    /// The derivation's view of the member: its parser checks the value
-    /// ([`ew_derive::check_settings_member`]) and its readers are the derived values that change.
-    pub member: Member,
-    /// What the member controls and the derived values that follow it.
-    pub doc: &'static str,
-}
-
 /// The members of `ProjectSettings` that `project.settings.set` edits, in this order in messages.
 ///
 /// | Member | Controls | Derived values that follow |
@@ -51,42 +39,14 @@ pub struct SettableSetting {
 /// `text_styles` is the typed member `ProjectSettings.text_styles`, checked by `ew_schema::check_text_styles`.
 /// Every other member is refused: the identifier set (a previewed renumber of its own, FR-NUM-014), the
 /// typed `ip_pairing` and `formatting`, `frames`, `wire_default` and members of newer formats.
-pub const SETTABLE_SETTINGS: &[SettableSetting] = &[
-    SettableSetting {
-        name: "numbering",
-        member: Member::Numbering,
-        doc: "device-numbering schemes and their per-class rules",
-    },
-    SettableSetting {
-        name: "colour_profile",
-        member: Member::ColourProfile,
-        doc: "the pinned colour profile",
-    },
-    SettableSetting {
-        name: "size_profile",
-        member: Member::SizeProfile,
-        doc: "the pinned size profile",
-    },
-    SettableSetting {
-        name: "xref_format",
-        member: Member::XrefFormat,
-        doc: "the cross-reference format",
-    },
-    SettableSetting {
-        name: "text_styles",
-        member: Member::TextStyles,
-        doc: "the text styles: overrides of the built-in table by style key",
-    },
-    SettableSetting {
-        name: "process_tag_scheme",
-        member: Member::ProcessTagScheme,
-        doc: "the process-tag scheme: a regular expression with named groups",
-    },
-    SettableSetting {
-        name: "fluid",
-        member: Member::Fluid,
-        doc: "the fluid settings: the default tube and the line-tag scheme",
-    },
+pub const SETTABLE_SETTINGS: &[Member] = &[
+    Member::Numbering,
+    Member::ColourProfile,
+    Member::SizeProfile,
+    Member::XrefFormat,
+    Member::TextStyles,
+    Member::ProcessTagScheme,
+    Member::Fluid,
 ];
 
 /// The commands of an earlier version whose parameters are the value of a member of `project.settings.set`, each with
@@ -105,7 +65,7 @@ const SUPPLY_ALIAS: &str = "project.supply.set";
 fn settable_members() -> Vec<String> {
     SETTABLE_SETTINGS
         .iter()
-        .map(|s| s.name.to_owned())
+        .map(|m| m.name().to_owned())
         .chain([DRAWING_MEMBER, FRAMES_MEMBER, LANGUAGES_MEMBER].map(str::to_owned))
         .chain(SETTABLE_SUPPLY.iter().map(|p| format!("{SUPPLY_PREFIX}{p}")))
         .collect()
@@ -221,7 +181,7 @@ impl Command for SetProjectSettings {
                 }
             }
         }
-        let Some(spec) = SETTABLE_SETTINGS.iter().find(|s| s.name == self.member) else {
+        let Some(&member) = SETTABLE_SETTINGS.iter().find(|m| m.name() == self.member) else {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/member",
@@ -232,36 +192,36 @@ impl Command for SetProjectSettings {
                 ),
             ));
         };
-        if spec.member == Member::TextStyles {
+        if member == Member::TextStyles {
             return self.set_text_styles(tx);
         }
-        if spec.member == Member::Fluid {
+        if member == Member::Fluid {
             return self.set_fluid(tx);
         }
         if !self.value.is_null() {
-            ew_derive::check_settings_member(spec.member, &self.value).map_err(|issue| {
+            ew_derive::check_settings_member(member, &self.value).map_err(|issue| {
                 CmdError::invalid_params(
                     Self::NAME,
                     "/value",
                     text!(
                         "refusal-settings-value",
-                        spec.name.to_string(),
+                        member.name().to_string(),
                         settings_issue_text(&issue)
                     ),
                 )
             })?;
         }
         let mut project = (*tx.project()).clone();
-        if spec.member == Member::ProcessTagScheme {
+        if member == Member::ProcessTagScheme {
             // the typed member, checked above
             project.settings.process_tag_scheme = self.value.as_str().map(str::to_owned);
         } else if self.value.is_null() {
-            project.settings.extra.remove(spec.name);
+            project.settings.extra.remove(member.name());
         } else {
             project
                 .settings
                 .extra
-                .insert(spec.name.to_owned(), self.value.clone());
+                .insert(member.name().to_owned(), self.value.clone());
         }
         tx.set_project(project)?;
         Ok(Outcome::default())
