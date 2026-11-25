@@ -112,6 +112,14 @@ impl DisplayCx for SheetCx<'_> {
     fn date_format(&self) -> ew_schema::DateFormat {
         self.q.project().settings.formatting.date_format()
     }
+
+    fn cable_length(&self, source: &ew_schema::LengthSource) -> Option<String> {
+        let opts = ew_reports::render::RenderOptions {
+            lang: ew_derive::print_language(self.q),
+            ..ew_reports::render::RenderOptions::default()
+        };
+        Some(ew_reports::render::render(self.q, &ew_reports::length_source_cell(source), &opts))
+    }
 }
 
 /// The structure aspect a structure-assignment member names.

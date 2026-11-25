@@ -177,7 +177,7 @@ pub(crate) fn format_with(cx: &dyn DisplayCx, ty: &FieldType, value: &Value) -> 
         },
         // A unit variant of a tagged enum (a function's `black_box`) is its word.
         FieldType::Group(_) => value.as_str().map(str::to_owned).unwrap_or_default(),
-        FieldType::Json => length_source_text(value)
+        FieldType::Json => length_source_text(cx, value)
             .or_else(|| scale_text(value))
             .or_else(|| rect_text(value))
             // A connection that is a cable's core by its cable and core (`-1W1 BN`), as the strip editor
@@ -197,9 +197,17 @@ fn scale_text(value: &Value) -> Option<String> {
     }
 }
 
-/// A cable's length source in the words its typed editor reads back: `{"manual": <nm>}` as
-/// `<metres> m`, `from_part` as `from part`, `missing` as is; `None` for any other JSON value.
-fn length_source_text(value: &Value) -> Option<String> {
+/// A cable's length source in the words its typed editor reads back: as the project's lists print it
+/// ([`DisplayCx::cable_length`]); without a project `{"manual": <nm>}` as `<metres> m`, `from_part` as `from part`,
+/// `missing` as is; `None` for any other JSON value.
+fn length_source_text(cx: &dyn DisplayCx, value: &Value) -> Option<String> {
+    if let Some(text) = serde_json::from_value::<ew_schema::LengthSource>(value.clone())
+        .ok()
+        .filter(|s| !matches!(s, ew_schema::LengthSource::Unknown(_)))
+        .and_then(|s| cx.cable_length(&s))
+    {
+        return Some(text);
+    }
     match value {
         Value::String(s) if s == "from_part" => Some("from part".to_owned()),
         Value::String(s) if s == "missing" => Some("missing".to_owned()),

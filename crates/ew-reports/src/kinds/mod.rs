@@ -29,7 +29,7 @@ mod terminal_overview;
 mod toc;
 mod wire_list;
 
-pub use cable_overview::{CableOverview, cable_length_words};
+pub use cable_overview::{CableOverview, cable_length_words, length_source_cell};
 pub use conn::bridge_groups;
 pub use device_list::DeviceList;
 pub use enclosure_legend::EnclosureLegend;

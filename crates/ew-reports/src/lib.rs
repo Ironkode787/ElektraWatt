@@ -65,7 +65,7 @@ pub use ew_derive::bus_word;
 pub use kind::{
     EmbeddedLayout, KindParams, ParamDef, ParamKind, ParamValue, Registry, ReportKindDef, kind_params,
 };
-pub use kinds::{bridge_groups, cable_length_words};
+pub use kinds::{bridge_groups, cable_length_words, length_source_cell};
 pub use layout::{Layouts, PageLayout};
 pub use paginate::{BlockSpec, Break, Continuation, Slice, paginate};
 pub use queries::{BlockPages, BlockRows, ReportEngine, arranged, engine, project_rows, rows_of};

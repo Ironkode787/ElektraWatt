@@ -444,6 +444,10 @@ pub(crate) trait DisplayCx {
     fn date_format(&self) -> DateFormat {
         DateFormat::Iso8601
     }
+    /// A cable's length source as the project's lists print it; `None` without a project.
+    fn cable_length(&self, _source: &ew_schema::LengthSource) -> Option<String> {
+        None
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------------

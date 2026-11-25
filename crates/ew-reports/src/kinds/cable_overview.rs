@@ -137,16 +137,20 @@ fn part_number(q: &Q, cable: Id<Device>) -> String {
 /// A cable's length as every list prints it: metres to the millimetre, "from part" for a length the part gives, "length
 /// missing" for a cable without one (EW-CORE-033), else empty.
 pub(super) fn length_cell(q: &Q, cable: Id<Device>) -> Cell {
-    match q
-        .devices()
+    q.devices()
         .get(cable)
         .and_then(|d| d.aspects.cable.as_ref())
-        .map(|c| &c.length)
-    {
-        Some(LengthSource::Manual(nm)) => Cell::metres(*nm),
-        Some(LengthSource::FromPart) => words_cell(&text!("cell-from-part")),
-        Some(LengthSource::Missing) => Cell::Missing(MissingReason::Length),
-        Some(LengthSource::Unknown(_)) | None => Cell::Empty,
+        .map_or(Cell::Empty, |c| length_source_cell(&c.length))
+}
+
+/// A cable's length source as every list prints it ([`length_cell`]), and Properties with it: metres to the
+/// millimetre, "from part", "length missing"; empty for a source of a newer format.
+pub fn length_source_cell(source: &LengthSource) -> Cell {
+    match source {
+        LengthSource::Manual(nm) => Cell::metres(*nm),
+        LengthSource::FromPart => words_cell(&text!("cell-from-part")),
+        LengthSource::Missing => Cell::Missing(MissingReason::Length),
+        LengthSource::Unknown(_) => Cell::Empty,
     }
 }
 

@@ -1275,3 +1275,40 @@ fn a_devices_natures_come_from_its_aspects_and_its_points() {
     let header = s.property_sheet(&[device(&s, "-101F1")]).header;
     assert_eq!(header.what.map(|w| w.natures), Some(mcb));
 }
+
+/// Properties shows a cable's length as the lists print it, in the project's language: in a Dutch project without a
+/// decimal separator of its own a manual length with a comma, a length the part gives in Dutch words.
+#[test]
+fn properties_show_a_cable_length_as_the_lists_print_it() {
+    let (mut project, records, lib) = crate::common::sample_records();
+    project.languages = Some(serde_json::from_value(json!({"source": "nl-NL"})).expect("the languages"));
+    project.settings.formatting.decimal_separator = None;
+    let mut s = crate::common::session_of(project, records, lib);
+    let set = |s: &mut Session, tag: &str, value: Value| {
+        let cable = s.resolve_reference(tag).expect("the cable");
+        s.execute(&AnyCommand {
+            name: "fields.set".into(),
+            params: json!({"kind": "device", "targets": [cable.to_string()], "path": "cable.length", "value": value}),
+        })
+        .expect("the length set");
+    };
+    set(&mut s, "-103W1", json!({"manual": 12_500_000_000_i64}));
+    set(&mut s, "-101W1", json!("from_part"));
+    let text = |tag: &str| {
+        let cable = s.resolve_reference(tag).expect("the cable");
+        match &s
+            .property_sheet(&[cable])
+            .sections
+            .iter()
+            .flat_map(|x| &x.rows)
+            .find(|r| r.key == "device/cable.length")
+            .expect("the Length row")
+            .value
+        {
+            RowValue::One { text, .. } => text.clone(),
+            other => format!("{other:?}"),
+        }
+    };
+    assert_eq!(text("-103W1"), "12,5 m");
+    assert_eq!(text("-101W1"), "uit artikel");
+}
