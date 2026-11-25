@@ -941,7 +941,8 @@ The persisted record type of every entity kind (plain serde structs), the kind r
 | File | Size | What it holds |
 |---|---|---|
 | `src/anchor.rs` |  | The cross-reference anchor of a symbol in its own frame (FR-SYM-010, FR-XRF-005, D-14; doc 06 §5.1). |
-| `src/asset.rs` | large | Assets: content-addressed image files (`assets/<sha256>.<ext>`, doc 05 §13.3), the embedded sources of underlays (a PDF or a DXF the user embedded) and the project's typeface (a TrueType or OpenType file, doc 09 §4.8), which no image gate takes ([`pixel_limit`]). |
+| `src/asset.rs` |  | Assets: content-addressed image files (`assets/<sha256>.<ext>`, doc 05 §13.3), the embedded sources of underlays (a PDF or a DXF the user embedded) and the project's typeface (a TrueType or OpenType file, doc 09 §4.8), which no image gate takes ([`pixel_limit`]). |
+| `src/asset/svg.rs` | large | The plain rejecter of SVG assets ([`svg_hazard`], doc 18 §11 TM-18): what [`super::sniff`] refuses in an SVG before any parser or renderer reads it, and why ([`SvgHazard`]). |
 | `src/bus.rs` |  | The bus model (doc 03 §14, doc 10 §2.7): the `BusPort` aspect of a function and the record kinds `logical_net` (rank 12) and `physical_net` (13) in `project.jsonl`. |
 | `src/conflict.rs` |  | Conflict records (doc 05 §11.2, §11.4): the `conflict` record (rank 255, the file of its target). |
 | `src/connect.rs` |  | Connectivity records (ADR-0007, doc 03 §9, §12, doc 08 §2): `connection` (rank 34), `junction` (35), `conductor` (36), `potential_def` (38) and `bond` (41). |

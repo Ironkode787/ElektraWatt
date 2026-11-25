@@ -346,8 +346,7 @@ tree that differs.
 The rules of `cargo xtask rules`, each with what it catches: the order of the crates and the licence boundary;
 test-only features and crates in a shipped program; raw reads of the model; the licence of every path;
 confidential tokens; a literal text with a letter in the window; a generated file that is stale; **a source file over
-the size ceiling** of 3,000 lines (a file a generator writes is not bound), with no list of exceptions but the one file
-whose split waits for an item of the owner's list; **a control the window greys without a reason in words** (an action
+the size ceiling** of 3,000 lines (a file a generator writes is not bound), with no list of exceptions; **a control the window greys without a reason in words** (an action
 of the registry cannot be greyed without one: its check returns its reason's key); history in a design document
 (§19); the Dutch guide's tutorials untranslated.
 
