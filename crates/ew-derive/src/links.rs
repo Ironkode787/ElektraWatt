@@ -70,7 +70,7 @@ pub struct FunctionLinks {
     /// The terminal level rule (doc 08 §6.2, FnDef contact kind terminal): the CP indices of
     /// one level (and one side when the FnDef declares a pass-through), with the level, in key order.
     pub level_groups: Vec<(u8, Vec<u16>)>,
-    /// Flow (doc 08 §3.6): the FnDef's category is a protective device.
+    /// Flow (doc 08 §3.6): the FnDef's category is a protective device (the category table's `protection` flag).
     pub protection: bool,
     /// Flow: the FnDef switches N with L.
     pub switches_n: bool,
@@ -116,7 +116,7 @@ fn function_links(q: &Q, fid: Id<Function>) -> FunctionLinks {
         return out;
     };
     let cps = q.get::<FunctionCps>(fid);
-    out.protection = def.item.category.0.as_str().starts_with("Protection");
+    out.protection = ew_rds::category_flags(def.item.category.0.as_str()).protection;
     out.switches_n = def.item.flags.switches_n_with_l;
     out.terminal_contact = def.item.contact_kind == ContactKind::Terminal;
     out.source_outputs = cps.iter().filter(|c| c.source_output).map(|c| c.idx).collect();

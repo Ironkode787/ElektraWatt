@@ -336,8 +336,9 @@ potential_flow(potential):                              // memo per potential; t
         distance(P_d) = distance(P_u) + 1;   upstream(P_d) = (f, pair)
         type, voltage, env of P_d := those of P_u unless set by a definition or a member CP role   (FR-CON-011)
         (a name-only definition, ptype = None per 03 §9.4, does not stop propagation)
-        switched(P_d)     = switched(P_u) or (opens and f.category ∉ Protection* and not f.flags.switches_n_with_l)
-        protected_by(P_d) = f if f.category ∈ Protection*, else protected_by(P_u)
+        switched(P_d)     = switched(P_u) or (opens and not protection(f) and not f.flags.switches_n_with_l)
+        protected_by(P_d) = f if protection(f), else protected_by(P_u)
+  protection(f): f's category carries the `protection` flag of the category table (ew-rds data/identifier-sets.toml)
   unreached potentials: distance ∞; orientation and numbering fall back to page order
 ```
 

@@ -157,6 +157,7 @@ fn black_box(cps: &[(u16, (i64, i64), &str)], pins: &[(u16, &str)]) -> RepView {
             json!({"box": {"outline": [[0, 0], [g(30), 0], [g(30), g(12)], [0, g(12)]], "cps": cps}}),
         ),
         symbol: Some(s.def.clone()),
+        terminal: false,
         slots: vec![
             value(slot(&s, &SlotKind::Tag), "-101A1"),
             value(slot(&s, &SlotKind::PartNumber), "EW-GEN-PSU-1"),
@@ -203,6 +204,7 @@ fn contact(c: &SymbolRef, n: u128, x: i64, name: &str) -> RepView {
     RepView {
         rep: rep(n, c.id, x, 20, json!({})),
         symbol: Some(c.def.clone()),
+        terminal: false,
         slots: vec![
             value(slot(c, &SlotKind::Tag), name),
             value(slot(c, &SlotKind::CpDesignation(0)), "13"),
@@ -276,6 +278,7 @@ fn a_wire_number_stands_along_its_wire_turned_on_a_vertical_stretch() {
     let k = |n: u128, x: i64, y: i64| RepView {
         rep: rep(n, coil.id, x, y, json!({})),
         symbol: Some(coil.def.clone()),
+        terminal: false,
         slots: Vec::new(),
         terminals: Vec::new(),
         pins: Vec::new(),
@@ -323,6 +326,7 @@ fn a_tag_does_not_sit_on_a_wire() {
     let k = |n: u128, y: i64| RepView {
         rep: rep(n, coil.id, 40, y, json!({})),
         symbol: Some(coil.def.clone()),
+        terminal: false,
         slots: Vec::new(),
         terminals: Vec::new(),
         pins: Vec::new(),
@@ -330,6 +334,7 @@ fn a_tag_does_not_sit_on_a_wire() {
     let m = RepView {
         rep: rep(0x33, valve.id, 44, 30, json!({})),
         symbol: Some(valve.def.clone()),
+        terminal: false,
         slots: vec![
             value(slot(&valve, &SlotKind::Tag), "-101M1"),
             value(slot(&valve, &SlotKind::TechData), "24 V"),
@@ -372,6 +377,7 @@ fn a_tag_that_moves_lands_on_no_symbol() {
     let k = |n: u128, x: i64, y: i64| RepView {
         rep: rep(n, coil.id, x, y, json!({})),
         symbol: Some(coil.def.clone()),
+        terminal: false,
         slots: Vec::new(),
         terminals: Vec::new(),
         pins: Vec::new(),
@@ -379,6 +385,7 @@ fn a_tag_that_moves_lands_on_no_symbol() {
     let m = RepView {
         rep: rep(0x33, valve.id, 44, 30, json!({})),
         symbol: Some(valve.def.clone()),
+        terminal: false,
         slots: vec![value(slot(&valve, &SlotKind::Tag), "-101M1")],
         terminals: Vec::new(),
         pins: Vec::new(),
@@ -408,6 +415,7 @@ fn a_tag_that_moves_lands_on_no_symbol() {
     let turned = RepView {
         rep: rep(0x35, valve.id, 44, 30, json!({"orient": "r180"})),
         symbol: Some(valve.def.clone()),
+        terminal: false,
         slots: vec![value(slot(&valve, &SlotKind::Tag), "-101M2")],
         terminals: Vec::new(),
         pins: Vec::new(),
@@ -427,6 +435,7 @@ fn a_tag_that_moves_lands_on_no_symbol() {
     let plain = RepView {
         rep: rep(0x36, valve.id, 44, 30, json!({})),
         symbol: Some(valve.def.clone()),
+        terminal: false,
         slots: vec![value(slot(&valve, &SlotKind::Tag), "-101M3")],
         terminals: Vec::new(),
         pins: Vec::new(),
@@ -475,6 +484,7 @@ fn the_labels_layer_reports_a_moved_tag_where_it_prints() {
     let k = |n: u128, y: i64| RepView {
         rep: rep(n, coil.id, 40, y, json!({})),
         symbol: Some(coil.def.clone()),
+        terminal: false,
         slots: Vec::new(),
         terminals: Vec::new(),
         pins: Vec::new(),
@@ -482,6 +492,7 @@ fn the_labels_layer_reports_a_moved_tag_where_it_prints() {
     let m = RepView {
         rep: rep(0x33, valve.id, 44, 30, json!({})),
         symbol: Some(valve.def.clone()),
+        terminal: false,
         slots: vec![
             value(slot(&valve, &SlotKind::Tag), "-101M1"),
             value(slot(&valve, &SlotKind::TechData), "24 V"),
@@ -526,6 +537,7 @@ fn a_cable_tag_stands_clear_of_its_mark() {
         vec![RepView {
             rep: rep(0x31, c.id, 40, 40, json!({})),
             symbol: Some(c.def.clone()),
+            terminal: false,
             slots: vec![value(slot(&c, &SlotKind::Tag), "-106W1")],
             terminals: Vec::new(),
             pins: Vec::new(),
@@ -575,6 +587,7 @@ fn boxed(
             json!({"box": {"outline": [[0, 0], [g(w), 0], [g(w), g(h)], [0, g(h)]], "cps": cps}}),
         ),
         symbol: Some(s.def.clone()),
+        terminal: false,
         slots: caption.map_or_else(Vec::new, |[tag, part, maker]| {
             vec![
                 value(slot(&s, &SlotKind::Tag), tag),
@@ -638,6 +651,7 @@ fn wires_at(ys: &[i64]) -> (Vec<RepView>, Vec<ConnectionView>) {
                     json!({"box": {"outline": outline, "cps": [{"idx": 0, "pos": [cp_x, y], "dir": dir}]}}),
                 ),
                 symbol: Some(s.def.clone()),
+                terminal: false,
                 slots: Vec::new(),
                 terminals: Vec::new(),
                 pins: Vec::new(),
@@ -659,6 +673,7 @@ fn arrow_at(y: i64) -> RepView {
     RepView {
         rep: rep(0x21, ip.id, 40, y, json!({})),
         symbol: Some(ip.def.clone()),
+        terminal: false,
         slots: vec![value(slot(&ip, &SlotKind::Xref), "102-A1")],
         terminals: Vec::new(),
         pins: Vec::new(),
@@ -692,6 +707,7 @@ fn a_two_line_list_rises_off_a_wire_through_its_second_line() {
     let coil = RepView {
         rep: rep(0x22, c.id, 40, 20, json!({})),
         symbol: Some(c.def.clone()),
+        terminal: false,
         slots: vec![value(slot(&c, &SlotKind::Xref), "101-B6\n101-D8")],
         terminals: Vec::new(),
         pins: Vec::new(),
@@ -742,6 +758,7 @@ fn point_label(symbol_text: &str, path: &[(i64, i64)]) -> (Rect, Rect) {
     let point = RepView {
         rep: rep(0x21, s.id, 40, 27, json!({})),
         symbol: Some(s.def.clone()),
+        terminal: false,
         slots: vec![value(slot(&s, &SlotKind::Xref), "102-A1")],
         terminals: Vec::new(),
         pins: Vec::new(),

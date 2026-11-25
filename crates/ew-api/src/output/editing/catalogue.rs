@@ -856,10 +856,10 @@ fn symbol_row(
         }) && def
             .as_ref()
             .is_some_and(|d| d.item.contact_kind == ContactKind::BlackBox),
-        // A PE terminal's category is `TerminalEarth`: it is placed into a strip like every terminal.
+        // A PE terminal (`TerminalEarth`) is placed into a strip like every terminal.
         terminal: def
             .as_ref()
-            .is_some_and(|d| matches!(d.item.category.0.as_str(), "Terminal" | "TerminalEarth")),
+            .is_some_and(|d| ew_rds::category_flags(d.item.category.0.as_str()).terminal),
         allowed: rep_type_allowed(page, &symbol.rep_type),
         grid_mismatch: None,
         name: ml_texts(&symbol.name).into_iter().next().unwrap_or_default(),
@@ -996,7 +996,7 @@ impl Session {
                 };
                 row.fndef_key = key_or_id(def.item.meta.key.as_ref(), def.id.as_uuid());
                 row.letter = letter_of(set, Some(&def));
-                row.terminal = matches!(def.item.category.0.as_str(), "Terminal" | "TerminalEarth");
+                row.terminal = ew_rds::category_flags(def.item.category.0.as_str()).terminal;
                 row.category = def.item.category.0.as_str().to_owned();
                 // A library master already has its authored outline and pins; do not redraw it as a box.
                 row.black_box = false;

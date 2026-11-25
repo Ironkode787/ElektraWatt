@@ -278,6 +278,8 @@ pub struct RepView {
     pub rep: Arc<Representation>,
     /// The symbol copy `rep.symbol` names; `None` if it is missing (reported, nothing drawn).
     pub symbol: Option<Arc<SymbolDef>>,
+    /// Whether the symbol draws a terminal (`ew_derive::terminal_symbol`): its tag prints in the terminal style.
+    pub terminal: bool,
     /// The derived slot texts; a slot without a value prints nothing.
     pub slots: Vec<SlotValue>,
     /// For a strip-segment representation ([`ew_schema::RepType::StripSegment`]): the terminals it draws, in drawing
@@ -834,10 +836,12 @@ impl PageScene {
     }
 }
 
-/// Shapes a symbol-editor text with the same styles, fonts, alignment and readable rotation as page placement.
+/// Shapes a symbol-editor text in the style `style_key` (the text's own, else its slot kind's,
+/// [`symbol::default_style_key`]) with the same styles, fonts, alignment and readable rotation as page placement.
 /// Dynamic slot values are supplied by the editor's preview data.
 pub fn symbol_preview_text(
     text: &symbol::PlacedText,
+    style_key: &str,
     content: &str,
     fonts: &FontSet,
     styles: &TextStyleTable,
@@ -853,7 +857,7 @@ pub fn symbol_preview_text(
             at: text.pos,
             angle: text.angle,
             align: &text.align,
-            style_key: &text.style_key,
+            style_key,
             entity: EntityRef(Uuid::nil()),
             link: None,
             items: &[],

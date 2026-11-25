@@ -690,7 +690,7 @@ impl Builder<'_> {
                     .reduce(Rect::union)
             });
             let one_pin = def.cps.len() == 1;
-            let terminal = symbol::default_style_key(def, &SlotKind::Tag) == "terminal";
+            let terminal = rv.terminal;
             let frame = ew_derive::text_frame(rep, def);
             let origin = ctx.origins.get(&rep.id.as_uuid()).copied().unwrap_or_default();
             let mut values: Vec<_> = rv.slots.iter().collect();
@@ -719,7 +719,7 @@ impl Builder<'_> {
                 let turned = ov.and_then(|o| o.angle).is_some();
                 let (place, align) = places[usize::from(value.slot)].clone();
                 let rot = ov.and_then(|o| o.angle).unwrap_or(slot.rot);
-                let (style_key, unknown) = symbol::slot_style_key(def, slot, self.styles);
+                let (style_key, unknown) = symbol::slot_style_key(rv.terminal, slot, self.styles);
                 let conflict = value.link.is_some() && !value.item_links.is_empty();
                 let xref = matches!(slot.kind, SlotKind::Xref);
                 let text = Text {
@@ -830,7 +830,7 @@ impl Builder<'_> {
                 None if ov.and_then(|o| o.angle).is_some() => frame.origin + frame.orient.apply(slot.pos),
                 None => frame.origin + place,
             } + up_by(angle, step);
-            let (style_key, _) = symbol::slot_style_key(def, slot, self.styles);
+            let (style_key, _) = symbol::slot_style_key(rv.terminal, slot, self.styles);
             let text = Text::plain(
                 &tag.text,
                 at,

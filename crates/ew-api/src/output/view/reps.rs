@@ -76,9 +76,11 @@ impl Query for PageRepsOf {
                 Some(def) => addresses_in_cell(q, *key, rep, def),
                 None => rep,
             };
+            let terminal = symbol.as_ref().is_some_and(|s| ew_derive::terminal_symbol(q, s));
             out.push(RepView {
                 rep,
                 symbol,
+                terminal,
                 slots: Vec::new(),
                 terminals,
                 pins: Vec::new(),

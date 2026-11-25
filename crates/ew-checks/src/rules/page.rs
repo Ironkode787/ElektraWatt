@@ -22,8 +22,7 @@ use ew_ids::Id;
 use ew_mltext::natural_cmp;
 use ew_schema::{
     AnyId, Connection, Device, EffectiveStyle, Function, GraphicShape, Junction, Kind, Page, PageItem,
-    PageItemKind, Primitive, ReportBlock, ReportKind, ReportSource, Representation, StructureBox, SymbolDef,
-    TextSlot,
+    PageItemKind, Primitive, ReportBlock, ReportKind, ReportSource, Representation, StructureBox, TextSlot,
 };
 use ew_units::Pt2;
 
@@ -534,12 +533,13 @@ fn printed_style<'a>(table: &[EffectiveStyle], key: Option<&'a str>) -> &'a str 
     }
 }
 
-/// The style a symbol's text slot prints with: its own `style` when that is a style of `table`, else the style bound
-/// to its kind (`ew_schema::slot_default_style`, the scene's binding too).
-fn slot_style<'a>(table: &[EffectiveStyle], def: &SymbolDef, slot: &'a TextSlot) -> &'a str {
+/// The style a text slot of a symbol that draws a terminal when `terminal` is set prints with: its own `style` when
+/// that is a style of `table`, else the style bound to its kind (`ew_schema::slot_default_style`, the scene's binding
+/// too).
+fn slot_style<'a>(table: &[EffectiveStyle], terminal: bool, slot: &'a TextSlot) -> &'a str {
     match slot.style.as_ref().map(|s| s.as_str()) {
         Some(k) if is_style(table, k) => k,
-        _ => ew_schema::slot_default_style(def, &slot.kind),
+        _ => ew_schema::slot_default_style(terminal, &slot.kind),
     }
 }
 
@@ -602,10 +602,11 @@ pub fn used_text_styles(q: &Q) -> BTreeSet<String> {
         if rep.functions.is_empty() {
             continue;
         }
+        let terminal = ew_derive::terminal_symbol(q, def);
         for (i, slot) in def.text_slots.iter().enumerate() {
             let idx = u16::try_from(i).unwrap_or(u16::MAX);
             if ew_derive::slot_shown(rep, def, idx) {
-                mark(Some(slot_style(&table, def, slot)));
+                mark(Some(slot_style(&table, terminal, slot)));
             }
         }
     }

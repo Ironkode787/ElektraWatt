@@ -222,7 +222,7 @@ pub use text::{
     csa_with_unit, mm_exact, mm_hundredth, mm_micro, mm_padded, mm_tenth, mm_tenth_float, mm_tenth_short,
     mm_truncated, potential_type_code, potential_type_text, slot_short, slot_text,
 };
-pub use text_frame::{TextFrame, slot_shown, tag_slot_shown, text_frame};
+pub use text_frame::{TextFrame, slot_shown, tag_slot_shown, terminal_symbol, text_frame};
 pub use title_block::{
     TbValue, TitleBlock, TitleBlockValues, current_revision, last_changed_in, last_released_revision,
     open_revision, recorded_changed_pages, revision_label_key,

@@ -118,7 +118,7 @@ The owner's test of 0.3.0-rc.2 found the styles unreachable and their names unkn
 - **`terminal`** is a new built-in row, the terminal's number, at `tag.main`'s 13 px so that a project that sets
   nothing prints as before (Golden A unchanged), and a project that sets `tag.main` and not `terminal` (one made before
   the row) prints its terminal numbers as `tag.main` (`FOLLOWS` in `ew_schema`), as it did; the tag of a terminal
-  symbol (its function `ew.fn.terminal…`) prints in it, the default binding of `ew_schema::slot_default_style`, which the scene and EW-CORE-061 share. A new project
+  symbol (one that draws a terminal: its function definition's category carries the `terminal` flag of the category table, `ew_schema::draws_terminal`; a strip segment does not) prints in it, the default binding of `ew_schema::slot_default_style`, which the scene and EW-CORE-061 share. A new project
   writes it at a cap height of 1.8 mm (`NEW_PROJECT_TEXT_STYLES`), below the device tag's, beside `cp.small` and
   `marker` at 7 px; every style of a new project prints at least 1.2 mm high (decision 3 extended).
 - **A free text's own height** is the additive member `FreeText.height` (a cap height); its style is chosen by name in

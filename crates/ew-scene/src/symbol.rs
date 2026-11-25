@@ -70,9 +70,10 @@
 //! On a symbol turned a quarter the slot texts that print level are placed anew round the body instead
 //! ([`slot_places`]): its tags centred above a body lying flat, its other texts centred below it, line under line.
 //!
-//! Slot texts come after static texts; a slot text's style key is the slot's own `style`, else the binding of
-//! [`default_style_key`]. The page resolves it against the project's table ([`slot_style_key`], ADR-0032), which
-//! a symbol's geometry does not depend on.
+//! Slot texts come after static texts; a slot text's style key is the slot's own `style`, else none: it prints in the
+//! binding of [`default_style_key`], which asks whether the symbol draws a terminal, a fact of its function definition
+//! that the geometry does not hold. The page resolves it against the project's table ([`slot_style_key`], ADR-0032),
+//! which a symbol's geometry does not depend on.
 //!
 //! # Anchor
 //!
@@ -158,8 +159,9 @@ pub struct PlacedText {
     pub angle: Angle2,
     /// Alignment at `pos` after the variant ([`placed_align`]), so the text keeps its side of the anchor.
     pub align: Align,
-    /// The text style key.
-    pub style_key: String,
+    /// The text style key: a static text's (its own, else the default style), a slot's own; `None` for a slot that
+    /// names none, which prints in its kind's style ([`default_style_key`]).
+    pub style_key: Option<String>,
     /// Maximum width before shrinking.
     pub max_width: Option<Nm>,
     /// Visible by default.
@@ -184,10 +186,11 @@ pub fn lower(def: &SymbolDef, variant: Orient2) -> SymbolGeometry {
                 pos: variant.apply(text.pos),
                 angle: upright_angle(text.angle),
                 align: placed_align(&text.align, text.angle, variant),
-                style_key: text
-                    .style
-                    .as_ref()
-                    .map_or_else(|| DEFAULT_TEXT_STYLE.to_owned(), |s| s.as_str().to_owned()),
+                style_key: Some(
+                    text.style
+                        .as_ref()
+                        .map_or_else(|| DEFAULT_TEXT_STYLE.to_owned(), |s| s.as_str().to_owned()),
+                ),
                 max_width: None,
                 visible: true,
             });
@@ -200,10 +203,7 @@ pub fn lower(def: &SymbolDef, variant: Orient2) -> SymbolGeometry {
             pos,
             angle: upright_angle(slot.rot),
             align,
-            style_key: slot.style.as_ref().map_or_else(
-                || default_style_key(def, &slot.kind).to_owned(),
-                |s| s.as_str().to_owned(),
-            ),
+            style_key: slot.style.as_ref().map(|s| s.as_str().to_owned()),
             max_width: slot.max_width,
             visible: slot.visible,
         });
@@ -655,26 +655,27 @@ fn align_of(h: i128, v: i128) -> Align {
     }
 }
 
-/// The text-style key of a slot of `def`: its own `style` member when it names a style of `styles` (the project's
-/// effective table, ADR-0032), else [`default_style_key`] of its kind. The second
-/// value is the unknown name when the slot's style is not in the table and the kind's style was used instead.
+/// The text-style key of a slot of a symbol that draws a terminal when `terminal` is set: its own `style` member when
+/// it names a style of `styles` (the project's effective table, ADR-0032), else [`default_style_key`] of its kind. The
+/// second value is the unknown name when the slot's style is not in the table and the kind's style was used instead.
 pub fn slot_style_key<'a>(
-    def: &SymbolDef,
+    terminal: bool,
     slot: &'a TextSlot,
     styles: &TextStyleTable,
 ) -> (&'a str, Option<&'a str>) {
     match &slot.style {
         Some(name) if styles.get(name.as_str()).is_some() => (name.as_str(), None),
-        Some(name) => (default_style_key(def, &slot.kind), Some(name.as_str())),
-        None => (default_style_key(def, &slot.kind), None),
+        Some(name) => (default_style_key(terminal, &slot.kind), Some(name.as_str())),
+        None => (default_style_key(terminal, &slot.kind), None),
     }
 }
 
-/// The default text-style key bound to a slot kind of `def` (`ew_schema::slot_default_style`):
-/// `terminal` for a terminal symbol's tag, `tag.main` for other tags, `cp.small` for CP designations, `data.small`
-/// for every other known kind, `text.normal` for unknown kinds.
-pub fn default_style_key(def: &SymbolDef, kind: &SlotKind) -> &'static str {
-    ew_schema::slot_default_style(def, kind)
+/// The default text-style key bound to a slot kind of a symbol that draws a terminal when `terminal` is set
+/// (`ew_schema::slot_default_style`; [`RepView::terminal`](crate::page::RepView::terminal)): `terminal` for a terminal
+/// symbol's tag, `tag.main` for other tags, `cp.small` for CP designations, `data.small` for every other known kind,
+/// `text.normal` for unknown kinds.
+pub fn default_style_key(terminal: bool, kind: &SlotKind) -> &'static str {
+    ew_schema::slot_default_style(terminal, kind)
 }
 
 /// The anchor of `def` in its own frame (R0), snapped to `def.grid` (see the module documentation).

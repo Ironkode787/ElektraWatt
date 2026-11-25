@@ -268,6 +268,7 @@ fn hostile_view() -> PageView {
         reps.push(RepView {
             rep: Arc::new(rep),
             symbol: Some(symbol.def.clone()),
+            terminal: false,
             slots: Vec::new(),
             terminals: Vec::new(),
             pins: Vec::new(),

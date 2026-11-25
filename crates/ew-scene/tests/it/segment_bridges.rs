@@ -42,6 +42,7 @@ fn segment() -> RepView {
     RepView {
         rep: Arc::new(rep),
         symbol: Some(Arc::new(item)),
+        terminal: false,
         slots: Vec::new(),
         terminals: (1..=4)
             .map(|n| SegmentTerminal {

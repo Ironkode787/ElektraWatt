@@ -1476,6 +1476,7 @@ fn no_text_of_a_symbol_crosses_a_stub_of_its_connection_points() {
                 reps: vec![ew_scene::page::RepView {
                     rep: std::sync::Arc::new(rep),
                     symbol: Some(std::sync::Arc::new(def.clone())),
+                    terminal: false,
                     slots: slots.clone(),
                     terminals: Vec::new(),
                     pins: Vec::new(),

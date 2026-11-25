@@ -67,6 +67,7 @@ fn view(orient: &str) -> PageView {
         reps: vec![RepView {
             rep: Arc::new(r),
             symbol: Some(def),
+            terminal: false,
             slots: Vec::new(),
             terminals: Vec::new(),
             pins,

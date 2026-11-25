@@ -6,7 +6,7 @@
 
 //! The shipped identifier sets.
 
-use super::{IdentifierSet, Mapping};
+use super::{CategoryFlags, IdentifierSet, Mapping};
 use crate::LetterCode;
 
 /// A letter code of the tables; an invalid one fails compilation.
@@ -174,4 +174,21 @@ pub(super) static SHIPPED: [IdentifierSet; 3] = [
     IdentifierSet::from_static("EN81346-2:2009", "EN 81346-2:2009 single-letter classes", &['D'], &ROWS_EN81346_2_2009),
     IdentifierSet::from_static("IEC81346-2:2019", "IEC 81346-2:2019 classes and subclasses", &['A', 'D', 'J', 'L', 'V', 'Y', 'Z'], &ROWS_IEC81346_2_2019),
     IdentifierSet::from_static("IEC60750-legacy", "IEC 60750 / DIN 40719-2 legacy letters", &[], &ROWS_IEC60750_LEGACY),
+];
+
+pub(super) static FLAGS: [(&str, CategoryFlags); 14] = [
+    ("ProtectionOvercurrent", CategoryFlags { terminal: false, protection: true, field: false }),
+    ("ProtectionResidualCurrent", CategoryFlags { terminal: false, protection: true, field: false }),
+    ("ProtectionOvervoltage", CategoryFlags { terminal: false, protection: true, field: false }),
+    ("ValveTerminalNode", CategoryFlags { terminal: false, protection: false, field: true }),
+    ("ValveTerminalModule", CategoryFlags { terminal: false, protection: false, field: true }),
+    ("SensingTemperature", CategoryFlags { terminal: false, protection: false, field: true }),
+    ("SensingPosition", CategoryFlags { terminal: false, protection: false, field: true }),
+    ("SensingPressure", CategoryFlags { terminal: false, protection: false, field: true }),
+    ("MotorRotary", CategoryFlags { terminal: false, protection: false, field: true }),
+    ("CylinderFluid", CategoryFlags { terminal: false, protection: false, field: true }),
+    ("FluidSensor", CategoryFlags { terminal: false, protection: false, field: true }),
+    ("ValveTerminal", CategoryFlags { terminal: false, protection: false, field: true }),
+    ("Terminal", CategoryFlags { terminal: true, protection: false, field: false }),
+    ("TerminalEarth", CategoryFlags { terminal: true, protection: false, field: false }),
 ];

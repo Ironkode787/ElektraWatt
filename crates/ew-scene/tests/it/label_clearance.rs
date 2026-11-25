@@ -76,6 +76,7 @@ fn rep(
     }
     RepView {
         rep: Arc::new(serde_json::from_value(r).unwrap()),
+        terminal: false,
         slots: slots.iter().map(|(k, t)| value(slot(&def, k), t)).collect(),
         symbol: Some(def),
         terminals: Vec::new(),

@@ -185,18 +185,20 @@ pub const BUILTIN_TEXT_STYLES: &[(&str, u16, TextWeight, TextStyleGroup)] = &[
     ("terminal", 13, TextWeight::Regular, TextStyleGroup::Terminals),
 ];
 
-/// The text style a slot of `def` that names none prints with, one place for the page scene and
-/// EW-CORE-061: the terminal's number (`terminal`) for the tag of a terminal symbol (its function `ew.fn.terminal…`),
-/// `tag.main` for any other tag, `cp.small` for a CP designation, `text.normal` for a kind of a newer format and
-/// `data.small` for every other kind.
-pub fn slot_default_style(def: &crate::SymbolDef, kind: &crate::SlotKind) -> &'static str {
+/// Whether `symbol`, drawn for the function definition `def`, draws one terminal ([`slot_default_style`]): the
+/// definition's category carries the `terminal` flag of the category table (`ew_rds::category_flags`), and the symbol
+/// is no strip segment (which draws a strip, its tag the strip's).
+pub fn draws_terminal(symbol: &crate::SymbolDef, def: &crate::FnDef) -> bool {
+    ew_rds::category_flags(def.category.0.as_str()).terminal
+        && symbol.rep_type != crate::RepType::StripSegment
+}
+
+/// The text style a slot that names none prints with, one place for the page scene and EW-CORE-061: the terminal's
+/// number (`terminal`) for the tag of a symbol that draws a terminal (`terminal`, [`draws_terminal`]), `tag.main` for
+/// any other tag, `cp.small` for a CP designation, `text.normal` for a kind of a newer format and `data.small` for
+/// every other kind.
+pub fn slot_default_style(terminal: bool, kind: &crate::SlotKind) -> &'static str {
     use crate::SlotKind;
-    let terminal = def
-        .fndef
-        .extra
-        .get("key")
-        .and_then(Value::as_str)
-        .is_some_and(|k| k.starts_with("ew.fn.terminal"));
     match kind {
         SlotKind::Tag if terminal => "terminal",
         SlotKind::Tag => "tag.main",

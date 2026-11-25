@@ -451,7 +451,8 @@ fn behind_terminals(q: &Q, device: Id<Device>) -> bool {
 /// 1. its primary part's mount kind: a rail profile goes on the rail, any other kind (screwed, in the door, on a
 ///    busbar) does not;
 /// 2. it has the space's location: it goes;
-/// 3. a function category of field equipment ([`field_category`]: a sensor, a cylinder, a motor, a valve terminal), or
+/// 3. a function category of field equipment (the category table's `field` flag, `ew_rds::category_flags`: a sensor,
+///    a cylinder, a motor, a valve terminal), or
 ///    it stands behind terminals in the field (every wire from it ends at a terminal's field side): it does not;
 /// 4. otherwise it goes.
 pub fn fill_candidates(q: &Q, space: Id<LayoutSpace>) -> Vec<(Id<Device>, bool)> {
@@ -472,7 +473,7 @@ pub fn fill_candidates(q: &Q, space: Id<LayoutSpace>) -> Vec<(Id<Device>, bool)>
         let field = q.idx().functions_of_device(d).any(|f| {
             fns.get(f)
                 .and_then(|f| fndefs.get(f.def))
-                .is_some_and(|def| field_category(def.item.category.0.as_str()))
+                .is_some_and(|def| ew_rds::category_flags(def.item.category.0.as_str()).field)
         });
         !field && !behind_terminals(q, d)
     };
@@ -481,23 +482,6 @@ pub fn fill_candidates(q: &Q, space: Id<LayoutSpace>) -> Vec<(Id<Device>, bool)>
         .map(|d| (*d, guess(*d, true)))
         .chain(unlocated(q).into_iter().map(|d| (d, guess(d, false))))
         .collect()
-}
-
-/// Whether a function category (its first level) is equipment that stands in the field, outside a cabinet: Auto-fill
-/// rail's first guess leaves a device without a location of such a category off the rail ([`fill_candidates`]).
-fn field_category(category: &str) -> bool {
-    matches!(
-        category,
-        "SensingPosition"
-            | "SensingPressure"
-            | "SensingTemperature"
-            | "FluidSensor"
-            | "CylinderFluid"
-            | "MotorRotary"
-            | "ValveTerminal"
-            | "ValveTerminalNode"
-            | "ValveTerminalModule"
-    )
 }
 
 // ---------------------------------------------------------------------------------------------------------

@@ -47,6 +47,7 @@ fn terminal(n: u128, x: i64, y: i64) -> RepView {
     RepView {
         rep: Arc::new(rep),
         symbol: Some(def),
+        terminal: false,
         slots: Vec::new(),
         terminals: Vec::new(),
         pins: Vec::new(),

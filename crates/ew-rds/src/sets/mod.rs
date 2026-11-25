@@ -18,6 +18,28 @@ pub const IEC_81346_2_2019: &str = "IEC81346-2:2019";
 /// Key of the IEC 60750 / DIN 40719-2 legacy set, for migrated QET projects.
 pub const IEC_60750_LEGACY: &str = "IEC60750-legacy";
 
+/// What general code asks of a function category (its first level), from the flags of `data/identifier-sets.toml`:
+/// one table for every set, so no code names the categories of a family.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub struct CategoryFlags {
+    /// A terminal, placed into a strip (`Terminal`, `TerminalEarth`); its symbol's tag prints in the terminal style.
+    pub terminal: bool,
+    /// It protects a circuit: a breaker, a fuse, a residual-current or a surge device.
+    pub protection: bool,
+    /// Equipment that stands in the field, outside a cabinet (a sensor, a cylinder, a motor, a valve terminal):
+    /// Auto-fill rail leaves a device of it without a location off the rail.
+    pub field: bool,
+}
+
+/// The flags of the function category `category` (its first level); none for a category the table does not flag or
+/// does not know.
+pub fn category_flags(category: &str) -> CategoryFlags {
+    data::FLAGS
+        .iter()
+        .find(|(key, _)| *key == category)
+        .map_or_else(CategoryFlags::default, |(_, flags)| *flags)
+}
+
 /// One row of an identifier set: the letter code of a function category (optionally refined by its group)
 /// and the letter codes the set also accepts for it (ADR-0026 decision 3).
 ///

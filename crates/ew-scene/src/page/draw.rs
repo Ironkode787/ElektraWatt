@@ -123,7 +123,7 @@ impl Builder<'_> {
                     at: rep.pos + t.pos,
                     angle: t.angle,
                     align: &t.align,
-                    style_key: &t.style_key,
+                    style_key: t.style_key.as_deref().unwrap_or(symbol::DEFAULT_TEXT_STYLE),
                     entity,
                     link: None,
                     items: &[],

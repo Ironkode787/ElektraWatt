@@ -347,6 +347,7 @@ pub fn preview_display_list(
     slot_placeholder: &dyn Fn(&schema::SlotKind) -> String,
 ) -> ew_dl::DisplayList {
     let mut list = geometry.graphics.clone();
+    let terminal = schema::draws_terminal(&draft.symbol, &draft.function);
     for text in &geometry.texts {
         let content = match &text.source {
             TextSource::Static(t) => match t.view() {
@@ -369,8 +370,13 @@ pub fn preview_display_list(
             TextSource::Slot(schema::SlotKind::Tag) => "-U1".into(),
             TextSource::Slot(kind) => slot_placeholder(kind),
         };
+        let style_key = match (&text.style_key, &text.source) {
+            (Some(key), _) => key.as_str(),
+            (None, TextSource::Slot(kind)) => ew_scene::symbol::default_style_key(terminal, kind),
+            (None, TextSource::Static(_)) => ew_scene::symbol::DEFAULT_TEXT_STYLE,
+        };
         list.items.extend(
-            ew_scene::page::symbol_preview_text(text, &content, ew_text::bundled(), styles)
+            ew_scene::page::symbol_preview_text(text, style_key, &content, ew_text::bundled(), styles)
                 .list
                 .items,
         );

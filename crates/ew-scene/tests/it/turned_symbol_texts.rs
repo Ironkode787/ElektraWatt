@@ -146,6 +146,7 @@ fn rep(
     RepView {
         rep: Arc::new(serde_json::from_value::<Representation>(v).unwrap()),
         symbol: Some(s.def.clone()),
+        terminal: false,
         slots,
         terminals: Vec::new(),
         pins: Vec::new(),

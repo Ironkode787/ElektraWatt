@@ -20,8 +20,11 @@
 //! The readers that place a slot text all go through it: the page scene's slot texts (`ew-scene`), the tag anchor of
 //! the page tables (`ew-api`) and a slot anchor ([`crate::anchor_point_of`]).
 
-use ew_schema::{BoxSpec, Representation, SlotKind, SymbolDef};
+use ew_ids::{Id, v5};
+use ew_schema::{BoxSpec, FnDef, Representation, SlotKind, SymbolDef};
 use ew_units::{Nm, Orient2, Pt2};
+
+use crate::Q;
 
 /// The origin on the page and the orientation in which a representation's slot texts are placed (see the module
 /// documentation).
@@ -45,6 +48,16 @@ impl TextFrame {
 pub fn text_frame(rep: &Representation, symbol: &SymbolDef) -> TextFrame {
     let black_box = rep.box_.as_ref().filter(|_| symbol.cps.is_empty());
     frame_of(rep.pos, rep.orient, black_box)
+}
+
+/// Whether `symbol` draws a terminal ([`ew_schema::draws_terminal`] for the function definition copy it names): its tag
+/// then prints in the terminal style (`ew_schema::slot_default_style`); `false` when the project holds no copy of the
+/// definition.
+pub fn terminal_symbol(q: &Q, symbol: &SymbolDef) -> bool {
+    let copy: Id<FnDef> = v5::lib_copy_id(symbol.fndef.library.as_uuid(), symbol.fndef.item.as_uuid());
+    q.fndefs()
+        .get(copy)
+        .is_some_and(|d| ew_schema::draws_terminal(symbol, &d.item))
 }
 
 /// Whether slot `slot` of `symbol` is shown on `rep`: the representation's `visible` override of the slot, else its

@@ -111,6 +111,7 @@ fn view() -> PageView {
             RepView {
                 rep: rep(0x12, 0xF2, t.id, 50, 50, "r0"),
                 symbol: Some(t.def.clone()),
+                terminal: true,
                 slots: vec![SlotValue {
                     slot: 0,
                     text: "-X2".into(),
@@ -123,6 +124,7 @@ fn view() -> PageView {
             RepView {
                 rep: rep(0x11, 0xF1, t.id, 10, 20, "r0"),
                 symbol: Some(t.def.clone()),
+                terminal: true,
                 slots: vec![
                     SlotValue {
                         slot: 0,
@@ -143,6 +145,7 @@ fn view() -> PageView {
             RepView {
                 rep: rep(0x13, 0xF3, Id::from_uuid(Uuid::from_u128(0xDEAD)), 60, 60, "r0"),
                 symbol: None,
+                terminal: false,
                 slots: Vec::new(),
                 terminals: Vec::new(),
                 pins: Vec::new(),
@@ -277,6 +280,7 @@ fn a_page_stored_by_an_older_build_draws_the_same_and_measures_without_a_fault()
             .map(|(r, f, x, y)| RepView {
                 rep: rep(r, f, t.id, x, y, "r0"),
                 symbol: Some(t.def.clone()),
+                terminal: false,
                 slots: Vec::new(),
                 terminals: Vec::new(),
                 pins: Vec::new(),
@@ -345,6 +349,7 @@ fn a_texts_box_in_ticks_does_not_depend_on_where_its_symbol_stands() {
             reps: vec![RepView {
                 rep: Arc::new(r),
                 symbol: Some(t.def.clone()),
+                terminal: false,
                 slots: vec![slot(0, "-X1"), slot(1, "Feed")],
                 terminals: Vec::new(),
                 pins: Vec::new(),
@@ -904,6 +909,7 @@ fn a_black_box_draws_its_box_cps() {
             RepView {
                 rep: Arc::new(boxed),
                 symbol: Some(bb.def.clone()),
+                terminal: false,
                 slots: Vec::new(),
                 terminals: Vec::new(),
                 pins: Vec::new(),
@@ -911,6 +917,7 @@ fn a_black_box_draws_its_box_cps() {
             RepView {
                 rep: rep(0x42, 0xF1, t.id, 40, 40, "r0"),
                 symbol: Some(t.def.clone()),
+                terminal: false,
                 slots: Vec::new(),
                 terminals: Vec::new(),
                 pins: Vec::new(),
@@ -954,6 +961,7 @@ fn a_strip_segment_draws_one_point_per_terminal_and_side() {
             RepView {
                 rep: rep(0x61, 0xC0, seg.id, 21, 9, "r0"),
                 symbol: Some(seg.def.clone()),
+                terminal: false,
                 slots: Vec::new(),
                 terminals: vec![terminal(0xC1), terminal(0xC2), terminal(0xC3)],
                 pins: Vec::new(),
@@ -961,6 +969,7 @@ fn a_strip_segment_draws_one_point_per_terminal_and_side() {
             RepView {
                 rep: rep(0x62, 0xF1, t.id, 60, 60, "r0"),
                 symbol: Some(t.def.clone()),
+                terminal: false,
                 slots: Vec::new(),
                 terminals: Vec::new(),
                 pins: Vec::new(),
@@ -1000,6 +1009,7 @@ fn cp_targets_are_named_destinations_at_the_cp_else_at_the_representation() {
     let reps = vec![RepView {
         rep: rep(0x42, 0xF1, t.id, 40, 40, "r0"),
         symbol: Some(t.def.clone()),
+        terminal: false,
         slots: Vec::new(),
         terminals: Vec::new(),
         pins: Vec::new(),
@@ -1039,6 +1049,7 @@ fn break_marks_close_the_overview_at_the_symbol_bounds() {
     let reps = vec![RepView {
         rep: rep(0x42, 0xF1, t.id, 40, 40, "r0"),
         symbol: Some(t.def.clone()),
+        terminal: false,
         slots: Vec::new(),
         terminals: Vec::new(),
         pins: Vec::new(),
@@ -1107,6 +1118,7 @@ fn a_widened_black_box_draws_its_stored_outline_under_its_own_geometry_key() {
         RepView {
             rep: Arc::new(r),
             symbol: Some(bb.def.clone()),
+            terminal: false,
             slots: Vec::new(),
             terminals: Vec::new(),
             pins: Vec::new(),

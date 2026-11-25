@@ -197,9 +197,9 @@ pub use template::{TemplateCp, pair_template_cps, template_entry_of};
 pub use text_style::{
     BUILTIN_TEXT_STYLES, CAP_RATIO_MILLI, EffectiveStyle, MIN_CAP_HEIGHT, NEW_PROJECT_TEXT_STYLES,
     TEXT_STYLE_MAX_SIZE, TEXT_STYLE_MIN_SIZE, TYPEFACES, TextStyleError, TextStyleGroup, TextStyleSpec,
-    TextWeight, Typeface, builtin_text_style, cap_height, check_text_styles, effective_text_styles,
-    em_for_cap, new_project_text_styles, qet_px_em, slot_default_style, standard_text_style,
-    text_style_entry, text_style_group, text_style_size_ok,
+    TextWeight, Typeface, builtin_text_style, cap_height, check_text_styles, draws_terminal,
+    effective_text_styles, em_for_cap, new_project_text_styles, qet_px_em, slot_default_style,
+    standard_text_style, text_style_entry, text_style_group, text_style_size_ok,
 };
 pub use track::{from_value_tracked, parse_value};
 pub use value::{

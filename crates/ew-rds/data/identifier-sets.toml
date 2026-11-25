@@ -19,6 +19,10 @@
 # - Letter codes are 1-3 letters A-Z. I and O never appear in a letter code (EW-RDS-007), and a set's
 #   `reserved` letters are never the first letter of one of its codes.
 # - A category may be missing from a set: its devices then get no suggestion from that set.
+# - `flags` (optional, on a row without `group`) say what general code asks of the category: `terminal` (a terminal,
+#   placed into a strip; its symbol's tag prints in the terminal style), `protection` (it protects a circuit: a
+#   breaker, a fuse, a residual-current or surge device) and `field` (equipment that stands in the field, outside a
+#   cabinet: Auto-fill rail leaves a device of it without a location off the rail).
 #
 # src/sets/data.rs is generated from this file. After a change, run
 #     EW_RDS_BLESS=1 cargo test -p ew-rds --test identifier_sets
@@ -45,6 +49,7 @@ reserved = []
 [[category]]
 key = "ProtectionOvercurrent"
 description = "Protects a circuit against overcurrent: miniature circuit breakers, fuses, electronic circuit breakers"
+flags = ["protection"]
 [category.letters]
 "EN81346-2:2009" = { letter = "F", verified = false }
 "IEC81346-2:2019" = { letter = "FC", verified = false }
@@ -53,6 +58,7 @@ description = "Protects a circuit against overcurrent: miniature circuit breaker
 [[category]]
 key = "ProtectionResidualCurrent"
 description = "Disconnects a circuit on residual current to earth: RCDs and RCBOs"
+flags = ["protection"]
 [category.letters]
 "EN81346-2:2009" = { letter = "F", verified = false }
 "IEC81346-2:2019" = { letter = "FB", verified = false }
@@ -61,6 +67,7 @@ description = "Disconnects a circuit on residual current to earth: RCDs and RCBO
 [[category]]
 key = "ProtectionOvervoltage"
 description = "Limits transient overvoltages: surge protective devices"
+flags = ["protection"]
 [category.letters]
 "EN81346-2:2009" = { letter = "F", verified = false }
 "IEC81346-2:2019" = { letter = "FA", verified = false }
@@ -139,6 +146,7 @@ description = "Forwards data between network segments: industrial Ethernet switc
 [[category]]
 key = "ValveTerminalNode"
 description = "Connects a valve terminal to its fieldbus and controls its valves: valve-terminal bus nodes"
+flags = ["field"]
 [category.letters]
 "EN81346-2:2009" = { letter = "K", alternatives = ["U"], verified = false }
 "IEC81346-2:2019" = { letter = "KE", verified = false }
@@ -147,6 +155,7 @@ description = "Connects a valve terminal to its fieldbus and controls its valves
 [[category]]
 key = "ValveTerminalModule"
 description = "Carries and drives the valves of a valve terminal: electrical sub-bases and valve modules"
+flags = ["field"]
 [category.letters]
 "EN81346-2:2009" = { letter = "U", alternatives = ["K"], verified = false }
 "IEC81346-2:2019" = { letter = "UA", alternatives = ["KF"], verified = false }
@@ -157,6 +166,7 @@ description = "Carries and drives the valves of a valve terminal: electrical sub
 [[category]]
 key = "SensingTemperature"
 description = "Senses a temperature and signals it: thermostats, temperature switches and sensors"
+flags = ["field"]
 [category.letters]
 "EN81346-2:2009" = { letter = "B", verified = false }
 "IEC81346-2:2019" = { letter = "BT", verified = false }
@@ -165,6 +175,7 @@ description = "Senses a temperature and signals it: thermostats, temperature swi
 [[category]]
 key = "SensingPosition"
 description = "Senses a position or presence and signals it: door switches, limit switches, proximity sensors"
+flags = ["field"]
 [category.letters]
 "EN81346-2:2009" = { letter = "B", alternatives = ["S"], verified = false }
 "IEC81346-2:2019" = { letter = "BG", verified = false }
@@ -173,6 +184,7 @@ description = "Senses a position or presence and signals it: door switches, limi
 [[category]]
 key = "SensingPressure"
 description = "Senses a pressure and signals it: pressure switches and transmitters"
+flags = ["field"]
 [category.letters]
 "EN81346-2:2009" = { letter = "B", verified = false }
 "IEC81346-2:2019" = { letter = "BP", verified = false }
@@ -233,6 +245,7 @@ description = "Moves air through an enclosure: filter fans and enclosure fans"
 [[category]]
 key = "MotorRotary"
 description = "Turns electrical energy into rotation: electric motors"
+flags = ["field"]
 [category.letters]
 "EN81346-2:2009" = { letter = "M", verified = false }
 "IEC81346-2:2019" = { letter = "MA", verified = false }
@@ -249,6 +262,7 @@ description = "Moves a part by electromagnetic force: solenoids, magnetic brakes
 [[category]]
 key = "CylinderFluid"
 description = "Moves a part by fluid power: pneumatic and hydraulic cylinders"
+flags = ["field"]
 [category.letters]
 "EN81346-2:2009" = { letter = "M", verified = false }
 "IEC81346-2:2019" = { letter = "MM", verified = false }
@@ -337,6 +351,7 @@ description = "Combines fluid signals: shuttle and two-pressure valves"
 [[category]]
 key = "FluidSensor"
 description = "Senses a fluid pressure and signals it: pressure switches"
+flags = ["field"]
 [category.letters]
 "EN81346-2:2009" = { letter = "B", verified = false }
 "IEC81346-2:2019" = { letter = "BP", verified = false }
@@ -379,6 +394,7 @@ description = "Connects or closes fluid lines: bulkheads, couplings, plugs and s
 [[category]]
 key = "ValveTerminal"
 description = "Feeds and exhausts the valves of a valve terminal: supply plates"
+flags = ["field"]
 [category.letters]
 "EN81346-2:2009" = { letter = "U", alternatives = ["K"], verified = false }
 "IEC81346-2:2019" = { letter = "UA", verified = false }
@@ -389,6 +405,7 @@ description = "Feeds and exhausts the valves of a valve terminal: supply plates"
 [[category]]
 key = "Terminal"
 description = "Connects conductors at a fixed point: terminals and terminal strips"
+flags = ["terminal"]
 [category.letters]
 "EN81346-2:2009" = { letter = "X", verified = false }
 "IEC81346-2:2019" = { letter = "XD", verified = false }
@@ -397,6 +414,7 @@ description = "Connects conductors at a fixed point: terminals and terminal stri
 [[category]]
 key = "TerminalEarth"
 description = "Connects protective-earth and functional-earth conductors: PE and FE terminals"
+flags = ["terminal"]
 [category.letters]
 "EN81346-2:2009" = { letter = "X", verified = false }
 "IEC81346-2:2019" = { letter = "XE", verified = false }

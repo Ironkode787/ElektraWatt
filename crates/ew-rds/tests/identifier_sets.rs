@@ -14,7 +14,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::path::PathBuf;
 
-use ew_rds::{EN_81346_2_2009, IdentifierSet};
+use ew_rds::{EN_81346_2_2009, IdentifierSet, category_flags};
 use toml::{Table, Value};
 
 struct SetMeta {
@@ -34,7 +34,12 @@ struct Category {
     group: Option<String>,
     description: String,
     letters: BTreeMap<String, Cell>,
+    /// The flags of the row (`terminal`, `protection`, `field`).
+    flags: Vec<String>,
 }
+
+/// The flags a row may carry, in the order of `CategoryFlags`'s members.
+const FLAGS: [&str; 3] = ["terminal", "protection", "field"];
 
 fn manifest_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -113,7 +118,11 @@ fn load() -> (Vec<SetMeta>, Vec<Category>) {
         .iter()
         .map(|v| {
             let t = table(v, "[[category]]");
-            only_keys(t, &["key", "group", "description", "letters"], "[[category]]");
+            only_keys(
+                t,
+                &["key", "group", "description", "letters", "flags"],
+                "[[category]]",
+            );
             let key = string(t, "key", "[[category]]");
             let group = t.get("group").map(|_| string(t, "group", &key));
             let letters = table(&t["letters"], &key)
@@ -134,11 +143,24 @@ fn load() -> (Vec<SetMeta>, Vec<Category>) {
                     (set.clone(), cell)
                 })
                 .collect();
+            let flags = if t.contains_key("flags") {
+                strings(t, "flags", &key)
+            } else {
+                Vec::new()
+            };
+            for f in &flags {
+                assert!(FLAGS.contains(&f.as_str()), "{key}: unknown flag `{f}`");
+            }
+            assert!(
+                flags.is_empty() || group.is_none(),
+                "{key}: flags belong to the category's row without a group"
+            );
             Category {
                 description: string(t, "description", &key),
                 key,
                 group,
                 letters,
+                flags,
             }
         })
         .collect();
@@ -158,7 +180,7 @@ fn generate(sets: &[SetMeta], categories: &[Category]) -> String {
          \n\
          //! The shipped identifier sets.\n\
          \n\
-         use super::{IdentifierSet, Mapping};\n\
+         use super::{CategoryFlags, IdentifierSet, Mapping};\n\
          use crate::LetterCode;\n\
          \n\
          /// A letter code of the tables; an invalid one fails compilation.\n\
@@ -219,6 +241,24 @@ fn generate(sets: &[SetMeta], categories: &[Category]) -> String {
             rows_name(&set.key)
         );
     }
+    s.push_str("];\n\n");
+    let flagged: Vec<&Category> = categories.iter().filter(|c| !c.flags.is_empty()).collect();
+    let _ = writeln!(
+        s,
+        "pub(super) static FLAGS: [(&str, CategoryFlags); {}] = [",
+        flagged.len()
+    );
+    for cat in flagged {
+        let has = |f: &str| cat.flags.iter().any(|x| x == f);
+        let _ = writeln!(
+            s,
+            "    ({:?}, CategoryFlags {{ terminal: {}, protection: {}, field: {} }}),",
+            cat.key,
+            has("terminal"),
+            has("protection"),
+            has("field")
+        );
+    }
     s.push_str("];\n");
     s
 }
@@ -274,6 +314,17 @@ fn public_api_reflects_the_data_file() {
         }
         assert_eq!(set.rows().len(), rows, "{}", meta.key);
     }
+    for cat in categories.iter().filter(|c| c.group.is_none()) {
+        let flags = category_flags(&cat.key);
+        let has = |f: &str| cat.flags.iter().any(|x| x == f);
+        assert_eq!(
+            [flags.terminal, flags.protection, flags.field],
+            FLAGS.map(has),
+            "{}",
+            cat.key
+        );
+    }
+    assert_eq!(category_flags("NoSuchCategory"), ew_rds::CategoryFlags::default());
 }
 
 #[test]

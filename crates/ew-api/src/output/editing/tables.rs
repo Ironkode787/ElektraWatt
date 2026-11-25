@@ -673,9 +673,10 @@ impl Session {
             });
             let tag_at = (first.as_ref().is_some_and(|f| f.device.is_some() && ip.is_none()))
                 .then(|| {
-                    q.symbols()
-                        .get(rep.symbol)
-                        .and_then(|s| ew_scene::page::tag_anchor(&rep, &s.item, &styles))
+                    q.symbols().get(rep.symbol).and_then(|s| {
+                        let terminal = ew_derive::terminal_symbol(&q, &s.item);
+                        ew_scene::page::tag_anchor(&rep, &s.item, terminal, &styles)
+                    })
                 })
                 .flatten()
                 .map(|(p, em)| {

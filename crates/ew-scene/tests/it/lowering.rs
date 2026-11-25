@@ -380,13 +380,13 @@ fn text_is_a_placed_text_not_graphics() {
     assert_eq!(g.texts.len(), 2);
     let t = &g.texts[0];
     assert_eq!(t.source, TextSource::Static(MlText::neutral("K")));
-    assert_eq!(t.style_key, "text.normal");
+    assert_eq!(t.style_key.as_deref(), Some("text.normal"));
     assert!(t.visible);
     assert_eq!(t.max_width, None);
     assert_eq!(t.pos, pt(10, 20));
     assert_eq!(t.align, Align::MiddleLeft);
     assert_eq!(t.angle, Angle2(0));
-    assert_eq!(g.texts[1].style_key, "text.big");
+    assert_eq!(g.texts[1].style_key.as_deref(), Some("text.big"));
 }
 
 fn image_prim() -> (Primitive, Rect) {
@@ -511,13 +511,25 @@ fn slot_texts() {
     let g = lower(&def, Orient2::R0);
     assert_eq!(g.texts.len(), 3);
     assert_eq!(g.texts[0].source, TextSource::Slot(SlotKind::Tag));
-    assert_eq!(g.texts[0].style_key, "tag.main");
+    // A slot that names no style takes its kind's when it prints, which asks whether the symbol draws a terminal.
+    assert_eq!(g.texts[0].style_key, None);
     assert_eq!(g.texts[0].max_width, Some(Nm(5 * MM)));
     assert!(g.texts[0].visible);
     assert_eq!(g.texts[0].pos, gp(1, 2));
     assert_eq!(g.texts[0].align, Align::Centre);
-    assert_eq!(g.texts[1].style_key, "cp.small");
-    assert_eq!(g.texts[2].style_key, "data.small");
+    assert_eq!(g.texts[1].style_key, None);
+    assert_eq!(g.texts[2].style_key, None);
+    let kinds = [SlotKind::Tag, SlotKind::CpDesignation(0), SlotKind::FunctionText];
+    assert_eq!(
+        kinds
+            .clone()
+            .map(|k| ew_scene::symbol::default_style_key(false, &k)),
+        ["tag.main", "cp.small", "data.small"]
+    );
+    assert_eq!(
+        kinds.map(|k| ew_scene::symbol::default_style_key(true, &k)),
+        ["terminal", "cp.small", "data.small"]
+    );
     assert!(!g.texts[2].visible);
     assert_eq!(g.texts[2].max_width, None);
 }
