@@ -411,7 +411,7 @@ pub(crate) fn ms3_messages_fix_with_apply_is_byte_identical_twice_and_replays_ca
         rows[0].contains(" badge \"info\" badge \"fix\"") && rows[0].ends_with(" cursor"),
         "{d}"
     );
-    assert_eq!(line(d, "  detail fix "), "  detail fix \"drop override\"");
+    assert_eq!(line(d, "  detail fix "), "  detail fix \"Drop override\"");
     let card = line(d, "card ");
     assert!(
         card.starts_with("card ready \"fields.set\" targets 1 changes 1 "),
