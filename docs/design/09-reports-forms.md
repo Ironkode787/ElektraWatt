@@ -402,7 +402,7 @@ in the page output (`PageFrameOf`), as in the cell grid.
 project's asset store ([05](05-project-format-and-persistence.md) §13.3), at most 512 KiB (`MAX_LOGO_BYTES`). A title
 block's logo cell takes the image by that reference, and the display list places it (so the wizard's preview shows the
 logo on the sample's cover). SVG logos are drawn as vector paths by the CPU renderer, the PDF writer, the SVG writer and the viewer (the export job resolves them before any writer runs); PNG is drawn on the CPU path; the SVG writer embeds PNG and JPEG; JPEG on the CPU path and rasters in the PDF are not built; an SVG is
-drawn only after `svg_hazard`'s checks (18 §11.1 TM-18), in usvg's drawn subset ([05](05-project-format-and-persistence.md)
+drawn only after `svg_hazard`'s checks ([threat model](../security/threat-model.md) TM-18), in usvg's drawn subset ([05](05-project-format-and-persistence.md)
 §13.3). A raster logo (PNG, JPEG) prints rasterised, an SVG as vectors. An image that an export cannot draw (a missing
 asset, or one the sniff refuses) is reported as `PageFinding::Image` in the export's findings, never dropped silently
 .

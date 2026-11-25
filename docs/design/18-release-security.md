@@ -318,16 +318,11 @@ reason, the owner's handle and an expiry within 90 days, checked by hand at RC-0
 
 ### 11.1 Threat model
 
-The maintained copy is `docs/security/threat-model.md` (NFR-SEC-01): the threats TM-01 to TM-19, each with its
-0.1.0 state (in force, not shipped, or another package's), the controls as built and the evidence that proves them. This
-section stays the design; where the two differ, the threat model states the release.
-
-**Assets:**
-- the confidentiality of projects (customer work, personal data);
-- the **integrity of engineering data**: a silently changed cross-section or protective device is a safety
-  hazard, not only a data problem;
-- the integrity of EW binaries and updates;
-- the availability of the user's session.
+The assets, the trust boundaries of the release, the threats TM-01 to TM-19 with their state, the controls as built
+and the evidence that proves them are in the [threat model](../security/threat-model.md) (NFR-SEC-01). This section
+holds what the threat model does not: the boundaries of 1.0, with the surfaces the release does not ship (plugins,
+MCP, the STEP worker, the update check, the trust gate), and the controls each threat is to have by then. TM-09,
+TM-10, TM-18 and TM-19 are in force as the threat model states them, with nothing further intended.
 
 ```mermaid
 flowchart LR
@@ -355,7 +350,7 @@ flowchart LR
   UP -->|"ed25519 + OS signature"| EW
 ```
 
-| ID | Threat | Controls | Verified by |
+| ID | Threat | Controls at 1.0 | Verified by |
 |---|---|---|---|
 | TM-01 | Hostile project or import file: memory exhaustion, decompression bombs, deep nesting, NaN geometry, panics. Also reached without a click through the git merge driver and textconv, which git runs on fetched content | Limits (NFR-SEC-02, FR-IMP-005, 14 §11); pure parsers that never execute content; lenient import | CI-PR-08, CI-N-03, hostile corpus |
 | TM-02 | Archive path traversal or symlinks (`.ewz`, EDZ, QETZ, XLSX) | Entry-name rules; symlinked and encrypted entries refused; loader follows no links (NFR-SEC-16) | Hostile corpus |
@@ -365,8 +360,6 @@ flowchart LR
 | TM-06 | Plugin exfiltration or tampering (1.x) | Capability manifest, WASI preopens, no network by default, signed manifests, fuel or epochs, `StoreLimits`, plugin ID in undo (NFR-SEC-07) | 17 tests in CI-PR-02 |
 | TM-07 | MCP misuse, including prompt injection through project text ("rename all devices…") | Off by default; stdio or loopback with a per-session token; ask-first writes with a diff; project-scoped access; `origin=mcp` in the journal (NFR-SEC-08) | CI-PR-02 |
 | TM-08 | Exploitation of OCCT (C++) through a vendor STEP file | Separate process, timeouts, memory cap, quarantine after two crashes, fuzzed IPC decoder; OS sandbox in 1.x (NFR-SEC-21) | CI-PR-12 |
-| TM-09 | Silent tampering with a received project's engineering data | Not preventable by EW. Mitigations: `ew diff`; revision compare against the as-built archive; archive SHA-256 sums; documentation advice to compare a received project with its released archive | Docs; FR-COL-013 |
-| TM-10 | Debug or remote-control endpoints in release binaries | Test-only features; canary assertion; socket scan (NFR-SEC-09). `EW_DEBUG_PANIC` exists only under `debug_assertions`. | CI-R-09, CI-N-06 |
 | TM-11 | Dependency compromise or typosquatting | §10 | CI-PR-09 |
 | TM-12 | CI or release pipeline compromise | §5.4; provenance; two-person publish (from 1.0) | Scorecard, review |
 | TM-13 | Update spoofing or MITM (1.0: 0.1.0 has no update check) | HTTPS, signed manifest, OS signature, no silent install | CI-R-06, the tampered-package test |
@@ -374,8 +367,6 @@ flowchart LR
 | TM-15 | Signing-key compromise (1.0: 0.1.0 has no signing key) | Incident runbook (§11.4) | Tabletop exercise |
 | TM-16 | User-configured external converter (ODA File Converter for DWG, 1.0) fed a hostile file, or a converter path planted by a received project | The converter path is a user setting, never read from a project; it runs as a separate process on a copy in a temporary directory with a 120 s timeout, and its output is parsed under the DXF limits (14 §11) | Hostile-corpus test with a stub converter that hangs and one that writes a DXF bomb |
 | TM-17 | Unexpected process spawn by a dependency: rfd 0.17.2 starts `zenity` from `PATH` when the XDG desktop portal call fails (no portal service, malformed response), so a same-user process that controls `PATH` or plants a `zenity` earlier on it runs code when the user opens a file dialog. Low risk: it needs same-user access, which already allows more | The portal first (the shell checks for a session bus before calling rfd); a future rfd feature set without the zenity fallback, or a check that the portal answers, removes the spawn. | Review |
-| TM-18 | A hostile SVG in the asset store (`assets/`, the company logo and later image items). *Sniffing is not sanitising:* `ew-schema` recognises an SVG by its root element and takes its size from the header (an 8 MiB limit, 512 KiB for the logo), but it does not parse or clean the document. A DOCTYPE with an internal subset (entity expansion, a billion-laughs variant), `<script>`, `on*` event attributes, `foreignObject` and external `href`s (a file, a network address) would reach whatever draws the file. Today the DOCTYPE case is refused only by accident of the sniffer (`svg_root` stops at the first `>`, which ends inside an internal subset, so such a root is not found), not by a rule | The renderers draw SVG logos, so the rule below is in force. **Before any renderer draws SVG** the file is rejected or normalised through `usvg` in `ew-scene` (default features off: no text, no system fonts; the tree becomes `ew-dl` paths; no `resvg`; admission through cargo-deny): DOCTYPE internal subsets, `<script>`, `on*` attributes, `foreignObject` and external hrefs are refused or dropped, and an SVG is never handed to a web view or an OS renderer | `sniff` caps an SVG at 8 MiB (the logo at 512 KiB) and 100,000 elements and runs the plain rejecter `ew_schema::svg_hazard`, which refuses DOCTYPE internal subsets, entities, scripts, `on*` attributes, `foreignObject` and any `href` that is not `#…`, and what the parser does not survive: nesting deeper than 64 (its stack), a chain of more than 32 references or a cycle of them through `href` and `url(#…)` attributes (its recursion, and a gradient chain it walks for ever), numbers above 1e9 (allocation without bound), `transform-origin` and `feConvolveMatrix` (panics); the parse runs inside `catch_unwind`. Numeric character references and the five predefined entities are decoded before the checks. What a style sheet, markers, a reference made in a style sheet or long path data cost is not bounded beyond the caps: a crafted file can make drawing it slow and take much memory, the accepted residual risk; usvg stops a reference expansion at 1,000,000 nodes. Synthetic hostile SVGs test each refusal, and a corpus of real exporters' files (`crates/ew-schema/tests/fixtures/svg-exporters/`) fixes each verdict in a test. Refusals carry re-export advice (`SvgHazard::advice`). Performance not measured. |
-| TM-19 | A hostile raster in the asset store (a PNG or JPEG logo or image item): a decompression bomb (a huge declared size), a truncated or corrupt stream, a decoder panic, a CMYK or progressive JPEG on an unexpected path, or a GIF or WebP disguised as an image item | The asset store's sniff admits PNG and JPEG as its only raster formats (`AssetFormat`, beside SVG of TM-18); `ew-render-cpu`'s `decode_image` is the one decoder of both paths: `MAX_IMAGE_PIXELS` (16 Mi pixels) checked before allocation, zune-jpeg in strict mode, the EOI marker required after the last scan, the decode inside `catch_unwind`, once per asset; the PDF and SVG writers embed an image only when that decode succeeds, and an undecodable one is the page finding `ImageProblem::Undecodable` with its bytes withdrawn from the export; krilla's GIF and WebP paths are disallowed methods; EXIF orientation is ignored and an ICC profile is embedded by krilla only (recorded limitations) | Hostile-input tests (truncated at every byte of the last 59, huge sizes, GIF and WebP bytes), the variant tests and the cross-platform decode hash; clippy's `disallowed-methods` for krilla's GIF and WebP paths; a corpus of real exporters' raster files (`crates/ew-export/tests/fixtures/raster-exporters/`) that pass the asset sniff, decode and print on a PDF/A-2b page. Real-exporter coverage of CMYK and YCCK JPEG, 16-bit, grey-and-alpha and interlaced PNG, a JPEG without its EOI marker and EXIF orientation is missing; orientation stays ignored. |
 
 ### 11.2 `unsafe` and native code
 
