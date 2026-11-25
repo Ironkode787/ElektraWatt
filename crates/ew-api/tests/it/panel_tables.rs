@@ -188,3 +188,64 @@ fn the_unplaced_navigator_lists_the_unplaced_device() {
     );
     assert_eq!(after.rev, t.rev + 1);
 }
+
+/// In a Dutch project whose breaker is 17.5 mm wide, the window's Unplaced cell writes the size as the project prints
+/// it ("17,5 × …"), while the command line's table and the round-trip export write it with a point and read it back
+/// unchanged.
+#[test]
+fn the_unplaced_size_is_the_projects_in_the_window_and_has_a_point_in_the_export() {
+    use ew_api::output::{CsvOptions, ImportTableOptions, NavKind, Preset, table_csv};
+    use ew_schema::LibDocument;
+    let f1 = without_f1_placement()
+        .resolve_reference("tag:-102F1")
+        .expect("-102F1");
+    let (mut project, mut records, mut lib) = common::sample_records();
+    records.retain(|r| !matches!(r, Record::Placement(p) if p.device.as_uuid() == f1));
+    // Dutch, without a separator of its own (the sample sets a point).
+    project.languages =
+        Some(serde_json::from_value(serde_json::json!({"source": "nl-NL"})).expect("languages"));
+    project.settings.formatting.decimal_separator = None;
+    for d in &mut lib {
+        if let LibDocument::Part(p) = d
+            && p.item.part_number.to_string() == "EW-GEN-MCB-1"
+        {
+            p.item.mech.as_mut().expect("the breaker's size").width = Some(ew_units::Nm(17_500_000));
+        }
+    }
+    let s = common::session_of(project, records, lib);
+    let size = |cells: &[String]| cells[2].clone();
+    let shown = s.navigator_texts(NavKind::Unplaced).render(ToString::to_string);
+    let row = |t: &ew_api::output::NavTable| {
+        t.nodes
+            .iter()
+            .find(|n| n.label == "-102F1")
+            .map(|n| n.cells.clone())
+            .expect("-102F1 is unplaced")
+    };
+    assert!(size(&row(&shown)).starts_with("17,5 × "), "{:?}", row(&shown));
+    let printed = s.navigator_table(NavKind::Unplaced);
+    assert!(size(&row(&printed)).starts_with("17.5 × "), "{:?}", row(&printed));
+    let key = s.navigator_table_key("unplaced", None).expect("the key");
+    let table = s.table_export(&key).expect("the table");
+    let csv = table_csv(&table, &CsvOptions::preset(Preset::Rfc4180));
+    assert!(csv.contains("17.5 × "), "{csv}");
+    let options = ImportTableOptions {
+        table: Some(key),
+        ..ImportTableOptions::default()
+    };
+    let counts = s
+        .table_import(csv.as_bytes(), &options)
+        .expect("it reads back")
+        .counts();
+    assert_eq!(
+        (
+            counts.changed,
+            counts.kept,
+            counts.conflicts,
+            counts.refused,
+            counts.unknown,
+            counts.missing
+        ),
+        (0, 0, 0, 0, 0, 0)
+    );
+}

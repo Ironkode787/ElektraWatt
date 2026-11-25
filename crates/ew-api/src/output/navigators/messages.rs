@@ -26,7 +26,10 @@ impl Session {
     /// ones.
     pub fn migration_table(&self) -> NavTable<crate::Text> {
         let rev = self.world().rev.0;
-        let mut b = Builder { nodes: Vec::new() };
+        let mut b = Builder {
+            nodes: Vec::new(),
+            point: false,
+        };
         let q = self.query();
         self.messages_table(
             &q,

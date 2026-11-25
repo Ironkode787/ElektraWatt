@@ -551,6 +551,9 @@ pub(super) fn state_word(s: &DeviceState) -> &'static str {
 /// A table under construction.
 struct Builder {
     nodes: Vec<NavNode<crate::Text>>,
+    /// Whether a measured number is written with a point whatever the project sets: the table the command line prints
+    /// and the round-trip export reads back ([`Session::navigator_table`]); else as the project prints it.
+    point: bool,
 }
 
 impl Builder {
@@ -633,15 +636,26 @@ impl Session {
     /// changes them without a new revision, so the shell refetches them after one. The Messages table also reads the
     /// merge evidence (the manifest's `merged`, a git merge or rebase in progress, `--after-merge`): a
     /// change of that evidence without a new revision shows at the next revision.
+    ///
+    /// Its words are English and its measured numbers are written with a point whatever the project sets: the command
+    /// line prints it and the round-trip export writes it and reads it back.
     pub fn navigator_table(&self, kind: NavKind) -> NavTable {
-        self.navigator_texts(kind).render(ToString::to_string)
+        self.texts_of(kind, true).render(ToString::to_string)
     }
 
     /// [`Session::navigator_table`] before its words are rendered: every heading, label and cell a [`crate::Text`],
-    /// which the window renders in its language ([`NavTable::render`]).
+    /// which the window renders in its language ([`NavTable::render`]); a measured number as the project prints it.
     pub fn navigator_texts(&self, kind: NavKind) -> NavTable<crate::Text> {
+        self.texts_of(kind, false)
+    }
+
+    /// The table of `kind` in texts, a measured number written with a point when `point` ([`Builder::point`]).
+    fn texts_of(&self, kind: NavKind, point: bool) -> NavTable<crate::Text> {
         let rev = self.world().rev.0;
-        let mut b = Builder { nodes: Vec::new() };
+        let mut b = Builder {
+            nodes: Vec::new(),
+            point,
+        };
         let q = self.query();
         match kind {
             NavKind::Pages => self.pages_table(&mut b),

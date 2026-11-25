@@ -16,10 +16,18 @@ use crate::output::layout_edit::mm_text;
 /// full designation, `+J-E-2416`), in space order, and under it the space's unplaced devices in `unplaced` order
 /// (natural full tag), each labelled by its tag as a sentence names it, with the badges `strip`, `assembly`
 /// and `unknown size` and the cells Device (the tag again, the key column of table mode), Part (the primary part's
-/// number), W × H (mm) (`18 × 90`, empty when unknown) and
-/// Mount (the mount kind in words, `mount_label`). A space whose devices are all placed keeps its location
-/// node, so that the empty state can name it.
+/// number), W × H (mm) (`18 × 90`, empty when unknown; its decimals as the project prints them, with a point in the
+/// command line's table, [`Builder::point`]) and Mount (the mount kind in words, `mount_label`). A space whose devices
+/// are all placed keeps its location node, so that the empty state can name it.
 pub(super) fn unplaced_table(q: &Q, b: &mut Builder) {
+    let point = b.point;
+    let mm = |nm: i128| {
+        if point {
+            ew_derive::mm_exact(nm)
+        } else {
+            mm_text(q, nm)
+        }
+    };
     use ew_derive::layout::{Unplaced, mount_label, primary_part, rail_extent};
     let devices = q.devices();
     let parts = q.table::<ew_schema::LibCopy<ew_schema::Part>>();
@@ -71,7 +79,7 @@ pub(super) fn unplaced_table(q: &Q, b: &mut Builder) {
             let cells = vec![
                 label.clone(),
                 copy.map(|c| c.item.part_number.to_string()).unwrap_or_default(),
-                size.map(|(w, h)| format!("{} × {}", mm_text(q, w), mm_text(q, h)))
+                size.map(|(w, h)| format!("{} × {}", mm(w), mm(h)))
                     .unwrap_or_default(),
                 mech.as_ref()
                     .and_then(|m| m.mount_kind.as_ref())
