@@ -497,7 +497,7 @@ impl CopyPages {
                 *v = serde_json::to_value(&record).map_err(|e| CmdError::internal(e.to_string()))?;
             }
         }
-        // The pages' titles and descriptions (a persona run's copies kept "Inst 1 - ..." as their titles).
+        // The pages' titles and descriptions.
         if !self.rename.is_empty() {
             for v in &mut fragment.pages {
                 let Ok(Record::Page(mut page)) = Record::from_value(v.clone()) else {

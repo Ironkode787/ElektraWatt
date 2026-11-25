@@ -92,7 +92,7 @@ fn box_cp(i: usize, pos: Pt2, dir: Dir4) -> BoxCp {
     }
 }
 
-/// The box of the play-test: 6 by 4 steps at grid index (31, 46), five pins on the top edge and four on the bottom,
+/// The box: 6 by 4 steps at grid index (31, 46), five pins on the top edge and four on the bottom,
 /// at every grid residue (the bottom edge at index 50, residue 2 against the top's 1), so that a move by a step
 /// count that is not a multiple of 3, on either axis, leaves some pins 1 nm off.
 fn play_box() -> (Pt2, BoxSpec) {
@@ -339,7 +339,7 @@ fn a_black_box_dragged_by_grid_steps_wires_to_every_pin() {
         let (pos, spec) = play_box();
         let (rep, f) = place_box(&mut e, pos, spec);
         e.execute(&steps(rep, s)).expect("rep.move by steps");
-        // The play-test's case: a pin's place and offset add up to 1 nm beside its grid position; its point is the
+        // The case: a pin's place and offset add up to 1 nm beside its grid position; its point is the
         // grid's own number.
         assert!(
             pins(&e, rep).iter().all(|(_, p, _)| on_grid(*p)),
@@ -371,7 +371,7 @@ fn a_mirrored_or_turned_black_box_wires_to_every_pin() {
             e.execute(&transform(rep, *rotate, *mirror))
                 .expect("rep.transform");
         }
-        // The play-test's case: a pin's place and offset add up to 1 nm beside its grid position.
+        // The case: a pin's place and offset add up to 1 nm beside its grid position.
         assert!(
             pins(&e, rep).iter().all(|(_, p, _)| on_grid(*p)),
             "{case:?}: every pin's point is a grid position"
