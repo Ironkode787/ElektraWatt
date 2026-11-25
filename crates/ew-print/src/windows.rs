@@ -452,7 +452,8 @@ fn device_name(bytes: &[u8]) -> Option<String> {
     Some(String::from_utf16_lossy(&name[..end]))
 }
 
-/// COM initialised apartment-threaded on this thread for the print dialog, uninitialised when dropped. Not `Send`, so
+/// COM initialised apartment-threaded on this thread for the print dialog and the open call, uninitialised when
+/// dropped. Not `Send`, so
 /// it is dropped on the thread that initialised it.
 struct Com(PhantomData<*const ()>);
 
@@ -790,9 +791,11 @@ impl Drop for Dc {
 
 /// Opens `target`, a file's path or an address (`file:///…/page.html#anchor`, `https://…`), in its default
 /// application through the system's wide open call (`ShellExecuteW` with the `open` verb): it takes every character
-/// of a path, outside the code page too, and keeps an address's anchor. No shell, no command line. The error names
-/// the call's answer.
+/// of a path, outside the code page too, and keeps an address's anchor. No shell, no command line. COM is initialised
+/// on the calling thread for it, as the call asks; a thread that has COM in the other apartment already keeps it. The
+/// error names the call's answer.
 pub(crate) fn shell_open(target: &std::ffi::OsStr) -> Result<(), String> {
+    let _com = Com::init().ok();
     let wide = shell_open_target(target);
     // SAFETY: `wide` is a NUL-terminated UTF-16 string that outlives the call, the verb a static wide literal; no owner
     // window, parameters or directory are passed (null), and the call keeps no pointer after it returns.
