@@ -147,7 +147,7 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
         for (k, (i, t)) in terminals.into_iter().enumerate() {
             let texts = ew_reports::csv::row_texts(q, &set, i);
             let id: Id<Device> = Id::from_uuid(t);
-            // A row of a block of two levels is that level (a persona read the two rows as two terminals): it selects
+            // A row of a block of two levels is that level: it selects
             // the symbol of its level, and a level from 2 has a key of its own.
             let level = level_at
                 .and_then(|c| texts.get(c))

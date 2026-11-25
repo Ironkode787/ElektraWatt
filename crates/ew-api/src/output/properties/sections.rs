@@ -427,7 +427,7 @@ impl Session {
         {
             route_in_cells(q, Id::from_uuid(*c), &mut built);
         }
-        // A tube's length with its unit (the persona re-test read "350.000" and could not tell mm from m).
+        // A tube's length with its unit.
         if fluid_lines {
             for b in &mut built {
                 if b.row.path == crate::output::fields::TUBE_LENGTH

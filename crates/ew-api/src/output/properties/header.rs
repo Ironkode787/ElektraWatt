@@ -234,7 +234,7 @@ impl Session {
         }
         findings.sort_by(|a, b| (&a.0, &a.1).cmp(&(&b.0, &b.1)));
         findings.dedup_by(|a, b| a.2 == b.2);
-        // The persona re-test: a tube's chip opened Messages filtered by its heading "Tube (Working)", which no
+        // A tube's chip opened Messages filtered by its heading "Tube (Working)", which no
         // finding prints; a tube is named there by its tag, else its two ends, an unnumbered wire by its ends.
         let filter = match picked {
             [one] if one.kind == Kind::Connection => one

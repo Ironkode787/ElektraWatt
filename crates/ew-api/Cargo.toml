@@ -57,7 +57,7 @@ ew-dl = { path = "../ew-dl" }
 # compiled-in generic symbols.
 sha2 = { workspace = true }
 # The property grid's field parser and formatter (`output::fields`): the integer value types and the
-# multi-language text (normal edges since cycle 24).
+# multi-language text.
 ew-units = { path = "../ew-units" }
 ew-mltext = { path = "../ew-mltext" }
 # Find and replace (`window::find`, §4.1 rule 2): regular expressions, at the version ew-schema uses,

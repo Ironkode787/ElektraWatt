@@ -9,7 +9,7 @@ use super::*;
 
 /// A scale typed in the words [`scale_text`] shows: `1:n` (spaces allowed around the colon) is
 /// `{"one_to": n}`, `not to scale` is `not_to_scale`; another ratio of numbers (`1:4.5`, `2:9`, `1:0`) is refused in
-/// words, as it is no scale the page can draw (a persona run read "Not strict JSON"); `None` for any other text (a
+/// words, as it is no scale the page can draw; `None` for any other text (a
 /// JSON value, parsed as before).
 fn scale_input(text: &str) -> Option<Result<Value, InputError>> {
     let t = text.trim();

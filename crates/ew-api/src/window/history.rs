@@ -28,8 +28,7 @@ const MAX_HISTORY_PAGES: usize = 8;
 pub const ARRANGE_STEP: &str = "layout.arrange";
 
 /// The label of a `project.drawing.set` step of one member: this prefix and the member
-/// (`project.drawing.set.wire_numbers`), so that its Undo names what it changed (a persona run read "Undone: Set
-/// drawing data" for Print wire numbers).
+/// (`project.drawing.set.wire_numbers`), so that its Undo names what it changed.
 pub const DRAWING_STEP: &str = "project.drawing.set.";
 
 /// One entry of the history.

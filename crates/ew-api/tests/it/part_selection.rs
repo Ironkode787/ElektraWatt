@@ -1021,7 +1021,7 @@ fn a_new_part_is_made_once_and_never_overwrites_another() {
 }
 
 /// A proposed interface name follows the bus system chosen for its row (`DP` on PROFIBUS DP, `X<n>` on the others);
-/// a name the person typed stays. (A persona's PROFIBUS DP interface was saved as "X1".)
+/// a name the person typed stays.
 #[test]
 fn a_proposed_interface_name_follows_its_bus() {
     let s = Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Schematic, options(None)).unwrap();

@@ -306,7 +306,7 @@ impl Session {
                 _ => {}
             }
         }
-        // A fluid source's medium (the persona re-test started at the air supply and found no medium there): the medium
+        // A fluid source's medium: the medium
         // its port's net carries, with where it is defined, chosen among the project's media as a tube's is.
         if let [one] = devices.as_slice()
             && let Some(row) = source_medium_row(q, cx, *one)

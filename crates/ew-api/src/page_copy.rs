@@ -226,8 +226,7 @@ impl Session {
             .map(|p| (shown(&p.title), shown(&renamed_mltext(&p.title, &rename))))
             .filter(|(old, new)| old != new)
             .collect();
-        // The devices whose functions carry a bus port: the copy needs its bus line and its address (a persona run's
-        // copied valve terminal joined the PLC and nothing said what it still lacked).
+        // The devices whose functions carry a bus port: the copy needs its bus line and its address.
         let bus_devices = sorted(
             fragment
                 .records

@@ -94,7 +94,7 @@ fn strip_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<Optio
     if c.key == "pos" {
         return Some(Some(key!("table-pos-move")));
     }
-    // The Bridge cell says how a bridge is made (a persona typed into it); F2 there over marked rows bridges them.
+    // The Bridge cell says how a bridge is made; F2 there over marked rows bridges them.
     if node.role == NavRole::Terminal && c.key == "bridge" {
         return Some(Some(key!("table-bridge-how")));
     }
