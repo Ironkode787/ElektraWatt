@@ -637,8 +637,45 @@ fn ref_cell(p: &Params, x: i64, y: i64) -> Option<String> {
     let letters: Vec<char> = ('A'..='Z')
         .filter(|c| !(p.rows.1 && matches!(c, 'I' | 'O')))
         .collect();
-    let row = letters.get(r as usize)?;
+    let row = ref_row_label(&letters, r);
     Some(format!("{row}{}", u32::from(p.columns.1) + c))
+}
+
+/// The label of row `r`: all one-letter labels in order, then all two-letter ones (`AA, AB …`), and so on;
+/// counted by length rather than by the rule's bijective division.
+fn ref_row_label(letters: &[char], r: u32) -> String {
+    let n = letters.len() as u64;
+    let (mut i, mut len, mut block) = (u64::from(r), 1u32, n);
+    while i >= block {
+        i -= block;
+        len += 1;
+        block *= n;
+    }
+    (0..len)
+        .rev()
+        .map(|d| letters[(i / n.pow(d) % n) as usize])
+        .collect()
+}
+
+/// A row past `Z` is `AA` (a seed of `cell_of_matches_the_exact_reference` once found the reference saying no
+/// cell there): an extreme header of 424042/471 nm and 29 rows of 27733/441 nm put y = 2536 nm in row 26.
+#[test]
+fn a_row_past_z_is_aa_in_the_rule_and_the_reference() {
+    let p = Params {
+        page_grid: (1, 1),
+        header: Some((424_042, 471)),
+        columns: (1, 0, (295, 1)),
+        rows: (29, false, (27_733, 441)),
+    };
+    let m = model_of(&p);
+    let q = Q::new(&m);
+    let got = q.get::<CellOf>((id(PAGE), pt(901, 2536)));
+    assert_eq!((*got).as_ref().map(ToString::to_string).as_deref(), Some("AA0"));
+    assert_eq!(ref_cell(&p, 901, 2536).as_deref(), Some("AA0"));
+    let az: Vec<char> = ('A'..='Z').collect();
+    assert_eq!(ref_row_label(&az, 25), "Z");
+    assert_eq!(ref_row_label(&az, 27), "AB");
+    assert_eq!(ref_row_label(&az, 26 + 26 * 26), "AAA");
 }
 
 /// The two page grids of the format at realistic frame sizes: the native 4 mm grid with a 10 mm band and
