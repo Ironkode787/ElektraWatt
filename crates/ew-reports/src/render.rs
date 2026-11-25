@@ -84,7 +84,7 @@ pub fn render(q: &Q, cell: &Cell, opts: &RenderOptions) -> String {
             }
         }
         Cell::Colour(c) => ew_derive::colour_text(c),
-        Cell::Date(d) => format!("{:02}-{:02}-{:04}", d.day(), d.month(), d.year()),
+        Cell::Date(d) => q.project().settings.formatting.date_format().format(*d),
         Cell::Range(ds) => compress_range(q, ds),
         Cell::Tbd => match &opts.tbd {
             Some(own) => own.clone(),
