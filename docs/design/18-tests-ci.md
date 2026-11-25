@@ -765,7 +765,8 @@ not copied. The first tutorial runs the headless workflow on the sample project 
 - **Offline rule.** The book builds without network access. Its one preprocessor is mdbook-i18n-helpers'
   `mdbook-gettext` (Apache-2.0, pinned by its crate's SHA-256 in `packaging/components.toml` and installed by
   `ci/build-book.sh`). Building in an empty network namespace and a link check over the built pages are the target for
-  1.0; `docs-gen --check` runs in `cargo xtask check` of the whole workspace. The built book goes to `target/book`, never into the repository.
+  1.0; `docs-gen --check` runs in `cargo xtask check` of the whole workspace. The built book goes to `target/book`,
+  never into the repository.
 - **Pinning.** mdBook 0.5.4 is installed from its release archive, pinned by version and SHA-256.
 
 State at 0.1.0. **NFR-DOC-01** is met: the book is bundled offline, every page names its release, and F1 resolves a
