@@ -65,60 +65,36 @@ sample projects).
 
 ### 2.1 View-model contract
 
-```rust
-pub trait PanelModel { fn rev(&self) -> Rev; }               // revision the rows reflect
-pub enum Staleness { Fresh, Behind { as_of: Rev }, Computing(JobId), Failed(ErrorKey) }
-
-pub struct NavTree    { rev: Rev, nodes: Arc<NodeTable>, roots: Vec<NodeId> }   // expand state lives in view state
-pub struct TableModel { rev: Rev, columns: Vec<ColumnSpec>, rows: Arc<[RowKey]>, cells: CellSource }
-pub struct PropRow    { field: FieldPath, label: FluentKey, value: DisplayValue, unit: Option<Unit>,
-                        provenance: Provenance, editor: EditorKind, target: Option<EditTarget> }
-pub struct EditTarget { entities: SmallVec<[EntityRef; 1]>, field: FieldPath }   // compiles to fields.set
-```
+A panel's rows reflect one revision of the model; a navigator's expand state lives in the view state, not in its
+rows.
 
 - Rows are keyed by entity ID, never by position, so a commit that reorders rows keeps selection and focus.
-- `CellSource` evaluates cells lazily for the visible row range only.
-- An edit produces an `EditIntent { targets, field, value }`. The view-model compiles it into exactly one
+- A table evaluates its cells lazily, for the visible row range only.
+- An edit (its targets, its field and its value) is compiled by the view-model into exactly one
   `Command` (FR-UI-008, FR-UI-009); `ew-ui` never builds commands itself. Headless tests of this mapping run
   without egui (ARCH §13).
 
-The contract above is built in two layers, and the sketch is its shape, not its types. Below the shell, `ew_api::output` has the **field catalogue** (`field_catalogue(kind)`, one `FieldNode` per schema node from one walker over `ew_schema::kind_schema`) and the **property sheet** (`Session::property_sheet`: a header, one section per record kind that every selected record reaches, rows with `key`, `path`, `category`, `ty`, `value` (one value, `Varies` with up to eight texts, or `Absent`), `provenance`, `actions`, `route` and `identifier`). The `EditTarget` of the sketch is the row's **edit route**: `FieldsSet { kind, path }` (compiles to one `fields.set` over the section's targets), `SettingsMember { member }` (one `project.settings.set`) or `ReadOnly(reason)`; no other command is ever built by the grid, and a route whose command is `HumanOnly` is read-only whatever the tables say. `Session::parse_field_input`, `field_choices`, `command_meta` and `resolve_reference` serve the editors, the exposure check and `select.set`. In `ew-viewmodel` the panel model turns a sheet into rows, the edit buffer, the preview card and the toast, and compiles every edit into exactly one command, as above.
+The contract is built in two layers. Below the shell, `ew_api::output` has the **field catalogue** (`field_catalogue(kind)`, one `FieldNode` per schema node from one walker over `ew_schema::kind_schema`) and the **property sheet** (`Session::property_sheet`: a header, one section per record kind that every selected record reaches, and its rows, the struct `PropRow` of `crates/ew-api/src/output/properties.rs`, each member with what it holds; a row's value is one value, `Varies` with up to eight texts, or `Absent`). A row's edit target is its **edit route** (`EditRoute`, `crates/ew-api/src/output/fields.rs`), which names the one command an edit compiles to: `fields.set` over the section's targets, `project.settings.set`, or a layout row's own command; or the row is read-only, with its reason. No other command is ever built by the grid, and a route whose command is `HumanOnly` is read-only whatever the tables say. `Session::parse_field_input`, `field_choices`, `command_meta` and `resolve_reference` serve the editors, the exposure check and `select.set`. In `ew-viewmodel` the panel model turns a sheet into rows, the edit buffer, the preview card and the toast, and compiles every edit into exactly one command, as above.
 
 ### 2.2 Provenance
 
-Every value the UI shows carries a `Provenance`. Its variants map onto the kinds of the
-[domain model](03-domain-model.md) §1.1:
-
-```rust
-pub enum Provenance {
-    Authored    { origin: Origin },                              // A: stored on this entity
-    Inherited   { from: SchemeRef, level: SettingLevel },        // A elsewhere: project/company scheme, profile
-    Derived     { query: QueryName, via: SmallVec<[SourceRef; 4]> },   // D, Class I
-    Overridden  { derived: DisplayValue },                       // A hiding a D value (e.g. CDP)
-    Frozen      { rule_value: DisplayValue },                    // F: TagSpec.frozen, NumberSpec::Frozen, AddrSpec::Manual
-    Committed   { rev: Rev, stale: bool },                       // C: routes, lengths, released snapshots
-    Library     { item: LibItemRef, update: bool },              // L: PartCopy, SymbolDef …
-    Async       { as_of: Rev, state: Staleness },                // Class II results
-    Generated   { block: ReportBlockId },                        // report-page content, read-only
-}
-```
-
-The `via` chain is the short form of `ew query --explain` (FR-EXT-005); for wire properties it names the winning
-level of the seven-level chain of [03](03-domain-model.md) §9.5.
-
-The sheet produces `Authored`, `Inherited` ("from colour profile …", "project description"), `Derived` (with its chip text), `Overridden`, `Frozen`, `Library` (the chip shows only the item and its version), `Generated` and `Varies`; each carries its chip text as a string, not the typed `via` chain sketched above. `Committed` and `Async` are not produced (routes and Class II results have no grid rows). The derived tag's row shows the product designation, which is what Freeze writes.
+Every value the UI shows carries a `Provenance`, the enum of `crates/ew-api/src/output/properties.rs`; each variant
+carries its chip text. Its variants map onto the kinds of the [domain model](03-domain-model.md) §1.1: `Authored` is
+stored on the record (A); `Inherited` is authored elsewhere, a project or company scheme or a profile ("from colour
+profile …", "project description"); `Derived` is computed (D, Class I); `Overridden` is an authored value hiding a
+derived one (a CDP); `Frozen` is a deliberate override of a rule's value (F: `TagSpec.frozen`, `NumberSpec::Frozen`,
+`AddrSpec::Manual`); `Library` comes from a library copy (L; the chip shows only the item and its version);
+`Generated` is report-page content, read-only; `Varies` differs over the targets. A derived value's chip is the short
+form of `ew query --explain` (FR-EXT-005); for wire properties it names the winning level of the seven-level chain of
+[03](03-domain-model.md) §9.5. Committed values (C: routes, lengths, released snapshots) and Class II results have no
+grid rows, so they have no provenance of their own: specified; not built. The derived tag's row shows the product designation, which is what Freeze writes.
 
 ### 2.3 Selection
 
-```rust
-pub struct Selection { items: IndexSet<EntityRef>, primary: Option<EntityRef>, origin: SelOrigin, generation: u64 }
-pub enum EntityRef { Device(Id<Device>), Function(Id<Function>), Rep(Id<Representation>), Connection(Id<Connection>),
-                     Junction(Id<Junction>), Cp(Id<Function>, u16), Page(Id<Page>), Potential(PotentialId),
-                     Channel(Id<Channel>), Placement(Id<Placement3D>), PageItem(Id<PageItem>),
-                     Finding(FindingKey), ReportRow(Id<ReportBlock>, RowKey) }
-```
-
-The selection is a set of entity references, not of screen objects, so it can span pages and windows. It is
+The selection is the struct `Selection` of `crates/ew-viewmodel/src/tools/mod.rs`: the selected entities in
+selection order without duplicates, the primary one and a generation counted up by every change, each an
+`EntityRef` (`crates/ew-dl/src/link.rs`), a record's ID. The selection is a set of entity references, not of screen
+objects, so it can span pages and windows. It is
 session state: each undo entry stores it (ARCH §5.3) and the per-user `view.json` (§2.5) keeps the last one for
 restore. A highlight is a
 separate named set (up to four at once, §10.3), so highlighting 24VDC-1 does not disturb the selection.
@@ -226,17 +202,9 @@ The toolbar is the task-ordered command bar of [16a](16a-design-language.md) §5
 
 ### 3.4 Docking
 
-The workspace is an egui_tiles tree of panes:
-
-```rust
-pub enum Pane {
-    Canvas(CanvasTab),                 // Page2D{page}, Panel2D{page}, Layout3D{space}, Preview{job}, Compare{a, b}
-    Navigator(NavKind, NavConfig),     // §5.2
-    PropertyGrid, History, Jobs, Notifications, FindResults,
-    Messages(MessageFilter),
-    Table(TableKind, TableConfig),     // wire list, strip editor -X1031, PLC grid, BOM view …
-}
-```
+The workspace is a tree of panes in splits and tab groups: the toolkit-neutral dock layout of
+`crates/ew-viewmodel/src/layout.rs`, which `ew-ui` converts to and from an egui_tiles tree. What a pane shows is its
+`PaneKind` there, each with what it shows; a navigator pane names its kind (§5.2).
 
 - **Placement.** Canvas tabs live in the centre container. Panels start in the left, right and bottom docks but can
   be rearranged anywhere inside the window (FR-UI-001).

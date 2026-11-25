@@ -188,14 +188,8 @@ refactored freely.
 
 ### 2.3 Origins and exposure classes
 
-Every transaction carries an `Origin`; the history panel (FR-UI-023) and the journal show it.
-
-```rust
-pub enum Origin { Gui, Cli { subcommand: String }, CmdLog { file: String, sha256: Sha256 },
-                  Script { name: String, sha256: Sha256 }, Mcp { client: String, session: Uuid },
-                  Plugin { id: PluginId, version: Version }, Python { script: String },
-                  Import { lineage: Uuid }, Merge, External }
-```
+Every transaction carries an `Origin`, the enum of `crates/ew-commands/src/meta.rs` (each variant with what it
+holds); the history panel (FR-UI-023) and the journal show it.
 
 | Exposure | Front-ends allowed | Commands (examples) |
 |---|---|---|
@@ -582,38 +576,17 @@ file    = "komax.csv"
 (ARCH §3). It never touches egui or wgpu, so every operation below runs in a container without display or GPU
 (FR-EXT-001, PR-6).
 
-```rust
-pub struct OpenOptions { pub mode: Mode,             // ReadOnly | Writable (takes the lock)
-                         pub trust: TrustPolicy,     // Store | Pinned(Sha256) | Current | Untrusted
-                         pub origin: Origin, pub lang: Option<LangTag>, pub as_of: Option<Date> }
-
-impl Session {
-    pub fn open(path: &Path, opts: OpenOptions) -> Result<Session, OpenError>;   // manifest hashes; integrity on mismatch (05 §6)
-    pub fn world(&self) -> World;                                                 // O(1) model + memo snapshot
-    pub fn query(&self, name: &str, key: &QueryKey) -> Result<serde_json::Value, QueryError>;
-    pub fn explain(&self, name: &str, key: &QueryKey) -> Result<Explanation, QueryError>;
-    pub fn find(&self, pattern: &FindPattern) -> Result<Vec<EntityHit>, QueryError>;
-    pub fn sql(&self, select: &str, ctx: SqlContext) -> Result<SqlResult, SqlError>;  // §6; Class II, stamped rev
-    pub fn commands(&self) -> &CommandCatalogue;
-    pub fn preview(&self, cmd: Box<dyn DynCommand>) -> JobHandle<Preview>;        // fork; diff_model + diff_query
-    pub fn commit(&mut self, p: Preview) -> Result<Rev, CmdError>;                // rebase-checked (ARCH §2)
-    pub fn execute(&mut self, cmd: &dyn DynCommand) -> Result<Rev, CmdError>;     // e.g. a validated AnyCommand
-    pub fn undo(&mut self, origin: &Origin) -> Result<Rev, CmdError>;  pub fn redo(&mut self, origin: &Origin) -> Result<Rev, CmdError>;
-    pub fn check(&self, req: CheckRequest) -> JobHandle<CheckRun>;
-    pub fn export(&self, req: ExportRequest, sink: &mut dyn Sink) -> JobHandle<ExportReport>;
-    pub fn render_png(&self, page: PageSel, dpi: u32) -> Result<Vec<u8>, RenderError>;
-    pub fn save(&mut self) -> Result<Generation, StoreError>;
-    pub fn trust_state(&self) -> TrustState;          // content hash, decision, gated files
-}
-```
-
-**v0**. `Session` is a thin facade over the `ew-commands` `Engine`, with no
-persistence, no threads and no queries yet: `new` and `from_records` (instead of `open`), `world`, `execute` and
-`execute_with`, `preview` and `preview_with`, `commit`, `undo`, `redo`, `history`,
-`registry` (instead of `commands`), `mark_saved` and `is_dirty`. The session takes the engine's change feed at each commit for the memo store and the journal and keeps no copy for a front-end, which reads revision stamps. It also has `check(&Scheme, CheckMode) -> CheckReport`, evaluated through the session's memo store, and `open_read_only(dir, app_version)`, which takes no lock and does no roll-forward or journal write. The `_with` forms take the origin (the editor context and the coalescing key are specified; not built). `execute` and `commit` return a `Receipt {rev, outcome, created, passes}` and `undo` and
-`redo` a `Restored {rev, context, label}`; `preview` is synchronous; a job pool would return a
-`JobHandle`, and a `Cost::Bulk` command sent to `execute` is refused with `CmdError::NeedsPreview`. `ew-api` depends
-on `ew-commands`, `ew-model` without `raw-read`, and `ew-schema` (ARCH §3).
+The facade is the struct `Session` of `crates/ew-api/src/lib.rs` over the `ew-commands` `Engine`, with its options
+`SessionOptions`; its methods, in the `impl Session` blocks of `crates/ew-api/src/` (`cargo xtask where Session`),
+each say what they do. What the code does not say: `open` takes the project's lock and `open_read_only` reads one
+generation without lock, roll-forward or journal write; `query` is a tracked-read context over the current snapshot,
+memoised across requests in the session's memo store, as `check` is; the session takes the engine's change feed at
+each commit for the memo store and the journal and keeps no copy for a front-end, which reads revision stamps. The
+`_with` forms take the origin (the editor context and the coalescing key are specified; not built). `execute` and
+`commit` return the engine's `Receipt`, `undo` and `redo` its `Restored` (ARCH §5.1); `preview` is synchronous, and a
+`Cost::Bulk` command sent to `execute` is refused with `CmdError::NeedsPreview`. A job pool that returns a
+`JobHandle` for previews, checks and exports, and a trust policy given at open, are specified; not built. `ew-api`
+depends on `ew-commands`, `ew-model` without `raw-read`, and `ew-schema` (ARCH §3).
 
 - **Concurrency.** A `ReadOnly` session reads one generation and follows later generations through the watcher as
   "External change" (ARCH §7.4); results carry their `Rev`. A `Writable` session holds the lock; a second writer

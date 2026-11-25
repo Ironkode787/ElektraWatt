@@ -98,32 +98,15 @@ sessions (G6).
 
 ### 4.1 Storage form
 
-```rust
-pub struct Model {                         // one immutable snapshot; Clone is O(1)
-    pub(crate) rev: Rev,                   // monotonic on the main line
-    pub(crate) project: Row<Project>,      // master data, parties, settings (with the colour and size
-                                           //   profiles), derivation_profile
-    pub(crate) structure: Table<StructureNode>,
-    pub(crate) pages: Table<Page>,         pub(crate) sections: Table<Section>,
-    pub(crate) devices: Table<Device>,     // incl. strips, terminals, cables, assemblies, PLC stations/modules
-    pub(crate) functions: Table<Function>, // logical functions incl. interruption points; CPs instantiated from
-                                           //   the function definition
-    pub(crate) reps: Table<Representation>,// drawings of functions: multi-line, single-line, overview, fluid, topology,
-                                           //   contact image, strip segment, graphic (panel fronts are derived)
-    pub(crate) connections: Table<Connection>, pub(crate) junctions: Table<Junction>,
-    pub(crate) conductors: Table<Conductor>,   pub(crate) channels: Table<Channel>,
-    pub(crate) potential_defs: Table<PotentialDef>, pub(crate) net_defs: Table<NetDef>, pub(crate) bonds: Table<Bond>,
-    pub(crate) layout: LayoutTables,       // spaces, enclosures, surfaces, carriers, placements, route overrides
-    pub(crate) committed: CommittedTables, // routes, lengths, frozen numbers, released report snapshots (§6.5)
-    pub(crate) lib: LibraryCopies,         // embedded library copies: parts, manufacturers, symbols, function
-                                           //   defs, forms, macros, PLC, machine and label profiles
-    pub(crate) report_blocks: Table<ReportBlock>, pub(crate) revisions: Table<Revision>,
-    pub(crate) waivers: Table<Waiver>, pub(crate) comments: Table<Comment>, pub(crate) ext_refs: Table<ExternalRef>,
-    pub(crate) idx: BaseIndexes,           // reverse-FK indexes; maintained by Op::apply, rebuilt on load, never saved
-}
-pub struct Table<T> { rows: imbl::OrdMap<Id<T>, Row<T>>, changed_at: Rev }
-pub struct Row<T>   { value: Arc<T>, changed_at: Rev }
-```
+The model is one immutable snapshot, the struct `Model` of `crates/ew-model/src/model.rs`: its members are the
+revision (monotonic on the main line), the project row, one `Table<T>` per record kind, the embedded library copies
+(`LibraryCopies`), the records of unknown kinds kept for the writer, the asset store and the base indexes. A
+`Table<T>` holds its rows in ID order on an `imbl::OrdMap`, and a `Row<T>` is the record behind an `Arc` with the
+revision that last changed it (`crates/ew-model/src/rev.rs`); so a `Clone` of the model is O(1). What the tables
+mean: devices include strips, terminals, cables, assemblies and PLC stations and modules (as aspects, §4.3);
+functions include interruption points, and their CPs are instantiated from the function definition, not stored;
+representations are the drawings of functions (panel fronts are derived, not stored); the base indexes are
+maintained by delta on every applied transaction, rebuilt on load and never saved.
 
 - **Why `imbl::OrdMap`:** deterministic ordered iteration, ID range scans, and O(1) snapshots. imbl mutates
   uniquely owned nodes in place, so a 10k-op transaction copies each touched B-tree node once.
@@ -164,20 +147,14 @@ forms [09](09-reports-forms-output.md) §2.2 and §2.5: **where this summary dif
 
 ### 4.3 Device aspects: one device, several roles
 
-Multi-role devices carry optional, typed aspects on one `Device` instead of subtypes:
-
-```rust
-pub struct DeviceAspects {
-    pub strip: Option<Strip>,          pub terminal: Option<Terminal>,
-    pub cable: Option<Cable>,          pub assembly: Option<Assembly>,     // config code, BOM mode basis (D-36)
-    pub plc_station: Option<PlcStation>, pub plc_module: Option<PlcModule>,
-    pub bus_node: Option<BusNode>,     pub valve_terminal: Option<ValveTerminal>,
-}
-```
+Multi-role devices carry optional, typed aspects on one `Device` instead of subtypes: the struct `DeviceAspects` of
+`crates/ew-schema/src/device.rs` (strip, terminal, cable, assembly, PLC station, PLC module), flattened into the
+device record (`schemas/0.1/device.schema.json`). An assembly holds the configurator order codes and the basis of
+its BOM (D-36). A bus node and a valve terminal are no aspects of their own: a bus interface is a `BusPort` on a
+port function ([10](10-bus.md) §2.7), and a valve terminal is a `PlcStation` of role valve terminal.
 
 **The dual-nature valve terminal is explicit** (REF-098, folios 201–206):
-- -201U1 is one device carrying four aspects: `PlcStation` (role valve terminal), `BusNode`, `Assembly` and
-  `ValveTerminal`;
+- -201U1 is one device carrying the aspects `PlcStation` (role valve terminal) and `Assembly`;
 - the sub-bases -201U3 … -201U8 are child devices carrying `PlcModule`;
 - each valve is a child device of its sub-base;
 - each valve has a coil function bound to a `Channel` (Q0.1 …) and a pneumatic function whose CPs are ports
@@ -239,30 +216,18 @@ tested one by one.
 | `Transaction` | `Vec<Op>` + `{command, origin, undoable, exposure, label}` (page/viewport/selection and `coalesce_key`: specified; not built) | `Command::run(&mut TxBuilder)` | Undo stack, journal |
 | `Op` | `Put { key, before: Option<AnyRow>, after: Option<AnyRow> }` | `TxBuilder` | Undo stack (`Arc`s); journal (field diffs) |
 
-```rust
-pub trait Command: Serialize + DeserializeOwned + Send {         // typed handlers; not dyn-compatible
-    const NAME: &'static str;                                   // "device.place", "numbering.renumber"
-    fn cost(&self) -> Cost { Cost::Interactive }                // Bulk ⇒ always a preview job
-    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError>;   // deterministic in (snapshot, self)
-}
-pub trait DynCommand: Send {                                    // object-safe companion
-    fn name(&self) -> &'static str;
-    fn cost(&self) -> Cost;
-    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError>;
-    fn to_json(&self) -> serde_json::Value;                     // journal, macro recorder, command logs
-}
-impl<C: Command> DynCommand for C { /* blanket impl: forwards to Command */ }
-impl Session {
-    pub fn world(&self) -> World;                                         // O(1): model + memo snapshot
-    pub fn preview(&self, cmd: Box<dyn DynCommand>) -> JobHandle<Preview>; // candidate World + diffs; nothing committed
-    pub fn commit(&mut self, p: Preview) -> Result<Rev>;                  // rebase-checked
-    pub fn execute(&mut self, cmd: &dyn DynCommand) -> Result<Rev>;       // interactive path
-    pub fn undo(&mut self) -> Result<Rev>;  pub fn redo(&mut self) -> Result<Rev>;
-}
-```
+The typed handler is the trait `Command` of `crates/ew-commands/src/command.rs`: the command struct is its parameter
+struct, with a stable dotted name (`device.place`), its registered metadata and a cost; it is not dyn-compatible.
+Its object-safe companion `DynCommand` (same file, a blanket implementation over every `Command`) is what tools and
+the untyped path hand on, and its `to_json` gives the parameters to the journal, the macro recorder and command
+logs. `run` is deterministic in (snapshot, command): new IDs come from the transaction builder, never from a clock.
+A `Cost::Bulk` command always goes through a preview. The engine that runs them is `Engine` of
+`crates/ew-commands/src/engine.rs`: `world` is the O(1) current snapshot, `preview` prepares a command on a fork and
+commits nothing, `commit` commits a preview (re-run on the current model when the model moved since), `execute` is
+the interactive path, and `undo` and `redo` step the history.
 
-**v0**. `execute` and `commit` return a `Receipt {rev, outcome, created, passes}`
-and `undo` and `redo` a `Restored {rev, context, label}`; both carry the `Rev` shown above. The `Outcome`'s notices
+**v0**. `execute` and `commit` return a `Receipt` (the revision, the outcome, the keys created and the normaliser
+passes) and `undo` and `redo` a `Restored` (the revision and the step's label). The `Outcome`'s notices
 (what a command or a normaliser dropped or adjusted instead of refusing) are texts by key, as a refusal is: the window
 words them in its language, the command line prints their English. `preview` runs
 synchronously and returns the `Preview` (the `JobHandle` waits for the job pool of §2), and a `Cost::Bulk`

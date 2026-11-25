@@ -107,22 +107,12 @@ A valve FnDef carries a switching model (FR-FLU-007). Media propagation (§5.3) 
 body with independently switched halves (2×3/2) is **one** valve function with two sections, so FR-FLU-004's "one
 fluid function per valve device" and FI-03 hold for every valve type.
 
-```rust
-pub struct ValveModel { pub sections: SmallVec<[ValveSection; 1]> }  // one section; two for 2×3/2 bodies
-pub struct ValveSection {
-    pub positions: SmallVec<[SwitchPos; 3]>,  // drawn order; ISO 1219 labels a, b, and 0 for a centre position
-    pub rest: Option<u8>,                     // position held without a signal; None = bistable (last command)
-    pub actuation: SmallVec<[Actuation; 4]>,  // which actuator drives which position
-}
-pub struct SwitchPos { pub label: Ident, pub paths: SmallVec<[ValvePath; 4]> }
-pub enum ValvePath { Flow { from: u16, to: u16 }, Open { a: u16, b: u16 }, Closed(u16) }  // CP idx of the FnDef
-pub struct Actuation { pub actuator: Actuator, pub selects: u8 }
-pub enum Actuator {
-    Solenoid { solenoid: Ident },             // "14" or "12": matched to the part's `solenoids` and the coil function
-    Pilot { port: u16 }, Spring, AirSpring, ManualOverride { detent: bool },
-    Detent, Pushbutton, Lever, Roller, Pedal,
-}
-```
+The model is the struct `ValveModel` of `crates/ew-schema/src/library.rs` with its sections (`ValveSection`),
+positions (`SwitchPos`), paths (`ValvePath`, between CP indexes of the FnDef) and actuations (`Actuation`,
+`Actuator`), each member with what it holds: one section, or two for a 2×3/2 body; the positions in drawn order with
+the ISO 1219 labels a, b and 0 for a centre position; the rest position held without a signal, absent for a bistable
+valve (the last command holds); a solenoid matched to the part's solenoids and the coil function by its designation
+("14", "12").
 
 | Valve (example part) | Positions and paths | Rest | Actuation |
 |---|---|---|---|
@@ -137,7 +127,7 @@ The FR-FLU-007 acceptance is the first row: 1→2 and 4→5 at rest, 1→4 and 2
 of the symbol carries the solenoid is graphics only: the reference draws the spring on the left and the solenoid
 with manual override on the right.
 
-`FnDef.valve_model` holds the model above, written `{"sections": [{"positions": [{"label",
+`FnDef.valve_model` holds the model, written `{"sections": [{"positions": [{"label",
 "paths": [{"flow": {"from", "to"}} | {"open": {"a", "b"}} | {"closed": idx}]}], "rest", "actuation": [{"actuator",
 "selects"}]}]}`; `ValvePath` and `Actuator` keep a value of a newer format as `Unknown`. Every shipped valve FnDef
 carries its model, and a passive component with flow paths (a

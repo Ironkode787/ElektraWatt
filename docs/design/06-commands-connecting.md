@@ -134,22 +134,14 @@ neither replaces nor removes a valve function on a part change (notice T21).
 
 ### 3.3 Placing symbols and assigning devices
 
-`PlaceSymbol.target` decides which device the new representation belongs to:
-
-```rust
-pub enum PlaceTarget {
-    NewDevice { letter: Option<Ident> },           // letter from the FnDef category via the identifier set (FR-NUM-004)
-    FromPart { part: PartRef },                    // device + template functions; the chosen one is placed (FR-DEV-017)
-    Function(Id<Function>),                        // another representation of an existing function (FR-DEV-003)
-    JoinDevice { device: Id<Device>, role: Role }, // the user typed the tag of an existing device (FR-DEV-038)
-}
-pub struct AutoconnectHint { pub cp: u16, pub to: HintTarget }
-pub enum HintTarget {
-    Cp { function: Id<Function>, idx: u16 },          // a facing free CP
-    Split { connection: Id<Connection>, at: Pt2 },     // insert into an existing wire (FR-CON-008)
-    Junction(Id<Junction>),
-}
-```
+`device.place`'s target decides which device the new representation belongs to. Its forms, each with its members,
+are the enum `PlaceTarget` of `crates/ew-commands/src/commands/device.rs`: a new device, another representation of
+an existing function (FR-DEV-003), a new function of an existing device (FR-DEV-038: the person typed the tag of an
+existing device), a new device made from a part (its template's functions; the chosen one is placed, FR-DEV-017)
+and a new terminal of a strip. A new device's letter is given; taking it from the FnDef category through the
+identifier set (FR-NUM-004) is specified; not built. An accepted autoconnect hint is a `ConnectHint` (same file):
+the symbol CP and its other end, a facing free CP, a junction, or a point on an existing wire that the wire is
+split at (FR-CON-008).
 
 Rules:
 - **From the symbol library** (search by name, category, IEC 60617 reference, FR-SYM-021): a new device whose letter

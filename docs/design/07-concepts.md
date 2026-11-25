@@ -168,30 +168,14 @@ saying why, when they cannot be opened. `ew lib list|search|index --rebuild|crea
 
 ### 2.3 Symbols
 
-```rust
-pub struct SymbolDef {                       // library item kind "symbol"
-    pub meta: ItemMeta,                      // key "ew.iec.mcb-1pn", licence, sources, status (§2.1); no version (§2.1)
-    pub name: MlText, pub keywords: Vec<Ident>,
-    pub rep_type: RepType,                   // MultiLine | SingleLine | Overview | Fluid | Topology
-                                             //   | ContactImage | PanelFront | StripSegment | Graphic
-    pub fndef: LibRef,                       // exactly one FnDef (FR-SYM-005)
-    pub grid: Grid,                          // native connection grid (ADR-0027), or QET 10 px for imports and
-                                             //   the generated QET-grid edition of the starter set (§3.2)
-    pub graphics: Vec<Primitive>,            // nm, relative to the origin
-    pub cps: Vec<SymbolCp>,                  // {idx, fn_cp: u16, pos: Pt2, dir: Dir4, discipline}
-    pub text_slots: Vec<TextSlot>,           // {kind, pos, rot, align, visible, max_width?, style?}
-    pub arrangements: Vec<Arrangement>,      // named slot sets: "full", "tag + rating" (FR-SYM-012)
-    pub anchor: AnchorPolicy,                // Origin | Slot(kind) | GraphicCentre | Named(Pt2) (FR-SYM-010)
-    pub link_points: Vec<NamedPoint>,        // ends of derived mechanical linkages (FR-SYM-014)
-    pub extra_variants: Vec<ExtraVariant>,   // ContactImage | CpVariant, each with own graphics and cps
-    pub iec60617_ref: Option<Ident>,         // IEC 60617 identifier of the form "S00nnn", metadata only (FR-SYM-019)
-    pub iso1219_ref: Option<Ident>,
-}
-pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, Ellipse, Arc, Polygon{closed},
-                     Text(MlText), Image(Sha256) }
-// each primitive carries Stroke{width: Pen, dash: Solid|Dash42|Dot12|DashDot, colour: ByLayer|Rgb} and Fill;
-// Rect.shadow is the filled drop shadow of FR-SYM-003 (2.61 mm on the PART DATA boxes)
-```
+A symbol is the library item kind `symbol`: the struct `SymbolDef` of `crates/ew-schema/src/library.rs`, with its
+connection points (`SymbolCp`), text slots (`TextSlot`) and graphics (`Primitive`, each with its stroke and fill),
+each member with what it holds; its stored form is the generated schema (`schemas/0.1/symbol.schema.json`). Its
+`meta` holds the key (`ew.iec.mcb-1pn`), licence, sources and status of §2.1, and no version. Its `grid` is the
+native connection grid (ADR-0027), or QET's 10 px for imports and the generated QET-grid edition of the starter set
+(§3.2). Its `fndef` names exactly one FnDef (FR-SYM-005); its arrangements are named slot sets such as "full" or
+"tag + rating" (FR-SYM-012); its `iec60617_ref` is an identifier of the form `S00nnn`, metadata only (FR-SYM-019). A
+rectangle's `shadow` is the filled drop shadow of FR-SYM-003 (2.61 mm on the PART DATA boxes).
 
 **Rules.**
 - **Pens.** `Pen` is one of the house pens 0.13, 0.18, 0.26, 0.42, 0.52 and 1.30 mm, or an explicit `Nm` width.
@@ -338,42 +322,19 @@ sets it (lowest number wins):
 
 The library item `Part` is the full record. A `PartCopy` (03 §7) is `LibCopy<Part>`, the same record embedded.
 
-```rust
-pub struct Part {
-    pub meta: ItemMeta,                    // key, licence, sources, as_of, confidence per section, status
-    pub kind: PartKind,                    // Device | Terminal | Cable | Wire | Ferrule | Marker | Duct | Rail
-                                           //   | Busbar | EndBracket | Enclosure | MountingPlate | Tube
-                                           //   | Accessory | Configured
-    pub manufacturer: LibRef,              // manufacturer master record (FR-PRT-002)
-    pub part_number: Ident,                // verbatim, e.g. "SK 3110.000"; search uses a normalised form (§4.3)
-    pub type_designation: Option<Ident>,   // "PT 2.5-TWIN"
-    pub order_number: Option<Ident>, pub gtin: Option<Ident>,
-    pub description: MlText,               // a noun phrase, never ratings (D-35, FR-DEV-010)
-    pub category: CategoryKey, pub classification: Vec<ClassRef>,   // {scheme: Etim|Eclass|IecCdd|Native, id, version}
-    pub tech_data: Vec<TechValue>,         // {key: Ident, value: Quantity | Ident}: key "<scheme>:<id>" or native (below)
-    pub free_props: Vec<FreeProp>,         // {key: Ident, value: MlText}: EPLAN <freeproperty>, user fields
-    pub unit: OrderUnit,                   // Piece | Metre | Set; quantities are Dec3 (FR-PRT-026)
-    pub cp_pattern: Vec<CpData>,           // {idx, designation, potential_role, level, side, clamp, csa ranges,
-                                           //   max_conductors, twin_ferrule, i_load?} (FR-PRT-008; 03 §7, 05 §3.5);
-                                           //   i_load: optional load current of a supply CP, Dec3 in A
-    pub function_template: Vec<TemplateFn>,// {fndef: LibRef, main: bool, cps: Vec<u16> into cp_pattern} (FR-PRT-007)
-    pub contacts: Vec<ContactData>,        // FR-PRT-009
-    pub mech: Option<MechData>,            // W×H×D, mass, mount kind, rail offset, clearance, 2D front outline
-    pub model3d: Option<Model3dRef>,       // STEP sha256, source, embeddable flag (FR-LAY-022)
-    pub cp3d: Vec<Cp3d>,                   // 3D connection points (FR-LAY-026)
-    pub drilling: Option<FeaturePattern>,
-    pub sections: PartSections,            // plc address map, thermal, cable cores, wire, ferrule, duct, rail,
-                                           //   enclosure, tube; each owned by its area (FR-PRT-010)
-    pub accessories: Vec<AccessoryRef>,    // {part, qty, required, per: Part | StripEnd | Strip | Group}
-    pub alternatives: Vec<AlternativeRef>, // {part, kind: Equivalent | Successor | Approved} (FR-PRT-004)
-    pub configured: Option<Configured>,    // {order_code, components: Vec<(LibRef, Dec3)>} (FR-PRT-006)
-    pub variants: Vec<PartVariant>,        // {key, overrides of sections and macros} (FR-PRT-003)
-    pub macros: Vec<MacroLink>,            // {rep_type, macro} (FR-PRT-027)
-    pub commercial: Option<Commercial>,    // suppliers, supplier numbers, prices {Dec3, currency, as_of}
-    pub logistics: Option<Logistics>,      // pack quantity, minimum order, customs code, origin, lifecycle
-    pub docs: Vec<DocRef>,                 // datasheet references as text; images only as asset hashes
-}
-```
+Its members, each with what it holds, are the struct `Part` of `crates/ew-schema/src/library.rs`, and its stored form
+is the generated schema (`schemas/0.1/part.schema.json`). What the code does not say: the part number is kept
+verbatim (`SK 3110.000`) and search uses a normalised form (§4.3); the description is a noun phrase, never ratings
+(D-35, FR-DEV-010); `free_props` hold EPLAN's `<freeproperty>` and user fields; quantities in the order unit are
+`Dec3` (FR-PRT-026); each section of `sections` is owned by its area (FR-PRT-010).
+
+These members of a part are specified; not built: a supply CP's load current in `cp_pattern` (`i_load`, `Dec3` in
+A), `classification` (`{scheme: etim | eclass | iec_cdd | native,
+id, version}`), `model3d` (the STEP file's SHA-256, its source and whether it may be embedded, FR-LAY-022), `cp3d`
+(3D connection points, FR-LAY-026), `drilling`, `accessories` (`{part, qty, required, per: part | strip end | strip |
+group}`), `variants` (`{key, overrides of sections and macros}`, FR-PRT-003), `commercial` (suppliers, supplier
+numbers, prices with currency and date), `logistics` (pack quantity, minimum order, customs code, origin, lifecycle)
+and `docs` (datasheet references as text, images only as asset hashes).
 
 **Technical-data keys** (decided 2026-10-18). `tech_data` uses the one `TechValue{key, value}`
 encoding of [05](05-project-format-and-persistence.md) §3.2 on parts and devices alike. A key qualified by a
@@ -428,8 +389,8 @@ Projects embed the manufacturers they use as copies under `lib/manufacturers/` (
 [05](05-project-format-and-persistence.md) §2.2); a part references its manufacturer by `LibRef`, as in the part
 copy example of 05 §3.5.
 
-`ew-schema` types the MVP members of the
-struct above within format 0.1 (ADR-0011 amendment 4), in this order: `meta, kind, manufacturer,
+`ew-schema` types the MVP members of a
+part within format 0.1 (ADR-0011 amendment 4), in this order: `meta, kind, manufacturer,
 part_number, type_designation, order_number, gtin, description, category, tech_data, free_props, unit, cp_pattern,
 function_template, contacts, mech, sections, alternatives, configured, macros`, then `extra`. The order is fixed
 because a copy's `sha256` is taken over the item's compact JSON in member order, so a later
@@ -479,9 +440,8 @@ drawn with a symbol has no device box to edit. `part.edit_copy` lets the fork of
 project; its sections stay the library's.
 
 Every new member is optional and default-omitted, every new enum keeps `Unknown(Value)` and every new object its own
-`extra`. The members of the struct that are not in the list (`classification`, `model3d`, `cp3d`, `drilling`,
-`accessories`, `variants`, `commercial`, `logistics`, `docs`, the optional `i_load` of a CP, the thermal, wire,
-ferrule and tube sections) stay in `extra`, and take the place this struct gives them when they are typed.
+`extra`. The members not built (above, and the thermal, wire, ferrule and tube sections) stay in `extra`, and take
+their place in the member order when they are typed.
 The `LibRef`s of these members name library items, not project records: the library resolves them. A copy that an
 older build wrote, with such a member in `extra` (byte-wise member order), opens with the member typed, is reported
 not canonical (info) and is rewritten in the member order above at the next save; its stored `sha256` is kept, so
@@ -517,26 +477,13 @@ imported file itself carried them.
 
 ### 2.7 Macros, variables, value sets and placeholders
 
-```rust
-pub struct MacroDef {
-    pub meta: ItemMeta, pub name: MlText, pub description: MlText,
-    pub kind: MacroKind,                     // Window | Symbol | Page (FR-MAC-001/002/012)
-    pub variants: Vec<MacroVariant>,         // {rep_type, key: 'A'..'P', fragment}; one variant at MVP, several
-                                             //   per rep_type from 1.0 (FR-MAC-009); EPLAN's A–P range is unverified
-    pub variables: Vec<VarDef>,              // {name, ty, bindings: Vec<Binding{record, field: FieldPath}>,
-                                             //   default, formula: Option<RhaiExpr>} (FR-MAC-004, FR-MAC-015)
-    pub groups: Vec<PlaceholderGroup>,       // {name, members, include: Option<VarName>} (FR-MAC-018)
-    pub value_sets: Vec<ValueSet>,           // {name, values: BTreeMap<VarName, Value>}
-    pub thumbnail: Option<Sha256>,
-}
-pub struct Fragment {                        // project-format records, ids local to the fragment
-    pub records: Vec<Record>,                // devices, functions, reps, connections, junctions, page items,
-                                             //   part uses, channels and bindings, IP functions, DeviceLinks
-    pub lib: Vec<LibRef>,                    // closure of symbols, FnDefs, parts it uses
-    pub structure: Vec<StructRef>,           // PageRelative | Code{aspect, code}
-    pub origin: Pt2, pub grid: Grid, pub pages: Vec<PageSpec>,   // pages only for page macros
-}
-```
+A macro is the library item kind `macro`: the struct `MacroDef` of `crates/ew-schema/src/library.rs` with its
+variants, variables, placeholder groups and value sets, each member with what it holds; its stored form is the
+generated schema (`schemas/0.1/macro.schema.json`). A variant's key runs `A` to `P`: one variant at MVP, several per
+representation type from 1.0 (FR-MAC-009); EPLAN's A–P range is unverified. A variable's 1.0 `formula` (a rhai
+expression, FR-MAC-015) is specified; not built. A variant's fragment is the project fragment of ARCH §5.5 (the
+struct `Fragment` of `crates/ew-commands/src/commands/paste.rs`): project-format records with IDs local to the
+fragment, the library references of the closure its records name, and for a page macro its pages.
 
 **Variable types:**
 - `Text` (MlText), `Ident`, `Number` (Dec3 + unit), `Bool`;
@@ -566,10 +513,10 @@ From 1.0 it is also the placeholder object that a different value set can be re-
 
 The kinds `macro` and `macro_instance` are
 typed in `ew-schema` within format 0.1; `macros.save` writes a macro and `macro.insert` inserts one (§3.5).
-- **`MacroDef`** is written in the member order of the struct above: `meta, name, description, kind (window | symbol
+- **`MacroDef`** is written in the member order of its struct: `meta, name, description, kind (window | symbol
   | page), variants, variables, groups, value_sets, thumbnail`, then `extra`. A variant is `{rep_type, key,
   fragment}`; the `fragment` is the `#ew-fragment v1` text format of ARCH §5.5, kept as JSON in the permissive schema
-  crate and parsed by `ew-commands`, so the `Fragment` struct above is not a schema type. A variable is `{name, ty,
+  crate and parsed by `ew-commands`, so `Fragment` is not a schema type. A variable is `{name, ty,
   bindings: Vec<{record (fragment-local ID), field}>, default?}` with `VarType` `text, ident, number, bool, state,
   part, process_tag, channel_binding, address, tag_counter, device_ref, text_slots` (`text_slots`, a representation's text slots as a list); the 1.0 `formula` stays in `extra`. A
   placeholder group is `{name, members (fragment-local IDs), include?}` and lives only inside the macro, so the

@@ -253,19 +253,9 @@ rule registry by `ew-api` (§12).
 
 ### 10.6 Importer and exporter contracts, and the security model
 
-The contract as specified:
-
-```rust
-// ew-interop-api (MIT OR Apache-2.0): no model, no GPL dependency
-pub trait Importer { fn sniff(&self, head: &[u8], path: &Path) -> Confidence;
-                     fn import(&self, src: &mut dyn Source, cx: &ImportCx) -> Result<ImportBatch>; }
-pub struct ImportBatch { pub records: Vec<ew_schema::Record>,    // each imported record carries source_ref{lineage, key}
-                         pub assets: Vec<AssetBlob>,                // content-addressed logos and images
-                         pub report: ImportReport,                  // entries may carry a Proposal (human decision)
-                         pub provenance: Vec<SourceRef> }
-pub struct TableImage { pub tables: BTreeMap<String, Vec<Vec<Cell>>> } // filled by the host, e.g. a QETZ project.sqlite
-pub trait Exporter { fn export(&self, view: &ExportView, opts: &ExportOpts, sink: &mut dyn Sink) -> Result<ExportReport>; }
-```
+The contract lives in `ew-interop-api` (MIT OR Apache-2.0): no model, no GPL dependency. An import's result is the
+struct `ImportBatch` of `crates/ew-interop-api/src/importer.rs`, with its `ImportReport` (`report.rs`), whose entries
+may carry a proposal for a human decision.
 
 **Importers are pure functions from bytes to records:**
 - they can be fuzzed without a model;
@@ -283,8 +273,8 @@ the migration report is the resulting check run.
   free text to a field); `ApplyImport` turns an accepted proposal into a command.
 - **Underlays (1.0).** A PDF or DXF page can be imported as a locked `Underlay` page item.
 
-**What is built.** `ImportBatch` is `{records, lib, assets, report}`: each record's `source_ref` is its
-provenance, so there is no `provenance` vector, and `assets` holds the bytes of the image files the records name
+**What is built.** `ImportBatch` holds the records, the library documents, the assets and the report: each
+record's `source_ref` is its provenance, so there is no separate provenance list, and `assets` holds the bytes of the image files the records name
 by their SHA-256, each once, which the host stores as project assets. `TableImage`,
 `Proposal` and the `Importer` and `Exporter` traits are not built: the importers have an inherent `import`
 method. Every host call of an importer goes through one front door, `ew_api::import::front_door`, which applies the input limits, isolates a panic

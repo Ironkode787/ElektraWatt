@@ -336,50 +336,14 @@ touches is stored on the grid's numbers, a change of that wire only. A junction'
 
 ### 2.2 What the layout sees
 
-```rust
-pub struct DraftPage {
-    pub kind: PageKind,             // Electrical | Fluid | Bus: which rules of §1.6 apply
-    pub area: Rect,                 // the drawing area
-    pub keep_out: Vec<Rect>,        // the frame's bands, the title block, a strip's drawn bridges
-    pub parts: Vec<Part>,
-    pub junctions: Vec<Junction>,
-    pub wires: Vec<Wire>,
-    pub labels: Vec<Label>,         // texts the program may place
-    pub fixed_texts: Vec<FixedText>,// texts it may not: pin texts of drawn boxes, free texts, captions of
-                                    // structure boxes, a text the person moved
-    pub marks: Vec<Mark>,           // cable and wire markers that sit across wires
-}
-pub struct Part {
-    pub id: PartId,
-    pub at: Pt,                     // its origin on the page
-    pub body: Rect,                 // relative to `at`: the bounds of its graphics, a box's outline
-    pub frame_only: bool,           // an outline drawn round other parts (a valve terminal round its valves)
-    pub pins: Vec<Pin>,
-    pub unit: u32,                  // parts with one number move as one (§4.2)
-    pub role: Role,                 // MarkIn | MarkOut | Earth | Card | Source | Valve | Actuator | Station |
-                                    // Controller | Other: what the rules of §1.6 ask about a part
-    pub locked: bool,               // "keep in place" (§2.4), or outside the command's scope
-    pub off_grid: bool,
-}
-pub struct Pin { pub id: PinId, pub at: Pt /* relative */, pub side: Option<Side>, pub off_grid: bool }
-pub struct Junction { pub id: JunctionId, pub at: Pt }
-pub struct Wire {
-    pub id: WireId,
-    pub ends: [End; 2],             // End::Pin(PinId) | End::Junction(JunctionId)
-    pub route: Vec<Pt>,             // every vertex, both ends included; empty: unrouted
-    pub computed: bool,             // the stored route was computed by the program (§2.4)
-    pub class: WireClass,           // Wire | Tube | Bus
-    pub supply: Option<u8>,         // rank in L1, L2, L3, L, N, PEN, PE, FE, L+, M, L-; None for a signal
-}
-pub struct Label {
-    pub id: LabelId,
-    pub owner: Owner,               // Part(PartId) | Wire(WireId) | Mark(MarkId)
-    pub kind: LabelKind,            // §5.2
-    pub size: (i32, i32),           // of the whole block of lines, ticks
-    pub places: Places,             // At(Vec<Pt>) relative to the owner's origin, in order of preference,
-                                    // or AlongWire: derived from the owner's route (§5.2)
-}
-```
+The layout sees a `DraftPage` and its parts, pins, junctions, wires, labels, fixed texts and marks: the structs of
+`crates/ew-drafting/src/model.rs`, each member with what it holds. What the rules ask of them: the page's kind decides
+which rules of §1.6 apply; its keep-out rectangles are the frame's bands, the title block and a strip's drawn
+bridges; its labels are the texts the program may place, and its fixed texts the ones it may not (pin texts of drawn
+boxes, free texts, captions of structure boxes, a text the person moved). A part's `role` is what the rules of §1.6
+ask about it; parts of one `unit` move as one (§4.2); a part is `locked` when the person keeps it in place (§2.4) or
+it lies outside the command's scope. A wire's `computed` says the program computed its stored route (§2.4), and a
+label's places are points in order of preference or along its owner's wire (§5.2).
 
 What each thing of the page becomes:
 

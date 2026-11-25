@@ -131,6 +131,9 @@ the package diff; the GPL `ew-viewer` crate and the small `ew-wiring-viewer` bin
 
 ### 2.3 Authored manufacturing data
 
+The settings and the end overrides below are specified; not built: the code has no member of them yet, and a
+connection's `WireOverrides` holds no ends.
+
 ```rust
 pub struct MfgSettings {                     // in ProjectSettings (project.jsonl); defaults from the basic project
     pub ferrule_colour_scheme: FerruleScheme,// Din46228_4 | French (FR-MFG-007); name as in 03 §17
@@ -168,6 +171,9 @@ pub struct EndOverride {
   live in the order folder (§11.3). The project format stays free of timestamps (ARCH §7.3).
 
 ### 2.4 Derived records
+
+The production wire record below is specified; not built. What is built is the physical wire it is made from
+(`PhysicalWire` and its `WireEnd` of `crates/ew-derive/src/wires.rs`, [08](08-connections-terminals-cables.md) §3.8).
 
 ```rust
 pub struct WireRecord {                      // one per physical wire; grouped per potential (ARCH §6.3)
@@ -468,6 +474,8 @@ A wire leaving the location keeps its target's `+` block: a marker for a wire to
 `-102G1:−#1` for CP1252) goes through the profile's transliteration map or raises EW-MFG-004.
 
 ### 5.3 One label engine (FR-MFG-012)
+
+The label set and the label record below are specified; not built.
 
 ```rust
 pub struct LabelSetDef {

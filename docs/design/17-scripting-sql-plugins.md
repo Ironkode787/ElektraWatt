@@ -358,7 +358,8 @@ channel and the recommended way to let an agent edit.
 
 ### 8.2 WIT world `elektrawatt:plugin@1`
 
-A sketch; the normative `.wit` files live in the permissive `ew-plugin-wit` crate (FR-EXT-036):
+A sketch, specified; not built: the normative `.wit` files belong in a permissive `ew-plugin-wit` crate
+(FR-EXT-036), which does not exist yet.
 
 ```wit
 package elektrawatt:plugin@1.0.0;

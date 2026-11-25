@@ -110,64 +110,44 @@ What they share is in `ew-interop-api`: `ImportInput`, `ImportContext` (with `Im
 `ImportBatch`, `ImportReport` with its entries, codes and `SourceInfo`, `ImportError`, `SourceRef`, `pn_norm`
 and `check_archive_name`; the system library's ID and the starter keys an importer names are in `ew_schema::starter`.
 
+The plugin contract as specified (not built):
+
 ```rust
 pub trait Importer: Send + Sync {
     fn id(&self) -> &'static str;                         // "qet", "qetz", "edz", "eplan-parts-xml", "dxf", "csv"
     fn version(&self) -> &'static str;                    // recorded in the import run; bumps on mapping changes
     fn sniff(&self, head: &[u8], path: &Path) -> Confidence;               // content first, extension last
-    fn import(&self, src: &mut dyn Source, cx: &ImportCx) -> Result<ImportBatch, ImportError>;
+    fn import(&self, src: &mut dyn Source, cx: &ImportContext) -> Result<ImportBatch, ImportError>;
 }
 pub enum Confidence { No, Maybe(u8), Certain }
 pub trait Source { fn name(&self) -> &str; fn len(&self) -> u64; fn sha256(&mut self) -> [u8; 32];
                    fn read(&mut self, limit: u64) -> Result<Bytes, LimitError>; }   // no path, no sibling access
-pub struct ImportCx<'a> {
-    pub project: Id<Project>,          // target project ID: library_id of the "QET import" library (§4.3)
-    pub lineage: LineageInfo,          // namespace for v5 IDs (§2.3)
-    pub as_of: Date,                   // command parameter; no wall clock (07 §3.6)
-    pub limits: Limits,                // §11
-    pub hints: TargetHints,            // plain data about the target, never the model
-    pub options: serde_json::Value,    // per-importer options, validated against its JSON Schema
-    pub cancel: &'a CancelToken, pub progress: &'a dyn Progress,
-}
+// ImportContext gains, with the importers that need them:
+//   hints: TargetHints                 plain data about the target, never the model
+//   options: serde_json::Value         per-importer options, validated against its JSON Schema
+//   cancel: &CancelToken, progress: &dyn Progress
 pub struct TargetHints {               // copied from the target project or basic project by the host
     pub identifier_set: IdentifierSetKey, pub structure: Vec<(Aspect, Ident, Vec<Ident>)>, // code + aliases
     pub manufacturers: Vec<ManufacturerAlias>, pub colour_aliases: Vec<(String, ColourSpec)>,
     pub frames: Vec<FrameFingerprint>, pub symbol_map: Vec<SymbolMapRow>, pub font_map: Vec<FontMapRow>,
     pub text_patterns: TextPatterns,   // §4.12
 }
-pub struct Limits {                    // §11; a violation refuses the file or skips the item (EW-IMP-001)
-    pub max_input_bytes: u64,          // 512 MiB
-    pub max_xml_depth: u32,            // 256
-    pub max_xml_nodes: u32,            // 1,000,000; the pre-scan counts the root, elements and comments as a lower bound; roxmltree's own limit also counts texts and processing instructions; attributes have their own limits
-    pub max_attribute_bytes: usize,    // 16 MiB per attribute value
-    pub max_xml_attributes_per_element: u32,  // 8,192 (roxmltree checks duplicates quadratically per element)
-    pub max_xml_attributes: u32,       // 1,048,576 per document
-    pub max_xml_attribute_work: u64,   // 2^26: the sum over elements of (attribute count)^2
-    pub max_text_bytes: u32,           // 1 MiB per text node or CDATA section; the pre-scan counts the bytes between `>` and the next `<`
-}
-// Limits::element_definition(): the defaults with max_input_bytes = 16 MiB, max_xml_attributes = 131,072
-// and max_xml_nodes = 262,144, for standalone element definitions (kilobytes and hundreds of primitives in
-// practice); 512 MiB, 1,048,576 attributes and 1,000,000 nodes stay the defaults for project files, whose
-// importer reads them under its own budget. Limits::stricter(self, other) is the field-wise minimum of all eight
-// limits, so a caller can only tighten, never loosen, the limits it is given; the element importer reads with
-// ctx.limits.stricter(Limits::element_definition()).
-// crate constant, not a Limits member: MAX_ENTRIES_PER_DEFINITION = 1,000 report entries per element
-// definition; the rest are summarised in one EW-IMP-001 entry
-pub struct ImportBatch {
-    pub records: Vec<ew_schema::Record>,      // sorted by (kind, id); IDs already final
-    pub assets: Vec<AssetBlob>,               // {sha256, media_type, bytes}: logos, images (ARCH §10.6)
-    pub report: ImportReport,
-    pub provenance: Vec<SourceRef>,           // provenance[i] belongs to records[i]
-}
 ```
+
+What is built is in `crates/ew-interop-api/src/importer.rs`, each member with what it holds: `ImportContext` (the
+target project, whose ID is the `library_id` of the "QET import" library, §4.3; the lineage, §2.3; the command's
+`as_of` date, never the wall clock, 07 §3.6; the limits; the mode), `Limits` with its defaults (§11; a violation
+refuses the file or skips the item, EW-IMP-001), and `ImportBatch`. `Limits::element_definition` tightens the
+defaults for standalone element definitions (kilobytes and hundreds of primitives in practice), and the project
+defaults stay for project files, whose importer reads them under its own budget. `Limits::stricter` is the
+member-wise minimum, so a caller can only tighten, never loosen, the limits it is given; the element importer reads
+with `ctx.limits.stricter(Limits::element_definition())`. The report entries of one element definition are capped
+by a crate constant (`MAX_ENTRIES_PER_DEFINITION`), the rest summarised in one EW-IMP-001 entry.
 
 The attribute work budget exists because `roxmltree` 0.21.1 checks the duplicate attributes of an element
 quadratically, so a document can stay under both attribute counts and still be slow: the budget bounds the sum over
 all elements of the squared attribute count. `max_xml_nodes` counts nodes (the document root, elements, texts, comments and processing instructions), not attributes; the pre-scan counts the root, elements and comments as a lower bound, and the parser's own limit also counts texts and processing instructions; a project
 importer may raise it explicitly under its own budget.
-
-`ew-interop-api` has `ImportCx` as `ImportContext`, in a minimal form (`project`, `lineage`, `as_of`,
-`limits`); the other members arrive with the importers that need them.
 
 **Importer IDs, input sets and bootstrap importers** ([ADR-0021](../adr/0021-importers-emit-format-level-records.md)
 amendment 6). The importer ID is the `<importer>` of the lineage names of §2.3, so the
@@ -193,13 +173,10 @@ import is refused, and the batch is applied only into an empty project.
   match, a layout binding), the importer emits the conservative record and attaches a `Proposal` to a report
   entry (§2.4).
 
-The batch is
-`ImportBatch {records, lib, report}`: no `provenance` vector, since each record's own `source_ref` member is its
-provenance, and no `assets`. `ReportEntry` has `targets`
-(the records an entry is about, `{kind, id}`). `Limits` has `max_archive_entries` (100,000), `max_expanded_bytes`
-(2 GiB), `max_entry_bytes` (512 MiB), `max_entry_ratio` (200), `max_input_files` (64), `max_table_rows` (1,000,000)
-and `max_table_columns` (1,024), which `stricter` covers; the importers read them from the context, and the report
-and work caps are constants. **One front door,** `ew_api::import::front_door`: every
+The batch holds no provenance list, since each record's own `source_ref` member is its provenance; its `assets` are
+the bytes of the image files the records name by their SHA-256, each once, which the host stores as project assets.
+The archive, input-set and table limits are `Limits` members too, which `stricter` covers; the importers read them
+from the context, and the report and work caps are constants. **One front door,** `ew_api::import::front_door`: every
 host call of an importer (the CLI's imports, the window's QET import and parts import, the fuzz targets) goes through
 it; it refuses inputs over the size, total and file-count limits before the importer runs, runs the importer inside
 `catch_unwind` (a panic becomes a refusal with the model untouched, NFR-REL-12) and checks the batch's contract
@@ -243,15 +220,14 @@ pub struct ExportReport { pub rev: Rev, pub outputs: Vec<OutputMeta{name, sha256
 
 ADR-0004 fixes imported IDs as `v5(namespace, source_file_hash, source_id)`. Hashing each new file version would
 mint new IDs whenever the pilot edits a `.qet` in QET during the transition ([02b](02b-requirements-extended.md)
-OQ 5). EW therefore anchors the hash in an **import lineage** (ADR-0004 amendment 1, FR-IMP-002, FR-IMP-040):
+OQ 5). EW therefore anchors the hash in an **import lineage** (ADR-0004 amendment 1, FR-IMP-002, FR-IMP-040): the
+record `ImportLineage` and its anchor, the enum `LineageAnchor`, of `crates/ew-schema/src/project.rs`, each member
+with what it holds; the stored form is the generated schema (`schemas/0.1/import_lineage.schema.json`). Its source
+name is a file name, never a path. The anchor is the QET 0.200+ project UUID; for older files the SHA-256 of the file
+at first import; for an "import as copy" (§3.4) the original lineage's namespace and the copy's number (ADR-0004
+amendment 4); or a fixed label, `golden` for the golden CSV bootstrap (§8.4). The IDs follow from it:
 
 ```text
-ImportLineage { id, importer: "qet", source_name: "<file name, no path>", anchor: Anchor, namespace: Uuid,
-                last_source_sha256, last_run: Id<ImportRun> }
-Anchor = QetProjectUuid(Uuid)          # QET 0.200+ <project uuid>
-       | FirstImportSha256([u8; 32])   # older files: hash of the file at first import
-       | Copy{ of: Uuid, n: u32 }             # "import as copy" (§3.4); of = the original lineage's namespace (ADR-0004 amendment 4)
-       | Fixed(&'static str)           # "golden": the golden CSV bootstrap (§8.4)
 namespace = v5(NS_IMPORT, importer ␟ anchor kind ␟ anchor value)     # ␟ = U+001F, 05 §3.2a
 record id = v5(namespace, source_key)                               # source key byte for byte
 ```
@@ -320,16 +296,13 @@ namespace; otherwise the import into this project is refused in words.
 
 ### 2.4 Report, proposals and the import run
 
+The report is the struct `ImportReport` of `crates/ew-interop-api/src/report.rs`, with its `SourceInfo`, its
+entries (`ReportEntry`, each with its `SourceLocation`, never a filesystem path, and at most one quick fix,
+`QuickFixProposal`) and its `ImportStats`, each member with what it holds. An entry's message is English text; Fluent
+keys and arguments arrive with the migration report's window. The proposals beyond a quick fix are specified; not
+built:
+
 ```rust
-pub struct ImportReport { pub importer: String, pub importer_version: String,
-                          pub source: SourceInfo /* name, sha256, size, detected format and version */,
-                          pub entries: Vec<ReportEntry>, pub stats: ImportStats }
-pub struct ReportEntry { pub code: Code /* "EW-IMP-101" */, pub severity: Severity, pub defect: Option<DefectClass>,
-                         pub at: SourceLoc, pub targets: Vec<RecordKey>, pub message: FluentKey, pub args: Args,
-                         pub proposal: Option<Proposal> }
-pub struct SourceLoc { pub file: String, pub member: Option<String>, pub folio: Option<Ident>,
-                       pub cell: Option<String> /* "103-A3" */, pub item: Option<String> /* uuid, handle, part no. */,
-                       pub line: Option<u32> }
 pub enum Proposal { MergeStructure{from, into}, SetFields{target, fields}, BindText{text, target, field, value, confidence},
                     BindPlacement{item, device, score}, MapSymbol{symbol, to}, AdoptRule{class, rule}, Split{target}, … }
 ```

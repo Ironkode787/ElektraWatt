@@ -418,19 +418,12 @@ It also applies `unused` and alias overrides ([03](03-domain-model.md) §7).
 
 The stored part number stays verbatim. Duplicate detection uses (manufacturer, `pn_norm`).
 
-**Index tables** (per user, rebuilt from libraries):
-```sql
-CREATE TABLE part(id INTEGER PRIMARY KEY, lib TEXT, item TEXT, version TEXT, sha256 TEXT,
-                  manufacturer TEXT, pn TEXT, pn_norm TEXT, type TEXT, kind TEXT, category TEXT,
-                  quality INTEGER, status TEXT, licence TEXT);
-CREATE VIRTUAL TABLE part_text USING fts5(pn, type, manufacturer, aliases, descr, keywords, class_names,
-                  tokenize = 'unicode61 remove_diacritics 2', prefix = '2 3');
-CREATE VIRTUAL TABLE part_pn USING fts5(pn_norm, tokenize = 'trigram');     -- substring hits on numbers
-CREATE TABLE part_prop(part INTEGER, key TEXT, num INTEGER, unit TEXT, txt TEXT);  -- Dec3 as scaled integer
-CREATE TABLE part_fn(part INTEGER, fn_idx INTEGER, category TEXT, contact_kind TEXT, cp_count INTEGER, fndef TEXT);
-CREATE TABLE part_cp(part INTEGER, fn_idx INTEGER, desig_norm TEXT, csa_min INTEGER, csa_max INTEGER); -- Dec3 mm²
-```
-`descr` holds every language of the `MlText`. Symbols, FnDefs and macros have analogous tables.
+**Index tables** (per user, rebuilt from libraries): the SQL schema `SCHEMA` of `crates/ew-library/src/index.rs`.
+A part is a row of `part`, its words a row of the full-text table `part_text` (every language of its description),
+its normalised number a row of the trigram table `part_pn` (substring hits on numbers) and its template functions
+rows of `part_fn`. Symbols, FnDefs and the other library items are rows of `item`, with their words in
+`item_text`. A table of part properties (`Dec3` as a scaled integer) and one of a part's CPs with their
+cross-section ranges, for compatibility, are specified; not built.
 
 **Ranking.** Results are ordered by tier, then by score:
 1. exact `pn_norm` match;

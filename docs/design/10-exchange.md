@@ -37,16 +37,8 @@ with the next exchange's snapshot.
 ### 4.2 Exchange image and identity
 
 Parsers and writers work on a **neutral `ExchangeImage`** in the permissive crate `ew-caex`, so third parties can
-reuse them without GPL code (ARCH §3):
-
-```rust
-pub struct ExchangeImage { pub project: XProject, pub stations: Vec<XStation>, pub tags: Vec<XTag>,
-                           pub links: Vec<(XRef, XRef)>, pub networks: Vec<XNetwork> }
-pub struct XItem { pub key: XKey, pub position: u32, pub type_name: String, pub order_number: Option<String>,
-                   pub firmware: Option<String>, pub built_in: bool, pub addresses: Vec<XAddr>, // {start, bits, io}
-                   pub channels: Vec<XChannel>, pub children: Vec<XItem>, pub iec: Option<IecTags> }
-pub struct XKey { pub foreign_id: Option<String>, pub ew_id: Option<Uuid> }
-```
+reuse them without GPL code (ARCH §3). Its members, each with what it holds, are the structs `ExchangeImage`,
+`XProject`, `XStation`, `XItem` (a rack, module or submodule), `XTag` and `XNetwork` of `crates/ew-caex/src/image.rs`.
 
 - **Export** projects the model into an image (`exchange_image(cfg)`) and writes it. Imports parse a file into an
   image, and `ew-plc` (GPL) matches and merges it against the model.
@@ -61,10 +53,10 @@ pub struct XKey { pub foreign_id: Option<String>, pub ew_id: Option<Uuid> }
   [05](05-project-format-and-persistence.md) §2.2; included in the as-built archive). A separate file keeps it out
   of `project.jsonl` merges, travels through git, and lets a colleague merge a TIA re-export.
 
-The image is `ExchangeImage {project, stations, tags, networks}` with serde and a JSON Schema,
-since it is the parameter of `plc.apply_exchange`. Every object carries one `id`, the ID the file gives it: an export
-writes the project's IDs there, an import keeps what the PLC software wrote, and the matching decides whether that is
-one of the project's IDs or a foreign one (no `XKey` with two members). A tag names its channel by that ID (`channel`)
+The image has serde and a JSON Schema, since it is the parameter of `plc.apply_exchange`. Every object carries one
+`id`, the ID the file gives it: an export writes the project's IDs there, an import keeps what the PLC software wrote,
+and the matching decides whether that is one of the project's IDs or a foreign one (one ID, not a pair of a foreign
+and a project ID). A tag names its channel by that ID (`channel`)
 instead of a link list; a station holds its bus interfaces (`XInterface` with a `XNode` and `XPort`s) and the image
 the subnets (`XNetwork`). `exchange_image(q, cfg, stations?)` is a function of `ew-plc` over a `Q`, not a memoised
 query. The snapshot is typed: `exchange_record {config_project, object, target, fields}` holds the exchanged values

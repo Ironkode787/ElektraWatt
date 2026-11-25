@@ -319,14 +319,10 @@ it joins with a connection dot on each.
 
 `terminal_rows(strip)` (memo per strip) is the single row source for the terminal diagram (FR-REP-009, folios
 903–905), the strip overview (FR-REP-010), the line-up diagram (FR-REP-011, 1.0) and the terminal assembly list
-(FR-MFG-016, 1.0).
-
-```text
-TerminalRow { seq, designation, label (printed), group, level, part, potential (canonical name), state,
-              side1: [Target], side2: [Target],                        // internal / external, per Strip.field_side
-              bridges: [{group, kind, from_seq, to_seq}], rail_bonded, page refs }
-Target      { device tag, CP, level/clamp, cable tag?, core?, wire number?, wire id }
-```
+(FR-MFG-016, 1.0): specified; not built. The terminal diagram's rows are its report kind's, `terminal_diagram` of
+`crates/ew-reports/src/kinds/terminal_diagram.rs`, whose head names each column: per terminal (and per level of a
+block of several levels) its strip, designation, level, printed label, group, part, potential, the far ends wired to
+side 1 and side 2 (a CP without a side lists on side 1; a core with its cable), its bridge and its state.
 
 Row 1 of folio 904 in the example:
 
@@ -464,13 +460,11 @@ unverified (IEC 60364-5-52 informative), so the table ships with `verified = fal
   from `+J-E-206` to 1X1. Wires to an external connection point that are not cores of a cable produce EW-CORE-034,
   one finding per external reference (EF-07).
 
-```text
-CableRow { tag, part, type, cores, csa, length + source, end A, end B, spare count }
-CoreRow  { core, colour code, csa, shield, pair, from (tag:CP level/clamp), to, potential, state, wire id }
-```
-
-`cable_rows(cable)` feeds the cable diagram (FR-REP-012) and the cable overview (FR-REP-013) on folio 906: 3 cables,
-13 cores and 4 headings, 20 rows.
+The cable diagram (FR-REP-012) and the cable overview (FR-REP-013) on folio 906 are one report kind,
+`cable_overview_diagrams` of `crates/ew-reports/src/kinds/cable_overview.rs`, whose head names its rows and columns:
+one row per cable (type, ends A and B, length), then per cable a heading and one row per core (colour,
+cross-section, the ends of its wire): 3 cables, 13 cores and 4 headings, 20 rows. A memo `cable_rows(cable)` shared
+with other consumers is specified; not built.
 
 ---
 

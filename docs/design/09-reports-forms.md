@@ -83,32 +83,13 @@ flowchart LR
 
 ### 2.2 `ReportBlock`
 
-The [domain model](03-domain-model.md) §6 record, with the fields this document needs (fields marked + were added
-by the schema-steward batch):
-
-```rust
-pub struct ReportBlock {
-    pub id: Id<ReportBlock>,                 // UUIDv7; generated pages are v5(id, page_index) (ADR-0004)
-    pub source: ReportSource,                // Kind(ReportKind) | SqlQuery { api: "v1", file } (reports/<uuid>.sql)
-    pub manual: ManualSelection,             // + include / exclude entity IDs (FR-REP-027)
-    pub sort: SmallVec<SortKey>,             // { key, descending }; natural collation
-    pub group: Option<GroupSpec>,            // { key, break: None | NewPage | NewFolio }
-    pub form: Id<FormDef>,                   // first-page form; its `continuation` names the next form
-    pub section: Option<Id<Section>>,
-    pub first_folio: Option<u32>,            // 907; required for page-oriented blocks, ignored when embedded
-    pub continuation: ContinuationPolicy,    // + SubPage (907, 907.1, …; default, FR-PAG-030) | NextFolio
-    pub title: MlText,                       // + page-title format: "Wire List {n}", "Terminal Diagram {group}"
-    pub empty: EmptyPolicy,                  // + OmitPages | OnePage("No entries")
-    pub embedded: Option<EmbedSpec>,         // { page, rect } for page-embedded tables (§3.4)
-    pub columns: Vec<ReportColumn>,          // + { key, weight, heading? }: the printed columns (§3.8)
-    pub caption: MlText,                     // + the line above the table (§3.8)
-    pub legend: MlText,                      // + the line under the table (§3.8)
-    pub added_rows: Vec<AddedRow>,           // + { cells: { key: MlText } }: rows the model does not hold (§3.8)
-    pub layout_page: Option<Id<Page>>,       // + the panel layout page a legend list follows (below, §3.2)
-    pub source_ref: Option<SourceRef>,       // import provenance (14 §2.3)
-    // later, appended (kept in `extra` until then): params, filter
-}
-```
+The [domain model](03-domain-model.md) §6 record: its members, each with what it holds, are the struct `ReportBlock`
+of `crates/ew-schema/src/page.rs`, and its stored form is the generated schema
+(`schemas/0.1/report_block.schema.json`). Its generated pages are `v5(id, page_index)` (ADR-0004); an SQL source
+names its query file `reports/<uuid>.sql`; an embedded block is a page-embedded table (§3.4); the printed columns,
+the caption, the legend and the added rows are §3.8's, and the layout page is the panel layout page a legend list
+follows (below, §3.2). The block's `params` and `filter` are specified; not built: they are appended later and kept
+in `extra` until then.
 
 The cover block is the report kind `profile_tables` (`ew-reports`), drawn by the
 `embedded` module of `ew-scene` into the tables layer; its layout (proportions in 560ths of the block width, 24 rows) is
@@ -206,21 +187,9 @@ block list in the wizard; a block is created once and not changed or removed thr
 
 ### 2.3 `RowSet`: one row source for every consumer
 
-```rust
-pub struct RowSet {
-    pub columns: Vec<ColumnDef>,     // key, CellType, label (Fluent key or MlText), unit, link kind
-    pub rows: Vec<Row>,              // in final order after filter, sort, group
-    pub as_of: Rev,                  // Class I: current rev; SQL: projection rev
-}
-pub struct Row { pub id: RowId, pub kind: RowKind, pub cells: SmallVec<Cell>, pub links: SmallVec<LinkRef> }
-pub enum RowKind { Data, GroupHeader, GroupFooter, Heading }
-pub enum Cell {
-    Text(MlText), Ident(SmolStr), Tag(Id<Device>), Folio(Id<Page>), CellRef(Id<Page>, GridCell),
-    Qty(Dec3, Unit), Colour(ColourCode), Address(PlcAddr), Date(Date), Bool(bool),
-    Range(SmallVec<Id<Device>>),     // tag list, compressed at render time (§3.6)
-    Tbd, Missing(MissingReason), Stale(Box<Cell>, Rev), Empty,
-}
-```
+A report's rows are a `RowSet`: the structs `RowSet`, `Row`, `RowId` and the enums `RowKind`, `RowKey` and `Cell` of
+`crates/ew-reports/src/rowset.rs`, each member with what it holds. The rows are in their final order after filter,
+sort and grouping; a range cell is a tag list compressed at render time (§3.6).
 
 - **Typed cells, late formatting.** A cell holds a value, not a string. The display language, number format, tag
   display form and date format are applied by the consumer. XLSX therefore gets numbers as numbers ("0.75") while
@@ -298,30 +267,19 @@ family or kind name; the log and the command line keep the name.
 
 ### 2.5 `FormDef`
 
-```rust
-pub struct FormDef {
-    pub kind: FormKind,                      // Frame | TitleBlock | Cover | Divider | Report | Label
-    pub sheet: SheetSpec,                    // A4 landscape 297 × 210 mm, or custom
-    pub page_to_sheet: Option<SheetTransform>, // uniform scale + offset, integer, QET-compatible frames only (FR-PAG-029); None = scale 1
-    pub grid: Option<FrameGrid>,             // columns, rows, header bands, labels (FR-PAG-014)
-    pub title_block: Option<Id<FormDef>>,
-    pub graphics: Vec<Primitive>,            // rules, boxes, drop shadows (REF-105), logo asset refs (FR-SYM-025)
-    pub cells: Vec<FormCell>,                // static cells: labels + placeholders
-    pub data: Option<DataArea>,              // Report forms only
-    pub continuation: Option<Id<FormDef>>,   // EPLAN "next form" (FR-REP-032)
-    pub meta: ItemMeta,                      // key, licence CC-BY-SA-4.0 + exception, sources, status (03 §7)
-}
-pub struct DataArea { pub rect: Rect, pub header: RowTemplate, pub rows: RowTemplates, pub grid: TableStyle }
-pub struct RowTemplates { pub data: Option<RowTemplate>, pub group_header: Option<RowTemplate>, pub group_footer: Option<RowTemplate>, pub heading: Option<RowTemplate> }   // one template per RowKind
-pub struct RowTemplate { pub height: Nm, pub cells: Vec<FormCell>, pub wrap: WrapPolicy }   // default WrapPolicy::None
-pub struct FormCell { pub rect: Rect, pub label: Option<MlText>, pub value: Placeholder,
-                      pub style: TextStyleRef, pub align: Align, pub overflow: Overflow, pub visible_if: Option<Cond> }
-pub enum Overflow { ShrinkToFit { min_cap_height: Nm }, Ellipsis, Error, FitWidth }   // never silent clipping (FR-REP-039)
-pub struct SheetTransform { pub scale_ppb: u32, pub offset: Pt2 }   // QET frame: 986_282_578 ppb, offset (9.79, 9.79) mm
-```
+A form is the library item kind `form`: the struct `FormDef` of `crates/ew-schema/src/library.rs` with its frame grid,
+cells (`FormCell`, with its `Overflow` policy), data area (`DataArea`, one `RowTemplate` per row kind in
+`RowTemplates`) and page-to-sheet transform (`SheetTransform`), each member with what it holds; its stored form is the
+generated schema (`schemas/0.1/form.schema.json`). What the code does not say: the page-to-sheet transform is for
+QET-compatible frames only (FR-PAG-029), and absent means scale 1; the frame grid's columns, rows and header band
+carry the labels of FR-PAG-014; the graphics are rules, boxes, drop shadows (REF-105) and logo asset references
+(FR-SYM-025); the data area is a report form's only; the continuation is EPLAN's "next form" (FR-REP-032); the
+`meta` holds the key, the licence (CC-BY-SA-4.0 with the exception), sources and status ([03](03-domain-model.md) §7);
+no overflow policy clips silently (FR-REP-039).
 
-The transform is stored as an integer scale in parts per 10⁹ plus an nm offset, so every writer applies it with the
-integer arithmetic of §4.3 rule 4 instead of a float `Affine`.
+The transform is stored as an integer scale in parts per 10⁹ plus an nm offset (the QET frame: 986 282 578 ppb,
+offset (9.79, 9.79) mm), so every writer applies it with the integer arithmetic of §4.3 rule 4 instead of a float
+`Affine`.
 
 **Cell text**. A labelled cell prints its label, one space and the value;
 v0 has no tab stops. `ShrinkToFit` reduces the style size down to `min_cap_height`, measured as printed through the

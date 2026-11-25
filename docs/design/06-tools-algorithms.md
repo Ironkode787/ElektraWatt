@@ -8,32 +8,12 @@ A chapter of [Schematic editor](06-schematic-editor.md), whose table says where 
 
 ### 4.1 The tool contract
 
-Tools are state machines that return one output per input event (ARCH §9, FR-UI-016):
-
-```rust
-pub enum ToolOutput {
-    None,
-    Transient(Overlay),          // screen only: rubber band, snap marker, GPU transform of the selection
-    Preview(Box<dyn DynCommand>), // semantic ghost: the command evaluated on a fork
-    Commit(Box<dyn DynCommand>),  // handed to Session::execute
-    Cancel,                       // Escape: drop overlay and preview; model revision unchanged
-}
-// `Command` (ARCH §5.1) has an associated const and serde supertraits, so it is not dyn-compatible.
-// `DynCommand` is its object-safe companion with a blanket impl (ARCH §5.1).
-pub trait DynCommand: Send {
-    fn name(&self) -> &'static str;
-    fn cost(&self) -> Cost;
-    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError>;
-    fn to_json(&self) -> serde_json::Value;      // journal, macro recorder, `AnyCommand` (17 §2.1)
-}
-impl<C: Command> DynCommand for C { /* forwards to Command */ }
-pub trait Tool {
-    // cx: World snapshot, page, view transform, snapper, hit index
-    fn on_event(&mut self, ev: &CanvasEvent, cx: &ToolCx) -> ToolOutput;
-    // shown in the status bar and read by screen readers
-    fn status_hint(&self) -> FluentKey;
-}
-```
+Tools are state machines that return one output per input event (ARCH §9, FR-UI-016): the trait `Tool` and the
+enum `ToolOutput` of `crates/ew-viewmodel/src/tools/mod.rs`. A `Transient` output is screen only (a rubber band, a
+snap marker, the dragged selection); a `Preview` is the semantic ghost, the command evaluated on a fork; a `Commit`
+hands the command to the session; `Cancel` (Escape) drops the overlay and the preview and leaves the revision
+unchanged. The commands a tool hands on are `DynCommand`s, the object-safe companion of `Command` (ARCH §5.1). The
+status hint is shown in the status bar and read by screen readers.
 
 **Two-stage ghosts.** Every frame, the tool produces a **geometric ghost** (the dragged display list under a GPU
 transform plus dashed autoconnect stubs), which costs no model work and stays inside the 16 ms frame
@@ -43,8 +23,7 @@ tags, xref texts, potential highlight and finding deltas. Commit sends the same 
 what the commit produces (preview + commit = execute, NFR-REL-08). A semantic ghost computed on an older revision
 carries a staleness badge and is recomputed.
 
-Two points of the contract above
-change. **`ToolCx` carries no `World`:** it carries the prepared page tables (the display list, the entity rectangles,
+**`ToolCx` carries no `World`:** it carries the prepared page tables (the display list, the entity rectangles,
 the cross-reference links, the cell table, the grid and the connection points of the page) with the snapper and the
 selection, so no `ew-model` name reaches a tool (architecture §3 rule 3) and the same tool runs headless; a tool never
 calls the `Session`, and the tool host in `ew-viewmodel` does (doc 16 §4.5). **Previews run on the UI thread, not in
@@ -57,15 +36,10 @@ A tool's context reads the per-page content below the shell: the display list, t
 targets, the cell table and the grid, fetched once per (epoch, revision) and page (doc 16 §2.5). The connection points
 of the page (`page_cps`) join it.
 
-The
-events are `CanvasEvent`, with `Mods` and `Button`. The
-outputs are `ToolOutput`, including `Select` (the Select tool's result) and `Follow` (a click on a link). The trait
-`Tool` has `name`, `state`, `on_event`, `status_hint` and `wants_hover`. `ToolCx` is `{ page, points_per_nm, pane,
-snapper, selection }` and has no `World`. A tool returns one output per event, and its overlay is made of the items
-`Line`, `Polyline`, `Rect`, `Ghost`, `Marker` and `Label`. The page's connection points and their snapper are fetched
-once per (revision, folio) with the page content. Previews run on the UI thread through `Session::preview_with` after
-the 80 ms dwell action (`canvas.dwell`); the fork job off the UI thread is not built. The host, the commit paths and the
-preview rules are in doc 16 §4.5.
+The events are `CanvasEvent`; a tool's overlay is an `Overlay` of `OverlayItem`s
+(`crates/ew-viewmodel/src/tools/overlay.rs`). The page's connection points and their snapper are fetched
+once per (revision, folio) with the page content. The host, the commit paths and the preview rules are in doc 16
+§4.5.
 
 ### 4.2 Place tool
 

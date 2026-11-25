@@ -6,27 +6,12 @@ A chapter of [PLC, I/O and fieldbus](10-plc-and-bus.md), whose table says where 
 
 ### 2.7 Bus model
 
-```rust
-pub struct BusPort {                     // aspect on a Function (03 §14)
-    pub interface: Ident,                // "DP", "X1"
-    pub port_label: Option<Ident>,       // "P1R"
-    pub bus: BusSystem,                  // ProfibusDp | Profinet | EtherCat | EthernetIp | IoLink | Asi | CanOpen | ModbusTcp
-    pub role: PortRole,                  // Master | Slave | Controller | Device | Passive
-    pub address: AddrValue<NetAddress>,  // Value | Tbd | NotApplicable
-    pub termination: Option<OnOff>,      // connectors and devices with a termination switch (FR-BUS-004)
-    pub logical_net: Option<Id<LogicalNet>>,
-    pub physical_net: Option<Id<PhysicalNet>>,
-}
-pub enum NetAddress {
-    Profibus(u8), Profinet { name: Ident, ip: Option<Ipv4Addr>, mask: Option<Ipv4Addr>, gateway: Option<Ipv4Addr> },
-    EtherCat { position: Option<u16>, alias: Option<u16> }, EthernetIp { ip: Ipv4Addr, mask: Ipv4Addr },
-    Asi { addr: u8, ab: Option<AsiAb> }, IoLinkPort(u8), CanOpen(u8), ModbusTcp { ip: Ipv4Addr, unit: u8 },
-}
-pub struct LogicalNet  { pub bus: BusSystem, pub name: Ident, pub master: Option<Endpoint>, pub rate: Option<BusRate>,
-                         pub space: AddressSpace }                      // address space as in 03 §14
-pub struct PhysicalNet { pub name: Ident, pub medium: Medium,           // added: medium (copper, fibre, …)
-                         pub order_hint: Vec<Id<Function>> }            // added; segments are derived (§3.8)
-```
+A bus port is an aspect on a function ([03](03-domain-model.md) §14); bus networks are records of `project.jsonl`.
+Their members, each with what it holds, are the structs `BusPort`, `LogicalNet` and `PhysicalNet` and the enums
+`BusSystem`, `PortRole`, `AddrValue` and `NetAddress` of `crates/ew-schema/src/bus.rs`; their stored forms are the
+generated schemas (`schemas/0.1/function.schema.json`, `logical_net.schema.json`, `physical_net.schema.json`). A
+port's address is a value, the open item `tbd` or `not_applicable` (a passive connector); its `termination` is
+present only on a connector or device with a termination switch (FR-BUS-004).
 
 - **Logical networks** carry addressing, rate and master (FR-BUS-002). Ports read the rate; they never copy it.
 - **Physical networks** are named records. Their **segments are derived** from `Bus` connections, connector
