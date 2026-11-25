@@ -789,9 +789,7 @@ impl ShellModel {
     /// `plc.draw_station`, which makes its functions when it has none.
     fn arm_station_box(&mut self, device: Uuid) -> Outcome {
         let page = self.page_rows().get(self.page_index()).map(|r| r.id);
-        let Some(session) = self.project_session() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let session = &or_return!(crate::shell::gated(&self.project)).session;
         let (Some(station), Some(part), Some(page)) =
             (session.plc_station_of(device), session.device_part(device), page)
         else {

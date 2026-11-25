@@ -187,9 +187,7 @@ impl ShellModel {
     /// Shows the page of `cable`'s first wire in the focused tab, as a jump, with the cable's wires there selected
     /// (Cable… from a Cables row). A cable without a wire is refused in words.
     fn show_cable_wires(&mut self, cable: Uuid) -> Result<(), Outcome> {
-        let Some(project) = &self.project else {
-            return Err(Outcome::refused(key!("reason-no-project")));
-        };
+        let project = crate::shell::gated(&self.project)?;
         let wires = project.session.cable_wires(cable);
         let Some(page) = wires.first().and_then(|(w, _)| project.session.wire_page(*w)) else {
             return Err(Outcome::refused(key!("reason-cable-no-wire")));
@@ -799,9 +797,7 @@ impl ShellModel {
         if lines.is_empty() {
             return Outcome::refused(key!("reason-bus-no-lines"));
         }
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let form = project.session.bus_cable_form(&lines);
         if form.cables.is_empty() {
             return Outcome::refused(key!("reason-no-cable-part"));

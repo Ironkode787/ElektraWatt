@@ -470,9 +470,7 @@ impl ShellModel {
                 Err(out) => return out,
             }
         } else {
-            let Some(project) = &self.project else {
-                return Outcome::refused(key!("reason-no-project"));
-            };
+            let project = or_return!(crate::shell::gated(&self.project));
             let made = if p.get("new") == Some(&Value::Bool(true)) {
                 project.session.new_part_draft()
             } else {

@@ -281,9 +281,7 @@ impl ShellModel {
         let Some(row) = cat.symbols.iter().find(|s| s.black_box && s.allowed) else {
             return Outcome::refused(key!("reason-unknown-symbol"));
         };
-        let Some(session) = self.project_session() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let session = &or_return!(crate::shell::gated(&self.project)).session;
         let Some(copy) = row.copy.or_else(|| session.starter_symbol_copy(&row.key)) else {
             return Outcome::refused(key!("reason-unknown-symbol"));
         };

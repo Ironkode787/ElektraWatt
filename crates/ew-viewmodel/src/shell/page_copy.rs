@@ -217,9 +217,7 @@ impl ShellModel {
             }
             vec![(id, code)]
         };
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let spec = ew_api::PageCopySpec {
             pages: pages.clone(),
             folios,

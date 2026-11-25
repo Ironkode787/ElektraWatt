@@ -338,9 +338,7 @@ impl ShellModel {
                 Err(reason) => return failed(key!("error-join-device"), &[device, &reason]),
             };
             let folio = self.current_folio().unwrap_or_default().to_owned();
-            let Some(project) = &self.project else {
-                return Outcome::refused(key!("reason-no-project"));
-            };
+            let project = or_return!(crate::shell::gated(&self.project));
             let interfaces: Vec<ew_api::output::CatalogueInterface> = project
                 .session
                 .undrawn_interfaces(id, &folio)

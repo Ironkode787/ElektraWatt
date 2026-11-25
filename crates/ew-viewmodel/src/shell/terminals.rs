@@ -170,9 +170,7 @@ impl ShellModel {
             if let Some(taken) = taken {
                 return self.strip_form_done(failed(key!("error-strip-tag-taken"), &[&taken]));
             }
-            let Some(project) = &self.project else {
-                return Outcome::refused(key!("reason-no-project"));
-            };
+            let project = or_return!(crate::shell::gated(&self.project));
             match project.session.parse_field_input("device", "tag.frozen", &tag) {
                 Ok(parsed) if !parsed.value.is_null() => params["frozen_tag"] = parsed.value,
                 // A sign alone, a line break: refused in words, the form kept open with the text as typed.

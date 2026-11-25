@@ -160,9 +160,7 @@ impl ShellModel {
             .join_device_ref(device)
             .map_err(|reason| failed(key!("error-join-device"), &[device, &reason]))?;
         let (cat, i, fndef) = self.row_fndef(cat, i)?;
-        let Some(project) = &self.project else {
-            return Err(Outcome::refused(key!("reason-no-project")));
-        };
+        let project = crate::shell::gated(&self.project)?;
         let slots: Vec<String> = project
             .session
             .unplaced_slots(id, fndef)
@@ -215,9 +213,7 @@ impl ShellModel {
             },
         };
         let (cat, i, fndef) = self.row_fndef(cat, i)?;
-        let Some(project) = &self.project else {
-            return Err(Outcome::refused(key!("reason-no-project")));
-        };
+        let project = crate::shell::gated(&self.project)?;
         let tag = project.session.device_tag(device).unwrap_or_default();
         let slots = project.session.unplaced_slots(device, fndef);
         let function_key = cat.symbols[i].fndef_key.clone();

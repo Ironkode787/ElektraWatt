@@ -95,9 +95,7 @@ impl ShellModel {
         if ids.is_empty() {
             return Err(Outcome::refused(key!("reason-nothing-selected")));
         }
-        let Some(project) = &self.project else {
-            return Err(Outcome::refused(key!("reason-no-project")));
-        };
+        let project = crate::shell::gated(&self.project)?;
         let copied = project.session.copy_fragment(&ids);
         bump(&self.calls, |c| c.copy_fragment += 1);
         copied.map_err(|e| Outcome::Refused {
@@ -165,9 +163,7 @@ impl ShellModel {
         if ids.is_empty() {
             return Outcome::refused(key!("reason-nothing-selected"));
         }
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let text = project.session.tag_list(&ids);
         bump(&self.calls, |c| c.tag_list += 1);
         if text.is_empty() {

@@ -440,9 +440,7 @@ impl ShellModel {
             }
             (_, None) => Vec::new(),
         };
-        let Some(project) = self.project.as_mut() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated_mut(&mut self.project));
         if project.session.external_collisions().is_none() {
             return Outcome::refused(key!("reason-no-external-change"));
         }
@@ -632,9 +630,7 @@ impl ShellModel {
     /// `file.upgrade` (the upgrade dialog's Upgrade and save): the consent, then the save, which writes the backup
     /// beside the project folder first.
     pub(crate) fn act_upgrade(&mut self) -> Outcome {
-        let Some(p) = self.project.as_mut() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let p = or_return!(crate::shell::gated_mut(&mut self.project));
         p.session.confirm_upgrade();
         if matches!(self.dialog, Some(Dialog::ConfirmUpgrade { .. })) {
             self.dialog = None;

@@ -1530,9 +1530,7 @@ impl ShellModel {
     /// Saves the project, writing `today` as its edited date when it has changes (`None`: a save a step makes
     /// itself, which keeps the date, as an approval's must to keep the content its sign-off covers).
     pub(super) fn save_project_on(&mut self, today: Option<ew_api::catalog::Date>) -> Outcome {
-        let Some(p) = &mut self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let p = or_return!(crate::shell::gated_mut(&mut self.project));
         p.session.set_today(today);
         let result = p.session.save();
         p.session.set_today(None);
@@ -1640,9 +1638,7 @@ impl ShellModel {
     /// check passes, else read-only with its banner; a toast says what was updated and names the copies that were not.
     /// A refusal (another session holding the project among them) is a banner in words, nothing written.
     pub(crate) fn act_update_damaged(&mut self) -> Outcome {
-        let Some(project) = self.project.as_mut() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated_mut(&mut self.project));
         let dir = project.dir.clone();
         let done = match project.session.update_damaged_copies() {
             Ok(done) => done,

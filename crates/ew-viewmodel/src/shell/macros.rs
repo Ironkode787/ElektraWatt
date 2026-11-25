@@ -1083,9 +1083,7 @@ impl ShellModel {
             return self.save_done(Outcome::refused(key!("reason-no-project")));
         }
         let comma = self.decimal_comma();
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let libraries = project.session.libraries().libraries();
         if !confirm || name.is_empty() {
             if self.in_form_of(SAVE) {

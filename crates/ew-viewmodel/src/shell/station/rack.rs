@@ -1189,9 +1189,7 @@ impl ShellModel {
             s.rack_refuse(Some(StationCursor::Head), why)
         };
         if !tag.is_empty() {
-            let Some(session) = self.project_session() else {
-                return Outcome::refused(key!("reason-no-project"));
-            };
+            let session = &or_return!(crate::shell::gated(&self.project)).session;
             if session.resolve_reference(&tag).is_ok() {
                 return refuse(self, strings::format(key!("rack-rename-taken"), &[&tag]));
             }
@@ -1462,9 +1460,7 @@ impl ShellModel {
             Some(_) => Some(or_return!(self.record_param(p, "config"))),
             None => None,
         };
-        let Some(session) = self.project_session() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let session = &or_return!(crate::shell::gated(&self.project)).session;
         let tag = session.device_tag(device).unwrap_or_default();
         if !session.bus_device(device) {
             return failed(key!("error-not-a-bus-device"), &[&tag]);

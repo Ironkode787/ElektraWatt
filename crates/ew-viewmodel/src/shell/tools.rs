@@ -1412,9 +1412,7 @@ impl ShellModel {
         // The submission's own origin (a scripted window submits as its command log).
         let origin = self.origin();
         let calls = &self.calls;
-        let Some(project) = &mut self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated_mut(&mut self.project));
         let result = match (kept, fresh_tool.map(|p| p.result)) {
             (Kept::Card(state, _), _) => match state.result {
                 Ok(preview) => {

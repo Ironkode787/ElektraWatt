@@ -264,9 +264,7 @@ impl ShellModel {
     /// solenoid of the valve; a toast says which and where. Refused in words without an electrical page (headless).
     pub(crate) fn act_fluid_draw_solenoid(&mut self, p: &Map<String, Value>) -> Outcome {
         let function = or_return!(self.record_param(p, "function"));
-        let Some(session) = self.project_session() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let session = &or_return!(crate::shell::gated(&self.project)).session;
         let Some((tag, name, _)) = session.solenoid_of(function) else {
             return Outcome::refused(key!("reason-not-solenoid"));
         };
@@ -382,9 +380,7 @@ impl ShellModel {
     /// To do and the Valve terminal dialog's Create did nothing and said nothing).
     pub(crate) fn act_fluid_draw_terminal(&mut self, p: &Map<String, Value>) -> Outcome {
         let terminal = or_return!(self.record_param(p, "terminal"));
-        let Some(session) = self.project_session() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let session = &or_return!(crate::shell::gated(&self.project)).session;
         if session.terminal_kind(terminal).is_none() {
             return failed(key!("reason-not-valve-terminal"), &[]);
         }

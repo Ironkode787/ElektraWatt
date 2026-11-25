@@ -1512,9 +1512,7 @@ impl ShellModel {
     /// The Strips table's Delete of whole rows: one `edit.delete` of the terminals `terminals` with their symbols and
     /// the wires drawn to them, whose toast counts the wires as the page's Delete does.
     fn delete_terminals(&mut self, terminals: &[Uuid]) -> Outcome {
-        let Some(session) = self.project_session() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let session = &or_return!(crate::shell::gated(&self.project)).session;
         // The wires drawn on a page (a bridge is drawn on none) that end at the terminals.
         let mut wires: Vec<ew_dl::EntityRef> = Vec::new();
         {

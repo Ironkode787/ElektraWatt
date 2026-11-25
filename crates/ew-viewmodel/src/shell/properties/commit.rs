@@ -113,9 +113,7 @@ impl ShellModel {
         {
             self.props.choices = None;
         }
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         // Frame of the lists reads a form as a list's Form row does, and refuses as it does.
         let (kind, path) = if row.key == crate::shell::list_look::LISTS_FRAME_ROW {
             ("report_block", "form")
@@ -337,9 +335,7 @@ impl ShellModel {
             self.props.error = None;
             return Outcome::Done;
         }
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let Some(target) = section.targets.first().copied() else {
             return failed(key!("error-no-row"), &[&row.key]);
         };
@@ -439,9 +435,7 @@ impl ShellModel {
             self.props.error = None;
             return Outcome::Done;
         }
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let edit = ew_api::output::StripEdit::GroupLabel {
             terminals: section.targets.clone(),
             label: label.clone(),
@@ -566,9 +560,7 @@ impl ShellModel {
     pub(super) fn run_edit(&mut self, edit: PendingEdit, card: bool) -> Outcome {
         self.props.tag_proposal = None;
         let row = edit.row.clone();
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let Some(meta) = project.session.command_meta(&edit.name) else {
             return failed(key!("error-unknown-action"), &[&edit.name]);
         };

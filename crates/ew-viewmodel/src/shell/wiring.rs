@@ -809,9 +809,7 @@ impl ShellModel {
         let Some(folio) = self.current_folio().map(str::to_owned) else {
             return Outcome::refused(key!("reason-no-page"));
         };
-        let Some(session) = self.project.as_ref().map(|p| &p.session) else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let session = &or_return!(crate::shell::gated(&self.project)).session;
         let Some(plan) = session.route_plan(&folio, &scope) else {
             return Outcome::refused(key!("reason-no-page"));
         };
@@ -902,9 +900,7 @@ impl ShellModel {
         let Some(folio) = self.current_folio().map(str::to_owned) else {
             return Outcome::refused(key!("reason-no-page"));
         };
-        let Some(session) = self.project.as_ref().map(|p| &p.session) else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let session = &or_return!(crate::shell::gated(&self.project)).session;
         let Some(kept) = session
             .route_plan(&folio, &ew_api::routing::RouteScope::Page)
             .map(|p| p.kept)

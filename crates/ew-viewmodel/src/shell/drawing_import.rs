@@ -118,9 +118,7 @@ impl ShellModel {
         kind: DrawingKind,
         apply: Option<Apply>,
     ) -> Outcome {
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let (rev, epoch) = (project.session.world().rev.0, project.epoch);
         let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let options = ew_api::ew_jobs::JobOptions {
@@ -262,9 +260,7 @@ impl ShellModel {
                     DrawingKind::Dxf | DrawingKind::Dwg => UnderlaySource::Dxf(options),
                 };
                 let embed = apply.embed;
-                let Some(project) = self.project.as_mut() else {
-                    return Outcome::refused(key!("reason-no-project"));
-                };
+                let project = or_return!(crate::shell::gated_mut(&mut self.project));
                 let outcome = match project
                     .session
                     .place_underlay(&folio, &name, bytes, &source, embed, notes)
@@ -301,9 +297,7 @@ impl ShellModel {
         notes: Vec<ew_api::import::ReportEntry>,
         converted: Option<ew_api::dxf::Converted>,
     ) -> Outcome {
-        let Some(project) = self.project.as_mut() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated_mut(&mut self.project));
         let batch = match converted {
             Some(converted) => project
                 .session

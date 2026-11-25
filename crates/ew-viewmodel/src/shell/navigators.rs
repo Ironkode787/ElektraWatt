@@ -1789,9 +1789,7 @@ impl ShellModel {
             Some(b) => params["before"] = Value::String(b.id.to_string()),
             None => {
                 if let Some((n, _)) = pages.first().and_then(|r| r.section.clone()) {
-                    let Some(project) = &self.project else {
-                        return Outcome::refused(key!("reason-no-project"));
-                    };
+                    let project = or_return!(crate::shell::gated(&self.project));
                     match project.session.resolve_reference(&format!("section:{n}")) {
                         Ok(id) => params["section"] = Value::String(id.to_string()),
                         Err(why) => {

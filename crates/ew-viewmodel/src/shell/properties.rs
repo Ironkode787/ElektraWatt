@@ -739,9 +739,7 @@ impl ShellModel {
     /// `select.set`: `ids` (UUID texts) or `refs` (command-log references); an empty list clears; one unresolvable
     /// entry refuses the whole action with the resolver's message.
     pub(crate) fn act_select_set(&mut self, p: &Map<String, Value>) -> Outcome {
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let mut items: Vec<EntityRef> = Vec::new();
         match (p.get("ids"), p.get("refs")) {
             (Some(Value::Array(ids)), None) => {

@@ -64,9 +64,7 @@ impl ShellModel {
         let Some(folio) = self.current_folio().map(str::to_owned) else {
             return Outcome::refused(key!("reason-no-page"));
         };
-        let Some(session) = self.project.as_ref().map(|p| &p.session) else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let session = &or_return!(crate::shell::gated(&self.project)).session;
         let range = if scope.is_empty() {
             RouteScope::Page
         } else {

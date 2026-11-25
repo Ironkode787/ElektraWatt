@@ -110,9 +110,7 @@ impl ShellModel {
             Err(e) => return e,
             Ok(h) => h.map(str::to_owned),
         };
-        let Some(project) = self.project.as_ref() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let reg = project.session.libraries();
         let library = match (how.as_deref(), eplan::find_user_parts_library(reg)) {
             (Some("library"), Some(id)) => match ew_api::catalog::LibraryPart::take(reg, id) {
@@ -194,9 +192,7 @@ impl ShellModel {
             Ok(done) => done,
             Err(why) => return self.import_failed(name, &why),
         };
-        let Some(project) = self.project.as_mut() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated_mut(&mut self.project));
         let updates = match project.session.update_parts_from_import(&imported) {
             Ok(u) => u,
             Err(e) => return self.import_failed(name, &e.to_string()),

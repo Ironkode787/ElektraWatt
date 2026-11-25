@@ -1255,9 +1255,7 @@ impl ShellModel {
                 };
             }
         };
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let resolved = project.session.resolve_goto(&text);
         self.count(|c| c.resolve_goto += 1);
         let target = match resolved {

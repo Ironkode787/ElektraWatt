@@ -479,9 +479,7 @@ impl ShellModel {
         if path.exists() && !or_return!(super::jobs::bool_param(p, "replace", false)) {
             return Outcome::refused(key!("reason-file-exists"));
         }
-        let Some(session) = self.project_session() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let session = &or_return!(crate::shell::gated(&self.project)).session;
         let options = ew_api::plc_exchange::PlcOptions {
             stations,
             date,

@@ -252,9 +252,7 @@ impl ShellModel {
 
     /// The project's effective style `key`, or the refusal in words.
     fn text_style_of(&self, key: &str) -> Result<EffectiveStyle, Outcome> {
-        let Some(p) = &self.project else {
-            return Err(Outcome::refused(key!("reason-no-project")));
-        };
+        let p = crate::shell::gated(&self.project)?;
         ew_api::effective_text_styles(&p.session.query().project().settings)
             .into_iter()
             .find(|s| s.key.as_str() == key)
@@ -264,9 +262,7 @@ impl ShellModel {
     /// Writes `styles` (style key → the style it prints as) into the project's text styles in one step, every other
     /// entry kept; `done` is the note the page shows after it.
     fn commit_text_styles(&mut self, styles: &[EffectiveStyle], done: String) -> Outcome {
-        let Some(p) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let p = or_return!(crate::shell::gated(&self.project));
         let mut value = p.session.query().project().settings.text_styles.clone();
         for s in styles {
             let key = s.key.as_str();

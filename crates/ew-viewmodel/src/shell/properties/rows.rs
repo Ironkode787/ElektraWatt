@@ -184,9 +184,7 @@ impl ShellModel {
     /// override (`cp_overrides[].unused`), as one `fields.set` and one undo step. Its unconnected-point finding
     /// (EW-POT-009) then drops to an info.
     pub(crate) fn act_cp_unused(&mut self, p: &Map<String, Value>) -> Outcome {
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let function = match string_param(p, "function") {
             Err(e) => return e,
             Ok(None) => return failed(key!("error-missing-param"), &["function"]),
@@ -360,9 +358,7 @@ impl ShellModel {
     /// preview and the policy (rule 2 opens the card). Each device's product designation is the derived tag row of its
     /// own sheet: one `Session::property_sheet` call per device, on this action only (as "set all").
     pub(super) fn freeze_devices(&mut self, section: &SheetSection, row: &PropRow) -> Outcome {
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let mut edits = Vec::new();
         for t in &section.targets {
             bump(&self.calls, |c| c.property_sheet += 1);

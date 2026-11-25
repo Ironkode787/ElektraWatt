@@ -2189,9 +2189,7 @@ impl ShellModel {
             self.put_away_in_flight(redo);
             return Outcome::Done;
         }
-        let Some(p) = &mut self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let p = or_return!(gated_mut(&mut self.project));
         let origin = Self::origin_of(self.mode, self.person, &self.origin_file);
         let before = p.session.history().cursor();
         // A Terminal… row is one step for Undo and Redo: the steps between its ends are taken together.
@@ -2534,9 +2532,7 @@ impl ShellModel {
             Err(e) => return failed(key!("error-command"), &[&e.to_string()]),
         };
         let file = self.origin_file.clone();
-        let Some(project) = &mut self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(gated_mut(&mut self.project));
         // The `library.embed` that a `plc.set_profile` naming a library's profile runs first, an undo step of its own, joins the record before it, so the recorded script replays without the library.
         let embed = (cmd == "plc.set_profile")
             .then(|| params.get("profile").and_then(Value::as_str))

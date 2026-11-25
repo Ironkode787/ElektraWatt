@@ -216,9 +216,7 @@ impl ShellModel {
         let colours = match p.get("colours") {
             None => None,
             Some(Value::String(s)) => {
-                let Some(project) = &self.project else {
-                    return Outcome::refused(key!("reason-no-project"));
-                };
+                let project = or_return!(crate::shell::gated(&self.project));
                 match project.session.typed_colours(s) {
                     Ok(colours) => Some(colours),
                     Err(unknown) => {

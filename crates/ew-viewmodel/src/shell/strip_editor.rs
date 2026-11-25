@@ -353,9 +353,7 @@ impl ShellModel {
 
     /// The one command of a strip edit, or the gesture's refusal.
     fn strip_command(&self, edit: &StripEdit) -> Result<ew_api::AnyCommand, Outcome> {
-        let Some(project) = &self.project else {
-            return Err(Outcome::refused(key!("reason-no-project")));
-        };
+        let project = crate::shell::gated(&self.project)?;
         if !self.is_writable() {
             return Err(Outcome::refused(key!("reason-read-only")));
         }

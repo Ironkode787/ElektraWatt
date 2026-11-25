@@ -266,9 +266,7 @@ impl ShellModel {
         path: &str,
         text: &str,
     ) -> Result<(Value, Option<Value>), Outcome> {
-        let Some(project) = &self.project else {
-            return Err(Outcome::refused(key!("reason-no-project")));
-        };
+        let project = crate::shell::gated(&self.project)?;
         let field = crate::palette::PaletteField {
             name: param.to_owned(),
             ty: "text".to_owned(),

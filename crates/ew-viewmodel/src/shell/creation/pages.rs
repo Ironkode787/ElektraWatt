@@ -122,9 +122,7 @@ impl ShellModel {
             params["grid"] = json!({"num": num, "den": den});
         }
         if !section.is_empty() {
-            let Some(project) = &self.project else {
-                return Outcome::refused(key!("reason-no-project"));
-            };
+            let project = or_return!(crate::shell::gated(&self.project));
             match project.session.resolve_reference(&format!("section:{section}")) {
                 Ok(id) => params["section"] = Value::String(id.to_string()),
                 Err(why) => {

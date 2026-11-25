@@ -103,9 +103,7 @@ impl ShellModel {
         interfaces: &[ew_api::output::CatalogueInterface],
         part: Option<ew_api::output::Uuid>,
     ) -> Outcome {
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let Some(row) = cat.symbols.iter().find(|r| r.black_box && r.allowed) else {
             return Outcome::refused(key!("reason-unknown-symbol"));
         };

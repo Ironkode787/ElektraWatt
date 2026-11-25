@@ -123,9 +123,7 @@ impl ShellModel {
             Some(Ok(c)) => Some(c),
             Some(Err(_)) => return failed(key!("error-bad-param"), &["from"]),
         };
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated(&self.project));
         let made = match (&symbol, from) {
             (Some(address), _) => project.session.new_part_draft_for_symbol(address),
             (None, Some(copy)) => project.session.new_part_draft_from(copy),
@@ -331,9 +329,7 @@ impl ShellModel {
             (Err(e), _) => return e,
             _ => return Outcome::refused(key!("reason-part-edit-target")),
         };
-        let Some(project) = &mut self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated_mut(&mut self.project));
         let held = {
             let q = project.session.query();
             copy.to_string().parse().ok().and_then(|id| {
@@ -363,9 +359,7 @@ impl ShellModel {
                 }
             };
         }
-        let Some(project) = &mut self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
+        let project = or_return!(crate::shell::gated_mut(&mut self.project));
         let removed = match project.session.remove_own_part(library, item) {
             Ok(r) => r,
             Err(e) => return draft_refusal(e),
