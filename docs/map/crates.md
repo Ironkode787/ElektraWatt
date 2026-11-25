@@ -397,7 +397,7 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/plc.rs` | large | The PLC queries of doc 10 §2.10 and §3.1–§3.4: module order and starts per configuration project, then addresses, states, targets and texts per module, and the PLC rows of a station. |
 | `src/potentials.rs` |  | The potential partition: `potential_partition()` (ARCH §6.1, §6.4; doc 08 §3.3–§3.4; ADR-0002 amendments 4 and 5). |
 | `src/profile.rs` |  | Versioned derivation profiles (ADR-0003 "Versioned derivation profiles", ARCH §6.6, FR-PRJ-011) and the project's numbering settings (doc 03 §5.1). |
-| `src/q.rs` | large | The tracked-read context [`Q`] (ADR-0002 decision 1, ARCH §3 rule 1, §6.1). |
+| `src/q.rs` |  | The tracked-read context [`Q`] (ADR-0002 decision 1, ARCH §3 rule 1, §6.1). |
 | `src/query.rs` |  | The [`Query`] trait and the request-scoped cold cache of [`Q`](crate::Q) (ADR-0002 decisions 1–3). |
 | `src/settings.rs` |  | Project settings members as queries: `settings_member(name)` (ARCH §6.4, ADR-0002 amendment 4). |
 | `src/stitch.rs` |  | The stitch graph over local nets: `stitch_graph()` (ARCH §6.4, doc 08 §3.3). |
