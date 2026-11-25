@@ -14,7 +14,7 @@ use ew_derive::{
     module_io, module_part, net_address_text, port_windows, profile_of, short_tag, stations,
 };
 use ew_ids::Id;
-use ew_mltext::{MlText, natural_key};
+use ew_mltext::natural_key;
 use ew_plcaddr::{Area, PlcAddress, Purpose, Size};
 use ew_schema::{
     AddrValue, BusPort, BusSystem, Channel, ConnectionKind, Device, Endpoint, Function, IoDir, LogicalNet,
@@ -23,13 +23,9 @@ use ew_schema::{
 };
 
 use super::cable_overview::length_cell;
-use super::conn::{put, words_cell};
+use super::conn::{put, text_cell, words_cell};
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
-
-fn text(t: &str) -> Cell {
-    Cell::Text(MlText::neutral(t))
-}
 
 /// The configuration projects of the project's stations, in station order, each once.
 fn cfgs(q: &Q) -> Vec<Id<PlcConfigProject>> {
@@ -542,7 +538,7 @@ impl ReportKindDef for BusCableList {
             if let Some(p) = &port {
                 let bus = match &p.bus {
                     BusSystem::Unknown(_) => words_cell(&text!("cell-other")),
-                    known => text(bus_word(known)),
+                    known => text_cell(bus_word(known)),
                 };
                 put(c, &mut cells, "bus", bus);
                 if let Some(net) = p
@@ -629,9 +625,9 @@ impl ReportKindDef for IolinkPortList {
                     put(c, &mut cells, "master", Cell::ident(&short_tag(q, m.module)));
                     put(c, &mut cells, "port", Cell::Number(i64::from(w.number) + 1));
                     let mode = match w.mode {
-                        PortMode::IoLink => text("IO-Link"),
-                        PortMode::Di => text("DI"),
-                        PortMode::Dq => text("DQ"),
+                        PortMode::IoLink => text_cell("IO-Link"),
+                        PortMode::Di => text_cell("DI"),
+                        PortMode::Dq => text_cell("DQ"),
                         PortMode::Deactivated => words_cell(&text!("cell-deactivated")),
                         PortMode::Unknown(_) => words_cell(&text!("cell-other")),
                     };

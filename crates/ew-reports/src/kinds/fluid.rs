@@ -17,19 +17,15 @@ use ew_model::EndpointKey;
 use ew_schema::{DeviceState, LengthSource, LibCopy, Medium, Part, ReportBlock, ReportKind, Unit};
 use ew_units::Nm;
 
-use super::conn::put;
+use super::conn::{ml_cell, put};
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, QtyUnit, Row, RowId, RowKey, RowSet};
 use crate::words::in_languages;
 
-fn text(t: MlText) -> Cell {
-    if t.is_empty() { Cell::Empty } else { Cell::Text(t) }
-}
-
 /// A tube end: its `DT:port`, or "tee" in the reader's language for a junction.
 fn end_cell(end: &TubeEnd) -> Cell {
     if matches!(end.at, EndpointKey::Junction(_)) {
-        text(end.words())
+        ml_cell(end.words())
     } else {
         Cell::ident(&end.text)
     }
@@ -107,17 +103,17 @@ fn tube_row(q: &Q, columns: &[ColumnDef], r: &TubeRow) -> Row {
     put(columns, &mut cells, "from", end_cell(&r.from));
     put(columns, &mut cells, "to", end_cell(&r.to));
     if let Some(role) = &r.from.role {
-        put(columns, &mut cells, "from_role", text(port_role_text(role)));
+        put(columns, &mut cells, "from_role", ml_cell(port_role_text(role)));
     }
     if let Some(role) = &r.to.role {
-        put(columns, &mut cells, "to_role", text(port_role_text(role)));
+        put(columns, &mut cells, "to_role", ml_cell(port_role_text(role)));
     }
-    put(columns, &mut cells, "medium", text(medium_text(q, r.net)));
+    put(columns, &mut cells, "medium", ml_cell(medium_text(q, r.net)));
     put(
         columns,
         &mut cells,
         "line_kind",
-        text(line_kind_text(&r.line_kind)),
+        ml_cell(line_kind_text(&r.line_kind)),
     );
     put(columns, &mut cells, "size", Cell::ident(&r.props.size_text()));
     if let Some(m) = &r.props.material {
@@ -143,7 +139,7 @@ fn tube_row(q: &Q, columns: &[ColumnDef], r: &TubeRow) -> Row {
         columns,
         &mut cells,
         "length_source",
-        text(source_text(&r.length_source)),
+        ml_cell(source_text(&r.length_source)),
     );
     put(
         columns,
@@ -297,7 +293,7 @@ impl ReportKindDef for TubeLabels {
             let name = r.name();
             for (i, (end, other)) in [(&r.from, &r.to), (&r.to, &r.from)].into_iter().enumerate() {
                 let mut cells = vec![Cell::Empty; set.columns.len()];
-                put(&set.columns, &mut cells, "tube", text(name.clone()));
+                put(&set.columns, &mut cells, "tube", ml_cell(name.clone()));
                 put(&set.columns, &mut cells, "at", end_cell(end));
                 let label = if r.tag.is_empty() {
                     end_cell(other)
@@ -376,7 +372,7 @@ impl ReportKindDef for ValveTerminalConfig {
                     (VtSlot::Empty, _) => in_languages(&text!("cell-empty")),
                     (VtSlot::Module, _) => MlText::default(),
                 };
-                put(c, &mut cells, "occupancy", text(occupancy));
+                put(c, &mut cells, "occupancy", ml_cell(occupancy));
             }
             if let Some(d) = r.device {
                 put(c, &mut cells, "valve", Cell::ident(&short_tag(q, d)));
@@ -386,7 +382,7 @@ impl ReportKindDef for ValveTerminalConfig {
             if let Some(a) = &r.addresses {
                 put(c, &mut cells, "address", Cell::Address(a.clone()));
             }
-            put(c, &mut cells, "function", text(r.function_text.clone()));
+            put(c, &mut cells, "function", ml_cell(r.function_text.clone()));
             put(
                 c,
                 &mut cells,
@@ -439,7 +435,7 @@ impl ReportKindDef for MediumOverview {
             let Some(m) = media.get(r.medium) else { continue };
             let c = &set.columns;
             let mut cells = vec![Cell::Empty; c.len()];
-            put(c, &mut cells, "medium", text(m.name.clone()));
+            put(c, &mut cells, "medium", ml_cell(m.name.clone()));
             put(c, &mut cells, "sources", Cell::ident(&r.sources.join(", ")));
             put(
                 c,

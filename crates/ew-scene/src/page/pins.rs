@@ -11,7 +11,7 @@ use super::*;
 pub const PIN_TEXT_GAP: Nm = Nm(1_000_000);
 
 /// The text style of a black box's pin texts and of the notes beside a plug's pins.
-pub const PIN_TEXT_STYLE: &str = "data.small";
+pub const PIN_TEXT_STYLE: &str = super::DATA_SMALL_STYLE;
 
 /// The length in nanometres of the pin text `text` on one line in [`PIN_TEXT_STYLE`] of `styles` with `fonts`, the
 /// project's table and fonts the page prints it in: how far a text of a top or bottom side, turned a quarter, reaches

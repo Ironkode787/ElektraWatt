@@ -219,8 +219,11 @@ pub const MARKER_STYLE: &str = "marker";
 /// The text style of a cable mark's tag: the device tag's.
 pub const CABLE_TAG_STYLE: &str = "tag.main";
 
+/// The built-in text style of a symbol's small data (`ew_schema`'s style table), which the scene's small texts take.
+pub const DATA_SMALL_STYLE: &str = "data.small";
+
 /// The text style of a cable mark's type line.
-pub const CABLE_KIND_STYLE: &str = "data.small";
+pub const CABLE_KIND_STYLE: &str = DATA_SMALL_STYLE;
 
 /// Where a wire marker's text stands beyond its line.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

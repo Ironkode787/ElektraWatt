@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The one table model of the table writers: report rows, the `ew sql` result and, from part 2, the
-//! navigator tables are a [`Table`], which the XLSX writer ([`crate::xlsx`]) and the CSV presets
+//! The one table model of the table writers: report rows, the `ew sql` result and the navigator tables are a
+//! [`Table`], which the XLSX writer ([`crate::xlsx`]) and the CSV presets
 //! ([`crate::csv::table_csv`]) write.
 //!
 //! A table has a name (its sheet's), a key (what it is: `block:<uuid>`, `kind:<name>`, `sql`), typed

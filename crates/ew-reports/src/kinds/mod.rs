@@ -1,27 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The built-in report kinds (doc 09 §2.4).
-//!
-//! Derived now (Derivation I): `toc`, `parts_summary`, `parts_list`, `part_data`, `structure_overview`, `device_list`
-//! (FR-REP-008, the device rows of `structure_overview`), and `profile_tables` (the cover's colour and
-//! size tables, from the profiles in the project settings).
-//! Derived now from the Derivation II queries (potential partition, physical wires, effective wire
-//! properties): `wire_list`, `potential_overview`, `terminal_diagram`, `terminal_overview` (FR-REP-010, one row per
-//! strip), `cable_overview_diagrams`. Those
-//! queries read the drawn page order, which has no report pages, so these kinds derive their rows inside the
-//! pagination like the others.
-//! Derived from the PLC queries (`plc_rows`, doc 10 §2.10): `plc_overview` and `io_list` (FR-PLC-023); from the PLC
-//! and bus queries of 1.0 the lists of doc 10 §5: `plc_card_list`, `network_address_list`, `bus_overview`,
-//! `bus_cable_list`, `iolink_port_list` and `safety_io_list`. From the tags and wire numbers:
-//! `numbering_report` (frozen values with their rule values, FR-REP-022). From the revision records:
-//! `revision_overview` (`revision_rows`). From the layout: `enclosure_legend`
-//! (`layout_legend`; a layout page draws it as an embedded block). From the check engine:
-//! `open_items` (FR-REP-021, the open findings of the open-item rules, `ew_checks::open_items`; none
-//! of those rules reads the page order, so the list paginates inside it). From the fluid row sources (doc 11 §8.2):
-//! `tube_list`, `tube_cut_list`, `tube_labels`, `valve_terminal_config` and `medium_overview`. Other schema kinds are not
-//! registered; their blocks
-//! report [`NotDerived::Unsupported`](crate::rowset::NotDerived::Unsupported).
+//! The built-in report kinds (doc 09 §2.4): [`builtin`] lists every kind this build derives, one module a kind or a
+//! family. A kind reads the queries it needs (the drawn page order for the connection lists, which has no report pages,
+//! so those kinds derive their rows inside the pagination like the others). Other schema kinds are not registered;
+//! their blocks report [`NotDerived::Unsupported`](crate::rowset::NotDerived::Unsupported).
 
 use crate::kind::ReportKindDef;
 

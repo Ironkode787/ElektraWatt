@@ -372,14 +372,14 @@ pub(super) fn words_cell(words: &Text) -> Cell {
     Cell::Text(crate::words::in_languages(words))
 }
 
-/// A neutral text cell.
+/// A neutral text cell; an empty text is an empty cell.
 pub(super) fn text_cell(s: impl AsRef<str>) -> Cell {
-    let s = s.as_ref();
-    if s.is_empty() {
-        Cell::Empty
-    } else {
-        Cell::Text(MlText::neutral(s))
-    }
+    ml_cell(MlText::neutral(s.as_ref()))
+}
+
+/// A cell of a text a person wrote in several languages; an empty text is an empty cell.
+pub(super) fn ml_cell(t: MlText) -> Cell {
+    if t.is_empty() { Cell::Empty } else { Cell::Text(t) }
 }
 
 /// One terminal bridge: the bridge connections of one group on one strip (doc 08 §6.5).

@@ -749,7 +749,7 @@ fn lower_cover(
         let top = rect.max().y;
         p.text(
             note,
-            "data.small",
+            crate::page::DATA_SMALL_STYLE,
             (x0, top),
             (x(560), Nm(top.0 + row.0)),
             (None, 0),
