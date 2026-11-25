@@ -46,18 +46,83 @@ fn has_free_bus_port(tx: &TxBuilder<'_>, device: &Device) -> bool {
     })
 }
 
-/// Whether a device takes a function of FnDef `def` as a further function of its own whatever its family: the
-/// device drawn with a second symbol, such as a supply drawn once for its input and once for its outputs, or an element
-/// brought in from another program drawn for a device that has a part. A contact joins by the family rule instead and a
-/// bus port by its free port; a terminal (it goes into a strip), an interruption point and a graphic join no device.
-pub fn joins_any_device(def: &FnDef) -> bool {
-    !matches!(
-        def.contact_kind,
-        ContactKind::No | ContactKind::Nc | ContactKind::Co | ContactKind::BusPort
-    ) && !matches!(
-        def.category.0.as_str(),
-        "Terminal" | "TerminalEarth" | "InterruptionPoint" | "Graphic" | "ExternalReference"
-    )
+/// Which device a function of a FnDef joins as a new auxiliary function, where the device has no unplaced function of
+/// the FnDef (a slot, which any function of the FnDef fills). Derived from the FnDef's contact kind and category; no
+/// stored member.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum JoinClass {
+    /// A contact (NO, NC, change-over): a device whose family takes auxiliary functions (its main function is a coil,
+    /// or one of its parts' templates names the FnDef), never a terminal or a strip.
+    Contact,
+    /// A bus port: a device whose bus part has a port that no function of the device carries yet (normaliser N5 then
+    /// gives the joined function that port).
+    BusPort,
+    /// A function a device takes as its own whatever its family: the device drawn with a second symbol, such as a
+    /// supply drawn once for its input and once for its outputs, or an element brought in from another program drawn
+    /// for a device that has a part. Any device but a terminal or a strip.
+    Own,
+    /// A terminal (it goes into a strip), an interruption point, a graphic or an external reference: no device.
+    None,
+}
+
+impl JoinClass {
+    /// The class of FnDef `def`: its contact kind first, then its category.
+    pub fn of(def: &FnDef) -> Self {
+        match def.contact_kind {
+            ContactKind::No | ContactKind::Nc | ContactKind::Co => Self::Contact,
+            ContactKind::BusPort => Self::BusPort,
+            _ if matches!(
+                def.category.0.as_str(),
+                "Terminal" | "TerminalEarth" | "InterruptionPoint" | "Graphic" | "ExternalReference"
+            ) =>
+            {
+                Self::None
+            }
+            _ => Self::Own,
+        }
+    }
+
+    /// Whether `target` takes a function of this class as a new auxiliary function (the one rule of the join).
+    fn takes(self, tx: &TxBuilder<'_>, def: Id<FnDef>, target: &Device) -> bool {
+        match self {
+            Self::Contact => {
+                !terminal_or_strip(target) && (main_is_coil(tx, target.id) || templated(tx, target, def))
+            }
+            Self::BusPort => has_free_bus_port(tx, target),
+            Self::Own => !terminal_or_strip(target),
+            Self::None => false,
+        }
+    }
+
+    /// Why a target that does not take a function of this class refuses it.
+    fn refusal(self) -> Text {
+        match self {
+            Self::Contact => text!("refusal-join-no-auxiliary"),
+            Self::BusPort => text!("refusal-join-no-free-port"),
+            Self::Own => text!("refusal-join-target-terminal"),
+            Self::None => text!("refusal-join-no-device-function"),
+        }
+    }
+}
+
+/// Whether the main function of `device` is a coil (a relay or a contactor).
+fn main_is_coil(tx: &TxBuilder<'_>, device: Id<Device>) -> bool {
+    tx.functions_of_device(device).into_iter().any(|m| {
+        tx.get::<Function>(m).is_some_and(|m| {
+            m.role == FnRole::Main
+                && tx
+                    .get::<LibCopy<FnDef>>(m.def)
+                    .is_some_and(|d| d.item.contact_kind == ContactKind::Coil)
+        })
+    })
+}
+
+/// Whether one of the parts' templates of `device` names FnDef `def`.
+fn templated(tx: &TxBuilder<'_>, device: &Device, def: Id<FnDef>) -> bool {
+    device.parts.iter().any(|u| {
+        tx.get::<LibCopy<Part>>(u.part.copy)
+            .is_some_and(|p| p.item.function_template.iter().any(|t| entry_def(t) == def))
+    })
 }
 
 /// `rep.join_device` (`JoinDevice`): the placed representation `rep` joins `device` in one
@@ -74,9 +139,8 @@ pub fn joins_any_device(def: &FnDef) -> bool {
 ///   binding or target at the old function moves to it, CP for CP (the FnDef is the same, so the CP indices line up),
 ///   and the representation's pin map follows.
 /// - **Else a new auxiliary function.** The representation's function moves to `device` as an auxiliary function
-///   (role aux, no template entry); its record, its CP overrides and everything attached to it stay. A contact needs a
-///   device whose family takes auxiliary functions (the family rule, below); a function of another kind that a device
-///   takes as its own whatever its family ([`joins_any_device`]) joins any device but a terminal or a strip.
+///   (role aux, no template entry); its record, its CP overrides and everything attached to it stay. Which device
+///   takes it is the one rule of the FnDef's [`JoinClass`].
 ///
 /// The source device has no other representation and its other functions (of its part) are neither drawn nor wired
 /// (so that a coil placed from a valve part joins another valve); it is removed in the same
@@ -88,12 +152,8 @@ pub fn joins_any_device(def: &FnDef) -> bool {
 /// representation that draws not exactly one normal function of a device, or whose device is a strip,
 /// has another function that is drawn or wired, or another representation, or takes part in a device link, which the join would lose
 /// (`/rep`; remove the link first); the representation's own device (`/device`); a
-/// device that cannot take the FnDef by its family (`/device`): it has no unplaced function of the FnDef, and the FnDef
-/// is a contact (NO, NC, change-over) and the device's family takes no auxiliary functions (its main function is no
-/// coil and none of its parts' templates names the FnDef; terminals and strips never do), or the FnDef joins no device
-/// ([`joins_any_device`]: a terminal, an interruption point, a graphic), or the device is a terminal or a strip, unless the FnDef is a bus
-/// port and the device's bus part has a port that no function of the device carries yet (normaliser N5 then
-/// gives the joined function that port); a connected CP the function
+/// device that has no unplaced function of the FnDef and does not take it by the FnDef's [`JoinClass`] (`/device`,
+/// the reason the class's); a connected CP the function
 /// would no longer have on `device` (`/device`; its part's template draws other CPs). Interactive. Outcome: the
 /// representation.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -415,41 +475,13 @@ impl JoinDevice {
         Ok(others)
     }
 
-    /// The family rule: where the target has no slot of the FnDef, a contact joins a device whose family takes
-    /// auxiliary functions, a bus port a device whose bus part has a free port, and a function of another kind any
-    /// device but a terminal or a strip.
+    /// Where the target has no slot of the FnDef, it takes the function by the FnDef's [`JoinClass`] (a FnDef the
+    /// project does not hold is of no class that joins).
     fn check_takes_fndef(&self, tx: &TxBuilder<'_>, f: &Function, target: &Device) -> Result<(), CmdError> {
-        // A contact joins a device whose family takes auxiliary functions.
-        let contact = tx.get::<LibCopy<FnDef>>(f.def).is_some_and(|d| {
-            matches!(
-                d.item.contact_kind,
-                ContactKind::No | ContactKind::Nc | ContactKind::Co
-            )
-        });
-        let coil = tx.functions_of_device(self.device).into_iter().any(|m| {
-            tx.get::<Function>(m).is_some_and(|m| {
-                m.role == FnRole::Main
-                    && tx
-                        .get::<LibCopy<FnDef>>(m.def)
-                        .is_some_and(|d| d.item.contact_kind == ContactKind::Coil)
-            })
-        });
-        let templated = target.parts.iter().any(|u| {
-            tx.get::<LibCopy<Part>>(u.part.copy)
-                .is_some_and(|p| p.item.function_template.iter().any(|t| entry_def(t) == f.def))
-        });
-        // A bus-port FnDef joins a device whose bus part has a port no function carries yet
-        let bus_port = tx
+        let class = tx
             .get::<LibCopy<FnDef>>(f.def)
-            .is_some_and(|d| d.item.contact_kind == ContactKind::BusPort);
-        let free_port = bus_port && has_free_bus_port(tx, target);
-        let auxiliary = contact && !terminal_or_strip(target) && (coil || templated);
-        // A function of another kind is the device drawn once more, on any device but a terminal or a strip.
-        let any = tx
-            .get::<LibCopy<FnDef>>(f.def)
-            .is_some_and(|d| joins_any_device(&d.item));
-        let own = any && !terminal_or_strip(target);
-        if !(auxiliary || free_port || own) {
+            .map_or(JoinClass::None, |d| JoinClass::of(&d.item));
+        if !class.takes(tx, f.def, target) {
             let fndef_words = tx.get::<LibCopy<FnDef>>(f.def).map_or_else(
                 || ew_derive::text::record(ew_schema::Kind::Fndef),
                 |d| {
@@ -464,15 +496,7 @@ impl JoinDevice {
                     "refusal-join-no-function",
                     crate::words::device(tx, self.device),
                     fndef_words,
-                    if contact {
-                        text!("refusal-join-no-auxiliary")
-                    } else if bus_port {
-                        text!("refusal-join-no-free-port")
-                    } else if any {
-                        text!("refusal-join-target-terminal")
-                    } else {
-                        text!("refusal-join-no-device-function")
-                    }
+                    class.refusal()
                 ),
             ));
         }
@@ -562,4 +586,40 @@ fn dropped_notices(
         }
     }
     notices
+}
+
+#[cfg(test)]
+mod tests {
+    use super::JoinClass;
+
+    /// The join class of every contact kind and of the categories that join no device: a contact's kind decides
+    /// before its category; a terminal-kind function of another category (a lamp drawn with terminal CPs) is the
+    /// device's own.
+    #[test]
+    fn each_fndef_has_the_join_class_of_its_cases() {
+        let class = |kind: &str, category: &str| {
+            let def: ew_schema::FnDef = serde_json::from_value(serde_json::json!({
+                "category": [category, "x", "y"],
+                "contact_kind": kind,
+            }))
+            .expect("a FnDef");
+            JoinClass::of(&def)
+        };
+        for kind in ["no", "nc", "co"] {
+            assert_eq!(class(kind, "Terminal"), JoinClass::Contact, "{kind}");
+        }
+        assert_eq!(class("bus_port", "InterruptionPoint"), JoinClass::BusPort);
+        for kind in ["coil", "pole", "terminal", "black_box", "plc_io", "valve"] {
+            assert_eq!(class(kind, "Lamp"), JoinClass::Own, "{kind}");
+        }
+        for category in [
+            "Terminal",
+            "TerminalEarth",
+            "InterruptionPoint",
+            "Graphic",
+            "ExternalReference",
+        ] {
+            assert_eq!(class("terminal", category), JoinClass::None, "{category}");
+        }
+    }
 }

@@ -86,7 +86,7 @@ pub use items::{
     AlignParam, AnchorParam, DashParam, FreeTextParam, GraphicParam, ImageParam, ItemKindParam, ShapeParam,
     StrokeParam,
 };
-pub use join::joins_any_device;
+pub use join::JoinClass;
 pub use layout::{CarrierKindParam, CarrierParamsParam, CarrierThen, FillOrder, PlaceMode, PlaceOnParam};
 pub use library_update::{ChangeClass, CopyDiff, CpMapParam, FieldChange, classify_update};
 pub use macro_insert::{MACRO_KINDS, binding_field_ok, coerce_value, instantiate};

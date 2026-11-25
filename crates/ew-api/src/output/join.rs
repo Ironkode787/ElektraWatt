@@ -11,6 +11,7 @@
 
 use std::cmp::Ordering;
 
+use ew_commands::commands::JoinClass;
 use ew_derive::{FunctionCps, PageOrder, PageRef, Q, RepAnchorCell, short_tag};
 use ew_ids::{Id, Uuid, v5};
 use ew_schema::{ContactKind, Device, FnDef, FnRole, Function, FunctionKind, LibRef, Representation};
@@ -133,13 +134,13 @@ fn held_or_starter(q: &Q, def: Id<FnDef>) -> Option<FnDef> {
 }
 
 /// Whether `device`'s family takes auxiliary functions of FnDef `def` (D2): its main function is a coil (a relay or
-/// a contactor), or one of its parts' templates has an entry of `def`; a function a device takes as its own whatever its
-/// family (`ew_commands::commands::joins_any_device`) any device does. Terminals and strips never do.
+/// a contactor), or one of its parts' templates has an entry of `def`; a function of the join class `Own`
+/// (`ew_commands::commands::JoinClass`) any device does. Terminals and strips never do.
 fn takes_auxiliary(q: &Q, id: Id<Device>, device: &Device, def: Id<FnDef>) -> bool {
     if device.aspects.terminal.is_some() || device.aspects.strip.is_some() {
         return false;
     }
-    if held_or_starter(q, def).is_some_and(|d| ew_commands::commands::joins_any_device(&d)) {
+    if held_or_starter(q, def).is_some_and(|d| JoinClass::of(&d) == JoinClass::Own) {
         return true;
     }
     let coil = q.idx().functions_of_device(id).any(|f| {
@@ -258,12 +259,8 @@ impl Session {
         });
         // Typing a tag proposes a contact's join only: a symbol of another kind takes a device's tag in this row for
         // what it means there (a valve's solenoid, a taken tag refused), and joins by J or `rep.join_device`.
-        let contact = held_or_starter(&q, def).is_some_and(|d| {
-            matches!(
-                d.contact_kind,
-                ContactKind::No | ContactKind::Nc | ContactKind::Co | ContactKind::BusPort
-            )
-        });
+        let contact = held_or_starter(&q, def)
+            .is_some_and(|d| matches!(JoinClass::of(&d), JoinClass::Contact | JoinClass::BusPort));
         let joins = slot.is_some() || (contact && takes_auxiliary(&q, target_id, target_device, def));
         joins.then(|| JoinProposal {
             rep: rep.as_uuid(),
@@ -300,15 +297,11 @@ impl Session {
 
     /// Whether the FnDef copy `fndef` can be an auxiliary function: an embedded contact (contact kind
     /// NO, NC or change-over) or bus port (a device's port, which normaliser N5 types from its part), a function a
-    /// device takes as its own whatever its family (a second symbol of the device:
-    /// `ew_commands::commands::joins_any_device`), or a starter one of these the project does not embed yet.
+    /// device takes as its own whatever its family (a second symbol of the device): every join class but `None`
+    /// (`ew_commands::commands::JoinClass`), or a starter one of these the project does not embed yet.
     pub fn auxiliary_fndef(&self, fndef: Uuid) -> bool {
-        held_or_starter(&self.query(), Id::from_uuid(fndef)).is_some_and(|d| {
-            matches!(
-                d.contact_kind,
-                ContactKind::No | ContactKind::Nc | ContactKind::Co | ContactKind::BusPort
-            ) || ew_commands::commands::joins_any_device(&d)
-        })
+        held_or_starter(&self.query(), Id::from_uuid(fndef))
+            .is_some_and(|d| JoinClass::of(&d) != JoinClass::None)
     }
 
     /// The tag a report prints for `device` (`-101K1`; `Tag::short`); `None` for a missing device.
@@ -339,10 +332,7 @@ impl Session {
         let Some(item) = held_or_starter(&q, def) else {
             return JoinCandidates::default();
         };
-        let auxiliary = matches!(
-            item.contact_kind,
-            ContactKind::No | ContactKind::Nc | ContactKind::Co
-        ) || ew_commands::commands::joins_any_device(&item);
+        let auxiliary = matches!(JoinClass::of(&item), JoinClass::Contact | JoinClass::Own);
         let idx = q.idx();
         let mut slots: Vec<JoinCandidate> = Vec::new();
         for (id, f) in q.functions().iter() {
