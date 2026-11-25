@@ -13,7 +13,9 @@
 use std::sync::Arc;
 
 use ew_ids::Id;
-use ew_schema::{Connection, Dir4, Endpoint, Function, Junction, LibCopy, Page, Representation, SymbolDef};
+use ew_schema::{
+    Connection, Device, Dir4, Endpoint, Function, Junction, LibCopy, Page, Representation, Section, SymbolDef,
+};
 use ew_units::{Grid, Nm, Pt2, arith};
 
 use crate::error::CmdError;
@@ -90,7 +92,7 @@ pub fn sub(a: Pt2, b: Pt2) -> Result<Pt2, OutOfRange> {
 /// box ([`ew_derive::rep_drawn_cps`]), each placed at `rep.pos + rep.orient(cp.pos)`. A point within 1 nm of a position
 /// of the page's grid is the grid's own number for it ([`Grid::settle_point`]). The rule of `ew_derive`'s `cp_point`,
 /// the scene and the Wire tool's targets, so the CP-exact rule of [`require_route`] covers a black box's pins as it
-/// covers a symbol's; the terminals a strip segment draws are not among them. A symbol copy that is not embedded
+/// covers a symbol's; the terminals a strip segment draws are [`cp_position`]'s. A symbol copy that is not embedded
 /// yields no CPs; a CP whose position would leave ±[`MAX_COORD`] is not drawn (the commands that place or move a
 /// representation refuse that with [`rep_cps_checked`]).
 pub fn rep_cps(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<RepCp> {
@@ -588,11 +590,64 @@ fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRa
         .collect()
 }
 
-/// The position of function CP `(function, idx)` as drawn by its representation on `page` (the smallest
-/// representation ID if several draw it); `None` when no representation on that page draws it or the
-/// symbol geometry is unknown.
+/// The position of function CP `(function, idx)` as drawn on `page`: by its representation (the smallest
+/// representation ID if several draw it), else by the strip segment that draws its terminal ([`segment_cp`]); `None`
+/// when nothing on that page draws it or the symbol geometry is unknown.
 pub fn cp_position(tx: &TxBuilder<'_>, function: Id<Function>, idx: u16, page: Id<Page>) -> Option<Pt2> {
-    drawn_cp(tx, function, idx, page).map(|c| c.pos)
+    drawn_cp(tx, function, idx, page)
+        .map(|c| c.pos)
+        .or_else(|| segment_cp(tx, function, idx, page))
+}
+
+/// The point at which a strip segment on `page` draws terminal CP `(function, idx)`, by the derivation's rule
+/// ([`ew_derive::terminal_drawn_function`], [`ew_derive::strip_segment_of`], [`ew_derive::strip_terminal_end`]) over
+/// the records the transaction reads, the segments ordered by their pages' keys ([`ew_derive::drawn_page_key`]). A
+/// point within 1 nm of a position of the page's grid is the grid's own number for it, as in [`rep_cps`].
+fn segment_cp(tx: &TxBuilder<'_>, function: Id<Function>, idx: u16, page: Id<Page>) -> Option<Pt2> {
+    let func = tx.get::<Function>(function)?;
+    let terminal = tx.get::<Device>(func.device?)?;
+    let strip = terminal.aspects.terminal.as_ref()?.strip;
+    let fns = tx
+        .functions_of_device(terminal.id)
+        .into_iter()
+        .filter_map(|f| Some((f, tx.get::<Function>(f)?.role.clone())));
+    if ew_derive::terminal_drawn_function(fns)? != function {
+        return None;
+    }
+    let (_, _, side) = crate::commands::common::function_cp_sides(tx, &func, &terminal)
+        .into_iter()
+        .find(|(i, _, _)| *i == idx)?;
+    let ranks = ew_derive::section_ranks(tx.iter::<Section>().iter().map(|s| (s.number, s.id)));
+    // A segment on a page that does not exist stands last, as in the derivation's page order.
+    let reps: Vec<_> = tx
+        .functions_of_device(strip)
+        .into_iter()
+        .flat_map(|f| tx.reps_of_function(f))
+        .filter_map(|r| tx.get::<Representation>(r))
+        .map(|r| {
+            let key = tx
+                .get::<Page>(r.page)
+                .map(|p| ew_derive::drawn_page_key(&ranks, r.page, &p));
+            ((key.is_none(), key), r)
+        })
+        .collect();
+    let terminals = tx
+        .terminals_of_strip(strip)
+        .into_iter()
+        .filter_map(|t| Some((tx.get::<Device>(t)?.aspects.terminal.as_ref()?.seq, t)));
+    let (seg, k) =
+        ew_derive::strip_segment_of(reps.iter().map(|(key, r)| (key, &**r)), terminals, terminal.id)?;
+    if seg.page != page {
+        return None;
+    }
+    let symbol = tx.get::<LibCopy<SymbolDef>>(seg.symbol)?;
+    let (at, _) = ew_derive::strip_terminal_end(seg, &symbol.item, k, side.as_ref()?)?;
+    let grid = tx.get::<Page>(page).map_or(Grid::MM4, |p| p.grid);
+    Some(
+        Some(grid.settle_point(at))
+            .filter(|s| point_in_range(*s))
+            .unwrap_or(at),
+    )
 }
 
 /// The drawn CP of [`cp_position`]: function CP `(function, idx)` as its representation on `page` draws it.

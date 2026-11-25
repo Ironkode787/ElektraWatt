@@ -91,6 +91,42 @@ fn draw_between_two_cps_creates_one_unnumbered_connection() {
     assert_eq!(c.number, ew_schema::NumberSpec::default());
 }
 
+/// A wire to a terminal that a strip segment draws ends where the page draws the terminal's side (the derivation's
+/// strip-segment rule, `ew_derive::cp_point`): a route that starts there is drawn, one that starts a grid step
+/// beside it is refused like a route beside a symbol's pin.
+#[test]
+fn a_route_to_a_terminal_on_a_strip_segment_ends_where_the_page_draws_it() {
+    let mut lib = library();
+    for doc in &mut lib {
+        if let ew_schema::LibDocument::Fndef(c) = doc
+            && c.id == FNDEF_TERMINAL
+        {
+            let mut cps = std::mem::take(&mut c.item.cps).into_vec();
+            for (cp, side) in cps
+                .iter_mut()
+                .zip([ew_schema::Side::Side1, ew_schema::Side::Side2])
+            {
+                cp.side = Some(side);
+            }
+            c.item.cps = ew_schema::KeyedList::from_vec(cps).expect("distinct CP indexes");
+        }
+    }
+    let (p, records, _) = mini_project_parts();
+    let model = Model::from_records(p, records, lib).expect("the mini project with sided terminals");
+    let at =
+        ew_derive::cp_point(&ew_derive::Q::new(&model), FN_T2, 0, PAGE_102).expect("the segment draws T2");
+    let wire = |from: ew_units::Pt2| {
+        let mut cmd = draw(cp_param(FN_T2, 0), cp_param(FN_102F2, 4), Some(PAGE_102));
+        cmd.route = vec![from, pt(from.x.0, from.y.0 - G)];
+        cmd
+    };
+    let beside = pt(at.x.0 + G, at.y.0);
+    assert!(is_rejected(engine(model.clone()).execute(&wire(beside))));
+    engine(model)
+        .execute(&wire(at))
+        .expect("a route from the drawn terminal");
+}
+
 #[test]
 fn draw_without_page_is_a_page_less_bridge() {
     let mut e = engine(mini_model());

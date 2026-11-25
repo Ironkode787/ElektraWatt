@@ -144,65 +144,96 @@ pub fn rep_drawn_cps(rep: &Representation, symbol: &SymbolDef) -> Vec<RepDrawnCp
 fn segment_cp_end(q: &Q, function: Id<Function>, idx: u16, page: Id<Page>) -> Option<(Pt2, Option<Dir4>)> {
     let terminal = q.functions().get(function)?.device?;
     let strip = q.devices().get(terminal)?.aspects.terminal.as_ref()?.strip;
-    // The terminal draws its main function (else its first one), and the CP must lie on one of its sides.
-    let mut fns: Vec<Id<Function>> = q.idx().functions_of_device(terminal).collect();
-    fns.sort();
-    let main = fns
-        .iter()
-        .copied()
-        .find(|f| q.functions().get(*f).is_some_and(|f| f.role == FnRole::Main))
-        .or_else(|| fns.first().copied())?;
-    if main != function {
+    let functions = q.functions();
+    let fns = q
+        .idx()
+        .functions_of_device(terminal)
+        .filter_map(|f| Some((f, functions.get(f)?.role.clone())));
+    if terminal_drawn_function(fns)? != function {
         return None;
     }
-    let cp = q
+    let side = q
         .get::<FunctionCps>(function)
         .iter()
         .find(|c| c.idx == idx)
-        .cloned()?;
-    let side2 = match cp.side? {
-        Side::Side1 => false,
-        Side::Side2 => true,
-        _ => return None,
-    };
-
-    // The strip's segments in (page position, y, x, ID) order.
+        .and_then(|c| c.side.clone())?;
     let order = q.get::<DrawnPageOrder>(());
-    let mut segments: Vec<(usize, i64, i64, Id<Representation>)> = q
+    let segments = q
         .idx()
         .functions_of_device(strip)
         .collect::<Vec<_>>()
         .into_iter()
         .flat_map(|f| q.idx().reps_of_function(f).collect::<Vec<_>>())
         .filter_map(|r| q.reps().get(r))
-        .filter(|r| r.rep_type == RepType::StripSegment)
-        .map(|r| {
-            let at = order.position(PageRef::Drawn(r.page)).unwrap_or(usize::MAX);
-            (at, r.pos.y.0, r.pos.x.0, r.id)
-        })
-        .collect();
-    segments.sort_unstable();
-    segments.dedup();
-    let m = segments.len();
-    // The strip's terminals in (seq, ID) order.
-    let mut terminals: Vec<(u32, Id<Device>)> = q
+        .map(|r| (order.position(PageRef::Drawn(r.page)).unwrap_or(usize::MAX), &**r));
+    let terminals = q
         .idx()
         .terminals_of_strip(strip)
-        .filter_map(|t| Some((q.devices().get(t)?.aspects.terminal.as_ref()?.seq, t)))
+        .filter_map(|t| Some((q.devices().get(t)?.aspects.terminal.as_ref()?.seq, t)));
+    let (seg, k) = strip_segment_of(segments, terminals, terminal)?;
+    if seg.page != page {
+        return None;
+    }
+    strip_terminal_end(seg, &q.symbols().get(seg.symbol)?.item, k, &side)
+}
+
+/// The function whose CPs a terminal's sides draw on a strip segment, of the terminal's functions `(ID, role)`: its
+/// main function, else its first in ID order.
+pub fn terminal_drawn_function(
+    fns: impl IntoIterator<Item = (Id<Function>, FnRole)>,
+) -> Option<Id<Function>> {
+    let mut fns: Vec<(Id<Function>, FnRole)> = fns.into_iter().collect();
+    fns.sort_by_key(|(f, _)| *f);
+    fns.iter()
+        .find(|(_, role)| *role == FnRole::Main)
+        .or_else(|| fns.first())
+        .map(|(f, _)| *f)
+}
+
+/// The strip segment that draws `terminal` and the terminal's place among those it draws (from 0), of a strip's
+/// representations, each with its page's place in the page order (a key of [`crate::drawn_page_key`] or a position in
+/// [`DrawnPageOrder`]; the two order alike), and the strip's terminals `(seq, ID)`. The segments, the strip's
+/// representations of [`RepType::StripSegment`], stand in (page place, y, x, ID) order and the terminals in (`seq`,
+/// ID) order; segment `j` of `m` draws the terminals `⌊jN/m⌋ … ⌊(j+1)N/m⌋ − 1` of `N`. `None` when no segment draws
+/// it.
+pub fn strip_segment_of<'a, K: Ord>(
+    reps: impl IntoIterator<Item = (K, &'a Representation)>,
+    terminals: impl IntoIterator<Item = (u32, Id<Device>)>,
+    terminal: Id<Device>,
+) -> Option<(&'a Representation, usize)> {
+    let mut segments: Vec<(K, i64, i64, Id<Representation>, &Representation)> = reps
+        .into_iter()
+        .filter(|(_, r)| r.rep_type == RepType::StripSegment)
+        .map(|(at, r)| (at, r.pos.y.0, r.pos.x.0, r.id, r))
         .collect();
+    segments.sort_unstable_by(|a, b| (&a.0, a.1, a.2, a.3).cmp(&(&b.0, b.1, b.2, b.3)));
+    segments.dedup_by_key(|s| s.3);
+    let m = segments.len();
+    let mut terminals: Vec<(u32, Id<Device>)> = terminals.into_iter().collect();
     terminals.sort_unstable();
     let n = terminals.len();
     let t = terminals.iter().position(|(_, d)| *d == terminal)?;
     // Segment j draws terminals j·n/m .. (j+1)·n/m: the segment of terminal t and its place in it.
     let j = (0..m).find(|j| (j * n / m..(j + 1) * n / m).contains(&t))?;
-    let k = t - j * n / m;
-    let seg = q.reps().get(segments[j].3)?;
-    if seg.page != page {
-        return None;
-    }
-    let symbol = q.symbols().get(seg.symbol)?;
-    let grid = symbol.item.grid;
-    let bottom = grid.snap(Nm(symbol_bottom(&symbol.item)));
+    Some((segments[j].4, t - j * n / m))
+}
+
+/// The point at which strip segment `seg`, drawn with `symbol` (its symbol copy's item), draws side `side` of the
+/// `k`-th terminal it draws (from 0), and the direction a wire leaves it in (see the module documentation); `None` for
+/// a side of a newer format and on overflow.
+pub fn strip_terminal_end(
+    seg: &Representation,
+    symbol: &SymbolDef,
+    k: usize,
+    side: &Side,
+) -> Option<(Pt2, Option<Dir4>)> {
+    let side2 = match side {
+        Side::Side1 => false,
+        Side::Side2 => true,
+        _ => return None,
+    };
+    let grid = symbol.grid;
+    let bottom = grid.snap(Nm(symbol_bottom(symbol)));
     let steps = i64::try_from(k + 1).ok()?;
     let point = segment_point(grid, seg, steps, if side2 { bottom } else { 0 })?;
     let leaves = if side2 { Dir4::Down } else { Dir4::Up };

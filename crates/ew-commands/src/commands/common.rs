@@ -219,24 +219,50 @@ pub(crate) fn function_cp_levels(
     func: &Function,
     device: &ew_schema::Device,
 ) -> Vec<(u16, Option<u8>)> {
-    let mut cps = own_cp_levels(tx, func, device);
+    function_cp_sides(tx, func, device)
+        .into_iter()
+        .map(|(i, l, _)| (i, l))
+        .collect()
+}
+
+/// [`function_cp_levels`] with the terminal side of each CP (the pattern entry's, else its FnDef CP's, as
+/// `ew_derive::FunctionCps` takes it; a level copy has the side of the CP it copies), in index order.
+pub(crate) fn function_cp_sides(
+    tx: &TxBuilder<'_>,
+    func: &Function,
+    device: &ew_schema::Device,
+) -> Vec<(u16, Option<u8>, Option<ew_schema::Side>)> {
+    let mut cps = own_cps(tx, func, device);
     if let Some(t) = &device.aspects.terminal {
-        let copies = t.level_copies(&cps);
-        cps.extend(copies.into_iter().map(|(i, _, l)| (i, Some(l))));
+        let levels: Vec<(u16, Option<u8>)> = cps.iter().map(|(i, l, _)| (*i, *l)).collect();
+        for (i, of, l) in t.level_copies(&levels) {
+            let side = cps.iter().find(|c| c.0 == of).and_then(|c| c.2.clone());
+            cps.push((i, Some(l), side));
+        }
     }
-    cps.sort_unstable();
-    cps.dedup_by_key(|(i, _)| *i);
+    cps.sort_by_key(|(i, l, _)| (*i, *l));
+    cps.dedup_by_key(|(i, _, _)| *i);
     cps
 }
 
-/// The CPs of [`function_cp_levels`] before the level copies.
-fn own_cp_levels(tx: &TxBuilder<'_>, func: &Function, device: &ew_schema::Device) -> Vec<(u16, Option<u8>)> {
+/// The CPs of [`function_cp_sides`] before the level copies.
+fn own_cps(
+    tx: &TxBuilder<'_>,
+    func: &Function,
+    device: &ew_schema::Device,
+) -> Vec<(u16, Option<u8>, Option<ew_schema::Side>)> {
     use ew_schema::{FnDef, FunctionKind, LibCopy, Part, TemplateFn, template_entry_of};
-    let def_cps: Vec<(u16, Option<u8>)> = tx
+    let def_cps: Vec<(u16, Option<u8>, Option<ew_schema::Side>)> = tx
         .get::<LibCopy<FnDef>>(func.def)
-        .map(|c| c.item.cps.iter().map(|d| (d.idx, d.level)).collect())
+        .map(|c| {
+            c.item
+                .cps
+                .iter()
+                .map(|d| (d.idx, d.level, d.side.clone()))
+                .collect()
+        })
         .unwrap_or_default();
-    let def: Vec<u16> = def_cps.iter().map(|(i, _)| *i).collect();
+    let def: Vec<u16> = def_cps.iter().map(|(i, _, _)| *i).collect();
     let parts: Vec<(Id<Part>, std::sync::Arc<LibCopy<Part>>)> = device
         .parts
         .iter()
@@ -253,7 +279,11 @@ fn own_cp_levels(tx: &TxBuilder<'_>, func: &Function, device: &ew_schema::Device
                 .filter(|n| *n > 0)
         })
     {
-        return (0..n).map(|i| (i, None)).collect();
+        let side = |i: u16| {
+            let own = def_cps.iter().find(|c| c.0 == i).or_else(|| def_cps.first());
+            own.and_then(|c| c.2.clone())
+        };
+        return (0..n).map(|i| (i, None, side(i))).collect();
     }
     let names_def = |t: &TemplateFn| {
         let copy: Id<FnDef> = ew_ids::v5::lib_copy_id(t.fndef.library.as_uuid(), t.fndef.item.as_uuid());
@@ -266,20 +296,17 @@ fn own_cp_levels(tx: &TxBuilder<'_>, func: &Function, device: &ew_schema::Device
     );
     if let Some((_, part, n)) = template {
         let pattern: Vec<u16> = part.cp_pattern.iter().map(|c| c.idx).collect();
-        let cps: Vec<(u16, Option<u8>)> = part.function_template[n]
+        let cps: Vec<(u16, Option<u8>, Option<ew_schema::Side>)> = part.function_template[n]
             .function_cps(&pattern, &def)
             .into_iter()
             .map(|t| {
-                let own = part
-                    .cp_pattern
-                    .iter()
-                    .find(|c| c.idx == t.pattern)
-                    .and_then(|c| c.level);
-                let of_def = t
-                    .def
-                    .and_then(|d| def_cps.iter().find(|(i, _)| *i == d))
-                    .and_then(|(_, l)| *l);
-                (t.idx, own.or(of_def))
+                let own = part.cp_pattern.iter().find(|c| c.idx == t.pattern);
+                let of_def = t.def.and_then(|d| def_cps.iter().find(|(i, _, _)| *i == d));
+                let level = own.and_then(|c| c.level).or(of_def.and_then(|(_, l, _)| *l));
+                let side = own
+                    .and_then(|c| c.side.clone())
+                    .or_else(|| of_def.and_then(|(_, _, s)| s.clone()));
+                (t.idx, level, side)
             })
             .collect();
         if !cps.is_empty() {
@@ -288,7 +315,12 @@ fn own_cp_levels(tx: &TxBuilder<'_>, func: &Function, device: &ew_schema::Device
     }
     if matches!(func.kind, FunctionKind::BlackBox) {
         if let Some((_, part)) = parts.iter().find(|(_, p)| !p.item.cp_pattern.is_empty()) {
-            return part.item.cp_pattern.iter().map(|c| (c.idx, c.level)).collect();
+            return part
+                .item
+                .cp_pattern
+                .iter()
+                .map(|c| (c.idx, c.level, c.side.clone()))
+                .collect();
         }
     }
     def_cps

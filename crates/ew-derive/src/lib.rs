@@ -115,7 +115,10 @@ pub use cell::{
     frame_form_from_settings, frame_form_of, frame_grid, row_label,
 };
 pub use channel_index::{ChannelsByCp, ChannelsByModule, ModuleChannelIds};
-pub use cp_point::{cp_cell, cp_end, cp_point, rep_cp_end, rep_drawn_cps, segment_point};
+pub use cp_point::{
+    cp_cell, cp_end, cp_point, rep_cp_end, rep_drawn_cps, segment_point, strip_segment_of,
+    strip_terminal_end, terminal_drawn_function,
+};
 pub use cps::{Cp, FunctionCps};
 pub use drawn_path::{
     dir_vertical, drawn_path, on_segment, oriented_dir, page_grid, read_connection, read_junction,
@@ -173,8 +176,8 @@ pub use nets::{CpRef, NetId, PageIpNets, PageLocalNets, ZeroVoltIps};
 pub use note::{DeriveNote, EW_CORE_018, NoteFact, NoteSeverity, SchemeIssue};
 pub use numbering::{WireNumber, WireNumbers, orient_wire};
 pub use pages::{
-    GeneratedPage, Origin, PageEntry, PageOrder, PageOrderV, PageRef, PageRefStructure, PageTitle,
-    SectionStructure, folio_label, map_ml, print_language, text_in,
+    GeneratedPage, Origin, PageEntry, PageKey, PageOrder, PageOrderV, PageRef, PageRefStructure, PageTitle,
+    SectionStructure, drawn_page_key, folio_label, map_ml, print_language, section_ranks, text_in,
 };
 pub use part_text::{main_part, manufacturer_copy, manufacturer_name, part_confidence, tech_data_text};
 pub use pattern::{PatternError, expand_pattern};

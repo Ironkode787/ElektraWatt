@@ -352,7 +352,7 @@ pub struct PageOrderV {
 impl PageOrderV {
     /// The order of sorted `(key, entry)` pairs.
     fn new(
-        sorted: Vec<(OrderKey, PageEntry)>,
+        sorted: Vec<(PageKey, PageEntry)>,
         toc_pages: u32,
         fixpoint_reached: bool,
         generated: BTreeMap<PageRef, GeneratedPage>,
@@ -418,7 +418,7 @@ impl PageOrderV {
 
 /// The sort key of doc 09 §3.1: (section rank, folio number, label in natural order, origin, page ref).
 /// Front matter (no section) ranks before every section; sections rank by number, then ID.
-type OrderKey = (u32, u32, NaturalKey, Origin, PageRef);
+pub type PageKey = (u32, u32, NaturalKey, Origin, PageRef);
 
 /// `page_order()` (doc 09 §3.1).
 ///
@@ -546,7 +546,7 @@ fn len_u32(n: usize) -> u32 {
 
 /// The TOC pages of one round of the fixpoint.
 struct TocRound {
-    entries: Vec<(OrderKey, PageEntry)>,
+    entries: Vec<(PageKey, PageEntry)>,
     generated: BTreeMap<PageRef, GeneratedPage>,
     /// The page count of each TOC block that has pages.
     counts: Vec<u32>,
@@ -609,45 +609,56 @@ impl TocRound {
     }
 }
 
+/// The rank of each of the project's sections `(number, ID)` in the page order: 1 + its place in (number, ID) order;
+/// 0 is front matter.
+pub fn section_ranks(sections: impl IntoIterator<Item = (u16, Id<Section>)>) -> BTreeMap<Id<Section>, u32> {
+    let mut sections: Vec<(u16, Id<Section>)> = sections.into_iter().collect();
+    sections.sort();
+    sections.iter().zip(1u32..).map(|((_, id), r)| (*id, r)).collect()
+}
+
+/// The sort key of drawn page `id` in the page order, by the [`section_ranks`] of the project: two drawn pages stand
+/// in [`PageOrder`] and [`DrawnPageOrder`] in the order of their keys. A section ID that resolves to no section counts
+/// as front matter (REFS_RESOLVE rules it out).
+pub fn drawn_page_key(ranks: &BTreeMap<Id<Section>, u32>, id: Id<Page>, page: &Page) -> PageKey {
+    let rank = page
+        .folio
+        .section
+        .and_then(|s| ranks.get(&s).copied())
+        .unwrap_or(0);
+    (
+        rank,
+        page.folio.number,
+        natural_key(&folio_label(page)),
+        Origin::Drawn,
+        PageRef::Drawn(id),
+    )
+}
+
 /// The drawn pages and dividers with their sort keys, and the section ranks: the part of the page order
 /// that does not depend on report pagination.
 struct Base {
     rank: BTreeMap<Id<Section>, u32>,
-    fixed: Vec<(OrderKey, PageEntry)>,
+    fixed: Vec<(PageKey, PageEntry)>,
 }
 
 impl Base {
     fn new(q: &Q) -> Base {
-        // Section ranks: 1 + position in (number, ID) order; 0 is front matter.
-        let mut sections: Vec<(u16, Id<Section>)> =
-            q.sections().iter().map(|(id, s)| (s.number, id)).collect();
-        sections.sort();
-        let rank: BTreeMap<Id<Section>, u32> =
-            sections.iter().zip(1u32..).map(|((_, id), r)| (*id, r)).collect();
         let mut base = Base {
-            rank,
+            rank: section_ranks(q.sections().iter().map(|(id, s)| (s.number, id))),
             fixed: Vec::new(),
         };
 
         for (id, page) in q.pages().iter() {
-            // A section ID that resolves to no section counts as front matter (REFS_RESOLVE rules it out).
-            let section = page.folio.section.filter(|s| base.rank.contains_key(s));
-            let folio = folio_label(page);
+            let key = drawn_page_key(&base.rank, id, page);
             let entry = PageEntry {
                 page: PageRef::Drawn(id),
                 origin: Origin::Drawn,
-                section,
+                section: page.folio.section.filter(|s| base.rank.contains_key(s)),
                 number: page.folio.number,
-                folio: folio.clone(),
+                folio: folio_label(page),
                 kind: page.kind.clone(),
             };
-            let key = (
-                base.rank_of(section),
-                page.folio.number,
-                natural_key(&folio),
-                Origin::Drawn,
-                entry.page,
-            );
             base.fixed.push((key, entry));
         }
         for (id, s) in q.sections().iter() {
@@ -681,7 +692,7 @@ impl Base {
     }
 
     /// The entry and sort key of a generated page.
-    fn generated_entry(&self, g: &GeneratedPage) -> (OrderKey, PageEntry) {
+    fn generated_entry(&self, g: &GeneratedPage) -> (PageKey, PageEntry) {
         let section = g.section.filter(|s| self.rank.contains_key(s));
         let entry = PageEntry {
             page: generated_ref(g),
