@@ -259,6 +259,9 @@ fn full_save_of_the_release_fixture_writes_nothing() {
     let (vfs, root) = common::mem_project_of(DirSync::Explicit, files.clone());
     let mut o = Store::open(&root, options(&vfs, 1)).expect("opens");
     let r = o.store.save(&o.model, Changes::All).expect("saves");
-    assert!(r.written.is_empty() && r.removed.is_empty() && !r.manifest_written, "{r:?}");
+    assert!(
+        r.written.is_empty() && r.removed.is_empty() && !r.manifest_written,
+        "{r:?}"
+    );
     assert_eq!(project_files(&vfs, &root), files);
 }
