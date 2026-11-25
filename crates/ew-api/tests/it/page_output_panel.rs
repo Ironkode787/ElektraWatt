@@ -36,8 +36,8 @@ use ew_api::output::{
     SurfaceLayer, SymbolsLayer, TablesLayer, WiresLayer, export_pdf_with, page_layer, text_style_table,
 };
 use ew_api::{AnyCommand, CmdError, Recovery, Session, SessionOptions, StoreOptions};
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_units::{Nm, Pt2, Rect};
+use ew_ids::{Id, Uuid};
+use ew_units::{Nm, Pt2, Rect};
 use ew_derive::layout::PlacementGeometry;
 use ew_derive::{PageOrder, PageRef, Q, Query};
 use ew_dl::{DisplayList, EntityRef, Item, ItemKind, Layer, PathEl, ShapedRun};
@@ -242,7 +242,7 @@ fn assign_test_part(s: &mut Session, device: &str, key: &str, width: i64, front_
     let item = Uuid::from_u128(0x4c50_0000_0000_4000_8000_0000_0000_0000 | tail);
     copy.item_id = Id::from_uuid(item);
     copy.library_id = Id::from_uuid(Uuid::from_u128(0x4c50_0000_0000_4000_8000_0000_0000_0001));
-    copy.id = ew_derive::ew_ids::v5::lib_copy_id(copy.library_id.as_uuid(), item);
+    copy.id = ew_ids::v5::lib_copy_id(copy.library_id.as_uuid(), item);
     copy.item.meta.key = Some(key.parse().expect("a key"));
     copy.item.part_number = key.parse().expect("a part number");
     let mech = copy.item.mech.get_or_insert_with(Default::default);
@@ -258,7 +258,7 @@ fn assign_test_part(s: &mut Session, device: &str, key: &str, width: i64, front_
         })
         .collect();
     let hash =
-        ew_store::ew_format::library_copy_hash(&LibDocument::Part(copy.clone())).expect("a part hashes");
+        ew_format::library_copy_hash(&LibDocument::Part(copy.clone())).expect("a part hashes");
     copy.sha256 = Sha256(hash);
     let device = dev(s, device);
     run(

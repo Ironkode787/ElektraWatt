@@ -6,8 +6,8 @@
 
 #![allow(dead_code)]
 
-use ew_derive::ew_schema::{LibDocument, Record};
 use ew_model::Model;
+use ew_schema::{LibDocument, Record};
 use serde_json::{Value, json};
 
 use super::{project, record, us};

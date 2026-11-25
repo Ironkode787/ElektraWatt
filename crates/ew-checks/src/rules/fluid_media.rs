@@ -9,17 +9,17 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::natural_key;
-use ew_derive::ew_schema::{
-    AcDc, ContactKind, CpOverride, Device, DeviceState, FluidPortRole, Function, Kind, Medium, SupplyKind,
-};
-use ew_derive::ew_units::Dec3;
 use ew_derive::{
     CpRef, EndpointKey, FluidNets, FunctionCps, Galleries, MediumKey, MediumOrigin, MediumZones, NetId,
     PotentialAttrsOf, PotentialPartition, Q, TubeRow, TubeRows, cp_label, is_fluid, is_fluid_terminal,
     node_net, parent_chain, solenoid_coil, valve_functions, valve_solenoids,
 };
+use ew_ids::Id;
+use ew_mltext::natural_key;
+use ew_schema::{
+    AcDc, ContactKind, CpOverride, Device, DeviceState, FluidPortRole, Function, Kind, Medium, SupplyKind,
+};
+use ew_units::Dec3;
 
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
@@ -137,7 +137,7 @@ impl Rule for TwoMedia {
             let first = found.and_then(|n| n.members.iter().find_map(|m| CpRef::of(*m)));
             if targets.is_empty() {
                 targets = q
-                    .table::<ew_derive::ew_schema::MediumDef>()
+                    .table::<ew_schema::MediumDef>()
                     .iter()
                     .filter(|(_, d)| EndpointKey::of(&d.at).and_then(|a| node_net(q, a)) == Some(*net))
                     .map(|(id, _)| Target::new(Kind::MediumDef, id))
@@ -189,7 +189,7 @@ fn highest_pressure(q: &Q, net: NetId) -> Option<Dec3> {
 
 /// The push-in outer diameter of a port: the valve module's entry for the valve's position, else the device's own
 /// part entry (doc 11 §2.6).
-pub fn push_in_od(q: &Q, f: Id<Function>, port: &str) -> Option<ew_derive::ew_units::Nm> {
+pub fn push_in_od(q: &Q, f: Id<Function>, port: &str) -> Option<ew_units::Nm> {
     let device = q.functions().get(f)?.device?;
     let devices = q.devices();
     let parts = q.parts();
@@ -593,11 +593,7 @@ impl Rule for CoilVoltage {
                 continue;
             };
             for ch in bound.at_cp(cp.function, cp.idx) {
-                if let Some(module) = q
-                    .table::<ew_derive::ew_schema::Channel>()
-                    .get(ch)
-                    .map(|c| c.module)
-                {
+                if let Some(module) = q.table::<ew_schema::Channel>().get(ch).map(|c| c.module) {
                     feeds.extend(voltages_at(q, load_supply(q, module)));
                 }
             }

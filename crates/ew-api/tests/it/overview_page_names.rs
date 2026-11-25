@@ -7,7 +7,7 @@
 use crate::common;
 
 use ew_api::AnyCommand;
-use ew_derive::ew_schema::PageType;
+use ew_schema::PageType;
 use serde_json::json;
 
 /// The sample's CPU station in a band one overview module wide: its three members (the head and the two cards) stand

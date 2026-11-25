@@ -8,7 +8,7 @@ use crate::common;
 use common::*;
 use ew_checks::{CheckMode, FULL, Severity, run};
 use ew_derive::Q;
-use ew_derive::ew_schema::Kind;
+use ew_schema::Kind;
 use ew_model::Model;
 use serde_json::json;
 
@@ -28,7 +28,7 @@ fn drawn(frozen: Option<&str>) -> Model {
 fn rule_value() -> String {
     let m = drawn(None);
     let q = Q::new(&m);
-    let id = ew_derive::ew_ids::Id::from_uuid(ew_derive::ew_ids::Uuid::from_u128(DEV));
+    let id = ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(DEV));
     ew_derive::rule_product(&q, id).expect("the device exists").0
 }
 

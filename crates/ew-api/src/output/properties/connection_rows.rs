@@ -8,8 +8,8 @@
 
 use std::collections::BTreeSet;
 
-use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::{NameSource, PotentialNameOf, PotentialPartition, PropSource, Q, WireNumbers, cp_label};
+use ew_ids::{Id, Uuid};
 use ew_model::EndpointKey;
 use ew_schema::{Connection, Function, Kind, PotentialDef};
 use serde_json::Value;

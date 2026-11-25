@@ -15,7 +15,7 @@
 use crate::common;
 
 use ew_api::{AnyCommand, CmdError, MemoMode, Session, SessionOptions};
-use ew_derive::ew_ids::Id;
+use ew_ids::Id;
 use ew_derive::{BomMode, BomRows, DevicePartLines, DeviceTag, LineSource, PageRef, Q};
 use ew_reports::{Cell, Registry, RowKey, RowSet};
 use ew_schema::{Carrier, Device, LayoutSpace, Page, Part, Placement, Record, ReportBlock};
@@ -264,7 +264,7 @@ fn the_legend_of_the_plate_lists_its_rows_and_renumbers() {
     let listed: Vec<Id<Device>> = rows[5..].iter().map(|r| r.1.expect("a DT")).collect();
     let full = |d: Id<Device>| {
         let t = q.get::<DeviceTag>(d);
-        ew_derive::ew_mltext::natural_key(t.as_ref().as_ref().map_or("", |t| t.full.as_str()))
+        ew_mltext::natural_key(t.as_ref().as_ref().map_or("", |t| t.full.as_str()))
     };
     let mut sorted: Vec<Id<Device>> = q.table::<Placement>().iter().map(|(_, p)| p.device).collect();
     sorted.sort_by_key(|d| (full(*d), *d));

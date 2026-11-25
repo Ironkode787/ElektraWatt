@@ -8,16 +8,16 @@
 use std::collections::BTreeMap;
 
 use ew_derive::Q;
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{NaturalKey, natural_key};
-use ew_derive::ew_schema::Representation;
+use ew_ids::Id;
+use ew_mltext::{NaturalKey, natural_key};
+use ew_schema::Representation;
 
 use super::{Builder, NavRole, base_facets, drawable, folios, group, sorted};
 
 /// Interruption points: name → point rows, from the interruption-point pairing.
 pub(super) fn ips_table(q: &Q, b: &mut Builder) {
-    use ew_derive::ew_schema::IpDirection;
     use ew_derive::{IpPairingQ, RepAnchorCell};
+    use ew_schema::IpDirection;
     let pairing = q.get::<IpPairingQ>(());
     let folios = folios(q);
     let page_cell = |rep: Option<Id<Representation>>| -> String {

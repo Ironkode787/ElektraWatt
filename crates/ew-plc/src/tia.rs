@@ -14,9 +14,9 @@
 //! (doc 10 §4.5).
 
 use ew_caex::{ExchangeImage, IoType, XTag};
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_plcaddr::Purpose;
-use ew_derive::ew_schema::Channel;
+use ew_ids::Id;
+use ew_plcaddr::Purpose;
+use ew_schema::Channel;
 
 use crate::image::Projection;
 
@@ -129,7 +129,7 @@ pub fn read_tags(rows: &[Vec<String>], lang: Option<&str>) -> Result<ExchangeIma
         image.tags.push(XTag {
             id: cell(row, id)
                 .and_then(|c| c.parse::<Id<Channel>>().ok())
-                .map(|c| ew_derive::ew_ids::v5::plc_tag_id::<_, ()>(c).to_string())
+                .map(|c| ew_ids::v5::plc_tag_id::<_, ()>(c).to_string())
                 .unwrap_or_default(),
             name,
             data_type: cell(row, data_type),

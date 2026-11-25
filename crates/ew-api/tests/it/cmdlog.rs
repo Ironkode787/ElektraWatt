@@ -339,7 +339,7 @@ fn exit_codes_follow_doc_17() {
 }
 
 /// The printed short tag of the device a `tag:` line targets, after the line ran.
-fn short_tag(s: &Session, id: ew_derive::ew_ids::Id<ew_schema::Device>) -> String {
+fn short_tag(s: &Session, id: ew_ids::Id<ew_schema::Device>) -> String {
     s.query()
         .get::<DeviceTag>(id)
         .as_ref()

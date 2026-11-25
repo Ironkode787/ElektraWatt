@@ -10,9 +10,9 @@ use crate::common;
 use ew_api::geometry::{orient_dir, orient_point};
 use ew_api::output::{TableEnd, page_layer};
 use ew_api::{AnyCommand, NewProjectKind, ProjectTemplate, Session, SessionOptions};
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_schema::{Device, Function, Representation};
-use ew_derive::ew_units::{Grid, Nm, Orient2, Pt2};
+use ew_ids::{Id, Uuid};
+use ew_schema::{Device, Function, Representation};
+use ew_units::{Grid, Nm, Orient2, Pt2};
 use ew_derive::{PageOrder, cp_point};
 use ew_dl::{ItemKind, Layer, PathEl};
 
@@ -292,7 +292,7 @@ fn the_page_tables_of_folios_101_to_103_match_the_drawing_and_the_scene() {
         );
         assert!(
             t.cps.windows(2).all(|w| {
-                ew_derive::ew_mltext::natural_cmp(&w[0].label, &w[1].label)
+                ew_mltext::natural_cmp(&w[0].label, &w[1].label)
                     .then_with(|| w[0].label.cmp(&w[1].label))
                     .then_with(|| (w[0].at.1, w[0].at.0, w[0].id).cmp(&(w[1].at.1, w[1].at.0, w[1].id)))
                     .is_lt()
@@ -513,7 +513,7 @@ fn the_physical_wires_through_a_junction_name_their_numbers_and_ends() {
     for j in &tables.junctions {
         let wires = s.junction_wires(j.id);
         // By printed number (natural), then the ends' labels.
-        let text = |x: &str, y: &str| ew_derive::ew_mltext::natural_cmp(x, y).then_with(|| x.cmp(y));
+        let text = |x: &str, y: &str| ew_mltext::natural_cmp(x, y).then_with(|| x.cmp(y));
         assert!(
             wires.windows(2).all(|w| text(&w[0].label, &w[1].label)
                 .then_with(|| text(&w[0].from, &w[1].from))

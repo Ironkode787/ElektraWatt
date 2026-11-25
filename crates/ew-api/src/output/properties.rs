@@ -22,11 +22,11 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::{
     DeviceTag, DisplayedTag, MainRep, PageOrder, PageRef, PropSource, Q, RepAnchorCell, TagSource, cp_label,
     short_tag,
 };
+use ew_ids::{Id, Uuid};
 use ew_model::EndpointKey;
 use ew_schema::{
     Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, ImportLineage, Junction,
@@ -107,7 +107,7 @@ pub struct SheetWhat {
     /// Its natures.
     pub natures: super::Natures,
     /// The name of its main representation's symbol in every language it has; `None` for a device not drawn.
-    pub symbol: Option<ew_derive::ew_mltext::MlText>,
+    pub symbol: Option<ew_mltext::MlText>,
     /// The number of its solenoids (a valve's).
     pub solenoids: usize,
     /// What kind of valve terminal it is (`Session::terminal_kind`); `None` for any other device.

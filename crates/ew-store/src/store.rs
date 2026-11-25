@@ -11,14 +11,14 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
-use ew_format::ew_schema::{AnyId, FORMAT, RELEASED_FORMATS};
-use ew_format::ew_schema::{AssetFormat, AssetRef, Sha256};
 use ew_format::{
     Access as FormatAccess, FileHash, FilePath, Finding, FindingKind, Kept, Limits, LineKey, MANIFEST,
     Manifest, Migration, MigrationError, Migrations, OpaqueKind, PathClass, classify, crlf_to_lf, hash_text,
     jsonl_file, sha256, unknown_record_file,
 };
 use ew_model::{AnyKey, AnyRow, Asset, Model, ModelError};
+use ew_schema::{AnyId, FORMAT, RELEASED_FORMATS};
+use ew_schema::{AssetFormat, AssetRef, Sha256};
 
 use crate::clock::{Clock, SystemClock};
 use crate::journal::{self, Diff, Journal, RecoveryInfo, ReplayError, Segment};
@@ -661,7 +661,7 @@ fn asset_of(path: &FilePath, hash: &[u8; 32], bytes: Option<&Vec<u8>>) -> Option
     if named != *hash {
         return None;
     }
-    let (sniffed, size) = ew_format::ew_schema::sniff(bytes).ok()?;
+    let (sniffed, size) = ew_schema::sniff(bytes).ok()?;
     (sniffed == format).then(|| {
         Asset::new(
             AssetRef {
@@ -1434,7 +1434,7 @@ fn unstable_flag(kept: Option<&Manifest>, released: &[&str]) -> bool {
 }
 
 /// The project row of an empty baseline (never written: a save writes the model's project).
-fn placeholder_project() -> ew_format::ew_schema::Project {
+fn placeholder_project() -> ew_schema::Project {
     serde_json::from_value(serde_json::json!({
         "id": "00000000-0000-0000-0000-000000000000",
         "derivation_profile": "2027.1",

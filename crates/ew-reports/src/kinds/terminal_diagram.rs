@@ -5,10 +5,10 @@
 
 use std::collections::BTreeSet;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{NaturalKey, natural_key};
-use ew_derive::ew_schema::{Device, Endpoint, ReportBlock, ReportKind, Side, Terminal};
 use ew_derive::{Cp, CpRef, DevicePartLines, FunctionCps, PotentialNameOf, PotentialPartition, Q, short_tag};
+use ew_ids::Id;
+use ew_mltext::{NaturalKey, natural_key};
+use ew_schema::{Device, Endpoint, ReportBlock, ReportKind, Side, Terminal};
 
 use super::conn::{
     Bridge, WireRec, Wires, bridges, end_text, terminal_state, terminal_wired, text_cell, wires_by_cp,

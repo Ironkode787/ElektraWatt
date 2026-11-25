@@ -8,9 +8,9 @@
 
 use std::collections::BTreeSet;
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_rds::{Aspect, RdsSyntax};
 use ew_derive::{DeviceTag, MainRep, Q, ResolvedStructure, SlotSource, StructureOf, cp_label};
+use ew_ids::{Id, Uuid};
+use ew_rds::{Aspect, RdsSyntax};
 use ew_schema::{Device, Kind};
 use serde_json::Value;
 

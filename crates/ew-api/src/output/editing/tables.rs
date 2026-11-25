@@ -9,17 +9,17 @@
 
 use std::collections::BTreeMap;
 
-use ew_derive::ew_ids::{Id, Uuid, v5};
-use ew_derive::ew_schema::{
-    ConnectionKind, Device, Dir4, Endpoint, Function, FunctionKind, Junction, JunctionStyle, JunctionWiring,
-    Page, Representation, SymbolDef,
-};
-use ew_derive::ew_units::{Nm, Pt2, Rect};
 use ew_derive::{
     CpRef, FunctionCps, PageRef, PotentialNameOf, PotentialPartition, Q, box_caption, cp_label, cp_point,
     free_text, group_marker, live_connections,
 };
+use ew_ids::{Id, Uuid, v5};
 use ew_scene::route::{RouteEnd, connection_polyline};
+use ew_schema::{
+    ConnectionKind, Device, Dir4, Endpoint, Function, FunctionKind, Junction, JunctionStyle, JunctionWiring,
+    Page, Representation, SymbolDef,
+};
+use ew_units::{Nm, Pt2, Rect};
 
 use super::catalogue::{connection_kind_word, drawn_page, ip_direction_word, line_kind_word, rep_type_word};
 use super::shape::{SymbolShape, dir_of, pt, shape_of};
@@ -101,8 +101,8 @@ fn bounds_of(points: impl IntoIterator<Item = (i64, i64)>) -> Option<[i64; 4]> {
 }
 
 /// The bounds of a graphic's shape (a circle or an arc by its full circle).
-fn shape_bounds(shape: &ew_derive::ew_schema::GraphicShape) -> Option<[i64; 4]> {
-    use ew_derive::ew_schema::GraphicShape as S;
+fn shape_bounds(shape: &ew_schema::GraphicShape) -> Option<[i64; 4]> {
+    use ew_schema::GraphicShape as S;
     let round = |c: Pt2, r: Nm| {
         let c = pt(c);
         bounds_of([
@@ -122,7 +122,7 @@ fn shape_bounds(shape: &ew_derive::ew_schema::GraphicShape) -> Option<[i64; 4]> 
 
 /// The page items of a page as table rows, by position (see [`PageTables::items`]).
 fn item_rows(q: &Q, page: Id<Page>) -> Vec<TableItem> {
-    use ew_derive::ew_schema::PageItemKind as K;
+    use ew_schema::PageItemKind as K;
     let items = q.page_items();
     let mut ids: Vec<_> = q.idx().page_items_by_page(page).collect();
     ids.sort();
@@ -199,7 +199,7 @@ fn item_rows(q: &Q, page: Id<Page>) -> Vec<TableItem> {
 
 /// The structure boxes of a page as table rows, by position (see [`PageTables::structure_boxes`]).
 fn box_rows(q: &Q, page: Id<Page>) -> Vec<TableStructureBox> {
-    use ew_derive::ew_schema::BoxStyle;
+    use ew_schema::BoxStyle;
     let boxes = q.structure_boxes();
     let mut ids: Vec<_> = q.idx().structure_boxes_by_page(page).collect();
     ids.sort();
@@ -232,7 +232,7 @@ fn box_rows(q: &Q, page: Id<Page>) -> Vec<TableStructureBox> {
 /// The side of a terminal CP in the model's words: `field` when the CP's side is its strip's `field_side` (side 2
 /// when the terminal has no strip aspect to read), `internal` for the other side, `None` for a CP without a side.
 fn terminal_side(q: &Q, function: Id<Function>, idx: u16) -> Option<&'static str> {
-    use ew_derive::ew_schema::Side;
+    use ew_schema::Side;
     let cps = q.get::<FunctionCps>(function);
     let side = cps.iter().find(|c| c.idx == idx)?.side.clone()?;
     let field = q
@@ -770,14 +770,9 @@ impl Session {
                     .find(|(i, _)| *i == idx)
                     .map(|(_, t)| t.clone()),
                 plc_output: bound.at_cp(function, idx).any(|ch| {
-                    q.table::<ew_derive::ew_schema::Channel>()
-                        .get(ch)
-                        .is_some_and(|c| {
-                            matches!(
-                                c.kind,
-                                ew_derive::ew_schema::ChannelKind::Do | ew_derive::ew_schema::ChannelKind::Ao
-                            )
-                        })
+                    q.table::<ew_schema::Channel>().get(ch).is_some_and(|c| {
+                        matches!(c.kind, ew_schema::ChannelKind::Do | ew_schema::ChannelKind::Ao)
+                    })
                 }),
                 fitting: q
                     .functions()

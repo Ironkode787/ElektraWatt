@@ -197,6 +197,10 @@ pub use ew_derive::{BomMode, DeriveNote, MemoStore, Mismatch};
 /// The layout of a schematic page: the page as it sees it (`Session::page_draft`), its measure and its text placer
 /// (docs/design/06a-drafting.md); the shell and the tests name it through `ew-api` (no workspace edge of their own).
 pub use ew_drafting as drafting;
+/// The three-way merge of one project file that `ew merge-driver` runs, with the reader's limits, the
+/// shipped migration chain and the manifest reader that gives ours its format.
+pub use ew_format::{FileMerge, Limits, MIGRATIONS, Manifest, MergeSide, holds_newer_records, merge_file};
+pub use ew_format::{FormatStep, MigrationError, Migrations};
 /// The job runner: the shell names it through `ew-api` (no workspace edge of its own).
 pub use ew_jobs;
 /// The libraries: tiers, the `.ewlib` reader and writer, the index and search. The shell and the
@@ -240,12 +244,6 @@ pub use ew_schema::{
 };
 /// The read-only SQL projection (`ew sql`, the acceptance SQL, ADR-0017): views, sandbox, results.
 pub use ew_sqlview as sql;
-/// The three-way merge of one project file that `ew merge-driver` runs, with the reader's limits, the
-/// shipped migration chain and the manifest reader that gives ours its format.
-pub use ew_store::ew_format::{
-    FileMerge, Limits, MIGRATIONS, Manifest, MergeSide, holds_newer_records, merge_file,
-};
-pub use ew_store::ew_format::{FormatStep, MigrationError, Migrations};
 /// The summary of a crashed session's journal ([`OpenReport::recovery`]) and why a replay was refused
 /// ([`Session::recovery_refusal`]): the CLI's `ew recover` and the shell name them through `ew-api`.
 pub use ew_store::journal::{Collision, RecoveryInfo, ReplayError};
@@ -256,7 +254,8 @@ pub use ew_store::{
 /// The as-built archive's layout and atomic write, and the git port of a release (doc 05 §14):
 /// the CLI and the shell name them through `ew-api` (no workspace edge of their own); likewise `.ewz` transport
 /// (doc 05 §12). The clock's civil date the window reads its date of today by.
-pub use ew_store::{archive, clock, cloud, ewz, external, file, git, zip};
+pub use ew_store::{archive, clock, cloud, ewz, external, file, git};
+pub use ew_zip as zip;
 pub use external_change::{DiskPoll, ExternalApplied, ExternalError};
 pub use new_project::{
     NewProjectKind, ProjectTemplate, SaveAsBasicError, TemplateSummary, shipped_frames, template_summary,
@@ -285,7 +284,7 @@ pub use ew_commands::{
 };
 /// The types of [`IdSource`]'s methods, so that a test can supply its own source of new IDs
 /// ([`SessionOptions::ids`]).
-pub use ew_derive::ew_ids::{EntropyError, UnixTime};
+pub use ew_ids::{EntropyError, UnixTime};
 /// A text by key: the window renders it in its language, the CLI prints its English.
 pub use ew_l10n::{Text, TextArg};
 
@@ -422,7 +421,7 @@ pub fn unread_files(report: &OpenReport) -> Vec<String> {
     report
         .findings
         .iter()
-        .filter(|f| f.kind == ew_store::ew_format::FindingKind::Orphan)
+        .filter(|f| f.kind == ew_format::FindingKind::Orphan)
         .map(|f| match &f.file {
             Some(file) => format!("{file}: {}", f.message),
             None => f.message.clone(),
@@ -435,7 +434,7 @@ pub fn unread_files(report: &OpenReport) -> Vec<String> {
 /// severity, located by its project-relative file and line. Notices without an ID (line endings, foreign edits) are
 /// left out.
 pub fn integrity_items(report: &OpenReport) -> Vec<checks::IntegrityItem> {
-    use ew_store::ew_format::Severity as S;
+    use ew_format::Severity as S;
     report
         .findings
         .iter()
@@ -463,8 +462,8 @@ pub fn integrity_items(report: &OpenReport) -> Vec<checks::IntegrityItem> {
 /// The library copies the open dropped as damaged: a loader finding names the copy's file and the model
 /// lacks the copy. In key order.
 fn dropped_copies(q: &Q, report: &OpenReport) -> Vec<AnyKey> {
+    use ew_format::{PathClass, classify, lib_dir};
     use ew_schema::{Kind, LibCopy, MacroDef};
-    use ew_store::ew_format::{PathClass, classify, lib_dir};
     let held = |&(kind, id): &AnyKey| match kind {
         Kind::Part => q.parts().contains(id.cast()),
         Kind::Symbol => q.symbols().contains(id.cast()),
@@ -796,7 +795,7 @@ impl Session {
         if let Some(logo) = ew_schema::company_logo(&q.project().extra) {
             shows.push((logo.sha256, None));
         }
-        let mut pages: Vec<(ew_derive::ew_ids::Id<ew_schema::Page>, ew_schema::Sha256)> = Vec::new();
+        let mut pages: Vec<(ew_ids::Id<ew_schema::Page>, ew_schema::Sha256)> = Vec::new();
         for (_, item) in q.page_items().iter() {
             if let ew_schema::PageItemKind::Image(image) = &item.kind {
                 pages.push((item.page, image.asset));
@@ -932,10 +931,7 @@ impl Session {
     /// `unplaced(space)` (FR-LAY-013, doc 12 §2.6): the mountable devices of the space's location
     /// without a placement, in natural order of their full tag ([`ew_derive::layout::Unplaced`]). Empty for a space
     /// that is not in the project.
-    pub fn unplaced(
-        &self,
-        space: ew_derive::ew_ids::Id<ew_schema::LayoutSpace>,
-    ) -> Vec<ew_derive::ew_ids::Id<ew_schema::Device>> {
+    pub fn unplaced(&self, space: ew_ids::Id<ew_schema::LayoutSpace>) -> Vec<ew_ids::Id<ew_schema::Device>> {
         self.query()
             .get::<ew_derive::layout::Unplaced>(space)
             .as_ref()
@@ -1433,7 +1429,7 @@ impl Session {
                 (None, kind, copy)
             }
         };
-        let file = ew_store::ew_format::FilePath::lib(ew_store::ew_format::lib_dir(kind)?, copy).to_string();
+        let file = ew_format::FilePath::lib(ew_format::lib_dir(kind)?, copy).to_string();
         let q = self.query();
         let device = referrer.and_then(|referrer| match referrer.0 {
             ew_schema::Kind::Device => Some(referrer.1.cast()),
@@ -1578,7 +1574,7 @@ impl Session {
     fn installed_document(
         &self,
         kind: ew_schema::Kind,
-        copy: ew_derive::ew_ids::Id<()>,
+        copy: ew_ids::Id<()>,
     ) -> Option<(LibDocument, String)> {
         let item_id = |d: &LibDocument| d.copy_meta().map(|c| c.item_id);
         let libraries = self.libraries();
@@ -1587,9 +1583,7 @@ impl Session {
                 .documents(info.id, kind)
                 .into_iter()
                 .find(|d| {
-                    item_id(d).is_some_and(|i| {
-                        ew_derive::ew_ids::v5::lib_copy_id::<()>(info.id, i.as_uuid()) == copy
-                    })
+                    item_id(d).is_some_and(|i| ew_ids::v5::lib_copy_id::<()>(info.id, i.as_uuid()) == copy)
                 })
                 .map(|d| (d, info.name.clone()))
         })

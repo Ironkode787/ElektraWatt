@@ -11,15 +11,15 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use ew_checks::{CheckReport, FindingState};
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{NaturalKey, natural_key};
-use ew_derive::ew_rds::{Aspect, RdsSyntax};
-use ew_derive::ew_schema::{AcDc, CircuitClass, Device, DeviceState, FnRole, FunctionKind, LengthSource};
 use ew_derive::{
     BomMode, BomRows, CpRef, DevicePartLines, DeviceTag, EndKind, MainRep, PageOrder, PageRef,
     PageRefStructure, PageTitle, Potential, PotentialAttrsOf, PotentialFlow, PotentialId, PropSource, Q,
     RepAnchorCell, ResolvedStructure, SizeRule, XrefTextOf, main_part, manufacturer_name, tech_data_text,
 };
+use ew_ids::Id;
+use ew_mltext::{NaturalKey, natural_key};
+use ew_rds::{Aspect, RdsSyntax};
+use ew_schema::{AcDc, CircuitClass, Device, DeviceState, FnRole, FunctionKind, LengthSource};
 use rusqlite::types::Value as SqlValue;
 
 use crate::conn::{self, Bridge, WireRec, Wires, cp_of, device_of, ip_name, tag_short};
@@ -79,7 +79,7 @@ pub(crate) fn tables(q: &Q, input: &BuildInput<'_>) -> Tables {
 pub(crate) fn plc_channels(s: &Source<'_>) -> Vec<Row> {
     let q = s.q;
     use ew_derive::PlcRows;
-    use ew_derive::ew_schema::{AddrSpec, Channel, PlcConfigProject};
+    use ew_schema::{AddrSpec, Channel, PlcConfigProject};
     let channels = q.table::<Channel>();
     let mut rows = Vec::new();
     for station in ew_derive::stations(q) {
@@ -240,7 +240,9 @@ pub(crate) fn pages(s: &Source<'_>) -> Vec<Row> {
                 }
                 PageRef::Divider(s) => (uuid(s), None, None, false, None),
                 PageRef::Generated { block, index } => (
-                    uuid(ew_derive::ew_ids::v5::report_page_id::<_, ew_derive::GeneratedPage>(block, index)),
+                    uuid(ew_ids::v5::report_page_id::<_, ew_derive::GeneratedPage>(
+                        block, index,
+                    )),
                     None,
                     None,
                     true,
@@ -275,10 +277,7 @@ pub(crate) fn pages(s: &Source<'_>) -> Vec<Row> {
 // device, function
 
 /// The page, folio and cell of a representation.
-fn rep_place(
-    q: &Q,
-    rep: Id<ew_derive::ew_schema::Representation>,
-) -> (Option<String>, Option<String>, Option<String>) {
+fn rep_place(q: &Q, rep: Id<ew_schema::Representation>) -> (Option<String>, Option<String>, Option<String>) {
     let Some(page) = q.reps().get(rep).map(|r| r.page) else {
         return (None, None, None);
     };
@@ -479,15 +478,15 @@ fn set_end(q: &Q, r: &mut Row, prefix: &str, end: &ew_derive::WireEnd) {
                 .set(
                     &col("clamp"),
                     cp.as_ref().and_then(|c| match &c.clamp {
-                        Some(ew_derive::ew_schema::ClampKey::Clamp(ch)) => Some(ch.to_string()),
+                        Some(ew_schema::ClampKey::Clamp(ch)) => Some(ch.to_string()),
                         _ => None,
                     }),
                 )
                 .set(
                     &col("side"),
                     cp.as_ref().and_then(|c| match c.side {
-                        Some(ew_derive::ew_schema::Side::Side1) => Some(1u8),
-                        Some(ew_derive::ew_schema::Side::Side2) => Some(2u8),
+                        Some(ew_schema::Side::Side1) => Some(1u8),
+                        Some(ew_schema::Side::Side2) => Some(2u8),
                         _ => None,
                     }),
                 );
@@ -756,7 +755,7 @@ pub(crate) fn terminals(s: &Source<'_>) -> Vec<Row> {
 // cable, conductor
 
 /// The wire running over each conductor.
-fn wires_by_core(wires: &Wires) -> BTreeMap<Id<ew_derive::ew_schema::Conductor>, &WireRec> {
+fn wires_by_core(wires: &Wires) -> BTreeMap<Id<ew_schema::Conductor>, &WireRec> {
     wires
         .wires
         .iter()
@@ -787,7 +786,7 @@ pub(crate) fn cables(s: &Source<'_>) -> Vec<Row> {
                 a.extend(line.a.function().and_then(|f| device_of(q, f)));
                 b.extend(line.b.function().and_then(|f| device_of(q, f)));
                 // An end of no device (an external point) by its name, after the devices, as the cable overview has it.
-                let point = |f: Option<Id<ew_derive::ew_schema::Function>>| {
+                let point = |f: Option<Id<ew_schema::Function>>| {
                     f.filter(|f| device_of(q, *f).is_none())
                         .map(|f| ew_derive::bus_end_label(q, f))
                         .filter(|t| !t.is_empty())
@@ -964,7 +963,7 @@ pub(crate) fn potentials(s: &Source<'_>) -> Vec<Row> {
             let csa = by_id
                 .iter()
                 .find_map(|w| w.props.csa.as_ref().filter(|c| profile(&c.source)));
-            let mut pages: BTreeSet<(usize, Id<ew_derive::ew_schema::Page>)> = BTreeSet::new();
+            let mut pages: BTreeSet<(usize, Id<ew_schema::Page>)> = BTreeSet::new();
             for w in &wires.wires {
                 if w.wire.potentials.contains(&p.id) {
                     for page in &w.wire.pages {
@@ -1188,7 +1187,7 @@ fn tube_source(s: &ew_derive::TubeSource) -> &'static str {
 pub(crate) fn fluid_lines(s: &Source<'_>) -> Vec<Row> {
     let q = s.q;
     let parts = q.parts();
-    let number = |p: Option<Id<ew_derive::ew_schema::Part>>| {
+    let number = |p: Option<Id<ew_schema::Part>>| {
         p.and_then(|p| parts.get(p))
             .map(|c| c.item.part_number.as_str().to_owned())
     };
@@ -1213,7 +1212,7 @@ pub(crate) fn fluid_lines(s: &Source<'_>) -> Vec<Row> {
             note("p_rating", p.p_rating.as_ref().map(|v| &v.source));
             let (from_id, from_tag) = end_device(q, t.from.device);
             let (to_id, to_tag) = end_device(q, t.to.device);
-            let role = |r: &Option<ew_derive::ew_schema::FluidPortRole>| r.as_ref().map(enum_text);
+            let role = |r: &Option<ew_schema::FluidPortRole>| r.as_ref().map(enum_text);
             let mut r = Row::new(&FLUID_LINE);
             r.set("id", uuid(t.id))
                 .set("tag", non_empty(t.tag.clone()))
@@ -1310,7 +1309,7 @@ pub(crate) fn valve_positions(s: &Source<'_>) -> Vec<Row> {
 /// `api_v1_medium`: one row per project medium, in `medium_rows` order.
 pub(crate) fn media(s: &Source<'_>) -> Vec<Row> {
     let q = s.q;
-    let media = q.table::<ew_derive::ew_schema::Medium>();
+    let media = q.table::<ew_schema::Medium>();
     q.get::<ew_derive::MediumRows>(())
         .iter()
         .filter_map(|m| {

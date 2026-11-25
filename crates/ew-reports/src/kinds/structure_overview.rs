@@ -4,12 +4,12 @@
 //! `structure_overview`: the structure-identifier and device-tag overview (FR-REP-017; folio 910 of the
 //! standard layout).
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{NaturalKey, natural_key};
-use ew_derive::ew_schema::{Device, ReportBlock, ReportKind, StructureNode};
 use ew_derive::{
     DevicePartLines, DeviceTag, Q, ResolvedSlot, ResolvedStructure, SlotSource, StructureOf, StructurePath,
 };
+use ew_ids::Id;
+use ew_mltext::{NaturalKey, natural_key};
+use ew_schema::{Device, ReportBlock, ReportKind, StructureNode};
 
 use super::conn::{is_listed_device, words_cell};
 use crate::kind::ReportKindDef;

@@ -24,17 +24,17 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::sync::Arc;
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_rds::{Aspect, RdsSyntax};
-use ew_derive::ew_schema::{FrameGrid, Function, Page, PageType, RepType, Representation};
-use ew_derive::ew_units::{Grid, Nm, Pt2};
 use ew_derive::{
     CpRef, FrameGridOf, FunctionCps, ItemOptions, ItemValues, PageEntry, PageOrder, PageOrderV, PageRef,
     PageStructure, PageTitle, Q, RepAnchorCell, XrefSettingsOf, XrefToken, cell_in_grid, cp_cell, cp_label,
     cp_point, render_item,
 };
 use ew_dl::{Destination, DisplayList, Item, ItemKind, Link, Transform};
+use ew_ids::{Id, Uuid};
+use ew_rds::{Aspect, RdsSyntax};
+use ew_schema::{FrameGrid, Function, Page, PageType, RepType, Representation};
 use ew_units::arith::div_round_ties_away;
+use ew_units::{Grid, Nm, Pt2};
 
 use super::view::{PageFrameOf, PageGridOf, PageTableOf, neutral, page_uuid};
 use super::{CpTargetsByPage, page_scene};
@@ -953,7 +953,7 @@ impl Session {
                 map.apply_exact_ties_away(i128::from(p.y.0), 1, 1),
             );
             let grid_index = grid_index(p.x.0, num, den).zip(grid_index(p.y.0, num, den));
-            let id: Id<()> = ew_derive::ew_ids::v5::cp_id(function, u32::from(idx));
+            let id: Id<()> = ew_ids::v5::cp_id(function, u32::from(idx));
             let (column, row) = cp_cell(&q, function, idx, page)
                 .map_or((u32::MAX, u32::MAX), |c| (c.column.saturating_sub(start), c.row));
             let cp = PageCp {
@@ -988,7 +988,7 @@ fn cp_destinations(q: &Q, order: &PageOrderV) -> CpDestinations {
             continue;
         };
         for t in targets {
-            let id: Id<()> = ew_derive::ew_ids::v5::cp_id(t.function, u32::from(t.idx));
+            let id: Id<()> = ew_ids::v5::cp_id(t.function, u32::from(t.idx));
             let entry = out
                 .entry(id.as_uuid())
                 .or_insert_with(|| (t.function, t.idx, Vec::new()));

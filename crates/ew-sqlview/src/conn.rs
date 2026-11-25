@@ -16,15 +16,13 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{NaturalKey, natural_key};
-use ew_derive::ew_schema::{
-    BridgeKind, Connection, ConnectionKind, Device, Endpoint, Function, FunctionKind, Page,
-};
 use ew_derive::{
     CpRef, DeviceTag, EffectiveProps, FunctionCps, Partition, PhysicalWire, PhysicalWiresOf, PotentialId,
     PotentialNameOf, PotentialNames, PotentialPartition, Q, WireNumbers, WirePropsOf, orient_wire,
 };
+use ew_ids::Id;
+use ew_mltext::{NaturalKey, natural_key};
+use ew_schema::{BridgeKind, Connection, ConnectionKind, Device, Endpoint, Function, FunctionKind, Page};
 
 /// One physical wire with its effective properties, oriented (`ends[0]` is the From end).
 #[derive(Clone, Debug)]

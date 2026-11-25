@@ -11,14 +11,14 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{Ident, natural_cmp};
-use ew_derive::ew_rds::{
+use ew_derive::{DeviceTag, MainFunction, Q};
+use ew_ids::Id;
+use ew_mltext::{Ident, natural_cmp};
+use ew_rds::{
     Aspect, IdentifierSet, KnownCodes, LetterCheck, LetterCode, RdsSyntax, ReservedLetter,
     code_has_separators, parse_strict, spelling_key,
 };
-use ew_derive::ew_schema::{Device, Kind, Open, StructureNode};
-use ew_derive::{DeviceTag, MainFunction, Q};
+use ew_schema::{Device, Kind, Open, StructureNode};
 
 use crate::engine::touched_ids;
 use crate::finding::{Finding, Severity, Target};
@@ -214,7 +214,7 @@ impl Rule for DesignationDoesNotParse {
             return Vec::new();
         };
         // The parser's reason by a selector, its character apart, so each language words it.
-        use ew_derive::ew_rds::ParseErrorKind as K;
+        use ew_rds::ParseErrorKind as K;
         let (reason, c) = match e.kind {
             K::Empty => ("empty", None),
             K::MissingPrefix => ("prefix", None),
@@ -367,7 +367,7 @@ impl Rule for LetterAgainstFunction {
         // The part's category where it has one, as the device browser files and letters it: a contactor's main
         // function is its coil (Relay), its part switches power (FT-1667). A black box keeps its function's: an
         // imported element's tag was drawn before any part said what it is.
-        let black_box = def.item.contact_kind == ew_derive::ew_schema::ContactKind::BlackBox;
+        let black_box = def.item.contact_kind == ew_schema::ContactKind::BlackBox;
         let part = (!black_box).then(|| ew_derive::main_part(q, device)).flatten();
         let (category, group, _) = part
             .as_ref()

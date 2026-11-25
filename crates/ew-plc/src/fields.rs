@@ -16,8 +16,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_caex::{ExchangeImage, IoType, XItem, XTag};
 use ew_derive::Q;
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{AnyId, ExchangeObject, ExchangeRecord, FieldGroup, ForeignId, PlcConfigProject};
+use ew_ids::Id;
+use ew_schema::{AnyId, ExchangeObject, ExchangeRecord, FieldGroup, ForeignId, PlcConfigProject};
 
 use crate::image::{Projection, exchange_image};
 

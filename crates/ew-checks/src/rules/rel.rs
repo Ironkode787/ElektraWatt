@@ -11,7 +11,7 @@
 //! reports the role and sign-off conditions only.
 
 use ew_derive::Q;
-use ew_derive::ew_schema::{Kind, LabelFormat, PartyRole, Revision, Sha256};
+use ew_schema::{Kind, LabelFormat, PartyRole, Revision, Sha256};
 
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};

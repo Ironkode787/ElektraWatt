@@ -5,7 +5,7 @@
 //! its documents, its search and the next open, the rest of its shard stays; taking out an item the library does not
 //! hold changes nothing.
 
-use ew_format::ew_schema::{Kind, LibDocument};
+use ew_schema::{Kind, LibDocument};
 use ew_ids::Uuid;
 use ew_library::{LibraryTiers, PartQuery, Registry, starter_parts_library};
 use serde_json::json;

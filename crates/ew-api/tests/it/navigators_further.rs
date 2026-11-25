@@ -12,7 +12,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_api::Session;
 use ew_api::output::{HighlightTarget, NavKind, NavNode, NavRole, NavTable, Uuid};
-use ew_derive::ew_schema::{ConnectionKind, Endpoint, Record, ReportBlock};
+use ew_schema::{ConnectionKind, Endpoint, Record, ReportBlock};
 use ew_reports::{BlockRows, RowKind};
 
 /// The sample's report block whose pages start at folio `first`.
@@ -525,7 +525,7 @@ fn connections_cover_every_wire_and_core_connection() {
         Endpoint::Cp(f, _) => q
             .functions()
             .get(*f)
-            .is_some_and(|f| matches!(f.kind, ew_derive::ew_schema::FunctionKind::Ip(_))),
+            .is_some_and(|f| matches!(f.kind, ew_schema::FunctionKind::Ip(_))),
         _ => false,
     };
     for (_, con) in q.connections().iter() {

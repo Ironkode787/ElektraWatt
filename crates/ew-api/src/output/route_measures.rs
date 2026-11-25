@@ -11,13 +11,13 @@
 use std::collections::BTreeSet;
 use std::fmt;
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_schema::PageType;
-use ew_derive::ew_units::{Grid, Nm, Pt2, Rect};
 use ew_derive::{CellOf, CpRef, DisplayedTag, PageOrder, PageRef, PotentialFlow, PotentialPartition, Q};
 use ew_dl::Layer;
 use ew_drafting::consts::TICKS_PER_STEP;
 use ew_drafting::{DraftPage, Passed, Quality, TextRef};
+use ew_ids::{Id, Uuid};
+use ew_schema::PageType;
+use ew_units::{Grid, Nm, Pt2, Rect};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -225,7 +225,7 @@ fn entry_of(q: &Q, folio: &str) -> Result<PageRef, LayoutError> {
 }
 
 /// The frame cell of the point `p` on `page` as printed (`C4`); empty off the drawing area or without a frame grid.
-fn cell_text(q: &Q, page: Id<ew_derive::ew_schema::Page>, p: (i64, i64)) -> String {
+fn cell_text(q: &Q, page: Id<ew_schema::Page>, p: (i64, i64)) -> String {
     q.get::<CellOf>((page, Pt2::new(Nm(p.0), Nm(p.1))))
         .as_ref()
         .as_ref()
@@ -238,7 +238,7 @@ fn cell_text(q: &Q, page: Id<ew_derive::ew_schema::Page>, p: (i64, i64)) -> Stri
 /// the page does not draw.
 fn connection_text(q: &Q, tables: &PageTables, id: Uuid) -> crate::checks::rules::Named {
     use crate::TextArg;
-    let page: Id<ew_derive::ew_schema::Page> = Id::from_uuid(tables.page);
+    let page: Id<ew_schema::Page> = Id::from_uuid(tables.page);
     let end = |e: &TableEnd| -> TextArg {
         match e {
             TableEnd::Cp { function, idx } => tables
@@ -266,7 +266,7 @@ fn connection_text(q: &Q, tables: &PageTables, id: Uuid) -> crate::checks::rules
 
 /// [`connection_text`] by key, in the reader's language; `None` for a connection the page does not draw.
 fn connection_words_text(q: &Q, tables: &PageTables, id: Uuid) -> Option<crate::Text> {
-    let page: Id<ew_derive::ew_schema::Page> = Id::from_uuid(tables.page);
+    let page: Id<ew_schema::Page> = Id::from_uuid(tables.page);
     let end = |e: &TableEnd| -> crate::TextArg {
         match e {
             TableEnd::Cp { function, idx } => tables
@@ -296,7 +296,7 @@ fn connection_words_text(q: &Q, tables: &PageTables, id: Uuid) -> Option<crate::
 /// The owner `id` of a body or a text box of `tables` in words: a representation's device tag as the page prints it,
 /// `interruption point <name>`, else its symbol's key; a free text or a structure box by its text.
 fn symbol_text(q: &Q, tables: &PageTables, id: Uuid) -> String {
-    let page: Id<ew_derive::ew_schema::Page> = Id::from_uuid(tables.page);
+    let page: Id<ew_schema::Page> = Id::from_uuid(tables.page);
     let Some(r) = tables.reps.iter().find(|r| r.id == id) else {
         // A free text or a structure box's caption.
         if let Some(t) = tables.items.iter().find(|i| i.id == id) {
@@ -334,7 +334,7 @@ fn cp_text(q: &Q, cp: &TableCp) -> String {
 /// `text`, which names a CP or a representation of `device` as the page prints its tag, with the tag's product sign
 /// also where a frozen tag hides it on pages (`G1:+` → `-G1:+`): the layout rules and the route card name a device by
 /// its tag with its prefix, as the `{wire}` and the other rules do (the window check's F4).
-fn signed(q: &Q, device: Option<Id<ew_derive::ew_schema::Device>>, text: &str) -> String {
+fn signed(q: &Q, device: Option<Id<ew_schema::Device>>, text: &str) -> String {
     let tag = device.and_then(|d| q.get::<ew_derive::DeviceTag>(d).as_ref().clone());
     let Some(tag) = tag.filter(|t| !t.sign_on_pages) else {
         return text.to_owned();
@@ -429,8 +429,8 @@ fn role(
     pins: &[ew_drafting::Pin],
     earthed: bool,
 ) -> ew_drafting::Role {
-    use ew_derive::ew_schema::{FluidPortRole, PortRole};
     use ew_drafting::{PageKind, Role, Side};
+    use ew_schema::{FluidPortRole, PortRole};
     if let Some(ip) = &rep.ip {
         return match ip.direction.as_str() {
             "target" => Role::MarkIn,
@@ -441,8 +441,7 @@ fn role(
             },
         };
     }
-    let functions: Vec<Id<ew_derive::ew_schema::Function>> =
-        rep.functions.iter().map(|f| Id::from_uuid(*f)).collect();
+    let functions: Vec<Id<ew_schema::Function>> = rep.functions.iter().map(|f| Id::from_uuid(*f)).collect();
     match kind {
         PageKind::Fluid => {
             let defs: Vec<_> = functions
@@ -585,7 +584,7 @@ struct Reader<'a> {
 }
 
 impl Reader<'_> {
-    fn page(&self) -> Id<ew_derive::ew_schema::Page> {
+    fn page(&self) -> Id<ew_schema::Page> {
         Id::from_uuid(self.tables.page)
     }
 

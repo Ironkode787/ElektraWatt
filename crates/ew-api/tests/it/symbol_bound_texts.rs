@@ -7,7 +7,7 @@
 
 use ew_api::output::page_layer;
 use ew_api::{AnyCommand, Session};
-use ew_derive::ew_ids::{Id, Uuid};
+use ew_ids::{Id, Uuid};
 use ew_derive::{PageRef, Q};
 use ew_dl::{ItemKind, Layer};
 use ew_schema::{Page, Representation};

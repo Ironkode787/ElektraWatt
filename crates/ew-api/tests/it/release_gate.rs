@@ -18,10 +18,10 @@ use ew_api::{
     AnyCommand, Approval, ApproveError, CmdError, CmdLog, CmdLogError, Exposure, GateError, Origin, Recovery,
     Session, SessionOptions, Submit,
 };
-use ew_derive::ew_ids::Id;
+use ew_ids::Id;
 use ew_schema::{Date, PartyRole, Revision, Waiver};
 use ew_store::StoreOptions;
-use ew_store::ew_format::{Limits, Manifest, content_digest};
+use ew_format::{Limits, Manifest, content_digest};
 
 fn sample() -> PathBuf {
     PathBuf::from(ew_testdir::SAMPLE)
@@ -78,7 +78,7 @@ const COMMENT_ID: &str = "3b9c1d72-5e48-7a06-8f13-2d6c0e9a4b51";
 // TODO: switch to the comment command once one exists, instead of writing comments.jsonl and the manifest by
 // hand.
 fn add_comment(dir: &Path) {
-    use ew_store::ew_format::{FileHash, FilePath, sha256};
+    use ew_format::{FileHash, FilePath, sha256};
     let line = format!("{{\"$k\":\"comment\",\"id\":\"{COMMENT_ID}\",\"note\":\"checked\"}}\n");
     std::fs::write(dir.join("comments.jsonl"), &line).expect("comments.jsonl");
     let path = dir.join("manifest.json");

@@ -13,8 +13,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use ew_commands::commands::{Fragment, InsertMacro, binding_field_ok, coerce_value, instantiate};
-use ew_derive::ew_ids::{Id, Uuid, v5};
 use ew_derive::{DeviceTag, Q};
+use ew_ids::{Id, Uuid, v5};
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
     Device, Endpoint, Function, Kind, LibCopy, LibDocument, LibRef, MacroDef, MacroKind, MacroVariant, Page,
@@ -644,7 +644,7 @@ impl Session {
                 .map_err(|(_, m)| spec(format!("value_sets/{i}"), m.to_string()))?;
         }
         // The document.
-        let item = ew_derive::ew_ids::v5::kind_item_id(target, "macro", key.as_str());
+        let item = ew_ids::v5::kind_item_id(target, "macro", key.as_str());
         let held = self.libraries().resolve(&LibRef {
             library: Id::from_uuid(target),
             item: Id::from_uuid(item),
@@ -670,8 +670,8 @@ impl Session {
             sha256: ew_schema::Sha256([0; 32]),
             item: def,
         };
-        let hash = ew_store::ew_format::library_copy_hash(&LibDocument::Macro(doc.clone()))
-            .expect("a macro has a hash");
+        let hash =
+            ew_format::library_copy_hash(&LibDocument::Macro(doc.clone())).expect("a macro has a hash");
         doc.sha256 = ew_schema::Sha256(hash);
         let write = self
             .libraries_mut()

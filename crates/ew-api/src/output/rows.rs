@@ -34,10 +34,9 @@
 use std::fmt;
 use std::sync::Arc;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{Device, ReportBlock, ReportKind, ReportSource};
 use ew_derive::{BomMode, DeviceTag, PageOrder, PageRef, Q, short_tag};
 use ew_export::PdfDate;
+use ew_ids::Id;
 use ew_reports::csv::{CsvOptions, Preset, restyle, rows_csv};
 use ew_reports::kinds::PartsSummary;
 use ew_reports::table::{Table, TableCell, TableColumn, TableRow};
@@ -46,6 +45,7 @@ use ew_reports::{
     Cell, CellType, Registry, Row, RowId, RowKey, RowKind, RowSet, RowSetStatus, arranged, project_rows,
     rows_of,
 };
+use ew_schema::{Device, ReportBlock, ReportKind, ReportSource};
 
 use crate::Session;
 
@@ -974,7 +974,7 @@ pub fn report_folios(q: &Q, block: &str) -> Result<Vec<String>, RowsError> {
 /// The devices the parts list leaves out because they have no part (those EW-CORE-041 names), in natural order of
 /// their full tags: what the window counts and selects when it shows the parts list.
 pub fn unlisted_devices(q: &Q) -> Vec<Id<Device>> {
-    let mut out: Vec<(ew_derive::ew_mltext::NaturalKey, Id<Device>)> = q
+    let mut out: Vec<(ew_mltext::NaturalKey, Id<Device>)> = q
         .devices()
         .ids()
         .filter(|d| ew_checks::rules::device::lacks_part(q, *d))
@@ -985,7 +985,7 @@ pub fn unlisted_devices(q: &Q) -> Vec<Id<Device>> {
                 .as_ref()
                 .map(|t| t.full.clone())
                 .unwrap_or_default();
-            (ew_derive::ew_mltext::natural_key(&tag), d)
+            (ew_mltext::natural_key(&tag), d)
         })
         .collect();
     out.sort();
@@ -995,7 +995,7 @@ pub fn unlisted_devices(q: &Q) -> Vec<Id<Device>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ew_derive::ew_ids::Uuid;
+    use ew_ids::Uuid;
     use ew_reports::{Cell, RowId};
 
     fn strip(n: u128) -> Id<Device> {

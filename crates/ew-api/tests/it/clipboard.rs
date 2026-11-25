@@ -1393,35 +1393,35 @@ fn renamed(mut value: Value, from: &str, to: &str) -> Value {
     value
 }
 
-fn device_v0(value: Value) -> Result<Value, ew_store::ew_format::MigrationError> {
+fn device_v0(value: Value) -> Result<Value, ew_format::MigrationError> {
     Ok(renamed(value, "device_tag", "tag"))
 }
 
-fn fndef_v0(value: Value) -> Result<Value, ew_store::ew_format::MigrationError> {
+fn fndef_v0(value: Value) -> Result<Value, ew_format::MigrationError> {
     Ok(renamed(value, "revision", "version"))
 }
 
-fn unchanged(value: Value) -> Result<Value, ew_store::ew_format::MigrationError> {
+fn unchanged(value: Value) -> Result<Value, ew_format::MigrationError> {
     Ok(value)
 }
 
 /// The test chain of the fragment: the device's and the FnDef's kind steps from `$v` 0, the format step from "0.0".
-static FRAGMENT_CHAIN: ew_store::ew_format::Migrations = ew_store::ew_format::Migrations {
+static FRAGMENT_CHAIN: ew_format::Migrations = ew_format::Migrations {
     kinds: &[
-        ew_store::ew_format::KindStep {
+        ew_format::KindStep {
             kind: Kind::Device,
             from: 0,
             format: "0.1",
             step: device_v0,
         },
-        ew_store::ew_format::KindStep {
+        ew_format::KindStep {
             kind: Kind::Fndef,
             from: 0,
             format: "0.1",
             step: fndef_v0,
         },
     ],
-    formats: &[ew_store::ew_format::FormatStep {
+    formats: &[ew_format::FormatStep {
         from: "0.0",
         to: "0.1",
         manifest: unchanged,
@@ -1489,13 +1489,13 @@ fn an_older_fragment_pastes_through_the_test_chain() {
     assert_eq!(created(&receipt, Kind::Device).len(), 1);
 }
 
-fn part_v0(value: Value) -> Result<Value, ew_store::ew_format::MigrationError> {
+fn part_v0(value: Value) -> Result<Value, ew_format::MigrationError> {
     Ok(renamed(value, "catalogue_number", "part_number"))
 }
 
 /// A test chain whose step changes a library copy's item: the part's kind step from `$v` 0 renames an item member.
-static ITEM_CHAIN: ew_store::ew_format::Migrations = ew_store::ew_format::Migrations {
-    kinds: &[ew_store::ew_format::KindStep {
+static ITEM_CHAIN: ew_format::Migrations = ew_format::Migrations {
+    kinds: &[ew_format::KindStep {
         kind: Kind::Part,
         from: 0,
         format: "0.1",
@@ -1511,7 +1511,7 @@ static ITEM_CHAIN: ew_store::ew_format::Migrations = ew_store::ew_format::Migrat
 #[test]
 fn a_migrated_copy_takes_its_migrated_items_hash_and_pastes_as_the_held_copy() {
     use ew_api::window::parse_fragment_with;
-    use ew_store::ew_format::{library_copy_hash, sha256};
+    use ew_format::{library_copy_hash, sha256};
     const ENVELOPE: [&str; 6] = ["$v", "id", "library_id", "item_id", "version", "sha256"];
     let text = valid_text();
     let current = parse_fragment(&text).unwrap();

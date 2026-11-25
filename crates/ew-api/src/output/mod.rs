@@ -316,11 +316,10 @@ fn resolve_sections(
     sections: TableView<'_, Section>,
     numbers: &[String],
 ) -> Result<Vec<usize>, OutputError> {
-    let all: Vec<(ew_derive::ew_ids::Id<Section>, u16)> =
-        sections.iter().map(|(id, s)| (id, s.number)).collect();
+    let all: Vec<(ew_ids::Id<Section>, u16)> = sections.iter().map(|(id, s)| (id, s.number)).collect();
     let mut wanted = std::collections::BTreeSet::new();
     for n in numbers {
-        let ids: Vec<ew_derive::ew_ids::Id<Section>> = all
+        let ids: Vec<ew_ids::Id<Section>> = all
             .iter()
             .filter(|(_, number)| number.to_string() == *n)
             .map(|(id, _)| *id)

@@ -8,9 +8,9 @@
 
 use std::collections::BTreeMap;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{Channel, ChannelKind, Device, Endpoint, Evaluation, Kind};
 use ew_derive::{ChannelTargets, Q};
+use ew_ids::Id;
+use ew_schema::{Channel, ChannelKind, Device, Endpoint, Evaluation, Kind};
 
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
@@ -95,9 +95,7 @@ impl Rule for FAddress {
                 .iter()
                 .map(|m| full_tag(q, *m, text!("word-an-f-module")))
                 .collect();
-            names.sort_by(|a, b| {
-                ew_derive::ew_mltext::natural_cmp(a, b).then_with(|| a.english().cmp(b.english()))
-            });
+            names.sort_by(|a, b| ew_mltext::natural_cmp(a, b).then_with(|| a.english().cmp(b.english())));
             let list = listed(names.clone());
             out.push(
                 Finding::new(
@@ -290,7 +288,7 @@ impl Rule for TestPulse {
 /// The devices with a CP on the signal of CP `idx` of `function`: the stitch graph's net and signal edges from it.
 fn signal_devices(
     q: &Q,
-    function: Id<ew_derive::ew_schema::Function>,
+    function: Id<ew_schema::Function>,
     idx: u16,
 ) -> std::collections::BTreeSet<Id<Device>> {
     use ew_derive::Level;

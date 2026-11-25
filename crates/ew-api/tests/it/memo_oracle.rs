@@ -42,7 +42,7 @@ use std::num::NonZeroU32;
 use std::rc::Rc;
 
 use ew_api::{AnyCommand, CmdError, MemoMode, Session, SessionOptions};
-use ew_derive::ew_ids::Id;
+use ew_ids::Id;
 use ew_derive::{
     FunctionCps, Oracle, PotentialId, PotentialNameOf, PotentialPartition, Q, RecordingTracker, XrefTextOf,
 };

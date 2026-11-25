@@ -15,9 +15,9 @@
 
 use std::collections::BTreeSet;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{Channel, ChannelKind, Device, PlcConfigProject};
 use ew_derive::{DeviceTag, EffectiveState, PlcRows, Q};
+use ew_ids::Id;
+use ew_schema::{Channel, ChannelKind, Device, PlcConfigProject};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

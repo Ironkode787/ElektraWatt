@@ -7,11 +7,11 @@
 
 use std::collections::BTreeMap;
 
-use ew_derive::ew_ids::Uuid;
-use ew_dl::ew_units::{Pt2, Rect};
 use ew_dl::{DisplayList, EntityRef, Item, ItemKind, Link};
+use ew_ids::Uuid;
 use ew_scene::page::{PageView, SlotTextBox};
 use ew_schema::SlotKind;
+use ew_units::{Pt2, Rect};
 
 /// The attribute name of a text a slot of `kind` prints (doc 09 §4.9's table). No name begins with `PIN`, `CONN`, `TERM`
 /// or `X`, which the DXF import reads as a connection point; `TAG` and `FUNCTION_TEXT` are what it reads as the tag
@@ -110,8 +110,8 @@ pub(super) fn split_attributes(
         {
             let mid = |a: i64, b: i64| a + (b - a) / 2;
             let centre = Pt2::new(
-                ew_dl::ew_units::Nm(mid(b.min().x.0, b.max().x.0)),
-                ew_dl::ew_units::Nm(mid(b.min().y.0, b.max().y.0)),
+                ew_units::Nm(mid(b.min().x.0, b.max().x.0)),
+                ew_units::Nm(mid(b.min().y.0, b.max().y.0)),
             );
             links.entry(e).or_default().push((centre, link));
         }

@@ -17,8 +17,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use common::{fixture, mem_project, options, reopen};
-use ew_store::ew_format::ew_schema::{Revision, RevisionState};
-use ew_store::ew_format::{FindingKind, hash_text, sha256};
+use ew_schema::{Revision, RevisionState};
+use ew_format::{FindingKind, hash_text, sha256};
 use ew_store::mem::{DirSync, MemVfs};
 use ew_store::{Access, Changes, OpenMode, Opened, Store, Vfs, join};
 
@@ -31,10 +31,10 @@ fn old_and_canonical(sample: &[u8]) -> (String, String) {
         value["date"] = "2025-03-03".into();
         value["description"] = "Initial issue".into();
         old.push_str(&format!("{value}\n"));
-        let record = ew_store::ew_format::ew_schema::Record::from_value(value).expect("a revision");
+        let record = ew_schema::Record::from_value(value).expect("a revision");
         canonical.push_str(&format!(
             "{}\n",
-            ew_store::ew_format::record_line(&record).expect("a line")
+            ew_format::record_line(&record).expect("a line")
         ));
     }
     (old, canonical)

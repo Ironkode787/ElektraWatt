@@ -6,8 +6,8 @@
 //!
 //! Not here: the fluid navigators (`output/navigators/fluid.rs`); the bus rows (`bus_rows.rs`).
 
-use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::{Q, cp_label};
+use ew_ids::{Id, Uuid};
 use ew_model::EndpointKey;
 use ew_schema::{Connection, Device, Function};
 use serde_json::Value;
@@ -25,8 +25,8 @@ use crate::output::fields::{Category, EditRoute, FieldType};
 /// specification (`6×4 mm PU`) with the source of its values (the project's default tube, its medium's, its tube part's,
 /// its own override; doc 11 §5.4), read-only.
 pub(super) fn fluid_line_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid]) -> Vec<Built> {
-    use ew_derive::ew_schema::{Medium, MediumDef};
     use ew_derive::{FluidNets, TubePropsOf, TubeSource};
+    use ew_schema::{Medium, MediumDef};
     let media = q.table::<Medium>();
     let name = |m: Id<Medium>| {
         media
@@ -172,8 +172,8 @@ pub(super) fn fluid_line_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid]) -> Vec<
 /// The fluid port of a source device, by what it is (a source drawn in the symbol editor or made in the part
 /// editor is one too, whatever its category): a device whose only fluid port is a supply or plain port (no consumer's,
 /// no sensing port), on a function that is no interruption point; `None` for any other device.
-pub(crate) fn source_port(q: &Q, device: Id<Device>) -> Option<(Id<ew_derive::ew_schema::Function>, u16)> {
-    use ew_derive::ew_schema::{ContactKind, FluidPortRole};
+pub(crate) fn source_port(q: &Q, device: Id<Device>) -> Option<(Id<ew_schema::Function>, u16)> {
+    use ew_schema::{ContactKind, FluidPortRole};
     let (functions, fndefs) = (q.functions(), q.fndefs());
     let mut ports = q.idx().functions_of_device(device).flat_map(|f| {
         let ip = functions
@@ -193,9 +193,9 @@ pub(crate) fn source_port(q: &Q, device: Id<Device>) -> Option<(Id<ew_derive::ew
 
 /// The medium the fluid net at `at` carries (one medium, else none) and the connection point of the medium definition
 /// in that net (`None`: it is carried there through the valves, or there is none).
-fn medium_at(q: &Q, at: EndpointKey) -> (Option<Id<ew_derive::ew_schema::Medium>>, Option<ew_derive::CpRef>) {
-    use ew_derive::ew_schema::MediumDef;
+fn medium_at(q: &Q, at: EndpointKey) -> (Option<Id<ew_schema::Medium>>, Option<ew_derive::CpRef>) {
     use ew_derive::{Effective, MediumZones, node_net};
+    use ew_schema::MediumDef;
     let net = node_net(q, at);
     let medium = match net.map(|n| q.get::<MediumZones>(()).effective(n)) {
         Some(Effective::One(k)) => Some(k.root()),
@@ -214,7 +214,7 @@ fn medium_at(q: &Q, at: EndpointKey) -> (Option<Id<ew_derive::ew_schema::Medium>
 /// as a tube's (`fluid.medium.define` at the port through [`Session::layout_edit`]); `None` for any other device.
 /// Without a medium its chip says to choose one.
 pub(super) fn source_medium_row(q: &Q, cx: &SheetCx<'_>, device: Id<Device>) -> Option<Built> {
-    use ew_derive::ew_schema::Medium;
+    use ew_schema::Medium;
     let (f, idx) = source_port(q, device)?;
     let (medium, def) = medium_at(q, EndpointKey::Cp(f, idx));
     let via = match (medium, def) {
@@ -278,7 +278,7 @@ impl Session {
     pub fn device_media(&self, device: Uuid) -> Option<DeviceMedia> {
         let q = self.query();
         let id = Id::from_uuid(device);
-        let media = q.table::<ew_derive::ew_schema::Medium>();
+        let media = q.table::<ew_schema::Medium>();
         let mut ports: Vec<(String, EndpointKey)> = q
             .idx()
             .functions_of_device(id)
@@ -334,15 +334,15 @@ impl Session {
     /// The medium `medium` in words ([`medium_words`]); `None` for an ID that names none.
     pub fn medium_text(&self, medium: Uuid) -> Option<String> {
         let q = self.query();
-        let media = q.table::<ew_derive::ew_schema::Medium>();
+        let media = q.table::<ew_schema::Medium>();
         media.get(Id::from_uuid(medium)).map(|m| medium_words(m))
     }
 }
 
 /// A medium in words: its name and its nominal pressure (`Compressed air, 6 bar`).
-pub(crate) fn medium_words(m: &ew_derive::ew_schema::Medium) -> String {
+pub(crate) fn medium_words(m: &ew_schema::Medium) -> String {
     let name = m.name.neutral_or_first().unwrap_or_default().to_owned();
-    if m.p_nom == ew_derive::ew_units::Dec3::ZERO {
+    if m.p_nom == ew_units::Dec3::ZERO {
         name
     } else {
         format!("{name}, {} bar", m.p_nom)
@@ -354,7 +354,7 @@ pub(crate) fn medium_words(m: &ew_derive::ew_schema::Medium) -> String {
 /// gives that medium; the value names the port's designation and the medium (`null` for none, which the window writes
 /// as what to do).
 pub(super) fn fluid_port_rows(q: &Q, device: Id<Device>) -> Vec<Built> {
-    use ew_derive::ew_schema::{Medium, MediumDef};
+    use ew_schema::{Medium, MediumDef};
     if source_port(q, device).is_some() {
         return Vec::new();
     }

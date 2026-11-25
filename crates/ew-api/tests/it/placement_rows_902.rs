@@ -6,7 +6,7 @@
 
 use ew_api::Session;
 use ew_api::output::{Category, InputError, RowValue};
-use ew_derive::ew_ids::Uuid;
+use ew_ids::Uuid;
 use serde_json::json;
 
 fn page_of(s: &Session, folio: &str) -> Uuid {

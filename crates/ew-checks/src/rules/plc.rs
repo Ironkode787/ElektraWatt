@@ -26,14 +26,14 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_plcaddr::{Area, Size};
-use ew_derive::ew_schema::{AddrSpec, Channel, ChannelKind, Device, IoDir, Kind, PlcConfigProject};
 use ew_derive::{
     AddressIndex, ChannelAddr, ChannelAddresses, ChannelStates, ChannelTexts, ChannelsByCp, EffectiveState,
     ModuleChannelIds, ModuleOrder, ModuleStartOf, Q, SolenoidPositions, Start, module_part, part_confidence,
     profile_of, station_of,
 };
+use ew_ids::Id;
+use ew_plcaddr::{Area, Size};
+use ew_schema::{AddrSpec, Channel, ChannelKind, Device, IoDir, Kind, PlcConfigProject};
 
 use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
@@ -417,7 +417,7 @@ impl Rule for OutsideModule {
 /// (`module_io`: an IO-Link master's port windows, else the part's ranges), in the profile's unit width.
 struct ModuleRange {
     start: ew_derive::ModuleStart,
-    io: Vec<ew_derive::ew_schema::IoRange>,
+    io: Vec<ew_schema::IoRange>,
     unit_bits: u32,
 }
 
@@ -439,7 +439,7 @@ impl ModuleRange {
     /// The area and the bytes `[from, to)` of the range in direction `dir` when `address` lies outside them: another
     /// area, or a byte outside. `None` when it lies inside, or when the module's start in that direction is no
     /// address (an excluded, open or unresolved start bounds nothing).
-    fn outside(&self, dir: &IoDir, address: &ew_derive::ew_plcaddr::PlcAddress) -> Option<(Area, u32, u32)> {
+    fn outside(&self, dir: &IoDir, address: &ew_plcaddr::PlcAddress) -> Option<(Area, u32, u32)> {
         let (area, s) = match dir {
             IoDir::In => (Area::I, self.start.input),
             _ => (Area::Q, self.start.output),
@@ -615,7 +615,7 @@ impl Rule for DuplicateSymbol {
                 continue;
             }
             channels.sort_by(|a, b| {
-                ew_derive::ew_mltext::natural_cmp(&a.0, &b.0)
+                ew_mltext::natural_cmp(&a.0, &b.0)
                     .then_with(|| a.0.cmp(&b.0))
                     .then_with(|| a.1.cmp(&b.1))
             });
@@ -863,9 +863,7 @@ impl Rule for DiffersFromMap {
             }
             let derived = module_cfg(q, module)
                 .and_then(|c| profile_of(q, c))
-                .map_or_else(String::new, |p| {
-                    p.render(&auto, ew_derive::ew_plcaddr::Purpose::Drawing)
-                });
+                .map_or_else(String::new, |p| p.render(&auto, ew_plcaddr::Purpose::Drawing));
             let channel = channel_name(q, module, e.channel, e.number);
             out.push(
                 Finding::new(

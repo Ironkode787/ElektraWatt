@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The as-built archive's file (doc 05 §14.1 step 4, §14.2): its name, its layout as a
-//! deterministic ZIP ([`crate::zip`]), its check, and the atomic write through the [`Vfs`] seam.
+//! deterministic ZIP ([`ew_zip`]), its check, and the atomic write through the [`Vfs`] seam.
 //!
 //! **Layout.** `mimetype` first and stored (`application/vnd.elektrawatt.archive+zip`), then every other entry
 //! deflated in byte order of its path: `ARCHIVE.json`, `SHA256SUMS`, `check/report.json`, `pdf/…`, `project/…`
@@ -53,7 +53,7 @@ use std::time::SystemTime;
 use ew_format::{FileHash, Manifest, hash_text, sha256};
 
 use crate::vfs::{EntryKind, Vfs};
-use crate::zip::{self, Method, ZipError, ZipLimits};
+use ew_zip::{self as zip, Method, ZipError, ZipLimits};
 
 /// The media type in the `mimetype` entry.
 pub const MIMETYPE: &str = "application/vnd.elektrawatt.archive+zip";

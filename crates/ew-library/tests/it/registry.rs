@@ -7,7 +7,7 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use ew_format::ew_schema::{ContactKind, ItemStatus, Kind, LibDocument, LibRef, PartKind};
+use ew_schema::{ContactKind, ItemStatus, Kind, LibDocument, LibRef, PartKind};
 use ew_ids::Uuid;
 use ew_library::lock::LOCK;
 use ew_library::{

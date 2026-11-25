@@ -20,7 +20,7 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use ew_format::ew_schema::{Kind, LibDocument, LibRef, PartKind};
+use ew_schema::{Kind, LibDocument, LibRef, PartKind};
 use ew_ids::Uuid;
 use ew_library::{
     LibManifest, LibraryTiers, PartQuery, Registry, STARTER_PARTS_KEY, starter, starter_parts_library,
@@ -2596,7 +2596,7 @@ fn the_generic_cpu_is_a_station_without_io() {
     let cpu = part("EW-GEN-CPU-1");
     assert_eq!(cpu.version, "0.1.3");
     let plc = cpu.item.sections.plc.as_ref().expect("a PLC section");
-    assert_eq!(plc.role, ew_format::ew_schema::PlcRole::Station);
+    assert_eq!(plc.role, ew_schema::PlcRole::Station);
     assert!(plc.io.is_empty() && plc.channels.is_none());
     let designations: Vec<&str> = cpu
         .item
@@ -2608,7 +2608,7 @@ fn the_generic_cpu_is_a_station_without_io() {
     for card in ["EW-GEN-DI-1", "EW-GEN-DO-1"] {
         let c = part(card);
         let plc = c.item.sections.plc.as_ref().expect("a PLC section");
-        assert_eq!(plc.role, ew_format::ew_schema::PlcRole::Module, "{card}");
+        assert_eq!(plc.role, ew_schema::PlcRole::Module, "{card}");
         assert_eq!(plc.channels.as_ref().map(|s| s.count), Some(8), "{card}");
     }
 }
@@ -2619,7 +2619,7 @@ fn the_generic_cpu_is_a_station_without_io() {
 /// them), and no other starter part has a bus section.
 #[test]
 fn the_generic_cpu_has_its_dp_port() {
-    use ew_format::ew_schema::{BusSystem, PortRole};
+    use ew_schema::{BusSystem, PortRole};
     let parts = parts();
     let cpu = parts
         .iter()

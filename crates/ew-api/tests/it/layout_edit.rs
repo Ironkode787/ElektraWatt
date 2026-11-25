@@ -11,7 +11,7 @@ use crate::common;
 
 use ew_api::output::{EditRoute, LayoutEdit, LayoutEditError, PropRow, RowValue};
 use ew_api::{AnyCommand, Session};
-use ew_derive::ew_ids::{Id, Uuid};
+use ew_ids::{Id, Uuid};
 use ew_schema::{Carrier, CarrierKind, Enclosure, LayoutSpace, MountingSurface, Placement};
 use serde_json::json;
 
@@ -44,7 +44,7 @@ fn with_accessory() -> Session {
         "mech": {"width": 9000000, "height": 45000000, "depth": 40000000, "mount_kind": "on_parent"}
     });
     let hash =
-        ew_store::ew_format::library_copy_hash(&ew_schema::LibDocument::from_value(doc.clone()).unwrap())
+        ew_format::library_copy_hash(&ew_schema::LibDocument::from_value(doc.clone()).unwrap())
             .unwrap();
     doc["sha256"] = json!(ew_schema::Sha256(hash).to_string());
     lib.push(ew_schema::LibDocument::from_value(doc).unwrap());

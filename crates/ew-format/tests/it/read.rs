@@ -5,7 +5,7 @@
 
 use std::collections::BTreeMap;
 
-use ew_format::ew_schema::{LibDocument, Record, Sha256};
+use ew_schema::{LibDocument, Record, Sha256};
 use ew_format::{
     EntryKind, FilePath, Finding, FindingKind, Kept, Limits, Loaded, Manifest, hash_text, lib_document_text,
     lib_file, load, plan, project_files, record_line, sha256,
@@ -1018,7 +1018,7 @@ const ITEM_LINES: [&str; 6] = [
 /// kept as it was read while its record is untouched.
 #[test]
 fn a_page_file_with_page_items_and_a_structure_box_round_trips_byte_for_byte() {
-    use ew_format::ew_schema::PageItemKind;
+    use ew_schema::PageItemKind;
     let loaded = load_lines(PAGE_FILE, &ITEM_LINES);
     assert!(loaded.findings.is_empty(), "{:?}", loaded.findings);
     let kept: Vec<&[u8]> = loaded.kept.iter().map(|k| k.text.as_slice()).collect();

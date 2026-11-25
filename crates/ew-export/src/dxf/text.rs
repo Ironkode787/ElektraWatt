@@ -8,9 +8,9 @@
 
 use std::fmt::Write as _;
 
-use ew_dl::ew_units::{Nm, Pt2, arith};
 use ew_dl::num::atan2_deg;
 use ew_dl::{Brush, ShapedRun, Transform};
+use ew_units::{Nm, Pt2, arith};
 use skrifa::instance::{LocationRef, Size};
 use skrifa::{FontRef, GlyphId, MetadataProvider};
 

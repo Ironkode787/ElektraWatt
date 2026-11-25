@@ -5,11 +5,11 @@
 
 use std::collections::BTreeSet;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::NaturalKey;
-use ew_derive::ew_schema::{Device, Enclosure, MountingSurface, ReportBlock, ReportKind};
 use ew_derive::layout::page_surface;
 use ew_derive::{DevicePartLines, LineSource, MainRep, PartLine, Q};
+use ew_ids::Id;
+use ew_mltext::NaturalKey;
+use ew_schema::{Device, Enclosure, MountingSurface, ReportBlock, ReportKind};
 
 use super::conn::tag_key;
 use super::parts::{line_id, part_cells};

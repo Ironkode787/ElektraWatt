@@ -15,8 +15,8 @@
 //!   cores), sets its length and the plugs, and embeds what an installed library brings, in one undo step.
 
 use ew_derive::bus_word;
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{BusSystem, Connection, ConnectionKind, Endpoint, LengthSource};
+use ew_ids::Id;
+use ew_schema::{BusSystem, Connection, ConnectionKind, Endpoint, LengthSource};
 use serde_json::{Value, json};
 
 use crate::output::Uuid;
@@ -190,13 +190,13 @@ impl Session {
                         termination: plug
                             .as_ref()
                             .and_then(|p| p.termination.as_ref())
-                            .map(|t| *t == ew_derive::ew_schema::OnOff::On),
+                            .map(|t| *t == ew_schema::OnOff::On),
                     })
                     .collect()
             }
             _ => Vec::new(),
         };
-        let mut existing: Vec<(ew_derive::ew_mltext::NaturalKey, Uuid, String)> = q
+        let mut existing: Vec<(ew_mltext::NaturalKey, Uuid, String)> = q
             .devices()
             .iter()
             .filter(|(_, d)| d.aspects.cable.is_some())
@@ -211,7 +211,7 @@ impl Session {
                 let tag = self.device_tag(id.as_uuid())?;
                 made_for.then(|| {
                     let words = format!("{tag} \u{b7} {}", copy.item.part_number);
-                    (ew_derive::ew_mltext::natural_key(&tag), id.as_uuid(), words)
+                    (ew_mltext::natural_key(&tag), id.as_uuid(), words)
                 })
             })
             .collect();

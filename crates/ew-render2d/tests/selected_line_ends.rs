@@ -6,10 +6,10 @@
 
 use std::collections::BTreeSet;
 
-use ew_dl::ew_units::Nm;
 use ew_render_cpu::SheetSize;
 use ew_render2d::overlay::{Bands, OpenCps, OverlayInput, build};
 use ew_render2d::view::{PxRect, View};
+use ew_units::Nm;
 
 fn pixels(rects: &[PxRect]) -> BTreeSet<(i64, i64)> {
     rects

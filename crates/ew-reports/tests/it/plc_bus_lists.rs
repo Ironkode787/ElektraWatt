@@ -7,8 +7,8 @@
 //! `-W1` of 12.5 m (`network_address_list`, `bus_cable_list`).
 
 use ew_derive::Q;
-use ew_derive::ew_ids::Uuid;
-use ew_derive::ew_schema::{LibDocument, Project, Record, ReportBlock};
+use ew_ids::Uuid;
+use ew_schema::{LibDocument, Project, Record, ReportBlock};
 use ew_model::Model;
 use ew_reports::{Cell, Registry};
 use serde_json::{Value, json};
@@ -78,8 +78,8 @@ fn device(n: u128, letter: &str, counter: u32, parts: &[u128]) -> Value {
 }
 
 fn channel(module: u128, n: u16, kind: &str) -> Value {
-    let id = ew_derive::ew_ids::v5::plc_channel_id::<ew_derive::ew_schema::Device, ()>(
-        ew_derive::ew_ids::Id::from_uuid(Uuid::from_u128(module)),
+    let id = ew_ids::v5::plc_channel_id::<ew_schema::Device, ()>(
+        ew_ids::Id::from_uuid(Uuid::from_u128(module)),
         n,
     );
     json!({"$k": "channel", "id": id.as_uuid().to_string(), "module": uid(module), "number": n, "kind": kind})

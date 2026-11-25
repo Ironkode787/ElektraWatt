@@ -5,11 +5,11 @@
 
 use std::sync::Arc;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{Device, ManualSelection, ReportBlock, ReportKind, ReportSource};
 use ew_derive::{
     Cycle, GeneratedPage, Policy, Q, Query, ReportPagesProvider, folio_label, map_ml, short_tag,
 };
+use ew_ids::Id;
+use ew_schema::{Device, ManualSelection, ReportBlock, ReportKind, ReportSource};
 
 use crate::arrange::{Arrangement, arrange};
 use crate::kind::Registry;
@@ -192,11 +192,7 @@ fn paginate_block(
 /// pages ("Terminal Diagram {strip}"), and the folio of the layout page a legend list follows ("Legend of layout
 /// {layout}"). A
 /// placeholder without such a device or page stays as written.
-fn resolve_title(
-    q: &Q,
-    block: &ReportBlock,
-    title: &ew_derive::ew_mltext::MlText,
-) -> ew_derive::ew_mltext::MlText {
+fn resolve_title(q: &Q, block: &ReportBlock, title: &ew_mltext::MlText) -> ew_mltext::MlText {
     let devices: Vec<Id<Device>> = block
         .manual
         .include
@@ -313,7 +309,7 @@ pub fn rows_of(q: &Q, block: Id<ReportBlock>) -> Arc<RowSet> {
 ///
 /// `None` for an unknown kind, and for `terminal_diagram` without `include`. Not memoised (the navigator fetches it once
 /// per revision for an open navigator only); it reads what the kind's row query reads and never `page_order`.
-pub fn project_rows(q: &Q, kind: &ReportKind, include: Option<ew_derive::ew_ids::Uuid>) -> Option<RowSet> {
+pub fn project_rows(q: &Q, kind: &ReportKind, include: Option<ew_ids::Uuid>) -> Option<RowSet> {
     let def = Registry::builtin().get(kind)?;
     let mut manual = ManualSelection::default();
     match include {
@@ -324,13 +320,13 @@ pub fn project_rows(q: &Q, kind: &ReportKind, include: Option<ew_derive::ew_ids:
         None => {}
     }
     let block = ReportBlock {
-        id: Id::from_uuid(ew_derive::ew_ids::Uuid::nil()),
+        id: Id::from_uuid(ew_ids::Uuid::nil()),
         v: 1,
         source: ReportSource::Kind(kind.clone()),
         manual,
         sort: Vec::new(),
         group: None,
-        form: Id::from_uuid(ew_derive::ew_ids::Uuid::nil()),
+        form: Id::from_uuid(ew_ids::Uuid::nil()),
         section: None,
         first_folio: None,
         continuation: Default::default(),

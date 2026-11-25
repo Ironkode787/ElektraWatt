@@ -9,8 +9,8 @@
 use std::collections::BTreeMap;
 
 use ew_derive::Q;
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_schema::Device;
+use ew_ids::{Id, Uuid};
+use ew_schema::Device;
 
 use super::{
     Builder, Drawable, NavRole, base_facets, cell_of, connection_drawables, folios, group, row_entity,
@@ -39,9 +39,9 @@ pub(super) struct WireListRow {
 /// physical wire (`physical_wires_of` of every potential), a bridge row for the bridge connections of its strip and
 /// group.
 pub(super) fn wire_list_rows(q: &Q) -> Vec<WireListRow> {
-    use ew_derive::ew_schema::{Connection, ConnectionKind, Endpoint};
     use ew_derive::{PhysicalWiresOf, PotentialPartition};
-    let Some(set) = ew_reports::project_rows(q, &ew_derive::ew_schema::ReportKind::WireList, None) else {
+    use ew_schema::{Connection, ConnectionKind, Endpoint};
+    let Some(set) = ew_reports::project_rows(q, &ew_schema::ReportKind::WireList, None) else {
         return Vec::new();
     };
     let folios = folios(q);

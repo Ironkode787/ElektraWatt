@@ -7,9 +7,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{AnyId, Kind};
 use ew_derive::{Cycle, Policy, PotentialPartition, Q, Query};
+use ew_ids::Id;
+use ew_schema::{AnyId, Kind};
 
 use crate::finding::{Finding, FindingState, Fingerprint, Severity, Target, sort_findings};
 use crate::registry::{rule, rules};
@@ -44,9 +44,9 @@ impl Query for CheckOf {
             Scope::Strip(d) | Scope::Device(d) | Scope::Cable(d) | Scope::Module(d) | Scope::Station(d) => {
                 q.devices().contains(*d)
             }
-            Scope::Cfg(c) => q.table::<ew_derive::ew_schema::PlcConfigProject>().contains(*c),
-            Scope::Lnet(n) => q.table::<ew_derive::ew_schema::LogicalNet>().contains(*n),
-            Scope::Pnet(n) => q.table::<ew_derive::ew_schema::PhysicalNet>().contains(*n),
+            Scope::Cfg(c) => q.table::<ew_schema::PlcConfigProject>().contains(*c),
+            Scope::Lnet(n) => q.table::<ew_schema::LogicalNet>().contains(*n),
+            Scope::Pnet(n) => q.table::<ew_schema::PhysicalNet>().contains(*n),
             Scope::Project | Scope::Potential(_) => true,
         };
         let mut out = match rule(id) {
@@ -94,17 +94,17 @@ pub fn scopes(q: &Q, kind: ScopeKind) -> Vec<Scope> {
             .map(|(id, _)| Scope::Module(id))
             .collect(),
         ScopeKind::Cfg => q
-            .table::<ew_derive::ew_schema::PlcConfigProject>()
+            .table::<ew_schema::PlcConfigProject>()
             .ids()
             .map(Scope::Cfg)
             .collect(),
         ScopeKind::Lnet => q
-            .table::<ew_derive::ew_schema::LogicalNet>()
+            .table::<ew_schema::LogicalNet>()
             .ids()
             .map(Scope::Lnet)
             .collect(),
         ScopeKind::Pnet => q
-            .table::<ew_derive::ew_schema::PhysicalNet>()
+            .table::<ew_schema::PhysicalNet>()
             .ids()
             .map(Scope::Pnet)
             .collect(),
@@ -286,7 +286,7 @@ struct Waiver {
 /// nothing (EW-CORE-081 reports it).
 fn waivers(q: &Q) -> Vec<Waiver> {
     let mut out: Vec<Waiver> = q
-        .table::<ew_derive::ew_schema::Waiver>()
+        .table::<ew_schema::Waiver>()
         .iter()
         .map(|(_, w)| Waiver {
             id: w.id.to_string(),
@@ -509,9 +509,9 @@ mod tests {
     use super::*;
     use crate::FULL;
     use crate::rule::{Modes, Release, RuleKind};
-    use ew_derive::ew_ids::Uuid;
-    use ew_derive::ew_schema::{Project, Record};
+    use ew_ids::Uuid;
     use ew_model::Model;
+    use ew_schema::{Project, Record};
     use serde_json::json;
 
     fn us(n: u128) -> String {

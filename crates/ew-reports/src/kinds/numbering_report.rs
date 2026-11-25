@@ -4,11 +4,11 @@
 //! `numbering_report`: frozen tags and frozen wire numbers with their rule-derived values (FR-REP-022,
 //! FR-NUM-022, doc 09 §2.4).
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::NaturalKey;
-use ew_derive::ew_schema::{Connection, Device, NumberSpec, ReportBlock, ReportKind};
 use ew_derive::{Q, WireNumbers, rule_product};
+use ew_ids::Id;
 use ew_l10n::Text;
+use ew_mltext::NaturalKey;
+use ew_schema::{Connection, Device, NumberSpec, ReportBlock, ReportKind};
 
 use super::conn::{tag_key, words_cell};
 use crate::kind::ReportKindDef;

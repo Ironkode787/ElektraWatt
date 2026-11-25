@@ -84,7 +84,7 @@ fn a_live_session_keeps_its_old_journal() {
     let mut later = options(&vfs, 1);
     let clock = ManualClock::fixed();
     clock.advance(Duration::from_secs(31 * 24 * 3600));
-    vfs.set_modified(&ew_store::join(&root(), ew_store::ew_format::LOCK), clock.now())
+    vfs.set_modified(&ew_store::join(&root(), ew_format::LOCK), clock.now())
         .unwrap();
     later.clock = Arc::new(clock);
     assert_eq!(later.start_up_scan(), Vec::new());

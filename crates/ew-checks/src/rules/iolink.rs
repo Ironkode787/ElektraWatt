@@ -5,8 +5,8 @@
 //! class and mode) and EW-IOL-002 (process data and cable length). They read the port windows of an IO-Link master
 //! (`ew_derive::port_windows`), the master part's window and the IO-Link data of the connected device's part.
 
-use ew_derive::ew_schema::{Channel, ConnectionKind, Endpoint, Kind, LengthSource, PortClass, PortMode};
 use ew_derive::{ChannelTargets, Q, iolink_device, module_part, part_confidence, port_windows};
+use ew_schema::{Channel, ConnectionKind, Endpoint, Kind, LengthSource, PortClass, PortMode};
 
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
@@ -220,7 +220,7 @@ impl Rule for Limits {
                 };
                 // compared in nanometres, so 20.9 m is longer than 20 m; printed to the millimetre
                 if nm.0 > i64::from(max).saturating_mul(1_000_000_000) {
-                    let metres = ew_derive::ew_units::Dec3(nm.0 / 1_000_000);
+                    let metres = ew_units::Dec3(nm.0 / 1_000_000);
                     let tag = full_tag(q, cable, text!("word-the-cable"));
                     out.push(
                         Finding::new(

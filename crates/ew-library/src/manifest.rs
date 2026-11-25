@@ -5,9 +5,9 @@
 
 use std::collections::BTreeMap;
 
-use ew_format::ew_schema::{FORMAT, Sha256, parse_format_lenient};
 use ew_format::{MAX_GENERATION, hash_text};
 use ew_ids::Uuid;
+use ew_schema::{FORMAT, Sha256, parse_format_lenient};
 use serde_json::{Map, Value};
 
 /// The manifest's file name.
@@ -63,7 +63,7 @@ impl LibManifest {
     pub fn parse(bytes: &[u8]) -> Result<LibManifest, String> {
         let text = std::str::from_utf8(bytes).map_err(|_| "library.json is not UTF-8".to_owned())?;
         let text = text.strip_prefix('\u{feff}').unwrap_or(text);
-        let value = ew_format::ew_schema::parse_value(text).map_err(|e| format!("library.json: {e}"))?;
+        let value = ew_schema::parse_value(text).map_err(|e| format!("library.json: {e}"))?;
         let Value::Object(mut map) = value else {
             return Err("library.json is not a JSON object".to_owned());
         };

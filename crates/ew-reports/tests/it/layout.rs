@@ -4,10 +4,10 @@
 //! Invalid page geometry (doc 09 §3.2, FR-REP-039): a layout with a row height of 0 or less or a capacity
 //! below one data row is replaced by the house geometry instead of paginating without bound.
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_mltext::MlText;
-use ew_derive::ew_schema::{FormDef, LibDocument, Project, ReportBlock};
-use ew_derive::ew_units::Nm;
+use ew_ids::{Id, Uuid};
+use ew_mltext::MlText;
+use ew_schema::{FormDef, LibDocument, Project, ReportBlock};
+use ew_units::Nm;
 use ew_derive::{DeriveNote, GeneratedPage, Q};
 use ew_reports::{
     BlockSpec, Break, Cell, CellType, ColumnDef, Continuation, FixedLines, Layouts, PageLayout, Row, RowId,

@@ -16,8 +16,8 @@
 use crate::common;
 
 use ew_api::Session;
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_units::{Nm, Pt2, Rect};
+use ew_ids::{Id, Uuid};
+use ew_units::{Nm, Pt2, Rect};
 use ew_derive::{PageOrder, PageRef, PotentialPartition, Q};
 use ew_dl::{ItemKind, Layer};
 use ew_reports::BlockRows;

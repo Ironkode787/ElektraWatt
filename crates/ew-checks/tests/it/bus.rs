@@ -10,7 +10,7 @@ use crate::common;
 
 use common::*;
 use ew_checks::{Finding, Severity};
-use ew_derive::ew_schema::Kind;
+use ew_schema::Kind;
 use serde_json::{Value, json};
 
 const PNET: u128 = 0x40;

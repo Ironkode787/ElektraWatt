@@ -91,10 +91,6 @@ mod read;
 mod version;
 mod write;
 
-/// The record types this crate reads and writes, re-exported so that crates above it (`ew-store`) use the
-/// same types without a dependency edge of their own (ARCH §3).
-pub use ew_schema;
-
 pub use content::{ContentDigestError, content_digest, content_lines};
 pub use error::FormatError;
 pub use finding::{Finding, FindingKind, Findings, Severity};

@@ -5,8 +5,8 @@
 //!
 //! Not here: the property sheet (`properties.rs`); the selection's description (`selection.rs`).
 
-use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::{PageOrder, PageRef, Q};
+use ew_ids::{Id, Uuid};
 use ew_schema::{Connection, Device, Function, Kind, Page, Representation};
 
 use super::device_tag_text;
@@ -18,7 +18,7 @@ use super::selection::wire_number_text;
 type Place = Option<(usize, i64, i64)>;
 
 /// The place of a drawn point.
-fn place_at(q: &Q, page: Id<Page>, at: ew_derive::ew_units::Pt2) -> Place {
+fn place_at(q: &Q, page: Id<Page>, at: ew_units::Pt2) -> Place {
     let pos = q
         .get::<PageOrder>(())
         .entries
@@ -99,7 +99,7 @@ pub(crate) fn order_key(q: &Q, kind: Kind, id: Uuid, source: Option<&str>) -> (S
             (wire_number_text(q, c), place)
         }
         Kind::Page => {
-            let place = place_at(q, Id::from_uuid(id), ew_derive::ew_units::Pt2::ORIGIN);
+            let place = place_at(q, Id::from_uuid(id), ew_units::Pt2::ORIGIN);
             (record_title(q, id, source).unwrap_or_default(), place)
         }
         _ => (record_title(q, id, source).unwrap_or_default(), None),

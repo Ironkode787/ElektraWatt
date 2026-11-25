@@ -14,13 +14,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::OnceLock;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::natural_cmp;
-use ew_derive::ew_schema::{
-    BondKind, Channel, ColourCode, Connection, ContactKind, Csa, Device, Discipline, Function, FunctionKind,
-    IecColour, Kind, Page, PotentialEarthing, PotentialType, StructureNode,
-};
-use ew_derive::ew_units::Dec3;
 use ew_derive::{
     AttrConflict, BondCarrierQ, ChannelStates, ChannelsByCp, ConnWireProps, CpRef, DefAttr, DeriveNote,
     DeviceTag, DrawnPageOrder, EffectiveState, EndKind, EndpointKey, FlowBfs, FunctionCps, FunctionLinksOf,
@@ -29,6 +22,13 @@ use ew_derive::{
     colour_text, cp_label, cp_point, cp_text, csa_short_of, csa_text, device_location, potential_id_at,
     potential_part, ranked_defs, wire_props_below_overrides, wire_rating,
 };
+use ew_ids::Id;
+use ew_mltext::natural_cmp;
+use ew_schema::{
+    BondKind, Channel, ColourCode, Connection, ContactKind, Csa, Device, Discipline, Function, FunctionKind,
+    IecColour, Kind, Page, PotentialEarthing, PotentialType, StructureNode,
+};
+use ew_units::Dec3;
 
 use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
@@ -289,13 +289,13 @@ fn wire_note_findings(q: &Q, meta: &'static RuleMeta, p: PotentialId) -> Vec<Fin
 /// A connection by its ends as messages print a wire without a number (`-X1:1–-K1:A1`), a junction end as
 /// `junction`; empty for a subject that names no connection.
 fn connection_text(q: &Q, subject: &str) -> Named {
-    let Ok(uuid) = subject.parse::<ew_derive::ew_ids::Uuid>() else {
+    let Ok(uuid) = subject.parse::<ew_ids::Uuid>() else {
         return String::new().into();
     };
     let Some(c) = q.connections().get(Id::<Connection>::from_uuid(uuid)) else {
         return String::new().into();
     };
-    let end = |e: &ew_derive::ew_schema::Endpoint| match EndpointKey::of(e) {
+    let end = |e: &ew_schema::Endpoint| match EndpointKey::of(e) {
         Some(EndpointKey::Cp(f, i)) => TextArg::from(cp_label(q, CpRef::new(f, i))),
         _ => text!("word-junction").into(),
     };
@@ -314,7 +314,7 @@ fn carrier_wire_text(q: &Q, wires: &[PhysicalWire], subject: &str) -> Named {
 /// (empty without a frame grid), `page`, `group` (the interruption points' name) and `wires` (the wires that meet
 /// there, in natural order).
 fn feed_place(q: &Q, wires: &[PhysicalWire], subject: &str) -> Vec<(&'static str, TextArg)> {
-    let uuid = subject.parse::<ew_derive::ew_ids::Uuid>().ok();
+    let uuid = subject.parse::<ew_ids::Uuid>().ok();
     let wire_of = |c: Id<Connection>| {
         wires
             .iter()
@@ -376,7 +376,7 @@ fn note_owner(q: &Q, p: PotentialId, wires: &[PhysicalWire], subject: &str) -> O
         }
     }
     if pots.is_empty()
-        && let Ok(uuid) = subject.parse::<ew_derive::ew_ids::Uuid>()
+        && let Ok(uuid) = subject.parse::<ew_ids::Uuid>()
     {
         let partition = q.get::<PotentialPartition>(());
         let at = |e: EndpointKey| partition.potential_at(e).map(|x| x.id);
@@ -611,10 +611,10 @@ fn function_page(q: &Q, f: Id<Function>) -> Option<String> {
 }
 
 /// The folio of a potential definition's point.
-fn def_page(q: &Q, def: &ew_derive::ew_schema::PotentialDef) -> Option<String> {
+fn def_page(q: &Q, def: &ew_schema::PotentialDef) -> Option<String> {
     match def.at {
-        ew_derive::ew_schema::Endpoint::Cp(f, _) => function_page(q, f),
-        ew_derive::ew_schema::Endpoint::Junction(j) => {
+        ew_schema::Endpoint::Cp(f, _) => function_page(q, f),
+        ew_schema::Endpoint::Junction(j) => {
             let page = q.junctions().get(j)?.page;
             q.pages().get(page).map(|p| ew_derive::folio_label(p).to_string())
         }
@@ -624,11 +624,9 @@ fn def_page(q: &Q, def: &ew_derive::ew_schema::PotentialDef) -> Option<String> {
 
 /// A definition as a conflict names it: its name and the point it stands at (`24V at -G1:+`).
 /// A definition at an interruption point or a junction (no device) is named by its name alone.
-fn def_label(q: &Q, def: &ew_derive::ew_schema::PotentialDef) -> String {
+fn def_label(q: &Q, def: &ew_schema::PotentialDef) -> String {
     match def.at {
-        ew_derive::ew_schema::Endpoint::Cp(f, idx)
-            if q.functions().get(f).is_some_and(|x| x.device.is_some()) =>
-        {
+        ew_schema::Endpoint::Cp(f, idx) if q.functions().get(f).is_some_and(|x| x.device.is_some()) => {
             format!("{} at {}", def.name.as_str(), cp_text(q, CpRef::new(f, idx)))
         }
         _ => def.name.as_str().to_owned(),
@@ -636,8 +634,8 @@ fn def_label(q: &Q, def: &ew_derive::ew_schema::PotentialDef) -> String {
 }
 
 /// What a definition sets of `attr`, in words (`24 V`, `DC`, `control circuit`); empty when it sets none.
-fn def_attr_words(def: &ew_derive::ew_schema::PotentialDef, attr: DefAttr) -> TextArg {
-    use ew_derive::ew_schema::{AcDc, CircuitClass};
+fn def_attr_words(def: &ew_schema::PotentialDef, attr: DefAttr) -> TextArg {
+    use ew_schema::{AcDc, CircuitClass};
     let none = || TextArg::Plain(String::new());
     match attr {
         DefAttr::Type => def.ptype.as_ref().map_or_else(none, type_words),
@@ -699,7 +697,7 @@ fn conflict_piece(q: &Q, c: &AttrConflict) -> ConflictPiece {
                 DefAttr::Environment => "conflict-environment",
                 DefAttr::Class => "conflict-class",
             };
-            let side = |x: Option<&std::sync::Arc<ew_derive::ew_schema::PotentialDef>>| {
+            let side = |x: Option<&std::sync::Arc<ew_schema::PotentialDef>>| {
                 x.map_or_else(
                     || (String::new(), TextArg::Plain(String::new())),
                     |x| (def_label(q, x), def_attr_words(x, *attr)),
@@ -892,7 +890,7 @@ impl Rule for PelvSelvBonding {
             .get(p)
             .map(|x| x.defs.clone())
             .unwrap_or_default();
-        let declared = |pred: &dyn Fn(&ew_derive::ew_schema::PotentialDef) -> bool| {
+        let declared = |pred: &dyn Fn(&ew_schema::PotentialDef) -> bool| {
             defs.iter()
                 .filter_map(|d| q.potential_defs().get(*d))
                 .any(|d| pred(d))
@@ -1032,7 +1030,7 @@ pub const GNYE_ON_NON_PE: RuleMeta = RuleMeta {
 };
 
 /// Whether a colour is exactly the IEC code(s) `codes`.
-fn colour_is(colour: Option<&ew_derive::ew_schema::ColourSpec>, codes: &[IecColour]) -> bool {
+fn colour_is(colour: Option<&ew_schema::ColourSpec>, codes: &[IecColour]) -> bool {
     colour.is_some_and(|c| {
         c.codes().len() == codes.len()
             && c.codes()
@@ -2840,7 +2838,7 @@ mod tests {
 
     #[test]
     fn duplicate_wire_numbers_are_one_finding_per_label() {
-        let w = |n: u128| Id::<Connection>::from_uuid(ew_derive::ew_ids::Uuid::from_u128(n));
+        let w = |n: u128| Id::<Connection>::from_uuid(ew_ids::Uuid::from_u128(n));
         let f = duplicate_numbers([
             ("101.2".to_owned(), w(2)),
             ("101.1".to_owned(), w(1)),

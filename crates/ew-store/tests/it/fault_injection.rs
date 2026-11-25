@@ -16,8 +16,8 @@ use common::{
     project_files, reopen, root, small_fixture, temps, try_reopen,
 };
 use ew_model::{AnyKey, AnyRow, ApplyOptions, Model, Op, Rev};
-use ew_store::ew_format::ew_schema::{FnDef, LibCopy, LibDocument, Sha256, SymbolDef};
-use ew_store::ew_format::{FindingKind, Limits, Manifest, Severity, hash_text, library_copy_hash, sha256};
+use ew_schema::{FnDef, LibCopy, LibDocument, Sha256, SymbolDef};
+use ew_format::{FindingKind, Limits, Manifest, Severity, hash_text, library_copy_hash, sha256};
 use ew_store::journal::{self, Collision, Entry, JournalOp, ReplayError};
 use ew_store::mem::{DirSync, Fault, MemVfs};
 use ew_store::{
@@ -762,7 +762,7 @@ fn a_read_only_open_ignores_an_intent_not_above_the_manifest() {
     // progress. Before the fix the read-only opener read it in memory (here: an intent that drops a page).
     let (vfs, root) = mem_project(DirSync::Explicit);
     let files = fixture();
-    let limits = ew_store::ew_format::Limits::default();
+    let limits = ew_format::Limits::default();
     let mut stale = Manifest::parse(&files["manifest.json"], &limits).expect("the fixture's manifest");
     let page = stale
         .files
@@ -1320,7 +1320,7 @@ const LOGO: &[u8] =
 /// The sweeps' small fixture ([`small_fixture`]) opened as pid 1, and `g1`: the project row naming a logo asset
 /// that `g1` holds, journalled as committed.
 fn logo_setup(mode: DirSync) -> (Arc<MemVfs>, Store, Model, BTreeSet<AnyKey>, ew_model::Asset) {
-    use ew_store::ew_format::ew_schema::{AssetRef, COMPANY_MEMBER, sniff};
+    use ew_schema::{AssetRef, COMPANY_MEMBER, sniff};
     let (vfs, root) = mem_project_of(mode, small_fixture());
     let Opened { mut store, model, .. } = Store::open(&root, options(&vfs, 1)).expect("the fixture opens");
     let (format, size) = sniff(LOGO).expect("an SVG");
@@ -1347,7 +1347,7 @@ fn logo_setup(mode: DirSync) -> (Arc<MemVfs>, Store, Model, BTreeSet<AnyKey>, ew
     );
     g1.put_asset(asset.clone());
     let keys: BTreeSet<AnyKey> = std::iter::once(g1.project().id.cast())
-        .map(|id| (ew_store::ew_format::ew_schema::Kind::Project, id))
+        .map(|id| (ew_schema::Kind::Project, id))
         .collect();
     let keys_vec: Vec<AnyKey> = keys.iter().copied().collect();
     store

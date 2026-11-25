@@ -13,8 +13,8 @@ use std::collections::BTreeSet;
 use ew_commands::commands::{
     CopyPages, Fragment, NodeSwap, Rename, TextNames, designation_moves, renamed, renamed_mltext, text_names,
 };
-use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::{IpPairingQ, Q, short_tag};
+use ew_ids::{Id, Uuid};
 use ew_schema::{
     Bond, Conductor, Connection, ConnectionKind, Device, Endpoint, Function, IpDirection, Kind, Page, Record,
     Representation, StructureNode,

@@ -22,8 +22,8 @@ use crate::common;
 
 use ew_api::Session;
 use ew_api::output::{RowExport, page_layer, page_view, row_export};
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_units::{Nm, Pt2, Rect};
+use ew_ids::{Id, Uuid};
+use ew_units::{Nm, Pt2, Rect};
 use ew_derive::{PageOrder, PageRef, Q};
 use ew_dl::{DisplayList, ItemKind, Layer};
 use ew_reports::BlockRows;

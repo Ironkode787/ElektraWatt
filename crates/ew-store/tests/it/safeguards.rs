@@ -19,8 +19,8 @@ use common::{
     options, project_files, reopen, unused_folio, with_logo,
 };
 use ew_model::{AnyKey, AnyRow, Asset, Model, Op};
-use ew_store::ew_format::ew_schema::{AssetRef, Device, Page, Record, Sha256, sniff};
-use ew_store::ew_format::{
+use ew_schema::{AssetRef, Device, Page, Record, Sha256, sniff};
+use ew_format::{
     FileHash, FilePath, Finding, FindingKind, Limits, MANIFEST, MAX_GENERATION, Manifest, hash_text,
     record_line, sha256,
 };

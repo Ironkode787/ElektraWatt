@@ -10,9 +10,9 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, UNIX_EPOCH};
 
+use ew_format::Manifest;
 use ew_model::{AnyKey, AnyRow, Asset, Model, ModelError, Op, Rev};
-use ew_store::ew_format::Manifest;
-use ew_store::ew_format::ew_schema::{COMPANY_MEMBER, Device, Kind, Page, Record};
+use ew_schema::{COMPANY_MEMBER, Device, Kind, Page, Record};
 use ew_store::mem::{DirSync, MemVfs};
 use ew_store::{
     Access, Identity, ManualClock, OpenError, Opened, ProcessProbe, ProcessState, ReadOnlyReason, Store,
@@ -131,7 +131,7 @@ fn thin<T: ew_model::Entity>(model: &mut Model, keep: usize, kept: &[Kind]) {
 /// (asserted), and a save of the edit batch ([`edit`]) makes the same sequence of `Vfs` calls as on the sample (two
 /// device shards and a page written, a page removed), at a fraction of the open's parse cost.
 pub fn small_fixture() -> BTreeMap<String, Vec<u8>> {
-    use ew_store::ew_format::ew_schema::{FnDef, FormDef, LibCopy, Manufacturer, Part, SymbolDef};
+    use ew_schema::{FnDef, FormDef, LibCopy, Manufacturer, Part, SymbolDef};
     static SMALL: std::sync::OnceLock<BTreeMap<String, Vec<u8>>> = std::sync::OnceLock::new();
     SMALL
         .get_or_init(|| {

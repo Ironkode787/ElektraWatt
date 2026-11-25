@@ -38,15 +38,15 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use ew_commands::commands::{PASTE_KINDS, PASTE_MAX_RECORDS};
-use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::{PageOrder, PageRef, Q};
+use ew_format::{MIGRATIONS, Migration, Migrations, rehash_migrated_copy};
+use ew_ids::{Id, Uuid};
 use ew_model::EndpointKey;
 use ew_schema::{
     Connection, ConnectionKind, Device, Endpoint, Function, GraphicShape, Junction, Kind, LibDocument, Page,
     PageItem, PageItemKind, PotentialDef, Record, Representation, Slot, StructureAssignment, StructureBox,
     StructureNode,
 };
-use ew_store::ew_format::{MIGRATIONS, Migration, Migrations, rehash_migrated_copy};
 use serde_json::{Value, json};
 
 use crate::Session;

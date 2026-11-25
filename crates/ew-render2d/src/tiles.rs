@@ -514,7 +514,7 @@ impl<T> TileCache<T> {
 
 #[cfg(test)]
 mod tests {
-    use ew_dl::ew_units::Nm;
+    use ew_units::Nm;
 
     use super::*;
 

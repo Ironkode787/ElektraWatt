@@ -31,6 +31,7 @@ ew-render-cpu = { path = "../ew-render-cpu" }
 # The display list it prints, named by its own crate (a foundation edge, ARCH §3 rule 6).
 ew-dl = { path = "../ew-dl" }
 ew-hack = { version = "0.3.5", path = "../ew-hack" }
+ew-units = { path = "../ew-units" }
 
 # WP-S3.07 D11: the xdg-desktop-portal Print adapter on Linux (MIT; MSRV 1.87). No default features (they bring
 # tokio): the async-io executor the graph's zbus 5 already runs on for accessibility, and the print portal only.

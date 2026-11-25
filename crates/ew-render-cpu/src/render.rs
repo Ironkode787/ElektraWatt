@@ -6,11 +6,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
-use ew_dl::ew_units::{Nm, Pt2};
 use ew_dl::{
     Cap, Color, DisplayList, FontKey, GeometryMap, ImageFormat, ImageItem, ItemKind, Join, MAX_GROUP_DEPTH,
     MAX_INSTANCE_DEPTH, MITER_LIMIT, PathItem, ShapedRun, Stroke, Transform, kurbo_rect,
 };
+use ew_units::{Nm, Pt2};
 use vello_cpu::kurbo::{self, Affine, Shape};
 use vello_cpu::peniko::{Blob, Fill, FontData};
 use vello_cpu::{Level, Pixmap, RenderContext, RenderSettings, Resources};

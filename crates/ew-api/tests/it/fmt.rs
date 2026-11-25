@@ -12,7 +12,7 @@ use std::time::{Duration, UNIX_EPOCH};
 
 use ew_api::fmt::{self, Backup, Decided, DiscardedLine, FmtError, RepairError, Repaired, Rewrite};
 use ew_api::{AnyCommand, Recovery, Session, SessionOptions};
-use ew_store::ew_format::{hash_text, sha256};
+use ew_format::{hash_text, sha256};
 use ew_store::ewz;
 use ew_store::lock::Identity;
 use ew_store::mem::{DirSync, Fault, MemVfs};

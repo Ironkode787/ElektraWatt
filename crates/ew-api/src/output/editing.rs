@@ -15,10 +15,10 @@
 //! page-content cache fetches the page tables once per (revision, folio) and a shape once per symbol copy per
 //! revision (NFR-PERF-20).
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_schema::Junction;
 use ew_derive::{PhysicalWiresOf, PotentialPartition, WireNumbers, cp_label};
+use ew_ids::{Id, Uuid};
 use ew_model::EndpointKey;
+use ew_schema::Junction;
 
 use crate::Session;
 
@@ -75,7 +75,7 @@ impl Session {
         };
         let wires = q.get::<PhysicalWiresOf>(potential);
         let numbers = q.get::<WireNumbers>(());
-        let mut out: Vec<(JunctionWire, Id<ew_derive::ew_schema::Connection>)> = wires
+        let mut out: Vec<(JunctionWire, Id<ew_schema::Connection>)> = wires
             .wires
             .iter()
             .filter(|w| w.junctions.contains(&j))
@@ -111,8 +111,8 @@ pub(crate) fn junction_wire_order(a: &JunctionWire, b: &JunctionWire) -> std::cm
 
 #[cfg(test)]
 mod tests {
-    use ew_derive::ew_units::{Nm, Pt2};
     use ew_dl::PathEl;
+    use ew_units::{Nm, Pt2};
 
     use super::shape::{ExchangeMap, flatten};
     use super::tables::placed_body;

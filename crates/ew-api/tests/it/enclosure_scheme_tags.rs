@@ -9,7 +9,7 @@ use crate::common;
 
 use ew_api::AnyCommand;
 use ew_api::checks::{CheckMode, PRE_DELIVERY};
-use ew_derive::ew_ids::{Id, Uuid};
+use ew_ids::{Id, Uuid};
 use ew_derive::{DeviceTag, Q};
 use ew_schema::{Device, Enclosure, MountingSurface};
 use serde_json::json;

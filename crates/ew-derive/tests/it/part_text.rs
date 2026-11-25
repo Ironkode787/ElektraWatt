@@ -7,8 +7,8 @@
 use crate::common;
 
 use common::{Fx, LIBRARY, id, uid};
-use ew_derive::ew_ids::{Id, Uuid, v5};
-use ew_derive::ew_schema::Confidence;
+use ew_ids::{Id, Uuid, v5};
+use ew_schema::Confidence;
 use ew_derive::{Q, main_part, manufacturer_name, part_confidence, tech_data_text};
 use serde_json::{Value, json};
 

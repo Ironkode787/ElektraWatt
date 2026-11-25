@@ -33,20 +33,20 @@ use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
 
 use ew_derive::Q;
 use ew_derive::StructureOf;
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::natural_cmp;
-use ew_derive::ew_rds::Aspect;
-use ew_derive::ew_schema::{
-    Carrier, CarrierKind, CarrierParams, CarrierRef, Device, Enclosure, Kind, LayoutSpace, LibCopy,
-    MountKind, MountingSurface, Part, PartRef, Placement, StructureNode, SurfaceKind,
-};
-use ew_derive::ew_units::{Pt2, Rect};
 use ew_derive::layout::{
     Bracket, BracketRole, CarrierGeometry, Fit, GroupAccessories, PlacementGeometry, PoseError, PoseOn,
     Profile, RailAxis, RailOccupancy, Unplaced, carrier_label, check_pose, fits_rail, fits_surface,
     member_order, primary_part, surface_pages,
 };
 use ew_derive::part_confidence;
+use ew_ids::Id;
+use ew_mltext::natural_cmp;
+use ew_rds::Aspect;
+use ew_schema::{
+    Carrier, CarrierKind, CarrierParams, CarrierRef, Device, Enclosure, Kind, LayoutSpace, LibCopy,
+    MountKind, MountingSurface, Part, PartRef, Placement, StructureNode, SurfaceKind,
+};
+use ew_units::{Pt2, Rect};
 
 use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
@@ -1321,7 +1321,7 @@ impl Rule for AssemblyOrder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ew_derive::ew_units::Nm;
+    use ew_units::Nm;
 
     fn p(u: i64, v: i64) -> Pt2 {
         Pt2::new(Nm(u), Nm(v))
@@ -1336,7 +1336,7 @@ mod tests {
     /// below the cap, and the cap reported exactly when the oracle has more pairs.
     #[test]
     fn the_sweep_finds_the_pairs_the_oracle_finds() {
-        let id = |n: u128| Id::from_uuid(ew_derive::ew_ids::Uuid::from_u128(n));
+        let id = |n: u128| Id::from_uuid(ew_ids::Uuid::from_u128(n));
         let mut seed: u64 = 0x2545_f491_4f6c_dd1d;
         let mut next = |m: u64| {
             seed = seed

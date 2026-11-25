@@ -7,9 +7,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
-use ew_format::ew_schema::{Kind, LibDocument, LibRef, semver_core};
 use ew_format::{FileHash, Limits};
 use ew_ids::Uuid;
+use ew_schema::{Kind, LibDocument, LibRef, semver_core};
 use rusqlite::Transaction;
 use serde_json::Value;
 
@@ -288,7 +288,7 @@ fn check_manifest(bytes: &[u8], limits: &Limits) -> Result<LibManifest, String> 
         return Err(format!(
             "library.json needs reader format {} (this reader: {})",
             m.min_reader,
-            ew_format::ew_schema::FORMAT
+            ew_schema::FORMAT
         ));
     }
     if m.files.len() > limits.max_files {

@@ -26,6 +26,11 @@ ew-zip = { path = "../ew-zip" }
 # The words of the lists by key (`texts/`, `ew_reports::words`), rendered by the one renderer.
 ew-l10n = { path = "../ew-l10n" }
 ew-hack = { version = "0.3.5", path = "../ew-hack" }
+ew-ids = { path = "../ew-ids" }
+ew-mltext = { path = "../ew-mltext" }
+ew-plcaddr = { path = "../ew-plcaddr" }
+ew-schema = { path = "../ew-schema" }
+ew-units = { path = "../ew-units" }
 
 [build-dependencies]
 # The generator of the key table that `build.rs` writes.

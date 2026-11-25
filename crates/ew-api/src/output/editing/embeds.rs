@@ -9,9 +9,9 @@
 
 use std::collections::BTreeSet;
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_schema::{LibCopy, LibDocument, LibRef, SymbolDef};
+use ew_ids::{Id, Uuid};
 use ew_library::starter;
+use ew_schema::{LibCopy, LibDocument, LibRef, SymbolDef};
 
 use super::catalogue::{starter_docs, starter_symbol};
 use crate::Session;

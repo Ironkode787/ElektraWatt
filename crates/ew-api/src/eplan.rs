@@ -14,13 +14,13 @@
 
 use std::path::Path;
 
-use ew_derive::ew_ids::{Id, Uuid};
+use ew_format::library_copy_hash;
+use ew_ids::{Id, Uuid};
 use ew_import_catalog::ew_interop_api::pn_norm;
 use ew_import_eplan::{IMPORTER_ID, IMPORTER_VERSION};
 use ew_schema::{
     FreeProp, LibCopy, LibDocument, LibRef, Manufacturer, MechData, Part, PartKind, Sha256, starter,
 };
-use ew_store::ew_format::library_copy_hash;
 
 pub use ew_import_eplan::{FndefMap, PartsRead, is_edz};
 
@@ -60,7 +60,7 @@ fn starter_fndef(reg: &library::Registry, key: &str) -> Option<LibDocument> {
     let library = ew_schema::starter::LIBRARY;
     reg.resolve(&LibRef {
         library: Id::from_uuid(library),
-        item: Id::from_uuid(ew_derive::ew_ids::v5::library_item_id(library, key)),
+        item: Id::from_uuid(ew_ids::v5::library_item_id(library, key)),
         version_req: "*".to_owned(),
         extra: Default::default(),
     })
@@ -626,9 +626,8 @@ impl Session {
             }
         }
         for r in named {
-            let held: Id<ew_schema::FnDef> = Id::from_uuid(
-                ew_derive::ew_ids::v5::lib_copy_id::<()>(r.library.as_uuid(), r.item.as_uuid()).as_uuid(),
-            );
+            let held: Id<ew_schema::FnDef> =
+                Id::from_uuid(ew_ids::v5::lib_copy_id::<()>(r.library.as_uuid(), r.item.as_uuid()).as_uuid());
             if q.fndefs().get(held).is_none()
                 && let Ok(doc) = self.libraries().resolve(&r)
             {

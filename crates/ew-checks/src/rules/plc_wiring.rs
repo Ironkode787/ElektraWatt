@@ -9,14 +9,14 @@
 
 use std::collections::BTreeMap;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{
-    AddrSpec, BondKind, ChannelKind, ContactKind, Device, Kind, PlcConfigProject, PlcRole, PlcSection,
-    PotentialType, SupplyFeeds, SupplyKind, TechVal, Unit,
-};
 use ew_derive::{
     ChannelStates, ChannelTargets, ChannelTexts, CpRef, EffectiveState, FunctionCps, ModuleOrder, Q, Slot,
     channel_data_type, cp_label, is_iec_ident, module_part, part_confidence, potential_id_at,
+};
+use ew_ids::Id;
+use ew_schema::{
+    AddrSpec, BondKind, ChannelKind, ContactKind, Device, Kind, PlcConfigProject, PlcRole, PlcSection,
+    PotentialType, SupplyFeeds, SupplyKind, TechVal, Unit,
 };
 
 use crate::finding::{Finding, Severity, Target};
@@ -30,10 +30,7 @@ use crate::rules::term::full_tag;
 pub fn station_section(
     q: &Q,
     station: Id<Device>,
-) -> Option<(
-    std::sync::Arc<ew_derive::ew_schema::LibCopy<ew_derive::ew_schema::Part>>,
-    PlcSection,
-)> {
+) -> Option<(std::sync::Arc<ew_schema::LibCopy<ew_schema::Part>>, PlcSection)> {
     let dev = q.devices().get(station)?;
     let parts = q.parts();
     dev.parts
@@ -100,7 +97,7 @@ impl Rule for KindMismatch {
         let Scope::Module(module) = *scope else {
             return Vec::new();
         };
-        let channels = q.table::<ew_derive::ew_schema::Channel>();
+        let channels = q.table::<ew_schema::Channel>();
         let mut out = Vec::new();
         for t in q.get::<ChannelTargets>(module).iter() {
             let (Some(c), Some(f)) = (channels.get(t.channel), t.function) else {
@@ -184,7 +181,7 @@ impl Rule for InvalidSymbol {
         if !strict {
             return Vec::new();
         }
-        let channels = q.table::<ew_derive::ew_schema::Channel>();
+        let channels = q.table::<ew_schema::Channel>();
         let name = cfg_name(q, cfg);
         let mut out = Vec::new();
         for module in cfg_modules(q, cfg) {
@@ -245,7 +242,7 @@ impl Rule for WithoutConnection {
         let Scope::Module(module) = *scope else {
             return Vec::new();
         };
-        let channels = q.table::<ew_derive::ew_schema::Channel>();
+        let channels = q.table::<ew_schema::Channel>();
         let targets = q.get::<ChannelTargets>(module);
         let states = q.get::<ChannelStates>(module);
         let texts = q.get::<ChannelTexts>(module);
@@ -343,7 +340,7 @@ impl Rule for WidthMismatch {
             return Vec::new();
         };
         let confidence = module_part(q, module).map(|(copy, _)| part_confidence(&copy, "plc"));
-        let channels = q.table::<ew_derive::ew_schema::Channel>();
+        let channels = q.table::<ew_schema::Channel>();
         let mut out = Vec::new();
         for (id, _) in q.get::<ChannelStates>(module).iter() {
             let Some(c) = channels.get(*id) else {
@@ -469,9 +466,9 @@ impl Rule for SlotRules {
             for r in &ew_derive::module_io(q, *module) {
                 let bytes = u64::from(r.bits.div_ceil(8));
                 match r.dir {
-                    ew_derive::ew_schema::IoDir::In => input += bytes,
-                    ew_derive::ew_schema::IoDir::Out => output += bytes,
-                    ew_derive::ew_schema::IoDir::Unknown(_) => {}
+                    ew_schema::IoDir::In => input += bytes,
+                    ew_schema::IoDir::Out => output += bytes,
+                    ew_schema::IoDir::Unknown(_) => {}
                 }
             }
             let number = match slot {
@@ -756,7 +753,7 @@ impl Rule for OutputLoad {
         let Scope::Station(station) = *scope else {
             return Vec::new();
         };
-        let channels = q.table::<ew_derive::ew_schema::Channel>();
+        let channels = q.table::<ew_schema::Channel>();
         let mut out = Vec::new();
         for (module, _) in station_modules(q, station) {
             let Some((copy, plc)) = module_part(q, module) else {
@@ -833,7 +830,7 @@ fn load_finding(
     form: &'static str,
     load: u64,
     limit: u64,
-    confidence: &ew_derive::ew_schema::Confidence,
+    confidence: &ew_schema::Confidence,
 ) -> Finding {
     Finding::new(&OUTPUT_LOAD, [target], form, subject.to_owned())
         .arg("form", form)

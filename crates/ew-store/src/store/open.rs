@@ -499,7 +499,7 @@ impl Store {
                 _ => None,
             })
             .flat_map(|id| {
-                ew_format::ew_schema::Kind::ALL
+                ew_schema::Kind::ALL
                     .into_iter()
                     .filter(|k| k.is_library())
                     .map(move |k| (k, id))

@@ -28,7 +28,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use ew_caex::ExchangeImage;
-use ew_derive::ew_schema::{AnyId, ExchangeObject, FieldGroup, Owner, Ownership};
+use ew_schema::{AnyId, ExchangeObject, FieldGroup, Owner, Ownership};
 
 use crate::fields::{FieldClass, Object, Snapshot, class, objects, ours};
 use crate::image::Projection;

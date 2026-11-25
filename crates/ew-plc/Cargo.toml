@@ -24,3 +24,8 @@ ew-caex = { path = "../ew-caex" }
 serde.workspace = true
 schemars = "1.2.3"
 ew-hack = { version = "0.3.5", path = "../ew-hack" }
+ew-ids = { path = "../ew-ids" }
+ew-mltext = { path = "../ew-mltext" }
+ew-plcaddr = { path = "../ew-plcaddr" }
+ew-rds = { path = "../ew-rds" }
+ew-schema = { path = "../ew-schema" }

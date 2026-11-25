@@ -17,12 +17,12 @@
 
 use std::collections::BTreeSet;
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_schema::{Channel, Device, Function};
 use ew_derive::{
     ChannelAddr, ChannelAddresses, ChannelsByCp, CpRef, FunctionCps, PotentialPartition, Q, channel_pin,
     cp_label, module_part, short_tag,
 };
+use ew_ids::{Id, Uuid};
+use ew_schema::{Channel, Device, Function};
 
 use crate::Session;
 
@@ -112,7 +112,7 @@ impl Session {
         let valve = q
             .fndefs()
             .get(f.def)
-            .is_some_and(|d| d.item.contact_kind == ew_derive::ew_schema::ContactKind::Valve);
+            .is_some_and(|d| d.item.contact_kind == ew_schema::ContactKind::Valve);
         let device = f.device?;
         if !valve || !q.get::<FunctionCps>(fid).iter().any(|c| c.idx == idx) {
             return None;

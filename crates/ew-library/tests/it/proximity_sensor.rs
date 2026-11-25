@@ -3,7 +3,7 @@
 
 //! FT-1840: the three-wire PNP proximity sensor among the starter parts, on its own starter symbol.
 
-use ew_format::ew_schema::{LibDocument, LibRef};
+use ew_schema::{LibDocument, LibRef};
 use ew_library::{PartQuery, Registry, starter};
 
 /// A search for a proximity sensor finds the generic PNP sensor, whose three pins are its cores brown (L+), black

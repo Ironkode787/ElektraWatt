@@ -16,13 +16,13 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_rds::Aspect;
 use ew_derive::layout::{
     Fit, LabelMode, LayoutLabel, PlacementGeometry, Quarter, RailAxis, brackets, carrier_labels, fits_rail,
     free_length, mount_label, path_length, rail_items,
 };
 use ew_derive::{DeviceTag, DrawnPageOrder, PageRef, Q};
+use ew_ids::{Id, Uuid};
+use ew_rds::Aspect;
 use ew_scene::panel::{LabelShow, Projection};
 use ew_schema::{
     Carrier, CarrierKind, CarrierParams, CarrierRef, Device, Enclosure, Kind, LayoutSpace, LibCopy,
@@ -454,7 +454,7 @@ pub(crate) fn layout_rows(q: &Q, kind: Kind, targets: &[Uuid]) -> Option<Vec<Pro
 }
 
 /// The quarter turns of a pose (0 when it is no quarter turn).
-fn quarter(pose: &ew_derive::ew_units::Pose3) -> u8 {
+fn quarter(pose: &ew_units::Pose3) -> u8 {
     Quarter::of(pose.q).map_or(0, Quarter::k)
 }
 
@@ -653,7 +653,7 @@ fn project_parts_of(q: &Q, kind: PartKind) -> Vec<(Id<Part>, String)> {
         .filter(|(_, c)| c.item.kind == kind)
         .map(|(id, c)| (id, c.item.part_number.as_str().to_owned()))
         .collect();
-    out.sort_by(|a, b| ew_derive::ew_mltext::natural_cmp(&a.1, &b.1).then(a.0.cmp(&b.0)));
+    out.sort_by(|a, b| ew_mltext::natural_cmp(&a.1, &b.1).then(a.0.cmp(&b.0)));
     out
 }
 
@@ -850,7 +850,7 @@ fn labels_param(show: LabelShow) -> &'static str {
 /// The project's mounting surfaces with their words, by the words, then ID.
 fn surfaces_in_order(q: &Q) -> Vec<(Id<MountingSurface>, String)> {
     let mut out = surface_words(q);
-    out.sort_by(|a, b| ew_derive::ew_mltext::natural_cmp(&a.1, &b.1).then(a.0.cmp(&b.0)));
+    out.sort_by(|a, b| ew_mltext::natural_cmp(&a.1, &b.1).then(a.0.cmp(&b.0)));
     out
 }
 
@@ -878,9 +878,9 @@ pub(crate) fn centred_datum(
     let s = q.table::<MountingSurface>().get(surface)?;
     // The drawing area's centre on the page: the frame's geometry is in page coordinates already (FT-1768).
     let (area, map) = drawing_area(q, page)?;
-    let mid = ew_derive::ew_units::Pt2::new(
-        ew_derive::ew_units::Nm((area.min().x.0 + area.max().x.0) / 2),
-        ew_derive::ew_units::Nm((area.min().y.0 + area.max().y.0) / 2),
+    let mid = ew_units::Pt2::new(
+        ew_units::Nm((area.min().x.0 + area.max().x.0) / 2),
+        ew_units::Nm((area.min().y.0 + area.max().y.0) / 2),
     );
     // The enclosure's rectangle in the surface's frame: its corner at minus the frame's offset (D5's MVP frames).
     let enclosure = q
@@ -905,7 +905,7 @@ pub(crate) fn centred_datum(
         Some((us.clone().min()?, vs.clone().min()?, us.max()?, vs.max()?))
     })?;
     let (uc, vc) = ((bounds.0 + bounds.2) / 2, (bounds.1 + bounds.3) / 2);
-    let projection = Projection::on_sheet(ew_derive::ew_units::Pt2::ORIGIN, scale, map.scale_ppb);
+    let projection = Projection::on_sheet(ew_units::Pt2::ORIGIN, scale, map.scale_ppb);
     let x = i128::from(mid.x.0) - projection.length(uc);
     let y = i128::from(mid.y.0) + projection.length(vc);
     Some((i64::try_from(x).ok()?, i64::try_from(y).ok()?))
@@ -1397,9 +1397,7 @@ impl Session {
             .filter(|(_, c)| usable(c))
             .map(|(_, c)| offer(c, Vec::new()))
             .collect();
-        held.sort_by(|a, b| {
-            ew_derive::ew_mltext::natural_cmp(&a.number, &b.number).then(a.part.cmp(&b.part))
-        });
+        held.sort_by(|a, b| ew_mltext::natural_cmp(&a.number, &b.number).then(a.part.cmp(&b.part)));
         let mut seen: BTreeSet<Uuid> = held.iter().map(|o| o.part).collect();
         for c in self.library_parts() {
             if !usable(&c) || !seen.insert(c.id.as_uuid()) {
@@ -1414,7 +1412,7 @@ impl Session {
             };
             let mut refs = vec![r];
             if let Some(plate) = c.item.sections.enclosure.as_ref().and_then(|e| e.plate.clone()) {
-                let copy = ew_derive::ew_ids::v5::lib_copy_id(plate.library.as_uuid(), plate.item.as_uuid());
+                let copy = ew_ids::v5::lib_copy_id(plate.library.as_uuid(), plate.item.as_uuid());
                 if !q.parts().contains(copy) {
                     refs.push(plate);
                 }
@@ -1503,7 +1501,7 @@ impl Session {
             .map(|(id, _)| (id.as_uuid(), location_text(&q, id)))
             .filter(|(_, code)| !code.is_empty())
             .collect();
-        out.sort_by(|a, b| ew_derive::ew_mltext::natural_cmp(&a.1, &b.1).then(a.0.cmp(&b.0)));
+        out.sort_by(|a, b| ew_mltext::natural_cmp(&a.1, &b.1).then(a.0.cmp(&b.0)));
         out
     }
 

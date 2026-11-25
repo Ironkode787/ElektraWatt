@@ -32,9 +32,9 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
-use ew_format::ew_schema::{AnyId, AssetRef, Kind, Sha256, base64_decode, base64_encode};
 use ew_format::{FilePath, hash_text, sha256};
 use ew_model::{AnyKey, AnyRow, Asset, Model};
+use ew_schema::{AnyId, AssetRef, Kind, Sha256, base64_decode, base64_encode};
 use serde_json::{Map, Value};
 
 use crate::rows::{row_value, value_row};
@@ -672,7 +672,7 @@ fn asset_from_value(v: &Value) -> Option<Asset> {
     if sha256(&bytes) != reference.sha256.0 {
         return None;
     }
-    let (format, size) = ew_format::ew_schema::sniff(&bytes).ok()?;
+    let (format, size) = ew_schema::sniff(&bytes).ok()?;
     (format == reference.format && size == reference.size).then(|| Asset::new(reference, bytes))
 }
 

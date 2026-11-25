@@ -27,9 +27,9 @@ use std::fmt;
 use std::sync::{Arc, OnceLock};
 
 use ew_derive::Q;
-use ew_derive::ew_mltext::LangTag;
 use ew_dl::{DisplayList, Item};
 use ew_export::{Parallelism, PdfPage, PdfReport};
+use ew_mltext::LangTag;
 use ew_text::TextStyle;
 use ew_units::{Nm, Pt2, arith};
 
@@ -566,7 +566,7 @@ mod tests {
             None,
         );
         let page = PdfPage {
-            destination: ew_dl::Destination::Page(ew_derive::ew_ids::Uuid::from_u128(902)),
+            destination: ew_dl::Destination::Page(ew_ids::Uuid::from_u128(902)),
             label: "902".to_owned(),
             title: "902 Cabinet".to_owned(),
             section: None,

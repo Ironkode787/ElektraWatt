@@ -13,9 +13,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-use ew_format::ew_schema::{ItemStatus, Kind, LibDocument, Part, PartKind};
 use ew_ids::Uuid;
 use ew_interop_api::pn_norm;
+use ew_schema::{ItemStatus, Kind, LibDocument, Part, PartKind};
 use rusqlite::config::DbConfig;
 use rusqlite::types::Value as Sql;
 use rusqlite::{Connection, OpenFlags, OptionalExtension, Transaction, params, params_from_iter};

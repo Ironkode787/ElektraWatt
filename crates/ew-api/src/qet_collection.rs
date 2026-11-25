@@ -11,8 +11,8 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
-use ew_derive::ew_ids::v5::{self, LineageAnchor};
-use ew_derive::ew_ids::{Id, Uuid};
+use ew_ids::v5::{self, LineageAnchor};
+use ew_ids::{Id, Uuid};
 use ew_import_qet::{ElementSource, read_element};
 use ew_schema::{ImportLineage, LibDocument, Project};
 use sha2::Digest as _;

@@ -8,7 +8,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use ew_format::ew_schema::{FORMAT, Kind, KindStatus, LibDocument, Record};
+use ew_schema::{FORMAT, Kind, KindStatus, LibDocument, Record};
 use ew_format::{
     FilePath, FormatStep, Limits, MANIFEST, MIGRATIONS, Manifest, MergeSide, MigrationError, Migrations,
     PathClass, classify, load, merge_file, merge_record,
@@ -1136,7 +1136,7 @@ fn file_conflict(side: &str, text: &str) -> String {
     let path = &wire_page().path;
     format!(
         r#"{{"$k":"conflict","id":"{}","kind":"file","path":"{path}","side":"{side}","lines":{}}}"#,
-        ew_format::ew_schema::conflict_file_id::<()>(path),
+        ew_schema::conflict_file_id::<()>(path),
         serde_json::to_string(&lines).expect("JSON")
     )
 }
@@ -1482,7 +1482,7 @@ fn a_base_that_does_not_read_follows_the_no_base_rule() {
 fn a_library_document_neither_side_reads_keeps_ours_and_holds_theirs() {
     // The `$conflict` record needs a readable ours: theirs goes in the file-level record, as for other files.
     let path = "lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
-    let id = ew_format::ew_schema::conflict_file_id::<()>(path);
+    let id = ew_schema::conflict_file_id::<()>(path);
     let ours = "{\n  \"$k\": \"manufacturer\",\n<<<<<<< ours\n";
     let merge = |ours: &str| {
         merge_text(

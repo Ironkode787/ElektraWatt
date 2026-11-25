@@ -9,8 +9,8 @@ use crate::common;
 
 use common::*;
 use ew_checks::{CheckMode, FULL};
-use ew_derive::ew_ids::v5;
-use ew_derive::ew_schema::{Device, Kind};
+use ew_ids::v5;
+use ew_schema::{Device, Kind};
 use serde_json::{Value, json};
 
 const CFG: u128 = 0x50;
@@ -52,7 +52,7 @@ fn forms(f: &[ew_checks::Finding]) -> Vec<String> {
 /// The record ID text of channel `n` of `module`.
 fn ch(module: u128, n: u16) -> String {
     v5::plc_channel_id::<Device, ()>(
-        ew_derive::ew_ids::Id::from_uuid(ew_derive::ew_ids::Uuid::from_u128(module)),
+        ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(module)),
         n,
     )
     .as_uuid()
@@ -198,7 +198,7 @@ fn ew_plc_007_prevents_a_new_duplicate() {
     .build();
     let keys = vec![(
         Kind::Channel,
-        ch(CARD, 1).parse::<ew_derive::ew_schema::AnyId>().expect("an ID"),
+        ch(CARD, 1).parse::<ew_schema::AnyId>().expect("an ID"),
     )];
     let prevented = ew_checks::prevent(&ew_derive::Q::new(&before), &ew_derive::Q::new(&after), &keys);
     assert_eq!(
@@ -946,8 +946,8 @@ fn an_iolink_window_counts_its_whole_width() {
     assert!(found(&m, "EW-PLC-008").is_empty());
     let q = ew_derive::Q::new(&m);
     let port = q
-        .get::<ew_derive::ChannelAddresses>(ew_derive::ew_ids::Id::from_uuid(
-            ew_derive::ew_ids::Uuid::from_u128(CARD),
+        .get::<ew_derive::ChannelAddresses>(ew_ids::Id::from_uuid(
+            ew_ids::Uuid::from_u128(CARD),
         ))
         .first()
         .map(|e| e.address.clone());

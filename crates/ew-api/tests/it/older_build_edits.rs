@@ -6,7 +6,7 @@
 
 use crate::common;
 
-use ew_derive::ew_ids::{Id, Uuid};
+use ew_ids::{Id, Uuid};
 use ew_derive::{PageOrder, PageRef};
 use ew_schema::{Record, ReportBlock};
 

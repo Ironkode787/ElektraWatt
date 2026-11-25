@@ -101,7 +101,7 @@ pub fn sample() -> Session {
 /// committed folder: for a test that edits a record before a session is built over them ([`session_of`]), such as one
 /// of a kind no command makes.
 pub fn sample_records() -> (ew_schema::Project, Vec<Record>, Vec<LibDocument>) {
-    use ew_store::ew_format::{self, Limits, MANIFEST, Manifest};
+    use ew_format::{self, Limits, MANIFEST, Manifest};
     let dir = Path::new(ew_testdir::SAMPLE);
     let bytes = std::fs::read(dir.join(MANIFEST)).expect("the sample's manifest");
     let manifest = Manifest::parse(&bytes, &Limits::default()).expect("a manifest");

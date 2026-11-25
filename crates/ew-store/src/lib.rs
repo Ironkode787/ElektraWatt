@@ -50,13 +50,6 @@
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
-/// The format layer, re-exported so that the crates above (`ew-api`) name its types without an edge of
-/// their own (ARCH §3); it re-exports `ew-schema` in turn.
-pub use ew_format;
-/// The own deterministic ZIP writer and its strict reader (`ew-zip`), re-exported under the path the archive's users
-/// name.
-pub use ew_zip as zip;
-
 pub mod archive;
 pub mod clock;
 pub mod cloud;

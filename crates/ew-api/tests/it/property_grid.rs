@@ -209,7 +209,7 @@ fn the_catalogue_follows_the_registry() {
 // PG2: the sheet on the sample
 
 /// The UUID of the device whose tag prints `tag`.
-fn device(s: &Session, tag: &str) -> ew_derive::ew_ids::Uuid {
+fn device(s: &Session, tag: &str) -> ew_ids::Uuid {
     s.resolve_reference(&format!("tag:{tag}")).unwrap()
 }
 
@@ -238,14 +238,14 @@ fn one(r: &ew_api::output::PropRow) -> &str {
 }
 
 /// A representation of a device (its main one).
-fn main_rep(s: &Session, device: ew_derive::ew_ids::Uuid) -> ew_derive::ew_ids::Uuid {
+fn main_rep(s: &Session, device: ew_ids::Uuid) -> ew_ids::Uuid {
     let q = s.query();
-    let id = ew_derive::ew_ids::Id::from_uuid(device);
+    let id = ew_ids::Id::from_uuid(device);
     q.get::<ew_derive::MainRep>(id).unwrap().as_uuid()
 }
 
 /// The wire numbered `number` (`102.1`: from the breaker -102F1 to the strip -X1021, 24 V).
-fn wire(s: &Session, number: &str) -> ew_derive::ew_ids::Uuid {
+fn wire(s: &Session, number: &str) -> ew_ids::Uuid {
     s.navigator_table(ew_api::output::NavKind::Connections)
         .nodes
         .iter()
@@ -255,7 +255,7 @@ fn wire(s: &Session, number: &str) -> ew_derive::ew_ids::Uuid {
 }
 
 /// The drawn page labelled `folio`.
-fn page(s: &Session, folio: &str) -> ew_derive::ew_ids::Uuid {
+fn page(s: &Session, folio: &str) -> ew_ids::Uuid {
     s.resolve_reference(&format!("folio:{folio}")).unwrap()
 }
 
@@ -417,7 +417,7 @@ fn mixed_and_missing_selections() {
         "a representation and a connection share no section"
     );
     assert_eq!(sheet.header.items, 2);
-    let gone = ew_derive::ew_ids::Uuid::from_u128(0x0123_4567_89ab_7def_8123_4567_89ab_cdef);
+    let gone = ew_ids::Uuid::from_u128(0x0123_4567_89ab_7def_8123_4567_89ab_cdef);
     let sheet = s.property_sheet(&[gone]);
     assert_eq!(sheet.missing, 1);
     assert!(sheet.sections.is_empty());
@@ -464,12 +464,12 @@ fn an_interruption_points_header_names_its_kind_in_words() {
 fn targets_and_varied_texts_are_in_label_order() {
     let s = crate::common::sample();
     let tables = s.page_tables("101").unwrap();
-    let mut devices: Vec<ew_derive::ew_ids::Uuid> = tables.reps.iter().filter_map(|r| r.device).collect();
+    let mut devices: Vec<ew_ids::Uuid> = tables.reps.iter().filter_map(|r| r.device).collect();
     devices.dedup();
     let sheet = s.property_sheet(&devices);
     let section = sheet.sections.iter().find(|x| x.kind == "device").unwrap();
     assert!(section.targets.len() > 5, "{}", section.targets.len());
-    let natural = |a: &str, b: &str| ew_derive::ew_mltext::natural_cmp(a, b).then_with(|| a.cmp(b));
+    let natural = |a: &str, b: &str| ew_mltext::natural_cmp(a, b).then_with(|| a.cmp(b));
     let titles: Vec<String> = section
         .targets
         .iter()
@@ -494,7 +494,7 @@ fn targets_and_varied_texts_are_in_label_order() {
         other => panic!("{other:?}"),
     }
     // The representations of the folio's devices: by the label of their first CP, then by place.
-    let reps: Vec<ew_derive::ew_ids::Uuid> = tables
+    let reps: Vec<ew_ids::Uuid> = tables
         .reps
         .iter()
         .filter(|r| r.device.is_some())
@@ -506,7 +506,7 @@ fn targets_and_varied_texts_are_in_label_order() {
         .iter()
         .find(|x| x.kind == "representation")
         .unwrap();
-    let key = |id: &ew_derive::ew_ids::Uuid| {
+    let key = |id: &ew_ids::Uuid| {
         let r = tables.reps.iter().find(|r| r.id == *id).unwrap();
         let label = tables
             .cps
@@ -851,7 +851,7 @@ fn page_item_and_structure_box_members_read_their_reasons() {
 }
 
 /// Place through the command path and keep the actual primary ID, rather than a catalogue-only fixture.
-fn placed(s: &mut Session, name: &str, params: Value) -> ew_derive::ew_ids::Uuid {
+fn placed(s: &mut Session, name: &str, params: Value) -> ew_ids::Uuid {
     s.execute(&AnyCommand {
         name: name.into(),
         params,
@@ -985,7 +985,7 @@ fn page_item_property_sheet_multi_selection_keeps_members_and_missing_counts() {
     assert_eq!(sheet.header.items, 2);
     assert_eq!(sheet.missing, 0);
     assert!(sheet.sections.is_empty(), "the two kinds share no section");
-    let gone = ew_derive::ew_ids::Uuid::from_u128(0x0123_4567_89ab_7def_8123_4567_89ab_cdef);
+    let gone = ew_ids::Uuid::from_u128(0x0123_4567_89ab_7def_8123_4567_89ab_cdef);
     let sheet = s.property_sheet(&[gone]);
     assert_eq!(sheet.header.items, 0);
     assert_eq!(sheet.missing, 1);
@@ -1024,7 +1024,7 @@ fn a_templated_function_shows_its_part_function() {
         .expect("the starter closure")
         .expect("the symbol and both FnDefs");
     let symbol = s.starter_symbol_copy(symbol_key).expect("a starter symbol");
-    let before: Vec<ew_derive::ew_ids::Uuid> =
+    let before: Vec<ew_ids::Uuid> =
         s.query().functions().iter().map(|(id, _)| id.as_uuid()).collect();
     let step = 7_937_500i64;
     s.execute(&AnyCommand {
@@ -1038,7 +1038,7 @@ fn a_templated_function_shows_its_part_function() {
         }),
     })
     .expect("device.place");
-    let functions: Vec<ew_derive::ew_ids::Uuid> = s
+    let functions: Vec<ew_ids::Uuid> = s
         .query()
         .functions()
         .iter()
@@ -1179,7 +1179,7 @@ fn a_stored_field_is_what_the_record_s_row_holds() {
 #[test]
 fn a_fluid_line_shows_its_line_kind_row_and_a_wire_none() {
     let mut s = crate::common::sample();
-    let valves: Vec<ew_derive::ew_ids::Uuid> = {
+    let valves: Vec<ew_ids::Uuid> = {
         let q = s.query();
         let fndefs = q.fndefs();
         q.functions()

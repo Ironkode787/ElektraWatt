@@ -184,7 +184,7 @@ fn a_part_that_is_no_module_is_refused_in_words() {
 /// terminal is one module: they are not checked here.
 #[test]
 fn the_overview_breaks_onto_a_new_page_where_the_band_is_full() {
-    use ew_derive::ew_schema::PageType;
+    use ew_schema::PageType;
     let mut s = common::sample();
     let pages = |s: &Session| {
         let q = s.query();

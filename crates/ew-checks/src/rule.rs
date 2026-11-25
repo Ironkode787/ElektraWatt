@@ -3,9 +3,9 @@
 
 //! The [`Rule`] trait and the rule metadata of doc 15 §2.3: ID, code, pack, kind, modes, severities, scope.
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{AnyId, Device, Kind, LogicalNet, Page, PhysicalNet, PlcConfigProject};
 use ew_derive::{PotentialId, Q};
+use ew_ids::Id;
+use ew_schema::{AnyId, Device, Kind, LogicalNet, Page, PhysicalNet, PlcConfigProject};
 
 use crate::finding::{Finding, Severity};
 

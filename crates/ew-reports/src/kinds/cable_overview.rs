@@ -6,10 +6,10 @@
 
 use std::collections::BTreeMap;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
-use ew_derive::ew_schema::{Conductor, Device, Function, LengthSource, ReportBlock, ReportKind};
 use ew_derive::{DevicePartLines, Q, short_tag};
+use ew_ids::Id;
+use ew_mltext::{MlText, NaturalKey, natural_key};
+use ew_schema::{Conductor, Device, Function, LengthSource, ReportBlock, ReportKind};
 
 use super::conn::{WireRec, Wires, colour_cell, csa_cell, end_text, text_cell, words_cell};
 use crate::kind::ReportKindDef;

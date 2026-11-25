@@ -8,7 +8,7 @@ use crate::common;
 
 use common::*;
 use ew_checks::Severity;
-use ew_derive::ew_schema::Kind;
+use ew_schema::Kind;
 use serde_json::json;
 
 #[test]

@@ -11,7 +11,7 @@
 use crate::common;
 
 use common::{fixture, mem_project_of, options, project_files, root};
-use ew_store::ew_format::ew_schema::{Conflict, ConflictBody};
+use ew_schema::{Conflict, ConflictBody};
 use ew_store::mem::DirSync;
 use ew_store::{Access, Changes, Store};
 

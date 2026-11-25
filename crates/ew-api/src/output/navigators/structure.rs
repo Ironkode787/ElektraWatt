@@ -8,9 +8,9 @@
 use std::collections::BTreeMap;
 
 use ew_derive::Q;
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::natural_key;
-use ew_derive::ew_rds::Aspect;
+use ew_ids::Id;
+use ew_mltext::natural_key;
+use ew_rds::Aspect;
 
 use super::{Builder, NavRole, group, row_entity, tokens};
 
@@ -18,10 +18,9 @@ use super::{Builder, NavRole, group, row_entity, tokens};
 /// structure overview with a `usage` column (the devices and pages that name the node). A node's aliases are filter
 /// tokens (they are never printed, D-03).
 pub(super) fn structure_table(q: &Q, b: &mut Builder) {
-    use ew_derive::ew_schema::{Open, StructureNode};
     use ew_derive::{DevicesByStructure, PageStructure};
-    let Some(set) = ew_reports::project_rows(q, &ew_derive::ew_schema::ReportKind::StructureOverview, None)
-    else {
+    use ew_schema::{Open, StructureNode};
+    let Some(set) = ew_reports::project_rows(q, &ew_schema::ReportKind::StructureOverview, None) else {
         return;
     };
     let by_device = q.get::<DevicesByStructure>(());
@@ -104,7 +103,7 @@ pub(super) fn structure_table(q: &Q, b: &mut Builder) {
 }
 
 /// The depth of a structure node (0 at the top), bounded by the table's size.
-fn depth(q: &Q, id: Id<ew_derive::ew_schema::StructureNode>) -> usize {
+fn depth(q: &Q, id: Id<ew_schema::StructureNode>) -> usize {
     let mut d = 0;
     let mut at = q.structure_nodes().get(id).and_then(|n| n.parent);
     while let Some(p) = at {

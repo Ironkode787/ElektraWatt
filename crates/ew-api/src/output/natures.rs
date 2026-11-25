@@ -7,8 +7,8 @@
 //! ("Define potential…" on an electrical point only, "Medium ▸" on a fluid source); [`Session::device_natures`]
 //! gives it to a script and the API.
 
-use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::{FunctionCps, Q, is_fluid};
+use ew_ids::{Id, Uuid};
 use ew_schema::{Device, Discipline, StationRole};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

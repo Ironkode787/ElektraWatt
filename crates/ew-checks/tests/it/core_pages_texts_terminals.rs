@@ -12,7 +12,7 @@ use crate::common;
 use common::*;
 use ew_checks::{Finding, Severity, prevent};
 use ew_derive::Q;
-use ew_derive::ew_schema::{AnyId, Kind};
+use ew_schema::{AnyId, Kind};
 use serde_json::{Value, json};
 
 fn subjects(f: &[Finding]) -> Vec<String> {
@@ -277,7 +277,7 @@ fn core061_reports_a_shown_wire_marker() {
         [small_text("Connection point"), small_text("Wire marker")]
     );
     // Every other style of the table is at or above the minimum.
-    let small: Vec<&str> = ew_derive::ew_schema::BUILTIN_TEXT_STYLES
+    let small: Vec<&str> = ew_schema::BUILTIN_TEXT_STYLES
         .iter()
         .map(|(k, ..)| *k)
         .filter(|k| !["cp.small", "marker"].contains(k))
@@ -423,7 +423,7 @@ fn channel_fx(module: bool) -> Fx {
         d["plc_module"] = json!({});
     }
     fx.push(d);
-    let channel: AnyId = ew_derive::ew_ids::v5::plc_channel_id(uid(dev), 0);
+    let channel: AnyId = ew_ids::v5::plc_channel_id(uid(dev), 0);
     fx.push(
         json!({"$k": "channel", "id": channel.to_string(), "module": us(dev), "number": 0, "kind": "di"}),
     );

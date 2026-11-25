@@ -17,7 +17,7 @@
 //! half of the pins on top, the rest below, a source's outputs below.
 
 use ew_commands::commands::ReshapeBox;
-use ew_derive::ew_ids::{Id, Uuid};
+use ew_ids::{Id, Uuid};
 use ew_mltext::Ident;
 use ew_schema::{BoxCp, CpData, Part, PotentialType, Representation, TemplateFn};
 pub use ew_schema::{Dir4, PartBox, PartBoxPin};
@@ -673,7 +673,7 @@ impl Session {
                     continue;
                 };
                 let (library, item) = (c.library_id.as_uuid(), c.item_id.as_uuid());
-                let held: Id<Part> = ew_derive::ew_ids::v5::lib_copy_id(library, item);
+                let held: Id<Part> = ew_ids::v5::lib_copy_id(library, item);
                 if q.parts().get(held).is_none() {
                     out.push((
                         crate::PartPick::Library { library, item },

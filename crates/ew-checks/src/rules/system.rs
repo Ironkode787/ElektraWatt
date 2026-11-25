@@ -16,8 +16,8 @@
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
-use ew_derive::ew_schema::Kind;
 use ew_derive::{PotentialNameOf, Q, folio_label};
+use ew_schema::Kind;
 
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
@@ -169,18 +169,15 @@ fn scope_text(q: &Q, scope: &Scope) -> Named {
         Scope::Potential(p) => format!("potential {}", q.get::<PotentialNameOf>(p).name.text).into(),
         Scope::Module(d) => full_tag(q, d, text!("word-a-module")),
         Scope::Station(d) => full_tag(q, d, text!("word-a-station")),
-        Scope::Cfg(c) => q
-            .table::<ew_derive::ew_schema::PlcConfigProject>()
-            .get(c)
-            .map_or_else(
-                || text!("word-a-configuration-project").into(),
-                |c| format!("configuration project {}", c.name).into(),
-            ),
-        Scope::Lnet(n) => q.table::<ew_derive::ew_schema::LogicalNet>().get(n).map_or_else(
+        Scope::Cfg(c) => q.table::<ew_schema::PlcConfigProject>().get(c).map_or_else(
+            || text!("word-a-configuration-project").into(),
+            |c| format!("configuration project {}", c.name).into(),
+        ),
+        Scope::Lnet(n) => q.table::<ew_schema::LogicalNet>().get(n).map_or_else(
             || text!("word-a-logical-bus-net").into(),
             |n| format!("logical net {}", n.name).into(),
         ),
-        Scope::Pnet(n) => q.table::<ew_derive::ew_schema::PhysicalNet>().get(n).map_or_else(
+        Scope::Pnet(n) => q.table::<ew_schema::PhysicalNet>().get(n).map_or_else(
             || text!("word-a-physical-bus-net").into(),
             |n| format!("physical net {}", n.name).into(),
         ),

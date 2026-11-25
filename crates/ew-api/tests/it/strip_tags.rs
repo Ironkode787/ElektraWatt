@@ -15,7 +15,7 @@ use crate::common;
 
 use ew_api::Session;
 use ew_api::geometry::Dir;
-use ew_derive::ew_mltext::MlText;
+use ew_mltext::MlText;
 use ew_derive::{PageOrder, PageRef};
 use ew_dl::{Item, ItemKind, Layer, Transform};
 use ew_ids::{Id, Uuid};

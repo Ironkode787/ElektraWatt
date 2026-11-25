@@ -11,7 +11,7 @@ use std::path::Path;
 use ew_api::catalog::{ImportInput, LibraryPart};
 use ew_api::eplan::{self, FndefMap};
 use ew_api::library::{LibraryTiers, Registry};
-use ew_derive::ew_ids::Id;
+use ew_ids::Id;
 use ew_schema::{LibDocument, LibRef};
 
 /// The part 2904602 with the description `description`, as a parts XML.

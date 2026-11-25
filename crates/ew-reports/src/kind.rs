@@ -7,9 +7,9 @@
 use std::collections::BTreeMap;
 use std::sync::LazyLock;
 
-use ew_derive::ew_mltext::MlText;
-use ew_derive::ew_schema::{Page, ReportBlock, ReportKind};
 use ew_derive::{DeriveNote, Q};
+use ew_mltext::MlText;
+use ew_schema::{Page, ReportBlock, ReportKind};
 use serde_json::Value;
 
 use crate::kinds;
@@ -127,7 +127,7 @@ impl KindParams {
 /// no `params`, gives no values and no note.
 pub fn kind_params(q: &Q, block: &ReportBlock) -> KindParams {
     let Some(def) = (match &block.source {
-        ew_derive::ew_schema::ReportSource::Kind(k) => Registry::builtin().get(k),
+        ew_schema::ReportSource::Kind(k) => Registry::builtin().get(k),
         _ => None,
     }) else {
         return KindParams::default();

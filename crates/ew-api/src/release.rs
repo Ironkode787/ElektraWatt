@@ -6,7 +6,7 @@
 //! content digest.
 //!
 //! **Saved state only** (D8). Both need a project directory, no unsaved edits, no incomplete save and a manifest whose
-//! hashes are authoritative: the content digest ([`ew_store::ew_format::content_digest`]) is then a pure function of
+//! hashes are authoritative: the content digest ([`ew_format::content_digest`]) is then a pure function of
 //! one generation, and the snapshot the gate checks is that generation. The gate evaluates every rule cold (a fresh
 //! `Q` over the snapshot, not the session's memo store), so no memoised value can be stale there (doc 15 §4.8).
 //!
@@ -19,10 +19,10 @@ use std::fmt;
 
 use ew_commands::Command as _;
 use ew_commands::commands::{ApproveRevision, ApprovedPack};
-use ew_derive::ew_ids::Id;
+use ew_format::{ContentDigestError, content_digest};
+use ew_ids::Id;
 use ew_mltext::Ident;
 use ew_schema::{Date, PartyRole, Revision, Waiver};
-use ew_store::ew_format::{ContentDigestError, content_digest};
 
 use crate::{CmdError, Origin, Receipt, Session, Sha256, Submit, checks};
 

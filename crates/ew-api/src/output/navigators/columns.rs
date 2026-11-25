@@ -6,7 +6,7 @@
 //!
 //! Not here: the rows (each provider's own file beside this one) and the table types (`navigators.rs`).
 
-use ew_derive::ew_schema::ReportKind;
+use ew_schema::ReportKind;
 
 use super::bus::BUS_COLUMNS;
 use super::libraries;

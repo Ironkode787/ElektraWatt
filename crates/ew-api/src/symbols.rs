@@ -8,7 +8,7 @@ use std::collections::BTreeSet;
 use std::io::Read;
 use std::path::Path;
 
-use ew_derive::ew_ids::{Id, Uuid, v5};
+use ew_ids::{Id, Uuid, v5};
 pub use ew_mltext::{MlText, MlTextView};
 pub use ew_scene::page::pin_text_place;
 pub use ew_scene::symbol::{SymbolGeometry, TextSource, lower};
@@ -1082,7 +1082,7 @@ fn copy<T: Serialize>(
     if !malformed.is_empty() {
         return Err(input("symbol-input-object"));
     }
-    let hash = ew_store::ew_format::library_copy_hash(&doc).ok_or_else(|| input("symbol-input-object"))?;
+    let hash = ew_format::library_copy_hash(&doc).ok_or_else(|| input("symbol-input-object"))?;
     match &mut doc {
         LibDocument::Symbol(s) => s.sha256 = Sha256(hash),
         LibDocument::Fndef(f) => f.sha256 = Sha256(hash),

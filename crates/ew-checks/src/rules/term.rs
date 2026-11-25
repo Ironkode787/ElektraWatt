@@ -5,17 +5,17 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{CaseSensitivity, natural_cmp};
-use ew_derive::ew_schema::{
-    Connection, ConnectionKind, Device, DeviceState, Endpoint, Function, Kind, Side, StructureNode, TagCase,
-    Terminal,
-};
-use ew_derive::ew_units::Pt2;
 use ew_derive::{
     DeriveNote, DeviceTag, EndpointKey, FunctionCps, NoteFact, PhysicalWiresOf, PotentialPartition, Q,
     RailTerminalOf, StripBridges, StructurePath, WireNumbers, cp_point, drawn_path, on_segment,
 };
+use ew_ids::Id;
+use ew_mltext::{CaseSensitivity, natural_cmp};
+use ew_schema::{
+    Connection, ConnectionKind, Device, DeviceState, Endpoint, Function, Kind, Side, StructureNode, TagCase,
+    Terminal,
+};
+use ew_units::Pt2;
 
 use crate::engine::touched_ids;
 use crate::finding::{Finding, Fingerprint, Severity, Target};
@@ -534,7 +534,7 @@ fn bridge_findings(q: &Q, strip: Id<Device>) -> Vec<Finding> {
         shafts: BTreeSet<u8>,
         positions: Vec<usize>,
         other_strips: BTreeSet<Id<Device>>,
-        connections: Vec<Id<ew_derive::ew_schema::Connection>>,
+        connections: Vec<Id<ew_schema::Connection>>,
     }
     let shapes: Vec<Shape> = groups
         .iter()
@@ -687,7 +687,7 @@ impl Rule for BridgeGroupInvalid {
             let d = q.functions().get(*f)?.device?;
             q.devices().get(d)?.aspects.terminal.as_ref().map(|t| t.strip)
         };
-        for id in touched_ids::<ew_derive::ew_schema::Connection>(touched, Kind::Connection) {
+        for id in touched_ids::<ew_schema::Connection>(touched, Kind::Connection) {
             for q in [before, after] {
                 if let Some(c) = q.connections().get(id)
                     && matches!(c.kind, ConnectionKind::Bridge(_))
@@ -1009,7 +1009,7 @@ mod tests {
     /// after the last end, against a scan of every segment.
     #[test]
     fn a_line_finds_the_segments_holding_a_coordinate() {
-        let wire = |n: u128| Id::<Connection>::from_uuid(ew_derive::ew_ids::Uuid::from_u128(n));
+        let wire = |n: u128| Id::<Connection>::from_uuid(ew_ids::Uuid::from_u128(n));
         let mut line = Line::default();
         for (start, end, n) in [
             (0, 100, 1),

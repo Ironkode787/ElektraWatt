@@ -45,12 +45,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::{self, Write as _};
 use std::sync::Arc;
 
-use ew_dl::ew_units::{Nm, Pt2};
 use ew_dl::{
     Brush, Cap, Destination, DisplayList, FontKey, GeometryMap, ImageFormat, ImageItem, Item, ItemKind, Join,
     Link, MAX_INSTANCE_DEPTH, MITER_LIMIT, PathEl, ShapedRun, Stroke, Transform,
 };
 use ew_render_cpu::{decode_image, monochrome};
+use ew_units::{Nm, Pt2};
 
 use crate::PdfPage;
 use crate::font_subset::subset_for_text;
@@ -664,7 +664,7 @@ fn transform_attr(t: Transform) -> String {
     if t.is_identity() {
         return String::new();
     }
-    if t.angle.normalized().0 == 0 && matches!(t.orient, ew_dl::ew_units::Orient2::R0) {
+    if t.angle.normalized().0 == 0 && matches!(t.orient, ew_units::Orient2::R0) {
         return format!(
             " transform=\"translate({} {})\"",
             mm(t.translate.x),

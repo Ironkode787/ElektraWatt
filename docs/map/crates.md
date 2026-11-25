@@ -72,7 +72,7 @@ The `ew` command-line program: its entry point, which parses the arguments, runs
 
 ## ew-api
 
-`crates/ew-api` · GPL-3.0-or-later · tier session · depends on `ew-checks`, `ew-commands`, `ew-derive`, `ew-dl`, `ew-drafting`, `ew-export`, `ew-import-catalog`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables`, `ew-jobs`, `ew-l10n`, `ew-library`, `ew-mltext`, `ew-model`, `ew-plc`, `ew-reports`, `ew-scene`, `ew-schema`, `ew-sqlview`, `ew-store`, `ew-text`, `ew-units` · used by `ew`, `ew-viewmodel` · in tests by `ew-testkit`
+`crates/ew-api` · GPL-3.0-or-later · tier session · depends on `ew-checks`, `ew-commands`, `ew-derive`, `ew-dl`, `ew-drafting`, `ew-export`, `ew-format`, `ew-ids`, `ew-import-catalog`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables`, `ew-jobs`, `ew-l10n`, `ew-library`, `ew-mltext`, `ew-model`, `ew-plc`, `ew-rds`, `ew-reports`, `ew-scene`, `ew-schema`, `ew-sqlview`, `ew-store`, `ew-text`, `ew-units`, `ew-zip` · used by `ew`, `ew-viewmodel` · in tests by `ew-testkit`
 
 The `Session` facade shared by every front-end.
 
@@ -207,7 +207,7 @@ The neutral PLC exchange image and its AutomationML form (doc 10 §4.2, §4.3).
 
 ## ew-checks
 
-`crates/ew-checks` · GPL-3.0-or-later · tier operations · depends on `ew-derive`, `ew-l10n`, `ew-plc` · used by `ew-api`, `ew-commands`, `ew-reports`, `ew-sqlview` · in tests by none
+`crates/ew-checks` · GPL-3.0-or-later · tier operations · depends on `ew-derive`, `ew-ids`, `ew-l10n`, `ew-mltext`, `ew-plc`, `ew-plcaddr`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api`, `ew-commands`, `ew-reports`, `ew-sqlview` · in tests by none
 
 Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as queries, offline check jobs, waivers and quick fixes (ADR-0019, doc 15 §2–§4).
 
@@ -249,7 +249,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 
 ## ew-commands
 
-`crates/ew-commands` · GPL-3.0-or-later · tier operations · depends on `ew-checks`, `ew-derive`, `ew-drafting`, `ew-format`, `ew-ids`, `ew-l10n`, `ew-mltext`, `ew-model`, `ew-plc`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api` · in tests by `elektrawatt`, `ew`, `ew-commands`, `ew-testkit`, `ew-ui`, `ew-viewmodel`
+`crates/ew-commands` · GPL-3.0-or-later · tier operations · depends on `ew-checks`, `ew-derive`, `ew-drafting`, `ew-format`, `ew-ids`, `ew-l10n`, `ew-mltext`, `ew-model`, `ew-plc`, `ew-plcaddr`, `ew-rds`, `ew-schema`, `ew-units` · used by `ew-api` · in tests by `elektrawatt`, `ew`, `ew-commands`, `ew-testkit`, `ew-ui`, `ew-viewmodel`
 
 `Command`, `DynCommand`, `TxBuilder`, normalisers, validators, numbering engine, `History`, previews, macros and `ApplyImport`.
 
@@ -470,7 +470,7 @@ Schematic drafting (docs/design/06a-drafting.md, ADR-0034): how a page is judged
 
 ## ew-export
 
-`crates/ew-export` · GPL-3.0-or-later · tier drawing · depends on `ew-dl`, `ew-render-cpu` · used by `ew-api`, `ew-print` · in tests by none
+`crates/ew-export` · GPL-3.0-or-later · tier drawing · depends on `ew-dl`, `ew-render-cpu`, `ew-units` · used by `ew-api`, `ew-print` · in tests by none
 
 PDF (outline, links, named destinations, page labels, PDF/A-2b), SVG, DXF and PNG export.
 
@@ -487,7 +487,7 @@ PDF (outline, links, named destinations, page labels, PDF/A-2b), SVG, DXF and PN
 
 ## ew-format
 
-`crates/ew-format` · MIT OR Apache-2.0 · tier records · depends on `ew-schema`, `ew-units` · used by `ew-commands`, `ew-library`, `ew-store` · in tests by `ew-testkit`
+`crates/ew-format` · MIT OR Apache-2.0 · tier records · depends on `ew-schema`, `ew-units` · used by `ew-api`, `ew-commands`, `ew-library`, `ew-store` · in tests by `ew-testkit`
 
 JSONL canonical reader and writer, sharding rules, manifest, upgrade chain, 3-way record merge core and conflict records.
 
@@ -511,7 +511,7 @@ JSONL canonical reader and writer, sharding rules, manifest, upgrade chain, 3-wa
 
 ## ew-ids
 
-`crates/ew-ids` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-commands`, `ew-derive`, `ew-drafting`, `ew-import-qet`, `ew-import-tables`, `ew-interop-api`, `ew-library`, `ew-model`, `ew-scene`, `ew-schema`, `ew-testids`, `ew-testkit`, `xtask` · in tests by `ew-api`
+`crates/ew-ids` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-api`, `ew-checks`, `ew-commands`, `ew-derive`, `ew-drafting`, `ew-import-qet`, `ew-import-tables`, `ew-interop-api`, `ew-library`, `ew-model`, `ew-plc`, `ew-reports`, `ew-scene`, `ew-schema`, `ew-sqlview`, `ew-testids`, `ew-testkit`, `xtask` · in tests by none
 
 Typed identifiers `Id<T>`: UUIDv7 for new records, UUIDv5 for instantiated, imported and generated ones.
 
@@ -706,7 +706,7 @@ Generic memo engine: revisions, dependency recording, early cut-off, durability 
 
 ## ew-mltext
 
-`crates/ew-mltext` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables`, `ew-l10n`, `ew-library`, `ew-model`, `ew-scene`, `ew-schema` · in tests by `ew-testkit`
+`crates/ew-mltext` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-api`, `ew-checks`, `ew-commands`, `ew-derive`, `ew-import-dxf`, `ew-import-eplan`, `ew-import-qet`, `ew-import-tables`, `ew-l10n`, `ew-library`, `ew-model`, `ew-plc`, `ew-reports`, `ew-scene`, `ew-schema`, `ew-sqlview` · in tests by `ew-testkit`
 
 Multilingual text `MlText` with neutral-xor-languages semantics, BCP 47 `LangTag`, NFC identifiers `Ident`, confusable detection and natural-sort keys.
 
@@ -756,7 +756,7 @@ Multilingual text `MlText` with neutral-xor-languages semantics, BCP 47 `LangTag
 
 ## ew-plc
 
-`crates/ew-plc` · GPL-3.0-or-later · tier project · depends on `ew-caex`, `ew-derive` · used by `ew-api`, `ew-checks`, `ew-commands` · in tests by none
+`crates/ew-plc` · GPL-3.0-or-later · tier project · depends on `ew-caex`, `ew-derive`, `ew-ids`, `ew-mltext`, `ew-plcaddr`, `ew-rds`, `ew-schema` · used by `ew-api`, `ew-checks`, `ew-commands` · in tests by none
 
 The PLC exchange (doc 10 §4): what a configuration project exchanges with PLC software, and how a file that comes back is matched and merged.
 
@@ -772,7 +772,7 @@ The PLC exchange (doc 10 §4): what a configuration project exchanges with PLC s
 
 ## ew-plcaddr
 
-`crates/ew-plcaddr` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-derive` · in tests by none
+`crates/ew-plcaddr` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-checks`, `ew-commands`, `ew-derive`, `ew-plc`, `ew-reports` · in tests by `ew-library`
 
 PLC addresses, PLC address profiles as data, the part-data map language and bit intervals.
 
@@ -786,7 +786,7 @@ PLC addresses, PLC address profiles as data, the part-data map language and bit 
 
 ## ew-print
 
-`crates/ew-print` · GPL-3.0-or-later · tier drawing · depends on `ew-dl`, `ew-export`, `ew-render-cpu` · used by `elektrawatt`, `ew` · in tests by none
+`crates/ew-print` · GPL-3.0-or-later · tier drawing · depends on `ew-dl`, `ew-export`, `ew-render-cpu`, `ew-units` · used by `elektrawatt`, `ew` · in tests by none
 
 OS print adapters with per-OS features (ADR-0015 amendment 1).
 
@@ -802,7 +802,7 @@ OS print adapters with per-OS features (ADR-0015 amendment 1).
 
 ## ew-rds
 
-`crates/ew-rds` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-commands`, `ew-derive`, `ew-import-tables`, `ew-model`, `ew-schema` · in tests by `ew-testkit`
+`crates/ew-rds` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-api`, `ew-checks`, `ew-commands`, `ew-derive`, `ew-import-tables`, `ew-model`, `ew-plc`, `ew-schema`, `ew-sqlview` · in tests by `ew-testkit`
 
 IEC 81346 reference-designation parser and formatter (strict and lenient), with identifier sets as data.
 
@@ -821,7 +821,7 @@ IEC 81346 reference-designation parser and formatter (strict and lenient), with 
 
 ## ew-render-cpu
 
-`crates/ew-render-cpu` · GPL-3.0-or-later · tier drawing · depends on `ew-dl` · used by `ew-export`, `ew-print`, `ew-render2d`, `ew-ui` · in tests by `elektrawatt`, `ew-api`, `ew-testkit`
+`crates/ew-render-cpu` · GPL-3.0-or-later · tier drawing · depends on `ew-dl`, `ew-units` · used by `ew-export`, `ew-print`, `ew-render2d`, `ew-ui` · in tests by `elektrawatt`, `ew-api`, `ew-testkit`
 
 CPU renderer: GPU-less fallback, thumbnails, PNG export and banded printing.
 
@@ -837,7 +837,7 @@ CPU renderer: GPU-less fallback, thumbnails, PNG export and banded printing.
 
 ## ew-render2d
 
-`crates/ew-render2d` · GPL-3.0-or-later · tier drawing · depends on `ew-dl`, `ew-render-cpu` · used by `ew-ui` · in tests by none
+`crates/ew-render2d` · GPL-3.0-or-later · tier drawing · depends on `ew-dl`, `ew-render-cpu`, `ew-units` · used by `ew-ui` · in tests by none
 
 The 2D canvas renderer: the CPU tile path and the wgpu path over one display list.
 
@@ -858,7 +858,7 @@ The 2D canvas renderer: the CPU tile path and the wgpu path over one display lis
 
 ## ew-reports
 
-`crates/ew-reports` · GPL-3.0-or-later · tier operations · depends on `ew-checks`, `ew-derive`, `ew-l10n`, `ew-zip` · used by `ew-api` · in tests by none
+`crates/ew-reports` · GPL-3.0-or-later · tier operations · depends on `ew-checks`, `ew-derive`, `ew-ids`, `ew-l10n`, `ew-mltext`, `ew-plcaddr`, `ew-schema`, `ew-units`, `ew-zip` · used by `ew-api` · in tests by none
 
 Built-in report row queries (a user SQL report gives an empty row set marked not derived until 1.0), pagination into virtual pages, and the table writers: CSV presets and an own XLSX writer (doc 09 §1.3, ADR-0018; [`table`], [`csv`], [`xlsx`]).
 
@@ -935,7 +935,7 @@ A page as display lists per layer ([`page`]), the forms engine (frames, title bl
 
 ## ew-schema
 
-`crates/ew-schema` · MIT OR Apache-2.0 · tier records · depends on `ew-ids`, `ew-mltext`, `ew-rds`, `ew-units` · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-format`, `ew-import-qet`, `ew-import-tables`, `ew-interop-api`, `ew-library`, `ew-model`, `ew-scene`, `ew-testkit`, `ew-text` · in tests by none
+`crates/ew-schema` · MIT OR Apache-2.0 · tier records · depends on `ew-ids`, `ew-mltext`, `ew-rds`, `ew-units` · used by `ew-api`, `ew-checks`, `ew-commands`, `ew-derive`, `ew-format`, `ew-import-qet`, `ew-import-tables`, `ew-interop-api`, `ew-library`, `ew-model`, `ew-plc`, `ew-reports`, `ew-scene`, `ew-sqlview`, `ew-store`, `ew-testkit`, `ew-text` · in tests by none
 
 The persisted record type of every entity kind (plain serde structs), the kind registry, per-kind schema versions and JSON Schemas.
 
@@ -976,7 +976,7 @@ The persisted record type of every entity kind (plain serde structs), the kind r
 
 ## ew-sqlview
 
-`crates/ew-sqlview` · GPL-3.0-or-later · tier operations · depends on `ew-checks`, `ew-derive` · used by `ew-api` · in tests by none
+`crates/ew-sqlview` · GPL-3.0-or-later · tier operations · depends on `ew-checks`, `ew-derive`, `ew-ids`, `ew-mltext`, `ew-rds`, `ew-schema` · used by `ew-api` · in tests by none
 
 Read-only SQL projection: materialisation, `api_v1_*` views, sandbox, `ew_natural` collation (ADR-0017, ARCH §10.2, doc 17 §6).
 
@@ -995,16 +995,16 @@ Read-only SQL projection: materialisation, `api_v1_*` views, sandbox, `ew_natura
 
 ## ew-store
 
-`crates/ew-store` · GPL-3.0-or-later · tier files · depends on `ew-format`, `ew-model`, `ew-zip` · used by `ew-api`, `ew-library` · in tests by none
+`crates/ew-store` · GPL-3.0-or-later · tier files · depends on `ew-format`, `ew-model`, `ew-schema`, `ew-zip` · used by `ew-api`, `ew-library` · in tests by none
 
 Save protocol, `.~ew.lock`, journal, recovery, watcher, external-change diff, `.ewz` transport, as-built archive, git commits and tags.
 
 | File | Size | What it holds |
 |---|---|---|
-| `src/archive.rs` | large | The as-built archive's file (doc 05 §14.1 step 4, §14.2): its name, its layout as a deterministic ZIP ([`crate::zip`]), its check, and the atomic write through the [`Vfs`] seam. |
+| `src/archive.rs` | large | The as-built archive's file (doc 05 §14.1 step 4, §14.2): its name, its layout as a deterministic ZIP ([`ew_zip`]), its check, and the atomic write through the [`Vfs`] seam. |
 | `src/clock.rs` |  | Time for the lock and the journal (doc 05 §7, §8). |
 | `src/cloud.rs` |  | Cloud-synced folders (doc 05 §15 rows 7 to 11): whether a project lies in a folder that a sync client (OneDrive, Dropbox, iCloud Drive, Google Drive, Box) keeps, from environment variables and paths only, with the standard library. |
-| `src/ewz.rs` |  | `.ewz` transport (doc 05 §12): one verified generation of a project as a deterministic ZIP ([`crate::zip`]), its strict reader, and the all-or-nothing extract through the [`Vfs`] seam. |
+| `src/ewz.rs` |  | `.ewz` transport (doc 05 §12): one verified generation of a project as a deterministic ZIP ([`ew_zip`]), its strict reader, and the all-or-nothing extract through the [`Vfs`] seam. |
 | `src/external.rs` |  | External change (doc 05 §9): a project that changes on disk while a session has it open, through a pull, a checkout or a sync client. |
 | `src/file.rs` |  | The one all-or-nothing file write of the program: the bytes go to a temporary file beside the target, are synced and renamed over it, so a failure, a cancel or a crash never leaves a partial file at the target's name. |
 | `src/git.rs` | large | The git integration through the `git` executable: the release's commit of the project directory and its annotated tag `ew/rev/<label>` (doc 05 §14.1 steps 3 and 5), and the collaboration's git (doc 05 §9, §11): a git operation in progress, the commit checked out, the blobs of a revision, the merge driver's configuration, the managed `.gitattributes` and `.gitignore` blocks and the `post-merge` hook. |
@@ -1156,7 +1156,7 @@ The window of the desktop program in egui: it paints the shell model of `ew-view
 
 ## ew-units
 
-`crates/ew-units` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-api`, `ew-commands`, `ew-derive`, `ew-dl`, `ew-drafting`, `ew-format`, `ew-import-dxf`, `ew-import-qet`, `ew-import-tables`, `ew-model`, `ew-scene`, `ew-schema`, `ew-testkit`, `ew-text`, `ew-ui`, `ew-viewmodel` · in tests by `elektrawatt`, `ew-export`, `ew-render-cpu`
+`crates/ew-units` · MIT OR Apache-2.0 · tier values · depends on none · used by `ew-api`, `ew-checks`, `ew-commands`, `ew-derive`, `ew-dl`, `ew-drafting`, `ew-export`, `ew-format`, `ew-import-dxf`, `ew-import-qet`, `ew-import-tables`, `ew-model`, `ew-print`, `ew-render-cpu`, `ew-render2d`, `ew-reports`, `ew-scene`, `ew-schema`, `ew-testkit`, `ew-text`, `ew-ui`, `ew-viewmodel` · in tests by `elektrawatt`
 
 Integer units and geometry of ElektraWatt: `Nm`, `Pt2`, `Rect`, rational `Grid`, `Orient2`, `Angle2`, `Pose3` and the fixed-point `Dec3`.
 
@@ -1355,7 +1355,7 @@ Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command 
 
 ## ew-zip
 
-`crates/ew-zip` · GPL-3.0-or-later · tier values · depends on none · used by `ew-reports`, `ew-store` · in tests by none
+`crates/ew-zip` · GPL-3.0-or-later · tier values · depends on none · used by `ew-api`, `ew-reports`, `ew-store` · in tests by none
 
 The deterministic ZIP writer and its strict reader (doc 05 §12, §14.2): the container of the as-built archive, on `miniz_oxide`'s raw deflate (already in the graph), so that the archive's bytes depend on no ZIP crate's defaults.
 

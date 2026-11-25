@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 use ew_api::{AnyCommand, Recovery, Session, SessionOptions, StoreOptions};
 use ew_derive::Q;
-use ew_derive::ew_ids::Id;
+use ew_ids::Id;
 use ew_schema::{Kind, Page, StructureNode};
 use ew_store::mem::{DirSync, MemVfs};
 use ew_store::{ManualClock, Vfs};

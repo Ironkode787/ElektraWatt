@@ -7,7 +7,7 @@
 
 use crate::common;
 
-use ew_derive::ew_ids::Id;
+use ew_ids::Id;
 use ew_derive::{ConnWireProps, PropSource, SizeRule};
 use ew_schema::{Connection, Csa};
 use ew_units::Dec3;

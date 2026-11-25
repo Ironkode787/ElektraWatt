@@ -10,9 +10,9 @@ mod fx;
 #[allow(unused_imports)]
 pub use fx::{Ep, FNDEF, FNDEF_IP, FNDEF_IP0, FNDEF_PASS, FNDEF_PE, Fx, P1, P2, cp, model_json};
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_schema::{AnyId, Kind, Project, Record};
+use ew_ids::{Id, Uuid};
 use ew_model::Model;
+use ew_schema::{AnyId, Kind, Project, Record};
 use serde_json::{Value, json};
 
 /// The ID with this number.

@@ -11,7 +11,7 @@
 
 use ew_commands::ChangeKind;
 use ew_derive::Q;
-use ew_derive::ew_ids::Uuid;
+use ew_ids::Uuid;
 use serde_json::Value;
 
 use super::preview::library_name;
@@ -85,7 +85,7 @@ fn short(id: Uuid) -> String {
 }
 
 /// The label of the record `(kind, id)` in the snapshot of `q`, by the property grid's rule; `None` without one.
-fn label_of(q: &Q, kind: ew_derive::ew_schema::Kind, id: Uuid) -> Option<String> {
+fn label_of(q: &Q, kind: ew_schema::Kind, id: Uuid) -> Option<String> {
     let source = q.project().languages.as_ref().map(|l| l.source.to_string());
     record_title(q, id, source.as_deref())
         .or_else(|| library_name(q, kind, id, source.as_deref()))
@@ -94,7 +94,7 @@ fn label_of(q: &Q, kind: ew_derive::ew_schema::Kind, id: Uuid) -> Option<String>
 
 /// `value` with every string that is the ID of a record of `q` with a label replaced by that label.
 fn named(q: &Q, value: &Value) -> Value {
-    use ew_derive::ew_schema::Kind;
+    use ew_schema::Kind;
     match value {
         Value::String(s) => s
             .parse::<Uuid>()
@@ -113,9 +113,9 @@ fn named(q: &Q, value: &Value) -> Value {
 }
 
 /// The serde form of the record `(kind, id)` of the snapshot of `q` (without `$k`), read through `q`.
-fn record_json(q: &Q, kind: ew_derive::ew_schema::Kind, id: Uuid) -> Option<Value> {
-    use ew_derive::ew_ids::Id;
-    use ew_derive::ew_schema as s;
+fn record_json(q: &Q, kind: ew_schema::Kind, id: Uuid) -> Option<Value> {
+    use ew_ids::Id;
+    use ew_schema as s;
     macro_rules! of {
         ($($k:ident => $t:ty),* $(,)?) => {
             match kind {
@@ -157,7 +157,7 @@ impl Session {
     /// The label of the record `(kind, id)` by the property grid's rule (a device's tag, a page's folio and title, a
     /// connection by its ends), or a library copy's name; `None` for a record without one (the collision dialog's
     /// records).
-    pub fn record_label(&self, kind: ew_derive::ew_schema::Kind, id: Uuid) -> Option<String> {
+    pub fn record_label(&self, kind: ew_schema::Kind, id: Uuid) -> Option<String> {
         label_of(&self.query(), kind, id)
     }
 
@@ -170,7 +170,7 @@ impl Session {
     /// Whether the current model holds a record with the ID `id`, of any kind (a reloaded window's
     /// selection).
     pub fn record_exists(&self, id: Uuid) -> bool {
-        ew_commands::holds_record(&self.world().model, ew_derive::ew_ids::Id::from_uuid(id))
+        ew_commands::holds_record(&self.world().model, ew_ids::Id::from_uuid(id))
     }
 
     /// The records that differ from this session to `to`, each labelled with the tags of its own side
@@ -248,7 +248,7 @@ pub fn textconv(session: Option<&Session>, bytes: &[u8]) -> (String, usize) {
                     .and_then(Value::as_str)
                     .and_then(|s| s.parse::<Uuid>().ok());
                 let named = id.and_then(|id| {
-                    let k = ew_derive::ew_schema::Kind::from_name(&kind)?;
+                    let k = ew_schema::Kind::from_name(&kind)?;
                     label_of(q.as_ref()?, k, id)
                 });
                 known += usize::from(named.is_some());

@@ -49,7 +49,7 @@ use std::fmt;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use ew_store::ew_format::{FilePath, Finding, FindingKind, PathClass, classify};
+use ew_format::{FilePath, Finding, FindingKind, PathClass, classify};
 use ew_store::ewz::{self, PackError};
 use ew_store::{EntryKind, GenerationError, Vfs};
 use serde_json::Value;

@@ -4,8 +4,8 @@
 //! A part's data at a glance (F22): what the device browser's detail, a device's row in the Devices list and its
 //! Part details show of the part, read only ([`Session::part_card`]). The window puts it in words.
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{Confidence, FnDef, LibCopy, Part};
+use ew_ids::Id;
+use ew_schema::{Confidence, FnDef, LibCopy, Part};
 
 use crate::Session;
 use crate::output::Uuid;
@@ -88,9 +88,8 @@ impl Session {
         let (copy, held) = self.part_copy(id)?;
         let q = self.query();
         let part = &copy.item;
-        let text = |t: &Option<ew_derive::ew_mltext::Ident>| {
-            t.as_ref().map(|i| i.as_str().to_owned()).unwrap_or_default()
-        };
+        let text =
+            |t: &Option<ew_mltext::Ident>| t.as_ref().map(|i| i.as_str().to_owned()).unwrap_or_default();
         let tech = part
             .tech_data
             .iter()
@@ -122,13 +121,13 @@ impl Session {
         for t in &part.function_template {
             let def: Option<FnDef> = q
                 .fndefs()
-                .get(ew_derive::ew_ids::v5::lib_copy_id(
+                .get(ew_ids::v5::lib_copy_id(
                     t.fndef.library.as_uuid(),
                     t.fndef.item.as_uuid(),
                 ))
                 .map(|c| c.item.clone())
                 .or_else(|| match self.libraries().resolve(&t.fndef) {
-                    Ok(ew_derive::ew_schema::LibDocument::Fndef(c)) => Some(c.item),
+                    Ok(ew_schema::LibDocument::Fndef(c)) => Some(c.item),
                     _ => None,
                 });
             // A fluid function (a valve, a service unit) reads as the part's description: its category words read

@@ -282,8 +282,8 @@ pub fn read_vertex(mesh: &MeshData, i: usize) -> ([f32; 2], [f32; 2], f32, [u8; 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ew_dl::ew_units::Nm;
     use ew_dl::{Brush, Dash};
+    use ew_units::Nm;
 
     fn square() -> LyonPath {
         let els = [

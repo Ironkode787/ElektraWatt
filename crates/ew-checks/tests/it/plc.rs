@@ -9,8 +9,8 @@
 use crate::common;
 
 use common::*;
-use ew_derive::ew_ids::v5;
-use ew_derive::ew_schema::{Device, Kind};
+use ew_ids::v5;
+use ew_schema::{Device, Kind};
 use serde_json::{Value, json};
 
 const CFG: u128 = 0x50;
@@ -28,7 +28,7 @@ const VALVE_PART: u128 = 0x601;
 /// The record ID text of channel `n` of module `module` (the v5 ID N1 gives it).
 fn ch(module: u128, n: u16) -> String {
     v5::plc_channel_id::<Device, ()>(
-        ew_derive::ew_ids::Id::from_uuid(ew_derive::ew_ids::Uuid::from_u128(module)),
+        ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(module)),
         n,
     )
     .as_uuid()
@@ -243,7 +243,7 @@ fn ew_plc_001_reports_separate_overlaps_apart() {
 /// How many violations of `rule` the prevent evaluation of the batch from `before` to `after` with the touched `keys`
 /// reports (none: the batch commits).
 fn refused(rule: &str, before: &ew_model::Model, after: &ew_model::Model, keys: &[(Kind, String)]) -> usize {
-    let keys: Vec<(Kind, ew_derive::ew_schema::AnyId)> = keys
+    let keys: Vec<(Kind, ew_schema::AnyId)> = keys
         .iter()
         .map(|(k, id)| (*k, id.parse().expect("an ID")))
         .collect();

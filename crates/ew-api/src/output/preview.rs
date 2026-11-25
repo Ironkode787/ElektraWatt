@@ -11,9 +11,9 @@
 use std::cmp::Ordering;
 
 use ew_commands::{ChangeKind, EntityChange, ModelDiff, Preview};
-use ew_derive::ew_ids::Uuid;
-use ew_derive::ew_mltext::natural_cmp;
 use ew_derive::{PageOrder, PageRef, Q};
+use ew_ids::Uuid;
+use ew_mltext::natural_cmp;
 
 use super::properties::{ml_text, record_title};
 use crate::Session;
@@ -95,11 +95,11 @@ pub(super) fn library_name(q: &Q, kind: ew_schema::Kind, id: Uuid, source: Optio
     match kind {
         ew_schema::Kind::Part => q
             .parts()
-            .get(ew_derive::ew_ids::Id::from_uuid(id))
+            .get(ew_ids::Id::from_uuid(id))
             .map(|c| c.item.part_number.to_string()),
         ew_schema::Kind::Manufacturer => q
             .manufacturers()
-            .get(ew_derive::ew_ids::Id::from_uuid(id))
+            .get(ew_ids::Id::from_uuid(id))
             .and_then(|c| serde_json::to_value(&c.item.name).ok())
             .map(|v| ml_text(&v, source)),
         _ => None,

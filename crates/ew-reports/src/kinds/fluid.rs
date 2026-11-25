@@ -7,14 +7,14 @@
 
 use std::collections::BTreeMap;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::MlText;
-use ew_derive::ew_schema::{DeviceState, LengthSource, LibCopy, Medium, Part, ReportBlock, ReportKind, Unit};
-use ew_derive::ew_units::Nm;
 use ew_derive::{
     EndpointKey, MediumRows, PageRef, Q, TubeEnd, TubeRow, TubeRows, ValveTerminalRows, VtSlot, colour_text,
     line_kind_text, medium_text, part_number, port_role_text, short_tag, tube_spec_text,
 };
+use ew_ids::Id;
+use ew_mltext::MlText;
+use ew_schema::{DeviceState, LengthSource, LibCopy, Medium, Part, ReportBlock, ReportKind, Unit};
+use ew_units::Nm;
 
 use super::conn::put;
 use crate::kind::ReportKindDef;
@@ -180,7 +180,7 @@ type CutKey = (String, String, String, String);
 
 /// A cut-list line: its first tube, the count, the summed length in nanometres, whether every tube has a length, and
 /// the first tube's row (its colour).
-type CutLine = (Id<ew_derive::ew_schema::Connection>, i64, i64, bool, TubeRow);
+type CutLine = (Id<ew_schema::Connection>, i64, i64, bool, TubeRow);
 
 /// The tube cut list (doc 11 §8.2, FR-FLU-013): the tubes grouped by material, size, colour and tube part, each line
 /// with the count and the summed length in metres (a tube without a length counts but adds none, and the line's
@@ -234,10 +234,10 @@ impl ReportKindDef for TubeCutList {
         keyed.sort_by(|a, b| {
             let k = |x: &(String, String, String, String)| {
                 (
-                    ew_derive::ew_mltext::natural_key(&x.0),
-                    ew_derive::ew_mltext::natural_key(&x.1),
+                    ew_mltext::natural_key(&x.0),
+                    ew_mltext::natural_key(&x.1),
                     x.2.clone(),
-                    ew_derive::ew_mltext::natural_key(&x.3),
+                    ew_mltext::natural_key(&x.3),
                 )
             };
             k(&a.0).cmp(&k(&b.0))

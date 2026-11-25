@@ -6,9 +6,9 @@
 //! caption and legend, and the rows it holds that the model does not. The forms write them back with `fields.set_many`
 //! on the block; this module writes nothing. Also the form a new list starts on and the words of a block's columns.
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_mltext::{LangTag, MlText};
 use ew_derive::{PageOrder, PageRef, text_in};
+use ew_ids::{Id, Uuid};
+use ew_mltext::{LangTag, MlText};
 use ew_reports::Registry;
 use ew_schema::{ReportBlock, ReportKind, ReportSource};
 

@@ -8,9 +8,9 @@
 use std::collections::BTreeMap;
 
 use ew_derive::Q;
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_mltext::{NaturalKey, natural_key};
-use ew_derive::ew_schema::{Device, DeviceState};
+use ew_ids::{Id, Uuid};
+use ew_mltext::{NaturalKey, natural_key};
+use ew_schema::{Device, DeviceState};
 
 use super::{Builder, NavRole, base_facets, cell_of, device_drawables, folios, row_entity, state_word};
 use ew_derive::short_tag;
@@ -48,11 +48,9 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
         }
     }
     for strip in strips(q) {
-        let Some(set) = ew_reports::project_rows(
-            q,
-            &ew_derive::ew_schema::ReportKind::TerminalDiagram,
-            Some(strip.as_uuid()),
-        ) else {
+        let Some(set) =
+            ew_reports::project_rows(q, &ew_schema::ReportKind::TerminalDiagram, Some(strip.as_uuid()))
+        else {
             continue;
         };
         let tag = short_tag(q, strip);

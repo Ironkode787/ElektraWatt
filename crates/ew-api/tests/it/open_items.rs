@@ -23,7 +23,7 @@ use ew_api::output::{RowExport, page_layer, row_export};
 use ew_api::{
     AnyCommand, CmdError, NewProjectKind, Origin, ProjectTemplate, Session, SessionOptions, Submit,
 };
-use ew_derive::ew_ids::Id;
+use ew_ids::Id;
 use ew_derive::{DeriveNote, PageOrder, PageRef, Q};
 use ew_dl::Layer;
 use ew_reports::csv::row_texts;
@@ -135,7 +135,7 @@ fn with_open_items() -> Session {
     let mut s = common::sample();
     let station = {
         let q = s.query();
-        let vtm = ew_derive::ew_ids::Id::from_uuid(s.resolve_reference("-201K1").unwrap());
+        let vtm = ew_ids::Id::from_uuid(s.resolve_reference("-201K1").unwrap());
         q.idx()
             .functions_of_device(vtm)
             .find(|f| q.functions().get(*f).is_some_and(|f| f.bus_port.is_some()))
@@ -367,17 +367,17 @@ fn new_placeholder(q: &Q, what: &str) -> ew_schema::LibCopy<ew_schema::Part> {
         .expect("the power supply's part copy");
     let mut copy = ew_schema::LibCopy::clone(held);
     copy.item.part_number = "TBD".parse().expect("a part number");
-    let item = ew_derive::ew_ids::Uuid::from_u128(0x5306_0002_0000_4000_8000_0000_0000_0001);
+    let item = ew_ids::Uuid::from_u128(0x5306_0002_0000_4000_8000_0000_0000_0001);
     copy.item_id = Id::from_uuid(item);
     // A test library of its own: `part.assign` embeds copies of other libraries only.
-    copy.library_id = Id::from_uuid(ew_derive::ew_ids::Uuid::from_u128(
+    copy.library_id = Id::from_uuid(ew_ids::Uuid::from_u128(
         0x5306_0002_0000_4000_8000_0000_0000_0002,
     ));
-    copy.id = ew_derive::ew_ids::v5::lib_copy_id(copy.library_id.as_uuid(), item);
+    copy.id = ew_ids::v5::lib_copy_id(copy.library_id.as_uuid(), item);
     copy.item.meta.key = Some("OI3-TBD".parse().expect("a key"));
-    copy.item.description = ew_derive::ew_mltext::MlText::neutral(what);
+    copy.item.description = ew_mltext::MlText::neutral(what);
     let doc = ew_schema::LibDocument::Part(copy.clone());
-    let hash = ew_store::ew_format::library_copy_hash(&doc).expect("a part hashes");
+    let hash = ew_format::library_copy_hash(&doc).expect("a part hashes");
     copy.sha256 = ew_schema::Sha256(hash);
     copy
 }

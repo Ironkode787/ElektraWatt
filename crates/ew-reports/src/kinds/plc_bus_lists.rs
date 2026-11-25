@@ -8,18 +8,18 @@
 
 use std::collections::BTreeMap;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{MlText, natural_key};
-use ew_derive::ew_plcaddr::{Area, PlcAddress, Purpose, Size};
-use ew_derive::ew_schema::{
-    AddrValue, BusPort, BusSystem, Channel, ConnectionKind, Device, Endpoint, Function, IoDir, LengthSource,
-    LogicalNet, NetAddress, OnOff, Part, PhysicalNet, PlcConfigProject, PortClass, PortMode, PortRole,
-    ReportBlock, ReportKind,
-};
 use ew_derive::{
     BusSegments, ChannelStates, ChannelTargets, EffectiveState, FunctionCps, ModuleOrder, ModuleStartOf,
     NetMaster, NetMembersOf, Q, SegmentMember, Start, bus_word, external_partner_text, iolink_device,
     module_io, module_part, net_address_text, port_windows, profile_of, short_tag, stations,
+};
+use ew_ids::Id;
+use ew_mltext::{MlText, natural_key};
+use ew_plcaddr::{Area, PlcAddress, Purpose, Size};
+use ew_schema::{
+    AddrValue, BusPort, BusSystem, Channel, ConnectionKind, Device, Endpoint, Function, IoDir, LengthSource,
+    LogicalNet, NetAddress, OnOff, Part, PhysicalNet, PlcConfigProject, PortClass, PortMode, PortRole,
+    ReportBlock, ReportKind,
 };
 
 use super::conn::{put, words_cell};
@@ -65,7 +65,7 @@ fn length_cell(q: &Q, cable: Id<Device>) -> Cell {
         .get(cable)
         .and_then(|d| d.aspects.cable.as_ref().map(|c| c.length.clone()))
     {
-        Some(LengthSource::Manual(nm)) => text(&format!("{} m", ew_derive::ew_units::Dec3(nm.0 / 1_000_000))),
+        Some(LengthSource::Manual(nm)) => text(&format!("{} m", ew_units::Dec3(nm.0 / 1_000_000))),
         Some(LengthSource::FromPart) => words_cell(&text!("cell-from-part")),
         _ => Cell::Empty,
     }
@@ -393,7 +393,7 @@ impl ReportKindDef for BusOverview {
         let mut set = RowSet::new(self.columns());
         let functions = q.functions();
         // segments by the name of their logical net
-        let mut segments: Vec<(ew_derive::ew_mltext::NaturalKey, String, ew_derive::BusSegment)> = Vec::new();
+        let mut segments: Vec<(ew_mltext::NaturalKey, String, ew_derive::BusSegment)> = Vec::new();
         let pnets: Vec<Id<PhysicalNet>> = q.table::<PhysicalNet>().iter().map(|(id, _)| id).collect();
         for pnet in pnets {
             for s in q.get::<BusSegments>(pnet).iter() {
@@ -465,7 +465,7 @@ impl ReportKindDef for BusOverview {
 }
 
 /// Whether port `p` of device `d` is a switch's: a part of the device declares its interface with a socket count.
-fn switch_port(q: &Q, d: Id<Device>, p: &ew_derive::ew_schema::BusPort) -> bool {
+fn switch_port(q: &Q, d: Id<Device>, p: &ew_schema::BusPort) -> bool {
     let parts = q.parts();
     q.devices().get(d).is_some_and(|dev| {
         dev.parts.iter().any(|u| {
@@ -529,7 +529,7 @@ impl ReportKindDef for BusCableList {
             let (Some(cable), Endpoint::Cp(a, _), Endpoint::Cp(b, _)) = (line.cable, &conn.a, &conn.b) else {
                 continue;
             };
-            let plug = |p: &Option<Box<ew_derive::ew_schema::BusPlug>>| p.as_ref().map(|p| p.part.copy);
+            let plug = |p: &Option<Box<ew_schema::BusPlug>>| p.as_ref().map(|p| p.part.copy);
             by_cable
                 .entry(cable)
                 .or_default()

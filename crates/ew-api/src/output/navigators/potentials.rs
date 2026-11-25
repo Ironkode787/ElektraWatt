@@ -6,7 +6,7 @@
 //! Not here: the wire rows themselves (`connections.rs`); a potential's highlight (`highlight.rs`).
 
 use ew_derive::Q;
-use ew_derive::ew_ids::Id;
+use ew_ids::Id;
 
 use super::connections::{push_wire_row, wire_list_rows};
 use super::{Builder, NavOpen, NavRole, cell_of, folio_pages, row_entity, row_segment};
@@ -14,8 +14,7 @@ use super::{Builder, NavOpen, NavRole, cell_of, folio_pages, row_entity, row_seg
 /// Potentials: the potential overview's rows, each with the physical-wire rows of the wire list whose potential
 /// cell names it (a bond wire's `A ⇄ B` names both).
 pub(super) fn potentials_table(q: &Q, b: &mut Builder) {
-    let Some(set) = ew_reports::project_rows(q, &ew_derive::ew_schema::ReportKind::PotentialOverview, None)
-    else {
+    let Some(set) = ew_reports::project_rows(q, &ew_schema::ReportKind::PotentialOverview, None) else {
         return;
     };
     let wires = wire_list_rows(q);

@@ -9,8 +9,8 @@
 
 use std::path::{Path, PathBuf};
 
-use ew_derive::ew_plcaddr::{Area, PlcAddress, Purpose, Size};
-use ew_derive::ew_schema::LibDocument;
+use ew_plcaddr::{Area, PlcAddress, Purpose, Size};
+use ew_schema::LibDocument;
 use ew_derive::{address_profile, builtin_profiles, default_profile, unreadable_profile};
 
 fn dir() -> PathBuf {
@@ -62,7 +62,7 @@ fn both_builtins_parse_and_round_trip_seven_output_bytes() {
 fn the_rockwell_builtin_is_tag_based() {
     let rockwell = &builtin_profiles()[2];
     assert!(!rockwell.absolute);
-    let at = ew_derive::ew_plcaddr::TagPlace {
+    let at = ew_plcaddr::TagPlace {
         station: "Local",
         slot: 3,
         channel: 1,

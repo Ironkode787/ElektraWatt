@@ -6,8 +6,8 @@
 
 use crate::common;
 
-use ew_derive::ew_mltext::{LangTag, MlText};
-use ew_derive::ew_units::Dec3;
+use ew_mltext::{LangTag, MlText};
+use ew_units::Dec3;
 use ew_derive::{BomMode, BomRow, BomRows, PageOrder, PageRef, Q, Rev};
 use ew_reports::render::{RenderOptions, TagForm, compress_range, decimal, render};
 use ew_reports::{Cell, MissingReason, QtyUnit};

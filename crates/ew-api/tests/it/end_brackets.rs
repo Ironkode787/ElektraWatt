@@ -22,8 +22,8 @@ use crate::common::{self, placement_of, rail_at, run_cmd};
 
 use ew_api::Session;
 use ew_api::output::{RowExport, StripEdit, page_layer, row_export};
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_units::{Nm, Pt2, Rect};
+use ew_ids::{Id, Uuid};
+use ew_units::{Nm, Pt2, Rect};
 use ew_derive::layout::{GroupAccessories, PlacementGeometry};
 use ew_derive::{BomMode, BomRow, BomRows, DevicePartLines, LineSource, PageOrder, PageRef, Q};
 use ew_dl::{DisplayList, EntityRef, ItemKind, Layer, Pen, Stroke};
@@ -479,12 +479,12 @@ fn resized(mut copy: ew_schema::LibCopy<Part>, item: u128, key: &str, width: i64
     let item = Uuid::from_u128(item);
     copy.item_id = Id::from_uuid(item);
     copy.library_id = Id::from_uuid(Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_0001));
-    copy.id = ew_derive::ew_ids::v5::lib_copy_id(copy.library_id.as_uuid(), item);
+    copy.id = ew_ids::v5::lib_copy_id(copy.library_id.as_uuid(), item);
     copy.item.meta.key = Some(key.parse().expect("a key"));
     copy.item.part_number = key.parse().expect("a part number");
     copy.item.mech.as_mut().expect("the part's mechanics").width = Some(Nm(width));
     let doc = ew_schema::LibDocument::Part(copy.clone());
-    copy.sha256 = ew_schema::Sha256(ew_store::ew_format::library_copy_hash(&doc).expect("a part hashes"));
+    copy.sha256 = ew_schema::Sha256(ew_format::library_copy_hash(&doc).expect("a part hashes"));
     (
         serde_json::to_value(ew_schema::LibDocument::Part(copy.clone())).unwrap(),
         id_json(copy.id),

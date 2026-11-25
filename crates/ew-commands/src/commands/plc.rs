@@ -344,16 +344,12 @@ impl Command for SetStart {
                         CmdError::invalid_params(Self::NAME, "/spec", text!("refusal-params-detail", why))
                     })?;
                     let (want, name, area) = match self.dir {
-                        StartDir::Input => (
-                            PlcArea::I,
-                            text!("refusal-plc-start-input"),
-                            ew_derive::ew_plcaddr::Area::I,
-                        ),
-                        StartDir::Output => (
-                            PlcArea::Q,
-                            text!("refusal-plc-start-output"),
-                            ew_derive::ew_plcaddr::Area::Q,
-                        ),
+                        StartDir::Input => {
+                            (PlcArea::I, text!("refusal-plc-start-input"), ew_plcaddr::Area::I)
+                        }
+                        StartDir::Output => {
+                            (PlcArea::Q, text!("refusal-plc-start-output"), ew_plcaddr::Area::Q)
+                        }
                     };
                     if a.area != want {
                         let example = ew_derive::pinned_profile(&at_hand, &profile)
@@ -739,11 +735,7 @@ impl Command for FreezeAddresses {
             if let Some(start) = *q.get::<ew_derive::ModuleStartOf>(m.module) {
                 let pinned = |spec: &AddrSpec, at: Option<ew_derive::Start>, area| match (spec, at) {
                     (AddrSpec::Auto, Some(ew_derive::Start::At(byte))) => Some(AddrSpec::Manual(
-                        ew_derive::stored(ew_derive::ew_plcaddr::PlcAddress::unit(
-                            area,
-                            ew_derive::ew_plcaddr::Size::Bit,
-                            byte,
-                        )),
+                        ew_derive::stored(ew_plcaddr::PlcAddress::unit(area, ew_plcaddr::Size::Bit, byte)),
                     )),
                     _ => None,
                 };
@@ -751,8 +743,8 @@ impl Command for FreezeAddresses {
                     .get::<Device>(m.module)
                     .and_then(|d| d.aspects.plc_module.clone())
                 {
-                    let input = pinned(&p.start.input, start.input, ew_derive::ew_plcaddr::Area::I);
-                    let output = pinned(&p.start.output, start.output, ew_derive::ew_plcaddr::Area::Q);
+                    let input = pinned(&p.start.input, start.input, ew_plcaddr::Area::I);
+                    let output = pinned(&p.start.output, start.output, ew_plcaddr::Area::Q);
                     if input.is_some() || output.is_some() {
                         tx.update::<Device>(m.module, |d| {
                             if let Some(p) = d.aspects.plc_module.as_mut() {
@@ -941,9 +933,7 @@ impl Command for ConvertManualToAuto {
                         .zip(module_profile_of(&q, *m).filter(|p| p.absolute))
                         .map_or_else(
                             || text!("notice-none").into(),
-                            |(auto, p)| {
-                                TextArg::from(p.render(&auto, ew_derive::ew_plcaddr::Purpose::Drawing))
-                            },
+                            |(auto, p)| TextArg::from(p.render(&auto, ew_plcaddr::Purpose::Drawing)),
                         );
                     notices.push(text!(
                         "notice-plc-keeps-address",
@@ -1038,21 +1028,17 @@ impl Command for ConvertManualToAuto {
         }
         for (m, output, byte, auto, others_moved) in kept {
             let area = if output {
-                ew_derive::ew_plcaddr::Area::Q
+                ew_plcaddr::Area::Q
             } else {
-                ew_derive::ew_plcaddr::Area::I
+                ew_plcaddr::Area::I
             };
             let start = |b: u32| {
                 module_profile_of(&q, m).map_or_else(
                     || b.to_string(),
                     |p| {
                         p.render(
-                            &ew_derive::ew_plcaddr::PlcAddress::unit(
-                                area,
-                                ew_derive::ew_plcaddr::Size::Bit,
-                                b,
-                            ),
-                            ew_derive::ew_plcaddr::Purpose::Drawing,
+                            &ew_plcaddr::PlcAddress::unit(area, ew_plcaddr::Size::Bit, b),
+                            ew_plcaddr::Purpose::Drawing,
                         )
                     },
                 )
@@ -1085,7 +1071,7 @@ type KeptStart = (Id<Device>, bool, u32, Option<u32>, bool);
 fn module_profile_of(
     q: &ew_derive::Q,
     module: Id<Device>,
-) -> Option<std::sync::Arc<ew_derive::ew_plcaddr::AddressProfile>> {
+) -> Option<std::sync::Arc<ew_plcaddr::AddressProfile>> {
     let station = ew_derive::station_of(q, module)?;
     let cfg = q
         .devices()

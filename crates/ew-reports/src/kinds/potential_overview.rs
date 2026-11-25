@@ -5,11 +5,11 @@
 
 use std::collections::BTreeSet;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
-use ew_derive::ew_schema::{CircuitClass, Page, PotentialType, ReportBlock, ReportKind};
 use ew_derive::{DrawnPageOrder, PageRef, Potential, PotentialId, PropSource, Q};
+use ew_ids::Id;
 use ew_l10n::Text;
+use ew_mltext::{MlText, NaturalKey, natural_key};
+use ew_schema::{CircuitClass, Page, PotentialType, ReportBlock, ReportKind};
 
 use super::conn::{Wires, colour_cell, csa_cell, put, words_cell};
 use crate::kind::ReportKindDef;
@@ -163,8 +163,8 @@ fn potential_row(q: &Q, wires: &Wires, p: &Potential, pages: Vec<PageRef>) -> Ro
     let kind = attrs.ptype.as_ref().map_or(Cell::Empty, |t| type_name(&t.value));
     let voltage = attrs.voltage.as_ref().map_or(Cell::Empty, |v| {
         let ac_dc = match attrs.env.as_ref().and_then(|e| e.value.ac_dc.as_ref()) {
-            Some(ew_derive::ew_schema::AcDc::Ac) => " V AC",
-            Some(ew_derive::ew_schema::AcDc::Dc) => " V DC",
+            Some(ew_schema::AcDc::Ac) => " V AC",
+            Some(ew_schema::AcDc::Dc) => " V DC",
             _ => " V",
         };
         Cell::Ident(format!("{}{ac_dc}", v.value))

@@ -7,13 +7,13 @@
 
 use std::collections::BTreeMap;
 
-use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::{PageOrder, PageRef, Q};
+use ew_ids::{Id, Uuid};
 
 use super::{Builder, NavOpen, NavRole, group};
 
 pub(super) fn blocks_table(q: &Q, b: &mut Builder) {
-    use ew_derive::ew_schema::{ReportBlock, ReportSource, Section};
+    use ew_schema::{ReportBlock, ReportSource, Section};
     let order = q.get::<PageOrder>(());
     // (sort key: section number, first page position, ID), cells, ID, open page, section.
     type BlockRow = (

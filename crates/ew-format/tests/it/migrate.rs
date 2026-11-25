@@ -7,7 +7,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ew_format::ew_schema::{Kind, LibDocument, Sha256};
+use ew_schema::{Kind, LibDocument, Sha256};
 use ew_format::{
     FilePath, FormatStep, KindStep, Limits, MIGRATIONS, Manifest, MigrationError, Migrations, StewardProblem,
     lib_document_text, lib_file, load_migrated, sha256, steward_problems,

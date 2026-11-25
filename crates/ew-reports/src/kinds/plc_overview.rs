@@ -5,10 +5,10 @@
 //! folio 908 of the standard layout), and the PLC overview box of a module or station embedded on a page
 //! (FR-PLC-052).
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
-use ew_derive::ew_schema::{ChannelKind, Device, ReportBlock, ReportKind};
 use ew_derive::{ChannelAddr, EffectiveState, PageRef, PlcRow, PlcRows, Q, RepAnchorCell, short_tag};
+use ew_ids::Id;
+use ew_mltext::{MlText, NaturalKey, natural_key};
+use ew_schema::{ChannelKind, Device, ReportBlock, ReportKind};
 
 use super::conn::{put, words_cell};
 use crate::kind::{EmbeddedLayout, ReportKindDef};

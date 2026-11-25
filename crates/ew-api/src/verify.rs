@@ -17,7 +17,6 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ew_derive::ew_ids::Id;
 use ew_derive::{
     BomMode, BomRows, BondIndex, BondPathsQ, BondVias, DefPoints, DevicePartLines, DeviceTag,
     DevicesByStructure, DrawnPageOrder, EndClass, EndScope, FlowBfs, FlowNotes, FunctionLinksOf, Member,
@@ -27,6 +26,7 @@ use ew_derive::{
     WireNumbers, WireProfileNotes, WireProfilesQ, WirePropsOf, XrefTextOf,
 };
 use ew_derive::{IpFunctions, IpInfoOf, IpNotes, IpPairingQ};
+use ew_ids::Id;
 use ew_reports::{BlockPages, BlockRows, TagClassMembers};
 use ew_schema::{
     CircuitClass, Device, Function, Page, PlcConfigProject, ReportBlock, ReportKind, ReportSource,

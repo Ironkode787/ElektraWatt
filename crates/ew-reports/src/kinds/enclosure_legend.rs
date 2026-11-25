@@ -3,10 +3,10 @@
 
 //! `enclosure_legend`: the layout legend of a mounting surface (FR-LAY-012; doc 12 §5.4, doc 09 §2.2).
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{AnyId, MountingSurface, OrderUnit, ReportBlock, ReportKind};
 use ew_derive::layout::{LegendItem, layout_legend, page_surface};
 use ew_derive::{DrawnPageOrder, PageRef, Q};
+use ew_ids::Id;
+use ew_schema::{AnyId, MountingSurface, OrderUnit, ReportBlock, ReportKind};
 
 use super::conn::text_cell;
 use super::parts::{manufacturer_cell, part_number_cell, qty_cell, unit_cell};

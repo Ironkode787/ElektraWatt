@@ -5,8 +5,8 @@
 //! title-block forms print, in the order of their cells, each with its text now; and where those values live (the
 //! project's ID, whether the page overrides the project's description, the open revision, the parties).
 
-use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::{PageRef, TbValue, TitleBlockValues, current_revision, open_revision};
+use ew_ids::{Id, Uuid};
 use ew_schema::{Page, Revision};
 use serde_json::Value;
 

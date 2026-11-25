@@ -347,7 +347,7 @@ fn a_technical_value_is_replaced_in_its_list() {
 }
 
 /// The device of the sample printed as `tag`.
-fn device_of(s: &Session, tag: &str) -> ew_derive::ew_ids::Uuid {
+fn device_of(s: &Session, tag: &str) -> ew_ids::Uuid {
     let found = s.find(&FindQuery {
         fields: vec![FindField::Tag],
         match_case: true,
@@ -358,7 +358,7 @@ fn device_of(s: &Session, tag: &str) -> ew_derive::ew_ids::Uuid {
 }
 
 /// A device of the sample with `tech_data` set to `items` (JSON), by its tag.
-fn device_with_tech_data(s: &mut Session, tag: &str, items: Value) -> ew_derive::ew_ids::Uuid {
+fn device_with_tech_data(s: &mut Session, tag: &str, items: Value) -> ew_ids::Uuid {
     let device = device_of(s, tag);
     let set = AnyCommand {
         name: "fields.set".into(),

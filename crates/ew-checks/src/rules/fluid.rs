@@ -10,12 +10,12 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{Channel, ContactKind, Device, DeviceState, Function, Kind};
 use ew_derive::{
     ChannelsByCp, DeviceTag, FunctionCps, Q, ValveSlot, ValveSlots, driven_device, reached_device,
     valve_solenoids,
 };
+use ew_ids::Id;
+use ew_schema::{Channel, ContactKind, Device, DeviceState, Function, Kind};
 
 use crate::engine::touched_ids;
 use crate::finding::{Finding, QuickFix, Severity, Target};

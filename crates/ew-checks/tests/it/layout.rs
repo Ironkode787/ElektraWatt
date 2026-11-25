@@ -660,8 +660,8 @@ fn limits_a_second_space_and_a_second_plate() {
         .iter()
         .map(|f| f.targets[0].kind)
         .collect();
-    assert!(targets.contains(&ew_derive::ew_schema::Kind::LayoutSpace));
-    assert!(targets.contains(&ew_derive::ew_schema::Kind::MountingSurface));
+    assert!(targets.contains(&ew_schema::Kind::LayoutSpace));
+    assert!(targets.contains(&ew_schema::Kind::MountingSurface));
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -971,8 +971,8 @@ fn a_rail_of_stacked_strips_gives_one_finding_per_bracket_and_its_bom_line() {
     let q = ew_derive::Q::new(&m);
     for i in 0..N {
         let lines: Vec<(String, ew_derive::LineSource)> = q
-            .get::<ew_derive::DevicePartLines>(ew_derive::ew_ids::Id::from_uuid(
-                ew_derive::ew_ids::Uuid::from_u128(strip(i)),
+            .get::<ew_derive::DevicePartLines>(ew_ids::Id::from_uuid(
+                ew_ids::Uuid::from_u128(strip(i)),
             ))
             .iter()
             .filter(|l| l.source == ew_derive::LineSource::GroupAccessory)

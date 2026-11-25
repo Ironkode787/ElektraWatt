@@ -4,7 +4,7 @@
 //! `LinkRef::item`: a link over one listed item of a cell, never one whose column or item
 //! index does not fit.
 
-use ew_derive::ew_ids::{Id, Uuid};
+use ew_ids::{Id, Uuid};
 use ew_reports::{LinkRef, LinkTarget};
 
 fn target() -> LinkTarget {

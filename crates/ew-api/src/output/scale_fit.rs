@@ -9,11 +9,11 @@
 //! The window sends it with a surface view set on a page still drawn not to scale (`page.surface_view.set`'s
 //! `scale`); a scale already chosen is kept.
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_units::{Nm, Pt2, Rect};
 use ew_derive::{PageRef, Q};
+use ew_ids::{Id, Uuid};
 use ew_scene::forms::{FrameGeometry, SheetMap};
 use ew_schema::{Extra, FormDef, FormKind, FrameGrid, ItemMeta, MountingSurface, Page, Scale, SheetSpec};
+use ew_units::{Nm, Pt2, Rect};
 
 use super::view::PageFrameOf;
 use crate::Session;

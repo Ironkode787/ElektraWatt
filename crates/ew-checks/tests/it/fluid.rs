@@ -34,8 +34,8 @@ fn coil(n: u128) -> u128 {
 }
 
 fn channel_id(module: u128, n: u16) -> String {
-    ew_derive::ew_ids::v5::plc_channel_id::<ew_derive::ew_schema::Device, ()>(
-        ew_derive::ew_ids::Id::from_uuid(ew_derive::ew_ids::Uuid::from_u128(module)),
+    ew_ids::v5::plc_channel_id::<ew_schema::Device, ()>(
+        ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(module)),
         n,
     )
     .as_uuid()
@@ -390,7 +390,7 @@ fn ew_fl_013_prevents_a_valve_outside_or_at_a_held_position() {
     let before = fx.build();
     let mut moved = fx.clone();
     valve(&mut moved, V2, 2, 6, None);
-    let touched = [(ew_derive::ew_schema::Kind::Device, common::uid(V2))];
+    let touched = [(ew_schema::Kind::Device, common::uid(V2))];
     let messages = |after: &Fx| -> Vec<String> {
         ew_checks::prevent(&Q::new(&before), &Q::new(&after.build()), &touched)
             .into_iter()
@@ -422,7 +422,7 @@ fn ew_fl_013_prevents_a_valve_outside_or_at_a_held_position() {
     let refused = ew_checks::prevent(&Q::new(&free_model), &Q::new(&onto.build()), &touched);
     assert_eq!(refused.len(), 1, "{refused:#?}");
     let stood = onto.build();
-    let v1 = [(ew_derive::ew_schema::Kind::Device, common::uid(V1))];
+    let v1 = [(ew_schema::Kind::Device, common::uid(V1))];
     assert!(ew_checks::prevent(&Q::new(&stood), &Q::new(&stood), &v1).is_empty());
 }
 
@@ -436,7 +436,7 @@ fn ew_fl_013_prevents_a_module_at_a_held_position() {
     let before = fx.build();
     let mut onto = base();
     module(&mut onto, MODULE_2, 4, 1);
-    let touched = [(ew_derive::ew_schema::Kind::Device, common::uid(MODULE_2))];
+    let touched = [(ew_schema::Kind::Device, common::uid(MODULE_2))];
     let messages: Vec<String> = ew_checks::prevent(&Q::new(&before), &Q::new(&onto.build()), &touched)
         .into_iter()
         .map(|f| f.message())
@@ -454,7 +454,7 @@ fn ew_fl_013_prevents_a_lower_id_valve_at_a_held_position() {
     let before = fx.build();
     let mut held = fx.clone();
     valve(&mut held, V1, 1, 1, None);
-    let touched = [(ew_derive::ew_schema::Kind::Device, common::uid(V1))];
+    let touched = [(ew_schema::Kind::Device, common::uid(V1))];
     let messages: Vec<String> = ew_checks::prevent(&Q::new(&before), &Q::new(&held.build()), &touched)
         .into_iter()
         .map(|f| f.message())

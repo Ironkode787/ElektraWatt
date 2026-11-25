@@ -9,9 +9,9 @@
 use std::collections::BTreeMap;
 
 use ew_derive::Q;
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_mltext::{NaturalKey, natural_key};
-use ew_derive::ew_schema::Device;
+use ew_ids::{Id, Uuid};
+use ew_mltext::{NaturalKey, natural_key};
+use ew_schema::Device;
 
 use super::{
     Builder, NavRole, base_facets, cell_of, connection_drawable, device_drawables, folios, group, row_entity,
@@ -21,7 +21,7 @@ use crate::Session;
 use ew_derive::short_tag;
 
 /// The medium a zone's key names.
-fn medium_of(key: &ew_derive::MediumKey) -> Id<ew_derive::ew_schema::Medium> {
+fn medium_of(key: &ew_derive::MediumKey) -> Id<ew_schema::Medium> {
     use ew_derive::MediumKey;
     match key {
         MediumKey::Defined(m) | MediumKey::Regulated(m, _) | MediumKey::Vacuum(m) | MediumKey::Exhaust(m) => {
@@ -31,7 +31,7 @@ fn medium_of(key: &ew_derive::MediumKey) -> Id<ew_derive::ew_schema::Medium> {
 }
 
 /// The fluid lines of the nets that carry `medium` (its zones, doc 11 §5.3), sorted.
-pub(super) fn medium_lines(q: &Q, medium: Id<ew_derive::ew_schema::Medium>) -> Vec<Uuid> {
+pub(super) fn medium_lines(q: &Q, medium: Id<ew_schema::Medium>) -> Vec<Uuid> {
     let zones = q.get::<ew_derive::MediumZones>(());
     let mut out: Vec<Uuid> = q
         .get::<ew_derive::FluidNets>(())
@@ -54,7 +54,7 @@ impl Session {
     pub fn media(&self) -> Vec<(Uuid, String)> {
         let q = self.query();
         let mut out: Vec<(NaturalKey, Uuid, String)> = q
-            .table::<ew_derive::ew_schema::Medium>()
+            .table::<ew_schema::Medium>()
             .iter()
             .map(|(id, m)| {
                 let name = m.name.neutral_or_first().unwrap_or_default().to_owned();
@@ -68,7 +68,7 @@ impl Session {
     /// The one medium the net of fluid line `line` carries (doc 11 §5.3); `None` for no medium or a mixed net.
     pub fn line_medium(&self, line: Uuid) -> Option<Uuid> {
         let q = self.query();
-        let id: Id<ew_derive::ew_schema::Connection> = Id::from_uuid(line);
+        let id: Id<ew_schema::Connection> = Id::from_uuid(line);
         let nets = q.get::<ew_derive::FluidNets>(());
         let net = nets.nets.iter().find(|n| n.connections.contains(&id))?;
         let zones = q.get::<ew_derive::MediumZones>(());
@@ -87,7 +87,7 @@ impl Session {
     /// The connection point at an end of fluid line `line` (its end a, else its end b): the function and the CP index
     /// `fluid.medium.define` takes; `None` for a line between junctions only.
     pub fn line_end_cp(&self, line: Uuid) -> Option<(Uuid, u16)> {
-        use ew_derive::ew_schema::Endpoint;
+        use ew_schema::Endpoint;
         let q = self.query();
         let c = q.connections().get(Id::from_uuid(line))?;
         [&c.a, &c.b].into_iter().find_map(|e| match e {
@@ -104,12 +104,12 @@ impl Session {
 /// table mode the navigator lists its tubes: a tube's first row carries the tube list's cells in `lang`.
 pub(super) fn fluid_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
     use ew_derive::TubeRows;
-    use ew_derive::ew_schema::Medium;
+    use ew_schema::Medium;
     let folios = folios(q);
     let tubes = q.get::<TubeRows>(());
     // The tube list's cells by the row's record (the tube), each given to one row only.
     let mut cells: BTreeMap<Uuid, Vec<String>> = BTreeMap::new();
-    if let Some(set) = ew_reports::project_rows(q, &ew_derive::ew_schema::ReportKind::TubeList, None) {
+    if let Some(set) = ew_reports::project_rows(q, &ew_schema::ReportKind::TubeList, None) {
         for (i, r) in set.rows.iter().enumerate() {
             if let (ew_reports::RowKind::Data, Some(record)) = (&r.kind, row_entity(&r.id, 0)) {
                 cells.insert(record, texts_in(q, &set, i, lang));
@@ -292,7 +292,7 @@ fn texts_in(q: &Q, set: &ew_reports::RowSet, i: usize, lang: Option<&str>) -> Ve
 /// and length with their sources; the tube part and the length are edited in their cells (`fields.set` `tube_part`,
 /// `tube_length` on the line).
 pub(super) fn tubes_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
-    let Some(set) = ew_reports::project_rows(q, &ew_derive::ew_schema::ReportKind::TubeList, None) else {
+    let Some(set) = ew_reports::project_rows(q, &ew_schema::ReportKind::TubeList, None) else {
         return;
     };
     let folios = folios(q);
@@ -329,8 +329,7 @@ pub(super) fn tubes_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
 /// The medium table (doc 11 §7): the medium overview's rows (`medium_overview`), one per medium; a row highlights the
 /// medium's zones on the page (pattern and colour, doc 11 §7's highlight).
 pub(super) fn media_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
-    let Some(set) = ew_reports::project_rows(q, &ew_derive::ew_schema::ReportKind::MediumOverview, None)
-    else {
+    let Some(set) = ew_reports::project_rows(q, &ew_schema::ReportKind::MediumOverview, None) else {
         return;
     };
     for (i, r) in set.rows.iter().enumerate() {

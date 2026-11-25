@@ -6,8 +6,8 @@
 //! (`K1` as the rule gives it, `K10` and `K9` against it), and two wires, one with the frozen number `W5`.
 
 use ew_derive::Q;
-use ew_derive::ew_ids::Uuid;
-use ew_derive::ew_schema::{LibDocument, Project, Record, ReportBlock};
+use ew_ids::Uuid;
+use ew_schema::{LibDocument, Project, Record, ReportBlock};
 use ew_model::Model;
 use ew_reports::Registry;
 use ew_reports::csv::row_texts;

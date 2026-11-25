@@ -8,8 +8,8 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::{ConnWireProps, MainRep, PotentialNameOf, Q, WireNumbers, cp_label};
+use ew_ids::{Id, Uuid};
 use ew_model::EndpointKey;
 use ew_schema::{Connection, Device};
 use serde_json::Value;
@@ -326,7 +326,7 @@ pub(super) fn wire_number_text(q: &Q, conn: Id<Connection>) -> String {
 /// (`-G1:+ → -S1:1`); `None` for a numbered wire, whose number is its title.
 pub(super) fn connection_filter(q: &Q, c: Id<Connection>) -> Option<String> {
     let conn = q.connections().get(c)?;
-    if matches!(conn.kind, ew_derive::ew_schema::ConnectionKind::Fluid(_)) {
+    if matches!(conn.kind, ew_schema::ConnectionKind::Fluid(_)) {
         let rows = q.get::<ew_derive::TubeRows>(());
         let row = rows.iter().find(|r| r.constituents.contains(&c))?;
         let en = "en-GB".parse().ok()?;

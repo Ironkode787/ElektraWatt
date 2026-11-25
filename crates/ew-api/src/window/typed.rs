@@ -8,7 +8,7 @@
 
 use std::collections::BTreeSet;
 
-use ew_derive::ew_schema::IecColour;
+use ew_schema::IecColour;
 use serde_json::Value;
 
 use crate::Session;

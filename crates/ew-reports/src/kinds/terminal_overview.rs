@@ -3,11 +3,11 @@
 
 //! `terminal_overview`: the terminal strip overview (FR-REP-010).
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{Device, RepType, ReportBlock, ReportKind, Representation};
 use ew_derive::{
     DevicePartLines, DrawnPageOrder, MainRep, PageOrderV, PageRef, Q, RepAnchorCell, StructureOf, short_tag,
 };
+use ew_ids::Id;
+use ew_schema::{Device, RepType, ReportBlock, ReportKind, Representation};
 
 use super::conn::{
     TerminalState, Wires, bridges, put, terminal_state, terminal_wired, text_cell, wires_by_cp,

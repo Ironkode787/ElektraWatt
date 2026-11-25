@@ -8,7 +8,7 @@
 
 use std::sync::Arc;
 
-use ew_derive::ew_ids::{Id, Uuid};
+use ew_ids::{Id, Uuid};
 use ew_model::EndpointKey;
 
 use crate::Session;
@@ -34,8 +34,8 @@ impl Session {
     /// function that is no interruption point.
     pub fn supply_point(&self, point: Uuid) -> Option<SupplyPoint> {
         let q = self.query();
-        let f: Id<ew_derive::ew_schema::Function> = Id::from_uuid(point);
-        let ew_derive::ew_schema::FunctionKind::Ip(ip) = &q.functions().get(f)?.kind else {
+        let f: Id<ew_schema::Function> = Id::from_uuid(point);
+        let ew_schema::FunctionKind::Ip(ip) = &q.functions().get(f)?.kind else {
             return None;
         };
         let at = EndpointKey::Cp(f, 0);
@@ -52,16 +52,16 @@ impl Session {
                     .as_ref()
                     .is_some_and(|e| e.ptype.is_some())
         });
-        let word = |t: &ew_derive::ew_schema::PotentialType| {
+        let word = |t: &ew_schema::PotentialType| {
             serde_json::to_value(t)
                 .ok()
                 .and_then(|v| v.as_str().map(str::to_owned))
                 .unwrap_or_default()
         };
-        let voltage = |d: &ew_derive::ew_schema::PotentialDef| {
+        let voltage = |d: &ew_schema::PotentialDef| {
             let current = match d.env.ac_dc {
-                Some(ew_derive::ew_schema::AcDc::Ac) => " AC",
-                Some(ew_derive::ew_schema::AcDc::Dc) => " DC",
+                Some(ew_schema::AcDc::Ac) => " AC",
+                Some(ew_schema::AcDc::Dc) => " DC",
                 _ => "",
             };
             d.voltage.map(|v| format!("{v} V{current}")).unwrap_or_default()
@@ -84,7 +84,7 @@ impl Session {
     pub fn supply_phase_voltage(&self) -> Option<String> {
         let q = self.query();
         let s = q.project().supply.clone()?;
-        let current = if s.frequency == ew_derive::ew_units::Dec3::ZERO {
+        let current = if s.frequency == ew_units::Dec3::ZERO {
             "DC"
         } else {
             "AC"

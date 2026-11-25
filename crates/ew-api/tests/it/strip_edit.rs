@@ -9,8 +9,8 @@ use crate::common;
 
 use ew_api::output::{NavKind, NavNode, NavRole, NavTable, RowValue, StripEdit, StripEditError, Uuid};
 use ew_api::{AnyCommand, Origin, Session};
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::Device;
+use ew_ids::Id;
+use ew_schema::Device;
 use serde_json::{Value, json};
 
 fn children<'t>(t: &'t NavTable, parent: &NavNode) -> Vec<&'t NavNode> {
@@ -102,13 +102,13 @@ fn tbd_copy(id: &str, item: &str, kind: &str, description: &str, key: &str) -> V
 fn consistent(mut v: Value) -> Value {
     // Another company library than the project's own (a project-local item is not embedded).
     v["library_id"] = json!("0b6e3a2c-0000-5000-8000-000000000003");
-    let lib: ew_derive::ew_ids::Uuid = v["library_id"].as_str().unwrap().parse().unwrap();
-    let item: ew_derive::ew_ids::Uuid = v["item_id"].as_str().unwrap().parse().unwrap();
+    let lib: ew_ids::Uuid = v["library_id"].as_str().unwrap().parse().unwrap();
+    let item: ew_ids::Uuid = v["item_id"].as_str().unwrap().parse().unwrap();
     let id: Id<()> = ew_ids::v5::lib_copy_id(lib, item);
     v["id"] = json!(id.as_uuid().to_string());
     v["sha256"] = json!(format!("sha256:{}", "0".repeat(64)));
-    let doc = ew_derive::ew_schema::LibDocument::from_json(&v.to_string()).expect("a part copy");
-    let hash = ew_store::ew_format::library_copy_hash(&doc).expect("a hash");
+    let doc = ew_schema::LibDocument::from_json(&v.to_string()).expect("a part copy");
+    let hash = ew_format::library_copy_hash(&doc).expect("a hash");
     let hex: String = hash.iter().map(|b| format!("{b:02x}")).collect();
     v["sha256"] = json!(format!("sha256:{hex}"));
     v

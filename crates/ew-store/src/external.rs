@@ -21,9 +21,9 @@
 use std::collections::BTreeSet;
 use std::time::Duration;
 
-use ew_format::ew_schema::{Conflict, ConflictBody, DELETED_SIDE};
 use ew_format::merge_record;
 use ew_model::{AnyKey, AnyRow, Model};
+use ew_schema::{Conflict, ConflictBody, DELETED_SIDE};
 use serde_json::Value;
 
 use crate::rows::{all_keys, row_value, value_row};

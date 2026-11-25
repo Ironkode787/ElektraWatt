@@ -8,7 +8,7 @@
 use ew_api::output::PreviewEntity;
 use ew_api::window::HistoryRow;
 use ew_api::{AnyCommand, Origin, Session, Submit};
-use ew_derive::ew_ids::Uuid;
+use ew_ids::Uuid;
 use serde_json::json;
 
 fn fresh() -> Session {

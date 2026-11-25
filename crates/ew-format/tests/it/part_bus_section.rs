@@ -8,7 +8,7 @@
 
 use std::collections::BTreeMap;
 
-use ew_format::ew_schema::{BusSystem, LibDocument, Sha256};
+use ew_schema::{BusSystem, LibDocument, Sha256};
 use ew_format::{
     FindingKind, Limits, Severity, hash_text, lib_document_text, lib_file, library_copy_hash, load, sha256,
 };

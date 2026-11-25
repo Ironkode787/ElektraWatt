@@ -415,10 +415,10 @@ fn a_wire_through_a_text_fires_ew_core_070() {
         tube: false,
     };
     let device = TextOwner::Symbol {
-        rep: ew_derive::ew_ids::Id::from_uuid(rep),
+        rep: ew_ids::Id::from_uuid(rep),
         device: "-103K3",
     };
-    let f = wire_through_text(ew_derive::ew_ids::Id::from_uuid(rep), wire, device, "-103K3");
+    let f = wire_through_text(ew_ids::Id::from_uuid(rep), wire, device, "-103K3");
     assert_eq!(
         (f.message().as_str(), ew_api::checks::render(&f, "nl-NL")),
         (
@@ -583,15 +583,15 @@ fn a_wire_through_an_interruption_point_names_it_in_each_language() {
     );
     let rep = s.page_tables("103").expect("folio 103").reps[0].id;
     let wire = LayoutWire {
-        id: ew_derive::ew_ids::Id::from_uuid(rep),
+        id: ew_ids::Id::from_uuid(rep),
         words: &ew_api::checks::rules::Named::from("-103K1:A2 → -103K2:A2"),
         tube: false,
     };
     let owner = TextOwner::Ip {
-        rep: ew_derive::ew_ids::Id::from_uuid(rep),
+        rep: ew_ids::Id::from_uuid(rep),
         name: "X-9",
     };
-    let f = wire_through_text(ew_derive::ew_ids::Id::from_uuid(rep), wire, owner, "X-9");
+    let f = wire_through_text(ew_ids::Id::from_uuid(rep), wire, owner, "X-9");
     assert_eq!(
         (f.message().as_str(), ew_api::checks::render(&f, "nl-NL")),
         (
@@ -653,8 +653,8 @@ fn a_four_way_junction_fires_ew_core_072() {
 #[test]
 fn a_four_way_junction_off_a_frame_grid_is_named_by_its_folio() {
     use ew_api::checks::rules::page::four_way_junction;
-    let page: ew_derive::ew_ids::Id<ew_derive::ew_schema::Page> =
-        ew_derive::ew_ids::Id::from_uuid(ew_derive::ew_ids::Uuid::from_u128(7));
+    let page: ew_ids::Id<ew_schema::Page> =
+        ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(7));
     let f = four_way_junction(page, "7", page.cast(), "");
     assert_eq!(
         (

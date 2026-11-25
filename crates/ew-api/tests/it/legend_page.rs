@@ -12,7 +12,7 @@ use crate::common;
 
 use ew_api::Session;
 use ew_api::output::{LEGEND_COLUMNS, page_layer};
-use ew_derive::ew_ids::{Id, Uuid};
+use ew_ids::{Id, Uuid};
 use ew_derive::{PageOrder, PageRef};
 use ew_dl::{ItemKind, Layer};
 use ew_schema::{CarrierRef, MountingSurface, Placement, ReportBlock, ReportKind, ReportSource};
@@ -235,7 +235,7 @@ fn a_legend_of_sixty_devices_runs_on_over_its_pages_with_every_text_whole() {
     }
     assert_eq!(
         q.get::<ew_derive::PageTitle>(pages[0].0).as_ref(),
-        &ew_derive::ew_mltext::MlText::from_langs([
+        &ew_mltext::MlText::from_langs([
             ("en-GB".parse().unwrap(), "Legend of layout 920"),
             ("nl-NL".parse().unwrap(), "Legenda bij layout 920"),
         ])

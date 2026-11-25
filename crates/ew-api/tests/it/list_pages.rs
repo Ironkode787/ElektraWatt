@@ -9,7 +9,7 @@ use crate::common;
 
 use ew_api::Session;
 use ew_api::output::{PageFrameOf, PageTableOf, RowExport, page_layer, row_export};
-use ew_derive::ew_mltext::LangTag;
+use ew_mltext::LangTag;
 use ew_derive::{PageOrder, PageRef, text_in};
 use ew_dl::{Item, ItemKind, Layer};
 use ew_reports::{BlockRows, Registry};
@@ -114,7 +114,7 @@ fn a_list_prints_the_columns_headings_widths_caption_and_legend_its_block_choose
         assert_eq!(row.cells, [was.cells[side1].clone(), was.cells[terminal].clone()]);
     }
     let q = s.query();
-    let rows = q.get::<BlockRows>(ew_derive::ew_ids::Id::from_uuid(block.parse().expect("a UUID")));
+    let rows = q.get::<BlockRows>(ew_ids::Id::from_uuid(block.parse().expect("a UUID")));
     let lists = pages_of(&s, 903);
     let listed: usize = lists.iter().map(|p| table(&s, *p).rows.len()).sum();
     assert_eq!(listed, rows.rows.len(), "every row is on a page");
@@ -182,7 +182,7 @@ fn rows_of_your_own_are_listed_sorted_and_kept_when_the_model_changes() {
         "added_rows",
         json!([{"cells": {"terminal": "1a", "label": "spare"}}]),
     );
-    let id = ew_derive::ew_ids::Id::from_uuid(block.parse().expect("a UUID"));
+    let id = ew_ids::Id::from_uuid(block.parse().expect("a UUID"));
     let terminal = |s: &Session| {
         let rows = s.query().get::<BlockRows>(id);
         let at = rows.column("terminal").expect("a terminal column");
@@ -261,13 +261,13 @@ fn own_frame(s: &Session) -> (String, Value) {
         panic!("not a form");
     };
     let project = s.query().project().id.as_uuid();
-    let item = ew_derive::ew_ids::Uuid::from_u128(0x7e01);
-    copy.library_id = ew_derive::ew_ids::Id::from_uuid(project);
-    copy.item_id = ew_derive::ew_ids::Id::from_uuid(item);
-    copy.id = ew_derive::ew_ids::v5::lib_copy_id(project, item);
+    let item = ew_ids::Uuid::from_u128(0x7e01);
+    copy.library_id = ew_ids::Id::from_uuid(project);
+    copy.item_id = ew_ids::Id::from_uuid(item);
+    copy.id = ew_ids::v5::lib_copy_id(project, item);
     copy.item.meta.key = None;
     let doc = ew_schema::LibDocument::Form(copy.clone());
-    copy.sha256 = ew_schema::Sha256(ew_store::ew_format::library_copy_hash(&doc).expect("a hash"));
+    copy.sha256 = ew_schema::Sha256(ew_format::library_copy_hash(&doc).expect("a hash"));
     let id = copy.id.as_uuid().to_string();
     (
         id,
@@ -345,7 +345,7 @@ fn a_set_on_a3_prints_its_lists_on_a3() {
         .list_area(frame.title_block.as_deref(), false, false)
         .rows;
     assert!(a3_rows > ew_schema::HOUSE_ROWS_PER_PAGE, "{a3_rows}");
-    let id = ew_derive::ew_ids::Id::from_uuid(block_at(&s, 907).parse().expect("a UUID"));
+    let id = ew_ids::Id::from_uuid(block_at(&s, 907).parse().expect("a UUID"));
     let all = q.get::<BlockRows>(id).rows.len();
     let first = table(&s, page).rows.len();
     assert_eq!(first, all.min(usize::try_from(a3_rows).expect("rows")));

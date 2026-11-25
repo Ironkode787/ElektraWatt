@@ -5,10 +5,10 @@
 
 use std::fmt;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::natural_cmp;
-use ew_derive::ew_schema::{AnyId, Kind, Page};
+use ew_ids::Id;
 use ew_l10n::{Text, TextArg};
+use ew_mltext::natural_cmp;
+use ew_schema::{AnyId, Kind, Page};
 use sha2::{Digest, Sha256};
 
 use crate::rule::RuleMeta;
@@ -248,8 +248,8 @@ impl Finding {
     /// The same finding, marked as resting on unverified data when `confidence` (what the rule read, through
     /// [`ew_derive::part_confidence`]) is not `verified`.
     #[must_use]
-    pub fn reading(mut self, confidence: &ew_derive::ew_schema::Confidence) -> Finding {
-        if *confidence != ew_derive::ew_schema::Confidence::Verified {
+    pub fn reading(mut self, confidence: &ew_schema::Confidence) -> Finding {
+        if *confidence != ew_schema::Confidence::Verified {
             self.unverified_data = true;
         }
         self
@@ -299,7 +299,7 @@ mod tests {
     use super::*;
 
     fn id(n: u128) -> AnyId {
-        Id::from_uuid(ew_derive::ew_ids::Uuid::from_u128(n))
+        Id::from_uuid(ew_ids::Uuid::from_u128(n))
     }
 
     #[test]

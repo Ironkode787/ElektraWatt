@@ -3,9 +3,9 @@
 
 //! `toc`: the table of contents (FR-REP-003; folio 2 of the standard layout).
 
-use ew_derive::ew_ids::v5::report_page_id;
-use ew_derive::ew_schema::{AnyId, ReportBlock, ReportKind};
 use ew_derive::{PageOrder, PageRef, Q, TocRows};
+use ew_ids::v5::report_page_id;
+use ew_schema::{AnyId, ReportBlock, ReportKind};
 
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, NotDerived, Row, RowId, RowKey, RowSet};

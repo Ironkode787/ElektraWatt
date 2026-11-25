@@ -8,7 +8,7 @@
 //! same drawing can become a second page. The page takes the folio after the last page of the page order, in its
 //! section and on its grid (a project without pages: folio 1 on the QET 10 px grid, `page.create`'s default).
 
-use ew_derive::ew_ids::Id;
+use ew_ids::Id;
 use ew_import_dxf::ew_interop_api::{ImportContext, ImportInput, ImportMode};
 use ew_schema::{GraphicShape, ImportLineage, LineageAnchor, Page, PageItemKind, Record};
 use ew_units::{Grid, Nm, Pt2};
@@ -108,12 +108,7 @@ pub struct DxfPage {
 impl Session {
     /// The copy number of a new import of a file of SHA-256 `sha` (doc 14 §2.3): `None` for the first import into
     /// this project, else one more than the copies it holds.
-    pub(crate) fn import_copy(
-        &self,
-        importer: &str,
-        sha: [u8; 32],
-        first: ew_derive::ew_ids::Uuid,
-    ) -> Option<u32> {
+    pub(crate) fn import_copy(&self, importer: &str, sha: [u8; 32], first: ew_ids::Uuid) -> Option<u32> {
         let q = self.query();
         let mut held = false;
         let mut copies = 0u32;

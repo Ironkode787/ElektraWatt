@@ -8,7 +8,7 @@ use crate::common;
 
 use common::*;
 use ew_checks::Severity;
-use ew_derive::ew_schema::Kind;
+use ew_schema::Kind;
 use ew_model::Model;
 use serde_json::{Value, json};
 
@@ -297,7 +297,7 @@ fn a_wire_from_0v_to_earth_is_the_bond() {
                 .ptype
                 .as_ref()
                 .map(|t| t.value.clone()),
-            Some(ew_derive::ew_schema::PotentialType::M),
+            Some(ew_schema::PotentialType::M),
             "pe_first {pe_first}: the 0 V keeps its type"
         );
         let bonds = ew_derive::bonds_of_potential(&q, zero_volt);

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `.ewz` transport (doc 05 §12): one verified generation of a project as a
-//! deterministic ZIP ([`crate::zip`]), its strict reader, and the all-or-nothing extract through the [`Vfs`] seam.
+//! deterministic ZIP ([`ew_zip`]), its strict reader, and the all-or-nothing extract through the [`Vfs`] seam.
 //!
 //! **Layout** ([`pack`]). `mimetype` first and stored (`application/vnd.elektrawatt.project+zip`), `manifest.json`
 //! second, then every file the manifest lists and `.gitattributes` and `.gitignore` when present, in strictly
@@ -51,7 +51,7 @@ use ew_format::{FileHash, FilePath, Limits, MANIFEST, Manifest, PathClass, class
 
 use crate::store::{GenerationError, Store};
 use crate::vfs::{EntryKind, Vfs, join};
-use crate::zip::{self, Method, ZipError, ZipLimits};
+use ew_zip::{self as zip, Method, ZipError, ZipLimits};
 
 /// The media type in the `mimetype` entry.
 pub const MIMETYPE: &str = "application/vnd.elektrawatt.project+zip";

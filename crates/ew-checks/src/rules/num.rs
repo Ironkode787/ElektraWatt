@@ -3,10 +3,10 @@
 
 //! EW-NUM rules, pack EW-IEC81346 (doc 15 §4.3; numbering in doc 07, doc 03 §8).
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::natural_cmp;
-use ew_derive::ew_schema::{Connection, Kind, NumberSpec};
 use ew_derive::{Q, WireNumbers, rule_product};
+use ew_ids::Id;
+use ew_mltext::natural_cmp;
+use ew_schema::{Connection, Kind, NumberSpec};
 
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};

@@ -32,8 +32,8 @@ const PLATE_PART: u128 = 0x653;
 const AIR: u128 = 0x660;
 const AIR_4: u128 = 0x661;
 
-fn id<T>(n: u128) -> ew_derive::ew_ids::Id<T> {
-    ew_derive::ew_ids::Id::from_uuid(ew_derive::ew_ids::Uuid::from_u128(n))
+fn id<T>(n: u128) -> ew_ids::Id<T> {
+    ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(n))
 }
 
 fn port(role: &str) -> Value {

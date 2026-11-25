@@ -21,10 +21,10 @@
 
 use std::collections::BTreeSet;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{Conductor, Connection, ConnectionKind, Csa, Device, PotentialType};
-use ew_derive::ew_units::Dec3;
 use ew_derive::{EndpointKey, PotentialPartition};
+use ew_ids::Id;
+use ew_schema::{Conductor, Connection, ConnectionKind, Csa, Device, PotentialType};
+use ew_units::Dec3;
 use serde_json::{Value, json};
 
 use crate::output::Uuid;
@@ -374,7 +374,7 @@ impl Session {
         let length = cable
             .and_then(|c| q.devices().get(Id::from_uuid(c)).cloned())
             .and_then(|d| match d.aspects.cable.as_ref().map(|c| &c.length) {
-                Some(ew_derive::ew_schema::LengthSource::Manual(nm)) => {
+                Some(ew_schema::LengthSource::Manual(nm)) => {
                     Some(ew_derive::mm_exact(i128::from(nm.0) / 1000))
                 }
                 _ => None,

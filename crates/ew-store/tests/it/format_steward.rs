@@ -15,8 +15,8 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use common::{options, project_files, tree};
-use ew_store::ew_format::ew_schema::{FORMAT, RELEASED_FORMATS};
-use ew_store::ew_format::{MIGRATIONS, steward_problems};
+use ew_schema::{FORMAT, RELEASED_FORMATS};
+use ew_format::{MIGRATIONS, steward_problems};
 use ew_store::mem::DirSync;
 use ew_store::{Changes, Opened, Store};
 
@@ -53,8 +53,8 @@ fn the_shipped_chain_and_corpus_pass_the_steward_check() {
 #[test]
 fn untouched_lines_with_later_members_are_kept_byte_for_byte() {
     use ew_model::{AnyRow, Op};
-    use ew_store::ew_format::ew_schema::Device;
-    use ew_store::ew_format::{FileHash, FilePath, Limits, MANIFEST, Manifest, sha256};
+    use ew_schema::Device;
+    use ew_format::{FileHash, FilePath, Limits, MANIFEST, Manifest, sha256};
     use std::sync::Arc;
 
     let later = |line: &str| -> String {
@@ -133,8 +133,8 @@ fn untouched_lines_with_later_members_are_kept_byte_for_byte() {
 #[test]
 fn untouched_lines_with_a_later_variant_are_kept_byte_for_byte() {
     use ew_model::{AnyRow, Op};
-    use ew_store::ew_format::ew_schema::Function;
-    use ew_store::ew_format::{FileHash, FilePath, Limits, MANIFEST, Manifest, sha256};
+    use ew_schema::Function;
+    use ew_format::{FileHash, FilePath, Limits, MANIFEST, Manifest, sha256};
     use std::sync::Arc;
 
     // An auxiliary function's role, so that each device keeps its one main function (EW-INV-002).
@@ -191,7 +191,7 @@ fn untouched_lines_with_a_later_variant_are_kept_byte_for_byte() {
     let written: Vec<&str> = written.lines().collect();
     assert_eq!(written.len(), lines.len());
     let canonical =
-        ew_store::ew_format::record_line(&ew_store::ew_format::ew_schema::Record::Function(after)).unwrap();
+        ew_format::record_line(&ew_schema::Record::Function(after)).unwrap();
     assert!(
         canonical.contains(r#""role":{"later":{"alpha":2,"zeta":1}}"#),
         "{canonical}"

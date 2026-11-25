@@ -106,9 +106,6 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, OnceLock};
 
-use ew_derive::ew_ids::{self, Id, Uuid};
-use ew_derive::ew_mltext::MlText;
-use ew_derive::ew_units::{Grid, Nm};
 use ew_derive::{
     DisplayedTag, FunctionCps, GeneratedPage, MainRep, PageOrder, PageRef, PlcAddressText, Policy, Q, Query,
     RepAnchorCell, TbValue, TitleBlockValues, XrefTextOf, box_caption, connection_marker, connection_number,
@@ -116,6 +113,8 @@ use ew_derive::{
     order_code_part, order_code_text, tech_data_text,
 };
 use ew_dl::Destination;
+use ew_ids::{self, Id, Uuid};
+use ew_mltext::MlText;
 use ew_reports::render::{RenderOptions, folios_printed, render};
 use ew_reports::{BlockRows, Cell, EmbeddedLayout, LinkTarget, Registry, Row, RowKind, RowSet, RowSetStatus};
 use ew_scene::embedded::{CoverTables, EmbeddedContent, EmbeddedTable, EmbeddedView, Lookup};
@@ -131,6 +130,7 @@ use ew_schema::{
     PageType, RepType, ReportBlock, ReportKind, ReportSource, Representation, Side, SlotKind, SymbolDef,
     TagPrint,
 };
+use ew_units::{Grid, Nm};
 
 mod connections;
 mod items;

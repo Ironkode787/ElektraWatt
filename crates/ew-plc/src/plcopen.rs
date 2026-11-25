@@ -13,7 +13,7 @@
 use std::fmt::Write as _;
 
 use ew_caex::escape;
-use ew_derive::ew_plcaddr::Purpose;
+use ew_plcaddr::Purpose;
 
 use crate::image::Projection;
 

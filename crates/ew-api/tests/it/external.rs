@@ -683,7 +683,7 @@ fn ew_core_013_renumbers_the_newer_after_a_merge() {
     vfs.put(&shard_path, &bytes);
     let manifest_path = ew_store::join(&root(), "manifest.json");
     let mut manifest: Value = serde_json::from_slice(&vfs.read(&manifest_path).unwrap()).unwrap();
-    manifest["files"][&shard] = json!(ew_store::ew_format::hash_text(&ew_store::ew_format::sha256(
+    manifest["files"][&shard] = json!(ew_format::hash_text(&ew_format::sha256(
         &bytes
     )));
     let mut merged = |m: bool| {

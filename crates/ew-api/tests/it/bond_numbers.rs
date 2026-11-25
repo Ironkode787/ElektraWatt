@@ -6,7 +6,7 @@
 
 use crate::common;
 
-use ew_derive::ew_ids::Uuid;
+use ew_ids::Uuid;
 use ew_reports::render::{RenderOptions, render};
 use ew_schema::Record;
 use serde_json::{Value, json};

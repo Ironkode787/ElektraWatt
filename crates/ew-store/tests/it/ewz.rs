@@ -8,10 +8,10 @@ use std::collections::BTreeMap;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use ew_store::ew_format::{hash_text, sha256};
+use ew_format::{hash_text, sha256};
 use ew_store::ewz::{self, AsFound, Ewz, EwzError, ExtractError, PackError};
 use ew_store::mem::{DirSync, Fault, MemVfs};
-use ew_store::zip::{self, Method, ZipLimits};
+use ew_zip::{self as zip, Method, ZipLimits};
 use ew_store::{OpenMode, OsVfs, Store, StoreOptions, Vfs};
 
 use crate::common::{fixture, small_fixture, tree};
@@ -37,7 +37,7 @@ fn open_read_only(dir: &Path) -> Store {
 
 /// The generation of the manifest among `files`.
 fn generation(files: &BTreeMap<String, Vec<u8>>) -> u64 {
-    ew_store::ew_format::Manifest::parse(&files["manifest.json"], &Default::default())
+    ew_format::Manifest::parse(&files["manifest.json"], &Default::default())
         .expect("a manifest")
         .generation
 }

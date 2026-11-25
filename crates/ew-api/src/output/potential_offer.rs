@@ -19,12 +19,12 @@
 
 use std::collections::BTreeSet;
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_schema::{ContactKind, PotentialType};
 use ew_derive::{
     CpRef, EndpointKey, FunctionCps, NameSource, PotentialAttrsOf, PotentialNameOf, PotentialPartition, Q,
     cp_label,
 };
+use ew_ids::{Id, Uuid};
+use ew_schema::{ContactKind, PotentialType};
 
 use crate::Session;
 
@@ -98,7 +98,7 @@ fn fallback(source: &NameSource) -> bool {
 }
 
 /// Whether `function`'s definition is a coil.
-fn is_coil(q: &Q, function: Id<ew_derive::ew_schema::Function>) -> bool {
+fn is_coil(q: &Q, function: Id<ew_schema::Function>) -> bool {
     q.functions()
         .get(function)
         .and_then(|f| q.fndefs().get(f.def))

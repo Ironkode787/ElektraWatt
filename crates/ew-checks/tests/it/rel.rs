@@ -11,7 +11,7 @@ use ew_checks::{
     pack_versions, rule, run,
 };
 use ew_derive::Q;
-use ew_derive::ew_schema::{Record, Sha256};
+use ew_schema::{Record, Sha256};
 use serde_json::{Value, json};
 
 /// A revision record `n` with the members of `extra`.

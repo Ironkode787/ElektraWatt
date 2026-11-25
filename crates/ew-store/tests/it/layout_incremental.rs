@@ -18,7 +18,7 @@ use std::sync::Arc;
 
 use common::{apply, mem_project, options, project_files, root};
 use ew_model::{AnyKey, AnyRow, Model, Op};
-use ew_store::ew_format::ew_schema::{
+use ew_schema::{
     AnyId, Carrier, CarrierRef, Device, Enclosure, Kind, LayoutSpace, MountingSurface, Placement, Record,
     StructureNode,
 };

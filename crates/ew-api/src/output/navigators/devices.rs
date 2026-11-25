@@ -8,11 +8,11 @@
 
 use std::collections::BTreeMap;
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_mltext::{NaturalKey, natural_key};
-use ew_derive::ew_rds::Aspect;
-use ew_derive::ew_schema::{Device, DeviceState, FnRole, Function, Page, Representation};
 use ew_derive::{Q, StructureOf, short_tag};
+use ew_ids::{Id, Uuid};
+use ew_mltext::{NaturalKey, natural_key};
+use ew_rds::Aspect;
+use ew_schema::{Device, DeviceState, FnRole, Function, Page, Representation};
 
 use super::function_kind::{fndef_name, function_kind_text};
 use super::{
@@ -40,8 +40,7 @@ fn row_label(q: &Q, d: Id<Device>) -> String {
 /// device its functions (main first, FnDef name, ID), under each function its representations. Terminals are not
 /// listed (they are the Terminal strips navigator's rows, as in the structure overview).
 pub(super) fn devices_table(q: &Q, b: &mut Builder) {
-    let Some(set) = ew_reports::project_rows(q, &ew_derive::ew_schema::ReportKind::StructureOverview, None)
-    else {
+    let Some(set) = ew_reports::project_rows(q, &ew_schema::ReportKind::StructureOverview, None) else {
         return;
     };
     let part_col = set.column("part");

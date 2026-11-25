@@ -9,7 +9,7 @@ use crate::common;
 use common::*;
 use ew_checks::{CheckMode, FULL, Severity, run};
 use ew_derive::Q;
-use ew_derive::ew_schema::Kind;
+use ew_schema::Kind;
 use serde_json::{Value, json};
 
 fn cable(length: Option<&str>) -> Fx {

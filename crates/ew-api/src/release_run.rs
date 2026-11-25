@@ -49,14 +49,14 @@ use std::path::{Path, PathBuf};
 
 use ew_commands::Command as _;
 use ew_commands::commands::{ApprovedPack, ReleaseRevision, ReleasedArchive};
-use ew_derive::ew_ids::Id;
+use ew_ids::Id;
 use ew_mltext::Ident;
 use ew_model::AnyKey;
 use ew_schema::{Date, Digest128, Page, ReleaseRecord, Revision};
 use ew_store::archive::{self, ArchiveError, NewArchive, WriteError};
 use ew_store::git::{self, Committed, Git, GitError};
-use ew_store::zip::ZipLimits;
 use ew_store::{Changes, GenerationError, SaveError, Vfs};
+use ew_zip::ZipLimits;
 
 use crate::output::{
     ExportOptions, OutputError, Parallelism, PdfDate, changed_pages, page_digests, page_uuid,
@@ -507,7 +507,7 @@ fn archive_json(
     revision: Id<Revision>,
     ctx: &ReleaseContext,
     generation: u64,
-    manifest: &ew_store::ew_format::Manifest,
+    manifest: &ew_format::Manifest,
     record: &ReleaseRecord,
 ) -> Vec<u8> {
     let value = serde_json::json!({
@@ -1160,12 +1160,12 @@ impl Session {
         generation: u64,
         record: &ReleaseRecord,
         parallelism: Parallelism,
-    ) -> Result<(Vec<u8>, (ew_store::ew_format::Manifest, Vec<u8>)), ReleaseError> {
+    ) -> Result<(Vec<u8>, (ew_format::Manifest, Vec<u8>)), ReleaseError> {
         let store = self.store().ok_or(ReleaseError::Gate(GateError::NoProject))?;
         let g = store.read_generation().map_err(ReleaseError::Generation)?;
         let mut entries: BTreeMap<String, Vec<u8>> = BTreeMap::new();
         entries.insert(
-            format!("{}{}", archive::PROJECT_PREFIX, ew_store::ew_format::MANIFEST),
+            format!("{}{}", archive::PROJECT_PREFIX, ew_format::MANIFEST),
             g.manifest_bytes.clone(),
         );
         for (path, bytes) in g.files {
@@ -1338,7 +1338,7 @@ impl Session {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
             Err(error) => return Err(ReleaseError::Io { path, error }),
         };
-        let sha256 = Sha256(ew_store::ew_format::sha256(&bytes));
+        let sha256 = Sha256(ew_format::sha256(&bytes));
         let limits = ZipLimits {
             max_ratio: u64::MAX,
             ..ZipLimits::default()
@@ -1715,15 +1715,14 @@ impl Session {
             .ok()
             .and_then(|v| Some(v.get("context")?.get("label")?.as_str()?.to_owned()))
             .ok_or(ArchiveOpenError::Description)?;
-        let manifest_entry = format!("{}{}", archive::PROJECT_PREFIX, ew_store::ew_format::MANIFEST);
+        let manifest_entry = format!("{}{}", archive::PROJECT_PREFIX, ew_format::MANIFEST);
         let manifest_bytes = entries.get(&manifest_entry).ok_or_else(|| {
             ArchiveOpenError::Archive(ArchiveError::Layout(format!("no `{manifest_entry}`")))
         })?;
         let manifest =
-            ew_store::ew_format::Manifest::parse(manifest_bytes, &ew_store::ew_format::Limits::default())
-                .map_err(|e| {
-                    ArchiveOpenError::Archive(ArchiveError::Layout(format!("`{manifest_entry}`: {e:?}")))
-                })?;
+            ew_format::Manifest::parse(manifest_bytes, &ew_format::Limits::default()).map_err(|e| {
+                ArchiveOpenError::Archive(ArchiveError::Layout(format!("`{manifest_entry}`: {e:?}")))
+            })?;
         archive::check_project(&entries, &manifest, manifest_bytes).map_err(ArchiveOpenError::Archive)?;
         let root = Path::new("/archive");
         let vfs = std::sync::Arc::new(MemVfs::new(DirSync::Explicit));

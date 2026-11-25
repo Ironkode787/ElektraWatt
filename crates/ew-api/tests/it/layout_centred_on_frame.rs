@@ -11,8 +11,8 @@ use crate::common;
 use ew_api::AnyCommand;
 use ew_api::output::PageFrameOf;
 use ew_derive::PageRef;
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_units::{Nm, Pt2, Rect};
+use ew_ids::{Id, Uuid};
+use ew_units::{Nm, Pt2, Rect};
 use ew_schema::{MountingSurface, Page};
 use serde_json::json;
 

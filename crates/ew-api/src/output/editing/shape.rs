@@ -9,12 +9,12 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_schema::{ContactKind, Device, Dir4, FnDef, Function, LibCopy, LibDocument, SymbolDef};
-use ew_derive::ew_units::{Orient2, Pt2, Rect};
 use ew_derive::{FunctionCps, Q};
 use ew_dl::{ItemKind, PathEl};
+use ew_ids::{Id, Uuid};
 use ew_library::starter;
+use ew_schema::{ContactKind, Device, Dir4, FnDef, Function, LibCopy, LibDocument, SymbolDef};
+use ew_units::{Orient2, Pt2, Rect};
 
 use super::OUTLINE_TOLERANCE_NM;
 use super::catalogue::{
@@ -402,7 +402,7 @@ impl Session {
                     .filter(|p| ew_derive::is_fluid_terminal(&q, *p))
             }
         });
-        let mut grids: Vec<ew_derive::ew_units::Grid> = page
+        let mut grids: Vec<ew_units::Grid> = page
             .and_then(|p| q.pages().get(Id::from_uuid(p)).map(|p| p.grid))
             .into_iter()
             .collect();

@@ -16,14 +16,12 @@
 use std::fmt::{self, Write as _};
 use std::ops::Range;
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_mltext::MlText;
-use ew_derive::ew_schema::{
-    AnyId, ColourSpec, Date, Device, Function, OrderUnit, Placement, Representation, Unit,
-};
-use ew_derive::ew_units::{Dec3, Nm};
 use ew_derive::{PageRef, Rev};
+use ew_ids::{Id, Uuid};
 use ew_l10n::Text;
+use ew_mltext::MlText;
+use ew_schema::{AnyId, ColourSpec, Date, Device, Function, OrderUnit, Placement, Representation, Unit};
+use ew_units::{Dec3, Nm};
 
 /// The frame-grid cell of a cross-reference target (`H16`), as `ew-derive` computes it.
 pub type GridCell = ew_derive::Cell;

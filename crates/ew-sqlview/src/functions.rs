@@ -9,7 +9,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use ew_derive::ew_mltext::{LangTag, MlText, natural_cmp};
+use ew_mltext::{LangTag, MlText, natural_cmp};
 use rusqlite::functions::{Context, FunctionFlags};
 use rusqlite::types::Value as SqlValue;
 use rusqlite::{Connection, Error};

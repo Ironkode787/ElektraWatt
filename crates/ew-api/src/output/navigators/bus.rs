@@ -7,9 +7,9 @@
 //! Not here: the PLC table's bus ports of a station (`plc.rs`).
 
 use ew_derive::Q;
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{NaturalKey, natural_key};
-use ew_derive::ew_schema::Function;
+use ew_ids::Id;
+use ew_mltext::{NaturalKey, natural_key};
+use ew_schema::Function;
 
 use super::{Builder, NavRole, base_facets, device_drawables, drawable, folios, group, sorted};
 use ew_derive::short_tag;
@@ -29,7 +29,7 @@ pub(super) const BUS_COLUMNS: [(&str, &str); 8] = [
 ];
 
 /// A bus rate in words (`1.5 Mbit/s`, `500 kbit/s`, `9600 bit/s`).
-fn rate_words(r: ew_derive::ew_schema::BusRate) -> String {
+fn rate_words(r: ew_schema::BusRate) -> String {
     let bits = r.0;
     let (scale, unit) = match bits {
         b if b >= 1_000_000 => (1_000_000, "Mbit/s"),
@@ -47,8 +47,8 @@ fn rate_words(r: ew_derive::ew_schema::BusRate) -> String {
 }
 
 /// The word of a port role, as the bus lists print it.
-fn port_role_word(r: &ew_derive::ew_schema::PortRole) -> &'static str {
-    use ew_derive::ew_schema::PortRole;
+fn port_role_word(r: &ew_schema::PortRole) -> &'static str {
+    use ew_schema::PortRole;
     match r {
         PortRole::Master => "master",
         PortRole::Slave => "slave",
@@ -68,8 +68,8 @@ fn port_role_word(r: &ew_derive::ew_schema::PortRole) -> &'static str {
 /// record is the port's function, so selecting it shows the port in Properties, and a net's row selects the net
 /// (its rate and master in Properties).
 pub(super) fn bus_table(q: &Q, b: &mut Builder) {
-    use ew_derive::ew_schema::{LogicalNet, OnOff, PhysicalNet};
     use ew_derive::{BusSegments, NetMembersOf, SegmentMember};
+    use ew_schema::{LogicalNet, OnOff, PhysicalNet};
     let folios = folios(q);
     let functions = q.functions();
     let lnets = q.table::<LogicalNet>();
@@ -315,7 +315,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
     }
     // The interfaces a part gives a device that nothing draws yet (doc 10 §2.7): a row each, keyed
     // `undrawn:<device>:<interface>`, whose Enter and menu place the port.
-    let mut undrawn: Vec<(NaturalKey, Id<ew_derive::ew_schema::Device>, String, String)> = Vec::new();
+    let mut undrawn: Vec<(NaturalKey, Id<ew_schema::Device>, String, String)> = Vec::new();
     for (id, d) in q.devices().iter() {
         let Some(part) = d.parts.iter().find_map(|u| {
             q.parts()

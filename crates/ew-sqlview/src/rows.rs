@@ -3,8 +3,8 @@
 
 //! Rows of the internal tables, filled by column name, and the value conventions of doc 17 §6.1.
 
-use ew_derive::ew_mltext::MlText;
-use ew_derive::ew_schema::{ColourCode, ColourSpec, Csa};
+use ew_mltext::MlText;
+use ew_schema::{ColourCode, ColourSpec, Csa};
 use rusqlite::types::Value as SqlValue;
 use serde::Serialize;
 

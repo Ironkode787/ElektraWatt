@@ -25,7 +25,7 @@ use crate::common;
 
 use ew_api::output::{RowExport, RowsError, page_layer, report_kinds, row_export};
 use ew_api::{AnyCommand, CmdError, Session};
-use ew_derive::ew_ids::Id;
+use ew_ids::Id;
 use ew_derive::{DeriveNote, PageOrder, PageRef, Q};
 use ew_dl::{Item, ItemKind, Layer};
 use ew_reports::csv::row_texts;
@@ -405,7 +405,7 @@ fn sample_with_block(block: ReportBlock) -> Session {
 /// A `parts_summary` block at folio 960 on folio 901's form with `params` (a block of the sample's data).
 fn parts_block(params: Option<Value>) -> ReportBlock {
     let mut block = block_of(&common::sample().query(), 901);
-    block.id = Id::from_uuid(ew_derive::ew_ids::Uuid::from_u128(0x5306_0001));
+    block.id = Id::from_uuid(ew_ids::Uuid::from_u128(0x5306_0001));
     block.first_folio = Some(960);
     block.source_ref = None;
     block.extra.remove("params");

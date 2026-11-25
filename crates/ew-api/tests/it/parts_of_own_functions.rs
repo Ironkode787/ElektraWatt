@@ -31,7 +31,7 @@ fn own_fndef() -> LibDocument {
         "cps": [{"idx": 0, "designation": "X1"}, {"idx": 1, "designation": "X2"}]
     }))
     .expect("a FnDef");
-    let hash = ew_store::ew_format::library_copy_hash(&doc).expect("a hash");
+    let hash = ew_format::library_copy_hash(&doc).expect("a hash");
     if let LibDocument::Fndef(c) = &mut doc {
         c.sha256 = ew_schema::Sha256(hash);
     }

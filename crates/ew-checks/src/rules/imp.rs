@@ -12,7 +12,7 @@
 //! carries the import code as its origin (and the entry's fix when it has none).
 
 use ew_derive::Q;
-use ew_derive::ew_schema::{ImportLineage, ImportRun, Kind, RunSeverity};
+use ew_schema::{ImportLineage, ImportRun, Kind, RunSeverity};
 
 use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
@@ -340,7 +340,7 @@ fn runs(q: &Q) -> Vec<std::sync::Arc<ImportRun>> {
 }
 
 /// A run entry's source location in words: its folio, cell and item, else its file.
-fn place(location: Option<&ew_derive::ew_schema::RunLocation>) -> String {
+fn place(location: Option<&ew_schema::RunLocation>) -> String {
     let Some(l) = location else {
         return String::new();
     };
@@ -502,7 +502,7 @@ pub fn fold(findings: Vec<Finding>) -> Vec<Finding> {
 mod tests {
     use super::*;
     use crate::rules::page::UNSTYLED_TEXT_SIZE;
-    use ew_derive::ew_ids::{Id, Uuid};
+    use ew_ids::{Id, Uuid};
 
     fn meta(id: &str) -> &'static RuleMeta {
         IMP.iter().find(|m| m.id == id).expect("a registered code")

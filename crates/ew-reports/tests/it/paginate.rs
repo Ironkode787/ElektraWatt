@@ -5,10 +5,10 @@
 //! row sets, block specs and form layouts: no model.
 
 use ew_derive::GeneratedPage;
-use ew_derive::ew_ids::{Id, Uuid, v5};
-use ew_derive::ew_mltext::MlText;
-use ew_derive::ew_schema::{FormDef, ReportBlock, Section};
-use ew_derive::ew_units::Nm;
+use ew_ids::{Id, Uuid, v5};
+use ew_mltext::MlText;
+use ew_schema::{FormDef, ReportBlock, Section};
+use ew_units::Nm;
 use ew_reports::paginate::Slice;
 use ew_reports::{
     BlockSpec, Break, Cell, CellType, ColumnDef, Continuation, FixedLines, GroupRange, Layouts, NotDerived,
@@ -232,8 +232,8 @@ fn a_multi_language_title_fills_each_language() {
     s.title = MlText::from_langs([(en, "Parts {n}/{count}"), (nl, "Onderdelen {n}/{count}")]);
     let pages = paginate(&data_set(30), &s, &house(), &FixedLines);
     assert_eq!(pages.len(), 2);
-    let en: ew_derive::ew_mltext::LangTag = "en-GB".parse().unwrap();
-    let nl: ew_derive::ew_mltext::LangTag = "nl-NL".parse().unwrap();
+    let en: ew_mltext::LangTag = "en-GB".parse().unwrap();
+    let nl: ew_mltext::LangTag = "nl-NL".parse().unwrap();
     assert_eq!(pages[0].title.get(&en), Some("Parts 1/2"));
     assert_eq!(pages[0].title.get(&nl), Some("Onderdelen 1/2"));
     assert_eq!(pages[1].title.get(&en), Some("Parts 2/2"));
@@ -696,7 +696,7 @@ fn a_group_text_with_a_placeholder_is_printed_literally_in_the_title() {
 
 mod properties {
     use super::*;
-    use ew_derive::ew_mltext::natural_key;
+    use ew_mltext::natural_key;
     use proptest::prelude::*;
 
     /// Heights are in units of 1 mm.

@@ -3,16 +3,16 @@
 
 //! EW-CORE rules (doc 15 §4.2).
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::MlText;
-use ew_derive::ew_schema::{
-    Conflict, ConflictBody, ConflictSide, Connection, DELETED_SIDE, Device, Endpoint, Function, FunctionKind,
-    IpDirection, Kind, LayoutSpace, LengthSource, Primitive, RepType, Representation,
-};
-use ew_derive::ew_units::{Nm, Pt2};
 use ew_derive::{
     CellOf, CpRef, IpPairingQ, PairMode, Q, RepAnchorCell, XrefRelationOf, XrefTextOf, folio_label,
 };
+use ew_ids::Id;
+use ew_mltext::MlText;
+use ew_schema::{
+    Conflict, ConflictBody, ConflictSide, Connection, DELETED_SIDE, Device, Endpoint, Function, FunctionKind,
+    IpDirection, Kind, LayoutSpace, LengthSource, Primitive, RepType, Representation,
+};
+use ew_units::{Nm, Pt2};
 
 use crate::finding::{Finding, Fingerprint, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
@@ -1083,7 +1083,7 @@ fn conflict_file(q: &Q, path: &str) -> (String, &'static str, String) {
     let id = |dir: &str| {
         path.strip_prefix(dir)?
             .strip_suffix(".jsonl")?
-            .parse::<ew_derive::ew_ids::Uuid>()
+            .parse::<ew_ids::Uuid>()
             .ok()
             .map(Id::<()>::from_uuid)
     };

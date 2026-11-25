@@ -7,13 +7,13 @@
 
 use std::collections::BTreeSet;
 
-use ew_format::ew_schema::{
-    AnyId, Carrier, Enclosure, Function, Junction, Kind, LibDocument, MountingSurface, Record, Representation,
-};
 use ew_format::{
     Anchors, FilePath, FormatError, LineKey, lib_dir, record_file, tagged_document, tagged_line,
 };
 use ew_model::{AnyKey, AnyRow, Model};
+use ew_schema::{
+    AnyId, Carrier, Enclosure, Function, Junction, Kind, LibDocument, MountingSurface, Record, Representation,
+};
 use serde_json::Value;
 
 /// The row of a record of an implemented kind (`None` for [`Record::Unknown`]).

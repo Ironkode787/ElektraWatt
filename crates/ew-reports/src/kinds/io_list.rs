@@ -3,9 +3,9 @@
 
 //! `io_list`: the I/O assignment list, one row per channel of each station's modules (FR-PLC-023; doc 10 §5).
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{AddrValue, Channel, Device, PlcConfigProject, ReportBlock, ReportKind};
 use ew_derive::{EffectiveState, FunctionCps, PlcRow, PlcRows, Q, short_tag};
+use ew_ids::Id;
+use ew_schema::{AddrValue, Channel, Device, PlcConfigProject, ReportBlock, ReportKind};
 
 use super::conn::put;
 use super::plc_overview::{address_cell, kind_text, page_cell, state_text};

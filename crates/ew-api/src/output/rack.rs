@@ -7,11 +7,11 @@
 //! findings on the station. The parts the view offers are the place catalogue's (`CataloguePart::plc`). The window
 //! builds `plc.add_module` and `fields.set plc_module.slot` from it; the view itself writes nothing.
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::LibDocument;
-use ew_derive::ew_schema::{ContactKind, Device, Function, Part, PlcRole};
-use ew_derive::ew_units::{Nm, Pt2};
 use ew_derive::{ModuleOrder, Q, Slot, ValveSlot, ValveSlots};
+use ew_ids::Id;
+use ew_schema::LibDocument;
+use ew_schema::{ContactKind, Device, Function, Part, PlcRole};
+use ew_units::{Nm, Pt2};
 
 use super::Uuid;
 use crate::Session;
@@ -137,8 +137,8 @@ pub struct RackView {
 
 /// What a PLC section gives the PLC, as a rack row says it: its channels by kind (`8 DI`, `4 AO`), else its I/O ranges
 /// in bits (`16 bits in`); empty for a section that gives neither.
-pub fn gives_text(plc: &ew_derive::ew_schema::PlcSection) -> String {
-    use ew_derive::ew_schema::IoDir;
+pub fn gives_text(plc: &ew_schema::PlcSection) -> String {
+    use ew_schema::IoDir;
     let specs = plc.channel_specs();
     if !specs.is_empty() {
         return specs
@@ -203,7 +203,7 @@ fn drawn_folio(q: &Q, device: Id<Device>) -> Option<String> {
 /// The station `station` and its modules in slot order that no electrical page (multi-line or single-line) draws;
 /// `None` for a device that is no station.
 fn off_electrical_pages(q: &Q, station: Id<Device>) -> Option<Vec<Id<Device>>> {
-    use ew_derive::ew_schema::PageType;
+    use ew_schema::PageType;
     let electrical = |d: Id<Device>| {
         q.idx().functions_of_device(d).any(|f| {
             q.idx().reps_of_function(f).any(|r| {
@@ -311,10 +311,10 @@ impl CardPins {
 /// channel's pin is the one its pin map names (normaliser N3's rule); a section without a pin map, or with channels
 /// of supply, gives none, and every pin is then one of `others`.
 pub(crate) fn card_pins<'a>(
-    plc: &ew_derive::ew_schema::PlcSection,
+    plc: &ew_schema::PlcSection,
     cps: impl IntoIterator<Item = (u16, &'a str)>,
 ) -> CardPins {
-    use ew_derive::ew_schema::ChannelKind;
+    use ew_schema::ChannelKind;
     let cps: Vec<(u16, &str)> = cps.into_iter().collect();
     let mut out = CardPins::default();
     if let Some(pin_of) = &plc.pin_of {
@@ -350,7 +350,7 @@ pub(crate) fn card_pins<'a>(
 /// one and a pin of its channels on none of them: a card wider than the drawing area, drawn one box at a time
 /// (docs/design/06a-drafting.md §7.5). `None` for any other device.
 fn card_rest(q: &Q, device: Id<Device>) -> Option<Vec<u16>> {
-    use ew_derive::ew_schema::{FunctionKind, PageType};
+    use ew_schema::{FunctionKind, PageType};
     let (_, plc) = ew_derive::module_part(q, device)?;
     let function = q.idx().functions_of_device(device).find(|f| {
         q.functions()
@@ -418,7 +418,7 @@ fn device_row(q: &Q, device: Id<Device>) -> RackRow {
 /// Whether a station of a part with PLC section `plc` takes modules, so that its rack has free slots: not where its
 /// limits say none, nor a valve terminal whose valve positions are its own (the part maps solenoids to positions) and
 /// whose limits name no modules beside them.
-fn takes_modules(plc: &ew_derive::ew_schema::PlcSection) -> bool {
+fn takes_modules(plc: &ew_schema::PlcSection) -> bool {
     match plc.limits.as_ref().and_then(|l| l.max_modules) {
         Some(most) => most > 0,
         None => plc.positions.is_none(),
@@ -539,7 +539,7 @@ impl Session {
             })
             .collect();
         let plc = q
-            .table::<ew_derive::ew_schema::PlcConfigProject>()
+            .table::<ew_schema::PlcConfigProject>()
             .get(cfg)
             .map(|c| c.name.to_string())
             .unwrap_or_default();
@@ -650,7 +650,7 @@ impl Session {
     pub fn channel_row(&self, channel: Uuid) -> Option<RackChannel> {
         let module = self
             .query()
-            .table::<ew_derive::ew_schema::Channel>()
+            .table::<ew_schema::Channel>()
             .get(Id::from_uuid(channel))?
             .module;
         self.module_channels(module.as_uuid())
@@ -738,7 +738,7 @@ impl Session {
     /// The bus devices of the project that belong to no PLC ([`PlcOffer::BusDevice`]), by tag, each with whether one
     /// of its bus ports leads a bus (a master or controller): the new-station dialog offers them as the station.
     pub fn free_bus_devices(&self) -> Vec<(Uuid, String, bool)> {
-        use ew_derive::ew_schema::PortRole;
+        use ew_schema::PortRole;
         let q = self.query();
         let mut out: Vec<(Uuid, String, bool)> = q
             .devices()
@@ -782,7 +782,7 @@ pub(crate) fn network_switch(q: &Q, device: Id<Device>) -> bool {
 
 /// What a device's menu offers for the PLC ([`Session::plc_offer`]).
 pub(crate) fn plc_offer(q: &Q, device: Id<Device>) -> PlcOffer {
-    use ew_derive::ew_schema::{PlcConfigProject, PortRole};
+    use ew_schema::{PlcConfigProject, PortRole};
     let Some(d) = q.devices().get(device) else {
         return PlcOffer::None;
     };
@@ -880,7 +880,7 @@ impl Session {
     /// The drawings of `device` on electrical pages (multi-line, single-line), each as (representation, page): what Move
     /// to page takes along (FT-2134); empty for a record that is no device or one drawn on no such page.
     pub fn electrical_drawings(&self, device: Uuid) -> Vec<(Uuid, Uuid)> {
-        use ew_derive::ew_schema::PageType;
+        use ew_schema::PageType;
         let q = self.query();
         let mut out = Vec::new();
         for f in q.idx().functions_of_device(Id::from_uuid(device)) {
@@ -981,7 +981,7 @@ impl Session {
     /// symbol.
     pub fn station_draw_params(&self, station: Uuid, page: Uuid) -> Option<serde_json::Value> {
         let q = self.query();
-        let page_id: Id<ew_derive::ew_schema::Page> = Id::from_uuid(page);
+        let page_id: Id<ew_schema::Page> = Id::from_uuid(page);
         let (area, _) = super::scale_fit::drawing_area(&q, page_id)?;
         let (min, max) = (area.min(), area.max());
         // 7.9375 mm, a margin from the frame and the gap under what is drawn.
@@ -1254,7 +1254,7 @@ impl Session {
         self.query()
             .functions()
             .get(Id::from_uuid(function))
-            .is_some_and(|f| f.kind == ew_derive::ew_schema::FunctionKind::BlackBox)
+            .is_some_and(|f| f.kind == ew_schema::FunctionKind::BlackBox)
     }
 
     /// What kind of valve terminal `device` is: with a bus node (a PLC station: the outputs that drive its
@@ -1307,7 +1307,7 @@ impl Session {
     /// The field groups of configuration project `config` that a PLC import protects now (`plc.unlock` lifts each,
     /// doc 10 §3.9): `module_starts`, `symbols`, `plc_data`, in that order.
     pub fn plc_protected_groups(&self, config: Uuid) -> Vec<&'static str> {
-        use ew_derive::ew_schema::{FieldGroup, Ownership, PlcConfigProject};
+        use ew_schema::{FieldGroup, Ownership, PlcConfigProject};
         let q = self.query();
         let Some(cfg) = q.table::<PlcConfigProject>().get(Id::from_uuid(config)).cloned() else {
             return Vec::new();
@@ -1326,7 +1326,7 @@ impl Session {
     /// The PLC settings a row's form starts with (FT-1752), in the file's JSON shape: a configuration project's
     /// `symbols`, a module's `plc_module.safety`, a channel's `{mode, safety}`; `None` for another record.
     pub fn plc_settings(&self, id: Uuid) -> Option<serde_json::Value> {
-        use ew_derive::ew_schema::{Channel, PlcConfigProject};
+        use ew_schema::{Channel, PlcConfigProject};
         let q = self.query();
         if let Some(c) = q.table::<PlcConfigProject>().get(Id::from_uuid(id)) {
             return serde_json::to_value(&c.symbols).ok();
@@ -1525,7 +1525,7 @@ fn solenoid_seat(
     q: &Q,
     valve: Id<Device>,
     terminal: Id<Device>,
-    name: &ew_derive::ew_mltext::Ident,
+    name: &ew_mltext::Ident,
     coil: Id<Function>,
 ) -> SolenoidSeat {
     let tag = super::properties::device_tag_text(q, terminal);
@@ -1563,7 +1563,7 @@ fn plug_place(q: &Q, plug: Id<Function>) -> Option<String> {
             q.reps()
                 .get(*r)
                 .and_then(|r| pages.get(r.page))
-                .is_some_and(|p| p.kind != ew_derive::ew_schema::PageType::Fluid)
+                .is_some_and(|p| p.kind != ew_schema::PageType::Fluid)
         })
         .collect();
     reps.sort();
@@ -1652,9 +1652,9 @@ impl Session {
         if !ew_derive::is_fluid_terminal(&q, t) || !slotted(&q, t) {
             return false;
         }
-        let undrawn = |f: Id<ew_derive::ew_schema::Function>| q.idx().reps_of_function(f).next().is_none();
+        let undrawn = |f: Id<ew_schema::Function>| q.idx().reps_of_function(f).next().is_none();
         let cells = ew_derive::terminal_cells(&q, t);
-        let valves: Vec<(usize, Vec<Id<ew_derive::ew_schema::Function>>)> = cells
+        let valves: Vec<(usize, Vec<Id<ew_schema::Function>>)> = cells
             .iter()
             .enumerate()
             .filter_map(|(i, c)| match c.slot {
@@ -1669,7 +1669,7 @@ impl Session {
             return true;
         }
         // A symbol on a box's page that stands off its place there.
-        let off = |f: Id<ew_derive::ew_schema::Function>, page, place: &dyn Fn(Option<(Nm, Nm)>) -> Pt2| {
+        let off = |f: Id<ew_schema::Function>, page, place: &dyn Fn(Option<(Nm, Nm)>) -> Pt2| {
             q.idx().reps_of_function(f).any(|r| {
                 q.reps().get(r).is_some_and(|r| {
                     let extent = q
@@ -1713,7 +1713,7 @@ impl Session {
                     q.idx().reps_of_function(f).any(|r| {
                         reps.get(r)
                             .and_then(|r| pages.get(r.page))
-                            .is_some_and(|p| p.kind == ew_derive::ew_schema::PageType::Fluid)
+                            .is_some_and(|p| p.kind == ew_schema::PageType::Fluid)
                     })
                 })
             })

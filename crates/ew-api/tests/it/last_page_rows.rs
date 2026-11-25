@@ -8,7 +8,7 @@
 use crate::common;
 
 use ew_api::output::{PageFrameOf, PageTableOf};
-use ew_derive::ew_ids::Id;
+use ew_ids::Id;
 use ew_derive::{PageOrder, PageRef};
 use ew_reports::{BlockRows, RowKind};
 use serde_json::{Value, json};

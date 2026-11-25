@@ -8,7 +8,7 @@ use std::path::Path;
 
 use ew_api::library::Registry;
 use ew_api::symbols::{self, SymbolDraft, schema::LibDocument};
-use ew_derive::ew_ids::Uuid;
+use ew_ids::Uuid;
 use serde_json::json;
 
 use crate::symbol_authoring::{block, library};
@@ -121,7 +121,7 @@ fn a_function_key_held_by_another_item_is_refused_and_nothing_is_written() {
         panic!("function")
     };
     f.item.meta.key = Some("example.function".parse().unwrap());
-    let hash = ew_store::ew_format::library_copy_hash(&docs[0]).unwrap();
+    let hash = ew_format::library_copy_hash(&docs[0]).unwrap();
     if let LibDocument::Fndef(f) = &mut docs[0] {
         f.sha256 = ew_schema::Sha256(hash);
     }

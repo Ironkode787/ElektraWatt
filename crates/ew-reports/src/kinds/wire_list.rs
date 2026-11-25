@@ -3,10 +3,10 @@
 
 //! `wire_list`: the wire and connection list (FR-REP-014, FR-CON-034; folio 907 of the standard layout).
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{Device, ReportBlock, ReportKind};
 use ew_derive::{CpRef, Q, WireNumbers, short_tag};
+use ew_ids::Id;
 use ew_l10n::{List, TextArg};
+use ew_schema::{Device, ReportBlock, ReportKind};
 
 use super::conn::{
     Bridge, WireRec, Wires, bridge_span, bridges, colour_cell, csa_cell, device_of, end_cells, ip_name,

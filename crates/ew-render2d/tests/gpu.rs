@@ -13,10 +13,10 @@ use std::sync::Arc;
 #[path = "../../ew-render-cpu/tests/common/jpeg.rs"]
 mod jpeg;
 
-use ew_dl::ew_units::{Nm, Pt2, Rect};
 use ew_dl::{Brush, Color, DisplayList, FontKey, Item, Path, Stroke, Transform};
 use ew_render_cpu::{FontBytes, FontResolver};
 use ew_render2d::gpu::{GpuCanvas, GpuView, HeadlessDevice, MeshCache, prepare};
+use ew_units::{Nm, Pt2, Rect};
 
 struct NoFonts;
 
@@ -582,8 +582,8 @@ fn images_match_the_cpu_raster_within_the_parity_rule() {
     list.push(Item::group(
         Some(Transform::new(
             p(mm(80.0), mm(10.0)),
-            ew_dl::ew_units::Orient2::R90,
-            ew_dl::ew_units::Angle2::ZERO,
+            ew_units::Orient2::R90,
+            ew_units::Angle2::ZERO,
         )),
         None,
         vec![image_item(
@@ -596,8 +596,8 @@ fn images_match_the_cpu_raster_within_the_parity_rule() {
     list.push(Item::group(
         Some(Transform::new(
             p(mm(130.0), mm(40.0)),
-            ew_dl::ew_units::Orient2::M0,
-            ew_dl::ew_units::Angle2::ZERO,
+            ew_units::Orient2::M0,
+            ew_units::Angle2::ZERO,
         )),
         None,
         vec![image_item(

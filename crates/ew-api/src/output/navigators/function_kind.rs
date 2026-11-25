@@ -7,8 +7,8 @@
 //! Not here: the device rows that show them (`devices.rs`); a device's short tag (`navigators.rs`).
 
 use ew_derive::Q;
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{FnDef, Function, TemplateFn, template_entry_of};
+use ew_ids::Id;
+use ew_schema::{FnDef, Function, TemplateFn, template_entry_of};
 
 /// The name of a function's FnDef: its key, else the copy's UUID text.
 pub(crate) fn fndef_name(q: &Q, f: &Function) -> String {
@@ -241,8 +241,7 @@ fn template_entry_resolves(q: &Q, f: &Function) -> bool {
 
 /// Whether a template entry names the function's FnDef copy (`v5(NS_LIBCOPY, library ‖ item)`).
 fn names_def(t: &TemplateFn, f: &Function) -> bool {
-    let copy: Id<FnDef> =
-        ew_derive::ew_ids::v5::lib_copy_id(t.fndef.library.as_uuid(), t.fndef.item.as_uuid());
+    let copy: Id<FnDef> = ew_ids::v5::lib_copy_id(t.fndef.library.as_uuid(), t.fndef.item.as_uuid());
     copy == f.def
 }
 

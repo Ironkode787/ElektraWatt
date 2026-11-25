@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 use common::{apply, device_with_text, mem_project, options, page_copy, project_files, root, unused_folio};
 use ew_model::{AnyKey, AnyRow, Model, Op};
-use ew_store::ew_format::ew_schema::{
+use ew_schema::{
     Connection, Device, Function, FunctionKind, Kind, Page, Representation,
 };
 use ew_store::mem::DirSync;

@@ -5,8 +5,8 @@
 
 use std::collections::BTreeMap;
 
-use ew_format::ew_schema::{LibDocument, Project, Record};
 use ew_format::{EntryKind, FilePath, Limits, Loaded, Manifest, load, plan, project_files};
+use ew_schema::{LibDocument, Project, Record};
 
 // Every other file of tests/it is a module (automod 1.0, sorted by name).
 automod::dir!("tests/it");

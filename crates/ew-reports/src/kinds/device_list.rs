@@ -3,12 +3,12 @@
 
 //! `device_list`: the device list (FR-REP-008).
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{NaturalKey, natural_key};
-use ew_derive::ew_schema::{Device, ReportBlock, ReportKind};
 use ew_derive::{
     DevicePartLines, DeviceTag, LineSource, MainRep, PageRef, Q, RepAnchorCell, StructureOf, tech_data_text,
 };
+use ew_ids::Id;
+use ew_mltext::{NaturalKey, natural_key};
+use ew_schema::{Device, ReportBlock, ReportKind};
 
 use super::conn::{is_listed_device, put, text_cell};
 use crate::kind::ReportKindDef;

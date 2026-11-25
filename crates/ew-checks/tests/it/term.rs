@@ -8,13 +8,13 @@ use crate::common;
 use common::*;
 use ew_checks::{CheckMode, DRAFTING, MIGRATION, PRE_DELIVERY, Scope, prevent, run};
 use ew_derive::Q;
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{AnyId, Kind};
+use ew_ids::Id;
+use ew_schema::{AnyId, Kind};
 use serde_json::json;
 
 const STRIP: u128 = 0x100;
 
-fn three_terminals(d: [&str; 3]) -> Vec<ew_derive::ew_schema::Record> {
+fn three_terminals(d: [&str; 3]) -> Vec<ew_schema::Record> {
     vec![
         strip(STRIP, 1),
         terminal(0x101, STRIP, 1, d[0]),
@@ -145,7 +145,7 @@ type PreventRow = (
     &'static str,
     ew_model::Model,
     ew_model::Model,
-    Vec<(ew_derive::ew_schema::Kind, ew_derive::ew_schema::AnyId)>,
+    Vec<(ew_schema::Kind, ew_schema::AnyId)>,
     fn(&str, &[ew_checks::Finding]),
 );
 
@@ -230,7 +230,7 @@ fn term001_prevent_passes_every_designated_batch() {
     let meta = ew_checks::rule("EW-TERM-001").expect("registered").meta();
     assert!(meta.modes.prevent);
     assert_eq!(
-        ew_derive::ew_mltext::Ident::from_input(" ")
+        ew_mltext::Ident::from_input(" ")
             .map(|i| i.as_str().to_owned())
             .ok(),
         None,

@@ -31,9 +31,9 @@
 use std::collections::BTreeMap;
 
 use ew_dl::Color;
-use ew_dl::ew_units::Rect;
-use ew_dl::ew_units::arith::div_round_ties_away;
 use ew_render_cpu::{RgbaImage, SheetSize, pixel_size};
+use ew_units::Rect;
+use ew_units::arith::div_round_ties_away;
 
 use crate::view::{DrawTransform, PxRect, round_px};
 
@@ -1071,7 +1071,7 @@ pub fn with_alpha(c: Color, a: u8) -> Color {
 
 #[cfg(test)]
 mod tests {
-    use ew_dl::ew_units::{Nm, Pt2};
+    use ew_units::{Nm, Pt2};
 
     use super::*;
     use crate::view::View;

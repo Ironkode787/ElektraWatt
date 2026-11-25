@@ -7,8 +7,8 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{Conductor, ConnectionKind};
+use ew_ids::Id;
+use ew_schema::{Conductor, ConnectionKind};
 use serde_json::json;
 
 use crate::output::Uuid;
@@ -141,7 +141,7 @@ impl Session {
                 Some((id, tag.clone(), tag))
             })
             .collect();
-        out.sort_by(|a, b| ew_derive::ew_mltext::natural_cmp(&a.1, &b.1).then(a.0.cmp(&b.0)));
+        out.sort_by(|a, b| ew_mltext::natural_cmp(&a.1, &b.1).then(a.0.cmp(&b.0)));
         let part = |id: Uuid| {
             q.devices()
                 .get(Id::from_uuid(id))
@@ -181,7 +181,7 @@ impl Session {
     pub fn connect_cores(&self, cable: Uuid, wires: &[Uuid]) -> Result<AnyCommand, CoresRefused> {
         let q = self.query();
         let refused = |key: &'static str, args: Vec<String>| CoresRefused { key, args };
-        let cable_id: Id<ew_derive::ew_schema::Device> = Id::from_uuid(cable);
+        let cable_id: Id<ew_schema::Device> = Id::from_uuid(cable);
         let Some(device) = q.devices().get(cable_id).filter(|d| d.aspects.cable.is_some()) else {
             return Err(refused(key!("reason-cores-no-cable"), Vec::new()));
         };

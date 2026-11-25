@@ -26,8 +26,7 @@ use std::collections::BTreeMap;
 use std::fmt;
 
 use ew_derive::DeviceTag;
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::Device;
+use ew_ids::Id;
 use ew_import_catalog::SourceFormat;
 use ew_import_catalog::ew_interop_api::ImportError;
 use ew_import_catalog::sheet::{csv_separator, read_rows, read_sheet, sheet_names};
@@ -35,6 +34,7 @@ use ew_reports::csv::Preset;
 use ew_reports::table::{Table, TableCell, TableColumn, TableRow};
 use ew_reports::xlsx::{BASE_DIGEST_ROW, BASE_SHEET, EW_FORMAT, EW_SHEET, rows_text};
 use ew_reports::{CellType, RowId, RowKey};
+use ew_schema::Device;
 use serde_json::{Value, json};
 
 use super::navigators::{NavKind, NavNode, NavRole, NavTable, Uuid};

@@ -10,7 +10,7 @@ use crate::common;
 use common::{model_json, us};
 use ew_checks::{Finding, Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Severity, Target};
 use ew_derive::Q;
-use ew_derive::ew_schema::Kind;
+use ew_schema::Kind;
 use serde_json::{Value, json};
 
 const FIXTURE: RuleMeta = RuleMeta {

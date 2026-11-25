@@ -7,9 +7,9 @@
 //! Not here: the rows themselves (`sections.rs` and the `*_rows.rs` files beside this one); the field types and
 //! their texts (`output/fields.rs`).
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_rds::{Aspect, RdsSyntax};
 use ew_derive::{Q, ResolvedSlot, ResolvedStructure, SlotSource, StructurePath};
+use ew_ids::{Id, Uuid};
+use ew_rds::{Aspect, RdsSyntax};
 use ew_schema::{Kind, StructureNode};
 
 use super::header::record_title;

@@ -31,9 +31,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::io;
 
-use ew_format::ew_schema::{Sha256, sha256_mentions};
 use ew_format::{EntryKind, FileHash, FilePath, OpaqueKind, PathClass, classify};
 use ew_model::Model;
+use ew_schema::{Sha256, sha256_mentions};
 
 use super::{Access, BASE_MEMBER, ReadOnlyReason, SaveError, SaveReport, Store};
 use crate::Changes;

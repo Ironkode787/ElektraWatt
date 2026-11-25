@@ -451,7 +451,7 @@ impl JoinDevice {
         let own = any && !terminal_or_strip(target);
         if !(auxiliary || free_port || own) {
             let fndef_words = tx.get::<LibCopy<FnDef>>(f.def).map_or_else(
-                || ew_derive::text::record(ew_derive::ew_schema::Kind::Fndef),
+                || ew_derive::text::record(ew_schema::Kind::Fndef),
                 |d| {
                     let key = d.item.meta.key.as_ref().map(ToString::to_string);
                     crate::words::copy(tx, ew_schema::Kind::Fndef, key, &d.version)

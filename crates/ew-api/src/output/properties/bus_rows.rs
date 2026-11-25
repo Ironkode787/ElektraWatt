@@ -7,7 +7,7 @@
 //! Not here: the PLC typed editors (`inputs.rs`); the fluid rows (`fluid_rows.rs`).
 
 use ew_derive::Q;
-use ew_derive::ew_ids::{Id, Uuid};
+use ew_ids::{Id, Uuid};
 use ew_schema::Connection;
 use serde_json::Value;
 
@@ -122,7 +122,7 @@ pub(super) fn bus_address_input(text: &str) -> Option<Result<ParsedInput, InputE
         _ => {}
     }
     // A PROFINET device name, its IPv4 address, then `mask <ip>` and `gateway <ip>`.
-    let Ok(name) = ew_derive::ew_mltext::Ident::from_input(words[0]) else {
+    let Ok(name) = ew_mltext::Ident::from_input(words[0]) else {
         return bad();
     };
     let mut p = serde_json::Map::new();
@@ -147,7 +147,7 @@ pub(super) fn bus_address_input(text: &str) -> Option<Result<ParsedInput, InputE
 
 /// A bus line's end as the bus lists name it: the port's device tag and its interface (`-101A1:DP`), another function
 /// by its first connection point.
-pub(crate) fn port_words(q: &Q, f: Id<ew_derive::ew_schema::Function>) -> String {
+pub(crate) fn port_words(q: &Q, f: Id<ew_schema::Function>) -> String {
     match q
         .functions()
         .get(f)

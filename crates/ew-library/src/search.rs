@@ -16,8 +16,8 @@
 //!    a float order alike;
 //! 5. the natural order of the part number (`ew_natural`'s order), the manufacturer key, the library ID, the item ID.
 
-use ew_format::ew_schema::{CategoryKey, ContactKind, ItemStatus, Kind, PartKind};
 use ew_ids::Uuid;
+use ew_schema::{CategoryKey, ContactKind, ItemStatus, Kind, PartKind};
 
 use crate::Tier;
 

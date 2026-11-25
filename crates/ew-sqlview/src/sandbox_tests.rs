@@ -233,7 +233,7 @@ fn ew_natural_sorts_digit_runs_by_value() {
 
 #[test]
 fn ew_ml_reads_one_language_with_fallback() {
-    use ew_derive::ew_mltext::{LangTag, MlText};
+    use ew_mltext::{LangTag, MlText};
     let ml = MlText::from_langs([
         (LangTag::parse_lenient("en").unwrap(), "Pneumatics"),
         (LangTag::parse_lenient("nl-NL").unwrap(), "Pneumatiek"),

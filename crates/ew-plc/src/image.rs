@@ -18,17 +18,17 @@ use ew_caex::{
     ChannelType, ExchangeImage, IecTags, IoType, XAddr, XChannel, XInterface, XItem, XNetwork, XNode, XPort,
     XProject, XStation, XTag,
 };
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::MlText;
-use ew_derive::ew_plcaddr::{Area, PlcAddress};
-use ew_derive::ew_rds::{Aspect, RdsSyntax};
-use ew_derive::ew_schema::{
-    AddrValue, AnyId, BusPort, BusSystem, Channel, ChannelKind, Device, ExchangeObject, Function, IoDir,
-    LibCopy, LogicalNet, NetAddress, Part, PlcConfigProject, PlcRole,
-};
 use ew_derive::{
     ChannelAddr, DeviceTag, ModuleOrder, ModuleStarts, PlcRows, Q, Slot, Start, cp_text, module_io,
     module_part,
+};
+use ew_ids::Id;
+use ew_mltext::MlText;
+use ew_plcaddr::{Area, PlcAddress};
+use ew_rds::{Aspect, RdsSyntax};
+use ew_schema::{
+    AddrValue, AnyId, BusPort, BusSystem, Channel, ChannelKind, Device, ExchangeObject, Function, IoDir,
+    LibCopy, LogicalNet, NetAddress, Part, PlcConfigProject, PlcRole,
 };
 
 /// What a tag of a projected image is in the model.
@@ -68,7 +68,7 @@ pub fn exchange_image(
 ) -> Option<Projection> {
     let project = q.table::<PlcConfigProject>().get(cfg)?.clone();
     let mut out = Projection::default();
-    let tag_table: Id<()> = ew_derive::ew_ids::v5::exchange_id(cfg, "tag_table", "", cfg.as_uuid());
+    let tag_table: Id<()> = ew_ids::v5::exchange_id(cfg, "tag_table", "", cfg.as_uuid());
     out.image.project = XProject {
         id: cfg.to_string(),
         name: project.name.to_string(),
@@ -187,7 +187,7 @@ pub fn exchange_image(
                     out.unaddressed.insert(id, crate::fields::tag_fields(&tag));
                     continue;
                 };
-                let tag_id: Id<()> = ew_derive::ew_ids::v5::plc_tag_id(row.channel);
+                let tag_id: Id<()> = ew_ids::v5::plc_tag_id(row.channel);
                 out.targets
                     .insert(tag_id.to_string(), (ExchangeObject::Tag, row.channel.cast()));
                 tag.id = tag_id.to_string();
@@ -368,13 +368,13 @@ fn interfaces(
     let mut out = Vec::new();
     for (label, mut members) in ports {
         members.sort_by_key(|(f, _)| *f);
-        let id: Id<()> = ew_derive::ew_ids::v5::exchange_id(cfg, "interface", &label, station.as_uuid());
+        let id: Id<()> = ew_ids::v5::exchange_id(cfg, "interface", &label, station.as_uuid());
         let node = members
             .iter()
             .find(|(_, p)| matches!(p.address, AddrValue::Value(_) | AddrValue::Tbd))
             .and_then(|(f, port)| {
                 let mut node = XNode {
-                    id: ew_derive::ew_ids::v5::exchange_id::<_, ()>(cfg, "node", "", f.as_uuid()).to_string(),
+                    id: ew_ids::v5::exchange_id::<_, ()>(cfg, "node", "", f.as_uuid()).to_string(),
                     bus: Some(bus_word(&port.bus)?.to_owned()),
                     network: port.logical_net.map(|n| n.to_string()),
                     ..XNode::default()

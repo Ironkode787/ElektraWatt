@@ -8,7 +8,7 @@
 use std::collections::BTreeMap;
 
 use ew_derive::Q;
-use ew_derive::ew_ids::{Id, Uuid};
+use ew_ids::{Id, Uuid};
 
 use super::{
     Builder, NavRole, base_facets, cell_of, connection_drawables, device_drawables, folios, row_entity,
@@ -17,10 +17,8 @@ use super::{
 // Cables: the per-cable rows of the cable overview as cable rows, the core rows as conductor rows under them;
 /// the headings are dropped.
 pub(super) fn cables_table(q: &Q, b: &mut Builder) {
-    use ew_derive::ew_schema::{Conductor, ConnectionKind};
-    let Some(set) =
-        ew_reports::project_rows(q, &ew_derive::ew_schema::ReportKind::CableOverviewDiagrams, None)
-    else {
+    use ew_schema::{Conductor, ConnectionKind};
+    let Some(set) = ew_reports::project_rows(q, &ew_schema::ReportKind::CableOverviewDiagrams, None) else {
         return;
     };
     let folios = folios(q);
@@ -63,7 +61,7 @@ pub(super) fn cables_table(q: &Q, b: &mut Builder) {
                     continue;
                 };
                 let cid: Id<Conductor> = Id::from_uuid(core);
-                let mut cons: Vec<Id<ew_derive::ew_schema::Connection>> = q
+                let mut cons: Vec<Id<ew_schema::Connection>> = q
                     .connections()
                     .iter()
                     .filter(|(_, c)| matches!(c.kind, ConnectionKind::Core(x) if x == cid))

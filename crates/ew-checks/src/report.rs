@@ -349,8 +349,8 @@ mod tests {
     use crate::engine::Counts;
     use crate::finding::{QuickFix, Target};
     use crate::rules::term::DUPLICATE_DESIGNATION;
-    use ew_derive::ew_ids::{Id, Uuid};
-    use ew_derive::ew_schema::{AnyId, Kind};
+    use ew_ids::{Id, Uuid};
+    use ew_schema::{AnyId, Kind};
 
     fn target(n: u128) -> Target {
         let id: AnyId = Id::from_uuid(Uuid::from_u128(n));

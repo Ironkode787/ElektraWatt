@@ -3,8 +3,8 @@
 
 //! The text form of `RowId`: typed, escaped, injective (doc 09 §2.3, FR-EXP-004, FR-REP-048).
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_schema::Device;
+use ew_ids::{Id, Uuid};
+use ew_schema::Device;
 use ew_reports::{RowId, RowKey};
 use proptest::prelude::*;
 

@@ -9,9 +9,9 @@
 use std::collections::BTreeMap;
 
 use ew_derive::Q;
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_mltext::{NaturalKey, natural_key};
-use ew_derive::ew_schema::{Device, Function, Page};
+use ew_ids::{Id, Uuid};
+use ew_mltext::{NaturalKey, natural_key};
+use ew_schema::{Device, Function, Page};
 
 use super::{
     Builder, Drawable, NOT_DRAWN, NavOpen, NavRole, base_facets, device_drawables, drawable, folios, group,
@@ -33,7 +33,7 @@ impl Session {
     /// The stations a card can be attached to (a CPU or a head station) with their short tags, in natural order: a
     /// waiting card's row offers each.
     pub fn plc_stations_for_cards(&self) -> Vec<(Uuid, String)> {
-        use ew_derive::ew_schema::StationRole;
+        use ew_schema::StationRole;
         let q = self.query();
         let mut out: Vec<(NaturalKey, Uuid, String)> = q
             .devices()
@@ -58,7 +58,7 @@ impl Session {
     pub fn plc_config_projects(&self) -> Vec<(Uuid, String)> {
         let q = self.query();
         let mut out: Vec<(Uuid, String)> = q
-            .table::<ew_derive::ew_schema::PlcConfigProject>()
+            .table::<ew_schema::PlcConfigProject>()
             .iter()
             .map(|(id, c)| (id.as_uuid(), c.name.to_string()))
             .collect();
@@ -92,13 +92,13 @@ pub(super) const PLC_COLUMNS: [(&str, &str); 18] = [
 ];
 
 /// The word of a channel kind as the PLC overview prints it.
-fn channel_kind_word(k: &ew_derive::ew_schema::ChannelKind) -> &'static str {
+fn channel_kind_word(k: &ew_schema::ChannelKind) -> &'static str {
     ew_derive::channel_kind_word(k)
 }
 
 /// A station's role as the badge of its row (doc 10 §6: the role word, not its identifier).
-fn station_role_word(r: &ew_derive::ew_schema::StationRole) -> &'static str {
-    use ew_derive::ew_schema::StationRole;
+fn station_role_word(r: &ew_schema::StationRole) -> &'static str {
+    use ew_schema::StationRole;
     match r {
         StationRole::Cpu => "CPU",
         StationRole::HeadStation => "head station",
@@ -113,10 +113,7 @@ fn station_role_word(r: &ew_derive::ew_schema::StationRole) -> &'static str {
 
 /// The channels that the `duplicate` flag marks: the targets of EW-PLC-007 (duplicate symbol) and of
 /// EW-PLC-001's `overlap` findings (two addresses whose bit ranges overlap), in every configuration project.
-fn duplicate_channels(
-    q: &Q,
-    cfgs: &[Id<ew_derive::ew_schema::PlcConfigProject>],
-) -> std::collections::BTreeSet<Uuid> {
+fn duplicate_channels(q: &Q, cfgs: &[Id<ew_schema::PlcConfigProject>]) -> std::collections::BTreeSet<Uuid> {
     use crate::checks::Rule;
     use crate::checks::rules::plc::{AddressOverlap, DuplicateSymbol};
     let mut out = std::collections::BTreeSet::new();
@@ -143,8 +140,8 @@ fn duplicate_channels(
 /// excluded or not derivable), `spare`, `unplaced`, `tbd` (an open address), `duplicate` ([`duplicate_channels`]) and
 /// `safety` (safety data on the channel or its module, FT-738).
 pub(super) fn plc_table(q: &Q, b: &mut Builder) {
-    use ew_derive::ew_schema::{Channel, PlcConfigProject};
     use ew_derive::{ChannelAddr, EffectiveState, PlcRows};
+    use ew_schema::{Channel, PlcConfigProject};
     let folios = folios(q);
     let cfg_table = q.table::<PlcConfigProject>();
     let channel_table = q.table::<Channel>();
@@ -258,7 +255,7 @@ pub(super) fn plc_table(q: &Q, b: &mut Builder) {
                 .iter()
                 .filter_map(|(_, p)| p.logical_net)
                 .filter_map(|n| {
-                    q.table::<ew_derive::ew_schema::LogicalNet>()
+                    q.table::<ew_schema::LogicalNet>()
                         .get(n)
                         .map(|n| n.name.to_string())
                 })
@@ -404,7 +401,7 @@ pub(super) fn plc_table(q: &Q, b: &mut Builder) {
                     facets.push(("unplaced".to_owned(), String::new()));
                 }
                 // A manual address (typed, or frozen by Freeze addresses) is told from a derived one.
-                if record.is_some_and(|c| matches!(c.address, ew_derive::ew_schema::AddrSpec::Manual(_))) {
+                if record.is_some_and(|c| matches!(c.address, ew_schema::AddrSpec::Manual(_))) {
                     badges.push("manual".to_owned());
                 }
                 match r.address {
@@ -475,8 +472,8 @@ fn cards_without_cpu(q: &Q) -> Vec<(Id<Device>, String)> {
 }
 
 /// A channel's safety data as the grid's Safety cell prints it: the evaluation, then the requirement (`1oo2 · SIL 2`).
-fn safety_text(s: &ew_derive::ew_schema::SafetyChannel) -> String {
-    use ew_derive::ew_schema::Evaluation;
+fn safety_text(s: &ew_schema::SafetyChannel) -> String {
+    use ew_schema::Evaluation;
     let evaluation = match &s.evaluation {
         Evaluation::OneOoOne => "1oo1",
         Evaluation::OneOoTwo => "1oo2",
@@ -490,7 +487,7 @@ fn safety_text(s: &ew_derive::ew_schema::SafetyChannel) -> String {
 
 /// The bus ports of a station (FT-739): the functions with a `bus_port` of the station device and of every device
 /// under it, by (interface, port label, ID).
-fn station_bus_ports(q: &Q, station: Id<Device>) -> Vec<(Id<Function>, ew_derive::ew_schema::BusPort)> {
+fn station_bus_ports(q: &Q, station: Id<Device>) -> Vec<(Id<Function>, ew_schema::BusPort)> {
     let mut devices = vec![station];
     let mut at = 0;
     while let Some(d) = devices.get(at).copied() {
@@ -502,7 +499,7 @@ fn station_bus_ports(q: &Q, station: Id<Device>) -> Vec<(Id<Function>, ew_derive
         }
     }
     let idx = q.idx();
-    let mut out: Vec<(NaturalKey, Id<Function>, ew_derive::ew_schema::BusPort)> = devices
+    let mut out: Vec<(NaturalKey, Id<Function>, ew_schema::BusPort)> = devices
         .iter()
         .flat_map(|d| idx.functions_of_device(*d))
         .filter_map(|f| {
@@ -515,7 +512,7 @@ fn station_bus_ports(q: &Q, station: Id<Device>) -> Vec<(Id<Function>, ew_derive
 }
 
 /// A bus port's label: its interface and port label (`X1 P1R`), then its bus system (`DP · PROFIBUS DP`).
-fn bus_port_label(port: &ew_derive::ew_schema::BusPort) -> String {
+fn bus_port_label(port: &ew_schema::BusPort) -> String {
     let name = match &port.port_label {
         Some(l) => format!("{} {l}", port.interface),
         None => port.interface.to_string(),
@@ -531,7 +528,7 @@ fn push_bus_port(
     folios: &BTreeMap<Id<Page>, (usize, String, Uuid)>,
     parent: u32,
     f: Id<Function>,
-    port: &ew_derive::ew_schema::BusPort,
+    port: &ew_schema::BusPort,
     config: &(String, String),
 ) -> u32 {
     let drawables = sorted(

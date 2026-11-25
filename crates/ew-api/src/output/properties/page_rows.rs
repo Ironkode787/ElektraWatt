@@ -6,8 +6,8 @@
 //!
 //! Not here: a device's rows (`device_rows.rs`); a connection's rows (`connection_rows.rs`).
 
-use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::{PageRef, Q, TbValue, TitleBlockValues, XrefTextOf};
+use ew_ids::{Id, Uuid};
 use ew_schema::Kind;
 use serde_json::Value;
 

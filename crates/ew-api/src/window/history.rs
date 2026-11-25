@@ -14,11 +14,9 @@
 use std::collections::BTreeSet;
 
 use ew_commands::{History, ModelDiff, Origin};
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{
-    Connection, Device, Function, Kind, Page, PageItem, Representation, StructureBox,
-};
 use ew_derive::{PageOrder, PageRef, Q};
+use ew_ids::Id;
+use ew_schema::{Connection, Device, Function, Kind, Page, PageItem, Representation, StructureBox};
 
 use crate::Session;
 

@@ -16,11 +16,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::ops::Range;
 use std::sync::Arc;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{LangTag, MlText, NaturalKey, natural_key};
-use ew_derive::ew_schema::{DecimalSeparator, Device, OrderUnit, Unit};
-use ew_derive::ew_units::Dec3;
 use ew_derive::{DeviceTag, DisplayedTag, PageOrder, PageRef, Policy, Q, Query, folio_label};
+use ew_ids::Id;
+use ew_mltext::{LangTag, MlText, NaturalKey, natural_key};
+use ew_schema::{DecimalSeparator, Device, OrderUnit, Unit};
+use ew_units::Dec3;
 
 use crate::rowset::{Cell, MissingReason, QtyUnit};
 
@@ -377,8 +377,8 @@ mod tests {
     use std::rc::Rc;
 
     use ew_derive::RecordingTracker;
-    use ew_derive::ew_ids::Uuid;
-    use ew_derive::ew_schema::{Project, Record};
+    use ew_ids::Uuid;
+    use ew_schema::{Project, Record};
     use serde_json::json;
 
     use super::*;

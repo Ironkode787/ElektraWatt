@@ -16,7 +16,7 @@ use ew_api::{
     AnyCommand, ApiError, AssignMode, CopyState, Fit, NewProjectKind, OfferView, PartDraftError, PartOffer,
     PartOfferQuery, PartPick, PartTarget, ProjectTemplate, Session, SessionOptions,
 };
-use ew_derive::ew_ids::{Id, Uuid, v5};
+use ew_ids::{Id, Uuid, v5};
 use ew_schema::{Device, LibDocument, Part};
 use serde_json::{Value, json};
 
@@ -615,7 +615,7 @@ fn an_edit_in_place_is_previewed() {
     assert_ne!(after.sha256, held.sha256);
     assert_eq!(
         Some(after.sha256.0),
-        ew_store::ew_format::library_copy_hash(&LibDocument::Part(after.clone()))
+        ew_format::library_copy_hash(&LibDocument::Part(after.clone()))
     );
     s.undo(&ew_api::Origin::Gui).unwrap();
     assert_eq!(lines(&s), before, "undo restores the copy");

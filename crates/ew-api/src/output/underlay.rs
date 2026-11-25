@@ -22,9 +22,9 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use ew_derive::ew_ids::Id;
 use ew_derive::{PageRef, Q};
 use ew_dl::{Brush, Color, DisplayList, Item, Path, Stroke};
+use ew_ids::Id;
 use ew_import_dxf::ew_interop_api::{ImportError, ImportInput, ImportReport, SourceInfo};
 use ew_schema::{Page, PageItemKind, Underlay, UnderlayFormat};
 use ew_units::{Nm, Pt2, Rect, arith};
@@ -274,10 +274,10 @@ pub enum UnderlaySource {
 }
 
 /// The namespace of the first underlay placed from a source of SHA-256 `sha` (doc 14 §2.3).
-pub(crate) fn first_namespace(sha: [u8; 32]) -> ew_derive::ew_ids::Uuid {
-    ew_derive::ew_ids::v5::lineage_namespace(
+pub(crate) fn first_namespace(sha: [u8; 32]) -> ew_ids::Uuid {
+    ew_ids::v5::lineage_namespace(
         UNDERLAY_IMPORTER,
-        &ew_derive::ew_ids::v5::LineageAnchor::FirstImportSha256(sha),
+        &ew_ids::v5::LineageAnchor::FirstImportSha256(sha),
     )
     .unwrap_or_else(|_| unreachable!("\"underlay\" is a valid importer name"))
 }
@@ -306,7 +306,7 @@ pub(crate) fn underlay_batch(
 ) -> Result<crate::import::ImportBatch, crate::dxf::DxfError> {
     use crate::dxf::DxfError;
     use crate::import::{Limits, Refusal, front_door};
-    use ew_derive::ew_ids::v5;
+    use ew_ids::v5;
     let input = ImportInput::new(name, bytes).map_err(|e| {
         DxfError::Refused(Refusal::Import(ImportError::Unsupported {
             message: e.to_string(),

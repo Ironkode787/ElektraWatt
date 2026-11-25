@@ -12,7 +12,7 @@ use ew_commands::commands::{
     AssignModeParam, AssignPart, ChangeClass, EmbedLibraryCopies, FieldChange, UpdateLibraryCopies,
     classify_update,
 };
-use ew_derive::ew_ids::{Id, Uuid};
+use ew_ids::{Id, Uuid};
 use ew_schema::{
     Device, ItemStatus, Kind, LibCopy, LibDocument, LibRef, MacroDef, MacroInstance, Part, Representation,
     Sha256, semver_core,
@@ -217,7 +217,7 @@ pub struct VersionConflict {
 /// The FnDefs and the manufacturer a part names, the FnDef a symbol names, by (kind, copy ID).
 fn named_items(doc: &LibDocument) -> Vec<(Kind, Uuid)> {
     let copy = |r: &LibRef| -> Uuid {
-        let id: Id<()> = ew_derive::ew_ids::v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid());
+        let id: Id<()> = ew_ids::v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid());
         id.as_uuid()
     };
     match doc {
@@ -240,7 +240,7 @@ fn copy_title(q: &Q, doc: &LibDocument, docs: &[LibDocument]) -> String {
     if let LibDocument::Part(c) = doc {
         let mut name = ew_derive::manufacturer_name(q, &c.item.manufacturer);
         if name.is_empty() {
-            let id: Id<()> = ew_derive::ew_ids::v5::lib_copy_id(
+            let id: Id<()> = ew_ids::v5::lib_copy_id(
                 c.item.manufacturer.library.as_uuid(),
                 c.item.manufacturer.item.as_uuid(),
             );
@@ -539,13 +539,10 @@ impl Session {
     pub fn next_fork_item(&self, copy: Uuid) -> Uuid {
         let q = self.query();
         let project = q.project().id.as_uuid();
-        let held = |item: Uuid| {
-            q.parts()
-                .contains(ew_derive::ew_ids::v5::lib_copy_id(project, item))
-        };
+        let held = |item: Uuid| q.parts().contains(ew_ids::v5::lib_copy_id(project, item));
         std::iter::once(None)
             .chain((1u64..).map(Some))
-            .map(|n| ew_derive::ew_ids::v5::fork_item_id(copy, n))
+            .map(|n| ew_ids::v5::fork_item_id(copy, n))
             .find(|item| !held(*item))
             .expect("an unbounded sequence has a free item")
     }
@@ -699,7 +696,7 @@ impl Session {
         mode: AssignMode,
         qty: Dec3,
     ) -> Result<AnyCommand, ApiError> {
-        let copy: Id<Part> = ew_derive::ew_ids::v5::lib_copy_id(part.library.as_uuid(), part.item.as_uuid());
+        let copy: Id<Part> = ew_ids::v5::lib_copy_id(part.library.as_uuid(), part.item.as_uuid());
         let item = self
             .libraries()
             .resolve(part)

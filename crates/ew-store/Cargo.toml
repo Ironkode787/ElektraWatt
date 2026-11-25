@@ -29,6 +29,7 @@ sha2 = { workspace = true }
 # (decision log ID-827, ID-1145); no ZIP crate.
 ew-zip = { path = "../ew-zip" }
 ew-hack = { version = "0.3.5", path = "../ew-hack" }
+ew-schema = { path = "../ew-schema" }
 
 [dev-dependencies]
 automod.workspace = true

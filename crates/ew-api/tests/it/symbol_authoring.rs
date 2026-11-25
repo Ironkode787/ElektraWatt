@@ -40,7 +40,7 @@ fn nameless_embedded_qet_symbol_can_be_forked_by_copy_identity() {
     if let symbols::schema::LibDocument::Symbol(s) = symbol {
         s.item.meta.key = None;
     }
-    let digest = ew_store::ew_format::library_copy_hash(symbol).unwrap();
+    let digest = ew_format::library_copy_hash(symbol).unwrap();
     let source = if let symbols::schema::LibDocument::Symbol(s) = symbol {
         s.sha256 = ew_schema::Sha256(digest);
         s.id.to_string()
@@ -95,7 +95,7 @@ pub fn library(
 ) -> (
     ew_testdir::Tmp,
     ew_api::library::Registry,
-    ew_derive::ew_ids::Uuid,
+    ew_ids::Uuid,
 ) {
     let dir = ew_testdir::Tmp::new(name);
     let lib = dir.join("symbols.ewlib");
@@ -205,7 +205,7 @@ fn authored_symbol_closure_is_carried_when_placing_a_part_without_a_template() {
         serde_json::from_str(include_str!("../expected/two_fndef_part.json")).unwrap();
     part["function_template"] = json!([]);
     let mut part = symbols::schema::LibDocument::from_value(part).unwrap();
-    let hash = ew_store::ew_format::library_copy_hash(&part).unwrap();
+    let hash = ew_format::library_copy_hash(&part).unwrap();
     let id = if let symbols::schema::LibDocument::Part(p) = &mut part {
         p.sha256 = ew_schema::Sha256(hash);
         p.id.as_uuid()

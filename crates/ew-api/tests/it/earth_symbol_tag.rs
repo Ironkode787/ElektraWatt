@@ -7,8 +7,8 @@
 use crate::common;
 
 use ew_api::{AnyCommand, Session};
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::Device;
+use ew_ids::Id;
+use ew_schema::Device;
 use serde_json::json;
 
 /// Places the protective earth symbol on folio 103 at `x` as a new device of the cables' letter `W`.

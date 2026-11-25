@@ -9,7 +9,7 @@
 //! A value above 7 is taken modulo 8. [`orient_then`] composes as `rep.transform` does: first the current
 //! orientation, then `rotate` quarter turns clockwise, then, with `mirror`, the mirror about the vertical axis.
 
-use ew_derive::ew_units::{Nm, Orient2, Pt2};
+use ew_units::{Nm, Orient2, Pt2};
 
 /// A direction on the page (y down): the side a wire leaves a connection point to.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -106,8 +106,7 @@ pub fn slot_box(grid: (i64, i64), at: (i64, i64), count: u16) -> Option<SlotBox>
     if count == 0 {
         return None;
     }
-    let grid =
-        ew_derive::ew_units::Grid::new(u64::try_from(grid.0).ok()?, u64::try_from(grid.1).ok()?).ok()?;
+    let grid = ew_units::Grid::new(u64::try_from(grid.0).ok()?, u64::try_from(grid.1).ok()?).ok()?;
     let pitch = ew_derive::SlotFrame::pitch(grid);
     let frame = ew_derive::SlotFrame::new(grid, Pt2::new(Nm(at.0), Nm(at.1)), pitch);
     let o = frame.origin();

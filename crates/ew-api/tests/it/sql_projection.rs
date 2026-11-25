@@ -7,7 +7,7 @@
 
 use ew_api::checks::{CheckMode, PRE_DELIVERY};
 use ew_api::sql::{Profile, Projection, SqlError, schema};
-use ew_derive::ew_ids::Uuid;
+use ew_ids::Uuid;
 use ew_derive::{ValveTerminalRows, VtSlot};
 use ew_schema::{DeviceState, Record};
 use serde_json::{Value, json};

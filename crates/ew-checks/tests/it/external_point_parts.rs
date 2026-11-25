@@ -8,7 +8,7 @@
 use crate::common;
 
 use common::*;
-use ew_derive::ew_schema::Kind;
+use ew_schema::Kind;
 use ew_model::Model;
 use serde_json::{Value, json};
 

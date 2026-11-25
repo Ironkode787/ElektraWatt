@@ -10,7 +10,7 @@ use crate::common;
 use common::sample;
 use ew_api::output::page_layer;
 use ew_api::{AnyCommand, Session};
-use ew_derive::ew_units::Pt2;
+use ew_units::Pt2;
 use ew_derive::{PageOrder, PageRef};
 use ew_dl::{Item, ItemKind, Layer, PathEl};
 use ew_scene::hops::{hop_path, hops};

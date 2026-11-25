@@ -11,8 +11,8 @@
 use std::path::{Component, Path, PathBuf};
 
 use ew_format::Limits;
-use ew_format::ew_schema::{Kind, LibDocument, Sha256, normalize_nfc, parse_value};
 use ew_ids::Uuid;
+use ew_schema::{Kind, LibDocument, Sha256, normalize_nfc, parse_value};
 use serde_json::{Map, Value};
 
 /// The record directories of a library and their kinds, in byte order of the names: the directory of each library

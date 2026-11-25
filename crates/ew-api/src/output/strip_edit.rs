@@ -20,10 +20,10 @@
 //! `fields.set` when every target gets the same (kind, path, value), else one `fields.set_many` with one entry per
 //! (kind, path, value) in the order of first appearance. Every order is named (NFR-REL-07).
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::MlText;
-use ew_derive::ew_schema::{AccessoryKind, Device, FnDef, LibDocument, TerminalGroup};
 use ew_derive::{MainFunction, Q, short_tag};
+use ew_ids::Id;
+use ew_mltext::MlText;
+use ew_schema::{AccessoryKind, Device, FnDef, LibDocument, TerminalGroup};
 use serde_json::{Value, json};
 
 use super::fields::{FieldChoice, ParseCx, PartCopyText, PartMiss, find_part, part_order};

@@ -9,7 +9,7 @@ use ew_api::Session;
 use ew_api::checks::{CheckMode, PRE_DELIVERY};
 use ew_api::sql::Profile;
 use ew_derive::WireNumbers;
-use ew_derive::ew_ids::Uuid;
+use ew_ids::Uuid;
 use ew_mltext::Ident;
 use ew_schema::{NumberSpec, Record};
 use serde_json::{Value, json};

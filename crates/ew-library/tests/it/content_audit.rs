@@ -11,7 +11,7 @@
 
 use std::path::{Path, PathBuf};
 
-use ew_derive::ew_plcaddr::MapExpr;
+use ew_plcaddr::MapExpr;
 use ew_derive::{PatternError, expand_pattern};
 use serde_json::Value;
 

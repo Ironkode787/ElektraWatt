@@ -24,12 +24,12 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
-use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::{
     BomMode, BomRows, ChannelAddr, ChannelAddresses, DepKey, DeviceTag, DisplayedTag, MainFunction, MainRep,
     MemoInput, PageOrder, PageRef, PlcAddressText, Policy, PotentialId, PotentialNameOf, PotentialPartition,
     Q, Query, RepAnchorCell, TbValue, TitleBlockValues, WireNumbers, WirePropsOf, XrefTextOf,
 };
+use ew_ids::{Id, Uuid};
 use ew_model::{EndpointKey, IxKey};
 use ew_schema::{AnyId, Connection, Device, Function, Junction, Kind, Page, Representation};
 use schemars::JsonSchema;
@@ -1176,7 +1176,7 @@ fn wire_props_of(cx: &Cx<'_>, key: &str) -> Result<Answer, String> {
         })
         .unwrap_or_default();
     wires.sort_by(|(a, wa), (b, wb)| match (a, b) {
-        (Some(a), Some(b)) => ew_derive::ew_mltext::natural_cmp(a, b)
+        (Some(a), Some(b)) => ew_mltext::natural_cmp(a, b)
             .then_with(|| a.cmp(b))
             .then_with(|| wa.cmp(wb)),
         _ => a.is_none().cmp(&b.is_none()).then_with(|| wa.cmp(wb)),
@@ -1236,7 +1236,7 @@ fn wire_props_of(cx: &Cx<'_>, key: &str) -> Result<Answer, String> {
 }
 
 /// The words of a medium text for the CLI: its English form, else its neutral or first form.
-fn medium_words(t: &ew_derive::ew_mltext::MlText) -> String {
+fn medium_words(t: &ew_mltext::MlText) -> String {
     let en = "en-GB".parse().expect("a language tag");
     t.text_for(&en).map_or_else(
         || t.neutral_or_first().unwrap_or_default().to_owned(),
@@ -1470,7 +1470,7 @@ fn wire_numbers(cx: &Cx<'_>, key: &str) -> Result<Answer, String> {
 }
 
 /// A multi-language text in the project's source language, else its neutral text, else its first language.
-fn ml_text(q: &Q, text: &ew_derive::ew_mltext::MlText) -> String {
+fn ml_text(q: &Q, text: &ew_mltext::MlText) -> String {
     let source = q.project().languages.as_ref().map(|l| l.source.to_string());
     match serde_json::to_value(text).unwrap_or(Value::Null) {
         Value::String(s) => s,

@@ -144,8 +144,9 @@ pub(crate) fn text_rects(list: &ew_dl::DisplayList) -> Vec<SheetRect> {
 #[cfg(test)]
 mod arrival_tests {
     use super::*;
-    use ew_dl::{Brush, DisplayList, FontKey, Glyph, Item, ShapedRun, Transform, ew_units::Rect as R};
+    use ew_dl::{Brush, DisplayList, FontKey, Glyph, Item, ShapedRun, Transform};
     use ew_units::Pt2;
+    use ew_units::Rect as R;
 
     /// The ring runs under a text: no step of it lies in the text's rectangle, and the rest of the
     /// circle is drawn; without a text it is one closed run.

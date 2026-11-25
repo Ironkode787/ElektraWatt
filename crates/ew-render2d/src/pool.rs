@@ -431,7 +431,7 @@ mod tests {
 
     #[test]
     fn a_tile_sent_back_and_not_yet_received_is_not_rasterised_again() {
-        use ew_dl::ew_units::Nm;
+        use ew_units::Nm;
         let sheet = SheetSize {
             width: Nm::from_mm(20),
             height: Nm::from_mm(20),
@@ -465,7 +465,7 @@ mod tests {
 
     #[test]
     fn one_submission_merges_the_tiles_of_two_scenes() {
-        use ew_dl::ew_units::Nm;
+        use ew_units::Nm;
         let sheet = SheetSize {
             width: Nm::from_mm(20),
             height: Nm::from_mm(20),

@@ -16,8 +16,8 @@ use std::sync::Arc;
 
 use common::{apply, manifest, mem_project, open_sample, options, project_files, reopen, with_logo};
 use ew_model::{AnyKey, AnyRow, Asset, Model, Op};
-use ew_store::ew_format::ew_schema::{AssetFormat, AssetRef, COMPANY_MEMBER, Sha256, sniff};
-use ew_store::ew_format::sha256;
+use ew_schema::{AssetFormat, AssetRef, COMPANY_MEMBER, Sha256, sniff};
+use ew_format::sha256;
 use ew_store::mem::DirSync;
 use ew_store::{Changes, Store};
 
@@ -176,7 +176,7 @@ const LOGO_Y: &[u8] =
     br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30"><circle r="15"/></svg>"#;
 
 /// `model` with its project row replaced by `row` (an undo of the project row).
-fn with_row(model: &Model, row: &Arc<ew_store::ew_format::ew_schema::Project>) -> (Model, Vec<AnyKey>) {
+fn with_row(model: &Model, row: &Arc<ew_schema::Project>) -> (Model, Vec<AnyKey>) {
     let mut keys = BTreeSet::new();
     let next = apply(
         model,
@@ -279,8 +279,8 @@ fn a_damaged_journal_asset_is_a_recovery_finding() {
     let dir = store.journal_dir().expect("a journal").to_path_buf();
     store.crash();
     // Replace the carried bytes by other valid base64: they no longer hash to the reference.
-    let good = ew_store::ew_format::ew_schema::base64_encode(LOGO);
-    let bad = ew_store::ew_format::ew_schema::base64_encode(LOGO_Y);
+    let good = ew_schema::base64_encode(LOGO);
+    let bad = ew_schema::base64_encode(LOGO_Y);
     for (name, _) in vfs.list(&dir).unwrap() {
         let path = dir.join(&name);
         let text = String::from_utf8(vfs.read(&path).unwrap()).unwrap();
@@ -294,7 +294,7 @@ fn a_damaged_journal_asset_is_a_recovery_finding() {
     assert_eq!(rec.findings.len(), 1, "{:?}", rec.findings);
     assert_eq!(
         rec.findings[0].kind,
-        ew_store::ew_format::FindingKind::AssetMismatch
+        ew_format::FindingKind::AssetMismatch
     );
     let report = o
         .store
@@ -304,7 +304,7 @@ fn a_damaged_journal_asset_is_a_recovery_finding() {
         report
             .findings
             .iter()
-            .any(|f| f.kind == ew_store::ew_format::FindingKind::AssetMismatch),
+            .any(|f| f.kind == ew_format::FindingKind::AssetMismatch),
         "the next save reports it too: {:?}",
         report.findings
     );
@@ -345,7 +345,7 @@ fn a_journal_asset_of_an_unknown_format_is_a_recovery_finding() {
     assert_eq!(rec.findings.len(), 1, "{:?}", rec.findings);
     assert_eq!(
         rec.findings[0].kind,
-        ew_store::ew_format::FindingKind::AssetMismatch
+        ew_format::FindingKind::AssetMismatch
     );
 }
 
@@ -378,7 +378,7 @@ fn a_new_project_writes_its_assets() {
 /// store: it stays an opaque file of the manifest, so no renderer can read it.
 #[test]
 fn an_open_does_not_load_a_hostile_svg_asset() {
-    use ew_store::ew_format::FileHash;
+    use ew_format::FileHash;
     let hostile: &[u8] =
         br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><script>x()</script></svg>"#;
     assert!(sniff(hostile).is_err());
@@ -389,7 +389,7 @@ fn an_open_does_not_load_a_hostile_svg_asset() {
     // List it in the manifest, as a writer that admitted it would have.
     let mut m = manifest(&vfs);
     m.files.insert(
-        ew_store::ew_format::FilePath::new(path.clone()).unwrap(),
+        ew_format::FilePath::new(path.clone()).unwrap(),
         FileHash::Sha256(sha256(hostile)),
     );
     vfs.put(&ew_store::join(&root, "manifest.json"), m.to_text().as_bytes());

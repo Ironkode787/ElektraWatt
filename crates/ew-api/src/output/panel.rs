@@ -19,14 +19,13 @@
 
 use std::sync::Arc;
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_units::{Nm, Pt2, Rect};
 use ew_derive::layout::{
     CarrierGeometry, GroupAccessories, LabelMode, LayoutLabel, PlacementGeometry, Profile, Quarter, RailAxis,
     RailExtent, RailItem, Unplaced, bracket_part, brackets, carrier_labels, free_length, member_order,
     member_slot, mount_label, primary_part, rail_extent, rail_items, runs,
 };
 use ew_derive::{DeviceTag, PageRef, Policy, Q, Query, StructurePath, Tag};
+use ew_ids::{Id, Uuid};
 use ew_scene::forms::SheetMap;
 use ew_scene::panel::{
     BracketDraw, CarrierDraw, LAYOUT_LABEL_STYLE, LabelShow, PanelLabel, PanelView, PlacementDraw,
@@ -39,6 +38,7 @@ use ew_schema::{
 };
 use ew_text::{Shaped, TextStyle};
 use ew_units::arith::div_round_ties_away;
+use ew_units::{Nm, Pt2, Rect};
 
 use super::layers::text_style_table;
 use super::layout_edit::comma;

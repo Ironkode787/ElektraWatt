@@ -6,7 +6,7 @@
 
 use std::collections::BTreeMap;
 
-use ew_format::ew_schema::Record;
+use ew_schema::Record;
 use ew_format::{FilePath, Limits, Manifest, load, plan, project_files};
 use proptest::prelude::*;
 use proptest::test_runner::Config as ProptestConfig;

@@ -34,12 +34,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::sync::Arc;
 
-use ew_dl::ew_units::{Nm, Orient2, Pt2, Rect};
 use ew_dl::{
     Brush, Destination, DisplayList, EntityRef, FontKey, ImageData, Item, ItemKind, Layer, Link,
     MAX_INSTANCE_DEPTH, PathEl, ShapedRun, SymbolGeomId, Transform,
 };
 use ew_render_cpu::FontBytes;
+use ew_units::{Nm, Orient2, Pt2, Rect};
 use uuid::Uuid;
 
 use picture::{PagePictures, Pictures};

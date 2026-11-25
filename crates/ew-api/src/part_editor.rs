@@ -11,7 +11,7 @@ use std::collections::BTreeSet;
 
 use ew_commands::commands::{EditPartCopy, FieldChange, classify_update};
 use ew_derive::Q;
-use ew_derive::ew_ids::{Id, Uuid};
+use ew_ids::{Id, Uuid};
 use ew_mltext::Ident;
 use ew_schema::{
     BusSection, BusSystem, Clearance, Device, Kind, LibCopy, LibDocument, LibRef, MechData, MountKind,
@@ -709,7 +709,7 @@ impl Session {
     ///
     /// [`crate::ApiError::NotHeld`] when no installed library holds that part.
     pub fn library_part_draft(&self, library: Uuid, item: Uuid) -> Result<PartDraft, crate::ApiError> {
-        let copy = ew_derive::ew_ids::v5::lib_copy_id::<Part>(library, item).as_uuid();
+        let copy = ew_ids::v5::lib_copy_id::<Part>(library, item).as_uuid();
         if self.query().parts().get(Id::from_uuid(copy)).is_some() {
             return self.part_draft(copy);
         }
@@ -734,7 +734,7 @@ impl Session {
     /// The draft of a library's part `c` that the project does not hold, without the names of its functions; a
     /// manufacturer the project does not hold either is named by its library's record.
     pub(crate) fn unheld_draft(&self, q: &Q, c: LibCopy<Part>) -> PartDraft {
-        let copy = ew_derive::ew_ids::v5::lib_copy_id::<Part>(c.library_id.as_uuid(), c.item_id.as_uuid());
+        let copy = ew_ids::v5::lib_copy_id::<Part>(c.library_id.as_uuid(), c.item_id.as_uuid());
         let maker = c.item.manufacturer.clone();
         let mut draft = self.draft_of(q, c, copy.as_uuid());
         if draft.text("manufacturer").is_empty()

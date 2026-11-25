@@ -9,9 +9,9 @@
 use std::collections::BTreeMap;
 
 use ew_derive::Q;
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_mltext::natural_key;
-use ew_derive::ew_schema::{FnRole, Function, Page};
+use ew_ids::{Id, Uuid};
+use ew_mltext::natural_key;
+use ew_schema::{FnRole, Function, Page};
 
 use super::{
     Builder, Drawable, FIX_ALL, NavKind, NavOpen, NavRole, NavTable, connection_drawables, device_drawables,
@@ -86,7 +86,7 @@ fn target_drawables(
     folios: &BTreeMap<Id<Page>, (usize, String, Uuid)>,
     target: &crate::checks::Target,
 ) -> Vec<Drawable> {
-    use ew_derive::ew_schema::{Conductor, ConnectionKind, Kind};
+    use ew_schema::{Conductor, ConnectionKind, Kind};
     let id = target.id.as_uuid();
     match target.kind {
         Kind::Device => {
@@ -111,7 +111,7 @@ fn target_drawables(
         Kind::Connection => connection_drawables(q, folios, &[Id::from_uuid(id)]),
         Kind::Conductor => {
             let cid: Id<Conductor> = Id::from_uuid(id);
-            let mut cons: Vec<Id<ew_derive::ew_schema::Connection>> = q
+            let mut cons: Vec<Id<ew_schema::Connection>> = q
                 .connections()
                 .iter()
                 .filter(|(_, c)| matches!(c.kind, ConnectionKind::Core(x) if x == cid))

@@ -7,7 +7,7 @@
 use crate::common;
 
 use common::*;
-use ew_derive::ew_schema::PotentialType;
+use ew_schema::PotentialType;
 use ew_model::{EndpointKey, Model};
 
 /// The potential at `e` and its type.

@@ -26,7 +26,7 @@ fn addresses_in_cell(
     let holders: Vec<Id<Device>> = device_of(&rep)
         .map(|d| ew_derive::parent_chain(q, d).into_iter().skip(1).collect())
         .unwrap_or_default();
-    let in_cell = rep.orient == ew_derive::ew_units::Orient2::R0
+    let in_cell = rep.orient == ew_units::Orient2::R0
         && !holders.is_empty()
         && q.idx().reps_by_page(page).any(|r| {
             q.reps().get(r).is_some_and(|b| {
@@ -43,7 +43,7 @@ fn addresses_in_cell(
         if slot.kind == SlotKind::PlcAddress && slot.pos.y < step && out.text_slots.get(&index).is_none() {
             out.text_slots.insert(ew_schema::SlotOverride {
                 slot: index,
-                pos: Some(ew_derive::ew_units::Pt2::new(slot.pos.x, step)),
+                pos: Some(ew_units::Pt2::new(slot.pos.x, step)),
                 angle: None,
                 visible: None,
                 extra: Default::default(),

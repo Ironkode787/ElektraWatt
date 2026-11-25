@@ -8,7 +8,7 @@ use crate::common;
 
 use common::*;
 use ew_checks::Severity;
-use ew_derive::ew_schema::Kind;
+use ew_schema::Kind;
 use ew_model::Model;
 use serde_json::{Value, json};
 
@@ -223,16 +223,16 @@ fn pot005_the_built_in_bu_of_a_dc_control_wire_is_silent() {
     ] {
         let m = default_coloured(&def);
         let q = ew_derive::Q::new(&m);
-        let wire = ew_derive::ew_ids::Id::<ew_derive::ew_schema::Connection>::from_uuid(
-            ew_derive::ew_ids::Uuid::from_u128(0x2001),
+        let wire = ew_ids::Id::<ew_schema::Connection>::from_uuid(
+            ew_ids::Uuid::from_u128(0x2001),
         );
         let props = q.get::<ew_derive::ConnWireProps>(wire);
         let colour = props[0].1.colour.clone().expect("a colour");
         assert!(
             matches!(
                 colour.value.codes(),
-                [ew_derive::ew_schema::ColourCode::Iec(
-                    ew_derive::ew_schema::IecColour::Bu
+                [ew_schema::ColourCode::Iec(
+                    ew_schema::IecColour::Bu
                 )]
             ),
             "{def}: {colour:?}"

@@ -8,7 +8,7 @@
 use crate::common;
 
 use ew_api::checks::{self, CheckMode};
-use ew_derive::ew_ids::Id;
+use ew_ids::Id;
 use ew_derive::{ConnWireProps, PropSource, SizeRule};
 use ew_schema::Connection;
 use serde_json::json;

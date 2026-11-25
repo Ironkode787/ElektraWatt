@@ -11,8 +11,8 @@ use std::collections::BTreeMap;
 
 use ew_api::output::{CellLabel, ExportOptions, GotoError, PageSelection, page_uuid};
 use ew_api::{CmdLog, Session};
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_schema::Representation;
+use ew_ids::{Id, Uuid};
+use ew_schema::Representation;
 use ew_derive::{PageOrder, XrefKind, XrefRelationOf, XrefTextOf, anchor_point};
 use ew_dl::{Destination, DisplayList};
 

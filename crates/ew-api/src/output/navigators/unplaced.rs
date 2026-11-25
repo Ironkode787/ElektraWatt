@@ -21,8 +21,8 @@ use crate::output::layout_edit::mm_text;
 pub(super) fn unplaced_table(q: &Q, b: &mut Builder) {
     use ew_derive::layout::{Unplaced, mount_label, primary_part, rail_extent};
     let devices = q.devices();
-    let parts = q.table::<ew_derive::ew_schema::LibCopy<ew_derive::ew_schema::Part>>();
-    for (sid, space) in q.table::<ew_derive::ew_schema::LayoutSpace>().iter() {
+    let parts = q.table::<ew_schema::LibCopy<ew_schema::Part>>();
+    for (sid, space) in q.table::<ew_schema::LayoutSpace>().iter() {
         let path = q.get::<ew_derive::StructurePath>(space.location);
         let location = if path.codes.is_empty() {
             String::new()

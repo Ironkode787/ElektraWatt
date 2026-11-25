@@ -15,7 +15,7 @@ use crate::common::{self, placement_of, rail_at};
 
 use ew_api::{AnyCommand, CmdError, Origin, Session};
 use ew_derive::Q;
-use ew_derive::ew_ids::{Id, Uuid};
+use ew_ids::{Id, Uuid};
 use ew_derive::layout::{
     CarrierLabel, CarrierLabelKind, GroupAccessories, RailAxis, brackets, carrier_labels, free_length,
     rail_items,
@@ -236,13 +236,13 @@ fn widen_f1(s: &mut Session) {
     let item = Uuid::from_u128(0x5e42_0000_0000_4000_8000_0000_0000_0300);
     copy.item_id = Id::from_uuid(item);
     copy.library_id = Id::from_uuid(Uuid::from_u128(0x5e42_0000_0000_4000_8000_0000_0000_0001));
-    copy.id = ew_derive::ew_ids::v5::lib_copy_id(copy.library_id.as_uuid(), item);
+    copy.id = ew_ids::v5::lib_copy_id(copy.library_id.as_uuid(), item);
     copy.item.meta.key = Some("SN-300".parse().unwrap());
     copy.item.part_number = "SN-300".parse().unwrap();
     let mech = copy.item.mech.get_or_insert_with(Default::default);
     mech.width = Some(Nm(300_000_000));
     mech.rail_offset = None;
-    copy.sha256 = Sha256(ew_store::ew_format::library_copy_hash(&LibDocument::Part(copy.clone())).unwrap());
+    copy.sha256 = Sha256(ew_format::library_copy_hash(&LibDocument::Part(copy.clone())).unwrap());
     run(
         s,
         "part.assign",

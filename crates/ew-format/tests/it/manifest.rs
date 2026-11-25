@@ -369,7 +369,7 @@ fn arb_manifest() -> impl Strategy<Value = Manifest> {
         )
 }
 
-fn uuid_from(bytes: [u8; 16]) -> ew_format::ew_schema::AnyId {
+fn uuid_from(bytes: [u8; 16]) -> ew_schema::AnyId {
     // The canonical lower-case hyphenated form of the 16 bytes.
     let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
     let text = format!(

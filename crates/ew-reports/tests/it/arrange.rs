@@ -3,10 +3,10 @@
 
 //! `arrange`: manual exclusion, filter, sort, grouping (doc 09 §3.3, FR-REP-027).
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_mltext::MlText;
-use ew_derive::ew_schema::{AnyId, Date, GroupSpec, OrderUnit, Project, Set, SortKey, Unit};
-use ew_derive::ew_units::Dec3;
+use ew_ids::{Id, Uuid};
+use ew_mltext::MlText;
+use ew_schema::{AnyId, Date, GroupSpec, OrderUnit, Project, Set, SortKey, Unit};
+use ew_units::Dec3;
 use ew_derive::{Q, Rev};
 use ew_reports::arrange::{cell_key, cell_text};
 use ew_reports::{
@@ -687,7 +687,7 @@ fn group_text_and_header_ids_of_other_key_types() {
 /// The sort and group text of a colour is the printed text, a code of a newer format included.
 #[test]
 fn the_text_of_a_colour_is_its_printed_text() {
-    use ew_derive::ew_schema::{ColourCode, ColourSpec};
+    use ew_schema::{ColourCode, ColourSpec};
     use ew_reports::render::{RenderOptions, render};
     let m = model();
     let q = Q::new(&m);
@@ -920,7 +920,7 @@ fn two_heading_segments_with_one_key_give_two_groups_in_segment_order() {
 // Group texts of tags, folio texts of generated pages, parts_list row IDs (over small JSON models)
 
 use ew_derive::PageRef;
-use ew_derive::ew_schema::{LibDocument, Record, ReportBlock};
+use ew_schema::{LibDocument, Record, ReportBlock};
 use ew_reports::rows_of;
 use serde_json::{Value, json};
 

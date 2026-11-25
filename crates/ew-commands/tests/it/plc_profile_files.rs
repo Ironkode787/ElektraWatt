@@ -26,7 +26,7 @@ fn canonical(text: &str) -> String {
     let LibDocument::PlcProfile(mut c) = LibDocument::from_json(text).expect("a library document") else {
         panic!("not a plc_profile document")
     };
-    let library = ew_derive::ew_ids::Uuid::from_u128(STARTER);
+    let library = ew_ids::Uuid::from_u128(STARTER);
     let key = c.item.meta.key.as_ref().expect("a key").as_str().to_owned();
     c.library_id = Id::from_uuid(library);
     c.item_id = v5::imported_id(library, &key);

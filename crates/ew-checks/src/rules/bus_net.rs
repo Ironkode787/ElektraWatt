@@ -9,13 +9,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::net::Ipv4Addr;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::Confidence;
-use ew_derive::ew_schema::{
+use ew_derive::{BusSegments, NetMaster, NetMembersOf, Q, SegmentMember, part_confidence};
+use ew_ids::Id;
+use ew_schema::Confidence;
+use ew_schema::{
     AddrValue, BusPort, BusSystem, ConnectionKind, Endpoint, Function, Kind, LengthSource, LogicalNet,
     NetAddress, PartBusPort, PortRole,
 };
-use ew_derive::{BusSegments, NetMaster, NetMembersOf, Q, SegmentMember, part_confidence};
 
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
@@ -189,7 +189,7 @@ impl Rule for Profinet {
             return Vec::new();
         };
         let net_text = net_name(q, net);
-        let ports: Vec<(Id<Function>, ew_derive::ew_schema::ProfinetAddress)> = net_ports(q, net)
+        let ports: Vec<(Id<Function>, ew_schema::ProfinetAddress)> = net_ports(q, net)
             .into_iter()
             .filter_map(|(f, _, p)| match p.address {
                 AddrValue::Value(NetAddress::Profinet(a)) => Some((f, a)),
@@ -247,7 +247,7 @@ impl Rule for Profinet {
                 continue;
             }
             let mut words: Vec<String> = functions.iter().map(|f| port_words(q, *f)).collect();
-            words.sort_by(|a, b| ew_derive::ew_mltext::natural_cmp(a, b).then_with(|| a.cmp(b)));
+            words.sort_by(|a, b| ew_mltext::natural_cmp(a, b).then_with(|| a.cmp(b)));
             let list = words.join(", ");
             out.push(
                 Finding::new(
@@ -450,7 +450,7 @@ impl Rule for SegmentLimits {
                 .unwrap_or(i64::MAX)
                 .saturating_mul(1_000_000_000);
             if length_nm > limit_nm {
-                let metres = ew_derive::ew_units::Dec3(length_nm / 1_000_000);
+                let metres = ew_units::Dec3(length_nm / 1_000_000);
                 out.push(
                     Finding::new(&SEGMENT_LIMITS, targets.clone(), "length", subject.clone())
                         .arg("form", "length")
@@ -565,7 +565,7 @@ impl Rule for WrongCable {
             .map(|(id, _)| id)
             .collect();
         ports.sort();
-        let mut seen: BTreeSet<Id<ew_derive::ew_schema::Connection>> = BTreeSet::new();
+        let mut seen: BTreeSet<Id<ew_schema::Connection>> = BTreeSet::new();
         let mut out = Vec::new();
         for f in &ports {
             let Some(function) = functions.get(*f) else {
@@ -706,7 +706,7 @@ impl Rule for NetMismatch {
                 continue;
             }
             let mut names: Vec<String> = nets.iter().map(|n| net_name(q, *n)).collect();
-            names.sort_by(|a, b| ew_derive::ew_mltext::natural_cmp(a, b).then_with(|| a.cmp(b)));
+            names.sort_by(|a, b| ew_mltext::natural_cmp(a, b).then_with(|| a.cmp(b)));
             let list = names.join(", ");
             let subject = port_words(q, named[0].0);
             out.push(

@@ -1060,8 +1060,8 @@ impl Preparer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ew_dl::ew_units::{Nm, Pt2, Rect};
     use ew_dl::{Brush, Path, Stroke};
+    use ew_units::{Nm, Pt2, Rect};
 
     fn p(x: i64, y: i64) -> Pt2 {
         Pt2::new(Nm(x), Nm(y))
@@ -1184,7 +1184,7 @@ mod tests {
         list.push(Item::instance(
             ew_dl::SymbolGeomId {
                 symbol: "00000000-0000-0000-0000-000000000000".parse().unwrap(),
-                variant: ew_dl::ew_units::Orient2::R0,
+                variant: ew_units::Orient2::R0,
                 extra: None,
             },
             Transform::IDENTITY,

@@ -39,13 +39,13 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::sync::Arc;
 
-use ew_dl::ew_units::{Nm, Pt2, Rect};
 use ew_dl::num::nm_to_milli_pt;
 use ew_dl::{
     Brush, Cap, Destination, DisplayList, FontKey, GeometryMap, ImageFormat, ImageItem, Item, ItemKind, Join,
     Link, MAX_INSTANCE_DEPTH, MITER_LIMIT, PathEl, ShapedRun, Stroke, Transform,
 };
 use ew_render_cpu::{FontResolver, decode_image, jpeg_is_cmyk, monochrome};
+use ew_units::{Nm, Pt2, Rect};
 
 /// A sheet placed on a paper: `ew-render-cpu`'s, which draws by the same rule.
 pub use ew_render_cpu::PagePlacement;
@@ -1003,7 +1003,7 @@ fn stroke_of(s: &Stroke) -> krilla::paint::Stroke {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ew_dl::ew_units::{Angle2, Orient2};
+    use ew_units::{Angle2, Orient2};
     use std::sync::Arc;
 
     fn run_item(origin: Pt2, transform: Transform) -> Item {

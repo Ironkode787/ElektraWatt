@@ -10,7 +10,7 @@ use crate::{common, view};
 
 use ew_api::output::{page_destination, page_layer};
 use ew_api::{AnyCommand, CmdError, Session};
-use ew_derive::ew_ids::{Id, Uuid};
+use ew_ids::{Id, Uuid};
 use ew_derive::{MainRep, PageOrder, PageRef, Q};
 use ew_dl::{Destination, ItemKind, Layer, Link};
 use ew_scene::table::{TableLink, TableRow};

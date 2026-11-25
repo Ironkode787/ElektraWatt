@@ -171,14 +171,14 @@ pub fn front_door<T: FrontDoorOutput>(
 ///
 /// The first [`ContractBreach`], checked in the order above per record.
 pub fn check_contract(batch: &ImportBatch, lineage: Option<&LineageInfo>) -> Result<(), ContractBreach> {
-    use ew_derive::ew_ids::v5;
+    use ew_ids::v5;
     let own = batch.records.iter().find_map(|r| match r {
         Record::ImportLineage(l) => Some((l.id.as_uuid(), l.namespace.as_uuid())),
         _ => None,
     });
     let lineage = own.or_else(|| lineage.map(|l| (l.id.as_uuid(), l.namespace)));
     let mut seen = std::collections::BTreeSet::new();
-    let mut last: Option<(u8, ew_derive::ew_ids::Uuid)> = None;
+    let mut last: Option<(u8, ew_ids::Uuid)> = None;
     for record in &batch.records {
         let (Some(kind), Some(id)) = (record.kind(), record.id()) else {
             continue;
@@ -206,12 +206,12 @@ pub fn check_contract(batch: &ImportBatch, lineage: Option<&LineageInfo>) -> Res
             .get("key")
             .and_then(serde_json::Value::as_str)
             .unwrap_or_default();
-        let derived: ew_derive::ew_ids::Id<()> = v5::imported_id(namespace, source_key);
+        let derived: ew_ids::Id<()> = v5::imported_id(namespace, source_key);
         let exempt = || match record {
             Record::Project(_) | Record::Channel(_) => true,
             Record::Function(f) => f.device.is_some_and(|d| {
                 (0..1024u32).any(|i| {
-                    let t: ew_derive::ew_ids::Id<()> = v5::template_function_id(d, i);
+                    let t: ew_ids::Id<()> = v5::template_function_id(d, i);
                     t.as_uuid() == id
                 })
             }),
@@ -434,7 +434,7 @@ impl Imported {
                     .iter()
                     .map(|t| crate::checks::Target {
                         kind: t.kind,
-                        id: ew_derive::ew_ids::Id::from_uuid(t.id),
+                        id: ew_ids::Id::from_uuid(t.id),
                     })
                     .collect();
                 targets.sort();
@@ -524,7 +524,7 @@ pub fn imported_of(batch: ImportBatch, options: SessionOptions) -> Imported {
 /// and the record hashes are the transaction's. `lineage` is the lineage imported into.
 pub fn run_of(
     report: &ImportReport,
-    lineage: ew_derive::ew_ids::Id<ew_schema::ImportLineage>,
+    lineage: ew_ids::Id<ew_schema::ImportLineage>,
     mode: ImportMode,
     as_of: Option<ew_schema::Date>,
 ) -> ew_schema::ImportRun {
@@ -555,7 +555,7 @@ pub fn run_of(
                 .iter()
                 .map(|t| RunTarget {
                     kind: t.kind.name().to_owned(),
-                    id: ew_derive::ew_ids::Id::from_uuid(t.id),
+                    id: ew_ids::Id::from_uuid(t.id),
                     extra: Default::default(),
                 })
                 .collect(),
@@ -570,7 +570,7 @@ pub fn run_of(
         .collect();
     let s = &report.stats;
     ew_schema::ImportRun {
-        id: ew_derive::ew_ids::Id::from_uuid(ew_derive::ew_ids::Uuid::nil()),
+        id: ew_ids::Id::from_uuid(ew_ids::Uuid::nil()),
         v: 1,
         lineage,
         importer: ew_mltext::Ident::from_input(&report.importer)
@@ -663,7 +663,7 @@ pub fn apply_command(
     // within the loader's line limit (D6, R2).
     let line = serde_json::to_string(&Record::ImportRun(run.clone())).map_or(0, |l| l.len());
     if line.saturating_add(batch.records.len().saturating_mul(140))
-        > ew_store::ew_format::Limits::default().max_line_bytes
+        > ew_format::Limits::default().max_line_bytes
     {
         return Err(ApplyError::TooLarge {
             file: batch.report.source.name.clone(),
@@ -813,7 +813,7 @@ fn qet_batch(
 #[derive(Clone, Debug)]
 pub struct QetLineages {
     /// The project's ID: a re-imported batch carries it, so that the project keeps its own record.
-    project: ew_derive::ew_ids::Id<ew_schema::Project>,
+    project: ew_ids::Id<ew_schema::Project>,
     /// Every lineage of the project, with the source keys of the records that name it.
     lineages: Vec<(ew_schema::ImportLineage, std::collections::BTreeSet<String>)>,
 }
@@ -1318,7 +1318,7 @@ pub fn parse_parts_tables(
         ew_import_tables::parse_parts_tables(
             unmarked(parts_csv),
             siblings,
-            ew_derive::ew_ids::Id::from_uuid(project.as_uuid()),
+            ew_ids::Id::from_uuid(project.as_uuid()),
             source,
             &fndefs,
         )

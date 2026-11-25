@@ -14,8 +14,8 @@
 //! Choosing a bus fills the cores as the bus has them ([`bus_cores`]: PROFIBUS A green and B red with a shield, an
 //! Ethernet cable's four or eight cores by pair, …) in the own marking; a bus cable's cores need no cross-section.
 
-use ew_derive::ew_units::Dec3;
 use ew_schema::{BusSection, CableCore};
+use ew_units::Dec3;
 use serde_json::{Value, json};
 
 use crate::Session;

@@ -7,9 +7,9 @@
 
 use std::collections::BTreeMap;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{Device, Kind};
 use ew_derive::{Q, process_tag_scheme};
+use ew_ids::Id;
+use ew_schema::{Device, Kind};
 
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
@@ -84,9 +84,7 @@ impl Rule for ProcessTag {
                 .iter()
                 .map(|d| full_tag(q, *d, text!("word-a-device")))
                 .collect();
-            names.sort_by(|a, b| {
-                ew_derive::ew_mltext::natural_cmp(a, b).then_with(|| a.english().cmp(b.english()))
-            });
+            names.sort_by(|a, b| ew_mltext::natural_cmp(a, b).then_with(|| a.english().cmp(b.english())));
             let list = listed(names.clone());
             out.push(
                 Finding::new(

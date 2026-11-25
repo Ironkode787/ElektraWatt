@@ -14,9 +14,9 @@
 use std::fmt;
 use std::sync::Arc;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{ReportBlock, ReportKind, ReportSource};
 use ew_derive::{BomMode, Q};
+use ew_ids::Id;
+use ew_schema::{ReportBlock, ReportKind, ReportSource};
 
 use crate::csv::rows_csv;
 use crate::kinds::PartsSummary;

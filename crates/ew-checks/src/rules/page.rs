@@ -14,18 +14,18 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::natural_cmp;
-use ew_derive::ew_schema::{
-    AnyId, Connection, Device, EffectiveStyle, Function, GraphicShape, Junction, Kind, Page, PageItem,
-    PageItemKind, Primitive, ReportBlock, ReportKind, ReportSource, Representation, StructureBox, SymbolDef,
-    TextSlot,
-};
-use ew_derive::ew_units::Pt2;
 use ew_derive::{
     CpRef, FunctionCps, Origin, PageOrder, PageRef, Q, box_caption, connection_marker, cp_label, cp_point,
     folio_label, free_text, group_marker, live_connections, text_styles,
 };
+use ew_ids::Id;
+use ew_mltext::natural_cmp;
+use ew_schema::{
+    AnyId, Connection, Device, EffectiveStyle, Function, GraphicShape, Junction, Kind, Page, PageItem,
+    PageItemKind, Primitive, ReportBlock, ReportKind, ReportSource, Representation, StructureBox, SymbolDef,
+    TextSlot,
+};
+use ew_units::Pt2;
 
 use crate::engine::touched_ids;
 use crate::finding::{Finding, QuickFix, Severity, Target};
@@ -472,7 +472,7 @@ impl Rule for TextBelowMinimum {
         if *scope != Scope::Project {
             return Vec::new();
         }
-        use ew_derive::ew_schema::{MIN_CAP_HEIGHT, cap_height, em_for_cap, text_style_entry};
+        use ew_schema::{MIN_CAP_HEIGHT, cap_height, em_for_cap, text_style_entry};
         let table = text_styles(q);
         let small: Vec<&EffectiveStyle> = table
             .iter()
@@ -539,7 +539,7 @@ fn printed_style<'a>(table: &[EffectiveStyle], key: Option<&'a str>) -> &'a str 
 fn slot_style<'a>(table: &[EffectiveStyle], def: &SymbolDef, slot: &'a TextSlot) -> &'a str {
     match slot.style.as_ref().map(|s| s.as_str()) {
         Some(k) if is_style(table, k) => k,
-        _ => ew_derive::ew_schema::slot_default_style(def, &slot.kind),
+        _ => ew_schema::slot_default_style(def, &slot.kind),
     }
 }
 

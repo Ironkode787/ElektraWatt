@@ -16,8 +16,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use common::{options, project_files};
-use ew_store::ew_format::ew_schema::{FORMAT, Kind, LibDocument, Project, Record, Sha256};
-use ew_store::ew_format::{
+use ew_schema::{FORMAT, Kind, LibDocument, Project, Record, Sha256};
+use ew_format::{
     Access as FormatAccess, FileHash, FilePath, FormatStep, KindStep, Limits, MANIFEST, Manifest,
     MigrationError, Migrations, sha256,
 };
@@ -108,7 +108,7 @@ fn project() -> Project {
 
 /// The current-format project: the project record and one library copy.
 fn current_files() -> BTreeMap<String, Vec<u8>> {
-    ew_store::ew_format::project_files(&project(), &[], &[fndef()], 1, "test")
+    ew_format::project_files(&project(), &[], &[fndef()], 1, "test")
         .unwrap()
         .into_iter()
         .map(|(path, bytes)| (path.as_str().to_owned(), bytes))
@@ -230,7 +230,7 @@ fn the_first_save_needs_the_consent_and_then_converts_the_project() {
     assert_eq!(store.migrated_from(), None);
     let after = project_files(&vfs, &root);
     assert_eq!(after["project.jsonl"], format!("{PROJECT}\n").into_bytes());
-    let lib = ew_store::ew_format::lib_file(&fndef()).unwrap();
+    let lib = ew_format::lib_file(&fndef()).unwrap();
     assert_eq!(
         after[lib.as_str()],
         before[lib.as_str()],

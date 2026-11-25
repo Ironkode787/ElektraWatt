@@ -12,10 +12,10 @@ use crate::common;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_ids::v5;
-use ew_derive::ew_mltext::MlText;
-use ew_derive::ew_schema::{ReportBlock, ReportKind, ReportSource};
+use ew_ids::Id;
+use ew_ids::v5;
+use ew_mltext::MlText;
+use ew_schema::{ReportBlock, ReportKind, ReportSource};
 use ew_derive::{
     BomMode, BomRows, DeriveNote, DrawnPageOrder, GeneratedPage, Origin, PageOrder, PageOrderV, PageRef,
     PageRefStructure, PageTitle, Q, RecordingTracker, ReportPagesProvider, TbValue, TitleBlockValues,

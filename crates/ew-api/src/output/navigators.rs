@@ -26,17 +26,17 @@
 
 use std::collections::BTreeMap;
 
-use ew_derive::ew_ids::Id;
+use ew_derive::{PageOrder, PageRef, Q, RepAnchorCell};
+use ew_ids::Id;
 /// The record IDs of the tables, re-exported so that the view model names them without naming `ew-ids`.
-pub use ew_derive::ew_ids::Uuid;
+pub use ew_ids::Uuid;
 /// The naming schemes of derived IDs, re-exported so that the view model mints a draft's item IDs without naming
 /// `ew-ids`.
-pub use ew_derive::ew_ids::v5;
+pub use ew_ids::v5;
 /// The natural sort key of a label or cell text, re-exported so that the view model sorts without naming `ew-mltext`.
-pub use ew_derive::ew_mltext::NaturalKey;
-use ew_derive::ew_mltext::{natural_key, to_nfc};
-use ew_derive::ew_schema::{Device, DeviceState, FnRole, Page, Representation};
-use ew_derive::{PageOrder, PageRef, Q, RepAnchorCell};
+pub use ew_mltext::NaturalKey;
+use ew_mltext::{natural_key, to_nfc};
+use ew_schema::{Device, DeviceState, FnRole, Page, Representation};
 
 use crate::Session;
 
@@ -744,7 +744,7 @@ fn drawn_as_members(
     if dev.aspects.cable.is_some() {
         let cores: std::collections::BTreeSet<_> = q.idx().conductors_of_cable(dev.id).collect();
         let wires = q.connections().iter().filter_map(|(id, c)| match c.kind {
-            ew_derive::ew_schema::ConnectionKind::Core(k) if cores.contains(&k) => Some(id),
+            ew_schema::ConnectionKind::Core(k) if cores.contains(&k) => Some(id),
             _ => None,
         });
         return sorted(wires.filter_map(|c| connection_drawable(q, folios, c)).collect());
@@ -765,9 +765,9 @@ fn drawn_as_members(
 fn connection_drawable(
     q: &Q,
     folios: &BTreeMap<Id<Page>, (usize, String, Uuid)>,
-    c: Id<ew_derive::ew_schema::Connection>,
+    c: Id<ew_schema::Connection>,
 ) -> Option<Keyed> {
-    use ew_derive::ew_schema::Endpoint;
+    use ew_schema::Endpoint;
     let con = q.connections().get(c)?;
     let page = con.page?;
     let (pos, folio, page_uuid) = folios.get(&page)?.clone();
@@ -794,7 +794,7 @@ fn connection_drawable(
 fn connection_drawables(
     q: &Q,
     folios: &BTreeMap<Id<Page>, (usize, String, Uuid)>,
-    cs: &[Id<ew_derive::ew_schema::Connection>],
+    cs: &[Id<ew_schema::Connection>],
 ) -> Vec<Drawable> {
     sorted(
         cs.iter()
@@ -918,8 +918,8 @@ mod tests {
     fn function_kinds_read_in_plain_words() {
         let def = |key: &str| {
             let item = ew_library::starter::item(key).expect(key);
-            match ew_derive::ew_schema::LibDocument::from_json(item.json).expect(key) {
-                ew_derive::ew_schema::LibDocument::Fndef(c) => c.item,
+            match ew_schema::LibDocument::from_json(item.json).expect(key) {
+                ew_schema::LibDocument::Fndef(c) => c.item,
                 _ => panic!("{key} is no FnDef"),
             }
         };

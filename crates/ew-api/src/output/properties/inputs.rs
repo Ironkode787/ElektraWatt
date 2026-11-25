@@ -6,7 +6,7 @@
 //!
 //! Not here: a bus port's address (`bus_rows.rs`); the field types' own parsers (`output/fields.rs`).
 
-use ew_derive::ew_ids::Id;
+use ew_ids::Id;
 use serde_json::Value;
 
 use super::bus_rows::bus_address_input;
@@ -137,7 +137,7 @@ impl Session {
                 if q.functions().get(Id::from_uuid(id)).is_some() {
                     return plain(Value::String(id.to_string()));
                 }
-                let device: Id<ew_derive::ew_schema::Device> = Id::from_uuid(id);
+                let device: Id<ew_schema::Device> = Id::from_uuid(id);
                 match q
                     .devices()
                     .get(device)
@@ -181,8 +181,8 @@ pub(crate) fn plc_slot_input(t: &str) -> Result<ParsedInput, InputError> {
 /// is a manual length, `missing` (or `length missing`, the cable overview's text) none, `from part` the part's.
 /// `None` for anything else (a JSON value, the field's own form, parsed as before).
 fn cable_length_input(text: &str) -> Option<Result<ParsedInput, InputError>> {
-    use ew_derive::ew_schema::LengthSource;
-    use ew_derive::ew_units::Nm;
+    use ew_schema::LengthSource;
+    use ew_units::Nm;
     let t = text.trim();
     let plain = |source: LengthSource| {
         Some(

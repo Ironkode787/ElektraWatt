@@ -14,7 +14,7 @@ use ew_api::catalog::{CatalogError, ImportInput};
 use ew_api::eplan::{self, FndefMap};
 use ew_api::library::{LibraryTiers, Registry};
 use ew_api::{Session, SessionOptions};
-use ew_derive::ew_ids::{Id, Uuid};
+use ew_ids::{Id, Uuid};
 use ew_schema::starter;
 use ew_schema::{LibDocument, LibRef};
 use serde_json::json;
@@ -34,7 +34,7 @@ fn fixture(name: &str) -> ImportInput {
 /// A library copy of `doc` with its hash.
 fn copy(mut doc: serde_json::Value) -> LibDocument {
     let hash =
-        ew_store::ew_format::library_copy_hash(&LibDocument::from_value(doc.clone()).unwrap()).unwrap();
+        ew_format::library_copy_hash(&LibDocument::from_value(doc.clone()).unwrap()).unwrap();
     doc["sha256"] = json!(ew_schema::Sha256(hash).to_string());
     LibDocument::from_value(doc).unwrap()
 }

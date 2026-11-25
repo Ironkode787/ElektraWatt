@@ -4,13 +4,13 @@
 //! The pagination geometry of report forms: data-area capacity and row heights per row kind (doc 09 §2.5,
 //! §3.2), the set's own frame a new list starts on and the frame a list's pages print on (§3.8).
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{
+use ew_derive::{DeriveNote, DrawnPageOrder, FrameSettings, PageRef, Q, frame_form_of};
+use ew_ids::Id;
+use ew_schema::{
     DataArea, FormDef, HOUSE_ROW_HEIGHT, HOUSE_ROWS_PER_PAGE, ListArea, PageType, ReportBlock, RowTemplate,
     WrapPolicy,
 };
-use ew_derive::ew_units::Nm;
-use ew_derive::{DeriveNote, DrawnPageOrder, FrameSettings, PageRef, Q, frame_form_of};
+use ew_units::Nm;
 
 use crate::rowset::RowKind;
 
@@ -302,7 +302,7 @@ pub fn list_frame(q: &Q, form: Id<FormDef>) -> Id<FormDef> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ew_derive::ew_ids::Uuid;
+    use ew_ids::Uuid;
 
     /// The set's frame is the one most pages print on; of two as often, the one the first page prints on.
     #[test]

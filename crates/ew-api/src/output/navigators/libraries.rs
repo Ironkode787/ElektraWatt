@@ -19,8 +19,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use ew_derive::Q;
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_mltext::MlText;
+use ew_ids::{Id, Uuid};
+use ew_mltext::MlText;
 use ew_schema::{
     Device, FormDef, FormKind, Kind, LibCopy, LibDocument, LibRef, MacroDef, MacroKind, Representation,
     Sha256,
@@ -253,7 +253,7 @@ pub(crate) fn frame_forms(q: &Q) -> Vec<(Uuid, crate::Text)> {
             Some((id.as_uuid(), name, english))
         })
         .collect();
-    forms.sort_by(|a, b| ew_derive::ew_mltext::natural_cmp(&a.2, &b.2).then_with(|| a.0.cmp(&b.0)));
+    forms.sort_by(|a, b| ew_mltext::natural_cmp(&a.2, &b.2).then_with(|| a.0.cmp(&b.0)));
     let mut seen: BTreeMap<String, usize> = BTreeMap::new();
     forms
         .into_iter()
@@ -627,7 +627,7 @@ impl Session {
             at: (detail.kind == "Window").then(|| ew_units::Pt2::new(corner, corner)),
             orient: ew_units::Orient2::R0,
         };
-        let instance = ew_derive::ew_ids::v5::macro_thumbnail_instance_id(detail.copy);
+        let instance = ew_ids::v5::macro_thumbnail_instance_id(detail.copy);
         let cmd = self
             .insert_macro(&reference, &at, &crate::MacroValues::default(), instance)
             .ok()?;
@@ -732,9 +732,9 @@ impl Session {
         let table = q.table::<ew_schema::MacroInstance>();
         let held: BTreeSet<Uuid> = table.iter().map(|(id, _)| id.as_uuid()).collect();
         (held.len()..)
-            .map(|n| ew_derive::ew_ids::v5::macro_instance_id(copy, Some(n)))
+            .map(|n| ew_ids::v5::macro_instance_id(copy, Some(n)))
             .find(|id| !held.contains(id))
-            .unwrap_or_else(|| ew_derive::ew_ids::v5::macro_instance_id(copy, None))
+            .unwrap_or_else(|| ew_ids::v5::macro_instance_id(copy, None))
     }
 
     /// Macros: tier → macro of every installed library, then "In this project" → the macro copies the

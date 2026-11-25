@@ -8,7 +8,7 @@
 
 use std::collections::BTreeMap;
 
-use ew_format::ew_schema::Record;
+use ew_schema::Record;
 use ew_format::{
     FilePath, FindingKind, Limits, RecordAnchors, load, project_files, record_file, record_line,
 };

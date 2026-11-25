@@ -11,11 +11,9 @@
 
 use std::cmp::Ordering;
 
-use ew_derive::ew_ids::{Id, Uuid, v5};
-use ew_derive::ew_schema::{
-    ContactKind, Device, FnDef, FnRole, Function, FunctionKind, LibRef, Representation,
-};
 use ew_derive::{FunctionCps, PageOrder, PageRef, Q, RepAnchorCell, short_tag};
+use ew_ids::{Id, Uuid, v5};
+use ew_schema::{ContactKind, Device, FnDef, FnRole, Function, FunctionKind, LibRef, Representation};
 
 use crate::Session;
 

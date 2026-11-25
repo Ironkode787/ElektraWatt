@@ -19,8 +19,8 @@ use common::{
     apply, device_copy, fixture, mem_project, mem_project_of, options, project_files, reopen, small_fixture,
 };
 use ew_model::{AnyRow, Op};
-use ew_store::ew_format::ew_schema::Device;
-use ew_store::ew_format::{FilePath, FindingKind, Limits};
+use ew_schema::Device;
+use ew_format::{FilePath, FindingKind, Limits};
 use ew_store::mem::{DirSync, Fault, MemVfs};
 use ew_store::{Access, BrokenLine, Changes, Opened, ReadOnlyReason, SaveError, Store, StoreOptions, join};
 
@@ -464,8 +464,8 @@ fn a_damaged_copy_a_device_names_opens_read_only_with_its_finding() {
         "{:?}",
         report.findings
     );
-    let id = ew_store::ew_format::ew_schema::AnyId::from_uuid(copy.parse().unwrap());
-    let key = (ew_store::ew_format::ew_schema::Kind::Part, id);
+    let id = ew_schema::AnyId::from_uuid(copy.parse().unwrap());
+    let key = (ew_schema::Kind::Part, id);
     assert!(!model.contains(&key), "the damaged copy is not loaded");
     assert!(
         model.integrity_check().is_err(),
@@ -496,7 +496,7 @@ fn a_damaged_copy_a_device_names_opens_read_only_with_its_finding() {
 #[test]
 fn a_damaged_definition_copy_whose_functions_end_fluid_lines_opens_read_only() {
     use ew_model::{ModelError, REFS_RESOLVE};
-    use ew_store::ew_format::ew_schema::{AnyId, Kind};
+    use ew_schema::{AnyId, Kind};
     let files = fixture();
     let damaged = files
         .iter()
@@ -580,7 +580,7 @@ fn damaged_part_copy() -> (Arc<MemVfs>, PathBuf, String) {
 
 /// `model` with the part copy of `path` as the sample holds it (a library's document of it), and its key.
 fn with_copy(model: &ew_model::Model, path: &str) -> (ew_model::Model, BTreeSet<ew_model::AnyKey>) {
-    use ew_store::ew_format::ew_schema::LibDocument;
+    use ew_schema::LibDocument;
     let LibDocument::Part(copy) = serde_json::from_slice(&fixture()[path]).expect("the sample's copy reads")
     else {
         panic!("{path} holds a part");

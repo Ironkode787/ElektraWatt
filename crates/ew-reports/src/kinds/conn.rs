@@ -13,18 +13,18 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
-use ew_derive::ew_schema::{
-    BridgeKind, ClampKey, ColourSpec, Connection, Csa, Device, DeviceState, Function, FunctionKind, Page,
-    Unit,
-};
 use ew_derive::{
     BridgeGroup, CpRef, DeviceTag, EffectiveProps, EndKind, FunctionCps, PageRef, Partition, PhysicalWire,
     PhysicalWiresOf, PotentialId, PotentialNameOf, PotentialNames, PotentialPartition, PropSource, Q,
     StripBridges, WireEnd, WirePropsOf, level_short_tag, orient_wire, short_tag,
 };
+use ew_ids::Id;
 use ew_l10n::Text;
+use ew_mltext::{MlText, NaturalKey, natural_key};
+use ew_schema::{
+    BridgeKind, ClampKey, ColourSpec, Connection, Csa, Device, DeviceState, Function, FunctionKind, Page,
+    Unit,
+};
 
 use crate::rowset::{Cell, ColumnDef, QtyUnit};
 

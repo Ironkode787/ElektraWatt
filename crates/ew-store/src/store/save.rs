@@ -34,7 +34,7 @@ impl Store {
         // Records of reserved or unknown kinds without a source file: placed by their rule.
         for record in model.unknown_records() {
             let Some(file) = unknown_record_file(match record {
-                ew_format::ew_schema::Record::Unknown(v) => v,
+                ew_schema::Record::Unknown(v) => v,
                 _ => continue,
             }) else {
                 return Err(OpenError::Format(format!(

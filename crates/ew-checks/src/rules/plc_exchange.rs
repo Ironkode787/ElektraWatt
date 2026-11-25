@@ -5,8 +5,8 @@
 //! exchange drift (FR-PLC-035), and EW-PRC-002, an instrument-list tag without device or channel (FR-PLC-050).
 
 use ew_derive::Q;
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{
+use ew_ids::Id;
+use ew_schema::{
     Channel, Device, ExchangeDirection, ExchangeFormat, ExchangeObject, ExchangeRecord, Kind,
     PlcConfigProject,
 };

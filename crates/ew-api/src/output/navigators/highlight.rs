@@ -5,7 +5,7 @@
 //!
 //! Not here: the media's zones it reads (`fluid.rs`).
 
-use ew_derive::ew_ids::{Id, Uuid};
+use ew_ids::{Id, Uuid};
 
 use super::fluid::medium_lines;
 use crate::Session;
@@ -27,9 +27,9 @@ impl Session {
     /// connections of its page-local net (the connection alone when it joins no net, a bridge). Empty for an unknown
     /// ID. Reads memoised queries only.
     pub fn highlight_members(&self, target: &HighlightTarget) -> Vec<Uuid> {
-        use ew_derive::ew_schema::Connection;
         use ew_derive::{PageLocalNets, PotentialId, PotentialPartition};
         use ew_model::EndpointKey;
+        use ew_schema::Connection;
         let q = self.query();
         let mut out: Vec<Uuid> = match target {
             HighlightTarget::Potential(u) => {

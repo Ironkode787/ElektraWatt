@@ -7,8 +7,8 @@
 //! are `ew-api`'s `tests/golden_layout_bom.rs`.
 
 use ew_derive::Q;
-use ew_derive::ew_ids::Uuid;
-use ew_derive::ew_schema::{LibDocument, Project, Record, ReportBlock, ReportKind};
+use ew_ids::Uuid;
+use ew_schema::{LibDocument, Project, Record, ReportBlock, ReportKind};
 use ew_model::Model;
 use ew_reports::{Cell, MissingReason, Registry, RowKey, RowSet};
 use serde_json::{Value, json};
@@ -194,7 +194,7 @@ fn a_block_that_names_no_page_lists_every_viewed_plate_after_its_heading() {
     assert_eq!(heading.kind, ew_reports::RowKind::Heading);
     assert_eq!(
         heading.sources,
-        vec![ew_derive::ew_schema::AnyId::from_uuid(Uuid::from_u128(PANEL))]
+        vec![ew_schema::AnyId::from_uuid(Uuid::from_u128(PANEL))]
     );
     assert_eq!(rest, panel.rows.as_slice());
 }

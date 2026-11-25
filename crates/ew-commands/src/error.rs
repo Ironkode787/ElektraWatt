@@ -436,7 +436,7 @@ pub fn ident_error_text(e: &ew_mltext::TextError) -> Text {
 /// the profile not at hand, else the text with the profile's example. Its English is the text of
 /// `ew_derive::parse_plc_address` and `ew_derive::parse_plc_start`.
 pub(crate) fn plc_text_refusal(
-    at_hand: &[std::sync::Arc<ew_derive::ew_plcaddr::AddressProfile>],
+    at_hand: &[std::sync::Arc<ew_plcaddr::AddressProfile>],
     profile: &str,
     typed: &str,
     start: bool,
@@ -449,7 +449,7 @@ pub(crate) fn plc_text_refusal(
             "refusal-plc-start-text",
             typed,
             profile,
-            ew_derive::start_example(&p, ew_derive::ew_plcaddr::Area::Q)
+            ew_derive::start_example(&p, ew_plcaddr::Area::Q)
         ),
         Some(p) => text!("refusal-plc-address-text", typed, profile, p.example()),
     }

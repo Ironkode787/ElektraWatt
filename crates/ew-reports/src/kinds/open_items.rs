@@ -4,9 +4,9 @@
 //! `open_items`: the open-items list (FR-REP-021).
 
 use ew_checks::{Finding, OPEN_ITEM_RULES, OpenItemRule, Severity, open_item_of, open_items};
-use ew_derive::ew_mltext::{NaturalKey, natural_key};
-use ew_derive::ew_schema::{Kind, ReportBlock, ReportKind};
 use ew_derive::{PageRef, Q};
+use ew_mltext::{NaturalKey, natural_key};
+use ew_schema::{Kind, ReportBlock, ReportKind};
 
 use super::conn::{put, text_cell, words_cell};
 use crate::kind::ReportKindDef;

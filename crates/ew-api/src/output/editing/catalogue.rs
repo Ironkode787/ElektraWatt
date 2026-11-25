@@ -10,15 +10,15 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, OnceLock};
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_rds::IdentifierSet;
-use ew_derive::ew_schema::{
+use ew_derive::{DisplayedTag, PageOrder, PageRef, Q, short_tag};
+use ew_ids::{Id, Uuid};
+use ew_library::starter;
+use ew_library::starter::StarterKind;
+use ew_rds::IdentifierSet;
+use ew_schema::{
     ConnectionKind, ContactKind, Device, FnDef, IpDirection, LibCopy, LibDocument, LibRef, LineKind, Page,
     PageType, Part, PartKind, RepType, SymbolDef,
 };
-use ew_derive::{DisplayedTag, PageOrder, PageRef, Q, short_tag};
-use ew_library::starter;
-use ew_library::starter::StarterKind;
 
 use crate::Session;
 use crate::output::join::fndef_copy;
@@ -82,7 +82,7 @@ pub struct CatalogueSymbol {
     /// when the symbol has no name. A window shows [`CatalogueSymbol::name_text`] in its own language.
     pub name: String,
     /// The symbol's name in every language it has.
-    pub name_text: ew_derive::ew_mltext::MlText,
+    pub name_text: ew_mltext::MlText,
     /// How the symbol gets onto a page.
     pub placed_by: PlacedBy,
     /// The first level of its FnDef's category (`ProtectionOvercurrent`, the browser's tree node); empty when the
@@ -212,7 +212,7 @@ pub enum PlcGroup {
 /// one that maps solenoids to valve positions, `compact` one with I/O of its own; a part may be more than one of them.
 /// Empty for a part that is no station's head.
 pub(crate) fn station_kinds(part: &Part) -> Vec<&'static str> {
-    use ew_derive::ew_schema::{PlcRole, PortRole};
+    use ew_schema::{PlcRole, PortRole};
     let Some(plc) = part.sections.plc.as_ref().filter(|s| s.role == PlcRole::Station) else {
         return Vec::new();
     };
@@ -239,7 +239,7 @@ pub(crate) fn station_kinds(part: &Part) -> Vec<&'static str> {
 
 /// What `part` is to a PLC ([`CataloguePart::plc`]).
 pub(crate) fn catalogue_plc(part: &Part) -> Option<CataloguePlc> {
-    use ew_derive::ew_schema::ChannelKind;
+    use ew_schema::ChannelKind;
     let plc = part.sections.plc.as_ref()?;
     let heads = station_kinds(part);
     let group = if heads.contains(&"valve_terminal") {
@@ -443,7 +443,7 @@ pub fn part_interfaces(part: &Part) -> Vec<CatalogueInterface> {
 /// address names the symbol before and after its first placement.
 pub fn address_copy(address: &str) -> Option<Uuid> {
     let (library, item) = address.strip_prefix("library:")?.split_once(':')?;
-    let id: Id<SymbolDef> = ew_derive::ew_ids::v5::lib_copy_id(library.parse().ok()?, item.parse().ok()?);
+    let id: Id<SymbolDef> = ew_ids::v5::lib_copy_id(library.parse().ok()?, item.parse().ok()?);
     Some(id.as_uuid())
 }
 
@@ -461,7 +461,7 @@ pub(super) fn starter_symbol(key: &str) -> Option<&'static LibCopy<SymbolDef>> {
 pub(super) fn box_symbol(
     q: &Q,
     def: Id<FnDef>,
-    grid: Option<ew_derive::ew_units::Grid>,
+    grid: Option<ew_units::Grid>,
 ) -> Option<(LibCopy<SymbolDef>, bool)> {
     let draws = |s: &SymbolDef| {
         s.rep_type == RepType::Fluid && grid.is_none_or(|g| s.grid == g) && fndef_copy(&s.fndef) == def
@@ -517,7 +517,7 @@ fn ref_key(r: &LibRef) -> String {
 }
 
 /// An item key, else the copy's UUID text.
-pub(super) fn key_or_id(key: Option<&ew_derive::ew_mltext::Ident>, id: Uuid) -> String {
+pub(super) fn key_or_id(key: Option<&ew_mltext::Ident>, id: Uuid) -> String {
     key.map_or_else(|| id.to_string(), |k| k.as_str().to_owned())
 }
 
@@ -539,7 +539,7 @@ fn entry_sockets(part: &Part, def: &FnDef) -> Option<u16> {
     }
     let ports = &part.sections.bus.as_ref()?.ports;
     let words = serde_json::to_value(&def.category).unwrap_or_default();
-    let filed = |p: &&ew_derive::ew_schema::PartBusPort| {
+    let filed = |p: &&ew_schema::PartBusPort| {
         let name = serde_json::to_value(&p.bus)
             .ok()
             .and_then(|v| v.as_str().map(str::to_owned))
@@ -774,7 +774,7 @@ fn rating_text(part: &Part) -> String {
 }
 
 /// Every text of `m`: the neutral one, else each language's.
-fn ml_texts(m: &ew_derive::ew_mltext::MlText) -> Vec<String> {
+fn ml_texts(m: &ew_mltext::MlText) -> Vec<String> {
     match m.as_neutral() {
         Some(t) => vec![t.to_owned()],
         None => m

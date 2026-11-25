@@ -12,7 +12,7 @@ use std::collections::BTreeSet;
 
 use ew_commands::commands::{AssignModeParam, AssignPart, AssignPlaceholder};
 use ew_derive::Q;
-use ew_derive::ew_ids::{Id, Uuid, v5};
+use ew_ids::{Id, Uuid, v5};
 use ew_import_catalog::ew_interop_api::pn_norm;
 use ew_schema::{Device, FnDef, ItemStatus, LibDocument, LibRef, Part, PartKind};
 use ew_units::Dec3;
@@ -424,7 +424,7 @@ impl Session {
         let query = self.query();
         let project = query.project().id.as_uuid();
         let compat = q.function.and_then(|f| self.function_compat(&query, f));
-        let lang: Option<ew_derive::ew_mltext::LangTag> = q.lang.as_deref().and_then(|l| l.parse().ok());
+        let lang: Option<ew_mltext::LangTag> = q.lang.as_deref().and_then(|l| l.parse().ok());
         let libs = self.libraries().libraries();
         let lib_of = |id: Uuid| {
             libs.iter()

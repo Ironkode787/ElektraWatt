@@ -48,10 +48,10 @@ use std::fmt;
 use ew_commands::Cost;
 use serde_json::{Map, Value};
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{Channel, Device, Function};
 use ew_derive::{ChannelTexts, DeviceTag, FunctionCps, ModuleChannelIds, PageOrder, PageRef, Q};
+use ew_ids::Id;
 use ew_schema::AnyId;
+use ew_schema::{Channel, Device, Function};
 
 use crate::{AnyCommand, CmdError, DerivedDiff, ModelDiff, Origin, Receipt, Session, Submit, World};
 
@@ -387,7 +387,7 @@ impl Session {
     /// # Errors
     ///
     /// The reason the reference names no record, or more than one, by key (its English the command log's message).
-    pub fn resolve_reference(&self, text: &str) -> Result<ew_derive::ew_ids::Uuid, crate::Text> {
+    pub fn resolve_reference(&self, text: &str) -> Result<ew_ids::Uuid, crate::Text> {
         self.reference_target(text).map(|id| id.as_uuid())
     }
 
@@ -685,5 +685,5 @@ fn candidates(items: impl Iterator<Item = String>) -> String {
 
 /// Whether `text` is a UUID (the ID form of a parameter).
 fn is_uuid(text: &str) -> bool {
-    ew_derive::ew_ids::Uuid::parse_str(text.trim()).is_ok()
+    ew_ids::Uuid::parse_str(text.trim()).is_ok()
 }

@@ -12,9 +12,9 @@
 
 use std::sync::OnceLock;
 
-use ew_derive::ew_mltext::{LangTag, MlText};
 use ew_l10n::Text;
 use ew_l10n::render::{DEFAULT_LANGUAGE, Language, OnError, language_for};
+use ew_mltext::{LangTag, MlText};
 
 /// Every language of this crate's text files with its bundle, in the order of the folder.
 fn languages() -> &'static [(&'static str, Language)] {
@@ -66,7 +66,7 @@ mod tests {
     #[test]
     fn every_entry_is_nfc() {
         for (tag, source) in crate::SOURCES {
-            assert!(ew_derive::ew_mltext::is_nfc(source), "{tag}");
+            assert!(ew_mltext::is_nfc(source), "{tag}");
         }
     }
 }

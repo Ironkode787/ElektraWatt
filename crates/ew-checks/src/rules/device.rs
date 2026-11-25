@@ -11,13 +11,13 @@
 
 use std::collections::BTreeMap;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::natural_cmp;
-use ew_derive::ew_schema::{
-    AddrSpec, AddrValue, BomBasis, Channel, ContactKind, Device, FormDef, Function, Kind, LibCopy, Page, Part,
-};
 use ew_derive::{
     ChannelsByModule, DevicePartLines, FrameSettings, LineSource, Q, folio_label, manufacturer_name,
+};
+use ew_ids::Id;
+use ew_mltext::natural_cmp;
+use ew_schema::{
+    AddrSpec, AddrValue, BomBasis, Channel, ContactKind, Device, FormDef, Function, Kind, LibCopy, Page, Part,
 };
 
 use crate::finding::{Finding, Severity, Target};
@@ -396,7 +396,7 @@ impl Rule for OpenTbdValue {
             }
         }
         let channels = q.get::<ChannelsByModule>(());
-        let table = q.table::<ew_derive::ew_schema::Channel>();
+        let table = q.table::<ew_schema::Channel>();
         for (number, id) in channels.of_module(device) {
             if table.get(id).is_some_and(|c| c.address == AddrSpec::Tbd) {
                 out.push(

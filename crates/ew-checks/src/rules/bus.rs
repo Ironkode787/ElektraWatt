@@ -7,12 +7,12 @@
 
 use std::collections::BTreeMap;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{
+use ew_derive::{BusSegments, DeviceTag, NetMembersOf, Q, SegmentMember, external_partner_text};
+use ew_ids::Id;
+use ew_schema::{
     AddrValue, BusPort, BusSystem, ConnectionKind, Endpoint, Function, FunctionKind, Kind, NetAddress, OnOff,
     PortRole,
 };
-use ew_derive::{BusSegments, DeviceTag, NetMembersOf, Q, SegmentMember, external_partner_text};
 
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
@@ -111,7 +111,7 @@ impl Rule for BusAddress {
             return Vec::new();
         };
         let net_name = q
-            .table::<ew_derive::ew_schema::LogicalNet>()
+            .table::<ew_schema::LogicalNet>()
             .get(net)
             .map_or_else(String::new, |n| n.name.as_str().to_owned());
         let functions = q.functions();

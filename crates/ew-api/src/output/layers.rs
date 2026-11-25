@@ -28,14 +28,14 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_units::Pt2;
 use ew_derive::{DrawingSettingsQ, PageEntry, PageRef, Policy, Q, Query};
 use ew_dl::{DisplayList, Layer, SymbolGeomId};
+use ew_ids::{Id, Uuid};
 use ew_scene::forms::{PageBindings, SheetMap};
 use ew_scene::hops::Crossings;
 use ew_scene::page::{DEFAULT_SHEET, PageFinding, PageKind, PageScene, PageView, RepView, page_display_list};
 use ew_schema::PageType;
+use ew_units::Pt2;
 
 use super::panel::{Parts, panel_view};
 use super::view::{
@@ -73,7 +73,7 @@ fn base_view(page: PageRef) -> PageView {
     PageView {
         page: Id::from_uuid(page_uuid(page)),
         kind: PageKind::Schematic,
-        grid: ew_derive::ew_units::Grid::MM4,
+        grid: ew_units::Grid::MM4,
         language: None,
         frame: None,
         reps: Vec::new(),

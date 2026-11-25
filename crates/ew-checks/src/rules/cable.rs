@@ -11,15 +11,15 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::natural_cmp;
-use ew_derive::ew_schema::{
-    CableCore, ColourCode, Conductor, Connection, ConnectionKind, Device, ExternalRef, Function,
-    FunctionKind, Kind, LibCopy, Part, StructureNode,
-};
 use ew_derive::{
     CpRef, DeviceTag, EndKind, EndpointKey, IpInfoOf, Member, PhysicalWire, PhysicalWiresOf,
     PotentialPartition, Q, SettingsMember, WireNumbers, company_codes, csa_text,
+};
+use ew_ids::Id;
+use ew_mltext::natural_cmp;
+use ew_schema::{
+    CableCore, ColourCode, Conductor, Connection, ConnectionKind, Device, ExternalRef, Function,
+    FunctionKind, Kind, LibCopy, Part, StructureNode,
 };
 
 use crate::engine::touched_ids;
@@ -247,7 +247,7 @@ fn core_differences(c: &Conductor, def: &CableCore) -> Vec<(&'static str, TextAr
     if let Some(csa) = &c.csa
         && def.csa.as_ref() != Some(csa)
     {
-        let text = |x: &ew_derive::ew_schema::Csa| csa_text(x).unwrap_or_else(|| "?".to_owned());
+        let text = |x: &ew_schema::Csa| csa_text(x).unwrap_or_else(|| "?".to_owned());
         let part = def.csa.as_ref().map_or_else(none, |p| text(p).into());
         add(["csa", "sep_csa", "csa_core", "csa_part"], text(csa), part);
     }
@@ -569,7 +569,7 @@ fn twice_finding(q: &Q, id: Id<Conductor>, c: &Conductor) -> Option<Finding> {
                     q.connections()
                         .get(*w)
                         .map(|c| {
-                            let end = |e: &ew_derive::ew_schema::Endpoint| {
+                            let end = |e: &ew_schema::Endpoint| {
                                 EndpointKey::of(e).map_or_else(
                                     || TextArg::from("?"),
                                     |k| match k {

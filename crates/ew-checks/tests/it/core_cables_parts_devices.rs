@@ -10,7 +10,7 @@ use crate::common;
 use common::*;
 use ew_checks::{CheckMode, PRE_DELIVERY, Severity, prevent, run};
 use ew_derive::Q;
-use ew_derive::ew_schema::{AnyId, Kind};
+use ew_schema::{AnyId, Kind};
 use ew_model::Model;
 use serde_json::{Value, json};
 
@@ -493,7 +493,7 @@ fn module_fx(input: &str, address: &str) -> Fx {
         json!({"$k": "device", "id": us(module), "tag": {"letter": "A", "counter": 1},
         "plc_module": {"start": {"input": input}}}),
     );
-    let channel: AnyId = ew_derive::ew_ids::v5::plc_channel_id(uid(module), 0);
+    let channel: AnyId = ew_ids::v5::plc_channel_id(uid(module), 0);
     fx.push(
         json!({"$k": "channel", "id": channel.to_string(), "module": us(module), "number": 0, "kind": "di",
         "address": address}),

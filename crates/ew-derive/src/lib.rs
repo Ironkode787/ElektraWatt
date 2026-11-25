@@ -252,16 +252,3 @@ pub use xref_format::{ItemOptions, ItemValues, Rendered, XrefToken, parse_format
 
 /// The revision stamp of a snapshot (in this crate's public API through [`Recorded`]).
 pub use ew_model::Rev;
-
-// The crates whose types this crate's public API carries, re-exported; the crates above it name them through
-// here (`ew-api`, `ew-checks`, `ew-reports` and others), though each may depend on them by their own name (ARCH §3.2
-// rules 6 and 7).
-pub use {ew_ids, ew_mltext, ew_schema, ew_units};
-
-// The PLC address types of `ChannelAddr` and `AddressUse` and the address profiles, for the PLC rules of `ew-checks`
-// and the PLC commands.
-pub use ew_plcaddr;
-
-// The reference-designation types of `ResolvedStructure` (`Aspect`, `RdsSyntax`), for the crates that render a
-// structure aspect on their own (`ew-sqlview`'s `structure_function` and `structure_location` columns).
-pub use ew_rds;

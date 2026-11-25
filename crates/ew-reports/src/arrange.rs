@@ -14,11 +14,11 @@ use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
-use ew_derive::ew_schema::{AnyId, ContinuationPolicy, Date, Device, GroupSpec, ReportBlock, Set, SortKey};
-use ew_derive::ew_units::Dec3;
 use ew_derive::{DeviceTag, PageRef, Q, ResolvedStructure, SectionStructure, folio_label};
+use ew_ids::Id;
+use ew_mltext::{MlText, NaturalKey, natural_key};
+use ew_schema::{AnyId, ContinuationPolicy, Date, Device, GroupSpec, ReportBlock, Set, SortKey};
+use ew_units::Dec3;
 
 use crate::BlockPages;
 use crate::layout::PageLayout;

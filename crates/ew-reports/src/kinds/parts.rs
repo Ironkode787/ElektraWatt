@@ -6,15 +6,13 @@
 
 use std::collections::BTreeMap;
 
-use ew_derive::ew_ids::Id;
-use ew_derive::ew_mltext::NaturalKey;
-use ew_derive::ew_schema::{
-    Device, LibRef, OrderUnit, Page, Part, RepType, ReportBlock, ReportKind, Representation,
-};
-use ew_derive::ew_units::Dec3;
 use ew_derive::{
     BomMode, BomRows, DevicePartLines, PageRef, PartLine, Q, manufacturer_copy, manufacturer_name,
 };
+use ew_ids::Id;
+use ew_mltext::NaturalKey;
+use ew_schema::{Device, LibRef, OrderUnit, Page, Part, RepType, ReportBlock, ReportKind, Representation};
+use ew_units::Dec3;
 
 use super::conn::tag_key;
 use crate::kind::{ParamDef, ParamKind, ParamValue, ReportKindDef, kind_params};
@@ -295,14 +293,14 @@ pub(super) fn manufacturer_cell(q: &Q, m: &LibRef) -> Cell {
 /// so that its row reads as a placeholder, not a gap.
 pub(super) fn part_maker_cell(q: &Q, m: &LibRef, part_number: &str) -> Cell {
     match manufacturer_cell(q, m) {
-        Cell::Missing(_) if part_number == ew_derive::ew_schema::PLACEHOLDER_PART_NUMBER => Cell::Empty,
+        Cell::Missing(_) if part_number == ew_schema::PLACEHOLDER_PART_NUMBER => Cell::Empty,
         cell => cell,
     }
 }
 
 /// The part-number cell: `Tbd` when empty or a placeholder's ("TBD").
 pub(super) fn part_number_cell(part_number: &str) -> Cell {
-    if part_number.is_empty() || part_number == ew_derive::ew_schema::PLACEHOLDER_PART_NUMBER {
+    if part_number.is_empty() || part_number == ew_schema::PLACEHOLDER_PART_NUMBER {
         Cell::Tbd
     } else {
         Cell::Ident(part_number.to_owned())
@@ -321,7 +319,7 @@ pub(super) fn part_cells(q: &Q, part: &Part) -> [Cell; 3] {
 #[cfg(test)]
 mod tests {
     use ew_derive::LineSource;
-    use ew_derive::ew_ids::Uuid;
+    use ew_ids::Uuid;
 
     use super::*;
 
@@ -356,7 +354,7 @@ mod tests {
     /// enclosure legend) shows the missing cell.
     #[test]
     fn a_missing_manufacturer_prints_the_missing_cell_not_its_id() {
-        use ew_derive::ew_schema::{Project, Record};
+        use ew_schema::{Project, Record};
 
         use crate::render::{RenderOptions, render};
 

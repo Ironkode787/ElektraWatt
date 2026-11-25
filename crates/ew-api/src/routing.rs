@@ -12,8 +12,6 @@
 //! last vertex are its ends' stored points (a junction's new place where the plan moves it), and the corner next to an
 //! end takes that end's coordinate across the segment between them, so a route meets a pin that lies 1 nm off the grid.
 
-use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::ew_units::Grid;
 pub use ew_drafting::Pt;
 pub use ew_drafting::consts::TICKS_PER_STEP;
 pub use ew_drafting::{
@@ -21,8 +19,10 @@ pub use ew_drafting::{
     route as route_on,
 };
 use ew_drafting::{JunctionId, PinId, WireEnd};
+use ew_ids::{Id, Uuid};
 /// The conversion of a page between nm and the layout's ticks, which the window's tools use too.
 pub use ew_scene::ticks::Ticks;
+use ew_units::Grid;
 use serde_json::{Value, json};
 
 use crate::Session;
@@ -138,7 +138,7 @@ fn end_point(
 /// position has that position's number, `Grid::settle_point`; on a grid whose step is no whole number of nm the
 /// coordinate plus the symbol's move can lie 1 nm beside it); else the coordinate moved by `by`.
 fn moved_coordinate(grid: Grid, x: i64, k: i64, by: i64) -> i64 {
-    use ew_derive::ew_units::Nm;
+    use ew_units::Nm;
     let own = grid
         .snap_point(Nm(x))
         .filter(|p| p.0 == x)
@@ -149,7 +149,7 @@ fn moved_coordinate(grid: Grid, x: i64, k: i64, by: i64) -> i64 {
 /// The move in page nm of a representation at `pos` moved by `steps` grid steps, as `rep.move` and `layout.apply` move
 /// it: its position at its grid index plus the steps; `None` for a position off the grid.
 fn shift_of(grid: Grid, pos: (i64, i64), steps: [i64; 2]) -> Option<(i64, i64)> {
-    use ew_derive::ew_units::Nm;
+    use ew_units::Nm;
     let one = |x: i64, k: i64| {
         let at = grid.snap_point(Nm(x)).filter(|p| p.0 == x)?;
         Some(grid.at(grid.snap(at).checked_add(k)?)?.0 - x)
@@ -327,7 +327,7 @@ impl Session {
         let q = self.query();
         let items = q.page_items();
         let marker_at = |id: Uuid| match &items.get(Id::from_uuid(id))?.kind {
-            ew_derive::ew_schema::PageItemKind::WireMarker(m) => Some((m.at.x.0, m.at.y.0)),
+            ew_schema::PageItemKind::WireMarker(m) => Some((m.at.x.0, m.at.y.0)),
             _ => None,
         };
         layout_apply_params(tables, plan, moves, &marker_at)
@@ -365,10 +365,8 @@ pub enum ToolEnd {
 fn wire_end(ticks: Ticks, e: ToolEnd) -> WireEnd {
     match e {
         ToolEnd::Cp { function, idx } => {
-            let cp: Id<()> = ew_derive::ew_ids::v5::cp_id(
-                Id::<ew_derive::ew_schema::Function>::from_uuid(function),
-                u32::from(idx),
-            );
+            let cp: Id<()> =
+                ew_ids::v5::cp_id(Id::<ew_schema::Function>::from_uuid(function), u32::from(idx));
             WireEnd::Pin(PinId(cp.as_uuid()))
         }
         ToolEnd::Junction(j) => WireEnd::Junction(JunctionId(j)),

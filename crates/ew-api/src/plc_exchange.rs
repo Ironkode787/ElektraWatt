@@ -27,7 +27,7 @@ use std::fmt;
 
 use ew_checks::Rule as _;
 use ew_derive::Q;
-use ew_derive::ew_ids::Id;
+use ew_ids::Id;
 use ew_import_catalog::SourceFormat;
 use ew_import_catalog::ew_interop_api::Limits;
 use ew_import_catalog::sheet::{read_rows, sheet_names};

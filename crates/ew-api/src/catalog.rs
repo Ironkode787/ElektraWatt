@@ -215,8 +215,8 @@ pub fn manufacturer_master(reg: &library::Registry) -> Vec<LibCopy<Manufacturer>
         .into_iter()
         .filter_map(|h| {
             let r = LibRef {
-                library: ew_derive::ew_ids::Id::from_uuid(h.library),
-                item: ew_derive::ew_ids::Id::from_uuid(h.item),
+                library: ew_ids::Id::from_uuid(h.library),
+                item: ew_ids::Id::from_uuid(h.item),
                 version_req: format!("={}", h.version),
                 extra: Default::default(),
             };
@@ -229,14 +229,10 @@ pub fn manufacturer_master(reg: &library::Registry) -> Vec<LibCopy<Manufacturer>
 }
 
 /// The part `item` of `library` as the registry holds it, at any version.
-fn held_part(
-    reg: &library::Registry,
-    library: ew_derive::ew_ids::Uuid,
-    item: ew_derive::ew_ids::Uuid,
-) -> Option<LibCopy<Part>> {
+fn held_part(reg: &library::Registry, library: ew_ids::Uuid, item: ew_ids::Uuid) -> Option<LibCopy<Part>> {
     let r = LibRef {
-        library: ew_derive::ew_ids::Id::from_uuid(library),
-        item: ew_derive::ew_ids::Id::from_uuid(item),
+        library: ew_ids::Id::from_uuid(library),
+        item: ew_ids::Id::from_uuid(item),
         version_req: "*".into(),
         extra: Default::default(),
     };
@@ -273,7 +269,7 @@ pub struct LibraryImport {
 /// library that is not installed (`NotFound`), read-only, locked or stale-locked, or a write that fails.
 pub fn import_into_library(
     reg: &mut library::Registry,
-    library: ew_derive::ew_ids::Uuid,
+    library: ew_ids::Uuid,
     input: &ImportInput,
     map: &ColumnMap,
     as_of: Option<Date>,
@@ -304,7 +300,7 @@ pub type PartsReader<'a> =
 /// As [`import_into_library`].
 pub fn import_parts_into_library(
     reg: &mut library::Registry,
-    library: ew_derive::ew_ids::Uuid,
+    library: ew_ids::Uuid,
     source: (&str, u64),
     limits: &Limits,
     write: (Option<Date>, bool, bool),
@@ -321,10 +317,10 @@ pub fn import_parts_into_library(
 /// the parse ([`LibraryPart::parse`]) can run on another; the write ([`LibraryPart::write`]) is the registry's again.
 #[derive(Clone, Debug)]
 pub struct LibraryPart {
-    library: ew_derive::ew_ids::Uuid,
+    library: ew_ids::Uuid,
     master: Vec<LibCopy<Manufacturer>>,
-    shared: Vec<ew_derive::ew_ids::Uuid>,
-    held: std::collections::BTreeMap<ew_derive::ew_ids::Uuid, LibCopy<Part>>,
+    shared: Vec<ew_ids::Uuid>,
+    held: std::collections::BTreeMap<ew_ids::Uuid, LibCopy<Part>>,
 }
 
 impl LibraryPart {
@@ -333,10 +329,7 @@ impl LibraryPart {
     /// # Errors
     ///
     /// [`CatalogError::Library`] for a library that is not installed (`NotFound`) or read-only.
-    pub fn take(
-        reg: &library::Registry,
-        library: ew_derive::ew_ids::Uuid,
-    ) -> Result<LibraryPart, CatalogError> {
+    pub fn take(reg: &library::Registry, library: ew_ids::Uuid) -> Result<LibraryPart, CatalogError> {
         let info = reg
             .libraries()
             .into_iter()
@@ -468,8 +461,8 @@ impl LibraryPart {
 /// The parts the library `library` holds, by item ID, each as the registry resolves it at any version.
 fn held_parts(
     reg: &library::Registry,
-    library: ew_derive::ew_ids::Uuid,
-) -> std::collections::BTreeMap<ew_derive::ew_ids::Uuid, LibCopy<Part>> {
+    library: ew_ids::Uuid,
+) -> std::collections::BTreeMap<ew_ids::Uuid, LibCopy<Part>> {
     reg.documents(library, Kind::Part)
         .iter()
         .filter_map(|d| match d {
