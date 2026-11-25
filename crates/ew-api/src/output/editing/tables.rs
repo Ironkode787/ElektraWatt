@@ -65,9 +65,9 @@ pub struct TableItem {
     /// `graphic`, `free_text`, `wire_marker`, `image`, `surface_view` (its bounds the datum point), or `unknown` for a
     /// variant this build keeps verbatim.
     pub kind: String,
-    /// Its bounds `[x0, y0, x1, y1]`: a graphic, a text or a marker group by what the scene draws of it (a graphic with
-    /// its stroke), a text or a marker group that draws nothing by its anchor point; an unknown variant or shape
-    /// `[0, 0, 0, 0]`.
+    /// Its bounds `[x0, y0, x1, y1]`: a graphic, a text or a marker group by what the scene draws of it (a graphic by
+    /// the points of its path, its stroke's width not counted), a text or a marker group that draws nothing by its
+    /// anchor point; an unknown variant or shape `[0, 0, 0, 0]`.
     pub bounds: [i64; 4],
     /// A wire marker's live connections (existing, on this page) in printed order; empty for the other kinds.
     pub connections: Vec<Uuid>,
