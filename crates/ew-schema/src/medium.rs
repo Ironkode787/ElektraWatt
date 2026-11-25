@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 //! The fluid media (doc 11 §2.5): `medium` (rank 14, `project.jsonl`) and `medium_def` (rank 40, the file of the
-//! owner of its point), the reserved kinds typed within format 0.1 (ADR-0011 amendments 4 and 6; WP-S1.25).
+//! owner of its point), the reserved kinds typed within format 0.1 (ADR-0011 amendments 4 and 6).
 //!
 //! A medium names what a fluid net carries, as a potential definition names a potential; a definition point seeds
 //! it at a fluid CP and the derivation propagates it (doc 11 §5.3). An older 0.1 build keeps both kinds verbatim, so

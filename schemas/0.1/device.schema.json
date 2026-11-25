@@ -1264,7 +1264,7 @@
         },
         {
           "const": "mm",
-          "description": "Millimetre (a cable's outer diameter, rc.5).",
+          "description": "Millimetre (a cable's outer diameter).",
           "type": "string"
         },
         {

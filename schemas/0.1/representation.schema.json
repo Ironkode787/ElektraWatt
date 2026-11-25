@@ -170,7 +170,7 @@
               "type": "null"
             }
           ],
-          "description": "The pin's name on a box whose device has no part (rc.5: a drawn box takes pins of its own): the box's function\nhas a CP of this index with this designation. Absent on a box of a part, whose pins are the part's. An optional\nmember without cascade semantics (ADR-0011 amendment 6): an older build keeps it and draws the pin unnamed."
+          "description": "The pin's name on a box whose device has no part (a drawn box takes pins of its own): the box's function\nhas a CP of this index with this designation. Absent on a box of a part, whose pins are the part's. An optional\nmember without cascade semantics (ADR-0011 amendment 6): an older build keeps it and draws the pin unnamed."
         },
         "pos": {
           "$ref": "#/$defs/Pt2",
@@ -232,7 +232,7 @@
               "type": "null"
             }
           ],
-          "description": "A valve terminal's box drawn as its valve positions (doc 11 §3.2, rc.2): one cell per position in a row, each\n`pitch` wide; absent: a free box. An optional member without cascade semantics (ADR-0011 amendment 6): an\nolder build keeps it and draws the outline alone."
+          "description": "A valve terminal's box drawn as its valve positions (doc 11 §3.2): one cell per position in a row, each\n`pitch` wide; absent: a free box. An optional member without cascade semantics (ADR-0011 amendment 6): an\nolder build keeps it and draws the outline alone."
         }
       },
       "required": [
@@ -992,12 +992,12 @@
         },
         {
           "const": "bus_address",
-          "description": "The station address of the drawn function's bus port, \"Node TBD\" or \"Node 3\" (FR-BUS-006;\nWP-S1.21 D11); empty for a port without an address.",
+          "description": "The station address of the drawn function's bus port, \"Node TBD\" or \"Node 3\" (FR-BUS-006); empty for a port without an address.",
           "type": "string"
         },
         {
           "const": "bus_termination",
-          "description": "The termination of the drawn function's bus port, `Switch to \"ON\"` (FR-BUS-004; WP-S1.21 D11); empty for a\nport without a termination switch.",
+          "description": "The termination of the drawn function's bus port, `Switch to \"ON\"` (FR-BUS-004); empty for a\nport without a termination switch.",
           "type": "string"
         }
       ]
@@ -1138,7 +1138,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "description": "One drawing of one or more functions on a page (ADR-0006, doc 03 §6, rank 33). An unplaced function has\nno representation; panel fronts are derived, never stored.\n\nNot in v0: `assembly_view` (assembly overviews, WP-S1.13).",
+  "description": "One drawing of one or more functions on a page (ADR-0006, doc 03 §6, rank 33). An unplaced function has\nno representation; panel fronts are derived, never stored.\n\nNot in v0: `assembly_view` (assembly overviews).",
   "properties": {
     "$k": {
       "const": "representation",
@@ -1160,7 +1160,7 @@
           "type": "null"
         }
       ],
-      "description": "The cross-reference anchor policy of this representation (FR-SYM-010, D-14, MF-13); absent: the symbol\ncopy's policy. Set by `rep.set_anchor_policy`; an optional member without cascade semantics, additive\nwithin format 0.1 (ADR-0011 amendment 4, decision log ID-334)."
+      "description": "The cross-reference anchor policy of this representation (FR-SYM-010, D-14, MF-13); absent: the symbol\ncopy's policy. Set by `rep.set_anchor_policy`; an optional member without cascade semantics, additive\nwithin format 0.1 (ADR-0011 amendment 4)."
     },
     "arrangement": {
       "anyOf": [

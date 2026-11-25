@@ -55,7 +55,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "description": "One waiver (doc 03 §19, doc 15 §2.5, rank 61, `waivers.jsonl`; FR-CHK-009).\n\nIt is written only by the `HumanOnly` command `check.waive` (WP-S1.16 D7): the author and the date are that\ncommand's parameters, never read from a clock or the operating system. The check engine marks a finding whose\nrule and fingerprint match as waived; a waiver that matches nothing is reported (EW-CORE-081), never deleted.",
+  "description": "One waiver (doc 03 §19, doc 15 §2.5, rank 61, `waivers.jsonl`; FR-CHK-009).\n\nIt is written only by the `HumanOnly` command `check.waive`: the author and the date are that\ncommand's parameters, never read from a clock or the operating system. The check engine marks a finding whose\nrule and fingerprint match as waived; a waiver that matches nothing is reported (EW-CORE-081), never deleted.",
   "properties": {
     "$k": {
       "const": "waiver",
@@ -77,7 +77,7 @@
           "type": "null"
         }
       ],
-      "description": "Who waived it: the author's display name as the GUI recorded it (FT-494); absent when the person gave none or\nthe record was written while the kind was reserved."
+      "description": "Who waived it: the author's display name as the GUI recorded it; absent when the person gave none or\nthe record was written while the kind was reserved."
     },
     "date": {
       "anyOf": [

@@ -123,7 +123,7 @@ fn endpoint_anchor(e: &Endpoint) -> AnchorRef {
 pub struct Unknowns {
     /// The members kept in an `extra` map, at any depth.
     pub members: Vec<String>,
-    /// The values kept as an unknown variant (`Unknown(Value)`; WP-S6.08 D30).
+    /// The values kept as an unknown variant (`Unknown(Value)`).
     pub variants: Vec<String>,
 }
 
@@ -496,7 +496,7 @@ impl Record {
 
     /// [`Record::load`], and also what the record holds that this reader does not know ([`Unknowns`]): the JSON Pointer
     /// of each member it keeps in an `extra` map, at any depth (a later additive release's, or a plugin key), and of
-    /// each value it keeps as an unknown variant (WP-S6.08 D30). The format reader keeps the original line of a record
+    /// each value it keeps as an unknown variant. The format reader keeps the original line of a record
     /// that holds one while the record is untouched (ADR-0011 amendment 1).
     ///
     /// ```
@@ -616,7 +616,7 @@ pub enum LibDocument {
     Macro(LibCopy<MacroDef>),
     /// `manufacturer`.
     Manufacturer(LibCopy<Manufacturer>),
-    /// `plc_profile` (WP-S7.03 D7).
+    /// `plc_profile`.
     PlcProfile(LibCopy<PlcProfileDef>),
     /// A library document of a kind this reader does not implement, kept verbatim.
     Unknown(Value),

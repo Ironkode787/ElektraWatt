@@ -182,7 +182,7 @@ mod tests {
         }
     }
 
-    /// On the starter A3 frame (FT-1826) the table keeps the house distances to its drawing area and takes its width and
+    /// On the starter A3 frame the table keeps the house distances to its drawing area and takes its width and
     /// height: 12 rows of 21.17 mm print 259.29 mm high at 98.6 %, from 15.01 to 265.52 mm, 38 rows of 6.52 mm, 36 of
     /// them data rows.
     #[test]

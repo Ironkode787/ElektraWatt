@@ -189,7 +189,7 @@
       "description": "One variant of a macro.",
       "properties": {
         "fragment": {
-          "description": "The project fragment (`#ew-fragment v1`, WP-S1.19 D12), kept as JSON here; `ew-commands` parses it."
+          "description": "The project fragment (`#ew-fragment v1`), kept as JSON here; `ew-commands` parses it."
         },
         "key": {
           "$ref": "#/$defs/Ident",
@@ -444,7 +444,7 @@
         },
         {
           "const": "text_slots",
-          "description": "A representation's text slots, a list (FT-1420: a value set moves or resets a slot).",
+          "description": "A representation's text slots, a list (a value set moves or resets a slot).",
           "type": "string"
         }
       ]

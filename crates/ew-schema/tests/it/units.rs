@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! FT-1981: `Unit::ALL`, the one list the unit parsers read, holds every unit the schema names, and each unit is
+//! `Unit::ALL`, the one list the unit parsers read, holds every unit the schema names, and each unit is
 //! named again by its spelling and by its symbol.
 
 use std::collections::BTreeSet;

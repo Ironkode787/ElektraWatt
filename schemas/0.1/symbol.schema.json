@@ -1062,7 +1062,7 @@
       "type": "string"
     },
     "SlotFallback": {
-      "description": "What a text slot prints when its own value is empty (WP-S1.20 D14).",
+      "description": "What a text slot prints when its own value is empty.",
       "oneOf": [
         {
           "const": "process_tag",
@@ -1160,12 +1160,12 @@
         },
         {
           "const": "bus_address",
-          "description": "The station address of the drawn function's bus port, \"Node TBD\" or \"Node 3\" (FR-BUS-006;\nWP-S1.21 D11); empty for a port without an address.",
+          "description": "The station address of the drawn function's bus port, \"Node TBD\" or \"Node 3\" (FR-BUS-006); empty for a port without an address.",
           "type": "string"
         },
         {
           "const": "bus_termination",
-          "description": "The termination of the drawn function's bus port, `Switch to \"ON\"` (FR-BUS-004; WP-S1.21 D11); empty for a\nport without a termination switch.",
+          "description": "The termination of the drawn function's bus port, `Switch to \"ON\"` (FR-BUS-004); empty for a\nport without a termination switch.",
           "type": "string"
         }
       ]
@@ -1287,7 +1287,7 @@
               "type": "null"
             }
           ],
-          "description": "What the slot prints when its own value is empty (doc 11 §3.1, WP-S1.20 D14); absent means nothing."
+          "description": "What the slot prints when its own value is empty (doc 11 §3.1); absent means nothing."
         },
         "kind": {
           "$ref": "#/$defs/SlotKind",
@@ -1332,7 +1332,7 @@
               "type": "null"
             }
           ],
-          "description": "Name of the text style that replaces the style bound to the slot's kind (decision log ID-197); absent\nmeans the kind's style."
+          "description": "Name of the text style that replaces the style bound to the slot's kind; absent\nmeans the kind's style."
         },
         "visible": {
           "description": "Visible by default.",

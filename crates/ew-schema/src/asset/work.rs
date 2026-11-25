@@ -1,18 +1,18 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The arithmetic of the two work bounds of [`super::svg_hazard`] (FT-470, FT-471; doc 18 §11.1 TM-18): upper bounds
+//! The arithmetic of the two work bounds of [`super::svg_hazard`] (doc 18 §11.1 TM-18): upper bounds
 //! of what usvg 0.48.1 (with svgtypes 0.16.1, kurbo 0.13.1, simplecss 0.2.2 and roxmltree 0.21.1) does with an
 //! admitted document, computed from the raw text without parsing it the way usvg does.
 //!
-//! - **Marker applications (FT-470).** usvg's `marker::convert` draws a marker at the first vertex (`marker-start`),
+//! - **Marker applications.** usvg's `marker::convert` draws a marker at the first vertex (`marker-start`),
 //!   the last (`marker-end`) and every vertex in between (`marker-mid`) of the path it makes of a `path`, `line`,
 //!   `polyline`, `polygon`, `rect`, `circle` or `ellipse`, and converts the marker's content once per vertex.
 //!   [`path_segments`] and [`shape_segments`] bound the segments of that path: one per command, one more for the
 //!   move-to svgtypes inserts after a close-path, and for every elliptical arc the cubic pieces kurbo cuts it into
 //!   ([`arc_pieces`]: an arc whose radii are too small for its end points is scaled up, so a tiny radius and a long
 //!   chord make thousands of pieces). [`declaration_markers`] reads which markers a declaration list names.
-//! - **Selector matching (FT-471).** usvg matches every simplecss rule against every element it parses (the
+//! - **Selector matching.** usvg matches every simplecss rule against every element it parses (the
 //!   document's elements and every clone a `use` makes), and simplecss walks the ancestors once per descendant
 //!   combinator without memoisation, so a selector with `k` descendant combinators costs up to
 //!   `C(ancestors, 0) + … + C(ancestors, k)` calls on one element. [`Selector`] is a selector's shape as the
@@ -318,7 +318,7 @@ pub(super) const DEFAULT_FONT_SIZE: f64 = 12.0;
 /// (`Options::default_size`, 100 × 100) and the default `width` and `height` (`100%`).
 const DEFAULT_SIZE: f64 = 100.0;
 
-/// What relative lengths resolve against (FT-501), as upper bounds: the element's font size (usvg's
+/// What relative lengths resolve against, as upper bounds: the element's font size (usvg's
 /// `resolve_font_size`) for `em` and `ex`, and the larger side of the viewport (`State::view_box`) for `%`.
 /// [`Lengths::WORST`] is the bound when the scan cannot tell (CSS can set `font-size`, a `use` converts the shape
 /// under other ancestors, a nested `svg` or `symbol` sets another viewport).

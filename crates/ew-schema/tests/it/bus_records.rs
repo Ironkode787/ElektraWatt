@@ -74,7 +74,7 @@ fn newer_bus_values_survive_a_load_and_a_save_verbatim() {
         panic!("a function")
     };
     let port = f.bus_port.unwrap();
-    // WP-S1.24 types the PROFINET address; a member of a newer format stays in extra
+    // The format types the PROFINET address; a member of a newer format stays in extra
     let AddrValue::Value(NetAddress::Profinet(pn)) = &port.address else {
         panic!("a PROFINET address: {:?}", port.address)
     };

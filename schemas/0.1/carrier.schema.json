@@ -213,7 +213,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "description": "A carrier on a mounting surface (doc 03 §16, rank 53, the layout file of its surface's space): a DIN rail or a\nwiring duct. Its placements' poses are relative to it, so moving a rail moves its devices.\n\nAt the MVP carriers are axis-parallel (WP-S4.01 D5): a rail's `path` is two points on one horizontal or vertical\nline, a duct's an orthogonal polyline; the commands refuse other angles.",
+  "description": "A carrier on a mounting surface (doc 03 §16, rank 53, the layout file of its surface's space): a DIN rail or a\nwiring duct. Its placements' poses are relative to it, so moving a rail moves its devices.\n\nAt the MVP carriers are axis-parallel: a rail's `path` is two points on one horizontal or vertical\nline, a duct's an orthogonal polyline; the commands refuse other angles.",
   "properties": {
     "$k": {
       "const": "carrier",

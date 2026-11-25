@@ -91,7 +91,7 @@ keys! {
     /// The shipped title block, which the shipped A4 frames name and which reproduces QElectroTech's default
     /// template.
     TITLE_BLOCK = "ew.titleblock.qet-a4";
-    /// The shipped A3 frame with the grid (FT-1826), which names the A3 title block.
+    /// The shipped A3 frame with the grid, which names the A3 title block.
     A3_GRID_FRAME = "ew.frame.qet-a3-landscape-grid";
 }
 

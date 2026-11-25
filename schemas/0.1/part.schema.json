@@ -62,7 +62,7 @@
     },
     "BusSection": {
       "additionalProperties": true,
-      "description": "The bus section of a part (`sections.bus`, doc 10 §2.6; WP-S1.21 D15): the part's bus interfaces. A part port\nis carried by a function of the device whose function definition has contact kind `bus_port`; normaliser N5\ngives a port-less such function the part's port once and never rewrites it (D16). The station address and the\nnets belong to the drawn port ([`BusPort`]), not to the part.",
+      "description": "The bus section of a part (`sections.bus`, doc 10 §2.6): the part's bus interfaces. A part port\nis carried by a function of the device whose function definition has contact kind `bus_port`; normaliser N5\ngives a port-less such function the part's port once and never rewrites it (D16). The station address and the\nnets belong to the drawn port ([`BusPort`]), not to the part.",
       "properties": {
         "cable_for": {
           "description": "The bus systems a cable part is made for (EW-BUS-009); empty: the part says nothing about buses.",
@@ -1075,7 +1075,7 @@
     },
     "FluidSection": {
       "additionalProperties": true,
-      "description": "The fluid section of a part (doc 11 §2.6). The solenoids of a valve part, the k-th being the k-th template entry on\na FnDef of contact kind `coil` (WP-S1.20 D4), and the 1.0 members (WP-S1.25), each optional and additive within\nformat 0.1 (ADR-0011 amendment 6); `overview` stays in `extra`.",
+      "description": "The fluid section of a part (doc 11 §2.6). The solenoids of a valve part, the k-th being the k-th template entry on\na FnDef of contact kind `coil`, and the 1.0 members, each optional and additive within\nformat 0.1 (ADR-0011 amendment 6); `overview` stays in `extra`.",
       "properties": {
         "coil": {
           "anyOf": [
@@ -1107,7 +1107,7 @@
           "type": "array"
         },
         "pins": {
-          "description": "A multipin valve terminal's plug (doc 10 §2.3, rc.2): which pin of the part's CP pattern each solenoid of the\nvalve at position p is wired through, as `{solenoid, pin}` with `pin` an expression in p (`2p-1`); the plug's\ncommon pin is a pattern CP named in no entry. Empty for any other part. Additive within format 0.1.",
+          "description": "A multipin valve terminal's plug (doc 10 §2.3): which pin of the part's CP pattern each solenoid of the\nvalve at position p is wired through, as `{solenoid, pin}` with `pin` an expression in p (`2p-1`); the plug's\ncommon pin is a pattern CP named in no entry. Empty for any other part. Additive within format 0.1.",
           "items": {
             "$ref": "#/$defs/SolenoidPin"
           },
@@ -1864,7 +1864,7 @@
     },
     "PartBusPort": {
       "additionalProperties": true,
-      "description": "One bus interface of a part (WP-S1.21 D15): the first four members as in [`BusPort`], then the facts of 1.0 that\nthe rules read: the connector type (EW-BUS-009), the supported rates (EW-BUS-005), the address range (EW-BUS-002)\nthe IO-Link device data (EW-IOL-001, EW-IOL-002) and the signal map (FR-BUS-023). No address or net is typed:\nthose belong to the drawn port.",
+      "description": "One bus interface of a part: the first four members as in [`BusPort`], then the facts of 1.0 that\nthe rules read: the connector type (EW-BUS-009), the supported rates (EW-BUS-005), the address range (EW-BUS-002)\nthe IO-Link device data (EW-IOL-001, EW-IOL-002) and the signal map (FR-BUS-023). No address or net is typed:\nthose belong to the drawn port.",
       "properties": {
         "address_range": {
           "anyOf": [
@@ -2058,7 +2058,7 @@
               "type": "null"
             }
           ],
-          "description": "The bus section: the part's bus interfaces (doc 10 §2.6, WP-S1.21 D15)."
+          "description": "The bus section: the part's bus interfaces (doc 10 §2.6)."
         },
         "cable_cores": {
           "description": "Cores of a cable part, from which conductors are generated (FR-CBL-004).",
@@ -2098,7 +2098,7 @@
               "type": "null"
             }
           ],
-          "description": "The fluid section: the solenoids a valve part declares (doc 11 §2.6, WP-S1.20 D4)."
+          "description": "The fluid section: the solenoids a valve part declares (doc 11 §2.6)."
         },
         "mounting_plate": {
           "anyOf": [
@@ -2272,7 +2272,7 @@
           "description": "The limits of a station of this part (`Max_Module`, the maximum I/O lengths; EW-PLC-011)."
         },
         "more_channels": {
-          "description": "The channel specs after `channels`, of other kinds (doc 10 §2.6, FT-1766: a card of 8 inputs and 8 outputs),\neach numbered on from the one before ([`PlcSection::channel_specs`]). Appended last and omitted when empty, so a\npart of one kind writes the bytes it wrote before; an older build keeps it in `extra` and makes the first spec's\nchannels alone.",
+          "description": "The channel specs after `channels`, of other kinds (doc 10 §2.6: a card of 8 inputs and 8 outputs),\neach numbered on from the one before ([`PlcSection::channel_specs`]). Appended last and omitted when empty, so a\npart of one kind writes the bytes it wrote before; an older build keeps it in `extra` and makes the first spec's\nchannels alone.",
           "items": {
             "$ref": "#/$defs/ChannelSpec"
           },
@@ -2316,7 +2316,7 @@
           "description": "What the part is in the PLC model."
         },
         "supply_groups": {
-          "description": "The supply groups of the part's power-supply pins (doc 10 §2.6, FR-PLC-024, WP-S1.21 D13): each names the\nL+ and M pins of one group, so that the pins take the potential roles `L+` and `M` when neither the part\npattern nor the function definition gives them one (`ew_derive::FunctionCps`). Appended after `pin_of`, so a\npart without groups writes the bytes it wrote before (the member order fixes a copy's hash).",
+          "description": "The supply groups of the part's power-supply pins (doc 10 §2.6, FR-PLC-024): each names the\nL+ and M pins of one group, so that the pins take the potential roles `L+` and `M` when neither the part\npattern nor the function definition gives them one (`ew_derive::FunctionCps`). Appended after `pin_of`, so a\npart without groups writes the bytes it wrote before (the member order fixes a copy's hash).",
           "items": {
             "$ref": "#/$defs/SupplyGroup"
           },
@@ -2731,7 +2731,7 @@
     },
     "SupplyGroup": {
       "additionalProperties": true,
-      "description": "One supply group of a PLC part (doc 10 §2.6 `[[plc.supply]]`, FR-PLC-024, WP-S1.21 D13): the L+ and M pins that\nfeed the electronics or a load group, and the channels the group feeds. The earth pin (`[plc.earth]`) is not part\nof a group and stays in [`PlcSection::extra`].",
+      "description": "One supply group of a PLC part (doc 10 §2.6 `[[plc.supply]]`, FR-PLC-024): the L+ and M pins that\nfeed the electronics or a load group, and the channels the group feeds. The earth pin (`[plc.earth]`) is not part\nof a group and stays in [`PlcSection::extra`].",
       "properties": {
         "cps": {
           "$ref": "#/$defs/SupplyPins",
@@ -3056,7 +3056,7 @@
         },
         {
           "const": "mm",
-          "description": "Millimetre (a cable's outer diameter, rc.5).",
+          "description": "Millimetre (a cable's outer diameter).",
           "type": "string"
         },
         {

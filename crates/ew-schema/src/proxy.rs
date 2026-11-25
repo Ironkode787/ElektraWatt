@@ -104,7 +104,7 @@ proxy!(
 );
 
 proxy!(
-    /// `Vec2Nm`: `[dx, dy]` in nanometres, an offset (FT-604).
+    /// `Vec2Nm`: `[dx, dy]` in nanometres, an offset.
     Vec2NmS,
     "Vec2Nm",
     {

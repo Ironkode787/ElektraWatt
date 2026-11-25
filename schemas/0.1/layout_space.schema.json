@@ -16,7 +16,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "description": "One cabinet or bayed suite (doc 03 §16, rank 50, `layout/<own id>.jsonl`; FR-LAY-001): the anchor of every\nother layout record. At the MVP a location holds at most one layout space (WP-S4.01 D3, refused by\n`layout.space.create`, reported by EW-LAY-010 on loaded data).",
+  "description": "One cabinet or bayed suite (doc 03 §16, rank 50, `layout/<own id>.jsonl`; FR-LAY-001): the anchor of every\nother layout record. At the MVP a location holds at most one layout space (refused by\n`layout.space.create`, reported by EW-LAY-010 on loaded data).",
   "properties": {
     "$k": {
       "const": "layout_space",

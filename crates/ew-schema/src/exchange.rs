@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 //! The PLC exchange snapshot (doc 10 §4.2): `exchange_record` (rank 70) and `foreign_id` (rank 71), in
-//! `exchange/<config-project-uuid>.jsonl`, the reserved kinds typed within format 0.1 (ADR-0011 amendments 4 and 6;
-//! WP-S3.16).
+//! `exchange/<config-project-uuid>.jsonl`, the reserved kinds typed within format 0.1 (ADR-0011 amendments 4 and 6).
 //!
 //! The snapshot is the base of the next import's three-way merge: one record per exchanged station, module,
 //! channel, tag and bus node with the field values as exchanged, and the ID the PLC software gave an object where it

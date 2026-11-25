@@ -542,7 +542,7 @@ mod tests {
         assert_eq!(cap_height(em(&settings, "terminal")), Nm(1_800_000));
     }
 
-    /// rc.3 review: a project made before the `terminal` style that sets the device tag's size prints its terminal
+    /// A project made before the `terminal` style that sets the device tag's size prints its terminal
     /// numbers at that size, its weight and face; a terminal style of its own (a new project's) wins.
     #[test]
     fn the_terminal_style_follows_the_device_tag_of_a_project_that_sets_only_it() {

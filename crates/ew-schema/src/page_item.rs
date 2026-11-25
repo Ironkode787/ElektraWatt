@@ -1,17 +1,16 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Page items and structure boxes (doc 03 §5, §6; doc 05 §2.2; WP-S2.04 §10.1, decision log ID-566): the
+//! Page items and structure boxes (doc 03 §5, §6; doc 05 §2.2): the
 //! page-owned kinds `page_item` (rank 43) and `structure_box` (rank 44), typed within format 0.1 under
-//! ADR-0011 amendment 4 (ID-334): additive, no format or `$v` bump, an older build keeps the records verbatim.
+//! ADR-0011 amendment 4: additive, no format or `$v` bump, an older build keeps the records verbatim.
 //!
 //! A page item's `kind` is an externally tagged object. This format types six variants, `graphic`,
-//! `free_text`, `wire_marker`, `image` (WP-S2.04 part 5), `surface_view` (WP-S4.01 part 3, D9) and `underlay` (WP-S3.19,
-//! ADR-0011 amendment 6); every other variant (`macro_box`, `model_view`, `dimension` and the variants of a newer
-//! format) is kept verbatim as [`PageItemKind::Unknown`] and written back unchanged (doc 05 §10.3).
+//! `free_text`, `wire_marker`, `image`, `surface_view` and `underlay` (ADR-0011 amendment 6); every other variant (`macro_box`, `model_view`, `dimension` and the variants of a
+//! newer format) is kept verbatim as [`PageItemKind::Unknown`] and written back unchanged (doc 05 §10.3).
 //!
 //! Positions are page nanometres ([`Pt2`]), lengths [`Nm`], angles [`Angle2`] (10⁻³ degree). What the format does
-//! not restrict and the commands do (WP-S2.04 §5.1): degenerate shapes, the free text's four angles and six
+//! not restrict and the commands do: degenerate shapes, the free text's four angles and six
 //! bindable names, the marker's two angles and its distinct, same-page connections, the box's three vertices.
 
 use ew_ids::Id;
@@ -67,11 +66,11 @@ pub enum PageItemKind {
     FreeText(FreeText),
     /// The group marker of several connections (FR-CON-023, FR-CON-039).
     WireMarker(WireMarker),
-    /// An image asset placed in a rectangle (FR-SYM-025, WP-S2.04 part 5).
+    /// An image asset placed in a rectangle (FR-SYM-025).
     Image(ImageItem),
-    /// The view of one mounting surface on a panel-layout page (FR-LAY-010, WP-S4.01 D9).
+    /// The view of one mounting surface on a panel-layout page (FR-LAY-010).
     SurfaceView(SurfaceView),
-    /// A locked underlay: a page of a PDF or a DXF drawing under the page (FR-IMP-030, WP-S3.19).
+    /// A locked underlay: a page of a PDF or a DXF drawing under the page (FR-IMP-030).
     Underlay(Underlay),
     /// A variant this format does not type (`macro_box`, `model_view`, `dimension`, or a newer format's), kept
     /// verbatim.
@@ -125,7 +124,7 @@ impl PageItemKind {
 // Graphic
 
 /// A graphic without electrical meaning (doc 03 §6): a shape that carries its own geometry (no `angle`), drawn in
-/// the page's wire stroke unless `stroke` is set; an absent `dash` is solid and an absent `fill` is false (ID-566).
+/// the page's wire stroke unless `stroke` is set; an absent `dash` is solid and an absent `fill` is false.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Graphic {
     /// The shape.
@@ -319,7 +318,7 @@ pub struct FreeText {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub of: Option<Id<Representation>>,
-    /// Unknown members (the role `path_function` of FT-376 among them, until it is typed).
+    /// Unknown members (the role `path_function` among them, until it is typed).
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
 }
@@ -377,7 +376,7 @@ pub struct WireMarker {
     pub angle: Angle2,
     /// The fields shown, `["csa", "colour"]`.
     pub fields: Vec<MarkerField>,
-    /// Where a cable mark's tag stands once moved (rc.3), relative to `at`; absent: at the line's start. A marker
+    /// Where a cable mark's tag stands once moved, relative to `at`; absent: at the line's start. A marker
     /// that marks no cable ignores it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<Pt2S>")]
@@ -405,7 +404,7 @@ pub enum MarkerField {
 // ---------------------------------------------------------------------------------------------------------
 // Image
 
-/// An image asset placed on the page (FR-SYM-025, WP-S2.04 §11): the asset's content hash (the project holds
+/// An image asset placed on the page (FR-SYM-025): the asset's content hash (the project holds
 /// `assets/<sha256>.<ext>`, checked by `item.place`) and the rectangle it is drawn in, `rect` as `[[x0, y0],
 /// [x1, y1]]` in absolute page nanometres with `min <= max` (the reader rejects a reversed rectangle). An SVG is
 /// drawn as vector paths, a PNG or JPEG as an image.
@@ -423,11 +422,11 @@ pub struct ImageItem {
 // ---------------------------------------------------------------------------------------------------------
 // Surface view
 
-/// The view of one mounting surface on a panel-layout page (doc 12 §5.1, FR-LAY-010; WP-S4.01 D9): a surface point
+/// The view of one mounting surface on a panel-layout page (doc 12 §5.1, FR-LAY-010): a surface point
 /// `(u, v)` is drawn at `x = datum_at.x + u / n`, `y = datum_at.y − v / n` on a page of scale 1:n (paper `y` points
 /// down), so `datum_at` is where the surface's origin lands on the page. Everything it draws (outlines, carriers,
 /// footprints, labels) is derived, never stored (doc 12 §2.3). A panel-layout page holds at most one, set by
-/// `page.surface_view.set`. Typed within format 0.1 under ADR-0011 amendment 4 (ID-334): `side`, `clip` and `layers`
+/// `page.surface_view.set`. Typed within format 0.1 under ADR-0011 amendment 4: `side`, `clip` and `layers`
 /// stay verbatim in [`SurfaceView::extra`].
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct SurfaceView {
@@ -490,7 +489,7 @@ pub enum LayoutLabels {
 // ---------------------------------------------------------------------------------------------------------
 // Underlay
 
-/// A locked underlay (doc 14 §5.5, FR-IMP-030; WP-S3.19): a page of a PDF or a layout of a DXF drawing, drawn under
+/// A locked underlay (doc 14 §5.5, FR-IMP-030): a page of a PDF or a layout of a DXF drawing, drawn under
 /// the page for redrawing. It is no model data: no engineering query, check or report reads it, and an export draws it
 /// only when the user prints underlays. Its source is named by its content hash: an asset of the project
 /// (`assets/<sha256>.pdf` or `.dxf`) when the user embedded it, else a file of the user's underlay cache. Typed

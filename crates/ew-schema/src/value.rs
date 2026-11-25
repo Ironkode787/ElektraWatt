@@ -98,7 +98,7 @@ pub enum Unit {
     /// Metre (lengths and the order unit of cables).
     #[serde(rename = "m")]
     M,
-    /// Millimetre (a cable's outer diameter, rc.5).
+    /// Millimetre (a cable's outer diameter).
     #[serde(rename = "mm")]
     Mm,
     /// Piece (the default order unit).
@@ -117,7 +117,7 @@ pub enum Unit {
 
 impl Unit {
     /// Every unit this build knows, in the order of the enum: the one list the parsers of a typed or imported unit
-    /// read (FT-1981). A test holds it to the variants the schema names.
+    /// read. A test holds it to the variants the schema names.
     pub const ALL: [Unit; 13] = [
         Unit::Mm2,
         Unit::A,

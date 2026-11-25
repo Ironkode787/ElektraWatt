@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The CPs of a template-origin function (doc 03 §7 "CP instantiation", FT-655): which template entry a function
+//! The CPs of a template-origin function (doc 03 §7 "CP instantiation"): which template entry a function
 //! follows and how that entry's pattern CPs pair with its function definition's CPs.
 //!
 //! One rule, read by every place that needs a template-origin function's CP indices: the derived `function_cps`
@@ -77,7 +77,7 @@ pub fn pair_template_cps(entry_cps: &[u16], pattern: &[u16], def_cps: &[u16]) ->
         .collect()
 }
 
-/// The template entry a function follows among its device's part uses (FT-655): `parts` gives each part use, in
+/// The template entry a function follows among its device's part uses: `parts` gives each part use, in
 /// `Device.parts` order, as a caller's key and the part copy (a use whose copy is missing is left out);
 /// `template_entry` is `Function.template_entry`; `names_def` tells whether an entry names the function's FnDef copy.
 ///

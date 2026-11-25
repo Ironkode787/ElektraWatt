@@ -4,20 +4,20 @@
 //! Revisions (doc 03 §18, doc 15 §5; FR-REV-001, FR-REV-012): the `revision` record (rank 60,
 //! `revisions.jsonl`).
 //!
-//! Implemented members are the two cases of FT-165: an open revision with label, date and state, and a
+//! Implemented members are the two cases: an open revision with label, date and state, and a
 //! historic released revision without an archive (no release record), and on a withdrawal record the ID
-//! of the revision it withdraws (`withdraws: RevisionId?`, doc 03 §18). WP-S1.18 part 1 (D2, FT-302) types
+//! of the revision it withdraws (`withdraws: RevisionId?`, doc 03 §18). The format also types
 //! `reason` (on a withdrawal record), `release` ([`ReleaseRecord`]) and `sign_off` ([`SignOff`]), appended
 //! after the earlier members; `purpose` (1.0) stays in `extra`, so a record written by a newer build keeps it
 //! through a load and a save. Typing members of the reserved kind is additive within format 0.1 (ADR-0011
-//! amendment 4, decision log ID-334).
+//! amendment 4).
 //!
 //! **Typed from `extra`.** A build before part 1 kept these members in `extra` and wrote them after the known
 //! members in byte-wise order of their names, nested objects too. The typed members therefore follow that order
 //! (`reason`, `release`, `sign_off`, and the members of each typed object in byte order of their names), and
 //! every member of a typed object is optional: a line such a build wrote, with a partial or a complete payload,
-//! loads into the typed members and writes back byte for byte. Completeness is the release gate's question
-//! (WP-S1.18 part 3), not the reader's.
+//! loads into the typed members and writes back byte for byte. Completeness is the release gate's question,
+//! not the reader's.
 //!
 //! **The label format** ([`LabelFormat`], `ProjectSettings.revision_label`, FR-REV-002): the order and the next
 //! label of each of the three forms; absent means `v_major_minor`.
@@ -151,9 +151,9 @@ pub struct PageNote {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Content (doc 15 §5.3, §5.4; WP-S1.18 D3, D8)
+// Content (doc 15 §5.3, §5.4)
 
-/// The project files that are not content (doc 15 §5.4; WP-S1.18 D8): the content digest leaves them out, so an
+/// The project files that are not content (doc 15 §5.4): the content digest leaves them out, so an
 /// edit of them neither opens the next revision (`revision.ensure_open`, D3) nor voids a sign-off. Revision records
 /// (their page notes included) and transmittals live in `revisions.jsonl`, comments in `comments.jsonl`; view state
 /// (`.ew/`) is never in the manifest.
@@ -161,7 +161,7 @@ pub const NOT_CONTENT_FILES: [&str; 2] = ["revisions.jsonl", "comments.jsonl"];
 
 /// Whether a record of `kind` is content: whether its file is covered by the content digest (every manifest file
 /// except [`NOT_CONTENT_FILES`]; the project row, library copies and waivers included). This is the set of content
-/// edits that `revision.ensure_open` (WP-S1.18 D3) and the stale sign-off (D9) share.
+/// edits that `revision.ensure_open` and the stale sign-off share.
 ///
 /// ```
 /// use ew_schema::{Kind, is_content_kind};
@@ -174,7 +174,7 @@ pub fn is_content_kind(kind: crate::Kind) -> bool {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Sign-off and release record (doc 03 §18, doc 15 §5.4; WP-S1.18 D2)
+// Sign-off and release record (doc 03 §18, doc 15 §5.4)
 
 /// The checker's sign-off on the open revision (doc 15 §5.4, FR-REV-005, FR-REV-021), written by
 /// `revision.approve` and copied into [`ReleaseRecord::approval`] at release (FR-REV-020).
@@ -263,7 +263,7 @@ pub struct ReleaseRecord {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<IdentS>")]
     pub git_tag: Option<Ident>,
-    /// The digest of every page at the release, by page ID (doc 15 §5.6; WP-S1.18 D6). The keys are not links.
+    /// The digest of every page at the release, by page ID (doc 15 §5.6). The keys are not links.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<BTreeMap<String, Digest128>>")]
     pub page_digests: Option<BTreeMap<Id<Page>, Digest128>>,
@@ -294,7 +294,7 @@ pub struct ArchiveRef {
 }
 
 /// A 128-bit digest, written as 32 lower-case hexadecimal digits: a page digest, the first 128 bits of a
-/// SHA-256 (doc 15 §5.6; WP-S1.18 D6).
+/// SHA-256 (doc 15 §5.6).
 ///
 /// ```
 /// use ew_schema::Digest128;
@@ -357,7 +357,7 @@ impl JsonSchema for Digest128 {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// The label format (doc 15 §5.2, FR-REV-002; WP-S1.18 D2)
+// The label format (doc 15 §5.2, FR-REV-002)
 
 /// The project's one revision label format (doc 15 §5.2, FR-REV-002), `ProjectSettings.revision_label`;
 /// absent means [`LabelFormat::VMajorMinor`], so every file written before the setting existed

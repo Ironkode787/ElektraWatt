@@ -25,7 +25,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "description": "One conflict record (doc 05 §11.2; WP-S1.17 D14, D17): rank 255, in the file of its target. A record-level conflict shares its target's ID and holds the conflicting members of each side; a file-level one (`kind` \"file\") holds the lines of the side that could not be merged.",
+  "description": "One conflict record (doc 05 §11.2): rank 255, in the file of its target. A record-level conflict shares its target's ID and holds the conflicting members of each side; a file-level one (`kind` \"file\") holds the lines of the side that could not be merged.",
   "oneOf": [
     {
       "required": [

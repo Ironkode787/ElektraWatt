@@ -96,7 +96,7 @@
     },
     "Graphic": {
       "additionalProperties": true,
-      "description": "A graphic without electrical meaning (doc 03 §6): a shape that carries its own geometry (no `angle`), drawn in\nthe page's wire stroke unless `stroke` is set; an absent `dash` is solid and an absent `fill` is false (ID-566).",
+      "description": "A graphic without electrical meaning (doc 03 §6): a shape that carries its own geometry (no `angle`), drawn in\nthe page's wire stroke unless `stroke` is set; an absent `dash` is solid and an absent `fill` is false.",
       "properties": {
         "dash": {
           "$ref": "#/$defs/LineDash",
@@ -232,7 +232,7 @@
     },
     "ImageItem": {
       "additionalProperties": true,
-      "description": "An image asset placed on the page (FR-SYM-025, WP-S2.04 §11): the asset's content hash (the project holds\n`assets/<sha256>.<ext>`, checked by `item.place`) and the rectangle it is drawn in, `rect` as `[[x0, y0],\n[x1, y1]]` in absolute page nanometres with `min <= max` (the reader rejects a reversed rectangle). An SVG is\ndrawn as vector paths, a PNG or JPEG as an image.",
+      "description": "An image asset placed on the page (FR-SYM-025): the asset's content hash (the project holds\n`assets/<sha256>.<ext>`, checked by `item.place`) and the rectangle it is drawn in, `rect` as `[[x0, y0],\n[x1, y1]]` in absolute page nanometres with `min <= max` (the reader rejects a reversed rectangle). An SVG is\ndrawn as vector paths, a PNG or JPEG as an image.",
       "properties": {
         "asset": {
           "$ref": "#/$defs/Sha256",
@@ -384,7 +384,7 @@
         },
         {
           "additionalProperties": false,
-          "description": "An image asset placed in a rectangle (FR-SYM-025, WP-S2.04 part 5).",
+          "description": "An image asset placed in a rectangle (FR-SYM-025).",
           "properties": {
             "image": {
               "$ref": "#/$defs/ImageItem"
@@ -397,7 +397,7 @@
         },
         {
           "additionalProperties": false,
-          "description": "The view of one mounting surface on a panel-layout page (FR-LAY-010, WP-S4.01 D9).",
+          "description": "The view of one mounting surface on a panel-layout page (FR-LAY-010).",
           "properties": {
             "surface_view": {
               "$ref": "#/$defs/SurfaceView"
@@ -410,7 +410,7 @@
         },
         {
           "additionalProperties": false,
-          "description": "A locked underlay: a page of a PDF or a DXF drawing under the page (FR-IMP-030, WP-S3.19).",
+          "description": "A locked underlay: a page of a PDF or a DXF drawing under the page (FR-IMP-030).",
           "properties": {
             "underlay": {
               "$ref": "#/$defs/Underlay"
@@ -580,7 +580,7 @@
     },
     "SurfaceView": {
       "additionalProperties": true,
-      "description": "The view of one mounting surface on a panel-layout page (doc 12 §5.1, FR-LAY-010; WP-S4.01 D9): a surface point\n`(u, v)` is drawn at `x = datum_at.x + u / n`, `y = datum_at.y − v / n` on a page of scale 1:n (paper `y` points\ndown), so `datum_at` is where the surface's origin lands on the page. Everything it draws (outlines, carriers,\nfootprints, labels) is derived, never stored (doc 12 §2.3). A panel-layout page holds at most one, set by\n`page.surface_view.set`. Typed within format 0.1 under ADR-0011 amendment 4 (ID-334): `side`, `clip` and `layers`\nstay verbatim in [`SurfaceView::extra`].",
+      "description": "The view of one mounting surface on a panel-layout page (doc 12 §5.1, FR-LAY-010): a surface point\n`(u, v)` is drawn at `x = datum_at.x + u / n`, `y = datum_at.y − v / n` on a page of scale 1:n (paper `y` points\ndown), so `datum_at` is where the surface's origin lands on the page. Everything it draws (outlines, carriers,\nfootprints, labels) is derived, never stored (doc 12 §2.3). A panel-layout page holds at most one, set by\n`page.surface_view.set`. Typed within format 0.1 under ADR-0011 amendment 4: `side`, `clip` and `layers`\nstay verbatim in [`SurfaceView::extra`].",
       "properties": {
         "datum_at": {
           "$ref": "#/$defs/Pt2",
@@ -642,7 +642,7 @@
     },
     "Underlay": {
       "additionalProperties": true,
-      "description": "A locked underlay (doc 14 §5.5, FR-IMP-030; WP-S3.19): a page of a PDF or a layout of a DXF drawing, drawn under\nthe page for redrawing. It is no model data: no engineering query, check or report reads it, and an export draws it\nonly when the user prints underlays. Its source is named by its content hash: an asset of the project\n(`assets/<sha256>.pdf` or `.dxf`) when the user embedded it, else a file of the user's underlay cache. Typed\nwithin format 0.1 under ADR-0011 amendment 6: additive, an older build keeps the record verbatim as an unknown\nvariant.",
+      "description": "A locked underlay (doc 14 §5.5, FR-IMP-030): a page of a PDF or a layout of a DXF drawing, drawn under\nthe page for redrawing. It is no model data: no engineering query, check or report reads it, and an export draws it\nonly when the user prints underlays. Its source is named by its content hash: an asset of the project\n(`assets/<sha256>.pdf` or `.dxf`) when the user embedded it, else a file of the user's underlay cache. Typed\nwithin format 0.1 under ADR-0011 amendment 6: additive, an older build keeps the record verbatim as an unknown\nvariant.",
       "properties": {
         "asset": {
           "$ref": "#/$defs/Sha256",
@@ -752,7 +752,7 @@
               "type": "null"
             }
           ],
-          "description": "Where a cable mark's tag stands once moved (rc.3), relative to `at`; absent: at the line's start. A marker\nthat marks no cable ignores it."
+          "description": "Where a cable mark's tag stands once moved, relative to `at`; absent: at the line's start. A marker\nthat marks no cable ignores it."
         }
       },
       "required": [

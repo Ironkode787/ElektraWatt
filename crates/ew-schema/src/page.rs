@@ -146,7 +146,7 @@ pub enum Scale {
     #[default]
     NotToScale,
     /// 1:n (layout pages: "1:10" on 902).
-    // n is at least 1 in the schema (FT-1065); the reader still takes a 1:0, which is drawn 1:1.
+    // n is at least 1 in the schema; the reader still takes a 1:0, which is drawn 1:1.
     OneTo(#[schemars(range(min = 1))] u32),
     /// A value of a newer format, kept verbatim.
     #[serde(skip)]
@@ -159,7 +159,7 @@ pub enum Scale {
 /// One drawing of one or more functions on a page (ADR-0006, doc 03 §6, rank 33). An unplaced function has
 /// no representation; panel fronts are derived, never stored.
 ///
-/// Not in v0: `assembly_view` (assembly overviews, WP-S1.13).
+/// Not in v0: `assembly_view` (assembly overviews).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Representation {
     /// The record ID.
@@ -202,7 +202,7 @@ pub struct Representation {
     pub arrangement: Option<Ident>,
     /// The cross-reference anchor policy of this representation (FR-SYM-010, D-14, MF-13); absent: the symbol
     /// copy's policy. Set by `rep.set_anchor_policy`; an optional member without cascade semantics, additive
-    /// within format 0.1 (ADR-0011 amendment 4, decision log ID-334).
+    /// within format 0.1 (ADR-0011 amendment 4).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub anchor: Option<AnchorPolicy>,
     /// Black-box outline and CPs, drawn with the built-in symbol `ew.gen.blackbox`.
@@ -280,7 +280,7 @@ pub struct BoxSpec {
     /// Graphics inside the box.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub inner: Vec<Primitive>,
-    /// A valve terminal's box drawn as its valve positions (doc 11 §3.2, rc.2): one cell per position in a row, each
+    /// A valve terminal's box drawn as its valve positions (doc 11 §3.2): one cell per position in a row, each
     /// `pitch` wide; absent: a free box. An optional member without cascade semantics (ADR-0011 amendment 6): an
     /// older build keeps it and draws the outline alone.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -312,7 +312,7 @@ pub struct BoxCp {
     pub pos: Pt2,
     /// The direction a wire leaves the CP.
     pub dir: Dir4,
-    /// The pin's name on a box whose device has no part (rc.5: a drawn box takes pins of its own): the box's function
+    /// The pin's name on a box whose device has no part (a drawn box takes pins of its own): the box's function
     /// has a CP of this index with this designation. Absent on a box of a part, whose pins are the part's. An optional
     /// member without cascade semantics (ADR-0011 amendment 6): an older build keeps it and draws the pin unnamed.
     #[serde(default, skip_serializing_if = "Option::is_none")]

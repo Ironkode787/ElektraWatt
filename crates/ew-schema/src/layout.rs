@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The panel layout records (doc 03 §16, doc 12 §2.2; WP-S4.01 D3): `layout_space` (rank 50), `enclosure` (51),
+//! The panel layout records (doc 03 §16, doc 12 §2.2): `layout_space` (rank 50), `enclosure` (51),
 //! `mounting_surface` (52), `carrier` (53) and `placement` (54), all in `layout/<space>.jsonl`.
 //!
-//! Typed within the unreleased format 0.1 under ADR-0011 amendment 4 (decision log ID-334): the kinds were reserved
-//! with their ranks and ownership, no build wrote them before, and only the members WP-S4.01 uses are typed. Every
+//! Typed within the unreleased format 0.1 under ADR-0011 amendment 4: the kinds were reserved
+//! with their ranks and ownership, no build wrote them before, and only the members the layout uses are typed. Every
 //! other member doc 03 §16 names stays verbatim in `extra` (`install`, `thermal`, `policy`, `install_type`, `doors`,
 //! `max_depth`, `segment`, `variant`), as do the surface kinds other than `plate`, the carrier kinds `busbar` and
 //! `surface`, and the `placement` variant of [`CarrierRef`] (each an `Unknown` variant, kept as read).
@@ -42,7 +42,7 @@ use crate::{Device, Function, StructureNode};
 // Layout space and enclosure
 
 /// One cabinet or bayed suite (doc 03 §16, rank 50, `layout/<own id>.jsonl`; FR-LAY-001): the anchor of every
-/// other layout record. At the MVP a location holds at most one layout space (WP-S4.01 D3, refused by
+/// other layout record. At the MVP a location holds at most one layout space (refused by
 /// `layout.space.create`, reported by EW-LAY-010 on loaded data).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct LayoutSpace {
@@ -67,7 +67,7 @@ pub struct LayoutSpace {
 
 /// An enclosure (doc 03 §16, rank 51, the layout file of its space): the cabinet body, tagged by its device, which
 /// carries the enclosure part (-UC1, NSYPLA1074G), so the part reaches the BOM by the one path (ADR-0006). At the
-/// MVP a space holds at most one enclosure (WP-S4.01 D3).
+/// MVP a space holds at most one enclosure.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Enclosure {
     /// The record ID.
@@ -96,7 +96,7 @@ pub struct Enclosure {
 
 /// A mounting surface of an enclosure (doc 03 §16, rank 52, the layout file of its enclosure's space): the plane
 /// carriers and placements sit on. A 2D layout page is a view of one surface (FR-LAY-010). At the MVP an enclosure
-/// holds at most one `plate` surface (WP-S4.01 D3).
+/// holds at most one `plate` surface.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct MountingSurface {
     /// The record ID.
@@ -150,7 +150,7 @@ pub enum SurfaceKind {
 /// A carrier on a mounting surface (doc 03 §16, rank 53, the layout file of its surface's space): a DIN rail or a
 /// wiring duct. Its placements' poses are relative to it, so moving a rail moves its devices.
 ///
-/// At the MVP carriers are axis-parallel (WP-S4.01 D5): a rail's `path` is two points on one horizontal or vertical
+/// At the MVP carriers are axis-parallel: a rail's `path` is two points on one horizontal or vertical
 /// line, a duct's an orthogonal polyline; the commands refuse other angles.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Carrier {
@@ -269,14 +269,14 @@ pub struct Placement {
     #[schemars(with = "Option<UuidS>")]
     pub function: Option<Id<Function>>,
     /// The part use of the device this placement realises; absent: the primary mountable part. `layout.place`
-    /// always writes it (WP-S4.01 D6); no delete policy: a placement whose part use left the device is reported
+    /// always writes it; no delete policy: a placement whose part use left the device is reported
     /// by EW-LAY-003, never changed silently.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub part: Option<PartRef>,
     /// The carrier or surface it sits on (delete policy forbid).
     pub carrier: CarrierRef,
     /// The pose relative to the carrier: on a rail `t = (s, 0, 0)` with `q` identity or 180° about `w`; on a
-    /// surface `t = (u, v, 0)` rotated by k·90° about `w` (WP-S4.01 D5).
+    /// surface `t = (u, v, 0)` rotated by k·90° about `w`.
     #[schemars(with = "Pose3S")]
     pub pose: Pose3,
     /// Excluded from push, swap and auto-fill (FR-LAY-006).

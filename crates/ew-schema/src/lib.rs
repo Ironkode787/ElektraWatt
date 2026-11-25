@@ -4,7 +4,7 @@
 //! The persisted record type of every entity kind (plain serde structs), the kind registry, per-kind schema
 //! versions and JSON Schemas.
 //!
-//! `ew-schema` v0 (WP-S1.02) holds the implemented kinds: the contract between the core and the output lanes
+//! `ew-schema` v0 holds the implemented kinds: the contract between the core and the output lanes
 //! of the spine. It implements ADR-0001 (records are the schema types: typed, not property bags, with an
 //! `extra` map), ADR-0006 (devices with typed aspects, functions, representations), ADR-0007 (explicit
 //! connections and junctions), ADR-0011 (per-kind `$v`, `Unknown` catch-alls, append-only members) and the
@@ -132,7 +132,7 @@ pub use device::{
     TagSign, TagSpec, Terminal, TerminalGroup,
 };
 pub use error::{MalformedVariant, SchemaError};
-/// The namespace and ID of a file-level conflict record (WP-S1.17 D14), for `ew-format`'s merge core.
+/// The namespace and ID of a file-level conflict record, for `ew-format`'s merge core.
 pub use ew_ids::v5::{NS_CONFLICT, conflict_file_id};
 pub use exchange::{ExchangeObject, ExchangeRecord, ForeignId};
 pub use json::{Extra, MAX_SAFE_INTEGER, Open, check_value, normalize_nfc};

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! FT-470 and FT-471: the work bounds' arithmetic, hostile documents generated here (no committed binaries), and
+//! The work bounds' arithmetic, hostile documents generated here (no committed binaries), and
 //! the real-exporter corpus kept under the limits.
 
 use std::collections::BTreeMap;
@@ -143,7 +143,7 @@ fn shapes_count_their_segments() {
     }
     // A radius in `em` can be as large as f32 allows: millions of pieces.
     assert!(shape_segments("circle", &attrs(&[("r", "1em")]), Lengths::WORST) > 10_000_000);
-    // FT-501: with a known font size and viewport it resolves.
+    // With a known font size and viewport it resolves.
     let known = Lengths {
         font: 12.0,
         viewport: 100.0,
@@ -228,7 +228,7 @@ fn named_bytes(c: &Compound) -> usize {
     c.named.iter().map(String::len).sum()
 }
 
-/// Review finding (cycle 30): a run of `[` used to make every bracket read up to the last `]` (quadratic). The
+/// A run of `[` used to make every bracket read up to the last `]` (quadratic). The
 /// names are now read once each, exact to simplecss's identifier rule.
 #[test]
 fn bracket_runs_read_each_name_once() {
@@ -259,7 +259,7 @@ fn bracket_runs_read_each_name_once() {
     assert_eq!(names("[-"), vec!["-"]);
 }
 
-/// Review finding (cycle 30), the documents: a 64 KiB style sheet that is one run of `[`, plain and not plain (a
+/// The documents: a 64 KiB style sheet that is one run of `[`, plain and not plain (a
 /// quote makes the scanner take the uniform shape), and 128 such sheets in one file under `MAX_SVG_BYTES`. Their
 /// verdicts are pinned; [`bracket_runs_read_each_name_once`] pins the linear reading that reaches them.
 #[test]
@@ -447,7 +447,7 @@ fn polylines(count: usize, attrs: &str) -> String {
         .collect()
 }
 
-/// FT-470: marker applications over inheriting shapes and their vertices are bounded before usvg runs.
+/// marker applications over inheriting shapes and their vertices are bounded before usvg runs.
 #[test]
 fn marker_applications_beyond_the_budget_are_refused() {
     let marker = r#"<defs><marker id="m"><path d="M0 0 L1 1"/></marker></defs>"#;
@@ -583,7 +583,7 @@ fn nested(depth: usize, inner: &str) -> String {
     format!("{}{inner}{}", "<g>".repeat(depth), "</g>".repeat(depth))
 }
 
-/// FT-471: selector matching and declaration application beyond the budget are refused before simplecss runs.
+/// selector matching and declaration application beyond the budget are refused before simplecss runs.
 #[test]
 fn style_work_beyond_the_budget_is_refused() {
     let leaf = r#"<path d="M0 0 H1"/>"#;
@@ -641,7 +641,7 @@ fn style_work_beyond_the_budget_is_refused() {
     }
 }
 
-/// FT-470 follow-up: the path segments of every shape conversion, markers or not, are bounded before usvg runs.
+/// The path segments of every shape conversion, markers or not, are bounded before usvg runs.
 #[test]
 fn path_segments_beyond_the_budget_are_refused() {
     let large_arcs =
@@ -695,7 +695,7 @@ fn path_segments_beyond_the_budget_are_refused() {
     );
 }
 
-/// The real-exporter corpus (FT-418) stays under both limits with the margins `MAX_SVG_MARKER_WORK` and
+/// The real-exporter corpus stays under both limits with the margins `MAX_SVG_MARKER_WORK` and
 /// `MAX_SVG_CSS_WORK` document: the largest bounds are pinned here, so a change of the arithmetic shows.
 #[test]
 fn the_exporter_corpus_stays_far_below_the_work_limits() {
@@ -729,7 +729,7 @@ fn the_exporter_corpus_stays_far_below_the_work_limits() {
     assert!(largest["css"] * 39 < MAX_SVG_CSS_WORK);
 }
 
-/// FT-501: `em` and `ex` lengths resolve from the font size, `%` from the viewport; absolute units are unchanged.
+/// `em` and `ex` lengths resolve from the font size, `%` from the viewport; absolute units are unchanged.
 #[test]
 fn relative_lengths_resolve_from_the_font_size_and_the_viewport() {
     let known = Lengths {
@@ -769,7 +769,7 @@ fn relative_lengths_resolve_from_the_font_size_and_the_viewport() {
     }
 }
 
-/// FT-501: the font-size chain's upper bound (usvg's `resolve_font_size`): absolute sizes, `em`, `ex` and `%` of the
+/// The font-size chain's upper bound (usvg's `resolve_font_size`): absolute sizes, `em`, `ex` and `%` of the
 /// parent's, named sizes at most 1.2³ times it; the parent's own bound always counts; `inherit` is unknown.
 #[test]
 fn font_sizes_follow_the_chain() {
@@ -802,7 +802,7 @@ fn font_sizes_follow_the_chain() {
     assert_eq!(font, Some(f64::from(f32::MAX)));
 }
 
-/// FT-501: the root viewport's larger side, from the `viewBox` or the size.
+/// The root viewport's larger side, from the `viewBox` or the size.
 #[test]
 fn the_root_viewport_comes_from_the_view_box_or_the_size() {
     let attrs = |pairs: &[(&'static str, &str)]| -> Attrs {
@@ -827,7 +827,7 @@ fn the_root_viewport_comes_from_the_view_box_or_the_size() {
     }
 }
 
-/// FT-501: a shape with an `em`, `ex` or `%` radius is admitted when the font-size chain and the viewport bound it,
+/// A shape with an `em`, `ex` or `%` radius is admitted when the font-size chain and the viewport bound it,
 /// and counts the worst case under CSS that can set a font size, inside a `use` target or under a nested viewport.
 /// The caps are unchanged: an `em` radius under a huge font size is still refused.
 #[test]

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 //! The part-level bus section (.1, D15; BU-7a, BU-7b): `PartSections.bus` with its port list types the
-//! members D15 and WP-S1.24 name, keeps every other member in `extra` and every newer enum value as `Unknown`, writes byte-equal
+//! members the format names, keeps every other member in `extra` and every newer enum value as `Unknown`, writes byte-equal
 //! in §8a.1's member order, omits an empty port list, and refuses a port without a required member.
 
 use crate::common;
@@ -56,7 +56,7 @@ fn a_bus_section_types_its_members_and_keeps_the_rest() {
     assert_eq!(first.bus, BusSystem::Profinet);
     assert_eq!(first.role, PortRole::Device);
     assert_eq!(first.termination, Some(OnOff::Off));
-    // WP-S1.24 types the connector, the rates, the address range and the signal map (FR-BUS-023)
+    // The format types the connector, the rates, the address range and the signal map (FR-BUS-023)
     assert_eq!(first.connector.as_ref().map(|c| c.as_str()), Some("rj45"));
     assert_eq!(first.rates, [ew_schema::BusRate(100_000_000)]);
     assert_eq!(

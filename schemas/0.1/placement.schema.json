@@ -213,11 +213,11 @@
           "type": "null"
         }
       ],
-      "description": "The part use of the device this placement realises; absent: the primary mountable part. `layout.place`\nalways writes it (WP-S4.01 D6); no delete policy: a placement whose part use left the device is reported\nby EW-LAY-003, never changed silently."
+      "description": "The part use of the device this placement realises; absent: the primary mountable part. `layout.place`\nalways writes it; no delete policy: a placement whose part use left the device is reported\nby EW-LAY-003, never changed silently."
     },
     "pose": {
       "$ref": "#/$defs/Pose3",
-      "description": "The pose relative to the carrier: on a rail `t = (s, 0, 0)` with `q` identity or 180° about `w`; on a\nsurface `t = (u, v, 0)` rotated by k·90° about `w` (WP-S4.01 D5)."
+      "description": "The pose relative to the carrier: on a rail `t = (s, 0, 0)` with `q` identity or 180° about `w`; on a\nsurface `t = (u, v, 0)` rotated by k·90° about `w`."
     }
   },
   "required": [

@@ -13,7 +13,7 @@
     },
     "RecordHash": {
       "additionalProperties": true,
-      "description": "The hashes of one imported record (WP-S3.09 D11): the first 128 bits of SHA-256, as 32 lower-case hex digits, over\nthe record's canonical line without its `source_ref` member.",
+      "description": "The hashes of one imported record: the first 128 bits of SHA-256, as 32 lower-case hex digits, over\nthe record's canonical line without its `source_ref` member.",
       "properties": {
         "ew": {
           "description": "The record as committed, when the normalisers changed it.",
@@ -316,7 +316,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "description": "One import into a lineage (doc 03 §5, doc 14 §2.4, rank 72, `imports/<run-uuid>.jsonl`; FR-IMP-041): the import's\nfindings, statistics and record hashes, written by the import transaction and never changed after it (WP-S3.09\nD6). Typed within the unreleased format 0.1 (ADR-0011 amendment 4); a member of a newer build stays in `extra`.",
+  "description": "One import into a lineage (doc 03 §5, doc 14 §2.4, rank 72, `imports/<run-uuid>.jsonl`; FR-IMP-041): the import's\nfindings, statistics and record hashes, written by the import transaction and never changed after it.\nTyped within the unreleased format 0.1 (ADR-0011 amendment 4); a member of a newer build stays in `extra`.",
   "properties": {
     "$k": {
       "const": "import_run",
@@ -371,7 +371,7 @@
       "additionalProperties": {
         "$ref": "#/$defs/RecordHash"
       },
-      "description": "Per imported record ID, its hashes (WP-S3.09 D11): the base of the next re-import.",
+      "description": "Per imported record ID, its hashes: the base of the next re-import.",
       "type": "object"
     },
     "source": {

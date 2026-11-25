@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 SPDX-License-Identifier: CC0-1.0
 -->
 
-# Real exporter SVG corpus (FT-418)
+# Real exporter SVG corpus
 
 The files come from Wikimedia Commons, each public domain or CC0 as its file page states; they are kept byte for byte
 except where the table says; they contain no personal data (metadata was checked); `tests/exporters.rs` asserts each

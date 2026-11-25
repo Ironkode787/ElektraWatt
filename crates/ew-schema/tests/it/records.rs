@@ -702,7 +702,7 @@ fn an_unknown_page_item_variant_is_kept_verbatim() {
     assert!(matches!(b.style, BoxStyle::Unknown(_)));
 }
 
-/// The `underlay` variant is typed (WP-S3.19): it round-trips byte for byte with its defaults omitted (page 1,
+/// The `underlay` variant is typed: it round-trips byte for byte with its defaults omitted (page 1,
 /// opacity 50), an unknown source format and an unknown member are kept, and a reversed rectangle is refused.
 #[test]
 fn the_underlay_page_item_variant_is_typed() {

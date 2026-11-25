@@ -4,9 +4,9 @@
 //! Waivers (doc 03 §19, doc 15 §2.5; FR-CHK-009): the `waiver` record (rank 61, `waivers.jsonl`).
 //!
 //! A waiver accepts one finding, matched by its 128-bit fingerprint, with a recorded reason, author and date. Typed
-//! within format 0.1 (ADR-0011 amendment 4, decision log ID-334; WP-S1.16 D7): the member names are doc 15 §2.5's
+//! within format 0.1 (ADR-0011 amendment 4): the member names are doc 15 §2.5's
 //! (`rule`, `target.finding`, `reason`, `author`, `date`), which the check engine already read from the reserved
-//! records, so a `waivers.jsonl` written before the kind was typed loads unchanged. `expires` (FT-184) and a 1.0 part
+//! records, so a `waivers.jsonl` written before the kind was typed loads unchanged. `expires` and a 1.0 part
 //! target (`target.library`, `target.item`) are not typed yet: they stay in `extra`, so a record written by a newer
 //! build keeps them through a load and a save.
 
@@ -21,7 +21,7 @@ use crate::value::Date;
 
 /// One waiver (doc 03 §19, doc 15 §2.5, rank 61, `waivers.jsonl`; FR-CHK-009).
 ///
-/// It is written only by the `HumanOnly` command `check.waive` (WP-S1.16 D7): the author and the date are that
+/// It is written only by the `HumanOnly` command `check.waive`: the author and the date are that
 /// command's parameters, never read from a clock or the operating system. The check engine marks a finding whose
 /// rule and fingerprint match as waived; a waiver that matches nothing is reported (EW-CORE-081), never deleted.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -40,7 +40,7 @@ pub struct Waiver {
     /// Why the finding is accepted (doc 15 §2.5); `check.waive` records an empty text when none is given.
     #[schemars(with = "MlTextS")]
     pub reason: MlText,
-    /// Who waived it: the author's display name as the GUI recorded it (FT-494); absent when the person gave none or
+    /// Who waived it: the author's display name as the GUI recorded it; absent when the person gave none or
     /// the record was written while the kind was reserved.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<IdentS>")]
@@ -48,7 +48,7 @@ pub struct Waiver {
     /// When it was waived. `check.waive` always sets it; a record written while the kind was reserved may lack it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub date: Option<Date>,
-    /// Unknown members (`expires` until FT-184 types it) and plugin keys.
+    /// Unknown members (`expires` until it is typed) and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
 }

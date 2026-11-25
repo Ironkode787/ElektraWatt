@@ -101,7 +101,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "description": "A mounting surface of an enclosure (doc 03 §16, rank 52, the layout file of its enclosure's space): the plane\ncarriers and placements sit on. A 2D layout page is a view of one surface (FR-LAY-010). At the MVP an enclosure\nholds at most one `plate` surface (WP-S4.01 D3).",
+  "description": "A mounting surface of an enclosure (doc 03 §16, rank 52, the layout file of its enclosure's space): the plane\ncarriers and placements sit on. A 2D layout page is a view of one surface (FR-LAY-010). At the MVP an enclosure\nholds at most one `plate` surface.",
   "properties": {
     "$k": {
       "const": "mounting_surface",

@@ -5,9 +5,9 @@
 //! aspects `plc_station` and `plc_module`, the part's `plc` section, and the functional `device_link` (42;
 //! doc 03 §7, doc 11 §3.1).
 //!
-//! Implemented members are those of the MVP  and of the 1.0 layer of WP-S1.24: the
+//! Implemented members are those of the MVP  and of the 1.0 layer: the
 //! symbol policy, the safety data of doc 10 §2.9, a channel's data type, signal range and port mode, and the
-//! part's allowed slots, station limits, IO-Link port window and output ratings; and of the exchange of WP-S3.16: a
+//! part's allowed slots, station limits, IO-Link port window and output ratings; and of the exchange: a
 //! configuration project's ownership and exchange stamp, a station's firmware and a module's type identification.
 //! The other members of doc 10 §2.2–§2.4 (allocation, device descriptions, auxiliary pins) are additive and stay in
 //! `extra` until their work packages.
@@ -693,7 +693,7 @@ pub struct PlcSection {
     /// no pins (internal channels, such as the solenoid outputs of a valve-terminal module).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pin_of: Option<PinMap>,
-    /// The supply groups of the part's power-supply pins (doc 10 §2.6, FR-PLC-024, WP-S1.21 D13): each names the
+    /// The supply groups of the part's power-supply pins (doc 10 §2.6, FR-PLC-024): each names the
     /// L+ and M pins of one group, so that the pins take the potential roles `L+` and `M` when neither the part
     /// pattern nor the function definition gives them one (`ew_derive::FunctionCps`). Appended after `pin_of`, so a
     /// part without groups writes the bytes it wrote before (the member order fixes a copy's hash).
@@ -711,7 +711,7 @@ pub struct PlcSection {
     /// The output current ratings of a module (EW-PLC-014, FR-PLC-048).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ratings: Option<OutputRatings>,
-    /// The channel specs after `channels`, of other kinds (doc 10 §2.6, FT-1766: a card of 8 inputs and 8 outputs),
+    /// The channel specs after `channels`, of other kinds (doc 10 §2.6: a card of 8 inputs and 8 outputs),
     /// each numbered on from the one before ([`PlcSection::channel_specs`]). Appended last and omitted when empty, so a
     /// part of one kind writes the bytes it wrote before; an older build keeps it in `extra` and makes the first spec's
     /// channels alone.
@@ -818,7 +818,7 @@ pub struct OutputRatings {
     pub extra: Extra,
 }
 
-/// One supply group of a PLC part (doc 10 §2.6 `[[plc.supply]]`, FR-PLC-024, WP-S1.21 D13): the L+ and M pins that
+/// One supply group of a PLC part (doc 10 §2.6 `[[plc.supply]]`, FR-PLC-024): the L+ and M pins that
 /// feed the electronics or a load group, and the channels the group feeds. The earth pin (`[plc.earth]`) is not part
 /// of a group and stays in [`PlcSection::extra`].
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]

@@ -72,7 +72,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "description": "An enclosure (doc 03 §16, rank 51, the layout file of its space): the cabinet body, tagged by its device, which\ncarries the enclosure part (-UC1, NSYPLA1074G), so the part reaches the BOM by the one path (ADR-0006). At the\nMVP a space holds at most one enclosure (WP-S4.01 D3).",
+  "description": "An enclosure (doc 03 §16, rank 51, the layout file of its space): the cabinet body, tagged by its device, which\ncarries the enclosure part (-UC1, NSYPLA1074G), so the part reaches the BOM by the one path (ADR-0006). At the\nMVP a space holds at most one enclosure.",
   "properties": {
     "$k": {
       "const": "enclosure",

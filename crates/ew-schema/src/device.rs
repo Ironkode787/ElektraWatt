@@ -640,7 +640,7 @@ pub struct Function {
     /// Import provenance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_ref: Option<SourceRef>,
-    /// The 0-based index of the part `function_template` entry this function was created from (FT-655), stored at
+    /// The 0-based index of the part `function_template` entry this function was created from, stored at
     /// creation because the function's ID is minted and cannot name it. The CP derivation reads the entry at this
     /// index of the first part use of the device whose template has one naming the function's FnDef copy; absent (a
     /// function not made from a template, or a file written before the member), or an index that names no such entry,
@@ -648,7 +648,7 @@ pub struct Function {
     /// semantics, additive within format 0.1 (ADR-0011 amendment 1, doc 05 §10.3 rule 1).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub template_entry: Option<u16>,
-    /// The bus port of the function (doc 03 §14, doc 10 §2.7; WP-S1.21 D11, FT-225): a port of a device, a bus
+    /// The bus port of the function (doc 03 §14, doc 10 §2.7): a port of a device, a bus
     /// connector's port, or the port of an external partner. Appended, since 0.1: an optional member typed within the
     /// unreleased format under ADR-0011 amendment 4.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -710,7 +710,7 @@ pub struct IpSpec {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub external: Option<Id<ExternalRef>>,
-    /// The group of an external point (rc.3): the points of one external reference with the same group stand together
+    /// The group of an external point: the points of one external reference with the same group stand together
     /// on their page and print where they come from once, at the last of them (the lowest, then the rightmost); none:
     /// the point prints it itself. A drawing made before has none and prints as it did.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -767,7 +767,7 @@ pub struct CpOverride {
 
 keyed!(CpOverride, idx: u16);
 
-/// How a fluid port is closed (doc 11 §2.7, WP-S1.20 D2).
+/// How a fluid port is closed (doc 11 §2.7).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct PortClosure {
     /// The closure kind.

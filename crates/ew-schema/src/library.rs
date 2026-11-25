@@ -754,12 +754,12 @@ pub struct TextSlot {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<NmS>")]
     pub max_width: Option<Nm>,
-    /// Name of the text style that replaces the style bound to the slot's kind (decision log ID-197); absent
+    /// Name of the text style that replaces the style bound to the slot's kind; absent
     /// means the kind's style.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<IdentS>")]
     pub style: Option<Ident>,
-    /// What the slot prints when its own value is empty (doc 11 §3.1, WP-S1.20 D14); absent means nothing.
+    /// What the slot prints when its own value is empty (doc 11 §3.1); absent means nothing.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fallback: Option<SlotFallback>,
     /// The solenoid (its designation, `14` or `12`) whose PLC address a `plc_address` slot prints, so that a valve
@@ -772,7 +772,7 @@ pub struct TextSlot {
     pub extra: Extra,
 }
 
-/// What a text slot prints when its own value is empty (WP-S1.20 D14).
+/// What a text slot prints when its own value is empty.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 #[serde(remote = "Self")]
@@ -817,10 +817,9 @@ pub enum SlotKind {
     ContactImage,
     /// The order code of the device's first assembly config (doc 10 §6 folio 3, D-36).
     OrderCode,
-    /// The station address of the drawn function's bus port, "Node TBD" or "Node 3" (FR-BUS-006;
-    /// WP-S1.21 D11); empty for a port without an address.
+    /// The station address of the drawn function's bus port, "Node TBD" or "Node 3" (FR-BUS-006); empty for a port without an address.
     BusAddress,
-    /// The termination of the drawn function's bus port, `Switch to "ON"` (FR-BUS-004; WP-S1.21 D11); empty for a
+    /// The termination of the drawn function's bus port, `Switch to "ON"` (FR-BUS-004); empty for a
     /// port without a termination switch.
     BusTermination,
     /// A value of a newer format, kept verbatim.
@@ -1276,7 +1275,7 @@ impl FnFlags {
 
 /// A catalogue part (doc 07 §2.5), library item kind `part`; embedded as a [`LibCopy`]`<`[`Part`]`>`.
 ///
-/// The typed members follow doc 07 §2.5's order (WP-S1.19 D2): a copy's `sha256` is taken over the item's
+/// The typed members follow doc 07 §2.5's order: a copy's `sha256` is taken over the item's
 /// compact JSON in declaration order, so the order is fixed once, before the first format release, including the
 /// places of the members that are not typed yet. The MVP data levels L0 to L3 are typed: identity, technical
 /// data, CP pattern, function template, contact data, mechanical data, the cable-core, PLC and carrier
@@ -1777,10 +1776,10 @@ pub struct PartSections {
     /// The mounting-plate section: its dimensions.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mounting_plate: Option<PlateSection>,
-    /// The bus section: the part's bus interfaces (doc 10 §2.6, WP-S1.21 D15).
+    /// The bus section: the part's bus interfaces (doc 10 §2.6).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bus: Option<crate::BusSection>,
-    /// The fluid section: the solenoids a valve part declares (doc 11 §2.6, WP-S1.20 D4).
+    /// The fluid section: the solenoids a valve part declares (doc 11 §2.6).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fluid: Option<FluidSection>,
     /// Unknown members (other sections).
@@ -1789,7 +1788,7 @@ pub struct PartSections {
 }
 
 /// The fluid section of a part (doc 11 §2.6). The solenoids of a valve part, the k-th being the k-th template entry on
-/// a FnDef of contact kind `coil` (WP-S1.20 D4), and the 1.0 members (WP-S1.25), each optional and additive within
+/// a FnDef of contact kind `coil`, and the 1.0 members, each optional and additive within
 /// format 0.1 (ADR-0011 amendment 6); `overview` stays in `extra`.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct FluidSection {
@@ -1804,7 +1803,7 @@ pub struct FluidSection {
     /// The valve positions of a valve module (occupancy, FI-02); absent: `plc.positions.count`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub positions: Option<u16>,
-    /// A multipin valve terminal's plug (doc 10 §2.3, rc.2): which pin of the part's CP pattern each solenoid of the
+    /// A multipin valve terminal's plug (doc 10 §2.3): which pin of the part's CP pattern each solenoid of the
     /// valve at position p is wired through, as `{solenoid, pin}` with `pin` an expression in p (`2p-1`); the plug's
     /// common pin is a pattern CP named in no entry. Empty for any other part. Additive within format 0.1.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -2439,7 +2438,7 @@ pub struct Manufacturer {
 // ---------------------------------------------------------------------------------------------------------
 // PLC address profile
 
-/// A PLC address profile (doc 10 §2.5, FR-PLC-008; WP-S7.03 D7), library item kind `plc_profile`; embedded under
+/// A PLC address profile (doc 10 §2.5, FR-PLC-008), library item kind `plc_profile`; embedded under
 /// `lib/plc-profiles/` as a `LibCopy<PlcProfileDef>`. The item's version is the library's semver; `profile.version`
 /// is the pin a configuration project names (`id@version`), and what a profile renders changes only with a new
 /// `profile.version`, never by an edit of a published one. Whether the notation renders is `ew-plcaddr`'s check.
@@ -2602,7 +2601,7 @@ pub struct PlcAllocationStart {
 
 /// A reusable fragment (doc 07 §2.7, doc 03 §7), library item kind `macro`; embedded under `lib/macros/` as a
 /// `LibCopy<MacroDef>`. Placeholder groups live inside the macro, so `placeholder_group` stays a reserved
-/// record kind (WP-S1.19 D15).
+/// record kind.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct MacroDef {
     /// Provenance.
@@ -2662,7 +2661,7 @@ pub struct MacroVariant {
     /// The variant key.
     #[schemars(with = "IdentS")]
     pub key: Ident,
-    /// The project fragment (`#ew-fragment v1`, WP-S1.19 D12), kept as JSON here; `ew-commands` parses it.
+    /// The project fragment (`#ew-fragment v1`), kept as JSON here; `ew-commands` parses it.
     pub fragment: Value,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
@@ -2716,7 +2715,7 @@ pub enum VarType {
     TagCounter,
     /// An existing device chosen at insertion.
     DeviceRef,
-    /// A representation's text slots, a list (FT-1420: a value set moves or resets a slot).
+    /// A representation's text slots, a list (a value set moves or resets a slot).
     TextSlots,
     /// A value of a newer format, kept verbatim.
     #[serde(skip)]

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Assets: content-addressed image files (`assets/<sha256>.<ext>`, doc 05 §13.3; FT-337), the embedded sources of
-//! underlays (a PDF or a DXF the user embedded, WP-S3.19) and the project's typeface (a TrueType or OpenType file, doc 09
+//! Assets: content-addressed image files (`assets/<sha256>.<ext>`, doc 05 §13.3), the embedded sources of
+//! underlays (a PDF or a DXF the user embedded) and the project's typeface (a TrueType or OpenType file, doc 09
 //! §4.8), which no image gate takes ([`pixel_limit`]).
 //!
 //! - [`AssetFormat`]: the encodings a project may hold (SVG, PNG, JPEG; PDF and DXF underlay sources; TTF and OTF
@@ -12,11 +12,11 @@
 //! - [`sniff`]: what the asset store does once, when bytes are imported: it reads the magic bytes and the
 //!   intrinsic size (PNG `IHDR`, JPEG `SOF`, SVG `viewBox` or `width`/`height`) and applies the size limits. It
 //!   decodes no image and renders nothing. An SVG must also pass [`svg_hazard`].
-//! - [`svg_hazard`]: the conservative pre-parse rejecter of SVG assets (FT-383, doc 18 §11 TM-18): sniffing is not
+//! - [`svg_hazard`]: the conservative pre-parse rejecter of SVG assets (doc 18 §11 TM-18): sniffing is not
 //!   sanitising, so every SVG the store admits is first scanned for a DOCTYPE internal subset, entity declarations,
 //!   scripts and event attributes, `foreignObject`, and references that leave the document; any of them refuses the
 //!   asset before a parser or a renderer sees it.
-//! - [`sha256_mentions`]: the asset hashes a text mentions (the asset purge, FT-380).
+//! - [`sha256_mentions`]: the asset hashes a text mentions (the asset purge).
 //! - [`base64_encode`] and [`base64_decode`]: the standard alphabet with padding (RFC 4648 §4), the encoding of
 //!   asset bytes inside JSON (command parameters, journal lines).
 //! - [`company_logo`]: the logo of the provisional company member `Project.extra["ew.company"]` (doc 09 §2.6,
@@ -35,19 +35,19 @@ use crate::value::Sha256;
 /// The largest raster asset (PNG, JPEG): 16 MiB (doc 05 §13.3).
 pub const MAX_RASTER_BYTES: usize = 16 * 1024 * 1024;
 /// The most pixels a raster asset may declare: 16 Mi, the decode limit of the renderers (`ew_render_cpu`'s
-/// `MAX_IMAGE_PIXELS`), each side at most 65535 (FT-1378): a larger image would be placed but never drawn.
+/// `MAX_IMAGE_PIXELS`), each side at most 65535: a larger image would be placed but never drawn.
 pub const MAX_RASTER_PIXELS: u64 = 16 * 1024 * 1024;
 /// The largest SVG asset: 8 MiB (doc 05 §13.3).
 pub const MAX_SVG_BYTES: usize = 8 * 1024 * 1024;
 /// The most elements an SVG asset may have (doc 05 §13.3).
 pub const MAX_SVG_NODES: usize = 100_000;
 
-/// The largest company logo: 512 KiB (FT-337 fix round, owner ruling). The logo travels as base64 inside a command
+/// The largest company logo: 512 KiB (owner ruling). The logo travels as base64 inside a command
 /// parameter and a journal line, so it stays well below the command layer's 1 MiB limit of one parameter string.
 pub const MAX_LOGO_BYTES: usize = 512 * 1024;
 
 /// The project-row member that holds the company data of a basic project until `Project` types it (decision log
-/// ID-40, ID-545).
+/// ID-40).
 pub const COMPANY_MEMBER: &str = "ew.company";
 
 /// The encoding of an asset.
@@ -162,7 +162,7 @@ pub enum AssetError {
     },
     /// An SVG file with more than [`MAX_SVG_NODES`] elements.
     TooManyNodes,
-    /// A PNG or JPEG file that declares more than [`MAX_RASTER_PIXELS`] pixels, or a side over 65535 (FT-1378).
+    /// A PNG or JPEG file that declares more than [`MAX_RASTER_PIXELS`] pixels, or a side over 65535.
     TooManyPixels {
         /// The format.
         format: AssetFormat,
@@ -179,7 +179,7 @@ pub enum AssetError {
     UnsafeSvg(SvgHazard),
 }
 
-/// Why an SVG asset is refused before any parser or renderer reads it ([`svg_hazard`]; FT-383, doc 18 §11 TM-18).
+/// Why an SVG asset is refused before any parser or renderer reads it ([`svg_hazard`];, doc 18 §11 TM-18).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum SvgHazard {
     /// The file is not UTF-8 text.
@@ -201,19 +201,19 @@ pub enum SvgHazard {
     /// Markup the scanner cannot follow (an unclosed comment, CDATA section, processing instruction, tag or
     /// attribute value, an unknown declaration): refused rather than guessed.
     Malformed,
-    /// Structure the parser cannot bear (FT-384 audit): nesting deeper than [`MAX_SVG_DEPTH`], a cycle of references
+    /// Structure the parser cannot bear: nesting deeper than [`MAX_SVG_DEPTH`], a cycle of references
     /// (through descendants, through class rules or through a rule with any other selector), an expansion through
     /// references beyond [`MAX_SVG_EXPANSION`], marker content that can carry a marker property (its own attributes,
     /// an ancestor's, a class whose rule names one, or any element when a rule with another selector names one), a
     /// style sheet with more selector groups than [`MAX_SVG_CSS_RULES`] or more cloned declarations than
     /// [`MAX_SVG_CSS_DECLARATIONS`] (upper bounds counted without parsing, so no string, comment or at-rule hides
     /// them), a long run of close-path commands, path segments beyond [`MAX_SVG_PATH_SEGMENTS`] or an arc of more
-    /// than [`MAX_SVG_ARC_PIECES`] pieces, marker applications beyond [`MAX_SVG_MARKER_WORK`] (FT-470) or style
-    /// matching and application beyond [`MAX_SVG_CSS_WORK`] (FT-471).
+    /// than [`MAX_SVG_ARC_PIECES`] pieces, marker applications beyond [`MAX_SVG_MARKER_WORK`] or style
+    /// matching and application beyond [`MAX_SVG_CSS_WORK`].
     TooComplex,
     /// A number beyond [`MAX_SVG_NUMBER`] in an attribute or a style sheet.
     HugeNumber,
-    /// A construct that panics the parser (`transform-origin`, `feConvolveMatrix`; FT-384 audit).
+    /// A construct that panics the parser (`transform-origin`, `feConvolveMatrix`).
     Unsupported,
 }
 
@@ -235,7 +235,7 @@ impl SvgHazard {
         }
     }
 
-    /// How to export the file again so that it passes, in words (FT-418).
+    /// How to export the file again so that it passes, in words.
     pub const fn advice(self) -> &'static str {
         match self {
             SvgHazard::NotUtf8 | SvgHazard::Malformed => "export it again as a plain SVG in UTF-8",
@@ -304,7 +304,7 @@ impl fmt::Display for AssetError {
 impl std::error::Error for AssetError {}
 
 /// The format and intrinsic size of asset bytes, after the size limits (doc 05 §13.3, decision log ID-61). The pixel
-/// limit of a raster image is [`pixel_limit`]'s, which only the gates that bring an image in apply (ID-1417).
+/// limit of a raster image is [`pixel_limit`]'s, which only the gates that bring an image in apply.
 ///
 /// # Errors
 ///
@@ -351,7 +351,7 @@ pub fn sniff(bytes: &[u8]) -> Result<(AssetFormat, Option<(u32, u32)>), AssetErr
     Ok((format, size.filter(|(w, h)| *w > 0 && *h > 0)))
 }
 
-/// The pixel limit of a raster image a project takes in (FT-1378, decision log ID-1417): a PNG or JPEG of `size` that
+/// The pixel limit of a raster image a project takes in: a PNG or JPEG of `size` that
 /// declares more than [`MAX_RASTER_PIXELS`] pixels, or a side over 65535, is refused. The gates that bring an image in
 /// apply it after [`sniff`]; an open does not, so an image an earlier build took in is kept (and not drawn).
 ///
@@ -608,29 +608,29 @@ fn svg_elements(bytes: &[u8]) -> usize {
 
 mod work;
 
-/// The deepest element nesting an SVG asset may have (the parser recurses per level; FT-384 audit).
+/// The deepest element nesting an SVG asset may have (the parser recurses per level).
 pub const MAX_SVG_DEPTH: usize = 64;
 /// The most elements an SVG asset may expand to through its references (`use`, clip paths, masks, patterns,
-/// markers, filters), counted with multiplicity (FT-384 audit: usvg converts a referenced subtree once per reference).
+/// markers, filters), counted with multiplicity (usvg converts a referenced subtree once per reference).
 pub const MAX_SVG_EXPANSION: u64 = 200_000;
 /// The longest chain of references an SVG asset may have (`use` of an element that holds a `use`, a clip path whose
-/// content references a mask, and so on): the parser recurses once per link and allows 1024 (FT-384 review fix 6).
+/// content references a mask, and so on): the parser recurses once per link and allows 1024.
 pub const MAX_SVG_REF_DEPTH: usize = 32;
-/// The largest magnitude of a number in an attribute or a style sheet of an SVG asset (FT-384 audit: huge arc radii
+/// The largest magnitude of a number in an attribute or a style sheet of an SVG asset (huge arc radii
 /// and filter values make the parser allocate without bound or panic).
 pub const MAX_SVG_NUMBER: f64 = 1.0e9;
 /// The most selector groups an SVG asset's style sheets may hold, an upper bound counted without parsing (every
 /// group needs a `,` or a `{`): usvg matches every rule against every element (`usvg` 0.48.1
 /// `parser/svgtree/parse.rs`), and the CSS parser makes one rule per group (audit of simplecss 0.2.2,
-/// `supply-chain/audits.toml`; FT-418). The largest real exporter file seen holds a bound of 82.
+/// `supply-chain/audits.toml`). The largest real exporter file seen holds a bound of 82.
 pub const MAX_SVG_CSS_RULES: u64 = 4_096;
 /// The most declarations an SVG asset's style sheets may hold once every selector group has its own copy of its
 /// rule's declarations: for a plain sheet this is the exact count of the copies the CSS parser makes (per rule, its
 /// selector groups times its declarations); a sheet that is not plain falls back to the raw group bound times its
-/// `:` count (audit of simplecss 0.2.2, `supply-chain/audits.toml`: "selector-group x declaration clone growth";
-/// FT-418). The largest real exporter file seen holds a bound of 3,526.
+/// `:` count (audit of simplecss 0.2.2, `supply-chain/audits.toml`: "selector-group x declaration clone growth").
+/// The largest real exporter file seen holds a bound of 3,526.
 pub const MAX_SVG_CSS_DECLARATIONS: u64 = 262_144;
-/// The most marker work an SVG asset may cause, in elements converted (FT-470): usvg converts a marker's content
+/// The most marker work an SVG asset may cause, in elements converted: usvg converts a marker's content
 /// once per vertex it is drawn at, and the vertices of a shape are those of the path it makes of it (an arc's cubic
 /// pieces included). The bound sums, over every shape conversion (the document's and every reference's, as the
 /// expansion counts them) that can carry a marker property, its segments times the largest marker content a
@@ -638,7 +638,7 @@ pub const MAX_SVG_CSS_DECLARATIONS: u64 = 262_144;
 /// [`MAX_SVG_EXPANSION`]; the largest real exporter file seen (Visio, arrowheads through class rules) holds a bound
 /// of 48, so the limit has a margin of over 4,000 (`asset/work/tests.rs` asserts the corpus bounds).
 pub const MAX_SVG_MARKER_WORK: u64 = 200_000;
-/// The most style work an SVG asset may cause, in match steps (FT-471): usvg matches every style rule against every
+/// The most style work an SVG asset may cause, in match steps: usvg matches every style rule against every
 /// element it parses (clones of `use` included), simplecss backtracks through the ancestors once per descendant
 /// combinator, and every matching rule's declarations are applied. The bound sums, over every element conversion,
 /// each selector's most expensive match at the element's depth (`asset/work.rs`), the declarations of every rule
@@ -646,7 +646,7 @@ pub const MAX_SVG_MARKER_WORK: u64 = 200_000;
 /// seen (Inkscape, a 2,791-element map whose commented sheet is not plain) holds a bound of 430,667,782, so the limit
 /// 2^34 (17,179,869,184) has a margin of about 40 (`asset/work/tests.rs` asserts the corpus bounds).
 pub const MAX_SVG_CSS_WORK: u64 = 1 << 34;
-/// The most path segments an SVG asset may convert to (FT-470 follow-up): over every shape conversion (the
+/// The most path segments an SVG asset may convert to: over every shape conversion (the
 /// document's and every reference's), the segments of the path usvg makes of it, an arc's cubic pieces included
 /// (kurbo cuts an arc whose radius is scaled up over a long chord, or a radius in `em` from nested font sizes, into
 /// thousands to millions of pieces; the scan counts a radius in `em`, `ex` or `%` as `f32::MAX`, so one circle,
@@ -654,14 +654,14 @@ pub const MAX_SVG_CSS_WORK: u64 = 1 << 34;
 /// file seen (Illustrator, a 2,552-element map) holds a bound of 33,896, a margin of over 120 (`asset/work/tests.rs`
 /// asserts the corpus bounds).
 pub const MAX_SVG_PATH_SEGMENTS: u64 = 1 << 22;
-/// The most cubic pieces one elliptical arc of path data may make (FT-470 follow-up): svgtypes 0.16.1 hands an arc's
+/// The most cubic pieces one elliptical arc of path data may make: svgtypes 0.16.1 hands an arc's
 /// pieces out of a buffer it drains from the front (`Vec::remove(0)`), so an arc of `n` pieces costs about `n²/2`
 /// moves. kurbo makes at most 55 (the scan's bound) of an arc whose radius is at most [`MAX_SVG_NUMBER`]; more only
 /// come from radii scaled up over a chord much longer than the smaller radius, which no drawing needs. A path with
 /// such an arc counts as unbounded.
 pub const MAX_SVG_ARC_PIECES: u64 = 64;
 
-/// The first reason to refuse an SVG file before any parser or renderer reads it, or `None` (FT-383, doc 05 §13.3,
+/// The first reason to refuse an SVG file before any parser or renderer reads it, or `None` (doc 05 §13.3,
 /// doc 18 §11 TM-18). Sniffing is not sanitising: the sniffer reads only the root element, so this scanner reads the
 /// whole document as markup (comments skipped, CDATA read as text) and refuses, conservatively (ASCII case is ignored,
 /// so `<SCRIPT` counts):
@@ -678,7 +678,7 @@ pub const MAX_SVG_ARC_PIECES: u64 = 64;
 ///   `embed`, `object` and `include` elements ([`SvgHazard::ExternalReference`]); an embedded `data:` image counts
 ///   as such a reference (EW draws an SVG asset's paths, not images inside it);
 /// - text that is not UTF-8, and markup it cannot follow ([`SvgHazard::NotUtf8`], [`SvgHazard::Malformed`]);
-/// - what the parser's audit found it cannot bear (FT-384; the cargo-vet audit of usvg 0.48.1 and its dependencies,
+/// - what the parser's audit found it cannot bear (the cargo-vet audit of usvg 0.48.1 and its dependencies,
 ///   2026-10-23): nesting deeper than [`MAX_SVG_DEPTH`]; a cycle of references between elements (`url(#…)` and
 ///   `href="#…"`, through descendants, through the class rules a class selects and through a rule with any other
 ///   selector, any length); an expansion through references beyond [`MAX_SVG_EXPANSION`]; marker content that can
@@ -706,15 +706,15 @@ pub const MAX_SVG_ARC_PIECES: u64 = 64;
 /// Three work bounds follow, computed from the same pass (arithmetic in `asset/work.rs`) and refused as
 /// [`SvgHazard::TooComplex`]:
 ///
-/// - *path segments* (FT-470 follow-up): over every shape conversion, marker or not, the segments of the path usvg
+/// - *path segments*: over every shape conversion, marker or not, the segments of the path usvg
 ///   makes of it; beyond [`MAX_SVG_PATH_SEGMENTS`], or any arc of path data beyond [`MAX_SVG_ARC_PIECES`] pieces
 ///   (svgtypes drains them quadratically);
-/// - *marker applications* (FT-470): over every shape conversion (the document's and every reference's) that can
+/// - *marker applications*: over every shape conversion (the document's and every reference's) that can
 ///   carry a marker property (its own, an ancestor's, a class rule's, or any when a `use` converts it again), its
 ///   path segments (one per command, the move-to svgtypes inserts after a close-path, and every cubic piece kurbo
 ///   cuts an arc into) times the largest marker content a `marker-mid` names, plus the largest a `marker-start` and a
 ///   `marker-end` name; beyond [`MAX_SVG_MARKER_WORK`];
-/// - *style work* (FT-471): over every element conversion, each selector's most expensive simplecss match at the
+/// - *style work*: over every element conversion, each selector's most expensive simplecss match at the
 ///   element's depth (the backtracking over ancestors per descendant combinator), the declarations of every rule
 ///   that may match it and of its `style` attribute times their insertion cost; beyond [`MAX_SVG_CSS_WORK`].
 ///   Selectors are known exactly in a plain sheet; in any other sheet every span that can end a valid selector is
@@ -723,15 +723,15 @@ pub const MAX_SVG_ARC_PIECES: u64 = 64;
 /// Where the scan cannot tell what usvg will apply, it counts the larger case: a radius in `em` or `ex` resolves from
 /// the `font-size` chain (default 12) and one in `%` from the root viewport, but each is as large as `f32` allows where
 /// CSS may set a font size (for `em`, `ex`), a nested `svg` or `symbol` sets another viewport (for `%`) or a `use`
-/// converts the shape again (for all three) (FT-501); path data it cannot follow is bounded from its digits, a combinator it cannot tell walks
+/// converts the shape again (for all three); path data it cannot follow is bounded from its digits, a combinator it cannot tell walks
 /// every ancestor and the sibling, and a rule's declarations may apply to every element unless its selector requires
 /// a class.
 ///
-/// Calibrated against real exporters' files (FT-418, `tests/fixtures/svg-exporters/`).
+/// Calibrated against real exporters' files (`tests/fixtures/svg-exporters/`).
 ///
 /// Linear in the length of the file (the reference graph is walked a few times; a style sheet's selectors cost
 /// their compounds times the 64 depths). The drawing pipeline parses an admitted SVG
-/// with external references disabled and inside `catch_unwind` besides (FT-384), so this is the first of two guards,
+/// with external references disabled and inside `catch_unwind` besides, so this is the first of two guards,
 /// not the only one.
 pub fn svg_hazard(bytes: &[u8]) -> Option<SvgHazard> {
     svg_work(bytes).err()
@@ -742,15 +742,15 @@ pub fn svg_hazard(bytes: &[u8]) -> Option<SvgHazard> {
 struct Work {
     /// Elements converted, references expanded ([`MAX_SVG_EXPANSION`]).
     expansion: u64,
-    /// Path segments of every shape conversion ([`MAX_SVG_PATH_SEGMENTS`], FT-470 follow-up).
+    /// Path segments of every shape conversion ([`MAX_SVG_PATH_SEGMENTS`]).
     segments: u64,
-    /// Marker content elements converted ([`MAX_SVG_MARKER_WORK`], FT-470).
+    /// Marker content elements converted ([`MAX_SVG_MARKER_WORK`]).
     markers: u64,
-    /// Style match and application steps ([`MAX_SVG_CSS_WORK`], FT-471).
+    /// Style match and application steps ([`MAX_SVG_CSS_WORK`]).
     css: u64,
 }
 
-/// The upper bound [`svg_hazard`] uses for the segments usvg 0.48.1 makes of the path data `d` (FT-470), for the
+/// The upper bound [`svg_hazard`] uses for the segments usvg 0.48.1 makes of the path data `d`, for the
 /// test that checks it against usvg itself (`ew-scene`); not part of the asset API.
 #[doc(hidden)]
 pub fn svg_path_segment_bound(d: &str) -> u64 {
@@ -759,7 +759,7 @@ pub fn svg_path_segment_bound(d: &str) -> u64 {
 
 /// The upper bound [`svg_hazard`] uses for the path segments of every shape conversion of an admitted document, or
 /// `None` when it refuses it, for the test that checks the resolution of `em`, `ex` and `%` radii against usvg
-/// itself (FT-501, `ew-scene`); not part of the asset API.
+/// itself (`ew-scene`); not part of the asset API.
 #[doc(hidden)]
 pub fn svg_segment_bound(bytes: &[u8]) -> Option<u64> {
     svg_work(bytes).ok().map(|work| work.segments)
@@ -956,9 +956,9 @@ struct Record {
     depth: usize,
     /// The segments of the path usvg makes of it when it is a shape ([`work::shape_segments`]), else 0: with its
     /// font size known (index bit 0 clear) or the worst case (set), and its viewport known (bit 1 clear) or the
-    /// worst case (set); [`Scan::finish`] chooses (FT-501).
+    /// worst case (set); [`Scan::finish`] chooses.
     segment_cases: [u64; 4],
-    /// Upper bounds of its font size and of its viewport's larger side; `None` when unknown (FT-501).
+    /// Upper bounds of its font size and of its viewport's larger side; `None` when unknown.
     font: Option<f64>,
     viewport: Option<f64>,
     /// The markers its own marker attributes and `style` name, per property.
@@ -1012,7 +1012,7 @@ struct Scan {
     /// last element child; the most seen before an element.
     gaps: Vec<u64>,
     max_gap: u64,
-    /// The selectors of every style sheet (FT-471).
+    /// The selectors of every style sheet.
     selectors: Vec<work::Selector>,
     /// The declarations (count, bytes) usvg may apply to every element, and to the elements with each class.
     apply_all: (u64, u64),
@@ -1022,10 +1022,10 @@ struct Scan {
     css_inherit: bool,
     css_font: bool,
     /// Whether a style sheet, a `style` attribute or a `font` attribute mentions `font`, so CSS may set a
-    /// `font-size` the scan's chain does not see (FT-501): every `em` and `ex` then counts as the worst case.
+    /// `font-size` the scan's chain does not see: every `em` and `ex` then counts as the worst case.
     font_css: bool,
     /// Whether a nested `svg` or `symbol` sets another viewport: a shape that a reference from inside it converts
-    /// (marker, pattern, clip or mask content) resolves `%` there, so every `%` counts as the worst case (FT-501).
+    /// (marker, pattern, clip or mask content) resolves `%` there, so every `%` counts as the worst case.
     nested_viewport: bool,
     /// The ids each class rule references, by class.
     class_targets: std::collections::BTreeMap<String, std::collections::BTreeSet<String>>,
@@ -1077,7 +1077,7 @@ impl Scan {
                 }
             }
         }
-        // FT-501: what this element's relative lengths resolve against. The font size follows the `font-size` chain
+        // What this element's relative lengths resolve against. The font size follows the `font-size` chain
         // from usvg's default; the viewport is the root's, unknown under a nested `svg` or `symbol` (usvg converts
         // their content in their own viewport). CSS and `use` are applied in `finish`.
         let parent = self.open.last().map(|(_, _, record)| *record);
@@ -1126,7 +1126,7 @@ impl Scan {
         for (_, value) in attrs.iter_mut() {
             value.make_ascii_lowercase();
         }
-        // What a selector match on this element can cost (FT-471): its attribute count and value lengths, and the
+        // What a selector match on this element can cost: its attribute count and value lengths, and the
         // nodes before it that are not elements (the previous-sibling walk).
         self.max_attrs = self.max_attrs.max(attrs.len() as u64);
         for (attr, value) in attrs.iter() {
@@ -1365,7 +1365,7 @@ impl Scan {
             if self.css_declarations > MAX_SVG_CSS_DECLARATIONS {
                 return Some(SvgHazard::TooComplex);
             }
-            // FT-471: the candidate selectors ([`work::sheet_selectors`], or the whole sheet up to the group bound
+            // The candidate selectors ([`work::sheet_selectors`], or the whole sheet up to the group bound
             // times when an escape can hide a boundary or the candidates are too many). Each rule takes one block's
             // declarations: at most every
             // `:` and every byte of the sheet, applied to the elements of the class its selector's last compound
@@ -1439,7 +1439,7 @@ impl Scan {
             };
             let per_group = (body.matches(':').count() as u64).max(1);
             declarations = declarations.saturating_add((groups.len() as u64).saturating_mul(per_group));
-            // FT-471: each group is a selector; its rule's declarations apply to the elements of the class its last
+            // Each group is a selector; its rule's declarations apply to the elements of the class its last
             // compound requires, or to every element.
             for group in &groups {
                 let group = group.trim();
@@ -1703,7 +1703,7 @@ impl Scan {
         }
         // The path segments usvg makes of every shape conversion, with or without markers: an arc of a tiny radius
         // over a long chord is thousands of cubic pieces, and a radius in `em` can be as large as f32 allows.
-        // FT-501: a shape inside a `use` target is converted again under the `use`'s ancestors and viewport, so its
+        // A shape inside a `use` target is converted again under the `use`'s ancestors and viewport, so its
         // `em`, `ex` and `%` radii count as the worst case there; when CSS can set a font size, every `em` and `ex`
         // does; when a nested `svg` or `symbol` sets another viewport, every `%` does. Otherwise they resolve from
         // the font-size chain and the root viewport.
@@ -1732,7 +1732,7 @@ impl Scan {
         if work.segments > MAX_SVG_PATH_SEGMENTS {
             return Err(SvgHazard::TooComplex);
         }
-        // FT-470: marker applications. The largest marker content (its expansion cost) each property names
+        // marker applications. The largest marker content (its expansion cost) each property names
         // anywhere; a shape that can carry a marker property (its own or an ancestor's, or any when a `use`
         // converts it again under other ancestors) is drawn with at most one start, one end and one mid marker per
         // segment.
@@ -1773,7 +1773,7 @@ impl Scan {
                 return Err(SvgHazard::TooComplex);
             }
         }
-        // FT-471: style work. Per element conversion, every selector's most expensive match at the element's
+        // style work. Per element conversion, every selector's most expensive match at the element's
         // depth, then the declarations of every rule that may match it and of its own `style` attribute: each
         // inserts up to fourteen attributes (the `font` shorthand) or three (`marker`), an insertion searches the
         // element's attributes (its own and at most 256 attribute ids of usvg 0.48.1) and copies the value, and an
@@ -2304,7 +2304,7 @@ pub fn company_logo(extra: &Extra) -> Option<AssetRef> {
 
 /// Every SHA-256 that `bytes` mention as text: each run of 64 consecutive hexadecimal digits (either case) inside a
 /// run of ASCII hex digits, so a run of 70 digits mentions its seven 64-digit windows. This is the conservative
-/// "appears in a file" test of the asset purge (doc 05 §13.3, FT-380): any form a writer may use to name an asset
+/// "appears in a file" test of the asset purge (doc 05 §13.3): any form a writer may use to name an asset
 /// (`sha256:<hex>`, a bare hash, `assets/<hex>.svg`, upper-case hex of a newer writer) contains the 64 digits, so an
 /// asset whose hash is not in the returned set is named by no such text. It over-approximates (a random hex run in a
 /// file keeps an asset), never under-approximates.
@@ -2347,7 +2347,7 @@ pub fn sha256_mentions(bytes: &[u8], out: &mut std::collections::BTreeSet<Sha256
 mod tests {
     use super::*;
 
-    /// FT-383: hostile SVG documents (synthetic, no artwork) are refused by the store's one entry, each for its reason.
+    /// hostile SVG documents (synthetic, no artwork) are refused by the store's one entry, each for its reason.
     #[test]
     fn hostile_svgs_are_refused_before_any_reader() {
         const NS: &str = r#"xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink""#;
@@ -2473,7 +2473,7 @@ mod tests {
         );
     }
 
-    /// FT-418: a hex colour or a fragment name is skipped whole, so its digits are not an exponent; a `.` right
+    /// A hex colour or a fragment name is skipped whole, so its digits are not an exponent; a `.` right
     /// after the `#` token still starts a number.
     #[test]
     fn hex_colours_and_fragment_names_are_not_numbers() {
@@ -2499,7 +2499,7 @@ mod tests {
         }
     }
 
-    /// FT-418 final review: a number is read with the SVG grammar, so a compressed run (`0.5.5e39`) is checked as
+    /// A number is read with the SVG grammar, so a compressed run (`0.5.5e39`) is checked as
     /// its several numbers and a huge finite one cannot hide in the dot-joined token.
     #[test]
     fn compressed_numbers_are_read_one_by_one() {
@@ -2521,7 +2521,7 @@ mod tests {
         }
     }
 
-    /// FT-418 final review: roxmltree does not list namespace declarations as attributes and usvg copies none of
+    /// roxmltree does not list namespace declarations as attributes and usvg copies none of
     /// them, so `xmlns` and `xmlns:*` are skipped; a real event attribute is still refused.
     #[test]
     fn namespace_declarations_are_not_attributes() {
@@ -2680,7 +2680,7 @@ mod tests {
         assert_eq!(sniff(text.as_bytes()), Ok((AssetFormat::Svg, Some((4, 4)))));
     }
 
-    /// FT-418: a DOCTYPE whose internal subset holds a `>` (an entity, an attribute list) is scanned with its
+    /// A DOCTYPE whose internal subset holds a `>` (an entity, an attribute list) is scanned with its
     /// quote and bracket state, so the root is still found and the subset is named rather than "not an SVG".
     #[test]
     fn a_doctype_subset_is_named_not_unknown() {
@@ -2705,7 +2705,7 @@ mod tests {
         );
     }
 
-    /// FT-418: a style sheet's references follow the classes and selectors that use them; the group and declaration
+    /// A style sheet's references follow the classes and selectors that use them; the group and declaration
     /// caps are upper bounds counted without parsing, and a rule with any other selector is followed from every
     /// element.
     #[test]
@@ -2762,7 +2762,7 @@ mod tests {
         }
     }
 
-    /// FT-418: comments are removed without a space before the rules are read, so a comment is no selector part; an
+    /// comments are removed without a space before the rules are read, so a comment is no selector part; an
     /// unclosed comment is markup the scanner cannot follow, and a brace in a comment makes the sheet wild.
     #[test]
     fn a_comment_is_not_a_selector_part() {
@@ -2800,7 +2800,7 @@ mod tests {
         }
     }
 
-    /// FT-418 review: roxmltree merges adjacent character data and CDATA sections into one text node, and usvg
+    /// roxmltree merges adjacent character data and CDATA sections into one text node, and usvg
     /// parses that merged text; the scanner analyses the whole `<style>` element once.
     #[test]
     fn style_text_is_read_whole_across_cdata_sections() {
@@ -2830,7 +2830,7 @@ mod tests {
         assert_eq!(svg_hazard(chain.as_bytes()), Some(SvgHazard::TooComplex));
     }
 
-    /// FT-418 review: simplecss honours quoted strings; a sheet with a string is read conservatively as one wild
+    /// simplecss honours quoted strings; a sheet with a string is read conservatively as one wild
     /// rule, so a hidden marker or reference is still refused.
     #[test]
     fn css_strings_make_the_sheet_wild() {
@@ -2868,7 +2868,7 @@ mod tests {
         }
     }
 
-    /// FT-418 final review 1 and 5: a funcIRI target is read as svgtypes reads it — a quoted id runs to its closing
+    /// A funcIRI target is read as svgtypes reads it — a quoted id runs to its closing
     /// quote and keeps its inner white space, and the scan continues past the target — so a quoted reference cycle
     /// is seen and the scan is linear. The 8,192-deep `url(#` attribute only calls the scanner: this guards against
     /// the quadratic scan; neither its result nor the time is asserted.
@@ -2902,7 +2902,7 @@ mod tests {
         let _ = svg_hazard(quadratic.as_bytes());
     }
 
-    /// FT-418 final review 6: a string that holds nothing that can move a rule boundary keeps a style sheet plain;
+    /// A string that holds nothing that can move a rule boundary keeps a style sheet plain;
     /// a string with a brace, semicolon, parenthesis, comment delimiter or backslash makes it wild as before. The
     /// 20,000-`(` sheet (the lead's quadratic path finding) only calls the scanner; no time is asserted.
     #[test]
@@ -2936,7 +2936,7 @@ mod tests {
         );
     }
 
-    /// FT-418 re-review: simplecss skips a function value to the next `)` and parses text the scanner's body split
+    /// simplecss skips a function value to the next `)` and parses text the scanner's body split
     /// does not attribute to a rule; both make the sheet wild.
     #[test]
     fn plain_sheets_hide_nothing_in_parentheses_or_outside_bodies() {
@@ -2955,7 +2955,7 @@ mod tests {
         assert_eq!(svg_hazard(rgb.as_bytes()), None);
     }
 
-    /// FT-418 re-review: a `style` element inside a `style` element would split the gathered text; it is refused.
+    /// A `style` element inside a `style` element would split the gathered text; it is refused.
     #[test]
     fn a_style_inside_a_style_is_refused() {
         const NS: &str = r#"xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 4 4""#;
@@ -2965,7 +2965,7 @@ mod tests {
         assert_eq!(svg_hazard(nested.as_bytes()), Some(SvgHazard::TooComplex));
     }
 
-    /// FT-418 review: the selector-group and declaration bounds are counted without parsing, so quoted braces and
+    /// The selector-group and declaration bounds are counted without parsing, so quoted braces and
     /// hidden declarations cannot shrink them.
     #[test]
     fn css_bounds_need_no_parsing() {
@@ -3026,7 +3026,7 @@ mod tests {
         }
     }
 
-    /// FT-418 final review 7: a plain sheet's declaration bound is the exact count of the copies simplecss makes
+    /// A plain sheet's declaration bound is the exact count of the copies simplecss makes
     /// (each rule's selector groups times its declarations), not the raw group bound times the `:` count.
     #[test]
     fn plain_sheets_count_their_declarations_exactly() {
@@ -3052,7 +3052,7 @@ mod tests {
         );
     }
 
-    /// FT-418 final review (regression of fix round 2): the six-part selector cap applies to every raw prelude of a
+    /// The six-part selector cap applies to every raw prelude of a
     /// sheet that is not plain too, back to the previous `{` or `}`.
     #[test]
     fn the_part_cap_applies_to_sheets_that_are_not_plain() {
@@ -3062,7 +3062,7 @@ mod tests {
         assert_eq!(svg_hazard(short.as_bytes()), None);
     }
 
-    /// FT-418 review: an at-rule is skipped by the CSS parser but is read conservatively as one wild rule here; a
+    /// An at-rule is skipped by the CSS parser but is read conservatively as one wild rule here; a
     /// sheet with an at-rule but no reference still passes.
     #[test]
     fn at_rules_make_the_sheet_wild() {
@@ -3077,7 +3077,7 @@ mod tests {
         assert_eq!(svg_hazard(keyframes.as_bytes()), None);
     }
 
-    /// FT-418 review: duplicate ids are refused (usvg resolves `<use>` first-wins and `url(#…)` last-wins, so the
+    /// Duplicate ids are refused (usvg resolves `<use>` first-wins and `url(#…)` last-wins, so the
     /// scanner cannot follow both), as are two different `href`s on one element (a deliberate stricter-than-usvg
     /// rule).
     #[test]
@@ -3099,7 +3099,7 @@ mod tests {
         assert_eq!(svg_hazard(same.as_bytes()), None);
     }
 
-    /// FT-418: marker content that can carry a marker property is refused from any source, and what real drawing
+    /// marker content that can carry a marker property is refused from any source, and what real drawing
     /// programs write (a marker used by a class, presentation attributes, a plain rule) still passes.
     #[test]
     fn marker_content_that_can_carry_a_marker_is_refused() {
@@ -3186,7 +3186,7 @@ mod tests {
         }
     }
 
-    /// FT-418: every refusal says what the hazard is and how to export the file again.
+    /// Every refusal says what the hazard is and how to export the file again.
     #[test]
     fn every_refusal_says_how_to_export_again() {
         let hazards = [
@@ -3212,7 +3212,7 @@ mod tests {
         }
     }
 
-    /// FT-383: what drawing programs write passes: an external DOCTYPE identifier, comments (also ones that mention
+    /// What drawing programs write passes: an external DOCTYPE identifier, comments (also ones that mention
     /// a script), local fragment references, paint servers and styles.
     #[test]
     fn ordinary_svgs_pass_the_rejecter() {
@@ -3234,7 +3234,7 @@ mod tests {
         assert_eq!(sniff(text.as_bytes()), Ok((AssetFormat::Svg, Some((80, 20)))));
     }
 
-    /// FT-384: what the cargo-vet audit of usvg 0.48.1 and its dependencies found the parser cannot bear (stack
+    /// What the cargo-vet audit of usvg 0.48.1 and its dependencies found the parser cannot bear (stack
     /// overflow, exponential expansion, panics) is refused before the parser runs (synthetic documents).
     #[test]
     fn svgs_the_parser_cannot_bear_are_refused() {
@@ -3318,7 +3318,7 @@ mod tests {
         }
     }
 
-    /// FT-384: a drawing-program logo with an `id` on the root, classes, clip paths through `use`, gradients and
+    /// A drawing-program logo with an `id` on the root, classes, clip paths through `use`, gradients and
     /// colours whose hex digits look like exponents passes the structural checks.
     #[test]
     fn a_drawing_program_logo_passes_the_structural_checks() {
@@ -3417,7 +3417,7 @@ mod tests {
         }
     }
 
-    /// Review round 2: a cycle-free gradient chain longer than `MAX_SVG_REF_DEPTH` is refused (usvg walks it once per
+    /// A cycle-free gradient chain longer than `MAX_SVG_REF_DEPTH` is refused (usvg walks it once per
     /// attribute of each gradient, so its work grows with the square of the chain); a shorter one passes.
     #[test]
     fn long_gradient_chains_are_refused() {
@@ -3495,12 +3495,12 @@ mod tests {
         );
     }
 
-    /// FT-1378: a raster image that declares more pixels than a drawing shows, or a side over 65535, is refused at the
-    /// gate in words; the decode limit itself is taken. ID-1417: the sniff alone (an open's) takes it.
+    /// A raster image that declares more pixels than a drawing shows, or a side over 65535, is refused at the
+    /// gate in words; the decode limit itself is taken. The sniff alone (an open's) takes it.
     #[test]
     fn a_raster_image_over_the_decode_limit_is_refused() {
         let gate = |bytes: &[u8]| sniff(bytes).and_then(|(f, size)| pixel_limit(f, size).map(|()| (f, size)));
-        // ID-1417: the sniff of an open takes it; the gate refuses it.
+        // The sniff of an open takes it; the gate refuses it.
         assert_eq!(
             sniff(&png(65536, 32768)),
             Ok((AssetFormat::Png, Some((65536, 32768))))

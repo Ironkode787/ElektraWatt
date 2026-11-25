@@ -224,7 +224,7 @@
         },
         {
           "additionalProperties": false,
-          "description": "A fluid line between fluid ports (doc 11 §2.4, WP-S1.20 D2).",
+          "description": "A fluid line between fluid ports (doc 11 §2.4).",
           "properties": {
             "fluid": {
               "$ref": "#/$defs/FluidLine"

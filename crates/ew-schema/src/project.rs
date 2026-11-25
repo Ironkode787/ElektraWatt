@@ -73,7 +73,7 @@ pub struct Project {
     /// Import provenance (doc 14 §2.3).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_ref: Option<SourceRef>,
-    /// The basic project this project was created from (FR-PRJ-009, doc 07 §2.8; WP-S1.19 D14).
+    /// The basic project this project was created from (FR-PRJ-009, doc 07 §2.8).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub basic_project: Option<BasicProjectRef>,
     /// Unknown members and plugin keys.
@@ -81,7 +81,7 @@ pub struct Project {
     pub extra: Extra,
 }
 
-/// The basic project a project was created from (FR-PRJ-009, WP-S1.19 D14): its project ID and its manifest
+/// The basic project a project was created from (FR-PRJ-009): its project ID and its manifest
 /// generation when it was copied (a basic project has no semantic version).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct BasicProjectRef {
@@ -293,7 +293,7 @@ pub struct ProjectSettings {
     /// Formatting conventions.
     #[serde(default, skip_serializing_if = "Formatting::is_empty")]
     pub formatting: Formatting,
-    /// The project's one revision label format (doc 15 §5.2, FR-REV-002; WP-S1.18 D2); absent means
+    /// The project's one revision label format (doc 15 §5.2, FR-REV-002); absent means
     /// `v_major_minor` ([`ProjectSettings::revision_label_format`]).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub revision_label: Option<LabelFormat>,
@@ -621,8 +621,8 @@ pub struct LineageCopy {
 // Import run
 
 /// One import into a lineage (doc 03 §5, doc 14 §2.4, rank 72, `imports/<run-uuid>.jsonl`; FR-IMP-041): the import's
-/// findings, statistics and record hashes, written by the import transaction and never changed after it (WP-S3.09
-/// D6). Typed within the unreleased format 0.1 (ADR-0011 amendment 4); a member of a newer build stays in `extra`.
+/// findings, statistics and record hashes, written by the import transaction and never changed after it.
+/// Typed within the unreleased format 0.1 (ADR-0011 amendment 4); a member of a newer build stays in `extra`.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct ImportRun {
     /// The record ID (UUIDv7).
@@ -652,7 +652,7 @@ pub struct ImportRun {
     /// The import's counts.
     #[serde(default, skip_serializing_if = "RunStats::is_empty")]
     pub stats: RunStats,
-    /// Per imported record ID, its hashes (WP-S3.09 D11): the base of the next re-import.
+    /// Per imported record ID, its hashes: the base of the next re-import.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     #[schemars(with = "BTreeMap<String, RecordHash>")]
     pub record_hashes: BTreeMap<AnyId, RecordHash>,
@@ -821,7 +821,7 @@ impl RunStats {
     }
 }
 
-/// The hashes of one imported record (WP-S3.09 D11): the first 128 bits of SHA-256, as 32 lower-case hex digits, over
+/// The hashes of one imported record: the first 128 bits of SHA-256, as 32 lower-case hex digits, over
 /// the record's canonical line without its `source_ref` member.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct RecordHash {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! A date is shown and typed in the project's date format (the owner's test of 0.3.0-rc.1: a project set to
+//! A date is shown and typed in the project's date format (a project set to
 //! dd-mm-yyyy asked for YYYY-MM-DD): ISO is always taken; a day-first project takes a day, month and year with `-`,
 //! `.` or `/` and a two- or four-digit year; what is not a date is refused.
 

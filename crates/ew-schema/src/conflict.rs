@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Conflict records (doc 05 §11.2, §11.4; WP-S1.17 D14, D17): the `conflict` record (rank 255, the file of its
+//! Conflict records (doc 05 §11.2, §11.4): the `conflict` record (rank 255, the file of its
 //! target).
 //!
-//! Typed within format 0.1 (ADR-0011 amendment 4, the `page_item` precedent; decision log ID-1279): the two shapes the
+//! Typed within format 0.1 (ADR-0011 amendment 4, the `page_item` precedent): the two shapes the
 //! merge driver writes, so that a file it wrote loads unchanged.
 //!
 //! - **Record level**: `{"$k":"conflict","id":<target id>,"kind":<target $k>,"base":…,"ours":…,"theirs":…}`. It shares
@@ -32,7 +32,7 @@ pub const FILE_CONFLICT_KIND: &str = "file";
 /// The value of a deleted side of a record-level conflict.
 pub const DELETED_SIDE: &str = "deleted";
 
-/// One conflict record (doc 05 §11.2; WP-S1.17 D14, D17): rank 255, in the file of its target.
+/// One conflict record (doc 05 §11.2): rank 255, in the file of its target.
 ///
 /// A record-level conflict shares its target's ID; a file-level one has `conflict_file_id(path)`. The model keeps
 /// conflicts in a table of their own, so a conflict and its target are two rows under one ID.
@@ -282,7 +282,7 @@ impl JsonSchema for Conflict {
         });
         json_schema!({
             "type": "object",
-            "description": "One conflict record (doc 05 §11.2; WP-S1.17 D14, D17): rank 255, in the file of its target. \
+            "description": "One conflict record (doc 05 §11.2): rank 255, in the file of its target. \
                 A record-level conflict shares its target's ID and holds the conflicting members of each side; a \
                 file-level one (`kind` \"file\") holds the lines of the side that could not be merged.",
             "additionalProperties": true,

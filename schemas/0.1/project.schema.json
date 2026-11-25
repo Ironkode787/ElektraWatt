@@ -37,7 +37,7 @@
     },
     "BasicProjectRef": {
       "additionalProperties": true,
-      "description": "The basic project a project was created from (FR-PRJ-009, WP-S1.19 D14): its project ID and its manifest\ngeneration when it was copied (a basic project has no semantic version).",
+      "description": "The basic project a project was created from (FR-PRJ-009): its project ID and its manifest\ngeneration when it was copied (a basic project has no semantic version).",
       "properties": {
         "generation": {
           "description": "The basic project's manifest generation when it was copied.",
@@ -604,7 +604,7 @@
               "type": "null"
             }
           ],
-          "description": "The project's one revision label format (doc 15 §5.2, FR-REV-002; WP-S1.18 D2); absent means\n`v_major_minor` ([`ProjectSettings::revision_label_format`])."
+          "description": "The project's one revision label format (doc 15 §5.2, FR-REV-002); absent means\n`v_major_minor` ([`ProjectSettings::revision_label_format`])."
         },
         "text_styles": {
           "additionalProperties": {
@@ -1080,7 +1080,7 @@
         },
         {
           "const": "mm",
-          "description": "Millimetre (a cable's outer diameter, rc.5).",
+          "description": "Millimetre (a cable's outer diameter).",
           "type": "string"
         },
         {
@@ -1132,7 +1132,7 @@
           "type": "null"
         }
       ],
-      "description": "The basic project this project was created from (FR-PRJ-009, doc 07 §2.8; WP-S1.19 D14)."
+      "description": "The basic project this project was created from (FR-PRJ-009, doc 07 §2.8)."
     },
     "control_voltage": {
       "anyOf": [

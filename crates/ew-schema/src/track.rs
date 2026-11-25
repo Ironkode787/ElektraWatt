@@ -58,7 +58,7 @@ struct Context {
     findings: Vec<MalformedVariant>,
     /// The JSON Pointer of each member read into an `extra` map: a member this reader does not know.
     extra: Vec<String>,
-    /// The JSON Pointer of each value read as an unknown variant (`Unknown(Value)`, WP-S6.08 D30).
+    /// The JSON Pointer of each value read as an unknown variant (`Unknown(Value)`).
     unknown: Vec<String>,
     /// The structured error of the [`raise`] in progress, taken by [`TrackError`]'s `custom`.
     pending: Option<SchemaError>,
@@ -116,7 +116,7 @@ pub(crate) fn read_extra() -> Vec<String> {
 }
 
 /// `value`, which the reader keeps as an unknown variant (`Unknown(Value)`): notes its JSON Pointer in the current
-/// context, so that the format reader keeps the line of an untouched record that holds it (WP-S6.08 D30).
+/// context, so that the format reader keeps the line of an untouched record that holds it.
 pub(crate) fn kept_unknown(value: Value) -> Value {
     let path = current_path();
     CTX.with(|c| {

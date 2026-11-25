@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The bus model (doc 03 §14, doc 10 §2.7; WP-S1.21 D11): the `BusPort` aspect of a function and the record kinds
+//! The bus model (doc 03 §14, doc 10 §2.7): the `BusPort` aspect of a function and the record kinds
 //! `logical_net` (rank 12) and `physical_net` (13) in `project.jsonl`.
 //!
 //! Typed within the unreleased format 0.1 under ADR-0011 amendment 4: the kinds were reserved with their ranks, the
 //! aspect is named by doc 03 §7, every member the design leaves open is optional, and every enum has its `Unknown`
-//! catch-all. `NetAddress` types the PROFIBUS, PROFINET, EtherCAT and IO-Link address forms (WP-S1.24, additive
+//! catch-all. `NetAddress` types the PROFIBUS, PROFINET, EtherCAT and IO-Link address forms (additive
 //! variants); the forms of the buses of 1.x stay [`NetAddress::Unknown`]. The logical net's address space (doc 10 §2.7 `space`),
 //! which no design document defines yet, stays in `extra`. Segments are derived (`bus_segments`, doc 10 §3.8 A5),
 //! never stored.
@@ -223,9 +223,9 @@ pub enum OnOff {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// The part-level bus section (WP-S1.21 D15, doc 10 §2.6)
+// The part-level bus section (doc 10 §2.6)
 
-/// The bus section of a part (`sections.bus`, doc 10 §2.6; WP-S1.21 D15): the part's bus interfaces. A part port
+/// The bus section of a part (`sections.bus`, doc 10 §2.6): the part's bus interfaces. A part port
 /// is carried by a function of the device whose function definition has contact kind `bus_port`; normaliser N5
 /// gives a port-less such function the part's port once and never rewrites it (D16). The station address and the
 /// nets belong to the drawn port ([`BusPort`]), not to the part.
@@ -243,7 +243,7 @@ pub struct BusSection {
     pub extra: Extra,
 }
 
-/// One bus interface of a part (WP-S1.21 D15): the first four members as in [`BusPort`], then the facts of 1.0 that
+/// One bus interface of a part: the first four members as in [`BusPort`], then the facts of 1.0 that
 /// the rules read: the connector type (EW-BUS-009), the supported rates (EW-BUS-005), the address range (EW-BUS-002)
 /// the IO-Link device data (EW-IOL-001, EW-IOL-002) and the signal map (FR-BUS-023). No address or net is typed:
 /// those belong to the drawn port.

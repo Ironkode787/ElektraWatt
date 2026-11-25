@@ -7,7 +7,7 @@
 use std::fmt;
 
 /// Format version of this schema (doc 05 §10.1: formats before 1.0 are `0.x`, every step breaking). The
-/// manifest that carries it belongs to `ew-format` (WP-S1.09).
+/// manifest that carries it belongs to `ew-format`.
 pub const FORMAT: &str = "0.1";
 
 /// A `major.minor` format stamp (`format`, `min_reader`, a `since`) as numbers (doc 05 §10.1): two decimal parts
@@ -149,7 +149,7 @@ pub enum Kind {
     Macro,
     /// `manufacturer`: library copy of a manufacturer record.
     Manufacturer,
-    /// `plc_profile`: library copy of a PLC address profile (WP-S7.03 D7).
+    /// `plc_profile`: library copy of a PLC address profile.
     PlcProfile,
     /// `machine_profile`: library copy of a machine profile (1.0, TOML source form).
     MachineProfile,
@@ -160,7 +160,7 @@ pub enum Kind {
 /// Whether v0 has a record struct for a kind.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum KindStatus {
-    /// `ew-schema` v0 implements the kind (WP-S1.02).
+    /// `ew-schema` v0 implements the kind.
     Implemented,
     /// The rank and ownership are fixed; the struct arrives with a later work package. Records of the
     /// kind are kept verbatim as unknown kinds until then (doc 05 §10.3).
@@ -454,7 +454,7 @@ pub const PERSONAL_DATA_FIELDS: &[(Kind, &str)] = &[
     (Kind::Project, "parties[].address"),
 ];
 
-/// How the three-way merge core merges one member (WP-S1.17 D13; ADR-0012 decision 2's "ew-schema annotation"). A
+/// How the three-way merge core merges one member (ADR-0012 decision 2's "ew-schema annotation"). A
 /// member without a row in [`MERGE_STRATEGIES`] is atomic: one value, taken from the side that changed it, a
 /// conflict when both changed it differently.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -477,7 +477,7 @@ pub enum MergeStrategy {
     Max,
 }
 
-/// The order of a merged [`MergeStrategy::Keyed`] or [`MergeStrategy::Set`] list (decision log ID-1268).
+/// The order of a merged [`MergeStrategy::Keyed`] or [`MergeStrategy::Set`] list.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum MergeOrder {
     /// The container's canonical order: a [`KeyedList`](crate::KeyedList) by its key, a [`Set`](crate::Set) by the
@@ -499,7 +499,7 @@ pub struct MergeRule {
     pub strategy: MergeStrategy,
 }
 
-/// The merge strategies of WP-S1.17 D13 (decision log ID-1268): every other member merges atomically, and a record of
+/// The merge strategies: every other member merges atomically, and a record of
 /// an unknown kind as a whole. A row applies where the member exists at the base and both sides changed it; an
 /// `Object` row also where the base omits the member, which counts as the empty object.
 pub const MERGE_STRATEGIES: &[MergeRule] = &[
@@ -571,8 +571,8 @@ pub const MERGE_STRATEGIES: &[MergeRule] = &[
     },
 ];
 
-/// The formats released so far, oldest first (doc 05 §10.4). WP-S6.08 added `"0.1"` with the first release, 0.1.0
-/// (D13); from then on a build whose [`FORMAT`] is not in it writes `unstable: true` (WP-S1.17 part 3).
+/// The formats released so far, oldest first (doc 05 §10.4). `"0.1"` was added with the first release, 0.1.0;
+/// from then on a build whose [`FORMAT`] is not in it writes `unstable: true`.
 pub const RELEASED_FORMATS: &[&str] = &["0.1"];
 
 /// The kind registry (doc 05 §2.2) as an API: rank, ownership rule, anchor and schema version.
