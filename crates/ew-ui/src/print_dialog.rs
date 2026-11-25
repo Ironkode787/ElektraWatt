@@ -239,13 +239,15 @@ fn options(ui: &mut Ui, d: &PrintDialog, events: &mut Vec<Event>) {
 /// The Sections check list under its radio button, enabled under Sections.
 fn sections(ui: &mut Ui, d: &PrintDialog, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
-    let enabled = d.range == PrintRange::Sections;
+    let reason = d.sections_reason();
+    let enabled = reason.is_none();
     let mut list = |ui: &mut Ui| {
         for s in &d.sections {
             let mut ticked = s.ticked;
-            let check = ui
-                .add_enabled(enabled, egui::Checkbox::new(&mut ticked, s.label()))
-                .disabled_tip(strings::text(key!("reason-print-sections")));
+            let mut check = ui.add_enabled(enabled, egui::Checkbox::new(&mut ticked, s.label()));
+            if let Some(why) = reason {
+                check = check.disabled_tip(strings::text(why));
+            }
             if check.changed() {
                 let numbers: Vec<String> = d
                     .sections
@@ -273,7 +275,7 @@ fn sections(ui: &mut Ui, d: &PrintDialog, events: &mut Vec<Event>) {
 /// The Pages field under its radio button, enabled under Pages, its refusal under it.
 fn pages_field(ui: &mut Ui, d: &PrintDialog, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
-    let enabled = d.range == PrintRange::Pages;
+    let enabled = d.pages_reason().is_none();
     ui.indent("print-pages", |ui| {
         let mut text = d.pages.clone();
         let edit = ui.add_enabled(
@@ -282,7 +284,10 @@ fn pages_field(ui: &mut Ui, d: &PrintDialog, events: &mut Vec<Event>) {
                 .desired_width(ui.available_width())
                 .min_size(Vec2::new(0.0, t.size_control)),
         );
-        let edit = edit.disabled_tip(strings::text(key!("reason-print-pages")));
+        let edit = match d.pages_reason() {
+            Some(why) => edit.disabled_tip(strings::text(why)),
+            None => edit,
+        };
         let name = strings::text(key!("print-range-pages")).to_owned();
         edit.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, enabled, &name));
         if text != d.pages {

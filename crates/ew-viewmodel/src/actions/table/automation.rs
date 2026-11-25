@@ -20,14 +20,18 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 Some(key!("bar-attach-cards")),
             ),
             "cards",
-            act(
-                "plc.attach_cards",
-                Command,
-                Menu::Plc,
-                &[],
-                writable,
-                sub(Menu::Plc, Submenu::AttachCards, false),
-                |s, p| s.act_plc_attach_cards(p),
+            enabled_when_named(
+                &["station"],
+                cards_named,
+                act(
+                    "plc.attach_cards",
+                    Command,
+                    Menu::Plc,
+                    &[],
+                    writable,
+                    sub(Menu::Plc, Submenu::AttachCards, false),
+                    |s, p| s.act_plc_attach_cards(p),
+                ),
             ),
         ))),
     ),
@@ -116,7 +120,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         "device?:ref",
         hidden(enabled_when_named(
             &["device"],
-            writable,
+            |m, _| writable(m),
             act(
                 "plc.module_place",
                 Command,
@@ -402,7 +406,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             // A valve terminal's row names its terminal.
             enabled_when_named(
                 &["station"],
-                writable,
+                |m, _| writable(m),
                 act(
                     "fluid.generate_overview",
                     Command,
@@ -418,14 +422,18 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // A valve terminal's Add valve at position n (doc 11 §7): the valve child, then its symbol on the pointer.
     with_params(
         "module:ref, position:uint",
-        needs_parameters(hidden(act(
-            "fluid.valve_add",
-            Command,
-            Menu::Project,
-            &[],
-            writable,
-            None,
-            |s, p| s.act_fluid_valve_add(p),
+        needs_parameters(hidden(enabled_when_named(
+            &["module"],
+            valve_part_named,
+            act(
+                "fluid.valve_add",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_fluid_valve_add(p),
+            ),
         ))),
     ),
     // A position of a valve terminal drawn as its positions: Fill position n… and Replace… open the device
@@ -510,7 +518,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             // A terminal's menu or Properties row names its terminal.
             enabled_when_named(
                 &["terminal"],
-                writable,
+                |m, _| writable(m),
                 act(
                     "fluid.draw_plug",
                     Command,
@@ -541,14 +549,12 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // Go to a thing by its drawing: a valve's solenoid and the coil's valve, the symbol selected and named.
     with_params(
         "record:text, words?:text",
-        needs_parameters(hidden(act(
-            "nav.show",
-            View,
-            Menu::Page,
-            &[],
-            has_pages,
-            None,
-            |s, p| s.act_nav_show(p),
+        needs_parameters(hidden(enabled_when_named(
+            &["record"],
+            drawn_named,
+            act("nav.show", View, Menu::Page, &[], has_pages, None, |s, p| {
+                s.act_nav_show(p)
+            }),
         ))),
     ),
     // A valve terminal made as a station, drawn on a fluid page as its positions: its PLC row, its rack dialog.
@@ -700,14 +706,18 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     with_params(
         "device:ref, config?:ref",
-        needs_parameters(in_canvas(act(
-            "plc.add_to_plc",
-            Command,
-            Menu::Project,
-            &[],
-            writable,
-            None,
-            |s, p| s.act_plc_add_to_plc(p),
+        needs_parameters(in_canvas(enabled_when_named(
+            &["device"],
+            plc_device_named,
+            act(
+                "plc.add_to_plc",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_plc_add_to_plc(p),
+            ),
         ))),
     ),
 ];

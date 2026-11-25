@@ -35,7 +35,7 @@ impl App {
             }
             Event::DismissBanner => self.shell.dismiss_banner(),
             Event::DismissToast(serial) => self.shell.dismiss_toast(serial),
-            Event::DisabledClick(text) => self.shell.explain_disabled(text),
+            Event::DisabledClick(action, params) => self.shell.explain_disabled(action, &params),
             Event::JunctionRow(row) => self.shell.set_junction_row(row),
             // The bundled copy when there is one, else the repository's.
             Event::OpenPrivacy => {

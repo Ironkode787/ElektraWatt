@@ -32,7 +32,7 @@ use serde_json::{Map, Value};
 
 use super::{Dialog, Outcome, Prompt, ShellModel, failed, string_param};
 use crate::key;
-use crate::strings;
+use crate::strings::{self, Key};
 
 /// The heights a person picks from, in mm of a capital letter (ISO 3098's nominal sizes).
 pub const STANDARD_HEIGHTS: [&str; 5] = ["1.8", "2.5", "3.5", "5", "7"];
@@ -122,6 +122,13 @@ pub struct TextStyleRow {
     pub small: Option<String>,
     /// Whether it differs from what a new project has (Reset can be pressed).
     pub changed: bool,
+}
+
+impl TextStyleRow {
+    /// Why its Bold toggle is greyed: its face has no bold cut; `None` when it has one.
+    pub fn bold_reason(&self) -> Option<Key<'static>> {
+        (!self.face.has_bold()).then_some(key!("text-styles-bold-none"))
+    }
 }
 
 /// The page's *Standard typeface* line (doc 09 §4.8).

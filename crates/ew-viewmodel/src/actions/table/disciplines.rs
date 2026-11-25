@@ -39,7 +39,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         "station?:text, x_mm?:mm, y_mm?:mm, group?:uint",
         enabled_when_named(
             &["station"],
-            editable_page,
+            |m, _| editable_page(m),
             act(
                 "bus.put_station",
                 Command,

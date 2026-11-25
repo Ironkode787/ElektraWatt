@@ -340,13 +340,11 @@ fn offer_help(response: &Response, b: &CommandButton) {
     }
 }
 
-/// A click on the disabled command `b` (doc 16a §5.2): its reason as a toast, the sentence its
-/// tooltip ends with; nothing for an enabled command or one without a reason.
+/// A click on the disabled command `b` (doc 16a §5.2): the shell says why, as a toast, the sentence its tooltip ends
+/// with; nothing for an enabled command.
 fn say_why(b: &CommandButton, events: &mut Vec<Event>) {
-    if !b.enabled
-        && let Some(reason) = &b.reason
-    {
-        events.push(Event::DisabledClick(reason.clone()));
+    if !b.enabled {
+        events.push(Event::DisabledClick(b.id, serde_json::Value::Null));
     }
 }
 
@@ -910,10 +908,13 @@ impl CommandBarHost {
                         ui.painter()
                             .rect_filled(line, theme::radius(t.radius_mark), t.accent.color32());
                     }
-                    if let Some(why) = reason {
+                    if reason.is_some() {
                         // A greyed tab says why, as a greyed command does.
                         if response.clicked() {
-                            events.push(Event::DisabledClick(why.to_owned()));
+                            events.push(Event::DisabledClick(
+                                "view.command_tab",
+                                json!({ "tab": tab.word() }),
+                            ));
                         }
                     } else if shell.symbol_editor().is_none() && response.double_clicked() {
                         events.push(Event::Action("view.command_bar", json!({})));

@@ -1105,18 +1105,19 @@ mod tests {
         assert_eq!(lookup("no-such-key"), None);
     }
 
-    /// The refusal of a page type without symbols names the remedy, as the paste refusal does.
+    /// The refusal of a page type without symbols names the page's kind in the commands' words and the remedy, as
+    /// the paste refusal does: a drawn table of contents by name (the sample's is a generated report page, so the
+    /// window test cannot reach this kind).
     #[test]
     fn the_page_type_refusal_names_the_remedy() {
+        let kind = ew_api::page_kind_words(&ew_api::PageType::TableOfContents);
         assert_eq!(
-            text(key!("reason-page-type-no-symbols")),
-            "This page type takes no symbols or wires: draw on a schematic page"
+            render(&keyed(key!("reason-page-type-no-symbols"), vec![kind.clone()])),
+            "No symbols or wires go on a table of contents: draw on a schematic page"
         );
-        // A drawn table of contents by name (the sample's is a generated report page, so the window test cannot
-        // reach this kind).
         assert_eq!(
-            text(key!("reason-page-type-no-symbols-contents")),
-            "A table of contents takes no symbols or wires: draw on a schematic page"
+            render(&keyed(key!("reason-paste-page"), vec![kind])),
+            "Nothing can be pasted on a table of contents"
         );
     }
 

@@ -85,8 +85,9 @@ pub(crate) enum Event {
     JunctionRow(usize),
     /// A toast's Close: the toast leaves the screen, the log keeps it.
     DismissToast(u64),
-    /// A click on a disabled command: its reason in words, as a toast.
-    DisabledClick(String),
+    /// A click on the disabled command (an action and the parameters its control sends): the shell says why, as a
+    /// toast.
+    DisabledClick(&'static str, serde_json::Value),
 }
 
 /// What a file dialog came back with.

@@ -522,7 +522,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         // Pages named by folio (`pages`) need no selection or marked page.
         in_canvas(enabled_when_named(
             &["pages"],
-            has_pages,
+            |m, _| has_pages(m),
             act(
                 "macros.save",
                 Command,
@@ -536,14 +536,18 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     with_params(
         "keys?:list(text)",
-        in_navigator(act(
-            "libraries.update",
-            Command,
-            Menu::Project,
-            &[],
-            writable,
-            slot(Menu::Project),
-            |s, p| s.act_libraries_update(p),
+        in_navigator(enabled_when_named(
+            &["keys"],
+            |m, _| writable(m),
+            act(
+                "libraries.update",
+                Command,
+                Menu::Project,
+                &[],
+                libraries_updatable,
+                slot(Menu::Project),
+                |s, p| s.act_libraries_update(p),
+            ),
         )),
     ),
     with_params(

@@ -7,12 +7,12 @@
 //!
 //! Not here: the table that names the checks is `actions/table/`; the menus built from it in `actions/menu.rs`.
 
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 use super::{ActionKind, ActionMeta};
 use crate::key;
 use crate::shell::ShellModel;
-use crate::strings::Key;
+use crate::strings;
 use ew_api::Text;
 
 pub(super) fn always(_: &ShellModel) -> Result<(), Text> {
@@ -348,6 +348,35 @@ pub(super) fn can_go_back(m: &ShellModel) -> Result<(), Text> {
     }
 }
 
+/// Back in the tab group `group` (a tab strip's own Back): its active tab has somewhere to go back to.
+pub(super) fn back_in_group(m: &ShellModel, p: &Map<String, Value>) -> Result<(), Text> {
+    has_pages(m)?;
+    let group = p
+        .get("group")
+        .and_then(Value::as_u64)
+        .and_then(|g| usize::try_from(g).ok());
+    match (m.area(), group) {
+        (Some(a), Some(g))
+            if a.groups
+                .get(g)
+                .is_some_and(|t| t.active_tab().history.back_len() > 0) =>
+        {
+            Ok(())
+        }
+        (Some(_), Some(_)) => Err(key!("reason-history-empty").into()),
+        _ => can_go_back(m),
+    }
+}
+
+/// The sample project is installed (File ▸ Open sample).
+pub(super) fn sample_present(m: &ShellModel) -> Result<(), Text> {
+    if m.has_sample() {
+        Ok(())
+    } else {
+        Err(key!("error-no-sample").into())
+    }
+}
+
 pub(super) fn can_go_forward(m: &ShellModel) -> Result<(), Text> {
     has_pages(m)?;
     match m.area() {
@@ -497,19 +526,23 @@ pub(super) fn panel_selection(m: &ShellModel) -> Result<(), Text> {
     }
 }
 
-/// Why the page on show takes no symbols or wires, by its type, in the words of its kind where one key exists for it
-///  and the generic text otherwise; `None` for a page that takes them. One mapping for the refusal of the
-/// editing tools and the canvas HUD's prompt.
-pub(crate) fn page_type_reason(m: &ShellModel) -> Option<Key<'static>> {
-    match m.page_rows().get(m.page_index()).map(|r| &r.kind) {
-        Some(ew_api::PageType::SectionDivider) => Some(key!("reason-page-type-no-symbols-divider")),
-        Some(ew_api::PageType::TitlePage) => Some(key!("reason-page-type-no-symbols-title")),
-        Some(ew_api::PageType::TableOfContents) => Some(key!("reason-page-type-no-symbols-contents")),
-        Some(ew_api::PageType::Report) => Some(key!("reason-page-type-no-symbols-report")),
-        Some(ew_api::PageType::PanelLayout) => Some(key!("reason-page-type-no-symbols-panel")),
-        Some(ew_api::PageType::ModelView | ew_api::PageType::ExternalDocument) => {
-            Some(key!("reason-page-type-no-symbols"))
-        }
+/// Why the page on show takes no symbols or wires, by its type, its kind in the commands' words (a panel layout
+/// page says where its devices come from instead); `None` for a page that takes them. One mapping for the refusal of
+/// the editing tools and the canvas HUD's prompt.
+pub(crate) fn page_type_reason(m: &ShellModel) -> Option<Text> {
+    use ew_api::PageType;
+    let kind = &m.page_rows().get(m.page_index())?.kind;
+    match kind {
+        PageType::PanelLayout => Some(key!("reason-page-type-no-symbols-panel").into()),
+        PageType::SectionDivider
+        | PageType::TitlePage
+        | PageType::TableOfContents
+        | PageType::Report
+        | PageType::ModelView
+        | PageType::ExternalDocument => Some(strings::keyed(
+            key!("reason-page-type-no-symbols"),
+            vec![ew_api::page_kind_words(kind)],
+        )),
         _ => None,
     }
 }
@@ -520,9 +553,9 @@ pub(crate) fn editable_page(m: &ShellModel) -> Result<(), Text> {
     writable(m)?;
     // The page types without wire or symbol tools (doc 06 §2.2: title page, panel layout, model view, external
     // document; the generated table of contents, dividers and reports are not drawn pages at all).
-    // The refusal names the page's kind in words where one key exists for it, the generic text otherwise.
+    // The refusal names the page's kind in words.
     if let Some(reason) = page_type_reason(m) {
-        return Err(reason.into());
+        return Err(reason);
     }
     match m.canvas() {
         Some(c) if !c.page().tables.page.is_nil() => Ok(()),
@@ -536,7 +569,7 @@ pub(super) fn paste_page(m: &ShellModel) -> Result<(), Text> {
     has_pages(m)?;
     writable(m)?;
     if let Some(reason) = m.paste_page_refusal() {
-        return Err(reason.into());
+        return Err(reason);
     }
     match m.canvas() {
         Some(c) if !c.page().tables.page.is_nil() => Ok(()),
@@ -639,7 +672,7 @@ pub fn enabled_with(
         }
     }
     match meta.enabled_when_named {
-        Some((params, enabled)) if params.iter().any(|k| p.contains_key(*k)) => enabled(m),
+        Some((params, enabled)) if params.iter().any(|k| p.contains_key(*k)) => enabled(m, p),
         _ => (meta.enabled)(m),
     }
 }
@@ -654,6 +687,123 @@ impl ActionMeta {
     /// The reason key of the refusal.
     pub fn enabled_now(&self, m: &ShellModel) -> Result<(), Text> {
         enabled_with(self, m, &serde_json::Map::new())
+    }
+}
+
+/// A command tab (`tab`): a tab that needs a project has one ([`crate::command_bar::tab_reason`]).
+pub(super) fn tab_named(m: &ShellModel, p: &Map<String, Value>) -> Result<(), Text> {
+    let tab = p
+        .get("tab")
+        .and_then(Value::as_str)
+        .and_then(crate::command_bar::Tab::from_word);
+    match tab {
+        Some(tab) if crate::command_bar::tab_reason(m, tab).is_some() => {
+            Err(key!("reason-tab-needs-project").into())
+        }
+        _ => Ok(()),
+    }
+}
+
+/// Update… of the Libraries pane: while its table is on show, a copy it would update has an update (the marked rows,
+/// else the cursor's, else every copy); without the table the handler counts.
+pub(super) fn libraries_updatable(m: &ShellModel) -> Result<(), Text> {
+    writable(m)?;
+    let shown = m
+        .nav(ew_api::output::NavKind::Libraries)
+        .is_some_and(|n| n.table().is_some());
+    if shown && m.libraries_update_count() == 0 {
+        Err(key!("reason-no-updates").into())
+    } else {
+        Ok(())
+    }
+}
+
+// The checks of a call that names its record (`ActionMeta::enabled_when_named`): what a row's menu sends, so that the
+// row's entry is greyed where the dispatch would refuse it, with the same reason.
+
+/// The record the parameter `name` names by its UUID; `None` for another value (an alias or a tag, which the handler
+/// resolves and checks itself).
+fn named_record(p: &Map<String, Value>, name: &str) -> Option<ew_api::output::Uuid> {
+    p.get(name)?.as_str()?.parse().ok()
+}
+
+/// A row's Cable… (`cable`): the page can be changed and the cable has wires to take.
+pub(super) fn cable_named(m: &ShellModel, p: &Map<String, Value>) -> Result<(), Text> {
+    writable_page(m)?;
+    match (m.project_session(), named_record(p, "cable")) {
+        (Some(s), Some(cable)) if s.cable_wires(cable).is_empty() => Err(key!("reason-cable-no-wire").into()),
+        _ => Ok(()),
+    }
+}
+
+/// Place port (`device` and `port`): an editable bus-topology page, where a port is the box of its interface.
+pub(super) fn port_named(m: &ShellModel, _: &Map<String, Value>) -> Result<(), Text> {
+    editable_page(m)?;
+    if m.page_rows().get(m.page_index()).map(|r| &r.kind) == Some(&ew_api::PageType::BusTopology) {
+        Ok(())
+    } else {
+        Err(key!("reason-port-bus-page").into())
+    }
+}
+
+/// Attach cards to a station (`station`): a card waits for a CPU.
+pub(super) fn cards_named(m: &ShellModel, _: &Map<String, Value>) -> Result<(), Text> {
+    writable(m)?;
+    if m.project_session()
+        .is_some_and(|s| s.plc_cards_without_cpu().is_empty())
+    {
+        Err(key!("reason-no-cards-without-cpu").into())
+    } else {
+        Ok(())
+    }
+}
+
+/// Add valve (`module`): the module has a valve part to add.
+pub(super) fn valve_part_named(m: &ShellModel, p: &Map<String, Value>) -> Result<(), Text> {
+    writable(m)?;
+    match (m.project_session(), named_record(p, "module")) {
+        (Some(s), Some(module)) if s.fluid_menu(module).valve_part.is_none() => {
+            Err(key!("reason-valve-no-part").into())
+        }
+        _ => Ok(()),
+    }
+}
+
+/// Go to a thing by its drawing (`record`): the record is drawn.
+pub(super) fn drawn_named(m: &ShellModel, p: &Map<String, Value>) -> Result<(), Text> {
+    has_pages(m)?;
+    match (m.project_session(), named_record(p, "record")) {
+        (Some(s), Some(record)) if s.first_drawing(record).is_none() => {
+            Err(key!("reason-nav-not-placed").into())
+        }
+        _ => Ok(()),
+    }
+}
+
+/// Add to a PLC (`device`): a station names its PLC, a device with passive bus ports only takes no part.
+pub(super) fn plc_device_named(m: &ShellModel, p: &Map<String, Value>) -> Result<(), Text> {
+    writable(m)?;
+    let offer = m
+        .project_session()
+        .zip(named_record(p, "device"))
+        .map(|(s, device)| s.plc_offer(device));
+    match offer {
+        Some(ew_api::output::PlcOffer::Station(name)) => {
+            Err(strings::keyed(key!("reason-plc-station-of"), vec![name.into()]))
+        }
+        Some(ew_api::output::PlcOffer::Passive) => Err(key!("reason-plc-passive").into()),
+        _ => Ok(()),
+    }
+}
+
+/// Choose part… for a strip (`strip`): a terminal of the strip has no part yet.
+pub(super) fn strip_parts_named(m: &ShellModel, p: &Map<String, Value>) -> Result<(), Text> {
+    writable(m)?;
+    match named_record(p, "strip") {
+        Some(strip) if m.strip_terminals_without_part(strip).is_empty() => {
+            Err(key!("reason-strip-all-parts").into())
+        }
+        _ => Ok(()),
     }
 }
 

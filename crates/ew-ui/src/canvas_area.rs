@@ -346,7 +346,16 @@ impl Behavior<TabPane> for AreaBehavior<'_> {
         let Some(b) = ew_viewmodel::command_bar::action_button(self.shell, "nav.back") else {
             return;
         };
-        let enabled = self.area.groups[g].active_tab().history.back_len() > 0;
+        // Back in this group, as the shell answers for it.
+        let refusal = ew_viewmodel::actions::find("nav.back").and_then(|m| {
+            ew_viewmodel::actions::enabled_with(
+                m,
+                self.shell,
+                &serde_json::Map::from_iter([("group".to_owned(), json!(g))]),
+            )
+            .err()
+        });
+        let enabled = refusal.is_none();
         let key = ew_viewmodel::keymap::short_display(&b.shortcut);
         let tip = if key.is_empty() {
             b.label.clone()
@@ -361,10 +370,9 @@ impl Behavior<TabPane> for AreaBehavior<'_> {
             enabled,
             None,
         );
-        let response = if enabled {
-            response
-        } else {
-            response.disabled_tip(format!("{tip}: {}", strings::text(key!("reason-history-empty"))))
+        let response = match &refusal {
+            None => response,
+            Some(why) => response.disabled_tip(format!("{tip}: {}", strings::render(why))),
         };
         if enabled && response.clicked() {
             self.events

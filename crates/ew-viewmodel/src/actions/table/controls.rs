@@ -828,14 +828,18 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // The part selection dialog and the part editor.
     with_params(
         "target?:enum(parts|bridge_part|accessory_part), use?:uint, add?:bool, strip?:text, cable?:text",
-        act(
-            "part.choose",
-            View,
-            Menu::Edit,
-            &[],
-            writable,
-            slot(Menu::Edit),
-            |s, p| s.act_part_choose(p),
+        enabled_when_named(
+            &["strip"],
+            strip_parts_named,
+            act(
+                "part.choose",
+                View,
+                Menu::Edit,
+                &[],
+                writable,
+                slot(Menu::Edit),
+                |s, p| s.act_part_choose(p),
+            ),
         ),
     ),
     with_params(

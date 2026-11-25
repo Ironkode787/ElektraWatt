@@ -69,7 +69,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, kind: NavKind, events: &mut 
 
 /// The Libraries navigator's Update… button: "Update 3 items…" for the copies it would update (the marked rows, else
 /// the cursor's, else every copy with an update), its tooltip that the changes are shown first and made with Apply;
-/// disabled with its reason when those rows have no update.
+/// disabled with the action's reason when those rows have no update.
 fn update_bar(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     use components::Tip as _;
     let t = components::tokens(ui);
@@ -77,7 +77,6 @@ fn update_bar(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let count = shell.libraries_update_count();
     let reason = match state {
         Some(Err(reason)) => Some(strings::render(&reason)),
-        _ if count == 0 => Some(strings::text(key!("reason-no-updates")).to_owned()),
         _ => None,
     };
     let label = match count {

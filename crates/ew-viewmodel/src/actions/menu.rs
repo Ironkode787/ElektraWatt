@@ -11,7 +11,7 @@
 
 use serde_json::{Value, json};
 
-use super::enabled::on_valve_position;
+use super::enabled::{enabled_with, on_valve_position};
 use super::{ACTIONS, ActionMeta, Menu, Submenu, find, guides, tutorials};
 use crate::command_bar::Group;
 use crate::key;
@@ -279,6 +279,12 @@ fn target_items(
         .into_iter()
         .map(|(label, params)| {
             let mut item = item_of(meta, model);
+            // Greyed where the dispatch with these parameters would refuse, with its reason.
+            if let Some(p) = params.as_object().filter(|p| !p.is_empty()) {
+                let state = enabled_with(meta, model, p);
+                item.enabled = state.is_ok();
+                item.reason = state.err().map(|k| strings::render(&k));
+            }
             item.label = label;
             item.params = params;
             item
@@ -578,8 +584,7 @@ fn station_items(submenu: Submenu, meta: &ActionMeta, model: &ShellModel) -> Vec
             .map(ew_api::Session::plc_stations_for_cards)
             .unwrap_or_default()
     };
-    let waiting = session.is_some_and(|s| !s.plc_cards_without_cpu().is_empty());
-    let mut items = target_items(
+    target_items(
         meta,
         model,
         stations
@@ -587,14 +592,7 @@ fn station_items(submenu: Submenu, meta: &ActionMeta, model: &ShellModel) -> Vec
             .map(|(id, tag)| (tag, json!({ "station": id.to_string() })))
             .collect(),
         key!("reason-no-station"),
-    );
-    if submenu == Submenu::AttachCards && !waiting {
-        for item in items.iter_mut().filter(|i| i.enabled) {
-            item.enabled = false;
-            item.reason = Some(strings::text(key!("reason-no-cards-without-cpu")).to_owned());
-        }
-    }
-    items
+    )
 }
 
 /// The parts a module of the station can be (the module of the station view first).

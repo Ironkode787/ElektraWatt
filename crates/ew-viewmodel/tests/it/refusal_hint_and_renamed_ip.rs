@@ -176,11 +176,14 @@ fn the_armed_ip_tools_hud_leads_with_its_name() {
 fn a_greyed_commands_reason_reads_with_a_capital_under_its_title() {
     let tmp = Tmp::new("p45b-reason-capital");
     let mut s = new_project(&tmp);
-    let reason = ew_viewmodel::strings::text(ew_viewmodel::key!("reason-page-type-no-symbols"));
-    s.explain_disabled(reason.to_owned());
+    let reason = ew_viewmodel::strings::render(&ew_viewmodel::strings::keyed(
+        ew_viewmodel::key!("reason-page-type-no-symbols"),
+        vec![ew_viewmodel::ew_api::page_kind_words(&ew_viewmodel::ew_api::PageType::TitlePage)],
+    ));
+    s.say_refusal(reason.clone());
     let n = *s.notifications().visible().last().expect("the toast");
     assert_eq!(n.text, reason);
     let (title, line) = n.lines();
-    assert_eq!(title, "This page type takes no symbols or wires");
+    assert_eq!(title, "No symbols or wires go on a title page");
     assert_eq!(line.as_deref(), Some("Draw on a schematic page"));
 }

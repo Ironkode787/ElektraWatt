@@ -315,7 +315,7 @@ fn the_wire_tool_draws_the_page_types_kind_or_is_refused() {
     done(&mut s, "page.goto", json!({"folio": "908"}));
     assert_eq!(
         refused(&mut s, "tool.wire", json!({})),
-        "reason-page-type-no-symbols-report"
+        "reason-page-type-no-symbols"
     );
     assert!(s.describe().contains("item tool.wire \"Wire\" [W] disabled: "));
     done(&mut s, "page.goto", json!({"folio": "201"}));

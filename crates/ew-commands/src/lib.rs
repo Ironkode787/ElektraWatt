@@ -124,7 +124,7 @@ pub use meta::{CommandMeta, Confirmation, Cost, Exposure, Origin};
 pub use registry::{AnyCommand, CommandRegistry, RegisteredCommand};
 pub use transaction::{Submit, Transaction};
 pub use tx::{IndexRead, ReadSet, TxBuilder};
-pub use words::{comma_joined, damaged_copy as damaged_copy_words};
+pub use words::{comma_joined, damaged_copy as damaged_copy_words, page_kind as page_kind_words};
 
 #[cfg(test)]
 mod tests {

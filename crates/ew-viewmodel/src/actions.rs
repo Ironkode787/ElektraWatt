@@ -272,6 +272,10 @@ pub(crate) type Handler = fn(&mut ShellModel, &Map<String, Value>) -> Outcome;
 /// Whether an action can run now: `Err` carries the reason key of its refusal (the checks are in `actions/enabled.rs`).
 pub type Enabled = fn(&ShellModel) -> Result<(), ew_api::Text>;
 
+/// Whether an action can run now with the parameters of a call that names its record ([`ActionMeta::enabled_when_named`]):
+/// `Err` carries the reason of its refusal.
+pub type EnabledFor = fn(&ShellModel, &Map<String, Value>) -> Result<(), ew_api::Text>;
+
 /// One action of the registry.
 ///
 /// A dependant reads an action's facts but cannot reach its handler: an action runs only through
@@ -293,9 +297,10 @@ pub struct ActionMeta {
     /// Whether the action can run now: `Err` carries the reason key of its refusal.
     pub enabled: Enabled,
     /// The parameters that name what [`Self::enabled`] reads from the selection, and the check that decides in its
-    /// place when a call sends one of them (a row's menu that names its station, `bond.draw` with its two ends); the
-    /// menus and the palette send none and read `enabled` alone ([`enabled_with`]).
-    pub enabled_when_named: Option<(&'static [&'static str], Enabled)>,
+    /// place when a call sends one of them, reading the call's parameters (a row's menu that names its station, a
+    /// cable's row that names a cable without wires, `bond.draw` with its two ends); the menus and the palette send
+    /// none and read `enabled` alone ([`enabled_with`]).
+    pub enabled_when_named: Option<(&'static [&'static str], EnabledFor)>,
     /// A command that goes while the symbol editor shows, though it is neither the editor's (`symbol.`) nor a file's
     /// (`file.`): Undo, Redo, New page, Quit, a toast's action and Redraw the boxes ([`enabled_with`]).
     pub in_symbol_editor: bool,
@@ -492,10 +497,10 @@ const fn with_aliases(aliases: &'static [(&'static str, ParamForm)], mut a: Acti
 }
 
 /// Names the parameters that supply what the action's `enabled` reads from the selection, and the check of a call that
-/// sends one of them ([`ActionMeta::enabled_when_named`]).
+/// sends one of them ([`ActionMeta::enabled_when_named`]), which reads the call's parameters.
 const fn enabled_when_named(
     params: &'static [&'static str],
-    enabled: Enabled,
+    enabled: EnabledFor,
     mut a: ActionMeta,
 ) -> ActionMeta {
     a.enabled_when_named = Some((params, enabled));

@@ -94,7 +94,7 @@ fn a_click_on_a_greyed_command_shows_its_reason_as_a_toast() {
     assert_eq!(h.state().shell().tool().name(), "select", "nothing runs");
     assert_eq!(
         toasts(&h),
-        ["A section divider takes no symbols or wires: draw on a schematic page"]
+        ["No symbols or wires go on a section divider: draw on a schematic page"]
     );
     h.state_mut().shell_mut().shutdown();
 }
@@ -125,7 +125,7 @@ fn the_hud_gives_the_page_types_reason_while_no_tool_is_armed() {
     assert_eq!(h.state().shell().tool().name(), "select");
     assert_eq!(
         prompt(&h),
-        "A section divider takes no symbols or wires: draw on a schematic page"
+        "No symbols or wires go on a section divider: draw on a schematic page"
     );
     assert_eq!(
         h.state_mut()

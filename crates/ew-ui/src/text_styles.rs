@@ -193,7 +193,8 @@ fn style_row(
             face_combo(ui, t, row, events);
             height_field(ui, t, row, events);
             // A face without a bold cut: the toggle is off and says why.
-            let has_bold = row.face.has_bold();
+            let bold_reason = row.bold_reason();
+            let has_bold = bold_reason.is_none();
             let mut bold = ui
                 .add_enabled(
                     has_bold,
@@ -203,8 +204,8 @@ fn style_row(
                     ),
                 )
                 .tip(strings::text(key!("text-styles-bold")));
-            if !has_bold {
-                bold = bold.disabled_tip(strings::text(key!("text-styles-bold-none")));
+            if let Some(why) = bold_reason {
+                bold = bold.disabled_tip(strings::text(why));
             }
             if bold.clicked() {
                 events.push(Event::Action(

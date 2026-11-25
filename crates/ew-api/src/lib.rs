@@ -279,7 +279,8 @@ pub use ew_commands::{
 pub use ew_commands::{CommandMeta, Cost, Exposure, HistoryBlock};
 /// A command's refusal by key: the window renders it in its language, the CLI prints its English.
 pub use ew_commands::{
-    asset_error_text, comma_joined, ident_error_text, path_error_text, schema_error_text, serde_error_text,
+    asset_error_text, comma_joined, ident_error_text, page_kind_words, path_error_text, schema_error_text,
+    serde_error_text,
 };
 /// The ID source a session can be given (`ew-ids`).
 pub use ew_ids::IdSource;

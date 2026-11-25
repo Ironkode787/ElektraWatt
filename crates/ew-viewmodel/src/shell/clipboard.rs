@@ -21,7 +21,7 @@ use super::{Mode, Outcome, ShellModel, failed, string_param};
 use crate::clipboard::{ClipKind, ClipboardState, copy_refusal, fragment_banner};
 use crate::key;
 use crate::properties::{Card, CardOrigin, PasteChoice, PasteConflict, PendingEdit};
-use crate::strings::{self, Key};
+use crate::strings;
 use crate::tools::PreviewState;
 use crate::tools::{PasteTool, SelectionChange, ToolOutput, tool_named};
 use ew_api::DerivedDiff;
@@ -33,8 +33,8 @@ impl ShellModel {
         &self.clip
     }
 
-    /// Why the page on show cannot take a paste, by its kind (`edit.paste` refuses the kind): `Nothing can be pasted
-    /// on a title page`; `None` on a page that can.
+    /// Why the page on show cannot take a paste, by its kind in the commands' words (`edit.paste` refuses the kind):
+    /// `Nothing can be pasted on a title page`; `None` on a page that can.
     ///
     /// The list mirrors the command's two page-kind checks: the kinds whose list is empty in
     /// `crates/ew-commands/src/commands/device.rs`'s `allowed_rep_types` (the title page, panel layout, model view,
@@ -42,18 +42,20 @@ impl ShellModel {
     /// `crates/ew-commands/src/commands/paste.rs`'s `PasteFragment::place` (`Report | TableOfContents |
     /// SectionDivider`). `tests/clipboard.rs` checks it against a real `edit.paste` dry run for every page kind the
     /// shell knows.
-    pub fn paste_page_refusal(&self) -> Option<Key<'static>> {
+    pub fn paste_page_refusal(&self) -> Option<ew_api::Text> {
         use ew_api::PageType;
-        Some(match self.page_rows().get(self.page_index())?.kind {
-            PageType::TitlePage => key!("reason-paste-title-page"),
-            PageType::Report => key!("reason-paste-report-page"),
-            PageType::TableOfContents => key!("reason-paste-contents-page"),
-            PageType::SectionDivider => key!("reason-paste-section-divider"),
-            PageType::PanelLayout => key!("reason-paste-panel-layout"),
-            PageType::ModelView => key!("reason-paste-model-view"),
-            PageType::ExternalDocument => key!("reason-paste-external-document"),
-            _ => return None,
-        })
+        let kind = &self.page_rows().get(self.page_index())?.kind;
+        matches!(
+            kind,
+            PageType::TitlePage
+                | PageType::Report
+                | PageType::TableOfContents
+                | PageType::SectionDivider
+                | PageType::PanelLayout
+                | PageType::ModelView
+                | PageType::ExternalDocument
+        )
+        .then(|| strings::keyed(key!("reason-paste-page"), vec![ew_api::page_kind_words(kind)]))
     }
 
     /// The text a copy asked the window to put on the system clipboard, once (egui's `Context::copy_text`).

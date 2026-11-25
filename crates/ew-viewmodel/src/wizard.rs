@@ -1438,6 +1438,13 @@ impl Wizard {
         self.use_for_new
     }
 
+    /// Why the choice of [`Self::use_for_new`] is greyed: the template is made; `None` before.
+    pub fn use_for_new_reason(&self) -> Option<Key<'static>> {
+        self.finished
+            .is_some()
+            .then_some(key!("reason-wizard-use-for-new"))
+    }
+
     /// The review step's lines: [`Draft::review`], with the check level `written` when a `person` presses Create (the
     /// window; `project.checks.set` is `HumanOnly`, so a script's template keeps it out).
     pub fn review(&self, person: bool) -> Vec<ReviewLine> {

@@ -1584,7 +1584,7 @@ impl ShellModel {
         if self.dialog.is_some() {
             self.dialog_refusal = Some((self.dialog_gen, text));
         } else {
-            self.explain_disabled(text);
+            self.disabled_toast(text);
         }
     }
 

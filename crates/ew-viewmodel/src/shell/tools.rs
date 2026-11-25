@@ -325,10 +325,26 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // The host
 
-    /// A click on a disabled command (doc 16a §5.2): `text`, its reason in words (the sentence its
-    /// tooltip ends with), as an information toast of key `disabled`, so a second click replaces it rather than
-    /// stacking.
-    pub fn explain_disabled(&mut self, text: String) {
+    /// A click on the disabled command `action` (doc 16a §5.2): why it is greyed (the sentence its tooltip ends with),
+    /// as an information toast of key `disabled`, so a second click replaces it rather than stacking. A call that names
+    /// its target in `params` (a tab) says why that call is refused, a bar button without them why the button is
+    /// greyed (a menu button whose entries are all greyed, its first entry's reason); nothing when it is not.
+    pub fn explain_disabled(&mut self, action: &str, params: &Value) {
+        let reason = match params.as_object().filter(|p| !p.is_empty()) {
+            Some(p) => crate::actions::find(action)
+                .and_then(|m| crate::actions::enabled_with(m, self, p).err())
+                .map(|r| strings::render(&r)),
+            None => crate::command_bar::action_button(self, action)
+                .filter(|b| !b.enabled)
+                .and_then(|b| b.reason),
+        };
+        if let Some(text) = reason {
+            self.disabled_toast(text);
+        }
+    }
+
+    /// `text`, why something did nothing, as the information toast of key `disabled`.
+    pub(super) fn disabled_toast(&mut self, text: String) {
         self.notes.push(
             crate::notifications::Note::new(DISABLED, text).toned(crate::notifications::NoteTone::Info),
         );

@@ -66,17 +66,16 @@ fn a_paste_on_a_page_that_cannot_take_it_is_refused_with_its_reason() {
     let mut shell = writable(&tmp, "102");
     select_rep(&mut shell, "-102F1");
     done(&mut shell, "edit.copy", json!({}));
-    for (folio, reason) in [
-        ("1", key!("reason-paste-title-page")),
-        ("901", key!("reason-paste-report-page")),
+    for (folio, expected) in [
+        ("1", "Nothing can be pasted on a title page"),
+        ("901", "Nothing can be pasted on a report page"),
     ] {
         done(&mut shell, "page.goto", json!({"folio": folio}));
-        assert_eq!(
-            shell.dispatch("edit.paste_clip", &json!({})),
-            Outcome::refused(reason),
-            "paste on folio {folio}"
-        );
-        let expected = ew_viewmodel::strings::text(reason).to_owned();
+        let Outcome::Refused { reason } = shell.dispatch("edit.paste_clip", &json!({})) else {
+            panic!("paste on folio {folio} is refused");
+        };
+        assert_eq!(ew_viewmodel::strings::render(&reason), expected, "paste on folio {folio}");
+        let expected = expected.to_owned();
         assert_ne!(shell.tool().name(), "paste", "no paste tool on folio {folio}");
         done(&mut shell, "tools.palette", json!({}));
         shell.set_palette_query("paste");

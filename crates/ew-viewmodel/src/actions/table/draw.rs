@@ -141,14 +141,18 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 ("part", ParamForm::Whole),
                 ("strip", ParamForm::Whole),
             ],
-            act(
-                "place.pick",
-                Command,
-                Menu::Draw,
-                &[],
-                editable_page,
-                None,
-                |s, p| s.act_place_pick(p),
+            enabled_when_named(
+                &["port"],
+                port_named,
+                act(
+                    "place.pick",
+                    Command,
+                    Menu::Draw,
+                    &[],
+                    editable_page,
+                    None,
+                    |s, p| s.act_place_pick(p),
+                ),
             ),
         ))),
     )),
@@ -1400,7 +1404,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         "kind?:enum(pelv_0v_pe|fe_pe|equipotential|shield), a?:text, b?:text",
         in_canvas(enabled_when_named(
             &["a", "b"],
-            editable_page,
+            |m, _| editable_page(m),
             act(
                 "bond.draw",
                 Command,
@@ -1418,7 +1422,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         "name?:text, type?:text, voltage?:text, at?:text",
         in_canvas(enabled_when_named(
             &["at"],
-            editable_page,
+            |m, _| editable_page(m),
             act(
                 "potential.draw",
                 Command,
@@ -1466,7 +1470,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             "ew-cable",
             enabled_when_named(
                 &["cable"],
-                writable_page,
+                cable_named,
                 act(
                     "cable.from_wires",
                     Command,

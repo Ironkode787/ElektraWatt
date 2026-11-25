@@ -147,9 +147,6 @@ impl ShellModel {
             Err(e) => e,
             Ok(None) => failed(key!("error-missing-param"), &["tab"]),
             Ok(Some(word)) => match crate::command_bar::Tab::from_word(word) {
-                Some(tab) if crate::command_bar::tab_reason(self, tab).is_some() => {
-                    Outcome::refused(key!("reason-tab-needs-project"))
-                }
                 Some(tab) => {
                     self.chrome.tab = tab;
                     Outcome::Done

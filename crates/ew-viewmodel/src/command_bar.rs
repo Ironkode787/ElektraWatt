@@ -958,10 +958,6 @@ pub fn navigator_row_menu(
             let strip = serde_json::json!({ "strip": strip.to_string() });
             let choose = item("part.choose", strip.clone(), key!("action-part-choose")).map(|mut choose| {
                 choose.label = strings::format_count(crate::count_key!("canvas-choose-part-strip"), bare);
-                if bare == 0 && choose.enabled {
-                    choose.enabled = false;
-                    choose.reason = Some(strings::text(key!("reason-strip-all-parts")).to_owned());
-                }
                 choose
             });
             [
@@ -1525,7 +1521,7 @@ fn select_prompt(model: &ShellModel, stack: &mut usize, buttons: &mut Vec<HudBut
     } else if let Some(reason) = crate::actions::page_type_reason(model) {
         // Doc 16a P3: on a page that takes no symbols, with no tool armed, the reason stands
         // where the user looks: the page type's, as a greyed drawing tool says it.
-        strings::text(reason).to_owned()
+        strings::render(&reason)
     } else {
         hint()
     }

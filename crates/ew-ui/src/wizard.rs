@@ -207,15 +207,15 @@ fn step_form(ui: &mut Ui, wizard: &Wizard, target: Option<&std::path::Path>, eve
         // Whether new projects start from the template: a choice of the settings, on at first.
         ui.add_space(t.space_5);
         let mut on = wizard.use_for_new();
-        let enabled = wizard.finished_dir().is_none();
-        if ui
-            .add_enabled(
-                enabled,
-                egui::Checkbox::new(&mut on, strings::text(key!("wizard-use-for-new"))),
-            )
-            .disabled_tip(strings::text(key!("reason-wizard-use-for-new")))
-            .changed()
-        {
+        let reason = wizard.use_for_new_reason();
+        let mut check = ui.add_enabled(
+            reason.is_none(),
+            egui::Checkbox::new(&mut on, strings::text(key!("wizard-use-for-new"))),
+        );
+        if let Some(why) = reason {
+            check = check.disabled_tip(strings::text(why));
+        }
+        if check.changed() {
             set(events, USE_FOR_NEW_FIELD, if on { "true" } else { "false" });
         }
         under(ui, &t, strings::text(key!("wizard-use-for-new-note")));

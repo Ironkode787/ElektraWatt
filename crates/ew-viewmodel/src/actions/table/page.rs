@@ -216,14 +216,18 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     keeps_banner(placed(
         place(Group::Go, 2, CommandSize::Small, None),
         "arrow-left",
-        act(
-            "nav.back",
-            View,
-            Menu::Page,
-            &["Alt+Arrow Left"],
-            can_go_back,
-            None,
-            |s, _| s.act_history(true),
+        enabled_when_named(
+            &["group"],
+            back_in_group,
+            act(
+                "nav.back",
+                View,
+                Menu::Page,
+                &["Alt+Arrow Left"],
+                can_go_back,
+                None,
+                |s, _| s.act_history(true),
+            ),
         ),
     )),
     keeps_banner(placed(

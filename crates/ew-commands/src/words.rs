@@ -415,7 +415,7 @@ pub(crate) fn rep_type(t: &RepType) -> TextArg {
 
 /// A page of a kind, with its article ("a panel layout page", the window's own wording of the page type
 /// choice): a kind of a newer format by its stored value.
-pub(crate) fn page_kind(kind: &PageType) -> TextArg {
+pub fn page_kind(kind: &PageType) -> TextArg {
     match kind {
         PageType::TitlePage => text!("refusal-words-page-kind-title-page").into(),
         PageType::TableOfContents => text!("refusal-words-page-kind-table-of-contents").into(),

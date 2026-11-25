@@ -49,13 +49,9 @@ reason-no-next-rep-type = No other symbol draws this function on this page
 reason-no-picker-row = The picker shows no row
 reason-no-grid-mismatch = The chosen symbol is drawn on this page's grid; choose it to place it here
 reason-not-editable = Symbols are placed on drawn pages of a project that can be changed
-reason-page-type-no-symbols = This page type takes no symbols or wires: draw on a schematic page
+reason-page-type-no-symbols = No symbols or wires go on { $p0 }: draw on a schematic page
 
-# The same, naming the page's kind.
-reason-page-type-no-symbols-divider = A section divider takes no symbols or wires: draw on a schematic page
-reason-page-type-no-symbols-title = A title page takes no symbols or wires: draw on a schematic page
-reason-page-type-no-symbols-contents = A table of contents takes no symbols or wires: draw on a schematic page
-reason-page-type-no-symbols-report = A report page takes no symbols or wires: draw on a schematic page
+# A panel layout page, saying where its devices come from.
 reason-page-type-no-symbols-panel = A panel layout page takes no symbols or wires: drag a device from Unplaced devices on the left rail onto the plate, or choose Auto-fill rail
 reason-route-handle = Select one wire to go through its handles
 reason-route-handle-move = Choose a handle of the selected wire first
@@ -311,13 +307,7 @@ reason-copy-generated = Generated content is not copied
 reason-clipboard-empty = The clipboard is empty
 reason-not-a-fragment = The clipboard holds no ElektraWatt fragment
 reason-paste-outside = Some of the block would lie outside the drawing area; move it further in
-reason-paste-title-page = Nothing can be pasted on a title page
-reason-paste-report-page = Nothing can be pasted on a report page
-reason-paste-contents-page = Nothing can be pasted on a table of contents page
-reason-paste-section-divider = Nothing can be pasted on a section divider page
-reason-paste-panel-layout = Nothing can be pasted on a panel layout page
-reason-paste-model-view = Nothing can be pasted on a model view page
-reason-paste-external-document = Nothing can be pasted on an external document page
+reason-paste-page = Nothing can be pasted on { $p0 }
 reason-no-tags = No device is selected
 error-dir-not-empty = The directory is not empty; choose a new, empty directory.
 error-workspace-case = A workspace whose name differs only in letter case already exists.

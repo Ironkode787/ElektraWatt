@@ -464,7 +464,12 @@ fn a_tool_a_reorder_or_a_move_refused_on_a_generated_page_offers_tip_3() {
     done(&mut s, "page.goto", json!({ "folio": folio }));
     assert_eq!(
         s.dispatch("tool.wire", &json!({})),
-        Outcome::refused(ew_viewmodel::key!("reason-page-type-no-symbols-report"))
+        Outcome::Refused {
+            reason: ew_viewmodel::strings::keyed(
+                ew_viewmodel::key!("reason-page-type-no-symbols"),
+                vec![ew_viewmodel::ew_api::page_kind_words(&ew_viewmodel::ew_api::PageType::Report)],
+            )
+        }
     );
     assert_eq!(tips(&s), [(generated.clone(), Some(NoteAction::ShowBlock))]);
     let serial = s.toast().unwrap().serial;

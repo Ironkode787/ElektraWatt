@@ -207,14 +207,17 @@ fn the_sample_project_opens_read_only_and_save_as_makes_a_copy() {
 }
 
 #[test]
-fn without_a_sample_the_action_fails_and_the_tutorials_page_still_opens() {
+fn without_a_sample_the_action_is_refused_and_the_tutorials_page_still_opens() {
     let tmp = Tmp::new(STEM);
     let mut config = tmp.config_with_resources();
     config.resources.sample_dir = None;
     let mut shell = ShellModel::new(Mode::Headless, config);
     assert!(!shell.has_sample());
     match run(&mut shell, "file.open_sample", json!({})) {
-        Outcome::Failed { message } => assert_eq!(message, "The sample project is not installed."),
+        Outcome::Refused { reason } => assert_eq!(
+            ew_viewmodel::strings::render(&reason),
+            "The sample project is not installed."
+        ),
         other => panic!("{other:?}"),
     }
     done(&mut shell, "help.tutorials", json!({}));

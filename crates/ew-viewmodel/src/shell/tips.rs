@@ -27,6 +27,14 @@ use crate::notifications::{Note, NoteAction, NoteTone, Notification, Offer, Vali
 use crate::properties::{PropRow, Provenance, SheetSection};
 use crate::strings::{self, Key};
 
+/// The editing tools' refusal on a report page, which tip 3 answers.
+fn report_refusal() -> ew_api::Text {
+    strings::keyed(
+        key!("reason-page-type-no-symbols"),
+        vec![ew_api::page_kind_words(&ew_api::PageType::Report)],
+    )
+}
+
 /// One of the three tips.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Tip {
@@ -198,7 +206,7 @@ impl ShellModel {
     }
 
     /// Tip 3 for an action a generated page refused, in a project that can be changed: an editing tool or
-    /// Paste refused on the generated page on show (`reason-page-type-no-symbols-report`), and the Pages navigator's
+    /// Paste refused on the generated page on show (`reason-page-type-no-symbols` naming a report page), and the Pages navigator's
     /// move or reorder refused on a generated page (`error-generated-page-order`; the page the folios of `params`
     /// name, else the marked rows, else the cursor row).
     pub(super) fn tip_for_outcome(&mut self, action: &str, params: &Value, out: &Outcome) {
@@ -208,9 +216,7 @@ impl ShellModel {
         let rows = self.page_rows();
         let generated = |i: usize| rows.get(i).filter(|r| r.generated).map(|r| r.id);
         let page = match out {
-            Outcome::Refused { reason: reason_key }
-                if *reason_key == key!("reason-page-type-no-symbols-report") =>
-            {
+            Outcome::Refused { reason: reason_key } if *reason_key == report_refusal() => {
                 generated(self.page_index())
             }
             Outcome::Failed { message }

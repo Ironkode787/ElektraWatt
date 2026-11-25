@@ -514,7 +514,7 @@ impl ShellModel {
         let mut out = Vec::new();
         if let Some(d) = &tab.draft {
             let text = match d.head {
-                None => strings::text(key!("rack-choose-head")),
+                None => strings::text(StationDraft::NO_HEAD),
                 Some(_) => strings::text(key!("rack-todo-create")),
             };
             out.push(step(text.to_owned(), None));
@@ -907,6 +907,16 @@ impl StationKind {
             StationKind::ValveTerminal => key!("rack-kind-valve-terminal-tip"),
             StationKind::Compact => key!("rack-kind-compact-tip"),
         }
+    }
+}
+
+impl StationDraft {
+    /// Why Create waits: the head part is not chosen yet.
+    pub const NO_HEAD: Key<'static> = key!("rack-choose-head");
+
+    /// Why Create is greyed ([`Self::NO_HEAD`]); `None` once the head is chosen.
+    pub fn create_reason(&self) -> Option<Key<'static>> {
+        self.head.is_none().then_some(Self::NO_HEAD)
     }
 }
 

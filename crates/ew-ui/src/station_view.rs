@@ -459,11 +459,16 @@ fn header(ui: &mut Ui, t: &Tokens, tab: &StationTab, shown: &StationShown, event
         );
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             // Create is the view's one filled button; without a head it says what it waits for.
-            let ready = draft.head.is_some();
-            let create =
-                components::button(ui, Kind::Primary, strings::text(key!("rack-create")), ready, 0.0);
-            if !ready {
-                create.disabled_tip(strings::text(key!("rack-choose-head")));
+            let reason = draft.create_reason();
+            let create = components::button(
+                ui,
+                Kind::Primary,
+                strings::text(key!("rack-create")),
+                reason.is_none(),
+                0.0,
+            );
+            if let Some(why) = reason {
+                create.disabled_tip(strings::text(why));
             } else if create.clicked() {
                 events.push(Event::Action("plc.rack_create", json!({})));
             }

@@ -52,7 +52,7 @@ fn the_glossary_pane_is_named_and_folio_reports_insert_arms_the_ip_tool_in_engli
     settle(&mut h);
     settle(&mut h);
     assert!(
-        h.query_by_label("A title page takes no symbols or wires: draw on a schematic page")
+        h.query_by_label("No symbols or wires go on a title page: draw on a schematic page")
             .is_some(),
         "the disabled button's reason"
     );

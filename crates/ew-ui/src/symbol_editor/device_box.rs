@@ -67,14 +67,14 @@ impl EditorView {
         events: &mut Vec<Event>,
     ) {
         let t = theme::current(ui.ctx());
-        let editable = b.pins_from().is_none();
+        let add_refusal = b.pins_from();
         ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
             if bar_command(
                 ui,
-                key!("symbol-start"),
-                "file-plus",
+                ("symbol.start", key!("symbol-start"), "file-plus"),
                 CommandSize::Large,
-                [false, true, false],
+                [false, false],
+                None,
                 String::new(),
                 Some(label(key!("symbol-start-how"))),
             )
@@ -85,24 +85,24 @@ impl EditorView {
             divider(ui);
             bar_command(
                 ui,
-                key!("symbol-select"),
-                "pointer",
+                (key!("symbol-select").as_str(), key!("symbol-select"), "pointer"),
                 CommandSize::Large,
-                [true, true, false],
+                [true, false],
+                None,
                 String::new(),
                 Some(label(key!("box-select-how"))),
             );
             if bar_command(
                 ui,
-                key!("box-add-pin"),
-                "plus",
+                (key!("box-add-pin").as_str(), key!("box-add-pin"), "plus"),
                 CommandSize::Large,
-                [false, editable, false],
+                [false, false],
+                add_refusal.clone(),
                 String::new(),
                 Some(label(key!("box-add-pin-how"))),
             )
             .clicked()
-                && editable
+                && add_refusal.is_none()
             {
                 action(events, "part.pin", json!({ "add": true }));
             }
@@ -116,10 +116,10 @@ impl EditorView {
                     .unwrap_or_default();
                 if bar_command(
                     ui,
-                    key!("symbol-save"),
-                    "device-floppy",
+                    ("symbol.save", key!("symbol-save"), "device-floppy"),
                     CommandSize::Large,
-                    [false, true, false],
+                    [false, false],
+                    None,
                     save_key,
                     Some(label(key!("box-save-how"))),
                 )
@@ -131,10 +131,10 @@ impl EditorView {
                     ui.with_layout(Layout::top_down(Align::Max), |ui| {
                         if bar_command(
                             ui,
-                            key!("symbol-scratch"),
-                            "eye",
+                            ("symbol.scratch", key!("symbol-scratch"), "eye"),
                             CommandSize::Small,
-                            [false, true, false],
+                            [false, false],
+                            None,
                             String::new(),
                             Some(label(key!("box-test-how"))),
                         )
@@ -144,10 +144,10 @@ impl EditorView {
                         }
                         if bar_command(
                             ui,
-                            key!("box-part-data"),
-                            "package",
+                            (key!("box-part-data").as_str(), key!("box-part-data"), "package"),
                             CommandSize::Small,
-                            [false, true, false],
+                            [false, false],
+                            None,
                             String::new(),
                             Some(label(key!("box-part-data-how"))),
                         )

@@ -53,6 +53,13 @@ pub fn cell_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<St
         .map(|k| strings::text(Key::run_time(k)).to_owned())
 }
 
+/// Why the column `column` cannot be hidden: it is the table's key column; `None` for another.
+pub fn hide_reason(column: &ew_api::output::NavColumn) -> Option<String> {
+    column
+        .key_column
+        .then(|| strings::format(key!("error-table-key-column"), &[&column.label]))
+}
+
 /// The plural word of a navigator's table rows (`terminals`, `structure nodes`), singular for one.
 pub fn rows_word(kind: NavKind, n: usize) -> String {
     strings::text(Key::run_time(ew_api::output::table_edit::rows_word_key(kind, n))).to_owned()

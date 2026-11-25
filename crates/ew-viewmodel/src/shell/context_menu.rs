@@ -513,12 +513,8 @@ impl ShellModel {
                         label,
                     ));
                 }
-                out.extend(self.menu_item("plc.add_to_plc").map(|mut i| {
-                    i.label = strings::format(key!("canvas-plc-of"), &[&name]);
-                    i.enabled = false;
-                    i.reason = Some(strings::format(key!("reason-plc-station-of"), &[&name]));
-                    i
-                }));
+                let label = strings::format(key!("canvas-plc-of"), &[&name]);
+                out.extend(self.aimed("plc.add_to_plc", json!({ "device": device.to_string() }), label));
             }
             PlcOffer::BusDevice => {
                 for (cfg, name) in session.plc_config_projects() {
@@ -529,12 +525,11 @@ impl ShellModel {
                 let label = strings::text(key!("canvas-plc-add-new")).to_owned();
                 out.extend(self.aimed("plc.add_to_plc", json!({ "device": device.to_string() }), label));
             }
-            PlcOffer::Passive => out.extend(self.menu_item("plc.add_to_plc").map(|mut i| {
-                i.label = strings::text(key!("canvas-plc-add")).to_owned();
-                i.enabled = false;
-                i.reason = Some(strings::text(key!("reason-plc-passive")).to_owned());
-                i
-            })),
+            PlcOffer::Passive => out.extend(self.aimed(
+                "plc.add_to_plc",
+                json!({ "device": device.to_string() }),
+                strings::text(key!("canvas-plc-add")).to_owned(),
+            )),
             PlcOffer::None => {}
         }
     }
@@ -700,19 +695,9 @@ impl ShellModel {
                 self.go_to(kind, Some(node), &mut out);
             }
             (NavKind::Cables, NavRole::Cable, Some(cable)) => {
-                let wired = self
-                    .project
-                    .as_ref()
-                    .is_some_and(|p| !p.session.cable_wires(cable).is_empty());
                 let label = strings::text(key!("action-cable-from-wires")).to_owned();
                 let params = json!({ "cable": cable.to_string() });
-                out.extend(self.aimed("cable.from_wires", params, label).map(|mut i| {
-                    if i.enabled && !wired {
-                        i.enabled = false;
-                        i.reason = Some(strings::text(key!("reason-cable-no-wire")).to_owned());
-                    }
-                    i
-                }));
+                out.extend(self.aimed("cable.from_wires", params, label));
                 // Its first wire: the first core row under it that draws one.
                 let table = self.nav(kind).and_then(|n| n.table());
                 let wire = table.and_then(|t| {
@@ -779,16 +764,8 @@ impl ShellModel {
                 self.plc_entries(device, &mut out);
                 if let Some((device, port)) = super::navigators::undrawn_port(&node.key) {
                     let label = strings::format(key!("canvas-place-port"), &[port]);
-                    let bus_page = self.page_rows().get(self.page_index()).map(|r| &r.kind)
-                        == Some(&ew_api::PageType::BusTopology);
                     let params = json!({ "device": device, "port": port });
-                    out.extend(self.aimed("place.pick", params, label).map(|mut i| {
-                        if i.enabled && !bus_page {
-                            i.enabled = false;
-                            i.reason = Some(strings::text(key!("reason-port-bus-page")).to_owned());
-                        }
-                        i
-                    }));
+                    out.extend(self.aimed("place.pick", params, label));
                 }
             }
             _ => {}
@@ -946,25 +923,12 @@ impl ShellModel {
             json!({ "station": station.to_string() }),
             label,
         ));
-        let waiting = self
-            .project
-            .as_ref()
-            .map_or(0, |p| p.session.plc_cards_without_cpu().len());
         let label = strings::text(key!("action-plc-attach-cards")).to_owned();
-        out.extend(
-            self.aimed(
-                "plc.attach_cards",
-                json!({ "station": station.to_string() }),
-                label,
-            )
-            .map(|mut i| {
-                if i.enabled && waiting == 0 {
-                    i.enabled = false;
-                    i.reason = Some(strings::text(key!("reason-no-cards-without-cpu")).to_owned());
-                }
-                i
-            }),
-        );
+        out.extend(self.aimed(
+            "plc.attach_cards",
+            json!({ "station": station.to_string() }),
+            label,
+        ));
     }
 
     /// A configuration project row's own entries: Symbol policy… (FR-PLC-047), Unlock `<group>` for each field group a
@@ -1012,17 +976,11 @@ impl ShellModel {
             return;
         };
         match symbol_of.and_then(|f| session.solenoid_of(f)) {
-            Some((tag, name, valve_at)) => {
+            Some((tag, name, _)) => {
                 let label = strings::format(key!("props-solenoid-of"), &[&name, &tag]);
                 let words = strings::format(key!("nav-show-solenoid"), &[&tag, &name]);
                 let params = json!({ "record": device.to_string(), "words": words });
-                out.extend(self.aimed("nav.show", params, label).map(|mut i| {
-                    if valve_at.is_none() {
-                        i.enabled = false;
-                        i.reason = Some(strings::text(key!("reason-nav-not-placed")).to_owned());
-                    }
-                    i
-                }));
+                out.extend(self.aimed("nav.show", params, label));
             }
             None => {
                 for s in session.valve_solenoids(device) {
@@ -1078,13 +1036,7 @@ impl ShellModel {
         let add = |out: &mut Vec<ActionItem>, module: Uuid, position: u32| {
             let label = strings::format(key!("canvas-valve-add"), &[&position.to_string()]);
             let params = json!({ "module": module.to_string(), "position": position });
-            out.extend(self.aimed("fluid.valve_add", params, label).map(|mut i| {
-                if i.enabled && menu.valve_part.is_none() {
-                    i.enabled = false;
-                    i.reason = Some(strings::text(key!("reason-valve-no-part")).to_owned());
-                }
-                i
-            }));
+            out.extend(self.aimed("fluid.valve_add", params, label));
         };
         // An empty position is blanked from the module too.
         let blank = |out: &mut Vec<ActionItem>, module: Uuid, position: u32| {
@@ -1228,7 +1180,7 @@ impl ShellModel {
         let Some(session) = self.project_session() else {
             return;
         };
-        let Some((tag, name, valve_at)) = session.solenoid_of(function) else {
+        let Some((tag, name, _)) = session.solenoid_of(function) else {
             return;
         };
         let q = session.query();
@@ -1253,13 +1205,7 @@ impl ShellModel {
         let words = strings::format(key!("nav-show-solenoid"), &[&tag, &name]);
         let params = json!({ "record": device.to_string(), "words": words });
         let label = strings::format(key!("canvas-valve-go"), &[&tag]);
-        out.extend(self.aimed("nav.show", params, label).map(|mut i| {
-            if valve_at.is_none() {
-                i.enabled = false;
-                i.reason = Some(strings::text(key!("reason-nav-not-placed")).to_owned());
-            }
-            i
-        }));
+        out.extend(self.aimed("nav.show", params, label));
     }
 
     /// A fluid device's medium: a source chooses it, Medium: `<medium>` for each medium of the project (its

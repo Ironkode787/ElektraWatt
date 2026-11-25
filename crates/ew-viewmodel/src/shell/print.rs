@@ -146,6 +146,16 @@ pub struct PrintDialog {
 }
 
 impl PrintDialog {
+    /// Why the sections' ticks are greyed: the Range is not Sections; `None` while it is.
+    pub fn sections_reason(&self) -> Option<Key<'static>> {
+        (self.range != PrintRange::Sections).then_some(key!("reason-print-sections"))
+    }
+
+    /// Why the Pages field is greyed: the Range is not Pages; `None` while it is.
+    pub fn pages_reason(&self) -> Option<Key<'static>> {
+        (self.range != PrintRange::Pages).then_some(key!("reason-print-pages"))
+    }
+
     /// The selection of the options; `None` when no page is chosen.
     fn selection(&self) -> Option<PageSelection> {
         match self.range {

@@ -418,25 +418,30 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     rule_line(ui, &t);
     ui.spacing_mut().item_spacing.y = t.space_1;
     ui.add_space(t.space_1);
-    let enabled = shell.is_writable();
-    let disabled_reason = |id: &str| {
+    // Why the action `id` called with `params` is refused now, the shell's answer; `None` while it can run.
+    let refusal = |id: &str, params: serde_json::Map<String, Value>| {
         ew_viewmodel::actions::find(id)
-            .and_then(|a| a.enabled_now(shell).err())
+            .and_then(|a| ew_viewmodel::actions::enabled_with(a, shell, &params).err())
             .map(|r| strings::render(&r))
     };
     let small_link = |ui: &mut Ui, key: strings::Key<'_>, id: &str| {
-        let colour = if enabled { t.accent } else { t.text_disabled };
+        let reason = refusal(id, serde_json::Map::new());
+        let colour = if reason.is_none() {
+            t.accent
+        } else {
+            t.text_disabled
+        };
         let link = ui.add_enabled(
-            enabled,
+            reason.is_none(),
             egui::Link::new(
                 RichText::new(strings::text(key))
                     .font(theme::font(&t.type_small))
                     .color(colour.color32()),
             ),
         );
-        match disabled_reason(id) {
-            Some(r) if !enabled => link.disabled_tip(r),
-            _ => link,
+        match reason {
+            Some(r) => link.disabled_tip(r),
+            None => link,
         }
     };
     // The Rule page link at the right end of the title line, the title cut with an ellipsis before it (whole
@@ -488,7 +493,7 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         .nav_cursor(ew_viewmodel::navigators::NavKind::Messages)
         .and_then(|k| shell.finding_offer(&k))
         .filter(|_| !d.waived)
-        && components::button(ui, Kind::Secondary, &offer.label, enabled && offer.enabled, 0.0).clicked()
+        && components::button(ui, Kind::Secondary, &offer.label, offer.enabled, 0.0).clicked()
     {
         events.push(Event::Action(offer.id, offer.params.clone()));
     }
@@ -499,16 +504,17 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 &t,
                 strings::format(key!("messages-detail-fix"), &[fix]),
             ));
+            let reason = refusal("messages.fix", serde_json::Map::new());
             let button = components::button(
                 ui,
                 Kind::Secondary,
                 strings::text(key!("messages-fix-button")),
-                enabled,
+                reason.is_none(),
                 0.0,
             );
-            let button = match disabled_reason("messages.fix") {
-                Some(r) if !enabled => button.disabled_tip(r),
-                _ => button,
+            let button = match reason {
+                Some(r) => button.disabled_tip(r),
+                None => button,
             };
             if button.clicked() {
                 events.push(Event::Action("messages.fix", Value::Null));
@@ -519,7 +525,11 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 .and_then(|k| shell.fix_all_offer(&k))
             {
                 let label = strings::format(key!("messages-fix-all-like"), &[&n.to_string()]);
-                if components::button(ui, Kind::Secondary, &label, enabled, 0.0).clicked() {
+                let reason = refusal(
+                    "messages.fix_all",
+                    serde_json::Map::from_iter([("key".to_owned(), Value::from(group.as_str()))]),
+                );
+                if components::button(ui, Kind::Secondary, &label, reason.is_none(), 0.0).clicked() {
                     events.push(Event::Action(
                         "messages.fix_all",
                         serde_json::json!({ "key": group }),

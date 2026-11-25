@@ -91,14 +91,18 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 }
             }
             ui.add_space(t.space_4);
+            let refusal =
+                ew_viewmodel::actions::find("file.open_sample").and_then(|m| m.enabled_now(shell).err());
             let sample = ui.add_enabled(
-                shell.has_sample(),
+                refusal.is_none(),
                 egui::Button::new(strings::text(key!("start-sample"))),
             );
             if sample.clicked() {
                 action(events, "file.open_sample", Value::Null);
             }
-            sample.disabled_tip(strings::text(key!("error-no-sample")));
+            if let Some(why) = &refusal {
+                sample.disabled_tip(&strings::render(why));
+            }
             if ui.button(strings::text(key!("start-import-qet"))).clicked() {
                 action(events, "file.import_qet", Value::Null);
             }

@@ -991,7 +991,7 @@ impl ShellModel {
         let Some(head) = d.head else {
             return self.rack_refuse(
                 Some(StationCursor::Head),
-                strings::text(key!("rack-choose-head")).to_owned(),
+                strings::text(super::StationDraft::NO_HEAD).to_owned(),
             );
         };
         let session = &or_return!(crate::shell::gated(&self.project)).session;

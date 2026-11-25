@@ -1069,13 +1069,13 @@ fn a_page_type_without_symbol_tools_refuses_the_editing_actions() {
     ] {
         assert_eq!(
             refused(&mut s, action, json!({})),
-            "reason-page-type-no-symbols-title",
+            "reason-page-type-no-symbols",
             "{action}"
         );
     }
     assert_eq!(
         refused(&mut s, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"})),
-        "reason-page-type-no-symbols-title"
+        "reason-page-type-no-symbols"
     );
 }
 
@@ -1089,15 +1089,15 @@ fn the_wire_buttons_disabled_reason_names_the_page_kind() {
     let expected = [
         (
             "section_divider",
-            "A section divider takes no symbols or wires: draw on a schematic page",
+            "No symbols or wires go on a section divider: draw on a schematic page",
         ),
         (
             "title_page",
-            "A title page takes no symbols or wires: draw on a schematic page",
+            "No symbols or wires go on a title page: draw on a schematic page",
         ),
         (
             "report",
-            "A report page takes no symbols or wires: draw on a schematic page",
+            "No symbols or wires go on a report page: draw on a schematic page",
         ),
         (
             "panel_layout",

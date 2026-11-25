@@ -159,14 +159,15 @@ const TOOLS: [(&str, strings::Key<'static>, &str); 13] = [
     ("link", key!("symbol-link"), "link"),
 ];
 
-/// A command of the editor's bar, with the main bar's sizing, painting and accessible name; `how` is one line on
-/// what it does, under its name in the tooltip.
+/// A command of the editor's bar, with the main bar's sizing, painting and accessible name: `id` the action it runs (a
+/// tool and a menu, which no action names alone, by the key of its caption), greyed with `refusal`, the shell's reason;
+/// `how` is one line on what it does, under its name in the tooltip.
 fn bar_command(
     ui: &mut Ui,
-    key: strings::Key<'static>,
-    icon: &'static str,
+    (id, key, icon): (&'static str, strings::Key<'static>, &'static str),
     size: CommandSize,
-    [checked, enabled, menu]: [bool; 3],
+    [checked, menu]: [bool; 2],
+    refusal: Option<String>,
     shortcut: String,
     how: Option<&str>,
 ) -> egui::Response {
@@ -174,14 +175,14 @@ fn bar_command(
     crate::command_bar::inline_command(
         ui,
         &CommandButton {
-            id: key.as_str(),
+            id,
             label: how.map_or_else(|| name.to_owned(), |how| format!("{name}\n{how}")),
             bar_label: name.to_owned(),
             icon,
             size,
             shortcut,
-            enabled,
-            reason: (!enabled).then(|| label(key!("reason-no-project")).to_owned()),
+            enabled: refusal.is_none(),
+            reason: refusal,
             checked,
             topic: Some("symbol-editor"),
             kind: if menu {
@@ -276,10 +277,10 @@ impl EditorView {
         let how = label(strings::Key::run_time(&format!("symbol-tip-{word}")));
         let clicked = bar_command(
             ui,
-            caption,
-            icon,
+            (caption.as_str(), caption, icon),
             size,
-            [editor.tool == word, true, false],
+            [editor.tool == word, false],
+            None,
             key,
             Some(how),
         )
@@ -307,10 +308,10 @@ impl EditorView {
                 // The ways in: another symbol, a copy, a device box, an import.
                 if bar_command(
                     ui,
-                    key!("symbol-start"),
-                    "file-plus",
+                    ("symbol.start", key!("symbol-start"), "file-plus"),
                     CommandSize::Large,
-                    [false, true, false],
+                    [false, false],
+                    None,
                     String::new(),
                     Some(label(key!("symbol-start-how"))),
                 )
@@ -329,10 +330,14 @@ impl EditorView {
                     let more = ["ellipse", "arc", "polyline", "polygon"];
                     let menu = bar_command(
                         ui,
-                        key!("symbol-more-shapes"),
-                        "category",
+                        (
+                            key!("symbol-more-shapes").as_str(),
+                            key!("symbol-more-shapes"),
+                            "category",
+                        ),
                         CommandSize::Small,
-                        [more.contains(&editor.tool), true, true],
+                        [more.contains(&editor.tool), true],
+                        None,
                         String::new(),
                         None,
                     );
@@ -355,10 +360,14 @@ impl EditorView {
                     let more = ["anchor", "link"];
                     let menu = bar_command(
                         ui,
-                        key!("symbol-more-marks"),
-                        "dots",
+                        (
+                            key!("symbol-more-marks").as_str(),
+                            key!("symbol-more-marks"),
+                            "dots",
+                        ),
                         CommandSize::Small,
-                        [more.contains(&editor.tool), true, true],
+                        [more.contains(&editor.tool), true],
+                        None,
                         String::new(),
                         None,
                     );
@@ -388,10 +397,10 @@ impl EditorView {
                     .unwrap_or_default();
                 if bar_command(
                     ui,
-                    key!("symbol-save"),
-                    "device-floppy",
+                    ("symbol.save", key!("symbol-save"), "device-floppy"),
                     CommandSize::Large,
-                    [false, true, false],
+                    [false, false],
+                    None,
                     save_key,
                     Some(label(key!("symbol-save-how"))),
                 )
@@ -399,43 +408,57 @@ impl EditorView {
                 {
                     action(events, "symbol.save", json!({}));
                 }
+                // Why an action of the editor's is refused now, the shell's answer.
+                let refusal = |id: &str| {
+                    ew_viewmodel::actions::find(id)
+                        .and_then(|m| m.enabled_now(shell).err())
+                        .map(|r| strings::render(&r))
+                };
                 stacked(ui, |ui| {
                     ui.with_layout(Layout::top_down(Align::Max), |ui| {
+                        let scratch = refusal("symbol.scratch");
+                        let can_scratch = scratch.is_none();
                         if bar_command(
                             ui,
-                            key!("symbol-scratch"),
-                            "eye",
+                            ("symbol.scratch", key!("symbol-scratch"), "eye"),
                             CommandSize::Small,
-                            [false, shell.has_project(), false],
+                            [false, false],
+                            scratch,
                             String::new(),
                             Some(label(key!("symbol-scratch-how"))),
                         )
                         .clicked()
-                            && shell.has_project()
+                            && can_scratch
                         {
                             action(events, "symbol.scratch", json!({}));
                         }
                         let menu = bar_command(
                             ui,
-                            key!("symbol-draft-menu"),
-                            "dots",
+                            (
+                                key!("symbol-draft-menu").as_str(),
+                                key!("symbol-draft-menu"),
+                                "dots",
+                            ),
                             CommandSize::Small,
-                            [false, true, true],
+                            [false, true],
+                            None,
                             String::new(),
                             None,
                         );
                         egui::Popup::menu(&menu).show(|ui| {
                             // The way from a symbol to a device: a part whose main function the saved
                             // symbol draws.
-                            if ui
+                            let make_part = refusal("part.new");
+                            let mut button = ui
                                 .add_enabled(
-                                    shell.has_project(),
+                                    make_part.is_none(),
                                     egui::Button::new(label(key!("symbol-make-part"))),
                                 )
-                                .tip(label(key!("symbol-make-part-how")))
-                                .disabled_tip(label(key!("reason-no-project")))
-                                .clicked()
-                            {
+                                .tip(label(key!("symbol-make-part-how")));
+                            if let Some(why) = &make_part {
+                                button = button.disabled_tip(why);
+                            }
+                            if button.clicked() {
                                 let symbol = editor.published().unwrap_or_default();
                                 action(events, "part.new", json!({ "symbol": symbol }));
                                 ui.close();

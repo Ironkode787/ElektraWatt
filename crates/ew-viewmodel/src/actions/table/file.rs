@@ -102,7 +102,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             Command,
             Menu::File,
             &[],
-            always,
+            sample_present,
             slot(Menu::File),
             |s, p| s.act_open_sample(p),
         ),
