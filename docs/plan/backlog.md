@@ -4,15 +4,13 @@ Open work, one row each. A finished row is deleted; a new one is added under its
 old follow-up numbers, kept so that a row's history can be found in git (`5516edba4`, `docs/plan/follow-ups.md`
 and the work breakdown's Appendix B).
 
-## 0.3.5: the fix round
+## What a person meets, and the placer
 
-Step 13 of [m3.5.md](m3.5.md) takes these rows in this order. Each sub-heading is the work of one lane: its rows
-share a cause or the files they touch. A row that turns out to be a feature larger than a lane is designed first or
-moves to its milestone with a reason.
+Rows from the owner's tests, the first production job and the persona runs on 0.3.0 and 0.3.5. Each sub-heading
+holds rows that share a cause or the files they touch. [m4.md](m4.md), section 6, says which of them M4 takes;
+what the owner's test of 0.3.5 finds is added here.
 
 ### What a person at the window meets
-
-From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### The window's finish
 
@@ -45,7 +43,7 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 ### The placer and the router
 
-From the drafting redesign (ADR-0034, `docs/design/06a-drafting.md`) and the pages since. Step 13 takes a row only
+From the drafting redesign (ADR-0034, `docs/design/06a-drafting.md`) and the pages since. A row is taken only
 where a real page shows it; each row says whether one is known. **Owner, 2026-11-23:** the placer is a general
 solution and needs a draughtsman's eye; these rows are cases, not work for a page at a time, and one is taken
 only as part of a change that holds on every page (doc 06a, "What Arrange and route is, and is not").
@@ -59,13 +57,10 @@ only as part of a change that holds on every page (doc 06a, "What Arrange and ro
 - FT-2107 `ew-drafting`: A part that stands level beside the part that feeds it stays there: where a wire runs from a symbol's lower pin to the upper pin of one of the same height standing level beside it, Arrange and route leaves the second where it stands and its wire goes down, across, up over it and down into its pin (four corners), against rule E1 (doc 06a §1.6); with the second two steps or more higher or lower, Arrange sets it in line under the first with a straight wire. The rest of FT-1896's "a wire goes round a part where the part could stand in line". **Page:** a small page built in the review before 0.3.5's second candidate (2026-11-22): an incoming mark feeding a contact (upright, two steps wide and four high, pins up and down), a lamp of the same shape level beside it 2 to 6 steps to either side, the contact's lower pin wired to the lamp's upper pin, with and without the lamp's lower pin wired on to an outgoing mark: all twelve placements kept the lamp beside the contact.
 - FT-2111 `ew-drafting, ew-commands`: A grid change draws every wire of the page anew (doc 06 §8 item 3), and the router's drawing replaces the person's: the rails move to two steps from the pins they tap, the return wire of a coil lying flat runs along the coils' row to the next circuit's drop where dropping to the rail at once is as long (the search takes right before down), the neighbour's data text steps aside for it, and four turn-backs come where the person drew none. Changing to 4 mm and back to the QElectroTech grid gives the same on the old grid, the parts where they stood, so the fit's places are not the cause and it is not FT-2105 (every wire is routed). It needs the grid change to carry each stored route onto the new grid where it stays free of faults, or the router to take, of equal least paths, the one that turns towards the rail at once. **Page:** a persona run's control page (2026-11-22): two rails, four coils and a lamp under five contacts and buttons, the first coil lying flat.
 
-## M3.5: what its own steps leave
+## What the rework of 0.3.5 left
 
-Rows that the hygiene steps of [m3.5.md](m3.5.md) take, or that they left.
-
-- FT-1937 `ew-scene, ew-viewmodel, ew-api, ew-commands, ew-reports, ew-drafting, ew-ui, ew-library`: **Step 15 of M3.5 (owner, 2026-11-23; it was the first step of M4): one concept, one place.** After the second candidate of 0.3.5 is cut; its work goes into the third. It starts with a scan of its own (owner, 2026-11-23). What it holds, the scan's questions, the spots the reviews named, the files to split, the five guards of its part 4 and the yardstick are in [m3.5.md](m3.5.md), "Step 15". No behaviour changes; the yardstick is not a test.
-
-What step 15 left, each with the reason it was not done in the step (a row changes behaviour only where it says so):
+What the rework to one architecture (ADR-0035) left, each with the reason it was not done there (a row changes
+behaviour only where it says so):
 
 - FT-2174 `ew-viewmodel, ew-ui`: The symbol editor keeps its own canvas and tools in the window, beside the shell's canvas and tool host, so no script and no test of the view-model reaches its gestures. It moves onto the shell's canvas and tools: a feature's worth of work, too large for a hygiene step.
 - FT-2175 `ew-viewmodel, ew-ui`: The Pages navigator is built twice: `PageNavigator` (`ew-viewmodel/src/navigator.rs`) with its own `pages.*` actions, beside the navigator framework that Pages uses in table mode only. Pages on the framework; the navigator's look may change, so pictures first. Left in the backlog round (2026-11-25), several times its text: the framework groups the Pages table by section only and sorts by column, where `PageNavigator` (594 lines) also shows a flat list and a tree by structure (function, location, section) and sorts by type; 53 references in 18 files of the shell and the window and 73 uses of the `pages.*` actions in 24 test files read it, and 7 files of the guide, the persona briefs and the tools name those actions.

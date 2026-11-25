@@ -135,6 +135,36 @@ text names the act among the others of its menu. A toned toast's title is the pa
 Why an entry is greyed stays a text with arguments (decision 11): a reason that names what is missing (a page kind,
 a selection) carries it as an argument, as every other text does.
 
+### Amendment 4 (release manager, 2026-11-26): what the rework weighed and left as it is
+
+The rework to this record met twelve places where one form for two was possible and was not made. Each stays as
+it is, for the reason given, until that reason goes:
+
+1. A rule's six-digit code stays as each rule declares it: a designed number that the message panel prints and
+   the findings sort by ([15](../design/15-rule-engine.md) §2.2).
+2. The lists keep their refill loop (`ew-reports/src/paginate.rs`).
+3. The command parameters' schema types stay in `ew-commands/src/proxy.rs`: sharing them renames entries of the
+   published schemas.
+4. A toast's button keeps its own short word (amendment 3), and an offer of a toast runs with its own parameters.
+5. The window's commit and the headless one stay two named forms (`ShellModel::commit`, `run_logged`), as do the
+   two preview-then-commit helpers: each records and words a refusal its own way.
+6. The describe text and the state's JSON of a headless run stay two forms (`ew-viewmodel/src/describe.rs`,
+   `script.rs`): each prints other members in other units, and one view for both changes bytes of every
+   transcript.
+7. A refused preview's card keeps the command error's words.
+8. Of the shell's long functions `resolve_at`, `act_macros_save` and `station_boxes` stay whole: their steps
+   would share fourteen or more locals.
+9. The window's events that call a setter of the shell stay events (the palette's typing, a form's fields, a
+   toast's Close and timeout): as actions each would add a line to every run's transcript, and none is an act a
+   script needs.
+10. The prelude of the persona brief on a timed circuit keeps its three embedded part copies: they are copies of
+    the sample parts library, and an action that embeds a library part by its number would exist for that one
+    prelude.
+11. The table of settable members (`ew-commands/src/commands/fields.rs`, `SETTABLE`) stays: its line decides that
+    a member may be set.
+12. The size ceiling of a source file is the one of `xtask/src/ceiling.rs`; at 2,000 lines thirty files would be
+    split.
+
 ## Alternatives considered
 
 | Alternative | Why rejected |

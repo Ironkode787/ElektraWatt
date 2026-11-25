@@ -1,14 +1,15 @@
 # The plan
 
-**Running:** M3.5, hygiene and then a fix round, since 2026-11-20 ([m3.5.md](m3.5.md)): release 0.3.5. **Done:**
+**Running:** M4, from the schematic to the built cabinet, since 2026-11-26 ([m4.md](m4.md)): release 0.4.0. **Done:**
+M3.5, hygiene, one architecture and a fix round, closed with the release of 0.3.5 on 2026-11-26 ([m3.5.md](https://github.com/Ironkode787/ElektraWatt/blob/73b290039a04f6b58bd4b35a7004bfccbfee1de1/docs/plan/m3.5.md),
+[its rework's plan](https://github.com/Ironkode787/ElektraWatt/blob/73b290039a04f6b58bd4b35a7004bfccbfee1de1/docs/plan/m3.5-architecture.md));
 M3, automation breadth, closed with the release of 0.3.0 on 2026-11-20 ([m3.md](https://github.com/Ironkode787/ElektraWatt/blob/935e1507e1f6a175c7d93615fb441ada68cc82dc/docs/plan/m3.md)); M2.5-Fix, a properly
 working program, closed with the release of 0.2.0 on 2026-11-13 ([m2.5-fix.md](https://github.com/Ironkode787/ElektraWatt/blob/0926a57cebcde0316023c66b992d075549a3a5fd/docs/plan/m2.5-fix.md));
 M2.5, maintenance, closed on 2026-11-11 ([m2.5.md](https://github.com/Ironkode787/ElektraWatt/blob/03848ea6b52e2a933988bc81cee043627f88681b/docs/plan/m2.5.md)).
 
 | File | What it is |
 |---|---|
-| [m3.5.md](m3.5.md) | The hygiene milestone that is running: the scan, the steps, the loop measured |
-| [m3.5-architecture.md](m3.5-architecture.md) | Step 15's rework to the architecture of ADR-0035: the rule every lane keeps, what was decided and not built, the second scan |
+| [m4.md](m4.md) | The milestone that is running: what it is for, design then build, its work packages, the order |
 | [m5.md](m5.md) | The fluid milestone, decided and not started: its scope, its work packages, the order |
 | [backlog.md](backlog.md) | Open work, one row each, by milestone. A finished row is deleted |
 | [backlog-later.md](backlog-later.md) | Unscheduled rows: a seed for planning, not a commitment |
@@ -16,7 +17,7 @@ M2.5, maintenance, closed on 2026-11-11 ([m2.5.md](https://github.com/Ironkode78
 | [../../ROADMAP.md](../../ROADMAP.md) | The milestones by name and content |
 
 **How the plan is kept.**
-- A milestone has one file like [m3.5.md](m3.5.md): what it is for, its steps, and at the end what it did. When it
+- A milestone has one file like [m4.md](m4.md): what it is for, its steps, and at the end what it did. When it
   closes, the file goes and this page links its last text in git. A step's own design file goes when the step is
   done, and the milestone's file links it in git (step 9's,
   [m3.5-reference-project.md](https://github.com/Ironkode787/ElektraWatt/blob/cf5d3e1fb778c424c56f8a6827e6058dce11cdb6/docs/plan/m3.5-reference-project.md)).

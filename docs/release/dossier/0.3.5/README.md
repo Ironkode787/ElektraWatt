@@ -8,7 +8,7 @@ SPDX-License-Identifier: CC-BY-4.0
 The record of the fourth release: its candidates, each candidate's filled checklist and the go. It is kept at an
 early alpha's size. The procedure is [the release procedure](../../README.md); the release notes are
 [`docs/release-notes/0.3.5.md`](../../../release-notes/0.3.5.md); what the release holds and how each part was
-shown is the log of [`docs/plan/m3.5.md`](../../../plan/m3.5.md). People are named by their role only.
+shown is the log of [`docs/plan/m3.5.md`](https://github.com/Ironkode787/ElektraWatt/blob/73b290039a04f6b58bd4b35a7004bfccbfee1de1/docs/plan/m3.5.md). People are named by their role only.
 
 0.3.5 is the release of M3.5: a round of hygiene in the repository, then a fix round that worked the backlog down,
 the rows of a first real drawing set made with 0.3.0 first. Its gate is the owner's go.
@@ -33,7 +33,7 @@ worked on after it.
 | `v0.3.5-rc.1` | `release/0.3`, the commit the tag names | [`checklist-rc.1.md`](checklist-rc.1.md) | Cut on 2026-11-22; its release build passed (run 19 of `release.yml`: verify, the guide, the Linux and the Windows package, the sums and the draft). Not tested by the owner yet; the rows open at the cut are worked on for a second candidate, with a review and a persona round before it (owner) |
 | `v0.3.5-rc.2` | `release/0.3`, the commit the tag names | [`checklist-rc.2.md`](checklist-rc.2.md) | Cut on 2026-11-23, with what was done between the candidates (below); its release build passed (run 20 of `release.yml`: verify, the guide, the Linux and the Windows package, the sums and the draft). Not tested by the owner yet. A third candidate follows after the hygiene step that the owner added to the milestone (step 15 of the plan) |
 | `v0.3.5-rc.3` | `release/0.3`, the commit the tag names | [`checklist-rc.3.md`](checklist-rc.3.md) | Cut on 2026-11-25, with what was done between the candidates (below); its release build passed (run 21 of `release.yml`: verify, the guide, the Linux and the Windows package, the sums and the draft). Not tested by the owner; a persona round on it led to a fourth candidate (below) |
-| `v0.3.5-rc.4` | `release/0.3`, the commit the tag names | [`checklist-rc.4.md`](checklist-rc.4.md) | Cut on 2026-11-25, with what was done between the candidates (below). Not tested by the owner yet |
+| `v0.3.5-rc.4` | `release/0.3`, the commit the tag names | [`checklist-rc.4.md`](checklist-rc.4.md) | Cut on 2026-11-25, with what was done between the candidates (below); its release build passed (run 22 of `release.yml`: verify, the guide, the Linux and the Windows package, the sums and the draft). **Promoted to 0.3.5** on the owner's go (section 4) |
 
 Before the first cut, on the tip that the release branch moves to: two reviews, each with its fixes. The first
 read everything from 0.3.0 to the end of the fix round's sweep, in four parts (the format, the model and the
@@ -133,4 +133,13 @@ new ones are what the persona runs met and no lane mended.
 
 ## 4. The go
 
-Not given yet.
+Given by the owner on 2026-11-25 for `v0.3.5-rc.4`, when it was cut. The candidate's release build passed (run 22
+of `release.yml`). The release manager dispatched the promote from `main` on 2026-11-26: its dry run (run 23)
+listed the tag, the commit and the candidate's five files and changed nothing; the real one (run 24) created
+the tag `v0.3.5` on the candidate's commit and published the release `v0.3.5`, marked latest, with the five
+files and the summary of the notes, and verified the published files against `SHA256SUMS`.
+
+The owner tested no candidate of 0.3.5 by hand before the go. What stood in for his test is on record above: the
+reviews before each cut and the persona rounds on the second and the third candidate. What his own test of the
+release finds becomes rows of the next milestone's backlog, and none of the rows open at the cut was held to be
+a reason not to release.

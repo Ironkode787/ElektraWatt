@@ -12,8 +12,8 @@ the 400 V supply page with its main switch, a breaker, a power supply and the pa
 pages](docs/images/window-schematic.png)
 
 **It is an early alpha.** The latest release is
-[0.3.0](https://github.com/Ironkode787/ElektraWatt/releases/tag/v0.3.0) of 2026-11-20; a round of fixes, 0.3.5, is
-in work. Use it to try things out, not yet for a job that has to be right.
+[0.3.5](https://github.com/Ironkode787/ElektraWatt/releases/tag/v0.3.5) of 2026-11-26; the workshop's lists and
+the cabinet's wire ways, 0.4.0, are in work. Use it to try things out, not yet for a job that has to be right.
 
 ## What it does
 
@@ -69,25 +69,25 @@ texts, and below it the coil in its eight turned and mirrored variants](docs/ima
 ![The pneumatics page of the sample project in the dark theme](docs/images/window-dark-theme.png)
 
 All pictures show the sample project `fixtures/sample/sample.ew` as the program in this repository draws it today,
-which is newer than the 0.3.0 download. The window pictures are 1920 × 1080 and were drawn by the program's own
+which can be newer than the 0.3.5 download. The window pictures are 1920 × 1080 and were drawn by the program's own
 offscreen renderer (`elektrawatt --headless --visual`); the pages are the output of `ew render`.
 
 ## Get it
 
-**[ElektraWatt 0.3.0](https://github.com/Ironkode787/ElektraWatt/releases/tag/v0.3.0)** for Windows 10 and 11 and
+**[ElektraWatt 0.3.5](https://github.com/Ironkode787/ElektraWatt/releases/tag/v0.3.5)** for Windows 10 and 11 and
 for Linux on x86-64:
 
 | File | What it is |
 |---|---|
-| `ElektraWatt-0.3.0-x64-user-setup.exe` | The per-user setup for Windows: the window, the `ew` command-line tool, the starter content, the sample project and the user guide; no administrator rights needed |
-| `ElektraWatt-0.3.0-x86_64.AppImage` | The same for Linux (glibc 2.35 or newer, as on Ubuntu 22.04 and Debian 12) |
-| `ew-0.3.0-…` (`.zip`, `.tar.gz`) | The command-line tool `ew` alone |
+| `ElektraWatt-0.3.5-x64-user-setup.exe` | The per-user setup for Windows: the window, the `ew` command-line tool, the starter content, the sample project and the user guide; no administrator rights needed |
+| `ElektraWatt-0.3.5-x86_64.AppImage` | The same for Linux (glibc 2.35 or newer, as on Ubuntu 22.04 and Debian 12) |
+| `ew-0.3.5-…` (`.zip`, `.tar.gz`) | The command-line tool `ew` alone |
 | `SHA256SUMS` | The checksum of every other file |
 
 Nothing is signed yet, so Windows may warn before it runs the setup: check a download against `SHA256SUMS` first, as
 the guide's [Install ElektraWatt](docs/book/src/how-to/install.md) page shows. ElektraWatt makes no network
 connection of its own and has no telemetry ([PRIVACY.md](PRIVACY.md)). The
-[release notes](docs/release-notes/0.3.0.md) list what changed and, in section 7, what is known not to work yet.
+[release notes](docs/release-notes/0.3.5.md) list what changed and, in section 7, what is known not to work yet.
 
 The guide's [tutorials](docs/book/src/tutorials/index.md) start from a copy of the sample project that comes with
 the download.
@@ -96,9 +96,9 @@ the download.
 
 | | |
 |---|---|
-| **Released** | 0.3.0 (2026-11-20): schematics, terminals and cables, parts, the symbol editor, the 2D panel layout, lists and output, the PLC workspace with bus networks and the exchange with PLC software, fluid power, the imports, and Arrange and route |
-| **In work** | 0.3.5: fixes from the first real job done with the program, among them a copy of pages for a second installation, lists on your own frame, a DXF that equals the PDF, the legend as pages of its own, and terminals with two levels ([plan](docs/plan/m3.5.md)) |
-| **Next** | Manufacturing outputs and the 3D panel ([roadmap](ROADMAP.md)) |
+| **Released** | 0.3.5 (2026-11-26): schematics, terminals and cables, parts, the symbol editor, the 2D panel layout, lists and output, the PLC workspace with bus networks and the exchange with PLC software, fluid power, the imports, and Arrange and route; with 0.3.5 a copy of pages for a second installation, Move to page, a page for each PLC card, lists on your own frame, a DXF that equals the PDF, the legend as pages of its own, and terminals with two levels |
+| **In work** | 0.4.0: from the schematic to the built cabinet. The production wire list with ferrules and markers, label files, assembly and cut lists; devices in the door, holes and cut-outs; wire ways through the ducts, with a length for every wire ([plan](docs/plan/m4.md)) |
+| **Next** | Fluid power designed, not only drawn ([roadmap](ROADMAP.md)) |
 
 The aim for 1.0 is the scope of the established tools of this class: schematics, PLC and I/O, fluid power, a 3D
 panel layout and manufacturing outputs ([vision](docs/design/00-vision-and-scope.md)).

@@ -20,7 +20,7 @@ that is running and the open work are in [docs/plan/](docs/plan/README.md).
 | M2.5-Fix | A properly working program: release 0.2.0 | Every open fix, and every fix the maintenance turns up, until the program works as a whole in hands-on use |
 | M3 | Automation breadth | New development only: PLC, bus and fluid models; exchange with TIA Portal and PLCopen tools; EDZ, DXF and DWG import; automation workspaces |
 | M3.5 | Hygiene: release 0.3.5 | The repository made cheaper to work in (the reference project retired for a sample the program draws, the tests weeded, files split), then a round of fixes from the first production job and the owner's tests |
-| M4 | Manufacturing and 2D/3D panel | The STEP worker, the 3D view, collision, routing and wire lengths; wire records, ferrules, labels and machine profiles; the `.ewpp` package |
+| M4 | Manufacturing and 2D/3D panel | The workshop's lists from the schematic: the production wire list with ferrules and markers, label files, assembly and cut lists; devices in the door, holes and cut-outs; wire ways through the ducts, wire lengths and duct fill; the `.ewpp` package and exports by profile. The 3D view and the STEP reader are its last step, decided when the rest is built |
 | M5 | Fluid power | Pneumatics designed, not only drawn: makers' parts by kind, cylinders with their sensors wired or plugged into an input, the actuator list, valve terminals sized when placed, filled from a table and drawn over several pages, a cylinder driven from a valve position in one step, air consumption and force, and tubes with their numbers, sizes, lengths, fittings, cut list and labels |
 | M6 | 1.0 feature complete (beta) | Every 1.0 feature merged; beta releases for the pilot and early adopters |
 | M7 | 1.0 release | The format freeze and external acceptance. What the first release leaves for 1.0 comes in here: signed releases, the per-machine installer and the `.deb` package, the update check and the crash report with minidump, and the CRA processes |
@@ -34,8 +34,9 @@ that is running and the open work are in [docs/plan/](docs/plan/README.md).
 | M2.5 | Closed on 2026-11-11: the maintenance step ([plan and exit record](https://github.com/Ironkode787/ElektraWatt/blob/03848ea6b52e2a933988bc81cee043627f88681b/docs/plan/m2.5.md)) |
 | M2.5-Fix | Closed: 0.2.0 was released on 2026-11-13, the fixes that make the program work well in the hand ([plan and log](https://github.com/Ironkode787/ElektraWatt/blob/0926a57cebcde0316023c66b992d075549a3a5fd/docs/plan/m2.5-fix.md)) |
 | M3 | Closed: 0.3.0 was released on 2026-11-20, automation breadth ([plan and log](https://github.com/Ironkode787/ElektraWatt/blob/935e1507e1f6a175c7d93615fb441ada68cc82dc/docs/plan/m3.md)) |
-| M3.5 | Running since 2026-11-20: hygiene and a fix round, release 0.3.5 ([plan](docs/plan/m3.5.md)) |
-| M4 to M7, 1.x | Not started |
+| M3.5 | Closed: 0.3.5 was released on 2026-11-26, hygiene, one architecture and a fix round ([plan and log](https://github.com/Ironkode787/ElektraWatt/blob/73b290039a04f6b58bd4b35a7004bfccbfee1de1/docs/plan/m3.5.md)) |
+| M4 | Running since 2026-11-26: from the schematic to the built cabinet, release 0.4.0 ([plan](docs/plan/m4.md)) |
+| M5 to M7, 1.x | Not started |
 
 What works today, in short: the desktop window opens, edits and checks a project, with navigators, table mode, a
 history, the 2D panel layout and printing; the `ew` command-line tool imports QElectroTech projects, checks, exports
