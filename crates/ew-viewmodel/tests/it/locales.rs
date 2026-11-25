@@ -464,11 +464,6 @@ const OTHER_SENSES: &[(&str, &str, &str)] = &[
     ),
     // A valve terminal (ventieleiland).
     (
-        "report-kind-valve-terminal-config",
-        "terminal",
-        "a valve terminal (ventieleiland)",
-    ),
-    (
         "reason-valve-no-part",
         "terminal",
         "a valve terminal (ventieleiland)",

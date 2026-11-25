@@ -1020,7 +1020,7 @@ fn the_messages_and_preview_headers_in_dutch() {
     shell.shutdown();
 }
 
-/// Every report kind of the format has its `report-kind-<kind>` text in en-GB and nl-NL, so no
+/// Every report kind of the format has its name in en-GB and nl-NL (`ew-reports`' `report-kind-<kind>`), so no
 /// generated page's Source shows JSON.
 #[test]
 fn every_report_kind_has_its_words_in_both_locales() {
@@ -1039,10 +1039,11 @@ fn every_report_kind_has_its_words_in_both_locales() {
         .filter_map(|k| k["const"].as_str().map(str::to_owned))
         .collect();
     assert!(kinds.iter().any(|k| k == "wire_list"), "{kinds:?}");
-    let mut wanted: BTreeSet<String> = kinds
-        .iter()
-        .map(|k| format!("report-kind-{}", k.replace('_', "-")))
-        .collect();
+    for k in &kinds {
+        let tags: Vec<&str> = ew_api::report_kind_names(k).iter().map(|(tag, _)| *tag).collect();
+        assert_eq!(tags, ["en-GB", "nl-NL"], "the name of {k}");
+    }
+    let mut wanted: BTreeSet<String> = BTreeSet::new();
     // What gives a block of a page kind its rows, said when it makes no page yet.
     wanted.extend(
         ew_api::output::page_report_kinds()

@@ -1,8 +1,8 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# The texts of the window in en-GB: import, export, print, external changes and the exchange with other programs; the
-# lists' names. One message per key; `{ $p0 }`, `{ $p1 }`, ... are the arguments, always strings. The source language
+# The texts of the window in en-GB: import, export, print, external changes and the exchange with other programs.
+# One message per key; `{ $p0 }`, `{ $p1 }`, ... are the arguments, always strings. The source language
 # and the fallback of every other.
 
 external-none = none (create one with Project ▸ Setup ▸ External reference…)
@@ -10,37 +10,6 @@ external-none = none (create one with Project ▸ Setup ▸ External reference�
 external-none-key = none (create one with Project ▸ Setup ▸ External reference…, { $p0 })
 # A generated page's row source in words.
 report-source-sql = SQL report { $p0 }
-report-kind-profile-tables = Profile tables
-report-kind-part-data = Part data
-report-kind-toc = Table of contents
-report-kind-structure-overview = Structure overview
-report-kind-parts-summary = Parts summary
-report-kind-parts-list = Parts list
-report-kind-device-list = Device list
-report-kind-terminal-diagram = Terminal diagram
-report-kind-terminal-overview = Terminal overview
-report-kind-cable-overview-diagrams = Cable overview and diagrams
-report-kind-cable-overview-diagrams-words = cable list, cable diagram, cable plan
-report-kind-wire-list = Wire list
-report-kind-plc-overview = PLC overview
-report-kind-io-list = I/O list
-report-kind-plc-card-list = PLC card list
-report-kind-network-address-list = Network address list
-report-kind-bus-overview = Bus overview
-report-kind-bus-cable-list = Bus cable list
-report-kind-iolink-port-list = IO-Link port list
-report-kind-safety-io-list = Safety I/O list
-report-kind-potential-overview = Potential overview
-report-kind-revision-overview = Revision overview
-report-kind-open-items = Open items
-report-kind-numbering-report = Numbering report
-report-kind-enclosure-legend = Enclosure legend
-report-kind-check-report = Check report
-report-kind-tube-list = Tube list
-report-kind-tube-cut-list = Tube cut list
-report-kind-tube-labels = Tube labels
-report-kind-valve-terminal-config = Valve-terminal configuration
-report-kind-medium-overview = Medium overview
 # What gives a report block of each page kind its rows, said when the block makes no page yet.
 report-rows-toc = The pages of the project give it rows
 report-rows-structure-overview = A structure identifier or a device tag gives it rows
@@ -144,8 +113,6 @@ plc-import-no-value = nothing
 plc-import-empty = Nothing in this tab.
 plc-import-row = { $p0 } · { $p1 }
 plc-import-object = { $p0 } { $p1 }
-report-kind-sql = SQL query
-report-kind-unknown = Unknown kind
 external-records = { $p0 ->
         [one] 1 record
        *[other] { $p0 } records

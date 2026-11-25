@@ -147,7 +147,7 @@ fn a_lists_title_prints_in_the_projects_language_unless_typed() {
         "report_block.new",
         json!({"kind": "terminal_diagram", "folio": "950"}),
     );
-    let dutch = ew_viewmodel::strings::shipped_texts("report-kind-terminal-diagram")
+    let dutch = ew_viewmodel::ew_api::report_kind_names("terminal_diagram")
         .into_iter()
         .find(|(tag, _)| *tag == "nl-NL")
         .map(|(_, t)| t)

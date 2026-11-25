@@ -421,8 +421,7 @@ pub(super) fn report_kind_found(query: &str, uses: usize, enabled: bool) -> Opti
     report_kinds()
         .into_iter()
         .filter_map(|k| {
-            let search =
-                strings::lookup(&format!("report-kind-{}-words", k.replace('_', "-"))).unwrap_or_default();
+            let search = ew_api::kind_search_words(k, strings::rule_language()).unwrap_or_default();
             let aliases = search.split(',').map(str::trim).filter(|w| !w.is_empty());
             crate::palette::rank(query, "", aliases, &report_kind_words(k), uses, enabled).map(|r| (r, k))
         })
@@ -440,24 +439,22 @@ static REPORT_NEW: Spec = Spec {
     ],
 };
 
-/// A report kind in the window's words (`report-kind-<kind>`).
+/// A report kind in the window's words (`ew-reports`' name of the kind).
 pub(super) fn report_kind_words(kind: &str) -> String {
-    strings::lookup(&format!("report-kind-{}", kind.replace('_', "-")))
-        .unwrap_or(kind)
-        .to_owned()
+    ew_api::report_kind_name(kind, strings::rule_language()).unwrap_or_else(|| kind.to_owned())
 }
 
 /// A report kind's name in every language the program ships, as a block's multi-language title
 /// (`{"en-GB": "Terminal diagram", "nl-NL": "Klemmenschema"}`); its key for a kind without words.
 fn report_kind_title(kind: &str) -> Value {
-    let texts = strings::shipped_texts(&format!("report-kind-{}", kind.replace('_', "-")));
+    let texts = ew_api::report_kind_names(kind);
     if texts.is_empty() {
         return Value::String(kind.to_owned());
     }
     Value::Object(
         texts
             .into_iter()
-            .map(|(tag, text)| (tag.to_owned(), Value::String(text.to_owned())))
+            .map(|(tag, text)| (tag.to_owned(), Value::String(text)))
             .collect(),
     )
 }

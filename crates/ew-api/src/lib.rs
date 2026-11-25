@@ -147,6 +147,11 @@ use ew_store::{Changes, LockState, SaveReport, Store};
 
 pub use cmdlog::{CmdLog, CmdLogError, SCHEMA as CMDLOG_SCHEMA};
 pub use ew_commands::commands::{BULK_ABOVE, ChangeClass, FieldChange, classify_update};
+/// The name of a list kind and the words it is searched for by, in a shipped language: the window offers the kinds
+/// by them.
+pub use ew_reports::words::{
+    kind_name as report_kind_name, kind_names as report_kind_names, kind_search_words,
+};
 pub use library_ops::{ApiError, AssignMode, CopyState, CpMap, VersionConflict, unreadable_profiles};
 pub use macros::{InsertAt, MacroConflict, MacroError, MacroScope, MacroSpec, MacroValues, SavedMacro};
 pub use page_copy::{CopyFolios, PageCopyPlan, PageCopySpec};

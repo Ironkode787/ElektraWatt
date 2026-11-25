@@ -1976,7 +1976,7 @@ pub fn not_one_of_text(kind: &str, path: &str, typed: &str, options: &[String]) 
 }
 
 /// Writes a report block's row source in words on a generated page's sheet: a built-in
-/// kind as its `report-kind-<kind>` text ("Table of contents"), a user SQL report with its file, never the JSON. The
+/// kind as its name (`ew-reports`' "Table of contents"), a user SQL report with its file, never the JSON. The
 /// JSON value is unchanged; the generated page's rows are read-only.
 pub fn report_source_in_words(sheet: &mut PropertySheet) {
     for row in sheet
@@ -1989,8 +1989,8 @@ pub fn report_source_in_words(sheet: &mut PropertySheet) {
         if let RowValue::One { json, text } = &mut row.value {
             if let Some(kind) = json.get("kind").and_then(Value::as_str) {
                 // A kind of a newer format reads as its words, never as JSON.
-                *text = strings::lookup(&format!("report-kind-{}", kind.replace('_', "-")))
-                    .map_or_else(|| strings::choice_words(kind), str::to_owned);
+                *text = ew_api::report_kind_name(kind, strings::rule_language())
+                    .unwrap_or_else(|| strings::choice_words(kind));
             } else if let Some(file) = json.pointer("/sql_query/file").and_then(Value::as_str) {
                 *text = strings::format(key!("report-source-sql"), &[file]);
             }

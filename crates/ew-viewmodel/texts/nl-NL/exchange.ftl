@@ -1,44 +1,13 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# The texts of the window in nl-NL: import, export, print, external changes and the exchange with other programs; the
-# lists' names. Every key of the en-GB file of the same name, with the same arguments; a message missing here falls
+# The texts of the window in nl-NL: import, export, print, external changes and the exchange with other programs.
+# Every key of the en-GB file of the same name, with the same arguments; a message missing here falls
 # back to en-GB. Product and file names, rule IDs, command names, key caps, identifiers and units are not translated.
 
 external-none = geen (maak er een met Project ▸ Inrichting ▸ Externe verwijzing…)
 external-none-key = geen (maak er een met Project ▸ Inrichting ▸ Externe verwijzing…, { $p0 })
 report-source-sql = SQL-rapport { $p0 }
-report-kind-profile-tables = Profieltabellen
-report-kind-part-data = Artikelgegevens
-report-kind-toc = Inhoudsopgave
-report-kind-structure-overview = Structuuroverzicht
-report-kind-parts-summary = Artikeloverzicht
-report-kind-parts-list = Stuklijst
-report-kind-device-list = Apparatenlijst
-report-kind-terminal-diagram = Klemmenschema
-report-kind-terminal-overview = Klemmenoverzicht
-report-kind-cable-overview-diagrams = Kabeloverzicht en kabelschema's
-report-kind-cable-overview-diagrams-words = kabellijst, kabelschema, kabelplan
-report-kind-wire-list = Draadlijst
-report-kind-plc-overview = PLC-overzicht
-report-kind-io-list = I/O-lijst
-report-kind-plc-card-list = PLC-kaartenlijst
-report-kind-network-address-list = Netwerkadressenlijst
-report-kind-bus-overview = Busoverzicht
-report-kind-bus-cable-list = Lijst van buskabels
-report-kind-iolink-port-list = IO-Link-poortenlijst
-report-kind-safety-io-list = Veiligheids-I/O-lijst
-report-kind-potential-overview = Potentiaaloverzicht
-report-kind-revision-overview = Revisieoverzicht
-report-kind-open-items = Openstaande punten
-report-kind-numbering-report = Nummeringsrapport
-report-kind-enclosure-legend = Kastlegenda
-report-kind-check-report = Controlerapport
-report-kind-tube-list = Slangenlijst
-report-kind-tube-cut-list = Slangenzaaglijst
-report-kind-tube-labels = Slangmarkeringen
-report-kind-valve-terminal-config = Ventieleilandconfiguratie
-report-kind-medium-overview = Mediumoverzicht
 # What gives a report block of each page kind its rows, said when the block makes no page yet.
 report-rows-toc = De pagina's van het project geven het rijen
 report-rows-structure-overview = Een structuuraanduiding of een apparaatkenmerk geeft het rijen
@@ -139,8 +108,6 @@ plc-import-no-value = niets
 plc-import-empty = Niets op dit tabblad.
 plc-import-row = { $p0 } · { $p1 }
 plc-import-object = { $p0 } { $p1 }
-report-kind-sql = SQL-query
-report-kind-unknown = Onbekende soort
 external-records = { $p0 ->
         [one] 1 record
        *[other] { $p0 } records
