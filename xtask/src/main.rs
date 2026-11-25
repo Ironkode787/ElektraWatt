@@ -73,11 +73,14 @@ const COMMANDS: &[Command] = &[
     Command {
         name: "check",
         section: Section::Loop,
-        args: "[-p <package>]... [--no-test] [-- <test filter>...]",
+        args: "[-p <package>]... [--no-test] [--deep] [-- <test filter>...]",
         does: "checks a change: formats every Rust file, then clippy and the tests of the named packages (the whole \
-               workspace without -p) with all features, then the repository rules. --no-test leaves the tests out; \
-               a filter after -- (nextest's: name substrings or -E <expression>) narrows them and leaves the doctests \
-               out",
+               workspace without -p) with all features, then the repository rules. --deep adds the tests marked for \
+               the deep run; --no-test leaves the tests out; a filter after -- (nextest's: name substrings or -E \
+               <expression>) narrows them and leaves the doctests out. A change of tools/blind/, content/ or xtask/ \
+               replays the harness's briefs on the built programs; the whole workspace replays them whatever it \
+               touches and runs docs-gen --check. A check that passes writes down its tree, and on the same tree \
+               runs nothing",
         run: check::run,
     },
     Command {
@@ -94,9 +97,7 @@ const COMMANDS: &[Command] = &[
         name: "rules",
         section: Section::Loop,
         args: "",
-        does: "the repository rules alone, in seconds: the order of the crates and the licence boundary \
-               (ci/dep-rules.toml, ci/licence-map.toml), test-only features, raw reads of the model, confidential \
-               tokens (ci/denylist.sha256), UI texts outside the text keys, and `gen --check`",
+        does: "the repository rules alone, in seconds (each is listed below), then `gen --check`; it builds nothing",
         run: |_, root| rules(root),
     },
     Command {
@@ -197,10 +198,33 @@ const COMMANDS: &[Command] = &[
     },
 ];
 
-/// The help text, from [`COMMANDS`]: each command with its arguments, then what it does, wrapped to 120 columns.
+/// The help text, from [`COMMANDS`] and [`RULES`]: each command with its arguments, then what it does, and each rule
+/// with what it catches, wrapped to 120 columns.
 fn help() -> String {
     const INDENT: usize = 23;
     const WIDTH: usize = 120;
+    let item = |out: &mut String, head: String, text: &str| {
+        let mut line = if head.len() + 1 < INDENT {
+            format!("{head:<INDENT$}")
+        } else {
+            out.push_str(&head);
+            out.push('\n');
+            " ".repeat(INDENT)
+        };
+        for word in text.split_whitespace() {
+            if line.len() > INDENT && line.len() + 1 + word.len() > WIDTH {
+                out.push_str(line.trim_end());
+                out.push('\n');
+                line = " ".repeat(INDENT);
+            }
+            if line.len() > INDENT {
+                line.push(' ');
+            }
+            line.push_str(word);
+        }
+        out.push_str(&line);
+        out.push('\n');
+    };
     let mut out = String::from("usage: cargo xtask <command>\n");
     for section in [Section::Loop, Section::Reading, Section::Steps] {
         out.push_str(&format!("\n{}\n", section.heading()));
@@ -210,27 +234,12 @@ fn help() -> String {
             } else {
                 format!("  {} {}", c.name, c.args)
             };
-            let mut line = if head.len() + 1 < INDENT {
-                format!("{head:<INDENT$}")
-            } else {
-                out.push_str(&head);
-                out.push('\n');
-                " ".repeat(INDENT)
-            };
-            for word in c.does.split_whitespace() {
-                if line.len() > INDENT && line.len() + 1 + word.len() > WIDTH {
-                    out.push_str(line.trim_end());
-                    out.push('\n');
-                    line = " ".repeat(INDENT);
-                }
-                if line.len() > INDENT {
-                    line.push(' ');
-                }
-                line.push_str(word);
-            }
-            out.push_str(&line);
-            out.push('\n');
+            item(&mut out, head, c.does);
         }
+    }
+    out.push_str("\nthe repository rules (`rules`, and the last step of `check`), each with what it catches:\n");
+    for (name, catches, _) in RULES {
+        item(&mut out, format!("  {name}"), catches);
     }
     out
 }
@@ -357,27 +366,66 @@ impl Workspace {
 /// A repository rule: the violations it finds at a root.
 type Rule = fn(&Path, &Workspace) -> Result<Violations>;
 
-/// The repository rules, each with its name. They read files, git and `cargo metadata` only: nothing is built.
-const RULES: &[(&str, Rule)] = &[
-    ("layers", check_deps),
-    ("features", check_features),
-    ("raw-read", raw_read::violations),
-    ("licences", check_licence_map_at),
-    ("anonymisation", |root, ws| {
-        check_anonymisation_at(root, &ws.files)
-    }),
-    ("ui-strings", |root, _| ui_strings::check(root)),
-    ("greyed", |root, _| greyed::check(root)),
-    ("design-docs", |root, _| design_docs::check(root)),
-    ("translations", |root, _| translations::check(root)),
-    ("size-ceiling", |_, ws| Ok(ceiling::check(&ws.files))),
+/// The repository rules, each with its name and what it catches (the help prints both). They read files, git and
+/// `cargo metadata` only: nothing is built.
+const RULES: &[(&str, &str, Rule)] = &[
+    (
+        "layers",
+        "an edge against the order of the crates or a confinement (ci/dep-rules.toml)",
+        check_deps,
+    ),
+    (
+        "features",
+        "a test-only feature or crate in a shipped program",
+        check_features,
+    ),
+    (
+        "raw-read",
+        "a raw read of the model outside its readers, and a stale lint list",
+        raw_read::violations,
+    ),
+    (
+        "licences",
+        "the licence of every path and crate, and a permissive crate that reaches a GPL one (ci/licence-map.toml)",
+        check_licence_map_at,
+    ),
+    (
+        "anonymisation",
+        "a confidential token (ci/denylist.sha256)",
+        |root, ws| check_anonymisation_at(root, &ws.files),
+    ),
+    (
+        "ui-strings",
+        "a literal text with a letter in the window",
+        |root, _| ui_strings::check(root),
+    ),
+    (
+        "greyed",
+        "a control the window greys without a reason in words",
+        |root, _| greyed::check(root),
+    ),
+    (
+        "design-docs",
+        "history in a design document, or one over its size ceiling",
+        |root, _| design_docs::check(root),
+    ),
+    (
+        "translations",
+        "a message of the Dutch guide's introduction or tutorials untranslated",
+        |root, _| translations::check(root),
+    ),
+    (
+        "size-ceiling",
+        "a source file over the size ceiling of 3,000 lines",
+        |_, ws| Ok(ceiling::check(&ws.files)),
+    ),
 ];
 
 /// `rules`: every repository rule, then `gen --check`. Prints one line per rule and each violation.
 pub(crate) fn rules(root: &Path) -> Result<bool> {
     let ws = Workspace::read(root)?;
     let mut ok = true;
-    for (name, rule) in RULES {
+    for (name, _, rule) in RULES {
         let violations = rule(root, &ws)?;
         if violations.is_empty() {
             println!("{name}: ok");
@@ -507,14 +555,15 @@ fn denylist_hash(phrase: &str) {
 mod tests {
     use super::*;
 
-    /// The help is made from the commands that run: `book-po`, which the hand-kept text left out, is in it, and each
-    /// command's line starts with its name.
+    /// The help is made from the commands that run and the rules: `book-po`, which the hand-kept text left out, is in
+    /// it, `check` names `--deep`, and each command's and each rule's line starts with its name.
     #[test]
-    fn the_help_names_every_command_that_runs() {
+    fn the_help_names_every_command_and_rule_that_runs() {
         let text = help();
         assert!(text.contains("\n  book-po [--check]"), "{text}");
-        for c in COMMANDS {
-            assert!(text.contains(&format!("\n  {}", c.name)), "{}", c.name);
+        assert!(text.contains("[--deep]"), "{text}");
+        for name in COMMANDS.iter().map(|c| c.name).chain(RULES.iter().map(|r| r.0)) {
+            assert!(text.contains(&format!("\n  {name}")), "{name}");
         }
     }
 }
