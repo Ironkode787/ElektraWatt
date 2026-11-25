@@ -4764,7 +4764,7 @@ msgstr ""
 msgid "What it is"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:25 src/reference/window/command-bar.md:133 src/reference/window/panels.md:111
+#: src/how-to/plc-workspace.md:25 src/reference/window/command-bar.md:135 src/reference/window/panels.md:111
 msgid "PLC"
 msgstr ""
 
@@ -5005,10 +5005,11 @@ msgid ""
 "station that is on no page of its kind yet: its boxes on an electrical page, "
 "its bus ports on a bus page, a valve terminal's valves on their positions on "
 "a fluid page. **Draw each card on a page of its own** makes a new page for "
-"each module, after the page the view was opened from, titled from the module "
-"(**PLC 8 DI**), the station's head on the first, in one Undo step; **All on "
-"one page…** beside it lists the electrical pages and **New page…**, and the "
-"one you pick takes them all. Each other button goes to the page the view was "
+"each module in the section of the schematic pages, after the page the view "
+"was opened from when that page stands there, titled from the module (**PLC 8 "
+"DI**), the station's head on the first, in one Undo step; **All on one "
+"page…** beside it lists the electrical pages and **New page…**, and the one "
+"you pick takes them all. Each other button goes to the page the view was "
 "opened from when it is of that kind (**Put it on page 101**), to a new page "
 "when the project has none, else lists the pages of that kind and **New "
 "page…**. The station and its modules are drawn in slot order, each input or "
@@ -5018,7 +5019,7 @@ msgid ""
 "valve terminal's box hang on the pointer, and a click puts them down."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:80
+#: src/how-to/plc-workspace.md:81
 msgid ""
 "Click the station's tag in the header, or press `F2`, to change it in place; "
 "`Enter` takes it, `Esc` leaves it. `F2` on a card, or a click on the tag of "
@@ -5029,7 +5030,7 @@ msgid ""
 "PLC of the project has is refused."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:86
+#: src/how-to/plc-workspace.md:87
 msgid ""
 "A part of a station that no page draws yet has **Place here** on its row in "
 "the PLC panel and on its card's menu: on an electrical page its box hangs on "
@@ -5037,34 +5038,34 @@ msgid ""
 "positions. On another page the entry is greyed with the page to open."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:90
+#: src/how-to/plc-workspace.md:91
 msgid ""
 "A station part placed straight from the device browser opens its rack in a "
 "tab at once; `Esc` goes back to the page, and the tab stays beside it."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:93
+#: src/how-to/plc-workspace.md:94
 msgid "Read and change a rack"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:95
+#: src/how-to/plc-workspace.md:96
 msgid ""
 "Right-click the station (on the page, in the PLC panel) and choose "
 "**Rack…**, choose **Rack** on the PLC tab, or double-click the station in "
 "the PLC panel. Its rack opens in a tab beside the page tabs:"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:98
+#: src/how-to/plc-workspace.md:99
 msgid ""
 "![A station's rack in its tab: the cards, To do, the table, the channels of "
 "the selected module, and the catalogue](images/plc-rack.png)"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:100
+#: src/how-to/plc-workspace.md:101
 msgid "**The buttons above the rack** act on the selected module."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:101
+#: src/how-to/plc-workspace.md:102
 msgid ""
 "**The rack, drawn**: one card per place, the head first, then each slot. A "
 "card says what the module gives (8 DI), its tag, its part number and the "
@@ -5073,28 +5074,28 @@ msgid ""
 "has no slots: its positions follow the head."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:104
+#: src/how-to/plc-workspace.md:105
 msgid ""
 "**To do**, under the rack, says what is wrong or left, each in a sentence "
 "with its fix beside it: a module in a slot its part does not allow, a module "
 "drawn on no page, a station on no bus page."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:106
+#: src/how-to/plc-workspace.md:107
 msgid ""
 "**The table** under it lists the same places: slot, module, part (number and "
 "description), what it gives, its addresses and the page it is drawn on. A "
 "module without a part says **No part**, with **Choose part…** beside it."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:108
+#: src/how-to/plc-workspace.md:109
 msgid ""
 "**Channels** lists the channels of the selected module: address, symbol "
 "name, function text (the wired device's, as the PLC overview prints it) and "
 "what is wired to it, which is a link to its place on its page."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:110
+#: src/how-to/plc-workspace.md:111
 msgid ""
 "**The catalogue** at the right lists the parts that fit the station, by "
 "kind, under a filter. Parts that do not fit the selected slot are greyed and "
@@ -5102,18 +5103,18 @@ msgid ""
 "pins, with what to do in the part editor."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:114
+#: src/how-to/plc-workspace.md:115
 msgid ""
 "With **Side by side**, a station's view in the other group shows the same "
 "rack, To do, table and channels; where the room is short it leaves out the "
 "catalogue until you click in it."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:117
+#: src/how-to/plc-workspace.md:118
 msgid "To change it:"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:119
+#: src/how-to/plc-workspace.md:120
 msgid ""
 "Click a card or a row: the module is selected as a click on a page selects a "
 "device. Properties shows it, and the buttons above the rack act on it: "
@@ -5125,116 +5126,116 @@ msgid ""
 "and the arrow keys go from slot to slot."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:124
+#: src/how-to/plc-workspace.md:125
 msgid ""
 "Double-click a part in the catalogue to put it into the selected free slot, "
 "else into the first free one; or drag it onto a slot. Dropped on a module, "
 "it replaces that module's part."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:126
+#: src/how-to/plc-workspace.md:127
 msgid ""
 "Drag a card onto a free slot to move it there, or onto another module to "
 "make the two change places. The addresses follow, and a line under the rack "
 "says so."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:128
+#: src/how-to/plc-workspace.md:129
 msgid ""
 "A slot the module's part does not allow is refused: the slot is outlined in "
 "red and the reason stands under the rack."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:130
+#: src/how-to/plc-workspace.md:131
 msgid ""
 "A valve terminal's positions are places like slots: select one and "
 "double-click a valve in the catalogue, or **Remove** to empty it."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:133
+#: src/how-to/plc-workspace.md:134
 msgid "Every step is one Undo."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:135
+#: src/how-to/plc-workspace.md:136
 msgid "Put a module into a station"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:137
+#: src/how-to/plc-workspace.md:138
 msgid ""
 "A module drawn on a page by itself (from the device browser or the black "
 "box) joins the project's only station, and its toast names the slot it got, "
 "with **Rack…**, which opens the station's rack."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:139
+#: src/how-to/plc-workspace.md:140
 msgid ""
 "With two stations it joins the one drawn beside it on its page; on a page "
 "without one, a window asks which station takes it. Without any station, its "
 "toast offers **New station…**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:141
+#: src/how-to/plc-workspace.md:142
 msgid ""
 "A module that waits is listed under **Modules without a station** in the PLC "
 "panel: drag its row onto the station's row, or right-click the station and "
 "choose **Attach modules without a station**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:144
+#: src/how-to/plc-workspace.md:145
 msgid ""
 "Only a module goes into a rack: a device whose part has no PLC data is "
 "refused in words."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:146
+#: src/how-to/plc-workspace.md:147
 msgid "Wire a field device to a channel"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:148
+#: src/how-to/plc-workspace.md:149
 msgid ""
 "Draw the device (a sensor, a lamp, a coil) on the page beside the module's "
 "box."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:149
+#: src/how-to/plc-workspace.md:150
 msgid ""
 "Choose **Draw ▸ Wire** (`W`) and wire it to the module's pin: pin 1 is "
 "channel 0."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:150
+#: src/how-to/plc-workspace.md:151
 msgid ""
 "Or drag a channel's row from the PLC panel onto the device's connection "
 "point: the device is attached to the module and the channel bound to it in "
 "one step, which one Undo takes back."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:153
+#: src/how-to/plc-workspace.md:154
 msgid "Addresses"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:155
+#: src/how-to/plc-workspace.md:156
 msgid ""
 "A channel's address comes from its module's slot and the modules before it: "
 "the first input module of a station starts at I0.0, the first output module "
 "at Q0.0."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:157
+#: src/how-to/plc-workspace.md:158
 msgid ""
 "To give one channel another address, type it into its **Address** cell in "
 "the PLC grid; it keeps it, with the badge **manual** in the panel and a lock "
 "in the grid."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:159
+#: src/how-to/plc-workspace.md:160
 msgid ""
 "Right-click a module and choose **Re-address…** (or the PLC row for all its "
 "modules): the Preview tab lists each channel whose address moves, old and "
 "new; **Apply** makes the change in one step."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:161
+#: src/how-to/plc-workspace.md:162
 msgid ""
 "Right-click the PLC row and choose **Freeze addresses…** to keep every used "
 "or reserved channel's address when modules move later, or **Make manual "
@@ -5242,24 +5243,24 @@ msgid ""
 "ones. The three are also under **Addresses** on the PLC tab."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:165
+#: src/how-to/plc-workspace.md:166
 msgid "The PLC grid and the symbols"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:167
+#: src/how-to/plc-workspace.md:168
 msgid ""
 "Choose **PLC grid** on the PLC tab (**PLC ▸ PLC grid**). Each row is a "
 "channel."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:168
+#: src/how-to/plc-workspace.md:169
 msgid ""
 "Click a cell and type: the designation, address, symbol, state, target, "
 "comment, data type or signal range. The slot cell takes a number or "
 "`<rack>.<slot>`."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:170
+#: src/how-to/plc-workspace.md:171
 msgid ""
 "Type into the grid's filter to narrow the rows: a word of a cell, or one of "
 "`spare`, `unplaced`, `unassigned`, `tbd`, `duplicate`, `safety`, "
@@ -5267,40 +5268,40 @@ msgid ""
 "header sorts by it."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:173
+#: src/how-to/plc-workspace.md:174
 msgid ""
 "To have EW write the symbols, right-click the PLC row and choose **Symbol "
 "policy…**: the template of the automatic symbol, the PLC tag table and "
 "whether symbols must be strict IEC 61131-3 names."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:176
+#: src/how-to/plc-workspace.md:177
 msgid "Give a bus device to a PLC"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:178
+#: src/how-to/plc-workspace.md:179
 msgid ""
 "On a bus-topology page, a schematic page or in the Bus panel, right-click a "
 "bus device that belongs to no PLC."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:179
+#: src/how-to/plc-workspace.md:180
 msgid ""
 "Choose **Add to** and the PLC, or **Add to a new PLC**: it becomes a station "
 "of that PLC and its rack opens in a tab."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:182
+#: src/how-to/plc-workspace.md:183
 msgid ""
 "A switch or a plug takes no part in a PLC; its menu says why. A station's "
 "menu says **PLC:** and its PLC's name."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:184
+#: src/how-to/plc-workspace.md:185
 msgid "Bus ports and nets"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:186
+#: src/how-to/plc-workspace.md:187
 msgid ""
 "A bus-topology page is the network view: each device stands as one box per "
 "bus interface (PROFINET X1, PROFIBUS DP), with a connection point per "
@@ -5308,13 +5309,13 @@ msgid ""
 "I/O pins stay on the schematic pages."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:190
+#: src/how-to/plc-workspace.md:191
 msgid ""
 "Choose **New bus page** on the PLC tab: the new-page form opens with the "
 "type **Bus topology**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:191
+#: src/how-to/plc-workspace.md:192
 msgid ""
 "Place a station or another bus device from the device browser (**Draw ▸ "
 "Place ▸ Device from part…**) with two clicks for its box: it stands there as "
@@ -5322,7 +5323,7 @@ msgid ""
 "the page)."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:194
+#: src/how-to/plc-workspace.md:195
 msgid ""
 "A station or bus device the project has already (drawn on a schematic page, "
 "or made with **New station**) goes onto the bus page with **Put a station on "
@@ -5337,13 +5338,13 @@ msgid ""
 "page draws yet."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:201
+#: src/how-to/plc-workspace.md:202
 msgid ""
 "Draw the bus lines with **Draw ▸ Wire**: the ports become one network, named "
 "for its bus, with the CPU's port as its controller or master."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:203
+#: src/how-to/plc-workspace.md:204
 msgid ""
 "Choose **Bus panel** on the PLC tab and switch it to its table. Type each "
 "node's address into its **Address** cell as the cell says: a PROFIBUS DP "
@@ -5352,7 +5353,7 @@ msgid ""
 "through and takes none."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:206
+#: src/how-to/plc-workspace.md:207
 msgid ""
 "Select a bus line and choose **Cable** on the Draw tab: choose the cable "
 "(the ones made for that bus first), its length and the plug at each end with "
@@ -5360,7 +5361,7 @@ msgid ""
 "and the plugs go into the parts list."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:210
+#: src/how-to/plc-workspace.md:211
 msgid ""
 "The starter parts hold a CPU with PROFINET and PROFIBUS DP, a remote I/O "
 "head, an unmanaged and a managed switch, a PROFINET device, PROFIBUS and "
@@ -5368,11 +5369,11 @@ msgid ""
 "in the part editor: see [Make your own PLC or bus part](own-parts.md)."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:214
+#: src/how-to/plc-workspace.md:215
 msgid "Exchange with the PLC software"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:216
+#: src/how-to/plc-workspace.md:217
 msgid ""
 "Choose **Export to PLC** on the PLC tab (**PLC ▸ Export to PLC software…**) "
 "and pick the format: **AutomationML AR APC 1.4.0** (or 1.2.0) carries the "
@@ -5381,7 +5382,7 @@ msgid ""
 "CODESYS. Choose **Export**, then the file."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:219
+#: src/how-to/plc-workspace.md:220
 msgid ""
 "Choose **Import from PLC** on the PLC tab (**PLC ▸ Import from PLC "
 "software…**) for the file the PLC software wrote back. Look through its "
@@ -5389,42 +5390,42 @@ msgid ""
 "value where it can be taken. Choose **Apply**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:222
+#: src/how-to/plc-workspace.md:223
 msgid ""
 "After an import, what the PLC software owns (the module starts, the symbols "
 "or the PLC data) is protected: right-click the PLC row and choose **Unlock "
 "module starts** (or the other group) to edit it here again."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:224
+#: src/how-to/plc-workspace.md:225
 msgid ""
 "Right-click the PLC row and choose **Import instrument list…** for a list of "
 "process tags and signal types (CSV or workbook): the Preview tab lists the "
 "spare channels it reserves."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:227
+#: src/how-to/plc-workspace.md:228
 msgid "Settings"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:229
+#: src/how-to/plc-workspace.md:230
 msgid "**Process-tag scheme** on the PLC tab: the pattern process tags follow."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:230
+#: src/how-to/plc-workspace.md:231
 msgid ""
 "**Addresses at terminals** on the PLC tab: each channel's address printed at "
 "the terminals on its path."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:231
+#: src/how-to/plc-workspace.md:232
 msgid ""
 "Right-click a module and choose **Safety data…** for its F-addresses and "
 "F-watchdog time; right-click a channel and choose **Mode and safety…** for a "
 "multi-function port's mode and the channel's safety data."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:234
+#: src/how-to/plc-workspace.md:235
 msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md) (PLC, PLC grid, Bus), and the "
@@ -7271,50 +7272,52 @@ msgid ""
 "form asks for the new folio numbers (a number added to each, or the page the "
 "copies follow), a structure node the copy gets of its own, and texts to "
 "change in frozen tags and in the names of interruption points (24V into "
-"24V.2). The tags follow the new pages. The preview says what the copy leaves "
-"on pages that are not copied; Apply makes the copy in one undo step."
+"24V.2). The tags follow the new pages. Copies whose new numbers no section "
+"holds get a section of their own over that hundred, titled as their pages' "
+"section. The preview says what the copy leaves on pages that are not copied "
+"and which section it makes; Apply makes the copy in one undo step."
 msgstr ""
 
-#: src/reference/window/command-bar.md:67
+#: src/reference/window/command-bar.md:68
 msgid "Move to page…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:69
+#: src/reference/window/command-bar.md:70
 msgid ""
-"Moves the selected symbols to another schematic page, or to a new page after "
-"this one. It asks for the page; a wire to a symbol that stays behind becomes "
-"a pair of interruption points, which a preview lists before anything moves. "
-"The right-click menu of selected symbols has it too. See [Interruption "
-"points](things.md#interruption-points)."
-msgstr ""
-
-#: src/reference/window/command-bar.md:73
-msgid "Add legend"
+"Moves the selected symbols to another schematic page, or to a new page in "
+"the section of the schematic pages. It asks for the page; a wire to a symbol "
+"that stays behind becomes a pair of interruption points, which a preview "
+"lists before anything moves. The right-click menu of selected symbols has it "
+"too. See [Interruption points](things.md#interruption-points)."
 msgstr ""
 
 #: src/reference/window/command-bar.md:75
+msgid "Add legend"
+msgstr ""
+
+#: src/reference/window/command-bar.md:77
 msgid ""
 "On a panel layout page, puts the legend beside the layout: each item number "
 "of the page with its tag, quantity, part number and description. See [Draw a "
 "panel layout](../../how-to/panel-layout.md)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:78
+#: src/reference/window/command-bar.md:80
 msgid "Report block…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:80
+#: src/reference/window/command-bar.md:82
 msgid ""
 "Puts a list on a page: a parts list, a terminal diagram, a cable list and "
 "the others, generated from the project and kept up to date. See [Lists on a "
 "page](things.md#lists-on-a-page)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:83
+#: src/reference/window/command-bar.md:85
 msgid "List columns…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:85
+#: src/reference/window/command-bar.md:87
 msgid ""
 "On a page of a list (the Output tab's Reports group): which columns the list "
 "prints, in what order, with what heading and width, a caption above the "
@@ -7322,11 +7325,11 @@ msgid ""
 "page](things.md#lists-on-a-page)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:88
+#: src/reference/window/command-bar.md:90
 msgid "Rows of your own…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:90
+#: src/reference/window/command-bar.md:92
 msgid ""
 "On a page of a list (the Output tab's Reports group): rows the model does "
 "not hold, such as a spare terminal or a note; they stay in the list however "
@@ -7334,25 +7337,25 @@ msgid ""
 "page](things.md#lists-on-a-page)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:94
+#: src/reference/window/command-bar.md:96
 msgid "Open parts list"
 msgstr ""
 
-#: src/reference/window/command-bar.md:96
+#: src/reference/window/command-bar.md:98
 msgid ""
 "Shows the project's parts list: every part with its quantity, its "
 "description and the tags of its devices."
 msgstr ""
 
-#: src/reference/window/command-bar.md:98
+#: src/reference/window/command-bar.md:100
 msgid "Draw"
 msgstr ""
 
-#: src/reference/window/command-bar.md:100
+#: src/reference/window/command-bar.md:102
 msgid "Supply"
 msgstr ""
 
-#: src/reference/window/command-bar.md:102
+#: src/reference/window/command-bar.md:104
 msgid ""
 "Places the supply that comes in from the mains in one go: its form asks what "
 "comes in (single phase L, N, PE; three phase with or without N; 24 V DC; "
@@ -7361,42 +7364,42 @@ msgid ""
 "then asks what each carries. See [Supply comes in here](things.md)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:107
+#: src/reference/window/command-bar.md:109
 msgid "Cable…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:109
+#: src/reference/window/command-bar.md:111
 msgid ""
 "Makes a cable of the selected wires, or gives a wire's cable its part, and "
 "draws the cable's mark across them. See [Cables and their "
 "marks](things.md#cables-and-their-marks)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:112
+#: src/reference/window/command-bar.md:114
 msgid "Renumber devices…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:114
+#: src/reference/window/command-bar.md:116
 msgid ""
 "Gives the devices new numbers by their place in the drawings "
 "(`Ctrl+Shift+N`)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:116
+#: src/reference/window/command-bar.md:118
 msgid "Symbol editor…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:118
+#: src/reference/window/command-bar.md:120
 msgid ""
 "Opens the symbol editor: a new symbol, a copy of a library symbol, or the "
 "box of a device. See [Symbol editor](../symbol-editor.md)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:121
+#: src/reference/window/command-bar.md:123
 msgid "Auto-fill rail…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:123
+#: src/reference/window/command-bar.md:125
 msgid ""
 "On a panel layout page, places the cabinet's devices that are not placed yet "
 "on a rail, in the order of the schematic or of their tags. Devices without a "
@@ -7404,11 +7407,11 @@ msgid ""
 "layout](../../how-to/panel-layout.md)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:127
+#: src/reference/window/command-bar.md:129
 msgid "Add pin"
 msgstr ""
 
-#: src/reference/window/command-bar.md:129
+#: src/reference/window/command-bar.md:131
 msgid ""
 "On a selected box drawn without a part, puts a new pin on its edge: the pin "
 "follows the pointer along the edge nearest it, a click puts it there, and a "
@@ -7416,367 +7419,367 @@ msgid ""
 "[Black box](tools.md#black-box)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:135
+#: src/reference/window/command-bar.md:137
 msgid "New station…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:137
+#: src/reference/window/command-bar.md:139
 msgid ""
 "Makes a PLC station: a CPU or a head station with its rack, chosen from the "
 "catalogue. See [Make a "
 "station](../../how-to/plc-workspace.md#make-a-station)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:140
+#: src/reference/window/command-bar.md:142
 msgid "Rack…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:142
+#: src/reference/window/command-bar.md:144
 msgid ""
 "Opens the selected station's view: its rack with a card per slot, the "
 "catalogue beside it, and the module's channels. See [Read and change a "
 "rack](../../how-to/plc-workspace.md#read-and-change-a-rack)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:145
+#: src/reference/window/command-bar.md:147
 msgid "Attach modules without a station"
 msgstr ""
 
-#: src/reference/window/command-bar.md:147
+#: src/reference/window/command-bar.md:149
 msgid ""
 "Gives the modules that have no station yet (cards made on their own) the "
 "selected CPU's station."
 msgstr ""
 
-#: src/reference/window/command-bar.md:149
+#: src/reference/window/command-bar.md:151
 msgid "Preview PLC addressing"
 msgstr ""
 
-#: src/reference/window/command-bar.md:151
+#: src/reference/window/command-bar.md:153
 msgid ""
 "Shows the addresses the channels get before they are given: the old and the "
 "new address of each channel. See "
 "[Addresses](../../how-to/plc-workspace.md#addresses)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:154
+#: src/reference/window/command-bar.md:156
 msgid "Symbol policy…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:156
+#: src/reference/window/command-bar.md:158
 msgid ""
 "Sets how the channels' symbol names are made: by hand, or from a template "
 "such as `{target.dt}_{pin}`. See [The PLC grid and the "
 "symbols](../../how-to/plc-workspace.md#the-plc-grid-and-the-symbols)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:159
+#: src/reference/window/command-bar.md:161
 msgid "Process-tag scheme…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:161
+#: src/reference/window/command-bar.md:163
 msgid ""
 "Sets the form of the process tags the instrument list and the channels carry."
 msgstr ""
 
-#: src/reference/window/command-bar.md:163
+#: src/reference/window/command-bar.md:165
 msgid "Channel addresses at terminals"
 msgstr ""
 
-#: src/reference/window/command-bar.md:165
+#: src/reference/window/command-bar.md:167
 msgid ""
 "Prints a channel's address (`I0.0`) at the terminals its wire runs through, "
 "on or off for the project."
 msgstr ""
 
-#: src/reference/window/command-bar.md:167
+#: src/reference/window/command-bar.md:169
 msgid "Export to PLC software…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:169
+#: src/reference/window/command-bar.md:171
 msgid ""
 "Writes the project's stations, modules and symbols to a file the PLC "
 "software reads. See [Exchange with the PLC "
 "software](../../how-to/plc-workspace.md#exchange-with-the-plc-software)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:172
+#: src/reference/window/command-bar.md:174
 msgid "Import from PLC software…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:174
+#: src/reference/window/command-bar.md:176
 msgid ""
 "Reads a file of the PLC software and shows what it would change before it "
 "does. See [Exchange with the PLC "
 "software](../../how-to/plc-workspace.md#exchange-with-the-plc-software)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:177
+#: src/reference/window/command-bar.md:179
 msgid "Import instrument list…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:179
+#: src/reference/window/command-bar.md:181
 msgid ""
 "Reads an instrument list (a table of the field devices with their signals) "
 "and shows the channels and devices it would make before it does."
 msgstr ""
 
-#: src/reference/window/command-bar.md:182
+#: src/reference/window/command-bar.md:184
 msgid "New bus page…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:184
+#: src/reference/window/command-bar.md:186
 msgid ""
 "Makes a bus topology page, where the bus devices and their ports are drawn. "
 "See [Bus ports and nets](../../how-to/plc-workspace.md#bus-ports-and-nets)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:187
+#: src/reference/window/command-bar.md:189
 msgid "Place port"
 msgstr ""
 
-#: src/reference/window/command-bar.md:189
+#: src/reference/window/command-bar.md:191
 msgid ""
 "Places a port of a bus device that is not drawn yet on the bus page. See "
 "[Bus ports and nets](../../how-to/plc-workspace.md#bus-ports-and-nets)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:192
+#: src/reference/window/command-bar.md:194
 msgid "Bus panel"
 msgstr ""
 
-#: src/reference/window/command-bar.md:194
+#: src/reference/window/command-bar.md:196
 msgid ""
 "Shows the Bus panel: the bus nets and the ports on them. See "
 "[Bus](panels.md#bus)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:196 src/reference/window/panels.md:128
+#: src/reference/window/command-bar.md:198 src/reference/window/panels.md:128
 msgid "PLC grid"
 msgstr ""
 
-#: src/reference/window/command-bar.md:198
+#: src/reference/window/command-bar.md:200
 msgid ""
 "Shows the PLC grid in the bottom dock: every channel in a row, with its "
 "address, its symbol and its device. A column that cuts a text grows to show "
 "it. See [PLC grid](panels.md#plc-grid)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:201
+#: src/reference/window/command-bar.md:203
 msgid "PLC workspace"
 msgstr ""
 
-#: src/reference/window/command-bar.md:203
+#: src/reference/window/command-bar.md:205
 msgid ""
 "Arranges the window for PLC work: the PLC panel on the left, the PLC grid "
 "below. See [Open the "
 "workspace](../../how-to/plc-workspace.md#open-the-workspace)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:206
+#: src/reference/window/command-bar.md:208
 msgid "PLC guide"
 msgstr ""
 
-#: src/reference/window/command-bar.md:208
+#: src/reference/window/command-bar.md:210
 msgid ""
 "Opens the guide to the PLC workspace: [Work in the PLC "
 "workspace](../../how-to/plc-workspace.md)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:210 src/reference/window/panels.md:149
+#: src/reference/window/command-bar.md:212 src/reference/window/panels.md:149
 msgid "Fluid"
 msgstr ""
 
-#: src/reference/window/command-bar.md:212
+#: src/reference/window/command-bar.md:214
 msgid "New fluid page…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:214
+#: src/reference/window/command-bar.md:216
 msgid ""
 "Makes a fluid page, where the pneumatic or hydraulic circuit is drawn. See "
 "[Draw a circuit](../../how-to/fluid-workspace.md#draw-a-circuit)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:217
+#: src/reference/window/command-bar.md:219
 msgid "Fluid symbol…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:219
+#: src/reference/window/command-bar.md:221
 msgid ""
 "Places a fluid symbol on the fluid page: a valve, a cylinder, a service unit "
 "and the others. See [Valves and cylinders](things.md#valves-and-cylinders)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:222
+#: src/reference/window/command-bar.md:224
 msgid "Valve terminal…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:224
+#: src/reference/window/command-bar.md:226
 msgid ""
 "Makes a valve terminal with its positions, or draws a station's valve "
 "terminal on the fluid page. See [Valve "
 "terminals](../../how-to/fluid-workspace.md#valve-terminals)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:227
+#: src/reference/window/command-bar.md:229
 msgid "Air supply…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:229
+#: src/reference/window/command-bar.md:231
 msgid "Places the air supply: where the compressed air enters the circuit."
 msgstr ""
 
-#: src/reference/window/command-bar.md:231
+#: src/reference/window/command-bar.md:233
 msgid "Generate overview…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:233
+#: src/reference/window/command-bar.md:235
 msgid ""
 "Makes the overview page of the selected valve terminal: its positions with "
 "their valves and order codes."
 msgstr ""
 
-#: src/reference/window/command-bar.md:235
+#: src/reference/window/command-bar.md:237
 msgid "Draw the plug on an electrical page…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:237
+#: src/reference/window/command-bar.md:239
 msgid ""
 "Draws the multipin plug of the selected valve terminal on an electrical "
 "page, with a pin for each solenoid."
 msgstr ""
 
-#: src/reference/window/command-bar.md:239
+#: src/reference/window/command-bar.md:241
 msgid "Plug the open ports"
 msgstr ""
 
-#: src/reference/window/command-bar.md:241
+#: src/reference/window/command-bar.md:243
 msgid ""
 "Plugs the open working ports of the selected valves in one step, so that no "
 "port is left open."
 msgstr ""
 
-#: src/reference/window/command-bar.md:243
+#: src/reference/window/command-bar.md:245
 msgid "New medium…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:245
+#: src/reference/window/command-bar.md:247
 msgid ""
 "Defines a medium (compressed air, hydraulic oil) with its colour and "
 "pattern. See [The medium](../../how-to/fluid-workspace.md#the-medium)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:248 src/reference/window/panels.md:164
+#: src/reference/window/command-bar.md:250 src/reference/window/panels.md:164
 msgid "Medium table"
 msgstr ""
 
-#: src/reference/window/command-bar.md:250
+#: src/reference/window/command-bar.md:252
 msgid ""
 "Shows the media of the project and the tube each medium takes. See [Medium "
 "table](panels.md#medium-table)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:252 src/reference/window/panels.md:157
+#: src/reference/window/command-bar.md:254 src/reference/window/panels.md:157
 msgid "Tube table"
 msgstr ""
 
-#: src/reference/window/command-bar.md:254
+#: src/reference/window/command-bar.md:256
 msgid ""
 "Shows the tubes of the project with their medium, size and length. See [Tube "
 "table](panels.md#tube-table)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:256
+#: src/reference/window/command-bar.md:258
 msgid "Fluid settings…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:258
+#: src/reference/window/command-bar.md:260
 msgid ""
 "Sets the fluid defaults of the project: the default tube of every line and "
 "how the tubes are numbered."
 msgstr ""
 
-#: src/reference/window/command-bar.md:260
+#: src/reference/window/command-bar.md:262
 msgid "Fluid workspace"
 msgstr ""
 
-#: src/reference/window/command-bar.md:262
+#: src/reference/window/command-bar.md:264
 msgid ""
 "Arranges the window for fluid work: the Fluid panel on the left, the tube "
 "table below. See [Open the "
 "workspace](../../how-to/fluid-workspace.md#open-the-workspace)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:265
+#: src/reference/window/command-bar.md:267
 msgid "Fluid power guide"
 msgstr ""
 
-#: src/reference/window/command-bar.md:267
+#: src/reference/window/command-bar.md:269
 msgid ""
 "Opens the guide to the Fluid workspace: [Work in the Fluid "
 "workspace](../../how-to/fluid-workspace.md)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:269
+#: src/reference/window/command-bar.md:271
 msgid "Check"
 msgstr ""
 
-#: src/reference/window/command-bar.md:271
+#: src/reference/window/command-bar.md:273
 msgid "Run checks"
 msgstr ""
 
-#: src/reference/window/command-bar.md:273
+#: src/reference/window/command-bar.md:275
 msgid ""
 "Checks the project now and lists the findings in the Messages panel, with "
 "the change since the last check. See [Messages](panels.md#messages)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:276
+#: src/reference/window/command-bar.md:278
 msgid "Next finding"
 msgstr ""
 
-#: src/reference/window/command-bar.md:278
+#: src/reference/window/command-bar.md:280
 msgid ""
 "Goes to the next finding of the Messages panel and selects its things on the "
 "page."
 msgstr ""
 
-#: src/reference/window/command-bar.md:280
+#: src/reference/window/command-bar.md:282
 msgid "Previous finding"
 msgstr ""
 
-#: src/reference/window/command-bar.md:282
+#: src/reference/window/command-bar.md:284
 msgid "Goes to the previous finding of the Messages panel."
 msgstr ""
 
-#: src/reference/window/command-bar.md:284
+#: src/reference/window/command-bar.md:286
 msgid "Highlight"
 msgstr ""
 
-#: src/reference/window/command-bar.md:286
+#: src/reference/window/command-bar.md:288
 msgid ""
 "Marks the thing of the selected row of a list (a potential, a wire, a "
 "medium) on the pages, in a colour, until **Clear highlights** "
 "(`Ctrl+Shift+H`)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:289
+#: src/reference/window/command-bar.md:291
 msgid "Clear highlights"
 msgstr ""
 
-#: src/reference/window/command-bar.md:291
+#: src/reference/window/command-bar.md:293
 msgid "Removes every highlight from the pages."
 msgstr ""
 
-#: src/reference/window/command-bar.md:293
+#: src/reference/window/command-bar.md:295
 msgid "Output"
 msgstr ""
 
-#: src/reference/window/command-bar.md:295
+#: src/reference/window/command-bar.md:297
 msgid "Export DXF…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:297
+#: src/reference/window/command-bar.md:299
 msgid ""
 "Writes every page as an AutoCAD 2010 DXF file into a folder you choose, with "
 "the title block's picture as a file beside them: a symbol is a block, and a "
@@ -7785,125 +7788,125 @@ msgid ""
 "files in your CAD program or a converter."
 msgstr ""
 
-#: src/reference/window/command-bar.md:301
+#: src/reference/window/command-bar.md:303
 msgid "View"
 msgstr ""
 
-#: src/reference/window/command-bar.md:303
+#: src/reference/window/command-bar.md:305
 msgid "Back"
 msgstr ""
 
-#: src/reference/window/command-bar.md:305
+#: src/reference/window/command-bar.md:307
 msgid ""
 "Goes back to the place shown before the last jump (a cross-reference "
 "followed, a page opened)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:307
+#: src/reference/window/command-bar.md:309
 msgid "Forward"
 msgstr ""
 
-#: src/reference/window/command-bar.md:309
+#: src/reference/window/command-bar.md:311
 msgid "Goes forward again after **Back**."
 msgstr ""
 
-#: src/reference/window/command-bar.md:311
+#: src/reference/window/command-bar.md:313
 msgid "Follow cross-reference"
 msgstr ""
 
-#: src/reference/window/command-bar.md:313
+#: src/reference/window/command-bar.md:315
 msgid ""
 "Goes to the place the cross-reference under the pointer or selected names."
 msgstr ""
 
-#: src/reference/window/command-bar.md:315
+#: src/reference/window/command-bar.md:317
 msgid "Zoom in"
 msgstr ""
 
-#: src/reference/window/command-bar.md:317
+#: src/reference/window/command-bar.md:319
 msgid "Shows the page larger, around the middle of the view."
 msgstr ""
 
-#: src/reference/window/command-bar.md:319
+#: src/reference/window/command-bar.md:321
 msgid "Zoom out"
 msgstr ""
 
-#: src/reference/window/command-bar.md:321
+#: src/reference/window/command-bar.md:323
 msgid "Shows the page smaller."
 msgstr ""
 
-#: src/reference/window/command-bar.md:323
+#: src/reference/window/command-bar.md:325
 msgid "Actual size"
 msgstr ""
 
-#: src/reference/window/command-bar.md:325
+#: src/reference/window/command-bar.md:327
 msgid "Shows the page at its printed size."
 msgstr ""
 
-#: src/reference/window/command-bar.md:327
+#: src/reference/window/command-bar.md:329
 msgid "Fit page"
 msgstr ""
 
-#: src/reference/window/command-bar.md:329
+#: src/reference/window/command-bar.md:331
 msgid "Shows the whole page in the view."
 msgstr ""
 
-#: src/reference/window/command-bar.md:331
+#: src/reference/window/command-bar.md:333
 msgid "Side by side"
 msgstr ""
 
-#: src/reference/window/command-bar.md:333
+#: src/reference/window/command-bar.md:335
 msgid "Shows two pages side by side, each in its own group of tabs."
 msgstr ""
 
-#: src/reference/window/command-bar.md:335
+#: src/reference/window/command-bar.md:337
 msgid "Grid"
 msgstr ""
 
-#: src/reference/window/command-bar.md:337
+#: src/reference/window/command-bar.md:339
 msgid "Shows or hides the drawing grid on the page."
 msgstr ""
 
-#: src/reference/window/command-bar.md:339
+#: src/reference/window/command-bar.md:341
 msgid "Theme"
 msgstr ""
 
-#: src/reference/window/command-bar.md:341
+#: src/reference/window/command-bar.md:343
 msgid ""
 "Chooses the window's colours. See "
 "[Appearance](../../how-to/application-window.md#appearance)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:343
+#: src/reference/window/command-bar.md:345
 msgid "Density"
 msgstr ""
 
-#: src/reference/window/command-bar.md:345
+#: src/reference/window/command-bar.md:347
 msgid "Chooses how close the window's rows and buttons stand."
 msgstr ""
 
-#: src/reference/window/command-bar.md:347
+#: src/reference/window/command-bar.md:349
 msgid "UI scale"
 msgstr ""
 
-#: src/reference/window/command-bar.md:349
+#: src/reference/window/command-bar.md:351
 msgid "Makes the whole window larger or smaller."
 msgstr ""
 
-#: src/reference/window/command-bar.md:351
+#: src/reference/window/command-bar.md:353
 msgid "Show tips"
 msgstr ""
 
-#: src/reference/window/command-bar.md:353
+#: src/reference/window/command-bar.md:355
 msgid ""
 "Shows or hides the tips the window gives on the canvas and in empty panels."
 msgstr ""
 
-#: src/reference/window/command-bar.md:355
+#: src/reference/window/command-bar.md:357
 msgid "Frame statistics"
 msgstr ""
 
-#: src/reference/window/command-bar.md:357
+#: src/reference/window/command-bar.md:359
 msgid ""
 "Shows how long the window takes to draw each frame, for a report of a slow "
 "window."

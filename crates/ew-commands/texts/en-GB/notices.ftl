@@ -67,6 +67,8 @@ notice-paste-moved-wire-removed = the wire on { $p0 } that ended at the moved de
 notice-paste-moved-wires-removed = { $p0 } wires on { $p1 } that ended at the moved devices are removed
 notice-paste-child = { $p0 } was a child of a device that was not copied
 notice-page-moved = { $p0 }
+notice-section-made = section { $p0 } { $p1 } (folios { $p2 } to { $p3 }) is made for it
+notice-section-made-untitled = section { $p0 } (folios { $p1 } to { $p2 }) is made for it
 # A change from one value to another, inside a notice: the window draws the two sides apart.
 notice-change = { $p0 } → { $p1 }
 notice-asset-removed = removes the asset file of { $p0 }

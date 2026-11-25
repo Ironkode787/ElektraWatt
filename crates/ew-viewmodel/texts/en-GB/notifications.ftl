@@ -381,6 +381,7 @@ toast-table-imported = { $p0 ->
 # when `nav.follow` has no key (the command by its menu path, as the menu table holds it).
 toast-check-qualified = Check · { $p1 }: { $p0 }.
 toast-section-new = Section { $p0 } { $p1 } made, folios { $p2 } to { $p3 }. A new page with a folio in that range joins it.
+toast-page-new-section = Page { $p0 } is made: { $p1 }.
 history-header = { $p0 ->
         [one] { $p0 } step · cursor at { $p1 }
        *[other] { $p0 } steps · cursor at { $p1 }

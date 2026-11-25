@@ -68,8 +68,9 @@ The exchange of the hardware and the tags with the PLC software is at the end of
    before; closing the tab before Create asks first.
 6. **To do** under the table says what is left, one line for each side of the station that is on no page of its kind
    yet: its boxes on an electrical page, its bus ports on a bus page, a valve terminal's valves on their positions on a
-   fluid page. **Draw each card on a page of its own** makes a new page for each module, after the page the view was
-   opened from, titled from the module (**PLC 8 DI**), the station's head on the first, in one Undo step; **All on one
+   fluid page. **Draw each card on a page of its own** makes a new page for each module in the section of the
+   schematic pages, after the page the view was opened from when that page stands there, titled from the module
+   (**PLC 8 DI**), the station's head on the first, in one Undo step; **All on one
    page…** beside it lists the electrical pages and **New page…**, and the one you pick takes them all. Each other
    button goes to the page the view was opened from when it is of that kind (**Put it on page 101**), to a new page
    when the project has none, else lists the pages of that kind and **New page…**. The station and its modules are

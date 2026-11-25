@@ -41,13 +41,15 @@ fn qet_grid() -> Grid {
 /// range (any number when the page has no section) and no page, divider or report block of that section
 /// uses it; else the sub-page `{after.number, label}` with the printed label `<after's folio>.k` (`101.1`
 /// after `101`, `101.1.1` after `101.1`) for the smallest `k ≥ 1` no page of the section prints. The
-/// section is `after`'s; a different explicit `section` is rejected.
+/// section is `after`'s; a different explicit `section` is rejected. `new_section` makes the explicit folio's section
+/// first, in the same step, as `section.create` makes it (refused as it refuses), and the outcome's notice says so.
 ///
 /// Rejected: neither `number` nor `after`; a printed folio (the label, else the number) another page of the
 /// section already prints; kind `report` (report pages are generated, EW-INV-012). An explicit `number` is also
 /// rejected (FR-PAG-012, FR-REP-041) outside the section's folio range, at the folio of the section's divider
 /// page (the range's first folio) and at a folio a page-oriented report block of the same section generates (its
-/// first folio; with sub-page continuation also `<first>.<k>`). The section and form must exist.
+/// first folio; with sub-page continuation also `<first>.<k>`). The section and form must exist; `new_section`
+/// needs an explicit `number` and no `section`.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CreatePage {
@@ -84,6 +86,10 @@ pub struct CreatePage {
     #[serde(default = "qet_grid")]
     #[schemars(with = "GridS")]
     pub grid: Grid,
+    /// A section made for the page in the same step, as `section.create` makes it, which holds the explicit folio;
+    /// not with `section`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub new_section: Option<super::CreateSection>,
 }
 
 impl CreatePage {
@@ -99,6 +105,7 @@ impl CreatePage {
             structure: StructureAssignment::default(),
             form: None,
             grid: Grid::QET_10PX,
+            new_section: None,
         }
     }
 }
@@ -251,8 +258,21 @@ impl Command for CreatePage {
         if let Some(form) = self.form {
             tx.require::<ew_schema::LibCopy<FormDef>>(form)?;
         }
+        // The section made for the page first, in the same step (doc 06 §2.3, "Where a made page goes").
+        let made = match (&self.new_section, self.number) {
+            (None, _) => None,
+            (Some(_), None) => return tx.reject(text!("refusal-page-create-no-folio")),
+            (Some(_), Some(_)) if self.section.is_some() => {
+                return tx.reject(text!("refusal-page-create-new-section"));
+            }
+            (Some(s), Some(_)) => Some(s.make(tx)?),
+        };
         let (section, number, label) = match (self.number, self.after) {
-            (Some(n), _) => (self.section, n, self.label.clone()),
+            (Some(n), _) => (
+                made.as_ref().map(|(id, _)| *id).or(self.section),
+                n,
+                self.label.clone(),
+            ),
             (None, Some(after)) => {
                 let after = tx.require::<Page>(after)?;
                 if self.section.is_some() && self.section != after.folio.section {
@@ -309,7 +329,9 @@ impl Command for CreatePage {
             source_ref: None,
             extra: Extra::new(),
         })?;
-        Ok(Outcome::primary((ew_schema::Kind::Page, id.cast())))
+        let mut out = Outcome::primary((ew_schema::Kind::Page, id.cast()));
+        out.notices.extend(made.map(|(_, notice)| notice));
+        Ok(out)
     }
 }
 

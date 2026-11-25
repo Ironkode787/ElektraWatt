@@ -259,6 +259,39 @@ fn a_copy_of_three_pages_keeps_its_devices_strips_cables_and_bond_together() {
     assert!(s.page_tables("111").is_none(), "the copies are gone");
 }
 
+/// Copied at an offset onto folios no section holds, the pages get a section made for them over the hundred that holds
+/// their numbers, titled as their section, once for all of them, and the outcome says so (doc 06 §2.3, "Where a made
+/// page goes"); it was refused.
+#[test]
+fn a_copy_at_an_offset_no_section_holds_makes_its_section() {
+    let mut s = sample();
+    let mut far = spec(&s, rename());
+    far.folios = CopyFolios::Offset(200);
+    let plan = s.copy_pages(&far).expect("the copy composes");
+    let preview = s.preview(&plan.command).expect("made, not refused");
+    let made: Vec<&str> = preview
+        .outcome()
+        .notices
+        .iter()
+        .map(|n| n.key())
+        .filter(|k| k.starts_with("notice-section-made"))
+        .collect();
+    assert_eq!(made, ["notice-section-made"], "said once for the three copies");
+    s.commit(preview).expect("the copy commits");
+    let q = s.query();
+    let section_of = |folio: &str| q.pages().get(page(&s, folio)).and_then(|p| p.folio.section);
+    let source = section_of("101")
+        .and_then(|id| q.sections().get(id))
+        .expect("101's section");
+    let copy = section_of("301")
+        .and_then(|id| q.sections().get(id))
+        .expect("a section made");
+    assert_eq!(copy.folio_range, (300, 399));
+    assert_eq!(copy.title, source.title);
+    assert_eq!(section_of("302"), Some(copy.id));
+    assert_eq!(section_of("303"), Some(copy.id));
+}
+
 /// Without the rename, the supply page's sources would join the points they were copied from: refused in words,
 /// naming them; a folio offset onto taken folios is refused in words too.
 #[test]

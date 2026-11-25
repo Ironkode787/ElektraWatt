@@ -1111,11 +1111,12 @@ impl Command for MoveReps {
 }
 
 /// `rep.move_to_new_page`: a new page and the representations moved onto it, in one undo step. The page
-/// comes after the page of the first representation, in its section, its folio `number`, else proposed as `page.create`
-/// proposes one after a page (a folio in use or outside the section is refused as `page.create` refuses it), with that
-/// page's type, frame form, structure and grid, titled `title`; the representations then move
+/// comes after the page of the first representation: its folio `number` in the section whose folio range holds it
+/// (none where no section does), or in the section `new_section` makes in the same step, else proposed as
+/// `page.create` proposes one after a page in that page's section (a folio in use is refused as `page.create` refuses
+/// it), with that page's type, frame form, structure and grid, titled `title`; the representations then move
 /// onto it as `rep.move` with `page`, a zero `delta` and `keep` moves them, refused as that move refuses. Outcome: the
-/// new page, with the move's notices.
+/// new page, with the notice of a section made and the move's notices.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct MoveRepsToNewPage {
@@ -1126,10 +1127,13 @@ pub struct MoveRepsToNewPage {
     #[serde(default, skip_serializing_if = "MlText::is_empty")]
     #[schemars(with = "MlTextS")]
     pub title: MlText,
-    /// The new page's folio number in that section, as the window's New page proposes it; absent: proposed after the
-    /// page as `page.create` proposes one.
+    /// The new page's folio number, as the window's New page proposes it; absent: proposed after the page as
+    /// `page.create` proposes one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub number: Option<u32>,
+    /// A section made for the new page, which holds `number`, as `page.create`'s `new_section`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub new_section: Option<crate::commands::CreateSection>,
     /// The interruption points that keep a wire whose other end stays behind, as `rep.move`'s `keep`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub keep: Option<crate::commands::KeepAsIps>,
@@ -1147,8 +1151,18 @@ impl Command for MoveRepsToNewPage {
             return tx.reject(text!("refusal-rep-move-nothing"));
         };
         let from = tx.require::<Page>(tx.require::<Representation>(*first)?.page)?;
+        // An explicit number stands in the section whose folio range holds it (doc 06 §2.3, "Where a made page
+        // goes"), the page moved from in the front matter or not; none for a number no section holds.
+        let section = match (self.number, &self.new_section) {
+            (Some(n), None) => tx
+                .iter::<ew_schema::Section>()
+                .iter()
+                .find(|s| s.folio_range.0 <= n && n <= s.folio_range.1)
+                .map(|s| s.id),
+            _ => None,
+        };
         let made = crate::commands::page::CreatePage {
-            section: self.number.and(from.folio.section),
+            section,
             number: self.number,
             label: None,
             after: Some(from.id),
@@ -1157,6 +1171,7 @@ impl Command for MoveRepsToNewPage {
             structure: from.structure.clone(),
             form: from.form,
             grid: from.grid,
+            new_section: self.new_section.clone(),
         }
         .run(tx)?;
         let Some((_, page)) = made.primary else {
@@ -1174,10 +1189,9 @@ impl Command for MoveRepsToNewPage {
             keep: self.keep.clone(),
         }
         .run(tx)?;
-        Ok(Outcome {
-            notices: moved.notices,
-            ..made
-        })
+        let mut notices = made.notices.clone();
+        notices.extend(moved.notices);
+        Ok(Outcome { notices, ..made })
     }
 }
 

@@ -61,12 +61,14 @@ Copies the marked pages (else the page shown) for a second, identical installati
 functions, so a coil and its contacts stay together, each strip with its terminals, each cable with its cores. The form
 asks for the new folio numbers (a number added to each, or the page the copies follow), a structure node the copy gets
 of its own, and texts to change in frozen tags and in the names of interruption points (24V into 24V.2). The tags follow
-the new pages. The preview says what the copy leaves on pages that are not copied; Apply makes the copy in one undo
-step.
+the new pages. Copies whose new numbers no section holds get a section of their own over that hundred, titled as
+their pages' section. The preview says what the copy leaves on pages that are not copied and which section it makes;
+Apply makes the copy in one undo step.
 
 ### Move to page…
 
-Moves the selected symbols to another schematic page, or to a new page after this one. It asks for the page; a wire
+Moves the selected symbols to another schematic page, or to a new page in the section of the schematic pages. It asks
+for the page; a wire
 to a symbol that stays behind becomes a pair of interruption points, which a preview lists before anything moves.
 The right-click menu of selected symbols has it too. See [Interruption points](things.md#interruption-points).
 

@@ -286,6 +286,7 @@ fn new_page(tx: &mut TxBuilder<'_>, after: Id<Page>, title: &MlText) -> Result<I
         structure: before.structure.clone(),
         form: before.form,
         grid: before.grid,
+        new_section: None,
     }
     .run(tx)?;
     out.primary

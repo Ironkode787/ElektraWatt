@@ -16,8 +16,26 @@ use crate::tools::{EntityKind, selection_kinds};
 
 /// The key of the notice by which a move names a pair of interruption points it makes.
 const PAIR: &str = "notice-rep-move-keep-pair";
-
 impl ShellModel {
+    /// The folio `rep.move_to_new_page` gives the page it makes after the page `after` (`params`' `number`), where
+    /// a made page of that page's kind goes ([`ShellModel::new_page_proposal`]), with the section it makes for it where
+    /// no section is for the kind (`new_section`).
+    pub(super) fn new_page_folio(&self, after: Uuid, params: &mut Value) {
+        let kind = self
+            .page_rows()
+            .iter()
+            .find(|r| r.id == after)
+            .map(|r| ew_api::output::page_kind_name(&r.kind));
+        let (folio, _) = self.new_page_proposal(Some(&format!("p:{after}")), kind.as_deref());
+        let Ok(number) = folio.parse::<u32>() else {
+            return;
+        };
+        params["number"] = json!(number);
+        if let Some((_, section)) = kind.and_then(|k| self.new_section_for(&k, number)) {
+            params["new_section"] = section;
+        }
+    }
+
     /// A cross-page move (`rep.move` or `rep.move_to_new_page` with `params`) with `keep`, the interruption-point
     /// forms of the page shown: when the move keeps a wire to what stays behind as a pair of interruption points, or
     /// leaves selected texts and boxes on the page (`stays`, the line that says so), the preview card that lists the
@@ -50,13 +68,14 @@ impl ShellModel {
             (false, Some(_)) => key!("reason-move-leaves-items"),
             (false, None) => return None,
         };
+        // The section made for the new page is among the command's notices, which the card shows.
         let rows = stays.into_iter().collect();
         Some(self.preview_host_card_as(name, params.clone(), reason, CardOrigin::Bulk { rows }))
     }
 
     /// `edit.move_to_page {page}` (Page ▸ Move to page…, which asks for the page when it is left out): the selected
-    /// symbols of the page shown onto the schematic page of folio `page` where they stand (`new`: a new page after this one in
-    /// its section, its folio as New page proposes it), one undo step. A wire to what stays behind is kept as a pair of interruption points, which a preview card
+    /// symbols of the page shown onto the schematic page of folio `page` where they stand (`new`: a new page where a made
+    /// page of this one's kind goes, its folio as New page proposes it, [`ShellModel::new_page_folio`]), one undo step. A wire to what stays behind is kept as a pair of interruption points, which a preview card
     /// lists first ([`ShellModel::move_card`]), as it says the selected texts and boxes that stay on the page; a move
     /// without either is made at once and its page shown.
     pub(crate) fn act_move_to_page(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -86,13 +105,7 @@ impl ShellModel {
         let before: Vec<Uuid> = self.page_rows().iter().map(|r| r.id).collect();
         let (name, mut params) = if folio == "new" {
             let mut params = json!({ "reps": reps });
-            if let Ok(number) = self
-                .new_page_proposal(Some(&format!("p:{here}")), Some("multi_line"))
-                .0
-                .parse::<u32>()
-            {
-                params["number"] = json!(number);
-            }
+            self.new_page_folio(here, &mut params);
             ("rep.move_to_new_page", params)
         } else {
             let Some(to) = self
@@ -108,6 +121,7 @@ impl ShellModel {
         if let Some(card) = self.move_card(name, &mut params, stays) {
             return card;
         }
+        let makes = params.get("new_section").is_some();
         let out = self.run_commit(&ew_api::AnyCommand {
             name: name.to_owned(),
             params,
@@ -123,8 +137,15 @@ impl ShellModel {
         } else {
             Some(folio)
         };
+        let notices = self.tools.commit_notices.join("; ");
         if let Some(folio) = shown {
             let _ = self.dispatch("page.goto", &json!({ "folio": folio }));
+            if makes {
+                self.notify(
+                    strings::format(key!("toast-page-new-section"), &[&folio, &notices]),
+                    true,
+                );
+            }
         }
         Outcome::Done
     }

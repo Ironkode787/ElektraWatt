@@ -7,6 +7,7 @@
 //! builds from the page macro's fragment; `edit.paste`'s engine inserts it with the pages' positions kept.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 use ew_ids::{Id, Uuid};
 use ew_mltext::Ident;
@@ -215,8 +216,11 @@ pub fn text_names(q: &ew_derive::Q, fragment: &Fragment, rename: &[Rename]) -> V
 /// with page records, `Session::copy_pages`) in one transaction, one undo step.
 ///
 /// **The rule.** The folios: `offset` adds a whole number to each page's folio number (a label that begins with the
-/// number follows it: 6001.1 becomes 7001.1), in the section whose folio range holds the new number (a page of no
-/// section stays in none); `after` proposes them after that page, as a page macro's (doc 06 §5.6). `structure` names
+/// number follows it: 6001.1 becomes 7001.1), in the section whose folio range holds the new number, else in a section
+/// made for it over the hundred that holds the number, up to its neighbours' ranges, numbered after the highest and
+/// titled as the page's section, without a divider page, which the outcome's notice names (doc 06 §2.3, "Where a made
+/// page goes"); a page of no section stays in none. `after` proposes them after that page, as a page macro's
+/// (doc 06 §5.6). `structure` names
 /// for a node of the copied records the code of the copy's node: the node of that code with the same aspect and parent,
 /// created here when there is none; every structure slot of a copied page, device or box that names the node names
 /// the copy's. `rename` replaces texts in the pages' titles and descriptions, every frozen tag and every
@@ -236,7 +240,7 @@ pub fn text_names(q: &ew_derive::Q, fragment: &Fragment, rename: &[Rename]) -> V
 /// **Rejected**, at the JSON Pointer named: `/fragment/project` a fragment of another project; `/fragment/pages` none;
 /// `/fragment/pages/<i>` a page that takes no symbols, a generated page, or one of another grid; `/offset` both an
 /// offset and `after`, or neither; `/after` a page that does not exist; `/offset` a new folio beyond the folio numbers,
-/// outside every section's range where its page had a section, or one a page, a divider or a report block holds;
+/// one for which no section number is left to make its section, or one a page, a divider or a report block holds;
 /// `/structure/<i>` a node the copied records do not name, one named twice, a node of an aspect this version does not
 /// know, or a code that is the node's own; `/rename/<i>` an empty or repeated old text, or a frozen tag or name that
 /// the rule leaves empty or malformed; and every refusal of `edit.paste` (`/fragment/…`). Cost: Bulk. Outcome: the first
@@ -293,13 +297,67 @@ impl CopyPages {
         Ok(out)
     }
 
-    /// The new folio of every page by its source ID (`offset`).
+    /// The section a copy of a page of section `from` takes at folio number `number`: the section whose folio range
+    /// holds it, else one made over the hundred that holds it, up to its neighbours' ranges, numbered after the highest
+    /// and titled as `from` (doc 06 §2.3, "Where a made page goes"), with the notice that says so.
+    fn section_at(
+        tx: &mut TxBuilder<'_>,
+        from: Id<Section>,
+        number: u32,
+        printed: &str,
+    ) -> Result<(Arc<Section>, Option<Text>), CmdError> {
+        let sections = tx.iter::<Section>();
+        if let Some(s) = sections
+            .iter()
+            .find(|s| s.folio_range.0 <= number && number <= s.folio_range.1)
+        {
+            return Ok((s.clone(), None));
+        }
+        let hundred = number - number % 100;
+        let first = sections
+            .iter()
+            .map(|s| s.folio_range.1)
+            .filter(|end| *end < number)
+            .max()
+            .map_or(hundred, |end| hundred.max(end + 1));
+        let last = sections
+            .iter()
+            .map(|s| s.folio_range.0)
+            .filter(|start| *start > number)
+            .min()
+            .map_or(hundred.saturating_add(99), |start| {
+                hundred.saturating_add(99).min(start - 1)
+            });
+        let next = sections
+            .iter()
+            .map(|s| s.number)
+            .max()
+            .unwrap_or(0)
+            .checked_add(1);
+        let Some(next) = next else {
+            return Err(Self::invalid(
+                "/offset",
+                text!("refusal-page-copy-no-section", printed),
+            ));
+        };
+        let title = tx.require::<Section>(from)?.title.clone();
+        let (id, notice) = super::CreateSection {
+            number: next,
+            folio_range: (first, last),
+            title,
+            divider: false,
+        }
+        .make(tx)?;
+        Ok((tx.require::<Section>(id)?, Some(notice)))
+    }
+
+    /// The new folio of every page by its source ID (`offset`), with the notices of the sections made for them.
     fn offset_folios(
-        tx: &TxBuilder<'_>,
+        tx: &mut TxBuilder<'_>,
         pages: &[Page],
         offset: u32,
-    ) -> Result<BTreeMap<Uuid, Folio>, CmdError> {
-        let sections = tx.iter::<Section>();
+    ) -> Result<(BTreeMap<Uuid, Folio>, Vec<Text>), CmdError> {
+        let mut notices = Vec::new();
         let mut out = BTreeMap::new();
         let mut printed_new: BTreeSet<(Option<Id<Section>>, String)> = BTreeSet::new();
         for p in pages {
@@ -327,16 +385,13 @@ impl CopyPages {
             let printed = printed_folio(number, label.as_ref());
             let section = match p.folio.section {
                 None => None,
-                Some(_) => Some(
-                    sections
-                        .iter()
-                        .find(|s| s.folio_range.0 <= number && number <= s.folio_range.1)
-                        .ok_or_else(|| {
-                            Self::invalid("/offset", text!("refusal-page-copy-no-section", printed.clone()))
-                        })?,
-                ),
+                Some(from) => {
+                    let (section, made) = Self::section_at(tx, from, number, &printed)?;
+                    notices.extend(made);
+                    Some(section)
+                }
             };
-            let section_id = section.map(|s| s.id);
+            let section_id = section.as_ref().map(|s| s.id);
             let held = section_pages(tx, section_id)
                 .into_iter()
                 .any(|(_, f)| printed_folio(f.number, f.label.as_ref()) == printed);
@@ -346,7 +401,7 @@ impl CopyPages {
                     text!("refusal-page-copy-folio-held", printed),
                 ));
             }
-            if let Some(reason) = held_folio_problem(tx, section.map(|s| &**s), section_id, &printed) {
+            if let Some(reason) = held_folio_problem(tx, section.as_deref(), section_id, &printed) {
                 return Err(Self::invalid("/offset", reason));
             }
             out.insert(
@@ -359,7 +414,7 @@ impl CopyPages {
                 },
             );
         }
-        Ok(out)
+        Ok((out, notices))
     }
 
     /// The copy's structure nodes: each swap's node found or created; every slot of the fragment's records and pages
@@ -583,6 +638,7 @@ impl Command for CopyPages {
             ));
         }
         let pages = self.pages()?;
+        let mut made = Vec::new();
         let (target, folios) = match (self.offset, self.after) {
             (Some(_), Some(_)) => {
                 return Err(Self::invalid(
@@ -597,7 +653,11 @@ impl Command for CopyPages {
                 }
                 (after, None)
             }
-            (Some(offset), None) => (pages[0].id, Some(Self::offset_folios(tx, &pages, offset)?)),
+            (Some(offset), None) => {
+                let (folios, notices) = Self::offset_folios(tx, &pages, offset)?;
+                made = notices;
+                (pages[0].id, Some(folios))
+            }
         };
         let mut fragment = self.fragment.clone();
         self.swap_nodes(tx, &mut fragment)?;
@@ -629,10 +689,11 @@ impl Command for CopyPages {
         };
         let out = insertion.run(tx)?;
         self.retext(tx, &out.members)?;
+        made.extend(out.notices);
         Ok(Outcome {
             primary: out.pages.first().map(|p| (Kind::Page, p.cast())),
             counts: None,
-            notices: out.notices,
+            notices: made,
         })
     }
 }

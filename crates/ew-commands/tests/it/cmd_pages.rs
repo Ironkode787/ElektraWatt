@@ -113,6 +113,35 @@ fn create_page_rejections() {
     assert!(reason(e.execute(&CreatePage::at(Some(SEC1), 101))).contains("has folio 101 already"));
 }
 
+/// The section made for a page that a command makes where no section is for its kind (doc 06 §2.3, "Where a made
+/// page goes"): made in the same step, the page in it, the notice naming it; one Undo takes both. Beside a `section` it
+/// is refused.
+#[test]
+fn create_page_makes_its_section_in_the_same_step() {
+    let mut e = engine(mini_model());
+    let made = CreateSection {
+        number: 7,
+        folio_range: (700, 799),
+        title: ew_mltext::MlText::neutral("Graphic"),
+        divider: false,
+    };
+    let mut cmd = CreatePage::at(None, 700);
+    cmd.new_section = Some(made.clone());
+    let r = e.execute(&cmd).unwrap();
+    let id: Id<Page> = typed(r.outcome.primary.unwrap());
+    let section = folio_of(&e, id).0.expect("the page stands in a section");
+    let s = e.model().table::<Section>().get(&section).unwrap().clone();
+    assert_eq!((s.number, s.folio_range), (7, (700, 799)));
+    let keys: Vec<&str> = r.outcome.notices.iter().map(|n| n.key()).collect();
+    assert_eq!(keys, ["notice-section-made"]);
+    e.undo(&ew_commands::Origin::Gui).unwrap();
+    assert!(!has(&e, section), "one undo step");
+    assert!(!has(&e, id));
+    let mut both = CreatePage::at(Some(SEC1), 150);
+    both.new_section = Some(made);
+    assert!(reason(e.execute(&both)).contains("new_section"));
+}
+
 fn labelled(section: Option<Id<Section>>, number: u32, label: &str) -> CreatePage {
     let mut c = CreatePage::at(section, number);
     c.label = Some(ident(label));

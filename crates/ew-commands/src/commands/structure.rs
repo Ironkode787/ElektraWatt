@@ -156,6 +156,27 @@ impl Command for CreateSection {
     }
 }
 
+impl CreateSection {
+    /// The section made for a page that a command makes where no section is for it (doc 06 §2.3, "Where a made page
+    /// goes"), refused as `section.create` refuses it: its ID and the notice that says so.
+    pub(crate) fn make(&self, tx: &mut TxBuilder<'_>) -> Result<(Id<Section>, ew_l10n::Text), CmdError> {
+        let made = self.run(tx)?;
+        let Some((_, id)) = made.primary else {
+            return Err(CmdError::internal("section.create made no section"));
+        };
+        let (number, first, last) = (
+            self.number.to_string(),
+            self.folio_range.0.to_string(),
+            self.folio_range.1.to_string(),
+        );
+        let notice = match self.title.neutral_or_first().filter(|t| !t.trim().is_empty()) {
+            Some(title) => text!("notice-section-made", number, title, first, last),
+            None => text!("notice-section-made-untitled", number, first, last),
+        };
+        Ok((id.cast(), notice))
+    }
+}
+
 /// `report_block.create`: a report block (doc 03 §6, doc 09 §2.2).
 ///
 /// Creates a `ReportBlock` with the given members (`manual`, `sort`, `group`, `continuation`, `empty`

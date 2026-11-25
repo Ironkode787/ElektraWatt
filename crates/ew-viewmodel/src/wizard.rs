@@ -213,7 +213,7 @@ macro_rules! program_sections {
 program_sections! {
     "1 100-199 Wiring Definition" => ["multi_line", "single_line", "bus_topology", "overview"];
     "2 200-299 Pneumatics" => ["fluid"];
-    "9 900-999 Nomenclature" => [];
+    "9 900-999 Nomenclature" => ["panel_layout"];
 }
 
 /// The page kinds a section titled `title` is made for, where the title is one the wizard gives (compared without

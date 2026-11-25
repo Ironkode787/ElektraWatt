@@ -337,6 +337,7 @@ toast-table-imported = { $p0 ->
     }.
 toast-check-qualified = Controle · { $p1 }: { $p0 }.
 toast-section-new = Sectie { $p0 } { $p1 } gemaakt, folio's { $p2 } tot en met { $p3 }. Een nieuwe pagina met een folio in dat bereik komt erin.
+toast-page-new-section = Pagina { $p0 } is gemaakt: { $p1 }.
 history-header = { $p0 ->
         [one] { $p0 } stap · cursor op { $p1 }
        *[other] { $p0 } stappen · cursor op { $p1 }

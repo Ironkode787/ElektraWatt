@@ -148,29 +148,26 @@ impl ShellModel {
             .project_session()
             .map(|s| s.electrical_drawings(device))
             .unwrap_or_default();
-        // To a new page: the page after the module's own in its section, as New page proposes it, made and taken in one
-        // step (`rep.move_to_new_page`); the toast names it.
+        // To a new page: after the module's own page where a made page of its kind goes, as New page proposes it, made
+        // and taken in one step (`rep.move_to_new_page`); the toast names it.
         if folio == "new" {
             let before: Vec<Uuid> = self.page_rows().iter().map(|r| r.id).collect();
             let reps: Vec<String> = drawings.iter().map(|(rep, _)| rep.to_string()).collect();
             let title = strings::text(key!("rack-draw-page-title"));
             let mut params = json!({"reps": reps, "title": title});
-            // The folio New page proposes after the module's page.
-            if let Some((_, on)) = drawings.first()
-                && let Ok(number) = self
-                    .new_page_proposal(Some(&format!("p:{on}")), Some("multi_line"))
-                    .0
-                    .parse::<u32>()
-            {
-                params["number"] = json!(number);
+            if let Some((_, on)) = drawings.first() {
+                self.new_page_folio(*on, &mut params);
             }
             if let Some(card) = self.move_card("rep.move_to_new_page", &mut params, None) {
                 return card;
             }
+            let makes = params.get("new_section").is_some();
             let out = self.rack_commit(cursor, "rep.move_to_new_page", params);
             if out != Outcome::Done {
                 return out;
             }
+            // The section made for the new page, said after the move (doc 06 §2.3, "Where a made page goes").
+            let section = makes.then(|| self.tools.commit_notices.join("; "));
             let made = self
                 .page_rows()
                 .iter()
@@ -182,10 +179,14 @@ impl ShellModel {
                     .and_then(|s| s.device_tag(device))
                     .unwrap_or_default();
                 let _ = self.dispatch("page.goto", &json!({ "folio": made }));
-                self.notify(
-                    strings::format(key!("toast-module-moved-new-page"), &[&tag, &made]),
-                    true,
-                );
+                let mut text = strings::format(key!("toast-module-moved-new-page"), &[&tag, &made]);
+                if let Some(section) = section {
+                    text = format!(
+                        "{text} {}",
+                        strings::format(key!("toast-page-new-section"), &[&made, &section])
+                    );
+                }
+                self.notify(text, true);
             }
             return out;
         }

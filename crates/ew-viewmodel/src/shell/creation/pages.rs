@@ -98,8 +98,9 @@ impl ShellModel {
                     strings::format(key!("error-page-type"), &[&ty, &PAGE_TYPES.join(", ")]),
                 );
             }
-            params["kind"] = Value::String(ty);
+            params["kind"] = Value::String(ty.clone());
         }
+        let kind = if ty.is_empty() { "multi_line" } else { ty.as_str() };
         if !title.is_empty() {
             params["title"] = Value::String(title);
         }
@@ -121,23 +122,31 @@ impl ShellModel {
             // dialog's field is then empty.
             params["grid"] = json!({"num": num, "den": den});
         }
+        // The section to make for a page of this kind where no section is for it (doc 06 §2.3, "Where a made page
+        // goes"), when it holds the folio: the proposal names it by the number it will have.
+        let to_make = self.new_section_for(kind, number);
         if !section.is_empty() {
             let project = or_return!(crate::shell::gated(&self.project));
             match project.session.resolve_reference(&format!("section:{section}")) {
                 Ok(id) => params["section"] = Value::String(id.to_string()),
-                Err(why) => {
-                    return self.form_failed(
-                        PAGE_NEW.action,
-                        crate::shell::tools::rejected_words("", Some(&why)),
-                    );
-                }
+                Err(why) => match to_make {
+                    Some((n, made)) if n.to_string() == section.trim() => params["new_section"] = made,
+                    _ => {
+                        return self.form_failed(
+                            PAGE_NEW.action,
+                            crate::shell::tools::rejected_words("", Some(&why)),
+                        );
+                    }
+                },
             }
         } else if let Some(id) = section_of(self, number) {
             // A new page belongs to the section whose folio range holds its number (window check, item 7): a sub-page
             // of 102 in the range 100–199 sits beside 102 in the navigator, not in the section-less group.
             params["section"] = Value::String(id);
+        } else if let Some((_, made)) = to_make {
+            params["new_section"] = made;
         }
-        let out = self.host_create("page.create", params);
+        let (out, notices) = self.host_create_noticed("page.create", params);
         let out = self.form_done(PAGE_NEW.action, out);
         if out == Outcome::Done
             && let Some(id) = self.tools.last_primary.clone()
@@ -145,13 +154,23 @@ impl ShellModel {
             // The new page holds none of the old page's selection (item 4: here, not in `show`).
             self.tools.selection.clear();
             self.show_page_by_id(&id);
+            // A section made for the page is said, in a toast of its own that the toast of a command making the page
+            // (a station's pages, a layout page) leaves up.
+            if !notices.is_empty() {
+                let folio = self.current_folio().unwrap_or_default().to_owned();
+                self.notify_with(
+                    strings::format(key!("toast-page-new-section"), &[&folio, &notices.join("; ")]),
+                    "section",
+                    true,
+                );
+            }
         }
         out
     }
 
     /// What New section proposes: the number after the highest section's, and the hundred of folios after the last
     /// folio any section holds (the sections of a drawing set are hundreds by convention: 100 to 199, 200 to 299).
-    pub(super) fn new_section_proposal(&self) -> (u32, u32, u32) {
+    pub(crate) fn new_section_proposal(&self) -> (u32, u32, u32) {
         let (mut number, mut end) = (0u32, 0u32);
         if let Some(project) = &self.project {
             for (_, s) in project.session.query().sections().iter() {

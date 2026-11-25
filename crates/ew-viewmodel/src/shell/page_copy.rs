@@ -283,6 +283,7 @@ impl ShellModel {
             folios.len(),
             &[&folios.join(", ")],
         );
+        // The sections the copy makes for its folios are among the command's notices, which the card shows.
         copy_refused(self.preview_host_card_as(
             &plan.command.name,
             plan.command.params,

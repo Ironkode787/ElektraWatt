@@ -88,8 +88,8 @@ slot stay, and a wire between its pins and something that stays behind is kept a
 which a preview lists before anything moves (doc 06 §3.4's cross-page move); a cut and its
 paste bring a module with a set slot, start, part use or integrated I/O back as itself, while a card without settings
 goes with its cut and its paste makes a new one (doc 06 §3.4, §3.6). Its entries read as moves ("To page 101 …", "To a new page") and
-leave out the page the module is drawn on; To a new page makes the page after the module's own in its section, its
-folio the one New page proposes after it, with that page's type, frame, structure and grid, and moves
+leave out the page the module is drawn on; To a new page makes the page where a made page of its kind goes (doc 06
+§2.3), its folio the one New page proposes after the module's own, with that page's type, frame, structure and grid, and moves
 the boxes there in the same undo step (`rep.move_to_new_page`), the toast naming the page. On a valve
 position they speak of the valve (Replace valve, Empty the position), and a move or a drawing of its own, which a
 position does not take, is greyed with the reason; on a free place each says to take a part from the catalogue. They

@@ -45,6 +45,20 @@ pub const MAX_CHIPS: usize = 12;
 /// The command `pages.reorder` builds.
 const REORDER: &str = "page.reorder";
 
+/// The page kinds whose place is the front matter (doc 06 §2.3, "Where a made page goes").
+const FRONT_KINDS: [&str; 2] = ["title_page", "table_of_contents"];
+
+/// Where a page that a command makes goes ([`ShellModel::page_place`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub(super) enum PagePlace {
+    /// The section of this number.
+    Section(String),
+    /// The front matter: the pages of no section.
+    Front,
+    /// A section to make: its number, first and last folio.
+    Make(u32, u32, u32),
+}
+
 /// A chip of the line "Not on this page": a drawable of the marked rows on another page.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Chip {
@@ -629,15 +643,16 @@ impl ShellModel {
         }
     }
 
-    /// The New page pre-fill: the folio proposal and the section number text. `at` is the Pages row the
-    /// menu was opened on (its key): on a page, the next free number after that page inside its section; on a section,
-    /// the next free number after the section's last page ([`Self::section_free_folio`]). Without one, a section
-    /// node marked in the Pages navigator (or under its cursor) that the open page is not in (a section just made,
-    /// still empty) takes the section's; else the section for pages of `kind` (on a front-matter page, for a kind the
-    /// front matter does not hold, the wiring pages' section when none is for the kind); else the next free number after
-    /// the open page inside its section. A page's
-    /// number is its folio's leading number (a divider's and a generated page's too); the free numbers are those no
-    /// page label holds. Empty where there is none.
+    /// The folio and section number text of a page of `kind` that a command makes (New page's pre-fill, and the
+    /// pages the program makes), by doc 06 §2.3 "Where a made page goes". `at` is the Pages row the menu was opened
+    /// on (its key): on a section, the next free number after the section's last page ([`Self::section_free_folio`]).
+    /// Without a section row, a section node marked in the Pages navigator (or under its cursor) that the open page is
+    /// not in (a section just made, still empty) takes the section's; else the page it is made from (the page row
+    /// `at`, else the open page) when its section takes `kind` ([`Self::section_takes`]): the next free number after
+    /// it inside its section; else the place for `kind` ([`Self::page_place`]). Without a kind it follows the page it
+    /// is made from. A page's number is its folio's leading number (a divider's and a generated page's too); the free
+    /// numbers are those no page label holds. Empty where there is none. For a section to make, the section text is
+    /// the number it will have.
     pub fn new_page_proposal(&self, at: Option<&str>, kind: Option<&str>) -> (String, String) {
         let rows = self.page_rows();
         let last = |key: &str| key.rsplit('/').next().map(str::to_owned);
@@ -669,13 +684,8 @@ impl ShellModel {
                 .map_or_else(String::new, |n| n.to_string());
             (folio, number)
         };
-        if let Some(key) = at {
-            if let Some(r) = page_of(key) {
-                return after_page(r);
-            }
-            if let Some(number) = section_key(key) {
-                return chosen(number);
-            }
+        if let Some(number) = at.and_then(section_key) {
+            return chosen(number);
         }
         let current = self
             .current_page()
@@ -687,23 +697,83 @@ impl ShellModel {
             .find_map(|k| section_key(k))
             .or_else(|| self.navigator_row_key().and_then(|k| section_key(&k)));
         let own = current.and_then(|r| r.section.as_ref().map(|(n, _)| n.to_string()));
-        // The kind chosen (a first wiring page was proposed into the front matter, a fluid page into the wiring
-        // section): the section for pages of that kind takes the page unless the open page stands in it.
-        // A page of a kind the front matter does not hold, asked for on a front-matter page while no section is for its
-        // kind, goes where a wiring page goes.
-        let front_kind = kind.is_none_or(|k| matches!(k, "title_page" | "table_of_contents"));
-        let for_kind = kind.and_then(|k| self.section_for_kind(k)).or_else(|| {
-            current
-                .is_some_and(|r| r.section.is_none() && !front_kind)
-                .then(|| self.section_for_kind("multi_line"))
-                .flatten()
-        });
-        match (from_nav, current, for_kind) {
-            (Some(number), _, _) if own.as_ref() != Some(&number) => chosen(number),
-            (_, _, Some(number)) if own.as_ref() != Some(&number) => chosen(number),
-            (_, Some(r), _) => after_page(r),
-            (from_nav, None, _) => (String::new(), from_nav.unwrap_or_default()),
+        let from = match at.and_then(page_of) {
+            Some(r) => Some(r),
+            None => match &from_nav {
+                Some(number) if own.as_ref() != Some(number) => return chosen(number.clone()),
+                _ => current,
+            },
+        };
+        let kind = kind.filter(|k| !k.is_empty());
+        let section_of_row = |r: &PageRow| r.section.as_ref().map(|(n, _)| n.to_string());
+        match (from, kind) {
+            (Some(r), None) => after_page(r),
+            (Some(r), Some(k)) if self.section_takes(section_of_row(r).as_deref(), k) => after_page(r),
+            (_, Some(k)) => match self.page_place(k) {
+                PagePlace::Section(number) => chosen(number),
+                PagePlace::Front => (self.front_free_folio(), String::new()),
+                PagePlace::Make(number, first, _) => (first.to_string(), number.to_string()),
+            },
+            (None, None) => (String::new(), from_nav.unwrap_or_default()),
         }
+    }
+
+    /// Where a page of `kind` that a command makes goes (doc 06 §2.3, "Where a made page goes"): the section for the
+    /// kind ([`Self::section_for_kind`]); else the front matter for a title page and a table of contents, and for
+    /// every page of a project without sections; else a section to make, as New section proposes it.
+    pub(super) fn page_place(&self, kind: &str) -> PagePlace {
+        if let Some(number) = self.section_for_kind(kind) {
+            return PagePlace::Section(number);
+        }
+        let sectioned = self
+            .project
+            .as_ref()
+            .is_some_and(|p| p.session.query().sections().iter().next().is_some());
+        if !sectioned || FRONT_KINDS.contains(&kind) {
+            return PagePlace::Front;
+        }
+        let (number, first, last) = self.new_section_proposal();
+        PagePlace::Make(number, first, last)
+    }
+
+    /// The section a page of `kind` at folio number `number` makes (`page.create`'s and `rep.move_to_new_page`'s
+    /// `new_section`), titled with the kind's name: its number and the parameter, where the kind's place is a section to
+    /// make that holds the number.
+    pub(super) fn new_section_for(&self, kind: &str, number: u32) -> Option<(u32, Value)> {
+        match self.page_place(kind) {
+            PagePlace::Make(n, first, last) if (first..=last).contains(&number) => Some((
+                n,
+                json!({ "number": n, "folio_range": [first, last], "title": strings::choice_text(kind) }),
+            )),
+            _ => None,
+        }
+    }
+
+    /// Whether a page of `kind` may follow a page of the section numbered `section` there (`None`: the front matter):
+    /// a section that holds a drawn page of the kind or that the wizard made for it; the front matter where the kind's
+    /// place is the front matter.
+    fn section_takes(&self, section: Option<&str>, kind: &str) -> bool {
+        match section {
+            Some(number) => self.section_is_for(number, kind),
+            None => self.page_place(kind) == PagePlace::Front,
+        }
+    }
+
+    /// The first free number after the front matter's last page (its highest page number), else 1.
+    fn front_free_folio(&self) -> String {
+        let labels = self.page_labels();
+        let free = |n: &u32| !labels.iter().any(|l| *l == n.to_string());
+        let highest = self
+            .page_rows()
+            .iter()
+            .filter(|r| r.section.is_none())
+            .filter_map(|r| r.folio.split('.').next()?.parse::<u32>().ok())
+            .max()
+            .unwrap_or(0);
+        highest
+            .checked_add(1)
+            .and_then(|h| (h..=u32::MAX).find(free))
+            .map_or_else(String::new, |n| n.to_string())
     }
 
     /// The section a new page of kind `kind` belongs in: the first section (by number) that holds a page of
@@ -711,8 +781,36 @@ impl ShellModel {
     /// ([`crate::wizard::section_title_kinds`]: Pneumatics for a fluid page, Wiring Definition for a wiring page); a
     /// section with a title of the person's own is left alone. `None` where none does.
     pub(super) fn section_for_kind(&self, kind: &str) -> Option<String> {
-        let query = self.project.as_ref()?.session.query();
-        let mut sections: Vec<(u16, String)> = query
+        let sections = self.section_titles();
+        if let Some((n, _)) = sections.iter().find(|(n, _)| self.section_holds(*n, kind)) {
+            return Some(n.to_string());
+        }
+        // Else a section the wizard made for the kind, by its title; a title of the person's own is left alone.
+        sections
+            .iter()
+            .find(|(_, t)| crate::wizard::section_title_kinds(t).contains(&kind))
+            .map(|(n, _)| n.to_string())
+    }
+
+    /// Whether the section numbered `number` holds a drawn page of `kind` or the wizard made it for that kind by its
+    /// title.
+    fn section_is_for(&self, number: &str, kind: &str) -> bool {
+        self.section_titles()
+            .iter()
+            .find(|(n, _)| n.to_string() == number.trim())
+            .is_some_and(|(n, t)| {
+                self.section_holds(*n, kind) || crate::wizard::section_title_kinds(t).contains(&kind)
+            })
+    }
+
+    /// The project's sections by number, each with its title in lower case.
+    fn section_titles(&self) -> Vec<(u16, String)> {
+        let Some(project) = self.project.as_ref() else {
+            return Vec::new();
+        };
+        let mut sections: Vec<(u16, String)> = project
+            .session
+            .query()
             .sections()
             .iter()
             .map(|(_, s)| {
@@ -721,21 +819,16 @@ impl ShellModel {
             })
             .collect();
         sections.sort();
-        let holds = |n: u16| {
-            self.page_rows().iter().any(|r| {
-                ew_api::output::page_kind_name(&r.kind) == kind
-                    && !r.generated
-                    && r.section.as_ref().is_some_and(|(m, _)| *m == u32::from(n))
-            })
-        };
-        if let Some((n, _)) = sections.iter().find(|(n, _)| holds(*n)) {
-            return Some(n.to_string());
-        }
-        // Else a section the wizard made for the kind, by its title; a title of the person's own is left alone.
         sections
-            .iter()
-            .find(|(_, t)| crate::wizard::section_title_kinds(t).contains(&kind))
-            .map(|(n, _)| n.to_string())
+    }
+
+    /// Whether the section numbered `n` holds a drawn page of `kind`.
+    fn section_holds(&self, n: u16, kind: &str) -> bool {
+        self.page_rows().iter().any(|r| {
+            ew_api::output::page_kind_name(&r.kind) == kind
+                && !r.generated
+                && r.section.as_ref().is_some_and(|(m, _)| *m == u32::from(n))
+        })
     }
 
     /// The first number after `k` that no page holds, inside the folio range of the section numbered `section` (empty:

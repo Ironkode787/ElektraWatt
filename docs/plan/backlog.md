@@ -33,7 +33,6 @@ what the owner's test of 0.3.5 finds is added here.
 
 #### A command's words
 
-- FT-2203 `ew-commands, ew-viewmodel`: Where a made page goes. The pages of a station's cards, a layout page offered as 101 and the new page of Move to page all landed in "Front matter", the section of the page on show; Copy pages at an offset refuses where no section holds the folio and cannot make one. One rule for the section of a page that a command makes, and a section made where one is needed.
 - FT-2205 `ew-viewmodel`: A command under two names, or in one place only. The Check project button's command is "Run checks" in the command search, where "check project" finds nothing; Paste in place is in the command search only; the wire-number command's label reads as its effect. The interruption tool's hint for Source ("where the potential comes from") can be read as either end, and one of its toasts is cut with an ellipsis at 1920 × 1080.
 - FT-2138 `ew-scene, ew-library`: A strip segment draws a terminal's side 1 at the top, a terminal drawn alone has side 1 at the bottom. Left in the backlog round (2026-11-25): turning either side moves side 1 under the wires already drawn to it, the strip segment's on every project's strip pages, the starter symbols' (`ew.iec.terminal`, `ew.iec.terminal-pe`, a new version) on the sample's 18 terminals of pages 101 to 103, whose supply wires would then enter on the far side; it needs a decision on redrawing those.
 

@@ -310,9 +310,8 @@ proposal is 101.1.1), and no other folio changes (FR-PAG-005). The user may type
 that another page of the section prints, one outside the section range, the section's divider folio, or one that a report block of the
 section generates (FR-PAG-012); collisions in imported data are reported (FR-CHK-038, FR-REP-041).
 
-New page…'s proposal follows the Type chosen in the form; a type the front matter
-does not hold (a panel layout, chosen on the title page) keeps the section the form proposed and never moves into the
-front matter.
+New page…'s proposal follows the Type chosen in the form, by the rule of §2.3 "Where a made page goes"
+([concepts](06-concepts.md#23-folios-sections-and-page-names)).
 
 ### 5.7 Hit-testing and snapping
 

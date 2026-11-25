@@ -1412,10 +1412,10 @@ impl ShellModel {
             .is_some_and(|r| r.kind == ew_api::PageType::PanelLayout)
     }
 
-    /// A panel layout page after the page shown (New page…'s proposed folio, else the first free number), titled
-    /// after the location `code` and shown: one undo step.
+    /// A panel layout page where a made page of its kind goes (New page…'s proposed folio, else the first free number),
+    /// titled after the location `code` and shown: one undo step.
     fn new_layout_page(&mut self, code: &str) -> Outcome {
-        let (proposal, _) = self.new_page_proposal(None, None);
+        let (proposal, _) = self.new_page_proposal(None, Some("panel_layout"));
         let folio = if proposal.is_empty() {
             let labels = self.page_labels();
             (1u64..)

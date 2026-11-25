@@ -111,6 +111,21 @@ The Wire tool draws the column "Wire tool creates": a `Wire` on MultiLine pages,
   range is a generated divider page whose description is derived: "=P01+J-E-2416 - Section 1 - Page 100 - 199 -
   Wiring Definition" (FR-PAG-009). Folios 100, 200 and 900 of the reference project are generated this way and
   cannot be edited; the page navigator shows them with a lock badge and opens the section properties on edit.
+- **Where a made page goes.** A page that a command makes (New page, a station's "a page per card", the layout page
+  of Create enclosure, Move to page's "To a new page") goes to the section for its kind; the page it is made from
+  (right-clicked, moved from or on show) takes it into its own section only when that section is for the kind too.
+  The front matter is the pages of no section; a section has no kind of its own, so the section for a kind is the
+  first by number that holds a drawn page of the kind, else the first the wizard made for it by its title (Wiring
+  Definition: multi-line, single-line, overview and bus-topology pages; Pneumatics: fluid pages; Nomenclature:
+  panel layout pages, as 902 of the reference project). A title page and a table of contents go to the front
+  matter, and so does every page of a project without sections. Where no section is for the kind, the command makes
+  one as New section proposes it (the number after the highest, the hundred of folios after the last one a section
+  holds), titled with the kind's name, and says so in its toast. In its section the page follows the page it is
+  made from when that page stands there, else the section's last page. A section chosen in the Pages list or typed
+  into New page's form is taken as chosen. Copy pages at an offset puts each copy in the section whose range holds
+  its new folio number; where none does and the copied page stands in a section, it makes a section over the
+  hundred that holds the number (up to its neighbours' ranges), numbered after the highest and titled as the copied
+  page's section, and its preview says so. A copy of a front-matter page stays in the front matter.
 - **Full page name** `=P01+J-E-2416/101` is derived from the page structure and folio. Duplicates are a prevent rule
   (FR-PAG-012).
 - **Page order** is `page_order()`, which merges drawn pages, dividers and report pages. Prev/Next, TOC, outline and
