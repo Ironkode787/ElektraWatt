@@ -293,7 +293,7 @@ fn connection_text(q: &Q, subject: Id<Connection>) -> Named {
     };
     let end = |e: &ew_schema::Endpoint| match EndpointKey::of(e) {
         Some(EndpointKey::Cp(f, i)) => TextArg::from(cp_label(q, CpRef::new(f, i))),
-        _ => text!("word-junction").into(),
+        _ => ew_derive::text::record_name(ew_schema::Kind::Junction).into(),
     };
     wire_ends(end(&c.a), end(&c.b)).into()
 }

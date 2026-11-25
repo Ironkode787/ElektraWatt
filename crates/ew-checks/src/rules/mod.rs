@@ -106,7 +106,7 @@ impl From<&Named> for TextArg {
 pub(crate) fn device_tag(q: &ew_derive::Q, d: ew_ids::Id<ew_schema::Device>) -> Named {
     let t = ew_derive::short_tag(q, d);
     if t.is_empty() {
-        text!("word-device").into()
+        ew_derive::text::record_name(ew_schema::Kind::Device).into()
     } else {
         t.into()
     }

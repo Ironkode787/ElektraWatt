@@ -379,7 +379,7 @@ impl Rule for LetterAgainstFunction {
         else {
             return Vec::new();
         };
-        let tag = full_tag(q, device, text!("word-device"));
+        let tag = full_tag(q, device, ew_derive::text::record_name(ew_schema::Kind::Device));
         let severity = if d.tag.frozen.is_some() {
             FROZEN_SEVERITY
         } else {
@@ -461,7 +461,7 @@ impl Rule for ReservedLetters {
         if reasons.is_empty() {
             return Vec::new();
         }
-        let tag = full_tag(q, device, text!("word-device"));
+        let tag = full_tag(q, device, ew_derive::text::record_name(ew_schema::Kind::Device));
         let io_count = io.len();
         vec![
             Finding::new(
@@ -555,7 +555,7 @@ fn confusable_findings(q: &Q, device: Id<Device>, d: &Device) -> Vec<Finding> {
             continue;
         };
         let tag = tag
-            .get_or_insert_with(|| full_tag(q, device, text!("word-device")))
+            .get_or_insert_with(|| full_tag(q, device, ew_derive::text::record_name(ew_schema::Kind::Device)))
             .clone();
         // Each as its code point and the Latin letter it looks like, which each language words.
         let chars: Vec<ew_l10n::TextArg> = chars

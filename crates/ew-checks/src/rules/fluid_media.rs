@@ -416,7 +416,7 @@ impl Rule for ExhaustOpen {
                         &EXHAUST_OPEN,
                         targets,
                         format!("gallery {g}"),
-                        full_tag(q, *vt, text!("word-device")),
+                        full_tag(q, *vt, ew_derive::text::record_name(ew_schema::Kind::Device)),
                     )
                     .arg("form", "gallery")
                     .arg("terminal", vt_text)
@@ -603,7 +603,7 @@ impl Rule for CoilVoltage {
                 &COIL_VOLTAGE,
                 [Target::new(Kind::Device, d)],
                 "voltage",
-                full_tag(q, d, text!("word-device")),
+                full_tag(q, d, ew_derive::text::record_name(ew_schema::Kind::Device)),
             )
             .arg("valve", valve)
             .arg("voltage", takes)
@@ -676,7 +676,7 @@ impl Rule for NoSupply {
                         &NO_SUPPLY,
                         [Target::new(Kind::Device, d)],
                         format!("gallery {}", cp_text(q, *first)),
-                        full_tag(q, d, text!("word-device")),
+                        full_tag(q, d, ew_derive::text::record_name(ew_schema::Kind::Device)),
                     )
                     .arg("form", "gallery")
                     .arg("device", vt),
@@ -708,7 +708,7 @@ impl Rule for NoSupply {
                         &NO_SUPPLY,
                         [Target::new(Kind::Function, f)],
                         format!("port {}", cp.designation),
-                        full_tag(q, d, text!("word-device")),
+                        full_tag(q, d, ew_derive::text::record_name(ew_schema::Kind::Device)),
                     )
                     .arg("form", "valve")
                     .arg("device", valve)

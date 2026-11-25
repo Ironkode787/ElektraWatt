@@ -122,7 +122,7 @@ pub use ew_export::{
     svg_file_name,
 };
 pub use fields::{
-    Category, EditRoute, FieldReadOnly, FieldType, InputError, ParsedInput, field_catalogue,
+    Category, EditRoute, FieldReadOnly, FieldType, InputError, ParsedInput, catalogue_kinds, field_catalogue,
     field_catalogue_for, format_field_value,
 };
 pub use job::{DxfExportJob, ExportJob, PrintSetJob};

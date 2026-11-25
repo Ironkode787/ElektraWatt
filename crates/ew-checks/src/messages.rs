@@ -82,6 +82,13 @@ pub fn resource_errors() -> Vec<(&'static str, String)> {
     out
 }
 
+/// The name of the record kind named `kind` ([`ew_derive::text::record_name`], `device`), or in the plural
+/// ([`ew_derive::text::record_names`], `devices`), in `lang`, falling back to en-GB; a name no kind has is an item.
+pub fn record_kind_name(kind: &str, plural: bool, lang: &str) -> String {
+    let [_, one, many] = ew_derive::text::record_words_named(kind);
+    text(if plural { &many } else { &one }, lang)
+}
+
 /// A text style's name ([`ew_derive::text::text_style_name`]) in `lang`, falling back to en-GB.
 pub fn text_style_name(key: &str, lang: &str) -> String {
     text(&ew_derive::text::text_style_name(key), lang)

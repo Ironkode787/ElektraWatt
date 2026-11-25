@@ -192,8 +192,8 @@ impl Rule for Pair {
                 if a != b {
                     let other = channel_name(q, p.module, p.id, p.number);
                     let (ta, tb) = (
-                        full_tag(q, a, text!("word-a-device")),
-                        full_tag(q, b, text!("word-a-device")),
+                        full_tag(q, a, ew_derive::text::record(ew_schema::Kind::Device)),
+                        full_tag(q, b, ew_derive::text::record(ew_schema::Kind::Device)),
                     );
                     out.push(
                         Finding::new(

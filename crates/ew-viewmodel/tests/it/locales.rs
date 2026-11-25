@@ -678,19 +678,28 @@ fn messages_with(ftl: &str, prefix: &str) -> std::collections::BTreeMap<String, 
         .collect()
 }
 
-/// The record kinds' and the fields' Dutch headings follow the terminology table message by
-/// message, so a right use elsewhere cannot hide a wrong one: each table term an en-GB heading holds (the longest
-/// first, a term inside a longer one not counted again) is its Dutch term in the nl-NL heading.
+/// The record kinds' words (the derivation's table, which the headings read) and the fields' Dutch headings follow
+/// the terminology table message by message, so a right use elsewhere cannot hide a wrong one: each table term an
+/// en-GB heading holds (the longest first, a term inside a longer one not counted again) is its Dutch term in the
+/// nl-NL heading.
 #[test]
 fn the_kind_and_field_headings_follow_the_table_each() {
     let nl_file = shipped_file("nl-NL");
     let mut table = terms(&nl_file);
     table.sort_by_key(|t| std::cmp::Reverse(t.en.len()));
     let en_file = shipped_file("en-GB");
+    let kinds = |locale: &str| {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../ew-derive/texts")
+            .join(locale)
+            .join("kinds.ftl");
+        std::fs::read_to_string(path).unwrap().replace("\r\n", "\n")
+    };
+    let (kinds_en, kinds_nl) = (kinds("en-GB"), kinds("nl-NL"));
     let mut wrong = Vec::new();
-    for prefix in ["record-kind-", "field-"] {
-        let nl = messages_with(&nl_file, prefix);
-        for (key, en) in messages_with(&en_file, prefix) {
+    for (en_file, nl_file, prefix) in [(&kinds_en, &kinds_nl, "record-"), (&en_file, &nl_file, "field-")] {
+        let nl = messages_with(nl_file, prefix);
+        for (key, en) in messages_with(en_file, prefix) {
             let dutch = nl.get(&key).unwrap_or_else(|| panic!("{key} has no Dutch text"));
             // A Git tag is Git's own word ("Git-tag"), not the drawing's device tag (the Git
             // exemption).

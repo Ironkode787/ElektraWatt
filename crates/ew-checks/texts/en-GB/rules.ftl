@@ -74,12 +74,9 @@ rule-ew-core-011 = { $form ->
             [project] the project
             [device] device { $tag }
             [page] folio { $page }
-            [a-page] a page
             [function] a function of device { $tag }
-            [a-function] a function
             [connection-on] connection from { $from } to { $to } on folio { $page }
             [connection] connection from { $from } to { $to }
-            [a-connection] a connection
            *[other] { $kind }
         }: { $side ->
             [ours-deleted] ours deleted it and theirs changed { $members }
@@ -1264,7 +1261,6 @@ fix-text-style-minimum = Set to 1.2 mm
 
 # The words a rule prints where a record has no name of its own: a rule passes them to its pattern by key,
 # and each language prints its own.
-word-device = device
 word-cable = cable
 word-without-a-tag = without a tag
 word-assembly = assembly
@@ -1272,7 +1268,6 @@ word-a-location = a location
 word-a-device-without-designation = a device without designation
 word-a-missing-part = a missing part
 word-an-unknown-profile = an unknown profile
-word-a-part = a part
 word-a-connector = a connector
 # A scope of EW-CORE-083 by its name.
 word-scope-folio = folio { $p0 }
@@ -1284,25 +1279,20 @@ word-scope-of-kind = a { $p0 } scope
 # A load a contact leaves connected (EW-POT-013), and a character that looks like a Latin one (EW-RDS-009).
 word-stranded-load = load { $p0 } stays connected to { $p1 }
 word-lookalike = { $p0 } (looks like { $p1 })
-word-a-placement = a placement
 word-none = none
 word-terminal = terminal
 word-strip = strip
 word-another-strip = another strip
 word-valve = valve
 word-the-valve = the valve
-word-a-device = a device
 word-a-module = a module
-word-a-configuration-project = a configuration project
 word-a-role-of-a-newer-format = a role of a newer format
-word-junction = junction
 word-a-drawn-page = a drawn page
 word-a-section-divider = a section divider
 word-a-report-page = a report page
 word-the-strip = the strip
 word-a-device-that-is-not-a-terminal = a device that is not a terminal
 word-the-project = the project
-word-a-page = a page
 word-a-logical-bus-net = a logical bus net
 word-a-physical-bus-net = a physical bus net
 word-a-connection-point-of-another-page = a connection point of another page
@@ -1395,12 +1385,9 @@ subject-conflict-target = { $target ->
         [project] the project
         [device] device { $tag }
         [page] folio { $page }
-        [a-page] a page
         [function] a function of device { $tag }
-        [a-function] a function
         [connection-on] connection from { $from } to { $to } on folio { $page }
         [connection] connection from { $from } to { $to }
-        [a-connection] a connection
        *[other] { $kind }
     }
 subject-conflict-file = { $file ->

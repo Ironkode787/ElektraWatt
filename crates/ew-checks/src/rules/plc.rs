@@ -70,7 +70,7 @@ pub(crate) fn module_cfg(q: &Q, module: Id<Device>) -> Option<Id<PlcConfigProjec
 /// The name of a configuration project as printed.
 pub(crate) fn cfg_name(q: &Q, cfg: Id<PlcConfigProject>) -> Named {
     q.table::<PlcConfigProject>().get(cfg).map_or_else(
-        || text!("word-a-configuration-project").into(),
+        || ew_derive::text::record(ew_schema::Kind::PlcConfigProject).into(),
         |c| c.name.to_string().into(),
     )
 }
@@ -991,7 +991,7 @@ impl Rule for PinsUnbound {
         {
             return Vec::new();
         }
-        let tag = full_tag(q, device, text!("word-device"));
+        let tag = full_tag(q, device, ew_derive::text::record_name(ew_schema::Kind::Device));
         vec![
             Finding::new(
                 &PINS_UNBOUND,
@@ -1046,7 +1046,7 @@ impl Rule for NotAModule {
         if !ew_derive::not_a_module(q, device) {
             return Vec::new();
         }
-        let tag = full_tag(q, device, text!("word-device"));
+        let tag = full_tag(q, device, ew_derive::text::record_name(ew_schema::Kind::Device));
         let part = q
             .devices()
             .get(device)

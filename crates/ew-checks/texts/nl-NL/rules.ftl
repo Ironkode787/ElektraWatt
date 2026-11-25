@@ -69,12 +69,9 @@ rule-ew-core-011 = { $form ->
             [project] het project
             [device] apparaat { $tag }
             [page] folio { $page }
-            [a-page] een pagina
             [function] een functie van apparaat { $tag }
-            [a-function] een functie
             [connection-on] verbinding van { $from } naar { $to } op folio { $page }
             [connection] verbinding van { $from } naar { $to }
-            [a-connection] een verbinding
            *[other] { $kind }
         }: { $side ->
             [ours-deleted] onze versie heeft het verwijderd en hun versie wijzigde { $members }
@@ -1244,7 +1241,6 @@ fix-text-style-minimum = Op 1,2 mm zetten
 
 # De woorden die een regel afdrukt waar een record geen eigen naam heeft, per sleutel; een regel geeft ze
 # bij hun sleutel aan zijn patroon door.
-word-device = apparaat
 word-cable = kabel
 word-without-a-tag = zonder kenmerk
 word-assembly = samenstelling
@@ -1252,7 +1248,6 @@ word-a-location = een locatie
 word-a-device-without-designation = een apparaat zonder aanduiding
 word-a-missing-part = een ontbrekend artikel
 word-an-unknown-profile = een onbekend profiel
-word-a-part = een artikel
 word-a-connector = een connector
 # A scope of EW-CORE-083 by its name.
 word-scope-folio = folio { $p0 }
@@ -1264,25 +1259,20 @@ word-scope-of-kind = een bereik van soort { $p0 }
 # A load a contact leaves connected (EW-POT-013), and a character that looks like a Latin one (EW-RDS-009).
 word-stranded-load = { $p0 } → { $p1 }
 word-lookalike = { $p0 } → { $p1 }
-word-a-placement = een plaatsing
 word-none = geen
 word-terminal = klem
 word-strip = klemmenstrook
 word-another-strip = een andere klemmenstrook
 word-valve = ventiel
 word-the-valve = het ventiel
-word-a-device = een apparaat
 word-a-module = een module
-word-a-configuration-project = een configuratieproject
 word-a-role-of-a-newer-format = een rol van een nieuwer formaat
-word-junction = aftakking
 word-a-drawn-page = een getekende pagina
 word-a-section-divider = een sectiescheiding
 word-a-report-page = een rapportpagina
 word-the-strip = de klemmenstrook
 word-a-device-that-is-not-a-terminal = een apparaat dat geen klem is
 word-the-project = het project
-word-a-page = een pagina
 word-a-logical-bus-net = een logisch busnet
 word-a-physical-bus-net = een fysiek busnet
 word-a-connection-point-of-another-page = een aansluitpunt van een andere pagina
@@ -1374,12 +1364,9 @@ subject-conflict-target = { $target ->
         [project] het project
         [device] apparaat { $tag }
         [page] folio { $page }
-        [a-page] een pagina
         [function] een functie van apparaat { $tag }
-        [a-function] een functie
         [connection-on] verbinding van { $from } naar { $to } op folio { $page }
         [connection] verbinding van { $from } naar { $to }
-        [a-connection] een verbinding
        *[other] { $kind }
     }
 subject-conflict-file = { $file ->

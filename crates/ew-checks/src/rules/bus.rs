@@ -26,7 +26,7 @@ pub(crate) fn port_name(q: &Q, function: &Function, port: &BusPort) -> Named {
         Some(d) if port.role == PortRole::Passive => full_tag(q, d, text!("word-a-connector")),
         Some(d) => text!(
             "subject-cp",
-            full_tag(q, d, text!("word-a-device")),
+            full_tag(q, d, ew_derive::text::record(ew_schema::Kind::Device)),
             port.interface.to_string()
         )
         .into(),

@@ -69,10 +69,12 @@ fn scope_text(q: &Q, scope: &Scope) -> Named {
     match *scope {
         Scope::Project => text!("word-the-project").into(),
         Scope::Page(p) => q.pages().get(p).map_or_else(
-            || text!("word-a-page").into(),
+            || ew_derive::text::record(ew_schema::Kind::Page).into(),
             |page| text!("word-scope-folio", folio_label(page)).into(),
         ),
-        Scope::Device(d) | Scope::Strip(d) | Scope::Cable(d) => full_tag(q, d, text!("word-a-device")),
+        Scope::Device(d) | Scope::Strip(d) | Scope::Cable(d) => {
+            full_tag(q, d, ew_derive::text::record(ew_schema::Kind::Device))
+        }
         Scope::Potential(p) => text!(
             "word-scope-potential",
             q.get::<PotentialNameOf>(p).name.text.to_string()
@@ -81,7 +83,7 @@ fn scope_text(q: &Q, scope: &Scope) -> Named {
         Scope::Module(d) => full_tag(q, d, text!("word-a-module")),
         Scope::Station(d) => full_tag(q, d, text!("word-a-station")),
         Scope::Cfg(c) => q.table::<ew_schema::PlcConfigProject>().get(c).map_or_else(
-            || text!("word-a-configuration-project").into(),
+            || ew_derive::text::record(ew_schema::Kind::PlcConfigProject).into(),
             |c| text!("word-scope-configuration-project", c.name.to_string()).into(),
         ),
         Scope::Lnet(n) => q.table::<ew_schema::LogicalNet>().get(n).map_or_else(

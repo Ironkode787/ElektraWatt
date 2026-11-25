@@ -379,88 +379,308 @@ pub fn channel_of_module(number: impl Into<TextArg>, module: impl Into<TextArg>)
 }
 
 /// A record by its kind with its article only (`a device`… `an enclosure`, a representation `a symbol`, a connection `a
-/// wire`), for a sentence, where no model is at hand: the one table of a record kind's words ([`record_words`]). A kind
-/// that no record can be yet (a reserved kind) and a kind of a newer format are `an item` ([`record_other`]).
+/// connection`, which can be a wire, a cable core, a bridge, a bus line or a tube), for a sentence, where no model is at
+/// hand: the one table of a record kind's words ([`record_words`]). A kind of a newer format is `an item`
+/// ([`record_other`]).
 pub fn record(kind: Kind) -> Text {
-    let [with_article, _] = record_words(kind);
+    let [with_article, _, _] = record_words(Some(kind));
     with_article
 }
 
 /// A record kind's name, the bare noun (`device`, `structure node`, a representation `symbol`): what a cell, a column,
 /// a heading or a label shows, with the capital it needs ([`record`]'s word without its article).
 pub fn record_name(kind: Kind) -> Text {
-    let [_, name] = record_words(kind);
+    let [_, name, _] = record_words(Some(kind));
     name
 }
 
-/// The two forms of a record kind's words, with its article and its name: the one table ([`record`], [`record_name`]).
-fn record_words(kind: Kind) -> [Text; 2] {
+/// A record kind's name in the plural (`devices`, `structure nodes`): what a heading of many shows, with the capital it
+/// needs.
+pub fn record_names(kind: Kind) -> Text {
+    let [_, _, names] = record_words(Some(kind));
+    names
+}
+
+/// The words of the record kind named `name` (`potential_def`), as [`record_words`] holds them; a name no kind has is
+/// an item.
+pub fn record_words_named(name: &str) -> [Text; 3] {
+    record_words(Kind::from_name(name))
+}
+
+/// The three forms of a record kind's words, with its article, its name and its plural: the one table ([`record`],
+/// [`record_name`], [`record_names`]).
+fn record_words(kind: Option<Kind>) -> [Text; 3] {
     match kind {
-        Kind::Device => [text!("record-device"), text!("record-device-name")],
-        Kind::Function => [text!("record-function"), text!("record-function-name")],
-        Kind::Page => [text!("record-page"), text!("record-page-name")],
-        Kind::Junction => [text!("record-junction"), text!("record-junction-name")],
-        Kind::Representation => [
-            text!("record-representation"),
-            text!("record-representation-name"),
+        Some(Kind::Project) => [
+            text!("record-project"),
+            text!("record-project-name"),
+            text!("record-project-names"),
         ],
-        Kind::Connection => [text!("record-connection"), text!("record-connection-name")],
-        Kind::Project => [text!("record-project"), text!("record-project-name")],
-        Kind::PlcConfigProject => [
+        Some(Kind::PlcConfigProject) => [
             text!("record-plc-config-project"),
             text!("record-plc-config-project-name"),
+            text!("record-plc-config-project-names"),
         ],
-        Kind::LogicalNet => [text!("record-logical-net"), text!("record-logical-net-name")],
-        Kind::PhysicalNet => [text!("record-physical-net"), text!("record-physical-net-name")],
-        Kind::Medium => [text!("record-medium"), text!("record-medium-name")],
-        Kind::ImportLineage => [
+        Some(Kind::LogicalNet) => [
+            text!("record-logical-net"),
+            text!("record-logical-net-name"),
+            text!("record-logical-net-names"),
+        ],
+        Some(Kind::PhysicalNet) => [
+            text!("record-physical-net"),
+            text!("record-physical-net-name"),
+            text!("record-physical-net-names"),
+        ],
+        Some(Kind::Medium) => [
+            text!("record-medium"),
+            text!("record-medium-name"),
+            text!("record-medium-names"),
+        ],
+        Some(Kind::ImportLineage) => [
             text!("record-import-lineage"),
             text!("record-import-lineage-name"),
+            text!("record-import-lineage-names"),
         ],
-        Kind::StructureNode => [
+        Some(Kind::StructureNode) => [
             text!("record-structure-node"),
             text!("record-structure-node-name"),
+            text!("record-structure-node-names"),
         ],
-        Kind::Section => [text!("record-section"), text!("record-section-name")],
-        Kind::ExternalRef => [text!("record-external-ref"), text!("record-external-ref-name")],
-        Kind::Conductor => [text!("record-conductor"), text!("record-conductor-name")],
-        Kind::Channel => [text!("record-channel"), text!("record-channel-name")],
-        Kind::PotentialDef => [text!("record-potential-def"), text!("record-potential-def-name")],
-        Kind::MediumDef => [text!("record-medium-def"), text!("record-medium-def-name")],
-        Kind::Bond => [text!("record-bond"), text!("record-bond-name")],
-        Kind::DeviceLink => [text!("record-device-link"), text!("record-device-link-name")],
-        Kind::PageItem => [text!("record-page-item"), text!("record-page-item-name")],
-        Kind::StructureBox => [text!("record-structure-box"), text!("record-structure-box-name")],
-        Kind::ReportBlock => [text!("record-report-block"), text!("record-report-block-name")],
-        Kind::MacroInstance => [
+        Some(Kind::Section) => [
+            text!("record-section"),
+            text!("record-section-name"),
+            text!("record-section-names"),
+        ],
+        Some(Kind::ExternalRef) => [
+            text!("record-external-ref"),
+            text!("record-external-ref-name"),
+            text!("record-external-ref-names"),
+        ],
+        Some(Kind::Page) => [
+            text!("record-page"),
+            text!("record-page-name"),
+            text!("record-page-names"),
+        ],
+        Some(Kind::Device) => [
+            text!("record-device"),
+            text!("record-device-name"),
+            text!("record-device-names"),
+        ],
+        Some(Kind::Function) => [
+            text!("record-function"),
+            text!("record-function-name"),
+            text!("record-function-names"),
+        ],
+        Some(Kind::Representation) => [
+            text!("record-representation"),
+            text!("record-representation-name"),
+            text!("record-representation-names"),
+        ],
+        Some(Kind::Connection) => [
+            text!("record-connection"),
+            text!("record-connection-name"),
+            text!("record-connection-names"),
+        ],
+        Some(Kind::Junction) => [
+            text!("record-junction"),
+            text!("record-junction-name"),
+            text!("record-junction-names"),
+        ],
+        Some(Kind::Conductor) => [
+            text!("record-conductor"),
+            text!("record-conductor-name"),
+            text!("record-conductor-names"),
+        ],
+        Some(Kind::Channel) => [
+            text!("record-channel"),
+            text!("record-channel-name"),
+            text!("record-channel-names"),
+        ],
+        Some(Kind::PotentialDef) => [
+            text!("record-potential-def"),
+            text!("record-potential-def-name"),
+            text!("record-potential-def-names"),
+        ],
+        Some(Kind::NetDef) => [
+            text!("record-net-def"),
+            text!("record-net-def-name"),
+            text!("record-net-def-names"),
+        ],
+        Some(Kind::MediumDef) => [
+            text!("record-medium-def"),
+            text!("record-medium-def-name"),
+            text!("record-medium-def-names"),
+        ],
+        Some(Kind::Bond) => [
+            text!("record-bond"),
+            text!("record-bond-name"),
+            text!("record-bond-names"),
+        ],
+        Some(Kind::DeviceLink) => [
+            text!("record-device-link"),
+            text!("record-device-link-name"),
+            text!("record-device-link-names"),
+        ],
+        Some(Kind::PageItem) => [
+            text!("record-page-item"),
+            text!("record-page-item-name"),
+            text!("record-page-item-names"),
+        ],
+        Some(Kind::StructureBox) => [
+            text!("record-structure-box"),
+            text!("record-structure-box-name"),
+            text!("record-structure-box-names"),
+        ],
+        Some(Kind::ReportBlock) => [
+            text!("record-report-block"),
+            text!("record-report-block-name"),
+            text!("record-report-block-names"),
+        ],
+        Some(Kind::MacroInstance) => [
             text!("record-macro-instance"),
             text!("record-macro-instance-name"),
+            text!("record-macro-instance-names"),
         ],
-        Kind::LayoutSpace => [text!("record-layout-space"), text!("record-layout-space-name")],
-        Kind::Enclosure => [text!("record-enclosure"), text!("record-enclosure-name")],
-        Kind::MountingSurface => [
+        Some(Kind::PlaceholderGroup) => [
+            text!("record-placeholder-group"),
+            text!("record-placeholder-group-name"),
+            text!("record-placeholder-group-names"),
+        ],
+        Some(Kind::LayoutSpace) => [
+            text!("record-layout-space"),
+            text!("record-layout-space-name"),
+            text!("record-layout-space-names"),
+        ],
+        Some(Kind::Enclosure) => [
+            text!("record-enclosure"),
+            text!("record-enclosure-name"),
+            text!("record-enclosure-names"),
+        ],
+        Some(Kind::MountingSurface) => [
             text!("record-mounting-surface"),
             text!("record-mounting-surface-name"),
+            text!("record-mounting-surface-names"),
         ],
-        Kind::Carrier => [text!("record-carrier"), text!("record-carrier-name")],
-        Kind::Placement => [text!("record-placement"), text!("record-placement-name")],
-        Kind::Revision => [text!("record-revision"), text!("record-revision-name")],
-        Kind::Waiver => [text!("record-waiver"), text!("record-waiver-name")],
-        Kind::ExchangeRecord => [
+        Some(Kind::Carrier) => [
+            text!("record-carrier"),
+            text!("record-carrier-name"),
+            text!("record-carrier-names"),
+        ],
+        Some(Kind::Placement) => [
+            text!("record-placement"),
+            text!("record-placement-name"),
+            text!("record-placement-names"),
+        ],
+        Some(Kind::RouteOverride) => [
+            text!("record-route-override"),
+            text!("record-route-override-name"),
+            text!("record-route-override-names"),
+        ],
+        Some(Kind::CommittedRoute) => [
+            text!("record-committed-route"),
+            text!("record-committed-route-name"),
+            text!("record-committed-route-names"),
+        ],
+        Some(Kind::RoutingPath) => [
+            text!("record-routing-path"),
+            text!("record-routing-path-name"),
+            text!("record-routing-path-names"),
+        ],
+        Some(Kind::SurfaceFeature) => [
+            text!("record-surface-feature"),
+            text!("record-surface-feature-name"),
+            text!("record-surface-feature-names"),
+        ],
+        Some(Kind::Revision) => [
+            text!("record-revision"),
+            text!("record-revision-name"),
+            text!("record-revision-names"),
+        ],
+        Some(Kind::Waiver) => [
+            text!("record-waiver"),
+            text!("record-waiver-name"),
+            text!("record-waiver-names"),
+        ],
+        Some(Kind::Comment) => [
+            text!("record-comment"),
+            text!("record-comment-name"),
+            text!("record-comment-names"),
+        ],
+        Some(Kind::Transmittal) => [
+            text!("record-transmittal"),
+            text!("record-transmittal-name"),
+            text!("record-transmittal-names"),
+        ],
+        Some(Kind::ExchangeRecord) => [
             text!("record-exchange-record"),
             text!("record-exchange-record-name"),
+            text!("record-exchange-record-names"),
         ],
-        Kind::ForeignId => [text!("record-foreign-id"), text!("record-foreign-id-name")],
-        Kind::ImportRun => [text!("record-import-run"), text!("record-import-run-name")],
-        Kind::Conflict => [text!("record-conflict"), text!("record-conflict-name")],
-        Kind::Part => [text!("record-part"), text!("record-part-name")],
-        Kind::Symbol => [text!("record-symbol"), text!("record-symbol-name")],
-        Kind::Fndef => [text!("record-fndef"), text!("record-fndef-name")],
-        Kind::Form => [text!("record-form"), text!("record-form-name")],
-        Kind::Macro => [text!("record-macro"), text!("record-macro-name")],
-        Kind::Manufacturer => [text!("record-manufacturer"), text!("record-manufacturer-name")],
-        Kind::PlcProfile => [text!("record-plc-profile"), text!("record-plc-profile-name")],
-        _ => [text!("record-other"), text!("record-other-name")],
+        Some(Kind::ForeignId) => [
+            text!("record-foreign-id"),
+            text!("record-foreign-id-name"),
+            text!("record-foreign-id-names"),
+        ],
+        Some(Kind::ImportRun) => [
+            text!("record-import-run"),
+            text!("record-import-run-name"),
+            text!("record-import-run-names"),
+        ],
+        Some(Kind::Conflict) => [
+            text!("record-conflict"),
+            text!("record-conflict-name"),
+            text!("record-conflict-names"),
+        ],
+        Some(Kind::Part) => [
+            text!("record-part"),
+            text!("record-part-name"),
+            text!("record-part-names"),
+        ],
+        Some(Kind::Symbol) => [
+            text!("record-symbol"),
+            text!("record-symbol-name"),
+            text!("record-symbol-names"),
+        ],
+        Some(Kind::Fndef) => [
+            text!("record-fndef"),
+            text!("record-fndef-name"),
+            text!("record-fndef-names"),
+        ],
+        Some(Kind::Form) => [
+            text!("record-form"),
+            text!("record-form-name"),
+            text!("record-form-names"),
+        ],
+        Some(Kind::Macro) => [
+            text!("record-macro"),
+            text!("record-macro-name"),
+            text!("record-macro-names"),
+        ],
+        Some(Kind::Manufacturer) => [
+            text!("record-manufacturer"),
+            text!("record-manufacturer-name"),
+            text!("record-manufacturer-names"),
+        ],
+        Some(Kind::PlcProfile) => [
+            text!("record-plc-profile"),
+            text!("record-plc-profile-name"),
+            text!("record-plc-profile-names"),
+        ],
+        Some(Kind::MachineProfile) => [
+            text!("record-machine-profile"),
+            text!("record-machine-profile-name"),
+            text!("record-machine-profile-names"),
+        ],
+        Some(Kind::LabelProfile) => [
+            text!("record-label-profile"),
+            text!("record-label-profile-name"),
+            text!("record-label-profile-names"),
+        ],
+        _ => [
+            text!("record-other"),
+            text!("record-other-name"),
+            text!("record-other-names"),
+        ],
     }
 }
 

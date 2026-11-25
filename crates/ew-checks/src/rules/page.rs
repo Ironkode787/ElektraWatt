@@ -399,7 +399,10 @@ impl Rule for ReportCoverageGap {
             }
             for m in members {
                 if !covered.contains(&m) {
-                    rows.push((full_tag(q, m, text!("word-device")), (family, m)));
+                    rows.push((
+                        full_tag(q, m, ew_derive::text::record_name(ew_schema::Kind::Device)),
+                        (family, m),
+                    ));
                 }
             }
         }

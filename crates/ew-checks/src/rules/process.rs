@@ -59,7 +59,7 @@ impl Rule for ProcessTag {
             by_tag.entry(tag.clone()).or_default().push(id);
             if let Some((text, re)) = &scheme {
                 if !re.is_match(&tag) {
-                    let device = full_tag(q, id, text!("word-a-device"));
+                    let device = full_tag(q, id, ew_derive::text::record(ew_schema::Kind::Device));
                     out.push(
                         Finding::new(
                             &PROCESS_TAG,
@@ -81,7 +81,7 @@ impl Rule for ProcessTag {
             }
             let mut names: Vec<Named> = devices
                 .iter()
-                .map(|d| full_tag(q, *d, text!("word-a-device")))
+                .map(|d| full_tag(q, *d, ew_derive::text::record(ew_schema::Kind::Device)))
                 .collect();
             names.sort_by(|a, b| a.order(b));
             let list = listed(names.clone());

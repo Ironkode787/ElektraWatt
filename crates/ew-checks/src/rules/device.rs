@@ -85,7 +85,7 @@ impl Rule for DeviceWithoutPart {
         if !lacks_part(q, device) {
             return Vec::new();
         }
-        let tag = full_tag(q, device, text!("word-device"));
+        let tag = full_tag(q, device, ew_derive::text::record_name(ew_schema::Kind::Device));
         vec![
             Finding::new(
                 &DEVICE_WITHOUT_PART,
@@ -168,7 +168,7 @@ impl Rule for IncompletePartData {
             if missing.is_empty() {
                 continue;
             }
-            let tag = full_tag(q, device, text!("word-device"));
+            let tag = full_tag(q, device, ew_derive::text::record_name(ew_schema::Kind::Device));
             let number = part.item.part_number.as_str();
             let which = match missing.as_slice() {
                 [one] => *one,
@@ -240,7 +240,12 @@ impl Rule for PlaceholderPart {
                 .devices()
                 .iter()
                 .filter(|(x, dev)| uses_copy(q, *x, dev, id))
-                .map(|(x, _)| (full_tag(q, x, text!("word-device")), x))
+                .map(|(x, _)| {
+                    (
+                        full_tag(q, x, ew_derive::text::record_name(ew_schema::Kind::Device)),
+                        x,
+                    )
+                })
                 .collect();
             users.sort_by(|a, b| a.0.order(&b.0).then_with(|| a.1.cmp(&b.1)));
             if users.first().map(|(_, x)| *x) != Some(device) {
@@ -257,7 +262,10 @@ impl Rule for PlaceholderPart {
                         .languages()
                         .find_map(|l| part.item.description.get(l).map(str::to_owned))
                 })
-                .map_or_else(|| text!("word-a-part").into(), ew_l10n::TextArg::Plain);
+                .map_or_else(
+                    || ew_derive::text::record(ew_schema::Kind::Part).into(),
+                    ew_l10n::TextArg::Plain,
+                );
             out.push(
                 Finding::new(
                     &PLACEHOLDER_PART,
@@ -506,7 +514,7 @@ impl Rule for ContactsExceedPart {
         if have.holds(need) {
             return Vec::new();
         }
-        let tag = full_tag(q, device, text!("word-device"));
+        let tag = full_tag(q, device, ew_derive::text::record_name(ew_schema::Kind::Device));
         vec![
             Finding::new(
                 &CONTACTS_EXCEED_PART,
@@ -578,7 +586,7 @@ impl Rule for OrderCodesCover {
         let with_parts = |d: Id<Device>| q.devices().get(d).is_some_and(|x| !x.parts.is_empty());
         for d in std::iter::once(head).chain(ew_derive::device_descendants(q, head)) {
             let n = covered.get(&d).copied().unwrap_or(0);
-            let child = full_tag(q, d, text!("word-device"));
+            let child = full_tag(q, d, ew_derive::text::record_name(ew_schema::Kind::Device));
             if n > 1 {
                 rows.push((child.clone(), d, "covered-twice", n));
             } else if n == 0 && d != head && with_parts(d) {
@@ -684,7 +692,7 @@ fn orphan_channels(q: &Q) -> Vec<Finding> {
                 .is_some_and(|d| d.aspects.plc_module.is_none())
         })
         .map(|(id, c)| {
-            let tag = full_tag(q, c.module, text!("word-device"));
+            let tag = full_tag(q, c.module, ew_derive::text::record_name(ew_schema::Kind::Device));
             (format!("{tag}:{}", c.number), (id, c.module))
         })
         .collect();
@@ -695,7 +703,7 @@ fn orphan_channels(q: &Q) -> Vec<Finding> {
     });
     rows.into_iter()
         .map(|(subject, (id, module))| {
-            let tag = full_tag(q, module, text!("word-device"));
+            let tag = full_tag(q, module, ew_derive::text::record_name(ew_schema::Kind::Device));
             Finding::new(
                 &DANGLING_REFERENCE,
                 [Target::new(Kind::Channel, id), Target::new(Kind::Device, module)],

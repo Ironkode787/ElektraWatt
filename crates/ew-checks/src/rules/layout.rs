@@ -1069,9 +1069,10 @@ fn bracket_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
                 );
             }
             Some(Overlapped::Placement(p)) => {
-                let other = placements
-                    .get(p)
-                    .map_or_else(|| text!("word-a-placement").into(), |o| device_name(q, o.device));
+                let other = placements.get(p).map_or_else(
+                    || ew_derive::text::record(ew_schema::Kind::Placement).into(),
+                    |o| device_name(q, o.device),
+                );
                 out.push(
                     finding("bracket_overlap")
                         .arg("other_kind", "placement")

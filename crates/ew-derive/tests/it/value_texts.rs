@@ -71,21 +71,23 @@ fn a_channel_without_an_address_is_worded_in_the_readers_language() {
     );
 }
 
-/// A record kind has one table of words: a symbol and a wire among them, and a kind no record can be yet (a reserved
-/// kind) is `an item`.
+/// A record kind has one table of words: a representation is a symbol, a connection (a wire, a core, a bridge, a bus
+/// line or a tube) a connection, a reserved kind has its words as well, and a name no kind has is an item.
 #[test]
 fn a_record_kind_is_worded_by_one_table() {
     use ew_schema::Kind;
     let words = |k: Kind| ew_derive::text::record(k).to_string();
     assert_eq!(words(Kind::Representation), "a symbol");
-    assert_eq!(words(Kind::Connection), "a wire");
+    assert_eq!(words(Kind::Connection), "a connection");
     assert_eq!(words(Kind::Enclosure), "an enclosure");
-    assert_eq!(words(Kind::Comment), "an item");
-    assert_eq!(words(Kind::NetDef), "an item");
+    assert_eq!(words(Kind::Comment), "a comment");
+    assert_eq!(words(Kind::NetDef), "a net definition");
+    let [a, one, many] = ew_derive::text::record_words_named("frobnicator");
+    assert_eq!([a, one, many].map(|t| t.to_string()), ["an item", "item", "items"]);
 }
 
-/// A kind has two forms in the one table: with its article for a sentence, and its name, the bare noun, for a cell or
-/// a label, in both languages.
+/// A kind has three forms in the one table: with its article for a sentence, its name, the bare noun, for a cell or a
+/// label, and its plural for a heading of many, in both languages.
 #[test]
 fn a_record_kind_has_its_name_beside_its_article_form() {
     use ew_schema::Kind;
@@ -107,7 +109,11 @@ fn a_record_kind_has_its_name_beside_its_article_form() {
         name(Kind::StructureNode),
         ("structure node".into(), "structuurknooppunt".into())
     );
-    assert_eq!(name(Kind::Comment), ("item".into(), "element".into()));
+    assert_eq!(name(Kind::Comment), ("comment".into(), "opmerking".into()));
+    assert_eq!(
+        both(ew_derive::text::record_names(Kind::StructureBox)),
+        ("structure boxes".into(), "structuurkaders".into())
+    );
     assert_eq!(
         both(ew_derive::text::record(Kind::Part)),
         ("a part".into(), "een artikel".into())

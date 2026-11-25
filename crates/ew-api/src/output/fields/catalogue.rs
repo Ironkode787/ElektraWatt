@@ -8,7 +8,7 @@
 use super::*;
 
 /// The kinds the catalogue covers: the implemented kinds that are not library documents, in kind-rank order.
-pub(crate) fn catalogue_kinds() -> impl Iterator<Item = Kind> {
+pub fn catalogue_kinds() -> impl Iterator<Item = Kind> {
     Kind::ALL
         .into_iter()
         .filter(|k| k.status() == KindStatus::Implemented && !k.is_library())

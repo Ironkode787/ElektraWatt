@@ -679,6 +679,6 @@ fn the_line_kind_of_a_fluid_line_is_set_and_undone() {
     let wire: Id<Connection> = typed(wire.outcome.primary.unwrap());
     assert_eq!(
         refusal_of(&mut e, &set_line_kind(wire, "pilot")),
-        "a wire is not a tube"
+        "a connection is not a tube"
     );
 }

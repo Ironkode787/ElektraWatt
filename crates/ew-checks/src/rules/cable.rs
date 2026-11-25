@@ -569,7 +569,9 @@ fn twice_finding(q: &Q, id: Id<Conductor>, c: &Conductor) -> Option<Finding> {
                                         EndpointKey::Cp(f, i) => {
                                             ew_derive::cp_label(q, CpRef::new(f, i)).into()
                                         }
-                                        EndpointKey::Junction(_) => text!("word-junction").into(),
+                                        EndpointKey::Junction(_) => {
+                                            ew_derive::text::record_name(ew_schema::Kind::Junction).into()
+                                        }
                                     },
                                 )
                             };

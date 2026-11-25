@@ -126,7 +126,7 @@ impl Rule for DeviceNotInSchematic {
         if functions.is_empty() || functions.iter().any(|f| idx.reps_of_function(*f).any(schematic)) {
             return Vec::new();
         }
-        let tag = full_tag(q, device, text!("word-device"));
+        let tag = full_tag(q, device, ew_derive::text::record_name(ew_schema::Kind::Device));
         // F17 of a test: the `?` in such a tag, where the page goes, said nothing; the text names it.
         let finding = Finding::new(
             &DEVICE_NOT_IN_SCHEMATIC,
@@ -1117,11 +1117,11 @@ fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> (ew_l10n::Text, Vec<(&'stat
         Some(Kind::Device) => ("device", vec![("tag", tag(id.cast()).into())]),
         Some(Kind::Page) => match q.pages().get(id.cast()) {
             Some(p) => ("page", vec![("page", folio_label(p).to_string().into())]),
-            None => ("a-page", vec![]),
+            None => ("other", vec![]),
         },
         Some(Kind::Function) => match q.functions().get(id.cast()).and_then(|f| f.device) {
             Some(d) => ("function", vec![("tag", tag(d).into())]),
-            None => ("a-function", vec![]),
+            None => ("other", vec![]),
         },
         Some(Kind::Connection) => match q.table::<Connection>().get(id.cast()) {
             Some(c) => {
@@ -1138,7 +1138,7 @@ fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> (ew_l10n::Text, Vec<(&'stat
                     None => ("connection", vec![("from", from.into()), ("to", to.into())]),
                 }
             }
-            None => ("a-connection", vec![]),
+            None => ("other", vec![]),
         },
         _ => ("other", vec![]),
     };

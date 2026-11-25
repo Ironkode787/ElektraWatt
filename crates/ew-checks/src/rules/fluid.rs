@@ -116,7 +116,7 @@ impl Rule for WorkingPortOpen {
                     &WORKING_PORT_OPEN,
                     [Target::new(Kind::Function, f)],
                     "open",
-                    full_tag(q, d, text!("word-device")),
+                    full_tag(q, d, ew_derive::text::record_name(ew_schema::Kind::Device)),
                 )
                 .arg("form", "one")
                 .arg("port", port.clone()),
@@ -124,7 +124,7 @@ impl Rule for WorkingPortOpen {
                     &WORKING_PORT_OPEN,
                     [Target::new(Kind::Function, f)],
                     "open",
-                    full_tag(q, d, text!("word-device")),
+                    full_tag(q, d, ew_derive::text::record_name(ew_schema::Kind::Device)),
                 )
                 .arg("form", "many")
                 .arg("ports", and_listed(ports.iter().cloned())),
@@ -215,7 +215,7 @@ impl Rule for CoilBindings {
                         &COIL_BINDINGS,
                         targets,
                         format!("excess:{designation}"),
-                        full_tag(q, d, text!("word-device")),
+                        full_tag(q, d, ew_derive::text::record_name(ew_schema::Kind::Device)),
                     )
                     .arg("form", "excess")
                     .arg("valve", valve.clone())
@@ -231,7 +231,7 @@ impl Rule for CoilBindings {
                             &COIL_BINDINGS,
                             [Target::new(Kind::Function, *f), Target::new(Kind::Channel, *c)],
                             "undeclared",
-                            full_tag(q, d, text!("word-device")),
+                            full_tag(q, d, ew_derive::text::record_name(ew_schema::Kind::Device)),
                         )
                         .arg("form", "undeclared")
                         .arg("valve", valve.clone())
@@ -253,7 +253,7 @@ impl Rule for CoilBindings {
                         &COIL_BINDINGS,
                         [Target::new(Kind::Device, d)],
                         format!("unbound:{s}"),
-                        full_tag(q, d, text!("word-device")),
+                        full_tag(q, d, ew_derive::text::record_name(ew_schema::Kind::Device)),
                     )
                     .with_severity(Severity::Warning)
                     .arg("form", "unbound")
@@ -315,7 +315,7 @@ impl Rule for SparePositions {
                     &SPARE_POSITIONS,
                     [Target::new(Kind::Device, device)],
                     form,
-                    full_tag(q, device, text!("word-device")),
+                    full_tag(q, device, ew_derive::text::record_name(ew_schema::Kind::Device)),
                 )
                 .arg("form", form)
                 .arg("module", module.clone())
@@ -370,7 +370,7 @@ impl Rule for DrivesMismatch {
                 &DRIVES_MISMATCH,
                 [Target::new(Kind::Device, d)],
                 "drives",
-                full_tag(q, d, text!("word-device")),
+                full_tag(q, d, ew_derive::text::record_name(ew_schema::Kind::Device)),
             )
             .arg("valve", valve)
             .arg("target", target)
@@ -428,7 +428,7 @@ fn both(q: &Q, parent: Id<Device>, p: u32, a: Id<Device>, b: Id<Device>, form: &
         &OCCUPANCY,
         [Target::new(Kind::Device, b)],
         form,
-        full_tag(q, b, text!("word-device")),
+        full_tag(q, b, ew_derive::text::record_name(ew_schema::Kind::Device)),
     )
     .arg("form", form)
     .arg("parent", parent_t)
@@ -446,7 +446,7 @@ fn outside(q: &Q, module: Id<Device>, n: u16, p: u32, child: Id<Device>, tail: (
         &OCCUPANCY,
         [Target::new(Kind::Device, child)],
         "outside",
-        full_tag(q, child, text!("word-device")),
+        full_tag(q, child, ew_derive::text::record_name(ew_schema::Kind::Device)),
     )
     .arg("form", form)
     .arg("module", module_t)
@@ -497,7 +497,7 @@ impl Rule for Occupancy {
                     &OCCUPANCY,
                     [Target::new(Kind::Device, d)],
                     format!("empty:{p}"),
-                    full_tag(q, d, text!("word-device")),
+                    full_tag(q, d, ew_derive::text::record_name(ew_schema::Kind::Device)),
                 )
                 .with_severity(Severity::Warning)
                 .arg("form", "empty")

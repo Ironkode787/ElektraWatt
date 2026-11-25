@@ -762,18 +762,18 @@ fn generic_kind_words(words: &[&str]) -> Option<String> {
     )
 }
 
-/// A record kind as a heading in the UI language (`Potential definition`, `Potentiaaldefinitie`): its
-/// `record-kind-<kind>` text, else [`kind_label`] with a capital.
+/// A record kind as a heading in the UI language (`Potential definition`, `Potentiaaldefinitie`): its name of the
+/// derivation's table (`ew_derive::text::record_name`) with a capital.
 pub fn kind_heading(kind: &str) -> String {
-    let key = format!("record-kind-{}", kind.replace('_', "-"));
-    lookup(&key).map_or_else(|| sentence_start(&kind_label(kind)).into_owned(), str::to_owned)
+    let name = ew_api::checks::messages::record_kind_name(kind, false, rule_language());
+    sentence_start(&name).into_owned()
 }
 
-/// A record kind in the plural as a heading in the UI language (`Devices`, `Apparaten`): its
-/// `record-kinds-<kind>` text, else [`kind_plural`] with a capital.
+/// A record kind in the plural as a heading in the UI language (`Devices`, `Apparaten`): its plural of the
+/// derivation's table (`ew_derive::text::record_names`) with a capital.
 pub fn kinds_heading(kind: &str) -> String {
-    let key = format!("record-kinds-{}", kind.replace('_', "-"));
-    lookup(&key).map_or_else(|| sentence_start(&kind_plural(kind)).into_owned(), str::to_owned)
+    let name = ew_api::checks::messages::record_kind_name(kind, true, rule_language());
+    sentence_start(&name).into_owned()
 }
 
 /// An accessory kind of the strip editor in the UI language: the text of `accessory-<kind>` (`end_clamp`
@@ -782,26 +782,6 @@ pub fn kinds_heading(kind: &str) -> String {
 pub fn accessory_text(kind: &str) -> &'static str {
     lookup(&format!("accessory-{}", kind.replace('_', "-")))
         .unwrap_or_else(|| text(crate::key!("accessory-other")))
-}
-
-/// A record kind in words, singular (`potential definition`).
-pub fn kind_label(kind: &str) -> String {
-    match kind {
-        "potential_def" => "potential definition".into(),
-        "external_ref" => "external reference".into(),
-        "plc_config_project" => "PLC configuration project".into(),
-        other => other.replace('_', " "),
-    }
-}
-
-/// A record kind in words, plural (`devices`, `potential definitions`).
-pub fn kind_plural(kind: &str) -> String {
-    let one = kind_label(kind);
-    if one.ends_with("box") {
-        format!("{one}es")
-    } else {
-        format!("{one}s")
-    }
 }
 
 /// The key of the title of the command `name`: `command-<name>` with every `.` as `-` (a Fluent identifier has no dot).
@@ -1123,18 +1103,11 @@ mod tests {
         assert_eq!(nl_nl().texts["record-other"], "een element");
     }
 
-    /// Every field of every record kind's catalogue with its value type: (kind, path, type), the kinds read from the
-    /// `record-kind-*` texts.
+    /// Every field of every record kind's catalogue with its value type: (kind, path, type), the kinds the catalogue
+    /// covers.
     fn catalogue_fields() -> Vec<(String, String, ew_api::output::FieldType)> {
         let mut out = Vec::new();
-        for line in sources("en-GB").flat_map(str::lines) {
-            let Some((kind, _)) = line
-                .strip_prefix("record-kind-")
-                .and_then(|l| l.split_once(" = "))
-            else {
-                continue;
-            };
-            let kind = kind.replace('-', "_");
+        for kind in ew_api::output::catalogue_kinds().map(|k| k.name().to_owned()) {
             for s in ew_api::output::field_catalogue(&kind)
                 .iter()
                 .flat_map(|c| c.iter())
@@ -1463,8 +1436,5 @@ mod tests {
             ["pos", "orient", "ptype"].map(|m| field_label("representation", m)),
             ["Position", "Orientation", "Potential type"]
         );
-        assert_eq!(kind_plural("device"), "devices");
-        assert_eq!(kind_plural("potential_def"), "potential definitions");
-        assert_eq!(kind_plural("structure_box"), "structure boxes");
     }
 }

@@ -342,7 +342,7 @@ pub(crate) fn position(p: ew_units::Pt2) -> Text {
 
 /// A wire by the number the drawing prints for its physical wire ("wire 102.5", the derived `wire_numbers` label of
 /// the base snapshot; a star's shared feed arm takes the first of its wires), else by its page ("a wire on page
-/// 102"), else "a wire". A connection the transaction made has no printed number yet.
+/// 102"), else "a connection". A connection the transaction made has no printed number yet.
 pub(crate) fn wire(tx: &TxBuilder<'_>, id: ew_ids::Id<Connection>) -> Text {
     let printed = || -> Option<String> {
         let c = tx
