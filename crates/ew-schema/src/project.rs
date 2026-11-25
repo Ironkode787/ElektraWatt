@@ -188,6 +188,21 @@ pub enum PartyRole {
     Unknown(Value),
 }
 
+impl PartyRole {
+    /// The stored spelling of every role of this build, in the enum's order: the one list of party roles.
+    pub fn names() -> &'static [&'static str] {
+        crate::track::variant_names(PartyRole::deserialize)
+    }
+
+    /// The role whose stored spelling is `name`; `None` for a name that is no role of this build.
+    pub fn from_name(name: &str) -> Option<PartyRole> {
+        Self::names()
+            .contains(&name)
+            .then(|| PartyRole::deserialize(serde_json::Value::from(name)).ok())
+            .flatten()
+    }
+}
+
 /// A postal address (doc 03 §5). Its plain strings are NFC; the loader normalises them (module docs).
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct Address {

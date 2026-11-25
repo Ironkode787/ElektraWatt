@@ -113,21 +113,6 @@ pub(super) fn run_revision_with(
         );
         return 2;
     }
-    let checker = match &a.action {
-        RevisionAction::Approve { role } => {
-            match serde_json::from_value::<ew_api::PartyRole>(serde_json::Value::String(role.clone())) {
-                Ok(r) if !matches!(r, ew_api::PartyRole::Unknown(_)) => Some(r),
-                _ => {
-                    error(format_args!(
-                        "`{role}` is not a party role (customer, end_user, panel_builder, author, checker, \
-                         engineer); nothing was changed"
-                    ));
-                    return 2;
-                }
-            }
-        }
-        _ => None,
-    };
     let Some(dir) = project_dir(a.project.as_ref()) else {
         return 2;
     };
@@ -139,11 +124,9 @@ pub(super) fn run_revision_with(
         Ok(s) => s,
         Err(code) => return code,
     };
-    let code = match (&a.action, checker) {
-        (RevisionAction::Approve { .. }, Some(checker)) => {
-            approve_revision(&mut session, &items, &checker, input, output, today)
-        }
-        (RevisionAction::Release { label, archive_dir }, _) => {
+    let code = match &a.action {
+        RevisionAction::Approve { role } => approve_revision(&mut session, &items, role, input, output, today),
+        RevisionAction::Release { label, archive_dir } => {
             let release = Release {
                 label,
                 archive_dir: archive_dir.as_deref(),
@@ -152,10 +135,7 @@ pub(super) fn run_revision_with(
             };
             release_revision(&mut session, &items, &release, input, output)
         }
-        (RevisionAction::Withdraw { label, reason }, _) => {
-            withdraw_revision(&mut session, label, reason, input, output)
-        }
-        (RevisionAction::Approve { .. }, None) => 2,
+        RevisionAction::Withdraw { label, reason } => withdraw_revision(&mut session, label, reason, input, output),
     };
     // The release's housekeeping: a run record that could not be removed, as the project opened or a run
     // was settled.
@@ -583,9 +563,7 @@ mod tests {
         assert_eq!(
             parse(&["revision", "approve", "--as", "checker"]),
             Ok(RevisionArgs {
-                action: RevisionAction::Approve {
-                    role: "checker".into()
-                },
+                action: approve("checker"),
                 project: None,
             })
         );
@@ -624,6 +602,7 @@ mod tests {
             &["revision", "sign"],
             &["revision", "approve"],
             &["revision", "approve", "--as"],
+            &["revision", "approve", "--as", "boss"],
             &["revision", "approve", "--as", "checker", "--yes"],
             &["revision", "release"],
             &["revision", "release", "V2.0", "a", "b"],
@@ -796,7 +775,9 @@ mod tests {
     }
 
     fn approve(role: &str) -> RevisionAction {
-        RevisionAction::Approve { role: role.into() }
+        RevisionAction::Approve {
+            role: ew_api::PartyRole::from_name(role).expect("a role"),
+        }
     }
 
     fn release(label: &str) -> RevisionAction {
@@ -849,9 +830,9 @@ mod tests {
         s.close();
     }
 
-    /// Without a terminal each subcommand exits 2 and writes nothing; a role that is no party role exits 2.
+    /// Without a terminal each subcommand exits 2 and writes nothing.
     #[test]
-    fn revision_commands_need_a_terminal_and_a_party_role() {
+    fn revision_commands_need_a_terminal() {
         let dir = sample_copy("terminal");
         let before = files(&dir);
         for action in [approve("checker"), release("V1.0"), withdraw("V2.0")] {
@@ -859,8 +840,6 @@ mod tests {
             assert_eq!(code, 2, "{action:?}");
             assert_eq!(shown, "", "{action:?}: no prompt");
         }
-        let (code, shown) = run(&dir, approve("boss"), true, "V1.0\n");
-        assert_eq!((code, shown.as_str()), (2, ""));
         assert_eq!(files(&dir), before);
     }
 

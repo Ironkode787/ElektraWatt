@@ -63,7 +63,7 @@ pub enum RevisionAction {
     /// `revision approve --as <role>`: the checker's sign-off on the open revision.
     Approve {
         /// The checker's party role (`--as`).
-        role: String,
+        role: ew_api::PartyRole,
     },
     /// `revision release <label> [--archive-dir <dir>]`: the atomic release with the as-built archive,
     /// or settling an incomplete one.

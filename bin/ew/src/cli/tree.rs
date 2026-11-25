@@ -2124,9 +2124,11 @@ pub(crate) struct ApproveCli {
         long = "as",
         value_name = "role",
         allow_hyphen_values = true,
-        overrides_with = "role"
+        overrides_with = "role",
+        value_parser = PossibleValuesParser::new(ew_api::PartyRole::names())
+            .map(|name| ew_api::PartyRole::from_name(&name).expect("a possible value is a role"))
     )]
-    pub(super) role: String,
+    pub(super) role: ew_api::PartyRole,
 }
 
 /// `ew revision release`.
