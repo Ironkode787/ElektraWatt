@@ -850,8 +850,8 @@ fn replace_items(shell: &ShellModel) -> Vec<ew_viewmodel::actions::ActionItem> {
         .unwrap_or_default()
 }
 
-/// The rack, drawn: one card per place, left to right, scrolling sideways when the station is long; under it the note
-/// of the last change and the last refusal, which names the place it was refused at by its outline.
+/// The rack, drawn: one card per place, left to right, scrolling sideways when the station is long; under it one line
+/// for the last refusal, which names the place it was refused at by its outline, else the note of the last change.
 fn rack(
     ui: &mut Ui,
     t: &Tokens,
@@ -880,8 +880,13 @@ fn rack(
             });
             ui.add_space(t.space_3);
         });
-    if let Some((_, why)) = &tab.error {
-        ui.horizontal_wrapped(|ui| {
+    // One line that keeps its room whether it says something or not, so that a refusal standing or gone never moves
+    // the lists under it (a field open in the channels stayed where the pointer had left it): the refusal, else the
+    // note; a text longer than the line ends in an ellipsis, whole in its tooltip.
+    let line = vec2(ui.available_width(), ui.spacing().interact_size.y);
+    ui.allocate_ui_with_layout(line, egui::Layout::left_to_right(egui::Align::Center), |ui| {
+        ui.set_min_size(line);
+        if let Some((_, why)) = &tab.error {
             let (rect, _) = ui.allocate_exact_size(vec2(t.icon_sm, t.icon_sm), Sense::hover());
             icons::paint(
                 ui.painter(),
@@ -890,12 +895,19 @@ fn rack(
                 t.error.color32(),
                 t.icon_stroke,
             );
-            ui.add(egui::Label::new(small(t, why.clone(), t.error)).selectable(false));
-        });
-    }
-    if let Some(note) = &tab.note {
-        ui.add(egui::Label::new(small(t, note.clone(), t.text_secondary)).selectable(false));
-    }
+            ui.add(
+                egui::Label::new(small(t, why.clone(), t.error))
+                    .selectable(false)
+                    .truncate(),
+            );
+        } else if let Some(note) = &tab.note {
+            ui.add(
+                egui::Label::new(small(t, note.clone(), t.text_secondary))
+                    .selectable(false)
+                    .truncate(),
+            );
+        }
+    });
 }
 
 /// One card of the drawn rack.

@@ -90,8 +90,12 @@ impl App {
         if self.properties.field_open() && ctx.input(|i| i.key_pressed(Key::Escape)) {
             return true;
         }
-        // So are Enter and Escape with a station view's tag field open: they take or leave the tag.
-        if self.shell.station_tab().is_some_and(|t| t.rename.is_some())
+        // So are Enter and Escape with a station view's tag field or channel cell open: they take or leave the text,
+        // and the view stays (Escape left the view for the page as well).
+        if self
+            .shell
+            .station_tab()
+            .is_some_and(|t| t.rename.is_some() || t.channel.is_some())
             && ctx.input(|i| i.key_pressed(Key::Escape) || i.key_pressed(Key::Enter))
         {
             return true;

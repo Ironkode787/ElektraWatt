@@ -16,7 +16,6 @@ From the owner's tests of 0.3.0's candidates and the persona runs.
 
 #### The station view and the PLC grid
 
-- FT-2139 `ew-viewmodel, ew-ui`: In the station view's channel table, Enter after a refused function text opens the next row's cell and leaves two edit boxes on screen, and the error line above To do shifts the table by a row while it stands; `plc.module_goto` closes the rack tab after an Escape in the view; the rack bar's menu is not fitted to its widest entry as the other menus are (seen in fix lanes, 2026-11-23).
 
 #### The window's finish
 

@@ -774,3 +774,69 @@ fn closing_a_station_not_made_yet_asks() {
     assert_eq!(shell.revision(), revision, "nothing was written");
     h.state_mut().shell_mut().shutdown();
 }
+
+/// A fix lane: in the channels, Enter on a refused function text left the table shifted by the refusal's line, and
+/// Escape left the view for the page as well as the field, so Go to page then said no station was open. A refused text
+/// keeps its one field on the text as typed and the lists where they stood; Escape leaves the field and the view stays,
+/// and Go to page shows the module's page with the station's tab beside it.
+#[test]
+fn a_refused_channel_text_keeps_its_field_and_the_lists_in_place() {
+    let tmp = Tmp::new();
+    let mut h = support::on_sample(&tmp, "101");
+    dispatch(&mut h, "plc.rack_editor", json!({"station": "tag:-104A1"}));
+    settle(&mut h);
+    let id = station_of(&h);
+    let card = format!("Slot 1, {}", modules(&h, id)[0].tag);
+    click(&mut h, &card);
+    let channels = h.state().shell().station_shown().expect("the view").channels.clone();
+    let wired = channels
+        .iter()
+        .find(|c| c.device.is_some())
+        .expect("a channel wired to a device");
+    let last = format!(
+        "Symbol name of {}",
+        channels.last().expect("the card's channels").address
+    );
+    let field = format!("Function text of {}", wired.address);
+    click(&mut h, &field);
+    let below = h.get_by_label(&last).rect();
+    h.get_by_label(&field).type_text("Spare\u{7}");
+    settle(&mut h);
+    h.key_press(egui::Key::Enter);
+    settle(&mut h);
+    let (_, why) = h
+        .state()
+        .shell()
+        .station_tab()
+        .and_then(|t| t.error.clone())
+        .expect("refused under the rack");
+    h.get_by_label(&why);
+    let fields: Vec<String> = h
+        .get_all_by_role(egui::Role::TextInput)
+        .filter_map(|n| n.accesskit_node().label())
+        .filter(|l| l.starts_with("Function text of") || l.starts_with("Symbol name of"))
+        .collect();
+    assert_eq!(fields, [field.clone()], "one field, on the cell refused");
+    assert_eq!(h.get_by_label(&last).rect(), below, "the lists stay where they stood");
+    h.get_by_label(&field).focus();
+    h.key_press(egui::Key::Escape);
+    settle(&mut h);
+    let open = h
+        .get_all_by_role(egui::Role::TextInput)
+        .filter_map(|n| n.accesskit_node().label())
+        .any(|l| l == field);
+    assert!(!open, "Escape leaves the field");
+    assert_eq!(station_of(&h), id, "the view stays");
+    dispatch(&mut h, "plc.module_goto", json!({}));
+    settle(&mut h);
+    let shell = h.state().shell();
+    assert_eq!(shell.current_folio(), Some("104"), "the module's page");
+    let stations = shell
+        .area()
+        .expect("the canvas area")
+        .tabs()
+        .filter(|(_, _, t)| t.station.is_some())
+        .count();
+    assert_eq!(stations, 1, "the station's tab stays beside the page");
+    h.state_mut().shell_mut().shutdown();
+}

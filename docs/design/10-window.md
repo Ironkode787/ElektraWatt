@@ -27,7 +27,8 @@ beside the page tabs (`area::StationTab` on a `Tab`; the tab keeps the page it w
 `ShellModel::canvas` is `None` there, so no tool draws on a page that is not on show). It opens from Rack… (the PLC
 tab, a station's menu), a double click on a station in the PLC panel, placing a station's part, and New station…; a
 jump to a page from the view (a link, Go to page, Draw on a page…) shows the page in a page tab and leaves the
-station's tab in the strip, and `Esc` in the view goes back to the page. One tab per station; a tab whose station is
+station's tab in the strip, and `Esc` in the view goes back to the page (with a tag field or a channel cell open it
+leaves the field, and the view stays). One tab per station; a tab whose station is
 gone (deleted, its making undone) closes. The view shows, from `Session::rack_view` (cached per revision and station):
 
 - **the rack drawn**, one card per place left to right: the head (`RackView::head`, the station itself; a station
