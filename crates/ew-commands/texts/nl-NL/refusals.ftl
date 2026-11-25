@@ -330,10 +330,10 @@ refusal-languages-source-as-translation = `{ $p0 }` is de brontaal, geen vertali
 refusal-settings-member-unknown = `{ $p0 }` is geen instelbare projectinstelling; instelbaar: { $p1 }
 refusal-settings-value = geen geldige instelling `{ $p0 }`: { $p1 }
 # What is wrong with a settings member's value: numbering, xref_format, the wire profiles, process_tag_scheme.
-refusal-settings-issue-default = de standaard `{ $p0 }` noemt geen schema van `schemes`; tags zouden ongemerkt het standaardschema van het profiel gebruiken
-refusal-settings-issue-scheme-token = schema `{ $p0 }`: het formaat { $p1 } heeft het onbekende element { $p2 }, dat in tags zou worden afgedrukt; elementen zijn {"{"}letter{"}"}, {"{"}counter{"}"}, {"{"}subcounter{"}"}, {"{"}page{"}"}, {"{"}column{"}"}, {"{"}row{"}"}
-refusal-settings-issue-scheme-unused = schema `{ $p0 }` zou niet worden toegepast ({ $p1 }); een schema heeft het tellerbereik "page" nodig en formaten met {"{"}page{"}"}, {"{"}letter{"}"} en {"{"}counter{"}"}
-refusal-settings-issue-counter-scope = het tellerbereik is niet "page"
+refusal-settings-issue-default = de standaard `{ $p0 }` noemt geen schema van `schemes`; kenmerken zouden ongemerkt het standaardschema van het profiel gebruiken
+refusal-settings-issue-scheme-token = schema `{ $p0 }`: het formaat { $p1 } heeft het onbekende element { $p2 }, dat in kenmerken zou worden afgedrukt; elementen zijn {"{"}letter{"}"}, {"{"}counter{"}"}, {"{"}subcounter{"}"}, {"{"}page{"}"}, {"{"}column{"}"}, {"{"}row{"}"}
+refusal-settings-issue-scheme-unused = schema `{ $p0 }` zou niet worden toegepast ({ $p1 }); een schema heeft het tellerbereik "page" (per pagina) nodig en formaten met {"{"}page{"}"}, {"{"}letter{"}"} en {"{"}counter{"}"}
+refusal-settings-issue-counter-scope = het tellerbereik is niet "page" (per pagina)
 refusal-settings-issue-no-page = het formaat heeft geen element {"{"}page{"}"}
 refusal-settings-issue-no-counter = het formaat mist {"{"}letter{"}"} of {"{"}counter{"}"}
 refusal-settings-issue-unknown-key = de instellingen van het project bevatten geen schema met deze sleutel
