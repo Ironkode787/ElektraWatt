@@ -32,6 +32,7 @@ worked on after it.
 |---|---|---|---|
 | `v0.3.5-rc.1` | `release/0.3`, the commit the tag names | [`checklist-rc.1.md`](checklist-rc.1.md) | Cut on 2026-11-22; its release build passed (run 19 of `release.yml`: verify, the guide, the Linux and the Windows package, the sums and the draft). Not tested by the owner yet; the rows open at the cut are worked on for a second candidate, with a review and a persona round before it (owner) |
 | `v0.3.5-rc.2` | `release/0.3`, the commit the tag names | [`checklist-rc.2.md`](checklist-rc.2.md) | Cut on 2026-11-23, with what was done between the candidates (below); its release build passed (run 20 of `release.yml`: verify, the guide, the Linux and the Windows package, the sums and the draft). Not tested by the owner yet. A third candidate follows after the hygiene step that the owner added to the milestone (step 15 of the plan) |
+| `v0.3.5-rc.3` | `release/0.3`, the commit the tag names | [`checklist-rc.3.md`](checklist-rc.3.md) | Cut on 2026-11-25, with what was done between the candidates (below). Not tested by the owner yet |
 
 Before the first cut, on the tip that the release branch moves to: two reviews, each with its fixes. The first
 read everything from 0.3.0 to the end of the fix round's sweep, in four parts (the format, the model and the
@@ -69,6 +70,24 @@ status pass; the first such run failed on three things, which the checklist's RC
 
 Eighteen rows of the fix round are open at the second cut ([backlog](../../../plan/backlog.md), "0.3.5: the fix
 round"), and the notes' section 7 names what a reader would meet.
+
+**Between the second and the third candidate.** The owner added a hygiene step to the milestone (step 15 of
+the plan): the code was reworked to one accepted architecture (ADR-0035: one home per thing, one path for a text,
+the shell decides what is said) in twelve stages that changed nothing a person sees; then about fifty changes of
+behaviour that the rework had turned up and the owner agreed to, each its own commit; then a second scan of the
+whole repository by eight readers (164 findings, mended in four lanes); then the open rows that flowed from the
+step, which the owner took into the milestone: the faults a person met at the window, the navigators' words as
+keyed texts, every key of the window a binding, one page for each PLC card by default, and Move to page. A review
+of everything since the second candidate came last, in four parts: three major findings, all from this step's own
+changes and each mended with a test written first, and twenty small ones mended by the reviewers. One reviewer
+built the command line at both ends and found no layout result and no output of the sample changed but what the
+commits say. No persona round was run between these candidates. On the candidate's tree, with nothing else
+building, the whole workspace with the deep run and the private corpus (7,847 tests, 9 of 9), the format guard,
+the guide's translation check, the generated files and the advisories pass.
+
+At the third cut the fix round has eleven rows open and the step has left eighteen
+([backlog](../../../plan/backlog.md), "0.3.5: the fix round" and "M3.5: what its own steps leave"); the notes'
+section 7 names what a reader would meet.
 
 ## 3. The release manager's decisions
 
