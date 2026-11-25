@@ -18,13 +18,18 @@ GPL-3.0-or-later for the app, MIT OR Apache-2.0 for the format crates. It is an 
 ```sh
 cargo xtask check -p <crate> [-p <crate>]...   # format, lint, test what changed, repository rules
 cargo xtask check -p <crate> -- <filter>        # the same, the tests narrowed to a nextest filter (no doctests)
+cargo xtask check --deep                        # the whole workspace with the slow tests of the deep run
 cargo xtask gen                                 # regenerate generated files after changing a command, rule, text, icon, guide page
 cargo xtask rules                               # the repository rules alone
 ```
 
 - Run `check` on the crates you changed and the crates that show the change. The whole workspace (`check` without
   `-p`, about seven minutes) runs at the start and the end of a milestone and before a release, not per change.
-  The deep run (the slow tests, about eight minutes; CONTRIBUTING.md, "Tests") runs at the same moments.
+  The deep run (`check --deep`: the slow tests as well, about five minutes more; CONTRIBUTING.md, "Tests") runs at
+  the same moments.
+- `check` also replays the persona briefs on the built programs when the change touches `tools/blind/`, `content/`
+  or `xtask/`, and always for the whole workspace. A check that passes writes down its tree; on the same tree it
+  says so and runs nothing.
 - There is no CI until 1.0 (owner, 2026-11-08). `check` is the check.
 - No performance tests and no timing assertions during development (owner, 2026-10-22); a performance claim is
   marked "not measured".
