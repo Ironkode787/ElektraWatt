@@ -565,8 +565,9 @@ fn an_interruption_point_at_the_area_edge_still_routes() {
         json!({"cmd": "rep.move", "params": {"reps": [feed], "steps": [steps, 0]}}),
     );
     let (from, to) = (cp(&s, "1L1"), cp(&s, "-101F1:1"));
-    // The case: one step inside the area's right edge, leaving right.
-    assert_eq!(from.at.0, area[2] - g);
+    // The case: one step inside the area's right edge, leaving right (the edge read back from where the sheet prints
+    // it, to the nanometre the page-to-sheet map rounds).
+    assert!((from.at.0 - (area[2] - g)).abs() <= 1, "{} {}", from.at.0, area[2] - g);
     let before = tables(&s);
     done(&mut s, "tool.wire", json!({}));
     click(&mut s, from.at, false);
