@@ -204,6 +204,20 @@ fn the_wire_tool_is_called_wire_on_its_button_and_in_its_tooltip() {
     );
 }
 
+/// A tool's button lights while its tool is active, Graphic and Image as Wire does, and goes out with Select.
+#[test]
+fn a_tool_button_lights_while_its_tool_is_active() {
+    let tmp = Tmp::new("tool-lit");
+    let mut s = tmp.sample_in(Mode::Gui, true, "102");
+    for id in ["tool.wire", "tool.graphic", "tool.image"] {
+        done(&mut s, id, json!({}));
+        assert!(command_bar::action_button(&s, id).unwrap().checked, "{id} lit");
+        done(&mut s, "tool.select", json!({}));
+        assert!(!command_bar::action_button(&s, id).unwrap().checked, "{id} out");
+    }
+    s.shutdown();
+}
+
 /// CB8: the Draw tab's Mirror button opens its two directions.
 #[test]
 fn the_draw_tab_mirror_opens_its_two_directions() {

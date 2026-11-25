@@ -176,20 +176,9 @@ pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
         shortcut: model.shortcut_text(meta),
         enabled: state.is_ok(),
         reason: state.err().map(|k| strings::text(k).to_owned()),
-        checked: switch_on(model, meta.id).unwrap_or_else(|| match meta.id {
-            "tool.select" | "tool.measure" => meta.id.strip_prefix("tool.") == Some(model.tool().name()),
-            "tool.wire" => model.tool().name() == "wire",
-            "tool.ip" => model.tool().name() == "ip",
-            "tool.black_box" => model.tool().name() == "black_box",
-            "tool.text" => model.tool().name() == "text",
-            "tool.marker" => model.tool().name() == "marker",
-            "tool.structure_box" => model.tool().name() == "structure_box",
-            "tool.rail_draw" => model.tool().name() == "rail_draw",
-            "tool.duct_draw" => model.tool().name() == "duct_draw",
-            // The Place tool lights Symbol in the bar.
-            "tool.place" => model.tool().name() == "place",
-            _ => false,
-        }),
+        // A tool's action `tool.<name>` lights while the tool `<name>` is active (Place lights Symbol in the bar).
+        checked: switch_on(model, meta.id)
+            .unwrap_or_else(|| meta.id.strip_prefix("tool.") == Some(model.tool().name())),
         topic: crate::help::action_topic(meta.id),
     }
 }
