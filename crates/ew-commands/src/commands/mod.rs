@@ -48,6 +48,7 @@ pub(crate) mod library;
 mod library_update;
 mod macro_insert;
 mod merge;
+mod move_keep;
 mod overview;
 mod page;
 mod page_copy;
@@ -91,6 +92,7 @@ pub use layout::{CarrierKindParam, CarrierParamsParam, CarrierThen, FillOrder, P
 pub use library_update::{ChangeClass, CopyDiff, CpMapParam, FieldChange, classify_update};
 pub use macro_insert::{MACRO_KINDS, binding_field_ok, coerce_value, instantiate};
 pub use merge::Take;
+pub use move_keep::KeepAsIps;
 pub use page::{LabelModeParam, LabelsParam, PageScope};
 pub use page_copy::{
     NodeSwap, PAGE_COPY_KINDS, REPRODUCED, Rename, TextNames, designation_moves, names_tag, renamed,

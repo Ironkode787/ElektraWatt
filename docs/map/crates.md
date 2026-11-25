@@ -293,6 +293,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/commands/macro_insert.rs` |  | `macro.insert` (doc 07 §3.5, §4.6): inserts a window or page macro in one transaction, with its values, its placeholder groups and its closure as parameters, so a command log replays the insertion exactly on a machine with no library installed. |
 | `src/commands/merge.rs` |  | `merge.resolve` (`ResolveConflicts`, FR-COL-015): the conflict records a merge left (doc 05 §11.2, §11.4), resolved by taking ours or theirs, in one transaction. |
 | `src/commands/mod.rs` |  | The v0 editor commands (doc 06 §3.1, within the v0 record set). |
+| `src/commands/move_keep.rs` |  | The cross-page move's pairs of interruption points (doc 06 §3.4): `rep.move` with a target page and `keep` keeps each wire whose other end stays behind as a pair of interruption points. |
 | `src/commands/overview.rs` |  | `valve_terminal.generate_overview` (`GenerateOverview`, doc 11 §5.5, FR-FLU-033): creates or refreshes the assembly-overview pages of a valve terminal. |
 | `src/commands/page.rs` | large | Page commands (doc 06 §3.1): `page.create`, `page.delete`, `page.renumber`, `page.reorder`; and `page.surface_view.set`, the view of a panel-layout page. |
 | `src/commands/page_copy.rs` |  | `page.copy` (doc 06 §3.6, "A copy of pages"): whole pages copied for a second installation in one transaction, by the rule a person gives: new folios (an offset, or after a page), a structure node of the copy's own, renamed frozen tags and interruption-point names. |

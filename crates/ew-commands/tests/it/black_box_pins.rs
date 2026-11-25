@@ -309,6 +309,7 @@ fn steps(rep: Id<Representation>, s: [i64; 2]) -> MoveReps {
         page: None,
         steps: Some(s),
         into: None,
+        keep: None,
     }
 }
 
@@ -499,6 +500,7 @@ fn a_route_to_a_black_box_pin_follows_the_box_on_a_drag_and_a_transform() {
         page: None,
         steps: None,
         into: None,
+        keep: None,
     })
     .expect("a move by a delta");
     check(&e, "a delta");

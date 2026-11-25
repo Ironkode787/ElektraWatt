@@ -250,6 +250,7 @@ fn a_move_of_a_selection_with_the_surface_view_names_it() {
         page: None,
         steps: None,
         into: None,
+        keep: None,
     });
     match r {
         Err(ew_commands::CmdError::Rejected { text, .. }) => assert_eq!(

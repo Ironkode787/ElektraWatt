@@ -57,6 +57,7 @@ fn steps(reps: Vec<Id<Representation>>, items: Vec<AnyId>, steps: [i64; 2]) -> M
         delta: Pt2::ORIGIN,
         page: None,
         into: None,
+        keep: None,
     }
 }
 

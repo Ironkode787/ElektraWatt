@@ -16,6 +16,7 @@ notice-box-cp-not-drawn = connection point { $p0 } is no longer drawn
 notice-company-logo-raster = the logo is a { $p0 } raster image: it prints rasterised; an SVG logo prints as vectors
 notice-hint-dropped = autoconnect hint { $p0 } dropped: { $p1 } no longer exists
 notice-hint-function = the function it connects to
+notice-rep-move-keep-pair = { $p0 } is kept as the pair of interruption points { $p1 }.
 notice-hint-junction = the junction it connects to
 notice-hint-wire = the wire it connects to
 notice-exchange-slot-dropped = the override of text slot { $p0 } is dropped: the new symbol has no such slot

@@ -60,10 +60,10 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use ew_api::{AnyCommand, next_in_series};
 use ew_api::checks::rules::pot::MARK_BESIDE_PIN_NM;
 use ew_api::geometry::{Dir, orient_point, orient_then};
 use ew_api::output::{PageTables, SymbolShape, TableCp, TableEnd, TablePotential, Uuid};
+use ew_api::{AnyCommand, next_in_series};
 use serde_json::{Value, json};
 
 use super::place::ORIENT_NAMES;

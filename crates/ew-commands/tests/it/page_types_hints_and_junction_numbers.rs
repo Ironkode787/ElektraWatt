@@ -159,6 +159,7 @@ fn move_refuses_a_page_whose_type_does_not_allow_the_rep() {
         delta: pt(0, 0),
         page: Some(PAGE_101),
         into: None,
+        keep: None,
     }));
     assert!(
         reason.contains("multi-line") && reason.contains("overview"),

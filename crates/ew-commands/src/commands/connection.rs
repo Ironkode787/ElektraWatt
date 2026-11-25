@@ -252,6 +252,60 @@ fn new_ip(tx: &mut TxBuilder<'_>, ip: NewIp) -> Result<Id<Function>, CmdError> {
     Ok(function)
 }
 
+/// A new interruption point named `name` with `direction`, drawn with `symbol` on `page` unturned, its one connection
+/// point at `at` (the representation placed so): the function and that CP's index. Refused in words: a symbol whose
+/// FnDef has not one CP, or whose CP the representation does not draw.
+pub(crate) fn ip_at(
+    tx: &mut TxBuilder<'_>,
+    page: Id<Page>,
+    symbol: Id<SymbolDef>,
+    name: Ident,
+    direction: IpDirection,
+    at: Pt2,
+) -> Result<(Id<Function>, u16), CmdError> {
+    let copy = tx.require::<LibCopy<SymbolDef>>(symbol)?;
+    let def = ew_ids::v5::lib_copy_id(copy.item.fndef.library.as_uuid(), copy.item.fndef.item.as_uuid());
+    let fndef = tx.require::<LibCopy<FnDef>>(def)?;
+    let idx = match fndef.item.cps.as_slice() {
+        [cp] => cp.idx,
+        other => return tx.reject(text!("refusal-draw-to-ip-cp-count", other.len().to_string())),
+    };
+    let spec = IpSpec {
+        name,
+        direction,
+        star_source: false,
+        sort: None,
+        external: None,
+        group: None,
+        extra: Extra::new(),
+    };
+    let function = new_ip(
+        tx,
+        NewIp {
+            def,
+            spec,
+            page,
+            symbol,
+            pos: at,
+            orient: Orient2::default(),
+            rep_type: RepType::MultiLine,
+        },
+    )?;
+    let Some(cp) = crate::geometry::cp_position(tx, function, idx, page) else {
+        return tx.reject(text!("refusal-draw-to-ip-symbol-cp"));
+    };
+    if cp != at {
+        let shift = crate::geometry::sub(at, cp).map_err(|_| CmdError::internal("ip_at: out of range"))?;
+        for rep in tx.reps_of_function(function) {
+            let pos = tx.require::<Representation>(rep)?.pos;
+            let pos =
+                crate::geometry::add(pos, shift).map_err(|_| CmdError::internal("ip_at: out of range"))?;
+            tx.update::<Representation>(rep, |r| r.pos = pos)?;
+        }
+    }
+    Ok((function, idx))
+}
+
 /// `connection.draw` (`Connect`, doc 06 §3.5, §4.4): one explicit connection.
 ///
 /// - Each end is a CP, a junction or a point on an existing connection. A point on connection W (on its

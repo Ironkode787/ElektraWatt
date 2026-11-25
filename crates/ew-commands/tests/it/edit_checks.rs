@@ -97,6 +97,7 @@ fn move_reps(reps: Vec<Id<Representation>>, delta: Pt2) -> MoveReps {
         delta,
         page: None,
         into: None,
+        keep: None,
     }
 }
 
@@ -172,6 +173,7 @@ fn a_step_move_that_takes_a_connection_point_out_of_range_is_refused_in_words() 
         page: None,
         steps: Some([0, 6]),
         into: None,
+        keep: None,
     }));
     assert_eq!(
         reason,
@@ -345,6 +347,7 @@ fn moving_onto_a_colliding_page_renumbers_the_moved_device() {
         delta: pt(0, 0),
         page: Some(PAGE_102),
         into: None,
+        keep: None,
     })
     .expect("cross-page move of an unconnected representation");
     assert_eq!(row(&e, moved).tag.counter, Some(2), "the next free counter");

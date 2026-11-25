@@ -863,6 +863,7 @@ fn delta_cmd(reps: Vec<Id<Representation>>, delta: Pt2, page: Option<Id<ew_schem
         page,
         steps: None,
         into: None,
+        keep: None,
     }
 }
 

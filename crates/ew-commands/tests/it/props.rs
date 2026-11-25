@@ -172,6 +172,7 @@ fn build(model: &Model, step: &Step) -> Option<Box<dyn DynCommand>> {
             delta: pt(dx * UNIT, dy * UNIT),
             page: None,
             into: None,
+            keep: None,
         }),
         Step::Transform { rep, rotate, mirror } => boxed(TransformReps {
             reps: vec![nth::<Representation>(model, *rep)?.id],

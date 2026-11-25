@@ -24,6 +24,7 @@ fn mv(dx: i64) -> MoveReps {
         delta: pt(dx * G, 0),
         page: None,
         into: None,
+        keep: None,
     }
 }
 
@@ -154,6 +155,7 @@ fn a_failed_command_leaves_the_history_alone() {
         delta: pt(0, 0),
         page: None,
         into: None,
+        keep: None,
     };
     assert!(e.execute(&bad).is_err());
     assert_eq!(e.history().entries().len(), 1);

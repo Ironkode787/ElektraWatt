@@ -588,8 +588,11 @@ fn zero() -> Pt2 {
 /// the connection on the representation's old page), if both ends are drawn by moved representations the whole
 /// route translates by `delta`; otherwise the route end at the moved endpoint follows (`geometry::follow_end`: the
 /// end vertex moves by `delta`, its neighbour keeps the segment orthogonal). A cross-page move also moves every
-/// connection whose both ends move to the new page; a connection with only one end on a moved representation (or
-/// ending at a junction) is rejected, because the IP-pair replacement of FR-CON-043 is not in v0. Online numbering
+/// connection whose both ends move to the new page. With `keep` each wire whose other end stays behind is kept as a
+/// pair of interruption points (`move_keep`, doc 06 §3.4: a junction stays with the larger part, the wires between a
+/// junction that moves and the moved symbols move with it), each pair named in a notice; refused in words: a
+/// junction joined to another, a wire whose old path has no free grid point. Without `keep` such a wire is refused,
+/// named. Online numbering
 /// renumbers a main representation's device whose page-based tag collides on the new page (FR-NUM-029). A wire
 /// marker on the old page lets go of the connections that leave it, and a marker left empty is removed (the
 /// unlink policy of its list, EW-INV-023).
@@ -663,6 +666,10 @@ pub struct MoveReps {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub into: Option<Id<Device>>,
+    /// A cross-page move's interruption points: each wire whose other end stays behind is kept as a pair of them
+    /// (doc 06 §3.4); absent, such a wire is refused.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub keep: Option<crate::commands::KeepAsIps>,
 }
 
 /// An autoconnect hint of `rep.move`: a `device.place` hint ([`ConnectHint`]) of a representation,
@@ -1106,8 +1113,8 @@ impl Command for MoveReps {
 /// comes after the page of the first representation, in its section, its folio `number`, else proposed as `page.create`
 /// proposes one after a page (a folio in use or outside the section is refused as `page.create` refuses it), with that
 /// page's type, frame form, structure and grid, titled `title`; the representations then move
-/// onto it as `rep.move` with `page` and a zero `delta` moves them, refused as that move refuses (a wire whose other
-/// end stays behind). Outcome: the new page.
+/// onto it as `rep.move` with `page`, a zero `delta` and `keep` moves them, refused as that move refuses. Outcome: the
+/// new page, with the move's notices.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct MoveRepsToNewPage {
@@ -1122,6 +1129,9 @@ pub struct MoveRepsToNewPage {
     /// page as `page.create` proposes one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub number: Option<u32>,
+    /// The interruption points that keep a wire whose other end stays behind, as `rep.move`'s `keep`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub keep: Option<crate::commands::KeepAsIps>,
 }
 
 impl Command for MoveRepsToNewPage {
@@ -1151,7 +1161,7 @@ impl Command for MoveRepsToNewPage {
         let Some((_, page)) = made.primary else {
             return Err(CmdError::internal("page.create made no page"));
         };
-        MoveReps {
+        let moved = MoveReps {
             reps: self.reps.clone(),
             delta: zero(),
             page: Some(page.cast()),
@@ -1160,9 +1170,13 @@ impl Command for MoveRepsToNewPage {
             routes: Vec::new(),
             connect: Vec::new(),
             into: None,
+            keep: self.keep.clone(),
         }
         .run(tx)?;
-        Ok(made)
+        Ok(Outcome {
+            notices: moved.notices,
+            ..made
+        })
     }
 }
 
@@ -1180,6 +1194,10 @@ impl MoveReps {
             Some(page) => Some(tx.require::<Page>(page)?),
             None => None,
         };
+        // The interruption points' symbols first, so that they resolve below.
+        if let Some(keep) = &self.keep {
+            embed_closure(Self::NAME, tx, &keep.copies)?;
+        }
         let ids: BTreeSet<Id<Representation>> = self.reps.iter().copied().collect();
         let mut reps: Vec<Arc<Representation>> = Vec::new();
         let mut moved: Vec<Representation> = Vec::new();
@@ -1222,14 +1240,72 @@ impl MoveReps {
                     .any(|r| r.page == page && drawn_functions(r).contains(&f))
             })
         };
+        // A cross-page move with `keep`: the wires it cuts, and the junctions that go with the moved symbols.
+        let plan = match (&self.keep, self.page) {
+            (Some(_), Some(new_page)) => {
+                let mut crossing: Vec<Id<Connection>> = Vec::new();
+                for cid in &connections {
+                    let c = tx.require::<Connection>(*cid)?;
+                    if let Some(page) = c.page.filter(|p| *p != new_page)
+                        && drawn(&c.a, page) != drawn(&c.b, page)
+                    {
+                        crossing.push(*cid);
+                    }
+                }
+                let moved_cp = |e: &Endpoint| {
+                    e.function()
+                        .is_some_and(|f| reps.iter().any(|r| drawn_functions(r).contains(&f)))
+                };
+                super::move_keep::plan(tx, &crossing, &moved_cp)?
+            }
+            _ => super::move_keep::Plan::default(),
+        };
+        // What the cuts need of the page left before anything moves: each cut end's point, the points a pin or a
+        // junction that stays holds there, and each cut wire's words.
+        let mut ends: Vec<(Endpoint, Pt2)> = Vec::new();
+        let mut taken: BTreeSet<Pt2> = BTreeSet::new();
+        let mut words: Vec<Text> = Vec::new();
+        for k in &plan.cuts {
+            let c = tx.require::<Connection>(k.connection())?;
+            let Some(page) = c.page else { continue };
+            for e in [&c.a, &c.b] {
+                if let Some(p) = crate::geometry::end_point(tx, e, page) {
+                    ends.push((e.clone(), p));
+                }
+            }
+            for r in tx.reps_on_page(page) {
+                if ids.contains(&r) {
+                    continue;
+                }
+                if let Some(rep) = tx.get::<Representation>(r) {
+                    taken.extend(crate::geometry::rep_cps(tx, &rep).into_iter().map(|c| c.pos));
+                }
+            }
+            for j in tx.junctions_on_page(page) {
+                if let Some(j) = tx.get::<Junction>(j).filter(|j| !plan.junctions.contains(&j.id)) {
+                    taken.insert(j.at);
+                }
+            }
+            words.push(crate::words::wire(tx, k.connection()));
+        }
+        let moves = |e: &Endpoint, page: Id<Page>| -> bool {
+            drawn(e, page) || matches!(e, Endpoint::Junction(j) if plan.junctions.contains(j))
+        };
         let mut changed: Vec<Connection> = Vec::new();
         let mut off_page: Vec<Id<Connection>> = Vec::new();
-        for cid in connections {
+        let mut at_junctions: BTreeSet<Id<Connection>> = BTreeSet::new();
+        for j in &plan.junctions {
+            at_junctions.extend(tx.connections_at(ew_model::EndpointKey::Junction(*j)));
+        }
+        for cid in connections.into_iter().chain(at_junctions) {
+            if plan.cuts(cid) || changed.iter().any(|c| c.id == cid) {
+                continue;
+            }
             let c = tx.require::<Connection>(cid)?;
             let Some(page) = c.page else {
                 continue;
             };
-            let (a, b) = (drawn(&c.a, page), drawn(&c.b, page));
+            let (a, b) = (moves(&c.a, page), moves(&c.b, page));
             if !a && !b {
                 continue;
             }
@@ -1291,9 +1367,41 @@ impl MoveReps {
         for rep in moved {
             tx.put(rep);
         }
+        // The junctions that go with the moved symbols, by the same delta; then each cut wire kept as a pair.
+        let mut notices: Vec<Text> = Vec::new();
+        if let (Some(keep), Some(new_page)) = (&self.keep, self.page) {
+            for j in &plan.junctions {
+                let at = tx.require::<Junction>(*j)?.at;
+                let Ok(at) = add(at, self.delta) else {
+                    return tx.reject(text!("refusal-rep-move-junction-out-of-range"));
+                };
+                tx.update::<Junction>(*j, |j| {
+                    j.page = new_page;
+                    j.at = at;
+                })?;
+            }
+            let old = |e: &Endpoint| ends.iter().find(|(x, _)| x == e).map(|(_, p)| *p);
+            let mut names: BTreeSet<String> = BTreeSet::new();
+            for (k, words) in plan.cuts.iter().zip(words) {
+                let Some(from) = tx.require::<Connection>(k.connection())?.page else {
+                    continue;
+                };
+                notices.push(super::move_keep::cut(
+                    tx,
+                    k,
+                    keep,
+                    (from, new_page),
+                    &old,
+                    &mut taken,
+                    &mut names,
+                    words,
+                )?);
+            }
+        }
         Self::put_items(tx, &items, self.delta)?;
+        notices.extend(self.routes_and_hints(tx)?);
         Ok(Outcome {
-            notices: self.routes_and_hints(tx)?,
+            notices,
             ..Outcome::default()
         })
     }

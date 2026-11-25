@@ -619,6 +619,7 @@ pub(crate) fn seat_reps(tx: &mut TxBuilder<'_>, parent: Id<Device>) -> Result<()
                 routes: Vec::new(),
                 connect: Vec::new(),
                 into: None,
+                keep: None,
             }
             .run_move(tx)?;
         }
