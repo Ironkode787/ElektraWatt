@@ -235,6 +235,7 @@ impl Rule for DesignationDoesNotParse {
                 tag.full.clone(),
             )
             .arg("device", tag.full.clone())
+            // A reason of a newer `ew-rds`, as it prints.
             .arg("detail", e.kind.to_string())
             .arg("reason", reason)
             .arg("char", c.map(|c| format!("{c:?}")).unwrap_or_default())
@@ -444,34 +445,24 @@ impl Rule for ReservedLetters {
         let Ok(letter) = d.tag.letter.as_str().parse::<LetterCode>() else {
             return Vec::new();
         };
-        // Each reason in English, with the arguments of its piece of the pattern: the letters I or O (`io`, in letter
-        // order, then their count) and the reserved class letter (`class`), any other reason by `other`.
-        let mut io: Vec<String> = Vec::new();
+        // The reasons as the arguments of their pieces of the pattern: the letters I or O (`io`, in letter order, then
+        // their count) and the reserved class letter (`class`), any other reason by `other`.
+        let mut io: Vec<ew_l10n::TextArg> = Vec::new();
         let mut class = String::new();
         let mut other = "no";
-        let reasons: Vec<String> = set
-            .reserved_letter_findings(letter)
-            .into_iter()
-            .map(|r| match r {
-                ReservedLetter::IOrO { letter: c, .. } => {
-                    io.push(c.to_string());
-                    format!("{c} is not used in letter codes")
-                }
-                ReservedLetter::ReservedClass(c) => {
-                    class.push(c);
-                    format!("the identifier set {} reserves the class letter {c}", set.key())
-                }
-                _ => {
-                    other = "yes";
-                    "the identifier set reserves it".to_owned()
-                }
-            })
-            .collect();
+        let reasons = set.reserved_letter_findings(letter);
+        for r in &reasons {
+            match r {
+                ReservedLetter::IOrO { letter: c, .. } => io.push(c.to_string().into()),
+                ReservedLetter::ReservedClass(c) => class.push(*c),
+                _ => other = "yes",
+            }
+        }
         if reasons.is_empty() {
             return Vec::new();
         }
         let tag = full_tag(q, device, text!("word-device"));
-        let reasons_text = reasons.join("; ");
+        let io_count = io.len();
         vec![
             Finding::new(
                 &RESERVED_LETTERS,
@@ -481,10 +472,9 @@ impl Rule for ReservedLetters {
             )
             .arg("device", tag)
             .arg("letter", letter.as_str().to_owned())
-            .arg("reasons", reasons_text)
             .arg(
                 "io_form",
-                match io.len() {
+                match io_count {
                     0 => "none",
                     1 => "one",
                     _ => "many",
@@ -492,13 +482,16 @@ impl Rule for ReservedLetters {
             )
             .arg(
                 "class_form",
-                match (class.is_empty(), io.is_empty()) {
+                match (class.is_empty(), io_count == 0) {
                     (true, _) => "none",
                     (false, true) => "alone",
                     (false, false) => "after",
                 },
             )
-            .arg("io", io.join(", "))
+            .arg(
+                "io",
+                ew_l10n::List::new(io, text!("join-reserved-letters"), text!("join-reserved-letters")),
+            )
             .arg("class", class)
             .arg("other", other)
             .arg("set", set.key().to_string()),
@@ -564,15 +557,10 @@ fn confusable_findings(q: &Q, device: Id<Device>, d: &Device) -> Vec<Finding> {
         let tag = tag
             .get_or_insert_with(|| full_tag(q, device, text!("word-device")))
             .clone();
-        // In English each as `U+XXXX (looks like Y)`; for the other languages as `U+XXXX → Y`.
-        let lookalikes = chars
+        // Each as its code point and the Latin letter it looks like, which each language words.
+        let chars: Vec<ew_l10n::TextArg> = chars
             .iter()
-            .map(|(code, latin)| format!("{code} → {latin}"))
-            .collect::<Vec<_>>()
-            .join(", ");
-        let chars: Vec<String> = chars
-            .iter()
-            .map(|(code, latin)| format!("{code} (looks like {latin})"))
+            .map(|(code, latin)| text!("word-lookalike", code.to_string(), latin.to_string()).into())
             .collect();
         out.push(
             Finding::new(
@@ -581,7 +569,6 @@ fn confusable_findings(q: &Q, device: Id<Device>, d: &Device) -> Vec<Finding> {
                 what,
                 tag.clone(),
             )
-            .arg("what", what)
             .arg(
                 "kind",
                 match what {
@@ -592,8 +579,7 @@ fn confusable_findings(q: &Q, device: Id<Device>, d: &Device) -> Vec<Finding> {
             )
             .arg("text", text.clone())
             .arg("device", tag.clone())
-            .arg("chars", chars.join(", "))
-            .arg("lookalikes", lookalikes),
+            .arg("chars", crate::rules::listed(chars)),
         );
     }
     out

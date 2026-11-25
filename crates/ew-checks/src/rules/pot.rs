@@ -2099,43 +2099,32 @@ impl Rule for NSwitching {
                     continue;
                 }
                 let loads = stranded_loads(q, pair.down, function.device, &switched);
-                let tail = if loads.is_empty() {
-                    String::new()
-                } else {
-                    format!(
-                        "; {}",
-                        loads
-                            .iter()
-                            .map(|(load, line)| format!("load {load} stays connected to {line}"))
-                            .collect::<Vec<_>>()
-                            .join("; ")
-                    )
-                };
                 let finding = Finding::new(
                     &N_SWITCHING,
                     [Target::new(Kind::Function, f)],
                     discriminator,
                     name.clone(),
                 );
-                // Several stranded loads by their English sentences, and as `load → line` pairs for the other
-                // languages.
+                // Several stranded loads as a list of their load and line, which each language words.
                 let finding = match loads.as_slice() {
                     [] => finding.arg("loads", "none"),
                     [(load, line)] => finding
                         .arg("loads", "one")
                         .arg("load", load.clone())
                         .arg("line", line.clone()),
-                    _ => finding
-                        .arg("loads", "many")
-                        .arg("stranded", tail.trim_start_matches("; ").to_owned())
-                        .arg(
-                            "pairs",
+                    _ => finding.arg("loads", "many").arg(
+                        "stranded",
+                        ew_l10n::List::new(
                             loads
                                 .iter()
-                                .map(|(load, line)| format!("{load} → {line}"))
-                                .collect::<Vec<_>>()
-                                .join("; "),
+                                .map(|(load, line)| {
+                                    text!("word-stranded-load", load.clone(), line.clone()).into()
+                                })
+                                .collect(),
+                            text!("join-semicolon"),
+                            text!("join-semicolon"),
                         ),
+                    ),
                 };
                 out.push(
                     finding

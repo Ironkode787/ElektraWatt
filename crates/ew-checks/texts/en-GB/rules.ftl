@@ -992,7 +992,20 @@ rule-ew-pot-022 = Wire { $wire } has its cross-section { $size } set by hand, be
 
 ## EW-RDS (EW-IEC81346): reference designations
 
-rule-ew-rds-001 = { $device } does not parse as an IEC 81346 designation: { $detail }
+rule-ew-rds-001 = { $device } does not parse as an IEC 81346 designation: { $reason ->
+        [empty] empty reference designation
+        [prefix] missing prefix sign (such as '-' or '+')
+        [unexpected] unexpected character { $char } (U+{ $code })
+        [empty-level] prefix sign or separator without a level
+        [invalid] character { $char } (U+{ $code }) not allowed here
+        [whitespace] white space inside the designation
+        [order] aspects out of canonical order
+        [repeated] aspect appears more than once
+        [empty-cp] empty connection point after ':'
+        [cp-without-product] connection point without a product designation
+        [empty-signal] empty signal designation after ';'
+       *[other] { $detail }
+    }
     .title = Designation does not parse
     .hint = Correct the designation to the reference designation syntax of IEC 81346.
 
@@ -1011,11 +1024,25 @@ rule-ew-rds-004 = `{ $tag }` is printed by { $count } devices
     .title = Duplicate designation
     .hint = Give one of the devices another designation.
 
-rule-ew-rds-007 = { $device }: the letter code { $letter } uses reserved letters: { $reasons }
+rule-ew-rds-007 = { $device }: the letter code { $letter } uses reserved letters: { $io_form ->
+        [none] {""}
+       *[other] { $io } is not used in letter codes
+    }{ $class_form ->
+        [after] ; the identifier set { $set } reserves the class letter { $class }
+        [alone] the identifier set { $set } reserves the class letter { $class }
+       *[none] {""}
+    }{ $other ->
+        [yes] ; the identifier set reserves it
+       *[no] {""}
+    }
     .title = Reserved letters
     .hint = Avoid the letters I and O in a letter code; choose another letter.
 
-rule-ew-rds-009 = the { $what } { $text } of { $device } contains non-Latin characters that look like Latin ones: { $chars }; search and cross-references cannot find it; retype it in Latin letters
+rule-ew-rds-009 = the { $kind ->
+        [letter] letter code
+        [frozen] frozen tag
+       *[designation] terminal designation
+    } { $text } of { $device } contains non-Latin characters that look like Latin ones: { $chars }; search and cross-references cannot find it; retype it in Latin letters
     .title = Confusable character
     .hint = Replace the character by its plain Latin form.
 
@@ -1237,6 +1264,9 @@ word-a-location = a location
 word-a-device-without-designation = a device without designation
 word-a-missing-part = a missing part
 word-an-unknown-profile = an unknown profile
+# A load a contact leaves connected (EW-POT-013), and a character that looks like a Latin one (EW-RDS-009).
+word-stranded-load = load { $p0 } stays connected to { $p1 }
+word-lookalike = { $p0 } (looks like { $p1 })
 word-a-placement = a placement
 word-none = none
 word-terminal = terminal
@@ -1372,3 +1402,6 @@ join-and = {" and "}
 join-wire = –
 join-connection = {" → "}
 join-sentence = {" "}
+join-semicolon = {"; "}
+# Between two reserved letters I and O (EW-RDS-007): each is its own clause in English.
+join-reserved-letters = {" is not used in letter codes; "}

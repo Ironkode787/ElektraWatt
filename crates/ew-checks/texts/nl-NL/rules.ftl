@@ -934,7 +934,7 @@ rule-ew-pot-013 = { $device } { $form ->
         [isolating] is een N-scheidingsklem op { $from } → { $to }: goed zo, de nulleider wordt alleen geopend om te meten.
        *[switching] opent de nulleider { $from } → { $to } zonder de fase{ $loads ->
             [one] {" "}(belasting { $load } blijft verbonden met { $line })
-            [many] {" "}(deze belastingen blijven verbonden: { $pairs })
+            [many] {" "}(deze belastingen blijven verbonden: { $stranded })
            *[none] {""}
         }: wat erachter zit blijft onder spanning terwijl het uitgeschakeld lijkt. Zet het contact in de fase, of gebruik een apparaat dat fase en nulleider samen opent, zoals een tweepolige automaat.
     }
@@ -1031,7 +1031,7 @@ rule-ew-rds-009 = { $kind ->
         [letter] de lettercode
         [frozen] het vastgezette kenmerk
        *[designation] de klemaanduiding
-    } { $text } van { $device } bevat niet-Latijnse tekens die op Latijnse lijken: { $lookalikes }; zoeken en kruisverwijzingen vinden het niet; typ het opnieuw in Latijnse letters
+    } { $text } van { $device } bevat niet-Latijnse tekens die op Latijnse lijken: { $chars }; zoeken en kruisverwijzingen vinden het niet; typ het opnieuw in Latijnse letters
     .title = Verwarrend teken
     .hint = Vervang het teken door zijn gewone Latijnse vorm.
 
@@ -1256,6 +1256,9 @@ word-a-location = een locatie
 word-a-device-without-designation = een apparaat zonder aanduiding
 word-a-missing-part = een ontbrekend artikel
 word-an-unknown-profile = een onbekend profiel
+# A load a contact leaves connected (EW-POT-013), and a character that looks like a Latin one (EW-RDS-009).
+word-stranded-load = { $p0 } → { $p1 }
+word-lookalike = { $p0 } → { $p1 }
 word-a-placement = een plaatsing
 word-none = geen
 word-terminal = klem
@@ -1390,3 +1393,6 @@ join-and = {" en "}
 join-wire = –
 join-connection = {" → "}
 join-sentence = {" "}
+join-semicolon = {"; "}
+# Between two reserved letters I and O (EW-RDS-007): the Dutch names them together.
+join-reserved-letters = {", "}
