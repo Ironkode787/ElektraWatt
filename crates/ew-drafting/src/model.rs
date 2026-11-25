@@ -14,6 +14,12 @@ use crate::consts::TICKS_PER_STEP;
 /// A coordinate in ticks.
 pub type Tick = i32;
 
+/// A tick of a wider integer as the model's `i32`, saturating.
+pub fn saturating_tick(v: impl Into<i128>) -> Tick {
+    let v: i128 = v.into();
+    Tick::try_from(v).unwrap_or(if v < 0 { Tick::MIN } else { Tick::MAX })
+}
+
 /// `v` rounded down to a whole step (towards negative infinity).
 pub(crate) fn grid_down(v: Tick) -> Tick {
     v.div_euclid(TICKS_PER_STEP) * TICKS_PER_STEP

@@ -113,9 +113,7 @@ impl Ord for Frac {
     }
 }
 
-fn tick(v: i128) -> Tick {
-    Tick::try_from(v).unwrap_or(if v < 0 { Tick::MIN } else { Tick::MAX })
-}
+use crate::model::saturating_tick as tick;
 
 /// The point at the fraction `t` of the segment `a`–`b`, rounded to the tick.
 pub fn at((a, b): Seg, t: Frac) -> Pt {

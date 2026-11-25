@@ -18,7 +18,7 @@
 //! A connection whose end is a junction passes the junction position as that end with `dir: None`, so every
 //! arm of a junction ends exactly at the junction point.
 
-use ew_drafting::Side;
+use crate::draft::side;
 use ew_schema::Dir4;
 use ew_units::{Nm, Pt2, Rect};
 
@@ -53,17 +53,6 @@ pub fn connection_polyline(a: &RouteEnd, b: &RouteEnd, stored: &[Pt2], page: Rec
     let mut pts: Vec<Pt2> = path.into_iter().map(|p| clamp(p, page)).collect();
     pts.dedup();
     pts
-}
-
-/// The side of a direction; `None` for an unknown one.
-fn side(d: &Dir4) -> Option<Side> {
-    match d {
-        Dir4::Up => Some(Side::Up),
-        Dir4::Right => Some(Side::Right),
-        Dir4::Down => Some(Side::Down),
-        Dir4::Left => Some(Side::Left),
-        Dir4::Unknown(_) => None,
-    }
 }
 
 /// `p` pulled onto the page rectangle, per axis.

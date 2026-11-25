@@ -8,7 +8,7 @@
 //! with its tick across when the pins stand in line, a Level guide dotted in the `ghost` token. Nothing is stored.
 
 use ew_api::drafting::consts::TICKS_PER_STEP;
-use ew_api::drafting::{self, GuideKind, Part, PartId, Pin, PinId, Pt, Side, Tick};
+use ew_api::drafting::{self, GuideKind, Part, PartId, Pin, PinId, Pt, Tick};
 use ew_api::geometry::Dir;
 use ew_api::output::Uuid;
 use ew_api::routing::Ticks;
@@ -16,14 +16,9 @@ use ew_units::{Nm, Pt2};
 
 use super::{OverlayItem, Style, Token, ToolCx};
 
-/// A tick of `i64` as the model's `i32`, saturating.
-fn tick(v: i64) -> Tick {
-    Tick::try_from(v).unwrap_or(if v < 0 { Tick::MIN } else { Tick::MAX })
-}
-
 /// `k` grid steps in ticks.
 pub(crate) fn steps(k: (i64, i64)) -> Pt {
-    let whole = |k: i64| tick(k.saturating_mul(i64::from(TICKS_PER_STEP)));
+    let whole = |k: i64| drafting::saturating_tick(k.saturating_mul(i64::from(TICKS_PER_STEP)));
     Pt::new(whole(k.0), whole(k.1))
 }
 
@@ -38,12 +33,7 @@ pub(crate) fn hanging(
     let g = Ticks::new(cx.page.tables.grid);
     let corner = |x: i64, y: i64| Pt2::new(Nm(x), Nm(y));
     let body = ew_units::Rect::from_points(corner(body[0], body[1]), corner(body[2], body[3]));
-    let side = |d: Dir| match d {
-        Dir::Up => Side::Up,
-        Dir::Down => Side::Down,
-        Dir::Left => Side::Left,
-        Dir::Right => Side::Right,
-    };
+    let side = ew_api::routing::side;
     Part {
         id: PartId(Uuid::nil()),
         at: steps(index),

@@ -786,7 +786,7 @@ impl Builder<'_> {
                 let first = match outline {
                     None => true,
                     Some(o) => {
-                        kind == LabelKind::BoxData && self.box_of(&text).is_some_and(|b| contains(o, b))
+                        kind == LabelKind::BoxData && self.box_of(&text).is_some_and(|b| o.holds(b))
                     }
                 };
                 self.label(ctx, text, owner, origin, first, false, Some(record));
@@ -1195,14 +1195,6 @@ fn follow_mark(ctx: &mut Ctx<'_>, mark: Mark, at: MarkAt, pieces: &[(Anchor, Rec
     ctx.page.marks.push(mark);
 }
 
-/// Whether `inner` lies inside `outer`, edges included.
-fn contains(outer: Rect, inner: Rect) -> bool {
-    outer.min().x <= inner.min().x
-        && outer.min().y <= inner.min().y
-        && inner.max().x <= outer.max().x
-        && inner.max().y <= outer.max().y
-}
-
 /// The label number of a strip tag at its terminal (past every slot index).
 const STRIP_TAG: u32 = 1 << 16;
 
@@ -1219,8 +1211,8 @@ fn pin_id(function: Id<ew_schema::Function>, idx: u16) -> PinId {
     PinId(cp.as_uuid())
 }
 
-/// The side of a direction.
-fn side(d: &Dir4) -> Option<Side> {
+/// The side of a direction; `None` for an unknown one.
+pub(crate) fn side(d: &Dir4) -> Option<Side> {
     match d {
         Dir4::Up => Some(Side::Up),
         Dir4::Down => Some(Side::Down),

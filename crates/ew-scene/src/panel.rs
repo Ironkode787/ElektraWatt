@@ -356,14 +356,6 @@ fn overlap(a: Rect, b: Rect) -> bool {
     a.min().x < b.max().x && b.min().x < a.max().x && a.min().y < b.max().y && b.min().y < a.max().y
 }
 
-/// Whether `inner` lies within `outer`.
-fn within(inner: Rect, outer: Rect) -> bool {
-    inner.min().x >= outer.min().x
-        && inner.min().y >= outer.min().y
-        && inner.max().x <= outer.max().x
-        && inner.max().y <= outer.max().y
-}
-
 /// `l` moved by `dy` on the page: its anchor, its box, its balloon and the near end of its leader (the far end stays on
 /// the footprint).
 fn moved_by(l: &PlacedLabel, dy: i64) -> PlacedLabel {
@@ -843,7 +835,7 @@ impl Builder<'_> {
                     let dir = if c.fit == LabelFit::Above { -1 } else { 1 };
                     let cand = moved_by(c, dir * k * step);
                     let base = k == 0 && n == 0;
-                    if !base && bounds.is_some_and(|bd| !within(cand.knockout, bd)) {
+                    if !base && bounds.is_some_and(|bd| !bd.holds(cand.knockout)) {
                         continue;
                     }
                     if taken.iter().all(|t| !overlap(*t, cand.knockout)) {

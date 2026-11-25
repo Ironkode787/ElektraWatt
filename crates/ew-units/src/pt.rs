@@ -190,6 +190,14 @@ impl Rect {
         }
     }
 
+    /// Whether `inner` lies inside this rectangle, edges included.
+    pub const fn holds(self, inner: Rect) -> bool {
+        self.min.x.0 <= inner.min.x.0
+            && self.min.y.0 <= inner.min.y.0
+            && inner.max.x.0 <= self.max.x.0
+            && inner.max.y.0 <= self.max.y.0
+    }
+
     /// Whether the two closed rectangles share at least one point (touching edges count).
     pub const fn intersects(self, other: Rect) -> bool {
         self.min.x.0 <= other.max.x.0

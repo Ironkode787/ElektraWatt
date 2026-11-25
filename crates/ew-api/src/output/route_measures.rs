@@ -1041,15 +1041,6 @@ fn layout_findings(r: &Reader<'_>, m: &Quality, out: &mut Vec<crate::checks::Fin
     }
 }
 
-/// The page's grid, from its tables (a 4 mm step for numbers that make no grid).
-fn grid_of(tables: &PageTables) -> Grid {
-    u64::try_from(tables.grid.0)
-        .ok()
-        .zip(u64::try_from(tables.grid.1).ok())
-        .and_then(|(n, d)| Grid::new(n, d).ok())
-        .unwrap_or(Grid::MM4)
-}
-
 /// The measure of the page of `tables` and what names its findings.
 fn measured<'a>(q: &'a Q, page_ref: PageRef, tables: &'a PageTables) -> (Reader<'a>, Quality) {
     let quality = ew_drafting::measure(&draft(q, page_ref, tables));
@@ -1057,7 +1048,7 @@ fn measured<'a>(q: &'a Q, page_ref: PageRef, tables: &'a PageTables) -> (Reader<
         q,
         page_ref,
         tables,
-        grid: grid_of(tables),
+        grid: crate::routing::Ticks::new(tables.grid).grid(),
         runs: std::cell::OnceCell::new(),
     };
     (reader, quality)

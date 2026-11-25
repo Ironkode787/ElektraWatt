@@ -17,10 +17,7 @@ use ew_units::{Grid, Nm, Pt2, Rect};
 /// Ticks to a grid step, as `ew-units` takes it.
 const PER: u32 = TICKS_PER_STEP as u32;
 
-/// A tick of `i64` as the model's `i32`, saturating.
-fn tick(v: i64) -> Tick {
-    Tick::try_from(v).unwrap_or(if v < 0 { Tick::MIN } else { Tick::MAX })
-}
+use ew_drafting::saturating_tick as tick;
 
 /// The conversion of one page between nm and the layout's ticks: the page's connection grid.
 #[derive(Clone, Copy, Debug)]
