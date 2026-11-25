@@ -511,7 +511,7 @@ fn explicit_labels_and_start_index() {
     assert_eq!(cell_str(&m, PAGE, mm(51, 11)), None, "missing label");
     assert_eq!(cell_str(&m, PAGE, mm(11, 71)).as_deref(), Some("DI"));
     assert_eq!(cell_str(&m, PAGE, mm(11, 91)), None, "below the last row");
-    // Page 102: start index 5; 24 letters with I and O skipped, so row 24 is beyond Z.
+    // Page 102: start index 5; 24 letters with I and O skipped, so row 24 is past Z: AA, as the page draws it.
     assert_eq!(cell_str(&m, 0x102, mm(1, 0)).as_deref(), Some("A6"));
     assert_eq!(
         cell_str(&m, 0x102, mm(0, 8)).as_deref(),
@@ -524,7 +524,7 @@ fn explicit_labels_and_start_index() {
         "N, then P (O skipped)"
     );
     assert_eq!(cell_str(&m, 0x102, mm(0, 23)).as_deref(), Some("Z5"));
-    assert_eq!(cell_str(&m, 0x102, mm(0, 24)), None);
+    assert_eq!(cell_str(&m, 0x102, mm(0, 24)).as_deref(), Some("AA5"));
     // Page 103: all 26 letters.
     assert_eq!(cell_str(&m, 0x103, mm(0, 8)).as_deref(), Some("I0"));
     assert_eq!(cell_str(&m, 0x103, mm(0, 25)).as_deref(), Some("Z0"));
@@ -931,4 +931,25 @@ fn missing_rep_or_symbol_copy_has_no_anchor_cell() {
         .function(FUNCTION, Some(DEVICE), FNDEF, true);
     fx.rep(0x2000, PAGE, 0x777, &[FUNCTION], 40 * MM, 40 * MM);
     assert!(std::panic::catch_unwind(|| fx.build()).is_err());
+}
+
+/// A frame of more than 26 rows has cells past `Z`: row 28 is `AB`, as the page labels it.
+#[test]
+fn a_row_past_z_is_a_cell_labelled_as_the_page_draws_it() {
+    let mut frame = shipped_qet_grid();
+    frame.rows.count = 30;
+    frame.rows.labels.clear();
+    frame.rows.skip_io = false;
+    let g = ew_units::Grid::new(1, 1).expect("a grid");
+    let (a, b) = frame
+        .header_band
+        .map_or((0, 1), |h| (i128::from(h.num()), i128::from(h.den())));
+    let (c, d) = (i128::from(frame.rows.height.num()), i128::from(frame.rows.height.den()));
+    let col = (i128::from(frame.columns.width.num()), i128::from(frame.columns.width.den()));
+    // The middle of row 27 (0-based) in the first column.
+    let y = i64::try_from((2 * a * d + 55 * c * b) / (2 * b * d)).expect("a coordinate");
+    let x = i64::try_from((2 * a * col.1 + col.0 * b) / (2 * b * col.1)).expect("a coordinate");
+    let cell = ew_derive::cell_in_grid(&frame, g, pt(x, y)).expect("a cell");
+    assert_eq!(cell.row_label, "AB");
+    assert_eq!(cell.row_label, ew_derive::row_label(&frame, 27));
 }

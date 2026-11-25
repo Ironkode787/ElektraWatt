@@ -128,11 +128,11 @@ fn column_labels(frame: &FrameGrid) -> Vec<String> {
         .collect()
 }
 
-/// The printed row labels of `frame` in grid order, as the cell rule reads them (`ew_derive::row_label`: rows beyond
-/// the letters or the frame's labels have none).
+/// The printed row labels of `frame` in grid order, as the page draws them and the cell rule reads them
+/// (`ew_derive::row_label`).
 fn row_labels(frame: &FrameGrid) -> Vec<String> {
-    (0..u32::from(frame.rows.count))
-        .map_while(|r| ew_derive::row_label(frame, r))
+    (0..usize::from(frame.rows.count))
+        .map(|r| ew_derive::row_label(frame, r))
         .collect()
 }
 

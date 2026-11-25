@@ -355,7 +355,7 @@ pub fn cell_in_grid(frame: &FrameGrid, g: Grid, point: Pt2) -> Option<Cell> {
         frame.rows.count,
     )?;
     let column_label = column_label(frame, c)?;
-    let row_label = row_label(frame, r)?;
+    let row_label = row_label(frame, r as usize);
     Some(Cell {
         column: u32::from(frame.columns.start_index) + c,
         row: r,
@@ -404,17 +404,6 @@ fn row_letters(skip_io: bool) -> impl Iterator<Item = char> {
     ('A'..='Z').filter(move |c| !(skip_io && matches!(c, 'I' | 'O')))
 }
 
-/// The printed label of row `r` (0-based) of `frame` as the cell rule reads it: the frame's own label, else the `r`-th
-/// row letter; `None` past the frame's labels or past `Z`. Cell-at and Go to read a frame's rows so; the page draws
-/// them by [`drawn_row_label`].
-pub fn row_label(frame: &FrameGrid, r: u32) -> Option<String> {
-    if frame.rows.labels.is_empty() {
-        row_letters(frame.rows.skip_io).nth(r as usize).map(String::from)
-    } else {
-        frame.rows.labels.get(r as usize).map(|l| l.as_str().to_owned())
-    }
-}
-
 /// The printed label of column `c` (0-based) of `frame` as the cell rule reads it: the frame's own label, else the
 /// number `start_index + c`; `None` past the frame's labels. The page draws them by [`drawn_column_label`].
 pub fn column_label(frame: &FrameGrid, c: u32) -> Option<String> {
@@ -429,9 +418,9 @@ pub fn column_label(frame: &FrameGrid, c: u32) -> Option<String> {
     }
 }
 
-/// The label the page draws on row `k` (0-based) of `frame`: the frame's own label, else the row letters `A … Z`, then
-/// `AA, AB …`, also past the frame's labels and past `Z`, where [`row_label`] has none.
-pub fn drawn_row_label(frame: &FrameGrid, k: usize) -> String {
+/// The label of row `k` (0-based) of `frame`, as the page draws it and the cell rule, Cell-at and Go to read it: the
+/// frame's own label, else the row letters `A … Z`, then `AA, AB …`, also past the frame's labels and past `Z`.
+pub fn row_label(frame: &FrameGrid, k: usize) -> String {
     frame.rows.labels.get(k).map_or_else(
         || letter_label(&row_letters(frame.rows.skip_io).collect::<Vec<_>>(), k),
         |l| l.as_str().to_owned(),

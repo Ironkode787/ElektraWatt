@@ -92,7 +92,7 @@ impl FrameGeometry {
                 .map(|k| ew_derive::drawn_column_label(grid, k))
                 .collect(),
             row_labels: (0..usize::from(grid.rows.count))
-                .map(|k| ew_derive::drawn_row_label(grid, k))
+                .map(|k| ew_derive::row_label(grid, k))
                 .collect(),
             title_block_origin: title_block.map(|_| Pt2::new(margin, bottom)),
             show_grid: grid
