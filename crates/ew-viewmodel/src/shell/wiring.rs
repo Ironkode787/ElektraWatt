@@ -1150,7 +1150,7 @@ pub(super) fn route_rows(
     folio: &str,
     plan: &ew_api::routing::RoutePlan,
 ) -> Vec<String> {
-    use ew_api::routing::Reason;
+    use ew_api::drafting::Reason;
     let words = |id: ew_api::output::Uuid| {
         session
             .connection_words(folio, id)

@@ -502,7 +502,7 @@ fn a_contact_between_two_facing_free_cps_proposes_two_connections_and_alt_commit
 /// follows, keeps its vertices translated.
 #[test]
 fn a_move_re_solves_a_followed_route_that_would_cross_a_symbol_and_keeps_a_clean_one() {
-    use ew_api::routing::measure;
+    use ew_api::drafting::measure;
     let tmp = Tmp::new("rm1");
     let mut s = actual_size(&tmp, "103");
     for k in [(55, 20), (65, 20), (60, 29)] {

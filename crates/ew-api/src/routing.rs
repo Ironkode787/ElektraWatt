@@ -12,13 +12,10 @@
 //! last vertex are its ends' stored points (a junction's new place where the plan moves it), and the corner next to an
 //! end takes that end's coordinate across the segment between them, so a route meets a pin that lies 1 nm off the grid.
 
-pub use ew_drafting::Pt;
-pub use ew_drafting::consts::TICKS_PER_STEP;
-pub use ew_drafting::{
-    DraftPage, InTheWay, Jobs, PartId, Plan, Quality, Reason, Side, StripHeld, WireId, measure,
-    route as route_on,
+use ew_drafting::consts::TICKS_PER_STEP;
+use ew_drafting::{
+    DraftPage, InTheWay, JunctionId, PartId, PinId, Plan, Pt, Side, StripHeld, WireEnd, WireId,
 };
-use ew_drafting::{JunctionId, PinId, WireEnd};
 use ew_ids::{Id, Uuid};
 /// The conversion of a page between nm and the layout's ticks, which the window's tools use too.
 pub use ew_scene::ticks::Ticks;

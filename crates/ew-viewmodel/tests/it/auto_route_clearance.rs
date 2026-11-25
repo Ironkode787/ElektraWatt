@@ -522,7 +522,7 @@ fn breakers_over_one_another(tmp: &Tmp) -> (ShellModel, Vec<TableCp>, Vec<TableC
 #[track_caller]
 fn crossed_once(s: &ShellModel, wires: [ew_api::output::Uuid; 2]) {
     let page = s.canvas().unwrap().page();
-    let m = ew_api::routing::measure(&page.draft);
+    let m = ew_api::drafting::measure(&page.draft);
     assert_eq!(m.faults, 0, "{:?}", m.findings);
     let crossings: Vec<_> = m
         .findings
@@ -603,7 +603,7 @@ fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {
     let tmp = Tmp::new("rc3-cross-over");
     let (mut s, bottom, top) = breakers_over_one_another(&tmp);
     let clean = |s: &ShellModel| {
-        let m = ew_api::routing::measure(&s.canvas().unwrap().page().draft);
+        let m = ew_api::drafting::measure(&s.canvas().unwrap().page().draft);
         let f = &m.findings;
         assert!(
             f.through_points.is_empty() && f.on_wires.is_empty() && f.through_parts.is_empty(),
@@ -642,7 +642,7 @@ fn two_breakers_wired_cross_over_keep_the_hard_rules_drawn_and_rerouted() {
     );
     let rev = s.revision();
     let bends = |s: &ShellModel| {
-        ew_api::routing::measure(&s.canvas().unwrap().page().draft)
+        ew_api::drafting::measure(&s.canvas().unwrap().page().draft)
             .counts
             .bends
     };

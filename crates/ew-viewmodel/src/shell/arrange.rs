@@ -14,8 +14,9 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use ew_api::drafting::{InTheWay, Side, StripHeld};
 use ew_api::output::Uuid;
-use ew_api::routing::{InTheWay, RoutePlan, RouteScope, Side, StripHeld};
+use ew_api::routing::{RoutePlan, RouteScope};
 use serde_json::{Map, Value};
 
 use super::{Outcome, ShellModel};
@@ -253,8 +254,8 @@ impl ShellModel {
 }
 
 /// The words of a move by `d` ticks: "6 steps right, 31 steps up".
-fn move_words(d: ew_api::routing::Pt) -> String {
-    let step = ew_api::routing::TICKS_PER_STEP;
+fn move_words(d: ew_api::drafting::Pt) -> String {
+    let step = ew_api::drafting::consts::TICKS_PER_STEP;
     let (x, y) = (i64::from(d.x / step), i64::from(d.y / step));
     let mut parts = Vec::new();
     let n = |v: i64| usize::try_from(v.unsigned_abs()).unwrap_or(usize::MAX);
@@ -364,7 +365,7 @@ fn arrange_card(
             .unwrap_or_default()
     };
     let area = session.page_draft(folio).map(|d| d.area).unwrap_or_default();
-    let far = |d: ew_api::routing::Pt| 3 * d.x.abs() > area.w() || 3 * d.y.abs() > area.h();
+    let far = |d: ew_api::drafting::Pt| 3 * d.x.abs() > area.w() || 3 * d.y.abs() > area.h();
     // The symbols that move, the far ones first, then those unticked.
     let mut parts: Vec<(bool, String, ArrangeRow)> = plan
         .moves
@@ -480,7 +481,7 @@ fn arrange_card(
         routes = strings::format(key!("arrange-yours"), &[&routes, &yours.to_string()]);
     }
     let lead = strings::format(key!("arrange-lead"), &[&page, &symbols, &routes]);
-    let figures = |q: &ew_api::routing::Quality| {
+    let figures = |q: &ew_api::drafting::Quality| {
         strings::format(
             key!("arrange-figures"),
             &[

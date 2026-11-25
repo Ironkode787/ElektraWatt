@@ -16,7 +16,8 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::Path;
 
 use ew_api::{
-    FORMAT, FileMerge, Limits, MIGRATIONS, Manifest, MergeSide, holds_newer_records, merge_file, newer_than_reader,
+    FORMAT, FileMerge, Limits, MIGRATIONS, Manifest, MergeSide, holds_newer_records, merge_file,
+    newer_than_reader,
 };
 
 use super::tree::{Leaf, MergeDriverCli};

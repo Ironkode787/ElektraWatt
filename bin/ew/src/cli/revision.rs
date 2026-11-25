@@ -125,7 +125,9 @@ pub(super) fn run_revision_with(
         Err(code) => return code,
     };
     let code = match &a.action {
-        RevisionAction::Approve { role } => approve_revision(&mut session, &items, role, input, output, today),
+        RevisionAction::Approve { role } => {
+            approve_revision(&mut session, &items, role, input, output, today)
+        }
         RevisionAction::Release { label, archive_dir } => {
             let release = Release {
                 label,
@@ -135,7 +137,9 @@ pub(super) fn run_revision_with(
             };
             release_revision(&mut session, &items, &release, input, output)
         }
-        RevisionAction::Withdraw { label, reason } => withdraw_revision(&mut session, label, reason, input, output),
+        RevisionAction::Withdraw { label, reason } => {
+            withdraw_revision(&mut session, label, reason, input, output)
+        }
     };
     // The release's housekeeping: a run record that could not be removed, as the project opened or a run
     // was settled.

@@ -8,7 +8,8 @@
 
 use ew_api::AnyCommand;
 use ew_api::cli_results as results;
-use ew_api::routing::{InTheWay, Reason, RoutePlan, RouteScope, Side};
+use ew_api::drafting::{InTheWay, Reason, Side};
+use ew_api::routing::{RoutePlan, RouteScope};
 
 use super::error;
 use super::tree::Leaf;
@@ -288,7 +289,8 @@ fn left_words(side: Side, why: InTheWay, name: impl Fn(ew_api::output::Uuid) -> 
 
 #[cfg(test)]
 mod tests {
-    use ew_api::routing::{Plan, Reason, RoutePlan, WireId};
+    use ew_api::drafting::{Plan, Reason, WireId};
+    use ew_api::routing::RoutePlan;
 
     use super::{page_result, page_text};
 

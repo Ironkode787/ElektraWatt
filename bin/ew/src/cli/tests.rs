@@ -1683,7 +1683,10 @@ fn upgrade_parses_its_flags() {
         }))
     };
     assert_eq!(p(&["upgrade"]), upgrade(None, false, false));
-    assert_eq!(p(&["upgrade", "p.ew", "--check"]), upgrade(Some("p.ew"), true, false));
+    assert_eq!(
+        p(&["upgrade", "p.ew", "--check"]),
+        upgrade(Some("p.ew"), true, false)
+    );
     assert_eq!(
         p(&["upgrade", "--yes", "--project", "p.ew"]),
         upgrade(Some("p.ew"), false, true)

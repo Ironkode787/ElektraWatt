@@ -550,7 +550,11 @@ fn draft(q: &Q, page: PageRef, tables: &PageTables) -> DraftPage {
             w.supply = ptype.as_ref().and_then(supply_rank);
             if matches!(
                 ptype,
-                Some(ew_schema::PotentialType::Pen | ew_schema::PotentialType::Pe | ew_schema::PotentialType::Fe)
+                Some(
+                    ew_schema::PotentialType::Pen
+                        | ew_schema::PotentialType::Pe
+                        | ew_schema::PotentialType::Fe
+                )
             ) {
                 earth.insert(w.id);
             }
