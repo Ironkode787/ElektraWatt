@@ -276,8 +276,14 @@ fn sheet_row(ui: &mut Ui, r: &SheetRow, label_w: f32, owner: &str) -> Option<Val
                             egui::WidgetInfo::labeled(egui::Role::TextInput, ui.is_enabled(), &name)
                         });
                         if field.lost_focus() {
+                            // A length is read as every typed length is (`parse_mm`), an angle as a number.
+                            let typed = if degrees {
+                                text.trim().replace(',', ".").parse::<f64>().ok()
+                            } else {
+                                ew_viewmodel::ew_api::output::parse_mm(&text).map(|nm| nm as f64 / 1e6)
+                            };
                             if !cancelled(ui)
-                                && let Ok(n) = text.trim().replace(',', ".").parse::<f64>()
+                                && let Some(n) = typed
                             {
                                 out = Some(json!(n));
                             }

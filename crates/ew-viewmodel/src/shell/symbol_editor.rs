@@ -529,15 +529,22 @@ fn damaged() -> String {
 fn text<'a>(p: &'a Map<String, Value>, key: &str) -> &'a str {
     p.get(key).and_then(Value::as_str).unwrap_or("")
 }
+/// The coordinate `name` of `p` in nanometres: a number of millimetres, or a length typed as every typed length is
+/// read (`parse_mm`), within a kilometre of the origin.
 fn nm(p: &Map<String, Value>, name: &str) -> Result<i64, String> {
+    const LIMIT_NM: f64 = 1_000_000.0 * 1_000_000.0;
     let value = p
         .get(name)
-        .and_then(|v| v.as_f64().or_else(|| v.as_str()?.parse().ok()))
+        .and_then(|v| {
+            v.as_f64()
+                .map(|mm| mm * 1_000_000.0)
+                .or_else(|| ew_api::output::parse_mm(v.as_str()?).map(|nm| nm as f64))
+        })
         .ok_or_else(|| strings::text(key!("symbol-coordinate-required")).to_owned())?;
-    if !value.is_finite() || value.abs() > 1_000_000.0 {
+    if !value.is_finite() || value.abs() > LIMIT_NM {
         return Err(strings::text(key!("symbol-geometry-limit")).into());
     }
-    Ok((value * 1_000_000.0).round() as i64)
+    Ok(value.round() as i64)
 }
 
 /// A symbol error in the window's words: an invalid draft's issues one per line, a refusal key of the reader in its
