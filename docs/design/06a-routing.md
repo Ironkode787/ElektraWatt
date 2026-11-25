@@ -41,7 +41,7 @@ after the tracks, it went round the stepping wire.
 | Route, nothing selected | every wire of the page that is unrouted, has a fault as stored (F1 to F6), or is `computed` |
 | Route with a selection | the selected wires and every wire with an end on a selected part, whoever shaped them |
 | Arrange and route | every wire of its scope, whoever shaped it: with nothing selected every wire of the page, with a selection the jobs of Route with that selection; but the wires kept (§7.3) |
-| A move by hand | the wires the move leaves unrouted or with a fault, or with more bends than before (as today) |
+| A move by hand | the wires the move leaves unrouted or with a fault, or with more bends than before |
 
 A route the person shaped (not `computed`) that has a fault is a job of a page-wide Route too, but it is flagged
 **his**: the plan lists it apart, the command shows a preview instead of applying at once, and its row is ticked
@@ -67,8 +67,7 @@ Route takes it, flagged as the person's when it is, and draws it to its end.
 One structure, built once per run over the half grid of the drawing area and updated as wires are laid and
 lifted: per node whether it is inside a body grown by `BODY_GAP`, a pin, a pin's stub, a junction, a vertex of a
 wire; per move between two nodes which wires run along it and which cross it; per node the labels and fixed texts
-over it. The search and the three structured phases read it. It replaces the per-request preparation of today's
-search, which rebuilt the page for every wire.
+over it. The search and the three structured phases read it, so no search builds the page again for its wire.
 
 It holds every node of the drawing area, the last area a search may take. It held what stood on
 the page and two steps beyond, so a second trunk four steps beyond the pins it taps was laid outside it, and the
@@ -207,7 +206,7 @@ order of the pins cross (§4.8).
 
 ### 3.6 The search
 
-The exact search of today's router is kept and moved: a backward Dijkstra over (node, arriving heading) and a
+The exact search is a backward Dijkstra over (node, arriving heading) and a
 forward walk that takes the lowest-ranked move on a least path (right, down, left, up), so that the result is the
 same for the same page whatever the order of its lists. It reads the occupancy of §3.3 and prices a move by the
 cost of §1.2:
@@ -226,21 +225,20 @@ shared run); onto another wire's vertex; a turn back; a move that would end a wi
 straight line between two ends in line passes a stub and the step round a body, §7.4.)
 
 Areas: the box of the two ends grown by 4 steps, then by 16, then the drawing area; the first area with a route
-wins. **The half grid** is searched last and only between close pins, as today: where the whole grid has no route
+wins. **The half grid** is searched last and only between close pins: where the whole grid has no route
 or one more than 8/5 of the city-block distance of the ends, the search runs on half steps (bodies grown by half a
 step, a half-grid track only between the two ends), and its route is taken where the whole grid's is more than
 8/5 of it or there is none.
 
 A part of one pin that is set on the end's own point (a potential's mark on a pin of a box) is left as an end
-leaves its own part: the mark does not wall the pin in. Before, such a wire had no way and kept the route the
-person drew.
+leaves its own part: the mark does not wall the pin in.
 
 *Never worse, and a wire without a route.* A plan that routes a wire that had no route is offered under the
 exception of §1.2: a text across a wire routed before does not refuse it, a fault on such a wire does.
 
 *Two ends nearly in line.* Where the search's route between two ends is straight on the lattice but the ends
 are not on one line (a pin off the grid a part of a step beside it, as a grid change leaves a symbol whose own spacing
-the new grid does not hold), the route steps across at the grid line nearest its middle; it was one slanted segment.
+the new grid does not hold), the route steps across at the grid line nearest its middle, so that it stays square.
 
 Order: the remaining jobs by the city-block distance of their ends, shortest first, then by the first end's
 place, then by ID. Then at most `PASSES` passes in the same order: lift one wire, search it against all the
@@ -302,16 +300,13 @@ wire that had no route, since routing a dashed wire is the larger gain. A page w
 offered nothing. The weighing of §3.9 runs both ways: from the new drawing a net goes back to its stored routes
 where they cost no less; from the stored drawing a net takes its new routes where they cost less; the cheaper page
 stands, so one net's gain is not lost to a loss that no single net's going back undoes. A mark moves along its line
-only (its line reaches across to its wires wherever it stands), by
-`layout.apply`'s `markers`, which this step adds with `junctions` and `routes`; `parts` come with step 4. The plan's
-`his` rows are listed in Route's preview card (§7.2); ticking them comes with the preview of §7.3.
+only (its line reaches across to its wires wherever it stands), by `layout.apply`'s `markers`. The plan's `his` rows
+are listed in Route's preview card (§7.2) and ticked in the preview of §7.3.
 
 *A mark is drawn from its wires.* The page draws a cable mark's line past the outer crossings of its cores,
 with a tick and a core name at each crossing; a marker's text beyond its line's end; a wire's own marker at the middle
 of the wire's longest segment. The layout draws it so as well (`ew_drafting::marks::draw_marks`): the scene's adapter
 gives each mark its point and what it draws relative to the crossing or the end of its line it stands at, and the
 measure and the placer's page after a plan draw it from their routes. So a plan is judged on the page that is stored,
-and a second press of Route or of Arrange and route offers nothing. Before, a plan kept a mark where it stood while
-the page drew it where the new routes crossed it: on the sample, after a strip's earth terminal was moved two steps
-up, the first press moved a cable's core name with its wire and the second routed a wire again.
+and a second press of Route or of Arrange and route offers nothing.
 

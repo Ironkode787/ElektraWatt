@@ -74,12 +74,12 @@ relays stand alike and a wire across one tag's first place moves the row's tags,
 not alike (a wire leaves one of them upward) or no place is clear for all, each is placed on its own; texts wider than
 the row's pitch keep the two-rows rule of §5.2.
 
-**The stacked-marks rule.** A symbol's author may have set a mark's name above its arrow (the starter symbols of
-before step 7, an imported library). Such a mark is three to four steps tall with its texts, and marks stacked two
+**The stacked-marks rule.** A symbol's author may have set a mark's name above its arrow (an imported library, a
+symbol of the person's own). Such a mark is three to four steps tall with its texts, and marks stacked two
 steps apart (§4.4) would stand on each other's names. So the name of a mark whose texts, where their author put
 them, reach another mark or its texts, or leave the drawing area, has the first place of its kind in §5.2 before
 the author's: in line with the wire beyond the arrow. A mark that stands alone keeps its name where its author put
-it, and so does a name its author set in line already (the starter symbols since step 7). The placer reads these first places (`first_places`), so it sets a stack by the texts as they will stand.
+it, and so does a name its author set in line already (the starter symbols). The placer reads these first places (`first_places`), so it sets a stack by the texts as they will stand.
 
 ### 5.4 What is never moved
 
@@ -114,7 +114,7 @@ every text of a symbol where its author drew it keeps them there, and Reset text
 
 ### 5.5 Derived, not stored
 
-Label places are computed, not stored, as the tag rule of today is. *Alternative: the layout stores a place for
+Label places are computed, not stored, as the tag rule is. *Alternative: the layout stores a place for
 every label it settles.* That would make texts as stable as routes, but it needs a mark in the file to tell the
 program's place from the person's, a text command that takes many, and text moves in every tool that writes a
 route; and a part placed by hand would keep a colliding tag until a button is pressed. The present rule (a text
@@ -141,7 +141,7 @@ moved by the repair round of §5.3.
 ## 6. Placing by hand, helped
 
 **The rule.** While a part hangs on the pointer (the placing tool) or is dragged (the Select tool), it stands on
-the grid point nearest the pointer, as today. Nothing computes a place for it, and nothing moves it after it is
+the grid point nearest the pointer. Nothing computes a place for it, and nothing moves it after it is
 set down.
 
 **Guides.** `guides(page, ghost, at) -> Vec<Guide>` gives lines to show:
@@ -159,8 +159,8 @@ wide, in one direction. Moving the pointer past the band lets go; no key is need
 With Alt held there are no guides and no nudge (Alt already places without connecting).
 
 **The wire's ghost.** When the hanging part's pin is in line with a free pin it faces, the straight wire it would
-get on placement is shown dashed, as connecting on placement shows it today. No router runs while a part hangs or
-is dragged: a moved part's wires follow as today and are solved at release (§7.4).
+get on placement is shown dashed, as connecting on placement shows it. No router runs while a part hangs or is
+dragged: a moved part's wires follow it and are solved at release (§7.4).
 
 *Alternative: show where the placer would put the part and snap to it.* It is what the pilot user ruled out: a
 part placed by hand stands where the person puts it.
@@ -190,9 +190,8 @@ In the Connect group of the command bar, after the Wire tool, and in the context
 | `layout.arrange` | Arrange and route | Schikken en routeren | Line up the parts of the selection, or of the page, and route their wires. You see the result before anything changes. |
 
 With a selection, each works on the selection (§3.2, §4.9); with none, on the page. On a page that is not a
-schematic, fluid or bus page they are disabled. They replace **Route page** and **Reroute**, which go: Route does
-what both did (it routes the unrouted, and improves what the program routed), and it no longer needs a second
-button to say which.
+schematic, fluid or bus page they are disabled. Route both routes the unrouted and improves what the program routed,
+so no second button says which.
 
 ### 7.2 Route
 
@@ -262,10 +261,10 @@ draft); when nothing is left to apply the card closes with `toast-arrange-none-l
 ### 7.4 The Wire tool, connecting on placement, moving
 
 - **The Wire tool** stays as it is for the person: click a pin, click a pin, the tool finds the way; a click on
-  the grid fixes a bend. Its inner workings become `ew_drafting::route_wire`, the search of §3.6 against the
-  occupancy of the page, so the tool and the Route command cannot disagree. Two things improve: a wire no longer
-  goes round a tag that has another free place (the tag steps aside when the wire is stored, because labels are
-  derived), and a wire drawn to a pin that already has a wire may share that wire's run (§3.4). A route found between two clicks is marked `computed`; one with a fixed bend is the person's. A wire that ends
+  the grid fixes a bend. Its way is `ew_drafting::route_wire`, the search of §3.6 against the occupancy of the
+  page, so the tool and the Route command cannot disagree. A wire does not go round a tag that has another free
+  place (the tag steps aside when the wire is stored, because labels are derived), and a wire drawn to a pin that
+  already has a wire may share that wire's run (§3.4). A route found between two clicks is marked `computed`; one with a fixed bend is the person's. A wire that ends
   on a wire is joined in the bevel form (§7.6).
 - **Connecting on placement and on a move** stays as it is: straight wires between pins in line, shown before the
   part is set down, never changing a connection. It needs no router. The placement's toast names the wires it made
@@ -279,7 +278,7 @@ draft); when nothing is left to apply the card closes with `toast-arrange-none-l
 - **`ew route`** on the command line runs Route for a page or a selection (`--arrange` runs Arrange and route);
   `--dry-run` prints the plan.
 
-Route is `layout.route` in the Connect group where Reroute stood, and in the menu of a wire and
+Route is `layout.route` in the Connect group, and in the menu of a wire and
 of a symbol; its toast lists the wires without a way and the nets whose order runs against their places. A
 page-wide Route says how many routed wires it left as the person's (every wire of a file without the mark counts as
 his); where routing them anew would make the page better, the toast offers Route these too…, which opens the preview
@@ -298,16 +297,14 @@ it, takes no turn back after a fixed bend, and on it lies no pin or junction but
 it, or meeting it but at its ends), no body but its ends' own parts' (nor a body's edge) and no text that cannot step
 aside, nor along the wire's own route so far. A pin's stub and the step round a body close nothing here, as they do
 to the search (§3.6): a person who draws
-a rail one step over a row of pins gets it as drawn, and each tap he then draws drops down a stub onto it. Before, the
-search took the rail round the stubs without a word, and a tap clicked onto the line it was drawn on found no wire
-there. Where something stands on the straight line the tool goes round, and its hint says so ("Something stands on
+a rail one step over a row of pins gets it as drawn, and each tap he then draws drops down a stub onto it. Where something stands on the straight line the tool goes round, and its hint says so ("Something stands on
 the straight line between these two points, so the wire goes round it"). Route keeps such a rail and its taps: no way
 round costs less (§3.9).
 
 *Never back over itself.* After a fixed bend the tool's way on runs along none of the wire so far: the
 router takes the wire's route up to the bend (`route_wire`'s `before`) as a wire laid, which the way on may cross but
-not run along, nor pass through its bends. A way on from a bend that ran down, back and up onto the bend's own line
-and along the first leg (seen on the sample's 101) is gone; where no other way leads on, the wire is routed anew from
+not run along, nor pass through its bends, so no way on runs down, back and up onto the bend's own line and along the
+first leg; where no other way leads on, the wire is routed anew from
 its start, as for any bend from which no clear way leads. No route the search finds, for Route or for the tool, holds
 a point twice in a row or turns back along the line it came by: a debug build asserts it on what the search returns
 (`search::route`, `geom::tidy`), so that the phase that would make one is found, not cleaned after it. A route put
@@ -372,7 +369,7 @@ the potential arrives, so that one terminal carries them all. A bevel is a chain
 to terminal in the junction's sequence, two on each terminal between the first and the last, and the bevel shows
 which terminal carries two (the one it leads into). So a tap drawn in a new drawing gives as many wires as
 before with other ends: a potential looped from device to device, where the star gave several wires on the
-feeding terminal. The junction's Properties show the wires it produces, as today, and the sequence can be
+feeding terminal. The junction's Properties show the wires it produces, and the sequence can be
 reordered there.
 
 **Drawings made before keep their junctions as stored.** The default is written into a junction when it is
@@ -381,12 +378,12 @@ before. Importers keep what their source says. The layout draws both forms and c
 
 ---
 
-## 8. What goes
+## 8. One router, one text placer, one measure
 
 There is one router, one text placer and one measure: `ew_drafting::route`, `ew_drafting::settle_labels` and
 `ew_drafting::measure`, read through `Session::page_draft` and stored by `layout.apply`; Route is `layout.route` (§7.2).
 
-**Kept from ADR-0033:** a stored route is the drawing and no reader routes; a route is the full vertex list; an
+**As ADR-0033 decided:** a stored route is the drawing and no reader routes; a route is the full vertex list; an
 unrouted wire is a dashed line and is reported; commands store and never route; the two forms of the interruption
 point; connecting on a move.
 
@@ -423,35 +420,36 @@ a text", -076 "Text on a symbol" and -077 "Symbol on a symbol" (F7, a conflict w
 2. **A full sheet:** generated in the test: twelve feeders and forty control paths on one A3 page, about 300
    wires.
 3. **The private pages,** measured outside the repository by whoever holds them: the pilot user's supply page,
-   and the pages of the person-like test runs of each kind. Their figures today and the figures to reach are kept with the build plan, without their names.
+   and the pages of the person-like test runs of each kind.
 
 ### 9.2 The measures, before and after
 
 For each page `ew layout` prints faults, unrouted wires, cost, crossings, bends, wires straight, turn-backs,
-detour and labels moved. The build is judged on:
+detour and labels moved. The tests hold:
 
 - every fixture, untidy, after Arrange and route: no fault, no unrouted wire, no turn-back, no wire across a
   text, no text on a text; every wire between two pins that face each other is straight; every net with three or
   more taps is a trunk with straight drops;
 - every fixture, as wired by hand, after Route: an empty plan (nothing better is found), and after Arrange and
   route: an empty plan;
-- the full sheet: Route and Arrange and route end, with no fault;
-- the private pages: no page worse in any figure, and the targets kept with the build plan.
+- the full sheet: Route and Arrange and route end, with no fault.
 
-### 9.3 Tests that fail without each step
+The private pages are measured outside the repository: no page worse in any figure.
+
+### 9.3 The tests of each part
 
 No test pins the total of a growing set, a generated name or a path; each states a property of a small page.
 
-| Step | A test that fails without it |
-|---|---|
-| 1 | Two parts whose tags' first places overlap: both tags are clear. A wire across a tag's first place: the tag stands at its second. A moved text and a box's pin texts are where they were. The measure counts a turn-back on a wire drawn round a caption. The name of a mark stacked under another stands in line beyond its arrow, and a mark alone keeps its author's place |
-| 2 | A potential wired from pin to pin over three parts is one line with two drops. A T junction moves onto the trunk and keeps its three wires and its sequence. A wire the person shaped is in no page-wide plan; a broken one is, flagged. The same page with its lists shuffled gives the same plan. A plan never changes which pin a wire ends at. A junction with two drops stands over one of them and its net has no fault. A tap may stand on a line across between a pin and the pins that face it |
-| 3 | Two-pole device over a two-pole device of another pitch: one pole straight, one step, no crossing. Five sensors over pins two steps apart: five wires step in and none crosses |
-| 4 | A sensor below a card whose pin faces up stands above it after the run. A circuit that stands above the trunk that feeds it stands below it after the run; an actuator below its valve stands above it. Two circuits whose drops cross change places, two whose drops do not cross keep theirs. A part with no wire does not move. `rules_kept` holds on every plan. A second run gives an empty plan. Unticking one part gives a plan in which it has not moved and nothing overlaps. One Undo restores every place and route. The marks of a strip, scattered, stand in stacks and their wires nest: one corner each, none crossing. The parts a potential feeds from pin to pin stand level under one rail. Field devices stand in a row over their terminals, the terminals in line over their pins, the supply's riser beside the row: no crossing. On a valve terminal the cylinders stand above in the valves' order, the service unit below, no tube crossing. A part wired by a hairpin stands at its host, off the pin's line. A strip is one row for A4, a hairpin is not bound by E4, and a chain may take the chain gap and open by a row's pull and no more. When every row of the preview is unticked the toast says that nothing is left to apply |
-| 5 | A locked part is in no plan; it is a host for the others |
-| 6 | A pointer 0.7 step from an In-line guide's line puts the part on it; 0.8 step does not; with Alt neither guide nor nudge |
-| 7 | An input card drawn from the station view has every channel pin on its upper edge, `CARD_PIN_PITCH` apart. Two marks of the starter library stack two steps apart without their texts meeting |
-| 8 | On a page of the QElectroTech grid a pin's point equals `Grid::at` of its position |
+| Row | Part | Tests |
+|---|---|---|
+| 1 | the text placer (§5) | Two parts whose tags' first places overlap: both tags are clear. A wire across a tag's first place: the tag stands at its second. A moved text and a box's pin texts are where they were. The measure counts a turn-back on a wire drawn round a caption. The name of a mark stacked under another stands in line beyond its arrow, and a mark alone keeps its author's place |
+| 2 | the net router and its trunks (§3.4) | A potential wired from pin to pin over three parts is one line with two drops. A T junction moves onto the trunk and keeps its three wires and its sequence. A wire the person shaped is in no page-wide plan; a broken one is, flagged. The same page with its lists shuffled gives the same plan. A plan never changes which pin a wire ends at. A junction with two drops stands over one of them and its net has no fault. A tap may stand on a line across between a pin and the pins that face it |
+| 3 | the tracks (§3.5) | Two-pole device over a two-pole device of another pitch: one pole straight, one step, no crossing. Five sensors over pins two steps apart: five wires step in and none crosses |
+| 4 | the placer (§4, §1.6) | A sensor below a card whose pin faces up stands above it after the run. A circuit that stands above the trunk that feeds it stands below it after the run; an actuator below its valve stands above it. Two circuits whose drops cross change places, two whose drops do not cross keep theirs. A part with no wire does not move. `rules_kept` holds on every plan. A second run gives an empty plan. Unticking one part gives a plan in which it has not moved and nothing overlaps. One Undo restores every place and route. The marks of a strip, scattered, stand in stacks and their wires nest: one corner each, none crossing. The parts a potential feeds from pin to pin stand level under one rail. Field devices stand in a row over their terminals, the terminals in line over their pins, the supply's riser beside the row: no crossing. On a valve terminal the cylinders stand above in the valves' order, the service unit below, no tube crossing. A part wired by a hairpin stands at its host, off the pin's line. A strip is one row for A4, a hairpin is not bound by E4, and a chain may take the chain gap and open by a row's pull and no more. When every row of the preview is unticked the toast says that nothing is left to apply |
+| 5 | keep in place (§2.4) | A locked part is in no plan; it is a host for the others |
+| 6 | the guides (§6) | A pointer 0.7 step from an In-line guide's line puts the part on it; 0.8 step does not; with Alt neither guide nor nudge |
+| 7 | cards drawn from the station view, and marks (§7.5, §5.3) | An input card drawn from the station view has every channel pin on its upper edge, `CARD_PIN_PITCH` apart. Two marks of the starter library stack two steps apart without their texts meeting |
+| 8 | one number for a grid position (§2.1) | On a page of the QElectroTech grid a pin's point equals `Grid::at` of its position |
 
 ### 9.4 A person-like test run
 
@@ -480,8 +478,8 @@ Not measured: no timing test goes into the repository.
   logarithm; areas grow from the ends' box only when no route is found; `PASSES` passes.
 - The occupancy is built once per run and changed per wire, not rebuilt per wire.
 
-On a full sheet the search has the most work; the straights, trunks and tracks take most wires away from it,
-which is the difference to today's solve, where every wire is searched against every other in two orders.
+On a full sheet the search has the most work; the straights, trunks and tracks take most wires away from it, so no
+wire is searched against every other.
 
 ---
 
@@ -495,7 +493,7 @@ Nothing is ported from libavoid, ELK or OGDF.
 
 ## 11. Where this design is unsure
 
-1. **Texts derived, not stored** (§5.5). It is the lean choice and matches today; it means a text can stand
+1. **Texts derived, not stored** (§5.5). It is the lean choice and matches the tag rule; it means a text can stand
    elsewhere after an upgrade of the placer. If stable texts turn out to matter more, the stored form is a later
    step that adds a member and changes no rule here.
 2. **Shared runs** (§3.4). They follow the reference drawing's notation and make pin-to-pin potentials readable,
@@ -508,8 +506,8 @@ Nothing is ported from libavoid, ELK or OGDF.
    move (2 per part) is a first value; it counts a part, not its distance. A page wired against its symbols
    (§4.8) gets Route's plan and no move; wires that have to go round their own card are nested by the router as
    rings (§3.5).
-4. **The weights** (§1.2) continue today's ratios. The text weight of 12 replaces a rule of thumb (8/5) with one
-   number; the private pages named in ADR-0033's amendments are its test.
+4. **The weights** (§1.2) are first values. The text weight is one number for a wire across a text, where a rule of
+   thumb would need two; the private pages named in ADR-0033's amendments are its test.
 5. **The rules of §1.6 are few on purpose.** They say what binds on every page of a kind. What a draughtsman
    also does (the loads at the foot of the sheet, like circuits drawn alike) is left to the measure and the
    person; a rule is easy to add when pages show the need. A part whose role the adapter cannot tell is bound

@@ -48,12 +48,8 @@ A chapter of [Drafting: routing wires, arranging parts and settling texts on a s
     of it (the ordinary snap is half a step), at most 8 screen points further, and lets go beyond. Nothing is
     proposed or moved by the placer here.
 
-What goes: the page solve of `ew_derive::routing` with its order comparisons, rip-up rounds, mates and the 8/5
-rule; the scene's nine text-moving steps; the actions Route page and Reroute; the test that holds the reference
-project's routes. What stays, moved: the exact search of one route, with its tie rule.
-
-The format gains two optional members and no format step (§2.5). A new crate `ew-drafting` holds everything in
-this document that computes.
+The format holds two optional members for it (§2.5). The crate `ew-drafting` holds everything in this document that
+computes.
 
 ---
 
@@ -76,7 +72,7 @@ this document that computes.
 `measure(page) -> Quality` is the one place where a drawing is judged.
 
 **Faults.** The program never draws one; a stored drawing that has one is reported by a check. A wire that cannot
-be routed without a fault stays unrouted (a dashed line, as today).
+be routed without a fault stays unrouted (a dashed line).
 
 | # | Fault | Rule | Check |
 |---|---|---|---|
@@ -95,9 +91,9 @@ be routed without a fault stays unrouted (a dashed line, as today).
 | # | What | Weight | Why this weight |
 |---|---|---|---|
 | C1 | Wire length | 1 per step | the unit |
-| C2 | A bend | 4 | a wire takes four steps more to save a bend (today's ratio, kept) |
-| C3 | A crossing of two wires | 6 | crossings cost a reader most (R-1); a wire detours up to six steps, but takes no two bends, to avoid one (today's ratio, kept) |
-| C4 | A wire across a text | 12, and 1 for each step on it | a way round with a bend or two and a few steps is taken; a way round a group of parts is not (ADR-0033 amendments 2 and 5, now one number) |
+| C2 | A bend | 4 | a wire takes four steps more to save a bend |
+| C3 | A crossing of two wires | 6 | crossings cost a reader most (R-1); a wire detours up to six steps, but takes no two bends, to avoid one |
+| C4 | A wire across a text | 12, and 1 for each step on it | a way round with a bend or two and a few steps is taken; a way round a group of parts is not (ADR-0033 amendments 2 and 5) |
 | C5 | A label on another text, on another part's body, or outside the drawing area | 24 each | worse than a wire across a text: two texts on each other cannot be read |
 | C6 | A label not at its first place | 1 per place down its list | keeps a label at home when nothing is in its way |
 | C7 | A step on the half grid | 1 more per step | the half grid is for the stretch between close pins only (§3.6) |
@@ -192,52 +188,48 @@ asks.
 
 ### 1.5 The numbers, in one place
 
-One `const` table in `ew-drafting` holds these; nothing else in the program repeats them.
+The numbers that draw and decide stand in one `const` table, `crates/ew-drafting/src/consts.rs`, with their values;
+nothing else in the program repeats them, this section included. What each means:
 
-| Name | Value | Used by |
-|---|---|---|
-| `TICKS_PER_STEP` | 16 | the unit of the model (§2.1) |
-| `HALF` | 8 ticks (half a step) | the half grid (§2.1, §3.3) |
-| `STEP`, `BEND`, `CROSSING` | 1, 4, 6 | the cost |
-| `TEXT_CROSSED`, `TEXT_STEP` | 12, 1 | the cost |
-| `LABEL_CLASH`, `LABEL_RANK` | 24, 1 | the cost |
-| `HALF_STEP_EXTRA` | 1 | the cost |
-| `MARK_JOG` | 32 | the cost |
-| `BODY_GAP`, `STUB` | 1 step each | router: the least distances |
-| `TRACK_PITCH` | 2 steps (1 where a channel is too narrow) | tracks, parallel wires |
-| `CHAIN_GAP` | 5 steps (never less than 2) | placer: between facing pins of two parts in line |
-| `TRUNK_GAP`, `TRUNK_PITCH` | 2 steps each | router: a trunk from the pins it taps; trunks side by side |
-| `TRUNK_LINES` | 8 | router: the candidate trunk lines beyond the pins, each way (§3.4) |
-| `LEFT_TO_SEARCH` | 8 steps | router: what a wire left to the search adds to its ends' distance where trunks are compared: two bends' worth, written apart from `BEND` (§3.4) |
-| `MARK_PITCH`, `MARK_LEAD` | 2 steps each | placer: marks in a stack; a mark before its drop |
-| `ROW_GAP` | 1 step | placer: between two footprints in a row |
-| `ROW_PULL` | 6 steps | placer: a part joins a common line when within this |
-| `MOVE_PRICE` | 2 per part | placer: what a move has to earn on the routed page (§4.7) |
-| `REACH` | 24 steps | placer: how far a tree's root may step, each way, to find its tree room (§4.7) |
-| `ANCHORS` | 6 | placer: the most units of a tree tried as its anchor (§4.2) |
-| `PIN_WEIGHT`, `AREA_PER_WEIGHT` | 4; 16 square steps | placer: a unit's weight per wired pin; its bodies' area per weight (§4.2) |
-| `ANCHOR_SHARE` | 3/4 | placer: an anchor's least share of its tree's heaviest weight (§4.2) |
-| `MATE_REACH` | 12 steps (twice `ROW_PULL`) | placer: the farthest mate (§4.2) |
-| `MARK_PITCHES` | 2, 3, 4 steps | placer: the pitches a stack of marks tries (§4.4) |
-| `RESETS` | 2 | placer: the most times the trees are set again after their first setting (§4.4) |
-| `TRIAL_STUB` | 2 steps | placer: a wire out of a pin on the page of a few parts the text placer is asked about (§4.5) |
-| `BRANCHES`, `ROUNDS` | 8; 4 | placer: the most trees, and branches, whose plans are routed one by one; the most runs of one press (§4.7) |
-| `EARTH_REACH` | 8 steps | placer: an earth symbol from the pin it earths |
-| `LABEL_CLEAR` | 2 ticks (1/8 step) | text placer |
-| `NUMBER_ROOM`, `NUMBER_LEVEL` | 2 steps; 4 steps (twice `TRACK_PITCH`) | text placer: a stretch long enough for a wire number, beyond its length; a parallel wire's number it stands level with (§5.2) |
-| `NUMBER_AT` | 1/2, 1/4, 3/4 | text placer: the places along a stretch a wire number tries after the level one (§5.2) |
-| `LINE_GAP` | 1/4 step | text placer: the most between the lines of a block of texts (§5.2) |
-| `WINDOWS` | 4 steps, 16 steps, the drawing area | search areas round the two ends |
-| `PASSES` | 2 | router: improvement passes (§3.6) |
-| `TEXT_ROUNDS`, `TAKE_BACK_ROUNDS` | 2 each | router: text rounds (§3.7); the rounds in which a job takes its stored route back (§3.9) |
-| `DETOUR_MOST` | 8/5 | search: the longest grid route before the half grid is taken (§3.6) |
-| `MAX_NODES` | 262 144 | search area bound (kept) |
-| `GUIDE_SHOW`, `GUIDE_CATCH`, `GUIDE_CATCH_PT` | 2 steps, 3/4 step, 8 screen points | guides (§6) |
-| `CARD_PIN_PITCH` | 8 steps | cards drawn from the station view (§7.5) |
-| `CARD_HEIGHT`, `CARD_PINS_MOST` | 6 steps; 8 pins | cards drawn from the station view (§7.5) |
-| `MARKER_REACH`, `MARKER_GAP` | 1.5 mm; 1 mm | the scene: a wire marker's line past its outer wires; its text beyond the line |
-| `CABLE_TICK`, `CABLE_TEXT_GAP` | 1 mm; 0.5 mm | the scene: half a cable mark's stroke on a core; its texts beside stroke and line |
-| `CABLE_MARK_ROOM`, `SUPPLY_GROUP_REACH` | 6 mm; 20 mm | the commands: the stretch a cable's mark placed with its cores prefers; how far apart two supply points of one group stand in a column |
+| Name | What it is |
+|---|---|
+| `TICKS_PER_STEP` | the unit of the model: ticks to a grid step (§2.1) |
+| `HALF` | the half grid (§2.1, §3.3) |
+| `STEP`, `BEND`, `CROSSING`, `TEXT_CROSSED`, `TEXT_STEP`, `LABEL_CLASH`, `LABEL_RANK`, `HALF_STEP_EXTRA`, `MARK_JOG` | the weights of the cost (§1.2) |
+| `BODY_GAP`, `STUB` | router: the least distances from a body and out of a pin |
+| `TRACK_PITCH`, `TRACK_PITCH_NARROW` | tracks: parallel wires, and where a channel is too narrow for the first |
+| `CHAIN_GAP`, `CHAIN_GAP_MIN` | placer: between facing pins of two parts in line, and never less than the second |
+| `TRUNK_GAP`, `TRUNK_PITCH` | router: a trunk from the pins it taps; trunks side by side |
+| `TRUNK_LINES` | router: the candidate trunk lines beyond the pins, each way (§3.4) |
+| `LEFT_TO_SEARCH` | router: what a wire left to the search adds to its ends' distance where trunks are compared: two bends' worth, written apart from `BEND` (§3.4) |
+| `MARK_PITCH`, `MARK_LEAD` | placer: marks in a stack; a mark before its drop |
+| `ROW_GAP` | placer: between two footprints in a row |
+| `ROW_PULL` | placer: a part joins a common line when within this |
+| `MOVE_PRICE` | placer: what a move of a part has to earn on the routed page (§4.7) |
+| `REACH` | placer: how far a tree's root may step, each way, to find its tree room (§4.7) |
+| `ANCHORS` | placer: the most units of a tree tried as its anchor (§4.2) |
+| `PIN_WEIGHT`, `AREA_PER_WEIGHT` | placer: a unit's weight per wired pin; its bodies' area per weight (§4.2) |
+| `ANCHOR_SHARE` | placer: an anchor's least share of its tree's heaviest weight (§4.2) |
+| `MATE_REACH` | placer: the farthest mate, twice `ROW_PULL` (§4.2) |
+| `MARK_PITCHES` | placer: the pitches a stack of marks tries (§4.4) |
+| `RESETS` | placer: the most times the trees are set again after their first setting (§4.4) |
+| `TRIAL_STUB` | placer: a wire out of a pin on the page of a few parts the text placer is asked about (§4.5) |
+| `BRANCHES`, `ROUNDS` | placer: the most trees, and branches, whose plans are routed one by one; the most runs of one press (§4.7) |
+| `EARTH_REACH` | placer: an earth symbol from the pin it earths |
+| `LABEL_CLEAR` | text placer: the clearance round a text |
+| `NUMBER_ROOM`, `NUMBER_LEVEL` | text placer: a stretch long enough for a wire number, beyond its length; a parallel wire's number it stands level with, twice `TRACK_PITCH` (§5.2) |
+| `NUMBER_AT` | text placer: the places along a stretch a wire number tries after the level one (§5.2) |
+| `LINE_GAP` | text placer: the most between the lines of a block of texts (§5.2) |
+| `WINDOWS` | search: the areas round the two ends, before the drawing area |
+| `PASSES` | router: improvement passes (§3.6) |
+| `TEXT_ROUNDS`, `TAKE_BACK_ROUNDS` | router: text rounds (§3.7); the rounds in which a job takes its stored route back (§3.9) |
+| `DETOUR_MOST` | search: the longest grid route, as a share of the shortest, before the half grid is taken (§3.6) |
+| `MAX_NODES` | search: the bound of a search area |
+| `GUIDE_SHOW`, `GUIDE_CATCH`, `GUIDE_CATCH_PT` | guides: where one shows, where it catches, and its most in screen points (§6) |
+| `CARD_PIN_PITCH`, `CARD_HEIGHT`, `CARD_PINS_MOST` | cards drawn from the station view (§7.5) |
+| `MARKER_REACH`, `MARKER_GAP` | the scene: a wire marker's line past its outer wires; its text beyond the line |
+| `CABLE_TICK`, `CABLE_TEXT_GAP` | the scene: half a cable mark's stroke on a core; its texts beside stroke and line |
+| `CABLE_MARK_ROOM`, `SUPPLY_GROUP_REACH` | the commands: the stretch a cable's mark placed with its cores prefers; how far apart two supply points of one group stand in a column |
 
 A mark's sizes and the commands' two distances are in nm, not steps: they stand the same on every grid. Where the
 mark's line and its wires cross, and where a wire's own marker stands, is one function each over the point's type
@@ -298,9 +290,9 @@ Inside the crate no nanometre exists, so two numbers for one grid position canno
 **A box in ticks.** On the QET grid, whose step is no whole number of nanometres, a grid point is up to half a
 nanometre off its own line and a symbol's offset is rounded to a whole nanometre, so an edge set on a tick of its
 symbol lies up to about a nanometre beside that tick, on one side or the other according to where the symbol
-stands. Rounded outward as it is, a text's box was one tick larger or smaller by its symbol's place, the page as
-stored after a plan moved symbols was not quite the page the plan was made for, and a second press could route a
-few wires again. So an edge within two nanometres of a tick takes that tick, and only an edge further from every
+stands. Rounded outward without more, a text's box would be one tick larger or smaller by its symbol's place, the
+page as stored after a plan moved symbols would not quite be the page the plan was made for, and a second press
+could route a few wires again. So an edge within two nanometres of a tick takes that tick, and only an edge further from every
 tick is rounded outward (`Grid::tick_span`): a box keeps its ticks wherever its symbol stands. On a grid whose tick
 is a whole number of nanometres (the native 4 mm grid) nothing is rounded and every edge is rounded outward. The
 scene's one conversion (`ew_scene::ticks::Ticks`) applies the rule to every box the layout sees: the texts, the
@@ -314,7 +306,7 @@ The design needs two things:
 1. *At the adapter:* a point within 1 nm of a half-grid position converts to that position's tick; any other point
    converts to its nearest tick and is flagged **off grid**. Back from ticks, a position on the grid is the grid's
    own number (`Grid::at`); an end at an off-grid pin takes the pin's stored point, and the corner next to it
-   takes that point's coordinate on the axis of the segment between them (today's `fit`).
+   takes that point's coordinate on the axis of the segment between them (`ew_drafting::search::fit`).
 2. *At the source:* the functions that give a pin's point, a box pin's point and a junction's
    point return the grid's own number when the point is within 1 nm of a grid position. Routes stored by an older
    build keep their numbers: a reader joins an end that is 1 nm beside its pin with a segment of 1 nm, which
@@ -336,9 +328,8 @@ record enters the working model: the commands' `TxBuilder::row` and `base_row` (
 junction in a command or a normaliser), the page's connection and junction views of the scene (and so the layout's
 page), the page tables of the tools, `drawn_path` (the checks) and the clipboard's copy. A record keeps its numbers
 until a command writes it, and is then written as read: opening and saving changes nothing, and a wire a command
-touches is stored on the grid's numbers, a change of that wire only. Before, a junction's point was compared exactly
-with a route's end (`require_route`), a split point and the tables' wire ends, and read settled against a terminal's
-pin by EW-TERM-006; now all of them read the one number.
+touches is stored on the grid's numbers, a change of that wire only. A junction's point, a route's end
+(`require_route`), a split point, the tables' wire ends and a terminal's pin in EW-TERM-006 all read the one number.
 
 ### 2.2 What the layout sees
 
@@ -402,7 +393,7 @@ What each thing of the page becomes:
 | A cable mark, a wire marker | a mark across the wires it names; its tag is a label |
 | Tag, captions, pin texts of a symbol, cross-references, contact image, wire number, a mark's tag, a point's name | labels (§5.2) |
 | Pin texts of a drawn box, free texts, captions of structure boxes, plug pin notes | fixed texts |
-| A structure box | its outline is a fence: a part inside stays inside, a part outside stays outside; in the first build the parts inside a structure box are locked for the placer |
+| A structure box | its outline is a fence: a part inside stays inside, a part outside stays outside; the parts inside a structure box are locked for the placer |
 | The frame | `area` and `keep_out` |
 | A strip's drawn bridge (doc 08 §6.5) | a `keep_out` of its line and a tick to either side: no text stands on it, and the router does not read it |
 | The page's type | `kind`: a fluid page, a bus page, every other schematic page electrical |
@@ -436,28 +427,27 @@ no member that could.
 - **A wire:** nothing to do. A route is the person's unless it is marked `computed`. The Wire tool marks a route
   it found between two clicked ends; it does not mark one with a bend the person fixed by a click. Dragging a
   segment or a bend clears the mark. Route and Arrange and route mark what they write.
-- **A text:** moving it. The stored slot override (as today) holds it; *Reset text positions* gives it back to
+- **A text:** moving it. The stored slot override holds it; *Reset text positions* gives it back to
   the program.
 
 No command of its own: Properties' row and the context menu's entry (`rep.keep_in_place`, a
 check that keeps the selected symbols, or lets them go when all are kept, with a toast that names them) both run
 `fields.set` of `locked`, one undo step for the selection. The pin is `IconId::pin` at the top-right corner of the
 symbol's body while it is selected, painted with the panel pages' lock (`paint_locks`); the page tables carry
-`TableRep.locked`, the adapter `Part.locked`. The glyph in the preview's "Left as it is" (§7.3) is step 4's, from
-`Part.locked`.
+`TableRep.locked`, the adapter `Part.locked`. The glyph in the preview's "Left as it is" (§7.3) is read from
+`Part.locked` too.
 
 ### 2.5 The file format
 
 Two optional members, appended after the released members of their records, written only when true:
 
-| Member | Meaning | An older file | A new file in a 0.2.0 build |
-|---|---|---|---|
-| `Connection.computed: bool` | the stored route was computed by the program and may be computed again | absent: every stored route counts as the person's, so a page-wide Route touches only unrouted and broken wires until wires are routed anew | kept in `extra` and written back; the drawing is the same; a route edited there keeps a stale mark, so a later page-wide Route may replace it (it is shown and named, and undone in one step) |
-| `Representation.locked: bool` | the placer leaves the part where it stands | absent: nothing is locked | kept and written back; that build has no placer |
+| Member | Meaning | Where it is absent |
+|---|---|---|
+| `Connection.computed: bool` | the stored route was computed by the program and may be computed again | every stored route counts as the person's, so a page-wide Route touches only unrouted and broken wires until wires are routed anew |
+| `Representation.locked: bool` | the placer leaves the part where it stands | nothing is locked |
 
-Both are additive by ADR-0011 amendment 6 (an optional member without cascade semantics): no format step, the
-published schemas are re-blessed, and the test that a released project opens and saves unchanged holds. Text
-positions need no member (§5.5), nor do trunks or the kind of a page.
+Both are additive (ADR-0011 amendment 6: an optional member without cascade semantics), so a project without them
+opens and saves unchanged. Text positions need no member (§5.5), nor do trunks or the kind of a page.
 
 ### 2.6 One command stores a plan
 
@@ -465,8 +455,8 @@ positions need no member (§5.5), nor do trunks or the kind of a page.
 route}], markers: [{item, at}] }`: one transaction, one undo step. It checks each route as `connection.route`
 does (both ends on their pins or junctions, after the moves of the same command), marks each stored route
 `computed`, refuses a move of a locked part and a part onto another, sets `orient` only on a junction of the bevel form, and
-takes nothing else: it cannot change an end, a junction's form, its wires or its sequence. Commands store and never compute (kept): replaying a log runs no router.
-`connection.route_many` goes; `rep.move` keeps its `routes` for the move's own re-solve (§7.4).
+takes nothing else: it cannot change an end, a junction's form, its wires or its sequence. Commands store and never
+compute: replaying a log runs no router. `rep.move` keeps its `routes` for the move's own re-solve (§7.4).
 
 `parts: [{rep, steps: [kx, ky]}]` moves each symbol as `rep.move`'s `steps` does (one function
 for both). The command refuses a symbol kept in place, one named twice, one whose connection points or anchor would
@@ -477,12 +467,13 @@ every wire whose route it changes, an empty route for a wire of a moved symbol t
 
 ### 2.7 Where the code lives
 
-A new crate **`ew-drafting`** (GPL-3.0-or-later; of the workspace it depends on `ew-ids` and the workspace-hack only, and `ci/dep-rules.toml` allows `ew-units` besides): the model, the
-measure, the text placer, the search, the net router, the tracks, the placer, the guides. It reads no project
-record, so it builds and tests in seconds, which the eight steps of the build use on every change. `ew-scene`
-calls its text placer; `ew-api` builds a `DraftPage` (it has the scene's text sizes) and offers `page_draft`,
-`route_plan`, `arrange_plan`, `route_wire` and the layout findings; the tools get the model from the host, as
-today. `ew_derive::routing` is deleted.
+The crate **`ew-drafting`** (GPL-3.0-or-later) holds the model, the measure, the text placer, the search, the net
+router, the tracks, the placer, the guides and the numbers of §1.5. Of the workspace it depends on `ew-units` and
+`ew-ids` only (and the workspace-hack), which `ci/dep-rules.toml` confines it to; it reads no project record, so it
+builds and tests in seconds. Three crates use it: `ew-scene` calls its text placer and draws its marks;
+`ew-commands` places by its drawing distances; `ew-api` builds a `DraftPage` (it has the scene's text sizes) and
+offers `page_draft`, `route_plan`, `arrange_plan`, `route_wire` and the layout findings. The tools get the model
+from the host.
 
 *Alternative: keep it as a module of `ew-derive`.* That crate is 27 000 lines and every router test would build
 it; the code reads nothing of it.
