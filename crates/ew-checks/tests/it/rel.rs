@@ -160,6 +160,24 @@ fn four_eyes_cases() {
     assert!(gated(vec![revision(1, "V1.0", "released", json!({}))], Some(digest(1))).is_empty());
 }
 
+/// EW-REL-001 judges the revision the title block calls open (`ew_derive::open_revision`): an open revision that a
+/// withdrawal record withdraws is not live, so there is nothing to release.
+#[test]
+fn four_eyes_judges_the_title_blocks_open_revision() {
+    let records = vec![
+        revision(1, "V1.0", "open", json!({})),
+        revision(
+            2,
+            "V1.0",
+            "withdrawn",
+            json!({"withdraws": us(1), "reason": "issued in error"}),
+        ),
+    ];
+    let m = model(records.clone());
+    assert!(ew_derive::open_revision(&Q::new(&m)).is_none());
+    assert!(gated(records, Some(digest(1))).iter().all(|(r, _, _)| *r != "EW-REL-001"));
+}
+
 /// EW-REL-004's gate half (FR-REV-002): a label out of the project's format, and an open revision whose label does not
 /// follow every other; a withdrawal record repeats its label and is passed over; a newer build's format is not judged.
 #[test]

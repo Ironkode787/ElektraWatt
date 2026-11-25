@@ -78,21 +78,13 @@ fn role(r: &PartyRole) -> Named {
         .unwrap_or_else(|| text!("word-a-role-of-a-newer-format").into())
 }
 
-/// The open revision (at most one, EW-INV-016; the first in key order otherwise).
-fn open_revision(q: &Q) -> Option<std::sync::Arc<Revision>> {
-    q.table::<Revision>()
-        .iter()
-        .find(|(_, r)| r.is_open())
-        .map(|(_, r)| std::sync::Arc::clone(r))
-}
-
 /// EW-REL-001's findings on the open revision (doc 15 §5.4; FR-REV-005, FR-REV-021): author not set, checker not set,
 /// checker equal to the author, sign-off missing or incomplete, and, with a digest in `input`, a sign-off whose content
 /// digest is not the saved generation's (content edited after approval). A project without an open revision has
 /// nothing to release here. One finding per condition (discriminators `author`, `checker`, `four-eyes`, `sign-off`,
 /// `stale`); the sign-off is judged only once the roles are right, since the checker is written with it.
 pub fn four_eyes(q: &Q, input: &GateInput) -> Vec<Finding> {
-    let Some(r) = open_revision(q) else {
+    let Some(r) = ew_derive::open_revision(q) else {
         return Vec::new();
     };
     let label = r.label.as_str();
