@@ -105,7 +105,7 @@ const PLACEMENT_ROWS: [&str; 5] = [
 /// "a placement's rows show labels and values in the user's words, and the members with no meaning
 /// to the user move to Advanced (doc 16a §6.8)". 902's Placement rows: Scale "1:5"; the form's row and the connection
 /// grid's fraction only under Advanced, the grid itself as the status bar writes it. The scale is edited in
-/// its words. The Form row names the frame the page draws with, which it does not name itself (FT-1915).
+/// its words. The Form row names the frame the page draws with, which it does not name itself.
 #[test]
 fn the_placement_rows_of_902_read_in_words_and_the_scale_edits_as_it_shows() {
     let tmp = Tmp::new("ft1019");

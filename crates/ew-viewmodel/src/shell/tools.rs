@@ -16,7 +16,7 @@
 //! (a click into the other group, a tab switch, a jump, a walk), a busy tool is sent `Escape` and the overlay, the
 //! preview and the link preview are cleared, so an overlay never shows on a page it was not made on.
 //!
-//! **Time.** Nothing here is timed: pointer rest is the action `canvas.dwell` with its duration (D11).
+//! **Time.** Nothing here is timed: pointer rest is the action `canvas.dwell` with its duration.
 
 use std::sync::Arc;
 
@@ -86,7 +86,7 @@ impl ShellModel {
 
     /// Whether the window sends a double click's second press as `tool.finish` (`Tool::finishes_on_double_click`).
     /// The Select tool finishes only with a free text selected, which the double click opens: on a symbol the second
-    /// press stays a press, so a drag started right after the click that selected it moves it (FT-1659: a drag from
+    /// press stays a press, so a drag started right after the click that selected it moves it (a drag from
     /// the lamp's centre just after selecting it there did nothing).
     pub fn finishes_on_double_click(&self) -> bool {
         self.tools.tool.finishes_on_double_click()
@@ -243,7 +243,7 @@ impl ShellModel {
     /// The rectangles of the selected entities drawn on group `group`'s page (the `selected` outline), the
     /// connections left out ([`Self::selected_paths`]). A device or a
     /// function selected by its tag (the command search, `select.set tag:`) is outlined where the page draws it, as
-    /// Delete takes it (FT-1585: the status bar counted it and the page drew nothing).
+    /// Delete takes it (the status bar counted it and the page drew nothing).
     pub fn selected_rects(&self, group: usize) -> Vec<Rect> {
         let Some(c) = self.canvas_of(group) else {
             return Vec::new();
@@ -768,7 +768,7 @@ impl ShellModel {
             .then_some(json.as_ref())
             .flatten()
             .and_then(|json| self.paste_fit_of(json));
-        // FT-900: what a placement made is the selection, replacing it, at the end of the dispatch.
+        // What a placement made is the selection, replacing it, at the end of the dispatch.
         self.tools.placed = done && follows.select_placed;
         self.layout_committed(done, &follows.layout);
         // The IP tool's memory and its next name.
@@ -995,7 +995,7 @@ impl ShellModel {
         }
     }
 
-    /// FT-656: a placement (`device.place`, `box.black`, `ip.place`, `connection.draw_to_ip`) or an exchange
+    /// A placement (`device.place`, `box.black`, `ip.place`, `connection.draw_to_ip`) or an exchange
     /// (`rep.exchange_symbol`) with the `copies` its tool armed with, less those the project holds now: the first
     /// placement embeds them, a later one carries none, and one after an undo of the first carries them again. Any
     /// other command is returned as it is.
@@ -1197,7 +1197,7 @@ impl ShellModel {
         Some((tubes, list))
     }
 
-    /// After a committed placement of the schematic Place tool (FT-900): the representations the page tables
+    /// After a committed placement of the schematic Place tool: the representations the page tables
     /// hold now and did not before the commit are the selection, one selection change; the tool stays armed.
     pub(super) fn after_place(&mut self) {
         if !std::mem::take(&mut self.tools.placed) {
@@ -1713,7 +1713,7 @@ impl ShellModel {
         }
         // The paste tool commits without a grid cursor (its ghost stays where duplicate or the pointer put it), and so
         // does the Wire marker typing over the
-        // wires a dragged line crossed (FT-1684: Enter placed nothing after a drag by the pointer).
+        // wires a dragged line crossed (Enter placed nothing after a drag by the pointer).
         let marker_typing = self.tools.tool.name() == "marker" && self.tools.tool.state() == "typing";
         if (marker_typing || matches!(self.tools.tool.name(), "paste" | "layout_place"))
             && self.canvas().and_then(CanvasModel::cursor).is_none()
@@ -1847,11 +1847,11 @@ pub(super) fn command_failed(e: &CmdError, params: &Value) -> Outcome {
 /// itself a text in the same language; a refusal without a key (one of the API's own) as its English `reason`.
 pub(crate) fn rejected_words(reason: &str, text: Option<&ew_api::Text>) -> String {
     fn words(t: &ew_api::Text) -> String {
-        // A JSON Pointer names its member in words, as an invalid parameter does (FT-1552).
+        // A JSON Pointer names its member in words, as an invalid parameter does.
         if let ("refusal-words-pointer", [ew_api::TextArg::Plain(pointer)]) = (t.key(), t.args()) {
             return param_words(&Value::Null, pointer);
         }
-        // A part kind by its choice's words (FT-1555).
+        // A part kind by its choice's words.
         if let ("refusal-words-part-kind", [ew_api::TextArg::Plain(kind)]) = (t.key(), t.args()) {
             return strings::in_sentence(&strings::choice_text(kind));
         }
@@ -2096,7 +2096,7 @@ mod ft779 {
         );
     }
 
-    /// FT-1552: a schema violation inside a refusal names its member in words, never its JSON Pointer; the CLI's
+    /// A schema violation inside a refusal names its member in words, never its JSON Pointer; the CLI's
     /// English keeps the pointer.
     #[test]
     fn a_schema_violation_names_its_member_in_words() {

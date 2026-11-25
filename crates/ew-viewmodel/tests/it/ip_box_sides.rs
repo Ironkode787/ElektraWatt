@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! An interruption point dropped on a drawn box's pin never lies along or in the box (FT-1798, doc 06 §3.5): EW's two
+//! An interruption point dropped on a drawn box's pin never lies along or in the box (doc 06 §3.5): EW's two
 //! forms point right whatever the side, so on the lower side the point stands a grid step below the pin and on the
 //! upper side two steps above it, joined by a straight wire; a target on the left side and a source on the right side
 //! stand on the pin; a source on the left side and a target on the right side, which would point into the box, are

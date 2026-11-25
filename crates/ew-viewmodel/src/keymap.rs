@@ -7,7 +7,7 @@
 //! digits, the named keys (`Enter`, `Page Down`, `F8`) and the registry's `Plus`, `Minus` and `Equals` bind by logical
 //! key; a punctuation character (`]`) and `phys:<code>` (`phys:BracketRight`, W3C `KeyboardEvent.code` names) bind by
 //! physical key, so `]` is the key right of P whatever the layout prints on it. The registry and the window show the
-//! character form (`]`); the keymap files write the `phys:` form (D6). [`Chord`] is the normalised form that the
+//! character form (`]`); the keymap files write the `phys:` form. [`Chord`] is the normalised form that the
 //! conflict rules compare.
 //!
 //! **Keymaps.** A keymap file is doc 16 §4.4's TOML: `[meta]` with `name` and `version = 1`, then `[[bind]]` tables
@@ -31,7 +31,7 @@ use crate::key;
 use crate::strings;
 use crate::strings::Key;
 
-/// The user's keymap file inside the settings directory (D6).
+/// The user's keymap file inside the settings directory.
 pub const USER_FILE: &str = "keymap.toml";
 
 /// The version a keymap file carries in `[meta]`.
@@ -199,7 +199,7 @@ impl Chord {
         format!("{}{key}", self.modifier_text())
     }
 
-    /// The text a keymap file writes: a physical key always in the `phys:` form (D6).
+    /// The text a keymap file writes: a physical key always in the `phys:` form.
     pub fn file_text(&self) -> String {
         let key = match &self.key {
             ChordKey::Logical(name) => name.clone(),
@@ -300,7 +300,7 @@ pub fn context_of_word(word: &str) -> Option<Context> {
 // ---------------------------------------------------------------------------------------------------------------
 // Presets
 
-/// A keymap preset (D6); the settings name it with [`Preset::word`].
+/// A keymap preset; the settings name it with [`Preset::word`].
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Preset {
     /// EW: the registry's bindings.
@@ -629,7 +629,7 @@ pub fn refusal_text(finding: &Finding, recorded: &str) -> String {
     }
 }
 
-/// Every effective binding, in registry order (D6).
+/// Every effective binding, in registry order.
 pub fn effective(preset: Preset, user: Option<&Keymap>) -> Vec<Bound> {
     ACTIONS
         .iter()
@@ -674,7 +674,7 @@ pub fn export(name: &str, preset: Preset, user: Option<&Keymap>) -> Keymap {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Conflicts (D8)
+// Conflicts
 
 /// Whether a finding is an error or an info.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -685,7 +685,7 @@ pub enum Severity {
     Info,
 }
 
-/// A finding of the conflict rules (D8).
+/// A finding of the conflict rules.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Finding {
     /// Equal chords for different actions in one context (an error).
@@ -828,7 +828,7 @@ pub fn conflicts(binds: &[Bound]) -> Vec<Finding> {
     out
 }
 
-/// The errors that refuse the user's keymap `user` over `preset` (D8): the conflicts, the Ctrl+Alt ban and the
+/// The errors that refuse the user's keymap `user` over `preset`: the conflicts, the Ctrl+Alt ban and the
 /// reserved chords of the effective bindings.
 pub fn user_errors(preset: Preset, user: &Keymap) -> Vec<Finding> {
     conflicts(&effective(preset, Some(user)))

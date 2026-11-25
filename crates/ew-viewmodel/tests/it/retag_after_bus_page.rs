@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A station placed first on a bus page takes its tag from that page; its box placed later on a schematic page takes
-//! that page's, as a device's tag names the page that draws its main function (FT-1766). The tag changes, and the toast
+//! that page's, as a device's tag names the page that draws its main function. The tag changes, and the toast
 //! says so with both tags and why.
 
 use crate::common::{Tmp, cursor, done, grid_point, new_project, tables, toast};

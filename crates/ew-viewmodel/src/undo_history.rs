@@ -15,7 +15,7 @@
 //! window selection; when the action committed, the context is kept under the revision of each new history entry (at
 //! most [`MAX_CONTEXTS`], the oldest dropped, cleared with the project). Undo, redo and Undo to here restore the context
 //! of the step they crossed last. A step without a kept context (an external change, a recovery) restores nothing.
-//! The transaction's own `TxContext` stays unused (D13). Nothing here reads a clock or a path.
+//! The transaction's own `TxContext` stays unused. Nothing here reads a clock or a path.
 
 use std::collections::BTreeMap;
 

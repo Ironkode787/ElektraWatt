@@ -84,7 +84,7 @@ pub fn entity_words(e: &PreviewEntity) -> (&'static str, String) {
     (change, crate::properties::kind_plural(&e.kind, 1))
 }
 
-/// Counts in words joined by `sep` (" · "): the first always, each other only when it is not zero (FT-1761: a
+/// Counts in words joined by `sep` (" · "): the first always, each other only when it is not zero (a
 /// preview read "0 cross-reference texts").
 pub(crate) fn counted(parts: &[(crate::strings::CountKey, usize)], sep: &str) -> String {
     parts
@@ -168,7 +168,7 @@ mod tests {
         )
     }
 
-    /// FT-1743: the importer's own member of a part (`eplan.accessories`, `eplan.variants`) reads in words, not as
+    /// The importer's own member of a part (`eplan.accessories`, `eplan.variants`) reads in words, not as
     /// the name of the importer.
     #[test]
     fn the_eplan_member_of_a_part_reads_as_accessories_and_variants() {

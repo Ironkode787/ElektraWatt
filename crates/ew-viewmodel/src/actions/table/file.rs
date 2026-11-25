@@ -35,7 +35,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     // File ▸ Import…, beside Open: a QElectroTech project starts the import, an `.ewz` its Open .ewz dialog.
-    // It takes every file the program imports and goes on by what the file is (FT-1741): a QElectroTech project, a
+    // It takes every file the program imports and goes on by what the file is: a QElectroTech project, a
     // drawing, EPLAN data, a parts table. The separate entries (Parts table…, Import QElectroTech project…, Import
     // drawing…, Import EPLAN data…) are out of the menus and the bar; the command search finds each by its name.
     with_params(
@@ -117,7 +117,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 Menu::Project,
                 &[],
                 always,
-                // File ▸ Import… reaches it; the command search finds it by its name (FT-1741).
+                // File ▸ Import… reaches it; the command search finds it by its name.
                 None,
                 |s, p| s.act_import_qet(p),
             ),
@@ -341,7 +341,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_external_review(),
     ))),
-    // FT-1499: the damaged-copy banner's Update from library.
+    // The damaged-copy banner's Update from library.
     hidden(act(
         "library.update_damaged",
         Command,

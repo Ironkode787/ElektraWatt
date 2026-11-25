@@ -73,7 +73,7 @@ pub struct DeviceBox {
     /// The part number of the part a new part's draft copies (the start card's part of a library that the project
     /// does not hold): the line over the box says that Save keeps a copy of the person's own.
     copy_of: Option<String>,
-    /// The pin table's order held while the same pins are edited (FT-2005: a pin given another edge jumped to that
+    /// The pin table's order held while the same pins are edited (a pin given another edge jumped to that
     /// edge's rows under the pointer): the selection it was taken for and the pins in that order.
     held: Option<(Vec<u16>, Vec<u16>)>,
 }
@@ -135,7 +135,7 @@ impl DeviceBox {
         self.draft.pins_from().map(from_words)
     }
 
-    /// Whether the pins' places on the box and the box's size are edited here (FT-1788): also on a PLC card's or a bus
+    /// Whether the pins' places on the box and the box's size are edited here: also on a PLC card's or a bus
     /// device's box, whose pins' names and potentials are the part's.
     pub fn places_pins(&self) -> bool {
         self.draft.places_pins()
@@ -143,7 +143,7 @@ impl DeviceBox {
 
     /// The pin table: the pins in the order they stand on the box, the edges top, bottom, left, right, each from its
     /// start; while the same pins stay selected and are edited, in the order they had when the editing began, so a row
-    /// keeps its place under the pointer (FT-2005), and a new selection sorts them again.
+    /// keeps its place under the pointer, and a new selection sorts them again.
     pub fn pin_table(&self) -> Vec<PinLine> {
         let mut lines = self.placed_pins();
         if let Some((selection, order)) = &self.held
@@ -267,7 +267,7 @@ impl DeviceBox {
             locked: None,
         };
         // A card's or a bus device's pins keep their names and potentials, which are the part's; their places and
-        // the box's size are the box's (FT-1788).
+        // the box's size are the box's.
         let locked = self.pins_from();
         let placed = locked.clone().filter(|_| !self.places_pins());
         let b = self.steps();
@@ -650,7 +650,7 @@ impl ShellModel {
     /// `role` name it and say what it carries, `side` with `at` (millimetres along the edge) puts it there, and
     /// `side` alone moves it in the pin table's order onto that edge, before pin `before` or last. Refused in words
     /// for a part whose pins come from its channels, its ports or its symbol, except that a card's or a bus device's
-    /// pin is put on its edge and moved along it (its name and what it carries are the part's, FT-1788).
+    /// pin is put on its edge and moved along it (its name and what it carries are the part's).
     pub(crate) fn act_part_pin(&mut self, p: &Map<String, Value>) -> Outcome {
         let index = |name: &str| {
             p.get(name)
@@ -676,7 +676,7 @@ impl ShellModel {
                 };
             }
         }
-        // A place typed between two steps of the pin grid, or on a corner, and where the pin stands instead (FT-1811).
+        // A place typed between two steps of the pin grid, or on a corner, and where the pin stands instead.
         let taken = std::cell::Cell::new(None);
         let place = |d: &mut PartDraft, idx: u16, side: Dir4, mm: f64| -> bool {
             let at = (mm * 1e6).round() as i64;

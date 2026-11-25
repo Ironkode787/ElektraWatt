@@ -40,12 +40,12 @@ pub enum JobKind {
     Print,
     /// A navigator's table as XLSX or CSV (`navigator.export_table`).
     Table,
-    /// A drawing read, probed and converted for File ▸ Import… (`file.import_drawing`, FT-1753): it writes no file,
+    /// A drawing read, probed and converted for File ▸ Import… (`file.import_drawing`): it writes no file,
     /// and its end opens the dialog or makes the page or underlay.
     Import,
     /// The DXF set (`file.export_dxf`, doc 09 §4.9): a folder of page files and the pictures they name.
     Dxf,
-    /// A file read for an import (an EDZ or a parts XML, a PLC exchange file, a report spreadsheet; FT-1763): it
+    /// A file read for an import (an EDZ or a parts XML, a PLC exchange file, a report spreadsheet): it
     /// writes no file, and its end opens the import's dialog or card, or makes the project.
     Read,
 }

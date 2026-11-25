@@ -285,7 +285,7 @@ fn each_tutorial_has_its_own_start() {
         .into_iter()
         .map(|i| (i.label, i.params))
         .collect();
-    // The guide's tutorials, each with its start; the list grows with the guide (FT-1715).
+    // The guide's tutorials, each with its start; the list grows with the guide.
     for item in [
         (
             "A first schematic page with potentials".to_owned(),

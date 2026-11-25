@@ -452,7 +452,7 @@ fn show_tips_is_a_view_tab_switch_and_the_palette_says_its_state() {
 }
 
 /// Re-import QElectroTech project… is the button of the Project tab's Import group; the sources of an import are in File ▸
-/// Import… alone (FT-1741).
+/// Import… alone.
 #[test]
 fn reimport_is_the_one_button_of_the_import_group() {
     use ew_viewmodel::command_bar::{Group, Tab, command_bar_of};

@@ -39,7 +39,7 @@ report-kind-tube-cut-list = Slangenzaaglijst
 report-kind-tube-labels = Slangmarkeringen
 report-kind-valve-terminal-config = Ventieleilandconfiguratie
 report-kind-medium-overview = Mediumoverzicht
-# Persona round 3: what gives a report block of each page kind its rows, said when the block makes no page yet.
+# What gives a report block of each page kind its rows, said when the block makes no page yet.
 report-rows-toc = De pagina's van het project geven het rijen
 report-rows-structure-overview = Een structuuraanduiding of een apparaatkenmerk geeft het rijen
 report-rows-parts-summary = Een apparaat met een artikel geeft het rijen
@@ -68,7 +68,7 @@ report-rows-tube-cut-list = Een slang geeft het rijen
 report-rows-tube-labels = Een slang geeft het rijen
 report-rows-valve-terminal-config = Een ventieleiland geeft het rijen: plaats er een via Apparaat ▸ Ventieleilanden
 report-rows-medium-overview = Een medium op een slang geeft het rijen
-# FT-1212 (ID-1392): the export toast names its pages by kind.
+# The export toast names its pages by kind.
 export-pages-drawing = { $p0 ->
         [one] 1 tekeningpagina
        *[other] { $p0 } tekeningpagina's
@@ -171,7 +171,7 @@ external-theirs = Versie op schijf
 external-row = { $p0 } · { $p1 }
 external-side = { $p0 }: { $p1 }
 
-# WP-S3.09 D4, D8: the QElectroTech import card, its checkpoint confirmation and the front door's refusals.
+# The QElectroTech import card, its checkpoint confirmation and the front door's refusals.
 import-card-title = { $p0 } importeren
 import-card-does = Project maken maakt een nieuw project in de map { $p0 }, met { $p1 }, { $p2 } en { $p3 }.
 import-card-verdict-clean = Alles in het bestand is geïmporteerd.
@@ -206,7 +206,7 @@ import-card-connections = { $p0 ->
         [one] 1 verbinding
        *[other] { $p0 } verbindingen
     }
-# FT-1397 (ID-1392): the import banner's count of the migration report's findings.
+# The import banner's count of the migration report's findings.
 import-card-findings = { $p0 ->
         [one] 1 bevinding
        *[other] { $p0 } bevindingen

@@ -711,7 +711,7 @@ fn a_part_added_after_a_partless_bridge_keeps_the_pair_bridged() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Selection by records (D9), the shaft rule and Remove bridge (D11)
+// Selection by records, the shaft rule and Remove bridge
 
 /// The Terminal strips row keys of terminals `designations` of strip `strip` (the navigator open in table mode).
 fn strip_rows(s: &mut ShellModel, strip: &str, designations: &[&str]) -> Vec<String> {

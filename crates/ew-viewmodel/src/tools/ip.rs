@@ -51,7 +51,7 @@
 //! with `ip.place`. An external connection point connects the same way. On the CP of another interruption
 //! point the click is refused in words.
 //!
-//! **On a drawn box's pin** (doc 06 §3.5, FT-1798) EW's two forms, which are never turned, never lie along or in the
+//! **On a drawn box's pin** (doc 06 §3.5) EW's two forms, which are never turned, never lie along or in the
 //! box: on a pin of its lower side the point stands one grid step below the pin, on its upper side two steps above
 //! it, joined by a straight wire (`connection.draw_to_ip` with that route, [`IpTool::stand_off`]; the ghost shows it
 //! there); on its left side a target, on its right side a source stands on the pin as on any other; a source on the
@@ -162,7 +162,7 @@ pub struct IpMemory {
     pub last_direction: IpDir,
     /// The name typed in Tool options (`ip.name`) that is still to be used: the next point the IP tool or the Wire
     /// tool's P places takes it unchanged. The points the IP tool places leave it standing, as the field shows it, so
-    /// the next click places the partner of that name and a pair needs its name typed once (FT-1657), and the clicks
+    /// the next click places the partner of that name and a pair needs its name typed once, and the clicks
     /// after the pair place further targets of its source; an external point takes it. It outlives a switch of
     /// tools, so a name typed with the IP tool armed names the end of the next wire ended with P, which takes it.
     pub typed: Option<String>,
@@ -688,7 +688,7 @@ impl IpTool {
     }
 
     /// The way `pin` leaves its drawn box, where it is a pin on a box's side and the tool draws EW's two forms, whose
-    /// arrow is never turned (doc 06 §3.5, FT-1798); `None` for a pin of a symbol, or with a symbol the person turns.
+    /// arrow is never turned (doc 06 §3.5); `None` for a pin of a symbol, or with a symbol the person turns.
     fn box_side(&self, cx: &ToolCx<'_>, pin: &TableCp) -> Option<Dir> {
         let drawn_box = cx
             .page
@@ -702,7 +702,7 @@ impl IpTool {
     /// Where a point dropped on `pin` at the insertion point `pos` stands, and the route of its wire from the pin
     /// (empty: its connection point on the pin). On a pin of a box's lower side the point stands one grid step below
     /// the pin, on the upper side two steps above it (its cross-reference under the arrow needs the room), joined by
-    /// a straight wire, so that its arrow never lies along the box's edge (doc 06 §3.5, FT-1798); elsewhere on the pin.
+    /// a straight wire, so that its arrow never lies along the box's edge (doc 06 §3.5); elsewhere on the pin.
     fn stand_off(&self, cx: &ToolCx<'_>, pos: (i64, i64), pin: &TableCp) -> ((i64, i64), Vec<(i64, i64)>) {
         use ew_units::{Grid, Nm};
         let steps = match self.box_side(cx, pin) {
@@ -887,7 +887,7 @@ impl IpTool {
             if self.suppressed {
                 return DropOn::Free;
             }
-            // But an arrow that would point into a drawn box from its side is not placed there (FT-1798).
+            // But an arrow that would point into a drawn box from its side is not placed there.
             let target = self.resolve(cx, Some(pos)).1 == IpDir::Target;
             return match (self.box_side(cx, pin), target) {
                 (Some(Dir::Left), false) => DropOn::Refused(crate::strings::format(
@@ -1195,7 +1195,7 @@ impl Tool for IpTool {
     fn on_commit(&mut self, done: bool) {
         let pending = self.pending.take();
         if let (true, Some((name, direction))) = (done, pending) {
-            // The name in the field stays until it is changed: after its source, for the target (FT-1657: the tool
+            // The name in the field stays until it is changed: after its source, for the target (the tool
             // renamed itself "L1-1" after the first "L1" and placed a second source), after a target that no source
             // feeds, for the source, and after the pair is whole, for further
             // targets of the same source (the next clicks became "24V" and "24V-1" of nothing). A chosen Target

@@ -27,7 +27,7 @@ pub(super) const TERMINAL_DESIGNATION: [&str; 2] = ["terminal_designation", "des
 /// Terminal…'s Part "No part" (a form sends no empty field).
 const NO_PART: &str = "none";
 
-/// The most terminals one click of Terminal…'s Place lays in a row (FT-1695).
+/// The most terminals one click of Terminal…'s Place lays in a row.
 pub(super) const TERMINAL_ROW_MAX: u32 = 100;
 
 /// The widest spacing of a terminal row, in grid steps.
@@ -266,7 +266,7 @@ impl ShellModel {
         Some(d.aspects.terminal.as_ref()?.strip.as_uuid().to_string())
     }
 
-    /// `tool.place_terminal {strip?, kind?, levels?, part?, count?, from?, tag?}` (Draw ▸ Place ▸ Terminal…, FT-1695): in the
+    /// `tool.place_terminal {strip?, kind?, levels?, part?, count?, from?, tag?}` (Draw ▸ Place ▸ Terminal…): in the
     /// window without parameters its small form asks which strip (one of the project's, or `new`: a new strip with the
     /// tag it will take, editable in `tag`; `new` stands first, and the strip of the page's terminal placed last is chosen, else
     /// `new`), which kind of terminal (the page's terminal symbols: feed-through, PE…), which part (No part, or a
@@ -275,7 +275,7 @@ impl ShellModel {
     /// terminal floating; a click places the row, each terminal on the next free point the spacing right of the one
     /// before (`place.pick`'s `count`), each with the part in the step that places it. Headless, the parameters left
     /// out take the form's defaults. Spacing (`spacing`, grid steps, shown with their length) is how far apart the row's
-    /// terminals stand, kept for the next row as the user setting `terminal_spacing` (FT-1791). Levels (`levels`, 1 or
+    /// terminals stand, kept for the next row as the user setting `terminal_spacing`. Levels (`levels`, 1 or
     /// 2) 2 makes each terminal a block of two levels (doc 08 §6.3): the row lays two symbols for each, which join as
     /// [`Self::join_row_in_pairs`] says, and proposes a part of two levels.
     pub(crate) fn act_place_terminal(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -482,7 +482,7 @@ impl ShellModel {
         params.insert("count".into(), Value::from(count * u32::from(levels)));
         params.insert("spacing".into(), Value::from(spacing));
         self.tools.row_levels = levels;
-        // Kept between sessions, a user setting (FT-1791).
+        // Kept between sessions, a user setting.
         if self.settings.terminal_spacing != Some(spacing) {
             self.settings.terminal_spacing = Some(spacing);
             self.save_settings();
@@ -501,7 +501,7 @@ impl ShellModel {
     }
 
     /// The spacing of the next terminal row in grid steps: the one last chosen, in this session or an earlier one
-    /// (the user setting `terminal_spacing`, FT-1791), else the default.
+    /// (the user setting `terminal_spacing`), else the default.
     pub(crate) fn terminal_spacing(&self) -> u32 {
         self.settings
             .terminal_spacing
@@ -569,7 +569,7 @@ impl ShellModel {
 
     /// `terminals.spacing {steps?}` (Spacing… on two or more selected terminals of one row): the terminals spaced
     /// `steps` grid steps apart from the leftmost, each moved as a move moves it (its wires' ends follow), in one undo
-    /// step; the spacing is kept for the next row too (the user setting `terminal_spacing`, FT-1791). In the window
+    /// step; the spacing is kept for the next row too (the user setting `terminal_spacing`). In the window
     /// without `steps` a small form asks it.
     pub(crate) fn act_terminals_spacing(&mut self, p: &Map<String, Value>) -> Outcome {
         const ACTION: &str = "terminals.spacing";
@@ -700,7 +700,7 @@ impl ShellModel {
     }
 
     /// Terminal…'s form after a choice (`changed`, the field's name): a part chosen sets the kind it draws; another
-    /// strip, kind or number of levels proposes its part again (FT-1695), so that Kind and Part never contradict each
+    /// strip, kind or number of levels proposes its part again, so that Kind and Part never contradict each
     /// other.
     pub(super) fn terminal_form_follow(&mut self, changed: &str) {
         let Some(cat) = self.catalogue() else { return };
@@ -787,7 +787,7 @@ impl ShellModel {
                 p.set_strip_tag(tag);
                 // Every number below the strip's lowest free one is in use, so a counter that a commit stepped onto
                 // one (after it filled a gap: 3 placed between 1, 2 and 4 counts on to 4) takes the lowest free
-                // instead (FT-1546). A counter above it counts on, and a designation the user gave is left alone.
+                // instead. A counter above it counts on, and a designation the user gave is left alone.
                 let counted = p.take_counted();
                 let taken = || match (p.target(), next.parse::<u64>()) {
                     (PlaceTarget::Terminal { designation, .. }, Ok(free)) => designation
@@ -802,7 +802,7 @@ impl ShellModel {
         });
     }
 
-    /// FT-1695: after the first terminal of a Terminal… row the rest of the row, each by the Place tool's own commit at
+    /// After the first terminal of a Terminal… row the rest of the row, each by the Place tool's own commit at
     /// the same point (it lands on the next free point the row's spacing right of a terminal of its strip). Undo and
     /// Redo take the row whole (`row_steps`), and Select takes over: one click places the count once (four clicks with
     /// How many 4 gave sixteen terminals).

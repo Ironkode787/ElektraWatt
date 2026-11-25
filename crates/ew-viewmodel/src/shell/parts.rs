@@ -11,7 +11,7 @@
 //! its pointer, in the banner and opens no card. The registry's `writable` check has run before the action body
 //! (`ShellModel::dispatch`).
 //!
-//! **The column mapping step (D11).** `parts.import {path}` first opens the mapping card on any
+//! **The column mapping step.** `parts.import {path}` first opens the mapping card on any
 //! table (CSV or XLSX): the source key (pre-filled from the file name), and per column its header, a sample value and
 //! the member it imports as, pre-filled from the map saved for the source key (`<config dir>/imports/<key>.toml`),
 //! else from the `ew` dialect's headers when the file has exactly those. `parts.map` changes the key or a column's
@@ -98,7 +98,7 @@ pub struct MapColumn {
 pub enum MapKind {
     /// A supplier's parts table (the members of the parts import).
     Parts,
-    /// An EPLAN report spreadsheet of the given kind (FR-IMP-029, FT-1742): the members of that report.
+    /// An EPLAN report spreadsheet of the given kind (FR-IMP-029): the members of that report.
     Report(ReportTarget),
 }
 
@@ -446,7 +446,7 @@ impl ShellModel {
 
     /// The mapping step of the report spreadsheet `path` (read as `input`): its columns as detected, the members of
     /// the mapping saved for the file's source key (else none), a terminal diagram unless that mapping says another
-    /// (FR-IMP-029, FT-1742).
+    /// (FR-IMP-029).
     pub(super) fn open_report_map(&mut self, path: PathBuf, input: &catalog::ImportInput) -> Outcome {
         let file = path
             .file_name()

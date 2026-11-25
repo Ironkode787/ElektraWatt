@@ -114,7 +114,7 @@ field-device-derived-solenoid-item = Magneetspoel
 field-help-device-derived-solenoid-item = Een magneetspoel van het ventiel: waar de spoel getekend staat en welke PLC-uitgang haar stuurt. Klik om ernaartoe te gaan, of om de spoel op een elektrische pagina te tekenen zolang ze niet getekend is.
 field-representation-derived-solenoid-of = Ventiel
 field-help-representation-derived-solenoid-of = Het ventiel waarvan deze spoel een magneetspoel is. Klik om naar het ventiel te gaan.
-# FT-1483 (ID-1457, ID-1459): a function's kind by the generic rule, its two category segments joined by kind-generic (a Dutch segment carries its own joint), the library tiers, access and index words, and the Blocks kinds without words of their own.
+# A function's kind by the generic rule, its two category segments joined by kind-generic (a Dutch segment carries its own joint), the library tiers, access and index words, and the Blocks kinds without words of their own.
 kind-generic = { $p0 }{ $p1 }
 kind-segment-no = NO-
 kind-segment-nc = NC-
@@ -451,7 +451,7 @@ choice-read-only = Alleen-lezen
 choice-mine = Mijn versie
 choice-theirs = Versie op schijf
 
-## W49.3-F3: record kinds and fields as the collision dialog's headings (WP-S1.17 D24).
+## W49.3-F3: record kinds and fields as the collision dialog's headings.
 record-kind-project = Project
 record-kind-plc-config-project = PLC-configuratieproject
 record-kind-logical-net = Logisch net
@@ -505,7 +505,7 @@ record-kind-plc-profile = PLC-profiel
 record-kind-manufacturer = Fabrikant
 record-kind-machine-profile = Machineprofiel
 record-kind-label-profile = Labelprofiel
-# FT-1411 (ID-1397): the record kinds in the plural, a Properties section header of several records.
+# The record kinds in the plural, a Properties section header of several records.
 record-kinds-project = Projecten
 record-kinds-plc-config-project = PLC-configuratieprojecten
 record-kinds-logical-net = Logische netten
@@ -938,7 +938,7 @@ field-word-wiring = Bedrading
 field-word-withdraws = Trekt in
 field-word-xref-format = Kruisverwijzingsnotatie
 
-# WP-S3.09 D6: the members of the import run's property sheet, and its mode and severity choices.
+# The members of the import run's property sheet, and its mode and severity choices.
 field-word-as-of = Peildatum
 field-word-entries = Bevindingen
 field-word-defect = Defectklasse
@@ -998,7 +998,7 @@ choice-slot = Tekstpositie
 
 choice-link = Koppelpunt
 
-# FT-1648: de uitleg van elke eigenschapsrij.
+# de uitleg van elke eigenschapsrij.
 field-help-word-id = De unieke ID van het record. Die verandert nooit, zodat verwijzingen naar het record blijven werken.
 field-help-word-source-ref = Waar het record vandaan kwam bij het importeren. Een import vindt het record hiermee terug; alleen lezen.
 field-help-word-key = De sleutel van het record in het bestand waaruit het geïmporteerd is.
@@ -1262,7 +1262,7 @@ field-help-project-settings-numbering = Hoe apparaatkenmerken en draadnummers ge
 field-help-project-settings-xref-format = Hoe kruisverwijzingen geschreven worden, zoals 102-A1.
 field-help-project-settings-text-styles = De tekststijlen van het project: lettertypen en groottes.
 field-help-project-settings-typeface = Het eigen lettertypebestand van het project, waarin elke tekst in het standaardlettertype wordt afgedrukt. Kies het in Tekststijlen.
-# WP-S1.25: de fluïdumvelden en -keuzes.
+# de fluïdumvelden en -keuzes.
 field-word-fitting = Koppeling
 field-word-default-tube = Standaardslang
 field-word-material = Materiaal
@@ -1397,7 +1397,7 @@ field-help-report-block-legend = De regel onder de tabel op elke pagina van het 
 field-help-report-block-added-rows = Rijen die het model niet heeft, opgenomen en gesorteerd met de eigen rijen van het rapport: Uitvoer ▸ Eigen rijen….
 field-word-layout-page = Layoutpagina
 field-help-report-block-layout-page = De paneellayoutpagina waarvan deze lijst de legenda is: de lijst somt die layout op en haar pagina's volgen die pagina.
-# Het PLC- en buswerk zoals iemand het tegenkwam (rc.2-personarun).
+# Het PLC- en buswerk zoals iemand het tegenkwam.
 field-device-derived-plc = PLC
 field-help-device-derived-plc = De PLC waar dit busapparaat bij hoort. Een apparaat zonder PLC voeg je hier toe aan een PLC: kies een PLC, of Nieuwe PLC….
 choice-connection-kind-wire = Draad

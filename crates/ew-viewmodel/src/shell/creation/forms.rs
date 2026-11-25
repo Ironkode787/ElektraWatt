@@ -793,7 +793,7 @@ impl ShellModel {
         self.form_done(CHANNEL_SETTINGS.action, out)
     }
 
-    /// `tool.fluid_line {line_kind}` (Draw ▸ Fluid line…, doc 11 §7, FT-1733): the Wire tool drawing fluid lines of a
+    /// `tool.fluid_line {line_kind}` (Draw ▸ Fluid line…, doc 11 §7): the Wire tool drawing fluid lines of a
     /// line kind on a fluid page. Without `line_kind` the window opens the line-kind picker (the kinds in words, working
     /// first).
     pub(crate) fn act_tool_fluid_line(&mut self, p: &Map<String, Value>) -> Outcome {

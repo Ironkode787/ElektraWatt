@@ -51,8 +51,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_open_picker(crate::tools::PickerMode::Parts),
         ),
     ))),
-    // Draw ▸ Place ▸ Terminal…: its own small form (strip, kind, part, how many, from which number, a new strip's tag;
-    // FT-1695), then the Place tool floating the first terminal; a click lays the row. Terminals are placed this way only.
+    // Draw ▸ Place ▸ Terminal…: its own small form (strip, kind, part, how many, from which number, a new strip's tag),
+    // then the Place tool floating the first terminal; a click lays the row. Terminals are placed this way only.
     keeps_banner(with_params(
         "strip?:text, kind?:text, part?:text, count?:uint, from?:text, tag?:text, spacing?:uint",
         in_canvas(placed(
@@ -389,7 +389,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         )),
     ),
-    // Paste in place (FT-1862): the block where the copy's anchor was; no shortcut (Ctrl+Shift+V is kept for paste as
+    // Paste in place: the block where the copy's anchor was; no shortcut (Ctrl+Shift+V is kept for paste as
     // representation, doc 06 §6).
     with_params(
         "text?:text",
@@ -496,7 +496,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_tool_wire(),
         ),
     ))),
-    // Fluid ▸ Tubes ▸ Tube… (FT-1733): the Wire tool drawing fluid lines of a kind picked first.
+    // Fluid ▸ Tubes ▸ Tube…: the Wire tool drawing fluid lines of a kind picked first.
     with_params(
         "line_kind?:text",
         placed(
@@ -996,7 +996,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_crossings(p),
         ),
     )),
-    // Draw ▸ Connect ▸ Print wire numbers (FT-1692), beside the crossings and the wire markers: every wire's number
+    // Draw ▸ Connect ▸ Print wire numbers, beside the crossings and the wire markers: every wire's number
     // on the page, the PDF and print.
     keeps_banner(with_params(
         "on?:bool",
@@ -1128,7 +1128,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ))),
     )),
-    // FT-1699: Supply comes in here… on the selected interruption points (their right-click menu and Properties).
+    // Supply comes in here… on the selected interruption points (their right-click menu and Properties).
     keeps_banner(with_params(
         "location?:text, device?:text, remove?:bool, group?:bool",
         in_canvas(act(
@@ -1357,7 +1357,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         slot(Menu::Edit),
         |s, _| s.act_cable_swap_cores(),
     )),
-    // FT-490's generic half: Delete and F2 in a navigator tree (`table.clear` and `table.edit` in tree mode run these,
+    // The generic half: Delete and F2 in a navigator tree (`table.clear` and `table.edit` in tree mode run these,
     // `ShellModel::shortcut_action`).
     with_params(
         "kind?:text",
@@ -1459,8 +1459,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_cable_connect_cores(p),
         )),
     ),
-    // Draw ▸ Connect ▸ Cable… (FT-1685): the selected wires as a cable's cores in one form, on the bar after Route
-    // selection, in a column of its own; with `cable`, a Cables row's Cable… on that cable's wires (FT-1693), which it
+    // Draw ▸ Connect ▸ Cable…: the selected wires as a cable's cores in one form, on the bar after Route
+    // selection, in a column of its own; with `cable`, a Cables row's Cable… on that cable's wires, which it
     // selects itself.
     with_params(
         "tag?:text, type?:text, cores?:json, cable?:text",
@@ -1521,7 +1521,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_supply_potential(p),
         ))),
     )),
-    // FT-1700: Accept and Decline on the card of a potential reasoned for the selected wire.
+    // Accept and Decline on the card of a potential reasoned for the selected wire.
     keeps_banner(with_params(
         "accept:bool",
         hidden(in_canvas(act(

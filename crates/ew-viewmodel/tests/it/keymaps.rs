@@ -40,7 +40,7 @@ fn a_preset_file_parses_back_into_its_preset() {
         assert_eq!(parsed.name, preset.name());
         assert!(parsed.unused().is_empty());
     }
-    // The file writes punctuation by physical key (D6): `]` is `phys:BracketRight`.
+    // The file writes punctuation by physical key: `]` is `phys:BracketRight`.
     let ew = preset_file(Preset::ALL[0]);
     assert_eq!(Preset::ALL[0].word(), "ew");
     assert!(
@@ -317,7 +317,7 @@ fn no_preset_has_a_conflict_a_ctrl_alt_chord_or_a_reserved_chord() {
     }
 }
 
-/// KM-5 (D7): Ctrl+Shift+N is Renumber devices… in the EW preset (FR-UI-012's "renum" shows it).
+/// KM-5: Ctrl+Shift+N is Renumber devices… in the EW preset (FR-UI-012's "renum" shows it).
 #[test]
 fn ctrl_shift_n_is_renumber_devices() {
     let meta = actions::find("devices.renumber").unwrap();

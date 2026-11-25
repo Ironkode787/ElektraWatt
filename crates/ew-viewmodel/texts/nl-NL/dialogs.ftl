@@ -122,7 +122,7 @@ save-template-text = Het sjabloon houdt de instellingen, kaders en titelblokken,
 save-template-default-name = Sjabloon { $p0 }
 save-template-failed = Het sjabloon kon niet worden geschreven: { $p0 }
 new-project-other-change = Een ander kiezen…
-# rc.3: Nieuw kabeltype… (het kleine formulier van een kabelartikel) en het kabeldeel van een kabelartikel.
+# Nieuw kabeltype… (het kleine formulier van een kabelartikel) en het kabeldeel van een kabelartikel.
 dialog-cable-type-new-title = Nieuw kabeltype
 prompt-open-font-title = Kies een lettertypebestand voor het standaardlettertype
 new-project-folder-new = Deze map bestaat nog niet: Maken maakt hem aan.

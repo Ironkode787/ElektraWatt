@@ -6,7 +6,7 @@
 # of every other.
 
 nav-badge-unplaced = not drawn
-# rc.5: what a badge word means, its hover text.
+# What a badge word means, its hover text.
 nav-badge-unplaced-tip = No page draws it yet: no symbol or box pin carries it.
 nav-badge-spare-tip = A spare: kept free, nothing is wired to it. Wire it, or set its state in Properties.
 nav-badge-frozen = frozen
@@ -50,7 +50,7 @@ empty-notifications-text = Exports, recoveries and edits of many objects report 
 empty-messages = No findings
 empty-messages-text = Check project lists the errors and warnings of the project here.
 
-# WP-S2.17 part 3/4 (lane K32): the navigators' empty states (doc 16a §6.17), the Messages severity words and
+# The navigators' empty states (doc 16a §6.17), the Messages severity words and
 # the row badges of Messages and History (doc 16a §6.24).
 empty-nav-text = What you draw on the pages is listed here.
 empty-nav-pages-text = New page adds the first page of the project.
@@ -62,7 +62,7 @@ empty-nav-devices = No devices yet
 empty-nav-connections = No connections yet
 empty-nav-strips = No terminal strips yet
 empty-nav-cables = No cables yet
-# FT-926: PLC cards drawn before a CPU (a card is listed under its CPU, which gives it its addresses).
+# PLC cards drawn before a CPU (a card is listed under its CPU, which gives it its addresses).
 empty-nav-plc-no-cpu = No CPU yet
 empty-nav-plc-no-cpu-text = { $p0 } waits for a CPU: a PLC module is listed here under its station and gets its addresses from it. Make a station with New station…, or place a CPU with Draw ▸ Device (search for CPU); the modules join it.
 empty-nav-plc = No PLC stations or modules yet
@@ -130,7 +130,7 @@ chip-word-no-supply = no supply
 chip-word-potential = potential
 chip-word-cable = cable
 chip-word-default = default
-# FT-1338 (ID-1392): the phrases of a provenance chip's text that ew-api builds in English.
+# The phrases of a provenance chip's text that ew-api builds in English.
 chip-via-frozen-sign-hidden = frozen (sign hidden)
 chip-via-frozen = frozen
 chip-via-numbering = numbering
@@ -238,7 +238,7 @@ table-import-cell-refused = refused
 table-import-cells = Cells
 table-import-missing-rows = Rows not in the file
 
-# WP-S2.06 part 3: the table widget (§8.1).
+# The table widget (§8.1).
 table-toggle = Table
 table-name = { $p0 } table
 table-columns = Columns
@@ -252,7 +252,7 @@ table-cell-row = , row { $p0 } of { $p1 }
 table-cell-read-only = , read-only
 table-pattern-title = Pattern fill
 table-pattern-hint = Pattern
-# ID-1497 (1): the cell editor's line while more than one row is marked.
+# The cell editor's line while more than one row is marked.
 table-commit-all-hint = Ctrl+Enter sets all { $p0 } marked rows.
 table-pattern-values = Values: { $p0 }
 table-resize = Resize { $p0 } column
@@ -308,7 +308,7 @@ nav-new-section = New section
 table-sorted-ascending = { $p0 }, sorted ascending
 table-sorted-descending = { $p0 }, sorted descending
 
-# WP-S1.19 part 6 (§11): the Macros and Libraries navigators, the macro card, Save as macro… and Make variable.
+# The Macros and Libraries navigators, the macro card, Save as macro… and Make variable.
 nav-title-macros = Macros
 nav-title-libraries = Libraries
 empty-nav-macros = No macros yet
@@ -320,7 +320,7 @@ badge-profile-unreadable = PLC profile unreadable
 badge-fits-function = Fits { $p0 }'s function
 badge-same-category = Same category
 
-# WP-S4.02 part 3: the Unplaced devices navigator (FT-486), the layout place tool and Select on a panel page
+# The Unplaced devices navigator, the layout place tool and Select on a panel page
 # (D4, D10; doc 16a §5.5 HUD, §6.17 empty states, §6.20 segmented control, §7.4 chips, §8 wording).
 nav-title-unplaced = Unplaced devices
 empty-nav-unplaced = No panel layout yet
@@ -332,7 +332,7 @@ list-continues-row = The list continues on page { $p0 } ›
 empty-nav-terminals = No terminals yet
 empty-nav-terminals-text = Place a terminal with Draw ▸ Terminal…; it goes into the strip you choose there.
 
-# C49-p8b#2: the strip editor's scope in the filter row.
+# The strip editor's scope in the filter row.
 nav-scope-strip = Strip: { $p0 }
 nav-scope-clear = Show every strip
 nav-plc-addresses = Addresses

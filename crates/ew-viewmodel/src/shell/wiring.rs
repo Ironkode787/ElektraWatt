@@ -9,7 +9,7 @@
 //! per (session, revision, junction) while it is open; the Wire tool and the proposals read nothing.
 //!
 //! **Commits** go through the tool's commit path (`execute_with` in the window, `run_script` headless), one
-//! `junction.edit` per change (D11).
+//! `junction.edit` per change.
 
 use std::sync::Arc;
 
@@ -98,7 +98,7 @@ impl ShellModel {
         })
     }
 
-    /// Whether the project prints every wire's number on the page (`settings.extra.drawing.wire_numbers`, FT-1692).
+    /// Whether the project prints every wire's number on the page (`settings.extra.drawing.wire_numbers`).
     pub fn wire_numbers_on(&self) -> bool {
         self.project.as_ref().is_some_and(|p| {
             p.session
@@ -194,7 +194,7 @@ impl ShellModel {
     }
 
     /// Whether the focused page's type autoconnects (doc 06 §2.2: multi-line and single-line pages; fluid pages, whose
-    /// fluid ports autoconnect with fluid lines, FT-1733).
+    /// fluid ports autoconnect with fluid lines).
     pub(super) fn page_autoconnects(&self) -> bool {
         matches!(
             self.page_rows().get(self.page_index()).map(|r| &r.kind),
@@ -208,7 +208,7 @@ impl ShellModel {
     /// The connection kind the Wire tool draws on the focused page (doc 06 §2.2): `Ok(None)` a wire on a multi-line
     /// page, `Ok(Some("overview"))` on a single-line (the MVP kind), overview or assembly-overview page,
     /// `Ok(Some("fluid"))` (a working line, `{"fluid": {}}`) on a fluid page, `Ok(Some("bus"))` (`{"bus": {}}`) on a
-    /// bus-topology page (FT-434); refused on every page type whose Wire tool creates nothing.
+    /// bus-topology page; refused on every page type whose Wire tool creates nothing.
     pub fn wire_kind(&self) -> Result<Option<&'static str>, Key<'static>> {
         match self.page_rows().get(self.page_index()).map(|r| &r.kind) {
             Some(ew_api::PageType::MultiLine) => Ok(None),
@@ -435,7 +435,7 @@ impl ShellModel {
         self.run_commit(&cmd)
     }
 
-    /// `project.wire_numbers {on?}` (Draw ▸ Connect ▸ Print wire numbers, FT-1692): commits `project.drawing.set`
+    /// `project.wire_numbers {on?}` (Draw ▸ Connect ▸ Print wire numbers): commits `project.drawing.set`
     /// with `wire_numbers: true`, or with `null` (the member removed: no numbers, as a project without the setting) to
     /// turn it off; without `on` it toggles. The pages, the PDF and print follow the setting; a toast says what it now
     /// is, for the whole project.
@@ -635,7 +635,7 @@ impl ShellModel {
         type Attach = (ew_api::output::Uuid, String, ew_api::output::Uuid, String, u32);
         let (target, wired_to, attach): ((ew_api::output::Uuid, u16), Option<String>, Option<Attach>) =
             match pr.session.off_card_bind(ch, function.0, idx) {
-                // A valve's symbol stands for its internal coil (FT-740).
+                // A valve's symbol stands for its internal coil.
                 None => (
                     pr.session
                         .valve_coil_target(ch, function.0, idx)
@@ -694,7 +694,7 @@ impl ShellModel {
             .into_iter()
             .filter_map(|o| pr.session.channel_words(o))
             .collect();
-        // A device wired off the card is attached to it by the same command, one undo step (FT-774).
+        // A device wired off the card is attached to it by the same command, one undo step.
         let mut params = json!({
             "channel": channel,
             "endpoint": {"cp": {"function": target.0.to_string(), "idx": target.1}},
@@ -1148,7 +1148,7 @@ fn wire_names(session: &ew_api::Session, folio: &str, ids: &[ew_api::output::Uui
 }
 
 /// One sentence per wire a plan leaves without a way, with what is in it; per broken wire of the person's it replaces;
-/// per net whose wiring order runs against its parts' places; each naming the wire by its ends in words (FT-1600).
+/// per net whose wiring order runs against its parts' places; each naming the wire by its ends in words.
 pub(super) fn route_rows(
     session: &ew_api::Session,
     folio: &str,

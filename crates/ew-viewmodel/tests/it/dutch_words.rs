@@ -50,7 +50,7 @@ fn derived(name: &str) -> String {
         .unwrap_or_default()
 }
 
-/// FT-1636: every function category of the shipped identifier sets (the first level of an FnDef category) has its
+/// Every function category of the shipped identifier sets (the first level of an FnDef category) has its
 /// words in en-GB and nl-NL, so the browser's tree names it rather than listing its devices under Other.
 #[test]
 fn every_function_category_has_words_in_both_locales() {
@@ -288,7 +288,7 @@ fn table(shell: &ShellModel, kind: NavKind) -> std::sync::Arc<ew_api::output::Na
 /// the label `ew-api` gives (`column-<navigator>-<key>` of the navigator whose columns it shows, else `column-<key>`);
 /// in nl-NL the window's tables show the
 /// Dutch headers and the Devices tree its badges and kinds in Dutch; a generic segment without words of its own stays
-/// as written after a pole count ("3P manualswitch", FT-1913).
+/// as written after a pole count ("3P manualswitch").
 #[test]
 fn every_navigator_column_and_badge_reads_in_both_locales() {
     let (session, _) =
@@ -336,7 +336,7 @@ fn every_navigator_column_and_badge_reads_in_both_locales() {
         .map(|r| r.text.clone())
         .collect();
     // A function's kind of `KIND_WORDS` in Dutch too; the generic rule's segments without words of their own stay as
-    // written (FT-1483: "2P mcb", "Black box"; FT-1913: "3P manualswitch", "3P mcb").
+    // written ("2P mcb", "Black box"; "3P manualswitch", "3P mcb").
     let kinds = [
         ("1P MCB ", "1P-installatieautomaat "),
         ("3P manualswitch ", "3P manualswitch "),
@@ -601,7 +601,7 @@ fn a_grid_parse_error_reads_in_the_windows_language() {
     shell.shutdown();
 }
 
-/// FT-1553, FT-1551: a command whose reference names no record (the command log's path of `command.run`) and a
+/// A command whose reference names no record (the command log's path of `command.run`) and a
 /// selection by an unknown tag are refused in the window's language.
 #[test]
 fn an_unresolved_reference_reads_in_the_windows_language() {
@@ -1062,7 +1062,7 @@ fn a_language_switch_drops_the_toasts_on_show() {
     shell.shutdown();
 }
 
-/// The window words what `ew-api` builds in English (FT-680) in its language: a device's kind, a
+/// The window words what `ew-api` builds in English in its language: a device's kind, a
 /// terminal's state, an interruption point's direction, a function's kind of `KIND_WORDS` and a provenance chip; in
 /// en-GB they read as before.
 #[test]
@@ -1136,7 +1136,7 @@ fn navigator_cells_kinds_and_chips_read_in_dutch() {
     shell.shutdown();
 }
 
-/// FT-1483: the window words what the navigators' JSON keeps in English: a function's kind by the
+/// The window words what the navigators' JSON keeps in English: a function's kind by the
 /// generic rule ("Cabinet lamp X1-X2"), a library's tier, access and index state, a report block's kind; in en-GB they read as
 /// the CLI prints them, but a block's kind, which reads by its words in both.
 #[test]
@@ -1220,7 +1220,7 @@ fn kinds_tiers_and_block_kinds_read_in_dutch() {
     );
 }
 
-/// FT-1554: the live description of a selected device and the Libraries kind column read in Dutch: a function's kind by
+/// The live description of a selected device and the Libraries kind column read in Dutch: a function's kind by
 /// the generic rule, a library copy's kind by its record kind's words.
 #[test]
 fn the_live_description_and_the_library_kinds_read_in_dutch() {
@@ -1269,7 +1269,7 @@ fn the_live_description_and_the_library_kinds_read_in_dutch() {
     }
 }
 
-/// FT-1554: a function placed from a part's template shows its Part function row in the window's language.
+/// A function placed from a part's template shows its Part function row in the window's language.
 #[test]
 fn the_part_function_row_reads_in_dutch() {
     let tmp = Tmp::new("ft1554-part");

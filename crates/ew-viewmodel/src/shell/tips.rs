@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The one-time tips (FR-UI-048), each a toast with one action of the registry: three for a user who comes from
-//! EPLAN or QET, and one for everyone, where the mouse wheel's zoom is first met (FT-1830).
+//! EPLAN or QET, and one for everyone, where the mouse wheel's zoom is first met.
 //!
 //! 1. A Line segment of the Graphic tool ending on a connection point: "Lines do not connect. Draw a wire instead."
 //!    with **Convert to connection** (`edit.undo` of the line, one undo step, then `tool.wire`).
@@ -27,7 +27,7 @@ use crate::notifications::{Note, NoteAction, NoteTone, Notification, Offer, Vali
 use crate::properties::{PropRow, Provenance, SheetSection};
 use crate::strings::{self, Key};
 
-/// One of the three tips (D17).
+/// One of the three tips.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Tip {
     /// A Line segment ending on a connection point.

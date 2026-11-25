@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Supply comes in here… (`ip.supply_in`, FT-1699): the selected interruption points are where the supply enters the
+//! Supply comes in here… (`ip.supply_in`): the selected interruption points are where the supply enters the
 //! drawing set from another one (L1, L2, L3, N, PE from another drawing). The supply that comes in is an external
 //! reference: the action's form proposes where it comes from (the project supply's origin, else a location named
 //! after the supply) and the device there (the feeder's strip), a field left empty being not known (an address alone,
-//! or a far end not known: signals from another cabinet, FT-1876), and Apply is one `ip.supply_in`: the location node
+//! or a far end not known: signals from another cabinet), and Apply is one `ip.supply_in`: the location node
 //! where the project lacks it, the reference, the points' `ip.external`, and the supply's origin where it has none.
 //! The points then print what an external point prints, and pair with nothing, so the unpaired point's finding is
 //! gone. On points that all have the mark it is Where the supply comes from…, whose form shows where they come from

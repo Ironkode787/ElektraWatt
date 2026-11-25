@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Draw on a page from the station view sets a card of inputs beside the controller's box, not under it (FT-1894,
-//! doc 06a §7.5): the supply wires that come down from the head then cross none of its channels.
+//! Draw on a page from the station view sets a card of inputs beside the controller's box, not under it
+//! (doc 06a §7.5): the supply wires that come down from the head then cross none of its channels.
 
 use crate::common::{Tmp, done, new_project};
 use serde_json::json;

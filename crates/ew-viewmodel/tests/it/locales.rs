@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The shell's texts through Fluent: LO-3 the completeness gate; the pseudo-locale en-XA; the run-time switch. Part 4
-//! (D12): NL-1 the arguments of every Dutch message, NL-2 the terminology table.
+//! The shell's texts through Fluent: LO-3 the completeness gate; the pseudo-locale en-XA; the run-time switch. Part 4:
+//! NL-1 the arguments of every Dutch message, NL-2 the terminology table.
 
 use crate::common::{Tmp, done};
 use ew_viewmodel::actions::{self, Menu, Submenu};
@@ -399,7 +399,7 @@ fn texts(ftl: &str) -> String {
         .join("\n")
 }
 
-/// The checks' nl-NL rule messages (`ew-checks`), which the Messages pane shows in Dutch (D10).
+/// The checks' nl-NL rule messages (`ew-checks`), which the Messages pane shows in Dutch.
 fn rule_messages_nl() -> String {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../ew-checks/texts/nl-NL/rules.ftl");
     std::fs::read_to_string(path).unwrap().replace("\r\n", "\n")
@@ -462,7 +462,7 @@ const OTHER_SENSES: &[(&str, &str, &str)] = &[
         "terminal",
         "a computer's terminal (opdrachtregel)",
     ),
-    // A valve terminal (ventieleiland), WP-S1.25.
+    // A valve terminal (ventieleiland).
     (
         "report-kind-valve-terminal-config",
         "terminal",
@@ -813,7 +813,7 @@ fn the_messages_detail_follows_the_ui_language() {
         .split_once(" has no length yet")
         .map(|(tag, _)| tag.to_owned())
         .expect("the cable's tag");
-    // The first finding of every rule on the page: each reads in Dutch (FT-680).
+    // The first finding of every rule on the page: each reads in Dutch.
     let mut rules = std::collections::BTreeSet::new();
     let others: Vec<_> = table
         .nodes

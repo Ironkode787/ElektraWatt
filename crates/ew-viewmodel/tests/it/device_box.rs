@@ -88,7 +88,7 @@ fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
         "part.pin",
         json!({"pin": idx("OK", 0), "side": "right", "at": 4}),
     );
-    // A new selection sorts the list by the box again (FT-2005: it keeps its rows while the pins are edited).
+    // A new selection sorts the list by the box again (it keeps its rows while the pins are edited).
     done(&mut s, "part.box_select", json!({"pins": []}));
     let laid_out = pins(&s);
     assert_eq!(

@@ -145,7 +145,7 @@ symbol-source-filter = Find symbol by name
 symbol-project-copy = Project copy
 
 symbol-pin-ordinal = { $p0 } ({ $p1 })
-# FT-1703: the line under each drawing tool's name in its tooltip: what it does and how.
+# The line under each drawing tool's name in its tooltip: what it does and how.
 symbol-tip-select = Click a thing to select it, Shift or Ctrl+click for more, or drag a rectangle around several; drag or use the arrow keys to move, Delete removes
 symbol-tip-line = Drag, or click two points
 symbol-tip-rectangle = Drag from corner to corner, or click two corners
@@ -159,11 +159,11 @@ symbol-tip-anchor = Click the point a page's cross-references find this symbol b
 symbol-tip-link = Name the point a dashed mechanical link attaches to, then click where it goes
 symbol-tip-polyline = Click each corner; double-click the last one to finish
 symbol-tip-polygon = Click each corner; double-click the last one to close the shape
-# FT-1690: the editor's drawing grid, beside Fit drawing.
+# The editor's drawing grid, beside Fit drawing.
 symbol-snap = Snap to grid
 symbol-snap-step = Drawing grid
 symbol-snap-tip = The step lines, shapes and texts snap to. Connection points always keep to the connection grid ({ $p0 }).
-# FT-1691: the category the browsers list a drawn symbol under.
+# The category the browsers list a drawn symbol under.
 symbol-category = Listed under
 symbol-fill = Fill shape
 symbol-text-style = Text style

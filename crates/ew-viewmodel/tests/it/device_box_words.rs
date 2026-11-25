@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The device box says what it does with what a person typed (FT-1811): a pin's place between two steps of the pin
+//! The device box says what it does with what a person typed: a pin's place between two steps of the pin
 //! grid lands on a step and a note says where; a copy of a starter part says that it keeps the starter's part number.
 
 use crate::common::{Tmp, actual_size, done, new_project};

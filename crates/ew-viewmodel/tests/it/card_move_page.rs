@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-2134: a drawn card is put on another page from its station's view (Move to page, `plc.module_move`): its box
+//! A drawn card is put on another page from its station's view (Move to page, `plc.module_move`): its box
 //! moves, and the card stays the same module in its slot with its channels and their symbol names; a card whose wire
 //! would be left behind is refused in words and stays (doc 10 §6). A persona run found only Go to page there.
 

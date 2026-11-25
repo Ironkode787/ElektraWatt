@@ -23,11 +23,11 @@ use crate::strings::{self, Key};
 
 /// The longest query the scorer aligns, in characters; the rest is ignored.
 pub const MAX_QUERY: usize = 64;
-/// How many invocations the recents keep (D3).
+/// How many invocations the recents keep.
 pub const RECENT_CAP: usize = 50;
 /// How many recent distinct actions an empty query lists first (D3, PL-4).
 pub const RECENT_SHOWN: usize = 8;
-/// The most object hits an `@` query lists (D4).
+/// The most object hits an `@` query lists.
 pub const MAX_OBJECTS: usize = 50;
 
 const MATCH_FIRST: i32 = 32;
@@ -213,7 +213,7 @@ pub fn order(a: (bool, i64, &str, &str), b: (bool, i64, &str, &str)) -> std::cmp
         .then_with(|| a.3.cmp(b.3))
 }
 
-/// The last [`RECENT_CAP`] palette or shortcut invocations of the session, most recent last (D3); in memory only.
+/// The last [`RECENT_CAP`] palette or shortcut invocations of the session, most recent last; in memory only.
 #[derive(Clone, Default, Debug)]
 pub struct Recents {
     uses: VecDeque<&'static str>,
@@ -245,7 +245,7 @@ impl Recents {
     }
 }
 
-/// What the palette searches, by the query's first character (D4).
+/// What the palette searches, by the query's first character.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Prefix {
     /// None or `>`: the actions.

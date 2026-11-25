@@ -1,17 +1,17 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The navigator row operations: `cable.swap_cores` on the Cables navigator, and FT-490's
+//! The navigator row operations: `cable.swap_cores` on the Cables navigator, and the
 //! generic half, `navigator.delete` (Delete in a tree) and `navigator.rename` (F2 in a tree).
 //!
 //! - **Swap cores** (FR-CBL-016): exactly two marked core rows of one cable; one `fields.set_many` through
 //!   `Session::swap_cores` that moves the core assignment of their connections, committed directly with the toast.
-//! - **Delete** (FT-490): one `edit.delete` of the acted rows' own records (the marked rows, else the cursor row),
+//! - **Delete**: one `edit.delete` of the acted rows' own records (the marked rows, else the cursor row),
 //!   always previewed on the host card, which lists what the cascade removes. A row stands for its own record: a page,
 //!   a device (strip, terminal, cable, station, module), a function, a representation, a connection, a conductor (a
 //!   core row's second record), a defined potential, a structure node or a report block; a group row, an accessory,
 //!   a channel, an undefined potential and the other rows refuse `reason-nav-not-deletable`.
-//! - **Rename** (FT-490): the authored label of a Pages row (the page title) or a Potentials row (a defined
+//! - **Rename**: the authored label of a Pages row (the page title) or a Potentials row (a defined
 //!   potential's name), through the row's editable route (`fields.set`, the text parsed by `parse_field_input`). Without
 //!   `text` it opens the row's inline editor on the current label; with `text` it commits; `cancel` closes the editor.
 //!   It also takes a structure node's code (the same `fields.set` route the Properties grid edits it by) and a device's
@@ -34,7 +34,7 @@ use crate::navigators::table::row_targets;
 use crate::strings;
 use crate::strings::Key;
 
-/// A tree row whose label is being renamed (FT-490).
+/// A tree row whose label is being renamed.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct NavRename {
     /// The navigator.
@@ -48,7 +48,7 @@ pub struct NavRename {
     pub tag: bool,
 }
 
-/// What F2 renames on a row (FT-490).
+/// What F2 renames on a row.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum RenameRoute {
     /// A field through `fields.set`: (record kind, field path).
@@ -57,7 +57,7 @@ enum RenameRoute {
     Tag(Uuid),
 }
 
-/// The rename route of a row of navigator `kind`: a page's title or a potential definition's name (FT-490), a
+/// The rename route of a row of navigator `kind`: a page's title or a potential definition's name, a
 /// structure node's code (the route the Properties grid edits it by) or a device's tag.
 fn rename_route(kind: NavKind, node: Option<&NavNode>) -> Option<RenameRoute> {
     match (kind, node.map(|n| n.role)) {
@@ -97,7 +97,7 @@ fn delete_target(node: &NavNode) -> Option<Value> {
 }
 
 impl ShellModel {
-    /// The tree row being renamed, if any (FT-490).
+    /// The tree row being renamed, if any.
     pub fn nav_rename(&self) -> Option<&NavRename> {
         self.rename.as_ref()
     }
@@ -301,7 +301,7 @@ impl ShellModel {
         outcome
     }
 
-    /// `navigator.delete {kind?}` (FT-490): one `edit.delete` of the acted rows' records, on the host card.
+    /// `navigator.delete {kind?}`: one `edit.delete` of the acted rows' records, on the host card.
     pub(crate) fn act_navigator_delete(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = or_return!(self.open_kind(p));
         if !self.is_writable() {
@@ -335,7 +335,7 @@ impl ShellModel {
         )
     }
 
-    /// `navigator.rename {kind?, text?, cancel?}` (FT-490): opens the cursor row's label editor, commits `text` to the
+    /// `navigator.rename {kind?, text?, cancel?}`: opens the cursor row's label editor, commits `text` to the
     /// row's route, or (`cancel`) closes the editor.
     pub(crate) fn act_navigator_rename(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = or_return!(self.open_kind(p));

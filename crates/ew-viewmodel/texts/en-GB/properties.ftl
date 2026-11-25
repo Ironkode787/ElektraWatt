@@ -20,7 +20,7 @@ props-action-reset = Reset to derived
 props-action-freeze = Freeze
 props-action-unfreeze = Unfreeze
 props-action-make-variable = Make variable
-# FT-1651, FT-1649: a derived value's source, a potential without a definition, a connection point not used.
+# A derived value's source, a potential without a definition, a connection point not used.
 props-action-go-to-source = Go to source
 props-set-by-cable = The cable { $p0 } sets this with its part or type; change it at the cable.
 props-change-at-cable = Change it at cable { $p0 }
@@ -79,7 +79,7 @@ props-plug-not-drawn = not drawn: draw it…
 titleblock-title = Title block fields
 titleblock-project-description = Project description
 titleblock-revision = Revision
-# FT-1718: the title block's Checked, and the form's notes.
+# The title block's Checked, and the form's notes.
 titleblock-checked = Checked
 titleblock-author = Author
 titleblock-note-fixed = The texts this page's title block template writes itself print as the template holds them; they are not fields here.
@@ -107,13 +107,13 @@ text-style-marker = Wire marker
 props-offer-lists-frame = Change the frame of every list in Project properties
 props-offer-on-output = { $p0 } on the Output tab
 
-# The project's edited date is set by the save (the owner's test of 0.3.0-rc.1).
+# The project's edited date is set by the save.
 props-ro-on-save = set when the project is saved
 titleblock-note-edited = { $p0 }: { $p1 }. Set when the project is saved.
 titleblock-note-edited-none = { $p0 }: set when the project is saved.
 props-tip-make-variable = Makes this value a variable of a macro: each value set of the macro gives it a value of its own when the macro is placed (Save as macro…). It is not a stand-in part; that is Type not known yet….
 
-# What a device is, under the Properties title (rc.2, F9).
+# What a device is, under the Properties title.
 props-what = { $p0 } · { $p1 }
 props-port = Port { $p0 }
 props-port-no-medium = no medium

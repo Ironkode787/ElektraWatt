@@ -3,8 +3,8 @@
 
 //! Joining an existing device from the window (FR-DEV-038). One test per branch: a new
 //! auxiliary function by `place.pick device=<tag>` in one undo step (D1, D4); a slot filled before a new auxiliary
-//! function, the target sticky (D1); the text forms `function=<tag>` and `function=<tag>:<slot>` and their refusals
-//! (D4); a lamp joining as a second symbol and a terminal refused (D2, D4, FT-1860); the Join chooser's rows, type-ahead, Escape
+//! function, the target sticky (D1); the text forms `function=<tag>` and `function=<tag>:<slot>` and their refusals;
+//! a lamp joining as a second symbol and a terminal refused (D2, D4); the Join chooser's rows, type-ahead, Escape
 //! and "New device" (D2). Every test works on a writable temporary copy of the sample, folio 101.
 
 use crate::common;
@@ -207,7 +207,7 @@ fn function_tag_forms_resolve_slots_and_refuse_with_reasons() {
     done(&mut s, "ui.dismiss", json!({}));
 }
 
-/// D2, D4, FT-1860: a symbol of another kind than a contact (a lamp) joins the named device as a second symbol of its
+/// A symbol of another kind than a contact (a lamp) joins the named device as a second symbol of its
 /// own, and J is offered for it; a symbol that joins no device (a terminal) is refused, and the HUD offers no Join key.
 #[test]
 fn a_lamp_joins_as_a_second_symbol_and_a_terminal_is_refused() {

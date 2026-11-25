@@ -84,14 +84,14 @@ banner-gpu-lost = Het GPU-tekenvlak is gestopt ({ $p0 }); het tekenvlak tekent d
 banner-gpu-no-software-adapter = --no-gpu: er is geen software-adapter gevonden, dus het venster gebruikt { $p0 }; het tekenvlak tekent op de CPU.
 banner-recovery = Dit project heeft niet-opgeslagen wijzigingen uit een sessie die onverwacht is beëindigd. Het is alleen-lezen geopend. Bestand, Niet-opgeslagen wijzigingen van de eerdere sessie verwerpen verwijdert ze en opent het project om te bewerken; om ze te herstellen opent u het project opnieuw en kiest u Herstellen in de herstelvenster.
 banner-read-only = Dit project is alleen-lezen geopend: { $p0 }.
-# FT-1383 (ID-1418): a read-only project whose damaged library copy a device uses.
+# A read-only project whose damaged library copy a device uses.
 banner-damaged-copy = Dit project is alleen-lezen geopend: het apparaat { $p0 } gebruikt de bibliotheekkopie van artikel { $p1 } uit { $p2 }, die beschadigd is. Werk de kopie eerst bij vanuit de bibliotheek.
 banner-damaged-copy-unnamed = Dit project is alleen-lezen geopend: het apparaat { $p0 } gebruikt de bibliotheekkopie van zijn artikel, die beschadigd is. Werk de kopie eerst bij vanuit de bibliotheek.
 banner-damaged-copy-record = Dit project is alleen-lezen geopend: { $p0 } is beschadigd. Werk de kopie eerst bij vanuit de bibliotheek.
 banner-damaged-copy-left-out = Dit project is alleen-lezen geopend: { $p0 } is beschadigd. Werk de kopie bij vanuit de bibliotheek, of maak met Opslaan als een projectkopie zonder deze bibliotheekkopie.
-# C53-p3#6 (ID-1481): two or more damaged copies that a Save As leaves out.
+# Two or more damaged copies that a Save As leaves out.
 banner-damaged-copies-left-out = Dit project is alleen-lezen geopend: { $p0 } zijn beschadigd. Werk de kopieën bij vanuit hun bibliotheken, of maak met Opslaan als een projectkopie zonder deze bibliotheekkopieën.
-# FT-1499 (ID-1486): the same banners when no library on this computer holds a damaged copy: no update is offered.
+# The same banners when no library on this computer holds a damaged copy: no update is offered.
 banner-damaged-copy-unnamed-no-library = Dit project is alleen-lezen geopend: het apparaat { $p0 } gebruikt de bibliotheekkopie van zijn artikel, die beschadigd is. Geen bibliotheek op deze computer bevat het, dus de kopie kan niet vanuit een bibliotheek worden bijgewerkt.
 banner-damaged-copy-record-no-library = Dit project is alleen-lezen geopend: { $p0 } is beschadigd. Geen bibliotheek op deze computer bevat het, dus de kopie kan niet vanuit een bibliotheek worden bijgewerkt.
 banner-damaged-copy-left-out-no-library = Dit project is alleen-lezen geopend: { $p0 } is beschadigd. Geen bibliotheek op deze computer bevat het; maak met Opslaan als een projectkopie zonder deze bibliotheekkopie.
@@ -321,9 +321,9 @@ history-empty = Nog niets om ongedaan te maken
 history-not-undoable = niet ongedaan te maken
 history-changes-title = Wijzigingen van stap { $p0 }
 history-redo = ongedaan gemaakt
-# FT-1440: the text protocol's answer to a step that changed the project: the step's title and its pages.
+# The text protocol's answer to a step that changed the project: the step's title and its pages.
 history-changed-on = { $p0 } op { $p1 }
-# rc.5: wat Ongedaan maken of Opnieuw terugnam of opnieuw deed, en waar.
+# Wat Ongedaan maken of Opnieuw terugnam of opnieuw deed, en waar.
 history-undone = Ongedaan gemaakt: { $p0 }
 history-redone = Opnieuw gedaan: { $p0 }
 note-action-go-to-page = Naar pagina
@@ -365,7 +365,6 @@ toast-devices-location = { $p0 } apparaten hebben nu de locatie { $p1 }.
 toast-devices-location-one = Het apparaat heeft nu de locatie { $p0 }.
 toast-auto-fill = { $p0 } geplaatst op { $p1 }.
 toast-auto-fill-left = { $p0 } geplaatst op { $p1 }; { $p2 }.
-# FT-1719
 toast-enclosure-new = Kast { $p0 } bij { $p1 } gemaakt.
 toast-enclosure-new-shown = Kast { $p0 } bij { $p1 } gemaakt; de pagina toont de montageplaat.
 toast-enclosure-drawn = { $p0 } van { $p1 } getekend op pagina { $p2 }.
@@ -397,7 +396,7 @@ toast-ewz-unsaved = { $p0 } geëxporteerd met de opgeslagen toestand; de niet-op
 toast-git-setup = Samenvoegdriver ingesteld.
 banner-reimported = { $p0 } opnieuw geïmporteerd.
 
-# WP-S3.09 D4: the banner while the import job runs.
+# The banner while the import job runs.
 banner-importing = { $p0 } wordt geïmporteerd…
 toast-cable-new = Kabel { $p0 } gemaakt met { $p1 }.
 toast-cable-new-cores = { $p0 ->
@@ -434,7 +433,7 @@ toast-drawing-imported = { $p0 } geïmporteerd als pagina { $p1 }.
 toast-underlay-placed = { $p0 } onder pagina { $p1 } gelegd.
 toast-eplan-parts-added = { $p0 }: { $p1 } artikelen aan je artikelbibliotheek toegevoegd, { $p2 } bijgewerkt, { $p3 } niet geïmporteerd.
 toast-eplan-report-imported = { $p0 } geïmporteerd als nieuw project met { $p1 } apparaten.
-# FT-1763: het project veranderde terwijl een rapport werd gelezen, en Annuleren hield het open.
+# het project veranderde terwijl een rapport werd gelezen, en Annuleren hield het open.
 toast-report-read-dropped = Het rapport is niet geïmporteerd: het project veranderde terwijl het werd gelezen en blijft open; importeer het rapport opnieuw om zijn project te maken.
 toast-plc-freeze = { $p0 } van { $p1 } vastgezet; reservekanalen houden hun automatische adres.
 toast-plc-readdress = Opnieuw geadresseerd: { $p0 } verschoven.

@@ -141,7 +141,7 @@ pub(super) fn translate(v: &mut Value, dx: i64, dy: i64) {
     });
 }
 
-/// The texts that write the number of connection point `before` (its value before a change) follow it (FT-1990):
+/// The texts that write the number of connection point `before` (its value before a change) follow it:
 /// moved by as much as it moved, or, given another edge, placed again as a new point's number text is placed, inside
 /// the body at the point and turned by its edge. A text that is itself in `selection` stays the person's.
 pub(super) fn cp_texts_follow(doc: &mut Value, before: &Value, selection: &[Item]) {

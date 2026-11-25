@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A wire's Potential row opens Define potential… itself (FT-1779): Enter, F2 or a click on the row of a potential
+//! A wire's Potential row opens Define potential… itself: Enter, F2 or a click on the row of a potential
 //! no definition names is `props.edit`, which opens the same form as the row's "…" menu and the wire's menu.
 
 use crate::common::{Tmp, done};

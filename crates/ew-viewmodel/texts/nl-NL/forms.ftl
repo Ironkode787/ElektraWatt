@@ -204,7 +204,7 @@ form-template-use = Gebruiken voor nieuwe projecten
 form-hint-project-save-as-template-folder = Het sjabloon komt in een nieuwe map met deze naam daarin.
 form-cable-type-new = Nieuw kabeltype…
 
-# rc.5: a bus line's cable and plugs made in the window
+# A bus line's cable and plugs made in the window
 form-bus-cable-which = Kabel
 form-bus-cable-new = Een nieuwe kabel
 form-bus-cable-new-part = Nieuwe buskabel…

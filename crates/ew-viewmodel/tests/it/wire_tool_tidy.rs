@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Wire tool never proposes a route that runs back over the wire it draws (FT-2097, docs/design/06a-drafting.md
+//! The Wire tool never proposes a route that runs back over the wire it draws (docs/design/06a-drafting.md
 //! §7.4): after a click on empty space (a fixed bend) the route on from it runs along none of the wire so far.
 
 use crate::common::{Tmp, at, done, tables};

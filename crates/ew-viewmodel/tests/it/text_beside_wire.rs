@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A code written as a free text on a wire stands beside the wire, not on it (FT-1870; doc 06 §4.5): the Text tool
+//! A code written as a free text on a wire stands beside the wire, not on it (doc 06 §4.5): the Text tool
 //! clicked on a horizontal stretch of the sample's page 102 sets the text on its baseline a millimetre above the line,
 //! on a vertical stretch a millimetre right of it.
 

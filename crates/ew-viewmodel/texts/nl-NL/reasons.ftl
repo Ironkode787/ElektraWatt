@@ -178,7 +178,7 @@ error-save-as = Opslaan als mislukt: { $p0 }.
 error-save-as-damaged-copy = Opslaan als is geweigerd: het apparaat { $p0 } gebruikt de bibliotheekkopie van artikel { $p1 } uit { $p2 }, die beschadigd is, en een projectkopie zonder deze bibliotheekkopie zou niet openen. Werk de kopie eerst bij vanuit de bibliotheek.
 error-save-as-damaged-copy-unnamed = Opslaan als is geweigerd: het apparaat { $p0 } gebruikt de bibliotheekkopie van zijn artikel, die beschadigd is, en een projectkopie zonder deze bibliotheekkopie zou niet openen. Werk de kopie eerst bij vanuit de bibliotheek.
 error-save-as-damaged-copy-record = Opslaan als is geweigerd: { $p0 } is beschadigd, en een projectkopie zonder deze bibliotheekkopie zou niet openen. Werk de kopie eerst bij vanuit de bibliotheek.
-# FT-1499 (ID-1486): Update from library of the damaged copies, from the banner.
+# Update from library of the damaged copies, from the banner.
 error-update-damaged = Bijwerken vanuit de bibliotheek is geweigerd: { $p0 }.
 error-export = Exporteren mislukt: { $p0 }.
 error-write = Het bestand kon niet worden geschreven.
@@ -187,7 +187,7 @@ error-unsaved-at-end = Het script eindigde met niet-opgeslagen wijzigingen; hun 
 error-no-folio = Geen pagina heeft het folio { $p0 }.
 error-part-fndef-missing = Het artikel vraagt om de functiedefinities { $p0 }, die noch het project noch de starterbibliotheek bevat.
 error-command = { $p0 }
-# FT-1337: end of the command refusals.
+# end of the command refusals.
 error-command-field = { $p0 }: { $p1 }: { $p2 }
 error-param-item = { $p0 }, item { $p1 }
 error-param-whole = De parameters
@@ -526,10 +526,10 @@ error-bus-plug = Geen stekker voor { $p1 } heeft het artikelnummer { $p0 }: kies
 error-report-kind = "{ $p0 }" is geen rapport; gebruik een van: { $p1 }.
 error-first-folio = Het eerste folio moet een nummer zijn; "{ $p0 }" is dat niet.
 
-# FT-1337 en FT-1363 (ID-1359 uitspraak 1): een opdrachtfout in het venster, naar de reden.
+# Een opdrachtfout in het venster, naar de reden.
 error-command-unknown = Er is geen opdracht { $p0 }
 error-command-not-found = Niet meer in het project: { $p0 } waarmee deze stap werkt. Het is intussen verwijderd of ongedaan gemaakt; probeer het opnieuw op wat het venster nu toont
-# rc.5 (H2): wat een stap op iets dat intussen verwijderd is noemt.
+# Wat een stap op iets dat intussen verwijderd is noemt.
 error-gone-device = het apparaat
 error-gone-symbol = het symbool
 error-gone-page = de pagina
@@ -550,7 +550,7 @@ reason-eplan-no-change = Geen artikelkopie van het project zou veranderen
 error-not-a-card-bus = { $p0 } is geen PLC-module: het is een busapparaat. Klik het met rechts aan en kies Aan PLC toevoegen om er een eigen station van te maken.
 reason-rack-made = Het station is al gemaakt: wijzig zijn modules in zijn rek
 reason-rack-draft = Het station is nog niet gemaakt: kies eerst Maken
-# rc.5 (H13): Hier plaatsen op een PLC-onderdeel waarvan een kant nog op geen pagina staat.
+# Hier plaatsen op een PLC-onderdeel waarvan een kant nog op geen pagina staat.
 reason-place-electrical = Open een elektrische pagina: daar wordt het kader geplaatst
 reason-place-bus = Open een buspagina: daar worden de buspoorten geplaatst
 reason-place-fluid = Open een fluïdumpagina: daar worden de ventielen op hun posities geplaatst

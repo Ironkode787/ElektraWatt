@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Output ▸ List columns… and Rows of your own… (doc 09 §3.8, FT-1874) on a copy of the sample's terminal diagram,
+//! Output ▸ List columns… and Rows of your own… (doc 09 §3.8) on a copy of the sample's terminal diagram,
 //! 903: the forms show what the list prints, their Apply writes it to the list's block, and opening them again shows
 //! what was written; a page that is not a list's refuses them in words.
 

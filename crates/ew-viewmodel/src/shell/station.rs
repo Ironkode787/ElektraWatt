@@ -126,7 +126,7 @@ pub enum TodoFix {
 }
 
 impl ShellModel {
-    /// The view of `station` (doc 10 §6), as the window draws it: made once per revision and station (FT-1763).
+    /// The view of `station` (doc 10 §6), as the window draws it: made once per revision and station.
     pub fn rack_view(&self, station: Uuid) -> Option<ew_api::output::RackView> {
         let rev = self.revision()?;
         {

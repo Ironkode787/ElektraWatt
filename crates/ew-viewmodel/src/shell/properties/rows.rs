@@ -41,12 +41,12 @@ impl ShellModel {
                 out.push(RowMenuItem::EditPart);
             }
         }
-        // A derived or inherited value's source (FT-1651).
+        // A derived or inherited value's source.
         if row.source.is_some() {
             out.push(RowMenuItem::GoToSource);
         }
         let writable = self.is_writable() && self.props.sheet().is_some_and(|s| s.read_only.is_none());
-        // The Potential row of a potential no definition names: Define potential… there (FT-1651).
+        // The Potential row of a potential no definition names: Define potential… there.
         if writable
             && row.key.ends_with("/derived.potential")
             && row.source.is_none()
@@ -54,7 +54,7 @@ impl ShellModel {
         {
             out.push(RowMenuItem::DefinePotential);
         }
-        // A device's connection point: Mark not used, or Mark used (FT-1649).
+        // A device's connection point: Mark not used, or Mark used.
         if let (true, RowValue::One { json, .. }) = (writable && is_cp_row(row), &row.value)
             && let Some(unused) = json.get("unused").and_then(Value::as_bool)
         {
@@ -83,7 +83,7 @@ impl ShellModel {
         self.project.as_ref()?.session.device_tag(*id)
     }
 
-    /// Go to source (FT-1651): the row that holds the source of row `key`'s value, with the cursor on it; the sheet
+    /// Go to source: the row that holds the source of row `key`'s value, with the cursor on it; the sheet
     /// shows the record or the project first when it does not show the row, and the row's category unfolds.
     pub(in crate::shell) fn props_go_to_source(&mut self, key: &str) -> Outcome {
         let Some((_, row)) = self.props_find(key) else {
@@ -134,7 +134,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// FT-1704: the point on the page on show (page nm) of the connection point whose row of a device's Properties
+    /// The point on the page on show (page nm) of the connection point whose row of a device's Properties
     /// has the cursor (a row the person chose, not the first row on show), which the canvas rings in the selection
     /// colour: which "+" of a power supply a row names is then answered by looking. `None` for any other row, or when
     /// the point is drawn on another page.
@@ -179,7 +179,7 @@ impl ShellModel {
         }
     }
 
-    /// `cp.unused {function, idx, on?}` (Mark not used, Mark used; FT-1649): marks the connection point `idx` of
+    /// `cp.unused {function, idx, on?}` (Mark not used, Mark used): marks the connection point `idx` of
     /// the function `function` as not used by design (`on`, else the other state), or as used again, in its
     /// override (`cp_overrides[].unused`), as one `fields.set` and one undo step. Its unconnected-point finding
     /// (EW-POT-009) then drops to an info.

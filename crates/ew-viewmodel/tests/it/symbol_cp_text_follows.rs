@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The text that writes a connection point's number goes with the point (FT-1990): moved alone by the arrow keys
+//! The text that writes a connection point's number goes with the point: moved alone by the arrow keys
 //! it moves as far; given another edge in Properties it stands again inside the body at the point, turned by its edge.
 
 use crate::common::{Tmp, done};

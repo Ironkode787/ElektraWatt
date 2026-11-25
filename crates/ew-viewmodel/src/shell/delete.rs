@@ -265,7 +265,7 @@ impl ShellModel {
                 continue;
             };
             let a = &d.aspects;
-            // FT-823: a PLC module whose aspect holds no setting (what normaliser N0 gives a card's device) is no other
+            // A PLC module whose aspect holds no setting (what normaliser N0 gives a card's device) is no other
             // role: the card goes with its last symbol, its channels with it (the model's delete policy), so a card
             // deleted to be drawn again leaves no `-?A1` behind. A station, or a module with a slot, a start, a part
             // use or an integrated I/O, stays.
@@ -283,7 +283,7 @@ impl ShellModel {
             {
                 continue;
             }
-            // A function no representation draws (a part's other contacts) is no other role (FT-1658: a relay
+            // A function no representation draws (a part's other contacts) is no other role (a relay
             // placed by one contact and deleted left `-?K2` with its four unplaced contacts).
             let all_gone = idx
                 .functions_of_device(id)

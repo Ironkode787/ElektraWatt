@@ -1217,7 +1217,7 @@ fn preview_lines(model: &ShellModel, lines: &mut Vec<String>) {
     });
 }
 
-/// The glossary pane while it is open (D16): `glossary filter "<text>" rows <n>`, then one line per row on show,
+/// The glossary pane while it is open: `glossary filter "<text>" rows <n>`, then one line per row on show,
 /// `  term "<term>" eplan "<terms>" qet "<terms>"` and the actions it offers.
 fn glossary_lines(model: &ShellModel, lines: &mut Vec<String>) {
     if !model.glossary_shown() {

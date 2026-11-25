@@ -9,9 +9,9 @@
 //! kind filter preset by D7's kinds). `part.search` changes the query and lists `Session::part_offers` again;
 //! `part.pick` compiles the active row, a 1-based `index` or a part text into the one command of
 //! `Session::part_pick_command` and commits it with one undo step; a library part is then recorded among the recently
-//! used parts of the settings (D18). `part.favourite` toggles a library part among the favourites.
+//! used parts of the settings. `part.favourite` toggles a library part among the favourites.
 //!
-//! **Editing** (D20, D21). `part.edit {part?}` opens [`Dialog::PartEdit`] with the draft of a held copy (the `part`
+//! **Editing**. `part.edit {part?}` opens [`Dialog::PartEdit`] with the draft of a held copy (the `part`
 //! text, else the Libraries navigator's part row when it has the focus, else the property grid's device's first part
 //! use, else that navigator's cursor row). `part.field {field, value}` sets and checks one field; its message shows
 //! under the field. `part.save` builds `part.edit_copy` with `Session::part_edit_plan` and opens the `part` card in the
@@ -39,7 +39,7 @@ pub const PART_ROWS: usize = 50;
 /// The part kinds of the layout tools: a device's part dialog offers one only where panel layout attaches it.
 const LAYOUT_KIND_WORDS: [&str; 5] = ["enclosure", "mounting_plate", "rail", "duct", "end_bracket"];
 
-/// The part selection dialog's state (D19).
+/// The part selection dialog's state.
 #[derive(Clone, PartialEq, Debug)]
 pub struct PartChooser {
     /// What the choice is for.
@@ -54,7 +54,7 @@ pub struct PartChooser {
     pub offers: Vec<PartOffer>,
     /// Why each offer does not fit a cable, in the offers' order; `None` where it fits.
     pub misfits: Vec<Option<String>>,
-    /// The active row (0-based); `None` until the person chooses one (FT-1845: Enter took a first row the person had
+    /// The active row (0-based); `None` until the person chooses one (Enter took a first row the person had
     /// not chosen).
     pub cursor: Option<usize>,
     /// Whether Type not known yet…'s field opens with the dialog (the command search's Type not known yet…, a persona
@@ -108,7 +108,7 @@ impl PartChooser {
     }
 }
 
-/// The part editor's state (D20, D21).
+/// The part editor's state.
 #[derive(Clone, PartialEq, Debug)]
 pub struct PartEditor {
     /// The draft.
@@ -260,7 +260,7 @@ pub fn message_text(key: Key<'_>, args: &[String]) -> String {
     strings::format(key, &args)
 }
 
-/// `<library ID>/<item ID>`, the settings' form of a library item (D18).
+/// `<library ID>/<item ID>`, the settings' form of a library item.
 fn item_text((library, item): (Uuid, Uuid)) -> String {
     format!("{library}/{item}")
 }
@@ -284,7 +284,7 @@ fn matches_text(text: &str, number: &str, manufacturer: &str, description: &str)
         || t.eq_ignore_ascii_case(&format!("{short} \u{b7} {description}"))
 }
 
-/// What a typed text names a part as being for (FT-1845, doc 07 §4.3): the function categories and the contact kinds
+/// What a typed text names a part as being for (doc 07 §4.3): the function categories and the contact kinds
 /// whose words take every word of the text, each word the start of one of theirs (or, from four letters, inside one:
 /// a Dutch compound). A category's words are its `function-category-<key>` text in each shipped language and its key
 /// split at its capitals ("Fluid Sensor"); a contact kind's are its `symbol-kind-<kind>` text in each. Nothing for a
@@ -576,7 +576,7 @@ impl ShellModel {
             .ok_or(Outcome::refused(key!("reason-part-choose-none")))
     }
 
-    /// `part.pick {index?, part?}` (Enter): commits the choice (D16) and records a library part as recently used (D18).
+    /// `part.pick {index?, part?}` (Enter): commits the choice (D16) and records a library part as recently used.
     pub(crate) fn act_part_pick(&mut self, p: &Map<String, Value>) -> Outcome {
         let offer = or_return!(self.part_offer_param(p));
         let Some(c) = self.part_chooser() else {
@@ -644,7 +644,7 @@ impl ShellModel {
         out
     }
 
-    /// `part.favourite {index?}`: toggles a library part among the favourites (D18).
+    /// `part.favourite {index?}`: toggles a library part among the favourites.
     pub(crate) fn act_part_favourite(&mut self, p: &Map<String, Value>) -> Outcome {
         let offer = or_return!(self.part_offer_param(p));
         let Some(item) = offer.item else {
@@ -663,7 +663,7 @@ impl ShellModel {
 }
 
 impl ShellModel {
-    /// Save of a corrected part of My parts (FT-1766): its next version goes into My parts, and the card of the
+    /// Save of a corrected part of My parts: its next version goes into My parts, and the card of the
     /// `library.update` that brings the project's copy to it opens in the Preview tab (the changed fields and the
     /// devices that use it); Apply commits it. A field that does not parse refuses at its field.
     fn part_save_own_library(&mut self) -> Outcome {
@@ -716,7 +716,7 @@ impl ShellModel {
         }
     }
 
-    /// Save of a new part (FT-1766): the part goes into My parts and the project, or into the project alone
+    /// Save of a new part: the part goes into My parts and the project, or into the project alone
     /// (`Session::new_part_command`), in one undo step; a field that does not parse refuses at its field. From the
     /// part dialog, the dialog opens again on the new part; from the Cable form, the form with the new cable type
     /// chosen. With `another` the editor opens again on a new part like this one but for its part number and its
@@ -859,7 +859,7 @@ fn plc_preset(session: &ew_api::Session, draft: &mut ew_api::PartDraft, word: &s
 }
 
 impl ShellModel {
-    /// The detail line of offer `i` (0-based) of the open part dialog (D19): its source and tier, version, status and
+    /// The detail line of offer `i` (0-based) of the open part dialog: its source and tier, version, status and
     /// successor (FR-PRT-034), and the template's functions; `None` without the dialog or the row.
     pub fn part_offer_detail(&self, i: usize) -> Option<String> {
         let c = self.part_chooser()?;
@@ -1077,7 +1077,7 @@ fn section_changes(old: Option<&Value>, new: Option<&Value>) -> Vec<(String, Str
             out.push((strings::text(key).to_owned(), words(x), words(y)));
         }
     }
-    // The supply pins of every group, as the form lists them (FT-2132).
+    // The supply pins of every group, as the form lists them.
     for (member, key) in [("l_plus", key!("part-plc-l_plus")), ("m", key!("part-plc-m"))] {
         let pins = |v: &Value| -> String {
             let list: Vec<String> = v

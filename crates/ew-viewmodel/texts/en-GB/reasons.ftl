@@ -17,7 +17,6 @@ error-wire-ambiguous = Several wires of the page shown run "{ $p0 }"; click the 
 reason-not-on-page = The selection is drawn on another page; go to that page to delete it
 reason-no-picker = The picker is not open
 
-# WP-S2.18 part 1.
 reason-no-chooser = No chooser is open
 reason-join-not-auxiliary = This symbol joins no existing device: a terminal goes into a strip, an interruption point and a graphic belong to no device
 reason-join-terminal = A terminal or a strip takes no further function: place the symbol as a device of its own
@@ -34,7 +33,7 @@ error-join-none = none
 reason-rep-type-not-allowed = The page's type does not take this symbol
 reason-rep-type-pages = Goes on a page of type { $p0 }
 
-# FT-896: the way out with its key from the keymap; `-unbound` when the action has none.
+# The way out with its key from the keymap; `-unbound` when the action has none.
 reason-black-box-tool = This part is placed as a black box: use the Black box tool ({ $p0 })
 reason-black-box-tool-unbound = This part is placed as a black box: use the Black box tool
 reason-no-symbol-for-function = No symbol for this function on this page
@@ -52,7 +51,7 @@ reason-no-grid-mismatch = The chosen symbol is drawn on this page's grid; choose
 reason-not-editable = Symbols are placed on drawn pages of a project that can be changed
 reason-page-type-no-symbols = This page type takes no symbols or wires: draw on a schematic page
 
-# FT-892: the same, naming the page's kind.
+# The same, naming the page's kind.
 reason-page-type-no-symbols-divider = A section divider takes no symbols or wires: draw on a schematic page
 reason-page-type-no-symbols-title = A title page takes no symbols or wires: draw on a schematic page
 reason-page-type-no-symbols-contents = A table of contents takes no symbols or wires: draw on a schematic page
@@ -81,7 +80,7 @@ reason-box-too-large = The box is { $p0 } × { $p1 } mm: it does not fit in this
 reason-no-ip-symbol = This page's library has no interruption-point symbol
 reason-ip-tool-only = Only while placing an interruption point
 
-# FT-822: a refused interruption point (a prevent rule) keeps its ghost; the HUD and a toast say why.
+# A refused interruption point (a prevent rule) keeps its ghost; the HUD and a toast say why.
 reason-ip-not-placed = The interruption point was not placed
 reason-external-never-pairs = An external connection point never pairs, so it has no star source
 error-no-external = No external reference is "{ $p0 }"; name one as device:connection, optionally after its location and " / " (+J-E-206 / JE-N1000-03:L). The project's: { $p1 }.
@@ -89,7 +88,7 @@ reason-external-ambiguous = Several external references print this text: name on
 reason-select-one-ip = Select exactly one interruption point
 reason-select-ips = Select at least two interruption points
 
-# FT-896: today's menu path and the key from the keymap; `-unbound` when `tool.place` has none.
+# today's menu path and the key from the keymap; `-unbound` when `tool.place` has none.
 reason-not-black-box = This is not a black box: place it with Draw ▸ Symbol… ({ $p0 })
 reason-not-black-box-unbound = This is not a black box: place it with Draw ▸ Symbol…
 reason-one-black-box = Select exactly one black box
@@ -131,7 +130,7 @@ reason-no-potential-offer = No potential is offered for the selection
 reason-potential-row = This row has no connection point to define its potential at
 error-potential-type = "{ $p0 }" is not a potential type; type L1, L2, L3, L, N, PE, PEN, FE, L+, L-, M or signal.
 error-potential-voltage = "{ $p0 }" is not a voltage; type it as 24 V DC, 230 V AC or 24.
-# FT-1240 (ID-1315): a word that is not one of an enumerated field's, the field's words listed.
+# A word that is not one of an enumerated field's, the field's words listed.
 error-not-one-of = "{ $p0 }" is not one of the choices: { $p1 }.
 error-image-file = Cannot read the image file { $p0 }: { $p1 }.
 error-image-too-large = The image { $p0 } is larger than { $p1 } KiB (the limit of an image the project stores).
@@ -171,7 +170,7 @@ reason-no-recent = There are no recent projects
 reason-no-page = No page is shown
 reason-parameters-later = Parameter forms come with a later version; run it from a script
 
-# WP-S2.08 D5 (a): an action with a file or reference parameter in the palette.
+# An action with a file or reference parameter in the palette.
 reason-palette-needs-file = Needs a file or a selection: use its menu
 
 # Why a project is read-only.
@@ -185,7 +184,7 @@ readonly-recovery = unsaved changes from an earlier session
 error-unknown-action = Unknown action `{ $p0 }`.
 error-missing-param = Missing parameter `{ $p0 }`.
 error-missing-param-choices = Missing parameter `{ $p0 }`; use one of { $p1 }.
-# FT-1257: a form's missing parameter, named by its field's label.
+# A form's missing parameter, named by its field's label.
 error-missing-field = { $p0 } is empty: fill it in.
 error-bad-param = Parameter `{ $p0 }` is not valid.
 error-unknown-alias = No record has the alias `{ $p0 }` in this session.
@@ -196,7 +195,7 @@ error-save-as = Save as failed: { $p0 }.
 error-save-as-damaged-copy = Save as is refused: the device { $p0 } uses the library copy of part { $p1 } from { $p2 }, which is damaged, and a copy of the project without it would not open. Update the copy from its library first.
 error-save-as-damaged-copy-unnamed = Save as is refused: the device { $p0 } uses the library copy of its part, which is damaged, and a copy of the project without it would not open. Update the copy from its library first.
 error-save-as-damaged-copy-record = Save as is refused: { $p0 } is damaged, and a copy of the project without it would not open. Update the copy from its library first.
-# FT-1499 (ID-1486): Update from library of the damaged copies, from the banner.
+# Update from library of the damaged copies, from the banner.
 error-update-damaged = Update from library is refused: { $p0 }.
 error-export = Export failed: { $p0 }.
 error-write = The file could not be written.
@@ -205,9 +204,9 @@ error-unsaved-at-end = The script ended with unsaved changes; their journal was 
 error-no-folio = No page has the folio { $p0 }.
 error-part-fndef-missing = The part needs the function definitions { $p0 }, which neither the project nor the starter library holds.
 error-command = { $p0 }
-# FT-1337: end of the command refusals.
+# end of the command refusals.
 
-# FT-779: a refused parameter named by its field's words: the command's title, the field, the refusal.
+# A refused parameter named by its field's words: the command's title, the field, the refusal.
 error-command-field = { $p0 }: { $p1 }: { $p2 }
 error-param-item = { $p0 }, item { $p1 }
 error-param-whole = The parameters
@@ -294,7 +293,7 @@ reason-find-no-results = No result is listed
 reason-find-no-selection = Nothing is selected
 reason-find-replace = A replace is previewed first
 
-# FT-410: the parts table import.
+# The parts table import.
 reason-parts-import = An import is previewed first
 error-parts-import = Parts table refused: { $p0 }
 reason-no-parts-map = No parts table is being mapped
@@ -331,7 +330,7 @@ reason-rack-closed = No station's rack is open: open one with Rack on the PLC ta
 reason-rack-no-part = No module part is offered: import parts with PLC module data or install a parts library
 reason-line-no-port = The tube ends at no connection point: a medium is defined at a port
 
-# FT-753: a channel dropped on a field device, reached in the model's terms.
+# A channel dropped on a field device, reached in the model's terms.
 reason-bind-wired-pins = The device is wired to more than one pin of the module: drop the channel on the module's pin you mean
 error-station-takes-no-cards = { $p0 } takes no modules: drop a module on a CPU or a head station.
 error-card-on-station = { $p0 } is a module of { $p1 } already.
@@ -363,7 +362,7 @@ reason-table-import-nothing = The file changes nothing in the project
 error-nav-no-export = The { $p0 } pane's table cannot be exported.
 error-table-preset-csv = A preset applies to CSV only; drop it, or choose the format csv.
 error-table-preset = There is no CSV preset { $p0 }; the presets are ew, excel-nl, excel-en and rfc4180.
-# ID-1252: the preset ew writes no id column, so its file does not import again in the window.
+# The preset ew writes no id column, so its file does not import again in the window.
 reason-table-preset-ew = The preset ew writes no id column, so the file cannot be imported again; choose excel-nl or excel-en
 error-table-import-open = { $p0 } cannot be opened: { $p1 }.
 error-table-import-missing = There is no file { $p0 }.
@@ -452,7 +451,7 @@ reason-variable-derived = A derived value cannot be a variable
 error-no-library = No installed library is called "{ $p0 }"
 error-macro-save = The macro was not saved: { $p0 }
 
-# WP-S2.07 part 4a (§9.5): the part selection dialog and the part editor.
+# The part selection dialog and the part editor.
 reason-part-choose-target = Select a device, a terminal or a part cell first
 reason-part-choose-none = Choose a part from the list first
 reason-part-not-installed = The library of this part is not installed
@@ -465,7 +464,7 @@ reason-no-part-editor = Open the part editor first
 reason-part-edit = A part is edited
 error-part-remove-confirm = Removing a part from your parts library is not undone: the step needs "confirm": true.
 
-# WP-S2.07 part 4b (§9.5): FT-396's paste choice.
+# The paste choice.
 reason-paste-versions = The pasted records use another version of { $p0 }; choose Use the project's copy or Update the project's copy
 reason-paste-adapt-major = The versions differ in their connection points; update instead
 reason-paste-update-older = The pasted version is not newer than the project's
@@ -491,7 +490,7 @@ error-revision-approve = The approval was refused: { $p0 }.
 error-revision-release = The release was refused: { $p0 }.
 error-revision-settle = The incomplete release was not settled: { $p0 }.
 
-# FIX41b ruling 1: every refusal of the revision dialogs in words (the CLI keeps its own texts).
+# Every refusal of the revision dialogs in words (the CLI keeps its own texts).
 gate-no-project = the project is not saved in a project folder
 gate-unsaved = the project has unsaved changes; save it first
 gate-incomplete-save = a save is incomplete; wait for it to finish
@@ -561,10 +560,10 @@ error-bus-plug = No plug for { $p1 } has the part number { $p0 }: choose one fro
 error-report-kind = "{ $p0 }" is not a report; use one of: { $p1 }.
 error-first-folio = The first folio is a number: "{ $p0 }" is not.
 
-# FT-1337 and FT-1363 (ID-1359 ruling 1): a command error in the window, by its reason.
+# A command error in the window, by its reason.
 error-command-unknown = There is no command { $p0 }
 error-command-not-found = No longer in the project: { $p0 } this step works on. It was deleted or undone meanwhile; try again on what the window shows now
-# rc.5 (H2): what a step on something deleted meanwhile names.
+# What a step on something deleted meanwhile names.
 error-gone-device = the device
 error-gone-symbol = the symbol
 error-gone-page = the page
@@ -585,7 +584,7 @@ reason-eplan-no-change = No part copy of the project would change
 error-not-a-card-bus = { $p0 } is no PLC module: it is a bus device. Right-click it and choose Add to PLC to make it a station of its own.
 reason-rack-made = The station is made already: change its modules in its rack
 reason-rack-draft = The station is not made yet: choose Create first
-# rc.5 (H13): Place here on a PLC part a side of which no page draws yet.
+# Place here on a PLC part a side of which no page draws yet.
 reason-place-electrical = Open an electrical page: its box is placed there
 reason-place-bus = Open a bus page: its bus ports are placed there
 reason-place-fluid = Open a fluid page: its valves are placed there on their positions

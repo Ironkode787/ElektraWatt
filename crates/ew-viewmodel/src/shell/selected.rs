@@ -62,7 +62,7 @@ impl ShellModel {
         })
     }
 
-    /// The terminals of the window selection (D9): (terminal function, terminal device) for each item — a
+    /// The terminals of the window selection: (terminal function, terminal device) for each item — a
     /// representation with one function, a function, or a device (its function) — each terminal once, in selection
     /// order; `None` when an item is none of these or not a terminal.
     pub(super) fn selected_terminals(&self) -> Option<Vec<(Uuid, Uuid)>> {
@@ -98,7 +98,7 @@ impl ShellModel {
         Some(out)
     }
 
-    /// The devices of the window selection (D9): a device itself, a function's device, a representation's functions'
+    /// The devices of the window selection: a device itself, a function's device, a representation's functions'
     /// devices; each once, in selection order.
     pub(super) fn selected_record_devices(&self) -> Vec<Uuid> {
         let Some(project) = &self.project else {

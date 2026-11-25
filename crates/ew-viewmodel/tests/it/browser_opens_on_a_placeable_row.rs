@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1761: Insert symbol on a schematic page opened on the bus connector, a row greyed there (it goes on a bus
+//! Insert symbol on a schematic page opened on the bus connector, a row greyed there (it goes on a bus
 //! page), so Enter placed nothing. The browser's current row is the first that can be placed.
 
 use crate::common;

@@ -44,7 +44,7 @@
 //! when all do, and touches it when one does) plus the exact segment distance of connections and structure-box
 //! outlines. A release on empty canvas within 3 points clears the selection (Shift keeps it).
 //!
-//! **FT-500** (picking where routes overlap). The pick is the first of the pick stack ([`super::pick_stack`]): a
+//! The pick is the first of the pick stack ([`super::pick_stack`]): a
 //! wire's drawn line goes before the representation rectangle the press is in when it is strictly nearer than that
 //! rectangle's centre. A press there that becomes a drag still moves the representation. A plain click repeated within
 //! 3 points of the last plain click's press, on the same page and revision, while the selection is still exactly what
@@ -52,7 +52,7 @@
 //! the click that a press on a selected connection's segment becomes, and for `Activate`. Shift and Ctrl clicks never
 //! walk, and any other release ends the walk.
 //!
-//! *As built (2026-11-07).* FT-500's rule has one
+//! *As built (2026-11-07).* The rule has one
 //! exception: a press on a symbol's **body**, the middle half of one of its representation's rectangles each way,
 //! picks the symbol before a wire under it even when the wire's line is nearer than the rectangle's centre; a repeated
 //! click walks on to the wire. Nearer the rectangle's outline, where wires meet the pins, the nearer of the wire and
@@ -89,7 +89,7 @@ enum State {
         at: (i64, i64),
         mods: Mods,
         /// The entity a drag from here moves: the pressed entity when it is movable, the representation whose
-        /// rectangle the press is in when a wire's line took the press (FT-500), else none (a drag is a band).
+        /// rectangle the press is in when a wire's line took the press, else none (a drag is a band).
         drag: Option<EntityRef>,
     },
     /// A rubber band from `from` to `to`.
@@ -153,7 +153,7 @@ pub struct SelectTool {
     proposals: Vec<(String, Option<String>)>,
     /// Whether the move connects them on release (the session's connect on move, as the drag saw it).
     connect: bool,
-    /// The last plain click and what it selected, for the repeated click that walks the pick stack (FT-500).
+    /// The last plain click and what it selected, for the repeated click that walks the pick stack.
     last: Option<LastClick>,
     /// A press on a placement or a carrier of a panel page, and the placement's drag once it moves.
     panel: Option<PanelPress>,
@@ -290,7 +290,7 @@ pub(crate) fn text_under(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<ew_api::outp
 
 impl TextPress {
     /// The anchor a drop stores and the box the text prints there, at the current turn (`SlotTextBox::turned`): a text
-    /// the Rotate key turned takes its new angle's alignment and anchor (FT-2099).
+    /// the Rotate key turned takes its new angle's alignment and anchor.
     fn turned(&self) -> (Pt2, Rect) {
         match usize::from(self.turns % 4) {
             0 => (self.text.drop_at, self.text.rect),
@@ -775,7 +775,7 @@ impl SelectTool {
             } => {
                 let press = self.text.take()?;
                 // A tap on the selected mark's own cross-reference follows it, as with nothing selected; a drag
-                // still moves the text (FT-1911).
+                // still moves the text.
                 if let (None, Some(link)) = (press.to, cx.link_at(press.from)) {
                     self.last = None;
                     return Some(ToolOutput::Follow(link.dest));
@@ -1043,7 +1043,7 @@ impl SelectTool {
     /// A click pressed at `at` on `entity` (the pick, or the selected connection whose segment was pressed). A plain
     /// click repeated where the last plain click pressed (within [`CLICK_SLOP_PT`]), on the same page and revision,
     /// while the selection is still exactly what that click selected, selects the entity after that one in the pick
-    /// stack at `at`, the last wrapping to the first (FT-500); otherwise `entity`. Shift and Ctrl clicks never walk.
+    /// stack at `at`, the last wrapping to the first; otherwise `entity`. Shift and Ctrl clicks never walk.
     fn click(
         &mut self,
         last: Option<LastClick>,
@@ -1308,7 +1308,7 @@ impl SelectTool {
             return ToolOutput::None;
         }
         // A segment or a bend of a selected connection, but not inside a representation's rectangle: there a drag
-        // moves the representation (FT-500), as it did before every segment could be dragged.
+        // moves the representation, as it did before every segment could be dragged.
         if let Some((connection, line, part)) = press_part(cx, at) {
             self.origin = (cx.selection.generation, cx.page.rev);
             self.state = State::Segment {
@@ -1330,7 +1330,7 @@ impl SelectTool {
                     Some(EntityKind::Rep | EntityKind::Item | EntityKind::StructureBox)
                 )
             };
-            // A wire's line picked inside a representation's rectangle (FT-500): a drag still moves the representation,
+            // A wire's line picked inside a representation's rectangle: a drag still moves the representation,
             // as before the wires took the press there.
             let drag = if movable(entity) {
                 Some(entity)
@@ -1447,7 +1447,7 @@ impl SelectTool {
                 match moved_part(&line, part, steps, grid).filter(|_| steps != (0, 0)) {
                     Some(route) => ToolOutput::Commit(route_command(connection, &route)),
                     // A press that did not move is a click where it was pressed, on what a click there picks: a
-                    // junction on the wire, the next wire of an overlap (FT-500's walk), else the wire itself.
+                    // junction on the wire, the next wire of an overlap (the overlap walk), else the wire itself.
                     None => {
                         let picked = cx.pick_stack(from).first().copied().unwrap_or(connection);
                         self.click(last, picked, from, held, cx)

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1810: the symbol editor's Copy a library symbol was one long list without order or preview. Its symbols come in
+//! The symbol editor's Copy a library symbol was one long list without order or preview. Its symbols come in
 //! the symbol browser's order, by the words of the function category each is filed under (Other last), and each has
 //! the shape the browser previews.
 

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A PLC card of the older two-row form drawn again in one row in its place (FT-1897, doc 10 §3.6): one
+//! A PLC card of the older two-row form drawn again in one row in its place (doc 10 §3.6): one
 //! `plc.card_redraw` replaces its box with the box of Draw on a page, keeps its device, channels and connections, and
 //! is one undo step. The card here is the sample's input card on folio 104 with half its channel pins moved to the
 //! lower edge, as the older form drew them.
@@ -100,7 +100,7 @@ fn a_card_in_two_rows_is_drawn_again_in_one_row_and_keeps_its_wires() {
     assert_eq!(card(&s).map(|r| r.id), Some(older.id));
 }
 
-/// FT-2083: the card of the older form moved 40 steps right, where its eight inputs in one row would pass the drawing
+/// The card of the older form moved 40 steps right, where its eight inputs in one row would pass the drawing
 /// area's right: Draw the card in one row splits the row into boxes of as many pins as fit, one under the other, every
 /// box inside the area, and every pin and connection stays on the page.
 #[test]

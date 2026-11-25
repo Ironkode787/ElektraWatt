@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1383: a copy of the sample whose one library copy that a device names is damaged opens read-only in
+//! A copy of the sample whose one library copy that a device names is damaged opens read-only in
 //! the window, as a damaged copy no device names does, instead of being refused whole: every page shows and the
 //! checks run.
 
@@ -318,8 +318,8 @@ fn every_damaged_copy_a_save_as_leaves_out_is_named() {
     assert!(strings::set_locale("en"));
 }
 
-/// FT-1383: a damaged definition copy whose functions end fluid lines (the sample's pneumatic cylinders on
-/// folio 201, EW-INV-024 beside the EW-INV-001 that names the copy) opens read-only with FT-1383's banner, where the
+/// A damaged definition copy whose functions end fluid lines (the sample's pneumatic cylinders on
+/// folio 201, EW-INV-024 beside the EW-INV-001 that names the copy) opens read-only with its banner, where the
 /// open was refused before; Save As is refused in its words as for any copy a record names, nothing being
 /// written. Both languages.
 #[test]

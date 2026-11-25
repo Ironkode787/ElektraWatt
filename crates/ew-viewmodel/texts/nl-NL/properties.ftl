@@ -79,7 +79,6 @@ props-plug-not-drawn = niet getekend: tekenen…
 titleblock-title = Titelblokvelden
 titleblock-project-description = Projectomschrijving
 titleblock-revision = Revisie
-# FT-1718
 titleblock-checked = Gecontroleerd
 titleblock-author = Getekend
 titleblock-note-fixed = De teksten die het titelbloksjabloon van deze pagina zelf schrijft, worden afgedrukt zoals het sjabloon ze bevat; het zijn hier geen velden.
@@ -107,13 +106,13 @@ text-style-marker = Adermarkering
 props-offer-lists-frame = Het kader van elke lijst wijzigen in Projecteigenschappen
 props-offer-on-output = { $p0 } op het tabblad Uitvoer
 
-# The project's edited date is set by the save (the owner's test of 0.3.0-rc.1).
+# The project's edited date is set by the save.
 props-ro-on-save = wordt ingevuld wanneer het project wordt opgeslagen
 titleblock-note-edited = { $p0 }: { $p1 }. Wordt ingevuld wanneer het project wordt opgeslagen.
 titleblock-note-edited-none = { $p0 }: wordt ingevuld wanneer het project wordt opgeslagen.
 props-tip-make-variable = Maakt van deze waarde een variabele van een macro: elke waardeset van de macro geeft haar een eigen waarde wanneer de macro geplaatst wordt (Opslaan als macro…). Het is geen voorlopig artikel; dat is Type nog onbekend….
 
-# Wat een apparaat is, onder de titel van Eigenschappen (rc.2, F9).
+# Wat een apparaat is, onder de titel van Eigenschappen.
 props-what = { $p0 } · { $p1 }
 props-port = Aansluiting { $p0 }
 props-port-no-medium = geen medium

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The command palette in the shell (FR-UI-012; the matching in [`crate::palette`]): the entries of
-//! a query by its prefix (D4), ranked with the aliases of the glossary (D5 (b)) and the recents (D3), and Enter: an
+//! a query by its prefix, ranked with the aliases of the glossary (D5 (b)) and the recents, and Enter: an
 //! action runs (or opens its parameter form, D5 (a)), a page is shown, a cell is gone to, an object is selected and a
 //! rule shows Messages filtered to it. The palette is transient widget state: nothing here is persisted.
 
@@ -87,9 +87,9 @@ impl ShellModel {
 
     /// The palette entries for the current query.
     ///
-    /// By the query's prefix (D4): none or `>` the registry actions the window can list, ranked by label, glossary
-    /// alias and ID with the recency boost, and with an empty query the eight most recent distinct actions first
-    /// (D3), then, without `>`, the objects whose tag holds the query; `@` the objects of `Session::find` (at most 50, an exact match first); `#` the pages by folio or title;
+    /// By the query's prefix: none or `>` the registry actions the window can list, ranked by label, glossary
+    /// alias and ID with the recency boost, and with an empty query the eight most recent distinct actions first,
+    /// then, without `>`, the objects whose tag holds the query; `@` the objects of `Session::find` (at most 50, an exact match first); `#` the pages by folio or title;
     /// `:` the cell `Session::resolve_goto` finds; `?` the rules of the shipped catalogue, then the Help menu's
     /// actions. An action that needs parameters is listed: with a form when its signature allows one, disabled with
     /// its reason otherwise (D5 (a)). Disabled entries follow the enabled ones; each carries its breadcrumb.
@@ -130,7 +130,7 @@ impl ShellModel {
     }
 
     /// The listable actions that pass `keep`, ranked; `recents` puts the recent ones first for an empty query; with
-    /// `panels` and a query, the left rail's panels rank among them by their names (FT-927: "PLC" found nothing, the
+    /// `panels` and a query, the left rail's panels rank among them by their names ("PLC" found nothing, the
     /// panel being reachable only by its icon and View ▸ Navigators).
     fn action_entries(
         &self,
@@ -410,7 +410,7 @@ impl ShellModel {
 
     /// Runs the selected palette entry (Enter), or the open parameter form.
     ///
-    /// An enabled action closes the palette and runs, counted as a use (D3); one with a form opens the form (D5 (a));
+    /// An enabled action closes the palette and runs, counted as a use; one with a form opens the form (D5 (a));
     /// Enter in the form runs the action with its typed parameters and closes the palette, or keeps the form with the
     /// refusal or the error. A page is shown, a cell is gone to, an object is selected and its page shown, a rule
     /// shows Messages filtered to it. A disabled entry refuses with its reason.

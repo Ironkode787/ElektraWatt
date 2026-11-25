@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The first entries of the canvas context menu (FT-1693, doc 16a §6.13): what fits the thing under the pointer, by
+//! The first entries of the canvas context menu (doc 16a §6.13): what fits the thing under the pointer, by
 //! what it is. The right-click selected the thing first, so the entries read the selection; each calls an action
 //! that exists, with the parameters that aim it at the thing, and an entry that cannot run now carries its reason.
 //!
@@ -117,7 +117,7 @@ impl ShellModel {
             return out;
         }
         let [(e, kind)] = kinds.as_slice() else {
-            // Several interruption points: Supply comes in here… for them all (FT-1699).
+            // Several interruption points: Supply comes in here… for them all.
             out.extend(self.supply_in_item());
             out.extend(self.supply_remove_item());
             out.extend(self.supply_potential_item());
@@ -146,11 +146,11 @@ impl ShellModel {
                     if rep.black_box.is_some() {
                         self.box_pin_entries(rep, at, &mut out);
                         out.extend(self.menu_item("box.centre_pins"));
-                        // A card of the older two-row form: Draw the card in one row (FT-1897).
+                        // A card of the older two-row form: Draw the card in one row.
                         if self.older_card().is_ok() {
                             out.extend(self.menu_item("plc.card_redraw"));
                         }
-                        // A card's terminals: the wire to the card on the pin that faces it (FT-2083).
+                        // A card's terminals: the wire to the card on the pin that faces it.
                         if self.card_box(key!("reason-not-card-box")).is_ok() {
                             out.extend(self.menu_item("plc.card_terminals_face"));
                         }
@@ -162,7 +162,7 @@ impl ShellModel {
         out
     }
 
-    /// A fluid line's line kinds (FT-1733: the line-kind picker), each as Line: `<kind>`, checked for its own, through
+    /// A fluid line's line kinds (the line-kind picker), each as Line: `<kind>`, checked for its own, through
     /// the Properties row `connection/line_kind`.
     fn line_kind_entries(&self, current: Option<&str>, out: &mut Vec<ActionItem>) {
         for &word in strings::LINE_KINDS {
@@ -246,7 +246,7 @@ impl ShellModel {
                 json!({ "row": "device/cable.length", "record": record }),
                 strings::text(key!("messages-offer-length")).to_owned(),
             ),
-            // A binding or an address that differs from the part's map (FT-1766): the module's part in the part
+            // A binding or an address that differs from the part's map: the module's part in the part
             // editor, whose PLC section holds the map (the finding's command fix rebinds instead).
             "EW-PLC-012" => {
                 let session = self.project_session()?;
@@ -291,7 +291,7 @@ impl ShellModel {
             None => out.extend(self.menu_item("nav.follow").map(|mut i| {
                 i.label = strings::text(key!("canvas-go-partner-none")).to_owned();
                 i.enabled = false;
-                // An external point (the supply coming in, FT-1699) continues in another drawing set.
+                // An external point (the supply coming in) continues in another drawing set.
                 let reason = if external {
                     key!("reason-ip-external")
                 } else {
@@ -539,7 +539,7 @@ impl ShellModel {
         }
     }
 
-    /// What a device offers, on the page and on a navigator's row alike (FT-1693): on a coil Add contact per free
+    /// What a device offers, on the page and on a navigator's row alike: on a coil Add contact per free
     /// contact; on the page's contact Go to coil; on the page's symbol Join device… where another device can take it;
     /// Choose part…; Edit symbol and Copy and edit of its symbol; on the page's symbol of one connection point Define
     /// potential….
@@ -616,7 +616,7 @@ impl ShellModel {
         }
     }
 
-    /// A navigator row's entries (FT-1693): what the same thing offers on the page, from the same functions; empty for
+    /// A navigator row's entries: what the same thing offers on the page, from the same functions; empty for
     /// a row that offers nothing. The right-click selected the row first (a page row: opened its page), so Choose
     /// part…, Properties of selection and the page's entries act on it.
     ///
@@ -906,9 +906,9 @@ impl ShellModel {
         }
     }
 
-    /// A station row's PLC entries: Place port `<interface>` for each port of its part not drawn yet (FT-831: the Place
+    /// A station row's PLC entries: Place port `<interface>` for each port of its part not drawn yet (the Place
     /// tool armed with the bus port symbol, joined to the station), Rack and slots… (FR-PLC-028), Attach cards without
-    /// a CPU (FT-1672), disabled with its reason while no card waits for one.
+    /// a CPU, disabled with its reason while no card waits for one.
     fn station_entries(&self, station: Uuid, out: &mut Vec<ActionItem>) {
         if let Some(session) = self.project_session() {
             // On a bus-topology page each interface not drawn there yet is a box with its sockets (doc 10 §2.7);
@@ -991,7 +991,7 @@ impl ShellModel {
         out.extend(self.aimed("plc.instrument_list", json!({ "config": cfg.to_string() }), label));
     }
 
-    /// A device's fluid actions, on its row and on its symbol alike (doc 11 §7, FT-1733; `Session::fluid_menu`): on a
+    /// A device's fluid actions, on its row and on its symbol alike (doc 11 §7,; `Session::fluid_menu`): on a
     /// valve terminal Generate overview… (FR-FLU-033); on a valve module Add valve at each blank or empty position (the
     /// part of its other valves, else the libraries' valve; `fluid.valve_add` puts its symbol on the pointer) and Blank
     /// position at each empty one; on a valve Set used or Set spare and Blank position, on a blanking plate Add valve;
@@ -1350,7 +1350,7 @@ impl ShellModel {
         }));
     }
 
-    /// A page row's entries (FT-1693), as the Page tab offers them: Open page in a new tab, Title block fields…, Page
+    /// A page row's entries, as the Page tab offers them: Open page in a new tab, Title block fields…, Page
     /// properties, New page…, Delete page.
     pub(crate) fn page_row_fits(&self, key: &str, out: &mut Vec<ActionItem>) {
         let open = json!({ "kind": NavKind::Pages.word(), "key": key, "new_tab": true });

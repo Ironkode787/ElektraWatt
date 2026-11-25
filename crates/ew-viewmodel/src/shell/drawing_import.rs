@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! File ▸ Import… of a drawing (WP-S3.19, doc 14 §13): a DXF or a DWG becomes a new graphic page or an underlay of the
+//! File ▸ Import… of a drawing (doc 14 §13): a DXF or a DWG becomes a new graphic page or an underlay of the
 //! shown page; a PDF page becomes an underlay. The dialog says what the file is, whether its unit had to be assumed,
 //! that a DWG needs the user's ODA File Converter, and that an underlay stays outside the project unless embedded (a
 //! customer's drawing may be confidential). A DWG asks for the converter's program once and keeps it in the settings
 //! once it converted a drawing.
 //!
-//! **A job** (FT-1753): the file is read, a DXF probed for the dialog and a DWG converted on a job's thread, listed in
+//! **A job**: the file is read, a DXF probed for the dialog and a DWG converted on a job's thread, listed in
 //! the Jobs pane with Cancel (which also stops the converter); its end opens the dialog or makes the page or the
 //! underlay on the window's thread, since the session never leaves it. A script waits for the job.
 
@@ -108,7 +108,7 @@ impl ShellModel {
         self.start_drawing_job(file, name, kind, apply)
     }
 
-    /// Reads (and probes, or converts) the drawing as a job (FT-1753): an entry of the Jobs pane with Cancel, off the
+    /// Reads (and probes, or converts) the drawing as a job: an entry of the Jobs pane with Cancel, off the
     /// window's thread; its end ([`ShellModel::finish_drawing`]) opens the dialog or makes the page or the underlay. A
     /// script waits for it.
     fn start_drawing_job(
@@ -133,7 +133,7 @@ impl ShellModel {
             let (file, name, stop) = (file.clone(), name.clone(), std::sync::Arc::clone(&stop));
             let converter = apply.as_ref().and_then(|a| a.converter.clone()).map(|(c, _)| c);
             let probe = apply.is_none();
-            // A drawing that becomes a page is converted here too, off the window's thread (FT-1763).
+            // A drawing that becomes a page is converted here too, off the window's thread.
             let page = apply
                 .as_ref()
                 .filter(|a| a.target == "page" && kind != DrawingKind::Pdf)
@@ -353,7 +353,7 @@ pub(crate) struct Apply {
     converter: Option<(String, bool)>,
 }
 
-/// A drawing import running as a job (FT-1753): the job, and what its end needs.
+/// A drawing import running as a job: the job, and what its end needs.
 pub(crate) struct DrawingJob {
     job: ew_api::ew_jobs::Job<Result<Drawn, DrawingError>>,
     after: AfterDrawing,

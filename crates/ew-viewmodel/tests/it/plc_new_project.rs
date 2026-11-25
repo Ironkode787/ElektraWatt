@@ -104,7 +104,7 @@ fn the_bus_panel_comes_to_the_front() {
     s.shutdown();
 }
 
-/// FT-1734: the shipped terminal symbol has a `PlcAddress` slot. In a new project the digital output card's pin Q0.0
+/// The shipped terminal symbol has a `PlcAddress` slot. In a new project the digital output card's pin Q0.0
 /// is wired through terminal -X1:1 to a coil; with Project ▸ Channel addresses at terminals on, the terminal prints Q0.0,
 /// and without it nothing.
 #[test]

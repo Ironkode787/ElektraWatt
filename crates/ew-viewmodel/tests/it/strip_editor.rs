@@ -148,7 +148,7 @@ fn order_sort_pos_cells_accessory_rows_and_reasons() {
         json!({"kind": "strips", "row": acc, "column": label}),
     );
     assert!(message.contains("accessory row"), "{message}");
-    // The accessory row's Part cell is editable (D5).
+    // The accessory row's Part cell is editable.
     let part = strip_col(&shell, "Part");
     done(
         &mut shell,
@@ -175,7 +175,7 @@ fn order_sort_pos_cells_accessory_rows_and_reasons() {
     shell.shutdown();
 }
 
-/// SE8 (D8, D13): the Group column and the Properties Group row. "Reserve" on -X1021:7 and :8 gives the two a group
+/// SE8: the Group column and the Properties Group row. "Reserve" on -X1021:7 and :8 gives the two a group
 /// label of their own, the others' labels kept; one `fields.set` of `strip.groups` and one undo step;
 /// the Properties Group row of the two terminals does the same; the Bridge part fill over BR1 is one `fields.set` of
 /// the carrier's part (D6).
@@ -618,7 +618,7 @@ fn the_strip_editor_and_its_accessory_toast_read_in_dutch() {
     shell.shutdown();
 }
 
-/// FT-1555: a strip gesture's refusal reads in the window's language, the part kind in words.
+/// A strip gesture's refusal reads in the window's language, the part kind in words.
 #[test]
 fn a_strip_gestures_refusal_reads_in_dutch() {
     let tmp = Tmp::new("ft1555-strip");

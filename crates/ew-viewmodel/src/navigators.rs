@@ -6,7 +6,7 @@
 //! precomputed tokens and facets, the sort, and the marked rows.
 //!
 //! The Pages navigator keeps its as-built tree (`crate::navigator`) with its keys, actions and
-//! describe lines (D5); it shares this module's filter ([`Query`]), the marks and the selection synchronisation. Every
+//! describe lines; it shares this module's filter ([`Query`]), the marks and the selection synchronisation. Every
 //! other navigator is a [`Navigator`] over the table that `Session::navigator_table` builds, fetched once per
 //! (kind, revision) while the navigator is open.
 //!
@@ -72,7 +72,7 @@ pub const FLAGS: [&str; 2] = ["unplaced", "frozen"];
 
 /// The flags that a query word alone matches in the PLC navigator and the PLC grid besides [`FLAGS`] (FR-PLC-021): a
 /// channel without an address, a spare channel, an open address, a duplicate symbol or overlapping address, and
-/// safety data on the channel or its module (FT-738). In the other navigators these words stay plain text.
+/// safety data on the channel or its module. In the other navigators these words stay plain text.
 pub const PLC_FLAGS: [&str; 5] = ["unassigned", "spare", "tbd", "duplicate", "safety"];
 
 /// The two views of a navigator other than Pages.

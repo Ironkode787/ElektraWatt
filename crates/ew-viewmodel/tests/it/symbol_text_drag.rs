@@ -174,7 +174,7 @@ fn a_tag_drags_alone_without_its_symbol_selected_and_its_menu_puts_it_back() {
 }
 
 /// The tag of a symbol turned a quarter is placed anew round its body, with another alignment than its slot's own, which
-/// a stored position prints with (FT-1929): dropped, it lands where its ghost showed it, and stays there.
+/// a stored position prints with: dropped, it lands where its ghost showed it, and stays there.
 #[test]
 fn a_tag_of_a_turned_symbol_lands_where_its_ghost_showed_it() {
     let tmp = Tmp::new("symbol-text-drag-turned");
@@ -241,7 +241,7 @@ fn a_tag_of_a_turned_symbol_lands_where_its_ghost_showed_it() {
 }
 
 /// A tag turned by the Rotate key while it is dragged prints with the alignment of its new angle, not its slot's stored
-/// one (FT-2099): dropped after one, two or three turns, it lands where its ghost showed it.
+/// one: dropped after one, two or three turns, it lands where its ghost showed it.
 #[test]
 fn a_tag_turned_while_it_is_dragged_lands_where_its_ghost_showed_it() {
     let tmp = Tmp::new("symbol-text-drag-turning");

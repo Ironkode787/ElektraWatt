@@ -7,13 +7,13 @@
 //!   [`ew_api::external::POLL_EVERY`] and when it regains the focus, never during a gesture; `project.check_disk` at
 //!   once). An applied change is a toast "External change applied: …" with Undo and Show changes; a collision opens the
 //!   collision dialog (mine or theirs per field, All mine, All theirs, Decide later) and a banner says saves wait; an
-//!   unreadable change is a banner (D21); a read-only window reloads and keeps its page, zoom and selection where the
+//!   unreadable change is a banner; a read-only window reloads and keeps its page, zoom and selection where the
 //!   records exist.
-//! - **Cloud folders** (D25): a project in a cloud-synced folder shows a banner at open, and its session reads an
+//! - **Cloud folders**: a project in a cloud-synced folder shows a banner at open, and its session reads an
 //!   unreadable change again before saves wait. Online-only placeholders are not detected (de-scoped, doc 05 §15).
-//! - **`.ewz`** (D24): File ▸ Export .ewz… (`file.export_ewz`) writes the saved generation; File ▸ Open .ewz…
+//! - **`.ewz`**: File ▸ Export .ewz… (`file.export_ewz`) writes the saved generation; File ▸ Open .ewz…
 //!   (`file.open_ewz`) asks Extract and open or Open read-only.
-//! - **The upgrade** (D11, D24): the first save of a project in an older format asks once (`file.upgrade`).
+//! - **The upgrade**: the first save of a project in an older format asks once (`file.upgrade`).
 //! - **The merge driver** (doc 05 §11.1, §16): the status bar's "Merge driver not configured" for a project in a git
 //!   worktree without `merge.elektrawatt.driver`; "Set up merge driver" (`git.setup`) asks, then writes the
 //!   configuration and the managed blocks as `ew git setup` does.
@@ -30,7 +30,7 @@ use crate::key;
 use crate::notifications::{Note, NoteAction, Offer, Validity};
 use crate::strings;
 
-/// One colliding field in the collision dialog (D24).
+/// One colliding field in the collision dialog.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CollisionRow {
     /// The record in words: its kind and its label in the property grid's words (`connection 102.1`).
@@ -84,7 +84,7 @@ pub(crate) struct CollabState {
     pub(crate) state_banner: Option<String>,
     /// Whether the user dismissed the cloud folder's banner (until the next open).
     pub(crate) cloud_dismissed: bool,
-    /// The damaged library copy that made the project of this epoch read-only (FT-1383), kept from its open: its banner
+    /// The damaged library copy that made the project of this epoch read-only, kept from its open: its banner
     /// is a state banner and stays while the project is open (W52 F7).
     pub(crate) damaged: Option<(u64, ew_api::DamagedCopy)>,
     /// Whether the collision dialog of the held change was shown: a poll opens it once, never over another dialog and
@@ -122,7 +122,7 @@ fn value_text(v: Option<&Value>) -> String {
 }
 
 impl ShellModel {
-    /// Polls the open project for an external change (D20, D22): the window calls it every
+    /// Polls the open project for an external change: the window calls it every
     /// [`ew_api::external::POLL_EVERY`], when it regains the focus and, while it answers `true`, again after
     /// [`QUIESCENCE`]; never during a gesture. `true` while a change is settling.
     pub fn poll_disk(&mut self) -> bool {
@@ -181,7 +181,7 @@ impl ShellModel {
     }
 
     /// The banner of the state that holds, in the UI language (doc 16a §6.11): saves held by a change on disk
-    /// that collides (D24) or cannot be read (D21), else the cloud-synced folder (D25) until the user dismisses it. It
+    /// that collides or cannot be read, else the cloud-synced folder until the user dismisses it. It
     /// stays while its state holds, whatever action runs; only resolving the state (or Dismiss, for the cloud folder)
     /// takes it away.
     pub(crate) fn refresh_state_banner(&mut self) {
@@ -214,7 +214,7 @@ impl ShellModel {
             .is_some_and(|p| p.session.external_collisions().is_some())
     }
 
-    /// Whether the damaged-copy banner offers Update from library (`library.update_damaged`, FT-1499): the
+    /// Whether the damaged-copy banner offers Update from library (`library.update_damaged`): the
     /// open project is read-only for a damaged library copy and an installed library holds one the open dropped.
     pub fn damaged_update_offered(&self) -> bool {
         self.project
@@ -351,7 +351,7 @@ impl ShellModel {
             .push(Note::new("external", text).offering([undo, show]));
     }
 
-    /// Opens the collision dialog with every colliding field, mine chosen (D24).
+    /// Opens the collision dialog with every colliding field, mine chosen.
     pub(super) fn open_collisions(&mut self) {
         let Some(p) = self.project.as_ref() else {
             return;
@@ -462,7 +462,7 @@ impl ShellModel {
         }
     }
 
-    /// A read-only window after its session reloaded (D23, D24): the page, the zoom and the selection stay where their
+    /// A read-only window after its session reloaded: the page, the zoom and the selection stay where their
     /// records exist; the views follow the new generation.
     fn reloaded(&mut self) {
         // The session's model moved on by one revision: the canvases replace their pages and keep their views.
@@ -488,7 +488,7 @@ impl ShellModel {
     // -------------------------------------------------------------------------------------------------------------
     // Opening: the cloud banner, the upgrade banner, the driver status
 
-    /// What the window learns when a project opened in `dir`: the cloud-synced folder (D25) and the merge driver's status
+    /// What the window learns when a project opened in `dir`: the cloud-synced folder and the merge driver's status
     /// (doc 05 §16); the banner for a project of an older format. Returns the banner's text to add, if any.
     pub(super) fn opened_extras(&mut self, dir: &Path, migrated: Option<&str>) -> Option<String> {
         let cloud = self.cloud_of(dir);
@@ -529,7 +529,7 @@ impl ShellModel {
         }
     }
 
-    /// The cloud-synced folder the project folder `dir` lies in, if any (D25).
+    /// The cloud-synced folder the project folder `dir` lies in, if any.
     pub(super) fn cloud_of(&self, dir: &Path) -> Option<ew_api::cloud::CloudService> {
         ew_api::cloud::detect(&ew_api::OsVfs, &|name| self.env_var(name), dir)
     }
@@ -570,7 +570,7 @@ impl ShellModel {
 
     /// `git.setup {confirm?}` (the status bar's "Set up merge driver"): without `confirm` the dialog that asks; with it
     /// the four keys in the repository's git configuration and the managed blocks in the project folder, as
-    /// `ew git setup` writes them (D28).
+    /// `ew git setup` writes them.
     pub(crate) fn act_git_setup(&mut self, p: &Map<String, Value>) -> Outcome {
         let confirm = or_return!(bool_param(p, "confirm", false));
         let project = or_return!(crate::shell::gated(&self.project));
@@ -617,7 +617,7 @@ impl ShellModel {
     }
 
     // -------------------------------------------------------------------------------------------------------------
-    // The upgrade (D11, D24)
+    // The upgrade
 
     /// The first save of a project of an older format: the dialog that asks once (a save refused for the consent).
     pub(super) fn ask_upgrade(&mut self, from: &str) -> Outcome {
@@ -650,7 +650,7 @@ impl ShellModel {
     }
 
     // -------------------------------------------------------------------------------------------------------------
-    // `.ewz` (D24)
+    // `.ewz`
 
     /// `file.export_ewz {path?, replace?}` (File ▸ Export .ewz…): the project's saved generation as an `.ewz`, written
     /// through a temporary file renamed over the target; a project with unsaved changes exports what is saved and says
@@ -735,7 +735,7 @@ impl ShellModel {
                 self.dialog = None;
                 let target = path.with_extension("ew");
                 let folder = super::dir_name(&target);
-                // A folder of that name refuses the extract before anything is written (D9); the messages name no path.
+                // A folder of that name refuses the extract before anything is written; the messages name no path.
                 let refused = if target.exists() {
                     Some(strings::format(key!("error-extract-exists"), &[&name, &folder]))
                 } else {

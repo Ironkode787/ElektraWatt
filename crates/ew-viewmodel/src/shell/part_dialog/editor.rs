@@ -105,7 +105,7 @@ impl ShellModel {
     }
 
     /// `part.new {symbol?}` (Edit ▸ New part…, and New part… in the part dialog and the device browser): opens the part
-    /// editor on a new part's draft (FT-1766); with `symbol` (the symbol editor's saved symbol, its library address:
+    /// editor on a new part's draft; with `symbol` (the symbol editor's saved symbol, its library address:
     /// Make a part for this symbol…), a part drawn with that symbol. From the part dialog, Save returns to it on the new
     /// part. With `plc` (the rack dialog's New part…): the draft starts as what the dialog was asked for, `cpu`,
     /// `remote`, `valve_terminal` or `compact` a station part with that kind's defaults ([`plc_preset`]), `module` a
@@ -260,7 +260,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `part.field {field, value}`: sets one field of the draft; a message shows under the field (D21).
+    /// `part.field {field, value}`: sets one field of the draft; a message shows under the field.
     pub(crate) fn act_part_field(&mut self, p: &Map<String, Value>) -> Outcome {
         let (field, value) = match (string_param(p, "field"), string_param(p, "value")) {
             (Ok(Some(f)), Ok(Some(v))) => (f.to_owned(), v.to_owned()),
@@ -315,8 +315,8 @@ impl ShellModel {
         }
     }
 
-    /// `part.remove_own {part?, confirm?}` (Remove from my parts library… in the part editor of a part of My parts,
-    /// FT-1766): the part (the `part` text as `part.edit` reads it, else the part editor's) taken out of My parts, so
+    /// `part.remove_own {part?, confirm?}` (Remove from my parts library… in the part editor of a part of My parts):
+    /// the part (the `part` text as `part.edit` reads it, else the part editor's) taken out of My parts, so
     /// the next projects no longer offer it. The project keeps its copy, and the devices that use it keep it, which the
     /// toast names: every project embeds the parts it uses. Undo does not bring it back, so without `confirm` the
     /// window asks first (Cancel returns to the part editor) and a script is refused in words, as the journal's
@@ -390,7 +390,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `part.save {another?}` (Enter): opens the `part` card of `part.edit_copy` (D20); a field that does not parse
+    /// `part.save {another?}` (Enter): opens the `part` card of `part.edit_copy`; a field that does not parse
     /// refuses. A new part is saved at once; with `another` (a new cable type's Save and add another size) the form
     /// stays open on the next size of the series.
     pub(crate) fn act_part_save(&mut self, p: &Map<String, Value>) -> Outcome {

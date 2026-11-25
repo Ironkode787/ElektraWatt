@@ -263,7 +263,7 @@ action-ip-continue-on = Voortzetten op pagina…
 action-ip-supply-in = Voeding komt hier binnen…
 # H9: het paneel Potentiaal van de voedingsmarkeringen: een rij per geplaatste markering, met geleider en spanning.
 action-ip-supply-potential = Potentiaal…
-# rc.5: Supply on the Draw tab: what comes in from the mains, placed as supply marks in one go.
+# Supply on the Draw tab: what comes in from the mains, placed as supply marks in one go.
 action-supply-place = Voeding…
 action-ip-arrange-selected = Onderbrekingspunten schikken
 action-box-grip = Een greep van een black box verplaatsen
@@ -347,7 +347,7 @@ action-view-theme = Thema
 action-view-density = Dichtheid
 action-view-min-font = Minimale tekstgrootte
 action-view-reduce-motion = Animaties beperken
-# FT-1439: the plain mouse wheel scrolls the canvas, Ctrl with the wheel zooms; off, the wheel zooms.
+# The plain mouse wheel scrolls the canvas, Ctrl with the wheel zooms; off, the wheel zooms.
 action-view-wheel-scrolls = Muiswiel schuift het tekenvlak
 action-view-tips = Tips tonen
 action-view-command-tab = Opdrachttab
@@ -409,7 +409,7 @@ action-view-workspace-reset = Indeling herstellen
 action-tools-company-standard = Nieuw sjabloon…
 action-help-documentation = Wat is dit?
 action-help-tutorials = Zelfstudies
-# FT-1458: Help ▸ Tutorials, one entry per tutorial of the guide, by its page's title.
+# Help ▸ Tutorials, one entry per tutorial of the guide, by its page's title.
 submenu-tutorials = Zelfstudies
 action-help-first-run = Eerste instelling…
 action-help-notices = Kennisgevingen van derden
@@ -703,13 +703,13 @@ action-layout-labels = Labels
 action-devices-set-location = Locatie…
 submenu-language = Taal
 action-view-language = Taal
-# WP-S2.08 part 6: het woordenlijstvenster (D16), de eenmalige tips (D17) en de aderkleurweergave (D18).
+# het woordenlijstvenster, de eenmalige tips en de aderkleurweergave.
 action-help-glossary = Woordenlijst
 action-glossary-filter = Zoeken in de woordenlijst
 action-glossary-row = De cursor van de woordenlijst verplaatsen
 action-view-wire-colours = Aderkleuren
 
-# WP-S1.17 parts 6 to 8 (COL49): externe wijziging, cloudmappen, .ewz, de upgrade, de samenvoegdriver.
+# Externe wijziging, cloudmappen, .ewz, de upgrade, de samenvoegdriver.
 command-external-apply = Externe wijziging
 action-file-open-ewz = .ewz openen…
 action-file-import = Importeren…
@@ -725,25 +725,25 @@ action-library-update-damaged = Bijwerken vanuit bibliotheek
 action-git-setup = Samenvoegdriver instellen
 action-file-import-qet-apply = De import toepassen
 
-# WP-S3.09 D10 to D12: the re-import of a QElectroTech file into the open project: the proposal (T6), the refusal (T7),
+# The re-import of a QElectroTech file into the open project: the proposal (T6), the refusal (T7),
 # the re-import card (T8) and its rows.
 action-file-reimport-qet = QElectroTech-project opnieuw importeren…
 action-file-reimport-qet-apply = De nieuwe import toepassen
 
-# WP-S3.09 D9 d: the Messages pane's migration report (T11) beside the project's scheme.
+# The Messages pane's migration report (T11) beside the project's scheme.
 action-messages-migration = Migratierapport
 
-# FT-1371 (ID-1362): Tekenen ▸ Verbinden ▸ Nieuwe kabel… en Aders verbinden….
+# Tekenen ▸ Verbinden ▸ Nieuwe kabel… en Aders verbinden….
 action-cable-new = Nieuwe kabel…
 action-cable-connect-cores = Aders verbinden…
 
-# FT-1685: Tekenen ▸ Verbinden ▸ Kabel…: de geselecteerde draden als aders van een kabel, in één formulier.
+# Tekenen ▸ Verbinden ▸ Kabel…: de geselecteerde draden als aders van een kabel, in één formulier.
 action-cable-from-wires = Kabel…
 
 # F20: Kabel… op een buslijn: de kabel en de stekker aan elk eind.
 action-bus-cable = Buskabel…
 
-# FT-1372 (ID-1362): Uitvoer ▸ Rapporten ▸ Rapportblok….
+# Uitvoer ▸ Rapporten ▸ Rapportblok….
 action-report-block-new = Rapportblok…
 action-symbol-new = Symbooleditor…
 action-symbol-open = Symbool openen…
@@ -779,7 +779,7 @@ command-plc-unlock = PLC-velden ontgrendelen
 command-plc-apply_instrument_list = Instrumentenlijst toepassen
 # Persona round (M3): Rapport en PLC-uitwisseling op het tabblad Uitvoer, en waar lijsten worden gemaakt.
 group-exchange = PLC-uitwisseling
-# rc.2 lane R1 (F17, F18, F19 van de rc.1-test): een PLC-station wordt als rek gemaakt en gevuld.
+# Een PLC-station wordt als rek gemaakt en gevuld.
 command-plc-remove_from_rack = Uit het PLC-rek halen
 command-plc-add_station = PLC-station maken
 action-plc-new-station = Nieuw station…
@@ -790,7 +790,7 @@ action-plc-rack-next = Volgende stap voor het station
 action-plc-rack-rename = Een kenmerk in het station wijzigen
 action-plc-rack-channel = Een kanaal in het station benoemen
 action-plc-add-to-plc = Aan PLC toevoegen
-# De tabbladen PLC en Fluïdum van de opdrachtbalk en de werkruimtekeuze (rc.2).
+# De tabbladen PLC en Fluïdum van de opdrachtbalk en de werkruimtekeuze.
 menu-plc = PLC
 menu-fluid = Fluïdum
 group-station = Station
@@ -823,7 +823,7 @@ submenu-tutorials-what = Lessen die u stap voor stap volgt
 submenu-guides-what = Hoe u één taak uitvoert
 action-help-guide = Handleiding
 
-# Een leesbare layoutpagina: positienummers, de legenda, verplaatsbare labels (de test van 0.3.0-rc.1).
+# Een leesbare layoutpagina: positienummers, de legenda, verplaatsbare labels.
 action-page-add-legend = Legenda toevoegen
 action-layout-reset-label = Labelpositie herstellen
 action-layout-reset-labels = Labelposities herstellen
@@ -882,7 +882,7 @@ action-plc-card-terminals-face = Klemdraden naar kaartzijde
 action-plc-module-left = Module naar links
 action-plc-module-right = Module naar rechts
 
-# rc.3: the spacing of a terminal row.
+# The spacing of a terminal row.
 action-terminals-spacing = Tussenafstand…
 action-templates-open = Sjablonen…
 action-project-save-as-template = Opslaan als sjabloon…

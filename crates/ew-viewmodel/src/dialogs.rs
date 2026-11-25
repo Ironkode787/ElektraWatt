@@ -566,7 +566,7 @@ fn purge_spec(files: &[String]) -> DialogSpec {
     }
 }
 
-/// Taking part `number` (`part` as `part.remove_own` takes it) out of My parts (FT-1766): Cancel the Primary, Remove
+/// Taking part `number` (`part` as `part.remove_own` takes it) out of My parts: Cancel the Primary, Remove
 /// apart; what goes and what stays in one sentence.
 fn remove_part_spec(part: &str, number: &str) -> DialogSpec {
     DialogSpec {
@@ -612,7 +612,7 @@ fn part_choose_spec(c: &crate::shell::part_dialog::PartChooser) -> DialogSpec {
     if c.offers.is_empty() {
         choose.disabled = Some(strings::text(key!("part-choose-nothing")).to_owned());
     } else if c.cursor.is_none() {
-        // FT-1845: no row is chosen for the person; Choose waits for one.
+        // No row is chosen for the person; Choose waits for one.
         choose.disabled = Some(strings::text(key!("reason-part-choose-none")).to_owned());
     }
     DialogSpec {
@@ -625,7 +625,7 @@ fn part_choose_spec(c: &crate::shell::part_dialog::PartChooser) -> DialogSpec {
 /// Edit part: a form with Save and Cancel.
 fn part_edit_spec(e: &crate::shell::part_dialog::PartEditor) -> DialogSpec {
     // A part of one's own says what a correction does to the devices already drawn; a part one cannot change says
-    // why, and Copy as a part of your own is the way out (FT-1766).
+    // why, and Copy as a part of your own is the way out.
     let d = &e.draft;
     let body = if e.cable_type {
         vec![strings::text(key!("part-cable-type-note")).to_owned()]
@@ -665,7 +665,7 @@ fn part_edit_spec(e: &crate::shell::part_dialog::PartEditor) -> DialogSpec {
             ),
         );
     }
-    // A part of My parts is taken out of it there (FT-1766); the project keeps its copy, which the toast says.
+    // A part of My parts is taken out of it there; the project keeps its copy, which the toast says.
     let danger = (d.own && d.fork).then(|| {
         DialogButton::new(
             key!("part-remove-own"),
@@ -832,7 +832,7 @@ fn open_ewz_spec(path: &str, name: &str) -> DialogSpec {
     }
 }
 
-/// Importing the drawing `name` (WP-S3.19): Add as page (a DXF or DWG), Place under page <folio> (embedded or not),
+/// Importing the drawing `name`: Add as page (a DXF or DWG), Place under page <folio> (embedded or not),
 /// Cancel. The body says what the file is, an assumed unit, a DWG's converter, and the confidentiality of an underlay.
 fn import_drawing_spec(
     path: &str,
@@ -889,7 +889,7 @@ fn import_drawing_spec(
     }
 }
 
-/// Importing EPLAN data from `path` (WP-S3.18): the terms notice with Continue; the parts of a file with Update (the
+/// Importing EPLAN data from `path`: the terms notice with Continue; the parts of a file with Update (the
 /// copies that would change) and Add to my parts library; a report with a button for each mapping that fits.
 fn import_eplan_spec(
     path: &str,
@@ -976,7 +976,7 @@ fn import_eplan_spec(
             } else {
                 vec![strings::format(key!("eplan-report-text"), &[name])]
             };
-            // The column mapper, and the other reading of a table: a parts table (FT-1741, FT-1742).
+            // The column mapper, and the other reading of a table: a parts table.
             buttons.push(DialogButton::new(
                 key!("eplan-report-map"),
                 action(json!({ "how": "map" })),

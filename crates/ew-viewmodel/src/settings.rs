@@ -15,7 +15,7 @@
 //! part dialog's `[parts] favourites` (sorted) and `recent` (most recent first, at most [`MAX_RECENT_PARTS`]), each a
 //! list of `<library ID>/<item ID>` texts, written only once set, and the minimum text size
 //! `min_font_pt` and `reduce_motion`, each written only once set, the spacing of a new terminal row in grid steps
-//! `terminal_spacing` (written only once chosen, FT-1791), and the tips' switch `tips`
+//! `terminal_spacing` (written only once chosen), and the tips' switch `tips`
 //! (written only when off) and `tips_seen` (the tips shown once, written only once one was). Unknown keys are kept
 //! and written back; a `toml::Table` holds them sorted, so the file is deterministic. An unreadable file yields
 //! the defaults and is copied to `settings.toml.bad-<n>`.
@@ -181,7 +181,7 @@ pub struct Settings {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub tips_seen: Vec<String>,
     /// The spacing of the next terminal row in grid steps (Terminal…'s Spacing, Spacing… on placed terminals), kept
-    /// between sessions (`terminal_spacing`, FT-1791); `None` until one is chosen. Written only when set.
+    /// between sessions (`terminal_spacing`); `None` until one is chosen. Written only when set.
     #[serde(deserialize_with = "spacing", skip_serializing_if = "Option::is_none")]
     pub terminal_spacing: Option<u32>,
     /// The symbols edited lately in the symbol editor, by their library address (`library:<library>:<item>`), most

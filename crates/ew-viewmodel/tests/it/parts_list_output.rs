@@ -13,7 +13,7 @@ use ew_viewmodel::shell::{Mode, ShellModel};
 use ew_viewmodel::strings;
 use serde_json::json;
 
-/// FT-717: on the sample, Parts list opens the first page of the parts list (the `parts_summary` block at folio 901)
+/// On the sample, Parts list opens the first page of the parts list (the `parts_summary` block at folio 901)
 /// in the focused group.
 #[test]
 fn parts_list_opens_the_first_page_of_the_bom_block() {
@@ -35,7 +35,7 @@ fn parts_list_opens_the_first_page_of_the_bom_block() {
     assert!(row.generated, "the parts list is a generated report page");
 }
 
-/// FT-717: a project without a parts list report block refuses Parts list with its reason in words.
+/// A project without a parts list report block refuses Parts list with its reason in words.
 #[test]
 fn parts_list_without_a_bom_block_is_refused_in_words() {
     let tmp = Tmp::new("h40-noparts");

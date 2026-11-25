@@ -29,7 +29,7 @@ impl ShellModel {
         }
         let key = or_return!(self.props_row_param(p));
         // The Potential row of a potential no definition names: Enter, F2 or a click is Define potential…, as the
-        // wire's menu offers it (FT-1779).
+        // wire's menu offers it.
         if self.row_menu(&key).contains(&RowMenuItem::DefinePotential) {
             return self.act_potential_draw(&Map::new());
         }

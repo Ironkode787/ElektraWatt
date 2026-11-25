@@ -318,7 +318,7 @@ impl ShellModel {
         if let Some(name) = form.fields.first_mut() {
             name.optional = false;
         }
-        // The type is a list, the choices Properties offers for a definition's Type (FT-1698), an empty one first
+        // The type is a list, the choices Properties offers for a definition's Type, an empty one first
         // (no type); the window words each as Properties does.
         if let Some(project) = &self.project
             && let Some(ty) = form.fields.iter_mut().find(|f| f.name == "type")
@@ -377,7 +377,7 @@ impl ShellModel {
         out
     }
 
-    /// The potential reasoned for the one selected wire with the Select tool (FT-1700, `Session::potential_offer`)
+    /// The potential reasoned for the one selected wire with the Select tool (`Session::potential_offer`)
     /// and the wire; `None` for any other selection, a wire whose offer was declined, or nothing to offer. Read once
     /// per revision and wire.
     fn offer_for_selection(&self) -> Option<(Uuid, ew_api::output::PotentialOffer)> {
@@ -403,7 +403,7 @@ impl ShellModel {
         offer.map(|o| (e.0, o))
     }
 
-    /// The reasoned potential the window offers at the selected wire (FT-1700): its title ("Potential 0VDC?") and why,
+    /// The reasoned potential the window offers at the selected wire: its title ("Potential 0VDC?") and why,
     /// in words ("-1K1:A2 returns a coil fed from 24VDC"); `None` when there is none to offer or the project is
     /// read-only.
     pub fn potential_offer(&self) -> Option<(String, String)> {
@@ -434,7 +434,7 @@ impl ShellModel {
         Some((strings::format(title, &[&o.name]), why))
     }
 
-    /// `potential.offer {accept}` (the card's Accept and Decline, FT-1700): Accept defines the offered potential at the
+    /// `potential.offer {accept}` (the card's Accept and Decline): Accept defines the offered potential at the
     /// selected wire as Define potential… does, in one undo step; Decline keeps it from being offered again for that
     /// wire in this session. Without an offer it is refused in words.
     pub(crate) fn act_potential_offer(&mut self, p: &Map<String, Value>) -> Outcome {

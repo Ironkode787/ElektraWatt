@@ -43,7 +43,7 @@ fn results(shell: &ShellModel) -> usize {
     shell.find_state().results().map_or(0, |r| r.hits.len())
 }
 
-/// FR3 (D16): 2 results on 101 and 201, none on 101 alone; the replace previews 2 changes in the card, commits one
+/// FR3: 2 results on 101 and 201, none on 101 alone; the replace previews 2 changes in the card, commits one
 /// `fields.set_many` (one undo step) and undo restores both.
 #[test]
 fn spare_is_two_results_and_one_previewed_replace() {

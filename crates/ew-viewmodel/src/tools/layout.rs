@@ -5,7 +5,7 @@
 //! ([`LayoutPlaceTool`], armed by `tool.place_layout {device}` or a drop from the Unplaced devices navigator) and
 //! Select's drag of a placement share, its ghost (doc 16a §7.3) and its command.
 //!
-//! **One resolver** (D4). The gesture reads the page's panel tables ([`ew_api::output::PanelTables`], D9) and nothing
+//! **One resolver**. The gesture reads the page's panel tables ([`ew_api::output::PanelTables`], D9) and nothing
 //! else. On a rail it builds the moved item from the device's rail extent and runs [`resolve`], the function
 //! `layout.place` and `layout.move` run, over the rail's items with the chosen mode; it commits the same snapped
 //! input (the clip point `t.x = s_left + clip`, R1), so the command re-resolves exactly what the ghost shows: the
@@ -247,7 +247,7 @@ pub struct SheetGeom {
     pub brackets: Vec<Rect>,
 }
 
-/// One drag of a device or a placement on a panel page (D4).
+/// One drag of a device or a placement on a panel page.
 #[derive(Clone, PartialEq, Debug)]
 pub struct LayoutGesture {
     /// What it places.

@@ -372,7 +372,7 @@ fn a_two_fndef_part_places_with_its_missing_fndef_in_one_step() {
         json!({"cmd": "library.embed", "params": {"copies": [fixture]}}),
     );
     let before: Vec<_> = tables(&s).reps.iter().map(|r| r.id).collect();
-    // The black box's template function: the arm commits nothing (FT-656); the box carries the part's missing
+    // The black box's template function: the arm commits nothing; the box carries the part's missing
     // contact FnDef.
     let rev = s.revision();
     done(
@@ -462,7 +462,7 @@ fn a_part_function_with_a_starter_symbol_embeds_symbol_and_fndefs_in_one_step() 
         "place.pick",
         json!({"part": "MICO 4.10 STARTER", "template": 0, "letter": "K"}),
     );
-    assert_eq!(s.revision(), rev, "the arm commits nothing (FT-656)");
+    assert_eq!(s.revision(), rev, "the arm commits nothing");
     assert_eq!(s.tool().name(), "place");
     assert_eq!(s.tool().state(), "floating");
     let ghost = &canvas(&s)["ghost"];

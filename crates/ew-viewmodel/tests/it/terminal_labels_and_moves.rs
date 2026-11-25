@@ -188,10 +188,7 @@ fn a_terminal_stacked_on_another_moves_off_it_by_keyboard_and_by_drag() {
     } else {
         (placed[1].0, placed[0].0)
     };
-    assert_ne!(
-        placed[0].1, placed[1].1,
-        "FT-622: the second terminal does not stack"
-    );
+    assert_ne!(placed[0].1, placed[1].1, "the second terminal does not stack");
     done(
         &mut s,
         "command.run",

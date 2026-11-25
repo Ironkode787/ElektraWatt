@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The window's entries of the fluid commands (WP-S2.13, doc 11): a valve terminal's overview, its valves, slots,
+//! The window's entries of the fluid commands (doc 11): a valve terminal's overview, its valves, slots,
 //! solenoids, plugs and multi-pin terminal drawn, a cell filled, a line's medium set. Each handler builds one declared
 //! command from the selection it is aimed at and commits it as one undo step, saying what it did in words.
 //!

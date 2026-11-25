@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A command's notices (`Outcome.notices`, what it dropped instead of refusing) carry a text key, so a Dutch window
-//! words them in Dutch (FT-1819); they read in English before.
+//! words them in Dutch; they read in English before.
 
 use crate::common::{Tmp, at, done, failed, state, tables};
 use ew_viewmodel::shell::{Mode, ShellModel};

@@ -3,7 +3,7 @@
 
 //! A part whose function is a black box in the starter set (the power supply `ew.fn.psu-ac-dc`) is placed by the
 //! Place tool with a symbol of its own drawn for that function, instead of being refused there as a black box and by
-//! the Black box tool as a symbol (FT-1865).
+//! the Black box tool as a symbol.
 
 use crate::common::{Tmp, done, tables};
 use ew_viewmodel::shell::Mode;

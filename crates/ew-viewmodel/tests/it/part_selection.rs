@@ -170,7 +170,7 @@ fn a_breaker_offers_the_same_function_first() {
         );
     }
     let version = starter_version("EW-GEN-MCB-2");
-    // No row is chosen for the person (FT-1845): the describe text has no detail; the first row's reads so.
+    // No row is chosen for the person: the describe text has no detail; the first row's reads so.
     assert!(lines(&s, "detail ").is_empty());
     assert_eq!(
         [format!(
@@ -204,7 +204,7 @@ fn a_breaker_offers_the_same_function_first() {
     assert!(found.iter().all(|r| r.starts_with("EW-GEN-TRM-")), "{found:?}");
     assert_eq!(found.first().map(String::as_str), Some("EW-GEN-TRM-1"));
     let version = starter_version("EW-GEN-TRM-1");
-    // No row is chosen for the person (FT-1845): the describe text has no detail; the first row's reads so.
+    // No row is chosen for the person: the describe text has no detail; the first row's reads so.
     assert!(lines(&s, "detail ").is_empty());
     assert_eq!(
         [format!(
@@ -739,7 +739,7 @@ fn the_parts_row_menu_opens_the_dialog_and_the_editor() {
     s.shutdown();
 }
 
-/// FT-819: Choose part's detail line printed the functions' keys ("functions ew.fn.mcb-1pn"). It names them in words,
+/// Choose part's detail line printed the functions' keys ("functions ew.fn.mcb-1pn"). It names them in words,
 /// and no UUID either.
 #[test]
 fn choose_part_names_a_parts_functions_in_words() {

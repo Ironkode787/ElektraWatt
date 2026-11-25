@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A card of two channel kinds (FT-1766, doc 10 §2.6): a part made in the part editor with four inputs and four
+//! A card of two channel kinds (doc 10 §2.6): a part made in the part editor with four inputs and four
 //! outputs is one card, its outputs numbered on after its inputs and each kind addressed from bit 0 of its own range;
-//! the first kind again is refused in words at its field. A card of inputs and analogue inputs is one card too
-//! (FT-1970): the analogue words follow the inputs' bits in the one input range, from the next word.
+//! the first kind again is refused in words at its field. A card of inputs and analogue inputs is one card too:
+//! the analogue words follow the inputs' bits in the one input range, from the next word.
 
 use crate::common::{Tmp, done, new_project};
 use ew_viewmodel::navigators::NavKind;
@@ -100,7 +100,7 @@ fn a_card_of_inputs_and_outputs_is_one_part() {
     );
 }
 
-/// FT-1970: four inputs and two analogue inputs are one card; its input range holds the four bits from bit 0 and the
+/// four inputs and two analogue inputs are one card; its input range holds the four bits from bit 0 and the
 /// two words from the next word on (doc 10 §2.6).
 #[test]
 fn a_card_of_inputs_and_analogue_inputs_is_one_part() {

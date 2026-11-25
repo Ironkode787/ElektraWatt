@@ -50,7 +50,7 @@ fn clause(reason: &str) -> String {
 }
 
 /// The user's keymap in `dir` checked against the preset `preset_word`: `Ok(None)` without a file. A file that does
-/// not parse or has an error (D8) is copied to `keymap.toml.bad-<n>` (once: a copy with the same bytes is named
+/// not parse or has an error is copied to `keymap.toml.bad-<n>` (once: a copy with the same bytes is named
 /// again) and refused with a banner; a file that cannot be
 /// read, or a refused one whose copy-aside failed, is refused with a banner and kept: the editor does not write over
 /// it in this run.
@@ -108,7 +108,7 @@ impl ShellModel {
         self.keymap.version
     }
 
-    /// The effective bindings, in registry order (D6).
+    /// The effective bindings, in registry order.
     pub fn bindings(&self) -> Vec<Bound> {
         keymap::effective(self.keymap_preset(), self.keymap.user.as_ref())
     }

@@ -177,7 +177,7 @@ pub enum Submenu {
     BusPorts,
 }
 
-/// The guide's table of contents, the one place its tutorials and how-to guides are listed (FT-1715).
+/// The guide's table of contents, the one place its tutorials and how-to guides are listed.
 const BOOK_SUMMARY: &str = include_str!("../../../docs/book/src/SUMMARY.md");
 
 /// The pages of the guide's directory `dir` (`tutorials`) in its order, read from its table of contents: each its
@@ -762,7 +762,7 @@ mod tests {
         assert!(find("no.such.action").is_none());
     }
 
-    /// FT-1715: a tutorial added to the guide reaches Help ▸ Tutorials under its own name in both languages.
+    /// A tutorial added to the guide reaches Help ▸ Tutorials under its own name in both languages.
     #[test]
     fn every_tutorial_of_the_guide_has_a_label_in_both_languages() {
         let nl: String = strings::sources("nl-NL").collect();
@@ -888,7 +888,7 @@ mod tests {
         ] {
             assert!(file.contains(&id), "{id} in File");
         }
-        // An `.ewz` opens through File ▸ Import…, not an entry of its own (FT-1708).
+        // An `.ewz` opens through File ▸ Import…, not an entry of its own.
         assert!(!file.contains(&"file.open_ewz"), "no Open .ewz… in File");
         // The imports and the templates sit in the Project tab's menu: Templates…, Save as template…, New template….
         let project = ids(Menu::Project);
@@ -899,7 +899,7 @@ mod tests {
         ] {
             assert!(project.contains(&id), "{id} in Project");
         }
-        // One File ▸ Import… takes every file; the separate entries are in no menu (FT-1741).
+        // One File ▸ Import… takes every file; the separate entries are in no menu.
         for id in [
             "file.import_qet",
             "parts.import",

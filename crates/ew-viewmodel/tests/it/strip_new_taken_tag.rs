@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `strip.new` with the tag of a strip the project has already is refused in words, instead of making a second
-//! strip of that tag (FT-1865).
+//! strip of that tag.
 
 use crate::common;
 

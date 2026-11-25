@@ -244,7 +244,7 @@ impl ShellModel {
             c.zoom_about(percent / 100.0, a);
         });
         self.say_way_back(p);
-        // The plain wheel's first zoom offers its other use (FT-1830): where the zoom is first met.
+        // The plain wheel's first zoom offers its other use: where the zoom is first met.
         if out == Outcome::Done && super::flag(p, "wheel") && !self.settings.wheel_scrolls {
             self.offer_tip(super::tips::Tip::WheelZooms, Vec::new());
         }

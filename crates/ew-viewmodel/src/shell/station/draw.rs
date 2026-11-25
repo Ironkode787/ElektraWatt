@@ -35,7 +35,7 @@ fn box_json(device: &str, (pos, outline, cps): crate::tools::black_box::BoxLayou
 }
 
 impl ShellModel {
-    /// The one selected box when it is a PLC card drawn in the older form (FT-1897): channel pins on both its upper and
+    /// The one selected box when it is a PLC card drawn in the older form: channel pins on both its upper and
     /// its lower edge. With it its device, its station, and its part's black-box pins by kind ([`Session::card_pins`]);
     /// else why not.
     ///
@@ -94,11 +94,11 @@ impl ShellModel {
         Ok((rep.clone(), device, station, pins))
     }
 
-    /// `plc.card_redraw` (FT-1897, doc 10 §3.6): the selected card of the older form drawn again in one row in its
+    /// `plc.card_redraw` (doc 10 §3.6): the selected card of the older form drawn again in one row in its
     /// place, in one undo step: one `plc.draw_station` of the card's boxes as Draw on a page lays a card out
     /// (`part_box::card_box`), its inputs in a box where the old box stood and its outputs in a box a gap under that,
     /// replacing the old box; a row wider than the drawing area from the old box's left edge to its right is split
-    /// into boxes of as many pins as fit (`part_box::card_share`, FT-2083), each a gap under the one before, so that
+    /// into boxes of as many pins as fit (`part_box::card_share`), each a gap under the one before, so that
     /// every pin stays on the page with its wire. The device, its channels and every connection stay; a toast says that
     /// Arrange and route draws the wires to the new pins.
     pub(crate) fn act_card_redraw(&mut self) -> Outcome {
@@ -164,7 +164,7 @@ impl ShellModel {
         out
     }
 
-    /// `plc.card_terminals_face` (FT-2083, doc 10 §3.6): the terminals wired to the selected card's channels take the
+    /// `plc.card_terminals_face` (doc 10 §3.6): the terminals wired to the selected card's channels take the
     /// wire to the card on their pin that faces it (`terminal.face_card`), in one undo step; a toast says that Arrange
     /// and route draws the wires.
     pub(crate) fn act_card_terminals_face(&mut self) -> Outcome {
@@ -192,12 +192,12 @@ impl ShellModel {
     /// the upper edge of a box at the foot of the drawing area, its outputs on the lower edge of a box at its head, its
     /// other pins down the left side of the first; of a row wider than the drawing area one box takes as many pins as
     /// fit, at most sixteen, and the rest waits for a page of its own (`part_box::card_share`). A device whose part lays
-    /// out its device box (doc 07 §2.5, FT-1788) is one box as it lays it out, placed as a card. Any other device is a box
+    /// out its device box (doc 07 §2.5) is one box as it lays it out, placed as a card. Any other device is a box
     /// 39.7 × 31.75 mm (wider where its pins need it, so that their upright texts fit on one line), with its part's
     /// connection points laid out as the black box tool lays them (`tools::black_box::layout`); these stand in slot
     /// order beside each other from the next free place, a new row under the first where the next would pass the drawing
-    /// area's right; one that would pass its foot takes the first clear place inside it from the head, after the cards
-    /// (FT-1907). Each card's box then takes the first place that keeps a gap from what the page draws and what is
+    /// area's right; one that would pass its foot takes the first clear place inside it from the head, after the cards.
+    /// Each card's box then takes the first place that keeps a gap from what the page draws and what is
     /// drawn now: a card of inputs as near the foot as there is room, beside the boxes drawn now that are no card where
     /// its line has room, not under them, a card of outputs as near the head, each line from the left; a card that finds
     /// no room is named under `left` and waits for another page. A device whose part has no
@@ -275,7 +275,7 @@ impl ShellModel {
                 .filter(|(i, _)| !drawn.contains(&u64::from(*i)))
                 .cloned()
                 .collect();
-            // A part whose device box is laid out (FT-1788) is drawn as it lays it out, one box.
+            // A part whose device box is laid out is drawn as it lays it out, one box.
             if let Some(layout) = layout {
                 let pins: Vec<u16> = cps.iter().map(|c| c.0).collect();
                 let s = ew_api::part_box::steps(&pins, &[], Some(layout), grid.step().max(1));
@@ -341,7 +341,7 @@ impl ShellModel {
             }
         };
         // A box that is no card and would pass the drawing area's foot under what the page draws already (a station's
-        // CPU drawn on a page of its cards, FT-1907) waits for the first clear place inside the area, below.
+        // CPU drawn on a page of its cards) waits for the first clear place inside the area, below.
         let mut over: Vec<usize> = Vec::new();
         for (i, (device, piece, _)) in pieces.iter().enumerate() {
             if matches!(piece, Piece::Plain(_)) {
@@ -368,7 +368,7 @@ impl ShellModel {
             })
         };
         // A card of inputs stands beside the boxes that are no card (the controller's), one gap off, where its line has
-        // room, not under them: the supply wires from the head then cross none of its channels (FT-1894).
+        // room, not under them: the supply wires from the head then cross none of its channels.
         let heads = rects.clone();
         let find = |s: &BoxSteps, up: bool, drawn: &[[i64; 4]]| -> Option<(i64, i64)> {
             let (lo, hi) = (grid.index(head_line), grid.index(foot));
@@ -888,7 +888,7 @@ impl ShellModel {
     }
 
     /// The toast of a placement `name` that changed the tags `before` ([`ShellModel::redrawn_tags`]): of devices placed
-    /// first on a bus page (FT-1766: a device's tag names the page that draws its main function, so its box on a
+    /// first on a bus page (a device's tag names the page that draws its main function, so its box on a
     /// schematic page takes that page's tag), or of devices a paste brought back from a cut to another page, whose
     /// page their tags follow; `None` where no tag changed.
     pub(in crate::shell) fn retagged_words(&self, name: &str, before: &[(Uuid, String)]) -> Option<String> {

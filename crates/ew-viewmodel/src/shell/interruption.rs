@@ -7,7 +7,7 @@
 //!
 //! **Reads.** The IP symbol and the external arrow are rows of the place catalogue (fetched once per (session,
 //! revision, folio)) and their shapes come through the per-revision shape cache; a starter symbol the project
-//! lacks travels in the command's `copies`, as the picker's placements do (FT-656: one undo step). The external
+//! lacks travels in the command's `copies`, as the picker's placements do (one undo step). The external
 //! references are read from the session's query when the IP tool's
 //! field is set. Pointer and cursor moves of the IP and black box tools read nothing.
 //!
@@ -126,7 +126,7 @@ impl ShellModel {
 
     /// EW's interruption-point forms in the page's grid family: the source form, the target form when
     /// the catalogue holds it, and the library documents a command drawing either carries, each once. On a fluid page
-    /// they are the fluid line's (`ew.iso.ip`, of `ew.fn.ip-fluid`; FT-1757), elsewhere the wire's (`ew.gen.ip`).
+    /// they are the fluid line's (`ew.iso.ip`, of `ew.fn.ip-fluid`), elsewhere the wire's (`ew.gen.ip`).
     pub(super) fn ip_forms(&mut self) -> Result<IpForms, Outcome> {
         let family = if self.wire_kind() == Ok(Some("fluid")) {
             "ew.iso"
@@ -741,7 +741,7 @@ impl ShellModel {
     /// `ip.arrange_selected {by?, chain_order?}` (Edit ▸ Arrange interruption points): the selected interruption points
     /// of the page (at least two) sorted by the natural order of their names (`by: name`, the default) or of their
     /// derived potential names, then their names (`by: potential`; one without a potential last), ties by position (y, x), then ID,
-    /// committed as `ip.arrange {ips, set_sort: chain_order}` (D12).
+    /// committed as `ip.arrange {ips, set_sort: chain_order}`.
     pub(crate) fn act_ip_arrange(&mut self, p: &Map<String, Value>) -> Outcome {
         let by_potential = match string_param(p, "by") {
             Ok(None | Some("name")) => false,

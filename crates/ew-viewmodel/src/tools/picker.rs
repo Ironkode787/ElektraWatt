@@ -4,7 +4,7 @@
 //! The device and symbol browser (the picker): one overlay of the tool host for what can be placed on the focused page
 //! (`Session::place_catalogue`, fetched once per (revision, folio) while it is open). The symbol browser
 //! ([`PickerMode::Place`]) lists the symbols, drawings without a part, but the terminals; the device browser
-//! ([`PickerMode::Parts`]) lists the parts with their functions (FT-1696). Its tree ([`Picker::nodes`]) is
+//! ([`PickerMode::Parts`]) lists the parts with their functions. Its tree ([`Picker::nodes`]) is
 //! All, In this project (also without hits, while the project holds anything the browser lists), then the trades ([`Trade`]: Electrical, PLC and bus, Pneumatics,
 //! Enclosure and mounting) in that order, each opening to its sub-groups, the function categories with words
 //! ([`category_words`]; the first level of a symbol's FnDef category, of a part's own category or its main function's,
@@ -53,8 +53,8 @@ pub fn symbol_name(key: &str) -> &str {
 /// What the picker was opened for.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PickerMode {
-    /// Insert ▸ Symbol: the symbols, drawings without a part, but the terminals (FT-1696: a part is the device
-    /// browser's; FT-1695: Terminal… places a terminal).
+    /// Insert ▸ Symbol: the symbols, drawings without a part, but the terminals (a part is the device
+    /// browser's; Terminal… places a terminal).
     Place,
     /// Insert ▸ Device from part: parts only.
     Parts,
@@ -309,7 +309,7 @@ pub fn category_words(key: &str) -> Option<&'static str> {
 }
 
 /// The function categories the browser's tree names in words (each `function-category-<key>` text), as (key, words)
-/// sorted by the words: the categories a symbol drawn in the symbol editor can be listed under (FT-1691).
+/// sorted by the words: the categories a symbol drawn in the symbol editor can be listed under.
 pub fn function_categories() -> Vec<(&'static str, &'static str)> {
     let mut out: Vec<(&str, &str)> = crate::strings::source_keys("function-category-")
         .into_iter()
@@ -497,7 +497,7 @@ impl Picker {
                 if self.mode != PickerMode::Exchange && s.placed_by == PlacedBy::Program {
                     continue;
                 }
-                // A terminal is placed through Terminal…, its strip, kind and count asked first (FT-1695).
+                // A terminal is placed through Terminal…, its strip, kind and count asked first.
                 if self.mode == PickerMode::Place && s.terminal {
                     continue;
                 }
@@ -513,7 +513,7 @@ impl Picker {
             }
         }
         // The parts are the device browser's (and the black boxes'); the symbol browser lists symbols alone, so that
-        // each thing stands in one browser (FT-1696).
+        // each thing stands in one browser.
         if matches!(self.mode, PickerMode::Parts | PickerMode::BlackBox) {
             // One order, (manufacturer, part number), the catalogue's order within a tie, whether the project holds
             // the part or not: a part placed once keeps its row, so the next click hits the row it aims at. Under a
@@ -624,7 +624,7 @@ impl Picker {
         }
         self.nodes = nodes;
         self.rows = rows;
-        // The current row is the first that can be placed (FT-1761: the browser opened on a greyed bus symbol).
+        // The current row is the first that can be placed (the browser opened on a greyed bus symbol).
         let start = usize::from(blank && self.rows.len() > 1);
         self.row = (start..self.rows.len())
             .find(|&i| self.disabled(self.rows[i]).is_none())

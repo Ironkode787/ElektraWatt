@@ -161,7 +161,7 @@ fn a_held_image_over_the_limit_is_refused_by_its_hash_and_named_after_a_template
                     .to_owned()
         }
     );
-    // `image.pick` names the image by where it shows, never by its hash (FT-1557).
+    // `image.pick` names the image by where it shows, never by its hash.
     done(&mut s, "tool.image", json!({}));
     assert_eq!(
         s.dispatch("image.pick", &json!({ "asset": hash })),

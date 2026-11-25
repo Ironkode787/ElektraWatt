@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1802: Auto-fill rail lets the person choose which devices go on the rail. Its form lists the cabinet's unplaced
+//! Auto-fill rail lets the person choose which devices go on the rail. Its form lists the cabinet's unplaced
 //! devices and the devices without a location, each with a tick set by a first guess from what the model already says
 //! (the cabinet's location, a part that goes on a rail, a field category); field devices start unticked and are
 //! neither given the cabinet's location nor placed. A script names the devices or takes the guess.

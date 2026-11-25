@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1830: a person who expects the mouse wheel to pan met a wheel that zooms, and only the zoom's tooltip said that
+//! A person who expects the mouse wheel to pan met a wheel that zooms, and only the zoom's tooltip said that
 //! View ▸ Mouse wheel scrolls makes it pan. The plain wheel's first zoom offers that choice where it is met, once.
 
 use crate::common;

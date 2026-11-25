@@ -14,7 +14,7 @@ use common::{SAMPLE, Tmp, done};
 use ew_viewmodel::shell::{Mode, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 
-/// The members the comparison leaves out, each with its reason (D10).
+/// The members the comparison leaves out, each with its reason.
 const EXCLUDED: &[(&str, &str)] = &[
     (
         "parties and master data",
@@ -34,11 +34,11 @@ const EXCLUDED: &[(&str, &str)] = &[
     ),
     (
         "the title-block cell mapping",
-        "FT-365: no command maps a form's cells yet",
+        "no command maps a form's cells yet",
     ),
     (
         "settings.text_styles",
-        "a template starts with readable text styles, the sample project keeps QElectroTech's small ones (rc.3)",
+        "a template starts with readable text styles, the sample project keeps QElectroTech's small ones",
     ),
 ];
 

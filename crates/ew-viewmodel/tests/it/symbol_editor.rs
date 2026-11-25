@@ -1398,7 +1398,7 @@ fn a_bad_symbol_file_and_a_failed_export_are_said_in_words() {
 
 /// Place on a new page with its grid makes the page for the symbol alone: when the placement is then refused (a
 /// terminal in a project without a terminal strip), the page is taken back, the page that was on show shows again,
-/// and the refusal is said in words. (The Insert symbol list offers no terminal: Terminal… places those, FT-1695.)
+/// and the refusal is said in words. (The Insert symbol list offers no terminal: Terminal… places those.)
 #[test]
 fn a_refused_placement_on_a_new_page_leaves_no_empty_page() {
     let tmp = Tmp::new("symbol-new-page-refused");
@@ -1697,7 +1697,7 @@ fn the_editor_has_a_button_on_the_draw_tab_and_the_search_groups_it_there() {
         .placement
         .unwrap();
     assert_eq!((place.tab, place.group), (Tab::Draw, Group::Place));
-    // The button is named "Symbol editor" (FT-1640: a button named "Symbols" was not found); its menu entry is
+    // The button is named "Symbol editor" (a button named "Symbols" was not found); its menu entry is
     // "Symbol editor…".
     let bar = place.bar_label.unwrap();
     assert_eq!(ew_viewmodel::strings::text(bar), "Symbol editor");
@@ -1772,7 +1772,7 @@ fn the_titles_name_the_symbol_in_the_windows_language() {
     );
 }
 
-/// Part 3's nit (D6): `symbol.role` sets a connection point's potential role, `none` clears it, each one undo step;
+/// Part 3's nit: `symbol.role` sets a connection point's potential role, `none` clears it, each one undo step;
 /// a missing point and an assigned function definition are refused in words.
 #[test]
 fn symbol_role_sets_and_clears_a_connection_points_potential_role() {

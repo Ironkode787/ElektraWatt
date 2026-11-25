@@ -7,7 +7,7 @@
 //!
 //! **One gesture, one command.** Every gesture compiles through `Session::strip_edit` (the only door below the shell)
 //! into one `terminal.insert`, `terminal.move` or `fields.set`, committed directly with the toast and one undo
-//! step (D12); deleting terminal rows is one `edit.delete` that always opens the host card (it removes their wires and
+//! step; deleting terminal rows is one `edit.delete` that always opens the host card (it removes their wires and
 //! bridges). The shell names no schema type: rows are read from the navigator's table, records through the session's
 //! query by their ID text.
 //!
@@ -242,7 +242,7 @@ impl ShellModel {
 
     /// `strip.insert {count?, designation?}` (Insert): `count` terminals before the cursor terminal row (on an
     /// accessory row or the strip row, before the next terminal; with none after the cursor, at the end), copying the
-    /// reference terminal (D14); one `terminal.insert`, the toast, the cursor on the first new row.
+    /// reference terminal; one `terminal.insert`, the toast, the cursor on the first new row.
     pub(crate) fn act_strip_insert(&mut self, p: &Map<String, Value>) -> Outcome {
         let rows = or_return!(self.strip_rows());
         let count = match p.get("count") {

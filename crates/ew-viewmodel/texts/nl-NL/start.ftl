@@ -302,7 +302,7 @@ help-thing-frame = Kader en titelblok
 help-thing-list = Lijsten op een pagina
 help-thing-panel-layout = Paneellayout
 
-# Nieuw project, sjablonen, de wizard, de personen van een project en secties (rc.3-personaronde)
+# Nieuw project, sjablonen, de wizard, de personen van een project en secties
 templates-name-taken = Er is al een sjabloon dat "{ $p0 }" heet: kies een andere naam.
 wizard-template-default-name = Bedrijfssjabloon
 wizard-made-in = Het sjabloon komt in { $p0 }

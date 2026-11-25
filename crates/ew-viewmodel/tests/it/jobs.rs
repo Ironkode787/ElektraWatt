@@ -447,7 +447,7 @@ fn the_log_popup_and_its_refusals() {
     s.shutdown();
 }
 
-/// A window shell hands Open PDF to the window as the written file's path (FT-1689: never a `file://` URL).
+/// A window shell hands Open PDF to the window as the written file's path (never a `file://` URL).
 #[test]
 fn open_pdf_in_the_window_is_a_request_of_the_written_file() {
     let tmp = Tmp::new("jb6-open");

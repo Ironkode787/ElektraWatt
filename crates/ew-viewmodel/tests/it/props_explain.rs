@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Properties explains itself (FT-1648): every row the grid shows for the sample's records has its explanation in
+//! Properties explains itself: every row the grid shows for the sample's records has its explanation in
 //! both shipped languages.
 
 use std::collections::BTreeSet;
@@ -41,7 +41,7 @@ fn rows_on_show(s: &ShellModel, out: &mut BTreeSet<(String, String, String)>) {
     }
 }
 
-/// FT-1648: the project's sheet, every page's, and the sheet of everything a person can select on the sample's
+/// The project's sheet, every page's, and the sheet of everything a person can select on the sample's
 /// drawn pages (its symbols, wires, junctions, texts and boxes) have an explanation for every row, in en-GB and in
 /// nl-NL.
 #[test]

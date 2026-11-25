@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Imports whose reading runs as a job (FT-1763, doc 16 §8.3): an EDZ or a parts XML read for File ▸ Import…, a PLC
+//! Imports whose reading runs as a job (doc 16 §8.3): an EDZ or a parts XML read for File ▸ Import…, a PLC
 //! exchange file read and merged for its preview, a report spreadsheet made into a project. What needs no session (the
 //! file read, parsed and, where the session's part of it was taken first, merged) runs on the job's thread and hands
 //! back the rest of the import ([`Finish`]), which runs on the window's thread when the job ends: the dialog, the card

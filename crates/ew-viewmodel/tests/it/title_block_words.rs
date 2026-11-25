@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Project properties and the title block speak one vocabulary (FT-1803): a row of the project that a cell of the
+//! Project properties and the title block speak one vocabulary: a row of the project that a cell of the
 //! sample's title block prints is named as that cell, in en-GB and in nl-NL.
 
 use crate::common::{Tmp, done};

@@ -9,8 +9,8 @@
 //! revision makes exactly one `Session::property_sheet` call; row moves, category toggles, typing, choices and popups
 //! make none. With the pane closed there is no sheet and no call.
 //!
-//! **The commit path** (D6, D7): an edit compiles into exactly one command (`fields.set` or `project.settings.set`),
-//! refused unless its exposure is `Edit` (D4). It is previewed once (`Session::preview_with`); the edit policy decides
+//! **The commit path**: an edit compiles into exactly one command (`fields.set` or `project.settings.set`),
+//! refused unless its exposure is `Edit`. It is previewed once (`Session::preview_with`); the edit policy decides
 //! on the preview: a direct edit commits the kept preview (the window: `Session::commit`; headless: a one-line command
 //! log through `Session::run_script`, as `command.run`), any other shows the card. A stale card is never re-previewed
 //! with its old parameters: Apply checks the edited member against the base value and refuses
@@ -489,7 +489,7 @@ impl ShellModel {
         if sheet.sections.iter().any(|s| s.kind == "project") {
             self.lists_frame_in_row(&mut sheet, &form_choices(&p.session));
         }
-        // FT-1554: the Part function row's kind in the window's language, as the navigators word it.
+        // The Part function row's kind in the window's language, as the navigators word it.
         for row in sheet
             .sections
             .iter_mut()
@@ -792,7 +792,7 @@ impl ShellModel {
     }
 
     /// `edit.select_all` (Ctrl+A on the canvas, doc 16 §4.6): every object the page shown draws, as a rubber band
-    /// around the whole page would take them (FT-1586).
+    /// around the whole page would take them.
     pub(crate) fn act_select_all(&mut self) -> Outcome {
         let Some(c) = self.canvas() else {
             return Outcome::refused(key!("reason-no-page"));
@@ -882,8 +882,7 @@ impl ShellModel {
     /// `props.category`: `category` (its word) of the section of record kind `kind` (else of the focused row's
     /// section; else the focused row's category) and `expanded` (else it toggles). Collapse states persist per (kind,
     /// category) in the settings file. A click on a category's header names its section: a selected symbol shows a
-    /// device's, a function's and a representation's section, and the header clicked is not the focused row's
-    /// (FT-1650).
+    /// device's, a function's and a representation's section, and the header clicked is not the focused row's.
     pub(crate) fn act_props_category(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(sheet) = self.props.sheet.clone() else {
             return Outcome::refused(key!("reason-no-sheet"));

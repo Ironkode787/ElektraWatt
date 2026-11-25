@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `report_block.new` takes a report's kind by the name its refusal lists, as well as by its key (FT-1868): the
+//! `report_block.new` takes a report's kind by the name its refusal lists, as well as by its key: the
 //! refusal named the kinds in words and the action took only keys.
 
 use crate::common::{Tmp, done, failed};

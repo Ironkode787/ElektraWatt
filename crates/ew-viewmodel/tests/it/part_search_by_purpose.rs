@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1845: the part dialog finds a part by what it is for as well as by its words, and chooses no row for the person.
+//! The part dialog finds a part by what it is for as well as by its words, and chooses no row for the person.
 //! On a copy of the sample with the compiled-in starter catalogue: its position switch is filed under the category
 //! `SensingPosition` ("Position sensors") and its pressure switch under `FluidSensor`, neither description says
 //! "sensor"; its contactor's description names an auxiliary normally open contact while its main function is the

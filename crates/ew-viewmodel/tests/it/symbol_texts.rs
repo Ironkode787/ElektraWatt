@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Texts of a symbol put on the page from the canvas menu (FT-1875; doc 06 §3.8), on the sample's page 102: Function
+//! Texts of a symbol put on the page from the canvas menu (doc 06 §3.8), on the sample's page 102: Function
 //! text over its path over one symbol of a device with a function text, refused in words without one, and Name the
 //! terminal strip here over one terminal.
 

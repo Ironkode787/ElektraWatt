@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `bus.cable` takes its cable part and its plugs by part number, as every other part parameter takes a part
-//! (FT-1902).
+//! `bus.cable` takes its cable part and its plugs by part number, as every other part parameter takes a part.
 
 use crate::common;
 

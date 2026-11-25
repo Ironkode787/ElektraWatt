@@ -20,12 +20,12 @@ use serde_json::json;
 /// The actions that a key or the canvas runs and that have no place in the app menu (CB1's exceptions): the grid
 /// cursor's click, the tool's step back, the model-command runner and the table editor's keys.
 const KEY_ONLY: &[&str] = &[
-    // A DXF, DWG or PDF drawing imports through File ▸ Import… (WP-S3.19); the palette keeps its own entry.
+    // A DXF, DWG or PDF drawing imports through File ▸ Import…; the palette keeps its own entry.
     "file.import_drawing",
     "file.import_eplan",
-    // An `.ewz` opens through File ▸ Import… (FT-1708); the palette keeps its own entry.
+    // An `.ewz` opens through File ▸ Import…; the palette keeps its own entry.
     "file.open_ewz",
-    // A QElectroTech project and a parts table import through File ▸ Import… too (FT-1741).
+    // A QElectroTech project and a parts table import through File ▸ Import… too.
     "file.import_qet",
     "parts.import",
     "canvas.activate",
@@ -229,7 +229,7 @@ fn the_draw_tab_mirror_opens_its_two_directions() {
 }
 
 /// `view.command_tab` switches the bar's tab and `view.command_bar` collapses it, toggles without a parameter and
-/// refuses a bad one; the describe text follows (D15) and is the same twice (CB6).
+/// refuses a bad one; the describe text follows and is the same twice (CB6).
 #[test]
 fn the_command_tab_and_the_collapse_reach_the_describe_text() {
     let tmp = Tmp::new("cb6");
@@ -401,7 +401,7 @@ fn the_hud_prompts_the_selection_and_the_pick_stack() {
         "1 selected \u{b7} Del deletes \u{b7} R rotates \u{b7} clamp a is the internal side (the cabinet's wiring), \
          clamp b the field side"
     );
-    // At an overlap of two wires and a symbol (FT-500's point on folio 101 at actual size).
+    // At an overlap of two wires and a symbol (the overlap point on folio 101 at actual size).
     done(&mut s, "view.zoom_actual", json!({}));
     let over = common::provisional_overlap_on_101(&mut s);
     done(&mut s, "canvas.pointer", at(over, json!({})));
@@ -455,7 +455,7 @@ fn arming_place_names_the_tool_the_target_and_its_keys() {
 }
 
 /// The Draw tab's Renumber reads "Renumber devices", and Route leads the Connect group, where Reroute stood beside
-/// Wire before Wire joined Select at the tabs' head (docs/design/06a-drafting.md §7.1, FT-1806).
+/// Wire before Wire joined Select at the tabs' head (docs/design/06a-drafting.md §7.1).
 #[test]
 fn the_draw_tab_names_renumber_devices_and_offers_route_beside_wire() {
     let ids: Vec<&str> = command_bar::placed_in(Group::Connect)

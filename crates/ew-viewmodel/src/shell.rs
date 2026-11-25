@@ -37,7 +37,7 @@ mod forms;
 // The station view (the rack), its edits and drawing a station on pages.
 pub mod station;
 
-// The window's entries of the fluid commands (WP-S2.13).
+// The window's entries of the fluid commands.
 mod fluid;
 
 // The PLC exchange's import and export, the instrument list and the addressing preview.
@@ -46,9 +46,9 @@ pub mod plc_exchange;
 // The closed sets of a form field's choices.
 pub mod choices;
 mod clipboard;
-// The canvas context menu's entries that fit the thing under the pointer (FT-1693).
+// The canvas context menu's entries that fit the thing under the pointer.
 mod context_menu;
-// Supply comes in here… on interruption points (FT-1699).
+// Supply comes in here… on interruption points.
 mod supply_in;
 // The supply marks' Potential panel (H9).
 mod supply_potential;
@@ -57,13 +57,13 @@ mod supply_place;
 pub mod symbol_editor;
 // The text and graphic tools' host duties.
 mod drawing;
-// File ▸ Import… of a DXF, a DWG or a PDF (WP-S3.19).
+// File ▸ Import… of a DXF, a DWG or a PDF.
 mod drawing_import;
 pub use drawing_import::DrawingKind;
-// File ▸ Import… of EPLAN data: an EDZ, a parts XML, a report spreadsheet (WP-S3.18).
+// File ▸ Import… of EPLAN data: an EDZ, a parts XML, a report spreadsheet.
 mod eplan_import;
 pub use eplan_import::{EplanKind, EplanStep};
-// The imports whose reading runs as a job (FT-1763).
+// The imports whose reading runs as a job.
 mod read_jobs;
 // External change, cloud folders, .ewz, the upgrade, the merge driver
 mod external;
@@ -100,7 +100,7 @@ pub(crate) use navigators::undrawn_port;
 // The PLC and Fluid tabs' own entries: workspaces, guides, panels, pages and pickers of a discipline.
 mod command_tabs;
 mod onboarding;
-// Swap cores, and Delete and F2 in navigator trees (FT-490).
+// Swap cores, and Delete and F2 in navigator trees.
 mod row_ops;
 // The strip editor's row gestures.
 mod strip_editor;
@@ -139,7 +139,7 @@ pub mod print;
 // The user's keymap and the keymap editor.
 mod keymaps;
 mod revision;
-// The one-time tips (D17), the glossary pane (D16) and the wire-colour view (D18).
+// The one-time tips, the glossary pane and the wire-colour view.
 mod glossary;
 /// The start-up offer after a crash.
 pub mod startup;
@@ -343,7 +343,7 @@ pub struct Pending {
     /// Its parameters.
     pub params: Value,
     /// The toast of Cancel, where Cancel drops something done meanwhile (a report import read while the project
-    /// changed, FT-1763); `None`: Cancel says nothing.
+    /// changed); `None`: Cancel says nothing.
     pub cancelled: Option<Key<'static>>,
 }
 
@@ -420,7 +420,7 @@ pub enum Dialog {
         /// The assets they hold (the parameter of the purge).
         assets: Vec<String>,
     },
-    /// Remove from my parts library… (FT-1766): the part taken out of My parts, which undo does not bring back;
+    /// Remove from my parts library…: the part taken out of My parts, which undo does not bring back;
     /// Remove (`part.remove_own` with `confirm`) or Cancel (Escape), which returns to the part editor it was asked
     /// from.
     ConfirmRemovePart {
@@ -439,12 +439,12 @@ pub enum Dialog {
         /// The earlier set's files that go.
         files: usize,
     },
-    /// Choose part… (D19): the part selection dialog, a 640-px form with the search, the filters, the result list
+    /// Choose part…: the part selection dialog, a 640-px form with the search, the filters, the result list
     /// and Choose.
     PartChoose(Box<part_dialog::PartChooser>),
-    /// Edit part… (D20, D21): the part editor, a 640-px form with the editable members, the read-only ones and Save.
+    /// Edit part…: the part editor, a 640-px form with the editable members, the read-only ones and Save.
     PartEdit(Box<part_dialog::PartEditor>),
-    /// Output ▸ Print… (D10): the print pre-dialog, its options beside the preview of the print
+    /// Output ▸ Print…: the print pre-dialog, its options beside the preview of the print
     /// set, which builds as a job; Print… and Open in PDF viewer hand the built set to the window's platform.
     Print(Box<print::PrintDialog>),
     /// The project changed on disk and the change collides with unsaved edits: each colliding field with its record
@@ -454,7 +454,7 @@ pub enum Dialog {
         /// The colliding fields.
         rows: Vec<external::CollisionRow>,
     },
-    /// The first save of a project of an older format converts it (D11): Upgrade and save writes the backup first, or
+    /// The first save of a project of an older format converts it: Upgrade and save writes the backup first, or
     /// Cancel.
     ConfirmUpgrade {
         /// The older format.
@@ -500,7 +500,7 @@ pub enum Dialog {
         /// Whether the re-import writes nothing (W52 F8): Apply is disabled.
         nothing: bool,
     },
-    /// File ▸ Import… of a drawing (WP-S3.19): a new page, an underlay of the shown page, embedded or not, or Cancel.
+    /// File ▸ Import… of a drawing: a new page, an underlay of the shown page, embedded or not, or Cancel.
     ImportDrawing {
         /// The file (never printed).
         path: String,
@@ -515,7 +515,7 @@ pub enum Dialog {
         /// A DWG and no converter chosen yet: the dialog says what it needs.
         converter: bool,
     },
-    /// File ▸ Import… of EPLAN data (WP-S3.18): the Data Portal terms notice, the parts an EDZ or a parts XML holds, or
+    /// File ▸ Import… of EPLAN data: the Data Portal terms notice, the parts an EDZ or a parts XML holds, or
     /// the mappings that fit a report spreadsheet.
     ImportEplan {
         /// The file (never printed).
@@ -549,8 +549,8 @@ pub enum Dialog {
         /// Its file name.
         name: String,
     },
-    /// Set up merge driver: the repository's git configuration and the project's managed blocks, after the consent
-    /// (D28); Set up or Cancel.
+    /// Set up merge driver: the repository's git configuration and the project's managed blocks, after the consent;
+    /// Set up or Cancel.
     ConfirmGitSetup {
         /// The project folder's name, which the question names.
         folder: String,
@@ -697,7 +697,7 @@ struct Project {
     /// The rows of the derived page order (`Session::page_rows`), once per revision.
     rows: Vec<PageRow>,
     /// The sections by number with their titles, once per revision: the Pages tree lists a section that holds no
-    /// page yet (FT-1634).
+    /// page yet.
     sections: Vec<(u16, String)>,
 }
 
@@ -765,7 +765,7 @@ pub struct ShellModel {
     navs: std::collections::BTreeMap<crate::navigators::NavKind, crate::navigators::Navigator>,
     /// The Pages navigator in table mode, a generic navigator over `navigator_table(Pages)`.
     pages_table: Option<crate::navigators::Navigator>,
-    /// FT-490: the tree row whose label is being renamed.
+    /// The tree row whose label is being renamed.
     rename: Option<NavRename>,
     /// The column mapping step of the parts import.
     parts_map: Option<PartsMap>,
@@ -846,7 +846,7 @@ pub struct ShellModel {
     potential_at: Option<ew_api::output::TableEnd>,
     /// The supply marks' Potential panel while it is open (H9).
     supply_panel: Option<supply_potential::SupplyPanel>,
-    /// The reasoned potential of the one selected wire (FT-1700), kept for the revision and the wire it was read for.
+    /// The reasoned potential of the one selected wire, kept for the revision and the wire it was read for.
     #[allow(clippy::type_complexity)]
     offer_cache: std::cell::RefCell<
         Option<(
@@ -855,7 +855,7 @@ pub struct ShellModel {
         )>,
     >,
     /// The stations' views (their slot checks included), kept for the revision they were made for by station, so the
-    /// tabs' titles and the view on show read each once a revision (FT-1763).
+    /// tabs' titles and the view on show read each once a revision.
     #[allow(clippy::type_complexity)]
     rack_cache: std::cell::RefCell<(
         u64,
@@ -936,10 +936,10 @@ fn string_param<'a>(p: &'a Map<String, Value>, name: &str) -> Result<Option<&'a 
     }
 }
 
-/// The banner of a project open read-only because of a damaged library copy (FT-1383): the device that uses
+/// The banner of a project open read-only because of a damaged library copy: the device that uses
 /// it, the copy's part and its library when an installed library holds it; a copy no device names by its own words and
 /// the record that names it, and one that no record names with the Save As that leaves it out. When
-/// no installed library holds a damaged copy, it says so instead of naming the update (FT-1499).
+/// no installed library holds a damaged copy, it says so instead of naming the update.
 fn damaged_banner(damaged: &ew_api::DamagedCopy) -> String {
     if !damaged.in_library {
         return damaged_banner_no_library(damaged);
@@ -975,7 +975,7 @@ fn damaged_banner(damaged: &ew_api::DamagedCopy) -> String {
     }
 }
 
-/// [`damaged_banner`] when no installed library holds a damaged copy (FT-1499): the banner says so and offers
+/// [`damaged_banner`] when no installed library holds a damaged copy: the banner says so and offers
 /// no update. A copy no library holds has no part number to name.
 fn damaged_banner_no_library(damaged: &ew_api::DamagedCopy) -> String {
     match damaged {
@@ -2567,7 +2567,7 @@ impl ShellModel {
             Err(CmdLogError::Failed { error, .. } | CmdLogError::Refused { error, .. }) => {
                 tools::command_failed(&error, &params)
             }
-            // An unresolved reference by its reason in the window's language (FT-1553).
+            // An unresolved reference by its reason in the window's language.
             Err(CmdLogError::Reference {
                 message,
                 text: Some(why),

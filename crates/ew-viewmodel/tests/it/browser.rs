@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1636: the device and symbol browser's model: its tree of categories from the place catalogue's data, and a
+//! The device and symbol browser's model: its tree of categories from the place catalogue's data, and a
 //! part as one row that opens to its functions.
 
 use crate::common::{Tmp, done};
@@ -152,7 +152,7 @@ fn a_part_is_one_row_that_opens_to_its_functions_and_places_its_main_function() 
     s.shutdown();
 }
 
-/// FT-1530: in a Dutch window a starter symbol is named in Dutch.
+/// In a Dutch window a starter symbol is named in Dutch.
 #[test]
 fn a_starter_symbol_is_named_in_the_windows_language() {
     let tmp = Tmp::new("browser-dutch");
@@ -171,7 +171,7 @@ fn a_starter_symbol_is_named_in_the_windows_language() {
     assert!(ew_viewmodel::strings::set_locale("en"));
 }
 
-/// FT-1667: the starter contactor is under Contactors with the letter Q (IEC 81346-2), not under Relays with K.
+/// The starter contactor is under Contactors with the letter Q (IEC 81346-2), not under Relays with K.
 #[test]
 fn the_starter_contactor_is_under_contactors_with_the_letter_q() {
     let tmp = Tmp::new("browser-contactor");

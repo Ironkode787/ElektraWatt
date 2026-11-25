@@ -252,7 +252,7 @@ fn save_as_writes_a_new_project_directory() {
     assert!(target.join("manifest.json").is_file());
     shell.shutdown();
     // A second Save As into the same, now occupied directory fails without a path in the message. Save As closed the
-    // original cleanly, so it opens editable without the recovery dialog (FT-499).
+    // original cleanly, so it opens editable without the recovery dialog.
     let mut again = tmp.empty_shell(Mode::Headless);
     open(&mut again, &dir);
     assert_eq!(again.dialog(), None);

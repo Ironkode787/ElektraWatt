@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A page's grid changed in the window leaves every wire a way (docs/design/06-schematic-editor.md §8 item 3,
-//! FT-2010): the window hands `page.set_grid` the page's drawing area, so a card whose pins face its edge keeps a wire's
+//! A page's grid changed in the window leaves every wire a way (docs/design/06-schematic-editor.md §8 item 3):
+//! the window hands `page.set_grid` the page's drawing area, so a card whose pins face its edge keeps a wire's
 //! way out for each of them, and two pins wired straight that stood in line keep a column for the wire between them.
 
 use crate::common;

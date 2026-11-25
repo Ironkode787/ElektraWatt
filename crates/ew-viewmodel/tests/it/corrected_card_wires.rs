@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A wire at a pin of a corrected card stays at that pin (FT-1766, doc 10 §2.6): a card of one's own with four inputs
+//! A wire at a pin of a corrected card stays at that pin (doc 10 §2.6): a card of one's own with four inputs
 //! and its supply pins L+ and M, its L+ wired, corrected to six inputs, so the pattern numbers its pins again (L+ was
 //! the fifth pin and is the seventh); the wire still ends at L+, not at the input that took L+'s old number.
 

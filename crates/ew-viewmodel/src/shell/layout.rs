@@ -938,7 +938,7 @@ impl ShellModel {
     /// The after-commit duty of a `layout.*` commit (at the end of its dispatch, the page read again): the live region
     /// says where the selected placement now is ("-102F1, rail 1 at 163 mm, no findings").
     pub(super) fn after_layout_commit(&mut self) {
-        // FT-900: the placement a layout drop made is the selection, replacing it.
+        // The placement a layout drop made is the selection, replacing it.
         if let Some(device) = self.tools.placed_device.take()
             && let Some(id) = self
                 .panel_tables()
@@ -1384,7 +1384,7 @@ impl ShellModel {
             if shown {
                 self.add_view_legend();
             }
-            // One toast for the step (FT-1719); it replaces the toast of an earlier step. Its Undo takes back the
+            // One toast for the step; it replaces the toast of an earlier step. Its Undo takes back the
             // enclosure, so it is offered only when the plate shown on the page is not the newer step.
             let folio = self.current_folio().unwrap_or_default().to_owned();
             let text = match (shown, paged) {
@@ -1479,7 +1479,7 @@ impl ShellModel {
     }
 
     /// After Enclosure… on a panel layout page that shows no enclosure yet, the page shows the new enclosure's
-    /// mounting plate, centred at its fitting scale, as the page's Surface row would (one more undo step, FT-1687): the
+    /// mounting plate, centred at its fitting scale, as the page's Surface row would (one more undo step): the
     /// person lands where the rails, ducts and devices are drawn. Another page, or one that shows a plate already,
     /// is left as it is. Whether the page now shows the plate.
     fn show_new_surface(&mut self, page: Option<Uuid>, before: &[(Uuid, String)]) -> bool {
@@ -1769,7 +1769,7 @@ impl ShellModel {
         }
     }
 
-    /// `layout.auto_fill_rail {rail?, order, devices?}` (Draw ▸ Layout ▸ Auto-fill rail…, D6, FT-1802):
+    /// `layout.auto_fill_rail {rail?, order, devices?}` (Draw ▸ Layout ▸ Auto-fill rail…, D6):
     /// `layout.auto_fill` of the rail (its label or ID; by default the selected rail, else the page's first) in
     /// `order` (`schematic` or `dt`) with the devices chosen of those it offers ([`Self::fill_offer`]: the cabinet's
     /// unplaced devices, then those without a location). `devices` are device IDs or tags, or the rows of the

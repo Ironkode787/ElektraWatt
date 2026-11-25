@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A part without a symbol of its own, placed with the Place tool, is drawn as a box and the hint says so (FT-1808);
+//! A part without a symbol of its own, placed with the Place tool, is drawn as a box and the hint says so;
 //! the Black box tool, where a person chose the box, keeps its two-corner hint.
 
 use crate::common::{Tmp, done};

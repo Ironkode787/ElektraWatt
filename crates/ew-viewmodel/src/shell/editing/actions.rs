@@ -298,7 +298,7 @@ impl ShellModel {
             Ok(v) => v.map(str::to_owned),
             Err(e) => return e,
         };
-        // A library symbol's address names it before and after its first placement (FT-1860), and so does its key: an
+        // A library symbol's address names it before and after its first placement, and so does its key: an
         // installed library's symbol not yet embedded is listed by its address.
         let find = |s: &str| {
             let held = ew_api::output::address_copy(s);
@@ -735,7 +735,6 @@ impl ShellModel {
         self.end_tool_without_records();
         self.after_layout_commit();
         self.after_paste();
-        // FT-900
         self.after_place();
         self.refresh_place_shape();
         self.refresh_strip_tag();

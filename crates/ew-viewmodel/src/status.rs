@@ -80,7 +80,7 @@ pub fn selection_text(model: &ShellModel) -> String {
     }
 }
 
-/// One record's live description (D13): `<tag>, <kind>, folio <folio>` with `, <n> connection points, <m> wires` for
+/// One record's live description: `<tag>, <kind>, folio <folio>` with `, <n> connection points, <m> wires` for
 /// a device with connection points; `<number>, <potential>, <from> to <to>` for a wire; a page item's kind and text.
 fn words_text(words: &SelectionWords) -> String {
     match words {
@@ -91,7 +91,7 @@ fn words_text(words: &SelectionWords) -> String {
             cps,
             wires,
         } => {
-            // The function's kind in the window's language (FT-1554).
+            // The function's kind in the window's language.
             let worded = kind.as_deref().and_then(strings::kind_words);
             let kind = worded
                 .as_deref()

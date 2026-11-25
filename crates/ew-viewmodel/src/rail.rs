@@ -106,7 +106,7 @@ pub const LEFT: [(&str, &str, PaneKind); 15] = [
     ("ips", "ew-interruption-point", PaneKind::Navigator(NavKind::Ips)),
     ("parts", "packages", PaneKind::Navigator(NavKind::Parts)),
     ("blocks", "report", PaneKind::Navigator(NavKind::Blocks)),
-    // The automation workspaces' navigators (WP-S2.13), after Report blocks so that the Ctrl+<n> keys of the entries
+    // The automation workspaces' navigators, after Report blocks so that the Ctrl+<n> keys of the entries
     // before them stay.
     ("bus", "topology-bus", PaneKind::Navigator(NavKind::Bus)),
     ("fluid", "droplet", PaneKind::Navigator(NavKind::Fluid)),

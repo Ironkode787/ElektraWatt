@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1761: a report page's Properties showed a "generated" chip on each of its rows. Where every value row shares
+//! A report page's Properties showed a "generated" chip on each of its rows. Where every value row shares
 //! one source that is not authored, the header says it once and the rows show none; a drawn page's rows keep theirs.
 
 use crate::common;

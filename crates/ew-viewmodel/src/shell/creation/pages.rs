@@ -82,7 +82,7 @@ impl ShellModel {
             params["label"] = Value::String(label);
         }
         // A page the project's frame defaults leave without a frame (an imported QElectroTech project) takes the
-        // frame and title block of the page it is made from (FT-1716).
+        // frame and title block of the page it is made from.
         let kind = if ty.is_empty() { "multi_line" } else { ty.as_str() };
         if let Some(form) = self
             .focused_page_id()

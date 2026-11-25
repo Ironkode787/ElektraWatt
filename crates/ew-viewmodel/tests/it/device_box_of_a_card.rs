@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The device box of a PLC card (FT-1788, doc 07 §2.5): its pins come from its channels, so their names and what they
+//! The device box of a PLC card (doc 07 §2.5): its pins come from its channels, so their names and what they
 //! carry are the part's; where each pin stands on the box, and the box's size, are the box's, edited there as on any
 //! box and drawn that way when the card is placed.
 

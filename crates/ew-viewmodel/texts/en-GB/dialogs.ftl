@@ -51,7 +51,7 @@ new-section-title = New section
 dialog-create = Create
 dialog-export = Export
 
-# FT-1090 (ID-1181): the picker's New terminal strip form.
+# The picker's New terminal strip form.
 new-strip-title = New terminal strip
 dialog-renumber = Renumber
 dialog-page-copy = Copy
@@ -127,7 +127,7 @@ save-template-text = The template keeps this project's settings, frames and titl
 save-template-default-name = { $p0 } template
 save-template-failed = The template could not be written: { $p0 }
 new-project-other-change = Choose another…
-# rc.3: New cable type… (a cable part's small form) and the cable section of a cable part.
+# New cable type… (a cable part's small form) and the cable section of a cable part.
 dialog-cable-type-new-title = New cable type
 prompt-open-font-title = Choose a font file for the Standard typeface
 new-project-folder-new = This folder is not there yet: Create makes it.

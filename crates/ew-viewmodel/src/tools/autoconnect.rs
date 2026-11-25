@@ -3,8 +3,8 @@
 
 //! Autoconnect proposals (FR-CON-003, FR-CON-008; doc 06 §5.2, ADR-0007): what a floating or dragged
 //! symbol's free connection points would connect to, computed from the page tables alone (no `Session` call) and
-//! drawn as dashed overlay stubs. They reach the model only as the `connect` hints of the committed `device.place`
-//! (D4); during a move they are shown and never committed.
+//! drawn as dashed overlay stubs. They reach the model only as the `connect` hints of the committed `device.place`;
+//! during a move they are shown and never committed.
 //!
 //! **The walk.** For each free ghost CP, in ascending symbol CP index, the ray leaves the CP along its direction, one
 //! grid step at a time, inside the search area: a representation body (other than the ghost's own) stops it; a free
@@ -12,7 +12,7 @@
 //! connection segment collinear with the ray at the walk point stops it (the line is occupied); a segment crossing
 //! the ray is passed. Several CPs at one walk point are hits in label order (the page tables' order; never
 //! the v5 ID, which follows the minted function ID). A fluid port's hit is a fluid port and an electrical CP's an
-//! electrical CP, so on a fluid page autoconnect joins fluid ports with a fluid line (FT-1733); a contact's point (a
+//! electrical CP, so on a fluid page autoconnect joins fluid ports with a fluid line; a contact's point (a
 //! switch, a push-button, a sensor) never takes a PLC output's pin, and a point that names a conductor (`N`, `PE`, `L1`,
 //! a supply's `+`) never takes a point of a potential named for another one, nor do a terminal's two sides join two
 //! potentials of different names (a sensor joined to an output, a neutral to a phase); a valve's working port
@@ -73,7 +73,7 @@ pub struct GhostCp {
     /// The strip tag of the ghost's terminal as the page prints it (`-X1031`), `None` for a non-terminal: a CP of a
     /// terminal of that strip is never a hit.
     pub strip_tag: Option<String>,
-    /// Whether it is a fluid port: a fluid port's hit is a fluid port, an electrical CP's an electrical CP (FT-1733).
+    /// Whether it is a fluid port: a fluid port's hit is a fluid port, an electrical CP's an electrical CP.
     pub fluid: bool,
     /// Its side of EW-FL-012 (a valve's working or exhaust port): a port of the conflicting side is never its hit.
     pub valve_port: Option<ew_api::output::ValvePort>,

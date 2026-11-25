@@ -1245,7 +1245,7 @@ impl ShellModel {
         } else {
             let mut any = false;
             for item in &selection {
-                // A point moved or given another edge takes the text that writes its number with it (FT-1990).
+                // A point moved or given another edge takes the text that writes its number with it.
                 let before = matches!(item, Item::Cp(_))
                     .then(|| super::selection::value_of(&doc, *item).cloned())
                     .flatten();

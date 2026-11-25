@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Through the text interface (FT-396): two copies of the sample, P1 holding
+//! Through the text interface: two copies of the sample, P1 holding
 //! FX-MCB-1PN 1.0.0 on -101F1 and P2 holding 1.0.1 (a description change, a patch), each in its own shell over one user
 //! library "Fixture parts". The library is written by the parts import into a library (`catalog::import_into_library`),
 //! the second version by the same import bumped, so the viewmodel's tests name no schema type. -101F1 copied in P1 and

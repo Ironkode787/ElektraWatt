@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A new project's supply is set in its Properties (FT-1928, doc 06 §3.1): its Supply rows stand while it has none, the
+//! A new project's supply is set in its Properties (doc 06 §3.1): its Supply rows stand while it has none, the
 //! first value set makes it, and a value no supply has is refused in words.
 
 use crate::common::{Tmp, done, new_project};

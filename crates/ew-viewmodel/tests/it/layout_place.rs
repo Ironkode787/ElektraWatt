@@ -455,7 +455,7 @@ fn a_device_pushed_onto_rail_1_by_a_drag() {
     );
     assert_eq!(shell.tool().name(), "select", "the tool returns to Select");
     assert!(ghost(&shell).is_null());
-    // FT-900: the placement the drop made is the selection.
+    // The placement the drop made is the selection.
     let f55_placed = placement(&shell, "-102F1");
     assert_eq!(
         state(&shell)["canvas"]["selection"],

@@ -114,7 +114,7 @@ field-device-derived-solenoid-item = Solenoid
 field-help-device-derived-solenoid-item = A solenoid of the valve: where its coil is drawn, and the PLC output that drives it. Click it to go there, or to draw the coil on an electrical page while it is not drawn.
 field-representation-derived-solenoid-of = Valve
 field-help-representation-derived-solenoid-of = The valve this coil is a solenoid of. Click it to go to the valve.
-# FT-1483 (ID-1457, ID-1459): a function's kind by the generic rule, its two category segments joined by kind-generic (a Dutch segment carries its own joint), the library tiers, access and index words, and the Blocks kinds without words of their own.
+# A function's kind by the generic rule, its two category segments joined by kind-generic (a Dutch segment carries its own joint), the library tiers, access and index words, and the Blocks kinds without words of their own.
 kind-generic = { $p0 } { $p1 }
 kind-segment-no = NO
 kind-segment-nc = NC
@@ -212,17 +212,17 @@ choice-mounting-plate = Mounting plate
 choice-tube = Tube
 choice-accessory = Accessory
 choice-configured = Configured
-# WP-S1.20 D18 (T25): the line kinds of a fluid line.
+# The line kinds of a fluid line.
 choice-working = Working
 choice-pilot = Pilot
 choice-exhaust = Exhaust
 choice-drain = Drain
 choice-flexible = Flexible
-# WP-S1.20 D10: how a fluid port is closed.
+# How a fluid port is closed.
 choice-plug = Plug
 choice-silencer = Silencer
 choice-blanked = Blanked
-# C49-p6#1 and #2 (ID-1278): the choice words of every closed set, and four more singular count texts.
+# The choice words of every closed set, and four more singular count texts.
 choice-all = All
 choice-current = Current
 choice-sections = Sections
@@ -283,7 +283,7 @@ choice-baseline = Baseline
 choice-xlsx = Xlsx
 choice-csv = Csv
 choice-navigator = Navigator
-# FT-1258 (ID-1315): the words of the format's enumerated fields that had none.
+# The words of the format's enumerated fields that had none.
 choice-abbreviated = Abbreviated
 choice-ac = AC
 choice-ai = AI
@@ -458,7 +458,7 @@ choice-read-only = Read only
 choice-mine = Mine
 choice-theirs = Theirs
 
-## W49.3-F3: record kinds and fields as the collision dialog's headings (WP-S1.17 D24).
+## W49.3-F3: record kinds and fields as the collision dialog's headings.
 record-kind-project = Project
 record-kind-plc-config-project = PLC configuration project
 record-kind-logical-net = Logical net
@@ -512,7 +512,7 @@ record-kind-plc-profile = PLC profile
 record-kind-manufacturer = Manufacturer
 record-kind-machine-profile = Machine profile
 record-kind-label-profile = Label profile
-# FT-1411 (ID-1397): the record kinds in the plural, a Properties section header of several records.
+# The record kinds in the plural, a Properties section header of several records.
 record-kinds-project = Projects
 record-kinds-plc-config-project = PLC configuration projects
 record-kinds-logical-net = Logical nets
@@ -612,7 +612,7 @@ field-potential-def-ptype = Potential type
 field-potential-def-env = Supply
 field-potential-def-props = Wire properties
 field-potential-def-at = Defined at
-# FT-1237 (ID-1315): a field's label by its last member, where the field has no text of its own.
+# A field's label by its last member, where the field has no text of its own.
 field-word-a = A
 field-word-ac-dc = AC/DC
 field-word-accessories = Accessories
@@ -675,7 +675,7 @@ field-word-covers = Covers
 field-word-cp-overrides = Connection point overrides
 field-word-cps = Connection points
 field-word-cps-item = Connection point
-# FT-1531: a device's derived connection points (`derived.cp[n]`).
+# A device's derived connection points (`derived.cp[n]`).
 field-word-cp-item = Connection point
 field-word-cpu = CPU
 field-word-created = Created
@@ -947,7 +947,7 @@ field-word-wiring = Wiring
 field-word-withdraws = Withdraws
 field-word-xref-format = Xref format
 
-# WP-S3.09 D6: the members of the import run's property sheet, and its mode and severity choices.
+# The members of the import run's property sheet, and its mode and severity choices.
 field-word-as-of = As of
 field-word-entries = Findings
 field-word-defect = Defect class
@@ -1007,7 +1007,7 @@ choice-slot = Text slot
 
 choice-link = Link point
 
-# FT-1648: the explanation of each property row, the tooltip of its label: `field-help-<kind>-<path>`, else the
+# The explanation of each property row, the tooltip of its label: `field-help-<kind>-<path>`, else the
 # member's `field-help-word-<member>` (see `strings::field_help`).
 field-help-word-id = The record's unique ID. It never changes, so links to the record keep working.
 field-help-word-source-ref = Where the record came from when it was imported. An import uses it to find the record again; read only.
@@ -1272,7 +1272,7 @@ field-help-project-settings-numbering = How device tags and wire numbers are mad
 field-help-project-settings-xref-format = How cross-references are written, such as 102-A1.
 field-help-project-settings-text-styles = The project's text styles: fonts and sizes.
 field-help-project-settings-typeface = The font file of the project's own that every text in the Standard typeface prints in. Choose it in Text styles.
-# WP-S1.25: the fluid fields and choices.
+# The fluid fields and choices.
 field-word-fitting = Fitting
 field-word-default-tube = Default tube
 field-word-material = Material
@@ -1407,7 +1407,7 @@ field-help-report-block-legend = The line under the table on each of the report'
 field-help-report-block-added-rows = Rows the model does not hold, listed and sorted with the report's own rows: Output ▸ Rows of your own….
 field-word-layout-page = Layout page
 field-help-report-block-layout-page = The panel layout page whose legend this list is: it lists that layout and its pages follow that page.
-# The PLC and bus work as a person met it (rc.2 persona run).
+# The PLC and bus work as a person met it.
 field-device-derived-plc = PLC
 field-help-device-derived-plc = The PLC this bus device belongs to. A device in no PLC is given to one here: choose a PLC, or New PLC….
 choice-connection-kind-wire = Wire

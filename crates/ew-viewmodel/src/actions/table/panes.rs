@@ -519,7 +519,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     with_params(
         "name?:text, key?:text, description?:text, library?:text, kind?:text, pages?:list(text), x_mm?:mm, \
          y_mm?:mm, value_sets?:json, confirm?:bool",
-        // Pages named by folio (`pages`) need no selection or marked page (FT-1862).
+        // Pages named by folio (`pages`) need no selection or marked page.
         in_canvas(enabled_when_named(
             &["pages"],
             has_pages,

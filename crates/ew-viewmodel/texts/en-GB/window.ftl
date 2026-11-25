@@ -86,7 +86,7 @@ density-compact = Compact
 pane-pages = Pages
 pane-page-view = Page view
 
-# The property grid (WP-S2.05 part 1).
+# The property grid.
 pane-properties = Properties
 bar-lists-parts = Parts list
 pane-jobs = Jobs
@@ -97,14 +97,14 @@ status-job-phase = { $p0 }: { $p1 }
 # Doc 16a §6.5: the filter field's trailing clear button.
 filter-clear = Clear the filter
 
-# WP-S2.05 part 2: find and replace.
+# find and replace.
 pane-find = Find and replace
 status-tip-zoom = The wheel zooms about the pointer; Shift+wheel pans sideways; drag with the middle button, or with Space held, to pan; { $p0 } fits the page. View ▸ Mouse wheel scrolls makes the wheel pan.
 status-tip-zoom-scrolls = The wheel pans; Ctrl+wheel zooms about the pointer; drag with the middle button, or with Space held, to pan; { $p0 } fits the page.
 bar-draw-plug = Draw plug
 bar-plug-ports = Plug ports
 
-# FT-509: the tab group's menu of every tab.
+# The tab group's menu of every tab.
 dock-all-tabs = All tabs
 
 # Doc 16a §5.7: the bottom dock's close button.
@@ -115,18 +115,18 @@ tab-close-name = Close { $p0 }
 status-cursor-cell = { $p0 } · x { $p1 } y { $p2 } mm
 status-hint-link = Click to go to { $p0 }
 
-# FT-964 (ID-1150): the status bar's link hint, with the key of `nav.follow` from the keymap.
+# The status bar's link hint, with the key of `nav.follow` from the keymap.
 status-hint-follow = Click or { $p1 }: go to { $p0 }
 status-hint-follow-none = Click or use Page ▸ Follow cross-reference: go to { $p0 }
 status-hint-link-external = Link to another project
 
-# WP-S2.09 part 3: the Preview tab, the renumber dialogs, the history panel and the purge step.
+# The Preview tab, the renumber dialogs, the history panel and the purge step.
 pane-preview = Preview
 pane-history = History
 status-put-away-undo = Undo put away what was on the pointer and undid nothing; Undo again takes back the last step.
 status-put-away-redo = Redo put away what was on the pointer and redid nothing; Redo again does the next step again.
 
-# WP-S2.17 part 3: the rails, Properties' Main and Advanced, the status bar (doc 16a §5.4, §5.8, §6.8).
+# The rails, Properties' Main and Advanced, the status bar (doc 16a §5.4, §5.8, §6.8).
 rail-project = Project
 rail-symbols = Symbol browser
 rail-parts = Device browser
@@ -134,7 +134,7 @@ rail-pages = Pages
 rail-devices = Devices
 rail-views = Pages or devices
 status-ready = Ready
-# FT-1405 (ID-1392): the state field after Help ▸ Tutorials without an installed guide.
+# The state field after Help ▸ Tutorials without an installed guide.
 status-guide-missing = The guide is not installed with this copy of the program
 status-selected = { $p0 } selected
 status-findings-errors = { $p0 } errors
@@ -144,7 +144,7 @@ status-findings-warning = 1 warning
 status-findings-infos = { $p0 } infos
 status-findings-info = 1 info
 
-# FT-710: the pending findings, counted apart; they end when the tab leaves the page.
+# The pending findings, counted apart; they end when the tab leaves the page.
 status-findings-pending = { $p0 } pending on this page
 status-findings-pending-one = 1 pending on this page
 status-renderer-why = The canvas draws on the CPU
@@ -164,7 +164,7 @@ status-driver-tip = Set up merge driver: git then merges this project's files re
 bar-cable = Cable
 bar-report = Report
 
-# A card that waits for Apply, in the status bar and on the Preview tab (the owner's test of 0.3.0-rc.1).
+# A card that waits for Apply, in the status bar and on the Preview tab.
 status-waiting = { $p0 ->
         [one] 1 change waits for Apply
        *[other] { $p0 } changes wait for Apply
@@ -194,14 +194,14 @@ bar-plc-module-place = Place here
 bar-plc-module-left = Move left
 bar-plc-module-right = Move right
 
-# rc.3: New project, the templates and the check level.
+# New project, the templates and the check level.
 window-title-template = Template: { $p0 } - ElektraWatt
 bar-templates = Templates
 bar-save-as-template = Save as template
 bar-check-level = Check level
 
-# rc.3: Text styles (Project ▸ Text styles…).
+# Text styles (Project ▸ Text styles…).
 bar-text-styles = Text styles
 
-# rc.3: F1 opens the help for what is under the hand; the status bar says what it opens.
+# F1 opens the help for what is under the hand; the status bar says what it opens.
 status-help = F1: { $p0 }

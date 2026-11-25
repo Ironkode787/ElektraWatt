@@ -11,7 +11,7 @@ menu-edit = Edit
 menu-view = View
 menu-page = Page
 
-# WP-S2.17 part 2: the app menu's tab menus (doc 16a §9.2); Insert became Draw, Tools dissolved.
+# The app menu's tab menus (doc 16a §9.2); Insert became Draw, Tools dissolved.
 menu-project = Project
 menu-draw = Draw
 menu-check = Check
@@ -24,7 +24,7 @@ submenu-density = Density
 submenu-min-font = Minimum text size
 menu-no-recent = (none)
 
-# The human titles of the commands (cycle 35 play-test): what the window says for a command it previews
+# The human titles of the commands: what the window says for a command it previews
 # ("Preview of Place device"), verb first, sentence case; the key is `command-<name>` with every `.` of the
 # name as `-` (`command_title`). The parameters, the describe text and the scripts keep the command ID.
 command-assembly-attach = Attach assembly
@@ -136,7 +136,6 @@ command-layout-move = Move placement
 command-layout-remove = Remove placement
 command-layout-lock = Lock placement
 
-# WP-S4.01 part 3 (D9)
 command-page-surface_view-set = Set panel view
 command-page-set_grid = Change a page's connection grid
 command-layout-place_assembly = Place assembly
@@ -149,7 +148,7 @@ command-layout-surface-edit = Edit plate
 # Actions.
 action-file-open = Open…
 
-# The canvas tools (WP-S2.03 part 2).
+# The canvas tools.
 action-tool-select = Select
 action-tool-measure = Measure
 action-cp-next = Next connection point
@@ -162,7 +161,7 @@ action-canvas-release = Release on the canvas
 action-canvas-dwell = Pointer at rest
 action-canvas-preview-snapshot = Link preview snapshot
 
-# The place-and-arrange tools (WP-S2.04 part 1).
+# The place-and-arrange tools.
 action-tool-place = Symbol…
 action-tool-place-part = Device from part…
 action-place-pick = Pick a symbol to place
@@ -173,7 +172,7 @@ action-picker-new-page = Place on a new page with its grid
 action-picker-category = Choose a category of the browser
 action-picker-open = Open or close a part's functions
 
-# WP-S2.18 part 1: the Join chooser (D2).
+# The Join chooser.
 action-place-join = Join device…
 action-chooser-row = Move the chooser's row
 action-chooser-type = Type ahead in the chooser
@@ -214,23 +213,21 @@ action-fluid-tube-kind = Line kind: next
 action-nav-show = Show
 action-fluid-draw-terminal = Draw the valve terminal on a fluid page…
 
-# WP-S2.04 part 2. End.
-# WP-S2.04 part 3 (interruption points and black boxes). Begin.
 action-tool-ip = Interruption point
 action-tool-black-box = Black box…
 action-tool-ip-direction = Interruption point direction
 action-tool-star-source = Star source
 action-ip-name = Interruption point name
 
-# FT-1022 (ID-1107): the name field's tooltip names the keys that end it.
+# The name field's tooltip names the keys that end it.
 action-ip-name-hint = Enter or Tab ends the name and gives the keys back to the tool
 action-ip-external = External reference
 action-ip-continue-on = Continue on page…
-# FT-1699: the selected interruption points are where the supply comes in from another drawing set.
+# The selected interruption points are where the supply comes in from another drawing set.
 action-ip-supply-in = Supply comes in here…
 # H9: the supply marks' Potential panel: a row per mark placed, its conductor and voltage.
 action-ip-supply-potential = Potential…
-# rc.5: Supply on the Draw tab: what comes in from the mains, placed as supply marks in one go.
+# Supply on the Draw tab: what comes in from the mains, placed as supply marks in one go.
 action-supply-place = Supply…
 action-ip-arrange-selected = Arrange interruption points
 action-box-grip = Move a black box grip
@@ -241,8 +238,6 @@ context-box-pin-part = Add pin (in the part's device box)…
 context-box-pin-remove = Remove pin { $p0 }
 action-page-fit-grid = Change the connection grid…
 
-# WP-S2.04 part 3. End.
-# WP-S2.04 part 4b (text, text edit and graphic tools). Begin.
 submenu-graphic = Graphic
 action-tool-text = Text
 action-tool-graphic = Graphic
@@ -250,7 +245,7 @@ action-text-bind = Text binding
 action-text-edit = Edit text
 action-strip-bridge = Bridge terminals
 
-# WP-S2.07 part 1: the strip editor (§6.9, §6.10).
+# The strip editor (§6.9, §6.10).
 action-strip-edit = Strip editor
 action-strip-insert = Insert terminal
 action-strip-delete-rows = Delete rows
@@ -258,7 +253,7 @@ action-strip-move = Move terminals
 action-strip-add-accessory = Add accessory
 action-strip-unbridge = Remove bridge
 
-# WP-S2.07 part 2: swap cores, and Delete and F2 in navigator trees (§7, FT-490).
+# swap cores, and Delete and F2 in navigator trees (§7).
 action-cable-swap-cores = Swap cores
 action-navigator-delete = Delete rows
 action-navigator-rename = Rename
@@ -266,18 +261,17 @@ action-navigator-rename = Rename
 # G-PP triage row 7: Draw ▸ Bond.
 action-bond-draw = Bond
 submenu-bond = Bond
-# FT-1202 (ID-1270): Draw ▸ Define potential…, beside Bond.
+# Draw ▸ Define potential…, beside Bond.
 action-potential-draw = Define potential…
 action-potential-draw-row = Define potential…
-# FT-1700: the card of a potential reasoned for the selected wire.
+# The card of a potential reasoned for the selected wire.
 action-potential-offer = Answer the offered potential
 
-# WP-S2.04 part 5 (images, §11).
 action-tool-image = Image…
 action-image-pick = Image asset
 action-image-file = Image file
 
-# WP-S2.04 part 4b: the Wire marker tool, the Structure box tool and the marker mode.
+# The Wire marker tool, the Structure box tool and the marker mode.
 submenu-wire-markers = Wire markers
 action-tool-marker = Wire marker
 action-marker-fields = Marker fields
@@ -294,10 +288,10 @@ action-file-save = Save
 action-file-save-as = Save as…
 action-file-export-pdf = Export PDF…
 
-# FT-1960: the pages as a DXF set (doc 09 §4.9), a folder of page files and the pictures they name.
+# The pages as a DXF set (doc 09 §4.9), a folder of page files and the pictures they name.
 action-file-export-dxf = Export DXF…
 
-# WP-S3.07 part 3 (D10, ruling 4 of ID-1180): the print pre-dialog.
+# The print pre-dialog.
 action-file-print = Print…
 action-print-set = Set the print options
 action-print-page = Show a print preview page
@@ -333,11 +327,11 @@ action-view-theme = Theme
 action-view-density = Density
 action-view-min-font = Minimum text size
 action-view-reduce-motion = Reduce motion
-# FT-1439: the plain mouse wheel scrolls the canvas, Ctrl with the wheel zooms; off, the wheel zooms.
+# The plain mouse wheel scrolls the canvas, Ctrl with the wheel zooms; off, the wheel zooms.
 action-view-wheel-scrolls = Mouse wheel scrolls
 action-view-tips = Show tips
 
-# WP-S2.17 part 2: the command bar (doc 16a §5).
+# The command bar (doc 16a §5).
 action-view-command-tab = Command tab
 action-view-command-bar = Collapse command bar
 submenu-command-tab = Command tab
@@ -368,7 +362,7 @@ group-layout = Layout
 group-appearance = Appearance
 action-tool-place-terminal = Terminal…
 
-# FT-964 (ID-1150): the place of a key in a hint, a HUD prompt or a toast when the keymap binds its action to none.
+# The place of a key in a hint, a HUD prompt or a toast when the keymap binds its action to none.
 key-none = (no key)
 action-tools-palette = Command palette
 action-help-shortcuts = Keyboard shortcuts
@@ -405,7 +399,7 @@ action-view-workspace-reset = Reset layout
 action-tools-company-standard = New template…
 action-help-documentation = What is this?
 action-help-tutorials = Tutorials
-# FT-1458: Help ▸ Tutorials, one entry per tutorial of the guide, by its page's title.
+# Help ▸ Tutorials, one entry per tutorial of the guide, by its page's title.
 submenu-tutorials = Tutorials
 action-help-first-run = First-run setup…
 action-help-notices = Third-party notices
@@ -439,7 +433,7 @@ action-props-accept-tag-proposal = Accept the proposed tag
 action-props-choose = Choose
 action-props-row-menu = Property actions
 
-# FT-1030 (ID-1107): a link row of the grid followed.
+# A link row of the grid followed.
 action-props-follow = Go to the linked record
 action-props-filter = Filter the properties
 action-cp-unused = Mark not used
@@ -476,15 +470,14 @@ action-find-run = Find
 action-find-row = Move the result cursor
 action-find-jump = Show the result
 
-# WP-S6.13 part 1
 action-page-describe = Describe the page content
 action-find-replace-all = Replace all
 
-# FT-649: the column mapping step of the parts import.
+# The column mapping step of the parts import.
 action-parts-map = Map a column of the parts table
 action-parts-map-import = Import the mapped parts table
 
-# WP-S2.05 part 3: the clipboard.
+# The clipboard.
 action-edit-cut = Cut
 action-edit-copy = Copy
 action-edit-paste-clip = Paste
@@ -494,7 +487,7 @@ action-edit-select-all = Select all
 action-edit-copy-tags = Copy tag list
 action-clipboard-text = Set the clipboard text
 
-# The viewer (WP-S2.03 part 1).
+# The viewer.
 menu-window = Window
 submenu-page-navigator = Page navigator
 action-tab-new = New tab
@@ -528,7 +521,7 @@ action-pages-toggle = Expand or collapse
 action-pages-row = Move in the page navigator
 action-pages-open = Open page
 
-# WP-S2.06 part 1: the navigators.
+# The navigators.
 action-navigator-show = Navigator
 action-navigator-view = Navigator view
 action-navigator-sort = Navigator order
@@ -540,7 +533,7 @@ action-navigator-select = Mark rows
 action-navigator-mark = Toggle mark
 action-navigator-jump = Jump to row
 
-# WP-S2.07 §8: a channel dragged from the PLC navigator onto a connection point.
+# A channel dragged from the PLC navigator onto a connection point.
 action-navigator-bind = Bind channel
 action-plc-attach-cards = Attach modules without a station
 action-plc-attach-to = Attach to { $p0 }
@@ -580,11 +573,11 @@ action-pages-reorder = Reorder pages
 action-pages-move-up = Move page up
 action-pages-move-down = Move page down
 
-# WP-S2.06 part 2: highlighting.
+# highlighting.
 action-navigator-highlight = Highlight
 action-view-clear-highlights = Clear highlights
 
-# WP-S2.06 part 3: table mode.
+# table mode.
 action-navigator-table = Table
 action-table-columns = Columns
 action-table-cell = Move the cell cursor
@@ -600,26 +593,26 @@ action-table-clear = Clear cells
 action-table-resolve = Choose a reading
 action-table-drop = Leave a cell out
 
-# WP-S3.08 part 3 (D14, ID-1224): a navigator table's export to a file and the round trip's import.
+# A navigator table's export to a file and the round trip's import.
 action-navigator-export-table = Export table…
 action-navigator-import-table = Import table…
 submenu-navigators = Navigators
 
-# WP-S2.09 part 2: the message panel (§7.3, §7.6).
+# The message panel (§7.3, §7.6).
 action-messages-show = Messages
 action-messages-next = Next finding
 action-messages-previous = Previous finding
 action-messages-fix = Apply quick fix…
 action-messages-check = Run checks
 
-# FT-674: Waive… and Unwaive; FT-664: the check toast's waived and pending counts in its title.
+# Waive… and Unwaive; the check toast's waived and pending counts in its title.
 action-messages-waive = Waive finding…
 action-messages-unwaive = Unwaive finding
 action-ui-focus = Focus an area
 action-ui-focus-next = Next area
 action-ui-focus-previous = Previous area
 
-# Creating pages, structure nodes and external references (FT-408, FT-409).
+# Creating pages, structure nodes and external references.
 action-page-new = New page…
 action-page-title-block = Title block fields…
 action-page-grid = Connection grid…
@@ -658,7 +651,7 @@ action-part-bus-row = Add or remove a bus interface
 action-part-remove-own = Remove from my parts library…
 action-paste-resolve = Resolve paste
 
-# WP-S2.08 part 2 (D6 to D8): the keymap files, their rules and the editor.
+# The keymap files, their rules and the editor.
 keymap-error-key = Unknown key in "{ $p0 }".
 keymap-error-modifier = Unknown or repeated modifier { $p0 } in "{ $p1 }".
 keymap-error-toml = It is not valid TOML.
@@ -702,11 +695,11 @@ keymap-context-navigator = Navigator
 keymap-context-properties = Properties
 keymap-context-find = Find
 
-# WP-S1.19 part 6 (FT-785, FT-786): the macro card's ad-hoc values and Save as macro's value-set table.
+# The macro card's ad-hoc values and Save as macro's value-set table.
 action-macros-value = Type a value of the macro card's variable
 
-# WP-S1.18 part 5 (cycle 41): the revision dialogs of the Check menu (Approve, Release, Withdraw, Set author),
-# the incomplete-release offer at open, and the release's housekeeping warnings in Messages (FT-842).
+# The revision dialogs of the Check menu (Approve, Release, Withdraw, Set author),
+# the incomplete-release offer at open, and the release's housekeeping warnings in Messages.
 action-revision-approve = Approve revision…
 action-revision-release = Release revision…
 action-revision-withdraw = Withdraw revision…
@@ -723,7 +716,7 @@ action-layout-lock-selection = Lock
 action-layout-unlock-selection = Unlock
 action-layout-options = Placing options
 
-# WP-S4.02 part 4 (D10, D11; §8; doc 16a §5.3, §6.12): Draw ▸ Layout, Project ▸ Enclosure…, the draw tools and
+# Draw ▸ Layout, Project ▸ Enclosure…, the draw tools and
 # the set-up dialogs.
 group-panel-layout = Layout
 action-layout-choose-plate = Mounting plate…
@@ -736,17 +729,17 @@ action-layout-enclosure-new = Enclosure…
 action-layout-labels = Labels
 action-devices-set-location = Location…
 
-# WP-S2.08 part 3 (D10, ID-1219 ruling 5): View ▸ Language, one item per UI language under the language's own name
+# View ▸ Language, one item per UI language under the language's own name
 # (`language-name`, the message of that language's file).
 submenu-language = Language
 action-view-language = Language
-# WP-S2.08 part 6: the glossary pane (D16), the one-time tips (D17) and the wire-colour view (D18).
+# The glossary pane, the one-time tips and the wire-colour view.
 action-help-glossary = Glossary
 action-glossary-filter = Search the glossary
 action-glossary-row = Move the glossary cursor
 action-view-wire-colours = Wire colours
 
-# WP-S1.17 parts 6 to 8 (COL49): external change, cloud folders, .ewz, the upgrade, the merge driver.
+# External change, cloud folders, .ewz, the upgrade, the merge driver.
 command-external-apply = External change
 action-file-open-ewz = Open .ewz…
 action-file-import = Import…
@@ -762,30 +755,30 @@ action-library-update-damaged = Update from library
 action-git-setup = Set up merge driver
 action-file-import-qet-apply = Apply the import
 
-# WP-S3.09 D10 to D12: the re-import of a QElectroTech file into the open project: the proposal (T6), the refusal (T7),
+# The re-import of a QElectroTech file into the open project: the proposal (T6), the refusal (T7),
 # the re-import card (T8) and its rows.
 action-file-reimport-qet = Re-import QElectroTech project…
 action-file-reimport-qet-apply = Apply the re-import
 
-# WP-S3.09 D9 d: the Messages pane's migration report (T11) beside the project's scheme.
+# The Messages pane's migration report (T11) beside the project's scheme.
 action-messages-migration = Migration report
 
-# FT-1371 (ID-1362): Draw ▸ Connect ▸ New cable… and Connect cores….
+# Draw ▸ Connect ▸ New cable… and Connect cores….
 action-cable-new = New cable…
 action-cable-connect-cores = Connect cores…
 
-# FT-1685: Draw ▸ Connect ▸ Cable…: the selected wires as a cable's cores, in one form.
+# Draw ▸ Connect ▸ Cable…: the selected wires as a cable's cores, in one form.
 action-cable-from-wires = Cable…
 
 # F20: Cable… on a bus line: its cable and the plug at each end.
 action-bus-cable = Bus cable…
 
-# FT-1372 (ID-1362): Output ▸ Reports ▸ Report block….
+# Output ▸ Reports ▸ Report block….
 action-report-block-new = Report block…
 action-symbol-new = Symbol editor…
 action-symbol-open = Open symbol…
 action-symbol-fork = Fork symbol…
-# FT-1694: the browsers' Edit symbol and Copy and edit.
+# The browsers' Edit symbol and Copy and edit.
 action-symbol-edit = Edit symbol
 action-symbol-copy-edit = Copy and edit
 action-symbol-close = Close symbol editor
@@ -817,7 +810,7 @@ command-plc-unlock = Unlock PLC-owned fields
 command-plc-apply_instrument_list = Apply instrument list
 # Persona round (M3): the Output tab's Report and PLC exchange, and where lists are made.
 group-exchange = PLC exchange
-# rc.2 lane R1 (F17, F18, F19 of the rc.1 test): a PLC station is made as a rack and filled.
+# A PLC station is made as a rack and filled.
 command-plc-remove_from_rack = Take out of the PLC rack
 command-plc-add_station = Make PLC station
 action-plc-new-station = New station…
@@ -828,7 +821,7 @@ action-plc-rack-next = Next step for the station
 action-plc-rack-rename = Change a tag in the station
 action-plc-rack-channel = Name a channel in the station
 action-plc-add-to-plc = Add to PLC
-# The PLC and Fluid tabs of the command bar and the workspace switch (rc.2).
+# The PLC and Fluid tabs of the command bar and the workspace switch.
 menu-plc = PLC
 menu-fluid = Fluid
 group-station = Station
@@ -861,14 +854,14 @@ submenu-tutorials-what = Lessons you follow step by step
 submenu-guides-what = How to do one job
 action-help-guide = Guide
 
-# A layout page that can be read: item numbers, the legend, labels that move (the owner's test of 0.3.0-rc.1).
+# A layout page that can be read: item numbers, the legend, labels that move.
 action-page-add-legend = Add legend
 action-layout-reset-label = Reset label position
 action-layout-reset-labels = Reset label positions
 command-layout-labels_reset = Reset layout labels
 # The legend as a page of its own after its layout page (doc 12 §5.4).
 action-report-block-legend-to-page = Move the legend to its own page
-# An older layout page given the whole sheet in one step (doc 12 §5.1, FT-2030).
+# An older layout page given the whole sheet in one step (doc 12 §5.1).
 action-layout-fit-sheet = Fit the layout to the sheet
 command-layout-label_move = Move layout label
 
@@ -922,7 +915,7 @@ action-plc-card-terminals-face = Terminal wires to card side
 action-plc-module-left = Move module left
 action-plc-module-right = Move module right
 
-# rc.3: the spacing of a terminal row.
+# The spacing of a terminal row.
 action-terminals-spacing = Spacing…
 action-templates-open = Templates…
 action-project-save-as-template = Save as template…

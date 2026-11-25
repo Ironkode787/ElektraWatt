@@ -64,7 +64,7 @@ impl PasteTool {
         }
     }
 
-    /// The tool pasting with `adapt` (FT-396's Use the project's copy).
+    /// The tool pasting with `adapt` (Use the project's copy).
     #[must_use]
     pub fn adapting(mut self, adapt: Vec<ew_api::output::Uuid>) -> PasteTool {
         self.adapt = adapt;
@@ -97,7 +97,7 @@ impl PasteTool {
 
     /// Whether a part of the fragment at its anchor lies outside the frame's drawing area (`ip::drawing_area`): a free
     /// text or graphic (the fragment's `free`) only where it would leave the sheet, since the Text tool puts texts in the
-    /// frame's bands too (FT-1862).
+    /// frame's bands too.
     fn outside(&self, cx: &ToolCx<'_>) -> bool {
         let (Some((_, page)), Some(area)) = (self.at, super::ip::drawing_area(cx.page)) else {
             return false;
@@ -138,7 +138,7 @@ impl PasteTool {
     }
 
     /// The pointer or the grid cursor at the sheet point `at`: the fragment floats with its middle there, snapped to
-    /// the grid (FT-1659: it hung from its top-left corner, so a paste landed below and right of the click).
+    /// the grid (it hung from its top-left corner, so a paste landed below and right of the click).
     fn moved(&mut self, at: (i64, i64), cx: &ToolCx<'_>) -> ToolOutput {
         let page = cx.snapper.sheet_to_page(at);
         let (mx, my) = self.middle();

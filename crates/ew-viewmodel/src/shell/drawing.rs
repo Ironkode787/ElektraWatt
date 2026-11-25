@@ -193,7 +193,7 @@ impl ShellModel {
     /// `marker.fields {csa?, colours?}`: the Wire marker tool's fields; `""` clears one. `colours` is what a person
     /// types (`Session::typed_colours`: `BK`, `bk`, `BK, BU`, `GN+YE`, a colour's name from the colour profile): one
     /// entry per wire, or one entry for every wire crossed. An entry the project does not know is refused in words
-    /// with the codes it knows (FT-1684).
+    /// with the codes it knows.
     pub(crate) fn act_marker_fields(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.tools.tool.name() != "marker" {
             return Outcome::refused(key!("reason-marker-tool-only"));
@@ -439,7 +439,7 @@ impl ShellModel {
         // A held image over the pixel limit is refused as `image.file` refuses it.
         if let Err(e) = ew_api::pixel_limit(reference.format, reference.size) {
             // In the window's language, as `image.file`'s refusal; the image by where it shows (the company logo,
-            // the first folio of a page that shows it), never by its hash (FT-1557): the project keeps no file name.
+            // the first folio of a page that shows it), never by its hash: the project keeps no file name.
             let why = super::tools::rejected_words(&e.to_string(), Some(&ew_api::asset_error_text(&e)));
             let shown = project
                 .session

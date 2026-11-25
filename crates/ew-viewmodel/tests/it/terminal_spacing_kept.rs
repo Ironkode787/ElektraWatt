@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The spacing of a terminal row is kept between sessions (FT-1791): a row laid four grid steps apart, the program
+//! The spacing of a terminal row is kept between sessions: a row laid four grid steps apart, the program
 //! closed and the project opened again, the next row takes four steps without being told. Untold, a row takes three.
 
 use crate::common::{self, Tmp, done};

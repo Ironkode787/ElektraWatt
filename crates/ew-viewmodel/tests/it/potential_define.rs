@@ -204,8 +204,8 @@ fn named_and_typed_drawn_potentials_colour_their_wires() {
     let zero = potential_at(&mut shell, "102", "-X1021:5/a");
     let before_101 = marker_text(&mut shell, "101", &W4_W5);
     let before_102 = marker_text(&mut shell, "102", &W20_TO_W23);
-    // The pins' roles type L and N already, and an N of unknown voltage is of the mains class as L is (FT-1834); both
-    // are behind the 16 A breaker -101F1, which their class's 1.5 mm² does not carry (FT-2055).
+    // The pins' roles type L and N already, and an N of unknown voltage is of the mains class as L is; both
+    // are behind the 16 A breaker -101F1, which their class's 1.5 mm² does not carry.
     assert_eq!(before_101, "2.5 BK BU");
     assert_ne!(before_102, "0.75 DBU WH WH");
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
@@ -430,7 +430,7 @@ fn define_potential_from_the_menu_the_context_menu_and_the_palette() {
         Some("Name the potential first".to_owned())
     );
     shell.set_palette_field(0, "FEED-A");
-    // FT-1698: the type is a list, the choices of a definition's Type in Properties, an empty one first.
+    // The type is a list, the choices of a definition's Type in Properties, an empty one first.
     let form = shell.palette().and_then(|p| p.form.clone()).expect("the form");
     let choices: Vec<String> = form.fields[1].choices().into_iter().map(str::to_owned).collect();
     assert_eq!(choices.first().map(String::as_str), Some(""), "{choices:?}");

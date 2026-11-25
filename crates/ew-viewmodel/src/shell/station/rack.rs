@@ -4,7 +4,7 @@
 //! The station view's edits: each handler builds one declared command from the place of the rack it is aimed at and
 //! commits it as one undo step, saying what it did in words.
 //!
-//! - **Attach cards without a station** (FT-1672): a CPU row of the PLC navigator attaches the cards that wait for a CPU
+//! - **Attach cards without a station**: a CPU row of the PLC navigator attaches the cards that wait for a CPU
 //!   (`Session::plc_cards_without_cpu`) with one `assembly.attach`, after the station's last child position.
 //! - **The rack**: a part of the view's catalogue goes into a free slot with `plc.add_module` (a library part embedded
 //!   in the same step); a card dragged to another slot moves there with `fields.set plc_module.slot`, or changes
@@ -25,7 +25,7 @@ use crate::shell::{Outcome, ShellModel, failed, flag, string_param};
 use crate::strings;
 
 impl ShellModel {
-    /// `plc.attach_cards {station, card?}` (FT-1672): the cards that wait for a station (with `card`, that one of
+    /// `plc.attach_cards {station, card?}`: the cards that wait for a station (with `card`, that one of
     /// them) become children of `station`, after its last child position, with one `assembly.attach`; a toast names
     /// them.
     pub(crate) fn act_plc_attach_cards(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -128,7 +128,7 @@ impl ShellModel {
         }
     }
 
-    /// `plc.module_move {folio}` (Move to page, FT-2134): the drawings on electrical pages of the module or the head
+    /// `plc.module_move {folio}` (Move to page): the drawings on electrical pages of the module or the head
     /// under the cursor move to the schematic page `folio` where they stand, with one `rep.move` (one undo step), so the
     /// device keeps its channels, bindings, slot and wires drawn with it; the page is shown. A wire whose other end
     /// stays behind is refused in the move's words, the view staying; a module drawn on that page already is refused.

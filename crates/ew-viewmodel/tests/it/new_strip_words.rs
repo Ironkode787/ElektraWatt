@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Nothing shows a placeholder or a dash for what has a name (FT-1813): the Place tool's command bar names a terminal
+//! Nothing shows a placeholder or a dash for what has a name: the Place tool's command bar names a terminal
 //! for a strip without a tag yet in words before the pointer gives the preview a place, and the project's Kind row
 //! names the kind a project has when none is written (a schematic project).
 

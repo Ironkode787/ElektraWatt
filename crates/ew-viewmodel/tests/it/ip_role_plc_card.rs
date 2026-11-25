@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The play-test's findings in the view model, FT-823 among them.
+//! The play-test's findings in the view model.
 //!
 //! The page-arrow tool offers the target role for a name whose source stands on another page (EW-CORE-052 is
 //! project-wide), its HUD names the role and the key that changes it, D goes on from the offered role, and a refused
-//! arrow keeps its ghost with the reason in the HUD and a toast. FT-823: a card drawn before the CPU is attached when
+//! arrow keeps its ghost with the reason in the HUD and a toast. a card drawn before the CPU is attached when
 //! the CPU arrives (its channels get addresses), the page description lists the addresses the canvas prints, and
 //! deleting the card's symbol leaves no `-?A1` device behind.
 
@@ -78,7 +78,7 @@ fn a_name_with_a_source_on_another_page_is_offered_as_a_target() {
     assert_eq!((ip.name.as_str(), ip.direction.as_str()), ("0V", "target"));
 }
 
-/// FT-1657: after its source the typed name stays, and the tool floats its target, on
+/// After its source the typed name stays, and the tool floats its target, on
 /// the source's own page too; after the target the name stays for further targets, and with the field erased
 /// the series goes on as before.
 #[test]

@@ -5,8 +5,8 @@
 //! navigator's table, the gestures (a cell, a column over the marked rows, fill down, pattern fill, paste, clear), their
 //! one compiled command, the policy and the table card.
 //!
-//! **One gesture, one command** (D11): every gesture builds its cells in (row display order, column visible order),
-//! marks the same-record conflicts (D13), compiles the applicable cells into `fields.set` or `fields.set_many`, previews
+//! **One gesture, one command**: every gesture builds its cells in (row display order, column visible order),
+//! marks the same-record conflicts, compiles the applicable cells into `fields.set` or `fields.set_many`, previews
 //! that command once and decides by FR-UI-044's rules as built for the property grid, plus rule 3: any invalid or
 //! ambiguous cell opens the card. A direct gesture commits the kept preview (the window `Session::commit`, headless a
 //! one-line command log through `Session::run_script`) and shows the toast `"Set <columns> on <n> <rows>"`.

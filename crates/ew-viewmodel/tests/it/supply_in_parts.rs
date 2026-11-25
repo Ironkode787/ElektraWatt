@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Comes in here… with a field left empty (FT-1876, doc 06 §3.5): an empty field is not known, so a mark named for its
+//! Comes in here… with a field left empty (doc 06 §3.5): an empty field is not known, so a mark named for its
 //! signal prints its address alone under it, and one whose far end is not known prints nothing.
 
 use crate::common;

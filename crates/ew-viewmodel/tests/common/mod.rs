@@ -345,7 +345,7 @@ pub fn empty_point(c: &CanvasModel) -> (i64, i64) {
 /// A route from a wire's pin end to its other end, given both points.
 type PathOf<'a> = dyn Fn((i64, i64), (i64, i64)) -> Vec<(i64, i64)> + 'a;
 
-/// FT-500's overlap and its wire through a symbol on a writable copy of the sample shown at folio 101, which the
+/// An overlap and its wire through a symbol on a writable copy of the sample shown at folio 101, which the
 /// router never draws: three wires given routes by `connection.route` (a command stores the route it is given). The
 /// wires of -101F1:1 and -101F1:3 then run on one line, the breaker's top pin row, inside -101F1's rectangle (from
 /// -101F1:3 one grid step right, then up to their other ends), and the wire of the power supply's bottom pin

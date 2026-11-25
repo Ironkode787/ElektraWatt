@@ -276,7 +276,7 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // The pane
 
-    /// Docks the Messages pane in the bottom dock (D14) when it is closed, and fetches its table now (the end of the
+    /// Docks the Messages pane in the bottom dock when it is closed, and fetches its table now (the end of the
     /// dispatch fetches none twice: the table is of the current revision).
     fn open_messages(&mut self) {
         let pane = PaneKind::Navigator(NavKind::Messages);
@@ -486,7 +486,7 @@ impl ShellModel {
                 .as_ref()
                 .map(|p| ((p.epoch, p.session.world().rev.0), table, c));
             self.messages.checked_findings = findings;
-            // A check that found something offers the way to its list (FT-1761).
+            // A check that found something offers the way to its list.
             let action = (c.errors + c.warnings + c.infos > 0)
                 .then(|| self.project.as_ref().map(|p| p.epoch))
                 .flatten()

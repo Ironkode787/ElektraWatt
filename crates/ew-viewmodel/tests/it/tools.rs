@@ -361,7 +361,7 @@ fn enter_selects_and_measure_from_the_keyboard_alone() {
     for (_, p) in entity_points(shell.canvas().unwrap()) {
         done(&mut shell, "cursor.set", at(p, json!({})));
         let c = shell.canvas().unwrap();
-        // The hover's entity, where the Select tool's pick (with FT-500) agrees with it.
+        // The hover's entity, where the Select tool's pick (where routes overlap) agrees with it.
         let page = c.page();
         let slop = ew_viewmodel::canvas::HOVER_SLOP_PT / c.points_per_nm();
         if c.cursor_link().is_none()
@@ -767,7 +767,7 @@ fn tool_events_on_a_cached_page_make_no_session_call() {
     shell.shutdown();
 }
 
-/// The canvas context menu (FT-1693) over an object lists what fits it first (a fuse of a device: Choose part…, Edit
+/// The canvas context menu over an object lists what fits it first (a fuse of a device: Choose part…, Edit
 /// symbol, Copy and edit), then the command bar's selection commands (the Arrange group, a split button followed by its
 /// other variant) and Keep in place, then Cut, Copy, Paste, Delete and Properties, in the registry's words; over nothing it offers Paste,
 /// Page properties and New page…, over the frame Title block fields… first. On a read-only project the editing entries

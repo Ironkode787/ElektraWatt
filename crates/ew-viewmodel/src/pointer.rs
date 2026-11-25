@@ -18,7 +18,7 @@ pub const GRIP_PT: f64 = 4.0;
 pub const GRIP_SLOP_PT: f64 = 7.0;
 
 /// How far a connection point attracts the pointer, in screen points, at every zoom: what Select rings and what the
-/// Wire tool's click takes (FT-1800, at eight points a click nine points off a port placed a bend). A little
+/// Wire tool's click takes (at eight points a click nine points off a port placed a bend). A little
 /// under ten: at 100 % a step of the QET grid is ten points, and the grid point beside a pin stays one for a bend.
 pub const CP_SNAP_PT: f64 = 9.5;
 

@@ -55,7 +55,7 @@ card-cancel = Cancel
 card-stale = stale
 card-failed = failed: { $p0 }
 
-# WP-S2.17 part 4: cards, badges, empty states and outcome badges (doc 16a §6.16, §6.17, §6.23).
+# cards, badges, empty states and outcome badges (doc 16a §6.16, §6.17, §6.23).
 card-strip-failed = { $p0 } failed: { $p1 }
 card-as-of = as of rev { $p0 }
 card-title-reorder = Reorder pages
@@ -100,7 +100,7 @@ lib-access-writable = Writable
 lib-profile-unreadable = the address profile { $p0 } cannot be read: { $p1 }
 card-failed-rule = Rule { $p0 }
 
-# FT-755: the Libraries navigator's copy detail
+# The Libraries navigator's copy detail
 library-copy-kind-key = { $p0 } · { $p1 }
 library-copy-not-installed = no installed library
 part-choose-fits = Only parts that fit
@@ -114,7 +114,7 @@ part-choose-nothing = No part to choose; change the search.
 part-choose-more = Search all parts…
 part-edit-fork-note = Saving creates a project copy of this part; the library is not changed
 
-# The part card in the Preview tab (D20): the field diff, the devices and the parts list rows.
+# The part card in the Preview tab: the field diff, the devices and the parts list rows.
 part-card-field = { $p0 }: { $p1 } → { $p2 }
 part-card-devices = Used by { $p0 }
 part-card-removed = Parts list row removed: { $p0 }

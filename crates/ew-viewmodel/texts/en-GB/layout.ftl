@@ -77,7 +77,7 @@ auto-fill-cause-all-placed = Every device of { $p0 } is placed already.
 auto-fill-cause-none = No device has the location { $p0 } yet: give devices this location in Properties, under Structure.
 layout-show-item-numbers = Show item numbers
 enclosure-new-no-part = No enclosure part is in the project or an installed library; type a part number.
-# rc.3: the Create enclosure dialog draws an enclosure the location has, and off a panel layout page it makes one.
+# The Create enclosure dialog draws an enclosure the location has, and off a panel layout page it makes one.
 enclosure-draw-here = Draw { $p0 } of { $p1 } on this page
 enclosure-draw-new-page = Draw { $p0 } of { $p1 } on a new panel layout page
 enclosure-create-new-page = Create and draw on a new panel layout page
@@ -110,7 +110,7 @@ rack-addresses-moved = The modules' addresses moved with their slots.
 rack-next-overview = Make the overview page
 rack-next-bus = Put it on a bus page…
 rack-next-fluid = Draw on a fluid page…
-# rc.5 (H2): each side of a station is drawn on a page of its kind, from its own line under To do.
+# Each side of a station is drawn on a page of its kind, from its own line under To do.
 rack-next-electrical = Draw on an electrical page…
 rack-draw-here = Draw on page { $p0 }
 rack-put-here = Put it on page { $p0 }
@@ -118,7 +118,7 @@ rack-draw-new-electrical = Draw on a new electrical page
 rack-put-new-bus = Put it on a new bus page
 rack-draw-new-fluid = Draw on a new fluid page
 rack-todo-electrical-side = The electrical side of { $p0 }, its supply and outputs as a box, is on no electrical page yet.
-# rc.5 (H14): a station's tag, or a card's, changed in the station's view.
+# A station's tag, or a card's, changed in the station's view.
 rack-rename-station = Tag { $p0 }: click to change it
 rack-rename-module = Change the tag of { $p0 }
 rack-draft-tag = Tag

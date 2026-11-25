@@ -36,8 +36,8 @@ pub fn selected_movable(selection: &Selection, page: &CanvasPage) -> Vec<EntityR
 }
 
 /// `moved` and, after them, the other boxes of each device whose interface's box on a bus-topology page it holds
-/// (doc 10 §2.7, FT-1766): a device with several bus interfaces stands there as a box per interface, and its boxes move
-/// together, as one box for such a device would (FT-1904).
+/// (doc 10 §2.7): a device with several bus interfaces stands there as a box per interface, and its boxes move
+/// together, as one box for such a device would.
 pub fn with_its_boxes(tables: &ew_api::output::PageTables, mut moved: Vec<EntityRef>) -> Vec<EntityRef> {
     let port_box = |r: &&ew_api::output::TableRep| r.rep_type == "topology" && r.black_box.is_some();
     let devices: Vec<_> = tables

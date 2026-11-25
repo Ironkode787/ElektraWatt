@@ -33,7 +33,7 @@
 //! | armed | `Escape` | — | `None` (the host returns to Select) |
 //!
 //! **The fields.** `marker.fields` sets the cross-section (`csa`) and the colours (each entry one or two codes); the
-//! ghost says them (`2.5 BK BU`). One colour typed for several crossed wires is every wire's colour (FT-1684). The
+//! ghost says them (`2.5 BK BU`). One colour typed for several crossed wires is every wire's colour. The
 //! angle is 90° when every crossed segment is horizontal, else 0. A commit the host refuses gives the typing state
 //! back, so the fields can be corrected and Enter pressed again.
 

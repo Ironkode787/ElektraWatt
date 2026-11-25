@@ -224,7 +224,6 @@ pub(crate) struct ToolHost {
     /// Whether a `layout.*` commit of this dispatch announces the selected placement's live text once the page is
     /// read again (at the end of the dispatch).
     pub layout_announce: bool,
-    // FT-900, FT-995
     /// The schematic Place tool committed: at the end of the dispatch the representations it made are the selection.
     pub placed: bool,
     /// The device a layout drop placed: at the end of the dispatch its placement is the selection.

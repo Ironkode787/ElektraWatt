@@ -226,7 +226,7 @@ impl ShellModel {
             c.query.favourites = favourites;
             c.query.recent = recent;
             (c.query.purpose_categories, c.query.purpose_kinds) = purposes(&c.query.text);
-            // A part's description in the window's language, else English, else its first (FT-2066).
+            // A part's description in the window's language, else English, else its first.
             c.query.lang = Some(strings::rule_language().to_owned());
             c.offers = project.session.part_offers(&c.query);
             // A layout kind is offered to a device only where panel layout
@@ -284,7 +284,7 @@ impl ShellModel {
         terminals.into_iter().map(|(_, id)| id).collect()
     }
 
-    /// The terminals of strip `strip` (its ID) without a part as `part.choose`'s target (a strip's row, FT-1695).
+    /// The terminals of strip `strip` (its ID) without a part as `part.choose`'s target (a strip's row).
     pub(super) fn strip_terminals_target(&self, strip: &str) -> Result<Target, Outcome> {
         let terminals = strip
             .parse()

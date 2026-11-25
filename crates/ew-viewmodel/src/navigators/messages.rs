@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The message panel on the navigator framework (D8, D9, D10): the view state that the table of
+//! The message panel on the navigator framework: the view state that the table of
 //! `NavKind::Messages` does not hold, and the pure rules over that table.
 //!
 //! **Pending** (FR-UI-041). The shell keeps the **editing page**: the focused tab's page after every successful

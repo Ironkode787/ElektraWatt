@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1846: the PLC grid's Function text cells are the wired devices' function texts for every gesture: fill down
+//! The PLC grid's Function text cells are the wired devices' function texts for every gesture: fill down
 //! and paste set them as typing does, and a cell of a channel nothing is wired to is refused in words.
 
 use crate::common::{Tmp, done};

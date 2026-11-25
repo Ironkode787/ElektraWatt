@@ -89,7 +89,7 @@ impl PaneKind {
         PaneKind::Glossary,
     ];
 
-    /// The panes of the bottom dock (D14): they share one tab group below the page view (the
+    /// The panes of the bottom dock: they share one tab group below the page view (the
     /// Messages navigator is one of them, the Preview tab, the history panel and the
     /// glossary pane).
     pub const BOTTOM: [PaneKind; 9] = [

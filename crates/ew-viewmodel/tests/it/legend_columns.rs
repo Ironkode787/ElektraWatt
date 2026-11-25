@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A legend chooses its printed columns as a list does (doc 09 §3.8, FT-1772): a legend box beside a layout
+//! A legend chooses its printed columns as a list does (doc 09 §3.8): a legend box beside a layout
 //! (`common::legend_box`) made before its block had columns of its own prints the report's four columns, and List
 //! columns…, with the legend selected, offers the description among the others; its Apply makes the legend print it.
 

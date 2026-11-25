@@ -142,10 +142,10 @@ pub struct PlaceTool {
     joinable: bool,
     /// The target before the Join chooser set a [`PlaceTarget::Join`]: what its "New device" row restores.
     base: Option<PlaceTarget>,
-    /// The library documents the placement embeds (FT-656): the starter symbol, its FnDef and a part's closure the
+    /// The library documents the placement embeds: the starter symbol, its FnDef and a part's closure the
     /// project lacked when the tool armed. The host sends only those the project still lacks.
     copies: Vec<Value>,
-    /// How many terminals one click lays in a row (Terminal…'s count, FT-1695); 1 for every other placement.
+    /// How many terminals one click lays in a row (Terminal…'s count); 1 for every other placement.
     row: u32,
     /// How many grid steps right of a terminal of its strip the next terminal lands (Terminal…'s Spacing).
     spacing: u32,
@@ -235,7 +235,7 @@ impl PlaceTool {
         }
     }
 
-    /// The tool laying `row` terminals with one click (FT-1695).
+    /// The tool laying `row` terminals with one click.
     pub fn with_row(mut self, row: u32) -> PlaceTool {
         self.row = row.max(1);
         self
@@ -263,7 +263,7 @@ impl PlaceTool {
         self
     }
 
-    /// The tool with the library documents its placements embed (`device.place`'s `copies`, FT-656).
+    /// The tool with the library documents its placements embed (`device.place`'s `copies`).
     pub fn with_copies(mut self, copies: Vec<Value>) -> PlaceTool {
         self.copies = copies;
         self
@@ -811,7 +811,7 @@ impl PlaceTool {
     }
 
     /// Whether a commit counted the designation on since the last call: the host then reads the strip's lowest free
-    /// designation once (FT-1546), never over a designation the user gave.
+    /// designation once, never over a designation the user gave.
     pub fn take_counted(&mut self) -> bool {
         std::mem::take(&mut self.counted)
     }
@@ -896,7 +896,7 @@ impl Tool for PlaceTool {
                 moved: self.proposal_note(),
                 autoconnect: true,
             }),
-            // FT-900: what a placement made is the selection, replacing it; the tool stays armed.
+            // What a placement made is the selection, replacing it; the tool stays armed.
             select_placed: true,
             ..super::Follows::default()
         }

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! After `props.project` the page's own rows can be reached again (FT-1868): `select.set` with no IDs, as a click on
+//! After `props.project` the page's own rows can be reached again: `select.set` with no IDs, as a click on
 //! the empty page, and another page shown give Properties the page's sheet; before, it stayed on the project's until
 //! something was selected.
 

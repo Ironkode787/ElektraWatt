@@ -12,7 +12,7 @@
 //!   `fields.set_many`, one undo step). Its form offers the project's cables by tag, two cables with one tag told
 //!   apart by their part and position (`Session::cables`).
 //!
-//! - **Cable…** (`cable.from_wires`, FT-1685) is the one flow from the Draw tab: the selected wires become the cores
+//! - **Cable…** (`cable.from_wires`) is the one flow from the Draw tab: the selected wires become the cores
 //!   of a new cable, or of the cable one of them already belongs to, in one form (`Session::cable_form`, its tag, its
 //!   type as written, `3G1.5`, and the wires with their cores) and one apply (`Session::cable_apply`).
 //!
@@ -401,7 +401,7 @@ impl ShellModel {
             )
     }
 
-    /// `cable.from_wires {tag?, type?, cores?}` (Draw ▸ Connect ▸ Cable…, FT-1685): the selected wires as the cores of
+    /// `cable.from_wires {tag?, type?, cores?}` (Draw ▸ Connect ▸ Cable…): the selected wires as the cores of
     /// a cable, in one form. Without `type` the window opens the form: the cable's tag (the cable one of the wires
     /// already belongs to, else the tag a new cable would take), its type (that cable's, else `<n>X<cross-section>`
     /// of the first wire), and the wires with the core each gets, which the person can change. With `type` it applies:
@@ -410,7 +410,7 @@ impl ShellModel {
     /// absent, each wire keeps its core
     /// or takes the next free one. A new cable is one undo step; an existing cable that gains cores is two. No wire
     /// selected, a type, a core or a tag the form does not take: refused in words. With `cable` (its ID, a Cables row's
-    /// Cable…, FT-1693) the page of its first wire shows first, the cable's wires there selected.
+    /// Cable…) the page of its first wire shows first, the cable's wires there selected.
     pub(crate) fn act_cable_from_wires(&mut self, p: &Map<String, Value>) -> Outcome {
         if let Some(cable) = given(p, "cable") {
             let Ok(cable) = cable.parse::<Uuid>() else {

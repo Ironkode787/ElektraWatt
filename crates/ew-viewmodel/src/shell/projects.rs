@@ -52,11 +52,11 @@ pub(super) struct ImportState {
     pub(super) reimport_proposal: Option<(u64, PathBuf, ew_api::import::LineageInfo)>,
     /// The re-import's proposal (T6) or card that waits behind a dialog open when its job ended.
     pub(super) reimport_waiting: Option<Dialog>,
-    /// The EPLAN Data Portal terms notice was shown in this session (WP-S3.18, FR-IMP-026).
+    /// The EPLAN Data Portal terms notice was shown in this session (FR-IMP-026).
     pub(super) edz_terms: bool,
-    /// The drawing import running as a job (FT-1753).
+    /// The drawing import running as a job.
     pub(super) drawing: Option<super::drawing_import::DrawingJob>,
-    /// The imports whose reading runs as a job (FT-1763).
+    /// The imports whose reading runs as a job.
     pub(super) reads: Vec<super::read_jobs::ReadJob>,
 }
 
@@ -99,7 +99,7 @@ pub(crate) struct ReimportJob {
     pub(super) epoch: u64,
 }
 
-/// What a re-import job found (D10): a proposed lineage still to be accepted (T6), or the batch imported into the
+/// What a re-import job found: a proposed lineage still to be accepted (T6), or the batch imported into the
 /// lineage it re-imports into.
 #[derive(Debug)]
 pub(crate) enum ReimportFound {
@@ -842,7 +842,7 @@ impl ShellModel {
     /// `file.reimport_qet {file?, accept?}`: the QElectroTech file re-imported into its earlier
     /// import in the open project. A file matched by its items asks T6 first (`accept: true` answers it); a file of
     /// another project is refused with T7; else the re-import card shows T8 and its rows. Nothing changes until Apply.
-    /// As the import, the importer runs as a job, once (D4); the plan and its preview follow on this thread.
+    /// As the import, the importer runs as a job, once; the plan and its preview follow on this thread.
     pub(crate) fn act_reimport_qet(&mut self, p: &Map<String, Value>) -> Outcome {
         let file = match string_param(p, "file") {
             Err(e) => return e,
@@ -1463,7 +1463,7 @@ impl ShellModel {
             },
             Access::ReadOnly(reason) => {
                 let key = read_only_key(reason);
-                // FT-1383: a damaged library copy a device uses is named, with the way out.
+                // A damaged library copy a device uses is named, with the way out.
                 let damaged = matches!(reason, ReadOnlyReason::Integrity)
                     .then(|| session.damaged_copy())
                     .flatten();
@@ -1554,7 +1554,7 @@ impl ShellModel {
             Err(e) => {
                 let message = strings::format(key!("error-save"), &[strings::text(save_error_key(&e))]);
                 self.banner = Some(message.clone());
-                // After Decide later (D24), a save held by the collisions shows their dialog again.
+                // After Decide later, a save held by the collisions shows their dialog again.
                 if matches!(e, SaveError::ExternalCollisions) && self.dialog.is_none() {
                     self.open_collisions();
                 }
@@ -1574,7 +1574,7 @@ impl ShellModel {
     }
 
     pub(crate) fn act_save_as(&mut self, p: &Map<String, Value>) -> Outcome {
-        // FT-1383: a project whose damaged library copy a record names is not copied: the copy would not open.
+        // A project whose damaged library copy a record names is not copied: the copy would not open.
         // One that no record names is left out of the copy, which says so.
         let damaged = self.project.as_ref().and_then(|p| p.session.damaged_copy());
         if let Some(d) = damaged.as_ref().filter(|d| !d.left_out) {
@@ -1635,7 +1635,7 @@ impl ShellModel {
         }
     }
 
-    /// `library.update_damaged` (the damaged-copy banner's Update from library, FT-1499): every damaged library
+    /// `library.update_damaged` (the damaged-copy banner's Update from library): every damaged library
     /// copy an installed library holds is written from it, and the project opens again, writable when the integrity
     /// check passes, else read-only with its banner; a toast says what was updated and names the copies that were not.
     /// A refusal (another session holding the project among them) is a banner in words, nothing written.

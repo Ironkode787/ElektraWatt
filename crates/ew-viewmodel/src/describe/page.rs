@@ -30,8 +30,8 @@ const FRACTIONS: [i64; 31] = [
     30, 1, 31,
 ];
 
-/// A sheet point on the drawn polyline of `wire` that the Select tool's press picks as this wire (the pick rule as
-/// FT-500 amends it), so a reader of the page text can hover, select or delete it: with the pick reach
+/// A sheet point on the drawn polyline of `wire` that the Select tool's press picks as this wire (the pick rule where routes overlap),
+/// so a reader of the page text can hover, select or delete it: with the pick reach
 /// at 50 % zoom (else at 90 %), the wire is first in the pick stack there ([`crate::tools::pick_stack`]) and no other
 /// connection is in it, and no link is under it (a press on a link follows it). The candidates are the points at n/32 of each segment ([`FRACTIONS`]: the middle first, then
 /// outward), longer segments first (ties: the segment's order); `None` when no candidate is unambiguous (an unrouted
@@ -103,8 +103,8 @@ pub(crate) fn pin_in_sentence(label: &str) -> String {
 }
 
 /// The English ordinal suffixes, for a number ending in 1, 2 or 3 and for every other number (the teens 11 to 13
-/// take the last). English only for now: this table is what the shell's Fluent tables localise
-/// (FT-752), where a language's ordinal rule replaces the choice in [`ordinal`].
+/// take the last). English only for now: this table is what the shell's Fluent tables localise,
+/// where a language's ordinal rule replaces the choice in [`ordinal`].
 const ORDINAL_SUFFIXES: [&str; 4] = ["st", "nd", "rd", "th"];
 
 /// An English ordinal: `1st`, `2nd`, `3rd`, `4th`, `11th`, `12th`, `13th`, `21st` ([`ORDINAL_SUFFIXES`]).
@@ -272,7 +272,7 @@ pub fn page_table_lines(table: &ew_api::output::PageListTable) -> Vec<String> {
 /// by their end labels; junctions in reading order; items and boxes in the page tables' order). The header's
 /// `items <n> boxes <m>` follows `junctions <j>` only when the page has one of them, so a page without items prints
 /// as before. No record ID appears. A representation whose bound pins print PLC addresses on the canvas ends its line
-/// with `address "<pin>=<address>" …` (FT-823).
+/// with `address "<pin>=<address>" …`.
 pub fn page_describe(page: &CanvasPage) -> String {
     let t: &PageTables = &page.tables;
     let mut header = format!(
@@ -349,7 +349,7 @@ pub fn page_describe(page: &CanvasPage) -> String {
             page_quoted(&variant_letter(r.orient).to_string()),
             page_at(page, r.pos)
         );
-        // FT-823 (the checker's A11): the PLC addresses the canvas prints beside the representation's bound pins, on
+        // The PLC addresses the canvas prints beside the representation's bound pins, on
         // its own line as `address "<pin>=<address>" …` in CP order (the pin is the CP label after its last `:`).
         let addresses: Vec<String> = cps
             .iter()
@@ -402,7 +402,7 @@ pub fn page_describe(page: &CanvasPage) -> String {
                 .map(|w| w[1])
                 .collect();
             let bends = corners.len();
-            // Where the wire runs: its corners in order from its first end, as `x,y` in sheet mm (FT-1660: the bend
+            // Where the wire runs: its corners in order from its first end, as `x,y` in sheet mm (the bend
             // count alone did not say whether a route ran round a symbol or along another wire).
             let via = if corners.is_empty() {
                 String::new()

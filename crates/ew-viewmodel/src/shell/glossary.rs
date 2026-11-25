@@ -21,7 +21,7 @@ use crate::layout::PaneKind;
 /// The glossary pane's search text and row cursor.
 #[derive(Default)]
 pub(super) struct GlossaryState {
-    /// The glossary pane's search text (D16).
+    /// The glossary pane's search text.
     pub(super) filter: String,
     /// The glossary pane's row cursor, an index into its rows; none before the first move.
     pub(super) row: Option<usize>,

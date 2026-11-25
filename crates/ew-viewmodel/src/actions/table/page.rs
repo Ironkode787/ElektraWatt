@@ -40,7 +40,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_page_fit_grid(p),
         )),
     ),
-    // Page, Title block fields…: the focused page's title-block fields in one form (FT-1686), for the title block's
+    // Page, Title block fields…: the focused page's title-block fields in one form, for the title block's
     // right-click menu too. Its parameters are the title-block paths the form shows (`project.drawing_id`), which no
     // signature word can spell.
     placed(
@@ -150,7 +150,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
-    // Page, Copy pages…: the marked pages copied for a second installation (doc 06 §3.6, FT-1862); also on a page
+    // Page, Copy pages…: the marked pages copied for a second installation (doc 06 §3.6); also on a page
     // row's right-click menu.
     with_params(
         "pages?:list(text), offset?:uint, after?:text, node?:text, code?:text, rename?:json",

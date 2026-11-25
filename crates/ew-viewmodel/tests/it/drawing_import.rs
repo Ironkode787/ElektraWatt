@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A drawing imported through `file.import_drawing` on a writable copy of the sample (WP-S3.19, doc 14 §13): the import
+//! A drawing imported through `file.import_drawing` on a writable copy of the sample (doc 14 §13): the import
 //! runs as a job of the Jobs pane that Cancel ends with nothing imported, and a drawing added as a page takes a folio no
 //! page has. Not here: File ▸ Import…, its dialog and its toasts in the window (`ew-ui`'s `drawing_import.rs`).
 
@@ -14,7 +14,7 @@ use serde_json::json;
 const PLAN: &str = "0\nSECTION\n2\nENTITIES\n0\nLWPOLYLINE\n8\n0\n90\n4\n70\n1\n10\n20\n20\n20\n10\n120\n20\n20\n\
 10\n120\n20\n70\n10\n20\n20\n70\n0\nENDSEC\n0\nEOF\n";
 
-/// FT-1753: a drawing import runs as a job of the Jobs pane, off the window's thread: held at its start, it is listed
+/// A drawing import runs as a job of the Jobs pane, off the window's thread: held at its start, it is listed
 /// as running, and its Cancel ends it with nothing imported and the cancel said in words. The test waits until the job
 /// stands at its gate before it cancels and releases (a release before the job arrived left it held for good on a
 /// loaded machine), then for the job's own end: no clock is in it.
@@ -80,7 +80,7 @@ fn a_drawing_page_takes_a_folio_no_page_has() {
 }
 
 /// A drawing import's end comes after the step that started it: a drawing that cannot be read is said in the banner, as
-/// it was before the import became a job (FT-1763).
+/// it was before the import became a job.
 #[test]
 fn a_drawing_that_cannot_be_read_says_so_in_the_banner() {
     let tmp = Tmp::new("drawing-unread");

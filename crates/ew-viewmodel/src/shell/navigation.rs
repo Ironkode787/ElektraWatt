@@ -1367,7 +1367,7 @@ impl ShellModel {
         }
     }
 
-    /// The folio of the first page of the project's parts list (FT-717): the first page in page order of a
+    /// The folio of the first page of the project's parts list: the first page in page order of a
     /// `parts_summary` report block (the BOM), else of a `parts_list` block; `None` when the project has neither
     /// with a page.
     pub fn parts_list_folio(&self) -> Option<String> {
@@ -1389,7 +1389,7 @@ impl ShellModel {
         })
     }
 
-    /// `lists.parts` (FT-717): opens the first page of the parts list in the focused group, as `page.goto` does, and
+    /// `lists.parts`: opens the first page of the parts list in the focused group, as `page.goto` does, and
     /// a toast says it opened the set's list (it makes none).
     /// The command ends with that page fitted in the canvas and its row selected in the page tree,
     /// and the earlier export's toast dismissed, so its effect is in view.

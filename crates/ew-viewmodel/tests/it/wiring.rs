@@ -301,7 +301,7 @@ fn backspace_after_two_collinear_bends_keeps_the_first() {
 }
 
 /// Fix round item 1: the Wire tool draws the page type's connection kind (doc 06 §2.2): a bus line on a bus-topology
-/// page (folio 105, FT-434), refused on a generated report page (folio 908, with the page type's reason), a fluid line
+/// page (folio 105), refused on a generated report page (folio 908, with the page type's reason), a fluid line
 /// on a fluid page (folio 201), a wire (no `kind` sent) on a multi-line page. (The sample has no assembly overview,
 /// whose kind is `overview`.)
 #[test]
@@ -1319,7 +1319,7 @@ fn a_stored_route_and_a_contact_inserted_split_the_wire() {
     let printed = |id: &str| session.property_sheet(&[id.parse().unwrap()]).header.title;
     let (kept_number, half_number) = (printed(&w13.id.to_string()), printed(&new[0].id.to_string()));
     // FR-CON-008 keeps W13's record on the side of the end its number is counted from, so W13 prints the number the
-    // page printed for it and the new half the next one (FT-1918).
+    // page printed for it and the new half the next one.
     assert_eq!(
         kept_number, number_before,
         "{number_before}: kept {kept_number}, new half {half_number}"
@@ -1874,7 +1874,7 @@ fn arrange_says_that_nothing_is_left_when_every_row_is_unticked() {
         done(&mut s, "layout.arrange", json!({}));
         // Each untick plans again; the first ticked row goes until the card does. The rows are the symbols that move
         // and the wires you drew that get a new route, which Arrange's plan gives such a wire though Route keeps it
-        // (FT-1892: the sample's -X1031:SH/b → -103M1:PE, two bends fewer), so one untick per row of the first card
+        // (the sample's -X1031:SH/b → -103M1:PE, two bends fewer), so one untick per row of the first card
         // closes it.
         let rows = describe_line(&s, "card ").map_or(0, |c| c.matches(" [x] \"").count());
         for _ in 0..=rows {

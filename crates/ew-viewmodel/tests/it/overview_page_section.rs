@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1823: the overview page a valve terminal's To do makes stands with its fluid diagram (doc 10 §6): a terminal
+//! The overview page a valve terminal's To do makes stands with its fluid diagram (doc 10 §6): a terminal
 //! made in the station view of the sample and drawn first on an electrical page of the wiring section, then on the
 //! fluid page of the Pneumatics section, gets its overview page in the Pneumatics section.
 

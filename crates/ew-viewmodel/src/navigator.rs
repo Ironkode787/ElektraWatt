@@ -250,7 +250,7 @@ impl PageNavigator {
 
     /// Whether a page row passes the filter: the framework's filter over the row's label
     /// `<folio> <title>`, its tokens and its facets (`page:<folio>`, `kind:page`). A substring of the folio or of the
-    /// title is a substring of the label, so the as-built matches are kept (D6).
+    /// title is a substring of the label, so the as-built matches are kept.
     fn matches(&self, row: &PageRow, query: &crate::navigators::Query) -> bool {
         if self.filter.is_empty() {
             return true;

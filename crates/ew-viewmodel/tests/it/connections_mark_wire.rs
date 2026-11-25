@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A wire selected on the page marks its row in Connections (FT-1912): every connection row of the sample drawn on
+//! A wire selected on the page marks its row in Connections: every connection row of the sample drawn on
 //! pages 102 and 104, its record there selected alone (the selection a click on the wire makes), is marked.
 
 use crate::common::{Tmp, done};

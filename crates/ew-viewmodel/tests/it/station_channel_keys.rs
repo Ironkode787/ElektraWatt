@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1838: the station view's channel table has a keyboard cursor as the window's other tables have: the cell last
+//! The station view's channel table has a keyboard cursor as the window's other tables have: the cell last
 //! clicked or typed in keeps it, F2 opens the cell it stands on, the arrows walk the cells, and a place chosen in the
 //! rack takes the keys back, so F2 changes a tag there again.
 

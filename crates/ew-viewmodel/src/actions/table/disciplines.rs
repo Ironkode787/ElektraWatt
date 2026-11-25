@@ -67,7 +67,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         }),
     ),
     // PLC ▸ Workspace: the PLC workspace and the PLC guide, small: the workspace switch in the tab row does the
-    // same, and Select and Wire lead the tab (FT-1806).
+    // same, and Select and Wire lead the tab.
     placed(
         place(Group::PlcWorkspace, 1, CommandSize::Small, None),
         "app-window",

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The action table, section `automation`: the window's entries of the PLC, bus and fluid commands (WP-S2.13), each
+//! The action table, section `automation`: the window's entries of the PLC, bus and fluid commands, each
 //! building one declared command (`plc.*`, `bus.*`, `fluid.*`, `assembly.attach`) from the row or the selection it is
 //! aimed at.
 
@@ -9,7 +9,7 @@ use super::super::enabled::*;
 use super::super::*;
 
 pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
-    // A CPU row's Attach cards without a station (FT-1672): the cards that wait for a CPU become children of the station.
+    // A CPU row's Attach cards without a station: the cards that wait for a CPU become children of the station.
     with_params(
         "station:ref, card?:ref",
         needs_parameters(in_navigator(with_aliases(
@@ -106,7 +106,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_plc_module(p, "draw"),
         )),
     ),
-    // A drawn module's box put on another schematic page (FT-2134).
+    // A drawn module's box put on another schematic page.
     with_params(
         "folio:text",
         hidden(act(
@@ -140,7 +140,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         )),
     ),
-    // A card of the older two-row form drawn again in one row in its place (FT-1897); the box's menu offers it.
+    // A card of the older two-row form drawn again in one row in its place; the box's menu offers it.
     hidden(act(
         "plc.card_redraw",
         Command,
@@ -150,7 +150,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_card_redraw(),
     )),
-    // The terminals wired to a card take its wire on the pin that faces it (FT-2083); the box's menu offers it.
+    // The terminals wired to a card take its wire on the pin that faces it; the box's menu offers it.
     hidden(act(
         "plc.card_terminals_face",
         Command,
@@ -200,7 +200,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         )),
     ),
     // A configuration project's or a module's previewed addressing command (its row menu, FR-PLC-014/-015). A small
-    // button since Select and Wire lead the tab (FT-1806), so that the tab keeps within 1920 in every language.
+    // button since Select and Wire lead the tab, so that the tab keeps within 1920 in every language.
     with_params(
         "cmd:text, params?:json",
         needs_parameters(in_navigator(placed(
@@ -312,7 +312,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ))),
     ),
-    // The PLC navigator rows' settings forms (FT-1752): Symbol policy…, Safety data…, Mode and safety….
+    // The PLC navigator rows' settings forms: Symbol policy…, Safety data…, Mode and safety….
     with_params(
         "config:ref, template?:text, tag_table?:text, strict_iec?:text",
         needs_parameters(in_navigator(with_aliases(
@@ -362,7 +362,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ))),
     ),
-    // PLC ▸ Addresses: Process-tag scheme… and Channel addresses at terminals; Fluid ▸ Media: Fluid settings… (FT-1752).
+    // PLC ▸ Addresses: Process-tag scheme… and Channel addresses at terminals; Fluid ▸ Media: Fluid settings….
     with_params(
         "scheme?:text",
         placed(

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ui.actions` prints the action list into the transcript, as `ui.describe` prints the window (FT-1868): a script
+//! `ui.actions` prints the action list into the transcript, as `ui.describe` prints the window: a script
 //! finds every action, its parameters and whether it runs now without the source at hand.
 
 use crate::common::Tmp;

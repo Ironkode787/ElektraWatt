@@ -6,12 +6,12 @@
 
 param-record = Record
 param-words = Words
-# FT-1256 (doc 16a §8 item 5): a form's common refusal reasons, each with what to do next.
+# A form's common refusal reasons, each with what to do next.
 form-refused-step = { $p0 }. { $p1 }
 form-step-read-only = File ▸ Save as… makes a copy that can be changed.
 form-step-no-page = Open a page, or choose another scope.
 form-step-no-devices-selected = Select the devices first, or choose another scope.
-# FT-1237 (ID-1315): the lists a command's parameter names.
+# The lists a command's parameter names.
 param-ips = Interruption points
 param-cps = Connection points
 param-reps = Symbols
@@ -82,7 +82,7 @@ form-terminal-count = How many
 form-terminal-from = From number
 form-terminal-tag = Tag of a new strip
 form-renumber-section = Section (number, or front)
-# ID-1497 (4): the line under Renumber pages' Start.
+# The line under Renumber pages' Start.
 form-renumber-start-note = Section dividers keep their numbers.
 form-start = Start
 form-page-copy-offset = Folio offset (added to each folio number)
@@ -135,7 +135,7 @@ form-auto-fill-rail = Rail
 form-auto-fill-order = Order
 form-auto-fill-devices = Devices to place
 form-auto-fill-tick = On the rail
-# Cycle 49, the Dutch UI's fix round (ID-1278). Ruling 1: the labels of the palette's parameter forms, `param-<name>`
+# Cycle 49, the Dutch UI's fix round. Ruling 1: the labels of the palette's parameter forms, `param-<name>`
 # (`_` as `-`), the label derived from the name before.
 param-by = By
 param-discard = Discard
@@ -208,7 +208,7 @@ form-template-use = Use for new projects
 form-hint-project-save-as-template-folder = The template is made in a new folder of this name inside it.
 form-cable-type-new = New cable type…
 
-# rc.5: a bus line's cable and plugs made in the window
+# A bus line's cable and plugs made in the window
 form-bus-cable-which = Cable
 form-bus-cable-new = A new cable
 form-bus-cable-new-part = New bus cable…

@@ -149,7 +149,7 @@ fn page_describe_is_refused_without_a_project_and_fails_for_an_unknown_folio() {
 
 /// BD5 (the window host reads the same cache): the first `page.describe` of a folio makes one `page_tables`
 /// call with the page content that carries it, a second makes none and re-executes no memoised query. On folio 102,
-/// which draws a strip: its bridge lines are asked again and answered from the memo (hits, no re-execution; FT-1914).
+/// which draws a strip: its bridge lines are asked again and answered from the memo (hits, no re-execution).
 #[test]
 fn page_describe_reads_the_cached_page_tables() {
     let tmp = Tmp::new("pagecount");

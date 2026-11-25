@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1761: the check's toast said what it found and had no way to the Messages list. A check that finds something
+//! The check's toast said what it found and had no way to the Messages list. A check that finds something
 //! offers Show messages, which opens the list.
 
 use crate::common;

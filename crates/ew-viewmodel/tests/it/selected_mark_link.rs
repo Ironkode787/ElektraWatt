@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A tap on a mark's own cross-reference follows it while the mark is selected (FT-1911): the sample's page 103, its
+//! A tap on a mark's own cross-reference follows it while the mark is selected: the sample's page 103, its
 //! incoming PE mark selected, a click on its cross-reference text to page 101 shows page 101, as it does with nothing
 //! selected.
 

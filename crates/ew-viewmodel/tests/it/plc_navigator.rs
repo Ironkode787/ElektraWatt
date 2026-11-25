@@ -124,7 +124,7 @@ fn coil_state(s: &mut ShellModel, attach: bool) -> Uuid {
     coil.id
 }
 
-/// FT-740 (FR-PLC-020's acceptance): the output Q0.1 of the card -104A1-A2, unbound, dropped on a port of the
+/// The output Q0.1 of the card -104A1-A2, unbound, dropped on a port of the
 /// spare valve -201K1-Q3's symbol on folio 201 binds the valve's internal coil 14, which is drawn without a CP: one
 /// command, and the toast names the coil.
 #[test]
@@ -482,7 +482,7 @@ fn a_device_wired_to_two_card_pins_asks_which() {
 
 /// Attachable: a valve not wired to a valve terminal (the sample's valve terminal module part EW-GEN-VTM-1, which
 /// has a solenoid-position map) is attached to it at its first free position and bound where it was dropped: one command,
-/// one undo step (FT-774), both named by the toast, which offers Undo.
+/// one undo step, both named by the toast, which offers Undo.
 #[test]
 fn a_valve_is_attached_to_a_valve_terminal_and_bound() {
     let tmp = Tmp::new("plcnav-ft753-attach");
@@ -577,7 +577,7 @@ fn the_grid_leads_with_address_and_target() {
     assert!(t.columns[0].key_column);
     let d = s.describe();
     assert!(d.contains("  columns \"Address\" \"Target\" "), "{d}");
-    // A channel bound to its card's own pin has no target until a wire leads somewhere (FT-903).
+    // A channel bound to its card's own pin has no target until a wire leads somewhere.
     assert!(d.contains("  row \"Q0.0\" \"\" "), "{d}");
 }
 
@@ -802,7 +802,7 @@ fn the_address_profile_is_chosen_in_properties() {
     );
 }
 
-/// FT-1551: a target typed into the PLC grid that names no device is refused in the window's language, the reference
+/// A target typed into the PLC grid that names no device is refused in the window's language, the reference
 /// resolver's reason included.
 #[test]
 fn a_target_that_names_no_device_is_refused_in_the_window_language() {

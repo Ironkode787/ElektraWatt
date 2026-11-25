@@ -402,7 +402,7 @@ static STRIP_NEW: Spec = Spec {
 };
 
 /// The report kinds Output ▸ Reports ▸ Report block… adds: every registered kind whose blocks fill pages of their own
-/// (`ew_api::output::page_report_kinds`, FT-1726), the parts list first, as the Output tab leads with its Parts list,
+/// (`ew_api::output::page_report_kinds`), the parts list first, as the Output tab leads with its Parts list,
 /// then ordered by their words in the UI language (the form opened on the first, which was "Bus cable list", a persona
 /// run).
 pub fn report_kinds() -> Vec<&'static str> {
@@ -575,7 +575,7 @@ impl ShellModel {
 
     /// `page.set_grid`'s parameters for page `page` and the grid `grid`, with the page's drawing area as the router
     /// reads it (`Session::page_draft`, its ticks back in nm), so that the fit keeps a pin's wire its way to the edge
-    /// (doc 06 §8 item 3, FT-2010).
+    /// (doc 06 §8 item 3).
     fn set_grid_params(&self, page: ew_api::output::Uuid, grid: Value) -> Value {
         let mut params = json!({"page": page.to_string(), "grid": grid});
         let area = self.tables_of_page(page).and_then(|(folio, t)| {

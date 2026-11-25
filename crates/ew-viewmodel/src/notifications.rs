@@ -95,9 +95,9 @@ note_actions! {
     GoTo = "go_to", "note-action-go-to-page";
     /// Route these too…: the preview of Route over the wires a page-wide Route left as the person's.
     RouteHis = "route_his", "note-action-route-his";
-    /// The Messages list, after a check that found something (FT-1761: the check's toast had no way to it).
+    /// The Messages list, after a check that found something (the check's toast had no way to it).
     ShowMessages = "show_messages", "note-action-show-messages";
-    /// The mouse wheel scrolls the page (View ▸ Mouse wheel scrolls on), after its first zoom (FT-1830).
+    /// The mouse wheel scrolls the page (View ▸ Mouse wheel scrolls on), after its first zoom.
     WheelScrolls = "wheel_scrolls", "note-action-wheel-scrolls";
     /// Fit the layout to the sheet, after a scale at which the layout runs over the frame's drawing area.
     FitSheet = "fit_sheet", "action-layout-fit-sheet";

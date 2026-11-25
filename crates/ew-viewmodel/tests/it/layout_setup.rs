@@ -442,7 +442,7 @@ fn a_new_projects_panel_page_takes_the_fitting_scale() {
         "the plate ({x0}, {y0})–({x1}, {y1}) inside the drawing area ({a0}, {b0})–({a1}, {b1})"
     );
     // One undo takes the view and the scale back, one redo brings them again. (Beside the layout centred on this
-    // frame a legend finds 59 mm, under its 60 mm, so none comes with the view: FT-2025.)
+    // frame a legend finds 59 mm, under its 60 mm, so none comes with the view.)
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(row_text(&s, "page/scale"), "Absent", "drawn not to scale");
     assert!(s.panel_tables().is_none(), "no surface view");
@@ -506,7 +506,7 @@ fn an_empty_layout_page_names_its_first_step_and_plate_chooses_a_plate() {
 
 /// The centred datum of the starter's plate on a new project's panel page at 1:5: the frame's drawing-area centre in
 /// page coordinates (140.229167, 89.958333 mm: a header band of 15.875/3 mm, 17 columns of 15.875 mm, 8 rows of
-/// 63.5/3 mm; FT-1768: not mapped through the frame's page-to-sheet map again) less the 600 × 800 mm enclosure's centre
+/// 63.5/3 mm; not mapped through the frame's page-to-sheet map again) less the 600 × 800 mm enclosure's centre
 /// in the plate's frame (offset 40 mm) at 1:5 (52 mm printed, 52.723227 mm on the page at the map's 0.986282578) in x,
 /// plus it (72 mm printed, 73.001391 mm on the page) in y.
 const NEW_PROJECT_DATUM: &str = "87.50594, 162.959724 mm";
@@ -819,7 +819,7 @@ fn enclosure_entry(s: &ShellModel) -> (bool, Option<String>) {
 }
 
 /// Library tiers in which the compiled-in starter parts are replaced by an empty library of their ID, so that no
-/// enclosure part is installed: a directory of the starter's ID replaces the compiled-in library (D6).
+/// enclosure part is installed: a directory of the starter's ID replaces the compiled-in library.
 fn tiers_without_starter_parts(root: &Path) -> LibraryTiers {
     let dir = root.join("company").join("ew-starter-parts.ewlib");
     std::fs::create_dir_all(&dir).unwrap();

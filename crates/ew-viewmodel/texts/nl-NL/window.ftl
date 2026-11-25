@@ -115,7 +115,7 @@ rail-pages = Pagina's
 rail-devices = Apparaten
 rail-views = Pagina's of apparaten
 status-ready = Gereed
-# FT-1405 (ID-1392): the state field after Help ▸ Tutorials without an installed guide.
+# The state field after Help ▸ Tutorials without an installed guide.
 status-guide-missing = De handleiding is niet met deze kopie van het programma geïnstalleerd
 status-selected = { $p0 } geselecteerd
 status-findings-errors = { $p0 } fouten
@@ -143,7 +143,7 @@ status-driver-tip = Samenvoegdriver instellen: git voegt de bestanden van dit pr
 bar-cable = Kabel
 bar-report = Rapport
 
-# A card that waits for Apply, in the status bar and on the Preview tab (the owner's test of 0.3.0-rc.1).
+# A card that waits for Apply, in the status bar and on the Preview tab.
 status-waiting = { $p0 ->
         [one] 1 wijziging wacht op Toepassen
        *[other] { $p0 } wijzigingen wachten op Toepassen
@@ -173,14 +173,14 @@ bar-plc-module-place = Hier plaatsen
 bar-plc-module-left = Naar links
 bar-plc-module-right = Naar rechts
 
-# rc.3: New project, the templates and the check level.
+# New project, the templates and the check level.
 window-title-template = Sjabloon: { $p0 } - ElektraWatt
 bar-templates = Sjablonen
 bar-save-as-template = Opslaan als sjabloon
 bar-check-level = Controleniveau
 
-# rc.3: Tekststijlen (Project ▸ Tekststijlen…).
+# Tekststijlen (Project ▸ Tekststijlen…).
 bar-text-styles = Tekststijlen
 
-# rc.3: F1 opent de uitleg bij wat onder de hand ligt; de statusbalk zegt wat het opent.
+# F1 opent de uitleg bij wat onder de hand ligt; de statusbalk zegt wat het opent.
 status-help = F1: { $p0 }

@@ -186,7 +186,7 @@ fn every_dialog_has_one_primary_never_destructive_and_asks_with_a_question_mark(
     let purge = spec(&dialogs[7], &shell);
     assert!(purge.confirms_destruction());
     assert_eq!(purge.danger.as_ref().map(|b| b.label.as_str()), Some("Purge"));
-    // So does taking a part out of My parts (FT-1766): Cancel the Primary, Remove the danger button.
+    // So does taking a part out of My parts: Cancel the Primary, Remove the danger button.
     let remove = spec(&dialogs[11], &shell);
     assert!(remove.confirms_destruction());
     assert_eq!(remove.title, "Remove SW-6 from your parts library?");

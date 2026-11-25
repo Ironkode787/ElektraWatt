@@ -329,7 +329,7 @@ fn has_995(s: &ShellModel) -> bool {
     s.page_labels().iter().any(|l| l == "995")
 }
 
-/// FT-499: Save As closes the original cleanly once the copy exists, so the
+/// Save As closes the original cleanly once the copy exists, so the
 /// edits that went into the copy leave no journal behind and the original reopens editable, without the recovery
 /// dialog and unchanged on disk.
 #[test]
@@ -369,7 +369,7 @@ fn save_as_closes_the_original_so_it_reopens_editable_without_a_journal() {
     s.shutdown();
 }
 
-/// FT-499: a Save As that cannot create its folder leaves the original and its journal as they were, so the dirty
+/// A Save As that cannot create its folder leaves the original and its journal as they were, so the dirty
 /// original is still recoverable after the session ends without a clean close.
 #[test]
 fn a_failed_save_as_keeps_the_original_journal() {

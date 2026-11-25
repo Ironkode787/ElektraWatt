@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Table mode (D10 to D13): the state of a navigator's table, its rows, the cell cursor, the
+//! Table mode: the state of a navigator's table, its rows, the cell cursor, the
 //! closed table of editable cells, and the compile rule that turns one gesture (a cell, a column over several rows, a
 //! fill-down, a pattern fill, a paste or a clear) into exactly one command.
 //!

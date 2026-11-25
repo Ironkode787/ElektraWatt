@@ -178,7 +178,7 @@ impl ShellModel {
     }
 
     /// The written file the window must hand to the system's file opener (Open PDF), taken once: its path, never a
-    /// `file://` URL (FT-1689: the URL handed to Windows' URL handler opened nothing).
+    /// `file://` URL (the URL handed to Windows' URL handler opened nothing).
     pub fn take_open_request(&mut self) -> Option<PathBuf> {
         self.jobs.open_request.take()
     }
@@ -680,7 +680,7 @@ impl ShellModel {
         let path = match string_param(p, "path") {
             Err(e) => return e,
             Ok(Some(path)) => absolute_target(PathBuf::from(path)),
-            // The native save dialog asks about an existing file itself, so its answer carries `replace` (D5).
+            // The native save dialog asks about an existing file itself, so its answer carries `replace`.
             Ok(None) => {
                 let mut rest = p.clone();
                 rest.insert("replace".to_owned(), Value::Bool(true));
@@ -1042,7 +1042,7 @@ impl ShellModel {
         }
     }
 
-    /// `jobs.show {on?}` (View ▸ Jobs, the status bar's job field): the Jobs pane in the bottom dock (D14).
+    /// `jobs.show {on?}` (View ▸ Jobs, the status bar's job field): the Jobs pane in the bottom dock.
     pub(crate) fn act_jobs_show(&mut self, p: &Map<String, Value>) -> Outcome {
         let shown = self.jobs_shown();
         let want = or_return!(bool_param(p, "on", !shown));

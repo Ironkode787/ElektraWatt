@@ -35,7 +35,7 @@ impl ShellModel {
         if let Some(out) = self.commit_wire_numbers_row(&row.key, text) {
             return out;
         }
-        // A terminal's Group row compiles through `Session::strip_edit` (D8).
+        // A terminal's Group row compiles through `Session::strip_edit`.
         if row.key == GROUP_ROW {
             return self.commit_group_label(&section, &row, text);
         }
@@ -532,7 +532,7 @@ impl ShellModel {
             Some(cmd) => (cmd.name, cmd.params),
             None => (name, params),
         };
-        // FT-429: a module's start typed as the profile's text or a keyword goes through
+        // A module's start typed as the profile's text or a keyword goes through
         // `plc.set_start`, which reads it with the module's profile.
         let start_dir = match row.path.as_str() {
             "plc_module.start.input" => Some("input"),
@@ -913,7 +913,7 @@ impl ShellModel {
         notices: &[String],
     ) -> Option<String> {
         let j = self.project.as_ref()?.session.joined_text(rep)?;
-        // FT-1483: the function's kind in the window's language.
+        // The function's kind in the window's language.
         let kind = strings::kind_words(&j.kind).unwrap_or_else(|| j.kind.clone());
         let text = strings::format(key!("toast-joined"), &[&j.tag, &kind, &j.place]);
         Some(if notices.is_empty() {

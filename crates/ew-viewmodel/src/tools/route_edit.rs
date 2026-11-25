@@ -218,7 +218,7 @@ pub fn part_at(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<PartRef> {
 }
 
 /// The part of a selected connection a press at the sheet point `at` takes ([`part_at`]), but none inside a
-/// representation's rectangle, where a drag moves the representation (FT-500): Select's press, and the handle the
+/// representation's rectangle, where a drag moves the representation: Select's press, and the handle the
 /// window marks under the pointer.
 pub fn press_part(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<PartRef> {
     let in_rep = cx

@@ -100,7 +100,7 @@ impl Tab {
     }
 
     /// The groups the tab's command row shows, left to right: the groups it shares with another tab first, at the
-    /// place they have on their own tab (its first), then its own (FT-1806, doc 16a §5.2: a tool on several tabs
+    /// place they have on their own tab (its first), then its own (doc 16a §5.2: a tool on several tabs
     /// keeps its place).
     pub fn bar_groups(self) -> impl Iterator<Item = Group> {
         Group::ALL
@@ -317,7 +317,7 @@ impl Group {
         format!("group-{}", self.word())
     }
 
-    /// The other tabs whose command row the group leads as well (FT-1806): Draw's Select group, the tools every
+    /// The other tabs whose command row the group leads as well: Draw's Select group, the tools every
     /// drawn page is worked with (Select and Wire; Wire draws bus lines on a bus page and lines on a fluid page),
     /// leads PLC and Fluid too, so a person who changes tab finds them where they were. A shared group is the first
     /// group of its own tab (a test holds it), so it stands at the same place on every tab.
@@ -337,8 +337,7 @@ impl Group {
     /// Whether the group collapses only after every other one of its tab has (doc 16a §5.2: Draw's Connect, which
     /// holds Wire; it gives way at the smallest window in a language of long words, and nowhere else). Draw's
     /// Annotate, which holds Text and the Wire marker, collapses late too, before Connect: with Cable on Connect
-    /// (FT-1685) the Layout group of the panel pages gives way first below 1920, not the schematic's Marker
-    /// (FT-1652).
+    /// the Layout group of the panel pages gives way first below 1920, not the schematic's Marker.
     pub fn collapses_last(self) -> bool {
         matches!(self, Group::Connect | Group::Annotate)
     }
@@ -353,7 +352,7 @@ pub enum CommandSize {
     Small,
 }
 
-/// Where an action sits in the command bar (D3).
+/// Where an action sits in the command bar.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Placement {
     /// The tab (always the group's).
@@ -656,7 +655,7 @@ pub fn shown_command_bar(model: &ShellModel) -> CommandBarModel {
 /// The Draw tab's groups whose commands act on the selection: the canvas context menu offers them.
 pub const SELECTION_GROUPS: [Group; 1] = [Group::Arrange];
 
-/// Where a right-click on the canvas fell, as the window saw it when the menu opened (FT-1693).
+/// Where a right-click on the canvas fell, as the window saw it when the menu opened.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum MenuSpot {
     /// An object, which the click selected.
@@ -690,7 +689,7 @@ pub fn menu_spot(canvas: &crate::canvas::CanvasModel, over: Option<ew_dl::Entity
     }
 }
 
-/// The canvas context menu, the quick way to what fits the thing under the pointer (FT-1693, doc 16a §6.13). One rule:
+/// The canvas context menu, the quick way to what fits the thing under the pointer (doc 16a §6.13). One rule:
 /// first what fits the thing by what it is, then the general entries.
 ///
 /// - Over an object: the entries that fit it (`ShellModel::menu_fits`: a wire's, an interruption point's, a
@@ -862,9 +861,9 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
     items
 }
 
-/// The context menu of the Pages tree's row `row`: on a page, what the Page tab offers for it (FT-1693,
-/// `ShellModel::page_row_fits`); elsewhere what the project can gain there, New page… (its folio proposed after the
-/// row's section's last page) and New section… (FT-1634). Each
+/// The context menu of the Pages tree's row `row`: on a page, what the Page tab offers for it
+/// (`ShellModel::page_row_fits`); elsewhere what the project can gain there, New page… (its folio proposed after the
+/// row's section's last page) and New section…. Each
 /// in the state of `model` (disabled with its reason in a read-only project).
 pub fn pages_tree_menu(model: &ShellModel, row: &crate::shell::ShownRow) -> Vec<ActionItem> {
     if row.role == crate::navigators::NavRole::Page.word() {
@@ -897,7 +896,7 @@ pub fn pages_tree_menu(model: &ShellModel, row: &crate::shell::ShownRow) -> Vec<
     items
 }
 
-/// The canvas context menu's entry for the connection point `cp` (its ID) under the pointer (FT-1649): "Mark -102F2:13
+/// The canvas context menu's entry for the connection point `cp` (its ID) under the pointer: "Mark -102F2:13
 /// not used", or "Mark -102F2:13 used" for a point marked not used (`cp.unused`), disabled with its reason in a
 /// read-only project; `None` for a point the page on show does not draw.
 pub fn cp_menu(model: &ShellModel, cp: ew_api::output::Uuid) -> Option<ActionItem> {
@@ -927,8 +926,8 @@ pub fn cp_menu(model: &ShellModel, cp: ew_api::output::Uuid) -> Option<ActionIte
 
 /// A navigator row's context menu, what the same thing offers on the page: on a Potentials row with a definition
 /// point (`NavNode::define_at`), Define potential… at it (`potential.draw_row`); on a Terminal strips row of a strip,
-/// Add terminal, Choose part for its terminals without one and Edit strip (FT-1707); on a device's, a PLC channel's, a
-/// cable's and a page's row their entries (FT-1693, `ShellModel::row_fits`). Each disabled with its reason where it
+/// Add terminal, Choose part for its terminals without one and Edit strip; on a device's, a PLC channel's, a
+/// cable's and a page's row their entries (`ShellModel::row_fits`). Each disabled with its reason where it
 /// cannot run. Empty when the row offers nothing: the window then opens no menu.
 pub fn navigator_row_menu(
     model: &ShellModel,
@@ -1030,7 +1029,7 @@ pub struct HudModel {
     pub target: Option<String>,
     /// The prompt: the selection and its keys, the pick stack, or the tool's target and keys.
     pub prompt: String,
-    /// How many objects a click under the pointer can pick (FT-500's stack; Select only, else 0).
+    /// How many objects a click under the pointer can pick (the pick stack; Select only, else 0).
     pub stack: usize,
     /// The prompt while the IP tool's name field holds the keys: its key part says that Enter ends the name first,
     /// since D is then a letter of the name, not the tool's key. `None` for
@@ -1052,7 +1051,7 @@ pub struct HudButton {
     pub params: serde_json::Value,
 }
 
-/// The number of objects in the pick stack under the focused canvas's pointer (FT-500), 0 without a pointer.
+/// The number of objects in the pick stack under the focused canvas's pointer, 0 without a pointer.
 pub fn pointer_stack(model: &ShellModel) -> usize {
     let Some(c) = model.canvas() else { return 0 };
     let Some(at) = c.pointer() else { return 0 };
@@ -1324,7 +1323,7 @@ fn place_prompt(
     joinable: bool,
 ) -> String {
     // A terminal of a strip without a tag yet reads in words until the preview predicts its tag, never as
-    // "-?X?:1" (FT-1813).
+    // "-?X?:1".
     *target = tag.or_else(|| {
         strip.map(|text| match text.rsplit_once(':') {
             Some((strip, designation)) if strip.contains('?') => strings::format(

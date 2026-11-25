@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The window's ways to the two things a draughtsman's drawing showed and the model had no place for (FT-1878): Join
+//! The window's ways to the two things a draughtsman's drawing showed and the model had no place for: Join
 //! device… (J) on a terminal's symbol offers the other terminals of its strip as "next level" and joins it into the
 //! chosen one (doc 08 §6.3); the part dialog's Type not known yet… gives the selected devices a placeholder part, and a
 //! real part chosen later for one of them replaces it on all (doc 07 §3.3). On a writable copy of the sample, folio 102.

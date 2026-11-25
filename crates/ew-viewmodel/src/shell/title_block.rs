@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Title block fields… (`page.title_block`, FT-1686): every field the focused page's title block prints from the
+//! Title block fields… (`page.title_block`): every field the focused page's title block prints from the
 //! project's data, in one form, written where its value comes from in one undo step: the page's title and description,
 //! the project's master data, its parties' names, the open revision's label and the names of the parties the current
-//! revision names as author and checker (FT-1718). A project without a revision gets one with the label typed
+//! revision names as author and checker. A project without a revision gets one with the label typed
 //! (`revision.create`, a second step); an open revision without an author gets one (`revision.set_author`). What a title block prints as fixed text of its form is not
 //! a field: an imported QElectroTech template's own texts stay as the form holds them. Nor is the project's edited
 //! date, which the save sets: the form says it in a line over the fields.
@@ -39,7 +39,7 @@ enum Source {
     Party(&'static str),
     /// The open revision's label, or a new revision's when the project has none.
     RevisionLabel,
-    /// The name of the party the current revision names as its author (FT-1718); an open revision that names none
+    /// The name of the party the current revision names as its author; an open revision that names none
     /// takes the party of the role `author`, named as typed (`revision.set_author`, a second step).
     RevisionAuthor,
     /// The name of the party the current revision names as its checker; only while it names one (the checker is
@@ -151,7 +151,7 @@ fn name_party(parties: &mut Vec<Value>, role: &str, text: String) {
 }
 
 /// The people of a project the title block can print, in the order of [`FIELDS`]: each party role (its serde word) with
-/// its label, named as the cell that prints it (Author, FT-1803), else by its role (Checker, Customer…).
+/// its label, named as the cell that prints it (Author), else by its role (Checker, Customer…).
 fn people() -> impl Iterator<Item = (&'static str, Key<'static>)> {
     FIELDS.iter().filter_map(|(_, label, source)| match source {
         Source::Party(role) => Some((*role, *label)),
@@ -295,7 +295,7 @@ impl ShellModel {
         Some((page.to_string(), facts, fields))
     }
 
-    /// The Title block fields form's line over its fields (FT-1718): that the texts a template writes itself stay as
+    /// The Title block fields form's line over its fields: that the texts a template writes itself stay as
     /// it holds them.
     pub fn title_block_notes(&self) -> Vec<String> {
         let Some((_, facts, _)) = self.title_block_fields() else {
@@ -399,7 +399,7 @@ impl ShellModel {
         (!notes.is_empty()).then(|| notes.join(" "))
     }
 
-    /// `page.title_block {<path>: text, …}` (Page ▸ Title block fields…, FT-1686): without a field the window opens the
+    /// `page.title_block {<path>: text, …}` (Page ▸ Title block fields…): without a field the window opens the
     /// form of the focused page's title-block fields; its Apply (or the parameters) writes each changed field where its
     /// value comes from in one `fields.set_many`, and a revision label typed in a project without a revision makes
     /// one (`revision.create`). In the form a field left empty clears it; given as parameters, a field not named

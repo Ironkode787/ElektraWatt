@@ -35,7 +35,7 @@ pub const TOOLS: [&str; 13] = [
 ];
 
 /// The drawing grids offered, each as nanometres per steps (0.5, 1, 2 and 4 mm and QElectroTech's 10 px), the first
-/// the default (FT-1690). Connection points keep to the symbol's connection grid whatever is chosen.
+/// the default. Connection points keep to the symbol's connection grid whatever is chosen.
 pub const GRID_STEPS: [(i64, i64); 5] = [
     (500_000, 1),
     (1_000_000, 1),
@@ -207,7 +207,7 @@ pub struct SymbolEditor {
     device_box: Option<DeviceBox>,
 }
 
-/// A library or project symbol that Edit symbol or Copy and edit opens (FT-1694).
+/// A library or project symbol that Edit symbol or Copy and edit opens.
 struct EditTarget {
     /// What `symbol.fork` reads it from: its library address, or the project copy's ID.
     source: String,
@@ -681,7 +681,7 @@ impl ShellModel {
         }
     }
 
-    /// The symbol `symbol.edit` and `symbol.copy_edit` act on (FT-1694): the one named by `symbol` (its key, copy ID or
+    /// The symbol `symbol.edit` and `symbol.copy_edit` act on: the one named by `symbol` (its key, copy ID or
     /// `library:<library>:<item>` address), else the one the browser's current row places.
     fn edit_target(&self, p: &Map<String, Value>) -> Result<EditTarget, String> {
         let named = text(p, "symbol");
@@ -765,14 +765,14 @@ impl ShellModel {
         })
     }
 
-    /// Why the browser's current row offers Copy and edit alone (FT-1694): its library is read-only, or the project
+    /// Why the browser's current row offers Copy and edit alone: its library is read-only, or the project
     /// alone holds it; `None` when Edit symbol is offered too, or the row places no symbol.
     pub fn symbol_edit_refusal(&self) -> Option<String> {
         self.edit_target(&Map::new()).ok()?.folder.err()
     }
 
     /// Why Edit symbol cannot open the symbol `p` names (`symbol`: its key, copy ID or library address): its library
-    /// is read-only, the project alone holds it, or it is not found; `None` when it can (the canvas menu, FT-1693).
+    /// is read-only, the project alone holds it, or it is not found; `None` when it can (the canvas menu).
     pub(super) fn symbol_edit_reason(&self, p: &Map<String, Value>) -> Option<String> {
         match self.edit_target(p) {
             Ok(t) => t.folder.err(),
@@ -780,7 +780,7 @@ impl ShellModel {
         }
     }
 
-    /// `symbol.edit` and, with `copy`, `symbol.copy_edit` (FT-1694): the symbol editor on the symbol of the browser's
+    /// `symbol.edit` and, with `copy`, `symbol.copy_edit`: the symbol editor on the symbol of the browser's
     /// current row (or the one `symbol` names), the browser closed. Edit symbol opens the symbol itself, under its own
     /// key, saving to its library (a new version there); a symbol of a read-only library, or one the project alone
     /// holds, is refused in words. Copy and edit opens a copy under a key made from its name, saving to the user's
@@ -1302,7 +1302,7 @@ impl ShellModel {
         }
         editor.functions.sort_by(|a, b| a.key.cmp(&b.key));
         editor.functions.dedup_by(|a, b| a.source == b.source);
-        // In the symbol browser's order (FT-1810: Copy a library symbol was one long list without order): by the
+        // In the symbol browser's order (Copy a library symbol was one long list without order): by the
         // words of the function category the browser files a symbol under, Other last, then by name.
         editor.sources.sort_by_cached_key(|s| {
             let filed = crate::tools::category_words(&s.category);
@@ -1315,7 +1315,7 @@ impl ShellModel {
         Ok(())
     }
 
-    /// The shape of the start card's symbol `source` for its preview (FT-1810): the copy's outline and connection
+    /// The shape of the start card's symbol `source` for its preview: the copy's outline and connection
     /// points as the symbol browser draws them; `None` without a project or for a symbol no copy is read for.
     pub fn symbol_source_shape(&self, source: &SymbolSource) -> Option<ew_api::output::SymbolShape> {
         self.project.as_ref()?.session.symbol_shape(source.copy?)

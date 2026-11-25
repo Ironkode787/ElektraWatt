@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The boxes of a device with several bus interfaces on a bus-topology page (FT-1766, doc 10 §2.7): while one box for
-//! such a device is not built (FT-1904), its boxes move together, and a row of them placed near the page's edge stands
+//! The boxes of a device with several bus interfaces on a bus-topology page (doc 10 §2.7): while one box for
+//! such a device is not built, its boxes move together, and a row of them placed near the page's edge stands
 //! inside the drawing area; a row that would cover another device is refused in words.
 
 use std::collections::BTreeMap;

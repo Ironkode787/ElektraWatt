@@ -16,7 +16,7 @@
 //! At the end of every dispatch each open navigator whose generation differs from the selection's marks the rows of
 //! the selected records (the deepest node per record), expands their ancestors and puts its cursor on the first of
 //! them; the focus stays. The chips go when the selection or the page changes; a page switch puts the Pages cursor
-//! back on the current page (FT-371's navigator item).
+//! back on the current page (the navigator item).
 
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -234,7 +234,7 @@ impl ShellModel {
     }
 
     /// The line and sentence of the PLC navigator's empty state while PLC cards wait for a CPU: "No CPU yet", the
-    /// cards' tags and how to place a CPU; `None` without such a card (FT-926: the panel read "No PLC cards yet" with
+    /// cards' tags and how to place a CPU; `None` without such a card (the panel read "No PLC cards yet" with
     /// a card drawn, because a card is listed under its CPU).
     pub fn plc_empty(&self) -> Option<(String, String)> {
         let cards: Vec<String> = (self.project.as_ref()?.session.plc_cards_without_cpu())
@@ -292,7 +292,7 @@ impl ShellModel {
     /// The action and parameters a keyboard shortcut bound to `action` runs with the current focus:
     /// Alt+Up and Alt+Down (`pages.move_up`, `pages.move_down`) run `strip.move {step: -1 | 1}` while the
     /// Terminal strips navigator has the focus; Delete and F2 (`table.clear`, `table.edit`) run `navigator.delete` and
-    /// `navigator.rename` with the focused navigator's `kind` while it is not in table mode (FT-490);
+    /// `navigator.rename` with the focused navigator's `kind` while it is not in table mode;
     /// every other binding runs its own action without parameters.
     pub fn shortcut_action(&self, action: &'static str) -> (&'static str, Value) {
         // Doc 16a P8: while the symbol editor shows, the main window's drawing keys choose its tools.
@@ -368,7 +368,7 @@ impl ShellModel {
         match action {
             "pages.move_up" if strips => ("strip.move", json!({ "step": -1 })),
             "pages.move_down" if strips => ("strip.move", json!({ "step": 1 })),
-            // FT-490: in tree mode, Delete and F2 delete and rename the rows.
+            // In tree mode, Delete and F2 delete and rename the rows.
             "table.clear" | "table.edit"
                 if let Some(k) = self.focused_navigator()
                     && !self.generic(k).is_some_and(|n| n.table_mode.is_some()) =>
@@ -413,7 +413,7 @@ impl ShellModel {
     /// The key of the row on show in navigator `kind` that `given` names (G-PP finding 7): its key; else
     /// the one row whose printed label is `given`; else the one row whose parent's label, a colon and its own label
     /// is `given` (a strip terminal row prints `terminal "1"` under `strip "-X1031"`, and the tag `-X1031:1` names
-    /// it). Rows that list one record (a bus port under its logical and its physical net, FT-1922) count as one, the
+    /// it). Rows that list one record (a bus port under its logical and its physical net) count as one, the
     /// first. `None` when nothing or more than one record's rows match.
     pub(super) fn resolve_nav_key(&self, kind: NavKind, given: &str) -> Option<String> {
         let vis = self.vis_keys(kind);
@@ -914,7 +914,7 @@ impl ShellModel {
             let Some(table) = n.table().cloned() else { continue };
             // Every deepest row that carries a selected record (not a row above another that carries it, as a device's
             // above its symbol's): a wire listed under its potential and again under a pin, or in two wires' rows,
-            // marks each (the last alone left the wire's own row unmarked, FT-1912).
+            // marks each (the last alone left the wire's own row unmarked).
             let mut nodes: Vec<u32> = items
                 .iter()
                 .filter_map(|id| table.index.get(id))
@@ -1921,7 +1921,7 @@ fn json_map(v: Value) -> Map<String, Value> {
     }
 }
 
-/// A library row's tier, access and index state in the UI language (FT-1483): the tier by its facet, the access
+/// A library row's tier, access and index state in the UI language: the tier by its facet, the access
 /// by the `writable` facet, the state cell's index words and an unreadable profile's note by their closed English forms
 /// (`ew-api`'s `index_word` and `ew_derive::unreadable_profile`), any other note as it is.
 fn library_in_words(node: &mut NavNode, tier: Option<usize>, access: Option<usize>, state: Option<usize>) {
@@ -2016,7 +2016,7 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
     let kind = (nav == "libraries")
         .then(|| table.columns.iter().position(|c| c.key == "kind"))
         .flatten();
-    // FT-1483: a library's tier, access and state cells; a report block's kind, by its code.
+    // A library's tier, access and state cells; a report block's kind, by its code.
     let column = |key: &str| table.columns.iter().position(|c| c.key == key);
     let library = (nav == "libraries").then(|| (column("tier"), column("access"), column("state")));
     let block_kind = (nav == "blocks").then(|| column("kind")).flatten();
@@ -2076,7 +2076,7 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
                 *cell = words.clone();
             }
         }
-        // A library copy's kind column by its record kind's words (FT-1554): its last `kind` facet names it.
+        // A library copy's kind column by its record kind's words: its last `kind` facet names it.
         if node.role == NavRole::LibCopy
             && let Some(record) = node
                 .facets

@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# The product glossary (WP-S2.08 D5 (b), FR-UI-045): one source for the command palette's aliases, the glossary page
+# The product glossary (FR-UI-045): one source for the command palette's aliases, the glossary page
 # of the user guide (`cargo xtask docs-gen` writes docs/book/src/reference/glossary.md from it) and the glossary panel.
 # A design document is never read at run time; this file is.
 #

@@ -369,7 +369,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
         // part it has already is checked.
         Submenu::ModuleParts => module_part_items(meta, model),
         // The schematic pages by folio and title, then a new page; Move to page's read as moves ("To page 101 …") and
-        // leave out the page the module is drawn on (FT-2134).
+        // leave out the page the module is drawn on.
         Submenu::ModulePages => module_page_items(meta, model),
         Submenu::PlcAddressing => {
             let items = model.plc_addressing_items();

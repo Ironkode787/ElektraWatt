@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Preview tab's host duties, the renumber dialogs and their `bulk` card (D12)
+//! The Preview tab's host duties, the renumber dialogs and their `bulk` card
 //! and the GUI purge step.
 //!
 //! **The Preview tab.** [`ShellModel::sync_preview`] runs at the end of every dispatch and after the window changed the
@@ -128,7 +128,7 @@ impl ShellModel {
             return Some(lead.clone());
         }
         let records = card.preview.result.as_ref().map_or(0, |p| p.diff().len());
-        // A count of one takes the singular ("1 item · 1 page"); a count of none is left out (FT-1761: "0
+        // A count of one takes the singular ("1 item · 1 page"); a count of none is left out ("0
         // cross-reference texts"), the records always said.
         Some(crate::preview::counted(
             &[

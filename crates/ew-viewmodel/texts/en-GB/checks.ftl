@@ -4,7 +4,7 @@
 # The texts of the window in en-GB: messages, checks, releases and revisions. One message per key; `{ $p0 }`,
 # `{ $p1 }`, ... are the arguments, always strings. The source language and the fallback of every other.
 
-# ID-1497 (6): the Messages panel's sentence at its top while findings are pending.
+# The Messages panel's sentence at its top while findings are pending.
 messages-pending-note = Pending findings are on the page you are editing: they count once you leave that page or run a check.
 messages-group-error = Errors
 messages-group-warning = Warnings
@@ -19,10 +19,10 @@ check-waived-one = 1 waived
 check-waived = { $p0 } waived
 check-pending-one = 1 pending
 check-pending = { $p0 } pending
-# FT-1432: after an earlier check, the toast leads with what changed since, then the project's totals.
+# After an earlier check, the toast leads with what changed since, then the project's totals.
 check-since = { $p0 } since the last check; project: { $p1 }
 check-unchanged = no change
-# ID-1497 (3): the same counts as the last check, other findings (the new ones counted).
+# The same counts as the last check, other findings (the new ones counted).
 check-changed-one = 1 finding changed
 check-changed = { $p0 } findings changed
 severity-error = Error
@@ -80,7 +80,7 @@ revision-incomplete-refused = It cannot be completed: { $p0 }.
 revision-incomplete-unproven = It is not provably this folder's own leftover, so it is not offered for discarding; remove the file by hand if you know it is one.
 release-source = Release
 
-# FIX41b ruling 6: the cause in words from the error's kind ({1}: a cause below, or nothing).
+# The cause in words from the error's kind ({1}: a cause below, or nothing).
 release-trouble-not-removed = The release record { $p0 } could not be removed{ $p1 }.
 release-trouble-not-read = The release records in the folder { $p0 } could not be read{ $p1 }.
 release-trouble-not-updated = The release record of { $p0 } could not be updated with the archive's time{ $p1 }, so a discard after a crash keeps the archive.
@@ -88,7 +88,7 @@ release-cause-not-found = : it was not found
 release-cause-denied = : permission was denied
 release-cause-not-folder = : it is not a folder
 
-# FIX41b ruling 2: completing or discarding an incomplete release asks first.
+# Completing or discarding an incomplete release asks first.
 revision-complete-title = Complete the release of { $p0 }?
 revision-complete-text = Completing stamps { $p0 } released with the archive { $p1 } and saves the project. It cannot be undone.
 revision-complete-git = The project folder is in a git repository: completing commits it and creates the tag { $p0 }.

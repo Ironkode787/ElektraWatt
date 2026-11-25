@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A drawn box follows its corrected part (FT-1766, doc 10 §2.6): a switch of one's own drawn on a bus page with its
+//! A drawn box follows its corrected part (doc 10 §2.6): a switch of one's own drawn on a bus page with its
 //! six sockets, corrected to eight, shows the two new sockets on its box at once, after the last one of their edge;
 //! corrected to four, its box keeps no mark of the sockets it lost.
 

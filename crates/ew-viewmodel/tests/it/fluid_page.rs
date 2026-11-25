@@ -25,7 +25,7 @@ fn fluid_lines(s: &ShellModel) -> usize {
         .count()
 }
 
-/// FT-1733: on fluid page 201 a silencer placed facing a valve's free fluid port autoconnects to it, and the committed
+/// On fluid page 201 a silencer placed facing a valve's free fluid port autoconnects to it, and the committed
 /// connection is a fluid line, not a wire.
 #[test]
 fn a_silencer_autoconnects_to_a_free_fluid_port_with_a_fluid_line() {
@@ -102,7 +102,7 @@ fn a_drawn_overview_is_refreshed_without_a_change() {
     s.shutdown();
 }
 
-/// FT-1757: on a fluid page (the sample's 201) the interruption-point tool places the fluid line's form `ew.iso.ip`, not
+/// On a fluid page (the sample's 201) the interruption-point tool places the fluid line's form `ew.iso.ip`, not
 /// the wire's.
 #[test]
 fn the_interruption_tool_places_the_fluid_form_on_a_fluid_page() {

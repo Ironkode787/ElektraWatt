@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Every starter symbol reaches a usable device from the picker: in a new project each symbol of the
-//! starter set is placed by its path, with a generic starter part where the starter parts (D5) give one, and each
-//! auxiliary symbol joins a device by the join chooser (D2). The table [`PATHS`] must name every starter symbol, so a
+//! starter set is placed by its path, with a generic starter part where the starter parts give one, and each
+//! auxiliary symbol joins a device by the join chooser. The table [`PATHS`] must name every starter symbol, so a
 //! symbol added later fails the test until it has a path. D3 (the device's "Add" menu) is not built; no path uses it.
 
 use crate::common;
@@ -314,7 +314,7 @@ fn every_starter_symbol_reaches_a_usable_device_from_the_picker() {
     assert_eq!(
         tabled,
         starter_symbols(),
-        "every starter symbol needs a path in PATHS (WP-S2.18 D7)"
+        "every starter symbol needs a path in PATHS"
     );
     place_every_symbol(false);
 }
@@ -748,7 +748,7 @@ fn relay_held(s: &mut ShellModel) -> (bool, bool) {
     (part.library.is_none(), symbol.copy.is_some())
 }
 
-/// FT-656: placing EW-GEN-RLY-1 from the picker in a new project is one commit, so one undo step: the placement
+/// placing EW-GEN-RLY-1 from the picker in a new project is one commit, so one undo step: the placement
 /// carries the relay's closure (the part, its FnDefs and manufacturer, the coil symbol), and undo takes the device
 /// and the copies back together. The recorded command alone places the relay in another new project.
 #[test]

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Output ▸ Export DXF… (`file.export_dxf`, doc 09 §4.9, FT-1960): the DXF set of the open project as a job, written
+//! Output ▸ Export DXF… (`file.export_dxf`, doc 09 §4.9): the DXF set of the open project as a job, written
 //! into a folder as a whole, one file per page of the page order and the pictures they name, the toast saying so in
 //! words; a folder that holds other files is refused before the job starts and left as it was, and an earlier set is
 //! replaced only when the step is confirmed.

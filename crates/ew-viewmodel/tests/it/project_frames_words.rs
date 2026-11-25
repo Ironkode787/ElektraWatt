@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The project's Frames row names its frames (FT-1916): the sample's default frame and each page type's own, by the
+//! The project's Frames row names its frames: the sample's default frame and each page type's own, by the
 //! names the Form row's choices give them, never by a form's ID.
 
 use crate::common::{Tmp, done};

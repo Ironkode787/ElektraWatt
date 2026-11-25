@@ -42,7 +42,7 @@
 //! sent), `overview` on single-line, overview and assembly-overview pages, a working fluid line (`{"fluid": {}}`) on a
 //! fluid page, a bus line (`{"bus": {}}`) on a bus-topology page; on the other page types the host refuses `tool.wire`.
 //!
-//! **A click beside a point** (FT-1800). A click that takes no target leaves a free point; where that point lies
+//! **A click beside a point**. A click that takes no target leaves a free point; where that point lies
 //! right beside a connection point (within the targets' reach or one grid step of it, whichever is more) the hint says
 //! so at once: a start that took nothing, a bend placed beside the point, and, once the wire ends elsewhere, the wire
 //! that bends there without joining it (a persona's clicks a few pixels off the ports drew tubes to the wrong ports
@@ -317,7 +317,7 @@ pub fn resolve_target(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> WireTarget 
         }
     }
     // An interruption point's arrow stands for its one connection point, which sits a grid step behind the tip
-    // (FT-1660: a click on the arrow of an outgoing point snapped to the grid beside it, and no wire reached it).
+    // (a click on the arrow of an outgoing point snapped to the grid beside it, and no wire reached it).
     // The arrow counts with the snap's reach around it, as a connection point does: a click on its very tip, in
     // line with the wire coming down to it, is a click on the arrow.
     if best.is_none() {
@@ -428,7 +428,7 @@ fn full_junction(tables: &ew_api::output::PageTables, id: Uuid) -> bool {
 }
 
 /// The connection point, other than `but`, right beside the free page point `p` that a click left: within the targets'
-/// reach or one grid step of it, whichever is more (FT-1800), the nearest; `None` where none is.
+/// reach or one grid step of it, whichever is more, the nearest; `None` where none is.
 fn cp_beside(cx: &ToolCx<'_>, p: (i64, i64), but: Option<(Uuid, u16)>) -> Option<(Uuid, u16)> {
     let tables = &cx.page.tables;
     let grid = PageGridMap::new(tables.grid);
@@ -915,7 +915,7 @@ pub struct WireTool {
     labels: (Option<String>, Option<String>),
     /// The JSON value of `connection.draw`'s `kind` for the page type; `None` for a wire (the default).
     kind: Option<&'static str>,
-    /// The line kind of a fluid line the tool draws (Draw ▸ Fluid line…, FT-1733); `None` a working line.
+    /// The line kind of a fluid line the tool draws (Draw ▸ Fluid line…); `None` a working line.
     line_kind: Option<&'static str>,
     /// A click that left a free point right beside a connection point, and that point (function, index): the hint says
     /// so until the next wire starts.
@@ -925,7 +925,7 @@ pub struct WireTool {
     dot: bool,
 }
 
-/// What a click beside a connection point left (FT-1800).
+/// What a click beside a connection point left.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Missed {
     /// No start: the click took nothing.
@@ -1563,7 +1563,7 @@ impl Tool for WireTool {
 
     /// While a wire is drawn to a junction that already joins three wires, the hint says it is no end (not before the
     /// wire starts: a wire just ended on a wire left the pointer on the junction it made, and the hint read as a
-    /// refusal of that wire, FT-1660); once a click placed a bend, that a bend is placed; while no clear route is
+    /// refusal of that wire); once a click placed a bend, that a bend is placed; while no clear route is
     /// found, and after a wire drawn so until the next one starts, that the wire stays unrouted (not a refusal).
     fn follows(&self, cmd: &dyn super::DynCommand) -> super::Follows {
         // A drawn wire that brings an error says so at once, in the finding's words (a persona run joined L and N by

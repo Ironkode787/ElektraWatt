@@ -239,7 +239,7 @@ pub use crate::pointer::HOVER_SLOP_PT;
 
 /// The hover outline of a canvas while the active tool shows the hover (doc 16a §7.1): the hovered link's
 /// rectangle, else the rectangle of the hovered entity, the first of the pick stack under the pointer (the one a click
-/// picks, FT-500; doc 16a §6.25); none on a selected entity (doc 16a §7.1: the selection only) and none on a line,
+/// picks,; doc 16a §6.25); none on a selected entity (doc 16a §7.1: the selection only) and none on a line,
 /// which shows its band ([`hover_path`]). While the Join chooser is open, its active row's object instead (doc 16a
 /// §6.22).
 pub fn hover_rect(shell: &crate::shell::ShellModel, group: usize, c: &CanvasModel) -> Option<Rect> {

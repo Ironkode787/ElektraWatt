@@ -11,7 +11,7 @@
 //! … that [`format()`] fills in, always as strings; [`text`] shows them as `{0}`, `{1}`, ….
 //!
 //! The UI language is process-wide ([`set_locale`]): `en` (en-GB, the source and the fallback of every other message)
-//! and the pseudo-locale `en-XA` of the tests (D11), generated at load from en-GB and never shipped as a file.
+//! and the pseudo-locale `en-XA` of the tests, generated at load from en-GB and never shipped as a file.
 
 use std::borrow::Cow;
 use std::collections::BTreeMap;
@@ -163,7 +163,7 @@ macro_rules! count_key {
     };
 }
 
-/// The tag of the pseudo-locale of the tests (D11).
+/// The tag of the pseudo-locale of the tests.
 pub const PSEUDO: &str = "en-XA";
 
 /// The arguments a text may take: `{ $p0 }` to `{ $p9 }`.
@@ -213,7 +213,7 @@ impl Locale {
         }
     }
 
-    /// The pseudo-locale en-XA from `base` (D11): every text's letters accented, padded by 35 % of its length (rounded
+    /// The pseudo-locale en-XA from `base`: every text's letters accented, padded by 35 % of its length (rounded
     /// up) and bracketed with `⟦ ⟧`; the arguments `{0}`, `{1}`, … stay as they are (`ew_l10n::render::pseudo`).
     fn pseudo(base: &Locale) -> Locale {
         let texts = base
@@ -374,7 +374,7 @@ pub fn decimal(number: &str) -> String {
     number.replace('.', text(key!("number-decimal-point")))
 }
 
-/// The language of the check rules' messages for the UI language now (D10): `nl-NL` for Dutch, else `en-GB`
+/// The language of the check rules' messages for the UI language now: `nl-NL` for Dutch, else `en-GB`
 /// (`ew-checks` falls back to en-GB per message).
 pub fn rule_language() -> &'static str {
     match locale() {
@@ -565,7 +565,7 @@ fn field_help_keys(kind: &str, path: &str) -> [String; 2] {
     ]
 }
 
-/// The explanation of the field `path` of `kind` in the UI language (FT-1648): what the value is, what changing it
+/// The explanation of the field `path` of `kind` in the UI language: what the value is, what changing it
 /// does and, for a derived value, where it comes from; the tooltip of the property row's label. `None` for a field
 /// without one.
 pub fn field_help(kind: &str, path: &str) -> Option<&'static str> {
@@ -713,9 +713,9 @@ pub fn choice_words(value: &str) -> String {
 
 /// A function's kind text in the UI language: its longest leading words that `ew-api`'s
 /// `KIND_WORDS` give ("Two-way process valve" of "Two-way process valve 1-2") by their `kind-words-<words>` text, the
-/// CP designations after them kept; else the generic rule's words ([`generic_kind_words`], FT-1483); `None` when
+/// CP designations after them kept; else the generic rule's words ([`generic_kind_words`]); `None` when
 /// neither has a text. Every place that shows a function's kind reads it here: the Devices and Libraries navigators,
-/// the Part function row, the live description, the device browser (FT-1554).
+/// the Part function row, the live description, the device browser.
 pub fn kind_words(text: &str) -> Option<String> {
     let words: Vec<&str> = text.split(' ').collect();
     let leading = (1..=words.len()).rev().find_map(|n| {
@@ -737,12 +737,12 @@ pub fn kind_words(text: &str) -> Option<String> {
     leading.or_else(|| generic_kind_words(&words))
 }
 
-/// The generic rule's kind text in the UI language (FT-1483): its first two words are the FnDef
+/// The generic rule's kind text in the UI language: its first two words are the FnDef
 /// category's last two segments ("NO contact 13-14", "Changeover contact 11-12-14"), or its one segment before the CP
 /// designations ("Coil A1-A2"), each by its `kind-segment-<segment>` text, two of them joined by `kind-generic` (a Dutch
 /// segment carries its own joint: "NO-contact", "Wisselcontact"); a segment without a text is shown as written, and so is
-/// a first segment whose text ends in its joint where no second text follows ("3P manualswitch", not "3P- manualswitch",
-/// FT-1913). `None` when the first word has no text and the second none either.
+/// a first segment whose text ends in its joint where no second text follows ("3P manualswitch", not "3P- manualswitch").
+/// `None` when the first word has no text and the second none either.
 fn generic_kind_words(words: &[&str]) -> Option<String> {
     let segment = |w: &str| lookup(&format!("kind-segment-{}", w.to_lowercase()));
     let first = segment(words.first()?);
@@ -1437,7 +1437,7 @@ mod tests {
         );
         assert_eq!(field_label("device", "parts[1]"), "Part use 2");
         assert_eq!(field_label("device", "derived.cp[0]"), "Connection point 1");
-        // FT-1668: words, not the field names cut short.
+        // words, not the field names cut short.
         assert_eq!(
             ["pos", "orient", "ptype"].map(|m| field_label("representation", m)),
             ["Position", "Orientation", "Potential type"]

@@ -19,7 +19,7 @@
 //! ([`ShellModel::template_slots`]); "New device" is the part's new device, which also comes back once the device has
 //! no more of that function.
 //!
-//! **The text interface (D4).** `place.pick device=<tag>` arms the join; `function=<tag>:<slot>` or
+//! **The text interface.** `place.pick device=<tag>` arms the join; `function=<tag>:<slot>` or
 //! `function=<tag>` arms `existing_function` (a tag with one unplaced function of the armed FnDef resolves to it,
 //! several are refused with their slots listed). A tag is read by the reference grammar (`Session::resolve_reference`: a
 //! bare tag, `tag:`, `id:`); a UUID still works.
@@ -35,7 +35,7 @@ use crate::key;
 use crate::strings;
 use crate::tools::{Chooser, ChooserRow, ChooserValue, PlaceTarget, PlaceTool, ToolOutput};
 
-/// What `place.pick` arms for a join (D4).
+/// What `place.pick` arms for a join.
 pub(super) struct JoinPick {
     /// The device's ID text.
     pub device: String,
@@ -82,7 +82,7 @@ impl ShellModel {
         self.tools.tool.name() == "place" && self.tool_ghost().is_some_and(|g| g.joinable())
     }
 
-    /// The placed symbol J offers to join another device (FT-1658: J on a placed contact was refused as "not a
+    /// The placed symbol J offers to join another device (J on a placed contact was refused as "not a
     /// contact"): with the Select tool active, the one representation selected on the page shown, which draws one
     /// function of a device; with that device and the function's FnDef.
     pub(crate) fn join_rep(&self) -> Option<(Uuid, Uuid, Uuid)> {
@@ -131,7 +131,7 @@ impl ShellModel {
     }
 
     /// The FnDef copy the catalogue's symbol row `i` draws; a starter symbol the project lacks is not embedded here: the
-    /// placement carries it (FT-656), so `place.pick device=` is one undo step.
+    /// placement carries it, so `place.pick device=` is one undo step.
     fn row_fndef(
         &mut self,
         cat: &PlaceCatalogue,
@@ -147,9 +147,9 @@ impl ShellModel {
         Ok((cat, i, shape.fndef))
     }
 
-    /// `place.pick device=<tag>` (D4): the join target on the device for symbol row `i`. A device with no unplaced
+    /// `place.pick device=<tag>`: the join target on the device for symbol row `i`. A device with no unplaced
     /// function of the symbol's FnDef takes it as a new auxiliary function: a contact, or a symbol of another kind that
-    /// draws the device once more (FT-1860), which a terminal or a strip never takes.
+    /// draws the device once more, which a terminal or a strip never takes.
     pub(super) fn pick_join_device(
         &mut self,
         cat: &PlaceCatalogue,
@@ -172,7 +172,7 @@ impl ShellModel {
         if slots.is_empty() && !project.session.auxiliary_fndef(fndef) {
             return Err(Outcome::refused(key!("reason-join-not-auxiliary")));
         }
-        // FT-1860: a symbol of another kind than a contact joins any device but a terminal or a strip.
+        // A symbol of another kind than a contact joins any device but a terminal or a strip.
         let q = project.session.query();
         let terminal = id
             .to_string()
@@ -195,7 +195,7 @@ impl ShellModel {
         ))
     }
 
-    /// `place.pick function=<tag>[:<slot>]` (D4): the unplaced function of the symbol's FnDef that the text names. The
+    /// `place.pick function=<tag>[:<slot>]`: the unplaced function of the symbol's FnDef that the text names. The
     /// whole text is read as a device first (a terminal's tag holds a `:`), else the part after the last `:` is the
     /// slot (the function's CP designations joined by `-`, `13-14`).
     pub(super) fn pick_function_tag(
@@ -320,7 +320,7 @@ impl ShellModel {
 
     /// The devices the placed symbol `rep` (of device `own`, drawing a function of FnDef `fndef`) can join, one row per
     /// device (its first slot, else auxiliary), its own device left out: the rows of [`Self::open_rep_join`]'s chooser,
-    /// and whether the canvas menu offers Join device… (FT-1693).
+    /// and whether the canvas menu offers Join device….
     pub(crate) fn rep_join_rows(&self, rep: Uuid, own: Uuid, fndef: Uuid) -> Vec<ChooserRow> {
         let Some(project) = &self.project else {
             return Vec::new();
@@ -507,7 +507,7 @@ impl ShellModel {
     /// The unplaced template functions of the project's devices, by (part copy, template entry): the device a
     /// placement of that entry of that part fills, as its ID text, its tag and that function's ID text; of several
     /// devices the first in natural tag order. A contact of -102K1's part picked in the device browser fills -102K1's
-    /// free contact instead of making a second relay (FT-1658).
+    /// free contact instead of making a second relay.
     pub(crate) fn template_slots(&self) -> BTreeMap<(Uuid, u16), (String, String, String)> {
         let mut out = BTreeMap::new();
         let Some(project) = &self.project else {

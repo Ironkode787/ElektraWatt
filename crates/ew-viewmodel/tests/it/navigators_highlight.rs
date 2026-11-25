@@ -231,14 +231,14 @@ fn highlighting_24v_from_the_potentials_navigator() {
         json!({"kind": "connections", "key": group}),
     );
     assert_eq!(m, "Only potentials and connections can be highlighted.");
-    assert_eq!(SLOT_COLOURS[0], (0x98, 0x78, 0xFC), "ID-1277: violet");
+    assert_eq!(SLOT_COLOURS[0], (0x98, 0x78, 0xFC), "violet");
     shell.shutdown();
 }
 
 /// With Connections and Potentials open, selecting the 24 V wire to the output card's L+ on folio 104 from the canvas
 /// marks its wire row in both (in Potentials under 24V), reveals them and leaves the focus on the canvas. The first
 /// click on the wire's route picks the first wire of the pick stack there, and repeated clicks walk to it where other
-/// wires share the point (FT-500, which closes deviation N30-3); every click marks the row of the wire it selects.
+/// wires share the point (which closes deviation N30-3); every click marks the row of the wire it selects.
 #[test]
 fn selecting_a_wire_on_the_canvas_marks_its_rows_in_both_navigators() {
     let tmp = Tmp::new("nav2-sync");

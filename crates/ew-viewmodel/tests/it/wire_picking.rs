@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-500: every wire of a page can be picked by a click. Where routes run along one another or through symbol bodies
+//! Every wire of a page can be picked by a click. Where routes run along one another or through symbol bodies
 //! (the router draws no such route, so the tests give three wires of the sample's folio 101 such routes,
 //! `common::provisional_overlap_on_101`), a click on a point of a wire's route that no other wire covers picks that
-//! wire (FT-500: a wire's line nearer than the centre of the representation
+//! wire (a wire's line nearer than the centre of the representation
 //! rectangle the press is in goes first), and a repeated click at one place walks the pick stack and wraps, so a
 //! wire that other wires cover for its whole length is reached too.
 
@@ -82,7 +82,7 @@ fn own_point(s: &ShellModel, own: EntityRef, all: &[(EntityRef, Vec<(i64, i64)>)
         .iter()
         .map(|j| page.snapper.page_to_sheet(j.at))
         .collect();
-    // A bevel junction's drawing reaches half a step from its point (FT-1898).
+    // A bevel junction's drawing reaches half a step from its point.
     let step = page.tables.grid.0 / page.tables.grid.1.max(1);
     let (a, b) = (
         page.snapper.page_to_sheet((0, 0)),
@@ -116,7 +116,7 @@ fn fresh_click(s: &mut ShellModel, p: (i64, i64)) -> Vec<EntityRef> {
 }
 
 /// Every wire of the sample's folio 101, at the fitted view and at actual size: a click on a point of its route that
-/// no other wire covers selects that wire alone (eight of the reference project did not before FT-500); the routed
+/// no other wire covers selects that wire alone (eight of the reference project did not before the overlap rule); the routed
 /// folio has no wire that other wires cover for its whole length.
 #[test]
 fn every_wire_of_folio_101_is_picked_by_a_click_on_a_point_only_it_covers() {
@@ -220,7 +220,7 @@ fn a_repeated_click_at_an_overlap_walks_the_candidates_and_wraps() {
 }
 
 /// A press on a wire's line inside a representation's rectangle selects the wire on a click, and a drag from there
-/// still moves the representation (the drag is as it was before FT-500); a click at the representation's centre
+/// still moves the representation (the drag is as it was before the overlap rule); a click at the representation's centre
 /// selects the representation.
 #[test]
 fn a_wire_through_a_symbol_is_clicked_and_the_symbol_still_drags_from_there() {

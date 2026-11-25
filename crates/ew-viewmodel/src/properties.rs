@@ -283,11 +283,11 @@ pub enum CardOrigin {
     /// The part editor's Save (`part.edit_copy`, D20): the card in the Preview tab with the field diff, the devices
     /// that use the copy, the BOM rows that change and, for a fork, the fork note.
     Part(Box<PartCard>),
-    /// FT-396's paste choice (D22): a paste whose fragment carries another version of a held library copy; the card in
+    /// The paste choice: a paste whose fragment carries another version of a held library copy; the card in
     /// the Preview tab lists the copies and offers Use the project's copy and Update the project's copy (`paste.resolve`).
     /// It previews nothing: its result is the refusal, so Apply stays blocked.
     PasteVersions(Box<PasteChoice>),
-    /// The `library.update` card that "Update the project's copy" opens from the pasted fragment's documents (D22):
+    /// The `library.update` card that "Update the project's copy" opens from the pasted fragment's documents:
     /// after its Apply commits, the shell arms the pending paste of `text` again (two commands, two undo steps).
     PasteUpdate {
         /// The clipboard text of the pending paste.
@@ -944,7 +944,7 @@ const PRIMARY: &[(&str, &[&str])] = &[
             "derived.supply_device",
         ],
     ),
-    // A wire's and an interruption point's potential: its name, the kind of signal and the voltage (FT-1651).
+    // A wire's and an interruption point's potential: its name, the kind of signal and the voltage.
     ("potential_def", &["name", "ptype", "voltage"]),
     // What a drafter fills first and the title block prints (a long flat list, the drawing number
     // ten rows down): the title, the project and drawing numbers, the description, the parties (customer, designer)
@@ -1353,7 +1353,7 @@ pub fn is_cp_row(row: &PropRow) -> bool {
     row.key.starts_with("device/derived.cp[")
 }
 
-/// Writes a device's connection point marked not used as "<label> · not used" (FT-1649). The JSON value is unchanged.
+/// Writes a device's connection point marked not used as "<label> · not used". The JSON value is unchanged.
 pub fn cps_in_words(sheet: &mut PropertySheet) {
     for row in sheet
         .sections
@@ -1369,13 +1369,13 @@ pub fn cps_in_words(sheet: &mut PropertySheet) {
     }
 }
 
-/// The explanation of a row in the UI language (FT-1648): what it is, what changing it does and, for a derived
+/// The explanation of a row in the UI language: what it is, what changing it does and, for a derived
 /// value, where it comes from (the tooltip of its label).
 pub fn row_help(section: &SheetSection, row: &PropRow) -> Option<&'static str> {
     strings::field_help(&section.kind, &row.path_for_label())
 }
 
-/// The provenance every value row of `sheet` shares when it is not authored (FT-1761: a report page's Properties
+/// The provenance every value row of `sheet` shares when it is not authored (a report page's Properties
 /// showed a "generated" chip on each of its rows): the header says it once and the rows show none (doc 16a §6.8).
 /// `None` when a row is authored or two rows differ.
 pub fn shared_provenance(sheet: &PropertySheet) -> Option<&Provenance> {
@@ -1391,7 +1391,7 @@ pub fn shared_provenance(sheet: &PropertySheet) -> Option<&Provenance> {
 /// The Messages filter of a sheet's record: a page by its folio facet (`page:101`; its title "101 Control" is in no
 /// finding's text), a tube or an unnumbered wire by the words its findings name it by (`SheetHeader::filter`), any
 /// other record by its title (a device's tag, a wire's number). Several records have no filter
-/// (FT-1659: the title "2 devices" is in no finding's text, so the chip of four warnings opened "Nothing matches"); the
+/// (the title "2 devices" is in no finding's text, so the chip of four warnings opened "Nothing matches"); the
 /// chip's tooltip lists their findings.
 pub fn findings_filter(header: &ew_api::output::SheetHeader) -> String {
     if header.items != 1 {
@@ -1661,7 +1661,7 @@ pub fn report_columns_in_words(
 
 /// Writes a page's and a report block's Form row by the form's name in the window's language (doc 09 §3.8), never its
 /// ID; `forms` gives the project's forms by name, asked only when a Form row names one. A page that names no frame of
-/// its own reads the frame it draws with, which `default_frame` gives (FT-1915: the row was empty). The JSON value of
+/// its own reads the frame it draws with, which `default_frame` gives (the row was empty). The JSON value of
 /// a named form is unchanged.
 pub fn forms_in_words(
     sheet: &mut PropertySheet,
@@ -1698,7 +1698,7 @@ pub fn forms_in_words(
             }
         }
     }
-    // The project's Frames row: its default and each page type's frame by name, never by ID (FT-1916).
+    // The project's Frames row: its default and each page type's frame by name, never by ID.
     for row in sheet
         .sections
         .iter_mut()
@@ -1886,7 +1886,7 @@ pub fn enum_value_of<'t>(kind: &str, row: &PropRow, text: &'t str) -> std::borro
 /// words, else `text` as typed: what [`enum_value_of`] reads for a row and a table cell for its column's field.
 pub fn enum_word_of<'t>(kind: &str, path: &str, ty: &FieldType, text: &'t str) -> std::borrow::Cow<'t, str> {
     let typed = text.trim();
-    // A yes or no row takes the words it shows ("ja", "nee"; FT-1555).
+    // A yes or no row takes the words it shows ("ja", "nee").
     if matches!(ty.inner(), FieldType::Bool) {
         return if typed.eq_ignore_ascii_case(strings::text(key!("props-yes"))) {
             "yes".into()
@@ -1936,7 +1936,7 @@ pub fn fix_line(card: &Card) -> String {
 }
 
 /// A card's changes (when given), tags and cross-reference texts, counted and joined by commas; a count of none is
-/// left out (FT-1761: a card read "0 tags, 0 cross-reference texts"), the changes always said.
+/// left out (a card read "0 tags, 0 cross-reference texts"), the changes always said.
 fn change_counts(card: &Card, changes: Option<usize>) -> String {
     let counts = [
         (
@@ -2004,7 +2004,7 @@ pub fn report_source_in_words(sheet: &mut PropertySheet) {
 
 /// Writes the values `ew-api` gives in English words in the UI language's: a yes or no ("ja", "nee"), a
 /// list's count ("4 elementen") and a project setting's structured value in words, never its JSON (`json_words`).
-/// The JSON values are unchanged, and the CLI keeps the English words (FT-680).
+/// The JSON values are unchanged, and the CLI keeps the English words.
 pub fn values_in_words(sheet: &mut PropertySheet) {
     let yes_no = |text: &mut String| match text.as_str() {
         "yes" => *text = strings::text(key!("props-yes")).to_owned(),
@@ -2102,7 +2102,7 @@ pub fn header_in_words(sheet: &mut PropertySheet) {
     if sheet.header.title == *kind {
         sheet.header.title = strings::kind_heading(kind);
     } else if kind == "connection" && sheet.header.title == ew_api::output::UNNUMBERED_WIRE {
-        // A wire without a number in words (FT-1799), its ID row likewise.
+        // A wire without a number in words, its ID row likewise.
         let words = strings::text(key!("props-wire-unnumbered")).to_owned();
         let english = std::mem::replace(&mut sheet.header.title, words.clone());
         for row in sheet.sections.iter_mut().flat_map(|s| &mut s.rows) {
@@ -2245,13 +2245,13 @@ pub enum RowMenuItem {
     Placeholder,
     /// Edit part… on a Parts row that names a part: `part.edit`.
     EditPart,
-    /// Go to source on a derived or inherited row whose source is a row of a record or of the project (doc 16 §6.2,
-    /// FT-1651): that row, with the cursor on it.
+    /// Go to source on a derived or inherited row whose source is a row of a record or of the project (doc 16 §6.2):
+    /// that row, with the cursor on it.
     GoToSource,
     /// Define potential… on a Potential row of a potential without a definition: `potential.draw`'s form at the
-    /// wire's or the interruption point's point (FT-1651).
+    /// wire's or the interruption point's point.
     DefinePotential,
-    /// Mark not used (`on`) or Mark used on a device's connection point row: `cp.unused` (FT-1649).
+    /// Mark not used (`on`) or Mark used on a device's connection point row: `cp.unused`.
     CpUnused {
         /// Whether the point is to be marked not used.
         on: bool,
@@ -2299,7 +2299,7 @@ pub fn action_label(action: RowAction) -> &'static str {
     })
 }
 
-/// The phrases `ew-api` builds a provenance chip's text from, in English for the CLI and the JSON (FT-680), each with
+/// The phrases `ew-api` builds a provenance chip's text from, in English for the CLI and the JSON, each with
 /// its key: a fixed phrase (`None`), or the text before and after one argument.
 const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
     ("frozen (sign hidden)", None, key!("chip-via-frozen-sign-hidden")),
@@ -2460,7 +2460,7 @@ pub fn chip_word(p: &Provenance) -> &'static str {
         Provenance::Derived { via } if via.contains("no supply found upstream of ") => {
             strings::text(key!("chip-word-no-supply"))
         }
-        // A wire property names the level of the chain it comes from (FT-1651).
+        // A wire property names the level of the chain it comes from.
         Provenance::Derived { via } if via.contains(" profile '") => strings::text(key!("chip-word-profile")),
         Provenance::Derived { via } if via.starts_with("potential definition ") => {
             strings::text(key!("chip-word-potential"))

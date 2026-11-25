@@ -17,7 +17,7 @@
 //! rectangle relative to pos (v0 top-left, then clockwise), cps}, target}`. **Default CPs** for a part target: the
 //! template entry's CPs in template order, the first `⌈n/2⌉` on the top edge and the rest on the bottom edge, left to
 //! right, leaving up and down; an entry with a source's outputs among its CPs (a power supply's + and −) has its inputs
-//! on the top edge and its outputs on the bottom one (FT-1702); when an edge is too short the rectangle grows to the right until they fit one grid step
+//! on the top edge and its outputs on the bottom one; when an edge is too short the rectangle grows to the right until they fit one grid step
 //! apart with one grid step to spare at each corner. On a wider box the CPs of an edge spread over its drawn length:
 //! one common pitch, the largest whole number of grid steps that fits `m + 1` times into the edge, the group
 //! centred (half a step to the left when it cannot be centred exactly). Without a part, no CPs: such a box takes pins of its
@@ -30,7 +30,7 @@
 //! ([`pin_layout`]). Such a one-click box stands inside the frame's drawing area, moved there by whole grid steps where
 //! it would leave it, and is refused with its size where it is larger than the area (`reason-box-too-large`) and on
 //! another box (`reason-box-occupied`); the host ends the tool once it is placed (one click, one box). **A device's
-//! interfaces on a bus page** ([`BoxTarget::Ports`], a box each in a row, FT-1766) stand inside the drawing area the
+//! interfaces on a bus page** ([`BoxTarget::Ports`], a box each in a row) stand inside the drawing area the
 //! same way, the whole row moved; the row is refused with its size where it is larger than the area, and where a box
 //! of it would cover a device drawn on the page (`reason-ports-occupied`).
 //!
@@ -113,7 +113,7 @@ pub enum BoxTarget {
         label: String,
         /// The CPs of its part's black-box entry: (function CP index, designation).
         cps: Vec<(u16, String)>,
-        /// The part's device box (doc 07 §2.5, FT-1788): one click places the box as the part lays it out.
+        /// The part's device box (doc 07 §2.5): one click places the box as the part lays it out.
         layout: Option<ew_api::part_box::PartBox>,
         /// A PLC card's pins by kind, for a part without a device box: its box is a card's (doc 10 §3.6).
         card: Option<ew_api::output::CardPins>,
@@ -344,7 +344,7 @@ pub struct BlackBoxTool {
     /// Whether an Escape just dropped the first corner: the hint then says that a second Escape leaves the tool;
     /// the next click clears it.
     dropped: bool,
-    /// The library documents the black box embeds (`box.black`'s `copies`, FT-656); the host sends only those the
+    /// The library documents the black box embeds (`box.black`'s `copies`); the host sends only those the
     /// project still lacks.
     copies: Vec<Value>,
     /// The representation type the box takes where it is not the frame's own (`topology` on a bus-topology page).
@@ -354,7 +354,7 @@ pub struct BlackBoxTool {
     /// A multipin valve terminal's plug: one click places its box sized by its pins, down its two sides.
     pins: bool,
     /// Whether a part without a symbol of its own armed the tool from the Place tool: the hint says that it is drawn as
-    /// a box (FT-1808).
+    /// a box.
     drawn_as_box: bool,
 }
 
@@ -374,7 +374,7 @@ impl BlackBoxTool {
         }
     }
 
-    /// The tool drawing a part that has no symbol of its own, armed by the Place tool: its hint says so (FT-1808).
+    /// The tool drawing a part that has no symbol of its own, armed by the Place tool: its hint says so.
     pub fn with_drawn_as_box(mut self, drawn_as_box: bool) -> BlackBoxTool {
         self.drawn_as_box = drawn_as_box;
         self
@@ -463,7 +463,7 @@ impl BlackBoxTool {
         self
     }
 
-    /// The tool with the library documents its black boxes embed (FT-656).
+    /// The tool with the library documents its black boxes embed.
     pub fn with_copies(mut self, copies: Vec<Value>) -> BlackBoxTool {
         self.copies = copies;
         self
@@ -511,7 +511,7 @@ impl BlackBoxTool {
         }
     }
 
-    /// The target's source outputs among its CPs (FT-1702).
+    /// The target's source outputs among its CPs.
     fn outputs(&self) -> &[u16] {
         match &self.target {
             BoxTarget::Part { outputs, .. } => outputs,
@@ -536,7 +536,7 @@ impl BlackBoxTool {
     }
 
     /// The layouts of the current rectangle: its box, or a box per interface of a ports target, the row of boxes moved
-    /// by whole grid steps into the frame's drawing area where it would leave it (FT-1766: the boxes after the first ran
+    /// by whole grid steps into the frame's drawing area where it would leave it (the boxes after the first ran
     /// past the page's edge) and laid out afresh there.
     fn current(&self, cx: &ToolCx<'_>) -> Option<Vec<BoxLayout>> {
         let State::Outline { first, at } = self.state else {
@@ -571,7 +571,7 @@ impl BlackBoxTool {
         }
     }
 
-    /// Why the boxes of a ports target cannot be drawn where they are (FT-1766): a row larger than the drawing area,
+    /// Why the boxes of a ports target cannot be drawn where they are: a row larger than the drawing area,
     /// with its size, or one that covers a device drawn on the page; `None` where they can.
     fn ports_refusal(&self, cx: &ToolCx<'_>) -> Option<ToolOutput> {
         if !matches!(self.target, BoxTarget::Ports { .. }) {
@@ -955,7 +955,7 @@ impl Tool for BlackBoxTool {
                 && json.as_ref().is_some_and(|j| j["box"].get("slots").is_some()))
             .then(super::Placement::default),
             // A station placed first on a bus page takes the tag of the page its box is drawn on now, which the toast
-            // says (FT-1766).
+            // says.
             retag: true,
             drew_existing: ports && json.as_ref().is_some_and(|j| j["target"].get("device").is_some()),
             // A device placed on a bus page as several boxes, one for each bus interface, says so: two boxes with

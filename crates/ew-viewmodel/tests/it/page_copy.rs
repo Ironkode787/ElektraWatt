@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1862 through the actions a person and a script use: Page ▸ Copy pages… (`pages.copy`) on a small project of its
+//! Page copy through the actions a person and a script use: Page ▸ Copy pages… (`pages.copy`) on a small project of its
 //! own (a relay on 11 whose contact is on 12, a strip with terminals on both pages, a cable on 12), its form and its
 //! card; Save as macro… of pages named by folio with nothing selected; Edit ▸ Paste in place; and a paste whose block
 //! holds a text in the frame's header band, where the Text tool puts one.

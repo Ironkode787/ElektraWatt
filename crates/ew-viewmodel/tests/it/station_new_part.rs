@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! New part… in the catalogue of a station not made yet (FT-2131): the form starts as the station's head, so a card
+//! New part… in the catalogue of a station not made yet: the form starts as the station's head, so a card
 //! made there starts without the head's bus interface once its role is Module; and the part saved there stands in the
 //! catalogue, offered, not put into the station's empty head unasked, unless the head was the place chosen.
 

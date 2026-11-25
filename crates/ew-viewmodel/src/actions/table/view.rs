@@ -307,7 +307,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
-    // FT-717: Output ▸ Parts list opens the first page of the project's parts list (the first `parts_summary` block,
+    // Output ▸ Parts list opens the first page of the project's parts list (the first `parts_summary` block,
     // else the first `parts_list` block, in page order).
     placed(
         place(Group::Lists, 1, CommandSize::Large, Some(key!("bar-lists-parts"))),

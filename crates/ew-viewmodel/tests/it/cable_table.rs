@@ -151,7 +151,7 @@ fn core_shield_and_pair_are_edited_on_the_conductor() {
     s.shutdown();
 }
 
-/// FT-1555: a Dutch window's yes or no cell takes "ja" and "nee", the words it shows.
+/// A Dutch window's yes or no cell takes "ja" and "nee", the words it shows.
 #[test]
 fn a_dutch_yes_or_no_cell_takes_ja_and_nee() {
     let tmp = Tmp::new("ft1555-yes-no");

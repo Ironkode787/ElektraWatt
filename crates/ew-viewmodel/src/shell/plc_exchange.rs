@@ -332,7 +332,7 @@ impl ShellModel {
             Ok(r) => r,
             Err(e) => return failed(key!("error-plc-import"), &[&e.to_string()]),
         };
-        // The file read and merged as a job (FT-1763), the preview opened at its end.
+        // The file read and merged as a job, the preview opened at its end.
         let name = file.clone();
         self.start_read(&name, move |_| {
             let import =

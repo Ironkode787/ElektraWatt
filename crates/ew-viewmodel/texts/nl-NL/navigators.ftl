@@ -6,7 +6,7 @@
 # and file names, rule IDs, command names, key caps, identifiers and units are not translated.
 
 nav-badge-unplaced = niet getekend
-# rc.5: wat een badgewoord betekent, de zweeftekst.
+# Wat een badgewoord betekent, de zweeftekst.
 nav-badge-unplaced-tip = Nog op geen pagina getekend: geen symbool of kaderaansluiting draagt het.
 nav-badge-spare-tip = Een reserve: vrijgehouden, er is geen draad op aangesloten. Sluit er een draad op aan, of zet de toestand in Eigenschappen.
 nav-badge-frozen = vastgezet
@@ -126,7 +126,7 @@ chip-word-no-supply = geen voeding
 chip-word-potential = potentiaal
 chip-word-cable = kabel
 chip-word-default = standaard
-# FT-1338 (ID-1392): the phrases of a provenance chip's text that ew-api builds in English.
+# The phrases of a provenance chip's text that ew-api builds in English.
 chip-via-frozen-sign-hidden = vastgezet (teken verborgen)
 chip-via-frozen = vastgezet
 chip-via-numbering = nummering
@@ -315,7 +315,7 @@ list-continues-row = De lijst gaat verder op pagina { $p0 } ›
 empty-nav-terminals = Nog geen klemmen
 empty-nav-terminals-text = Plaats een klem met Tekenen ▸ Klem…; hij komt in de klemmenstrook die u daar kiest.
 
-# C49-p8b#2: the strip editor's scope in the filter row.
+# The strip editor's scope in the filter row.
 nav-scope-strip = Strook: { $p0 }
 nav-scope-clear = Alle klemmenstroken tonen
 nav-plc-addresses = Adressen

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1761: the Fluid navigator's badge of a medium counted its lines ("1 lines") beside the medium table's Count of
+//! The Fluid navigator's badge of a medium counted its lines ("1 lines") beside the medium table's Count of
 //! its consumers. On a copy of the sample, a new medium defined at a tube of its pneumatics: the badge names the
 //! consumers, as many as the table's Count.
 

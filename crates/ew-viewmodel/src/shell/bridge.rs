@@ -15,11 +15,11 @@
 //! with one function, a function, or a device; each resolves to the terminal function of a terminal device (a device:
 //! its function). No canvas and no page is needed.
 //!
-//! **Terminals, not CPs (D10).** Two terminals are bridged when a bridge connection joins any CP of one to any
+//! **Terminals, not CPs.** Two terminals are bridged when a bridge connection joins any CP of one to any
 //! CP of the other; such a pair is kept, and the command is refused when every pair is; the group rule's "touches"
 //! reads terminals. The stored CPs stay what was drawn.
 //!
-//! **Remove bridge (D11).** `strip.unbridge` deletes the bridge connections with both ends on the selected terminals in
+//! **Remove bridge.** `strip.unbridge` deletes the bridge connections with both ends on the selected terminals in
 //! one `edit.delete`, and refuses when that would leave a group in two pieces.
 //!
 //! **Reads.** The terminal aspects, the part copies, the function definitions and the connections come from the
@@ -86,7 +86,7 @@ impl ShellModel {
     /// cost is linear in the project's connections plus the selected terminals' keyed lookups.
     pub(crate) fn bridge_command(&self) -> Result<AnyCommand, Key<'static>> {
         let selection = key!("reason-bridge-selection");
-        // 1. The selection's terminals (D9): each item a representation with one function, a function or a device,
+        // 1. The selection's terminals: each item a representation with one function, a function or a device,
         // resolving to a terminal device's function; one terminal counts once.
         let project = self.project.as_ref().ok_or(selection)?;
         let q = project.session.query();

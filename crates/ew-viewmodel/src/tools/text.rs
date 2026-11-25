@@ -182,7 +182,7 @@ const ON_WIRE: i64 = 1_500_000;
 /// How far beside a wire's line a text clicked on it stands, in nm (as a wire marker's text stands off its line).
 const BESIDE_GAP: i64 = 1_000_000;
 
-/// Where a text clicked at `at` stands (FT-1870, doc 06 §4.5), and whether on its baseline: clicked on a straight
+/// Where a text clicked at `at` stands (doc 06 §4.5), and whether on its baseline: clicked on a straight
 /// stretch of a wire (within [`ON_WIRE`] of its line), as a wire's code is written, beside it and not on it: over a
 /// horizontal stretch on its baseline [`BESIDE_GAP`] above the line, right of a vertical one by that gap; elsewhere at
 /// `at`. The first stretch of the page's connections in table order decides.

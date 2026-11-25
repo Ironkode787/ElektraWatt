@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The pin list of a device box keeps its rows while the same pins are edited (FT-2005): the sample's power supply's
+//! The pin list of a device box keeps its rows while the same pins are edited: the sample's power supply's
 //! box, a pin of its top edge given the bottom edge, keeps its row; selecting another pin sorts the list by the box
 //! again, the edited pin among the bottom edge's.
 

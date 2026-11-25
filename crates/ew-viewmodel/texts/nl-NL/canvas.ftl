@@ -207,7 +207,7 @@ canvas-cp-used = { $p0 } markeren als gebruikt
 canvas-make-cable = Kabel maken van de selectie…
 canvas-go-partner = Naar partner { $p0 }
 canvas-go-partner-none = Naar partner
-# rc.5: a pin with no wire to select (it touches a terminal directly) is named on its device's menu.
+# A pin with no wire to select (it touches a terminal directly) is named on its device's menu.
 canvas-define-potential-pin = Potentiaal definiëren op { $p0 }…
 canvas-ip-direction = Richting: { $p0 }
 canvas-add-terminal = Klem toevoegen

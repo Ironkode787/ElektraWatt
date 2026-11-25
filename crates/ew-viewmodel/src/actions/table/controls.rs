@@ -493,7 +493,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ))),
     )),
     // A connection point marked not used, or used again, from its Properties row and from the right-click menu
-    // over it on the page (FT-1649).
+    // over it on the page.
     with_params(
         "function:text, idx:uint, on?:bool",
         hidden(act(
@@ -1010,7 +1010,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_part_save(p),
         )),
     ),
-    // A part of My parts taken out of it (FT-1766): the part editor's Remove from my parts library…, confirmed; also in
+    // A part of My parts taken out of it: the part editor's Remove from my parts library…, confirmed; also in
     // the command search (delete part, remove part) for the selected device's part or the Libraries navigator's row.
     with_params(
         "part?:text, confirm?:bool",
@@ -1109,7 +1109,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_keymap_export(p),
         )),
     ),
-    // The editor has an entry of its own on the Draw tab, named for what it is and alone in its column (FT-1640: a
+    // The editor has an entry of its own on the Draw tab, named for what it is and alone in its column (a
     // button named "Symbols" under Black box was not found); the group's two Large buttons are Symbol and Device.
     // The Place group holds its menu entry and palette row.
     with_params(
@@ -1201,7 +1201,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_symbol("discipline", p),
         )),
     ),
-    // Part 3's nit (D6): a connection point's potential role, for scripts and AI tools as for the role list.
+    // Part 3's nit: a connection point's potential role, for scripts and AI tools as for the role list.
     with_params(
         "cp:uint, role:enum(none|l1|l2|l3|l|n|pe|pen|fe|l_plus|l_minus|m|signal|undefined)",
         hidden(act("symbol.role", View, Menu::Edit, &[], always, None, |s, p| {
@@ -1226,7 +1226,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             s.act_symbol("fork", p)
         })),
     ),
-    // FT-1694: the browsers' Edit symbol and Copy and edit, on the symbol named (its key, copy ID or library address)
+    // The browsers' Edit symbol and Copy and edit, on the symbol named (its key, copy ID or library address)
     // or the browser's current row; a row's context menu calls them too.
     with_params(
         "symbol?:text, discard?:bool",

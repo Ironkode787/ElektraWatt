@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! File ▸ Import… reads the symbol map beside a QElectroTech file (doc 14 §4.17, FT-1869): the import card says it was
+//! File ▸ Import… reads the symbol map beside a QElectroTech file (doc 14 §4.17): the import card says it was
 //! read, the imported element draws the starter function its row names, and a wrong row refuses the import in words.
 
 use std::path::{Path, PathBuf};

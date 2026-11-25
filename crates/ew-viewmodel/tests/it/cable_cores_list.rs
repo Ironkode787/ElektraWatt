@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `cable.from_wires` takes its `cores` as a list of core names in the wires' order, as it takes them as a text
-//! (FT-1865): a script that gives a list gets those cores, not the ones the form proposes.
+//! `cable.from_wires` takes its `cores` as a list of core names in the wires' order, as it takes them as a text:
+//! a script that gives a list gets those cores, not the ones the form proposes.
 
 use crate::common;
 

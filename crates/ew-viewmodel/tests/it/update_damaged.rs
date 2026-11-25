@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1499: the read-only banner of a project with a damaged library copy (FT-1383) offers Update from library
+//! The read-only banner of a project with a damaged library copy offers Update from library
 //! when an installed library holds the copy's item; the action writes the library's copy over the damaged file and
 //! opens the project again, writable when the integrity check passes. Several damaged copies: every one a library holds
 //! is updated and the others are named. No library holds it: the banner says so and offers nothing. Nothing is written
@@ -368,7 +368,7 @@ fn other_integrity_findings_refuse_the_update() {
 }
 
 /// The save fails (the manifest changed on disk after the open): the update is refused in words, whole in both
-/// languages, the save's reason included and no file name in it (FT-1570), and nothing more is written.
+/// languages, the save's reason included and no file name in it, and nothing more is written.
 #[test]
 fn a_save_that_fails_refuses_the_update() {
     let tmp = Tmp::new("ft1499-save");

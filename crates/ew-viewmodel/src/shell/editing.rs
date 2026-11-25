@@ -664,7 +664,7 @@ impl ShellModel {
         }
         let mut cat = self.project.as_ref()?.session.place_catalogue(&key.2)?;
         self.count(|c| c.place_catalogue += 1);
-        // A symbol's name in the window's language (FT-1530).
+        // A symbol's name in the window's language.
         for s in &mut cat.symbols {
             if !s.name_text.is_empty() {
                 s.name = super::symbol_editor::name_words(&s.name_text);
@@ -788,7 +788,7 @@ impl ShellModel {
 
     /// The catalogue row of symbol `key` with the copy ID it has, or, for a starter symbol the project does not
     /// embed yet, the one its embedding gives it; and the library documents (`copies`) that the command using it
-    /// carries, so that the embedding is part of that command's transaction (FT-656: one undo step, and the
+    /// carries, so that the embedding is part of that command's transaction (one undo step, and the
     /// recorded command replays without a library). Nothing is committed here.
     pub(super) fn starter_row(&mut self, key: &str) -> Result<(CatalogueSymbol, Vec<Value>), Outcome> {
         let no_row = Outcome::refused(key!("reason-unknown-symbol"));
@@ -813,7 +813,7 @@ impl ShellModel {
     }
 }
 
-/// The text of `key` naming the key chord `chord` (FT-896): `key` formatted with it, or `<key>-unbound` (the sentence
+/// The text of `key` naming the key chord `chord`: `key` formatted with it, or `<key>-unbound` (the sentence
 /// without the parenthesis) when the action has no key.
 fn text_with_key(key: Key<'_>, chord: &str) -> String {
     if chord.is_empty() {
@@ -823,8 +823,8 @@ fn text_with_key(key: Key<'_>, chord: &str) -> String {
     }
 }
 
-/// The library documents of a `{"copies": [...]}` parameter object (FT-656).
-/// The library documents a placement of symbol `key` carries (FT-656: the embedding travels in the placement itself,
+/// The library documents of a `{"copies": [...]}` parameter object.
+/// The library documents a placement of symbol `key` carries (the embedding travels in the placement itself,
 /// one undo step, and the recorded command replays without a library): with the part copy `part`, every FnDef its
 /// template needs and a library part's closure, else the starter symbol with its FnDef. A part whose FnDefs the
 /// project lacks is refused in words; a symbol that cannot be embedded fails with its message.
@@ -858,7 +858,7 @@ mod tests {
     use super::text_with_key;
     use crate::key;
 
-    /// FT-896: the two black-box refusals name the key from the keymap, or leave the parenthesis out when the action
+    /// The two black-box refusals name the key from the keymap, or leave the parenthesis out when the action
     /// has no key.
     #[test]
     fn the_black_box_refusals_name_the_key_or_none() {

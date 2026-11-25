@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `place.pick` names an installed library's symbol by its key before its first placement as after it, and by its
-//! address after it as before (FT-1865, FT-1860): a script need not know whether the project holds the symbol yet.
+//! address after it as before: a script need not know whether the project holds the symbol yet.
 
 use crate::common::{Tmp, done};
 use ew_viewmodel::shell::Mode;

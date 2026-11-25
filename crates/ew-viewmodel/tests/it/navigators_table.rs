@@ -520,7 +520,7 @@ fn an_ambiguous_number_is_resolved_on_the_card() {
     shell.shutdown();
 }
 
-/// TB4's conflicts (D13): two wire-list rows of one connection pasted with different colours: the second is invalid
+/// TB4's conflicts: two wire-list rows of one connection pasted with different colours: the second is invalid
 /// ("same record as row <n>"); with the same colour they merge.
 #[test]
 fn two_rows_on_one_record_with_different_values_are_invalid() {

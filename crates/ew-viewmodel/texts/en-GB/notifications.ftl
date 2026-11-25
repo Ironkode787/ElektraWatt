@@ -21,16 +21,16 @@ toast-box-pin-side-full = This side of the box has no free point for another pin
 toast-drawn-as-box = { $p0 } has no symbol of its own and is drawn as a box, by the Black box tool: click its first corner, then its opposite corner.
 notice-ip-not-placed = Not placed: { $p0 }
 
-# FIXPT41: the drop on a connection point the IP tool cannot honour (FT-946: an external point on a pin connects).
+# FIXPT41: the drop on a connection point the IP tool cannot honour (an external point on a pin connects).
 notice-ip-on-ip = Not placed: the interruption point { $p0 } is already here; place it on a pin or a free grid point
 notice-ip-too-close = Not placed: too close to the interruption point { $p0 }, their names and references would print over each other. The two must stand { $p1 } grid steps ({ $p2 } mm) apart, one above the other, or hold Alt to place it anyway
-# rc.5: a point placed free beside a pin without a wire, or on it with Alt, does not join it.
+# A point placed free beside a pin without a wire, or on it with Alt, does not join it.
 toast-ip-beside-pin = { $p0 } stands beside { $p1 } without joining it: place it on the pin, or draw a wire to it.
 
-# FT-948 (ID-1150): a drop whose connection point lies on a junction or inside a wire, which it would not join.
+# A drop whose connection point lies on a junction or inside a wire, which it would not join.
 notice-ip-on-wire = Not placed: the point would sit on a wire without joining it; place it on a pin or a free grid point
 
-# FT-1798: an arrow of EW's two forms on a drawn box's left or right side that would point into the box.
+# An arrow of EW's two forms on a drawn box's left or right side that would point into the box.
 notice-ip-into-box-source = Not placed: a source's wire leaves its arrow at the tail, on the left, so on { $p0 } the arrow would lie in the box. Make it a target, or hold Alt to place it beside the box and draw its wire
 notice-ip-into-box-target = Not placed: a target's wire leaves its arrow at the tip, on the right, so on { $p0 } the arrow would lie in the box. Make it a source, or hold Alt to place it beside the box and draw its wire
 
@@ -55,7 +55,7 @@ toast-unbridged-one = Removed 1 bridge.
 toast-cores-swapped = Swapped cores { $p0 } and { $p1 } of { $p2 }.
 announce-tool = { $p0 }: { $p1 }
 announce-selected = { $p0 } selected
-# WP-S2.08 D13: one selected record's live description (tag, kind, folio; a wire's number, potential and ends; a page
+# One selected record's live description (tag, kind, folio; a wire's number, potential and ends; a page
 # item's kind and text).
 announce-device = { $p0 }, { $p1 }, folio { $p2 }
 announce-device-unplaced = { $p0 }, { $p1 }
@@ -81,7 +81,7 @@ announce-item-cable_mark = Mark of the cable
 announce-item-image = Image
 announce-item-surface_view = Surface view
 announce-item-unknown = Page item
-# FT-1248 and FT-1250 (ID-1315): a junction, an interruption point and a structure box, and a wire end that is no junction.
+# A junction, an interruption point and a structure box, and a wire end that is no junction.
 announce-junction = Junction, folio { $p0 }, { $p1 }
 announce-junction-unplaced = Junction, { $p0 }
 announce-ip = Interruption point { $p0 }, folio { $p1 }
@@ -101,14 +101,14 @@ banner-gpu-no-software-adapter = --no-gpu: no software adapter was found, so the
 # Banners and messages.
 banner-recovery = This project has unsaved changes from a session that ended unexpectedly. It is open read-only. File, Discard unsaved changes of the earlier session deletes them and opens the project for editing; to recover them, reopen the project and choose Recover in the recovery dialog.
 banner-read-only = This project is open read-only: { $p0 }.
-# FT-1383 (ID-1418): a read-only project whose damaged library copy a device uses.
+# A read-only project whose damaged library copy a device uses.
 banner-damaged-copy = This project is open read-only: the device { $p0 } uses the library copy of part { $p1 } from { $p2 }, which is damaged. Update the copy from its library first.
 banner-damaged-copy-unnamed = This project is open read-only: the device { $p0 } uses the library copy of its part, which is damaged. Update the copy from its library first.
 banner-damaged-copy-record = This project is open read-only: { $p0 } is damaged. Update the copy from its library first.
 banner-damaged-copy-left-out = This project is open read-only: { $p0 } is damaged. Update the copy from its library, or use Save as for a copy of the project without it.
-# C53-p3#6 (ID-1481): two or more damaged copies that a Save As leaves out.
+# Two or more damaged copies that a Save As leaves out.
 banner-damaged-copies-left-out = This project is open read-only: { $p0 } are damaged. Update the copies from their libraries, or use Save as for a copy of the project without them.
-# FT-1499 (ID-1486): the same banners when no library on this computer holds a damaged copy: no update is offered.
+# The same banners when no library on this computer holds a damaged copy: no update is offered.
 banner-damaged-copy-unnamed-no-library = This project is open read-only: the device { $p0 } uses the library copy of its part, which is damaged. No library on this computer holds it, so the copy cannot be updated from one.
 banner-damaged-copy-record-no-library = This project is open read-only: { $p0 } is damaged. No library on this computer holds it, so the copy cannot be updated from one.
 banner-damaged-copy-left-out-no-library = This project is open read-only: { $p0 } is damaged. No library on this computer holds it; use Save as for a copy of the project without it.
@@ -143,14 +143,14 @@ toast-tag-proposal = Tag { $p0 }: online numbering gave counter { $p1 }.
 toast-joined = Joined { $p0 } ({ $p1 }) at { $p2 }.
 toast-joined-dropped = { $p0 }; { $p1 }.
 
-# FT-893: the strip takes its tag with its first terminal; the example is the tag it would take on the page on
+# The strip takes its tag with its first terminal; the example is the tag it would take on the page on
 # show (`-no-example` off a schematic page).
 toast-strip-new = New terminal strip; its first terminal tags it, such as { $p0 }: Draw ▸ Terminal… places its terminals.
 
-# FT-1090: a tag given in the New terminal strip form is the strip's from the start.
+# A tag given in the New terminal strip form is the strip's from the start.
 toast-strip-new-tagged = New terminal strip { $p0 }: Draw ▸ Terminal… places its terminals.
 toast-strip-new-no-example = New terminal strip; its first terminal tags it: Draw ▸ Terminal… places its terminals.
-# A terminal chosen in the device browser of a project without strips goes on a new strip (rc.3 persona run).
+# A terminal chosen in the device browser of a project without strips goes on a new strip.
 toast-strip-new-for-terminal = The terminal goes on a new terminal strip: click where it is to stand.
 toast-export-pdf = Exported { $p0 }: { $p1 }, { $p2 } KiB, in { $p3 }.
 
@@ -162,7 +162,7 @@ toast-ip-deleted-wire = Deleted the interruption point { $p0 } and the wire conn
 toast-ip-deleted-wires = Deleted the interruption point { $p0 } and the { $p1 } wires connected to it.
 toast-ips-deleted-wire = Deleted the interruption points { $p0 } and the wire connected to them.
 toast-ips-deleted-wires = Deleted the interruption points { $p0 } and the { $p1 } wires connected to them.
-# ID-1470 (C53-p1#6): a pasted interruption point keeps its name, so it continues the points of that name.
+# A pasted interruption point keeps its name, so it continues the points of that name.
 toast-paste-ip-continues = The pasted interruption point { $p0 } keeps its name, so it continues { $p0 } at { $p1 }.
 toast-paste-fitted = The paste was fitted to this page's { $p0 } grid: { $p1 } items moved onto it, and their wires were drawn anew. Undo takes it all back in one step.
 toast-paste-fitted-one = The paste was fitted to this page's { $p0 } grid: one item moved onto it, and the wires were drawn anew. Undo takes it all back in one step.
@@ -174,7 +174,7 @@ toast-wires-unrouted = { $p0 ->
        *[other] { $p0 } wires found no way and are drawn as thin dashed lines: move the items apart and choose Route
     }.
 
-# FT-709: a delete that leaves a device without a symbol keeps the device; the toast says where it stays.
+# A delete that leaves a device without a symbol keeps the device; the toast says where it stays.
 toast-device-unplaced = { $p0 } has no symbol on a page now; it stays in the Devices navigator and the parts list.
 toast-device-unplaced-no-part = { $p0 } has no symbol on a page now; it stays in the Devices navigator.
 toast-deleted-wires = { $p0 ->
@@ -214,7 +214,7 @@ toast-paste-moved-terminal = Moved 1 terminal of { $p1 } to { $p2 }.
 toast-paste-moved = Moved { $p0 } symbols to { $p2 }.
 toast-paste-moved-symbol = Moved 1 symbol to { $p2 }.
 toast-placed-in-wire = { $p0 }, connected into the wire it was dropped on.
-# FT-1208: the end of the toast of a terminal placed where a terminal of its strip stands ({0} the strip, {1} the grid steps).
+# The end of the toast of a terminal placed where a terminal of its strip stands ({0} the strip, {1} the grid steps).
 toast-placed-moved = { $p1 } grid steps right: { $p0 } has a terminal on the click point.
 
 # FIXPT41: an interruption point dropped on a pin ({3} the key of `canvas.activate_alt`).
@@ -233,7 +233,7 @@ toast-ip-placed-target-lone-no-cell = { $p0 } has no source yet: place where { $
 toast-undo = Undo
 toast-close = Close
 
-# WP-S2.09 part 1: the jobs, the notifications and the recovery dialog.
+# The jobs, the notifications and the recovery dialog.
 toast-open = Open
 toast-export-cancelled = Export cancelled; no file written.
 toast-export-failed = Export failed: { $p0 }; check that the folder is writable and the file is not open in another program.
@@ -243,7 +243,7 @@ toast-recovered = { $p0 ->
        *[other] Recovered { $p0 } changes; save to keep them
     }.
 
-# FT-549: the counted outcomes.
+# The counted outcomes.
 toast-bridged = Added { $p0 } bridges between { $p1 } terminals.
 toast-bridged-one = Added 1 bridge between { $p1 } terminals.
 toast-check = Check: { $p0 }.
@@ -325,7 +325,7 @@ toast-zoom-way-back = Zoomed far in: { $p0 }, or Fit page at the page's lower ri
 toast-plug-draw = Click where the plug of { $p0 } goes on page { $p1 }.
 toast-ports-plugged = Plugged the open working ports of { $p0 }.
 
-# FT-753: the words say what to do.
+# The words say what to do.
 toast-bind-off-card = { $p0 } is not on the module { $p1 }: wire { $p0 } to a pin of { $p1 } first; the channel binds the module's pin.
 toast-bind-off-card-untagged = The connection point is not on the module { $p0 }: a channel binds a pin of its module or the coil of a valve on it.
 toast-bind-wired-pins = { $p0 } is wired to { $p2 } pins of { $p1 } ({ $p3 }): drop the channel on the module's pin you mean.
@@ -344,7 +344,7 @@ toast-fluid-settings = The default tube is { $p0 } now: every tube without one o
 toast-fluid-settings-no-material = The default tube is { $p0 } now, without a material: every tube without one of its own takes it, the tubes drawn already too; give it a material to complete their specification.
 toast-fluid-settings-no-size = The project has no default tube size now: each tube takes its medium's or its own.
 
-# FT-757: a channel the bind unbound (FR-PLC-005), appended to the bind's toast.
+# A channel the bind unbound (FR-PLC-005), appended to the bind's toast.
 toast-bind-displaced = ; { $p0 } was bound there and is now unbound
 job-kind-table = Table export
 job-kind-import = Drawing import
@@ -353,22 +353,22 @@ job-done-table = { $p0 } KiB
 toast-export-table = Exported { $p0 }: { $p1 } KiB, in { $p2 }.
 toast-export-table-again = Exported { $p0 } again: { $p1 } KiB, in { $p2 }.
 toast-table-imported = Imported { $p0 } changed cells from { $p1 }.
-# ID-1231: the toast of one cell, the refusal with several tables shown and none focused, and the link preview's line
+# The toast of one cell, the refusal with several tables shown and none focused, and the link preview's line
 # when `nav.follow` has no key (the command by its menu path, as the menu table holds it).
 toast-table-imported-one = Imported 1 changed cell from { $p1 }.
 toast-check-qualified = Check · { $p1 }: { $p0 }.
 toast-section-new = Section { $p0 } { $p1 } made, folios { $p2 } to { $p3 }. A new page with a folio in that range joins it.
 history-header = { $p0 } steps · cursor at { $p1 }
 
-# FT-986 (ID-1150): one step in the singular.
+# One step in the singular.
 history-header-one = { $p0 } step · cursor at { $p1 }
 history-empty = Nothing to undo yet
 history-not-undoable = not undoable
 history-changes-title = Changes of step { $p0 }
 history-redo = undone
-# FT-1440: the text protocol's answer to a step that changed the project: the step's title and its pages.
+# The text protocol's answer to a step that changed the project: the step's title and its pages.
 history-changed-on = { $p0 } on { $p1 }
-# rc.5: what an Undo or a Redo took back or did again, and where.
+# What an Undo or a Redo took back or did again, and where.
 history-undone = Undone: { $p0 }
 history-redone = Redone: { $p0 }
 note-action-go-to-page = Go to page
@@ -376,7 +376,7 @@ note-action-show-messages = Show messages
 note-action-wheel-scrolls = Wheel scrolls the page
 note-action-route-his = Route these too…
 history-redo-to = Redo to here
-# FT-1362: an entry's origin in words.
+# An entry's origin in words.
 history-origin-gui = by hand
 history-origin-from = from { $p0 }
 history-origin-external = changed on disk
@@ -411,7 +411,7 @@ toast-devices-location = Gave { $p0 } devices the location { $p1 }.
 toast-devices-location-one = Gave the device the location { $p0 }.
 toast-auto-fill = Placed { $p0 } on { $p1 }.
 toast-auto-fill-left = Placed { $p0 } on { $p1 }; { $p2 }.
-# FT-1719: Project ▸ Enclosure…'s toast: the part's words and the location (+K1).
+# Project ▸ Enclosure…'s toast: the part's words and the location (+K1).
 toast-enclosure-new = Created the enclosure { $p0 } at { $p1 }.
 toast-enclosure-new-shown = Created the enclosure { $p0 } at { $p1 }; the page shows its mounting plate.
 toast-enclosure-drawn = Drew { $p0 } of { $p1 } on page { $p2 }.
@@ -443,7 +443,7 @@ toast-ewz-unsaved = Exported { $p0 } with the saved state; the unsaved changes a
 toast-git-setup = Merge driver set up.
 banner-reimported = Re-imported { $p0 }.
 
-# WP-S3.09 D4: the banner while the import job runs.
+# The banner while the import job runs.
 banner-importing = Importing { $p0 }…
 toast-cable-new = Created cable { $p0 } with { $p1 }.
 toast-cable-new-cores = { $p0 ->
@@ -480,7 +480,7 @@ toast-drawing-imported = Imported { $p0 } as page { $p1 }.
 toast-underlay-placed = Placed { $p0 } under page { $p1 }.
 toast-eplan-parts-added = { $p0 }: { $p1 } parts added to your parts library, { $p2 } updated, { $p3 } not imported.
 toast-eplan-report-imported = Imported { $p0 } as a new project with { $p1 } devices.
-# FT-1763: the project changed while a report was read, and Cancel kept it.
+# The project changed while a report was read, and Cancel kept it.
 toast-report-read-dropped = The report was not imported: the project changed while it was read and stays open; import the report again to make its project.
 toast-plc-freeze = Froze { $p0 } of { $p1 }; spare channels keep their automatic addresses.
 toast-plc-readdress = Re-addressed: { $p0 } moved.

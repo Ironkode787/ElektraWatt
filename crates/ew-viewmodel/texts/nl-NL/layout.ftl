@@ -109,7 +109,7 @@ rack-addresses-moved = De adressen van de modules zijn met hun slots meegeschove
 rack-next-overview = De overzichtspagina maken
 rack-next-bus = Op een buspagina zetten…
 rack-next-fluid = Op een fluïdumpagina tekenen…
-# rc.5 (H2): elke kant van een station wordt op een pagina van zijn soort getekend, vanuit zijn eigen regel onder Te doen.
+# Elke kant van een station wordt op een pagina van zijn soort getekend, vanuit zijn eigen regel onder Te doen.
 rack-next-electrical = Op een elektrische pagina tekenen…
 rack-draw-here = Op pagina { $p0 } tekenen
 rack-put-here = Op pagina { $p0 } zetten
@@ -117,7 +117,7 @@ rack-draw-new-electrical = Op een nieuwe elektrische pagina tekenen
 rack-put-new-bus = Op een nieuwe buspagina zetten
 rack-draw-new-fluid = Op een nieuwe fluïdumpagina tekenen
 rack-todo-electrical-side = De elektrische kant van { $p0 }, de voeding en uitgangen als kader, staat nog op geen elektrische pagina.
-# rc.5 (H14): het kenmerk van een station, of van een kaart, gewijzigd in het stationsoverzicht.
+# Het kenmerk van een station, of van een kaart, gewijzigd in het stationsoverzicht.
 rack-rename-station = Kenmerk { $p0 }: klik om het te wijzigen
 rack-rename-module = Het kenmerk van { $p0 } wijzigen
 rack-draft-tag = Kenmerk

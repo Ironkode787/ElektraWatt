@@ -144,7 +144,7 @@ fn the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle() {
     let placed = ip(&tables(&s), "24V", "source");
     assert_eq!(placed.pos, right);
     // The direction chosen with D stays after the commit (no flip after a placement), in either quarter; the
-    // star left it alone and is cleared. The typed name stays after its source (FT-1657); erased, the remembered
+    // star left it alone and is cleared. The typed name stays after its source; erased, the remembered
     // name's series goes on to its first name that no point of the project has (no point of the sample is 24V-1).
 
     assert_eq!(canvas(&s)["ghost"]["direction"], "undirected");
@@ -447,7 +447,7 @@ fn the_black_box_tool_with_the_power_supply_part_gives_seven_cps_that_report_its
         s.describe()
     );
     done(&mut s, "ui.dismiss", json!({}));
-    // A row that is no black box is refused by the black box tool; FT-896: in words, with today's menu path and the
+    // A row that is no black box is refused by the black box tool: in words, with today's menu path and the
     // Symbol tool's key from the keymap.
     let key =
         ew_viewmodel::keymap::display(&s.shortcut_text(ew_viewmodel::actions::find("tool.place").unwrap()));
@@ -536,7 +536,7 @@ fn the_black_box_shows_its_first_corner_and_escape_leaves_in_two_steps() {
         json!({"part": "EW-GEN-PSU-1", "template": 0}),
     );
     assert_eq!(s.tool().name(), "black_box");
-    // FT-896: the armed hint names both corners, and the HUD's prompt is that hint with the box's pin count.
+    // The armed hint names both corners, and the HUD's prompt is that hint with the box's pin count.
     assert_eq!(
         s.tool_hint(),
         "Click the box's first corner, then its opposite corner; Esc ends"

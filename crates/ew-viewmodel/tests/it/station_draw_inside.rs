@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Draw on a page from the station view keeps a station's CPU on the sheet (FT-1907): a new station drawn on the
+//! Draw on a page from the station view keeps a station's CPU on the sheet: a new station drawn on the
 //! sample's PLC page 104, whose cards stand down to the drawing area's foot, gets its CPU's box inside the drawing
 //! area, not below the frame.
 

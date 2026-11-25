@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! F1 in the symbol editor opens the section of what is selected (FT-1812): a connection point selected, F1 over the
+//! F1 in the symbol editor opens the section of what is selected: a connection point selected, F1 over the
 //! outline or the drawing opens the guide's section on connection points, not the outline's.
 
 use crate::common::{Tmp, done};

@@ -35,7 +35,7 @@ fn findings(shell: &ShellModel, rule: &str, subject: &str) -> Vec<NavNode> {
         .collect()
 }
 
-/// The open completeness findings on page `folio`: the rows that turn pending while it is the editing page (D16).
+/// The open completeness findings on page `folio`: the rows that turn pending while it is the editing page.
 fn completeness_on(shell: &ShellModel, folio: &str) -> usize {
     let has = |n: &NavNode, k: &str, v: &str| n.facets.iter().any(|(a, b)| a == k && b == v);
     table(shell)
@@ -524,7 +524,7 @@ fn run_checks_ends_pending_and_a_conflict_is_never_pending() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// MS3: the quick fix (D10)
+// MS3: the quick fix
 
 #[test]
 fn the_quick_fix_is_previewed_applied_in_one_step_and_undone() {

@@ -733,7 +733,7 @@ impl ToolCx<'_> {
         crate::canvas::pick(&self.page.entities, Some(at), self.nm_of_points(HOVER_SLOP_PT)).map(|(e, _)| e)
     }
 
-    /// The entity under `at` by the pick rule as FT-500 amends it: the first of [`ToolCx::pick_stack`]. A press inside
+    /// The entity under `at` by the pick rule where routes overlap: the first of [`ToolCx::pick_stack`]. A press inside
     /// a structure box away from its outline picks nothing. Without page tables, the rectangle pick of
     /// [`ToolCx::entity_at`].
     pub fn pick(&self, at: (i64, i64)) -> Option<EntityRef> {
@@ -741,7 +741,7 @@ impl ToolCx<'_> {
     }
 
     /// Every entity a press at `at` can pick, in pick order ([`pick_stack`] with the reach of 4 points at the current
-    /// zoom): the first is the pick, and a repeated click at the same place walks the rest (FT-500).
+    /// zoom): the first is the pick, and a repeated click at the same place walks the rest.
     pub fn pick_stack(&self, at: (i64, i64)) -> Vec<EntityRef> {
         pick_stack(self.page, self.snapper, at, self.nm_of_points(HOVER_SLOP_PT))
     }
@@ -760,7 +760,7 @@ impl ToolCx<'_> {
 }
 
 /// The pick stack of a press at the sheet point `at` with the reach `reach` nm (4 points at the zoom; the pick rule
-/// as FT-500 amends it): every entity a press there can pick, each once, in pick order.
+/// where routes overlap): every entity a press there can pick, each once, in pick order.
 ///
 /// Three groups are formed: **R**, the entities that are neither connections nor structure boxes whose rectangle
 /// inflated by `reach` contains `at` ([`crate::canvas::rect_hits`]: the smallest area first, ties to the later in
@@ -772,7 +772,7 @@ impl ToolCx<'_> {
 /// (the middle half of one of its rectangles each way: a lamp's centre picks the lamp, and a repeated click
 /// the wire through it); else `R, C, B`. A representation's rectangle
 /// is the bounding box of its drawing, so a press on a wire's drawn line inside it picks the wire, while a press at
-/// the representation's centre still picks the representation (FT-500: a provisional route that runs through a
+/// the representation's centre still picks the representation (a provisional route that runs through a
 /// symbol's body, or along a symbol's edge, could not be picked at all); a junction, a page item or another rectangle
 /// keeps its place before the wires. Without page tables (no connections and no structure boxes), R alone over every
 /// entity.

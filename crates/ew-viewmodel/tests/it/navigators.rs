@@ -50,7 +50,7 @@ fn pages_lines(shell: &ShellModel) -> String {
     out.join("\n")
 }
 
-/// NV10 (D5): the Pages lines are byte-equal to the as-built text in the views and states a recording
+/// NV10: the Pages lines are byte-equal to the as-built text in the views and states a recording
 /// reaches: the section view, a collapsed section, a filter, the flat view, the type order and a moved cursor.
 #[test]
 fn the_pages_lines_are_the_as_built_lines() {
@@ -105,7 +105,7 @@ fn section1(shell: &ShellModel) -> Vec<String> {
         .collect()
 }
 
-/// NV3 (D6): the Pages filter keeps every as-built match (a folio or title substring, case-folded) for every folio and
+/// NV3: the Pages filter keeps every as-built match (a folio or title substring, case-folded) for every folio and
 /// title substring of the sample, and the ancestors of a match stay shown and expanded.
 #[test]
 fn the_pages_filter_is_a_superset_of_the_as_built_filter() {
@@ -499,7 +499,7 @@ fn pages_are_marked_and_reordered_through_one_previewed_command() {
 
 /// NV8: Page ▸ New page proposes the next free folio after the open page inside its section (a generated page's too)
 /// and the section of the marked section node, else of the current page. With a section node marked that the
-/// current page is not in, the folio is that section's next free one (FT-1634: a page for a section just made; the folio after the current page lies
+/// current page is not in, the folio is that section's next free one (a page for a section just made; the folio after the current page lies
 /// outside the marked section's range).
 #[test]
 fn new_page_proposes_the_next_free_folio_and_the_section() {
@@ -517,7 +517,7 @@ fn new_page_proposes_the_next_free_folio_and_the_section() {
     assert_eq!(
         shell.new_page_proposal(None, None).0,
         "3",
-        "after a generated page too (rc.5)"
+        "after a generated page too"
     );
     done(&mut shell, "page.goto", json!({"folio": "103"}));
     done(

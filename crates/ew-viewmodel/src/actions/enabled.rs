@@ -87,7 +87,7 @@ pub(super) fn station_module_undrawn(m: &ShellModel) -> Result<(), Key<'static>>
 }
 
 /// The project can be written, and the module or the head under the cursor of a made station's view is drawn on a page
-/// (Move to page, FT-2134); a valve is drawn in its terminal's cell.
+/// (Move to page); a valve is drawn in its terminal's cell.
 pub(super) fn station_module_movable(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
     match m.station_taken()? {
@@ -180,7 +180,7 @@ pub(super) fn incomplete_release(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// FT-717: the project has a parts list to open (a `parts_summary` or `parts_list` report block with pages).
+/// The project has a parts list to open (a `parts_summary` or `parts_list` report block with pages).
 pub(super) fn has_parts_list(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
     if m.parts_list_folio().is_some() {
@@ -358,7 +358,7 @@ pub(crate) fn panel_page(m: &ShellModel) -> Result<(), Key<'static>> {
 
 /// A panel-layout page with a surface view is on show in a project that can be changed (D10: Draw ▸ Layout is
 /// disabled elsewhere with "Open a panel layout page; make one with New page…", and on a panel page that shows no
-/// enclosure yet with how to show one, FT-1687).
+/// enclosure yet with how to show one).
 pub(crate) fn panel_view(m: &ShellModel) -> Result<(), Key<'static>> {
     panel_page(m)?;
     if m.panel_tables().is_some() {
@@ -700,13 +700,13 @@ pub(super) fn one_box(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// An editable page with one box of a PLC card in the older form selected (Draw the card in one row, FT-1897).
+/// An editable page with one box of a PLC card in the older form selected (Draw the card in one row).
 pub(super) fn older_card(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     m.older_card().map(|_| ())
 }
 
-/// An editable page with one box of a PLC card selected (Terminal wires to card side, FT-2083).
+/// An editable page with one box of a PLC card selected (Terminal wires to card side).
 pub(super) fn card_box(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     m.card_box(key!("reason-not-card-box")).map(|_| ())
@@ -817,7 +817,7 @@ pub(super) fn can_discard_journal(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// Update from library needs the damaged-copy banner that offers it (FT-1499).
+/// Update from library needs the damaged-copy banner that offers it.
 pub(super) fn damaged_update_offered(m: &ShellModel) -> Result<(), Key<'static>> {
     if m.damaged_update_offered() {
         Ok(())

@@ -122,7 +122,7 @@ fn select_set_by_a_terminals_list_form_tag_then_mirror_mirrors_it() {
     assert_eq!(s.selection().items.len(), 1, "the terminal device is selected");
     assert!(
         !reps.contains(&s.selection().items[0].0),
-        "select.set by tag selects the device (WP-S2.07 D9), not a representation"
+        "select.set by tag selects the device, not a representation"
     );
     let rev = s.revision();
     done(&mut s, "tool.mirror_y", json!({}));

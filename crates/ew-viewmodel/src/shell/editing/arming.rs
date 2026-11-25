@@ -85,7 +85,7 @@ impl ShellModel {
     }
 
     /// A refusal whose text names action `action`'s first key: `<key>` formatted with it, or `<key>-unbound` when the
-    /// action has no key (FT-896).
+    /// action has no key.
     pub(super) fn refused_with_key(&self, key: Key<'_>, action: &str) -> Outcome {
         Outcome::Failed {
             message: text_with_key(key, &crate::command_bar::key_of(self, action)),
@@ -221,7 +221,7 @@ impl ShellModel {
                     return Outcome::refused(key!("reason-no-symbol-for-function"));
                 };
                 // A black-box entry is a box drawn by the frame; a symbol of its own drawn for the entry's own FnDef (a
-                // power supply the user drew, not the generic black box's) draws it as any symbol does (FT-1865).
+                // power supply the user drew, not the generic black box's) draws it as any symbol does.
                 if f.black_box
                     && (cat.symbols[i].black_box || f.fndef_key == ew_api::output::starter::FN_BLACKBOX)
                 {
@@ -264,7 +264,7 @@ impl ShellModel {
         // A black box (a black-box symbol, or a template function that is one) arms the black box tool;
         // `tool.black_box` arms nothing else.
         let is_box = row.black_box || box_cps.is_some();
-        // FT-896: the refusals name the way out with its key from the keymap, or without the parenthesis when unbound.
+        // The refusals name the way out with its key from the keymap, or without the parenthesis when unbound.
         if self.tools.black_box_pick && !is_box {
             return self.refused_with_key(key!("reason-not-black-box"), "tool.place");
         }
@@ -279,7 +279,7 @@ impl ShellModel {
         if is_box && matches!(pick, Pick::Function(..) | Pick::Join(..)) {
             return self.refused_with_key(key!("reason-black-box-tool"), "tool.black_box");
         }
-        // FT-656: what the project lacks travels in the placement itself, so that placing from the picker is one undo
+        // What the project lacks travels in the placement itself, so that placing from the picker is one undo
         // step and the recorded command replays without a library: a starter symbol with its FnDef and, for a part's
         // template function (part-first), every FnDef the part's
         // template needs and a library part's closure. The tool names a starter symbol by the copy ID its embedding
@@ -369,12 +369,12 @@ impl ShellModel {
             .project
             .as_ref()
             .is_some_and(|p| p.session.auxiliary_fndef(shape.fndef));
-        // A part's function that a device of the part has unplaced fills that device (FT-1658).
+        // A part's function that a device of the part has unplaced fills that device.
         let slot = match &target {
             PlaceTarget::Part { part, template, .. } => part.parse::<Uuid>().ok().map(|p| (p, *template)),
             _ => None,
         };
-        // A terminal row of Terminal… (`count`): one click lays them all (FT-1695).
+        // A terminal row of Terminal… (`count`): one click lays them all.
         let row = match &target {
             PlaceTarget::Terminal { .. } => p.get("count").and_then(Value::as_u64).unwrap_or(1),
             _ => 1,
@@ -491,7 +491,7 @@ impl ShellModel {
             return Outcome::refused(key!("reason-unknown-symbol"));
         };
         // A part without a symbol of its own that the Place tool places, not the Black box tool, is drawn as a
-        // box: the hint says so (FT-1808).
+        // box: the hint says so.
         let drawn_as_box = part.is_some()
             && !self.tools.black_box_pick
             && self

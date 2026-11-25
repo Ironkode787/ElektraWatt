@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! File ▸ Import… of EPLAN data (WP-S3.18, doc 14 §5, §13): an EDZ or a parts XML, and a report spreadsheet.
+//! File ▸ Import… of EPLAN data (doc 14 §5, §13): an EDZ or a parts XML, and a report spreadsheet.
 //!
 //! **Parts** (`.edz`, `.7z`, `.zip`, `.xml`): the Data Portal terms notice first, once per session, for an EDZ (it is
 //! logged with the import, EW-IMP-201); then a dialog that says how many parts the file holds, how many of them the
@@ -101,10 +101,10 @@ impl ShellModel {
         self.eplan_report(p, &file, &name, &input)
     }
 
-    /// An EDZ or a parts XML: read and parsed as a job (FT-1763, [`super::read_jobs`]), then the terms notice, the
+    /// An EDZ or a parts XML: read and parsed as a job ([`super::read_jobs`]), then the terms notice, the
     /// dialog or the step `how` at its end ([`ShellModel::eplan_parts_read`]). For Add to my parts library the user's
-    /// library's part of the registry is taken first, the file is parsed against it in the job and written at the end
-    /// (FT-2081); a user library that does not exist yet is made at the end and the file read again for it.
+    /// library's part of the registry is taken first, the file is parsed against it in the job and written at the end;
+    /// a user library that does not exist yet is made at the end and the file read again for it.
     fn eplan_parts(&mut self, p: &Map<String, Value>, file: PathBuf, name: String) -> Outcome {
         let how = match string_param(p, "how") {
             Err(e) => return e,
@@ -368,7 +368,7 @@ impl ShellModel {
         if let Some(outcome) = self.require_free_dir(&dir) {
             return outcome;
         }
-        // The spreadsheet read into the project's batch as a job (FT-1763), the project made at its end. The window
+        // The spreadsheet read into the project's batch as a job, the project made at its end. The window
         // answers meanwhile: the revision now tells at the end whether the open project changed since it was asked about.
         let asked = ReportAsked {
             action,

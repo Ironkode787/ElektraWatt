@@ -70,7 +70,7 @@ fn the_picker_lists_the_grid_family_places_a_starter_symbol_in_one_step_and_disa
     assert_eq!(picker["mode"], "place");
     assert_eq!(picker["filter"], "");
     let p = s.picker().unwrap();
-    // The current row is the first that can be placed (FT-1761).
+    // The current row is the first that can be placed.
     assert_eq!(picker["row"], p.row);
     assert!(p.disabled(p.rows[p.row]).is_none());
     assert!(
@@ -113,7 +113,7 @@ fn the_picker_lists_the_grid_family_places_a_starter_symbol_in_one_step_and_disa
         Outcome::Failed { message } => assert!(message.contains("`to`"), "{message}"),
         other => panic!("{other:?}"),
     }
-    // A starter symbol (the sample has no heater): choosing it commits nothing, the tool floats it (FT-656).
+    // A starter symbol (the sample has no heater): choosing it commits nothing, the tool floats it.
     done(&mut s, "picker.filter", json!({"text": "heater@"}));
     assert!(describe_line(&s, "  row symbol \"heater\"").contains("starter"));
     let undo_before = s.can_undo();
@@ -751,7 +751,7 @@ fn a_refused_commit_keeps_the_designation_and_a_non_decimal_one_asks_again() {
     assert_eq!(tables(&s).reps.len(), count + 1);
 }
 
-/// FT-1546: the counter fills a gap and then skips the designations in use. -X1021's lowest free designation is 9
+/// The counter fills a gap and then skips the designations in use. -X1021's lowest free designation is 9
 /// (the sample's script numbers it 1 to 8); with 10 placed first, the tool proposes 9, and after placing it proposes
 /// 11, not 10 (which the command refuses).
 #[test]
@@ -1024,7 +1024,7 @@ fn the_picker_filter_matches_descriptions_names_and_keywords_by_token() {
     use ew_viewmodel::tools::PickerRow;
     let tmp = Tmp::new("picker-words");
     let mut s = shell(&tmp, "101");
-    // The parts are the device browser's (FT-1696).
+    // The parts are the device browser's.
     done(&mut s, "tool.place_part", json!({}));
     let rows = |s: &ShellModel| -> (Vec<String>, Vec<String>) {
         let p = s.picker().expect("the picker");
@@ -1318,7 +1318,7 @@ fn a_contact_placed_from_a_part_before_its_coil_gets_a_numbered_tag() {
     s.shutdown();
 }
 
-/// FT-900: after a placement the representation it made is the selection, replacing what was selected; the
+/// After a placement the representation it made is the selection, replacing what was selected; the
 /// Place tool stays armed and floats the next one.
 #[test]
 fn a_placement_selects_what_it_placed_and_the_tool_stays_armed() {

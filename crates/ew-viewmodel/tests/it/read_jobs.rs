@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! An import's reading runs as a job of the Jobs pane, off the window's thread (FT-1763): an EDZ read for
+//! An import's reading runs as a job of the Jobs pane, off the window's thread: an EDZ read for
 //! File ▸ Import… is listed while it runs, the shell answers meanwhile, its Cancel ends it with nothing imported, and
 //! its dialog opens at its end. The test waits until the job stands at its gate before it cancels and releases, then
 //! for the job's own end: no clock is in it.
@@ -73,7 +73,7 @@ fn an_edz_is_read_as_a_job_with_cancel_and_its_dialog_opens_at_its_end() {
 }
 
 /// A report import makes a new project at its read's end and closes the open one, and the window answers while the
-/// file is read (FT-1763): an edit made meanwhile is not thrown away unasked. The question comes again at the end, and
+/// file is read: an edit made meanwhile is not thrown away unasked. The question comes again at the end, and
 /// its Cancel keeps the project with the edit and says the report was not imported.
 #[test]
 fn an_edit_made_while_a_report_is_read_is_asked_about_and_kept() {
@@ -132,7 +132,7 @@ fn an_edit_made_while_a_report_is_read_is_asked_about_and_kept() {
 }
 
 /// A read's end comes after the step that started it, so no caller takes its outcome: the window shows its failure in
-/// the banner, as an import's failure was shown before its read became a job (FT-1763). The read run as the window
+/// the banner, as an import's failure was shown before its read became a job. The read run as the window
 /// runs it, and the banner after its end.
 fn read_in_window(s: &mut ShellModel, action: &str, params: serde_json::Value) -> Option<String> {
     s.dismiss_banner();

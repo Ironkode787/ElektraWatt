@@ -6,9 +6,9 @@
 # and the fallback of every other.
 
 external-none = none (create one with Project ▸ Setup ▸ External reference…)
-# FT-1131 (ID-1229 item 7): the same, when `external_ref.new` has a key: the key from the keymap.
+# The same, when `external_ref.new` has a key: the key from the keymap.
 external-none-key = none (create one with Project ▸ Setup ▸ External reference…, { $p0 })
-# FT-1287 (ID-1315 ruling 3): a generated page's row source in words.
+# A generated page's row source in words.
 report-source-sql = SQL report { $p0 }
 report-kind-profile-tables = Profile tables
 report-kind-part-data = Part data
@@ -41,7 +41,7 @@ report-kind-tube-cut-list = Tube cut list
 report-kind-tube-labels = Tube labels
 report-kind-valve-terminal-config = Valve-terminal configuration
 report-kind-medium-overview = Medium overview
-# Persona round 3: what gives a report block of each page kind its rows, said when the block makes no page yet.
+# What gives a report block of each page kind its rows, said when the block makes no page yet.
 report-rows-toc = The pages of the project give it rows
 report-rows-structure-overview = A structure identifier or a device tag gives it rows
 report-rows-parts-summary = A device with a part gives it rows
@@ -70,7 +70,7 @@ report-rows-tube-cut-list = A tube gives it rows
 report-rows-tube-labels = A tube gives it rows
 report-rows-valve-terminal-config = A valve terminal gives it rows: place one from Device ▸ Valve terminals
 report-rows-medium-overview = A medium on a tube gives it rows
-# FT-1212 (ID-1392): the export toast names its pages by kind.
+# The export toast names its pages by kind.
 export-pages-drawing = { $p0 ->
         [one] 1 drawing page
        *[other] { $p0 } drawing pages
@@ -84,7 +84,7 @@ export-pages-report = { $p0 ->
        *[other] { $p0 } report pages
     }
 
-# WP-S3.07 part 3 (D10, rulings 3 and 4 of ID-1180): the print pre-dialog, its preview and its toasts.
+# The print pre-dialog, its preview and its toasts.
 print-title = Print
 print-range = Range
 print-range-all = All
@@ -107,7 +107,7 @@ print-empty-text = Tick a section or type the pages to print
 print-building = Building the print set… { $p0 } %
 print-writing = Writing the print set…
 print-failed = The print set could not be built: { $p0 }
-# FT-1124 (ID-1225): the refusal of the Pages text, under the field.
+# The refusal of the Pages text, under the field.
 print-pages-error = The pages could not be read. Type folio labels or ranges, separated by commas.
 print-unavailable = Printing is not available in this window. Export a PDF and print it from your PDF viewer.
 plc-export-title = Export to PLC software
@@ -176,7 +176,7 @@ external-theirs = Theirs
 external-row = { $p0 } · { $p1 }
 external-side = { $p0 }: { $p1 }
 
-# WP-S3.09 D4, D8: the QElectroTech import card, its checkpoint confirmation and the front door's refusals.
+# The QElectroTech import card, its checkpoint confirmation and the front door's refusals.
 import-card-title = Import { $p0 }
 import-card-does = Create project makes a new project in the folder { $p0 }, with { $p1 }, { $p2 } and { $p3 }.
 import-card-verdict-clean = Everything in the file was imported.
@@ -211,7 +211,7 @@ import-card-connections = { $p0 ->
         [one] 1 connection
        *[other] { $p0 } connections
     }
-# FT-1397 (ID-1392): the import banner's count of the migration report's findings.
+# The import banner's count of the migration report's findings.
 import-card-findings = { $p0 ->
         [one] 1 finding
        *[other] { $p0 } findings

@@ -329,7 +329,7 @@ fn a_terminal_one_step_off_the_line_is_routed_around() {
     assert!(cp(&s, "-X1031:70/a").connections.is_empty());
 }
 
-/// A straight wire across a free coil standing in line put the coil in series by accident (FT-768): only a terminal is
+/// A straight wire across a free coil standing in line put the coil in series by accident: only a terminal is
 /// connected through; any other symbol in line is gone round, and is put in series by dropping it on a wire.
 #[test]
 fn two_clicks_across_a_free_coil_in_line_go_round_it() {
@@ -718,10 +718,7 @@ fn a_terminal_dropped_on_an_autoconnected_wire_is_split_into_it() {
         .filter(|c| ends(&wired, c) == ["-103K1:A1".to_owned(), "-103S1:14".to_owned()])
         .collect();
     assert_eq!(hinted.len(), 1, "one wire from the coil to the switch");
-    assert!(
-        hinted[0].stored_route,
-        "the hint's wire stores its straight run (WP-S2.19 D12)"
-    );
+    assert!(hinted[0].stored_route, "the hint's wire stores its straight run");
     place(
         &mut s,
         json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "terminal_designation": "71"}),

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1806: a tool on several tabs of the command bar keeps its place. Wire stood on Draw only, in its third group; a
+//! A tool on several tabs of the command bar keeps its place. Wire stood on Draw only, in its third group; a
 //! person on a bus page with the PLC tab open found another button where Wire had been. Select and Wire, the tools
 //! every drawn page is worked with, now lead Draw, PLC and Fluid alike.
 
