@@ -1218,7 +1218,7 @@ mod tests {
         use crate::shell::{Outcome, ShellModel};
         use serde_json::json;
         let mut shell = ShellModel::for_tests();
-        let base = crate::shell::fresh_test_dir("ew-check-findings");
+        let base = ew_testdir::Tmp::new("ew-check-findings");
         let dir = base.join("g.ew");
         let sample = std::path::Path::new(ew_testdir::SAMPLE);
         crate::shell::properties::tests::copy_dir(sample, &dir);
@@ -1259,7 +1259,7 @@ mod tests {
         use ew_api::{AnyCommand, Origin, Submit};
         use serde_json::json;
         let mut shell = ShellModel::for_tests();
-        let base = crate::shell::fresh_test_dir("ew-check-scheme");
+        let base = ew_testdir::Tmp::new("ew-check-scheme");
         let dir = base.join("g.ew");
         let sample = std::path::Path::new(ew_testdir::SAMPLE);
         crate::shell::properties::tests::copy_dir(sample, &dir);

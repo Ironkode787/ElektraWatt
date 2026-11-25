@@ -1007,8 +1007,8 @@ mod parts_tests {
 mod tests {
     use super::*;
 
-    fn temp_dir(tag: &str) -> PathBuf {
-        crate::shell::fresh_test_dir(&format!("ew-settings-{tag}"))
+    fn temp_dir(tag: &str) -> ew_testdir::Tmp {
+        ew_testdir::Tmp::new(&format!("ew-settings-{tag}"))
     }
 
     /// With `.bad-1` another file, `.bad-2` missing and `.bad-3` the same bytes, the file is named as

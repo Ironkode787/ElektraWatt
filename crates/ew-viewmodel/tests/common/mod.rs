@@ -15,8 +15,6 @@ use serde_json::{Value, json};
 
 pub use ew_testdir::{SAMPLE, copy_dir};
 
-pub use ew_testdir as fresh_dir;
-
 /// A fresh temporary directory ([`ew_testdir::Tmp`], removed on drop), with the shells of the tests.
 pub struct Tmp(pub ew_testdir::Tmp);
 

@@ -1733,7 +1733,7 @@ mod tests {
     /// A cancelled import job shows its own text, not T1's internal error.
     #[test]
     fn a_cancelled_import_job_shows_the_cancel_text() {
-        let dir = super::super::fresh_test_dir("ew-vm-import-cancelled");
+        let dir = ew_testdir::Tmp::new("ew-vm-import-cancelled");
         let mut shell = ShellModel::new(Mode::Gui, ShellConfig::in_dir(&dir, "0.0.0-test"));
         let text = "The import of example.qet was cancelled; nothing was imported.";
         assert_eq!(

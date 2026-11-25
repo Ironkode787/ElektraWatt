@@ -973,7 +973,7 @@ pub(super) mod tests {
     #[test]
     fn a_human_only_command_is_refused_before_its_preview() {
         let mut shell = ShellModel::for_tests();
-        let base = crate::shell::fresh_test_dir("ew-d4");
+        let base = ew_testdir::Tmp::new("ew-d4");
         let dir = base.join("g.ew");
         let sample = Path::new(ew_testdir::SAMPLE);
         copy_dir(sample, &dir);
@@ -1056,7 +1056,7 @@ pub(super) mod tests {
     #[test]
     fn a_human_only_step_is_undone_only_in_the_window() {
         let mut shell = ShellModel::for_tests();
-        let base = crate::shell::fresh_test_dir("ew-ft404");
+        let base = ew_testdir::Tmp::new("ew-ft404");
         let dir = base.join("g.ew");
         let sample = Path::new(ew_testdir::SAMPLE);
         copy_dir(sample, &dir);

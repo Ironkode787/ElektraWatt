@@ -10,7 +10,7 @@ use crate::common;
 use std::collections::BTreeSet;
 use std::sync::atomic::AtomicU32;
 
-use common::{Tmp, fresh_dir, refused, state};
+use common::{Tmp, refused, state};
 use ew_viewmodel::area::MAX_TABS;
 use ew_viewmodel::canvas::{AUTO_PAN_INSET, PageId, rect_centre};
 use ew_viewmodel::navigator::{NavMode, NavSort, PageNavigator, RowKind};
@@ -922,7 +922,7 @@ fn a_leftover_of_a_killed_run_with_the_same_pid_is_not_adopted() {
     let parent = Tmp::new("viewer");
     // The killed run: its copy of the sample open for editing, then gone without a shutdown (the lock stays).
 
-    let killed = Tmp(ew_testdir::Tmp(fresh_dir::fresh_dir_in(
+    let killed = Tmp(ew_testdir::Tmp(ew_testdir::fresh_dir_in(
         &parent.0,
         "run",
         &AtomicU32::new(0),
@@ -936,7 +936,7 @@ fn a_leftover_of_a_killed_run_with_the_same_pid_is_not_adopted() {
     );
     // The next process starts its numbers again: the leftover's name is skipped, the new directory is empty and its
     // copy is writable.
-    let fresh = Tmp(ew_testdir::Tmp(fresh_dir::fresh_dir_in(
+    let fresh = Tmp(ew_testdir::Tmp(ew_testdir::fresh_dir_in(
         &parent.0,
         "run",
         &AtomicU32::new(0),

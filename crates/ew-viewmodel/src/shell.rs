@@ -1104,12 +1104,6 @@ mod choice_word_tests {
     }
 }
 
-/// A new, empty directory `<temp>/<stem>-<pid>-<n>` for the unit tests of this crate: [`ew_testdir::fresh_dir`].
-#[cfg(test)]
-pub(crate) fn fresh_test_dir(stem: &str) -> PathBuf {
-    ew_testdir::fresh_dir(stem)
-}
-
 #[cfg(test)]
 mod dispatch_log_tests {
     use serde_json::json;
