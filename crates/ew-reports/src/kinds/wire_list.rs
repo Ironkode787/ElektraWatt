@@ -40,7 +40,7 @@ use crate::rowset::{Cell, CellType, ColumnDef, QtyUnit, Row, RowId, RowKey, RowK
 ///
 /// An end (doc 13 §3.2) prints its device or terminal without the structure the two ends share, so an end in
 /// another location prints it (`+FLD-104B1`), and its pin in the CP column: a repeated pin with `#n` (`+#1`), a
-/// terminal's clamp letter (`a`). A bridge prints its kind and span in its Via cell, which the list prints.
+/// terminal's clamp letter (`a`). A bridge prints its kind and span in its From end cell.
 ///
 /// `length` is the wire's length (doc 13 §3.3): typed, in millimetres; `cable` for a core, cut with its cable; `—`
 /// without one; `length_source` says which (typed, cable, missing).
@@ -77,8 +77,9 @@ impl ReportKindDef for WireList {
         ]
     }
 
-    /// What the wire list prints when its block chooses no columns (doc 13 §3.1): its twelve columns from No. to Pages;
-    /// the workshop's columns from Length on stay in the list's exports and are ticked in List columns….
+    /// What the wire list prints when its block chooses no columns (doc 13 §3.1): the fitter's columns, No., From, CP,
+    /// To, CP, Colour, mm², Length, From end, To end and Pages; the engineering columns (Potential, Source, Via, Wire
+    /// part) and the ends' parts and strip lengths stay in the list's exports and are ticked in List columns….
     fn printed(&self) -> Option<&'static [&'static str]> {
         Some(&[
             "no",
@@ -86,12 +87,11 @@ impl ReportKindDef for WireList {
             "from_cp",
             "to",
             "to_cp",
-            "potential",
             "colour",
             "cross_section",
-            "source",
-            "via",
-            "part",
+            "length",
+            "from_end",
+            "to_end",
             "pages",
         ])
     }
@@ -262,7 +262,7 @@ fn bridge_row(q: &Q, b: &Bridge) -> Row {
     let first = b.terminals.first().map_or(Cell::Empty, |t| Cell::Tag(*t));
     let last = b.terminals.last().map_or(Cell::Empty, |t| Cell::Tag(*t));
     let span = bridge_span(q, b);
-    let via = words_cell(&text!("cell-bridge-via", b.kind.clone(), span));
+    let kind = words_cell(&text!("cell-bridge-span", b.kind.clone(), span));
     let id = RowId::entity(b.strip)
         .with(RowKey::Name("bridge".to_owned()))
         .with(RowKey::Index(u32::from(b.group)));
@@ -273,7 +273,7 @@ fn bridge_row(q: &Q, b: &Bridge) -> Row {
     set("from", first);
     set("to", last);
     set("potential", bridge_potential(q, b));
-    set("via", via);
+    set("from_end", kind);
     set("part", Cell::Tbd);
     set("pages", b.page.map_or(Cell::Empty, |p| pages_cell(&[p])));
     let mut r = Row::data(id, cells);

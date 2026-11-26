@@ -152,9 +152,11 @@ change here.
   built cabinet: the wires to pull, to replace, the ends to move, the lengths to check and the wires to add, each with
   its change in words ("size 1.5 → 2.5 mm²"); Export… writes it as XLSX or CSV. `ew export rework [--since
   <revision> | --archive <file>] [--format csv|xlsx] --out <file>` writes the same list.
-- behaviour-change: Output ▸ List columns… on a wire list offers its new columns Length, Length from, From end, To
-  end, From part, To part, From strip length and To strip length, unticked; a wire list page whose block chooses no
-  columns prints the same twelve columns as before.
+- behaviour-change: A wire list page whose block chooses no columns prints other columns now, the fitter's: No.,
+  From, CP, To, CP, Colour, mm², Length, From end, To end and Pages. It gains Length, From end and To end, and no
+  longer prints Potential, Source, Via and Wire part unless they are ticked in Output ▸ List columns…, which also
+  offers Length from, From part, To part, From strip length and To strip length. A bridge's kind and terminals stand
+  in its From end cell instead of Via. A wire list embedded on a page prints the same columns.
 - behaviour-change: The Connections table opens with the columns the workshop types and reads: No., From, CP, To, CP,
   Colour, mm², Length, From end and To end, and the window's left column widens to show them; Potential, Source, Via,
   Wire part, Pages, Length from and the ends' parts and strip lengths are in its Columns menu. It opened with every

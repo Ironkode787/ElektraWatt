@@ -7828,10 +7828,11 @@ msgstr ""
 
 #: src/reference/window/command-bar.md:306
 msgid ""
-"In the Workshop group. Shows the first page of the project's wire list: per "
-"wire its ends, its colour and its cross-section; List columns… adds its "
-"length to the print. A project without a wire list opens Report block… on "
-"the wire list."
+"In the Workshop group. Shows the first page of the project's wire list, the "
+"fitter's sheet: per wire its ends, its colour, its cross-section, its length "
+"and what goes on each end; List columns… adds the potential, the source, the "
+"joins and the wire part. A project without a wire list opens Report block… "
+"on the wire list."
 msgstr ""
 
 #: src/reference/window/command-bar.md:310
