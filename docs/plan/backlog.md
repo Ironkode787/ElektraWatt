@@ -28,7 +28,6 @@ what the owner's test of 0.3.5 finds is added here.
 
 #### The page's drawing
 
-- FT-2210 `ew-reports, ew-scene`: A list page on the grid frame prints over the frame's column strip, and a project can hold the parts list twice with nothing said (two list pages in a persona run).
 - FT-2211 `ew-derive, ew-checks, ew-ui`: A wire's size is not derived where no supply stands upstream; its Override stands behind "…"; and 0.5 mm² set by hand behind a 16 A breaker is not flagged.
 
 

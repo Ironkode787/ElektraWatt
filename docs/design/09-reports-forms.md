@@ -757,7 +757,9 @@ row say so: that entry frames a contents page drawn by hand.
 with a grid inside its header bands and above its title block, on a form without one the sheet less 10 mm and its
 title block. The table keeps the house table's distances to the starter A4 frame's drawing area (1.30 mm in on the
 left, 3.91 mm on the right, its top at the area's top), so on that frame it is the house table of §2.5 to the
-nanometre (x 16.31 to 277.27 mm, 23 rows) and every A4 list prints as it did. Rows are 6.52 mm: an optional caption
+nanometre (x 16.31 to 277.27 mm, 23 rows) and every A4 list prints as it did. On a frame that draws its column and row
+strips the table's top stands 1.30 mm below the column strip, as its left edge stands right of the row strip, never on
+the strip's line. Rows are 6.52 mm: an optional caption
 row, the header, the data rows, an optional legend row and one row kept free under them (where the window marks a list
 that runs on); a page holds as many data rows as fit, at least one (36 on the starter A3 frame). One exact rule
 (`FormDef::list_area` in `ew-schema`) gives the pagination its rows and the drawing its places, so a page never holds

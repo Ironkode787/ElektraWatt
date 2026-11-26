@@ -12,7 +12,9 @@
 //!
 //! **The table** keeps the house table's distances to the drawing area of the starter A4 frame: its left edge
 //! `INSET_LEFT` in, its right edge `INSET_RIGHT` in, its top `INSET_TOP` down. On that frame it is the house table
-//! of the house table to the nanometre: x 16.31 to 277.27 mm, its top at 15.01 mm, 23 rows.
+//! of the house table to the nanometre: x 16.31 to 277.27 mm, its top at 15.01 mm, 23 rows. On a frame that draws its
+//! column and row strips (`FrameGrid::shows_grid`) the top stands `INSET_LEFT` down, as far below the column strip as
+//! the left edge stands right of the row strip, so the table never sits on the strip's line.
 //!
 //! **The rows** are [`HOUSE_ROW_HEIGHT`] high, printed: an optional caption row, the header row, the data rows, an
 //! optional legend row and one row kept free (where the window marks a list that runs on). A page holds as many data
@@ -20,7 +22,7 @@
 
 use ew_units::{Nm, arith};
 
-use crate::library::{FormDef, HOUSE_ROW_HEIGHT, HOUSE_ROWS_PER_PAGE};
+use crate::library::{FormDef, FrameGrid, HOUSE_ROW_HEIGHT, HOUSE_ROWS_PER_PAGE};
 
 /// The margin of the area of a form without a grid, on every side: 10 mm.
 const PLAIN_MARGIN: Nm = Nm(10_000_000);
@@ -129,7 +131,14 @@ impl FormDef {
                 )
             }
         };
-        let top = Nm(top.0 + INSET_TOP.0);
+        // Below a column strip the frame draws, the table stands as far inside as right of the row strip; else at the
+        // house table's top.
+        let inset = if self.grid.as_ref().is_some_and(FrameGrid::shows_grid) {
+            INSET_LEFT
+        } else {
+            INSET_TOP
+        };
+        let top = Nm(top.0 + inset.0);
         let fit = (bottom.0 - top.0).max(0) / HOUSE_ROW_HEIGHT.0;
         // The header row, the row kept free, a caption and a legend.
         let other = 2 + i64::from(caption) + i64::from(legend);
@@ -183,8 +192,8 @@ mod tests {
     }
 
     /// On the starter A3 frame the table keeps the house distances to its drawing area and takes its width and
-    /// height: 12 rows of 21.17 mm print 259.29 mm high at 98.6 %, from 15.01 to 265.52 mm, 38 rows of 6.52 mm, 36 of
-    /// them data rows.
+    /// height: 12 rows of 21.17 mm print 259.29 mm high at 98.6 %, from 15.01 to 265.52 mm, the table from 16.31 mm
+    /// under the frame's column strip, 38 rows of 6.52 mm, 36 of them data rows.
     #[test]
     fn the_starter_a3_frame_holds_a_wider_and_longer_table() {
         let a4 = form(include_str!(
@@ -196,9 +205,37 @@ mod tests {
         ));
         let tb = form(include_str!("../../../content/forms/ew.titleblock.qet-a3.json"));
         let a3 = frame.list_area(Some(&tb), false, false);
-        assert_eq!((a3.left, a3.top), (a4.left, a4.top));
+        // Its column strip drawn, its top stands as far below it as its left edge stands right of the row strip.
+        assert_eq!(
+            (a3.left, a3.top),
+            (a4.left, Nm(a4.top.0 - INSET_TOP.0 + INSET_LEFT.0))
+        );
         assert!(a3.right.0 - a3.left.0 > a4.right.0 - a4.left.0);
         assert_eq!(a3.rows, 36);
+    }
+
+    /// FT-2210: on the A4 frame that draws its column and row strips, the table stands clear of both, as far below the
+    /// column strip as right of the row strip, not on the column strip's line; the frame without strips keeps the
+    /// house table.
+    #[test]
+    fn on_a_frame_with_strips_the_table_stands_clear_of_them() {
+        let grid = form(include_str!(
+            "../../../content/forms/ew.frame.qet-a4-landscape-grid.json"
+        ));
+        let nogrid = form(include_str!(
+            "../../../content/forms/ew.frame.qet-a4-landscape-nogrid.json"
+        ));
+        let tb = form(include_str!("../../../content/forms/ew.titleblock.qet-a4.json"));
+        let (a, house) = (
+            grid.list_area(Some(&tb), false, false),
+            nogrid.list_area(Some(&tb), false, false),
+        );
+        // The strips' inner edges: the drawing area's left and top edges on the sheet (15.009 079 mm on both axes).
+        let (band_x, band_y) = (Nm(house.left.0 - INSET_LEFT.0), Nm(house.top.0 - INSET_TOP.0));
+        assert_eq!(a.left.0 - band_x.0, INSET_LEFT.0);
+        assert_eq!(a.top.0 - band_y.0, a.left.0 - band_x.0, "as far below as right");
+        assert_eq!(house, ListArea::house(false, false));
+        assert_eq!(a.rows, house.rows);
     }
 
     /// A form without a grid takes the sheet less 10 mm and its title block; a frame too small for one row still
