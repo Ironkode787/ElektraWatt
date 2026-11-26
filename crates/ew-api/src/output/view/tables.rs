@@ -310,19 +310,25 @@ fn table_view(q: &Q, g: &GeneratedPage, page: PageRef) -> TableView {
         })
         .and_then(|k| k.printed());
     let printed: Vec<(usize, u32, &MlText)> = match block.filter(|b| !b.columns.is_empty()) {
-        Some(b) => b
-            .columns
-            .iter()
-            .filter_map(|c| {
-                let i = set.column(&c.key)?;
-                let heading = if c.heading.is_empty() {
-                    &set.columns[i].label
-                } else {
-                    &c.heading
-                };
-                Some((i, c.weight, heading))
-            })
-            .collect(),
+        // A key of an earlier version of the kind is read as the column it became (`ColumnDef::former`); several former
+        // keys of one column print it once, as wide as they were together.
+        Some(b) => b.columns.iter().fold(Vec::new(), |mut out, c| {
+            let Some(i) = set.column(&c.key) else {
+                return out;
+            };
+            // A heading of one's own stays where one key became one column; keys that became one take its heading.
+            let merged = set.columns[i].key != c.key && set.columns[i].former.len() > 1;
+            let heading = if c.heading.is_empty() || merged {
+                &set.columns[i].label
+            } else {
+                &c.heading
+            };
+            match out.iter_mut().find(|(at, _, _)| *at == i) {
+                Some((_, weight, _)) => *weight = weight.saturating_add(c.weight),
+                None => out.push((i, c.weight, heading)),
+            }
+            out
+        }),
         None => match kind_printed {
             Some(keys) => keys
                 .iter()

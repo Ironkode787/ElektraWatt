@@ -23,7 +23,7 @@ fn cut_columns() -> Vec<ColumnDef> {
         ColumnDef::new("description", CellType::Text, text!("column-description")).weighted(30),
         ColumnDef::new("for", CellType::Text, text!("column-for")).weighted(30),
         ColumnDef::new("pieces", CellType::Number, text!("column-pieces")).weighted(6),
-        ColumnDef::new("length", CellType::Qty, text!("column-length-mm")).weighted(8),
+        ColumnDef::new("piece_length", CellType::Qty, text!("column-length-mm")).weighted(8),
         ColumnDef::new("total", CellType::Qty, text!("column-total-m")).weighted(8),
     ]
 }
@@ -78,16 +78,33 @@ impl ReportKindDef for TubeCutList {
         ReportKind::TubeCutList
     }
 
+    /// The cut list's columns, each answering the key a block of the tube cut list of 0.3.5 stored for it
+    /// (`ColumnDef::former`): the tube part's number, the material, size and colour in the description, the pieces,
+    /// the total length.
     fn columns(&self) -> Vec<ColumnDef> {
         cut_columns()
+            .into_iter()
+            .map(|c| match c.key.as_str() {
+                "part_number" => c.formerly(&["part"]),
+                "description" => c.formerly(&["material", "size", "colour"]),
+                "pieces" => c.formerly(&["count"]),
+                "total" => c.formerly(&["length"]),
+                _ => c,
+            })
+            .collect()
     }
 
+    /// The Tubes group's rows. Each keeps the identity its row had in the tube cut list of 0.3.5, its first tube, and
+    /// names no other source: a block's choice of rows made then names that tube alone, and with every tube of the row
+    /// as its sources the row would no longer be left out by it.
     fn rows(&self, q: &Q, _block: &ReportBlock) -> RowSet {
         let mut set = RowSet::new(self.columns());
         for (group, rows) in ew_derive::cut_rows(q) {
             if group == CutGroup::Tubes {
                 for (n, r) in rows.iter().enumerate() {
-                    set.rows.push(cut_row(q, &set.columns, group, n, r));
+                    let mut row = cut_row(q, &set.columns, group, n, r);
+                    row.sources.clear();
+                    set.rows.push(row);
                 }
             }
         }
@@ -179,7 +196,7 @@ fn cut_row(q: &Q, columns: &[ColumnDef], group: CutGroup, n: usize, r: &CutRow) 
     match r.length {
         Some(nm) => {
             set(
-                "length",
+                "piece_length",
                 Cell::Qty(Dec3(i64::try_from(nm / 1_000).unwrap_or(i64::MAX)), QtyUnit::None),
             );
             let pieces = i128::try_from(r.pieces).unwrap_or(i128::MAX);
@@ -191,9 +208,22 @@ fn cut_row(q: &Q, columns: &[ColumnDef], group: CutGroup, n: usize, r: &CutRow) 
                 ),
             );
         }
-        None => set("length", Cell::Missing(MissingReason::Length)),
+        None => set("piece_length", Cell::Missing(MissingReason::Length)),
     }
-    let mut id = group_id(group);
-    id.0.push(RowKey::Index(u32::try_from(n).unwrap_or(u32::MAX)));
-    Row::data(id, cells)
+    // The row is its first record's (a duct's row and its cover's, of one duct, by their parts), and names every
+    // record it is cut for.
+    let id = match (r.sources.first(), &r.what) {
+        (Some(first), CutWhat::Part(p)) if group == CutGroup::Ducts => {
+            RowId::entity(*first).with(RowKey::Entity(p.copy.as_uuid()))
+        }
+        (Some(first), _) => RowId::entity(*first),
+        (None, _) => {
+            let mut id = group_id(group);
+            id.0.push(RowKey::Index(u32::try_from(n).unwrap_or(u32::MAX)));
+            id
+        }
+    };
+    let mut row = Row::data(id, cells);
+    row.sources.clone_from(&r.sources);
+    row
 }

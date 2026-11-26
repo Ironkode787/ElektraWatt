@@ -139,19 +139,29 @@ impl Session {
                 .map(|d| (d.key.clone(), d.weight, MlText::default()))
                 .collect()
         };
-        let mut columns: Vec<ListColumn> = printed
-            .iter()
-            .filter_map(|(key, width, heading)| {
-                let def = defs.iter().find(|d| d.key == *key)?;
-                Some(ListColumn {
-                    key: key.clone(),
+        // A key of an earlier version of the kind is the column it became (`ColumnDef::former`), under the column's key,
+        // once, as wide as its former keys together; several keys that became one take its heading. The form writes
+        // the new keys back.
+        let mut columns: Vec<ListColumn> = Vec::new();
+        for (key, width, heading) in &printed {
+            let Some(def) = ew_reports::column_of(&defs, key).map(|i| &defs[i]) else {
+                continue;
+            };
+            match columns.iter_mut().find(|c| c.key == def.key) {
+                Some(c) => c.width = c.width.saturating_add(*width),
+                None => columns.push(ListColumn {
+                    key: def.key.clone(),
                     label: words(&def.label),
                     shown: true,
-                    heading: words(heading),
+                    heading: if def.key == *key || def.former.len() <= 1 {
+                        words(heading)
+                    } else {
+                        String::new()
+                    },
                     width: *width,
-                })
-            })
-            .collect();
+                }),
+            }
+        }
         for def in &defs {
             if !columns.iter().any(|c| c.key == def.key) {
                 columns.push(ListColumn {
@@ -166,7 +176,11 @@ impl Session {
         let added = b
             .added_rows
             .iter()
-            .map(|r| r.cells.iter().map(|(k, v)| (k.clone(), words(v))).collect())
+            .map(|r| {
+                defs.iter()
+                    .filter_map(|d| d.stored_text(&r.cells).map(|t| (d.key.clone(), words(&t))))
+                    .collect()
+            })
             .collect();
         Some(ListLook {
             block: block.as_uuid(),

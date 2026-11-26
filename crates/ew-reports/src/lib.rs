@@ -71,7 +71,7 @@ pub use queries::{BlockPages, BlockRows, ReportEngine, arranged, engine, project
 pub use render::TagClassMembers;
 pub use rowset::{
     Cell, CellType, ColumnDef, GridCell, GroupRange, LinkRef, LinkTarget, MissingReason, NotDerived, QtyUnit,
-    Row, RowId, RowIdParseError, RowKey, RowKind, RowSet, RowSetStatus,
+    Row, RowId, RowIdParseError, RowKey, RowKind, RowSet, RowSetStatus, column_of,
 };
 
 #[cfg(test)]

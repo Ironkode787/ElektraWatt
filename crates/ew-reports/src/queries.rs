@@ -79,10 +79,10 @@ fn with_added_rows(mut rows: RowSet, block: &ReportBlock) -> RowSet {
             .columns
             .iter()
             .map(|c| {
-                let Some(text) = added.cells.get(&c.key).filter(|t| !t.is_empty()) else {
+                let Some(text) = c.stored_text(&added.cells) else {
                     return Cell::Empty;
                 };
-                let plain = ew_derive::text_in(text, None).trim().to_owned();
+                let plain = ew_derive::text_in(&text, None).trim().to_owned();
                 match c.ty {
                     CellType::Ident => Cell::Ident(plain),
                     CellType::Address => Cell::Address(plain),

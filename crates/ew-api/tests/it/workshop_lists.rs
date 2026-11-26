@@ -212,3 +212,133 @@ fn the_tube_cut_list_is_the_cut_lists_tubes_group() {
         assert!(offered.contains(&kind), "{kind}: {offered:?}");
     }
 }
+
+/// The sample with two tubes of 1001 mm each (single connections) and a `tube_cut_list` block at folio 960 as a
+/// project of 0.3.5 stored it: the old column choice (with a heading of its own on the part), a sort by the old count,
+/// a row of one's own under the old keys and the first of the two tubes left out by hand (its row's identity in 0.3.5).
+/// Returns the session, the block and the tube left out.
+fn sample_with_old_tube_cut_list() -> (Session, String, String) {
+    use ew_schema::{ConnectionKind, LengthSource, Record};
+    let (project, mut records, lib) = common::sample_records();
+    let (two, left_out) = {
+        let s = common::session_of(project.clone(), records.clone(), lib.clone());
+        let q = s.query();
+        let tubes = q.get::<ew_derive::TubeRows>(());
+        let single: Vec<_> = tubes.iter().filter(|t| t.constituents.len() == 1).collect();
+        assert!(single.len() >= 3, "the sample has tubes of one connection each");
+        (
+            [single[0].constituents[0], single[1].constituents[0]],
+            single[0].id.to_string(),
+        )
+    };
+    for r in &mut records {
+        if let Record::Connection(c) = r
+            && two.contains(&c.id)
+            && let ConnectionKind::Fluid(l) = &mut c.kind
+        {
+            l.length = LengthSource::Manual(ew_units::Nm::from_mm(1001));
+        }
+    }
+    let wire_list = records
+        .iter()
+        .find_map(|r| match r {
+            Record::ReportBlock(b) if b.first_folio == Some(907) => Some(b.clone()),
+            _ => None,
+        })
+        .expect("the wire list block");
+    let mut block = serde_json::to_value(&wire_list).unwrap();
+    block["id"] = json!(ew_ids::Uuid::from_u128(0x5050_0001).to_string());
+    block["source"] = json!({"kind": "tube_cut_list"});
+    block["first_folio"] = json!(960);
+    block["title"] = json!({"en-GB": "Tube cut list"});
+    block["columns"] = json!([
+        {"key": "material", "weight": 10}, {"key": "size", "weight": 10}, {"key": "colour", "weight": 8},
+        {"key": "part", "weight": 16, "heading": {"en-GB": "Tube"}}, {"key": "count", "weight": 8},
+        {"key": "length", "weight": 12}
+    ]);
+    block["sort"] = json!([{"key": "count"}]);
+    block["manual"] = json!({"exclude": [left_out]});
+    block["added_rows"] = json!([{"cells": {"material": "PA", "size": "8×6", "part": "EW-OWN-1", "count": "2",
+        "length": "3"}}]);
+    let block: ew_schema::ReportBlock = serde_json::from_value(block).expect("a report block");
+    let id = block.id.to_string();
+    records.push(Record::ReportBlock(block));
+    (common::session_of(project, records, lib), id, left_out)
+}
+
+/// A `tube_cut_list` block of 0.3.5 reads its stored keys as the cut list's columns at one place: it prints Description
+/// (material, size and colour, once, as wide as they were), Part number under its own heading "Tube", Pieces and Total;
+/// it sorts by the pieces (the row of one's own, 2, before the 5 tubes without a length, the kind's order reversed); its
+/// row of one's own keeps its texts; the row of the tube left out stays out; List columns… offers the new keys. The two
+/// tubes of 1001 mm are two pieces of 1005 mm, 2.01 m in the cut list: each piece rounded once.
+#[test]
+fn an_old_tube_cut_list_block_reads_its_stored_keys_as_the_new_columns() {
+    let (s, block, left_out) = sample_with_old_tube_cut_list();
+    let printed = s.page_list_table("960").expect("folio 960 prints a list");
+    assert_eq!(printed.columns, ["Description", "Tube", "Pieces", "Total m"]);
+    let rows: Vec<Vec<String>> = printed.rows.iter().map(|r| r.cells.clone()).collect();
+    assert_eq!(
+        rows,
+        [
+            ["PA 8×6", "EW-OWN-1", "2", "3"],
+            ["Tube PU 6 × 4 mm, blue", "EW-GEN-TUB-6", "5", ""],
+        ],
+        "sorted by the pieces; the row of the tube left out is out"
+    );
+    assert!(
+        lines(&s, "cut_list").iter().any(|l| l.starts_with("data,EW-GEN-TUB-6,") && l.ends_with(",2,1005,2.01")),
+        "two pieces of 1001 mm cut to 1005 mm"
+    );
+    let q = s.query();
+    let set = q.get::<ew_reports::BlockRows>(ew_ids::Id::from_uuid(block.parse().unwrap()));
+    assert!(
+        set.rows.iter().all(|r| !r.id.entities().any(|e| e.to_string() == left_out)),
+        "the tube left out"
+    );
+    drop(q);
+    let look = s.block_look(block.parse().unwrap(), "en-GB").expect("the block's look");
+    let shown: Vec<(&str, u32, &str)> = look
+        .columns
+        .iter()
+        .filter(|c| c.shown)
+        .map(|c| (c.key.as_str(), c.width, c.heading.as_str()))
+        .collect();
+    assert_eq!(
+        shown,
+        [("description", 28, ""), ("part_number", 16, "Tube"), ("pieces", 8, ""), ("total", 12, "")]
+    );
+    assert_eq!(
+        look.added,
+        [vec![
+            ("part_number".to_owned(), "EW-OWN-1".to_owned()),
+            ("description".to_owned(), "PA 8×6".to_owned()),
+            ("pieces".to_owned(), "2".to_owned()),
+            ("total".to_owned(), "3".to_owned()),
+        ]]
+    );
+}
+
+/// Every row of the cut list names what it is cut for: each rail and duct row its carriers, a cover row its duct's, a
+/// cable row its cable, a wire row its wires, a tube row its tubes; the row is its first record's.
+#[test]
+fn every_cut_list_row_names_what_it_is_cut_for() {
+    let s = common::sample();
+    let q = s.query();
+    let set = ew_reports::project_rows(&q, &ew_schema::ReportKind::CutList, None).expect("the cut list");
+    for (i, r) in set.rows.iter().enumerate() {
+        if r.kind != ew_reports::RowKind::Data {
+            continue;
+        }
+        assert!(!r.sources.is_empty(), "row {i} names its records");
+        let first = r.id.entities().next().expect("the row is a record's");
+        assert_eq!(first, r.sources[0].as_uuid(), "row {i}");
+    }
+    let tubes = q.get::<ew_derive::TubeRows>(()).len();
+    let named: usize = set
+        .rows
+        .iter()
+        .filter(|r| r.sources.iter().any(|s| q.get::<ew_derive::TubeRows>(()).iter().any(|t| t.id.cast() == *s)))
+        .map(|r| r.sources.len())
+        .sum();
+    assert_eq!(named, tubes, "every tube on one row");
+}

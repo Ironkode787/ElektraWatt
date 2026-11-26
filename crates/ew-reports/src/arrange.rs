@@ -22,7 +22,7 @@ use ew_units::Dec3;
 
 use crate::BlockPages;
 use crate::paginate::is_toc;
-use crate::rowset::{Cell, GroupRange, MissingReason, Row, RowKind, RowSet};
+use crate::rowset::{Cell, GroupRange, MissingReason, Row, RowKind, RowSet, column_of};
 
 /// How a block arranges its rows.
 #[derive(Clone, Debug)]
@@ -94,17 +94,12 @@ pub fn arrange(q: &Q, set: RowSet, how: &Arrangement<'_>) -> RowSet {
     if how
         .sort
         .iter()
-        .any(|k| columns.iter().any(|c| c.key == k.key.as_str()))
+        .any(|k| column_of(&columns, k.key.as_str()).is_some())
     {
         let keys: Vec<(usize, bool)> = how
             .sort
             .iter()
-            .filter_map(|k| {
-                columns
-                    .iter()
-                    .position(|c| c.key == k.key.as_str())
-                    .map(|i| (i, k.descending))
-            })
+            .filter_map(|k| column_of(&columns, k.key.as_str()).map(|i| (i, k.descending)))
             .collect();
         for seg in &mut segments {
             sort_rows(q, &mut seg.rows, &keys);
@@ -112,9 +107,7 @@ pub fn arrange(q: &Q, set: RowSet, how: &Arrangement<'_>) -> RowSet {
     }
 
     // Step 4: grouping.
-    let group_col = how
-        .group
-        .and_then(|g| columns.iter().position(|c| c.key == g.key.as_str()));
+    let group_col = how.group.and_then(|g| column_of(&columns, g.key.as_str()));
     let (rows, groups) = match group_col {
         Some(col) => group_rows(q, segments, col, how),
         None => (flatten(segments), Vec::new()),

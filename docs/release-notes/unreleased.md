@@ -349,8 +349,13 @@ change here.
 - format-variant: report_block ReportKind cut_list
 - format-variant: report_block ReportKind consumables
 - behaviour-change: a `tube_cut_list` block of a project made before prints the cut list's Tubes group under its own
-  title, with the cut list's columns (Part number, Description, For, Pieces, Length mm, Total m); Report block… no
-  longer offers the tube cut list.
+  title: one row per tube part (else material, size and colour) and piece length, where it had one row per tube part
+  for every length; each piece rounded up to the project's cut increment (5 mm unless set), the total the sum of the
+  rounded pieces; the cut list's columns Part number, Description (the material, size and colour), For, Pieces, Length
+  mm (the piece) and Total m, where it had Material, OD×ID, Colour, Tube part, Pieces and Total length. What a person
+  set on such a block reads as before: a column choice, sort, grouping or row of one's own under the old keys is read
+  as the new columns (part → Part number, material, size and colour → Description, count → Pieces, length → Total),
+  and a row is still its first tube, so a row left out stays out. Report block… no longer offers the tube cut list.
 - behaviour-change: the wire list's bridge rows print the bridge's part; only a bridge without one prints TBD.
 - behaviour-change: EW-MFG-020 reports a strip whose terminals have parts and after whose last terminal no end plate
   stands, with the quick fix Add the end plate … after … where a terminal's part names one; EW-MFG-021 reports a

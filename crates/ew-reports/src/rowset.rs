@@ -68,7 +68,7 @@ impl RowSet {
 
     /// The position of the column with this key.
     pub fn column(&self, key: &str) -> Option<usize> {
-        self.columns.iter().position(|c| c.key == key)
+        column_of(&self.columns, key)
     }
 
     /// The number of data rows (headings, group headers and footers excluded).
@@ -147,6 +147,20 @@ pub struct ColumnDef {
     /// width by these weights ([`ColumnDef::new`] gives [`ColumnDef::DEFAULT_WEIGHT`]). Not data: XLSX and CSV
     /// ignore it.
     pub weight: u32,
+    /// The keys a block of the kind stored for this column under an earlier version of the kind: a stored column
+    /// choice, sort key, grouping or row of one's own that names one of them is read as this column ([`column_of`],
+    /// [`ColumnDef::stored_text`]). Empty for most columns.
+    pub former: &'static [&'static str],
+}
+
+/// The column of `columns` a key stored on a block names: the column of that key, else the column that names it among
+/// its former keys ([`ColumnDef::former`]); `None` for a key no column answers. The one reading of a stored key: the
+/// printed columns, the sort, the grouping, the rows of one's own and List columns… read it here.
+pub fn column_of(columns: &[ColumnDef], key: &str) -> Option<usize> {
+    columns
+        .iter()
+        .position(|c| c.key == key)
+        .or_else(|| columns.iter().position(|c| c.former.contains(&key)))
 }
 
 impl ColumnDef {
@@ -160,6 +174,7 @@ impl ColumnDef {
             ty,
             label: crate::words::in_languages(&label),
             weight: ColumnDef::DEFAULT_WEIGHT,
+            former: &[],
         }
     }
 
@@ -177,6 +192,29 @@ impl ColumnDef {
     pub fn weighted(mut self, weight: u32) -> ColumnDef {
         self.weight = weight;
         self
+    }
+
+    /// This column, which a block of an earlier version of its kind stored under the keys `keys`.
+    #[must_use]
+    pub fn formerly(mut self, keys: &'static [&'static str]) -> ColumnDef {
+        self.former = keys;
+        self
+    }
+
+    /// The text a row of one's own (`AddedRow::cells`) holds for this column: under its key, else under its former keys,
+    /// those present joined by a space in the order the column names them; `None` when it holds none.
+    pub fn stored_text(&self, cells: &std::collections::BTreeMap<String, MlText>) -> Option<MlText> {
+        if let Some(t) = cells.get(&self.key).filter(|t| !t.is_empty()) {
+            return Some(t.clone());
+        }
+        let parts: Vec<&str> = self
+            .former
+            .iter()
+            .filter_map(|k| cells.get(*k))
+            .map(|t| ew_derive::text_in(t, None).trim())
+            .filter(|t| !t.is_empty())
+            .collect();
+        (!parts.is_empty()).then(|| MlText::neutral(&parts.join(" ")))
     }
 }
 
