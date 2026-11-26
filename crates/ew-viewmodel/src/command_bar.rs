@@ -208,7 +208,7 @@ pub enum Group {
 
 impl Group {
     /// Every group, in bar order.
-    pub const ALL: [Group; 38] = [
+    pub const ALL: [Group; 39] = [
         Group::Project,
         Group::Parts,
         Group::Standards,

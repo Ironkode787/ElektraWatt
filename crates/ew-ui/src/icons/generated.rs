@@ -11,7 +11,7 @@
 use super::Seg::{self, C, L, M, Q, Z};
 
 /// The number of icons in the table.
-pub const COUNT: usize = 150;
+pub const COUNT: usize = 151;
 
 /// One icon of the table, named by its key in `snake_case` (`ew_` for the project's own glyphs).
 #[allow(non_camel_case_types, missing_docs)]
@@ -96,6 +96,7 @@ pub enum IconId {
     flip_vertical,
     folder,
     folder_plus,
+    frame,
     grid_dots,
     hash,
     help_circle,
@@ -251,6 +252,7 @@ impl IconId {
         IconId::flip_vertical,
         IconId::folder,
         IconId::folder_plus,
+        IconId::frame,
         IconId::grid_dots,
         IconId::hash,
         IconId::help_circle,
@@ -406,6 +408,7 @@ pub const KEYS: [&str; COUNT] = [
     "flip-vertical",
     "folder",
     "folder-plus",
+    "frame",
     "grid-dots",
     "hash",
     "help-circle",
@@ -1809,6 +1812,17 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(22.0, 19.0),
         M(19.0, 16.0),
         L(19.0, 22.0),
+    ],
+    // frame
+    &[
+        M(4.0, 7.0),
+        L(20.0, 7.0),
+        M(4.0, 17.0),
+        L(20.0, 17.0),
+        M(7.0, 4.0),
+        L(7.0, 20.0),
+        M(17.0, 4.0),
+        L(17.0, 20.0),
     ],
     // grid-dots
     &[
