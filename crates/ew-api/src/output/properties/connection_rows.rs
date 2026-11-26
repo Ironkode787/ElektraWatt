@@ -412,7 +412,8 @@ impl Session {
 
 /// The chip of a row of a wire's own values on a stretch several wires share (a star's feed arm, a chain's arm at a
 /// clamp): no one wire's value shows there, and none is set there.
-const SHARED_STRETCH: &str = "several wires share this stretch: set a wire's own values in the Connections table";
+const SHARED_STRETCH: &str =
+    "several wires share this stretch: set a wire's own values in the Connections table";
 
 /// The wire whose own values a row of connection `c` shows and sets (doc 13 §2.3): the one wire `c` stands for;
 /// `Err(())` on a stretch several wires share; `Ok(None)` for a connection of no wire.
@@ -595,14 +596,8 @@ fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
                 word.map(Value::from),
                 match end.treated_by {
                     TreatedBy::Hand => set_by_hand(),
-                    TreatedBy::Rule { assumed, .. } => Provenance::Derived {
-                        via: match (assumed.class, assumed.clamp) {
-                            (true, true) => "rule (unverified): fine-stranded wire, clamp kind not known",
-                            (true, false) => "rule (unverified): fine-stranded wire",
-                            (false, true) => "rule (unverified): clamp kind not known",
-                            (false, false) => "rule (unverified)",
-                        }
-                        .into(),
+                    TreatedBy::Rule { row, assumed } => Provenance::Derived {
+                        via: rule_words(row, assumed.class, assumed.clamp).into(),
                     },
                     TreatedBy::Outside => Provenance::Derived {
                         via: "made outside the project".into(),
@@ -668,6 +663,25 @@ fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
         }
     }
     out
+}
+
+/// The chip of an end the rule table's row `row` decided (doc 13 §4.2): "rule", "(unverified)" while the row's own flag
+/// (`TreatmentRule::verified`) says no panel builder has confirmed it, and what it assumed: the wire fine-stranded
+/// (`class`), the clamp's kind (`clamp`).
+fn rule_words(row: u8, class: bool, clamp: bool) -> &'static str {
+    let verified = ew_derive::TREATMENT_RULES
+        .iter()
+        .any(|r| r.row == row && r.verified);
+    match (verified, class, clamp) {
+        (false, true, true) => "rule (unverified): fine-stranded wire, clamp kind not known",
+        (false, true, false) => "rule (unverified): fine-stranded wire",
+        (false, false, true) => "rule (unverified): clamp kind not known",
+        (false, false, false) => "rule (unverified)",
+        (true, true, true) => "rule: fine-stranded wire, clamp kind not known",
+        (true, true, false) => "rule: fine-stranded wire",
+        (true, false, true) => "rule: clamp kind not known",
+        (true, false, false) => "rule",
+    }
 }
 
 /// Where the end `end` (0 the From end, 1 the To end) of the wire of connection `c` is set by hand
@@ -801,4 +815,28 @@ pub(super) fn prop_via(
         PropSource::Override(_) => ew_derive::text!("prop-via-override"),
     }
     .to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::rule_words;
+
+    /// A rule's chip says "unverified" exactly when its row of the table says so.
+    #[test]
+    fn a_rule_says_unverified_from_its_own_flag() {
+        for r in &ew_derive::TREATMENT_RULES {
+            for (class, clamp) in [(false, false), (true, false), (false, true), (true, true)] {
+                let words = rule_words(r.row, class, clamp);
+                assert_eq!(
+                    words.contains("(unverified)"),
+                    !r.verified,
+                    "row {}: {words}",
+                    r.row
+                );
+                assert!(words.starts_with("rule"), "{words}");
+            }
+        }
+        // A row the table does not have is not confirmed.
+        assert_eq!(rule_words(u8::MAX, false, false), "rule (unverified)");
+    }
 }

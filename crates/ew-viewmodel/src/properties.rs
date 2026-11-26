@@ -2398,6 +2398,22 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
         key!("chip-via-rule-assumed-clamp"),
     ),
     ("rule (unverified)", None, key!("chip-via-rule-unverified")),
+    (
+        "rule: fine-stranded wire, clamp kind not known",
+        None,
+        key!("chip-via-rule-verified-assumed-both"),
+    ),
+    (
+        "rule: fine-stranded wire",
+        None,
+        key!("chip-via-rule-verified-assumed-class"),
+    ),
+    (
+        "rule: clamp kind not known",
+        None,
+        key!("chip-via-rule-verified-assumed-clamp"),
+    ),
+    ("rule", None, key!("chip-via-rule-verified")),
     ("made outside the project", None, key!("chip-via-made-outside")),
     (
         "several wires share this stretch: set a wire's own values in the Connections table",
