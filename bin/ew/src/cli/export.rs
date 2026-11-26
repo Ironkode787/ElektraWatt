@@ -704,7 +704,8 @@ pub(super) fn run_export_rework(a: &ReworkCli, io: &mut Io<'_>) -> i32 {
                 (Some(r), _) => ew_api::ReworkBase::Release(r.revision),
                 (None, Some(label)) => {
                     io.error(format_args!(
-                        "{}: no release {label} whose archive is found beside the project; give the archive with                          `--archive <file>`",
+                        "{}: no release {label} whose archive is found beside the project; give the archive \
+                         with `--archive <file>`",
                         dir.display()
                     ));
                     return 2;

@@ -855,6 +855,77 @@ mod tests {
         assert_eq!(files(&dir), before);
     }
 
+    /// `ew export rework`: before a release it names what is missing (no release; no release V1.0 whose archive is
+    /// beside the project), after it the list since the release as CSV, by its label as XLSX, and against the archive
+    /// file; the sample is as released, so the list is its header alone.
+    #[test]
+    fn export_rework_writes_the_list_since_the_release() {
+        let dir = sample_copy("rework");
+        let root = ew_testdir::Tmp(PathBuf::from(format!("{}.ew-archive", dir.display())));
+        let _ = std::fs::remove_dir_all(&root);
+        let out = ew_testdir::Tmp::new("ew-cli-rework-out");
+        let rework = |since: Option<&str>, archive: Option<PathBuf>, xlsx: bool, file: &str| {
+            let a = crate::cli::tree::ReworkCli {
+                project: crate::cli::tree::ProjectArg(Some(dir.to_path_buf())),
+                since: since.map(str::to_owned),
+                archive,
+                format: xlsx.then_some(crate::cli::tree::ReportPages::Xlsx),
+                out: Some(out.join(file)),
+            };
+            let env = crate::cli::io::Env::new(dir.to_path_buf());
+            crate::cli::io::captured("", &env, |io| crate::cli::export::run_export_rework(&a, io))
+        };
+        let (code, _, err) = rework(None, None, false, "none.csv");
+        assert_eq!(code, 2, "{err}");
+        assert!(err.contains("this project has no released revision yet"), "{err}");
+        let (code, _, err) = rework(Some("V1.0"), None, false, "none.csv");
+        assert_eq!(code, 2, "{err}");
+        assert!(
+            err.contains(
+                "no release V1.0 whose archive is found beside the project; give the archive with `--archive <file>`"
+            ),
+            "{err:?}"
+        );
+        assert!(!out.join("none.csv").exists());
+
+        waive_the_gate(&dir);
+        let (code, shown) = run(
+            &dir,
+            approve("checker"),
+            true,
+            "V1.0
+",
+        );
+        assert_eq!(code, 0, "{shown}");
+        let (code, shown) = run(
+            &dir,
+            release("V1.0"),
+            true,
+            "V1.0
+",
+        );
+        assert_eq!(code, 0, "{shown}");
+        let (code, said, err) = rework(None, None, false, "rework.csv");
+        assert_eq!(code, 0, "{err}");
+        assert_eq!(
+            said,
+            format!(
+                "rework list written to {}: 0 rows
+",
+                out.join("rework.csv").display()
+            )
+        );
+        let csv = std::fs::read_to_string(out.join("rework.csv")).unwrap();
+        assert!(csv.starts_with("row,Action,No.,From,"), "{csv}");
+        assert_eq!(csv.lines().count(), 1, "{csv}");
+        let (code, _, err) = rework(Some("V1.0"), None, true, "rework.xlsx");
+        assert_eq!(code, 0, "{err}");
+        assert!(std::fs::read(out.join("rework.xlsx")).unwrap().starts_with(b"PK"));
+        let (code, _, err) = rework(None, Some(root.join("V1.0.ewarchive")), false, "archive.csv");
+        assert_eq!(code, 0, "{err}");
+        assert_eq!(std::fs::read_to_string(out.join("archive.csv")).unwrap(), csv);
+    }
+
     /// Through the CLI: the typed label approves (the safety waivers listed first), the author's
     /// role and a wrong label do not; the release shows its plan and needs the typed label, then writes the archive
     /// (with the sample's report blocks as CSV) and stamps the revision; a released revision is withdrawn on its typed
