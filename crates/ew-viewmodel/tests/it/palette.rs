@@ -364,7 +364,11 @@ fn forms_open_prefilled_run_with_enter_and_a_path_parameter_is_disabled() {
     let Some(Dialog::Form(form)) = shell.dialog() else {
         panic!("the renumber form: {:?}", shell.dialog());
     };
-    let values: Vec<(&str, &str)> = form.fields.iter().map(|f| (f.name, f.value.as_str())).collect();
+    let values: Vec<(&str, &str)> = form
+        .fields
+        .iter()
+        .map(|f| (f.name.as_ref(), f.value.as_str()))
+        .collect();
     assert_eq!(values[0], ("scope", "project"));
     assert_eq!(values[2], ("include_frozen", "false"));
     assert_eq!(values[3], ("only_nonconforming", "true"));

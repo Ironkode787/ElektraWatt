@@ -1135,7 +1135,7 @@ fn a_section_is_made_from_the_pages_panel_and_from_the_trees_right_click_menu() 
                 assert_eq!(f.action, "section.new");
                 f.fields
                     .iter()
-                    .map(|x| (x.name.to_owned(), x.value.clone()))
+                    .map(|x| (x.name.to_string(), x.value.clone()))
                     .collect()
             }
             other => panic!("the New section form: {other:?}"),

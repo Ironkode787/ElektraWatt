@@ -166,8 +166,9 @@ impl ShellModel {
         if !remove && (location.is_none() || device.is_none()) {
             let (place, feeder) = self.supply_in_proposal();
             if self.mode == Mode::Gui && !self.in_form_of(SUPPLY_IN) {
-                let field = |name, label_key, value: String| FormField {
-                    name,
+                let field = |name: &'static str, label_key, value: String| FormField {
+                    label: None,
+                    name: name.into(),
                     label_key,
                     choices: &super::choices::NONE,
                     options: Vec::new(),

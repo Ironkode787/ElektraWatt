@@ -181,6 +181,9 @@ pub struct PropRow {
     /// Whether its text names its stored value, a reference a window says on hover (an address profile by its
     /// name).
     pub named_reference: bool,
+    /// Its label in a person's own words (a field of the project's own, doc 09 §2.10), which stands for the label its
+    /// path gives; `None` for every other row.
+    pub label: Option<String>,
 }
 
 /// A derived row (`<kind>/derived.<name>`) as a property sheet builds it: what it shows, and the authored row a write
@@ -234,6 +237,7 @@ impl DerivedRow<'_> {
             identifier,
             source: None,
             named_reference: false,
+            label: None,
         }
     }
 }

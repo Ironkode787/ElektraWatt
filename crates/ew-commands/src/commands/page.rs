@@ -326,6 +326,7 @@ impl Command for CreatePage {
             description_override: None,
             scale: Scale::default(),
             grid: self.grid,
+            user_props: Vec::new(),
             source_ref: None,
             extra: Extra::new(),
         })?;

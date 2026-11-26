@@ -50,7 +50,7 @@ fn form(shell: &ShellModel) -> (&'static str, Vec<(String, String)>, Option<Stri
             f.action,
             f.fields
                 .iter()
-                .map(|x| (x.name.to_owned(), x.value.clone()))
+                .map(|x| (x.name.to_string(), x.value.clone()))
                 .collect(),
             f.error.clone(),
         ),

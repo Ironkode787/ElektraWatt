@@ -814,7 +814,11 @@ fn the_window_asks_for_the_fields_and_keeps_a_refusal_in_the_dialog() {
     done(&mut shell, "page.new", json!({"title": "Typed first"}));
     let form = common::form(&shell);
     assert_eq!(form.action, "page.new");
-    let values: Vec<(&str, &str)> = form.fields.iter().map(|f| (f.name, f.value.as_str())).collect();
+    let values: Vec<(&str, &str)> = form
+        .fields
+        .iter()
+        .map(|f| (f.name.as_ref(), f.value.as_str()))
+        .collect();
     // The folio field holds the proposal after the current page 1.
     assert_eq!(
         values,

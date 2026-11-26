@@ -860,6 +860,8 @@ pub enum RowGroup {
     Main,
     /// A category of the field catalogue, less the Main and More rows.
     Category(Category),
+    /// The fields of the project's own (doc 09 §2.10), before More.
+    OwnFields,
     /// The rows only a rare case needs ([`is_more`]).
     More,
 }
@@ -870,6 +872,7 @@ impl RowGroup {
         match self {
             RowGroup::Main => "main",
             RowGroup::Category(c) => c.word(),
+            RowGroup::OwnFields => "own_fields",
             RowGroup::More => "more",
         }
     }
@@ -882,6 +885,9 @@ impl RowGroup {
         if word == "more" {
             return Some(RowGroup::More);
         }
+        if word == "own_fields" {
+            return Some(RowGroup::OwnFields);
+        }
         Category::ALL
             .iter()
             .find(|c| c.word() == word)
@@ -893,6 +899,7 @@ impl RowGroup {
         match self {
             RowGroup::Main => strings::text(key!("category-main")),
             RowGroup::Category(c) => strings::text(Key::run_time(&format!("category-{}", c.word()))),
+            RowGroup::OwnFields => strings::text(key!("category-own-fields")),
             RowGroup::More => strings::text(key!("category-more")),
         }
     }
@@ -1097,6 +1104,14 @@ pub fn groups(section: &SheetSection, advanced: bool) -> Vec<(RowGroup, Vec<&Pro
             out.push((RowGroup::Category(c), rows));
         }
     }
+    let own: Vec<&PropRow> = section
+        .rows
+        .iter()
+        .filter(|r| group_of(section, r) == RowGroup::OwnFields)
+        .collect();
+    if !own.is_empty() {
+        out.push((RowGroup::OwnFields, own));
+    }
     let more: Vec<&PropRow> = section
         .rows
         .iter()
@@ -1122,7 +1137,9 @@ pub fn advanced_count(sheet: &PropertySheet, filter: &str) -> usize {
 
 /// The group `row` is shown in.
 pub fn group_of(section: &SheetSection, row: &PropRow) -> RowGroup {
-    if is_primary(&section.kind, row) {
+    if crate::shell::own_fields::is_own_row(row) {
+        RowGroup::OwnFields
+    } else if is_primary(&section.kind, row) {
         RowGroup::Main
     } else if is_more(&section.kind, row) {
         RowGroup::More
@@ -1233,6 +1250,10 @@ impl LabelPath for PropRow {
 
 /// The English label of a row (`Function text`, `Cross-section`).
 pub fn row_label(section: &SheetSection, row: &PropRow) -> String {
+    // A field of the project's own by its name as the person typed it.
+    if let Some(label) = &row.label {
+        return label.clone();
+    }
     // A person of the project by the role's word (Designer, Checker).
     if let Some(label) = crate::shell::ShellModel::person_label(&row.key) {
         return label.to_owned();
@@ -2267,6 +2288,10 @@ pub enum RowMenuItem {
     /// Function text over its path on a device's Function text row, while one of its symbols is selected:
     /// `text.function_over_path`.
     FunctionOverPath,
+    /// Rename… on a field of the project's own: `field.rename`.
+    RenameField,
+    /// Remove on a field of the project's own: `field.remove`.
+    RemoveField,
 }
 
 /// What an entry of the row's actions menu does, its tooltip, where its label does not say it (Make variable read as the
@@ -2292,6 +2317,8 @@ pub fn menu_label(item: RowMenuItem) -> &'static str {
         RowMenuItem::CpUnused { on: true } => strings::text(key!("action-cp-unused")),
         RowMenuItem::CpUnused { on: false } => strings::text(key!("props-action-cp-used")),
         RowMenuItem::FunctionOverPath => strings::text(key!("action-text-function-over-path")),
+        RowMenuItem::RenameField => strings::text(key!("action-field-rename")),
+        RowMenuItem::RemoveField => strings::text(key!("action-field-remove")),
     }
 }
 

@@ -577,7 +577,11 @@ fn auto_fill_rail_fills_an_emptied_rail_1_with_the_marked_devices() {
                 .find(|(v, _)| *v == f.value)
                 .map(|(_, w)| w.clone())
                 .unwrap_or_default();
-            (f.name, words, f.options.iter().map(|(_, w)| w.clone()).collect())
+            (
+                f.name.as_ref(),
+                words,
+                f.options.iter().map(|(_, w)| w.clone()).collect(),
+            )
         })
         .collect();
     assert_eq!(

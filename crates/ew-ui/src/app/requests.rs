@@ -25,7 +25,7 @@ impl App {
             Event::GotoText(text) => self.shell.set_goto_text(&text),
             Event::GotoGo(text) => self.dispatch("nav.goto", &json!({ "text": text })),
             Event::WorkspaceText(text) => self.shell.set_workspace_text(&text),
-            Event::FormField(name, text) => self.shell.set_form_field(name, &text),
+            Event::FormField(name, text) => self.shell.set_form_field(&name, &text),
             Event::FormTableCell(row, column, text) => self.shell.set_form_table_cell(row, column, &text),
             Event::FormTableAdd => self.shell.add_form_table_row(),
             Event::FormTableRemove(row) => self.shell.remove_form_table_row(row),

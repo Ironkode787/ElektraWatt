@@ -68,6 +68,11 @@ impl ShellModel {
         {
             out.push(RowMenuItem::FunctionOverPath);
         }
+        // A field of the project's own: Rename… and Remove.
+        if writable && crate::shell::own_fields::own_key(&row.key).is_some() {
+            out.push(RowMenuItem::RenameField);
+            out.push(RowMenuItem::RemoveField);
+        }
         out
     }
 
@@ -326,6 +331,10 @@ impl ShellModel {
         }
         self.props.row = Some(key.to_owned());
         match action {
+            // The row New field of your own… opens its form.
+            RowAction::Edit if key == crate::shell::own_fields::OWN_NEW_ROW => {
+                self.act_field_new(&Map::new())
+            }
             RowAction::Edit => self.begin_edit(key, RowAction::Edit, None),
             RowAction::Override => self.begin_edit(key, RowAction::Override, None),
             RowAction::Clear | RowAction::Reset | RowAction::Unfreeze => {

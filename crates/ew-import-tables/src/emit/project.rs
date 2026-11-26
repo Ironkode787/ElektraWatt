@@ -307,6 +307,7 @@ pub(crate) fn emit_pages(cx: &mut Cx<'_>, table: Option<&Table>) {
                 _ => Scale::NotToScale,
             },
             grid,
+            user_props: Vec::new(),
             source_ref: Some(source_ref("pages", row.key())),
             extra: Default::default(),
         }));
@@ -755,6 +756,8 @@ pub(crate) fn emit_project(
         derivation_profile,
         kind: ProjectKind::Schematic,
         source_ref: Some(source_ref("project", row.key())),
+        user_prop_defs: Vec::new(),
+        user_props: Vec::new(),
         basic_project: None,
         extra: Default::default(),
     }));

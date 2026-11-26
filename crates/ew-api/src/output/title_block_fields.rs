@@ -7,7 +7,7 @@
 
 use ew_derive::{PageRef, TbValue, TitleBlockValues, current_revision, open_revision};
 use ew_ids::{Id, Uuid};
-use ew_schema::{Page, Revision};
+use ew_schema::{Page, Revision, UserPropScope, UserPropValue};
 use serde_json::Value;
 
 use super::view::{PageFrameOf, neutral};
@@ -43,6 +43,26 @@ pub struct TitleBlockFacts {
     /// The next free revision label in the project's label format: after the greatest label of a revision (a
     /// withdrawal record passed over), else the format's first; `None` for a format of a newer build.
     pub revision_next: Option<String>,
+    /// The fields of the project's own the page's frame and title block print (doc 09 §2.10), the page's first, then
+    /// the project's, each in the order of their cells.
+    pub own_fields: Vec<OwnField>,
+    /// The page's values of the fields of the project's own, in their JSON form (`fields.set` writes the list whole).
+    pub page_props: Value,
+    /// The project's values of its fields of its own, in their JSON form.
+    pub project_props: Value,
+}
+
+/// A field of the project's own that a title block prints (doc 09 §2.10).
+#[derive(Clone, PartialEq, Debug)]
+pub struct OwnField {
+    /// The placeholder path that prints it (`page.prop.customer_sheet`), one of [`TitleBlockFacts::fields`].
+    pub path: String,
+    /// Its key.
+    pub key: String,
+    /// Its name as the person typed it.
+    pub label: ew_mltext::MlText,
+    /// Whether it has one value for each page (else one for the project).
+    pub page: bool,
 }
 
 impl Session {
@@ -90,7 +110,7 @@ impl Session {
                 .and_then(|v| v.as_str().map(str::to_owned))
         };
         let values = q.get::<TitleBlockValues>(key);
-        let fields = paths
+        let fields: Vec<(String, String)> = paths
             .into_iter()
             .map(|path| {
                 let text = match values.get(&path) {
@@ -105,7 +125,39 @@ impl Session {
             })
             .collect();
         let project = q.project();
+        let mut own_fields: Vec<OwnField> = Vec::new();
+        for page_scope in [true, false] {
+            for (path, _) in &fields {
+                let key = if page_scope {
+                    path.strip_prefix("page.prop.")
+                } else {
+                    path.strip_prefix("project.prop.")
+                };
+                let scope = if page_scope {
+                    ew_schema::UserPropScope::Page
+                } else {
+                    ew_schema::UserPropScope::Project
+                };
+                let def = key.and_then(|k| {
+                    project
+                        .user_prop_defs
+                        .iter()
+                        .find(|d| d.key.as_str() == k && d.scope.contains(&scope))
+                });
+                if let Some(def) = def {
+                    own_fields.push(OwnField {
+                        path: path.clone(),
+                        key: def.key.as_str().to_owned(),
+                        label: def.label.clone(),
+                        page: page_scope,
+                    });
+                }
+            }
+        }
         Some(TitleBlockFacts {
+            own_fields,
+            page_props: serde_json::to_value(&record.user_props).unwrap_or(Value::Null),
+            project_props: serde_json::to_value(&project.user_props).unwrap_or(Value::Null),
             fields,
             cells,
             project: project.id.as_uuid(),
@@ -131,5 +183,89 @@ impl Session {
                 )
                 .map(|l| l.to_string()),
         })
+    }
+}
+
+/// A field of the project's own with its value on each record of a Properties section (doc 09 §2.10).
+#[derive(Clone, PartialEq, Debug)]
+pub struct OwnFieldValues {
+    /// Its key.
+    pub key: String,
+    /// Its name as the person typed it.
+    pub label: ew_mltext::MlText,
+    /// Its value on each record, in their order; an empty text where it has none.
+    pub values: Vec<ew_mltext::MlText>,
+}
+
+impl Session {
+    /// The fields of the project's own of one scope with their values: with `page`, each field of each page on the pages
+    /// `targets`; else each field of the whole project, the project's value (doc 09 §2.10). A target that is no page is
+    /// passed over.
+    pub fn own_field_values(&self, page: bool, targets: &[Uuid]) -> Vec<OwnFieldValues> {
+        let q = self.query();
+        let project = q.project();
+        let scope = if page {
+            UserPropScope::Page
+        } else {
+            UserPropScope::Project
+        };
+        let lists: Vec<Vec<UserPropValue>> = if page {
+            targets
+                .iter()
+                .filter_map(|t| q.pages().get(Id::<Page>::from_uuid(*t)))
+                .map(|p| p.user_props.clone())
+                .collect()
+        } else {
+            vec![project.user_props.clone()]
+        };
+        project
+            .user_prop_defs
+            .iter()
+            .filter(|d| d.scope.contains(&scope))
+            .map(|d| OwnFieldValues {
+                key: d.key.as_str().to_owned(),
+                label: d.label.clone(),
+                values: lists
+                    .iter()
+                    .map(|l| {
+                        l.iter()
+                            .find(|v| v.key == d.key)
+                            .map(|v| v.value.clone())
+                            .unwrap_or_default()
+                    })
+                    .collect(),
+            })
+            .collect()
+    }
+
+    /// The edits of `fields.set_many` that give the field `key` the value `text` (empty: none) on each of `targets`
+    /// (with `page`, pages; else the project's one ID), each record's value list written whole.
+    pub fn own_field_edits(&self, page: bool, targets: &[Uuid], key: &str, text: &str) -> Vec<Value> {
+        let q = self.query();
+        let project = q.project();
+        let lists: Vec<(Uuid, Vec<UserPropValue>)> = if page {
+            targets
+                .iter()
+                .filter_map(|t| q.pages().get(Id::<Page>::from_uuid(*t)))
+                .map(|p| (p.id.as_uuid(), p.user_props.clone()))
+                .collect()
+        } else {
+            vec![(project.id.as_uuid(), project.user_props.clone())]
+        };
+        let kind = if page { "page" } else { "project" };
+        lists
+            .into_iter()
+            .map(|(target, values)| {
+                let mut list: Vec<Value> = values
+                    .iter()
+                    .filter(|v| v.key.as_str() != key)
+                    .filter_map(|v| serde_json::to_value(v).ok())
+                    .collect();
+                if !text.trim().is_empty() {
+                    list.push(serde_json::json!({"key": key, "value": text.trim()}));
+                }
+                serde_json::json!({"kind": kind, "targets": [target.to_string()], "path": "user_props", "value": list})
+            })
+            .collect()
     }
 }

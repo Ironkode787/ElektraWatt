@@ -288,7 +288,7 @@ fn the_cable_form_asks_the_length_as_a_bus_lines_does() {
     let Some(Dialog::Form(form)) = d.shell_mut().dialog().cloned() else {
         panic!("the Cable form");
     };
-    let names: Vec<&str> = form.fields.iter().map(|f| f.name).collect();
+    let names: Vec<&str> = form.fields.iter().map(|f| f.name.as_ref()).collect();
     assert_eq!(names, ["part", "tag", "type", "length"]);
     let note = d.shell_mut().form_note(&form, "length").unwrap_or_default();
     assert!(note.contains("Check project"), "{note}");

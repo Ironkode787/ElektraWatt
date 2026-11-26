@@ -522,28 +522,32 @@ impl ShellModel {
                 ok_key: key!("dialog-renumber"),
                 fields: vec![
                     FormField {
-                        name: "section",
+                        label: None,
+                        name: "section".into(),
                         label_key: key!("form-renumber-section"),
                         choices: &super::choices::NONE,
                         options: Vec::new(),
                         value: section,
                     },
                     FormField {
-                        name: "start",
+                        label: None,
+                        name: "start".into(),
                         label_key: key!("form-start"),
                         choices: &super::choices::NONE,
                         options: Vec::new(),
                         value: first,
                     },
                     FormField {
-                        name: "step",
+                        label: None,
+                        name: "step".into(),
                         label_key: key!("form-step"),
                         choices: &super::choices::NONE,
                         options: Vec::new(),
                         value: "1".to_owned(),
                     },
                     FormField {
-                        name: "keep_gaps",
+                        label: None,
+                        name: "keep_gaps".into(),
                         label_key: key!("form-keep-gaps"),
                         choices: &super::choices::BOOL,
                         options: Vec::new(),
@@ -619,8 +623,9 @@ impl ShellModel {
                 let out = Outcome::Failed { message };
                 return self.form_done(ACTION, out);
             }
-            let field = |name, label_key, choices, value: &str| FormField {
-                name,
+            let field = |name: &'static str, label_key, choices, value: &str| FormField {
+                label: None,
+                name: name.into(),
                 label_key,
                 choices,
                 options: Vec::new(),

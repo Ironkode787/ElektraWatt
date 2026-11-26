@@ -1104,6 +1104,81 @@
         }
       ]
     },
+    "UserPropDef": {
+      "additionalProperties": true,
+      "description": "A field of the project's own (doc 03 §5 `UserPropDef`, doc 09 §2.10): a value a title block prints that the\nprogram does not know.",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Ident",
+          "description": "Made once from the first name, unique in the project, never shown; it stays when the field is renamed."
+        },
+        "label": {
+          "$ref": "#/$defs/MlText",
+          "description": "Its name as the person typed it."
+        },
+        "scope": {
+          "description": "The records that hold its values.",
+          "items": {
+            "$ref": "#/$defs/UserPropScope"
+          },
+          "type": "array"
+        },
+        "value_kind": {
+          "$ref": "#/$defs/UserPropKind",
+          "description": "The kind of its value."
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "value_kind"
+      ],
+      "type": "object"
+    },
+    "UserPropKind": {
+      "description": "The kind of a field's value (doc 03 §5): text only now.",
+      "oneOf": [
+        {
+          "const": "text",
+          "description": "A multi-language text.",
+          "type": "string"
+        }
+      ]
+    },
+    "UserPropScope": {
+      "description": "A record kind that holds a field's values (doc 03 §5).",
+      "oneOf": [
+        {
+          "const": "project",
+          "description": "One value, the project's.",
+          "type": "string"
+        },
+        {
+          "const": "page",
+          "description": "One value per page.",
+          "type": "string"
+        }
+      ]
+    },
+    "UserPropValue": {
+      "additionalProperties": true,
+      "description": "One value of a field of the project's own (doc 03 §5 `UserPropValue`).",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Ident",
+          "description": "The field's key."
+        },
+        "value": {
+          "$ref": "#/$defs/MlText",
+          "description": "Its value."
+        }
+      },
+      "required": [
+        "key",
+        "value"
+      ],
+      "type": "object"
+    },
     "Uuid": {
       "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
       "maxLength": 36,
@@ -1139,7 +1214,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "description": "The single project row (doc 03 §5, rank 10): master data, parties, supply and settings.\n\nNot in v0 (later work packages; a file that carries them keeps them in `extra`): `user_prop_defs`\n(no field-level definition yet), `completed` (revisions, doc 15 §5.10) and the settings schemes listed\nat [`ProjectSettings`].",
+  "description": "The single project row (doc 03 §5, rank 10): master data, parties, supply and settings.\n\nNot in v0 (later work packages; a file that carries them keeps them in `extra`): `completed` (revisions,\ndoc 15 §5.10) and the settings schemes listed at [`ProjectSettings`].",
   "properties": {
     "$k": {
       "const": "project",
@@ -1244,6 +1319,20 @@
         }
       ],
       "description": "The incoming supply; absent in basic and macro projects."
+    },
+    "user_prop_defs": {
+      "description": "The fields of the project's own (FR-PRJ-007, doc 09 §2.10).",
+      "items": {
+        "$ref": "#/$defs/UserPropDef"
+      },
+      "type": "array"
+    },
+    "user_props": {
+      "description": "The project's values of its fields of scope project.",
+      "items": {
+        "$ref": "#/$defs/UserPropValue"
+      },
+      "type": "array"
     }
   },
   "required": [

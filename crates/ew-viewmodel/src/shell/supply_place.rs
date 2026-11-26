@@ -59,7 +59,8 @@ pub(super) fn own_names_field(form: &mut FormDialog) {
             form.fields.insert(
                 after,
                 FormField {
-                    name: "names",
+                    label: None,
+                    name: "names".into(),
                     label_key: key!("supply-place-names"),
                     choices: &super::choices::NONE,
                     options: Vec::new(),
@@ -90,8 +91,9 @@ impl ShellModel {
         let (place, feeder) = self.supply_in_proposal();
         let Some(system) = system else {
             if self.mode == Mode::Gui && !self.in_form_of(SUPPLY_PLACE) {
-                let field = |name, label_key, choices, value: String| FormField {
-                    name,
+                let field = |name: &'static str, label_key, choices, value: String| FormField {
+                    label: None,
+                    name: name.into(),
                     label_key,
                     choices,
                     options: Vec::new(),

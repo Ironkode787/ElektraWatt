@@ -73,7 +73,7 @@ fn the_title_block_fields_of_an_imported_page_are_edited_in_one_form() {
     let Some(Dialog::Form(form)) = h.state().shell().dialog() else {
         panic!("the form: {:?}", h.state().shell().dialog());
     };
-    let names: Vec<&str> = form.fields.iter().map(|f| f.name).collect();
+    let names: Vec<&str> = form.fields.iter().map(|f| f.name.as_ref()).collect();
     for path in [
         "page.title",
         "project.reference",
@@ -107,9 +107,9 @@ fn the_title_block_fields_of_an_imported_page_are_edited_in_one_form() {
                 "party.end_user.name",
                 "revision.current.label",
             ]
-            .contains(&f.name)
+            .contains(&f.name.as_ref())
         })
-        .map(|f| (f.name, f.value.as_str()))
+        .map(|f| (f.name.as_ref(), f.value.as_str()))
         .collect();
     assert_eq!(
         typed,

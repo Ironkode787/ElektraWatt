@@ -88,7 +88,11 @@ fn waive_from_the_prompt_commits_one_check_waive_and_unwaive_opens_the_finding_a
         panic!("the Waive prompt: {:?}", shell.dialog());
     };
     assert_eq!(form.action, "messages.waive");
-    let fields: Vec<(&str, &str)> = form.fields.iter().map(|f| (f.name, f.value.as_str())).collect();
+    let fields: Vec<(&str, &str)> = form
+        .fields
+        .iter()
+        .map(|f| (f.name.as_ref(), f.value.as_str()))
+        .collect();
     assert_eq!(fields, [("reason", ""), ("author", "")]);
 
     // The reason and the author commit one `check.waive` with the reason, the author and the date.

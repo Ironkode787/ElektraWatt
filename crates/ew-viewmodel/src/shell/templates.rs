@@ -773,7 +773,8 @@ impl ShellModel {
                 return failed(key!("error-missing-param"), &["name"]);
             }
             let field = |name: &'static str, label_key, choices, value: String| FormField {
-                name,
+                label: None,
+                name: name.into(),
                 label_key,
                 choices,
                 options: Vec::new(),
@@ -905,7 +906,8 @@ impl ShellModel {
                     title_key: key!("check-level-title"),
                     ok_key: key!("dialog-apply"),
                     fields: vec![FormField {
-                        name: "level",
+                        label: None,
+                        name: "level".into(),
                         label_key: key!("wizard-field-check-scheme"),
                         choices: &super::choices::NONE,
                         options: CHECK_LEVELS

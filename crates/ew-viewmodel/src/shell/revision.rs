@@ -157,7 +157,8 @@ fn field(
     value: String,
 ) -> FormField {
     FormField {
-        name,
+        label: None,
+        name: name.into(),
         label_key,
         choices,
         options: Vec::new(),

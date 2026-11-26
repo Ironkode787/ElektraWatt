@@ -32,9 +32,8 @@ use crate::value::{AnyId, Date, PartRef, Quantity, Sha256, SourceRef};
 
 /// The single project row (doc 03 §5, rank 10): master data, parties, supply and settings.
 ///
-/// Not in v0 (later work packages; a file that carries them keeps them in `extra`): `user_prop_defs`
-/// (no field-level definition yet), `completed` (revisions, doc 15 §5.10) and the settings schemes listed
-/// at [`ProjectSettings`].
+/// Not in v0 (later work packages; a file that carries them keeps them in `extra`): `completed` (revisions,
+/// doc 15 §5.10) and the settings schemes listed at [`ProjectSettings`].
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Project {
     /// The record ID.
@@ -76,7 +75,75 @@ pub struct Project {
     /// The basic project this project was created from (FR-PRJ-009, doc 07 §2.8).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub basic_project: Option<BasicProjectRef>,
+    /// The fields of the project's own (FR-PRJ-007, doc 09 §2.10).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub user_prop_defs: Vec<UserPropDef>,
+    /// The project's values of its fields of scope project.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub user_props: Vec<UserPropValue>,
     /// Unknown members and plugin keys.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// A field of the project's own (doc 03 §5 `UserPropDef`, doc 09 §2.10): a value a title block prints that the
+/// program does not know.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct UserPropDef {
+    /// Made once from the first name, unique in the project, never shown; it stays when the field is renamed.
+    #[schemars(with = "IdentS")]
+    pub key: Ident,
+    /// Its name as the person typed it.
+    #[schemars(with = "MlTextS")]
+    pub label: MlText,
+    /// The kind of its value.
+    pub value_kind: UserPropKind,
+    /// The records that hold its values.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub scope: Vec<UserPropScope>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The kind of a field's value (doc 03 §5): text only now.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "UserPropKind")]
+pub enum UserPropKind {
+    /// A multi-language text.
+    Text,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// A record kind that holds a field's values (doc 03 §5).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "UserPropScope")]
+pub enum UserPropScope {
+    /// One value, the project's.
+    Project,
+    /// One value per page.
+    Page,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// One value of a field of the project's own (doc 03 §5 `UserPropValue`).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct UserPropValue {
+    /// The field's key.
+    #[schemars(with = "IdentS")]
+    pub key: Ident,
+    /// Its value.
+    #[schemars(with = "MlTextS")]
+    pub value: MlText,
+    /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
 }
@@ -1009,4 +1076,6 @@ open_enum!(
     LineageAnchor,
     RunMode,
     RunSeverity,
+    UserPropKind,
+    UserPropScope,
 );

@@ -156,6 +156,7 @@ impl SectionCx<'_, '_> {
                 identifier: spec.identifier,
                 source: None,
                 named_reference: false,
+                label: None,
             },
             derived: false,
         });

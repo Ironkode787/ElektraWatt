@@ -49,8 +49,11 @@ pub(super) const fn field(name: &'static str, label_key: Key<'static>) -> Field 
 /// One field of an open creation dialog.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct FormField {
-    /// The action parameter the field carries.
-    pub name: &'static str,
+    /// The action parameter the field carries: a fixed word, or a path made at run time (a title block's field of the
+    /// project's own, `page.prop.<key>`).
+    pub name: std::borrow::Cow<'static, str>,
+    /// The field's label in the person's own words (a field of the project's own): it stands for `label_key`'s.
+    pub label: Option<String>,
     /// The key of the field's label.
     pub label_key: Key<'static>,
     /// The values a choice field offers, in order; empty for a free-text field.
@@ -63,6 +66,13 @@ pub struct FormField {
 }
 
 impl FormField {
+    /// The field's label: the person's own words, else its key's text.
+    pub fn label_text(&self) -> String {
+        self.label
+            .clone()
+            .unwrap_or_else(|| strings::text(self.label_key).to_owned())
+    }
+
     /// Whether the field is a yes-or-no choice (`false`, `true`), which the window draws as a check box.
     pub fn is_toggle(&self) -> bool {
         self.choices.values() == ["false", "true"]
@@ -204,7 +214,8 @@ impl Spec {
                 .fields
                 .iter()
                 .map(|f| FormField {
-                    name: f.name,
+                    label: None,
+                    name: f.name.into(),
                     label_key: f.label_key,
                     choices: f.choices,
                     options: Vec::new(),
@@ -373,7 +384,7 @@ impl ShellModel {
             }
             if let Some((folio, section)) = &refolio {
                 for f in &mut form.fields {
-                    match f.name {
+                    match &*f.name {
                         "folio" => f.value.clone_from(folio),
                         "section" => f.value.clone_from(section),
                         _ => {}
@@ -386,7 +397,7 @@ impl ShellModel {
                 && let Some((words, p_nom)) = medium_preset(value)
             {
                 for f in &mut form.fields {
-                    match f.name {
+                    match &*f.name {
                         "name" => f.value.clone_from(&words),
                         "p_nom" => p_nom.clone_into(&mut f.value),
                         _ => {}
@@ -472,7 +483,7 @@ impl ShellModel {
             .fields
             .iter()
             .filter(|f| !f.value.trim().is_empty())
-            .map(|f| (f.name.to_owned(), Value::String(f.value.trim().to_owned())))
+            .map(|f| (f.name.to_string(), Value::String(f.value.trim().to_owned())))
             .collect();
         if let Some(table) = &form.table {
             params.insert(table.name.to_owned(), table.param());

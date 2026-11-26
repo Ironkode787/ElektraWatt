@@ -23,7 +23,7 @@ use crate::proxy::{Angle2S, GridS, IdentS, MlTextS, NmS, Orient2S, Pt2S, UuidS};
 use crate::set::{KeyedList, Set, keyed};
 use crate::track::open_enum;
 use crate::value::{AnyId, Bounds, SourceRef, StructureAssignment};
-use crate::{Function, Section};
+use crate::{Function, Section, UserPropValue};
 
 // ---------------------------------------------------------------------------------------------------------
 // Page
@@ -67,6 +67,9 @@ pub struct Page {
     /// Import provenance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_ref: Option<SourceRef>,
+    /// The page's values of the project's fields of scope page (doc 09 §2.10).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub user_props: Vec<UserPropValue>,
     /// Unknown members and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

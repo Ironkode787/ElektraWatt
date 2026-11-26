@@ -27,7 +27,7 @@ fn new_medium_starts_from_a_usual_medium_and_explains_its_fields() {
     let mut s = new_project(&tmp, Mode::Gui);
     done(&mut s, "fluid.medium_new", json!({}));
     let form = common::form(&s);
-    let names: Vec<&str> = form.fields.iter().map(|f| f.name).collect();
+    let names: Vec<&str> = form.fields.iter().map(|f| f.name.as_ref()).collect();
     assert_eq!(names, ["preset", "name", "p_nom"]);
     let preset = &form.fields[0];
     assert!(
@@ -39,7 +39,7 @@ fn new_medium_starts_from_a_usual_medium_and_explains_its_fields() {
         preset.options
     );
     for f in &form.fields {
-        assert!(form.note(f.name).is_some(), "{} says what it is for", f.name);
+        assert!(form.note(&f.name).is_some(), "{} says what it is for", f.name);
     }
     s.set_form_field("preset", "compressed_air");
     let form = common::form(&s);
@@ -67,7 +67,7 @@ fn the_fluid_settings_fields_say_what_they_change() {
     let form = common::form(&s);
     for f in &form.fields {
         let note = form
-            .note(f.name)
+            .note(&f.name)
             .unwrap_or_else(|| panic!("{} has no hint", f.name));
         assert!(note.contains("such as"), "{}: {note}", f.name);
     }

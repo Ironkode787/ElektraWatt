@@ -236,7 +236,7 @@ fn a_report_block_from_its_form_adds_its_pages() {
     let f = form(&s);
     assert_eq!(f.action, "report_block.new");
     assert_eq!(f.title_key.as_str(), "report-block-new-title");
-    let names: Vec<&str> = f.fields.iter().map(|f| f.name).collect();
+    let names: Vec<&str> = f.fields.iter().map(|f| f.name.as_ref()).collect();
     assert_eq!(names, ["kind", "folio", "title"]);
     let kind = &f.fields[0];
     assert!(

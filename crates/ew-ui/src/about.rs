@@ -448,11 +448,7 @@ fn form_fields(
         .map(|f| {
             ui.fonts_mut(|fonts| {
                 fonts
-                    .layout_no_wrap(
-                        strings::text(f.label_key).to_owned(),
-                        font.clone(),
-                        crate::theme::NONE,
-                    )
+                    .layout_no_wrap(f.label_text(), font.clone(), crate::theme::NONE)
                     .size()
                     .x
             })
@@ -460,7 +456,7 @@ fn form_fields(
         .fold(0.0_f32, f32::max);
     let label_width = form_label_width(t.size_dialog_label, widest.ceil(), ui.available_width());
     for f in &form.fields {
-        let label_text = strings::text(f.label_key);
+        let label_text = f.label_text();
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = 0.0;
             let label = ui
@@ -487,7 +483,7 @@ fn form_fields(
                     .add(egui::Checkbox::without_text(&mut on))
                     .labelled_by(label.id);
                 if check.changed() {
-                    events.push(Event::FormField(f.name, on.to_string()));
+                    events.push(Event::FormField(f.name.to_string(), on.to_string()));
                 }
                 if std::mem::take(&mut first_control) {
                     check.request_focus();
@@ -502,7 +498,7 @@ fn form_fields(
                     .map_or_else(String::new, |(_, w)| w.clone());
                 let combo = crate::components::choice(
                     ui,
-                    egui::ComboBox::from_id_salt(("form-option", f.name))
+                    egui::ComboBox::from_id_salt(("form-option", &f.name))
                         .selected_text(shown)
                         .width(ui.available_width())
                         .height(list_height(ui)),
@@ -510,7 +506,7 @@ fn form_fields(
                         menu_rows(ui, &t);
                         for (value, words) in &f.options {
                             if ui.selectable_label(f.value == *value, words).clicked() {
-                                events.push(Event::FormField(f.name, value.clone()));
+                                events.push(Event::FormField(f.name.to_string(), value.clone()));
                             }
                         }
                     },
@@ -535,13 +531,13 @@ fn form_fields(
                 }
                 select_all_on_focus(ui, &edit, &f.value);
                 if text != f.value {
-                    events.push(Event::FormField(f.name, text));
+                    events.push(Event::FormField(f.name.to_string(), text));
                 }
                 submit |= edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
             } else {
                 let combo = crate::components::choice(
                     ui,
-                    egui::ComboBox::from_id_salt(("form-choice", f.name))
+                    egui::ComboBox::from_id_salt(("form-choice", &f.name))
                         .selected_text(strings::choice_text(&f.value))
                         .width(ui.available_width())
                         .height(list_height(ui)),
@@ -550,7 +546,7 @@ fn form_fields(
                         for choice in f.choices {
                             let word = strings::choice_text(choice);
                             if ui.selectable_label(f.value == *choice, word).clicked() {
-                                events.push(Event::FormField(f.name, (*choice).to_owned()));
+                                events.push(Event::FormField(f.name.to_string(), (*choice).to_owned()));
                             }
                         }
                     },
@@ -564,7 +560,7 @@ fn form_fields(
         });
         // A field's line under it, in the field column, `type.small` secondary (doc 16a
         // §6.12): the line sits with its field, `space.1` under it, and the row gap follows it to the next field.
-        if let Some(note) = shell.form_note(form, f.name) {
+        if let Some(note) = shell.form_note(form, &f.name) {
             field_line(ui, &t, label_width, note);
         }
     }

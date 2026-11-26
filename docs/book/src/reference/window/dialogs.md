@@ -35,7 +35,14 @@ the names of the parties the current revision names as its author and its checke
 open revision without an author takes the name typed as its author's (Set revision author's step); Checked has a
 field only once the revision names its checker, who is set when it is approved, and the form says so. A text the
 title block's form holds itself (the fixed texts of an imported QElectroTech template) is not a field, and the form
-says so under its fields.
+says so under its fields. The fields of the project's own that the title block prints stand by their names, the
+page's first; the line under each says whether it has one value for the project or one for each page.
+
+Project ▸ New field of your own…, also the last row of Project properties ▸ Fields of your own, makes a value the
+title block prints that the program does not know, such as an order number: its name, whether it has one value for
+the whole project or one for each page, and its value now. Project properties then hold each field of the whole
+project with its value, Page properties each field of each page; a field's row menu has Rename… and Remove, which is
+refused while a title block prints the field, naming the pages.
 
 ## Revisions
 

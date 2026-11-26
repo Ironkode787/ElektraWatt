@@ -1144,7 +1144,7 @@ fn form_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogSpec 
             let mut params: serde_json::Map<String, Value> = form
                 .fields
                 .iter()
-                .map(|f| (f.name.to_owned(), Value::String(f.value.clone())))
+                .map(|f| (f.name.to_string(), Value::String(f.value.clone())))
                 .collect();
             params.insert("new_page".to_owned(), Value::Bool(true));
             primary.answer = DialogAnswer::Action(form.action, Value::Object(params));

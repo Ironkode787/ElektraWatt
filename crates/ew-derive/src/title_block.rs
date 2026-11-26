@@ -5,8 +5,8 @@
 //! FR-REV-003, D-05, D-06, D-30).
 //!
 //! The query resolves exactly the paths of the pinned profile's binding set
-//! ([`crate::TitleBlockBindings`]); a path without a value is absent from [`TitleBlock::values`] and
-//! renders empty. No value ever carries placeholder text.
+//! ([`crate::TitleBlockBindings`]) and the fields of the project's own; a path without a value is absent from
+//! [`TitleBlock::values`] and renders empty. No value ever carries placeholder text.
 //!
 //! # Sources
 //!
@@ -23,6 +23,8 @@
 //!   pages contain it (`release.changed_pages` if present, else the pages of its `page_notes`); else the
 //!   first (lowest ranked) revision. `release.changed_pages` is the typed release record's member; a line
 //!   whose entries are not page IDs does not load as a record.
+//! - `project.prop.<key>` and `page.prop.<key>`: the fields of the project's own (doc 09 §2.10), the project's value
+//!   and the drawn page's value of a field defined with that scope; they pass whatever the profile's set names.
 //! - `revision.current.*`: the typed `revision` records (doc 03 §18): `label`, `date`, `state`
 //!   (printed as its stored name; a state of a newer format as its text), `author` and `checker`.
 //!   Withdrawal records (state `withdrawn`) are ignored, and so is the revision whose label a withdrawal
@@ -58,6 +60,7 @@ use ew_mltext::{MlText, NaturalKey, natural_key};
 use ew_rds::{Aspect, RdsSyntax};
 use ew_schema::{
     Date, LabelFormat, Page, Party, PartyRole, Project, Revision, RevisionState, Scale, SupplySpec,
+    UserPropKind, UserPropScope, UserPropValue,
 };
 
 use crate::Q;
@@ -126,13 +129,47 @@ impl Query for TitleBlockValues {
         }
 
         let wanted = &q.profile().title_block.paths;
-        let values = out
+        let mut values: BTreeMap<String, TbValue> = out
             .0
             .into_iter()
             .filter(|(path, _)| wanted.iter().any(|w| w == path))
             .collect();
+        // The fields of the project's own are its data, not a rule of the profile: past its filter (doc 09 §2.10).
+        values.extend(user_props_scope(q, project, *key).0);
         Arc::new(TitleBlock { values })
     }
+}
+
+/// The fields of the project's own (doc 09 §2.10): `project.prop.<key>` from the project's values of a field of scope
+/// project, `page.prop.<key>` from a drawn page's values of a field of scope page; a value of a key the project does
+/// not define with that scope is none. A generated page has no page values.
+fn user_props_scope(q: &Q, project: &Project, page: PageRef) -> Out {
+    let mut out = Out::default();
+    let page_values = match page {
+        PageRef::Drawn(id) => q.pages().get(id).map(|p| p.user_props.clone()),
+        PageRef::Divider(_) | PageRef::Generated { .. } => None,
+    }
+    .unwrap_or_default();
+    for def in project
+        .user_prop_defs
+        .iter()
+        .filter(|d| d.value_kind == UserPropKind::Text)
+    {
+        let key = def.key.as_str();
+        let value =
+            |values: &[UserPropValue]| values.iter().find(|v| v.key == def.key).map(|v| v.value.clone());
+        if def.scope.contains(&UserPropScope::Project)
+            && let Some(v) = value(&project.user_props)
+        {
+            out.ml(&format!("project.prop.{key}"), &v);
+        }
+        if def.scope.contains(&UserPropScope::Page)
+            && let Some(v) = value(&page_values)
+        {
+            out.ml(&format!("page.prop.{key}"), &v);
+        }
+    }
+    out
 }
 
 /// The candidate values; empty text and empty multi-language text are never stored.

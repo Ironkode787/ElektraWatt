@@ -290,7 +290,8 @@ impl ShellModel {
                 return failed(key!("error-missing-param"), &["title"]);
             }
             let field = |name: &'static str, label_key, value: String| FormField {
-                name,
+                label: None,
+                name: name.into(),
                 label_key,
                 choices: &crate::shell::choices::NONE,
                 options: Vec::new(),

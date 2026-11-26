@@ -188,7 +188,8 @@ pub use project::{
     ImportLineage, ImportRun, IpPairing, IpPairingMode, IpPairingScope, LineageAnchor, LineageCopy,
     MasterData, Party, PartyRole, Project, ProjectKind, ProjectLanguages, ProjectSettings, RecordHash,
     RunEntry, RunFix, RunLocation, RunMode, RunSeverity, RunSource, RunStats, RunTarget, Section,
-    StructureNode, SupplyOrigin, SupplySpec, TagCase, TypefaceFile, WorkshopSettings,
+    StructureNode, SupplyOrigin, SupplySpec, TagCase, TypefaceFile, UserPropDef, UserPropKind, UserPropScope,
+    UserPropValue, WorkshopSettings,
 };
 pub use record::{AnchorRef, CopyMeta, LibDocument, Record, Unknowns};
 pub use revision::{

@@ -558,7 +558,12 @@ fn last_member(generic: &str) -> &str {
 /// field's own `field-help-<kind>-<path>` (formed as [`field_label`]'s own key), then its last member's
 /// `field-help-word-<member>`, which every field of that name shares.
 fn field_help_keys(kind: &str, path: &str) -> [String; 2] {
-    let generic = generic_field_path(path);
+    // A field of the project's own is one row of every name (`own.<key>`), and the row that makes one is `own.new`.
+    let generic = match path.strip_prefix(crate::shell::own_fields::OWN) {
+        Some("new") => "own.new".to_owned(),
+        Some(_) => "own".to_owned(),
+        None => generic_field_path(path),
+    };
     let last = last_member(&generic);
     [
         format!(

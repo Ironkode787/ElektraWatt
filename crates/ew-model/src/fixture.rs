@@ -180,6 +180,7 @@ pub fn page(page_id: Id<Page>, section: Option<Id<Section>>, number: u32, title:
         description_override: None,
         scale: Scale::default(),
         grid: grid(),
+        user_props: Vec::new(),
         source_ref: None,
         extra: Extra::new(),
     }
@@ -616,6 +617,8 @@ pub fn mini_project_parts() -> (Project, Vec<Record>, Vec<LibDocument>) {
         derivation_profile: ident("2027.1"),
         kind: ProjectKind::Schematic,
         source_ref: None,
+        user_prop_defs: Vec::new(),
+        user_props: Vec::new(),
         basic_project: None,
         extra: Extra::new(),
     };

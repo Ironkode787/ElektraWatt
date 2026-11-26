@@ -197,7 +197,8 @@ impl ShellModel {
                 title_key: key!("devices-location-title"),
                 ok_key: key!("devices-location-ok"),
                 fields: vec![super::FormField {
-                    name: "location",
+                    label: None,
+                    name: "location".into(),
                     label_key: key!("form-locate-location"),
                     choices: &super::choices::NONE,
                     options: locations

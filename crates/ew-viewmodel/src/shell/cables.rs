@@ -81,7 +81,8 @@ impl ShellModel {
             title_key,
             ok_key,
             fields: vec![FormField {
-                name,
+                label: None,
+                name: name.into(),
                 label_key,
                 choices: &super::choices::NONE,
                 options,
@@ -608,8 +609,9 @@ impl ShellModel {
                 self.form_failed(FROM_WIRES, message)
             }
             Mode::Gui => {
-                let text = |name, label_key, value: String| FormField {
-                    name,
+                let text = |name: &'static str, label_key, value: String| FormField {
+                    label: None,
+                    name: name.into(),
                     label_key,
                     choices: &super::choices::NONE,
                     options: Vec::new(),
@@ -641,7 +643,8 @@ impl ShellModel {
                         type_text.clone_from(&value);
                     }
                     fields.push(FormField {
-                        name: "part",
+                        label: None,
+                        name: "part".into(),
                         label_key: key!("form-cable-kind"),
                         choices: &super::choices::NONE,
                         options,
@@ -989,13 +992,15 @@ impl ShellModel {
 
     /// The form of [`Self::act_bus_cable`] for `form`, the tag `proposed` for a new cable.
     fn bus_cable_dialog(&self, form: &ew_api::window::BusCableForm, proposed: Option<String>) -> FormDialog {
-        let field = |name, label_key, options: Vec<(String, String)>, value: String| FormField {
-            name,
-            label_key,
-            choices: &super::choices::NONE,
-            options,
-            value,
-        };
+        let field =
+            |name: &'static str, label_key, options: Vec<(String, String)>, value: String| FormField {
+                label: None,
+                name: name.into(),
+                label_key,
+                choices: &super::choices::NONE,
+                options,
+                value,
+            };
         let cables = form
             .cables
             .iter()
@@ -1074,7 +1079,8 @@ impl ShellModel {
             let value = end.plug.map(|u| u.to_string()).unwrap_or_default();
             fields.push(field(plug, plug_key, options, value));
             fields.push(FormField {
-                name: termination,
+                label: None,
+                name: termination.into(),
                 label_key: termination_key,
                 choices: &super::choices::BOOL,
                 options: Vec::new(),

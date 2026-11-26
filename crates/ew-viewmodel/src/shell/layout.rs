@@ -1040,7 +1040,8 @@ pub(super) fn new_location_field(form: &mut super::FormDialog, code: &str) {
             form.fields.insert(
                 after,
                 super::FormField {
-                    name: "new_location",
+                    label: None,
+                    name: "new_location".into(),
                     label_key: key!("form-enclosure-new-location"),
                     choices: &super::choices::NONE,
                     options: Vec::new(),
@@ -1574,14 +1575,16 @@ impl ShellModel {
             ok_key: key!("enclosure-new-ok"),
             fields: vec![
                 super::FormField {
-                    name: "location",
+                    label: None,
+                    name: "location".into(),
                     label_key: key!("form-locate-location"),
                     choices: &super::choices::NONE,
                     options,
                     value: location,
                 },
                 super::FormField {
-                    name: "part",
+                    label: None,
+                    name: "part".into(),
                     label_key: key!("form-enclosure-part"),
                     choices: &super::choices::NONE,
                     options: parts
@@ -1816,14 +1819,16 @@ impl ShellModel {
                         ok_key: key!("auto-fill-ok"),
                         fields: vec![
                             super::FormField {
-                                name: "rail",
+                                label: None,
+                                name: "rail".into(),
                                 label_key: key!("form-auto-fill-rail"),
                                 choices: &super::choices::NONE,
                                 options: rails,
                                 value: rail,
                             },
                             super::FormField {
-                                name: "order",
+                                label: None,
+                                name: "order".into(),
                                 label_key: key!("form-auto-fill-order"),
                                 choices: &super::choices::NONE,
                                 options: fill_orders(),
@@ -2055,7 +2060,8 @@ impl ShellModel {
                     title_key: key!("locate-title"),
                     ok_key: key!("locate-ok"),
                     fields: vec![super::FormField {
-                        name: "location",
+                        label: None,
+                        name: "location".into(),
                         label_key: key!("form-locate-location"),
                         choices: &super::choices::NONE,
                         options: locations

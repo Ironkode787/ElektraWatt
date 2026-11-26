@@ -299,6 +299,25 @@
       },
       "type": "object"
     },
+    "UserPropValue": {
+      "additionalProperties": true,
+      "description": "One value of a field of the project's own (doc 03 §5 `UserPropValue`).",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Ident",
+          "description": "The field's key."
+        },
+        "value": {
+          "$ref": "#/$defs/MlText",
+          "description": "Its value."
+        }
+      },
+      "required": [
+        "key",
+        "value"
+      ],
+      "type": "object"
+    },
     "Uuid": {
       "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
       "maxLength": 36,
@@ -382,6 +401,13 @@
     "title": {
       "$ref": "#/$defs/MlText",
       "description": "The page description and TOC title (FR-PAG-010)."
+    },
+    "user_props": {
+      "description": "The page's values of the project's fields of scope page (doc 09 §2.10).",
+      "items": {
+        "$ref": "#/$defs/UserPropValue"
+      },
+      "type": "array"
     }
   },
   "required": [

@@ -165,3 +165,6 @@ props-designer = Getekend
 titleblock-prints-in = Komt in het vak "{ $p0 }".
 props-frames-default = Standaard: { $p0 }
 props-frames-type = { $p0 }: { $p1 }
+titleblock-own-field = Eigen veld
+titleblock-own-page = Uw veld, één waarde per pagina.
+titleblock-own-project = Uw veld, één waarde voor het project.

@@ -466,6 +466,7 @@ pub fn map(
             description_override: None,
             scale: Scale::NotToScale,
             grid: Grid::QET_10PX,
+            user_props: Vec::new(),
             source_ref: Some(ids.source_ref(key)),
             extra,
         }));
@@ -569,6 +570,8 @@ pub fn map(
             .unwrap_or_else(|_| unreachable!("a valid profile key")),
         kind: Default::default(),
         source_ref: Some(ids.source_ref(super::PROJECT_KEY)),
+        user_prop_defs: Vec::new(),
+        user_props: Vec::new(),
         basic_project: None,
         extra: pextra,
     };

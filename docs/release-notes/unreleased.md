@@ -123,3 +123,11 @@ change here.
 - api-add: a frame's columns and rows are counted with numbers or letters (`counting`), the rows from a first
   letter or number of their own (`start_index`) and the columns skip I and O (`skip_io`), additive members of
   `FrameColumns` and `FrameRows` (doc 09 §2.5, FT-1815)
+- api-add: a project's fields of its own (doc 09 §2.10, FT-1814): `Project.user_prop_defs` and `Project.user_props`,
+  `Page.user_props`, additive members; the commands `user_prop.define`, `user_prop.rename` and `user_prop.remove`;
+  `fields.set` writes `user_props` on the project and on a page; a title block's cell prints a field through
+  `{project.prop.<key>}` or `{page.prop.<key>}`
+- behaviour-change: Project properties and Page properties hold a group Fields of your own with each field's value,
+  New field of your own… (also in the Project menu) and a field's Rename… and Remove; Title block fields… lists the
+  fields of the project's own its title block prints, the page's first, and says whose value each is (doc 09 §2.10,
+  FT-1814)

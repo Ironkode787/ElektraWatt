@@ -484,6 +484,10 @@ fn every_form_dialog_focuses_its_first_text_field_or_its_primary() {
         checked.insert(check_form(&mut h, action, json!({})));
         dispatch(&mut h, "ui.dismiss", json!({}));
     }
+    // A field of the project's own: its Rename….
+    dispatch(&mut h, "field.new", json!({"name": "Order number"}));
+    checked.insert(check_form(&mut h, "field.rename", json!({"key": "order_number"})));
+    dispatch(&mut h, "ui.dismiss", json!({}));
     h.state_mut().shell_mut().shutdown();
     drop(h);
 

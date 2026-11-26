@@ -271,7 +271,7 @@ fn a_running_projects_sections_are_made_renamed_and_ranged() {
             assert_eq!(f.action, "section.edit");
             f.fields
                 .iter()
-                .map(|x| (x.name, x.value.clone()))
+                .map(|x| (x.name.to_string(), x.value.clone()))
                 .collect::<Vec<_>>()
         }
         other => panic!("{other:?}"),
@@ -279,10 +279,10 @@ fn a_running_projects_sections_are_made_renamed_and_ranged() {
     assert_eq!(
         fields(&h),
         [
-            ("title", "Cabinet".to_owned()),
-            ("first", "300".to_owned()),
-            ("last", "399".to_owned()),
-            ("number", "3".to_owned())
+            ("title".to_owned(), "Cabinet".to_owned()),
+            ("first".to_owned(), "300".to_owned()),
+            ("last".to_owned(), "399".to_owned()),
+            ("number".to_owned(), "3".to_owned())
         ]
     );
     // A range that runs backwards is refused in words; a good one is applied with the new title.
@@ -311,6 +311,6 @@ fn a_running_projects_sections_are_made_renamed_and_ranged() {
     settle(&mut h);
     h.get_by_label("3 Cabinet layout").click();
     settle(&mut h);
-    assert!(fields(&h).contains(&("last", "349".to_owned())));
+    assert!(fields(&h).contains(&("last".to_owned(), "349".to_owned())));
     h.state_mut().shell_mut().shutdown();
 }

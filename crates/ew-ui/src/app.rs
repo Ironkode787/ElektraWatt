@@ -67,7 +67,7 @@ pub(crate) enum Event {
     /// The save-layout field changed.
     WorkspaceText(String),
     /// A field of a creation dialog changed: the parameter and its text.
-    FormField(&'static str, String),
+    FormField(String, String),
     /// Enter in a creation dialog, or its Create button.
     FormSubmit,
     /// A cell of the form's table changed: the row, the column (`None`: the first, a rename) and its text.

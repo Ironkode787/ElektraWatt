@@ -119,6 +119,8 @@ pub use templates::{
 mod properties;
 mod table_file;
 mod title_block;
+// The fields of the project's own: their Properties rows, New field of your own…, Rename… and Remove (doc 09 §2.10).
+pub mod own_fields;
 // List columns… and Rows of your own… of the list on show (doc 09 §3.8).
 mod list_look;
 pub(crate) mod tools;
@@ -735,6 +737,8 @@ pub struct ShellModel {
     dialog: Option<Dialog>,
     /// The record an open settings form of a row (Symbol policy…, Safety data…, Mode and safety…) is for.
     form_target: Option<ew_api::output::Uuid>,
+    /// The key of the field of the project's own that the open Rename… form renames.
+    field_renamed: Option<String>,
     /// The import and re-import cards and their jobs.
     import: projects::ImportState,
     /// Bumped on every opening of a dialog: the window gives a dialog opened again, even as the same kind, its first
@@ -1211,6 +1215,7 @@ impl ShellModel {
             },
             dialog: None,
             form_target: None,
+            field_renamed: None,
             import: projects::ImportState::default(),
             dialog_gen: 0,
             dialog_refusal: None,

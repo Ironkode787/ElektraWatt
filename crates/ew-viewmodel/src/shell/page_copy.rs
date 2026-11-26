@@ -152,7 +152,8 @@ impl ShellModel {
         let rule = offset.is_some() || !after.is_empty() || p.contains_key("pages");
         if !rule && self.mode == Mode::Gui && !self.in_form_of(ACTION) {
             let field = |name: &'static str, label_key, value: String| FormField {
-                name,
+                label: None,
+                name: name.into(),
                 label_key,
                 choices: &super::choices::NONE,
                 options: Vec::new(),

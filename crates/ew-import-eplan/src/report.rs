@@ -787,6 +787,8 @@ pub fn read_report(
         derivation_profile: ident("2027.1").unwrap_or_else(|| unreachable!("a valid profile key")),
         kind: Default::default(),
         source_ref: Some(ids.source_ref(PROJECT_KEY)),
+        user_prop_defs: Vec::new(),
+        user_props: Vec::new(),
         basic_project: None,
         extra: Extra::new(),
     }));

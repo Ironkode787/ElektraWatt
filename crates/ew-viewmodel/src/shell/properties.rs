@@ -484,6 +484,7 @@ impl ShellModel {
         crate::properties::values_in_words(&mut sheet);
         self.made_from_in_words(&mut sheet);
         Self::people_in_rows(&mut sheet);
+        self.own_fields_in_rows(&mut sheet);
         if sheet.sections.iter().any(|s| s.kind == "project") {
             self.lists_frame_in_row(&mut sheet, &form_choices(&p.session));
         }

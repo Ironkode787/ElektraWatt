@@ -1813,4 +1813,43 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_purge_assets(p),
         ),
     ),
+    // Project ▸ New field of your own…: a value the title block prints that the program does not know (doc 09 §2.10);
+    // also the last row of Project properties ▸ Fields of your own and the end of a title-block cell's Shows.
+    with_params(
+        "name?:text, for?:enum(@FIELD_SCOPES), value?:text",
+        act(
+            "field.new",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            slot(Menu::Project),
+            |s, p| s.act_field_new(p),
+        ),
+    ),
+    // A field's Rename… and Remove, its row's menu in Project or Page properties.
+    with_params(
+        "key:text, name?:text",
+        hidden(act(
+            "field.rename",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_field_rename(p),
+        )),
+    ),
+    with_params(
+        "key:text",
+        hidden(act(
+            "field.remove",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_field_remove(p),
+        )),
+    ),
 ];

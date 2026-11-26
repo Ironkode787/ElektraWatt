@@ -635,3 +635,4 @@ error-list-no-column = Vink ten minste één kolom aan om af te drukken.
 reason-no-list-page = Toon eerst een pagina van een lijst
 reason-no-list-or-legend = Toon eerst een pagina van een lijst, of selecteer een legenda op haar pagina
 reason-list-contents = Een inhoudsopgave somt de pagina's op en neemt geen eigen rijen
+reason-field-gone = Het project heeft dit eigen veld niet meer

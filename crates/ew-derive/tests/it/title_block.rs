@@ -359,6 +359,50 @@ fn only_profile_paths_appear() {
     }
 }
 
+/// The fields of the project's own (doc 09 §2.10): a project field's value prints on every page and a page field's on
+/// its page, past the profile's paths; a key the project does not define, and a key of one scope in the other scope's
+/// path, print nothing (the cell's placeholder is unresolved, so the form finding names it).
+#[test]
+fn the_fields_of_the_projects_own_print_by_their_scope() {
+    let mut fx = fixture();
+    fx.project_set(
+        "user_prop_defs",
+        json!([
+            {"key": "order", "label": {"en": "Order"}, "value_kind": "text", "scope": ["project"]},
+            {"key": "customer_sheet", "label": {"en": "Customer sheet"}, "value_kind": "text", "scope": ["page"]},
+        ]),
+    )
+    .project_set(
+        "user_props",
+        json!([
+            {"key": "order", "value": "0001"},
+            {"key": "customer_sheet", "value": "not a project value"},
+            {"key": "undefined", "value": "x"},
+        ]),
+    );
+    fx.record(PAGE101)["user_props"] = json!([
+        {"key": "customer_sheet", "value": "C-101"},
+        {"key": "order", "value": "not a page value"},
+    ]);
+    let order = TbValue::Ml(MlText::neutral("0001"));
+    let tb = block(&fx, PageRef::Drawn(id(PAGE101)));
+    assert_eq!(tb.get("project.prop.order"), Some(&order));
+    assert_eq!(
+        tb.get("page.prop.customer_sheet"),
+        Some(&TbValue::Ml(MlText::neutral("C-101")))
+    );
+    for absent in [
+        "project.prop.customer_sheet",
+        "page.prop.order",
+        "project.prop.undefined",
+    ] {
+        assert_eq!(tb.get(absent), None, "{absent}");
+    }
+    let other = block(&fx, PageRef::Drawn(id(PAGE102)));
+    assert_eq!(other.get("project.prop.order"), Some(&order));
+    assert_eq!(other.get("page.prop.customer_sheet"), None);
+}
+
 #[test]
 fn an_empty_project_binds_nothing() {
     let tb = block(&Fx::new(), PageRef::Drawn(id(1)));

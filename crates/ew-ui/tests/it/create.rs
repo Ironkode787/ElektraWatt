@@ -30,7 +30,7 @@ fn form_values(h: &egui_kittest::Harness<'_, ew_ui::app::App>) -> Vec<(String, S
         Some(Dialog::Form(f)) => f
             .fields
             .iter()
-            .map(|f| (f.name.to_owned(), f.value.clone()))
+            .map(|f| (f.name.to_string(), f.value.clone()))
             .collect(),
         other => panic!("{other:?}"),
     }

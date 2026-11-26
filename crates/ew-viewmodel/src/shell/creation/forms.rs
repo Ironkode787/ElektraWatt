@@ -629,7 +629,7 @@ impl ShellModel {
             let mut dialog = spec.dialog(&prefill(&current));
             dialog.ok_key = key!("dialog-apply");
             for f in &mut dialog.fields {
-                let path = match f.name {
+                let path = match &*f.name {
                     "mode" => "mode",
                     "evaluation" => "safety.evaluation",
                     _ => continue,

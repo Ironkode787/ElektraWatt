@@ -601,14 +601,16 @@ impl ShellModel {
                 ok_key: key!("dialog-waive"),
                 fields: vec![
                     FormField {
-                        name: "reason",
+                        label: None,
+                        name: "reason".into(),
                         label_key: key!("form-reason"),
                         choices: &super::choices::NONE,
                         options: Vec::new(),
                         value: String::new(),
                     },
                     FormField {
-                        name: "author",
+                        label: None,
+                        name: "author".into(),
                         label_key: key!("form-author"),
                         choices: &super::choices::NONE,
                         options: Vec::new(),

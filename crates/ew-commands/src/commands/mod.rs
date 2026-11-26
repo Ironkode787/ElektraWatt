@@ -67,6 +67,7 @@ pub(crate) mod structure_box;
 mod supply;
 mod terminal;
 mod typeface;
+mod user_prop;
 mod workshop;
 
 pub use assembly::ChildSpec;
@@ -112,6 +113,7 @@ pub use settings::SETTABLE_SETTINGS;
 pub use structure_box::BoxStyleParam;
 pub use supply::SETTABLE_SUPPLY;
 pub use terminal::{ConductorSpec, TerminalDesignation, TerminalSpec};
+pub use user_prop::{mint_user_prop_key, user_prop_path};
 
 use crate::registry::CommandRegistry;
 
@@ -252,6 +254,10 @@ commands! {
     part_edit::EditPartCopy,
     part_delete::DeletePartCopy,
     workshop::SetWorkshopStock,
+    // The fields of the project's own
+    user_prop::DefineUserProp,
+    user_prop::RenameUserProp,
+    user_prop::RemoveUserProp,
     layout::CreateLayoutSpace,
     layout::DeleteLayoutSpace,
     layout::CreateEnclosure,

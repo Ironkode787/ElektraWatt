@@ -202,6 +202,7 @@ pub fn page_batch(
         description_override: None,
         scale: Default::default(),
         grid: page.grid,
+        user_props: Vec::new(),
         source_ref: Some(SourceRef {
             lineage: lineage.id,
             key: page_key,

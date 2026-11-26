@@ -32,6 +32,10 @@ impl ShellModel {
         if let Some(out) = self.commit_person(&row.key, text) {
             return out;
         }
+        // A field of the project's own writes its value list.
+        if let Some(out) = self.commit_own_field(&row.key, text) {
+            return out;
+        }
         // Show wire numbers on the pages runs its own action, toast and all.
         if let Some(out) = self.commit_wire_numbers_row(&row.key, text) {
             return out;
@@ -1067,6 +1071,16 @@ impl ShellModel {
                     self.act_cp_unused(&params)
                 }
                 RowMenuItem::FunctionOverPath => self.dispatch("text.function_over_path", &Value::Null),
+                RowMenuItem::RenameField | RowMenuItem::RemoveField => {
+                    let mut params = Map::new();
+                    let key = crate::shell::own_fields::own_key(&row).unwrap_or_default();
+                    params.insert("key".to_owned(), Value::String(key.to_owned()));
+                    if item == RowMenuItem::RenameField {
+                        self.act_field_rename(&params)
+                    } else {
+                        self.act_field_remove(&params)
+                    }
+                }
             };
         }
         let Some(choices) = self.props.choices.take() else {

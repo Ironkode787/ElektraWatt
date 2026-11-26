@@ -75,7 +75,8 @@ fn row_cells(rows: &[Value], i: usize) -> Map<String, Value> {
 /// A text field of a form.
 fn text_field(name: &'static str, label_key: Key<'static>, value: String) -> FormField {
     FormField {
-        name,
+        label: None,
+        name: name.into(),
         label_key,
         choices: &super::choices::NONE,
         options: Vec::new(),
@@ -490,6 +491,7 @@ impl ShellModel {
                 identifier: false,
                 source: None,
                 named_reference: false,
+                label: None,
                 ..model
             });
         }

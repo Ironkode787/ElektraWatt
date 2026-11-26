@@ -261,38 +261,66 @@ impl ShellModel {
     }
 
     /// The form's fields for the focused page: the editable paths its title block prints, in its order, with their text;
-    /// the revision label only while it can be written (an open revision, or none yet). `None` without a page.
+    /// the revision label only while it can be written (an open revision, or none yet); the fields of the project's own
+    /// it prints by their names, the page's first (doc 09 §2.10). `None` without a page.
     fn title_block_fields(&self) -> Option<(String, ew_api::output::TitleBlockFacts, Vec<FormField>)> {
         let page = self.focused_page_id()?;
         let facts = self.project.as_ref()?.session.title_block_facts(page)?;
-        let fields = facts
-            .fields
-            .iter()
-            .filter_map(|(path, text)| {
-                let (name, label_key, source) = FIELDS.iter().find(|(p, _, _)| p == path)?;
-                let writable = match source {
-                    Source::RevisionLabel => facts.open_revision.is_some() || !facts.has_revisions,
-                    // A released revision's author is history: its party's name only, while it names one. An open
-                    // revision without one gets it by `revision.set_author`, which only a person at the window runs: a
-                    // session that may not leaves the field out and says so under the form (`form_foot`), so Apply
-                    // never applies half.
-                    Source::RevisionAuthor => {
-                        facts.revision_author.is_some()
-                            || (facts.open_revision.is_some() && self.may_set_author())
-                    }
-                    Source::RevisionChecker => facts.revision_checker.is_some(),
-                    Source::Edited => false,
-                    _ => true,
-                };
-                writable.then(|| FormField {
-                    name,
-                    label_key: *label_key,
+        let own_field = |path: &str| {
+            let own = facts.own_fields.iter().find(|o| o.path == path)?;
+            let text = facts
+                .fields
+                .iter()
+                .find(|(p, _)| p == path)
+                .map(|(_, t)| t.clone());
+            Some((
+                own.page,
+                FormField {
+                    label: Some(strings::render(&ew_api::Text::bare(ew_api::TextArg::Ml(
+                        own.label.clone(),
+                    )))),
+                    name: path.to_owned().into(),
+                    label_key: key!("titleblock-own-field"),
                     choices: &super::choices::NONE,
                     options: Vec::new(),
-                    value: text.clone(),
-                })
+                    value: text.unwrap_or_default(),
+                },
+            ))
+        };
+        let own_pages = facts
+            .own_fields
+            .iter()
+            .filter(|o| o.page)
+            .filter_map(|o| own_field(&o.path).map(|(_, f)| f));
+        let rest = facts.fields.iter().filter_map(|(path, text)| {
+            if let Some((page, field)) = own_field(path) {
+                return (!page).then_some(field);
+            }
+            let (name, label_key, source) = FIELDS.iter().find(|(p, _, _)| p == path)?;
+            let writable = match source {
+                Source::RevisionLabel => facts.open_revision.is_some() || !facts.has_revisions,
+                // A released revision's author is history: its party's name only, while it names one. An open
+                // revision without one gets it by `revision.set_author`, which only a person at the window runs: a
+                // session that may not leaves the field out and says so under the form (`form_foot`), so Apply
+                // never applies half.
+                Source::RevisionAuthor => {
+                    facts.revision_author.is_some()
+                        || (facts.open_revision.is_some() && self.may_set_author())
+                }
+                Source::RevisionChecker => facts.revision_checker.is_some(),
+                Source::Edited => false,
+                _ => true,
+            };
+            writable.then(|| FormField {
+                label: None,
+                name: (*name).into(),
+                label_key: *label_key,
+                choices: &super::choices::NONE,
+                options: Vec::new(),
+                value: text.clone(),
             })
-            .collect();
+        });
+        let fields: Vec<FormField> = own_pages.chain(rest).collect();
         Some((page.to_string(), facts, fields))
     }
 
@@ -344,6 +372,15 @@ impl ShellModel {
             return None;
         }
         let (_, facts, _) = self.title_block_fields()?;
+        // A field of the project's own: whose value it is.
+        let own = facts.own_fields.iter().find(|o| o.path == field).map(|o| {
+            strings::text(if o.page {
+                key!("titleblock-own-page")
+            } else {
+                key!("titleblock-own-project")
+            })
+            .to_owned()
+        });
         // Which cell of the sheet prints the field (so that a person can tell which field feeds which cell).
         let cell = facts
             .cells
@@ -363,7 +400,7 @@ impl ShellModel {
                     ],
                 )
             });
-        let notes: Vec<String> = cell.into_iter().chain(revision).collect();
+        let notes: Vec<String> = own.into_iter().chain(cell).chain(revision).collect();
         (!notes.is_empty()).then(|| notes.join(" "))
     }
 
@@ -413,7 +450,7 @@ impl ShellModel {
             return Outcome::refused(key!("reason-titleblock-fixed"));
         }
         let in_form = self.in_form_of(TITLE_BLOCK);
-        let named = fields.iter().any(|f| p.contains_key(f.name));
+        let named = fields.iter().any(|f| p.contains_key(f.name.as_ref()));
         if !in_form && !named {
             return self.open_dialog(Dialog::Form(FormDialog {
                 action: TITLE_BLOCK,
@@ -431,14 +468,31 @@ impl ShellModel {
         let mut new_revision = None;
         let mut new_author = None;
         let mut name_party = |role: &str, text: String| name_party(&mut parties, role, text);
+        // The values of the fields of the project's own, each list written whole (doc 09 §2.10).
+        let props = |v: &Value| v.as_array().cloned().unwrap_or_default();
+        let (mut page_props, mut project_props) = (props(&facts.page_props), props(&facts.project_props));
+        let (mut page_props_changed, mut project_props_changed) = (false, false);
         for f in &fields {
-            let text = match string_param(p, f.name) {
+            let text = match string_param(p, &f.name) {
                 Err(e) => return e,
                 Ok(Some(t)) => t.trim().to_owned(),
                 Ok(None) if in_form => String::new(),
                 Ok(None) => continue,
             };
             if text == f.value {
+                continue;
+            }
+            if let Some(own) = facts.own_fields.iter().find(|o| o.path == f.name) {
+                let (list, changed) = if own.page {
+                    (&mut page_props, &mut page_props_changed)
+                } else {
+                    (&mut project_props, &mut project_props_changed)
+                };
+                list.retain(|v| v["key"] != own.key.as_str());
+                if !text.is_empty() {
+                    list.push(json!({"key": own.key, "value": text}));
+                }
+                *changed = true;
                 continue;
             }
             let Some((_, _, source)) = FIELDS.iter().find(|(p, _, _)| *p == f.name) else {
@@ -518,6 +572,17 @@ impl ShellModel {
         }
         if parties_changed {
             edits.push(edit("project", &project, "parties", Value::Array(parties)));
+        }
+        if page_props_changed {
+            edits.push(edit("page", &page, "user_props", Value::Array(page_props)));
+        }
+        if project_props_changed {
+            edits.push(edit(
+                "project",
+                &project,
+                "user_props",
+                Value::Array(project_props),
+            ));
         }
         if !edits.is_empty() {
             let cmd = AnyCommand {

@@ -35,7 +35,7 @@ fn a_field_the_session_may_not_write_is_said_before_apply() {
     let Some(Dialog::Form(form)) = s.dialog().cloned() else {
         panic!("the form: {:?}", s.dialog())
     };
-    let names: Vec<&str> = form.fields.iter().map(|f| f.name).collect();
+    let names: Vec<&str> = form.fields.iter().map(|f| f.name.as_ref()).collect();
     assert!(!names.contains(&"revision.current.author.name"), "{names:?}");
     let foot = s.form_foot(&form).unwrap_or_default();
     assert!(
@@ -45,7 +45,7 @@ fn a_field_the_session_may_not_write_is_said_before_apply() {
     // Apply applies all it holds and closes, with no refusal after it.
     let mut params = serde_json::Map::new();
     for f in &form.fields {
-        params.insert(f.name.to_owned(), json!(f.value));
+        params.insert(f.name.to_string(), json!(f.value));
     }
     params.insert("page.title".to_owned(), json!("Control panel"));
     done(&mut s, "page.title_block", serde_json::Value::Object(params));

@@ -763,6 +763,6 @@ fn a_bus_line_drawn_asks_for_its_cable() {
         panic!("the Cable form");
     };
     assert_eq!(form.action, "bus.cable");
-    let names: Vec<&str> = form.fields.iter().map(|f| f.name).collect();
+    let names: Vec<&str> = form.fields.iter().map(|f| f.name.as_ref()).collect();
     assert_eq!(names[..4], ["cable", "part", "tag", "length"]);
 }

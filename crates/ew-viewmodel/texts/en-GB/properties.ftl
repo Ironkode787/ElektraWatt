@@ -166,3 +166,6 @@ props-designer = Author
 titleblock-prints-in = Prints in the cell "{ $p0 }".
 props-frames-default = Default: { $p0 }
 props-frames-type = { $p0 }: { $p1 }
+titleblock-own-field = Field of your own
+titleblock-own-page = Your field, one value per page.
+titleblock-own-project = Your field, one value for the project.

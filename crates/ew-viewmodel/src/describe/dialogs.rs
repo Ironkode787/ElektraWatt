@@ -270,11 +270,7 @@ fn form_dialog_lines(
             .iter()
             .find(|(v, _)| *v == f.value)
             .map_or(f.value.as_str(), |(_, w)| w.as_str());
-        lines.push(format!(
-            "  field \"{}\": \"{}\"",
-            strings::text(f.label_key),
-            value
-        ));
+        lines.push(format!("  field \"{}\": \"{}\"", f.label_text(), value));
     }
     if let Some(e) = &form.error {
         lines.push(format!("  error: {e}"));

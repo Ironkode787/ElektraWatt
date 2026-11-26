@@ -321,12 +321,15 @@ impl ShellModel {
             let proposal = self.terminal_part_proposal(&cat, strip, kinds[0], 1);
             offer_part(&cat, &mut parts, proposal);
             let proposal = proposal.map_or_else(|| NO_PART.to_owned(), |c| c.to_string());
-            let field = |name, label_key, options: Vec<(String, String)>, value: String| super::FormField {
-                name,
-                label_key,
-                choices: &super::choices::NONE,
-                options,
-                value,
+            let field = |name: &'static str, label_key, options: Vec<(String, String)>, value: String| {
+                super::FormField {
+                    label: None,
+                    name: name.into(),
+                    label_key,
+                    choices: &super::choices::NONE,
+                    options,
+                    value,
+                }
             };
             let form = super::FormDialog {
                 action: ACTION,
@@ -586,7 +589,8 @@ impl ShellModel {
                 title_key: key!("terminals-spacing-title"),
                 ok_key: key!("terminals-spacing-ok"),
                 fields: vec![super::FormField {
-                    name: "steps",
+                    label: None,
+                    name: "steps".into(),
                     label_key: key!("form-terminal-spacing"),
                     choices: &super::choices::NONE,
                     options: self.spacing_options(),

@@ -545,6 +545,8 @@ fn builtin(id: Id<Project>, kind: NewProjectKind) -> (Project, Vec<Record>, Vec<
             .unwrap_or_else(|_| unreachable!("the profile name is an identifier")),
         kind: kind_of(kind),
         source_ref: None,
+        user_prop_defs: Vec::new(),
+        user_props: Vec::new(),
         basic_project: None,
         extra: Extra::new(),
     };
@@ -564,6 +566,7 @@ fn builtin(id: Id<Project>, kind: NewProjectKind) -> (Project, Vec<Record>, Vec<
         description_override: None,
         scale: ew_schema::Scale::default(),
         grid: Grid::QET_10PX,
+        user_props: Vec::new(),
         source_ref: None,
         extra: Extra::new(),
     };

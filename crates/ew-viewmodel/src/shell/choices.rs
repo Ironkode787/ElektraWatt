@@ -84,4 +84,6 @@ closed_choices! {
     LINE_KINDS = crate::strings::LINE_KINDS;
     /// Supply's systems: what comes in from the mains.
     SUPPLY_SYSTEMS = &["supply_1p", "supply_3p", "supply_3p_no_n", "supply_dc", "supply_own"];
+    /// New field of your own…'s One value for: the whole project or each page.
+    FIELD_SCOPES = &["whole_project", "each_page"];
 }

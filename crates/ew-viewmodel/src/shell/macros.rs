@@ -1099,7 +1099,8 @@ impl ShellModel {
                 library
             };
             let field = |name: &'static str, label_key: Key<'static>, value: String| FormField {
-                name,
+                label: None,
+                name: name.into(),
                 label_key,
                 choices: &super::choices::NONE,
                 options: Vec::new(),
@@ -1111,7 +1112,8 @@ impl ShellModel {
                 field("description", key!("form-macro-description"), description),
                 field("library", key!("form-macro-library"), library),
                 FormField {
-                    name: "kind",
+                    label: None,
+                    name: "kind".into(),
                     label_key: key!("form-kind"),
                     choices: &super::choices::MACRO_KINDS,
                     options: Vec::new(),

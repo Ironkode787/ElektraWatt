@@ -67,7 +67,9 @@ use ew_l10n::{Text, TextArg};
 /// description that title blocks and bound free texts print, FR-SYM-024; the long description, the document title, the
 /// project reference, the drawing ID, the object ID, the manufacturing year, the created and edited dates) and its
 /// `parties` as a whole, every one a title block prints, and its `control_voltage` (in V) and
-/// `rated_consumption` (in A), another unit refused at `/value`; the other project members keep their own commands.
+/// `rated_consumption` (in A), another unit refused at `/value`, and the values of its fields of its own (`user_props`,
+/// the list whole; a page's too), each of a key the project defines for that record's kind, once, refused at
+/// `/value/<i>`; the other project members keep their own commands.
 ///
 /// The PLC kinds: a channel's `designation`, `address`, `state`, `symbol`, `comment`,
 /// `target`, `data_type`, `signal_range`, `mode` (a multi-function port's) and `safety` (its pair a channel, its test
@@ -169,6 +171,8 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "scale",
             "grid",
             "kind",
+            // The page's values of the fields of the project's own, the list whole (doc 09 §2.10).
+            "user_props",
         ],
     ),
     (KindName::Representation, &["text_slots", "arrangement", "locked"]),
@@ -218,6 +222,8 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "parties",
             "control_voltage",
             "rated_consumption",
+            // The project's values of its fields of its own, the list whole (doc 09 §2.10).
+            "user_props",
         ],
     ),
     (
@@ -497,6 +503,10 @@ impl SetFields {
                 if path == "grid" {
                     refuse_grid_under_items(tx, t, grid)?;
                 }
+                if path == "user_props" {
+                    let values = tx.require::<Page>(t.cast())?.user_props.clone();
+                    refuse_bad_user_props(tx, &values, &ew_schema::UserPropScope::Page)?;
+                }
             }
             KindName::Representation => set_one::<Representation>(tx, t, path, value)?,
             KindName::Connection if path == "line_kind" => set_line_kind(tx, t.cast(), value)?,
@@ -712,7 +722,40 @@ fn set_project_member(
     if let Some(text) = unit_refusal {
         return Err(CmdError::invalid_params(SetFields::NAME, "/value", text));
     }
+    if path == "user_props" {
+        refuse_bad_user_props(tx, &next.user_props, &ew_schema::UserPropScope::Project)?;
+    }
     tx.set_project(next)
+}
+
+/// The values of the fields of the project's own on a record of `scope` (doc 09 §2.10), refused at `/value/<i>`: a
+/// key the project does not define with that scope, and a key given twice.
+fn refuse_bad_user_props(
+    tx: &TxBuilder<'_>,
+    values: &[ew_schema::UserPropValue],
+    scope: &ew_schema::UserPropScope,
+) -> Result<(), CmdError> {
+    let project = tx.project();
+    let mut seen = BTreeSet::new();
+    for (i, v) in values.iter().enumerate() {
+        let defined = project
+            .user_prop_defs
+            .iter()
+            .any(|d| d.key == v.key && d.scope.contains(scope));
+        let message = if !defined {
+            text!("refusal-fields-user-prop-undefined")
+        } else if !seen.insert(&v.key) {
+            text!("refusal-fields-user-prop-twice")
+        } else {
+            continue;
+        };
+        return Err(CmdError::invalid_params(
+            SetFields::NAME,
+            format!("/value/{i}"),
+            message,
+        ));
+    }
+    Ok(())
 }
 
 /// FR-CON-019 for `fields.set` on a connection's `overrides.colour`: the colour as read back must be IEC
