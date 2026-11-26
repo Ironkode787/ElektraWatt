@@ -344,6 +344,39 @@ fn a_new_list_starts_on_the_frame_most_pages_print_on() {
     assert_eq!(s.new_list_form(), None);
 }
 
+/// The journey's first change of the title block makes the starter forms the project's own (doc 09 §3.9): a copy made
+/// from a starter stands for it, so a new list still starts on the frame without rulers, the project's copy of it,
+/// which prints the changed block, not on the drawn pages' frame with rulers.
+#[test]
+fn after_the_first_change_of_the_title_block_a_new_list_starts_on_the_frame_without_rulers() {
+    let mut s = common::sample();
+    let facts = s.frame_facts("101").expect("page 101's frame");
+    let block = facts.block.expect("the title block").to_string();
+    let mut item = facts.block_item.clone().expect("its item");
+    item["cells"][1]["label"] = json!("Drawing no.:");
+    common::run_cmd(
+        &mut s,
+        "form.edit",
+        json!({"copy": block, "form": item,
+            "forks": facts.block_forks.iter().map(|u| u.to_string()).collect::<Vec<_>>()}),
+    );
+    let after = s.frame_facts("101").expect("page 101's frame");
+    let list = s.new_list_form().expect("the project's copy of the frame without rulers");
+    let q = s.query();
+    let form = q.forms().get(ew_ids::Id::from_uuid(list)).expect("a form the project holds");
+    assert_eq!(
+        form.item.meta.key.as_ref().map(|k| k.as_str()),
+        Some(ew_api::output::NOGRID_FRAME),
+        "the frame without rulers"
+    );
+    assert_eq!(form.library_id.as_uuid(), q.project().id.as_uuid(), "the project's copy");
+    assert_eq!(
+        form.item.title_block.map(|b| b.as_uuid()),
+        after.block,
+        "it prints the changed block"
+    );
+}
+
 /// A set whose frame is the starter A3 frame prints its lists on it, as many rows to a page as its list area
 /// holds, more than the A4 one.
 #[test]

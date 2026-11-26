@@ -236,8 +236,8 @@ change here.
   block's menu) changes the page's frame and title block on the page: a cell's text, what it shows (in words, a field
   of your own made from the cell, the company logo, a picture or text only), its text size and alignment; split, join
   and clear cells; drag a line between cells. The first change makes the program's frame and title block the project's
-  own, and every page that printed them follows. Title block fields… moved into the new Frame group (doc 09 §3.9,
-  FT-1814)
+  own, and every page that printed them follows; a new list still starts on the project's copy of the frame without
+  rulers, which prints the changed block. Title block fields… moved into the new Frame group (doc 09 §3.9, FT-1814)
 - api-add: the command `form.edit`, the one change of a frame or title block copy (forked when it is not the
   project's own, every reference re-pointed); a title block's lines are its cells' edges (`FormDef::cell_edges`)
   (doc 09 §2.5, §3.9, FT-1814)

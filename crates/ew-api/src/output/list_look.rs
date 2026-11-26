@@ -12,7 +12,7 @@ use ew_mltext::{LangTag, MlText};
 use ew_reports::Registry;
 use ew_schema::{ReportBlock, ReportKind, ReportSource};
 
-use super::view::{SHIPPED_FORMS, page_uuid};
+use super::view::page_uuid;
 use crate::Session;
 
 /// One column a list can print.
@@ -51,17 +51,35 @@ pub struct ListLook {
 impl Session {
     /// The form a new list of the project starts on (doc 09 §3.8): the set's own frame
     /// (`ew_reports::layout::set_frame`: the frame defaults' `default`, else the frame most drawn pages print on) when it
-    /// is not one of the starter forms ([`SHIPPED_FORMS`]); `None`, the starter frame without the grid, for a project
-    /// on the starter forms or without drawn pages.
+    /// is not one of the starter forms; `None`, the starter frame without the grid, for a project on the starter forms
+    /// or without drawn pages. A copy made from a starter (the project's own once its title block was first changed,
+    /// doc 09 §3.9) stands for that starter by its key: the list starts on the project's copy of the frame without the
+    /// grid that prints the set's title block, `None` while the project has no copy of its own.
     pub fn new_list_form(&self) -> Option<Uuid> {
-        let frame = ew_reports::layout::set_frame(&self.query())?.as_uuid();
-        let starter = SHIPPED_FORMS.iter().any(|text| {
-            serde_json::from_str::<serde_json::Value>(text)
-                .ok()
-                .and_then(|form| form.get("id")?.as_str()?.parse::<Uuid>().ok())
-                == Some(frame)
-        });
-        (!starter).then_some(frame)
+        let q = self.query();
+        let frame = ew_reports::layout::set_frame(&q)?;
+        let set = q.forms().get(frame)?;
+        let starter = |key: Option<&ew_mltext::Ident>| {
+            key.is_some_and(|k| ew_library::starter::FORMS.iter().any(|(s, _)| *s == k.as_str()))
+        };
+        if !starter(set.item.meta.key.as_ref()) {
+            return Some(frame.as_uuid());
+        }
+        let project = q.project().id.as_uuid();
+        let plain: Vec<_> = q
+            .forms()
+            .iter()
+            .filter(|(_, c)| {
+                c.library_id.as_uuid() == project
+                    && c.item.meta.key.as_ref().is_some_and(|k| k.as_str() == ew_schema::starter::NOGRID_FRAME)
+            })
+            .map(|(id, c)| (id, c.item.title_block))
+            .collect();
+        plain
+            .iter()
+            .find(|(_, block)| *block == set.item.title_block)
+            .or_else(|| plain.first())
+            .map(|(id, _)| id.as_uuid())
     }
 
     /// The forms a page or a report block prints on, each by its name in words in the reader's language (a frame of
