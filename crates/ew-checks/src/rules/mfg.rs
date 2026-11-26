@@ -298,7 +298,11 @@ impl Rule for ClampCapacity {
                     let Some(ew_schema::Csa::Mm2(size)) = r.csa.as_ref().map(|c| &c.value) else {
                         continue;
                     };
-                    let lands = r.wire.ends.iter().any(|e| e.cp == at && e.kind == ew_derive::EndKind::Device);
+                    let lands = r
+                        .wire
+                        .ends
+                        .iter()
+                        .any(|e| e.cp == at && e.kind == ew_derive::EndKind::Device);
                     let outside = min.is_some_and(|m| *size < m) || max.is_some_and(|m| *size > m);
                     if !lands || !outside {
                         continue;

@@ -486,7 +486,9 @@ impl Session {
         // connection that holds them are not shown again.
         if kind == Kind::Connection {
             built.retain(|b| {
-                b.derived || !(b.row.path.starts_with("overrides.end_a") || b.row.path.starts_with("overrides.end_b"))
+                b.derived
+                    || !(b.row.path.starts_with("overrides.end_a")
+                        || b.row.path.starts_with("overrides.end_b"))
             });
         }
         // A workshop setting that is not set shows the value that applies, as the project's default.

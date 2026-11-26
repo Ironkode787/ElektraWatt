@@ -167,14 +167,11 @@ pub struct EndOverride {                      // WireOverrides.end_a and .end_b:
 }
 ```
 
-- **An end set by hand belongs to one wire and lives on a connection of that wire's own**, one no other wire stands
-  for: the first in the order the wire takes its values (the carrier, then its constituents in path order), the one a
-  cell of its row sets. `end_a` holds the wire's end reached through that connection's endpoint `a`, `end_b` the end
-  reached through `b`, whichever way round the list reads the wire and whatever star or chain the clamp is reached
-  through: two wires at one clamp are two ends, set apart. A renumber, a re-route, a junction edit that keeps the
-  connection, the loss of a sibling at a star and a change that turns the wire round leave each end with its CP; a
-  device put onto the connection splits it, and each end stays with the part that keeps its endpoint. A wire none of
-  whose connections is its own has no end set by hand. Reset clears it.
+- **An end set by hand belongs to one wire** and lives on its first connection no other wire stands for (the carrier,
+  else its constituents in path order): `end_a` holds the end reached through that connection's endpoint `a`, `end_b`
+  through `b`, however the wire reads and whatever star or chain reaches the clamp; two wires at one clamp are two
+  ends. A re-route, the loss of a sibling and a turned-round wire leave each end with its CP; a split keeps it with the
+  part that keeps its endpoint. Reset clears it.
 - **A typed length** is `WireOverrides.length` ([03](03-domain-model.md) §9); the value of the carrier wins, as for
   every override of a physical wire. A cell of a wire's row in the Connections table (its length, colour or
   cross-section) sets one connection of that wire which no other wire stands for: the carrier where it is the wire's
@@ -466,7 +463,7 @@ The rules that say before a print what the fitter would ask. They run online and
 
 | Rule | Says | Severity | Fix |
 |---|---|---|---|
-| EW-MFG-001 | How many wires have no length, one finding for the project while a wire that is no core has no length, raised only where a length is asked for or can be computed: by the check before an export for the workshop, and by Check project in a project that has a panel layout, whose layout gives lengths; a project without a layout raises none | info; a machine export sets its own | Select them (the wires, which the Connections table then shows) |
+| EW-MFG-001 | How many wires have no length, one finding for the project; raised by the check before a workshop export and by Check project where a panel layout gives lengths, never without a layout | info; a machine export sets its own | Select them (the Connections table shows them) |
 | EW-MFG-004 | "The marker of 104.4 at -104B1:13 does not fit its marker part: +CAB-104A1-A2:L+ needs 16 characters on a line of 12", per end | warning | — |
 | EW-MFG-008 | "The end of 104.4 at -104B1:13 cannot be made: a fine-stranded wire into an insulation-displacement clamp", per end | warning | Set the end by hand |
 | EW-MFG-009 | "The end of 101.7 at -101F1:3 set by hand does not fit: a ferrule for 1.5 mm² on a 2.5 mm² wire" (also: a twin ferrule with no second wire; a ferrule of another collar colour than the stock's ferrule of that size), per end | warning | Reset to the rule |

@@ -104,7 +104,8 @@ fn pot010_reports_more_conductors_than_the_clamp_takes() {
                 |c, f| {
                     assert_eq!(f.len(), 1, "case {c}: {f:#?}");
                     assert!(
-                        f[0].message().contains("takes 0.5–1.5 mm²; ") && f[0].message().ends_with("of 2.5 mm² lands on it"),
+                        f[0].message().contains("takes 0.5–1.5 mm²; ")
+                            && f[0].message().ends_with("of 2.5 mm² lands on it"),
                         "{}",
                         f[0].message()
                     );
@@ -152,7 +153,10 @@ fn an_end_set_by_hand_stays_with_its_cp_when_the_wire_turns_round() {
             (ew_derive::EndTreatment::Bare, ew_derive::TreatedBy::Hand),
             "counter {counter}"
         );
-        assert!(r.ends[1 - at].treated_by != ew_derive::TreatedBy::Hand, "counter {counter}");
+        assert!(
+            r.ends[1 - at].treated_by != ew_derive::TreatedBy::Hand,
+            "counter {counter}"
+        );
         from.push(at);
     }
     assert_eq!(from, [0, 1], "the wire turned round");

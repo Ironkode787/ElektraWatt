@@ -273,7 +273,11 @@ fn an_end_made_another_way_is_re_made() {
     let mut now = common::sample();
     let row = {
         let t = now.navigator_table(ew_api::output::NavKind::Connections);
-        let r = t.nodes.iter().find(|n| n.table_row && n.label == "101.1").expect("101.1");
+        let r = t
+            .nodes
+            .iter()
+            .find(|n| n.table_row && n.label == "101.1")
+            .expect("101.1");
         r.records.clone()
     };
     let (holder, at_a) = now.wire_end(&row, 1).expect("an end of the project");
@@ -289,7 +293,8 @@ fn an_end_made_another_way_is_re_made() {
     let csv = now.rework_csv(&rework);
     assert!(
         csv.lines()
-            .any(|l| l.starts_with("data,Re-make end,101.1,") && l.ends_with("at -101Q1:1: ferrule 1.5 BK → bare")),
+            .any(|l| l.starts_with("data,Re-make end,101.1,")
+                && l.ends_with("at -101Q1:1: ferrule 1.5 BK → bare")),
         "{csv}"
     );
 }

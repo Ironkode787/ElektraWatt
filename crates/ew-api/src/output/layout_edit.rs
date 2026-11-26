@@ -969,7 +969,11 @@ impl Session {
                     .map(|o| serde_json::to_value(o).unwrap_or(Value::Null))
                     .filter(Value::is_object)
                     .unwrap_or_else(|| json!({}));
-                let member = if name.ends_with("_end") { "treatment" } else { "part" };
+                let member = if name.ends_with("_end") {
+                    "treatment"
+                } else {
+                    "part"
+                };
                 let set = if text.is_empty() {
                     Value::Null
                 } else if member == "treatment" {
@@ -1000,7 +1004,11 @@ impl Session {
                         o.insert(member.to_owned(), set);
                     }
                 }
-                let path = if at_a { "overrides.end_a" } else { "overrides.end_b" };
+                let path = if at_a {
+                    "overrides.end_a"
+                } else {
+                    "overrides.end_b"
+                };
                 command(
                     "fields.set",
                     json!({"kind": "connection", "targets": [holder.to_string()], "path": path, "value": value}),

@@ -269,16 +269,25 @@ fn two_wires_at_one_clamp_keep_their_own_ends() {
         )
         .expect("an end set by hand");
     }
-    assert_eq!(ends(&s, &star, "from_end"), ["ring lug", "ferrule 0.75 GY", "bare"]);
+    assert_eq!(
+        ends(&s, &star, "from_end"),
+        ["ring lug", "ferrule 0.75 GY", "bare"]
+    );
     // 101.5 is pulled: the connections no other wire stands for go, the star keeps two wires.
     let gone: Vec<String> = {
         let t = s.navigator_table(NavKind::Connections);
-        let row = (t.nodes.iter()).find(|n| n.table_row && n.label == "101.5").expect("101.5");
+        let row = (t.nodes.iter())
+            .find(|n| n.table_row && n.label == "101.5")
+            .expect("101.5");
         let others: Vec<String> = (t.nodes.iter())
             .filter(|n| n.table_row && n.label != "101.5")
             .flat_map(|n| n.records.iter().map(ToString::to_string))
             .collect();
-        row.records.iter().map(ToString::to_string).filter(|r| !others.contains(r)).collect()
+        row.records
+            .iter()
+            .map(ToString::to_string)
+            .filter(|r| !others.contains(r))
+            .collect()
     };
     run(&mut s, "connection.delete", json!({ "connections": gone })).expect("101.5 pulled");
     // The numbers follow the pull; the two wires are known by their To ends, -101G1 and -X1031:PE.
@@ -290,7 +299,10 @@ fn two_wires_at_one_clamp_keep_their_own_ends() {
             .map(|n| n.cells[col("from_end")].clone())
             .unwrap_or_else(|| panic!("no wire to {to}"))
     };
-    assert_eq!([from_end_to("-101G1"), from_end_to("-X1031:PE")], ["ring lug", "bare"]);
+    assert_eq!(
+        [from_end_to("-101G1"), from_end_to("-X1031:PE")],
+        ["ring lug", "bare"]
+    );
 }
 
 /// From any connection of a wire, Properties set both of its ends (`Session::layout_edit` of the rows From end and
@@ -299,7 +311,10 @@ fn two_wires_at_one_clamp_keep_their_own_ends() {
 fn properties_set_either_end_of_a_wire() {
     let mut s = common::sample();
     let (holder, _) = end_of(&s, "101.1", 0);
-    for (row, text, cell) in [("derived.from_end", "bare", "from_end"), ("derived.to_end", "ring_lug", "to_end")] {
+    for (row, text, cell) in [
+        ("derived.from_end", "bare", "from_end"),
+        ("derived.to_end", "ring_lug", "to_end"),
+    ] {
         let cmd = s
             .layout_edit(&ew_api::output::LayoutEdit {
                 kind: "connection".into(),

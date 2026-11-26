@@ -352,8 +352,13 @@ pub fn rework_change(change: &ReworkChange) -> Text {
         ReworkChange::End(b, a) => text!("rework-change-end", b.clone(), a.clone()),
         ReworkChange::RemakeEnd(at, b, a) => {
             let words = |e: &crate::rework::EndMade| -> TextArg {
-                end_treatment(&e.treatment, e.colour.as_ref(), e.stud.as_deref(), e.partner.as_deref())
-                    .map_or_else(|| NONE.into(), TextArg::from)
+                end_treatment(
+                    &e.treatment,
+                    e.colour.as_ref(),
+                    e.stud.as_deref(),
+                    e.partner.as_deref(),
+                )
+                .map_or_else(|| NONE.into(), TextArg::from)
             };
             text!("rework-change-remake", at.clone(), words(b), words(a))
         }

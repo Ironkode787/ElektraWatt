@@ -280,7 +280,7 @@ pub(crate) fn treat(q: &Q, records: &mut [WireRecord]) {
     for r in records.iter_mut() {
         let own = own_connections(&r.wire, &wires_of);
         let mut hand: [Option<EndOverride>; 2] = [None, None];
-        for i in 0..2 {
+        for (i, slot) in hand.iter_mut().enumerate() {
             if r.wire.ends[i].kind != EndKind::Device {
                 continue;
             }
@@ -290,7 +290,7 @@ pub(crate) fn treat(q: &Q, records: &mut [WireRecord]) {
                     .find(|a| end_through(q, &r.wire, *k, *a) == Some(i))
                     .map(|a| (*c, a))
             });
-            hand[i] = own.iter().find_map(|(k, c)| {
+            *slot = own.iter().find_map(|(k, c)| {
                 let o = &q.connections().get(*c)?.overrides;
                 [(true, &o.end_a), (false, &o.end_b)]
                     .into_iter()
@@ -316,15 +316,13 @@ pub(crate) fn treat(q: &Q, records: &mut [WireRecord]) {
         let class = class_of(r);
         let wire_ends = r.wire.ends;
         for (i, end) in wire_ends.iter().enumerate() {
-            let by_hand = hands[n][i]
-                .as_ref()
-                .and_then(|o| match o.treatment.as_ref()? {
-                    TreatmentKind::Ferrule => Some(EndTreatment::Ferrule { csa }),
-                    TreatmentKind::TwinFerrule => Some(EndTreatment::TwinFerrule { csa, partner: None }),
-                    TreatmentKind::RingLug => Some(EndTreatment::RingLug),
-                    TreatmentKind::Bare => Some(EndTreatment::Bare),
-                    TreatmentKind::Unknown(_) => None,
-                });
+            let by_hand = hands[n][i].as_ref().and_then(|o| match o.treatment.as_ref()? {
+                TreatmentKind::Ferrule => Some(EndTreatment::Ferrule { csa }),
+                TreatmentKind::TwinFerrule => Some(EndTreatment::TwinFerrule { csa, partner: None }),
+                TreatmentKind::RingLug => Some(EndTreatment::RingLug),
+                TreatmentKind::Bare => Some(EndTreatment::Bare),
+                TreatmentKind::Unknown(_) => None,
+            });
             let (treatment, by) = if let Some(t) = by_hand {
                 (t, TreatedBy::Hand)
             } else if end.kind == EndKind::Device {
@@ -352,10 +350,10 @@ pub(crate) fn treat(q: &Q, records: &mut [WireRecord]) {
         }
     }
     pair(records, &clamps, &workshop.two_wires);
-    for (n, r) in records.iter_mut().enumerate() {
+    for (r, hand) in records.iter_mut().zip(&hands) {
         let csa = mm2(r);
-        for i in 0..r.ends.len() {
-            let by_hand = hands[n][i].as_ref().and_then(|o| o.part.as_ref()).map(|p| p.copy);
+        for (i, h) in hand.iter().enumerate() {
+            let by_hand = h.as_ref().and_then(|o| o.part.as_ref()).map(|p| p.copy);
             r.ends[i].part_by_hand = by_hand.is_some();
             r.ends[i].part = by_hand.or_else(|| stock_part(q, &r.ends[i].treatment, csa));
         }
@@ -365,12 +363,16 @@ pub(crate) fn treat(q: &Q, records: &mut [WireRecord]) {
 /// The connections of `wire` that no other wire stands for, each with its index among the constituents, in the order
 /// the wire takes its values (doc 08 §3.8): the carrier, then the constituents in path order. They hold the wire's ends
 /// set by hand (doc 13 §2.3); the first is where an edit writes them.
-fn own_connections(wire: &PhysicalWire, wires_of: &BTreeMap<Id<Connection>, usize>) -> Vec<(usize, Id<Connection>)> {
+fn own_connections(
+    wire: &PhysicalWire,
+    wires_of: &BTreeMap<Id<Connection>, usize>,
+) -> Vec<(usize, Id<Connection>)> {
     let alone = |c: &Id<Connection>| wires_of.get(c).is_some_and(|n| *n == 1);
     let at = |c: Id<Connection>| wire.constituents.iter().position(|x| *x == c).map(|k| (k, c));
     let mut out: Vec<(usize, Id<Connection>)> = Vec::new();
     for c in std::iter::once(wire.id).chain(wire.constituents.iter().copied()) {
-        if alone(&c) && !out.iter().any(|(_, x)| *x == c)
+        if alone(&c)
+            && !out.iter().any(|(_, x)| *x == c)
             && let Some(kc) = at(c)
         {
             out.push(kc);
@@ -404,10 +406,11 @@ pub fn end_through(q: &Q, wire: &PhysicalWire, k: usize, via_a: bool) -> Option<
     }
     let first = at(0)?;
     let start = (0..2).find(|e| first.0 == cp(*e) || first.1 == cp(*e))?;
-    let touches = |j: Option<usize>, p: &Endpoint| {
-        j.and_then(|j| at(j)).is_some_and(|(x, y)| x == *p || y == *p)
-    };
-    let (before, after) = (k.checked_sub(1), (k + 1 < wire.constituents.len()).then_some(k + 1));
+    let touches = |j: Option<usize>, p: &Endpoint| j.and_then(at).is_some_and(|(x, y)| x == *p || y == *p);
+    let (before, after) = (
+        k.checked_sub(1),
+        (k + 1 < wire.constituents.len()).then_some(k + 1),
+    );
     if touches(before, &near) || touches(after, &far) {
         Some(start)
     } else if touches(after, &near) || touches(before, &far) {
@@ -678,8 +681,16 @@ mod tests {
         // The default (the owner's shop rule): a fine-stranded end into a spring or push-in clamp stays bare, into a
         // screw clamp it takes a ferrule.
         let default = FerruleRule::default();
-        for (kind, row) in [(ClampType::Spring, 5), (ClampType::PushIn, 5), (ClampType::Screw, 6)] {
-            assert_eq!(rule_for(Some(&clamp(kind.clone())), Some(5), &default).0.row, row, "{kind:?}");
+        for (kind, row) in [
+            (ClampType::Spring, 5),
+            (ClampType::PushIn, 5),
+            (ClampType::Screw, 6),
+        ] {
+            assert_eq!(
+                rule_for(Some(&clamp(kind.clone())), Some(5), &default).0.row,
+                row,
+                "{kind:?}"
+            );
         }
     }
 }

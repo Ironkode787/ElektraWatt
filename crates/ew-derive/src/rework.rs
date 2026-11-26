@@ -240,7 +240,8 @@ fn changes(base: &Q, b: &WireRecord, now: &Q, a: &WireRecord) -> Vec<ReworkChang
         let (eb, ea) = (&b.ends[ib], &a.ends[ia]);
         if end_b == end_a
             && (eb.treatment != ea.treatment
-                || part_number(base, eb.part.map(PartRef::new).as_ref()) != part_number(now, ea.part.map(PartRef::new).as_ref()))
+                || part_number(base, eb.part.map(PartRef::new).as_ref())
+                    != part_number(now, ea.part.map(PartRef::new).as_ref()))
         {
             out.push(ReworkChange::RemakeEnd(
                 end_label(now, a, end_a),

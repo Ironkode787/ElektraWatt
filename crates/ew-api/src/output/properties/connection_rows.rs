@@ -501,7 +501,10 @@ fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
             .first()
             .and_then(|(wire, _)| records.iter().find(|r| r.wire.id == *wire))
     };
-    let mut wires: Vec<Id<Connection>> = conns.iter().filter_map(|c| wire_of(c).map(|r| r.wire.id)).collect();
+    let mut wires: Vec<Id<Connection>> = conns
+        .iter()
+        .filter_map(|c| wire_of(c).map(|r| r.wire.id))
+        .collect();
     wires.dedup();
     let one_wire = wires.len() == 1 && conns.iter().all(|c| wire_of(c).is_some());
     let mut out = Vec::new();
@@ -611,7 +614,12 @@ pub(crate) fn end_holder(
 ) -> Option<(Id<Connection>, bool, Option<ew_schema::EndOverride>)> {
     let records = q.get::<WireRecordSet>(());
     let (wire, _) = wires_of(q, c).into_iter().next()?;
-    let (holder, at_a) = records.iter().find(|r| r.wire.id == wire)?.ends.get(end)?.hand_at?;
+    let (holder, at_a) = records
+        .iter()
+        .find(|r| r.wire.id == wire)?
+        .ends
+        .get(end)?
+        .hand_at?;
     let o = &q.connections().get(holder)?.overrides;
     Some((holder, at_a, if at_a { o.end_a.clone() } else { o.end_b.clone() }))
 }
