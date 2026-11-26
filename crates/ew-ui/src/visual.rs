@@ -254,6 +254,7 @@ impl Platform for VisualPlatform {
             Prompt::SaveKeymap => Pick::Path(self.base.join("keymap.toml")),
             Prompt::SaveTable => Pick::Path(self.base.join("table.xlsx")),
             Prompt::SaveEwz => Pick::Path(self.base.join("project.ewz")),
+            Prompt::SaveRework => Pick::Path(self.base.join("rework.xlsx")),
             Prompt::SaveSymbol => Pick::Path(self.base.join("symbol.json")),
             Prompt::LibraryFolder => Pick::Path(self.base.join("symbols.ewlib")),
             Prompt::Folder => Pick::Path(self.base.clone()),
@@ -269,6 +270,7 @@ impl Platform for VisualPlatform {
             | Prompt::OpenConverter
             | Prompt::OpenSymbol
             | Prompt::OpenPlcExchange
+            | Prompt::OpenArchive
                 if self.answer.borrow().is_some() =>
             {
                 self.answer.take().map_or(Pick::Cancelled, Pick::Path)
@@ -282,7 +284,8 @@ impl Platform for VisualPlatform {
             | Prompt::OpenEwz
             | Prompt::OpenImport
             | Prompt::OpenConverter
-            | Prompt::OpenSymbol => Pick::Cancelled,
+            | Prompt::OpenSymbol
+            | Prompt::OpenArchive => Pick::Cancelled,
             Prompt::OpenPlcExchange => ["plc.aml", "plc.xlsx"]
                 .iter()
                 .map(|name| self.base.join(name))

@@ -11,7 +11,7 @@
 use super::Seg::{self, C, L, M, Q, Z};
 
 /// The number of icons in the table.
-pub const COUNT: usize = 148;
+pub const COUNT: usize = 150;
 
 /// One icon of the table, named by its key in `snake_case` (`ew_` for the project's own glyphs).
 #[allow(non_camel_case_types, missing_docs)]
@@ -133,6 +133,7 @@ pub enum IconId {
     plus,
     pointer,
     printer,
+    refresh,
     report,
     report_analytics,
     restore,
@@ -160,6 +161,7 @@ pub enum IconId {
     trash,
     typography,
     wand,
+    wave_sine,
     wind,
     x,
     zoom_in,
@@ -286,6 +288,7 @@ impl IconId {
         IconId::plus,
         IconId::pointer,
         IconId::printer,
+        IconId::refresh,
         IconId::report,
         IconId::report_analytics,
         IconId::restore,
@@ -313,6 +316,7 @@ impl IconId {
         IconId::trash,
         IconId::typography,
         IconId::wand,
+        IconId::wave_sine,
         IconId::wind,
         IconId::x,
         IconId::zoom_in,
@@ -439,6 +443,7 @@ pub const KEYS: [&str; COUNT] = [
     "plus",
     "pointer",
     "printer",
+    "refresh",
     "report",
     "report-analytics",
     "restore",
@@ -466,6 +471,7 @@ pub const KEYS: [&str; COUNT] = [
     "trash",
     "typography",
     "wand",
+    "wave-sine",
     "wind",
     "x",
     "zoom-in",
@@ -2538,6 +2544,21 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         C(7.895, 21.0, 7.0, 20.105, 7.0, 19.0),
         L(7.0, 15.0),
     ],
+    // refresh
+    &[
+        M(20.0, 11.0),
+        C(19.497, 7.383, 16.636, 4.549, 13.014, 4.082),
+        C(9.391, 3.614, 5.905, 5.629, 4.5, 9.0),
+        M(4.0, 5.0),
+        L(4.0, 9.0),
+        L(8.0, 9.0),
+        M(4.0, 13.0),
+        C(4.503, 16.617, 7.364, 19.451, 10.986, 19.918),
+        C(14.609, 20.386, 18.095, 18.371, 19.5, 15.0),
+        M(20.0, 19.0),
+        L(20.0, 15.0),
+        L(16.0, 15.0),
+    ],
     // report
     &[
         M(8.0, 5.0),
@@ -3137,6 +3158,18 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         C(19.895, 15.0, 19.0, 15.895, 19.0, 17.0),
         C(19.0, 15.895, 18.105, 15.0, 17.0, 15.0),
         C(18.105, 15.0, 19.0, 14.105, 19.0, 13.0),
+    ],
+    // wave-sine
+    &[
+        M(21.0, 12.0),
+        L(19.0, 12.0),
+        C(18.106, 12.0, 17.338, 11.143, 17.239, 10.0),
+        C(16.943, 6.55, 16.49, 4.0, 14.49, 4.0),
+        C(12.49, 4.0, 11.99, 7.582, 11.99, 12.0),
+        C(11.99, 16.418, 11.49, 20.0, 9.49, 20.0),
+        C(7.49, 20.0, 7.038, 17.453, 6.741, 14.0),
+        C(6.641, 12.853, 5.874, 12.0, 4.978, 12.0),
+        L(2.978, 12.0),
     ],
     // wind
     &[

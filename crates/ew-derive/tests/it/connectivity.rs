@@ -36,6 +36,8 @@
 //! - `a_wire_record_has_its_typed_length_its_cable_or_none`: `wire_record_set`'s length (doc 13 §3.3).
 //! - `a_site_end_lies_outside_every_layout_space`: an external end, and an end in another location than a layout
 //!   space's while the project has one, are site ends; the wire is a field wire (doc 13 §2.1).
+//! - `a_wire_whose_carrier_changed_is_matched_by_its_ends`: `wire_changes` matches by ID, then by the two end CPs, so
+//!   a junction edit is no work; a wire between other CPs is one to pull and one to add (doc 13 §3.5).
 
 use crate::common;
 
@@ -43,7 +45,8 @@ use common::{Fx, id, uid};
 use ew_derive::{
     CpRef, DeriveNote, EdgeKind, EffectiveProps, Level, NameSource, NetId, PageLocalNets, PairMode,
     PhysicalWiresOf, PotentialFlow, PotentialId, PotentialNameOf, PotentialPartition, PropSource, Q,
-    ShortSource, StitchGraphQ, WireLength, WirePropsOf, WireRecord, WireRecordSet,
+    ReworkAction, ShortSource, StitchGraphQ, WireLength, WirePropsOf, WireRecord, WireRecordSet, rework,
+    wire_changes,
 };
 use ew_ids::Id;
 use ew_model::{AnyRow, EndpointKey, Entity, Model, Op, Rev};
@@ -1380,10 +1383,20 @@ fn a_wire_record_has_its_typed_length_its_cable_or_none() {
     func(&mut fx, 0x1006, P1);
     fx.device(0x30_000, "W", Some(1)).with("cable", json!({}));
     fx.push(json!({"$k": "conductor", "id": uid(0x30_001), "cable": uid(0x30_000), "core": "BN"}));
-    conn(&mut fx, 0x2003, Some(P1), cp(0x1005), cp(0x1006), json!({"core": uid(0x30_001)}));
+    conn(
+        &mut fx,
+        0x2003,
+        Some(P1),
+        cp(0x1005),
+        cp(0x1006),
+        json!({"core": uid(0x30_001)}),
+    );
     let m = fx.build();
     let q = Q::new(&m);
-    assert_eq!(record(&q, 0x2001).length, WireLength::Typed(ew_units::Nm(400_000_000)));
+    assert_eq!(
+        record(&q, 0x2001).length,
+        WireLength::Typed(ew_units::Nm(400_000_000))
+    );
     assert_eq!(record(&q, 0x2002).length, WireLength::Missing);
     assert_eq!(record(&q, 0x2003).length, WireLength::WithCable(id(0x30_000)));
 }
@@ -1399,7 +1412,12 @@ fn a_site_end_lies_outside_every_layout_space() {
     fx.push(json!({
         "$k": "external_ref", "id": uid(0x910), "location": uid(0x901), "device": "N1", "connection": "L",
     }));
-    ip_spec(&mut fx, 0x1101, P1, json!({"name": "SUPPLY", "direction": "source", "external": uid(0x910)}));
+    ip_spec(
+        &mut fx,
+        0x1101,
+        P1,
+        json!({"name": "SUPPLY", "direction": "source", "external": uid(0x910)}),
+    );
     func(&mut fx, 0x1003, P1);
     fx.record(0x21003)["structure"] = json!({"location": uid(0x900)});
     conn(&mut fx, 0x2002, Some(P1), cp(0x1101), cp(0x1003), Value::Null);
@@ -1418,4 +1436,40 @@ fn a_site_end_lies_outside_every_layout_space() {
     let m = fx.build();
     assert_eq!(sites(&m, 0x2001), (vec![false, true], true));
     assert_eq!(sites(&m, 0x2002), (vec![false, true], true));
+}
+
+#[test]
+fn a_wire_whose_carrier_changed_is_matched_by_its_ends() {
+    let before = pair_fixture().build();
+    // The same two CPs joined by another connection, drawn the other way round.
+    let mut fx = base();
+    func(&mut fx, 0x1001, P1);
+    func(&mut fx, 0x1002, P1);
+    conn(&mut fx, 0x2009, Some(P1), cp(0x1002), cp(0x1001), Value::Null);
+    let after = fx.build();
+    let (qb, qa) = (Q::new(&before), Q::new(&after));
+    let (b, a) = (qb.get::<WireRecordSet>(()), qa.get::<WireRecordSet>(()));
+    type Pair = (Option<Id<Connection>>, Option<Id<Connection>>);
+    let pairs: Vec<Pair> = wire_changes(&b, &a)
+        .iter()
+        .map(|p| (p.before.map(|r| r.wire.id), p.after.map(|r| r.wire.id)))
+        .collect();
+    assert_eq!(pairs, [(Some(id(0x2001)), Some(id(0x2009)))]);
+    assert_eq!(rework(&qb, &qa), []);
+    // A wire between other CPs: the old one is pulled, the new one added.
+    let mut fx = base();
+    func(&mut fx, 0x1001, P1);
+    func(&mut fx, 0x1002, P1);
+    conn(
+        &mut fx,
+        0x2009,
+        Some(P1),
+        Ep::Cp(0x1001, 1),
+        Ep::Cp(0x1002, 1),
+        Value::Null,
+    );
+    let other = fx.build();
+    let qo = Q::new(&other);
+    let actions: Vec<ReworkAction> = rework(&qb, &qo).iter().map(|i| i.action).collect();
+    assert_eq!(actions, [ReworkAction::Pull, ReworkAction::Add]);
 }

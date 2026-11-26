@@ -215,3 +215,9 @@ table-cell-name = { $p0 } { $p1 }
 table-cell-manual = { $p0 }, { $p1 }
 # De strook van een kaart in de lijst: de titel en de samenvatting.
 card-strip = { $p0 } · { $p1 }
+
+## The file dialogs of Rework list…
+
+prompt-open-archive-title = Vergelijken met een archief
+prompt-save-rework-title = De wijzigingslijst exporteren
+prompt-rework-name = wijzigingslijst.xlsx

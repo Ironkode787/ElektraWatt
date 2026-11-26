@@ -922,6 +922,8 @@ pub fn dialog_topic(dialog: &Dialog) -> &'static str {
         Dialog::Templates(_) => "templates",
         Dialog::TextStyles(_) => "text-styles",
         Dialog::WorkshopStock(_) => "guide-parts",
+        // Rework list…: its button's section of the command bar page.
+        Dialog::Rework(_) => action_topic("rework.show").unwrap_or("dialog-form"),
         Dialog::SaveWorkspace { .. } => "workspaces",
         Dialog::GotoPage { .. } => "dialog-goto-page",
         // A form opens the section of its action (Check level…, Cable…), else the forms' section.
@@ -1323,6 +1325,11 @@ mod tests {
                 step: crate::shell::EplanStep::Terms,
             },
             Dialog::DiscardStation,
+            Dialog::Rework(Box::new(crate::shell::rework::ReworkDialog {
+                releases: Vec::new(),
+                against: crate::shell::rework::Against::Nothing,
+                list: Err(text()),
+            })),
         ]
     }
 

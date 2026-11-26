@@ -1,0 +1,9 @@
+row,Action,No.,From,CP,To,CP,Colour,mm²,Length,From end,Change
+data,Pull,104.6,-104A1-A2,3,-104E2,X1,BK,0.75 mm²,—,,
+data,Pull,104.9,-104A1,M,-104E2,X2,BU,0.75 mm²,—,,
+data,Replace,101.7,-X1011:N,a,-101F1,3,BU,2.5 mm²,—,,size 1.5 → 2.5 mm²
+data,Move end,104.5,+FLD-104B1,14,+CAB-104A1-A1,4,DBU,0.75 mm²,—,,end -104A1-A1:2 → -104A1-A1:4
+data,Move end,104.7,-104A1,M,-104E1,X2,BU,0.75 mm²,—,,end -104E2:X2 → -104A1:M
+data,Check length,103.2,-102Q1,2,-X1031:U,a,BK,2.5 mm²,650 mm,,length 600 → 650 mm
+data,Add,102.10,-X1021:3,a,-102S3,13,DBU,2.5 mm²,—,,
+data,Add,102.11,-102S3,14,-104A1-A1,2,DBU,2.5 mm²,—,,

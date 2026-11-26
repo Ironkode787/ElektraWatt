@@ -6,6 +6,7 @@
 
 ## The heading of a column
 
+column-action = Action
 column-address = Address
 column-address-or-name = Address or name
 column-aliases = Aliases
@@ -17,6 +18,7 @@ column-bus-system = Bus system
 column-cable = Cable
 column-cable-type = Cable type
 column-category = Category
+column-change = Change
 column-changed-pages = Changed pages
 column-channel = Channel
 column-checker = Checker

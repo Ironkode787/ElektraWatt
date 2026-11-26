@@ -661,6 +661,95 @@ pub(super) fn run_export_ewz(a: &EwzCli, io: &mut Io<'_>) -> i32 {
     0
 }
 
+impl Leaf for ReworkCli {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "written"),
+        exit(
+            2,
+            "usage, open errors, no release or no archive found, an archive that does not open, write errors",
+        ),
+    ];
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.file().map(drop)
+    }
+}
+
+/// `ew export rework`: the rework list between a release (`--since`, else the last one whose archive is found; or the
+/// archive file `--archive`) and the project as it is, written to `--out` as CSV or XLSX, all or nothing.
+pub(super) fn run_export_rework(a: &ReworkCli, io: &mut Io<'_>) -> i32 {
+    let out = match a.file() {
+        Ok(out) => out,
+        Err(e) => return usage(&e, io),
+    };
+    let Some(dir) = project_dir(a.project.as_ref(), io) else {
+        return 2;
+    };
+    let (session, _) = match open_reader(&dir, "export rework", io) {
+        Ok(r) => r,
+        Err(e) => {
+            io.error(format_args!("{}: {e}", dir.display()));
+            return 2;
+        }
+    };
+    let base = match (&a.archive, &a.since) {
+        (Some(file), _) => ew_api::ReworkBase::File(file.clone()),
+        (None, since) => {
+            let releases = session.rework_releases();
+            let release = match since {
+                Some(label) => releases.iter().find(|r| r.label == *label),
+                None => releases.first(),
+            };
+            match (release, since) {
+                (Some(r), _) => ew_api::ReworkBase::Release(r.revision),
+                (None, Some(label)) => {
+                    io.error(format_args!(
+                        "{}: no release {label} whose archive is found beside the project; give the archive with                          `--archive <file>`",
+                        dir.display()
+                    ));
+                    return 2;
+                }
+                (None, None) => {
+                    io.error(format_args!(
+                        "{}: {}",
+                        dir.display(),
+                        ew_api::ReworkError::NoRelease
+                    ));
+                    return 2;
+                }
+            }
+        }
+    };
+    let rework = match session.rework(&base) {
+        Ok(r) => r,
+        Err(e) => {
+            io.error(format_args!("{}: {e}", dir.display()));
+            return 2;
+        }
+    };
+    let bytes = match a.format {
+        Some(ReportPages::Xlsx) => match session.rework_xlsx(&rework, None) {
+            Ok(b) => b,
+            Err(e) => {
+                io.error(format_args!("{}: {e}", out.display()));
+                return 2;
+            }
+        },
+        _ => session.rework_csv(&rework).into_bytes(),
+    };
+    if let Err(e) = write_atomically(out, &bytes) {
+        io.error(format_args!("{}: {e}", out.display()));
+        return 2;
+    }
+    outln!(
+        io,
+        "rework list written to {}: {}",
+        out.display(),
+        plural(rework.set.rows.len(), "row", "rows")
+    );
+    0
+}
+
 impl Leaf for ExtractArgs {
     const EXITS: &'static [Exit] = &[
         exit(0, "extracted"),

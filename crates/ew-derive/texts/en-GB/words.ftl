@@ -125,3 +125,17 @@ length-source-typed = typed
 length-source-cable = cable
 length-source-from-part = from part
 length-source-missing = missing
+
+## The rework list: what the fitter does, and what changed
+
+rework-pull = Pull
+rework-replace = Replace
+rework-move-end = Move end
+rework-check-length = Check length
+rework-add = Add
+rework-change-size = size { $p0 } → { $p1 }
+rework-change-colour = colour { $p0 } → { $p1 }
+rework-change-wire-part = wire part { $p0 } → { $p1 }
+rework-change-end = end { $p0 } → { $p1 }
+rework-change-length = length { $p0 } → { $p1 }
+rework-changes-between = { "; " }

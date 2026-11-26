@@ -146,3 +146,8 @@ change here.
   it said `manual` (`handmatig`).
 - behaviour-change: The Output tab has a Workshop group with Wire list, which opens the first page of the project's
   wire list and says so ("Opened the wire list on page 907."); a project without one opens Report… on the wire list.
+- behaviour-change: Output ▸ Workshop ▸ Rework list… compares the project with a release (the newest whose archive is
+  in the folder beside the project, another release, or an archive file) and lists what the fitter changes in the
+  built cabinet: the wires to pull, to replace, the ends to move, the lengths to check and the wires to add, each with
+  its change in words ("size 1.5 → 2.5 mm²"); Export… writes it as XLSX or CSV. `ew export rework [--since
+  <revision> | --archive <file>] [--format csv|xlsx] --out <file>` writes the same list.

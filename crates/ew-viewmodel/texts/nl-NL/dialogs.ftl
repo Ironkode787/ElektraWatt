@@ -134,3 +134,39 @@ dialog-create-field = Veld maken
 form-field-name = Naam
 form-field-for = Eén waarde voor
 form-field-value = Waarde nu
+
+## Output ▸ Workshop ▸ Rework list… (doc 13 §3.5)
+
+rework-title = Wijzigingslijst
+rework-compare-with = Vergelijken met
+rework-archive-file = Archiefbestand…
+rework-against = het project zoals het nu is tegen het archief van { $p0 }
+rework-release = { $p0 }, vrijgegeven { $p1 }
+rework-export = Exporteren…
+rework-work = Het werk: { $p0 }.
+rework-nothing = Niets te veranderen: het project is zoals het vrijgegeven is.
+rework-not-listed = Niet vermeld: draden die alleen op een pagina verschoven of een andere route kregen, en een nieuw draadnummer.
+rework-count-pull = { $p0 ->
+        [one] 1 draad uittrekken
+       *[other] { $p0 } draden uittrekken
+    }
+rework-count-replace = { $p0 ->
+        [one] 1 draad vervangen
+       *[other] { $p0 } draden vervangen
+    }
+rework-count-move-end = { $p0 ->
+        [one] 1 einde verleggen
+       *[other] { $p0 } einden verleggen
+    }
+rework-count-check-length = { $p0 ->
+        [one] 1 lengte nakijken
+       *[other] { $p0 } lengtes nakijken
+    }
+rework-count-add = { $p0 ->
+        [one] 1 draad toevoegen
+       *[other] { $p0 } draden toevoegen
+    }
+rework-no-release = Dit project heeft nog geen vrijgegeven revisie: de wijzigingslijst vergelijkt met een vrijgave. Geef het vrij op het tabblad Controle, of kies een archiefbestand.
+rework-no-archive = Het archief van { $p0 }, { $p1 }, staat niet in de map naast het project: kies het archiefbestand.
+rework-other-archive = { $p0 } is niet het archief van { $p1 }: het is een ander bestand met die naam. Kies het archiefbestand.
+rework-not-opened = Het archief opent niet: { $p0 }

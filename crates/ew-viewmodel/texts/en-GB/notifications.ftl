@@ -493,6 +493,7 @@ toast-parts-unlisted = { $p0 ->
     }.
 toast-parts-list-opened = Opened the set's parts list on page { $p0 }; it makes no second one. Report… on the Output tab adds another list.
 toast-wire-list-opened = Opened the wire list on page { $p0 }.
+toast-rework-written = Wrote the rework list to { $p0 }.
 toast-back-to-editor = Back to the editor
 toast-route-done = { $p0 ->
         [one] Routed 1 wire: { $p1 }

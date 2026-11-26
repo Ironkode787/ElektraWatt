@@ -133,6 +133,19 @@ impl Prompt {
                 Some(format!("plc.{extension}")),
                 vec![filter(&extension.to_uppercase(), &[extension])],
             ),
+            // Rework list…'s Archive file… and Export….
+            Prompt::OpenArchive => (
+                title(key!("prompt-open-archive-title")),
+                PickKind::File,
+                None,
+                vec![filter("EWARCHIVE", &["ewarchive"])],
+            ),
+            Prompt::SaveRework => (
+                title(key!("prompt-save-rework-title")),
+                PickKind::Save,
+                name(key!("prompt-rework-name")),
+                vec![filter("XLSX", &["xlsx"]), filter("CSV", &["csv"])],
+            ),
             Prompt::OpenPlcExchange => (
                 title(key!("prompt-plc-import-title")),
                 PickKind::File,

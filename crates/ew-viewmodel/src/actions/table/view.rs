@@ -343,8 +343,13 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // Output ▸ Workshop ▸ Wire list opens the first page of the project's wire list, else Report block… on that kind
     // (doc 13 §12).
     placed(
-        place(Group::Workshop, 1, CommandSize::Large, Some(key!("bar-lists-wires"))),
-        "route-2",
+        place(
+            Group::Workshop,
+            1,
+            CommandSize::Large,
+            Some(key!("bar-lists-wires")),
+        ),
+        "wave-sine",
         act(
             "lists.wires",
             View,
@@ -354,6 +359,48 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             None,
             |s, _| s.act_lists_wires(),
         ),
+    ),
+    // Output ▸ Workshop ▸ Rework list…: what the fitter changes since a release (doc 13 §3.5); the dialog's Archive
+    // file… and Export….
+    with_params(
+        "revision?:text",
+        placed(
+            place(Group::Workshop, 2, CommandSize::Small, None),
+            "refresh",
+            act(
+                "rework.show",
+                View,
+                Menu::Output,
+                &[],
+                project_open,
+                None,
+                |s, p| s.act_rework_show(p),
+            ),
+        ),
+    ),
+    with_params(
+        "path?:path",
+        hidden(act(
+            "rework.archive",
+            View,
+            Menu::Output,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_rework_archive(p),
+        )),
+    ),
+    with_params(
+        "path?:path",
+        hidden(act(
+            "rework.export",
+            Command,
+            Menu::Output,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_rework_export(p),
+        )),
     ),
     keeps_banner(with_params(
         "on?:bool",

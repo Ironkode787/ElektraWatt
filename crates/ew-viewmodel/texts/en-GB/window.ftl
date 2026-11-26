@@ -236,3 +236,9 @@ table-cell-name = { $p0 } { $p1 }
 table-cell-manual = { $p0 }, { $p1 }
 # An inline card's strip: its title and its summary.
 card-strip = { $p0 } · { $p1 }
+
+## The file dialogs of Rework list…
+
+prompt-open-archive-title = Compare with an archive
+prompt-save-rework-title = Export the rework list
+prompt-rework-name = rework.xlsx

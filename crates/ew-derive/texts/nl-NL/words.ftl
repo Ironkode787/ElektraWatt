@@ -121,3 +121,17 @@ length-source-typed = getypt
 length-source-cable = kabel
 length-source-from-part = uit artikel
 length-source-missing = ontbreekt
+
+## The rework list: what the fitter does, and what changed
+
+rework-pull = Uittrekken
+rework-replace = Vervangen
+rework-move-end = Einde verleggen
+rework-check-length = Lengte nakijken
+rework-add = Toevoegen
+rework-change-size = doorsnede { $p0 } → { $p1 }
+rework-change-colour = kleur { $p0 } → { $p1 }
+rework-change-wire-part = draadartikel { $p0 } → { $p1 }
+rework-change-end = einde { $p0 } → { $p1 }
+rework-change-length = lengte { $p0 } → { $p1 }
+rework-changes-between = { "; " }

@@ -9,7 +9,8 @@
 use std::collections::BTreeSet;
 
 use ew_derive::{
-    NameSource, PotentialNameOf, PotentialPartition, PropSource, Q, WireLength, WireNumbers, WireRecordSet, cp_label,
+    NameSource, PotentialNameOf, PotentialPartition, PropSource, Q, WireLength, WireNumbers, WireRecordSet,
+    cp_label,
 };
 use ew_ids::{Id, Uuid};
 use ew_model::EndpointKey;

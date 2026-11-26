@@ -180,6 +180,7 @@ The `Session` facade shared by every front-end.
 | `src/queries.rs` | large | The public queries of `ew query` (doc 17 §3.3 and §3.4, FR-EXT-005). |
 | `src/release.rs` |  | The release gate and the sign-off (doc 15 §5.4, §5.5): [`Session::release_gate`] runs the gate on the saved generation, [`Session::approve`] records the checker's sign-off bound to that generation's content digest. |
 | `src/release_run.rs` | large | The atomic release and the as-built archive (doc 05 §14.1, §14.2; doc 15 §5.5): [`Session::release`] runs the six steps, [`Session::incomplete_release`] finds what a crash left, and [`Session::discard_incomplete_release`] and [`Session::complete_release`] settle it. |
+| `src/rework.rs` |  | The rework list between a release and now (doc 13 §3.5): the as-built archive of a released revision, found by the name and the SHA-256 its release record keeps in the project's archive root (doc 05 §14.2), or an archive file a person chooses, opened read-only ([`Session::open_archive`]) and compared with the project as it is ([`ew_derive::rework`]). |
 | `src/routing.rs` |  | The router as the window, the CLI and the tools reach it (docs/design/06a-drafting.md §2.7, §7): [`Session::route_plan`] plans Route on a page or a selection with `ew_drafting::route` on the page as the layout sees it ([`Session::page_draft`]), [`Session::arrange_plan`] Arrange and route with `ew_drafting::arrange`, and each gives its plan as the parameters of the one `layout.apply` that stores it; [`route_wire`] and [`wire_clear`] are the Wire tool's route between two ends, in page nm; [`unrouted_line`] the line of a wire without a route. |
 | `src/stock.rs` |  | The workshop stock dialog's rows (doc 07 §2.5 "The workshop stock", Project ▸ Edit stock…): each stock part with what it is for, read from its own sections; a part typed by its number, held or from a library, with the documents that embed it. |
 | `src/symbols.rs` | large | Symbol authoring shared by the window and data-driven tools. |
@@ -409,6 +410,7 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/profile.rs` |  | Versioned derivation profiles (ADR-0003 "Versioned derivation profiles", ARCH §6.6, FR-PRJ-011) and the project's numbering settings (doc 03 §5.1). |
 | `src/q.rs` |  | The tracked-read context [`Q`] (ADR-0002 decision 1, ARCH §3 rule 1, §6.1). |
 | `src/query.rs` |  | The [`Query`] trait and the request-scoped cold cache of [`Q`](crate::Q) (ADR-0002 decisions 1–3). |
+| `src/rework.rs` |  | The rework list (doc 13 §3.5): what the fitter changes in a built cabinet between a release and now. |
 | `src/settings.rs` |  | Project settings members as queries: `settings_member(name)` (ARCH §6.4, ADR-0002 amendment 4). |
 | `src/stitch.rs` |  | The stitch graph over local nets: `stitch_graph()` (ARCH §6.4, doc 08 §3.3). |
 | `src/strip_bridges.rs` |  | `strip_bridges(strip)`: the terminal bridges of one strip, grouped (doc 08 §2.3, §6.5). |
@@ -893,6 +895,7 @@ Built-in report row queries (a user SQL report gives an empty row set marked not
 | `src/kinds/potential_overview.rs` |  | `potential_overview`: the potential overview (FR-REP-016; folio 909 of the standard layout). |
 | `src/kinds/profile_tables.rs` |  | `profile_tables`: the embedded colour and standard-size tables of the cover (FR-REP-028, FR-REP-038; doc 08 §4.2). |
 | `src/kinds/revision_overview.rs` |  | `revision_overview`: the revisions and their changed pages (FR-REP-018, folio 911 of the standard layout; doc 09 §2.4, doc 15 §5.6). |
+| `src/kinds/rework.rs` |  | The rework list's rows (doc 13 §3.5). |
 | `src/kinds/structure_overview.rs` |  | `structure_overview`: the structure-identifier and device-tag overview (FR-REP-017; folio 910 of the standard layout). |
 | `src/kinds/terminal_diagram.rs` |  | `terminal_diagram`: the terminal diagram of one strip (FR-REP-009; from folio 903 of the standard layout). |
 | `src/kinds/terminal_overview.rs` |  | `terminal_overview`: the terminal strip overview (FR-REP-010). |
@@ -1150,6 +1153,7 @@ The window of the desktop program in egui: it paints the shell model of `ew-view
 | `src/properties.rs` | large | The property grid pane: the shell's sheet drawn as the inline preview card, the header and one block per section with collapsible groups; each row its label, its value or editor, the provenance chip (an icon glyph and words, never colour alone) and its actions. |
 | `src/properties/header.rs` |  | The Properties pane's header: the title of what is shown, its lines, and the chips of its findings by severity. |
 | `src/rail.rs` |  | The rails (doc 16a §5.4 and §5.6): the navigator rail at the window's left with History at its foot, the palettes rail at its right, both views of `ew_viewmodel::rail::rail`. |
+| `src/rework.rs` |  | The Rework list… dialog's own content (doc 13 §3.5, §12; doc 16a §6.12, §6.21): Compare with (the releases whose archive is found, newest first, and Archive file…), one line that counts the work, the rows under the headings of a table, and the line of what is not listed; or why there is no list. |
 | `src/splitter.rs` |  | Named splitter handles for egui_tiles trees. |
 | `src/start_page.rs` |  | The start page (UX/UI doc 16 section 3.7): New project (its dialog says what the project starts from), Open, the recent projects, Open sample project, Import QElectroTech project, Templates…, Tutorials, the quick switches for language and keymap, and the privacy line "This version has no update check" (nothing to change, so no button). |
 | `src/startup.rs` |  | The start-up dialog (FR-UI-050's 0.1.0 part): the unsaved work of an earlier session and the crash log of a session that ended with a panic, in the dialog frame ([`crate::dialog`]). |
@@ -1309,6 +1313,7 @@ Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command 
 | `src/shell/properties/rows.rs` |  | The Properties pane's rows beyond their values: a row's menu and its actions, the unused connection points, the list and multi-language editors, and the card's Apply and Cancel. |
 | `src/shell/read_jobs.rs` |  | Imports whose reading runs as a job (doc 16 §8.3): an EDZ or a parts XML read for File ▸ Import…, a PLC exchange file read and merged for its preview, a report spreadsheet made into a project. |
 | `src/shell/revision.rs` | large | The revision dialogs of Check ▸ Revision: Approve revision, Release revision, Withdraw revision and Set revision author, and the offer of an incomplete release when a project opens; with the release's housekeeping warnings in Messages. |
+| `src/shell/rework.rs` |  | Output ▸ Workshop ▸ Rework list… (doc 13 §3.5, §12): what the fitter changes in a built cabinet since a release. |
 | `src/shell/row_ops.rs` |  | The navigator row operations: `cable.swap_cores` on the Cables navigator, and the generic half, `navigator.delete` (Delete in a tree) and `navigator.rename` (F2 in a tree). |
 | `src/shell/said.rs` |  | Where the outcome of an act of the window is said (architecture §9.1): the one function that runs a step and places its failure or refusal, in the banner, the open dialog, a toast and the status line, or nowhere when the screen shows it already (one fact in one place, doc 16a P3). |
 | `src/shell/selected.rs` |  | The typed readers of the selection (architecture §9.1): what an enable check and its handler read of what is selected, each reader in the one form its callers read, so that the gate and the handler cannot disagree. |

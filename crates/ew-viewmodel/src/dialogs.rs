@@ -167,6 +167,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         Dialog::Templates(_) => templates_spec(),
         Dialog::TextStyles(_) => text_styles_spec(model),
         Dialog::WorkshopStock(_) => stock_spec(model),
+        Dialog::Rework(d) => rework_spec(d),
         Dialog::ConfirmJournalDiscard => journal_discard_spec(),
         Dialog::ConfirmPurge { files, .. } => purge_spec(files),
         Dialog::ConfirmRemovePart { part, number } => remove_part_spec(part, number),
@@ -489,6 +490,23 @@ fn text_styles_spec(model: &ShellModel) -> DialogSpec {
             vec![strings::text(key!("text-styles-text")).to_owned()],
             close(),
         )
+    }
+}
+
+/// Rework list…: Export… (greyed while there is no list) and Close; what it compares with, the work and the rows are
+/// the dialog's own.
+fn rework_spec(d: &crate::shell::rework::ReworkDialog) -> DialogSpec {
+    let export = DialogButton {
+        disabled: d.list.as_ref().err().cloned(),
+        ..DialogButton::new(
+            key!("rework-export"),
+            DialogAnswer::Action("rework.export", json!({})),
+        )
+    };
+    DialogSpec {
+        form: true,
+        secondary: vec![close()],
+        ..small(strings::text(key!("rework-title")).to_owned(), Vec::new(), export)
     }
 }
 

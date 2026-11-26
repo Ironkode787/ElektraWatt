@@ -107,6 +107,9 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `report_block.rows` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_report_block_rows` `crates/ew-viewmodel/src/shell/list_look.rs` | `action-report-block-rows` |
 | `lists.parts` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_lists_parts` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-lists-parts`, `bar-lists-parts` |
 | `lists.wires` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_lists_wires` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-lists-wires`, `bar-lists-wires` |
+| `rework.show` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_rework_show` `crates/ew-viewmodel/src/shell/rework.rs` | `action-rework-show` |
+| `rework.archive` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_rework_archive` `crates/ew-viewmodel/src/shell/rework.rs` | `action-rework-archive`, `rework-archive-file` |
+| `rework.export` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_rework_export` `crates/ew-viewmodel/src/shell/rework.rs` | `action-rework-export`, `rework-export` |
 | `notifications.show` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_notifications_show` `crates/ew-viewmodel/src/shell/jobs.rs` | `action-notifications-show` |
 | `messages.migration` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_messages_migration` `crates/ew-viewmodel/src/shell/messages.rs` | `action-messages-migration` |
 | `messages.show` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_messages_show` `crates/ew-viewmodel/src/shell/messages.rs` | `action-messages-show` |

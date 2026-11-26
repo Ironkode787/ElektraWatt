@@ -143,6 +143,8 @@ pub mod print;
 // The user's keymap and the keymap editor.
 mod keymaps;
 mod revision;
+// Output ▸ Workshop ▸ Rework list….
+pub mod rework;
 // The one-time tips, the glossary pane and the wire-colour view.
 mod glossary;
 /// The start-up offer after a crash.
@@ -398,6 +400,9 @@ pub enum Dialog {
     TextStyles(Box<text_styles::TextStylesDialog>),
     /// The workshop stock (Project ▸ Edit stock…).
     WorkshopStock(Box<stock::StockDialog>),
+    /// Output ▸ Workshop ▸ Rework list… (`rework.show`): what it compares with, the work in one line, the rows;
+    /// Export… and Close.
+    Rework(Box<rework::ReworkDialog>),
     /// View, Workspace, Save layout as: a name typed by the user.
     SaveWorkspace {
         /// The text of the field.
@@ -623,6 +628,10 @@ pub enum Prompt {
     SavePlcExchange(&'static str),
     /// An existing PLC exchange file, AML or a TIA tag workbook (PLC exchange…'s import).
     OpenPlcExchange,
+    /// An as-built archive of a release, `.ewarchive` (Rework list…'s Archive file…).
+    OpenArchive,
+    /// A rework list file name, XLSX or CSV (Rework list…'s Export…).
+    SaveRework,
 }
 
 /// A request to the window to open a page of the user guide in the system browser (F1).

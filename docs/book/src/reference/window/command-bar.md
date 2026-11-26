@@ -301,6 +301,19 @@ Writes every page as an AutoCAD 2010 DXF file into a folder you choose, with the
 beside them: a symbol is a block, and a device's tag and other texts are attributes of it. The folder must be empty or
 hold such a set already, which the new one replaces. For a DWG, open the files in your CAD program or a converter.
 
+### Open wire list
+
+In the Workshop group. Shows the first page of the project's wire list, the fitter's sheet: per wire its ends, its
+colour, its cross-section and its length. A project without a wire list opens Report block… on the wire list.
+
+### Rework list…
+
+In the Workshop group. Compares the project as it is with a release and lists what the fitter changes in the built
+cabinet, in the order he does it: the wires to pull, to replace, the ends to move, the lengths to check and the wires
+to add. It compares with the newest release whose archive is in the folder beside the project, or with another
+release or an archive file you choose; Export… writes the list as XLSX or CSV. A wire that only moved on a page, or
+only got another number, is not listed.
+
 ## View
 
 ### Back

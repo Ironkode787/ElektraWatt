@@ -961,6 +961,16 @@ pub(crate) enum ExportCli {
     /// written, 2 on everything else (usage, open errors, a project changed on disk or one that cannot be packed, write
     /// errors).
     Ewz(EwzCli),
+    /// Write the rework list since a release as CSV or XLSX.
+    ///
+    /// Compares the project as it is with the as-built archive of a release (doc 13 §3.5) and writes what the fitter
+    /// changes in the built cabinet, one row per thing he does (Pull, Replace, Move end, Check length, Add), to `--out`
+    /// (required). `--since <revision>` names the release by its label; without it the last release whose archive is
+    /// found beside the project (`<name>.ew-archive`). `--archive <file>` compares with an archive file instead.
+    /// `--format xlsx` writes a workbook of one sheet; the CSV is the `ew` dialect. Exit 0 when written, 2 on
+    /// everything else (usage, open errors, no release or no archive found, an archive that does not open, write
+    /// errors).
+    Rework(ReworkCli),
     /// Write one PNG file per page.
     ///
     /// Writes one `<folio>.png` per page into the directory `--out` (empty, or one an earlier PNG export wrote, which
@@ -1209,6 +1219,38 @@ impl EwzCli {
         self.out
             .as_ref()
             .ok_or_else(|| usage_error(&["export", "ewz"], EWZ_NEEDS_OUT))
+    }
+}
+
+/// `ew export rework`.
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct ReworkCli {
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
+    /// The release to compare with, by its label (default: the last one whose archive is found).
+    #[arg(long, value_name = "revision", conflicts_with = "archive")]
+    pub(super) since: Option<String>,
+    /// An archive file to compare with.
+    #[arg(long, value_name = "file", allow_hyphen_values = true)]
+    pub(super) archive: Option<PathBuf>,
+    /// The format: csv (default) or xlsx.
+    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = table_format())]
+    pub(super) format: Option<ReportPages>,
+    /// The file to write (required).
+    #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
+    pub(super) out: Option<PathBuf>,
+}
+
+impl ReworkCli {
+    /// The file to write: `--out` is needed.
+    pub(super) fn file(&self) -> Result<&PathBuf, clap::Error> {
+        self.out.as_ref().ok_or_else(|| {
+            usage_error(
+                &["export", "rework"],
+                "`ew export rework` writes a file: give `--out <file>`",
+            )
+        })
     }
 }
 

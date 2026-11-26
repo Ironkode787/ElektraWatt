@@ -6,6 +6,7 @@
 
 ## The heading of a column
 
+column-action = Actie
 column-address = Adres
 column-address-or-name = Adres of naam
 column-aliases = Aliassen
@@ -17,6 +18,7 @@ column-bus-system = Bussysteem
 column-cable = Kabel
 column-cable-type = Kabeltype
 column-category = Categorie
+column-change = Wijziging
 column-changed-pages = Gewijzigde pagina's
 column-channel = Kanaal
 column-checker = Controleur

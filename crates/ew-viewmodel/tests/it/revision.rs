@@ -942,3 +942,73 @@ fn the_revision_dialogs_list_the_findings_in_dutch() {
     );
     s.shutdown();
 }
+
+/// Output ▸ Workshop ▸ Rework list… (doc 13 §3.5): on a project without a release the dialog says how to get one and
+/// Export… is greyed; after V1.0 is released it compares with V1.0 and finds nothing to change; a length typed since
+/// then is one length to check, which Export… writes as CSV with a toast that names the file.
+#[test]
+fn the_rework_list_compares_with_the_release() {
+    let tmp = Tmp::new("revision-rework");
+    let dir = fixture_copy(&tmp);
+    let mut s = opened(ShellModel::new(Mode::Gui, config(&tmp)), &dir);
+    done(&mut s, "rework.show", json!({}));
+    assert_eq!(
+        dialog_text(&mut s),
+        "dialog \"Rework list\"\n  field \"Compare with\": \"\"\n  note \"This project has no released revision yet: \
+         the rework list compares with a release. Release it on the Check tab, or choose an archive file.\"\n  button \
+         \"Export…\" disabled: This project has no released revision yet: the rework list compares with a release. \
+         Release it on the Check tab, or choose an archive file.\n  button \"Close\""
+    );
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "revision.approve", json!({ "typed": "V1.0" }));
+    done(
+        &mut s,
+        "revision.approve",
+        json!({ "confirm": true, "date": DATE }),
+    );
+    done(&mut s, "revision.release", json!({ "typed": "V1.0" }));
+    done(
+        &mut s,
+        "revision.release",
+        json!({ "confirm": true, "date": DATE }),
+    );
+    done(&mut s, "rework.show", json!({}));
+    let text = dialog_text(&mut s);
+    assert!(
+        text.contains("  field \"Compare with\": \"V1.0, released ")
+            && text.contains("  label \"Nothing to change"),
+        "{text}"
+    );
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "navigator.show", json!({"kind": "connections"}));
+    done(
+        &mut s,
+        "navigator.table",
+        json!({"kind": "connections", "on": true}),
+    );
+    done(
+        &mut s,
+        "table.set",
+        json!({"kind": "connections", "column": "length", "value": "650", "rows": ["1.1"]}),
+    );
+    done(&mut s, "rework.show", json!({ "revision": "V1.0" }));
+    let text = dialog_text(&mut s);
+    assert!(
+        text.contains("  label \"The work: 1 length to check.\""),
+        "{text}"
+    );
+    assert!(text.contains("length — → 650 mm"), "{text}");
+    let file = tmp.0.join("rework.csv");
+    done(&mut s, "rework.export", json!({ "path": file.to_string_lossy() }));
+    let csv = std::fs::read_to_string(&file).expect("the rework list is written");
+    assert!(csv.starts_with("row,Action,No.,"), "{csv}");
+    assert!(csv.contains("data,Check length,1.1,"), "{csv}");
+    assert!(
+        s.notifications()
+            .visible()
+            .iter()
+            .any(|n| n.text == "Wrote the rework list to rework.csv."),
+        "the toast"
+    );
+    s.shutdown();
+}

@@ -75,6 +75,7 @@ mod print_dialog;
 mod junction;
 mod picker;
 pub mod properties;
+mod rework;
 mod splitter;
 mod start_page;
 mod station_view;

@@ -45,7 +45,7 @@ fn fixture() -> PathBuf {
     PathBuf::from(ew_testdir::RELEASE_MIN)
 }
 
-fn store_options(state: &Path) -> StoreOptions {
+pub(crate) fn store_options(state: &Path) -> StoreOptions {
     let mut o = StoreOptions::new("wp-s1-18-part4");
     o.state_dir = Some(state.to_path_buf());
     o
@@ -250,7 +250,7 @@ fn approve(s: &mut Session, integrity: &[checks::IntegrityItem]) {
 }
 
 /// A git port for a project outside any worktree: it never looks at the disk.
-struct NoGit;
+pub(crate) struct NoGit;
 
 impl Git for NoGit {
     fn worktree(&self, _: &dyn Vfs, _: &Path) -> std::io::Result<Option<PathBuf>> {
@@ -336,7 +336,7 @@ impl Git for FakeGit {
     }
 }
 
-fn options<'a>(git: &'a dyn Git, root: Option<&'a Path>) -> ReleaseOptions<'a> {
+pub(crate) fn options<'a>(git: &'a dyn Git, root: Option<&'a Path>) -> ReleaseOptions<'a> {
     ReleaseOptions {
         archive_root: root,
         git,

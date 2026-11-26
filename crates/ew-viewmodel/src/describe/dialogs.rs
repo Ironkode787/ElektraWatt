@@ -169,6 +169,8 @@ pub(super) fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                 lines.push(format!("  error \"{e}\""));
             }
         }
+        // Rework list…: what it compares with, the work, the headings and the rows, or why there is no list.
+        Dialog::Rework(d) => rework_dialog_lines(d, lines),
     }
     for b in spec.buttons() {
         match &b.disabled {
@@ -338,6 +340,37 @@ fn templates_dialog_lines(d: &crate::shell::TemplatesDialog, lines: &mut Vec<Str
     }
     if let Some(note) = &d.note {
         lines.push(format!("  note \"{}\"", user(note)));
+    }
+}
+
+/// The lines of the Rework list… dialog.
+fn rework_dialog_lines(d: &crate::shell::rework::ReworkDialog, lines: &mut Vec<String>) {
+    use crate::shell::rework::Against;
+    let against = match &d.against {
+        Against::Nothing => String::new(),
+        Against::Release(i) => d.releases.get(*i).map(|(_, w)| user(w)).unwrap_or_default(),
+        Against::File(path) => user(
+            &path
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_default(),
+        ),
+    };
+    lines.push(format!(
+        "  field \"{}\": \"{against}\"",
+        strings::text(key!("rework-compare-with"))
+    ));
+    match &d.list {
+        Ok(list) => {
+            lines.push(format!("  label \"{}\"", user(&list.work)));
+            if !list.rows.is_empty() {
+                lines.push(format!("  header \"{}\"", user(&list.header.join("\" \""))));
+            }
+            for row in &list.rows {
+                lines.push(format!("  row \"{}\"", user(&row.join("\" \""))));
+            }
+        }
+        Err(why) => lines.push(format!("  note \"{}\"", user(why))),
     }
 }
 

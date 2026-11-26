@@ -100,7 +100,8 @@ impl ReportKindDef for WireList {
     }
 }
 
-fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
+/// The wire list's row of one wire.
+pub(super) fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
     let w = &rec.wire;
     let (from, from_cp) = end_cells(q, &w.ends[0], &w.ends[1]);
     let (to, to_cp) = end_cells(q, &w.ends[1], &w.ends[0]);
@@ -160,7 +161,9 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
     set("length", length_cell(rec.length));
     set(
         "length_source",
-        Cell::Text(ew_derive::text::in_languages(&ew_derive::text::wire_length_source(&rec.length))),
+        Cell::Text(ew_derive::text::in_languages(
+            &ew_derive::text::wire_length_source(&rec.length),
+        )),
     );
     let mut r = Row::data(RowId::entity(w.id), cells);
     r.sources = w
@@ -177,7 +180,9 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
 fn length_cell(length: WireLength) -> Cell {
     match length {
         WireLength::Typed(n) => Cell::Qty(Dec3(n.0 / 1_000), QtyUnit::Unit(Unit::Mm)),
-        WireLength::WithCable(_) => Cell::Text(ew_derive::text::in_languages(&ew_derive::text::wire_length_source(&length))),
+        WireLength::WithCable(_) => Cell::Text(ew_derive::text::in_languages(
+            &ew_derive::text::wire_length_source(&length),
+        )),
         WireLength::Missing => Cell::ident("—"),
     }
 }

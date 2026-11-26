@@ -405,7 +405,14 @@ impl ShellModel {
 
     /// The records a cell of route (`kind`, `path`) sets: a PLC channel's Function text the wired device
     /// ([`ShellModel::channel_device`]), every other cell its row's ([`row_targets`]).
-    fn cell_targets(&self, table: &NavTable, node: &NavNode, col: usize, kind: &str, path: &str) -> Vec<Uuid> {
+    fn cell_targets(
+        &self,
+        table: &NavTable,
+        node: &NavNode,
+        col: usize,
+        kind: &str,
+        path: &str,
+    ) -> Vec<Uuid> {
         match channel_text_cell(table, node, col) {
             Some(_) => self.channel_device(table, node, col).into_iter().collect(),
             None => row_targets(node, kind, path),

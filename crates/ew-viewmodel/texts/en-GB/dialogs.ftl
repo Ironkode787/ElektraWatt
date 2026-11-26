@@ -139,3 +139,39 @@ dialog-create-field = Create field
 form-field-name = Name
 form-field-for = One value for
 form-field-value = Value now
+
+## Output ▸ Workshop ▸ Rework list… (doc 13 §3.5)
+
+rework-title = Rework list
+rework-compare-with = Compare with
+rework-archive-file = Archive file…
+rework-against = the project as it is now against the archive of { $p0 }
+rework-release = { $p0 }, released { $p1 }
+rework-export = Export…
+rework-work = The work: { $p0 }.
+rework-nothing = Nothing to change: the project is as it was released.
+rework-not-listed = Not listed: wires that only moved on a page or took another route, and a new wire number.
+rework-count-pull = { $p0 ->
+        [one] 1 wire to pull
+       *[other] { $p0 } wires to pull
+    }
+rework-count-replace = { $p0 ->
+        [one] 1 wire to replace
+       *[other] { $p0 } wires to replace
+    }
+rework-count-move-end = { $p0 ->
+        [one] 1 end to move
+       *[other] { $p0 } ends to move
+    }
+rework-count-check-length = { $p0 ->
+        [one] 1 length to check
+       *[other] { $p0 } lengths to check
+    }
+rework-count-add = { $p0 ->
+        [one] 1 wire to add
+       *[other] { $p0 } wires to add
+    }
+rework-no-release = This project has no released revision yet: the rework list compares with a release. Release it on the Check tab, or choose an archive file.
+rework-no-archive = The archive of { $p0 }, { $p1 }, is not in the folder beside the project: choose the archive file.
+rework-other-archive = { $p0 } is not the archive of { $p1 }: it is another file under that name. Choose the archive file.
+rework-not-opened = The archive does not open: { $p0 }

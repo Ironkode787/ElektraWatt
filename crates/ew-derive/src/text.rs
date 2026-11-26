@@ -10,12 +10,14 @@
 use ew_l10n::{Text, TextArg};
 use ew_mltext::MlText;
 use ew_schema::{
-    AddrValue, ColourCode, ColourSpec, Csa, FluidPortRole, Kind, LengthSource, LineKind, PotentialType, TagSpec,
+    AddrValue, ColourCode, ColourSpec, Csa, FluidPortRole, Kind, LengthSource, LineKind, PotentialType,
+    TagSpec,
 };
 use ew_units::{Dec3, Nm};
 
 use crate::bus::net_address_text;
 use crate::plc::{ChannelAddr, Slot};
+use crate::rework::{ReworkAction, ReworkChange};
 use crate::wire_record::WireLength;
 
 /// A device's tag by its own letter and counter (`-K1`; `-K` before online numbering gives it a counter): how a
@@ -313,6 +315,61 @@ pub fn wire_length_source(length: &WireLength) -> Text {
         WireLength::WithCable(_) => text!("length-source-cable"),
         WireLength::Missing => text!("length-source-missing"),
     }
+}
+
+/// A rework action in words (doc 13 §3.5): "Pull", "Move end".
+pub fn rework_action(action: ReworkAction) -> Text {
+    match action {
+        ReworkAction::Pull => text!("rework-pull"),
+        ReworkAction::Replace => text!("rework-replace"),
+        ReworkAction::MoveEnd => text!("rework-move-end"),
+        ReworkAction::CheckLength => text!("rework-check-length"),
+        ReworkAction::Add => text!("rework-add"),
+    }
+}
+
+/// A change of the rework list in words (doc 13 §3.5): "size 1.5 → 2.5 mm²", "colour BK → BU", "end -104A1-A1:2 →
+/// -104A1-A1:4", "length 600 → 650 mm"; a value that is not there is "—", the unit stands once, after the new value.
+pub fn rework_change(change: &ReworkChange) -> Text {
+    const NONE: &str = "—";
+    let or_none = |s: Option<String>| s.unwrap_or_else(|| NONE.to_owned());
+    match change {
+        ReworkChange::Size(b, a) => text!(
+            "rework-change-size",
+            or_none(b.as_ref().and_then(csa_text)),
+            or_none(a.as_ref().and_then(csa_with_unit))
+        ),
+        ReworkChange::Colour(b, a) => text!(
+            "rework-change-colour",
+            or_none(b.as_ref().map(colour_text)),
+            or_none(a.as_ref().map(colour_text))
+        ),
+        ReworkChange::WirePart(b, a) => {
+            text!("rework-change-wire-part", or_none(b.clone()), or_none(a.clone()))
+        }
+        ReworkChange::End(b, a) => text!("rework-change-end", b.clone(), a.clone()),
+        ReworkChange::Length(b, a) => {
+            let value = |l: &WireLength, unit: bool| -> TextArg {
+                match l {
+                    WireLength::Typed(n) if unit => format!("{} mm", mm_exact(i128::from(n.0))).into(),
+                    WireLength::Typed(n) => mm_exact(i128::from(n.0)).into(),
+                    WireLength::WithCable(_) => wire_length_source(l).into(),
+                    WireLength::Missing => NONE.into(),
+                }
+            };
+            text!("rework-change-length", value(b, false), value(a, true))
+        }
+    }
+}
+
+/// The changes of a rework row in words, joined by "; " (the Change cell).
+pub fn rework_changes(changes: &[ReworkChange]) -> Text {
+    let between = || text!("rework-changes-between");
+    Text::bare(ew_l10n::List::new(
+        changes.iter().map(|c| TextArg::from(rework_change(c))).collect(),
+        between(),
+        between(),
+    ))
 }
 
 /// Where a cable's or a tube's length comes from: "typed", "from part", "missing" (a source of a newer format too).

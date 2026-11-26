@@ -133,6 +133,8 @@ pub mod queries;
 mod release;
 // The atomic release and the as-built archive.
 mod release_run;
+// The rework list between a release and now.
+mod rework;
 // The router the canvas tools call.
 pub mod routing;
 // `.ewz` opened read-only and the export of the saved generation.
@@ -203,6 +205,7 @@ pub struct UndrawnImage {
 
 /// The check engine (`ew check`, the message panel, the migration report): rules, schemes, findings.
 pub use ew_checks as checks;
+pub use ew_derive::ReworkAction;
 pub use ew_derive::{BomMode, DeriveNote, MemoStore};
 /// The layout of a schematic page: the page as it sees it (`Session::page_draft`), its measure and its text placer
 /// (docs/design/06a-drafting.md); the shell and the tests name it through `ew-api` (no workspace edge of their own).
@@ -277,6 +280,7 @@ pub use release_run::{
     ArchiveOpenError, Discarded, IncompleteRelease, OpenedArchive, ReleaseContext, ReleaseError,
     ReleaseOptions, ReleasePlan, ReleaseTrouble, Released, TroubleKind,
 };
+pub use rework::{Rework, ReworkBase, ReworkError, ReworkRelease};
 pub use transport::{EwzExport, ExportEwzError};
 
 /// The longest string of a command's parameters: a large file goes to its command in parts of this length
