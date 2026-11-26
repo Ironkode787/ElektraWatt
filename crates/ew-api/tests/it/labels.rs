@@ -156,3 +156,31 @@ fn the_export_profile_gives_the_label_files_their_columns() {
     let text = String::from_utf8(wires.bytes.clone()).expect("UTF-8");
     assert!(text.starts_with("\u{feff}Line;N\r\n-101Q1:1;1\r\n"), "{text}");
 }
+
+/// A core's marker, where the shop marks cores, says in its For cell which core it marks by its cable and core, as the
+/// wire list's No. does (`-101W1 BN at -X1011:L1/b`): a core has no wire number.
+#[test]
+fn a_cores_marker_is_for_its_cable_and_core() {
+    let mut s = common::sample();
+    let cmd = AnyCommand {
+        name: "project.settings.set".into(),
+        params: json!({"member": "workshop.mark_cores", "value": true}),
+    };
+    match s.execute(&cmd) {
+        Err(ew_api::CmdError::NeedsPreview { .. }) => s.preview(&cmd).and_then(|p| s.commit(p)),
+        other => other,
+    }
+    .expect("cores marked");
+    let q = s.query();
+    let set = ew_reports::project_rows(&q, &ew_schema::ReportKind::Labels, None).expect("the labels list");
+    let at = set
+        .columns
+        .iter()
+        .position(|c| c.key == "for")
+        .expect("the For column");
+    let fors: Vec<String> = (0..set.rows.len())
+        .map(|i| ew_reports::csv::row_texts(&q, &set, i)[at].clone())
+        .collect();
+    assert!(fors.iter().any(|f| f == "-101W1 BN at -X1011:L1/b"), "{fors:?}");
+    assert!(fors.iter().all(|f| !f.starts_with(' ')), "{fors:?}");
+}

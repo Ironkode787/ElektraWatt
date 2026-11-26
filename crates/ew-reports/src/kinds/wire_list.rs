@@ -248,7 +248,7 @@ pub(super) fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
 }
 
 /// The No. of a wire: its number; a core, which has none, its cable and core (`-103W1 BN`).
-fn wire_no(q: &Q, rec: &WireRecord) -> Option<String> {
+pub(super) fn wire_no(q: &Q, rec: &WireRecord) -> Option<String> {
     match (&rec.number, rec.wire.core.and_then(|c| q.conductors().get(c))) {
         (Some(n), _) => Some(n.clone()),
         (None, Some(core)) => Some(format!("{} {}", short_tag(q, core.cable), core.core.as_str())),

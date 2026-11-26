@@ -121,7 +121,8 @@ fn label_for(
             let Some(r) = records.iter().find(|r| r.wire.id == *wire) else {
                 return Cell::Empty;
             };
-            let no = r.number.clone().unwrap_or_default();
+            // A core has no number: its cable and core name it, as the wire list's No. does.
+            let no = super::wire_list::wire_no(q, r).unwrap_or_default();
             let at = cp_label(q, r.wire.ends[usize::from(*end)].cp);
             words_cell(&text!("cell-label-for", no, at))
         }
