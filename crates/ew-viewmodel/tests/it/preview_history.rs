@@ -531,8 +531,8 @@ fn selection(shell: &ShellModel) -> Vec<String> {
     shell.selection().items.iter().map(|e| e.0.to_string()).collect()
 }
 
-/// One edit of -101F1's function text while `folio` is on show with `refs` selected.
-fn edit_on(shell: &mut ShellModel, folio: &str, refs: Value, text: &str) -> Vec<String> {
+/// One edit of the function text of the device `device` while `folio` is on show with `refs` selected.
+fn edit_on(shell: &mut ShellModel, folio: &str, refs: Value, device: &str, text: &str) -> Vec<String> {
     done(shell, "page.goto", json!({ "folio": folio }));
     done(shell, "select.set", json!({ "refs": refs }));
     let sel = selection(shell);
@@ -540,25 +540,31 @@ fn edit_on(shell: &mut ShellModel, folio: &str, refs: Value, text: &str) -> Vec<
     done(
         shell,
         "command.run",
-        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-101F1"}],
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": device}],
             "path": "function_text", "value": text}}),
     );
     sel
 }
 
-/// PV5 (FR-UI-023): three edits on 101, 102 and 103, each with a selection; undo shows 103 with its selection,
-/// a second 102 with its; redo returns to 102's step context; Undo to here walks back and restores the last step's
-/// context; the panel's rows and its row cursor.
+/// PV5 (FR-UI-023): three edits on 101, 102 and 103 (of a device drawn there), each with a selection; undo shows 103
+/// with its selection, a second 102 with its; redo returns to 102's step context; Undo to here walks back and restores
+/// the last step's context; the panel's rows and its row cursor.
 #[test]
 fn undo_and_redo_restore_the_page_view_and_selection() {
     let tmp = Tmp::new("pv5");
     let mut shell = tmp.sample_in(Mode::Headless, true, "101");
-    let s101 = edit_on(&mut shell, "101", json!(["tag:-101F1"]), "one");
-    let s102 = edit_on(&mut shell, "102", json!(["tag:-102F1", "tag:-102S1"]), "two");
+    let s101 = edit_on(&mut shell, "101", json!(["tag:-101F1"]), "tag:-101F1", "one");
+    let s102 = edit_on(
+        &mut shell,
+        "102",
+        json!(["tag:-102F1", "tag:-102S1"]),
+        "tag:-102F1",
+        "two",
+    );
     done(&mut shell, "page.goto", json!({"folio": "103"}));
     let on103 = entity_points(shell.canvas().unwrap());
     let id103 = format!("id:{}", on103[0].0.0);
-    let s103 = edit_on(&mut shell, "103", json!([id103]), "three");
+    let s103 = edit_on(&mut shell, "103", json!([id103]), "tag:-103F1", "three");
     // Somewhere else, nothing selected.
     done(&mut shell, "page.goto", json!({"folio": "201"}));
     done(&mut shell, "select.set", json!({"refs": []}));
@@ -623,7 +629,7 @@ fn undo_and_redo_restore_the_page_view_and_selection() {
     assert!(
         shell
             .describe()
-            .contains("    entity changed \"device\" \"-101F1\" fields \"function_text\""),
+            .contains("    entity changed \"device\" \"-103F1\" fields \"function_text\""),
         "{}",
         shell.describe()
     );
@@ -636,6 +642,23 @@ fn undo_and_redo_restore_the_page_view_and_selection() {
         }
         other => panic!("{other:?}"),
     }
+    shell.shutdown();
+}
+
+/// Undo and Redo show the page the step changed: a change of -101F1, drawn on 101, made while 102 was on show (a
+/// quick fix or a Properties edit from another page), undone from 101, stays on 101 (it went to 102, where the change
+/// was made); redone from 201, it shows 101.
+#[test]
+fn undo_and_redo_show_the_page_the_step_changed() {
+    let tmp = Tmp::new("undo-changed-page");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
+    edit_on(&mut shell, "102", json!(["tag:-102F1"]), "tag:-101F1", "remote");
+    done(&mut shell, "page.goto", json!({"folio": "101"}));
+    done(&mut shell, "edit.undo", json!({}));
+    assert_eq!(shell.current_folio(), Some("101"), "the page the step changed");
+    done(&mut shell, "page.goto", json!({"folio": "201"}));
+    done(&mut shell, "edit.redo", json!({}));
+    assert_eq!(shell.current_folio(), Some("101"));
     shell.shutdown();
 }
 
@@ -820,4 +843,33 @@ fn the_purge_step() {
         "reason-human-only"
     );
     h.shutdown();
+}
+
+/// The order of the persona's run: a change on 101, a page made after it, then both undone. The Undo of the new page,
+/// which takes the page it changed away, goes back to where it was made (101), the Undo of the change stays there;
+/// redone from 201 the change shows 101, and the page made again from 101, where it was made, stays there with Go to
+/// page in its toast.
+#[test]
+fn undo_of_a_page_made_after_a_change_goes_back_to_where_it_was_made() {
+    let tmp = Tmp::new("undo-orders");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "101");
+    edit_on(&mut shell, "101", json!(["tag:-101F1"]), "tag:-101F1", "one");
+    let page = json!({"folio": "150", "type": "multi_line", "title": "New"});
+    done(&mut shell, "page.new", page);
+    assert_eq!(shell.current_folio(), Some("150"));
+    done(&mut shell, "edit.undo", json!({}));
+    assert_eq!(shell.current_folio(), Some("101"), "the page went");
+    done(&mut shell, "edit.undo", json!({}));
+    assert_eq!(shell.current_folio(), Some("101"));
+    done(&mut shell, "page.goto", json!({"folio": "201"}));
+    done(&mut shell, "edit.redo", json!({}));
+    assert_eq!(shell.current_folio(), Some("101"));
+    done(&mut shell, "edit.redo", json!({}));
+    assert_eq!(shell.current_folio(), Some("101"), "where it was made");
+    assert_eq!(
+        shell.toast().and_then(|t| t.action()),
+        Some("go_to"),
+        "the page made again is a click away"
+    );
+    shell.shutdown();
 }

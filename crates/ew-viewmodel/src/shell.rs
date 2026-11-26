@@ -2262,7 +2262,9 @@ impl ShellModel {
                 // (`after_commit`); so does the supply marks' Potential panel, whose marks the step may have
                 // taken.
                 self.supply_panel = None;
-                self.crossed_step(crossed);
+                // Undo and Redo show the page the step changed.
+                let pages = first.map(|i| self.step_pages(i, drew.clone()));
+                self.crossed_step(crossed.zip(pages));
                 if let Some(index) = first {
                     self.say_history_step(index, redo, drew);
                 }

@@ -13,8 +13,10 @@
 //!
 //! **Context** ([`HistoryContext`]): before every action the shell takes the focused tab's page, its viewport and the
 //! window selection; when the action committed, the context is kept under the revision of each new history entry (at
-//! most [`MAX_CONTEXTS`], the oldest dropped, cleared with the project). Undo, redo and Undo to here restore the context
-//! of the step they crossed last. A step without a kept context (an external change, a recovery) restores nothing.
+//! most [`MAX_CONTEXTS`], the oldest dropped, cleared with the project). Undo, redo and Undo to here show the page the
+//! step they crossed last changed: its kept context when the context's page is on show, or one it changed, or no page
+//! it changed is left; else the page on show when it changed it, else the first page it changed. A step without a kept
+//! context (an external change, a recovery) restores nothing.
 //! The transaction's own `TxContext` stays unused. Nothing here reads a clock or a path.
 
 use std::collections::BTreeMap;
@@ -95,8 +97,8 @@ pub struct HistoryPane {
     pub(crate) origins: BTreeMap<u64, String>,
     /// The contexts by revision.
     pub(crate) contexts: BTreeMap<u64, HistoryContext>,
-    /// The revision of the step the last undo or redo crossed.
-    pub(crate) crossed: Option<u64>,
+    /// The revision of the step the last undo or redo crossed, and the folios of the pages it changed.
+    pub(crate) crossed: Option<(u64, Vec<String>)>,
     /// While Undo to here walks: the steps restore nothing until the last.
     pub(crate) quiet: bool,
     /// While a toast's Undo runs: the toast named the step, so the Undo says nothing more.

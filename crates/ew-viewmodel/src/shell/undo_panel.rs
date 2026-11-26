@@ -11,9 +11,11 @@
 //!
 //! **Context restore.** [`ShellModel::take_context`] runs before every action; [`ShellModel::keep_contexts`] after it
 //! keeps that context under the revision of every history entry the action committed (same project session only).
-//! Undo and redo record the revision of the step they cross; [`ShellModel::restore_context`] then opens that step's page
-//! in the focused tab as a jump (one back-history entry), sets its viewport (a fitted view fits again) and selects the
-//! items of its selection that still exist (`select.set`'s resolution).
+//! Undo and redo record the revision of the step they cross and the pages it changed; [`ShellModel::restore_context`]
+//! then opens that step's page in the focused tab as a jump (one back-history entry), sets its viewport (a fitted view
+//! fits again) and selects the items of its selection that still exist (`select.set`'s resolution), or, where the step
+//! was made from a page it did not change, keeps the page on show when the step changed it and else opens the first
+//! page it changed.
 
 use ew_api::output::PageRow;
 use ew_dl::EntityRef;
@@ -267,8 +269,8 @@ impl ShellModel {
             }
         }
         self.history.quiet = false;
-        if let Some(rev) = self.history.crossed.take() {
-            self.restore_context(rev);
+        if let Some((rev, pages)) = self.history.crossed.take() {
+            self.restore_context(rev, &pages);
         }
         out
     }
@@ -326,8 +328,6 @@ impl ShellModel {
         }
     }
 
-    /// After an undo or redo that crossed the step committed at `rev`: restores that step's context, unless Undo to
-    /// here walks (it restores the last step's only).
     /// After an Undo or a Redo of history entry `index`: what it took back or did again and where, in a toast
     /// ("Undone: Draw wire on 101"), with Go to page when no page it changed is the one on show (an Undo with a
     /// box on the pointer took back a step on another page, and nothing said so). `drew` are the pages it touched
@@ -341,12 +341,7 @@ impl ShellModel {
         let view = project.session.history_view();
         let Some(row) = view.rows.get(index) else { return };
         let title = HistoryPane::label_words(row);
-        let mut pages = drew;
-        for folio in &row.pages {
-            if !pages.contains(folio) {
-                pages.push(folio.clone());
-            }
-        }
+        let pages = self.step_pages(index, drew);
         let what = if pages.is_empty() {
             title
         } else {
@@ -372,25 +367,67 @@ impl ShellModel {
         }
     }
 
-    pub(super) fn crossed_step(&mut self, rev: Option<u64>) {
-        self.history.crossed = rev.or(self.history.crossed);
+    /// After an undo or redo that crossed `step` (the revision it was committed at and the folios of the pages it
+    /// changed): shows the page it changed ([`Self::restore_context`]), unless Undo to here walks (it shows the last
+    /// step's only).
+    pub(super) fn crossed_step(&mut self, step: Option<(u64, Vec<String>)>) {
+        if step.is_some() {
+            self.history.crossed = step;
+        }
         if !self.history.quiet
-            && let Some(rev) = self.history.crossed.take()
+            && let Some((rev, pages)) = self.history.crossed.take()
         {
-            self.restore_context(rev);
+            self.restore_context(rev, &pages);
         }
     }
 
-    /// Restores the context kept under `rev`: the page as a jump if it still exists, its viewport, and the
-    /// items of its selection that still exist. Nothing without a kept context.
-    pub(super) fn restore_context(&mut self, rev: u64) {
+    /// The folios of the pages history entry `index` changed: `drew`, those it touched before it was stepped (an Undo
+    /// takes away what it drew there), then those it touches after.
+    pub(super) fn step_pages(&self, index: usize, drew: Vec<String>) -> Vec<String> {
+        let mut pages = drew;
+        let Some(project) = &self.project else {
+            return pages;
+        };
+        if let Some(row) = project.session.history_view().rows.get(index) {
+            for folio in &row.pages {
+                if !pages.contains(folio) {
+                    pages.push(folio.clone());
+                }
+            }
+        }
+        pages
+    }
+
+    /// After an undo or redo of the step committed at `rev`, which changed the pages `pages` (folios): the page the step
+    /// changed is shown. The context kept under `rev` comes back (the page as a jump if it still exists, its viewport,
+    /// and the items of its selection that still exist) when its page is on show, or is one the step changed, or no
+    /// page the step changed exists (it changed none, or the Undo of a new page took it away); else the page on show
+    /// stays when the step changed it, and the first page the step changed opens as a jump when it did not (a change
+    /// made on page 1 from page 5, by a quick fix or in Properties, undone on page 1, showed page 5). Nothing without a
+    /// kept context: the toast offers Go to page.
+    pub(super) fn restore_context(&mut self, rev: u64, pages: &[String]) {
         let Some(context) = self.history.contexts.get(&rev).cloned() else {
             return;
         };
-        if let Some(g) = self.area.as_ref().map(|a| a.focused)
-            && self.row_index(context.page).is_some()
-        {
-            self.restore_location(g, context.page, context.viewport);
+        let folio = |s: &Self, page| s.row_index(page).map(|i| s.page_rows()[i].folio.clone());
+        let changed = pages
+            .iter()
+            .find_map(|f| PageRow::by_folio(self.page_rows(), f).map(crate::canvas::PageId::of));
+        let made_on = |s: &Self, page| folio(s, page).is_some_and(|f| pages.contains(&f));
+        let here = self.current_page().is_some_and(|p| made_on(self, p));
+        // Where it was made: still on show, or a page it changed, or where no page it changed is left.
+        let back =
+            changed.is_none() || made_on(self, context.page) || self.current_page() == Some(context.page);
+        if let Some(g) = self.area.as_ref().map(|a| a.focused) {
+            match changed {
+                _ if back && self.row_index(context.page).is_some() => {
+                    self.restore_location(g, context.page, context.viewport);
+                }
+                // The page on show is one it changed: it stays.
+                _ if here => {}
+                Some(page) => self.jump_to(g, page),
+                None => {}
+            }
         }
         let Some(project) = &self.project else { return };
         let items: Vec<EntityRef> = context
