@@ -1822,6 +1822,9 @@ pub fn command_choice_text(path: &str, option: &str) -> String {
     match path.rsplit('.').next().unwrap_or(path) {
         "label_mode" => strings::lookup(&format!("choice-label_mode-{}", option.to_lowercase()))
             .map_or_else(|| option.to_owned(), str::to_owned),
+        // A wire's end set by hand (doc 13 §4.5): its treatment by its choice word ("Ring lug", "Ringkabelschoen").
+        "from_end" | "to_end" => strings::lookup(&format!("choice-{}", option.replace('_', "-")))
+            .map_or_else(|| option.to_owned(), str::to_owned),
         "labels" => strings::lookup(&format!(
             "choice-labels-{}",
             option.to_lowercase().replace(' ', "_")
