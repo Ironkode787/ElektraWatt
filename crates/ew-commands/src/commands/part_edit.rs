@@ -42,14 +42,29 @@ pub const PART_EDITABLE: [&str; 10] = [
 ];
 
 /// The members a project-local copy may change besides [`PART_EDITABLE`]: the domain sections, the CP pattern and
-/// the function template, which the part editor's bus and PLC forms make, and the device box. A copy from a
-/// library keeps its sections; its fork takes the others ([`PART_EDITABLE_FORK`]).
-pub const PART_EDITABLE_LOCAL: [&str; 4] = ["sections", "cp_pattern", "function_template", "box"];
+/// the function template, which the part editor's bus and PLC forms make, the device box, and what the part brings
+/// with it and its variants (doc 07 §2.5). A copy from a library keeps its sections; its fork takes the others
+/// ([`PART_EDITABLE_FORK`]).
+pub const PART_EDITABLE_LOCAL: [&str; 6] = [
+    "sections",
+    "cp_pattern",
+    "function_template",
+    "box",
+    "accessories",
+    "variants",
+];
 
 /// The members of [`PART_EDITABLE_LOCAL`] that the fork of a copy from a library may change too: its pins
-/// (the CP pattern and the template entries that draw them) and its device box, so a library part's box is changed
-/// for the project as its identity is.
-pub const PART_EDITABLE_FORK: [&str; 3] = ["cp_pattern", "function_template", "box"];
+/// (the CP pattern and the template entries that draw them), its device box, its accessories and its variants, so a
+/// library part's box, the maker's end plate or the blue terminal's own number are changed for the project as its
+/// identity is.
+pub const PART_EDITABLE_FORK: [&str; 5] = [
+    "cp_pattern",
+    "function_template",
+    "box",
+    "accessories",
+    "variants",
+];
 
 /// The order units a part takes.
 const UNITS: [&str; 3] = ["piece", "m", "set"];
@@ -70,7 +85,8 @@ const UNITS: [&str; 3] = ["piece", "m", "set"];
 ///
 /// `part` is the edited part item (its members, without the copy metadata). Only `manufacturer`, `part_number`,
 /// `type_designation`, `order_number`, `gtin`, `description`, `kind`, `category`, `unit` and `tech_data` may differ
-/// from the copy's, and also `cp_pattern`, `function_template` and `box` (the part's pins and its device box)
+/// from the copy's, and also `cp_pattern`, `function_template` and `box` (the part's pins and its device box),
+/// `accessories` and `variants` (what it brings with it, its variants)
 /// and of a project-local copy `sections` (the part editor's bus and PLC forms): the devices that use the
 /// copy take the new connection points; a bus port a function carries keeps its value, N5. So no edit of a library
 /// copy changes its sections, and no edit changes the contacts or the mechanical data. `copies` carries library documents the edit names that the project lacks (a manufacturer),
@@ -79,7 +95,9 @@ const UNITS: [&str; 3] = ["piece", "m", "set"];
 /// Rejected, with the pointer: `/copy` not a part copy the project holds; `/part` not a part item, or one whose
 /// other members differ from the copy's; `/part/manufacturer` missing, or a changed reference to a manufacturer copy
 /// the project does not hold and `copies` does not carry; `/part/part_number` empty; `/part/unit` not `piece`, `m` or
-/// `set`; `/part/tech_data/<i>` not a technical value, or a key given twice; `/fork` absent for a copy from a library,
+/// `set`; `/part/tech_data/<i>` not a technical value, or a key given twice; `/part/accessories/<i>` a part the project does
+/// not hold (nor `copies` carries) or a wire, ferrule or marker; `/part/variants/<i>` a variant without its own part
+/// number, order number or description; `/fork` absent for a copy from a library,
 /// given for a project-local copy, or naming an item whose copy the project holds; `/copies/<i>` as `library.embed`
 /// refuses, or another version of a held copy. The whole command is refused when the item equals the copy's ("the
 /// part is unchanged"). Bulk. Outcome: the edited copy (the fork's copy for a fork).
@@ -299,6 +317,35 @@ impl Command for EditPartCopy {
             }
         };
         embed_closure(Self::NAME, tx, &self.copies)?;
+        // What a part brings with it is a part the project holds (embedded with it), and never one a wire consumes:
+        // the consumables count those (doc 07 §2.5).
+        for (i, a) in part.accessories.iter().enumerate() {
+            let id: Id<Part> = v5::lib_copy_id(a.part.library.as_uuid(), a.part.item.as_uuid());
+            let Some(copy) = tx.get::<LibCopy<Part>>(id) else {
+                return Err(bad(
+                    format!("/part/accessories/{i}"),
+                    text!("refusal-part-edit-accessory-missing", (i + 1).to_string()),
+                ));
+            };
+            if matches!(
+                copy.item.kind,
+                ew_schema::PartKind::Wire | ew_schema::PartKind::Ferrule | ew_schema::PartKind::Marker
+            ) {
+                return Err(bad(
+                    format!("/part/accessories/{i}"),
+                    text!("refusal-part-edit-accessory-kind", copy.item.part_number.as_str()),
+                ));
+            }
+        }
+        // A variant gives its own part number, order number or description, so that a list can tell it apart.
+        for (i, v) in part.variants.iter().enumerate() {
+            if !v.has_own_number() {
+                return Err(bad(
+                    format!("/part/variants/{i}"),
+                    text!("refusal-part-edit-variant-number", v.key.as_str()),
+                ));
+            }
+        }
         let mfr = &part.manufacturer;
         let mfr_changed =
             mfr.library != held.item.manufacturer.library || mfr.item != held.item.manufacturer.item;

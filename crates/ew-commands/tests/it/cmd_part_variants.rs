@@ -21,6 +21,7 @@ const T_A: u128 = 1; // names the end plate EP per strip, variant BU
 const T_B: u128 = 2; // names the end plate EP2 per strip
 const EP: u128 = 3;
 const EP2: u128 = 4;
+const FER: u128 = 5; // a ferrule
 const DEVICE: u128 = 0x5e40_0000_0000_4000_8000_0000_0000_0001;
 
 /// A part of `item` naming `accessory` per strip, with `variants`.
@@ -51,6 +52,11 @@ fn engine_with_choice() -> ew_commands::Engine {
         part(EP, "EP", None, json!([])),
         part(EP2, "EP2", None, json!([])),
     ]);
+    let LibDocument::Part(mut ferrule) = part(FER, "FER", None, json!([])) else {
+        unreachable!()
+    };
+    ferrule.item.kind = ew_schema::PartKind::Ferrule;
+    lib.push(LibDocument::Part(ferrule));
     let device: Device = serde_json::from_value(json!({
         "id": uuid(DEVICE).to_string(), "tag": {"letter": "X", "counter": 9}, "strip": {},
         "parts": [{"part": {"copy": lib_part_id(LIB, T_A).to_string()}, "qty": "1"}],
@@ -107,4 +113,39 @@ fn replacing_a_part_drops_the_choice_of_an_accessory_it_no_longer_names() {
     let d = device(&e);
     assert_eq!(d.parts[0].part.copy, lib_part_id(LIB, T_B));
     assert!(d.accessory_choices.is_empty(), "{:?}", d.accessory_choices);
+}
+
+/// The fork of a library copy may change what the part brings with it and its variants (doc 07 §2.5); an accessory
+/// that is a ferrule and a variant without a number of its own are refused at their rows.
+#[test]
+fn a_fork_changes_accessories_and_variants_and_refuses_a_ferrule_or_a_variant_without_a_number() {
+    use ew_commands::commands::EditPartCopy;
+    let mut e = engine_with_choice();
+    let item = |accessory: u128, variants: serde_json::Value| {
+        let LibDocument::Part(c) = part(T_A, "T-A", Some(accessory), variants) else {
+            unreachable!()
+        };
+        serde_json::to_value(&c.item).unwrap()
+    };
+    let edit = |part: serde_json::Value, fork: u128| EditPartCopy {
+        copy: lib_part_id(LIB, T_A),
+        part,
+        fork: Some(Id::from_uuid(uuid(fork))),
+        copies: vec![],
+    };
+    // EP2 instead of EP, and a red variant with its own number: the fork takes them.
+    let red = json!([{"key": "RD", "name": {"en": "Red"}, "part_number": "T-A-RD"}]);
+    let p = e.preview(&edit(item(EP2, red.clone()), 0x0f01)).expect("the fork's preview");
+    e.commit(p).expect("the fork");
+    // A ferrule is no accessory: the consumables count it.
+    match e.preview(&edit(item(FER, red), 0x0f02)) {
+        Err(CmdError::InvalidParams { path, .. }) => assert_eq!(path, "/part/accessories/0"),
+        other => panic!("refused: {other:?}"),
+    }
+    // A variant without a number of its own is refused at its row.
+    let bare = json!([{"key": "RD", "name": {"en": "Red"}}]);
+    match e.preview(&edit(item(EP, bare), 0x0f03)) {
+        Err(CmdError::InvalidParams { path, .. }) => assert_eq!(path, "/part/variants/0"),
+        other => panic!("refused: {other:?}"),
+    }
 }
