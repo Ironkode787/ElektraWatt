@@ -11,8 +11,8 @@ use ew_schema::{OrderUnit, PartRef, ReportBlock, ReportKind};
 use super::conn::{put, wire_type_cell, words_cell};
 use super::parts::{part_number_cell, qty_cell, unit_cell};
 use crate::kind::ReportKindDef;
-use crate::words::selecting;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowKind, RowSet};
+use crate::words::selecting;
 
 /// The consumables: three groups, each under a heading row, a group without rows left out.
 ///
@@ -85,7 +85,7 @@ impl ReportKindDef for Consumables {
                 let sizes: Vec<TextArg> = e
                     .sizes
                     .iter()
-                    .filter_map(|s| csa_with_unit(s))
+                    .filter_map(csa_with_unit)
                     .map(|s| {
                         TextArg::Text(match e.form {
                             EndForm::TwinFerrule => text!("cell-twin-size", s),
@@ -110,7 +110,14 @@ impl ReportKindDef for Consumables {
                     ),
                 };
                 let count = i64::try_from(e.count).unwrap_or(i64::MAX);
-                cells(&columns, number, description, what_for, Cell::Number(count), OrderUnit::Piece)
+                cells(
+                    &columns,
+                    number,
+                    description,
+                    what_for,
+                    Cell::Number(count),
+                    OrderUnit::Piece,
+                )
             })
             .collect();
         groups.push((text!("cell-group-ferrules"), ends));
@@ -155,7 +162,8 @@ impl ReportKindDef for Consumables {
                 sources: Vec::new(),
             });
             for (n, cells) in rows.into_iter().enumerate() {
-                set.rows.push(Row::data(id(Some(u32::try_from(n).unwrap_or(u32::MAX))), cells));
+                set.rows
+                    .push(Row::data(id(Some(u32::try_from(n).unwrap_or(u32::MAX))), cells));
             }
         }
         set
@@ -173,7 +181,14 @@ fn part_cells(q: &Q, part: &PartRef) -> (Cell, Cell) {
 }
 
 /// A row's cells in the columns' order.
-fn cells(columns: &[ColumnDef], number: Cell, description: Cell, what_for: Cell, qty: Cell, unit: OrderUnit) -> Vec<Cell> {
+fn cells(
+    columns: &[ColumnDef],
+    number: Cell,
+    description: Cell,
+    what_for: Cell,
+    qty: Cell,
+    unit: OrderUnit,
+) -> Vec<Cell> {
     let mut cells = vec![Cell::Empty; columns.len()];
     put(columns, &mut cells, "part_number", number);
     put(columns, &mut cells, "description", description);
@@ -182,4 +197,3 @@ fn cells(columns: &[ColumnDef], number: Cell, description: Cell, what_for: Cell,
     put(columns, &mut cells, "unit", unit_cell(&unit));
     cells
 }
-

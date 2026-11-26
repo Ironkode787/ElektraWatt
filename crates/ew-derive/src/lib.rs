@@ -129,11 +129,11 @@ pub use cell::{
     frame_grid, page_frame_form, prints_cells, row_label, starter_form,
 };
 pub use channel_index::{ChannelsByCp, ChannelsByModule, ModuleChannelIds};
+pub use consumables::{Consumables, EndForm, EndUse, MarkerUse, WireUse, consumable_rows};
 pub use cp_point::{
     cp_cell, cp_end, cp_point, rep_cp_end, rep_drawn_cps, segment_point, strip_segment_of,
     strip_terminal_end, terminal_drawn_function,
 };
-pub use consumables::{Consumables, EndForm, EndUse, MarkerUse, WireUse, consumable_rows};
 pub use cps::{ClampData, Cp, FunctionCps};
 pub use cut_list::{CutFor, CutGroup, CutRow, CutWhat, cut_rows, cut_to};
 pub use drawn_path::{

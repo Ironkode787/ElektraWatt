@@ -379,7 +379,12 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     placed(
-        place(Group::Workshop, 3, CommandSize::Large, Some(key!("bar-lists-cut"))),
+        place(
+            Group::Workshop,
+            3,
+            CommandSize::Large,
+            Some(key!("bar-lists-cut")),
+        ),
         "scissors",
         act(
             "lists.cut",
@@ -398,7 +403,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             CommandSize::Large,
             Some(key!("bar-lists-consumables")),
         ),
-        "box",
+        "basket",
         act(
             "lists.consumables",
             View,

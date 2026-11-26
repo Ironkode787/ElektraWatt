@@ -145,7 +145,8 @@ pub fn consumable_rows(q: &Q) -> Consumables {
                 _ => continue,
             };
             let row = match out.ends.iter_mut().find(|e| {
-                e.part == end.part && (end.part.is_some() || (e.form == form && e.sizes.first() == csa.as_ref()))
+                e.part == end.part
+                    && (end.part.is_some() || (e.form == form && e.sizes.first() == csa.as_ref()))
             }) {
                 Some(e) => e,
                 None => {

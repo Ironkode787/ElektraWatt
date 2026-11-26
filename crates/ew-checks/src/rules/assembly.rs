@@ -73,7 +73,10 @@ impl Rule for NoEndPlate {
             .unwrap_or(0);
         let plate_after = layout[at + 1..].iter().any(|i| match &i.kind {
             StripItemKind::Accessory(a) => a.kind == Some(AccessoryKind::EndPlate),
-            StripItemKind::Own(n) => aspect.accessories.get(*n).is_some_and(|a| a.kind == AccessoryKind::EndPlate),
+            StripItemKind::Own(n) => aspect
+                .accessories
+                .get(*n)
+                .is_some_and(|a| a.kind == AccessoryKind::EndPlate),
             StripItemKind::Terminal(_) => false,
         });
         if plate_after {
@@ -159,7 +162,12 @@ impl Rule for BridgeWithoutPart {
         };
         let designation = |t: Option<&ew_ids::Id<ew_schema::Device>>| {
             t.and_then(|t| q.devices().get(*t))
-                .and_then(|d| d.aspects.terminal.as_ref().map(|a| a.designation.as_str().to_owned()))
+                .and_then(|d| {
+                    d.aspects
+                        .terminal
+                        .as_ref()
+                        .map(|a| a.designation.as_str().to_owned())
+                })
                 .unwrap_or_default()
         };
         bridge_groups(q)

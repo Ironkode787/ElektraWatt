@@ -6,25 +6,26 @@
 
 use std::collections::BTreeMap;
 
+use ew_derive::layout::StripItemKind;
 use ew_derive::{
     AssemblyItem, AssemblyItemKind, BracketFrom, LabelRows, LabelSet, LabelTarget, Q, StripAssembly,
     assembly_rows, mm_tenth_short, short_tag, strip_bracket,
 };
-use ew_derive::layout::StripItemKind;
 use ew_ids::Id;
 use ew_l10n::{Text, TextArg};
 use ew_schema::{AccessoryKind, Device, DeviceState, Part, ReportBlock, ReportKind, TechVal};
 use ew_units::Dec3;
 
 use super::conn::{
-    Bridge, Wires, bridge_span_from_to, bridges, put, terminal_designation, terminal_wired, words_cell, wires_by_cp,
+    Bridge, Wires, bridge_span_from_to, bridges, put, terminal_designation, terminal_wired, wires_by_cp,
+    words_cell,
 };
 use super::parts::part_number_cell;
 use super::terminal_diagram::strips_of;
 use super::terminal_overview::first_segment_position;
 use crate::kind::ReportKindDef;
-use crate::words::selecting;
 use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, QtyUnit, Row, RowId, RowKey, RowKind, RowSet};
+use crate::words::selecting;
 
 /// The assembly list: per strip of the block's selection (else every strip), in the order of the strip's first segment
 /// in the drawn page order, then by tag, a heading row that says where the strip goes and how long it is, a row per
@@ -84,16 +85,26 @@ impl ReportKindDef for AssemblyList {
                     }
                     AssemblyItemKind::Item(StripItemKind::Accessory(acc)) => with_words(q, &acc.with),
                     AssemblyItemKind::Item(StripItemKind::Own(_)) => Some(text!("cell-added")),
-                    AssemblyItemKind::EndBracket => dev
-                        .as_ref()
-                        .and_then(|d| strip_bracket(q, d))
-                        .and_then(|b| match (b.from, b.declared) {
-                            (BracketFrom::PartUse(_), _) | (_, None) => None,
-                            (_, Some(d)) => with_words(q, &[d.with]),
-                        }),
+                    AssemblyItemKind::EndBracket => {
+                        dev.as_ref().and_then(|d| strip_bracket(q, d)).and_then(|b| {
+                            match (b.from, b.declared) {
+                                (BracketFrom::PartUse(_), _) | (_, None) => None,
+                                (_, Some(d)) => with_words(q, &[d.with]),
+                            }
+                        })
+                    }
                 };
                 let id = RowId::entity(strip).with(RowKey::Index(u32::try_from(n).unwrap_or(u32::MAX)));
-                set.rows.push(item_row(q, &set.columns, id, n, item, dev.as_deref(), &markers, note));
+                set.rows.push(item_row(
+                    q,
+                    &set.columns,
+                    id,
+                    n,
+                    item,
+                    dev.as_deref(),
+                    &markers,
+                    note,
+                ));
             }
             let own: Vec<&Bridge> = bridges.iter().filter(|b| b.strip == strip).collect();
             if own.is_empty() {
@@ -201,9 +212,11 @@ fn item_row(
     let kind = match &item.kind {
         AssemblyItemKind::EndBracket => Some(AccessoryKind::EndClamp),
         AssemblyItemKind::Item(StripItemKind::Terminal(_)) => None,
-        AssemblyItemKind::Item(StripItemKind::Accessory(a)) => {
-            Some(a.kind.clone().unwrap_or(AccessoryKind::Unknown(serde_json::Value::Null)))
-        }
+        AssemblyItemKind::Item(StripItemKind::Accessory(a)) => Some(
+            a.kind
+                .clone()
+                .unwrap_or(AccessoryKind::Unknown(serde_json::Value::Null)),
+        ),
         AssemblyItemKind::Item(StripItemKind::Own(i)) => strip
             .and_then(|s| s.aspects.strip.as_ref())
             .and_then(|s| s.accessories.get(*i))

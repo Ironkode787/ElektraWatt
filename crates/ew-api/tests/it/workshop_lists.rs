@@ -28,7 +28,8 @@ fn run(s: &mut Session, name: &str, params: Value) {
 /// The CSV lines of the export by kind `kind`, without the line ending.
 fn lines(s: &Session, kind: &str) -> Vec<String> {
     let q = s.query();
-    let out = row_export(&q, &RowExport::Kind(kind.to_owned()), None).unwrap_or_else(|e| panic!("{kind}: {e}"));
+    let out =
+        row_export(&q, &RowExport::Kind(kind.to_owned()), None).unwrap_or_else(|e| panic!("{kind}: {e}"));
     out.csv.lines().map(str::to_owned).collect()
 }
 
@@ -74,7 +75,10 @@ fn x1031(s: &Session) -> Vec<String> {
 #[test]
 fn a_strip_whose_end_plate_was_left_off_is_ew_mfg_020_and_its_fix_adds_one() {
     let mut s = common::sample();
-    assert!(findings(&s, "EW-MFG-020", CheckMode::Online).is_empty(), "silent on the sample");
+    assert!(
+        findings(&s, "EW-MFG-020", CheckMode::Online).is_empty(),
+        "silent on the sample"
+    );
     let strip = device(&s, "-X1031");
     let plate = copy(&s, "EW-GEN-EP-1");
     run(
@@ -90,7 +94,9 @@ fn a_strip_whose_end_plate_was_left_off_is_ew_mfg_020_and_its_fix_adds_one() {
     let found = findings(&s, "EW-MFG-020", CheckMode::Online);
     assert_eq!(found.len(), 1, "{found:#?}");
     assert!(
-        found[0].message().ends_with("-X1031 has no end plate after its last terminal SH"),
+        found[0]
+            .message()
+            .ends_with("-X1031 has no end plate after its last terminal SH"),
         "{}",
         found[0].message()
     );
@@ -103,7 +109,8 @@ fn a_strip_whose_end_plate_was_left_off_is_ew_mfg_020_and_its_fix_adds_one() {
     assert!(findings(&s, "EW-MFG-020", CheckMode::Online).is_empty());
     let rows = x1031(&s);
     assert!(
-        rows.iter().any(|l| l.starts_with("data,7,End plate,,EW-GEN-EP-1,") && l.ends_with(",added")),
+        rows.iter()
+            .any(|l| l.starts_with("data,7,End plate,,EW-GEN-EP-1,") && l.ends_with(",added")),
         "{rows:#?}"
     );
 }
@@ -113,7 +120,10 @@ fn a_strip_whose_end_plate_was_left_off_is_ew_mfg_020_and_its_fix_adds_one() {
 #[test]
 fn a_bridge_without_a_part_is_ew_mfg_021_and_prints_tbd() {
     let mut s = common::sample();
-    assert!(findings(&s, "EW-MFG-021", CheckMode::Release).is_empty(), "silent on the sample");
+    assert!(
+        findings(&s, "EW-MFG-021", CheckMode::Release).is_empty(),
+        "silent on the sample"
+    );
     let carrier = {
         let q = s.query();
         let (_, _, g) = ew_derive::bridge_groups(&q)
@@ -132,18 +142,24 @@ fn a_bridge_without_a_part_is_ew_mfg_021_and_prints_tbd() {
     assert_eq!(online[0].severity, ew_checks::Severity::Warning);
     assert!(
         online[0].message().starts_with("The bridge BR1 of ")
-            && online[0].message().ends_with("-X1021 (terminals 1 to 4) has no part"),
+            && online[0]
+                .message()
+                .ends_with("-X1021 (terminals 1 to 4) has no part"),
         "{}",
         online[0].message()
     );
     let release = findings(&s, "EW-MFG-021", CheckMode::Release);
     assert_eq!(release[0].severity, ew_checks::Severity::Error);
     assert!(
-        lines(&s, "assembly_list").iter().any(|l| l.starts_with("data,,Bridge BR1,1 to 4,TBD,")),
+        lines(&s, "assembly_list")
+            .iter()
+            .any(|l| l.starts_with("data,,Bridge BR1,1 to 4,TBD,")),
         "the assembly list"
     );
     assert!(
-        lines(&s, "wire_list").iter().any(|l| l.starts_with("data,BR1,") && l.contains(",TBD,")),
+        lines(&s, "wire_list")
+            .iter()
+            .any(|l| l.starts_with("data,BR1,") && l.contains(",TBD,")),
         "the wire list"
     );
 }
@@ -161,7 +177,8 @@ fn the_cut_increment_rounds_each_piece_once() {
     );
     let cut = lines(&s, "cut_list");
     assert!(
-        cut.iter().any(|l| l.starts_with("data,EW-GEN-RAIL-1,") && l.ends_with(",2,475,0.95")),
+        cut.iter()
+            .any(|l| l.starts_with("data,EW-GEN-RAIL-1,") && l.ends_with(",2,475,0.95")),
         "{cut:#?}"
     );
     assert!(cut.iter().any(|l| l.contains(",101.1,1,400,0.4")), "{cut:#?}");

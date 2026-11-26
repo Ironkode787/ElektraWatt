@@ -18,7 +18,9 @@
 
 use ew_ids::Id;
 use ew_mltext::{NaturalKey, natural_key};
-use ew_schema::{Carrier, CarrierKind, ColourSpec, Csa, Device, Enclosure, LengthSource, MountingSurface, PartRef};
+use ew_schema::{
+    Carrier, CarrierKind, ColourSpec, Csa, Device, Enclosure, LengthSource, MountingSurface, PartRef,
+};
 use ew_units::Dec3;
 
 use crate::Q;
@@ -131,7 +133,8 @@ type CarrierGroup = (CarrierKind, Option<PartRef>, Option<i128>, Vec<Id<Carrier>
 /// The rails' and the ducts' rows (with each duct's covers beside it).
 fn carrier_rows(q: &Q) -> (Vec<CutRow>, Vec<CutRow>) {
     let table = q.table::<Carrier>();
-    let mut surfaces: Vec<Id<MountingSurface>> = q.table::<MountingSurface>().iter().map(|(id, _)| id).collect();
+    let mut surfaces: Vec<Id<MountingSurface>> =
+        q.table::<MountingSurface>().iter().map(|(id, _)| id).collect();
     surfaces.sort();
     // Carriers grouped by kind, part and piece length, in the order of their first carrier.
     let mut groups: Vec<CarrierGroup> = Vec::new();
@@ -330,7 +333,10 @@ fn tube_rows(q: &Q) -> Vec<CutRow> {
             },
         };
         let length = t.length.map(|n| cut_to(q, i128::from(n.0)));
-        match rows.iter_mut().find(|(_, r)| r.what == what && r.length == length) {
+        match rows
+            .iter_mut()
+            .find(|(_, r)| r.what == what && r.length == length)
+        {
             Some((_, r)) => {
                 r.pieces += 1;
                 if let CutFor::Names(names) = &mut r.what_for
@@ -344,11 +350,7 @@ fn tube_rows(q: &Q) -> Vec<CutRow> {
             }
             None => {
                 let key = match &what {
-                    CutWhat::Part(p) => (
-                        natural_key(&printed_number(q, p)),
-                        natural_key(""),
-                        String::new(),
-                    ),
+                    CutWhat::Part(p) => (natural_key(&printed_number(q, p)), natural_key(""), String::new()),
                     CutWhat::Tube {
                         material,
                         size,

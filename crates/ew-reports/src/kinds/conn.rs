@@ -15,8 +15,8 @@ use std::sync::Arc;
 
 use ew_derive::{
     CpRef, DeviceTag, EndKind, FunctionCps, PageRef, Partition, PhysicalWire, PotentialId, PotentialNameOf,
-    PotentialNames, PotentialPartition, PropSource, Q, WireEnd, WireRecord, WireRecordSet, bridge_groups, cp_label,
-    cp_pin, cp_tag_from,
+    PotentialNames, PotentialPartition, PropSource, Q, WireEnd, WireRecord, WireRecordSet, bridge_groups,
+    cp_label, cp_pin, cp_tag_from,
 };
 use ew_ids::Id;
 use ew_l10n::Text;
@@ -385,7 +385,6 @@ pub(super) fn bridges(q: &Q) -> Vec<Bridge> {
         })
         .collect()
 }
-
 
 /// The designation of a terminal device (`""` for a device that is not a terminal).
 pub(super) fn terminal_designation(q: &Q, t: Id<Device>) -> String {

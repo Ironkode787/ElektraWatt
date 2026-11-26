@@ -80,7 +80,12 @@ fn the_workshop_lists_open_their_pages_or_report_block() {
             .map(|i| shell.page_rows()[i].clone())
             .expect("a page is shown");
         assert_eq!(row.folio, folio, "{action}");
-        let toasts: Vec<String> = shell.notifications().visible().iter().map(|n| n.text.clone()).collect();
+        let toasts: Vec<String> = shell
+            .notifications()
+            .visible()
+            .iter()
+            .map(|n| n.text.clone())
+            .collect();
         assert!(toasts.iter().any(|t| t == toast), "{action}: {toasts:?}");
     }
     let tmp = Tmp::new("workshop-lists-form");

@@ -1424,7 +1424,10 @@ impl ShellModel {
             Some(folio) => {
                 let out = self.open_list(&folio);
                 if out == Outcome::Done {
-                    self.notify(strings::format(key!("toast-list-opened"), &[&words, &folio]), false);
+                    self.notify(
+                        strings::format(key!("toast-list-opened"), &[&words, &folio]),
+                        false,
+                    );
                 }
                 out
             }

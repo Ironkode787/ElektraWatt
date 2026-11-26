@@ -290,7 +290,9 @@ fn bridge_row(q: &Q, b: &Bridge) -> Row {
         b.part
             .as_ref()
             .and_then(|p| ew_derive::printed_part(q, p))
-            .map_or(Cell::Tbd, |c| super::parts::part_number_cell(c.item.part_number.as_str())),
+            .map_or(Cell::Tbd, |c| {
+                super::parts::part_number_cell(c.item.part_number.as_str())
+            }),
     );
     set("pages", b.page.map_or(Cell::Empty, |p| pages_cell(&[p])));
     let mut r = Row::data(id, cells);

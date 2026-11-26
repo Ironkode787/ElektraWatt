@@ -17,8 +17,8 @@ use crate::Q;
 use crate::accessories::{StripBracket, strip_bracket};
 use crate::cut_list::cut_to;
 use crate::layout::{
-    BracketRole, CarrierLabelKind, GroupAccessories, Quarter, RailOccupancy, StripItemKind, StripLayout, carrier_label,
-    carrier_length, carrier_order, places_strip,
+    BracketRole, CarrierLabelKind, GroupAccessories, Quarter, RailOccupancy, StripItemKind, StripLayout,
+    carrier_label, carrier_length, carrier_order, places_strip,
 };
 
 /// What one row of a strip's mounting order is.
@@ -110,7 +110,12 @@ fn rail_placement(q: &Q, strip: &Device) -> Option<(Id<Placement>, Id<Carrier>)>
 
 /// Where `strip`, placed by `placement` on `rail`, stands with its brackets, and which of its two brackets the rail gives
 /// it (before, after).
-fn on_rail(q: &Q, strip: Id<Device>, placement: Id<Placement>, rail: Id<Carrier>) -> Option<(OnRail, bool, bool)> {
+fn on_rail(
+    q: &Q,
+    strip: Id<Device>,
+    placement: Id<Placement>,
+    rail: Id<Carrier>,
+) -> Option<(OnRail, bool, bool)> {
     let occupancy = q.get::<RailOccupancy>(rail);
     let o = occupancy.iter().find(|o| o.placement == placement)?;
     let brackets = q.get::<GroupAccessories>(rail);
@@ -191,10 +196,7 @@ pub fn assembly_rows(q: &Q, strip: Id<Device>) -> Option<StripAssembly> {
         .filter(|i| matches!(i.kind, AssemblyItemKind::Item(StripItemKind::Terminal(_))))
         .count();
     let width_missing = items.iter().any(|i| i.width.is_none());
-    let summed: i128 = items
-        .iter()
-        .filter_map(|i| i.width)
-        .fold(0, i128::saturating_add);
+    let summed: i128 = items.iter().filter_map(|i| i.width).fold(0, i128::saturating_add);
     let on = placed.map(|(on, _, _)| on);
     let length = on.as_ref().map_or(summed, |on| on.to.saturating_sub(on.from));
     Some(StripAssembly {

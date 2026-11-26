@@ -13,8 +13,8 @@ use ew_units::Dec3;
 use super::conn::{put, wire_type_cell, words_cell};
 use super::parts::part_number_cell;
 use crate::kind::ReportKindDef;
-use crate::words::selecting;
 use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, QtyUnit, Row, RowId, RowKey, RowKind, RowSet};
+use crate::words::selecting;
 
 /// The columns of the cut list: Part number, Description, For, Pieces, Length mm, Total m.
 fn cut_columns() -> Vec<ColumnDef> {
@@ -112,10 +112,7 @@ fn group_words(group: CutGroup) -> Text {
 
 /// The row ID of a group's heading.
 fn group_id(group: CutGroup) -> RowId {
-    RowId(vec![
-        RowKey::Name("cut".to_owned()),
-        RowKey::Index(group as u32),
-    ])
+    RowId(vec![RowKey::Name("cut".to_owned()), RowKey::Index(group as u32)])
 }
 
 /// A carrier by its label in words ("Rail 1", in Dutch "Kabelgoot 1" for a duct).
@@ -175,14 +172,23 @@ fn cut_row(q: &Q, columns: &[ColumnDef], group: CutGroup, n: usize, r: &CutRow) 
         CutFor::Names(names) => Cell::ident(names),
     };
     set("for", what_for);
-    set("pieces", Cell::Number(i64::try_from(r.pieces).unwrap_or(i64::MAX)));
+    set(
+        "pieces",
+        Cell::Number(i64::try_from(r.pieces).unwrap_or(i64::MAX)),
+    );
     match r.length {
         Some(nm) => {
-            set("length", Cell::Qty(Dec3(i64::try_from(nm / 1_000).unwrap_or(i64::MAX)), QtyUnit::None));
+            set(
+                "length",
+                Cell::Qty(Dec3(i64::try_from(nm / 1_000).unwrap_or(i64::MAX)), QtyUnit::None),
+            );
             let pieces = i128::try_from(r.pieces).unwrap_or(i128::MAX);
             set(
                 "total",
-                Cell::Qty(ew_derive::layout::metres_of_nm(nm.saturating_mul(pieces)), QtyUnit::None),
+                Cell::Qty(
+                    ew_derive::layout::metres_of_nm(nm.saturating_mul(pieces)),
+                    QtyUnit::None,
+                ),
             );
         }
         None => set("length", Cell::Missing(MissingReason::Length)),
