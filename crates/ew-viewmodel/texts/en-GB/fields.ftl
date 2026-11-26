@@ -484,6 +484,7 @@ field-potential-def-env = Supply
 field-potential-def-props = Wire properties
 field-potential-def-at = Defined at
 # A field's label by its last member, where the field has no text of its own.
+field-help-device-derived-accessory = What the strip's terminals' parts bring: the part counted. Type another part's number to take it instead; empty the field to leave it off this strip.
 field-word-a = A
 field-word-ac-dc = AC/DC
 field-word-accessories = Accessories
@@ -1228,16 +1229,6 @@ field-help-report-block-layout-page = The panel layout page whose legend this li
 # The PLC and bus work as a person met it.
 field-device-derived-plc = PLC
 field-device-derived-variant = Variant
-field-device-derived-accessory-end-plate = End plate
-field-help-device-derived-accessory-end-plate = The end plate the strip's terminals' parts bring: the part counted. Type another part's number to take it instead; empty the field to leave it off this strip.
-field-device-derived-accessory-end-clamp = End brackets
-field-help-device-derived-accessory-end-clamp = The end brackets the strip's terminals' parts bring: the part counted. Type another part's number to take it instead; empty the field to leave it off this strip.
-field-device-derived-accessory-partition = Partition plate
-field-help-device-derived-accessory-partition = The partition plate the strip's terminals' parts bring: the part counted. Type another part's number to take it instead; empty the field to leave it off this strip.
-field-device-derived-accessory-marker = Strip marker
-field-help-device-derived-accessory-marker = The strip marker the strip's terminals' parts bring: the part counted. Type another part's number to take it instead; empty the field to leave it off this strip.
-field-device-derived-accessory-cover = Cover
-field-help-device-derived-accessory-cover = The cover the strip's terminals' parts bring: the part counted. Type another part's number to take it instead; empty the field to leave it off this strip.
 field-help-device-derived-variant = The variant of the device's part, as its maker sells it under its own number (blue, a rating): the lists print its number and description. The part's own number is the part itself.
 field-help-device-derived-plc = The PLC this bus device belongs to. A device in no PLC is given to one here: choose a PLC, or New PLC….
 choice-connection-kind-core = Cable core

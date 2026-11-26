@@ -397,6 +397,12 @@ accessory-partition = Scheidingsplaat
 accessory-marker = Markeringsdrager
 accessory-cover = Afdekking
 accessory-other = Toebehoren
+accessory-end-plate-plural = Eindplaten
+accessory-end-clamp-plural = Eindsteunen
+accessory-partition-plural = Scheidingsplaten
+accessory-marker-plural = Markeringsdragers
+accessory-cover-plural = Afdekkingen
+accessory-other-plural = Toebehoren
 # An interruption point's direction (output::navigators::ips; the context menu's choice too).
 choice-source = Bron
 choice-target = Doel

@@ -220,3 +220,5 @@ change here.
   given" in its row
 - text-change: the part dialog's sentences about a clamp's size write the decimal separator of the window's
   language ("0,5 tot 1,5 mm²" in Dutch), as the check messages do
+- text-change: a strip's Properties name its accessory rows by the accessory kind's own word, so the marker carrier's
+  row reads "Marker carrier" ("Markeringsdrager") as the strip editor says it, not "Strip marker"

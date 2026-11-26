@@ -1398,3 +1398,23 @@ fn a_misfit_sentence_writes_its_sizes_in_the_windows_language() {
         ]
     );
 }
+
+/// One thing, one word: a strip's accessory row in Properties is named by the accessory kind's own word in both
+/// languages (the marker carrier is no "strip marker"), and the end brackets' row, which counts the pair, by its plural.
+#[test]
+fn a_strips_accessory_rows_take_the_kinds_word() {
+    for (locale, marker, brackets) in [
+        ("en", "Marker carrier", "End brackets"),
+        ("nl", "Markeringsdrager", "Eindsteunen"),
+    ] {
+        assert!(strings::set_locale(locale));
+        assert_eq!(
+            strings::render(&ew_api::output::accessory_kind_word("marker")),
+            marker
+        );
+        assert_eq!(strings::field_label("device", "derived.accessory.marker"), marker);
+        assert_eq!(strings::field_label("device", "derived.accessory.end_clamp"), brackets);
+        assert!(strings::field_help("device", "derived.accessory.marker").is_some());
+    }
+    assert!(strings::set_locale("en"));
+}

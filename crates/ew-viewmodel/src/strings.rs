@@ -478,6 +478,18 @@ const LABEL_WORDS: &[(&str, &str)] = &[
 /// under one key), else that member humanised (underscores to spaces, the word list applied, the first letter capitalised:
 /// an open set's key, a part's technical data). A list item carries its position (`Connection point 2`).
 pub fn field_label(kind: &str, path: &str) -> String {
+    // A strip's accessory row by the accessory kind's own word (one thing, one word); the end brackets' row counts the
+    // pair at the strip's two ends, so its word is the plural.
+    if kind == "device"
+        && let Some(word) = path.strip_prefix("derived.accessory.")
+    {
+        let text = if word == "end_clamp" {
+            ew_api::output::accessory_kind_words(word)
+        } else {
+            ew_api::output::accessory_kind_word(word)
+        };
+        return render(&text);
+    }
     let mut generic = String::with_capacity(path.len());
     let mut chars = path.chars().peekable();
     while let Some(c) = chars.next() {
@@ -562,10 +574,12 @@ fn last_member(generic: &str) -> &str {
 /// field's own `field-help-<kind>-<path>` (formed as [`field_label`]'s own key), then its last member's
 /// `field-help-word-<member>`, which every field of that name shares.
 fn field_help_keys(kind: &str, path: &str) -> [String; 2] {
-    // A field of the project's own is one row of every name (`own.<key>`), and the row that makes one is `own.new`.
+    // A field of the project's own is one row of every name (`own.<key>`), and the row that makes one is `own.new`;
+    // a strip's accessory rows share one explanation, which names no kind (their labels do).
     let generic = match path.strip_prefix(crate::shell::own_fields::OWN) {
         Some("new") => "own.new".to_owned(),
         Some(_) => "own".to_owned(),
+        None if path.starts_with("derived.accessory.") => "derived.accessory".to_owned(),
         None => generic_field_path(path),
     };
     let last = last_member(&generic);

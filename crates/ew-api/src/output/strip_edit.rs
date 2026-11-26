@@ -146,12 +146,33 @@ pub(crate) fn accessory_word(kind: &AccessoryKind) -> crate::Text {
     }
 }
 
+/// The plural of an accessory kind's word ([`accessory_word`]): "End brackets" for a row that counts the pair.
+pub(crate) fn accessory_words(kind: &AccessoryKind) -> crate::Text {
+    match kind {
+        AccessoryKind::EndPlate => text!("accessory-end-plate-plural"),
+        AccessoryKind::EndClamp => text!("accessory-end-clamp-plural"),
+        AccessoryKind::Partition => text!("accessory-partition-plural"),
+        AccessoryKind::Marker => text!("accessory-marker-plural"),
+        AccessoryKind::Cover => text!("accessory-cover-plural"),
+        AccessoryKind::Unknown(_) => text!("accessory-other-plural"),
+    }
+}
+
 /// The words an accessory row shows for the kind's parameter word (`end_clamp` → `End bracket`), for the shell, which
 /// names no schema type; a word this version does not know is "Accessory".
 pub fn accessory_kind_word(kind: &str) -> crate::Text {
-    let kind = serde_json::from_value(serde_json::Value::String(kind.to_owned()))
-        .unwrap_or(AccessoryKind::Unknown(serde_json::Value::Null));
-    accessory_word(&kind)
+    accessory_word(&kind_of(kind))
+}
+
+/// [`accessory_kind_word`] in the plural (`end_clamp` → `End brackets`).
+pub fn accessory_kind_words(kind: &str) -> crate::Text {
+    accessory_words(&kind_of(kind))
+}
+
+/// The accessory kind of its parameter word; a word this version does not know is a kind of a newer format.
+fn kind_of(kind: &str) -> AccessoryKind {
+    serde_json::from_value(serde_json::Value::String(kind.to_owned()))
+        .unwrap_or(AccessoryKind::Unknown(serde_json::Value::Null))
 }
 
 /// The accessory kinds' words, in the order of the `kind` parameter.
