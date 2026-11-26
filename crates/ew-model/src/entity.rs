@@ -15,7 +15,7 @@ use ew_schema::{
     Kind, LayoutSpace, LibCopy, LibDocument, LogicalNet, MacroDef, MacroInstance, Manufacturer, Medium,
     MediumDef, MountingSurface, Page, PageItem, Part, PhysicalNet, Placement, PlcConfigProject,
     PlcProfileDef, PotentialDef, Project, Record, ReportBlock, Representation, Revision, Section,
-    StructureBox, StructureNode, SymbolDef, Waiver,
+    StructureBox, StructureNode, SurfaceFeature, SymbolDef, Waiver,
 };
 
 use crate::diff::Presence;
@@ -389,6 +389,7 @@ entities! {
     MountingSurface: MountingSurface, MountingSurface, mounting_surfaces;
     Carrier: Carrier, Carrier, carriers;
     Placement: Placement, Placement, placements;
+    SurfaceFeature: SurfaceFeature, SurfaceFeature, surface_features;
     Revision: Revision, Revision, revisions;
     Waiver: Waiver, Waiver, waivers;
     ExchangeRecord: ExchangeRecord, ExchangeRecord, exchange_records;

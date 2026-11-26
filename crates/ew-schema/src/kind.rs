@@ -323,7 +323,7 @@ impl Kind {
             Kind::RouteOverride => ("route_override", Some(55), F::LayoutFile, R),
             Kind::CommittedRoute => ("committed_route", Some(56), F::LayoutFile, R),
             Kind::RoutingPath => ("routing_path", Some(57), F::LayoutFile, R),
-            Kind::SurfaceFeature => ("surface_feature", Some(58), F::LayoutFile, R),
+            Kind::SurfaceFeature => ("surface_feature", Some(58), F::LayoutFile, I),
             Kind::Revision => ("revision", Some(60), F::RootFile("revisions.jsonl"), I),
             Kind::Waiver => ("waiver", Some(61), F::RootFile("waivers.jsonl"), I),
             Kind::Comment => ("comment", Some(62), F::RootFile("comments.jsonl"), R),

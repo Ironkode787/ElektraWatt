@@ -362,3 +362,11 @@ change here.
   bridge without a part (an error in release).
 - behaviour-change: Output ▸ Workshop gains Assembly lists, Cut list and Consumables, each of which opens the first page
   of the project's list of that kind, else Report block… on it.
+- format-variant: mounting_surface SurfaceKind door (a cabinet's door, seen from outside; doc 12 §2.8)
+- format-variant: mounting_surface SurfaceKind left (the left side, seen from the left)
+- format-variant: mounting_surface SurfaceKind right (the right side, seen from the right)
+- format-variant: mounting_surface SurfaceKind top (the top, seen from above)
+- format-variant: mounting_surface SurfaceKind bottom (the bottom, seen from below)
+- format-variant: part PartKind gland (a cable gland; doc 12 §3.9)
+- format-variant: record surface_feature.schema.json (a hole a person added to a surface, by hand or a cable's gland,
+  rank 58 in `layout/<space>.jsonl`; doc 12 §2.2)

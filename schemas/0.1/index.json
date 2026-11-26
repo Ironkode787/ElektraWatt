@@ -285,9 +285,9 @@
       "file": "layout/<space>.jsonl",
       "kind": "surface_feature",
       "rank": 58,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "surface_feature.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "revisions.jsonl",

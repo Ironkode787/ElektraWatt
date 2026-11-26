@@ -71,6 +71,10 @@ pub struct Device {
     /// the part, a `strip` and a `rail_group` accessory on the strip.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub accessory_choices: Vec<AccessoryChoice>,
+    /// A cable's chosen gland part (doc 12 §3.9); absent: the gland the program proposes from the cable's outer
+    /// diameter and the workshop stock.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gland: Option<PartRef>,
     /// Manual function text (the automatic text falls back to the path function text, FR-DEV-011).
     #[serde(default, skip_serializing_if = "MlText::is_empty")]
     #[schemars(with = "MlTextS")]

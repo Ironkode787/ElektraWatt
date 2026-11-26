@@ -206,6 +206,7 @@ pub fn device(device_id: Id<Device>, letter: &str, counter: u32) -> Device {
         state: DeviceState::default(),
         source_ref: None,
         aspects: DeviceAspects::default(),
+        gland: None,
         extra: Extra::new(),
     }
 }

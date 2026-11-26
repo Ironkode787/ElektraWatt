@@ -1,0 +1,315 @@
+{
+  "$defs": {
+    "Cutout": {
+      "description": "The class of a round cut-out (an operator's mounting hole).",
+      "oneOf": [
+        {
+          "const": "d16",
+          "description": "16 mm.",
+          "type": "string"
+        },
+        {
+          "const": "d22",
+          "description": "22 mm.",
+          "type": "string"
+        },
+        {
+          "const": "d30",
+          "description": "30 mm.",
+          "type": "string"
+        }
+      ]
+    },
+    "Gland": {
+      "description": "The thread of a metric cable gland.",
+      "oneOf": [
+        {
+          "const": "m12",
+          "description": "M12.",
+          "type": "string"
+        },
+        {
+          "const": "m16",
+          "description": "M16.",
+          "type": "string"
+        },
+        {
+          "const": "m20",
+          "description": "M20.",
+          "type": "string"
+        },
+        {
+          "const": "m25",
+          "description": "M25.",
+          "type": "string"
+        },
+        {
+          "const": "m32",
+          "description": "M32.",
+          "type": "string"
+        },
+        {
+          "const": "m40",
+          "description": "M40.",
+          "type": "string"
+        },
+        {
+          "const": "m50",
+          "description": "M50.",
+          "type": "string"
+        },
+        {
+          "const": "m63",
+          "description": "M63.",
+          "type": "string"
+        }
+      ]
+    },
+    "Hole": {
+      "description": "A hole (doc 12 §2.5), tagged by its kind: `{\"round\": {\"d\": …}}`, `{\"fixing\": \"m5\"}`, `{\"cutout\": \"d22\"}`,\n`{\"gland\": \"m20\"}` or `{\"rect\": {\"w\": …, \"h\": …, \"r\": …}}`.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A plain hole of a diameter.",
+          "properties": {
+            "round": {
+              "properties": {
+                "d": {
+                  "$ref": "#/$defs/Nm",
+                  "description": "The diameter."
+                }
+              },
+              "required": [
+                "d"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "round"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A hole for a screw that fixes the part: the shop's setting and the surface decide how it is made.",
+          "properties": {
+            "fixing": {
+              "$ref": "#/$defs/Screw"
+            }
+          },
+          "required": [
+            "fixing"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The round cut-out of an operator of a class.",
+          "properties": {
+            "cutout": {
+              "$ref": "#/$defs/Cutout"
+            }
+          },
+          "required": [
+            "cutout"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The hole of a metric cable gland.",
+          "properties": {
+            "gland": {
+              "$ref": "#/$defs/Gland"
+            }
+          },
+          "required": [
+            "gland"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A rectangular cut-out, with a corner radius.",
+          "properties": {
+            "rect": {
+              "properties": {
+                "h": {
+                  "$ref": "#/$defs/Nm",
+                  "description": "The height."
+                },
+                "r": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Nm"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The corner radius; absent: square corners."
+                },
+                "w": {
+                  "$ref": "#/$defs/Nm",
+                  "description": "The width."
+                }
+              },
+              "required": [
+                "w",
+                "h"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "rect"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "MlText": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4,8})(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*(?:-[a-wy-z0-9](?:-[a-z0-9]{2,8})+)*(?:-x(?:-[a-z0-9]{1,8})+)?$",
+            "type": "string"
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags with non-empty string values (doc 05 §3.2). JSON Schema cannot express that all text is NFC or that the keys are in ascending byte order; the reader rejects both."
+    },
+    "Nm": {
+      "description": "A length in nanometres (doc 05 §3.2). Written without fraction or exponent; JSON Schema cannot tell 5 from 5.0, the reader rejects the latter.",
+      "maximum": 9007199254740991,
+      "minimum": -9007199254740991,
+      "type": "integer"
+    },
+    "Screw": {
+      "description": "The screw of a fixing hole.",
+      "oneOf": [
+        {
+          "const": "m3",
+          "description": "M3.",
+          "type": "string"
+        },
+        {
+          "const": "m4",
+          "description": "M4.",
+          "type": "string"
+        },
+        {
+          "const": "m5",
+          "description": "M5.",
+          "type": "string"
+        },
+        {
+          "const": "m6",
+          "description": "M6.",
+          "type": "string"
+        },
+        {
+          "const": "m8",
+          "description": "M8.",
+          "type": "string"
+        }
+      ]
+    },
+    "SurfacePt2": {
+      "description": "A point [u, v] in nanometres in the frame of a mounting surface, u to the right, v up (doc 03 §16): not a sheet point.",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "A hole a person added to a surface (doc 12 §2.2, rank 58, the layout file of its surface's space): by hand, or a\ncable's gland he placed (doc 12 §3.9). Every other hole is derived (doc 12-3d §10).",
+  "properties": {
+    "$k": {
+      "const": "surface_feature",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "at": {
+      "$ref": "#/$defs/SurfacePt2",
+      "description": "Its centre in the surface frame."
+    },
+    "cable": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The cable whose gland it holds (delete policy unlink)."
+    },
+    "for_cable": {
+      "description": "Made for a cable: stays true when the cable is gone.",
+      "type": "boolean"
+    },
+    "hole": {
+      "$ref": "#/$defs/Hole",
+      "description": "The hole; a cable's gland keeps the hole of its gland's thread when it was placed (a drilled hole is a fact)."
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The record ID."
+    },
+    "purpose": {
+      "$ref": "#/$defs/MlText",
+      "description": "What it is for, in the person's words (\"Earth stud\")."
+    },
+    "surface": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The surface (delete policy cascade)."
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "surface",
+    "at",
+    "hole"
+  ],
+  "title": "surface_feature",
+  "type": "object"
+}

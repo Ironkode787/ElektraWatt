@@ -1613,6 +1613,8 @@ pub enum PartKind {
     Accessory,
     /// Configured product.
     Configured,
+    /// A cable gland (doc 12 §3.9).
+    Gland,
     /// A value of a newer format, kept verbatim.
     #[serde(skip)]
     Unknown(Value),
@@ -1622,16 +1624,17 @@ impl PartKind {
     /// Whether a wire consumes the part (a wire, a ferrule, a marker): the consumables count it from the wires, and it
     /// is no accessory of another part (doc 07 §2.5).
     pub fn is_consumable(&self) -> bool {
-        self.own_section().is_some()
+        matches!(self, PartKind::Wire | PartKind::Ferrule | PartKind::Marker)
     }
 
-    /// The member of [`crate::PartSections`] that is the kind's own (doc 07 §2.5 "The parts a wire consumes"): a
-    /// wire's `wire`, a ferrule's `ferrule`, a marker's `marker`; `None` for every other kind.
+    /// The member of [`crate::PartSections`] that is the kind's own (doc 07 §2.5): a wire's `wire`, a ferrule's
+    /// `ferrule`, a marker's `marker`, a gland's `gland`; `None` for every other kind.
     pub fn own_section(&self) -> Option<&'static str> {
         match self {
             PartKind::Wire => Some("wire"),
             PartKind::Ferrule => Some("ferrule"),
             PartKind::Marker => Some("marker"),
+            PartKind::Gland => Some("gland"),
             _ => None,
         }
     }
@@ -1790,6 +1793,51 @@ pub struct MechData {
     /// The mass in grams.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mass: Option<u32>,
+    /// The outline drawn when the part has no imported outline; absent: a rectangle.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub front_shape: Option<FrontShape>,
+    /// The drilling pattern: each hole's centre in the part frame and its hole (doc 12 §2.5).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub holes: Vec<PartHole>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+impl MechData {
+    /// Whether the front is drawn round: the shape `round` on a front whose width is its height (doc 12 §2.5).
+    pub fn front_is_round(&self) -> bool {
+        self.front_shape == Some(FrontShape::Round) && self.width.is_some() && self.width == self.height
+    }
+}
+
+/// The shape of a part's front (doc 12 §2.5).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "FrontShape")]
+pub enum FrontShape {
+    /// A rectangle of the part's width and height.
+    Rectangle,
+    /// A circle of the part's width.
+    Round,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// One hole of a part's drilling pattern ([`MechData::holes`]): its centre in the part frame (`x` right, `y` up, from
+/// the front's bottom-left corner).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct PartHole {
+    /// The centre's `x`.
+    #[schemars(with = "NmS")]
+    pub x: Nm,
+    /// The centre's `y`.
+    #[schemars(with = "NmS")]
+    pub y: Nm,
+    /// The hole.
+    pub hole: crate::Hole,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -2809,6 +2857,7 @@ open_enum!(
     OrderUnit,
     ClampType,
     MountKind,
+    FrontShape,
     AccessoryPer,
     AlternativeKind,
     FormKind,

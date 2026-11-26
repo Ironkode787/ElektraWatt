@@ -2,13 +2,16 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 //! The panel layout records (doc 03 §16, doc 12 §2.2): `layout_space` (rank 50), `enclosure` (51),
-//! `mounting_surface` (52), `carrier` (53) and `placement` (54), all in `layout/<space>.jsonl`.
+//! `mounting_surface` (52), `carrier` (53), `placement` (54) and `surface_feature` (58), all in
+//! `layout/<space>.jsonl`.
 //!
 //! Typed within the unreleased format 0.1 under ADR-0011 amendment 4: the kinds were reserved
 //! with their ranks and ownership, no build wrote them before, and only the members the layout uses are typed. Every
 //! other member doc 03 §16 names stays verbatim in `extra` (`install`, `thermal`, `policy`, `install_type`, `doors`,
-//! `max_depth`, `segment`, `variant`), as do the surface kinds other than `plate`, the carrier kinds `busbar` and
-//! `surface`, and the `placement` variant of [`CarrierRef`] (each an `Unknown` variant, kept as read).
+//! `max_depth`, `segment`, `variant`), as do the carrier kinds `busbar` and `surface`, and the `placement` variant
+//! of [`CarrierRef`] (each an `Unknown` variant, kept as read). The members and kinds added since (the six faces of a
+//! cabinet, a door's hinge, a surface's datum and edge margin, the hole choices, the surface feature) are additive:
+//! an older build keeps them in `extra` or as `Unknown`, and writes them back.
 //!
 //! Geometry is integer nanometres in the frame of the mounting surface: `u` to the right, `v` up, `w` out of the
 //! surface (doc 03 §16). A placement's pose is relative to its carrier (doc 12 §2.3), so moving a rail moves its
@@ -25,15 +28,16 @@
 //! ```
 
 use ew_ids::Id;
-use ew_mltext::Ident;
+use ew_mltext::{Ident, MlText};
 use ew_units::{Nm, Pose3, Pt2};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::hole::Hole;
 use crate::json::{Extra, de_extra, is_false, is_v1, v1};
 use crate::library::MountKind;
-use crate::proxy::{IdentS, NmS, Pose3S, SurfacePt2S, UuidS};
+use crate::proxy::{IdentS, MlTextS, NmS, Pose3S, SurfacePt2S, UuidS};
 use crate::track::open_enum;
 use crate::value::PartRef;
 use crate::{Device, Function, StructureNode};
@@ -125,23 +129,144 @@ pub struct MountingSurface {
     /// Whether the surface is bonded to PE (FR-LAY-058).
     #[serde(default, skip_serializing_if = "is_false")]
     pub pe_bond: bool,
+    /// The side a door is hinged on (doc 12 §2.8); absent on every other surface.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hinge: Option<Hinge>,
+    /// The corner the surface's holes are measured from; absent: the project's (`WorkshopSettings.datum`), bottom
+    /// left when that is absent too.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub datum: Option<Corner>,
+    /// The strip along a door's or a wall's edge where nothing is cut; absent: none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub edge_margin: Option<Nm>,
     /// Unknown members (`max_depth`) and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
 }
 
-/// The kind of a mounting surface (doc 03 §16). Format 0.1 types the mounting plate; door, side, roof, floor and
-/// gland surfaces are kept verbatim as [`SurfaceKind::Unknown`] until their packages type them.
+/// The kind of a mounting surface (doc 12 §2.8): the plate and the six faces of the cabinet, each seen from the side
+/// it is worked from. A kind of a newer format is kept verbatim as [`SurfaceKind::Unknown`].
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 #[serde(remote = "Self")]
 #[schemars(rename = "SurfaceKind")]
 pub enum SurfaceKind {
-    /// The mounting plate.
+    /// The mounting plate, seen from the front.
     Plate,
+    /// A door, seen from outside.
+    Door,
+    /// The left side, seen from the left.
+    Left,
+    /// The right side, seen from the right.
+    Right,
+    /// The top, seen from above.
+    Top,
+    /// The bottom, seen from below.
+    Bottom,
     /// A value of a newer format, kept verbatim.
     #[serde(skip)]
     Unknown(Value),
+}
+
+/// The side a door is hinged on (doc 12 §2.8).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "Hinge")]
+pub enum Hinge {
+    /// On its left edge, seen from outside.
+    Left,
+    /// On its right edge, seen from outside.
+    Right,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// A corner of a surface's sheet as its page shows it: the datum its holes are measured from (doc 12 §2.1).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "Corner")]
+pub enum Corner {
+    /// The bottom-left corner (the default).
+    #[default]
+    BottomLeft,
+    /// The bottom-right corner.
+    BottomRight,
+    /// The top-left corner.
+    TopLeft,
+    /// The top-right corner.
+    TopRight,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+impl Corner {
+    /// Every corner, in the order a choice list offers them.
+    pub const ALL: [Corner; 4] = [
+        Corner::BottomLeft,
+        Corner::BottomRight,
+        Corner::TopLeft,
+        Corner::TopRight,
+    ];
+}
+
+/// One hole of a placement's or a carrier's pattern moved or left out (doc 12 §2.2): the hole at `index` (a part's
+/// `mech.holes` in its order; a carrier's fixings counted from the start of its path).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct HoleChoice {
+    /// The hole's index in its owner's pattern.
+    pub index: u16,
+    /// The hole moved by this offset (`u`, `v` in the surface frame); absent: at its place.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<SurfacePt2S>")]
+    pub offset: Option<Pt2>,
+    /// The hole left out.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub omit: bool,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Surface feature
+
+/// A hole a person added to a surface (doc 12 §2.2, rank 58, the layout file of its surface's space): by hand, or a
+/// cable's gland he placed (doc 12 §3.9). Every other hole is derived (doc 12-3d §10).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct SurfaceFeature {
+    /// The record ID.
+    #[schemars(with = "UuidS")]
+    pub id: Id<SurfaceFeature>,
+    /// Per-kind schema version `$v`, omitted when 1.
+    #[serde(rename = "$v", default = "v1", skip_serializing_if = "is_v1")]
+    pub v: u16,
+    /// The surface (delete policy cascade).
+    #[schemars(with = "UuidS")]
+    pub surface: Id<MountingSurface>,
+    /// Its centre in the surface frame.
+    #[schemars(with = "SurfacePt2S")]
+    pub at: Pt2,
+    /// The hole; a cable's gland keeps the hole of its gland's thread when it was placed (a drilled hole is a fact).
+    pub hole: Hole,
+    /// What it is for, in the person's words ("Earth stud").
+    #[serde(default, skip_serializing_if = "MlText::is_empty")]
+    #[schemars(with = "MlTextS")]
+    pub purpose: MlText,
+    /// The cable whose gland it holds (delete policy unlink).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub cable: Option<Id<Device>>,
+    /// Made for a cable: stays true when the cable is gone.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub for_cable: bool,
+    /// Unknown members and plugin keys.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -178,6 +303,9 @@ pub struct Carrier {
     /// Whether the carrier is bonded to PE (FR-LAY-058).
     #[serde(default, skip_serializing_if = "is_false")]
     pub pe_bond: bool,
+    /// Its fixing holes moved or left out (doc 12-3d §10.4).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub hole_choices: Vec<HoleChoice>,
     /// Unknown members and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -288,6 +416,10 @@ pub struct Placement {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<SurfacePt2S>")]
     pub label_at: Option<Pt2>,
+    /// The holes of its part moved or left out (doc 12-3d §10.4); an index the part no longer has is dropped by the
+    /// command that changes the part.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub hole_choices: Vec<HoleChoice>,
     /// Unknown members (`segment`, `variant`) and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -309,4 +441,4 @@ pub enum CarrierRef {
     Unknown(Value),
 }
 
-open_enum!(SurfaceKind, CarrierKind, CarrierParams, CarrierRef);
+open_enum!(SurfaceKind, Hinge, Corner, CarrierKind, CarrierParams, CarrierRef);

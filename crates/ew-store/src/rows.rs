@@ -178,8 +178,10 @@ pub(crate) fn follow_closure(keys: &BTreeSet<AnyKey>, base: &Model, next: &Model
             Kind::Enclosure | Kind::MountingSurface | Kind::Carrier => {
                 for model in [base, next] {
                     for (_, src) in model.referrers(&key) {
-                        if matches!(src.0, Kind::MountingSurface | Kind::Carrier | Kind::Placement)
-                            && !closure.contains(&src)
+                        if matches!(
+                            src.0,
+                            Kind::MountingSurface | Kind::Carrier | Kind::Placement | Kind::SurfaceFeature
+                        ) && !closure.contains(&src)
                         {
                             work.push(src);
                         }

@@ -31,6 +31,38 @@
         }
       ]
     },
+    "HoleChoice": {
+      "additionalProperties": true,
+      "description": "One hole of a placement's or a carrier's pattern moved or left out (doc 12 §2.2): the hole at `index` (a part's\n`mech.holes` in its order; a carrier's fixings counted from the start of its path).",
+      "properties": {
+        "index": {
+          "description": "The hole's index in its owner's pattern.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "offset": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SurfacePt2"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The hole moved by this offset (`u`, `v` in the surface frame); absent: at its place."
+        },
+        "omit": {
+          "description": "The hole left out.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "index"
+      ],
+      "type": "object"
+    },
     "Ident": {
       "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
       "minLength": 1,
@@ -184,6 +216,13 @@
         }
       ],
       "description": "One function placed on its own (a door handle); absent: the whole device (delete policy cascade)."
+    },
+    "hole_choices": {
+      "description": "The holes of its part moved or left out (doc 12-3d §10.4); an index the part no longer has is dropped by the\ncommand that changes the part.",
+      "items": {
+        "$ref": "#/$defs/HoleChoice"
+      },
+      "type": "array"
     },
     "id": {
       "$ref": "#/$defs/Uuid",

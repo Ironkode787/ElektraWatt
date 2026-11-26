@@ -111,6 +111,7 @@ impl Command for CreateDevice {
                 strip: self.strip.clone(),
                 ..DeviceAspects::default()
             },
+            gland: None,
             extra: Extra::new(),
         })?;
         if let Some(def) = self.main_fndef {
@@ -2363,6 +2364,7 @@ pub(crate) fn insert_part_device(
         state: Default::default(),
         source_ref: None,
         aspects: DeviceAspects::default(),
+        gland: None,
         extra: Extra::new(),
     })?;
     Ok(device)
@@ -2450,6 +2452,7 @@ fn insert_new_device(
         state: Default::default(),
         source_ref: None,
         aspects: DeviceAspects::default(),
+        gland: None,
         extra: Extra::new(),
     })
 }

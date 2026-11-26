@@ -12,7 +12,7 @@ use ew_schema::{
     ExternalRef, ForeignId, Function, FunctionKind, ImportLineage, ImportRun, Junction, Kind, KindRegistry,
     LayoutSpace, LibDocument, LogicalNet, MacroInstance, Medium, MediumDef, MountingSurface, Page, PageItem,
     PhysicalNet, Placement, PlcConfigProject, PotentialDef, Project, Record, ReportBlock, Representation,
-    Revision, Section, StructureBox, StructureNode, Waiver,
+    Revision, Section, StructureBox, StructureNode, SurfaceFeature, Waiver,
 };
 
 use crate::asset::Asset;
@@ -64,6 +64,7 @@ pub struct Model {
     pub(crate) mounting_surfaces: Table<MountingSurface>,
     pub(crate) carriers: Table<Carrier>,
     pub(crate) placements: Table<Placement>,
+    pub(crate) surface_features: Table<SurfaceFeature>,
     pub(crate) revisions: Table<Revision>,
     pub(crate) waivers: Table<Waiver>,
     pub(crate) exchange_records: Table<ExchangeRecord>,
@@ -118,6 +119,7 @@ impl Model {
             mounting_surfaces: Table::default(),
             carriers: Table::default(),
             placements: Table::default(),
+            surface_features: Table::default(),
             revisions: Table::default(),
             waivers: Table::default(),
             exchange_records: Table::default(),

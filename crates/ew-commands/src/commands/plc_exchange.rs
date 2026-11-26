@@ -903,6 +903,7 @@ fn new_device(
         state: Default::default(),
         source_ref: None,
         aspects,
+        gland: None,
         extra: Extra::new(),
     })?;
     Ok(id)
@@ -1128,6 +1129,7 @@ impl Command for ApplyInstrumentList {
                         state: Default::default(),
                         source_ref: None,
                         aspects: DeviceAspects::default(),
+                        gland: None,
                         extra: Extra::new(),
                     })?;
                     id

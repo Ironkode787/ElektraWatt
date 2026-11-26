@@ -11,15 +11,17 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::hole::Gland;
 use crate::json::{Extra, de_extra, is_false};
+use crate::layout::Hinge;
 use crate::library::{FluidPortRole, MountKind};
 use crate::proxy::{Dec3S, IdentS, NmS};
 use crate::track::open_enum;
 use crate::value::{ColourSpec, Csa, LibRef};
 
 /// Domain sections of a part (FR-PRT-010). Typed: the cable cores, the PLC section, the carrier sections of
-/// FR-PRT-024 (enclosure, duct, rail, mounting plate), the bus and fluid sections and the sections of the parts a wire
-/// consumes (wire, ferrule, marker, FR-PRT-035); the other sections stay in `extra`.
+/// FR-PRT-024 (enclosure, duct, rail, mounting plate), the bus and fluid sections, the sections of the parts a wire
+/// consumes (wire, ferrule, marker, FR-PRT-035) and a cable's and a gland's; the other sections stay in `extra`.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct PartSections {
     /// Cores of a cable part, from which conductors are generated (FR-CBL-004).
@@ -55,6 +57,12 @@ pub struct PartSections {
     /// The marker section of a marker part (FR-PRT-035).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub marker: Option<MarkerSection>,
+    /// The cable section of a cable part: its outer diameter.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cable: Option<CableSection>,
+    /// The gland section of a gland part (doc 12 §3.9).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gland: Option<GlandSection>,
     /// Unknown members (other sections).
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -359,6 +367,63 @@ pub struct EnclosureSection {
     /// The mounting plate part.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub plate: Option<LibRef>,
+    /// The doors, left to right (doc 12 §2.8); empty: one door over the whole front, hinged on the left.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub doors: Vec<DoorSpec>,
+    /// The strip along its doors' and walls' edges where nothing is cut; absent: none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub edge_margin: Option<Nm>,
+    /// The clear depth between the plate and the closed door.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub usable_depth: Option<Nm>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// One door of an enclosure part ([`EnclosureSection::doors`]).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct DoorSpec {
+    /// The side it is hinged on.
+    pub hinge: Hinge,
+    /// Its width; absent: the enclosure's width shared equally between its doors.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub width: Option<Nm>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The cable section of a cable part (doc 12 §2.5).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct CableSection {
+    /// The cable's outer diameter: what its gland must seal (doc 12 §3.9).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub outer_diameter: Option<Nm>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The gland section of a gland part (doc 12 §2.5, §3.9).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct GlandSection {
+    /// Its thread.
+    pub thread: Gland,
+    /// The smallest cable diameter it seals.
+    #[schemars(with = "NmS")]
+    pub clamp_min: Nm,
+    /// The largest cable diameter it seals.
+    #[schemars(with = "NmS")]
+    pub clamp_max: Nm,
+    /// The room its nut takes, across its corners; absent: 1.4 × the thread.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub nut: Option<Nm>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

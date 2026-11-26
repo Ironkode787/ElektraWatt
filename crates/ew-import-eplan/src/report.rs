@@ -405,6 +405,7 @@ pub fn read_report(
                     source_ref: Some(ids.source_ref(&dkey)),
                     aspects: DeviceAspects::default(),
                     extra,
+                    gland: None,
                 }));
                 records.push(Record::Function(function(&ids, &dkey, device, blackbox)));
             }
@@ -499,6 +500,7 @@ pub fn read_report(
                             ..DeviceAspects::default()
                         },
                         extra,
+                        gland: None,
                     }));
                     id
                 });
@@ -585,6 +587,7 @@ pub fn read_report(
                         }),
                         ..DeviceAspects::default()
                     },
+                    gland: None,
                     extra: if part.is_empty() {
                         Extra::new()
                     } else {

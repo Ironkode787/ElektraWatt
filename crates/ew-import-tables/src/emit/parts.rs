@@ -283,6 +283,9 @@ pub(crate) fn emit(
                         version_req: "*".into(),
                         extra: Default::default(),
                     }),
+                    doors: Vec::new(),
+                    edge_margin: None,
+                    usable_depth: None,
                     extra: Default::default(),
                 })
             }

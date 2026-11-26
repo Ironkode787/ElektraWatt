@@ -527,6 +527,8 @@ pub static LINKS: &[LinkDecl] = &[
             opt(c.part.as_ref().map(|p| p.copy), out);
         }
     }),
+    // A cable's chosen gland (doc 12 §3.9).
+    link!(Device."gland.copy" -> Part, Forbid, None, |v, out| opt(v.gland.as_ref().map(|p| p.copy), out)),
     DEVICE_SLOTS[0],
     DEVICE_SLOTS[1],
     DEVICE_SLOTS[2],
@@ -991,6 +993,17 @@ pub static LINKS: &[LinkDecl] = &[
             id(s, out);
         }
     }),
+    // a hole by hand or a cable's gland goes with its surface; its cable may go (the hole stays, doc 12 §3.9)
+    link!(SurfaceFeature."surface" -> MountingSurface, Cascade, None, |v, out| id(v.surface, out)),
+    link!(SurfaceFeature."cable" -> Device, Unlink, None, |v, out| opt(v.cable, out),
+    Some(|row, del| {
+        let AnyRow::SurfaceFeature(f) = row else { return Some(row.clone()) };
+        let mut f = (**f).clone();
+        if f.cable.is_some_and(|d| gone(del, Kind::Device, d)) {
+            f.cable = None;
+        }
+        Some(AnyRow::SurfaceFeature(Arc::new(f)))
+    })),
     // revision (`page_notes[].page` is not a link: NOT_LINKS)
     link!(Revision."withdraws" -> Revision, Forbid, None, |v, out| opt(v.withdraws, out)),
     // The exchange snapshot of a configuration project goes with it; load-tolerant, because an older

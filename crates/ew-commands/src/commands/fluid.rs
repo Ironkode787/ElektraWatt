@@ -239,6 +239,7 @@ fn new_child(
         state,
         source_ref: None,
         aspects: DeviceAspects::default(),
+        gland: None,
         extra: Extra::new(),
     })?;
     Ok(id)

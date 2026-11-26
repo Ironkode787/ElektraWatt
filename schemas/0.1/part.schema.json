@@ -226,6 +226,24 @@
       ],
       "type": "object"
     },
+    "CableSection": {
+      "additionalProperties": true,
+      "description": "The cable section of a cable part (doc 12 §2.5).",
+      "properties": {
+        "outer_diameter": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The cable's outer diameter: what its gland must seal (doc 12 §3.9)."
+        }
+      },
+      "type": "object"
+    },
     "ChannelKind": {
       "description": "The kind of a channel (doc 10 §2.4).",
       "oneOf": [
@@ -806,6 +824,26 @@
       ],
       "description": "A cross-section: a Dec3 string in mm², {\"awg\": n} or {\"kcmil\": Dec3} (doc 08 §4.6)."
     },
+    "Cutout": {
+      "description": "The class of a round cut-out (an operator's mounting hole).",
+      "oneOf": [
+        {
+          "const": "d16",
+          "description": "16 mm.",
+          "type": "string"
+        },
+        {
+          "const": "d22",
+          "description": "22 mm.",
+          "type": "string"
+        },
+        {
+          "const": "d30",
+          "description": "30 mm.",
+          "type": "string"
+        }
+      ]
+    },
     "Date": {
       "description": "An authored date YYYY-MM-DD (doc 05 §3.2).",
       "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
@@ -859,6 +897,31 @@
           "type": "string"
         }
       ]
+    },
+    "DoorSpec": {
+      "additionalProperties": true,
+      "description": "One door of an enclosure part ([`EnclosureSection::doors`]).",
+      "properties": {
+        "hinge": {
+          "$ref": "#/$defs/Hinge",
+          "description": "The side it is hinged on."
+        },
+        "width": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Its width; absent: the enclosure's width shared equally between its doors."
+        }
+      },
+      "required": [
+        "hinge"
+      ],
+      "type": "object"
     },
     "DuctSection": {
       "additionalProperties": true,
@@ -915,6 +978,24 @@
           ],
           "description": "Outer depth."
         },
+        "doors": {
+          "description": "The doors, left to right (doc 12 §2.8); empty: one door over the whole front, hinged on the left.",
+          "items": {
+            "$ref": "#/$defs/DoorSpec"
+          },
+          "type": "array"
+        },
+        "edge_margin": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The strip along its doors' and walls' edges where nothing is cut; absent: none."
+        },
         "height": {
           "anyOf": [
             {
@@ -936,6 +1017,17 @@
             }
           ],
           "description": "The mounting plate part."
+        },
+        "usable_depth": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The clear depth between the plate and the closed door."
         },
         "wall": {
           "anyOf": [
@@ -1345,6 +1437,21 @@
       ],
       "type": "object"
     },
+    "FrontShape": {
+      "description": "The shape of a part's front (doc 12 §2.5).",
+      "oneOf": [
+        {
+          "const": "rectangle",
+          "description": "A rectangle of the part's width and height.",
+          "type": "string"
+        },
+        {
+          "const": "round",
+          "description": "A circle of the part's width.",
+          "type": "string"
+        }
+      ]
+    },
     "GalleryData": {
       "additionalProperties": true,
       "description": "One gallery of a manifold part (doc 11 §5.2): the gallery, named by the role of the valve ports it joins, the\ndesignation of the port of the part that taps it, and whether the part separates it.",
@@ -1373,6 +1480,205 @@
         "gallery"
       ],
       "type": "object"
+    },
+    "Gland": {
+      "description": "The thread of a metric cable gland.",
+      "oneOf": [
+        {
+          "const": "m12",
+          "description": "M12.",
+          "type": "string"
+        },
+        {
+          "const": "m16",
+          "description": "M16.",
+          "type": "string"
+        },
+        {
+          "const": "m20",
+          "description": "M20.",
+          "type": "string"
+        },
+        {
+          "const": "m25",
+          "description": "M25.",
+          "type": "string"
+        },
+        {
+          "const": "m32",
+          "description": "M32.",
+          "type": "string"
+        },
+        {
+          "const": "m40",
+          "description": "M40.",
+          "type": "string"
+        },
+        {
+          "const": "m50",
+          "description": "M50.",
+          "type": "string"
+        },
+        {
+          "const": "m63",
+          "description": "M63.",
+          "type": "string"
+        }
+      ]
+    },
+    "GlandSection": {
+      "additionalProperties": true,
+      "description": "The gland section of a gland part (doc 12 §2.5, §3.9).",
+      "properties": {
+        "clamp_max": {
+          "$ref": "#/$defs/Nm",
+          "description": "The largest cable diameter it seals."
+        },
+        "clamp_min": {
+          "$ref": "#/$defs/Nm",
+          "description": "The smallest cable diameter it seals."
+        },
+        "nut": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The room its nut takes, across its corners; absent: 1.4 × the thread."
+        },
+        "thread": {
+          "$ref": "#/$defs/Gland",
+          "description": "Its thread."
+        }
+      },
+      "required": [
+        "thread",
+        "clamp_min",
+        "clamp_max"
+      ],
+      "type": "object"
+    },
+    "Hinge": {
+      "description": "The side a door is hinged on (doc 12 §2.8).",
+      "oneOf": [
+        {
+          "const": "left",
+          "description": "On its left edge, seen from outside.",
+          "type": "string"
+        },
+        {
+          "const": "right",
+          "description": "On its right edge, seen from outside.",
+          "type": "string"
+        }
+      ]
+    },
+    "Hole": {
+      "description": "A hole (doc 12 §2.5), tagged by its kind: `{\"round\": {\"d\": …}}`, `{\"fixing\": \"m5\"}`, `{\"cutout\": \"d22\"}`,\n`{\"gland\": \"m20\"}` or `{\"rect\": {\"w\": …, \"h\": …, \"r\": …}}`.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A plain hole of a diameter.",
+          "properties": {
+            "round": {
+              "properties": {
+                "d": {
+                  "$ref": "#/$defs/Nm",
+                  "description": "The diameter."
+                }
+              },
+              "required": [
+                "d"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "round"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A hole for a screw that fixes the part: the shop's setting and the surface decide how it is made.",
+          "properties": {
+            "fixing": {
+              "$ref": "#/$defs/Screw"
+            }
+          },
+          "required": [
+            "fixing"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The round cut-out of an operator of a class.",
+          "properties": {
+            "cutout": {
+              "$ref": "#/$defs/Cutout"
+            }
+          },
+          "required": [
+            "cutout"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The hole of a metric cable gland.",
+          "properties": {
+            "gland": {
+              "$ref": "#/$defs/Gland"
+            }
+          },
+          "required": [
+            "gland"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A rectangular cut-out, with a corner radius.",
+          "properties": {
+            "rect": {
+              "properties": {
+                "h": {
+                  "$ref": "#/$defs/Nm",
+                  "description": "The height."
+                },
+                "r": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Nm"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The corner radius; absent: square corners."
+                },
+                "w": {
+                  "$ref": "#/$defs/Nm",
+                  "description": "The width."
+                }
+              },
+              "required": [
+                "w",
+                "h"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "rect"
+          ],
+          "type": "object"
+        }
+      ]
     },
     "Ident": {
       "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
@@ -1777,6 +2083,17 @@
           },
           "type": "array"
         },
+        "front_shape": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FrontShape"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The outline drawn when the part has no imported outline; absent: a rectangle."
+        },
         "height": {
           "anyOf": [
             {
@@ -1787,6 +2104,13 @@
             }
           ],
           "description": "Height."
+        },
+        "holes": {
+          "description": "The drilling pattern: each hole's centre in the part frame and its hole (doc 12 §2.5).",
+          "items": {
+            "$ref": "#/$defs/PartHole"
+          },
+          "type": "array"
         },
         "mass": {
           "description": "The mass in grams.",
@@ -2173,6 +2497,30 @@
       ],
       "type": "object"
     },
+    "PartHole": {
+      "additionalProperties": true,
+      "description": "One hole of a part's drilling pattern ([`MechData::holes`]): its centre in the part frame (`x` right, `y` up, from\nthe front's bottom-left corner).",
+      "properties": {
+        "hole": {
+          "$ref": "#/$defs/Hole",
+          "description": "The hole."
+        },
+        "x": {
+          "$ref": "#/$defs/Nm",
+          "description": "The centre's `x`."
+        },
+        "y": {
+          "$ref": "#/$defs/Nm",
+          "description": "The centre's `y`."
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "hole"
+      ],
+      "type": "object"
+    },
     "PartKind": {
       "description": "Part kinds (doc 07 §2.5).",
       "oneOf": [
@@ -2250,12 +2598,17 @@
           "const": "configured",
           "description": "Configured product.",
           "type": "string"
+        },
+        {
+          "const": "gland",
+          "description": "A cable gland (doc 12 §3.9).",
+          "type": "string"
         }
       ]
     },
     "PartSections": {
       "additionalProperties": true,
-      "description": "Domain sections of a part (FR-PRT-010). Typed: the cable cores, the PLC section, the carrier sections of\nFR-PRT-024 (enclosure, duct, rail, mounting plate), the bus and fluid sections and the sections of the parts a wire\nconsumes (wire, ferrule, marker, FR-PRT-035); the other sections stay in `extra`.",
+      "description": "Domain sections of a part (FR-PRT-010). Typed: the cable cores, the PLC section, the carrier sections of\nFR-PRT-024 (enclosure, duct, rail, mounting plate), the bus and fluid sections, the sections of the parts a wire\nconsumes (wire, ferrule, marker, FR-PRT-035) and a cable's and a gland's; the other sections stay in `extra`.",
       "properties": {
         "bus": {
           "anyOf": [
@@ -2267,6 +2620,17 @@
             }
           ],
           "description": "The bus section: the part's bus interfaces (doc 10 §2.6)."
+        },
+        "cable": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CableSection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The cable section of a cable part: its outer diameter."
         },
         "cable_cores": {
           "description": "Cores of a cable part, from which conductors are generated (FR-CBL-004).",
@@ -2318,6 +2682,17 @@
             }
           ],
           "description": "The fluid section: the solenoids a valve part declares (doc 11 §2.6)."
+        },
+        "gland": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GlandSection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The gland section of a gland part (doc 12 §3.9)."
         },
         "marker": {
           "anyOf": [
@@ -2927,6 +3302,36 @@
         {
           "const": "graphic",
           "description": "Graphic.",
+          "type": "string"
+        }
+      ]
+    },
+    "Screw": {
+      "description": "The screw of a fixing hole.",
+      "oneOf": [
+        {
+          "const": "m3",
+          "description": "M3.",
+          "type": "string"
+        },
+        {
+          "const": "m4",
+          "description": "M4.",
+          "type": "string"
+        },
+        {
+          "const": "m5",
+          "description": "M5.",
+          "type": "string"
+        },
+        {
+          "const": "m6",
+          "description": "M6.",
+          "type": "string"
+        },
+        {
+          "const": "m8",
+          "description": "M8.",
           "type": "string"
         }
       ]

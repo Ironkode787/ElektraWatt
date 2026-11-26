@@ -146,6 +146,17 @@ fn merge_resolve_the_writer_and_the_loader_put_every_record_in_one_file() {
         "$k": "potential_def", "id": "9f5e3c12-7a4d-5b6a-9c83-2e0a6d4f9b37", "at": {"junction": junction},
         "name": "X1", "ptype": "l1"
     })));
+    let surface = records
+        .iter()
+        .find_map(|r| match r {
+            Record::MountingSurface(s) => Some(s.id.to_string()),
+            _ => None,
+        })
+        .expect("a mounting surface");
+    records.push(record(json!({
+        "$k": "surface_feature", "id": "0190d8a4-6d3e-7c41-8f00-0000000000f1", "surface": surface,
+        "at": [490_000_000, 40_000_000], "hole": {"fixing": "m6"}
+    })));
     records.push(record(json!({
         "$k": "conflict", "id": connection, "kind": "connection", "base": {}, "ours": {}, "theirs": {}
     })));

@@ -40,6 +40,7 @@ fn rail(id: Id<Carrier>) -> Carrier {
             extra: Extra::new(),
         }),
         pe_bond: false,
+        hole_choices: Vec::new(),
         extra: Extra::new(),
     }
 }
@@ -55,6 +56,7 @@ fn placement(id: Id<Placement>, device: Id<ew_schema::Device>, carrier: CarrierR
         pose: Pose3::IDENTITY,
         locked: false,
         label_at: None,
+        hole_choices: Vec::new(),
         extra: Extra::new(),
     }
 }
@@ -89,6 +91,9 @@ fn layout_records() -> Vec<Record> {
             frame: Pose3::IDENTITY,
             usable: vec![],
             pe_bond: false,
+            datum: None,
+            edge_margin: None,
+            hinge: None,
             extra: Extra::new(),
         }),
         Record::Carrier(rail(RAIL)),

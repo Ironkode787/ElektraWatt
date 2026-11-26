@@ -468,6 +468,56 @@ pub struct WorkshopSettings {
     /// The columns of a label file with their headings (doc 13 §5.4); absent: the generic profile.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label_profile: Option<ExportProfile>,
+    /// How a fixing hole in the mounting plate is made (doc 12-3d §10.3); absent: tapped.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub fixing: FixingRule,
+    /// How a rail is fixed; absent: M5, at most 300 mm apart, 25 mm from each end.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rail_fixing: Option<CarrierFixing>,
+    /// How a duct is fixed; absent: M4, at most 300 mm apart, 25 mm from each end.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duct_fixing: Option<CarrierFixing>,
+    /// The web kept between two holes and from a hole to a sheet's edge; absent: 5 mm.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub min_web: Option<Nm>,
+    /// The corner every surface's holes are measured from where the surface sets none; absent: bottom left.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub datum: Option<crate::Corner>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// How a fixing hole in the mounting plate is made ([`WorkshopSettings::fixing`], doc 12-3d §10.3).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "FixingRule")]
+pub enum FixingRule {
+    /// Tapped: drilled at the tap drill and tapped (the owner's default, 2026-11-26).
+    #[default]
+    Tapped,
+    /// For a self-tapping screw: its pilot hole.
+    SelfTapping,
+    /// Through, with a nut: a clearance hole.
+    Through,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// How a rail or a duct is fixed ([`WorkshopSettings::rail_fixing`], doc 12-3d §10.3).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct CarrierFixing {
+    /// The screw.
+    pub screw: crate::Screw,
+    /// At most how far apart two holes are.
+    #[schemars(with = "NmS")]
+    pub pitch: Nm,
+    /// How far the first and the last hole are from the ends.
+    #[schemars(with = "NmS")]
+    pub from_end: Nm,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -1231,6 +1281,7 @@ pub struct ExternalRef {
 
 open_enum!(
     PartyRole,
+    FixingRule,
     EarthingSystem,
     IpPairingMode,
     IpPairingScope,

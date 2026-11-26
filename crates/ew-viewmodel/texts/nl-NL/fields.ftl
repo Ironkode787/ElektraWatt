@@ -203,6 +203,7 @@ choice-mounting-plate = Montageplaat
 choice-tube = Slang
 choice-accessory = Toebehoren
 choice-configured = Samengesteld
+choice-gland = Kabelwartel
 choice-working = Werkleiding
 choice-pilot = Stuurleiding
 choice-exhaust = Afvoerleiding

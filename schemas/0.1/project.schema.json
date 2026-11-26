@@ -56,6 +56,30 @@
       ],
       "type": "object"
     },
+    "CarrierFixing": {
+      "additionalProperties": true,
+      "description": "How a rail or a duct is fixed ([`WorkshopSettings::rail_fixing`], doc 12-3d §10.3).",
+      "properties": {
+        "from_end": {
+          "$ref": "#/$defs/Nm",
+          "description": "How far the first and the last hole are from the ends."
+        },
+        "pitch": {
+          "$ref": "#/$defs/Nm",
+          "description": "At most how far apart two holes are."
+        },
+        "screw": {
+          "$ref": "#/$defs/Screw",
+          "description": "The screw."
+        }
+      },
+      "required": [
+        "screw",
+        "pitch",
+        "from_end"
+      ],
+      "type": "object"
+    },
     "ColourCode": {
       "anyOf": [
         {
@@ -84,6 +108,31 @@
       "maxItems": 2,
       "minItems": 1,
       "type": "array"
+    },
+    "Corner": {
+      "description": "A corner of a surface's sheet as its page shows it: the datum its holes are measured from (doc 12 §2.1).",
+      "oneOf": [
+        {
+          "const": "bottom_left",
+          "description": "The bottom-left corner (the default).",
+          "type": "string"
+        },
+        {
+          "const": "bottom_right",
+          "description": "The bottom-right corner.",
+          "type": "string"
+        },
+        {
+          "const": "top_left",
+          "description": "The top-left corner.",
+          "type": "string"
+        },
+        {
+          "const": "top_right",
+          "description": "The top-right corner.",
+          "type": "string"
+        }
+      ]
     },
     "Date": {
       "description": "An authored date YYYY-MM-DD (doc 05 §3.2).",
@@ -210,6 +259,26 @@
         {
           "const": "not_into_spring_clamps",
           "description": "Every fine-stranded end but those into a spring or push-in clamp, which holds the strands itself: the default\n(the owner's shop rule, 2026-11-26).",
+          "type": "string"
+        }
+      ]
+    },
+    "FixingRule": {
+      "description": "How a fixing hole in the mounting plate is made ([`WorkshopSettings::fixing`], doc 12-3d §10.3).",
+      "oneOf": [
+        {
+          "const": "tapped",
+          "description": "Tapped: drilled at the tap drill and tapped (the owner's default, 2026-11-26).",
+          "type": "string"
+        },
+        {
+          "const": "self_tapping",
+          "description": "For a self-tapping screw: its pilot hole.",
+          "type": "string"
+        },
+        {
+          "const": "through",
+          "description": "Through, with a nut: a clearance hole.",
           "type": "string"
         }
       ]
@@ -756,6 +825,36 @@
         "unit"
       ],
       "type": "object"
+    },
+    "Screw": {
+      "description": "The screw of a fixing hole.",
+      "oneOf": [
+        {
+          "const": "m3",
+          "description": "M3.",
+          "type": "string"
+        },
+        {
+          "const": "m4",
+          "description": "M4.",
+          "type": "string"
+        },
+        {
+          "const": "m5",
+          "description": "M5.",
+          "type": "string"
+        },
+        {
+          "const": "m6",
+          "description": "M6.",
+          "type": "string"
+        },
+        {
+          "const": "m8",
+          "description": "M8.",
+          "type": "string"
+        }
+      ]
     },
     "Sha256": {
       "description": "A SHA-256 digest sha256:<64 lower-case hex> (doc 05 §3.2).",
@@ -1323,13 +1422,39 @@
           ],
           "description": "What the cut list rounds a piece up to; absent: 5 mm."
         },
+        "datum": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Corner"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The corner every surface's holes are measured from where the surface sets none; absent: bottom left."
+        },
         "device_labels": {
           "$ref": "#/$defs/DeviceLabels",
           "description": "Where a device's label goes (doc 13 §5.3); absent: on the device."
         },
+        "duct_fixing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CarrierFixing"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How a duct is fixed; absent: M4, at most 300 mm apart, 25 mm from each end."
+        },
         "ferrules": {
           "$ref": "#/$defs/FerruleRule",
           "description": "Which fine-stranded ends take a ferrule (doc 13 §4.2); absent: every one but those into a spring or push-in\nclamp."
+        },
+        "fixing": {
+          "$ref": "#/$defs/FixingRule",
+          "description": "How a fixing hole in the mounting plate is made (doc 12-3d §10.3); absent: tapped."
         },
         "label_profile": {
           "anyOf": [
@@ -1353,6 +1478,28 @@
         "marking": {
           "$ref": "#/$defs/Marking",
           "description": "What a wire's marker says (doc 13 §5.1); absent: the far end."
+        },
+        "min_web": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The web kept between two holes and from a hole to a sheet's edge; absent: 5 mm."
+        },
+        "rail_fixing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CarrierFixing"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How a rail is fixed; absent: M5, at most 300 mm apart, 25 mm from each end."
         },
         "stock": {
           "description": "The wire, ferrule and marker parts the shop keeps, in its order of preference: a wire takes the first stock\nwire part of its size and colour, an end the first stock ferrule that fits it, a label kind the first stock\nmarker that marks it.",

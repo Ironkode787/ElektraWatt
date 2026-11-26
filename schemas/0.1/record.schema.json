@@ -93,6 +93,9 @@
       "$ref": "placement.schema.json"
     },
     {
+      "$ref": "surface_feature.schema.json"
+    },
+    {
       "$ref": "revision.schema.json"
     },
     {

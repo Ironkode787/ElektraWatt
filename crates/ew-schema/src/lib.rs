@@ -53,7 +53,7 @@
 //! | Connectivity | `connection` (34), `junction` (35), `conductor` (36), `potential_def` (38), `bond` (41) |
 //! | PLC | `plc_config_project` (11), `channel` (37), the `plc_station` and `plc_module` aspects, the part's `plc` section, `device_link` (42) |
 //! | Bus | `logical_net` (12), `physical_net` (13), the function's `bus_port` aspect |
-//! | Panel layout | `layout_space` (50), `enclosure` (51), `mounting_surface` (52), `carrier` (53), `placement` (54) |
+//! | Panel layout | `layout_space` (50), `enclosure` (51), `mounting_surface` (52), `carrier` (53), `placement` (54), `surface_feature` (58) |
 //! | Revisions and checks | `revision` (60), `waiver` (61) |
 //! | Merges | `conflict` (255), in the file of its target |
 //! | Library documents | `part`, `symbol`, `fndef`, `form`, each a [`LibCopy`] |
@@ -85,6 +85,7 @@ mod connect;
 mod device;
 mod error;
 mod exchange;
+mod hole;
 mod json;
 mod kind;
 mod layout;
@@ -132,31 +133,32 @@ pub use device::{
 };
 pub use error::{MalformedVariant, SchemaError};
 pub use exchange::{ExchangeObject, ExchangeRecord, ForeignId};
+pub use hole::{Cutout, Gland, Hole, HoleKind, HoleParseError, Screw, mm_text};
 pub use json::{Extra, Open, check_value, normalize_nfc};
 pub use kind::{
     FORMAT, FileRule, Kind, KindRegistry, KindStatus, MERGE_STRATEGIES, MergeOrder, MergeRule, MergeStrategy,
     PERSONAL_DATA_FIELDS, RELEASED_FORMATS, SCHEMA_VERSIONS, parse_format, parse_format_lenient,
 };
 pub use layout::{
-    Carrier, CarrierKind, CarrierParams, CarrierRef, DuctParams, Enclosure, LayoutSpace, MountingSurface,
-    Placement, RailParams, SurfaceKind,
+    Carrier, CarrierKind, CarrierParams, CarrierRef, Corner, DuctParams, Enclosure, Hinge, HoleChoice,
+    LayoutSpace, MountingSurface, Placement, RailParams, SurfaceFeature, SurfaceKind,
 };
 pub use library::{
     AccessoryPer, Actuation, Actuator, Align, AlternativeKind, AlternativeRef, AnchorPolicy, ArcPrim,
     Arrangement, CategoryKey, CirclePrim, ClampKey, ClampType, Clearance, Colour, Confidence, Configured,
     ConfiguredComponent, ContactData, ContactKind, Counting, CpData, CpDef, Dash, DataArea, Deprecation,
     Dir4, Discipline, EXTRA_SHOW_GRID, EllipsePrim, ExtraVariant, ExtraVariantKind, FluidPortRole, FnDef,
-    FnFlags, FormCell, FormDef, FormKind, FrameColumns, FrameGrid, FrameRows, FreeProp, HOUSE_ROW_HEIGHT,
-    HOUSE_ROWS_PER_PAGE, ImagePrim, InternalKind, InternalLinkDef, ItemMeta, ItemStatus, LibCopy, LibItem,
-    Library, LinePrim, MacroDef, MacroInstance, MacroKind, MacroLink, MacroVariant, Manufacturer, MechData,
-    MountKind, NamedPoint, OrderUnit, Overflow, PLACEHOLDER_PART_NUMBER, Part, PartAccessory, PartBox,
-    PartBoxPin, PartKind, PartVariant, PassThroughSpec, Pen, PlaceholderGroup, PlcAllocation,
-    PlcAllocationStart, PlcAreaMnemonics, PlcMnemonics, PlcParse, PlcProfileDef, PlcProfilePin, PlcRender,
-    PlcSizeMnemonics, PolygonPrim, PolylinePrim, Primitive, RectPrim, RepType, Rgb, RowTemplate,
-    RowTemplates, SheetSpec, SheetTransform, ShrinkSpec, Side, SlotFallback, SlotKind, Stroke, SwitchPos,
-    SymbolCp, SymbolDef, TableStyle, TemplateFn, TextPrim, TextSlot, ValueSet, ValveModel, ValvePath,
-    ValveSection, VarBinding, VarDef, VarType, WrapPolicy, is_plain_semver, next_by_last_number, next_minor,
-    next_patch, semver_core,
+    FnFlags, FormCell, FormDef, FormKind, FrameColumns, FrameGrid, FrameRows, FreeProp, FrontShape,
+    HOUSE_ROW_HEIGHT, HOUSE_ROWS_PER_PAGE, ImagePrim, InternalKind, InternalLinkDef, ItemMeta, ItemStatus,
+    LibCopy, LibItem, Library, LinePrim, MacroDef, MacroInstance, MacroKind, MacroLink, MacroVariant,
+    Manufacturer, MechData, MountKind, NamedPoint, OrderUnit, Overflow, PLACEHOLDER_PART_NUMBER, Part,
+    PartAccessory, PartBox, PartBoxPin, PartHole, PartKind, PartVariant, PassThroughSpec, Pen,
+    PlaceholderGroup, PlcAllocation, PlcAllocationStart, PlcAreaMnemonics, PlcMnemonics, PlcParse,
+    PlcProfileDef, PlcProfilePin, PlcRender, PlcSizeMnemonics, PolygonPrim, PolylinePrim, Primitive,
+    RectPrim, RepType, Rgb, RowTemplate, RowTemplates, SheetSpec, SheetTransform, ShrinkSpec, Side,
+    SlotFallback, SlotKind, Stroke, SwitchPos, SymbolCp, SymbolDef, TableStyle, TemplateFn, TextPrim,
+    TextSlot, ValueSet, ValveModel, ValvePath, ValveSection, VarBinding, VarDef, VarType, WrapPolicy,
+    is_plain_semver, next_by_last_number, next_minor, next_patch, semver_core,
 };
 pub use list_area::ListArea;
 pub use medium::{FluidSettings, LineKindTube, LineTagScheme, Medium, MediumDef};
@@ -171,9 +173,9 @@ pub use page_item::{
     SurfaceLabelMode, SurfaceView, TextAlign, TextAnchor, Underlay, UnderlayFormat, WireMarker,
 };
 pub use part_sections::{
-    CableCore, CoilData, DuctSection, EnclosureSection, FerruleSection, FittingData, FluidPortData,
-    FluidSection, FluidTransform, GalleryData, MarkTarget, MarkerSection, PartSections, PlateSection,
-    RailSection, SolenoidPin, TubeData, WireSection,
+    CableCore, CableSection, CoilData, DoorSpec, DuctSection, EnclosureSection, FerruleSection, FittingData,
+    FluidPortData, FluidSection, FluidTransform, GalleryData, GlandSection, MarkTarget, MarkerSection,
+    PartSections, PlateSection, RailSection, SolenoidPin, TubeData, WireSection,
 };
 pub use plc::{
     AddrSpec, Channel, ChannelKind, ChannelSpec, ChannelState, DeviceLink, DeviceLinkKind, Evaluation,
@@ -184,13 +186,13 @@ pub use plc::{
     SupplyFeeds, SupplyGroup, SupplyKind, SupplyPins, SymbolPolicy, TypeIdent,
 };
 pub use project::{
-    Address, BasicProjectRef, DateFormat, DecimalSeparator, Delimiter, DeviceLabels, EarthingSystem,
-    ExportProfile, ExternalRef, FerruleRule, Formatting, ImportLineage, ImportRun, IpPairing, IpPairingMode,
-    IpPairingScope, LineageAnchor, LineageCopy, Marking, MasterData, Party, PartyRole, ProfileColumn,
-    Project, ProjectKind, ProjectLanguages, ProjectSettings, RecordHash, RunEntry, RunFix, RunLocation,
-    RunMode, RunSeverity, RunSource, RunStats, RunTarget, Section, StructureNode, SupplyOrigin, SupplySpec,
-    TagCase, TwoWires, TypefaceFile, UserPropDef, UserPropKind, UserPropScope, UserPropValue,
-    WorkshopSettings,
+    Address, BasicProjectRef, CarrierFixing, DateFormat, DecimalSeparator, Delimiter, DeviceLabels,
+    EarthingSystem, ExportProfile, ExternalRef, FerruleRule, FixingRule, Formatting, ImportLineage,
+    ImportRun, IpPairing, IpPairingMode, IpPairingScope, LineageAnchor, LineageCopy, Marking, MasterData,
+    Party, PartyRole, ProfileColumn, Project, ProjectKind, ProjectLanguages, ProjectSettings, RecordHash,
+    RunEntry, RunFix, RunLocation, RunMode, RunSeverity, RunSource, RunStats, RunTarget, Section,
+    StructureNode, SupplyOrigin, SupplySpec, TagCase, TwoWires, TypefaceFile, UserPropDef, UserPropKind,
+    UserPropScope, UserPropValue, WorkshopSettings,
 };
 pub use record::{AnchorRef, CopyMeta, LibDocument, Record, Unknowns};
 pub use revision::{

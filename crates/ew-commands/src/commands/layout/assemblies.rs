@@ -375,6 +375,7 @@ impl Command for PlaceAssembly {
                 pose,
                 locked: false,
                 label_at: None,
+                hole_choices: Vec::new(),
                 extra: Extra::new(),
             })?;
         }
@@ -722,6 +723,7 @@ impl Command for AutoFill {
                 pose,
                 locked: false,
                 label_at: None,
+                hole_choices: Vec::new(),
                 extra: Extra::new(),
             })?;
         }

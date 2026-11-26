@@ -1205,6 +1205,7 @@ impl AddModule {
                 }),
                 ..ew_schema::DeviceAspects::default()
             },
+            gland: None,
             extra: Extra::new(),
         })?;
         Ok(id)
@@ -1330,6 +1331,7 @@ impl Command for AddStation {
                     state: Default::default(),
                     source_ref: None,
                     aspects: ew_schema::DeviceAspects::default(),
+                    gland: None,
                     extra: Extra::new(),
                 })?;
                 id

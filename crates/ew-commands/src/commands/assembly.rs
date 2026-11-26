@@ -969,6 +969,7 @@ impl Command for AddValve {
             state: Default::default(),
             source_ref: None,
             aspects: DeviceAspects::default(),
+            gland: None,
             extra: Extra::new(),
         })?;
         if let Some(def) = self.fndef.filter(|_| !from_part) {

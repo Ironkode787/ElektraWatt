@@ -732,6 +732,9 @@ fn insert_enclosure(
         frame,
         usable,
         pe_bond,
+        datum: None,
+        edge_margin: None,
+        hinge: None,
         extra: Extra::new(),
     })?;
     Ok(enclosure)
@@ -854,6 +857,7 @@ impl Command for AddCarrier {
             path: self.path.clone(),
             params,
             pe_bond: self.pe_bond.unwrap_or(false),
+            hole_choices: Vec::new(),
             extra: Extra::new(),
         })?;
         Ok(Outcome::primary((Kind::Carrier, id.cast())))
@@ -1469,6 +1473,7 @@ impl Command for PlaceDevice {
             pose,
             locked: false,
             label_at: None,
+            hole_choices: Vec::new(),
             extra: Extra::new(),
         })?;
         Ok(Outcome::primary((Kind::Placement, id.cast())))
@@ -2174,6 +2179,7 @@ fn enclosure_device(
         state: Default::default(),
         source_ref: None,
         aspects: DeviceAspects::default(),
+        gland: None,
         extra: Extra::new(),
     }
 }

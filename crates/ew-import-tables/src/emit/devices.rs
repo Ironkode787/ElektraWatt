@@ -259,6 +259,7 @@ pub(crate) fn emit_devices(cx: &mut Cx<'_>, table: Option<&Table>) {
                 }),
                 plc_module: plc_module.then(PlcModule::default),
             },
+            gland: None,
             extra: Default::default(),
         };
         pending.push((row, parent, device));
@@ -376,6 +377,7 @@ pub(crate) fn emit_terminals(cx: &mut Cx<'_>, table: Option<&Table>) {
                 plc_station: None,
                 plc_module: None,
             },
+            gland: None,
             extra: Default::default(),
         }));
     }

@@ -1,5 +1,51 @@
 {
   "$defs": {
+    "Corner": {
+      "description": "A corner of a surface's sheet as its page shows it: the datum its holes are measured from (doc 12 §2.1).",
+      "oneOf": [
+        {
+          "const": "bottom_left",
+          "description": "The bottom-left corner (the default).",
+          "type": "string"
+        },
+        {
+          "const": "bottom_right",
+          "description": "The bottom-right corner.",
+          "type": "string"
+        },
+        {
+          "const": "top_left",
+          "description": "The top-left corner.",
+          "type": "string"
+        },
+        {
+          "const": "top_right",
+          "description": "The top-right corner.",
+          "type": "string"
+        }
+      ]
+    },
+    "Hinge": {
+      "description": "The side a door is hinged on (doc 12 §2.8).",
+      "oneOf": [
+        {
+          "const": "left",
+          "description": "On its left edge, seen from outside.",
+          "type": "string"
+        },
+        {
+          "const": "right",
+          "description": "On its right edge, seen from outside.",
+          "type": "string"
+        }
+      ]
+    },
+    "Nm": {
+      "description": "A length in nanometres (doc 05 §3.2). Written without fraction or exponent; JSON Schema cannot tell 5 from 5.0, the reader rejects the latter.",
+      "maximum": 9007199254740991,
+      "minimum": -9007199254740991,
+      "type": "integer"
+    },
     "Pose3": {
       "additionalProperties": false,
       "description": "A pose (doc 05 §3.2): translation t = [x, y, z] in nanometres and rotation q = [w, x, y, z], a unit quaternion in 10^-9. JSON Schema cannot express that q is unit (within 2.001 x 10^9 of 10^18 squared) and sign-normalised (w > 0, or the first non-zero component positive); the reader rejects both.",
@@ -63,11 +109,36 @@
       "type": "object"
     },
     "SurfaceKind": {
-      "description": "The kind of a mounting surface (doc 03 §16). Format 0.1 types the mounting plate; door, side, roof, floor and\ngland surfaces are kept verbatim as [`SurfaceKind::Unknown`] until their packages type them.",
+      "description": "The kind of a mounting surface (doc 12 §2.8): the plate and the six faces of the cabinet, each seen from the side\nit is worked from. A kind of a newer format is kept verbatim as [`SurfaceKind::Unknown`].",
       "oneOf": [
         {
           "const": "plate",
-          "description": "The mounting plate.",
+          "description": "The mounting plate, seen from the front.",
+          "type": "string"
+        },
+        {
+          "const": "door",
+          "description": "A door, seen from outside.",
+          "type": "string"
+        },
+        {
+          "const": "left",
+          "description": "The left side, seen from the left.",
+          "type": "string"
+        },
+        {
+          "const": "right",
+          "description": "The right side, seen from the right.",
+          "type": "string"
+        },
+        {
+          "const": "top",
+          "description": "The top, seen from above.",
+          "type": "string"
+        },
+        {
+          "const": "bottom",
+          "description": "The bottom, seen from below.",
           "type": "string"
         }
       ]
@@ -114,6 +185,17 @@
       "minimum": 0,
       "type": "integer"
     },
+    "datum": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Corner"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The corner the surface's holes are measured from; absent: the project's (`WorkshopSettings.datum`), bottom\nleft when that is absent too."
+    },
     "device": {
       "anyOf": [
         {
@@ -125,6 +207,17 @@
       ],
       "description": "The device of a separate surface part (the mounting plate NSYPMM107, a child of the enclosure's device);\ndeleting that device clears the member (delete policy unlink)."
     },
+    "edge_margin": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Nm"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The strip along a door's or a wall's edge where nothing is cut; absent: none."
+    },
     "enclosure": {
       "$ref": "#/$defs/Uuid",
       "description": "The enclosure (delete policy cascade)."
@@ -132,6 +225,17 @@
     "frame": {
       "$ref": "#/$defs/Pose3",
       "description": "The surface frame in the enclosure: `u`, `v` in the plane, `w` outward."
+    },
+    "hinge": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Hinge"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The side a door is hinged on (doc 12 §2.8); absent on every other surface."
     },
     "id": {
       "$ref": "#/$defs/Uuid",

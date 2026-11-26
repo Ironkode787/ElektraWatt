@@ -89,6 +89,7 @@ pub fn kind_schema(kind: Kind) -> Option<Value> {
         Kind::MountingSurface => generate::<MountingSurface>(kind),
         Kind::Carrier => generate::<Carrier>(kind),
         Kind::Placement => generate::<Placement>(kind),
+        Kind::SurfaceFeature => generate::<crate::SurfaceFeature>(kind),
         Kind::Revision => generate::<Revision>(kind),
         Kind::Waiver => generate::<Waiver>(kind),
         Kind::ExchangeRecord => generate::<crate::ExchangeRecord>(kind),

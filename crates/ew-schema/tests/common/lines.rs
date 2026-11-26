@@ -125,6 +125,7 @@ pub const GOLDEN: &[&str] = &[
     r#"{"$k":"carrier","id":"@CAR_D1","surface":"@SURF_PLATE","kind":"duct","path":[[40000000,860000000],[610000000,860000000],[610000000,340000000]],"params":{"duct":{"width":40000000,"height":60000000,"slot_pitch":12500000,"cover":true,"finger_w":6000000}}}"#,
     r#"{"$k":"placement","id":"@PL_G1","device":"@DEV_G1","function":"@FN_G1","part":{"copy":"@PART_PSU"},"carrier":{"carrier":"@CAR_R1"},"pose":{"t":[96000000,0,0],"q":[0,0,0,1000000000]},"locked":true,"variant":"lying"}"#,
     r#"{"$k":"placement","id":"@PL_S51","device":"@DEV_S51","carrier":{"surface":"@SURF_PLATE"},"pose":{"t":[300000000,100000000,0],"q":[707106781,0,0,707106781]},"segment":{"from_seq":1,"to_seq":4}}"#,
+    r#"{"$k":"surface_feature","id":"@FEAT_E1","surface":"@SURF_PLATE","at":[490000000,40000000],"hole":{"fixing":"m6"},"purpose":{"en":"Earth stud"}}"#,
 ];
 
 /// Golden library documents, one per implemented library kind.

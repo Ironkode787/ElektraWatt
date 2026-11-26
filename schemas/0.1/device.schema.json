@@ -1365,6 +1365,17 @@
       "$ref": "#/$defs/MlText",
       "description": "Manual function text (the automatic text falls back to the path function text, FR-DEV-011)."
     },
+    "gland": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PartRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "A cable's chosen gland part (doc 12 §3.9); absent: the gland the program proposes from the cable's outer\ndiameter and the workshop stock."
+    },
     "id": {
       "$ref": "#/$defs/Uuid",
       "description": "The record ID."

@@ -100,7 +100,7 @@ fn space_of_carrier(c: AnyId, anchors: &dyn Anchors) -> AnyId {
 /// | `waiver` | `waivers.jsonl` |
 /// | `layout_space` | `layout/<own id>.jsonl` |
 /// | `conflict` | the file of its target; a file-level conflict the record file its `path` names |
-/// | `enclosure`, `mounting_surface`, `carrier`, `placement` | `layout/<space>.jsonl`, the space reached through carrier → surface → enclosure |
+/// | `enclosure`, `mounting_surface`, `carrier`, `placement`, `surface_feature` | `layout/<space>.jsonl`, the space reached through carrier → surface → enclosure |
 ///
 /// The anchor of a connection-point endpoint is the shard of the function's device, or for a function
 /// without a device the function's own file; a junction endpoint's anchor is the junction's page. A
@@ -169,6 +169,7 @@ pub fn record_file(record: &Record, anchors: &dyn Anchors) -> Result<FilePath, F
         Record::Enclosure(r) => FilePath::layout(r.space.cast()),
         Record::MountingSurface(r) => FilePath::layout(space_of_enclosure(r.enclosure.cast(), anchors)),
         Record::Carrier(r) => FilePath::layout(space_of_surface(r.surface.cast(), anchors)),
+        Record::SurfaceFeature(r) => FilePath::layout(space_of_surface(r.surface.cast(), anchors)),
         Record::Placement(r) => FilePath::layout(match &r.carrier {
             CarrierRef::Carrier(c) => space_of_carrier(c.cast(), anchors),
             CarrierRef::Surface(s) => space_of_surface(s.cast(), anchors),

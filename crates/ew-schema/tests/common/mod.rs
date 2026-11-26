@@ -133,6 +133,7 @@ pub const IDS: &[(&str, &str)] = &[
     ("CAR_D1", "6e8b2d95-0f43-5a17-bc26-91f3e0a7d458"),
     ("PL_G1", "d0f7a3c9-2e64-5185-8a3b-5c9e1f0d7a26"),
     ("PL_S51", "28c5e1b7-9a0d-5f63-b4e8-0d2a7f3c9e51"),
+    ("FEAT_E1", "5b3e9c71-0d2a-5f48-a6c1-7e9d2b40f3a8"),
     ("DEV_UC1", "93e0b4a6-1c7f-5d28-a5e9-8b3d6f0c1a72"),
     ("DEV_PLATE", "5b7d0e3a-8f26-5c91-9d4b-a1e6c2f08b37"),
 ];

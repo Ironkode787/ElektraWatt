@@ -238,6 +238,7 @@ pub(crate) fn insert_terminal(
             }),
             ..DeviceAspects::default()
         },
+        gland: None,
         extra: Extra::new(),
     })?;
     let function: Id<Function> = tx.mint();
@@ -806,6 +807,7 @@ impl Command for CreateCable {
                 cable: Some(self.cable.clone()),
                 ..DeviceAspects::default()
             },
+            gland: None,
             extra: Extra::new(),
         })?;
         insert_conductors(tx, id, &self.conductors)?;

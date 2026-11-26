@@ -45,7 +45,7 @@ pub fn mount_words() -> Vec<String> {
 
 /// The part kinds in doc 07 §2.5's order, as the `kind` field spells them (the part editor's Kind offers them; a test
 /// ties them to the schema's part kinds, both ways).
-pub const PART_KINDS: [&str; 15] = [
+pub const PART_KINDS: [&str; 16] = [
     "device",
     "terminal",
     "cable",
@@ -61,6 +61,7 @@ pub const PART_KINDS: [&str; 15] = [
     "tube",
     "accessory",
     "configured",
+    "gland",
 ];
 
 /// One field's message: the strings key and its arguments (the shell words it).
@@ -1323,7 +1324,8 @@ mod part_kinds_tests {
                 | PartKind::MountingPlate
                 | PartKind::Tube
                 | PartKind::Accessory
-                | PartKind::Configured => {}
+                | PartKind::Configured
+                | PartKind::Gland => {}
                 PartKind::Unknown(_) => unreachable!(),
             }
         }

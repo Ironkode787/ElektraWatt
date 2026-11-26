@@ -206,6 +206,7 @@ choice-mounting-plate = Mounting plate
 choice-tube = Tube
 choice-accessory = Accessory
 choice-configured = Configured
+choice-gland = Cable gland
 # The line kinds of a fluid line.
 choice-working = Working
 choice-pilot = Pilot

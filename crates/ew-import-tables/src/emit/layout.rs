@@ -190,6 +190,9 @@ fn emit_enclosures(cx: &mut Cx<'_>, table: Option<&Table>, keys: &mut LayoutKeys
             },
             usable,
             pe_bond,
+            datum: None,
+            edge_margin: None,
+            hinge: None,
             extra: Default::default(),
         }));
     }
@@ -274,6 +277,7 @@ fn emit_carriers(cx: &mut Cx<'_>, table: Option<&Table>, keys: &mut LayoutKeys) 
             path,
             params,
             pe_bond,
+            hole_choices: Vec::new(),
             extra: Default::default(),
         }));
     }
@@ -355,6 +359,7 @@ fn emit_placements(cx: &mut Cx<'_>, table: Option<&Table>, keys: &LayoutKeys) {
             },
             locked: false,
             label_at: None,
+            hole_choices: Vec::new(),
             extra: Default::default(),
         }));
     }
