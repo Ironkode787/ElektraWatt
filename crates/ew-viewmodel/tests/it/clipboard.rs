@@ -411,7 +411,8 @@ fn handle_fitted(shell: &mut ShellModel, g: (i64, i64)) {
     done(shell, "select.set", json!({ "ids": [first.to_string()] }));
     let rev = shell.revision();
     done(shell, "tool.rotate_cw", json!({}));
-    assert_eq!(shell.revision(), rev.map(|r| r + 1), "the turn");
+    // The turn, and its wires routed again in the same undo step.
+    assert!(shell.revision() > rev, "the turn");
     assert!(
         pins(shell, first).iter().any(|p| on(*p)),
         "a pin on the grid after the turn"

@@ -1438,3 +1438,146 @@ fn a_turned_symbol_s_wires_leave_its_pins_and_its_dragged_tag_holds() {
     }
     s.shutdown();
 }
+
+/// A new project with a column of three lamps wired one under the other (connected on placing), and the middle one.
+fn wired_lamps(tmp: &Tmp) -> (ShellModel, ew_api::output::Uuid) {
+    let mut s = tmp.empty_shell(Mode::Headless);
+    common::make_project(&mut s, &tmp.0.join("new.ew"), &[]);
+    done(&mut s, "view.zoom_actual", json!({}));
+    for k in [(40, 10), (40, 22), (40, 34)] {
+        done(&mut s, "tool.place", json!({}));
+        done(&mut s, "place.pick", json!({"part": "EW-GEN-LMP-1"}));
+        let p = sheet(&s, grid_point(&s, k));
+        click(&mut s, p, json!({}));
+        done(&mut s, "tool.select", json!({}));
+    }
+    let lamp = tables(&s).reps[1].id;
+    (s, lamp)
+}
+
+/// What is wrong with the wires at `rep`'s pins, in words: an end that does not leave its pin along the pin's way out,
+/// a stretch through the inside of `rep`'s body, a stretch that turns back over the one before it.
+fn wire_faults(s: &ShellModel, rep: ew_api::output::Uuid) -> Vec<String> {
+    use ew_api::geometry::Dir;
+    let t = tables(s);
+    let r = t.reps.iter().find(|r| r.id == rep).expect("the symbol");
+    let [x0, y0, x1, y1] = r.body;
+    let mut out = Vec::new();
+    for cp in t.cps.iter().filter(|c| c.rep == rep) {
+        for w in t
+            .connections
+            .iter()
+            .filter(|w| w.polyline.first() == Some(&cp.at) || w.polyline.last() == Some(&cp.at))
+        {
+            let mut line = w.polyline.clone();
+            if line.first() != Some(&cp.at) {
+                line.reverse();
+            }
+            let (p, q) = (line[0], line[1]);
+            let way = match cp.dir {
+                Some(Dir::Right) => q.1 == p.1 && q.0 > p.0,
+                Some(Dir::Left) => q.1 == p.1 && q.0 < p.0,
+                Some(Dir::Down) => q.0 == p.0 && q.1 > p.1,
+                Some(Dir::Up) => q.0 == p.0 && q.1 < p.1,
+                None => true,
+            };
+            if !way {
+                out.push(format!("{} leaves across {:?}: {line:?}", cp.label, cp.dir));
+            }
+            for st in line.windows(2) {
+                let (a, b) = (st[0], st[1]);
+                let open = |s0: i64, s1: i64, l: i64, h: i64| {
+                    let (s0, s1) = (s0.min(s1), s0.max(s1));
+                    if s0 == s1 {
+                        l < s0 && s0 < h
+                    } else {
+                        s0.max(l) < s1.min(h)
+                    }
+                };
+                if open(a.0, b.0, x0, x1) && open(a.1, b.1, y0, y1) {
+                    out.push(format!("{} runs through the body: {line:?}", cp.label));
+                }
+            }
+            for st in line.windows(3) {
+                let (a, b, c) = (st[0], st[1], st[2]);
+                let back = |u: i64, v: i64| u != 0 && v != 0 && u.signum() != v.signum();
+                if (a.1 == b.1 && b.1 == c.1 && back(b.0 - a.0, c.0 - b.0))
+                    || (a.0 == b.0 && b.0 == c.0 && back(b.1 - a.1, c.1 - b.1))
+                {
+                    out.push(format!("{} turns back over itself: {line:?}", cp.label));
+                }
+            }
+        }
+    }
+    out
+}
+
+/// The layout findings of the drafting check (EW-CORE-067 to -070: a wire through a pin, along a wire, through a
+/// symbol or through a text) of the project in `tmp`, saved.
+fn layout_findings(tmp: &Tmp, s: &mut ShellModel) -> Vec<String> {
+    done(s, "file.save", json!({}));
+    let (session, _) =
+        ew_api::Session::open_read_only(&tmp.0.join("new.ew"), "test").expect("the saved project");
+    session
+        .check(&ew_api::checks::DRAFTING, ew_api::checks::CheckMode::Online)
+        .findings
+        .into_iter()
+        .filter(|f| {
+            f.is_open() && ["EW-CORE-067", "EW-CORE-068", "EW-CORE-069", "EW-CORE-070"].contains(&f.rule)
+        })
+        .map(|f| f.message())
+        .collect()
+}
+
+/// Review M2 and minor 7 of FT-2209 (a): a quarter turn, a mirror each way and a half turn of a wired lamp, standing
+/// (pins top and bottom) and lying (pins left and right, after a quarter turn). In the window (the keys) and by a script
+/// (`rep.transform` with `rotate: 2`, which only stores), each wire at its pins leaves the pin its new way, runs
+/// nowhere through the lamp's body and never turns back over itself (a half turn or a mirror sent it one step out and
+/// back through the pin and across the lamp). In the window, where the turn's wires are routed again, the drafting check
+/// finds no wire through a pin, along a wire, through the lamp or through a text either (after a quarter turn the lamp
+/// had the warning that a wire runs through its pin's number).
+#[test]
+fn a_turned_mirrored_or_half_turned_symbol_s_wires_go_round_it() {
+    let cases: [(&str, &[&str]); 5] = [
+        ("quarter", &["tool.rotate_cw"]),
+        ("mirror-x", &["tool.mirror_x"]),
+        ("mirror-y", &["tool.mirror_y"]),
+        ("half", &["tool.rotate_cw", "tool.rotate_cw"]),
+        ("script-half", &[]),
+    ];
+    for lying in [false, true] {
+        for (name, keys) in cases {
+            let tmp = Tmp::new(&format!("turn-back-{lying}-{name}"));
+            let (mut s, lamp) = wired_lamps(&tmp);
+            let select = |s: &mut ShellModel| done(s, "select.set", json!({"ids": [lamp.to_string()]}));
+            if lying {
+                select(&mut s);
+                done(&mut s, "tool.rotate_cw", json!({}));
+            }
+            for key in keys {
+                select(&mut s);
+                done(&mut s, key, json!({}));
+            }
+            if keys.is_empty() {
+                done(
+                    &mut s,
+                    "command.run",
+                    json!({"cmd": "rep.transform", "params": {"reps": [lamp.to_string()], "rotate": 2}}),
+                );
+            }
+            assert_eq!(
+                wire_faults(&s, lamp),
+                Vec::<String>::new(),
+                "lying {lying}, {name}"
+            );
+            if !keys.is_empty() {
+                assert_eq!(
+                    layout_findings(&tmp, &mut s),
+                    Vec::<String>::new(),
+                    "lying {lying}, {name}"
+                );
+            }
+            s.shutdown();
+        }
+    }
+}

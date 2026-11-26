@@ -283,7 +283,9 @@ draft); when nothing is left to apply the card closes with `toast-arrange-none-l
   all its terminals. That toast has a key of its own, so the next placement's toast leaves it up, and the next
   placement that made wires adds its sentence to it.
 - **A move by hand** keeps its re-solve at release: wires follow their ends, and those left broken or with more
-  bends are routed (§3.2) and stored with the move. It uses `route` with those jobs.
+  bends are routed (§3.2) and stored with the move. It uses `route` with those jobs. A turn, a mirror or a variant
+  by hand routes the wires at the turned symbol's pins as Route routes a selection's, where that runs better, in the
+  same undo step.
 - **`ew route`** on the command line runs Route for a page or a selection (`--arrange` runs Arrange and route);
   `--dry-run` prints the plan.
 

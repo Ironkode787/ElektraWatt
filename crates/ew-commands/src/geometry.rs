@@ -782,11 +782,20 @@ pub fn follow_ends(
 }
 
 /// Makes the route leave its first vertex (`at_start`, else its last) along `out`, the unit step a wire leaves that
-/// vertex's CP by: where its end segment leaves the CP another way (a CP turned with its symbol, [`follow_end`] having
-/// kept the segment's old axis), the end leaves along `out` for one grid step and turns there towards the vertex it
-/// went to, which it meets along `out`'s axis; a vertex that then lies on a straight run near the end goes. A route of
-/// fewer than two vertices is unchanged; so is one on [`OutOfRange`].
-pub fn leave_along(route: &mut Vec<Pt2>, grid: Grid, at_start: bool, out: Pt2) -> Result<(), OutOfRange> {
+/// vertex's CP by, `body` the box of the symbol that draws the CP: where its end segment leaves the CP another way (a
+/// CP turned or mirrored with its symbol, [`follow_end`] having kept the segment's old axis), the end leaves along
+/// `out` for one grid step and turns there towards the vertex it went to, which it meets along `out`'s axis; where
+/// that way would cross the body or turn back over itself (the end pointed into the symbol, against its new way out),
+/// it goes round the body instead: one step out, sideways to one grid step past the body's edge on the vertex's side,
+/// along to the vertex's line, and to the vertex. A vertex that then lies on a straight run near the end goes, one
+/// where the run turned back over itself too. A route of fewer than two vertices is unchanged; so is one on
+/// [`OutOfRange`].
+pub fn leave_along(
+    route: &mut Vec<Pt2>,
+    grid: Grid,
+    at_start: bool,
+    (out, body): (Pt2, Option<(Pt2, Pt2)>),
+) -> Result<(), OutOfRange> {
     if route.len() < 2 || out == Pt2::ORIGIN {
         return Ok(());
     }
@@ -796,7 +805,8 @@ pub fn leave_along(route: &mut Vec<Pt2>, grid: Grid, at_start: bool, out: Pt2) -
     }
     let (p, q) = (next[0], next[1]);
     let along = |a: Nm, b: Nm, o: Nm| o.0 != 0 && (b.0 - a.0).signum() == o.0.signum();
-    let leaves = if out.x.0 != 0 {
+    let horizontal = out.x.0 != 0;
+    let leaves = if horizontal {
         q.y == p.y && along(p.x, q.x, out.x)
     } else {
         q.x == p.x && along(p.y, q.y, out.y)
@@ -804,22 +814,43 @@ pub fn leave_along(route: &mut Vec<Pt2>, grid: Grid, at_start: bool, out: Pt2) -
     if leaves {
         return Ok(());
     }
-    let step = |v: Nm, o: Nm| grid.at(grid.snap(v) + o.0.signum()).ok_or(OutOfRange);
-    let (stub, corner) = if out.x.0 != 0 {
-        let x = step(p.x, out.x)?;
+    // The grid coordinate `k` steps from the one nearest `v`.
+    let step = |v: Nm, k: i64| grid.at(grid.snap(v) + k).ok_or(OutOfRange);
+    let (stub, corner) = if horizontal {
+        let x = step(p.x, out.x.0.signum())?;
         (Pt2::new(x, p.y), Pt2::new(x, q.y))
     } else {
-        let y = step(p.y, out.y)?;
+        let y = step(p.y, out.y.0.signum())?;
         (Pt2::new(p.x, y), Pt2::new(q.x, y))
     };
-    if !(in_range(stub.x) && in_range(stub.y) && in_range(corner.x) && in_range(corner.y)) {
+    let crosses = |a: Pt2, b: Pt2| body.is_some_and(|(lo, hi)| crosses_box(a, b, lo, hi));
+    let mut ell = vec![p, stub, corner, q];
+    ell.dedup();
+    let mid = match body {
+        Some((lo, hi)) if crosses(stub, corner) || crosses(corner, q) || turns_back(&ell) => {
+            // The vertex's side; for a vertex in line, the side `out` turned a quarter counter-clockwise gives, so that the
+            // two ends of a symbol mirrored or turned half round go round it on opposite sides.
+            if horizontal {
+                let up = if q.y == p.y { out.x.0 > 0 } else { q.y < p.y };
+                let y = if up { step(lo.y, -1)? } else { step(hi.y, 1)? };
+                vec![stub, Pt2::new(stub.x, y), Pt2::new(q.x, y)]
+            } else {
+                let left = if q.x == p.x { out.y.0 < 0 } else { q.x < p.x };
+                let x = if left { step(lo.x, -1)? } else { step(hi.x, 1)? };
+                vec![stub, Pt2::new(x, stub.y), Pt2::new(x, q.y)]
+            }
+        }
+        _ => vec![stub, corner],
+    };
+    if !mid.iter().all(|v| in_range(v.x) && in_range(v.y)) {
         return Err(OutOfRange);
     }
-    next.splice(1..1, [stub, corner]);
+    next.splice(1..1, mid);
     next.dedup();
-    // A vertex the new stretches made a point on a straight run goes; the stub stays.
+    // A vertex the new stretches left on a straight run goes, a point where the run turned back over itself too (the
+    // vertex the end went to, where the way round meets the route on its line); the stub stays.
     let mut i = 2;
-    while i <= 3 && i + 1 < next.len() {
+    while i <= 4 && i + 1 < next.len() {
         let (a, b, c) = (next[i - 1], next[i], next[i + 1]);
         if (a.x == b.x && b.x == c.x) || (a.y == b.y && b.y == c.y) {
             next.remove(i);
@@ -832,6 +863,31 @@ pub fn leave_along(route: &mut Vec<Pt2>, grid: Grid, at_start: bool, out: Pt2) -
     }
     *route = next;
     Ok(())
+}
+
+/// Whether the stretch from `a` to `b` runs through the inside of the box from `lo` to `hi` (its edges not counted).
+pub(crate) fn crosses_box(a: Pt2, b: Pt2, lo: Pt2, hi: Pt2) -> bool {
+    let (x0, x1) = (a.x.min(b.x), a.x.max(b.x));
+    let (y0, y1) = (a.y.min(b.y), a.y.max(b.y));
+    let open = |s0: Nm, s1: Nm, l: Nm, h: Nm| {
+        if s0 == s1 {
+            l < s0 && s0 < h
+        } else {
+            s0.max(l) < s1.min(h)
+        }
+    };
+    open(x0, x1, lo.x, hi.x) && open(y0, y1, lo.y, hi.y)
+}
+
+/// Whether the polyline `pts` turns back over itself: two stretches in a row on one axis, the second against the
+/// first.
+pub(crate) fn turns_back(pts: &[Pt2]) -> bool {
+    pts.windows(3).any(|w| {
+        let (a, b, c) = (w[0], w[1], w[2]);
+        let back = |u: i64, v: i64| u != 0 && v != 0 && u.signum() != v.signum();
+        (a.y == b.y && b.y == c.y && back(b.x.0 - a.x.0, c.x.0 - b.x.0))
+            || (a.x == b.x && b.x == c.x && back(b.y.0 - a.y.0, c.y.0 - b.y.0))
+    })
 }
 
 /// The grid coordinate nearest the middle of `a` and `b`.

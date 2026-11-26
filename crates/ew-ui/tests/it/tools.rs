@@ -1288,11 +1288,8 @@ fn a_right_click_opens_the_canvas_context_menu() {
     let rev = h.state().shell().revision();
     h.get_by_label_contains("Rotate clockwise").click();
     settle(&mut h);
-    assert_eq!(
-        h.state().shell().revision(),
-        rev.map(|r| r + 1),
-        "the selection turned"
-    );
+    // The turn, and its wires routed again in the same undo step.
+    assert!(h.state().shell().revision() > rev, "the selection turned");
     assert!(
         h.query_by_label_contains("Mirror top to bottom").is_none(),
         "the menu closed"

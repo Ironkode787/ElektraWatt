@@ -1455,7 +1455,8 @@ impl MoveReps {
 ///
 /// Routes follow: each attached connection's route end at a CP drawn by a transformed representation (a symbol's
 /// CP or a black box's) follows that CP's displacement (`geometry::follow_end`), and an end at a CP whose way out the
-/// turn changed then leaves it along its new way (`geometry::leave_along`), never across its side; CPs whose geometry is unknown
+/// turn changed then leaves it along its new way (`geometry::leave_along`), never across its side, and goes round
+/// the turned body where it pointed into it (a mirror, a half turn); CPs whose geometry is unknown
 /// (a symbol without CPs and without a box) leave routes unchanged. Outcome: none.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -1491,8 +1492,9 @@ impl Command for TransformReps {
         let ids: BTreeSet<Id<Representation>> = self.reps.iter().copied().collect();
         // The displacement of each drawn function CP that moves, by (page, function, CP).
         let mut moves: BTreeMap<(Id<Page>, Id<Function>, u16), Pt2> = BTreeMap::new();
-        // The way a wire leaves each drawn function CP whose way the turn changed.
-        let mut outs: BTreeMap<(Id<Page>, Id<Function>, u16), Pt2> = BTreeMap::new();
+        // The way a wire leaves each drawn function CP whose way the turn changed, and the turned body's box on the page.
+        type WayOut = (Pt2, Option<(Pt2, Pt2)>);
+        let mut outs: BTreeMap<(Id<Page>, Id<Function>, u16), WayOut> = BTreeMap::new();
         let mut updated: Vec<Representation> = Vec::new();
         for id in &ids {
             let old = tx.require::<Representation>(*id)?;
@@ -1515,17 +1517,17 @@ impl Command for TransformReps {
                     crate::words::symbol(tx, *id)
                 ))
             };
+            let body: Vec<Pt2> = match old.box_.as_ref() {
+                Some(b) if b.outline.is_empty() => b.cps.iter().map(|c| c.pos).collect(),
+                Some(b) => b.outline.clone(),
+                // A symbol turned about its insertion point jumped onto its neighbour.
+                None => tx
+                    .get::<LibCopy<SymbolDef>>(old.symbol)
+                    .and_then(|s| s.item.graphic_bounds())
+                    .map(|(lo, hi)| vec![lo, hi])
+                    .unwrap_or_default(),
+            };
             if orient != old.orient {
-                let body: Vec<Pt2> = match old.box_.as_ref() {
-                    Some(b) if b.outline.is_empty() => b.cps.iter().map(|c| c.pos).collect(),
-                    Some(b) => b.outline.clone(),
-                    // A symbol turned about its insertion point jumped onto its neighbour.
-                    None => tx
-                        .get::<LibCopy<SymbolDef>>(old.symbol)
-                        .and_then(|s| s.item.graphic_bounds())
-                        .map(|(lo, hi)| vec![lo, hi])
-                        .unwrap_or_default(),
-                };
                 let grid = tx.require::<Page>(old.page)?.grid;
                 // A fitted symbol (its position between grid points, its first pin on one) is fitted again after the
                 // turn, so its first pin stays on the grid.
@@ -1589,6 +1591,16 @@ impl Command for TransformReps {
                     new.text_slots.insert(o);
                 }
             }
+            // The turned body's box on the page, which a wire's end goes round.
+            let turned_box = body
+                .iter()
+                .map(|p| new.orient.checked_apply(*p).and_then(|q| new.pos.checked_add(q)))
+                .collect::<Option<Vec<Pt2>>>()
+                .and_then(|pts| {
+                    let lo = Pt2::new(pts.iter().map(|q| q.x).min()?, pts.iter().map(|q| q.y).min()?);
+                    let hi = Pt2::new(pts.iter().map(|q| q.x).max()?, pts.iter().map(|q| q.y).max()?);
+                    Some((lo, hi))
+                });
             let (Ok(before), Ok(after_cps)) = (rep_cps_checked(tx, &old), rep_cps_checked(tx, &new)) else {
                 out_of_range(tx)?;
                 continue;
@@ -1605,7 +1617,8 @@ impl Command for TransformReps {
                     moves.entry((old.page, after.function, after.idx)).or_insert(d);
                 }
                 if let Some(out) = after.out.filter(|o| Some(*o) != b.out) {
-                    outs.entry((old.page, after.function, after.idx)).or_insert(out);
+                    outs.entry((old.page, after.function, after.idx))
+                        .or_insert((out, turned_box));
                 }
             }
             updated.push(new);
@@ -1633,12 +1646,14 @@ impl Command for TransformReps {
                 Endpoint::Cp(f, idx) => outs.get(&(page, *f, *idx)).copied(),
                 _ => None,
             };
-            // Each end at a CP the turn gave another way out leaves along it.
+            // Each end at a CP the turn gave another way out leaves along it, round the body where it pointed into it.
             let followed = follow_ends(&mut next.route, grid, da, db).and_then(|()| {
                 [(out(&c.a), true), (out(&c.b), false)]
                     .into_iter()
                     .filter_map(|(o, start)| Some((o?, start)))
-                    .try_for_each(|(o, start)| crate::geometry::leave_along(&mut next.route, grid, start, o))
+                    .try_for_each(|((o, body), start)| {
+                        crate::geometry::leave_along(&mut next.route, grid, start, (o, body))
+                    })
             });
             if followed.is_err() {
                 return tx.reject(text!(

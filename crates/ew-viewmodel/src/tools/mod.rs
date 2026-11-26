@@ -558,6 +558,8 @@ pub struct MovedReps {
     pub reps: Vec<String>,
     /// A move: where the first one's device sits now is said when it was dropped into a box.
     pub seat: bool,
+    /// A turn, a mirror or a variant: the wires at the turned representations' pins are routed again in its undo step.
+    pub turn: bool,
 }
 
 impl std::fmt::Debug for ToolOutput {

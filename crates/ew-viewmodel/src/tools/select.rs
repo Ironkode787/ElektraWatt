@@ -1727,6 +1727,7 @@ impl Tool for SelectTool {
                 .filter_map(|v| v.as_str().map(str::to_owned))
                 .collect(),
             seat: name == "rep.move",
+            turn: name == "rep.transform",
         });
         super::Follows {
             layout: super::layout::layout_follows(cmd),

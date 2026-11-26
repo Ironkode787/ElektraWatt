@@ -983,8 +983,14 @@ impl ShellModel {
     }
 
     /// After Select moved or turned representations: a move dropped into a valve terminal's box (`into`) says where its
-    /// device sits now; the moved representations are the selection (one selection change, no command).
+    /// device sits now; a turn's wires, which the command led out of the turned pins and round the body, are routed
+    /// again as Route routes a selection's, where that is better, in the turn's undo step (the move's re-solve,
+    /// docs/design/06a-texts-window.md §7.4); the moved representations are the selection (one selection change, no
+    /// command).
     fn after_reps_moved(&mut self, moved: &crate::tools::MovedReps, into: bool) {
+        if moved.turn {
+            self.route_turned(&moved.reps);
+        }
         if into
             && moved.seat
             && let Some(device) = moved.reps.first().and_then(|r| {
@@ -1014,6 +1020,33 @@ impl ShellModel {
             .collect();
         if !reps.is_empty() && self.tools.selection.apply(&SelectionChange::Replace(reps)) {
             self.announce_selection();
+        }
+    }
+
+    /// Routes the wires at the pins of the representations `reps` (ID texts) of the page on show, as Route routes a
+    /// selection's, and folds the routes into the step before (the turn).
+    fn route_turned(&mut self, reps: &[String]) {
+        let ids: Vec<ew_api::output::Uuid> = reps.iter().filter_map(|r| r.parse().ok()).collect();
+        let Some(folio) = self.current_folio().map(str::to_owned) else {
+            return;
+        };
+        let plan = self.project.as_ref().and_then(|pr| {
+            pr.session
+                .route_plan(&folio, &ew_api::routing::RouteScope::Selection(ids))
+        });
+        let Some(params) = plan.and_then(|p| p.params) else {
+            return;
+        };
+        let rev = self.revision();
+        let routed = self.run_commit(&AnyCommand {
+            name: "layout.apply".into(),
+            params,
+        });
+        if routed == Outcome::Done
+            && self.revision() != rev
+            && let Some(pr) = &mut self.project
+        {
+            pr.session.fold_last_step();
         }
     }
 
