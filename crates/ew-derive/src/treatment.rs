@@ -279,24 +279,29 @@ pub(crate) fn treat(q: &Q, records: &mut [WireRecord]) {
     let mut hands: Vec<[Option<EndOverride>; 2]> = Vec::with_capacity(records.len());
     for r in records.iter_mut() {
         let own = own_connections(&r.wire, &wires_of);
+        r.own = own.iter().map(|(_, c)| *c).collect();
         let mut hand: [Option<EndOverride>; 2] = [None, None];
         for (i, slot) in hand.iter_mut().enumerate() {
             if r.wire.ends[i].kind != EndKind::Device {
                 continue;
             }
-            r.ends[i].hand_at = own.first().and_then(|(k, c)| {
-                [true, false]
-                    .into_iter()
-                    .find(|a| end_through(q, &r.wire, *k, *a) == Some(i))
-                    .map(|a| (*c, a))
-            });
-            *slot = own.iter().find_map(|(k, c)| {
+            // The own connection that holds the end, else the first: one answer for the read and the write.
+            let stored = own.iter().find_map(|(k, c)| {
                 let o = &q.connections().get(*c)?.overrides;
                 [(true, &o.end_a), (false, &o.end_b)]
                     .into_iter()
                     .find(|(a, end)| end.is_some() && end_through(q, &r.wire, *k, *a) == Some(i))
-                    .and_then(|(_, end)| end.clone())
+                    .map(|(a, end)| ((*c, a), end.clone()))
             });
+            r.ends[i].hand_at = stored.as_ref().map(|(at, _)| *at).or_else(|| {
+                own.first().and_then(|(k, c)| {
+                    [true, false]
+                        .into_iter()
+                        .find(|a| end_through(q, &r.wire, *k, *a) == Some(i))
+                        .map(|a| (*c, a))
+                })
+            });
+            *slot = stored.and_then(|(_, end)| end);
         }
         hands.push(hand);
     }

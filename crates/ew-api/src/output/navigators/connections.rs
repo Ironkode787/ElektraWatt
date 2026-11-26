@@ -43,32 +43,15 @@ pub(super) struct WireListRow {
 /// physical wire (`physical_wires_of` of every potential), a bridge row for the bridge connections of its strip and
 /// group.
 pub(super) fn wire_list_rows(q: &Q) -> Vec<WireListRow> {
-    use ew_derive::{PhysicalWiresOf, PotentialPartition};
     use ew_schema::{Connection, ConnectionKind, Endpoint};
     let Some(set) = ew_reports::project_rows(q, &ew_schema::ReportKind::WireList, None) else {
         return Vec::new();
     };
     let folios = folios(q);
-    let partition = q.get::<PotentialPartition>(());
-    let mut constituents: BTreeMap<Uuid, Vec<Id<Connection>>> = BTreeMap::new();
-    for p in partition.potentials() {
-        for w in &q.get::<PhysicalWiresOf>(p.id).wires {
-            constituents
-                .entry(w.id.as_uuid())
-                .or_insert_with(|| w.constituents.clone());
-        }
-    }
-    // How many wires stand for each connection.
-    let mut wires_of: BTreeMap<Id<Connection>, usize> = BTreeMap::new();
-    for cons in constituents.values() {
-        let mut own = cons.clone();
-        own.sort();
-        own.dedup();
-        for c in own {
-            *wires_of.entry(c).or_default() += 1;
-        }
-    }
-    let alone = |c: &Id<Connection>| wires_of.get(c).is_some_and(|n| *n == 1);
+    // Each wire's record: its constituents and where it keeps its own values (`WireRecord::own`).
+    let records = q.get::<ew_derive::WireRecordSet>(());
+    let by_wire: BTreeMap<Uuid, &ew_derive::WireRecord> =
+        records.iter().map(|r| (r.wire.id.as_uuid(), r)).collect();
     let strip_of = |e: &Endpoint| -> Option<Id<Device>> {
         let Endpoint::Cp(f, _) = e else { return None };
         let d = q.functions().get(*f)?.device?;
@@ -105,27 +88,24 @@ pub(super) fn wire_list_rows(q: &Q) -> Vec<WireListRow> {
             }
         } else {
             row_entity(&r.id, 0)
-                .and_then(|w| constituents.get(&w).cloned())
+                .and_then(|w| by_wire.get(&w))
+                .map(|w| w.wire.constituents.clone())
                 .unwrap_or_default()
         };
         cons.sort();
         cons.dedup();
-        // A wire row's first record is the one its cells set (`table_edit::row_targets`): of the connections no other
-        // wire stands for, the first in the order the wire takes its values (doc 08 §3.8): the carrier, then its
-        // constituents in path order.
-        if !after_heading && let Some(carrier) = row_entity(&r.id, 0) {
-            let order = constituents.get(&carrier).map(Vec::as_slice).unwrap_or_default();
-            let set = (cons.iter().copied())
-                .filter(|c| c.as_uuid() == carrier)
-                .chain(order.iter().copied())
-                .find(|c| alone(c));
-            if let Some(at) = set.and_then(|s| cons.iter().position(|c| *c == s)) {
-                let c = cons.remove(at);
-                cons.insert(0, c);
-            }
+        // A wire row's first record is the one its cells set (`table_edit::row_targets`): the first connection where
+        // the wire keeps its own values.
+        let own: &[Id<Connection>] = (!after_heading)
+            .then(|| row_entity(&r.id, 0).and_then(|w| by_wire.get(&w)))
+            .flatten()
+            .map_or(&[], |w| w.own.as_slice());
+        if let Some(at) = own.first().and_then(|s| cons.iter().position(|c| c == s)) {
+            let c = cons.remove(at);
+            cons.insert(0, c);
         }
         let kinds = (cons.iter())
-            .map(|c| match (after_heading, alone(c)) {
+            .map(|c| match (after_heading, own.contains(c)) {
                 (true, _) => "bridge",
                 (false, true) => "connection",
                 (false, false) => "shared",
@@ -219,8 +199,8 @@ pub(super) fn connections_table(q: &Q, b: &mut Builder) {
 
 impl crate::Session {
     /// Where the end `end` (0 the From end, 1 the To end) of the wire a Connections row stands for (its records, the
-    /// wire's constituent connections) is set by hand (doc 13 §2.3, `EndRecord::hand_at`): the wire's first connection
-    /// that no other wire stands for and whether in its `end_a` (else `end_b`); `None` for an end made outside the
+    /// wire's constituent connections) is set by hand (doc 13 §2.3, `EndRecord::hand_at`): the wire's own connection
+    /// that holds it, else its first one (`WireRecord::own`), and whether in its `end_a` (else `end_b`); `None` for an end made outside the
     /// project, for a wire without a connection of its own and for records that are no wire's.
     pub fn wire_end(&self, records: &[Uuid], end: usize) -> Option<(Uuid, bool)> {
         let q = self.query();

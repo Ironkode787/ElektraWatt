@@ -49,6 +49,11 @@ pub struct WireRecord {
     pub flags: WireRecordFlags,
     /// Its ends: From, To.
     pub ends: [EndRecord; 2],
+    /// Where the wire keeps its own values (doc 13 §2.3): its connections that no other wire stands for, in the order
+    /// the wire takes its values (doc 08 §3.8), the carrier first, then the constituents in path order. An edit of the
+    /// wire alone writes on the first; an end stored on any of them is the wire's ([`EndRecord::hand_at`]). Empty for a
+    /// wire every connection of which another wire shares.
+    pub own: Vec<Id<Connection>>,
 }
 
 /// A wire's length (doc 13 §3.3). The layout adds the lengths it estimates and routes.
@@ -177,6 +182,7 @@ impl Query for WireRecordSet {
                             field: ends.iter().any(|e| e.site),
                         },
                         ends,
+                        own: Vec::new(),
                         wire,
                         csa: props.csa,
                         colour: props.colour,

@@ -494,3 +494,53 @@ fn the_part_of_an_end_set_by_hand_is_a_link() {
         "part EW-GEN-FER-2.5 cannot be removed: wire 101.4 still names it"
     );
 }
+
+/// An end stored on any connection of the wire's own is where Properties and Reset find it: an end set on one of a
+/// wire's own connections other than its carrier (as a carrier change leaves it) is the one the Properties row resets, and the Connections
+/// table's first record of the wire is the connection that keeps its own values.
+#[test]
+fn an_end_is_reset_where_it_is_stored() {
+    use ew_derive::WireRecordSet;
+    let mut s = common::sample();
+    let (wire, k, holder, at_a) = {
+        let q = s.query();
+        let records = q.get::<WireRecordSet>(());
+        let shared = |c: &Id<ew_schema::Connection>| records.iter().filter(|r| r.wire.constituents.contains(c)).count() > 1;
+        records
+            .iter()
+            .filter(|r| r.number.is_some())
+            .find_map(|r| {
+                let own: Vec<(usize, Id<ew_schema::Connection>)> = (r.wire.constituents.iter().copied().enumerate())
+                    .filter(|(_, c)| !shared(c))
+                    .collect();
+                // Not the carrier, where an edit writes first: a connection of its own the wire takes its values from later.
+                let (k, c) = *own.iter().find(|(_, c)| *c != r.wire.id).filter(|_| own.len() >= 2)?;
+                let a = [true, false]
+                    .into_iter()
+                    .find(|a| ew_derive::end_through(&q, &r.wire, k, *a) == Some(0))?;
+                Some((r.number.clone()?, k, c, a))
+            })
+            .expect("a wire with two connections of its own")
+    };
+    let _ = k;
+    let member = if at_a { "overrides.end_a" } else { "overrides.end_b" };
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "connection", "targets": [holder.to_string()], "path": member, "value": {"treatment": "bare"}}),
+    )
+    .expect("an end stored on the last own connection");
+    assert_eq!(cells(&s, &wire, &["from_end"]), ["bare"]);
+    assert_eq!(end_of(&s, &wire, 0), (holder.to_string(), if at_a { "overrides.end_a" } else { "overrides.end_b" }));
+    let cmd = s
+        .layout_edit(&ew_api::output::LayoutEdit {
+            kind: "connection".into(),
+            target: holder.as_uuid(),
+            others: Vec::new(),
+            row: "derived.from_end".into(),
+            text: String::new(),
+        })
+        .expect("Reset's command");
+    run(&mut s, &cmd.name, cmd.params).expect("the end reset");
+    assert_ne!(cells(&s, &wire, &["from_end"]), ["bare"], "Reset gave the rule's back");
+}

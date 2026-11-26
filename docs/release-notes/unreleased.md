@@ -285,3 +285,6 @@ change here.
 - format-variant: `WorkshopSettings` gains `ferrules`, `two_wires`, `marking`, `mark_cores`, `mark_jumpers`,
   `device_labels` and `label_profile` (`ExportProfile`, `ProfileColumn`, `Delimiter`); `WireOverrides` gains `end_a`
   and `end_b`; `ReportKind` gains `labels`; each absent when not set.
+- behaviour-change: An end set by hand that a wire keeps on another of its own connections than the first (as a
+  change of its carrier leaves it) is the one Properties, Reset, a new edit and EW-MFG-009's quick fix change; they
+  wrote on the first connection and missed it.
