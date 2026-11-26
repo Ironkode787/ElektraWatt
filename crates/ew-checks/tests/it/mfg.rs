@@ -232,3 +232,51 @@ fn a_size_finding_keeps_its_fingerprint_when_the_wire_is_renumbered() {
     assert_ne!(alone.0, both.0, "the wire took another number");
     assert_eq!(alone.1, both.1);
 }
+
+/// A wire from -1K<counter> to -1K2 whose markers (the far ends, `-1K2:1` and `-1K<counter>:1`) do not fit the stock's wire
+/// marker of one line of 3 characters.
+fn misfit_markers(counter: u32) -> ew_model::Model {
+    const MARKER: u128 = 0x7101;
+    let mut fx = Fx::base();
+    fx.part(
+        MARKER,
+        "MRK-3",
+        &json!({"kind": "marker", "sections": {"marker": {"marks": "wire", "lines": 1, "chars": 3}}}),
+    );
+    fx.settings = json!({"workshop": {"stock": [{"copy": us(MARKER)}]}});
+    fx.func_tagged(0x1001, counter, P1);
+    fx.func_tagged(0x1002, 2, P1);
+    fx.conn(0x2001, P1, cp(0x1001), cp(0x1002), &none());
+    fx.build()
+}
+
+/// EW-MFG-004's finding about an end's marker names the wire and the clamp, not the wire's From or To: the marker at
+/// -1K2 keeps its fingerprint when numbering the first device 3 turns the wire round.
+#[test]
+fn a_marker_s_finding_keeps_its_fingerprint_when_the_wire_turns_round() {
+    let fingerprints: Vec<_> = [1, 3]
+        .into_iter()
+        .map(|counter| {
+            let f = findings_of(&misfit_markers(counter), "EW-MFG-004");
+            assert_eq!(f.len(), 2, "counter {counter}: {f:#?}");
+            let at_k2: Vec<_> = f.iter().filter(|x| x.message().contains(" at -1K2")).collect();
+            assert_eq!(at_k2.len(), 1, "counter {counter}: {f:#?}");
+            at_k2[0].fingerprint
+        })
+        .collect();
+    assert_eq!(fingerprints[0], fingerprints[1]);
+}
+
+/// EW-MFG-004 judges in release mode as well as online, as EW-MFG-008 and 009 do (doc 15 §4.5.5): the check before a
+/// release names a marker that does not fit.
+#[test]
+fn mfg004_reports_in_release_mode() {
+    let m = misfit_markers(1);
+    let q = ew_derive::Q::new(&m);
+    let found = ew_checks::run(&q, &ew_checks::FULL, ew_checks::CheckMode::Release)
+        .findings
+        .into_iter()
+        .filter(|f| f.rule == "EW-MFG-004")
+        .count();
+    assert_eq!(found, 2);
+}

@@ -20,13 +20,13 @@ use crate::rules::pot::{owns_wire, wire_text};
 // ---------------------------------------------------------------------------------------------------------
 // EW-MFG-004
 
-/// EW-MFG-004 "Marker text does not fit" (doc 15 §4.5.5): conflict, o x, warning, potential.
+/// EW-MFG-004 "Marker text does not fit" (doc 15 §4.5.5): conflict, o r, warning, potential.
 pub const MARKER_DOES_NOT_FIT: RuleMeta = RuleMeta {
     id: "EW-MFG-004",
     message: key!("rule-ew-mfg-004"),
     code: "140004",
     kind: RuleKind::Conflict,
-    modes: Modes::letters("ox"),
+    modes: Modes::letters("or"),
     severity: Severity::Warning,
     release_severity: None,
     scope: ScopeKind::Potential,
@@ -36,7 +36,7 @@ pub const MARKER_DOES_NOT_FIT: RuleMeta = RuleMeta {
 
 /// EW-MFG-004: a wire end's marker whose text does not fit the wire markers' part of the workshop stock after the
 /// shortening of doc 13 §5.2 (its characters per line, else its lines). One finding per end, target the connection
-/// that lands on it, discriminator the end (`from`, `to`).
+/// that lands on it, discriminator the wire and the clamp ([`end_discriminator`]).
 #[derive(Clone, Copy, Debug)]
 pub struct MarkerDoesNotFit;
 
@@ -74,7 +74,7 @@ impl Rule for MarkerDoesNotFit {
                     Finding::new(
                         &MARKER_DOES_NOT_FIT,
                         [Target::new(Kind::Connection, connection)],
-                        if i == 0 { "from" } else { "to" },
+                        end_discriminator(r, i),
                         format!("{wire} {at}"),
                     )
                     .arg("wire", wire)
