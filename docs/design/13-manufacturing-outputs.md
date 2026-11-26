@@ -508,9 +508,9 @@ its project setting Wire annotations, and "wire marker" means the sleeve only. T
 
 **The far end, as seen from the end the marker sits on.** The text is the far end's tag and pin as §3.2 prints them,
 without the structure the two ends share: within one location `-101Q1:1`; at the cabinet end of 104.4, whose far end is
-in the field, `+FLD-104B1:13`; at that field end, `+CAB-104A1-A2:L+`. A terminal is named by its tag (`-X1011:L1`); a
-level of a block prints its own number; the clamp letter and the side are never printed. A pin the device has twice
-prints its number (`-101G1:+#1`), as the drawing's labels do. The text is data a language does not change.
+in the field, `+FLD-104B1:13`; at that field end, `+CAB-104A1-A2:L+`. A terminal is named by tag (`-X1011:L1`); a
+level of a block prints its own number; its clamp letter and side are never printed; an external end prints
+`ext. L1`; a pin the device has twice prints its number (`-101G1:+#1`). The text is data a language does not change.
 
 **Shortening, the same every time.** Where the label's marker part names its lines and characters per line
 (`sections.marker.lines`, `chars`), a text that does not fit is shortened by these steps, in order, until it fits:

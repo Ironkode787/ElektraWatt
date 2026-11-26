@@ -61,10 +61,13 @@ pub fn wire_marker_part(q: &Q) -> Option<(Option<u8>, Option<u8>)> {
 
 /// A wire end as a marker names it, seen from the end `from` (doc 13 §5.2): its device or terminal without the
 /// structure the two ends share, and a device's pin (`-101Q1:1`, `-101G1:+#1`); a terminal by its tag alone, its clamp
-/// and side never printed; an external end by its point's name.
+/// and side never printed; an end outside the project as the wire list names it (doc 13 §3.2): `ext. L1`, and an open
+/// end `open L1`.
 pub fn marker_end_text(q: &Q, end: CpRef, kind: EndKind, from: CpRef) -> String {
-    if kind != EndKind::Device {
-        return crate::joins::cp_label(q, end);
+    match kind {
+        EndKind::Device => {}
+        EndKind::External => return format!("ext. {}", crate::joins::cp_label(q, end)),
+        EndKind::Open => return format!("open {}", crate::joins::cp_label(q, end)),
     }
     let tag = cp_tag_from(q, end, Some(from));
     let terminal = q

@@ -639,3 +639,20 @@ fn properties_of_a_shared_stretch_are_read_only() {
     let length = |c: Id<ew_schema::Connection>| q.connections().get(c).and_then(|c| c.overrides.length);
     assert!(length(first).is_some() && length(second).is_none());
 }
+
+/// A marker whose far end is made outside the project names it as the wire list does (doc 13 §3.2, §5.2): with cores
+/// marked, the core -101W1 BN from the external point L1 carries `ext. L1` at -X1011:L1, never the point's bare name.
+#[test]
+fn a_marker_names_an_external_far_end_as_the_list_does() {
+    let mut s = common::sample();
+    run(
+        &mut s,
+        "project.settings.set",
+        json!({"member": "workshop.mark_cores", "value": true}),
+    )
+    .expect("cores marked");
+    assert_eq!(
+        cells(&s, "-101W1 BN", &["from", "to", "from_marker", "to_marker"]),
+        ["ext. L1", "-X1011:L1", "", "ext. L1"]
+    );
+}
