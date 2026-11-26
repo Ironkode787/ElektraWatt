@@ -249,6 +249,18 @@ impl EditorView {
                     {
                         action(events, "part.pin", json!({ "add": true }));
                     }
+                    let refusal = b.bus_refusal();
+                    if components::button(
+                        ui,
+                        Kind::Secondary,
+                        label(key!("box-add-bus")),
+                        refusal.as_deref(),
+                        0.0,
+                    )
+                    .clicked()
+                    {
+                        action(events, "part.box_details", json!({ "bus": true }));
+                    }
                 });
             }
             ui.add_space(t.space_3);

@@ -524,6 +524,43 @@ pub struct PartEditPlan {
     pub bom_changed: Vec<String>,
     /// The sockets a bus line ends at that the correction takes away (`-3K2:P8`, [`lost_sockets`]).
     pub lost: Vec<String>,
+    /// The drawn boxes the correction draws anew ([`redrawn_boxes`]).
+    pub boxes: Vec<RedrawnBox>,
+}
+
+/// A drawn box of a device that a part's change draws anew (doc 10 §2.6, FT-2208): its pins follow the part's.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct RedrawnBox {
+    /// The device.
+    pub device: Id<Device>,
+    /// The folio of the page the box stands on.
+    pub folio: String,
+    /// Whether it went back along its row to stay inside the page's drawing area.
+    pub moved: bool,
+}
+
+/// The boxes that a change from `before` to `after` draws anew: each representation drawn with a box whose box or
+/// place differs, by its first function's device, in representation ID order.
+pub(crate) fn redrawn_boxes(before: &Q, after: &Q) -> Vec<RedrawnBox> {
+    let reps = before.table::<ew_schema::Representation>();
+    let functions = after.functions();
+    let pages = after.table::<ew_schema::Page>();
+    after
+        .table::<ew_schema::Representation>()
+        .iter()
+        .filter_map(|(id, rep)| {
+            let old = reps.get(id)?;
+            rep.box_.as_ref()?;
+            if old.box_ == rep.box_ && old.pos == rep.pos {
+                return None;
+            }
+            Some(RedrawnBox {
+                device: functions.get(*rep.functions.first()?)?.device?,
+                folio: pages.get(rep.page).map(|p| ew_derive::folio_label(p)).unwrap_or_default(),
+                moved: old.pos != rep.pos,
+            })
+        })
+        .collect()
 }
 
 pub(crate) fn message(field: &str, key: &'static str, args: &[&str]) -> DraftMessage {
@@ -1140,6 +1177,7 @@ impl Session {
         let after = self.query_over(preview.candidate());
         let (bom_removed, bom_added, bom_changed) = bom_changes(&q, &after);
         let lost = lost_sockets(&q, &after);
+        let boxes = redrawn_boxes(&q, &after);
         Ok(PartEditPlan {
             fork: command
                 .params
@@ -1153,6 +1191,7 @@ impl Session {
             bom_added,
             bom_changed,
             lost,
+            boxes,
         })
     }
 }

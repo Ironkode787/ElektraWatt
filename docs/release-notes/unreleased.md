@@ -107,3 +107,12 @@ change here.
   `accessories` and `variants`, and `fields.set` sets a device's `accessory_choices`
 - format-variant: `Part` gains `accessories`, `variants` and the sections `wire`, `ferrule`, `marker`; `Device` gains
   `accessory_choices`; `ProjectSettings` gains `workshop`; each absent when empty
+- behaviour-change: saving a corrected part whose devices are drawn as boxes now names each box drawn anew, with its
+  page, on the Preview card before Apply; a box that would grow past the page's drawing area (a card given a second
+  supply pin, running into the title block) goes back along its edge inside the area, its wires with it, and the card
+  says which (FT-2208)
+- behaviour-change: EW-BUS-001 offers the quick fix "Give it the next free address" on an open PROFIBUS station
+  address: the first address after the highest the net holds, within the part's range, two open ports never given
+  the same (FT-2208)
+- behaviour-change: the device box's pin list has Add bus interface…, which opens the part editor on Bus interfaces
+  with a new interface row, so a gateway or a drive of your own gets its bus port from the box (FT-2208)

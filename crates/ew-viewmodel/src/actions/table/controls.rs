@@ -1013,15 +1013,18 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_part_box_select(p),
         )),
     ),
-    hidden(act(
-        "part.box_details",
-        View,
-        Menu::Edit,
-        &[],
-        writable,
-        None,
-        |s, _| s.act_part_box_details(),
-    )),
+    with_params(
+        "bus?:bool",
+        hidden(act(
+            "part.box_details",
+            View,
+            Menu::Edit,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_part_box_details(p),
+        )),
+    ),
     // Redraw the boxes, which the device box's Save in the symbol editor offers in one.
     with_params(
         "part:text",

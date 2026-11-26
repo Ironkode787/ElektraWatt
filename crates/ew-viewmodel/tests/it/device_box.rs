@@ -179,6 +179,30 @@ fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
     );
 }
 
+/// Add bus interface… in the device box (FT-2208): a part of one's own opens in the part editor on Bus interfaces with
+/// a new interface row; a library's part the project holds keeps its library's interfaces, refused in words.
+#[test]
+fn add_bus_interface_opens_the_part_editor_on_a_new_interface() {
+    let tmp = Tmp::new("device-box-bus");
+    let mut s = actual_size(&tmp, "102");
+    done(&mut s, "part.box", json!({"part": "EW-GEN-PSU-1"}));
+    assert!(
+        failed(&mut s, "part.box_details", json!({"bus": true})).contains("make a part of your own from it"),
+        "a library's part"
+    );
+    assert!(s.symbol_editor().and_then(|e| e.device_box()).is_some(), "the box stays open");
+    done(&mut s, "symbol.close", json!({}));
+    done(&mut s, "part.box", json!({"new": true}));
+    done(&mut s, "part.box_details", json!({"bus": true}));
+    match s.dialog() {
+        Some(ew_viewmodel::shell::Dialog::PartEdit(e)) => {
+            assert_eq!(e.section, "bus");
+            assert_eq!(e.draft.bus.len(), 1, "a new interface row");
+        }
+        other => panic!("the part editor: {other:?}"),
+    }
+}
+
 /// A part of one's own made on the screen: named, given pins, saved to the project; a drawn box of it is redrawn when
 /// its layout changes later and the person says so.
 #[test]

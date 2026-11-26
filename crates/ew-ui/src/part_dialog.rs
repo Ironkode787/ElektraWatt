@@ -992,6 +992,9 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
                 plug_section(ui, d, plug, events);
             } else {
                 // A cable part of one's own (New cable type…): its identity, then the cable section.
+                ui.label(
+                    RichText::new(strings::text(key!("part-section-cable"))).font(theme::font(&t.type_body_strong)),
+                );
                 save |= cable_section(ui, d, events);
             }
         });
@@ -1156,14 +1159,6 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
     use ew_viewmodel::ew_api::{channel_kind_words, plc_role_words};
     let t = theme::current(ui.ctx());
     let mut save = false;
-    ui.label(RichText::new(strings::text(key!("part-section-plc"))).font(theme::font(&t.type_body_strong)));
-    ui.add(
-        egui::Label::new(crate::components::small_secondary(
-            &t,
-            strings::text(key!("part-section-plc-hint")),
-        ))
-        .wrap(),
-    );
     let label = |m: &str| ew_viewmodel::shell::part_dialog::plc_label(m).to_owned();
     let message = |ui: &mut Ui, m: &str| {
         if let Some(text) = field_message(d, &format!("plc.{m}")) {
@@ -1333,7 +1328,6 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
 fn cable_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Vec<Event>) -> bool {
     let t = theme::current(ui.ctx());
     let mut save = false;
-    ui.label(RichText::new(strings::text(key!("part-section-cable"))).font(theme::font(&t.type_body_strong)));
     let label = |m: &str| ew_viewmodel::shell::part_dialog::cable_label(m).to_owned();
 
     let send = |events: &mut Vec<Event>, field: &str, value: String| {
@@ -1547,16 +1541,6 @@ fn bus_choice(member: &str, value: &str) -> String {
 fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, just_opened: bool, events: &mut Vec<Event>) {
     use ew_viewmodel::ew_api::{BUS_MEMBERS, bus_words, role_words};
     let t = theme::current(ui.ctx());
-    ui.label(RichText::new(strings::text(key!("part-section-bus"))).font(theme::font(&t.type_body_strong)));
-    if d.new || d.own {
-        ui.add(
-            egui::Label::new(crate::components::small_secondary(
-                &t,
-                strings::text(key!("part-section-bus-hint")),
-            ))
-            .wrap(),
-        );
-    }
     if d.bus.is_empty() {
         ui.label(RichText::new(strings::text(key!("part-bus-none"))).color(t.text_secondary.color32()));
     }

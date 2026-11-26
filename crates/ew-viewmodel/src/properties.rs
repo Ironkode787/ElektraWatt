@@ -523,6 +523,8 @@ pub struct PartCard {
     pub changed: Vec<String>,
     /// The sockets a bus line ends at that the change takes away (`-3K2:P8`).
     pub lost: Vec<String>,
+    /// The drawn boxes the change draws anew, each in words ("-201A3 on page 105").
+    pub boxes: Vec<String>,
     /// Whether saving forks the copy.
     pub fork: bool,
 }

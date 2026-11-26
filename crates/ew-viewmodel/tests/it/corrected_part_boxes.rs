@@ -3,9 +3,11 @@
 
 //! A drawn box follows its corrected part (doc 10 §2.6): a switch of one's own drawn on a bus page with its
 //! six sockets, corrected to eight, shows the two new sockets on its box at once, after the last one of their edge;
-//! corrected to four, its box keeps no mark of the sockets it lost.
+//! corrected to four, its box keeps no mark of the sockets it lost. A box that would grow past the drawing area goes
+//! back inside it, and the Save's card says so (FT-2208).
 
 use crate::common::{Tmp, cursor, done, grid_point, new_project, tables};
+use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::ew_api::output::TableBox;
 use ew_viewmodel::shell::ShellModel;
 use serde_json::json;
@@ -23,19 +25,27 @@ fn sockets(s: &ShellModel) -> TableBox {
     b
 }
 
-/// Edit part… on SW-6, its port count set to `ports`, saved, and the update applied.
-fn correct(s: &mut ShellModel, ports: &str) {
+/// Edit part… on SW-6, its port count set to `ports`, saved: the card's lines of the boxes drawn anew.
+fn save_corrected(s: &mut ShellModel, ports: &str) -> Vec<String> {
     done(s, "part.edit", json!({"part": "SW-6"}));
     done(s, "part.field", json!({"field": "bus.0.ports", "value": ports}));
     done(s, "part.save", json!({}));
+    match s.properties().card().map(|c| &c.origin) {
+        Some(CardOrigin::Part(card)) => card.boxes.clone(),
+        other => panic!("the part's card: {other:?}"),
+    }
+}
+
+/// [`save_corrected`], and the update applied.
+fn correct(s: &mut ShellModel, ports: &str) {
+    save_corrected(s, ports);
     done(s, "preview.apply", json!({}));
     done(s, "page.goto", json!({"folio": "102"}));
 }
 
-#[test]
-fn a_corrected_part_s_drawn_box_takes_the_sockets_it_has_now() {
-    let tmp = Tmp::new("corrected-part-sockets");
-    let mut s = new_project(&tmp);
+/// A new project with a switch of one's own, SW-6 (one PROFINET interface of six sockets), drawn on bus page 102.
+fn switch_drawn(tmp: &Tmp) -> ShellModel {
+    let mut s = new_project(tmp);
     done(
         &mut s,
         "page.new",
@@ -64,6 +74,13 @@ fn a_corrected_part_s_drawn_box_takes_the_sockets_it_has_now() {
         done(&mut s, "canvas.activate", json!({}));
     }
     done(&mut s, "page.goto", json!({"folio": "102"}));
+    s
+}
+
+#[test]
+fn a_corrected_part_s_drawn_box_takes_the_sockets_it_has_now() {
+    let tmp = Tmp::new("corrected-part-sockets");
+    let mut s = switch_drawn(&tmp);
     let six = sockets(&s).cps;
     assert_eq!(six.iter().map(|c| c.0).collect::<Vec<_>>(), [0, 1, 2, 3, 4, 5]);
     // Eight: the two new sockets stand at once, after socket 6 on its edge, leaving as it does, on the box.
@@ -94,4 +111,47 @@ fn a_corrected_part_s_drawn_box_takes_the_sockets_it_has_now() {
     correct(&mut s, "4");
     let four = sockets(&s).cps;
     assert_eq!(four.iter().map(|c| c.0).collect::<Vec<_>>(), [0, 1, 2, 3]);
+}
+
+/// The switch moved to stand one grid step from the drawing area's right edge, then corrected to sixteen sockets: its
+/// box would grow past the area, so it goes back left inside it with its sockets in their order, and the Save's card
+/// says so before anything changes.
+#[test]
+fn a_box_that_would_grow_past_the_drawing_area_goes_back_inside() {
+    let tmp = Tmp::new("corrected-part-inside");
+    let mut s = switch_drawn(&tmp);
+    let area = ew_viewmodel::tools::ip::drawing_area(s.canvas().unwrap().page()).expect("a frame grid");
+    let step = grid_point(&s, (1, 0)).0 - grid_point(&s, (0, 0)).0;
+    let rep = {
+        let t = tables(&s);
+        t.reps
+            .iter()
+            .find(|r| r.rep_type == "topology" && r.black_box.is_some())
+            .expect("the switch's box")
+            .clone()
+    };
+    let right = |b: &TableBox| b.outline.iter().map(|p| p.0).max().unwrap_or(0);
+    let steps = (area[2] - right(&sockets(&s))) / step - 1;
+    let moved = json!({"reps": [rep.id.to_string()], "steps": [steps, 0]});
+    done(&mut s, "command.run", json!({"cmd": "rep.move", "params": moved}));
+    let before = sockets(&s);
+    assert!(right(&before) < area[2], "the box inside the area");
+    let card = save_corrected(&mut s, "16");
+    assert_eq!(card.len(), 1, "{card:?}");
+    assert!(
+        card[0].starts_with("Drawn anew: ") && card[0].ends_with(", moved back inside the drawing area"),
+        "{card:?}"
+    );
+    done(&mut s, "preview.apply", json!({}));
+    done(&mut s, "page.goto", json!({"folio": "102"}));
+    let after = sockets(&s);
+    assert_eq!(after.cps.len(), 16);
+    assert!(right(&after) <= area[2], "{} past {}", right(&after), area[2]);
+    let left = |b: &TableBox| b.outline.iter().map(|p| p.0).min().unwrap_or(0);
+    assert!(left(&after) < left(&before), "the box went back left");
+    let shift = after.cps[0].1.0 - before.cps[0].1.0;
+    assert!(
+        (0..6).all(|i| after.cps[i].1 == (before.cps[i].1.0 + shift, before.cps[i].1.1)),
+        "the six keep their places on the box"
+    );
 }

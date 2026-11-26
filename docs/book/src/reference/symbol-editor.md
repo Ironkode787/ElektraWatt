@@ -133,7 +133,10 @@ opens as a copy of your own, and a line over the box says what Save makes: the p
 take, or, for a part not yet in the project, a new part in your own library. The original stays as it is.
 
 - **The pin table**, on the left, lists the pins in the order they stand on the box, each with its name, the potential
-  it carries and its edge. **Add pin** adds one; a row dragged onto another takes its place there.
+  it carries and its edge. **Add pin** adds one; a row dragged onto another takes its place there. **Add bus
+  interface…** opens the part editor on **Bus interfaces** with a new interface (a PROFIBUS or PROFINET port, say);
+  the box then takes its ports from its interfaces as every bus device's does. A library's part keeps the interfaces
+  its library gives it.
 - **The drawing** shows the box as a device of the part is drawn. Drag a pin along its edge or onto another edge;
   drag any edge or corner of the box to size it: the pins on that edge go with it, the others stay where they are,
   and the box gets no smaller than its pins need. A click selects a pin, `Shift` and

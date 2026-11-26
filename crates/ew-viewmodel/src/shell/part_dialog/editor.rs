@@ -505,6 +505,7 @@ impl ShellModel {
             added: plan.bom_added.clone(),
             changed: plan.bom_changed.clone(),
             lost: plan.lost.clone(),
+            boxes: self.box_words(&plan.boxes),
             fork: plan.fork.is_some(),
         };
         let devices: Vec<String> = plan.devices.iter().map(|d| self.tag_of(d.as_uuid())).collect();

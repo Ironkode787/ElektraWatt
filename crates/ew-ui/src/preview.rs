@@ -192,6 +192,10 @@ fn part_block(ui: &mut Ui, p: &ew_viewmodel::properties::PartCard) {
             t.text_primary,
         );
     }
+    // A box drawn anew is said in the primary colour: the page changes where the person may not look.
+    for b in &p.boxes {
+        line(ui, b, t.text_primary);
+    }
     if p.fork {
         line(ui, strings::text(key!("part-edit-fork-note")), t.text_secondary);
     }

@@ -143,6 +143,12 @@ impl DeviceBox {
         self.draft.pins_from().map(from_words)
     }
 
+    /// Why Add bus interface… is refused, in a sentence: a library's part keeps the interfaces its library gives it;
+    /// `None` for a new part and a part of the project's own.
+    pub fn bus_refusal(&self) -> Option<String> {
+        (!(self.draft.new || self.draft.own)).then(|| words(key!("box-bus-library")))
+    }
+
     /// Whether the pins' places on the box and the box's size are edited here: also on a PLC card's or a bus
     /// device's box, whose pins' names and potentials are the part's.
     pub fn places_pins(&self) -> bool {
@@ -560,13 +566,25 @@ impl ShellModel {
             .map_err(|_| target())
     }
 
-    /// `part.box_details` (Part data… in the device box editor): the part editor on the box's draft, with its pins
-    /// and box as they are now; its Save saves the part, and Pins and box… returns here.
-    pub(crate) fn act_part_box_details(&mut self) -> Outcome {
+    /// `part.box_details {bus?}` (Part data… in the device box editor): the part editor on the box's draft, with its
+    /// pins and box as they are now; its Save saves the part, and Pins and box… returns here. With `bus` (Add bus
+    /// interface…, FT-2208) it opens on Bus interfaces with a new interface row; refused in words for a library's part
+    /// ([`DeviceBox::bus_refusal`]).
+    pub(crate) fn act_part_box_details(&mut self, p: &Map<String, Value>) -> Outcome {
         let project = or_return!(crate::shell::gated(&self.project));
-        let Some(b) = self.symbol_editor.as_mut().and_then(|e| e.device_box.take()) else {
+        let bus = p.get("bus") == Some(&Value::Bool(true));
+        let Some(device_box) = self.symbol_editor.as_ref().and_then(|e| e.device_box.as_ref()) else {
             return Outcome::refused(key!("reason-no-device-box"));
         };
+        if bus && let Some(message) = device_box.bus_refusal() {
+            return Outcome::Failed { message };
+        }
+        let Some(mut b) = self.symbol_editor.as_mut().and_then(|e| e.device_box.take()) else {
+            return Outcome::refused(key!("reason-no-device-box"));
+        };
+        if bus {
+            b.draft.add_bus_row();
+        }
         let manufacturers = project.session.part_manufacturers();
         let name = if b.draft.new {
             String::new()
@@ -580,7 +598,7 @@ impl ShellModel {
         self.leave_box(b.from_project);
         self.open_dialog(Dialog::PartEdit(Box::new(
             crate::shell::part_dialog::PartEditor {
-                section: "identity",
+                section: if bus { "bus" } else { "identity" },
                 draft: b.draft,
                 name,
                 manufacturers,

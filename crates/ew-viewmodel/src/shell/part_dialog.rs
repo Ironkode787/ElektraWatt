@@ -414,6 +414,21 @@ impl ShellModel {
             .unwrap_or_else(|| d.to_string())
     }
 
+    /// The boxes a part's change draws anew, each in words ("Drawn anew: -201A3 on page 105, …").
+    pub(super) fn box_words(&self, boxes: &[ew_api::RedrawnBox]) -> Vec<String> {
+        boxes
+            .iter()
+            .map(|b| {
+                let key = if b.moved {
+                    key!("part-card-box-moved")
+                } else {
+                    key!("part-card-box")
+                };
+                strings::format(key, &[&self.tag_of(b.device.as_uuid()), &b.folio])
+            })
+            .collect()
+    }
+
     /// `part.choose {target?, use?, add?, strip?}`: opens the part dialog for its target; `strip` (its ID), for
     /// the strip's terminals without a part.
     pub(crate) fn act_part_choose(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -712,6 +727,7 @@ impl ShellModel {
                     removed: plan.bom_removed,
                     added: plan.bom_added,
                     changed: plan.bom_changed,
+                    boxes: self.box_words(&plan.boxes),
                     lost: plan.lost,
                     fork: false,
                 };

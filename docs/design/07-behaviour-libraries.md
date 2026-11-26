@@ -658,7 +658,9 @@ the placement. Draw by coordinates, the three tabs of the left column and Pin ma
 place and size are rows of Properties, and a connection point's function pin is its row under More.
 
 **The device box** (§2.5) is the editor's second kind of thing, on the same screen: the pin table on the left (name,
-potential, edge; a row dragged onto another takes its place; Add pin), the box as a device of the part is drawn in the
+potential, edge; a row dragged onto another takes its place; Add pin; Add bus interface…, which opens the part
+editor on Bus interfaces with a new interface row, `part.box_details {bus}`, refused in words for a library's part the
+project holds, whose interfaces are its library's), the box as a device of the part is drawn in the
 middle (a pin dragged along its edge or onto another one, any edge or corner dragged to size it: the pins on the
 edge that moves go with it, the others stay where they stand, and the edge stops one step before the nearest pin), and
 Properties of the selected pins or of the part. Its ways in: the start card (every part drawn as a box, the

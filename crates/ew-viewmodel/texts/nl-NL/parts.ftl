@@ -91,6 +91,8 @@ part-card-removed = Stuklijstregel verwijderd: { $p0 }
 part-card-added = Stuklijstregel toegevoegd: { $p0 }
 part-card-changed = Stuklijstregel gewijzigd: { $p0 }
 part-card-lost = Een buslijn eindigt op een aansluiting die het artikel niet meer heeft: { $p0 }. Hij houdt zijn eind daar; teken hem naar een andere aansluiting.
+part-card-box = Opnieuw getekend: { $p0 } op pagina { $p1 }, met de pennen die het artikel nu heeft
+part-card-box-moved = Opnieuw getekend: { $p0 } op pagina { $p1 }, teruggezet binnen het tekengebied
 part-change-interface = Interface { $p0 }
 part-change-ports = { $p0 ->
         [one] 1 poort

@@ -188,6 +188,8 @@ pub struct UpdatePlan {
     pub bom_changed: Vec<String>,
     /// The sockets a bus line ends at that the update takes away (`-3K2:P8`).
     pub lost: Vec<String>,
+    /// The drawn boxes the update draws anew.
+    pub boxes: Vec<crate::RedrawnBox>,
     /// The printed tags and cross-reference texts that change.
     pub derived: DerivedDiff,
 }
@@ -997,6 +999,7 @@ impl Session {
         let derived = ew_commands::derived_diff(q, &after);
         let (bom_removed, bom_added, bom_changed) = crate::part_editor::bom_changes(q, &after);
         let lost = crate::part_editor::lost_sockets(q, &after);
+        let boxes = crate::part_editor::redrawn_boxes(q, &after);
         Ok(UpdatePlan {
             command,
             copies: plan_copies,
@@ -1006,6 +1009,7 @@ impl Session {
             bom_added,
             bom_changed,
             lost,
+            boxes,
             derived,
         })
     }

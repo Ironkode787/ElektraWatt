@@ -161,7 +161,7 @@ pub use macros::{InsertAt, MacroConflict, MacroError, MacroScope, MacroSpec, Mac
 pub use page_copy::{CopyFolios, PageCopyPlan, PageCopySpec};
 pub use part_cable::{CABLE_MARKINGS, CABLE_MEMBERS, CableRows};
 pub use part_editor::{
-    BUS_MEMBERS, BusRow, DRAFT_FIELDS, MAX_PORTS, PART_KINDS, PartDraft, PartDraftError, bus_words,
+    BUS_MEMBERS, BusRow, DRAFT_FIELDS, MAX_PORTS, PART_KINDS, PartDraft, PartDraftError, RedrawnBox, bus_words,
     mount_words, role_words,
 };
 pub use part_new::{NewPart, RemovedPart};

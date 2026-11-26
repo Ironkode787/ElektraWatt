@@ -73,9 +73,11 @@ switch, 8 ports) and EW-GEN-PND-1 (a PROFINET device, 2 ports).
 16. A device already drawn follows the correction, in both cases: its box shows the pins and sockets the part still
     has, and its bus port keeps its bus, role and address. A bus line at a socket the part no longer has keeps its end
     there; the card names it before **Apply**, so that you draw it to another socket. A pin or socket the part adds
-    shows when the box is drawn again: delete the box and draw it again (a port from **Ports not drawn yet** in the
-    **Bus** panel), or, for a part with a device box, choose **Redraw them** after saving the box (below). The editor
-    says so above the form.
+    stands after the last one of its edge, the box growing to take it; a box that would then run past the drawing
+    area (into the title block) goes back along that edge until it fits, its wires with it. The card names each box
+    drawn anew and its page before **Apply**, and says which went back. A turned box takes the new pin when it is
+    drawn again: delete it and draw it again, or, for a part with a device box, choose **Redraw them** after saving
+    the box (below).
 
 A starter part or a part of another library is not yours to change: its editor says so and offers **Copy as a part of
 your own…**, a new part with its data, which you save under a part number of your own.
