@@ -658,9 +658,15 @@ frame-typed-in = Title block fields…, Project properties or Page properties
 frame-row-size-mm = Width × height
 frame-size-mm = { $p0 } × { $p1 } mm
 frame-cell-empty = Empty cell
-frame-cell-where = Title block cell · prints on { $p0 } pages
+frame-cell-where = { $p0 ->
+        [one] Title block cell · prints on { $p0 } page
+       *[other] Title block cell · prints on { $p0 } pages
+    }
 frame-title = Frame
-frame-pages = Prints on { $p0 } pages
+frame-pages = { $p0 ->
+        [one] Prints on { $p0 } page
+       *[other] Prints on { $p0 } pages
+    }
 frame-row-paper = Paper
 frame-row-title-block = Title block
 frame-block-shared = Shared with the other frames

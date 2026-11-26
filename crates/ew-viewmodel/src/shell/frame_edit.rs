@@ -43,9 +43,9 @@ pub const ADOPT_ROW: &str = "frame/adopt";
 
 /// The alignments a cell takes, by the stored word.
 const ALIGNS: &[(&str, crate::strings::Key<'static>)] = &[
-    ("left", key!("frame-align-left")),
+    ("middle_left", key!("frame-align-left")),
     ("centre", key!("frame-align-centre")),
-    ("right", key!("frame-align-right")),
+    ("middle_right", key!("frame-align-right")),
 ];
 
 /// What a cell's Shows offers besides the paths of the title block: a field of the project's own, New field of your
@@ -573,10 +573,7 @@ impl ShellModel {
                 } else {
                     cell.printed.clone()
                 };
-                header.subtitle = Some(strings::format(
-                    key!("frame-cell-where"),
-                    &[&facts.block_pages.len().to_string()],
-                ));
+                header.subtitle = Some(strings::format_count(crate::count_key!("frame-cell-where"), facts.block_pages.len()));
                 let label = item
                     .get("label")
                     .map(|l| label_text(l, facts.language.as_deref()))
@@ -649,10 +646,7 @@ impl ShellModel {
             }
             FrameChoice::Rulers => {
                 header.title = text(key!("frame-row-rulers"));
-                header.subtitle = Some(strings::format(
-                    key!("frame-pages"),
-                    &[&facts.frame_pages.len().to_string()],
-                ));
+                header.subtitle = Some(strings::format_count(crate::count_key!("frame-pages"), facts.frame_pages.len()));
                 let typed = |key: &str, label: String, ty: FieldType, text: String, json: Value| {
                     row(key, label, ty, text, json, true)
                 };
@@ -660,10 +654,7 @@ impl ShellModel {
             }
             FrameChoice::Frame => {
                 header.title = text(key!("frame-title"));
-                header.subtitle = Some(strings::format(
-                    key!("frame-pages"),
-                    &[&facts.frame_pages.len().to_string()],
-                ));
+                header.subtitle = Some(strings::format_count(crate::count_key!("frame-pages"), facts.frame_pages.len()));
                 let sheet = &facts.frame_item["sheet"];
                 let mm = |v: &Value| crate::canvas::mm1(v.as_i64().unwrap_or(0));
                 let own = facts.block.is_some() && facts.block != facts.shared_block;
@@ -1172,7 +1163,10 @@ impl ShellModel {
         params["forks"] = json!(forks.iter().map(|u| u.to_string()).collect::<Vec<_>>());
         self.props.edit = None;
         self.props.choices = None;
-        Some(self.preview_host_card("frame.set_grid", params, key!("reason-frame-grid")))
+        let out = self.preview_host_card("frame.set_grid", params, key!("reason-frame-grid"));
+        // The rows show the card's values.
+        self.props.key = None;
+        Some(out)
     }
 }
 

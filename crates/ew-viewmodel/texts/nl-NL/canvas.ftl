@@ -610,9 +610,15 @@ frame-typed-in = Titelblokvelden…, Projecteigenschappen of Pagina-eigenschappe
 frame-row-size-mm = Breedte × hoogte
 frame-size-mm = { $p0 } × { $p1 } mm
 frame-cell-empty = Leeg vak
-frame-cell-where = Vak van het titelblok · komt op { $p0 } pagina's
+frame-cell-where = { $p0 ->
+        [one] Vak van het titelblok · komt op { $p0 } pagina
+       *[other] Vak van het titelblok · komt op { $p0 } pagina's
+    }
 frame-title = Kader
-frame-pages = Gebruikt door { $p0 } pagina's
+frame-pages = { $p0 ->
+        [one] Gebruikt door { $p0 } pagina
+       *[other] Gebruikt door { $p0 } pagina's
+    }
 frame-row-paper = Papier
 frame-row-title-block = Titelblok
 frame-block-shared = Gedeeld met de andere kaders
