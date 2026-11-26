@@ -249,3 +249,43 @@ fn a_variable_of_ones_own_becomes_a_field_of_the_projects_own() {
         }
     }
 }
+
+/// A variable of the project's own properties is a field of the project's own too, and lives in the field alone: no
+/// copy of it stays in `qet.project_properties`.
+#[test]
+fn a_project_variable_lives_in_its_field_alone() {
+    let sites = TEMPLATE.replace("%{customer}", "%{site}");
+    let diagram = |folio: u32| {
+        format!(
+            r#"<diagram folio="{folio}" order="{folio}" title="F{folio}" titleblocktemplate="tb" titleblocktemplateCollection="embedded"></diagram>"#
+        )
+    };
+    let xml = format!(
+        "<project title=\"Fields\"><properties><property name=\"site\">North</property></properties>{sites}{}{}</project>",
+        diagram(1),
+        diagram(2)
+    );
+    let input = ImportInput::new("x.qet", xml.into_bytes()).unwrap();
+    let b = QetProjectImporter::new()
+        .import(&input, &mut new_project_context())
+        .unwrap();
+    let project = b
+        .records
+        .iter()
+        .find_map(|r| match r {
+            Record::Project(p) => Some(p.clone()),
+            _ => None,
+        })
+        .unwrap();
+    assert!(
+        project.user_prop_defs.iter().any(|d| d.key.as_str() == "site"),
+        "{:?}",
+        project.user_prop_defs
+    );
+    let kept = project.extra.get("qet.project_properties");
+    assert!(
+        kept.is_none_or(|v| v.get("site").is_none()),
+        "{:?}",
+        project.extra
+    );
+}

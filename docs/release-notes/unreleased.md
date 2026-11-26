@@ -261,7 +261,7 @@ change here.
   properties) come in as fields of the project's own, one value for the project where every folio has the same, else
   one for each page, and the title block's cell prints the field; the printed text is the same, and the value is now
   typed in Title block fields…; such a variable is no longer kept a second time in the project's or the page's
-  `qet.properties` (doc 14 §4.9, FT-1814)
+  `qet.properties`, nor in the project's `qet.project_properties` (doc 14 §4.9, FT-1814)
 - behaviour-change: every region of a QElectroTech title block comes in as a cell, a logo's and an empty one's too,
   so Edit frame can choose it and type in it, and the block's lines are its cells' edges: its first change keeps every
   line (a line beside an empty region went) (doc 14 §4.9, FT-1814)

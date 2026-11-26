@@ -16,8 +16,8 @@
 //!   page-oriented block and gets no page record ([`super::tables`]).
 //! - **Lifting.** Title-block attributes and folio properties: the most frequent value of each name goes to
 //!   the project (`Project.extra["qet.titleblock"]`, `["qet.properties"]`); a page whose value differs keeps it
-//!   in `Page.extra` under the same member. A folio property that becomes a field of the project's own is kept in
-//!   the field alone, not in `qet.properties`. A differing `author`, `date`, `indexrev` or custom property is an
+//!   in `Page.extra` under the same member. A folio or project property that becomes a field of the project's own is
+//!   kept in the field alone, not in `qet.properties` or `qet.project_properties`. A differing `author`, `date`, `indexrev` or custom property is an
 //!   EW-IMP-104 finding (D-05) naming the folios per value.
 //! - **Free texts, shapes and images** are page items ([`super::items`]).
 
@@ -539,6 +539,8 @@ pub fn map(
                 Severity::Info,
                 "project property `savedfilepath` dropped (a local file path)",
             ),
+            // A variable that is a field of the project's own lives in the field alone (doc 09 §2.10).
+            _ if own.iter().any(|f| f.name == *name) => {}
             _ => {
                 kept.insert(name.clone(), Value::String(value.clone()));
             }
