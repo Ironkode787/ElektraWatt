@@ -20,7 +20,7 @@ use ew_schema::{
     AddrSpec, AddrValue, BomBasis, Channel, ContactKind, Device, FormDef, Function, Kind, LibCopy, Page, Part,
 };
 
-use crate::finding::{Finding, Severity, Target};
+use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 use crate::rules::core::DANGLING_REFERENCE;
 use crate::rules::term::full_tag;
@@ -551,7 +551,9 @@ pub const VARIANT_NOT_IN_PART: RuleMeta = RuleMeta {
 };
 
 /// EW-CORE-085: a part use that names a variant key its part does not hold (FR-PRT-003, doc 07 §2.5); the lists print
-/// the part. One finding per device, part copy and key: targets the device and the copy, discriminator the key.
+/// the part. One finding per device, part copy and key: targets the device and the copy, discriminator the key. Its
+/// quick fix gives the part use the part's own number (`fields.set` of the device's `parts`, the key dropped), after
+/// which the Variant row chooses one the part has.
 #[derive(Clone, Copy, Debug)]
 pub struct VariantNotInPart;
 
@@ -579,6 +581,16 @@ impl Rule for VariantNotInPart {
                 continue;
             }
             let tag = full_tag(q, device, ew_derive::text::record_name(ew_schema::Kind::Device));
+            let mut uses = serde_json::to_value(&d.parts).unwrap_or(serde_json::Value::Null);
+            if let Some(list) = uses.as_array_mut() {
+                for u in list.iter_mut() {
+                    if u["part"]["variant"].as_str() == Some(key.as_str())
+                        && let Some(o) = u["part"].as_object_mut()
+                    {
+                        o.remove("variant");
+                    }
+                }
+            }
             out.push(
                 Finding::new(
                     &VARIANT_NOT_IN_PART,
@@ -591,7 +603,17 @@ impl Rule for VariantNotInPart {
                 )
                 .arg("device", tag)
                 .arg("variant", key.as_str())
-                .arg("part", copy.item.part_number.as_str()),
+                .arg("part", copy.item.part_number.as_str())
+                .with_fix(QuickFix {
+                    label: text!("fix-variant-own"),
+                    command: "fields.set".to_owned(),
+                    params: serde_json::json!({
+                        "kind": "device",
+                        "targets": [device.to_string()],
+                        "path": "parts",
+                        "value": uses,
+                    }),
+                }),
             );
         }
         out

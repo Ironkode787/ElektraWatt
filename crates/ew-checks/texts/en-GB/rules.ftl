@@ -1256,6 +1256,7 @@ rule-ew-imp-114 =
 # text is the fix's English label, which the CLI and the JSON print.
 fix-take-proposed-size = Take the proposed size
 fix-drop-override = Drop override
+fix-variant-own = Use the part's own number
 fix-anchor-graphics-centre = Anchor at the graphics centre
 fix-renumber-newer = Renumber the newer
 fix-unfreeze-tag = Unfreeze the tag

@@ -1236,6 +1236,7 @@ rule-ew-imp-114 =
 # De labels van de snelle oplossingen, per sleutel (`QuickFix::key`).
 fix-take-proposed-size = De voorgestelde doorsnede nemen
 fix-drop-override = overschrijving verwijderen
+fix-variant-own = Het eigen nummer van het artikel gebruiken
 fix-anchor-graphics-centre = anker op het midden van de grafische elementen
 fix-renumber-newer = De nieuwere hernummeren
 fix-unfreeze-tag = Kenmerk losmaken

@@ -10,7 +10,7 @@ use ew_schema::Kind;
 use serde_json::json;
 
 /// A part use naming the variant RD of a part that holds BU only is a warning naming the device, the key and the part;
-/// one naming BU is not.
+/// one naming BU is not; its quick fix takes the part's own number.
 #[test]
 fn core085_reports_a_variant_the_part_does_not_hold() {
     let mut fx = Fx::base();
@@ -42,5 +42,16 @@ fn core085_reports_a_variant_the_part_does_not_hold() {
     assert_eq!(
         targets(&f[0]),
         [(Kind::Device, uid(0x21001)), (Kind::Part, uid(0x7100))]
+    );
+    // The quick fix gives the part use the part's own number: the device's parts without the key.
+    let fix = f[0].fix.as_ref().expect("a quick fix");
+    assert_eq!(
+        (fix.command.as_str(), &fix.params["path"]),
+        ("fields.set", &json!("parts"))
+    );
+    assert!(
+        fix.params["value"][0]["part"].get("variant").is_none(),
+        "{}",
+        fix.params
     );
 }

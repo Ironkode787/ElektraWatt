@@ -19,7 +19,8 @@ the blue variant BU only.
 
 ## How to fix
 
-Choose a variant the part holds in Properties ▸ Parts ▸ Variant, or the part's own number. There is no quick fix.
+Choose a variant the part holds in Properties ▸ Parts ▸ Variant, or the part's own number. The quick fix Use the
+part's own number takes the part's own number.
 
 ## Waiving
 

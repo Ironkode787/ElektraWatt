@@ -93,7 +93,7 @@ its 0.0 to 470.0 mm; shorten it or move it".
 | EW-MFG-020 | "-X1011 has no end plate after its last terminal PE" (warning) | Add an end plate… (the strip editor's Add accessory, kind End plate, after PE); its hint: "Or name the end plate in the terminal's part, under Accessories, so every strip gets it." |
 | EW-MFG-021 | "The bridge BR1 of -X1021 (terminals 1 to 4) has no part" (warning, error in release) | Choose a part… (the part dialog of the bridge's Bridge part cell) |
 | EW-LAY-010 | a rail too short for what stands on it, per item past its end (above; an error) | its quick fix, move to a carrier it fits |
-| EW-CORE-085 | "-X1011:N names the variant RD, which EW-GEN-TRM-1 does not hold" | Choose a variant… (Properties ▸ Parts ▸ Variant) |
+| EW-CORE-085 | "-X1011:N names the variant RD, which EW-GEN-TRM-1 does not hold" | Use the part's own number (then a variant in Properties ▸ Parts ▸ Variant) |
 
 A strip whose terminals have no part asks nothing of its end plate: the part decides whether one is needed.
 
