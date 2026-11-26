@@ -8,8 +8,11 @@
 
 use crate::kind::ReportKindDef;
 
+mod assembly_list;
 mod cable_overview;
 mod conn;
+mod consumables;
+mod cut_list;
 mod device_list;
 mod enclosure_legend;
 mod fluid;
@@ -31,10 +34,13 @@ mod terminal_overview;
 mod toc;
 mod wire_list;
 
+pub use assembly_list::AssemblyList;
 pub use cable_overview::{CableOverview, cable_length_words, length_source_cell};
+pub use consumables::Consumables;
+pub use cut_list::{CutList, TubeCutList};
 pub use device_list::DeviceList;
 pub use enclosure_legend::EnclosureLegend;
-pub use fluid::{MediumOverview, TubeCutList, TubeLabels, TubeList, ValveTerminalConfig};
+pub use fluid::{MediumOverview, TubeLabels, TubeList, ValveTerminalConfig};
 pub use io_list::IoList;
 pub use labels::{LabelFile, Labels, label_column_words, label_files};
 pub use numbering_report::NumberingReport;
@@ -88,5 +94,8 @@ pub(crate) fn builtin() -> Vec<&'static dyn ReportKindDef> {
         &ValveTerminalConfig,
         &MediumOverview,
         &Labels,
+        &AssemblyList,
+        &CutList,
+        &Consumables,
     ]
 }

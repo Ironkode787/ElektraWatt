@@ -436,13 +436,12 @@ pub fn report_kinds() -> Vec<&'static str> {
     Registry::builtin().names().collect()
 }
 
-/// The registered report kinds whose blocks fill pages of their own (`ReportKindDef::page_oriented`), in name order:
-/// the kinds Output ▸ Reports ▸ Report block… offers.
+/// The registered report kinds that Output ▸ Reports ▸ Report block… offers (`ReportKindDef::offered`), in name order.
 pub fn page_report_kinds() -> Vec<&'static str> {
     let registry = Registry::builtin();
     registry
         .names()
-        .filter(|n| registry.by_name(n).is_some_and(|k| k.page_oriented()))
+        .filter(|n| registry.by_name(n).is_some_and(|k| k.offered()))
         .collect()
 }
 

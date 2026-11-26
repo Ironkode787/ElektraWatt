@@ -137,6 +137,17 @@ impl ReportKindDef for TerminalOverview {
 
 /// The cells of the strip's segment representations in drawing order, else the cell of its main representation.
 fn segments_text(q: &Q, strip: Id<Device>) -> Vec<String> {
+    segments(q, strip).into_iter().map(|p| p.text).collect()
+}
+
+/// The position in the drawn page order of the strip's first segment representation, else of its main
+/// representation (`usize::MAX` without either): the assembly list's order of the strips (doc 13 §6.1).
+pub(super) fn first_segment_position(q: &Q, strip: Id<Device>) -> usize {
+    segments(q, strip).first().map_or(usize::MAX, |p| p.position)
+}
+
+/// The strip's segment representations in drawing order, else its main representation.
+fn segments(q: &Q, strip: Id<Device>) -> Vec<Placed> {
     let order = q.get::<DrawnPageOrder>(());
     let reps = q.reps();
     let mut segments: Vec<Placed> = Vec::new();
@@ -154,10 +165,10 @@ fn segments_text(q: &Q, strip: Id<Device>) -> Vec<String> {
     if segments.is_empty() {
         return (*q.get::<MainRep>(strip))
             .and_then(|rep| placed_cell(q, &order, rep))
-            .map(|p| vec![p.text])
-            .unwrap_or_default();
+            .into_iter()
+            .collect();
     }
-    segments.into_iter().map(|p| p.text).collect()
+    segments
 }
 
 /// A representation's place in drawing order and its printed cell; ordered by page position in the drawn page order,

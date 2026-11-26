@@ -56,6 +56,12 @@ pub fn kind_names(kind: &str) -> Vec<(&'static str, String)> {
     })
 }
 
+/// The text of the key `key` whose pattern selects on its arguments (a message of several lines, which `text!` does
+/// not build), its arguments to be given by name ([`Text::with`]).
+pub(crate) fn selecting(key: &'static str) -> Text {
+    Text::checked_by_macro(key, "?", Vec::new())
+}
+
 /// `t` in every language of this crate's text files, as a row set carries a word of the program.
 pub fn in_languages(t: &Text) -> MlText {
     crate::catalogue().in_languages(t)

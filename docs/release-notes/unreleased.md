@@ -319,3 +319,18 @@ change here.
   it: the Draw tab's Marker button is Annotate (Dutch: Aanduiding), the tool is Wire annotation, a wire's Properties row is Wire
   annotation, Project ▸ Wire markers is Wire annotations, and the refusals and notices that name it say so. The stored
   names (`wire_marker`, `show_marker`, `marker_mode`) stay; "wire marker" now means the workshop's sleeve label.
+- behaviour-change: three workshop lists (doc 13 §3.6, §6, §9.3): Assembly lists prints per terminal strip a heading
+  that says where it goes and how long it is ("-X1011 · on rail 1 from 0 to 48.2 mm · rail cut to 470 mm · 5
+  terminals · 48.2 mm with its end brackets"), then every item in mounting order (end brackets, terminals with part,
+  colour and marker, end plates, the strip's own accessories, each with its width), then its bridges in a block of
+  their own; Cut list prints the rails, the ducts with their covers, the cables, the wires and the tubes to cut, each
+  piece rounded up once to the cut increment (a wire's length as the wire list's); Consumables prints the wires' metres,
+  the ferrules and lugs per part (a twin ferrule once) and the markers per label set. Each is a list kind
+  (`assembly_list`, `cut_list`, `consumables`) for Report block… and `ew export report --kind`.
+- format-variant: report_block ReportKind assembly_list
+- format-variant: report_block ReportKind cut_list
+- format-variant: report_block ReportKind consumables
+- behaviour-change: a `tube_cut_list` block of a project made before prints the cut list's Tubes group under its own
+  title, with the cut list's columns (Part number, Description, For, Pieces, Length mm, Total m); Report block… no
+  longer offers the tube cut list.
+- behaviour-change: the wire list's bridge rows print the bridge's part; only a bridge without one prints TBD.

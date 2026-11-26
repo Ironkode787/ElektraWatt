@@ -351,7 +351,7 @@
         },
         {
           "const": "tube_cut_list",
-          "description": "Tube cut list (FR-FLU-013).",
+          "description": "Tube cut list (FR-FLU-013): a block of a project made before the cut list prints the cut list's Tubes group.",
           "type": "string"
         },
         {
@@ -372,6 +372,21 @@
         {
           "const": "labels",
           "description": "Labels: every label of the workshop, in the order the fitter applies them (doc 13 §5.3).",
+          "type": "string"
+        },
+        {
+          "const": "assembly_list",
+          "description": "Assembly lists: per terminal strip the order the fitter mounts it in (doc 13 §6, FR-MFG-016).",
+          "type": "string"
+        },
+        {
+          "const": "cut_list",
+          "description": "Cut list: everything the fitter cuts to length (doc 13 §9.3, FR-MFG-030).",
+          "type": "string"
+        },
+        {
+          "const": "consumables",
+          "description": "Consumables: what the wires consume, ferrules and markers (doc 13 §3.6, FR-MFG-049).",
           "type": "string"
         }
       ]

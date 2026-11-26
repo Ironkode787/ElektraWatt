@@ -73,6 +73,7 @@ column-label = Label
 column-label-text = Markeringstekst
 column-length = Lengte
 column-length-from = Lengte uit
+column-length-mm = Lengte mm
 column-level = Etage
 column-line = Leiding
 column-location-aspect = Locatie (+)
@@ -80,6 +81,7 @@ column-location-change = Locatiewissel
 column-logical-net = Logisch net
 column-main-representation = Hoofdweergave
 column-manufacturer = Fabrikant
+column-marker = Merker
 column-marker-part = Merkerartikel
 column-master = Master
 column-material = Materiaal
@@ -113,6 +115,7 @@ column-pressure = Druk
 column-process-tag = Proceskenmerk
 column-qty = Aantal
 column-quality = Kwaliteit
+column-quantity = Hoeveelheid
 column-rate-bit-s = Snelheid (bit/s)
 column-requirement = Eis
 column-reserved = Gereserveerd
@@ -161,6 +164,7 @@ column-to-marker = Merker naar
 column-to-part = Artikel naar
 column-to-strip = Striplengte naar
 column-total-length = Totale lengte
+column-total-m = Totaal m
 column-tube = Slang
 column-tube-part = Slangartikel
 column-type = Type
@@ -172,6 +176,7 @@ column-vendor-id = Fabrikant-ID
 column-via = Via
 column-voltage = Spanning
 column-voltage-class = Spanningsklasse
+column-width-mm = Breedte mm
 column-wire-part = Draadartikel
 
 ## The title of a box or a table, and the words of a heading row
@@ -306,6 +311,9 @@ report-kind-tube-labels = Slangmerkers
 report-kind-valve-terminal-config = Ventieleilandconfiguratie
 report-kind-medium-overview = Mediumoverzicht
 report-kind-labels = Labels
+report-kind-assembly-list = Montagelijsten
+report-kind-cut-list = Zaaglijst
+report-kind-consumables = Verbruiksmaterialen
 report-kind-sql = SQL-query
 report-kind-unknown = Onbekende soort
 
@@ -313,3 +321,67 @@ report-kind-unknown = Onbekende soort
 
 cell-label-for = { $p0 } op { $p1 }
 cell-label-does-not-fit = past niet op het merkerartikel
+
+## The workshop lists (doc 13 §3.6, §6, §9.3)
+
+cell-assembly-heading = { $strip } · { $rail ->
+        [0] op geen rail
+       *[other] op rail { $rail } van { DECIMAL($from) } tot { DECIMAL($to) } mm{ $cut ->
+            [none] {""}
+           *[other] {" · "}rail afgezaagd op { DECIMAL($cut) } mm
+        }{ $abuts ->
+            [none] {""}
+           *[other] {" · "}tegen de eindsteun van { $abuts }
+        }{ $turned ->
+            [yes] {" · "}gedraaid, de eerste klem rechts
+           *[no] {""}
+        }
+    } · { $terminals ->
+        [one] 1 klem
+       *[other] { $terminals } klemmen
+    } · { $form ->
+        [brackets] { DECIMAL($length) } mm met de eindsteunen
+        [least-brackets] minstens { DECIMAL($length) } mm met de eindsteunen
+        [least] minstens { DECIMAL($length) } mm
+       *[exact] { DECIMAL($length) } mm
+    }
+cell-terminal = Klem
+cell-spare-fed = reserve (gevoed)
+cell-added = toegevoegd
+cell-with = bij { $p0 }
+cell-width-missing = breedte ontbreekt
+cell-bridges-of = Bruggen van { $p0 }
+cell-bridge-label = Brug { $p0 }
+cell-terminals-from-to = { $p0 } t/m { $p1 }
+cell-poles = { $count }-polig
+cell-group-rails = Rails
+cell-group-ducts = Kabelgoten
+cell-group-cables = Kabels
+cell-group-wires = Draden
+cell-group-tubes = Slangen
+cell-group-wire = Draad
+cell-group-ferrules = Adereindhulzen en kabelschoenen
+cell-group-markers = Merkers
+cell-carrier = { $kind ->
+        [rail] Rail
+       *[duct] Kabelgoot
+    } { $n }
+cell-list-comma = {", "}
+cell-size = { DECIMAL($p0) }
+cell-twin-size = 2 × { DECIMAL($p0) }
+cell-wires-count = { $count ->
+        [one] 1 draad
+       *[other] { $count } draden
+    }
+cell-length-missing-for = lengte ontbreekt voor { $count ->
+        [one] 1 draad
+       *[other] { $count } draden
+    }
+cell-metres-and-missing = { DECIMAL($metres) } en { $count ->
+        [one] 1 draad
+       *[other] { $count } draden
+    } zonder lengte
+cell-no-ferrule = geen adereindhuls gevonden
+cell-no-twin-ferrule = geen tweelingadereindhuls gevonden
+cell-no-ring-lug = geen ringkabelschoen gevonden
+cell-no-marker = geen merker gevonden

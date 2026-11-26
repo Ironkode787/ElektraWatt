@@ -284,7 +284,14 @@ fn bridge_row(q: &Q, b: &Bridge) -> Row {
     set("to", last);
     set("potential", bridge_potential(q, b));
     set("from_end", kind);
-    set("part", Cell::Tbd);
+    // A bridge without a part prints TBD (doc 13 §6.1), as the assembly list's bridge block does.
+    set(
+        "part",
+        b.part
+            .as_ref()
+            .and_then(|p| ew_derive::printed_part(q, p))
+            .map_or(Cell::Tbd, |c| super::parts::part_number_cell(c.item.part_number.as_str())),
+    );
     set("pages", b.page.map_or(Cell::Empty, |p| pages_cell(&[p])));
     let mut r = Row::data(id, cells);
     r.sources = b.terminals.iter().map(|t| t.cast()).collect();

@@ -73,6 +73,7 @@ column-label = Label
 column-label-text = Label text
 column-length = Length
 column-length-from = Length from
+column-length-mm = Length mm
 column-level = Level
 column-line = Line
 column-location-aspect = Location (+)
@@ -80,6 +81,7 @@ column-location-change = Location change
 column-logical-net = Logical net
 column-main-representation = Main representation
 column-manufacturer = Manufacturer
+column-marker = Marker
 column-marker-part = Marker part
 column-master = Master
 column-material = Material
@@ -113,6 +115,7 @@ column-pressure = Pressure
 column-process-tag = Process tag
 column-qty = Qty
 column-quality = Quality
+column-quantity = Quantity
 column-rate-bit-s = Rate (bit/s)
 column-requirement = Requirement
 column-reserved = Reserved
@@ -161,6 +164,7 @@ column-to-marker = To marker
 column-to-part = To part
 column-to-strip = To strip length
 column-total-length = Total length
+column-total-m = Total m
 column-tube = Tube
 column-tube-part = Tube part
 column-type = Type
@@ -172,6 +176,7 @@ column-vendor-id = Vendor ID
 column-via = Via
 column-voltage = Voltage
 column-voltage-class = Voltage class
+column-width-mm = Width mm
 column-wire-part = Wire part
 
 ## The title of a box or a table, and the words of a heading row
@@ -306,6 +311,9 @@ report-kind-tube-labels = Tube labels
 report-kind-valve-terminal-config = Valve-terminal configuration
 report-kind-medium-overview = Medium overview
 report-kind-labels = Labels
+report-kind-assembly-list = Assembly lists
+report-kind-cut-list = Cut list
+report-kind-consumables = Consumables
 report-kind-sql = SQL query
 report-kind-unknown = Unknown kind
 
@@ -313,3 +321,75 @@ report-kind-unknown = Unknown kind
 
 cell-label-for = { $p0 } at { $p1 }
 cell-label-does-not-fit = does not fit its marker part
+
+## The workshop lists (doc 13 §3.6, §6, §9.3)
+
+# A strip's heading in the assembly list: $rail the rail's number (0: on no rail), $from and $to where the strip starts
+# and ends on it, $cut the rail's cut length ("none": not known), $abuts the strip it abuts ("none": none), $turned
+# "yes" when it is turned, $form how its length reads.
+cell-assembly-heading = { $strip } · { $rail ->
+        [0] on no rail
+       *[other] on rail { $rail } from { DECIMAL($from) } to { DECIMAL($to) } mm{ $cut ->
+            [none] {""}
+           *[other] {" · "}rail cut to { DECIMAL($cut) } mm
+        }{ $abuts ->
+            [none] {""}
+           *[other] {" · "}against the end bracket of { $abuts }
+        }{ $turned ->
+            [yes] {" · "}turned, its first terminal at the right
+           *[no] {""}
+        }
+    } · { $terminals ->
+        [one] 1 terminal
+       *[other] { $terminals } terminals
+    } · { $form ->
+        [brackets] { DECIMAL($length) } mm with its end brackets
+        [least-brackets] at least { DECIMAL($length) } mm with its end brackets
+        [least] at least { DECIMAL($length) } mm
+       *[exact] { DECIMAL($length) } mm
+    }
+cell-terminal = Terminal
+cell-spare-fed = spare (fed)
+cell-added = added
+cell-with = with { $p0 }
+cell-width-missing = width missing
+cell-bridges-of = Bridges of { $p0 }
+cell-bridge-label = Bridge { $p0 }
+cell-terminals-from-to = { $p0 } to { $p1 }
+cell-poles = { $count ->
+        [one] 1 pole
+       *[other] { $count } poles
+    }
+cell-group-rails = Rails
+cell-group-ducts = Ducts
+cell-group-cables = Cables
+cell-group-wires = Wires
+cell-group-tubes = Tubes
+cell-group-wire = Wire
+cell-group-ferrules = Ferrules and lugs
+cell-group-markers = Markers
+# A carrier by its label: $kind its kind (rail, duct), $n its number.
+cell-carrier = { $kind ->
+        [rail] Rail
+       *[duct] Duct
+    } { $n }
+cell-list-comma = {", "}
+# A size, a wire's size and colour, as the lists print them ("0.75 mm² BK").
+cell-size = { DECIMAL($p0) }
+cell-twin-size = 2 × { DECIMAL($p0) }
+cell-wires-count = { $count ->
+        [one] 1 wire
+       *[other] { $count } wires
+    }
+cell-length-missing-for = length missing for { $count ->
+        [one] 1 wire
+       *[other] { $count } wires
+    }
+cell-metres-and-missing = { DECIMAL($metres) } and { $count ->
+        [one] 1 wire
+       *[other] { $count } wires
+    } without a length
+cell-no-ferrule = no ferrule found
+cell-no-twin-ferrule = no twin ferrule found
+cell-no-ring-lug = no ring lug found
+cell-no-marker = no marker found

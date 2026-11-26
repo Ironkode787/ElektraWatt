@@ -303,6 +303,19 @@ pub(super) fn source_text(rec: &WireRecord) -> Cell {
     words_cell(&words)
 }
 
+/// A wire's size and colour as the workshop lists print them (`0.75 mm² BK`, in Dutch `0,75 mm² BK`).
+pub(super) fn wire_type_cell(csa: Option<&Csa>, colour: Option<&ColourSpec>) -> Cell {
+    let text = [
+        csa.and_then(ew_derive::csa_with_unit).unwrap_or_default(),
+        colour.map(ew_derive::colour_text).unwrap_or_default(),
+    ]
+    .into_iter()
+    .filter(|t| !t.is_empty())
+    .collect::<Vec<_>>()
+    .join(" ");
+    words_cell(&text!("cell-size", text))
+}
+
 /// A cell of the program's own words: it prints in the list's language (doc 09 §4.7).
 pub(super) fn words_cell(words: &Text) -> Cell {
     Cell::Text(crate::words::in_languages(words))
@@ -336,6 +349,8 @@ pub(super) struct Bridge {
     pub page: Option<Id<Page>>,
     /// The label `BR<n>`, numbered over the strips in natural tag order, then group number.
     pub label: String,
+    /// Its part, the carrier connection's (`BridgeGroup::part`); `None` without one.
+    pub part: Option<ew_schema::PartRef>,
 }
 
 /// Every bridge of the project: the strips' [`StripBridges`](ew_derive::StripBridges) groups, labelled `BR1`, `BR2` …
@@ -365,6 +380,7 @@ pub(super) fn bridges(q: &Q) -> Vec<Bridge> {
                 connections: g.connections,
                 page,
                 label,
+                part: g.part,
             }
         })
         .collect()
@@ -382,6 +398,19 @@ pub(super) fn terminal_designation(q: &Q, t: Id<Device>) -> String {
                 .map(|t| t.designation.as_str().to_owned())
         })
         .unwrap_or_default()
+}
+
+/// The terminals a bridge joins in words, as the assembly list prints them: "1 to 4", a single terminal as is.
+pub(super) fn bridge_span_from_to(q: &Q, b: &Bridge) -> Text {
+    match (b.terminals.first(), b.terminals.last()) {
+        (Some(a), Some(z)) if a != z => text!(
+            "cell-terminals-from-to",
+            terminal_designation(q, *a),
+            terminal_designation(q, *z)
+        ),
+        (Some(a), _) => Text::bare(terminal_designation(q, *a)),
+        _ => Text::bare(String::new()),
+    }
 }
 
 /// The first and last designation of a bridge's terminals: `1–4` (en dash), a single terminal as is.

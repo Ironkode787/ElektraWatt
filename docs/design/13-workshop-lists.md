@@ -32,12 +32,12 @@ Three groups, in this order:
 
 | Group | One row per | Quantity |
 |---|---|---|
-| Wire | wire part, else size and colour | the summed lengths in metres, exact to the millimetre; "length missing for n wires" while any has none |
-| Ferrules and lugs | ferrule or lug part | the ends it is crimped on, a twin ferrule counted once; ends left without a part count under their size as "no ferrule found" |
+| Wire | wire part, else size and colour | the summed lengths in metres, exact to the millimetre; "0.45 and 6 wires without a length" while some have none, "length missing for 7 wires" while none has one |
+| Ferrules and lugs | ferrule or lug part | the ends it is crimped on, a twin ferrule counted once (by the wire with the lower ID); ends left without a part count under their size and form as "no ferrule found", "no ring lug found" |
 | Markers | marker part and label set | the labels |
 
 A field wire (an end outside the cabinet) counts the ferrule and the markers of the end the shop makes, but not its
-metres: it is cut on site. The row prints the part's number and description, or the wire's size and colour as the
+metres: it is cut on site. A cable's core is cut with its cable: its ends count, its metres are the cable's. The row prints the part's number and description, or the wire's size and colour as the
 lists print them; the For cell says what it serves ("12 wires", "2.5 mm²", "Wire markers"). Nothing is rounded here:
 a wire's length is the wire list's, and an order quantity belongs to the order list.
 
@@ -76,7 +76,7 @@ terminal it follows), the end bracket after it.
 placeholder part prints TBD and blocks release (FR-CHK-034).
 
 The XLSX and the CSV hold the same rows, the heading rows as `heading` rows as the legend's do; a strip's rows carry
-its tag in the hidden ID, so a filter by strip keeps them together.
+the strip in their row ID, so a filter by strip keeps them together.
 
 ### 6.2 Rail cut length
 
@@ -90,8 +90,8 @@ its 0.0 to 470.0 mm; shorten it or move it".
 
 | Rule | Says | Its fix |
 |---|---|---|
-| EW-MFG-020 | "-X1011 has no end plate after its last terminal PE" (warning) | Add an end plate… (the strip editor's Add accessory, kind End plate, after PE); its hint: "Or name the end plate in the terminal's part, under Accessories, so every strip gets it." |
-| EW-MFG-021 | "The bridge BR1 of -X1021 (terminals 1 to 4) has no part" (warning, error in release) | Choose a part… (the part dialog of the bridge's Bridge part cell) |
+| EW-MFG-020 | "-X1011 has no end plate after its last terminal PE" (warning) | Where a terminal's part names an end plate: Add the end plate EW-GEN-EP-1 after PE (the strip's own accessory after its last terminal). Its hint: add one in the strip editor (Add accessory, kind End plate), "or name the end plate in the terminal's part, under Accessories, so every strip gets it." |
+| EW-MFG-021 | "The bridge BR1 of -X1021 (terminals 1 to 4) has no part" (warning, error in release) | No quick fix: its hint points to the Bridge part cell of the strip editor, whose part dialog chooses it |
 | EW-LAY-010 | a rail too short for what stands on it, per item past its end (above; an error) | its quick fix, move to a carrier it fits |
 | EW-CORE-085 | "-X1011:N names the variant RD, which EW-GEN-TRM-1 does not hold" | Use the part's own number (then a variant in Properties ▸ Parts ▸ Variant) |
 
@@ -114,7 +114,8 @@ For (the carriers by label, "Rail 1, Rail 2"; the cables by tag; the wires by nu
 the piece length in millimetres and the total in metres. Pieces without a length count on one row of their group
 with "length missing"; a field wire is cut on site and left out. The cut increment is the project's
 (`workshop.cut_increment`, [07](07-symbols-parts-macros.md) §2.5; Project properties ▸ Workshop ▸ Cut to), 5 mm
-unless set; a piece is rounded once, here, and its total is the sum of the rounded pieces. Rails and ducts come from
+unless set; a piece is rounded once, here, and its total is the sum of the rounded pieces. A cable's core is cut with
+its cable and is no wire row; a duct's cover is one piece of the duct's length per duct. Rails and ducts come from
 the layout: a project without one lists none.
 
 **The tube rows are the cut list's.** The tube cut list of [11](11-fluid-power.md) §8.2 is the Tubes group: one row

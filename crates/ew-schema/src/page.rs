@@ -525,7 +525,7 @@ pub enum ReportKind {
     SafetyIoList,
     /// Tube list (doc 11 §8.2, FR-FLU-012).
     TubeList,
-    /// Tube cut list (FR-FLU-013).
+    /// Tube cut list (FR-FLU-013): a block of a project made before the cut list prints the cut list's Tubes group.
     TubeCutList,
     /// Tube labels, one row per tube end (FR-FLU-013).
     TubeLabels,
@@ -535,6 +535,12 @@ pub enum ReportKind {
     MediumOverview,
     /// Labels: every label of the workshop, in the order the fitter applies them (doc 13 §5.3).
     Labels,
+    /// Assembly lists: per terminal strip the order the fitter mounts it in (doc 13 §6, FR-MFG-016).
+    AssemblyList,
+    /// Cut list: everything the fitter cuts to length (doc 13 §9.3, FR-MFG-030).
+    CutList,
+    /// Consumables: what the wires consume, ferrules and markers (doc 13 §3.6, FR-MFG-049).
+    Consumables,
     /// A kind of a newer format, kept verbatim.
     #[serde(skip)]
     Unknown(Value),

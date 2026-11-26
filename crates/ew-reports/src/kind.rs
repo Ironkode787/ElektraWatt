@@ -76,6 +76,13 @@ pub trait ReportKindDef: Send + Sync {
     fn page_oriented(&self) -> bool {
         true
     }
+
+    /// Whether Output ▸ Reports ▸ Report block… offers this kind: a kind whose blocks fill pages of their own
+    /// ([`page_oriented`](ReportKindDef::page_oriented)), but not one a newer kind took over, whose stored blocks still
+    /// print (`tube_cut_list`, the cut list's Tubes group).
+    fn offered(&self) -> bool {
+        self.page_oriented()
+    }
 }
 
 /// One declared block parameter of a kind ([`ReportKindDef::params`]).

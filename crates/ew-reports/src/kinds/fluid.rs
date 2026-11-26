@@ -1,25 +1,22 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The fluid report kinds (doc 11 §8.1, §8.2): `tube_list` (FR-FLU-012), `tube_cut_list` and `tube_labels`
-//! (FR-FLU-013), `valve_terminal_config` (FR-FLU-015) and `medium_overview` (FR-FLU-016), over the row sources of
-//! `ew-derive` (`tube_rows`, `valve_terminal_rows`, `medium_rows`).
-
-use std::collections::BTreeMap;
+//! The fluid report kinds (doc 11 §8.1, §8.2): `tube_list` (FR-FLU-012), `tube_labels` (FR-FLU-013),
+//! `valve_terminal_config` (FR-FLU-015) and `medium_overview` (FR-FLU-016), over the row sources of `ew-derive`
+//! (`tube_rows`, `valve_terminal_rows`, `medium_rows`). The tube cut list is the cut list's Tubes group (`cut_list`).
 
 use ew_derive::{
-    MediumRows, PageRef, Q, TubeEnd, TubeRow, TubeRows, ValveTerminalRows, VtSlot, colour_text,
-    line_kind_text, medium_text, part_number, port_role_text, short_tag, tube_spec_text,
+    MediumRows, PageRef, Q, TubeEnd, TubeRow, TubeRows, ValveTerminalRows, VtSlot, line_kind_text,
+    medium_text, part_number, port_role_text, short_tag, tube_spec_text,
 };
 use ew_ids::Id;
 use ew_mltext::MlText;
 use ew_model::EndpointKey;
 use ew_schema::{DeviceState, LengthSource, LibCopy, Medium, Part, ReportBlock, ReportKind, Unit};
-use ew_units::Nm;
 
 use super::conn::{ml_cell, put};
 use crate::kind::ReportKindDef;
-use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, QtyUnit, Row, RowId, RowKey, RowSet};
+use crate::rowset::{Cell, CellType, ColumnDef, QtyUnit, Row, RowId, RowKey, RowSet};
 use crate::words::in_languages;
 
 /// A tube end: its `DT:port`, or "tee" in the reader's language for a junction.
@@ -163,102 +160,6 @@ fn tube_row(q: &Q, columns: &[ColumnDef], r: &TubeRow) -> Row {
     let mut row = Row::data(RowId::entity(r.id), cells);
     row.sources = r.constituents.iter().map(|c| c.cast()).collect();
     row
-}
-
-// ---------------------------------------------------------------------------------------------------------
-// tube_cut_list
-
-/// A cut-list line's key: material, size, colour and tube part.
-type CutKey = (String, String, String, String);
-
-/// A cut-list line: its first tube, the count, the summed length in nanometres, whether every tube has a length, and
-/// the first tube's row (its colour).
-type CutLine = (Id<ew_schema::Connection>, i64, i64, bool, TubeRow);
-
-/// The tube cut list (doc 11 §8.2, FR-FLU-013): the tubes grouped by material, size, colour and tube part, each line
-/// with the count and the summed length in metres (a tube without a length counts but adds none, and the line's
-/// length is then missing). Lines in natural order of material, size, colour and part; row ID the group's first tube.
-/// No per-end cut allowance and no order increment (no part data names one).
-#[derive(Clone, Copy, Debug)]
-pub struct TubeCutList;
-
-impl ReportKindDef for TubeCutList {
-    fn kind(&self) -> ReportKind {
-        ReportKind::TubeCutList
-    }
-
-    fn columns(&self) -> Vec<ColumnDef> {
-        vec![
-            ColumnDef::new("material", CellType::Ident, text!("column-material")).weighted(10),
-            ColumnDef::new("size", CellType::Ident, text!("column-od-id")).weighted(10),
-            ColumnDef::new("colour", CellType::Colour, text!("column-colour")).weighted(8),
-            ColumnDef::new("part", CellType::Ident, text!("column-tube-part")).weighted(16),
-            ColumnDef::new("count", CellType::Number, text!("column-pieces")).weighted(8),
-            ColumnDef::new("length", CellType::Qty, text!("column-total-length")).weighted(12),
-        ]
-    }
-
-    fn rows(&self, q: &Q, _block: &ReportBlock) -> RowSet {
-        let columns = self.columns();
-        let mut groups: BTreeMap<CutKey, CutLine> = BTreeMap::new();
-        for r in q.get::<TubeRows>(()).iter() {
-            let key = (
-                r.props
-                    .material
-                    .as_ref()
-                    .map(|m| m.value.code().to_owned())
-                    .unwrap_or_default(),
-                r.props.size_text(),
-                r.props
-                    .colour
-                    .as_ref()
-                    .map(|c| colour_text(&c.value))
-                    .unwrap_or_default(),
-                copy_number(q, r.props.part.as_ref().map(|p| p.value)),
-            );
-            let entry = groups.entry(key).or_insert((r.id, 0, 0, true, r.clone()));
-            entry.1 += 1;
-            match r.length {
-                Some(n) => entry.2 = entry.2.saturating_add(n.0),
-                None => entry.3 = false,
-            }
-        }
-        let mut keyed: Vec<_> = groups.into_iter().collect();
-        keyed.sort_by(|a, b| {
-            let k = |x: &(String, String, String, String)| {
-                (
-                    ew_mltext::natural_key(&x.0),
-                    ew_mltext::natural_key(&x.1),
-                    x.2.clone(),
-                    ew_mltext::natural_key(&x.3),
-                )
-            };
-            k(&a.0).cmp(&k(&b.0))
-        });
-        let mut set = RowSet::new(columns);
-        for ((material, size, _, part), (first, count, total, complete, sample)) in keyed {
-            let mut cells = vec![Cell::Empty; set.columns.len()];
-            put(&set.columns, &mut cells, "material", Cell::ident(&material));
-            put(&set.columns, &mut cells, "size", Cell::ident(&size));
-            if let Some(c) = &sample.props.colour {
-                put(&set.columns, &mut cells, "colour", Cell::Colour(c.value.clone()));
-            }
-            put(&set.columns, &mut cells, "part", Cell::ident(&part));
-            put(&set.columns, &mut cells, "count", Cell::Number(count));
-            put(
-                &set.columns,
-                &mut cells,
-                "length",
-                if complete {
-                    Cell::metres(Nm(total))
-                } else {
-                    Cell::Missing(MissingReason::Length)
-                },
-            );
-            set.rows.push(Row::data(RowId::entity(first), cells));
-        }
-        set
-    }
 }
 
 // ---------------------------------------------------------------------------------------------------------

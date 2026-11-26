@@ -59,8 +59,10 @@ mod bus;
 mod cell;
 mod channel_index;
 mod component;
+mod consumables;
 mod cp_point;
 mod cps;
+mod cut_list;
 mod drawn_path;
 mod flow;
 mod flow_distance;
@@ -94,6 +96,7 @@ mod query;
 mod rework;
 mod settings;
 mod stitch;
+mod strip_assembly;
 mod strip_bridges;
 mod structure;
 mod tag;
@@ -130,7 +133,9 @@ pub use cp_point::{
     cp_cell, cp_end, cp_point, rep_cp_end, rep_drawn_cps, segment_point, strip_segment_of,
     strip_terminal_end, terminal_drawn_function,
 };
+pub use consumables::{Consumables, EndForm, EndUse, MarkerUse, WireUse, consumable_rows};
 pub use cps::{ClampData, Cp, FunctionCps};
+pub use cut_list::{CutFor, CutGroup, CutRow, CutWhat, cut_rows, cut_to};
 pub use drawn_path::{
     dir_vertical, drawn_path, on_segment, oriented_dir, page_grid, read_connection, read_junction,
     stored_path,
@@ -188,7 +193,7 @@ pub use pages::{
 };
 pub use part_text::{
     main_part, manufacturer_copy, manufacturer_name, part_confidence, printed_number, printed_part,
-    tech_data_text,
+    tech_data_text, tech_value,
 };
 pub use pattern::{PatternError, expand_pattern};
 pub use plc::{
@@ -219,6 +224,7 @@ pub use settings::{
     check_member as check_settings_member, company_codes, text_styles,
 };
 pub use stitch::{EdgeKind, IpInfo, Level, PairMode, ShortSource, StitchGraph, StitchGraphQ};
+pub use strip_assembly::{AssemblyItem, AssemblyItemKind, OnRail, StripAssembly, assembly_rows};
 pub use strip_bridges::{BridgeGroup, StripBridges, bridge_groups};
 pub use structure::{
     DevicesByStructure, PageDisplayStructure, PageStructure, ResolvedSlot, ResolvedStructure, SlotSource,

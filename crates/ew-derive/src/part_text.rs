@@ -181,10 +181,16 @@ fn tech_values(q: &Q, device: Id<Device>) -> BTreeMap<String, TechVal> {
     values
 }
 
+/// The technical value `key` of `device`: the device's own, else its main part's as its variant lists it ([`main_part`]);
+/// `None` without one.
+pub fn tech_value(q: &Q, device: Id<Device>, key: &str) -> Option<TechVal> {
+    tech_values(q, device).remove(key)
+}
+
 /// The rated current of `device` in A: its technical data's `rated_current` (the device's own, else its main part's),
 /// when it is a quantity in A.
 pub(crate) fn rated_current(q: &Q, device: Id<Device>) -> Option<ew_units::Dec3> {
-    match tech_values(q, device).remove("rated_current")? {
+    match tech_value(q, device, "rated_current")? {
         TechVal::Quantity(rated) if rated.unit == Unit::A => Some(rated.value),
         _ => None,
     }
