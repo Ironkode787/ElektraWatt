@@ -15,6 +15,8 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: Labels for these changes… (and `ew export labels --since`) writes a new strip's marker, the strip
+  whose every terminal the rework list adds; it left it out (doc 13 §5.4)
 - behaviour-change: a terminal of several levels gets a terminal marker per level, each with the level's designation,
   in the labels list, the label files and the rework list; it got one (doc 13 §5.3)
 - behaviour-change: a row of the labels list and of the tube labels is what it labels (the wire or tube with its
@@ -296,11 +298,12 @@ change here.
   Marker part, Note) where it had Tube, At and Label text.
 - behaviour-change: The rework list also lists the labels' work: Remove device, Remove terminal, Remove cable, Re-mark (a
   wire end's marker that says another text), Re-label, Mount device, Add terminal and Add cable.
-- behaviour-change: `ew export labels --dir <folder> [--format csv|xlsx] [--since <revision>]` writes the label files,
+- behaviour-change: `ew export labels --dir <folder> [--format csv|xlsx] [--since <revision> | --archive <file>]` writes
+  the label files,
   one per label set and marker part (`SAMPLE-E Wire markers EW-GEN-MRK-1.csv`), in the columns of the project's export
   profile, else the generic one (Text 1, Text 2, Text 3, Copies, For); the CSV has a byte-order mark, CR LF and the
   profile's delimiter and its values as they are, never guarded; `--since` writes only the labels the rework list
-  against that release names. Each file is written whole.
+  against that release names, `--archive` those against that archive file. Each file is written whole.
 - api-add: `project.settings.set` sets `workshop.label_profile` (`{columns: [{key, heading}], delimiter?}`), refusing in
   words a column the labels list does not have and a profile without columns.
 - format-variant: `WorkshopSettings` gains `ferrules`, `two_wires`, `marking`, `mark_cores`, `mark_jumpers`,

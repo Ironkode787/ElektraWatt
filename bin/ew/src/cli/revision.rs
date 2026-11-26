@@ -857,7 +857,8 @@ mod tests {
 
     /// `ew export rework`: before a release it names what is missing (no release; no release V1.0 whose archive is
     /// beside the project), after it the list since the release as CSV, by its label as XLSX, and against the archive
-    /// file; the sample is as released, so the list is its header alone.
+    /// file; the sample is as released, so the list is its header alone, and `ew export labels --archive` writes no
+    /// label file.
     #[test]
     fn export_rework_writes_the_list_since_the_release() {
         let dir = sample_copy("rework");
@@ -924,6 +925,19 @@ mod tests {
         let (code, _, err) = rework(None, Some(root.join("V1.0.ewarchive")), false, "archive.csv");
         assert_eq!(code, 0, "{err}");
         assert_eq!(std::fs::read_to_string(out.join("archive.csv")).unwrap(), csv);
+        // `ew export labels` takes the archive file as `ew export rework` does: nothing changed, so no label file.
+        let labels = crate::cli::export::LabelsCli {
+            project: crate::cli::tree::ProjectArg(Some(dir.to_path_buf())),
+            since: None,
+            archive: Some(root.join("V1.0.ewarchive")),
+            format: None,
+            dir: Some(out.join("labels")),
+        };
+        let env = crate::cli::io::Env::new(dir.to_path_buf());
+        let (code, said, err) =
+            crate::cli::io::captured("", &env, |io| crate::cli::export::run_export_labels(&labels, io));
+        assert_eq!(code, 0, "{err}");
+        assert!(said.ends_with(": 0 files\n"), "{said}");
     }
 
     /// Through the CLI: the typed label approves (the safety waivers listed first), the author's

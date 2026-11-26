@@ -716,7 +716,7 @@ impl Leaf for LabelsCli {
         exit(0, "written"),
         exit(
             2,
-            "usage, open errors, no such release or its archive not found, write errors",
+            "usage, open errors, no such release or its archive not found, an archive that does not open, write errors",
         ),
     ];
 
@@ -725,8 +725,8 @@ impl Leaf for LabelsCli {
     }
 }
 
-/// `ew export labels`: the label files of every label, or of those the rework list since the release `--since` names,
-/// written into `--dir` as CSV or XLSX, each file whole.
+/// `ew export labels`: the label files of every label, or of those the rework list since the release `--since` (or the
+/// archive file `--archive`) names, written into `--dir` as CSV or XLSX, each file whole.
 pub(super) fn run_export_labels(a: &LabelsCli, io: &mut Io<'_>) -> i32 {
     let folder = match a.folder() {
         Ok(f) => f,
@@ -742,9 +742,10 @@ pub(super) fn run_export_labels(a: &LabelsCli, io: &mut Io<'_>) -> i32 {
             return 2;
         }
     };
-    let scope = match &a.since {
-        None => ew_api::LabelScope::All,
-        Some(label) => match release_base(&session, Some(label), &dir, io) {
+    let scope = match (&a.archive, &a.since) {
+        (Some(file), _) => ew_api::LabelScope::Changes(ew_api::ReworkBase::File(file.clone())),
+        (None, None) => ew_api::LabelScope::All,
+        (None, Some(label)) => match release_base(&session, Some(label), &dir, io) {
             Some(base) => ew_api::LabelScope::Changes(base),
             None => return 2,
         },
@@ -1250,8 +1251,11 @@ pub(crate) struct LabelsCli {
     #[command(flatten)]
     pub project: ProjectArg,
     /// Only the labels the rework list against this release (by its label) names.
-    #[arg(long, value_name = "revision")]
+    #[arg(long, value_name = "revision", conflicts_with = "archive")]
     pub(super) since: Option<String>,
+    /// Only the labels the rework list against this archive file names.
+    #[arg(long, value_name = "file", allow_hyphen_values = true)]
+    pub(super) archive: Option<PathBuf>,
     /// The format: csv (default) or xlsx.
     #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = table_format())]
     pub(super) format: Option<ReportPages>,

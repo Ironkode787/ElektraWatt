@@ -22,8 +22,9 @@ use crate::{ReworkBase, ReworkError, Session};
 pub enum LabelScope {
     /// Every label of the project.
     All,
-    /// The labels the rework list against this base names: the markers of new, replaced and changed wire ends and
-    /// the labels of mounted or changed devices, terminals, strips and cables.
+    /// The labels the rework list against this base names: the markers of new, replaced and changed wire ends, the
+    /// labels of mounted or changed devices, terminals, strips and cables, and the marker of a new strip (one whose
+    /// every terminal the list adds).
     Changes(ReworkBase),
 }
 
@@ -73,8 +74,23 @@ impl fmt::Display for LabelError {
 
 impl std::error::Error for LabelError {}
 
-/// Whether the rework list's `items` name the label `l`.
-fn named_by(items: &[ReworkItem], l: &LabelRecord) -> bool {
+/// Whether the rework list's `items` name the label `l`; a strip's marker where the list adds every terminal of the
+/// strip (a new strip: the list has no row of its own for it).
+fn named_by(q: &ew_derive::Q, items: &[ReworkItem], l: &LabelRecord) -> bool {
+    if l.set == LabelSet::StripMarkers
+        && let Some(strip) = l.target.device()
+    {
+        let added = |t: ew_ids::Id<ew_schema::Device>| {
+            items.iter().any(|item| {
+                item.action == ReworkAction::AddTerminal
+                    && matches!(&item.subject, ReworkSubject::Label(_, target) if target.device() == Some(t))
+            })
+        };
+        let mut terminals = q.idx().terminals_of_strip(strip).peekable();
+        if terminals.peek().is_some() && terminals.all(added) {
+            return true;
+        }
+    }
     items.iter().any(|item| match (&item.subject, &l.target) {
         (ReworkSubject::Wire(r), LabelTarget::WireEnd(wire, _)) => {
             r.wire.id == *wire
@@ -170,7 +186,7 @@ impl Session {
             .as_ref()
             .or(q.project().master.object_id.as_ref())
             .map_or_else(|| "project".to_owned(), |d| d.as_str().to_owned());
-        let keep = |l: &LabelRecord| items.as_ref().is_none_or(|items| named_by(items, l));
+        let keep = |l: &LabelRecord| items.as_ref().is_none_or(|items| named_by(&q, items, l));
         let labels = q.get::<ew_derive::LabelRows>(());
         let mut out = Vec::new();
         for file in ew_reports::kinds::label_files(&q, &profile, keep) {

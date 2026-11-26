@@ -960,7 +960,7 @@ the sheet, and Labels for these changes… only the new and changed labels.
 | Draw ▸ Annotation | The drawing's wire annotation tool (§5.1); its project setting reads Wire annotations |
 
 **Command line.** `ew export wires` writes the wire list (every column); `ew export labels --dir <folder> [--format
-csv|xlsx] [--since <revision>]` the label files; `ew export rework [--since <revision> | --archive <file>] [--format
+csv|xlsx] [--since <revision> | --archive <file>]` the label files; `ew export rework [--since <revision> | --archive <file>] [--format
 csv|xlsx] --out <file>` the rework list; `ew export report --kind labels` the labels list. `ew export machine`,
 `ew export ewpp` and the drilling export are §7, §8 and §9.
 

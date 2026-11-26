@@ -298,3 +298,76 @@ fn an_end_made_another_way_is_re_made() {
         "{csv}"
     );
 }
+
+/// The sample with a second copy of the strip -X1031 and its terminals under another counter, which no release has; the
+/// new strip and its terminals.
+fn sample_with_new_strip() -> (Session, Id<Device>, Vec<Id<Device>>) {
+    let s = common::sample();
+    let strip = device(&s, "-X1031");
+    drop(s);
+    let (project, mut records, lib) = common::sample_records();
+    let fresh = |n: u128| Uuid::from_u128(0x019b_76da_fffe_7000_8000_0000_0000_0000 + n);
+    let (new_strip, mut n) = (Id::<Device>::from_uuid(fresh(0)), 1);
+    let mut terminals: Vec<(Id<Device>, Id<Device>)> = Vec::new();
+    let mut added = Vec::new();
+    for r in &records {
+        if let Record::Device(d) = r {
+            if d.id == strip {
+                let mut d = d.clone();
+                d.id = new_strip;
+                d.tag.counter = Some(1041);
+                added.push(Record::Device(d));
+            } else if d.aspects.terminal.as_ref().is_some_and(|t| t.strip == strip) {
+                let mut d = d.clone();
+                let old = d.id;
+                d.id = Id::from_uuid(fresh(n));
+                n += 1;
+                if let Some(t) = d.aspects.terminal.as_mut() {
+                    t.strip = new_strip;
+                }
+                terminals.push((old, d.id));
+                added.push(Record::Device(d));
+            }
+        }
+    }
+    for r in &records {
+        if let Record::Function(f) = r
+            && let Some((_, new)) = terminals.iter().find(|(old, _)| f.device == Some(*old))
+        {
+            let mut f = f.clone();
+            f.id = Id::from_uuid(fresh(n));
+            n += 1;
+            f.device = Some(*new);
+            added.push(Record::Function(f));
+        }
+    }
+    records.extend(added);
+    (
+        common::session_of(project, records, lib),
+        new_strip,
+        terminals.into_iter().map(|(_, t)| t).collect(),
+    )
+}
+
+/// Labels for these changes holds a new strip's marker (doc 13 §5.4): the rework list has no row of its own for a
+/// strip the release did not have, only one per terminal it adds, and the strip's marker goes with their markers.
+#[test]
+fn the_labels_for_the_changes_hold_a_new_strips_marker() {
+    let base = ew_testdir::Tmp::new("ew-rework-strip");
+    let dir = released_copy(&base);
+    let (now, strip, terminals) = sample_with_new_strip();
+    let tag = ew_derive::short_tag(&now.query(), strip);
+    let files = now
+        .label_files(
+            &ew_api::LabelScope::Changes(ReworkBase::File(archive_of(&dir))),
+            ew_api::LabelFileFormat::Csv,
+            None,
+        )
+        .expect("the label files");
+    let of = |set: ew_derive::LabelSet| files.iter().find(|f| f.set == set);
+    let strips = of(ew_derive::LabelSet::StripMarkers).expect("the strip markers");
+    assert_eq!(strips.count, 1, "the new strip's marker alone");
+    assert!(String::from_utf8_lossy(&strips.bytes).contains(&tag), "{tag}");
+    let added = of(ew_derive::LabelSet::TerminalMarkers).expect("the terminal markers");
+    assert_eq!(added.count, terminals.len(), "the new terminals' markers");
+}

@@ -110,5 +110,6 @@ published import format, when it is at hand. The profile is the one record of an
 exports of [13](13-manufacturing-outputs.md) §7 extend it rather than add a second.
 
 **Labels for changes.** From the Rework list…, Labels for these changes… writes the same files with only the labels the
-rework list names: the markers of new, replaced and changed wire ends and the labels of mounted or changed devices,
-terminals, strips and cables.
+rework list names: the markers of new, replaced and changed wire ends, the labels of mounted or changed devices,
+terminals, strips and cables, and the marker of a new strip (the rework list adds each of its terminals and has no row
+for the strip itself).
