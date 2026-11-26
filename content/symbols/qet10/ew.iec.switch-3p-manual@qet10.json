@@ -3,8 +3,8 @@
   "id": "9ba074c9-c66d-5df7-a2ec-829493f5fcb7",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "58435266-1d2d-566a-b7c2-8aa4c41c8144",
-  "version": "0.1.1",
-  "sha256": "sha256:bba9f30fb46ab7d45789e9792ae3f8240ce6d76617c6bbd0287d98b7cffb6345",
+  "version": "0.1.2",
+  "sha256": "sha256:b1741407e6db890e27fcb6471cd60bfcf5d9cdd2789c629675d29bf74878366f",
   "meta": {
     "key": "ew.iec.switch-3p-manual@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -334,7 +334,8 @@
         -1984375,
         11244792
       ],
-      "align": "top_right"
+      "align": "top_right",
+      "visible": true
     },
     {
       "kind": {

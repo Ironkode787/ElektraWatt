@@ -3,8 +3,8 @@
   "id": "acaf2726-d042-5285-a69e-cc8bdbcb4832",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "4d13e8cf-8734-5519-9aa3-072025bbe697",
-  "version": "0.1.0",
-  "sha256": "sha256:17b56a67452c9aefd541d0575ba88060040feb475dced39637a1380e7de17f2b",
+  "version": "0.1.1",
+  "sha256": "sha256:f1151fe2e398fe85cdd15ba646e78fca0267e9f00751a1f906d0e06807923ca6",
   "meta": {
     "key": "ew.iec.proximity-sensor-pnp",
     "licence": "CC-BY-SA-4.0",
@@ -245,6 +245,15 @@
       ],
       "align": "top_right",
       "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -6000000,
+        21000000
+      ],
+      "align": "top_right",
+      "visible": true
     }
   ],
   "arrangements": [
@@ -256,7 +265,8 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ]
     },
     {

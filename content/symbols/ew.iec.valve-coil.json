@@ -3,8 +3,8 @@
   "id": "a7cfb20f-77c8-523b-bb13-58e9448ad522",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "636be513-c97e-5e10-9005-226c9b41e5b5",
-  "version": "0.2.2",
-  "sha256": "sha256:769a8414a0e708ceb35e8f7e3c10ad32f52987aeb8dae451f4bf482bb4660a00",
+  "version": "0.2.3",
+  "sha256": "sha256:1740702d36d562c427498d35e70345afadc17db429c5dd5be22693484bc43880",
   "meta": {
     "key": "ew.iec.valve-coil",
     "licence": "CC-BY-SA-4.0",
@@ -176,6 +176,15 @@
       ],
       "align": "top_right",
       "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -3000000,
+        23000000
+      ],
+      "align": "top_right",
+      "visible": true
     }
   ],
   "arrangements": [
@@ -187,7 +196,8 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ]
     },
     {

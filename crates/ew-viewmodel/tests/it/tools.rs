@@ -143,7 +143,11 @@ fn bands_left_to_right_enclose_and_right_to_left_touch() {
     done(&mut shell, "canvas.release", at(far, json!({})));
     let enclosed = band_oracle(&shell, empty, far);
     assert!(!enclosed.is_empty(), "the band encloses something");
-    assert_eq!(selected(&shell), enclosed);
+    // The same entities; their order is the band's, which reads a symbol's centre from its drawing without its texts
+    // (`band_selection`'s unit test pins the order), the oracle's from all its rectangles.
+    let set = |v: Vec<EntityRef>| v.into_iter().collect::<BTreeSet<EntityRef>>();
+    assert_eq!(set(selected(&shell)), set(enclosed));
+    let enclosed = selected(&shell);
     assert_eq!(shell.tool().state(), "idle");
     assert!(shell.tool_overlay().is_empty(), "a selection clears the overlay");
     // Right to left from the same corners: everything touched, a superset.

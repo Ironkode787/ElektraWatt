@@ -1332,7 +1332,7 @@ fn snapshot_mcb_1pn_r0() {
       text slot Manufacturer (-3000000,5000000) 0 TopRight visible=true
       text slot PartNumber (-3000000,11000000) 0 TopRight visible=true
       text slot TechData (-3000000,17000000) 0 TopRight visible=true
-      text slot FunctionText (-3000000,23000000) 0 TopRight visible=false
+      text slot FunctionText (-3000000,23000000) 0 TopRight visible=true
       text slot CpDesignation(0) (1000000,2000000) 0 MiddleLeft visible=true
       text slot CpDesignation(1) (1000000,14000000) 0 MiddleLeft visible=true
       text slot CpDesignation(2) (13000000,2000000) 0 MiddleLeft visible=true
@@ -1371,8 +1371,9 @@ fn snapshot_contact_no_m90() {
       text slot Xref (-6000000,3000000) 0 TopCentre visible=true
       text slot CpDesignation(0) (-2000000,-1000000) 0 BottomLeft visible=true
       text slot CpDesignation(1) (-10000000,-1000000) 0 BottomRight visible=true
+      text slot FunctionText (-6000000,9000000) 0 TopCentre visible=true
       anchor (0,0)
-      bounds (-12000000,-6000000) (0,3000000)
+      bounds (-12000000,-6000000) (0,9000000)
       items 3
         0 path pen w260000 #000000ff fill none M(0,0) L(-4000000,0)
         1 path pen w260000 #000000ff fill none M(-12000000,0) L(-8000000,0)

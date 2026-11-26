@@ -894,8 +894,8 @@ const PRE_FT698: [&str; 3] = [
     "ew.iso.valve-5-2-sol-spring@qet10",
 ];
 
-/// A 0.2.0 starter symbol as its 0.1.0 predecessor: the appended `plc_address` slot and its arrangement
-/// entries removed, the version and the hash of the item put back. The 5/2 valve's 0.3.0 also loses its
+/// A 0.2.0 starter symbol as its 0.1.0 predecessor: the appended `plc_address` slot (and a function-text slot appended
+/// after it) and its arrangement entries removed, the version and the hash of the item put back. The 5/2 valve's 0.3.0 also loses its
 /// function-text fallback and names its FnDef's 0.1 again.
 fn before_ft698(doc: &LibDocument) -> LibDocument {
     let mut v = serde_json::to_value(doc).unwrap();
@@ -907,12 +907,21 @@ fn before_ft698(doc: &LibDocument) -> LibDocument {
     for slot in v["text_slots"].as_array_mut().unwrap() {
         slot.as_object_mut().unwrap().remove("fallback");
     }
+    // The function-text slot appended later still (FT-2209) goes first.
+    let mut dropped = Vec::new();
     let slots = v["text_slots"].as_array_mut().unwrap();
+    if slots.last().is_some_and(|s| s["kind"] == json!("function_text")) {
+        slots.pop();
+        dropped.push(json!(slots.len()));
+    }
     let last = slots.pop().unwrap();
     assert_eq!(last["kind"], json!("plc_address"), "the appended slot");
-    let index = json!(slots.len());
+    dropped.push(json!(slots.len()));
     for a in v["arrangements"].as_array_mut().unwrap() {
-        a["slots"].as_array_mut().unwrap().retain(|i| *i != index);
+        a["slots"]
+            .as_array_mut()
+            .unwrap()
+            .retain(|i| !dropped.contains(i));
     }
     v["version"] = json!("0.1.0");
     LibDocument::from_value(with_hash(v)).unwrap()

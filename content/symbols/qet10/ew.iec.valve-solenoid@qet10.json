@@ -3,8 +3,8 @@
   "id": "14ec81b6-6397-5e96-9511-e7415265c83f",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "04f5ab83-4b7f-593c-8405-632d90a18f9a",
-  "version": "0.1.0",
-  "sha256": "sha256:b73d29b274d4b708caf1341ca361db941e1ec39bc21087936756b32a29810099",
+  "version": "0.1.1",
+  "sha256": "sha256:ba8117af38a52c3553bba08ce5d70ba4cac7004d609e899e7b2ea709fa7a47b7",
   "meta": {
     "key": "ew.iec.valve-solenoid@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -108,6 +108,15 @@
       ],
       "align": "middle_right",
       "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -2645833,
+        10583333
+      ],
+      "align": "middle_right",
+      "visible": true
     }
   ],
   "arrangements": [
@@ -117,7 +126,8 @@
         0,
         1,
         2,
-        3
+        3,
+        4
       ]
     },
     {

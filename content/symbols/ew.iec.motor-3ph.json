@@ -3,8 +3,8 @@
   "id": "abf8caba-a8dc-5a2e-8ea8-cee4c0c0d0c3",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "3f26e701-0526-50a5-ba4e-5b0e2cc8f9ef",
-  "version": "0.3.1",
-  "sha256": "sha256:b4a8cfa9323d9890d1294ddabf322c4d0bac2ae870d4329cd009b5bec067c44b",
+  "version": "0.3.2",
+  "sha256": "sha256:08364a13ae9c5ca7ceff119fa48bd7710ca2b58be3c96c584f12969607b9e5b8",
   "meta": {
     "key": "ew.iec.motor-3ph",
     "licence": "CC-BY-SA-4.0",
@@ -191,7 +191,8 @@
         -9000000,
         7000000
       ],
-      "align": "top_right"
+      "align": "top_right",
+      "visible": true
     },
     {
       "kind": "tech_data",

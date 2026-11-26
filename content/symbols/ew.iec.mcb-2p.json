@@ -3,8 +3,8 @@
   "id": "ad5cbb48-2481-5c63-82b8-ace32382e73a",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "c101283b-1586-5142-bd2b-eeb07e92c632",
-  "version": "0.1.1",
-  "sha256": "sha256:637b3176b1abfab76e343e6dbfa688cb88c82b06bc10286e7636a73d67e4b8fd",
+  "version": "0.1.2",
+  "sha256": "sha256:3d96294ce365139b43bd7a712cb9190c2a10c0142dea6e567135f31dc40d4e2a",
   "meta": {
     "key": "ew.iec.mcb-2p",
     "licence": "CC-BY-SA-4.0",
@@ -339,7 +339,8 @@
         -3000000,
         23000000
       ],
-      "align": "top_right"
+      "align": "top_right",
+      "visible": true
     },
     {
       "kind": {

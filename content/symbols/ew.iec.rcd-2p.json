@@ -3,8 +3,8 @@
   "id": "67d86ad0-b35f-5050-bfd9-e5f182c663ae",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "c32ae391-e94e-5cac-8a45-61ad741471cd",
-  "version": "0.1.1",
-  "sha256": "sha256:28e90643ac77976e371648fc96dcdab210bbd8ab4de09c52701149077b97ae73",
+  "version": "0.1.2",
+  "sha256": "sha256:4c61f3271fca3db713f4123679e1459b32f028790a2dcd9b2d866b4213d498b1",
   "meta": {
     "key": "ew.iec.rcd-2p",
     "licence": "CC-BY-SA-4.0",
@@ -287,7 +287,8 @@
         -3000000,
         23000000
       ],
-      "align": "top_right"
+      "align": "top_right",
+      "visible": true
     },
     {
       "kind": {

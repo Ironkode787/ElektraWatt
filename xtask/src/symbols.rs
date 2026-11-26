@@ -227,6 +227,106 @@ fn item_members(doc: &V) -> Result<Vec<(String, V)>> {
         .collect())
 }
 
+/// One line of the texts under a symbol's tag, native nm (6 mm; the QET edition scales it to 4 mm).
+const TEXT_LINE: i64 = 6_000_000;
+
+/// The gap between a tag's foot and the first text under it, native nm (1 mm).
+const UNDER_TAG: i64 = 1_000_000;
+
+/// **The function-text slot** of a device symbol (docs/design/07a-symbol-design-standard.md, "Text"): every symbol of
+/// the IEC and ISO sets (`ew.iec.*`, `ew.iso.*`) prints its device's function text through a function-text slot,
+/// shown. A hidden one is shown where it stands. A symbol without one gets it at the place of the rule: on the tag's
+/// side, at the tag's x, right-aligned with its top on the line, one text line under the lowest of the texts under the
+/// tag (the texts at the tag's x, top right-aligned, a cross-reference among them), or 1 mm under the tag's foot where
+/// none stands, so that no other text moves. The slot is appended (no slot index changes) and joins the arrangement
+/// `full`. A slot placed by hand stays where it is. Returns whether the document changed.
+fn function_text_slot(doc: &mut V) -> Result<bool> {
+    let key = key_of(doc)?.to_owned();
+    if !(key.starts_with("ew.iec.") || key.starts_with("ew.iso.")) {
+        return Ok(false);
+    }
+    let Some(V::Arr(slots)) = doc.get_mut("text_slots") else {
+        return Ok(false);
+    };
+    let kind = |s: &V| s.get("kind").and_then(V::as_str).map(str::to_owned);
+    if let Some(slot) = slots
+        .iter_mut()
+        .find(|s| kind(s).as_deref() == Some("function_text"))
+    {
+        if slot.get("visible") == Some(&V::Bool(true)) {
+            return Ok(false);
+        }
+        let V::Obj(members) = slot else {
+            bail!("{key}: a text slot is no object");
+        };
+        members.retain(|(n, _)| n != "visible");
+        let at = members
+            .iter()
+            .position(|(n, _)| n == "align")
+            .map_or(members.len(), |i| i + 1);
+        members.insert(at, ("visible".to_owned(), V::Bool(true)));
+        return Ok(true);
+    }
+    let pos = |s: &V| match s.get("pos") {
+        Some(V::Arr(p)) => match p.as_slice() {
+            [V::Int(x), V::Int(y)] => Some((*x, *y)),
+            _ => None,
+        },
+        _ => None,
+    };
+    let Some((tx, ty)) = slots
+        .iter()
+        .find(|s| kind(s).as_deref() == Some("tag"))
+        .and_then(pos)
+    else {
+        return Ok(false);
+    };
+    let under = |s: &V| {
+        pos(s).is_some_and(|(x, y)| x == tx && y > ty)
+            && s.get("align").and_then(V::as_str) == Some("top_right")
+    };
+    let y = slots
+        .iter()
+        .filter(|s| under(s))
+        .filter_map(pos)
+        .map(|(_, y)| y + TEXT_LINE)
+        .max()
+        .unwrap_or(ty + UNDER_TAG);
+    let index = i64::try_from(slots.len())?;
+    slots.push(V::Obj(vec![
+        ("kind".to_owned(), V::Str("function_text".to_owned())),
+        ("pos".to_owned(), V::Arr(vec![V::Int(tx), V::Int(y)])),
+        ("align".to_owned(), V::Str("top_right".to_owned())),
+        ("visible".to_owned(), V::Bool(true)),
+    ]));
+    if let Some(V::Arr(arrangements)) = doc.get_mut("arrangements")
+        && let Some(full) = arrangements
+            .iter_mut()
+            .find(|a| a.get("name").and_then(V::as_str) == Some("full"))
+        && let Some(V::Arr(listed)) = full.get_mut("slots")
+    {
+        listed.push(V::Int(index));
+    }
+    Ok(true)
+}
+
+/// The version `a.b.c` of a document with its patch number one higher.
+fn next_patch(doc: &mut V) -> Result<()> {
+    let Some(V::Str(version)) = doc.get_mut("version") else {
+        return Ok(());
+    };
+    let mut parts: Vec<u64> = version
+        .split('.')
+        .map(str::parse)
+        .collect::<std::result::Result<_, _>>()
+        .with_context(|| format!("version {version}"))?;
+    if let Some(patch) = parts.last_mut() {
+        *patch += 1;
+    }
+    *version = parts.iter().map(u64::to_string).collect::<Vec<_>>().join(".");
+    Ok(())
+}
+
 /// The `meta.key` of a document.
 fn key_of(doc: &V) -> Result<&str> {
     doc.get("meta")
@@ -553,7 +653,12 @@ fn plan(root: &Path) -> Result<(Vec<Target>, Vec<Target>, Vec<String>)> {
             .unwrap_or(&path)
             .to_string_lossy()
             .replace('\\', "/");
-        let doc = parse_file(&path)?;
+        let mut doc = parse_file(&path)?;
+        if doc.get("$k").and_then(V::as_str) == Some("symbol")
+            && function_text_slot(&mut doc).with_context(|| format!("the function-text slot of {rel}"))?
+        {
+            next_patch(&mut doc)?;
+        }
         let sealed = seal(&doc).with_context(|| format!("sealing {rel}"))?;
         let current = std::fs::read_to_string(&path).ok();
         if sealed.get("$k").and_then(V::as_str) == Some("symbol") {

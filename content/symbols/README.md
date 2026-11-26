@@ -81,7 +81,9 @@ edition are not whole pixels; only the CPs are on the grid. The edition is linte
    existing one). The sealed files show the member order; ids and hash may be placeholders at this point.
 2. Canonicalise the files: `EW_BLESS_CONTENT=1 cargo nextest run -p ew-scene --test it -E 'test(/^starter_symbols::/) and test(bless_native_documents)'`
    (PowerShell: `$env:EW_BLESS_CONTENT='1'; cargo nextest ...`).
-3. Seal and generate: `cargo xtask symbols-qet10` (ids, hashes, the `@qet10` edition).
+3. Seal and generate: `cargo xtask symbols-qet10` (ids, hashes, the `@qet10` edition). For an IEC or ISO device
+   symbol it also shows a hidden function-text slot or adds a missing one at the place of the rule (07a, "Text") and
+   raises the patch version.
 4. Run the tests: `cargo nextest run -p ew-scene --locked --test it -E 'test(/^starter_symbols::/)'` and `cargo xtask symbols-qet10 --check`.
 5. A new key must be added to the expected list in `starter_symbols.rs`.
 

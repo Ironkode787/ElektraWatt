@@ -3,8 +3,8 @@
   "id": "90f74504-f4d3-5b05-a1c4-6ffe08ac1069",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "a64442c6-047e-50b8-b0fb-c76a308f1f06",
-  "version": "0.1.2",
-  "sha256": "sha256:70a87e629a34350dfa8dd735b29420bd91e59a1c3c8e99ecdaaf096c95db13a8",
+  "version": "0.1.3",
+  "sha256": "sha256:8932ee9d081ad67d1b53b48efd24c3466f6b29b7cb14e1bb497a58c8f07d7429",
   "meta": {
     "key": "ew.iec.resistor@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -145,6 +145,15 @@
       ],
       "align": "middle_left",
       "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -1984375,
+        7276042
+      ],
+      "align": "top_right",
+      "visible": true
     }
   ],
   "arrangements": [
@@ -154,7 +163,8 @@
         0,
         1,
         2,
-        3
+        3,
+        4
       ]
     },
     {
