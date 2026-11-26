@@ -360,7 +360,9 @@ fn every_cut_list_row_names_what_it_is_cut_for() {
 }
 
 /// The sample's records changed by `change` (given the IDs of -X1011, -X1021 and -X1031), as a session.
-fn sample_changed(change: impl FnOnce(&mut Vec<ew_schema::Record>, [ew_ids::Id<ew_schema::Device>; 3])) -> Session {
+fn sample_changed(
+    change: impl FnOnce(&mut Vec<ew_schema::Record>, [ew_ids::Id<ew_schema::Device>; 3]),
+) -> Session {
     let (project, mut records, lib) = common::sample_records();
     let strips = {
         let s = common::session_of(project.clone(), records.clone(), lib.clone());
@@ -376,10 +378,17 @@ fn strip_rows(s: &Session, tag: &str) -> Vec<String> {
     let at = all
         .iter()
         // A heading with a comma in it stands in quotes.
-        .position(|l| l.starts_with(&format!("heading,{tag} ")) || l.starts_with(&format!("heading,\"{tag} ")))
+        .position(|l| {
+            l.starts_with(&format!("heading,{tag} ")) || l.starts_with(&format!("heading,\"{tag} "))
+        })
         .unwrap_or_else(|| panic!("no heading of {tag}: {all:#?}"));
     let mut rows = vec![all[at].clone()];
-    rows.extend(all[at + 1..].iter().take_while(|l| !l.starts_with("heading,")).cloned());
+    rows.extend(
+        all[at + 1..]
+            .iter()
+            .take_while(|l| !l.starts_with("heading,"))
+            .cloned(),
+    );
     rows
 }
 
@@ -417,7 +426,10 @@ fn the_assembly_heading_says_against_turned_on_no_rail_and_at_least() {
             && x1011[0].contains(" · against the end bracket of -X1031 · 5 terminals · "),
         "{x1011:#?}"
     );
-    assert!(x1011[1].starts_with("data,1,Terminal,L1,"), "no end bracket of its own before it: {x1011:#?}");
+    assert!(
+        x1011[1].starts_with("data,1,Terminal,L1,"),
+        "no end bracket of its own before it: {x1011:#?}"
+    );
     let x1021 = strip_rows(&s, "-X1021");
     assert!(
         x1021[0].contains(" · turned, its first terminal at the right · 8 terminals · "),
@@ -436,7 +448,10 @@ fn the_assembly_heading_says_against_turned_on_no_rail_and_at_least() {
         records.retain(|r| !matches!(r, Record::Placement(p) if p.device == x1031));
         for r in records.iter_mut() {
             if let Record::Device(d) = r
-                && d.aspects.terminal.as_ref().is_some_and(|t| t.strip == x1031 && t.designation.as_str() == "SH")
+                && d.aspects
+                    .terminal
+                    .as_ref()
+                    .is_some_and(|t| t.strip == x1031 && t.designation.as_str() == "SH")
             {
                 d.parts.clear();
             }
@@ -444,14 +459,18 @@ fn the_assembly_heading_says_against_turned_on_no_rail_and_at_least() {
     });
     let x1031 = strip_rows(&s, "-X1031");
     assert_eq!(
-        x1031[0],
-        "heading,-X1031 · on no rail · 5 terminals · at least 43 mm with its end brackets,,,,,,,,",
+        x1031[0], "heading,-X1031 · on no rail · 5 terminals · at least 43 mm with its end brackets,,,,,,,,",
         "{x1031:#?}"
     );
     assert!(x1031[1].starts_with("data,1,End bracket,"), "{x1031:#?}");
-    assert!(x1031.last().is_some_and(|l| l.starts_with("data,8,End bracket,")), "{x1031:#?}");
     assert!(
-        x1031.iter().any(|l| l.starts_with("data,7,Terminal,SH,") && l.contains(",width missing,")),
+        x1031.last().is_some_and(|l| l.starts_with("data,8,End bracket,")),
+        "{x1031:#?}"
+    );
+    assert!(
+        x1031
+            .iter()
+            .any(|l| l.starts_with("data,7,Terminal,SH,") && l.contains(",width missing,")),
         "{x1031:#?}"
     );
 }
@@ -476,7 +495,8 @@ fn a_cable_with_a_length_is_cut_up_once() {
     });
     let cut = lines(&s, "cut_list");
     assert!(
-        cut.iter().any(|l| l.starts_with("data,EW-GEN-CBL-17,") && l.ends_with(",-101W1,1,10005,10.005")),
+        cut.iter()
+            .any(|l| l.starts_with("data,EW-GEN-CBL-17,") && l.ends_with(",-101W1,1,10005,10.005")),
         "{cut:#?}"
     );
 }
