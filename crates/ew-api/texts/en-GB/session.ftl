@@ -631,3 +631,8 @@ column-message = Message
 column-object = Object
 column-fix = Fix
 column-connections-part = Wire part
+# Why a part does not fit the device it is chosen for (doc 07 §4.3).
+misfit-function = A part of another kind: its function is not the device's
+misfit-pin = It has no pin { $p0 }; { $p1 }:{ $p0 } is wired
+misfit-clamp = Its clamp { $p0 } takes { $p1 } to { $p2 } mm²; wire { $p3 } is { $p4 } mm²
+misfit-clamp-unnumbered = Its clamp { $p0 } takes { $p1 } to { $p2 } mm²; a wire on it is { $p3 } mm²

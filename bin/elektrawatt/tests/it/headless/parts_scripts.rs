@@ -130,9 +130,9 @@ fn run_flow(
     (first.unwrap(), commands)
 }
 
-/// PS1: -102F1's part dialog lists the 1P MCBs of the project and the sample parts (same FnDef), then the other MCBs
-/// (same category, the starter's 1P+N among them), then the others; Only parts that fit keeps the seven MCBs; Escape
-/// commits nothing.
+/// PS1: -102F1's part dialog lists the 1P MCB of the project (same FnDef), then the other MCBs (same category, the
+/// starter's 1P+N among them), then the others; the sample's 1P MCB, whose pins are L1 and T1, stands greyed with its
+/// reason (doc 07 §4.3); Only parts that fit keeps the six MCBs that fit; Escape commits nothing.
 #[test]
 fn the_part_dialog_script_is_deterministic() {
     ps1_the_part_dialog_script_is_deterministic_case(false);
@@ -148,6 +148,8 @@ pub(crate) fn ps1_the_part_dialog_script_is_deterministic_case(twice: bool) {
             ("ui.describe", json!({})),
             ("part.search", json!({"fits": true})),
             ("ui.describe", json!({})),
+            ("part.search", json!({"fits": false, "text": "A9F78116"})),
+            ("ui.describe", json!({})),
             ("ui.dismiss", json!({})),
         ]
     });
@@ -162,7 +164,7 @@ pub(crate) fn ps1_the_part_dialog_script_is_deterministic_case(twice: bool) {
     );
     assert!(
         d.contains(
-            "result 2 \"A9F78116\" \"Schneider Electric\" \"Miniature circuit breaker 1P\" library \"Sample project parts\" compatible same-fndef"
+            "result 2 \"EW-GEN-MCB-3\" \"Generic\" \"Miniature circuit breaker, 3 poles\" project compatible same-category"
         ),
         "{d}"
     );
@@ -173,7 +175,16 @@ pub(crate) fn ps1_the_part_dialog_script_is_deterministic_case(twice: bool) {
         "{d}"
     );
     let d = describe(&lines[6]);
-    assert!(has_line(d, "results showing 1 to 7"), "{d}");
+    assert!(has_line(d, "results showing 1 to 6"), "{d}");
+    assert!(!d.contains("A9F78116"), "{d}");
+    let d = describe(&lines[8]);
+    assert!(
+        has_line(
+            d,
+            "result 1 \"A9F78116\" \"Schneider Electric\" \"Miniature circuit breaker 1P\" library \"Sample project parts\" compatible same-fndef greyed \"It has no pin 1; -102F1:1 is wired\""
+        ),
+        "{d}"
+    );
 }
 
 /// PS4: -102F1's first use → EW-GEN-MCB-2 (`part.assign` replace with `copies`), then Add part… with a held copy

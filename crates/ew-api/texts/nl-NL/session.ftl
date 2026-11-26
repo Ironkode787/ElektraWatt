@@ -617,3 +617,7 @@ column-message = Melding
 column-object = Object
 column-fix = Oplossing
 column-connections-part = Draadartikel
+misfit-function = Een artikel van een andere soort: zijn functie is niet die van het apparaat
+misfit-pin = Het heeft geen aansluiting { $p0 }; { $p1 }:{ $p0 } is bedraad
+misfit-clamp = Zijn klem { $p0 } neemt { $p1 } tot { $p2 } mm²; draad { $p3 } is { $p4 } mm²
+misfit-clamp-unnumbered = Zijn klem { $p0 } neemt { $p1 } tot { $p2 } mm²; een draad erop is { $p3 } mm²

@@ -168,6 +168,9 @@ pub struct PartOffer {
     pub kind: String,
     /// The fit to the target's function.
     pub fit: Fit,
+    /// Why the part does not fit the target's device (doc 07 §4.3 "What fits"): its function, a pin the device has
+    /// wired that it lacks, a clamp too small for a wire on it; `None` when it fits or there is no target function.
+    pub misfit: Option<ew_derive::Misfit>,
     /// Whether the project holds the part.
     pub held: bool,
     /// The library the part comes from, as installed: (ID, name, tier); `None` for a project-local copy or a library
@@ -464,6 +467,7 @@ impl Session {
                 description,
                 kind,
                 fit,
+                misfit: None,
                 held: true,
                 library: item.and_then(|(l, _)| lib_of(l)),
                 item,
@@ -540,6 +544,7 @@ impl Session {
                     description: ew_derive::text_in(&h.description, lang.as_ref()).to_owned(),
                     kind: kind_word(&h.kind),
                     fit,
+                    misfit: None,
                     held: false,
                     library: lib_of(h.library),
                     item,
@@ -579,8 +584,25 @@ impl Session {
             OfferView::Favourites => o.favourite,
             OfferView::Recent => o.recent,
         });
+        // What fits the target's device: the first reason an offer does not, from the part and the device's wired pins
+        // and wires; a misfit ranks after every fitting offer.
+        if let Some(device) = q
+            .function
+            .filter(|_| compat.is_some())
+            .and_then(|f| query.functions().get(Id::from_uuid(f)).and_then(|f| f.device))
+        {
+            for (k, o) in &mut rows {
+                let Some(part) = self.offer_part(&o.pick) else {
+                    continue;
+                };
+                o.misfit = ew_derive::part_fit(&query, device, &part, o.fit != Fit::Other);
+                if o.misfit.is_some() {
+                    k.fit = Fit::Other;
+                }
+            }
+        }
         if q.fits_only && compat.is_some() {
-            rows.retain(|(_, o)| o.fit != Fit::Other);
+            rows.retain(|(_, o)| o.fit != Fit::Other && o.misfit.is_none());
         }
         if compat.is_none() {
             for (k, _) in &mut rows {
@@ -794,6 +816,49 @@ pub(crate) fn lib_ref(library: Uuid, item: Uuid) -> LibRef {
         item: Id::from_uuid(item),
         version_req: "*".to_owned(),
         extra: ew_schema::Extra::new(),
+    }
+}
+
+impl Session {
+    /// The sentence that says why an offer does not fit `device` ([`PartOffer::misfit`], doc 07 §4.3): "It has no pin 4;
+    /// -101F1:4 is wired", "Its clamp 2 takes 0.5 to 1.5 mm²; wire 102.1 is 2.5 mm²".
+    pub fn misfit_text(&self, device: Uuid, misfit: &ew_derive::Misfit) -> crate::Text {
+        let q = self.query();
+        match misfit {
+            ew_derive::Misfit::Function => text!("misfit-function"),
+            ew_derive::Misfit::MissingPin { pin } => {
+                text!(
+                    "misfit-pin",
+                    pin.clone(),
+                    ew_derive::short_tag(&q, Id::from_uuid(device))
+                )
+            }
+            ew_derive::Misfit::ClampTooSmall {
+                pin,
+                takes,
+                wire,
+                csa,
+            } => {
+                let (min, max) = (takes.0.to_string(), takes.1.to_string());
+                match q.get::<ew_derive::WireNumbers>(()).number(*wire) {
+                    Some(n) => text!(
+                        "misfit-clamp",
+                        pin.clone(),
+                        min,
+                        max,
+                        n.label.clone(),
+                        csa.to_string()
+                    ),
+                    None => text!(
+                        "misfit-clamp-unnumbered",
+                        pin.clone(),
+                        min,
+                        max,
+                        csa.to_string()
+                    ),
+                }
+            }
+        }
     }
 }
 

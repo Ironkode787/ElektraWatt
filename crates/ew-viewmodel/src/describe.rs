@@ -1982,6 +1982,9 @@ fn part_choose_lines(
         if o.favourite {
             line.push_str(" favourite");
         }
+        if let Some(Some(why)) = c.misfits.get(i) {
+            line.push_str(&format!(" greyed \"{}\"", user(why)));
+        }
         if c.cursor == Some(i) {
             line.push_str(" cursor");
         }
