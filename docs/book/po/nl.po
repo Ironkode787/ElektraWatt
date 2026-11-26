@@ -696,7 +696,7 @@ msgstr ""
 "Kies **Bestand ▸ Opslaan** (`Ctrl+S`). De titelbalk markeert het project "
 "niet meer als gewijzigd, en de statusbalk zegt Opgeslagen."
 
-#: src/tutorials/first-page.md:45 src/tutorials/terminal-strip-and-cable.md:57 src/tutorials/reports-and-pdf.md:40 src/tutorials/import-qet.md:56 src/tutorials/symbol-editor.md:45 src/tutorials/plc-station.md:78 src/tutorials/bus-network.md:79 src/tutorials/pneumatic-circuit.md:121
+#: src/tutorials/first-page.md:45 src/tutorials/terminal-strip-and-cable.md:57 src/tutorials/reports-and-pdf.md:41 src/tutorials/import-qet.md:56 src/tutorials/symbol-editor.md:45 src/tutorials/plc-station.md:78 src/tutorials/bus-network.md:79 src/tutorials/pneumatic-circuit.md:121
 msgid "What you learnt"
 msgstr "Wat u hebt geleerd"
 
@@ -900,7 +900,7 @@ msgstr ""
 "een kabeltype…**: het artikelvenster toont eerst de kabelartikelen die "
 "passen, en de andere grijs met de reden."
 
-#: src/tutorials/terminal-strip-and-cable.md:54 src/tutorials/reports-and-pdf.md:37 src/tutorials/import-qet.md:53 src/tutorials/symbol-editor.md:42 src/tutorials/plc-station.md:75 src/tutorials/bus-network.md:76 src/tutorials/pneumatic-circuit.md:112
+#: src/tutorials/terminal-strip-and-cable.md:54 src/tutorials/reports-and-pdf.md:38 src/tutorials/import-qet.md:53 src/tutorials/symbol-editor.md:42 src/tutorials/plc-station.md:75 src/tutorials/bus-network.md:76 src/tutorials/pneumatic-circuit.md:112
 msgid ""
 "Choose **File ▸ Save** (`Ctrl+S`). The title bar no longer marks the project "
 "as changed."
@@ -1021,13 +1021,23 @@ msgstr ""
 "zelfstudies is gemaakt."
 
 #: src/tutorials/reports-and-pdf.md:18
+#, fuzzy
+#| msgid ""
+#| "Read the report pages in the Pages navigator, in section 9 (folios 900 to "
+#| "999). They are marked generated: the parts list (Partlist, 901 and 901.1), "
+#| "the legend of the panel layout 902 (902.1 and 902.2), the terminal diagrams "
+#| "of the three terminal strips (903), the cable overview and diagrams (906), "
+#| "the wire list, the PLC overview, the potential overview, the device tag "
+#| "overview and the revision overview. Click one, such as 903, to see it."
 msgid ""
 "Read the report pages in the Pages navigator, in section 9 (folios 900 to "
 "999). They are marked generated: the parts list (Partlist, 901 and 901.1), "
 "the legend of the panel layout 902 (902.1 and 902.2), the terminal diagrams "
 "of the three terminal strips (903), the cable overview and diagrams (906), "
 "the wire list, the PLC overview, the potential overview, the device tag "
-"overview and the revision overview. Click one, such as 903, to see it."
+"overview, the revision overview, and the workshop lists: the assembly lists "
+"(912), the cut list (913) and the consumables (914). Click one, such as 903, "
+"to see it."
 msgstr ""
 "Lees de rapportpagina's in de navigator Pagina's, in sectie 9 (folio's 900 "
 "tot en met 999). Ze zijn gemarkeerd als gegenereerd: de stuklijst (Partlist, "
@@ -1037,13 +1047,21 @@ msgstr ""
 "potentiaaloverzicht, het overzicht van de apparaatkenmerken en het "
 "revisieoverzicht. Klik op een ervan, zoals 903, om hem te bekijken."
 
-#: src/tutorials/reports-and-pdf.md:23
+#: src/tutorials/reports-and-pdf.md:24
+#, fuzzy
+#| msgid ""
+#| "Choose **Output ▸ Report block…** (on the Page or the Output tab: "
+#| "**Report**). In the form, choose the report **Parts list**, keep or type the "
+#| "first folio `912`, type the title `Parts list`, and choose **Create**. The "
+#| "toast says \"Added the report block Parts list from folio 912\". The Pages "
+#| "navigator lists the new pages 912 to 912.2: the parts list device by device, "
+#| "where the Partlist on 901 sums the parts up."
 msgid ""
 "Choose **Output ▸ Report block…** (on the Page or the Output tab: "
 "**Report**). In the form, choose the report **Parts list**, keep or type the "
-"first folio `912`, type the title `Parts list`, and choose **Create**. The "
-"toast says \"Added the report block Parts list from folio 912\". The Pages "
-"navigator lists the new pages 912 to 912.2: the parts list device by device, "
+"first folio `915`, type the title `Parts list`, and choose **Create**. The "
+"toast says \"Added the report block Parts list from folio 915\". The Pages "
+"navigator lists the new pages 915 to 915.2: the parts list device by device, "
 "where the Partlist on 901 sums the parts up."
 msgstr ""
 "Kies **Uitvoer ▸ Rapportblok…** (op het tabblad Pagina of Uitvoer: "
@@ -1053,21 +1071,33 @@ msgstr ""
 "navigator Pagina's toont de nieuwe pagina's 912 tot en met 912.2: de "
 "stuklijst per apparaat, waar de Partlist op 901 de artikelen optelt."
 
-#: src/tutorials/reports-and-pdf.md:27
+#: src/tutorials/reports-and-pdf.md:28
+#, fuzzy
+#| msgid ""
+#| "Choose **Output ▸ Report block…** again, choose **Terminal overview**, the "
+#| "first folio `913` and the title `Terminal overview`, and choose **Create**. "
+#| "The page 913 lists every terminal strip of the project on one page."
 msgid ""
 "Choose **Output ▸ Report block…** again, choose **Terminal overview**, the "
-"first folio `913` and the title `Terminal overview`, and choose **Create**. "
-"The page 913 lists every terminal strip of the project on one page."
+"first folio `916` and the title `Terminal overview`, and choose **Create**. "
+"The page 916 lists every terminal strip of the project on one page."
 msgstr ""
 "Kies opnieuw **Uitvoer ▸ Rapportblok…**, kies **Klemmenoverzicht**, het "
 "eerste folio `913` en de titel `Terminal overview`, en kies **Maken**. "
 "Pagina 913 toont alle klemmenstroken van het project op één pagina."
 
-#: src/tutorials/reports-and-pdf.md:30
+#: src/tutorials/reports-and-pdf.md:31
+#, fuzzy
+#| msgid ""
+#| "Choose **Output ▸ Export PDF…** (`Ctrl+Shift+E`) and save the file as "
+#| "`reports.pdf`. When the export is done, the toast says \"Exported "
+#| "reports.pdf: 8 drawing pages, 3 section divider pages and 22 report pages\", "
+#| "with the file's size. Open the file from the toast to see it: one PDF/A-2b "
+#| "file with every page, its outline and its cross-reference links."
 msgid ""
 "Choose **Output ▸ Export PDF…** (`Ctrl+Shift+E`) and save the file as "
 "`reports.pdf`. When the export is done, the toast says \"Exported "
-"reports.pdf: 8 drawing pages, 3 section divider pages and 22 report pages\", "
+"reports.pdf: 8 drawing pages, 3 section divider pages and 28 report pages\", "
 "with the file's size. Open the file from the toast to see it: one PDF/A-2b "
 "file with every page, its outline and its cross-reference links."
 msgstr ""
@@ -1078,10 +1108,16 @@ msgstr ""
 "de notificatie om het te bekijken: één PDF/A-2b-bestand met elke pagina, een "
 "inhoudsopgave en links voor de kruisverwijzingen."
 
-#: src/tutorials/reports-and-pdf.md:34
+#: src/tutorials/reports-and-pdf.md:35
+#, fuzzy
+#| msgid ""
+#| "Choose **Output ▸ Print…** (`Ctrl+P`). The Print dialog shows the range, the "
+#| "paper and a preview of the first page: \"1 of 33\". Step to the next page in "
+#| "the preview to see page 2. Choose **Cancel** to close the dialog without "
+#| "printing."
 msgid ""
 "Choose **Output ▸ Print…** (`Ctrl+P`). The Print dialog shows the range, the "
-"paper and a preview of the first page: \"1 of 33\". Step to the next page in "
+"paper and a preview of the first page: \"1 of 39\". Step to the next page in "
 "the preview to see page 2. Choose **Cancel** to close the dialog without "
 "printing."
 msgstr ""
@@ -1090,14 +1126,24 @@ msgstr ""
 "in het voorbeeld naar de volgende pagina om pagina 2 te zien. Kies "
 "**Annuleren** om het venster te sluiten zonder af te drukken."
 
-#: src/tutorials/reports-and-pdf.md:42
+#: src/tutorials/reports-and-pdf.md:43
+#, fuzzy
+#| msgid ""
+#| "A report block generates report pages from the project: a parts list, "
+#| "terminal diagrams, a cable list and more. **Output ▸ Report block…** (the "
+#| "Output tab's **Report**) adds one, from the first folio you give: every "
+#| "list, a tube list or a PLC card list too, is made this way; a list is no "
+#| "page type of **New page**. Without a title of your own, its pages take the "
+#| "report's name (\"912 Tube list\"). A block with nothing to list yet makes no "
+#| "page: its toast says so and what gives it rows, such as a valve terminal for "
+#| "the valve-terminal configuration."
 msgid ""
 "A report block generates report pages from the project: a parts list, "
 "terminal diagrams, a cable list and more. **Output ▸ Report block…** (the "
 "Output tab's **Report**) adds one, from the first folio you give: every "
 "list, a tube list or a PLC card list too, is made this way; a list is no "
 "page type of **New page**. Without a title of your own, its pages take the "
-"report's name (\"912 Tube list\"). A block with nothing to list yet makes no "
+"report's name (\"915 Tube list\"). A block with nothing to list yet makes no "
 "page: its toast says so and what gives it rows, such as a valve terminal for "
 "the valve-terminal configuration."
 msgstr ""
@@ -1111,7 +1157,7 @@ msgstr ""
 "geen pagina: de notificatie zegt dat en wat er rijen aan geeft, zoals een "
 "ventieleiland voor de ventieleilandconfiguratie."
 
-#: src/tutorials/reports-and-pdf.md:47
+#: src/tutorials/reports-and-pdf.md:48
 msgid ""
 "Report pages follow the drawing: change a device, a terminal or a cable, and "
 "its report pages change with it."
@@ -1119,7 +1165,7 @@ msgstr ""
 "Rapportpagina's volgen de tekening: verander een apparaat, een klem of een "
 "kabel, en de rapportpagina's veranderen mee."
 
-#: src/tutorials/reports-and-pdf.md:48
+#: src/tutorials/reports-and-pdf.md:49
 msgid ""
 "**Output ▸ Export PDF…** writes every page into one PDF; **Output ▸ Print…** "
 "shows each page before it prints."
@@ -1127,7 +1173,7 @@ msgstr ""
 "**Uitvoer ▸ PDF exporteren…** schrijft elke pagina in één PDF; **Uitvoer ▸ "
 "Afdrukken…** toont elke pagina voordat die wordt afgedrukt."
 
-#: src/tutorials/reports-and-pdf.md:49
+#: src/tutorials/reports-and-pdf.md:50
 msgid ""
 "[A terminal strip and a cable](terminal-strip-and-cable.md) shows where the "
 "terminal diagrams and the cable list take their rows from."
@@ -7877,10 +7923,48 @@ msgid ""
 msgstr ""
 
 #: src/reference/window/command-bar.md:310
-msgid "Rework list…"
+msgid "Open assembly lists"
 msgstr ""
 
 #: src/reference/window/command-bar.md:312
+msgid ""
+"In the Workshop group. Shows the first page of the project's assembly lists: "
+"per terminal strip first where it goes on its rail and how long it is, then "
+"every item in the order the fitter mounts it (end brackets, terminals with "
+"their part, colour and marker, end plates), then its bridges. A project "
+"without assembly lists opens Report block… on them."
+msgstr ""
+
+#: src/reference/window/command-bar.md:316
+msgid "Open cut list"
+msgstr ""
+
+#: src/reference/window/command-bar.md:318
+msgid ""
+"In the Workshop group. Shows the first page of the project's cut list: the "
+"rails, the ducts with their covers, the cables, the wires and the tubes to "
+"cut, each piece rounded up to the cut increment of Project properties ▸ "
+"Workshop (a wire as long as the wire list says). A project without a cut "
+"list opens Report block… on it."
+msgstr ""
+
+#: src/reference/window/command-bar.md:322
+msgid "Open consumables"
+msgstr ""
+
+#: src/reference/window/command-bar.md:324
+msgid ""
+"In the Workshop group. Shows the first page of the project's consumables: "
+"the metres of each wire, the ferrules and lugs per part and the markers per "
+"label set, what to order beside the parts list. A project without one opens "
+"Report block… on it."
+msgstr ""
+
+#: src/reference/window/command-bar.md:328
+msgid "Rework list…"
+msgstr ""
+
+#: src/reference/window/command-bar.md:330
 msgid ""
 "In the Workshop group. Compares the project as it is with a release and "
 "lists what the fitter changes in the built cabinet, in the order he does it: "
@@ -7892,11 +7976,11 @@ msgid ""
 "changes… opens Labels… on the labels the list names."
 msgstr ""
 
-#: src/reference/window/command-bar.md:318
+#: src/reference/window/command-bar.md:336
 msgid "Labels…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:320
+#: src/reference/window/command-bar.md:338
 msgid ""
 "In the Workshop group. Lists the label files for your label program, one per "
 "label set (wire markers, terminal markers, device labels…) and marker part, "
@@ -7909,136 +7993,136 @@ msgid ""
 "a formula, so open the XLSX there."
 msgstr ""
 
-#: src/reference/window/command-bar.md:327
+#: src/reference/window/command-bar.md:345
 msgid "Workshop settings"
 msgstr ""
 
-#: src/reference/window/command-bar.md:329
+#: src/reference/window/command-bar.md:347
 msgid ""
 "In the Workshop group. Shows the project's Properties at its Workshop rows: "
 "the stock, the ferrules, two wires in one clamp, the marker text, the "
 "marking of cores and jumpers, the device labels and the label file columns."
 msgstr ""
 
-#: src/reference/window/command-bar.md:332
+#: src/reference/window/command-bar.md:350
 msgid "View"
 msgstr ""
 
-#: src/reference/window/command-bar.md:334
+#: src/reference/window/command-bar.md:352
 msgid "Back"
 msgstr ""
 
-#: src/reference/window/command-bar.md:336
+#: src/reference/window/command-bar.md:354
 msgid ""
 "Goes back to the place shown before the last jump (a cross-reference "
 "followed, a page opened)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:338
+#: src/reference/window/command-bar.md:356
 msgid "Forward"
 msgstr ""
 
-#: src/reference/window/command-bar.md:340
+#: src/reference/window/command-bar.md:358
 msgid "Goes forward again after **Back**."
 msgstr ""
 
-#: src/reference/window/command-bar.md:342
+#: src/reference/window/command-bar.md:360
 msgid "Follow cross-reference"
 msgstr ""
 
-#: src/reference/window/command-bar.md:344
+#: src/reference/window/command-bar.md:362
 msgid ""
 "Goes to the place the cross-reference under the pointer or selected names."
 msgstr ""
 
-#: src/reference/window/command-bar.md:346
+#: src/reference/window/command-bar.md:364
 msgid "Zoom in"
 msgstr ""
 
-#: src/reference/window/command-bar.md:348
+#: src/reference/window/command-bar.md:366
 msgid "Shows the page larger, around the middle of the view."
 msgstr ""
 
-#: src/reference/window/command-bar.md:350
+#: src/reference/window/command-bar.md:368
 msgid "Zoom out"
 msgstr ""
 
-#: src/reference/window/command-bar.md:352
+#: src/reference/window/command-bar.md:370
 msgid "Shows the page smaller."
 msgstr ""
 
-#: src/reference/window/command-bar.md:354
+#: src/reference/window/command-bar.md:372
 msgid "Actual size"
 msgstr ""
 
-#: src/reference/window/command-bar.md:356
+#: src/reference/window/command-bar.md:374
 msgid "Shows the page at its printed size."
 msgstr ""
 
-#: src/reference/window/command-bar.md:358
+#: src/reference/window/command-bar.md:376
 msgid "Fit page"
 msgstr ""
 
-#: src/reference/window/command-bar.md:360
+#: src/reference/window/command-bar.md:378
 msgid "Shows the whole page in the view."
 msgstr ""
 
-#: src/reference/window/command-bar.md:362
+#: src/reference/window/command-bar.md:380
 msgid "Side by side"
 msgstr ""
 
-#: src/reference/window/command-bar.md:364
+#: src/reference/window/command-bar.md:382
 msgid "Shows two pages side by side, each in its own group of tabs."
 msgstr ""
 
-#: src/reference/window/command-bar.md:366
+#: src/reference/window/command-bar.md:384
 msgid "Grid"
 msgstr ""
 
-#: src/reference/window/command-bar.md:368
+#: src/reference/window/command-bar.md:386
 msgid "Shows or hides the drawing grid on the page."
 msgstr ""
 
-#: src/reference/window/command-bar.md:370
+#: src/reference/window/command-bar.md:388
 msgid "Theme"
 msgstr ""
 
-#: src/reference/window/command-bar.md:372
+#: src/reference/window/command-bar.md:390
 msgid ""
 "Chooses the window's colours. See "
 "[Appearance](../../how-to/application-window.md#appearance)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:374
+#: src/reference/window/command-bar.md:392
 msgid "Density"
 msgstr ""
 
-#: src/reference/window/command-bar.md:376
+#: src/reference/window/command-bar.md:394
 msgid "Chooses how close the window's rows and buttons stand."
 msgstr ""
 
-#: src/reference/window/command-bar.md:378
+#: src/reference/window/command-bar.md:396
 msgid "UI scale"
 msgstr ""
 
-#: src/reference/window/command-bar.md:380
+#: src/reference/window/command-bar.md:398
 msgid "Makes the whole window larger or smaller."
 msgstr ""
 
-#: src/reference/window/command-bar.md:382
+#: src/reference/window/command-bar.md:400
 msgid "Show tips"
 msgstr ""
 
-#: src/reference/window/command-bar.md:384
+#: src/reference/window/command-bar.md:402
 msgid ""
 "Shows or hides the tips the window gives on the canvas and in empty panels."
 msgstr ""
 
-#: src/reference/window/command-bar.md:386
+#: src/reference/window/command-bar.md:404
 msgid "Frame statistics"
 msgstr ""
 
-#: src/reference/window/command-bar.md:388
+#: src/reference/window/command-bar.md:406
 msgid ""
 "Shows how long the window takes to draw each frame, for a report of a slow "
 "window."
