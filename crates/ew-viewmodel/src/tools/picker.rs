@@ -222,55 +222,13 @@ impl Trade {
     }
 }
 
-/// The trade the function category `key` (a browser group) is filed under: the one table of the tree's first level
-/// (F28). `None` for a category that is no trade's (assemblies, interruption points, graphics) and one it does not
-/// know: those stand under Other.
+/// The trade the function category `key` (a browser group) is filed under: its row's `trade` in the category table
+/// (`ew_api::output::category_trade`, which also names the part groups that are no function category, a bus cable, a tube).
+/// `None` for a category that is no trade's (assemblies, interruption points, graphics) and one it does not know: those
+/// stand under Other.
 pub fn trade_of(key: &str) -> Option<Trade> {
-    Some(match key {
-        "ProtectionOvercurrent"
-        | "ProtectionResidualCurrent"
-        | "ProtectionOvervoltage"
-        | "PowerSupplyAcDc"
-        | "TransformerAcAc"
-        | "FrequencyConverter"
-        | "SwitchingMain"
-        | "SwitchingPower"
-        | "Relay"
-        | "SensingTemperature"
-        | "SensingPosition"
-        | "SensingPressure"
-        | "ManualCommand"
-        | "IndicatorLight"
-        | "Meter"
-        | "Lighting"
-        | "Heating"
-        | "Fan"
-        | "MotorRotary"
-        | "SolenoidActuator"
-        | "Terminal"
-        | "TerminalEarth"
-        | "ConnectorSignal"
-        | "CablePower"
-        | "CableSignal"
-        | "EarthingBar"
-        | "Resistor" => Trade::Electrical,
-        "Controller" | "NetworkSwitch" | "BusCable" => Trade::PlcBus,
-        "AirPreparation"
-        | "ValveDirectional"
-        | "ValvePilot"
-        | "ValveTerminal"
-        | "ValveTerminalNode"
-        | "ValveTerminalModule"
-        | "CylinderFluid"
-        | "FlowControl"
-        | "FlowLogic"
-        | "FluidSensor"
-        | "Vacuum"
-        | "FluidFitting"
-        | "FluidTube" => Trade::Pneumatics,
-        "Enclosure" | "MountingAccessory" => Trade::Enclosure,
-        _ => return None,
-    })
+    let word = ew_api::output::category_trade(key)?;
+    Trade::ALL.into_iter().find(|t| t.word() == word)
 }
 
 /// The typed tokens of a filter text, case-folded: the browser's filter and the station view's catalogue filter.

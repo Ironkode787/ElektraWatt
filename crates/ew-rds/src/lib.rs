@@ -83,6 +83,6 @@ pub use letter::LetterCode;
 pub use parse::{LenientParse, Tolerance, parse_lenient, parse_strict};
 pub use sets::{
     CategoryFlags, EN_81346_2_2009, IEC_60750_LEGACY, IEC_81346_2_2019, IdentifierSet, LetterCheck, Mapping,
-    ReservedLetter, category_flags,
+    ReservedLetter, category_flags, category_trade,
 };
 pub use syntax::RdsSyntax;

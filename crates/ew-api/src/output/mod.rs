@@ -108,6 +108,9 @@ use ew_scene::page::PageFinding;
 use ew_schema::Section;
 use sha2::{Digest, Sha256};
 
+/// The trade the place browser files a function category or part group under, from the category table (doc 07 §5).
+pub use ew_rds::category_trade;
+
 pub use editing::{
     CatalogueSymbol, CatalogueTemplateFn, JunctionWire, PageTables, PlaceCatalogue, PlacedBy, ShapeCp,
     SlotCell, SupplyPoint, SymbolShape, TableBox, TableConnection, TableCp, TableEnd, TableItem,

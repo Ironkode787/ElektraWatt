@@ -23,6 +23,12 @@
 #   placed into a strip; its symbol's tag prints in the terminal style), `protection` (it protects a circuit: a
 #   breaker, a fuse, a residual-current or surge device) and `field` (equipment that stands in the field, outside a
 #   cabinet: Auto-fill rail leaves a device of it without a location off the rail).
+# - `trade` (optional, on a row without `group`) is the trade the place browser files the category under:
+#   `electrical`, `plc_bus`, `pneumatics` or `enclosure_mounting`; a category without one stands under Other. A
+#   `[[group]]` names a part group that is no function category (a bus cable, a tube) with its trade.
+# - `trade` (optional, on a row without `group`) is the trade the place browser files the category under:
+#   `electrical`, `plc_bus`, `pneumatics` or `enclosure_mounting`; a category without one stands under Other. A
+#   `[[group]]` names a part group that is no function category (a bus cable, a tube) with its trade.
 #
 # src/sets/data.rs is generated from this file. After a change, run
 #     EW_RDS_BLESS=1 cargo test -p ew-rds --test identifier_sets
@@ -49,6 +55,7 @@ reserved = []
 [[category]]
 key = "ProtectionOvercurrent"
 description = "Protects a circuit against overcurrent: miniature circuit breakers, fuses, electronic circuit breakers"
+trade = "electrical"
 flags = ["protection"]
 [category.letters]
 "EN81346-2:2009" = { letter = "F", verified = false }
@@ -58,6 +65,7 @@ flags = ["protection"]
 [[category]]
 key = "ProtectionResidualCurrent"
 description = "Disconnects a circuit on residual current to earth: RCDs and RCBOs"
+trade = "electrical"
 flags = ["protection"]
 [category.letters]
 "EN81346-2:2009" = { letter = "F", verified = false }
@@ -67,6 +75,7 @@ flags = ["protection"]
 [[category]]
 key = "ProtectionOvervoltage"
 description = "Limits transient overvoltages: surge protective devices"
+trade = "electrical"
 flags = ["protection"]
 [category.letters]
 "EN81346-2:2009" = { letter = "F", verified = false }
@@ -78,6 +87,7 @@ flags = ["protection"]
 [[category]]
 key = "PowerSupplyAcDc"
 description = "Converts mains AC into a regulated DC control voltage: 24 V power supply units"
+trade = "electrical"
 [category.letters]
 "EN81346-2:2009" = { letter = "G", verified = false }
 "IEC81346-2:2019" = { letter = "TC", alternatives = ["TB"], verified = false }
@@ -86,6 +96,7 @@ description = "Converts mains AC into a regulated DC control voltage: 24 V power
 [[category]]
 key = "TransformerAcAc"
 description = "Transforms one AC voltage into another: control and isolating transformers"
+trade = "electrical"
 [category.letters]
 "EN81346-2:2009" = { letter = "T", verified = false }
 "IEC81346-2:2019" = { letter = "TA", verified = false }
@@ -94,6 +105,7 @@ description = "Transforms one AC voltage into another: control and isolating tra
 [[category]]
 key = "FrequencyConverter"
 description = "Feeds a motor with variable voltage and frequency: frequency converters and drives"
+trade = "electrical"
 [category.letters]
 "EN81346-2:2009" = { letter = "T", verified = false }
 "IEC81346-2:2019" = { letter = "TA", verified = false }
@@ -104,6 +116,7 @@ description = "Feeds a motor with variable voltage and frequency: frequency conv
 [[category]]
 key = "SwitchingMain"
 description = "Isolates or switches the main supply by hand: main switches, disconnectors, load-break switches"
+trade = "electrical"
 [category.letters]
 "EN81346-2:2009" = { letter = "Q", alternatives = ["S"], verified = false }
 "IEC81346-2:2019" = { letter = "QB", verified = false }
@@ -112,6 +125,7 @@ description = "Isolates or switches the main supply by hand: main switches, disc
 [[category]]
 key = "SwitchingPower"
 description = "Switches a load circuit under remote control: contactors and power circuit breakers"
+trade = "electrical"
 [category.letters]
 "EN81346-2:2009" = { letter = "Q", verified = false }
 "IEC81346-2:2019" = { letter = "QA", verified = false }
@@ -120,6 +134,7 @@ description = "Switches a load circuit under remote control: contactors and powe
 [[category]]
 key = "Relay"
 description = "Relays a control signal: auxiliary, coupling and time relays"
+trade = "electrical"
 [category.letters]
 "EN81346-2:2009" = { letter = "K", verified = false }
 "IEC81346-2:2019" = { letter = "KF", verified = false }
@@ -130,6 +145,7 @@ description = "Relays a control signal: auxiliary, coupling and time relays"
 [[category]]
 key = "Controller"
 description = "Processes signals and data: PLC CPUs, I/O modules, bus couplers and gateways"
+trade = "plc_bus"
 [category.letters]
 "EN81346-2:2009" = { letter = "K", verified = false }
 "IEC81346-2:2019" = { letter = "KE", verified = false }
@@ -138,6 +154,7 @@ description = "Processes signals and data: PLC CPUs, I/O modules, bus couplers a
 [[category]]
 key = "NetworkSwitch"
 description = "Forwards data between network segments: industrial Ethernet switches"
+trade = "plc_bus"
 [category.letters]
 "EN81346-2:2009" = { letter = "K", verified = false }
 "IEC81346-2:2019" = { letter = "KF", verified = false }
@@ -146,6 +163,7 @@ description = "Forwards data between network segments: industrial Ethernet switc
 [[category]]
 key = "ValveTerminalNode"
 description = "Connects a valve terminal to its fieldbus and controls its valves: valve-terminal bus nodes"
+trade = "pneumatics"
 flags = ["field"]
 [category.letters]
 "EN81346-2:2009" = { letter = "K", alternatives = ["U"], verified = false }
@@ -155,6 +173,7 @@ flags = ["field"]
 [[category]]
 key = "ValveTerminalModule"
 description = "Carries and drives the valves of a valve terminal: electrical sub-bases and valve modules"
+trade = "pneumatics"
 flags = ["field"]
 [category.letters]
 "EN81346-2:2009" = { letter = "U", alternatives = ["K"], verified = false }
@@ -166,6 +185,7 @@ flags = ["field"]
 [[category]]
 key = "SensingTemperature"
 description = "Senses a temperature and signals it: thermostats, temperature switches and sensors"
+trade = "electrical"
 flags = ["field"]
 [category.letters]
 "EN81346-2:2009" = { letter = "B", verified = false }
@@ -175,6 +195,7 @@ flags = ["field"]
 [[category]]
 key = "SensingPosition"
 description = "Senses a position or presence and signals it: door switches, limit switches, proximity sensors"
+trade = "electrical"
 flags = ["field"]
 [category.letters]
 "EN81346-2:2009" = { letter = "B", alternatives = ["S"], verified = false }
@@ -184,6 +205,7 @@ flags = ["field"]
 [[category]]
 key = "SensingPressure"
 description = "Senses a pressure and signals it: pressure switches and transmitters"
+trade = "electrical"
 flags = ["field"]
 [category.letters]
 "EN81346-2:2009" = { letter = "B", verified = false }
@@ -193,6 +215,7 @@ flags = ["field"]
 [[category]]
 key = "ManualCommand"
 description = "Turns a manual action into a control signal: push-buttons, selector switches, emergency-stop units"
+trade = "electrical"
 [category.letters]
 "EN81346-2:2009" = { letter = "S", verified = false }
 "IEC81346-2:2019" = { letter = "SJ", alternatives = ["SF", "SK"], verified = false }
@@ -203,6 +226,7 @@ description = "Turns a manual action into a control signal: push-buttons, select
 [[category]]
 key = "IndicatorLight"
 description = "Shows a state by light: pilot lights, signal lamps, signal towers"
+trade = "electrical"
 [category.letters]
 "EN81346-2:2009" = { letter = "P", verified = false }
 "IEC81346-2:2019" = { letter = "PF", verified = false }
@@ -211,6 +235,7 @@ description = "Shows a state by light: pilot lights, signal lamps, signal towers
 [[category]]
 key = "Meter"
 description = "Measures and displays a value: meters, panel instruments and scalar displays"
+trade = "electrical"
 [category.letters]
 "EN81346-2:2009" = { letter = "P", verified = false }
 "IEC81346-2:2019" = { letter = "PG", verified = false }
@@ -219,6 +244,7 @@ description = "Measures and displays a value: meters, panel instruments and scal
 [[category]]
 key = "Lighting"
 description = "Gives light for working: cabinet lamps and luminaires"
+trade = "electrical"
 [category.letters]
 "EN81346-2:2009" = { letter = "E", verified = false }
 "IEC81346-2:2019" = { letter = "EA", verified = false }
@@ -227,6 +253,7 @@ description = "Gives light for working: cabinet lamps and luminaires"
 [[category]]
 key = "Heating"
 description = "Heats electrically: enclosure heaters and fan heaters"
+trade = "electrical"
 [category.letters]
 "EN81346-2:2009" = { letter = "E", verified = false }
 "IEC81346-2:2019" = { letter = "EB", verified = false }
@@ -235,6 +262,7 @@ description = "Heats electrically: enclosure heaters and fan heaters"
 [[category]]
 key = "Fan"
 description = "Moves air through an enclosure: filter fans and enclosure fans"
+trade = "electrical"
 [category.letters]
 "EN81346-2:2009" = { letter = "G", alternatives = ["E"], verified = false }
 "IEC81346-2:2019" = { letter = "GQ", verified = false }
@@ -245,6 +273,7 @@ description = "Moves air through an enclosure: filter fans and enclosure fans"
 [[category]]
 key = "MotorRotary"
 description = "Turns electrical energy into rotation: electric motors"
+trade = "electrical"
 flags = ["field"]
 [category.letters]
 "EN81346-2:2009" = { letter = "M", verified = false }
@@ -254,6 +283,7 @@ flags = ["field"]
 [[category]]
 key = "SolenoidActuator"
 description = "Moves a part by electromagnetic force: solenoids, magnetic brakes and clutches"
+trade = "electrical"
 [category.letters]
 "EN81346-2:2009" = { letter = "M", verified = false }
 "IEC81346-2:2019" = { letter = "MB", verified = false }
@@ -262,6 +292,7 @@ description = "Moves a part by electromagnetic force: solenoids, magnetic brakes
 [[category]]
 key = "CylinderFluid"
 description = "Moves a part by fluid power: pneumatic and hydraulic cylinders"
+trade = "pneumatics"
 flags = ["field"]
 [category.letters]
 "EN81346-2:2009" = { letter = "M", verified = false }
@@ -271,6 +302,7 @@ flags = ["field"]
 [[category]]
 key = "ValveDirectional"
 description = "Opens, closes or redirects a fluid flow on command: directional and shut-off valves"
+trade = "pneumatics"
 [category.letters]
 "EN81346-2:2009" = { letter = "Q", alternatives = ["QM"], verified = false }
 "IEC81346-2:2019" = { letter = "QM", verified = false }
@@ -279,6 +311,7 @@ description = "Opens, closes or redirects a fluid flow on command: directional a
 [[category]]
 key = "ValvePilot"
 description = "Controls another valve with a small fluid signal: pilot valves"
+trade = "pneumatics"
 [category.letters]
 "EN81346-2:2009" = { letter = "Q", alternatives = ["K"], verified = false }
 "IEC81346-2:2019" = { letter = "KH", verified = false }
@@ -291,6 +324,7 @@ description = "Controls another valve with a small fluid signal: pilot valves"
 [[category]]
 key = "AirPreparation"
 description = "Treats compressed air before use: filters, lubricators and service units"
+trade = "pneumatics"
 [category.letters]
 "EN81346-2:2009" = { letter = "V", verified = false }
 "IEC81346-2:2019" = { letter = "H", verified = false }
@@ -335,6 +369,7 @@ description = "Shuts off the compressed air by hand: on/off valves"
 [[category]]
 key = "FlowControl"
 description = "Restricts a fluid flow: throttles, check valves, flow control and quick-exhaust valves"
+trade = "pneumatics"
 [category.letters]
 "EN81346-2:2009" = { letter = "R", alternatives = ["Q"], verified = false }
 "IEC81346-2:2019" = { letter = "R", verified = false }
@@ -343,6 +378,7 @@ description = "Restricts a fluid flow: throttles, check valves, flow control and
 [[category]]
 key = "FlowLogic"
 description = "Combines fluid signals: shuttle and two-pressure valves"
+trade = "pneumatics"
 [category.letters]
 "EN81346-2:2009" = { letter = "K", alternatives = ["Q"], verified = false }
 "IEC81346-2:2019" = { letter = "KH", verified = false }
@@ -351,6 +387,7 @@ description = "Combines fluid signals: shuttle and two-pressure valves"
 [[category]]
 key = "FluidSensor"
 description = "Senses a fluid pressure and signals it: pressure switches"
+trade = "pneumatics"
 flags = ["field"]
 [category.letters]
 "EN81346-2:2009" = { letter = "B", verified = false }
@@ -360,6 +397,7 @@ flags = ["field"]
 [[category]]
 key = "Vacuum"
 description = "Makes a vacuum from compressed air: ejectors"
+trade = "pneumatics"
 [category.letters]
 "EN81346-2:2009" = { letter = "G", verified = false }
 "IEC81346-2:2019" = { letter = "GQ", verified = false }
@@ -386,6 +424,7 @@ description = "Senses a vacuum and signals it: vacuum switches"
 [[category]]
 key = "FluidFitting"
 description = "Connects or closes fluid lines: bulkheads, couplings, plugs and silencers"
+trade = "pneumatics"
 [category.letters]
 "EN81346-2:2009" = { letter = "X", verified = false }
 "IEC81346-2:2019" = { letter = "X", verified = false }
@@ -394,6 +433,7 @@ description = "Connects or closes fluid lines: bulkheads, couplings, plugs and s
 [[category]]
 key = "ValveTerminal"
 description = "Feeds and exhausts the valves of a valve terminal: supply plates"
+trade = "pneumatics"
 flags = ["field"]
 [category.letters]
 "EN81346-2:2009" = { letter = "U", alternatives = ["K"], verified = false }
@@ -405,6 +445,7 @@ flags = ["field"]
 [[category]]
 key = "Terminal"
 description = "Connects conductors at a fixed point: terminals and terminal strips"
+trade = "electrical"
 flags = ["terminal"]
 [category.letters]
 "EN81346-2:2009" = { letter = "X", verified = false }
@@ -414,6 +455,7 @@ flags = ["terminal"]
 [[category]]
 key = "TerminalEarth"
 description = "Connects protective-earth and functional-earth conductors: PE and FE terminals"
+trade = "electrical"
 flags = ["terminal"]
 [category.letters]
 "EN81346-2:2009" = { letter = "X", verified = false }
@@ -423,6 +465,7 @@ flags = ["terminal"]
 [[category]]
 key = "ConnectorSignal"
 description = "Connects signal and bus lines detachably: plug connectors, sockets and bus connectors"
+trade = "electrical"
 [category.letters]
 "EN81346-2:2009" = { letter = "X", verified = false }
 "IEC81346-2:2019" = { letter = "XG", verified = false }
@@ -431,6 +474,7 @@ description = "Connects signal and bus lines detachably: plug connectors, socket
 [[category]]
 key = "CablePower"
 description = "Carries supply and load current: power cables and conductors"
+trade = "electrical"
 [category.letters]
 "EN81346-2:2009" = { letter = "W", verified = false }
 "IEC81346-2:2019" = { letter = "WD", verified = false }
@@ -439,6 +483,7 @@ description = "Carries supply and load current: power cables and conductors"
 [[category]]
 key = "CableSignal"
 description = "Carries control signals or data: control, fieldbus and network cables"
+trade = "electrical"
 [category.letters]
 "EN81346-2:2009" = { letter = "W", verified = false }
 "IEC81346-2:2019" = { letter = "WG", verified = false }
@@ -447,6 +492,7 @@ description = "Carries control signals or data: control, fieldbus and network ca
 [[category]]
 key = "EarthingBar"
 description = "Collects earthing and equipotential-bonding conductors: PE and earthing bars"
+trade = "electrical"
 [category.letters]
 "EN81346-2:2009" = { letter = "W", alternatives = ["X"], verified = false }
 "IEC81346-2:2019" = { letter = "WE", verified = false }
@@ -457,6 +503,7 @@ description = "Collects earthing and equipotential-bonding conductors: PE and ea
 [[category]]
 key = "Enclosure"
 description = "Encloses and carries equipment: cabinets, enclosures and housings"
+trade = "enclosure_mounting"
 [category.letters]
 "EN81346-2:2009" = { letter = "U", verified = false }
 "IEC81346-2:2019" = { letter = "UC", verified = false }
@@ -464,6 +511,7 @@ description = "Encloses and carries equipment: cabinets, enclosures and housings
 [[category]]
 key = "MountingAccessory"
 description = "Holds equipment or cables in position: mounting rails, cable glands, holders"
+trade = "enclosure_mounting"
 [category.letters]
 "EN81346-2:2009" = { letter = "U", verified = false }
 "IEC81346-2:2019" = { letter = "UA", verified = false }
@@ -471,6 +519,7 @@ description = "Holds equipment or cables in position: mounting rails, cable glan
 [[category]]
 key = "Resistor"
 description = "Limits a current or dissipates energy: resistors and braking resistors"
+trade = "electrical"
 [category.letters]
 "EN81346-2:2009" = { letter = "R", verified = false }
 "IEC81346-2:2019" = { letter = "RA", verified = false }
@@ -482,3 +531,17 @@ description = "Combines several main functions in one unit that no single catego
 [category.letters]
 "EN81346-2:2009" = { letter = "A", verified = false }
 "IEC60750-legacy" = { letter = "A", verified = false }
+
+# --- Part groups that are no function category ----------------------------------------------------------------
+# The place browser files a part without a function category by what its kind and sections say (a bus cable, a tube);
+# such a group names its trade here, beside the categories' (`category_trade`).
+
+[[group]]
+key = "BusCable"
+description = "Bus cables and bus plugs"
+trade = "plc_bus"
+
+[[group]]
+key = "FluidTube"
+description = "Tubes for compressed air and vacuum"
+trade = "pneumatics"

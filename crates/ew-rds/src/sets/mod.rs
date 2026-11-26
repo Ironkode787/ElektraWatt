@@ -40,6 +40,13 @@ pub fn category_flags(category: &str) -> CategoryFlags {
         .map_or_else(CategoryFlags::default, |(_, flags)| *flags)
 }
 
+/// The trade the place browser files the function category or part group `key` under (`electrical`, `plc_bus`,
+/// `pneumatics`, `enclosure_mounting`), from the `trade` of `data/identifier-sets.toml`; `None` for one without (it
+/// stands under Other).
+pub fn category_trade(key: &str) -> Option<&'static str> {
+    data::TRADES.iter().find(|(k, _)| *k == key).map(|(_, t)| *t)
+}
+
 /// One row of an identifier set: the letter code of a function category (optionally refined by its group)
 /// and the letter codes the set also accepts for it (ADR-0026 decision 3).
 ///

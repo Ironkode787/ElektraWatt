@@ -35,7 +35,12 @@ struct Category {
     letters: BTreeMap<String, Cell>,
     /// The flags of the row (`terminal`, `protection`, `field`).
     flags: Vec<String>,
+    /// The trade the place browser files the category under.
+    trade: Option<String>,
 }
+
+/// The trades a row or a part group may name, as the place browser's words.
+const TRADES: [&str; 4] = ["electrical", "plc_bus", "pneumatics", "enclosure_mounting"];
 
 /// The flags a row may carry, in the order of `CategoryFlags`'s members.
 const FLAGS: [&str; 3] = ["terminal", "protection", "field"];
@@ -78,11 +83,11 @@ fn only_keys(t: &Table, allowed: &[&str], what: &str) {
 }
 
 /// Reads the data file strictly: unknown keys, missing keys and wrong types fail.
-fn load() -> (Vec<SetMeta>, Vec<Category>) {
+fn load() -> (Vec<SetMeta>, Vec<Category>, Vec<(String, String)>) {
     let path = manifest_dir().join("data/identifier-sets.toml");
     let text = std::fs::read_to_string(&path).expect("read data/identifier-sets.toml");
     let root: Table = text.parse().expect("data/identifier-sets.toml is valid TOML");
-    only_keys(&root, &["set", "category"], "top level");
+    only_keys(&root, &["set", "category", "group"], "top level");
 
     let sets: Vec<SetMeta> = root["set"]
         .as_array()
@@ -119,7 +124,7 @@ fn load() -> (Vec<SetMeta>, Vec<Category>) {
             let t = table(v, "[[category]]");
             only_keys(
                 t,
-                &["key", "group", "description", "letters", "flags"],
+                &["key", "group", "description", "letters", "flags", "trade"],
                 "[[category]]",
             );
             let key = string(t, "key", "[[category]]");
@@ -154,20 +159,43 @@ fn load() -> (Vec<SetMeta>, Vec<Category>) {
                 flags.is_empty() || group.is_none(),
                 "{key}: flags belong to the category's row without a group"
             );
+            let trade = t.get("trade").map(|_| string(t, "trade", &key));
+            if let Some(w) = &trade {
+                assert!(TRADES.contains(&w.as_str()), "{key}: unknown trade `{w}`");
+                assert!(group.is_none(), "{key}: a trade belongs to the category's row without a group");
+            }
             Category {
                 description: string(t, "description", &key),
                 key,
                 group,
                 letters,
                 flags,
+                trade,
             }
         })
         .collect();
-    (sets, categories)
+    let groups = root
+        .get("group")
+        .and_then(Value::as_array)
+        .map(|a| {
+            a.iter()
+                .map(|v| {
+                    let t = table(v, "[[group]]");
+                    only_keys(t, &["key", "description", "trade"], "[[group]]");
+                    let key = string(t, "key", "[[group]]");
+                    let _ = string(t, "description", &key);
+                    let trade = string(t, "trade", &key);
+                    assert!(TRADES.contains(&trade.as_str()), "{key}: unknown trade `{trade}`");
+                    (key, trade)
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    (sets, categories, groups)
 }
 
 /// The Rust source of `src/sets/data.rs`.
-fn generate(sets: &[SetMeta], categories: &[Category]) -> String {
+fn generate(sets: &[SetMeta], categories: &[Category], groups: &[(String, String)]) -> String {
     let mut s = String::new();
     // The header of the generated file, not of this one. REUSE-IgnoreStart
     s.push_str(
@@ -258,14 +286,24 @@ fn generate(sets: &[SetMeta], categories: &[Category]) -> String {
             has("field")
         );
     }
+    s.push_str("];\n\n");
+    let traded: Vec<(&str, &str)> = categories
+        .iter()
+        .filter_map(|c| Some((c.key.as_str(), c.trade.as_deref()?)))
+        .chain(groups.iter().map(|(k, t)| (k.as_str(), t.as_str())))
+        .collect();
+    let _ = writeln!(s, "pub(super) static TRADES: [(&str, &str); {}] = [", traded.len());
+    for (key, trade) in traded {
+        let _ = writeln!(s, "    ({key:?}, {trade:?}),");
+    }
     s.push_str("];\n");
     s
 }
 
 #[test]
 fn generated_tables_match_the_data_file() {
-    let (sets, categories) = load();
-    let expected = generate(&sets, &categories);
+    let (sets, categories, groups) = load();
+    let expected = generate(&sets, &categories, &groups);
     let path = manifest_dir().join("src/sets/data.rs");
     if std::env::var_os("EW_RDS_BLESS").is_some() {
         std::fs::write(&path, &expected).expect("write src/sets/data.rs");
@@ -283,7 +321,16 @@ fn generated_tables_match_the_data_file() {
 
 #[test]
 fn public_api_reflects_the_data_file() {
-    let (sets, categories) = load();
+    let (sets, categories, groups) = load();
+    for c in &categories {
+        assert_eq!(ew_rds::category_trade(&c.key), c.trade.as_deref().or_else(|| {
+            categories.iter().find(|o| o.key == c.key && o.trade.is_some()).and_then(|o| o.trade.as_deref())
+        }), "{}", c.key);
+    }
+    for (key, trade) in &groups {
+        assert_eq!(ew_rds::category_trade(key), Some(trade.as_str()), "{key}");
+    }
+    assert_eq!(ew_rds::category_trade("NoSuchCategory"), None);
     let shipped: Vec<&str> = IdentifierSet::shipped().iter().map(IdentifierSet::key).collect();
     let in_file: Vec<&str> = sets.iter().map(|s| s.key.as_str()).collect();
     assert_eq!(shipped, in_file);
@@ -328,7 +375,7 @@ fn public_api_reflects_the_data_file() {
 
 #[test]
 fn every_category_is_in_the_default_set() {
-    let (_, categories) = load();
+    let (_, categories, _) = load();
     let mut seen = BTreeSet::new();
     for cat in &categories {
         assert!(
