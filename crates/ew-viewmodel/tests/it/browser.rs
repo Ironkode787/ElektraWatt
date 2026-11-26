@@ -152,6 +152,37 @@ fn a_part_is_one_row_that_opens_to_its_functions_and_places_its_main_function() 
     s.shutdown();
 }
 
+/// FT-2206: on an electrical page a valve's row places its coil and says so before the click, and the power supply's
+/// row says that it is drawn as a device box; choosing the valve arms the Place tool with the coil.
+#[test]
+fn a_part_row_says_what_choosing_it_does() {
+    let tmp = Tmp::new("browser-choosing");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
+    done(&mut s, "tool.place_part", json!({}));
+    let line_of = |s: &ew_viewmodel::shell::ShellModel, number: &str| {
+        let p = s.picker().expect("the browser");
+        let row = p
+            .rows
+            .iter()
+            .copied()
+            .find(|r| matches!(r, PickerRow::Part(i) if p.catalogue.parts[*i].part_number == number))
+            .unwrap_or_else(|| panic!("a row of {number}: {:?}", p.rows));
+        p.row_line(row)
+    };
+    done(&mut s, "picker.filter", json!({"text": "EW-GEN-VLV-1"}));
+    let valve = line_of(&s, "EW-GEN-VLV-1");
+    assert!(valve.contains(" choosing \"Places the "), "{valve}");
+    assert!(valve.contains(" holds \""), "{valve}");
+    assert!(!valve.contains("disabled"), "{valve}");
+    done(&mut s, "picker.filter", json!({"text": "EW-GEN-PSU-1"}));
+    let supply = line_of(&s, "EW-GEN-PSU-1");
+    assert!(supply.contains(" choosing \"Drawn as a device box\""), "{supply}");
+    done(&mut s, "picker.filter", json!({"text": "EW-GEN-VLV-1"}));
+    done(&mut s, "picker.choose", json!({"letter": "Y"}));
+    assert_eq!(s.tool().name(), "place");
+    s.shutdown();
+}
+
 /// In a Dutch window a starter symbol is named in Dutch.
 #[test]
 fn a_starter_symbol_is_named_in_the_windows_language() {

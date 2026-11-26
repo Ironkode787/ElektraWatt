@@ -39,6 +39,25 @@ pub struct PlaceCatalogue {
     pub strips: Vec<CatalogueStrip>,
 }
 
+impl PlaceCatalogue {
+    /// Whether choosing function `f` of part `p` draws it as a device box by the Black box tool: a black-box entry
+    /// whose symbol row is the frame's (or whose FnDef is the generic black box). A symbol of its own drawn for the
+    /// entry's FnDef (a power supply the user drew) draws it as any symbol does.
+    pub fn drawn_as_box(&self, p: usize, f: usize) -> bool {
+        let Some(f) = self.parts.get(p).and_then(|part| part.functions.get(f)) else {
+            return false;
+        };
+        let Some(row) = f
+            .symbol
+            .as_ref()
+            .and_then(|key| self.symbols.iter().find(|s| s.key == *key))
+        else {
+            return false;
+        };
+        f.black_box && (row.black_box || f.fndef_key == ew_schema::starter::FN_BLACKBOX)
+    }
+}
+
 /// A terminal strip of the place catalogue: what a terminal placement adds to.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CatalogueStrip {

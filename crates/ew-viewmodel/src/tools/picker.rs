@@ -390,16 +390,62 @@ impl Picker {
             .collect()
     }
 
-    /// The function that choosing part `p` places: its main function among those listed, else the first listed;
-    /// `None` for a part without one.
+    /// The function that choosing part `p` places: the first of its listed functions that has a symbol on the page,
+    /// its main function first (a valve on an electrical page places its coil), else its main function among those
+    /// listed, else the first listed; `None` for a part without one.
     pub fn part_main(&self, p: usize) -> Option<usize> {
         let part = self.catalogue.parts.get(p)?;
         let listed = self.listed_functions(p);
-        listed
+        let main = listed
             .iter()
             .copied()
             .find(|k| part.functions[*k].main)
-            .or_else(|| listed.first().copied())
+            .or_else(|| listed.first().copied())?;
+        if part.functions[main].symbol.is_some() {
+            return Some(main);
+        }
+        Some(
+            listed
+                .iter()
+                .copied()
+                .find(|k| part.functions[*k].symbol.is_some())
+                .unwrap_or(main),
+        )
+    }
+
+    /// What choosing part row `p` does, in words, where its row would not say it otherwise: "Drawn as a device box"
+    /// for a part the Black box tool draws, "Places the coil 14" for a part that places another function than its
+    /// main one; `None` for a part that places its main function by its symbol.
+    pub fn choosing_words(&self, p: usize) -> Option<String> {
+        let k = self.part_main(p)?;
+        let part = self.catalogue.parts.get(p)?;
+        if self.mode != PickerMode::BlackBox && self.catalogue.drawn_as_box(p, k) {
+            return Some(crate::strings::text(key!("picker-drawn-as-box")).to_owned());
+        }
+        (!part.functions[k].main && part.functions[k].symbol.is_some()).then(|| {
+            crate::strings::format(key!("picker-places"), &[&self.function_words(p, k)])
+        })
+    }
+
+    /// What the arrow of a part that opens to its functions holds, in words: "5 functions" (opening it lists them);
+    /// `None` for a part that does not open.
+    pub fn holds_words(&self, p: usize) -> Option<String> {
+        self.opens(p).then(|| {
+            crate::strings::format(
+                key!("picker-holds"),
+                &[&self.listed_functions(p).len().to_string()],
+            )
+        })
+    }
+
+    /// Function `k` of part `p` in words ([`function_words`]).
+    pub fn function_words(&self, p: usize, k: usize) -> String {
+        self.catalogue
+            .parts
+            .get(p)
+            .and_then(|part| part.functions.get(k))
+            .map(|f| function_words(&f.kind_text, &f.fndef_key))
+            .unwrap_or_default()
     }
 
     /// Whether part `p` opens to its functions: a part with more than one function the mode lists.
@@ -806,8 +852,8 @@ pub(crate) fn grid_words([symbol, page]: [(u64, u64); 2]) -> String {
 impl Picker {
     /// The describe line of a row (without its indentation): `row symbol "<key>" embedded`,
     /// `row part "<number>" function <n> of <count> "<fndef>" [main]` (a part row as the function it places, then
-    /// ` open` or ` closed` when it opens), `row part "<number>" symbol` or `row strip "<tag>" terminal "<next>" <id>`,
-    /// then ` disabled: <reason>`.
+    /// ` holds "<words>"` and ` choosing "<words>"` as its row says them, then ` open` or ` closed` when it opens),
+    /// `row part "<number>" symbol` or `row strip "<tag>" terminal "<next>" <id>`, then ` disabled: <reason>`.
     pub fn row_line(&self, row: PickerRow) -> String {
         let mut line = match row {
             PickerRow::Symbol(i) => {
@@ -852,6 +898,12 @@ impl Picker {
                     if let Some(at) = line.find(" disabled: ") {
                         line.truncate(at);
                     }
+                    if let Some(words) = self.holds_words(p) {
+                        line.push_str(&format!(" holds \"{words}\""));
+                    }
+                    if let Some(words) = self.choosing_words(p) {
+                        line.push_str(&format!(" choosing \"{words}\""));
+                    }
                     if self.opens(p) {
                         line.push_str(if self.open.contains(&p) {
                             " open"
@@ -878,5 +930,39 @@ impl Picker {
             line.push_str(&format!(" disabled: {reason}"));
         }
         line
+    }
+}
+
+/// A template function in words: its kind text, or, where that is only the FnDef key (a FnDef whose category
+/// has fewer than two entries, `ew.fn.blackbox`), the key's last segment as words (`Blackbox`, through
+/// `strings::choice_words`).
+fn function_words(kind_text: &ew_api::Text, fndef_key: &str) -> String {
+    if *kind_text != *fndef_key {
+        // The kind in the window's language.
+        return crate::strings::render(kind_text);
+    }
+    // The last fallback: the key's last segment through the shell's choice words.
+    crate::strings::choice_words(&symbol_name(fndef_key).replace('-', "_"))
+}
+
+#[cfg(test)]
+mod tests {
+    /// A function whose kind text is its FnDef key reads as words, never as the key; a real kind text stays.
+    #[test]
+    fn function_keys_read_as_words() {
+        use ew_api::{Text, TextArg};
+        let plain = |s: &str| Text::bare(TextArg::Plain(s.to_owned()));
+        assert_eq!(
+            super::function_words(&plain("ew.fn.blackbox"), "ew.fn.blackbox"),
+            "Blackbox"
+        );
+        assert_eq!(
+            super::function_words(&plain("ew.fn.dp-connector"), "ew.fn.dp-connector"),
+            "Dp connector"
+        );
+        assert_eq!(
+            super::function_words(&plain("NO contact 13-14"), "ew.fn.contact-no"),
+            "NO contact 13-14"
+        );
     }
 }

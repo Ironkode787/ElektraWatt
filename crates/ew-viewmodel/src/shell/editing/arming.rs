@@ -218,11 +218,8 @@ impl ShellModel {
                 let Some(i) = cat.symbols.iter().position(|s| s.key == *key) else {
                     return Outcome::refused(key!("reason-no-symbol-for-function"));
                 };
-                // A black-box entry is a box drawn by the frame; a symbol of its own drawn for the entry's own FnDef (a
-                // power supply the user drew, not the generic black box's) draws it as any symbol does.
-                if f.black_box
-                    && (cat.symbols[i].black_box || f.fndef_key == ew_api::output::starter::FN_BLACKBOX)
-                {
+                // A black-box entry is a box drawn by the frame (`PlaceCatalogue::drawn_as_box`).
+                if cat.drawn_as_box(*pi, *fi) {
                     box_cps = Some(f.cps.clone());
                 }
                 (

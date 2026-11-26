@@ -418,17 +418,27 @@ fn row_texts(picker: &Picker, row: PickerRow) -> RowTexts {
             } else {
                 part.description.clone()
             };
-            let library = if part.library.is_none() {
+            // What choosing it does, where the row would not say it ("Places the coil 14", "Drawn as a device box"),
+            // stands where its library would.
+            let library = if let Some(words) = picker.choosing_words(p) {
+                words
+            } else if part.library.is_none() {
                 strings::text(key!("picker-group-project")).to_owned()
             } else if part.library_name.is_empty() {
                 strings::text(key!("picker-group-libraries")).to_owned()
             } else {
                 part.library_name.clone()
             };
+            // A part that opens says what its arrow holds, after its ratings.
+            let rating = [part.rating.clone(), picker.holds_words(p).unwrap_or_default()]
+                .into_iter()
+                .filter(|s| !s.is_empty())
+                .collect::<Vec<_>>()
+                .join(" · ");
             RowTexts {
                 name,
                 number: part.part_number.clone(),
-                rating: part.rating.clone(),
+                rating,
                 library,
             }
         }
@@ -472,7 +482,7 @@ fn function_line(picker: &Picker, p: usize, k: usize) -> String {
         &[
             &(k + 1).to_string(),
             &part.functions.len().to_string(),
-            &function_words(&f.kind_text, &f.fndef_key),
+            &picker.function_words(p, k),
         ],
     );
     if f.main {
@@ -979,39 +989,8 @@ pub(crate) fn picture(
     }
 }
 
-/// A template function in words: its kind text, or, where that is only the FnDef key (a FnDef whose category
-/// has fewer than two entries, `ew.fn.blackbox`), the key's last segment as words (`Blackbox`, through
-/// `strings::choice_words`).
-fn function_words(kind_text: &ew_viewmodel::ew_api::Text, fndef_key: &str) -> String {
-    if *kind_text != *fndef_key {
-        // The kind in the window's language.
-        return strings::render(kind_text);
-    }
-    // The last fallback: the key's last segment through the shell's choice words.
-    strings::choice_words(&ew_viewmodel::tools::symbol_name(fndef_key).replace('-', "_"))
-}
-
 #[cfg(test)]
 mod tests {
-    /// A function whose kind text is its FnDef key reads as words, never as the key; a real kind text stays.
-    #[test]
-    fn function_keys_read_as_words() {
-        use ew_viewmodel::ew_api::{Text, TextArg};
-        let plain = |s: &str| Text::bare(TextArg::Plain(s.to_owned()));
-        assert_eq!(
-            super::function_words(&plain("ew.fn.blackbox"), "ew.fn.blackbox"),
-            "Blackbox"
-        );
-        assert_eq!(
-            super::function_words(&plain("ew.fn.dp-connector"), "ew.fn.dp-connector"),
-            "Dp connector"
-        );
-        assert_eq!(
-            super::function_words(&plain("NO contact 13-14"), "ew.fn.contact-no"),
-            "NO contact 13-14"
-        );
-    }
-
     /// A symbol row's name is in words, never its keys.
     #[test]
     fn a_symbol_rows_name_is_in_words() {
