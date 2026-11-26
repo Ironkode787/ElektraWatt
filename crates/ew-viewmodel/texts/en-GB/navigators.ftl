@@ -155,6 +155,7 @@ chip-via-rule-assumed-clamp = rule (unverified): clamp kind not known
 chip-via-rule-assumed-both = rule (unverified): fine-stranded wire, clamp kind not known
 chip-via-made-outside = made outside the project
 chip-via-workshop-stock = workshop stock
+chip-via-workshop-marking = the project's marking
 chip-via-cut-with-cable = cut with its cable { $p0 }
 chip-via-connectivity = connectivity
 chip-via-project-description = project description

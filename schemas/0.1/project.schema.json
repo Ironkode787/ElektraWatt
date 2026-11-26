@@ -324,6 +324,31 @@
         }
       ]
     },
+    "Marking": {
+      "description": "What a wire's marker says ([`WorkshopSettings::marking`], doc 13 §5.1).",
+      "oneOf": [
+        {
+          "const": "destination",
+          "description": "The far end, as seen from the end the marker sits on (the owner's choice, 2026-11-26).",
+          "type": "string"
+        },
+        {
+          "const": "wire_number",
+          "description": "The wire's number.",
+          "type": "string"
+        },
+        {
+          "const": "both_ends",
+          "description": "This end, then the far end, on two lines.",
+          "type": "string"
+        },
+        {
+          "const": "potential",
+          "description": "The potential's name.",
+          "type": "string"
+        }
+      ]
+    },
     "MasterData": {
       "additionalProperties": true,
       "description": "Project master data (doc 03 §5).",
@@ -1234,6 +1259,18 @@
         "ferrules": {
           "$ref": "#/$defs/FerruleRule",
           "description": "Which fine-stranded ends take a ferrule (doc 13 §4.2); absent: every one but those into a spring or push-in\nclamp."
+        },
+        "mark_cores": {
+          "description": "Whether a cable's core carries a marker; absent: no, its colour or number names it.",
+          "type": "boolean"
+        },
+        "mark_jumpers": {
+          "description": "Whether a jumper on one device carries a marker; absent: no.",
+          "type": "boolean"
+        },
+        "marking": {
+          "$ref": "#/$defs/Marking",
+          "description": "What a wire's marker says (doc 13 §5.1); absent: the far end."
         },
         "stock": {
           "description": "The wire, ferrule and marker parts the shop keeps, in its order of preference: a wire takes the first stock\nwire part of its size and colour, an end the first stock ferrule that fits it, a label kind the first stock\nmarker that marks it.",

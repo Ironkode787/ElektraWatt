@@ -146,8 +146,8 @@ pub fn channel_text_cell(table: &NavTable, node: &NavNode, column: usize) -> Opt
     })
 }
 
-/// A Connections wire row's From end or To end cell (doc 13 §4.5): the end (0 the From end, 1 the To end), whose
-/// treatment the cell sets by hand on the connection that lands on it ([`crate::Session::wire_end`]); `None` for every
+/// A Connections wire row's From end, To end, From marker or To marker cell (doc 13 §4.5, §5.1): the end (0 the From
+/// end, 1 the To end), whose treatment or marker the cell sets by hand on the wire's own connection that holds it ([`crate::Session::wire_end`]); `None` for every
 /// other cell and for a bridge row.
 pub fn wire_end_cell(table: &NavTable, node: &NavNode, column: usize) -> Option<usize> {
     let wire = matches!(
@@ -158,8 +158,8 @@ pub fn wire_end_cell(table: &NavTable, node: &NavNode, column: usize) -> Option<
         return None;
     }
     match table.columns.get(column)?.key.as_str() {
-        "from_end" => Some(0),
-        "to_end" => Some(1),
+        "from_end" | "from_marker" => Some(0),
+        "to_end" | "to_marker" => Some(1),
         _ => None,
     }
 }

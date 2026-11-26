@@ -204,6 +204,7 @@ pub struct EndRecord {
     pub treated_by: TreatedBy,        // Rule{row, assumed: Assumption} | Hand | Outside (an external end)
     pub marker: MarkerText,           // Lines(1 to 3 lines) | NotMarked(why) (§5)
     pub marked_by: MarkedBy,          // Setting | Hand
+    pub marker_fits: bool,            // false: the text does not fit the wire markers' part (§5.2, EW-MFG-004)
 }
 pub struct LabelRecord {              // label_rows(): every label in the order it is applied (§5.3)
     pub set: LabelSet,                // WireMarkers | TerminalMarkers | StripMarkers | CableMarkers | DeviceLabels
@@ -277,7 +278,7 @@ treatment or marker: it is mounted with its strip ([the workshop lists](13-works
 
 A block without columns of its own prints the fitter's columns, those marked "printed", in this order: No., From, CP,
 To, CP, Colour, mm², Length, From end, To end, From marker, To marker, Pages (`ReportKindDef::printed`,
-[09](09-reports-forms-output.md) §3.8; the marker columns join it with the markers); Output ▸ List columns… ticks the
+[09](09-reports-forms-output.md) §3.8); Output ▸ List columns… ticks the
 engineering columns (Potential, Source, Via, Wire part) and the ends' parts and strip lengths into a block's print. The CSV and the XLSX of the list hold every column in the order of the table. The Connections
 navigator in table mode has every column; it opens with No., From, CP, To, CP, Colour, mm², Length, From end and To
 end, the left column of the window widening to show them, and its column chooser adds the others. Length, From end, To end, From marker and
@@ -490,7 +491,8 @@ rules (EW-MFG-002, 003, 005, 006) are §7.3's, EW-MFG-010 the package's (§8), E
 
 A **core** carries no marker unless the shop sets `mark_cores`: its colour or number and its cable's marker identify it
 at each end, as EN 60204-1 13.2.1 allows. A **jumper** on one device carries none unless the shop sets `mark_jumpers`.
-A marker set by hand (§2.3, a text or "none") wins for its end. The wire list's marker columns print what each end
+A marker set by hand (§2.3, a text or "none") wins for its end: typed in the From marker or To marker cell of the
+Connections table or the wire's Properties, `—` for none, an empty text for the marking's own. The wire list's marker columns print what each end
 carries; the label engine (§5.3) makes a label of it.
 
 **The wire annotation is not a marker.** A schematic page prints beside a wire its number, cross-section and colours

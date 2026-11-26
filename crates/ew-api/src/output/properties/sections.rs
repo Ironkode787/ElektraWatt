@@ -266,8 +266,8 @@ impl SectionCx<'_, '_> {
     }
 }
 
-/// The rows of the workshop settings that are not set (doc 13 §2.3: Ferrules, Two wires in one clamp): the value that
-/// applies, its default, with the chip "project default".
+/// The rows of the workshop settings that are not set (doc 13 §2.3: Ferrules, Two wires in one clamp, Marker text, Mark
+/// cable cores, Mark jumpers): the value that applies, its default, with the chip "project default".
 fn workshop_defaults(built: &mut [Built]) {
     let defaults = [
         (
@@ -278,12 +278,22 @@ fn workshop_defaults(built: &mut [Built]) {
             "project/settings.workshop.two_wires",
             serde_json::to_value(ew_schema::TwoWires::default()),
         ),
+        (
+            "project/settings.workshop.marking",
+            serde_json::to_value(ew_schema::Marking::default()),
+        ),
+        ("project/settings.workshop.mark_cores", Ok(Value::Bool(false))),
+        ("project/settings.workshop.mark_jumpers", Ok(Value::Bool(false))),
     ];
     for b in built.iter_mut().filter(|b| b.row.value == RowValue::Absent) {
-        if let Some((_, Ok(Value::String(word)))) = defaults.iter().find(|(key, _)| *key == b.row.key) {
+        if let Some((_, Ok(json))) = defaults.iter().find(|(key, _)| *key == b.row.key) {
+            let text = match json {
+                Value::String(word) => word.clone(),
+                other => other.to_string(),
+            };
             b.row.value = RowValue::One {
-                json: Value::String(word.clone()),
-                text: word.clone(),
+                json: json.clone(),
+                text,
             };
             b.row.provenance = Provenance::Derived {
                 via: "project default".into(),

@@ -154,10 +154,11 @@ change here.
   its change in words ("size 1.5 → 2.5 mm²"); Export… writes it as XLSX or CSV. `ew export rework [--since
   <revision> | --archive <file>] [--format csv|xlsx] --out <file>` writes the same list.
 - behaviour-change: A wire list page whose block chooses no columns prints other columns now, the fitter's: No.,
-  From, CP, To, CP, Colour, mm², Length, From end, To end and Pages. It gains Length, From end and To end, and no
-  longer prints Potential, Source, Via and Wire part unless they are ticked in Output ▸ List columns…, which also
-  offers Length from, From part, To part, From strip length and To strip length. A bridge's kind and terminals stand
-  in its From end cell instead of Via. A wire list embedded on a page prints the same columns.
+  From, CP, To, CP, Colour, mm², Length, From end, To end, From marker, To marker and Pages. It gains Length, From end,
+  To end, From marker and To marker, and no longer prints Potential, Source, Via and Wire part unless they are ticked
+  in Output ▸ List columns…, which also offers Length from, From part, To part, From strip length and To strip length.
+  A bridge's kind and terminals stand in its From end cell instead of Via. A wire list embedded on a page prints the
+  same columns.
 - behaviour-change: The Connections table opens with the columns the workshop types and reads: No., From, CP, To, CP,
   Colour, mm², Length, From end and To end, and the window's left column widens to show them; Potential, Source, Via,
   Wire part, Pages, Length from and the ends' parts and strip lengths are in its Columns menu. It opened with every
@@ -257,3 +258,10 @@ change here.
   typed in Title block fields… (doc 14 §4.9, FT-1814)
 - behaviour-change: the Preview of a bulk change lists the wire numbers it changes, old → new, beside the tags and the
   cross-references (Columns and rows of a frame among them); a frozen number keeps its own (doc 16 §7.6, FT-1815)
+- behaviour-change: Each wire end has a marker, the text of the sleeve on it: by default the far end as seen from this
+  end (`-101Q1:1` at -X1011:L1, `+FLD-104B1:13` at a cabinet end of a field wire), or as Project properties ▸ Workshop
+  ▸ Marker text sets it (the wire number, both ends on two lines, the potential); a cable's core and a jumper on one
+  device carry none unless Mark cable cores or Mark jumpers is set. A text too long for the stock's wire marker is
+  shortened (the product sign dropped, the line broken after `:`, `-` or `+`) and else kept whole: EW-MFG-004
+  (warning) names it. The wire list prints From marker and To marker by default; a marker is set by hand in the
+  Connections table's marker cells or the wire's Properties (`—` for none).

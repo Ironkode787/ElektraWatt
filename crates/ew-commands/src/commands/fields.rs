@@ -519,7 +519,9 @@ impl SetFields {
             KindName::Connection => {
                 // An end with nothing set by hand is no end set by hand: `{}` clears it (Reset of its last member).
                 let cleared = matches!(path, "overrides.end_a" | "overrides.end_b")
-                    && value.as_object().is_some_and(serde_json::Map::is_empty);
+                    && value
+                        .as_object()
+                        .is_some_and(|o| o.iter().all(|(k, v)| v.is_null() || (k == "marker" && v == &serde_json::json!({}))));
                 set_one::<Connection>(tx, t, path, if cleared { &Value::Null } else { value })?;
                 if path == "overrides.colour" {
                     refuse_unknown_colour(tx, t.cast())?;

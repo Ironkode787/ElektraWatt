@@ -869,6 +869,13 @@ rule-ew-pot-003 = { $cp_shared ->
     .title = FE pin on PE
     .hint = Wire the pin to functional earth, or declare the FE–PE bond on its wire.
 
+rule-ew-mfg-004 = The marker of { $wire } at { $at } does not fit its marker part: { $text } needs { $form ->
+        [chars] { $needs } characters on a line of { $limit }
+       *[lines] { $needs } lines where it has { $limit }
+    }
+    .title = Marker text does not fit
+    .hint = Choose a marker part of the stock with longer or more lines, set the end's marker by hand, or mark the wire by its number.
+
 rule-ew-mfg-008 = The end of { $wire } at { $at } cannot be made: { $reason ->
        *[fine_into_idc] a fine-stranded wire into an insulation-displacement clamp
     }

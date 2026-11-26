@@ -958,7 +958,7 @@ impl Session {
             // A wire's end set by hand (doc 13 §4.5), from any connection of the wire: the treatment by its word
             // (`ring_lug`, `ring lug`) or the part (a held ferrule or lug part by its ID or number); an empty text gives
             // the rule's back. One `fields.set` of the `end_a` or `end_b` of the wire's own connection that holds it.
-            ("connection", "from_end" | "to_end" | "from_part" | "to_part") => {
+            ("connection", "from_end" | "to_end" | "from_part" | "to_part" | "from_marker" | "to_marker") => {
                 let end = usize::from(name.starts_with("to_"));
                 let Some((holder, at_a, current)) =
                     super::properties::end_holder(&q, Id::from_uuid(edit.target), end)
@@ -971,11 +971,19 @@ impl Session {
                     .unwrap_or_else(|| json!({}));
                 let member = if name.ends_with("_end") {
                     "treatment"
+                } else if name.ends_with("_marker") {
+                    "marker"
                 } else {
                     "part"
                 };
                 let set = if text.is_empty() {
                     Value::Null
+                } else if member == "marker" {
+                    // A text of its own; `—` for none (doc 13 §5.1).
+                    match text {
+                        "—" | "-" => Value::String("none".to_owned()),
+                        t => json!({ "text": t }),
+                    }
                 } else if member == "treatment" {
                     let word = text.to_lowercase().replace([' ', '-'], "_");
                     match word.as_str() {

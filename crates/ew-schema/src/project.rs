@@ -453,9 +453,38 @@ pub struct WorkshopSettings {
     /// What two wires of one size on one clamp take (doc 13 §4.3); absent: a twin ferrule.
     #[serde(default, skip_serializing_if = "is_default")]
     pub two_wires: TwoWires,
+    /// What a wire's marker says (doc 13 §5.1); absent: the far end.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub marking: Marking,
+    /// Whether a cable's core carries a marker; absent: no, its colour or number names it.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub mark_cores: bool,
+    /// Whether a jumper on one device carries a marker; absent: no.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub mark_jumpers: bool,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+/// What a wire's marker says ([`WorkshopSettings::marking`], doc 13 §5.1).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "Marking")]
+pub enum Marking {
+    /// The far end, as seen from the end the marker sits on (the owner's choice, 2026-11-26).
+    #[default]
+    Destination,
+    /// The wire's number.
+    WireNumber,
+    /// This end, then the far end, on two lines.
+    BothEnds,
+    /// The potential's name.
+    Potential,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Which fine-stranded ends take a ferrule ([`WorkshopSettings::ferrules`], doc 13 §4.2).
@@ -1147,6 +1176,7 @@ open_enum!(
     UserPropScope,
     FerruleRule,
     TwoWires,
+    Marking,
 );
 
 #[cfg(test)]

@@ -393,9 +393,27 @@ pub struct EndOverride {
     /// The ferrule or ring lug part, one the project holds.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub part: Option<PartRef>,
+    /// The marker: a text of its own, or none (doc 13 §5.1).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub marker: Option<EndMarker>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+/// A wire end's marker set by hand ([`EndOverride::marker`]): `{"text": "-K1:1"}`, or `"none"` for no marker.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "EndMarker")]
+pub enum EndMarker {
+    /// A text of its own, one line.
+    Text(#[schemars(with = "IdentS")] Ident),
+    /// No marker.
+    None,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// What a person puts on a wire's end by hand ([`EndOverride::treatment`], doc 13 §4.5).
@@ -822,4 +840,5 @@ open_enum!(
     PotentialEarthing,
     BondKind,
     TreatmentKind,
+    EndMarker,
 );

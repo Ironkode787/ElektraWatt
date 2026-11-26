@@ -151,6 +151,7 @@ chip-via-rule-assumed-clamp = regel (niet bevestigd): klemsoort onbekend
 chip-via-rule-assumed-both = regel (niet bevestigd): fijndradige draad, klemsoort onbekend
 chip-via-made-outside = buiten het project gemaakt
 chip-via-workshop-stock = werkplaatsvoorraad
+chip-via-workshop-marking = de markering van het project
 chip-via-cut-with-cable = geknipt met de kabel { $p0 }
 chip-via-connectivity = verbindingen
 chip-via-project-description = projectomschrijving

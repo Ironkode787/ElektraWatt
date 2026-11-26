@@ -24,6 +24,7 @@ use crate::potentials::PotentialPartition;
 use crate::q::Q;
 use crate::query::{Policy, Query};
 use crate::structure::StructureOf;
+use crate::marking::{MarkedBy, MarkerText, NotMarked, mark};
 use crate::treatment::{EndTreatment, TreatedBy, treat};
 use crate::wire_props::{Prov, WirePropsOf, wire_part_of};
 use crate::wires::{EndKind, PhysicalWire, PhysicalWiresOf, WireEnd};
@@ -79,7 +80,7 @@ pub struct WireRecordFlags {
 }
 
 /// One end of a wire as the shop reads it.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct EndRecord {
     /// What the fitter puts on it (doc 13 §4).
     pub treatment: EndTreatment,
@@ -96,6 +97,12 @@ pub struct EndRecord {
     /// in its `end_a` (the end reached through its endpoint `a`) or `end_b`; `None` for an end made outside the project
     /// and for a wire without a connection of its own.
     pub hand_at: Option<(Id<Connection>, bool)>,
+    /// What its marker says (doc 13 §5.1), shortened to the wire markers' part (§5.2).
+    pub marker: MarkerText,
+    /// Who decided the marker.
+    pub marked_by: MarkedBy,
+    /// Whether the marker's text fits its marker part (EW-MFG-004 where not).
+    pub marker_fits: bool,
 }
 
 /// The length of a wire (doc 13 §3.3): typed, else a core's cable, else missing.
@@ -160,6 +167,9 @@ impl Query for WireRecordSet {
                         treated_by: TreatedBy::Outside,
                         part_by_hand: false,
                         hand_at: None,
+                        marker: MarkerText::NotMarked(NotMarked::Outside),
+                        marked_by: MarkedBy::Setting,
+                        marker_fits: true,
                     });
                     WireRecord {
                         length: wire_length(q, &wire),
@@ -183,6 +193,7 @@ impl Query for WireRecordSet {
         keyed.sort_by_key(|e| e.0);
         let mut records: Vec<WireRecord> = keyed.into_iter().map(|(_, r)| r).collect();
         treat(q, &mut records);
+        mark(q, &mut records);
         Arc::new(records)
     }
 }

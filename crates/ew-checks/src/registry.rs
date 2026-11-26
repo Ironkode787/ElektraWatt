@@ -83,6 +83,7 @@ static IMPLEMENTED: &[&dyn Rule] = &[
     &shipped::layout::Collision,
     &shipped::layout::CarrierIncompatible,
     &shipped::layout::AssemblyOrder,
+    &shipped::mfg::MarkerDoesNotFit,
     &shipped::mfg::EndCannotBeMade,
     &shipped::mfg::EndSetByHandMisfits,
     &shipped::pot::WirePartMismatch,

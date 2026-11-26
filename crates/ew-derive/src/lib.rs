@@ -74,6 +74,7 @@ mod joins;
 // The layout's pure geometry, the compatibility table and the pose validator
 pub mod layout;
 mod links;
+mod marking;
 mod memo_keys;
 mod memo_store;
 mod names;
@@ -239,6 +240,7 @@ pub use title_block::{
 };
 pub use toc::{TocRow, TocRows};
 pub use tracker::{DepKey, Recorded, RecordingTracker};
+pub use marking::{MarkedBy, MarkerText, NotMarked, marker_end_text, shorten, wire_marker_part};
 pub use treatment::{
     Assumed, ClampMatch, ConductorMatch, EndTreatment, RuleGives, TREATMENT_RULES, TreatedBy, TreatmentRule,
     Undecided, clamp_conductors, end_connection, end_through, rule_for, stock_part,

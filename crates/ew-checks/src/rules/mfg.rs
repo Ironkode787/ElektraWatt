@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The rules of a wire's ends for the workshop (doc 13 §4.6), over the treatment of each end that `wire_record_set()`
-//! gives: EW-MFG-008, an end the rule table cannot decide; EW-MFG-009, an end set by hand that does not fit; and
+//! gives: EW-MFG-004, a marker whose text does not fit its marker part; EW-MFG-008, an end the rule table cannot decide; EW-MFG-009, an end set by hand that does not fit; and
 //! EW-POT-010, a clamp that takes fewer conductors than land on it, which reads the same pairing (a twin ferrule is one
 //! conductor).
 
@@ -16,6 +16,75 @@ use ew_schema::Kind;
 use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 use crate::rules::pot::{owns_wire, wire_text};
+
+// ---------------------------------------------------------------------------------------------------------
+// EW-MFG-004
+
+/// EW-MFG-004 "Marker text does not fit" (doc 15 §4.5.5): conflict, o x, warning, potential.
+pub const MARKER_DOES_NOT_FIT: RuleMeta = RuleMeta {
+    id: "EW-MFG-004",
+    message: key!("rule-ew-mfg-004"),
+    code: "140004",
+    kind: RuleKind::Conflict,
+    modes: Modes::letters("ox"),
+    severity: Severity::Warning,
+    release_severity: None,
+    scope: ScopeKind::Potential,
+    supersedes: &[],
+    release: Release::V1_0,
+};
+
+/// EW-MFG-004: a wire end's marker whose text does not fit the wire markers' part of the workshop stock after the
+/// shortening of doc 13 §5.2 (its characters per line, else its lines). One finding per end, target the connection
+/// that lands on it, discriminator the end (`from`, `to`).
+#[derive(Clone, Copy, Debug)]
+pub struct MarkerDoesNotFit;
+
+impl Rule for MarkerDoesNotFit {
+    fn meta(&self) -> &'static RuleMeta {
+        &MARKER_DOES_NOT_FIT
+    }
+
+    fn run(&self, q: &Q, scope: &Scope) -> Vec<Finding> {
+        let Scope::Potential(p) = *scope else {
+            return Vec::new();
+        };
+        let (lines, chars) = ew_derive::wire_marker_part(q).unwrap_or((None, None));
+        let mut out = Vec::new();
+        for r in q.get::<WireRecordSet>(()).iter().filter(|r| owns_wire(q, p, &r.wire)) {
+            for (i, end) in r.ends.iter().enumerate() {
+                let (false, ew_derive::MarkerText::Lines(text)) = (end.marker_fits, &end.marker) else {
+                    continue;
+                };
+                let Some((connection, _)) = ew_derive::end_connection(q, &r.wire, i) else {
+                    continue;
+                };
+                let longest = text.iter().map(|l| l.chars().count()).max().unwrap_or(0);
+                let (form, needs, limit) = match chars {
+                    Some(c) if longest > usize::from(c) => ("chars", longest, c),
+                    _ => ("lines", text.len(), lines.unwrap_or(0)),
+                };
+                let wire = wire_text(q, &r.wire);
+                let at = cp_label(q, r.wire.ends[i].cp);
+                out.push(
+                    Finding::new(
+                        &MARKER_DOES_NOT_FIT,
+                        [Target::new(Kind::Connection, connection)],
+                        if i == 0 { "from" } else { "to" },
+                        format!("{wire} {at}"),
+                    )
+                    .arg("wire", wire)
+                    .arg("at", at)
+                    .arg("text", text.join(" / "))
+                    .arg("form", form)
+                    .arg("needs", TextArg::Number(i64::try_from(needs).unwrap_or(i64::MAX)))
+                    .arg("limit", TextArg::Number(i64::from(limit))),
+                );
+            }
+        }
+        out
+    }
+}
 
 // ---------------------------------------------------------------------------------------------------------
 // EW-MFG-008

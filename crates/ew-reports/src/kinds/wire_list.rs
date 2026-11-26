@@ -74,11 +74,13 @@ impl ReportKindDef for WireList {
             ColumnDef::new("to_part", CellType::Ident, text!("column-to-part")).weighted(9),
             ColumnDef::new("from_strip", CellType::Qty, text!("column-from-strip")).weighted(6),
             ColumnDef::new("to_strip", CellType::Qty, text!("column-to-strip")).weighted(6),
+            ColumnDef::new("from_marker", CellType::Ident, text!("column-from-marker")).weighted(11),
+            ColumnDef::new("to_marker", CellType::Ident, text!("column-to-marker")).weighted(11),
         ]
     }
 
     /// What the wire list prints when its block chooses no columns (doc 13 §3.1): the fitter's columns, No., From, CP,
-    /// To, CP, Colour, mm², Length, From end, To end and Pages; the engineering columns (Potential, Source, Via, Wire
+    /// To, CP, Colour, mm², Length, From end, To end, From marker, To marker and Pages; the engineering columns (Potential, Source, Via, Wire
     /// part) and the ends' parts and strip lengths stay in the list's exports and are ticked in List columns….
     fn printed(&self) -> Option<&'static [&'static str]> {
         Some(&[
@@ -92,6 +94,8 @@ impl ReportKindDef for WireList {
             "length",
             "from_end",
             "to_end",
+            "from_marker",
+            "to_marker",
             "pages",
         ])
     }
@@ -184,6 +188,12 @@ pub(super) fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
             &ew_derive::text::wire_length_source(&rec.length),
         )),
     );
+    for (end, key) in rec.ends.iter().zip(["from_marker", "to_marker"]) {
+        // The lines a marker label carries, joined by ` / ` (doc 13 §5.2); none where the end carries none.
+        if let ew_derive::MarkerText::Lines(lines) = &end.marker {
+            set(key, Cell::Ident(lines.join(" / ")));
+        }
+    }
     for (end, (treatment, part, strip)) in rec.ends.iter().zip([
         ("from_end", "from_part", "from_strip"),
         ("to_end", "to_part", "to_strip"),

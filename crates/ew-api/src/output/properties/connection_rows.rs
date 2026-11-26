@@ -509,17 +509,34 @@ fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
     let one_wire = wires.len() == 1 && conns.iter().all(|c| wire_of(c).is_some());
     let mut out = Vec::new();
     for (i, category, names) in [
-        (0, Category::FromEnd, ("from_end", "from_part")),
-        (1, Category::ToEnd, ("to_end", "to_part")),
+        (0, Category::FromEnd, ("from_end", "from_part", "from_marker")),
+        (1, Category::ToEnd, ("to_end", "to_part", "to_marker")),
     ] {
-        let (mut ends, mut parts) = (Vec::new(), Vec::new());
-        let (mut by_hand_end, mut by_hand_part, mut holder) = (false, false, false);
+        let (mut ends, mut parts, mut markers) = (Vec::new(), Vec::new(), Vec::new());
+        let (mut by_hand_end, mut by_hand_part, mut by_hand_marker, mut holder) = (false, false, false, false);
         for c in conns {
             let Some(record) = wire_of(c) else {
                 ends.push((None, Provenance::Authored));
                 parts.push((None, Provenance::Authored));
+                markers.push((None, Provenance::Authored));
                 continue;
             };
+            let end_marker = &record.ends[i];
+            by_hand_marker |= end_marker.marked_by == ew_derive::MarkedBy::Hand;
+            markers.push((
+                match &end_marker.marker {
+                    ew_derive::MarkerText::Lines(lines) => Some(Value::from(lines.join(" / "))),
+                    ew_derive::MarkerText::NotMarked(_) => None,
+                },
+                match end_marker.marked_by {
+                    ew_derive::MarkedBy::Hand => Provenance::Overridden {
+                        note: "set by hand".into(),
+                    },
+                    ew_derive::MarkedBy::Setting => Provenance::Derived {
+                        via: "workshop marking".into(),
+                    },
+                },
+            ));
             let end = &record.ends[i];
             holder |= end.hand_at.is_some();
             let word = match end.treatment {
@@ -575,6 +592,7 @@ fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
         for (name, ty, per, by_hand) in [
             (names.0, treatment, ends, by_hand_end),
             (names.1, part, parts, by_hand_part),
+            (names.2, FieldType::Optional(Box::new(FieldType::Text)), markers, by_hand_marker),
         ] {
             let (value, provenance) = merge(cx, &ty, per);
             let mut actions = vec![RowAction::Edit];

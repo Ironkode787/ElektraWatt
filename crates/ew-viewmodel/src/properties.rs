@@ -2400,6 +2400,7 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
     ("rule (unverified)", None, key!("chip-via-rule-unverified")),
     ("made outside the project", None, key!("chip-via-made-outside")),
     ("workshop stock", None, key!("chip-via-workshop-stock")),
+    ("workshop marking", None, key!("chip-via-workshop-marking")),
     (
         "no length: type it here, or the fitter measures the wire",
         None,

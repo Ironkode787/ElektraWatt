@@ -865,6 +865,13 @@ rule-ew-pot-003 = { $cp_shared ->
     .title = FE-pen op PE
     .hint = Sluit de pen aan op functionele aarde, of leg de FE–PE-verbinding vast op zijn draad.
 
+rule-ew-mfg-004 = De markering van { $wire } op { $at } past niet op haar markeringsartikel: { $text } heeft { $form ->
+        [chars] { $needs } tekens nodig op een regel van { $limit }
+       *[lines] { $needs } regels nodig waar het er { $limit } heeft
+    }
+    .title = Markeringstekst past niet
+    .hint = Kies een markeringsartikel uit de voorraad met langere of meer regels, zet de markering van het einde met de hand, of markeer de draad met zijn nummer.
+
 rule-ew-mfg-008 = Het einde van { $wire } op { $at } kan niet worden gemaakt: { $reason ->
        *[fine_into_idc] een fijndradige draad in een snijklem
     }

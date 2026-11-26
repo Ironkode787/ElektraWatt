@@ -432,4 +432,33 @@ fn the_part_of_an_end_set_by_hand_is_a_link() {
         refused,
         "part EW-GEN-FER-2.5 cannot be removed: wire 101.4 still names it"
     );
+/// Each end's marker names the far end (doc 13 §5.1); a core and a jumper carry none; a field end's marker too long for
+/// the stock's wire marker (one line of 10 characters) is kept whole and EW-MFG-004 names it; wire-number marking prints
+/// the number; a marker set by hand wins, `none` leaves the end unmarked.
+fn each_end_is_marked_with_its_far_end() {
+    let keys = ["from_marker", "to_marker"];
+    assert_eq!(cells(&s, "101.1", &keys), ["-101Q1:1", "-X1011:L1"]);
+    assert_eq!(cells(&s, "-101W1 BN", &keys), ["", ""]);
+    assert_eq!(cells(&s, "101.14", &keys), ["", ""]);
+    let long = cells(&s, "104.4", &keys);
+    assert!(long.iter().any(|m| m == "+CAB-104A1-A2:L+"), "{long:?}");
+    let report = s.check(&PRE_DELIVERY, CheckMode::Online);
+    assert!(
+        report.findings.iter().any(|f| f.rule == "EW-MFG-004"
+            && f.message().ends_with("+CAB-104A1-A2:L+ needs 16 characters on a line of 10")),
+        "{:?}",
+        report.findings.iter().filter(|f| f.rule == "EW-MFG-004").map(|f| f.message()).collect::<Vec<_>>()
+    let (holder, member) = end_of(&s, "101.1", 0);
+    for (marker, shown) in [(json!({"text": "K1"}), "K1"), (json!("none"), "")] {
+        run(
+            &mut s,
+            "fields.set",
+            json!({"kind": "connection", "targets": [holder], "path": member, "value": {"marker": marker}}),
+        .expect("a marker set by hand");
+        assert_eq!(cells(&s, "101.1", &keys[..1]), [shown]);
+    }
+        "project.settings.set",
+        json!({"member": "workshop.marking", "value": "wire_number"}),
+    .expect("wire-number marking");
+    assert_eq!(cells(&s, "101.2", &keys), ["101.2", "101.2"]);
 }

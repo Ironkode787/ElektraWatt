@@ -277,10 +277,44 @@
       "pattern": "^(?:0|-?[1-9][0-9]{0,15}(?:\\.[0-9]{0,2}[1-9])?|-?0\\.[0-9]{0,2}[1-9])$",
       "type": "string"
     },
+    "EndMarker": {
+      "description": "A wire end's marker set by hand ([`EndOverride::marker`]): `{\"text\": \"-K1:1\"}`, or `\"none\"` for no marker.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A text of its own, one line.",
+          "properties": {
+            "text": {
+              "$ref": "#/$defs/Ident"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "none",
+          "description": "No marker.",
+          "type": "string"
+        }
+      ]
+    },
     "EndOverride": {
       "additionalProperties": true,
       "description": "An end of a wire set by hand (doc 13 §4.5): what the fitter puts on it and its part; a member left unset is the\nrule's.",
       "properties": {
+        "marker": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EndMarker"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The marker: a text of its own, or none (doc 13 §5.1)."
+        },
         "part": {
           "anyOf": [
             {

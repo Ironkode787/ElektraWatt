@@ -303,6 +303,8 @@ impl ShellModel {
         let value = match self.cell_route(view, i, col) {
             Err(reason) => CellValue::Invalid(reason),
             Ok((kind, path)) if kind == STRIP_ROUTE => self.strip_cell_value(view, i, &path, text),
+            // A marker set by hand (doc 13 §5.1): a text of its own, `—` for none, empty for the marking's own.
+            Ok((_, path)) if path.ends_with(".marker") => CellValue::Valid(marker_value(text)),
             Ok((kind, path)) => match &self.project {
                 None => CellValue::Invalid(strings::text(key!("reason-no-project")).to_owned()),
                 Some(project) => {
@@ -393,15 +395,17 @@ impl ShellModel {
             // A wire's end is set by hand on the connection that lands on it, at its endpoint a or b.
             None if wire_end_cell(&view.table, node, col).is_some() => {
                 match self.wire_end_of(&view.table, node, col) {
-                    Some((_, at_a)) => Ok((
-                        "connection".to_owned(),
-                        if at_a {
-                            "overrides.end_a.treatment"
+                    Some((_, at_a)) => {
+                        let member = if view.table.columns[col].key.ends_with("_marker") {
+                            "marker"
                         } else {
-                            "overrides.end_b.treatment"
-                        }
-                        .to_owned(),
-                    )),
+                            "treatment"
+                        };
+                        Ok((
+                            "connection".to_owned(),
+                            format!("overrides.end_{}.{member}", if at_a { "a" } else { "b" }),
+                        ))
+                    }
                     None => Err(strings::text(key!("table-reason-end-outside")).to_owned()),
                 }
             }
@@ -418,7 +422,7 @@ impl ShellModel {
         self.project_session()?.channel_row(channel)?.device
     }
 
-    /// The connection a wire row's From end or To end cell sets and whether at its endpoint a ([`wire_end_cell`],
+    /// The connection a wire row's end or marker cell sets and whether at its endpoint a ([`wire_end_cell`],
     /// `Session::wire_end`); `None` for every other cell and for an end made outside the project.
     fn wire_end_of(&self, table: &NavTable, node: &NavNode, col: usize) -> Option<(Uuid, bool)> {
         let end = wire_end_cell(table, node, col)?;
@@ -1711,5 +1715,15 @@ impl ShellModel {
             .position(|n| n.key == row)
             .map(|i| cell_text(table, u32::try_from(i).unwrap_or(u32::MAX), column))
             .unwrap_or_default()
+    }
+}
+
+/// A wire end's marker typed in a cell or a Properties row (doc 13 §5.1): `{"text": …}`, `"none"` for `—` (no marker),
+/// `null` for an empty text (the marking's own).
+pub(crate) fn marker_value(text: &str) -> Value {
+    match text.trim() {
+        "" => Value::Null,
+        "—" | "-" => Value::String("none".to_owned()),
+        t => serde_json::json!({ "text": t }),
     }
 }
