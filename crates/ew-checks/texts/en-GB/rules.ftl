@@ -237,8 +237,8 @@ rule-ew-core-048 = { $device } is covered by { $form ->
 
 rule-ew-core-051 = interruption point { $name } { $form ->
         [no-cp] has no connection point; it pairs with nothing
-        [target] at { $at } is a target without a source: place where { $name } comes from, its source, or turn this mark into the source
-        [source] at { $at } is a source without a target: place where { $name } goes on, its targets, or turn this mark into a target
+        [target] at { $at } is a target without a source: place its source where the potential leaves, or turn this mark into the source
+        [source] at { $at } is a source without a target: place a target where the potential arrives, or turn this mark into a target
        *[unpaired] has no partner; its wire stays open-ended
     }
     .title = Unpaired interruption point

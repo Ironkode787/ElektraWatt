@@ -67,7 +67,7 @@ fn a_chosen_target_stays_and_the_check_says_what_each_target_lacks() {
     for m in said {
         assert!(
             m.starts_with("interruption point 24V at 101-")
-                && m.contains("is a target without a source: place where 24V comes from, its source"),
+                && m.contains("is a target without a source: place its source where the potential leaves"),
             "{m}"
         );
     }

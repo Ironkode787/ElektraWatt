@@ -238,8 +238,8 @@ rule-ew-core-048 = { $device } wordt { $form ->
 
 rule-ew-core-051 = onderbrekingspunt { $name } { $form ->
         [no-cp] heeft geen aansluitpunt; het vormt met niets een paar
-        [target] op { $at } is een doel zonder bron: plaats waar { $name } vandaan komt, zijn bron, of maak van deze markering de bron
-        [source] op { $at } is een bron zonder doel: plaats waar { $name } verdergaat, zijn doelen, of maak van deze markering een doel
+        [target] op { $at } is een doel zonder bron: plaats de bron waar de potentiaal vertrekt, of maak van deze markering de bron
+        [source] op { $at } is een bron zonder doel: plaats een doel waar de potentiaal aankomt, of maak van deze markering een doel
        *[unpaired] heeft geen tegenhanger; zijn draad eindigt open
     }
     .title = Onderbrekingspunt zonder tegenhanger

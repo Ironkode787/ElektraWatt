@@ -168,8 +168,9 @@ fn core051_cases() {
                     );
                     // Where it stands and what it lacks: a source its targets.
                     assert!(
-                        f[0].message()
-                            .contains("is a source without a target: place where LONELY goes on"),
+                        f[0].message().contains(
+                            "is a source without a target: place a target where the potential arrives"
+                        ),
                         "case {c}: {}",
                         f[0].message()
                     );
