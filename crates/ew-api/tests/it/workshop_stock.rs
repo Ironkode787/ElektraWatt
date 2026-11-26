@@ -113,6 +113,10 @@ fn a_wire_takes_its_stock_part_and_a_part_of_another_size_is_reported() {
             wire_part_of(&q, props.wires.get(&wire).expect("its props")).map(|r| r.copy),
             Some(fits)
         );
+        // The wire's record, which the wire list, its exports and the SQL view read, names the same part.
+        let records = q.get::<ew_derive::WireRecordSet>(());
+        let record = records.iter().find(|r| r.wire.id == wire).expect("its record");
+        assert_eq!(record.wire_part.as_ref().map(|r| r.copy), Some(fits));
     }
     // The same copies again: reused, not embedded twice; the stock in another order.
     let again = json!([{"copy": fits.to_string()}, {"copy": other.to_string()}]);

@@ -134,9 +134,10 @@ change here.
 - behaviour-change: The wire list names a cable core by its cable and core in the No. column (`-103W1 BN`) instead
   of the Via column; its CP columns print a repeated pin with its number (`+#1`, `+#2`) and a terminal's clamp letter
   (`a`, `b`) instead of the terminal's connection number; an end whose location differs from the other end's prints
-  its location (`+FLD-104B1` to `+CAB-104A1-A2`); a bridge's kind and terminals stand in the new From end column
-  instead of Via. The CSV and XLSX of the list follow. The targets of the terminal diagrams and the cable overview
-  print a repeated pin with its number as well (`-101G1:+#1`).
+  its location (`+FLD-104B1` to `+CAB-104A1-A2`); its Wire part column names the part a wire is cut from, the one
+  set on the wire or its potential, else the workshop stock's first wire part of the wire's size and colour. The CSV
+  and XLSX of the list follow. The targets of the terminal diagrams and the cable overview print a repeated pin with
+  its number as well (`-101G1:+#1`).
 - behaviour-change: A wire's length typed by hand is shown and typed where the wire is: the wire list has the columns
   Length (`400 mm`; `cable` for a cable core, cut with its cable; `—` without one) and Length from (typed, cable,
   missing) in its CSV and XLSX and in List columns…, the Connections table's Length cell takes a length in

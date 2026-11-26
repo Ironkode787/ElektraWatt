@@ -246,8 +246,9 @@ two things.
 
 **Rows.** One row per physical wire, cores included, in the numbering order of [08](08-connections-terminals-cables.md)
 §5.2, from `wire_record_set()`; then a heading "Bridges" and one row per bridge: its label (BR1), its first and last
-terminal, and in the From end cell its kind and span ("plug-in bridge, terminals 1–4"). A bridge has no length,
-treatment or marker: it is mounted with its strip ([the workshop lists](13-workshop-lists.md) §6).
+terminal, and in the Via cell its kind and span ("plug-in bridge, terminals 1–4"), the cell the list prints. A
+bridge has no length, treatment or marker: it is mounted with its strip ([the workshop lists](13-workshop-lists.md)
+§6).
 
 **Columns.** The key is what an export profile and the round trip address.
 

@@ -35,12 +35,12 @@ use crate::rowset::{Cell, CellType, ColumnDef, QtyUnit, Row, RowId, RowKey, RowK
 /// -101F1:1`, two conductors on one clamp) and the interruption points it passes (`IP 0VDC-AIR2`; doc 08 §3.2,
 /// D-20). `no` is the wire number `{page}.{counter}` of the connection-oriented scheme (counter scope page); a cable
 /// core, which has none, prints its cable and core (`-106W1 BK`, doc 13 §3.1); a tie between wires of equal cells is
-/// decided by the wire ID and not printed. `part` is the wire part the wire carries explicitly (empty at MVP,
-/// FR-CON-033).
+/// decided by the wire ID and not printed. `part` is the wire part the wire is cut from: the one its chain names, else
+/// the workshop stock's (`ew_derive::wire_part_of`, FR-CON-033).
 ///
 /// An end (doc 13 §3.2) prints its device or terminal without the structure the two ends share, so an end in
 /// another location prints it (`+FLD-104B1`), and its pin in the CP column: a repeated pin with `#n` (`+#1`), a
-/// terminal's clamp letter (`a`). A bridge prints its kind and span in its From end cell.
+/// terminal's clamp letter (`a`). A bridge prints its kind and span in its Via cell, which the list prints.
 ///
 /// `length` is the wire's length (doc 13 §3.3): typed, in millimetres; `cable` for a core, cut with its cable; `—`
 /// without one; `length_source` says which (typed, cable, missing).
@@ -210,7 +210,7 @@ fn bridge_row(q: &Q, b: &Bridge) -> Row {
     let first = b.terminals.first().map_or(Cell::Empty, |t| Cell::Tag(*t));
     let last = b.terminals.last().map_or(Cell::Empty, |t| Cell::Tag(*t));
     let span = bridge_span(q, b);
-    let kind = words_cell(&text!("cell-bridge-span", b.kind.clone(), span));
+    let via = words_cell(&text!("cell-bridge-via", b.kind.clone(), span));
     let id = RowId::entity(b.strip)
         .with(RowKey::Name("bridge".to_owned()))
         .with(RowKey::Index(u32::from(b.group)));
@@ -221,9 +221,9 @@ fn bridge_row(q: &Q, b: &Bridge) -> Row {
     set("from", first);
     set("to", last);
     set("potential", bridge_potential(q, b));
+    set("via", via);
     set("part", Cell::Tbd);
     set("pages", b.page.map_or(Cell::Empty, |p| pages_cell(&[p])));
-    set("from_end", kind);
     let mut r = Row::data(id, cells);
     r.sources = b.terminals.iter().map(|t| t.cast()).collect();
     r

@@ -23,7 +23,7 @@ use crate::potentials::PotentialPartition;
 use crate::q::Q;
 use crate::query::{Policy, Query};
 use crate::structure::StructureOf;
-use crate::wire_props::{Prov, WirePropsOf};
+use crate::wire_props::{Prov, WirePropsOf, wire_part_of};
 use crate::wires::{EndKind, PhysicalWire, PhysicalWiresOf, WireEnd};
 
 /// One physical wire as the workshop reads it.
@@ -35,7 +35,8 @@ pub struct WireRecord {
     pub csa: Option<Prov<Csa>>,
     /// The effective colour with its source.
     pub colour: Option<Prov<ColourSpec>>,
-    /// The wire part the inheritance chain names.
+    /// The wire part the wire is cut from: the one its inheritance chain names, else the workshop stock's
+    /// ([`wire_part_of`]).
     pub wire_part: Option<PartRef>,
     /// The printed number (`101.1`); `None` for a cable core and a wire drawn on no page.
     pub number: Option<String>,
@@ -137,6 +138,7 @@ impl Query for WireRecordSet {
                     let mut wire = w.clone();
                     orient_wire(q, &mut wire);
                     let props = props.wires.get(&w.id).cloned().unwrap_or_default();
+                    let wire_part = wire_part_of(q, &props);
                     let ends = wire.ends.map(|e| EndRecord {
                         site: site_end(q, &e, &spaces),
                     });
@@ -149,7 +151,7 @@ impl Query for WireRecordSet {
                         wire,
                         csa: props.csa,
                         colour: props.colour,
-                        wire_part: props.wire_part.map(|p| p.value),
+                        wire_part,
                         number: numbers.number(w.id).map(|n| n.label.clone()),
                     }
                 });
