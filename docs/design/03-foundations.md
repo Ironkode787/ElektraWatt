@@ -50,7 +50,7 @@ A chapter of [Domain model](03-domain-model.md), whose table says where each sec
 | Tube | `Connection { kind: Fluid }` carrying a `TubeSpec` |
 | Network | `LogicalNet` plus `PhysicalNet` |
 | Placement | `Placement3D`, also used by the 2D panel layout |
-| Connection definition point (CDP) | `Connection.overrides`, optionally rendered as a wire marker |
+| Connection definition point (CDP) | `Connection.overrides`, optionally rendered as a wire annotation |
 | Part | a catalogue item in `ew-library`; inside a project always a `PartCopy` reached through a `PartRef` |
 
 ---
@@ -301,7 +301,7 @@ Every link field declares a delete policy, generated into `ew-model` (arch §4.6
   cascades with either endpoint, a representation with any of its functions, a conductor with its cable.
 - **Unlink** for optional cross-references: `SupplySpec.origin.source`, `IpSpec.external`, the bus cable of a
   `Connection.kind` and `Bond.via` are cleared; `Connection.kind = Core` reverts to `Wire`; a deleted connection
-  leaves `Junction.sequence` and, from part 4a, the list of every wire marker (§6). `PotentialDef.at` and `Bond.a`/`b` drop the record.
+  leaves `Junction.sequence` and, from part 4a, the list of every wire annotation (§6). `PotentialDef.at` and `Bond.a`/`b` drop the record.
 - **Forbid** for master data and structure (structure nodes, sections, forms, `Device.parent`, `Terminal.strip`),
   library copies (`Representation.symbol`, `Function.def`, `PartRef.copy`), `source_ref.lineage`,
   `Revision.withdraws`, and a `LibRef`

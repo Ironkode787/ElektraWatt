@@ -3636,8 +3636,8 @@ msgstr ""
 
 #: src/how-to/start-a-project.md:128
 msgid ""
-"The warning \"Wire marker prints 0.94 mm high, too small to read on paper\" "
-"opens **Text styles** at that style when you open it in Messages "
+"The warning \"Wire annotation prints 0.94 mm high, too small to read on "
+"paper\" opens **Text styles** at that style when you open it in Messages "
 "(double-click, or Enter); **Set to 1.2 mm** on the message mends it in one "
 "step."
 msgstr ""
@@ -6376,7 +6376,7 @@ msgstr ""
 
 #: src/reference/window/tools.md:22
 msgid ""
-"On a wire: Route, Wire marker, Define potential…, Cable… and Show wire "
+"On a wire: Route, Wire annotation, Define potential…, Cable… and Show wire "
 "numbers on the pages; a wire does not turn, so there is no Rotate or Mirror. "
 "On several selected wires: Make cable from the selection…."
 msgstr ""
@@ -7070,24 +7070,24 @@ msgid ""
 msgstr ""
 
 #: src/reference/window/tools.md:382
-msgid "Wire marker"
+msgid "Wire annotation"
 msgstr ""
 
 #: src/reference/window/tools.md:384
 msgid ""
-"Places a wire marker, the label that prints the cross-section and colours of "
-"the wires it marks. Open it with **Marker** on the Draw tab or Shift+W. Drag "
-"a line across the wires, type the cross-section and the colours in the "
-"tool's fields if they are to change, and press Enter. The fields may be "
-"filled before or after the line: a field takes its value when you leave it "
-"(Enter, Tab, a click on the other field or back on the page), and the marker "
-"prints what the fields show. A colour is a code in any case (`BK`, `bk`), "
-"two codes of one wire (`GN+YE` or `GNYE`), a company code of the project's "
-"colour profile, or a colour's name from that profile; one colour is every "
-"marked wire's, and a list (`BK, BU`) gives each wire its own in the order "
-"the line crosses them. A colour the project does not know is refused with "
-"the codes it knows. The marker prints a short line across the wires and its "
-"text beyond the line's end, clear of the wires."
+"Places a wire annotation, the label that prints the cross-section and "
+"colours of the wires it marks. Open it with **Annotate** on the Draw tab or "
+"Shift+W. Drag a line across the wires, type the cross-section and the "
+"colours in the tool's fields if they are to change, and press Enter. The "
+"fields may be filled before or after the line: a field takes its value when "
+"you leave it (Enter, Tab, a click on the other field or back on the page), "
+"and the marker prints what the fields show. A colour is a code in any case "
+"(`BK`, `bk`), two codes of one wire (`GN+YE` or `GNYE`), a company code of "
+"the project's colour profile, or a colour's name from that profile; one "
+"colour is every marked wire's, and a list (`BK, BU`) gives each wire its own "
+"in the order the line crosses them. A colour the project does not know is "
+"refused with the codes it knows. The marker prints a short line across the "
+"wires and its text beyond the line's end, clear of the wires."
 msgstr ""
 
 #: src/reference/window/tools.md:394
@@ -10290,16 +10290,17 @@ msgid "CDP, Connection definition point"
 msgstr ""
 
 #: src/explanation/eplan-and-ew.md:37 src/explanation/qet-and-ew.md:36
-msgid "**EW term:** [Wire marker](../reference/glossary.md#wire-marker)"
+msgid ""
+"**EW term:** [Wire annotation](../reference/glossary.md#wire-annotation)"
 msgstr ""
 
 #: src/explanation/eplan-and-ew.md:39
 msgid ""
 "**The same:** you set a wire's cross-section, colour or number at a point on "
 "the wire. **What differs:** in EW the value belongs to the wire itself, and "
-"the wire marker is only the label that shows it on the page; potentials and "
-"profiles give the default, and a value set on the wire is an override. **In "
-"the window:** **Draw ▸ Annotate ▸ Wire marker**."
+"the wire annotation is only the label that shows it on the page; potentials "
+"and profiles give the default, and a value set on the wire is an override. "
+"**In the window:** **Draw ▸ Annotate ▸ Wire annotation**."
 msgstr ""
 
 #: src/explanation/eplan-and-ew.md:46 src/explanation/qet-and-ew.md:44
@@ -10598,8 +10599,8 @@ msgstr ""
 msgid ""
 "**The same:** a text on the wire shows its number or function. **What "
 "differs:** the number is a property of the wire, derived by the numbering "
-"scheme; the wire marker only shows it. **In the window:** **Draw ▸ Annotate "
-"▸ Wire marker**."
+"scheme; the wire annotation only shows it. **In the window:** **Draw ▸ "
+"Annotate ▸ Wire annotation**."
 msgstr ""
 
 #: src/explanation/qet-and-ew.md:42

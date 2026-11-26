@@ -19,7 +19,7 @@ come the general ones (Rotate, Mirror, Renumber devices… and Move to page… o
 Properties of selection). A right click selects the thing first; Shift+F10 or the menu key opens the same menu for the
 selection.
 
-- On a wire: Route, Wire marker, Define potential…, Cable… and Show wire numbers on the pages; a wire does not turn, so
+- On a wire: Route, Wire annotation, Define potential…, Cable… and Show wire numbers on the pages; a wire does not turn, so
   there is no Rotate or Mirror. On several selected wires: Make cable from the selection….
 - On a terminal: Add terminal (the strip's next number, of the terminal's kind and part, floating at the pointer),
   Choose part… and Edit strip, which opens the strip editor. On several selected terminals: Choose part…, for them
@@ -379,10 +379,10 @@ form yet: place one point of that direction first.
 Marks the interruption point as the source of its name in star mode: one source, many targets. Draw ▸ Connect ▸
 Star source.
 
-## Wire marker
+## Wire annotation
 
-Places a wire marker, the label that prints the cross-section and colours of the wires it marks. Open it with
-**Marker** on the Draw tab or Shift+W. Drag a line across the wires, type the cross-section and the colours in the
+Places a wire annotation, the label that prints the cross-section and colours of the wires it marks. Open it with
+**Annotate** on the Draw tab or Shift+W. Drag a line across the wires, type the cross-section and the colours in the
 tool's fields if they are to change, and press Enter. The fields may be filled before or after the line: a field
 takes its value when you leave it (Enter, Tab, a click on the other field or back on the page), and the marker
 prints what the fields show. A colour is a code in any case (`BK`, `bk`), two codes of one

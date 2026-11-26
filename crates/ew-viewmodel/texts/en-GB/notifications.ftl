@@ -87,7 +87,7 @@ announce-end-junction = a junction
 announce-item = { $p0 }, { $p1 }
 announce-item-graphic = Graphic
 announce-item-free_text = Text
-announce-item-wire_marker = Wire marker
+announce-item-wire_marker = Wire annotation
 announce-item-cable_mark = Mark of the cable
 announce-item-image = Image
 announce-item-surface_view = Surface view
@@ -267,8 +267,8 @@ toast-bridged = { $p0 ->
     }.
 toast-check = Check: { $p0 }.
 toast-marker-count = { $p0 ->
-        [one] 1 wire carries a marker
-       *[other] { $p0 } wires carry a marker
+        [one] 1 wire carries an annotation
+       *[other] { $p0 } wires carry an annotation
     }.
 job-kind-pdf = PDF export
 job-kind-print = Print set

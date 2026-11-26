@@ -116,8 +116,9 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `lists.parts` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_lists_parts` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-lists-parts`, `bar-lists-parts` |
 | `lists.wires` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_lists_wires` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-lists-wires`, `bar-lists-wires` |
 | `rework.show` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_rework_show` `crates/ew-viewmodel/src/shell/rework.rs` | `action-rework-show` |
-| `labels.show` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_labels_show` `crates/ew-viewmodel/src/shell/labels.rs` | `action-labels-show` |
+| `labels.show` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_labels_show` `crates/ew-viewmodel/src/shell/labels.rs` | `action-labels-show`, `labels-show` |
 | `labels.tick` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_labels_tick` `crates/ew-viewmodel/src/shell/labels.rs` | `action-labels-tick` |
+| `labels.misfits` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_labels_misfits` `crates/ew-viewmodel/src/shell/labels.rs` | `action-labels-misfits`, `labels-misfits` |
 | `labels.write` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_labels_write` `crates/ew-viewmodel/src/shell/labels.rs` | `action-labels-write` |
 | `labels.columns` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_labels_columns` `crates/ew-viewmodel/src/shell/labels.rs` | `action-labels-columns`, `labels-columns`, `labels-columns-title` |
 | `workshop.settings` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_workshop_settings` `crates/ew-viewmodel/src/shell/labels.rs` | `action-workshop-settings` |

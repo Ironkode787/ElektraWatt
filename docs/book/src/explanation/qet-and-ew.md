@@ -33,11 +33,11 @@ Choose part…**. See [Choose parts](../how-to/choose-parts.md).
 
 ## Conductor text
 
-**EW term:** [Wire marker](../reference/glossary.md#wire-marker)
+**EW term:** [Wire annotation](../reference/glossary.md#wire-annotation)
 
 **The same:** a text on the wire shows its number or function. **What differs:** the number is a property of the
-wire, derived by the numbering scheme; the wire marker only shows it. **In the window:** **Draw ▸ Annotate ▸ Wire
-marker**.
+wire, derived by the numbering scheme; the wire annotation only shows it. **In the window:** **Draw ▸ Annotate ▸ Wire
+annotation**.
 
 ## Folio report
 

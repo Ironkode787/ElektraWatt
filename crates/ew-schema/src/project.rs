@@ -1267,7 +1267,10 @@ mod delimiter_tests {
             assert_eq!(name(&d), serde_json::json!(n));
         }
         for d in [Delimiter::Comma, Delimiter::Semicolon] {
-            assert!(Delimiter::NAMES.iter().any(|n| name(&d) == serde_json::json!(n)), "{d:?}");
+            assert!(
+                Delimiter::NAMES.iter().any(|n| name(&d) == serde_json::json!(n)),
+                "{d:?}"
+            );
         }
     }
 }

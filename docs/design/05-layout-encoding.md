@@ -181,12 +181,12 @@ older 0.1 build keeps the records verbatim. The domain model's [03](03-domain-mo
 - **`structure_box`:** `{"$k", "id", "$v"?, "page", "outline": [Pt2] (at least 3), "style": "dotted" | "dash_dot",
   "caption"?: MlText, "assigns": StructureAssignment, "external"?: IdS}` ([03](03-domain-model.md) §5).
 - **Links and invariants.** The `page` of either kind is a cascade link (deleting a page deletes its items and boxes,
-  FR-PAG-025), and the connections a wire marker lists are held by two new structural invariants of ADR-0009
+  FR-PAG-025), and the connections a wire annotation lists are held by two new structural invariants of ADR-0009
   (EW-INV-022 and EW-INV-023, [03](03-domain-model.md) §6): a deleted connection leaves the list, and a marker left
   empty is deleted in the same plan. `StructureBox.external` (an `ExternalRef` ID) is an unlink
   link: deleting the reference clears the member.
 - **Load finding.** A build from before these kinds were typed keeps `page_item` records verbatim and does not enforce that delete
-  link, so a project can arrive with a wire marker that lists a deleted connection or a connection on another page.
+  link, so a project can arrive with a wire annotation that lists a deleted connection or a connection on another page.
   This is **reported, not refused**: a load finding that names the marker and the connection (a derivation finding, not
   an integrity rule of §6.3; specified; not built: `Session::load_findings` is gone, so nothing is reported). The stale entry is ignored
   by the derivation and the drawing, and the project opens; the next edit of that marker writes a clean list.

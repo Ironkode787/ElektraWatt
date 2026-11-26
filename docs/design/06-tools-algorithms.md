@@ -145,7 +145,7 @@ stateDiagram-v2
 | Interruption point | Armed → Floating (name, direction, star source) → Committed | `ip.place` (§3.5) |
 | Black box | Armed → Outline → Assign device → Committed | `box.black` |
 | Structure box | Armed → Outline → Fields → Committed | `box.structure` |
-| Wire marker (CDP) | Armed → Crossing (rubber line across wires) → Fields (size, colours) → Committed | `marker.place` |
+| Wire annotation (CDP) | Armed → Crossing (rubber line across wires) → Fields (size, colours) → Committed | `marker.place` |
 | Graphic, Text | Armed → Drawing/Typing → Committed | `item.place`; Text edit uses `fields.set` |
 | Image (part 5, open) | Planned placement flow | planned `item.place` path |
 | Route edit | Grip selected → Dragging segment (stays orthogonal) → Committed | `connection.route` |

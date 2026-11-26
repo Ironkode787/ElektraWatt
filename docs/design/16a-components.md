@@ -338,7 +338,7 @@ thing; one that cannot run now is disabled with its reason, as the command row's
 | Under the pointer | First entries |
 |---|---|
 | A connection point | Mark not used, or Mark used |
-| One wire | Route, Wire marker, Define potential…, Cable… (a core's own cable), Show wire numbers on the pages (checked when on) |
+| One wire | Route, Wire annotation, Define potential…, Cable… (a core's own cable), Show wire numbers on the pages (checked when on) |
 | Several selected wires | Make cable from the selection… |
 | A junction | Define potential… |
 | An interruption point | Supply comes in here… (Remove the supply mark on a marked point), Go to partner (its cross-reference's cell; disabled while it has none or the point is external), Direction: Source, Direction: Target (the current one checked), Continue on page… |

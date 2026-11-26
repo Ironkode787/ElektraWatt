@@ -1258,7 +1258,7 @@ fn the_draw_tab_has_buttons_for_terminal_wire_marker_and_the_symbol_editor() {
     d.input(&key("escape"));
     d.settle();
     assert!(d.shell_mut().dialog().is_none());
-    press(&mut d, "Marker");
+    press(&mut d, "Annotate");
     assert_eq!(d.shell_mut().tool().name(), "marker");
     d.input(&key("escape"));
     d.settle();

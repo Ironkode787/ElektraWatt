@@ -34,12 +34,12 @@ updating the copy from the library is a command you run. **In the window:** **Ed
 
 ## CDP, Connection definition point
 
-**EW term:** [Wire marker](../reference/glossary.md#wire-marker)
+**EW term:** [Wire annotation](../reference/glossary.md#wire-annotation)
 
 **The same:** you set a wire's cross-section, colour or number at a point on the wire. **What differs:** in EW the
-value belongs to the wire itself, and the wire marker is only the label that shows it on the page; potentials and
+value belongs to the wire itself, and the wire annotation is only the label that shows it on the page; potentials and
 profiles give the default, and a value set on the wire is an override. **In the window:** **Draw ▸ Annotate ▸ Wire
-marker**.
+annotation**.
 
 ## Interruption point
 

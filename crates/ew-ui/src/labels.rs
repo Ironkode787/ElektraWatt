@@ -137,7 +137,11 @@ pub(crate) fn body(ui: &mut Ui, d: &LabelsDialog, events: &mut Vec<Event>) {
                 &t,
                 strings::format_count(ew_viewmodel::count_key!("labels-misfits"), d.misfits.len()),
             ));
-            let word = if d.show_misfits { key!("labels-hide") } else { key!("labels-show") };
+            let word = if d.show_misfits {
+                key!("labels-hide")
+            } else {
+                key!("labels-show")
+            };
             if ui.button(strings::text(word)).clicked() {
                 events.push(Event::Action("labels.misfits", json!({ "on": !d.show_misfits })));
             }

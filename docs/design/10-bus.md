@@ -36,7 +36,7 @@ present only on a connector or device with a termination switch (FR-BUS-004).
   terminating element of the port it sits on when the port has no switch of its own. A plug part is an accessory
   with a passive bus interface of its bus (starter EW-GEN-PLG-1 … -10). The cable is numbered on
   the page of its first bus line, as a wiring page's cable on its first core's page, and `bus.cable.set` gives each
-  line's page the cable's mark (a wire marker listing the line, across the middle of its longest run: the tag in the
+  line's page the cable's mark (a wire annotation listing the line, across the middle of its longest run: the tag in the
   tag style, the type under it, movable); a line no mark lists (an older file) prints the tag beside it in the tag
   style. The form also offers the project's cables made for the bus (a further line runs on in one, the person's
   choice), and its lists end in New bus cable… and New plug…: the part editor's short form of a cable for the bus

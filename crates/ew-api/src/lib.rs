@@ -231,9 +231,6 @@ pub use ew_memo::Mismatch;
 /// NFC normalisation (the form every `Ident` and text key takes): the shell names it through `ew-api` (no workspace
 /// edge of its own).
 pub use ew_mltext::to_nfc;
-/// The project's decimal separator (`settings.formatting.decimal_separator`): the shell writes millimetres
-/// with it.
-pub use ew_schema::{DecimalSeparator, Delimiter};
 /// The format this version writes, and the migration chain a project of an older format runs through at open:
 /// `ew upgrade` names the format, and a test passes its own chain in [`StoreOptions`].
 pub use ew_schema::FORMAT;
@@ -256,6 +253,9 @@ pub use ew_schema::{
 };
 /// The conflict records a merge leaves (doc 05 §11.2): `ew merge resolve` selects them by kind and member.
 pub use ew_schema::{Conflict, ConflictBody, FILE_CONFLICT_KIND};
+/// The project's decimal separator (`settings.formatting.decimal_separator`): the shell writes millimetres
+/// with it.
+pub use ew_schema::{DecimalSeparator, Delimiter};
 /// The text styles (ADR-0032): what a new project starts with, the effective table, the faces, the groups and the
 /// cap height the Text styles page shows and edits.
 pub use ew_schema::{

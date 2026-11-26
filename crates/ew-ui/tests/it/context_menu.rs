@@ -213,7 +213,7 @@ fn a_wires_menu_and_two_wires_make_a_cable() {
         first,
         &[
             "Route",
-            "Wire marker",
+            "Wire annotation",
             "Define potential",
             "Cable…",
             "Show wire numbers on the pages",

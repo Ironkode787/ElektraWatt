@@ -82,7 +82,7 @@ actions.
   lists the eight most recent actions.
 - **Aliases** come from the glossary (§9.3): "folio report" finds *Insert interruption point*, "master/slave"
   finds *Show all representations* and *Make auxiliary function*, "plot frame" finds the page frame setting,
-  "message management" opens the messages panel, "CDP" finds *Insert wire marker*. "Update reports" finds an
+  "message management" opens the messages panel, "CDP" finds *Insert wire annotation*. "Update reports" finds an
   explanation entry, "Reports are always current", that links to its documentation page.
 - **Disabled actions** are listed last, greyed, with their reason.
 - **Parameters.** An action with a parameter schema opens an inline form generated from its JSON Schema and
@@ -237,7 +237,7 @@ keymap; Alt held at a drag's release moves without them, and the keyboard move (
 since only a drag's release reads the modifier. On the release of a move the wires whose followed route would break
 a hard rule, bend more or stay unrouted are routed again in the same undo step.
 
-Text/Text edit input updates the ghost while typing and the 80 ms dwell preview before an explicit Enter commit; Escape cancels. Bound Text commits at its press. Graphic and Structure box use Shift+Enter or a double click for tool.finish; a two-corner box outline becomes a rectangle before its fields/Enter step. Marker fields determine the ghost and commit text, and angle is 90 degrees only when all crossed segments are horizontal. A new drawing-tool activation, including the same action and page/project reset, resets the displayed marker/structure drafts to that tool's defaults; editable drafts survive ordinary frames and outline transitions. Changing the page cancels every drawing tool. Text edit uses F2/double click on a free text and refuses a read-only page; Tools ▸ Wire markers selects the checked project marker mode.
+Text/Text edit input updates the ghost while typing and the 80 ms dwell preview before an explicit Enter commit; Escape cancels. Bound Text commits at its press. Graphic and Structure box use Shift+Enter or a double click for tool.finish; a two-corner box outline becomes a rectangle before its fields/Enter step. Marker fields determine the ghost and commit text, and angle is 90 degrees only when all crossed segments are horizontal. A new drawing-tool activation, including the same action and page/project reset, resets the displayed marker/structure drafts to that tool's defaults; editable drafts survive ordinary frames and outline transitions. Changing the page cancels every drawing tool. Text edit uses F2/double click on a free text and refuses a read-only page; Tools ▸ Wire annotations selects the checked project marker mode.
 
 ### 4.6 Selection
 

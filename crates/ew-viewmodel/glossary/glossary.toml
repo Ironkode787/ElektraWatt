@@ -82,16 +82,16 @@ en-GB = "The parts of your own (New part…), offered to every project; Remove f
 nl-NL = "Uw eigen artikelen (Nieuw artikel…), aangeboden aan elk project; Uit mijn artikelbibliotheek verwijderen… haalt er een uit, en de projecten die het gebruiken houden hun kopie."
 
 [[term]]
-ew = "Wire marker"
+ew = "Wire annotation"
 eplan = ["CDP", "Connection definition point"]
 qet = ["Conductor text"]
 actions = ["tool.marker"]
 [term.labels]
-en-GB = "Wire marker"
-nl-NL = "Adermarkering"
+en-GB = "Wire annotation"
+nl-NL = "Draadaanduiding"
 [term.definition]
-en-GB = "A marker on a connection that shows or overrides its number, colour and cross-section."
-nl-NL = "Een markering op een verbinding die haar nummer, aderkleur en doorsnede toont of overschrijft."
+en-GB = "An annotation on a connection that shows or overrides its number, colour and cross-section."
+nl-NL = "Een aanduiding op een verbinding die haar nummer, aderkleur en doorsnede toont of overschrijft."
 
 [[term]]
 ew = "Interruption point"

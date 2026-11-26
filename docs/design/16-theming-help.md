@@ -108,7 +108,7 @@ The mapping lives in `ew_viewmodel::help`. Every action a menu or the bar shows 
 topic: its own section, else the section of what it acts on (its family: `cable.` the cables', `view.` the page
 view's); only opening, saving, undo and the clipboard open the project view's. A thing on the page is classified by
 its record and, for a device, its natures (a terminal, a PLC card or station, a valve terminal, a valve, a bus device,
-else a device; an external interruption point is a supply point; a wire marker on cores only is a cable's mark; the
+else a device; an external interruption point is a supply point; a wire annotation on cores only is a cable's mark; the
 one selected wire under the pointer is its route); its sections are on `reference/window/things.md`, the frame's
 where the pointer is on the sheet outside the frame's cells. The window names what is under the pointer each frame
 (`ew_ui::help`; of the frame's offers the smallest rectangle wins), hands it to the shell, and F1 asks for that

@@ -66,7 +66,7 @@ flowchart LR
 | Potential | Signals joined by bridges and rail bonding: the electrically equal set | 24VDC-1 over -X1031:1–4 |
 | Physical wire | What the shop cuts: one CP-to-CP piece, resolved through junctions and IP pairs | W11 across L-1 |
 | Bond | A declared link of two potentials that does not merge them | B1, 0V ⇄ PE via W27 |
-| CDP | Connection definition point: the explicit overrides of one connection, drawn as a wire marker | "2.5 BK BU" on W4/W5 |
+| CDP | Connection definition point: the explicit overrides of one connection, drawn as a wire annotation | "2.5 BK BU" on W4/W5 |
 | Strip, terminal | Devices with the `Strip` and `Terminal` aspects. A terminal is a device | -X1031 and its 20 terminals |
 | Level, clamp, side | The CP locus on a terminal. Side 1 is internal and side 2 is external by default | -X1031:1 (1/a) |
 | Bridge | A `Connection{kind: Bridge}` between terminal CPs. It joins potentials and is never a wire | BR1 over -X1031:1–4 |
@@ -746,7 +746,7 @@ mark verified, and the built-in defaults stay code.
 
 ### 4.5 Markers and overrides
 
-- **What a marker is.** A wire marker (`PageItem::WireMarker`) displays connection data and stores none of its own
+- **What a marker is.** A wire annotation (`PageItem::WireMarker`) displays connection data and stores none of its own
   (FR-CON-023).
 - **Marker modes** (FR-CON-024):
   - all wires;
@@ -776,7 +776,7 @@ The marker mode is a **project setting**,
 FR-CON-039: the distinct effective cross-sections of the
 listed connections in list order joined by `/`, then one colour code per connection in list order, each as the
 per-connection marker prints it, separated by spaces (`2.5 BK BU`, `1.5 DBU DBU WH WH`); a connection listed by a
-wire marker item draws no marker of its own. The per-page mode of FR-CON-024 is not decided.
+wire annotation item draws no marker of its own. The per-page mode of FR-CON-024 is not decided.
 
 ### 4.6 Units
 

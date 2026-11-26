@@ -202,7 +202,7 @@ through the window's own actions, and the tools are specified in §3 and §4.
 | D-04 parts missing (S56, E56) | "Device without part" is a pending finding while drawing and a full warning on leaving the page (EW-CORE-041); part-first placement makes the part the default |
 | D-06 description drift | Page properties offer the title, not the title-block description; an override is explicit and reported (EW-CORE-023) |
 | D-07 no links | Every xref text is a link source with a named destination (§7) |
-| D-08 free-text wire rule | Wire markers display connection data and profile-derived values; no free text can look like a marker |
+| D-08 free-text wire rule | Wire annotations display connection data and profile-derived values; no free text can look like a marker |
 | D-10 5 valves in the overview | Assembly overviews are generated; the canvas refuses drawing on them |
 | D-11, D-12 terminal designations | Prevent rules refuse empty and duplicate designations at commit in strict mode |
 | D-13 N switching | EW-POT-013 fires while the circuit is being drawn, not at release |

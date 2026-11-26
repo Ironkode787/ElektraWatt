@@ -610,7 +610,7 @@ impl ShellModel {
         })
     }
 
-    /// The toast of a marker-mode switch, how many wires carry a marker now (`0 wires carry a marker`), so a
+    /// The toast of a marker-mode switch, how many wires carry a marker now (`0 wires carry an annotation`), so a
     /// mode that selects no wire on this project does not look like a mode that did nothing.
     fn notify_marker_count(&mut self, undo: bool) {
         let Some(project) = &self.project else { return };

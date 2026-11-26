@@ -56,7 +56,7 @@ lie outside the page's drawing area it is refused in words, as Paste refuses it,
 its middle to be placed by hand. It has no shortcut: Ctrl+Shift+V is kept for paste as representation.
 
 **What may lie outside the drawing area.** A block's free texts and graphics may lie anywhere on the sheet, the frame's
-bands included, as the Text tool puts them; only its symbols, wire markers and structure boxes must lie inside the
+bands included, as the Text tool puts them; only its symbols, wire annotations and structure boxes must lie inside the
 drawing area, and Paste is refused only for them (it was refused for a text in the header band). The fragment's header
 names the ghost rectangles of free texts and graphics (`free`, doc 05 §12); a fragment without it keeps every rectangle
 inside the drawing area.
@@ -110,7 +110,7 @@ command it commits is `page.copy` (`CopyPages`), whose parameters are the pages 
   it, and the card says so. So does a name with no source anywhere in the project whose copied points are all targets,
   whether or not the copy takes all of its points: a supply that comes in from outside the drawing (L, N, PE drawn as
   targets only) feeds the copy too, and Rename still gives the copy its own name where the person wants one.
-- **Parts** stay the project's copies. **Texts**, graphics and wire markers come at their places; a text bound to the
+- **Parts** stay the project's copies. **Texts**, graphics and wire annotations come at their places; a text bound to the
   folio or the title shows the copy's. A free text whose whole text is the printed tag a copied device had before the
   copy, with or without its sign (the strip's name beside its first terminal, a cable's name at its cores, as an
   imported set writes them), prints the copy's tag in the same form, and one whose whole text is the name of a copied
@@ -197,7 +197,7 @@ current path, a note. Each is one of these, and only the last follows nothing:
 
 | Text | What it is | It follows | In the window | By command |
 |---|---|---|---|---|
-| A cable's name and type, a core's number at a wire | the cable mark: a wire marker across the cable's cores ([08](08-connections-terminals-cables.md) §4.5; doc 06a §5.2) | a rename of the cable, its part's type, a core's designation; its line moves with the mark | the Wire marker tool across the cores | `marker.place` |
+| A cable's name and type, a core's number at a wire | the cable mark: a wire annotation across the cable's cores ([08](08-connections-terminals-cables.md) §4.5; doc 06a §5.2) | a rename of the cable, its part's type, a core's designation; its line moves with the mark | the Wire annotation tool across the cores | `marker.place` |
 | A strip's name, once on a page | the strip's tag that the program prints at its first terminal on the page ([08](08-connections-terminals-cables.md) §6.7), or, where the person wants it elsewhere, a **text of a symbol** bound to `strip.tag` | a rename or renumbering of the strip; a move of its terminal | Name the terminal strip here, in the canvas menu over one terminal: the text right-aligned one step left of the terminal, level with it, to be dragged where the drawing wants it | `item.place {free_text: {bind: "strip.tag", of: <the terminal's symbol>, at}}` |
 | A device's function text over its current path | a **text of a symbol** bound to `device.function_text` (the symbol's own function-text slot prints beside the symbol, where its author put it) | a change of the function text; a move of the symbol | Function text over its path, in the canvas menu over one symbol of a device with a function text: the text centred on the symbol's column, its baseline a step above the highest wire or symbol of that column (over its current path), to be dragged where the drawing wants it | `item.place {free_text: {bind: "device.function_text", of: <the symbol>, at}}` |
 | A note on a page | a free text | nothing: it is the person's words about the page, which no record holds | the Text tool | `item.place {free_text: {text, at}}` |
@@ -225,7 +225,7 @@ function text of FR-DEV-011, below, is not built), or to any other value of a de
 moves it by the symbol's displacement only); and it adds no setting: where the text placer may place a text is doc
 06a §5.4's rule.
 
-Text, Text edit, Graphic, Wire marker and Structure box are implemented through the tool host (§4.5); Image remains part 5.
+Text, Text edit, Graphic, Wire annotation and Structure box are implemented through the tool host (§4.5); Image remains part 5.
 
 ---
 

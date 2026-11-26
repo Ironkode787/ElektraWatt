@@ -375,7 +375,7 @@ no live counterpart until the assembly exists; EW-CORE-046 (FR-CHK-022) takes ov
 | EW-IMP-104 | Per-folio title-block value conflict (revision, author, date) | warning | D-05 | create revisions, drop per-page values |
 | EW-IMP-105 | Per-folio description differs; kept as `description_override` | info | D-06 | drop override |
 | EW-IMP-106 | Title-block party differs from the cover party | warning | D-30 | bind role |
-| EW-IMP-107 | Free text converted to data (wire marker, address, port, process tag, bus address) | info | D-08, D-15, D-26 | revert |
+| EW-IMP-107 | Free text converted to data (wire annotation, address, port, process tag, bus address) | info | D-08, D-15, D-26 | revert |
 | EW-IMP-108 | Data-like text not converted (review list) | warning | D-08, D-26 | bind manually |
 | EW-IMP-109 | Strip drawn in several segments; merged into one strip | info | D-42 | split |
 | EW-IMP-110 | Hand-drawn overview differs from the linked detail | warning | D-10 | regenerate overview |

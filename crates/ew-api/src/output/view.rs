@@ -374,7 +374,7 @@ pub(crate) fn page_grid(q: &Q, page: PageRef) -> Grid {
 
 impl crate::Session {
     /// How many connections carry a wire marker of their own under the project's current marker mode: the
-    /// count that `project.marker_mode` reports after a switch (`0 wires carry a marker`).
+    /// count that `project.marker_mode` reports after a switch (`0 wires carry an annotation`).
     pub fn marker_wire_count(&self) -> usize {
         let q = self.query();
         let mode = ew_derive::marker_mode(&q);

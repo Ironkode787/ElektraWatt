@@ -1570,7 +1570,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     )),
     // The Wire marker and Structure box tools, their fields and the marker mode.
     keeps_banner(in_canvas(placed(
-        // "Marker" on the bar: no wider than Measure above it, so the group keeps its width.
+        // "Annotate" on the bar, a verb as its neighbours are (Measure, Rotate, Mirror).
         place(Group::Annotate, 3, CommandSize::Small, Some(key!("bar-marker"))),
         "tag",
         act(

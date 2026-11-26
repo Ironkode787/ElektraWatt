@@ -306,3 +306,7 @@ change here.
   project's Properties at its Workshop rows.
 - behaviour-change: Labels… lists the labels that do not fit their marker part under their count with Show (Hide
   counts them again), each by its label set, marker part and text ("Device labels on EW-GEN-MRK-3: -102S1").
+- text-change: The drawing's wire marker is now the wire annotation (Dutch: draadaanduiding) wherever the window says
+  it: the Draw tab's Marker button is Annotate (Dutch: Aanduiding), the tool is Wire annotation, a wire's Properties row is Wire
+  annotation, Project ▸ Wire markers is Wire annotations, and the refusals and notices that name it say so. The stored
+  names (`wire_marker`, `show_marker`, `marker_mode`) stay; "wire marker" now means the workshop's sleeve label.

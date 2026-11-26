@@ -125,7 +125,7 @@ new project has and keeps typefaces and bold; **Reset all** brings back every st
 the wizard makes, starts readable; the styles are the project's, and a template carries its own to the projects made
 from it.
 
-The warning "Wire marker prints 0.94 mm high, too small to read on paper" opens **Text styles** at that style when you
+The warning "Wire annotation prints 0.94 mm high, too small to read on paper" opens **Text styles** at that style when you
 open it in Messages (double-click, or Enter); **Set to 1.2 mm** on the message mends it in one step.
 
 A free text has its own **Style** in its Properties, chosen by name, and its own **Height** for that one text. The

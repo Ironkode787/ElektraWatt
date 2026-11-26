@@ -284,7 +284,7 @@ is not redrawn, and the message can say honestly that nothing better was found. 
 
 ### 3.10 Marks follow their wires
 
-A cable mark or wire marker sits across the wires it names. When one of those wires is routed anew, the mark is
+A cable mark or wire annotation sits across the wires it names. When one of those wires is routed anew, the mark is
 set on the stretch nearest to its old place where its wires run side by side within two steps of each other,
 across them; with no such stretch, on its first wire alone. Its tag is a label.
 

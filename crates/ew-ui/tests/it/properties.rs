@@ -94,7 +94,7 @@ fn a_click_on_the_wire_marker_check_box_ticks_the_wire() {
             .filter(|n| {
                 n.accesskit_node()
                     .label()
-                    .is_some_and(|l| l.contains("Wire marker"))
+                    .is_some_and(|l| l.contains("Wire annotation"))
             })
             .count()
     };
@@ -106,7 +106,7 @@ fn a_click_on_the_wire_marker_check_box_ticks_the_wire() {
             .find(|n| {
                 n.accesskit_node()
                     .label()
-                    .is_some_and(|l| l.contains("Wire marker"))
+                    .is_some_and(|l| l.contains("Wire annotation"))
             })
             .expect("the Wire marker check box");
         if scroll {

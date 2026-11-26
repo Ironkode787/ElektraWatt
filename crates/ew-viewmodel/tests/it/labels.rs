@@ -39,7 +39,11 @@ fn labels_lists_the_files_changes_their_columns_and_writes_the_ticked_ones() {
     done(&mut s, "labels.misfits", json!({}));
     let d = labels(&s);
     assert!(d.show_misfits);
-    assert!(d.misfits.iter().all(|m| m.contains(" on ") && m.contains(": ")), "{:?}", d.misfits);
+    assert!(
+        d.misfits.iter().all(|m| m.contains(" on ") && m.contains(": ")),
+        "{:?}",
+        d.misfits
+    );
     // A file left unticked is not written.
     let cables = files
         .iter()

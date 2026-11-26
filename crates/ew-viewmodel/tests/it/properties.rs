@@ -1104,8 +1104,8 @@ fn select_set_takes_a_bare_tag() {
     }
 }
 
-/// A wire's Main rows hold "Wire marker" (`overrides.show_marker`) right after the cross-section and the
-/// colour; switching the marker mode to explicit reports how many wires carry a marker.
+/// A wire's Main rows hold "Wire annotation" (`overrides.show_marker`) right after the cross-section and the
+/// colour; switching the marker mode to explicit reports how many wires carry an annotation.
 #[test]
 fn wire_marker_beside_colour_and_the_mode_switch_counts_markers() {
     use ew_viewmodel::properties::{RowGroup, groups};
@@ -1125,13 +1125,13 @@ fn wire_marker_beside_colour_and_the_mode_switch_counts_markers() {
     assert_eq!(keys[colour + 1], "connection/overrides.show_marker", "{keys:?}");
     assert_eq!(
         ew_viewmodel::strings::field_label("connection", "overrides.show_marker"),
-        "Wire marker"
+        "Wire annotation"
     );
     // The explicit mode marks the connections with an explicit cross-section or colour, and says how many.
     done(&mut shell, "project.marker_mode", json!({"mode": "explicit"}));
     let explicit = shell.toast().unwrap().text.clone();
     assert!(
-        explicit.ends_with(" wires carry a marker.") || explicit == "1 wire carries a marker.",
+        explicit.ends_with(" wires carry an annotation.") || explicit == "1 wire carries an annotation.",
         "{explicit}"
     );
     // The same mode again commits nothing and still reports the count.
@@ -1141,12 +1141,12 @@ fn wire_marker_beside_colour_and_the_mode_switch_counts_markers() {
     assert_eq!(shell.toast().unwrap().text, explicit);
     // No markers: says so, in the plural.
     done(&mut shell, "project.marker_mode", json!({"mode": "none"}));
-    assert_eq!(shell.toast().unwrap().text, "0 wires carry a marker.");
+    assert_eq!(shell.toast().unwrap().text, "0 wires carry an annotation.");
     // Every wire: a count above one, in the plural.
     done(&mut shell, "project.marker_mode", json!({"mode": "all"}));
     let all = shell.toast().unwrap().text.clone();
     assert!(
-        all.ends_with(" wires carry a marker.") && !all.starts_with("0 "),
+        all.ends_with(" wires carry an annotation.") && !all.starts_with("0 "),
         "{all}"
     );
 }

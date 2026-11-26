@@ -1671,12 +1671,12 @@ fn the_counted_toasts(dev: &ew_render2d::gpu::HeadlessDevice, failures: &mut Vec
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
         for (name, action, params, text) in [
             ("check", "messages.check", json!({}), "Check: "),
-            // The count of the wires that carry a marker in the explicit mode, as the sample's wires state it.
+            // The count of the wires that carry an annotation in the explicit mode, as the sample's wires state it.
             (
                 "marker",
                 "project.marker_mode",
                 json!({"mode": "explicit"}),
-                " a marker",
+                " an annotation",
             ),
         ] {
             dismiss_toasts(&mut h);
@@ -1718,7 +1718,7 @@ fn the_wire_marker_row(dev: &ew_render2d::gpu::HeadlessDevice, failures: &mut Ve
         support::wait_for_page(&mut h);
         h.run_ok();
         let image = offscreen::render(dev, &h.ctx, h.output(), &recorder);
-        let row = node_rect(&h, "Wire marker").expect("the Wire marker row");
+        let row = node_rect(&h, "Wire annotation").expect("the Wire annotation row");
         let first = node_rect(&h, "Cross-section").expect("the cross-section row");
         // The left column's right edge: its splitter with the page view.
         let right = h

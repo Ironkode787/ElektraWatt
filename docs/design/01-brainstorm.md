@@ -71,7 +71,7 @@ Four root causes explain all 42 defects
 - *If it leaves the building, it passed a gate* (L5, L12).
 - *If the tool knows it, the tool writes the document* (L9, L10, L12).
 - *Keep the user's style.* The tool let things drift; the engineer's conventions were sound. "Only if different"
-  wire markers, page-based tags and the 0-based 17 × 8 frame stay (REF-008, REF-013, REF-023).
+  wire annotations, page-based tags and the 0-based 17 × 8 frame stay (REF-008, REF-013, REF-023).
 - *Content, not style, is the target* (owner statement 2026-10-20, reaffirmed 2026-10-21;
   [vision](00-vision-and-scope.md) PR-13). The pilot's QET projects show what EW must be able to draw; they are
   examples of a design language that QET limits (no proper BOMs, imprecise layouts, possible errors), never the style

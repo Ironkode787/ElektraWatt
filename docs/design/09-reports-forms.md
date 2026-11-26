@@ -619,7 +619,7 @@ through the form's data area (FR-REP-028, FR-REP-029). It does not join the page
   finding with "n rows not shown". The rectangle never grows silently into the drawing.
 - Embedded blocks render in their own display-list layer `tables` (ARCH §6.4, ADR-0015 amendment 2), so a wire
   edit does not rebuild them. A profile edit rebuilds `tables`, and `labels` only on pages
-  whose wire markers print derived values.
+  whose wire annotations print derived values.
 - The reference sets each PART DATA entry as a label line ("Order Code 1:") above a centred value line; the
   `part_data` form reproduces this with a two-row template per entry.
 - Changing the 24 V DC colour in the profile updates the folio 1 table, every derived wire colour and folio 907 in

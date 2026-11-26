@@ -73,7 +73,7 @@ announce-end-junction = een aftakking
 announce-item = { $p0 }, { $p1 }
 announce-item-graphic = Grafisch
 announce-item-free_text = Tekst
-announce-item-wire_marker = Adermarkering
+announce-item-wire_marker = Draadaanduiding
 announce-item-cable_mark = Markering van de kabel
 announce-item-image = Afbeelding
 announce-item-surface_view = Plaataanzicht
@@ -229,8 +229,8 @@ toast-bridged = { $p0 ->
     }.
 toast-check = Controle: { $p0 }.
 toast-marker-count = { $p0 ->
-        [one] 1 draad draagt een markering
-       *[other] { $p0 } draden dragen een markering
+        [one] 1 draad draagt een aanduiding
+       *[other] { $p0 } draden dragen een aanduiding
     }.
 job-kind-pdf = PDF-export
 job-kind-print = Afdrukset

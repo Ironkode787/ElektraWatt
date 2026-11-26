@@ -191,19 +191,16 @@ fn mark_across(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64)) -> (i6
     drag_across(d, pixel)
 }
 
-/// Arms the Marker tool: Marker on the Draw tab, or Wire marker in its Annotate group's menu where the window folds
-/// the group.
+/// Arms the Wire annotation tool: Annotate on the Draw tab; where the window folds the Annotate group, the same name
+/// opens the group's menu, whose entry Wire annotation arms it.
 fn arm_marker(d: &mut Driver) {
-    let marker = match d.find("Marker") {
-        Some(at) => at,
-        None => {
-            d.input(&click(d.find("Annotate").expect("the Annotate group")));
-            d.settle();
-            starting_with(d, "Wire marker")
-        }
-    };
-    d.input(&click(marker));
+    d.input(&click(d.find("Annotate").expect("Annotate on the Draw tab")));
     d.settle();
+    if d.shell_mut().tool().name() != "marker" {
+        let entry = starting_with(d, "Wire annotation");
+        d.input(&click(entry));
+        d.settle();
+    }
     assert_eq!(d.shell_mut().tool().name(), "marker");
 }
 
