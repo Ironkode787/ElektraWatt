@@ -212,3 +212,6 @@ change here.
 - behaviour-change: choosing a part for several devices at once (a strip's terminals without a part, a selection)
   judges the fit on every device, not the first: an offer that does not fit all says for how many and names the first
   ("Does not fit 3 of 12; -X1:4: …"), and Only parts that fit hides only what fits none of them
+- behaviour-change: replacing a device's part in its Parts row or in the strip editor's Part cell drops the choices
+  of accessories the new part does not bring, as Choose part… did; before, a stale choice stayed and came back to
+  life when the old part did

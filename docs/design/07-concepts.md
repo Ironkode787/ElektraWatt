@@ -492,7 +492,9 @@ so a fork of the accessory's part, of the declaring part or of both, a paste and
 answering its declaration. Without `part` the device does not take it, with `part` it takes it as that part
 (`of` itself takes an optional one, another part swaps it). A choice lives on the device the accessory is counted
 for: a `unit` accessory on the device that uses the part, a `strip` and a `rail_group` accessory on the strip.
-Replacing a part (`part.assign`) drops the choices of accessories the new part does not name.
+Replacing a part drops the choices of accessories the new parts do not name, whichever command replaced it
+(`part.assign`, `fields.set` of `parts` from the Parts row or the strip editor's Part cell): the normaliser
+`stale_choices` ([06](06-commands-connecting.md) §3.2 row 14a') holds the rule.
 
 **One path.** `part_accessories(device)` of `ew-derive` gives every accessory of a device from its parts'
 declarations and its choices: the accessory part, the quantity, the part it comes with and where it stands in a

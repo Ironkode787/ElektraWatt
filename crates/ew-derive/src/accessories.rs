@@ -46,15 +46,16 @@ pub struct DerivedAccessory {
     pub after: Option<Id<Device>>,
 }
 
-/// The copy ID an accessory declaration names: `v5(NS_LIBCOPY, library ‖ item)`.
-fn copy_of(a: &PartAccessory) -> Id<Part> {
+/// The copy ID an accessory declaration names: `v5(NS_LIBCOPY, library ‖ item)`, the one key a declaration and its
+/// choices (`AccessoryChoice::of`) are matched by.
+pub fn accessory_copy(a: &PartAccessory) -> Id<Part> {
     ew_ids::v5::lib_copy_id(a.part.library.as_uuid(), a.part.item.as_uuid())
 }
 
 /// What `choices` make of the declared accessory `a`: the part counted, or `None` when it is not taken (a choice
 /// without a part, or an optional accessory nobody took).
 fn taken(choices: &[AccessoryChoice], a: &PartAccessory) -> Option<PartRef> {
-    let of = copy_of(a);
+    let of = accessory_copy(a);
     match choices.iter().find(|c| c.of == of) {
         Some(c) => c.part.clone(),
         None if a.optional => None,
@@ -82,7 +83,7 @@ fn unit_accessories(
             parts.get(counted.copy)?;
             Some(DerivedAccessory {
                 part: counted,
-                of: copy_of(a),
+                of: accessory_copy(a),
                 qty: a.qty.checked_mul(units).unwrap_or(Dec3(i64::MAX)),
                 with: vec![part],
                 per: AccessoryPer::Unit,
@@ -133,7 +134,7 @@ pub fn strip_accessories(q: &Q, strip: &Device) -> Vec<DerivedAccessory> {
                 .iter()
                 .filter(|a| a.per == AccessoryPer::Strip)
             {
-                let of = copy_of(a);
+                let of = accessory_copy(a);
                 let with = match out.iter().position(|o| o.of == of) {
                     Some(i) => {
                         let mut prev = out.remove(i);
@@ -231,7 +232,7 @@ pub fn strip_bracket(q: &Q, strip: &Device) -> Option<StripBracket> {
         })
     });
     if let Some((a, with)) = &declared {
-        let of = copy_of(a);
+        let of = accessory_copy(a);
         if let Some(choice) = strip.accessory_choices.iter().find(|c| c.of == of) {
             let part = choice.part.clone()?;
             parts.get(part.copy)?;
@@ -266,7 +267,7 @@ pub fn strip_bracket(q: &Q, strip: &Device) -> Option<StripBracket> {
     if a.optional {
         return None;
     }
-    let of = copy_of(&a);
+    let of = accessory_copy(&a);
     parts.get(of)?;
     Some(StripBracket {
         part: PartRef::new(of),

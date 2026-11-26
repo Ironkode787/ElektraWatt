@@ -57,8 +57,8 @@ pub enum AssignModeParam {
 /// it on its rail, as a growing strip does, in every mode.
 ///
 /// `variant` names a variant the part holds (doc 07 §3.3 rule 7): the new part uses reference it. Replacing a part drops
-/// the accessory choices that the parts left on the device no longer name (rule 8): a device's own, and a strip's for
-/// the parts of its terminals, in the same step.
+/// the accessory choices that the parts left on the device no longer name (rule 8, the normaliser `stale_choices`, which
+/// every way of changing a device's parts passes).
 ///
 /// `qty` defaults to 1. Template functions are not matched onto existing functions (part-first placement
 /// does that). Rejected, with the pointer: an empty device list (`/devices`), a device listed twice or that does
@@ -301,44 +301,6 @@ impl Command for AssignPart {
         for strip in &strips {
             crate::commands::layout::push_after_growth(tx, *strip)?;
         }
-        for d in self.devices.iter().chain(&strips) {
-            drop_stale_choices(tx, *d)?;
-        }
         Ok(Outcome::primary((Kind::Device, self.devices[0].cast())))
     }
-}
-
-/// Drops the accessory choices of `device` whose accessory no part names any more (doc 07 §3.3 rule 8): its own part
-/// uses' parts and, for a strip, its terminals' parts.
-fn drop_stale_choices(tx: &mut TxBuilder<'_>, device: Id<Device>) -> Result<(), CmdError> {
-    let Some(dev) = tx.get::<Device>(device) else {
-        return Ok(());
-    };
-    if dev.accessory_choices.is_empty() {
-        return Ok(());
-    }
-    let mut holders: Vec<Id<Device>> = vec![device];
-    if dev.aspects.strip.is_some() {
-        holders.extend(tx.terminals_of_strip(device));
-    }
-    let mut named: BTreeSet<Id<Part>> = BTreeSet::new();
-    for h in holders {
-        let Some(holder) = tx.get::<Device>(h) else {
-            continue;
-        };
-        for u in &holder.parts {
-            if let Some(copy) = tx.get::<LibCopy<Part>>(u.part.copy) {
-                named.extend(
-                    copy.item
-                        .accessories
-                        .iter()
-                        .map(|a| ew_ids::v5::lib_copy_id(a.part.library.as_uuid(), a.part.item.as_uuid())),
-                );
-            }
-        }
-    }
-    if dev.accessory_choices.iter().all(|c| named.contains(&c.of)) {
-        return Ok(());
-    }
-    tx.update::<Device>(device, |d| d.accessory_choices.retain(|c| named.contains(&c.of)))
 }

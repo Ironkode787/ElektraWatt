@@ -115,6 +115,25 @@ fn replacing_a_part_drops_the_choice_of_an_accessory_it_no_longer_names() {
     assert!(d.accessory_choices.is_empty(), "{:?}", d.accessory_choices);
 }
 
+/// Every way of changing a device's parts drops the choices of accessories its parts no longer name, not only
+/// part.assign: the Parts row of Properties and the strip editor's Part cell write `fields.set` of `parts`.
+#[test]
+fn replacing_a_part_through_fields_set_drops_the_choice_too() {
+    use ew_commands::commands::{KindName, SetFields};
+    let mut e = engine_with_choice();
+    e.execute(&SetFields {
+        kind: KindName::Device,
+        targets: vec![Id::<Device>::from_uuid(uuid(DEVICE)).cast()],
+        path: "parts".into(),
+        value: json!([{"part": {"copy": lib_part_id(LIB, T_B).to_string()}, "qty": "1"}]),
+        copies: vec![],
+    })
+    .unwrap();
+    let d = device(&e);
+    assert_eq!(d.parts[0].part.copy, lib_part_id(LIB, T_B));
+    assert!(d.accessory_choices.is_empty(), "{:?}", d.accessory_choices);
+}
+
 /// The fork of a library copy may change what the part brings with it and its variants (doc 07 §2.5); an accessory
 /// that is a ferrule and a variant without a number of its own are refused at their rows.
 #[test]

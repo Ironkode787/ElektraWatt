@@ -110,7 +110,7 @@ mod xref;
 mod xref_format;
 
 pub use accessories::{
-    BracketFrom, DeclaredBracket, DerivedAccessory, PartAccessories, StripBracket, carrier_accessories,
+    BracketFrom, DeclaredBracket, DerivedAccessory, PartAccessories, StripBracket, accessory_copy, carrier_accessories,
     placed_brackets, strip_accessories, strip_bracket,
 };
 pub use assembly::{
