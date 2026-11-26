@@ -165,3 +165,24 @@ fn the_tube_tool_takes_a_port_ten_points_off_and_says_a_click_beside_one() {
     );
     reach_and_beside(&mut s, "tool.fluid_line", (&a, &b, &c));
 }
+
+/// FT-2209 (c): the Wire tool clicked in free space, far from any point, did nothing and said nothing. It stays a tool
+/// that starts at a pin, a junction or a wire, and the click is refused in those words, the Tube tool's in its own.
+#[test]
+fn a_click_in_free_space_says_where_a_wire_starts() {
+    for (kind, tool, reason) in [
+        ("multi_line", "tool.wire", "reason-wire-start-free"),
+        ("fluid", "tool.wire", "reason-tube-start-free"),
+    ] {
+        let tmp = Tmp::new(&format!("wire-free-start-{kind}"));
+        let mut s = project(&tmp, "2", kind);
+        done(&mut s, tool, json!({}));
+        done(&mut s, "cursor.set", json!({"x_mm": 150.0, "y_mm": 100.0}));
+        assert_eq!(
+            common::refused(&mut s, "canvas.activate", json!({})),
+            reason,
+            "{kind}"
+        );
+        assert_eq!(s.tool().state(), "armed", "{kind}");
+    }
+}

@@ -267,7 +267,8 @@ draft); when nothing is left to apply the card closes with `toast-arrange-none-l
 ### 7.4 The Wire tool, connecting on placement, moving
 
 - **The Wire tool** stays as it is for the person: click a pin, click a pin, the tool finds the way; a click on
-  the grid fixes a bend. Its way is `ew_drafting::route_wire`, the search of §3.6 against the occupancy of the
+  the grid fixes a bend. A wire starts at a pin, a junction or a wire: a first click in free space is refused in
+  those words (beside a pin the hint says the click missed it). Its way is `ew_drafting::route_wire`, the search of §3.6 against the occupancy of the
   page, so the tool and the Route command cannot disagree. A wire does not go round a tag that has another free
   place (the tag steps aside when the wire is stored, because labels are derived), and a wire drawn to a pin that
   already has a wire may share that wire's run (§3.4). A route found between two clicks is marked `computed`; one with a fixed bend is the person's. A wire that ends

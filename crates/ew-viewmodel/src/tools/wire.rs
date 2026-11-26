@@ -22,7 +22,7 @@
 //! |---|---|---|---|
 //! | armed | `PointerMove`, `CursorMove` | armed | `Transient`: the snap marker of the target under the point |
 //! | armed | `Press` or `Activate` on a CP, junction or segment | routing | the start is fixed; `Transient` |
-//! | armed | `Press` or `Activate` on the grid | armed | `None` (a wire needs two endpoints) |
+//! | armed | `Press` or `Activate` on the grid | armed | `Refused` in words: a wire starts at a pin, a junction or a wire (beside a connection point `None`, the hint says it) |
 //! | routing | move | routing | `Transient`: the routed ghost from the last fixed vertex to the target (one `auto_route` per changed target), the fixed bends, the target's marker, the length readout |
 //! | routing | `Press` or `Activate` on the grid | routing | a bend is fixed there (the route so far becomes fixed vertices); inside a symbol's body not entered over its CPs `Refused` ([`inside_symbol`]) |
 //! | routing | `Back` | routing | the last fixed bend is removed; without one `None` |
@@ -1243,7 +1243,14 @@ impl WireTool {
                 if !target.is_end() {
                     self.missed = cp_beside(cx, target.at(), None).map(|cp| (Missed::Start, cp));
                     self.state = State::Armed { target: Some(target) };
-                    return ToolOutput::None;
+                    // Beside a point the hint says so; in free space the click is refused in words, as a wire needs
+                    // a start.
+                    if self.missed.is_some() {
+                        return ToolOutput::None;
+                    }
+                    return ToolOutput::Refused(
+                        self.said(key!("reason-wire-start-free"), key!("reason-tube-start-free")),
+                    );
                 }
                 self.missed = None;
                 self.labels = (target.label(cx), None);

@@ -144,10 +144,17 @@ fn place_and_wire_in_the_pseudo_locale() {
     step(&mut h);
     dispatch(&mut h, "tool.wire", json!({}));
     step(&mut h);
-    dispatch(&mut h, "canvas.press", json!({"x_mm": 60.0, "y_mm": 150.0}));
-    dispatch(&mut h, "canvas.pointer", json!({"x_mm": 100.0, "y_mm": 150.0}));
-    step(&mut h);
-    dispatch(&mut h, "canvas.press", json!({"x_mm": 100.0, "y_mm": 150.0}));
+    // A press in free space starts no wire and says where one starts, in this language.
+    for x in [60.0, 100.0] {
+        let at = json!({"x_mm": x, "y_mm": 150.0});
+        dispatch(&mut h, "canvas.pointer", at.clone());
+        step(&mut h);
+        let out = h.state_mut().shell_mut().dispatch("canvas.press", &at);
+        assert!(
+            matches!(out, ew_viewmodel::shell::Outcome::Refused { .. }),
+            "{out:?}"
+        );
+    }
     dispatch(&mut h, "tool.finish", json!({}));
     step(&mut h);
     h.state_mut().shell_mut().shutdown();

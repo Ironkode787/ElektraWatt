@@ -186,11 +186,15 @@ fn bends_back_junction_and_segment_ends_and_an_empty_grid_start() {
     let tmp = Tmp::new("ends");
     let mut s = with_free_cps(&tmp);
     done(&mut s, "tool.wire", json!({}));
-    // A wire needs two endpoints: Enter on the empty grid does not start one.
+    // A wire needs two endpoints: Enter on the empty grid does not start one, and is refused in words.
     let empty = right_half(&s, (12, 30));
     let rev = s.revision();
-    click_at(&mut s, empty);
+    cursor(&mut s, empty);
     assert_eq!(canvas(&s)["snap"]["kind"], "grid");
+    assert_eq!(
+        common::refused(&mut s, "canvas.activate", json!({})),
+        "reason-wire-start-free"
+    );
     assert_eq!(s.tool().state(), "armed");
     assert_eq!(s.revision(), rev);
     // From a free CP, a bend on the grid, Backspace, the bend again, then onto a junction.

@@ -111,6 +111,8 @@ menu item; use its key.
 ## Rotate clockwise
 
 Turns the symbol that the tool floats, or the selection, by 90° clockwise. Draw ▸ Arrange ▸ Rotate clockwise.
+A turned symbol stays where it stands; its wires leave its pins the new way, and a text of it you moved stays where
+you put it.
 
 ## Rotate counter-clockwise
 
@@ -154,7 +156,9 @@ click in between. Open it with Draw ▸ Wire. See [A first schematic page](../..
 A click takes the connection point within about ten screen points of it, at any zoom, and the ring under the pointer
 shows which. A click that misses and lands right beside one is said in the status line at once ("The click placed a
 bend beside a connection point, not on it: …"), as is a start beside one that took nothing and a wire just drawn that
-bends beside one without joining it; Ctrl+Z takes such a wire back.
+bends beside one without joining it; Ctrl+Z takes such a wire back. A first click on an empty point away from any
+connection point starts nothing and says so ("A wire starts at a connection point, a junction or a wire: click one of
+them to start it").
 
 While you draw, the wire shows the route it will take. The route never runs through another connection point, along
 another wire, through a symbol, over the frame's bands, or through a junction, and never makes a fourth arm of a
