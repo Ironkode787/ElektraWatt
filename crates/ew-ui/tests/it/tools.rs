@@ -1297,12 +1297,17 @@ fn a_right_click_opens_the_canvas_context_menu() {
         h.query_by_label_contains("Mirror top to bottom").is_none(),
         "the menu closed"
     );
-    // Over nothing: Paste only.
+    // Over nothing: Paste and Paste in place.
     let bounds = canvas_bounds(&h)[0];
     let pos = Pos2::new(bounds.0 as f32 + 12.0, bounds.1 as f32 + 12.0);
     right_click(&mut h, pos);
     assert!(h.state().shell().canvas().unwrap().hover().is_none());
-    assert!(h.query_by_label_contains("Paste").is_some(), "Paste over nothing");
+    assert_eq!(
+        h.query_all_by_label_contains("Paste").count(),
+        2,
+        "Paste and Paste in place over nothing"
+    );
+    assert!(h.query_by_label_contains("Paste in place").is_some());
     assert!(h.query_by_label("Delete").is_none());
     assert!(h.state().shell().selection().items.is_empty());
     h.state_mut().shell_mut().shutdown();

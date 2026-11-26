@@ -145,7 +145,15 @@ impl ShellModel {
             .filter(|a| !a.headless_only && !a.hidden && keep(a))
         {
             let label = strings::text(Key::run_time(&meta.label_key()));
-            let aliases = glossary::aliases_of(meta.id);
+            // The words on its buttons find it too ("check project"), as the glossary's aliases do.
+            let mut aliases = glossary::aliases_of(meta.id);
+            aliases.extend(
+                [meta.placement, meta.also]
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|p| p.bar_label)
+                    .map(strings::text),
+            );
             let state = match form_plan(meta) {
                 FormPlan::Disabled(reason) => Err(reason.into()),
                 FormPlan::Direct | FormPlan::Form(_) => meta.enabled_now(self),
@@ -168,10 +176,15 @@ impl ShellModel {
             let Some(rank) = own.max(lists) else {
                 continue;
             };
-            // A switch says whether it is on, after where it lives ("View · Show · On", "Draw · Connect · Off").
+            // A switch says whether it is on and what running it does, after where it lives ("Draw · Connect · Off,
+            // Enter switches it on"): a bare "Off" beside "Print wire numbers" read as what the command does.
             let mut breadcrumb = actions::breadcrumb_of(meta, label);
             if let Some(on) = actions::switch_on(self, meta.id) {
-                let word = if on { key!("choice-on") } else { key!("choice-off") };
+                let word = if on {
+                    key!("palette-switch-on")
+                } else {
+                    key!("palette-switch-off")
+                };
                 breadcrumb = format!("{breadcrumb} · {}", strings::text(word));
             }
             ranked.push(Ranked {

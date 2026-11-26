@@ -47,7 +47,9 @@ fn a_renamed_point_says_its_base_is_taken_in_the_hud_and_the_toast() {
     let d = key_of(&s, "tool.ip_direction");
     assert_eq!(
         hud(&s),
-        format!("0V \u{b7} source: where the potential comes from, one for its name \u{b7} {d}: target")
+        format!(
+            "0V \u{b7} source: the potential leaves here for its targets; one per name \u{b7} {d}: target"
+        )
     );
     done(&mut s, "canvas.activate", json!({}));
     // Without the typed name (it stays for the source's target) the next proposal on the same page goes on from 0V,
@@ -64,14 +66,14 @@ fn a_renamed_point_says_its_base_is_taken_in_the_hud_and_the_toast() {
     assert_eq!(
         hud(&s),
         format!(
-            "0V is taken, so this point is 0V-1. \u{b7} source: where the potential comes from, one for its name \u{b7} {d}: target"
+            "0V is taken, so this point is 0V-1. \u{b7} source: the potential leaves here for its targets; one per name \u{b7} {d}: target"
         )
     );
     done(&mut s, "canvas.activate", json!({}));
     // Then what the click placed (a free point has no result line of its own).
     let said = toast(&s);
     assert!(
-        said.starts_with("0V is taken, so this point is 0V-1. 0V-1 ") && said.contains(" goes on "),
+        said.starts_with("0V is taken, so this point is 0V-1. 0V-1 ") && said.contains(" has no target yet"),
         "{said}"
     );
 }
@@ -166,7 +168,9 @@ fn the_armed_ip_tools_hud_leads_with_its_name() {
     let d = key_of(&s, "tool.ip_direction");
     assert_eq!(
         hud(&s),
-        format!("IP \u{b7} source: where the potential comes from, one for its name \u{b7} {d}: target")
+        format!(
+            "IP \u{b7} source: the potential leaves here for its targets; one per name \u{b7} {d}: target"
+        )
     );
 }
 

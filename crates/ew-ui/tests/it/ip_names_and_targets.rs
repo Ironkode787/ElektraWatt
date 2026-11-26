@@ -160,7 +160,7 @@ fn the_hud_says_before_the_click_that_the_next_point_is_where_the_name_arrives()
     assert_eq!(ghost_at(&mut d, (930, 520)), pair("24V", "target"));
     assert_eq!(
         ew_viewmodel::command_bar::hud(d.shell_mut()).prompt,
-        "24V \u{b7} next: a target, where 24V goes on (its source is drawn) \u{b7} D: source"
+        "24V \u{b7} next: a target, where 24V arrives (its source is drawn) \u{b7} D: source"
     );
     d.shell_mut().shutdown();
 }
@@ -227,7 +227,7 @@ fn a_mark_dropped_on_a_pin_joins_it_and_one_left_beside_it_is_told_and_joined_by
     d.input(&click(at));
     d.settle();
     assert_eq!(wires_at(&mut d, "-102E2:X1"), 1, "{}", toast(&mut d));
-    assert!(toast(&mut d).contains("and connected it to"), "{}", toast(&mut d));
+    assert!(toast(&mut d).contains(" on -102E2:X1."), "{}", toast(&mut d));
     // The same with Alt, which places a point without joining: it stands on the pin unjoined, and says so.
     d.input(&key("ctrl+z"));
     d.settle();

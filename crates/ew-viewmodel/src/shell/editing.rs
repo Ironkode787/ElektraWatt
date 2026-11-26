@@ -329,13 +329,12 @@ impl ShellModel {
             // An interruption point dropped on a pin says where it stands, what it connects to and the way
             // to place it free (the key from the keymap).
             ResultNote::IpConnected {
-                pos,
                 name,
                 pin,
                 external,
                 taken,
                 placed,
-            } => self.say_ip_connected(pos, name, pin, external, taken, placed),
+            } => self.say_ip_connected(name, pin, external, taken, placed),
             ResultNote::Deleted {
                 names,
                 wires,
@@ -497,33 +496,24 @@ impl ShellModel {
         }
     }
 
-    /// An interruption point dropped on a pin says where it stands, what it connects to and the way to place it free.
+    /// An interruption point dropped on a pin says the pin it stands on, which says where, and the way to place it free;
+    /// its sentences fit a toast at 1920 × 1080 whole.
     fn say_ip_connected(
         &mut self,
-        pos: (i64, i64),
         name: String,
         pin: String,
         external: bool,
         taken: Option<String>,
         placed: Option<String>,
     ) {
-        let cell = self.canvas().and_then(|c| {
-            let page = c.page();
-            page.cell_text(page.snapper.page_to_sheet(pos))
-        });
         let key = crate::command_bar::key_name(self, "canvas.activate_alt");
         // An external point is named so.
-        let text = match (cell, external) {
-            (Some(cell), false) => strings::format(key!("toast-ip-connected"), &[&name, &cell, &pin, &key]),
-            (None, false) => strings::format(key!("toast-ip-connected-no-cell"), &[&name, "", &pin, &key]),
-            (Some(cell), true) => {
-                strings::format(key!("toast-ip-external-connected"), &[&name, &cell, &pin, &key])
-            }
-            (None, true) => strings::format(
-                key!("toast-ip-external-connected-no-cell"),
-                &[&name, "", &pin, &key],
-            ),
+        let words = if external {
+            key!("toast-ip-external-connected")
+        } else {
+            key!("toast-ip-connected")
         };
+        let text = strings::format(words, &[&name, &pin, &key]);
         // A renamed point says why first; where its partner is, last.
         let sentences = taken.into_iter().chain([text]).chain(placed).collect();
         let undo = self.undo_offer();

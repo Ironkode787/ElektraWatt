@@ -348,14 +348,14 @@ thing; one that cannot run now is disabled with its reason, as the command row's
 | A symbol of a device | on a coil Add contact per free contact of its device by name (each floats its symbol; disabled with the way round when there is none), on a contact Go to coil; Join device… where another device can take its function (a contact a relay's or a contactor's, a function a device that lists it unplaced; never otherwise); Choose part…; Edit symbol (disabled with the reason a symbol can only be copied), Copy and edit; Define potential… on a symbol of one connection point |
 | A placement of a panel page | Turn, Flip, Lock or Unlock, Delete (and nothing general) |
 | The frame or the title block | Title block fields…, then an empty spot's entries |
-| An empty spot | Paste, Page properties, New page…, Print wire numbers (not on a panel page) |
+| An empty spot | Paste, Paste in place, Page properties, New page…, Print wire numbers (not on a panel page) |
 
 After an object's own entries come the general ones, where they can apply:
 
 | Selection | General entries |
 |---|---|
-| Holds a symbol (a device's, a terminal, an interruption point) | the command row's Arrange group (Rotate, Mirror, Renumber devices…), Move to page…, Keep in place (checked while every selected symbol is kept, doc 06a §2.4), then Cut, Copy, Paste, Delete, Properties of selection |
-| Wires, a junction, a text or a frame without a symbol | Cut, Copy, Paste, Delete, Properties of selection (nothing turns or mirrors) |
+| Holds a symbol (a device's, a terminal, an interruption point) | the command row's Arrange group (Rotate, Mirror, Renumber devices…), Move to page…, Keep in place (checked while every selected symbol is kept, doc 06a §2.4), then Cut, Copy, Paste, Paste in place, Delete, Properties of selection |
+| Wires, a junction, a text or a frame without a symbol | Cut, Copy, Paste, Paste in place, Delete, Properties of selection (nothing turns or mirrors) |
 
 A navigator's row offers what the same thing offers on the page, from the one function that decides a thing's
 entries; the right-click selects the row first, as a click does (a page row: opens its page), unless it is marked

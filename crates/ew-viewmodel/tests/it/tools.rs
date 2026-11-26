@@ -819,15 +819,20 @@ fn the_canvas_context_menu_offers_what_fits_then_the_bar_selection_commands_and_
         "Cut".to_owned(),
         "Copy".to_owned(),
         "Paste".to_owned(),
+        "Paste in place".to_owned(),
         "Delete".to_owned(),
         "Properties of selection".to_owned(),
     ]));
-    // Nothing under the pointer: Paste, the page's properties, New page…; on the frame Title block fields… first.
+    // Nothing under the pointer: Paste and Paste in place, the page's properties, New page…; on the frame Title block
+    // fields… first.
     let sheet: Vec<String> = labels(&shell, MenuSpot::Sheet)
         .into_iter()
         .map(|(l, _)| l)
         .collect();
-    assert_eq!(sheet[..3], ["Paste", "Page properties", "New page…"]);
+    assert_eq!(
+        sheet[..4],
+        ["Paste", "Paste in place", "Page properties", "New page…"]
+    );
     let frame = labels(&shell, MenuSpot::Frame);
     assert_eq!(frame[0], ("Title block fields…".to_owned(), true));
     shell.shutdown();

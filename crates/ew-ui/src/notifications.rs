@@ -656,6 +656,41 @@ mod tests {
         );
     }
 
+    /// At 1920 × 1080 the interruption point tool's longest toast stands whole, in both languages: a renamed point
+    /// dropped on a pin whose partner is not drawn yet says why it was renamed, the pin it stands on and what is
+    /// missing, three sentences (a persona's was cut with an ellipsis at "its …").
+    #[test]
+    fn the_interruption_point_toasts_stand_whole_at_1920() {
+        let t = theme::tokens(Theme::Light, Density::Comfortable);
+        let ctx = egui::Context::default();
+        crate::fonts::install(&ctx);
+        let width = text_width(&t, toast_width(&t, 1920.0));
+        let (name, pin, key) = ("24VDC-1", "-102S3:14", "Ctrl+Enter");
+        let mut texts = Vec::new();
+        for locale in ["en", "nl"] {
+            assert!(strings::set_locale(locale));
+            let taken = strings::format(key!("hud-ip-taken"), &["24VDC", name]);
+            let placed = strings::format(key!("toast-ip-connected"), &[name, pin, key]);
+            // On a pin, which says where it stands, the partner's sentence leaves the cell out.
+            for lone in [
+                key!("toast-ip-placed-source-lone-no-cell"),
+                key!("toast-ip-placed-target-lone-no-cell"),
+            ] {
+                let missing = strings::format(lone, &[name, "", ""]);
+                texts.push(format!("{taken} {placed} {missing}"));
+            }
+        }
+        assert!(strings::set_locale("en"));
+        let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
+            for text in &texts {
+                let font = theme::font(&t.type_body_strong);
+                assert!(!is_cut(ui, text, font, LINE_ROWS, width), "cut: {text}");
+            }
+        });
+        // The font atlas the pass built is never uploaded here.
+        out.textures_delta.clear();
+    }
+
     #[test]
     fn the_toast_icon_follows_the_tone() {
         let t = theme::tokens(Theme::Light, Density::Comfortable);

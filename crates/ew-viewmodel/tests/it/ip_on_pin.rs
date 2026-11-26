@@ -111,8 +111,8 @@ fn hud_head(s: &ShellModel, name: &str) -> String {
     let dir = IpDir::from_word(&direction).unwrap();
     // The role in words.
     let role = match dir {
-        IpDir::Source => "source: where the potential comes from, one for its name",
-        IpDir::Target => "target: where the potential goes on, fed by its source",
+        IpDir::Source => "source: the potential leaves here for its targets; one per name",
+        IpDir::Target => "target: the potential arrives here from its source",
         IpDir::Undirected => "undirected: pairs either way",
     };
     let next = dir.next().word();
@@ -222,17 +222,10 @@ fn a_point_dropped_on_a_free_pin_connects_to_it() {
     let before = tables(&s);
     done(&mut s, "canvas.activate", json!({}));
     assert_connects(&s, &before, &pin, "5V");
-    let cell = {
-        let (reps, _) = added(&before, &s);
-        let page = s.canvas().unwrap().page();
-        page.cell_text(page.snapper.page_to_sheet(reps[0].pos)).unwrap()
-    };
+    // The pin says where it stands; the words fit a toast at 1920 × 1080 whole.
     assert_eq!(
         toast(&s),
-        format!(
-            "Placed the interruption point 5V at {cell} and connected it to -102S3:14. Alt+Click or Ctrl+Enter places \
-             it without connecting. 5V at {cell} goes on nowhere yet: place where 5V goes on, its targets."
-        )
+        "Placed 5V on -102S3:14. Alt+Click or Ctrl+Enter places it free. 5V has no target yet: place one."
     );
     // The control pin stays reported; -102S3:14 is connected now.
     assert_eq!(pot009(&tmp, &mut s), subjects(&[("warning", "-102S3:13")]));
@@ -501,18 +494,10 @@ fn an_external_point_on_a_pin_connects_to_it() {
     assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");
     let name = added(&before, &s).0[0].ip.as_ref().unwrap().name.clone();
     assert_connects(&s, &before, &pin, &name);
-    // The toast names the external point so; both sentences end with a full stop.
-    let cell = {
-        let (reps, _) = added(&before, &s);
-        let page = s.canvas().unwrap().page();
-        page.cell_text(page.snapper.page_to_sheet(reps[0].pos)).unwrap()
-    };
+    // The toast names the external point so, by the pin it stands on; both sentences end with a full stop.
     assert_eq!(
         toast(&s),
-        format!(
-            "Placed the external point {name} at {cell} and connected it to -102S3:13. Alt+Click or Ctrl+Enter \
-             places it without connecting."
-        )
+        format!("Placed the external point {name} on -102S3:13. Alt+Click or Ctrl+Enter places it free.")
     );
     let function = added(&before, &s).0[0].functions[0];
     // The saved point is external, to the upstream supply -Q0, the sample's external reference.

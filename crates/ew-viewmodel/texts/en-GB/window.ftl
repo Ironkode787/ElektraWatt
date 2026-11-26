@@ -36,7 +36,6 @@ bar-interruption = Interruption
 bar-rotate = Rotate
 bar-mirror = Mirror
 bar-renumber = Renumber devices
-bar-check-project = Check project
 bar-navigators = Navigators
 bar-workspaces = Workspaces
 commandbar-name = Command bar

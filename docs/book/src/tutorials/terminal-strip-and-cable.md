@@ -46,7 +46,7 @@ cable in the Cables navigator. At the end you have a saved project whose checks 
 8. Click the terminal -1X1:1 and choose **Edit ▸ Strip editor**.
    The Terminal strips navigator shows the strip -1X1 as a table: terminal 1 on 24VAC, with -1E2:X1 on side 1 and
    the field wire to -1E3:X1 via -1W1 BN on side 2; terminal 2 on 0VAC, with -1E2:X2 and -1E3:X2 via -1W1 BU.
-9. Choose **Check ▸ Run checks** (`F7`).
+9. Choose **Check ▸ Check project** (`F7`).
    The toast says "Check: 0 errors, 9 warnings, 2 infos". The warnings are the devices and the cable that have no
    part yet and the transformer's open primary pins; the infos say that no report covers the strip or the cable yet.
    The cable's warning offers **Choose a cable type…**: its part dialog lists the cable parts that fit first, and the

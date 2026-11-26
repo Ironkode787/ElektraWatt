@@ -680,7 +680,7 @@ msgstr ""
 
 #: src/tutorials/terminal-strip-and-cable.md:49
 msgid ""
-"Choose **Check ▸ Run checks** (`F7`). The toast says \"Check: 0 errors, 9 "
+"Choose **Check ▸ Check project** (`F7`). The toast says \"Check: 0 errors, 9 "
 "warnings, 2 infos\". The warnings are the devices and the cable that have no "
 "part yet and the transformer's open primary pins; the infos say that no "
 "report covers the strip or the cable yet. The cable's warning offers "
@@ -957,10 +957,10 @@ msgstr ""
 
 #: src/tutorials/import-qet.md:49
 msgid ""
-"Choose **Check ▸ Run checks** (`F7`). The Messages pane shows the migration "
-"report again, with no error, 1 warning (EW-IMP-119) and 7 infos (EW-IMP-006, "
-"EW-IMP-103 twice, EW-IMP-117, EW-IMP-122 and EW-NUM-001 twice): the record "
-"of the import, nothing left to fix."
+"Choose **Check ▸ Check project** (`F7`). The Messages pane shows the "
+"migration report again, with no error, 1 warning (EW-IMP-119) and 7 infos "
+"(EW-IMP-006, EW-IMP-103 twice, EW-IMP-117, EW-IMP-122 and EW-NUM-001 twice): "
+"the record of the import, nothing left to fix."
 msgstr ""
 
 #: src/tutorials/import-qet.md:58
@@ -1518,7 +1518,7 @@ msgstr ""
 
 #: src/tutorials/bus-network.md:73
 msgid ""
-"Choose **Check ▸ Run checks** (`F7`). The toast says \"Check: 0 errors, 0 "
+"Choose **Check ▸ Check project** (`F7`). The toast says \"Check: 0 errors, 0 "
 "warnings, 5 infos.\" The infos say that the DP addresses are still TBD (this "
 "network uses PROFINET only) and that no report lists the stations and the "
 "cable yet."
@@ -5373,8 +5373,8 @@ msgid ""
 "The page's menu is the quick way to what fits the thing under the pointer: "
 "its first entries are that thing's, then come the general ones (Rotate, "
 "Mirror, Renumber devices… and Move to page… on a symbol; Cut, Copy, Paste, "
-"Delete, Properties of selection). A right click selects the thing first; "
-"Shift+F10 or the menu key opens the same menu for the selection."
+"Paste in place, Delete, Properties of selection). A right click selects the "
+"thing first; Shift+F10 or the menu key opens the same menu for the selection."
 msgstr ""
 
 #: src/reference/window/tools.md:22
@@ -5425,8 +5425,8 @@ msgstr ""
 
 #: src/reference/window/tools.md:40
 msgid ""
-"On the title block: Title block fields…. On an empty spot: Paste, Page "
-"properties, New page… and Print wire numbers."
+"On the title block: Title block fields…. On an empty spot: Paste, Paste in "
+"place, Page properties, New page… and Print wire numbers."
 msgstr ""
 
 #: src/reference/window/tools.md:42
@@ -6761,7 +6761,7 @@ msgid "Check"
 msgstr ""
 
 #: src/reference/window/command-bar.md:274
-msgid "Run checks"
+msgid "Check project"
 msgstr ""
 
 #: src/reference/window/command-bar.md:276

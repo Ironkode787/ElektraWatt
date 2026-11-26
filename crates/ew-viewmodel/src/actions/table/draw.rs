@@ -1757,9 +1757,9 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
-    // Tools ▸ Run checks.
+    // Check ▸ Check project: its button, its menu item and the command search say the same name.
     placed(
-        place(Group::Run, 1, CommandSize::Large, Some(key!("bar-check-project"))),
+        place(Group::Run, 1, CommandSize::Large, None),
         "list-check",
         act(
             "messages.check",

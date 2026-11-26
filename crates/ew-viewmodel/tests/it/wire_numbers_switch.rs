@@ -51,7 +51,7 @@ fn print_wire_numbers_is_a_row_of_the_project_with_its_state_and_a_toast() {
         "the sample prints no wire numbers"
     );
     assert!(
-        palette_crumb(&mut s).ends_with("· Off"),
+        palette_crumb(&mut s).ends_with("· Off, Enter switches it on"),
         "{}",
         palette_crumb(&mut s)
     );
@@ -69,7 +69,7 @@ fn print_wire_numbers_is_a_row_of_the_project_with_its_state_and_a_toast() {
     assert!(said.contains("every page of the project"), "{said}");
     assert_eq!(row_under_filter(&s, "wire").map(|(_, on)| on), Some(true));
     assert!(
-        palette_crumb(&mut s).ends_with("· On"),
+        palette_crumb(&mut s).ends_with("· On, Enter switches it off"),
         "{}",
         palette_crumb(&mut s)
     );

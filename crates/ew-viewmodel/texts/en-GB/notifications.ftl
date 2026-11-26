@@ -234,18 +234,16 @@ toast-placed-moved = { $p1 } grid steps right: { $p0 } has a terminal on the cli
 toast-placed-and-moved = { $p0 }, { $p1 }.
 
 # FIXPT41: an interruption point dropped on a pin ({3} the key of `canvas.activate_alt`).
-toast-ip-connected = Placed the interruption point { $p0 } at { $p1 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting.
-toast-ip-connected-no-cell = Placed the interruption point { $p0 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting.
-toast-ip-external-connected = Placed the external point { $p0 } at { $p1 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting.
-toast-ip-external-connected-no-cell = Placed the external point { $p0 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting.
+toast-ip-connected = Placed { $p0 } on { $p1 }. Alt+Click or { $p2 } places it free.
+toast-ip-external-connected = Placed the external point { $p0 } on { $p1 }. Alt+Click or { $p2 } places it free.
 toast-ip-placed-source = { $p0 } at { $p1 } goes on at { $p2 }.
 toast-ip-placed-source-no-cell = { $p0 } goes on at { $p2 }.
-toast-ip-placed-source-lone = { $p0 } at { $p1 } goes on nowhere yet: place where { $p0 } goes on, its targets.
-toast-ip-placed-source-lone-no-cell = { $p0 } goes on nowhere yet: place where { $p0 } goes on, its targets.
+toast-ip-placed-source-lone = { $p0 } at { $p1 } has no target yet: place one where the potential arrives.
+toast-ip-placed-source-lone-no-cell = { $p0 } has no target yet: place one.
 toast-ip-placed-target = { $p0 } at { $p1 } continues from { $p2 }.
 toast-ip-placed-target-no-cell = { $p0 } continues from { $p2 }.
-toast-ip-placed-target-lone = { $p0 } at { $p1 } has no source yet: place where { $p0 } comes from, its source. A supply from outside the drawing: choose Supply comes in here… on its right-click menu.
-toast-ip-placed-target-lone-no-cell = { $p0 } has no source yet: place where { $p0 } comes from, its source. A supply from outside the drawing: choose Supply comes in here… on its right-click menu.
+toast-ip-placed-target-lone = { $p0 } at { $p1 } has no source yet: place one where the potential leaves, or right-click it (Supply comes in here…).
+toast-ip-placed-target-lone-no-cell = { $p0 } has no source yet: place one, or right-click it (Supply comes in here…).
 toast-undo = Undo
 toast-close = Close
 # A toast that says again what the visible toast of its key says, with the times in a row (it ran again).

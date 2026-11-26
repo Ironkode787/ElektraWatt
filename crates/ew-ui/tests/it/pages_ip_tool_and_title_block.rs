@@ -272,7 +272,7 @@ fn after_a_lone_target_the_tool_offers_its_source_and_the_toast_says_the_directi
     let said = toast(&mut d);
     assert!(
         said.starts_with("L1 at 101-")
-            && said.contains("has no source yet: place where L1 comes from, its source"),
+            && said.contains("has no source yet: place one where the potential leaves"),
         "{said:?}"
     );
     // Source on the card: the next point is L1's source, in the same quarter too.

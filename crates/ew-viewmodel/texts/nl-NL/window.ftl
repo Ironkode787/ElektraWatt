@@ -37,7 +37,6 @@ bar-interruption = Onderbreking
 bar-rotate = Draaien
 bar-mirror = Spiegelen
 bar-renumber = Apparaten hernummeren
-bar-check-project = Project controleren
 bar-navigators = Navigators
 bar-workspaces = Werkruimten
 commandbar-name = Opdrachtbalk

@@ -707,10 +707,10 @@ pub fn menu_spot(canvas: &crate::canvas::CanvasModel, over: Option<ew_dl::Entity
 /// - Over an object: the entries that fit it (`ShellModel::menu_fits`: a wire's, an interruption point's, a
 ///   terminal's, a device's), then, where the selection holds a symbol, the commands the command bar offers for it
 ///   (the buttons of [`SELECTION_GROUPS`], in the bar's order and as a collapsed group lists them: a split button, then
-///   its other variants), Move to page… and Keep in place, over a legend List columns…, then Cut, Copy, Paste, Delete
-///   and Properties of selection. Over a placement of a panel page: Turn, Flip, Lock or Unlock, Reset label position and Delete.
+///   its other variants), Move to page… and Keep in place, over a legend List columns…, then Cut, Copy, Paste, Paste
+///   in place, Delete and Properties of selection. Over a placement of a panel page: Turn, Flip, Lock or Unlock, Reset label position and Delete.
 /// - Over the frame or the title block: Title block fields…, then what an empty spot offers.
-/// - Over an empty spot: Paste, Page properties, New page… and, on a page that is not a panel layout, Print wire
+/// - Over an empty spot: Paste, Paste in place, Page properties, New page… and, on a page that is not a panel layout, Print wire
 ///   numbers; on a panel layout, Add legend and Reset label positions.
 ///
 /// An entry that cannot run now is disabled and carries its reason, as the bar's button does. `at` is the sheet point
@@ -723,7 +723,7 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
         if spot == MenuSpot::Frame {
             items.extend(item("page.title_block"));
         }
-        items.extend(item("edit.paste_clip"));
+        items.extend(PASTE.iter().filter_map(|id| item(id)));
         items.extend(item("props.focus").map(|mut i| {
             i.label = strings::text(key!("canvas-page-properties")).to_owned();
             i
@@ -863,17 +863,19 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
         // An embedded legend becomes its layout's legend page (doc 12 §5.4).
         items.extend(item("report_block.legend_to_page"));
     }
-    for id in [
-        "edit.cut",
-        "edit.copy",
-        "edit.paste_clip",
-        "edit.delete_selection",
-        "props.focus",
-    ] {
+    for id in ["edit.cut", "edit.copy"]
+        .into_iter()
+        .chain(PASTE)
+        .chain(["edit.delete_selection", "props.focus"])
+    {
         items.extend(item(id));
     }
     items
 }
+
+/// Paste and Paste in place, which stand together wherever Paste stands in the canvas menu (Paste in place was in the
+/// command search alone).
+const PASTE: [&str; 2] = ["edit.paste_clip", "edit.paste_in_place"];
 
 /// The context menu of the Pages tree's row `row`: on a page, what the Page tab offers for it
 /// (`ShellModel::page_row_fits`); elsewhere what the project can gain there, New page… (its folio proposed after the

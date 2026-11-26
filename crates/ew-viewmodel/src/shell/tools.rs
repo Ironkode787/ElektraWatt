@@ -940,22 +940,20 @@ impl ShellModel {
         if done
             && let Some(pin) = ip.pin
             && let Some(json) = json
-            && let (Some(x), Some(y)) = (json["ip"]["pos"][0].as_i64(), json["ip"]["pos"][1].as_i64())
         {
             self.tools.result_note = Some(ResultNote::IpConnected {
-                pos: (x, y),
                 name: json["ip"]["name"].as_str().unwrap_or_default().to_owned(),
                 pin,
                 external: !json["ip"]["external"].is_null(),
                 taken: ip.taken,
                 // What it pairs with, as a point placed free says it (a point dropped on a pin said nothing of its
                 // partner).
-                placed: self.ip_placed_text(&json["ip"]),
+                placed: self.ip_placed_text(&json["ip"], false),
             });
         } else if done && (ip.taken.is_some() || ip.free) {
             let placed = json
                 .filter(|_| ip.free)
-                .and_then(|json| self.ip_placed_text(json));
+                .and_then(|json| self.ip_placed_text(json, true));
             let text: Vec<String> = ip.taken.into_iter().chain(placed).chain(ip.beside).collect();
             if !text.is_empty() {
                 self.notify(text.join(" "), true);

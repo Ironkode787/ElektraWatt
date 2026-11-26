@@ -383,6 +383,8 @@ palette-hint = Type a command…
 palette-no-match = No matching command
 palette-form-hint = Enter applies · Esc goes back
 palette-form-hint-preview = Enter shows the preview: nothing changes before Apply · Esc goes back
+palette-switch-on = On, Enter switches it off
+palette-switch-off = Off, Enter switches it on
 shortcuts-title = Keyboard shortcuts
 
 # The text of the describe output.
@@ -607,7 +609,7 @@ action-messages-show = Messages
 action-messages-next = Next finding
 action-messages-previous = Previous finding
 action-messages-fix = Apply quick fix…
-action-messages-check = Run checks
+action-messages-check = Check project
 
 # Waive… and Unwaive; the check toast's waived and pending counts in its title.
 action-messages-waive = Waive finding…

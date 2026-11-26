@@ -3,7 +3,7 @@
 
 //! The message panel in the shell: `NavKind::Messages` in the bottom dock, the
 //! editing page and the pending rows, F8 and Shift+F8, F1 on a finding or rule row, the quick fix as a previewed card,
-//! and Tools ▸ Run checks.
+//! and Check ▸ Check project.
 //!
 //! **Calls**. The pane's table is the framework's: one `Session::navigator_table(Messages)` per revision while
 //! it is open (one `Session::check` inside), none while it is closed. The editing page changes the pending rows
@@ -436,7 +436,7 @@ impl ShellModel {
         self.act_navigator_open(&q)
     }
 
-    /// `messages.check` (Tools ▸ Run checks): ends the pending state and fetches the pane's table again.
+    /// `messages.check` (Check ▸ Check project): ends the pending state and fetches the pane's table again.
     pub(crate) fn act_messages_check(&mut self) -> Outcome {
         self.messages.editing_page = None;
         if let Some(n) = self.navs.get_mut(&NavKind::Messages) {

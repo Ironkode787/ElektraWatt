@@ -47,7 +47,7 @@ The fragment also carries page items and structure boxes (ranks 43/44); marker a
 
 #### Paste in place
 
-Edit ▸ Paste in place (`edit.paste_in_place`) puts the clipboard's block down with its anchor where the copy's anchor
+Edit ▸ Paste in place (`edit.paste_in_place`, beside Paste in the right-click menu too) puts the clipboard's block down with its anchor where the copy's anchor
 was: at the same page coordinates, so a block copied from one page lands on another page of the same frame exactly
 where it stood. It is one `edit.paste` with `at` the fragment's anchor, one undo step, and Select takes over with the
 pasted symbols selected, as after a paste. On a page of another connection grid the block is fitted to that grid as

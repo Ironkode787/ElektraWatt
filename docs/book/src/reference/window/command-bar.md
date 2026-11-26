@@ -271,7 +271,7 @@ Opens the guide to the Fluid workspace: [Work in the Fluid workspace](../../how-
 
 ## Check
 
-### Run checks
+### Check project
 
 Checks the project now and lists the findings in the Messages panel, with the change since the last check. See
 [Messages](panels.md#messages).

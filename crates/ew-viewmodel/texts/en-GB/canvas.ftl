@@ -212,13 +212,13 @@ hud-supply-connects = { $p0 } connects to { $p1 }
 hud-ip-taken = { $p0 } is taken, so this point is { $p1 }.
 
 # The IP tool's role in words, so "target" and "star source" explain themselves.
-hud-ip-source = source: where the potential comes from, one for its name
-hud-ip-target = target: where the potential goes on, fed by its source
+hud-ip-source = source: the potential leaves here for its targets; one per name
+hud-ip-target = target: the potential arrives here from its source
 hud-ip-undirected = undirected: pairs either way
 hud-ip-star = star source: feeds every point of the name
 # The other half of a name that has one, said before the click (the tool turned to Target without a word).
-hud-ip-next-target = next: a target, where { $p0 } goes on (its source is drawn)
-hud-ip-next-source = next: the source, where { $p0 } comes from (its targets wait for it)
+hud-ip-next-target = next: a target, where { $p0 } arrives (its source is drawn)
+hud-ip-next-source = next: the source, where { $p0 } leaves (its targets wait for it)
 hud-ip-next-target-lone = next: one more target of { $p0 }, which has no source yet (D makes this point its source)
 # While the IP tool's name field holds the keys, D is a letter of the name: the HUD says how to give the keys back.
 hud-ip-field-keys = Enter ends the name, then { $p0 }: { $p1 }

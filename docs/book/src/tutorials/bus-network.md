@@ -70,7 +70,7 @@ the same devices stay on the schematic pages.
 
     ![The bus page: the CPU, the switch, the remote I/O station and the converter, joined by their bus lines](images/bus-network.png)
 
-14. Choose **Check ▸ Run checks** (`F7`).
+14. Choose **Check ▸ Check project** (`F7`).
     The toast says "Check: 0 errors, 0 warnings, 5 infos." The infos say that the DP addresses are still TBD (this
     network uses PROFINET only) and that no report lists the stations and the cable yet.
 15. Choose **File ▸ Save** (`Ctrl+S`).

@@ -213,7 +213,7 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `tool.ip_direction` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_ip_direction` `crates/ew-viewmodel/src/shell/interruption.rs` | `action-tool-ip-direction` |
 | `tool.star_source` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_ip_key` `crates/ew-viewmodel/src/shell/interruption.rs` | `action-tool-star-source` |
 | `ip.name` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_ip_name` `crates/ew-viewmodel/src/shell/interruption.rs` | `action-ip-name`, `action-ip-name-hint`, `field-help-function-kind-ip-name` |
-| `ip.external` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_ip_external` `crates/ew-viewmodel/src/shell/interruption.rs` | `action-ip-external`, `field-help-function-kind-ip-external`, `hint-ip-external`, `reason-ip-external`, `toast-ip-external-connected`, `toast-ip-external-connected-no-cell` |
+| `ip.external` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_ip_external` `crates/ew-viewmodel/src/shell/interruption.rs` | `action-ip-external`, `field-help-function-kind-ip-external`, `hint-ip-external`, `reason-ip-external`, `toast-ip-external-connected` |
 | `ip.supply_in` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_supply_in` `crates/ew-viewmodel/src/shell/supply_in.rs` | `action-ip-supply-in` |
 | `ip.continue_on` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_ip_continue_on` `crates/ew-viewmodel/src/shell/interruption.rs` | `action-ip-continue-on` |
 | `ip.arrange_selected` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_ip_arrange` `crates/ew-viewmodel/src/shell/interruption.rs` | `action-ip-arrange-selected` |

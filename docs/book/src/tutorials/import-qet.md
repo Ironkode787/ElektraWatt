@@ -46,7 +46,7 @@ symbol wired to the supply's PE terminal. One conductor is missing on purpose: t
 7. Click the supply G1, choose **Edit ▸ Choose part…**, type `power supply` and choose **EW-GEN-PSU-1**.
 8. Click the earth, choose **Edit ▸ Choose part…**, type `earth` and choose **EW-GEN-TRM-2**.
    Every device has its part, and EW-CORE-041 is gone.
-9. Choose **Check ▸ Run checks** (`F7`).
+9. Choose **Check ▸ Check project** (`F7`).
    The Messages pane shows the migration report again, with no error, 1 warning (EW-IMP-119) and 7 infos
    (EW-IMP-006, EW-IMP-103 twice, EW-IMP-117, EW-IMP-122 and EW-NUM-001 twice): the record of the import, nothing
    left to fix.

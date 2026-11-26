@@ -885,14 +885,14 @@ msgstr ""
 
 #: src/tutorials/terminal-strip-and-cable.md:49
 msgid ""
-"Choose **Check ▸ Run checks** (`F7`). The toast says \"Check: 0 errors, 9 "
+"Choose **Check ▸ Check project** (`F7`). The toast says \"Check: 0 errors, 9 "
 "warnings, 2 infos\". The warnings are the devices and the cable that have no "
 "part yet and the transformer's open primary pins; the infos say that no "
 "report covers the strip or the cable yet. The cable's warning offers "
 "**Choose a cable type…**: its part dialog lists the cable parts that fit "
 "first, and the others greyed with the reason."
 msgstr ""
-"Kies **Controle ▸ Controles uitvoeren** (`F7`). De notificatie zegt "
+"Kies **Controle ▸ Project controleren** (`F7`). De notificatie zegt "
 "\"Controle: 0 fouten, 9 waarschuwingen, 2 info's\". De waarschuwingen zijn "
 "de apparaten en de kabel die nog geen artikel hebben en de open primaire "
 "aansluitpunten van de transformator; de info's zeggen dat nog geen rapport "
@@ -1307,12 +1307,12 @@ msgstr ""
 
 #: src/tutorials/import-qet.md:49
 msgid ""
-"Choose **Check ▸ Run checks** (`F7`). The Messages pane shows the migration "
-"report again, with no error, 1 warning (EW-IMP-119) and 7 infos (EW-IMP-006, "
-"EW-IMP-103 twice, EW-IMP-117, EW-IMP-122 and EW-NUM-001 twice): the record "
-"of the import, nothing left to fix."
+"Choose **Check ▸ Check project** (`F7`). The Messages pane shows the "
+"migration report again, with no error, 1 warning (EW-IMP-119) and 7 infos "
+"(EW-IMP-006, EW-IMP-103 twice, EW-IMP-117, EW-IMP-122 and EW-NUM-001 twice): "
+"the record of the import, nothing left to fix."
 msgstr ""
-"Kies **Controle ▸ Controles uitvoeren** (`F7`). Het paneel Meldingen toont "
+"Kies **Controle ▸ Project controleren** (`F7`). Het paneel Meldingen toont "
 "weer het migratierapport, met geen fout, 1 waarschuwing (EW-IMP-119) en 7 "
 "info's (EW-IMP-006, twee keer EW-IMP-103, EW-IMP-117, EW-IMP-122 en twee "
 "keer EW-NUM-001): het verslag van de import, er is niets meer op te lossen."
@@ -2166,12 +2166,12 @@ msgstr ""
 
 #: src/tutorials/bus-network.md:73
 msgid ""
-"Choose **Check ▸ Run checks** (`F7`). The toast says \"Check: 0 errors, 0 "
+"Choose **Check ▸ Check project** (`F7`). The toast says \"Check: 0 errors, 0 "
 "warnings, 5 infos.\" The infos say that the DP addresses are still TBD (this "
 "network uses PROFINET only) and that no report lists the stations and the "
 "cable yet."
 msgstr ""
-"Kies **Controle ▸ Controles uitvoeren** (`F7`). De notificatie meldt 0 "
+"Kies **Controle ▸ Project controleren** (`F7`). De notificatie meldt 0 "
 "fouten, 0 waarschuwingen en 5 meldingen. De meldingen zeggen dat de "
 "DP-adressen nog TBD zijn (dit netwerk gebruikt alleen PROFINET) en dat nog "
 "geen rapport de stations en de kabel opsomt."
@@ -6338,8 +6338,8 @@ msgid ""
 "The page's menu is the quick way to what fits the thing under the pointer: "
 "its first entries are that thing's, then come the general ones (Rotate, "
 "Mirror, Renumber devices… and Move to page… on a symbol; Cut, Copy, Paste, "
-"Delete, Properties of selection). A right click selects the thing first; "
-"Shift+F10 or the menu key opens the same menu for the selection."
+"Paste in place, Delete, Properties of selection). A right click selects the "
+"thing first; Shift+F10 or the menu key opens the same menu for the selection."
 msgstr ""
 
 #: src/reference/window/tools.md:22
@@ -6390,8 +6390,8 @@ msgstr ""
 
 #: src/reference/window/tools.md:40
 msgid ""
-"On the title block: Title block fields…. On an empty spot: Paste, Page "
-"properties, New page… and Print wire numbers."
+"On the title block: Title block fields…. On an empty spot: Paste, Paste in "
+"place, Page properties, New page… and Print wire numbers."
 msgstr ""
 
 #: src/reference/window/tools.md:42
@@ -7727,7 +7727,7 @@ msgid "Check"
 msgstr ""
 
 #: src/reference/window/command-bar.md:274
-msgid "Run checks"
+msgid "Check project"
 msgstr ""
 
 #: src/reference/window/command-bar.md:276

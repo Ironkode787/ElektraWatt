@@ -267,11 +267,9 @@ pub enum ResultNote {
         /// The far autoconnect hits it did not join (`Ghost::Place::far`), the first offered by the toast.
         far: Vec<((i64, i64), String, ew_api::output::Uuid, u16)>,
     },
-    /// The IP tool's `connection.draw_to_ip` from the pin under the point's CP: the point's insertion point
-    /// (page nm), its committed name and the pin in words.
+    /// The IP tool's `connection.draw_to_ip` from the pin under the point's CP: its committed name and the pin in
+    /// words, which says where it stands.
     IpConnected {
-        /// The insertion point.
-        pos: (i64, i64),
         /// The committed name.
         name: String,
         /// The pin, as the ghost named it.

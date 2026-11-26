@@ -15,7 +15,7 @@ always stands on the grid, and nothing moves it after you set it down. Hold `Alt
 moves it without connecting it.
 
 The page's menu is the quick way to what fits the thing under the pointer: its first entries are that thing's, then
-come the general ones (Rotate, Mirror, Renumber devices… and Move to page… on a symbol; Cut, Copy, Paste, Delete,
+come the general ones (Rotate, Mirror, Renumber devices… and Move to page… on a symbol; Cut, Copy, Paste, Paste in place, Delete,
 Properties of selection). A right click selects the thing first; Shift+F10 or the menu key opens the same menu for the
 selection.
 
@@ -37,7 +37,7 @@ selection.
   what each carries (its kind of conductor and voltage; Enter takes them, Escape leaves them without). On a marked
   point the entry reads Remove the supply mark, and Potential… opens that panel again. The same link stands under the
   point's name in Properties.
-- On the title block: Title block fields…. On an empty spot: Paste, Page properties, New page… and Print wire numbers.
+- On the title block: Title block fields…. On an empty spot: Paste, Paste in place, Page properties, New page… and Print wire numbers.
 
 A navigator's row offers what the same thing offers on the page; a right click on a row selects it first. A device's
 row offers Go to (its first placement), its symbol's entries and Properties of selection; a cable's row Cable… and Go

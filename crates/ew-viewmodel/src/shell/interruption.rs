@@ -496,9 +496,10 @@ impl ShellModel {
 
     /// The toast's sentence for a point `ip.place` put down free (`params`, the command's): what was made and where its
     /// partner is, "IP-1: source here at 101-B2, target on /102.3", or that it has none yet (the toast
-    /// said how D would have made the opposite); `None` for an external connection point or an undirected one.
+    /// said how D would have made the opposite); `None` for an external connection point or an undirected one. With
+    /// `cell` false it leaves out the point's cell, which the sentence before it says (a point dropped on a pin).
     #[inline(never)]
-    pub(super) fn ip_placed_text(&self, params: &Value) -> Option<String> {
+    pub(super) fn ip_placed_text(&self, params: &Value, cell: bool) -> Option<String> {
         if !params["external"].is_null() {
             return None;
         }
@@ -536,7 +537,7 @@ impl ShellModel {
             ),
             (IpDir::Undirected, _) => return None,
         };
-        let cell = self.canvas().and_then(|c| {
+        let cell = self.canvas().filter(|_| cell).and_then(|c| {
             let page = c.page();
             page.cell_text(page.snapper.page_to_sheet(pos))
         });

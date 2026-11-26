@@ -85,6 +85,37 @@ fn the_order_is_deterministic_ties_by_label_then_id_and_disabled_last() {
     shell.shutdown();
 }
 
+/// A command has one name wherever a person meets it, and the search finds it by the words on its buttons: "check
+/// project" finds the Check tab's Check project, whose entry reads so (it was "Run checks" in the search, which
+/// "check project" did not find), in both languages; "workspaces" finds Load workspace by its button's words.
+#[test]
+fn the_search_finds_a_command_by_the_words_on_its_button() {
+    let tmp = Tmp::new("pal-button-words");
+    let mut shell = tmp.sample_in(Mode::Gui, true, "103");
+    for (words, label) in [
+        ("check project", "Check project"),
+        ("project controleren", "Project controleren"),
+    ] {
+        if words.contains("controleren") {
+            assert!(strings::set_locale("nl"));
+        }
+        let entries = query(&mut shell, words);
+        assert!(strings::set_locale("en"));
+        assert_eq!(
+            entries.first().map(|e| e.id.as_str()),
+            Some("messages.check"),
+            "{words}"
+        );
+        assert_eq!(entries[0].label, label);
+    }
+    let entries = query(&mut shell, "workspaces");
+    assert!(
+        entries.iter().any(|e| e.id == "view.workspace_load"),
+        "Load workspace by its button, Workspaces: {:?}",
+        &ids(&entries)[..entries.len().min(6)]
+    );
+}
+
 /// Searching "supply" finds the electrical supply too, not only the air supply. The
 /// supply point (Supply comes in here..., and Interruption, which draws the points) is found by the words a panel
 /// builder types, in both languages; with no point selected the search says what it needs.
@@ -440,14 +471,20 @@ fn show_tips_is_a_view_tab_switch_and_the_palette_says_its_state() {
     };
     done(&mut shell, "view.tips", json!({"on": false}));
     assert!(!button(&shell).checked);
-    assert_eq!(tips(&mut shell), "View \u{b7} Show \u{b7} Off");
+    assert_eq!(
+        tips(&mut shell),
+        "View \u{b7} Show \u{b7} Off, Enter switches it on"
+    );
     done(&mut shell, "view.tips", json!({"on": true}));
     assert!(button(&shell).checked);
-    assert_eq!(tips(&mut shell), "View \u{b7} Show \u{b7} On");
+    assert_eq!(
+        tips(&mut shell),
+        "View \u{b7} Show \u{b7} On, Enter switches it off"
+    );
     assert!(strings::set_locale("nl"));
     let nl = tips(&mut shell);
     assert!(strings::set_locale("en"));
-    assert_eq!(nl, "Beeld \u{b7} Tonen \u{b7} Aan");
+    assert_eq!(nl, "Beeld \u{b7} Tonen \u{b7} Aan, Enter zet het uit");
     shell.shutdown();
 }
 
