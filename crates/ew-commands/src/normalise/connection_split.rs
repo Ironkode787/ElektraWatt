@@ -152,13 +152,38 @@ fn from_end_beyond_b(tx: &TxBuilder<'_>, connection: Id<Connection>) -> bool {
     a_toward_first == from_is_last
 }
 
+/// The constituents of every physical wire `connection` is part of, in the snapshot before the transaction (doc 08
+/// §3.8; a star's feed arm is part of every branch's wire); none for a connection new in this transaction.
+fn wires_through(tx: &TxBuilder<'_>, connection: Id<Connection>) -> Vec<Id<Connection>> {
+    let q = ew_derive::Q::new(tx.base_model());
+    let Some(w) = q.connections().get(connection) else {
+        return Vec::new();
+    };
+    let partition = q.get::<ew_derive::PotentialPartition>(());
+    let Some(potential) = EndpointKey::of(&w.a).and_then(|k| partition.potential_at(k)) else {
+        return Vec::new();
+    };
+    let mut out: Vec<Id<Connection>> = q
+        .get::<ew_derive::PhysicalWiresOf>(potential.id)
+        .wires
+        .iter()
+        .filter(|p| p.constituents.contains(&connection))
+        .flat_map(|p| p.constituents.iter().copied())
+        .collect();
+    out.sort();
+    out.dedup();
+    out
+}
+
 /// Normaliser #7.
 ///
 /// A representation created by this transaction whose functions have no connection yet, and of whose
 /// drawn CPs at least two distinct positions lie on the stored route of one connection of its page (in ID order;
 /// connections already attached to its functions are skipped), splits that connection: the part from `a` ends at the CP met first along the path,
 /// the part to `b` starts at the CP met last, and the part toward the wire's From end keeps the connection's record
-/// (FR-CON-008). The representation then has connections, so a second run does nothing.
+/// (FR-CON-008). The representation then has connections, so a second run does nothing. Every wire the connection was
+/// part of is cut into two that nobody measured: no constituent of those wires keeps a typed length (`overrides.length`,
+/// doc 13 §2.3).
 ///
 /// A connection's path is the one the page draws it along: its stored route. A
 /// connection without one is unrouted and has no wire geometry: it is drawn as a dashed straight line
@@ -233,7 +258,8 @@ impl Normaliser for ConnectionSplit {
                     return tx.reject(text!("refusal-split-shared-run"));
                 }
                 let keep_second = from_end_beyond_b(tx, cid);
-                split_connection(
+                let cut = wires_through(tx, cid);
+                let new = split_connection(
                     tx,
                     cid,
                     c1.pos,
@@ -242,6 +268,16 @@ impl Normaliser for ConnectionSplit {
                     Endpoint::Cp(c2.function, c2.idx),
                     keep_second,
                 )?;
+                // The device cuts every wire through the connection into two wires nobody measured (doc 13 §2.3):
+                // none of them keeps a typed length.
+                for c in cut.into_iter().chain([cid, new]) {
+                    if tx
+                        .get::<Connection>(c)
+                        .is_some_and(|c| c.overrides.length.is_some())
+                    {
+                        tx.update::<Connection>(c, |c| c.overrides.length = None)?;
+                    }
+                }
                 changed = true;
                 break;
             }

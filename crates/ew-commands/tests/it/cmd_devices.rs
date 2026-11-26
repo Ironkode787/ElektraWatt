@@ -510,6 +510,26 @@ fn place_on_a_wire_splits_it() {
     assert_eq!(second.page, Some(PAGE_102));
 }
 
+/// A wire of 400 mm that a placed device cuts is two wires nobody measured (doc 13 §2.3): neither part keeps the typed
+/// length, so the list prints both as missing; its other values stay with both.
+#[test]
+fn a_typed_length_goes_when_a_placed_device_cuts_the_wire() {
+    let wire: ew_ids::Id<Connection> = id(0x4100);
+    let mut original = connection(wire, Some(PAGE_102), cp(FN_102G1, 0), cp(FN_T1, 1));
+    original.route = vec![pt(0, -MM10), pt(0, 2 * MM10)];
+    original.overrides.csa = Some(ew_schema::Csa::Mm2(ew_units::Dec3(2_500)));
+    original.overrides.length = Some(ew_units::Nm(400_000_000));
+    let model = mini_model_with(|r| r.push(Record::Connection(original.clone())));
+    let mut e = engine(model);
+    let r = e.execute(&place(PAGE_102, pt(0, 0), new_device("F"))).unwrap();
+    let second: ew_ids::Id<Connection> = created(&r, Kind::Connection)[0];
+    for part in [wire, second] {
+        let o = &row(&e, part).overrides;
+        assert_eq!(o.length, None, "{part}");
+        assert_eq!(o.csa, original.overrides.csa, "{part}");
+    }
+}
+
 /// A symbol dropped on the shared run of two wires of one pin (docs/design/06a-drafting.md §3.4) is refused in words:
 /// cut, the other wire would run on through its pins.
 #[test]

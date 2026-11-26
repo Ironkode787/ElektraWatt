@@ -222,3 +222,5 @@ change here.
   language ("0,5 tot 1,5 mm²" in Dutch), as the check messages do
 - text-change: a strip's Properties name its accessory rows by the accessory kind's own word, so the marker carrier's
   row reads "Marker carrier" ("Markeringsdrager") as the strip editor says it, not "Strip marker"
+- behaviour-change: A device placed on a wire with a typed length cuts it into two wires that nobody measured: neither
+  keeps the length (the wire list prints `—` for both); each half kept the whole wire's length.
