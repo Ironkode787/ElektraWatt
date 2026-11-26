@@ -110,8 +110,8 @@ pub struct BusAddress;
 /// The next free PROFIBUS DP station address of each open (`tbd`) PROFIBUS DP port of a net, in the order of
 /// `ports` (FT-2208): the first address of the port's range (its part's `address_range`, else 0–125) that no port of
 /// the net holds and no earlier open port is given, counted on from the highest address held and wrapping to the
-/// range's start (0 is left to the programming device when the range starts there). A port whose range is full gets
-/// none.
+/// range's start (0 is left to the programming device when the range starts there). A port whose range is full, or
+/// holds no station address (its minimum above its maximum or above 255), gets none.
 fn next_free_addresses(q: &Q, ports: &[Id<Function>]) -> BTreeMap<Id<Function>, u8> {
     let functions = q.functions();
     let mut taken: BTreeSet<u16> = ports
@@ -138,6 +138,10 @@ fn next_free_addresses(q: &Q, ports: &[Id<Function>]) -> BTreeMap<Id<Function>, 
             .and_then(|(p, _)| p.address_range.map(|r| (r.min, r.max)))
             .unwrap_or(crate::rules::bus_net::PROFIBUS_RANGE);
         let (start, max) = (min.max(1), max.min(u16::from(u8::MAX)));
+        // A range that holds no station address (its minimum above its maximum or above 255) gives none.
+        if start > max {
+            continue;
+        }
         let from = highest
             .map_or(start, |h| h.saturating_add(1))
             .clamp(start, max.saturating_add(1));

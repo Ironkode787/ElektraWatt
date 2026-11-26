@@ -699,6 +699,25 @@ fn ew_bus_002_005_007_range_rate_master() {
     );
 }
 
+/// EW-BUS-001's next free address on a part whose address range holds no PROFIBUS station address (its minimum above
+/// its maximum, or above 255): each open port keeps its finding, without the quick fix, and the rule does not fail.
+#[test]
+fn ew_bus_001_offers_no_address_from_a_range_that_holds_none() {
+    for range in [json!({"min": 10, "max": 5}), json!({"min": 300, "max": 400})] {
+        let m = bus(
+            &json!({}),
+            &json!({}),
+            &json!({}),
+            &json!({"address_range": range}),
+            None,
+        );
+        let f = found(&m, "EW-BUS-001");
+        assert_eq!(f.len(), 2, "{range}: both open ports, {f:#?}");
+        assert!(f.iter().all(|f| f.fix.is_none()), "{range}: no address to give");
+        assert!(found(&m, "EW-CORE-083").is_empty(), "{range}: the rule ran");
+    }
+}
+
 /// EW-BUS-003 (FR-BUS-017): two stations at 192.168.0.10, a device name with an underscore, an address outside the
 /// master's subnet.
 #[test]
