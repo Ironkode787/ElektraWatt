@@ -5,3 +5,5 @@
 *.png binary
 # Real exporter corpora: kept byte for byte as their exporters wrote them (CRLF included).
 crates/*/tests/fixtures/*-exporters/** -text
+# The label files a label program reads: kept byte for byte (CR LF and a byte-order mark, doc 13 §5.4).
+bin/ew/tests/expected/labels/** -text

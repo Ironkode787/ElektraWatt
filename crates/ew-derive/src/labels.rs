@@ -12,7 +12,8 @@ use std::sync::Arc;
 use ew_ids::Id;
 use ew_mltext::natural_key;
 use ew_schema::{
-    CarrierRef, Connection, Device, DeviceLabels, LabelMode, MarkTarget, MountKind, MountingSurface, Part, Placement,
+    CarrierRef, Connection, Device, DeviceLabels, LabelMode, MarkTarget, MountKind, MountingSurface, Part,
+    Placement,
 };
 
 use crate::fluid_rows::TubeRows;
@@ -63,6 +64,90 @@ impl LabelSet {
             LabelSet::DeviceLabels | LabelSet::Plates => MarkTarget::Device,
         }
     }
+}
+
+/// The columns of the `labels` list (doc 13 §5.3), in its order: what a label file's export profile names by key.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum LabelColumn {
+    /// The label set.
+    Set,
+    /// What the label is for ("101.1 at -X1011:L1").
+    For,
+    /// The first line.
+    Text1,
+    /// The second line.
+    Text2,
+    /// The third line.
+    Text3,
+    /// How many the fitter prints.
+    Copies,
+    /// The marker part's number.
+    MarkerPart,
+    /// "does not fit its marker part".
+    Note,
+}
+
+impl LabelColumn {
+    /// Every column, in the list's order.
+    pub const ALL: [LabelColumn; 8] = [
+        LabelColumn::Set,
+        LabelColumn::For,
+        LabelColumn::Text1,
+        LabelColumn::Text2,
+        LabelColumn::Text3,
+        LabelColumn::Copies,
+        LabelColumn::MarkerPart,
+        LabelColumn::Note,
+    ];
+
+    /// The column's key (`text_1`).
+    pub fn key(self) -> &'static str {
+        match self {
+            LabelColumn::Set => "set",
+            LabelColumn::For => "for",
+            LabelColumn::Text1 => "text_1",
+            LabelColumn::Text2 => "text_2",
+            LabelColumn::Text3 => "text_3",
+            LabelColumn::Copies => "copies",
+            LabelColumn::MarkerPart => "marker_part",
+            LabelColumn::Note => "note",
+        }
+    }
+
+    /// The column whose key is `key`.
+    pub fn parse(key: &str) -> Option<LabelColumn> {
+        LabelColumn::ALL.into_iter().find(|c| c.key() == key)
+    }
+}
+
+/// The generic export profile (doc 13 §5.4): the columns every label program that imports a table maps once, with
+/// the headings the file prints; a project without a profile of its own uses it.
+pub const GENERIC_PROFILE: [(LabelColumn, &str); 5] = [
+    (LabelColumn::Text1, "Text 1"),
+    (LabelColumn::Text2, "Text 2"),
+    (LabelColumn::Text3, "Text 3"),
+    (LabelColumn::Copies, "Copies"),
+    (LabelColumn::For, "For"),
+];
+
+/// The project's export profile: its own, else the generic one.
+pub fn label_profile(q: &Q) -> ew_schema::ExportProfile {
+    q.project()
+        .settings
+        .workshop
+        .label_profile
+        .clone()
+        .unwrap_or_else(|| ew_schema::ExportProfile {
+            columns: GENERIC_PROFILE
+                .iter()
+                .map(|(c, heading)| ew_schema::ProfileColumn {
+                    key: c.key().to_owned(),
+                    heading: (*heading).to_owned(),
+                    extra: ew_schema::Extra::default(),
+                })
+                .collect(),
+            ..ew_schema::ExportProfile::default()
+        })
 }
 
 /// What a label marks.
@@ -282,7 +367,12 @@ fn mounting_key(q: &Q, device: Id<Device>) -> Option<(Id<MountingSurface>, Rever
     let (placement, geom) = q
         .idx()
         .placements_of_device(device)
-        .filter_map(|p| Some((q.table::<Placement>().get(p)?.clone(), q.get::<PlacementGeometry>(p).as_ref().clone()?)))
+        .filter_map(|p| {
+            Some((
+                q.table::<Placement>().get(p)?.clone(),
+                q.get::<PlacementGeometry>(p).as_ref().clone()?,
+            ))
+        })
         .min_by_key(|(p, _)| p.id)?;
     let carrier_top = match placement.carrier {
         CarrierRef::Carrier(c) => q

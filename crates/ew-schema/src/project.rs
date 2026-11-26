@@ -465,9 +465,54 @@ pub struct WorkshopSettings {
     /// Where a device's label goes (doc 13 §5.3); absent: on the device.
     #[serde(default, skip_serializing_if = "is_default")]
     pub device_labels: DeviceLabels,
+    /// The columns of a label file with their headings (doc 13 §5.4); absent: the generic profile.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label_profile: Option<ExportProfile>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+/// The columns of a label file ([`WorkshopSettings::label_profile`], doc 13 §5.4).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct ExportProfile {
+    /// The columns in file order: a column of the `labels` list and the heading the file prints.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub columns: Vec<ProfileColumn>,
+    /// The CSV delimiter; absent: a comma.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub delimiter: Delimiter,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// One column of an [`ExportProfile`].
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct ProfileColumn {
+    /// The key of a column of the `labels` list (`text_1`).
+    pub key: String,
+    /// The heading the file prints.
+    pub heading: String,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The delimiter of a label file's CSV ([`ExportProfile::delimiter`]).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "Delimiter")]
+pub enum Delimiter {
+    /// A comma.
+    #[default]
+    Comma,
+    /// A semicolon.
+    Semicolon,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Where a device's label goes ([`WorkshopSettings::device_labels`], doc 13 §5.3).
@@ -1197,6 +1242,7 @@ open_enum!(
     TwoWires,
     Marking,
     DeviceLabels,
+    Delimiter,
 );
 
 #[cfg(test)]

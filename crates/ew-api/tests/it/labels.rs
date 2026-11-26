@@ -96,11 +96,17 @@ fn a_terminal_marker_says_its_function_where_the_strip_prints_it() {
         s.query()
             .get::<LabelRows>(())
             .iter()
-            .find(|l| l.set == LabelSet::TerminalMarkers && l.target == ew_derive::LabelTarget::Device(ew_ids::Id::from_uuid(id)))
+            .find(|l| {
+                l.set == LabelSet::TerminalMarkers
+                    && l.target == ew_derive::LabelTarget::Device(ew_ids::Id::from_uuid(id))
+            })
             .map(|l| l.lines.clone())
             .expect("the terminal's marker")
     };
-    let terminal = s.resolve_reference("tag:-X1021:1").expect("the terminal").to_string();
+    let terminal = s
+        .resolve_reference("tag:-X1021:1")
+        .expect("the terminal")
+        .to_string();
     let strip = s.resolve_reference("tag:-X1021").expect("the strip").to_string();
     common::run_cmd(
         &mut s,
@@ -114,4 +120,39 @@ fn a_terminal_marker_says_its_function_where_the_strip_prints_it() {
         json!({"kind": "device", "targets": [strip], "path": "strip.label_mode", "value": "function_text"}),
     );
     assert_eq!(lines(&s), ["1", "24V"]);
+}
+
+/// The project's export profile gives the label files their columns and delimiter; a column the labels list does not
+/// have, and a profile without columns, are refused in words.
+#[test]
+fn the_export_profile_gives_the_label_files_their_columns() {
+    let mut s = common::sample();
+    let set = |s: &mut Session, value: serde_json::Value| {
+        let cmd = AnyCommand {
+            name: "project.settings.set".into(),
+            params: json!({"member": "workshop.label_profile", "value": value}),
+        };
+        match s.execute(&cmd) {
+            Err(ew_api::CmdError::NeedsPreview { .. }) => s.preview(&cmd).and_then(|p| s.commit(p)),
+            other => other,
+        }
+    };
+    let wrong =
+        set(&mut s, json!({"columns": [{"key": "text_9", "heading": "T"}]})).expect_err("no such column");
+    assert!(wrong.to_string().contains("text_9"), "{wrong}");
+    assert!(set(&mut s, json!({"columns": []})).is_err());
+    set(
+        &mut s,
+        json!({"columns": [{"key": "text_1", "heading": "Line"}, {"key": "copies", "heading": "N"}], "delimiter": "semicolon"}),
+    )
+    .expect("a profile of its own");
+    let files = s
+        .label_files(&ew_api::LabelScope::All, ew_api::LabelFileFormat::Csv, None)
+        .expect("the label files");
+    let wires = files
+        .iter()
+        .find(|f| f.set == LabelSet::WireMarkers)
+        .expect("the wire markers' file");
+    let text = String::from_utf8(wires.bytes.clone()).expect("UTF-8");
+    assert!(text.starts_with("\u{feff}Line;N\r\n-101Q1:1;1\r\n"), "{text}");
 }

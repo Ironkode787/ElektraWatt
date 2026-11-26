@@ -229,7 +229,9 @@ pub use tag::{
     level_short_tag, main_rep_with, numbering_format, rep_level, rule_product, short_tag,
 };
 // How a value of the domain is printed.
-pub use labels::{LabelRecord, LabelRows, LabelSet, LabelTarget};
+pub use labels::{
+    GENERIC_PROFILE, LabelColumn, LabelRecord, LabelRows, LabelSet, LabelTarget, label_profile,
+};
 pub use marking::{MarkedBy, MarkerText, NotMarked, marker_end_text, shorten, wire_marker_part};
 pub use text::{
     awg_gauge, bus_address, channel_address, channel_address_words, colour_code_text, colour_text, csa_text,

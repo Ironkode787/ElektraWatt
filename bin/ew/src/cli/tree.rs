@@ -971,6 +971,16 @@ pub(crate) enum ExportCli {
     /// everything else (usage, open errors, no release or no archive found, an archive that does not open, write
     /// errors).
     Rework(ReworkCli),
+    /// Write the label files, one per label set and marker part.
+    ///
+    /// Writes the project's labels (doc 13 §5.4) into the folder `--dir` (required, made when missing): one file per
+    /// label set and marker part, named by the drawing's number, the set and the marker part's number, in the columns
+    /// of the project's export profile (else the generic one: Text 1, Text 2, Text 3, Copies, For), each written whole.
+    /// `--since <revision>` writes only the labels the rework list against that release names. `--format xlsx` writes
+    /// workbooks of one sheet; the CSV has a byte-order mark, CR LF and the profile's delimiter, its values as they
+    /// are. Exit 0 when written, 2 on everything else (usage, open errors, no such release or its archive not found,
+    /// write errors).
+    Labels(LabelsCli),
     /// Write one PNG file per page.
     ///
     /// Writes one `<folio>.png` per page into the directory `--out` (empty, or one an earlier PNG export wrote, which
@@ -1249,6 +1259,40 @@ impl ReworkCli {
             usage_error(
                 &["export", "rework"],
                 "`ew export rework` writes a file: give `--out <file>`",
+            )
+        })
+    }
+}
+
+/// `ew export labels`.
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct LabelsCli {
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
+    /// Only the labels the rework list against this release (by its label) names.
+    #[arg(long, value_name = "revision")]
+    pub(super) since: Option<String>,
+    /// The format: csv (default) or xlsx.
+    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = table_format())]
+    pub(super) format: Option<ReportPages>,
+    /// The folder to write into (required).
+    #[arg(
+        long,
+        value_name = "folder",
+        allow_hyphen_values = true,
+        overrides_with = "dir"
+    )]
+    pub(super) dir: Option<PathBuf>,
+}
+
+impl LabelsCli {
+    /// The folder to write into: `--dir` is needed.
+    pub(super) fn folder(&self) -> Result<&PathBuf, clap::Error> {
+        self.dir.as_ref().ok_or_else(|| {
+            usage_error(
+                &["export", "labels"],
+                "`ew export labels` writes files: give `--dir <folder>`",
             )
         })
     }

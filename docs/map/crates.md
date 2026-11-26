@@ -89,6 +89,7 @@ The `Session` facade shared by every front-end.
 | `src/fmt.rs` |  | `ew fmt` (FR-EXT-008): the project files in their canonical encoding and line order (doc 05 §3). |
 | `src/geometry.rs` |  | The orientation arithmetic the canvas tools need without a `Session`: pure functions equal to `ew_units::Orient2`'s mapping, on the plain integers a tool holds. |
 | `src/import.rs` | large | Import front door for the CLI (`ew import qet`, doc 14 §2.1, §2.5): reads the starter content, runs the QElectroTech project importer and opens the batch as a [`Session`], so that front-ends see the import, its migration report and the derived pages without naming the record types. |
+| `src/labels.rs` |  | The label files (doc 13 §5.4): one file per label set and marker part, in the columns of the project's export profile, as CSV or XLSX, named by the drawing's number, the set in the project's language and the marker part's number; every label, or only those the rework list against a release names (Labels for these changes…). |
 | `src/lib.rs` | large | The `Session` facade shared by every front-end. |
 | `src/library_ops.rs` | large | The library reference form of the commands. |
 | `src/macros.rs` | large | Macros in the session (doc 07 §3.5, §4.6). |

@@ -275,3 +275,13 @@ change here.
   Marker part, Note) where it had Tube, At and Label text.
 - behaviour-change: The rework list also lists the labels' work: Remove device, Remove terminal, Remove cable, Re-mark (a
   wire end's marker that says another text), Re-label, Mount device, Add terminal and Add cable.
+- behaviour-change: `ew export labels --dir <folder> [--format csv|xlsx] [--since <revision>]` writes the label files,
+  one per label set and marker part (`SAMPLE-E Wire markers EW-GEN-MRK-1.csv`), in the columns of the project's export
+  profile, else the generic one (Text 1, Text 2, Text 3, Copies, For); the CSV has a byte-order mark, CR LF and the
+  profile's delimiter and its values as they are, never guarded; `--since` writes only the labels the rework list
+  against that release names. Each file is written whole.
+- api-add: `project.settings.set` sets `workshop.label_profile` (`{columns: [{key, heading}], delimiter?}`), refusing in
+  words a column the labels list does not have and a profile without columns.
+- format-variant: `WorkshopSettings` gains `ferrules`, `two_wires`, `marking`, `mark_cores`, `mark_jumpers`,
+  `device_labels` and `label_profile` (`ExportProfile`, `ProfileColumn`, `Delimiter`); `WireOverrides` gains `end_a`
+  and `end_b`; `ReportKind` gains `labels`; each absent when not set.

@@ -37,7 +37,7 @@ pub use device_list::DeviceList;
 pub use enclosure_legend::EnclosureLegend;
 pub use fluid::{MediumOverview, TubeCutList, TubeLabels, TubeList, ValveTerminalConfig};
 pub use io_list::IoList;
-pub use labels::Labels;
+pub use labels::{LabelFile, Labels, label_files};
 pub use numbering_report::NumberingReport;
 pub use open_items::OpenItems;
 pub use part_data::PartData;

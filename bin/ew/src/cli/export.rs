@@ -675,6 +675,105 @@ impl Leaf for ReworkCli {
     }
 }
 
+/// The release labelled `since`, else the last one whose archive is found beside the project, as a rework list's
+/// base; `None` (said on `io`) when there is none.
+fn release_base(
+    session: &ew_api::Session,
+    since: Option<&str>,
+    dir: &Path,
+    io: &mut Io<'_>,
+) -> Option<ew_api::ReworkBase> {
+    let releases = session.rework_releases();
+    let release = match since {
+        Some(label) => releases.iter().find(|r| r.label == label),
+        None => releases.first(),
+    };
+    match (release, since) {
+        (Some(r), _) => Some(ew_api::ReworkBase::Release(r.revision)),
+        (None, Some(label)) => {
+            io.error(format_args!(
+                "{}: no release {label} whose archive is found beside the project; give the archive with \
+                 `--archive <file>`",
+                dir.display()
+            ));
+            None
+        }
+        (None, None) => {
+            io.error(format_args!(
+                "{}: {}",
+                dir.display(),
+                ew_api::ReworkError::NoRelease
+            ));
+            None
+        }
+    }
+}
+
+impl Leaf for LabelsCli {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "written"),
+        exit(
+            2,
+            "usage, open errors, no such release or its archive not found, write errors",
+        ),
+    ];
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.folder().map(drop)
+    }
+}
+
+/// `ew export labels`: the label files of every label, or of those the rework list since the release `--since` names,
+/// written into `--dir` as CSV or XLSX, each file whole.
+pub(super) fn run_export_labels(a: &LabelsCli, io: &mut Io<'_>) -> i32 {
+    let folder = match a.folder() {
+        Ok(f) => f,
+        Err(e) => return usage(&e, io),
+    };
+    let Some(dir) = project_dir(a.project.as_ref(), io) else {
+        return 2;
+    };
+    let (session, _) = match open_reader(&dir, "export labels", io) {
+        Ok(r) => r,
+        Err(e) => {
+            io.error(format_args!("{}: {e}", dir.display()));
+            return 2;
+        }
+    };
+    let scope = match &a.since {
+        None => ew_api::LabelScope::All,
+        Some(label) => match release_base(&session, Some(label), &dir, io) {
+            Some(base) => ew_api::LabelScope::Changes(base),
+            None => return 2,
+        },
+    };
+    let format = match a.format {
+        Some(ReportPages::Xlsx) => ew_api::LabelFileFormat::Xlsx,
+        _ => ew_api::LabelFileFormat::Csv,
+    };
+    let files = match session.label_files(&scope, format, None) {
+        Ok(f) => f,
+        Err(e) => {
+            io.error(format_args!("{}: {e}", dir.display()));
+            return 2;
+        }
+    };
+    if let Err(e) = ew_api::Session::write_label_files(folder, &files) {
+        io.error(format_args!("{}: {e}", folder.display()));
+        return 2;
+    }
+    for f in &files {
+        outln!(io, "{}: {}", f.name, plural(f.count, "label", "labels"));
+    }
+    outln!(
+        io,
+        "label files written to {}: {}",
+        folder.display(),
+        plural(files.len(), "file", "files")
+    );
+    0
+}
+
 /// `ew export rework`: the rework list between a release (`--since`, else the last one whose archive is found; or the
 /// archive file `--archive`) and the project as it is, written to `--out` as CSV or XLSX, all or nothing.
 pub(super) fn run_export_rework(a: &ReworkCli, io: &mut Io<'_>) -> i32 {
@@ -692,34 +791,12 @@ pub(super) fn run_export_rework(a: &ReworkCli, io: &mut Io<'_>) -> i32 {
             return 2;
         }
     };
-    let base = match (&a.archive, &a.since) {
-        (Some(file), _) => ew_api::ReworkBase::File(file.clone()),
-        (None, since) => {
-            let releases = session.rework_releases();
-            let release = match since {
-                Some(label) => releases.iter().find(|r| r.label == *label),
-                None => releases.first(),
-            };
-            match (release, since) {
-                (Some(r), _) => ew_api::ReworkBase::Release(r.revision),
-                (None, Some(label)) => {
-                    io.error(format_args!(
-                        "{}: no release {label} whose archive is found beside the project; give the archive \
-                         with `--archive <file>`",
-                        dir.display()
-                    ));
-                    return 2;
-                }
-                (None, None) => {
-                    io.error(format_args!(
-                        "{}: {}",
-                        dir.display(),
-                        ew_api::ReworkError::NoRelease
-                    ));
-                    return 2;
-                }
-            }
-        }
+    let base = match &a.archive {
+        Some(file) => ew_api::ReworkBase::File(file.clone()),
+        None => match release_base(&session, a.since.as_deref(), &dir, io) {
+            Some(base) => base,
+            None => return 2,
+        },
     };
     let rework = match session.rework(&base) {
         Ok(r) => r,

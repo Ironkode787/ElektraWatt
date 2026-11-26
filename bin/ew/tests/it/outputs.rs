@@ -558,6 +558,48 @@ fn export_wires_lists_the_wires_and_the_bridges() {
     assert_eq!(std::fs::read_to_string(&out).unwrap(), want);
 }
 
+/// `ew export labels` writes the sample's label files, one per label set and marker part, each as blessed in
+/// `tests/expected/labels`; `--format xlsx` writes the same files as workbooks; without `--dir` it is refused.
+#[test]
+fn export_labels_writes_a_file_per_set_and_marker_part() {
+    let t = Tmp::new("ew-outputs");
+    let p = t.sample("sample.ew");
+    let dir = t.0.join("labels");
+    let o = t.ew(&args([&"export", &"labels", &p, &"--dir", &dir]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let written = files(&dir);
+    let expected = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/expected/labels");
+    for (name, bytes) in &written {
+        assert!(name.ends_with(".csv"), "{name}");
+        assert!(bytes.starts_with("\u{feff}".as_bytes()), "{name}");
+        ew_testdir::compare_or_bless(&expected.join(name), bytes);
+    }
+    if !ew_testdir::bless() {
+        let blessed: Vec<String> = files(&expected).into_keys().collect();
+        assert_eq!(written.keys().cloned().collect::<Vec<_>>(), blessed);
+    }
+    let xlsx = t.0.join("xlsx");
+    let o = t.ew(&args([
+        &"export",
+        &"labels",
+        &p,
+        &"--dir",
+        &xlsx,
+        &"--format",
+        &"xlsx",
+    ]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let stems = |m: &BTreeMap<String, Vec<u8>>| -> Vec<String> {
+        m.keys()
+            .map(|n| n.rsplit_once('.').map_or(n.clone(), |(s, _)| s.to_owned()))
+            .collect()
+    };
+    assert_eq!(stems(&files(&xlsx)), stems(&written));
+    let o = t.ew(&args([&"export", &"labels", &p]));
+    assert_eq!(o.status.code(), Some(2));
+    assert!(stderr(&o).contains("--dir <folder>"), "{}", stderr(&o));
+}
+
 /// Without `--strip` `ew export terminals` writes the sample's three strips -X1011, -X1021 and -X1031 one after
 /// the other, each after a heading row, with the rows `--strip` writes for it: 5, 8 and 5 terminals.
 #[test]

@@ -4,11 +4,15 @@
 //! `labels`: every label of the workshop (doc 13 §5.3), from `ew_derive::LabelRows`, one row per label in the order the
 //! fitter applies them; `tube_labels` lists the tube markers of the same engine with the same columns.
 
-use ew_derive::{LabelRecord, LabelRows, LabelSet, LabelTarget, Q, WireRecordSet, cp_label, short_tag};
-use ew_schema::{ReportBlock, ReportKind};
+use ew_derive::{
+    LabelColumn, LabelRecord, LabelRows, LabelSet, LabelTarget, Q, WireRecordSet, cp_label, short_tag,
+};
+use ew_ids::Id;
+use ew_schema::{ExportProfile, Part, ReportBlock, ReportKind};
 
 use super::conn::{put, words_cell};
 use crate::kind::ReportKindDef;
+use crate::render::{RenderOptions, render};
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 
 /// The labels list.
@@ -29,18 +33,25 @@ impl ReportKindDef for Labels {
     }
 }
 
-/// The columns of a label list (doc 13 §5.3): Set, For, Text 1 to 3, Copies, Marker part, Note.
+/// The columns of a label list (doc 13 §5.3), one per [`LabelColumn`]: Set, For, Text 1 to 3, Copies, Marker part,
+/// Note.
 pub(super) fn label_columns() -> Vec<ColumnDef> {
-    vec![
-        ColumnDef::new("set", CellType::Text, text!("column-set")).weighted(12),
-        ColumnDef::new("for", CellType::Text, text!("column-for")).weighted(18),
-        ColumnDef::new("text_1", CellType::Ident, text!("column-text-1")).weighted(14),
-        ColumnDef::new("text_2", CellType::Ident, text!("column-text-2")).weighted(14),
-        ColumnDef::new("text_3", CellType::Ident, text!("column-text-3")).weighted(14),
-        ColumnDef::new("copies", CellType::Ident, text!("column-copies")).weighted(6),
-        ColumnDef::new("marker_part", CellType::Ident, text!("column-marker-part")).weighted(12),
-        ColumnDef::new("note", CellType::Text, text!("column-note")).weighted(14),
-    ]
+    LabelColumn::ALL
+        .into_iter()
+        .map(|c| {
+            let (cell, heading, weight) = match c {
+                LabelColumn::Set => (CellType::Text, text!("column-set"), 12),
+                LabelColumn::For => (CellType::Text, text!("column-for"), 18),
+                LabelColumn::Text1 => (CellType::Ident, text!("column-text-1"), 14),
+                LabelColumn::Text2 => (CellType::Ident, text!("column-text-2"), 14),
+                LabelColumn::Text3 => (CellType::Ident, text!("column-text-3"), 14),
+                LabelColumn::Copies => (CellType::Ident, text!("column-copies"), 6),
+                LabelColumn::MarkerPart => (CellType::Ident, text!("column-marker-part"), 12),
+                LabelColumn::Note => (CellType::Text, text!("column-note"), 14),
+            };
+            ColumnDef::new(c.key(), cell, heading).weighted(weight)
+        })
+        .collect()
 }
 
 /// The rows of the labels whose set `keep` keeps.
@@ -57,22 +68,31 @@ pub(super) fn label_set_rows(q: &Q, keep: impl Fn(LabelSet) -> bool) -> RowSet {
     {
         let mut cells = vec![Cell::Empty; columns.len()];
         let mut cell = |key: &str, c: Cell| put(&columns, &mut cells, key, c);
-        cell("set", words_cell(&ew_derive::text::label_set(l.set)));
-        cell("for", label_for(q, l, &records, &tubes));
-        for (i, key) in ["text_1", "text_2", "text_3"].into_iter().enumerate() {
+        cell(
+            LabelColumn::Set.key(),
+            words_cell(&ew_derive::text::label_set(l.set)),
+        );
+        cell(LabelColumn::For.key(), label_for(q, l, &records, &tubes));
+        for (i, c) in [LabelColumn::Text1, LabelColumn::Text2, LabelColumn::Text3]
+            .into_iter()
+            .enumerate()
+        {
             if let Some(line) = l.lines.get(i) {
-                cell(key, Cell::Ident(line.clone()));
+                cell(c.key(), Cell::Ident(line.clone()));
             }
         }
-        cell("copies", Cell::Ident(l.copies.to_string()));
+        cell(LabelColumn::Copies.key(), Cell::Ident(l.copies.to_string()));
         if let Some(part) = l.marker_part.and_then(|p| q.parts().get(p)) {
             cell(
-                "marker_part",
+                LabelColumn::MarkerPart.key(),
                 super::parts::part_number_cell(part.item.part_number.as_str()),
             );
         }
         if !l.fits {
-            cell("note", words_cell(&text!("cell-label-does-not-fit")));
+            cell(
+                LabelColumn::Note.key(),
+                words_cell(&text!("cell-label-does-not-fit")),
+            );
         }
         let id = RowId(vec![RowKey::Index(u32::try_from(n).unwrap_or(u32::MAX))]);
         set.rows.push(Row::data(id, cells));
@@ -106,4 +126,56 @@ fn label_for(
             words_cell(&text!("cell-label-for", name, at.text.clone()))
         }
     }
+}
+
+/// One label file (doc 13 §5.4): the labels of one set printed on one marker part, in the export profile's columns.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct LabelFile {
+    /// The label set.
+    pub set: LabelSet,
+    /// The marker part they are printed on; `None`: the stock has none for the set.
+    pub marker_part: Option<Id<Part>>,
+    /// The profile's headings.
+    pub header: Vec<String>,
+    /// One row per label, its cells in the profile's columns as the list prints them in the project's language.
+    pub rows: Vec<Vec<String>>,
+}
+
+/// The label files of the labels `keep` keeps, one per label set and marker part, in the order of their first label;
+/// a profile column whose key the `labels` list does not have stays empty.
+pub fn label_files(q: &Q, profile: &ExportProfile, keep: impl Fn(&LabelRecord) -> bool) -> Vec<LabelFile> {
+    let set = label_set_rows(q, |_| true);
+    let options = RenderOptions {
+        lang: ew_derive::print_language(q),
+        ..RenderOptions::default()
+    };
+    let at: Vec<Option<usize>> = profile
+        .columns
+        .iter()
+        .map(|c| set.columns.iter().position(|d| d.key == c.key))
+        .collect();
+    let header: Vec<String> = profile.columns.iter().map(|c| c.heading.clone()).collect();
+    let mut files: Vec<LabelFile> = Vec::new();
+    for (label, row) in q.get::<LabelRows>(()).iter().zip(&set.rows) {
+        if !keep(label) {
+            continue;
+        }
+        let cells = at
+            .iter()
+            .map(|i| i.map(|i| render(q, &row.cells[i], &options)).unwrap_or_default())
+            .collect();
+        match files
+            .iter_mut()
+            .find(|f| f.set == label.set && f.marker_part == label.marker_part)
+        {
+            Some(f) => f.rows.push(cells),
+            None => files.push(LabelFile {
+                set: label.set,
+                marker_part: label.marker_part,
+                header: header.clone(),
+                rows: vec![cells],
+            }),
+        }
+    }
+    files
 }

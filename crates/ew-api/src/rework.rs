@@ -165,11 +165,7 @@ impl Session {
     ///
     /// [`ReworkError`]: the release has no archive found, or the archive does not open.
     pub fn rework(&self, base: &ReworkBase) -> Result<Rework, ReworkError> {
-        let path = match base {
-            ReworkBase::Release(id) => self.release_archive(*id)?,
-            ReworkBase::File(path) => path.clone(),
-        };
-        let archived = Session::open_archive(&path, env!("CARGO_PKG_VERSION")).map_err(ReworkError::Open)?;
+        let archived = self.archive_of(base)?;
         let (then, now) = (archived.session.query(), self.query());
         let items: Vec<ReworkItem> = ew_derive::rework(&then, &now);
         let mut counts: Vec<(ReworkAction, usize)> = Vec::new();
@@ -183,6 +179,25 @@ impl Session {
             set: ew_reports::kinds::rework_rows(&then, &now, &items),
             counts,
         })
+    }
+
+    /// The items of the rework list against `base`, as [`Session::rework`] makes them.
+    ///
+    /// # Errors
+    ///
+    /// As [`Session::rework`].
+    pub(crate) fn rework_items(&self, base: &ReworkBase) -> Result<Vec<ReworkItem>, ReworkError> {
+        let archived = self.archive_of(base)?;
+        Ok(ew_derive::rework(&archived.session.query(), &self.query()))
+    }
+
+    /// The archive `base` names, opened read-only.
+    fn archive_of(&self, base: &ReworkBase) -> Result<crate::OpenedArchive, ReworkError> {
+        let path = match base {
+            ReworkBase::Release(id) => self.release_archive(*id)?,
+            ReworkBase::File(path) => path.clone(),
+        };
+        Session::open_archive(&path, env!("CARGO_PKG_VERSION")).map_err(ReworkError::Open)
     }
 
     /// The rework list's rows as CSV in the `ew` dialect: a header line, then every row's printed cells.

@@ -49,6 +49,11 @@ fn bad(at: impl Into<String>, message: ew_l10n::Text) -> CmdError {
     CmdError::invalid_params(SetWorkshopStock::NAME, at, message)
 }
 
+/// A refusal of `project.settings.set` at `at`.
+fn settings_bad(at: impl Into<String>, message: ew_l10n::Text) -> CmdError {
+    CmdError::invalid_params(crate::commands::settings::SetProjectSettings::NAME, at, message)
+}
+
 impl Command for SetWorkshopStock {
     const NAME: &'static str = "workshop.stock";
 
@@ -94,8 +99,8 @@ impl Command for SetWorkshopStock {
 }
 
 /// The members of the workshop settings that `project.settings.set` sets one by one, as `workshop.<member>` (doc 13
-/// §2.3): which fine-stranded ends take a ferrule, what two wires of one size on one clamp take, what a marker says and
-/// whether cores and jumpers carry one.
+/// §2.3): which fine-stranded ends take a ferrule, what two wires of one size on one clamp take, what a marker says,
+/// whether cores and jumpers carry one, where a device's label goes and the columns of a label file.
 pub const SETTABLE_WORKSHOP: &[&str] = &[
     "ferrules",
     "two_wires",
@@ -103,6 +108,7 @@ pub const SETTABLE_WORKSHOP: &[&str] = &[
     "mark_cores",
     "mark_jumpers",
     "device_labels",
+    "label_profile",
 ];
 
 /// The prefix of a member of [`SETTABLE_WORKSHOP`] in `project.settings.set`.
@@ -129,6 +135,29 @@ pub(crate) fn set_member(tx: &mut TxBuilder<'_>, path: &str, value: &Value) -> R
         ("mark_jumpers", false) => workshop.mark_jumpers = member_value(&member, value)?,
         ("device_labels", true) => workshop.device_labels = Default::default(),
         ("device_labels", false) => workshop.device_labels = member_value(&member, value)?,
+        ("label_profile", true) => workshop.label_profile = None,
+        ("label_profile", false) => {
+            let profile: ew_schema::ExportProfile = member_value(&member, value)?;
+            if profile.columns.is_empty() {
+                return Err(settings_bad(
+                    "/value/columns",
+                    text!("refusal-label-profile-empty"),
+                ));
+            }
+            if let Some((i, c)) = profile
+                .columns
+                .iter()
+                .enumerate()
+                .find(|(_, c)| ew_derive::LabelColumn::parse(&c.key).is_none())
+            {
+                let keys: Vec<&str> = ew_derive::LabelColumn::ALL.iter().map(|c| c.key()).collect();
+                return Err(settings_bad(
+                    format!("/value/columns/{i}/key"),
+                    text!("refusal-label-profile-column", c.key.clone(), keys.join(", ")),
+                ));
+            }
+            workshop.label_profile = Some(profile);
+        }
         _ => {
             return Err(CmdError::internal(format!(
                 "project.settings.set: {member} is not settable"

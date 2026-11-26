@@ -262,6 +262,19 @@ pub fn table_csv(table: &Table, options: &CsvOptions) -> String {
     out
 }
 
+/// A label file's CSV (doc 13 §5.4): UTF-8 with a byte-order mark, CR LF, `rows` (the header first) with `delimiter`,
+/// a field quoted exactly when it holds the delimiter, `"`, CR or LF, and every value as it is: never the formula
+/// guard, which a label program would print.
+pub fn label_csv(rows: &[Vec<String>], delimiter: char) -> String {
+    let mut out = String::from('\u{feff}');
+    for row in rows {
+        let cells: Vec<String> = row.iter().map(|t| quoted(t, delimiter)).collect();
+        out.push_str(&cells.join(&delimiter.to_string()));
+        out.push_str(LineEnd::Crlf.text());
+    }
+    out
+}
+
 /// A field of a preset: quoted when it holds the delimiter, `"`, CR or LF (RFC 4180), quotes doubled.
 fn quoted(text: &str, delimiter: char) -> String {
     if text.contains([delimiter, '"', '\r', '\n']) {
@@ -342,6 +355,24 @@ mod tests {
         assert_eq!(
             table_csv(&t, &CsvOptions::default()),
             "row,C0\ndata,a;b\nheading,-X1\n"
+        );
+    }
+
+    /// A label file keeps a value that starts like a formula as it is, quotes a field with the delimiter, and writes
+    /// a byte-order mark and CR LF.
+    #[test]
+    fn a_label_file_writes_values_as_they_are() {
+        let rows = vec![
+            vec!["Text 1".to_owned(), "For".to_owned()],
+            vec!["-X1011:L1".to_owned(), "101.1 at -101Q1:1; a".to_owned()],
+        ];
+        assert_eq!(
+            label_csv(&rows, ';'),
+            "\u{feff}Text 1;For\r\n-X1011:L1;\"101.1 at -101Q1:1; a\"\r\n"
+        );
+        assert_eq!(
+            label_csv(&rows, ','),
+            "\u{feff}Text 1,For\r\n-X1011:L1,101.1 at -101Q1:1; a\r\n"
         );
     }
 

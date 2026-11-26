@@ -126,6 +126,21 @@
         }
       ]
     },
+    "Delimiter": {
+      "description": "The delimiter of a label file's CSV ([`ExportProfile::delimiter`]).",
+      "oneOf": [
+        {
+          "const": "comma",
+          "description": "A comma.",
+          "type": "string"
+        },
+        {
+          "const": "semicolon",
+          "description": "A semicolon.",
+          "type": "string"
+        }
+      ]
+    },
     "DeviceLabels": {
       "description": "Where a device's label goes ([`WorkshopSettings::device_labels`], doc 13 §5.3).",
       "oneOf": [
@@ -165,6 +180,24 @@
           "type": "string"
         }
       ]
+    },
+    "ExportProfile": {
+      "additionalProperties": true,
+      "description": "The columns of a label file ([`WorkshopSettings::label_profile`], doc 13 §5.4).",
+      "properties": {
+        "columns": {
+          "description": "The columns in file order: a column of the `labels` list and the heading the file prints.",
+          "items": {
+            "$ref": "#/$defs/ProfileColumn"
+          },
+          "type": "array"
+        },
+        "delimiter": {
+          "$ref": "#/$defs/Delimiter",
+          "description": "The CSV delimiter; absent: a comma."
+        }
+      },
+      "type": "object"
     },
     "FerruleRule": {
       "description": "Which fine-stranded ends take a ferrule ([`WorkshopSettings::ferrules`], doc 13 §4.2).",
@@ -566,6 +599,25 @@
           "type": "string"
         }
       ]
+    },
+    "ProfileColumn": {
+      "additionalProperties": true,
+      "description": "One column of an [`ExportProfile`].",
+      "properties": {
+        "heading": {
+          "description": "The heading the file prints.",
+          "type": "string"
+        },
+        "key": {
+          "description": "The key of a column of the `labels` list (`text_1`).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "heading"
+      ],
+      "type": "object"
     },
     "ProjectKind": {
       "description": "What a project is (FR-PRJ-026).",
@@ -1278,6 +1330,17 @@
         "ferrules": {
           "$ref": "#/$defs/FerruleRule",
           "description": "Which fine-stranded ends take a ferrule (doc 13 §4.2); absent: every one but those into a spring or push-in\nclamp."
+        },
+        "label_profile": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExportProfile"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The columns of a label file with their headings (doc 13 §5.4); absent: the generic profile."
         },
         "mark_cores": {
           "description": "Whether a cable's core carries a marker; absent: no, its colour or number names it.",

@@ -137,6 +137,8 @@ mod release;
 mod release_run;
 // The rework list between a release and now.
 mod rework;
+// The label files.
+mod labels;
 // The router the canvas tools call.
 pub mod routing;
 // `.ewz` opened read-only and the export of the saved generation.
@@ -276,6 +278,7 @@ pub use ew_store::{
 pub use ew_store::{archive, clock, cloud, ewz, external, file, git};
 pub use ew_zip as zip;
 pub use external_change::{DiskPoll, ExternalApplied, ExternalError};
+pub use labels::{LabelError, LabelFile, LabelFileFormat, LabelScope};
 pub use new_project::{
     NewProjectKind, ProjectTemplate, SaveAsBasicError, TemplateSummary, shipped_frames, template_summary,
 };
