@@ -522,10 +522,10 @@ fn an_ambiguous_number_is_resolved_on_the_card() {
     shell.shutdown();
 }
 
-/// TB4's conflicts: two wire-list rows of one connection pasted with different colours: the second is invalid
-/// ("same record as row <n>"); with the same colour they merge.
+/// TB4 on two wire-list rows that share a connection (a star's feed arm, a chain's arm): each row's colour is set on a
+/// connection of its own wire (doc 13 §2.3), so two colours pasted over them are no conflict and land one each.
 #[test]
-fn two_rows_on_one_record_with_different_values_are_invalid() {
+fn two_rows_that_share_a_connection_take_a_colour_each() {
     let tmp = Tmp::new("tb4-same");
     let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "connections"}));
@@ -540,27 +540,15 @@ fn two_rows_on_one_record_with_different_values_are_invalid() {
             t.nodes[vis[i + 1] as usize].records.iter().any(|r| a.contains(r))
         })
         .expect("two rows of one connection");
-    let (a, b) = (
-        t.nodes[vis[at] as usize].clone(),
-        t.nodes[vis[at + 1] as usize].clone(),
-    );
+    let a = t.nodes[vis[at] as usize].clone();
     let colour = col(&shell, NavKind::Connections, "Colour");
     done(&mut shell, "table.cell", json!({"row": a.key, "column": colour}));
     let s = steps(&shell);
     done(&mut shell, "table.paste", json!({"text": "RD\nBU\n"}));
-    assert_eq!(steps(&shell), s);
-    let cells = lines_with(&shell, "  cell ");
-    assert_eq!(
-        cells,
-        [format!(
-            "  cell 2 \"{}\" \"Colour\" invalid \"same record as row {}\"",
-            b.label,
-            at + 1
-        )]
-    );
-    done(&mut shell, "preview.cancel", json!({}));
-    done(&mut shell, "table.paste", json!({"text": "RD\nRD\n"}));
-    assert_eq!(steps(&shell), s + 1, "the same value merges");
+    assert_eq!(lines_with(&shell, "  cell "), Vec::<String>::new());
+    assert_eq!(steps(&shell), s + 1);
+    let vals = texts(&shell, NavKind::Connections, "Colour");
+    assert_eq!(&vals[at..at + 2], ["RD", "BU"]);
     shell.shutdown();
 }
 

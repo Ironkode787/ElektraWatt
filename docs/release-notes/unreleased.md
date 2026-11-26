@@ -141,7 +141,7 @@ change here.
 - behaviour-change: A wire's length typed by hand is shown and typed where the wire is: the wire list has the columns
   Length (`400 mm`; `cable` for a cable core, cut with its cable; `—` without one) and Length from (typed, cable,
   missing) in its CSV and XLSX and in List columns…, the Connections table's Length cell takes a length in
-  millimetres or with its unit (`2 m`) and sets it on the wire's carrier connection, and a wire's Properties have a
+  millimetres or with its unit (`2 m`) and sets it on a connection of that wire alone, and a wire's Properties have a
   Length row that says where its length comes from. The sample project has typed lengths on 101.1, 102.8 and 103.2.
 - text-change: The tube list says `typed` (in Dutch `getypt`) for a length typed by hand, as the wire list does, where
   it said `manual` (`handmatig`).
@@ -157,3 +157,8 @@ change here.
 - behaviour-change: The Connections table opens with the columns a length is typed in: No., From, CP, To, CP, Colour,
   mm² and Length, and the window's left column widens to show them; Potential, Source, Via, Wire part, Pages, Length
   from and From end are in its Columns menu. It opened with every column.
+- fix: A colour or cross-section typed in a wire's row of the Connections table is set on that wire alone; it was set
+  on every connection of the wire as well, so the arm a star or a chain shares with other wires changed their colour or
+  size too.
+- fix: A bridge row's Length cell in the Connections table is read-only, as a bridge has no length; a length typed
+  there was set on the bridge's connections.

@@ -148,12 +148,18 @@ pub fn channel_text_cell(table: &NavTable, node: &NavNode, column: usize) -> Opt
 
 /// The records a cell of route (`route_kind`, `path`) sets on a row: a conductor route takes a core row's conductor
 /// (the records after its cable), a potential definition route a potential row's record when it is a `potential_def`
-/// (not the bond row's, nor a connection point naming the potential), a wire's length its carrier (a wire row's first
-/// record, doc 13 §2.3: the carrier's value wins, and a shared star feed arm is not this wire's alone), every other
-/// route the row's records; deduplicated, in record order.
+/// (not the bond row's, nor a connection point naming the potential), a wire's override the wire's own connection
+/// that takes it (a wire row's first record, when its kind is `connection`: one no other wire stands for, so a value
+/// never reaches the star's feed arm or the chain's arm another wire shares, doc 13 §2.3), a bridge row's length
+/// nothing (a bridge has none, doc 13 §3.1), every other route the row's records; deduplicated, in record order.
 pub fn row_targets(node: &NavNode, route_kind: &str, path: &str) -> Vec<Uuid> {
+    let first = node.kinds.first().map(String::as_str);
     let picked: Vec<Uuid> = match route_kind {
-        "connection" if path == "overrides.length" => node.records.iter().take(1).copied().collect(),
+        "connection" if first == Some("bridge") && path == "overrides.length" => Vec::new(),
+        "connection" if matches!(first, Some("connection" | "shared")) && path.starts_with("overrides.") => {
+            let own = first == Some("connection");
+            node.records.iter().take(usize::from(own)).copied().collect()
+        }
         "conductor" if node.role == NavRole::Conductor => node.records.iter().skip(1).copied().collect(),
         "conductor" => Vec::new(),
         // A cable's length is edited on its cable row, not on a core row.

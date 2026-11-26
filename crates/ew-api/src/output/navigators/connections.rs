@@ -26,8 +26,11 @@ pub(super) struct WireListRow {
     label: String,
     /// The cells.
     cells: Vec<String>,
-    /// The connections the row stands for; a wire row's carrier first.
+    /// The connections the row stands for; a wire row's first the one its cells set (`row_targets`).
     records: Vec<Uuid>,
+    /// Their kinds for edit routing, aligned with `records`: `connection` for a wire's own connection, `shared` for one
+    /// another wire stands for as well (a star's feed arm, a chain's arm at a CP), `bridge` for a bridge row's.
+    kinds: Vec<&'static str>,
     /// Those that are drawn.
     drawables: Vec<Drawable>,
     /// The potential cell.
@@ -55,6 +58,17 @@ pub(super) fn wire_list_rows(q: &Q) -> Vec<WireListRow> {
                 .or_insert_with(|| w.constituents.clone());
         }
     }
+    // How many wires stand for each connection.
+    let mut wires_of: BTreeMap<Id<Connection>, usize> = BTreeMap::new();
+    for cons in constituents.values() {
+        let mut own = cons.clone();
+        own.sort();
+        own.dedup();
+        for c in own {
+            *wires_of.entry(c).or_default() += 1;
+        }
+    }
+    let alone = |c: &Id<Connection>| wires_of.get(c).is_some_and(|n| *n == 1);
     let strip_of = |e: &Endpoint| -> Option<Id<Device>> {
         let Endpoint::Cp(f, _) = e else { return None };
         let d = q.functions().get(*f)?.device?;
@@ -96,14 +110,27 @@ pub(super) fn wire_list_rows(q: &Q) -> Vec<WireListRow> {
         };
         cons.sort();
         cons.dedup();
-        // A wire row's carrier first: its length is typed there (`table_edit::row_targets`).
-        if !after_heading
-            && let Some(carrier) = row_entity(&r.id, 0)
-            && let Some(at) = cons.iter().position(|c| c.as_uuid() == carrier)
-        {
-            let c = cons.remove(at);
-            cons.insert(0, c);
+        // A wire row's first record is the one its cells set (`table_edit::row_targets`): of the connections no other
+        // wire stands for, the first in the order the wire takes its values (doc 08 §3.8): the carrier, then its
+        // constituents in path order.
+        if !after_heading && let Some(carrier) = row_entity(&r.id, 0) {
+            let order = constituents.get(&carrier).map(Vec::as_slice).unwrap_or_default();
+            let set = (cons.iter().copied())
+                .filter(|c| c.as_uuid() == carrier)
+                .chain(order.iter().copied())
+                .find(|c| alone(c));
+            if let Some(at) = set.and_then(|s| cons.iter().position(|c| *c == s)) {
+                let c = cons.remove(at);
+                cons.insert(0, c);
+            }
         }
+        let kinds = (cons.iter())
+            .map(|c| match (after_heading, alone(c)) {
+                (true, _) => "bridge",
+                (false, true) => "connection",
+                (false, false) => "shared",
+            })
+            .collect();
         let number = cell_of(&set, &texts, "no");
         let label = if number.is_empty() {
             format!(
@@ -124,6 +151,7 @@ pub(super) fn wire_list_rows(q: &Q) -> Vec<WireListRow> {
             label,
             potential: cell_of(&set, &texts, "potential").to_owned(),
             records: cons.iter().map(|c| c.as_uuid()).collect(),
+            kinds,
             drawables: connection_drawables(q, &folios, &cons),
             cells: texts,
             bridge: after_heading,
@@ -143,7 +171,7 @@ pub(super) fn push_wire_row(b: &mut Builder, parent: u32, w: &WireListRow, table
     {
         facets.push(("potential".to_owned(), p.to_lowercase()));
     }
-    b.push(
+    let n = b.push(
         Some(parent),
         NavRole::Connection,
         &format!("connection:{}", w.segment),
@@ -153,7 +181,9 @@ pub(super) fn push_wire_row(b: &mut Builder, parent: u32, w: &WireListRow, table
         w.drawables.clone(),
         table_row.then(|| plains(w.cells.clone())),
         facets,
-    )
+    );
+    b.nodes[n as usize].kinds = w.kinds.iter().map(|k| (*k).to_owned()).collect();
+    n
 }
 
 /// Connections: potential → physical-wire rows; a `Bridges` group → the bridge rows.

@@ -172,7 +172,10 @@ pub struct EndOverride {                      // WireOverrides.end_a and .end_b:
   where it is, and no list of ends by CP can be left behind. The derivation reads it only where that endpoint is a
   wire's end at a CP; Reset clears it.
 - **A typed length** is `WireOverrides.length` ([03](03-domain-model.md) §9); the value of the carrier wins, as for
-  every override of a physical wire.
+  every override of a physical wire. A cell of a wire's row in the Connections table (its length, colour or
+  cross-section) sets one connection of that wire which no other wire stands for: the carrier where it is the wire's
+  own, else the wire's first such connection; never a star's feed arm or a chain's arm another wire shares. A bridge
+  row has no Length cell to type in.
 - The layout's reserve ([12](12-panel-layout.md) §9) joins `WorkshopSettings` with the lengths the layout computes.
 - **Nothing about production status is authored in the project.** Status, actual lengths and technician actions live
   in the order folder (§11.3); the project format stays free of timestamps (ARCH §7.3).
