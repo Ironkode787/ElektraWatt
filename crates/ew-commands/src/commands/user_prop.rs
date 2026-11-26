@@ -220,19 +220,28 @@ impl Command for RemoveUserProp {
     }
 }
 
-/// The refusal of a field a held form prints: the first such form, named as a title block or a frame with the pages
-/// that print it (page-order runs of two or more as "101 to 105"); `None` when no held form prints it.
+/// The refusal of a field a held form shows in a cell's value or text: the first such form, named as a title block or a
+/// frame with the pages that print it (page-order runs of two or more as "101 to 105"); `None` when no held form shows
+/// it.
 fn shown_by_a_form(tx: &TxBuilder<'_>, def: &UserPropDef) -> Option<Text> {
     let paths: Vec<String> = def
         .scope
         .iter()
         .filter_map(|s| user_prop_path(s, def.key.as_str()))
         .collect();
+    let names = |text: &str| {
+        ew_derive::placeholder_paths(text)
+            .iter()
+            .any(|p| paths.contains(p))
+    };
+    // A cell shows the field by its value or by its text, in any of the text's languages.
     let shows = |form: &ew_schema::FormDef| {
         form.cells.iter().any(|c| {
-            c.value
-                .as_deref()
-                .is_some_and(|v| ew_derive::placeholder_paths(v).iter().any(|p| paths.contains(p)))
+            c.value.as_deref().is_some_and(names)
+                || c.label.as_ref().is_some_and(|l| {
+                    l.as_neutral().is_some_and(names)
+                        || l.languages().any(|lang| l.get(lang).is_some_and(names))
+                })
         })
     };
     let q = ew_derive::Q::new(tx.base_model());

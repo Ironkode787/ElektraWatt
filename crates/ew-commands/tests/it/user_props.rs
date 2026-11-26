@@ -10,6 +10,7 @@ use crate::common;
 
 use common::*;
 use ew_commands::{AnyCommand, CmdError, DynCommand, Engine};
+use ew_ids::Id;
 use ew_model::Model;
 use ew_model::fixture::{FORM, PAGE_101, PAGE_102, mini_project_parts};
 use ew_schema::{LibDocument, Page, Record};
@@ -45,12 +46,17 @@ fn keys(e: &Engine) -> Vec<String> {
         .collect()
 }
 
-/// The mini project whose frame prints `template` in a cell, on pages 101 and 102.
+/// The mini project whose frame prints `template` in a cell's value, on pages 101 and 102.
 fn printing(template: &str) -> Model {
+    printing_on(&[PAGE_101, PAGE_102], "value", template)
+}
+
+/// The mini project whose frame, on `pages`, has a cell whose `member` (`value` or `label`) is `template`.
+fn printing_on(pages: &[Id<Page>], member: &str, template: &str) -> Model {
     let (p, mut records, _) = mini_project_parts();
     for r in &mut records {
         if let Record::Page(page) = r
-            && [PAGE_101, PAGE_102].contains(&page.id)
+            && pages.contains(&page.id)
         {
             page.form = Some(FORM);
         }
@@ -60,16 +66,14 @@ fn printing(template: &str) -> Model {
         if let LibDocument::Form(f) = d
             && f.id == FORM
         {
-            f.item.cells.push(
-                serde_json::from_value(json!({
-                    "rect": [[0, 0], [20_000_000, 5_000_000]],
-                    "value": template,
-                    "style": "text.normal",
-                    "align": "left",
-                    "overflow": "error",
-                }))
-                .expect("a cell"),
-            );
+            let mut cell = json!({
+                "rect": [[0, 0], [20_000_000, 5_000_000]],
+                "style": "text.normal",
+                "align": "left",
+                "overflow": "error",
+            });
+            cell[member] = json!(template);
+            f.item.cells.push(serde_json::from_value(cell).expect("a cell"));
         }
     }
     Model::from_records(p, records, lib).expect("a valid model")
@@ -140,6 +144,25 @@ fn a_field_a_frame_prints_is_not_removed() {
     assert!(text.contains("101") && text.contains("102"), "{text}");
     assert!(text.contains("Order number"), "{text}");
     assert!(!text.contains("order_number"), "never the key: {text}");
+    assert_eq!(keys(&e), ["order_number"]);
+}
+
+/// A field a cell's text (its label) names is shown as well, and is not removed (doc 09 §2.10: "a cell whose value or
+/// label names it").
+#[test]
+fn a_field_a_cells_text_names_is_not_removed() {
+    let mut e = engine(printing_on(
+        &[PAGE_101, PAGE_102],
+        "label",
+        "Order {project.prop.order_number}",
+    ));
+    commit(
+        &mut e,
+        "user_prop.define",
+        json!({"label": "Order number", "scope": "project"}),
+    );
+    let (_, text) = refused(&mut e, &any("user_prop.remove", json!({"key": "order_number"})));
+    assert!(text.contains("Order number"), "{text}");
     assert_eq!(keys(&e), ["order_number"]);
 }
 
