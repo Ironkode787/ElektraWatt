@@ -6,11 +6,12 @@ into the terminals. One finding per bridge, named as the lists name it (BR1, BR2
 ## Why
 
 A bridge joins terminals of one potential; the wrong bridge, or none, leaves a terminal unfed or two potentials joined.
-The part says how many poles it has and which terminals it fits.
+The part says how many poles it has and which terminals it fits. A release names every part it orders, so the release
+check makes it an error.
 
 ## Standard
 
-No standard: a project-hygiene rule. The release check makes it an error: a release names every part it orders.
+No standard: a project-hygiene rule.
 
 ## Example
 
