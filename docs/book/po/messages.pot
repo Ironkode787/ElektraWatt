@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-26T07:46:33Z\n"
+"POT-Creation-Date: 2026-11-26T08:40:31Z\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -6208,6 +6208,44 @@ msgstr ""
 
 #: src/reference/window/tools.md:431
 msgid "On a panel layout page, draws a wiring duct. Open it with Draw ▸ Duct."
+msgstr ""
+
+#: src/reference/window/tools.md:433
+msgid "Edit frame"
+msgstr ""
+
+#: src/reference/window/tools.md:435
+msgid ""
+"Changes the page's frame and its title block on the page. Open it with Page "
+"▸ Frame ▸ Edit frame, a double click on the title block or on the column "
+"numbers or row letters, or Edit frame in the title block's menu; Done or Esc "
+"ends it. The page's drawing fades, and the HUD says on which frame and title "
+"block the page prints: every change shows on each page that prints them. A "
+"click chooses a cell (Shift adds one); Properties then shows its Text, what "
+"it Shows (a value of the project, the page, the revision or a person, a "
+"field of your own, New field of your own…, Company logo, A picture… or Text "
+"only), its Text size and its Alignment. The HUD splits the chosen cell side "
+"by side or one above the other, joins the chosen cells when together they "
+"make a rectangle, and puts a picture into the cell. A line between two cells "
+"is dragged: every cell on either side of it grows or shrinks with it, "
+"snapped to 0.5 mm (Alt: free), none narrower or lower than 2 mm. Each change "
+"is one undo step. The first change of the program's frame and title block "
+"makes them the project's own, and every page that printed them prints the "
+"project's copies; the toast says so once."
+msgstr ""
+
+#: src/reference/window/tools.md:447
+msgid ""
+"With nothing chosen, Properties shows the frame: its paper, its title block "
+"(Shared with the other frames, or Its own: a copy of the block for this "
+"frame alone), Give this page its own frame, its columns and rows (a click "
+"chooses them) and Use the frames of a template…, which takes a template's "
+"frames, title blocks, fields of your own and company logo into the project "
+"after a preview; a page with a frame of its own keeps it. Chosen, the "
+"columns and rows show How many, Counted with, First, the rows' Skip I and O, "
+"Drawn and the title block's height: each value typed is previewed on the "
+"card, with the cross-references that print differently, and Apply writes "
+"them in one step."
 msgstr ""
 
 #: src/reference/window/command-bar.md:3
