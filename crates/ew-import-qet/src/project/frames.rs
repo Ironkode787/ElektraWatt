@@ -318,7 +318,7 @@ fn frame(
     extra.insert("ew.frame.line_width".into(), Value::from(px(LINE_PX).0));
     extra.insert("ew.frame.margin".into(), Value::from(px(MARGIN_PX).0));
     if hide_bands {
-        extra.insert("ew.frame.show_grid".into(), Value::Bool(false));
+        extra.insert(ew_schema::EXTRA_SHOW_GRID.into(), Value::Bool(false));
     }
     let mut f = form(FormKind::Frame, Nm(sw), Nm(sh));
     f.page_to_sheet = Some(SheetTransform {

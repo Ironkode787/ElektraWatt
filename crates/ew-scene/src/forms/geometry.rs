@@ -12,9 +12,6 @@ use serde_json::Value;
 /// `FrameGrid.extra` member: the width in nm of the generated frame lines (outer rectangle, header bands,
 /// title-block separator). A layout hint; default [`DEFAULT_FRAME_LINE`].
 pub const EXTRA_LINE_WIDTH: &str = "ew.frame.line_width";
-/// `FrameGrid.extra` member: `false` hides the header bands, ticks and labels while keeping the grid's
-/// geometry (the no-grid variant of FR-PAG-017). Default `true`.
-pub const EXTRA_SHOW_GRID: &str = "ew.frame.show_grid";
 /// `FrameGrid.extra` member: the frame's margin in nm, the distance of its outer rectangle from the page
 /// origin on both axes (a QET border lies 5 px from the scene origin, doc 14 §4.9). The header band and the
 /// column and row edges keep counting from the page origin, so the bands are `header_band − margin` thick.
@@ -45,7 +42,7 @@ pub struct FrameGeometry {
     pub row_labels: Vec<String>,
     /// Where the title block's origin (its top-left corner) lands: `(margin, last row edge)`.
     pub title_block_origin: Option<Pt2>,
-    /// Whether bands, ticks and labels are drawn ([`EXTRA_SHOW_GRID`]).
+    /// Whether bands, ticks and labels are drawn (`FrameGrid::shows_grid`).
     pub show_grid: bool,
     /// The width of the generated lines ([`EXTRA_LINE_WIDTH`]).
     pub line_width: Nm,
@@ -95,11 +92,7 @@ impl FrameGeometry {
                 .map(|k| ew_derive::row_label(grid, k))
                 .collect(),
             title_block_origin: title_block.map(|_| Pt2::new(margin, bottom)),
-            show_grid: grid
-                .extra
-                .get(EXTRA_SHOW_GRID)
-                .and_then(Value::as_bool)
-                .unwrap_or(true),
+            show_grid: grid.shows_grid(),
             line_width: grid
                 .extra
                 .get(EXTRA_LINE_WIDTH)

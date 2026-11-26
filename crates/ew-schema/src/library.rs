@@ -1994,6 +1994,21 @@ pub struct FrameGrid {
     pub extra: Extra,
 }
 
+/// `FrameGrid.extra` member: `false` hides the header bands, ticks and labels while keeping the grid's geometry (the
+/// no-grid variant of FR-PAG-017). Default `true`.
+pub const EXTRA_SHOW_GRID: &str = "ew.frame.show_grid";
+
+impl FrameGrid {
+    /// Whether the frame draws its header bands, ticks and labels ([`EXTRA_SHOW_GRID`], `true` unless it says
+    /// `false`).
+    pub fn shows_grid(&self) -> bool {
+        self.extra
+            .get(EXTRA_SHOW_GRID)
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(true)
+    }
+}
+
 /// The columns of a frame grid.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct FrameColumns {
