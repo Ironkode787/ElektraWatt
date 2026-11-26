@@ -301,7 +301,14 @@ fn table_view(q: &Q, g: &GeneratedPage, page: PageRef) -> TableView {
     };
     let block = q.report_blocks().get(g.block);
     // The printed columns (doc 09 §3.8): the block's own, those its rows have, in its order, each with its width and
-    // its heading or the kind's; else every column of the rows.
+    // its heading or the kind's; else the columns its kind prints ([`ew_reports::ReportKindDef::printed`]), else every
+    // column of the rows.
+    let kind_printed = block
+        .and_then(|b| match &b.source {
+            ReportSource::Kind(kind) => Registry::builtin().get(kind),
+            _ => None,
+        })
+        .and_then(|k| k.printed());
     let printed: Vec<(usize, u32, &MlText)> = match block.filter(|b| !b.columns.is_empty()) {
         Some(b) => b
             .columns
@@ -316,12 +323,21 @@ fn table_view(q: &Q, g: &GeneratedPage, page: PageRef) -> TableView {
                 Some((i, c.weight, heading))
             })
             .collect(),
-        None => set
-            .columns
-            .iter()
-            .enumerate()
-            .map(|(i, c)| (i, c.weight, &c.label))
-            .collect(),
+        None => match kind_printed {
+            Some(keys) => keys
+                .iter()
+                .filter_map(|key| {
+                    let i = set.column(key)?;
+                    Some((i, set.columns[i].weight, &set.columns[i].label))
+                })
+                .collect(),
+            None => set
+                .columns
+                .iter()
+                .enumerate()
+                .map(|(i, c)| (i, c.weight, &c.label))
+                .collect(),
+        },
     };
     let columns = printed
         .iter()

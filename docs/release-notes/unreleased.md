@@ -139,9 +139,9 @@ change here.
   print a repeated pin with its number as well (`-101G1:+#1`).
 - behaviour-change: A wire's length typed by hand is shown and typed where the wire is: the wire list has the columns
   Length (`400 mm`; `cable` for a cable core, cut with its cable; `—` without one) and Length from (typed, cable,
-  missing), the Connections table's Length cell takes a length in millimetres or with its unit (`2 m`) and sets it on
-  the wire's carrier connection, and a wire's Properties have a Length row that says where its length comes from. The
-  sample project has typed lengths on 101.1, 102.8 and 103.2.
+  missing) in its CSV and XLSX and in List columns…, the Connections table's Length cell takes a length in
+  millimetres or with its unit (`2 m`) and sets it on the wire's carrier connection, and a wire's Properties have a
+  Length row that says where its length comes from. The sample project has typed lengths on 101.1, 102.8 and 103.2.
 - text-change: The tube list says `typed` (in Dutch `getypt`) for a length typed by hand, as the wire list does, where
   it said `manual` (`handmatig`).
 - behaviour-change: The Output tab has a Workshop group with Wire list, which opens the first page of the project's
@@ -151,3 +151,5 @@ change here.
   built cabinet: the wires to pull, to replace, the ends to move, the lengths to check and the wires to add, each with
   its change in words ("size 1.5 → 2.5 mm²"); Export… writes it as XLSX or CSV. `ew export rework [--since
   <revision> | --archive <file>] [--format csv|xlsx] --out <file>` writes the same list.
+- behaviour-change: Output ▸ List columns… on a wire list offers its new columns Length, Length from and From end,
+  unticked; a wire list page whose block chooses no columns prints the same twelve columns as before.

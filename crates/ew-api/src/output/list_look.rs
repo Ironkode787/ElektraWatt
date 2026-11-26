@@ -101,8 +101,9 @@ impl Session {
 
     /// The look of the report block `block` (a list's, or a legend's embedded on its page), its texts in `lang`
     /// (`nl-NL`); `None` for no such block and one without a report kind of this build. A block that chooses no columns
-    /// prints its kind's: every column of a list, the columns of the kind's box of an embedded block (a legend made
-    /// before 0.3 prints position, tag, quantity and part number, doc 09 §2.2), the others unticked.
+    /// prints its kind's: the columns a list of its kind prints (`ReportKindDef::printed`, else every column), the columns
+    /// of the kind's box of an embedded block (a legend made before 0.3 prints position, tag, quantity and part number,
+    /// doc 09 §2.2), the others unticked.
     pub fn block_look(&self, block: Uuid, lang: &str) -> Option<ListLook> {
         let q = self.query();
         let block: Id<ReportBlock> = Id::from_uuid(block);
@@ -125,6 +126,11 @@ impl Session {
                 .columns
                 .into_iter()
                 .map(|(key, weight)| (key, weight, MlText::default()))
+                .collect()
+        } else if let Some(keys) = def.printed() {
+            keys.iter()
+                .filter_map(|key| defs.iter().find(|d| d.key == *key))
+                .map(|d| (d.key.clone(), d.weight, MlText::default()))
                 .collect()
         } else {
             defs.iter()

@@ -142,7 +142,8 @@ fn english(kind: &str, key: &str) -> String {
 }
 
 /// In a project whose language is Dutch a list prints its headings and its title block's labels in Dutch;
-/// before, every heading and label printed its English.
+/// before, every heading and label printed its English. The wire list's block chooses no columns, so it prints the
+/// columns its kind prints (`ReportKindDef::printed`, doc 13 §3.1), not every column of the list.
 #[test]
 fn a_dutch_project_prints_its_list_heads_and_title_block_labels_in_dutch() {
     let mut s = common::sample();
@@ -154,10 +155,19 @@ fn a_dutch_project_prints_its_list_heads_and_title_block_labels_in_dutch() {
     let nl: LangTag = "nl-NL".parse().expect("a tag");
     let page = pages_of(&s, 907)[0];
     let heads: Vec<String> = table(&s, page).columns.into_iter().map(|c| c.header).collect();
-    let kind = Registry::builtin()
-        .by_name("wire_list")
-        .expect("the kind")
-        .columns();
+    let def = Registry::builtin().by_name("wire_list").expect("the kind");
+    let columns = def.columns();
+    let kind: Vec<_> = def
+        .printed()
+        .expect("the wire list names its printed columns")
+        .iter()
+        .map(|key| {
+            columns
+                .iter()
+                .find(|c| c.key == *key)
+                .expect("a column of the list")
+        })
+        .collect();
     let dutch: Vec<String> = kind
         .iter()
         .map(|c| text_in(&c.label, Some(&nl)).to_owned())

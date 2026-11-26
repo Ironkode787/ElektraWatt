@@ -303,8 +303,9 @@ hold such a set already, which the new one replaces. For a DWG, open the files i
 
 ### Open wire list
 
-In the Workshop group. Shows the first page of the project's wire list, the fitter's sheet: per wire its ends, its
-colour, its cross-section and its length. A project without a wire list opens Report block… on the wire list.
+In the Workshop group. Shows the first page of the project's wire list: per wire its ends, its colour and its
+cross-section; List columns… adds its length to the print. A project without a wire list opens Report block… on the
+wire list.
 
 ### Rework list…
 

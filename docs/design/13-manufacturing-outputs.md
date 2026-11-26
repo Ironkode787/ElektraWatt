@@ -256,19 +256,19 @@ treatment or marker: it is mounted with its strip ([the workshop lists](13-works
 | `no` | No. | the wire number; a core, which has none, its cable and core (`-103W1 BN`) | yes |
 | `from`, `to` | From, To | the end's device or terminal (§3.2) | yes |
 | `from_cp`, `to_cp` | CP | the end's pin or clamp (§3.2) | yes |
-| `potential` | Potential | the potential's name; a bond wire `0V ⇄ PE` | |
+| `potential` | Potential | the potential's name; a bond wire `0V ⇄ PE` | yes |
 | `colour` | Colour | the effective colour code | yes |
 | `cross_section` | mm² | the effective cross-section | yes |
-| `source` | Source | where the cross-section and the colour come from ([08](08-connections-terminals-cables.md) §4) | |
-| `via` | Via | how the wire is joined: its junction and wiring, a daisy chain, the interruption points passed | |
-| `part` | Wire part | the wire part's number | |
+| `source` | Source | where the cross-section and the colour come from ([08](08-connections-terminals-cables.md) §4) | yes |
+| `via` | Via | how the wire is joined: its junction and wiring, a daisy chain, the interruption points passed | yes |
+| `part` | Wire part | the wire part's number | yes |
 | `pages` | Pages | the pages the wire is drawn on | yes |
-| `length` | Length | the length in mm; `cable` for a core; `—` without one (§3.3) | yes |
+| `length` | Length | the length in mm; `cable` for a core; `—` without one (§3.3) | |
 | `length_source` | Length from | typed, cable or missing; the layout adds estimated and routed | |
-| `from_end`, `to_end` | From end, To end | the end's treatment (§4.4): `ferrule 1.5 BK`, `twin 2.5 BU · 102.8`, `ring lug M6`, `bare` | yes |
+| `from_end`, `to_end` | From end, To end | the end's treatment (§4.4): `ferrule 1.5 BK`, `twin 2.5 BU · 102.8`, `ring lug M6`, `bare` | |
 | `from_part`, `to_part` | From part, To part | the part number of the end's ferrule or ring lug | |
 | `from_strip`, `to_strip` | From strip, To strip | the strip length in mm: the ferrule's sleeve | |
-| `from_marker`, `to_marker` | From marker, To marker | the end's marker text (§5.2), its lines joined by ` / `; empty where the end carries none | yes |
+| `from_marker`, `to_marker` | From marker, To marker | the end's marker text (§5.2), its lines joined by ` / `; empty where the end carries none | |
 
 A block without columns of its own prints the columns marked "printed", in this order: No., From, CP, To, CP, Colour,
 mm², Length, From end, To end, From marker, To marker, Pages (`ReportKindDef::printed`,
@@ -1017,7 +1017,8 @@ Properties, two dialogs and Messages, each where the program already puts its ki
 [16](16-ux-ui.md) and [16a](16a-design-language.md).
 
 **The first job.** (1) The schematic is checked; Output ▸ Workshop ▸ Wire list opens page 907: per wire its ends,
-colour, size, length, each end's treatment (`ferrule 1.5 BK`, `twin 2.5 BU · 102.8`) and markers (`-101Q1:1`).
+colour and size; Output ▸ List columns… ticks the fitter's columns into it: the length, each end's treatment
+(`ferrule 1.5 BK`, `twin 2.5 BU · 102.8`) and markers (`-101Q1:1`).
 (2) A ferrule he did not expect: in the Connections table the cell is grey, and the wire's Properties say why ("rule:
 fine-stranded wire, clamp kind not known"). (3) A PE wire takes a lug: the To end cell ▸ Ring lug; the cell turns to
 the text colour and Properties show "set by hand" with Reset. (4) His shop marks with wire numbers: Output ▸ Workshop

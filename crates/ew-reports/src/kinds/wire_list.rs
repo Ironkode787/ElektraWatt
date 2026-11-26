@@ -72,6 +72,25 @@ impl ReportKindDef for WireList {
         ]
     }
 
+    /// What the wire list prints when its block chooses no columns (doc 13 §3.1): its twelve columns from No. to Pages;
+    /// Length, Length from and From end stay in the list's exports and are ticked in List columns….
+    fn printed(&self) -> Option<&'static [&'static str]> {
+        Some(&[
+            "no",
+            "from",
+            "from_cp",
+            "to",
+            "to_cp",
+            "potential",
+            "colour",
+            "cross_section",
+            "source",
+            "via",
+            "part",
+            "pages",
+        ])
+    }
+
     fn rows(&self, q: &Q, _block: &ReportBlock) -> RowSet {
         let columns = self.columns();
         let wires = Wires::of(q);

@@ -48,6 +48,13 @@ pub trait ReportKindDef: Send + Sync {
         EmbeddedLayout::every_column(&self.columns())
     }
 
+    /// The columns a page block of this kind prints when the block chooses none (`ReportBlock.columns` empty, doc 09
+    /// §3.8), by key in their printed order, each at its column's weight; `None` (the default): every column. The rows,
+    /// the CSV and the other exports keep every column of [`columns`](ReportKindDef::columns).
+    fn printed(&self) -> Option<&'static [&'static str]> {
+        None
+    }
+
     /// The block parameters this kind declares: the keys of a block's `params` object it reads, each
     /// with its type and default, in declaration order. Read through [`kind_params`]. None by default.
     fn params(&self) -> &'static [ParamDef] {

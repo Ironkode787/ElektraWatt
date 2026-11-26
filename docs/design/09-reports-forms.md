@@ -794,7 +794,8 @@ heading?}`; on a page block too it gives the printed columns in its order, `weig
 table's width (widths in millimetres serve as shares) and `heading` (a multi-language text, optional, an additive
 member) the printed heading in place of the kind's. A key the kind does not have prints nothing (the window offers
 the kind's columns only). Empty: the columns the kind prints by default (`ReportKindDef::printed`), with their
-weights; a kind that declares none prints every column, and the wire list prints the fitter's (13 §3.1). The chosen
+weights; a kind that declares none prints every column, and the wire list prints its columns from No. to Pages
+(13 §3.1). The chosen
 columns are the print's: the CSV and XLSX keep every column of the kind.
 
 **The caption and the legend.** `ReportBlock.caption` and `ReportBlock.legend` (multi-language texts, additive
