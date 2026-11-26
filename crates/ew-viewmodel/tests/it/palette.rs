@@ -518,15 +518,18 @@ fn reimport_is_the_one_button_of_the_import_group() {
 /// No action a person can start from the command search answers "Missing parameter": each action listed there with
 /// parameters, started bare on the sample with page 103's whole drawing selected, runs, asks for what it needs in its
 /// form or refuses in words (Move to page answered "Missing parameter `folio`." and asked for nothing). Each on a fresh
-/// copy, so that one action's dialog or close leaves the next its own start.
-#[test]
-fn no_action_started_bare_from_the_command_search_answers_missing_parameter() {
+/// copy, so that one action's dialog or close leaves the next its own start. The actions are dealt over
+/// [`BARE_SHARDS`] tests, since every action opens the sample anew and their number grows: `shard` takes every
+/// action whose place in the table leaves that remainder.
+fn bare_actions_that_answer_missing_parameter(shard: usize) -> Vec<String> {
     let probe = strings::format(key!("error-missing-param"), &["\u{1}"]);
     let missing = probe.split('\u{1}').next().unwrap_or_default().to_owned();
     let mut answered = Vec::new();
-    for meta in ACTIONS
+    for (_, meta) in ACTIONS
         .iter()
         .filter(|m| !m.hidden && !m.headless_only && !m.params.is_empty())
+        .enumerate()
+        .filter(|(i, _)| i % BARE_SHARDS == shard)
     {
         let tmp = Tmp::new(&format!("pal-bare-{}", meta.id));
         let mut shell = tmp.sample_in(Mode::Gui, true, "103");
@@ -543,5 +546,40 @@ fn no_action_started_bare_from_the_command_search_answers_missing_parameter() {
         }
         shell.shutdown();
     }
-    assert_eq!(answered, Vec::<String>::new());
+    answered
+}
+
+/// Over how many tests the bare starts are dealt.
+const BARE_SHARDS: usize = 4;
+
+#[test]
+fn no_action_started_bare_from_the_command_search_answers_missing_parameter_shard_1_of_4() {
+    assert_eq!(
+        bare_actions_that_answer_missing_parameter(0),
+        Vec::<String>::new()
+    );
+}
+
+#[test]
+fn no_action_started_bare_from_the_command_search_answers_missing_parameter_shard_2_of_4() {
+    assert_eq!(
+        bare_actions_that_answer_missing_parameter(1),
+        Vec::<String>::new()
+    );
+}
+
+#[test]
+fn no_action_started_bare_from_the_command_search_answers_missing_parameter_shard_3_of_4() {
+    assert_eq!(
+        bare_actions_that_answer_missing_parameter(2),
+        Vec::<String>::new()
+    );
+}
+
+#[test]
+fn no_action_started_bare_from_the_command_search_answers_missing_parameter_shard_4_of_4() {
+    assert_eq!(
+        bare_actions_that_answer_missing_parameter(3),
+        Vec::<String>::new()
+    );
 }
