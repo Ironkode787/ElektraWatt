@@ -394,7 +394,9 @@ and its text beyond the line's end, clear of the wires.
 The wires' numbers print on the page with **Draw ▸ Connect ▸ Print wire numbers** or the checkbox of that name in the
 project's Properties, one setting for the whole project that the PDF and print follow too: each wire's number stands beside it, once, at the middle of its longest segment, and on a
 wire that carries its own marker the number comes first in the marker's text (`101.1 1.5 BK`). A cable's core prints
-no number; its cable and core name it.
+no number; its cable and core name it. Each wire is one conductor with its own number: a 24 V rail tapped by four
+branches is four wires, each piece of the rail sharing the number of the branch it feeds. **Draw ▸ Connect ▸ Number
+wires by potential** gives every wire of a potential the potential's name instead, one code for the whole rail.
 
 ## Text
 

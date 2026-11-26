@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-26T00:55:10Z\n"
+"POT-Creation-Date: 2026-11-26T01:11:12Z\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -6099,65 +6099,69 @@ msgid ""
 "number stands beside it, once, at the middle of its longest segment, and on "
 "a wire that carries its own marker the number comes first in the marker's "
 "text (`101.1 1.5 BK`). A cable's core prints no number; its cable and core "
-"name it."
-msgstr ""
-
-#: src/reference/window/tools.md:399
-msgid "Text"
+"name it. Each wire is one conductor with its own number: a 24 V rail tapped "
+"by four branches is four wires, each piece of the rail sharing the number of "
+"the branch it feeds. **Draw ▸ Connect ▸ Number wires by potential** gives "
+"every wire of a potential the potential's name instead, one code for the "
+"whole rail."
 msgstr ""
 
 #: src/reference/window/tools.md:401
-msgid "Places a free text on the page. Open it with Draw ▸ Annotate ▸ Text."
+msgid "Text"
 msgstr ""
 
 #: src/reference/window/tools.md:403
-msgid "Graphic"
+msgid "Places a free text on the page. Open it with Draw ▸ Annotate ▸ Text."
 msgstr ""
 
 #: src/reference/window/tools.md:405
+msgid "Graphic"
+msgstr ""
+
+#: src/reference/window/tools.md:407
 msgid ""
 "Draws a graphic: a line, polyline, rectangle, circle, arc or polygon, which "
 "has no electrical meaning. Open it with Draw ▸ Annotate ▸ Graphic and the "
 "shape."
 msgstr ""
 
-#: src/reference/window/tools.md:408 src/explanation/eplan-and-ew.md:122
+#: src/reference/window/tools.md:410 src/explanation/eplan-and-ew.md:122
 msgid "Structure box"
 msgstr ""
 
-#: src/reference/window/tools.md:410
+#: src/reference/window/tools.md:412
 msgid ""
 "Draws a structure box: a dashed frame that puts what it encloses into a "
 "function or location of the project's structure. Open it with Draw ▸ "
 "Annotate ▸ Structure box."
 msgstr ""
 
-#: src/reference/window/tools.md:413
+#: src/reference/window/tools.md:415
 msgid "Image"
 msgstr ""
 
-#: src/reference/window/tools.md:415
+#: src/reference/window/tools.md:417
 msgid ""
 "Places an image file (SVG, PNG or JPEG) on the page. Open it with Draw ▸ "
 "Annotate ▸ Image…."
 msgstr ""
 
-#: src/reference/window/tools.md:417
+#: src/reference/window/tools.md:419
 msgid "Place device"
 msgstr ""
 
-#: src/reference/window/tools.md:419
+#: src/reference/window/tools.md:421
 msgid ""
 "On a panel layout page, places a device of the location on a rail or the "
 "mounting plate. Open it from the Unplaced devices navigator, which lists the "
 "devices of the location that have no place yet."
 msgstr ""
 
-#: src/reference/window/tools.md:422
+#: src/reference/window/tools.md:424
 msgid "Rail"
 msgstr ""
 
-#: src/reference/window/tools.md:424
+#: src/reference/window/tools.md:426
 msgid ""
 "On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail. The "
 "page shows an enclosure first: Project ▸ Setup ▸ Enclosure… puts the new "
@@ -6165,11 +6169,11 @@ msgid ""
 "layout](../../how-to/panel-layout.md))."
 msgstr ""
 
-#: src/reference/window/tools.md:427
+#: src/reference/window/tools.md:429
 msgid "Duct"
 msgstr ""
 
-#: src/reference/window/tools.md:429
+#: src/reference/window/tools.md:431
 msgid "On a panel layout page, draws a wiring duct. Open it with Draw ▸ Duct."
 msgstr ""
 
