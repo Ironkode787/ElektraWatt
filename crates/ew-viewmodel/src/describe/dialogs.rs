@@ -197,8 +197,13 @@ pub(super) fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                             f.name
                         ));
                     }
-                    if d.misfits > 0 {
-                        lines.push(format!("  misfits {}", d.misfits));
+                    if !d.misfits.is_empty() {
+                        lines.push(format!("  misfits {}", d.misfits.len()));
+                    }
+                    if d.show_misfits {
+                        for m in &d.misfits {
+                            lines.push(format!("  misfit \"{m}\""));
+                        }
                     }
                 }
                 Err(why) => lines.push(format!("  why \"{why}\"")),

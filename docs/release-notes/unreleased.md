@@ -304,3 +304,5 @@ change here.
   delimiter (Label file columns); and how many labels do not fit their marker part. Export… writes the ticked files
   into a folder, each whole, and the toast offers Show in folder. Output ▸ Workshop ▸ Workshop settings shows the
   project's Properties at its Workshop rows.
+- behaviour-change: Labels… lists the labels that do not fit their marker part under their count with Show (Hide
+  counts them again), each by its label set, marker part and text ("Device labels on EW-GEN-MRK-3: -102S1").

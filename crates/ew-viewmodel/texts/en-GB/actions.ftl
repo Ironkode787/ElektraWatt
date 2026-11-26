@@ -468,6 +468,7 @@ action-rework-archive = Compare with an archive file
 action-rework-export = Export the rework list
 action-labels-show = Labels…
 action-labels-tick = Tick a label file
+action-labels-misfits = Show the labels that do not fit
 action-labels-write = Write the label files
 action-labels-columns = Label file columns…
 action-workshop-settings = Workshop settings

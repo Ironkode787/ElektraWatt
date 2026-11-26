@@ -227,4 +227,7 @@ labels-misfits = { $p0 ->
        *[other] { $p0 } labels passen niet op hun markeringsartikel
     }
 labels-export = Exporteren…
+labels-show = Tonen
+labels-hide = Verbergen
+labels-misfit = { $p0 } op { $p1 }: { $p2 }
 labels-columns-title = Kolommen van het labelbestand

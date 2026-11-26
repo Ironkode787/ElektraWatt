@@ -409,6 +409,18 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         )),
     ),
     with_params(
+        "on?:bool",
+        hidden(act(
+            "labels.misfits",
+            View,
+            Menu::Output,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_labels_misfits(p),
+        )),
+    ),
+    with_params(
         "dir?:path",
         hidden(act(
             "labels.write",
@@ -421,7 +433,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         )),
     ),
     with_params(
-        "columns?:json, delimiter?:enum(comma|semicolon)",
+        "columns?:json, delimiter?:enum(@DELIMITER)",
         hidden(act(
             "labels.columns",
             Command,

@@ -233,7 +233,7 @@ pub use ew_memo::Mismatch;
 pub use ew_mltext::to_nfc;
 /// The project's decimal separator (`settings.formatting.decimal_separator`): the shell writes millimetres
 /// with it.
-pub use ew_schema::DecimalSeparator;
+pub use ew_schema::{DecimalSeparator, Delimiter};
 /// The format this version writes, and the migration chain a project of an older format runs through at open:
 /// `ew upgrade` names the format, and a test passes its own chain in [`StoreOptions`].
 pub use ew_schema::FORMAT;

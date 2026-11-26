@@ -34,6 +34,12 @@ fn labels_lists_the_files_changes_their_columns_and_writes_the_ticked_ones() {
     assert_eq!(wires.marker_part, "EW-GEN-MRK-1");
     assert!(wires.count > 0 && wires.on);
     assert_eq!(d.columns, ["Text 1", "Text 2", "Text 3", "Copies", "For"]);
+    // Show lists the labels that do not fit, each with its set and marker part; Hide counts them only.
+    assert!(!d.misfits.is_empty() && !d.show_misfits);
+    done(&mut s, "labels.misfits", json!({}));
+    let d = labels(&s);
+    assert!(d.show_misfits);
+    assert!(d.misfits.iter().all(|m| m.contains(" on ") && m.contains(": ")), "{:?}", d.misfits);
     // A file left unticked is not written.
     let cables = files
         .iter()

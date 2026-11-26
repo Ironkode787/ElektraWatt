@@ -515,6 +515,11 @@ pub enum Delimiter {
     Unknown(Value),
 }
 
+impl Delimiter {
+    /// Every delimiter this build knows, by its stored name, in order: what a choice list of the window offers.
+    pub const NAMES: &'static [&'static str] = &["comma", "semicolon"];
+}
+
 /// Where a device's label goes ([`WorkshopSettings::device_labels`], doc 13 §5.3).
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -1244,6 +1249,28 @@ open_enum!(
     DeviceLabels,
     Delimiter,
 );
+
+#[cfg(test)]
+mod delimiter_tests {
+    use super::Delimiter;
+
+    /// `Delimiter::NAMES` is every known delimiter by its stored name: each reads back as a known one, and each known
+    /// one writes a name of the list (a new delimiter fails the match below until the list has it).
+    #[test]
+    fn the_names_are_the_known_delimiters() {
+        let name = |d: &Delimiter| match d {
+            Delimiter::Comma | Delimiter::Semicolon => serde_json::to_value(d).expect("JSON"),
+            Delimiter::Unknown(_) => panic!("not a known delimiter"),
+        };
+        for n in Delimiter::NAMES {
+            let d: Delimiter = serde_json::from_value(serde_json::json!(n)).expect("a delimiter");
+            assert_eq!(name(&d), serde_json::json!(n));
+        }
+        for d in [Delimiter::Comma, Delimiter::Semicolon] {
+            assert!(Delimiter::NAMES.iter().any(|n| name(&d) == serde_json::json!(n)), "{d:?}");
+        }
+    }
+}
 
 #[cfg(test)]
 mod mint_tests {

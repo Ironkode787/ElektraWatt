@@ -60,8 +60,10 @@ pub struct LabelsDialog {
     pub files: Result<Vec<LabelFileRow>, String>,
     /// The export profile's headings, in their order.
     pub columns: Vec<String>,
-    /// The labels whose text does not fit their marker part.
-    pub misfits: usize,
+    /// The labels that do not fit their marker part, each its set, its marker part and its text in words.
+    pub misfits: Vec<String>,
+    /// Whether the dialog lists them (Show), else counts them only.
+    pub show_misfits: bool,
 }
 
 impl LabelsDialog {
@@ -135,6 +137,7 @@ impl ShellModel {
             Some(Dialog::Labels(d)) => Some((d.which.clone(), d.format)),
             _ => None,
         };
+        let open_show = matches!(&self.dialog, Some(Dialog::Labels(d)) if d.show_misfits);
         let which = match (string_param(p, "since"), string_param(p, "archive")) {
             (Err(e), _) | (_, Err(e)) => return e,
             (Ok(Some("")), _) => Which::All,
@@ -158,7 +161,8 @@ impl ShellModel {
             format,
             files: Ok(Vec::new()),
             columns: Vec::new(),
-            misfits: 0,
+            misfits: Vec::new(),
+            show_misfits: open_show,
         };
         let off = match &self.dialog {
             Some(Dialog::Labels(old)) => unticked(old),
@@ -186,7 +190,16 @@ impl ShellModel {
             .collect();
         d.files = match project.session.label_files(&d.scope(), d.format, None) {
             Ok(files) => {
-                d.misfits = files.iter().map(|f| f.misfits).sum();
+                d.misfits = files
+                    .iter()
+                    .flat_map(|f| {
+                        let set = strings::render(&ew_api::label_set_text(f.set));
+                        let part = f.marker_part.clone().unwrap_or_default();
+                        f.misfits
+                            .iter()
+                            .map(move |t| strings::format(key!("labels-misfit"), &[&set, &part, t]))
+                    })
+                    .collect();
                 Ok(files
                     .into_iter()
                     .map(|f| LabelFileRow {
@@ -201,6 +214,16 @@ impl ShellModel {
             Err(ew_api::LabelError::Rework(e)) => Err(super::rework::reason(&e)),
             Err(e) => Err(strings::format(key!("error-export"), &[&e.to_string()])),
         };
+    }
+
+    /// `labels.misfits {on?}` (the dialog's Show and Hide): lists the labels that do not fit their marker part under
+    /// their count, or counts them only; without `on` it switches.
+    pub(crate) fn act_labels_misfits(&mut self, p: &Map<String, Value>) -> Outcome {
+        let Some(Dialog::Labels(d)) = &mut self.dialog else {
+            return Outcome::refused(key!("reason-labels-closed"));
+        };
+        d.show_misfits = p.get("on").and_then(Value::as_bool).unwrap_or(!d.show_misfits);
+        Outcome::Done
     }
 
     /// `labels.tick {file, on}`: ticks or unticks the file named `file` of the open dialog.
@@ -275,7 +298,7 @@ impl ShellModel {
         let Some(project) = &self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        let (profile, semicolon) = project.session.label_profile();
+        let (profile, delimiter_now) = project.session.label_profile();
         let words = [
             strings::text(key!("list-columns-print")).to_owned(),
             strings::text(key!("list-columns-heading")).to_owned(),
@@ -305,7 +328,6 @@ impl ShellModel {
                     }
                 })
                 .collect();
-            let delimiter = if semicolon { "semicolon" } else { "comma" };
             return self.open_dialog(Dialog::Form(FormDialog {
                 action: COLUMNS,
                 title_key: key!("labels-columns-title"),
@@ -316,7 +338,7 @@ impl ShellModel {
                     label_key: key!("field-project-settings-workshop-label-profile-delimiter"),
                     choices: &super::choices::DELIMITER,
                     options: Vec::new(),
-                    value: delimiter.to_owned(),
+                    value: delimiter_now.clone(),
                 }],
                 error: None,
                 table: Some(FormTable {
@@ -388,11 +410,11 @@ impl ShellModel {
         };
         let delimiter = match string_param(p, "delimiter") {
             Err(e) => return e,
-            Ok(Some("semicolon")) => "semicolon",
-            Ok(Some("comma")) | Ok(None) => "comma",
+            Ok(Some(d)) if ew_api::Delimiter::NAMES.contains(&d) => d.to_owned(),
             Ok(Some(_)) => return failed(key!("error-bad-param"), &["delimiter"]),
+            Ok(None) => delimiter_now,
         };
-        let value = if ew_api::is_generic_label_profile(&columns, delimiter == "semicolon") {
+        let value = if ew_api::is_generic_label_profile(&columns, &delimiter) {
             Value::Null
         } else {
             let columns: Vec<Value> = columns

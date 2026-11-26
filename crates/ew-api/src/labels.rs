@@ -47,8 +47,8 @@ pub struct LabelFile {
     pub marker_part: Option<String>,
     /// The number of labels (rows).
     pub count: usize,
-    /// The labels whose text does not fit the marker part.
-    pub misfits: usize,
+    /// The texts of the labels that do not fit the marker part, each its lines joined by ` / `, in the file's order.
+    pub misfits: Vec<String>,
     /// The file's bytes.
     pub bytes: Vec<u8>,
 }
@@ -113,10 +113,18 @@ pub fn label_column_words(c: ew_derive::LabelColumn, lang: Option<&str>) -> Stri
     ew_reports::kinds::label_column_words(c, lang.as_ref())
 }
 
-/// Whether `columns` (key, heading) with a semicolon or not are the generic export profile, which a project need not
-/// keep.
-pub fn is_generic_label_profile(columns: &[(String, String)], semicolon: bool) -> bool {
-    !semicolon
+/// A delimiter's stored name (`comma`), one of [`Delimiter::NAMES`].
+fn delimiter_name(d: &Delimiter) -> String {
+    serde_json::to_value(d)
+        .ok()
+        .and_then(|v| v.as_str().map(str::to_owned))
+        .unwrap_or_default()
+}
+
+/// Whether `columns` (key, heading) with the delimiter named `delimiter` are the generic export profile, which a project
+/// need not keep.
+pub fn is_generic_label_profile(columns: &[(String, String)], delimiter: &str) -> bool {
+    delimiter == delimiter_name(&Delimiter::default())
         && columns.len() == ew_derive::GENERIC_PROFILE.len()
         && columns
             .iter()
@@ -126,12 +134,12 @@ pub fn is_generic_label_profile(columns: &[(String, String)], semicolon: bool) -
 
 impl Session {
     /// The project's export profile (its own, else the generic one): its columns as (key, heading) in file order, and
-    /// whether its delimiter is a semicolon.
-    pub fn label_profile(&self) -> (Vec<(String, String)>, bool) {
+    /// its delimiter's stored name (one of [`Delimiter::NAMES`]).
+    pub fn label_profile(&self) -> (Vec<(String, String)>, String) {
         let profile = ew_derive::label_profile(&self.query());
         (
             profile.columns.into_iter().map(|c| (c.key, c.heading)).collect(),
-            profile.delimiter == Delimiter::Semicolon,
+            delimiter_name(&profile.delimiter),
         )
     }
 
@@ -183,7 +191,8 @@ impl Session {
             let misfits = labels
                 .iter()
                 .filter(|l| l.set == file.set && l.marker_part == file.marker_part && !l.fits && keep(l))
-                .count();
+                .map(|l| l.lines.join(" / "))
+                .collect();
             let all: Vec<Vec<String>> = std::iter::once(file.header.clone())
                 .chain(file.rows.clone())
                 .collect();

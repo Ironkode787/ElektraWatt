@@ -476,6 +476,7 @@ action-rework-archive = Vergelijken met een archiefbestand
 action-rework-export = De wijzigingslijst exporteren
 action-labels-show = Labels…
 action-labels-tick = Een labelbestand aanvinken
+action-labels-misfits = De labels tonen die niet passen
 action-labels-write = De labelbestanden schrijven
 action-labels-columns = Kolommen van het labelbestand…
 action-workshop-settings = Werkplaatsinstellingen

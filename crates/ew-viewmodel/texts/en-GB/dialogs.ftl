@@ -232,4 +232,7 @@ labels-misfits = { $p0 ->
        *[other] { $p0 } labels do not fit their marker part
     }
 labels-export = Export…
+labels-show = Show
+labels-hide = Hide
+labels-misfit = { $p0 } on { $p1 }: { $p2 }
 labels-columns-title = Label file columns
