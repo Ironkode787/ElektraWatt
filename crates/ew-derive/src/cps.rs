@@ -459,3 +459,28 @@ fn pattern_cps(q: &Q, function: &Function) -> Option<Vec<Cp>> {
         })
     })
 }
+
+/// The levels of the terminal `terminal` (doc 08 §6.3, FR-TRM-004), as its diagram's rows and its markers count them:
+/// `[None]` for a terminal of one level, else each level once: those it lists in their order, then those its
+/// connection points carry, ascending. Empty for a device that is no terminal.
+pub fn terminal_levels(q: &Q, terminal: Id<ew_schema::Device>) -> Vec<Option<u8>> {
+    let Some(term) = q.devices().get(terminal).and_then(|d| d.aspects.terminal.clone()) else {
+        return Vec::new();
+    };
+    let mut carried: Vec<u8> = q
+        .idx()
+        .functions_of_device(terminal)
+        .flat_map(|f| q.get::<FunctionCps>(f).iter().filter_map(|c| c.level).collect::<Vec<_>>())
+        .collect();
+    carried.sort_unstable();
+    let mut levels: Vec<u8> = Vec::new();
+    for l in term.levels.iter().map(|l| l.level).chain(carried) {
+        if !levels.contains(&l) {
+            levels.push(l);
+        }
+    }
+    if levels.len() < 2 {
+        return vec![None];
+    }
+    levels.into_iter().map(Some).collect()
+}

@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 
 use ew_derive::layout::StripItemKind;
 use ew_derive::{
-    AssemblyItem, AssemblyItemKind, BracketFrom, LabelRows, LabelSet, LabelTarget, Q, StripAssembly,
+    AssemblyItem, AssemblyItemKind, BracketFrom, LabelRows, LabelSet, Q, StripAssembly,
     assembly_rows, mm_tenth_short, short_tag, strip_bracket,
 };
 use ew_ids::Id;
@@ -184,16 +184,20 @@ fn with_words(q: &Q, with: &[Id<Part>]) -> Option<Text> {
     (!numbers.is_empty()).then(|| text!("cell-with", numbers.join(", ")))
 }
 
-/// The terminal markers' texts by terminal (`label_rows`, doc 13 §5.3), their lines joined by " / ".
+/// The terminal markers' texts by terminal (`label_rows`, doc 13 §5.3), their lines joined by " / ", and so the markers
+/// of a terminal's levels.
 fn terminal_markers(q: &Q) -> BTreeMap<Id<Device>, String> {
-    q.get::<LabelRows>(())
-        .iter()
-        .filter(|l| l.set == LabelSet::TerminalMarkers)
-        .filter_map(|l| match l.target {
-            LabelTarget::Device(d) => Some((d, l.lines.join(" / "))),
-            _ => None,
-        })
-        .collect()
+    let mut out: BTreeMap<Id<Device>, String> = BTreeMap::new();
+    for l in q.get::<LabelRows>(()).iter().filter(|l| l.set == LabelSet::TerminalMarkers) {
+        if let Some(d) = l.target.device() {
+            let text = out.entry(d).or_default();
+            if !text.is_empty() {
+                text.push_str(" / ");
+            }
+            text.push_str(&l.lines.join(" / "));
+        }
+    }
+    out
 }
 
 /// One item's row.

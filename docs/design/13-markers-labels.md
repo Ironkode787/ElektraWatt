@@ -63,7 +63,7 @@ engine serves every **label set**, the tube markers of the fluid lists among the
 | Label set | One label per | Text | Copies | Order | Marker part (`marks`) |
 |---|---|---|---|---|---|
 | Wire markers | marked wire end | §5.1, §5.2 | 1 | the wire list's order, the From end before the To end | wire |
-| Terminal markers | terminal and level | the designation; a second line, the function text, where the strip prints function texts ([08](08-connections-terminals-cables.md) §6.1) | 1 | strips in natural tag order, terminals in mounting order | terminal |
+| Terminal markers | terminal and level (one for a terminal of one level) | the designation, a level's own; a second line, the function text, where the strip prints function texts ([08](08-connections-terminals-cables.md) §6.1) | 1 | strips in natural tag order, terminals in mounting order | terminal |
 | Strip markers | strip | the strip's tag | 1 | natural tag order | terminal |
 | Cable markers | cable | the cable's tag | 2 (one per end) | natural tag order | cable |
 | Device labels | device with a part of its own that is no terminal, strip, cable, enclosure, plate, rail or duct | its tag as on the device itself (`-101Q1`) | 1; 2 where the shop sets labels on the device and beside it | placed devices in mounting order (carriers from the top, left to right), then the others in natural tag order | device |
@@ -77,7 +77,7 @@ The list kind `labels` lists every label with the columns `set`, `for` ("101.1 a
 `text_3`, `copies`, `marker_part` and `note` ("does not fit its marker part"); `tube_labels` lists the tube markers
 with the same columns. Both are lists of the report engine, so a person can print them and check them before the
 labels are printed, and `ew export report --kind labels` writes them as every list. A row is what it labels: the wire or
-the tube with its end, the terminal, strip, cable or device (a plate apart from the device's label),
+the tube with its end, the terminal (with its level where it has several), the strip, cable or device (a plate apart from the device's label),
 with that record as its source, so that a block leaves out the rows of a record it excludes and a row opens its record.
 The For cell names a tube in the language the list prints.
 

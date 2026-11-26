@@ -15,6 +15,8 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: a terminal of several levels gets a terminal marker per level, each with the level's designation,
+  in the labels list, the label files and the rework list; it got one (doc 13 §5.3)
 - behaviour-change: a row of the labels list and of the tube labels is what it labels (the wire or tube with its
   end, the terminal, strip, cable or device) with that record as its source, so a block's left-out records stay out
   and a row opens its record again, and the For cell names a tube in the list's language; an existing tube-label

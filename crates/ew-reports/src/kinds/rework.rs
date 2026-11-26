@@ -77,6 +77,9 @@ pub fn rework_rows(base: &Q, now: &Q, items: &[ReworkItem]) -> RowSet {
                 ReworkSubject::Label(_, target) => {
                     let mut cells = vec![action];
                     cells.extend(picked.iter().map(|i| match (list[*i].key.as_str(), target) {
+                        ("no", ew_derive::LabelTarget::TerminalLevel(d, l)) => {
+                            Cell::Ident(ew_derive::level_short_tag(q, *d, Some(*l)))
+                        }
                         ("no", ew_derive::LabelTarget::Device(d)) => Cell::Ident(ew_derive::short_tag(q, *d)),
                         _ => Cell::Empty,
                     }));
@@ -86,7 +89,7 @@ pub fn rework_rows(base: &Q, now: &Q, items: &[ReworkItem]) -> RowSet {
                         RowKey::Index(u32::try_from(n).unwrap_or(0)),
                     ]);
                     let mut row = Row::data(id, cells);
-                    if let ew_derive::LabelTarget::Device(d) = target {
+                    if let Some(d) = target.device() {
                         row.sources = vec![d.cast()];
                     }
                     row

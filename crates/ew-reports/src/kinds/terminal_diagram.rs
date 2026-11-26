@@ -22,7 +22,7 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 ///
 /// The strips are the devices of the block's manual selection (`manual.include`) that have a strip aspect,
 /// else every strip in natural order of its tag; one row per terminal of a strip in `(seq, ID)` order, and for a block
-/// of several levels (doc 08 §6.3, FR-TRM-004) one row per level ([`row_levels`]): the level's designation, potential,
+/// of several levels (doc 08 §6.3, FR-TRM-004) one row per level (`ew_derive::terminal_levels`): the level's designation, potential,
 /// sides, bridge and state, its part and its CPs without a level on its first row.
 /// Row ID: `(strip, terminal, level)`, the level being 1 for a terminal of one level.
 ///
@@ -105,7 +105,8 @@ impl ReportKindDef for TerminalDiagram {
                             .collect::<Vec<_>>()
                     })
                     .collect();
-                for (level, first) in row_levels(term, &cps) {
+                for (n, level) in ew_derive::terminal_levels(q, t).into_iter().enumerate() {
+                    let first = n == 0;
                     // The CPs of this row: the level's, and on the first row those without a level.
                     let here: Vec<&(CpRef, Cp)> = cps
                         .iter()
@@ -169,27 +170,6 @@ impl ReportKindDef for TerminalDiagram {
         }
         set
     }
-}
-
-/// The rows of a terminal as (level, whether it is the first row): one row (`None`) for a terminal of one level, else
-/// one per level (doc 08 §6.3, FR-TRM-004): the levels it lists in their order, else those its CPs carry, ascending.
-fn row_levels(term: &Terminal, cps: &[(CpRef, Cp)]) -> Vec<(Option<u8>, bool)> {
-    let mut levels: Vec<u8> = Vec::new();
-    let listed = term.levels.iter().map(|l| l.level);
-    let carried: BTreeSet<u8> = cps.iter().filter_map(|(_, c)| c.level).collect();
-    for l in listed.chain(carried) {
-        if !levels.contains(&l) {
-            levels.push(l);
-        }
-    }
-    if levels.len() < 2 {
-        return vec![(None, true)];
-    }
-    levels
-        .into_iter()
-        .enumerate()
-        .map(|(i, l)| (Some(l), i == 0))
-        .collect()
 }
 
 /// Whether one of the connections of bridge `b` ends at one of the CPs `here`.

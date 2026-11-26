@@ -227,3 +227,41 @@ fn a_label_row_is_what_it_labels_with_its_record_as_its_source() {
     let ids: std::collections::BTreeSet<&RowId> = all.iter().map(|(id, _)| id).collect();
     assert_eq!(ids.len(), all.len(), "no two rows of the labels list are one");
 }
+
+/// A terminal of several levels gets a marker per level (doc 13 §5.3), each with the level's designation: the sample's
+/// terminal -X1021:6 drawn onto -X1021:5 makes a block of two levels, marked `5` and `6`; a terminal of one level keeps
+/// its one marker.
+#[test]
+fn a_terminal_of_two_levels_gets_a_marker_per_level() {
+    let mut s = common::sample();
+    let device = |s: &Session, tag: &str| -> ew_ids::Id<ew_schema::Device> {
+        ew_ids::Id::from_uuid(s.resolve_reference(&format!("tag:{tag}")).expect("the terminal"))
+    };
+    let markers = |s: &Session, t: ew_ids::Id<ew_schema::Device>| -> Vec<Vec<String>> {
+        s.query()
+            .get::<LabelRows>(())
+            .iter()
+            .filter(|l| l.set == LabelSet::TerminalMarkers && l.target.device() == Some(t))
+            .map(|l| l.lines.clone())
+            .collect()
+    };
+    let (five, four) = (device(&s, "-X1021:5"), device(&s, "-X1021:4"));
+    assert_eq!(markers(&s, five), [["5"]]);
+    let q = s.query();
+    let six = device(&s, "-X1021:6");
+    let f = q.idx().functions_of_device(six).next().expect("its function");
+    let rep = q
+        .reps()
+        .iter()
+        .find(|(_, r)| r.functions.contains(&f))
+        .map(|(id, _)| id)
+        .expect("its symbol");
+    drop(q);
+    common::run_cmd(
+        &mut s,
+        "rep.join_device",
+        json!({"rep": rep.to_string(), "device": five.to_string()}),
+    );
+    assert_eq!(markers(&s, five), [["5"], ["6"]]);
+    assert_eq!(markers(&s, four), [["4"]], "a terminal of one level");
+}

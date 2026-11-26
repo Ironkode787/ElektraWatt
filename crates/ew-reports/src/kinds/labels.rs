@@ -108,8 +108,8 @@ pub(super) fn label_set_rows(q: &Q, keep: impl Fn(LabelSet) -> bool) -> RowSet {
     set
 }
 
-/// The identity of a label's row and its source: the record it labels, with the end of a wire or a tube; a plate, which
-/// labels a device a device label labels too, says so.
+/// The identity of a label's row and its source: the record it labels, with the end of a wire or a tube or the level
+/// of a terminal; a plate, which labels a device a device label labels too, says so.
 fn label_row_id(l: &LabelRecord) -> (RowId, AnyId) {
     match &l.target {
         LabelTarget::WireEnd(c, end) | LabelTarget::TubeEnd(c, end) => (
@@ -121,6 +121,10 @@ fn label_row_id(l: &LabelRecord) -> (RowId, AnyId) {
             d.cast(),
         ),
         LabelTarget::Device(d) => (RowId::entity(*d), d.cast()),
+        LabelTarget::TerminalLevel(d, level) => (
+            RowId::entity(*d).with(RowKey::Index(u32::from(*level))),
+            d.cast(),
+        ),
     }
 }
 
@@ -142,6 +146,7 @@ fn label_for(
             words_cell(&text!("cell-label-for", no, at))
         }
         LabelTarget::Device(d) => Cell::Ident(short_tag(q, *d)),
+        LabelTarget::TerminalLevel(d, level) => Cell::Ident(ew_derive::level_short_tag(q, *d, Some(*level))),
         LabelTarget::TubeEnd(tube, end) => {
             let Some(t) = tubes.iter().find(|t| t.id == *tube) else {
                 return Cell::Empty;

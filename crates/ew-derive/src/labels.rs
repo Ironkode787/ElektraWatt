@@ -157,8 +157,20 @@ pub enum LabelTarget {
     WireEnd(Id<Connection>, u8),
     /// A terminal, a strip, a cable or a device.
     Device(Id<Device>),
+    /// One level of a terminal of several levels (doc 08 §6.3): the terminal and the level.
+    TerminalLevel(Id<Device>, u8),
     /// The end (0 from, 1 to) of a tube (its ID).
     TubeEnd(Id<Connection>, u8),
+}
+
+impl LabelTarget {
+    /// The device a label of a device or of a terminal's level marks.
+    pub fn device(&self) -> Option<Id<Device>> {
+        match self {
+            LabelTarget::Device(d) | LabelTarget::TerminalLevel(d, _) => Some(*d),
+            LabelTarget::WireEnd(..) | LabelTarget::TubeEnd(..) => None,
+        }
+    }
 }
 
 /// One label (doc 13 §2.4).
@@ -236,8 +248,9 @@ impl Query for LabelRows {
             .iter()
             .filter(|(id, _)| devices.get(*id).is_some_and(|d| d.aspects.strip.is_some()))
             .collect();
-        // Terminal markers: strips in natural tag order, terminals in mounting order; the designation, and under it the
-        // function text where the strip prints function texts (doc 08 §6.1).
+        // Terminal markers: strips in natural tag order, terminals in mounting order, one per level of a terminal of
+        // several; the designation (a level's own), and under it the function text where the strip prints function
+        // texts (doc 08 §6.1).
         let lang = crate::print_language(q);
         for (strip, _) in &strips {
             let function_texts = devices
@@ -251,20 +264,18 @@ impl Query for LabelRows {
                 .collect();
             terminals.sort_by_key(|t| (t.aspects.terminal.as_ref().map_or(0, |a| a.seq), t.id));
             for t in terminals {
-                let Some(designation) = t
-                    .aspects
-                    .terminal
-                    .as_ref()
-                    .map(|a| a.designation.as_str().to_owned())
-                else {
+                let Some(term) = t.aspects.terminal.as_ref() else {
                     continue;
                 };
-                let mut lines = vec![designation];
-                let function = crate::text_in(&t.function_text, lang.as_ref());
-                if function_texts && !function.is_empty() {
-                    lines.push(function.to_owned());
+                for level in crate::cps::terminal_levels(q, t.id) {
+                    let mut lines = vec![term.level_designation(level).as_str().to_owned()];
+                    let function = crate::text_in(&t.function_text, lang.as_ref());
+                    if function_texts && !function.is_empty() {
+                        lines.push(function.to_owned());
+                    }
+                    let target = level.map_or(LabelTarget::Device(t.id), |l| LabelTarget::TerminalLevel(t.id, l));
+                    push(LabelSet::TerminalMarkers, target, lines, 1);
                 }
-                push(LabelSet::TerminalMarkers, LabelTarget::Device(t.id), lines, 1);
             }
         }
         // Strip markers: the strip's tag.
