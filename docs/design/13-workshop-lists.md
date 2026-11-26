@@ -53,7 +53,9 @@ the strips stand in the order of their first segment's page, then by tag.
 **What he reads first** is the strip's heading row: its tag, where it goes and how long it is, as one text with
 arguments ("-X1011 · on rail 1 from 0 to 48.2 mm · rail cut to 470 mm · 5 terminals · 48.2 mm with its end
 brackets"). A strip on no rail says "on no rail"; a strip turned on its rail says that its first terminal stands at
-the right; a strip placed in pieces prints a heading per piece.
+the right. A strip stands on its rail as a whole: the heading names its placement on the rail that comes first in
+the legend's order, and a heading per piece comes with placing a strip in pieces
+([12](12-placement-pages.md) §2.3, `segment`).
 
 **Then the mounting order**, one row per item from the rail's left end: the end bracket before it (a strip that abuts
 the one before it starts against that strip's bracket and says so in its heading), the terminals by `seq`, each
