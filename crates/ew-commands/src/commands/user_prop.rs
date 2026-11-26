@@ -17,31 +17,6 @@ use crate::meta::CommandMeta;
 use crate::proxy::{IdentS, MlTextS, UuidS};
 use crate::tx::TxBuilder;
 
-/// The key made once from a field's first name (doc 09 §2.10): its Latin letters lower-cased, its digits, every other
-/// run of characters one `_`, without one at either end; a name without a Latin letter or digit gives `field`; a key
-/// `taken` already gets `_2`, `_3` … (`Order number` → `order_number`).
-pub fn mint_user_prop_key(name: &str, taken: impl Fn(&str) -> bool) -> String {
-    let mut base = String::new();
-    for c in name.chars() {
-        if c.is_ascii_alphanumeric() {
-            base.push(c.to_ascii_lowercase());
-        } else if !base.is_empty() && !base.ends_with('_') {
-            base.push('_');
-        }
-    }
-    let base = match base.trim_end_matches('_') {
-        "" => "field".to_owned(),
-        b => b.to_owned(),
-    };
-    if !taken(&base) {
-        return base;
-    }
-    (2u32..)
-        .map(|n| format!("{base}_{n}"))
-        .find(|k| !taken(k))
-        .unwrap_or(base)
-}
-
 /// The placeholder path a cell prints a field by: `project.prop.<key>` or `page.prop.<key>` (doc 09 §2.6).
 pub fn user_prop_path(scope: &UserPropScope, key: &str) -> Option<String> {
     match scope {
@@ -65,7 +40,7 @@ pub(crate) fn with_value(values: &[UserPropValue], key: &Ident, value: &MlText) 
 }
 
 /// `user_prop.define` (`DefineUserProp`): makes a field of the project's own (doc 09 §2.10): its key minted from the
-/// label ([`mint_user_prop_key`]), its definition of the kind text appended to
+/// label (`UserPropDef::mint_key`), its definition of the kind text appended to
 /// `Project.user_prop_defs`, and its value now when given: the project's for a field of the whole project, the page's
 /// (`page`) for a field of each page.
 ///
@@ -109,7 +84,7 @@ impl DefineUserProp {
             ));
         }
         let mut project = (*tx.project()).clone();
-        let key = mint_user_prop_key(ew_derive::text_in(&self.label, None), |k| {
+        let key = UserPropDef::mint_key(ew_derive::text_in(&self.label, None), |k| {
             project.user_prop_defs.iter().any(|d| d.key.as_str() == k)
         });
         let key: Ident = key
@@ -311,26 +286,4 @@ fn shown_by_a_form(tx: &TxBuilder<'_>, def: &UserPropDef) -> Option<Text> {
             }
         }
     })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::mint_user_prop_key;
-
-    /// The key is made from the first name (doc 09 §2.10): Latin letters lower-cased, digits, any other run one `_`;
-    /// a name without either gives `field`; a key the project has gets `_2`, `_3` ….
-    #[test]
-    fn a_key_is_minted_from_the_first_name() {
-        let none = |_: &str| false;
-        assert_eq!(mint_user_prop_key("Order number", none), "order_number");
-        assert_eq!(
-            mint_user_prop_key("  Cust. sheet no. 2 ", none),
-            "cust_sheet_no_2"
-        );
-        assert_eq!(mint_user_prop_key("×÷", none), "field");
-        assert_eq!(mint_user_prop_key("Bestelnr. één", none), "bestelnr_n");
-        let taken = |k: &str| ["order_number", "order_number_2", "field"].contains(&k);
-        assert_eq!(mint_user_prop_key("Order number", taken), "order_number_3");
-        assert_eq!(mint_user_prop_key("", taken), "field_2");
-    }
 }

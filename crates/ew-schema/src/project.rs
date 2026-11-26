@@ -106,6 +106,33 @@ pub struct UserPropDef {
     pub extra: Extra,
 }
 
+impl UserPropDef {
+    /// The key made once from a field's first name (doc 09 §2.10): its Latin letters lower-cased, its digits, every other
+    /// run of characters one `_`, without one at either end; a name without a Latin letter or digit gives `field`; a key
+    /// `taken` already gets `_2`, `_3` … (`Order number` → `order_number`).
+    pub fn mint_key(name: &str, taken: impl Fn(&str) -> bool) -> String {
+        let mut base = String::new();
+        for c in name.chars() {
+            if c.is_ascii_alphanumeric() {
+                base.push(c.to_ascii_lowercase());
+            } else if !base.is_empty() && !base.ends_with('_') {
+                base.push('_');
+            }
+        }
+        let base = match base.trim_end_matches('_') {
+            "" => "field".to_owned(),
+            b => b.to_owned(),
+        };
+        if !taken(&base) {
+            return base;
+        }
+        (2u32..)
+            .map(|n| format!("{base}_{n}"))
+            .find(|k| !taken(k))
+            .unwrap_or(base)
+    }
+}
+
 /// The kind of a field's value (doc 03 §5): text only now.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -1121,3 +1148,25 @@ open_enum!(
     FerruleRule,
     TwoWires,
 );
+
+#[cfg(test)]
+mod mint_tests {
+    use crate::UserPropDef;
+
+    /// The key is made from the first name (doc 09 §2.10): Latin letters lower-cased, digits, any other run one `_`;
+    /// a name without either gives `field`; a key the project has gets `_2`, `_3` ….
+    #[test]
+    fn a_key_is_minted_from_the_first_name() {
+        let none = |_: &str| false;
+        assert_eq!(UserPropDef::mint_key("Order number", none), "order_number");
+        assert_eq!(
+            UserPropDef::mint_key("  Cust. sheet no. 2 ", none),
+            "cust_sheet_no_2"
+        );
+        assert_eq!(UserPropDef::mint_key("×÷", none), "field");
+        assert_eq!(UserPropDef::mint_key("Bestelnr. één", none), "bestelnr_n");
+        let taken = |k: &str| ["order_number", "order_number_2", "field"].contains(&k);
+        assert_eq!(UserPropDef::mint_key("Order number", taken), "order_number_3");
+        assert_eq!(UserPropDef::mint_key("", taken), "field_2");
+    }
+}
