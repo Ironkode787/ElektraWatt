@@ -443,3 +443,10 @@ between two cells is dragged: every cell on either side of it grows or shrinks w
 none narrower or lower than 2 mm. Each change is one undo step. The first change of the program's frame and title
 block makes them the project's own, and every page that printed them prints the project's copies; the toast says so
 once.
+
+With nothing chosen, Properties shows the frame: its paper, its title block (Shared with the other frames, or Its
+own: a copy of the block for this frame alone), Give this page its own frame, its columns and rows (a click chooses
+them) and Use the frames of a template…, which takes a template's frames, title blocks, fields of your own and company
+logo into the project after a preview; a page with a frame of its own keeps it. Chosen, the columns and rows show How
+many, Counted with, First, the rows' Skip I and O, Drawn and the title block's height: each value typed is previewed
+on the card, with the cross-references that print differently, and Apply writes them in one step.

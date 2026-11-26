@@ -339,6 +339,10 @@ impl ShellModel {
             RowAction::Edit if key == crate::shell::frame_edit::RULERS_ROW => {
                 self.frame_choose(crate::tools::frame::FrameChoice::Rulers)
             }
+            RowAction::Edit if key == crate::shell::frame_edit::OWN_FRAME_ROW => self.act_frame_own_page(),
+            RowAction::Edit if key == crate::shell::frame_edit::ADOPT_ROW => {
+                self.act_frame_adopt(&Map::new())
+            }
             RowAction::Edit => self.begin_edit(key, RowAction::Edit, None),
             RowAction::Override => self.begin_edit(key, RowAction::Override, None),
             RowAction::Clear | RowAction::Reset | RowAction::Unfreeze => {

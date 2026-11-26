@@ -652,3 +652,6 @@ error-frame-count = Typ een geheel getal van 1 tot en met 100, zoals 10.
 error-frame-first-number = Typ een geheel getal van 0 tot en met 999, zoals 1.
 error-frame-first-letter = Typ een letter, zoals A.
 error-frame-block-height = Typ een hoogte in mm van ten minste 2, zoals 18.
+reason-frame-no-templates = De lijst met sjablonen is leeg: voeg er een toe met Project ▸ Sjablonen…
+reason-frame-adopt = De kaders van het sjabloon komen in de plaats van die van het project op elke pagina zonder eigen kader
+error-frame-template = Het sjabloon { $p0 } kan niet worden gelezen: { $p1 }.

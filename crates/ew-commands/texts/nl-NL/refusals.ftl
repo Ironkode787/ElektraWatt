@@ -1084,3 +1084,7 @@ refusal-frame-grid-block-low = een titelblok is ten minste 2 mm hoog
 refusal-frame-grid-block-high = het titelblok zou de rijen geen hoogte laten
 refusal-frame-grid-drawing-under = { $p0 } heeft tekening waar het titelblok zou groeien; schuif die eerst omhoog
 refusal-frame-grid-unchanged = de kolommen en rijen zijn ongewijzigd
+refusal-form-own-no-frame = deze pagina gebruikt geen kader van het project
+refusal-form-own-no-block = dit kader heeft geen titelblok om te kopiëren
+refusal-form-own-one = noem de pagina of het kader
+refusal-frames-adopt-lists = het kader van de lijsten is niet van het project en niet bij de kaders van het sjabloon

@@ -1083,3 +1083,7 @@ refusal-frame-grid-block-low = a title block is at least 2 mm high
 refusal-frame-grid-block-high = the title block would leave the rows no height
 refusal-frame-grid-drawing-under = { $p0 } has drawing where the title block would grow; move it up first
 refusal-frame-grid-unchanged = the columns and rows are unchanged
+refusal-form-own-no-frame = this page prints on no frame of the project's
+refusal-form-own-no-block = this frame has no title block to copy
+refusal-form-own-one = name either the page or the frame
+refusal-frames-adopt-lists = the frame of the lists is neither the project's nor among the template's frames

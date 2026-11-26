@@ -39,6 +39,7 @@ mod fields;
 mod fluid;
 mod form_edit;
 mod frames;
+mod frames_adopt;
 mod import;
 pub(crate) mod items;
 mod join;
@@ -260,6 +261,10 @@ commands! {
     form_edit::EditForm,
     // The columns and rows of a frame
     form_edit::SetFrameGrid,
+    // A frame of a page's own, a title block of a frame's own
+    form_edit::MakeFormOwn,
+    // The frames of a template taken
+    frames_adopt::AdoptFrames,
     workshop::SetWorkshopStock,
     // The fields of the project's own
     user_prop::DefineUserProp,

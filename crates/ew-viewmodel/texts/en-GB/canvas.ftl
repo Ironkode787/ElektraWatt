@@ -699,3 +699,7 @@ frame-drawn = Drawn
 frame-yes = Yes
 frame-no = No
 frame-block-height = Title block height (mm)
+frame-row-own-frame = This page
+frame-own-frame-give = Give this page its own frame
+frame-row-adopt = Templates
+frame-template = Template

@@ -686,3 +686,6 @@ error-frame-count = Type a whole number from 1 to 100, such as 10.
 error-frame-first-number = Type a whole number from 0 to 999, such as 1.
 error-frame-first-letter = Type a letter, such as A.
 error-frame-block-height = Type a height in mm of at least 2, such as 18.
+reason-frame-no-templates = The list of templates is empty: add one with Project ▸ Templates…
+reason-frame-adopt = The frames of the template take the place of the project's on every page without a frame of its own
+error-frame-template = The template { $p0 } cannot be read: { $p1 }.

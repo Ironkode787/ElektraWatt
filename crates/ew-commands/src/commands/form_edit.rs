@@ -769,3 +769,116 @@ fn refuse_drawing_under(tx: &TxBuilder<'_>, id: Id<FormDef>, frame: &FormDef) ->
     }
     Ok(())
 }
+
+/// `form.make_own` (`MakeFormOwn`): a frame of a page's own, or a title block of a frame's own (doc 09 §3.9: Give this
+/// page its own frame; Title block ▸ Its own), one undo step.
+///
+/// - `page`: a copy of the frame the page prints on, the project's own with item ID `forks[0]`, which the page's frame
+///   (`Page.form`) names; the other pages keep theirs.
+/// - `frame`: a copy of the frame's title block, the project's own with item ID `forks[0]`, which the frame names; a
+///   frame that is not the project's own is forked first (`forks[1]`), as `form.edit` forks it. Every other frame keeps
+///   the shared block.
+///
+/// Exactly one of `page` and `frame`. Rejected: neither or both (at the root); `/page` a page that prints on no frame
+/// the project holds; `/frame` not a frame the project holds, or one without a title block; `/forks` too few or naming a
+/// copy the project holds. Outcome: the new copy.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct MakeFormOwn {
+    /// The page that gets a frame of its own.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub page: Option<Id<Page>>,
+    /// The frame that gets a title block of its own.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub frame: Option<Id<FormDef>>,
+    /// The item IDs: the new copy's, then the frame's fork for a frame that is not the project's own.
+    #[schemars(with = "Vec<UuidS>")]
+    pub forks: Vec<Id<LibItem>>,
+}
+
+/// A copy of `original` as the project's own under the item ID `item`, saying what it is a copy of.
+fn own_copy(
+    tx: &TxBuilder<'_>,
+    command: &str,
+    original: &LibCopy<FormDef>,
+    item: Option<&Id<LibItem>>,
+) -> Result<LibCopy<FormDef>, CmdError> {
+    let project = tx.project().id.as_uuid();
+    let item = *item.ok_or_else(|| bad(command, "/forks", text!("refusal-form-edit-needs-forks")))?;
+    let id: Id<FormDef> = v5::lib_copy_id(project, item.as_uuid());
+    if tx.exists::<LibCopy<FormDef>>(id) {
+        return Err(bad(command, "/forks", text!("refusal-form-edit-fork-held")));
+    }
+    let mut form = original.item.clone();
+    form.meta.extra.insert(
+        "source".into(),
+        json!({"fork_of": {
+            "library": original.library_id.as_uuid().to_string(),
+            "item": original.item_id.as_uuid().to_string(),
+            "version": original.version,
+        }}),
+    );
+    let mut copy = LibCopy {
+        id,
+        v: original.v,
+        library_id: Id::from_uuid(project),
+        item_id: item,
+        version: original.version.clone(),
+        sha256: original.sha256,
+        item: form,
+    };
+    copy.sha256 = hash(&copy)?;
+    Ok(copy)
+}
+
+impl Command for MakeFormOwn {
+    const NAME: &'static str = "form.make_own";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        match (self.page, self.frame) {
+            (Some(page), None) => {
+                let record = tx.require::<Page>(page)?;
+                let Some(frame) = crate::numbering::frame_form(tx, &record) else {
+                    return Err(bad(Self::NAME, "/page", text!("refusal-form-own-no-frame")));
+                };
+                let original = tx.require::<LibCopy<FormDef>>(frame)?;
+                let copy = own_copy(tx, Self::NAME, &original, self.forks.first())?;
+                let id = copy.id;
+                tx.insert(copy)?;
+                tx.update(page, |p: &mut Page| p.form = Some(id))?;
+                Ok(Outcome::primary((Kind::Form, id.cast())))
+            }
+            (None, Some(frame)) => {
+                let held = held_frame_form(tx, Self::NAME, frame)?;
+                let Some(block) = held
+                    .item
+                    .title_block
+                    .filter(|_| held.item.kind == FormKind::Frame)
+                else {
+                    return Err(bad(Self::NAME, "/frame", text!("refusal-form-own-no-block")));
+                };
+                let original = tx.require::<LibCopy<FormDef>>(block)?;
+                let copy = own_copy(tx, Self::NAME, &original, self.forks.first())?;
+                let id = copy.id;
+                tx.insert(copy)?;
+                let mut item = held.item.clone();
+                item.title_block = Some(id);
+                change_form(
+                    tx,
+                    Self::NAME,
+                    frame,
+                    item,
+                    self.forks.get(1..).unwrap_or_default(),
+                )?;
+                Ok(Outcome::primary((Kind::Form, id.cast())))
+            }
+            _ => Err(bad(Self::NAME, "", text!("refusal-form-own-one"))),
+        }
+    }
+}

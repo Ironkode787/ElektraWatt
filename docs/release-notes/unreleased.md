@@ -245,3 +245,9 @@ change here.
   differently and applied in one step, the drawing area's edges kept exactly; a title block that would grow over
   drawing is refused naming the page (doc 09 §3.9, FT-1815)
 - api-add: the command `frame.set_grid` (Bulk) (doc 09 §3.9, FT-1815)
+- behaviour-change: Edit frame's Properties of the frame give a frame its own title block (Title block: Its own, or
+  Shared with the other frames again), give the page its own frame, and Use the frames of a template… takes a
+  template's frames, title blocks, frame defaults, the frame of the lists, its fields of its own and its company logo
+  and notice into a project made before, previewed and in one step; a page with a frame of its own keeps it (doc 09
+  §3.9, FT-1814)
+- api-add: the commands `form.make_own` and `frames.adopt` (Bulk) (doc 09 §3.9, FT-1814)

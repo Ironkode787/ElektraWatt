@@ -13,7 +13,7 @@ use ew_api::AnyCommand;
 use ew_api::output::FrameFacts;
 use serde_json::{Map, Value, json};
 
-use super::{Mode, Outcome, Prompt, ShellModel, failed, string_param};
+use super::{FormField, Mode, Outcome, Prompt, ShellModel, failed, string_param};
 use crate::key;
 use crate::properties::{
     Category, EditRoute, FieldReadOnly, FieldType, PropRow, PropertySheet, Provenance, RowAction, RowValue,
@@ -34,6 +34,12 @@ pub const SIZE_ROW: &str = "frame/size";
 pub const ALIGN_ROW: &str = "frame/align";
 /// The frame's Columns and rows row: a click chooses the rulers.
 pub const RULERS_ROW: &str = "frame/rulers";
+/// The frame's Title block row: Shared with the other frames, or Its own.
+pub const TITLE_BLOCK_ROW: &str = "frame/title_block";
+/// The frame's Give this page its own frame row.
+pub const OWN_FRAME_ROW: &str = "frame/own_frame";
+/// The frame's Use the frames of a template… row.
+pub const ADOPT_ROW: &str = "frame/adopt";
 
 /// The alignments a cell takes, by the stored word.
 const ALIGNS: &[(&str, crate::strings::Key<'static>)] = &[
@@ -638,7 +644,8 @@ impl ShellModel {
                 ));
                 let sheet = &facts.frame_item["sheet"];
                 let mm = |v: &Value| crate::canvas::mm1(v.as_i64().unwrap_or(0));
-                let block = if facts.block_local {
+                let own = facts.block.is_some() && facts.block != facts.shared_block;
+                let block = if own {
                     text(key!("frame-block-own"))
                 } else {
                     text(key!("frame-block-shared"))
@@ -658,10 +665,22 @@ impl ShellModel {
                     row(
                         "title_block",
                         text(key!("frame-row-title-block")),
-                        FieldType::Text,
+                        FieldType::Enum { options: Vec::new() },
                         block,
+                        json!(if own { "own" } else { "shared" }),
+                        facts.block.is_some(),
+                    ),
+                    row(
+                        "own_frame",
+                        text(key!("frame-row-own-frame")),
+                        FieldType::Text,
+                        text(if facts.page_own {
+                            key!("frame-block-own")
+                        } else {
+                            key!("frame-own-frame-give")
+                        }),
                         Value::Null,
-                        false,
+                        !facts.page_own && facts.page.is_some(),
                     ),
                 ];
                 if let (Some(c), Some(r)) = (&facts.columns, &facts.rows) {
@@ -685,6 +704,14 @@ impl ShellModel {
                         true,
                     ));
                 }
+                rows.push(row(
+                    "adopt",
+                    text(key!("frame-row-adopt")),
+                    FieldType::Text,
+                    text(key!("action-frame-adopt")),
+                    Value::Null,
+                    true,
+                ));
                 rows
             }
         };
@@ -775,6 +802,13 @@ impl ShellModel {
                 (strings::text(key!("frame-numbers")).to_owned(), json!("numbers")),
                 (strings::text(key!("frame-letters")).to_owned(), json!("letters")),
             ],
+            TITLE_BLOCK_ROW => vec![
+                (
+                    strings::text(key!("frame-block-shared")).to_owned(),
+                    json!("shared"),
+                ),
+                (strings::text(key!("frame-block-own")).to_owned(), json!("own")),
+            ],
             "frame/rows.skip_io" | "frame/drawn" => vec![
                 (strings::text(key!("frame-yes")).to_owned(), json!(true)),
                 (strings::text(key!("frame-no")).to_owned(), json!(false)),
@@ -823,6 +857,11 @@ impl ShellModel {
         }
         if let Some(out) = self.commit_ruler_row(&row[FRAME_KIND.len() + 1..], value) {
             return Some(out);
+        }
+        if row == TITLE_BLOCK_ROW {
+            self.props.edit = None;
+            self.props.choices = None;
+            return Some(self.frame_block_own(value.as_str() == Some("own")));
         }
         let cells = self.chosen_cells()?;
         self.props.edit = None;
@@ -1113,3 +1152,120 @@ impl ShellModel {
         Some(self.preview_host_card("frame.set_grid", params, key!("reason-frame-grid")))
     }
 }
+
+impl ShellModel {
+    /// Title block ▸ Its own (`own`): a copy of the block for this frame alone (`form.make_own`, the frame forked first
+    /// when it is not the project's own); Shared with the other frames: the frame names the block the frame defaults
+    /// share again (`form.edit`), the copy staying unused until purged.
+    pub(super) fn frame_block_own(&mut self, own: bool) -> Outcome {
+        let Some(facts) = self.frame_facts() else {
+            return Outcome::refused(key!("reason-frame-none"));
+        };
+        let forks = |list: &[ew_api::output::Uuid]| list.iter().map(|u| u.to_string()).collect::<Vec<_>>();
+        let cmd = if own {
+            let Some(item) = facts.own_block_item else {
+                return Outcome::refused(key!("reason-frame-no-block"));
+            };
+            let mut all = vec![item];
+            all.extend(facts.frame_forks.iter().copied());
+            AnyCommand {
+                name: "form.make_own".to_owned(),
+                params: json!({"frame": facts.frame.to_string(), "forks": forks(&all)}),
+            }
+        } else {
+            let Some(shared) = facts.shared_block.filter(|b| Some(*b) != facts.block) else {
+                return Outcome::Done;
+            };
+            let mut item = facts.frame_item.clone();
+            item["title_block"] = json!(shared.to_string());
+            let mut params = json!({"copy": facts.frame.to_string(), "form": item});
+            if !facts.frame_forks.is_empty() {
+                params["forks"] = json!(forks(&facts.frame_forks));
+            }
+            AnyCommand {
+                name: "form.edit".to_owned(),
+                params,
+            }
+        };
+        let out = self.run_commit(&cmd);
+        self.props.key = None;
+        out
+    }
+
+    /// `frame.own_page` (Give this page its own frame): a copy of the frame for the page in view alone, which its Frame
+    /// row then names (`form.make_own`).
+    pub(crate) fn act_frame_own_page(&mut self) -> Outcome {
+        let Some(facts) = self.frame_facts() else {
+            return Outcome::refused(key!("reason-frame-none"));
+        };
+        let Some(page) = facts.page else {
+            return Outcome::refused(key!("reason-no-page"));
+        };
+        let out = self.run_commit(&AnyCommand {
+            name: "form.make_own".to_owned(),
+            params: json!({"page": page.to_string(), "forks": [facts.own_frame_item.to_string()]}),
+        });
+        self.props.key = None;
+        out
+    }
+
+    /// `frame.adopt {template}` (Use the frames of a template…): the frames, title blocks, frame defaults, the lists'
+    /// frame, the fields of its own and the company data of the template in the folder `template`, previewed on the
+    /// card (`frames.adopt`, Bulk) and applied in one step. In the window without a template a form chooses one of the
+    /// templates of the list.
+    pub(crate) fn act_frame_adopt(&mut self, p: &Map<String, Value>) -> Outcome {
+        let template = match string_param(p, "template") {
+            Err(e) => return e,
+            Ok(t) => t.map(str::to_owned),
+        };
+        let in_form = self.in_form_of(FRAME_ADOPT);
+        let Some(template) = template.filter(|t| !t.is_empty()) else {
+            if self.mode == Mode::Gui && !in_form {
+                let options: Vec<(String, String)> = self
+                    .settings
+                    .templates
+                    .iter()
+                    .map(|t| (t.dir.clone(), t.name.clone()))
+                    .collect();
+                if options.is_empty() {
+                    return Outcome::refused(key!("reason-frame-no-templates"));
+                }
+                let value = options[0].0.clone();
+                return self.open_dialog(super::Dialog::Form(super::FormDialog {
+                    action: FRAME_ADOPT,
+                    title_key: key!("action-frame-adopt"),
+                    ok_key: key!("dialog-preview"),
+                    fields: vec![FormField {
+                        label: None,
+                        name: "template".into(),
+                        label_key: key!("frame-template"),
+                        choices: &super::choices::NONE,
+                        options,
+                        value,
+                    }],
+                    error: None,
+                    table: None,
+                }));
+            }
+            return failed(key!("error-missing-param"), &["template"]);
+        };
+        let params = match ew_api::Session::adopt_frames_params(std::path::Path::new(&template)) {
+            Ok(p) => p,
+            Err(e) => {
+                let message = strings::format(key!("error-frame-template"), &[&template, &e.to_string()]);
+                return if in_form {
+                    self.form_failed(FRAME_ADOPT, message)
+                } else {
+                    Outcome::Failed { message }
+                };
+            }
+        };
+        if in_form {
+            self.dialog = None;
+        }
+        self.preview_host_card("frames.adopt", params, key!("reason-frame-adopt"))
+    }
+}
+
+/// Use the frames of a template…'s action.
+const FRAME_ADOPT: &str = "frame.adopt";

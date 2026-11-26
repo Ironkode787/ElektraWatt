@@ -80,6 +80,15 @@ pub struct FrameFacts {
     /// The item IDs a change of the frame and its title block together (`frame.set_grid` with the block's height)
     /// forks them and the other frames of the block under.
     pub grid_forks: Vec<Uuid>,
+    /// The item ID a copy of the title block of the frame's own takes (`form.make_own`'s `frame`).
+    pub own_block_item: Option<Uuid>,
+    /// The item ID a copy of the frame of the page's own takes (`form.make_own`'s `page`).
+    pub own_frame_item: Uuid,
+    /// Whether the page names this frame itself (a frame of its own), not by the frame defaults.
+    pub page_own: bool,
+    /// The title block the project's frame defaults share: the block of the frame a page of this page's type prints on
+    /// without a frame of its own.
+    pub shared_block: Option<Uuid>,
     /// The folio labels of the pages that print the frame, in page order.
     pub frame_pages: Vec<String>,
     /// The folio labels of the pages that print the title block, by any frame, in page order.
@@ -243,7 +252,22 @@ impl Session {
             None => frame_forks.clone(),
         };
         let grid = frame.item.grid.as_ref();
+        let record = match key {
+            PageRef::Drawn(p) => q.pages().get(p),
+            _ => None,
+        };
+        let shared_block = record
+            .and_then(|r| ew_derive::frame_form_of(&q, None, &r.kind, true))
+            .and_then(|f| q.forms().get(f))
+            .and_then(|f| f.item.title_block)
+            .map(|b| b.as_uuid());
         Some(FrameFacts {
+            own_block_item: block
+                .as_ref()
+                .and_then(|(b, _)| fork_items(&q, project, &[*b]).first().copied()),
+            own_frame_item: fork_items(&q, project, &[frame_id])[0],
+            page_own: record.is_some_and(|r| r.form == Some(frame_id)),
+            shared_block,
             folio: entry.folio.clone(),
             page: match key {
                 PageRef::Drawn(p) => Some(p.as_uuid()),
@@ -276,5 +300,58 @@ impl Session {
             rows: grid.map(|g| axis(g, false)),
             drawn: grid.is_some_and(ew_schema::FrameGrid::shows_grid),
         })
+    }
+}
+
+impl Session {
+    /// The parameters of `frames.adopt` that take the frames of the template in `dir` (doc 09 §3.9, Use the frames of a
+    /// template…): its frame and title-block copies, and the report forms its lists print on, in their `lib/` JSON
+    /// form; its frame defaults; the form of its lists; its fields of its own and their values of the whole project; its
+    /// company notice and logo. The template is read and nothing of it written.
+    ///
+    /// # Errors
+    ///
+    /// The template cannot be opened.
+    pub fn adopt_frames_params(dir: &std::path::Path) -> Result<Value, crate::OpenError> {
+        let (template, _) = Session::open_read_only(dir, "frames")?;
+        let q = template.query();
+        let project = q.project();
+        let lists_form = q
+            .table::<ew_schema::ReportBlock>()
+            .iter()
+            .find(|(_, b)| b.embedded.is_none())
+            .map(|(_, b)| b.form);
+        let forms: Vec<Value> = q
+            .forms()
+            .iter()
+            .filter(|(id, f)| {
+                matches!(
+                    f.item.kind,
+                    ew_schema::FormKind::Frame | ew_schema::FormKind::TitleBlock
+                ) || Some(*id) == lists_form
+            })
+            .filter_map(|(_, f)| serde_json::to_value(ew_schema::LibDocument::Form((**f).clone())).ok())
+            .collect();
+        let company = project.extra.get(ew_schema::COMPANY_MEMBER);
+        let notice = company.and_then(|c| c.get("notice")).cloned();
+        let logo = ew_schema::company_logo(&project.extra, |sha| q.logo_asset(sha))
+            .and_then(|r| template.asset(&r.sha256))
+            .map(|(_, bytes)| ew_schema::base64_encode(&bytes));
+        let mut params = serde_json::json!({
+            "forms": forms,
+            "frames": project.settings.extra.get("frames").cloned().unwrap_or(serde_json::json!({})),
+            "fields": project.user_prop_defs,
+            "values": project.user_props,
+        });
+        if let Some(form) = lists_form {
+            params["lists_form"] = Value::String(form.to_string());
+        }
+        if let Some(n) = notice {
+            params["notice"] = n;
+        }
+        if let Some(l) = logo {
+            params["logo"] = Value::String(l);
+        }
+        Ok(params)
     }
 }

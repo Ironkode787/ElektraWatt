@@ -98,6 +98,28 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_frame_clear(),
     )),
+    hidden(act(
+        "frame.own_page",
+        Command,
+        Menu::Page,
+        &[],
+        writable_page,
+        None,
+        |s, _| s.act_frame_own_page(),
+    )),
+    // Use the frames of a template…: the frame's Properties row, and the palette.
+    with_params(
+        "template?:text",
+        act(
+            "frame.adopt",
+            Command,
+            Menu::Page,
+            &[],
+            writable,
+            slot(Menu::Page),
+            |s, p| s.act_frame_adopt(p),
+        ),
+    ),
     with_params(
         "path?:text",
         hidden(act(

@@ -893,3 +893,149 @@ fn free_cps_are_marked_open_on_screen_only() {
     }
     assert_eq!(shell.canvas().unwrap().page().list.items.len(), items);
 }
+
+/// A copy of the sample at `name` open on folio 101 in a headless shell, the pane 800 × 560 points at ppp 1.
+fn headless_101_at(tmp: &Tmp, name: &str) -> (ShellModel, PathBuf) {
+    let dir = tmp.sample(name);
+    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    done(
+        &mut shell,
+        "file.open",
+        json!({"dir": dir.to_string_lossy(), "read_only": false}),
+    );
+    done(&mut shell, "page.goto", json!({"folio": "101"}));
+    done(&mut shell, "props.show", json!({"on": true}));
+    (shell, dir)
+}
+
+/// The acceptance of the frame design (doc 09 §3.9, its P101-after): the journey on one copy of the sample (Customer,
+/// a field Order of the whole project 0001, a field Customer sheet of each page, the company logo, 10 columns from 1
+/// and 6 rows) is taken by an older copy with Use the frames of a template…; its page 101, its customer sheet typed,
+/// prints the designed page, and its cross-references name the new cells.
+#[test]
+fn an_older_copy_takes_the_journeys_frames_and_prints_page_101_as_designed() {
+    let tmp = Tmp::new();
+    let (mut a, template) = headless_101_at(&tmp, "template.ew");
+    let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><path d="M2 0L0 4h4z"/></svg>"#;
+    done(
+        &mut a,
+        "command.run",
+        json!({"cmd": "project.company.set", "params": {"logo": ew_viewmodel::ew_api::base64_encode(svg.as_bytes())}}),
+    );
+    done(&mut a, "frame.edit", json!({}));
+    let cell = |s: &ShellModel, test: &dyn Fn(&ew_viewmodel::ew_api::output::FrameCell) -> bool| {
+        s.frame_facts()
+            .expect("the frame")
+            .cells
+            .iter()
+            .find(|c| test(c))
+            .expect("the cell")
+            .index
+    };
+    let end_user = cell(&a, &|c| c.printed.starts_with("End user"));
+    done(&mut a, "frame.choose", json!({"cells": [end_user]}));
+    done(
+        &mut a,
+        "props.set",
+        json!({"row": "frame/text", "value": "Customer:"}),
+    );
+    done(
+        &mut a,
+        "props.set",
+        json!({"row": "frame/shows", "value": "party.customer.name"}),
+    );
+    let notice = cell(&a, &|c| c.value.as_deref() == Some("{project.notice}"));
+    done(&mut a, "frame.choose", json!({"cells": [notice]}));
+    done(&mut a, "frame.split", json!({"dir": "one_above"}));
+    done(&mut a, "frame.choose", json!({"cells": [notice]}));
+    done(
+        &mut a,
+        "props.set",
+        json!({"row": "frame/text", "value": "Order:"}),
+    );
+    done(
+        &mut a,
+        "props.set",
+        json!({"row": "frame/shows", "value": "new_field"}),
+    );
+    done(
+        &mut a,
+        "field.new",
+        json!({"name": "Order number", "for": "whole_project", "value": "0001"}),
+    );
+    done(&mut a, "frame.choose", json!({"cells": [notice + 1]}));
+    done(
+        &mut a,
+        "props.set",
+        json!({"row": "frame/shows", "value": "new_field"}),
+    );
+    done(
+        &mut a,
+        "field.new",
+        json!({"name": "Customer sheet", "for": "each_page"}),
+    );
+    done(&mut a, "frame.choose", json!({"rulers": true}));
+    done(
+        &mut a,
+        "props.set",
+        json!({"row": "frame/columns.count", "value": "10"}),
+    );
+    done(
+        &mut a,
+        "props.set",
+        json!({"row": "frame/columns.first", "value": "1"}),
+    );
+    done(
+        &mut a,
+        "props.set",
+        json!({"row": "frame/rows.count", "value": "6"}),
+    );
+    done(&mut a, "preview.apply", json!({}));
+    done(&mut a, "file.save", json!({}));
+    a.shutdown();
+
+    let (mut b, _) = headless_101_at(&tmp, "older.ew");
+    done(
+        &mut b,
+        "frame.adopt",
+        json!({"template": template.to_string_lossy()}),
+    );
+    done(&mut b, "preview.apply", json!({}));
+    done(
+        &mut b,
+        "page.title_block",
+        json!({"page.prop.customer_sheet": "C-101"}),
+    );
+    let facts = b.frame_facts().expect("the adopted frame");
+    let (columns, rows) = (facts.columns.clone().unwrap(), facts.rows.clone().unwrap());
+    assert_eq!(
+        (
+            columns.count,
+            columns.first.as_str(),
+            rows.count,
+            rows.first.as_str()
+        ),
+        (10, "1", 6, "A")
+    );
+    let printed: Vec<&str> = facts.cells.iter().map(|c| c.printed.as_str()).collect();
+    for text in [
+        "Customer: Sample Customer",
+        "Order: 0001",
+        "Customer sheet: C-101",
+    ] {
+        assert!(printed.contains(&text), "{text} in {printed:?}");
+    }
+    let page = b.canvas().expect("page 101").page().clone();
+    let links: Vec<String> = page.links.iter().filter_map(|l| l.label()).collect();
+    for cell in ["103-B1", "102-F1", "103-A1", "104-C1", "102-A1", "104-D1"] {
+        assert!(links.iter().any(|l| l == cell), "{cell} in {links:?}");
+    }
+    done(
+        &mut b,
+        "view.canvas_resize",
+        json!({"width": 800.0, "height": 560.0, "ppp": 1.0}),
+    );
+    done(&mut b, "view.fit_page", json!({}));
+    gate("101-frame-adopted.png", &snapshot(&b));
+    b.shutdown();
+}

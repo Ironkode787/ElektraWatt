@@ -651,3 +651,7 @@ frame-drawn = Getekend
 frame-yes = Ja
 frame-no = Nee
 frame-block-height = Hoogte titelblok (mm)
+frame-row-own-frame = Deze pagina
+frame-own-frame-give = Deze pagina een eigen kader geven
+frame-row-adopt = Sjablonen
+frame-template = Sjabloon

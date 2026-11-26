@@ -291,3 +291,53 @@ fn columns_and_rows_share_the_drawing_area_and_a_block_does_not_grow_over_drawin
         other => panic!("expected the refusal naming page 101, got {other:?}"),
     }
 }
+
+/// `form.make_own` (doc 09 §3.9, the journey's step 9): the cover given a title block of its own (its frame forked
+/// first) prints that copy; page 101's frame keeps the shared block, and a change of the cover's block leaves it as it
+/// was. A page given a frame of its own names its copy.
+#[test]
+fn the_cover_given_its_own_block_leaves_page_101s_block_as_it_was() {
+    let mut e = engine(model());
+    let project = e.model().project().id.as_uuid();
+    let (own, cover_fork) = (Uuid::from_u128(0xa1), Uuid::from_u128(0xa2));
+    commit(
+        &mut e,
+        "form.make_own",
+        json!({"frame": COVER, "forks": [own.to_string(), cover_fork.to_string()]}),
+    );
+    let own_id: Id<FormDef> = v5::lib_copy_id(project, own);
+    let cover = copy(&e, v5::lib_copy_id(project, cover_fork)).expect("the cover's fork");
+    assert_eq!(cover.item.title_block, Some(own_id));
+    assert_eq!(
+        copy(&e, form_id(GRID)).expect("the grid frame").item.title_block,
+        Some(form_id(BLOCK))
+    );
+    let item = changed(&e, own_id, "Cover drawing:");
+    commit(
+        &mut e,
+        "form.edit",
+        json!({"copy": own_id.to_string(), "form": item}),
+    );
+    let block = copy(&e, form_id(BLOCK)).expect("the shared block");
+    assert_ne!(
+        block.item.cells[1]
+            .label
+            .as_ref()
+            .map(|l| ew_derive::text_in(l, None).to_owned()),
+        Some("Cover drawing:".to_owned()),
+        "page 101's block is as it was"
+    );
+    let page_own = Uuid::from_u128(0xa3);
+    commit(
+        &mut e,
+        "form.make_own",
+        json!({"page": PAGE_101.to_string(), "forks": [page_own.to_string()]}),
+    );
+    let page = e
+        .model()
+        .table::<Page>()
+        .get(&PAGE_101)
+        .expect("page 101")
+        .clone();
+    assert_eq!(page.form, Some(v5::lib_copy_id(project, page_own)));
+}
