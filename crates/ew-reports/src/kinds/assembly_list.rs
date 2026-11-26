@@ -17,8 +17,8 @@ use ew_schema::{AccessoryKind, Device, DeviceState, Part, ReportBlock, ReportKin
 use ew_units::Dec3;
 
 use super::conn::{
-    Bridge, Wires, bridge_span_from_to, bridges, put, terminal_designation, terminal_wired, wires_by_cp,
-    words_cell,
+    Bridge, Wires, bridge_span_from_to, bridges, measured_cell, put, terminal_designation, terminal_wired,
+    wires_by_cp, words_cell,
 };
 use super::parts::part_number_cell;
 use super::terminal_diagram::strips_of;
@@ -68,6 +68,7 @@ impl ReportKindDef for AssemblyList {
                 continue;
             };
             set.rows.push(heading(
+                q,
                 &set.columns,
                 RowId::entity(strip).with(RowKey::Name("heading".to_owned())),
                 &heading_words(q, &a),
@@ -111,6 +112,7 @@ impl ReportKindDef for AssemblyList {
                 continue;
             }
             set.rows.push(heading(
+                q,
                 &set.columns,
                 RowId::entity(strip).with(RowKey::Name("bridges".to_owned())),
                 &text!("cell-bridges-of", short_tag(q, strip)),
@@ -123,10 +125,10 @@ impl ReportKindDef for AssemblyList {
     }
 }
 
-/// A heading row: `words` in the first cell.
-fn heading(columns: &[ColumnDef], id: RowId, words: &Text) -> Row {
+/// A heading row: `words` in the first cell, their decimals as the list writes them.
+fn heading(q: &Q, columns: &[ColumnDef], id: RowId, words: &Text) -> Row {
     let mut cells = vec![Cell::Empty; columns.len()];
-    cells[0] = words_cell(words);
+    cells[0] = measured_cell(q, words);
     Row {
         id,
         kind: RowKind::Heading,

@@ -303,8 +303,8 @@ pub(super) fn source_text(rec: &WireRecord) -> Cell {
     words_cell(&words)
 }
 
-/// A wire's size and colour as the workshop lists print them (`0.75 mm² BK`, in Dutch `0,75 mm² BK`).
-pub(super) fn wire_type_cell(csa: Option<&Csa>, colour: Option<&ColourSpec>) -> Cell {
+/// A wire's size and colour as the workshop lists print them (`0.75 mm² BK`, with a comma where the list writes one).
+pub(super) fn wire_type_cell(q: &Q, csa: Option<&Csa>, colour: Option<&ColourSpec>) -> Cell {
     let text = [
         csa.and_then(ew_derive::csa_with_unit).unwrap_or_default(),
         colour.map(ew_derive::colour_text).unwrap_or_default(),
@@ -313,7 +313,13 @@ pub(super) fn wire_type_cell(csa: Option<&Csa>, colour: Option<&ColourSpec>) -> 
     .filter(|t| !t.is_empty())
     .collect::<Vec<_>>()
     .join(" ");
-    words_cell(&text!("cell-size", text))
+    measured_cell(q, &Text::bare(text))
+}
+
+/// A cell of the program's own words that hold a measured value: its decimals written as the list writes a quantity
+/// ([`crate::words::in_languages_measured`]).
+pub(super) fn measured_cell(q: &Q, words: &Text) -> Cell {
+    Cell::Text(crate::words::in_languages_measured(q, words))
 }
 
 /// A cell of the program's own words: it prints in the list's language (doc 09 §4.7).

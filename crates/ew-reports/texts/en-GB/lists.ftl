@@ -329,9 +329,9 @@ cell-label-does-not-fit = does not fit its marker part
 # "yes" when it is turned, $form how its length reads.
 cell-assembly-heading = { $strip } · { $rail ->
         [0] on no rail
-       *[other] on rail { $rail } from { DECIMAL($from) } to { DECIMAL($to) } mm{ $cut ->
+       *[other] on rail { $rail } from { $from } to { $to } mm{ $cut ->
             [none] {""}
-           *[other] {" · "}rail cut to { DECIMAL($cut) } mm
+           *[other] {" · "}rail cut to { $cut } mm
         }{ $abuts ->
             [none] {""}
            *[other] {" · "}against the end bracket of { $abuts }
@@ -343,10 +343,10 @@ cell-assembly-heading = { $strip } · { $rail ->
         [one] 1 terminal
        *[other] { $terminals } terminals
     } · { $form ->
-        [brackets] { DECIMAL($length) } mm with its end brackets
-        [least-brackets] at least { DECIMAL($length) } mm with its end brackets
-        [least] at least { DECIMAL($length) } mm
-       *[exact] { DECIMAL($length) } mm
+        [brackets] { $length } mm with its end brackets
+        [least-brackets] at least { $length } mm with its end brackets
+        [least] at least { $length } mm
+       *[exact] { $length } mm
     }
 cell-terminal = Terminal
 cell-spare-fed = spare (fed)
@@ -374,9 +374,8 @@ cell-carrier = { $kind ->
        *[duct] Duct
     } { $n }
 cell-list-comma = {", "}
-# A size, a wire's size and colour, as the lists print them ("0.75 mm² BK").
-cell-size = { DECIMAL($p0) }
-cell-twin-size = 2 × { DECIMAL($p0) }
+# A twin ferrule's size, as the consumables print it ("2 × 0.75 mm²").
+cell-twin-size = 2 × { $p0 }
 cell-wires-count = { $count ->
         [one] 1 wire
        *[other] { $count } wires
@@ -385,7 +384,7 @@ cell-length-missing-for = length missing for { $count ->
         [one] 1 wire
        *[other] { $count } wires
     }
-cell-metres-and-missing = { DECIMAL($metres) } and { $count ->
+cell-metres-and-missing = { $metres } and { $count ->
         [one] 1 wire
        *[other] { $count } wires
     } without a length

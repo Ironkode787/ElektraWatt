@@ -49,11 +49,12 @@ fn the_project_decimal_separator_prints_in_the_tables_of_the_generated_pages() {
         );
     }
     assert_eq!(point, none, "no setting prints as `point` does");
-    // Only the decimals differ: the same cells, each equal or equal after the separator.
+    // Only the decimals differ: the same cells, each equal or equal after the separator (a strip's heading in the
+    // assembly list holds two measured lengths).
     assert_eq!(comma.len(), point.len());
     let differing: Vec<(&String, &String)> = point.iter().zip(&comma).filter(|(a, b)| a != b).collect();
     assert!(!differing.is_empty());
     for (a, b) in differing {
-        assert_eq!(&a.replacen('.', ",", 1), b);
+        assert_eq!(&a.replace('.', ","), b);
     }
 }

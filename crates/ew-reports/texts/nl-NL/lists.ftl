@@ -326,9 +326,9 @@ cell-label-does-not-fit = past niet op het merkerartikel
 
 cell-assembly-heading = { $strip } · { $rail ->
         [0] op geen rail
-       *[other] op rail { $rail } van { DECIMAL($from) } tot { DECIMAL($to) } mm{ $cut ->
+       *[other] op rail { $rail } van { $from } tot { $to } mm{ $cut ->
             [none] {""}
-           *[other] {" · "}rail afgezaagd op { DECIMAL($cut) } mm
+           *[other] {" · "}rail afgezaagd op { $cut } mm
         }{ $abuts ->
             [none] {""}
            *[other] {" · "}tegen de eindsteun van { $abuts }
@@ -340,10 +340,10 @@ cell-assembly-heading = { $strip } · { $rail ->
         [one] 1 klem
        *[other] { $terminals } klemmen
     } · { $form ->
-        [brackets] { DECIMAL($length) } mm met de eindsteunen
-        [least-brackets] minstens { DECIMAL($length) } mm met de eindsteunen
-        [least] minstens { DECIMAL($length) } mm
-       *[exact] { DECIMAL($length) } mm
+        [brackets] { $length } mm met de eindsteunen
+        [least-brackets] minstens { $length } mm met de eindsteunen
+        [least] minstens { $length } mm
+       *[exact] { $length } mm
     }
 cell-terminal = Klem
 cell-spare-fed = reserve (gevoed)
@@ -367,8 +367,7 @@ cell-carrier = { $kind ->
        *[duct] Kabelgoot
     } { $n }
 cell-list-comma = {", "}
-cell-size = { DECIMAL($p0) }
-cell-twin-size = 2 × { DECIMAL($p0) }
+cell-twin-size = 2 × { $p0 }
 cell-wires-count = { $count ->
         [one] 1 draad
        *[other] { $count } draden
@@ -377,7 +376,7 @@ cell-length-missing-for = lengte ontbreekt voor { $count ->
         [one] 1 draad
        *[other] { $count } draden
     }
-cell-metres-and-missing = { DECIMAL($metres) } en { $count ->
+cell-metres-and-missing = { $metres } en { $count ->
         [one] 1 draad
        *[other] { $count } draden
     } zonder lengte

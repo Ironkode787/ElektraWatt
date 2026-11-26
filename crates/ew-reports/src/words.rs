@@ -62,6 +62,23 @@ pub(crate) fn selecting(key: &'static str) -> Text {
     Text::checked_by_macro(key, "?", Vec::new())
 }
 
+/// `t` in every language of this crate's text files, each decimal point between two digits written as the list prints a
+/// quantity in that language ([`crate::render::writes_comma`]: the project's separator in its own language, else the
+/// language's): the words of a row that hold a measured value ("0.75 mm² BK", "from 0 to 48.2 mm").
+pub(crate) fn in_languages_measured(q: &ew_derive::Q, t: &Text) -> MlText {
+    let catalogue = crate::catalogue();
+    MlText::from_langs(catalogue.tags().into_iter().filter_map(|tag| {
+        let lang: LangTag = tag.parse().ok()?;
+        let text = catalogue.text_or_english(t, tag);
+        let text = if crate::render::writes_comma(q, Some(&lang)) {
+            ew_l10n::render::decimal_with_comma(&text)
+        } else {
+            text
+        };
+        Some((lang, text))
+    }))
+}
+
 /// `t` in every language of this crate's text files, as a row set carries a word of the program.
 pub fn in_languages(t: &Text) -> MlText {
     crate::catalogue().in_languages(t)

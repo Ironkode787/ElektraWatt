@@ -10,7 +10,7 @@ use ew_l10n::{List, Text, TextArg};
 use ew_schema::{ReportBlock, ReportKind};
 use ew_units::Dec3;
 
-use super::conn::{put, wire_type_cell, words_cell};
+use super::conn::{measured_cell, put, wire_type_cell, words_cell};
 use super::parts::part_number_cell;
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, QtyUnit, Row, RowId, RowKey, RowKind, RowSet};
@@ -140,7 +140,7 @@ fn cut_row(q: &Q, columns: &[ColumnDef], group: CutGroup, n: usize, r: &CutRow) 
             }
             None => set("part_number", Cell::Missing(MissingReason::Part)),
         },
-        CutWhat::Wire { csa, colour } => set("description", wire_type_cell(csa.as_ref(), colour.as_ref())),
+        CutWhat::Wire { csa, colour } => set("description", wire_type_cell(q, csa.as_ref(), colour.as_ref())),
         CutWhat::Tube {
             material,
             size,
@@ -155,7 +155,7 @@ fn cut_row(q: &Q, columns: &[ColumnDef], group: CutGroup, n: usize, r: &CutRow) 
             .filter(|t| !t.is_empty())
             .collect::<Vec<_>>()
             .join(" ");
-            set("description", words_cell(&text!("cell-size", text)));
+            set("description", measured_cell(q, &Text::bare(text)));
         }
         CutWhat::Unknown => set("part_number", Cell::Missing(MissingReason::Part)),
     }

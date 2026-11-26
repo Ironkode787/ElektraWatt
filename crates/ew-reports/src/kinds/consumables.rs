@@ -8,7 +8,7 @@ use ew_derive::{EndForm, Q, csa_with_unit};
 use ew_l10n::{List, Text, TextArg};
 use ew_schema::{OrderUnit, PartRef, ReportBlock, ReportKind};
 
-use super::conn::{put, wire_type_cell, words_cell};
+use super::conn::{measured_cell, put, wire_type_cell, words_cell};
 use super::parts::{part_number_cell, qty_cell, unit_cell};
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowKind, RowSet};
@@ -52,7 +52,7 @@ impl ReportKindDef for Consumables {
             .map(|w| {
                 let (number, description) = match &w.part {
                     Some(p) => part_cells(q, p),
-                    None => (Cell::Empty, wire_type_cell(w.csa.as_ref(), w.colour.as_ref())),
+                    None => (Cell::Empty, wire_type_cell(q, w.csa.as_ref(), w.colour.as_ref())),
                 };
                 let count = |n: usize| TextArg::Number(i64::try_from(n).unwrap_or(i64::MAX));
                 let metres = ew_derive::layout::metres_of_nm(w.length);
@@ -61,7 +61,8 @@ impl ReportKindDef for Consumables {
                     (missing, all) if missing == all => {
                         words_cell(&selecting(key!("cell-length-missing-for")).with("count", count(missing)))
                     }
-                    (missing, _) => words_cell(
+                    (missing, _) => measured_cell(
+                        q,
                         &selecting(key!("cell-metres-and-missing"))
                             .with("metres", metres.to_string())
                             .with("count", count(missing)),
@@ -87,17 +88,20 @@ impl ReportKindDef for Consumables {
                     .iter()
                     .filter_map(csa_with_unit)
                     .map(|s| {
-                        TextArg::Text(match e.form {
-                            EndForm::TwinFerrule => text!("cell-twin-size", s),
-                            EndForm::Ferrule | EndForm::RingLug => text!("cell-size", s),
-                        })
+                        match e.form {
+                            EndForm::TwinFerrule => TextArg::Text(text!("cell-twin-size", s)),
+                            EndForm::Ferrule | EndForm::RingLug => TextArg::Plain(s),
+                        }
                     })
                     .collect();
-                let what_for = words_cell(&Text::bare(List::new(
-                    sizes,
-                    text!("cell-list-comma"),
-                    text!("cell-list-comma"),
-                )));
+                let what_for = measured_cell(
+                    q,
+                    &Text::bare(List::new(
+                        sizes,
+                        text!("cell-list-comma"),
+                        text!("cell-list-comma"),
+                    )),
+                );
                 let (number, description) = match e.part {
                     Some(p) => part_cells(q, &PartRef::new(p)),
                     None => (
