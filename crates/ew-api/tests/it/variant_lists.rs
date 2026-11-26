@@ -30,8 +30,10 @@ fn with_variant(tag: &str) -> (Session, String) {
     let number = format!("{}-BU", d.text("part_number"));
     assert!(d.add_table_row("variants"));
     s.set_draft_field(&mut d, "variants[0].key", "bu").expect("a key");
-    s.set_draft_field(&mut d, "variants[0].name", "Blue").expect("a name");
-    s.set_draft_field(&mut d, "variants[0].part_number", &number).expect("its number");
+    s.set_draft_field(&mut d, "variants[0].name", "Blue")
+        .expect("a name");
+    s.set_draft_field(&mut d, "variants[0].part_number", &number)
+        .expect("its number");
     let plan = s.part_edit_plan(&d).expect("the fork with its variant");
     let preview = s.preview(&plan.command).expect("its preview");
     s.commit(preview).expect("the fork");

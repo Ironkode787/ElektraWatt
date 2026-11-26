@@ -203,8 +203,8 @@ pub use rows::{
 pub use ew_schema::starter::{self, A3_GRID_FRAME, COVER_FRAME, GRID_FRAME, NOGRID_FRAME, TITLE_BLOCK};
 pub use list_look::{ListColumn, ListLook};
 pub use strip_edit::{
-    ACCESSORY_KINDS, BridgeRow, StripCell, StripEdit, StripEditError, accessory_kind_word, accessory_kind_words,
-    accessory_part_kinds,
+    ACCESSORY_KINDS, BridgeRow, StripCell, StripEdit, StripEditError, accessory_kind_word,
+    accessory_kind_words, accessory_part_kinds,
 };
 pub use table_io::{
     CellOutcome, ImportCell, ImportTableOptions, TABLE_NAVIGATORS, TableApplyError, TableError, TableImport,

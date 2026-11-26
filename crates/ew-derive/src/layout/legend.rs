@@ -351,7 +351,13 @@ pub fn layout_legend(q: &Q, surface: Id<MountingSurface>) -> Vec<LegendRow> {
             let full = tag.as_ref().as_ref().map_or("", |t| t.full.as_str());
             // The part use the placement realises, with the variant the device names for it.
             let part = match &pl.part {
-                Some(r) => Some(device.parts.iter().find(|u| u.part.copy == r.copy).map_or_else(|| r.clone(), |u| u.part.clone())),
+                Some(r) => Some(
+                    device
+                        .parts
+                        .iter()
+                        .find(|u| u.part.copy == r.copy)
+                        .map_or_else(|| r.clone(), |u| u.part.clone()),
+                ),
                 None => primary_part(q, device),
             };
             Some((natural_key(full), pl.device, p, part))

@@ -157,13 +157,17 @@ fn delete_part_deletes_a_part_of_the_projects_own_and_keeps_a_librarys() {
 fn own_part(s: &mut Session, number: &str, accessory: Option<&str>) {
     let mut d = s.new_part_draft().expect("a new part");
     d.to_library = false;
-    s.set_draft_field(&mut d, "manufacturer", "Acme").expect("a maker");
-    s.set_draft_field(&mut d, "part_number", number).expect("a number");
+    s.set_draft_field(&mut d, "manufacturer", "Acme")
+        .expect("a maker");
+    s.set_draft_field(&mut d, "part_number", number)
+        .expect("a number");
     if let Some(a) = accessory {
         assert!(d.add_table_row("accessories"));
-        s.set_draft_field(&mut d, "accessories[0].part", a).expect("its accessory");
+        s.set_draft_field(&mut d, "accessories[0].part", a)
+            .expect("its accessory");
         s.set_draft_field(&mut d, "accessories[0].qty", "1").expect("one");
-        s.set_draft_field(&mut d, "accessories[0].per", "strip").expect("per strip");
+        s.set_draft_field(&mut d, "accessories[0].per", "strip")
+            .expect("per strip");
     }
     let made = s.new_part_command(&d).expect("the new part's command");
     run(s, &made.command).expect("the part is made");
@@ -185,7 +189,10 @@ fn delete_part_refuses_a_part_another_part_names_as_its_accessory() {
         ew_api::CmdError::Model(_, Some(words)) => words.to_string(),
         other => panic!("refused in words: {other}"),
     };
-    assert_eq!(refused, "part OWN-EP cannot be removed: part OWN-TRM still names it");
+    assert_eq!(
+        refused,
+        "part OWN-EP cannot be removed: part OWN-TRM still names it"
+    );
     assert!(s.query().parts().iter().any(|(id, _)| id.as_uuid() == plate));
     let terminal = copy_of(&s, "OWN-TRM");
     run(&mut s, &delete(terminal)).expect("the terminal's part goes");

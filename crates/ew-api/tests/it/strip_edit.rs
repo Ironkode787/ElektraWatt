@@ -780,12 +780,20 @@ fn fork(s: &mut Session, number: &str) {
 /// and the strip's accessories hold no end plate each time.
 #[test]
 fn a_left_off_end_plate_stays_off_when_its_parts_are_forked() {
-    for forks in [&["EW-GEN-EP-1"][..], &["EW-GEN-TRM-1"], &["EW-GEN-EP-1", "EW-GEN-TRM-1"]] {
+    for forks in [
+        &["EW-GEN-EP-1"][..],
+        &["EW-GEN-TRM-1"],
+        &["EW-GEN-EP-1", "EW-GEN-TRM-1"],
+    ] {
         let mut s = common::sample();
         let x = strip(&s, "-X1031");
         let of = held(&s, "EW-GEN-EP-1");
         let cmd = s
-            .strip_edit(&StripEdit::Choice { strip: x, of, part: None })
+            .strip_edit(&StripEdit::Choice {
+                strip: x,
+                of,
+                part: None,
+            })
             .unwrap();
         run(&mut s, &cmd);
         for number in forks {
@@ -793,13 +801,17 @@ fn a_left_off_end_plate_stays_off_when_its_parts_are_forked() {
         }
         let q = s.query();
         let device = q.devices().get(Id::<Device>::from_uuid(x)).unwrap();
-        let plates = ew_derive::strip_accessories(&q, &device)
+        let plates = ew_derive::strip_accessories(&q, device)
             .into_iter()
             .filter(|a| a.kind == Some(ew_schema::AccessoryKind::EndPlate))
             .count();
         assert_eq!(plates, 0, "{forks:?}: the end plate stays off");
         assert_eq!(
-            device.accessory_choices.iter().map(|c| c.of.as_uuid()).collect::<Vec<_>>(),
+            device
+                .accessory_choices
+                .iter()
+                .map(|c| c.of.as_uuid())
+                .collect::<Vec<_>>(),
             [of],
             "{forks:?}: the choice still names the declared end plate"
         );

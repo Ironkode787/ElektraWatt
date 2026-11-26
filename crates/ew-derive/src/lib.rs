@@ -110,8 +110,8 @@ mod xref;
 mod xref_format;
 
 pub use accessories::{
-    BracketFrom, DeclaredBracket, DerivedAccessory, PartAccessories, StripBracket, accessory_copy, carrier_accessories,
-    placed_brackets, strip_accessories, strip_bracket,
+    BracketFrom, DeclaredBracket, DerivedAccessory, PartAccessories, StripBracket, accessory_copy,
+    carrier_accessories, placed_brackets, strip_accessories, strip_bracket,
 };
 pub use assembly::{
     AssemblyBreakMarks, BreakSide, assembly_members, device_descendants, order_code_part, order_code_text,
@@ -185,7 +185,8 @@ pub use pages::{
     SectionStructure, drawn_page_key, folio_label, map_ml, print_language, section_ranks, text_in,
 };
 pub use part_text::{
-    main_part, manufacturer_copy, manufacturer_name, part_confidence, printed_number, printed_part, tech_data_text,
+    main_part, manufacturer_copy, manufacturer_name, part_confidence, printed_number, printed_part,
+    tech_data_text,
 };
 pub use pattern::{PatternError, expand_pattern};
 pub use plc::{

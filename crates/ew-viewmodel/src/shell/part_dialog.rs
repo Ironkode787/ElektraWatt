@@ -96,7 +96,9 @@ impl PartChooser {
             Fit::Other => None,
         };
         // A fitting part whose wired clamps have no size given says so (doc 07 §4.3).
-        let no_size = o.clamps_unsized.then(|| strings::text(key!("badge-clamps-unsized")).to_owned());
+        let no_size = o
+            .clamps_unsized
+            .then(|| strings::text(key!("badge-clamps-unsized")).to_owned());
         match (fit, no_size) {
             (Some(a), Some(b)) => Some(format!("{a} \u{b7} {b}")),
             (a, b) => a.or(b),

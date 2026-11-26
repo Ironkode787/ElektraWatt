@@ -36,14 +36,15 @@ impl Normaliser for StaleChoices {
             let Some(dev) = tx.get::<Device>(key.1.cast()) else {
                 continue;
             };
-            let before = tx
-                .base_row(&key)
-                .and_then(|r| r.get::<Device>().cloned());
+            let before = tx.base_row(&key).and_then(|r| r.get::<Device>().cloned());
             if before.as_ref().is_some_and(|b| b.parts == dev.parts) {
                 continue;
             }
             triggered.insert(dev.id);
-            let strips = [dev.aspects.terminal.as_ref(), before.as_ref().and_then(|b| b.aspects.terminal.as_ref())];
+            let strips = [
+                dev.aspects.terminal.as_ref(),
+                before.as_ref().and_then(|b| b.aspects.terminal.as_ref()),
+            ];
             triggered.extend(strips.into_iter().flatten().map(|t| t.strip));
         }
         let mut changed = false;

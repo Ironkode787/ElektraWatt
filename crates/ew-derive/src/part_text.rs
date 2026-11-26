@@ -41,7 +41,9 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use ew_ids::{Id, v5};
-use ew_schema::{Confidence, Device, FnDef, FnRole, LibCopy, LibRef, Manufacturer, Part, PartRef, TechVal, Unit};
+use ew_schema::{
+    Confidence, Device, FnDef, FnRole, LibCopy, LibRef, Manufacturer, Part, PartRef, TechVal, Unit,
+};
 
 use crate::Q;
 

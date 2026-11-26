@@ -1413,7 +1413,10 @@ fn a_strips_accessory_rows_take_the_kinds_word() {
             marker
         );
         assert_eq!(strings::field_label("device", "derived.accessory.marker"), marker);
-        assert_eq!(strings::field_label("device", "derived.accessory.end_clamp"), brackets);
+        assert_eq!(
+            strings::field_label("device", "derived.accessory.end_clamp"),
+            brackets
+        );
         assert!(strings::field_help("device", "derived.accessory.marker").is_some());
     }
     assert!(strings::set_locale("en"));

@@ -120,6 +120,9 @@ impl OfferView {
     }
 }
 
+/// What `ew_derive::fit_report` says of one device: why the part does not fit it, and whether a wired clamp has no size.
+type FitReport = (Option<ew_derive::Misfit>, bool);
+
 /// Why an offer does not fit the devices it is offered to ([`PartOffer::misfit`]).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct OfferMisfit {
@@ -621,7 +624,7 @@ impl Session {
                 let Some(part) = self.offer_part(&o.pick) else {
                     continue;
                 };
-                let reports: Vec<(Id<Device>, (Option<ew_derive::Misfit>, bool))> = devices
+                let reports: Vec<(Id<Device>, FitReport)> = devices
                     .iter()
                     .map(|d| (*d, ew_derive::fit_report(&query, *d, &part, o.fit != Fit::Other)))
                     .collect();
