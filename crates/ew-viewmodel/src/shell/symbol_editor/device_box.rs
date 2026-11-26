@@ -580,6 +580,7 @@ impl ShellModel {
         self.leave_box(b.from_project);
         self.open_dialog(Dialog::PartEdit(Box::new(
             crate::shell::part_dialog::PartEditor {
+                section: "identity",
                 draft: b.draft,
                 name,
                 manufacturers,

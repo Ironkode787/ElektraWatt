@@ -5,7 +5,7 @@
 
 use std::collections::BTreeSet;
 
-use ew_schema::{LibCopy, Part, PartKind, PartRef};
+use ew_schema::{LibCopy, Part, PartRef};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -54,10 +54,7 @@ impl Command for SetWorkshopStock {
                 return Err(bad(at, text!("refusal-stock-missing", entry.copy.to_string())));
             };
             let number = copy.item.part_number.as_str().to_owned();
-            if !matches!(
-                copy.item.kind,
-                PartKind::Wire | PartKind::Ferrule | PartKind::Marker
-            ) {
+            if !copy.item.kind.is_consumable() {
                 return Err(bad(at, text!("refusal-stock-kind", number)));
             }
             if !seen.insert(entry.copy) {

@@ -116,6 +116,8 @@ mod page_copy;
 pub mod part_box;
 mod part_cable;
 mod part_editor;
+mod part_rows;
+pub use part_rows::{DraftRow, DraftTable, PART_SECTIONS, PartRow, PartSection, PartTable, part_section};
 mod part_new;
 mod part_offers;
 mod part_plc;
@@ -157,8 +159,8 @@ pub use macros::{InsertAt, MacroConflict, MacroError, MacroScope, MacroSpec, Mac
 pub use page_copy::{CopyFolios, PageCopyPlan, PageCopySpec};
 pub use part_cable::{CABLE_MARKINGS, CABLE_MEMBERS, CableRows};
 pub use part_editor::{
-    BUS_MEMBERS, BusRow, DRAFT_FIELDS, MAX_PORTS, PART_KINDS, PartDraft, PartDraftError, SIZE_FIELDS,
-    bus_words, mount_words, role_words,
+    BUS_MEMBERS, BusRow, DRAFT_FIELDS, MAX_PORTS, PART_KINDS, PartDraft, PartDraftError, bus_words,
+    mount_words, role_words,
 };
 pub use part_new::{NewPart, RemovedPart};
 pub use part_offers::{Fit, OfferView, PartOffer, PartOfferQuery, PartPick, PartTarget};

@@ -2005,15 +2005,38 @@ fn part_edit_lines(e: &crate::shell::part_dialog::PartEditor, lines: &mut Vec<St
             user(d.text(f))
         ));
     }
-    for f in ew_api::SIZE_FIELDS {
-        lines.push(format!(
-            "  field \"{}\" \"{}\"",
-            strings::text(Key::run_time(&format!(
-                "part-size-{}",
-                f.replace(['.', '_'], "-")
-            ))),
-            user(d.text(f))
-        ));
+    // The sections the editor lists and the shown one, then the declared rows and tables of the listed sections.
+    if e.sectioned() {
+        let words: Vec<&str> = d.sections().iter().map(|s| s.word).collect();
+        lines.push(format!("  sections {} shown {}", words.join(" "), e.section));
+    }
+    for s in d.sections() {
+        for r in s.rows {
+            if let Some(row) = d.row(r.path) {
+                lines.push(format!(
+                    "  field \"{}\" \"{}\"",
+                    strings::field_label("part", r.path),
+                    user(&row.text)
+                ));
+            }
+        }
+        let Some(table) = s.table.and_then(|t| d.table(t.path)) else {
+            continue;
+        };
+        for (i, cells) in table.rows.iter().enumerate() {
+            let cells: Vec<String> = table
+                .columns
+                .iter()
+                .zip(cells)
+                .map(|((m, _), text)| format!("{m} \"{}\"", user(text)))
+                .collect();
+            let key = table
+                .keys
+                .get(i)
+                .map(|k| format!(" \"{}\"", user(k)))
+                .unwrap_or_default();
+            lines.push(format!("  {} {}{key} {}", table.path, i + 1, cells.join(" ")));
+        }
     }
     for (k, v) in &d.tech {
         lines.push(format!("  tech \"{}\" \"{}\"", user(k), user(v)));

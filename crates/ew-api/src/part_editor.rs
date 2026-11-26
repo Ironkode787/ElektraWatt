@@ -14,10 +14,9 @@ use ew_derive::Q;
 use ew_ids::{Id, Uuid};
 use ew_mltext::Ident;
 use ew_schema::{
-    BusSection, BusSystem, Clearance, Device, Kind, LibCopy, LibDocument, LibRef, MechData, MountKind,
-    OrderUnit, Part, PartBusPort, PartKind, PortRole, TechVal, TechValue,
+    BusSection, BusSystem, Device, Kind, LibCopy, LibDocument, LibRef, MountKind, OrderUnit, Part,
+    PartBusPort, PartKind, PortRole, TechVal, TechValue,
 };
-use ew_units::Nm;
 use serde_json::Value;
 
 use crate::library::ItemQuery;
@@ -39,107 +38,9 @@ pub const DRAFT_FIELDS: [&str; 9] = [
     "unit",
 ];
 
-/// The size fields of a draft, the part's mechanical data (`Part.mech`, FR-PRT-011, doc 12 §2.5), in the editor's
-/// order: width, height and depth in millimetres, how it is mounted (a [`MountKind`] word), its mass in grams and its
-/// clearances above, below, left and right in millimetres (the layout keeps them free around a placed device).
-pub const SIZE_FIELDS: [&str; 9] = [
-    "mech.width",
-    "mech.height",
-    "mech.depth",
-    "mech.mount_kind",
-    "mech.mass",
-    "mech.clearance.top",
-    "mech.clearance.bottom",
-    "mech.clearance.left",
-    "mech.clearance.right",
-];
-
 /// The mounting words the Size and mounting section offers, as [`MountKind`] spells them.
 pub fn mount_words() -> Vec<String> {
     enum_words::<MountKind>()
-}
-
-/// The texts of [`SIZE_FIELDS`] of `mech` (empty for what it does not give).
-pub(crate) fn size_rows(mech: Option<&MechData>) -> Vec<(&'static str, String)> {
-    let mm = |n: Option<Nm>| n.map_or_else(String::new, |n| ew_derive::mm_exact(i128::from(n.0)));
-    let clear = |f: fn(&Clearance) -> Nm| {
-        mm(mech
-            .and_then(|m| m.clearance.as_ref())
-            .map(f)
-            .filter(|n| n.0 != 0))
-    };
-    SIZE_FIELDS
-        .iter()
-        .map(|f| {
-            let text = match *f {
-                "mech.width" => mm(mech.and_then(|m| m.width)),
-                "mech.height" => mm(mech.and_then(|m| m.height)),
-                "mech.depth" => mm(mech.and_then(|m| m.depth)),
-                "mech.mount_kind" => mech
-                    .and_then(|m| m.mount_kind.as_ref())
-                    .map(stored_word)
-                    .unwrap_or_default(),
-                "mech.mass" => mech
-                    .and_then(|m| m.mass)
-                    .map(|g| g.to_string())
-                    .unwrap_or_default(),
-                "mech.clearance.top" => clear(|c| c.top),
-                "mech.clearance.bottom" => clear(|c| c.bottom),
-                "mech.clearance.left" => clear(|c| c.left),
-                _ => clear(|c| c.right),
-            };
-            (*f, text)
-        })
-        .collect()
-}
-
-/// The check of a size field's text (an empty text leaves the value out): a length a positive number of millimetres
-/// (a clearance zero or more), the mounting one of [`mount_words`], the mass a whole number of grams.
-fn check_size(field: &str, t: &str) -> Result<(), DraftMessage> {
-    if t.is_empty() {
-        return Ok(());
-    }
-    let ok = match field {
-        "mech.mount_kind" => mount_words().iter().any(|w| w == t),
-        "mech.mass" => t.parse::<u32>().is_ok(),
-        f if f.starts_with("mech.clearance.") => crate::output::parse_mm(t).is_some_and(|n| n >= 0),
-        _ => crate::output::parse_mm(t).is_some_and(|n| n > 0),
-    };
-    if ok {
-        return Ok(());
-    }
-    let key = match field {
-        "mech.mount_kind" => key!("error-part-mount"),
-        "mech.mass" => key!("error-part-mass"),
-        _ => key!("error-part-length"),
-    };
-    Err(message(field, key, &[t]))
-}
-
-/// The part's mechanical data with the draft's size texts (checked): what the texts give replaces the value, an empty
-/// text leaves it out; the members the editor does not show (rail offset, front view, front clearance) are kept.
-fn draft_mech(original: Option<&MechData>, size: &[(&'static str, String)]) -> Option<MechData> {
-    let text = |f: &str| size.iter().find(|(x, _)| *x == f).map_or("", |(_, t)| t.trim());
-    let nm = |f: &str| {
-        crate::output::parse_mm(text(f))
-            .and_then(|n| i64::try_from(n).ok())
-            .map(Nm)
-    };
-    let mut m = original.cloned().unwrap_or_default();
-    m.width = nm("mech.width");
-    m.height = nm("mech.height");
-    m.depth = nm("mech.depth");
-    m.mount_kind = (!text("mech.mount_kind").is_empty())
-        .then(|| serde_json::from_value(Value::String(text("mech.mount_kind").to_owned())).ok())
-        .flatten();
-    m.mass = text("mech.mass").parse().ok();
-    let mut c = m.clearance.clone().unwrap_or_default();
-    c.top = nm("mech.clearance.top").unwrap_or_default();
-    c.bottom = nm("mech.clearance.bottom").unwrap_or_default();
-    c.left = nm("mech.clearance.left").unwrap_or_default();
-    c.right = nm("mech.clearance.right").unwrap_or_default();
-    m.clearance = (c != Clearance::default()).then_some(c);
-    (m != MechData::default()).then_some(m)
 }
 
 /// The part kinds in doc 07 §2.5's order, as the `kind` field spells them (the part editor's Kind offers them; a test
@@ -192,8 +93,11 @@ pub struct PartDraft {
     pub fields: Vec<(&'static str, String)>,
     /// The technical data: (key, value text), in key order.
     pub tech: Vec<(String, String)>,
-    /// The texts of [`SIZE_FIELDS`], in that order.
-    pub size: Vec<(&'static str, String)>,
+    /// The declared rows of the sections ([`crate::part_rows::PART_SECTIONS`]): Size and mounting, a wire's, a
+    /// ferrule's and a marker's own data.
+    pub rows: Vec<crate::part_rows::DraftRow>,
+    /// The declared tables: the pins' clamps, the accessories, the variants.
+    pub tables: Vec<crate::part_rows::DraftTable>,
     /// The messages of the fields that do not parse, in the order they were found.
     pub messages: Vec<DraftMessage>,
     /// Whether saving forks the copy (a copy from a library).
@@ -439,10 +343,10 @@ pub(crate) fn bus_section(rows: &[BusRow]) -> Result<Option<BusSection>, PartDra
 }
 
 impl PartDraft {
-    /// The text of a field of [`DRAFT_FIELDS`], [`SIZE_FIELDS`], `tech:<key>` or `bus.<row>.<member>`; `""` for
-    /// another.
+    /// The text of a field of [`DRAFT_FIELDS`], a declared row or table cell (`mech.width`, `accessories[0].qty`),
+    /// `tech:<key>` or `bus.<row>.<member>`; `""` for another.
     pub fn text(&self, field: &str) -> &str {
-        if let Some((_, t)) = self.size.iter().find(|(f, _)| *f == field) {
+        if let Some(t) = self.row_text(field) {
             return t;
         }
         if let Some(m) = crate::part_plc::plc_field(field) {
@@ -806,11 +710,13 @@ impl Session {
                         _ => None,
                     })
             });
+        let (rows, tables) = self.part_rows(q, p);
         PartDraft {
             copy,
             fields,
             tech,
-            size: size_rows(p.mech.as_ref()),
+            rows,
+            tables,
             messages: Vec::new(),
             fork: lib != project,
             own,
@@ -954,10 +860,10 @@ impl Session {
                 None => Ok(()),
             };
         }
-        let result = if let Some(slot) = draft.size.iter_mut().find(|(f, _)| *f == field) {
-            slot.1 = text.to_owned();
-            check_size(field, t)
-        } else if let Some(key) = field.strip_prefix("tech:") {
+        if let Some(result) = self.set_row_text(draft, field, text) {
+            return result;
+        }
+        let result = if let Some(key) = field.strip_prefix("tech:") {
             self.set_tech(draft, key, t)
         } else {
             if !DRAFT_FIELDS.contains(&field) {
@@ -1109,9 +1015,6 @@ impl Session {
             self.check_field(&mut check, f, &text)
                 .map_err(PartDraftError::Field)?;
         }
-        for (f, text) in &draft.size {
-            check_size(f, text.trim()).map_err(PartDraftError::Field)?;
-        }
         let mut p = draft.original.clone();
         let text = |f: &str| draft.text(f).trim().to_owned();
         let opt = |f: &str| {
@@ -1149,7 +1052,8 @@ impl Session {
             })
         };
         p.unit = serde_json::from_value(Value::String(text("unit"))).expect("checked");
-        p.mech = draft_mech(draft.original.mech.as_ref(), &draft.size);
+        let mut docs = check.manufacturer.1;
+        docs.extend(self.apply_rows(draft, &mut p)?);
         let mut tech: Vec<TechValue> = Vec::new();
         for (k, v) in &draft.tech {
             let value = self.tech_value(k, v).map_err(PartDraftError::Field)?;
@@ -1167,7 +1071,7 @@ impl Session {
         p.tech_data = ew_schema::KeyedList::from_vec(tech).map_err(|e| {
             PartDraftError::Field(message("tech", key!("error-part-value"), &[&e.to_string()]))
         })?;
-        Ok((p, check.manufacturer.1))
+        Ok((p, docs))
     }
 
     /// `part.edit_copy` of a draft: in place for a project-local copy, else a fork whose item ID

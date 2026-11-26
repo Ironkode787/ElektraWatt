@@ -25,7 +25,7 @@ fn a_new_part_takes_its_size_and_a_saved_one_changes_it_through_the_card() {
     fill(&mut d, "Manufacturer", "Acme");
     fill(&mut d, "Part number", "RL-22");
     fill(&mut d, "Description", "Interface relay, 1 changeover");
-    press(&mut d, "Size and mounting");
+    press(&mut d, "Size and mounting section");
     fill(&mut d, "Width (mm)", "six");
     assert!(
         d.texts().iter().any(
@@ -105,7 +105,7 @@ fn the_new_part_forms_library_box_shows_and_a_message_moves_nothing() {
         "{library:?} {save:?}"
     );
     fill(&mut d, "Manufacturer", "Acme");
-    press(&mut d, "Size and mounting");
+    press(&mut d, "Size and mounting section");
     let before = at(&d, "Width (mm)");
     fill(&mut d, "Width (mm)", "six");
     assert!(

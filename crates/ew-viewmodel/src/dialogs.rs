@@ -671,13 +671,27 @@ fn part_edit_spec(e: &crate::shell::part_dialog::PartEditor) -> DialogSpec {
             ),
         );
     }
-    // A part of My parts is taken out of it there; the project keeps its copy, which the toast says.
-    let danger = (d.own && d.fork).then(|| {
-        DialogButton::new(
+    // A part of My parts is taken out of it there; the project keeps its copy, which the toast says. A part of the
+    // project's own is deleted, greyed while a device uses it; a library's part says that Save makes the project's own.
+    let danger = if d.own && d.fork {
+        Some(DialogButton::new(
             key!("part-remove-own"),
             DialogAnswer::Action("part.remove_own", Value::Null),
-        )
-    });
+        ))
+    } else if !d.new {
+        let mut b = DialogButton::new(
+            key!("part-delete"),
+            DialogAnswer::Action("part.delete", Value::Null),
+        );
+        b.disabled = if d.fork {
+            Some(strings::text(key!("part-delete-library")).to_owned())
+        } else {
+            (d.users > 0).then(|| strings::format(key!("part-delete-used"), &[&d.users.to_string()]))
+        };
+        Some(b)
+    } else {
+        None
+    };
     DialogSpec {
         secondary,
         danger,

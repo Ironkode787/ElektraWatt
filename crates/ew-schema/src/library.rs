@@ -1618,6 +1618,14 @@ pub enum PartKind {
     Unknown(Value),
 }
 
+impl PartKind {
+    /// Whether a wire consumes the part (a wire, a ferrule, a marker): the consumables count it from the wires, and it
+    /// is no accessory of another part (doc 07 §2.5).
+    pub fn is_consumable(&self) -> bool {
+        matches!(self, PartKind::Wire | PartKind::Ferrule | PartKind::Marker)
+    }
+}
+
 /// Order unit of a part (FR-PRT-026).
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]

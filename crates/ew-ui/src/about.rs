@@ -140,6 +140,8 @@ pub fn show(
         Dialog::NewProject(_) | Dialog::Templates(_) => Some(crate::dialog::form_width(&t, window)),
         // The table of text styles is a wide one: it grows with the window as the print pre-dialog does.
         Dialog::TextStyles(_) => Some(crate::dialog::preview_width(&t, window)),
+        // The part editor's sections stand beside their list: it grows with the window as the print pre-dialog does.
+        Dialog::PartEdit(e) if e.sectioned() => Some(crate::dialog::preview_width(&t, window)),
         _ => None,
     };
     // Choose picks the list's active row, which the window keeps; until the person chooses one it waits.

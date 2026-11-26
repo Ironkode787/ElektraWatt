@@ -115,6 +115,7 @@
     - [`page.set_grid`](reference/commands/page.set_grid.md)
     - [`page.surface_view.set`](reference/commands/page.surface_view.set.md)
     - [`part.assign`](reference/commands/part.assign.md)
+    - [`part.delete`](reference/commands/part.delete.md)
     - [`part.edit_copy`](reference/commands/part.edit_copy.md)
     - [`part.placeholder`](reference/commands/part.placeholder.md)
     - [`parts.import`](reference/commands/parts.import.md)

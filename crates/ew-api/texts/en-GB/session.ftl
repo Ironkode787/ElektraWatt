@@ -6,8 +6,8 @@
 # arguments, always strings. The source language and the fallback of every other.
 
 error-part-length = "{ $p0 }" is not a length: give millimetres, as 45 or 22.5.
-error-part-mass = "{ $p0 }" is not a mass: give whole grams, as 120.
-error-part-mount = "{ $p0 }" is not a way of mounting: choose one from the list.
+error-part-accessory = No part is numbered { $p0 }
+error-part-accessory-kind = { $p0 } is no accessory: a wire, ferrule or marker is counted from the wires. Name it in the workshop stock instead (Project properties ▸ Workshop).
 reason-no-terminal-def = The project has no terminal definition to insert
 reason-no-accessory-part = The project has no part for this accessory; embed one first
 refusal-strip-nothing = nothing to edit

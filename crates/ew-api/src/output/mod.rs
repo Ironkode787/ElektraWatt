@@ -129,6 +129,7 @@ pub use fields::{
     Category, EditRoute, FieldReadOnly, FieldType, InputError, ParsedInput, catalogue_kinds, field_catalogue,
     field_catalogue_for, format_field_value,
 };
+pub(crate) use fields::{FieldSpec, library_fields};
 pub use job::{DxfExportJob, ExportJob, PrintSetJob};
 pub use layers::{
     CarriersLayer, FrameLayer, LabelsLayer, PageKnockoutsOf, PageLayer, PlacementsLayer, SurfaceLayer,

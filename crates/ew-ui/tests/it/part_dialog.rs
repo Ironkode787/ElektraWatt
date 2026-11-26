@@ -129,21 +129,9 @@ fn the_part_editor_by_keyboard() {
     settle(&mut h);
     assert!(matches!(h.state().shell().dialog(), Some(Dialog::PartEdit(_))));
     // Every field is named by its label.
-    for label in [
-        "Manufacturer",
-        "Part number",
-        "Description",
-        "Unit",
-        "Rated current",
-    ] {
+    for label in ["Manufacturer", "Part number", "Description", "Unit"] {
         let _ = field(&h, label);
     }
-    // A technical-data key reads in words, never as the raw key.
-    assert!(
-        h.get_all_by_role(egui::Role::TextInput)
-            .all(|n| n.accesskit_node().label().as_deref() != Some("rated_current")),
-        "a raw technical-data key"
-    );
     // The first field has the focus; Tab moves to Description (after Part number, Type designation, Order number,
     // GTIN), End to its end, where " C4" is typed.
     assert!(
@@ -171,5 +159,16 @@ fn the_part_editor_by_keyboard() {
     assert!(h.state().shell().dialog().is_none(), "Enter saved");
     let card = h.state().shell().properties().card().expect("the part card");
     assert!(matches!(card.origin, CardOrigin::Part(_)));
+    // The technical data stand in a section of their own (picture A), each value named in words.
+    dispatch(&mut h, "part.edit", json!({}));
+    settle(&mut h);
+    dispatch(&mut h, "part.section", json!({"section": "technical"}));
+    settle(&mut h);
+    let _ = field(&h, "Rated current");
+    assert!(
+        h.get_all_by_role(egui::Role::TextInput)
+            .all(|n| n.accesskit_node().label().as_deref() != Some("rated_current")),
+        "a raw technical-data key"
+    );
     h.state_mut().shell_mut().shutdown();
 }

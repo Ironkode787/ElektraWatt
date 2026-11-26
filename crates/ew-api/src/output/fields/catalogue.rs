@@ -461,6 +461,14 @@ pub(crate) fn segment(name: &str) -> String {
     }
 }
 
+/// The fields of a library document kind (a part: the part editor's declared rows), each with its value type; no
+/// command edits them, so every route is "no command".
+pub(crate) fn library_fields(kind: Kind) -> Vec<FieldSpec> {
+    ew_schema::kind_schema(kind)
+        .map(|schema| walk_kind(kind, &schema, &|_| None))
+        .unwrap_or_default()
+}
+
 /// The catalogue of one kind over its schema.
 pub(super) fn walk_kind(
     kind: Kind,

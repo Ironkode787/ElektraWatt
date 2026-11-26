@@ -93,6 +93,7 @@ impl ShellModel {
         let name = format!("{} ({})", draft.text("part_number"), draft.text("manufacturer"));
         let manufacturers = project.session.part_manufacturers();
         self.open_dialog(Dialog::PartEdit(Box::new(PartEditor {
+            section: "identity",
             draft,
             name,
             manufacturers,
@@ -211,6 +212,7 @@ impl ShellModel {
             }
         };
         let out = self.open_dialog(Dialog::PartEdit(Box::new(PartEditor {
+            section: "identity",
             draft,
             name: String::new(),
             manufacturers,
@@ -256,6 +258,89 @@ impl ShellModel {
             }
         }
         Outcome::Done
+    }
+
+    /// `part.delete` (Delete part… of the part editor): deletes the edited part, a part of the project's own that no
+    /// device uses (`part.delete`, one undo step); the editor closes and a toast names the part. Refused in words for a
+    /// library's part and for a part a device uses.
+    pub(crate) fn act_part_delete(&mut self) -> Outcome {
+        let Some(Dialog::PartEdit(editor)) = &self.dialog else {
+            return Outcome::refused(key!("reason-no-part-editor"));
+        };
+        let (copy, number) = (editor.draft.copy, editor.draft.text("part_number").to_owned());
+        let cmd = ew_api::AnyCommand {
+            name: "part.delete".into(),
+            params: serde_json::json!({ "copy": copy.to_string() }),
+        };
+        let out = self.run_commit(&cmd);
+        if matches!(out, Outcome::Done) {
+            self.dialog = None;
+            self.notify(strings::format(key!("part-deleted"), &[&number]), false);
+        }
+        out
+    }
+
+    /// `part.section {section}`: shows the editor's section `section` (one of those the draft lists).
+    pub(crate) fn act_part_section(&mut self, p: &Map<String, Value>) -> Outcome {
+        let word = match string_param(p, "section") {
+            Ok(Some(w)) => w.to_owned(),
+            Ok(None) => return failed(key!("error-missing-param"), &["section"]),
+            Err(e) => return e,
+        };
+        let Some(Dialog::PartEdit(editor)) = &mut self.dialog else {
+            return Outcome::refused(key!("reason-no-part-editor"));
+        };
+        match editor.draft.sections().into_iter().find(|s| s.word == word) {
+            Some(s) => {
+                editor.section = s.word;
+                Outcome::Done
+            }
+            None => failed(key!("error-bad-param"), &["section"]),
+        }
+    }
+
+    /// `part.table_row {table, remove?}`: adds a row to the editor's table `table` (`accessories`, `variants`), or
+    /// removes row `remove` (1-based).
+    pub(crate) fn act_part_table_row(&mut self, p: &Map<String, Value>) -> Outcome {
+        let table = match string_param(p, "table") {
+            Ok(Some(t)) => t.to_owned(),
+            Ok(None) => return failed(key!("error-missing-param"), &["table"]),
+            Err(e) => return e,
+        };
+        let remove = match p.get("remove") {
+            None => None,
+            Some(v) => match v
+                .as_u64()
+                .and_then(|i| usize::try_from(i).ok())
+                .filter(|i| *i >= 1)
+            {
+                Some(i) => Some(i - 1),
+                None => return failed(key!("error-bad-param"), &["remove"]),
+            },
+        };
+        let Some(Dialog::PartEdit(editor)) = &mut self.dialog else {
+            return Outcome::refused(key!("reason-no-part-editor"));
+        };
+        let editable = ew_api::PART_SECTIONS
+            .iter()
+            .find(|s| s.table.is_some_and(|t| t.path == table))
+            .is_some_and(|s| editor.draft.section_editable(s.word));
+        if !editable {
+            return failed(key!("error-part-field"), &[&table]);
+        }
+        editor.error = None;
+        let done = match remove {
+            None => editor.draft.add_table_row(&table),
+            Some(i) => editor.draft.remove_table_row(&table, i),
+        };
+        if done {
+            Outcome::Done
+        } else {
+            failed(
+                key!("error-bad-param"),
+                &[if remove.is_some() { "remove" } else { "table" }],
+            )
+        }
     }
 
     /// `part.field {field, value}`: sets one field of the draft; a message shows under the field.

@@ -327,10 +327,7 @@ impl Command for EditPartCopy {
                     text!("refusal-part-edit-accessory-missing", (i + 1).to_string()),
                 ));
             };
-            if matches!(
-                copy.item.kind,
-                ew_schema::PartKind::Wire | ew_schema::PartKind::Ferrule | ew_schema::PartKind::Marker
-            ) {
+            if copy.item.kind.is_consumable() {
                 return Err(bad(
                     format!("/part/accessories/{i}"),
                     text!("refusal-part-edit-accessory-kind", copy.item.part_number.as_str()),

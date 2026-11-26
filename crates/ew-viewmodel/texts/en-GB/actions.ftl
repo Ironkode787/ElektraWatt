@@ -125,6 +125,7 @@ command-fluid-tube-set = Set tube
 command-fluid-length-set = Set tube length
 command-part-edit_copy = Edit part
 command-workshop-stock = Set the workshop stock
+command-part-delete = Delete a part of the project's own
 command-layout-space-create = Create layout space
 command-layout-space-delete = Delete layout space
 command-layout-enclosure-create = Place enclosure
@@ -657,6 +658,9 @@ action-part-field = Edit field
 action-part-save = Save
 action-part-new = New part…
 action-part-bus-row = Add or remove a bus interface
+action-part-delete = Delete part…
+action-part-section = Show a section of the part
+action-part-table-row = Add or remove a row of the part's table
 action-part-remove-own = Remove from my parts library…
 action-paste-resolve = Resolve paste
 

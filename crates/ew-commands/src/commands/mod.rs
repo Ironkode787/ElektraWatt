@@ -52,6 +52,7 @@ mod move_keep;
 mod overview;
 mod page;
 mod page_copy;
+mod part_delete;
 mod part_edit;
 mod parts;
 mod paste;
@@ -249,6 +250,7 @@ commands! {
     macro_insert::InsertMacro,
     join::JoinDevice,
     part_edit::EditPartCopy,
+    part_delete::DeletePartCopy,
     workshop::SetWorkshopStock,
     layout::CreateLayoutSpace,
     layout::DeleteLayoutSpace,

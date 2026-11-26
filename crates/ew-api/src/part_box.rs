@@ -575,6 +575,8 @@ impl Session {
         }
         let bad = |why: String| PartDraftError::Field(message("pins", key!("error-part-value"), &[&why]));
         if draft.pins != pin_rows(&draft.original) {
+            // A kept pin keeps what the draft gave it besides its name and role (its clamp, from the Pins table).
+            let current = p.cp_pattern.clone();
             let mut pattern = Vec::with_capacity(draft.pins.len());
             for row in &draft.pins {
                 let designation = Ident::from_input(row.name.trim()).map_err(|e| bad(e.to_string()))?;
@@ -582,7 +584,7 @@ impl Session {
                     .then(|| serde_json::from_value(serde_json::Value::String(row.role.clone())))
                     .transpose()
                     .map_err(|e| bad(e.to_string()))?;
-                let cp = match draft.original.cp_pattern.iter().find(|c| c.idx == row.idx) {
+                let cp = match current.iter().find(|c| c.idx == row.idx) {
                     Some(held) => CpData {
                         designation,
                         potential_role: role,

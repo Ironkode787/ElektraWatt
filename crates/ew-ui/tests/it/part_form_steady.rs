@@ -35,6 +35,7 @@ fn the_fields_under_the_channels_stay_while_the_channels_are_typed() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     open_new_part(&mut d);
+    press(&mut d, "PLC section");
     press(&mut d, "PLC role");
     press(&mut d, "Module");
     // The form from the top, as a person types a card of eight inputs and four outputs.
@@ -93,6 +94,7 @@ fn fields_stand(steps: &[Step]) {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     open_new_part(&mut d);
+    press(&mut d, "PLC section");
     press(&mut d, "PLC role");
     press(&mut d, "Module");
     // From the PLC role's field: a click on a field low in the form may scroll it into sight, which moves nothing in it.
@@ -165,7 +167,16 @@ fn the_form_opened_again_starts_at_its_top_on_its_first_field() {
     open(&mut h);
     let (top, focused) = first(&h);
     assert!(focused, "the first field has the keys");
-    // Down to the bus interfaces, the preset's row taken away (a card has none), then Cancel while the form stands there.
+    // The bus interfaces: the preset's row taken away (a card has none); then the PLC section scrolled down, and
+    // Cancel while the form stands there.
+    h.get_by_label("Bus interfaces section").click();
+    settle(&mut h);
+    h.get_by_label("Remove interface X1").click();
+    settle(&mut h);
+    h.get_by_label("PLC section").click();
+    settle(&mut h);
+    let role = |h: &H| h.query_all_by_label("PLC role").last().map(|n| n.rect().min.y);
+    let before = role(&h).expect("the PLC role");
     h.hover_at(egui::pos2(960.0, 600.0));
     h.event(egui::Event::MouseWheel {
         unit: egui::MouseWheelUnit::Line,
@@ -175,9 +186,7 @@ fn the_form_opened_again_starts_at_its_top_on_its_first_field() {
         modifiers: egui::Modifiers::NONE,
     });
     settle(&mut h);
-    assert!(first(&h).0 < top, "the form scrolled");
-    h.get_by_label("Remove interface X1").click();
-    settle(&mut h);
+    assert!(role(&h).is_none_or(|y| y < before), "the section scrolled");
     h.get_by_label("Cancel").click();
     settle(&mut h);
     assert!(h.state().shell().dialog().is_none(), "the form is closed");
@@ -185,7 +194,7 @@ fn the_form_opened_again_starts_at_its_top_on_its_first_field() {
     assert_eq!(
         first(&h),
         (top, true),
-        "the form opens at its top, on its first field"
+        "the form opens at its top, on its first field, in its first section"
     );
     h.state_mut().shell_mut().shutdown();
 }

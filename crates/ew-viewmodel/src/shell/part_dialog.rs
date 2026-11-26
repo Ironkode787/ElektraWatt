@@ -110,6 +110,8 @@ impl PartChooser {
 /// The part editor's state.
 #[derive(Clone, PartialEq, Debug)]
 pub struct PartEditor {
+    /// The section shown ([`ew_api::PART_SECTIONS`]' word): one at a time, the list on the left.
+    pub section: &'static str,
     /// The draft.
     pub draft: PartDraft,
     /// The part's name for the title (`5SY4204-7 (Siemens)`).
@@ -142,6 +144,13 @@ pub struct BusPart {
 }
 
 impl PartEditor {
+    /// Whether the editor shows the part as its sections, one at a time (picture A): every part but the small forms of
+    /// a new cable type, a new bus cable or plug, and a cable part of one's own.
+    pub fn sectioned(&self) -> bool {
+        let own_cable = (self.draft.new || self.draft.own) && self.draft.text("kind") == "cable";
+        !self.cable_type && self.bus_part.is_none() && !own_cable
+    }
+
     /// The label of the draft field `field` in the form's identity rows ([`draft_label`]): a bus part's type
     /// designation is its part name, a cable type's its series.
     pub fn identity_label(&self, field: &str) -> &'static str {
@@ -162,9 +171,7 @@ impl PartEditor {
             return Some(error.clone());
         }
         let m = (self.draft.messages.iter().rev()).find(|m| !m.field.starts_with("plc."))?;
-        let label = if m.field.starts_with("mech.") {
-            size_label(&m.field).to_owned()
-        } else if crate::ew_api::DRAFT_FIELDS.contains(&m.field.as_str()) {
+        let label = if crate::ew_api::DRAFT_FIELDS.contains(&m.field.as_str()) {
             self.identity_label(&m.field).to_owned()
         } else {
             field_label(&m.field)
@@ -229,20 +236,16 @@ pub fn field_label(field: &str) -> String {
     if let Some((_, member)) = field.strip_prefix("bus.").and_then(|r| r.split_once('.')) {
         return bus_label(member).to_owned();
     }
+    // A declared row or a table's cell (`mech.width`, `accessories[0].qty`): the part's field label.
+    if field.contains(['.', '[']) {
+        return strings::field_label("part", field);
+    }
     draft_label(field).to_owned()
 }
 
 /// The label of the part editor's draft field `field` (`part-field-<field>`).
 pub fn draft_label(field: &str) -> &'static str {
     strings::text(Key::run_time(&format!("part-field-{field}")))
-}
-
-/// The label of the part editor's size and mounting field `field` (`part-size-<field>`, `.` and `_` as `-`).
-pub fn size_label(field: &str) -> &'static str {
-    strings::text(Key::run_time(&format!(
-        "part-size-{}",
-        field.replace(['.', '_'], "-")
-    )))
 }
 
 /// The label of the part editor's PLC member `member` (`part-plc-<member>`).
@@ -825,6 +828,7 @@ impl ShellModel {
         }
         draft.messages.clear();
         self.dialog = Some(Dialog::PartEdit(Box::new(PartEditor {
+            section: "identity",
             draft,
             error: None,
             ..saved

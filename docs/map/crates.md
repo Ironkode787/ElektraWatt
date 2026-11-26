@@ -174,6 +174,7 @@ The `Session` facade shared by every front-end.
 | `src/part_new.rs` |  | A new part made in the window (`part.new`): [`Session::new_part_draft`] opens the part editor on an empty draft; [`Session::new_part_command`] turns the draft into the part and the one command that brings it into the project. |
 | `src/part_offers.rs` |  | The part selection dialog's data. |
 | `src/part_plc.rs` |  | The PLC section of a new part as a form (doc 10 §2.6): what the part is in the PLC model, its channels, the pin pattern, the supply pins, the allowed slots and a station's module limit, as texts checked one by one. |
+| `src/part_rows.rs` |  | The part editor's sections and their declared rows (doc 07 §5, picture A of the parts design): the editor lists [`PART_SECTIONS`] on its left and shows one at a time. |
 | `src/plc_exchange.rs` |  | The PLC exchange of a session (doc 10 §4, §7): the files a configuration project is exported as, the preview of a file that comes back, the exchange status and the instrument list. |
 | `src/qet_collection.rs` |  | A QElectroTech element collection into a user library, on demand (doc 07 §3.6, FR-SYM-029): the `.elmt` files of a directory (the user's QET installation) become symbols and function definitions of a writable library, each on the QET 10 px grid with its source path, under the licence `LicenseRef-QET-elements` and the flag `foreign_terms`. |
 | `src/queries.rs` | large | The public queries of `ew query` (doc 17 §3.3 and §3.4, FR-EXT-005). |
@@ -297,6 +298,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/commands/overview.rs` |  | `valve_terminal.generate_overview` (`GenerateOverview`, doc 11 §5.5, FR-FLU-033): creates or refreshes the assembly-overview pages of a valve terminal. |
 | `src/commands/page.rs` | large | Page commands (doc 06 §3.1): `page.create`, `page.delete`, `page.renumber`, `page.reorder`; and `page.surface_view.set`, the view of a panel-layout page. |
 | `src/commands/page_copy.rs` |  | `page.copy` (doc 06 §3.6, "A copy of pages"): whole pages copied for a second installation in one transaction, by the rule a person gives: new folios (an offset, or after a page), a structure node of the copy's own, renamed frozen tags and interruption-point names. |
+| `src/commands/part_delete.rs` |  | `part.delete` (`DeletePartCopy`): Delete part… of the part editor (doc 07 §5). |
 | `src/commands/part_edit.rs` |  | `part.edit_copy` (`EditPartCopy`): the part editor's command, always previewed. |
 | `src/commands/parts.rs` |  | `parts.import` (`ImportParts`): inserts project-local part copies that a parts table produced (`ew_import_tables::parse_parts_tables`), with the manufacturer copies they name, skipping what the project has already. |
 | `src/commands/paste.rs` |  | `edit.paste`: pastes a project fragment (`#ew-fragment v1`, the project-fragment format of architecture §5.5) onto a page in one transaction. |

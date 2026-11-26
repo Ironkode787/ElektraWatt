@@ -202,7 +202,7 @@ Optional accuracy fields for robot wiring stay out of v1 (PARK-07); the record i
 | `placement_geometry(p)` | footprint, OBB, CP3D in carrier and world frames, keep-outs, outline ref, quality | I, memo per placement | pose chain, part L3/L5/L6, variant |
 | `layout_label(p)` | label lines, style key | I, memo | `device_tag(dev).displayed(page)`, page label mode (FR-LAY-009) |
 | `rail_occupancy(carrier)` | sorted intervals `(s0, s1, placement, padding, locked)` incl. strips and group accessories | I, memo per carrier | placements on the carrier, geometry |
-| `strip_layout(p)` | the strip's items in mounting order, each with s and width: its terminals by `seq`, the end plates and other accessories standing in it (`part_accessories`, the strip's own) | I, memo | strip terminals by `seq`, part widths, accessories |
+| `strip_layout(p)` | the strip's items in mounting order, each with s and width: its terminals by `seq`, the end plates and other accessories its terminals' parts bring (`part_accessories`); accessories authored on the strip itself (`Strip.accessories`) do not count | I, memo | strip terminals by `seq`, part widths, accessories |
 | `carrier_order(carrier)` | placements in physical order | I, cold | rail occupancy (consumed by [10](10-plc-and-bus.md) for EtherCAT and rack order) |
 | `page_display_list(page, layer, lang)` of a PanelLayout page | 2D display list per panel layer (§5.2) | I, memo + LRU | geometry, labels, carriers, features, form |
 | `layout_legend(surface)` | legend rows | I, memo | placements, carriers, parts (FR-LAY-012) |
@@ -234,7 +234,8 @@ and no layout record; a placement of one function prints its device's label with
 carry no designation member in format 0.1); `carrier_geometry(carrier)` (cold): the axis check, length, rail axis and
 outline, a rail's width from its profile; `strip_layout(strip)` (memo): the strip's terminals by `seq` and, after
 each, the accessories its terminals' parts stand there (`part_accessories`), each with its part's width and its place
-along the strip, whose widths make the strip's footprint. `carrier_order` and the rest of the table wait for their
+along the strip, whose widths make the strip's footprint. Accessories authored on the strip itself (`Strip.accessories`)
+take no width in it. `carrier_order` and the rest of the table wait for their
 packages. The five memo families are in `verify-derived`'s sweep.
 
 ### 2.7 The mountable predicate

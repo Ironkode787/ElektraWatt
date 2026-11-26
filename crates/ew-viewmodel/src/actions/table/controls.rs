@@ -918,6 +918,39 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_part_new(p),
         ),
     ),
+    hidden(act(
+        "part.delete",
+        Command,
+        Menu::Edit,
+        &[],
+        part_editor_open,
+        None,
+        |s, _| s.act_part_delete(),
+    )),
+    with_params(
+        "section:text",
+        hidden(act(
+            "part.section",
+            View,
+            Menu::Edit,
+            &[],
+            part_editor_open,
+            None,
+            |s, p| s.act_part_section(p),
+        )),
+    ),
+    with_params(
+        "table:text, remove?:uint",
+        hidden(act(
+            "part.table_row",
+            View,
+            Menu::Edit,
+            &[],
+            part_editor_open,
+            None,
+            |s, p| s.act_part_table_row(p),
+        )),
+    ),
     with_params(
         "remove?:uint",
         hidden(act(

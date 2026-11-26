@@ -107,11 +107,13 @@ impl Session {
                 (*f, text.to_owned())
             })
             .collect();
+        let (rows, tables) = self.part_rows(&self.query(), &original);
         Ok(PartDraft {
             copy: item,
             fields,
             tech: Vec::new(),
-            size: crate::part_editor::size_rows(None),
+            rows,
+            tables,
             messages: Vec::new(),
             fork: false,
             library: None,

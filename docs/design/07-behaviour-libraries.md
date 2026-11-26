@@ -426,8 +426,7 @@ The stored part number stays verbatim. Duplicate detection uses (manufacturer, `
 **Index tables** (per user, rebuilt from libraries): the SQL schema `SCHEMA` of `crates/ew-library/src/index.rs`.
 A part is a row of `part`, its words a row of the full-text table `part_text` (every language of its description),
 its normalised number a row of the trigram table `part_pn` (substring hits on numbers) and its template functions
-rows of `part_fn`, and its pattern's CPs rows of `part_cp` (the designation and the clamp's cross-section range,
-for the fit below). Symbols, FnDefs and the other library items are rows of `item`, with their words in
+rows of `part_fn`. Symbols, FnDefs and the other library items are rows of `item`, with their words in
 `item_text`. A table of part properties (`Dec3` as a scaled integer) is specified; not built.
 
 **Ranking.** Results are ordered by tier, then by score:
@@ -469,7 +468,7 @@ given. An offer that does not fit says why in one sentence, the first reason fou
 ("A part of another kind: a contactor, not a circuit breaker"), a pin it lacks ("It has no pin 4; -101F1:4 is
 wired"), a clamp's size ("Its clamp 2 takes 0.5 to 1.5 mm²; wire 102.1 is 2.5 mm²"). The order of offers puts
 fitting ones first; Only parts that fit hides the rest, which otherwise stand greyed with their reason. The fit reads
-`part_fn` and `part_cp` for a library part and the copy for a held one, and the device's wires through
+the part itself (a library part's document, a held part's copy; `ew_derive::part_fit`) and the device's wires through
 `wire_props_of`; nothing is stored.
 
 ### 4.4 Quality level derivation
@@ -584,12 +583,16 @@ cables, tubes): one table, no list of categories in the window.
 a colour, a yes or no, a part); a table section (Accessories, Variants, the pins) is a list of such columns over a
 member that is a list. The declaration hands out the reading of the text, its check with the message in words, the
 writing into the draft and the one form renderer per kind of value, so a new member is one line. Size and mounting
-is declared the same way; the bus, PLC and cable forms stay as they are.
+is declared the same way; the bus, PLC and cable forms stay as they are. The editor lists the sections the part's kind
+has on its left and shows one at a time (`part.section`); a table's rows are added and removed with
+`part.table_row`, and a cell is a `part.field` named `<list>[<row>].<member>`. A library part's fork keeps its size
+and its own sections (wire, ferrule, marker): those rows stand read-only there.
 
 **A part of one's own, once it is used.** Save of a part whose devices are drawn as boxes previews, and the card
 names each box it draws anew and why ("-104A1-A1 on 104: a pin added"); a box drawn anew keeps its top-left corner
-and stays inside the page's drawing area. Delete part… (the editor's footer, the Libraries navigator's row) removes a
-part of the person's own; while devices use it, it is refused with their tags and Replace part… beside. The box
+and stays inside the page's drawing area. Delete part… in the editor's footer deletes a part of the project's own
+(`part.delete`, one undo step); it stands greyed while devices use it, saying how many, and on a library's part, saying
+that Save makes the project's own copy. The box
 editor's Add pin offers Add bus interface…, which opens the part editor on Bus interfaces. A bus port without an
 address offers Next free address in its Address row's menu and as the quick fix of its finding.
 

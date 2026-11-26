@@ -440,6 +440,18 @@ fn labelled_field(
 /// The identity fields and the technical data of a draft, each field's message under it; `true` when Enter was
 /// pressed in a field. A new cable type's small form shows its maker, its type and its part number only.
 fn identity(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec<Event>) -> bool {
+    identity_rows(ui, e, just_opened, !e.sectioned(), events)
+}
+
+/// The identity fields, and the technical data when `with_tech` (the small forms; the sectioned editor shows them
+/// in Technical data).
+fn identity_rows(
+    ui: &mut Ui,
+    e: &PartEditor,
+    just_opened: bool,
+    with_tech: bool,
+    events: &mut Vec<Event>,
+) -> bool {
     let d = &e.draft;
     let t = theme::current(ui.ctx());
     let mut save = false;
@@ -471,10 +483,18 @@ fn identity(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec<Eve
             });
         }
     }
-    if small_form {
+    if small_form || !with_tech {
         return save;
     }
     ui.add_space(t.space_3);
+    save | tech_rows(ui, e, events)
+}
+
+/// The technical data of a draft, each a `tech:<key>` field.
+fn tech_rows(ui: &mut Ui, e: &PartEditor, events: &mut Vec<Event>) -> bool {
+    let d = &e.draft;
+    let t = theme::current(ui.ctx());
+    let mut save = false;
     ui.label(RichText::new(strings::text(key!("part-field-tech"))).font(theme::font(&t.type_body_strong)));
     // A cable's outer diameter is a row of its cable section.
     let cable = d.text("kind") == "cable";
@@ -492,54 +512,28 @@ fn identity(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec<Eve
     save
 }
 
-/// Size and mounting: the part's width, height and depth, how it is mounted, its mass and its clearances, each
-/// group with its hint, and its outline as typed, to scale over a 35 mm rail. `true` when Enter was pressed in a field.
-fn size_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Vec<Event>) -> bool {
+/// Size and mounting, from the declared rows: each group with its hint, and the outline as typed, to scale over a
+/// 35 mm rail. `true` when Enter was pressed in a field.
+fn size_rows(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Vec<Event>) -> bool {
     let t = theme::current(ui.ctx());
     let mut save = false;
-    ui.add_space(t.space_3);
-    // Open on a saved part (Give it a size… opens its editor here) and wherever a size is typed; a new part's form
-    // opens it with a click.
-    let typed = ew_viewmodel::ew_api::SIZE_FIELDS
-        .iter()
-        .any(|f| !d.text(f).is_empty() || d.message(f).is_some());
-    egui::CollapsingHeader::new(
-        RichText::new(strings::text(key!("part-size-section"))).font(theme::font(&t.type_body_strong)),
-    )
-    .id_salt("part-edit-size")
-    .default_open(!d.new || typed)
-    .show(ui, |ui| save = size_fields(ui, &t, d, events));
-    save
-}
-
-/// The fields of Size and mounting ([`size_section`]).
-fn size_fields(
-    ui: &mut Ui,
-    t: &theme::Tokens,
-    d: &ew_viewmodel::ew_api::PartDraft,
-    events: &mut Vec<Event>,
-) -> bool {
-    let mut save = false;
     let hint = |ui: &mut Ui, k: strings::Key<'static>| {
-        ui.add(egui::Label::new(crate::components::small_secondary(t, strings::text(k))).wrap());
+        ui.add(egui::Label::new(crate::components::small_secondary(&t, strings::text(k))).wrap());
     };
-    for f in ew_viewmodel::ew_api::SIZE_FIELDS {
-        let label = ew_viewmodel::shell::part_dialog::size_label(f);
-        if f == "mech.mount_kind" {
-            mount_field(ui, label, d.text(f), events);
-        } else {
-            save |= labelled_field(ui, label, d.text(f), false, |text| {
-                events.push(Event::Action("part.field", json!({ "field": f, "value": text })));
-            });
-        }
-        match f {
+    let Some(section) = ew_viewmodel::ew_api::part_section("size") else {
+        return false;
+    };
+    for r in section.rows {
+        let Some(row) = d.row(r.path) else { continue };
+        save |= declared_row(ui, row, d.section_editable("size"), events);
+        match r.path {
             "mech.depth" => {
                 hint(ui, key!("part-size-hint-dimensions"));
                 let mm = |f: &str| {
                     ew_viewmodel::ew_api::output::parse_mm(d.text(f)).and_then(|n| i64::try_from(n).ok())
                 };
                 if let (Some(w), Some(h)) = (mm("mech.width"), mm("mech.height")) {
-                    crate::part_card::outline(ui, t, w, h);
+                    crate::part_card::outline(ui, &t, w, h);
                 }
             }
             "mech.mount_kind" => hint(ui, key!("part-size-hint-mount")),
@@ -551,45 +545,369 @@ fn size_fields(
     save
 }
 
-/// The Mounting choice of Size and mounting: not given, or a mounting word in words.
-fn mount_field(ui: &mut Ui, label_text: &str, value: &str, events: &mut Vec<Event>) {
-    let words = |w: &str| {
-        if w.is_empty() {
-            strings::text(key!("part-size-mount-none")).to_owned()
-        } else {
-            strings::choice_text(w)
-        }
-    };
-    crate::components::form_row(ui, label_text, |ui, label| {
-        let mut picked = None;
-        let options: Vec<String> = std::iter::once(String::new())
-            .chain(ew_viewmodel::ew_api::mount_words())
-            .collect();
-        crate::components::choice(
-            ui,
-            egui::ComboBox::from_id_salt("part-edit-mount")
-                .selected_text(words(value))
-                .width(ui.available_width()),
-            |ui| {
-                for w in &options {
-                    if ui.selectable_label(w == value, words(w)).clicked() {
-                        picked = Some(w.clone());
-                    }
-                }
-            },
-        )
-        .response
-        .labelled_by(label);
-        if let Some(w) = picked.filter(|w| w != value) {
-            events.push(Event::Action(
-                "part.field",
-                json!({ "field": "mech.mount_kind", "value": w }),
-            ));
-        }
-    });
+/// The words of a choice value of the part member `path`; an empty value is "Not given".
+fn choice_words(path: &str, value: &str) -> String {
+    if value.is_empty() {
+        strings::text(key!("part-size-mount-none")).to_owned()
+    } else {
+        strings::field_choice_text("part", path, value)
+    }
 }
 
-/// The part editor's body.
+/// Whether a check box's text says yes (the grid's display of a true value, in either language).
+fn says_yes(text: &str) -> bool {
+    matches!(text, "true" | "yes" | "Yes" | "ja" | "Ja")
+}
+
+/// One declared row of the part (doc 07 §5, `ew_api::PART_SECTIONS`): its label is the part's field label, its
+/// editor follows its value type (a choice for a closed list of words, a check box for a yes or no, else a text
+/// field); read-only where the section is not the person's to change. `true` when Enter was pressed in it.
+fn declared_row(
+    ui: &mut Ui,
+    row: &ew_viewmodel::ew_api::DraftRow,
+    editable: bool,
+    events: &mut Vec<Event>,
+) -> bool {
+    use ew_viewmodel::ew_api::output::FieldType;
+    let t = theme::current(ui.ctx());
+    let label = strings::field_label("part", row.path);
+    let field = row.path;
+    if !editable {
+        crate::components::form_row(ui, &label, |ui, _| {
+            let value = if row.text.is_empty() {
+                "\u{2014}"
+            } else {
+                row.text.as_str()
+            };
+            ui.label(RichText::new(value).color(t.text_secondary.color32()));
+        });
+        return false;
+    }
+    match row.ty.inner() {
+        FieldType::Enum { options } => {
+            let choices: Vec<String> = row
+                .ty
+                .is_optional()
+                .then(String::new)
+                .into_iter()
+                .chain(options.iter().cloned())
+                .collect();
+            labelled_combo(
+                ui,
+                field,
+                &label,
+                &row.text,
+                &choices,
+                |w| choice_words(field, w),
+                events,
+            );
+            false
+        }
+        FieldType::Bool => {
+            let mut on = says_yes(&row.text);
+            ui.horizontal(|ui| {
+                ui.add_space(t.size_dialog_label + t.space_3);
+                if ui.checkbox(&mut on, &label).changed() {
+                    events.push(Event::Action(
+                        "part.field",
+                        json!({ "field": field, "value": on.to_string() }),
+                    ));
+                }
+            });
+            false
+        }
+        _ => labelled_field(ui, &label, &row.text, false, |text| {
+            events.push(Event::Action(
+                "part.field",
+                json!({ "field": field, "value": text }),
+            ));
+        }),
+    }
+}
+
+/// One cell of a declared table, by its value type: a choice, a check box or a text field, named `name` for
+/// AccessKit.
+fn table_cell(
+    ui: &mut Ui,
+    field: &str,
+    name: &str,
+    ty: &ew_viewmodel::ew_api::output::FieldType,
+    text: &str,
+    events: &mut Vec<Event>,
+) {
+    use ew_viewmodel::ew_api::output::FieldType;
+    let t = theme::current(ui.ctx());
+    match ty.inner() {
+        FieldType::Enum { options } => {
+            let mut picked = None;
+            let choices: Vec<String> = ty
+                .is_optional()
+                .then(String::new)
+                .into_iter()
+                .chain(options.iter().cloned())
+                .collect();
+            let words = |w: &str| {
+                if w.is_empty() {
+                    "\u{2014}".to_owned()
+                } else {
+                    strings::field_choice_text("part", field, w)
+                }
+            };
+            crate::components::choice(
+                ui,
+                egui::ComboBox::from_id_salt(field)
+                    .selected_text(words(text))
+                    .width(t.size_control * 5.0),
+                |ui| {
+                    for c in &choices {
+                        if ui.selectable_label(c == text, words(c)).clicked() {
+                            picked = Some(c.clone());
+                        }
+                    }
+                },
+            )
+            .response
+            .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, name));
+            if let Some(c) = picked.filter(|c| c != text) {
+                events.push(Event::Action("part.field", json!({ "field": field, "value": c })));
+            }
+        }
+        FieldType::Bool => {
+            let mut on = says_yes(text);
+            if ui.checkbox(&mut on, "").on_hover_text(name).changed() {
+                events.push(Event::Action(
+                    "part.field",
+                    json!({ "field": field, "value": on.to_string() }),
+                ));
+            }
+        }
+        other => {
+            // A number takes a short cell, a part number or a name a long one.
+            let width = if matches!(other, FieldType::Dec3 | FieldType::Int { .. } | FieldType::Nm) {
+                t.size_control * 3.0
+            } else {
+                t.size_control * 7.0
+            };
+            let mut value = text.to_owned();
+            let r = ui.add_sized(vec2(width, t.size_row), TextEdit::singleline(&mut value));
+            r.widget_info(|| named_edit(text, &value, name));
+            if r.changed() {
+                events.push(Event::Action(
+                    "part.field",
+                    json!({ "field": field, "value": value }),
+                ));
+            }
+        }
+    }
+}
+
+/// One declared table of the part: the item's members as columns (the key column first, read-only), a cell per
+/// member by its value type, a remove button per row and the Add button where rows are added here, and the table's
+/// first message under it.
+fn declared_table(
+    ui: &mut Ui,
+    d: &ew_viewmodel::ew_api::PartDraft,
+    table: &ew_viewmodel::ew_api::DraftTable,
+    editable: bool,
+    events: &mut Vec<Event>,
+) {
+    let t = theme::current(ui.ctx());
+    let header = |c: &str| strings::field_label("part", &format!("{}[].{c}", table.path));
+    let small_secondary = |text: String| {
+        RichText::new(text)
+            .font(theme::font(&t.type_small))
+            .color(t.text_secondary.color32())
+    };
+    if table.rows.is_empty() {
+        ui.label(RichText::new(strings::text(key!("part-table-empty"))).color(t.text_secondary.color32()));
+    } else {
+        egui::Grid::new(("part-table", table.path))
+            .num_columns(table.columns.len() + 2)
+            .spacing(vec2(t.space_3, t.space_2))
+            .striped(true)
+            .show(ui, |ui| {
+                if let Some(k) = table.key {
+                    ui.label(small_secondary(header(k)));
+                }
+                for (c, _) in &table.columns {
+                    ui.label(small_secondary(header(c)));
+                }
+                ui.end_row();
+                for (i, cells) in table.rows.iter().enumerate() {
+                    if table.key.is_some() {
+                        let key_text = table.keys.get(i).map_or("", String::as_str);
+                        ui.label(RichText::new(key_text).font(theme::font(&t.type_body_strong)));
+                    }
+                    for ((member, ty), text) in table.columns.iter().zip(cells) {
+                        let field = format!("{}[{i}].{member}", table.path);
+                        let name = format!("{} {}", header(member), i + 1);
+                        if editable {
+                            table_cell(ui, &field, &name, ty, text, events);
+                        } else {
+                            ui.label(RichText::new(text).color(t.text_secondary.color32()));
+                        }
+                    }
+                    if editable && table.key.is_none() {
+                        let remove = strings::format(key!("part-table-remove"), &[&(i + 1).to_string()]);
+                        if ui.small_button("\u{d7}").on_hover_text(&remove).clicked() {
+                            events.push(Event::Action(
+                                "part.table_row",
+                                json!({ "table": table.path, "remove": i + 1 }),
+                            ));
+                        }
+                    }
+                    ui.end_row();
+                }
+            });
+    }
+    let prefix = format!("{}[", table.path);
+    if let Some(m) = d.messages.iter().find(|m| m.field.starts_with(&prefix))
+        && let Some(text) = field_message(d, &m.field)
+    {
+        ui.label(RichText::new(text).color(t.error.color32()));
+    }
+    if editable && table.key.is_none() {
+        ui.add_space(t.space_2);
+        let add = strings::text(strings::Key::run_time(&format!("part-table-add-{}", table.path)));
+        if ui.button(format!("+ {add}")).clicked() {
+            events.push(Event::Action("part.table_row", json!({ "table": table.path })));
+        }
+    }
+}
+
+/// The section list of the sectioned editor (picture A): the sections the part's kind has, the shown one marked, a
+/// count beside a section that lists items, and the sentence that says why some are absent.
+fn section_list(ui: &mut Ui, e: &PartEditor, events: &mut Vec<Event>) {
+    let t = theme::current(ui.ctx());
+    let d = &e.draft;
+    for s in d.sections() {
+        let count = match s.word {
+            "technical" => d.tech.len(),
+            "pins" => d.pins.len(),
+            "accessories" | "variants" => d.table(s.word).map_or(0, |x| x.rows.len()),
+            "bus" => d.bus.len(),
+            _ => 0,
+        };
+        let name = strings::text(strings::Key::run_time(&format!("part-section-{}", s.word)));
+        let shown = e.section == s.word;
+        ui.horizontal(|ui| {
+            let font = if shown { &t.type_body_strong } else { &t.type_body };
+            // Named "<section> section" for AccessKit: the shown section's title repeats its word.
+            let spoken = strings::format(key!("part-section-name"), &[name]);
+            let r = ui.selectable_label(shown, RichText::new(name).font(theme::font(font)));
+            r.widget_info(|| egui::WidgetInfo::selected(egui::Role::Tab, true, shown, &spoken));
+            if r.clicked() && !shown {
+                events.push(Event::Action("part.section", json!({ "section": s.word })));
+            }
+            if count > 0 {
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    ui.label(RichText::new(count.to_string()).color(t.text_tertiary.color32()));
+                });
+            }
+        });
+    }
+    ui.add_space(t.space_4);
+    ui.add(
+        egui::Label::new(crate::components::small_secondary(
+            &t,
+            strings::text(key!("part-section-hidden")),
+        ))
+        .wrap(),
+    );
+}
+
+/// The section `e.section` of the sectioned editor (the first listed when the kind lost it). `true` when Enter was
+/// pressed in a field.
+fn section_body(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec<Event>) -> bool {
+    let t = theme::current(ui.ctx());
+    let d = &e.draft;
+    let listed = d.sections();
+    let Some(section) = listed.iter().find(|s| s.word == e.section).or(listed.first()) else {
+        return false;
+    };
+    let title = strings::text(strings::Key::run_time(&format!("part-section-{}", section.word)));
+    ui.label(RichText::new(title).font(theme::font(&t.type_body_strong)));
+    if let Some(text) = strings::lookup(&format!("part-section-{}-hint", section.word)) {
+        ui.add(egui::Label::new(crate::components::small_secondary(&t, text)).wrap());
+    }
+    ui.add_space(t.space_3);
+    let editable = d.section_editable(section.word);
+    if !editable {
+        ui.add(
+            egui::Label::new(crate::components::small_secondary(
+                &t,
+                strings::text(key!("part-section-locked")),
+            ))
+            .wrap(),
+        );
+        ui.add_space(t.space_2);
+    }
+    let mut save = false;
+    match section.word {
+        "identity" => {
+            save |= identity_rows(ui, e, just_opened, false, events);
+            read_only_facts(ui, e);
+        }
+        "technical" => save |= tech_rows(ui, e, events),
+        "pins" => {
+            pins_section(ui, d, events);
+            if let Some(table) = d.table("cp_pattern").filter(|x| !x.rows.is_empty()) {
+                ui.add_space(t.space_3);
+                declared_table(ui, d, table, editable, events);
+            }
+        }
+        "size" => save |= size_rows(ui, d, events),
+        "bus" => bus_section(ui, d, just_opened, events),
+        "plc" => save |= plc_section(ui, d, events),
+        "cable" => save |= cable_section(ui, d, events),
+        _ => {
+            for r in section.rows {
+                if let Some(row) = d.row(r.path) {
+                    save |= declared_row(ui, row, editable, events);
+                }
+            }
+            if let Some(table) = section.table.and_then(|x| d.table(x.path)) {
+                declared_table(ui, d, table, editable, events);
+            }
+        }
+    }
+    save
+}
+
+/// The read-only facts under the identity: the functions and where the part comes from (a new part has neither yet).
+fn read_only_facts(ui: &mut Ui, e: &PartEditor) {
+    let d = &e.draft;
+    if d.new {
+        return;
+    }
+    let t = theme::current(ui.ctx());
+    ui.add_space(t.space_3);
+    let read_only = |ui: &mut Ui, label: &str, value: String| {
+        crate::components::form_row(ui, label, |ui, _| {
+            ui.label(RichText::new(value).color(t.text_secondary.color32()));
+        });
+    };
+    let none = strings::text(key!("part-none"));
+    let functions = if d.functions.is_empty() {
+        none.to_owned()
+    } else {
+        d.functions.join(", ")
+    };
+    read_only(ui, strings::text(key!("part-field-functions")), functions);
+    let source = match &d.library {
+        Some(name) => format!("{name} \u{b7} {}", d.version),
+        None => format!(
+            "{} \u{b7} {}",
+            strings::text(key!("part-choose-view-project")),
+            d.version
+        ),
+    };
+    read_only(ui, strings::text(key!("part-field-source")), source);
+}
+
+/// The part editor's body: a new cable type and a new plug as their small forms; any other part as its sections
+/// (picture A of the parts design): the list on the left, the shown section on the right, scrolled inside a height
+/// that stays while one types.
 pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
     let d = &e.draft;
@@ -602,106 +920,82 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
         PART_FORM_SHARE,
         ui.ctx().content_rect().height(),
     );
-    let mut area = ScrollArea::vertical()
-        .id_salt("part-edit-scroll")
-        .auto_shrink([false, false])
-        .min_scrolled_height(height)
-        .max_height(height);
-    // A form opens at its top, never where the form before it was left.
-    if just_opened {
-        area = area.vertical_scroll_offset(0.0);
-    }
-    area.show(ui, |ui| {
-        // A cable part of one's own (New cable type…): its identity, then the cable section; a cable has no
-        // pins, PLC role, bus interface or size.
-        if (d.new || d.own) && d.text("kind") == "cable" {
-            save |= identity(ui, e, just_opened, events);
-            ui.add_space(t.space_3);
-            save |= cable_section(ui, d, events);
-        } else if let Some(plug) = e.bus_part.filter(|b| b.plug) {
-            // New plug…: its identity, then its bus, its cable outlet, its socket and its resistor.
-            save |= identity(ui, e, just_opened, events);
-            ui.add_space(t.space_3);
-            plug_section(ui, d, plug, events);
-        } else if (d.new || d.own)
-            && ui.available_width() >= 2.0 * (t.size_dialog_label + t.size_control * 6.0)
-        {
-            // A new part's form is long: at the main resolution its identity and its PLC section stand side by side,
-            // the bus interfaces below them across the dialog.
-            let mut left_save = false;
-            let mut right_save = false;
-            let mut left_events = Vec::new();
-            let mut right_events = Vec::new();
-            ui.columns(2, |cols| {
-                left_save = identity(&mut cols[0], e, just_opened, &mut left_events);
-                right_save = plc_section(&mut cols[1], d, &mut right_events);
-                cols[1].add_space(t.space_4);
-                pins_section(&mut cols[1], d, &mut right_events);
-            });
-            events.extend(left_events);
-            events.extend(right_events);
-            save |= left_save || right_save;
-            ui.add_space(t.space_3);
-            bus_section(ui, d, just_opened, events);
-            save |= size_section(ui, d, events);
+    let area = |salt: &str| {
+        let a = ScrollArea::vertical()
+            .id_salt(salt)
+            .auto_shrink([false, false])
+            .min_scrolled_height(height)
+            .max_height(height);
+        // A form opens at its top, never where the form before it was left.
+        if just_opened {
+            a.vertical_scroll_offset(0.0)
         } else {
+            a
+        }
+    };
+    if e.sectioned() {
+        // The list and the section stand in the form's one height: the list on the left, a rule, the section.
+        let width = ui.available_width();
+        ui.allocate_ui_with_layout(
+            vec2(width, height),
+            egui::Layout::left_to_right(egui::Align::Min),
+            |ui| {
+                ui.set_height(height);
+                let list = t.size_dialog_label + t.space_6;
+                ui.allocate_ui_with_layout(
+                    vec2(list, height),
+                    egui::Layout::top_down(egui::Align::Min),
+                    |ui| {
+                        ui.set_width(list);
+                        section_list(ui, e, events);
+                    },
+                );
+                let (rule, _) = ui.allocate_exact_size(vec2(t.space_4, height), Sense::hover());
+                ui.painter().vline(
+                    rule.center().x,
+                    rule.y_range(),
+                    ui.visuals().widgets.noninteractive.bg_stroke,
+                );
+                // The section takes the rest of the form's width from its first frame on.
+                let rest = ui.available_width();
+                ui.allocate_ui_with_layout(
+                    vec2(rest, height),
+                    egui::Layout::top_down(egui::Align::Min),
+                    |ui| {
+                        ui.set_width(rest);
+                        area("part-edit-section").show(ui, |ui| {
+                            save |= section_body(ui, e, just_opened, events);
+                            if d.new && e.section == "identity" {
+                                ui.add_space(t.space_3);
+                                let mut to_library = d.to_library;
+                                if ui
+                                    .checkbox(&mut to_library, strings::text(key!("part-to-library")))
+                                    .changed()
+                                {
+                                    events.push(Event::Action(
+                                        "part.field",
+                                        json!({ "field": "to_library", "value": to_library.to_string() }),
+                                    ));
+                                }
+                            }
+                        });
+                    },
+                );
+            },
+        );
+    } else {
+        area("part-edit-scroll").show(ui, |ui| {
             save |= identity(ui, e, just_opened, events);
             ui.add_space(t.space_3);
-            pins_section(ui, d, events);
-            if d.new || d.own || !d.bus.is_empty() {
-                ui.add_space(t.space_3);
-                bus_section(ui, d, just_opened, events);
+            if let Some(plug) = e.bus_part.filter(|b| b.plug) {
+                // New plug…: its identity, then its bus, its cable outlet, its socket and its resistor.
+                plug_section(ui, d, plug, events);
+            } else {
+                // A cable part of one's own (New cable type…): its identity, then the cable section.
+                save |= cable_section(ui, d, events);
             }
-            if d.new || d.own {
-                ui.add_space(t.space_3);
-                save |= plc_section(ui, d, events);
-            }
-            save |= size_section(ui, d, events);
-        }
-        if d.new {
-            ui.add_space(t.space_3);
-            let mut to_library = d.to_library;
-            if ui
-                .checkbox(&mut to_library, strings::text(key!("part-to-library")))
-                .changed()
-            {
-                events.push(Event::Action(
-                    "part.field",
-                    json!({ "field": "to_library", "value": to_library.to_string() }),
-                ));
-            }
-        }
-        ui.add_space(t.space_3);
-        let none = strings::text(key!("part-none"));
-        let read_only = |ui: &mut Ui, label: &str, value: String| {
-            ui.horizontal(|ui| {
-                ui.add_sized(vec2(t.size_dialog_label, t.size_row), egui::Label::new(label));
-                ui.add_space(t.space_3);
-                ui.label(RichText::new(value).color(t.text_secondary.color32()));
-            });
-        };
-        // A new part has no functions or source yet: Save makes them from the form.
-        if !d.new {
-            read_only(
-                ui,
-                strings::text(key!("part-field-functions")),
-                if d.functions.is_empty() {
-                    none.to_owned()
-                } else {
-                    d.functions.join(", ")
-                },
-            );
-            let source = match &d.library {
-                Some(name) => format!("{name} \u{b7} {}", d.version),
-                None => format!(
-                    "{} \u{b7} {}",
-                    strings::text(key!("part-choose-view-project")),
-                    d.version
-                ),
-            };
-            read_only(ui, strings::text(key!("part-field-source")), source);
-        }
-    });
+        });
+    }
     if save {
         events.push(Event::Action("part.save", serde_json::Value::Null));
     }

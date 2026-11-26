@@ -108,6 +108,7 @@ fn a_new_part_with_a_bus_interface_is_made_in_the_window_and_kept_in_my_parts() 
     fill(&mut d, "Manufacturer", "Acme");
     fill(&mut d, "Part number", "SW-5");
     fill(&mut d, "Description", "Ethernet switch, unmanaged, 5 ports");
+    press(&mut d, "Bus interfaces section");
     press(&mut d, "Add interface");
     assert_eq!(draft(&mut d).bus.len(), 1, "one interface row");
     press(&mut d, "Role 1");
@@ -339,6 +340,7 @@ pub(crate) fn make_port_device(d: &mut Driver, number: &str, description: &str, 
     fill(d, "Manufacturer", "Acme");
     fill(d, "Part number", number);
     fill(d, "Description", description);
+    press(d, "Bus interfaces section");
     press(d, "Add interface");
     fill(d, "Ports 1", ports);
     press(d, "Save");
@@ -443,6 +445,7 @@ pub(crate) fn make_card(d: &mut Driver, number: &str, slots: &str) {
     fill(d, "Manufacturer", "Acme");
     fill(d, "Part number", number);
     fill(d, "Description", "Digital input card, 8 × 24 V DC");
+    press(d, "PLC section");
     press(d, "PLC role");
     press(d, "Module");
     press(d, "Channel kind");
@@ -573,6 +576,7 @@ pub(crate) fn make_head_station(d: &mut Driver, number: &str) {
     fill(d, "Manufacturer", "Acme");
     fill(d, "Part number", number);
     fill(d, "Description", "Head station, PROFIBUS DP");
+    press(d, "PLC section");
     press(d, "PLC role");
     press(d, "Station");
     fill(d, "Supply L+ pin", "L+");
@@ -586,6 +590,7 @@ pub(crate) fn make_head_station(d: &mut Driver, number: &str) {
     });
     d.settle();
     fill(d, "Most modules", "32");
+    press(d, "Bus interfaces section");
     press(d, "Add interface");
     press(d, "Interface 1");
     d.input(&key("Ctrl+A"));
@@ -727,6 +732,7 @@ fn a_part_of_ones_own_is_corrected_and_the_next_placement_takes_it() {
         .into_iter()
         .any(|t| t.starts_with("Devices that use this part: 1."));
     assert!(said, "the note says what the drawn device keeps");
+    press(&mut d, "Bus interfaces section");
     press(&mut d, "Ports 1");
     d.input(&key("Ctrl+A"));
     d.input(&typed("6"));

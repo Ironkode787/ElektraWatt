@@ -512,6 +512,19 @@ impl crate::Session {
         let cx = super::properties::SheetCx::new(&q);
         parse_input(&cx, &FieldType::Quantity, "", text).map(|p| p.value)
     }
+
+    /// Parses `text` as a value of type `ty` by the grid's rules, `member` the field's last path member (the part
+    /// editor's declared rows).
+    pub(crate) fn parse_typed_text(
+        &self,
+        ty: &FieldType,
+        member: &str,
+        text: &str,
+    ) -> Result<Value, InputError> {
+        let q = self.query();
+        let cx = super::properties::SheetCx::new(&q);
+        parse_input(&cx, ty, member, text).map(|p| p.value)
+    }
 }
 
 #[cfg(test)]
