@@ -123,7 +123,7 @@ pub use bom::{BomMode, BomRow, BomRows, DevicePartLines, LineSource, PartLine};
 pub use cell::{
     Cell, CellOf, FrameGridOf, FrameSettings, FrameSettingsValue, RepAnchorCell, anchor_point,
     anchor_point_of, cell_in_grid, column_label, default_frame_grid, frame_form_from_settings, frame_form_of,
-    frame_grid, page_frame_form, printed_cell, row_label, starter_form,
+    frame_grid, page_frame_form, prints_cells, row_label, starter_form,
 };
 pub use channel_index::{ChannelsByCp, ChannelsByModule, ModuleChannelIds};
 pub use cp_point::{

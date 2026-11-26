@@ -512,10 +512,10 @@ fn explicit_labels_and_start_index() {
 }
 
 /// Each axis is counted as its frame says (doc 06 §2.4, doc 09 §2.5): columns in letters from their first letter,
-/// skipping I and O and past Z; rows in numbers from their first number; and a frame whose rulers are not drawn
-/// prints no cell at all.
+/// skipping I and O and past Z; rows in numbers from their first number; and a frame whose rulers are not drawn keeps
+/// its cells, where things stand and are ordered, while no cross-reference names one.
 #[test]
-fn each_axis_is_counted_as_its_frame_says_and_hidden_rulers_print_no_cell() {
+fn each_axis_is_counted_as_its_frame_says_and_hidden_rulers_keep_their_cells() {
     let frame = |show: bool| {
         json!({
             "kind": "frame",
@@ -549,15 +549,11 @@ fn each_axis_is_counted_as_its_frame_says_and_hidden_rulers_print_no_cell() {
     // 24 letters without I and O: column 17 is index 24, past Z.
     assert_eq!(cell_str(&m, PAGE, mm(16, 0)).as_deref(), Some("1Z"));
     assert_eq!(cell_str(&m, PAGE, mm(17, 0)).as_deref(), Some("1AA"));
-    // The same frame with its rulers hidden: the point lies in the drawing area, and prints no cell.
-    assert_eq!(cell_str(&m, 0x102, mm(1, 5)), None);
+    // The same frame with its rulers hidden: the point keeps its cell; only a cross-reference names none.
+    assert_eq!(cell_str(&m, 0x102, mm(1, 5)).as_deref(), Some("6J"));
     let q = Q::new(&m);
-    let hidden = frame_grid(&q, id::<Page>(0x102)).expect("the grid stays");
-    assert_eq!(
-        ew_derive::cell_in_grid(&hidden, Grid::new(1_000_000, 1).unwrap(), mm(1, 5)).map(|c| c.to_string()),
-        Some("6J".to_owned()),
-        "the geometry is the grid's, for the layout commands"
-    );
+    assert!(ew_derive::prints_cells(&q, id::<Page>(PAGE)));
+    assert!(!ew_derive::prints_cells(&q, id::<Page>(0x102)));
 }
 
 // ---------------------------------------------------------------------------------------------------------

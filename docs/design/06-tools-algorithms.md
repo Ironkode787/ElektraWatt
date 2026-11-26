@@ -188,7 +188,6 @@ and whose columns are `w = c/d` wide:
 column(x) = floor( (x·b·d − a·d) / (c·b) )        0-based, evaluated in i128, exact
 row(y)    = floor( (y·b'·d' − a'·d') / (c'·b') )
 outside the drawing area → None, reported by FR-CHK-035
-a frame whose rulers are not drawn → None for every point
 ```
 
 - A point exactly on a boundary belongs to the right or lower cell, the documented rule (FR-PAG-020).
@@ -197,10 +196,12 @@ a frame whose rulers are not drawn → None for every point
   print `start_index + index`; letters print the letter at `start_index + index` of `A … Z` (without `I` and `O` when
   the axis skips them), then `AA, AB …`. Columns count with numbers and rows with letters unless the frame says
   otherwise ([09](09-reports-forms-output.md) §2.5). Every column and row of the frame has a cell.
-- **A frame whose rulers are not drawn** (`ew.frame.show_grid` false) has no printed cells: the printed cell of a point
-  (`cell_of`, the representation's anchor cell, and the command layer's model-only lookup alike) is none, so nothing
-  prints a cell the page does not show (§2.8). Its columns and rows still bound the drawing area, which a layout
-  command and the placer read from the grid itself.
+- **Where a thing is, and what a reader is told.** The cell of a point (`cell_of`, the representation's anchor cell,
+  the command layer's model-only lookup, the viewer's cells) is its geometry, also on a frame whose rulers are not
+  drawn (`ew.frame.show_grid` false): every order and number reads it (wire numbers and their From end, a potential's
+  fallback name, the order of chained interruption points, online numbering, the layout commands), as do the lists,
+  the tags and the window. Only a cross-reference into such a page, and the link target's text the window shows for
+  it, names the page alone (`ew_derive::prints_cells`, §2.8), since a reader cannot find a cell the page does not show.
 - **Pitfall.** A stored coordinate is rounded to the nearest nm, so a point on a QET boundary can land up to
   0.5 nm to its left. Anchors always sit on the page's connection grid `g`, so the lookup first converts the point
   to its grid index `k = round(x / g)` and evaluates the formula on the exact rational `k·g`, which rounding cannot

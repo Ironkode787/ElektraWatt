@@ -119,8 +119,9 @@ change here.
   with a new interface row, so a gateway or a drive of your own gets its bus port from the box (FT-2208)
 - behaviour-change: a cross-reference into a page whose frame draws no column and row strips prints the page alone
   ("103" where a frame with strips prints "103-C1"), also in a project brought in from QElectroTech whose border hides
-  both header bands, which printed a cell the page does not show; such a page has no cell for the cursor, Go to or the
-  lists either (doc 06 §2.8, FT-1815)
+  both header bands, which printed a cell the page does not show. Nothing else changes for such a page: its wire
+  numbers, its potentials' names, the order of its chained interruption points, its devices' numbers, the lists, the
+  tags, the cursor's cell and Go to read its cells as before (doc 06 §2.8, FT-1815)
 - api-add: a frame's columns and rows are counted with numbers or letters (`counting`), the rows from a first
   letter or number of their own (`start_index`) and the columns skip I and O (`skip_io`), additive members of
   `FrameColumns` and `FrameRows` (doc 09 §2.5, FT-1815)

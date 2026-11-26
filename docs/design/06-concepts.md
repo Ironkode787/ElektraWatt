@@ -150,7 +150,9 @@ rows with letters, unless the frame counts an axis the other way. Numbers count 
 starter frames, 1 on a frame a QElectroTech border made); letters count A … Z, then AA, AB …, from the first letter,
 without I and O where the frame skips them. The columns share the width of the drawing area and the rows its height,
 each an exact rational step (§5.1): 10 columns over the starter frame's 269.875 mm are 26.9875 mm each. A frame whose
-rulers are not drawn has no cells: nothing on it prints a column or a row (§2.8, §5.1). A person sets them on the page
+rulers are not drawn keeps its cells, which order and number what stands on it as on any page; only a cross-reference
+into it names the page alone, since a reader cannot find a cell the page does not show (§2.8, §5.1; the owner's
+ruling: nothing else of a project changes when its rulers are hidden). A person sets them on the page
 ([09](09-reports-forms-output.md) §3.9).
 
 **What a change of the columns and rows changes.** No stored value names a column or a row: a cell is the column and

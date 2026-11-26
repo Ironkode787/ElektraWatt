@@ -96,3 +96,52 @@ fn a_page_without_frame_defaults_follows_the_fork_of_its_frame() {
         after.cells[0].printed
     );
 }
+
+/// What every order of the project reads off one candidate: each potential's name, the interruption points' pairing
+/// (each chain in its order) and each device's printed tag.
+fn orders(q: &ew_derive::Q) -> (Vec<String>, ew_derive::IpPairing, Vec<Option<ew_derive::Tag>>) {
+    let partition = q.get::<ew_derive::PotentialPartition>(());
+    let mut names: Vec<String> = partition
+        .potentials()
+        .map(|p| q.get::<ew_derive::PotentialNameOf>(p.id).name.text.clone())
+        .collect();
+    names.sort();
+    let pairing = q.get::<ew_derive::IpPairingQ>(()).as_ref().clone();
+    let tags = q
+        .devices()
+        .iter()
+        .map(|(id, _)| q.get::<ew_derive::DeviceTag>(id).as_ref().clone())
+        .collect();
+    (names, pairing, tags)
+}
+
+/// The sample's frame with its rulers hidden (doc 06 §5.1, the owner's ruling): the cross-references into its pages
+/// print the page alone, and nothing else changes: no wire number, no potential's name, no chain of interruption
+/// points' order, no device's tag. Where a thing is on the page orders it whether the rulers print or not.
+#[test]
+fn hiding_the_rulers_changes_the_cross_references_alone() {
+    let mut s = crate::common::sample();
+    let facts = s.frame_facts("101").expect("page 101's frame");
+    let cmd = AnyCommand {
+        name: "frame.set_grid".to_owned(),
+        params: json!({
+            "frame": facts.frame.to_string(),
+            "drawn": false,
+            "forks": facts.frame_forks.iter().map(|u| u.to_string()).collect::<Vec<_>>(),
+        }),
+    };
+    let preview = s.preview(&cmd).expect("the change previews");
+    let diff = s.derived_diff(&preview);
+    assert!(diff.wires.is_empty(), "no wire renumbered: {:?}", diff.wires);
+    assert!(diff.tags.is_empty(), "no tag changed: {:?}", diff.tags);
+    assert!(
+        diff.xrefs.iter().any(|c| c.before == "103-C1" && c.after == "103"),
+        "{:?}",
+        diff.xrefs
+    );
+    let before = orders(&s.query());
+    let after = orders(&s.query_over(preview.candidate()));
+    assert_eq!(before.0, after.0, "the potentials' names");
+    assert!(before.1 == after.1, "the interruption points' chains");
+    assert_eq!(before.2, after.2, "the devices' tags");
+}

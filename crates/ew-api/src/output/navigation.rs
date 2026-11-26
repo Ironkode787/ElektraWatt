@@ -535,18 +535,13 @@ pub(super) fn cp_candidates(q: &Q, page: Id<Page>) -> BTreeSet<(Id<Function>, u1
     out
 }
 
-/// The cells of the entry at `pos` of `order` (see [`Session::page_cells`]); none on a frame whose rulers are not
-/// drawn, which prints no cell (`ew_derive::printed_cell`).
+/// The cells of the entry at `pos` of `order` (see [`Session::page_cells`]).
 fn cells_of(q: &Q, order: &PageOrderV, pos: usize) -> Option<PageCells> {
     let entry = &order.entries[pos];
     let PageRef::Drawn(p) = entry.page else {
         return None;
     };
-    let frame = q
-        .get::<FrameGridOf>(p)
-        .as_ref()
-        .clone()
-        .filter(FrameGrid::shows_grid)?;
+    let frame = q.get::<FrameGridOf>(p).as_ref().clone()?;
     let grid = q.pages().get(p)?.grid;
     let map = sheet_map(q, entry.page);
     let ip = q.get::<XrefSettingsOf>(()).ip.clone();
@@ -583,7 +578,8 @@ fn find_target(list: &DisplayList, dest: Destination) -> Option<Pt2> {
 }
 
 /// The xref engine's rendering of a target cell with the `ip` format: the target page's folio, its
-/// `{page_index}`, its structure for `{function}` and `{location}`, no source-relative prefix.
+/// `{page_index}`, its structure for `{function}` and `{location}`, no source-relative prefix; the page alone when
+/// its frame draws no rulers, as the cross-reference prints it (`ew_derive::prints_cells`).
 fn printed_cell(
     q: &Q,
     order: &PageOrderV,
@@ -603,7 +599,18 @@ fn printed_cell(
         function: aspect(q, entry.page, Aspect::Function).unwrap_or_default(),
         location: aspect(q, entry.page, Aspect::Location).unwrap_or_default(),
     };
-    Some(render_item(tokens, &values, &ItemOptions::default()))
+    let page_only = match entry.page {
+        PageRef::Drawn(p) => !ew_derive::prints_cells(q, p),
+        _ => true,
+    };
+    Some(render_item(
+        tokens,
+        &values,
+        &ItemOptions {
+            page_only,
+            ..ItemOptions::default()
+        },
+    ))
 }
 
 /// The resolution of link targets within one [`Session::link_targets`] call: the sheet display list of each
@@ -745,7 +752,7 @@ impl Session {
     }
 
     /// The frame cells of the page labelled `folio` ([`PageCells`]); `None` when no page has that folio or the page
-    /// has no frame grid or one whose rulers are not drawn.
+    /// has no frame grid.
     pub fn page_cells(&self, folio: &str) -> Option<PageCells> {
         let q = self.query();
         let order = q.get::<PageOrder>(());

@@ -516,8 +516,8 @@ fn target_without_anchor_cell_prints_question_marks_or_its_page_alone() {
     assert_eq!(text(&q, rep_of(0x1101)), format!("1-{}", cell(1, 1)));
     assert_eq!(text(&q, rep_of(0x1102)), format!("1-{}", cell(1, 1)));
     assert_eq!(text(&q, rep_of(0x1103)), format!("1-{}", cell(1, 1)));
-    // Its own anchor prints no cell.
-    assert!(q.get::<RepAnchorCell>(rid(0x1103)).is_none());
+    // Its own anchor keeps its cell, where it stands; only the cross-reference names none.
+    assert!(q.get::<RepAnchorCell>(rid(0x1103)).is_some());
 }
 
 /// Device 0x2000 with its main function 0x1001, which is not drawn.

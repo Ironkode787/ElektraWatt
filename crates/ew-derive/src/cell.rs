@@ -68,7 +68,7 @@ impl fmt::Display for Cell {
 }
 
 /// `cell_of(point, page)`: the frame cell of a page point, or `None` outside the drawing area or on a
-/// page without a frame grid.
+/// page without a frame grid; a frame whose rulers are not drawn has its cells too (see [`prints_cells`]).
 #[derive(Debug)]
 pub struct CellOf;
 
@@ -338,23 +338,24 @@ pub fn frame_grid(q: &Q, page: Id<Page>) -> Option<FrameGrid> {
 fn cell_of_page(q: &Q, page: Id<Page>, point: Pt2) -> Option<Cell> {
     let grid = q.get::<FrameGridOf>(page);
     let g = q.pages().get(page)?.grid;
-    printed_cell(grid.as_ref().as_ref()?, g, point)
+    cell_in_grid(grid.as_ref().as_ref()?, g, point)
 }
 
-/// The cell `point` prints in `frame` (doc 06 §5.1): none when the frame does not draw its rulers
-/// (`FrameGrid::shows_grid`), since nothing may print a cell the page does not show; else [`cell_in_grid`]. The one
-/// rule of every printed cell: [`CellOf`], the command layer's model-only lookup and `ew-api`'s `PageCells`.
-pub fn printed_cell(frame: &FrameGrid, g: Grid, point: Pt2) -> Option<Cell> {
-    if !frame.shows_grid() {
-        return None;
-    }
-    cell_in_grid(frame, g, point)
+/// Whether a cross-reference into `page` names its cell (doc 06 §2.8, §5.1): only when the page's frame draws its
+/// rulers, since a reader cannot find a cell the page does not show; else it names the page alone. The one rule of
+/// what a reader is told; where a thing is on the page ([`CellOf`], [`cell_in_grid`]) stays, rulers or not, and
+/// everything that orders or numbers reads that.
+pub fn prints_cells(q: &Q, page: Id<Page>) -> bool {
+    q.get::<FrameGridOf>(page)
+        .as_ref()
+        .as_ref()
+        .is_some_and(FrameGrid::shows_grid)
 }
 
 /// The cell of `point` in `frame` by its geometry alone, drawn rulers or not; each coordinate is read on the
 /// connection grid `g` when it lies within the 1 nm rounding window of a grid position, else as stored (see the
-/// module documentation). `None` outside the drawing area. A cell that prints is [`printed_cell`]'s; this one
-/// answers whether a point lies in the drawing area (the layout commands).
+/// module documentation). `None` outside the drawing area. Whether a cross-reference names it is
+/// [`prints_cells`]'s.
 pub fn cell_in_grid(frame: &FrameGrid, g: Grid, point: Pt2) -> Option<Cell> {
     let (a, b) = frame
         .header_band
