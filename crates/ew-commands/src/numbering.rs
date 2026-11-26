@@ -191,8 +191,8 @@ impl Rows for Model {
 /// orientation and position); the frame grid is the page's own form, else the `frames` settings shim's entry of
 /// the page type, else its default (`ew_derive::frame_form_from_settings`; a form the project does not hold falls
 /// through), else the built-in grid, except on title, table-of-contents and divider pages (no grid); a held form
-/// without a `grid` has no cells. `None` for a missing representation, symbol or page, outside the drawing area,
-/// or on overflow.
+/// without a `grid` has no cells, nor has a frame whose rulers are not drawn (`ew_derive::printed_cell`). `None` for
+/// a missing representation, symbol or page, outside the drawing area, or on overflow.
 pub fn anchor_cell(tx: &TxBuilder<'_>, rep: Id<Representation>) -> Option<ew_derive::Cell> {
     anchor_cell_with(tx, rep)
 }
@@ -213,7 +213,7 @@ fn anchor_cell_with(rows: &impl Rows, rep: Id<Representation>) -> Option<ew_deri
     let point = anchor_point_with(rows, &rep)?;
     let page = rows.row::<Page>(rep.page)?;
     let grid = frame_grid_with(rows, &page)?;
-    ew_derive::cell_in_grid(&grid, page.grid, point)
+    ew_derive::printed_cell(&grid, page.grid, point)
 }
 
 /// The frame grid of a page in a transaction, by the rule of `ew_derive::FrameGridOf`.

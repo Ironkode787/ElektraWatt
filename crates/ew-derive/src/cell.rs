@@ -34,8 +34,9 @@ use std::fmt;
 use std::sync::Arc;
 
 use ew_ids::Id;
+use ew_mltext::Ident;
 use ew_schema::{
-    AnchorPolicy, Extra, FormDef, FrameColumns, FrameGrid, FrameRows, Page, PageType, Primitive,
+    AnchorPolicy, Counting, Extra, FormDef, FrameColumns, FrameGrid, FrameRows, Page, PageType, Primitive,
     Representation, SymbolDef,
 };
 use ew_units::{Grid, Nm, Pt2};
@@ -186,11 +187,15 @@ pub fn default_frame_grid() -> FrameGrid {
             start_index: 0,
             width: grid(15_875_000, 1),
             labels: Vec::new(),
+            counting: Counting::Numbers,
+            skip_io: false,
             extra: Extra::new(),
         },
         rows: FrameRows {
             count: 8,
             labels: Vec::new(),
+            counting: Counting::Letters,
+            start_index: 0,
             skip_io: false,
             height: grid(63_500_000, 3),
             extra: Extra::new(),
@@ -294,13 +299,23 @@ pub fn frame_grid(q: &Q, page: Id<Page>) -> Option<FrameGrid> {
 fn cell_of_page(q: &Q, page: Id<Page>, point: Pt2) -> Option<Cell> {
     let grid = q.get::<FrameGridOf>(page);
     let g = q.pages().get(page)?.grid;
-    cell_in_grid(grid.as_ref().as_ref()?, g, point)
+    printed_cell(grid.as_ref().as_ref()?, g, point)
 }
 
-/// The cell of `point` in `frame`; each coordinate is read on the connection grid `g` when it lies within
-/// the 1 nm rounding window of a grid position, else as stored (see the module documentation). `None`
-/// outside the drawing area (public for `ew-api`'s `PageCells`, which evaluates it without
-/// a `Q`).
+/// The cell `point` prints in `frame` (doc 06 §5.1): none when the frame does not draw its rulers
+/// (`FrameGrid::shows_grid`), since nothing may print a cell the page does not show; else [`cell_in_grid`]. The one
+/// rule of every printed cell: [`CellOf`], the command layer's model-only lookup and `ew-api`'s `PageCells`.
+pub fn printed_cell(frame: &FrameGrid, g: Grid, point: Pt2) -> Option<Cell> {
+    if !frame.shows_grid() {
+        return None;
+    }
+    cell_in_grid(frame, g, point)
+}
+
+/// The cell of `point` in `frame` by its geometry alone, drawn rulers or not; each coordinate is read on the
+/// connection grid `g` when it lies within the 1 nm rounding window of a grid position, else as stored (see the
+/// module documentation). `None` outside the drawing area. A cell that prints is [`printed_cell`]'s; this one
+/// answers whether a point lies in the drawing area (the layout commands).
 pub fn cell_in_grid(frame: &FrameGrid, g: Grid, point: Pt2) -> Option<Cell> {
     let (a, b) = frame
         .header_band
@@ -362,28 +377,39 @@ fn axis_cell(x: (i128, i128), origin: (i128, i128), step: Grid, count: u16) -> O
     }
 }
 
-/// The row letters of a frame: `A … Z`, without `I` and `O` when `skip_io`.
-fn row_letters(skip_io: bool) -> impl Iterator<Item = char> {
+/// The letters of an axis: `A … Z`, without `I` and `O` when `skip_io`.
+fn axis_letters(skip_io: bool) -> impl Iterator<Item = char> {
     ('A'..='Z').filter(move |c| !(skip_io && matches!(c, 'I' | 'O')))
 }
 
+/// The label of index `k` (0-based) of an axis: its own label, else by its counting from `start`: numbers print
+/// `start + k`; letters (and a counting of a newer format) the letter label of `start + k`, also past `Z`.
+fn axis_label(labels: &[Ident], counting: &Counting, start: u16, skip_io: bool, k: usize) -> String {
+    if let Some(label) = labels.get(k) {
+        return label.as_str().to_owned();
+    }
+    let index = usize::from(start) + k;
+    match counting {
+        Counting::Numbers => index.to_string(),
+        Counting::Letters | Counting::Unknown(_) => {
+            letter_label(&axis_letters(skip_io).collect::<Vec<_>>(), index)
+        }
+    }
+}
+
 /// The label of column `k` (0-based) of `frame`, as the page draws it and the cell rule, Cell-at and Go to read it: the
-/// frame's own label, else the number `start_index + k`, also past the frame's labels.
+/// frame's own label, else counted from `start_index` as the columns count (numbers unless the frame says letters).
 pub fn column_label(frame: &FrameGrid, k: usize) -> String {
     let c = &frame.columns;
-    c.labels.get(k).map_or_else(
-        || (u32::from(c.start_index) + k as u32).to_string(),
-        |l| l.as_str().to_owned(),
-    )
+    axis_label(&c.labels, &c.counting, c.start_index, c.skip_io, k)
 }
 
 /// The label of row `k` (0-based) of `frame`, as the page draws it and the cell rule, Cell-at and Go to read it: the
-/// frame's own label, else the row letters `A … Z`, then `AA, AB …`, also past the frame's labels and past `Z`.
+/// frame's own label, else counted from `start_index` as the rows count (letters `A … Z`, then `AA, AB …`, unless the
+/// frame says numbers).
 pub fn row_label(frame: &FrameGrid, k: usize) -> String {
-    frame.rows.labels.get(k).map_or_else(
-        || letter_label(&row_letters(frame.rows.skip_io).collect::<Vec<_>>(), k),
-        |l| l.as_str().to_owned(),
-    )
+    let r = &frame.rows;
+    axis_label(&r.labels, &r.counting, r.start_index, r.skip_io, k)
 }
 
 /// `A … Z`, then `AA, AB …` (bijective base-n over `letters`).

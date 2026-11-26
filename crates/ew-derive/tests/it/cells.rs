@@ -511,6 +511,55 @@ fn explicit_labels_and_start_index() {
     assert_eq!(cell_str(&m, 0x103, mm(0, 26)), None);
 }
 
+/// Each axis is counted as its frame says (doc 06 §2.4, doc 09 §2.5): columns in letters from their first letter,
+/// skipping I and O and past Z; rows in numbers from their first number; and a frame whose rulers are not drawn
+/// prints no cell at all.
+#[test]
+fn each_axis_is_counted_as_its_frame_says_and_hidden_rulers_print_no_cell() {
+    let frame = |show: bool| {
+        json!({
+            "kind": "frame",
+            "sheet": {"width": 297_000_000, "height": 210_000_000},
+            "grid": {
+                "columns": {"count": 40, "counting": "letters", "start_index": 7, "skip_io": true,
+                    "width": {"num": 1_000_000, "den": 1}},
+                "rows": {"count": 6, "counting": "numbers", "start_index": 1, "height": {"num": 1_000_000, "den": 1}},
+                "ew.frame.show_grid": show,
+            },
+        })
+    };
+    let mut fx = Fx::new();
+    fx.lib_item("form", 0x600, frame(true));
+    fx.lib_item("form", 0x601, frame(false));
+    for (page, folio, form) in [(PAGE, 101, 0x600), (0x102, 102, 0x601)] {
+        fx.page(page, folio, None, "multi_line", &[], "P");
+        fx.record(page)["form"] = json!(uid(form));
+        fx.record(page)["grid"] = json!({"num": 1_000_000, "den": 1});
+    }
+    let m = fx.build();
+    let mm = |x: i64, y: i64| pt(x * 1_000_000, y * 1_000_000);
+    // Columns from the letter at index 7 (H), then J: I is skipped; rows from 1.
+    assert_eq!(cell_str(&m, PAGE, mm(0, 0)).as_deref(), Some("1H"));
+    assert_eq!(cell_str(&m, PAGE, mm(1, 5)).as_deref(), Some("6J"));
+    assert_eq!(
+        cell_str(&m, PAGE, mm(6, 0)).as_deref(),
+        Some("1P"),
+        "O skipped too"
+    );
+    // 24 letters without I and O: column 17 is index 24, past Z.
+    assert_eq!(cell_str(&m, PAGE, mm(16, 0)).as_deref(), Some("1Z"));
+    assert_eq!(cell_str(&m, PAGE, mm(17, 0)).as_deref(), Some("1AA"));
+    // The same frame with its rulers hidden: the point lies in the drawing area, and prints no cell.
+    assert_eq!(cell_str(&m, 0x102, mm(1, 5)), None);
+    let q = Q::new(&m);
+    let hidden = frame_grid(&q, id::<Page>(0x102)).expect("the grid stays");
+    assert_eq!(
+        ew_derive::cell_in_grid(&hidden, Grid::new(1_000_000, 1).unwrap(), mm(1, 5)).map(|c| c.to_string()),
+        Some("6J".to_owned()),
+        "the geometry is the grid's, for the layout commands"
+    );
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // Property test against an independent exact reference
 

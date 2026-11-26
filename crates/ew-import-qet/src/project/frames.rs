@@ -34,8 +34,8 @@ use ew_ids::Id;
 use ew_interop_api::{Code, Severity};
 use ew_mltext::Ident;
 use ew_schema::{
-    Align, Bounds, FormCell, FormDef, FormKind, FrameColumns, FrameGrid, FrameRows, ImagePrim, ItemMeta,
-    LibCopy, LibItem, Library, Overflow, Primitive, SheetSpec, SheetTransform, TextStyleSpec,
+    Align, Bounds, Counting, FormCell, FormDef, FormKind, FrameColumns, FrameGrid, FrameRows, ImagePrim,
+    ItemMeta, LibCopy, LibItem, Library, Overflow, Primitive, SheetSpec, SheetTransform, TextStyleSpec,
 };
 use ew_units::{Grid, Nm, Pt2};
 use serde_json::{Value, json};
@@ -333,11 +333,15 @@ fn frame(
             start_index: 1,
             width: px_grid(colsize)?,
             labels: Vec::new(),
+            counting: Counting::Numbers,
+            skip_io: false,
             extra: Default::default(),
         },
         rows: FrameRows {
             count: u16::try_from(rows).ok()?,
             labels: Vec::new(),
+            counting: Counting::Letters,
+            start_index: 0,
             skip_io: false,
             height: px_grid(rowsize)?,
             extra: Default::default(),

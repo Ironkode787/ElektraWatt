@@ -178,6 +178,10 @@ pub struct ItemValues {
 pub struct ItemOptions {
     /// The same-page "zone only" form (FR-XRF-025).
     pub zone_only: bool,
+    /// The target's page prints no cell (its frame does not draw its rulers, doc 06 §2.8): the row and column go
+    /// with the literal that separates them from the page (`page_only_tokens`). It wins over `zone_only`, which
+    /// would leave nothing.
+    pub page_only: bool,
     /// A structure prefix (`"+J-E-206"`), or `None`.
     pub prefix: Option<String>,
 }
@@ -215,10 +219,20 @@ fn push_value(out: &mut String, token: &XrefToken, values: &ItemValues) {
 /// Renders one item (an `ip` or `aux_to_main` format) for one target.
 ///
 /// `zone_only` drops the page parts (page, page index, function, location) with their separator, see
-/// `zone_only_item`; `prefix` names the target's structure in front of the first value (ignored for a
-/// zone-only item and for a format that names the structure itself, see [`names_structure`]).
+/// `zone_only_item`; `page_only` drops the cell parts, see `page_only_tokens`; `prefix` names the target's structure
+/// in front of the first value (ignored for a zone-only item and for a format that names the structure itself, see
+/// [`names_structure`]).
 #[must_use]
 pub fn render_item(tokens: &[XrefToken], values: &ItemValues, options: &ItemOptions) -> String {
+    if options.page_only {
+        let kept = page_only_tokens(tokens);
+        let options = ItemOptions {
+            page_only: false,
+            zone_only: false,
+            prefix: options.prefix.clone(),
+        };
+        return render_item(&kept, values, &options);
+    }
     if options.zone_only {
         return zone_only_item(tokens, values);
     }
@@ -286,6 +300,45 @@ fn zone_only_item(tokens: &[XrefToken], values: &ItemValues) -> String {
         }
     }
     out
+}
+
+/// The page-only form, the mirror of `zone_only_item`: every run of cell parts (a row, a column and the literals
+/// between them) is dropped together with its separator from the page. The separator is the literal right before
+/// the run when a page part stands before it (`"{page}-{row}{column}"` → `"103"`, `"({page}-{row}{column})"` →
+/// `"(103)"`); a run in front of the page takes the literal right after it (`"{row}{column}/{page}"` → `"103"`).
+fn page_only_tokens(tokens: &[XrefToken]) -> Vec<XrefToken> {
+    let is_cell_part = |t: &XrefToken| matches!(t, XrefToken::Row | XrefToken::Column);
+    let mut keep = vec![true; tokens.len()];
+    let mut i = 0;
+    while i < tokens.len() {
+        if !is_cell_part(&tokens[i]) {
+            i += 1;
+            continue;
+        }
+        let mut last = i;
+        let mut end = i;
+        while end < tokens.len() && (is_cell_part(&tokens[end]) || matches!(tokens[end], XrefToken::Lit(_))) {
+            if is_cell_part(&tokens[end]) {
+                last = end;
+            }
+            end += 1;
+        }
+        keep[i..=last].iter_mut().for_each(|k| *k = false);
+        if tokens[..i].iter().any(is_page_part) {
+            if i > 0 && matches!(tokens[i - 1], XrefToken::Lit(_)) {
+                keep[i - 1] = false;
+            }
+        } else if matches!(tokens.get(last + 1), Some(XrefToken::Lit(_))) {
+            keep[last + 1] = false;
+        }
+        i = last + 1;
+    }
+    tokens
+        .iter()
+        .zip(keep)
+        .filter(|(_, keep)| *keep)
+        .map(|(t, _)| t.clone())
+        .collect()
 }
 
 /// Whether the tokens name the structure explicitly (`{function}` or `{location}` present).
@@ -411,6 +464,7 @@ mod tests {
         };
         let o = ItemOptions {
             zone_only: true,
+            page_only: false,
             prefix: None,
         };
         item(format, &v, &o)
@@ -425,6 +479,7 @@ mod tests {
         };
         let o = ItemOptions {
             zone_only: false,
+            page_only: false,
             prefix: Some("+J-E-206".into()),
         };
         item(format, &v, &o)
@@ -454,12 +509,14 @@ mod tests {
         Prefixed(&'static str, &'static str, &'static str),
         /// Zone-only with the prefix `+J-E-206`, for page 1 cell H16: zone-only ignores the prefix.
         ZonePrefixed,
+        /// Page-only with [`values`], also zone-only when `true`: page-only wins.
+        PageOnly(bool),
     }
 
     /// Rendered item examples: (name, how, format, expected text).
     #[test]
     fn item_examples() {
-        use Render::{Plain, Prefixed, Zone, ZonePrefixed};
+        use Render::{PageOnly, Plain, Prefixed, Zone, ZonePrefixed};
         #[rustfmt::skip]
         let cases = [
             // EPLAN presets.
@@ -480,6 +537,14 @@ mod tests {
             // First value token is a row: the prefix goes in front of it.
             ("prefix before a row", Prefixed("102", "A", "1"), "[{row}]", "[+J-E-206/A]"),
             ("zone-only ignores the prefix", ZonePrefixed, "{page}-{row}{column}", "H16"),
+            // Page only: the cell goes with its separator from the page.
+            ("page-only brace preset", PageOnly(false), "{page}-{row}{column}", "102"),
+            ("page-only in brackets", PageOnly(false), "({page}-{row}{column})", "(102)"),
+            ("page-only eplan column", PageOnly(false), "/{page}.{column}", "/102"),
+            ("page-only full structure", PageOnly(false), "{function}{location}/{page}.{row}{column}", "=P01+J-E-2416/102"),
+            ("page-only cell first", PageOnly(false), "[{row}{column}/{page}]", "[102]"),
+            ("page-only cell split", PageOnly(false), "{page}:{row}.{column}", "102"),
+            ("page-only wins over zone-only", PageOnly(true), "{page}-{row}{column}", "102"),
             // The list token and Unicode.
             ("unicode literal", Plain, "∞ {page}", "∞ 102"),
             // A list token in an item format prints nothing.
@@ -495,6 +560,7 @@ mod tests {
                 ZonePrefixed => {
                     let o = ItemOptions {
                         zone_only: true,
+                        page_only: false,
                         prefix: Some("+J-E-206".into()),
                     };
                     let v = ItemValues {
@@ -504,6 +570,14 @@ mod tests {
                         ..ItemValues::default()
                     };
                     item(format, &v, &o)
+                }
+                PageOnly(zone_only) => {
+                    let o = ItemOptions {
+                        zone_only,
+                        page_only: true,
+                        prefix: None,
+                    };
+                    item(format, &values(), &o)
                 }
             };
             assert_eq!(got, expected, "case {name}");
@@ -573,6 +647,7 @@ mod tests {
         assert_eq!(plain(f), "=P01+J-E-2416/102.A1");
         let o = ItemOptions {
             zone_only: false,
+            page_only: false,
             prefix: Some("+X".into()),
         };
         assert_eq!(item(f, &values(), &o), "=P01+J-E-2416/102.A1");
@@ -694,7 +769,7 @@ d"
             let tokens = parse_format(&s);
             for zone_only in [false, true] {
                 for prefix in [None, Some("+J".to_string())] {
-                    let o = ItemOptions { zone_only, prefix };
+                    let o = ItemOptions { zone_only, page_only: false, prefix };
                     let _ = render_item(&tokens, &ItemValues::default(), &o);
                 }
             }
@@ -706,7 +781,7 @@ d"
         fn literal_formats_render_unchanged(s in "[^{}%]*") {
             let tokens = parse_format(&s);
             prop_assert_eq!(render_item(&tokens, &values(), &ItemOptions::default()), s.clone());
-            let o = ItemOptions { zone_only: true, prefix: None };
+            let o = ItemOptions { zone_only: true, page_only: false, prefix: None };
             prop_assert_eq!(render_item(&tokens, &values(), &o), s);
         }
 

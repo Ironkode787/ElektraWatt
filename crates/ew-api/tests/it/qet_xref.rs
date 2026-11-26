@@ -112,10 +112,13 @@ fn import() -> Imported {
 }
 
 fn import_with(arrow_label: &str) -> Imported {
+    import_text(project(arrow_label))
+}
+
+fn import_text(text: String) -> Imported {
     let lib = StarterLibrary::from_dir(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../../content"))
         .expect("the starter content");
-    let imported =
-        import_qet("xref.qet", project(arrow_label).into_bytes(), &lib).expect("an importable project");
+    let imported = import_qet("xref.qet", text.into_bytes(), &lib).expect("an importable project");
     assert!(imported.session.is_ok(), "{:?}", imported.session.as_ref().err());
     imported
 }
@@ -185,6 +188,38 @@ fn a_coil_and_its_contacts_print_each_others_positions() {
     let folio1 = shown(s, "1", &SlotKind::Xref);
     assert!(folio1.contains(&"2-D5\n2-F7".to_owned()), "{folio1:?}");
     let folio2 = shown(s, "2", &SlotKind::Xref);
+    assert_eq!(folio2.iter().filter(|t| *t == "(1-C3)").count(), 2, "{folio2:?}");
+}
+
+/// A folio whose border hides both header bands prints no cell (doc 06 §2.8, also in an imported project): a
+/// cross-reference into it prints the folio alone, one into a folio with its bands keeps the cell.
+#[test]
+fn a_cross_reference_into_a_folio_without_bands_prints_the_folio_alone() {
+    let text = project(INFO_LABEL);
+    let at = text.find(r#"<diagram order="2""#).expect("folio 2");
+    let (head, tail) = text.split_at(at);
+    let text = format!(
+        "{head}{}",
+        tail.replacen(
+            r#"displaycols="true" displayrows="true""#,
+            r#"displaycols="false" displayrows="false""#,
+            1
+        )
+    );
+    let imported = import_text(text);
+    let s = imported.session.as_ref().unwrap();
+    let folio1 = shown(s, "1", &SlotKind::Xref);
+    assert!(folio1.contains(&"2".to_owned()), "the report: {folio1:?}");
+    assert!(
+        folio1.contains(
+            &"2
+2"
+            .to_owned()
+        ),
+        "the coil's contacts: {folio1:?}"
+    );
+    let folio2 = shown(s, "2", &SlotKind::Xref);
+    assert!(folio2.contains(&"1-E8".to_owned()), "{folio2:?}");
     assert_eq!(folio2.iter().filter(|t| *t == "(1-C3)").count(), 2, "{folio2:?}");
 }
 

@@ -189,6 +189,21 @@
         }
       ]
     },
+    "Counting": {
+      "description": "How an axis of a frame grid is counted (doc 09 §2.5).",
+      "oneOf": [
+        {
+          "const": "numbers",
+          "description": "`0, 1, 2 …` from the first number.",
+          "type": "string"
+        },
+        {
+          "const": "letters",
+          "description": "`A … Z`, then `AA, AB …`, from the first letter.",
+          "type": "string"
+        }
+      ]
+    },
     "Dash": {
       "description": "A dash pattern scaled by the pen width (doc 07 §2.3).",
       "oneOf": [
@@ -400,15 +415,23 @@
           "minimum": 0,
           "type": "integer"
         },
+        "counting": {
+          "$ref": "#/$defs/Counting",
+          "description": "How the columns are counted; default numbers."
+        },
         "labels": {
-          "description": "Explicit labels; empty means numbers from `start_index`.",
+          "description": "Explicit labels; empty means labels counted from `start_index`.",
           "items": {
             "$ref": "#/$defs/Ident"
           },
           "type": "array"
         },
+        "skip_io": {
+          "description": "Letters skip I and O.",
+          "type": "boolean"
+        },
         "start_index": {
-          "description": "Number of the first column (0 on the QET-compatible frame).",
+          "description": "Index of the first column's label (0 on the QET-compatible frame): the number itself, or the letter at it.",
           "format": "uint16",
           "maximum": 65535,
           "minimum": 0,
@@ -466,20 +489,31 @@
           "minimum": 0,
           "type": "integer"
         },
+        "counting": {
+          "$ref": "#/$defs/Counting",
+          "description": "How the rows are counted; default letters."
+        },
         "height": {
           "$ref": "#/$defs/Grid",
           "description": "Row height as a rational step."
         },
         "labels": {
-          "description": "Explicit labels; empty means letters from A.",
+          "description": "Explicit labels; empty means labels counted from `start_index`.",
           "items": {
             "$ref": "#/$defs/Ident"
           },
           "type": "array"
         },
         "skip_io": {
-          "description": "Skip the letters I and O.",
+          "description": "Letters skip I and O.",
           "type": "boolean"
+        },
+        "start_index": {
+          "description": "Index of the first row's label: 0 is the letter A, or the number 0.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
         }
       },
       "required": [

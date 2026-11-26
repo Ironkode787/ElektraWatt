@@ -535,13 +535,18 @@ pub(super) fn cp_candidates(q: &Q, page: Id<Page>) -> BTreeSet<(Id<Function>, u1
     out
 }
 
-/// The cells of the entry at `pos` of `order` (see [`Session::page_cells`]).
+/// The cells of the entry at `pos` of `order` (see [`Session::page_cells`]); none on a frame whose rulers are not
+/// drawn, which prints no cell (`ew_derive::printed_cell`).
 fn cells_of(q: &Q, order: &PageOrderV, pos: usize) -> Option<PageCells> {
     let entry = &order.entries[pos];
     let PageRef::Drawn(p) = entry.page else {
         return None;
     };
-    let frame = q.get::<FrameGridOf>(p).as_ref().clone()?;
+    let frame = q
+        .get::<FrameGridOf>(p)
+        .as_ref()
+        .clone()
+        .filter(FrameGrid::shows_grid)?;
     let grid = q.pages().get(p)?.grid;
     let map = sheet_map(q, entry.page);
     let ip = q.get::<XrefSettingsOf>(()).ip.clone();
@@ -740,7 +745,7 @@ impl Session {
     }
 
     /// The frame cells of the page labelled `folio` ([`PageCells`]); `None` when no page has that folio or the page
-    /// has no frame grid.
+    /// has no frame grid or one whose rulers are not drawn.
     pub fn page_cells(&self, folio: &str) -> Option<PageCells> {
         let q = self.query();
         let order = q.get::<PageOrder>(());

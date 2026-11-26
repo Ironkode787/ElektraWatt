@@ -41,7 +41,7 @@
 use crate::common;
 
 use common::{Fx, id, uid};
-use ew_derive::{PairMode, Q, XrefKind, XrefRelationOf, XrefSettingsOf, XrefText, XrefTextOf};
+use ew_derive::{PairMode, Q, RepAnchorCell, XrefKind, XrefRelationOf, XrefSettingsOf, XrefText, XrefTextOf};
 use ew_ids::Id;
 use ew_model::{AnyRow, Entity, Model, ModelError, Op, Rev};
 use ew_schema::{Device, ExternalRef, FnRole, Function, LibDocument, Project, Record, Representation};
@@ -468,11 +468,32 @@ fn dangling_external_ref_prints_nothing_on_a_raw_model() {
     ));
 }
 
+/// A target outside the drawing area of a page with rulers prints `?` for its cell; a target on a page whose frame
+/// draws no rulers prints its page alone (doc 06 §2.8): a title page (the no-grid frame) and a page whose frame hides
+/// them.
 #[test]
-fn target_without_anchor_cell_prints_question_marks() {
+fn target_without_anchor_cell_prints_question_marks_or_its_page_alone() {
     let mut fx = base();
     // A title page has no frame grid.
     fx.page(pg(6), 6, None, "title_page", &[], "title");
+    // Page 7 prints on the default frame with its rulers hidden.
+    fx.lib_item(
+        "form",
+        0x600,
+        json!({
+            "kind": "frame",
+            "sheet": {"width": 297_000_000, "height": 210_000_000},
+            "grid": {
+                "header_band": {"num": 15_875_000, "den": 3},
+                "columns": {"count": 17, "width": {"num": 15_875_000, "den": 1}},
+                "rows": {"count": 8, "height": {"num": 63_500_000, "den": 3}},
+                "ew.frame.show_grid": false,
+            },
+        }),
+    );
+    fx.page(pg(7), 7, None, "multi_line", &[], "hidden rulers");
+    fx.record(pg(7))["form"] = json!(uid(0x600));
+    ip(&mut fx, 0x1103, pg(7), "S", "target", (1, 1));
     ip(&mut fx, 0x1100, pg(1), "S", "source", (1, 1));
     // Outside the frame (1 m to the right) on a framed page.
     fx.push(json!({
@@ -490,10 +511,13 @@ fn target_without_anchor_cell_prints_question_marks() {
     ip(&mut fx, 0x1102, pg(6), "S", "target", (1, 1));
     let m = fx.build();
     let q = Q::new(&m);
-    assert_eq!(text(&q, rep_of(0x1100)), "2-??, 6-??");
+    assert_eq!(text(&q, rep_of(0x1100)), "2-??, 6, 7");
     // The targets themselves print the source's cell.
     assert_eq!(text(&q, rep_of(0x1101)), format!("1-{}", cell(1, 1)));
     assert_eq!(text(&q, rep_of(0x1102)), format!("1-{}", cell(1, 1)));
+    assert_eq!(text(&q, rep_of(0x1103)), format!("1-{}", cell(1, 1)));
+    // Its own anchor prints no cell.
+    assert!(q.get::<RepAnchorCell>(rid(0x1103)).is_none());
 }
 
 /// Device 0x2000 with its main function 0x1001, which is not drawn.

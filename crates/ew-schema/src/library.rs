@@ -2060,16 +2060,22 @@ impl FrameGrid {
 pub struct FrameColumns {
     /// Number of columns.
     pub count: u16,
-    /// Number of the first column (0 on the QET-compatible frame).
+    /// Index of the first column's label (0 on the QET-compatible frame): the number itself, or the letter at it.
     #[serde(default, skip_serializing_if = "is_default")]
     pub start_index: u16,
     /// Column width as a rational step.
     #[schemars(with = "GridS")]
     pub width: Grid,
-    /// Explicit labels; empty means numbers from `start_index`.
+    /// Explicit labels; empty means labels counted from `start_index`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[schemars(with = "Vec<IdentS>")]
     pub labels: Vec<Ident>,
+    /// How the columns are counted; default numbers.
+    #[serde(default = "Counting::numbers", skip_serializing_if = "Counting::is_numbers")]
+    pub counting: Counting,
+    /// Letters skip I and O.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub skip_io: bool,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -2080,11 +2086,17 @@ pub struct FrameColumns {
 pub struct FrameRows {
     /// Number of rows.
     pub count: u16,
-    /// Explicit labels; empty means letters from A.
+    /// Explicit labels; empty means labels counted from `start_index`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[schemars(with = "Vec<IdentS>")]
     pub labels: Vec<Ident>,
-    /// Skip the letters I and O.
+    /// How the rows are counted; default letters.
+    #[serde(default = "Counting::letters", skip_serializing_if = "Counting::is_letters")]
+    pub counting: Counting,
+    /// Index of the first row's label: 0 is the letter A, or the number 0.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub start_index: u16,
+    /// Letters skip I and O.
     #[serde(default, skip_serializing_if = "is_false")]
     pub skip_io: bool,
     /// Row height as a rational step.
@@ -2093,6 +2105,41 @@ pub struct FrameRows {
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+/// How an axis of a frame grid is counted (doc 09 §2.5).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "Counting")]
+pub enum Counting {
+    /// `0, 1, 2 …` from the first number.
+    Numbers,
+    /// `A … Z`, then `AA, AB …`, from the first letter.
+    Letters,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+impl Counting {
+    /// The columns' default.
+    pub fn numbers() -> Counting {
+        Counting::Numbers
+    }
+
+    /// The rows' default.
+    pub fn letters() -> Counting {
+        Counting::Letters
+    }
+
+    fn is_numbers(&self) -> bool {
+        *self == Counting::Numbers
+    }
+
+    fn is_letters(&self) -> bool {
+        *self == Counting::Letters
+    }
 }
 
 /// One form cell: a label and a placeholder bound to project, page, party or derived values.
@@ -2694,6 +2741,7 @@ open_enum!(
     AccessoryPer,
     AlternativeKind,
     FormKind,
+    Counting,
     Overflow,
     WrapPolicy,
     MacroKind,

@@ -67,11 +67,13 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_rds::{Aspect, Designation, RdsSyntax};
-use ew_schema::{Device, ExternalRef, Function, FunctionKind, IpSpec, Page, RepType, Representation};
+use ew_schema::{
+    Device, ExternalRef, FrameGrid, Function, FunctionKind, IpSpec, Page, RepType, Representation,
+};
 use ew_units::Pt2;
 use serde_json::Value;
 
-use crate::cell::{Cell, RepAnchorCell, anchor_point};
+use crate::cell::{Cell, FrameGridOf, RepAnchorCell, anchor_point};
 use crate::ip::IpPairingQ;
 use crate::memo_keys::PartKey;
 use crate::pages::{PageOrder, PageOrderV, PageRef, folio_label};
@@ -749,6 +751,12 @@ impl TextCx<'_> {
             location: structure.render_aspect(Aspect::Location, &syntax),
         };
         let zone_only = self.settings.same_page == SamePage::ZoneOnly && t.page == self.source;
+        // A page that draws no rulers prints no cell: its target prints the page alone (doc 06 §2.8).
+        let page_only = !q
+            .get::<FrameGridOf>(t.page)
+            .as_ref()
+            .as_ref()
+            .is_some_and(FrameGrid::shows_grid);
         let prefix = if names_structure(tokens) {
             None
         } else {
@@ -761,7 +769,15 @@ impl TextCx<'_> {
             };
             (!p.is_empty()).then_some(p)
         };
-        render_item(tokens, &values, &ItemOptions { zone_only, prefix })
+        render_item(
+            tokens,
+            &values,
+            &ItemOptions {
+                zone_only,
+                page_only,
+                prefix,
+            },
+        )
     }
 }
 
