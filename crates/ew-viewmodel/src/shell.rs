@@ -756,8 +756,6 @@ pub struct ShellModel {
     form_target: Option<ew_api::output::Uuid>,
     /// The key of the field of the project's own that the open Rename… form renames.
     field_renamed: Option<String>,
-    /// What is chosen on the frame while Edit frame is active (doc 09 §3.9).
-    frame_choice: crate::tools::frame::FrameChoice,
     /// The title block's cell whose Shows asked New field of your own…: the field made is given to it.
     frame_field_cell: Option<usize>,
     /// The import and re-import cards and their jobs.
@@ -1239,7 +1237,6 @@ impl ShellModel {
             dialog: None,
             form_target: None,
             field_renamed: None,
-            frame_choice: Default::default(),
             frame_field_cell: None,
             import: projects::ImportState::default(),
             dialog_gen: 0,

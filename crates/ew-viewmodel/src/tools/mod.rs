@@ -731,6 +731,12 @@ pub trait Tool {
     fn layout_gesture(&self) -> Option<&layout::LayoutGesture> {
         None
     }
+
+    /// What is chosen on the page's frame while the frame is changed on the page (the Edit frame tool, doc 09 §3.9);
+    /// `None` for every other tool, so the window asks the tool instead of naming it.
+    fn frame_choice(&self) -> Option<&frame::FrameChoice> {
+        None
+    }
 }
 
 /// What a tool sees of the canvas: the prepared page, never a `World`.

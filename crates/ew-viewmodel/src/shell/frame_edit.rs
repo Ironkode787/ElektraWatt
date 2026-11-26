@@ -108,19 +108,18 @@ impl ShellModel {
 
     /// What is chosen on the frame while Edit frame is active; `None` while another tool is.
     pub fn frame_choice(&self) -> Option<&FrameChoice> {
-        (self.tools.tool.name() == "frame").then_some(&self.frame_choice)
+        self.tools.tool.frame_choice()
     }
 
     /// `frame.edit` (Page ▸ Frame ▸ Edit frame, a double click on the title block or the rulers, the title block's
     /// menu): the Edit frame tool on the page in view, or, while it is active, Done.
     pub(crate) fn act_frame_edit(&mut self) -> Outcome {
-        if self.tools.tool.name() == "frame" {
+        if self.frame_choice().is_some() {
             return self.dismiss_tool();
         }
         let Some(facts) = self.frame_facts() else {
             return Outcome::refused(key!("reason-frame-none"));
         };
-        self.frame_choice = FrameChoice::Frame;
         self.activate_tool(Box::new(FrameTool::new()));
         self.notify(self.frame_card(&facts), false);
         self.props.key = None;
@@ -154,7 +153,6 @@ impl ShellModel {
 
     /// Chooses `choice` on the frame (the tool's click, or `frame.choose` of a script): Properties shows it.
     pub(super) fn frame_choose(&mut self, choice: FrameChoice) -> Outcome {
-        self.frame_choice = choice.clone();
         let facts = self.frame_facts();
         let overlay = self
             .with_tool(|t, _| {
@@ -175,7 +173,7 @@ impl ShellModel {
     /// `frame.choose {cells?, rulers?}`: chooses cells of the title block by their index, the rulers, or (neither)
     /// the frame, as clicks on the page do.
     pub(crate) fn act_frame_choose(&mut self, p: &Map<String, Value>) -> Outcome {
-        if self.tools.tool.name() != "frame" {
+        if self.frame_choice().is_none() {
             return Outcome::refused(key!("reason-frame-tool-only"));
         }
         let choice = if p.get("rulers").and_then(Value::as_bool) == Some(true) {
