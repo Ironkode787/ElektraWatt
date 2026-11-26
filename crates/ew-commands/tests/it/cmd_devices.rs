@@ -530,6 +530,45 @@ fn a_typed_length_goes_when_a_placed_device_cuts_the_wire() {
     }
 }
 
+/// A device placed on a star's feed arm cuts every wire through it: the lengths typed on the branches, each its own
+/// wire's, go with the wires they measured (doc 13 §2.3), and the feed arm's two parts carry none.
+#[test]
+fn a_device_on_a_stars_feed_arm_leaves_no_branch_its_length() {
+    let j: ew_ids::Id<ew_schema::Junction> = id(0x4200);
+    let (feed, b1, b2): (
+        ew_ids::Id<Connection>,
+        ew_ids::Id<Connection>,
+        ew_ids::Id<Connection>,
+    ) = (id(0x4100), id(0x4101), id(0x4102));
+    let mut f = connection(
+        feed,
+        Some(PAGE_102),
+        cp(FN_102G1, 0),
+        ew_schema::Endpoint::Junction(j),
+    );
+    f.route = vec![pt(0, -MM10), pt(0, 2 * MM10)];
+    let mut one = connection(b1, Some(PAGE_102), ew_schema::Endpoint::Junction(j), cp(FN_T1, 1));
+    one.route = vec![pt(0, 2 * MM10), pt(MM10, 2 * MM10)];
+    one.overrides.length = Some(ew_units::Nm(300_000_000));
+    let mut two = connection(b2, Some(PAGE_102), ew_schema::Endpoint::Junction(j), cp(FN_T2, 1));
+    two.route = vec![pt(0, 2 * MM10), pt(-MM10, 2 * MM10)];
+    two.overrides.length = Some(ew_units::Nm(500_000_000));
+    let mut star = junction(j, PAGE_102, vec![feed, b1, b2]);
+    star.at = pt(0, 2 * MM10);
+    let model = mini_model_with(|r| {
+        r.push(Record::Connection(f.clone()));
+        r.push(Record::Connection(one.clone()));
+        r.push(Record::Connection(two.clone()));
+        r.push(Record::Junction(star.clone()));
+    });
+    let mut e = engine(model);
+    let r = e.execute(&place(PAGE_102, pt(0, 0), new_device("F"))).unwrap();
+    let second: ew_ids::Id<Connection> = created(&r, Kind::Connection)[0];
+    for c in [feed, second, b1, b2] {
+        assert_eq!(row(&e, c).overrides.length, None, "{c}");
+    }
+}
+
 /// A symbol dropped on the shared run of two wires of one pin (docs/design/06a-drafting.md §3.4) is refused in words:
 /// cut, the other wire would run on through its pins.
 #[test]

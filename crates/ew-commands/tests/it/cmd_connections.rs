@@ -1061,3 +1061,100 @@ fn define_potential_names_a_missing_record() {
         Err(CmdError::NotFound { .. })
     ));
 }
+
+/// W with a typed length of 400 mm, a bare end at `a` and a ring lug at `b` set by hand.
+fn model_with_measured_wire() -> Model {
+    let (p, mut records, _) = mini_project_parts();
+    let mut w = connection(W, Some(PAGE_102), cp(FN_102F2, 4), cp(FN_102F2, 5));
+    w.route = vec![pt(0, 0), pt(4 * G, 0)];
+    w.overrides.length = Some(ew_units::Nm(400_000_000));
+    w.overrides.end_a = serde_json::from_value(serde_json::json!({"treatment": "bare"})).unwrap();
+    w.overrides.end_b = serde_json::from_value(serde_json::json!({"treatment": "ring_lug"})).unwrap();
+    records.push(Record::Connection(w));
+    Model::from_records(p, records, library()).expect("the mini model plus a measured wire")
+}
+
+/// The treatment set by hand at an end of a connection: (`end_a`, `end_b`).
+fn hand_ends(e: &Engine, c: Id<Connection>) -> (Option<String>, Option<String>) {
+    let o = row(e, c).overrides;
+    let word = |x: Option<ew_schema::EndOverride>| {
+        x.and_then(|x| x.treatment)
+            .map(|t| serde_json::to_value(t).unwrap().as_str().unwrap().to_owned())
+    };
+    (word(o.end_a), word(o.end_b))
+}
+
+/// A wire's own values follow the wire (doc 13 §2.3), on a T: a wire drawn onto W makes W's part at `a` the junction's
+/// feed arm, which the new wire shares, so W's typed length and its end set by hand at `a` go to its part at `b`, which
+/// W alone uses, and the new wire inherits neither. When the new wire goes, the junction dissolves into W again, which
+/// keeps them, each end at its connection point.
+#[test]
+fn a_wires_own_values_follow_it_through_a_t() {
+    let mut e = engine(model_with_measured_wire());
+    let (j, new) = split_w(&mut e, false);
+    let second = row(&e, j).sequence[1];
+    assert_eq!(
+        row(&e, W).overrides.length,
+        None,
+        "the feed arm carries no one wire's length"
+    );
+    assert_eq!(hand_ends(&e, W), (None, None));
+    assert_eq!(row(&e, second).overrides.length, Some(ew_units::Nm(400_000_000)));
+    assert_eq!(
+        hand_ends(&e, second),
+        (Some("bare".into()), Some("ring_lug".into()))
+    );
+    assert_eq!(row(&e, new).overrides.length, None);
+    e.execute(&DeleteConnections {
+        connections: vec![new],
+    })
+    .expect("the branch deleted");
+    assert!(!has(&e, j), "the junction dissolves");
+    let w = row(&e, W);
+    assert_eq!((w.a.clone(), w.b.clone()), (cp(FN_102F2, 4), cp(FN_102F2, 5)));
+    assert_eq!(w.overrides.length, Some(ew_units::Nm(400_000_000)));
+    assert_eq!(hand_ends(&e, W), (Some("bare".into()), Some("ring_lug".into())));
+}
+
+/// The same on a chain: a junction of two members of one wire, the member that is removed carrying the wire's own
+/// values, gives them to the kept one, each end at its connection point, whichever way round the two are drawn.
+#[test]
+fn a_dissolving_chain_keeps_the_removed_members_values() {
+    let (p, mut records, _) = mini_project_parts();
+    let j: Id<Junction> = id(0x4200);
+    let (first, second): (Id<Connection>, Id<Connection>) = (id(0x4101), id(0x4102));
+    let mut a = connection(first, Some(PAGE_102), cp(FN_102F2, 4), Endpoint::Junction(j));
+    a.route = vec![pt(0, 0), pt(2 * G, 0)];
+    // Drawn from its far end towards the junction: its `b` is the junction.
+    let mut b = connection(second, Some(PAGE_102), cp(FN_102F2, 5), Endpoint::Junction(j));
+    b.route = vec![pt(4 * G, 0), pt(2 * G, 0)];
+    b.overrides.length = Some(ew_units::Nm(250_000_000));
+    b.overrides.end_a = serde_json::from_value(serde_json::json!({"treatment": "ring_lug"})).unwrap();
+    b.overrides.end_b = serde_json::from_value(serde_json::json!({"treatment": "bare"})).unwrap();
+    let mut t = connection(id(0x4103), Some(PAGE_102), cp(FN_T2, 1), Endpoint::Junction(j));
+    t.route = vec![pt(2 * G, 2 * G), pt(2 * G, 0)];
+    records.push(Record::Connection(a));
+    records.push(Record::Connection(b));
+    records.push(Record::Connection(t));
+    let mut jr = junction(j, PAGE_102, vec![first, second, id(0x4103)]);
+    jr.at = pt(2 * G, 0);
+    records.push(Record::Junction(jr));
+    let mut e = engine(Model::from_records(p, records, library()).expect("a T"));
+    e.execute(&DeleteConnections {
+        connections: vec![id(0x4103)],
+    })
+    .expect("the branch deleted");
+    assert!(!has(&e, second));
+    let kept = row(&e, first);
+    assert_eq!(
+        (kept.a.clone(), kept.b.clone()),
+        (cp(FN_102F2, 4), cp(FN_102F2, 5))
+    );
+    assert_eq!(kept.overrides.length, Some(ew_units::Nm(250_000_000)));
+    // The removed member's end at -102F2:5 (its `a`) is the kept one's `b`; its end through the junction, at -102F2:4,
+    // the kept one's `a`.
+    assert_eq!(
+        hand_ends(&e, first),
+        (Some("bare".into()), Some("ring_lug".into()))
+    );
+}

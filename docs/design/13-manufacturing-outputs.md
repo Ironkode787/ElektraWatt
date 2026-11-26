@@ -167,17 +167,18 @@ pub struct EndOverride {                      // WireOverrides.end_a and .end_b:
 }
 ```
 
-- **An end set by hand belongs to one wire** and lives on its first connection no other wire stands for (the carrier,
-  else its constituents in path order): `end_a` holds the end reached through that connection's endpoint `a`, `end_b`
-  through `b`, however the wire reads and whatever star or chain reaches the clamp; two wires at one clamp are two
-  ends. A re-route, the loss of a sibling and a turned-round wire leave each end with its CP; a split keeps it with the
-  part that keeps its endpoint. Reset clears it.
+- **An end set by hand belongs to one wire** and lives on a connection no other wire stands for (an edit writes the
+  first; one stored on another is read and reset there): `end_a` holds the end reached through that endpoint `a`,
+  `end_b` through `b`; two wires at one clamp are two ends. **A wire's own values follow the wire**: a re-route or a
+  turn leaves an end with its CP, a split with the part that keeps its endpoint; a wire drawn onto it moves its length
+  and its end at `a` off the new feed arm; a dissolving junction gives the kept member what the removed one held.
+  Reset clears it.
 - **A typed length** is `WireOverrides.length` ([03](03-domain-model.md) §9); the value of the carrier wins, as for
   every override of a physical wire. A cell of a wire's row in the Connections table (its length, colour or
   cross-section) sets one connection of that wire which no other wire stands for: the carrier where it is the wire's
   own, else the wire's first such connection; never a star's feed arm or a chain's arm another wire shares. A bridge
   row has no Length cell to type in. A device placed on a wire cuts it into two wires that nobody measured: neither
-  keeps a typed length, and the list prints both without one until a length is typed.
+  keeps a typed length.
 - The layout's reserve ([12](12-panel-layout.md) §9) joins `WorkshopSettings` with the lengths the layout computes.
 - **Nothing about production status is authored in the project.** Status, actual lengths and technician actions live
   in the order folder (§11.3); the project format stays free of timestamps (ARCH §7.3).

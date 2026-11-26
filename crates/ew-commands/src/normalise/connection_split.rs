@@ -286,6 +286,67 @@ impl Normaliser for ConnectionSplit {
     }
 }
 
+/// The rule every normaliser that splits, merges or removes a connection follows (doc 13 §2.3): **a wire's own values
+/// follow the wire.** `from`'s overrides that `to` does not set go to `to`, which carries the wire on where `from` does
+/// not (any more) stand for it alone; with `take`, `from` gives them up. `ends` says where `from`'s `end_a` and `end_b`
+/// land on `to` (`Some(true)`: its `end_a`; `None`: nowhere), each end staying with its connection point. With `all`
+/// every member of the overrides goes (a junction's member that is removed); without, only the wire's measured length
+/// and its ends set by hand (a split, whose two parts are drawn alike).
+pub(crate) fn follow_the_wire(
+    tx: &mut TxBuilder<'_>,
+    from: Id<Connection>,
+    to: Id<Connection>,
+    ends: [Option<bool>; 2],
+    all: bool,
+    take: bool,
+) -> Result<(), CmdError> {
+    let Some(source) = tx.get::<Connection>(from).map(|c| c.overrides.clone()) else {
+        return Ok(());
+    };
+    tx.update::<Connection>(to, |c| {
+        let o = &mut c.overrides;
+        let fill = |slot: &mut Option<ew_schema::EndOverride>, value: &Option<ew_schema::EndOverride>| {
+            if slot.is_none() {
+                slot.clone_from(value);
+            }
+        };
+        for (i, at_a) in ends.into_iter().enumerate() {
+            let value = if i == 0 { &source.end_a } else { &source.end_b };
+            match at_a {
+                Some(true) => fill(&mut o.end_a, value),
+                Some(false) => fill(&mut o.end_b, value),
+                None => {}
+            }
+        }
+        if o.length.is_none() {
+            o.length = source.length;
+        }
+        if all {
+            o.csa = o.csa.take().or_else(|| source.csa.clone());
+            o.colour = o.colour.take().or_else(|| source.colour.clone());
+            o.wire_part = o.wire_part.take().or_else(|| source.wire_part.clone());
+            o.insulation = o.insulation.take().or_else(|| source.insulation.clone());
+            o.function = o.function.take().or_else(|| source.function.clone());
+        }
+    })?;
+    if take {
+        tx.update::<Connection>(from, |c| {
+            let o = &mut c.overrides;
+            o.length = None;
+            for (i, at) in ends.into_iter().enumerate() {
+                if at.is_some() {
+                    if i == 0 {
+                        o.end_a = None;
+                    } else {
+                        o.end_b = None;
+                    }
+                }
+            }
+        })?;
+    }
+    Ok(())
+}
+
 /// Whether two endpoints are the same.
 pub(crate) fn same_endpoint(a: &Endpoint, b: &Endpoint) -> bool {
     match (EndpointKey::of(a), EndpointKey::of(b)) {

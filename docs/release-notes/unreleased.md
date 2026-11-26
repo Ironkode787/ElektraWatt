@@ -293,3 +293,7 @@ change here.
   clamp) the Length, end, part and marker rows are read-only and say "several wires share this stretch: set a wire's
   own values in the Connections table". They showed the first wire's values there and wrote them on the shared
   stretch, for every wire through it.
+- behaviour-change: A wire's own values follow the wire. When a junction dissolves (a T loses a branch), the wire
+  keeps the length typed on it and its ends set by hand, and the value of every other member the removed connection
+  held, each end at its clamp; they went with the removed branch. A wire drawn onto a wire leaves the new branch none
+  of the old wire's typed length or its end set by hand, which stay the old wire's.

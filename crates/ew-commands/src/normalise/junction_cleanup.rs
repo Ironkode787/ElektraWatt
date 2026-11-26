@@ -11,7 +11,9 @@
 //! by the number of connections ending at it:
 //!
 //! - **two**: the junction dissolves. The kept member keeps its ID, its number and its overrides, and takes
-//!   the other member's far endpoint and route; the other member is removed (and replaced by the kept one
+//!   the other member's far endpoint and route, and what the other member held of the wire's own values that it does
+//!   not set itself, each end with its connection point (`connection_split::follow_the_wire`); the other member is
+//!   removed (and replaced by the kept one
 //!   in the sequence of a junction at its far end and in the wire markers that list it). The kept member is
 //!   the one whose number is not `Unassigned`, so an assigned or frozen number is never dropped silently; if
 //!   both carry the same number, or neither carries one, it is the member listed first in the junction's
@@ -37,7 +39,7 @@ use ew_units::Pt2;
 
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
-use crate::normalise::connection_split::same_endpoint;
+use crate::normalise::connection_split::{follow_the_wire, same_endpoint};
 use crate::tx::TxBuilder;
 use ew_l10n::Text;
 
@@ -249,8 +251,18 @@ fn dissolve(
         towards.reverse();
         merged.route = join(towards, kept.route.clone());
     }
-    remove_connection(tx, gone, Some(keep))?;
+    // The removed member's own values go to the kept one (the wire's values follow the wire): its end beyond the
+    // junction lands where the kept member met the junction, its end through the junction on the kept member's far side.
+    let kept_meets_at_b = kept.b == Endpoint::Junction(j);
+    let other_meets_at_a = other.a == Endpoint::Junction(j);
+    let ends = if other_meets_at_a {
+        [Some(kept_meets_at_b), Some(!kept_meets_at_b)]
+    } else {
+        [Some(!kept_meets_at_b), Some(kept_meets_at_b)]
+    };
     tx.put(merged);
+    follow_the_wire(tx, gone, keep, ends, true, false)?;
+    remove_connection(tx, gone, Some(keep))?;
     if let Endpoint::Junction(far) = far_other {
         tx.update::<Junction>(far, |f| {
             if !f.sequence.contains(&keep) {

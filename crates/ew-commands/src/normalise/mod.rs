@@ -57,6 +57,7 @@ pub use bound_texts::BoundTexts;
 pub use bus_nets::BusNets;
 pub use bus_ports::BusPorts;
 pub use channel_instantiation::ChannelInstantiation;
+pub(crate) use connection_split::follow_the_wire;
 pub use connection_split::{ConnectionSplit, split_connection};
 
 pub use drives_link::DrivesLink;

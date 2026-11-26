@@ -111,6 +111,10 @@ pub(crate) fn split_at(
         false,
     )?;
     tx.update::<Junction>(junction, |j| j.sequence = vec![connection, second, new_wire])?;
+    // The kept part is the junction's feed arm, which the new wire shares: the split wire's own values (its typed
+    // length, its end set by hand at `a`, reached through the junction from the second part) go to the second part,
+    // which only it uses; the new branch inherits none of them.
+    crate::normalise::follow_the_wire(tx, connection, second, [Some(true), None], false, true)?;
     Ok(junction)
 }
 
