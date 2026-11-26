@@ -130,6 +130,7 @@ pub fn blank_page(page: u128) -> PageView {
         structure_boxes: Vec::new(),
         panel: None,
         strip_tags: Vec::new(),
+        function_texts: Vec::new(),
         knockouts: Vec::new(),
         bridges: Vec::new(),
         draft: Default::default(),

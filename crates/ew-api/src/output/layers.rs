@@ -10,7 +10,7 @@
 //! | [`FrameLayer`] | [`Layer::Frame`] | `page_frame`, `page_bindings` (`title_block(page)`, the date format) |
 //! | [`SymbolsLayer`] | [`Layer::Symbols`] | `page_reps`, `page_cp_targets`, `assembly_break_marks`, `page_grid` (the pen of the break marks and graphics), the page items and structure boxes without texts |
 //! | [`WiresLayer`] | [`Layer::Wires`] | `page_reps`, `page_connections`, `page_junctions`, `page_grid`, `page_frame` (the page rectangle), `page_knockouts` (the texts its lines are cut round, [`PageKnockoutsOf`]), the bridges of the strips its terminals belong to (`page_bridges`) |
-//! | [`LabelsLayer`] | [`Layer::Labels`] | `page_reps`, `page_slots`, `page_connections`, `page_junctions`, `page_grid` (the step of a black box's caption), `page_frame`, the page items with texts, the structure boxes with captions the strip tags of terminals drawn alone (`page_strip_tags`), the valve cells, the plug notes and the strips' bridges (for the layout's page, `ew_scene::page::LayerList::draft`); on a panel-layout page also the placement labels (`panel.rs`) |
+//! | [`LabelsLayer`] | [`Layer::Labels`] | `page_reps`, `page_slots`, `page_connections`, `page_junctions`, `page_grid` (the step of a black box's caption), `page_frame`, the page items with texts, the structure boxes with captions the strip tags of terminals drawn alone (`page_strip_tags`), the function texts no slot prints (`page_function_texts`), the valve cells, the plug notes and the strips' bridges (for the layout's page, `ew_scene::page::LayerList::draft`); on a panel-layout page also the placement labels (`panel.rs`) |
 //! | [`TablesLayer`] | [`Layer::Tables`] | `page_frame` (the sheet map), `page_table` or `page_embedded` |
 //! | [`SurfaceLayer`] | [`Layer::Surface`] | the surface outlines of the page's surface view (`panel.rs`) |
 //! | [`CarriersLayer`] | [`Layer::Carriers`] | the carriers of the page's surface view and its placement labels, which the carriers are cut around (`panel.rs`) |
@@ -40,8 +40,8 @@ use ew_units::Pt2;
 use super::panel::{Parts, panel_view};
 use super::view::{
     PageBindingsOf, PageConnectionsOf, PageCpTargetsOf, PageEmbeddedOf, PageFrameOf, PageJunctionsOf,
-    PageRepsOf, PageSlotsOf, PageTableOf, page_boxes, page_break_marks, page_bridges, page_grid, page_items,
-    page_plug_notes, page_strip_tags, page_uuid, page_valve_cells, page_valve_glyphs,
+    PageRepsOf, PageSlotsOf, PageTableOf, page_boxes, page_break_marks, page_bridges, page_function_texts,
+    page_grid, page_items, page_plug_notes, page_strip_tags, page_uuid, page_valve_cells, page_valve_glyphs,
 };
 
 /// One layer of one page: the display list in page coordinates, the symbol geometry its instances name and the
@@ -94,6 +94,7 @@ fn base_view(page: PageRef) -> PageView {
         structure_boxes: Vec::new(),
         panel: None,
         strip_tags: Vec::new(),
+        function_texts: Vec::new(),
         knockouts: Vec::new(),
         bridges: Vec::new(),
         draft: ew_scene::page::DraftFacts::default(),
@@ -342,7 +343,10 @@ fn view_of(q: &Q, page: PageRef, parts: ViewParts) -> Option<PageView> {
     match parts.reps {
         Form::No => {}
         Form::Plain => v.reps = (*q.get::<PageRepsOf>(p)).clone(),
-        Form::Full => v.reps = reps_with_slots(q, p),
+        Form::Full => {
+            v.reps = reps_with_slots(q, p);
+            v.function_texts = page_function_texts(q, p);
+        }
     }
     if parts.connections {
         v.connections = (*q.get::<PageConnectionsOf>(p)).clone();

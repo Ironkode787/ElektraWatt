@@ -671,6 +671,7 @@ impl Builder<'_> {
             }
         }
         self.strip_tags(view, &mut ctx);
+        self.function_texts(view, &mut ctx);
         self.connection_texts(view, &polylines, &mut ctx);
         self.item_labels(view, &mut ctx);
         // The marks as the layout draws them from the routes, so that a plan's page and the page stored agree.
@@ -931,6 +932,35 @@ impl Builder<'_> {
                 Owner::Part(PartId(rep.id.as_uuid())),
                 STRIP_TAG,
                 LabelKind::StripTag,
+            );
+            self.label(ctx, text, owner, origin, false, false, None);
+        }
+    }
+
+    /// The function texts no slot prints ([`PageView::function_texts`]), by representation ID: each a label of its
+    /// representation with the places of a path's function text, in a function-text slot's style.
+    fn function_texts(&self, view: &PageView, ctx: &mut Ctx<'_>) {
+        let mut texts: Vec<_> = view.function_texts.iter().collect();
+        texts.sort_by_key(|t| t.rep);
+        for t in texts {
+            let Some(rv) = view.reps.iter().find(|r| r.rep.id == t.rep) else {
+                continue;
+            };
+            let rep = &rv.rep;
+            let style_key = symbol::default_style_key(rv.terminal, &SlotKind::FunctionText);
+            let text = Text::plain(
+                &t.text,
+                rep.pos,
+                Angle2::ZERO,
+                Align::TopLeft,
+                style_key,
+                EntityRef(rep.id.as_uuid()),
+            );
+            let origin = ctx.origins.get(&rep.id.as_uuid()).copied().unwrap_or_default();
+            let owner = (
+                Owner::Part(PartId(rep.id.as_uuid())),
+                FUNCTION_TEXT,
+                LabelKind::PathFunction,
             );
             self.label(ctx, text, owner, origin, false, false, None);
         }
@@ -1283,6 +1313,9 @@ fn follow_mark(ctx: &mut Ctx<'_>, mark: Mark, at: MarkAt, pieces: &[(Anchor, Rec
 
 /// The label number of a strip tag at its terminal (past every slot index).
 const STRIP_TAG: u32 = 1 << 16;
+
+/// The label number of a function text no slot prints (past every slot index and the strip tag's).
+const FUNCTION_TEXT: u32 = STRIP_TAG + 1;
 
 /// The pin of a representation that slot `CpDesignation(idx)` names: its symbol CP `idx`'s function CP.
 fn designated_pin(rep: &ew_schema::Representation, def: &ew_schema::SymbolDef, idx: u16) -> Option<PinId> {

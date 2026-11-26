@@ -43,6 +43,10 @@ stand over its tag.
 | Wire number, tube tag | along the wire: on a vertical stretch right of the line, turned to read from the bottom; on a horizontal stretch above the line. Tried on each straight stretch at least the text's length plus two steps long: first level with the number of the parallel wire beside it that is already placed, then at the middle of the longest stretch, then at its quarters, then on the other side of the line | 5 |
 | Type text of a cable mark; the cable's tag | the type left of the row of ticks, the tag right of it; both right; both left | 5 |
 
+A device's function text that no slot of its symbol prints (the symbol has no function-text slot, or its slot is
+hidden) is a label of each representation that prints the device's tag, with the places of a path's function text,
+in a function-text slot's style; a terminal prints its function text as its label instead.
+
 The texts of one part on one side are a block: they keep their order and stand line under line. Where tags of a
 row are wider than the row's pitch, every second one takes its "one line lower" place: two rows, as a
 draughtsman staggers them.

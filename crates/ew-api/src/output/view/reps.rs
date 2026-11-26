@@ -559,6 +559,49 @@ pub fn page_strip_tags(q: &Q, page: Id<Page>) -> Vec<StripTagView> {
     out
 }
 
+/// `page_function_texts(page)`: the function texts on a drawn page that no slot prints, by representation ID: each
+/// representation that prints its device's tag (`ew_derive::tag_slot_shown`), of a device with a function text, whose
+/// symbol shows no function-text slot (it has none, or it is hidden) prints the text where the text placer places a
+/// path's function text. A terminal, which prints its function text as its label, an interruption point and a strip
+/// segment or contact image print none.
+pub fn page_function_texts(q: &Q, page: Id<Page>) -> Vec<FunctionTextView> {
+    let (reps, functions, devices, symbols) = (q.reps(), q.functions(), q.devices(), q.symbols());
+    let mut out = Vec::new();
+    for rid in q.idx().reps_by_page(page) {
+        let Some(rep) = reps.get(rid) else { continue };
+        if matches!(rep.rep_type, RepType::StripSegment | RepType::ContactImage) {
+            continue;
+        }
+        let Some(device) = rep
+            .functions
+            .first()
+            .and_then(|f| functions.get(*f))
+            .and_then(|f| f.device)
+            .and_then(|d| devices.get(d))
+        else {
+            continue;
+        };
+        let Some(def) = symbols.get(rep.symbol).map(|s| &s.item) else {
+            continue;
+        };
+        let text = neutral(&device.function_text);
+        let slotted = def.text_slots.iter().enumerate().any(|(i, s)| {
+            s.kind == SlotKind::FunctionText
+                && u16::try_from(i).is_ok_and(|i| ew_derive::slot_shown(rep, def, i))
+        });
+        if text.is_empty()
+            || slotted
+            || device.aspects.terminal.is_some()
+            || ew_derive::tag_slot_shown(rep, def).is_none()
+        {
+            continue;
+        }
+        out.push(FunctionTextView { rep: rid, text });
+    }
+    out.sort_by_key(|t| t.rep);
+    out
+}
+
 /// The terminals a strip-segment representation draws (see the module documentation); empty for any other
 /// representation. The page order is read only for a strip segment.
 fn segment_terminals(q: &Q, rep: &Representation) -> Vec<SegmentTerminal> {

@@ -7,7 +7,7 @@
 //! the strip; `tag_print` PerPage prints a strip's tag at its first segment on each page. The sample's records, edited
 //! before the session opens: strip -X1011's terminals stand alone on 101; two segments of strip -X1031 are added on
 //! page 103 beside its terminals drawn alone. Where a segment draws its terminals' connection points: the page tables
-//! and the page's CPs of a strip drawn by its segments alone.
+//! and the page's CPs of a strip drawn by its segments alone. A function text no slot prints is drawn with its symbol's texts.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -485,6 +485,27 @@ fn a_strip_drawn_by_its_segments_draws_its_terminals_cps_on_both_sides() {
         assert!(
             top.0 == bottom.0 && top.1 < bottom.1,
             "side 2 below side 1: {top:?} {bottom:?}"
+        );
+    }
+}
+
+/// FT-2209 (b): a function text typed in Properties is drawn where no slot prints it. The push button -102S1's symbol
+/// has no function-text slot, the lamp -102E1's has one, hidden: each prints its function text among its texts on the
+/// page, once; a terminal prints its own as its label and nothing more.
+#[test]
+fn a_function_text_no_slot_prints_is_drawn_with_its_symbol_s_texts() {
+    let mut g = Sample::new();
+    g.set_function_text("-102S1", "Start conveyor");
+    g.set_function_text("-102E1", "Conveyor running");
+    let reps = rep_ids(&mut g, &["-102S1", "-102E1"]);
+    let s = g.session();
+    let texts = texts(&s, 102);
+    for (rep, text) in reps.iter().zip(["Start conveyor", "Conveyor running"]) {
+        let printed = texts.get(rep).cloned().unwrap_or_default();
+        assert_eq!(
+            printed.iter().filter(|t| *t == text).count(),
+            1,
+            "{text}: {printed:?}"
         );
     }
 }
