@@ -49,6 +49,7 @@ WP-S1.35,S1,"Actuators and their sensors: mounted sensors, wired or plugged, the
 WP-S1.36,S1,"Tubes for the workshop: size in the tool, numbering, estimated lengths, fittings, cut list, labels",M5,M5,,1.0,2.5,3.5,5,WP-S1.25 WP-S2.13,,FR-FLU-011 FR-FLU-013 FR-FLU-040 FR-FLU-041 FR-FLU-042 FR-FLU-046,AC-32 AC-43,Core developer
 WP-S1.37,S1,Air consumption and force,M5,M5,,1.0,2,3,4.5,WP-S1.35 WP-S1.36,,FR-FLU-044 FR-FLU-045 FR-FLU-046,AC-43,Core developer
 WP-S1.38,S1,"Parts 1.0, second part: classification, quality level, commercial data and the order list, library lint, render and pack",M6,M6,,1.0,2.5,3.5,5,WP-S1.28,,FR-PRT-018 FR-PRT-019 FR-PRT-021 FR-PRT-025 FR-PRT-032,,Core developer
+WP-S1.39,S1,"One place for parts: adding, changing and viewing a part of every kind, with its symbol",M4,M4,,1.0,,,,WP-S1.28 WP-S2.10,,,,Core developer
 WP-S2.01,S2,"Application shell, first run and company-standard wizard UI",M-PP,M-PP,,MVP,4,5.5,8.5,WP-S1.04,,FR-UI-001 FR-UI-002 FR-UI-030 FR-UI-031 FR-UI-033 FR-UI-034 FR-UI-038 FR-UI-049 NFR-PERF-02,NFR-PERF-02 NFR-UX-04,UI developer
 WP-S2.02,S2,2D canvas renderer (ew-render2d) and GPU-less fallback,M-PP,M-PP,,MVP,3,4.5,7,WP-S3.01,,FR-UI-027 FR-UI-028 FR-UI-043 NFR-PERF-04 NFR-PERF-06 NFR-PLAT-02 NFR-PLAT-03,NFR-PERF-06 NFR-PLAT-03,UI developer
 WP-S2.03,S2,"Viewer, view models and canvas tool framework",M-PP,M-PP,,MVP,4.5,6.5,10,WP-S2.01 WP-S2.02 WP-S1.08,,FR-UI-015 FR-UI-016 FR-UI-018 FR-UI-019 FR-UI-035 FR-UI-039 FR-PAG-024 FR-XRF-019 NFR-A11Y-01,AC-28,UI developer
