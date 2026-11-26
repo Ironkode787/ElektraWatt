@@ -58,3 +58,41 @@ fn ten_columns_and_six_rows_preview_the_wire_numbers_they_renumber() {
     );
     assert!(diff.wires.iter().all(|w| w.before != w.after), "{:?}", diff.wires);
 }
+
+/// A page that prints the frame without the grid because it names no frame and the project keeps no frame defaults (doc
+/// 09 §3.8) follows a first change of its title block: after the fork it prints the project's own copies, never the
+/// program's left unused.
+#[test]
+fn a_page_without_frame_defaults_follows_the_fork_of_its_frame() {
+    let mut s = crate::common::sample();
+    crate::common::run_cmd(
+        &mut s,
+        "project.settings.set",
+        json!({ "member": "frames", "value": {} }),
+    );
+    let before = s.frame_facts("1").expect("the title page's frame");
+    assert!(!before.frame_local && !before.block_local, "the starter forms");
+    let mut item = before.block_item.clone().expect("its title block");
+    item["cells"][0]["label"] = json!("Changed:");
+    // Forks whose copies sort after the program's, so that no order of the copies finds them first by chance.
+    let project = s.query().project().id.as_uuid();
+    let forks: Vec<String> = (1u128..)
+        .map(ew_ids::Uuid::from_u128)
+        .filter(|item| ew_ids::v5::lib_copy_id::<()>(project, *item).as_uuid() > before.frame)
+        .take(before.block_forks.len())
+        .map(|u| u.to_string())
+        .collect();
+    crate::common::run_cmd(
+        &mut s,
+        "form.edit",
+        json!({"copy": before.block.expect("the block").to_string(), "form": item, "forks": forks}),
+    );
+    let after = s.frame_facts("1").expect("the title page's frame");
+    assert!(after.frame_local, "the page prints the frame's fork");
+    assert!(after.block_local, "and the block's fork");
+    assert!(
+        after.cells[0].printed.starts_with("Changed:"),
+        "{}",
+        after.cells[0].printed
+    );
+}

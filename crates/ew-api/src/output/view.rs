@@ -247,11 +247,9 @@ fn form(q: &Q, id: Id<FormDef>) -> Option<Arc<FormDef>> {
     q.forms().get(id).map(|f| Arc::new(f.item.clone()))
 }
 
+/// The form that stands for the starter form `key` ([`ew_derive::starter_form`]).
 fn form_by_key(q: &Q, key: &str) -> Option<Arc<FormDef>> {
-    q.forms()
-        .iter()
-        .find(|(_, f)| f.item.meta.key.as_ref().is_some_and(|k| k.as_str() == key))
-        .map(|(_, f)| Arc::new(f.item.clone()))
+    ew_derive::starter_form(q, key).and_then(|id| form(q, id))
 }
 
 /// `page_frame(page)`: the frame form of a page of the page order and its title block (see the module

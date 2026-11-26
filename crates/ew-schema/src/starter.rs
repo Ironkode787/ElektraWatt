@@ -35,6 +35,15 @@ pub fn edition_of(key: &str) -> &str {
     key.split('@').next().unwrap_or(key)
 }
 
+/// The starter form `form` stands for (doc 09 §3.9): the key of the starter form it is or was made from. A copy keeps
+/// its item's `meta.key` when the first change forks a starter, when a page or a frame is given a copy of its own and in a
+/// template's forms made so, so a copy made from a starter stands for that starter. `None` for a form of no starter
+/// (a QElectroTech diagram's frame, a key of no starter).
+pub fn form_stands_for(form: &crate::FormDef) -> Option<&'static str> {
+    let key = form.meta.key.as_ref()?.as_str();
+    KEYS.iter().copied().find(|k| *k == key)
+}
+
 /// Declares each key as a constant and [`KEYS`] as the list of them all.
 macro_rules! keys {
     ($($(#[doc = $doc:literal])* $name:ident = $key:literal;)*) => {

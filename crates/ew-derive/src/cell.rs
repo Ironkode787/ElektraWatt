@@ -226,7 +226,7 @@ pub fn frame_form_of(
 
 /// The held frame form a page of the page order prints on, by its ID (the page output's, which the Pages navigator
 /// names): a drawn page's own or its type's default, a generated page's block's, a section divider's default, else the
-/// no-grid frame; `None` when the project holds none of them.
+/// copy that stands for the no-grid frame ([`starter_form`]); `None` when the project holds none of them.
 pub fn page_frame_form(q: &Q, key: &PageRef) -> Option<Id<FormDef>> {
     let own = match *key {
         PageRef::Drawn(p) => q
@@ -236,18 +236,30 @@ pub fn page_frame_form(q: &Q, key: &PageRef) -> Option<Id<FormDef>> {
         PageRef::Generated { .. } => q.get::<PageOrder>(()).generated(*key).map(|g| g.form),
         PageRef::Divider(_) => frame_form_of(q, None, &PageType::SectionDivider, false),
     };
-    own.filter(|id| q.forms().get(*id).is_some()).or_else(|| {
-        q.forms()
-            .iter()
-            .find(|(_, f)| {
-                f.item
-                    .meta
-                    .key
-                    .as_ref()
-                    .is_some_and(|k| k.as_str() == ew_schema::starter::NOGRID_FRAME)
-            })
-            .map(|(id, _)| id)
-    })
+    own.filter(|id| q.forms().get(*id).is_some())
+        .or_else(|| starter_form(q, ew_schema::starter::NOGRID_FRAME))
+}
+
+/// The held form copy that stands for the starter form `key` (`ew_schema::starter::form_stands_for`): a copy of the
+/// project's own first (the fork of a first change, which every reference follows, leaves the program's copy unused),
+/// then one of another library's (a template's), then the program's copy itself; of several of one rank the first by
+/// copy ID. `None` when the project holds none.
+pub fn starter_form(q: &Q, key: &str) -> Option<Id<FormDef>> {
+    let project = q.project().id.as_uuid();
+    q.forms()
+        .iter()
+        .filter(|(_, f)| ew_schema::starter::form_stands_for(&f.item) == Some(key))
+        .min_by_key(|(id, f)| {
+            let rank = if f.library_id.as_uuid() == project {
+                0
+            } else if f.library_id.as_uuid() == ew_schema::starter::LIBRARY {
+                2
+            } else {
+                1
+            };
+            (rank, *id)
+        })
+        .map(|(id, _)| id)
 }
 
 /// The settings part of [`frame_form_of`] (a page without a held own form): the frame defaults' entry of the page's
