@@ -245,7 +245,8 @@ Every report block and navigator table exports from its `RowSet` with exactly th
 - **Label files** ([13](13-manufacturing-outputs.md) §5.4), read by a label program, have a form of their own: CSV in
   UTF-8 with a byte-order mark, CR LF, a header row, the export profile's delimiter and every value as it is (never
   the formula guard, which the label would print); or an XLSX of one sheet with a header row and text cells, without
-  the `id` column and the hidden sheets of the round trip.
+  the `id` column and the hidden sheets of the round trip. Opened in a spreadsheet, a CSV value that starts with `-`,
+  `+` or `=` is read as a formula: the XLSX is the form for a spreadsheet, and the guide says so.
 
 ### 4.7 Multi-language output
 
