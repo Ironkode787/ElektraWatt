@@ -151,6 +151,21 @@
         }
       ]
     },
+    "FerruleRule": {
+      "description": "Which fine-stranded ends take a ferrule ([`WorkshopSettings::ferrules`], doc 13 §4.2).",
+      "oneOf": [
+        {
+          "const": "every_fine_stranded_end",
+          "description": "Every fine-stranded end.",
+          "type": "string"
+        },
+        {
+          "const": "not_into_spring_clamps",
+          "description": "Every fine-stranded end but those into a spring or push-in clamp, which holds the strands itself.",
+          "type": "string"
+        }
+      ]
+    },
     "FluidSettings": {
       "additionalProperties": true,
       "description": "The project's fluid settings (doc 11 §2.4, §5.4): the default tube (level 1) and the line-tag scheme\n(FR-FLU-011). `ProjectSettings.fluid`, optional and additive within format 0.1.",
@@ -990,6 +1005,21 @@
       },
       "type": "object"
     },
+    "TwoWires": {
+      "description": "What two wires of one size on one clamp take ([`WorkshopSettings::two_wires`], doc 13 §4.3).",
+      "oneOf": [
+        {
+          "const": "twin_ferrule",
+          "description": "One twin ferrule for the two, where the clamp takes one.",
+          "type": "string"
+        },
+        {
+          "const": "ferrule_each",
+          "description": "A ferrule each.",
+          "type": "string"
+        }
+      ]
+    },
     "Typeface": {
       "description": "The bundled typeface of a text style (ADR-0028 amendment 2): every face is compiled into the program, so a drawing\nlooks the same on every machine; system fonts are never used.",
       "oneOf": [
@@ -1201,12 +1231,20 @@
           ],
           "description": "What the cut list rounds a piece up to; absent: 5 mm."
         },
+        "ferrules": {
+          "$ref": "#/$defs/FerruleRule",
+          "description": "Which fine-stranded ends take a ferrule (doc 13 §4.2); absent: every one."
+        },
         "stock": {
           "description": "The wire, ferrule and marker parts the shop keeps, in its order of preference: a wire takes the first stock\nwire part of its size and colour, an end the first stock ferrule that fits it, a label kind the first stock\nmarker that marks it.",
           "items": {
             "$ref": "#/$defs/PartRef"
           },
           "type": "array"
+        },
+        "two_wires": {
+          "$ref": "#/$defs/TwoWires",
+          "description": "What two wires of one size on one clamp take (doc 13 §4.3); absent: a twin ferrule."
         }
       },
       "type": "object"

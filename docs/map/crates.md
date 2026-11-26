@@ -237,6 +237,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/rules/imp.rs` |  | The EW-IMP findings of the migration report (doc 14 §2.5): the import-only facts an importer recorded in the project's import runs, read back as findings. |
 | `src/rules/iolink.rs` |  | The EW-IOL rules of the EW-BUS pack's 1.0 content (doc 10 §3.8, §3.10; doc 15 §4.5.2; FR-BUS-019): EW-IOL-001 (port class and mode) and EW-IOL-002 (process data and cable length). |
 | `src/rules/layout.rs` | large | The MVP rules of the EW-LAYOUT pack (doc 15 §4.5.4): EW-LAY-001, -003, -004, -006 (2D), -010 and -016. |
+| `src/rules/mfg.rs` |  | The rules of a wire's ends for the workshop (doc 13 §4.6), over the treatment of each end that `wire_record_set()` gives: EW-MFG-008, an end the rule table cannot decide; and EW-POT-010, a clamp that takes fewer conductors than land on it, which reads the same pairing (a twin ferrule is one conductor). |
 | `src/rules/mod.rs` |  | The shipped Rust rules, one module per pack family (doc 15 §4). |
 | `src/rules/num.rs` |  | EW-NUM rules, pack EW-IEC81346 (doc 15 §4.3; numbering in doc 07, doc 03 §8). |
 | `src/rules/page.rs` | large | EW-CORE rules of pages, report blocks and texts (doc 15 §4.2): EW-CORE-021, -022, -025 and -026 (folios, the table of contents and report coverage, doc 09 §3.1 and §7), EW-CORE-061, -063 and -071 (text heights, unstyled text sizes and graphic lines on connection points), and the layout rules EW-CORE-067 to -070 and -072 to -077, whose findings the session joins from the one measure (docs/design/06a-drafting.md §1.2). |
@@ -421,6 +422,7 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/title_block.rs` |  | Title-block values: `title_block(page)` (doc 09 §2.6–§2.7, FR-REP-033, FR-REP-036, FR-REP-037, FR-REV-003, D-05, D-06, D-30). |
 | `src/toc.rs` |  | The table of contents: `toc_rows()` (FR-REP-003, REF-012, REF-104, doc 09 §3.1). |
 | `src/tracker.rs` |  | The dependency-recording hook of [`Q`](crate::Q) (ADR-0002 decisions 1, 2 and 4). |
+| `src/treatment.rs` |  | The treatment of a wire's ends (doc 13 §4): what the fitter puts on each end of a wire, by the rule table [`TREATMENT_RULES`] over the end's clamp and the wire's conductor class, the pairing of two wires of one size on one clamp into a twin ferrule (§4.3) and the part of each end from the workshop stock (§4.4). |
 | `src/valve_cells.rs` |  | A valve terminal drawn as its valve positions (doc 11 §3.2): what each cell of a slotted box holds ([`terminal_cells`]), which device may take a cell ([`fits_terminal`]), and the geometry of the cells ([`SlotFrame`]). |
 | `src/wire_profile.rs` |  | The colour and size profile shims of the wire-property chain (doc 03 §5.1, doc 08 §4.2). |
 | `src/wire_props.rs` |  | Effective wire properties with provenance: `wire_props_of(potential)`, `wire_props(conn)` (ARCH §6.4, doc 08 §4, D-08). |

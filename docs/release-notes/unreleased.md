@@ -152,13 +152,25 @@ change here.
   built cabinet: the wires to pull, to replace, the ends to move, the lengths to check and the wires to add, each with
   its change in words ("size 1.5 → 2.5 mm²"); Export… writes it as XLSX or CSV. `ew export rework [--since
   <revision> | --archive <file>] [--format csv|xlsx] --out <file>` writes the same list.
-- behaviour-change: Output ▸ List columns… on a wire list offers its new columns Length, Length from and From end,
-  unticked; a wire list page whose block chooses no columns prints the same twelve columns as before.
-- behaviour-change: The Connections table opens with the columns a length is typed in: No., From, CP, To, CP, Colour,
-  mm² and Length, and the window's left column widens to show them; Potential, Source, Via, Wire part, Pages, Length
-  from and From end are in its Columns menu. It opened with every column.
+- behaviour-change: Output ▸ List columns… on a wire list offers its new columns Length, Length from, From end, To
+  end, From part, To part, From strip length and To strip length, unticked; a wire list page whose block chooses no
+  columns prints the same twelve columns as before.
+- behaviour-change: The Connections table opens with the columns the workshop types and reads: No., From, CP, To, CP,
+  Colour, mm², Length, From end and To end, and the window's left column widens to show them; Potential, Source, Via,
+  Wire part, Pages, Length from and the ends' parts and strip lengths are in its Columns menu. It opened with every
+  column.
 - fix: A colour or cross-section typed in a wire's row of the Connections table is set on that wire alone; it was set
   on every connection of the wire as well, so the arm a star or a chain shares with other wires changed their colour or
   size too.
 - fix: A bridge row's Length cell in the Connections table is read-only, as a bridge has no length; a length typed
   there was set on the bridge's connections.
+- behaviour-change: The wire list's From end and To end say what the fitter puts on each end, by a rule table not yet
+  confirmed by a panel builder: `ferrule 1.5 BK`, `twin 2.5 BU · 101.6` (two wires of one size on one clamp, where
+  it takes one), `ring lug`, `bare`, `connector`, `?` where the end cannot be made, `—` for an end made outside the
+  project; From part, To part, From strip length and To strip length name the ferrule from the workshop stock and its
+  sleeve. They are in the list's CSV and XLSX, in List columns… and in the Connections table. Project properties ▸ Workshop has Ferrules (every fine-stranded end, or not into spring or push-in
+  clamps) and Two wires in one clamp (a twin ferrule, or a ferrule each); `project.settings.set` sets them as
+  `workshop.ferrules` and `workshop.two_wires`.
+- behaviour-change: Two new checks: EW-POT-010 (error) when more conductors land on a clamp than its part says it
+  takes, a twin ferrule counted once; EW-MFG-008 (warning) for an end that cannot be made, a fine-stranded wire into an
+  insulation-displacement clamp.

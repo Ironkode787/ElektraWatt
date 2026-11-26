@@ -114,6 +114,7 @@ pub use structure_box::BoxStyleParam;
 pub use supply::SETTABLE_SUPPLY;
 pub use terminal::{ConductorSpec, TerminalDesignation, TerminalSpec};
 pub use user_prop::{mint_user_prop_key, user_prop_path};
+pub use workshop::{SETTABLE_WORKSHOP, WORKSHOP_PREFIX};
 
 use crate::registry::CommandRegistry;
 

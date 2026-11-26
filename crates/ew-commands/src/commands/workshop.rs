@@ -91,3 +91,33 @@ impl Command for SetWorkshopStock {
         Ok(Outcome::default())
     }
 }
+
+/// The members of the workshop settings that `project.settings.set` sets one by one, as `workshop.<member>` (doc 13
+/// §2.3): which fine-stranded ends take a ferrule and what two wires of one size on one clamp take.
+pub const SETTABLE_WORKSHOP: &[&str] = &["ferrules", "two_wires"];
+
+/// The prefix of a member of [`SETTABLE_WORKSHOP`] in `project.settings.set`.
+pub const WORKSHOP_PREFIX: &str = "workshop.";
+
+/// Sets the member `path` of [`SETTABLE_WORKSHOP`] of the project's workshop settings to `value`, the member's JSON form
+/// (`"not_into_spring_clamps"`); a value it does not take is refused at `/value` with the values it takes, and `null`
+/// gives the member back its default. Only the project record changes; the wire list's end cells follow.
+pub(crate) fn set_member(tx: &mut TxBuilder<'_>, path: &str, value: &Value) -> Result<Outcome, CmdError> {
+    use crate::commands::settings::member_value;
+    let member = format!("{WORKSHOP_PREFIX}{path}");
+    let mut project = (*tx.project()).clone();
+    let workshop = &mut project.settings.workshop;
+    match (path, value.is_null()) {
+        ("ferrules", true) => workshop.ferrules = Default::default(),
+        ("ferrules", false) => workshop.ferrules = member_value(&member, value)?,
+        ("two_wires", true) => workshop.two_wires = Default::default(),
+        ("two_wires", false) => workshop.two_wires = member_value(&member, value)?,
+        _ => {
+            return Err(CmdError::internal(format!(
+                "project.settings.set: {member} is not settable"
+            )));
+        }
+    }
+    tx.set_project(project)?;
+    Ok(Outcome::default())
+}

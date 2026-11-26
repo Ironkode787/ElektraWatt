@@ -865,6 +865,12 @@ rule-ew-pot-003 = { $cp_shared ->
     .title = FE-pen op PE
     .hint = Sluit de pen aan op functionele aarde, of leg de FE–PE-verbinding vast op zijn draad.
 
+rule-ew-mfg-008 = Het einde van { $wire } op { $at } kan niet worden gemaakt: { $reason ->
+       *[fine_into_idc] een fijndradige draad in een snijklem
+    }
+    .title = Einde kan niet worden gemaakt
+    .hint = Geef de draad een draadartikel van massieve of meerdradige draad, of leg hem op een klem die fijne aders neemt.
+
 rule-ew-mfg-022 = Draad { $wire } wordt gesneden van { $part }, waarvan { $form ->
         [size] de doorsnede niet de { $csa } mm² van de draad is
         [colour] de kleur niet het { $colour } van de draad is
@@ -916,6 +922,13 @@ rule-ew-pot-009 = { $cp_shared ->
     }
     .title = Niet-aangesloten aansluitpunt
     .hint = Open de melding: de pagina opent met het apparaat geselecteerd. Teken een draad naar het aansluitpunt, of klik er met rechts op en kies Markeren als niet gebruikt als het bewust vrij blijft.
+
+rule-ew-pot-010 = { $cp } neemt { $max ->
+        [one] 1 geleider
+       *[other] { $max } geleiders
+    }; er komen er { $count } op
+    .title = Klemcapaciteit overschreden
+    .hint = Leg een draad op een andere klem, of geef twee draden van één doorsnede een twin-adereindhuls waar de klem die neemt.
 
 rule-ew-pot-011 = { $potential }: het is niet duidelijk welke draad { $place ->
         [junction] de aftakking { $at ->

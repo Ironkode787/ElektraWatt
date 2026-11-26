@@ -1,58 +1,58 @@
-row,No.,From,CP,To,CP,Potential,Colour,mm²,Source,Via,Wire part,Pages,Length,Length from,From end
-data,-101W1 BN,ext. L1,,-X1011:L1,b,L1,BN,2.5 mm²,core,,,101,cable,cable,
-data,-101W1 BK,ext. L2,,-X1011:L2,b,L2,BK,2.5 mm²,core,,,101,cable,cable,
-data,-101W1 GY,ext. L3,,-X1011:L3,b,L3,GY,2.5 mm²,core,,,101,cable,cable,
-data,-101W1 GNYE,ext. PE,,-X1011:PE,b,PE,GNYE,2.5 mm²,core,,,101,cable,cable,
-data,-101W1 BU,ext. N,,-X1011:N,b,N,BU,2.5 mm²,core,,,101,cable,cable,
-data,101.1,-X1011:L1,a,-101Q1,1,L1,BK,1.5 mm²,rule,,,101,400 mm,typed,
-data,101.2,-X1011:L2,a,-101Q1,3,L2,BK,1.5 mm²,rule,,,101,—,missing,
-data,101.3,-X1011:L3,a,-101Q1,5,L3,BK,1.5 mm²,rule,,,101,—,missing,
-data,101.4,-X1011:PE,a,-101G1,PE,PE,GNYE,2.5 mm²,rule,101-C9 star at -X1011:PE/a,,101,—,missing,
-data,101.5,-X1011:PE,a,-X1021:8,a,0V ⇄ PE,GNYE,0.75 mm²,bond/rule,101-C9 star at -X1011:PE/a; IP PE,,"101, 102",—,missing,
-data,101.6,-X1011:PE,a,-X1031:PE,a,PE,GNYE,2.5 mm²,rule,101-C9 star at -X1011:PE/a; IP PE,,"101, 103",—,missing,
-data,101.7,-X1011:N,a,-101F1,3,N,BU,1.5 mm²,rule/built-in,,,101,—,missing,
-data,101.8,-101Q1,2,-103F1,1,1L1,BK,1.5 mm²,rule,101-B8 chain on -103F1:1; IP 1L1,,"101, 103",—,missing,
-data,101.9,-101Q1,4,-103F1,3,1L2,BK,1.5 mm²,rule,IP 1L2,,"101, 103",—,missing,
-data,101.10,-101Q1,6,-103F1,5,1L3,BK,1.5 mm²,rule,IP 1L3,,"101, 103",—,missing,
-data,101.11,-101F1,1,-103F1,1,1L1,BK,1.5 mm²,rule,101-B8 chain on -103F1:1; IP 1L1,,"101, 103",—,missing,
-data,101.12,-101F1,2,-101G1,L,1L1/101F1:2,BK,2.5 mm²,rule/built-in,,,101,—,missing,
-data,101.13,-101F1,4,-101G1,N,N/101F1:4,BU,2.5 mm²,rule/built-in,,,101,—,missing,
-data,101.14,-101G1,+#1,-101G1,+#2,24V,DBU,0.75 mm²,rule,101-H8 chain on -101G1:+#1,,101,—,missing,
-data,101.15,-101G1,+#1,-102F1,1,24V,DBU,0.75 mm²,rule,101-H8 chain on -101G1:+#1; IP 24V,,"101, 102",—,missing,
-data,101.16,-101G1,+#1,-104A1,L+,24V,DBU,0.75 mm²,rule,101-H8 chain on -101G1:+#1; IP 24V,,"101, 104",—,missing,
-data,101.17,-101G1,-#1,-101G1,-#2,0V,BU,0.75 mm²,rule/built-in,101-H9 chain on -101G1:-#1,,101,—,missing,
-data,101.18,-101G1,-#1,-X1021:5,a,0V,BU,0.75 mm²,rule/built-in,101-H9 chain on -101G1:-#1; IP 0V,,"101, 102",—,missing,
-data,101.19,-101G1,-#1,-104A1,M,0V,BU,0.75 mm²,rule/built-in,101-H9 chain on -101G1:-#1; IP 0V,,"101, 104",—,missing,
-data,102.1,-102F1,2,-X1021:1,a,24V/102F1:2,DBU,2.5 mm²,rule,,,102,—,missing,
-data,102.2,-X1021:1,b,-102S2,11,24V/102F1:2,DBU,2.5 mm²,rule,,,102,—,missing,
-data,102.3,-102S2,12,-102S1,13,24V/102S2:12,DBU,2.5 mm²,rule,102-D4 chain on -102S1:13,,102,—,missing,
-data,102.4,-102S1,13,-102Q1,13,24V/102S2:12,DBU,2.5 mm²,rule,102-D4 chain on -102S1:13,,102,—,missing,
-data,102.5,-102Q1,A1,-102S1,14,24V/102Q1:14,DBU,2.5 mm²,rule,102-E4 chain on -102Q1:A1,,102,—,missing,
-data,102.6,-X1021:6,b,-102Q1,A2,0V,BU,0.75 mm²,rule/built-in,,,102,—,missing,
-data,102.7,-102Q1,14,-102Q1,A1,24V/102Q1:14,DBU,2.5 mm²,rule,102-E4 chain on -102Q1:A1; chain on -102Q1:14,,102,—,missing,
-data,102.8,-102Q1,14,-102E1,X1,24V/102Q1:14,DBU,2.5 mm²,rule,chain on -102Q1:14,,102,450 mm,typed,
-data,102.9,-X1021:7,b,-102E1,X2,0V,BU,0.75 mm²,rule/built-in,,,102,—,missing,
-data,103.1,-103F1,2,-102Q1,1,1L1/103F1:2,BK,2.5 mm²,rule,,,103,—,missing,
-data,103.2,-102Q1,2,-X1031:U,a,1L1/102Q1:2,BK,2.5 mm²,rule,,,103,600 mm,typed,
-data,-103W1 BN,+CAB-X1031:U,b,+FLD-103M1,U1,1L1/102Q1:2,BN,2.5 mm²,core,,,103,cable,cable,
-data,103.3,-103F1,4,-102Q1,3,1L2/103F1:4,BK,2.5 mm²,rule,,,103,—,missing,
-data,103.4,-103F1,6,-102Q1,5,1L3/103F1:6,BK,2.5 mm²,rule,,,103,—,missing,
-data,103.5,-102Q1,4,-X1031:V,a,1L2/102Q1:4,BK,2.5 mm²,rule,,,103,—,missing,
-data,103.6,-102Q1,6,-X1031:W,a,1L3/102Q1:6,BK,2.5 mm²,rule,,,103,—,missing,
-data,-103W1 BK,+CAB-X1031:V,b,+FLD-103M1,V1,1L2/102Q1:4,BK,2.5 mm²,core,,,103,cable,cable,
-data,-103W1 GY,+CAB-X1031:W,b,+FLD-103M1,W1,1L3/102Q1:6,GY,2.5 mm²,core,,,103,cable,cable,
-data,-103W1 GNYE,+CAB-X1031:PE,b,+FLD-103M1,PE,PE,GNYE,2.5 mm²,core,chain on -103M1:PE,,103,cable,cable,
-data,103.7,-X1031:PE,a,-X1031:SH,a,PE,GNYE,2.5 mm²,rule,103-E4 chain on -X1031:PE/a,,103,—,missing,
-data,-103W1 SHIELD,+CAB-X1031:SH,b,+FLD-103M1,PE,PE,GNYE,2.5 mm²,rule/built-in,chain on -103M1:PE,,103,cable,cable,
-data,104.1,-104A1-A1,M,-104A1-A2,M,0V,BU,0.75 mm²,rule/built-in,104-D1 chain on -104A1-A1:M,,104,—,missing,
-data,104.2,-104A1-A2,2,-104E1,X1,-104A1-A2:2,BK,0.75 mm²,rule/built-in,,,104,—,missing,
-data,104.3,-104E1,X2,-104A1-A1,M,0V,BU,0.75 mm²,rule/built-in,104-D2 chain on -104E1:X2,,104,—,missing,
-data,104.4,+FLD-104B1,13,+CAB-104A1-A2,L+,24V,DBU,0.75 mm²,rule,104-E2 chain on -104B1:13,,104,—,missing,
-data,104.5,+FLD-104B1,14,+CAB-104A1-A1,2,24V/104B1:14,DBU,0.75 mm²,rule,,,104,—,missing,
-data,104.6,-104A1-A2,3,-104E2,X1,-104A1-A2:3,BK,0.75 mm²,rule/built-in,,,104,—,missing,
-data,104.7,-104E2,X2,-104E1,X2,0V,BU,0.75 mm²,rule/built-in,104-D4 chain on -104E2:X2,,104,—,missing,
-data,104.8,+CAB-104A1,L+,+FLD-104B1,13,24V,DBU,0.75 mm²,rule,"104-E2 chain on -104A1:L+, -104B1:13",,104,—,missing,
-data,104.9,-104A1,M,-104E2,X2,0V,BU,0.75 mm²,rule/built-in,"104-D4 chain on -104A1:M, -104E2:X2",,104,—,missing,
-heading,Bridges,,,,,,,,,,,,,,
-data,BR1,-X1021:1,,-X1021:4,,24V/102F1:2,,,,"plug-in bridge, terminals 1–4",TBD,,,,
-data,BR2,-X1021:5,,-X1021:8,,0V,,,,"plug-in bridge, terminals 5–8",TBD,,,,
+row,No.,From,CP,To,CP,Potential,Colour,mm²,Source,Via,Wire part,Pages,Length,Length from,From end,To end,From part,To part,From strip length,To strip length
+data,-101W1 BN,ext. L1,,-X1011:L1,b,L1,BN,2.5 mm²,core,,,101,cable,cable,—,ferrule 2.5 BU,,EW-GEN-FER-2.5,,10 mm
+data,-101W1 BK,ext. L2,,-X1011:L2,b,L2,BK,2.5 mm²,core,,,101,cable,cable,—,ferrule 2.5 BU,,EW-GEN-FER-2.5,,10 mm
+data,-101W1 GY,ext. L3,,-X1011:L3,b,L3,GY,2.5 mm²,core,,,101,cable,cable,—,ferrule 2.5 BU,,EW-GEN-FER-2.5,,10 mm
+data,-101W1 GNYE,ext. PE,,-X1011:PE,b,PE,GNYE,2.5 mm²,core,,,101,cable,cable,—,ferrule 2.5 BU,,EW-GEN-FER-2.5,,10 mm
+data,-101W1 BU,ext. N,,-X1011:N,b,N,BU,2.5 mm²,core,,,101,cable,cable,—,ferrule 2.5 BU,,EW-GEN-FER-2.5,,10 mm
+data,101.1,-X1011:L1,a,-101Q1,1,L1,BK,1.5 mm²,rule,,,101,400 mm,typed,ferrule 1.5 BK,ferrule 1.5 BK,EW-GEN-FER-1.5,EW-GEN-FER-1.5,8 mm,8 mm
+data,101.2,-X1011:L2,a,-101Q1,3,L2,BK,1.5 mm²,rule,,,101,—,missing,ferrule 1.5 BK,ferrule 1.5 BK,EW-GEN-FER-1.5,EW-GEN-FER-1.5,8 mm,8 mm
+data,101.3,-X1011:L3,a,-101Q1,5,L3,BK,1.5 mm²,rule,,,101,—,missing,ferrule 1.5 BK,ferrule 1.5 BK,EW-GEN-FER-1.5,EW-GEN-FER-1.5,8 mm,8 mm
+data,101.4,-X1011:PE,a,-101G1,PE,PE,GNYE,2.5 mm²,rule,101-C9 star at -X1011:PE/a,,101,—,missing,twin 2.5 BU · 101.6,ferrule 2.5 BU,EW-GEN-FER-2X2.5,EW-GEN-FER-2.5,10 mm,10 mm
+data,101.5,-X1011:PE,a,-X1021:8,a,0V ⇄ PE,GNYE,0.75 mm²,bond/rule,101-C9 star at -X1011:PE/a; IP PE,,"101, 102",—,missing,ferrule 0.75 GY,ferrule 0.75 GY,EW-GEN-FER-0.75,EW-GEN-FER-0.75,8 mm,8 mm
+data,101.6,-X1011:PE,a,-X1031:PE,a,PE,GNYE,2.5 mm²,rule,101-C9 star at -X1011:PE/a; IP PE,,"101, 103",—,missing,twin 2.5 BU · 101.4,twin 2.5 BU · 103.7,EW-GEN-FER-2X2.5,EW-GEN-FER-2X2.5,10 mm,10 mm
+data,101.7,-X1011:N,a,-101F1,3,N,BU,1.5 mm²,rule/built-in,,,101,—,missing,ferrule 1.5 BK,ferrule 1.5 BK,EW-GEN-FER-1.5,EW-GEN-FER-1.5,8 mm,8 mm
+data,101.8,-101Q1,2,-103F1,1,1L1,BK,1.5 mm²,rule,101-B8 chain on -103F1:1; IP 1L1,,"101, 103",—,missing,ferrule 1.5 BK,ferrule 1.5 BK,EW-GEN-FER-1.5,EW-GEN-FER-1.5,8 mm,8 mm
+data,101.9,-101Q1,4,-103F1,3,1L2,BK,1.5 mm²,rule,IP 1L2,,"101, 103",—,missing,ferrule 1.5 BK,ferrule 1.5 BK,EW-GEN-FER-1.5,EW-GEN-FER-1.5,8 mm,8 mm
+data,101.10,-101Q1,6,-103F1,5,1L3,BK,1.5 mm²,rule,IP 1L3,,"101, 103",—,missing,ferrule 1.5 BK,ferrule 1.5 BK,EW-GEN-FER-1.5,EW-GEN-FER-1.5,8 mm,8 mm
+data,101.11,-101F1,1,-103F1,1,1L1,BK,1.5 mm²,rule,101-B8 chain on -103F1:1; IP 1L1,,"101, 103",—,missing,ferrule 1.5 BK,ferrule 1.5 BK,EW-GEN-FER-1.5,EW-GEN-FER-1.5,8 mm,8 mm
+data,101.12,-101F1,2,-101G1,L,1L1/101F1:2,BK,2.5 mm²,rule/built-in,,,101,—,missing,ferrule 2.5 BU,ferrule 2.5 BU,EW-GEN-FER-2.5,EW-GEN-FER-2.5,10 mm,10 mm
+data,101.13,-101F1,4,-101G1,N,N/101F1:4,BU,2.5 mm²,rule/built-in,,,101,—,missing,ferrule 2.5 BU,ferrule 2.5 BU,EW-GEN-FER-2.5,EW-GEN-FER-2.5,10 mm,10 mm
+data,101.14,-101G1,+#1,-101G1,+#2,24V,DBU,0.75 mm²,rule,101-H8 chain on -101G1:+#1,,101,—,missing,twin 0.75 GY · 101.15,ferrule 0.75 GY,EW-GEN-FER-2X0.75,EW-GEN-FER-0.75,8 mm,8 mm
+data,101.15,-101G1,+#1,-102F1,1,24V,DBU,0.75 mm²,rule,101-H8 chain on -101G1:+#1; IP 24V,,"101, 102",—,missing,twin 0.75 GY · 101.14,ferrule 0.75 GY,EW-GEN-FER-2X0.75,EW-GEN-FER-0.75,8 mm,8 mm
+data,101.16,-101G1,+#1,-104A1,L+,24V,DBU,0.75 mm²,rule,101-H8 chain on -101G1:+#1; IP 24V,,"101, 104",—,missing,ferrule 0.75 GY,twin 0.75 GY · 104.8,EW-GEN-FER-0.75,EW-GEN-FER-2X0.75,8 mm,8 mm
+data,101.17,-101G1,-#1,-101G1,-#2,0V,BU,0.75 mm²,rule/built-in,101-H9 chain on -101G1:-#1,,101,—,missing,twin 0.75 GY · 101.18,ferrule 0.75 GY,EW-GEN-FER-2X0.75,EW-GEN-FER-0.75,8 mm,8 mm
+data,101.18,-101G1,-#1,-X1021:5,a,0V,BU,0.75 mm²,rule/built-in,101-H9 chain on -101G1:-#1; IP 0V,,"101, 102",—,missing,twin 0.75 GY · 101.17,ferrule 0.75 GY,EW-GEN-FER-2X0.75,EW-GEN-FER-0.75,8 mm,8 mm
+data,101.19,-101G1,-#1,-104A1,M,0V,BU,0.75 mm²,rule/built-in,101-H9 chain on -101G1:-#1; IP 0V,,"101, 104",—,missing,ferrule 0.75 GY,twin 0.75 GY · 104.9,EW-GEN-FER-0.75,EW-GEN-FER-2X0.75,8 mm,8 mm
+data,102.1,-102F1,2,-X1021:1,a,24V/102F1:2,DBU,2.5 mm²,rule,,,102,—,missing,ferrule 2.5 BU,ferrule 2.5 BU,EW-GEN-FER-2.5,EW-GEN-FER-2.5,10 mm,10 mm
+data,102.2,-X1021:1,b,-102S2,11,24V/102F1:2,DBU,2.5 mm²,rule,,,102,—,missing,ferrule 2.5 BU,ferrule 2.5 BU,EW-GEN-FER-2.5,EW-GEN-FER-2.5,10 mm,10 mm
+data,102.3,-102S2,12,-102S1,13,24V/102S2:12,DBU,2.5 mm²,rule,102-D4 chain on -102S1:13,,102,—,missing,ferrule 2.5 BU,twin 2.5 BU · 102.4,EW-GEN-FER-2.5,EW-GEN-FER-2X2.5,10 mm,10 mm
+data,102.4,-102S1,13,-102Q1,13,24V/102S2:12,DBU,2.5 mm²,rule,102-D4 chain on -102S1:13,,102,—,missing,twin 2.5 BU · 102.3,ferrule 2.5 BU,EW-GEN-FER-2X2.5,EW-GEN-FER-2.5,10 mm,10 mm
+data,102.5,-102Q1,A1,-102S1,14,24V/102Q1:14,DBU,2.5 mm²,rule,102-E4 chain on -102Q1:A1,,102,—,missing,twin 2.5 BU · 102.7,ferrule 2.5 BU,EW-GEN-FER-2X2.5,EW-GEN-FER-2.5,10 mm,10 mm
+data,102.6,-X1021:6,b,-102Q1,A2,0V,BU,0.75 mm²,rule/built-in,,,102,—,missing,ferrule 0.75 GY,ferrule 0.75 GY,EW-GEN-FER-0.75,EW-GEN-FER-0.75,8 mm,8 mm
+data,102.7,-102Q1,14,-102Q1,A1,24V/102Q1:14,DBU,2.5 mm²,rule,102-E4 chain on -102Q1:A1; chain on -102Q1:14,,102,—,missing,twin 2.5 BU · 102.8,twin 2.5 BU · 102.5,EW-GEN-FER-2X2.5,EW-GEN-FER-2X2.5,10 mm,10 mm
+data,102.8,-102Q1,14,-102E1,X1,24V/102Q1:14,DBU,2.5 mm²,rule,chain on -102Q1:14,,102,450 mm,typed,twin 2.5 BU · 102.7,ferrule 2.5 BU,EW-GEN-FER-2X2.5,EW-GEN-FER-2.5,10 mm,10 mm
+data,102.9,-X1021:7,b,-102E1,X2,0V,BU,0.75 mm²,rule/built-in,,,102,—,missing,ferrule 0.75 GY,ferrule 0.75 GY,EW-GEN-FER-0.75,EW-GEN-FER-0.75,8 mm,8 mm
+data,103.1,-103F1,2,-102Q1,1,1L1/103F1:2,BK,2.5 mm²,rule,,,103,—,missing,ferrule 2.5 BU,ferrule 2.5 BU,EW-GEN-FER-2.5,EW-GEN-FER-2.5,10 mm,10 mm
+data,103.2,-102Q1,2,-X1031:U,a,1L1/102Q1:2,BK,2.5 mm²,rule,,,103,600 mm,typed,ferrule 2.5 BU,ferrule 2.5 BU,EW-GEN-FER-2.5,EW-GEN-FER-2.5,10 mm,10 mm
+data,-103W1 BN,+CAB-X1031:U,b,+FLD-103M1,U1,1L1/102Q1:2,BN,2.5 mm²,core,,,103,cable,cable,ferrule 2.5 BU,ferrule 2.5 BU,EW-GEN-FER-2.5,EW-GEN-FER-2.5,10 mm,10 mm
+data,103.3,-103F1,4,-102Q1,3,1L2/103F1:4,BK,2.5 mm²,rule,,,103,—,missing,ferrule 2.5 BU,ferrule 2.5 BU,EW-GEN-FER-2.5,EW-GEN-FER-2.5,10 mm,10 mm
+data,103.4,-103F1,6,-102Q1,5,1L3/103F1:6,BK,2.5 mm²,rule,,,103,—,missing,ferrule 2.5 BU,ferrule 2.5 BU,EW-GEN-FER-2.5,EW-GEN-FER-2.5,10 mm,10 mm
+data,103.5,-102Q1,4,-X1031:V,a,1L2/102Q1:4,BK,2.5 mm²,rule,,,103,—,missing,ferrule 2.5 BU,ferrule 2.5 BU,EW-GEN-FER-2.5,EW-GEN-FER-2.5,10 mm,10 mm
+data,103.6,-102Q1,6,-X1031:W,a,1L3/102Q1:6,BK,2.5 mm²,rule,,,103,—,missing,ferrule 2.5 BU,ferrule 2.5 BU,EW-GEN-FER-2.5,EW-GEN-FER-2.5,10 mm,10 mm
+data,-103W1 BK,+CAB-X1031:V,b,+FLD-103M1,V1,1L2/102Q1:4,BK,2.5 mm²,core,,,103,cable,cable,ferrule 2.5 BU,ferrule 2.5 BU,EW-GEN-FER-2.5,EW-GEN-FER-2.5,10 mm,10 mm
+data,-103W1 GY,+CAB-X1031:W,b,+FLD-103M1,W1,1L3/102Q1:6,GY,2.5 mm²,core,,,103,cable,cable,ferrule 2.5 BU,ferrule 2.5 BU,EW-GEN-FER-2.5,EW-GEN-FER-2.5,10 mm,10 mm
+data,-103W1 GNYE,+CAB-X1031:PE,b,+FLD-103M1,PE,PE,GNYE,2.5 mm²,core,chain on -103M1:PE,,103,cable,cable,ferrule 2.5 BU,twin 2.5 BU · -103W1 SHIELD,EW-GEN-FER-2.5,EW-GEN-FER-2X2.5,10 mm,10 mm
+data,103.7,-X1031:PE,a,-X1031:SH,a,PE,GNYE,2.5 mm²,rule,103-E4 chain on -X1031:PE/a,,103,—,missing,twin 2.5 BU · 101.6,ferrule 2.5 BU,EW-GEN-FER-2X2.5,EW-GEN-FER-2.5,10 mm,10 mm
+data,-103W1 SHIELD,+CAB-X1031:SH,b,+FLD-103M1,PE,PE,GNYE,2.5 mm²,rule/built-in,chain on -103M1:PE,,103,cable,cable,ferrule 2.5 BU,twin 2.5 BU · -103W1 GNYE,EW-GEN-FER-2.5,EW-GEN-FER-2X2.5,10 mm,10 mm
+data,104.1,-104A1-A1,M,-104A1-A2,M,0V,BU,0.75 mm²,rule/built-in,104-D1 chain on -104A1-A1:M,,104,—,missing,twin 0.75 GY · 104.3,ferrule 0.75 GY,EW-GEN-FER-2X0.75,EW-GEN-FER-0.75,8 mm,8 mm
+data,104.2,-104A1-A2,2,-104E1,X1,-104A1-A2:2,BK,0.75 mm²,rule/built-in,,,104,—,missing,ferrule 0.75 GY,ferrule 0.75 GY,EW-GEN-FER-0.75,EW-GEN-FER-0.75,8 mm,8 mm
+data,104.3,-104E1,X2,-104A1-A1,M,0V,BU,0.75 mm²,rule/built-in,104-D2 chain on -104E1:X2,,104,—,missing,twin 0.75 GY · 104.7,twin 0.75 GY · 104.1,EW-GEN-FER-2X0.75,EW-GEN-FER-2X0.75,8 mm,8 mm
+data,104.4,+FLD-104B1,13,+CAB-104A1-A2,L+,24V,DBU,0.75 mm²,rule,104-E2 chain on -104B1:13,,104,—,missing,twin 0.75 GY · 104.8,ferrule 0.75 GY,EW-GEN-FER-2X0.75,EW-GEN-FER-0.75,8 mm,8 mm
+data,104.5,+FLD-104B1,14,+CAB-104A1-A1,2,24V/104B1:14,DBU,0.75 mm²,rule,,,104,—,missing,ferrule 0.75 GY,ferrule 0.75 GY,EW-GEN-FER-0.75,EW-GEN-FER-0.75,8 mm,8 mm
+data,104.6,-104A1-A2,3,-104E2,X1,-104A1-A2:3,BK,0.75 mm²,rule/built-in,,,104,—,missing,ferrule 0.75 GY,ferrule 0.75 GY,EW-GEN-FER-0.75,EW-GEN-FER-0.75,8 mm,8 mm
+data,104.7,-104E2,X2,-104E1,X2,0V,BU,0.75 mm²,rule/built-in,104-D4 chain on -104E2:X2,,104,—,missing,twin 0.75 GY · 104.9,twin 0.75 GY · 104.3,EW-GEN-FER-2X0.75,EW-GEN-FER-2X0.75,8 mm,8 mm
+data,104.8,+CAB-104A1,L+,+FLD-104B1,13,24V,DBU,0.75 mm²,rule,"104-E2 chain on -104A1:L+, -104B1:13",,104,—,missing,twin 0.75 GY · 101.16,twin 0.75 GY · 104.4,EW-GEN-FER-2X0.75,EW-GEN-FER-2X0.75,8 mm,8 mm
+data,104.9,-104A1,M,-104E2,X2,0V,BU,0.75 mm²,rule/built-in,"104-D4 chain on -104A1:M, -104E2:X2",,104,—,missing,twin 0.75 GY · 101.19,twin 0.75 GY · 104.7,EW-GEN-FER-2X0.75,EW-GEN-FER-2X0.75,8 mm,8 mm
+heading,Bridges,,,,,,,,,,,,,,,,,,,
+data,BR1,-X1021:1,,-X1021:4,,24V/102F1:2,,,,"plug-in bridge, terminals 1–4",TBD,,,,,,,,,
+data,BR2,-X1021:5,,-X1021:8,,0V,,,,"plug-in bridge, terminals 5–8",TBD,,,,,,,,,

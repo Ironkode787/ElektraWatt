@@ -213,7 +213,7 @@ Each line links to its source object or setting.
 Tables are egui_table 0.10.0 views with fixed row height (for virtualisation), a frozen key column (tag, wire ID
 or designation), a column chooser, natural sort and the filter bar of §5.3. A table opens with every column, unless
 its kind names the columns it opens with (`opening_columns`): Pages its title and Changed in, Connections the ends,
-the colour, the cross-section and the length ([13](13-manufacturing-outputs.md) §3.1). Derived columns are italic and
+the colour, the cross-section, the length and the treatment of each end ([13](13-manufacturing-outputs.md) §3.1). Derived columns are italic and
 show their provenance on hover. Cells use the editors of §6.3. The strip editor, edit-cable table, PLC grid, wire list
 and tube table are table models with domain commands for insert, delete and move (08, 10, 11).
 

@@ -184,12 +184,12 @@ pub use plc::{
     SupplyFeeds, SupplyGroup, SupplyKind, SupplyPins, SymbolPolicy, TypeIdent,
 };
 pub use project::{
-    Address, BasicProjectRef, DateFormat, DecimalSeparator, EarthingSystem, ExternalRef, Formatting,
-    ImportLineage, ImportRun, IpPairing, IpPairingMode, IpPairingScope, LineageAnchor, LineageCopy,
-    MasterData, Party, PartyRole, Project, ProjectKind, ProjectLanguages, ProjectSettings, RecordHash,
-    RunEntry, RunFix, RunLocation, RunMode, RunSeverity, RunSource, RunStats, RunTarget, Section,
-    StructureNode, SupplyOrigin, SupplySpec, TagCase, TypefaceFile, UserPropDef, UserPropKind, UserPropScope,
-    UserPropValue, WorkshopSettings,
+    Address, BasicProjectRef, DateFormat, DecimalSeparator, EarthingSystem, ExternalRef, FerruleRule,
+    Formatting, ImportLineage, ImportRun, IpPairing, IpPairingMode, IpPairingScope, LineageAnchor,
+    LineageCopy, MasterData, Party, PartyRole, Project, ProjectKind, ProjectLanguages, ProjectSettings,
+    RecordHash, RunEntry, RunFix, RunLocation, RunMode, RunSeverity, RunSource, RunStats, RunTarget, Section,
+    StructureNode, SupplyOrigin, SupplySpec, TagCase, TwoWires, TypefaceFile, UserPropDef, UserPropKind,
+    UserPropScope, UserPropValue, WorkshopSettings,
 };
 pub use record::{AnchorRef, CopyMeta, LibDocument, Record, Unknowns};
 pub use revision::{

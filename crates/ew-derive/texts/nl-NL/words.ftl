@@ -135,3 +135,14 @@ rework-change-wire-part = draadartikel { $p0 } → { $p1 }
 rework-change-end = einde { $p0 } → { $p1 }
 rework-change-length = lengte { $p0 } → { $p1 }
 rework-changes-between = { "; " }
+
+## An end's treatment, as the wire list's end cell prints it (doc 13 §4.4)
+
+treatment-ferrule = huls
+treatment-ferrule-size = huls { $p0 }
+treatment-twin = twinhuls { $p0 } · { $p1 }
+treatment-ring-lug = ringkabelschoen
+treatment-ring-lug-stud = ringkabelschoen { $p0 }
+treatment-bare = kaal
+treatment-connector = connector
+treatment-unknown = ?

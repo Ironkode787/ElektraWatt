@@ -3,7 +3,7 @@
 
 //! `wire_list`: the wire and connection list (FR-REP-014, FR-CON-034; folio 907 of the standard layout).
 
-use ew_derive::{CpRef, Q, WireLength, WireRecord, short_tag};
+use ew_derive::{CpRef, EndTreatment, Q, WireLength, WireRecord, short_tag};
 use ew_ids::Id;
 use ew_l10n::{List, TextArg};
 use ew_schema::{Device, ReportBlock, ReportKind, Unit};
@@ -69,11 +69,16 @@ impl ReportKindDef for WireList {
             ColumnDef::new("length", CellType::Qty, text!("column-length")).weighted(7),
             ColumnDef::new("length_source", CellType::Text, text!("column-length-from")).weighted(7),
             ColumnDef::new("from_end", CellType::Text, text!("column-from-end")).weighted(12),
+            ColumnDef::new("to_end", CellType::Text, text!("column-to-end")).weighted(12),
+            ColumnDef::new("from_part", CellType::Ident, text!("column-from-part")).weighted(9),
+            ColumnDef::new("to_part", CellType::Ident, text!("column-to-part")).weighted(9),
+            ColumnDef::new("from_strip", CellType::Qty, text!("column-from-strip")).weighted(6),
+            ColumnDef::new("to_strip", CellType::Qty, text!("column-to-strip")).weighted(6),
         ]
     }
 
     /// What the wire list prints when its block chooses no columns (doc 13 §3.1): its twelve columns from No. to Pages;
-    /// Length, Length from and From end stay in the list's exports and are ticked in List columns….
+    /// the workshop's columns from Length on stay in the list's exports and are ticked in List columns….
     fn printed(&self) -> Option<&'static [&'static str]> {
         Some(&[
             "no",
@@ -156,12 +161,7 @@ pub(super) fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
         .map_or(Cell::Empty, |c| {
             super::parts::part_number_cell(c.item.part_number.as_str())
         });
-    // A core has no number: its cable and core name it.
-    let no = match (&rec.number, w.core.and_then(|c| q.conductors().get(c))) {
-        (Some(n), _) => Cell::Ident(n.clone()),
-        (None, Some(core)) => Cell::Ident(format!("{} {}", short_tag(q, core.cable), core.core.as_str())),
-        (None, None) => Cell::Empty,
-    };
+    let no = wire_no(q, rec).map_or(Cell::Empty, Cell::Ident);
     let columns = WireList.columns();
     let mut cells = vec![Cell::Empty; columns.len()];
     let mut set = |key: &str, cell: Cell| put(&columns, &mut cells, key, cell);
@@ -184,6 +184,46 @@ pub(super) fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
             &ew_derive::text::wire_length_source(&rec.length),
         )),
     );
+    for (end, (treatment, part, strip)) in rec.ends.iter().zip([
+        ("from_end", "from_part", "from_strip"),
+        ("to_end", "to_part", "to_strip"),
+    ]) {
+        let copy = end.part.and_then(|p| q.parts().get(p));
+        let ferrule = copy.and_then(|c| c.item.sections.ferrule.as_ref());
+        let partner = match end.treatment {
+            EndTreatment::TwinFerrule { partner, .. } => wires
+                .wires
+                .iter()
+                .find(|r| r.wire.id == partner)
+                .and_then(|r| wire_no(q, r)),
+            _ => None,
+        };
+        let words = ew_derive::text::end_treatment(
+            &end.treatment,
+            ferrule.and_then(|f| f.colour.as_ref()),
+            ferrule.and_then(|f| f.stud.as_ref()).map(|s| s.as_str()),
+            partner.as_deref(),
+        );
+        set(
+            treatment,
+            words.map_or_else(
+                || Cell::ident("—"),
+                |t| Cell::Text(ew_derive::text::in_languages(&t)),
+            ),
+        );
+        set(
+            part,
+            copy.map_or(Cell::Empty, |c| {
+                super::parts::part_number_cell(c.item.part_number.as_str())
+            }),
+        );
+        set(
+            strip,
+            ferrule.and_then(|f| f.sleeve).map_or(Cell::Empty, |n| {
+                Cell::Qty(Dec3(n.0 / 1_000), QtyUnit::Unit(Unit::Mm))
+            }),
+        );
+    }
     let mut r = Row::data(RowId::entity(w.id), cells);
     r.sources = w
         .ends
@@ -192,6 +232,15 @@ pub(super) fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
         .map(|d: Id<Device>| d.cast())
         .collect();
     r
+}
+
+/// The No. of a wire: its number; a core, which has none, its cable and core (`-103W1 BN`).
+fn wire_no(q: &Q, rec: &WireRecord) -> Option<String> {
+    match (&rec.number, rec.wire.core.and_then(|c| q.conductors().get(c))) {
+        (Some(n), _) => Some(n.clone()),
+        (None, Some(core)) => Some(format!("{} {}", short_tag(q, core.cable), core.core.as_str())),
+        (None, None) => None,
+    }
 }
 
 /// A wire's length as the Length cell prints it (doc 13 §3.3): in millimetres as typed, `cable` for a core, `—`

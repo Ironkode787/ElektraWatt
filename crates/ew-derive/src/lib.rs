@@ -100,6 +100,7 @@ mod text_frame;
 mod title_block;
 mod toc;
 mod tracker;
+mod treatment;
 mod valve_cells;
 mod wire_profile;
 mod wire_props;
@@ -127,7 +128,7 @@ pub use cp_point::{
     cp_cell, cp_end, cp_point, rep_cp_end, rep_drawn_cps, segment_point, strip_segment_of,
     strip_terminal_end, terminal_drawn_function,
 };
-pub use cps::{Cp, FunctionCps};
+pub use cps::{ClampData, Cp, FunctionCps};
 pub use drawn_path::{
     dir_vertical, drawn_path, on_segment, oriented_dir, page_grid, read_connection, read_junction,
     stored_path,
@@ -235,6 +236,10 @@ pub use title_block::{
 };
 pub use toc::{TocRow, TocRows};
 pub use tracker::{DepKey, Recorded, RecordingTracker};
+pub use treatment::{
+    Assumed, ClampMatch, ConductorMatch, EndTreatment, RuleGives, TREATMENT_RULES, TreatedBy, TreatmentRule,
+    Undecided, clamp_conductors, end_connection, rule_for,
+};
 pub use valve_cells::{
     CELL_STEPS, GALLERY_PORTS, PlugPin, SlotFrame, box_frame, device_fits_terminal, fits_terminal,
     graphics_x_extent, is_fluid_terminal, is_multipin_terminal, is_supply_def, plug_pins, solenoid_pin,

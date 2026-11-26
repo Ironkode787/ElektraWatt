@@ -15,9 +15,10 @@ use std::sync::Arc;
 use ew_ids::{Id, v5};
 use ew_mltext::MlText;
 use ew_schema::{
-    ClampKey, CpData, CpDef, Discipline, FluidPortRole, FnDef, Function, FunctionKind, PotentialType,
-    Representation, Side, TemplateFn, template_entry_of,
+    ClampKey, ClampType, CpData, CpDef, Discipline, FluidPortRole, FnDef, Function, FunctionKind,
+    PotentialType, Representation, Side, TemplateFn, template_entry_of,
 };
+use ew_units::Dec3;
 
 use crate::Q;
 use crate::query::{Policy, Query};
@@ -55,6 +56,39 @@ pub struct Cp {
     pub port_role: Option<FluidPortRole>,
     /// Whether an override of the function changed this CP.
     pub overridden: bool,
+    /// The clamp data of the part pattern entry the CP is drawn as (FR-PRT-008); `None` for a CP no part pattern
+    /// gives, and for one whose entry names none.
+    pub clamp_data: Option<ClampData>,
+}
+
+/// What a part says of a CP's clamp (FR-PRT-008, `CpData`): what the end treatment and EW-POT-010 read (doc 13 §4.1).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ClampData {
+    /// The kind of clamp.
+    pub kind: Option<ClampType>,
+    /// The smallest and the largest cross-section it takes, in mm².
+    pub csa: (Option<Dec3>, Option<Dec3>),
+    /// The most conductors it takes.
+    pub max_conductors: Option<u8>,
+    /// Whether it takes a twin ferrule.
+    pub twin_ferrule: bool,
+}
+
+impl ClampData {
+    /// The clamp data of a pattern entry; `None` where it names none.
+    fn of(c: &CpData) -> Option<ClampData> {
+        let named = c.clamp_type.is_some()
+            || c.csa_min.is_some()
+            || c.csa_max.is_some()
+            || c.max_conductors.is_some()
+            || c.twin_ferrule;
+        named.then(|| ClampData {
+            kind: c.clamp_type.clone(),
+            csa: (c.csa_min, c.csa_max),
+            max_conductors: c.max_conductors,
+            twin_ferrule: c.twin_ferrule,
+        })
+    }
 }
 
 /// `function_cps(f)`: the function's connection points, in `idx` order.
@@ -273,6 +307,7 @@ fn fndef_cps(q: &Q, function: &Function) -> Vec<Cp> {
                     physical: c.physical,
                     port_role: c.port_role.clone(),
                     overridden: false,
+                    clamp_data: None,
                 })
                 .collect()
         })
@@ -349,6 +384,7 @@ fn template_cps(q: &Q, function: &Function) -> Option<Vec<Cp>> {
             physical: def_cp.is_none_or(|f| f.physical),
             port_role: def_cp.and_then(|f| f.port_role.clone()),
             overridden: false,
+            clamp_data: ClampData::of(c),
         })
         .collect();
     (!cps.is_empty()).then_some(cps)
@@ -384,6 +420,7 @@ fn box_pin_cps(q: &Q, f: Id<Function>, cps: &mut Vec<Cp>) {
                 physical: true,
                 port_role: None,
                 overridden: false,
+                clamp_data: None,
             });
         }
     }
@@ -416,6 +453,7 @@ fn pattern_cps(q: &Q, function: &Function) -> Option<Vec<Cp>> {
                     physical: true,
                     port_role: None,
                     overridden: false,
+                    clamp_data: ClampData::of(c),
                 })
                 .collect()
         })

@@ -181,7 +181,7 @@ fn owner(q: &Q, candidates: impl IntoIterator<Item = PotentialId>) -> Option<Pot
 /// Whether the potential `p` reports the findings about `wire`: a wire of one potential is its own; a bond wire,
 /// which belongs to both potentials of its bond (and is extracted with every potential of the bond closure), is
 /// reported by the one that prints first.
-fn owns_wire(q: &Q, p: PotentialId, wire: &PhysicalWire) -> bool {
+pub(crate) fn owns_wire(q: &Q, p: PotentialId, wire: &PhysicalWire) -> bool {
     owner(q, wire.potentials.iter().copied()) == Some(p)
 }
 
@@ -201,7 +201,7 @@ pub(crate) fn final_type(q: &Q, p: PotentialId) -> Option<PotentialType> {
 
 /// A wire as a message prints it: its wire number (`101.3`), a core as `<cable>/<core>` (`-3W1/BU`), else its two
 /// ends (`-X1:1/a–-K1:A1`).
-fn wire_text(q: &Q, wire: &PhysicalWire) -> String {
+pub(crate) fn wire_text(q: &Q, wire: &PhysicalWire) -> String {
     if let Some(n) = q.get::<WireNumbers>(()).number(wire.id) {
         return n.label.clone();
     }

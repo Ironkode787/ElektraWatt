@@ -18,6 +18,7 @@ use ew_units::{Dec3, Nm};
 use crate::bus::net_address_text;
 use crate::plc::{ChannelAddr, Slot};
 use crate::rework::{ReworkAction, ReworkChange};
+use crate::treatment::EndTreatment;
 use crate::wire_record::WireLength;
 
 /// A device's tag by its own letter and counter (`-K1`; `-K` before online numbering gives it a counter): how a
@@ -803,4 +804,44 @@ pub fn open_item(category: OpenItem) -> Text {
 /// language.
 pub fn in_languages(text: &Text) -> MlText {
     crate::catalogue().in_languages_kept(text)
+}
+
+/// An end's treatment as the wire list's end cell prints it (doc 13 §4.4): "ferrule 1.5 BK", "twin 2.5 BU · 102.8",
+/// "ring lug M6", "bare", "connector", "?" for an end the rule table cannot decide; `None` for an end made outside the
+/// project, which prints "—". `colour` and `stud` are the part's (the colour of its collar, the stud of a ring lug),
+/// `partner` the partner wire's number (a core's cable and core).
+pub fn end_treatment(
+    t: &EndTreatment,
+    colour: Option<&ColourSpec>,
+    stud: Option<&str>,
+    partner: Option<&str>,
+) -> Option<Text> {
+    let size = |csa: &Option<Dec3>| {
+        [csa.map(|c| c.to_string()), colour.map(colour_text)]
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>()
+            .join(" ")
+    };
+    Some(match t {
+        EndTreatment::Ferrule { csa } => match size(csa) {
+            s if s.is_empty() => text!("treatment-ferrule"),
+            s => text!("treatment-ferrule-size", s),
+        },
+        EndTreatment::TwinFerrule { csa, .. } => {
+            text!(
+                "treatment-twin",
+                size(csa),
+                partner.unwrap_or_default().to_owned()
+            )
+        }
+        EndTreatment::RingLug => match stud {
+            Some(s) => text!("treatment-ring-lug-stud", s.to_owned()),
+            None => text!("treatment-ring-lug"),
+        },
+        EndTreatment::Bare => text!("treatment-bare"),
+        EndTreatment::Connector => text!("treatment-connector"),
+        EndTreatment::Unknown { .. } => text!("treatment-unknown"),
+        EndTreatment::External => return None,
+    })
 }

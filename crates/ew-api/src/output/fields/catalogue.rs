@@ -421,6 +421,19 @@ pub(crate) fn route_of(kind: &str, path: &str, exposure: &dyn Fn(&str) -> Option
             },
         );
     }
+    // The members of the workshop settings set one by one, `workshop.<member>` of `project.settings.set` (doc 13 §2.3).
+    if kind == "project"
+        && let Some(member) = path.strip_prefix("settings.workshop.")
+        && ew_commands::commands::SETTABLE_WORKSHOP.contains(&member)
+    {
+        return through(
+            "project.settings.set",
+            None,
+            EditRoute::SettingsMember {
+                member: format!("{}{member}", ew_commands::commands::WORKSHOP_PREFIX),
+            },
+        );
+    }
     // The members of the supply, `supply.<path>` of `project.settings.set` (ADR-0008 amendment 6).
     if kind == "project"
         && let Some(member) = path.strip_prefix("supply.")

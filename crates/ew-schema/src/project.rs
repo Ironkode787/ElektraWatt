@@ -419,9 +419,47 @@ pub struct WorkshopSettings {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<NmS>")]
     pub cut_increment: Option<Nm>,
+    /// Which fine-stranded ends take a ferrule (doc 13 §4.2); absent: every one.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub ferrules: FerruleRule,
+    /// What two wires of one size on one clamp take (doc 13 §4.3); absent: a twin ferrule.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub two_wires: TwoWires,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+/// Which fine-stranded ends take a ferrule ([`WorkshopSettings::ferrules`], doc 13 §4.2).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "FerruleRule")]
+pub enum FerruleRule {
+    /// Every fine-stranded end.
+    #[default]
+    EveryFineStrandedEnd,
+    /// Every fine-stranded end but those into a spring or push-in clamp, which holds the strands itself.
+    NotIntoSpringClamps,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// What two wires of one size on one clamp take ([`WorkshopSettings::two_wires`], doc 13 §4.3).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "TwoWires")]
+pub enum TwoWires {
+    /// One twin ferrule for the two, where the clamp takes one.
+    #[default]
+    TwinFerrule,
+    /// A ferrule each.
+    FerruleEach,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 impl WorkshopSettings {
@@ -1078,4 +1116,6 @@ open_enum!(
     RunSeverity,
     UserPropKind,
     UserPropScope,
+    FerruleRule,
+    TwoWires,
 );

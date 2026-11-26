@@ -139,3 +139,14 @@ rework-change-wire-part = wire part { $p0 } → { $p1 }
 rework-change-end = end { $p0 } → { $p1 }
 rework-change-length = length { $p0 } → { $p1 }
 rework-changes-between = { "; " }
+
+## An end's treatment, as the wire list's end cell prints it (doc 13 §4.4)
+
+treatment-ferrule = ferrule
+treatment-ferrule-size = ferrule { $p0 }
+treatment-twin = twin { $p0 } · { $p1 }
+treatment-ring-lug = ring lug
+treatment-ring-lug-stud = ring lug { $p0 }
+treatment-bare = bare
+treatment-connector = connector
+treatment-unknown = ?

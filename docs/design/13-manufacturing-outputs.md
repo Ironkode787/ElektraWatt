@@ -199,7 +199,7 @@ pub struct EndRecord {
                                       //   | External | Unknown{reason}
     pub part: Option<Id<Part>>,       // the ferrule's or ring lug's part (§4.4)
     pub site: bool,                   // made on site, not in the shop (§2.1)
-    pub treated_by: TreatedBy,        // Rule{row, assumed: Assumption} | Hand
+    pub treated_by: TreatedBy,        // Rule{row, assumed: Assumption} | Hand | Outside (an external end)
     pub marker: MarkerText,           // Lines(1 to 3 lines) | NotMarked(why) (§5)
     pub marked_by: MarkedBy,          // Setting | Hand
 }
@@ -271,14 +271,14 @@ bridge has no length, treatment or marker: it is mounted with its strip ([the wo
 | `length_source` | Length from | typed, cable or missing; the layout adds estimated and routed | |
 | `from_end`, `to_end` | From end, To end | the end's treatment (§4.4): `ferrule 1.5 BK`, `twin 2.5 BU · 102.8`, `ring lug M6`, `bare` | |
 | `from_part`, `to_part` | From part, To part | the part number of the end's ferrule or ring lug | |
-| `from_strip`, `to_strip` | From strip, To strip | the strip length in mm: the ferrule's sleeve | |
+| `from_strip`, `to_strip` | From strip length, To strip length | the strip length in mm: the ferrule's sleeve | |
 | `from_marker`, `to_marker` | From marker, To marker | the end's marker text (§5.2), its lines joined by ` / `; empty where the end carries none | |
 
 A block without columns of its own prints the columns marked "printed", in the order of the table, No. to Pages
 (`ReportKindDef::printed`, [09](09-reports-forms-output.md) §3.8); Output ▸ List columns… ticks the workshop's columns
 into a block's print. The CSV and the XLSX of the list hold every column in the order of the table. The Connections
-navigator in table mode has every column; it opens with No., From, CP, To, CP, Colour, mm² and Length, the left column
-of the window widening to show them, and its column chooser adds the others. Length, From end, To end, From marker and
+navigator in table mode has every column; it opens with No., From, CP, To, CP, Colour, mm², Length, From end and To
+end, the left column of the window widening to show them, and its column chooser adds the others. Length, From end, To end, From marker and
 To marker are editable there (§12).
 
 ### 3.2 The end

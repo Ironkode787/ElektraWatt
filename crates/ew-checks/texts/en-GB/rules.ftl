@@ -869,6 +869,12 @@ rule-ew-pot-003 = { $cp_shared ->
     .title = FE pin on PE
     .hint = Wire the pin to functional earth, or declare the FE–PE bond on its wire.
 
+rule-ew-mfg-008 = The end of { $wire } at { $at } cannot be made: { $reason ->
+       *[fine_into_idc] a fine-stranded wire into an insulation-displacement clamp
+    }
+    .title = End cannot be made
+    .hint = Give the wire a part of a solid or stranded wire, or land it on a clamp that takes fine strands.
+
 rule-ew-mfg-022 = Wire { $wire } is cut from { $part }, whose { $form ->
         [size] size is not the wire's { $csa } mm²
         [colour] colour is not the wire's { $colour }
@@ -925,6 +931,13 @@ rule-ew-pot-009 = { $cp_shared ->
     }
     .title = Unconnected CP
     .hint = Open the message: its page opens with the device selected. Draw a wire to the connection point, or right-click it and choose Mark not used when it stays free on purpose.
+
+rule-ew-pot-010 = { $cp } takes { $max ->
+        [one] 1 conductor
+       *[other] { $max } conductors
+    }; { $count } land on it
+    .title = Clamp capacity exceeded
+    .hint = Land a wire on another clamp, or give two wires of one size a twin ferrule where the clamp takes one.
 
 rule-ew-pot-011 = { $potential }: it is unclear which wire feeds { $place ->
         [junction] the junction { $at ->

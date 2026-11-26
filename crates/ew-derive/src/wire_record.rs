@@ -7,15 +7,16 @@
 //! project's wires through this one query: each physical wire of [`PhysicalWiresOf`] once (a bond wire belongs to two
 //! potentials), oriented From/To by [`orient_wire`] (doc 08 §3.8), with its effective cross-section, colour and wire
 //! part ([`WirePropsOf`], doc 08 §4), its printed number ([`WireNumbers`]), its length ([`wire_length`], doc 13 §3.3)
-//! and which of its ends the shop does not make (a site end, doc 13 §2.1), in the numbering order of doc 08 §5.2: the
-//! order of `wire_numbers`, a wire it does not list last, by ID.
+//! and which of its ends the shop does not make (a site end, doc 13 §2.1), and the treatment and part of each end
+//! ([`crate::treatment`], doc 13 §4), in the numbering order of doc 08 §5.2: the order of `wire_numbers`, a wire it does
+//! not list last, by ID.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_rds::Aspect;
-use ew_schema::{ColourSpec, Connection, Csa, Device, LayoutSpace, PartRef, StructureNode};
+use ew_schema::{ColourSpec, Connection, Csa, Device, LayoutSpace, Part, PartRef, StructureNode};
 use ew_units::Nm;
 
 use crate::numbering::{WireNumbers, orient_wire};
@@ -23,6 +24,7 @@ use crate::potentials::PotentialPartition;
 use crate::q::Q;
 use crate::query::{Policy, Query};
 use crate::structure::StructureOf;
+use crate::treatment::{EndTreatment, TreatedBy, treat};
 use crate::wire_props::{Prov, WirePropsOf, wire_part_of};
 use crate::wires::{EndKind, PhysicalWire, PhysicalWiresOf, WireEnd};
 
@@ -77,11 +79,17 @@ pub struct WireRecordFlags {
 }
 
 /// One end of a wire as the shop reads it.
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct EndRecord {
+    /// What the fitter puts on it (doc 13 §4).
+    pub treatment: EndTreatment,
+    /// The ferrule's or the ring lug's part from the workshop stock (doc 13 §4.4); `None` where the stock holds none.
+    pub part: Option<Id<Part>>,
     /// A site end, made on site, not in the shop (doc 13 §2.1): an external end, or an end on a device whose location is
     /// the location of no layout space while the project has a layout space.
     pub site: bool,
+    /// Who decided the treatment.
+    pub treated_by: TreatedBy,
 }
 
 /// The length of a wire (doc 13 §3.3): typed, else a core's cable, else missing.
@@ -140,7 +148,10 @@ impl Query for WireRecordSet {
                     let props = props.wires.get(&w.id).cloned().unwrap_or_default();
                     let wire_part = wire_part_of(q, &props);
                     let ends = wire.ends.map(|e| EndRecord {
+                        treatment: EndTreatment::External,
+                        part: None,
                         site: site_end(q, &e, &spaces),
+                        treated_by: TreatedBy::Outside,
                     });
                     WireRecord {
                         length: wire_length(q, &wire),
@@ -162,6 +173,8 @@ impl Query for WireRecordSet {
             .map(|r| ((numbers.position(r.wire.id).unwrap_or(usize::MAX), r.wire.id), r))
             .collect();
         keyed.sort_by_key(|e| e.0);
-        Arc::new(keyed.into_iter().map(|(_, r)| r).collect())
+        let mut records: Vec<WireRecord> = keyed.into_iter().map(|(_, r)| r).collect();
+        treat(q, &mut records);
+        Arc::new(records)
     }
 }

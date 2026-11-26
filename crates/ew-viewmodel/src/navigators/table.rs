@@ -221,8 +221,8 @@ pub struct Chooser {
 /// - Pages: the title and "Changed in", so that the change status fits the default navigator width (Type, Frame and
 ///   Generated in the chooser).
 /// - Connections: what the fitter's work is typed and read in (doc 13 §12): the ends with their pins, the colour, the
-///   cross-section and the length; the dock widens the column to show them (Potential, Source, Via, Wire part, Pages,
-///   Length from and From end in the chooser).
+///   cross-section, the length and the treatment of each end; the dock widens the column to show them (Potential,
+///   Source, Via, Wire part, Pages, Length from, the ends' parts and strip lengths in the chooser).
 pub fn opening_columns(kind: NavKind) -> Option<&'static [&'static str]> {
     match kind {
         NavKind::Pages => Some(&["title", "changed_in"]),
@@ -234,6 +234,8 @@ pub fn opening_columns(kind: NavKind) -> Option<&'static [&'static str]> {
             "colour",
             "cross_section",
             "length",
+            "from_end",
+            "to_end",
         ]),
         _ => None,
     }

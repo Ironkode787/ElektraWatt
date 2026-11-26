@@ -17,6 +17,7 @@ use crate::commands::drawing::DRAWING_MEMBER;
 use crate::commands::frames::FRAMES_MEMBER;
 use crate::commands::languages::LANGUAGES_MEMBER;
 use crate::commands::supply::{SETTABLE_SUPPLY, SUPPLY_PREFIX};
+use crate::commands::workshop::{SETTABLE_WORKSHOP, WORKSHOP_PREFIX};
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost};
 use crate::tx::TxBuilder;
@@ -61,13 +62,14 @@ const MEMBER_ALIASES: [(&str, &str); 3] = [
 const SUPPLY_ALIAS: &str = "project.supply.set";
 
 /// Every member `project.settings.set` sets, in this order in messages: [`SETTABLE_SETTINGS`], the drawing settings,
-/// the frame defaults, the languages and each member of the supply.
+/// the frame defaults, the languages, each member of the supply and each member of the workshop settings.
 fn settable_members() -> Vec<String> {
     SETTABLE_SETTINGS
         .iter()
         .map(|m| m.name().to_owned())
         .chain([DRAWING_MEMBER, FRAMES_MEMBER, LANGUAGES_MEMBER].map(str::to_owned))
         .chain(SETTABLE_SUPPLY.iter().map(|p| format!("{SUPPLY_PREFIX}{p}")))
+        .chain(SETTABLE_WORKSHOP.iter().map(|p| format!("{WORKSHOP_PREFIX}{p}")))
         .collect()
 }
 
@@ -89,8 +91,8 @@ pub(crate) fn member_value<T: DeserializeOwned>(member: &str, value: &Value) -> 
 
 /// `project.settings.set` (`SetProjectSettings`): sets one member of the project settings.
 ///
-/// `member` names an entry of [`SETTABLE_SETTINGS`], `drawing`, `frames`, `languages` or `supply.<path>` for a path
-/// of [`SETTABLE_SUPPLY`]; any other name is rejected with [`CmdError::InvalidParams`] at `/member`, listing the
+/// `member` names an entry of [`SETTABLE_SETTINGS`], `drawing`, `frames`, `languages`, `supply.<path>` for a path
+/// of [`SETTABLE_SUPPLY`] or `workshop.<member>` for a member of [`SETTABLE_WORKSHOP`]; any other name is rejected with [`CmdError::InvalidParams`] at `/member`, listing the
 /// settable members. For an entry of [`SETTABLE_SETTINGS`], `value` is the member's whole new value in its JSON shape
 /// (doc 03 §5.1), checked with the derivation's parser ([`ew_derive::check_settings_member`]); a value it does not
 /// accept is rejected at `/value` with the parser's message. A JSON `null` removes the member, so the pinned
@@ -103,6 +105,8 @@ pub(crate) fn member_value<T: DeserializeOwned>(member: &str, value: &Value) -> 
 ///   whole ([`crate::commands::languages`]); `null` as `{}`.
 /// - `supply.<path>`: one member of the project's supply ([`crate::commands::supply`]); `null` removes an optional
 ///   member.
+/// - `workshop.<member>`: one member of the workshop settings, `ferrules` or `two_wires` (doc 13 §2.3,
+///   [`crate::commands::workshop`]); `null` gives it its default.
 ///
 /// A refusal inside a value names its place below `/value` (`/value/per_page_type/0/page_type`).
 ///
@@ -126,8 +130,8 @@ pub(crate) fn member_value<T: DeserializeOwned>(member: &str, value: &Value) -> 
 #[serde(deny_unknown_fields)]
 pub struct SetProjectSettings {
     /// The member to set: a name of the settable table (`numbering`, `colour_profile`, `size_profile`,
-    /// `xref_format`, `text_styles`, `process_tag_scheme`, `fluid`), `drawing`, `frames`, `languages` or
-    /// `supply.<path>` (`supply.u_nom`).
+    /// `xref_format`, `text_styles`, `process_tag_scheme`, `fluid`), `drawing`, `frames`, `languages`,
+    /// `supply.<path>` (`supply.u_nom`) or `workshop.<member>` (`workshop.ferrules`).
     pub member: String,
     /// The member's new value in its JSON shape; `null` removes it (the profile's default applies).
     pub value: Value,
@@ -178,6 +182,11 @@ impl Command for SetProjectSettings {
                     && SETTABLE_SUPPLY.contains(&path)
                 {
                     return crate::commands::supply::set(tx, path, &self.value);
+                }
+                if let Some(path) = m.strip_prefix(WORKSHOP_PREFIX)
+                    && SETTABLE_WORKSHOP.contains(&path)
+                {
+                    return crate::commands::workshop::set_member(tx, path, &self.value);
                 }
             }
         }

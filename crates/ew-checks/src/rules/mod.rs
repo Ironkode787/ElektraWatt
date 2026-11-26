@@ -20,6 +20,8 @@ pub mod imp;
 pub mod iolink;
 // The EW-LAYOUT MVP rules
 pub mod layout;
+// The rules of the wire's ends for the workshop (doc 13 §4.6)
+pub mod mfg;
 pub mod num;
 pub mod page;
 pub mod plc;
