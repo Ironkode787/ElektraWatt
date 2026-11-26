@@ -422,9 +422,8 @@ impl Picker {
         if self.mode != PickerMode::BlackBox && self.catalogue.drawn_as_box(p, k) {
             return Some(crate::strings::text(key!("picker-drawn-as-box")).to_owned());
         }
-        (!part.functions[k].main && part.functions[k].symbol.is_some()).then(|| {
-            crate::strings::format(key!("picker-places"), &[&self.function_words(p, k)])
-        })
+        (!part.functions[k].main && part.functions[k].symbol.is_some())
+            .then(|| crate::strings::format(key!("picker-places"), &[&self.function_words(p, k)]))
     }
 
     /// What the arrow of a part that opens to its functions holds, in words: "5 functions" (opening it lists them);

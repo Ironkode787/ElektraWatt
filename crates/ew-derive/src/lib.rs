@@ -242,7 +242,8 @@ pub use wire_profile::{
 };
 pub use wire_props::{
     ConnWireProps, EffectiveProps, EndClass, EndRating, EndScope, PropSource, Prov, SizeRule, Unrated,
-    WirePropsMap, WirePropsOf, pick, unfed_protection, unrated, wire_part_of, wire_props_below_overrides, wire_rating,
+    WirePropsMap, WirePropsOf, pick, unfed_protection, unrated, wire_part_of, wire_props_below_overrides,
+    wire_rating,
 };
 pub use wires::{EndKind, PhysicalWire, PhysicalWiresOf, WireEnd};
 

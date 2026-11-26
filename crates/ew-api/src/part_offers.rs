@@ -849,13 +849,7 @@ impl Session {
                         n.label.clone(),
                         csa.to_string()
                     ),
-                    None => text!(
-                        "misfit-clamp-unnumbered",
-                        pin.clone(),
-                        min,
-                        max,
-                        csa.to_string()
-                    ),
+                    None => text!("misfit-clamp-unnumbered", pin.clone(), min, max, csa.to_string()),
                 }
             }
         }

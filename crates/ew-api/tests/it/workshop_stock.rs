@@ -166,7 +166,10 @@ fn a_wire_takes_its_stock_part_and_a_part_of_another_size_is_reported() {
 #[test]
 fn add_the_generic_stock_adds_what_the_stock_lacks_after_its_own() {
     let mut s = common::sample();
-    assert!(s.add_generic_stock_command().is_none(), "the sample holds the generic stock");
+    assert!(
+        s.add_generic_stock_command().is_none(),
+        "the sample holds the generic stock"
+    );
     let (_, _, _, colour) = a_wire(&s.query());
     let (own, own_doc) = wire_part(0x7103, "WIRE-OWN", "1.5", &colour);
     run(
@@ -175,7 +178,9 @@ fn add_the_generic_stock_adds_what_the_stock_lacks_after_its_own() {
         json!({"stock": [{"copy": own.to_string()}], "copies": [own_doc]}),
     )
     .expect("a stock of one wire part");
-    let cmd = s.add_generic_stock_command().expect("the generic stock is missing");
+    let cmd = s
+        .add_generic_stock_command()
+        .expect("the generic stock is missing");
     run(&mut s, &cmd.name, cmd.params).expect("add the generic stock");
     let q = s.query();
     let stock = &q.project().settings.workshop.stock;
