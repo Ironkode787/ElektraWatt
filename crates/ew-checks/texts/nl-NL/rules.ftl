@@ -871,6 +871,14 @@ rule-ew-mfg-008 = Het einde van { $wire } op { $at } kan niet worden gemaakt: { 
     .title = Einde kan niet worden gemaakt
     .hint = Geef de draad een draadartikel van massieve of meerdradige draad, of leg hem op een klem die fijne aders neemt.
 
+rule-ew-mfg-009 = Het met de hand gezette einde van { $wire } op { $at } past niet: { $form ->
+        [size] een adereindhuls voor { $range } mm² op een draad van { $csa } mm²
+        [twin] een twin-adereindhuls zonder tweede draad
+       *[colour] een adereindhuls in de kleur { $colour } waar die uit de voorraad { $stock } is
+    }
+    .title = Met de hand gezet einde past niet
+    .hint = Zet het einde terug op de regel, kies een artikel van de doorsnede van de draad, of geef ook de andere draad op de klem een twin-adereindhuls.
+
 rule-ew-mfg-022 = Draad { $wire } wordt gesneden van { $part }, waarvan { $form ->
         [size] de doorsnede niet de { $csa } mm² van de draad is
         [colour] de kleur niet het { $colour } van de draad is
@@ -1258,6 +1266,7 @@ fix-realise-primary-part = Het primaire artikel opnieuw plaatsen
 fix-rebind-map-channel = Koppelen aan het kanaal van de kaart
 fix-declare-pelv-bond = 0 V–PE-verbinding (PELV) vastleggen
 fix-mark-cp-unused = Markeren als niet gebruikt
+fix-reset-end = Terugzetten op de regel
 fix-join-mark = Pen en markering verbinden
 fix-plc-take-out = Uit het rek halen
 fix-plc-bind-pins = De kanalen aan hun pinnen koppelen

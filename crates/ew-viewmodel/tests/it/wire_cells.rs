@@ -87,3 +87,28 @@ fn a_bridge_rows_length_cell_is_read_only() {
     assert!(reason("BR1").is_some(), "BR1's length is editable");
     assert_eq!(reason("101.1"), None);
 }
+
+/// A wire's To end typed in its cell is set by hand on the connection that lands on it, in the words of the window.
+#[test]
+fn a_typed_end_is_set_by_hand_on_the_connection_that_lands_on_it() {
+    let tmp = Tmp::new("end-by-hand");
+    let mut s = connections(&tmp);
+    done(
+        &mut s,
+        "table.set",
+        json!({"kind": "connections", "column": "to_end", "value": "Bare", "rows": ["101.1"]}),
+    );
+    let set = s
+        .recorded_commands()
+        .last()
+        .expect("a committed step")
+        .params
+        .clone();
+    assert_eq!(set["kind"], json!("connection"), "{set}");
+    assert!(
+        matches!(set["path"].as_str(), Some("overrides.end_a" | "overrides.end_b")),
+        "{set}"
+    );
+    assert_eq!(set["value"], json!({"treatment": "bare"}), "{set}");
+    assert_eq!(cell(&s, "101.1", "to_end"), "bare");
+}

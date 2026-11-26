@@ -875,6 +875,14 @@ rule-ew-mfg-008 = The end of { $wire } at { $at } cannot be made: { $reason ->
     .title = End cannot be made
     .hint = Give the wire a part of a solid or stranded wire, or land it on a clamp that takes fine strands.
 
+rule-ew-mfg-009 = The end of { $wire } at { $at } set by hand does not fit: { $form ->
+        [size] a ferrule for { $range } mm² on a { $csa } mm² wire
+        [twin] a twin ferrule with no second wire
+       *[colour] a ferrule of colour { $colour } where the stock's for it is { $stock }
+    }
+    .title = End set by hand does not fit
+    .hint = Reset the end to the rule, choose a part of the wire's size, or set the other wire on the clamp to a twin ferrule as well.
+
 rule-ew-mfg-022 = Wire { $wire } is cut from { $part }, whose { $form ->
         [size] size is not the wire's { $csa } mm²
         [colour] colour is not the wire's { $colour }
@@ -1278,6 +1286,7 @@ fix-realise-primary-part = Realise the primary part
 fix-rebind-map-channel = Rebind to the map's channel
 fix-declare-pelv-bond = Declare 0 V–PE bond (PELV)
 fix-mark-cp-unused = Mark not used
+fix-reset-end = Reset to the rule
 fix-join-mark = Join the pin and the mark
 fix-plc-take-out = Take it out of the rack
 fix-plc-bind-pins = Bind the channels to their pins

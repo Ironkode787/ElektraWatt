@@ -191,7 +191,10 @@ pub(super) fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
         let copy = end.part.and_then(|p| q.parts().get(p));
         let ferrule = copy.and_then(|c| c.item.sections.ferrule.as_ref());
         let partner = match end.treatment {
-            EndTreatment::TwinFerrule { partner, .. } => wires
+            EndTreatment::TwinFerrule {
+                partner: Some(partner),
+                ..
+            } => wires
                 .wires
                 .iter()
                 .find(|r| r.wire.id == partner)

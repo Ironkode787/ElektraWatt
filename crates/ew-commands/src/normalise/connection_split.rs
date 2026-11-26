@@ -20,6 +20,8 @@ use crate::tx::TxBuilder;
 ///   `keep_second`; W′'s route is W's route up to `first_at`, W″'s from `second_at`;
 /// - the other part gets a new ID, W's kind, page and overrides and `NumberSpec::Unassigned` (online wire numbering
 ///   is off in v0); it takes W's place in the sequence of a junction at its far end;
+/// - an end set by hand (`overrides.end_a`, `end_b`, doc 13 §2.3) stays with the part that keeps its endpoint; the two
+///   new endpoints at the split take none;
 /// - bonds realised by W keep naming the kept part.
 ///
 /// `first_at` and `second_at` must lie on W's route in that order (they may be equal, for a junction). A
@@ -70,11 +72,17 @@ pub fn split_connection(
     let (new, far) = if keep_second {
         kept.a = second_end;
         kept.route = r2;
-        (new_part(w.a.clone(), first_end, r1), &w.a)
+        kept.overrides.end_a = None;
+        let mut new = new_part(w.a.clone(), first_end, r1);
+        new.overrides.end_b = None;
+        (new, &w.a)
     } else {
         kept.b = first_end;
         kept.route = r1;
-        (new_part(second_end, w.b.clone(), r2), &w.b)
+        kept.overrides.end_b = None;
+        let mut new = new_part(second_end, w.b.clone(), r2);
+        new.overrides.end_a = None;
+        (new, &w.b)
     };
     tx.put(kept);
     tx.insert(new)?;

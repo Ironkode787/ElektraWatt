@@ -277,6 +277,35 @@
       "pattern": "^(?:0|-?[1-9][0-9]{0,15}(?:\\.[0-9]{0,2}[1-9])?|-?0\\.[0-9]{0,2}[1-9])$",
       "type": "string"
     },
+    "EndOverride": {
+      "additionalProperties": true,
+      "description": "An end of a wire set by hand (doc 13 §4.5): what the fitter puts on it and its part; a member left unset is the\nrule's.",
+      "properties": {
+        "part": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PartRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The ferrule or ring lug part, one the project holds."
+        },
+        "treatment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TreatmentKind"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The treatment."
+        }
+      },
+      "type": "object"
+    },
     "Endpoint": {
       "description": "One end of a connection, a definition or a bond (ADR-0007, doc 03 §9): a connection point of a function\nor a junction. Encoding (doc 05 §3.2): `{\"cp\": [function, idx]}` or `{\"junction\": id}`.\n\n```\nuse ew_schema::Endpoint;\n\nlet e: Endpoint = serde_json::from_str(r#\"{\"cp\":[\"d40b6e93-25f7-5c1a-9e8d-7a3f1c05b6e2\",0]}\"#).unwrap();\nassert!(matches!(e, Endpoint::Cp(_, 0)));\n```",
       "oneOf": [
@@ -575,6 +604,31 @@
       },
       "type": "object"
     },
+    "TreatmentKind": {
+      "description": "What a person puts on a wire's end by hand ([`EndOverride::treatment`], doc 13 §4.5).",
+      "oneOf": [
+        {
+          "const": "ferrule",
+          "description": "A ferrule.",
+          "type": "string"
+        },
+        {
+          "const": "twin_ferrule",
+          "description": "A twin ferrule, shared with another wire on the clamp.",
+          "type": "string"
+        },
+        {
+          "const": "ring_lug",
+          "description": "A ring lug.",
+          "type": "string"
+        },
+        {
+          "const": "bare",
+          "description": "Nothing.",
+          "type": "string"
+        }
+      ]
+    },
     "TubeMaterial": {
       "description": "The material of a tube (doc 11 §2.4).",
       "oneOf": [
@@ -723,7 +777,7 @@
     },
     "WireOverrides": {
       "additionalProperties": true,
-      "description": "The explicit per-connection values (doc 03 §9, the CDP), rendered as a wire marker on request.\n\nNot in v0: `ends` (per-end overrides, doc 13 §2.3).",
+      "description": "The explicit per-connection values (doc 03 §9, the CDP), rendered as a wire marker on request, and the ends of a wire\nset by hand at this connection (doc 13 §2.3).",
       "properties": {
         "colour": {
           "anyOf": [
@@ -746,6 +800,28 @@
             }
           ],
           "description": "Cross-section."
+        },
+        "end_a": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EndOverride"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The wire's end at this connection's endpoint `a`, set by hand, where `a` is a wire's end at a connection point\n(doc 13 §2.3, §4.5); optional and additive within format 0.1."
+        },
+        "end_b": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EndOverride"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The same at its endpoint `b`."
         },
         "flags": {
           "$ref": "#/$defs/WireFlags",

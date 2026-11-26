@@ -141,6 +141,7 @@ rework-changes-between = { "; " }
 treatment-ferrule = huls
 treatment-ferrule-size = huls { $p0 }
 treatment-twin = twinhuls { $p0 } · { $p1 }
+treatment-twin-alone = twinhuls { $p0 }
 treatment-ring-lug = ringkabelschoen
 treatment-ring-lug-stud = ringkabelschoen { $p0 }
 treatment-bare = kaal

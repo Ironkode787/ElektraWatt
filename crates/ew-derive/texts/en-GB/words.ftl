@@ -145,6 +145,7 @@ rework-changes-between = { "; " }
 treatment-ferrule = ferrule
 treatment-ferrule-size = ferrule { $p0 }
 treatment-twin = twin { $p0 } · { $p1 }
+treatment-twin-alone = twin { $p0 }
 treatment-ring-lug = ring lug
 treatment-ring-lug-stud = ring lug { $p0 }
 treatment-bare = bare

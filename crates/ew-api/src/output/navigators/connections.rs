@@ -216,3 +216,27 @@ pub(super) fn connections_table(q: &Q, b: &mut Builder) {
         push_wire_row(b, parent, w, true);
     }
 }
+
+impl crate::Session {
+    /// Where the end `end` (0 the From end, 1 the To end) of the wire a Connections row stands for (its records, the
+    /// wire's constituent connections) is set by hand (doc 13 §2.3): the connection that lands on it and whether it lands
+    /// there by its endpoint `a` (`overrides.end_a`, else `end_b`); `None` for an end made outside the project and for
+    /// records that are no wire's.
+    pub fn wire_end(&self, records: &[Uuid], end: usize) -> Option<(Uuid, bool)> {
+        let q = self.query();
+        let mut own: Vec<Uuid> = records.to_vec();
+        own.sort();
+        own.dedup();
+        let set = q.get::<ew_derive::WireRecordSet>(());
+        let record = set.iter().find(|r| {
+            let mut c: Vec<Uuid> = r.wire.constituents.iter().map(|c| c.as_uuid()).collect();
+            c.sort();
+            c.dedup();
+            c == own
+        })?;
+        if record.wire.ends.get(end)?.kind != ew_derive::EndKind::Device {
+            return None;
+        }
+        ew_derive::end_connection(&q, &record.wire, end).map(|(c, a)| (c.as_uuid(), a))
+    }
+}

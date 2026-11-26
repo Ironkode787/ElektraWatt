@@ -205,6 +205,7 @@ table-define-name-first = Name the potential first
 table-reason-derived = derived
 table-reason-generated = generated
 table-reason-no-command = not editable in this table
+table-reason-end-outside = made outside the project
 table-reason-property-grid = edit in the property grid
 
 # A strip-editor or a potential's defining cell in a table round trip.

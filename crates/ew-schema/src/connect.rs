@@ -340,9 +340,8 @@ impl WireProps {
     }
 }
 
-/// The explicit per-connection values (doc 03 §9, the CDP), rendered as a wire marker on request.
-///
-/// Not in v0: `ends` (per-end overrides, doc 13 §2.3).
+/// The explicit per-connection values (doc 03 §9, the CDP), rendered as a wire marker on request, and the ends of a wire
+/// set by hand at this connection (doc 13 §2.3).
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct WireOverrides {
     /// Cross-section.
@@ -372,9 +371,50 @@ pub struct WireOverrides {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<NmS>")]
     pub length: Option<Nm>,
+    /// The wire's end at this connection's endpoint `a`, set by hand, where `a` is a wire's end at a connection point
+    /// (doc 13 §2.3, §4.5); optional and additive within format 0.1.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_a: Option<EndOverride>,
+    /// The same at its endpoint `b`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_b: Option<EndOverride>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+/// An end of a wire set by hand (doc 13 §4.5): what the fitter puts on it and its part; a member left unset is the
+/// rule's.
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct EndOverride {
+    /// The treatment.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub treatment: Option<TreatmentKind>,
+    /// The ferrule or ring lug part, one the project holds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub part: Option<PartRef>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// What a person puts on a wire's end by hand ([`EndOverride::treatment`], doc 13 §4.5).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "TreatmentKind")]
+pub enum TreatmentKind {
+    /// A ferrule.
+    Ferrule,
+    /// A twin ferrule, shared with another wire on the clamp.
+    TwinFerrule,
+    /// A ring lug.
+    RingLug,
+    /// Nothing.
+    Bare,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 impl WireOverrides {
@@ -781,4 +821,5 @@ open_enum!(
     AcDc,
     PotentialEarthing,
     BondKind,
+    TreatmentKind,
 );

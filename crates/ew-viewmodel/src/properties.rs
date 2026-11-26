@@ -2349,6 +2349,26 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
     ("wire numbering", None, key!("chip-via-wire-numbering")),
     // A wire's length (doc 13 §3.3).
     ("typed by hand", None, key!("chip-via-typed-by-hand")),
+    // A wire's end (doc 13 §4.2, §4.5).
+    ("set by hand", None, key!("chip-via-set-by-hand")),
+    (
+        "rule (unverified): fine-stranded wire, clamp kind not known",
+        None,
+        key!("chip-via-rule-assumed-both"),
+    ),
+    (
+        "rule (unverified): fine-stranded wire",
+        None,
+        key!("chip-via-rule-assumed-class"),
+    ),
+    (
+        "rule (unverified): clamp kind not known",
+        None,
+        key!("chip-via-rule-assumed-clamp"),
+    ),
+    ("rule (unverified)", None, key!("chip-via-rule-unverified")),
+    ("made outside the project", None, key!("chip-via-made-outside")),
+    ("workshop stock", None, key!("chip-via-workshop-stock")),
     (
         "no length: type it here, or the fitter measures the wire",
         None,

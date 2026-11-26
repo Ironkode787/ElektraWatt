@@ -310,6 +310,7 @@
       - [EW-LAY-016](reference/rules/ew-lay-016.md)
     - [EW-MFG](reference/rules/ew-mfg.md)
       - [EW-MFG-008](reference/rules/ew-mfg-008.md)
+      - [EW-MFG-009](reference/rules/ew-mfg-009.md)
       - [EW-MFG-022](reference/rules/ew-mfg-022.md)
     - [EW-PLC](reference/rules/ew-plc.md)
       - [EW-PLC-001](reference/rules/ew-plc-001.md)

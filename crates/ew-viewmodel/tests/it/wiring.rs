@@ -1308,11 +1308,21 @@ fn a_stored_route_and_a_contact_inserted_split_the_wire() {
         serde_json::to_value(&**c).unwrap()
     };
     let (kept, half) = (rec(&w13.id.to_string()), rec(&new[0].id.to_string()));
-    assert_eq!(kept["overrides"], json!({"csa": "1.5"}), "{kept}");
+    // The sample sets the wire's end at -101G1:PE by hand (a ring lug, `end_a`): it stays with the half that lands
+    // there.
+    let without_end = |o: &Value| {
+        let mut o = o.clone();
+        o.as_object_mut().map(|m| m.remove("end_a"));
+        o
+    };
+    assert_eq!(without_end(&kept["overrides"]), json!({"csa": "1.5"}), "{kept}");
     assert_eq!(
-        half["overrides"], kept["overrides"],
+        without_end(&half["overrides"]),
+        without_end(&kept["overrides"]),
         "the same overrides on both halves"
     );
+    let ends = [&kept, &half].map(|c| c["overrides"].get("end_a").is_some());
+    assert_eq!(ends.iter().filter(|e| **e).count(), 1, "{kept} {half}");
     assert_eq!(
         kept.get("number"),
         None,

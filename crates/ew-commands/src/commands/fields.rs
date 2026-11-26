@@ -195,6 +195,9 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "overrides.flags",
             "overrides.show_marker",
             "overrides.length",
+            // A wire's end set by hand at the connection's endpoint a or b (doc 13 §4.5).
+            "overrides.end_a",
+            "overrides.end_b",
         ],
     ),
     (KindName::Conductor, &["core", "colour", "csa", "shield", "pair"]),
@@ -514,9 +517,15 @@ impl SetFields {
                 set_tube_cell(tx, t.cast(), path, value)?;
             }
             KindName::Connection => {
-                set_one::<Connection>(tx, t, path, value)?;
+                // An end with nothing set by hand is no end set by hand: `{}` clears it (Reset of its last member).
+                let cleared = matches!(path, "overrides.end_a" | "overrides.end_b")
+                    && value.as_object().is_some_and(serde_json::Map::is_empty);
+                set_one::<Connection>(tx, t, path, if cleared { &Value::Null } else { value })?;
                 if path == "overrides.colour" {
                     refuse_unknown_colour(tx, t.cast())?;
+                }
+                if matches!(path, "overrides.end_a" | "overrides.end_b") {
+                    refuse_end_part_not_held(tx, t.cast())?;
                 }
             }
             KindName::Conductor => {
@@ -767,6 +776,23 @@ fn refuse_unknown_colour(tx: &TxBuilder<'_>, conn: ew_ids::Id<Connection>) -> Re
         let company = crate::commands::items::company_codes(tx);
         if let Some(p) = crate::commands::items::colour_problem(&company, colour) {
             return Err(CmdError::invalid_params(SetFields::NAME, "/value", p));
+        }
+    }
+    Ok(())
+}
+
+/// `fields.set` of an end set by hand (`overrides.end_a`, `end_b`, doc 13 §4.5): its part must be one the project holds.
+fn refuse_end_part_not_held(tx: &TxBuilder<'_>, conn: ew_ids::Id<Connection>) -> Result<(), CmdError> {
+    let c = tx.require::<Connection>(conn)?;
+    for end in [&c.overrides.end_a, &c.overrides.end_b].into_iter().flatten() {
+        if let Some(part) = &end.part
+            && tx.get::<ew_schema::LibCopy<ew_schema::Part>>(part.copy).is_none()
+        {
+            return Err(CmdError::invalid_params(
+                SetFields::NAME,
+                "/value/part",
+                text!("refusal-part-edit-copy-missing", part.copy.to_string()),
+            ));
         }
     }
     Ok(())

@@ -120,9 +120,9 @@ pub use bus::{
 pub use conflict::{Conflict, ConflictBody, ConflictSide, DELETED_SIDE, FILE_CONFLICT_KIND};
 pub use connect::{
     AcDc, AssignedNumber, BevelSpec, Bond, BondKind, BridgeKind, BridgeSpec, BusLine, BusPlug, CircuitClass,
-    Conductor, Connection, ConnectionKind, FluidLine, Junction, JunctionStyle, JunctionWiring, LineKind,
-    NumberSpec, PotentialDef, PotentialEarthing, PotentialEnv, PotentialType, TempRange, TubeMaterial,
-    TubeSpec, WireFlags, WireOverrides, WireProps,
+    Conductor, Connection, ConnectionKind, EndOverride, FluidLine, Junction, JunctionStyle, JunctionWiring,
+    LineKind, NumberSpec, PotentialDef, PotentialEarthing, PotentialEnv, PotentialType, TempRange,
+    TreatmentKind, TubeMaterial, TubeSpec, WireFlags, WireOverrides, WireProps,
 };
 pub use device::{
     AccessoryChoice, AccessoryKind, Assembly, AssemblyConfig, BomBasis, Cable, ClosureKind, CoreIdMode,

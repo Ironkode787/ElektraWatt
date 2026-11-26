@@ -174,3 +174,11 @@ change here.
 - behaviour-change: Two new checks: EW-POT-010 (error) when more conductors land on a clamp than its part says it
   takes, a twin ferrule counted once; EW-MFG-008 (warning) for an end that cannot be made, a fine-stranded wire into an
   insulation-displacement clamp.
+- behaviour-change: A wire's end can be set by hand: in the Connections table's From end or To end cell (ferrule, twin
+  ferrule, ring lug or bare; an empty cell gives the rule's back), or in the wire's Properties, whose new sections From
+  end and To end show each end's treatment and part with "set by hand" and Reset, or the rule's, unverified, and what
+  it assumed. The end is stored on the connection that lands on it (`overrides.end_a`, `end_b`; a part must be one the
+  project holds) and stays with the part that keeps that end when a device splits the connection. EW-MFG-009
+  (warning) reports an end set by hand that does not fit: a ferrule part of another size than the wire's, a twin
+  ferrule with no second wire, a ferrule of another colour than the stock's; its quick fix resets the end to the rule.
+  The sample project's 101.4 lands on -101G1:PE with a ring lug.

@@ -785,5 +785,6 @@
 {"action":"table.set","params":{"kind":"connections","column":"length","value":"400","rows":["101.1"]}}
 {"action":"table.set","params":{"kind":"connections","column":"length","value":"450","rows":["102.8"]}}
 {"action":"table.set","params":{"kind":"connections","column":"length","value":"600","rows":["103.2"]}}
+{"action":"table.set","params":{"kind":"connections","column":"to_end","value":"ring lug","rows":["101.4"]}}
 {"action":"file.save","params":{}}
 {"action":"app.quit","params":{}}

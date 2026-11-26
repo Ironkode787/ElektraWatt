@@ -8,7 +8,7 @@ e:<id 5>	-101W1 BU	ext. N		-X1011:N	b	N	BU	2.5 mm²	core			101	cable	cable	—	f
 e:<id 6>	101.1	-X1011:L1	a	-101Q1	1	L1	BK	1.5 mm²	rule			101	400 mm	typed	ferrule 1.5 BK	ferrule 1.5 BK	EW-GEN-FER-1.5	EW-GEN-FER-1.5	8 mm	8 mm
 e:<id 7>	101.2	-X1011:L2	a	-101Q1	3	L2	BK	1.5 mm²	rule			101	—	missing	ferrule 1.5 BK	ferrule 1.5 BK	EW-GEN-FER-1.5	EW-GEN-FER-1.5	8 mm	8 mm
 e:<id 8>	101.3	-X1011:L3	a	-101Q1	5	L3	BK	1.5 mm²	rule			101	—	missing	ferrule 1.5 BK	ferrule 1.5 BK	EW-GEN-FER-1.5	EW-GEN-FER-1.5	8 mm	8 mm
-e:<id 9>	101.4	-X1011:PE	a	-101G1	PE	PE	GNYE	2.5 mm²	rule	101-C9 star at -X1011:PE/a		101	—	missing	twin 2.5 BU · 101.6	ferrule 2.5 BU	EW-GEN-FER-2X2.5	EW-GEN-FER-2.5	10 mm	10 mm
+e:<id 9>	101.4	-X1011:PE	a	-101G1	PE	PE	GNYE	2.5 mm²	rule	101-C9 star at -X1011:PE/a		101	—	missing	twin 2.5 BU · 101.6	ring lug	EW-GEN-FER-2X2.5		10 mm	
 e:<id 10>	101.5	-X1011:PE	a	-X1021:8	a	0V ⇄ PE	GNYE	0.75 mm²	bond/rule	101-C9 star at -X1011:PE/a; IP PE		101, 102	—	missing	ferrule 0.75 GY	ferrule 0.75 GY	EW-GEN-FER-0.75	EW-GEN-FER-0.75	8 mm	8 mm
 e:<id 11>	101.6	-X1011:PE	a	-X1031:PE	a	PE	GNYE	2.5 mm²	rule	101-C9 star at -X1011:PE/a; IP PE		101, 103	—	missing	twin 2.5 BU · 101.4	twin 2.5 BU · 103.7	EW-GEN-FER-2X2.5	EW-GEN-FER-2X2.5	10 mm	10 mm
 e:<id 12>	101.7	-X1011:N	a	-101F1	3	N	BU	1.5 mm²	rule/built-in			101	—	missing	ferrule 1.5 BK	ferrule 1.5 BK	EW-GEN-FER-1.5	EW-GEN-FER-1.5	8 mm	8 mm

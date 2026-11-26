@@ -3,14 +3,18 @@
 
 //! The treatment of a wire's ends (doc 13 §4): what the fitter puts on each end of a wire, by the rule table
 //! [`TREATMENT_RULES`] over the end's clamp and the wire's conductor class, the pairing of two wires of one size on one
-//! clamp into a twin ferrule (§4.3) and the part of each end from the workshop stock (§4.4). [`treat`] fills the ends
-//! of the records of `wire_record_set()`; [`clamp_conductors`] counts the conductors each clamp takes for EW-POT-010.
+//! clamp into a twin ferrule (§4.3) and the part of each end from the workshop stock (§4.4), unless a person set the end
+//! by hand (§4.5: `WireOverrides.end_a` or `end_b` of the connection that lands on it, [`end_override`]). [`treat`] fills
+//! the ends of the records of `wire_record_set()`; [`clamp_conductors`] counts the conductors each clamp takes for
+//! EW-POT-010.
 
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
 use ew_ids::Id;
-use ew_schema::{ClampType, Connection, Csa, Endpoint, FerruleRule, Part, TwoWires};
+use ew_schema::{
+    ClampType, Connection, Csa, EndOverride, Endpoint, FerruleRule, Part, TreatmentKind, TwoWires,
+};
 use ew_units::Dec3;
 
 use crate::cps::{ClampData, FunctionCps};
@@ -31,8 +35,8 @@ pub enum EndTreatment {
     TwinFerrule {
         /// The size.
         csa: Option<Dec3>,
-        /// The partner wire (its ID).
-        partner: Id<Connection>,
+        /// The partner wire (its ID); `None` for a twin ferrule set by hand that no second wire on the clamp shares.
+        partner: Option<Id<Connection>>,
     },
     /// A ring lug, for a ring stud.
     RingLug,
@@ -66,6 +70,8 @@ pub enum TreatedBy {
         /// What it assumed.
         assumed: Assumed,
     },
+    /// A person, by hand (doc 13 §4.5).
+    Hand,
     /// Nothing decides it: the end is made outside the project.
     Outside,
 }
@@ -276,7 +282,19 @@ pub(crate) fn treat(q: &Q, records: &mut [WireRecord]) {
         let class = class_of(r);
         let wire_ends = r.wire.ends;
         for (i, end) in wire_ends.iter().enumerate() {
-            let (treatment, by) = if end.kind == EndKind::Device {
+            let by_hand = (end.kind == EndKind::Device)
+                .then(|| end_override(q, &r.wire, i))
+                .flatten()
+                .and_then(|o| match o.treatment? {
+                    TreatmentKind::Ferrule => Some(EndTreatment::Ferrule { csa }),
+                    TreatmentKind::TwinFerrule => Some(EndTreatment::TwinFerrule { csa, partner: None }),
+                    TreatmentKind::RingLug => Some(EndTreatment::RingLug),
+                    TreatmentKind::Bare => Some(EndTreatment::Bare),
+                    TreatmentKind::Unknown(_) => None,
+                });
+            let (treatment, by) = if let Some(t) = by_hand {
+                (t, TreatedBy::Hand)
+            } else if end.kind == EndKind::Device {
                 let clamp = clamps.entry(end.cp).or_insert_with(|| clamp_of(q, end.cp));
                 let (rule, assumed) = rule_for(clamp.as_ref(), class, &workshop.ferrules);
                 let treatment = match rule.gives {
@@ -303,66 +321,94 @@ pub(crate) fn treat(q: &Q, records: &mut [WireRecord]) {
     pair(records, &clamps, &workshop.two_wires);
     for r in records.iter_mut() {
         let csa = mm2(r);
-        for end in &mut r.ends {
-            end.part = stock_part(q, &end.treatment, csa);
+        for i in 0..r.ends.len() {
+            let by_hand = end_override(q, &r.wire, i).and_then(|o| o.part).map(|p| p.copy);
+            r.ends[i].part = by_hand.or_else(|| stock_part(q, &r.ends[i].treatment, csa));
         }
     }
 }
 
-/// The pairing of doc 13 §4.3: on every CP two or more ferrule ends land on, sorted by size (largest first), number,
-/// wire ID, pairs of one size into twin ferrules, greedily, where the clamp takes a twin ferrule (or its part does not
-/// say) and the shop's `two_wires` is a twin ferrule.
-fn pair(records: &mut [WireRecord], clamps: &BTreeMap<CpRef, Option<ClampData>>, two_wires: &TwoWires) {
-    if *two_wires != TwoWires::TwinFerrule {
-        return;
+/// The end of `wire` at `end` (0 the From end, 1 the To end) set by hand: the `end_a` or `end_b` of the connection that
+/// lands on it ([`end_connection`]), as stored.
+pub fn end_override(q: &Q, wire: &PhysicalWire, end: usize) -> Option<EndOverride> {
+    if wire.ends.get(end)?.kind != EndKind::Device {
+        return None;
     }
-    let mut at: BTreeMap<CpRef, Vec<(usize, usize)>> = BTreeMap::new();
+    let (connection, at_a) = end_connection(q, wire, end)?;
+    let o = &q.connections().get(connection)?.overrides;
+    if at_a { o.end_a.clone() } else { o.end_b.clone() }
+}
+
+/// The pairing of doc 13 §4.3: on every CP two or more ferrule ends the rule decided land on, sorted by size (largest
+/// first), number, wire ID, pairs of one size into twin ferrules, greedily, where the clamp takes a twin ferrule (or its
+/// part does not say) and the shop's `two_wires` is a twin ferrule. An end set by hand takes no part in it; two twin
+/// ferrules set by hand on one clamp pair with each other, in the same order, whatever the shop's setting.
+fn pair(records: &mut [WireRecord], clamps: &BTreeMap<CpRef, Option<ClampData>>, two_wires: &TwoWires) {
+    let mut by_rule: BTreeMap<CpRef, Vec<(usize, usize)>> = BTreeMap::new();
+    let mut by_hand: BTreeMap<CpRef, Vec<(usize, usize)>> = BTreeMap::new();
     for (n, r) in records.iter().enumerate() {
         for (i, end) in r.wire.ends.iter().enumerate() {
-            if end.kind == EndKind::Device && matches!(r.ends[i].treatment, EndTreatment::Ferrule { .. }) {
-                at.entry(end.cp).or_default().push((n, i));
+            match (&r.ends[i].treatment, r.ends[i].treated_by) {
+                (EndTreatment::Ferrule { .. }, TreatedBy::Rule { .. }) => {
+                    by_rule.entry(end.cp).or_default().push((n, i))
+                }
+                (EndTreatment::TwinFerrule { .. }, TreatedBy::Hand) => {
+                    by_hand.entry(end.cp).or_default().push((n, i))
+                }
+                _ => {}
             }
         }
     }
-    for (cp, mut ends) in at {
-        if ends.len() < 2
-            || clamps
+    if *two_wires == TwoWires::TwinFerrule {
+        for (cp, ends) in by_rule {
+            let twin = !clamps
                 .get(&cp)
-                .is_some_and(|c| c.as_ref().is_some_and(|c| !c.twin_ferrule))
-        {
+                .is_some_and(|c| c.as_ref().is_some_and(|c| !c.twin_ferrule));
+            if twin {
+                pair_in_order(records, ends);
+            }
+        }
+    }
+    for ends in by_hand.into_values() {
+        pair_in_order(records, ends);
+    }
+}
+
+/// Pairs the ends `ends` (record, end) of one clamp in the order of §4.3, each pair of one size into a twin ferrule.
+fn pair_in_order(records: &mut [WireRecord], mut ends: Vec<(usize, usize)>) {
+    if ends.len() < 2 {
+        return;
+    }
+    ends.sort_by(|a, b| {
+        let (ra, rb) = (&records[a.0], &records[b.0]);
+        mm2(rb)
+            .cmp(&mm2(ra))
+            .then_with(|| natural(ra.number.as_deref(), rb.number.as_deref()))
+            .then_with(|| ra.wire.id.cmp(&rb.wire.id))
+    });
+    let mut taken = vec![false; ends.len()];
+    for x in 0..ends.len() {
+        if taken[x] {
             continue;
         }
-        ends.sort_by(|a, b| {
-            let (ra, rb) = (&records[a.0], &records[b.0]);
-            mm2(rb)
-                .cmp(&mm2(ra))
-                .then_with(|| natural(ra.number.as_deref(), rb.number.as_deref()))
-                .then_with(|| ra.wire.id.cmp(&rb.wire.id))
-        });
-        let mut taken = vec![false; ends.len()];
-        for x in 0..ends.len() {
-            if taken[x] {
-                continue;
-            }
-            let size = mm2(&records[ends[x].0]);
-            let Some(y) = (x + 1..ends.len())
-                .find(|y| !taken[*y] && size.is_some() && mm2(&records[ends[*y].0]) == size)
-            else {
-                continue;
-            };
-            taken[x] = true;
-            taken[y] = true;
-            let (a, b) = (ends[x], ends[y]);
-            let (ida, idb) = (records[a.0].wire.id, records[b.0].wire.id);
-            records[a.0].ends[a.1].treatment = EndTreatment::TwinFerrule {
-                csa: size,
-                partner: idb,
-            };
-            records[b.0].ends[b.1].treatment = EndTreatment::TwinFerrule {
-                csa: size,
-                partner: ida,
-            };
-        }
+        let size = mm2(&records[ends[x].0]);
+        let Some(y) =
+            (x + 1..ends.len()).find(|y| !taken[*y] && size.is_some() && mm2(&records[ends[*y].0]) == size)
+        else {
+            continue;
+        };
+        taken[x] = true;
+        taken[y] = true;
+        let (a, b) = (ends[x], ends[y]);
+        let (ida, idb) = (records[a.0].wire.id, records[b.0].wire.id);
+        records[a.0].ends[a.1].treatment = EndTreatment::TwinFerrule {
+            csa: size,
+            partner: Some(idb),
+        };
+        records[b.0].ends[b.1].treatment = EndTreatment::TwinFerrule {
+            csa: size,
+            partner: Some(ida),
+        };
     }
 }
 
@@ -379,7 +425,7 @@ fn natural(a: Option<&str>, b: Option<&str>) -> Ordering {
 /// The part of an end (doc 13 §4.4): a ferrule end the first stock ferrule without a stud that holds its size and is a
 /// twin ferrule for a twin one and not for a single one; a ring lug the first stock ferrule part with a stud whose
 /// range holds the wire's size; else none.
-fn stock_part(q: &Q, treatment: &EndTreatment, csa: Option<Dec3>) -> Option<Id<Part>> {
+pub fn stock_part(q: &Q, treatment: &EndTreatment, csa: Option<Dec3>) -> Option<Id<Part>> {
     let (twin, stud) = match treatment {
         EndTreatment::Ferrule { .. } => (false, false),
         EndTreatment::TwinFerrule { .. } => (true, false),
@@ -408,7 +454,7 @@ fn stock_part(q: &Q, treatment: &EndTreatment, csa: Option<Dec3>) -> Option<Id<P
 }
 
 /// The conductors each clamp takes (doc 13 §4.3): the wire ends that land on it, a twin ferrule's two wires counted
-/// once; what EW-POT-010 compares with the clamp's maximum.
+/// once (a twin ferrule no second wire shares as one); what EW-POT-010 compares with the clamp's maximum.
 pub fn clamp_conductors(records: &[WireRecord]) -> BTreeMap<CpRef, usize> {
     let mut out: BTreeMap<CpRef, (usize, usize)> = BTreeMap::new();
     for r in records {
@@ -418,7 +464,7 @@ pub fn clamp_conductors(records: &[WireRecord]) -> BTreeMap<CpRef, usize> {
             }
             let e = out.entry(end.cp).or_default();
             match r.ends[i].treatment {
-                EndTreatment::TwinFerrule { .. } => e.1 += 1,
+                EndTreatment::TwinFerrule { partner: Some(_), .. } => e.1 += 1,
                 _ => e.0 += 1,
             }
         }

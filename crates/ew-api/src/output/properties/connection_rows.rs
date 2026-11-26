@@ -1,16 +1,16 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A connection's derived rows: the seven wire properties with their sources, the wire's length, the wire number,
-//! the potential (also an interruption point's) and the route in frame cells.
+//! A connection's derived rows: the seven wire properties with their sources, the wire's length, its two ends, the
+//! wire number, the potential (also an interruption point's) and the route in frame cells.
 //!
 //! Not here: a bus line's rows (`bus_rows.rs`); a fluid line's rows (`fluid_rows.rs`).
 
 use std::collections::BTreeSet;
 
 use ew_derive::{
-    NameSource, PotentialNameOf, PotentialPartition, PropSource, Q, WireLength, WireNumbers, WireRecordSet,
-    cp_label,
+    EndTreatment, NameSource, PotentialNameOf, PotentialPartition, PropSource, Q, TreatedBy, WireLength,
+    WireNumbers, WireRecordSet, cp_label, end_connection,
 };
 use ew_ids::{Id, Uuid};
 use ew_model::EndpointKey;
@@ -340,6 +340,7 @@ impl Session {
             out.push(built);
         }
         out.push(length_row(q, cx, &conns));
+        out.extend(end_rows(q, cx, &conns));
         // The wire number.
         let mut per = Vec::new();
         let mut any_frozen = false;
@@ -485,6 +486,118 @@ fn length_row(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Built {
         provenance,
         actions,
     })
+}
+
+/// A wire's From end and To end (doc 13 §4.5), each an End row and a Part row under its own heading: the treatment
+/// (`ferrule`, `twin_ferrule`, `ring_lug`, `bare`) with the chip "set by hand" and Reset where the selected connection
+/// holds it, else the rule's, unverified, and what it assumed (a connector's contact, an end the table cannot decide and
+/// an end made outside the project have none of the four); the part with "set by hand", else the workshop stock's. A
+/// row sets the end by hand where the one selected connection is the one that lands on the end (`overrides.end_a` when
+/// it lands there by its endpoint `a`, else `end_b`); with another selection it is read-only, and the Connections
+/// table's end cells set it.
+fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
+    let records = q.get::<WireRecordSet>(());
+    let mut out = Vec::new();
+    for (i, category, names) in [
+        (0, Category::FromEnd, ("from_end", "from_part")),
+        (1, Category::ToEnd, ("to_end", "to_part")),
+    ] {
+        let (mut ends, mut parts) = (Vec::new(), Vec::new());
+        let (mut can_reset_end, mut can_reset_part) = (false, false);
+        let mut at: Option<(Id<Connection>, bool)> = None;
+        for c in conns {
+            let record = wires_of(q, *c)
+                .first()
+                .and_then(|(wire, _)| records.iter().find(|r| r.wire.id == *wire));
+            let Some(record) = record else {
+                ends.push((None, Provenance::Authored));
+                parts.push((None, Provenance::Authored));
+                continue;
+            };
+            let end = &record.ends[i];
+            let holder = end_connection(q, &record.wire, i);
+            if conns.len() == 1 && holder.is_some_and(|(h, _)| h == *c) {
+                at = holder;
+            }
+            let word = match end.treatment {
+                EndTreatment::Ferrule { .. } => Some("ferrule"),
+                EndTreatment::TwinFerrule { .. } => Some("twin_ferrule"),
+                EndTreatment::RingLug => Some("ring_lug"),
+                EndTreatment::Bare => Some("bare"),
+                EndTreatment::Connector | EndTreatment::External | EndTreatment::Unknown { .. } => None,
+            };
+            let hand_part = ew_derive::end_override(q, &record.wire, i)
+                .and_then(|o| o.part)
+                .is_some();
+            let by = |hand: bool| match (hand, end.treated_by) {
+                (true, _) => Provenance::Overridden {
+                    note: "set by hand".into(),
+                },
+                (false, TreatedBy::Rule { assumed, .. }) => Provenance::Derived {
+                    via: match (assumed.class, assumed.clamp) {
+                        (true, true) => "rule (unverified): fine-stranded wire, clamp kind not known",
+                        (true, false) => "rule (unverified): fine-stranded wire",
+                        (false, true) => "rule (unverified): clamp kind not known",
+                        (false, false) => "rule (unverified)",
+                    }
+                    .into(),
+                },
+                (false, TreatedBy::Outside) => Provenance::Derived {
+                    via: "made outside the project".into(),
+                },
+                (false, TreatedBy::Hand) => Provenance::Overridden {
+                    note: "set by hand".into(),
+                },
+            };
+            let hand_end = end.treated_by == TreatedBy::Hand;
+            can_reset_end |= hand_end && at.is_some();
+            can_reset_part |= hand_part && at.is_some();
+            ends.push((word.map(Value::from), by(hand_end)));
+            let part = end.part.map(|p| serde_json::json!({ "copy": p.to_string() }));
+            parts.push((
+                part,
+                if hand_part {
+                    by(true)
+                } else {
+                    Provenance::Derived {
+                        via: "workshop stock".into(),
+                    }
+                },
+            ));
+        }
+        let treatment = FieldType::Optional(Box::new(FieldType::Enum {
+            options: ["ferrule", "twin_ferrule", "ring_lug", "bare"]
+                .map(str::to_owned)
+                .to_vec(),
+        }));
+        let part = FieldType::Optional(Box::new(FieldType::Link { kind: "part".into() }));
+        for (name, member, ty, per, can_reset) in [
+            (names.0, "treatment", treatment, ends, can_reset_end),
+            (names.1, "part", part, parts, can_reset_part),
+        ] {
+            let (value, provenance) = merge(cx, &ty, per);
+            let path = at.map(|(_, a)| format!("overrides.end_{}.{member}", if a { "a" } else { "b" }));
+            let route = at.map(|(_, a)| EditRoute::FieldsSet {
+                kind: "connection".to_owned(),
+                path: format!("overrides.end_{}", if a { "a" } else { "b" }),
+            });
+            let mut actions = vec![RowAction::Override];
+            if can_reset {
+                actions.push(RowAction::Reset);
+            }
+            out.push(derived(DerivedRow {
+                kind: "connection",
+                name,
+                partner: path.as_deref().zip(route).map(|(p, r)| (p, r, false)),
+                category,
+                ty,
+                value,
+                provenance,
+                actions,
+            }));
+        }
+    }
+    out
 }
 
 /// The row that holds the source of the wire property `name` (`csa`, `colour`, `shielded`): the same

@@ -17,7 +17,7 @@
 
 use std::sync::Arc;
 
-use ew_api::output::table_edit::channel_text_cell;
+use ew_api::output::table_edit::{channel_text_cell, wire_end_cell};
 use ew_api::output::{InputError, NavKind, NavNode, NavTable, StripEdit, StripEditError, Uuid};
 use ew_api::{AnyCommand, Exposure, Submit};
 use serde_json::{Map, Value};
@@ -390,6 +390,21 @@ impl ShellModel {
                     None => Err(strings::text(key!("rack-channel-no-device")).to_owned()),
                 }
             }
+            // A wire's end is set by hand on the connection that lands on it, at its endpoint a or b.
+            None if wire_end_cell(&view.table, node, col).is_some() => {
+                match self.wire_end_of(&view.table, node, col) {
+                    Some((_, at_a)) => Ok((
+                        "connection".to_owned(),
+                        if at_a {
+                            "overrides.end_a.treatment"
+                        } else {
+                            "overrides.end_b.treatment"
+                        }
+                        .to_owned(),
+                    )),
+                    None => Err(strings::text(key!("table-reason-end-outside")).to_owned()),
+                }
+            }
             None => strip_route(&view.table, node, col)
                 .or_else(|| view.table.columns[col].route.clone())
                 .ok_or_else(|| strings::text(key!("table-reason-no-command")).to_owned()),
@@ -403,8 +418,16 @@ impl ShellModel {
         self.project_session()?.channel_row(channel)?.device
     }
 
+    /// The connection a wire row's From end or To end cell sets and whether at its endpoint a ([`wire_end_cell`],
+    /// `Session::wire_end`); `None` for every other cell and for an end made outside the project.
+    fn wire_end_of(&self, table: &NavTable, node: &NavNode, col: usize) -> Option<(Uuid, bool)> {
+        let end = wire_end_cell(table, node, col)?;
+        self.project_session()?.wire_end(&node.records, end)
+    }
+
     /// The records a cell of route (`kind`, `path`) sets: a PLC channel's Function text the wired device
-    /// ([`ShellModel::channel_device`]), every other cell its row's ([`row_targets`]).
+    /// ([`ShellModel::channel_device`]), a wire's end the connection that lands on it ([`ShellModel::wire_end_of`]),
+    /// every other cell its row's ([`row_targets`]).
     fn cell_targets(
         &self,
         table: &NavTable,
@@ -413,6 +436,13 @@ impl ShellModel {
         kind: &str,
         path: &str,
     ) -> Vec<Uuid> {
+        if wire_end_cell(table, node, col).is_some() {
+            return self
+                .wire_end_of(table, node, col)
+                .map(|(c, _)| c)
+                .into_iter()
+                .collect();
+        }
         match channel_text_cell(table, node, col) {
             Some(_) => self.channel_device(table, node, col).into_iter().collect(),
             None => row_targets(node, kind, path),

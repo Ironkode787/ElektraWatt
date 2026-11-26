@@ -169,8 +169,10 @@ pub struct EndOverride {                      // WireOverrides.end_a and .end_b:
 
 - **An end set by hand lives on the connection that lands on the clamp**: in `end_a` when that connection's endpoint
   `a` is the wire's end, else in `end_b`. A renumber, a re-route or a junction edit that keeps that connection leaves it
-  where it is, and no list of ends by CP can be left behind. The derivation reads it only where that endpoint is a
-  wire's end at a CP; Reset clears it.
+  where it is, and no list of ends by CP can be left behind; a device put onto the connection splits it, and the end
+  stays with the part that keeps its endpoint. The derivation reads it only where that endpoint is a wire's end at a
+  CP; Reset clears it. Where the connection is a star's feed arm or a chain's arm at the CP, the end it holds is the
+  end of every wire that shares it.
 - **A typed length** is `WireOverrides.length` ([03](03-domain-model.md) §9); the value of the carrier wins, as for
   every override of a physical wire. A cell of a wire's row in the Connections table (its length, colour or
   cross-section) sets one connection of that wire which no other wire stands for: the carrier where it is the wire's
@@ -444,11 +446,14 @@ or another colour scheme is the choice of its stock.
 
 ### 4.5 An end set by hand
 
-In the Connections table's From end or To end cell, or in the wire's Properties (section From end or To end, row End),
-a person chooses ferrule, twin ferrule, ring lug or bare, or the rule's own; in the row Part, a ferrule or lug part the
-project holds. The choice is one `fields.set` of the connection's `end_a` or `end_b` (§2.3) and one undo step. The cell
-then prints in the text colour of a value, not of a derived one, and Properties shows the chip "set by hand" with
-Reset, which clears it and gives the rule's treatment back. An end set by hand takes no part in the pairing of §4.3; a
+In the Connections table's From end or To end cell, or in the wire's Properties (section From end or To end, rows From
+end and From part, To end and To part), a person chooses ferrule, twin ferrule, ring lug or bare; an empty cell gives
+the rule's own back; in the Part row, a ferrule or lug part the project holds. The choice is one `fields.set` of the
+connection's `end_a` or `end_b` (§2.3) and one undo step. Properties sets it where the selected connection is the one
+that lands on the end (always for a wire of one connection); for another selection the row is read-only and the
+table's cell sets it. The cell prints the treatment as the list does, and Properties shows the chip "set by hand" with
+Reset, which clears it and gives the rule's treatment back; a rule's end says "rule (unverified)" and what it
+assumed. An end set by hand takes no part in the pairing of §4.3; a
 twin ferrule set by hand pairs with the other end on its clamp that is set or paired as twin.
 
 ### 4.6 The rules of the check

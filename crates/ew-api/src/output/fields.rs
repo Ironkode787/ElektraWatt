@@ -167,6 +167,10 @@ pub enum Category {
     Part,
     /// Electrical properties and overrides.
     Electrical,
+    /// A wire's From end: its treatment and its part (doc 13 §4.5).
+    FromEnd,
+    /// A wire's To end.
+    ToEnd,
     /// Connection-point overrides.
     ConnectionPoints,
     /// Texts.
@@ -193,10 +197,12 @@ pub enum Category {
 
 impl Category {
     /// Every category in display order.
-    pub const ALL: [Category; 14] = [
+    pub const ALL: [Category; 16] = [
         Category::Identity,
         Category::Part,
         Category::Electrical,
+        Category::FromEnd,
+        Category::ToEnd,
         Category::ConnectionPoints,
         Category::Texts,
         Category::Structure,
@@ -216,6 +222,8 @@ impl Category {
             Category::Identity => "identity",
             Category::Part => "part",
             Category::Electrical => "electrical",
+            Category::FromEnd => "from_end",
+            Category::ToEnd => "to_end",
             Category::ConnectionPoints => "connection_points",
             Category::Texts => "texts",
             Category::Structure => "structure",

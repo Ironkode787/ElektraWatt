@@ -828,13 +828,10 @@ pub fn end_treatment(
             s if s.is_empty() => text!("treatment-ferrule"),
             s => text!("treatment-ferrule-size", s),
         },
-        EndTreatment::TwinFerrule { csa, .. } => {
-            text!(
-                "treatment-twin",
-                size(csa),
-                partner.unwrap_or_default().to_owned()
-            )
-        }
+        EndTreatment::TwinFerrule { csa, .. } => match partner {
+            Some(p) => text!("treatment-twin", size(csa), p.to_owned()),
+            None => text!("treatment-twin-alone", size(csa)),
+        },
         EndTreatment::RingLug => match stud {
             Some(s) => text!("treatment-ring-lug-stud", s.to_owned()),
             None => text!("treatment-ring-lug"),

@@ -146,6 +146,24 @@ pub fn channel_text_cell(table: &NavTable, node: &NavNode, column: usize) -> Opt
     })
 }
 
+/// A Connections wire row's From end or To end cell (doc 13 §4.5): the end (0 the From end, 1 the To end), whose
+/// treatment the cell sets by hand on the connection that lands on it ([`crate::Session::wire_end`]); `None` for every
+/// other cell and for a bridge row.
+pub fn wire_end_cell(table: &NavTable, node: &NavNode, column: usize) -> Option<usize> {
+    let wire = matches!(
+        node.kinds.first().map(String::as_str),
+        Some("connection" | "shared")
+    );
+    if table.kind != NavKind::Connections || !wire {
+        return None;
+    }
+    match table.columns.get(column)?.key.as_str() {
+        "from_end" => Some(0),
+        "to_end" => Some(1),
+        _ => None,
+    }
+}
+
 /// The records a cell of route (`route_kind`, `path`) sets on a row: a conductor route takes a core row's conductor
 /// (the records after its cable), a potential definition route a potential row's record when it is a `potential_def`
 /// (not the bond row's, nor a connection point naming the potential), a wire's override the wire's own connection
@@ -318,6 +336,9 @@ pub fn cell_reason_key(table: &NavTable, node: &NavNode, column: usize) -> Optio
     }
     if let Some(channel) = channel_text_cell(table, node, column) {
         return channel.is_none().then_some(key!("rack-channel-no-device"));
+    }
+    if wire_end_cell(table, node, column).is_some() {
+        return None;
     }
     if c.derived {
         return Some(key!("table-reason-derived"));

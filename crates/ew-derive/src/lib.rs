@@ -238,7 +238,7 @@ pub use toc::{TocRow, TocRows};
 pub use tracker::{DepKey, Recorded, RecordingTracker};
 pub use treatment::{
     Assumed, ClampMatch, ConductorMatch, EndTreatment, RuleGives, TREATMENT_RULES, TreatedBy, TreatmentRule,
-    Undecided, clamp_conductors, end_connection, rule_for,
+    Undecided, clamp_conductors, end_connection, end_override, rule_for, stock_part,
 };
 pub use valve_cells::{
     CELL_STEPS, GALLERY_PORTS, PlugPin, SlotFrame, box_frame, device_fits_terminal, fits_terminal,
