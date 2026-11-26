@@ -83,3 +83,27 @@ change here.
   grows by each one's width (a 4 mm end cover makes a 22.6 mm strip of three terminals 26.6 mm), the items after it on
   the rail fit that much further on, and where a rail held the strip exactly, EW-LAY-010 now says where it runs past
   the rail's end (doc 12 §2.6)
+- behaviour-change: a part says what it brings with it (doc 07 §2.5): the starter terminals bring their end plate per
+  strip and their end bracket per rail group, the parts list and the enclosure legend list them, and a strip takes their
+  widths on its rail (the sample's -X1031 moves to rail 2); a device or strip may leave one off or take another part
+- behaviour-change: a part may have variants (the starter feed-through terminal in blue): a device's Variant row in
+  Properties, the strip editor's Part cell and the place browser choose one, the lists print the variant's own number
+  on a row of its own, and EW-CORE-085 names a variant the part does not have
+- behaviour-change: the project keeps a workshop stock of wire, ferrule and marker parts (a new project starts with the
+  starter's generic ferrules and markers); Project ▸ Edit stock… edits it with what the cut list cuts to, Project ▸ Add
+  the generic stock adds what it lacks, and EW-MFG-022 reports a wire whose part is of another size or colour
+- behaviour-change: the part dialog greys a part that does not fit the device and says why (a function of another
+  kind, a pin it lacks, a clamp too small for a wire), after the parts that fit
+- behaviour-change: the place browser's row says what choosing a part does ("Places the Coil A1-A2", "Drawn as a
+  device box", "2 functions"), a valve on an electrical page places its coil, the detail lists a part's variants and
+  what it comes with, and a greyed row says what no symbol draws on the page
+- behaviour-change: the part editor shows a part as its sections, listed on the left and one at a time (Identity,
+  Technical data, Pins and clamps, Size and mounting, Accessories, Variants, and a wire's, ferrule's or marker's own),
+  and Delete part… deletes a part of the project's own that no device uses
+- behaviour-change: the strip editor lists the end brackets and end plates the terminals' parts bring at their places,
+  read-only; Delete on such a row leaves it off that strip, and a strip's Properties take or leave each one
+- api-add: commands `workshop.stock {stock, copies?, cut_increment?}` and `part.delete {copy}`; `part.assign` takes
+  `variant`, `device.place`'s `from_part` and `new_terminal` take `part_variant`, `part.edit_copy` changes a part's
+  `accessories` and `variants`, and `fields.set` sets a device's `accessory_choices`
+- format-variant: `Part` gains `accessories`, `variants` and the sections `wire`, `ferrule`, `marker`; `Device` gains
+  `accessory_choices`; `ProjectSettings` gains `workshop`; each absent when empty
