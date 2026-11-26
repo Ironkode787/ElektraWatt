@@ -54,7 +54,7 @@ const CORE_COLOUR: [(&str, &str); 1] = [("colour", key!("column-colour"))];
 
 /// The editable columns of table mode: (navigator, column key, route kind, route path).
 /// Every other column is read-only.
-pub(super) const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 36] = [
+pub(super) const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 37] = [
     (NavKind::Pages, "title", "page", "title"),
     (NavKind::Pages, "type", "page", "kind"),
     (NavKind::Devices, "function_text", "device", "function_text"),
@@ -65,6 +65,8 @@ pub(super) const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 36] = [
         "connection",
         "overrides.csa",
     ),
+    // A wire's length typed by hand (doc 13 §3.3), on its carrier connection (`table_edit::row_targets`).
+    (NavKind::Connections, "length", "connection", "overrides.length"),
     (NavKind::Strips, "terminal", "device", "terminal.designation"),
     (NavKind::Strips, "label", "device", "function_text"),
     (NavKind::Strips, "state", "device", "state"),

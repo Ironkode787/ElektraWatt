@@ -11,7 +11,7 @@ use ew_ids::Id;
 use ew_mltext::{MlText, NaturalKey, natural_key};
 use ew_schema::{Conductor, Device, Function, LengthSource, ReportBlock, ReportKind};
 
-use super::conn::{Wires, colour_cell, csa_cell, end_text, text_cell, words_cell};
+use super::conn::{Wires, colour_cell, csa_cell, end_text, text_cell};
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, Row, RowId, RowKey, RowKind, RowSet};
 
@@ -148,7 +148,9 @@ pub(super) fn length_cell(q: &Q, cable: Id<Device>) -> Cell {
 pub fn length_source_cell(source: &LengthSource) -> Cell {
     match source {
         LengthSource::Manual(nm) => Cell::metres(*nm),
-        LengthSource::FromPart => words_cell(&text!("cell-from-part")),
+        LengthSource::FromPart => Cell::Text(ew_derive::text::in_languages(&ew_derive::text::length_source(
+            &LengthSource::FromPart,
+        ))),
         LengthSource::Missing => Cell::Missing(MissingReason::Length),
         LengthSource::Unknown(_) => Cell::Empty,
     }
@@ -158,16 +160,17 @@ pub fn length_source_cell(source: &LengthSource) -> Cell {
 /// taken from the part, or none ([`length_cell`]'s words); `None` for any other text.
 pub fn cable_length_words(text: &str) -> Option<LengthSource> {
     let typed = text.trim().to_lowercase();
-    let said = |t: &ew_l10n::Text| {
-        let words = crate::words::in_languages(t);
+    let said = |words: MlText| {
         words
             .languages()
             .filter_map(|l| words.get(l))
             .any(|w| w.to_lowercase() == typed)
     };
-    if said(&text!("cell-from-part")) {
+    if said(ew_derive::text::in_languages(&ew_derive::text::length_source(
+        &LengthSource::FromPart,
+    ))) {
         Some(LengthSource::FromPart)
-    } else if said(&text!("cell-length-missing")) {
+    } else if said(crate::words::in_languages(&text!("cell-length-missing"))) {
         Some(LengthSource::Missing)
     } else {
         None

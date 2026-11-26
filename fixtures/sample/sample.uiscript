@@ -780,5 +780,10 @@
 {"action":"ui.dismiss","params":{}}
 {"action":"layout.auto_fill_rail","params":{"order":"schematic","rail":"rail 1"}}
 {"action":"layout.auto_fill_rail","params":{"order":"schematic","rail":"rail 2"}}
+{"action":"navigator.show","params":{"kind":"connections"}}
+{"action":"navigator.table","params":{"kind":"connections","on":true}}
+{"action":"table.set","params":{"kind":"connections","column":"length","value":"400","rows":["101.1"]}}
+{"action":"table.set","params":{"kind":"connections","column":"length","value":"450","rows":["102.8"]}}
+{"action":"table.set","params":{"kind":"connections","column":"length","value":"600","rows":["103.2"]}}
 {"action":"file.save","params":{}}
 {"action":"app.quit","params":{}}

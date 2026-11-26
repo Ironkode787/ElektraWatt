@@ -178,7 +178,7 @@ fn a_fluid_line_continued_across_pages_is_one_tube() {
     let rows = tube_list(&s);
     assert_eq!(
         (rows[0]["Length"].as_str(), rows[0]["Source"].as_str()),
-        ("2 m", "manual")
+        ("2 m", "typed")
     );
     s.undo(&Origin::Gui).expect("undo");
     assert_eq!(tube_list(&s)[0]["Source"], "missing");

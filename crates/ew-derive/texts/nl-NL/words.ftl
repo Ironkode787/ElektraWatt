@@ -114,3 +114,10 @@ prop-via-rating = potentiaal { $p0 } · beveiligd door { $p1 }, { $p2 } A · { $
 prop-via-size-profile = potentiaal { $p0 } · maatprofiel '{ $p1 }' · klasse { $p2 }
 prop-via-built-in = ingebouwde standaard ({ $p0 })
 prop-via-override = overschreven
+
+## Where a length comes from, as the wire list, the tube list and the cable overview print it
+
+length-source-typed = getypt
+length-source-cable = kabel
+length-source-from-part = uit artikel
+length-source-missing = ontbreekt

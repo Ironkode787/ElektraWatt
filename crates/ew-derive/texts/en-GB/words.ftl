@@ -118,3 +118,10 @@ prop-via-rating = potential { $p0 } · protected by { $p1 }, rated { $p2 } A · 
 prop-via-size-profile = potential { $p0 } · size profile '{ $p1 }' · class { $p2 }
 prop-via-built-in = built-in default ({ $p0 })
 prop-via-override = override
+
+## Where a length comes from, as the wire list, the tube list and the cable overview print it
+
+length-source-typed = typed
+length-source-cable = cable
+length-source-from-part = from part
+length-source-missing = missing

@@ -246,7 +246,7 @@ pub use wire_props::{
     WirePropsMap, WirePropsOf, pick, unfed_protection, unrated, wire_part_of, wire_props_below_overrides,
     wire_rating,
 };
-pub use wire_record::{WireRecord, WireRecordSet};
+pub use wire_record::{EndRecord, WireLength, WireRecord, WireRecordFlags, WireRecordSet, wire_length};
 pub use wires::{EndKind, PhysicalWire, PhysicalWiresOf, WireEnd};
 
 // The report-pages provider hook of `page_order` and the drawn-page order.

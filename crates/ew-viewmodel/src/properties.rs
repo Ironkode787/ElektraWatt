@@ -948,6 +948,8 @@ const PRIMARY: &[(&str, &[&str])] = &[
             "derived.colour",
             // Whether the wire prints its marker, beside the cross-section and the colour it prints.
             "overrides.show_marker",
+            // The length the fitter cuts it to (doc 13 §3.3).
+            "derived.length",
             // A bus line's cable and plugs.
             "derived.bus_cable",
             "derived.bus_plugs",
@@ -2345,6 +2347,14 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
     ("function definition", None, key!("chip-via-function-definition")),
     ("override (CDP)", None, key!("chip-via-override-cdp")),
     ("wire numbering", None, key!("chip-via-wire-numbering")),
+    // A wire's length (doc 13 §3.3).
+    ("typed by hand", None, key!("chip-via-typed-by-hand")),
+    (
+        "no length: type it here, or the fitter measures the wire",
+        None,
+        key!("chip-via-no-length"),
+    ),
+    ("cut with its cable ", Some(""), key!("chip-via-cut-with-cable")),
     ("connectivity", None, key!("chip-via-connectivity")),
     ("project description", None, key!("chip-via-project-description")),
     (

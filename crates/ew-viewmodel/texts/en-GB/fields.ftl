@@ -814,6 +814,7 @@ field-help-connection-number = The wire number as typed or frozen. Leave it empt
 field-help-connection-derived-number = The wire number that is printed: from wire numbering, unless it is frozen. Freeze keeps it when the numbering changes.
 field-help-connection-derived-colour = The colour the wire gets: its own override, else its cable core, its potential's definition, the colour profile or a default. The chip names the source; Go to source shows it.
 field-help-connection-derived-csa = The cross-section the wire gets: its own override, else its cable core, its potential's definition, the size profile or a default. The chip names the source; Go to source shows it.
+field-help-connection-derived-length = The length the fitter cuts the wire to, typed by hand, in millimetres or with its unit (2 m); a cable core is cut with its cable. The wire list prints it; a wire without one prints —.
 field-help-connection-derived-insulation = The insulation type the wire gets: its own override, else its potential's definition or the project's default.
 field-help-connection-derived-wire-part = The wire part the wire gets: its own override, else its potential's definition or the project's default.
 field-help-connection-derived-function = The function word the wire gets: its own override, else its potential's definition or the project's default.

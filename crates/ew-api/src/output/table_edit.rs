@@ -146,11 +146,14 @@ pub fn channel_text_cell(table: &NavTable, node: &NavNode, column: usize) -> Opt
     })
 }
 
-/// The records of a row of the route's kind: a conductor route takes a core row's conductor (the records after
-/// its cable), a potential definition route a potential row's record when it is a `potential_def` (not the bond row's,
-/// nor a connection point naming the potential), every other route the row's records; deduplicated, in record order.
-pub fn row_targets(node: &NavNode, route_kind: &str) -> Vec<Uuid> {
+/// The records a cell of route (`route_kind`, `path`) sets on a row: a conductor route takes a core row's conductor
+/// (the records after its cable), a potential definition route a potential row's record when it is a `potential_def`
+/// (not the bond row's, nor a connection point naming the potential), a wire's length its carrier (a wire row's first
+/// record, doc 13 §2.3: the carrier's value wins, and a shared star feed arm is not this wire's alone), every other
+/// route the row's records; deduplicated, in record order.
+pub fn row_targets(node: &NavNode, route_kind: &str, path: &str) -> Vec<Uuid> {
     let picked: Vec<Uuid> = match route_kind {
+        "connection" if path == "overrides.length" => node.records.iter().take(1).copied().collect(),
         "conductor" if node.role == NavRole::Conductor => node.records.iter().skip(1).copied().collect(),
         "conductor" => Vec::new(),
         // A cable's length is edited on its cable row, not on a core row.
@@ -319,7 +322,7 @@ pub fn cell_reason_key(table: &NavTable, node: &NavNode, column: usize) -> Optio
     let Some((kind, path)) = &c.route else {
         return Some(key!("table-reason-no-command"));
     };
-    if row_targets(node, kind).is_empty() && define_point(node, kind, path).is_none() {
+    if row_targets(node, kind, path).is_empty() && define_point(node, kind, path).is_none() {
         return Some(key!("table-no-record"));
     }
     match route_type(kind, path) {

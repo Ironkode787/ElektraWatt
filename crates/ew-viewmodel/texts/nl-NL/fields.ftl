@@ -804,6 +804,7 @@ field-help-connection-number = Het draadnummer zoals getypt of vastgezet. Laat h
 field-help-connection-derived-number = Het draadnummer dat wordt afgedrukt: van de draadnummering, tenzij het vastgezet is. Vastzetten houdt het vast wanneer de nummering verandert.
 field-help-connection-derived-colour = De kleur die de draad krijgt: zijn eigen overschrijving, anders zijn kabelader, de definitie van zijn potentiaal, het kleurprofiel of een standaard. Het label noemt de bron; Naar de bron toont haar.
 field-help-connection-derived-csa = De doorsnede die de draad krijgt: zijn eigen overschrijving, anders zijn kabelader, de definitie van zijn potentiaal, het maatprofiel of een standaard. Het label noemt de bron; Naar de bron toont haar.
+field-help-connection-derived-length = De lengte waarop de monteur de draad knipt, met de hand getypt, in millimeters of met de eenheid (2 m); een kabelader wordt met de kabel op lengte geknipt. De draadlijst drukt hem; een draad zonder lengte krijgt —.
 field-help-connection-derived-insulation = Het isolatietype dat de draad krijgt: zijn eigen overschrijving, anders de definitie van zijn potentiaal of de projectstandaard.
 field-help-connection-derived-wire-part = Het draadartikel dat de draad krijgt: zijn eigen overschrijving, anders de definitie van zijn potentiaal of de projectstandaard.
 field-help-connection-derived-function = Het functiewoord dat de draad krijgt: zijn eigen overschrijving, anders de definitie van zijn potentiaal of de projectstandaard.

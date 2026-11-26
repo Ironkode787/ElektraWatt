@@ -345,7 +345,7 @@ impl ShellModel {
     fn defines(&self, view: &TableView, i: u32, col: usize) -> bool {
         let node = &view.table.nodes[i as usize];
         self.cell_route(view, i, col)
-            .is_ok_and(|(k, p)| row_targets(node, &k).is_empty() && define_point(node, &k, &p).is_some())
+            .is_ok_and(|(k, p)| row_targets(node, &k, &p).is_empty() && define_point(node, &k, &p).is_some())
     }
 
     /// The route of an editable cell, or why it is read-only.
@@ -403,12 +403,12 @@ impl ShellModel {
         self.project_session()?.channel_row(channel)?.device
     }
 
-    /// The records a cell of route kind `kind` sets: a PLC channel's Function text the wired device
+    /// The records a cell of route (`kind`, `path`) sets: a PLC channel's Function text the wired device
     /// ([`ShellModel::channel_device`]), every other cell its row's ([`row_targets`]).
-    fn cell_targets(&self, table: &NavTable, node: &NavNode, col: usize, kind: &str) -> Vec<Uuid> {
+    fn cell_targets(&self, table: &NavTable, node: &NavNode, col: usize, kind: &str, path: &str) -> Vec<Uuid> {
         match channel_text_cell(table, node, col) {
             Some(_) => self.channel_device(table, node, col).into_iter().collect(),
-            None => row_targets(node, kind),
+            None => row_targets(node, kind, path),
         }
     }
 
@@ -450,7 +450,7 @@ impl ShellModel {
                 if k == STRIP_ROUTE {
                     strip_targets(&view.table, node, p)
                 } else {
-                    self.cell_targets(&view.table, node, col, k)
+                    self.cell_targets(&view.table, node, col, k, p)
                 }
             })
             .unwrap_or_default();
@@ -788,8 +788,8 @@ impl ShellModel {
                 }
                 Some(node) => {
                     cell.targets = match view.table.columns.iter().position(|c| c.key == cell.column) {
-                        Some(col) => self.cell_targets(&view.table, node, col, &kind),
-                        None => row_targets(node, &kind),
+                        Some(col) => self.cell_targets(&view.table, node, col, &kind, &path),
+                        None => row_targets(node, &kind, &path),
                     };
                     // A potential defined meanwhile is set like any definition; one still without defines it.
                     cell.define = if cell.targets.is_empty() {

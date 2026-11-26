@@ -33,6 +33,9 @@
 //! - `project_default_is_level_1`: `wire_default` is level 1, the built-ins level 0.
 //! - `malformed_colour_profile_is_noted`: a malformed `colour_profile` is noted and the built-in colour applies.
 //! - `nested_junction_chain_fr_con_041`: a chain junction entering a chain junction: src -> d1 -> d2 -> d3.
+//! - `a_wire_record_has_its_typed_length_its_cable_or_none`: `wire_record_set`'s length (doc 13 §3.3).
+//! - `a_site_end_lies_outside_every_layout_space`: an external end, and an end in another location than a layout
+//!   space's while the project has one, are site ends; the wire is a field wire (doc 13 §2.1).
 
 use crate::common;
 
@@ -40,7 +43,7 @@ use common::{Fx, id, uid};
 use ew_derive::{
     CpRef, DeriveNote, EdgeKind, EffectiveProps, Level, NameSource, NetId, PageLocalNets, PairMode,
     PhysicalWiresOf, PotentialFlow, PotentialId, PotentialNameOf, PotentialPartition, PropSource, Q,
-    ShortSource, StitchGraphQ, WirePropsOf,
+    ShortSource, StitchGraphQ, WireLength, WirePropsOf, WireRecord, WireRecordSet,
 };
 use ew_ids::Id;
 use ew_model::{AnyRow, EndpointKey, Entity, Model, Op, Rev};
@@ -1354,4 +1357,65 @@ fn nested_junction_chain_fr_con_041() {
             ),
         ]
     );
+}
+
+/// The wire record of wire `n`.
+fn record(q: &Q, n: u128) -> WireRecord {
+    q.get::<WireRecordSet>(())
+        .iter()
+        .find(|r| r.wire.id == id(n))
+        .cloned()
+        .unwrap_or_else(|| panic!("no wire {n:#x}"))
+}
+
+#[test]
+fn a_wire_record_has_its_typed_length_its_cable_or_none() {
+    let mut fx = pair_fixture();
+    fx.record(0x2001)["overrides"] = json!({"length": 400_000_000});
+    func(&mut fx, 0x1003, P1);
+    func(&mut fx, 0x1004, P1);
+    conn(&mut fx, 0x2002, Some(P1), cp(0x1003), cp(0x1004), Value::Null);
+    // A core of the cable -W1.
+    func(&mut fx, 0x1005, P1);
+    func(&mut fx, 0x1006, P1);
+    fx.device(0x30_000, "W", Some(1)).with("cable", json!({}));
+    fx.push(json!({"$k": "conductor", "id": uid(0x30_001), "cable": uid(0x30_000), "core": "BN"}));
+    conn(&mut fx, 0x2003, Some(P1), cp(0x1005), cp(0x1006), json!({"core": uid(0x30_001)}));
+    let m = fx.build();
+    let q = Q::new(&m);
+    assert_eq!(record(&q, 0x2001).length, WireLength::Typed(ew_units::Nm(400_000_000)));
+    assert_eq!(record(&q, 0x2002).length, WireLength::Missing);
+    assert_eq!(record(&q, 0x2003).length, WireLength::WithCable(id(0x30_000)));
+}
+
+#[test]
+fn a_site_end_lies_outside_every_layout_space() {
+    let mut fx = pair_fixture();
+    fx.node(0x900, "location", "CAB", None);
+    fx.node(0x901, "location", "FLD", None);
+    fx.record(0x21001)["structure"] = json!({"location": uid(0x900)});
+    fx.record(0x21002)["structure"] = json!({"location": uid(0x901)});
+    // An external supply into -K1003.
+    fx.push(json!({
+        "$k": "external_ref", "id": uid(0x910), "location": uid(0x901), "device": "N1", "connection": "L",
+    }));
+    ip_spec(&mut fx, 0x1101, P1, json!({"name": "SUPPLY", "direction": "source", "external": uid(0x910)}));
+    func(&mut fx, 0x1003, P1);
+    fx.record(0x21003)["structure"] = json!({"location": uid(0x900)});
+    conn(&mut fx, 0x2002, Some(P1), cp(0x1101), cp(0x1003), Value::Null);
+    let sites = |m: &Model, n: u128| {
+        let r = record(&Q::new(m), n);
+        let mut ends: Vec<bool> = r.ends.iter().map(|e| e.site).collect();
+        ends.sort_unstable();
+        (ends, r.flags.field)
+    };
+    // Without a layout space no device end is a site end: nothing says which location is the cabinet.
+    let m = fx.build();
+    assert_eq!(sites(&m, 0x2001), (vec![false, false], false));
+    assert_eq!(sites(&m, 0x2002), (vec![false, true], true));
+    // With one for +CAB the end in +FLD is made on site.
+    fx.push(json!({"$k": "layout_space", "id": uid(0x920), "location": uid(0x900)}));
+    let m = fx.build();
+    assert_eq!(sites(&m, 0x2001), (vec![false, true], true));
+    assert_eq!(sites(&m, 0x2002), (vec![false, true], true));
 }

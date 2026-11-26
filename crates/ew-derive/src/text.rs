@@ -10,12 +10,13 @@
 use ew_l10n::{Text, TextArg};
 use ew_mltext::MlText;
 use ew_schema::{
-    AddrValue, ColourCode, ColourSpec, Csa, FluidPortRole, Kind, LineKind, PotentialType, TagSpec,
+    AddrValue, ColourCode, ColourSpec, Csa, FluidPortRole, Kind, LengthSource, LineKind, PotentialType, TagSpec,
 };
 use ew_units::{Dec3, Nm};
 
 use crate::bus::net_address_text;
 use crate::plc::{ChannelAddr, Slot};
+use crate::wire_record::WireLength;
 
 /// A device's tag by its own letter and counter (`-K1`; `-K` before online numbering gives it a counter): how a
 /// notice names a device the derivation has not tagged.
@@ -302,6 +303,24 @@ pub fn line_kind(kind: &LineKind) -> Text {
         LineKind::Drain => text!("line-kind-drain"),
         LineKind::Flexible => text!("line-kind-flexible"),
         LineKind::Unknown(_) => text!("line-kind-other"),
+    }
+}
+
+/// Where a wire's length comes from (doc 13 §3.3): "typed", "cable", "missing".
+pub fn wire_length_source(length: &WireLength) -> Text {
+    match length {
+        WireLength::Typed(_) => text!("length-source-typed"),
+        WireLength::WithCable(_) => text!("length-source-cable"),
+        WireLength::Missing => text!("length-source-missing"),
+    }
+}
+
+/// Where a cable's or a tube's length comes from: "typed", "from part", "missing" (a source of a newer format too).
+pub fn length_source(source: &LengthSource) -> Text {
+    match source {
+        LengthSource::Manual(_) => text!("length-source-typed"),
+        LengthSource::FromPart => text!("length-source-from-part"),
+        LengthSource::Missing | LengthSource::Unknown(_) => text!("length-source-missing"),
     }
 }
 

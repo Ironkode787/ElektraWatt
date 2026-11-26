@@ -922,7 +922,7 @@ impl Merge<'_> {
             let Some((kind, path)) = nav.columns[c].route.clone() else {
                 return Err(key!("table-reason-no-command"));
             };
-            let targets = row_targets(node, &kind);
+            let targets = row_targets(node, &kind, &path);
             if targets.is_empty() || define_point(node, &kind, &path).is_some() {
                 // A potential's defining cell is defined in the window.
                 return Err(key!("table-reason-window"));

@@ -90,8 +90,8 @@ fn the_fluid_workspace_lists_valves_lines_and_tubes_and_edits_a_length() {
     h.key_press(egui::Key::Enter);
     settle(&mut h);
     assert!(
-        h.query_all_by_label_contains("Source manual").count() >= 1,
-        "the length's source is manual"
+        h.query_all_by_label_contains("Source typed").count() >= 1,
+        "the length's source is typed"
     );
     h.state_mut().shell_mut().shutdown();
 }

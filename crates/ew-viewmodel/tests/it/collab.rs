@@ -231,7 +231,10 @@ fn the_collision_dialog_holds_saves_until_a_side_is_chosen() {
     assert_eq!(s.banner(), None);
     assert!(s.is_dirty(), "the edit since the hold is not on disk yet");
     done(&mut s, "file.save", json!({}));
-    assert_eq!(wire_overrides(&dir), json!({"csa": "2.5", "colour": ["WH"]}));
+    assert_eq!(
+        wire_overrides(&dir),
+        json!({"csa": "2.5", "colour": ["WH"], "length": 400_000_000})
+    );
 }
 
 /// The overrides of the sample's first plain wire as the project folder `dir` holds them.
@@ -710,7 +713,10 @@ fn a_second_change_while_held_rebuilds_the_dialog() {
     );
     done(&mut s, "external.apply", json!({"take": "theirs"}));
     done(&mut s, "file.save", json!({}));
-    assert_eq!(wire_overrides(&dir), json!({"csa": "2.5", "colour": ["RD"]}));
+    assert_eq!(
+        wire_overrides(&dir),
+        json!({"csa": "2.5", "colour": ["RD"], "length": 400_000_000})
+    );
 }
 
 /// The dialog's headings in Dutch, capitalised, with the kind and the field from the terminology; the

@@ -3,17 +3,18 @@
 
 //! `wire_list`: the wire and connection list (FR-REP-014, FR-CON-034; folio 907 of the standard layout).
 
-use ew_derive::{CpRef, Q, WireRecord, short_tag};
+use ew_derive::{CpRef, Q, WireLength, WireRecord, short_tag};
 use ew_ids::Id;
 use ew_l10n::{List, TextArg};
-use ew_schema::{Device, ReportBlock, ReportKind};
+use ew_schema::{Device, ReportBlock, ReportKind, Unit};
+use ew_units::Dec3;
 
 use super::conn::{
     Bridge, Wires, bridge_span, bridges, colour_cell, csa_cell, device_of, end_cells, ip_name, join_texts,
     pages_cell, put, source_text, words_cell,
 };
 use crate::kind::ReportKindDef;
-use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowKind, RowSet};
+use crate::rowset::{Cell, CellType, ColumnDef, QtyUnit, Row, RowId, RowKey, RowKind, RowSet};
 
 /// The wire list.
 ///
@@ -40,6 +41,9 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowKind, RowS
 /// An end (doc 13 §3.2) prints its device or terminal without the structure the two ends share, so an end in
 /// another location prints it (`+FLD-104B1`), and its pin in the CP column: a repeated pin with `#n` (`+#1`), a
 /// terminal's clamp letter (`a`). A bridge prints its kind and span in its From end cell.
+///
+/// `length` is the wire's length (doc 13 §3.3): typed, in millimetres; `cable` for a core, cut with its cable; `—`
+/// without one; `length_source` says which (typed, cable, missing).
 #[derive(Clone, Copy, Debug)]
 pub struct WireList;
 
@@ -62,6 +66,8 @@ impl ReportKindDef for WireList {
             ColumnDef::new("via", CellType::Text, text!("column-via")).weighted(22),
             ColumnDef::new("part", CellType::Ident, text!("column-wire-part")).weighted(8),
             ColumnDef::new("pages", CellType::Folios, text!("column-pages")).weighted(8),
+            ColumnDef::new("length", CellType::Qty, text!("column-length")).weighted(7),
+            ColumnDef::new("length_source", CellType::Text, text!("column-length-from")).weighted(7),
             ColumnDef::new("from_end", CellType::Text, text!("column-from-end")).weighted(12),
         ]
     }
@@ -151,6 +157,11 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
     set("via", via);
     set("part", part);
     set("pages", pages_cell(&w.pages));
+    set("length", length_cell(rec.length));
+    set(
+        "length_source",
+        Cell::Text(ew_derive::text::in_languages(&ew_derive::text::wire_length_source(&rec.length))),
+    );
     let mut r = Row::data(RowId::entity(w.id), cells);
     r.sources = w
         .ends
@@ -159,6 +170,16 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
         .map(|d: Id<Device>| d.cast())
         .collect();
     r
+}
+
+/// A wire's length as the Length cell prints it (doc 13 §3.3): in millimetres as typed, `cable` for a core, `—`
+/// without one.
+fn length_cell(length: WireLength) -> Cell {
+    match length {
+        WireLength::Typed(n) => Cell::Qty(Dec3(n.0 / 1_000), QtyUnit::Unit(Unit::Mm)),
+        WireLength::WithCable(_) => Cell::Text(ew_derive::text::in_languages(&ew_derive::text::wire_length_source(&length))),
+        WireLength::Missing => Cell::ident("—"),
+    }
 }
 
 fn bridge_row(q: &Q, b: &Bridge) -> Row {

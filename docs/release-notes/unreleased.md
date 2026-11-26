@@ -137,3 +137,10 @@ change here.
   its location (`+FLD-104B1` to `+CAB-104A1-A2`); a bridge's kind and terminals stand in the new From end column
   instead of Via. The CSV and XLSX of the list follow. The targets of the terminal diagrams and the cable overview
   print a repeated pin with its number as well (`-101G1:+#1`).
+- behaviour-change: A wire's length typed by hand is shown and typed where the wire is: the wire list has the columns
+  Length (`400 mm`; `cable` for a cable core, cut with its cable; `—` without one) and Length from (typed, cable,
+  missing), the Connections table's Length cell takes a length in millimetres or with its unit (`2 m`) and sets it on
+  the wire's carrier connection, and a wire's Properties have a Length row that says where its length comes from. The
+  sample project has typed lengths on 101.1, 102.8 and 103.2.
+- text-change: The tube list says `typed` (in Dutch `getypt`) for a length typed by hand, as the wire list does, where
+  it said `manual` (`handmatig`).

@@ -1,14 +1,16 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A connection's derived rows: the seven wire properties with their sources, the wire number, the
-//! potential (also an interruption point's) and the route in frame cells.
+//! A connection's derived rows: the seven wire properties with their sources, the wire's length, the wire number,
+//! the potential (also an interruption point's) and the route in frame cells.
 //!
 //! Not here: a bus line's rows (`bus_rows.rs`); a fluid line's rows (`fluid_rows.rs`).
 
 use std::collections::BTreeSet;
 
-use ew_derive::{NameSource, PotentialNameOf, PotentialPartition, PropSource, Q, WireNumbers, cp_label};
+use ew_derive::{
+    NameSource, PotentialNameOf, PotentialPartition, PropSource, Q, WireLength, WireNumbers, WireRecordSet, cp_label,
+};
 use ew_ids::{Id, Uuid};
 use ew_model::EndpointKey;
 use ew_schema::{Connection, Function, Kind, PotentialDef};
@@ -154,7 +156,7 @@ pub(super) fn potential_defs_at(q: &Q, ends: &[EndpointKey]) -> Vec<Id<Potential
 }
 
 impl Session {
-    /// A connection's derived rows: the seven wire properties, the wire number and the potential.
+    /// A connection's derived rows: the seven wire properties, the length, the wire number and the potential.
     pub(super) fn derived_rows_of_connection(
         q: &Q,
         cx: &SheetCx<'_>,
@@ -336,6 +338,7 @@ impl Session {
             }
             out.push(built);
         }
+        out.push(length_row(q, cx, &conns));
         // The wire number.
         let mut per = Vec::new();
         let mut any_frozen = false;
@@ -403,6 +406,84 @@ impl Session {
         out.extend(bus_line_rows(q, cx, &conns));
         out
     }
+}
+
+/// A wire's Length row (doc 13 §3.3): the length typed on it, in millimetres, with the chip "typed by hand" and Reset
+/// where this connection holds it; a core's "cut with its cable -103W1"; else empty, with the chip "no length: type it
+/// here, or the fitter measures the wire". A length typed here is `overrides.length` of the selected connection.
+fn length_row(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Built {
+    let records = q.get::<WireRecordSet>(());
+    let mut per = Vec::new();
+    let (mut can_override, mut can_reset) = (false, false);
+    for c in conns {
+        let record = wires_of(q, *c)
+            .first()
+            .and_then(|(wire, _)| records.iter().find(|r| r.wire.id == *wire));
+        let Some(record) = record else {
+            per.push((None, Provenance::Authored));
+            continue;
+        };
+        per.push(match record.length {
+            WireLength::Typed(n) => {
+                if record.wire.override_sources.length == Some(*c) {
+                    can_reset = true;
+                } else {
+                    can_override = true;
+                }
+                (
+                    Some(Value::from(n.0)),
+                    Provenance::Overridden {
+                        note: "typed by hand".into(),
+                    },
+                )
+            }
+            WireLength::WithCable(cable) => (
+                None,
+                Provenance::Derived {
+                    via: format!("cut with its cable {}", device_tag_text(q, cable)),
+                },
+            ),
+            WireLength::Missing => {
+                can_override = true;
+                (
+                    None,
+                    Provenance::Derived {
+                        via: "no length: type it here, or the fitter measures the wire".into(),
+                    },
+                )
+            }
+        });
+    }
+    let (mut value, provenance) = merge(cx, &FieldType::Nm, per);
+    if let RowValue::One { json, text } = &mut value
+        && let Some(nm) = json.as_i64()
+    {
+        *text = format!("{} mm", crate::output::layout_edit::mm_text(q, i128::from(nm)));
+    }
+    let mut actions = Vec::new();
+    if can_override {
+        actions.push(RowAction::Override);
+    }
+    if can_reset {
+        actions.push(RowAction::Reset);
+    }
+    let route = match Session::editable(Kind::Connection, "overrides.length") {
+        EditRoute::FieldsSet { .. } => EditRoute::FieldsSet {
+            kind: "connection".to_owned(),
+            path: "overrides.length".to_owned(),
+        },
+        other => other,
+    };
+    derived(DerivedRow {
+        kind: "connection",
+        name: "length",
+        partner: Some(("overrides.length", route, false)),
+        category: Category::Electrical,
+        ty: FieldType::Nm,
+        value,
+        provenance,
+        actions,
+    })
 }
 
 /// The row that holds the source of the wire property `name` (`csa`, `colour`, `shielded`): the same

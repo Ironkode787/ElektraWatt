@@ -26,7 +26,7 @@ pub(super) struct WireListRow {
     label: String,
     /// The cells.
     cells: Vec<String>,
-    /// The connections the row stands for.
+    /// The connections the row stands for; a wire row's carrier first.
     records: Vec<Uuid>,
     /// Those that are drawn.
     drawables: Vec<Drawable>,
@@ -96,6 +96,14 @@ pub(super) fn wire_list_rows(q: &Q) -> Vec<WireListRow> {
         };
         cons.sort();
         cons.dedup();
+        // A wire row's carrier first: its length is typed there (`table_edit::row_targets`).
+        if !after_heading
+            && let Some(carrier) = row_entity(&r.id, 0)
+            && let Some(at) = cons.iter().position(|c| c.as_uuid() == carrier)
+        {
+            let c = cons.remove(at);
+            cons.insert(0, c);
+        }
         let number = cell_of(&set, &texts, "no");
         let label = if number.is_empty() {
             format!(

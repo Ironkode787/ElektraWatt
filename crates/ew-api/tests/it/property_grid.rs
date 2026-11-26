@@ -405,6 +405,40 @@ fn frozen_tags_wire_chips_and_the_page_description() {
     assert!(sheet.header.findings.is_empty(), "{:?}", sheet.header.findings);
 }
 
+/// A wire's Length row (doc 13 §3.3) says where its length comes from: 101.1's typed length in millimetres, typed by
+/// hand, with Reset; 102.1 has none, said in words, with Override; a core's is cut with its cable.
+#[test]
+fn a_wires_length_row_says_where_its_length_comes_from() {
+    let s = crate::common::sample();
+    let sheet = s.property_sheet(&[wire(&s, "101.1")]);
+    let length = row(&sheet, "connection/derived.length");
+    assert_eq!(one(length), "400 mm");
+    assert_eq!(
+        length.provenance,
+        Provenance::Overridden {
+            note: "typed by hand".into()
+        }
+    );
+    assert_eq!(length.actions, [RowAction::Reset]);
+    assert_eq!(length.path, "overrides.length");
+    let sheet = s.property_sheet(&[wire(&s, "102.1")]);
+    let length = row(&sheet, "connection/derived.length");
+    assert_eq!(
+        length.provenance,
+        Provenance::Derived {
+            via: "no length: type it here, or the fitter measures the wire".into()
+        }
+    );
+    assert_eq!(length.actions, [RowAction::Override]);
+    let sheet = s.property_sheet(&[wire(&s, "-101W1 BN")]);
+    assert_eq!(
+        row(&sheet, "connection/derived.length").provenance,
+        Provenance::Derived {
+            via: "cut with its cable -101W1".into()
+        }
+    );
+}
+
 #[test]
 fn mixed_and_missing_selections() {
     let s = crate::common::sample();

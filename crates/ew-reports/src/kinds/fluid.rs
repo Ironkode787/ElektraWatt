@@ -43,11 +43,7 @@ fn copy_number(q: &Q, part: Option<Id<Part>>) -> String {
 
 /// A length source in words.
 fn source_text(s: &LengthSource) -> MlText {
-    match s {
-        LengthSource::Manual(_) => in_languages(&text!("cell-manual")),
-        LengthSource::FromPart => in_languages(&text!("cell-from-part")),
-        LengthSource::Missing | LengthSource::Unknown(_) => in_languages(&text!("cell-missing")),
-    }
+    ew_derive::text::in_languages(&ew_derive::text::length_source(s))
 }
 
 // ---------------------------------------------------------------------------------------------------------

@@ -49,14 +49,15 @@ fn id_of(tag: &str) -> String {
         .to_string()
 }
 
-/// The ID of the sample's wire numbered `number`.
+/// The smallest ID of the connections of the sample's wire numbered `number` (a star branch's feed arm).
 fn wire(number: &str) -> String {
     common::sample()
         .navigator_table(ew_api::output::NavKind::Connections)
         .nodes
         .iter()
         .find(|n| n.table_row && n.label == number)
-        .map(|n| n.records[0].to_string())
+        .and_then(|n| n.records.iter().min())
+        .map(ToString::to_string)
         .unwrap_or_else(|| panic!("no wire {number}"))
 }
 

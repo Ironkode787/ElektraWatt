@@ -394,7 +394,7 @@ impl ShellModel {
             let Some(node) = node else {
                 return Outcome::refused(key!("reason-no-nav-row"));
             };
-            let targets = row_targets(&node, route_kind);
+            let targets = row_targets(&node, route_kind, path);
             let label = match (kind, route_kind) {
                 // The Pages table's title column.
                 (NavKind::Pages, _) => {

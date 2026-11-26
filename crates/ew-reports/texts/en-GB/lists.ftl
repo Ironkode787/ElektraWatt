@@ -65,6 +65,7 @@ column-kind = Kind
 column-label = Label
 column-label-text = Label text
 column-length = Length
+column-length-from = Length from
 column-level = Level
 column-line = Line
 column-location-aspect = Location (+)
@@ -204,9 +205,6 @@ cell-revision-withdrawn = withdrawn
 
 ## Where a length, a cross-section or a colour comes from
 
-cell-manual = manual
-cell-from-part = from part
-cell-missing = missing
 cell-from-cable = (cable)
 cell-source-cdp = cdp
 cell-source-core = core

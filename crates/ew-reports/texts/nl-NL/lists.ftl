@@ -65,6 +65,7 @@ column-kind = Soort
 column-label = Label
 column-label-text = Markeringstekst
 column-length = Lengte
+column-length-from = Lengte uit
 column-level = Etage
 column-line = Leiding
 column-location-aspect = Locatie (+)
@@ -204,9 +205,6 @@ cell-revision-withdrawn = ingetrokken
 
 ## Where a length, a cross-section or a colour comes from
 
-cell-manual = handmatig
-cell-from-part = uit artikel
-cell-missing = ontbreekt
 cell-from-cable = (kabel)
 cell-source-cdp = cdp
 cell-source-core = ader

@@ -6,21 +6,25 @@
 //! The wire list, the terminal diagrams, the cable and potential overviews, the SQL view and the checks read the
 //! project's wires through this one query: each physical wire of [`PhysicalWiresOf`] once (a bond wire belongs to two
 //! potentials), oriented From/To by [`orient_wire`] (doc 08 §3.8), with its effective cross-section, colour and wire
-//! part ([`WirePropsOf`], doc 08 §4) and its printed number ([`WireNumbers`]), in the numbering order of doc 08 §5.2:
-//! the order of `wire_numbers`, a wire it does not list last, by ID.
+//! part ([`WirePropsOf`], doc 08 §4), its printed number ([`WireNumbers`]), its length ([`wire_length`], doc 13 §3.3)
+//! and which of its ends the shop does not make (a site end, doc 13 §2.1), in the numbering order of doc 08 §5.2: the
+//! order of `wire_numbers`, a wire it does not list last, by ID.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use ew_ids::Id;
-use ew_schema::{ColourSpec, Connection, Csa, PartRef};
+use ew_rds::Aspect;
+use ew_schema::{ColourSpec, Connection, Csa, Device, LayoutSpace, PartRef, StructureNode};
+use ew_units::Nm;
 
 use crate::numbering::{WireNumbers, orient_wire};
 use crate::potentials::PotentialPartition;
 use crate::q::Q;
 use crate::query::{Policy, Query};
+use crate::structure::StructureOf;
 use crate::wire_props::{Prov, WirePropsOf};
-use crate::wires::{PhysicalWire, PhysicalWiresOf};
+use crate::wires::{EndKind, PhysicalWire, PhysicalWiresOf, WireEnd};
 
 /// One physical wire as the workshop reads it.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -35,6 +39,77 @@ pub struct WireRecord {
     pub wire_part: Option<PartRef>,
     /// The printed number (`101.1`); `None` for a cable core and a wire drawn on no page.
     pub number: Option<String>,
+    /// Its length (doc 13 §3.3).
+    pub length: WireLength,
+    /// What the shop reads of the wire as a whole.
+    pub flags: WireRecordFlags,
+    /// Its ends: From, To.
+    pub ends: [EndRecord; 2],
+}
+
+/// A wire's length (doc 13 §3.3). The layout adds the lengths it estimates and routes.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum WireLength {
+    /// Typed by hand: a constituent connection's `WireOverrides.length`, the carrier's first.
+    Typed(Nm),
+    /// A cable's core: cut with its cable.
+    WithCable(Id<Device>),
+    /// Neither.
+    Missing,
+}
+
+impl WireLength {
+    /// The length in nanometres, when there is one.
+    pub fn value(self) -> Option<Nm> {
+        match self {
+            WireLength::Typed(n) => Some(n),
+            WireLength::WithCable(_) | WireLength::Missing => None,
+        }
+    }
+}
+
+/// What the shop reads of a wire as a whole.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct WireRecordFlags {
+    /// A field wire: an end of it is a site end ([`EndRecord::site`]).
+    pub field: bool,
+}
+
+/// One end of a wire as the shop reads it.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct EndRecord {
+    /// A site end, made on site, not in the shop (doc 13 §2.1): an external end, or an end on a device whose location is
+    /// the location of no layout space while the project has a layout space.
+    pub site: bool,
+}
+
+/// The length of a wire (doc 13 §3.3): typed, else a core's cable, else missing.
+pub fn wire_length(q: &Q, w: &PhysicalWire) -> WireLength {
+    if let Some(n) = w.overrides.length {
+        return WireLength::Typed(n);
+    }
+    match w.core.and_then(|c| q.conductors().get(c)) {
+        Some(core) => WireLength::WithCable(core.cable),
+        None => WireLength::Missing,
+    }
+}
+
+/// Whether `end` is a site end (doc 13 §2.1), given the locations of the project's layout spaces (`spaces`, empty in a
+/// project without one): an external end; an end on a device whose own location is none of them.
+fn site_end(q: &Q, end: &WireEnd, spaces: &BTreeSet<Id<StructureNode>>) -> bool {
+    match end.kind {
+        EndKind::External => true,
+        EndKind::Open => false,
+        EndKind::Device => {
+            !spaces.is_empty()
+                && q.functions()
+                    .get(end.cp.function)
+                    .and_then(|f| f.device)
+                    .and_then(|d| q.try_get::<StructureOf>(d).ok())
+                    .and_then(|s| s.node(Aspect::Location))
+                    .is_some_and(|node| !spaces.contains(&node))
+        }
+    }
 }
 
 /// `wire_record_set()`: see the module documentation. Policy Cold: the families it reads (the partition, the
@@ -51,6 +126,8 @@ impl Query for WireRecordSet {
     fn run(q: &Q, _key: &()) -> Arc<Vec<WireRecord>> {
         let partition = q.get::<PotentialPartition>(());
         let numbers = q.get::<WireNumbers>(());
+        let spaces: BTreeSet<Id<StructureNode>> =
+            q.table::<LayoutSpace>().iter().map(|(_, s)| s.location).collect();
         let mut by_id: BTreeMap<Id<Connection>, WireRecord> = BTreeMap::new();
         for p in partition.potentials() {
             let physical = q.get::<PhysicalWiresOf>(p.id);
@@ -60,7 +137,15 @@ impl Query for WireRecordSet {
                     let mut wire = w.clone();
                     orient_wire(q, &mut wire);
                     let props = props.wires.get(&w.id).cloned().unwrap_or_default();
+                    let ends = wire.ends.map(|e| EndRecord {
+                        site: site_end(q, &e, &spaces),
+                    });
                     WireRecord {
+                        length: wire_length(q, &wire),
+                        flags: WireRecordFlags {
+                            field: ends.iter().any(|e| e.site),
+                        },
+                        ends,
                         wire,
                         csa: props.csa,
                         colour: props.colour,
