@@ -83,6 +83,7 @@ static IMPLEMENTED: &[&dyn Rule] = &[
     &shipped::layout::Collision,
     &shipped::layout::CarrierIncompatible,
     &shipped::layout::AssemblyOrder,
+    &shipped::pot::WirePartMismatch,
     &shipped::num::TagDeviates,
     &shipped::num::FrozenValueDeviates,
     &shipped::plc::AddressOverlap,
@@ -189,6 +190,7 @@ mod tests {
             "LAY" => "130",
             "FL" => "120",
             "IMP" => "160",
+            "MFG" => "140",
             _ => "???",
         }
     }

@@ -1,0 +1,25 @@
+{
+  "$k": "part",
+  "id": "f7d22f7b-1596-5744-a49a-ce8b5848e353",
+  "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+  "item_id": "74874422-2a74-55e7-8f1e-d15032b65aa9",
+  "version": "0.1.1",
+  "sha256": "sha256:2f488c3c9c312dc9ecdf061370de771ad92355da50a6957e93ed249e0ea7fbff",
+  "meta": {
+    "key": "EW-GEN-FER-2X2.5",
+    "licence": "CC0-1.0",
+    "sources": ["ew.original"],
+    "confidence": {"part": "test", "sections.ferrule": "unverified"}
+  },
+  "kind": "ferrule",
+  "manufacturer": {
+    "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+    "item": "f4260253-4a2b-5c11-a3d6-b01e2aa5efe6",
+    "version_req": "^0.1"
+  },
+  "part_number": "EW-GEN-FER-2X2.5",
+  "description": {"en": "Twin ferrule 2 × 2.5 mm², insulated", "nl": "Twin-adereindhuls 2 × 2,5 mm², geïsoleerd"},
+  "sections": {
+    "ferrule": {"csa_min": "2.5", "csa_max": "2.5", "twin": true, "insulated": true, "sleeve": 10000000, "colour": ["BU"]}
+  }
+}

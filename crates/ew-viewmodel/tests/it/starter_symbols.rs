@@ -776,7 +776,8 @@ fn a_library_part_from_the_picker_is_one_undo_step_and_its_command_replays() {
         .iter()
         .map(|c| c["$k"].as_str().unwrap_or_default())
         .collect();
-    for kind in ["symbol", "fndef", "part", "manufacturer"] {
+    // The maker travels not: the project holds it already with its workshop stock.
+    for kind in ["symbol", "fndef", "part"] {
         assert!(kinds.contains(&kind), "{kind} in {kinds:?}");
     }
     assert_eq!(new_reps(&s, &before).len(), 1, "the coil");

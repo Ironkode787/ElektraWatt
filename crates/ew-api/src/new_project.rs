@@ -216,6 +216,65 @@ fn with_shipped_frames(model: Model) -> Result<Model, OpenError> {
     Ok(scratch.engine.model().clone())
 }
 
+/// The starter's generic stock (doc 07 §2.5 "The workshop stock", §9.2): every starter part of kind ferrule or marker,
+/// by part number in natural order, as stock entries, with the documents that embed them and their closure.
+pub(crate) fn generic_stock() -> (Vec<ew_schema::PartRef>, Vec<Value>) {
+    let reg = crate::library::Registry::starter_only();
+    let library = crate::library::starter_parts_library();
+    let mut parts: Vec<ew_schema::LibCopy<ew_schema::Part>> = reg
+        .documents(library, ew_schema::Kind::Part)
+        .into_iter()
+        .filter_map(|d| match d {
+            ew_schema::LibDocument::Part(c)
+                if matches!(
+                    c.item.kind,
+                    ew_schema::PartKind::Ferrule | ew_schema::PartKind::Marker
+                ) =>
+            {
+                Some(c)
+            }
+            _ => None,
+        })
+        .collect();
+    parts.sort_by_cached_key(|c| (ew_mltext::natural_key(c.item.part_number.as_str()), c.id));
+    let mut copies: Vec<Value> = Vec::new();
+    let mut seen: Vec<Uuid> = Vec::new();
+    for c in &parts {
+        let r = ew_schema::LibRef {
+            library: c.library_id,
+            item: c.item_id,
+            version_req: "*".to_owned(),
+            extra: Default::default(),
+        };
+        for doc in reg.closure(&r).unwrap_or_default() {
+            let Some(id) = doc.copy_meta().map(|m| m.id) else {
+                continue;
+            };
+            if !seen.contains(&id) {
+                seen.push(id);
+                copies.extend(serde_json::to_value(&doc).ok());
+            }
+        }
+    }
+    let stock = parts.iter().map(|c| ew_schema::PartRef::new(c.id)).collect();
+    (stock, copies)
+}
+
+/// `model` with the starter's generic ferrules and markers as its workshop stock ([`generic_stock`]), through the
+/// command the stock dialog runs.
+fn with_generic_stock(model: Model) -> Result<Model, OpenError> {
+    let refused = |e: CmdError| OpenError::Format(format!("the generic stock cannot be set: {e}"));
+    let (stock, copies) = generic_stock();
+    let mut scratch = Session::new(model, SessionOptions::default());
+    let cmd = AnyCommand {
+        name: "workshop.stock".into(),
+        params: serde_json::json!({ "stock": stock, "copies": copies }),
+    };
+    let preview = scratch.preview(&cmd).map_err(refused)?;
+    scratch.commit(preview).map_err(refused)?;
+    Ok(scratch.engine.model().clone())
+}
+
 fn kind_of(kind: NewProjectKind) -> ProjectKind {
     match kind {
         NewProjectKind::Schematic => ProjectKind::Schematic,
@@ -266,6 +325,11 @@ impl Session {
         }
         if let (ProjectTemplate::Builtin, NewProjectKind::Schematic) = (template, kind) {
             model = with_shipped_frames(model)?;
+        }
+        // A project or a basic project made from the built-in one starts with the generic stock; one made from a basic
+        // project directory keeps that project's.
+        if let ProjectTemplate::Builtin = template {
+            model = with_generic_stock(model)?;
         }
         if let ProjectTemplate::DirectoryWithoutPages(_) = template {
             let refused =

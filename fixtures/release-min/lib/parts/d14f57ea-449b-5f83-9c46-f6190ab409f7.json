@@ -1,0 +1,23 @@
+{
+  "$k": "part",
+  "id": "d14f57ea-449b-5f83-9c46-f6190ab409f7",
+  "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+  "item_id": "7eaff861-a38a-5456-83c3-b6db67ccbab2",
+  "version": "0.1.1",
+  "sha256": "sha256:23ab6b5ef747c6db41880efe79d8b56a60f08fd991340e1f62d0291c92c94b88",
+  "meta": {
+    "key": "EW-GEN-FER-4",
+    "licence": "CC0-1.0",
+    "sources": ["ew.original"],
+    "confidence": {"part": "test", "sections.ferrule": "unverified"}
+  },
+  "kind": "ferrule",
+  "manufacturer": {
+    "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+    "item": "f4260253-4a2b-5c11-a3d6-b01e2aa5efe6",
+    "version_req": "^0.1"
+  },
+  "part_number": "EW-GEN-FER-4",
+  "description": {"en": "Ferrule 4 mm², insulated", "nl": "Adereindhuls 4 mm², geïsoleerd"},
+  "sections": {"ferrule": {"csa_min": "4", "csa_max": "4", "insulated": true, "sleeve": 10000000, "colour": ["GY"]}}
+}

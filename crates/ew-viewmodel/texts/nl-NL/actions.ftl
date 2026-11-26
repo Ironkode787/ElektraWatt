@@ -173,6 +173,7 @@ command-fluid-medium-define = Medium aan poort definiëren
 command-fluid-tube-set = Slang instellen
 command-fluid-length-set = Slanglengte instellen
 command-part-edit_copy = Artikel bewerken
+command-workshop-stock = Werkplaatsvoorraad instellen
 command-layout-space-create = Layoutruimte maken
 command-layout-space-delete = Layoutruimte verwijderen
 command-layout-enclosure-create = Kast plaatsen

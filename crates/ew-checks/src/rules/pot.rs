@@ -983,6 +983,82 @@ impl Rule for FePinOnPe {
 }
 
 // ---------------------------------------------------------------------------------------------------------
+// EW-MFG-022
+
+/// EW-MFG-022 "Wire part does not match the wire" (doc 15 §4.5.5): conflict, o r, warning, potential.
+pub const WIRE_PART_MISMATCH: RuleMeta = RuleMeta {
+    id: "EW-MFG-022",
+    message: key!("rule-ew-mfg-022"),
+    code: "140022",
+    kind: RuleKind::Conflict,
+    modes: Modes::letters("or"),
+    severity: Severity::Warning,
+    release_severity: None,
+    scope: ScopeKind::Potential,
+    supersedes: &[],
+    release: Release::V1_0,
+};
+
+/// EW-MFG-022: a wire whose part (the one its chain names: the wire, its potential's definition, the project default)
+/// has a wire section that gives another cross-section in mm² or another colour than the wire's effective ones (doc 07
+/// §2.5): a shop that cut by the part would cut the wrong one. A part without a wire section, or a wire without a size
+/// or colour, is not judged on what is missing. One finding per wire, target the wire's carrier connection.
+#[derive(Clone, Copy, Debug)]
+pub struct WirePartMismatch;
+
+impl Rule for WirePartMismatch {
+    fn meta(&self) -> &'static RuleMeta {
+        &WIRE_PART_MISMATCH
+    }
+
+    fn run(&self, q: &Q, scope: &Scope) -> Vec<Finding> {
+        let Scope::Potential(p) = *scope else {
+            return Vec::new();
+        };
+        let parts = q.parts();
+        let mut out = Vec::new();
+        for (w, props) in owned_wires(q, p) {
+            let Some(part) = props.wire_part.as_ref().map(|r| r.value.copy) else {
+                continue;
+            };
+            let Some(copy) = parts.get(part) else { continue };
+            let Some(section) = copy.item.sections.wire.as_ref() else {
+                continue;
+            };
+            let size = match props.csa.as_ref().map(|c| &c.value) {
+                Some(ew_schema::Csa::Mm2(csa)) if *csa != section.csa => Some(csa.to_string()),
+                _ => None,
+            };
+            let colour = match (props.colour.as_ref().map(|c| &c.value), section.colour.as_ref()) {
+                (Some(wire), Some(stock)) if wire != stock => Some(colour_text(wire)),
+                _ => None,
+            };
+            let form = match (&size, &colour) {
+                (Some(_), Some(_)) => "both",
+                (Some(_), None) => "size",
+                (None, Some(_)) => "colour",
+                (None, None) => continue,
+            };
+            let text = wire_text(q, &w);
+            out.push(
+                Finding::new(
+                    &WIRE_PART_MISMATCH,
+                    [Target::new(Kind::Connection, w.id), Target::new(Kind::Part, part)],
+                    "",
+                    text.clone(),
+                )
+                .arg("wire", text)
+                .arg("part", copy.item.part_number.as_str())
+                .arg("form", form)
+                .arg("csa", size.unwrap_or_default())
+                .arg("colour", colour.unwrap_or_default()),
+            );
+        }
+        out
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
 // EW-POT-004, EW-POT-005: colour codes
 
 /// EW-POT-004 "GNYE on a non-PE potential" (doc 15 §4.3): safety, o r, error, potential.

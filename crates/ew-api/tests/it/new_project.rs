@@ -526,9 +526,14 @@ fn with_frames(frames: serde_json::Value) -> Session {
     );
     let mut project = None;
     let mut records = Vec::new();
+    // The library copies the project holds (its workshop stock) stay; the forms are the shipped ones below.
+    let mut held = Vec::new();
     for (key, line) in ew_commands::rows::model_lines(&built.world().model).unwrap() {
         let mut v: serde_json::Value = serde_json::from_str(&line).unwrap();
-        if key.0 == ew_schema::Kind::Project {
+        if matches!(key.0, ew_schema::Kind::Part | ew_schema::Kind::Manufacturer) {
+            v["$k"] = serde_json::Value::String(key.0.to_string());
+            held.push(ew_schema::LibDocument::from_value(v).unwrap());
+        } else if key.0 == ew_schema::Kind::Project {
             v.as_object_mut().unwrap().remove("$k");
             v["settings"]["frames"] = frames.clone();
             project = Some(serde_json::from_value::<ew_schema::Project>(v).unwrap());
@@ -539,7 +544,8 @@ fn with_frames(frames: serde_json::Value) -> Session {
     }
     let lib = shipped_forms()
         .into_iter()
-        .map(|f| ew_schema::LibDocument::from_value(f).unwrap());
+        .map(|f| ew_schema::LibDocument::from_value(f).unwrap())
+        .chain(held);
     Session::from_records(project.unwrap(), records, lib, options(5)).unwrap()
 }
 

@@ -1,0 +1,18 @@
+{
+  "$k": "part",
+  "id": "1dd22617-713c-5524-9cb5-3a35dd380c4e",
+  "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+  "item_id": "324ce054-0bbb-5bbb-899a-6eee5b0562f2",
+  "version": "0.1.1",
+  "sha256": "sha256:21bd646cca456cadec0a9ded9562c4458b8359dcd80881a3f7e38e679bf1f03c",
+  "meta": {"key": "EW-GEN-MRK-3", "licence": "CC0-1.0", "sources": ["ew.original"], "confidence": {"part": "test"}},
+  "kind": "marker",
+  "manufacturer": {
+    "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+    "item": "f4260253-4a2b-5c11-a3d6-b01e2aa5efe6",
+    "version_req": "^0.1"
+  },
+  "part_number": "EW-GEN-MRK-3",
+  "description": {"en": "Device label, 1 line of 12 characters", "nl": "Apparaatlabel, 1 regel van 12 tekens"},
+  "sections": {"marker": {"marks": "device", "lines": 1, "chars": 12}}
+}

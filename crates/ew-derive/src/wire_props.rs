@@ -782,6 +782,37 @@ impl Ctx<'_> {
     }
 }
 
+/// The part a wire is cut from (doc 07 §2.5 "The parts a wire consumes"): the one its chain names (`props.wire_part`:
+/// the wire, its potential's definition, the project default), else the first wire part of the workshop stock
+/// (`ProjectSettings.workshop.stock`, in its order) whose wire section gives the wire's cross-section in mm² and its
+/// colour, else none. The wire's size and colour come from its rules, never from its part.
+pub fn wire_part_of(q: &Q, props: &EffectiveProps) -> Option<PartRef> {
+    if let Some(p) = &props.wire_part {
+        return Some(p.value.clone());
+    }
+    let Some(Csa::Mm2(csa)) = props.csa.as_ref().map(|p| &p.value) else {
+        return None;
+    };
+    let colour = props.colour.as_ref().map(|p| &p.value);
+    let parts = q.parts();
+    q.project()
+        .settings
+        .workshop
+        .stock
+        .iter()
+        .find(|r| {
+            parts.get(r.copy).is_some_and(|c| {
+                c.item.kind == ew_schema::PartKind::Wire
+                    && c.item
+                        .sections
+                        .wire
+                        .as_ref()
+                        .is_some_and(|w| w.csa == *csa && w.colour.as_ref() == colour)
+            })
+        })
+        .cloned()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -88,11 +88,13 @@ fn a_black_box_of_a_generic_part_prints_its_tag_and_part_number_only() {
     // The part and its maker are held now: the maker is "Generic" for the chooser and the tables.
     {
         let q = s.query();
-        let makers: Vec<String> = q
+        // The part and the project's workshop stock, all of one maker.
+        let mut makers: Vec<String> = q
             .parts()
             .iter()
             .map(|(_, p)| ew_derive::manufacturer_name(&q, &p.item.manufacturer))
             .collect();
+        makers.dedup();
         assert_eq!(makers, ["Generic"]);
     }
     assert_eq!(

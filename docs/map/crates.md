@@ -314,6 +314,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/commands/supply.rs` |  | The members `supply.<path>` of `project.settings.set`: one member of the project's supply (doc 03 §5). |
 | `src/commands/terminal.rs` | large | Terminal and cable commands (doc 03 §11–§12): `terminal.add`, `terminal.designate`, `terminal.insert`, `terminal.move`, `cable.create`, `conductor.add`. |
 | `src/commands/typeface.rs` |  | `project.typeface.set` (`SetTypeface`): the project's typeface (doc 09 §4.8), a font file of the user's that every text of the Standard typeface prints in, held as a project asset (`assets/<sha256>.ttf` or `.otf`, doc 05 §13.3). |
+| `src/commands/workshop.rs` |  | `workshop.stock` (`SetWorkshopStock`): the project's workshop stock (doc 07 §2.5 "The workshop stock"). |
 | `src/derived.rs` |  | The derived consequences of a transaction (doc 03 §8.6 "diff_query", doc 17 §3.5 `--preview`), v0 subset: the printed device tags and the cross-reference texts. |
 | `src/diff.rs` |  | The entity and field changes of a transaction (ADR-0008, ARCH §5.4), for previews and the history panel. |
 | `src/engine.rs` |  | The commit pipeline (ARCH §5.2), undo and redo (§5.3) and previews (§5.4): the engine behind `ew_api::Session`. |

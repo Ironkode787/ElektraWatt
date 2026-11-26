@@ -66,6 +66,7 @@ pub(crate) mod structure_box;
 mod supply;
 mod terminal;
 mod typeface;
+mod workshop;
 
 pub use assembly::ChildSpec;
 pub use assign::AssignModeParam;
@@ -248,6 +249,7 @@ commands! {
     macro_insert::InsertMacro,
     join::JoinDevice,
     part_edit::EditPartCopy,
+    workshop::SetWorkshopStock,
     layout::CreateLayoutSpace,
     layout::DeleteLayoutSpace,
     layout::CreateEnclosure,

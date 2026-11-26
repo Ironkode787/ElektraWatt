@@ -1030,6 +1030,13 @@ impl Session {
         let mut parts: Vec<CataloguePart> = Vec::new();
         let mut without_functions: Vec<CataloguePart> = Vec::new();
         for (id, copy) in q.parts().iter() {
+            // The parts a wire consumes (the workshop stock's wires, ferrules and markers) are no device to place.
+            if matches!(
+                copy.item.kind,
+                PartKind::Wire | PartKind::Ferrule | PartKind::Marker
+            ) {
+                continue;
+            }
             if let Some(row) = catalogue_part(&q, set, &rows, id.as_uuid(), &copy.item, None, &page) {
                 parts.push(CataloguePart {
                     manufacturer: ew_derive::manufacturer_name(&q, &copy.item.manufacturer),

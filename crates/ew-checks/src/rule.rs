@@ -186,6 +186,7 @@ pub(crate) const FAMILIES: &[(&str, &str, u32)] = &[
     ("LAY", "EW-LAYOUT", 0),
     ("FL", "EW-FL", 0),
     ("IMP", "EW-IMP", 0),
+    ("MFG", "EW-MFG", 0),
 ];
 
 /// The release column of the rule catalogue (doc 15 §4, §4.1).

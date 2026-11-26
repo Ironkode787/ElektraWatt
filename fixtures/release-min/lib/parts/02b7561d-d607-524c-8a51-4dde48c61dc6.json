@@ -1,0 +1,23 @@
+{
+  "$k": "part",
+  "id": "02b7561d-d607-524c-8a51-4dde48c61dc6",
+  "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+  "item_id": "79825947-aa61-5360-8e00-c535c2db0168",
+  "version": "0.1.1",
+  "sha256": "sha256:c9613afc67484455855591d2ae2d33da358de1180f3ded9218bd467f55414a84",
+  "meta": {
+    "key": "EW-GEN-FER-1.5",
+    "licence": "CC0-1.0",
+    "sources": ["ew.original"],
+    "confidence": {"part": "test", "sections.ferrule": "unverified"}
+  },
+  "kind": "ferrule",
+  "manufacturer": {
+    "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+    "item": "f4260253-4a2b-5c11-a3d6-b01e2aa5efe6",
+    "version_req": "^0.1"
+  },
+  "part_number": "EW-GEN-FER-1.5",
+  "description": {"en": "Ferrule 1.5 mm², insulated", "nl": "Adereindhuls 1,5 mm², geïsoleerd"},
+  "sections": {"ferrule": {"csa_min": "1.5", "csa_max": "1.5", "insulated": true, "sleeve": 8000000, "colour": ["BK"]}}
+}

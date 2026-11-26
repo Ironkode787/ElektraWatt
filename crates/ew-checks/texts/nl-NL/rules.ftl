@@ -865,6 +865,14 @@ rule-ew-pot-003 = { $cp_shared ->
     .title = FE-pen op PE
     .hint = Sluit de pen aan op functionele aarde, of leg de FE–PE-verbinding vast op zijn draad.
 
+rule-ew-mfg-022 = Draad { $wire } wordt gesneden van { $part }, waarvan { $form ->
+        [size] de doorsnede niet de { $csa } mm² van de draad is
+        [colour] de kleur niet het { $colour } van de draad is
+       *[both] doorsnede en kleur niet de { $csa } mm² { $colour } van de draad zijn
+    }
+    .title = Draadartikel past niet bij de draad
+    .hint = Geef de draad een artikel van zijn doorsnede en kleur, of laat zijn artikel leeg zodat hij het eerste uit de werkplaatsvoorraad neemt; de lijsten drukken de eigen doorsnede en kleur van de draad af.
+
 rule-ew-pot-004 = Draad { $wire } is groen-geel maar voert { $potential }{ $typed ->
         [yes] {" "}({ $type })
        *[no] {""}

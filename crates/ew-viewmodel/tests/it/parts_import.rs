@@ -123,7 +123,8 @@ fn the_table_parts_table_imports_through_the_card_once() {
     done(&mut shell, "file.save", json!({}));
     done(&mut shell, "file.close", json!({}));
     let (reopened, _) = Session::open_read_only(&dir, VERSION).unwrap();
-    assert_eq!(reopened.query().parts().iter().count(), rows);
+    let stock = reopened.query().project().settings.workshop.stock.len();
+    assert_eq!(reopened.query().parts().iter().count(), rows + stock);
     // A second import skips every key.
     new_project(&mut shell, &tmp.0.join("again.ew"));
     done(
@@ -418,11 +419,13 @@ fn a_supplier_list_imports_after_mapping_and_its_map_is_saved() {
     // The parts are in the project: saved and read back.
     done(&mut shell, "file.save", json!({}));
     let (reopened, _) = Session::open_read_only(&tmp.0.join("proj.ew"), VERSION).unwrap();
+    // The imported parts, beside the new project's workshop stock (the generic ferrules and markers).
     let mut numbers: Vec<String> = reopened
         .query()
         .parts()
         .iter()
         .map(|(_, p)| p.item.part_number.to_string())
+        .filter(|n| !n.starts_with("EW-GEN-"))
         .collect();
     numbers.sort();
     assert_eq!(numbers, ["3044102", "A9F74210"]);

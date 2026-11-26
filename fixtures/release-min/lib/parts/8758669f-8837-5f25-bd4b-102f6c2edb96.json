@@ -1,0 +1,23 @@
+{
+  "$k": "part",
+  "id": "8758669f-8837-5f25-bd4b-102f6c2edb96",
+  "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+  "item_id": "e3d12c50-f757-5228-afc9-962c7c94b293",
+  "version": "0.1.1",
+  "sha256": "sha256:71aceb1afd7bb0472370dc184142b0b7739dbd26927f0e1a3055c895adf8375c",
+  "meta": {
+    "key": "EW-GEN-FER-6",
+    "licence": "CC0-1.0",
+    "sources": ["ew.original"],
+    "confidence": {"part": "test", "sections.ferrule": "unverified"}
+  },
+  "kind": "ferrule",
+  "manufacturer": {
+    "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+    "item": "f4260253-4a2b-5c11-a3d6-b01e2aa5efe6",
+    "version_req": "^0.1"
+  },
+  "part_number": "EW-GEN-FER-6",
+  "description": {"en": "Ferrule 6 mm², insulated", "nl": "Adereindhuls 6 mm², geïsoleerd"},
+  "sections": {"ferrule": {"csa_min": "6", "csa_max": "6", "insulated": true, "sleeve": 10000000, "colour": ["YE"]}}
+}

@@ -84,7 +84,21 @@ fn a_new_project_lists_the_sixteen_starter_parts_with_their_manufacturer() {
             .iter()
             .all(|c| s.library_manufacturer(&c.item.manufacturer) == "Generic")
     );
-    assert_eq!(s.query().parts().iter().count(), 0, "none is embedded");
+    // A new project holds its workshop stock (the generic ferrules and markers) and no other part.
+    let q = s.query();
+    let stock: Vec<_> = q
+        .project()
+        .settings
+        .workshop
+        .stock
+        .iter()
+        .map(|r| r.copy)
+        .collect();
+    assert!(!stock.is_empty());
+    assert!(
+        q.parts().iter().all(|(id, _)| stock.contains(&id)),
+        "only the stock is embedded"
+    );
 }
 
 #[test]
@@ -97,7 +111,8 @@ fn the_parts_row_assigns_a_library_part_in_one_command_that_carries_its_closure(
         .expect("a library part")
         .unwrap();
     assert_eq!(cmd.name, "part.assign");
-    // The part, its template FnDef (the lamp) and the manufacturer travel in the command.
+    // The part and its template FnDef (the lamp) travel in the command; the manufacturer the project holds already
+    // (its workshop stock's maker) does not.
     let kinds: Vec<&str> = cmd.params["copies"]
         .as_array()
         .expect("copies")
@@ -106,7 +121,7 @@ fn the_parts_row_assigns_a_library_part_in_one_command_that_carries_its_closure(
         .collect();
     assert_eq!(kinds.iter().filter(|k| **k == "part").count(), 1, "{kinds:?}");
     assert!(
-        kinds.contains(&"fndef") && kinds.contains(&"manufacturer"),
+        kinds.contains(&"fndef") && !kinds.contains(&"manufacturer"),
         "{kinds:?}"
     );
     // The text form of the command, as a command log keeps it.

@@ -869,6 +869,14 @@ rule-ew-pot-003 = { $cp_shared ->
     .title = FE pin on PE
     .hint = Wire the pin to functional earth, or declare the FE–PE bond on its wire.
 
+rule-ew-mfg-022 = Wire { $wire } is cut from { $part }, whose { $form ->
+        [size] size is not the wire's { $csa } mm²
+        [colour] colour is not the wire's { $colour }
+       *[both] size and colour are not the wire's { $csa } mm² { $colour }
+    }
+    .title = Wire part does not match the wire
+    .hint = Give the wire a part of its size and colour, or leave its part empty so that it takes the first one of the workshop stock; the lists print the wire's own size and colour.
+
 rule-ew-pot-004 = Wire { $wire } is green-yellow but carries { $potential }{ $typed ->
         [yes] {" "}({ $type })
        *[no] {""}
