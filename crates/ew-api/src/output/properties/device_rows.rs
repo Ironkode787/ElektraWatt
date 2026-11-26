@@ -22,6 +22,46 @@ use super::{Provenance, RowAction, RowValue, device_tag_text, folio_of, main_loc
 use crate::Session;
 use crate::output::fields::{Category, EditRoute, FieldType};
 
+/// The part use of `device` whose part has variants (its first), with its index and the part copy.
+pub(crate) fn variant_use(
+    q: &Q,
+    device: Id<Device>,
+) -> Option<(
+    usize,
+    ew_schema::PartUse,
+    std::sync::Arc<ew_schema::LibCopy<ew_schema::Part>>,
+)> {
+    let dev = q.devices().get(device)?;
+    dev.parts.iter().enumerate().find_map(|(i, u)| {
+        let copy = q.parts().get(u.part.copy)?;
+        (!copy.item.variants.is_empty()).then(|| (i, u.clone(), copy.clone()))
+    })
+}
+
+/// The words of a part's variant `key` in the Variant row: "Blue · EW-GEN-TRM-1-BU", or the part's own number alone
+/// (`None`, or a key the part does not hold, which EW-CORE-085 reports).
+pub(crate) fn variant_label(part: &ew_schema::Part, key: Option<&str>) -> String {
+    match key.and_then(|k| part.variant(k)) {
+        Some(v) => format!(
+            "{} · {}",
+            v.name.neutral_or_first().unwrap_or(v.key.as_str()),
+            part.with_variant(Some(v.key.as_str())).part_number.as_str()
+        ),
+        None => part.part_number.as_str().to_owned(),
+    }
+}
+
+/// The Variant row's choices: the part's own number, then each variant's words.
+pub(crate) fn variant_options(part: &ew_schema::Part) -> Vec<String> {
+    std::iter::once(variant_label(part, None))
+        .chain(
+            part.variants
+                .iter()
+                .map(|v| variant_label(part, Some(v.key.as_str()))),
+        )
+        .collect()
+}
+
 impl Session {
     /// A device's derived rows: the tag, the structure per aspect, the main location and the connection points.
     pub(super) fn derived_rows_of_device(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid]) -> Vec<Built> {
@@ -254,6 +294,33 @@ impl Session {
                     actions: Vec::new(),
                 }));
             }
+        }
+        // The variant of one device's part (doc 07 §2.5, §5): the part's own numbers, then each variant by name and
+        // number; choosing one writes it into the part use (`fields.set` of `parts`, through `Session::layout_edit`).
+        if let [one] = devices.as_slice()
+            && let Some((_, use_, part)) = variant_use(q, *one)
+        {
+            let options = variant_options(&part.item);
+            let current = variant_label(&part.item, use_.part.variant.as_ref().map(|v| v.as_str()));
+            out.push(derived(DerivedRow {
+                kind: "device",
+                name: "variant",
+                partner: Some((
+                    "derived.variant",
+                    EditRoute::Command {
+                        command: "fields.set".to_owned(),
+                    },
+                    false,
+                )),
+                category: Category::Identity,
+                ty: FieldType::Enum { options },
+                value: RowValue::One {
+                    json: Value::String(current.clone()),
+                    text: current,
+                },
+                provenance: Provenance::Authored,
+                actions: vec![RowAction::Edit],
+            }));
         }
         // The PLC a bus device belongs to ("no such field in the switch's properties"): a station names
         // its PLC, read-only; a bus device in no PLC (JSON null) is given to one by choosing it, the PLCs by ID

@@ -244,3 +244,50 @@ fn abutting_strips_take_k_plus_one_brackets_and_an_older_part_use_keeps_its_coun
         (copy(EB_OLD), Dec3::from_int(4).unwrap(), LineSource::Device)
     );
 }
+
+/// A part use of a variant is a parts-list row of its own that prints the variant's number and description (doc 07
+/// §2.5 "Variants"); the part's own use prints the part's.
+#[test]
+fn a_variant_prints_its_own_number_on_its_own_row() {
+    let mut fx = base();
+    let doc = fx
+        .lib
+        .iter_mut()
+        .find(|d| d["id"] == json!(copy(T_A).to_string()))
+        .expect("the terminal part");
+    doc["variants"] = json!([{"key": "BU", "name": {"en": "Blue"}, "part_number": "P100-BU",
+                              "description": {"en": "Blue terminal"}}]);
+    strip(&mut fx, 0xa0, 1, &[(0xa1, T_A), (0xa2, T_A)], json!({}));
+    let r = fx
+        .records
+        .iter_mut()
+        .find(|r| r["id"] == json!(uid(0xa2)))
+        .expect("the second terminal");
+    r["parts"][0]["part"]["variant"] = json!("BU");
+    let model = fx.build();
+    let q = Q::new(&model);
+    let rows = q.get::<ew_derive::BomRows>(ew_derive::BomMode::Component);
+    let mut printed: Vec<(String, Option<String>, String)> = rows
+        .iter()
+        .filter(|r| r.key.part == copy(T_A))
+        .map(|r| {
+            (
+                r.part_number.clone(),
+                r.key.variant.as_ref().map(|v| v.as_str().to_owned()),
+                r.description.neutral_or_first().unwrap_or_default().to_owned(),
+            )
+        })
+        .collect();
+    printed.sort();
+    assert_eq!(
+        printed,
+        [
+            ("P100".to_owned(), None, String::new()),
+            (
+                "P100-BU".to_owned(),
+                Some("BU".to_owned()),
+                "Blue terminal".to_owned()
+            ),
+        ]
+    );
+}

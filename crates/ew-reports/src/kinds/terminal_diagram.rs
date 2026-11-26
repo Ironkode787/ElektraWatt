@@ -91,10 +91,8 @@ impl ReportKindDef for TerminalDiagram {
                     .get::<DevicePartLines>(t)
                     .iter()
                     .find(|l| !l.is_accessory())
-                    .and_then(|l| q.parts().get(l.part))
-                    .map_or(Cell::Empty, |c| {
-                        super::parts::part_number_cell(c.item.part_number.as_str())
-                    });
+                    .and_then(|l| l.part_number(q))
+                    .map_or(Cell::Empty, |n| super::parts::part_number_cell(&n));
 
                 let cps: Vec<(CpRef, Cp)> = q
                     .idx()

@@ -915,6 +915,8 @@ const PRIMARY: &[(&str, &[&str])] = &[
             "derived.tag",
             "function_text",
             "parts",
+            // The variant of its part, beside the part (doc 07 §2.5).
+            "derived.variant",
             // The PLC a bus device belongs to, or Add to PLC.
             "derived.plc",
             "derived.structure.location",

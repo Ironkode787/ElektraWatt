@@ -111,17 +111,16 @@ impl ReportKindDef for DeviceList {
 /// The part numbers of the device's own part uses (`LineSource::Device` and `LineSource::GroupAccessory`),
 /// each once, in line order, joined by ", ".
 fn parts_text(q: &Q, device: Id<Device>) -> String {
-    let parts = q.parts();
     let mut numbers: Vec<String> = Vec::new();
     for line in q
         .get::<DevicePartLines>(device)
         .iter()
         .filter(|l| matches!(l.source, LineSource::Device | LineSource::GroupAccessory))
     {
-        let Some(copy) = parts.get(line.part) else {
+        let Some(number) = line.part_number(q) else {
             continue;
         };
-        let number = copy.item.part_number.as_str();
+        let number = number.as_str();
         if !numbers.iter().any(|n| n == number) {
             numbers.push(number.to_owned());
         }

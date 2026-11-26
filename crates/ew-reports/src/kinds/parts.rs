@@ -216,7 +216,7 @@ impl ReportKindDef for PartsList {
                 let Some(copy) = q.parts().get(line.part) else {
                     continue;
                 };
-                let part = &copy.item;
+                let part = copy.item.with_variant(line.variant.as_ref().map(|v| v.as_str()));
                 let mut r = Row::data(
                     line_id(RowId::entity(device), &lines, i),
                     vec![

@@ -133,7 +133,10 @@ fn push_row(q: &Q, set: &mut RowSet, source: Id<Device>, lines: &[PartLine], ind
     let Some(copy) = q.parts().get(line.part) else {
         return;
     };
-    let [manufacturer, part_number, description] = part_cells(q, &copy.item);
+    let [manufacturer, part_number, description] = part_cells(
+        q,
+        &copy.item.with_variant(line.variant.as_ref().map(|v| v.as_str())),
+    );
     let prefix = RowId(vec![
         RowKey::Entity(source.as_uuid()),
         RowKey::Entity(line.device.as_uuid()),

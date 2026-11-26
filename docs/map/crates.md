@@ -228,7 +228,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/rules/bus_net.rs` |  | The 1.0 rules of the EW-BUS pack (doc 10 §3.8, §3.10; doc 15 §4.5.2): EW-BUS-002 (address range), -003 (PROFINET name and IP), -005 (rate), -006 (segment limits), -007 (no master), -009 (wrong bus cable or connector) and -010 (net mismatch). |
 | `src/rules/cable.rs` |  | EW-CORE cable rules of the 03x block (doc 15 §4.2; content in doc 08 §8.1): EW-CORE-031, -032, -034, -036 and -037. |
 | `src/rules/core.rs` | large | EW-CORE rules (doc 15 §4.2). |
-| `src/rules/device.rs` |  | EW-CORE device and part rules of the 04x block (doc 15 §4.2): EW-CORE-041 to -045 and -048, and EW-CORE-008's `form` half and `channel` half. |
+| `src/rules/device.rs` |  | EW-CORE device and part rules of the 04x block (doc 15 §4.2): EW-CORE-041 to -045 and -048, EW-CORE-085 (a variant the part does not hold), and EW-CORE-008's `form` half and `channel` half. |
 | `src/rules/fluid.rs` |  | The EW-FL pack, its MVP rules (doc 15 §4.5.3, doc 11 §6): EW-FL-001, -002, -004, -011 and -013. |
 | `src/rules/fluid_media.rs` |  | The EW-FL pack, its 1.0 rules (doc 11 §6, doc 15 §4.5.3): EW-FL-005 … -010, -012 and -014. |
 | `src/rules/imp.rs` |  | The EW-IMP findings of the migration report (doc 14 §2.5): the import-only facts an importer recorded in the project's import runs, read back as findings. |

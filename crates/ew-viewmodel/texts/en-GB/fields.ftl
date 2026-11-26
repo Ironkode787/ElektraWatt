@@ -1194,6 +1194,8 @@ field-word-layout-page = Layout page
 field-help-report-block-layout-page = The panel layout page whose legend this list is: it lists that layout and its pages follow that page.
 # The PLC and bus work as a person met it.
 field-device-derived-plc = PLC
+field-device-derived-variant = Variant
+field-help-device-derived-variant = The variant of the device's part, as its maker sells it under its own number (blue, a rating): the lists print its number and description. The part's own number is the part itself.
 field-help-device-derived-plc = The PLC this bus device belongs to. A device in no PLC is given to one here: choose a PLC, or New PLC….
 choice-connection-kind-core = Cable core
 choice-connection-kind-bridge = Bridge

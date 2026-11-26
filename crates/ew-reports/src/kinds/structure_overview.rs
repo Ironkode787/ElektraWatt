@@ -92,11 +92,7 @@ impl ReportKindDef for StructureOverview {
                 .get::<DevicePartLines>(id)
                 .iter()
                 .find(|l| !l.is_accessory())
-                .and_then(|l| {
-                    q.parts()
-                        .get(l.part)
-                        .map(|c| c.item.part_number.as_str().to_owned())
-                })
+                .and_then(|l| l.part_number(q))
                 .map_or(Cell::Empty, Cell::Ident);
             let location = q
                 .get::<StructureOf>(id)

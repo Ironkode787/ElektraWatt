@@ -52,6 +52,8 @@
 {"action":"tool.rotate_ccw","params":{}}
 {"action":"canvas.activate","params":{"alt":true}}
 {"action":"ui.dismiss","params":{}}
+{"action":"select.set","params":{"refs":["tag:-X1011:N"]}}
+{"action":"props.set","params":{"row":"device/derived.variant","value":"BU"}}
 {"action":"cursor.set","params":{"x_mm":54.152,"y_mm":67.2}}
 {"action":"tool.place","params":{}}
 {"action":"place.pick","params":{"designation":"PE","strip":"-X1011","part":"EW-GEN-TRM-2"}}

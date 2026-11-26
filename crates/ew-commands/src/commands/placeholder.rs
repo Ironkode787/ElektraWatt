@@ -59,6 +59,7 @@ impl AssignPlaceholder {
             mode: self.mode,
             from: self.from,
             qty: None,
+            variant: None,
         }
     }
 }

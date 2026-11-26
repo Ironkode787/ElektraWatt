@@ -34,7 +34,7 @@ fn tag_ranges_compress_runs_and_list_the_rest() {
     let q = s.query();
     for (part_number, want) in [
         ("EW-GEN-VLV-3", "-201K1-Q1 … -201K1-Q4"),
-        ("EW-GEN-TRM-1", "-X1011:L1 … N, -X1021:1 … 8, -X1031:U … W"),
+        ("EW-GEN-TRM-1", "-X1011:L1 … L3, -X1021:1 … 8, -X1031:U … W"),
         ("EW-GEN-TRM-2", "-X1011:PE, -X1031:PE, -X1031:SH"),
         ("EW-GEN-CYL-1", "-201M1, -201M2"),
     ] {

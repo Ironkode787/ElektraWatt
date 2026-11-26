@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! EW-CORE device and part rules of the 04x block (doc 15 §4.2): EW-CORE-041 to -045 and -048,
-//! and EW-CORE-008's `form` half and `channel` half. EW-CORE-047 is in [`core`](super::core).
+//! EW-CORE-085 (a variant the part does not hold), and EW-CORE-008's `form` half and `channel` half. EW-CORE-047 is in [`core`](super::core).
 //!
 //! # Determinism
 //!
@@ -530,6 +530,71 @@ impl Rule for ContactsExceedPart {
             .arg("have_nc", have.nc.to_string())
             .arg("have_co", have.co.to_string()),
         ]
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// EW-CORE-085
+
+/// EW-CORE-085 "Variant not in the part" (doc 15 §4.2): conflict, o r, warning, device.
+pub const VARIANT_NOT_IN_PART: RuleMeta = RuleMeta {
+    id: "EW-CORE-085",
+    message: key!("rule-ew-core-085"),
+    code: "105085",
+    kind: RuleKind::Conflict,
+    modes: Modes::letters("or"),
+    severity: Severity::Warning,
+    release_severity: None,
+    scope: ScopeKind::Device,
+    supersedes: &[],
+    release: Release::V1_0,
+};
+
+/// EW-CORE-085: a part use that names a variant key its part does not hold (FR-PRT-003, doc 07 §2.5); the lists print
+/// the part. One finding per device, part copy and key: targets the device and the copy, discriminator the key.
+#[derive(Clone, Copy, Debug)]
+pub struct VariantNotInPart;
+
+impl Rule for VariantNotInPart {
+    fn meta(&self) -> &'static RuleMeta {
+        &VARIANT_NOT_IN_PART
+    }
+
+    fn run(&self, q: &Q, scope: &Scope) -> Vec<Finding> {
+        let Scope::Device(device) = *scope else {
+            return Vec::new();
+        };
+        let Some(d) = q.devices().get(device) else {
+            return Vec::new();
+        };
+        let parts = q.parts();
+        let mut out: Vec<Finding> = Vec::new();
+        for u in &d.parts {
+            let (Some(key), Some(copy)) = (&u.part.variant, parts.get(u.part.copy)) else {
+                continue;
+            };
+            if copy.item.variant(key.as_str()).is_some()
+                || out.iter().any(|f| f.discriminator == key.as_str())
+            {
+                continue;
+            }
+            let tag = full_tag(q, device, ew_derive::text::record_name(ew_schema::Kind::Device));
+            out.push(
+                Finding::new(
+                    &VARIANT_NOT_IN_PART,
+                    [
+                        Target::new(Kind::Device, device),
+                        Target::new(Kind::Part, u.part.copy),
+                    ],
+                    key.as_str(),
+                    tag.clone(),
+                )
+                .arg("device", tag)
+                .arg("variant", key.as_str())
+                .arg("part", copy.item.part_number.as_str()),
+            );
+        }
+        out
     }
 }
 

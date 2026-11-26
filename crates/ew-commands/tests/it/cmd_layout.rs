@@ -693,6 +693,7 @@ fn a_part_change_follows_the_placement() {
         mode: AssignModeParam::Replace,
         from: Some(copy_id(ITEM_MCB)),
         qty: None,
+        variant: None,
     })
     .unwrap();
     assert_eq!(e.history().cursor(), cursor + 1);
@@ -718,6 +719,7 @@ fn a_part_change_follows_the_placement() {
         mode: AssignModeParam::ReplaceAll,
         from: None,
         qty: None,
+        variant: None,
     })
     .unwrap();
     assert_eq!(get(&e, DEV_K2).unwrap().parts, uses(&[ITEM_MCB]));
@@ -749,6 +751,7 @@ fn replace_all_moves_one_placement_of_two() {
         mode: AssignModeParam::ReplaceAll,
         from: None,
         qty: None,
+        variant: None,
     })
     .unwrap();
     assert_eq!(e.history().cursor(), cursor + 1);

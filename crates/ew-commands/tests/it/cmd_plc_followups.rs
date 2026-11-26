@@ -377,6 +377,7 @@ fn replace(from: Id<Part>, to: Id<Part>) -> AssignPart {
         mode: AssignModeParam::Replace,
         from: Some(from),
         qty: None,
+        variant: None,
     }
 }
 

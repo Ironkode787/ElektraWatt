@@ -237,6 +237,7 @@
       - [EW-CORE-077](reference/rules/ew-core-077.md)
       - [EW-CORE-081](reference/rules/ew-core-081.md)
       - [EW-CORE-083](reference/rules/ew-core-083.md)
+      - [EW-CORE-085](reference/rules/ew-core-085.md)
     - [EW-FL](reference/rules/ew-fl.md)
       - [EW-FL-001](reference/rules/ew-fl-001.md)
       - [EW-FL-002](reference/rules/ew-fl-002.md)

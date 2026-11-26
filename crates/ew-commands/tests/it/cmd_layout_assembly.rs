@@ -542,6 +542,7 @@ fn the_pads_space_the_fill() {
         copies: vec![],
         from: Some(copy_id(ITEM_MCB)),
         qty: None,
+        variant: None,
     };
     f.e.execute(&padded).unwrap();
     f.e.execute(&fill(f.rail1, Some(vec![k(1), k(2)]), FillOrder::Dt))

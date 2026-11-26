@@ -184,7 +184,7 @@ fn the_terminal_overview_lists_the_three_strips() {
                 "5",
                 "0",
                 "0",
-                "4 \u{d7} EW-GEN-TRM-1, 1 \u{d7} EW-GEN-TRM-2",
+                "3 \u{d7} EW-GEN-TRM-1, 1 \u{d7} EW-GEN-TRM-1-BU, 1 \u{d7} EW-GEN-TRM-2",
                 "101-B2"
             ]),
             want([

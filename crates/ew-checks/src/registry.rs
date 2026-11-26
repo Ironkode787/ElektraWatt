@@ -42,6 +42,7 @@ static IMPLEMENTED: &[&dyn Rule] = &[
     &shipped::device::ContactsExceedPart,
     &shipped::core::DeviceNotInSchematic,
     &shipped::device::OrderCodesCover,
+    &shipped::device::VariantNotInPart,
     &shipped::core::UnpairedInterruptionPoint,
     &shipped::core::AmbiguousInterruptionPoint,
     &shipped::core::XrefCellInvalid,

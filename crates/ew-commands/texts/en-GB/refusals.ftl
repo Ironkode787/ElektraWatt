@@ -474,6 +474,7 @@ refusal-assign-part-missing = part copy { $p0 } is neither held by the project n
 refusal-assign-from-without-replace = `from` goes with mode `replace` only
 refusal-assign-replace-needs-from = mode `replace` needs `from`, the part to replace
 refusal-assign-quantity = the quantity must be greater than 0
+refusal-assign-variant = { $p0 } has no variant { $p1 }
 refusal-placeholder-no-description = say in a few words what the part is, so that the parts list can name it
 # rep.move and rep.transform.
 refusal-rep-move-surface-view = the surface view on { $p0 } does not move with a selection; leave it out of the selection, or change it with Set panel view

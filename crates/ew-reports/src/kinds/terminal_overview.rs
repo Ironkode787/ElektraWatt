@@ -45,13 +45,13 @@ impl ReportKindDef for TerminalOverview {
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
             ColumnDef::new("strip", CellType::Ident, text!("column-strip")).weighted(25),
-            ColumnDef::new("location", CellType::Ident, text!("column-location-aspect")).weighted(30),
+            ColumnDef::new("location", CellType::Ident, text!("column-location-aspect")).weighted(20),
             ColumnDef::new("terminals", CellType::Number, text!("column-terminals")).weighted(22),
             ColumnDef::new("used", CellType::Number, text!("column-used")).weighted(16),
             ColumnDef::new("spare", CellType::Number, text!("column-spare")).weighted(16),
             ColumnDef::new("other", CellType::Number, text!("column-other")).weighted(16),
-            ColumnDef::new("parts", CellType::Text, text!("column-parts")).weighted(80),
-            ColumnDef::new("segments", CellType::Text, text!("column-segments")).weighted(56),
+            ColumnDef::new("parts", CellType::Text, text!("column-parts")).weighted(112),
+            ColumnDef::new("segments", CellType::Text, text!("column-segments")).weighted(34),
         ]
     }
 
@@ -82,8 +82,7 @@ impl ReportKindDef for TerminalOverview {
                     .get::<DevicePartLines>(*t)
                     .iter()
                     .find(|l| !l.is_accessory())
-                    .and_then(|l| q.parts().get(l.part))
-                    .map(|c| c.item.part_number.as_str().to_owned());
+                    .and_then(|l| l.part_number(q));
                 if let Some(number) = number {
                     match parts.iter_mut().find(|(n, _)| *n == number) {
                         Some((_, count)) => *count += 1,

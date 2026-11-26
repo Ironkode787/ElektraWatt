@@ -692,8 +692,7 @@ pub(crate) fn terminals(s: &Source<'_>) -> Vec<Row> {
                 .get::<DevicePartLines>(t)
                 .iter()
                 .find(|l| !l.is_accessory())
-                .and_then(|l| q.parts().get(l.part))
-                .map(|c| c.item.part_number.as_str().to_owned());
+                .and_then(|l| l.part_number(q));
             let bridge = bridges.iter().find(|b| b.terminals.contains(&t));
             let potential = terminal_potential(q, wires, t);
             let ptype = potential.and_then(|p| {
@@ -842,8 +841,7 @@ pub(crate) fn cables(s: &Source<'_>) -> Vec<Row> {
                     q.get::<DevicePartLines>(id)
                         .iter()
                         .find(|l| !l.is_accessory())
-                        .and_then(|l| q.parts().get(l.part))
-                        .map(|c| c.item.part_number.as_str().to_owned()),
+                        .and_then(|l| l.part_number(q)),
                 )
                 .set("cores", cores.len())
                 .set("length_nm", length_nm)

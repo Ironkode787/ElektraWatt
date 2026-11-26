@@ -6,6 +6,7 @@
 use std::collections::BTreeSet;
 
 use ew_ids::Id;
+use ew_mltext::Ident;
 
 use ew_schema::{Device, Kind, LibCopy, Part, PartRef, PartUse};
 use ew_units::Dec3;
@@ -17,7 +18,7 @@ use crate::command::{Command, Outcome};
 use crate::commands::library::check_copy;
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost};
-use crate::proxy::{Dec3S, UuidS};
+use crate::proxy::{Dec3S, IdentS, UuidS};
 use crate::tx::TxBuilder;
 
 /// From this many devices on, `part.assign` is `Bulk` (interactive below 50 devices).
@@ -55,11 +56,15 @@ pub enum AssignModeParam {
 /// part (the primary) has nothing to follow. A placed strip whose terminal the change widened pushes the items after
 /// it on its rail, as a growing strip does, in every mode.
 ///
+/// `variant` names a variant the part holds (doc 07 §3.3 rule 7): the new part uses reference it. Replacing a part drops
+/// the accessory choices that the parts left on the device no longer name (rule 8): a device's own, and a strip's for
+/// the parts of its terminals, in the same step.
+///
 /// `qty` defaults to 1. Template functions are not matched onto existing functions (part-first placement
 /// does that). Rejected, with the pointer: an empty device list (`/devices`), a device listed twice or that does
 /// not exist (`/devices/i`), `part` neither held nor in `copies` (`/part`), a copy listed twice or held at another
 /// version (`/copies/i`), `replace` without `from` and `from` with another mode (`/from`), a device that does not
-/// use `from` (`/devices/i`), `qty` ≤ 0 (`/qty`). Cost: `Interactive` below 50 devices, `Bulk` from 50
+/// use `from` (`/devices/i`), `qty` ≤ 0 (`/qty`), a variant the part does not hold (`/variant`). Cost: `Interactive` below 50 devices, `Bulk` from 50
 /// ([`ASSIGN_BULK_FROM`]). Outcome: the first device.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -85,6 +90,10 @@ pub struct AssignPart {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<Dec3S>")]
     pub qty: Option<Dec3>,
+    /// A variant key of the part (`BU`); absent: the part's own numbers.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub variant: Option<Ident>,
 }
 
 pub(super) fn is_append(m: &AssignModeParam) -> bool {
@@ -229,9 +238,26 @@ impl Command for AssignPart {
                 text!("refusal-assign-part-missing", self.part.to_string()),
             ));
         }
+        if let Some(key) = &self.variant {
+            let copy = tx.require::<LibCopy<Part>>(self.part)?;
+            if copy.item.variant(key.as_str()).is_none() {
+                return Err(CmdError::invalid_params(
+                    name,
+                    "/variant",
+                    text!(
+                        "refusal-assign-variant",
+                        copy.item.part_number.as_str(),
+                        key.as_str()
+                    ),
+                ));
+            }
+        }
         let qty = self.qty.unwrap_or(Dec3::ONE);
         let new_use = |qty: Dec3| PartUse {
-            part: PartRef::new(self.part),
+            part: PartRef {
+                variant: self.variant.clone(),
+                ..PartRef::new(self.part)
+            },
             qty,
             extra: ew_schema::Extra::new(),
         };
@@ -272,9 +298,47 @@ impl Command for AssignPart {
             .iter()
             .filter_map(|d| tx.get::<Device>(*d)?.aspects.terminal.as_ref().map(|t| t.strip))
             .collect();
-        for strip in strips {
-            crate::commands::layout::push_after_growth(tx, strip)?;
+        for strip in &strips {
+            crate::commands::layout::push_after_growth(tx, *strip)?;
+        }
+        for d in self.devices.iter().chain(&strips) {
+            drop_stale_choices(tx, *d)?;
         }
         Ok(Outcome::primary((Kind::Device, self.devices[0].cast())))
     }
+}
+
+/// Drops the accessory choices of `device` whose accessory no part names any more (doc 07 §3.3 rule 8): its own part
+/// uses' parts and, for a strip, its terminals' parts.
+fn drop_stale_choices(tx: &mut TxBuilder<'_>, device: Id<Device>) -> Result<(), CmdError> {
+    let Some(dev) = tx.get::<Device>(device) else {
+        return Ok(());
+    };
+    if dev.accessory_choices.is_empty() {
+        return Ok(());
+    }
+    let mut holders: Vec<Id<Device>> = vec![device];
+    if dev.aspects.strip.is_some() {
+        holders.extend(tx.terminals_of_strip(device));
+    }
+    let mut named: BTreeSet<Id<Part>> = BTreeSet::new();
+    for h in holders {
+        let Some(holder) = tx.get::<Device>(h) else {
+            continue;
+        };
+        for u in &holder.parts {
+            if let Some(copy) = tx.get::<LibCopy<Part>>(u.part.copy) {
+                named.extend(
+                    copy.item
+                        .accessories
+                        .iter()
+                        .map(|a| ew_ids::v5::lib_copy_id(a.part.library.as_uuid(), a.part.item.as_uuid())),
+                );
+            }
+        }
+    }
+    if dev.accessory_choices.iter().all(|c| named.contains(&c.of)) {
+        return Ok(());
+    }
+    tx.update::<Device>(device, |d| d.accessory_choices.retain(|c| named.contains(&c.of)))
 }

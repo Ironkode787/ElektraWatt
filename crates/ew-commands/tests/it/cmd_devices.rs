@@ -1274,6 +1274,7 @@ fn a_part_given_to_a_cable_sets_its_cores() {
         mode: ew_commands::commands::AssignModeParam::ReplaceAll,
         from: None,
         qty: None,
+        variant: None,
     };
     let rev = e.model().rev();
     rejected(e.execute(&assign(2)));

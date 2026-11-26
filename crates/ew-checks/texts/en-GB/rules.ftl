@@ -228,6 +228,10 @@ rule-ew-core-047 = { $device } is not drawn on any page, so its tag shows ? wher
     .title = Device not drawn
     .hint = Open the message: the device's Properties open. Place it on a page from the Devices list (drag it onto the page), or delete it.
 
+rule-ew-core-085 = { $device } names the variant { $variant }, which { $part } does not hold
+    .title = Variant not in the part
+    .hint = Choose a variant the part holds in Properties ▸ Parts ▸ Variant; the lists print the part until then.
+
 rule-ew-core-048 = { $device } is covered by { $form ->
         [covered-twice] { $count } order codes of { $assembly }; its parts would print { $count } times
        *[uncovered] no order code of { $assembly }; the assembly BOM lists its own parts beside the configured products

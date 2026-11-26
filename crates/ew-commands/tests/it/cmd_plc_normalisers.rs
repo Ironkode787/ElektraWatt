@@ -366,6 +366,7 @@ fn replace_part(device: Id<Device>, from: Id<Part>, to: Id<Part>) -> ew_commands
         mode: ew_commands::commands::AssignModeParam::Replace,
         from: Some(from),
         qty: None,
+        variant: None,
     }
 }
 

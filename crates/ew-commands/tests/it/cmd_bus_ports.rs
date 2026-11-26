@@ -180,6 +180,7 @@ fn assign(
         mode,
         from,
         qty: None,
+        variant: None,
     }
 }
 

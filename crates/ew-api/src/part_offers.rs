@@ -725,6 +725,7 @@ impl Session {
                     mode,
                     from,
                     qty: None,
+                    variant: None,
                 };
                 AnyCommand::of(&cmd).map_err(ApiError::Cmd)
             }

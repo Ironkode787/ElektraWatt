@@ -53,28 +53,42 @@ fn main_function_def(q: &Q, device: Id<Device>) -> Option<Id<FnDef>> {
 }
 
 /// The part a device's slots print: the first part use whose copy's template has a `main`
-/// function with the FnDef of the device's main function, else the first part use whose copy exists. The functions
-/// are read only when the device has more than one part use with a copy.
+/// function with the FnDef of the device's main function, else the first part use whose copy exists, as its variant is
+/// listed (`Part::with_variant`: the variant's numbers, description and technical values). The functions are read only
+/// when the device has more than one part use with a copy.
 pub fn main_part(q: &Q, device: Id<Device>) -> Option<Arc<LibCopy<Part>>> {
     let dev = q.devices().get(device)?;
     let parts = q.parts();
-    let held: Vec<Arc<LibCopy<Part>>> = dev
+    let held: Vec<(Arc<LibCopy<Part>>, Option<&str>)> = dev
         .parts
         .iter()
-        .filter_map(|u| parts.get(u.part.copy).cloned())
+        .filter_map(|u| {
+            Some((
+                parts.get(u.part.copy).cloned()?,
+                u.part.variant.as_ref().map(|v| v.as_str()),
+            ))
+        })
         .collect();
-    if held.len() > 1
+    let chosen = if held.len() > 1
         && let Some(def) = main_function_def(q, device)
-        && let Some(main) = held.iter().find(|p| {
+        && let Some(main) = held.iter().find(|(p, _)| {
             p.item
                 .function_template
                 .iter()
                 .any(|t| t.main && copy_of::<FnDef>(&t.fndef) == def)
-        })
-    {
-        return Some(Arc::clone(main));
+        }) {
+        main.clone()
+    } else {
+        held.into_iter().next()?
+    };
+    let (copy, variant) = chosen;
+    match copy.item.with_variant(variant) {
+        std::borrow::Cow::Borrowed(_) => Some(copy),
+        std::borrow::Cow::Owned(item) => Some(Arc::new(LibCopy {
+            item,
+            ..LibCopy::clone(&copy)
+        })),
     }
-    held.into_iter().next()
 }
 
 /// The embedded manufacturer copy a manufacturer reference resolves to, if the project holds it.

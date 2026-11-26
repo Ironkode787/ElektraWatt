@@ -1184,6 +1184,8 @@ field-word-layout-page = Layoutpagina
 field-help-report-block-layout-page = De paneellayoutpagina waarvan deze lijst de legenda is: de lijst somt die layout op en haar pagina's volgen die pagina.
 # Het PLC- en buswerk zoals iemand het tegenkwam.
 field-device-derived-plc = PLC
+field-device-derived-variant = Variant
+field-help-device-derived-variant = De variant van het artikel van het apparaat, zoals de fabrikant het onder een eigen nummer verkoopt (blauw, een uitvoering): de lijsten drukken zijn nummer en omschrijving af. Het eigen nummer van het artikel is het artikel zelf.
 field-help-device-derived-plc = De PLC waar dit busapparaat bij hoort. Een apparaat zonder PLC voeg je hier toe aan een PLC: kies een PLC, of Nieuwe PLC….
 choice-connection-kind-core = Kabelader
 choice-connection-kind-bridge = Brug

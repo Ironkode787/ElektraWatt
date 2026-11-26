@@ -229,6 +229,10 @@ rule-ew-core-047 = { $device } is op geen pagina getekend, daarom toont het kenm
     .title = Apparaat niet getekend
     .hint = Open de melding: de eigenschappen van het apparaat openen. Plaats het vanuit de lijst Apparaten op een pagina (sleep het op de pagina), of verwijder het.
 
+rule-ew-core-085 = { $device } noemt de variant { $variant }, die { $part } niet heeft
+    .title = Variant niet in het artikel
+    .hint = Kies in Eigenschappen ▸ Artikelen ▸ Variant een variant die het artikel heeft; tot dan drukken de lijsten het artikel af.
+
 rule-ew-core-048 = { $device } wordt { $form ->
         [covered-twice] gedekt door { $count } bestelcodes van { $assembly }; zijn artikelen zouden { $count } keer worden afgedrukt
        *[uncovered] door geen enkele bestelcode van { $assembly } gedekt; de stuklijst van de samenstelling vermeldt zijn eigen artikelen naast de geconfigureerde producten

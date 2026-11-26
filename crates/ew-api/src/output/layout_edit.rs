@@ -955,6 +955,48 @@ impl Session {
             })
         };
         match (edit.kind.as_str(), name) {
+            // The variant of a device's part: one of the row's words, or a variant's key; the part's own number (or an
+            // empty text) clears it. One `fields.set` of the device's parts, the part use's variant alone changed.
+            ("device", "variant") => {
+                let device: Id<ew_schema::Device> = Id::from_uuid(edit.target);
+                let Some((at, _, part)) = super::properties::variant_use(&q, device) else {
+                    return invalid(text!("refusal-variant-no-part"));
+                };
+                let key = if text.is_empty() || text == super::properties::variant_label(&part.item, None) {
+                    None
+                } else {
+                    let found = part.item.variants.iter().find(|v| {
+                        v.key.as_str() == text
+                            || super::properties::variant_label(&part.item, Some(v.key.as_str())) == text
+                    });
+                    match found {
+                        Some(v) => Some(v.key.as_str().to_owned()),
+                        None => {
+                            return invalid(text!(
+                                "refusal-variant-unknown",
+                                part.item.part_number.as_str(),
+                                text
+                            ));
+                        }
+                    }
+                };
+                let Some(dev) = q.devices().get(device) else {
+                    return invalid(text!("refusal-variant-no-part"));
+                };
+                let mut uses = serde_json::to_value(&dev.parts).unwrap_or(Value::Null);
+                match key {
+                    Some(k) => uses[at]["part"]["variant"] = Value::String(k),
+                    None => {
+                        if let Some(o) = uses[at]["part"].as_object_mut() {
+                            o.remove("variant");
+                        }
+                    }
+                }
+                command(
+                    "fields.set",
+                    json!({"kind": "device", "targets": [edit.target.to_string()], "path": "parts", "value": uses}),
+                )
+            }
             // Where a marked supply point comes from: the place or the device there typed in its row moves
             // the point and the points of its group to it (a new place is made); a row emptied is not known (doc 06
             // §3.5: an address alone, or a far end not known).

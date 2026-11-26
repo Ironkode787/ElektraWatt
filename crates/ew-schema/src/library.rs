@@ -1415,6 +1415,44 @@ impl Part {
     pub fn variant(&self, key: &str) -> Option<&PartVariant> {
         self.variants.iter().find(|v| v.key.as_str() == key)
     }
+
+    /// The part as its variant `key` is listed (doc 07 §2.5 "Variants"): the part number, order number, type
+    /// designation, GTIN and description the variant gives, else the part's, and its technical values winning by key
+    /// over the part's. The part itself without a key or for a key it does not hold (EW-CORE-085 reports that).
+    pub fn with_variant(&self, key: Option<&str>) -> Cow<'_, Part> {
+        let Some(v) = key.and_then(|k| self.variant(k)) else {
+            return Cow::Borrowed(self);
+        };
+        let mut p = self.clone();
+        if let Some(n) = &v.part_number {
+            p.part_number = n.clone();
+        }
+        if v.order_number.is_some() {
+            p.order_number = v.order_number.clone();
+        }
+        if v.type_designation.is_some() {
+            p.type_designation = v.type_designation.clone();
+        }
+        if v.gtin.is_some() {
+            p.gtin = v.gtin.clone();
+        }
+        if !v.description.is_empty() {
+            p.description = v.description.clone();
+        }
+        if !v.tech_data.is_empty() {
+            let mut values: Vec<TechValue> = p
+                .tech_data
+                .iter()
+                .filter(|t| v.tech_data.iter().all(|o| o.key != t.key))
+                .cloned()
+                .collect();
+            values.extend(v.tech_data.iter().cloned());
+            if let Ok(list) = KeyedList::from_vec(values) {
+                p.tech_data = list;
+            }
+        }
+        Cow::Owned(p)
+    }
 }
 
 /// One accessory of a part (doc 07 §2.5 "Accessories"): the accessory part, how many in its order unit, and per what.

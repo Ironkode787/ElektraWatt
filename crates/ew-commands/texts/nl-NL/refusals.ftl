@@ -475,6 +475,7 @@ refusal-assign-part-missing = artikelkopie { $p0 } staat niet in het project en 
 refusal-assign-from-without-replace = `from` hoort alleen bij modus `replace`
 refusal-assign-replace-needs-from = modus `replace` heeft `from` nodig, het artikel dat wordt vervangen
 refusal-assign-quantity = het aantal moet groter dan 0 zijn
+refusal-assign-variant = { $p0 } heeft geen variant { $p1 }
 refusal-placeholder-no-description = zeg in een paar woorden wat het artikel is, zodat de stuklijst het kan noemen
 # rep.move and rep.transform.
 refusal-rep-move-surface-view = het paneelaanzicht op { $p0 } beweegt niet mee met een selectie; laat het buiten de selectie, of wijzig het met Paneelaanzicht instellen

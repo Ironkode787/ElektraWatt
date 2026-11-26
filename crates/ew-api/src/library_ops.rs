@@ -720,6 +720,7 @@ impl Session {
             mode,
             from,
             qty: (qty != Dec3::ONE).then_some(qty),
+            variant: None,
         };
         AnyCommand::of(&cmd).map_err(ApiError::Cmd)
     }
