@@ -452,7 +452,7 @@ The rules that say before a print what the fitter would ask. They run online and
 
 | Rule | Says | Severity | Fix |
 |---|---|---|---|
-| EW-MFG-001 | "40 wires have no length: the wire list prints — for them", one finding for the project while a wire that is no core has no length | info; the layout's lengths and a machine export set their own | Select them (the wires, which the Connections table then shows) |
+| EW-MFG-001 | "41 wires have no length: the wire list prints — for them", one finding for the project while a wire that is no core has no length | info; the layout's lengths and a machine export set their own | Select them (the wires, which the Connections table then shows) |
 | EW-MFG-004 | "The marker of 104.4 at -104B1:13 does not fit its marker part: +CAB-104A1-A2:L+ needs 16 characters on a line of 12", per end | warning | — |
 | EW-MFG-008 | "The end of 104.4 at -104B1:13 cannot be made: a fine-stranded wire into an insulation-displacement clamp", per end | warning | Set the end by hand |
 | EW-MFG-009 | "The end of 101.7 at -101F1:3 set by hand does not fit: a ferrule for 1.5 mm² on a 2.5 mm² wire" (also: a twin ferrule with no second wire; a ferrule of another collar colour than the stock's ferrule of that size), per end | warning | Reset to the rule |
