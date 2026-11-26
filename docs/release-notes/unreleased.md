@@ -255,3 +255,5 @@ change here.
   properties) come in as fields of the project's own, one value for the project where every folio has the same, else
   one for each page, and the title block's cell prints the field; the printed text is the same, and the value is now
   typed in Title block fields… (doc 14 §4.9, FT-1814)
+- behaviour-change: the Preview of a bulk change lists the wire numbers it changes, old → new, beside the tags and the
+  cross-references (Columns and rows of a frame among them); a frozen number keeps its own (doc 16 §7.6, FT-1815)

@@ -288,6 +288,15 @@ impl ShellModel {
                 .then_with(|| a.1.after.cmp(&b.1.after))
         });
         self.preview.xrefs = xrefs.into_iter().map(|(_, x)| x).collect();
+        let mut wires: Vec<(String, String)> = card
+            .preview
+            .derived
+            .wires
+            .iter()
+            .map(|w| (w.before.clone(), w.after.clone()))
+            .collect();
+        wires.sort_by(|a, b| crate::shell::natural_cmp(&a.0, &b.0).then_with(|| a.cmp(b)));
+        self.preview.wires = wires;
     }
 
     /// `preview.show {on?}`: shows or closes the Preview tab; closing it with a card pending cancels the card.

@@ -149,6 +149,8 @@ pub struct PreviewPane {
     pub(crate) entities: Vec<PreviewEntity>,
     pub(crate) tags: Vec<(String, String)>,
     pub(crate) xrefs: Vec<XrefChange>,
+    /// The wire numbers that change, old → new, in natural order of the old number.
+    pub(crate) wires: Vec<(String, String)>,
     pub(crate) pages: Vec<(String, Option<String>)>,
     /// What the command says it changes beyond its records (`Outcome::notices`): the re-address preview's old to new
     /// address per channel (`channel 3 of -201U5: Q10.3 → Q2.3`), a freeze's count.
@@ -172,6 +174,11 @@ impl PreviewPane {
     /// The cross-reference text changes, grouped by folio in page order.
     pub fn xrefs(&self) -> &[XrefChange] {
         &self.xrefs
+    }
+
+    /// The wire numbers that change `(before, after)`, by the old number in natural order (doc 16 §7.6).
+    pub fn wires(&self) -> &[(String, String)] {
+        &self.wires
     }
 
     /// The folios of the pages whose content changes, in page order, each with the folio the card gives it when that

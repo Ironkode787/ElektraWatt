@@ -362,6 +362,7 @@ preview-entities = Entiteiten
 preview-notices = Wijzigingen
 preview-tags = Kenmerken
 preview-xrefs = Kruisverwijzingen
+preview-wires = Draadnummers
 preview-pages = Pagina's
 preview-open-chip = Voorbeeld open: { $p0 }
 preview-show = Tonen

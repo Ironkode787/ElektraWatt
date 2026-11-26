@@ -14,7 +14,7 @@ use std::collections::BTreeSet;
 
 use ew_derive::{Q, XrefTextOf, short_tag};
 use ew_ids::Id;
-use ew_schema::{Device, Representation};
+use ew_schema::{Connection, Device, Representation};
 
 /// One derived value that differs: its key, the value before and the value after. A value that does not
 /// exist on one side (a device or representation added or removed, a representation without a
@@ -37,12 +37,15 @@ pub struct DerivedDiff {
     pub tags: Vec<DerivedChange<Id<Device>>>,
     /// Cross-reference texts (`xref_text`), one per representation that prints one on either side.
     pub xrefs: Vec<DerivedChange<Id<Representation>>>,
+    /// Wire numbers, one per wire of both states (matched by `ew_derive::wire_changes`, the one matcher of wires of two
+    /// states) whose printed number changes: a frozen number keeps its own and is not listed.
+    pub wires: Vec<DerivedChange<Id<Connection>>>,
 }
 
 impl DerivedDiff {
     /// Whether no derived value changed.
     pub fn is_empty(&self) -> bool {
-        self.tags.is_empty() && self.xrefs.is_empty()
+        self.tags.is_empty() && self.xrefs.is_empty() && self.wires.is_empty()
     }
 }
 
@@ -80,5 +83,21 @@ pub fn derived_diff(before: &Q, after: &Q) -> DerivedDiff {
             })
         })
         .collect();
-    DerivedDiff { tags, xrefs }
+    let (wires_before, wires_after) = (
+        before.get::<ew_derive::WireRecordSet>(()),
+        after.get::<ew_derive::WireRecordSet>(()),
+    );
+    let wires = ew_derive::wire_changes(&wires_before, &wires_after)
+        .into_iter()
+        .filter_map(|pair| {
+            let (b, a) = (pair.before?, pair.after?);
+            let (bn, an) = (b.number.clone()?, a.number.clone()?);
+            (bn != an).then_some(DerivedChange {
+                key: a.wire.id,
+                before: bn,
+                after: an,
+            })
+        })
+        .collect();
+    DerivedDiff { tags, xrefs, wires }
 }

@@ -394,6 +394,7 @@ preview-entities = Entities
 preview-notices = Changes
 preview-tags = Tags
 preview-xrefs = Cross-references
+preview-wires = Wire numbers
 preview-pages = Pages
 preview-open-chip = Preview open: { $p0 }
 preview-show = Show

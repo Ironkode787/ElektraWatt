@@ -34,3 +34,24 @@ fn ten_columns_and_six_rows_preview_the_cross_references_they_move() {
         );
     }
 }
+
+/// The same change lists the wire numbers whose order it changes, old → new, matched by the one matcher of wires of two
+/// states; none prints the same number before and after.
+#[test]
+fn ten_columns_and_six_rows_preview_the_wire_numbers_they_renumber() {
+    let mut s = crate::common::sample();
+    let facts = s.frame_facts("101").expect("page 101's frame");
+    let cmd = AnyCommand {
+        name: "frame.set_grid".to_owned(),
+        params: json!({
+            "frame": facts.frame.to_string(),
+            "columns": {"count": 10, "first": 1},
+            "rows": {"count": 6},
+            "forks": facts.frame_forks.iter().map(|u| u.to_string()).collect::<Vec<_>>(),
+        }),
+    };
+    let preview = s.preview(&cmd).expect("the change previews");
+    let diff = s.derived_diff(&preview);
+    assert!(!diff.wires.is_empty(), "a grid of other cells orders some wires anew");
+    assert!(diff.wires.iter().all(|w| w.before != w.after), "{:?}", diff.wires);
+}

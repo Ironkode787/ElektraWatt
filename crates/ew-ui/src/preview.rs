@@ -85,8 +85,8 @@ fn list(ui: &mut Ui, title: &str, rows: &[Row], open: bool) -> f32 {
     0.0
 }
 
-/// The rows of the four lists: entities, tags, cross-reference texts, pages.
-fn rows(t: &Tokens, shell: &ShellModel) -> [Vec<Row>; 4] {
+/// The rows of the five lists: entities, tags, cross-reference texts, wire numbers, pages.
+fn rows(t: &Tokens, shell: &ShellModel) -> [Vec<Row>; 5] {
     let pane = shell.preview_pane();
     let arrow = |before: &str, after: &str| -> Row {
         vec![
@@ -123,6 +123,7 @@ fn rows(t: &Tokens, shell: &ShellModel) -> [Vec<Row>; 4] {
             r
         })
         .collect();
+    let wires = pane.wires().iter().map(|(a, b)| arrow(a, b)).collect();
     // A page whose folio changes as "106 → 104".
     let pages = pane
         .pages()
@@ -132,7 +133,7 @@ fn rows(t: &Tokens, shell: &ShellModel) -> [Vec<Row>; 4] {
             None => vec![(p.clone(), t.text_primary)],
         })
         .collect();
-    [entities, tags, xrefs, pages]
+    [entities, tags, xrefs, wires, pages]
 }
 
 /// A part card's field diff ("Description: old → new"), the devices that use the copy, the
@@ -752,7 +753,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             inset(ui, &mut |ui| part_block(ui, p));
         }
         ui.add_space(t.space_2);
-        let [entities, tags, xrefs, pages] = rows(&t, shell);
+        let [entities, tags, xrefs, wires, pages] = rows(&t, shell);
         // The command's notices (a re-address's old and new addresses), first and open where it gives any.
         let notices: Vec<Vec<(String, Rgba)>> = shell
             .preview_pane()
@@ -802,6 +803,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     closed += list(ui, strings::text(key!("preview-tags")), &tags, false);
                 }
                 closed += list(ui, strings::text(key!("preview-xrefs")), &xrefs, false);
+                closed += list(ui, strings::text(key!("preview-wires")), &wires, false);
                 closed += list(ui, strings::text(key!("preview-pages")), &pages, false);
                 closed
             });
