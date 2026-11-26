@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-25T20:47:05Z\n"
+"POT-Creation-Date: 2026-11-26T00:04:03Z\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -7805,25 +7805,28 @@ msgid ""
 "To make one: **Supply** on the Draw tab, beside Interruption, asks what "
 "comes in (single phase L, N, PE; three phase with or without N; 24 V DC; "
 "your own names) and where it comes from, and the marks follow the pointer as "
-"one group until you click. Or draw the points with Interruption, select "
-"them, right-click and choose **Supply comes in here…**; its form proposes "
-"where the supply comes from and the device there. The same marks bring in "
-"signals from another cabinet: name each mark for its signal and leave a "
-"field empty where it is not known. A mark prints what is known: the place "
-"and the device (`+MCC2 / -A1`), an address alone when only the device field "
-"holds it (`Q4.1`), or nothing when the far end is not known yet. When the "
-"marks are placed, a small panel opens at them and asks what comes in: a row "
-"per mark, with the kind of conductor (L1, L2, L3, L, N, PE, L+, M, …) and "
-"the voltage with AC or DC (`230 V AC`), filled in from the mark's name where "
-"the name tells it (`L1-EXT` is a phase at the project supply's voltage, `N` "
-"the neutral, `PE` protective earth, `24V` a 24 V DC plus, `0V`, `0VDC` or "
-"`M` its minus). Enter defines every row's potential in one step; Escape "
-"places the marks without one. A mark on a potential that has its type "
-"already is not asked. **Potential…** on the marks' right-click menu opens "
-"the panel again to change it."
+"one group until you click. A mark brought near a pin lands on it and joins "
+"it when you click, as an interruption point does; the bar under the page "
+"names the pin first (`L connects to -Q1:1`). Hold Alt to place the marks "
+"without joining. Or draw the points with Interruption, select them, "
+"right-click and choose **Supply comes in here…**; its form proposes where "
+"the supply comes from and the device there. The same marks bring in signals "
+"from another cabinet: name each mark for its signal and leave a field empty "
+"where it is not known. A mark prints what is known: the place and the device "
+"(`+MCC2 / -A1`), an address alone when only the device field holds it "
+"(`Q4.1`), or nothing when the far end is not known yet. When the marks are "
+"placed, a small panel opens at them and asks what comes in: a row per mark, "
+"with the kind of conductor (L1, L2, L3, L, N, PE, L+, M, …) and the voltage "
+"with AC or DC (`230 V AC`), filled in from the mark's name where the name "
+"tells it (`L1-EXT` is a phase at the project supply's voltage, `N` the "
+"neutral, `PE` protective earth, `24V` a 24 V DC plus, `0V`, `0VDC` or `M` "
+"its minus). Enter defines every row's potential in one step; Escape places "
+"the marks without one. A mark on a potential that has its type already is "
+"not asked. **Potential…** on the marks' right-click menu opens the panel "
+"again to change it."
 msgstr ""
 
-#: src/reference/window/things.md:103
+#: src/reference/window/things.md:104
 msgid ""
 "To change one: the place and the device are its rows in Properties; a value "
 "typed there moves the point and its group. A right click offers **Group "
@@ -7831,11 +7834,11 @@ msgid ""
 "mark**. Its rows are explained under [Function](../properties.md#function)."
 msgstr ""
 
-#: src/reference/window/things.md:107
+#: src/reference/window/things.md:108
 msgid "PLC cards and stations"
 msgstr ""
 
-#: src/reference/window/things.md:109
+#: src/reference/window/things.md:110
 msgid ""
 "A PLC station is a CPU, a head station or another device with a rack; its "
 "cards (modules) sit in the rack's slots, each with its channels. On a page a "
@@ -7843,7 +7846,7 @@ msgid ""
 "its head."
 msgstr ""
 
-#: src/reference/window/things.md:113
+#: src/reference/window/things.md:114
 msgid ""
 "To make one: **New station…** on the PLC tab, then put cards into its rack "
 "in the station's view ([Make a "
@@ -7851,74 +7854,74 @@ msgid ""
 "the view draws a card on a page."
 msgstr ""
 
-#: src/reference/window/things.md:116
+#: src/reference/window/things.md:117
 msgid ""
 "To change one: open the station's view from the PLC navigator, or select the "
 "card and change its rows in Properties ([Read and change a "
 "rack](../../how-to/plc-workspace.md#read-and-change-a-rack))."
 msgstr ""
 
-#: src/reference/window/things.md:119
+#: src/reference/window/things.md:120
 msgid "Valves and cylinders"
 msgstr ""
 
-#: src/reference/window/things.md:121
+#: src/reference/window/things.md:122
 msgid ""
 "A valve, a cylinder and the other parts of a pneumatic or hydraulic circuit "
 "stand on a fluid page with their ports. A valve worked by a solenoid has the "
 "solenoid's coil on an electrical page too."
 msgstr ""
 
-#: src/reference/window/things.md:124
+#: src/reference/window/things.md:125
 msgid ""
 "To make one: open the Fluid tab on a fluid page and choose the valve or the "
 "cylinder ([Draw a circuit](../../how-to/fluid-workspace.md#draw-a-circuit))."
 msgstr ""
 
-#: src/reference/window/things.md:127
+#: src/reference/window/things.md:128
 msgid ""
 "To change one: select it; its medium and its solenoid are rows in Properties "
 "([The solenoid of a "
 "valve](../../how-to/fluid-workspace.md#the-solenoid-of-a-valve))."
 msgstr ""
 
-#: src/reference/window/things.md:130
+#: src/reference/window/things.md:131
 msgid "Tubes"
 msgstr ""
 
-#: src/reference/window/things.md:132
+#: src/reference/window/things.md:133
 msgid ""
 "A tube joins the ports of fluid parts, the way a wire joins connection "
 "points. A pilot or drain tube is dashed, a hose is drawn as an arc."
 msgstr ""
 
-#: src/reference/window/things.md:135
+#: src/reference/window/things.md:136
 msgid "To make one: **Tube** on the Fluid tab ([Tube](tools.md#tube))."
 msgstr ""
 
-#: src/reference/window/things.md:137
+#: src/reference/window/things.md:138
 msgid ""
 "To change one: right-click it for its line kind; its tube and length are its "
 "rows in Properties ([Tubes and the tube "
 "list](../../how-to/fluid-workspace.md#tubes-and-the-tube-list))."
 msgstr ""
 
-#: src/reference/window/things.md:140
+#: src/reference/window/things.md:141
 msgid "Texts"
 msgstr ""
 
-#: src/reference/window/things.md:142
+#: src/reference/window/things.md:143
 msgid ""
 "A free text is a text of its own on the page, such as a note; it can show a "
 "value of the project, such as its title. The texts of a device, its tag and "
 "its function text, belong to its symbol."
 msgstr ""
 
-#: src/reference/window/things.md:145
+#: src/reference/window/things.md:146
 msgid "To make one: **Draw ▸ Annotate ▸ Text** ([Text](tools.md#text))."
 msgstr ""
 
-#: src/reference/window/things.md:147
+#: src/reference/window/things.md:148
 msgid ""
 "To change one: select it and change its rows in Properties (a double click "
 "opens them). Drag a device's tag to move it beside its symbol. How big texts "
@@ -7926,31 +7929,31 @@ msgid ""
 "styles](../../how-to/start-a-project.md#text-styles))."
 msgstr ""
 
-#: src/reference/window/things.md:151
+#: src/reference/window/things.md:152
 msgid "Graphics and images"
 msgstr ""
 
-#: src/reference/window/things.md:153
+#: src/reference/window/things.md:154
 msgid ""
 "A graphic is a line, a rectangle, a circle or another shape without "
 "electrical meaning; an image is a picture file on the page."
 msgstr ""
 
-#: src/reference/window/things.md:156
+#: src/reference/window/things.md:157
 msgid ""
 "To make one: **Draw ▸ Annotate ▸ Graphic** or **Draw ▸ Annotate ▸ Image…** "
 "([Graphic](tools.md#graphic))."
 msgstr ""
 
-#: src/reference/window/things.md:158
+#: src/reference/window/things.md:159
 msgid "To change one: select it and drag it, or change its rows in Properties."
 msgstr ""
 
-#: src/reference/window/things.md:160
+#: src/reference/window/things.md:161
 msgid "Boxes"
 msgstr ""
 
-#: src/reference/window/things.md:162
+#: src/reference/window/things.md:163
 msgid ""
 "A structure box is the dashed frame round devices that belong to one "
 "function or one location of the project, such as one machine part. A black "
@@ -7958,61 +7961,61 @@ msgid ""
 "device the library has no symbol for."
 msgstr ""
 
-#: src/reference/window/things.md:166
+#: src/reference/window/things.md:167
 msgid ""
 "To make one: **Draw ▸ Annotate ▸ Structure box** ([Structure "
 "box](tools.md#structure-box)) or **Draw ▸ Place ▸ Black box…** ([Black "
 "box](tools.md#black-box))."
 msgstr ""
 
-#: src/reference/window/things.md:169
+#: src/reference/window/things.md:170
 msgid ""
 "To change one: select it; a selected black box shows grips on its corners "
 "and connection points."
 msgstr ""
 
-#: src/reference/window/things.md:171
+#: src/reference/window/things.md:172
 msgid "The frame and title block"
 msgstr ""
 
-#: src/reference/window/things.md:173
+#: src/reference/window/things.md:174
 msgid ""
 "The frame round the page, with its column numbers and row letters (the cells "
 "such as 101-B6 that cross-references name) and the title block at the "
 "bottom. The frame comes from the project's template."
 msgstr ""
 
-#: src/reference/window/things.md:176
+#: src/reference/window/things.md:177
 msgid ""
 "To change it: right-click the title block and choose **Title block fields…** "
 "for the texts it prints, such as the drawing's title and who drew it; a "
 "page's own texts are its **Page properties**."
 msgstr ""
 
-#: src/reference/window/things.md:179
+#: src/reference/window/things.md:180
 msgid "Lists on a page"
 msgstr ""
 
-#: src/reference/window/things.md:181
+#: src/reference/window/things.md:182
 msgid ""
 "A list is a page the program writes: the parts list, the wire list, the "
 "terminal diagram, the cable list, the list of PLC cards or of tubes. It is "
 "filled from the drawing every time, so you do not type into it."
 msgstr ""
 
-#: src/reference/window/things.md:184
+#: src/reference/window/things.md:185
 msgid ""
 "To make one: **Report** on the Output tab (**Output ▸ Reports ▸ Report "
 "block…**) ([Reports and PDF](../../tutorials/reports-and-pdf.md))."
 msgstr ""
 
-#: src/reference/window/things.md:186
+#: src/reference/window/things.md:187
 msgid ""
 "To change one: change the drawing; the Report blocks navigator lists the "
 "lists ([Report blocks](panels.md#report-blocks))."
 msgstr ""
 
-#: src/reference/window/things.md:188
+#: src/reference/window/things.md:189
 msgid ""
 "What a list prints, on one of its pages: **Output ▸ List columns…** ticks "
 "the columns to print and gives each its order, a heading of its own and its "

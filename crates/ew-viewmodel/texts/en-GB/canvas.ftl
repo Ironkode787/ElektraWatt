@@ -205,6 +205,9 @@ hud-place-wires = connects { $p0 }; Alt+Click or { $p1 } places without
 # FIXPT41: the IP tool's ghost on a pin.
 hud-ip-connects = connects to { $p0 }
 
+# The Supply tool's ghost: a mark on a pin joins it.
+hud-supply-connects = { $p0 } connects to { $p1 }
+
 # The proposal's base is taken; the HUD and the placement toast say the name it gets.
 hud-ip-taken = { $p0 } is taken, so this point is { $p1 }.
 

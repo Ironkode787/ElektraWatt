@@ -1156,6 +1156,13 @@ pub fn hud(model: &ShellModel) -> HudModel {
             format!("{readout} \u{b7} {state}")
         }
         Some(Ghost::Paste { words, .. }) => format!("{words} \u{b7} {}", hint()),
+        // The marks a click joins to pins, each with its pin, before the keys ("L connects to -Q1:1 · Click …").
+        Some(Ghost::Supply { joins, .. }) => joins
+            .iter()
+            .map(|(mark, pin)| strings::format(key!("hud-supply-connects"), &[mark, pin]))
+            .chain([hint()])
+            .collect::<Vec<_>>()
+            .join(" \u{b7} "),
         Some(Ghost::Exchange { symbol, unmapped }) => {
             let mut parts = vec![symbol];
             parts.extend(unmapped);

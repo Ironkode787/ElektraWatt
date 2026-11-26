@@ -31,7 +31,6 @@ what the owner's test of 0.3.5 finds is added here.
 - FT-2209 `ew-scene, ew-drafting, ew-commands`: A symbol turned after it is wired: its wires kink, a lamp gets a warning, and a tag dragged clear stands where it was after the next turn. From the same persona run: function texts typed in Properties are not drawn on the page, the Wire tool does not start in free space, and one 24 V rail carries four wire numbers. (FT-2111 has the grid change.)
 - FT-2210 `ew-reports, ew-scene`: A list page on the grid frame prints over the frame's column strip, and a project can hold the parts list twice with nothing said (two list pages in a persona run).
 - FT-2211 `ew-derive, ew-checks, ew-ui`: A wire's size is not derived where no supply stands upstream; its Override stands behind "…"; and 0.5 mm² set by hand behind a 16 A breaker is not flagged.
-- FT-2213 `ew-viewmodel, ew-scene`: A supply mark (L, N, PE) set beside a pin shows no sign of whether it is joined to that pin; only the check says, later, that it is not.
 
 
 #### A command's words

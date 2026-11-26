@@ -89,8 +89,9 @@ points that stand together, one under the other, print that place once.
 
 To make one: **Supply** on the Draw tab, beside Interruption, asks what comes in (single phase L, N, PE; three phase
 with or without N; 24 V DC; your own names) and where it comes from, and the marks follow the pointer as one group
-until you click. Or draw the points with Interruption, select them, right-click and choose **Supply comes in here…**;
-its form proposes where the supply comes from and the device there. The same marks bring in signals from another
+until you click. A mark brought near a pin lands on it and joins it when you click, as an interruption point does; the
+bar under the page names the pin first (`L connects to -Q1:1`). Hold Alt to place the marks without joining. Or draw
+the points with Interruption, select them, right-click and choose **Supply comes in here…**; its form proposes where the supply comes from and the device there. The same marks bring in signals from another
 cabinet: name each mark for its signal and leave a field empty where it is not known. A mark prints what is known:
 the place and the device (`+MCC2 / -A1`), an address alone when only the device field holds it (`Q4.1`), or nothing
 when the far end is not known yet. When the marks are placed, a small panel opens at them and asks what comes

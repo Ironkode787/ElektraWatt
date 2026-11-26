@@ -1799,6 +1799,17 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
         Some(crate::tools::Ghost::Box { outline, cps }) => {
             lines.push(format!("canvas ghost box outline {outline} cps {cps}"));
         }
+        // The Supply tool's marks: each pin a mark joins, by the mark's name.
+        Some(crate::tools::Ghost::Supply { at_nm, joins }) => {
+            let mut line = "canvas ghost supply".to_owned();
+            if let Some((x, y)) = at_nm {
+                line.push_str(&format!(" at {} {} mm", mm3(x), mm3(y)));
+            }
+            for (mark, pin) in joins {
+                line.push_str(&format!(" joins \"{mark}\" \"{pin}\""));
+            }
+            lines.push(line);
+        }
         // The text tools' free text and the Graphic tool's shape.
         Some(crate::tools::Ghost::Text { at_nm, text, bind }) => {
             let mut line = "canvas ghost item text".to_owned();

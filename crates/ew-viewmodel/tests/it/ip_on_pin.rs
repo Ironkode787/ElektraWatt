@@ -4,7 +4,7 @@
 //! An interruption point dropped so that its connection
 //! point lies on a pin connects to it (FR-CON-003), in one undo step, as a symbol placed the same way
 //! does; Alt places it free; a drop on another interruption point, and an external point's on a pin, are refused in
-//! words.
+//! words. A mark of the Supply tool joins a pin the same way.
 
 use crate::common;
 
@@ -831,4 +831,48 @@ fn a_point_dropped_on_a_pin_connects_to_it_on_the_pin_s_own_number() {
         .unwrap()
         .clone();
     assert_eq!(ip_cp.at, pin.at, "the point's pin on the pin's own number");
+}
+
+/// FT-2213: the Supply tool's marks join a pin as the IP tool's point does. The pointer six points beside the free
+/// pin -102S3:14 (more than half a grid step: the grid alone would set the mark a step away) puts the first mark's CP
+/// on it; the ghost and the HUD name the pin; the click adds the three marks and joins the first to the pin with a
+/// route-less wire; the marks under it, beside no pin, stand free. With Alt held the ghost joins nothing.
+#[test]
+fn a_supply_mark_set_beside_a_pin_joins_it() {
+    let tmp = Tmp::new("supply-pin");
+    let mut s = with_a_free_button(&tmp);
+    let pin = cp(&s, "-102S3:14");
+    done(&mut s, "supply.place", json!({"system": "supply_1p"}));
+    let near = s
+        .canvas()
+        .unwrap()
+        .page()
+        .snapper
+        .page_to_sheet((pin.at.0 + 1_600_000, pin.at.1));
+    done(&mut s, "canvas.pointer", at(near, json!({"alt": true})));
+    assert_eq!(ghost(&s)["joins"], json!([]), "Alt joins nothing");
+    done(&mut s, "canvas.pointer", at(near, json!({})));
+    assert_eq!(ghost(&s)["kind"], "supply");
+    assert_eq!(ghost(&s)["joins"], json!([["L", "-102S3:14"]]));
+    assert!(
+        hud(&s).starts_with("L connects to -102S3:14 \u{b7} "),
+        "{}",
+        hud(&s)
+    );
+    let before = tables(&s);
+    done(&mut s, "canvas.press", at(near, json!({})));
+    let (reps, conns) = added(&before, &s);
+    let names: Vec<_> = reps
+        .iter()
+        .filter_map(|r| r.ip.as_ref().map(|ip| ip.name.clone()))
+        .collect();
+    assert_eq!(names.len(), 3, "{names:?}");
+    assert_eq!(conns.len(), 1, "the first mark joined, the others free");
+    let l = reps
+        .iter()
+        .find(|r| r.ip.as_ref().is_some_and(|ip| ip.name == "L"))
+        .expect("the mark L");
+    let l_cp = tables(&s).cps.iter().find(|c| c.rep == l.id).unwrap().clone();
+    assert_eq!(l_cp.at, pin.at, "the mark's CP on the pin");
+    assert_eq!(conns[0].polyline, vec![pin.at], "a wire of length zero");
 }

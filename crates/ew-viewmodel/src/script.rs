@@ -707,6 +707,23 @@ fn ghost_json(shell: &ShellModel) -> String {
             // The pin a click connects the point to, `null` where it places it free.
             member("connects", &connects.map_or(Value::Null, Value::from)),
         ]),
+        // The Supply tool's marks: the pin each joins, by the mark's name.
+        Some(Ghost::Supply { at_nm, joins }) => object(vec![
+            member("kind", &Value::from("supply")),
+            member(
+                "at_nm",
+                &at_nm.map_or(Value::Null, |(x, y)| Value::from(vec![x, y])),
+            ),
+            member(
+                "joins",
+                &Value::from(
+                    joins
+                        .into_iter()
+                        .map(|(mark, pin)| Value::from(vec![mark, pin]))
+                        .collect::<Vec<_>>(),
+                ),
+            ),
+        ]),
         Some(Ghost::Box { outline, cps }) => object(vec![
             member("kind", &Value::from("box")),
             member("outline", &Value::from(outline)),

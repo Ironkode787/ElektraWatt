@@ -186,6 +186,7 @@ hud-connect-on-move-on = { $p0 } Verbinden bij verplaatsen: aan
 hud-connect-on-move-off = { $p0 } Verbinden bij verplaatsen: uit
 hud-place-wires = verbindt { $p0 }; Alt+klik of { $p1 } plaatst zonder
 hud-ip-connects = verbindt met { $p0 }
+hud-supply-connects = { $p0 } verbindt met { $p1 }
 hud-ip-taken = { $p0 } is bezet, dus dit punt is { $p1 }.
 hud-ip-source = bron: waar de potentiaal vandaan komt, één voor zijn naam
 hud-ip-target = doel: waar de potentiaal verdergaat, gevoed door zijn bron

@@ -332,6 +332,14 @@ pub enum Ghost {
         /// The pin a click connects the point to, in words (`-102F2:14`); `None` where it places it free.
         connects: Option<String>,
     },
+    /// The Supply tool's floating marks.
+    Supply {
+        /// The first mark's insertion point on the page, nm; `None` before the first pointer or cursor move.
+        at_nm: Option<(i64, i64)>,
+        /// The pin a click joins each mark to, by the mark's name, in words (`L`, `-Q1:1`); a mark placed free is not
+        /// listed.
+        joins: Vec<(String, String)>,
+    },
     /// The black box tool's rectangle.
     Box {
         /// The outline's vertices (0 before the first corner).

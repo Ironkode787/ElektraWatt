@@ -144,41 +144,59 @@ impl ShellModel {
     }
 
     /// The Supply tool's click at `at` (page nm): one interruption point per mark, a target named as the mark, one
-    /// under the other, marked as where the supply comes in from the plan's place and device; one undo step. The
+    /// under the other, each on a pin joined to it ([`SupplyTool::joins`]), marked as where the supply comes in from the plan's place and device; one undo step. The
     /// marks' Potential panel opens (`after_supply_marks`), and Select takes over.
     pub(super) fn supply_place_from_tool(&mut self, at: (i64, i64)) -> Outcome {
         let placed = self
             .with_tool(|t, cx| {
                 let tool = t.as_any_mut()?.downcast_mut::<SupplyTool>()?;
+                let positions = tool.positions(at, cx);
                 Some((
                     tool.plan().clone(),
                     tool.names().to_vec(),
                     tool.shape().copy.to_string(),
-                    tool.positions(at, cx),
+                    tool.joins(&positions, &cx.page.tables),
+                    positions,
                     cx.page.tables.page.to_string(),
                 ))
             })
             .flatten();
-        let Some((plan, names, symbol, positions, page)) = placed else {
+        let Some((plan, names, symbol, joins, positions, page)) = placed else {
             return Outcome::Done;
         };
         let mut points: Vec<Uuid> = Vec::new();
         let mut first = true;
-        for (name, pos) in names.iter().zip(&positions) {
-            let mut params = json!({
-                "page": page,
+        for ((name, pos), pin) in names.iter().zip(&positions).zip(joins) {
+            let ip = json!({
                 "symbol": symbol,
                 "pos": [pos.0, pos.1],
                 "orient": "r0",
                 "name": name,
                 "direction": "target",
             });
+            // A mark on a pin joins it, as the IP tool's point does: a wire of length zero in the same step.
+            let (command, mut params) = match pin {
+                Some(pin) => (
+                    "connection.draw_to_ip",
+                    json!({
+                        "a": {"cp": {"function": pin.function.to_string(), "idx": pin.idx}},
+                        "page": page,
+                        "route": [],
+                        "ip": ip,
+                    }),
+                ),
+                None => {
+                    let mut params = ip;
+                    params["page"] = Value::from(page.clone());
+                    ("ip.place", params)
+                }
+            };
             if first && !plan.copies.is_empty() {
                 params["copies"] = Value::Array(plan.copies.clone());
             }
             let rev = self.revision();
             let out = self.commit_from_host(&AnyCommand {
-                name: "ip.place".into(),
+                name: command.into(),
                 params,
             });
             if out != Outcome::Done {
