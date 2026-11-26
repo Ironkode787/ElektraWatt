@@ -3,8 +3,9 @@
 
 //! The workshop lists on the sample (doc 13 §6, §9.3): a strip whose end plate was left off is EW-MFG-020 and its fix
 //! adds one back, a bridge without a part is EW-MFG-021 and prints TBD, the cut increment rounds each piece once, and a
-//! `tube_cut_list` block prints the cut list's Tubes group, which Report block… no longer offers; a wire part's rows
-//! among their size's. The lists' rows on the whole sample are the kind CSVs of `report_kinds`.
+//! `tube_cut_list` block prints the cut list's Tubes group, which Report block… no longer offers; the assembly heading
+//! of a strip against another's bracket, turned, on no rail and of unknown width; a wire part's rows among their size's.
+//! The lists' rows on the whole sample are the kind CSVs of `report_kinds`.
 
 use crate::common;
 
@@ -356,6 +357,128 @@ fn every_cut_list_row_names_what_it_is_cut_for() {
         .map(|r| r.sources.len())
         .sum();
     assert_eq!(named, tubes, "every tube on one row");
+}
+
+/// The sample's records changed by `change` (given the IDs of -X1011, -X1021 and -X1031), as a session.
+fn sample_changed(change: impl FnOnce(&mut Vec<ew_schema::Record>, [ew_ids::Id<ew_schema::Device>; 3])) -> Session {
+    let (project, mut records, lib) = common::sample_records();
+    let strips = {
+        let s = common::session_of(project.clone(), records.clone(), lib.clone());
+        ["-X1011", "-X1021", "-X1031"].map(|t| device(&s, t).parse().expect("an ID"))
+    };
+    change(&mut records, strips);
+    common::session_of(project, records, lib)
+}
+
+/// The rows of the strip `tag` in the assembly lists: its heading, then its items up to the next heading.
+fn strip_rows(s: &Session, tag: &str) -> Vec<String> {
+    let all = lines(s, "assembly_list");
+    let at = all
+        .iter()
+        // A heading with a comma in it stands in quotes.
+        .position(|l| l.starts_with(&format!("heading,{tag} ")) || l.starts_with(&format!("heading,\"{tag} ")))
+        .unwrap_or_else(|| panic!("no heading of {tag}: {all:#?}"));
+    let mut rows = vec![all[at].clone()];
+    rows.extend(all[at + 1..].iter().take_while(|l| !l.starts_with("heading,")).cloned());
+    rows
+}
+
+/// The assembly list's heading in each of its forms (doc 13 §6.1): -X1011 put on rail 2 right after -X1031 starts
+/// against -X1031's end bracket and has none of its own before it; -X1021 turned half round on its rail lists its last
+/// terminal first; -X1031 taken off its rail (its placement removed) is on no rail with both its end brackets, and with
+/// its terminal SH without a part (no width) its length is "at least".
+#[test]
+fn the_assembly_heading_says_against_turned_on_no_rail_and_at_least() {
+    use ew_schema::{CarrierRef, Record};
+    let s = sample_changed(|records, [x1011, x1021, x1031]| {
+        let rail2 = records
+            .iter()
+            .find_map(|r| match r {
+                Record::Placement(p) if p.device == x1031 => Some(p.carrier.clone()),
+                _ => None,
+            })
+            .expect("-X1031 on rail 2");
+        for r in records.iter_mut() {
+            let Record::Placement(p) = r else { continue };
+            if p.device == x1011 {
+                // -X1031 stands with its end brackets from 0 to 48.2 mm.
+                p.carrier = rail2.clone();
+                p.pose.t[0] = ew_units::Nm::from_um(48_200);
+            } else if p.device == x1021 {
+                p.pose.q = ew_units::Quat9::new(0, 0, 0, 1_000_000_000).expect("a half turn");
+                p.pose.t[0] = ew_units::Nm::from_mm(270);
+            }
+        }
+        assert!(matches!(rail2, CarrierRef::Carrier(_)));
+    });
+    let x1011 = strip_rows(&s, "-X1011");
+    assert!(
+        x1011[0].starts_with("heading,-X1011 · on rail 2 from 48.2 to ")
+            && x1011[0].contains(" · against the end bracket of -X1031 · 5 terminals · "),
+        "{x1011:#?}"
+    );
+    assert!(x1011[1].starts_with("data,1,Terminal,L1,"), "no end bracket of its own before it: {x1011:#?}");
+    let x1021 = strip_rows(&s, "-X1021");
+    assert!(
+        x1021[0].contains(" · turned, its first terminal at the right · 8 terminals · "),
+        "{x1021:#?}"
+    );
+    let terminals: Vec<&str> = x1021
+        .iter()
+        .filter_map(|l| {
+            let cells: Vec<&str> = l.split(',').collect();
+            (cells.get(2) == Some(&"Terminal")).then(|| cells[3])
+        })
+        .collect();
+    assert_eq!(terminals, ["8", "7", "6", "5", "4", "3", "2", "1"], "{x1021:#?}");
+
+    let s = sample_changed(|records, [_, _, x1031]| {
+        records.retain(|r| !matches!(r, Record::Placement(p) if p.device == x1031));
+        for r in records.iter_mut() {
+            if let Record::Device(d) = r
+                && d.aspects.terminal.as_ref().is_some_and(|t| t.strip == x1031 && t.designation.as_str() == "SH")
+            {
+                d.parts.clear();
+            }
+        }
+    });
+    let x1031 = strip_rows(&s, "-X1031");
+    assert_eq!(
+        x1031[0],
+        "heading,-X1031 · on no rail · 5 terminals · at least 43 mm with its end brackets,,,,,,,,",
+        "{x1031:#?}"
+    );
+    assert!(x1031[1].starts_with("data,1,End bracket,"), "{x1031:#?}");
+    assert!(x1031.last().is_some_and(|l| l.starts_with("data,8,End bracket,")), "{x1031:#?}");
+    assert!(
+        x1031.iter().any(|l| l.starts_with("data,7,Terminal,SH,") && l.contains(",width missing,")),
+        "{x1031:#?}"
+    );
+}
+
+/// A cable of 10001 mm is one piece of 10005 mm in the cut list (cut to 5 mm, once), 10.005 m in total.
+#[test]
+fn a_cable_with_a_length_is_cut_up_once() {
+    use ew_schema::{LengthSource, Record};
+    let s = sample_changed(|records, _| {
+        let cable = records
+            .iter_mut()
+            .find_map(|r| match r {
+                Record::Device(d) => d
+                    .aspects
+                    .cable
+                    .as_mut()
+                    .filter(|c| c.length == LengthSource::Manual(ew_units::Nm::from_mm(10_000))),
+                _ => None,
+            })
+            .expect("a cable of 10 m");
+        cable.length = LengthSource::Manual(ew_units::Nm::from_mm(10_001));
+    });
+    let cut = lines(&s, "cut_list");
+    assert!(
+        cut.iter().any(|l| l.starts_with("data,EW-GEN-CBL-17,") && l.ends_with(",-101W1,1,10005,10.005")),
+        "{cut:#?}"
+    );
 }
 
 /// A wire part in the stock: the 1.5 mm² BK wires take it, and their rows in the cut list and in the consumables stand
