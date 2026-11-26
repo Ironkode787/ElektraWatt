@@ -1083,6 +1083,7 @@ refusal-frame-grid-too-fine = the columns or rows would be narrower than a nanom
 refusal-frame-grid-no-block = this frame has no title block
 refusal-frame-grid-block-low = a title block is at least 2 mm high
 refusal-frame-grid-block-high = the title block would leave the rows no height
+refusal-frame-grid-block-cells = a title block that low makes a cell lower than 2 mm; make it higher, or join cells first
 refusal-frame-grid-drawing-under = { $p0 } has drawing where the title block would grow; move it up first
 refusal-frame-grid-unchanged = the columns and rows are unchanged
 refusal-form-own-no-frame = this page prints on no frame of the project's

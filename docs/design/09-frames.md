@@ -138,7 +138,8 @@ into the pages of the frame ("103-C1 → 103-B1", with its page), every wire num
 numbering scheme that prints a column or a row. Apply writes it as one undo step (`frame.set_grid`); Cancel leaves the
 frame as it was. A change of the title block's height is previewed the same way, since it changes the rows' height;
 it is refused while a connection point, a bend of a wire or a symbol's anchor of a page of the frame lies where the
-block would grow, naming the page ("Page 101 has drawing where the title block would grow; move it up first").
+block would grow, naming the page ("Page 101 has drawing where the title block would grow; move it up first"), and
+while a lower block would make a cell lower than 2 mm. The block's cells, pictures and texts scale with its height.
 
 **One frame, several pages.** The card and the header of Properties say where a change shows: a cell of the title block
 on every page of every frame that names the block, the columns and rows on the pages of this frame. With nothing

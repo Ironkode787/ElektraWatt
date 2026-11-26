@@ -505,7 +505,8 @@ pub const MAX_FIRST: u16 = 999;
 /// `forked_copies` order).
 ///
 /// Rejected, with the pointer: `/frame` not a frame with a grid the project holds; a count outside 1 to 100; a first
-/// label outside 0 to 999; a title-block height below 2 mm or one that leaves the rows no height; a title block that
+/// label outside 0 to 999; a title-block height below 2 mm, one that leaves the rows no height or one that makes a cell
+/// lower than 2 mm (its cells, pictures and texts scale with it); a title block that
 /// grows over a connection point, a bend of a wire or a symbol's anchor of a page of the frame, naming the page;
 /// nothing changed. Outcome: the frame (its fork for a fork).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -706,9 +707,20 @@ impl Command for SetFrameGrid {
                 for c in &mut block.cells {
                     c.rect = scaled(c.rect);
                 }
+                // No cell lower than 2 mm, as a person's change of a cell keeps it (doc 09 §3.9).
+                if block.cells.iter().any(|c| c.rect.0.height() < MIN_CELL) {
+                    return Err(bad(
+                        Self::NAME,
+                        "/title_block_height",
+                        text!("refusal-frame-grid-block-cells"),
+                    ));
+                }
+                // The block's pictures and texts keep their places in it; its lines are written anew below.
                 for g in &mut block.graphics {
-                    if let Primitive::Image(img) = g {
-                        img.rect = scaled(img.rect);
+                    match g {
+                        Primitive::Image(img) => img.rect = scaled(img.rect),
+                        Primitive::Text(t) => t.pos = Pt2::new(t.pos.x, scale(t.pos.y)),
+                        _ => {}
                     }
                 }
                 block.sheet.height = h;

@@ -1084,6 +1084,7 @@ refusal-frame-grid-too-fine = de kolommen of rijen zouden smaller worden dan een
 refusal-frame-grid-no-block = dit kader heeft geen titelblok
 refusal-frame-grid-block-low = een titelblok is ten minste 2 mm hoog
 refusal-frame-grid-block-high = het titelblok zou de rijen geen hoogte laten
+refusal-frame-grid-block-cells = een titelblok zo laag maakt een vak lager dan 2 mm; maak het hoger, of voeg eerst vakken samen
 refusal-frame-grid-drawing-under = { $p0 } heeft tekening waar het titelblok zou groeien; schuif die eerst omhoog
 refusal-frame-grid-unchanged = de kolommen en rijen zijn ongewijzigd
 refusal-form-own-no-frame = deze pagina gebruikt geen kader van het project

@@ -40,6 +40,11 @@ fn starter(file: &str) -> LibDocument {
 
 /// The mini project with the starter forms; page 101 prints on the A4 grid frame.
 fn model() -> Model {
+    model_where(|_| {})
+}
+
+/// [`model`] with each starter form changed by `edit` as it is read.
+fn model_where(edit: impl Fn(&mut LibDocument)) -> Model {
     let (p, mut records, _) = mini_project_parts();
     for r in &mut records {
         if let Record::Page(page) = r
@@ -57,7 +62,9 @@ fn model() -> Model {
         "ew.frame.qet-a4-landscape-nogrid.json",
         "ew.frame.qet-a3-landscape-grid.json",
     ] {
-        lib.push(starter(f));
+        let mut doc = starter(f);
+        edit(&mut doc);
+        lib.push(doc);
     }
     Model::from_records(p, records, lib).expect("a valid model")
 }
@@ -340,4 +347,62 @@ fn the_cover_given_its_own_block_leaves_page_101s_block_as_it_was() {
         .expect("page 101")
         .clone();
     assert_eq!(page.form, Some(v5::lib_copy_id(project, page_own)));
+}
+
+/// The mini project of [`model`] whose starter title block also has a text of its own at 9 mm from its top.
+fn model_with_block_text() -> Model {
+    model_where(|doc| {
+        if let LibDocument::Form(block) = doc
+            && block.id == form_id(BLOCK)
+        {
+            block.item.graphics.push(
+                serde_json::from_value(
+                    json!({"text": {"pos": [10_000_000, 9_000_000], "text": "Note", "align": "left"}}),
+                )
+                .expect("a text"),
+            );
+            block.sha256 = ew_schema::Sha256(
+                ew_format::library_copy_hash(&LibDocument::Form(block.clone())).expect("a hash"),
+            );
+        }
+    })
+}
+
+/// A lower title block (doc 09 §3.9) scales its cells and its texts with it, and is refused where a cell would be lower
+/// than 2 mm: the starter block's rows of 4.5 mm stand 18 mm high, so 7 mm leaves them 1.75 mm.
+#[test]
+fn a_lower_title_block_scales_its_texts_and_keeps_its_cells_2_mm_high() {
+    let mut e = engine(model_with_block_text());
+    let project = e.model().project().id.as_uuid();
+    let forks: Vec<Uuid> = (1..=6).map(|n| Uuid::from_u128(0xc0 + n)).collect();
+    let forks_json: Vec<String> = forks.iter().map(Uuid::to_string).collect();
+    let old = copy(&e, form_id(BLOCK)).expect("the block").item.sheet.height;
+    let r = e.preview(&AnyCommand {
+        name: "frame.set_grid".to_owned(),
+        params: json!({"frame": GRID, "title_block_height": 7_000_000, "forks": forks_json}),
+    });
+    match r {
+        Err(CmdError::InvalidParams { path, text, .. }) => {
+            assert_eq!(path, "/title_block_height");
+            assert!(text.to_string().contains("2 mm"), "{text}");
+        }
+        other => panic!("expected a refusal of the height, got {other:?}"),
+    }
+    let h = old.0 / 2;
+    commit(
+        &mut e,
+        "frame.set_grid",
+        json!({"frame": GRID, "title_block_height": h, "forks": forks_json}),
+    );
+    // The forks in `forked_copies` order: the grid frame, then its block.
+    let block = copy(&e, v5::lib_copy_id(project, forks[1])).expect("the block's fork");
+    let text_y = block.item.graphics.iter().find_map(|g| match g {
+        ew_schema::Primitive::Text(t) => Some(t.pos.y.0),
+        _ => None,
+    });
+    assert_eq!(
+        text_y,
+        Some(9_000_000 * h / old.0),
+        "the text keeps its place in the block"
+    );
 }
