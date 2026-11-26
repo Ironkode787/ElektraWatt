@@ -215,3 +215,6 @@ change here.
 - behaviour-change: replacing a device's part in its Parts row or in the strip editor's Part cell drops the choices
   of accessories the new part does not bring, as Choose part… did; before, a stale choice stayed and came back to
   life when the old part did
+- behaviour-change: in the part dialog a part of another kind names both kinds ("A part of another kind: A1A2 coil,
+  not 1P MCB"), and a fitting part whose clamps on the device's wired pins have no size given says "clamp sizes not
+  given" in its row

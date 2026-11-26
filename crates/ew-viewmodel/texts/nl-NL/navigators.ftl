@@ -318,6 +318,7 @@ badge-index-failed = Index mislukt
 badge-profile-unreadable = PLC-profiel onleesbaar
 badge-fits-function = Past bij de functie van { $p0 }
 badge-same-category = Zelfde categorie
+badge-clamps-unsized = klemmaten niet opgegeven
 nav-title-unplaced = Ongeplaatste apparaten
 empty-nav-unplaced = Nog geen paneellayout
 empty-nav-unplaced-text = Apparaten staan hier zodra de locatie een kast heeft.

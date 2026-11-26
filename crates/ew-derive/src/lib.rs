@@ -133,7 +133,7 @@ pub use drawn_path::{
     dir_vertical, drawn_path, on_segment, oriented_dir, page_grid, read_connection, read_junction,
     stored_path,
 };
-pub use part_fit::{Misfit, part_fit};
+pub use part_fit::{Misfit, fit_report, part_fit};
 // The derived-index families of the connectivity (ARCH §6.3 rule 5) and the interruption-point
 // pairing split out of the stitch graph.
 pub use index::{

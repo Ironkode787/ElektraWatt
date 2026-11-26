@@ -37,13 +37,33 @@ fn the_reasons_a_part_does_not_fit_102f1() {
         .map(|(_, c)| c.item.clone())
         .expect("the breaker");
     assert_eq!(part_fit(&q, id, &own, true), None, "its own breaker fits");
-    assert_eq!(part_fit(&q, id, &own, false), Some(Misfit::Function));
+    // Its clamps have sizes; the same breaker without them fits, and says that its clamp sizes are not given.
+    assert_eq!(ew_derive::fit_report(&q, id, &own, true), (None, false));
+    let mut bare = own.clone();
+    bare.cp_pattern = pattern(&own, |cp| {
+        cp.csa_min = None;
+        cp.csa_max = None;
+    });
+    assert_eq!(ew_derive::fit_report(&q, id, &bare, true), (None, true));
+    // A part of another kind names both kinds.
+    let contactor: Part = q
+        .parts()
+        .iter()
+        .find(|(_, c)| c.item.part_number.as_str() == "EW-GEN-CON-1")
+        .map(|(_, c)| c.item.clone())
+        .expect("the contactor");
+    let Some(m @ Misfit::Function { .. }) = part_fit(&q, id, &contactor, false) else {
+        panic!("another kind")
+    };
+    let text = s.misfit_text(device, &m).to_string();
+    assert_eq!(text, "A part of another kind: A1A2 coil, not 1P MCB");
     // Clamps that take 0.1 to 0.2 mm² only: a wire on the first wired pin is larger.
     let mut small = own.clone();
     small.cp_pattern = pattern(&own, |cp| {
         cp.csa_min = Some("0.1".parse().unwrap());
         cp.csa_max = Some("0.2".parse().unwrap());
     });
+    assert!(!ew_derive::fit_report(&q, id, &small, true).1, "its clamps have sizes");
     let Some(m @ Misfit::ClampTooSmall { .. }) = part_fit(&q, id, &small, true) else {
         panic!("a clamp too small")
     };
@@ -93,6 +113,14 @@ fn an_offer_for_several_devices_is_judged_on_each() {
     assert_eq!((m.device, m.count, m.of), (two, 1, 2));
     let text = s.offer_misfit_text(m).to_string();
     assert!(text.starts_with("Does not fit 1 of 2; -101F1: It has no pin "), "{text}");
+    // Offered to -102F1 alone it fits, its clamp sizes given.
+    let alone = PartOfferQuery {
+        devices: vec![one],
+        ..query("EW-GEN-MCB-1", false)
+    };
+    let fits = s.part_offers(&alone);
+    let offer = fits.iter().find(|o| o.part_number == "EW-GEN-MCB-1").expect("the breaker");
+    assert!(offer.misfit.is_none() && !offer.clamps_unsized);
     let kept = s.part_offers(&query("EW-GEN-MCB-1", true));
     assert!(kept.iter().any(|o| o.part_number == "EW-GEN-MCB-1"), "it fits one of them");
     let hidden = s.part_offers(&query("EW-GEN-CON-1", true));

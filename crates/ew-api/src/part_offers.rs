@@ -187,6 +187,9 @@ pub struct PartOffer {
     /// Why the part does not fit the target's devices (doc 07 §4.3 "What fits"): the first device it does not fit and
     /// why, and for how many; `None` when it fits every one or there is no target function.
     pub misfit: Option<OfferMisfit>,
+    /// Whether the part fits every device while a clamp one of them has wired has no size given (doc 07 §4.3: it takes
+    /// any wire, and the offer says that its clamp sizes are not given).
+    pub clamps_unsized: bool,
     /// Whether the project holds the part.
     pub held: bool,
     /// The library the part comes from, as installed: (ID, name, tier); `None` for a project-local copy or a library
@@ -484,6 +487,7 @@ impl Session {
                 kind,
                 fit,
                 misfit: None,
+                clamps_unsized: false,
                 held: true,
                 library: item.and_then(|(l, _)| lib_of(l)),
                 item,
@@ -561,6 +565,7 @@ impl Session {
                     kind: kind_word(&h.kind),
                     fit,
                     misfit: None,
+                    clamps_unsized: false,
                     held: false,
                     library: lib_of(h.library),
                     item,
@@ -616,10 +621,15 @@ impl Session {
                 let Some(part) = self.offer_part(&o.pick) else {
                     continue;
                 };
-                let misfits: Vec<(Id<Device>, ew_derive::Misfit)> = devices
+                let reports: Vec<(Id<Device>, (Option<ew_derive::Misfit>, bool))> = devices
                     .iter()
-                    .filter_map(|d| Some((*d, ew_derive::part_fit(&query, *d, &part, o.fit != Fit::Other)?)))
+                    .map(|d| (*d, ew_derive::fit_report(&query, *d, &part, o.fit != Fit::Other)))
                     .collect();
+                let misfits: Vec<(Id<Device>, ew_derive::Misfit)> = reports
+                    .iter()
+                    .filter_map(|(d, (m, _))| Some((*d, m.clone()?)))
+                    .collect();
+                o.clamps_unsized = misfits.is_empty() && reports.iter().any(|(_, (_, no_size))| *no_size);
                 if let Some((device, misfit)) = misfits.first().cloned() {
                     o.misfit = Some(OfferMisfit {
                         device: device.as_uuid(),
@@ -867,7 +877,33 @@ impl Session {
     pub fn misfit_text(&self, device: Uuid, misfit: &ew_derive::Misfit) -> crate::Text {
         let q = self.query();
         match misfit {
-            ew_derive::Misfit::Function => text!("misfit-function"),
+            ew_derive::Misfit::Function { part } => {
+                // Both kinds in words ("A part of another kind: Coil, not Circuit breaker"), as the function kinds'
+                // navigator names them, when both definitions are known.
+                let kind = |def: &ew_schema::FnDef| crate::output::navigators::kind_text(def, &[]);
+                let device_kind = q
+                    .idx()
+                    .functions_of_device(Id::from_uuid(device))
+                    .filter_map(|f| q.functions().get(f).cloned())
+                    .find(|f| f.role == ew_schema::FnRole::Main)
+                    .and_then(|f| q.fndefs().get(f.def).cloned())
+                    .and_then(|d| kind(&d.item));
+                let part_kind = part.as_ref().and_then(|r| {
+                    let held = q
+                        .fndefs()
+                        .get(ew_ids::v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid()))
+                        .map(|c| c.item.clone());
+                    let def = held.or_else(|| match self.libraries().resolve(r) {
+                        Ok(LibDocument::Fndef(c)) => Some(c.item),
+                        _ => None,
+                    })?;
+                    kind(&def)
+                });
+                match (part_kind, device_kind) {
+                    (Some(a), Some(b)) => text!("misfit-function-kinds", a, b),
+                    _ => text!("misfit-function"),
+                }
+            }
             ew_derive::Misfit::MissingPin { pin } => {
                 text!(
                     "misfit-pin",

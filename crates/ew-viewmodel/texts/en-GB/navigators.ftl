@@ -331,6 +331,7 @@ badge-index-failed = Index failed
 badge-profile-unreadable = PLC profile unreadable
 badge-fits-function = Fits { $p0 }'s function
 badge-same-category = Same category
+badge-clamps-unsized = clamp sizes not given
 
 # The Unplaced devices navigator, the layout place tool and Select on a panel page
 # (doc 16a §5.5 HUD, §6.17 empty states, §6.20 segmented control, §7.4 chips, §8 wording).

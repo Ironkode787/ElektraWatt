@@ -464,8 +464,10 @@ function that its main function can become (the same FnDef, else the same first 
 kind), with every connection point the device has wired (its designation, natural-normalised), and each such clamp
 takes the wires on it: their effective cross-sections ([08](08-connections-terminals-cables.md) §4) lie in its
 `csa_min` … `csa_max`. A clamp without a range takes any wire, and the offer says that its clamp sizes are not
-given. An offer that does not fit says why in one sentence, the first reason found in this order: its function
-("A part of another kind: a contactor, not a circuit breaker"), a pin it lacks ("It has no pin 4; -101F1:4 is
+given (its row's badge "clamp sizes not given", `PartOffer::clamps_unsized` from `ew_derive::fit_report`). An offer
+that does not fit says why in one sentence, the first reason found in this order: its function, both kinds as the
+function kinds' navigator names them ("A part of another kind: A1A2 coil, not 1P MCB"; without both definitions at
+hand, "its function is not the device's"), a pin it lacks ("It has no pin 4; -101F1:4 is
 wired"), a clamp's size ("Its clamp 2 takes 0.5 to 1.5 mm²; wire 102.1 is 2.5 mm²"). For several devices (a
 strip's terminals without a part, a selection of several) an offer fits when it fits every one; where it does not,
 its reason says for how many and names the first it does not fit ("Does not fit 3 of 12; -X1:4: Its clamp 1 takes

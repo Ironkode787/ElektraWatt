@@ -87,13 +87,19 @@ impl PartChooser {
 
     /// The fit badge of an offer (`Fits F55's function`, `Same category`); none for `other`.
     pub fn badge(&self, o: &PartOffer) -> Option<String> {
-        match o.fit {
+        let fit = match o.fit {
             Fit::SameFnDef => Some(strings::format(
                 key!("badge-fits-function"),
                 &[self.tag.as_deref().unwrap_or_default()],
             )),
             Fit::SameCategory => Some(strings::text(key!("badge-same-category")).to_owned()),
             Fit::Other => None,
+        };
+        // A fitting part whose wired clamps have no size given says so (doc 07 §4.3).
+        let no_size = o.clamps_unsized.then(|| strings::text(key!("badge-clamps-unsized")).to_owned());
+        match (fit, no_size) {
+            (Some(a), Some(b)) => Some(format!("{a} \u{b7} {b}")),
+            (a, b) => a.or(b),
         }
     }
 
