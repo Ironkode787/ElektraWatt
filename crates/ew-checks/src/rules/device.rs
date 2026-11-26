@@ -552,8 +552,8 @@ pub const VARIANT_NOT_IN_PART: RuleMeta = RuleMeta {
 
 /// EW-CORE-085: a part use that names a variant key its part does not hold (FR-PRT-003, doc 07 §2.5); the lists print
 /// the part. One finding per device, part copy and key: targets the device and the copy, discriminator the key. Its
-/// quick fix gives the part use the part's own number (`fields.set` of the device's `parts`, the key dropped), after
-/// which the Variant row chooses one the part has.
+/// quick fix gives the uses of that part the part's own number (`fields.set` of the device's `parts`, the key dropped
+/// from them alone), after which the Variant row chooses one the part has.
 #[derive(Clone, Copy, Debug)]
 pub struct VariantNotInPart;
 
@@ -571,26 +571,23 @@ impl Rule for VariantNotInPart {
         };
         let parts = q.parts();
         let mut out: Vec<Finding> = Vec::new();
+        let mut reported = std::collections::BTreeSet::new();
         for u in &d.parts {
             let (Some(key), Some(copy)) = (&u.part.variant, parts.get(u.part.copy)) else {
                 continue;
             };
-            if copy.item.variant(key.as_str()).is_some()
-                || out.iter().any(|f| f.discriminator == key.as_str())
-            {
+            if copy.item.variant(key.as_str()).is_some() || !reported.insert((u.part.copy, key)) {
                 continue;
             }
             let tag = full_tag(q, device, ew_derive::text::record_name(ew_schema::Kind::Device));
-            let mut uses = serde_json::to_value(&d.parts).unwrap_or(serde_json::Value::Null);
-            if let Some(list) = uses.as_array_mut() {
-                for u in list.iter_mut() {
-                    if u["part"]["variant"].as_str() == Some(key.as_str())
-                        && let Some(o) = u["part"].as_object_mut()
-                    {
-                        o.remove("variant");
-                    }
+            // The uses of this part that name the key lose it; a use of another part keeps its variant.
+            let mut uses = d.parts.clone();
+            for other in &mut uses {
+                if other.part.copy == u.part.copy && other.part.variant.as_ref() == Some(key) {
+                    other.part.variant = None;
                 }
             }
+            let uses = serde_json::to_value(&uses).unwrap_or(serde_json::Value::Null);
             out.push(
                 Finding::new(
                     &VARIANT_NOT_IN_PART,
