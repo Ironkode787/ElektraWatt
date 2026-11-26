@@ -235,11 +235,16 @@ pub(super) fn part_assign(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 /// description. Refused: a copy the project does not hold, a fork for a project-local copy, a changed CP pattern, an
 /// empty part number, the unit `pcs`, a technical key twice, and the unchanged item.
 pub(super) fn part_edit_copy(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
-    let (held, template) = rng.pick(&live.fixture.part_json)?;
+    // Only a project-local copy is edited in place: the arm picks among those, so that the share of its steps does not
+    // fall as the sample holds more library copies.
     let project = live.fixture.project_id.as_str()?;
-    if template["library_id"].as_str()? != project {
-        return None;
-    }
+    let local: Vec<&(Value, Value)> = live
+        .fixture
+        .part_json
+        .iter()
+        .filter(|(_, t)| t["library_id"].as_str() == Some(project))
+        .collect();
+    let (held, template) = *rng.pick(&local)?;
     let mut item = template.as_object()?.clone();
     for k in ["$k", "$v", "id", "library_id", "item_id", "version", "sha256"] {
         item.remove(k);
