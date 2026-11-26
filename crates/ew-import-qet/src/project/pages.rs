@@ -16,7 +16,8 @@
 //!   page-oriented block and gets no page record ([`super::tables`]).
 //! - **Lifting.** Title-block attributes and folio properties: the most frequent value of each name goes to
 //!   the project (`Project.extra["qet.titleblock"]`, `["qet.properties"]`); a page whose value differs keeps it
-//!   in `Page.extra` under the same member. A differing `author`, `date`, `indexrev` or custom property is an
+//!   in `Page.extra` under the same member. A folio property that becomes a field of the project's own is kept in
+//!   the field alone, not in `qet.properties`. A differing `author`, `date`, `indexrev` or custom property is an
 //!   EW-IMP-104 finding (D-05) naming the folios per value.
 //! - **Free texts, shapes and images** are page items ([`super::items`]).
 
@@ -400,6 +401,14 @@ pub fn map(
     });
     let titled = project.title.as_deref().is_some_and(|t| !t.trim().is_empty());
     let own = own_fields(project);
+    // A folio property that is a field of the project's own lives in the field alone (doc 09 §2.10): `qet.properties`
+    // keeps the others.
+    let not_fields = |m: &serde_json::Map<String, Value>| -> serde_json::Map<String, Value> {
+        m.iter()
+            .filter(|(name, _)| !own.iter().any(|f| f.name == **name))
+            .map(|(n, v)| (n.clone(), v.clone()))
+            .collect()
+    };
     let fielded = |d: usize, name: &str| {
         let written = match name {
             "plant" => structures.get(d).is_some_and(|s| s.function.is_some()),
@@ -454,8 +463,8 @@ pub fn map(
         if let Some(m) = tb_pages.get(i).filter(|m| !m.is_empty()) {
             extra.insert("qet.titleblock".to_owned(), Value::Object(m.clone()));
         }
-        if let Some(m) = pr_pages.get(i).filter(|m| !m.is_empty()) {
-            extra.insert("qet.properties".to_owned(), Value::Object(m.clone()));
+        if let Some(m) = pr_pages.get(i).map(not_fields).filter(|m| !m.is_empty()) {
+            extra.insert("qet.properties".to_owned(), Value::Object(m));
         }
         if !d.folio.trim().is_empty() && d.folio.contains('%') {
             extra.insert("qet.folio".to_owned(), Value::String(d.folio.clone()));
@@ -517,6 +526,7 @@ pub fn map(
     if !tb_project.is_empty() {
         pextra.insert("qet.titleblock".to_owned(), Value::Object(tb_project));
     }
+    let pr_project = not_fields(&pr_project);
     if !pr_project.is_empty() {
         pextra.insert("qet.properties".to_owned(), Value::Object(pr_project));
     }

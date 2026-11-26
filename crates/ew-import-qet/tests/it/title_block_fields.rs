@@ -237,4 +237,15 @@ fn a_variable_of_ones_own_becomes_a_field_of_the_projects_own() {
         .collect();
     sheets.sort_by_key(|(n, _)| *n);
     assert_eq!(sheets, [(1, neutral("C-1")), (2, neutral("C-2"))]);
+    // The fields are the one place of their values: no copy of them stays beside them in `qet.properties`.
+    assert!(
+        !project.extra.contains_key("qet.properties"),
+        "{:?}",
+        project.extra
+    );
+    for r in &b.records {
+        if let Record::Page(p) = r {
+            assert!(!p.extra.contains_key("qet.properties"), "{:?}", p.extra);
+        }
+    }
 }
