@@ -271,7 +271,7 @@ mod tests {
                 "pin_map": [{"symbol_cp": 0, "function": B, "idx": 0}],
                 "source_ref": {"lineage": E, "key": "k"}}),
             json!({"$k": "connection", "id": A, "a": {"cp": [B, 0]}, "b": {"junction": C}, "page": C,
-                "kind": {"core": F}, "overrides": {"wire_part": {"copy": D}},
+                "kind": {"core": F}, "overrides": {"wire_part": {"copy": D}, "end_a": {"part": {"copy": D}}, "end_b": {"part": {"copy": D}}},
                 "source_ref": {"lineage": E, "key": "k"}}),
             json!({"$k": "connection", "id": A, "a": {"junction": B}, "b": {"cp": [C, 0]},
                 "kind": {"bus": {"cable": F, "plug_a": {"part": {"copy": D}}, "plug_b": {"part": {"copy": D}}}}}),
@@ -353,6 +353,8 @@ mod tests {
         ("connection.kind.core", Some(true)),
         ("connection.kind.bus.cable", Some(false)),
         ("connection.overrides.wire_part.copy", Some(false)),
+        ("connection.overrides.end_a.part.copy", Some(false)),
+        ("connection.overrides.end_b.part.copy", Some(false)),
         ("connection.source_ref.lineage", None),
         ("junction.page", Some(true)),
         ("junction.sequence[]", Some(false)),
@@ -436,7 +438,11 @@ mod tests {
         let v = &samples()[3];
         let (path, _) = occurrences(v, "overrides.wire_part.copy").remove(0);
         let out = cleared(v, &path).unwrap();
-        assert_eq!(out["overrides"], json!({}));
+        // The wire part goes; the ends beside it stay.
+        let mut kept = v["overrides"].clone();
+        kept.as_object_mut().unwrap().remove("wire_part");
+        assert_eq!(out["overrides"], kept);
+        assert!(kept.get("end_a").is_some());
         let (path, _) = occurrences(v, "source_ref.lineage").remove(0);
         assert!(cleared(v, &path).is_none());
     }

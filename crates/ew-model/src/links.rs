@@ -664,6 +664,17 @@ pub static LINKS: &[LinkDecl] = &[
     })),
     link!(Connection."overrides.wire_part.copy" -> Part, Forbid, None,
         |v, out| opt(v.overrides.wire_part.as_ref().map(|p| p.copy), out)),
+    // The part of a wire's end set by hand (doc 13 §4.4); load-tolerant, as a fluid line's parts are.
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(Connection."overrides.end_a.part.copy" -> Part, Forbid, None,
+            |v, out| opt(v.overrides.end_a.as_ref().and_then(|e| e.part.as_ref()).map(|p| p.copy), out))
+    },
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(Connection."overrides.end_b.part.copy" -> Part, Forbid, None,
+            |v, out| opt(v.overrides.end_b.as_ref().and_then(|e| e.part.as_ref()).map(|p| p.copy), out))
+    },
     // A fluid line's tube and fitting parts, kept alive like part uses; load-tolerant, because an older 0.1
     // build kept the members in `extra` and did not enforce them (ADR-0011 amendment 6).
     LinkDecl {

@@ -766,6 +766,48 @@ fn held_copies_are_reused_and_cb4_the_paste_of_102f1_is_102f2() {
     );
 }
 
+/// The part an end set by hand names comes along: the wire from -X1011:L1 to -101Q1 pasted into another project names
+/// a part that project then holds.
+#[test]
+fn the_part_of_an_end_set_by_hand_is_pasted_with_its_wire() {
+    let mut g = common::sample();
+    let wire = wire_to_switch(&g, "tag:-X1011:L1");
+    let ferrule = {
+        let q = g.query();
+        q.parts()
+            .iter()
+            .find(|(_, c)| c.item.part_number.as_str() == "EW-GEN-FER-1.5")
+            .map(|(id, _)| id.to_string())
+            .expect("the stock's ferrule")
+    };
+    run(
+        &mut g,
+        "fields.set",
+        json!({"kind": "connection", "targets": [wire.to_string()], "path": "overrides.end_a",
+               "value": {"treatment": "ferrule", "part": {"copy": ferrule}}}),
+    );
+    let mut ids = reps_of(&g, "101", &["-X1011:L1", "-101Q1"]);
+    ids.push(wire.as_uuid());
+    let frag = fragment(&g, &ids);
+    let carried = frag["copies"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .any(|c| c["id"] == json!(ferrule));
+    assert!(carried, "the ferrule travels with the fragment");
+    let mut w = wizard(13);
+    let receipt = paste(&mut w, "1", at_steps(&frag, (0, 0)), &frag).unwrap();
+    let q = w.query();
+    let ends: Vec<_> = created(&receipt, Kind::Connection)
+        .into_iter()
+        .filter_map(|c| q.connections().get(Id::from_uuid(c)))
+        .filter_map(|c| c.overrides.end_a.as_ref()?.part.clone())
+        .collect();
+    assert_eq!(ends.len(), 1, "{ends:?}");
+    let part = q.parts().get(ends[0].copy).expect("a part the project holds");
+    assert_eq!(part.item.part_number.as_str(), "EW-GEN-FER-1.5");
+}
+
 /// CB3: in another project the copies are embedded in the paste's transaction, once, and one undo removes them with
 /// the records; a copy the target holds in another version is refused.
 #[test]

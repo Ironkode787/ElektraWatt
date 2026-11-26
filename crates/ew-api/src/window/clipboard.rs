@@ -529,7 +529,9 @@ fn named_copies(record: &Record, out: &mut BTreeSet<(Kind, Uuid)>) {
             }
         }
         Record::Connection(c) => {
-            if let Some(p) = &c.overrides.wire_part {
+            let ends = [&c.overrides.end_a, &c.overrides.end_b];
+            let end_parts = ends.into_iter().flatten().filter_map(|e| e.part.as_ref());
+            for p in c.overrides.wire_part.iter().chain(end_parts) {
                 out.insert((Kind::Part, p.copy.as_uuid()));
             }
         }

@@ -227,3 +227,6 @@ change here.
 - behaviour-change: The SQL view's `wire.wire_part` names the part a wire is cut from, as the wire list's Wire part
   column does: the part set on the wire or its potential, else the workshop stock's first wire part of the wire's size
   and colour; it was NULL for a wire without a part set on it.
+- behaviour-change: The part of a wire's end set by hand is kept as a link: Delete part… refuses a part of the
+  project's own that such an end names, naming the wire ("part EW-GEN-FER-2.5 cannot be removed: wire 101.4 still names
+  it"), a fork of the part takes the end with it, and a copied wire carries its ends' parts into another project.

@@ -11,6 +11,7 @@ use crate::common;
 use ew_api::checks::{CheckMode, PRE_DELIVERY};
 use ew_api::output::NavKind;
 use ew_api::{AnyCommand, Session};
+use ew_ids::Id;
 use serde_json::{Value, json};
 
 fn run(s: &mut Session, name: &str, params: Value) -> Result<ew_api::Receipt, ew_api::CmdError> {
@@ -348,5 +349,87 @@ fn an_unset_workshop_setting_shows_its_default() {
                 via: "project default".into()
             }
         )
+    );
+}
+
+/// The part of an end set by hand is a link: a fork of the part takes the end with it, and a part of the project's own
+/// that an end names is not deleted: the delete policy refuses it, naming the wire.
+#[test]
+fn the_part_of_an_end_set_by_hand_is_a_link() {
+    let mut s = common::sample();
+    let copy = stock(&s, "EW-GEN-FER-2.5");
+    let (holder, member) = end_of(&s, "101.4", 0);
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "connection", "targets": [holder], "path": member, "value": {"treatment": "ferrule", "part": {"copy": copy}}}),
+    )
+    .expect("an end set by hand");
+    let stored = |s: &Session| {
+        let q = s.query();
+        let c = q
+            .connections()
+            .get(Id::from_uuid(holder.parse().expect("an ID")))
+            .expect("the end's connection")
+            .clone();
+        let end = if member.ends_with("end_a") {
+            c.overrides.end_a.clone()
+        } else {
+            c.overrides.end_b.clone()
+        };
+        end.and_then(|e| e.part).map(|p| p.copy.to_string())
+    };
+    assert_eq!(stored(&s), Some(copy.clone()));
+    let mut item = {
+        let q = s.query();
+        serde_json::to_value(
+            &q.parts()
+                .get(Id::from_uuid(copy.parse().expect("an ID")))
+                .expect("held")
+                .item,
+        )
+        .expect("JSON")
+    };
+    item["order_number"] = json!("SHOP-2.5");
+    let fork_item = ew_ids::Uuid::from_u128(0x5e47_0000_0000_4000_8000_0000_0000_0f0e).to_string();
+    run(
+        &mut s,
+        "part.edit_copy",
+        json!({"copy": copy, "part": item, "fork": fork_item}),
+    )
+    .expect("the fork");
+    let fork = {
+        let q = s.query();
+        let project = q.project().id.as_uuid();
+        q.parts()
+            .iter()
+            .find(|(_, c)| {
+                c.library_id.as_uuid() == project && c.item.part_number.as_str() == "EW-GEN-FER-2.5"
+            })
+            .map(|(id, _)| id.to_string())
+            .expect("the project's own copy")
+    };
+    assert_eq!(stored(&s), Some(fork.clone()), "the end follows the fork");
+    // The stock follows the fork too: given its library copy back, only the end names the fork.
+    let stock_now: Vec<Value> = s
+        .query()
+        .project()
+        .settings
+        .workshop
+        .stock
+        .iter()
+        .map(|r| {
+            let id = r.copy.to_string();
+            json!({ "copy": if id == fork { copy.clone() } else { id } })
+        })
+        .collect();
+    run(&mut s, "workshop.stock", json!({ "stock": stock_now })).expect("the stock as it was");
+    let refused = match run(&mut s, "part.delete", json!({ "copy": fork })).expect_err("named by an end") {
+        ew_api::CmdError::Model(_, Some(words)) => words.to_string(),
+        other => panic!("refused in words: {other}"),
+    };
+    assert_eq!(
+        refused,
+        "part EW-GEN-FER-2.5 cannot be removed: wire 101.4 still names it"
     );
 }
