@@ -13,7 +13,7 @@ A chapter of [Panel layout: 2D, 3D, routing, wire lengths and thermal](12-panel-
 | Layout records: spaces, enclosures, the surfaces of a cabinet, carriers, placements, holes added by hand | §2, §3 | Entity list: [03](03-domain-model.md) §16; file ownership: [05](05-project-format-and-persistence.md) §2 |
 | Part data the layout reads (size, depth, mount kind, clearance, front view, holes) | which members and what they mean (§2.5) | The part record: [07](07-symbols-parts-macros.md) §2.5 |
 | Panel layout pages | projection, labels, legend (§5) | Page model: [06](06-schematic-editor.md); list pages: [09](09-reports-forms-output.md) |
-| The holes and cut-outs of a surface | what is placed gives them ([12-3d](12-3d-routing-thermal.md) §10) | The hole table and the drawings for drilling: [13](13-manufacturing-outputs.md) §9 |
+| The holes and cut-outs of a surface | what is placed gives them ([12-3d](12-3d-routing-thermal.md) §10) | The hole table and the drawings for drilling: [13](13-drilling.md) §9 |
 | Wire ways, lengths, duct fill, clearance and depth | the surfaces and depths they read (§2.8) | [12-3d](12-3d-routing-thermal.md) §7 to §9 |
 | Rules of the pack EW-LAYOUT | rule content (§4) | Rule engine: [15](15-checks-revisions-collaboration.md) |
 
@@ -719,4 +719,4 @@ deletes its legend list.
 
 Neither is built. Dimensions on a panel page and views of the cabinet from another side than a surface's come with the
 3D view: a surface's page states its scale and its datum, and the hole table states every hole's place from that
-datum ([13](13-manufacturing-outputs.md) §9.2), which is what the workshop measures from.
+datum ([13](13-drilling.md) §9.2), which is what the workshop measures from.

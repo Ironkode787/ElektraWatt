@@ -301,7 +301,7 @@ shows both (FR-CBL-020).
 **What the panel builder gets.** Every hole and cut-out he must make in each surface of his cabinet (the plate, a
 door, a wall, the top, the bottom), from what is placed on it and from what he added by hand, numbered in the order he
 makes them; and from that one list the hole table, a template to print at full size and a DXF for a machine
-([13](13-manufacturing-outputs.md) §9). Nothing of it is stored but the holes he added and the holes he moved or left
+([13](13-drilling.md) §9). Nothing of it is stored but the holes he added and the holes he moved or left
 out.
 
 ### 10.1 The journey
@@ -617,7 +617,7 @@ Budgets hold on the baseline machine BM (4-core 2018+ x64, 8 GB RAM, integrated 
 | BOM lines for enclosure, plate, rails, ducts, brackets | carriers, group accessories | MVP | `bom_rows` (FR-REP-007, D-04) |
 | Model views | `layout_scene`, cached part projections | 1.0 | pages |
 | Routes, lengths, bundles, route as duct names | committed routes, `wire_length` | 1.0 | WireRecord, machine profiles, `.ewpp` ([13](13-manufacturing-outputs.md)) |
-| Hole table, drilling template (PDF at full size), drilling DXF per surface | `surface_features` (§10.4) | 0.4.0 | [13](13-manufacturing-outputs.md) §9.1, §9.2; the cut list is [13](13-workshop-lists.md) §9.3 |
+| Hole table, drilling template (PDF at full size), drilling DXF per surface | `surface_features` (§10.4) | 0.4.0 | [13](13-drilling.md) §9.1, §9.2; the cut list is [13](13-workshop-lists.md) §9.3 |
 | glTF (`.glb`, node names = placement UUIDs, DT and part in extras) and STL per layout space | `layout_scene`, written by `ew-panel` | 1.0 | FR-EXP-007, `.ewpp` layout member, wiring viewer |
 | STEP AP242 assembly named by DTs | worker `ExportStep` | 1.0 (Could) | FR-EXP-008 |
 | Thermal report | `thermal(space)` | 1.0 | FR-THM-009, design verification record |

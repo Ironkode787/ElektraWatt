@@ -593,17 +593,12 @@ has on its left and shows one at a time (`part.section`); a table's rows are add
 `part.table_row`, and a cell is a `part.field` named `<list>[<row>].<member>`. A library part's fork keeps its size
 and its own sections (wire, ferrule, marker): those rows stand read-only there.
 
-**Front view and holes** (a mounted part's section) says how the part looks from the side it is worked from and what
-is cut for it ([12](12-placement-pages.md) §2.5). Its row Shape is Rectangle or Round (Round only where Width equals
-Height, else refused under the row in words); a line says whether an outline is imported ("Outline: imported from a
-DXF drawing, 4 lines", with Import outline… and Remove), and an imported outline is drawn instead of the shape. Its
-table Holes has the columns X and Y (the centre, from the front's bottom-left corner), Kind (Hole, Fixing, Cut-out,
-Gland, Rectangle) and Size, which is a choice for a named kind (M3 … M8; 16, 22, 30 mm; M12 … M63) and a typed
-length, or width × height and a corner radius, for the others; one `Hole` member behind the two cells, parsed by its
-own parser. Beside the rows the preview draws the front at a fitting scale with its holes, their centre marks and the
-part origin, by the same drawing the panel page uses. Import outline… reads a DXF as `ew import dxf` does and writes
-`mech.front_2d` into the draft; a drawn outline of one's own is not edited here. A hole off the front is refused in
-words ("The hole at 40, 15 lies outside the 30 × 30 mm front").
+**Front view and holes** (a mounted part's section, [12](12-placement-pages.md) §2.5): the row Shape, Rectangle or
+Round (Round only where Width equals Height); the outline line ("imported from a DXF drawing, 4 lines", Import
+outline… and Remove), an imported outline drawn instead of the shape; the table Holes with X and Y (the centre, from
+the front's bottom-left corner), Kind (Hole, Fixing, Cut-out, Gland, Rectangle) and Size (a choice for a named kind, a
+length or width × height and radius for the others), two cells over one `Hole`. The preview draws the front and its
+holes as the panel page does. A hole off the front is refused in words.
 
 **A part of one's own, once it is used.** Save of a part whose devices are drawn as boxes previews, and the card
 names each box it draws anew and why ("-104A1-A1 on 104: a pin added"); a box drawn anew keeps its top-left corner
