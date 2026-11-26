@@ -92,32 +92,33 @@ fn new_page_on_a_front_matter_page_proposes_the_section_for_its_kind() {
 fn a_page_of_a_kind_no_section_is_for_makes_its_section_and_says_so() {
     let tmp = Tmp::new("made-page-section");
     let mut s = job(&tmp);
+    // The section New section proposes: its number, and the first and last folio of its hundred.
+    let (n, first, last) = s.new_section_proposal();
     done(&mut s, "page.new", json!({"type": "graphic"}));
     assert_eq!(
         (field(&s, "folio"), field(&s, "section")),
-        ("1000".into(), "10".into())
+        (first.to_string(), n.to_string())
     );
     assert_eq!(s.submit_form(), Outcome::Done);
-    assert_eq!(shown(&s), ("1000".into(), Some(10)));
+    assert_eq!(shown(&s), (first.to_string(), Some(n)));
     assert!(
         s.project_sections()
             .iter()
-            .any(|(n, t)| *n == 10 && t == "Graphic"),
+            .any(|(m, t)| u32::from(*m) == n && t == "Graphic"),
         "{:?}",
         s.project_sections()
     );
+    let said = format!("Page {first} is made: section {n} Graphic (folios {first} to {last})");
     assert!(
-        s.notifications().entries().any(|n| n
-            .text
-            .starts_with("Page 1000 is made: section 10 Graphic (folios 1000 to 1099)")),
-        "the toast says so"
+        s.notifications().entries().any(|e| e.text.starts_with(&said)),
+        "the toast says so: {said}"
     );
     done(&mut s, "edit.undo", json!({}));
     assert!(
-        !s.project_sections().iter().any(|(n, _)| *n == 10),
+        !s.project_sections().iter().any(|(m, _)| u32::from(*m) == n),
         "one undo step"
     );
-    assert!(!s.page_rows().iter().any(|r| r.folio == "1000"));
+    assert!(!s.page_rows().iter().any(|r| r.folio == first.to_string()));
     s.shutdown();
 }
 
@@ -169,12 +170,12 @@ fn copy_pages_at_an_offset_makes_the_section_it_needs_and_its_card_says_so() {
     let mut s = job(&tmp);
     let page = json!({"folio": "101", "type": "multi_line", "title": "Supply", "section": "1"});
     done(&mut s, "page.new", page);
+    // The copy's section takes the number New section proposes; its folios are the hundred of folio 301.
+    let (n, _, _) = s.new_section_proposal();
     done(&mut s, "pages.copy", json!({"pages": ["101"], "offset": 200}));
     let notices = s.preview_pane().notice_words().join("\n");
-    assert!(
-        notices.contains("section 10 Wiring Definition (folios 300 to 399) is made for it"),
-        "{notices}"
-    );
+    let said = format!("section {n} Wiring Definition (folios 300 to 399) is made for it");
+    assert!(notices.contains(&said), "{said}: {notices}");
     done(&mut s, "preview.apply", json!({}));
     let copy = s
         .page_rows()
@@ -182,7 +183,7 @@ fn copy_pages_at_an_offset_makes_the_section_it_needs_and_its_card_says_so() {
         .find(|r| r.folio == "301")
         .cloned()
         .expect("the copy");
-    assert_eq!(copy.section.map(|(n, _)| n), Some(10));
+    assert_eq!(copy.section.map(|(m, _)| m), Some(n));
     s.shutdown();
 }
 

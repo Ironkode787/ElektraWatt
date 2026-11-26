@@ -170,7 +170,7 @@ impl ShellModel {
 
     /// What New section proposes: the number after the highest section's, and the hundred of folios after the last
     /// folio any section holds (the sections of a drawing set are hundreds by convention: 100 to 199, 200 to 299).
-    pub(crate) fn new_section_proposal(&self) -> (u32, u32, u32) {
+    pub fn new_section_proposal(&self) -> (u32, u32, u32) {
         let (mut number, mut end) = (0u32, 0u32);
         if let Some(project) = &self.project {
             for (_, s) in project.session.query().sections().iter() {
