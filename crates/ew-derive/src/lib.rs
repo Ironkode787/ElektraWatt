@@ -227,7 +227,7 @@ pub use text::{
 pub use text_frame::{TextFrame, slot_shown, tag_slot_shown, terminal_symbol, text_frame};
 pub use title_block::{
     TbValue, TitleBlock, TitleBlockValues, current_revision, last_changed_in, last_released_revision,
-    open_revision, recorded_changed_pages, revision_label_key,
+    open_revision, placeholder_paths, recorded_changed_pages, revision_label_key,
 };
 pub use toc::{TocRow, TocRows};
 pub use tracker::{DepKey, Recorded, RecordingTracker};

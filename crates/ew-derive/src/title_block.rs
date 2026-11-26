@@ -337,6 +337,31 @@ fn page_scope(out: &mut Out, q: &Q, project: &Project, page: PageRef) {
     );
 }
 
+/// The placeholder paths of a template, each once in the order they stand (`"Drawing: {project.drawing_id |
+/// default(-)}"` names `project.drawing_id`): each `{…}` but a doubled brace and a computed cell (`{= …}`), up to its
+/// first filter. The one reading of what a cell prints: Title block fields… and the refusal of a field's removal.
+pub fn placeholder_paths(template: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    let mut rest = template;
+    while let Some(at) = rest.find('{') {
+        let after = &rest[at + 1..];
+        if let Some(skip) = after.strip_prefix('{') {
+            rest = skip;
+            continue;
+        }
+        let Some(end) = after.find('}') else {
+            break;
+        };
+        let inner = after[..end].trim();
+        let path = inner.split('|').next().unwrap_or("").trim();
+        if !inner.starts_with('=') && !path.is_empty() && !out.iter().any(|p| p == path) {
+            out.push(path.to_owned());
+        }
+        rest = &after[end + 1..];
+    }
+    out
+}
+
 /// The order of revision labels everywhere they are ranked (the title block's current revision, `r_last`, the
 /// revision overview's rows; doc 15 §5.2, FR-REV-002): a label in the project's label `format` by
 /// [`LabelFormat::order_key`] (`Y < Z < AA` in the `letter` format), after every label outside the format, which
@@ -528,6 +553,20 @@ pub fn last_changed_in(q: &Q, page: Id<Page>, changed_now: Option<bool>) -> Opti
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_template_names_its_paths_once_without_filters_doubled_braces_or_computed_cells() {
+        assert_eq!(
+            placeholder_paths("Drawing: {project.drawing_id | default(-)} {{literal}}"),
+            ["project.drawing_id"]
+        );
+        assert_eq!(
+            placeholder_paths("{= sum(x)} {page.title}{project.drawing_id}{page.title}"),
+            ["page.title", "project.drawing_id"]
+        );
+        assert!(placeholder_paths("{unclosed").is_empty());
+    }
+
     use ew_mltext::LangTag;
 
     // The title-block value of a page drawn to scale 1:n.

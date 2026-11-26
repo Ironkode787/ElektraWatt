@@ -45,28 +45,6 @@ pub struct TitleBlockFacts {
     pub revision_next: Option<String>,
 }
 
-/// The placeholder paths of a template (`"Drawing: {project.drawing_id | default(-)}"` names `project.drawing_id`):
-/// each `{…}` but a doubled brace and a computed cell (`{= …}`), up to its first filter.
-fn placeholder_paths(template: &str, out: &mut Vec<String>) {
-    let mut rest = template;
-    while let Some(at) = rest.find('{') {
-        let after = &rest[at + 1..];
-        if let Some(skip) = after.strip_prefix('{') {
-            rest = skip;
-            continue;
-        }
-        let Some(end) = after.find('}') else {
-            return;
-        };
-        let inner = after[..end].trim();
-        let path = inner.split('|').next().unwrap_or("").trim();
-        if !inner.starts_with('=') && !path.is_empty() && !out.iter().any(|p| p == path) {
-            out.push(path.to_owned());
-        }
-        rest = &after[end + 1..];
-    }
-}
-
 impl Session {
     /// The frame form the drawn page `page` draws with while it names none of its own (FR-PAG-018: its page type's
     /// default, else the project's); `None` for a page that is not in the project or a project without a default
@@ -91,8 +69,7 @@ impl Session {
             let forms = std::iter::once(&frame.form).chain(frame.title_block.as_ref());
             for cell in forms.flat_map(|f| f.cells.iter()) {
                 if let Some(template) = &cell.value {
-                    let mut own = Vec::new();
-                    placeholder_paths(template, &mut own);
+                    let own = ew_derive::placeholder_paths(template);
                     let label = cell.label.as_ref().map(neutral).unwrap_or_default();
                     let label = label.trim().trim_end_matches(':').trim();
                     for path in own {
@@ -154,19 +131,5 @@ impl Session {
                 )
                 .map(|l| l.to_string()),
         })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::placeholder_paths;
-
-    #[test]
-    fn a_template_names_its_paths_once_without_filters_doubled_braces_or_computed_cells() {
-        let mut out = Vec::new();
-        placeholder_paths("Drawing: {project.drawing_id | default(-)} {{literal}}", &mut out);
-        placeholder_paths("{= sum(x)} {page.title}{project.drawing_id}", &mut out);
-        placeholder_paths("{unclosed", &mut out);
-        assert_eq!(out, ["project.drawing_id", "page.title"]);
     }
 }
