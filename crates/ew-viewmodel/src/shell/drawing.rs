@@ -48,12 +48,15 @@ impl ShellModel {
         }
     }
 
-    /// The text popup, while the Text tool types or Text edit is open: its title and its field's initial text.
+    /// The text popup, while the Text tool types, Text edit is open or Edit frame types a cell's text: its title and
+    /// its field's initial text.
     pub fn text_popup(&self) -> Option<TextPopup> {
         let title_key = match (self.tools.tool.name(), self.tools.tool.state()) {
             ("text", "typing") => key!("tool-text"),
             ("text_edit", _) => key!("tool-text_edit"),
             ("box_pin", "typing") => key!("tool-box_pin"),
+            // A title block cell's text, in the same field (doc 09 §3.9).
+            ("frame", "typing") => key!("tool-frame"),
             _ => return None,
         };
         let text = match self.tools.tool.ghost() {

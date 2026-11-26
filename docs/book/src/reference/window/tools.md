@@ -437,7 +437,8 @@ the title block or on the column numbers or row letters, or Edit frame in the ti
 it. The page's drawing fades, and the HUD says on which frame and title block the page prints: every change shows on
 each page that prints them. A click chooses a cell (Shift adds one); Properties then shows its Text, what it Shows
 (a value of the project, the page, the revision or a person, a field of your own, New field of your own…, Company
-logo, A picture… or Text only), its Text size and its Alignment. The HUD splits the chosen cell side by side or one
+logo, A picture… or Text only), its Text size and its Alignment; a double click on the cell opens its text in the
+field Edit text has, Enter takes it and Esc keeps the cell as it was. The HUD splits the chosen cell side by side or one
 above the other, joins the chosen cells when together they make a rectangle, and puts a picture into the cell. A line
 between two cells is dragged: every cell on either side of it grows or shrinks with it, snapped to 0.5 mm (Alt: free),
 none narrower or lower than 2 mm. Each change is one undo step. The first change of the program's frame and title

@@ -492,8 +492,13 @@ pub enum HostStep {
         /// Its new place on the sheet.
         to: i64,
     },
-    /// The Edit frame tool's double click on a chosen cell: its text is typed (the Text row of Properties).
+    /// The Edit frame tool's double click on a chosen cell: its text is typed in the free-text editor.
     FrameType,
+    /// The Edit frame tool's Enter after typing: the chosen cell's text becomes `text`.
+    FrameText {
+        /// The text typed.
+        text: String,
+    },
 }
 
 /// What follows the commit of a tool's command ([`Tool::follows`]): what the toast says, what is selected after it

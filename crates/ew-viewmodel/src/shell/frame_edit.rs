@@ -21,25 +21,35 @@ use crate::properties::{
 use crate::strings;
 use crate::tools::frame::{FrameChoice, FrameTool};
 
-/// The kind of the Properties section of the frame (its row keys are `frame/<row>`).
+/// The kind of the Properties section of the frame (its row keys are `frame/<section>.<row>`).
 pub const FRAME_KIND: &str = "frame";
 
+/// The groups of the frame's Properties in display order, by the first word of a row's path (doc 09 §3.9): a chosen
+/// cell's rows, the columns', the rows', what both have (Drawn, the title block's height) and the frame's own.
+pub const FRAME_SECTIONS: &[(&str, crate::strings::Key<'static>)] = &[
+    ("cell", key!("frame-section-cell")),
+    ("columns", key!("frame-section-columns")),
+    ("rows", key!("frame-section-rows")),
+    ("both", key!("frame-section-both")),
+    ("frame", key!("frame-section-frame")),
+];
+
 /// A chosen cell's Text row: its label.
-pub const TEXT_ROW: &str = "frame/text";
+pub const TEXT_ROW: &str = "frame/cell.text";
 /// A chosen cell's Shows row: the value it prints.
-pub const SHOWS_ROW: &str = "frame/shows";
+pub const SHOWS_ROW: &str = "frame/cell.shows";
 /// A chosen cell's Text size row.
-pub const SIZE_ROW: &str = "frame/size";
+pub const SIZE_ROW: &str = "frame/cell.size";
 /// A chosen cell's Alignment row.
-pub const ALIGN_ROW: &str = "frame/align";
+pub const ALIGN_ROW: &str = "frame/cell.align";
 /// The frame's Columns and rows row: a click chooses the rulers.
-pub const RULERS_ROW: &str = "frame/rulers";
+pub const RULERS_ROW: &str = "frame/frame.rulers";
 /// The frame's Title block row: Shared with the other frames, or Its own.
-pub const TITLE_BLOCK_ROW: &str = "frame/title_block";
+pub const TITLE_BLOCK_ROW: &str = "frame/frame.title_block";
 /// The frame's Give this page its own frame row.
-pub const OWN_FRAME_ROW: &str = "frame/own_frame";
+pub const OWN_FRAME_ROW: &str = "frame/frame.own_frame";
 /// The frame's Use the frames of a template… row.
-pub const ADOPT_ROW: &str = "frame/adopt";
+pub const ADOPT_ROW: &str = "frame/frame.adopt";
 
 /// The alignments a cell takes, by the stored word.
 const ALIGNS: &[(&str, crate::strings::Key<'static>)] = &[
@@ -596,7 +606,7 @@ impl ShellModel {
                 let mm = |nm: i64| crate::canvas::mm1(nm);
                 vec![
                     row(
-                        "text",
+                        "cell.text",
                         text(key!("frame-row-text")),
                         FieldType::Text,
                         label.clone(),
@@ -604,7 +614,7 @@ impl ShellModel {
                         true,
                     ),
                     row(
-                        "shows",
+                        "cell.shows",
                         text(key!("frame-row-shows")),
                         FieldType::Enum { options: Vec::new() },
                         shows.clone(),
@@ -612,7 +622,7 @@ impl ShellModel {
                         true,
                     ),
                     row(
-                        "size",
+                        "cell.size",
                         text(key!("frame-row-size")),
                         FieldType::Enum { options: Vec::new() },
                         style_name,
@@ -620,7 +630,7 @@ impl ShellModel {
                         true,
                     ),
                     row(
-                        "align",
+                        "cell.align",
                         text(key!("frame-row-align")),
                         FieldType::Enum {
                             options: ALIGNS.iter().map(|(a, _)| (*a).to_owned()).collect(),
@@ -630,7 +640,7 @@ impl ShellModel {
                         true,
                     ),
                     row(
-                        "typed_in",
+                        "cell.typed_in",
                         text(key!("frame-row-typed-in")),
                         FieldType::Text,
                         text(key!("frame-typed-in")),
@@ -638,7 +648,7 @@ impl ShellModel {
                         false,
                     ),
                     row(
-                        "size_mm",
+                        "cell.size_mm",
                         text(key!("frame-row-size-mm")),
                         FieldType::Text,
                         strings::format(key!("frame-size-mm"), &[&mm(cell.size.0), &mm(cell.size.1)]),
@@ -674,7 +684,7 @@ impl ShellModel {
                 };
                 let mut rows = vec![
                     row(
-                        "paper",
+                        "frame.paper",
                         text(key!("frame-row-paper")),
                         FieldType::Text,
                         strings::format(
@@ -685,7 +695,7 @@ impl ShellModel {
                         false,
                     ),
                     row(
-                        "title_block",
+                        "frame.title_block",
                         text(key!("frame-row-title-block")),
                         FieldType::Enum { options: Vec::new() },
                         block,
@@ -693,7 +703,7 @@ impl ShellModel {
                         facts.block.is_some(),
                     ),
                     row(
-                        "own_frame",
+                        "frame.own_frame",
                         text(key!("frame-row-own-frame")),
                         FieldType::Text,
                         text(if facts.page_own {
@@ -714,7 +724,7 @@ impl ShellModel {
                             )
                         };
                     rows.push(row(
-                        "rulers",
+                        "frame.rulers",
                         text(key!("frame-row-rulers")),
                         FieldType::Text,
                         format!(
@@ -727,7 +737,7 @@ impl ShellModel {
                     ));
                 }
                 rows.push(row(
-                    "adopt",
+                    "frame.adopt",
                     text(key!("frame-row-adopt")),
                     FieldType::Text,
                     text(key!("action-frame-adopt")),
@@ -831,7 +841,7 @@ impl ShellModel {
                 ),
                 (strings::text(key!("frame-block-own")).to_owned(), json!("own")),
             ],
-            "frame/rows.skip_io" | "frame/drawn" => vec![
+            "frame/rows.skip_io" | "frame/both.drawn" => vec![
                 (strings::text(key!("frame-yes")).to_owned(), json!(true)),
                 (strings::text(key!("frame-no")).to_owned(), json!(false)),
             ],
@@ -854,7 +864,7 @@ impl ShellModel {
             "frame/columns.first",
             "frame/rows.count",
             "frame/rows.first",
-            "frame/block_height",
+            "frame/both.block_height",
         ];
         if typed_rows.contains(&row) {
             return Some(Value::String(text.to_owned()));
@@ -949,12 +959,33 @@ impl ShellModel {
         Some(self.edit_block(|_| Ok(()), extra))
     }
 
-    /// The double click on a chosen cell: its Text row of Properties opens for typing.
+    /// The double click on a chosen cell: the free-text editor opens on its text (the window's text popup; in a
+    /// script `text.input` and `tool.finish`).
     pub(super) fn frame_type(&mut self) -> Outcome {
-        if self.mode == Mode::Headless {
-            return Outcome::Done;
+        // The text the Text row shows: the cell's label in the language the project prints in.
+        let text = self
+            .frame_facts()
+            .and_then(|f| {
+                let i = *self.chosen_cells()?.first()?;
+                let label = f.block_item.as_ref()?["cells"].get(i)?.get("label")?.clone();
+                Some(label_text(&label, f.language.as_deref()))
+            })
+            .unwrap_or_default();
+        if let Some(tool) = self
+            .tools
+            .tool
+            .as_any_mut()
+            .and_then(|t| t.downcast_mut::<FrameTool>())
+        {
+            tool.type_text(text);
         }
-        self.begin_edit(TEXT_ROW, RowAction::Edit, None)
+        Outcome::Done
+    }
+
+    /// Enter in the free-text editor of a cell: the cell's text written as its Text row writes it.
+    pub(super) fn frame_text(&mut self, text: &str) -> Outcome {
+        self.commit_frame_row(TEXT_ROW, &json!(text))
+            .unwrap_or_else(|| Outcome::refused(key!("reason-frame-none")))
     }
 }
 
@@ -967,8 +998,8 @@ const RULER_ROWS: &[&str] = &[
     "rows.counting",
     "rows.first",
     "rows.skip_io",
-    "drawn",
-    "block_height",
+    "both.drawn",
+    "both.block_height",
 ];
 
 /// The letters of an axis counted with letters: `A … Z`, without I and O when `skip_io`.
@@ -1010,10 +1041,7 @@ impl ShellModel {
         let pending = self.grid_pending().unwrap_or(Value::Null);
         let text = |k: crate::strings::Key<'static>| strings::text(k).to_owned();
         let mut rows = Vec::new();
-        for (axis, facts_axis, heading) in [
-            ("columns", &facts.columns, key!("frame-columns")),
-            ("rows", &facts.rows, key!("frame-rows")),
-        ] {
+        for (axis, facts_axis) in [("columns", &facts.columns), ("rows", &facts.rows)] {
             let Some(a) = facts_axis else { continue };
             let p = &pending[axis];
             let count = p["count"].as_u64().map_or(a.count.to_string(), |c| c.to_string());
@@ -1036,7 +1064,6 @@ impl ShellModel {
                 Some(i) => i.to_string(),
                 None => a.first.clone(),
             };
-            let name = |k: crate::strings::Key<'static>| format!("{} \u{b7} {}", text(heading), text(k));
             let counting = if letters {
                 key!("frame-letters")
             } else {
@@ -1044,21 +1071,21 @@ impl ShellModel {
             };
             rows.push(row(
                 &format!("{axis}.count"),
-                name(key!("frame-how-many")),
+                text(key!("frame-how-many")),
                 FieldType::Text,
                 count.clone(),
                 json!(count),
             ));
             rows.push(row(
                 &format!("{axis}.counting"),
-                name(key!("frame-counted-with")),
+                text(key!("frame-counted-with")),
                 FieldType::Enum { options: Vec::new() },
                 text(counting),
                 json!(if letters { "letters" } else { "numbers" }),
             ));
             rows.push(row(
                 &format!("{axis}.first"),
-                name(key!("frame-first")),
+                text(key!("frame-first")),
                 FieldType::Text,
                 first.clone(),
                 json!(first),
@@ -1067,7 +1094,7 @@ impl ShellModel {
                 let yes = if skip { key!("frame-yes") } else { key!("frame-no") };
                 rows.push(row(
                     "rows.skip_io",
-                    name(key!("frame-skip-io")),
+                    text(key!("frame-skip-io")),
                     FieldType::Enum { options: Vec::new() },
                     text(yes),
                     json!(skip),
@@ -1076,7 +1103,7 @@ impl ShellModel {
         }
         let drawn = pending["drawn"].as_bool().unwrap_or(facts.drawn);
         rows.push(row(
-            "drawn",
+            "both.drawn",
             text(key!("frame-drawn")),
             FieldType::Enum { options: Vec::new() },
             text(if drawn {
@@ -1092,7 +1119,7 @@ impl ShellModel {
                 .unwrap_or_else(|| block["sheet"]["height"].as_i64().unwrap_or(0));
             let mm = crate::canvas::mm1(h);
             rows.push(row(
-                "block_height",
+                "both.block_height",
                 text(key!("frame-block-height")),
                 FieldType::Text,
                 mm.clone(),
@@ -1156,8 +1183,8 @@ impl ShellModel {
             ("rows", "skip_io") => {
                 params["rows"]["skip_io"] = json!(value.as_bool().unwrap_or(text == "true"))
             }
-            ("drawn", _) => params["drawn"] = json!(value.as_bool().unwrap_or(text == "true")),
-            ("block_height", _) => match ew_api::output::parse_mm(&text) {
+            ("both", "drawn") => params["drawn"] = json!(value.as_bool().unwrap_or(text == "true")),
+            ("both", "block_height") => match ew_api::output::parse_mm(&text) {
                 Some(nm) if nm >= i128::from(ew_api::MIN_CELL.0) => {
                     params["title_block_height"] = json!(nm);
                 }

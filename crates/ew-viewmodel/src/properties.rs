@@ -18,6 +18,7 @@ use ew_api::Cost;
 use ew_dl::EntityRef;
 
 use crate::canvas::PageId;
+use crate::shell::frame_edit::{FRAME_KIND, FRAME_SECTIONS};
 use crate::strings::Key;
 use crate::{count_key, key};
 pub use ew_api::output::{
@@ -866,6 +867,8 @@ pub enum RowGroup {
     OwnFields,
     /// The rows only a rare case needs ([`is_more`]).
     More,
+    /// A group of the frame's rows ([`FRAME_SECTIONS`], by its word), after Main.
+    Frame(&'static str),
 }
 
 impl RowGroup {
@@ -876,6 +879,7 @@ impl RowGroup {
             RowGroup::Category(c) => c.word(),
             RowGroup::OwnFields => "own_fields",
             RowGroup::More => "more",
+            RowGroup::Frame(word) => word,
         }
     }
 
@@ -890,6 +894,9 @@ impl RowGroup {
         if word == "own_fields" {
             return Some(RowGroup::OwnFields);
         }
+        if let Some((w, _)) = FRAME_SECTIONS.iter().find(|(w, _)| *w == word) {
+            return Some(RowGroup::Frame(w));
+        }
         Category::ALL
             .iter()
             .find(|c| c.word() == word)
@@ -903,6 +910,10 @@ impl RowGroup {
             RowGroup::Category(c) => strings::text(Key::run_time(&format!("category-{}", c.word()))),
             RowGroup::OwnFields => strings::text(key!("category-own-fields")),
             RowGroup::More => strings::text(key!("category-more")),
+            RowGroup::Frame(word) => FRAME_SECTIONS.iter().find(|(w, _)| *w == word).map_or_else(
+                || strings::text(key!("category-other")),
+                |(_, k)| strings::text(*k),
+            ),
         }
     }
 }
@@ -1098,6 +1109,16 @@ pub fn groups(section: &SheetSection, advanced: bool) -> Vec<(RowGroup, Vec<&Pro
     if !main.is_empty() {
         out.push((RowGroup::Main, main));
     }
+    for (word, _) in FRAME_SECTIONS {
+        let rows: Vec<&PropRow> = section
+            .rows
+            .iter()
+            .filter(|r| group_of(section, r) == RowGroup::Frame(word))
+            .collect();
+        if !rows.is_empty() {
+            out.push((RowGroup::Frame(word), rows));
+        }
+    }
     for (c, rows) in categories(section) {
         let rows: Vec<&PropRow> = rows
             .into_iter()
@@ -1141,7 +1162,12 @@ pub fn advanced_count(sheet: &PropertySheet, filter: &str) -> usize {
 
 /// The group `row` is shown in.
 pub fn group_of(section: &SheetSection, row: &PropRow) -> RowGroup {
-    if crate::shell::own_fields::is_own_row(row) {
+    let first = row.path.split('.').next().unwrap_or_default();
+    if section.kind == FRAME_KIND
+        && let Some((word, _)) = FRAME_SECTIONS.iter().find(|(w, _)| *w == first)
+    {
+        RowGroup::Frame(word)
+    } else if crate::shell::own_fields::is_own_row(row) {
         RowGroup::OwnFields
     } else if is_primary(&section.kind, row) {
         RowGroup::Main

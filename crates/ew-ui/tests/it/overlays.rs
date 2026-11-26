@@ -937,12 +937,12 @@ fn an_older_copy_takes_the_journeys_frames_and_prints_page_101_as_designed() {
     done(
         &mut a,
         "props.set",
-        json!({"row": "frame/text", "value": "Customer:"}),
+        json!({"row": "frame/cell.text", "value": "Customer:"}),
     );
     done(
         &mut a,
         "props.set",
-        json!({"row": "frame/shows", "value": "party.customer.name"}),
+        json!({"row": "frame/cell.shows", "value": "party.customer.name"}),
     );
     let notice = cell(&a, &|c| c.value.as_deref() == Some("{project.notice}"));
     done(&mut a, "frame.choose", json!({"cells": [notice]}));
@@ -951,12 +951,12 @@ fn an_older_copy_takes_the_journeys_frames_and_prints_page_101_as_designed() {
     done(
         &mut a,
         "props.set",
-        json!({"row": "frame/text", "value": "Order:"}),
+        json!({"row": "frame/cell.text", "value": "Order:"}),
     );
     done(
         &mut a,
         "props.set",
-        json!({"row": "frame/shows", "value": "new_field"}),
+        json!({"row": "frame/cell.shows", "value": "new_field"}),
     );
     done(
         &mut a,
@@ -967,7 +967,7 @@ fn an_older_copy_takes_the_journeys_frames_and_prints_page_101_as_designed() {
     done(
         &mut a,
         "props.set",
-        json!({"row": "frame/shows", "value": "new_field"}),
+        json!({"row": "frame/cell.shows", "value": "new_field"}),
     );
     done(
         &mut a,

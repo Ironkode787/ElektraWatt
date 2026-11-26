@@ -7,10 +7,12 @@
 //!
 //! States: `idle` (nothing chosen: Properties shows the frame), `cell` and `cells` (one or several cells chosen: Shift
 //! adds one), `rulers` (the column numbers or the row letters chosen), `line-drag` (a line between two cells dragged:
-//! every cell on either side grows or shrinks with it, snapped to 0.5 mm, Alt free, never narrower than 2 mm). A press
-//! hands the choice to the host ([`HostStep::FrameChoose`]), which shows it in Properties; a released drag hands the
-//! line's new place ([`HostStep::FrameLine`]), which the host writes with `form.edit`. The drawing fades while the tool
-//! is active: the overlay's first item asks the window for it.
+//! every cell on either side grows or shrinks with it, snapped to 0.5 mm, Alt free, never narrower than 2 mm),
+//! `typing` (a chosen cell's text typed in the free-text editor, the field Text edit opens). A press hands the choice
+//! to the host ([`HostStep::FrameChoose`]), which shows it in Properties; a released drag hands the line's new place
+//! ([`HostStep::FrameLine`]), which the host writes with `form.edit`; Enter while typing hands the text
+//! ([`HostStep::FrameText`]). The drawing fades while the tool is active: the overlay's first item asks the window
+//! for it.
 
 use ew_api::output::{FrameFacts, SheetRect};
 
@@ -91,6 +93,8 @@ pub struct FrameTool {
     hover: Option<FrameHit>,
     chosen: FrameChoice,
     drag: Option<LineDrag>,
+    /// The chosen cell's text as typed so far, while it is typed.
+    typing: Option<String>,
 }
 
 /// The rectangle of a sheet rectangle.
@@ -186,6 +190,9 @@ impl Tool for FrameTool {
     }
 
     fn state(&self) -> &'static str {
+        if self.typing.is_some() {
+            return "typing";
+        }
         if self.drag.is_some() {
             return "line-drag";
         }
@@ -202,13 +209,38 @@ impl Tool for FrameTool {
     }
 
     fn status_hint(&self) -> Hint {
+        if self.typing.is_some() {
+            return Hint::plain(key!("hint-frame-typing"));
+        }
         Hint::plain(key!("hint-frame"))
+    }
+
+    fn ghost(&self) -> Option<super::Ghost> {
+        self.typing.as_ref().map(|text| super::Ghost::Text {
+            at_nm: None,
+            text: text.clone(),
+            bind: None,
+        })
     }
 
     fn on_event(&mut self, ev: &CanvasEvent, cx: &ToolCx<'_>) -> ToolOutput {
         let Some(facts) = cx.page.frame.clone() else {
             return ToolOutput::Refused(key!("reason-frame-none"));
         };
+        // While a cell's text is typed, the field takes the keys: Enter hands the text over, Escape keeps the cell.
+        if let Some(text) = &mut self.typing {
+            match ev {
+                CanvasEvent::Text(t) => *text = t.clone(),
+                CanvasEvent::Key(super::ToolKey::Finish) => {
+                    let text = std::mem::take(text);
+                    self.typing = None;
+                    return ToolOutput::Host(HostStep::FrameText { text });
+                }
+                CanvasEvent::Escape => self.typing = None,
+                _ => return ToolOutput::None,
+            }
+            return ToolOutput::Transient(self.overlay(&facts));
+        }
         let reach = cx.reach_nm(LINE_REACH_PT);
         match ev {
             CanvasEvent::PointerMove { at, mods } => {
@@ -297,5 +329,10 @@ impl FrameTool {
     /// Chooses `choice` (from Properties or a script): the overlay follows at the next move.
     pub fn choose(&mut self, choice: FrameChoice) {
         self.chosen = choice;
+    }
+
+    /// Starts typing the chosen cell's text, the field holding `text` (its text now).
+    pub fn type_text(&mut self, text: String) {
+        self.typing = Some(text);
     }
 }

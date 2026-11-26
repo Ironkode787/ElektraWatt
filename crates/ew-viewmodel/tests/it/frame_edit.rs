@@ -53,12 +53,12 @@ fn the_journey_changes_the_title_block_on_the_page_and_its_fields_are_typed_in_t
     done(
         &mut s,
         "props.set",
-        json!({"row": "frame/text", "value": "Customer:"}),
+        json!({"row": "frame/cell.text", "value": "Customer:"}),
     );
     done(
         &mut s,
         "props.set",
-        json!({"row": "frame/shows", "value": "party.customer.name"}),
+        json!({"row": "frame/cell.shows", "value": "party.customer.name"}),
     );
     let facts = s.frame_facts().expect("the frame");
     assert!(
@@ -84,12 +84,12 @@ fn the_journey_changes_the_title_block_on_the_page_and_its_fields_are_typed_in_t
     done(
         &mut s,
         "props.set",
-        json!({"row": "frame/text", "value": "Order:"}),
+        json!({"row": "frame/cell.text", "value": "Order:"}),
     );
     done(
         &mut s,
         "props.set",
-        json!({"row": "frame/shows", "value": "new_field"}),
+        json!({"row": "frame/cell.shows", "value": "new_field"}),
     );
     done(
         &mut s,
@@ -103,7 +103,7 @@ fn the_journey_changes_the_title_block_on_the_page_and_its_fields_are_typed_in_t
     done(
         &mut s,
         "props.set",
-        json!({"row": "frame/shows", "value": "new_field"}),
+        json!({"row": "frame/cell.shows", "value": "new_field"}),
     );
     done(
         &mut s,
@@ -178,4 +178,69 @@ fn columns_and_rows_are_set_in_properties_and_applied_from_their_card() {
         ),
         (10, "1", 6, "A")
     );
+}
+
+/// The groups of the frame's Properties with the labels of their rows, in display order.
+fn frame_groups(s: &ShellModel) -> Vec<(String, Vec<String>)> {
+    let sheet = s.properties().sheet().expect("the frame's sheet");
+    ew_viewmodel::properties::groups(&sheet.sections[0], false)
+        .into_iter()
+        .map(|(g, rows)| {
+            let labels = rows.iter().map(|r| r.label.clone().unwrap_or_default()).collect();
+            (g.title().to_owned(), labels)
+        })
+        .collect()
+}
+
+/// The rulers' rows stand under Columns, along the top, Rows, along the left and Both, each labelled with its short
+/// word; a cell's rows under Cell, the frame's under Frame: no row of the frame waits under Other.
+#[test]
+fn the_frames_rows_stand_in_the_sections_the_design_draws() {
+    let tmp = Tmp::new("frame-edit-sections");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
+    done(&mut s, "props.show", json!({"on": true}));
+    done(&mut s, "frame.edit", json!({}));
+    let titles = |g: &[(String, Vec<String>)]| g.iter().map(|(t, _)| t.clone()).collect::<Vec<_>>();
+    assert_eq!(titles(&frame_groups(&s)), ["Frame"]);
+    done(&mut s, "frame.choose", json!({"rulers": true}));
+    let groups = frame_groups(&s);
+    assert_eq!(
+        titles(&groups),
+        ["Columns, along the top", "Rows, along the left", "Both"]
+    );
+    assert_eq!(groups[0].1, ["How many", "Counted with", "First"]);
+    assert_eq!(groups[1].1, ["How many", "Counted with", "First", "Skip I and O"]);
+    let end_user = cell(&s, "End user");
+    done(&mut s, "frame.choose", json!({"cells": [end_user]}));
+    assert_eq!(titles(&frame_groups(&s)), ["Cell"]);
+}
+
+/// A double click on a chosen cell opens its text in the free-text editor: Enter writes what was typed, in one step;
+/// Esc leaves the cell as it was.
+#[test]
+fn a_double_click_types_a_cells_text_in_the_free_text_editor() {
+    let tmp = Tmp::new("frame-edit-typing");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
+    done(&mut s, "frame.edit", json!({}));
+    let end_user = cell(&s, "End user");
+    done(&mut s, "frame.choose", json!({"cells": [end_user]}));
+    done(&mut s, "tool.finish", json!({}));
+    assert_eq!(s.tool().state(), "typing");
+    let popup = s.text_popup().expect("the free-text editor");
+    assert!(popup.text.starts_with("End user"), "{}", popup.text);
+    let _ = s.dispatch("ui.dismiss", &json!({}));
+    assert_eq!(s.tool().state(), "cell", "Esc keeps the cell and the tool");
+    assert!(printed(&s, end_user).starts_with("End user"));
+
+    done(&mut s, "tool.finish", json!({}));
+    done(&mut s, "text.input", json!({"text": "Client:"}));
+    let before = s.revision();
+    done(&mut s, "tool.finish", json!({}));
+    assert_eq!(s.revision(), before.map(|r| r + 1), "one step");
+    assert!(
+        printed(&s, end_user).starts_with("Client:"),
+        "{}",
+        printed(&s, end_user)
+    );
+    assert_eq!(s.tool().state(), "cell");
 }

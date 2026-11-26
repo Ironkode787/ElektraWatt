@@ -668,6 +668,7 @@ impl ShellModel {
                 self.frame_line_moved(line, to)
             }
             ToolOutput::Host(crate::tools::HostStep::FrameType) => self.frame_type(),
+            ToolOutput::Host(crate::tools::HostStep::FrameText { text }) => self.frame_text(&text),
             ToolOutput::Commit(cmd) => {
                 let cmd = self.with_terminal(self.without_held_copies(cmd));
                 let follows = self.tools.tool.follows(cmd.as_ref());

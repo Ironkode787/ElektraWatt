@@ -102,7 +102,7 @@ SAMPLE-E", "Title block cell · prints on every page"):
 - **Text size**, the project's text styles by their names (as Text styles… names them); a new cell takes the size of
   the cell it was split from.
 - **Alignment**: Left, Centre, Right; the text stands in the middle of the cell's height.
-- A line under the rows says where the value is typed: Title block fields…, Project properties or Page properties.
+- A line under the rows says where the value is typed: Title block fields…, Project or Page properties.
 
 A new cell shrinks its text to fit down to a printed capital of 1.2 mm, as the starter cells do (§2.5).
 
