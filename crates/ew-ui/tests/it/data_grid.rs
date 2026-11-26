@@ -53,7 +53,7 @@ fn strips_in(tmp: &Tmp, density: Option<&str>) -> Harness<'static, App> {
     done(
         shell,
         "navigator.filter",
-        json!({"kind": "strips", "text": "strip:-X1021"}),
+        json!({"kind": "strips", "text": "strip:-X1021 kind:terminal"}),
     );
     done(
         shell,
@@ -1003,7 +1003,7 @@ fn the_scroll_handle_is_a_quiet_boundary_not_the_text_colour() {
             ("navigator.table", json!({"kind": "strips"})),
             (
                 "navigator.filter",
-                json!({"kind": "strips", "text": "strip:-X1021"}),
+                json!({"kind": "strips", "text": "strip:-X1021 kind:terminal"}),
             ),
         ] {
             done(shell, action, params);

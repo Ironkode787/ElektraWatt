@@ -18,6 +18,7 @@ toast-wire-numbers-hidden = Zet Draadnummers op de pagina's tonen aan om ze te z
 toast-box-pin-part = De aansluitingen van de box van een artikel zijn die van het artikel: ze worden bewerkt in zijn apparaatkast, die nu opengaat.
 toast-box-pin-side-full = Deze zijde van de box heeft geen vrij punt voor nog een aansluiting; maak de box groter of zet de aansluiting op een andere zijde.
 toast-drawn-as-box = { $p0 } heeft geen eigen symbool en wordt als kader getekend, met het gereedschap Black box: klik op de eerste hoek en dan op de tegenoverliggende hoek.
+toast-accessory-left-off = { $p0 } weggelaten op { $p1 }. De artikelen van de klemmen noemen het nog voor de andere klemmenstroken.
 notice-ip-not-placed = Niet geplaatst: { $p0 }
 notice-ip-on-ip = Niet geplaatst: het onderbrekingspunt { $p0 } staat hier al; plaats het op een pin of een vrij rasterpunt
 notice-ip-too-close = Niet geplaatst: te dicht bij het onderbrekingspunt { $p0 }, hun namen en verwijzingen zouden over elkaar heen staan. De twee moeten { $p1 } rasterstappen ({ $p2 } mm) uit elkaar staan, de een boven de ander, of houd Alt ingedrukt om het toch te plaatsen

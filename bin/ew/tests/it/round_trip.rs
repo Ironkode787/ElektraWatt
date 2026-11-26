@@ -329,16 +329,17 @@ fn the_strip_workbook_names_its_table_and_holds_its_base() {
     );
     let main = sheet(&bytes, None);
     assert_eq!(main.headers, STRIP_HEADERS);
-    assert_eq!(main.rows.len(), 8);
-    let pos: Vec<String> = main.rows.iter().map(|r| r[2].clone()).collect();
+    // The terminals in the navigator's order; the end brackets and the end plate their part brings stand among them.
+    let terminals: Vec<&Vec<String>> = main.rows.iter().filter(|r| r[0].contains("/terminal:")).collect();
+    assert_eq!(terminals.len(), 8);
+    let pos: Vec<String> = terminals.iter().map(|r| r[2].clone()).collect();
     let want: Vec<String> = (1..=8).map(|n| n.to_string()).collect();
     assert_eq!(pos, want, "the navigator's order");
     let strip = between(&main.rows[0][0], "strip:", "/").to_owned();
-    assert!(
-        main.rows
-            .iter()
-            .all(|r| r[0].starts_with(&format!("strip:{strip}/terminal:")))
-    );
+    assert!(main.rows.iter().all(|r| {
+        r[0].starts_with(&format!("strip:{strip}/terminal:"))
+            || r[0].starts_with(&format!("strip:{strip}/derived:"))
+    }));
     let ew = read_rows(&bytes, SourceFormat::Xlsx, "_ew", &limits).unwrap();
     let table = ew.iter().find(|r| r[0] == "table").map(|r| r[1].clone());
     assert_eq!(table, Some(format!("nav:strips/{strip}")));
@@ -358,14 +359,25 @@ fn the_strip_workbook_names_its_table_and_holds_its_base() {
         assert_eq!(editable.get(key), Some(&"false"), "{key}");
     }
     let base = read_rows(&bytes, SourceFormat::Xlsx, "_ew_base", &limits).unwrap();
-    assert_eq!(base.len(), 10);
+    // The header, a row per row of the sheet, the checksum.
+    let n = main.rows.len();
+    assert_eq!(base.len(), n + 2);
     assert_eq!(base[0], ["id", "terminal", "label", "state"]);
-    for (b, m) in base[1..9].iter().zip(&main.rows) {
-        assert_eq!(*b, [m[0].clone(), m[3].clone(), m[4].clone(), m[12].clone()]);
+    for (b, m) in base[1..=n].iter().zip(&main.rows) {
+        // A sheet row ends at its last cell with a value.
+        let mut want = vec![m[0].clone(), m[3].clone(), m[4].clone(), m[12].clone()];
+        while want.last().is_some_and(String::is_empty) {
+            want.pop();
+        }
+        assert_eq!(*b, want);
     }
-    let text: String = base[..9].iter().map(|r| format!("{}\n", r.join("\t"))).collect();
+    // The checksum is of the rows as written, every row four cells wide.
+    let mut text = format!("{}\n", base[0].join("\t"));
+    for m in &main.rows {
+        text.push_str(&format!("{}\t{}\t{}\t{}\n", m[0], m[3], m[4], m[12]));
+    }
     assert_eq!(
-        base[9],
+        base[n + 1],
         [
             "sha256".to_owned(),
             format!("{:x}", Sha256::digest(text.as_bytes()))
@@ -386,11 +398,12 @@ fn five_labels_saved_by_excel_apply_in_one_step() {
     let edits: Vec<(String, Put)> = labels
         .iter()
         .enumerate()
-        .map(|(i, l)| (cell_ref(&main.headers, "Function text", i + 2), Put::Text(l)))
+        // Rows 3 to 7: terminals 1 to 5, after the end bracket their part brings.
+        .map(|(i, l)| (cell_ref(&main.headers, "Function text", i + 3), Put::Text(l)))
         .collect();
     let file = put(&t, "y.xlsx", &excel_save(&bytes, &edits));
     let before = records(&p);
-    let lines: String = main.rows[..5]
+    let lines: String = main.rows[1..6]
         .iter()
         .zip(labels)
         .map(|(r, l)| {
@@ -426,7 +439,7 @@ fn five_labels_saved_by_excel_apply_in_one_step() {
         )
     );
     let after = records(&p);
-    let mut want: Vec<(String, String, serde_json::Value)> = main.rows[..5]
+    let mut want: Vec<(String, String, serde_json::Value)> = main.rows[1..6]
         .iter()
         .zip(labels)
         .map(|(r, l)| {
@@ -477,11 +490,11 @@ fn deleted_rows_and_project_changes_are_kept() {
         "ew.xlsx",
         &excel_save(
             &bytes,
-            &[(label(2), Put::Text("EW 2")), (label(3), Put::Text("EW 3"))],
+            &[(label(3), Put::Text("EW 2")), (label(4), Put::Text("EW 3"))],
         ),
     );
     import(&t, &ew_side, &p, &["--apply"]);
-    let eight = terminal_of(&main.rows[7][0]).to_owned();
+    let eight = terminal_of(&main.rows[8][0]).to_owned();
     let delete = format!(
         "{}\n{}\n",
         serde_json::json!({"$schema": ew_api::CMDLOG_SCHEMA, "label": "delete"}),
@@ -495,11 +508,11 @@ fn deleted_rows_and_project_changes_are_kept() {
         "y.xlsx",
         &excel_save(
             &bytes,
-            &[(label(3), Put::Text("File 3")), (label(8), Put::Text("File 8"))],
+            &[(label(4), Put::Text("File 3")), (label(9), Put::Text("File 8"))],
         ),
     );
     let before = records(&p);
-    let (two, three) = (&main.rows[1], &main.rows[2]);
+    let (two, three) = (&main.rows[2], &main.rows[3]);
     let head = format!(
         "-X1021:{}, Function text: exported \"{}\", project \"EW 2\", file \"{}\": kept\n-X1021:{}, Function text: \
          exported \"{}\", project \"EW 3\", file \"File 3\": ",
@@ -513,7 +526,7 @@ fn deleted_rows_and_project_changes_are_kept() {
     let unknown = format!(
         "EW-IMP-303: the row {} of the file is not in the project's table (deleted since the export?): nothing of it \
          is imported\n",
-        main.rows[7][0]
+        main.rows[8][0]
     );
     assert_eq!(
         import(&t, &file, &p, &["--apply"]),
@@ -549,8 +562,9 @@ fn read_only_cells_numbers_and_refusals() {
     let p = t.sample("sample.ew");
     let bytes = x1021(&t, &p, "x.xlsx");
     let main = sheet(&bytes, None);
-    let at = |header: &str| cell_ref(&main.headers, header, 2);
-    let first = &main.rows[0];
+    // Row 3: terminal 1, after the end bracket its part brings.
+    let at = |header: &str| cell_ref(&main.headers, header, 3);
+    let first = &main.rows[1];
     // Terminal 1 is named "1.10" in the project, and exported again.
     let renamed = put(
         &t,

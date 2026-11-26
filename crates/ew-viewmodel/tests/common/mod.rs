@@ -565,13 +565,15 @@ pub fn strip_col(shell: &ShellModel, label: &str) -> String {
         .clone()
 }
 
-/// The Terminal strips rows on show in display order: (key, the cell of the column labelled `label`).
+/// The Terminal strips rows on show in display order: (key, the cell of the column labelled `label`). The rows of
+/// what the terminals' parts bring (`derived:`) are left out: the tests that read them read them by key.
 pub fn strip_column(shell: &ShellModel, label: &str) -> Vec<(String, String)> {
     let n = shell.nav(ew_viewmodel::navigators::NavKind::Strips).unwrap();
     let t = n.table().unwrap();
     let c = t.columns.iter().position(|c| c.label == label).unwrap();
     n.visible()
         .iter()
+        .filter(|r| !t.nodes[r.node as usize].key.contains("/derived:"))
         .map(|r| {
             let node = &t.nodes[r.node as usize];
             (node.key.clone(), node.cells[c].clone())

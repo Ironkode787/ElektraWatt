@@ -104,6 +104,8 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "function_text",
             "process_tag",
             "tech_data",
+            // What the device's parts bring with it: an accessory left off, or taken as another part.
+            "accessory_choices",
             "state",
             "structure",
             // The location alone, its other aspects kept (many devices given a cabinet at once).

@@ -224,9 +224,16 @@ impl ShellModel {
             // The tag as it is written; the filter matches without case.
             (format!("strip:{}", strip.label), None)
         };
-        let first = (0..table.nodes.len())
-            .find(|i| table.nodes[*i].parent == u32::try_from(at).ok())
-            .map(|i| table.nodes[i].key.clone());
+        // The cursor on the strip's first terminal (before it may stand what its terminals' parts bring), else on its
+        // first row.
+        let children: Vec<usize> = (0..table.nodes.len())
+            .filter(|i| table.nodes[*i].parent == u32::try_from(at).ok())
+            .collect();
+        let first = children
+            .iter()
+            .find(|i| table.nodes[**i].role == NavRole::Terminal)
+            .or(children.first())
+            .map(|i| table.nodes[*i].key.clone());
         let generation = self.tools.selection.generation;
         if let Some(n) = self.generic_mut(NavKind::Strips) {
             if n.table_mode.is_none() {
@@ -398,9 +405,28 @@ impl ShellModel {
         if accessories.is_empty() {
             return None;
         }
-        // One RemoveAccessories per strip, in row order.
+        // One RemoveAccessories per strip, in row order; a row the terminals' parts bring is left off the strip (its
+        // choice), the toast naming it.
         let mut edits: Vec<StripEdit> = Vec::new();
+        let mut left_off: Vec<(String, String)> = Vec::new();
         for i in &accessories {
+            if let (Some(s), Some(of)) = (
+                rows.strip_of(*i).and_then(|s| record(rows.node(s))),
+                crate::navigators::table::derived_of(rows.node(*i)),
+            ) {
+                edits.push(StripEdit::Choice {
+                    strip: s,
+                    of,
+                    part: None,
+                });
+                let part = rows.cell(*i, "part").to_owned();
+                let strip = rows
+                    .strip_of(*i)
+                    .map(|s| rows.node(s).label.to_string())
+                    .unwrap_or_default();
+                left_off.push((part, strip));
+                continue;
+            }
             let (Some(s), Some(index)) = (
                 rows.strip_of(*i).and_then(|s| record(rows.node(s))),
                 crate::navigators::table::accessory_index(rows.node(*i)),
@@ -440,8 +466,13 @@ impl ShellModel {
         };
         let out = self.run_commit(&cmd);
         if out == Outcome::Done {
-            let n = accessories.len();
-            let text = strings::format_count(crate::count_key!("toast-accessories-removed"), n);
+            let n = accessories.len() - left_off.len();
+            let text = match &left_off[..] {
+                [(part, strip)] if n == 0 => {
+                    strings::format(key!("toast-accessory-left-off"), &[part, strip])
+                }
+                _ => strings::format_count(crate::count_key!("toast-accessories-removed"), accessories.len()),
+            };
             self.notify(text, true);
             if let Some(n) = self.generic_mut(NavKind::Strips) {
                 n.marked.clear();

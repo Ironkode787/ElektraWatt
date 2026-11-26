@@ -108,6 +108,12 @@ fn strip_edit_of(path: &str, row: &str, targets: &[Uuid], text: &str) -> Option<
             label: text.to_owned(),
         });
     }
+    if path == "variant" {
+        return Some(StripEdit::Variant {
+            terminal: *targets.first()?,
+            text: text.to_owned(),
+        });
+    }
     if path.starts_with("bridge_part:") {
         return Some(StripEdit::BridgePart {
             terminals: vec![row_terminal(row)?],

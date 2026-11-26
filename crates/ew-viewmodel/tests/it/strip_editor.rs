@@ -85,7 +85,7 @@ fn order_sort_pos_cells_accessory_rows_and_reasons() {
     done(&mut shell, "strip.edit", json!({"strip": "-X1021"}));
     let header = lines_with(&shell, "navigator \"Terminal strips\"");
     assert!(
-        header[0].contains(" sort \"Order\" ascending filter \"strip:-X1021\" rows 8 showing 1 to 8"),
+        header[0].contains(" sort \"Order\" ascending filter \"strip:-X1021\" rows 11 showing 1 to 11"),
         "{header:?}"
     );
     assert_eq!(strip_texts(&shell, "Pos"), SEQ_1_TO_8);
@@ -508,7 +508,7 @@ fn se14_describe_lines() {
     let d = shell.describe();
     assert!(
         d.contains(
-            "navigator \"Terminal strips\" kind strips view tree table sort \"Order\" ascending filter \"strip:-X1021\" rows 9 showing 1 to 9\n  columns \"Strip\" \"Pos\" \"Terminal\" \"Function text\" \"Group\" \"Part\" \"Potential\" \"Side 1 (clamp a)\" \"Side 2 (clamp b)\" \"Bridge\" \"Bridge part\" \"State\"\n  row \"-X1021\" \"1\" \"1\" \"\" \"\" \"EW-GEN-TRM-1\" \"24V/102F1:2\" \"-102F1:2\" \"-102S2:11\" \"BR1\" \"\" \"used\"\n"
+            "navigator \"Terminal strips\" kind strips view tree table sort \"Order\" ascending filter \"strip:-X1021\" rows 12 showing 1 to 12\n  columns \"Strip\" \"Pos\" \"Terminal\" \"Function text\" \"Group\" \"Part\" \"Potential\" \"Side 1 (clamp a)\" \"Side 2 (clamp b)\" \"Bridge\" \"Bridge part\" \"State\"\n  accessory \"-X1021\" \"\" \"\" \"End bracket\" \"\" \"EW-GEN-EB-1\" \"with EW-GEN-TRM-1\" \"\" \"\" \"\" \"\" \"\"\n  row \"-X1021\" \"1\" \"1\" \"\" \"\" \"EW-GEN-TRM-1\" \"24V/102F1:2\" \"-102F1:2\" \"-102S2:11\" \"BR1\" \"\" \"used\"\n"
         ),
         "{d}"
     );

@@ -1185,6 +1185,16 @@ field-help-report-block-layout-page = De paneellayoutpagina waarvan deze lijst d
 # Het PLC- en buswerk zoals iemand het tegenkwam.
 field-device-derived-plc = PLC
 field-device-derived-variant = Variant
+field-device-derived-accessory-end-plate = Eindplaat
+field-help-device-derived-accessory-end-plate = De eindplaat die de artikelen van de klemmen meebrengen: het getelde artikel. Typ het nummer van een ander artikel om dat te nemen; maak het veld leeg om het op deze klemmenstrook weg te laten.
+field-device-derived-accessory-end-clamp = Eindsteunen
+field-help-device-derived-accessory-end-clamp = De eindsteunen die de artikelen van de klemmen meebrengen: het getelde artikel. Typ het nummer van een ander artikel om dat te nemen; maak het veld leeg om het op deze klemmenstrook weg te laten.
+field-device-derived-accessory-partition = Scheidingsplaat
+field-help-device-derived-accessory-partition = De scheidingsplaat die de artikelen van de klemmen meebrengen: het getelde artikel. Typ het nummer van een ander artikel om dat te nemen; maak het veld leeg om het op deze klemmenstrook weg te laten.
+field-device-derived-accessory-marker = Strookmerker
+field-help-device-derived-accessory-marker = De strookmerker die de artikelen van de klemmen meebrengen: het getelde artikel. Typ het nummer van een ander artikel om dat te nemen; maak het veld leeg om het op deze klemmenstrook weg te laten.
+field-device-derived-accessory-cover = Afdekking
+field-help-device-derived-accessory-cover = De afdekking die de artikelen van de klemmen meebrengen: het getelde artikel. Typ het nummer van een ander artikel om dat te nemen; maak het veld leeg om het op deze klemmenstrook weg te laten.
 field-help-device-derived-variant = De variant van het artikel van het apparaat, zoals de fabrikant het onder een eigen nummer verkoopt (blauw, een uitvoering): de lijsten drukken zijn nummer en omschrijving af. Het eigen nummer van het artikel is het artikel zelf.
 field-help-device-derived-plc = De PLC waar dit busapparaat bij hoort. Een apparaat zonder PLC voeg je hier toe aan een PLC: kies een PLC, of Nieuwe PLC….
 choice-connection-kind-core = Kabelader

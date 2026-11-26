@@ -19,6 +19,7 @@ toast-wire-numbers-hidden = Switch on Show wire numbers on the pages to see them
 toast-box-pin-part = The pins of a part's box are the part's: they are edited in its device box, opened now.
 toast-box-pin-side-full = This side of the box has no free point for another pin; make the box larger or add the pin on another side.
 toast-drawn-as-box = { $p0 } has no symbol of its own and is drawn as a box, by the Black box tool: click its first corner, then its opposite corner.
+toast-accessory-left-off = Left { $p0 } off { $p1 }. Its terminals' parts still name it for the other strips.
 notice-ip-not-placed = Not placed: { $p0 }
 
 # FIXPT41: the drop on a connection point the IP tool cannot honour (an external point on a pin connects).

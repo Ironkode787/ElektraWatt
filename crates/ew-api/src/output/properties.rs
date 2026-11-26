@@ -53,7 +53,7 @@ mod selection;
 pub(crate) use bus_rows::port_words;
 use connection_rows::{ip_ends, potential_defs_at, prop_via};
 pub(crate) use context::SheetCx;
-pub(crate) use device_rows::{variant_label, variant_use};
+pub(crate) use device_rows::{strip_accessory_rows, variant_parts, variant_use};
 pub use fluid_rows::DeviceMedia;
 pub(crate) use fluid_rows::source_port;
 use header::marked_cable;

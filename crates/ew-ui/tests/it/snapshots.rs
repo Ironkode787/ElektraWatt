@@ -685,7 +685,10 @@ fn the_data_grid(k: usize, of: usize) {
                 // The Pos column is hidden: this image is of the grid in its as-built layout.
                 ("table.columns", json!({"kind": "strips", "hide": ["pos"]})),
                 // A filter without a descender: the check below measures its ink against the icon's.
-                ("navigator.filter", json!({"kind": "strips", "text": "x1021"})),
+                (
+                    "navigator.filter",
+                    json!({"kind": "strips", "text": "x1021 kind:terminal"}),
+                ),
                 ("navigator.sort", json!({"kind": "strips", "by": "terminal"})),
             ] {
                 assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
@@ -1197,7 +1200,7 @@ fn the_quick_fix_card_and_the_table_card_in_light() {
             ("navigator.table", json!({"kind": "strips"})),
             (
                 "navigator.filter",
-                json!({"kind": "strips", "text": "strip:-X1021"}),
+                json!({"kind": "strips", "text": "strip:-X1021 kind:terminal"}),
             ),
             ("navigator.sort", json!({"kind": "strips", "by": "terminal"})),
             ("ui.focus", json!({"area": "navigator", "kind": "strips"})),

@@ -145,6 +145,43 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
             }
         };
         push_accessories(b, None);
+        let derived = derived_rows(q, strip, &terminal_ids(&terminals));
+        let push_derived = |b: &mut Builder, after: Option<usize>| {
+            for (n, d) in derived.iter().enumerate().filter(|(_, d)| d.after == after) {
+                let mut cells = vec![plain(tag.clone()), plain(""), plain(""), d.word.clone()];
+                let with = if d.left_off {
+                    text!("strips-left-off")
+                } else {
+                    d.with.clone()
+                };
+                cells.extend(vec![plain(""), plain(d.part.clone()), with]);
+                cells.extend(plains(vec![String::new(); 5]));
+                let mut facets = vec![
+                    ("kind".to_owned(), "accessory".to_owned()),
+                    ("derived".to_owned(), String::new()),
+                    strip_facet.clone(),
+                ];
+                if d.left_off {
+                    facets.push(("left_off".to_owned(), String::new()));
+                }
+                b.push(
+                    Some(snode),
+                    NavRole::Accessory,
+                    &format!("derived:{}:{n}", d.of),
+                    d.word.clone(),
+                    if d.left_off {
+                        vec!["left off".to_owned()]
+                    } else {
+                        Vec::new()
+                    },
+                    Vec::new(),
+                    Vec::new(),
+                    Some(cells),
+                    facets,
+                );
+            }
+        };
+        push_derived(b, None);
         // `bridge_part` follows `bridge`; the list's `strip` cell is the row's first already.
         let bridge_part_at = set.column("bridge").map_or(usize::MAX, |c| c + 1);
         let strip_at = set.column("strip");
@@ -167,6 +204,7 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
                         .is_none_or(|r| ew_derive::rep_level(q, r).unwrap_or(1) == l)
                 });
             }
+            let used = crate::output::properties::variant_use(q, id);
             let mut facets = base_facets(NavRole::Terminal, &drawables);
             facets.push(strip_facet.clone());
             let mut badges = Vec::new();
@@ -175,6 +213,10 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
             if !drawn && !strip_drawn {
                 badges.push("unplaced".to_owned());
                 facets.push(("unplaced".to_owned(), String::new()));
+            }
+            // A terminal whose part has variants: its Part cell chooses the variant.
+            if used.is_some() {
+                facets.push(("variants".to_owned(), String::new()));
             }
             if let Some(d) = q.devices().get(id) {
                 if d.state == DeviceState::Spare {
@@ -221,8 +263,119 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
                 facets,
             );
             push_accessories(b, Some(k));
+            push_derived(b, Some(k));
         }
     }
+}
+
+/// The terminal devices of a strip's rows, in mounting order.
+fn terminal_ids(terminals: &[(usize, Uuid)]) -> Vec<Uuid> {
+    terminals.iter().map(|(_, t)| *t).collect()
+}
+
+/// One row of what a strip's terminals' parts bring with them (doc 07 §2.5): an end bracket before the first terminal
+/// and after the last, an end plate after the last terminal whose part names it, and one the strip left off.
+struct DerivedRow {
+    /// The accessory copy the declaration names (the row's key; Delete writes the strip's choice of it).
+    of: Uuid,
+    /// The index of the terminal it stands after (`None`: before the first).
+    after: Option<usize>,
+    /// The kind word.
+    word: Text,
+    /// The part number counted.
+    part: String,
+    /// "with EW-GEN-TRM-1": the parts it comes with.
+    with: Text,
+    /// Left off this strip by the strip's choice.
+    left_off: bool,
+}
+
+/// The derived rows of `strip` over its terminals in mounting order.
+fn derived_rows(q: &Q, strip: Id<Device>, terminals: &[Uuid]) -> Vec<DerivedRow> {
+    let Some(device) = q.devices().get(strip) else {
+        return Vec::new();
+    };
+    let number = |p: Id<ew_schema::Part>| {
+        q.parts()
+            .get(p)
+            .map(|c| c.item.part_number.as_str().to_owned())
+            .unwrap_or_default()
+    };
+    let with = |parts: &[Id<ew_schema::Part>]| {
+        let numbers: Vec<String> = parts.iter().map(|p| number(*p)).collect();
+        text!("strips-with", numbers.join(", "))
+    };
+    let word = |kind: &Option<ew_schema::AccessoryKind>| {
+        kind.as_ref()
+            .map(crate::output::strip_edit::accessory_word)
+            .unwrap_or_else(|| text!("strips-accessory"))
+    };
+    let last = terminals.len().checked_sub(1);
+    let index_of = |t: Id<Device>| terminals.iter().position(|x| *x == t.as_uuid());
+    let mut out = Vec::new();
+    let mut closing = None;
+    let bracket = ew_derive::strip_bracket(q, device).filter(|b| {
+        matches!(
+            b.from,
+            ew_derive::BracketFrom::Declared | ew_derive::BracketFrom::Choice
+        )
+    });
+    if let Some(b) = &bracket
+        && let Some(d) = &b.declared
+    {
+        let row = |after| DerivedRow {
+            of: d.of.as_uuid(),
+            after,
+            word: word(&d.kind),
+            part: number(b.part.copy),
+            with: with(&[d.with]),
+            left_off: false,
+        };
+        out.push(row(None));
+        closing = Some(row(last));
+    }
+    for a in ew_derive::strip_accessories(q, device) {
+        out.push(DerivedRow {
+            of: a.of.as_uuid(),
+            after: a.after.and_then(index_of),
+            word: word(&a.kind),
+            part: number(a.part.copy),
+            with: with(&a.with),
+            left_off: false,
+        });
+    }
+    // What the strip left off: a choice without a part, of an accessory its terminals' parts name.
+    for c in device.accessory_choices.iter().filter(|c| c.part.is_none()) {
+        let named = terminals.iter().rev().find_map(|t| {
+            let d = q.devices().get(Id::from_uuid(*t))?;
+            d.parts.iter().find_map(|u| {
+                let copy = q.parts().get(u.part.copy)?;
+                let a = copy.item.accessories.iter().find(|a| {
+                    ew_ids::v5::lib_copy_id::<ew_schema::Part>(
+                        a.part.library.as_uuid(),
+                        a.part.item.as_uuid(),
+                    ) == c.of
+                })?;
+                Some((a.kind.clone(), u.part.copy, index_of(d.id)))
+            })
+        });
+        let Some((kind, from, after)) = named else {
+            continue;
+        };
+        out.push(DerivedRow {
+            of: c.of.as_uuid(),
+            after,
+            word: word(&kind),
+            part: number(c.of),
+            with: with(&[from]),
+            left_off: true,
+        });
+    }
+    // In mounting order: before the first terminal, then by the terminal each follows (the bracket after the last
+    // terminal last).
+    out.sort_by_key(|d| d.after.map_or(0, |x| x + 1));
+    out.extend(closing);
+    out
 }
 
 /// One accessory row of a strip.

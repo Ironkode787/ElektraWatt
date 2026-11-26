@@ -202,7 +202,12 @@ fn the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
         parents.iter().all(|p| *p == Some(strip as u32)),
         "the filter -X1021 shows rows of another strip"
     );
-    assert_eq!(parents.len(), 8, "the 8 terminals of -X1021");
+    let terminals = n
+        .visible()
+        .iter()
+        .filter(|r| table.nodes[r.node as usize].role == NavRole::Terminal)
+        .count();
+    assert_eq!(terminals, 8, "the 8 terminals of -X1021");
 
     let out = tmp.0.join("x.xlsx");
     done(&mut shell, "navigator.export_table", json!({"path": text(&out)}));
@@ -228,7 +233,8 @@ fn the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
 
     // Five labels changed in the file.
     let labels = ["Valve 1", "Valve 2", "Valve 3", "Valve 4", "Valve 5"];
-    let edits: Vec<(usize, &str)> = labels.iter().enumerate().map(|(i, l)| (i + 2, *l)).collect();
+    // Rows 3 to 7: terminals 1 to 5, after the end bracket their part brings.
+    let edits: Vec<(usize, &str)> = labels.iter().enumerate().map(|(i, l)| (i + 3, *l)).collect();
     let file = tmp.0.join("y.xlsx");
     std::fs::write(&file, edited(&bytes, "Function text", &edits)).unwrap();
     let before = steps(&shell);
@@ -282,7 +288,7 @@ fn the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
         json!({"path": text(&again)}),
     );
     assert_eq!(
-        column_cells(&std::fs::read(&again).unwrap(), "Function text")[..5],
+        column_cells(&std::fs::read(&again).unwrap(), "Function text")[1..6],
         labels
     );
     // One undo step restores the five.
@@ -665,7 +671,8 @@ fn a_stale_import_is_refused_and_the_card_stays() {
     done(&mut shell, "navigator.export_table", json!({"path": text(&out)}));
     let file = tmp.0.join("y.xlsx");
     let bytes = std::fs::read(&out).unwrap();
-    std::fs::write(&file, edited(&bytes, "Function text", &[(2, "Valve")])).unwrap();
+    // Row 3: terminal 2, after the end bracket its terminals' part brings.
+    std::fs::write(&file, edited(&bytes, "Function text", &[(3, "Valve")])).unwrap();
     done(&mut shell, "navigator.import_table", json!({"path": text(&file)}));
     let before = steps(&shell);
     done(

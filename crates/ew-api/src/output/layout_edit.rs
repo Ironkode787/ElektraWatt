@@ -957,41 +957,33 @@ impl Session {
         match (edit.kind.as_str(), name) {
             // The variant of a device's part: one of the row's words, or a variant's key; the part's own number (or an
             // empty text) clears it. One `fields.set` of the device's parts, the part use's variant alone changed.
+            // A strip's accessory its terminals' parts bring: a part number takes that part, an empty text leaves it
+            // off the strip (its choice; the strip editor's Delete on the row writes the same).
+            ("device", accessory) if accessory.starts_with("accessory.") => {
+                let strip = edit.target;
+                let rows = super::properties::strip_accessory_rows(&q, Id::from_uuid(strip));
+                let Some((_, of, _, _)) = rows.iter().find(|r| r.0 == accessory) else {
+                    return invalid(text!("refusal-strip-no-accessory", accessory));
+                };
+                let part = (!text.is_empty()).then(|| text.to_owned());
+                drop(q);
+                self.strip_edit(&super::StripEdit::Choice {
+                    strip,
+                    of: of.as_uuid(),
+                    part,
+                })
+                .map_err(|e| match e {
+                    super::StripEditError::Invalid(t) => LayoutEditError::Refused(t),
+                    super::StripEditError::Refused(_) | super::StripEditError::Ambiguous(_) => {
+                        LayoutEditError::Refused(text!("refusal-strip-nothing"))
+                    }
+                })
+            }
             ("device", "variant") => {
-                let device: Id<ew_schema::Device> = Id::from_uuid(edit.target);
-                let Some((at, _, part)) = super::properties::variant_use(&q, device) else {
-                    return invalid(text!("refusal-variant-no-part"));
+                let uses = match super::properties::variant_parts(&q, Id::from_uuid(edit.target), text) {
+                    Ok(uses) => uses,
+                    Err(t) => return invalid(t),
                 };
-                let key = if text.is_empty() || text == super::properties::variant_label(&part.item, None) {
-                    None
-                } else {
-                    let found = part.item.variants.iter().find(|v| {
-                        v.key.as_str() == text
-                            || super::properties::variant_label(&part.item, Some(v.key.as_str())) == text
-                    });
-                    match found {
-                        Some(v) => Some(v.key.as_str().to_owned()),
-                        None => {
-                            return invalid(text!(
-                                "refusal-variant-unknown",
-                                part.item.part_number.as_str(),
-                                text
-                            ));
-                        }
-                    }
-                };
-                let Some(dev) = q.devices().get(device) else {
-                    return invalid(text!("refusal-variant-no-part"));
-                };
-                let mut uses = serde_json::to_value(&dev.parts).unwrap_or(Value::Null);
-                match key {
-                    Some(k) => uses[at]["part"]["variant"] = Value::String(k),
-                    None => {
-                        if let Some(o) = uses[at]["part"].as_object_mut() {
-                            o.remove("variant");
-                        }
-                    }
-                }
                 command(
                     "fields.set",
                     json!({"kind": "device", "targets": [edit.target.to_string()], "path": "parts", "value": uses}),

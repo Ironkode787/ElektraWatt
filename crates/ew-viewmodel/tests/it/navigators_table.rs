@@ -62,8 +62,10 @@ fn label_of(shell: &ShellModel, n: &str) -> String {
 }
 
 /// A writable copy of the sample, headless, with the Terminal strips table filtered by `filter` and sorted by
-/// Terminal.
+/// Terminal: its terminal rows (`kind:terminal`; the rows of what their parts bring are the strip editor's own).
 fn strips(tmp: &Tmp, filter: &str) -> ShellModel {
+    let filter = format!("{filter} kind:terminal");
+    let filter = filter.trim();
     let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "strips"}));
     done(
@@ -762,7 +764,7 @@ fn describe_lines_words_and_counts() {
     done(
         &mut shell,
         "navigator.filter",
-        json!({"kind": "strips", "text": "x1021"}),
+        json!({"kind": "strips", "text": "x1021 kind:terminal"}),
     );
     let by = col(&shell, NavKind::Strips, "Terminal");
     done(&mut shell, "navigator.sort", json!({"kind": "strips", "by": by}));
@@ -780,7 +782,7 @@ fn describe_lines_words_and_counts() {
     let d = shell.describe();
     assert!(
         d.contains(
-            "navigator \"Terminal strips\" kind strips view tree table sort \"Terminal\" ascending filter \"x1021\" rows 9 showing 1 to 9\n  columns \"Strip\" \"Pos\" \"Terminal\" \"Function text\" \"Group\" \"Part\" \"Potential\" \"Side 1 (clamp a)\" \"Side 2 (clamp b)\" \"Bridge\" \"Bridge part\" \"State\"\n  row \"-X1021\" \"1\" \"1\" \"\" \"\" \"EW-GEN-TRM-1\" \"24V/102F1:2\" \"-102F1:2\" \"-102S2:11\" \"BR1\" \"\" \"used\"\n"
+            "navigator \"Terminal strips\" kind strips view tree table sort \"Terminal\" ascending filter \"x1021 kind:terminal\" rows 9 showing 1 to 9\n  columns \"Strip\" \"Pos\" \"Terminal\" \"Function text\" \"Group\" \"Part\" \"Potential\" \"Side 1 (clamp a)\" \"Side 2 (clamp b)\" \"Bridge\" \"Bridge part\" \"State\"\n  row \"-X1021\" \"1\" \"1\" \"\" \"\" \"EW-GEN-TRM-1\" \"24V/102F1:2\" \"-102F1:2\" \"-102S2:11\" \"BR1\" \"\" \"used\"\n"
         ),
         "{d}"
     );

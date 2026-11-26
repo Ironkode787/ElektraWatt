@@ -85,7 +85,7 @@ fn steps(shell: &ShellModel) -> usize {
 #[test]
 fn the_key_column_stays_while_the_table_scrolls_right() {
     let tmp = Tmp::new();
-    let mut h = table(&tmp, "strips", "strip:-X1021");
+    let mut h = table(&tmp, "strips", "strip:-X1021 kind:terminal");
     // A window narrow enough that the table is wider than its pane (at 1920 the left column grows until it fits).
     h.set_size(egui::Vec2::new(1000.0, 700.0));
     settle(&mut h);
@@ -138,7 +138,7 @@ fn the_key_column_stays_while_the_table_scrolls_right() {
 #[test]
 fn header_click_sorts_and_the_chooser_hides_and_orders() {
     let tmp = Tmp::new();
-    let mut h = table(&tmp, "strips", "strip:-X1021");
+    let mut h = table(&tmp, "strips", "strip:-X1021 kind:terminal");
     h.get_by_label("Sort by Terminal").click();
     settle(&mut h);
     let nav = |h: &Harness<'static, App>| {
@@ -195,7 +195,7 @@ fn header_click_sorts_and_the_chooser_hides_and_orders() {
 #[test]
 fn fill_down_from_the_keyboard_is_one_step() {
     let tmp = Tmp::new();
-    let mut h = table(&tmp, "strips", "strip:-X1021");
+    let mut h = table(&tmp, "strips", "strip:-X1021 kind:terminal");
     // The rows of `size.row` (28 points) with the dock below need a taller window than 700 points to be all on show.
     h.set_size(egui::Vec2::new(1000.0, 900.0));
     // Properties under the navigator would halve it; this test needs the whole column.
@@ -270,7 +270,7 @@ fn fill_down_from_the_keyboard_is_one_step() {
 #[test]
 fn pattern_fill_from_the_keyboard() {
     let tmp = Tmp::new();
-    let mut h = table(&tmp, "strips", "strip:-X1021");
+    let mut h = table(&tmp, "strips", "strip:-X1021 kind:terminal");
     h.get_by_label("Sort by Terminal").click_accesskit();
     settle(&mut h);
     key(&mut h, Modifiers::COMMAND, Key::Home);
@@ -353,7 +353,7 @@ fn paste_resolve_and_apply_without_a_pointer() {
 #[test]
 fn a_header_text_is_truncated_within_its_column() {
     let tmp = Tmp::new();
-    let mut h = table(&tmp, "strips", "strip:-X1021");
+    let mut h = table(&tmp, "strips", "strip:-X1021 kind:terminal");
     settle(&mut h);
     let t = ew_ui::theme::current(&h.ctx);
     // Columns start at `size.table_column`; the cell cursor brings Function text into view.

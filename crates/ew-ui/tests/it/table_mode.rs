@@ -267,7 +267,7 @@ fn the_strip_editor_and_its_chooser_list() {
     assert_eq!(strips_cell(shell, &acc, "Part"), number);
     // The accessory row is a row of the grid: its cells are named like a terminal row's.
     assert!(
-        h.query_by_label_contains("Pos 8.1, row 9 of 9").is_some(),
+        h.query_by_label_contains("Pos 8.1, row 10 of 12").is_some(),
         "the accessory row's Pos cell"
     );
     h.state_mut().shell_mut().shutdown();

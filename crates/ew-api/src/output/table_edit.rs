@@ -54,6 +54,11 @@ pub fn strip_route(table: &NavTable, node: &NavNode, column: usize) -> Option<(S
         (StripCell::AccessoryPart, NavRole::Accessory) => {
             format!("accessory_part:{}", accessory_index(node)?)
         }
+        // A terminal whose part has variants.
+        // A terminal whose part has variants: its Part cell chooses one.
+        (StripCell::AccessoryPart, NavRole::Terminal) if node.facets.iter().any(|(k, _)| k == "variants") => {
+            "variant".to_owned()
+        }
         _ => return None,
     };
     Some((STRIP_ROUTE.to_owned(), path))
@@ -65,6 +70,18 @@ pub fn accessory_index(node: &NavNode) -> Option<u32> {
         .rsplit('/')
         .next()?
         .strip_prefix("accessory:")?
+        .parse()
+        .ok()
+}
+
+/// The accessory copy of a row the strip's terminals' parts bring (its key's last segment `derived:<of>`).
+pub fn derived_of(node: &NavNode) -> Option<Uuid> {
+    node.key
+        .rsplit('/')
+        .next()?
+        .strip_prefix("derived:")?
+        .split(':')
+        .next()?
         .parse()
         .ok()
 }
@@ -89,6 +106,10 @@ fn strip_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<Optio
     let c = table.columns.get(column)?;
     let editable = strip_route(table, node, column).is_some();
     if node.role == NavRole::Accessory {
+        // What the terminals' parts bring is theirs: Delete on its row leaves it off the strip.
+        if derived_of(node).is_some() {
+            return Some(Some(key!("table-derived-accessory")));
+        }
         return Some((!editable).then_some(key!("table-accessory-row")));
     }
     if c.key == "pos" {
@@ -101,6 +122,7 @@ fn strip_reason(table: &NavTable, node: &NavNode, column: usize) -> Option<Optio
     if node.role == NavRole::Terminal {
         return match c.strip_cell {
             Some(StripCell::BridgePart) if !editable => Some(Some(key!("table-no-bridge"))),
+            Some(StripCell::AccessoryPart) if editable => Some(None),
             Some(StripCell::Group | StripCell::BridgePart) => Some(None),
             _ => None,
         };

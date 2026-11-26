@@ -596,12 +596,17 @@ that Save makes the project's own copy. The box
 editor's Add pin offers Add bus interface…, which opens the part editor on Bus interfaces. A bus port without an
 address offers Next free address in its Address row's menu and as the quick fix of its finding.
 
-**Accessories and variants of a device.** Properties of a device or a strip show, under Parts, a Variant row (the
-part's own numbers, then each variant by name and number) and an Accessories section: each accessory with its
-quantity, the part it comes with and a switch to take it or leave it off; its menu offers Use another part…, which
-writes the choice. The strip editor lists a strip's accessories at their places in the mounting order, those of its
-parts in secondary text with the part they come from, and has a Variant column; Delete on such a row leaves the
-accessory off for that strip. The place tool's options card shows Variant when the part it places has variants.
+**Accessories and variants of a device.** Properties of a device show, under Parts, a Variant row (the part's own
+numbers, then each variant by name and number). Properties of a strip show a row per accessory its terminals' parts
+bring (End plate, End brackets): the part counted, with the parts it comes with; typing another part's number takes
+that part, emptying the row leaves it off (both the strip's choice, `Device.accessory_choices`, through `fields.set`).
+The strip editor lists what the terminals' parts bring at their places in the mounting order (an end bracket before
+the first terminal and after the last, the end plate after the last terminal whose part names it), each read-only with
+"with <part>", and a left-off one as "left off this strip"; Delete on such a row leaves it off for that strip, the
+toast says so. The Part cell of a terminal whose part has variants chooses the variant (by its number, its name or
+the part's own number): no column of its own, so that the side columns stay on show at 1920 × 1080. The strip editor
+opens with the cursor on the strip's first terminal. The place tool's options card shows Variant when the part it
+places has variants.
 
 The **Macro browser** is the Macros navigator (`NavKind::Macros`): the macros of every tier, then the project's own macro copies under "In this project"; its detail shows name, version and library, description, the devices and the variables, with "No preview" where the thumbnail should be. Enter on a row, its drop on a canvas or Insert macro… (Draw ▸ Place) arms the macro tool; its click opens the `macro` card in the Preview tab with the value set and the conflicts, and Apply is one undo step; a held macro without an installed source is not inserted. **Save as macro** (Edit menu) is a window-only dialog of name, key, description and library, which is the confirmation of a write that cannot be undone; kind, insertion point and the value-set table are not built, and "make variable" is the hidden action `props.make_variable`. The **Library manager** is the Libraries navigator (`NavKind::Libraries`): the libraries by tier with version, licence, access and index state, then "In this project" with each copy's state in words (Current, Update available, Only in this project, Deprecated, Local fork), each with a hover text of what it means, and the devices that use it; Update… names how many items it updates, is disabled with its reason when they have none, and opens `library.update`'s bulk card; "purge unused" is not in it. Its rows show IDs rather than names.
 

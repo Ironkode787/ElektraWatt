@@ -173,10 +173,15 @@ fn strips_are_the_terminal_diagrams() {
         .position(|k| *k == "bridge_part")
         .expect("a bridge part column");
     assert_eq!((pos, keys[bridge_part - 1]), (1, "bridge"));
-    // The sample's one terminal diagram block lists the strips one after another.
+    // The sample's one terminal diagram block lists the strips one after another; the rows of what the terminals'
+    // parts bring (end brackets, end plates) are the navigator's own.
     let mut rows = Vec::new();
     for strip in &strips {
-        for (i, n) in children(&t, strip).iter().enumerate() {
+        let terminals: Vec<&NavNode> = children(&t, strip)
+            .into_iter()
+            .filter(|n| n.role == NavRole::Terminal)
+            .collect();
+        for (i, n) in terminals.iter().enumerate() {
             assert_eq!(n.cells[0], strip.label);
             // The sample's terminals: `pos` is the seq (1-based, gapless), no bridge has a part.
             assert_eq!(n.cells[pos], (i + 1).to_string(), "{}: pos", strip.label);
@@ -205,7 +210,12 @@ fn strips_are_the_terminal_diagrams() {
         })
         .collect();
     assert_eq!(rows, printed, "the terminal diagram");
-    let count = |label: &str| children(&t, find(&t, NavRole::Strip, label)).len();
+    let count = |label: &str| {
+        children(&t, find(&t, NavRole::Strip, label))
+            .iter()
+            .filter(|n| n.role == NavRole::Terminal)
+            .count()
+    };
     assert_eq!(
         (count("-X1011"), count("-X1021"), count("-X1031")),
         (5, 8, 5),

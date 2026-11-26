@@ -28,7 +28,15 @@ fn column(table: &ew_api::output::Table, key: &str) -> Vec<String> {
 #[test]
 fn a_round_trip_applies_in_one_undo_step() {
     let (mut session, key, table) = x1021();
-    assert_eq!(table.rows.len(), 8);
+    // The strip's eight terminals, among the rows of what their parts bring (end brackets, the end plate).
+    let terminals: Vec<usize> = column(&table, "terminal")
+        .iter()
+        .enumerate()
+        .filter(|(_, t)| !t.is_empty())
+        .map(|(i, _)| i)
+        .collect();
+    assert_eq!(terminals.len(), 8);
+    let first_five = &terminals[..5];
     let editable: Vec<&str> = table
         .columns
         .iter()
@@ -38,8 +46,8 @@ fn a_round_trip_applies_in_one_undo_step() {
     assert_eq!(editable, ["terminal", "label", "state"]);
     let mut file = table.clone();
     let label = file.columns.iter().position(|c| c.key == "label").unwrap();
-    for (i, row) in file.rows.iter_mut().take(5).enumerate() {
-        row.cells[label] = TableCell::Text(format!("Valve {}", i + 1));
+    for (n, i) in first_five.iter().enumerate() {
+        file.rows[*i].cells[label] = TableCell::Text(format!("Valve {}", n + 1));
     }
     let csv = table_csv(&file, &CsvOptions::preset(Preset::ExcelEn));
     let options = ImportTableOptions {
@@ -71,8 +79,8 @@ fn a_round_trip_applies_in_one_undo_step() {
     assert_eq!(session.world().rev.0, before + 1, "one transaction");
     let applied = session.table_export(&key).unwrap();
     let mut want = column(&table, "label");
-    for (i, w) in want.iter_mut().take(5).enumerate() {
-        *w = format!("Valve {}", i + 1);
+    for (n, i) in first_five.iter().enumerate() {
+        want[*i] = format!("Valve {}", n + 1);
     }
     assert_eq!(column(&applied, "label"), want);
     assert_eq!(column(&applied, "terminal"), column(&table, "terminal"));

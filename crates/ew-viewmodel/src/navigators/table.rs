@@ -33,7 +33,7 @@ use super::{NavKind, NavNode, NavTable, Navigator, Query, SortBy, VisRow};
 use ew_api::output::Uuid;
 pub use ew_api::output::table_edit::{
     CellText, CellValue, Compiled, DEFINING_PATHS, DefineAt, Gesture, GestureCell, GestureKind, MemberBase,
-    STRIP_ROUTE, accessory_index, compile, compose_leaf, define_point, is_scalar, mark_conflicts,
+    STRIP_ROUTE, accessory_index, compile, compose_leaf, define_point, derived_of, is_scalar, mark_conflicts,
     potential_input, route_identifier, route_member, route_type, row_targets, strip_route,
 };
 

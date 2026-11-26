@@ -435,8 +435,10 @@ fn accessory_rows_are_placed_and_numbered() {
         run(&mut s, &cmd);
     }
     let t = s.navigator_table(NavKind::Strips);
+    // The strip's own rows; what its terminals' parts bring stands beside them in rows of its own (`derived:`).
     let rows: Vec<(String, String, NavRole)> = children(&t, strip_node(&t, "-X1021"))
         .iter()
+        .filter(|n| !n.key.contains("/derived:"))
         .map(|n| (n.cells[1].clone(), n.label.clone(), n.role))
         .collect();
     let row = |pos: &str, label: &str, role: NavRole| (pos.to_owned(), label.to_owned(), role);
@@ -507,7 +509,11 @@ fn the_provider_order_and_the_strip_facet() {
     // Natural tag order (the sign sorts before the digits).
     assert_eq!(strips, ["-X1011", "-X1021", "-X1031"]);
     let x = strip_node(&t, "-X1021");
-    let labels: Vec<String> = children(&t, x).iter().map(|n| n.label.clone()).collect();
+    let labels: Vec<String> = children(&t, x)
+        .iter()
+        .filter(|n| n.role == NavRole::Terminal)
+        .map(|n| n.label.clone())
+        .collect();
     let want: Vec<String> = (1..=8).map(|n| n.to_string()).collect();
     assert_eq!(labels, want);
     for n in children(&t, x) {
@@ -546,6 +552,7 @@ fn insert_and_move_compile_to_one_command() {
     let t = s.navigator_table(NavKind::Strips);
     let labels: Vec<String> = children(&t, strip_node(&t, "-X1021"))
         .iter()
+        .filter(|n| n.role == NavRole::Terminal)
         .map(|n| n.label.clone())
         .collect();
     assert_eq!(&labels[3..7], ["4", "9", "10", "5"]);
@@ -659,4 +666,91 @@ fn several_cells_compile_to_one_set_many() {
         })
         .unwrap_err();
     assert_eq!(err, StripEditError::Refused("table-no-bridge"));
+}
+
+/// The strip editor lists what the terminals' parts bring (doc 07 §5): -X1031 starts and ends with its end brackets
+/// "with EW-GEN-TRM-1" and has its end plate after the last terminal whose part names it; Delete on the end plate's row
+/// is the strip's choice, which leaves it off (its row then says so) and the parts list with it; the Part cell of a
+/// terminal sets its part's variant.
+#[test]
+fn what_the_parts_bring_stands_in_the_strip_and_is_left_off_by_its_choice() {
+    let mut s = common::sample();
+    let t = s.navigator_table(NavKind::Strips);
+    let col = |key: &str| t.columns.iter().position(|c| c.key == key).unwrap();
+    let rows = children(&t, strip_node(&t, "-X1031"));
+    let derived: Vec<&&NavNode> = rows.iter().filter(|n| n.key.contains("/derived:")).collect();
+    assert_eq!(rows.first().map(|n| n.label.as_str()), Some("End bracket"));
+    assert_eq!(rows.last().map(|n| n.label.as_str()), Some("End bracket"));
+    assert_eq!(rows[0].cells[col("potential")], "with EW-GEN-TRM-1");
+    let plate = derived
+        .iter()
+        .find(|n| n.label == "End plate")
+        .expect("the end plate's row");
+    let of: Uuid = ew_api::output::table_edit::derived_of(plate).expect("its accessory");
+    let x = strip(&s, "-X1031");
+    let cmd = s
+        .strip_edit(&StripEdit::Choice {
+            strip: x,
+            of,
+            part: None,
+        })
+        .unwrap();
+    assert_eq!(
+        (cmd.name.as_str(), &cmd.params["path"]),
+        ("fields.set", &json!("accessory_choices"))
+    );
+    run(&mut s, &cmd);
+    let t = s.navigator_table(NavKind::Strips);
+    let left = children(&t, strip_node(&t, "-X1031"))
+        .into_iter()
+        .find(|n| n.key.contains("/derived:") && n.label == "End plate")
+        .expect("the row left off");
+    assert!(left.badges.contains(&"left off".to_owned()), "{:?}", left.badges);
+    // The Part cell of a terminal whose part has variants chooses one: the blue terminal of -X1011 back to grey.
+    let n = terminal(&s, "-X1011", "N");
+    let cmd = s
+        .strip_edit(&StripEdit::Variant {
+            terminal: n,
+            text: String::new(),
+        })
+        .unwrap();
+    run(&mut s, &cmd);
+    let q = s.query();
+    let device = q.devices().get(Id::<Device>::from_uuid(n)).unwrap();
+    assert!(device.parts.iter().all(|u| u.part.variant.is_none()));
+}
+
+/// Properties of -X1031 list what its terminals' parts bring, one row per kind: emptying the End plate row leaves it
+/// off the strip (its choice), typing its number takes it again.
+#[test]
+fn a_strips_properties_take_or_leave_its_accessories() {
+    let mut s = common::sample();
+    let x = strip(&s, "-X1031");
+    let leave = s
+        .layout_edit(&ew_api::output::LayoutEdit {
+            kind: "device".into(),
+            target: x,
+            others: Vec::new(),
+            row: "derived.accessory.end_plate".into(),
+            text: String::new(),
+        })
+        .expect("leave it off");
+    run(&mut s, &leave);
+    let q = s.query();
+    let device = q.devices().get(Id::<Device>::from_uuid(x)).unwrap();
+    assert!(device.accessory_choices.iter().any(|c| c.part.is_none()));
+    drop(q);
+    let take = s
+        .layout_edit(&ew_api::output::LayoutEdit {
+            kind: "device".into(),
+            target: x,
+            others: Vec::new(),
+            row: "derived.accessory.end_plate".into(),
+            text: "EW-GEN-EP-1".into(),
+        })
+        .expect("take it again");
+    run(&mut s, &take);
+    let q = s.query();
+    let device = q.devices().get(Id::<Device>::from_uuid(x)).unwrap();
+    assert!(device.accessory_choices.iter().all(|c| c.part.is_some()));
 }

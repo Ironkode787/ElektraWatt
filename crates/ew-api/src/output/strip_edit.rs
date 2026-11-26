@@ -38,7 +38,7 @@ pub enum StripCell {
     Group,
     /// A terminal's bridge part.
     BridgePart,
-    /// An accessory's part.
+    /// An accessory's part; a terminal's variant (its part's own number or a variant's).
     AccessoryPart,
 }
 
@@ -77,6 +77,23 @@ pub enum StripEdit {
         /// The kind's word (`end_plate`, `end_clamp`, `partition`, `marker`, `cover`).
         kind: String,
         /// The part text; `None`: the one project part copy of the kind's part kinds.
+        part: Option<String>,
+    },
+    /// The variant of the part of `terminal`: a variant's words or key; the part's own number or `""` clears it.
+    Variant {
+        /// The terminal device.
+        terminal: Uuid,
+        /// The text.
+        text: String,
+    },
+    /// The strip's choice of the accessory `of` its terminals' parts bring: `None` leaves it off the strip, a part
+    /// text takes that part instead.
+    Choice {
+        /// The strip device.
+        strip: Uuid,
+        /// The accessory copy the declaration names.
+        of: Uuid,
+        /// The part text; `None`: left off.
         part: Option<String>,
     },
     /// Removes accessories `indexes` of `strip`.
@@ -162,7 +179,9 @@ struct Work {
     accessories: Vec<(Id<Device>, Vec<Value>)>,
     /// Carrier connection → its new `overrides.wire_part`, in first-touch order.
     carriers: Vec<(Uuid, Value)>,
-    /// The order the touched values print in: (0 groups, 1 accessories, 2 carriers, index).
+    /// A device's member (`parts`, `accessory_choices`) → its new value, in first-touch order.
+    members: Vec<(Uuid, &'static str, Value)>,
+    /// The order the touched values print in: (0 groups, 1 accessories, 2 carriers, 3 members, index).
     order: Vec<(u8, usize)>,
 }
 
@@ -353,6 +372,36 @@ impl Session {
                         at,
                         json!({"after_seq": after_seq, "kind": kind, "part": {"copy": copy}}),
                     );
+                }
+                StripEdit::Variant { terminal, text } => {
+                    let value = super::properties::variant_parts(&q, Id::from_uuid(*terminal), text.trim())
+                        .map_err(StripEditError::Invalid)?;
+                    work.member(*terminal, "parts", value);
+                }
+                StripEdit::Choice { strip, of, part } => {
+                    let device = q
+                        .devices()
+                        .get(Id::from_uuid(*strip))
+                        .ok_or_else(|| StripEditError::Invalid(text!("refusal-strip-not-strip")))?;
+                    let mut choices = work.member_value(*strip, "accessory_choices").unwrap_or_else(|| {
+                        serde_json::to_value(&device.accessory_choices).unwrap_or(Value::Null)
+                    });
+                    let list = choices.as_array_mut().map(std::mem::take).unwrap_or_default();
+                    let mut list: Vec<Value> = list
+                        .into_iter()
+                        .filter(|c| c.get("of").and_then(Value::as_str) != Some(of.to_string().as_str()))
+                        .collect();
+                    let mut entry = json!({ "of": of.to_string() });
+                    if let Some(text) = part {
+                        let kind = q
+                            .parts()
+                            .get(Id::from_uuid(*of))
+                            .map(|c| crate::part_offers::kind_word(&c.item.kind))
+                            .unwrap_or_default();
+                        entry["part"] = json!({ "copy": resolve(&cx, text, &[kind.as_str()])? });
+                    }
+                    list.push(entry);
+                    work.member(*strip, "accessory_choices", Value::Array(list));
                 }
                 StripEdit::RemoveAccessories { strip, indexes } => {
                     let list = accessories_of(&q, &mut work, *strip)?;
@@ -650,6 +699,29 @@ fn bridge_part(
 }
 
 impl Work {
+    /// Sets the device member `path` of `device` to `value` (the last gesture on it wins).
+    fn member(&mut self, device: Uuid, path: &'static str, value: Value) {
+        match self
+            .members
+            .iter()
+            .position(|(d, p, _)| *d == device && *p == path)
+        {
+            Some(i) => self.members[i].2 = value,
+            None => {
+                self.order.push((3, self.members.len()));
+                self.members.push((device, path, value));
+            }
+        }
+    }
+
+    /// The value a gesture before gave the device member `path` of `device`.
+    fn member_value(&self, device: Uuid, path: &str) -> Option<Value> {
+        self.members
+            .iter()
+            .find(|(d, p, _)| *d == device && *p == path)
+            .map(|(_, _, v)| v.clone())
+    }
+
     /// One `fields.set` when every target gets the same (kind, path, value), else one `fields.set_many`.
     fn command(self) -> AnyCommand {
         // (kind, path, value, target) in print order.
@@ -677,6 +749,10 @@ impl Work {
                         Value::Array(list)
                     };
                     entries.push(("device", "strip.accessories", value, strip.as_uuid().to_string()));
+                }
+                3 => {
+                    let (device, path, value) = &self.members[*i];
+                    entries.push(("device", path, value.clone(), device.to_string()));
                 }
                 _ => {
                     let (carrier, value) = &self.carriers[*i];

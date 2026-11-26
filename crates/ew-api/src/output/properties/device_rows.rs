@@ -51,6 +51,120 @@ pub(crate) fn variant_label(part: &ew_schema::Part, key: Option<&str>) -> String
     }
 }
 
+/// The device's `parts` with the variant `text` given to its part use that has variants: one of the row's words, or a
+/// variant's key; the part's own number (or an empty text) clears it. Refused in words for a device without such a
+/// part and for a variant the part does not have. The Variant row of Properties and the strip editor's Variant cell
+/// both write it (`fields.set` of `parts`).
+pub(crate) fn variant_parts(q: &Q, device: Id<Device>, text: &str) -> Result<Value, crate::Text> {
+    let Some((at, _, part)) = variant_use(q, device) else {
+        return Err(text!("refusal-variant-no-part"));
+    };
+    let key = if text.is_empty() || text == variant_label(&part.item, None) {
+        None
+    } else {
+        let found = part.item.variants.iter().find(|v| {
+            v.key.as_str() == text
+                || variant_label(&part.item, Some(v.key.as_str())) == text
+                || v.name.neutral_or_first() == Some(text)
+                || part.item.with_variant(Some(v.key.as_str())).part_number.as_str() == text
+                || v.name.languages().any(|l| v.name.get(l) == Some(text))
+        });
+        match found {
+            Some(v) => Some(v.key.as_str().to_owned()),
+            None => {
+                return Err(text!(
+                    "refusal-variant-unknown",
+                    part.item.part_number.as_str(),
+                    text
+                ));
+            }
+        }
+    };
+    let Some(dev) = q.devices().get(device) else {
+        return Err(text!("refusal-variant-no-part"));
+    };
+    let mut uses = serde_json::to_value(&dev.parts).unwrap_or(Value::Null);
+    match key {
+        Some(k) => uses[at]["part"]["variant"] = Value::String(k),
+        None => {
+            if let Some(o) = uses[at]["part"].as_object_mut() {
+                o.remove("variant");
+            }
+        }
+    }
+    Ok(uses)
+}
+
+/// One accessory row of a strip's Properties ([`strip_accessory_rows`]): the row's name (`accessory.<kind>`), the
+/// accessory copy the declaration names, the part counted (empty: left off) and the parts it comes with.
+pub(crate) type StripAccessoryRow = (
+    &'static str,
+    Id<ew_schema::Part>,
+    String,
+    Vec<Id<ew_schema::Part>>,
+);
+
+/// The accessories of a strip its terminals' parts bring, one per kind (doc 07 §5, Properties ▸ Accessories): the
+/// row's name (`accessory.<kind>`), the accessory copy the declaration names, the part counted (empty: left off) and
+/// the parts it comes with.
+pub(crate) fn strip_accessory_rows(q: &Q, strip: Id<Device>) -> Vec<StripAccessoryRow> {
+    let Some(device) = q.devices().get(strip) else {
+        return Vec::new();
+    };
+    let name = |kind: &Option<ew_schema::AccessoryKind>| match kind {
+        Some(ew_schema::AccessoryKind::EndPlate) => Some("accessory.end_plate"),
+        Some(ew_schema::AccessoryKind::EndClamp) => Some("accessory.end_clamp"),
+        Some(ew_schema::AccessoryKind::Partition) => Some("accessory.partition"),
+        Some(ew_schema::AccessoryKind::Marker) => Some("accessory.marker"),
+        Some(ew_schema::AccessoryKind::Cover) => Some("accessory.cover"),
+        _ => None,
+    };
+    let number = |p: Id<ew_schema::Part>| {
+        q.parts()
+            .get(p)
+            .map(|c| c.item.part_number.as_str().to_owned())
+            .unwrap_or_default()
+    };
+    let mut out: Vec<StripAccessoryRow> = Vec::new();
+    let mut push = |row: StripAccessoryRow| {
+        if !out.iter().any(|o| o.0 == row.0) {
+            out.push(row);
+        }
+    };
+    if let Some(b) = ew_derive::strip_bracket(q, device)
+        && let Some(d) = &b.declared
+        && let Some(n) = name(&d.kind)
+    {
+        push((n, d.of, number(b.part.copy), vec![d.with]));
+    }
+    for a in ew_derive::strip_accessories(q, device) {
+        if let Some(n) = name(&a.kind) {
+            push((n, a.of, number(a.part.copy), a.with.clone()));
+        }
+    }
+    // Left off: a choice without a part, of an accessory its terminals' parts name.
+    for c in device.accessory_choices.iter().filter(|c| c.part.is_none()) {
+        let found = q.parts().iter().find_map(|(_, copy)| {
+            copy.item
+                .accessories
+                .iter()
+                .find(|a| {
+                    ew_ids::v5::lib_copy_id::<ew_schema::Part>(
+                        a.part.library.as_uuid(),
+                        a.part.item.as_uuid(),
+                    ) == c.of
+                })
+                .map(|a| (a.kind.clone(), copy.id))
+        });
+        if let Some((kind, from)) = found
+            && let Some(n) = name(&kind)
+        {
+            push((n, c.of, String::new(), vec![from]));
+        }
+    }
+    out
+}
+
 /// The Variant row's choices: the part's own number, then each variant's words.
 pub(crate) fn variant_options(part: &ew_schema::Part) -> Vec<String> {
     std::iter::once(variant_label(part, None))
@@ -321,6 +435,37 @@ impl Session {
                 provenance: Provenance::Authored,
                 actions: vec![RowAction::Edit],
             }));
+        }
+        // A strip's accessories its terminals' parts bring: one row per kind, the part counted, typed over to take
+        // another part, emptied to leave it off the strip (the strip's choice, through `Session::layout_edit`).
+        if let [one] = devices.as_slice() {
+            for (name, _, part, with) in strip_accessory_rows(q, *one) {
+                let with: Vec<String> = with
+                    .iter()
+                    .filter_map(|p| q.parts().get(*p).map(|c| c.item.part_number.as_str().to_owned()))
+                    .collect();
+                out.push(derived(DerivedRow {
+                    kind: "device",
+                    name,
+                    partner: Some((
+                        name,
+                        EditRoute::Command {
+                            command: "fields.set".to_owned(),
+                        },
+                        false,
+                    )),
+                    category: Category::Part,
+                    ty: FieldType::Optional(Box::new(FieldType::Text)),
+                    value: RowValue::One {
+                        json: Value::String(part.clone()),
+                        text: part,
+                    },
+                    provenance: Provenance::Derived {
+                        via: format!("with {}", with.join(", ")),
+                    },
+                    actions: vec![RowAction::Edit],
+                }));
+            }
         }
         // The PLC a bus device belongs to ("no such field in the switch's properties"): a station names
         // its PLC, read-only; a bus device in no PLC (JSON null) is given to one by choosing it, the PLCs by ID
