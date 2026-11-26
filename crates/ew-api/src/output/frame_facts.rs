@@ -111,6 +111,9 @@ pub struct FrameFacts {
     pub rows: Option<FrameAxis>,
     /// Whether the rulers are drawn.
     pub drawn: bool,
+    /// The language the project prints in (`en-GB`), whose entry of a cell's text Properties shows and writes; `None`:
+    /// the neutral text.
+    pub language: Option<String>,
 }
 
 fn rect_on(map: SheetMap, r: Rect) -> SheetRect {
@@ -299,6 +302,7 @@ impl Session {
             columns: grid.map(|g| axis(g, true)),
             rows: grid.map(|g| axis(g, false)),
             drawn: grid.is_some_and(ew_schema::FrameGrid::shows_grid),
+            language: bindings.language().map(ToString::to_string),
         })
     }
 }

@@ -55,12 +55,31 @@ const SHOWS_PICTURE: &str = "picture";
 const SHOWS_TEXT_ONLY: &str = "text_only";
 const LOGO: &str = "project.logo";
 
-/// The text of a multi-language text in the language the project prints in, else neutral.
-fn label_text(ml: &Value) -> String {
+/// The text of a cell's label in the language `language` the project prints in: a neutral text itself, else that
+/// language's entry, else the first.
+fn label_text(ml: &Value, language: Option<&str>) -> String {
     match ml {
         Value::String(s) => s.clone(),
-        Value::Object(m) => m.values().find_map(Value::as_str).unwrap_or_default().to_owned(),
+        Value::Object(m) => language
+            .and_then(|l| m.get(l))
+            .or_else(|| m.values().next())
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_owned(),
         _ => String::new(),
+    }
+}
+
+/// A cell's label with its text in `language` set to `text`: a label of several languages keeps the others (they stand
+/// under More), a neutral label or none becomes the neutral text.
+fn with_label(label: Option<&Value>, language: Option<&str>, text: &str) -> Value {
+    match (label, language) {
+        (Some(Value::Object(m)), Some(l)) => {
+            let mut m = m.clone();
+            m.insert(l.to_owned(), json!(text));
+            Value::Object(m)
+        }
+        _ => json!(text),
     }
 }
 
@@ -558,7 +577,10 @@ impl ShellModel {
                     key!("frame-cell-where"),
                     &[&facts.block_pages.len().to_string()],
                 ));
-                let label = item.get("label").map(label_text).unwrap_or_default();
+                let label = item
+                    .get("label")
+                    .map(|l| label_text(l, facts.language.as_deref()))
+                    .unwrap_or_default();
                 let shows = self.shows_words(item.get("value").and_then(Value::as_str));
                 let style = item["style"].as_str().unwrap_or_default().to_owned();
                 let style_name = self
@@ -879,6 +901,7 @@ impl ShellModel {
             SHOWS_ROW if text == SHOWS_PICTURE => self.act_frame_picture(&Map::new()),
             _ => {
                 let row = row.to_owned();
+                let language = self.frame_facts().and_then(|f| f.language.clone());
                 self.edit_block(
                     move |item| {
                         for i in &cells {
@@ -887,7 +910,7 @@ impl ShellModel {
                                 TEXT_ROW if text.trim().is_empty() => {
                                     cell.as_object_mut().map(|m| m.remove("label"));
                                 }
-                                TEXT_ROW => cell["label"] = json!(text),
+                                TEXT_ROW => cell["label"] = with_label(cell.get("label"), language.as_deref(), &text),
                                 SHOWS_ROW if text == SHOWS_TEXT_ONLY => {
                                     cell.as_object_mut().map(|m| m.remove("value"));
                                 }
