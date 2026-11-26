@@ -97,6 +97,16 @@ Accepted on 2026-10-19. The decision text above is unchanged; these entries refi
    result, and a released revision keeps its archived PDF (ADR-0013), so what left the building does not change
    behind anyone's back. From 1.0 the decision above holds in full: an output-changing rule ships as a new profile
    version. It goes with ADR-0011's amendment on the file format (the latest version leads there too).
+4. **A committed route compares its stored inputs, in place of an input hash** (2026-11-26, release manager;
+   [12-3d](../design/12-3d-routing-thermal.md) §8.5). A `committed_route` (the producer above called `RouteWires` is
+   the action `layout.route`) stores its two ends (each pin's surface, place and height), its steps along the ducts
+   and its run, and no `input_hash`: a way is stale when an end's pin is no longer where it was, or when its run
+   measured again along the stored steps over the ducts as they are now differs from the stored one. EW-LAY-011
+   reports a stale way with its cause (a device moved, an end changed, a device unplaced, a duct changed or gone), and
+   a stale length is EW-LAY-011's; EW-MFG-001 counts the wires that have no length. The reason: a hash says only that
+   something changed, while the stored inputs say which device or duct did, which is what EW-LAY-011 and the toast
+   tell the person. A hash over every input Route read would also stale a way when anything else in the cabinet
+   changed, another wire or a new duct, and its recipe would be one more thing the format must keep exact.
 
 ## Consequences
 

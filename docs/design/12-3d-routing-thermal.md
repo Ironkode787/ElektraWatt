@@ -109,9 +109,10 @@ stands out of its surface is a number. Collision of solids comes with the 3D vie
 
 **The room a part keeps free.** A part's clearance (`mech.clearance`: top, bottom, left, right, front;
 [07](07-symbols-parts-macros.md) §2.5) is what its maker asks to keep free around it, for heat, for an arc or for a
-hand. Its zone on the surface is the footprint grown by the four sides, turned with the part. On a rail, placing and moving keep the left and the right
-clear already (the snap pads them, §3.3); the zone judges the rest: what stands above and below, and a device put
-closer by hand (Shift while dragging, a typed position) or by a later change of its part. EW-LAY-007 reports each
+hand. Its zone on the surface is the footprint grown by the four sides, turned with the part. On a rail, placing and
+moving keep the left and the right clear already (the snap pads them, §3.3); the zone judges the rest: what stands
+above and below, and a device put closer by hand (Shift while dragging, a typed position) or by a later change of its
+part. EW-LAY-007 reports each
 footprint and each duct inside a zone once, naming the two, the side and the amount: "-101G1 keeps 25 mm free below
 it (its part's clearance); duct 1 is 10 mm from it, 15 mm too close". The device's own rail and the end brackets of
 strips are not judged, nor the zone of an unknown footprint.
@@ -119,20 +120,22 @@ strips are not judged, nor the zone of an unknown footprint.
 **What a thing takes out of its surface.** A device on a rail takes the rail's height (from its profile: 7.5 mm for
 TS 35 × 7.5, 15 mm for TS 35 × 15 and TS 32, 5.5 mm for TS 15; the last two unverified) plus its part's depth plus the
 clearance its part keeps in front; a device on the plate itself its depth and its front clearance; a duct its height.
-A device in the door takes its depth behind the door, from the door's inside face (§2.2).
+A device in the door takes what it reaches behind the door (`behind_door`, §2.6: its part's depth and its deepest
+contact block).
 
-**The closed door.** The room between the plate and the closed door is the door's (§2.2: the plate's depth to the
-door). EW-LAY-006 reports, naming the things:
+**The closed door.** The room between the plate and the closed door is the enclosure part's usable depth
+(`sections.enclosure.usable_depth`, §2.5). EW-LAY-006 reports, naming the things:
 
 - a device or a duct of the plate that takes more than that room: "-101G1 reaches 117.5 mm from the plate; the closed
   door is 110 mm away";
-- a device of the plate and a device of the door whose footprints overlap when the door is closed, seen from the
-  front, and which together take more than the room: "-101G1 and -102S1 in the door meet when the door is closed: they
-  take 117.5 and 45 mm of the 150 mm between the plate and the door".
+- a device or a duct of the plate and a device of the door whose footprints overlap when the door is closed, seen from
+  the front (`to_enclosure`, §2.8), and which together take more than the room: "-101G1 and -102S1 in the door meet
+  when the door is closed: they take 117.5 and 100 mm of the 200 mm between the plate and the door".
 
-A device without a depth is not judged, nor a cabinet whose room to the door is not known; the device's Properties
-say "Depth not known: the closed door is not checked for it". On the sample no device reaches the door: the deepest,
--101G1, takes 117.5 mm (110 mm on its 7.5 mm rail).
+A device without a depth is not judged, nor a cabinet whose enclosure part gives no usable depth; the device's
+Properties say "Depth not known: the closed door is not checked for it". On the sample nothing reaches the door: the
+deepest, -101G1, takes 117.5 of the 200 mm (110 mm on its 7.5 mm rail), and -102S1 in the door, in front of duct 1,
+takes 45 mm beside the duct's 60.
 
 ---
 
@@ -152,8 +155,9 @@ turned with the part:
   [07](07-symbols-parts-macros.md) §2.5);
 - else where the drawing shows it: a pin a wire leaves upwards on the page that draws it (its symbol's or its device
   box's connection point as the page turns it; of a function drawn twice, the first page in page order) is on the top
-  edge, any other on the bottom edge. A schematic draws a device's supply at the top, and that is where its maker puts it in
-  most cases; where he does not (a power supply with its input below), the part says so once, for every device of it.
+  edge, any other on the bottom edge. A schematic draws a device's supply at the top, and that is where its maker puts
+  it in most cases; where he does not (a power supply with its input below), the part says so once, for every device
+  of it.
 
 The pins of one edge share it evenly in the order of the part's pins (of the device's function CPs where it has no
 part): the k-th of n stands at (k + ½)/n of the edge. A terminal's pins stand on its own width within its strip
@@ -175,16 +179,19 @@ between them), a wire may run straight from pin to pin over the fronts: across p
 two heights. Route takes it where it is shorter than the way through the ducts: the sample's jumper 101.14 from
 -101G1:+#1 to -101G1:+#2, and 101.12 from -101F1:2 to -101G1:L, run so.
 
-**To the door.** A wire to a device in a door (§2.2) runs through the ducts to the end or the corner of a duct from
-which the rest is shortest; from there in free air to the plate's edge on the door's hinge side, across the hinge in
-the door loop the shop leaves (`workshop.door_loop`, §9), along the door from its hinge edge to the device (across
-plus up), and up half the device's depth to its pin. A pin in a door stands at its device's centre. Two devices in one
-door are joined directly on the door, device to device.
+**To the door.** A wire to a device in a door (§2.8) runs through the ducts to the end or the corner of a duct from
+which the rest is shortest; from there in free air to the plate's edge on the door's hinge side
+(`MountingSurface.hinge`, §2.8), across the hinge in the door loop the shop leaves (`workshop.door_loop`, §9), along
+the door from its hinge edge to the device (across plus up, the door's points and the plate's in one front view by
+`to_enclosure`, §2.8), and up half what the device reaches behind the door (`behind_door`, §2.6) to its pin. A pin in a
+door stands at its device's centre. Two devices in one door are joined directly on the door, device to device.
 
 **A wire that leaves the cabinet.** A wire with an end outside the cabinet (an external point, or a device of another
 location: a field wire, [13](13-manufacturing-outputs.md) §2.1) is made on site and gets no way. Inside the cabinet
 the shop wires to a terminal's inner side, and what leaves from its field side is a cable's. A cable's core gets no
-way: it is cut with its cable.
+way: it is cut with its cable and has its cable's length, as today (its Length says `cable`,
+[13](13-manufacturing-outputs.md) §3.3), also a core that ends on a terminal inside the cabinet after its cable came in
+through its gland (§3.9).
 
 ### 8.2 What is routed
 
@@ -258,8 +265,8 @@ loop and the fill are never stored.
 
 **When a way no longer holds.** A way holds while what it was laid from is as it was: its ends are the pins as they
 are now, and its run, measured again along its stored steps over the ducts as they are now, is the run it stored.
-These are the inputs it read, kept as they were and compared as they are (ADR-0003's input hash, here the inputs
-themselves: no hash is needed for two numbers and two points). It no longer holds (it is **stale**) when:
+These are the inputs it read, kept as they were and compared as they are, in place of an input hash (ADR-0003,
+amendment 4). It no longer holds (it is **stale**) when:
 
 - an end's pin is not where it was: its device moved, turned, went to another surface or another rail, or took
   another part ("-X1031 moved");
@@ -350,8 +357,8 @@ A typed length wins and stays as typed. Route still lays a typed wire, so that i
 say both: "Typed by hand. Route gives it 225 mm: clear the length to take it." No length is estimated before Route:
 a wire of the cabinet has a length when Route has laid it or when one is typed.
 
-**What a person is told.** Properties of a wire explain its length as one text with its numbers: "Routed: 881 mm of way,
-50 mm reserve at each end and a 300 mm door loop, rounded up to 1,285 mm"; "Stale: -X1031 moved. Route gives it a new
+**What a person is told.** Properties of a wire explain its length as one text with its numbers: "Routed: 821 mm of way,
+50 mm reserve at each end and a 300 mm door loop, rounded up to 1,225 mm"; "Stale: -X1031 moved. Route gives it a new
 way"; "No way yet: Route on page 902 gives it one, or type its length here"; "No way: -102S1 is not placed".
 
 **What reads the length.** The record is the one source (ADR-0018):
@@ -373,7 +380,7 @@ EW-LAY-011's (§8.5), not EW-MFG-001's.
 |---|---|---|---|
 | 101.4, -X1011:PE (clamp a) to -101G1:PE | down 117.5 into duct 1, climb 2.5, along 154.8, back across -101G1's front 185, climb 32.5 | 492.3 | 595 (+ 2 × 50, rounded up) |
 | 101.14, -101G1:+#1 to -101G1:+#2 | direct, along the bottom edge | 15.0 | 115 |
-| 104.3, -104A1-A1:M to -104E1:X2 in the door | back across the module's front 220, climb 15, along duct 1 to its hinge end 160.7, free air 25, along the door 440, up the lamp 20 | 880.7 | 1,285 (+ 2 × 50 + 300 loop) |
+| 104.3, -104A1-A1:M to -104E1:X2 in the door | back across the module's front 220, climb 15, along duct 1 to its hinge end 160.7, free air 25, along the door 380 (300 from the hinge, 80 up), up the lamp 20 | 820.7 | 1,225 (+ 2 × 50 + 300 loop) |
 
 ---
 
@@ -707,7 +714,7 @@ the accent. In the Preview tab the card:
 Undo. (4) In the Connections table (table mode) the Length column holds every length, in the secondary colour as a
 derived value, and Length from says "routed". (5) A wire selected there or on a schematic page shows its way on the
 panel page: a 2-px accent line from pin to pin, its pins as connection-point rings, and a chip with its number and
-length ("104.3 · 1,285 mm"); a device selected on the panel page shows the ways of its wires. Properties of the wire
+length ("104.3 · 1,225 mm"); a device selected on the panel page shows the ways of its wires. Properties of the wire
 show Length with its source chip and the explanation of §9, and the row Way ("Duct 1, door", "direct") with Show on
 902.
 
