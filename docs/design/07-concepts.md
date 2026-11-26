@@ -548,7 +548,8 @@ that fits it ([13](13-manufacturing-outputs.md) §4.4), a label set the first st
 ([13](13-manufacturing-outputs.md) §5.3). `cut_increment` is what the cut list rounds a piece up
 to ([13](13-manufacturing-outputs.md) §9.3) and a computed wire length once (13 §3.3), 5 mm when absent. A new project starts with the starter's generic
 ferrules and markers as its stock (`file.new` embeds and names them in its one step, §9.2); a company's basic project
-names its own; a project made before has none, and Project properties ▸ Workshop offers Add the generic stock.
+names its own; a project made before has none, and Project ▸ Add the generic stock (`workshop.add_generic`) adds the
+starter's ferrules and markers the stock lacks after its own, in one step.
 
 ### 2.6 Classification: ETIM bundled, ECLASS identifiers only
 

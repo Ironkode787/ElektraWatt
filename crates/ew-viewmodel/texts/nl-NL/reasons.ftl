@@ -281,6 +281,7 @@ reason-find-no-results = Er staat geen resultaat in de lijst
 reason-find-no-selection = Er is niets geselecteerd
 reason-find-replace = Vervangen wordt eerst als voorbeeld getoond
 reason-parts-import = Een import wordt eerst als voorbeeld getoond
+reason-workshop-generic-held = De werkplaatsvoorraad bevat de algemene adereindhulzen en merkers al
 error-parts-import = Artikeltabel geweigerd: { $p0 }
 reason-no-parts-map = Er wordt geen artikeltabel toegewezen
 error-find-field = Er is geen zoekveld { $p0 }

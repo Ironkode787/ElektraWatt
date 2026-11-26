@@ -3,7 +3,8 @@
 
 //! The workshop stock (doc 07 §2.5): a new project starts with the starter's ferrules and markers; `workshop.stock`
 //! embeds what it carries once and refuses a part that is no wire, ferrule or marker; a wire without a part takes the
-//! first stock wire part of its size and colour (`wire_part_of`); a wire part of another size is EW-MFG-022.
+//! first stock wire part of its size and colour (`wire_part_of`); a wire part of another size is EW-MFG-022; Add the
+//! generic stock adds the starter's ferrules and markers a stock lacks.
 
 use crate::common;
 
@@ -158,4 +159,32 @@ fn a_wire_takes_its_stock_part_and_a_part_of_another_size_is_reported() {
     )
     .expect("the wire's part");
     assert_eq!(none(&s), 1);
+}
+
+/// Add the generic stock: a project without stock gets the starter's ferrules and markers; a project that holds them
+/// all is offered nothing; one of its own stock parts stays first.
+#[test]
+fn add_the_generic_stock_adds_what_the_stock_lacks_after_its_own() {
+    let mut s = common::sample();
+    assert!(s.add_generic_stock_command().is_none(), "the sample holds the generic stock");
+    let (_, _, _, colour) = a_wire(&s.query());
+    let (own, own_doc) = wire_part(0x7103, "WIRE-OWN", "1.5", &colour);
+    run(
+        &mut s,
+        "workshop.stock",
+        json!({"stock": [{"copy": own.to_string()}], "copies": [own_doc]}),
+    )
+    .expect("a stock of one wire part");
+    let cmd = s.add_generic_stock_command().expect("the generic stock is missing");
+    run(&mut s, &cmd.name, cmd.params).expect("add the generic stock");
+    let q = s.query();
+    let stock = &q.project().settings.workshop.stock;
+    assert_eq!(stock.first().map(|r| r.copy), Some(own));
+    let number = |i: usize| {
+        let c: &LibCopy<Part> = q.parts().get(stock[i].copy).expect("a held stock part");
+        c.item.part_number.as_str().to_owned()
+    };
+    assert_eq!(number(1), "EW-GEN-FER-0.5");
+    drop(q);
+    assert!(s.add_generic_stock_command().is_none());
 }

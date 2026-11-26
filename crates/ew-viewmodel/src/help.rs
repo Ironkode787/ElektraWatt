@@ -384,7 +384,7 @@ fn family_topic(action: &str) -> Option<&'static str> {
         "lists" | "report_block" => Thing::List.topic(),
         "layout" | "rail" => Thing::PanelLayout.topic(),
         "part" => "symbol-editor-device-box",
-        "parts" => "guide-parts",
+        "parts" | "workshop" => "guide-parts",
         "page" | "pages" | "section" => nav_topic(NavKind::Pages),
         "structure" | "structure_box" => nav_topic(NavKind::Structure),
         "potential" => nav_topic(NavKind::Potentials),

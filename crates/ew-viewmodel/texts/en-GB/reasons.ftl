@@ -302,6 +302,7 @@ reason-find-replace = A replace is previewed first
 
 # The parts table import.
 reason-parts-import = An import is previewed first
+reason-workshop-generic-held = The workshop stock holds the generic ferrules and markers already
 error-parts-import = Parts table refused: { $p0 }
 reason-no-parts-map = No parts table is being mapped
 error-find-field = There is no find field { $p0 }

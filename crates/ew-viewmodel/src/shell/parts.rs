@@ -335,6 +335,18 @@ impl ShellModel {
         Outcome::Failed { message }
     }
 
+    /// `workshop.add_generic`: Add the generic stock (doc 07 §2.5): the starter's generic ferrules and markers the
+    /// project's workshop stock lacks join it after its own, one step; refused in words when it holds them all.
+    pub(crate) fn act_workshop_add_generic(&mut self) -> Outcome {
+        let Some(project) = &self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let Some(cmd) = project.session.add_generic_stock_command() else {
+            return Outcome::refused(key!("reason-workshop-generic-held"));
+        };
+        self.run_commit(&cmd)
+    }
+
     /// `parts.import {path}`: reads the table's header row and opens the column mapping step on it,
     /// pre-filled from the map saved for the file's source key, else from the `ew` dialect's headers when the file
     /// has exactly those. A table that cannot be read shows its problem in the banner and opens nothing.

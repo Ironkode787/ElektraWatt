@@ -180,6 +180,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
+    // Project, Add the generic stock: the starter's ferrules and markers the workshop stock lacks (doc 07 §2.5).
+    with_icon(
+        "packages",
+        act(
+            "workshop.add_generic",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            slot(Menu::Project),
+            |s, _| s.act_workshop_add_generic(),
+        ),
+    ),
     // The parts import's column mapping step (the card's fields and its Import button).
     with_params(
         "source?:text, column?:text, member?:text, target?:enum(devices|terminals|connections)",

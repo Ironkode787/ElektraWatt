@@ -275,6 +275,28 @@ fn with_generic_stock(model: Model) -> Result<Model, OpenError> {
     Ok(scratch.engine.model().clone())
 }
 
+impl Session {
+    /// Add the generic stock: the `workshop.stock` command that keeps the project's stock in its order and adds the
+    /// starter's generic ferrules and markers it lacks after it ([`generic_stock`]); `None` when it holds them all.
+    pub fn add_generic_stock_command(&self) -> Option<AnyCommand> {
+        let q = self.query();
+        let held: Vec<ew_schema::PartRef> = q.project().settings.workshop.stock.clone();
+        let (generic, copies) = generic_stock();
+        let added: Vec<ew_schema::PartRef> = generic
+            .into_iter()
+            .filter(|g| held.iter().all(|h| h.copy != g.copy))
+            .collect();
+        if added.is_empty() {
+            return None;
+        }
+        let stock: Vec<ew_schema::PartRef> = held.into_iter().chain(added).collect();
+        Some(AnyCommand {
+            name: "workshop.stock".into(),
+            params: serde_json::json!({ "stock": stock, "copies": copies }),
+        })
+    }
+}
+
 fn kind_of(kind: NewProjectKind) -> ProjectKind {
     match kind {
         NewProjectKind::Schematic => ProjectKind::Schematic,
