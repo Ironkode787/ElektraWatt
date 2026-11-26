@@ -169,7 +169,7 @@ pub use part_editor::{
     bus_words, mount_words, role_words,
 };
 pub use part_new::{NewPart, RemovedPart};
-pub use part_offers::{Fit, OfferView, PartOffer, PartOfferQuery, PartPick, PartTarget};
+pub use part_offers::{Fit, OfferMisfit, OfferView, PartOffer, PartOfferQuery, PartPick, PartTarget};
 pub use part_plc::{MAX_CHANNELS, PLC_MEMBERS, PlcRows, channel_kind_words, plc_role_words};
 
 /// The reference of an image file as the asset store makes it ([`sniff_asset`] and the SHA-256 of the bytes): what a

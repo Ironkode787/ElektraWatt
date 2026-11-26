@@ -507,12 +507,17 @@ impl ShellModel {
 
     /// Opens the part dialog for `t` with its offers.
     fn open_part_chooser(&mut self, t: Target) -> Outcome {
+        let devices = match &t.target {
+            PartTarget::Devices { devices, .. } => devices.clone(),
+            _ => Vec::new(),
+        };
         let chooser = PartChooser {
             target: t.target,
             target_text: t.text,
             tag: t.tag,
             query: PartOfferQuery {
                 function: t.function,
+                devices,
                 kinds: t.kinds,
                 ..PartOfferQuery::default()
             },

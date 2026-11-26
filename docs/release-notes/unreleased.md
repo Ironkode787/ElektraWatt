@@ -209,3 +209,6 @@ change here.
   legend (page 902 and its CSV and XLSX), the valve terminal list, the I/O list, the PLC overview and the bus lists,
   the strip editor and the SQL view's PLC channels, as the parts list did already; the legend no longer prints one
   number on two rows
+- behaviour-change: choosing a part for several devices at once (a strip's terminals without a part, a selection)
+  judges the fit on every device, not the first: an offer that does not fit all says for how many and names the first
+  ("Does not fit 3 of 12; -X1:4: …"), and Only parts that fit hides only what fits none of them

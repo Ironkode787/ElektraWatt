@@ -246,11 +246,7 @@ impl ShellModel {
                     .filter(|d| project.session.cables().iter().any(|(c, _, _)| c == d)),
                 _ => None,
             };
-            // One device's part: what does not fit it says why (doc 07 §4.3, `PartOffer::misfit`).
-            let one = match &c.target {
-                PartTarget::Devices { devices, .. } if devices.len() == 1 => devices.first().copied(),
-                _ => None,
-            };
+            // What does not fit the devices says why, and for how many (doc 07 §4.3, `PartOffer::misfit`).
             let mut rows: Vec<(Option<String>, PartOffer)> = std::mem::take(&mut c.offers)
                 .into_iter()
                 .map(|o| {
@@ -258,9 +254,8 @@ impl ShellModel {
                         .and_then(|cable| project.session.cable_part_misfit(cable, &o.pick))
                         .map(|r| message_text(Key::run_time(r.key), &r.args))
                         .or_else(|| {
-                            let (device, misfit) = (one?, o.misfit.as_ref()?);
                             Some(crate::shell::text_words(
-                                &project.session.misfit_text(device, misfit),
+                                &project.session.offer_misfit_text(o.misfit.as_ref()?),
                             ))
                         });
                     (why, o)

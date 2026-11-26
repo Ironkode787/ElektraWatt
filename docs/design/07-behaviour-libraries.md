@@ -466,8 +466,11 @@ takes the wires on it: their effective cross-sections ([08](08-connections-termi
 `csa_min` … `csa_max`. A clamp without a range takes any wire, and the offer says that its clamp sizes are not
 given. An offer that does not fit says why in one sentence, the first reason found in this order: its function
 ("A part of another kind: a contactor, not a circuit breaker"), a pin it lacks ("It has no pin 4; -101F1:4 is
-wired"), a clamp's size ("Its clamp 2 takes 0.5 to 1.5 mm²; wire 102.1 is 2.5 mm²"). The order of offers puts
-fitting ones first; Only parts that fit hides the rest, which otherwise stand greyed with their reason. The fit reads
+wired"), a clamp's size ("Its clamp 2 takes 0.5 to 1.5 mm²; wire 102.1 is 2.5 mm²"). For several devices (a
+strip's terminals without a part, a selection of several) an offer fits when it fits every one; where it does not,
+its reason says for how many and names the first it does not fit ("Does not fit 3 of 12; -X1:4: Its clamp 1 takes
+0.5 to 1.5 mm²; wire 7 is 2.5 mm²"). The order of offers puts fitting ones first; Only parts that fit hides what fits
+none of the devices, and the rest stand greyed with their reason. The fit reads
 the part itself (a library part's document, a held part's copy; `ew_derive::part_fit`) and the device's wires through
 `wire_props_of`; nothing is stored.
 

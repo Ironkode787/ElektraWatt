@@ -120,6 +120,19 @@ impl OfferView {
     }
 }
 
+/// Why an offer does not fit the devices it is offered to ([`PartOffer::misfit`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct OfferMisfit {
+    /// The first device, in the query's order, that it does not fit.
+    pub device: Uuid,
+    /// Why it does not fit that device.
+    pub misfit: ew_derive::Misfit,
+    /// How many of the devices it does not fit.
+    pub count: usize,
+    /// How many devices it is offered to.
+    pub of: usize,
+}
+
 /// The dialog's query.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PartOfferQuery {
@@ -131,7 +144,10 @@ pub struct PartOfferQuery {
     pub category: Vec<String>,
     /// The target's function, whose FnDef orders the offers by their fit.
     pub function: Option<Uuid>,
-    /// Hide the offers that fit [`Fit::Other`] (only with a function).
+    /// The devices the part is chosen for (a strip's terminals without a part, a selection of several): an offer fits
+    /// when it fits every one ([`PartOffer::misfit`]); empty: the device of [`PartOfferQuery::function`].
+    pub devices: Vec<Uuid>,
+    /// Hide the offers that fit [`Fit::Other`] and those that fit none of the devices (only with a function).
     pub fits_only: bool,
     /// The view.
     pub view: OfferView,
@@ -168,9 +184,9 @@ pub struct PartOffer {
     pub kind: String,
     /// The fit to the target's function.
     pub fit: Fit,
-    /// Why the part does not fit the target's device (doc 07 §4.3 "What fits"): its function, a pin the device has
-    /// wired that it lacks, a clamp too small for a wire on it; `None` when it fits or there is no target function.
-    pub misfit: Option<ew_derive::Misfit>,
+    /// Why the part does not fit the target's devices (doc 07 §4.3 "What fits"): the first device it does not fit and
+    /// why, and for how many; `None` when it fits every one or there is no target function.
+    pub misfit: Option<OfferMisfit>,
     /// Whether the project holds the part.
     pub held: bool,
     /// The library the part comes from, as installed: (ID, name, tier); `None` for a project-local copy or a library
@@ -584,25 +600,40 @@ impl Session {
             OfferView::Favourites => o.favourite,
             OfferView::Recent => o.recent,
         });
-        // What fits the target's device: the first reason an offer does not, from the part and the device's wired pins
-        // and wires; a misfit ranks after every fitting offer.
-        if let Some(device) = q
-            .function
-            .filter(|_| compat.is_some())
-            .and_then(|f| query.functions().get(Id::from_uuid(f)).and_then(|f| f.device))
-        {
+        // What fits the target's devices: an offer fits when it fits every one; else the first device it does not fit
+        // with the first reason, from the part and that device's wired pins and wires, and for how many. A misfit
+        // ranks after every fitting offer.
+        let devices: Vec<Id<Device>> = if q.devices.is_empty() {
+            q.function
+                .and_then(|f| query.functions().get(Id::from_uuid(f)).and_then(|f| f.device))
+                .into_iter()
+                .collect()
+        } else {
+            q.devices.iter().map(|d| Id::from_uuid(*d)).collect()
+        };
+        if compat.is_some() && !devices.is_empty() {
             for (k, o) in &mut rows {
                 let Some(part) = self.offer_part(&o.pick) else {
                     continue;
                 };
-                o.misfit = ew_derive::part_fit(&query, device, &part, o.fit != Fit::Other);
-                if o.misfit.is_some() {
+                let misfits: Vec<(Id<Device>, ew_derive::Misfit)> = devices
+                    .iter()
+                    .filter_map(|d| Some((*d, ew_derive::part_fit(&query, *d, &part, o.fit != Fit::Other)?)))
+                    .collect();
+                if let Some((device, misfit)) = misfits.first().cloned() {
+                    o.misfit = Some(OfferMisfit {
+                        device: device.as_uuid(),
+                        misfit,
+                        count: misfits.len(),
+                        of: devices.len(),
+                    });
                     k.fit = Fit::Other;
                 }
             }
         }
+        // Only parts that fit hides what fits none of the devices; one that fits some stands greyed with its reason.
         if q.fits_only && compat.is_some() {
-            rows.retain(|(_, o)| o.fit != Fit::Other && o.misfit.is_none());
+            rows.retain(|(_, o)| o.fit != Fit::Other && o.misfit.as_ref().is_none_or(|m| m.count < m.of));
         }
         if compat.is_none() {
             for (k, _) in &mut rows {
@@ -820,7 +851,18 @@ pub(crate) fn lib_ref(library: Uuid, item: Uuid) -> LibRef {
 }
 
 impl Session {
-    /// The sentence that says why an offer does not fit `device` ([`PartOffer::misfit`], doc 07 §4.3): "It has no pin 4;
+    /// Why an offer does not fit the devices it is offered to, in one sentence: the reason for its one device, else for
+    /// how many of them and the first ("Does not fit 3 of 12; -X1:4: Its clamp 1 takes …").
+    pub fn offer_misfit_text(&self, m: &OfferMisfit) -> crate::Text {
+        let reason = self.misfit_text(m.device, &m.misfit);
+        if m.of < 2 {
+            return reason;
+        }
+        let tag = ew_derive::short_tag(&self.query(), Id::from_uuid(m.device));
+        text!("misfit-of", m.count.to_string(), m.of.to_string(), tag, reason)
+    }
+
+    /// The sentence that says why an offer does not fit `device` ([`OfferMisfit::misfit`], doc 07 §4.3): "It has no pin 4;
     /// -101F1:4 is wired", "Its clamp 2 takes 0.5 to 1.5 mm²; wire 102.1 is 2.5 mm²".
     pub fn misfit_text(&self, device: Uuid, misfit: &ew_derive::Misfit) -> crate::Text {
         let q = self.query();
