@@ -72,6 +72,7 @@ mod ip;
 mod items;
 mod joins;
 // The layout's pure geometry, the compatibility table and the pose validator
+mod labels;
 pub mod layout;
 mod links;
 mod marking;
@@ -212,7 +213,7 @@ pub use profile::{
 pub use q::{Cycle, IdxView, Q, TableView};
 pub use query::{Changes, Policy, Query};
 // The rework list between a release and now (doc 13 §3.5).
-pub use rework::{ReworkAction, ReworkChange, ReworkItem, WirePair, rework, wire_changes};
+pub use rework::{ReworkAction, ReworkChange, ReworkItem, ReworkSubject, WirePair, rework, wire_changes};
 pub use settings::{
     DrawingSettingsQ, Member, SettingsIssue, SettingsMember, TextStyles,
     check_member as check_settings_member, company_codes, text_styles,
@@ -228,6 +229,7 @@ pub use tag::{
     level_short_tag, main_rep_with, numbering_format, rep_level, rule_product, short_tag,
 };
 // How a value of the domain is printed.
+pub use labels::{LabelRecord, LabelRows, LabelSet, LabelTarget};
 pub use marking::{MarkedBy, MarkerText, NotMarked, marker_end_text, shorten, wire_marker_part};
 pub use text::{
     awg_gauge, bus_address, channel_address, channel_address_words, colour_code_text, colour_text, csa_text,

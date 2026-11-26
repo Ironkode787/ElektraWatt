@@ -66,11 +66,19 @@ impl ReworkDialog {
 fn counted(action: ReworkAction, n: usize) -> String {
     use ReworkAction as A;
     let key = match action {
+        A::RemoveDevice => crate::count_key!("rework-count-remove-device"),
+        A::RemoveTerminal => crate::count_key!("rework-count-remove-terminal"),
+        A::RemoveCable => crate::count_key!("rework-count-remove-cable"),
         A::Pull => crate::count_key!("rework-count-pull"),
         A::Replace => crate::count_key!("rework-count-replace"),
         A::MoveEnd => crate::count_key!("rework-count-move-end"),
         A::RemakeEnd => crate::count_key!("rework-count-remake-end"),
         A::CheckLength => crate::count_key!("rework-count-check-length"),
+        A::Remark => crate::count_key!("rework-count-remark"),
+        A::Relabel => crate::count_key!("rework-count-relabel"),
+        A::MountDevice => crate::count_key!("rework-count-mount-device"),
+        A::AddTerminal => crate::count_key!("rework-count-add-terminal"),
+        A::AddCable => crate::count_key!("rework-count-add-cable"),
         A::Add => crate::count_key!("rework-count-add"),
     };
     strings::format_count(key, n)

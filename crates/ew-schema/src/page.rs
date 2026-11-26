@@ -533,6 +533,8 @@ pub enum ReportKind {
     ValveTerminalConfig,
     /// Medium overview (FR-FLU-016).
     MediumOverview,
+    /// Labels: every label of the workshop, in the order the fitter applies them (doc 13 §5.3).
+    Labels,
     /// A kind of a newer format, kept verbatim.
     #[serde(skip)]
     Unknown(Value),

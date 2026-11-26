@@ -284,6 +284,10 @@ fn workshop_defaults(built: &mut [Built]) {
         ),
         ("project/settings.workshop.mark_cores", Ok(Value::Bool(false))),
         ("project/settings.workshop.mark_jumpers", Ok(Value::Bool(false))),
+        (
+            "project/settings.workshop.device_labels",
+            serde_json::to_value(ew_schema::DeviceLabels::default()),
+        ),
     ];
     for b in built.iter_mut().filter(|b| b.row.value == RowValue::Absent) {
         if let Some((_, Ok(json))) = defaults.iter().find(|(key, _)| *key == b.row.key) {

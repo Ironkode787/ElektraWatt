@@ -126,6 +126,21 @@
         }
       ]
     },
+    "DeviceLabels": {
+      "description": "Where a device's label goes ([`WorkshopSettings::device_labels`], doc 13 §5.3).",
+      "oneOf": [
+        {
+          "const": "on_device",
+          "description": "On the device.",
+          "type": "string"
+        },
+        {
+          "const": "on_device_and_beside",
+          "description": "On the device and beside it, on the mounting plate: two labels.",
+          "type": "string"
+        }
+      ]
+    },
     "EarthingSystem": {
       "description": "Earthing system of the supply.",
       "oneOf": [
@@ -1255,6 +1270,10 @@
             }
           ],
           "description": "What the cut list rounds a piece up to; absent: 5 mm."
+        },
+        "device_labels": {
+          "$ref": "#/$defs/DeviceLabels",
+          "description": "Where a device's label goes (doc 13 §5.3); absent: on the device."
         },
         "ferrules": {
           "$ref": "#/$defs/FerruleRule",

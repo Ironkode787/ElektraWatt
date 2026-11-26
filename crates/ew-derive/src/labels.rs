@@ -1,0 +1,262 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! `label_rows()`: every label of the project in the order the fitter applies them (doc 13 §5.3), one engine for every
+//! label set: the wire markers of `wire_record_set()`, the terminal and strip markers, the cable markers, the device
+//! labels, the tube markers of the tube list and the plates of the door. Each label names its marker part, the first
+//! marker of the workshop stock that marks its set, and whether its text fits it.
+
+use std::sync::Arc;
+
+use ew_ids::Id;
+use ew_mltext::natural_key;
+use ew_schema::{Connection, Device, DeviceLabels, MarkTarget, MountKind, Part};
+
+use crate::fluid_rows::TubeRows;
+use crate::marking::{MarkerText, shorten};
+use crate::q::Q;
+use crate::query::{Policy, Query};
+use crate::tag::short_tag;
+use crate::wire_record::WireRecordSet;
+
+/// The label sets (doc 13 §5.3), in the order the fitter applies them.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum LabelSet {
+    /// The markers of the wire ends.
+    WireMarkers,
+    /// The markers of the terminals.
+    TerminalMarkers,
+    /// The markers of the strips.
+    StripMarkers,
+    /// The markers of the cables.
+    CableMarkers,
+    /// The labels of the devices.
+    DeviceLabels,
+    /// The markers of the tube ends.
+    TubeMarkers,
+    /// The plates of the devices in the door.
+    Plates,
+}
+
+impl LabelSet {
+    /// Every set, in order.
+    pub const ALL: [LabelSet; 7] = [
+        LabelSet::WireMarkers,
+        LabelSet::TerminalMarkers,
+        LabelSet::StripMarkers,
+        LabelSet::CableMarkers,
+        LabelSet::DeviceLabels,
+        LabelSet::TubeMarkers,
+        LabelSet::Plates,
+    ];
+
+    /// What a stock marker that prints this set marks (`sections.marker.marks`).
+    pub fn marks(self) -> MarkTarget {
+        match self {
+            LabelSet::WireMarkers | LabelSet::TubeMarkers => MarkTarget::Wire,
+            LabelSet::TerminalMarkers | LabelSet::StripMarkers => MarkTarget::Terminal,
+            LabelSet::CableMarkers => MarkTarget::Cable,
+            LabelSet::DeviceLabels | LabelSet::Plates => MarkTarget::Device,
+        }
+    }
+}
+
+/// What a label marks.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum LabelTarget {
+    /// The end (0 From, 1 To) of a wire (its ID).
+    WireEnd(Id<Connection>, u8),
+    /// A terminal, a strip, a cable or a device.
+    Device(Id<Device>),
+    /// The end (0 from, 1 to) of a tube (its ID).
+    TubeEnd(Id<Connection>, u8),
+}
+
+/// One label (doc 13 §2.4).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct LabelRecord {
+    /// Its set.
+    pub set: LabelSet,
+    /// What it marks.
+    pub target: LabelTarget,
+    /// Its lines, shortened to its marker part where it names lines and characters.
+    pub lines: Vec<String>,
+    /// How many the fitter prints.
+    pub copies: u8,
+    /// The stock's marker that marks its set.
+    pub marker_part: Option<Id<Part>>,
+    /// Whether its text fits the marker part.
+    pub fits: bool,
+}
+
+/// `label_rows()`: see the module documentation. Policy Cold.
+#[derive(Clone, Copy, Debug)]
+pub struct LabelRows;
+
+impl Query for LabelRows {
+    type Key = ();
+    type Value = Vec<LabelRecord>;
+    const FAMILY: &'static str = "label_rows";
+    const POLICY: Policy = Policy::Cold;
+
+    fn run(q: &Q, _key: &()) -> Arc<Vec<LabelRecord>> {
+        let workshop = &q.project().settings.workshop;
+        let parts = q.parts();
+        let marker = |set: LabelSet| {
+            workshop.stock.iter().find_map(|r| {
+                let m = parts.get(r.copy)?.item.sections.marker.as_ref()?;
+                (m.marks == set.marks()).then_some((r.copy, m.lines, m.chars))
+            })
+        };
+        let mut out = Vec::new();
+        let mut push = |set: LabelSet, target: LabelTarget, made: Vec<String>, copies: u8| {
+            let part = marker(set);
+            let (lines, fits) = shorten(&made, part.and_then(|p| p.1), part.and_then(|p| p.2));
+            out.push(LabelRecord {
+                set,
+                target,
+                lines,
+                copies,
+                marker_part: part.map(|p| p.0),
+                fits,
+            });
+        };
+        // Wire markers: the wire list's order, the From end before the To end, as `wire_record_set()` marks them.
+        for r in q.get::<WireRecordSet>(()).iter() {
+            for (i, end) in r.ends.iter().enumerate() {
+                if let MarkerText::Lines(lines) = &end.marker {
+                    let i = u8::try_from(i).unwrap_or(0);
+                    push(
+                        LabelSet::WireMarkers,
+                        LabelTarget::WireEnd(r.wire.id, i),
+                        lines.clone(),
+                        1,
+                    );
+                }
+            }
+        }
+        // The devices by their tags, in natural order.
+        let devices = q.devices();
+        let mut by_tag: Vec<(Id<Device>, String)> = devices
+            .iter()
+            .map(|(id, _)| (id, short_tag(q, id)))
+            .filter(|(_, t)| !t.is_empty())
+            .collect();
+        by_tag.sort_by_cached_key(|(id, t)| (natural_key(t), *id));
+        let strips: Vec<&(Id<Device>, String)> = by_tag
+            .iter()
+            .filter(|(id, _)| devices.get(*id).is_some_and(|d| d.aspects.strip.is_some()))
+            .collect();
+        // Terminal markers: strips in natural tag order, terminals in mounting order; the designation.
+        for (strip, _) in &strips {
+            let mut terminals: Vec<_> = q
+                .idx()
+                .terminals_of_strip(*strip)
+                .filter_map(|t| devices.get(t).cloned())
+                .collect();
+            terminals.sort_by_key(|t| (t.aspects.terminal.as_ref().map_or(0, |a| a.seq), t.id));
+            for t in terminals {
+                let Some(designation) = t
+                    .aspects
+                    .terminal
+                    .as_ref()
+                    .map(|a| a.designation.as_str().to_owned())
+                else {
+                    continue;
+                };
+                push(
+                    LabelSet::TerminalMarkers,
+                    LabelTarget::Device(t.id),
+                    vec![designation],
+                    1,
+                );
+            }
+        }
+        // Strip markers: the strip's tag.
+        for (strip, tag) in &strips {
+            push(
+                LabelSet::StripMarkers,
+                LabelTarget::Device(*strip),
+                vec![tag.clone()],
+                1,
+            );
+        }
+        // Cable markers: the cable's tag, one per end.
+        for (id, tag) in by_tag
+            .iter()
+            .filter(|(id, _)| devices.get(*id).is_some_and(|d| d.aspects.cable.is_some()))
+        {
+            push(
+                LabelSet::CableMarkers,
+                LabelTarget::Device(*id),
+                vec![tag.clone()],
+                2,
+            );
+        }
+        // Device labels: a device with a part of its own that is no terminal, strip, cable or carrier.
+        let carrier = |p: &ew_schema::PartRef| {
+            parts.get(p.copy).is_some_and(|c| {
+                let s = &c.item.sections;
+                s.enclosure.is_some() || s.duct.is_some() || s.rail.is_some() || s.mounting_plate.is_some()
+            })
+        };
+        let door = |d: &Device| {
+            d.parts.iter().any(|u| {
+                parts
+                    .get(u.part.copy)
+                    .and_then(|c| c.item.mech.as_ref())
+                    .and_then(|m| m.mount_kind.as_ref())
+                    .is_some_and(|k| *k == MountKind::DoorCutout)
+            })
+        };
+        let copies = match workshop.device_labels {
+            DeviceLabels::OnDeviceAndBeside => 2,
+            DeviceLabels::OnDevice | DeviceLabels::Unknown(_) => 1,
+        };
+        for (id, tag) in &by_tag {
+            let Some(d) = devices.get(*id) else { continue };
+            let a = &d.aspects;
+            if a.terminal.is_some() || a.strip.is_some() || a.cable.is_some() || d.parts.is_empty() {
+                continue;
+            }
+            if d.parts.iter().all(|u| carrier(&u.part)) {
+                continue;
+            }
+            push(
+                LabelSet::DeviceLabels,
+                LabelTarget::Device(*id),
+                vec![tag.clone()],
+                copies,
+            );
+        }
+        // Tube markers: the tube's tag, else the far end as seen from this end; the tube list's order.
+        for t in q.get::<TubeRows>(()).iter() {
+            for (i, (_, other)) in [(&t.from, &t.to), (&t.to, &t.from)].into_iter().enumerate() {
+                let text = if t.tag.is_empty() {
+                    other.text.clone()
+                } else {
+                    t.tag.clone()
+                };
+                let i = u8::try_from(i).unwrap_or(0);
+                push(
+                    LabelSet::TubeMarkers,
+                    LabelTarget::TubeEnd(t.id, i),
+                    vec![text],
+                    1,
+                );
+            }
+        }
+        // Plates: a device in the door by its function text in the project's language.
+        for (id, _) in &by_tag {
+            let Some(d) = devices.get(*id) else { continue };
+            if !door(d) {
+                continue;
+            }
+            let text = crate::text_in(&d.function_text, crate::print_language(q).as_ref()).to_owned();
+            if !text.is_empty() {
+                push(LabelSet::Plates, LabelTarget::Device(*id), vec![text], 1);
+            }
+        }
+        Arc::new(out)
+    }
+}

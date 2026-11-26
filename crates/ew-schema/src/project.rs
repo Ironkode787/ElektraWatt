@@ -462,9 +462,28 @@ pub struct WorkshopSettings {
     /// Whether a jumper on one device carries a marker; absent: no.
     #[serde(default, skip_serializing_if = "is_false")]
     pub mark_jumpers: bool,
+    /// Where a device's label goes (doc 13 §5.3); absent: on the device.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub device_labels: DeviceLabels,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+/// Where a device's label goes ([`WorkshopSettings::device_labels`], doc 13 §5.3).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "DeviceLabels")]
+pub enum DeviceLabels {
+    /// On the device.
+    #[default]
+    OnDevice,
+    /// On the device and beside it, on the mounting plate: two labels.
+    OnDeviceAndBeside,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// What a wire's marker says ([`WorkshopSettings::marking`], doc 13 §5.1).
@@ -1177,6 +1196,7 @@ open_enum!(
     FerruleRule,
     TwoWires,
     Marking,
+    DeviceLabels,
 );
 
 #[cfg(test)]

@@ -275,33 +275,13 @@ impl ReportKindDef for TubeLabels {
         ReportKind::TubeLabels
     }
 
+    /// The label list's columns (doc 13 §5.3): the tube markers are labels of the one label engine.
     fn columns(&self) -> Vec<ColumnDef> {
-        vec![
-            ColumnDef::new("tube", CellType::Ident, text!("column-tube")).weighted(16),
-            ColumnDef::new("at", CellType::Ident, text!("column-at")).weighted(14),
-            ColumnDef::new("text", CellType::Ident, text!("column-label-text")).weighted(14),
-        ]
+        super::labels::label_columns()
     }
 
     fn rows(&self, q: &Q, _block: &ReportBlock) -> RowSet {
-        let mut set = RowSet::new(self.columns());
-        for r in q.get::<TubeRows>(()).iter() {
-            let name = r.name();
-            for (i, (end, other)) in [(&r.from, &r.to), (&r.to, &r.from)].into_iter().enumerate() {
-                let mut cells = vec![Cell::Empty; set.columns.len()];
-                put(&set.columns, &mut cells, "tube", ml_cell(name.clone()));
-                put(&set.columns, &mut cells, "at", end_cell(end));
-                let label = if r.tag.is_empty() {
-                    end_cell(other)
-                } else {
-                    Cell::ident(&r.tag)
-                };
-                put(&set.columns, &mut cells, "text", label);
-                let id = RowId::entity(r.id).with(RowKey::Index(u32::try_from(i).unwrap_or(0)));
-                set.rows.push(Row::data(id, cells));
-            }
-        }
-        set
+        super::labels::label_set_rows(q, |set| set == ew_derive::LabelSet::TubeMarkers)
     }
 }
 

@@ -321,11 +321,19 @@ pub fn wire_length_source(length: &WireLength) -> Text {
 /// A rework action in words (doc 13 §3.5): "Pull", "Move end".
 pub fn rework_action(action: ReworkAction) -> Text {
     match action {
+        ReworkAction::RemoveDevice => text!("rework-remove-device"),
+        ReworkAction::RemoveTerminal => text!("rework-remove-terminal"),
+        ReworkAction::RemoveCable => text!("rework-remove-cable"),
         ReworkAction::Pull => text!("rework-pull"),
         ReworkAction::Replace => text!("rework-replace"),
         ReworkAction::MoveEnd => text!("rework-move-end"),
         ReworkAction::RemakeEnd => text!("rework-remake-end"),
         ReworkAction::CheckLength => text!("rework-check-length"),
+        ReworkAction::Remark => text!("rework-remark"),
+        ReworkAction::Relabel => text!("rework-relabel"),
+        ReworkAction::MountDevice => text!("rework-mount-device"),
+        ReworkAction::AddTerminal => text!("rework-add-terminal"),
+        ReworkAction::AddCable => text!("rework-add-cable"),
         ReworkAction::Add => text!("rework-add"),
     }
 }
@@ -361,6 +369,26 @@ pub fn rework_change(change: &ReworkChange) -> Text {
                 .map_or_else(|| NONE.into(), TextArg::from)
             };
             text!("rework-change-remake", at.clone(), words(b), words(a))
+        }
+        ReworkChange::Remark(at, b, a) => {
+            let lines = |l: &[String]| {
+                if l.is_empty() {
+                    NONE.to_owned()
+                } else {
+                    l.join(" / ")
+                }
+            };
+            text!("rework-change-remark", at.clone(), lines(b), lines(a))
+        }
+        ReworkChange::Relabel(b, a) => {
+            let lines = |l: &[String]| {
+                if l.is_empty() {
+                    NONE.to_owned()
+                } else {
+                    l.join(" / ")
+                }
+            };
+            text!("rework-change-relabel", lines(b), lines(a))
         }
         ReworkChange::Length(b, a) => {
             let value = |l: &WireLength, unit: bool| -> TextArg {
@@ -854,4 +882,18 @@ pub fn end_treatment(
         EndTreatment::Unknown { .. } => text!("treatment-unknown"),
         EndTreatment::External => return None,
     })
+}
+
+/// A label set in words (doc 13 §5.3): "Wire markers", "Device labels".
+pub fn label_set(set: crate::labels::LabelSet) -> Text {
+    use crate::labels::LabelSet as S;
+    match set {
+        S::WireMarkers => text!("label-set-wire-markers"),
+        S::TerminalMarkers => text!("label-set-terminal-markers"),
+        S::StripMarkers => text!("label-set-strip-markers"),
+        S::CableMarkers => text!("label-set-cable-markers"),
+        S::DeviceLabels => text!("label-set-device-labels"),
+        S::TubeMarkers => text!("label-set-tube-markers"),
+        S::Plates => text!("label-set-plates"),
+    }
 }

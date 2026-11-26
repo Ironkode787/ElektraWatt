@@ -39,6 +39,7 @@ report-rows-tube-cut-list = A tube gives it rows
 report-rows-tube-labels = A tube gives it rows
 report-rows-valve-terminal-config = A valve terminal gives it rows: place one from Device ▸ Valve terminals
 report-rows-medium-overview = A medium on a tube gives it rows
+report-rows-labels = A label of the workshop gives it rows
 # The export toast names its pages by kind.
 export-pages-drawing = { $p0 ->
         [one] 1 drawing page

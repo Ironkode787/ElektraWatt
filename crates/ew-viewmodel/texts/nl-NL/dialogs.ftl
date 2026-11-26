@@ -146,6 +146,38 @@ rework-export = Exporteren…
 rework-work = Het werk: { $p0 }.
 rework-nothing = Niets te veranderen: het project is zoals het vrijgegeven is.
 rework-not-listed = Niet vermeld: draden die alleen op een pagina verschoven of een andere route kregen, en een nieuw draadnummer.
+rework-count-remove-device = { $p0 ->
+        [one] 1 apparaat te verwijderen
+       *[other] { $p0 } apparaten te verwijderen
+    }
+rework-count-remove-terminal = { $p0 ->
+        [one] 1 klem te verwijderen
+       *[other] { $p0 } klemmen te verwijderen
+    }
+rework-count-remove-cable = { $p0 ->
+        [one] 1 kabel te verwijderen
+       *[other] { $p0 } kabels te verwijderen
+    }
+rework-count-remark = { $p0 ->
+        [one] 1 markering opnieuw te maken
+       *[other] { $p0 } markeringen opnieuw te maken
+    }
+rework-count-relabel = { $p0 ->
+        [one] 1 label te vernieuwen
+       *[other] { $p0 } labels te vernieuwen
+    }
+rework-count-mount-device = { $p0 ->
+        [one] 1 apparaat te monteren
+       *[other] { $p0 } apparaten te monteren
+    }
+rework-count-add-terminal = { $p0 ->
+        [one] 1 klem toe te voegen
+       *[other] { $p0 } klemmen toe te voegen
+    }
+rework-count-add-cable = { $p0 ->
+        [one] 1 kabel toe te voegen
+       *[other] { $p0 } kabels toe te voegen
+    }
 rework-count-pull = { $p0 ->
         [one] 1 draad uittrekken
        *[other] { $p0 } draden uittrekken

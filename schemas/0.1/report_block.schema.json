@@ -368,6 +368,11 @@
           "const": "medium_overview",
           "description": "Medium overview (FR-FLU-016).",
           "type": "string"
+        },
+        {
+          "const": "labels",
+          "description": "Labels: every label of the workshop, in the order the fitter applies them (doc 13 §5.3).",
+          "type": "string"
         }
       ]
     },

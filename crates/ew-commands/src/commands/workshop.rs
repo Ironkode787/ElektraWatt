@@ -96,7 +96,14 @@ impl Command for SetWorkshopStock {
 /// The members of the workshop settings that `project.settings.set` sets one by one, as `workshop.<member>` (doc 13
 /// §2.3): which fine-stranded ends take a ferrule, what two wires of one size on one clamp take, what a marker says and
 /// whether cores and jumpers carry one.
-pub const SETTABLE_WORKSHOP: &[&str] = &["ferrules", "two_wires", "marking", "mark_cores", "mark_jumpers"];
+pub const SETTABLE_WORKSHOP: &[&str] = &[
+    "ferrules",
+    "two_wires",
+    "marking",
+    "mark_cores",
+    "mark_jumpers",
+    "device_labels",
+];
 
 /// The prefix of a member of [`SETTABLE_WORKSHOP`] in `project.settings.set`.
 pub const WORKSHOP_PREFIX: &str = "workshop.";
@@ -120,6 +127,8 @@ pub(crate) fn set_member(tx: &mut TxBuilder<'_>, path: &str, value: &Value) -> R
         ("mark_cores", false) => workshop.mark_cores = member_value(&member, value)?,
         ("mark_jumpers", true) => workshop.mark_jumpers = false,
         ("mark_jumpers", false) => workshop.mark_jumpers = member_value(&member, value)?,
+        ("device_labels", true) => workshop.device_labels = Default::default(),
+        ("device_labels", false) => workshop.device_labels = member_value(&member, value)?,
         _ => {
             return Err(CmdError::internal(format!(
                 "project.settings.set: {member} is not settable"

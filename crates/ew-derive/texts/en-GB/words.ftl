@@ -128,17 +128,27 @@ length-source-missing = missing
 
 ## The rework list: what the fitter does, and what changed
 
+rework-remove-device = Remove device
+rework-remove-terminal = Remove terminal
+rework-remove-cable = Remove cable
 rework-pull = Pull
 rework-replace = Replace
 rework-move-end = Move end
 rework-remake-end = Re-make end
 rework-check-length = Check length
+rework-remark = Re-mark
+rework-relabel = Re-label
+rework-mount-device = Mount device
+rework-add-terminal = Add terminal
+rework-add-cable = Add cable
 rework-add = Add
 rework-change-size = size { $p0 } → { $p1 }
 rework-change-colour = colour { $p0 } → { $p1 }
 rework-change-wire-part = wire part { $p0 } → { $p1 }
 rework-change-end = end { $p0 } → { $p1 }
 rework-change-remake = at { $p0 }: { $p1 } → { $p2 }
+rework-change-remark = marker at { $p0 }: { $p1 } → { $p2 }
+rework-change-relabel = { $p0 } → { $p1 }
 rework-change-length = length { $p0 } → { $p1 }
 rework-changes-between = { "; " }
 
@@ -153,3 +163,13 @@ treatment-ring-lug-stud = ring lug { $p0 }
 treatment-bare = bare
 treatment-connector = connector
 treatment-unknown = ?
+
+## The label sets (doc 13 §5.3)
+
+label-set-wire-markers = Wire markers
+label-set-terminal-markers = Terminal markers
+label-set-strip-markers = Strip markers
+label-set-cable-markers = Cable markers
+label-set-device-labels = Device labels
+label-set-tube-markers = Tube markers
+label-set-plates = Plates

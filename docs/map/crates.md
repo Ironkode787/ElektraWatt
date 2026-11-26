@@ -387,6 +387,7 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/ip.rs` |  | Interruption-point pairing, split out of the stitch graph: `ip_info(f)` and `ip_pairing()` (doc 03 §10, FR-XRF-007, FR-XRF-010; ARCH §6.4). |
 | `src/items.rs` |  | Page items and structure boxes, derived (doc 03 §5, §6; doc 08 §4.5). |
 | `src/joins.rs` |  | How a physical wire is joined to the others on its CPs (doc 08 §3.2, FR-CON-005, FR-CON-006; D-20): the junction it passes with its style and wiring, and the daisy chains at its ends. |
+| `src/labels.rs` |  | `label_rows()`: every label of the project in the order the fitter applies them (doc 13 §5.3), one engine for every label set: the wire markers of `wire_record_set()`, the terminal and strip markers, the cable markers, the device labels, the tube markers of the tube list and the plates of the door. |
 | `src/layout/accessories.rs` |  | The items of a rail and its derived end brackets (FR-LAY-060, doc 12 §3.4): [`rail_items`] turns `rail_occupancy` into the rail model's items (the strips with their bracket widths, [`crate::strip_bracket`]), and the memo query [`GroupAccessories`] (`group_accessories(carrier)`) lists the end brackets the strips need. |
 | `src/layout/assembly.rs` |  | The member order of an assembly or PLC station (FR-LAY-061): one function shared by `layout.place_assembly`, `layout.auto_fill` and EW-LAY-016, so that the layout and the check cannot disagree. |
 | `src/layout/carrier.rs` |  | Carrier paths: the axis-parallel check, the length and a rail's axis. |
@@ -892,6 +893,7 @@ Built-in report row queries (a user SQL report gives an empty row set marked not
 | `src/kinds/enclosure_legend.rs` |  | `enclosure_legend`: the layout legend of a mounting surface (FR-LAY-012; doc 12 §5.4, doc 09 §2.2). |
 | `src/kinds/fluid.rs` |  | The fluid report kinds (doc 11 §8.1, §8.2): `tube_list` (FR-FLU-012), `tube_cut_list` and `tube_labels` (FR-FLU-013), `valve_terminal_config` (FR-FLU-015) and `medium_overview` (FR-FLU-016), over the row sources of `ew-derive` (`tube_rows`, `valve_terminal_rows`, `medium_rows`). |
 | `src/kinds/io_list.rs` |  | `io_list`: the I/O assignment list, one row per channel of each station's modules (FR-PLC-023; doc 10 §5). |
+| `src/kinds/labels.rs` |  | `labels`: every label of the workshop (doc 13 §5.3), from `ew_derive::LabelRows`, one row per label in the order the fitter applies them; `tube_labels` lists the tube markers of the same engine with the same columns. |
 | `src/kinds/mod.rs` |  | The built-in report kinds (doc 09 §2.4): [`builtin`] lists every kind this build derives, one module a kind or a family. |
 | `src/kinds/numbering_report.rs` |  | `numbering_report`: frozen tags and frozen wire numbers with their rule-derived values (FR-REP-022, FR-NUM-022, doc 09 §2.4). |
 | `src/kinds/open_items.rs` |  | `open_items`: the open-items list (FR-REP-021). |

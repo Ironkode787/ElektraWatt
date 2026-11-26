@@ -15,6 +15,7 @@ use std::collections::BTreeMap;
 use ew_schema::{ColourSpec, Csa, PartRef};
 
 use crate::joins::cp_label;
+use crate::labels::{LabelRecord, LabelRows, LabelSet, LabelTarget};
 use crate::nets::CpRef;
 use crate::q::Q;
 use crate::treatment::EndTreatment;
@@ -91,6 +92,12 @@ fn ends_key(r: &WireRecord) -> [CpRef; 2] {
 /// applies.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum ReworkAction {
+    /// A device label of the release is gone: the device comes out.
+    RemoveDevice,
+    /// A terminal marker of the release is gone: the terminal comes off its strip.
+    RemoveTerminal,
+    /// A cable marker of the release is gone: the cable comes out.
+    RemoveCable,
     /// A wire of the release is gone.
     Pull,
     /// A kept wire changed its cross-section, colour or wire part.
@@ -101,6 +108,16 @@ pub enum ReworkAction {
     RemakeEnd,
     /// The length changed.
     CheckLength,
+    /// A wire end's marker says another text.
+    Remark,
+    /// A device, terminal, strip or cable label says another text.
+    Relabel,
+    /// A device label is new: the device goes in.
+    MountDevice,
+    /// A terminal marker is new: the terminal goes on its strip.
+    AddTerminal,
+    /// A cable marker is new: the cable goes in.
+    AddCable,
     /// A wire is new.
     Add,
 }
@@ -118,6 +135,10 @@ pub enum ReworkChange {
     End(String, String),
     /// An end on the same CP made another way: the CP, and the end before and after.
     RemakeEnd(String, EndMade, EndMade),
+    /// A marker on the same CP that says another text: the CP, and its lines before and after (none: not marked).
+    Remark(String, Vec<String>, Vec<String>),
+    /// A label that says another text: its lines before and after.
+    Relabel(Vec<String>, Vec<String>),
     /// The length, before and after.
     Length(WireLength, WireLength),
 }
@@ -135,14 +156,23 @@ pub struct EndMade {
     pub partner: Option<String>,
 }
 
-/// One row of the rework list: an action on one wire, the wire as the row prints it (as the release had it for a
-/// pulled wire, as it is now for every other), and its changes.
+/// What a row of the rework list is about.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum ReworkSubject {
+    /// A wire, as the row prints it (as the release had it for a pulled wire, as it is now for every other).
+    Wire(Box<WireRecord>),
+    /// The label of a device, terminal, strip or cable, by its label set and target (as the release had it for one that
+    /// is gone, as it is now for every other).
+    Label(LabelSet, LabelTarget),
+}
+
+/// One row of the rework list: an action on one wire or label, the thing as the row prints it, and its changes.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ReworkItem {
     /// What the fitter does.
     pub action: ReworkAction,
-    /// The wire as the row prints it.
-    pub wire: WireRecord,
+    /// What it is about.
+    pub subject: ReworkSubject,
     /// What changed, in the order of [`ReworkAction`]; empty for a wire pulled or added.
     pub changes: Vec<ReworkChange>,
 }
@@ -156,12 +186,12 @@ pub fn rework(base: &Q, now: &Q) -> Vec<ReworkItem> {
         .filter_map(|pair| match (pair.before, pair.after) {
             (Some(b), None) => Some(ReworkItem {
                 action: ReworkAction::Pull,
-                wire: b.clone(),
+                subject: ReworkSubject::Wire(Box::new(b.clone())),
                 changes: Vec::new(),
             }),
             (None, Some(a)) => Some(ReworkItem {
                 action: ReworkAction::Add,
-                wire: a.clone(),
+                subject: ReworkSubject::Wire(Box::new(a.clone())),
                 changes: Vec::new(),
             }),
             (Some(b), Some(a)) => {
@@ -169,16 +199,74 @@ pub fn rework(base: &Q, now: &Q) -> Vec<ReworkItem> {
                 let action = changes.iter().map(action_of).min()?;
                 Some(ReworkItem {
                     action,
-                    wire: a.clone(),
+                    subject: ReworkSubject::Wire(Box::new(a.clone())),
                     changes,
                 })
             }
             (None, None) => None,
         })
         .collect();
-    // Stable: within an action the order of `wire_changes`, each state's numbering order.
+    items.extend(label_work(base, now));
+    // Stable: within an action the order of `wire_changes`, each state's numbering order, then the labels' order.
     items.sort_by_key(|i| i.action);
     items
+}
+
+/// The labels of devices, terminals, strips and cables between the two states (doc 13 §3.5): one gone (Remove
+/// device, Remove terminal, Remove cable), one new (Mount device, Add terminal, Add cable) or one that says another text
+/// (Re-label), matched by set and target. Wire ends' markers are the wires' (Re-mark); tubes are the fluid lists'.
+fn label_work(base: &Q, now: &Q) -> Vec<ReworkItem> {
+    let (before, after) = (base.get::<LabelRows>(()), now.get::<LabelRows>(()));
+    let kept = |l: &&LabelRecord| {
+        matches!(
+            l.set,
+            LabelSet::TerminalMarkers
+                | LabelSet::StripMarkers
+                | LabelSet::CableMarkers
+                | LabelSet::DeviceLabels
+        )
+    };
+    let key = |l: &LabelRecord| (l.set, l.target.clone());
+    let find = |rows: &[LabelRecord], l: &LabelRecord| rows.iter().find(|x| key(x) == key(l)).cloned();
+    let item = |action, l: &LabelRecord, changes| ReworkItem {
+        action,
+        subject: ReworkSubject::Label(l.set, l.target.clone()),
+        changes,
+    };
+    let mut out = Vec::new();
+    for b in before.iter().filter(kept) {
+        let action = match b.set {
+            LabelSet::DeviceLabels => ReworkAction::RemoveDevice,
+            LabelSet::TerminalMarkers => ReworkAction::RemoveTerminal,
+            LabelSet::CableMarkers => ReworkAction::RemoveCable,
+            _ => continue,
+        };
+        if find(&after, b).is_none() {
+            out.push(item(action, b, Vec::new()));
+        }
+    }
+    for a in after.iter().filter(kept) {
+        match find(&before, a) {
+            None => {
+                let action = match a.set {
+                    LabelSet::DeviceLabels => ReworkAction::MountDevice,
+                    LabelSet::TerminalMarkers => ReworkAction::AddTerminal,
+                    LabelSet::CableMarkers => ReworkAction::AddCable,
+                    _ => continue,
+                };
+                out.push(item(action, a, Vec::new()));
+            }
+            Some(b) if b.lines != a.lines => {
+                out.push(item(
+                    ReworkAction::Relabel,
+                    a,
+                    vec![ReworkChange::Relabel(b.lines.clone(), a.lines.clone())],
+                ));
+            }
+            Some(_) => {}
+        }
+    }
+    out
 }
 
 /// The action a change asks for.
@@ -189,6 +277,8 @@ fn action_of(change: &ReworkChange) -> ReworkAction {
         }
         ReworkChange::End(..) => ReworkAction::MoveEnd,
         ReworkChange::RemakeEnd(..) => ReworkAction::RemakeEnd,
+        ReworkChange::Remark(..) => ReworkAction::Remark,
+        ReworkChange::Relabel(..) => ReworkAction::Relabel,
         ReworkChange::Length(..) => ReworkAction::CheckLength,
     }
 }
@@ -247,6 +337,18 @@ fn changes(base: &Q, b: &WireRecord, now: &Q, a: &WireRecord) -> Vec<ReworkChang
                 end_label(now, a, end_a),
                 made(base, eb),
                 made(now, ea),
+            ));
+        }
+        // The marker on the same CP that says another text (doc 13 §3.5 Re-mark).
+        let lines = |e: &EndRecord| match &e.marker {
+            crate::marking::MarkerText::Lines(l) => l.clone(),
+            crate::marking::MarkerText::NotMarked(_) => Vec::new(),
+        };
+        if end_b == end_a && lines(eb) != lines(ea) {
+            out.push(ReworkChange::Remark(
+                end_label(now, a, end_a),
+                lines(eb),
+                lines(ea),
             ));
         }
     }

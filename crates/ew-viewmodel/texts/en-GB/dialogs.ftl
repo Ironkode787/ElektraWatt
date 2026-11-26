@@ -151,6 +151,38 @@ rework-export = Export…
 rework-work = The work: { $p0 }.
 rework-nothing = Nothing to change: the project is as it was released.
 rework-not-listed = Not listed: wires that only moved on a page or took another route, and a new wire number.
+rework-count-remove-device = { $p0 ->
+        [one] 1 device to remove
+       *[other] { $p0 } devices to remove
+    }
+rework-count-remove-terminal = { $p0 ->
+        [one] 1 terminal to remove
+       *[other] { $p0 } terminals to remove
+    }
+rework-count-remove-cable = { $p0 ->
+        [one] 1 cable to remove
+       *[other] { $p0 } cables to remove
+    }
+rework-count-remark = { $p0 ->
+        [one] 1 marker to re-mark
+       *[other] { $p0 } markers to re-mark
+    }
+rework-count-relabel = { $p0 ->
+        [one] 1 label to renew
+       *[other] { $p0 } labels to renew
+    }
+rework-count-mount-device = { $p0 ->
+        [one] 1 device to mount
+       *[other] { $p0 } devices to mount
+    }
+rework-count-add-terminal = { $p0 ->
+        [one] 1 terminal to add
+       *[other] { $p0 } terminals to add
+    }
+rework-count-add-cable = { $p0 ->
+        [one] 1 cable to add
+       *[other] { $p0 } cables to add
+    }
 rework-count-pull = { $p0 ->
         [one] 1 wire to pull
        *[other] { $p0 } wires to pull

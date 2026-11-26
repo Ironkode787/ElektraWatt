@@ -14,6 +14,7 @@ mod device_list;
 mod enclosure_legend;
 mod fluid;
 mod io_list;
+mod labels;
 mod numbering_report;
 mod open_items;
 mod part_data;
@@ -36,6 +37,7 @@ pub use device_list::DeviceList;
 pub use enclosure_legend::EnclosureLegend;
 pub use fluid::{MediumOverview, TubeCutList, TubeLabels, TubeList, ValveTerminalConfig};
 pub use io_list::IoList;
+pub use labels::Labels;
 pub use numbering_report::NumberingReport;
 pub use open_items::OpenItems;
 pub use part_data::PartData;
@@ -86,5 +88,6 @@ pub(crate) fn builtin() -> Vec<&'static dyn ReportKindDef> {
         &TubeLabels,
         &ValveTerminalConfig,
         &MediumOverview,
+        &Labels,
     ]
 }

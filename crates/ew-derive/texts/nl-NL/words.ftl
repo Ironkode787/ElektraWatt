@@ -124,17 +124,27 @@ length-source-missing = ontbreekt
 
 ## The rework list: what the fitter does, and what changed
 
+rework-remove-device = Apparaat verwijderen
+rework-remove-terminal = Klem verwijderen
+rework-remove-cable = Kabel verwijderen
 rework-pull = Uittrekken
 rework-replace = Vervangen
 rework-move-end = Einde verleggen
 rework-remake-end = Einde opnieuw afwerken
 rework-check-length = Lengte nakijken
+rework-remark = Opnieuw markeren
+rework-relabel = Opnieuw labelen
+rework-mount-device = Apparaat monteren
+rework-add-terminal = Klem toevoegen
+rework-add-cable = Kabel toevoegen
 rework-add = Toevoegen
 rework-change-size = doorsnede { $p0 } → { $p1 }
 rework-change-colour = kleur { $p0 } → { $p1 }
 rework-change-wire-part = draadartikel { $p0 } → { $p1 }
 rework-change-end = einde { $p0 } → { $p1 }
 rework-change-remake = op { $p0 }: { $p1 } → { $p2 }
+rework-change-remark = markering op { $p0 }: { $p1 } → { $p2 }
+rework-change-relabel = { $p0 } → { $p1 }
 rework-change-length = lengte { $p0 } → { $p1 }
 rework-changes-between = { "; " }
 
@@ -149,3 +159,13 @@ treatment-ring-lug-stud = ringkabelschoen { $p0 }
 treatment-bare = kaal
 treatment-connector = connector
 treatment-unknown = ?
+
+## The label sets (doc 13 §5.3)
+
+label-set-wire-markers = Adermarkeringen
+label-set-terminal-markers = Klemmarkeringen
+label-set-strip-markers = Klemstrookmarkeringen
+label-set-cable-markers = Kabelmarkeringen
+label-set-device-labels = Apparaatlabels
+label-set-tube-markers = Slangmarkeringen
+label-set-plates = Frontplaatjes
