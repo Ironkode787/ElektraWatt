@@ -94,8 +94,8 @@ WP-S3.19,S3,DXF and DWG exchange,M3,M3,,1.0,3,4.5,7,WP-S3.09 WP-S3.04,,FR-IMP-03
 WP-S3.20,S3,Interop 1.x backlog,1.x,1.x,,1.x,5,8,12,WP-S3.18 WP-S3.19,,FR-IMP-024 FR-IMP-037 FR-PRT-020 FR-PRT-029 FR-PRT-030 FR-PRT-033 FR-EXP-010 FR-PLC-027 FR-PLC-034 FR-PLC-039 FR-REP-043 FR-REP-044,,Output and migration developer
 WP-S4.01,S4,Layout model and 2D panel pages (MVP slice),M2,M2,,MVP,4,5.5,8,WP-S1.19 WP-S1.13 WP-S3.03,,FR-LAY-001 FR-LAY-002 FR-LAY-004..FR-LAY-013 FR-LAY-017 FR-LAY-018 FR-LAY-059 FR-LAY-062 FR-REP-007 FR-CHK-039 FR-CHK-005,AC-33,Physical developer
 WP-S4.02,S4,2D panel editing tools,M2,M2,,MVP,4,5.5,7,WP-S4.01 WP-S2.03,,FR-LAY-014..FR-LAY-016 FR-LAY-060 FR-LAY-061,AC-33,Physical developer
-WP-S4.03,S4,STEP worker (ew-step-worker),M4,M4,,1.0,4,6,10,WP-S1.02 WP-S0.01,,FR-LAY-020..FR-LAY-022 NFR-PERF-18 NFR-REL-12,NFR-PERF-18,Physical developer
-WP-S4.04,S4,3D renderer and the Panel 3D workspace,M4,M4,,1.0,5.5,8,12,WP-S2.02 WP-S4.01 WP-S2.06,,FR-LAY-019 FR-LAY-064 FR-UI-029 FR-UI-003 FR-UI-006,AC-34,Physical developer
+WP-S4.03,S4,STEP worker (ew-step-worker),M6,1.x,c,1.0,4,6,10,WP-S1.02 WP-S0.01,,FR-LAY-020..FR-LAY-022 NFR-PERF-18 NFR-REL-12,NFR-PERF-18,Physical developer
+WP-S4.04,S4,3D renderer and the Panel 3D workspace,M6,1.x,c,1.0,5.5,8,12,WP-S2.02 WP-S4.01 WP-S2.06,,FR-LAY-019 FR-LAY-064 FR-UI-029 FR-UI-003 FR-UI-006,AC-34,Physical developer
 WP-S4.05,S4,"The surfaces of an enclosure: door and side walls, devices in cut-outs, a part's front view",M4,M4,,1.0,3.5,5,7.5,WP-S4.01,,FR-LAY-003 FR-LAY-023 FR-LAY-024 FR-LAY-026 FR-LAY-027 FR-LAY-032 FR-LAY-063,AC-34,Physical developer
 WP-S4.06,S4,"Clearance: keep-out on a surface and depth against the closed door",M4,M4,,1.0,2.5,3.5,5.5,WP-S4.05,,FR-LAY-028..FR-LAY-030 FR-LAY-033 FR-LAY-034 NFR-PERF-17,AC-34 NFR-PERF-17,Physical developer
 WP-S4.07,S4,"Wire ways: the routing graph on the 2D layout and Route",M4,M4,,1.0,4,6,9,WP-S4.05,,FR-LAY-042 FR-LAY-043 FR-LAY-045..FR-LAY-048 NFR-PERF-16,AC-34 NFR-PERF-16,Physical developer
