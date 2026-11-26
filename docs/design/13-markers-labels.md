@@ -88,8 +88,10 @@ the person chooses, named by the drawing's number, the set and the marker part's
 markers.csv`; with a marker part, its number after the set), as CSV or XLSX. Each file is written whole or not at all.
 
 **The columns are the export profile's**, `WorkshopSettings.label_profile`: each a column of the `labels` list with
-the heading the file prints. Without one of its own the project uses the **generic profile**, which every label program
-that imports a table takes, mapping its columns once in its import:
+the heading the file prints. Label file columns… edits it on what the project holds: a delimiter of a newer format that
+the person leaves stays as it is, and so do the members this build does not know, of the profile and of a column it
+keeps. Without one of its own the project uses the **generic profile**, which every label program that imports a table
+takes, mapping its columns once in its import:
 
 | Heading | Column |
 |---|---|

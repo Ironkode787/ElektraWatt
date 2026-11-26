@@ -139,7 +139,7 @@ fn delimiter_name(d: &Delimiter) -> String {
 
 /// Whether `columns` (key, heading) with the delimiter named `delimiter` are the generic export profile, which a project
 /// need not keep.
-pub fn is_generic_label_profile(columns: &[(String, String)], delimiter: &str) -> bool {
+fn is_generic_label_profile(columns: &[(String, String)], delimiter: &str) -> bool {
     delimiter == delimiter_name(&Delimiter::default())
         && columns.len() == ew_derive::GENERIC_PROFILE.len()
         && columns
@@ -157,6 +157,43 @@ impl Session {
             profile.columns.into_iter().map(|c| (c.key, c.heading)).collect(),
             delimiter_name(&profile.delimiter),
         )
+    }
+
+    /// The value `workshop.label_profile` takes for the export profile of `columns` (key, heading, in file order) and
+    /// the delimiter named `delimiter` (one of [`Delimiter::NAMES`]; `None`: the one it has), made on the project's
+    /// profile so that what this build does not know of it stays: a delimiter of a newer format left as it is, the
+    /// profile's unknown members and those of each column it keeps. `Null` for the generic profile with nothing more.
+    ///
+    /// # Errors
+    ///
+    /// A delimiter name this build does not know.
+    pub fn label_profile_value(
+        &self,
+        columns: &[(String, String)],
+        delimiter: Option<&str>,
+    ) -> Result<serde_json::Value, serde_json::Error> {
+        let mut profile = ew_derive::label_profile(&self.query());
+        if let Some(name) = delimiter {
+            profile.delimiter = serde_json::from_value(serde_json::Value::String(name.to_owned()))?;
+        }
+        let kept = std::mem::take(&mut profile.columns);
+        profile.columns = columns
+            .iter()
+            .map(|(key, heading)| ew_schema::ProfileColumn {
+                key: key.clone(),
+                heading: heading.clone(),
+                extra: kept
+                    .iter()
+                    .find(|c| c.key == *key)
+                    .map(|c| c.extra.clone())
+                    .unwrap_or_default(),
+            })
+            .collect();
+        let plain = profile.extra.is_empty() && profile.columns.iter().all(|c| c.extra.is_empty());
+        if plain && is_generic_label_profile(columns, &delimiter_name(&profile.delimiter)) {
+            return Ok(serde_json::Value::Null);
+        }
+        serde_json::to_value(&profile)
     }
 
     /// The label files of `scope` in `format` (doc 13 §5.4), one per label set and marker part that has labels, in the

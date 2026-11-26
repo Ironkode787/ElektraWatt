@@ -15,6 +15,9 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: Label file columns… keeps what a newer build wrote into the export profile: a delimiter it does not
+  know, left as it is, stays (the edit was refused), and so do the profile's unknown members and those of a column it
+  keeps (they were dropped) (doc 13 §5.4)
 - behaviour-change: Labels for these changes… (and `ew export labels --since`) writes a new strip's marker, the strip
   whose every terminal the rework list adds; it left it out (doc 13 §5.4)
 - behaviour-change: a terminal of several levels gets a terminal marker per level, each with the level's designation,

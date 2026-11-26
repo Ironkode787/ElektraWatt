@@ -279,7 +279,7 @@ pub use ew_store::{archive, clock, cloud, ewz, external, file, git};
 pub use ew_zip as zip;
 pub use external_change::{DiskPoll, ExternalApplied, ExternalError};
 pub use labels::{
-    LabelError, LabelFile, LabelFileFormat, LabelScope, is_generic_label_profile, label_column_words,
+    LabelError, LabelFile, LabelFileFormat, LabelScope, label_column_words,
     label_set_text,
 };
 pub use new_project::{

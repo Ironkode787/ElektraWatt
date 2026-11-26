@@ -98,3 +98,71 @@ fn labels_lists_the_files_changes_their_columns_and_writes_the_ticked_ones() {
     let d = s.describe();
     assert!(d.contains("Ferrules"), "{d}");
 }
+
+/// Label file columns… keeps what this build does not know of the export profile (doc 13 §5.4): a delimiter of a newer
+/// format, which a project saved by a newer build holds, stays as it is when the person leaves it, and so do the
+/// profile's unknown members and those of a column it keeps.
+#[test]
+fn label_file_columns_keep_what_this_build_does_not_know() {
+    let tmp = Tmp::new("labels-newer");
+    // The copy of the sample as a newer build saved it: its profile with a delimiter and members this build does not know.
+    let copy = tmp.sample_copy();
+    common::copy_dir(std::path::Path::new(common::SAMPLE), &copy);
+    let file = copy.join("project.jsonl");
+    let lines: Vec<String> = std::fs::read_to_string(&file)
+        .expect("the project file")
+        .lines()
+        .map(|l| {
+            let mut v: serde_json::Value = serde_json::from_str(l).expect("a record");
+            if v["$k"] == "project" {
+                v["settings"]["workshop"]["label_profile"] = json!({
+                    "columns": [{"key": "text_1", "heading": "Line", "width": 12}],
+                    "delimiter": "tab",
+                    "printer": "label-2",
+                });
+            }
+            v.to_string()
+        })
+        .collect();
+    std::fs::write(&file, lines.join("
+") + "
+").expect("written");
+    let mut s = tmp.sample_in(ew_viewmodel::shell::Mode::Gui, true, "101");
+    done(&mut s, "labels.columns", json!({}));
+    let form = common::form(&s);
+    let delimiter = form.fields[0].value.clone();
+    let table = form.table.expect("the columns' table");
+    let rows: Vec<serde_json::Value> = table
+        .rows
+        .iter()
+        .map(|r| {
+            let (tick, heading, order) = match r.key.as_str() {
+                "Text 1" => (ew_viewmodel::shell::TICKED, "Line", "1"),
+                "For" => (ew_viewmodel::shell::TICKED, "For", "2"),
+                _ => ("", "", ""),
+            };
+            json!({"values": {
+                table.columns[0].0.clone(): tick,
+                table.columns[1].0.clone(): heading,
+                table.columns[2].0.clone(): order,
+            }})
+        })
+        .collect();
+    done(
+        &mut s,
+        "labels.columns",
+        json!({ "columns": rows, "delimiter": delimiter }),
+    );
+    done(&mut s, "file.save", json!({}));
+    let (session, _) =
+        ew_viewmodel::ew_api::Session::open_read_only(&tmp.sample_copy(), "test").expect("the saved copy");
+    let stored = serde_json::to_value(&session.query().project().settings.workshop.label_profile).expect("JSON");
+    assert_eq!(
+        stored,
+        json!({
+            "columns": [{"key": "text_1", "heading": "Line", "width": 12}, {"key": "for", "heading": "For"}],
+            "delimiter": "tab",
+            "printer": "label-2",
+        })
+    );
+}

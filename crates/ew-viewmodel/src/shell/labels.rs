@@ -408,20 +408,20 @@ impl ShellModel {
         } else {
             chosen.into_iter().map(|(_, _, c)| c).collect()
         };
+        // The delimiter the profile has stays as it is, one of a newer format too; another is one this build knows.
         let delimiter = match string_param(p, "delimiter") {
             Err(e) => return e,
-            Ok(Some(d)) if ew_api::Delimiter::NAMES.contains(&d) => d.to_owned(),
+            Ok(Some(d)) if d == delimiter_now => None,
+            Ok(Some(d)) if ew_api::Delimiter::NAMES.contains(&d) => Some(d.to_owned()),
             Ok(Some(_)) => return failed(key!("error-bad-param"), &["delimiter"]),
-            Ok(None) => delimiter_now,
+            Ok(None) => None,
         };
-        let value = if ew_api::is_generic_label_profile(&columns, &delimiter) {
-            Value::Null
-        } else {
-            let columns: Vec<Value> = columns
-                .iter()
-                .map(|(k, h)| json!({"key": k, "heading": h}))
-                .collect();
-            json!({"columns": columns, "delimiter": delimiter})
+        let Some(project) = &self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let value = match project.session.label_profile_value(&columns, delimiter.as_deref()) {
+            Ok(v) => v,
+            Err(_) => return failed(key!("error-bad-param"), &["delimiter"]),
         };
         let cmd = ew_api::AnyCommand {
             name: "project.settings.set".to_owned(),
