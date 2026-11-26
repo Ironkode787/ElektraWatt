@@ -51,7 +51,11 @@ impl Rule for MarkerDoesNotFit {
         };
         let (lines, chars) = ew_derive::wire_marker_part(q).unwrap_or((None, None));
         let mut out = Vec::new();
-        for r in q.get::<WireRecordSet>(()).iter().filter(|r| owns_wire(q, p, &r.wire)) {
+        for r in q
+            .get::<WireRecordSet>(())
+            .iter()
+            .filter(|r| owns_wire(q, p, &r.wire))
+        {
             for (i, end) in r.ends.iter().enumerate() {
                 let (false, ew_derive::MarkerText::Lines(text)) = (end.marker_fits, &end.marker) else {
                     continue;

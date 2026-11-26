@@ -45,14 +45,14 @@ e:<id 42>	-103W1 GY	+CAB-X1031:W	b	+FLD-103M1	W1	1L3/102Q1:6	GY	2.5 mm²	core			
 e:<id 43>	-103W1 GNYE	+CAB-X1031:PE	b	+FLD-103M1	PE	PE	GNYE	2.5 mm²	core	chain on -103M1:PE		103	cable	cable	ferrule 2.5 BU	twin 2.5 BU · -103W1 SHIELD	EW-GEN-FER-2.5	EW-GEN-FER-2X2.5	10 mm	10 mm		
 e:<id 44>	103.7	-X1031:PE	a	-X1031:SH	a	PE	GNYE	2.5 mm²	rule	103-E4 chain on -X1031:PE/a		103	—	missing	twin 2.5 BU · 101.6	ferrule 2.5 BU	EW-GEN-FER-2X2.5	EW-GEN-FER-2.5	10 mm	10 mm	-X1031:SH	-X1031:PE
 e:<id 45>	-103W1 SHIELD	+CAB-X1031:SH	b	+FLD-103M1	PE	PE	GNYE	2.5 mm²	rule/built-in	chain on -103M1:PE		103	cable	cable	ferrule 2.5 BU	twin 2.5 BU · -103W1 GNYE	EW-GEN-FER-2.5	EW-GEN-FER-2X2.5	10 mm	10 mm		
-e:<id 46>	104.1	-104A1-A1	M	-104A1-A2	M	0V	BU	0.75 mm²	rule/built-in	104-D1 chain on -104A1-A1:M		104	—	missing	twin 0.75 GY · 104.3	ferrule 0.75 GY	EW-GEN-FER-2X0.75	EW-GEN-FER-0.75	8 mm	8 mm	104A1-A2:M	104A1-A1:M
-e:<id 47>	104.2	-104A1-A2	2	-104E1	X1	-104A1-A2:2	BK	0.75 mm²	rule/built-in			104	—	missing	ferrule 0.75 GY	ferrule 0.75 GY	EW-GEN-FER-0.75	EW-GEN-FER-0.75	8 mm	8 mm	-104E1:X1	104A1-A2:2
-e:<id 48>	104.3	-104E1	X2	-104A1-A1	M	0V	BU	0.75 mm²	rule/built-in	104-D2 chain on -104E1:X2		104	—	missing	twin 0.75 GY · 104.7	twin 0.75 GY · 104.1	EW-GEN-FER-2X0.75	EW-GEN-FER-2X0.75	8 mm	8 mm	104A1-A1:M	-104E1:X2
-e:<id 49>	104.4	+FLD-104B1	13	+CAB-104A1-A2	L+	24V	DBU	0.75 mm²	rule	104-E2 chain on -104B1:13		104	—	missing	twin 0.75 GY · 104.8	ferrule 0.75 GY	EW-GEN-FER-2X0.75	EW-GEN-FER-0.75	8 mm	8 mm	+CAB-104A1-A2:L+	+FLD-104B1:13
-e:<id 50>	104.5	+FLD-104B1	14	+CAB-104A1-A1	2	24V/104B1:14	DBU	0.75 mm²	rule			104	—	missing	ferrule 0.75 GY	ferrule 0.75 GY	EW-GEN-FER-0.75	EW-GEN-FER-0.75	8 mm	8 mm	+CAB-104A1-A1:2	+FLD-104B1:14
-e:<id 51>	104.6	-104A1-A2	3	-104E2	X1	-104A1-A2:3	BK	0.75 mm²	rule/built-in			104	—	missing	ferrule 0.75 GY	ferrule 0.75 GY	EW-GEN-FER-0.75	EW-GEN-FER-0.75	8 mm	8 mm	-104E2:X1	104A1-A2:3
+e:<id 46>	104.1	-104A1-A1	M	-104A1-A2	M	0V	BU	0.75 mm²	rule/built-in	104-D1 chain on -104A1-A1:M		104	—	missing	twin 0.75 GY · 104.3	ferrule 0.75 GY	EW-GEN-FER-2X0.75	EW-GEN-FER-0.75	8 mm	8 mm	-104A1-A2:M	-104A1-A1:M
+e:<id 47>	104.2	-104A1-A2	2	-104E1	X1	-104A1-A2:2	BK	0.75 mm²	rule/built-in			104	—	missing	ferrule 0.75 GY	ferrule 0.75 GY	EW-GEN-FER-0.75	EW-GEN-FER-0.75	8 mm	8 mm	-104E1:X1	-104A1-A2:2
+e:<id 48>	104.3	-104E1	X2	-104A1-A1	M	0V	BU	0.75 mm²	rule/built-in	104-D2 chain on -104E1:X2		104	—	missing	twin 0.75 GY · 104.7	twin 0.75 GY · 104.1	EW-GEN-FER-2X0.75	EW-GEN-FER-2X0.75	8 mm	8 mm	-104A1-A1:M	-104E1:X2
+e:<id 49>	104.4	+FLD-104B1	13	+CAB-104A1-A2	L+	24V	DBU	0.75 mm²	rule	104-E2 chain on -104B1:13		104	—	missing	twin 0.75 GY · 104.8	ferrule 0.75 GY	EW-GEN-FER-2X0.75	EW-GEN-FER-0.75	8 mm	8 mm	+CAB-104A1- / A2:L+	+FLD-104B1: / 13
+e:<id 50>	104.5	+FLD-104B1	14	+CAB-104A1-A1	2	24V/104B1:14	DBU	0.75 mm²	rule			104	—	missing	ferrule 0.75 GY	ferrule 0.75 GY	EW-GEN-FER-0.75	EW-GEN-FER-0.75	8 mm	8 mm	+CAB-104A1- / A1:2	+FLD-104B1: / 14
+e:<id 51>	104.6	-104A1-A2	3	-104E2	X1	-104A1-A2:3	BK	0.75 mm²	rule/built-in			104	—	missing	ferrule 0.75 GY	ferrule 0.75 GY	EW-GEN-FER-0.75	EW-GEN-FER-0.75	8 mm	8 mm	-104E2:X1	-104A1-A2:3
 e:<id 52>	104.7	-104E2	X2	-104E1	X2	0V	BU	0.75 mm²	rule/built-in	104-D4 chain on -104E2:X2		104	—	missing	twin 0.75 GY · 104.9	twin 0.75 GY · 104.3	EW-GEN-FER-2X0.75	EW-GEN-FER-2X0.75	8 mm	8 mm	-104E1:X2	-104E2:X2
-e:<id 53>	104.8	+CAB-104A1	L+	+FLD-104B1	13	24V	DBU	0.75 mm²	rule	104-E2 chain on -104A1:L+, -104B1:13		104	—	missing	twin 0.75 GY · 101.16	twin 0.75 GY · 104.4	EW-GEN-FER-2X0.75	EW-GEN-FER-2X0.75	8 mm	8 mm	+FLD-104B1:13	+CAB-104A1:L+
+e:<id 53>	104.8	+CAB-104A1	L+	+FLD-104B1	13	24V	DBU	0.75 mm²	rule	104-E2 chain on -104A1:L+, -104B1:13		104	—	missing	twin 0.75 GY · 101.16	twin 0.75 GY · 104.4	EW-GEN-FER-2X0.75	EW-GEN-FER-2X0.75	8 mm	8 mm	+FLD-104B1: / 13	+CAB-104A1: / L+
 e:<id 54>	104.9	-104A1	M	-104E2	X2	0V	BU	0.75 mm²	rule/built-in	104-D4 chain on -104A1:M, -104E2:X2		104	—	missing	twin 0.75 GY · 101.19	twin 0.75 GY · 104.7	EW-GEN-FER-2X0.75	EW-GEN-FER-2X0.75	8 mm	8 mm	-104E2:X2	-104A1:M
 	Bridges																					
 e:<id 55>/n:bridge/i:1	BR1	-X1021:1		-X1021:4		24V/102F1:2					TBD				plug-in bridge, terminals 1–4							

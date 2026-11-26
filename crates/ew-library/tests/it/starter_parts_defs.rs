@@ -1856,12 +1856,12 @@ pub(crate) fn defs() -> Vec<Def> {
         marker(
             "EW-GEN-MRK-1",
             [
-                "Wire marker, 1 line of 10 characters",
-                "Draadmerker, 1 regel van 10 tekens",
+                "Wire marker, 2 lines of 12 characters",
+                "Draadmerker, 2 regels van 12 tekens",
             ],
             "wire",
-            1,
-            10,
+            2,
+            12,
         ),
         marker(
             "EW-GEN-MRK-2",

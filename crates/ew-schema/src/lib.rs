@@ -120,9 +120,9 @@ pub use bus::{
 pub use conflict::{Conflict, ConflictBody, ConflictSide, DELETED_SIDE, FILE_CONFLICT_KIND};
 pub use connect::{
     AcDc, AssignedNumber, BevelSpec, Bond, BondKind, BridgeKind, BridgeSpec, BusLine, BusPlug, CircuitClass,
-    Conductor, Connection, ConnectionKind, EndMarker, EndOverride, FluidLine, Junction, JunctionStyle, JunctionWiring,
-    LineKind, NumberSpec, PotentialDef, PotentialEarthing, PotentialEnv, PotentialType, TempRange,
-    TreatmentKind, TubeMaterial, TubeSpec, WireFlags, WireOverrides, WireProps,
+    Conductor, Connection, ConnectionKind, EndMarker, EndOverride, FluidLine, Junction, JunctionStyle,
+    JunctionWiring, LineKind, NumberSpec, PotentialDef, PotentialEarthing, PotentialEnv, PotentialType,
+    TempRange, TreatmentKind, TubeMaterial, TubeSpec, WireFlags, WireOverrides, WireProps,
 };
 pub use device::{
     AccessoryChoice, AccessoryKind, Assembly, AssemblyConfig, BomBasis, Cable, ClosureKind, CoreIdMode,
@@ -185,11 +185,11 @@ pub use plc::{
 };
 pub use project::{
     Address, BasicProjectRef, DateFormat, DecimalSeparator, EarthingSystem, ExternalRef, FerruleRule,
-    Formatting, ImportLineage, ImportRun, IpPairing, IpPairingMode, IpPairingScope, LineageAnchor, Marking,
-    LineageCopy, MasterData, Party, PartyRole, Project, ProjectKind, ProjectLanguages, ProjectSettings,
-    RecordHash, RunEntry, RunFix, RunLocation, RunMode, RunSeverity, RunSource, RunStats, RunTarget, Section,
-    StructureNode, SupplyOrigin, SupplySpec, TagCase, TwoWires, TypefaceFile, UserPropDef, UserPropKind,
-    UserPropScope, UserPropValue, WorkshopSettings,
+    Formatting, ImportLineage, ImportRun, IpPairing, IpPairingMode, IpPairingScope, LineageAnchor,
+    LineageCopy, Marking, MasterData, Party, PartyRole, Project, ProjectKind, ProjectLanguages,
+    ProjectSettings, RecordHash, RunEntry, RunFix, RunLocation, RunMode, RunSeverity, RunSource, RunStats,
+    RunTarget, Section, StructureNode, SupplyOrigin, SupplySpec, TagCase, TwoWires, TypefaceFile,
+    UserPropDef, UserPropKind, UserPropScope, UserPropValue, WorkshopSettings,
 };
 pub use record::{AnchorRef, CopyMeta, LibDocument, Record, Unknowns};
 pub use revision::{

@@ -228,6 +228,7 @@ pub use tag::{
     level_short_tag, main_rep_with, numbering_format, rep_level, rule_product, short_tag,
 };
 // How a value of the domain is printed.
+pub use marking::{MarkedBy, MarkerText, NotMarked, marker_end_text, shorten, wire_marker_part};
 pub use text::{
     awg_gauge, bus_address, channel_address, channel_address_words, colour_code_text, colour_text, csa_text,
     csa_with_unit, mm_exact, mm_hundredth, mm_micro, mm_padded, mm_tenth, mm_tenth_float, mm_tenth_short,
@@ -240,7 +241,6 @@ pub use title_block::{
 };
 pub use toc::{TocRow, TocRows};
 pub use tracker::{DepKey, Recorded, RecordingTracker};
-pub use marking::{MarkedBy, MarkerText, NotMarked, marker_end_text, shorten, wire_marker_part};
 pub use treatment::{
     Assumed, ClampMatch, ConductorMatch, EndTreatment, RuleGives, TREATMENT_RULES, TreatedBy, TreatmentRule,
     Undecided, clamp_conductors, end_connection, end_through, rule_for, stock_part,

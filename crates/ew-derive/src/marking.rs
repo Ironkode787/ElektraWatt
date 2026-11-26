@@ -108,7 +108,7 @@ pub fn shorten(made: &[String], lines: Option<u8>, chars: Option<u8>) -> (Vec<St
                     rest.char_indices()
                         .filter(|(i, x)| *x == c && rest[..i + x.len_utf8()].chars().count() <= max_chars)
                         .map(|(i, x)| i + x.len_utf8())
-                        .last()
+                        .next_back()
                 };
                 within(':').or_else(|| match (within('-'), within('+')) {
                     (Some(a), Some(b)) => Some(a.max(b)),
@@ -139,7 +139,11 @@ pub(crate) fn mark(q: &Q, records: &mut [WireRecord]) {
     let part = wire_marker_part(q);
     let (lines, chars) = part.unwrap_or((None, None));
     for r in records.iter_mut() {
-        let device_of = |e: usize| q.functions().get(r.wire.ends[e].cp.function).and_then(|f| f.device);
+        let device_of = |e: usize| {
+            q.functions()
+                .get(r.wire.ends[e].cp.function)
+                .and_then(|f| f.device)
+        };
         let jumper = device_of(0).is_some() && device_of(0) == device_of(1);
         let core = r.wire.core.and_then(|c| q.conductors().get(c));
         let potential = r
@@ -162,9 +166,10 @@ pub(crate) fn mark(q: &Q, records: &mut [WireRecord]) {
                 _ if core.is_some() && !workshop.mark_cores => (Err(NotMarked::Core), MarkedBy::Setting),
                 _ if jumper && !workshop.mark_jumpers => (Err(NotMarked::Jumper), MarkedBy::Setting),
                 _ => {
-                    let number = r.number.clone().or_else(|| {
-                        core.map(|c| format!("{} {}", short_tag(q, c.cable), c.core.as_str()))
-                    });
+                    let number = r
+                        .number
+                        .clone()
+                        .or_else(|| core.map(|c| format!("{} {}", short_tag(q, c.cable), c.core.as_str())));
                     let lines = match workshop.marking {
                         Marking::WireNumber => number.map(|n| vec![n]),
                         Marking::BothEnds => Some(vec![text(&here, there.cp), text(&there, here.cp)]),
@@ -199,8 +204,14 @@ mod tests {
     /// Each step of the shortening of doc 13 §5.2, and a text that does not fit kept whole.
     #[test]
     fn the_shortening_takes_its_steps_in_order() {
-        assert_eq!(shorten(&v(&["-101Q1:1"]), Some(1), Some(10)), (v(&["-101Q1:1"]), true));
-        assert_eq!(shorten(&v(&["-104A1-A2:L+"]), Some(1), Some(11)), (v(&["104A1-A2:L+"]), true));
+        assert_eq!(
+            shorten(&v(&["-101Q1:1"]), Some(1), Some(10)),
+            (v(&["-101Q1:1"]), true)
+        );
+        assert_eq!(
+            shorten(&v(&["-104A1-A2:L+"]), Some(1), Some(11)),
+            (v(&["104A1-A2:L+"]), true)
+        );
         assert_eq!(
             shorten(&v(&["+CAB-104A1-A2:L+"]), Some(2), Some(12)),
             (v(&["+CAB-104A1-", "A2:L+"]), true)

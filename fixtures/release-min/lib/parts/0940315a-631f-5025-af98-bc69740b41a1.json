@@ -4,7 +4,7 @@
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "df9f1e21-ef36-50e2-a1f1-6ed76db1777c",
   "version": "0.1.1",
-  "sha256": "sha256:528b81b1c84dea3a46a70243023d857b2862e42911fe8641ab1a4beab002bd1c",
+  "sha256": "sha256:b7d244c8762a18c299e19f3df0b5d8057fc68c4dacc27c5ff0ecc4f56cd1d611",
   "meta": {"key": "EW-GEN-MRK-1", "licence": "CC0-1.0", "sources": ["ew.original"], "confidence": {"part": "test"}},
   "kind": "marker",
   "manufacturer": {
@@ -13,6 +13,6 @@
     "version_req": "^0.1"
   },
   "part_number": "EW-GEN-MRK-1",
-  "description": {"en": "Wire marker, 1 line of 10 characters", "nl": "Draadmerker, 1 regel van 10 tekens"},
-  "sections": {"marker": {"marks": "wire", "lines": 1, "chars": 10}}
+  "description": {"en": "Wire marker, 2 lines of 12 characters", "nl": "Draadmerker, 2 regels van 12 tekens"},
+  "sections": {"marker": {"marks": "wire", "lines": 2, "chars": 12}}
 }

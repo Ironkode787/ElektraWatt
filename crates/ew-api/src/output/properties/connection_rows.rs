@@ -513,7 +513,8 @@ fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
         (1, Category::ToEnd, ("to_end", "to_part", "to_marker")),
     ] {
         let (mut ends, mut parts, mut markers) = (Vec::new(), Vec::new(), Vec::new());
-        let (mut by_hand_end, mut by_hand_part, mut by_hand_marker, mut holder) = (false, false, false, false);
+        let (mut by_hand_end, mut by_hand_part, mut by_hand_marker, mut holder) =
+            (false, false, false, false);
         for c in conns {
             let Some(record) = wire_of(c) else {
                 ends.push((None, Provenance::Authored));
@@ -592,7 +593,12 @@ fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
         for (name, ty, per, by_hand) in [
             (names.0, treatment, ends, by_hand_end),
             (names.1, part, parts, by_hand_part),
-            (names.2, FieldType::Optional(Box::new(FieldType::Text)), markers, by_hand_marker),
+            (
+                names.2,
+                FieldType::Optional(Box::new(FieldType::Text)),
+                markers,
+                by_hand_marker,
+            ),
         ] {
             let (value, provenance) = merge(cx, &ty, per);
             let mut actions = vec![RowAction::Edit];

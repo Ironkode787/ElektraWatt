@@ -19,12 +19,12 @@ use ew_rds::Aspect;
 use ew_schema::{ColourSpec, Connection, Csa, Device, LayoutSpace, Part, PartRef, StructureNode};
 use ew_units::Nm;
 
+use crate::marking::{MarkedBy, MarkerText, NotMarked, mark};
 use crate::numbering::{WireNumbers, orient_wire};
 use crate::potentials::PotentialPartition;
 use crate::q::Q;
 use crate::query::{Policy, Query};
 use crate::structure::StructureOf;
-use crate::marking::{MarkedBy, MarkerText, NotMarked, mark};
 use crate::treatment::{EndTreatment, TreatedBy, treat};
 use crate::wire_props::{Prov, WirePropsOf, wire_part_of};
 use crate::wires::{EndKind, PhysicalWire, PhysicalWiresOf, WireEnd};
