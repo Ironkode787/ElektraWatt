@@ -171,6 +171,39 @@ pub(super) fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
         }
         // Rework list…: what it compares with, the work, the headings and the rows, or why there is no list.
         Dialog::Rework(d) => rework_dialog_lines(d, lines),
+        // Labels…: which labels, the format, the columns, each file with its tick and count, or why there is none.
+        Dialog::Labels(d) => {
+            let which = match &d.which {
+                crate::shell::labels::Which::All => "all".to_owned(),
+                crate::shell::labels::Which::Release(i) => {
+                    format!(
+                        "since \"{}\"",
+                        d.releases.get(*i).map(|(r, _)| r.label.as_str()).unwrap_or("")
+                    )
+                }
+                crate::shell::labels::Which::File(_) => "since archive file".to_owned(),
+            };
+            lines.push(format!("  labels {which} {:?}", d.format));
+            lines.push(format!("  columns \"{}\"", d.columns.join(", ")));
+            match &d.files {
+                Ok(files) => {
+                    for f in files {
+                        lines.push(format!(
+                            "  file {} \"{}\" \"{}\" {} \"{}\"",
+                            if f.on { "[x]" } else { "[ ]" },
+                            f.set,
+                            f.marker_part,
+                            f.count,
+                            f.name
+                        ));
+                    }
+                    if d.misfits > 0 {
+                        lines.push(format!("  misfits {}", d.misfits));
+                    }
+                }
+                Err(why) => lines.push(format!("  why \"{why}\"")),
+            }
+        }
     }
     for b in spec.buttons() {
         match &b.disabled {

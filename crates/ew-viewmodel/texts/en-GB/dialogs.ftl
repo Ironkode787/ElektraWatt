@@ -211,3 +211,25 @@ rework-no-release = This project has no released revision yet: the rework list c
 rework-no-archive = The archive of { $p0 }, { $p1 }, is not in the folder beside the project: choose the archive file.
 rework-other-archive = { $p0 } is not the archive of { $p1 }: it is another file under that name. Choose the archive file.
 rework-not-opened = The archive does not open: { $p0 }
+rework-labels = Labels for these changes…
+
+## Output ▸ Workshop ▸ Labels… (doc 13 §5.4)
+
+labels-title = Labels
+labels-which = Labels
+labels-all = Every label
+labels-since = Changed since { $p0 }
+labels-archive = Changed since the archive { $p0 }
+labels-format = Format
+labels-columns = Columns
+labels-change = Change…
+labels-file = File
+labels-set = Label set
+labels-marker-part = Marker part
+labels-count = Labels
+labels-misfits = { $p0 ->
+        [one] 1 label does not fit its marker part
+       *[other] { $p0 } labels do not fit their marker part
+    }
+labels-export = Export…
+labels-columns-title = Label file columns

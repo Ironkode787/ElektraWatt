@@ -54,6 +54,15 @@ pub(super) fn label_columns() -> Vec<ColumnDef> {
         .collect()
 }
 
+/// The heading of the labels list's column `c` in the language `lang` (`None`: English), as a form names it.
+pub fn label_column_words(c: LabelColumn, lang: Option<&ew_mltext::LangTag>) -> String {
+    label_columns()
+        .into_iter()
+        .find(|d| d.key == c.key())
+        .map(|d| ew_derive::text_in(&d.label, lang).to_owned())
+        .unwrap_or_default()
+}
+
 /// The rows of the labels whose set `keep` keeps.
 pub(super) fn label_set_rows(q: &Q, keep: impl Fn(LabelSet) -> bool) -> RowSet {
     let columns = label_columns();

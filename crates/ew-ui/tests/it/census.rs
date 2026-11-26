@@ -286,6 +286,7 @@ enum DialogKind {
     PlcImport,
     ChooseStation,
     Rework,
+    Labels,
 }
 
 impl DialogKind {
@@ -324,7 +325,8 @@ impl DialogKind {
             Self::DiscardStation => Self::PlcImport,
             Self::PlcImport => Self::ChooseStation,
             Self::ChooseStation => Self::Rework,
-            Self::Rework => return None,
+            Self::Rework => Self::Labels,
+            Self::Labels => return None,
         })
     }
 
@@ -368,6 +370,7 @@ fn kind(d: &Dialog) -> DialogKind {
         Dialog::ReimportMatch { .. } => DialogKind::ReimportMatch,
         Dialog::Reimport { .. } => DialogKind::Reimport,
         Dialog::Rework(_) => DialogKind::Rework,
+        Dialog::Labels(_) => DialogKind::Labels,
     }
 }
 
@@ -424,6 +427,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
         DialogKind::WorkshopStock => simple("workshop.edit_stock", json!({})),
         // The sample has no release: the dialog says how to get one.
         DialogKind::Rework => simple("rework.show", json!({})),
+        DialogKind::Labels => simple("labels.show", json!({})),
         // Closing the view of a station not made yet, with its head chosen, asks.
         DialogKind::DiscardStation => {
             let mut h = simple("plc.new_station", json!({}));

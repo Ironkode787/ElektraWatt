@@ -378,6 +378,74 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
+    // Output ▸ Workshop ▸ Labels…: the label files, one per label set and marker part (doc 13 §5.4); the dialog's
+    // ticks, Export and Change… (Label file columns).
+    with_params(
+        "since?:text, archive?:path, format?:enum(csv|xlsx)",
+        placed(
+            place(Group::Workshop, 3, CommandSize::Small, None),
+            "sticker",
+            act(
+                "labels.show",
+                View,
+                Menu::Output,
+                &[],
+                project_open,
+                None,
+                |s, p| s.act_labels_show(p),
+            ),
+        ),
+    ),
+    with_params(
+        "file:text, on:bool",
+        hidden(act(
+            "labels.tick",
+            View,
+            Menu::Output,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_labels_tick(p),
+        )),
+    ),
+    with_params(
+        "dir?:path",
+        hidden(act(
+            "labels.write",
+            Command,
+            Menu::Output,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_labels_write(p),
+        )),
+    ),
+    with_params(
+        "columns?:json, delimiter?:enum(comma|semicolon)",
+        hidden(act(
+            "labels.columns",
+            Command,
+            Menu::Output,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_labels_columns(p),
+        )),
+    ),
+    // Output ▸ Workshop ▸ Workshop settings: the project's Properties at its Workshop rows (doc 13 §12).
+    placed(
+        place(Group::Workshop, 4, CommandSize::Small, None),
+        "file-settings",
+        act(
+            "workshop.settings",
+            View,
+            Menu::Output,
+            &[],
+            project_open,
+            None,
+            |s, _| s.act_workshop_settings(),
+        ),
+    ),
     with_params(
         "path?:path",
         hidden(act(

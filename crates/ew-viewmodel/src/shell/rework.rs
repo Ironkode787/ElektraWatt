@@ -85,7 +85,7 @@ fn counted(action: ReworkAction, n: usize) -> String {
 }
 
 /// Why a rework list could not be made, in the window's language.
-fn reason(e: &ReworkError) -> String {
+pub(super) fn reason(e: &ReworkError) -> String {
     match e {
         ReworkError::NoRelease | ReworkError::NotReleased(_) => {
             strings::text(key!("rework-no-release")).to_owned()
@@ -180,7 +180,7 @@ impl ShellModel {
     }
 
     /// The releases whose archive is found, newest first, each with its words.
-    fn rework_releases(&self) -> Vec<(ReworkRelease, String)> {
+    pub(super) fn rework_releases(&self) -> Vec<(ReworkRelease, String)> {
         let Some(project) = &self.project else {
             return Vec::new();
         };

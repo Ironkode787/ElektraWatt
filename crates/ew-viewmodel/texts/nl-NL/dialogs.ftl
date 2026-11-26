@@ -206,3 +206,25 @@ rework-no-release = Dit project heeft nog geen vrijgegeven revisie: de wijziging
 rework-no-archive = Het archief van { $p0 }, { $p1 }, staat niet in de map naast het project: kies het archiefbestand.
 rework-other-archive = { $p0 } is niet het archief van { $p1 }: het is een ander bestand met die naam. Kies het archiefbestand.
 rework-not-opened = Het archief opent niet: { $p0 }
+rework-labels = Labels voor deze wijzigingen…
+
+## Output ▸ Workshop ▸ Labels… (doc 13 §5.4)
+
+labels-title = Labels
+labels-which = Labels
+labels-all = Alle labels
+labels-since = Gewijzigd sinds { $p0 }
+labels-archive = Gewijzigd sinds het archief { $p0 }
+labels-format = Formaat
+labels-columns = Kolommen
+labels-change = Wijzigen…
+labels-file = Bestand
+labels-set = Labelset
+labels-marker-part = Markeringsartikel
+labels-count = Labels
+labels-misfits = { $p0 ->
+        [one] 1 label past niet op zijn markeringsartikel
+       *[other] { $p0 } labels passen niet op hun markeringsartikel
+    }
+labels-export = Exporteren…
+labels-columns-title = Kolommen van het labelbestand

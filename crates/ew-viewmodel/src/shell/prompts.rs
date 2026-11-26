@@ -140,6 +140,12 @@ impl Prompt {
                 None,
                 vec![filter("EWARCHIVE", &["ewarchive"])],
             ),
+            Prompt::LabelFolder => (
+                title(key!("prompt-label-folder-title")),
+                PickKind::Folder,
+                None,
+                vec![],
+            ),
             Prompt::SaveRework => (
                 title(key!("prompt-save-rework-title")),
                 PickKind::Save,

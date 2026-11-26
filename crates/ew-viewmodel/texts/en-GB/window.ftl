@@ -242,3 +242,4 @@ card-strip = { $p0 } · { $p1 }
 prompt-open-archive-title = Compare with an archive
 prompt-save-rework-title = Export the rework list
 prompt-rework-name = rework.xlsx
+prompt-label-folder-title = The folder for the label files

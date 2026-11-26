@@ -146,6 +146,7 @@ pub mod print;
 mod keymaps;
 mod revision;
 // Output ▸ Workshop ▸ Rework list….
+pub mod labels;
 pub mod rework;
 // The one-time tips, the glossary pane and the wire-colour view.
 mod glossary;
@@ -405,6 +406,9 @@ pub enum Dialog {
     /// Output ▸ Workshop ▸ Rework list… (`rework.show`): what it compares with, the work in one line, the rows;
     /// Export… and Close.
     Rework(Box<rework::ReworkDialog>),
+    /// Output ▸ Workshop ▸ Labels… (`labels.show`): which labels, the files with their ticks, the format, the columns
+    /// with Change…, the labels that do not fit; Export and Close.
+    Labels(Box<labels::LabelsDialog>),
     /// View, Workspace, Save layout as: a name typed by the user.
     SaveWorkspace {
         /// The text of the field.
@@ -634,6 +638,8 @@ pub enum Prompt {
     OpenArchive,
     /// A rework list file name, XLSX or CSV (Rework list…'s Export…).
     SaveRework,
+    /// The folder the label files go into (Labels…' Export).
+    LabelFolder,
 }
 
 /// A request to the window to open a page of the user guide in the system browser (F1).
@@ -774,6 +780,8 @@ pub struct ShellModel {
     panes: workspaces::PaneLayoutState,
     /// The documentation page F1 asked for and the window has not opened yet.
     doc_request: Option<DocRequest>,
+    /// The Labels… dialog under its Label file columns… form, shown again when the form's Apply succeeds.
+    labels_under: Option<Box<labels::LabelsDialog>>,
     /// A project the window opens in a second window of the program (a tutorial's practice project), taken once.
     window_request: Option<PathBuf>,
     /// The target of the last documentation request, kept for `ui.describe`.
@@ -1250,6 +1258,7 @@ impl ShellModel {
                 changed_at: None,
             },
             doc_request: None,
+            labels_under: None,
             window_request: None,
             last_help: None,
             help_under: None,

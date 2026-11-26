@@ -313,7 +313,19 @@ In the Workshop group. Compares the project as it is with a release and lists wh
 cabinet, in the order he does it: the wires to pull, to replace, the ends to move, the lengths to check and the wires
 to add. It compares with the newest release whose archive is in the folder beside the project, or with another
 release or an archive file you choose; Export… writes the list as XLSX or CSV. A wire that only moved on a page, or
-only got another number, is not listed.
+only got another number, is not listed. Labels for these changes… opens Labels… on the labels the list names.
+
+### Labels…
+
+In the Workshop group. Lists the label files for your label program, one per label set (wire markers, terminal
+markers, device labels…) and marker part, each with how many labels it holds: every label, or only those changed since
+a release. Choose CSV or XLSX; Change… sets the columns a file has, their headings and order, and the CSV's delimiter.
+A line says how many labels do not fit their marker part. Export… writes the ticked files into a folder you choose.
+
+### Workshop settings
+
+In the Workshop group. Shows the project's Properties at its Workshop rows: the stock, the ferrules, two wires in one
+clamp, the marker text, the marking of cores and jumpers, the device labels and the label file columns.
 
 ## View
 

@@ -110,4 +110,15 @@ pub(crate) fn body(ui: &mut Ui, d: &ReworkDialog, events: &mut Vec<Event>) {
         ))
         .wrap(),
     );
+    // The label files of these changes (doc 13 §5.4): Labels… on what the list compares with.
+    let against = match &d.against {
+        Against::Release(i) => d.releases.get(*i).map(|(r, _)| json!({ "since": r.label })),
+        Against::File(path) => Some(json!({ "archive": path.to_string_lossy() })),
+        Against::Nothing => None,
+    };
+    if let Some(params) = against
+        && ui.button(strings::text(key!("rework-labels"))).clicked()
+    {
+        events.push(Event::Action("labels.show", params));
+    }
 }

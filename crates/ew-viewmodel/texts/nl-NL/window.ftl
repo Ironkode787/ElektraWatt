@@ -221,3 +221,4 @@ card-strip = { $p0 } · { $p1 }
 prompt-open-archive-title = Vergelijken met een archief
 prompt-save-rework-title = De wijzigingslijst exporteren
 prompt-rework-name = wijzigingslijst.xlsx
+prompt-label-folder-title = De map voor de labelbestanden

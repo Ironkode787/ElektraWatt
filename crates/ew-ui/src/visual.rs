@@ -255,6 +255,7 @@ impl Platform for VisualPlatform {
             Prompt::SaveTable => Pick::Path(self.base.join("table.xlsx")),
             Prompt::SaveEwz => Pick::Path(self.base.join("project.ewz")),
             Prompt::SaveRework => Pick::Path(self.base.join("rework.xlsx")),
+            Prompt::LabelFolder => Pick::Path(self.base.join("labels")),
             Prompt::SaveSymbol => Pick::Path(self.base.join("symbol.json")),
             Prompt::LibraryFolder => Pick::Path(self.base.join("symbols.ewlib")),
             Prompt::Folder => Pick::Path(self.base.clone()),

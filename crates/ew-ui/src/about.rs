@@ -144,6 +144,7 @@ pub fn show(
         Dialog::PartEdit(e) if e.sectioned() => Some(crate::dialog::preview_width(&t, window)),
         // The rework list's rows take the width a wide table needs, as the text styles do.
         Dialog::Rework(_) => Some(crate::dialog::preview_width(&t, window)),
+        Dialog::Labels(_) => Some(crate::dialog::form_width(&t, window)),
         _ => None,
     };
     // Choose picks the list's active row, which the window keeps; until the person chooses one it waits.
@@ -363,6 +364,7 @@ pub fn show(
             Dialog::TextStyles(d) => crate::text_styles::text_styles(ui, shell, d, just_opened, events),
             Dialog::WorkshopStock(d) => crate::stock::stock(ui, d, events),
             Dialog::Rework(d) => crate::rework::body(ui, d, events),
+            Dialog::Labels(d) => crate::labels::body(ui, d, events),
             Dialog::PartChoose(c) => crate::part_dialog::chooser(ui, shell, c, just_opened, events),
             Dialog::PartEdit(e) => crate::part_dialog::editor(ui, e, just_opened, events),
             Dialog::Print(p) => crate::print_dialog::body(ui, shell, p, events),

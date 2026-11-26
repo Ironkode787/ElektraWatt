@@ -73,6 +73,7 @@ mod parts_map;
 mod print_dialog;
 // The junction sequence editor popup.
 mod junction;
+mod labels;
 mod picker;
 pub mod properties;
 mod rework;

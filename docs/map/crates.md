@@ -1142,6 +1142,7 @@ The window of the desktop program in egui: it paints the shell model of `ew-view
 | `src/junction.rs` |  | The junction sequence editor popup (FR-CON-005): the junction's style and wiring as buttons, its sequence as rows named by each member's far endpoint, the physical wires through it below. |
 | `src/keymap_editor.rs` |  | The keymap editor (doc 16 §4.4): Help ▸ Keyboard shortcuts made editable, inside the form dialog of doc 16a §6.12 (its width grows with the window, `dialog::form_width`). |
 | `src/keys.rs` |  | Keyboard shortcuts of the keymap as egui shortcuts (UX/UI doc 16 section 4.2). |
+| `src/labels.rs` |  | The Labels… dialog's own content (doc 13 §5.4, §12; doc 16a §6.12): which labels (every one, or those changed since a release), the format, the export profile's columns with Change…, one row per label file with its tick, label set, marker part and count, and the line that counts the labels that do not fit; or why there are no files. |
 | `src/latest.rs` |  | One long-lived worker thread with a latest-request-wins slot: a request that arrives while another is being worked on replaces any request still waiting, so a burst of requests (the Page Down key held) costs one render in flight and at most one more, never a thread and an image per request. |
 | `src/lib.rs` |  | The window of the desktop program in egui: it paints the shell model of `ew-viewmodel` and turns the person's input into its actions. |
 | `src/library_panes.rs` |  | FR-MAC-006: what the Macros and Libraries navigators show besides their rows. |
@@ -1299,6 +1300,7 @@ Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command 
 | `src/shell/jobs.rs` | large | The shell's part of the jobs and notifications (doc 16 §8.2, §8.3): the PDF export as a job with its entries and actions, the notifications and their log, and the recovery dialog's answers. |
 | `src/shell/join.rs` |  | Joining an existing device from the window (FR-DEV-038, FR-DEV-005, FR-UI-017). |
 | `src/shell/keymaps.rs` |  | The keymaps in the shell (the files and the rules in [`crate::keymap`]): the active preset (the `keymap` setting) with the user's `keymap.toml` over it, the effective bindings the window binds and the menus, the palette and the describe text show, and the keymap editor's actions (search, record, reset, import, export). |
+| `src/shell/labels.rs` |  | Output ▸ Workshop ▸ Labels… and Workshop settings (doc 13 §5.4, §12). |
 | `src/shell/layout.rs` | large | The panel page's host duties (doc 12 §12.4): arming the layout place tool, the keyboard placement (Tab and Shift+Tab cycle a rail's placements, the arrows nudge, R turns on the plate, X flips on a rail), Lock and Unlock, the placing options and the canvas's live region for a selected placement. |
 | `src/shell/list_look.rs` |  | List columns… and Rows of your own… (`report_block.columns`, `report_block.rows`, doc 09 §3.8): what the list on show prints, each in one form, written to its report block in one undo step (`fields.set_many`). |
 | `src/shell/macros.rs` | large | The host duties of the Macros and Libraries navigators, Save as macro… and Make variable. |

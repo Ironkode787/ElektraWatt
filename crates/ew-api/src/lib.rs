@@ -211,8 +211,8 @@ pub struct UndrawnImage {
 
 /// The check engine (`ew check`, the message panel, the migration report): rules, schemes, findings.
 pub use ew_checks as checks;
-pub use ew_derive::ReworkAction;
 pub use ew_derive::{BomMode, DeriveNote, MemoStore};
+pub use ew_derive::{LabelColumn, LabelSet, ReworkAction};
 /// The layout of a schematic page: the page as it sees it (`Session::page_draft`), its measure and its text placer
 /// (docs/design/06a-drafting.md); the shell and the tests name it through `ew-api` (no workspace edge of their own).
 pub use ew_drafting as drafting;
@@ -278,7 +278,10 @@ pub use ew_store::{
 pub use ew_store::{archive, clock, cloud, ewz, external, file, git};
 pub use ew_zip as zip;
 pub use external_change::{DiskPoll, ExternalApplied, ExternalError};
-pub use labels::{LabelError, LabelFile, LabelFileFormat, LabelScope};
+pub use labels::{
+    LabelError, LabelFile, LabelFileFormat, LabelScope, is_generic_label_profile, label_column_words,
+    label_set_text,
+};
 pub use new_project::{
     NewProjectKind, ProjectTemplate, SaveAsBasicError, TemplateSummary, shipped_frames, template_summary,
 };

@@ -147,6 +147,7 @@ pub enum IconId {
     sitemap,
     sort_ascending_numbers,
     sparkles,
+    sticker,
     sun_moon,
     table,
     table_options,
@@ -303,6 +304,7 @@ impl IconId {
         IconId::sitemap,
         IconId::sort_ascending_numbers,
         IconId::sparkles,
+        IconId::sticker,
         IconId::sun_moon,
         IconId::table,
         IconId::table_options,
@@ -459,6 +461,7 @@ pub const KEYS: [&str; COUNT] = [
     "sitemap",
     "sort-ascending-numbers",
     "sparkles",
+    "sticker",
     "sun-moon",
     "table",
     "table-options",
@@ -2839,6 +2842,19 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         C(11.686, 12.0, 9.0, 9.314, 9.0, 6.0),
         C(9.0, 9.314, 6.314, 12.0, 3.0, 12.0),
         C(6.314, 12.0, 9.0, 14.686, 9.0, 18.0),
+    ],
+    // sticker
+    &[
+        M(20.0, 12.0),
+        L(18.0, 12.5),
+        C(16.233, 12.655, 14.489, 12.02, 13.235, 10.765),
+        C(11.98, 9.511, 11.345, 7.767, 11.5, 6.0),
+        L(12.0, 4.0),
+        L(20.0, 12.0),
+        M(20.0, 12.0),
+        C(20.0, 16.418, 16.418, 20.0, 12.0, 20.0),
+        C(7.582, 20.0, 4.0, 16.418, 4.0, 12.0),
+        C(4.0, 7.582, 7.582, 4.0, 12.0, 4.0),
     ],
     // sun-moon
     &[

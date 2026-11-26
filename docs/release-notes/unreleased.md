@@ -297,3 +297,9 @@ change here.
   keeps the length typed on it and its ends set by hand, and the value of every other member the removed connection
   held, each end at its clamp; they went with the removed branch. A wire drawn onto a wire leaves the new branch none
   of the old wire's typed length or its end set by hand, which stay the old wire's.
+- behaviour-change: Output ▸ Workshop ▸ Labels… lists the label files, one per label set and marker part, each with its
+  count and a tick: every label, or those changed since a release (Labels for these changes… in the Rework list…
+  opens it on them); the format (CSV or XLSX); the columns with Change…, which sets them with their headings, order and
+  delimiter (Label file columns); and how many labels do not fit their marker part. Export… writes the ticked files
+  into a folder, each whole, and the toast offers Show in folder. Output ▸ Workshop ▸ Workshop settings shows the
+  project's Properties at its Workshop rows.

@@ -168,6 +168,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         Dialog::TextStyles(_) => text_styles_spec(model),
         Dialog::WorkshopStock(_) => stock_spec(model),
         Dialog::Rework(d) => rework_spec(d),
+        Dialog::Labels(d) => labels_spec(d),
         Dialog::ConfirmJournalDiscard => journal_discard_spec(),
         Dialog::ConfirmPurge { files, .. } => purge_spec(files),
         Dialog::ConfirmRemovePart { part, number } => remove_part_spec(part, number),
@@ -507,6 +508,27 @@ fn rework_spec(d: &crate::shell::rework::ReworkDialog) -> DialogSpec {
         form: true,
         secondary: vec![close()],
         ..small(strings::text(key!("rework-title")).to_owned(), Vec::new(), export)
+    }
+}
+
+/// Labels…: Export the ticked files (greyed without one, with why), and Close.
+fn labels_spec(d: &crate::shell::labels::LabelsDialog) -> DialogSpec {
+    let none = !d.files.as_ref().is_ok_and(|f| f.iter().any(|f| f.on));
+    let export = DialogButton {
+        disabled: match &d.files {
+            Err(why) => Some(why.clone()),
+            Ok(_) if none => Some(strings::text(key!("reason-labels-none")).to_owned()),
+            Ok(_) => None,
+        },
+        ..DialogButton::new(
+            key!("labels-export"),
+            DialogAnswer::Action("labels.write", json!({})),
+        )
+    };
+    DialogSpec {
+        form: true,
+        secondary: vec![close()],
+        ..small(strings::text(key!("labels-title")).to_owned(), Vec::new(), export)
     }
 }
 

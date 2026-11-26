@@ -102,7 +102,39 @@ fn named_by(items: &[ReworkItem], l: &LabelRecord) -> bool {
     })
 }
 
+/// A label set in words (`Wire markers`), for the window's language.
+pub fn label_set_text(set: LabelSet) -> crate::Text {
+    ew_derive::text::label_set(set)
+}
+
+/// The labels list's column `c` headed in the language `lang` (a BCP 47 tag; `None`: English), as a form names it.
+pub fn label_column_words(c: ew_derive::LabelColumn, lang: Option<&str>) -> String {
+    let lang = lang.and_then(|l| l.parse().ok());
+    ew_reports::kinds::label_column_words(c, lang.as_ref())
+}
+
+/// Whether `columns` (key, heading) with a semicolon or not are the generic export profile, which a project need not
+/// keep.
+pub fn is_generic_label_profile(columns: &[(String, String)], semicolon: bool) -> bool {
+    !semicolon
+        && columns.len() == ew_derive::GENERIC_PROFILE.len()
+        && columns
+            .iter()
+            .zip(ew_derive::GENERIC_PROFILE.iter())
+            .all(|((k, h), (c, g))| k == c.key() && h == g)
+}
+
 impl Session {
+    /// The project's export profile (its own, else the generic one): its columns as (key, heading) in file order, and
+    /// whether its delimiter is a semicolon.
+    pub fn label_profile(&self) -> (Vec<(String, String)>, bool) {
+        let profile = ew_derive::label_profile(&self.query());
+        (
+            profile.columns.into_iter().map(|c| (c.key, c.heading)).collect(),
+            profile.delimiter == Delimiter::Semicolon,
+        )
+    }
+
     /// The label files of `scope` in `format` (doc 13 §5.4), one per label set and marker part that has labels, in the
     /// order of their first label; an XLSX is dated `date`, else as the session's workbooks are.
     ///
