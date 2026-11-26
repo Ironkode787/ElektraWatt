@@ -202,31 +202,87 @@ pub fn cp_label(q: &Q, cp: CpRef) -> String {
     let Some(f) = q.functions().get(cp.function) else {
         return String::new();
     };
-    let Some(device) = f.device else {
+    if f.device.is_none() {
         return match &f.kind {
             ew_schema::FunctionKind::Ip(ip) => ip.name.as_str().to_owned(),
             _ => String::new(),
         };
+    }
+    let short = cp_tag_from(q, cp, None);
+    match cp_pin_parts(q, cp) {
+        Some(Pin::Clamp(clamp)) => format!("{short}/{clamp}"),
+        Some(Pin::Designation(pin)) if !pin.is_empty() => {
+            // A device without a tag (an earth connection) is named by its pin alone: `PE`.
+            if short.is_empty() {
+                pin
+            } else {
+                format!("{short}:{pin}")
+            }
+        }
+        Some(Pin::TerminalDesignation(_) | Pin::Designation(_)) | None => short,
+    }
+}
+
+/// The pin of a CP as a list prints it in a CP column beside its device or terminal (doc 13 §3.2): a device CP its
+/// designation with `#n` where the function's printed designations repeat (`+#1`), as [`cp_label`] does; a terminal
+/// CP its clamp letter, with `#n` where the level's clamps repeat a letter (`a`, `a#2`), else the CP's designation;
+/// empty for an interruption point and an unknown function or CP.
+pub fn cp_pin(q: &Q, cp: CpRef) -> String {
+    match cp_pin_parts(q, cp) {
+        Some(Pin::Clamp(p) | Pin::Designation(p) | Pin::TerminalDesignation(p)) => p,
+        None => String::new(),
+    }
+}
+
+/// The device or terminal at a CP by its tag, as a wire's end prints it against its other end at `other`
+/// (doc 13 §3.2): without the structure the two ends' devices share, so a wire inside one location reads
+/// `-104A1-A2` and an end in another location `+FLD-104B1`. A terminal prints its level's own number
+/// (`level_short_tag`). Without a device at `other` (an external end, or `None`) the tag prints without structure;
+/// empty for a CP of no device.
+pub fn cp_tag_from(q: &Q, cp: CpRef, other: Option<CpRef>) -> String {
+    let device_at = |cp: CpRef| q.functions().get(cp.function).and_then(|f| f.device);
+    let Some(device) = device_at(cp) else {
+        return String::new();
     };
-    let short = q
-        .get::<crate::DeviceTag>(device)
-        .as_ref()
-        .as_ref()
-        .map(|t| t.short())
-        .unwrap_or_default();
+    let level = q
+        .get::<crate::FunctionCps>(cp.function)
+        .iter()
+        .find(|c| c.idx == cp.idx)
+        .and_then(|c| c.level);
+    let Some(tag) = crate::tag::level_tag(q, device, level) else {
+        return String::new();
+    };
+    match other
+        .and_then(device_at)
+        .and_then(|d| q.get::<crate::DeviceTag>(d).as_ref().clone())
+    {
+        Some(far) => tag.displayed(&far.structure),
+        None => tag.short(),
+    }
+}
+
+/// The pin part of a CP's label (see [`cp_label`], [`cp_pin`]).
+enum Pin {
+    /// A terminal's clamp letter, with its `#n`.
+    Clamp(String),
+    /// A terminal CP without a clamp letter: its designation.
+    TerminalDesignation(String),
+    /// A device CP's designation, with its `#n`; may be empty.
+    Designation(String),
+}
+
+/// The pin part of a CP; `None` for a function without a device and an unknown function or CP.
+fn cp_pin_parts(q: &Q, cp: CpRef) -> Option<Pin> {
+    let device = q.functions().get(cp.function)?.device?;
     let cps = q.get::<crate::FunctionCps>(cp.function);
-    let Some(this) = cps.iter().find(|c| c.idx == cp.idx) else {
-        return short;
-    };
+    let this = cps.iter().find(|c| c.idx == cp.idx)?;
     let terminal = q
         .devices()
         .get(device)
         .is_some_and(|d| d.aspects.terminal.is_some());
     if terminal {
-        // A level of a block with a number of its own prints that number (`-X1:11/a`, doc 08 §6.3).
-        let short = crate::tag::level_short_tag(q, device, this.level);
         let Some(ew_schema::ClampKey::Clamp(ch)) = &this.clamp else {
-            return short;
+            return Some(Pin::TerminalDesignation(this.designation.clone()));
         };
         // A clamp letter that repeats on the function (a third-party FnDef naming clamp `a` on both sides; the
         // starter `ew.fn.terminal` names side 2 `b`) takes `#n` like a repeated device designation, the
@@ -238,24 +294,20 @@ pub fn cp_label(q: &Q, cp: CpRef) -> String {
             .map(|c| c.idx)
             .collect();
         same.sort_unstable();
-        return match same.iter().position(|i| *i == cp.idx) {
-            Some(n) if same.len() > 1 => format!("{short}/{ch}#{}", n + 1),
-            _ => format!("{short}/{ch}"),
-        };
+        return Some(Pin::Clamp(match same.iter().position(|i| *i == cp.idx) {
+            Some(n) if same.len() > 1 => format!("{ch}#{}", n + 1),
+            _ => ch.to_string(),
+        }));
     }
     if this.designation.is_empty() {
-        return short;
+        return Some(Pin::Designation(String::new()));
     }
-    let pin = match designation_nth(&cps, this.idx, &this.designation) {
-        Some(n) => format!("{}#{n}", this.designation),
-        None => this.designation.clone(),
-    };
-    // A device without a tag (an earth connection) is named by its pin alone: `PE`.
-    if short.is_empty() {
-        pin
-    } else {
-        format!("{short}:{pin}")
-    }
+    Some(Pin::Designation(
+        match designation_nth(&cps, this.idx, &this.designation) {
+            Some(n) => format!("{}#{n}", this.designation),
+            None => this.designation.clone(),
+        },
+    ))
 }
 
 /// The 1-based position of CP `idx` among the function's CPs of `designation` in index order, when the designation

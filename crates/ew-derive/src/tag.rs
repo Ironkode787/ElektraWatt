@@ -338,23 +338,24 @@ pub fn short_tag(q: &Q, d: Id<Device>) -> String {
 /// level's designation (`-X1:11`, the second level of the block `-X1:10`); [`short_tag`] for a device that is no
 /// terminal, for a level designated by its terminal's designation and for a tag without one (a frozen tag).
 pub fn level_short_tag(q: &Q, device: Id<Device>, level: Option<u8>) -> String {
-    let tag = q.get::<DeviceTag>(device);
-    let Some(t) = tag.as_ref().as_ref() else {
-        return String::new();
-    };
+    level_tag(q, device, level).map(|t| t.short()).unwrap_or_default()
+}
+
+/// The tag of [`level_short_tag`] before it is printed: the device's tag, a terminal's connection point the level's
+/// designation; `None` for a missing device.
+pub(crate) fn level_tag(q: &Q, device: Id<Device>, level: Option<u8>) -> Option<Tag> {
+    let mut t = q.get::<DeviceTag>(device).as_ref().clone()?;
     let devices = q.devices();
     let own = devices
         .get(device)
         .and_then(|d| d.aspects.terminal.as_ref())
         .map(|term| term.level_designation(level).as_str());
-    match own {
-        Some(d) if t.cp.as_deref().is_some_and(|cp| cp != d) => {
-            let mut t = t.clone();
-            t.cp = Some(d.to_owned());
-            t.short()
-        }
-        _ => t.short(),
+    if let Some(d) = own
+        && t.cp.as_deref().is_some_and(|cp| cp != d)
+    {
+        t.cp = Some(d.to_owned());
     }
+    Some(t)
 }
 
 /// The terminal level that the representation `rep` draws (doc 08 §6.3): the level of the first of its symbol's CPs, in

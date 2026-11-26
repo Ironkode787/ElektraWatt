@@ -16,14 +16,13 @@ use std::sync::Arc;
 use ew_derive::{
     BridgeGroup, CpRef, DeviceTag, EndKind, FunctionCps, PageRef, Partition, PhysicalWire, PotentialId,
     PotentialNameOf, PotentialNames, PotentialPartition, PropSource, Q, StripBridges, WireEnd, WireRecord,
-    WireRecordSet, level_short_tag, short_tag,
+    WireRecordSet, cp_label, cp_pin, cp_tag_from,
 };
 use ew_ids::Id;
 use ew_l10n::Text;
 use ew_mltext::{MlText, NaturalKey, natural_key};
 use ew_schema::{
-    BridgeKind, ClampKey, ColourSpec, Connection, Csa, Device, DeviceState, Function, FunctionKind, Page,
-    Unit,
+    BridgeKind, ColourSpec, Connection, Csa, Device, DeviceState, Function, FunctionKind, Page, Unit,
 };
 
 use crate::rowset::{Cell, ColumnDef, QtyUnit};
@@ -169,15 +168,6 @@ pub(super) fn device_of(q: &Q, f: Id<Function>) -> Option<Id<Device>> {
     q.functions().get(f).and_then(|f| f.device)
 }
 
-/// The printed designation of a CP (`""` when the function has no such CP).
-pub(super) fn cp_designation(q: &Q, cp: CpRef) -> String {
-    q.get::<FunctionCps>(cp.function)
-        .iter()
-        .find(|c| c.idx == cp.idx)
-        .map(|c| c.designation.clone())
-        .unwrap_or_default()
-}
-
 /// The name of an interruption point function.
 pub(super) fn ip_name(q: &Q, f: Id<Function>) -> String {
     match q.functions().get(f).map(|f| f.kind.clone()) {
@@ -186,24 +176,16 @@ pub(super) fn ip_name(q: &Q, f: Id<Function>) -> String {
     }
 }
 
-/// A wire end as the tag cell and the CP cell of a table: a device end is its tag and the CP's
-/// designation; an external end `ext. <name>` with no CP; an open end `open <name>`.
-pub(super) fn end_cells(q: &Q, end: &WireEnd) -> (Cell, Cell) {
+/// A wire end as the tag cell and the CP cell of the wire list (doc 13 §3.2), read against the wire's other end
+/// `other`: a device end is its tag without the structure the two ends share (`ew_derive::cp_tag_from`) and its pin
+/// (`ew_derive::cp_pin`: a repeated pin with `#n`, a terminal's clamp letter); an external end `ext. <name>` with no
+/// CP; an open end `open <name>`.
+pub(super) fn end_cells(q: &Q, end: &WireEnd, other: &WireEnd) -> (Cell, Cell) {
     match end.kind {
-        EndKind::Device => match device_of(q, end.cp.function) {
-            Some(d) => {
-                let cp = cp_designation(q, end.cp);
-                (
-                    Cell::Tag(d),
-                    if cp.is_empty() {
-                        Cell::Empty
-                    } else {
-                        Cell::Ident(cp)
-                    },
-                )
-            }
-            None => (Cell::Empty, Cell::Empty),
-        },
+        EndKind::Device => (
+            Cell::ident(&cp_tag_from(q, end.cp, Some(other.cp))),
+            Cell::ident(&cp_pin(q, end.cp)),
+        ),
         EndKind::External => (
             Cell::Ident(format!("ext. {}", ip_name(q, end.cp.function))),
             Cell::Empty,
@@ -215,38 +197,11 @@ pub(super) fn end_cells(q: &Q, end: &WireEnd) -> (Cell, Cell) {
     }
 }
 
-/// A wire end as one text: `-101F1:2`, a terminal `-X1031:1/b`, `ext. J-E-206-L`.
+/// A wire end as one text: `-101F1:2`, a repeated pin `-101G1:+#1`, a terminal `-X1031:1/b` (`ew_derive::cp_label`),
+/// `ext. J-E-206-L`.
 pub(super) fn end_text(q: &Q, end: &WireEnd) -> String {
     match end.kind {
-        EndKind::Device => {
-            let Some(d) = device_of(q, end.cp.function) else {
-                return String::new();
-            };
-            let short = short_tag(q, d);
-            let cp = cp_designation(q, end.cp);
-            let is_terminal = q.devices().get(d).is_some_and(|d| d.aspects.terminal.is_some());
-            if is_terminal {
-                let cps = q.get::<FunctionCps>(end.cp.function);
-                let this = cps.iter().find(|c| c.idx == end.cp.idx);
-                // A level of a block with a number of its own prints that number (doc 08 §6.3).
-                let short = level_short_tag(q, d, this.and_then(|c| c.level));
-                let clamp = this.and_then(|c| match &c.clamp {
-                    Some(ClampKey::Clamp(ch)) => Some(ch.to_string()),
-                    _ => None,
-                });
-                match clamp {
-                    Some(c) => format!("{short}/{c}"),
-                    None => short,
-                }
-            } else if cp.is_empty() {
-                short
-            } else if short.is_empty() {
-                // A device without a tag (an earth connection) is named by its pin alone: `PE`.
-                cp
-            } else {
-                format!("{short}:{cp}")
-            }
-        }
+        EndKind::Device => cp_label(q, end.cp),
         EndKind::External => format!("ext. {}", ip_name(q, end.cp.function)),
         EndKind::Open => format!("open {}", ip_name(q, end.cp.function)),
     }

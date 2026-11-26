@@ -422,6 +422,7 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/valve_cells.rs` |  | A valve terminal drawn as its valve positions (doc 11 §3.2): what each cell of a slotted box holds ([`terminal_cells`]), which device may take a cell ([`fits_terminal`]), and the geometry of the cells ([`SlotFrame`]). |
 | `src/wire_profile.rs` |  | The colour and size profile shims of the wire-property chain (doc 03 §5.1, doc 08 §4.2). |
 | `src/wire_props.rs` |  | Effective wire properties with provenance: `wire_props_of(potential)`, `wire_props(conn)` (ARCH §6.4, doc 08 §4, D-08). |
+| `src/wire_record.rs` |  | `wire_record_set()`: every physical wire of the project once, as the workshop reads it (doc 13 §2.4). |
 | `src/wires.rs` | large | Physical wires: `physical_wires_of(potential)` (ARCH §6.4, doc 08 §3.8, doc 03 §9.2). |
 | `src/xref.rs` |  | Cross-references: `xref_format()`, `xref_relation(rep)` and `xref_text(rep)` (doc 03 §10, doc 06 §2.6–§2.8, ARCH §6.4, FR-XRF-001 … FR-XRF-025). |
 | `src/xref_format.rs` |  | The cross-reference text formatter (doc 06 §2.8, doc 03 §5.1 `XrefFormat`, FR-XRF-002, FR-XRF-003, FR-XRF-008, FR-XRF-025). |
@@ -1000,7 +1001,7 @@ Read-only SQL projection: materialisation, `api_v1_*` views, sandbox, `ew_natura
 
 | File | Size | What it holds |
 |---|---|---|
-| `src/conn.rs` |  | The connectivity facts the wire, terminal, cable, conductor, potential and bond tables share: the project's physical wires with their effective properties, oriented From/To (`ew_derive::orient_wire`), in the numbering order of FR-NUM-028 with their wire numbers (`ew_derive::WireNumbers`); the terminal bridges with their labels. |
+| `src/conn.rs` |  | The connectivity facts the wire, terminal, cable, conductor, potential and bond tables share: the project's physical wires with their effective properties, oriented From/To, in the numbering order of FR-NUM-028 with their wire numbers (`ew_derive::WireRecordSet`); the terminal bridges with their labels. |
 | `src/error.rs` |  | The errors of the projection: building it, and running SQL under the sandbox. |
 | `src/functions.rs` |  | The functions and the collation the host registers on every consumer connection (doc 17 §6.2): `ew_natural` (X2 < X10), `ew_ml(text, lang)`, and the date and time functions overridden so that they reject `'now'` (results are deterministic, NFR-REL-07). |
 | `src/lib.rs` |  | Read-only SQL projection: materialisation, `api_v1_*` views, sandbox, `ew_natural` collation (ADR-0017, ARCH §10.2, doc 17 §6). |

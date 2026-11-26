@@ -131,3 +131,9 @@ change here.
   New field of your own… (also in the Project menu) and a field's Rename… and Remove; Title block fields… lists the
   fields of the project's own its title block prints, the page's first, and says whose value each is (doc 09 §2.10,
   FT-1814)
+- behaviour-change: The wire list names a cable core by its cable and core in the No. column (`-103W1 BN`) instead
+  of the Via column; its CP columns print a repeated pin with its number (`+#1`, `+#2`) and a terminal's clamp letter
+  (`a`, `b`) instead of the terminal's connection number; an end whose location differs from the other end's prints
+  its location (`+FLD-104B1` to `+CAB-104A1-A2`); a bridge's kind and terminals stand in the new From end column
+  instead of Via. The CSV and XLSX of the list follow. The targets of the terminal diagrams and the cable overview
+  print a repeated pin with its number as well (`-101G1:+#1`).

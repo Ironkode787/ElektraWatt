@@ -144,7 +144,7 @@ pub use items::{
     cable_size_text, connection_marker, connection_number, effective_marker_text, free_text, group_marker,
     grouped_connections, live_connections, marker_mode, outline_contains, shows_marker, strips_named_on,
 };
-pub use joins::{JoinWiring, cp_label, wire_join};
+pub use joins::{JoinWiring, cp_label, cp_pin, cp_tag_from, wire_join};
 pub use links::{
     BondPathsQ, DeclaredLink, FunctionLinksOf, RailBondsQ, RailLocation, RailTerminalOf, device_location,
 };

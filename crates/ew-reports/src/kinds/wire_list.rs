@@ -29,13 +29,17 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowKind, RowS
 ///
 /// A wire's potential is its name, or `A ⇄ B` for a bond wire. `source` names where the effective
 /// cross-section and colour come from (`cdp`, `rule`, `bond`, `core`, `potential`, `project`, `built-in`;
-/// size first, then colour, joined when they differ). `via` names, joined by "; ", the cable core of a core
-/// wire (`-106W1 BK`), the junction the wire passes by its place and wiring (`101-C11 star at
-/// F55:2`; `102-C6 chain on -102F1:1`), its daisy chains (`chain on -101F1:1`, two conductors on one
-/// clamp) and the interruption points it passes (`IP 0VDC-AIR2`; doc 08 §3.2, D-20).
-/// `no` is the wire number `{page}.{counter}` of the connection-oriented scheme (counter scope page), empty
-/// for a cable core; a tie between wires of equal cells is decided by the wire ID and not printed. `part` is
-/// the wire part the wire carries explicitly (empty at MVP, FR-CON-033).
+/// size first, then colour, joined when they differ). `via` names, joined by "; ", the junction the wire passes by
+/// its place and wiring (`101-C11 star at F55:2`; `102-C6 chain on -102F1:1`), its daisy chains (`chain on
+/// -101F1:1`, two conductors on one clamp) and the interruption points it passes (`IP 0VDC-AIR2`; doc 08 §3.2,
+/// D-20). `no` is the wire number `{page}.{counter}` of the connection-oriented scheme (counter scope page); a cable
+/// core, which has none, prints its cable and core (`-106W1 BK`, doc 13 §3.1); a tie between wires of equal cells is
+/// decided by the wire ID and not printed. `part` is the wire part the wire carries explicitly (empty at MVP,
+/// FR-CON-033).
+///
+/// An end (doc 13 §3.2) prints its device or terminal without the structure the two ends share, so an end in
+/// another location prints it (`+FLD-104B1`), and its pin in the CP column: a repeated pin with `#n` (`+#1`), a
+/// terminal's clamp letter (`a`). A bridge prints its kind and span in its From end cell.
 #[derive(Clone, Copy, Debug)]
 pub struct WireList;
 
@@ -58,6 +62,7 @@ impl ReportKindDef for WireList {
             ColumnDef::new("via", CellType::Text, text!("column-via")).weighted(22),
             ColumnDef::new("part", CellType::Ident, text!("column-wire-part")).weighted(8),
             ColumnDef::new("pages", CellType::Folios, text!("column-pages")).weighted(8),
+            ColumnDef::new("from_end", CellType::Text, text!("column-from-end")).weighted(12),
         ]
     }
 
@@ -91,15 +96,11 @@ impl ReportKindDef for WireList {
 
 fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
     let w = &rec.wire;
-    let (from, from_cp) = end_cells(q, &w.ends[0]);
-    let (to, to_cp) = end_cells(q, &w.ends[1]);
+    let (from, from_cp) = end_cells(q, &w.ends[0], &w.ends[1]);
+    let (to, to_cp) = end_cells(q, &w.ends[1], &w.ends[0]);
     // The parts of the Via column: only the junction's and the chains' words are in a language.
-    let mut via: Vec<TextArg> = Vec::new();
-    if let Some(core) = w.core.and_then(|c| q.conductors().get(c)) {
-        via.push(format!("{} {}", short_tag(q, core.cable), core.core.as_str()).into());
-    }
     let (junction, daisy) = join_texts(q, w);
-    via.extend(junction.into_iter().chain(daisy).map(TextArg::from));
+    let mut via: Vec<TextArg> = junction.into_iter().chain(daisy).map(TextArg::from).collect();
     // The interruption points the wire passes, by name (the two points of a pair share one), not the
     // external point it ends at.
     let mut ips: Vec<String> = Vec::new();
@@ -129,25 +130,28 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
         .map_or(Cell::Empty, |c| {
             super::parts::part_number_cell(c.item.part_number.as_str())
         });
-    let mut r = Row::data(
-        RowId::entity(w.id),
-        vec![
-            rec.number
-                .as_ref()
-                .map_or(Cell::Empty, |n| Cell::Ident(n.clone())),
-            from,
-            from_cp,
-            to,
-            to_cp,
-            Cell::ident(&wires.potential_text(w)),
-            colour_cell(rec.colour.as_ref().map(|p| &p.value)),
-            csa_cell(rec.csa.as_ref().map(|p| &p.value)),
-            source_text(rec),
-            via,
-            part,
-            pages_cell(&w.pages),
-        ],
-    );
+    // A core has no number: its cable and core name it.
+    let no = match (&rec.number, w.core.and_then(|c| q.conductors().get(c))) {
+        (Some(n), _) => Cell::Ident(n.clone()),
+        (None, Some(core)) => Cell::Ident(format!("{} {}", short_tag(q, core.cable), core.core.as_str())),
+        (None, None) => Cell::Empty,
+    };
+    let columns = WireList.columns();
+    let mut cells = vec![Cell::Empty; columns.len()];
+    let mut set = |key: &str, cell: Cell| put(&columns, &mut cells, key, cell);
+    set("no", no);
+    set("from", from);
+    set("from_cp", from_cp);
+    set("to", to);
+    set("to_cp", to_cp);
+    set("potential", Cell::ident(&wires.potential_text(w)));
+    set("colour", colour_cell(rec.colour.as_ref().map(|p| &p.value)));
+    set("cross_section", csa_cell(rec.csa.as_ref().map(|p| &p.value)));
+    set("source", source_text(rec));
+    set("via", via);
+    set("part", part);
+    set("pages", pages_cell(&w.pages));
+    let mut r = Row::data(RowId::entity(w.id), cells);
     r.sources = w
         .ends
         .iter()
@@ -161,7 +165,7 @@ fn bridge_row(q: &Q, b: &Bridge) -> Row {
     let first = b.terminals.first().map_or(Cell::Empty, |t| Cell::Tag(*t));
     let last = b.terminals.last().map_or(Cell::Empty, |t| Cell::Tag(*t));
     let span = bridge_span(q, b);
-    let via = words_cell(&text!("cell-bridge-via", b.kind.clone(), span));
+    let kind = words_cell(&text!("cell-bridge-span", b.kind.clone(), span));
     let id = RowId::entity(b.strip)
         .with(RowKey::Name("bridge".to_owned()))
         .with(RowKey::Index(u32::from(b.group)));
@@ -172,9 +176,9 @@ fn bridge_row(q: &Q, b: &Bridge) -> Row {
     set("from", first);
     set("to", last);
     set("potential", bridge_potential(q, b));
-    set("via", via);
     set("part", Cell::Tbd);
     set("pages", b.page.map_or(Cell::Empty, |p| pages_cell(&[p])));
+    set("from_end", kind);
     let mut r = Row::data(id, cells);
     r.sources = b.terminals.iter().map(|t| t.cast()).collect();
     r

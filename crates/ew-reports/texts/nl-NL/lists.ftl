@@ -50,6 +50,7 @@ column-fitting-b = Koppeling B
 column-folio = Folio
 column-folios = Folio's
 column-from = Van
+column-from-end = Afwerking van
 column-frozen = Vastgezet
 column-function = Functie
 column-function-aspect = Functie (=)
@@ -229,7 +230,7 @@ cell-bridge-saddle = zadelbrug
 cell-bridge-wire = draadbrug
 cell-bridge-inter-level = brug tussen niveaus
 cell-bridge-other = brug
-cell-bridge-via = { $p0 }, klemmen { $p1 }
+cell-bridge-span = { $p0 }, klemmen { $p1 }
 
 ## A potential's type and circuit class, and a bond
 

@@ -50,6 +50,7 @@ column-fitting-b = Fitting B
 column-folio = Folio
 column-folios = Folios
 column-from = From
+column-from-end = From end
 column-frozen = Frozen
 column-function = Function
 column-function-aspect = Function (=)
@@ -229,7 +230,7 @@ cell-bridge-saddle = saddle
 cell-bridge-wire = wire
 cell-bridge-inter-level = inter-level
 cell-bridge-other = bridge
-cell-bridge-via = { $p0 } bridge, terminals { $p1 }
+cell-bridge-span = { $p0 } bridge, terminals { $p1 }
 
 ## A potential's type and circuit class, and a bond
 
