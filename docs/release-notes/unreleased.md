@@ -244,9 +244,11 @@ change here.
 - behaviour-change: Edit frame's click on the column numbers or row letters chooses them: Properties sets how many
   columns and rows, counted with numbers or letters, from which first label, rows skipping I and O, whether they are
   drawn and the title block's height; the change is previewed with the cross-references and tags that print
-  differently and applied in one step, the drawing area's edges kept exactly; a title block that would grow over
-  drawing is refused naming the page, and one that would make a cell lower than 2 mm is refused; the block's cells,
-  pictures and texts scale with its height (doc 09 §3.9, FT-1815)
+  differently and applied in one step, the drawing area's edges kept exactly. The title block's height is the
+  block's: every frame that names it (the cover's, the list pages', the frame without rulers) takes it from its rows,
+  so the block ends at the border on each; a block that would grow over drawing on a page of any of them is refused
+  naming the page, and one that would make a cell lower than 2 mm is refused; the block's cells, pictures and texts
+  scale with its height (doc 09 §3.9, FT-1815)
 - api-add: the command `frame.set_grid` (Bulk) (doc 09 §3.9, FT-1815)
 - behaviour-change: Edit frame's Properties of the frame give a frame its own title block (Title block: Its own, or
   Shared with the other frames again), give the page its own frame, and Use the frames of a template… takes a

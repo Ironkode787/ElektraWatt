@@ -450,4 +450,5 @@ own: a copy of the block for this frame alone), Give this page its own frame, it
 them) and Use the frames of a template…, which takes a template's frames, title blocks, fields of your own and company
 logo into the project after a preview; a page with a frame of its own keeps it. Chosen, the columns and rows show How
 many, Counted with, First, the rows' Skip I and O, Drawn and the title block's height: each value typed is previewed
-on the card, with the cross-references that print differently, and Apply writes them in one step.
+on the card, with the cross-references that print differently, and Apply writes them in one step. The title block's
+height is the block's: every frame that prints it takes the new height, and the block ends at the border on each.

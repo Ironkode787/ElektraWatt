@@ -500,14 +500,15 @@ pub const MAX_FIRST: u16 = 999;
 /// with numbers or letters, from which first label, letters skipping I and O; whether the rulers are drawn; and the
 /// height of its title block. The paper and the drawing area's outer edges stay: the columns share the drawing area's
 /// width and the rows its height, each an exact step; a taller title block takes its height from the rows (its cells'
-/// heights scaled with it, its lines written anew). Bulk (previewed): what prints differently is listed before it is
-/// applied. A frame or title block that is not the project's own is forked as `form.edit` forks it (`forks`, in
-/// `forked_copies` order).
+/// heights scaled with it, its lines written anew). The height is the block's: every frame that names the block takes
+/// it from its own rows alike, so the block ends where it ended on each. Bulk (previewed): what prints differently is
+/// listed before it is applied, on every page of every such frame. A frame or title block that is not the project's own
+/// is forked as `form.edit` forks it (`forks`, in `forked_copies` order).
 ///
 /// Rejected, with the pointer: `/frame` not a frame with a grid the project holds; a count outside 1 to 100; a first
-/// label outside 0 to 999; a title-block height below 2 mm, one that leaves the rows no height or one that makes a cell
-/// lower than 2 mm (its cells, pictures and texts scale with it); a title block that
-/// grows over a connection point, a bend of a wire or a symbol's anchor of a page of the frame, naming the page;
+/// label outside 0 to 999; a title-block height below 2 mm, one that leaves the rows of a frame that names it no height
+/// or one that makes a cell lower than 2 mm (its cells, pictures and texts scale with it); a title block that grows over
+/// a connection point, a bend of a wire or a symbol's anchor of a page of any frame that names it, naming the page;
 /// nothing changed. Outcome: the frame (its fork for a fork).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -677,20 +678,21 @@ impl Command for SetFrameGrid {
                         text!("refusal-frame-grid-block-low"),
                     ));
                 }
-                let high = || {
-                    bad(
-                        Self::NAME,
-                        "/title_block_height",
-                        text!("refusal-frame-grid-block-high"),
-                    )
-                };
-                let r = &mut frame.grid.as_mut().expect("checked above").rows;
-                // (num·count − d·den) / (den·count): the rows' length less the growth `d`.
                 let d = i128::from(h.0) - i128::from(old.0);
-                let total = i128::from(r.height.num()) * i128::from(r.count) - d * i128::from(r.height.den());
-                let den = r.height.den().checked_mul(u64::from(r.count)).ok_or_else(high)?;
-                let total = u64::try_from(total).ok().filter(|t| *t > 0).ok_or_else(high)?;
-                r.height = Grid::new(total, den).map_err(|_| high())?;
+                // The block is the block of every frame that names it: each one's rows give or take the difference,
+                // and none may grow over the drawing of a page it prints on (doc 09 §3.9).
+                let mut others: Vec<(Id<FormDef>, FormDef)> = tx
+                    .iter::<LibCopy<FormDef>>()
+                    .into_iter()
+                    .filter(|c| c.id != self.frame && c.item.title_block == Some(block_id))
+                    .map(|c| (c.id, c.item.clone()))
+                    .collect();
+                others.sort_by_key(|(id, _)| *id);
+                for f in std::iter::once(&mut frame).chain(others.iter_mut().map(|(_, f)| f)) {
+                    if let Some(grid) = &mut f.grid {
+                        rows_less(&mut grid.rows, d)?;
+                    }
+                }
                 let scale = |y: Nm| {
                     Nm(
                         i64::try_from(i128::from(y.0) * i128::from(h.0) / i128::from(old.0.max(1)))
@@ -727,8 +729,12 @@ impl Command for SetFrameGrid {
                 lines_from_cells(&mut block);
                 if d > 0 {
                     refuse_drawing_under(tx, self.frame, &frame)?;
+                    for (id, f) in &others {
+                        refuse_drawing_under(tx, *id, f)?;
+                    }
                 }
                 edits.push((block_id, block));
+                edits.extend(others);
             }
         }
         if frame == held.item && edits.is_empty() {
@@ -739,6 +745,23 @@ impl Command for SetFrameGrid {
         let id = renamed.get(&self.frame).copied().unwrap_or(self.frame);
         Ok(Outcome::primary((Kind::Form, id.cast())))
     }
+}
+
+/// The rows of a frame whose title block grows by `d` nm (shrinks for a negative one): one exact step per row over the
+/// rows' length less `d`, `(num·count − d·den) / (den·count)`; refused when it leaves the rows no height.
+fn rows_less(r: &mut ew_schema::FrameRows, d: i128) -> Result<(), CmdError> {
+    let high = || {
+        bad(
+            SetFrameGrid::NAME,
+            "/title_block_height",
+            text!("refusal-frame-grid-block-high"),
+        )
+    };
+    let total = i128::from(r.height.num()) * i128::from(r.count) - d * i128::from(r.height.den());
+    let den = r.height.den().checked_mul(u64::from(r.count)).ok_or_else(high)?;
+    let total = u64::try_from(total).ok().filter(|t| *t > 0).ok_or_else(high)?;
+    r.height = Grid::new(total, den).map_err(|_| high())?;
+    Ok(())
 }
 
 /// Refuses a frame whose drawing area (`frame`'s new grid) leaves out a connection point, a bend of a wire or a

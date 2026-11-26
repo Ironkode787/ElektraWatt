@@ -406,3 +406,53 @@ fn a_lower_title_block_scales_its_texts_and_keeps_its_cells_2_mm_high() {
         "the text keeps its place in the block"
     );
 }
+
+/// Where the title block of `frame` ends, from the sheet's top: the header band, the rows and the block's height, as an
+/// exact fraction (numerator, denominator).
+fn block_bottom(frame: &FormDef, block: &FormDef) -> (i128, i128) {
+    let g = frame.grid.as_ref().expect("a frame with a grid");
+    let (hn, hd) = g
+        .header_band
+        .map_or((0, 1), |h| (i128::from(h.num()), i128::from(h.den())));
+    let (rn, rd) = (i128::from(g.rows.height.num()), i128::from(g.rows.height.den()));
+    let rows = (rn * i128::from(g.rows.count), rd);
+    let den = hd * rows.1;
+    (hn * rows.1 + rows.0 * hd + i128::from(block.sheet.height.0) * den, den)
+}
+
+/// The copy the project made of the form copy `original` (its `fork_of`).
+fn fork_of(e: &Engine, original: Id<FormDef>) -> LibCopy<FormDef> {
+    let item = copy(e, original).expect("the original").item_id.as_uuid().to_string();
+    e.model()
+        .table::<LibCopy<FormDef>>()
+        .iter()
+        .map(|(_, c)| c)
+        .find(|c| c.item.meta.extra.get("source").and_then(|s| s["fork_of"]["item"].as_str()) == Some(item.as_str()))
+        .map(|c| (**c).clone())
+        .unwrap_or_else(|| panic!("a fork of {original:?}"))
+}
+
+/// A title block's height is the block's (doc 09 §3.9): lowered 6 mm from page 101's frame, it ends where it ended on
+/// every frame that names it, the cover's and the no-grid frame's as well, each one's rows taking up the difference.
+#[test]
+fn the_title_blocks_height_set_from_one_frame_fits_every_frame_that_names_it() {
+    let mut e = engine(model());
+    let block = copy(&e, form_id(BLOCK)).expect("the block").item;
+    let frames = [COVER, GRID, NOGRID];
+    let before: Vec<(i128, i128)> = frames
+        .iter()
+        .map(|f| block_bottom(&copy(&e, form_id(f)).expect("the frame").item, &block))
+        .collect();
+    let forks: Vec<String> = (1..=4).map(|n| Uuid::from_u128(0xf0 + n).to_string()).collect();
+    commit(
+        &mut e,
+        "frame.set_grid",
+        json!({"frame": GRID, "title_block_height": block.sheet.height.0 - 6_000_000, "forks": forks}),
+    );
+    let lower = fork_of(&e, form_id(BLOCK)).item;
+    assert_eq!(lower.sheet.height.0, block.sheet.height.0 - 6_000_000);
+    for (f, (n, d)) in frames.iter().zip(before) {
+        let (an, ad) = block_bottom(&fork_of(&e, form_id(f)).item, &lower);
+        assert_eq!(an * d, n * ad, "the block of {f} ends where it ended");
+    }
+}

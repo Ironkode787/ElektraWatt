@@ -136,13 +136,17 @@ number of 0 to 999 are taken, anything else is refused under its row in words. T
 at once, and the Preview tab lists what prints differently ([06](06-schematic-editor.md) §2.4): every cross-reference
 into the pages of the frame ("103-C1 → 103-B1", with its page), every wire number whose order changes, every tag of a
 numbering scheme that prints a column or a row. Apply writes it as one undo step (`frame.set_grid`); Cancel leaves the
-frame as it was. A change of the title block's height is previewed the same way, since it changes the rows' height;
-it is refused while a connection point, a bend of a wire or a symbol's anchor of a page of the frame lies where the
-block would grow, naming the page ("Page 101 has drawing where the title block would grow; move it up first"), and
-while a lower block would make a cell lower than 2 mm. The block's cells, pictures and texts scale with its height.
+frame as it was. The title block's height is the block's, as its cells are: what a person changes is "the title
+block", and the card says every change shows on each page that prints it. So every frame that names the block takes
+the new height from its own rows, and the block ends where it ended on each (the cover's, the list pages' frame and
+the frame without rulers alike); a block of one frame alone is Title block ▸ Its own first. The change is previewed
+the same way, over every page of every such frame, since it changes their rows' height; it is refused while a
+connection point, a bend of a wire or a symbol's anchor of a page of any of them lies where the block would grow,
+naming the page ("Page 101 has drawing where the title block would grow; move it up first"), and while a lower block
+would make a cell lower than 2 mm. The block's cells, pictures and texts scale with its height.
 
 **One frame, several pages.** The card and the header of Properties say where a change shows: a cell of the title block
-on every page of every frame that names the block, the columns and rows on the pages of this frame. With nothing
+and its height on every page of every frame that names the block, the columns and rows on the pages of this frame. With nothing
 chosen, Properties shows the frame:
 
 - **Paper**, read only;

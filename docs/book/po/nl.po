@@ -7213,7 +7213,8 @@ msgid ""
 "columns and rows show How many, Counted with, First, the rows' Skip I and O, "
 "Drawn and the title block's height: each value typed is previewed on the "
 "card, with the cross-references that print differently, and Apply writes "
-"them in one step."
+"them in one step. The title block's height is the block's: every frame that "
+"prints it takes the new height, and the block ends at the border on each."
 msgstr ""
 
 #: src/reference/window/command-bar.md:3
