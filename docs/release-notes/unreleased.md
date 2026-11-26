@@ -218,3 +218,5 @@ change here.
 - behaviour-change: in the part dialog a part of another kind names both kinds ("A part of another kind: A1A2 coil,
   not 1P MCB"), and a fitting part whose clamps on the device's wired pins have no size given says "clamp sizes not
   given" in its row
+- text-change: the part dialog's sentences about a clamp's size write the decimal separator of the window's
+  language ("0,5 tot 1,5 mm²" in Dutch), as the check messages do

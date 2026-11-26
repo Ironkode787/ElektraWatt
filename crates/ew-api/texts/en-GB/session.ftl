@@ -645,5 +645,5 @@ misfit-of = Does not fit { $p0 } of { $p1 }; { $p2 }: { $p3 }
 misfit-function = A part of another kind: its function is not the device's
 misfit-function-kinds = A part of another kind: { $p0 }, not { $p1 }
 misfit-pin = It has no pin { $p0 }; { $p1 }:{ $p0 } is wired
-misfit-clamp = Its clamp { $p0 } takes { $p1 } to { $p2 } mm²; wire { $p3 } is { $p4 } mm²
-misfit-clamp-unnumbered = Its clamp { $p0 } takes { $p1 } to { $p2 } mm²; a wire on it is { $p3 } mm²
+misfit-clamp = Its clamp { $p0 } takes { DECIMAL($p1) } to { DECIMAL($p2) } mm²; wire { $p3 } is { DECIMAL($p4) } mm²
+misfit-clamp-unnumbered = Its clamp { $p0 } takes { DECIMAL($p1) } to { DECIMAL($p2) } mm²; a wire on it is { DECIMAL($p3) } mm²

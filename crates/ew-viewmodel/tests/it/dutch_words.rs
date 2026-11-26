@@ -1380,3 +1380,21 @@ fn a_block_title_that_reads_as_a_kind_code_stays_as_typed() {
         ]
     );
 }
+
+/// A size in a sentence of the part dialog is formatted at the edge in the window's language: the fit hands out
+/// "0.5" and the Dutch window writes "0,5", as the rule messages do (`DECIMAL`).
+#[test]
+fn a_misfit_sentence_writes_its_sizes_in_the_windows_language() {
+    let args = ["1", "0.5", "1.5", "7", "2.5"]
+        .into_iter()
+        .map(|a| ew_api::TextArg::Plain(a.to_owned()))
+        .collect();
+    let text = ew_api::Text::checked_by_macro("misfit-clamp", "", args);
+    assert_eq!(
+        strings::shipped_renders(&text),
+        [
+            "Its clamp 1 takes 0.5 to 1.5 mm²; wire 7 is 2.5 mm²",
+            "Zijn klem 1 neemt 0,5 tot 1,5 mm²; draad 7 is 2,5 mm²",
+        ]
+    );
+}

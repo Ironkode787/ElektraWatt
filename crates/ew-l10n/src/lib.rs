@@ -366,10 +366,13 @@ macro_rules! texts {
             $crate::key_in(KEYS, key)
         }
 
-        /// This crate's catalogue: its text files ([`SOURCES`]) in every language, built once.
+        /// This crate's catalogue: its text files ([`SOURCES`]) in every language, built once; a pattern's
+        /// `DECIMAL($p0)` writes a measured value with the language's decimal separator ([`$crate::render::decimal`]).
         pub fn catalogue() -> &'static $crate::render::Catalogue {
             static CATALOGUE: ::std::sync::OnceLock<$crate::render::Catalogue> = ::std::sync::OnceLock::new();
-            CATALOGUE.get_or_init(|| $crate::render::Catalogue::new(&[SOURCES], &[], false))
+            CATALOGUE.get_or_init(|| {
+                $crate::render::Catalogue::new(&[SOURCES], &[("DECIMAL", $crate::render::decimal)], false)
+            })
         }
 
         /// The text of the key `$k`, a string literal of this crate's [`TEXTS`], with the arguments that follow it

@@ -191,11 +191,15 @@ impl Locale {
         en_gb: Option<&Language>,
     ) -> Locale {
         // `IN_SENTENCE($p0)` puts a label mid-sentence ([`in_sentence`]), for a language whose
-        // sentence lowers a name ("Voorbeeld: apparaat plaatsen") where en-GB keeps it.
+        // sentence lowers a name ("Voorbeeld: apparaat plaatsen") where en-GB keeps it; `DECIMAL($p0)` writes a
+        // measured value with the language's decimal separator, as the rule messages' catalogue does ("0,5 mm²").
         let language = Language::new(
             shipped,
             sources,
-            &[("IN_SENTENCE", |_, label| in_sentence(label))],
+            &[
+                ("IN_SENTENCE", |_, label| in_sentence(label)),
+                ("DECIMAL", ew_l10n::render::decimal),
+            ],
             false,
         );
         let shown: Vec<String> = (0..ARGS.len()).map(|i| format!("{{{i}}}")).collect();
