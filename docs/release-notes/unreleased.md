@@ -15,6 +15,10 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: a row of the labels list and of the tube labels is what it labels (the wire or tube with its
+  end, the terminal, strip, cable or device) with that record as its source, so a block's left-out records stay out
+  and a row opens its record again, and the For cell names a tube in the list's language; an existing tube-label
+  block prints its tubes as before (doc 13 §5.3)
 - behaviour-change: a wire's own values (its typed length, colour, size, flags, annotation and each end set by hand)
   follow the wire through every change of the wiring: a wire drawn onto it, with a bevel as with a dot, leaves it all
   of them and takes none; a junction whose wiring changes, a T that dissolves, a device moved to another page with its

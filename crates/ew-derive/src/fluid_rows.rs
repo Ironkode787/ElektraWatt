@@ -109,7 +109,7 @@ impl TubeEnd {
     }
 
     /// The end as a text's argument: its `DT:port` as it is, or the words for a junction.
-    fn arg(&self) -> ew_l10n::TextArg {
+    pub fn arg(&self) -> ew_l10n::TextArg {
         match self.at {
             EndpointKey::Junction(_) => crate::text::tube_end_junction().into(),
             EndpointKey::Cp(..) => self.text.clone().into(),
@@ -130,6 +130,16 @@ impl TubeRow {
             return langs(&self.tag, &self.tag);
         }
         crate::text::in_languages(&crate::text::tube_ends(self.from.arg(), self.to.arg()))
+    }
+
+    /// The tube's name ([`TubeRow::name`]) as a text's argument, so that a text that names it prints it in its own
+    /// language.
+    pub fn name_arg(&self) -> ew_l10n::TextArg {
+        if self.tag.is_empty() {
+            crate::text::tube_ends(self.from.arg(), self.to.arg()).into()
+        } else {
+            self.tag.clone().into()
+        }
     }
 }
 

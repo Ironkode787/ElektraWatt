@@ -76,7 +76,10 @@ column). A label without one is printed by the label program on what the person 
 The list kind `labels` lists every label with the columns `set`, `for` ("101.1 at -X1011:L1"), `text_1`, `text_2`,
 `text_3`, `copies`, `marker_part` and `note` ("does not fit its marker part"); `tube_labels` lists the tube markers
 with the same columns. Both are lists of the report engine, so a person can print them and check them before the
-labels are printed, and `ew export report --kind labels` writes them as every list.
+labels are printed, and `ew export report --kind labels` writes them as every list. A row is what it labels: the wire or
+the tube with its end, the terminal, strip, cable or device (a plate apart from the device's label),
+with that record as its source, so that a block leaves out the rows of a record it excludes and a row opens its record.
+The For cell names a tube in the language the list prints.
 
 ### 5.4 Label files and the export profile
 

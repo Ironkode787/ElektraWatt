@@ -2,13 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `labels`: every label of the workshop (doc 13 §5.3), from `ew_derive::LabelRows`, one row per label in the order the
-//! fitter applies them; `tube_labels` lists the tube markers of the same engine with the same columns.
+//! fitter applies them; `tube_labels` lists the tube markers of the same engine with the same columns. A row is what it
+//! labels ([`label_row_id`]), with that record as its source: a block's manual exclusion and opening a row's record read
+//! it.
 
 use ew_derive::{
     LabelColumn, LabelRecord, LabelRows, LabelSet, LabelTarget, Q, WireRecordSet, cp_label, short_tag,
 };
 use ew_ids::Id;
-use ew_schema::{ExportProfile, Part, ReportBlock, ReportKind};
+use ew_schema::{AnyId, ExportProfile, Part, ReportBlock, ReportKind};
 
 use super::conn::{put, words_cell};
 use crate::kind::ReportKindDef;
@@ -69,12 +71,7 @@ pub(super) fn label_set_rows(q: &Q, keep: impl Fn(LabelSet) -> bool) -> RowSet {
     let records = q.get::<WireRecordSet>(());
     let tubes = q.get::<ew_derive::TubeRows>(());
     let mut set = RowSet::new(columns.clone());
-    for (n, l) in q
-        .get::<LabelRows>(())
-        .iter()
-        .enumerate()
-        .filter(|(_, l)| keep(l.set))
-    {
+    for l in q.get::<LabelRows>(()).iter().filter(|l| keep(l.set)) {
         let mut cells = vec![Cell::Empty; columns.len()];
         let mut cell = |key: &str, c: Cell| put(&columns, &mut cells, key, c);
         cell(
@@ -103,10 +100,28 @@ pub(super) fn label_set_rows(q: &Q, keep: impl Fn(LabelSet) -> bool) -> RowSet {
                 words_cell(&text!("cell-label-does-not-fit")),
             );
         }
-        let id = RowId(vec![RowKey::Index(u32::try_from(n).unwrap_or(u32::MAX))]);
-        set.rows.push(Row::data(id, cells));
+        let (id, source) = label_row_id(l);
+        let mut row = Row::data(id, cells);
+        row.sources = vec![source];
+        set.rows.push(row);
     }
     set
+}
+
+/// The identity of a label's row and its source: the record it labels, with the end of a wire or a tube; a plate, which
+/// labels a device a device label labels too, says so.
+fn label_row_id(l: &LabelRecord) -> (RowId, AnyId) {
+    match &l.target {
+        LabelTarget::WireEnd(c, end) | LabelTarget::TubeEnd(c, end) => (
+            RowId::entity(*c).with(RowKey::Index(u32::from(*end))),
+            c.cast(),
+        ),
+        LabelTarget::Device(d) if l.set == LabelSet::Plates => (
+            RowId::entity(*d).with(RowKey::Name("plate".to_owned())),
+            d.cast(),
+        ),
+        LabelTarget::Device(d) => (RowId::entity(*d), d.cast()),
+    }
 }
 
 /// What a label is for, as the For cell prints it: "101.1 at -X1011:L1", a device's tag, "203.1 at -201U3-Q1:2".
@@ -132,8 +147,7 @@ fn label_for(
                 return Cell::Empty;
             };
             let at = if *end == 0 { &t.from } else { &t.to };
-            let name = ew_derive::text_in(&t.name(), None).to_owned();
-            words_cell(&text!("cell-label-for", name, at.text.clone()))
+            words_cell(&text!("cell-label-for", t.name_arg(), at.arg()))
         }
     }
 }

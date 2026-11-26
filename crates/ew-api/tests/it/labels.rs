@@ -184,3 +184,46 @@ fn a_cores_marker_is_for_its_cable_and_core() {
     assert!(fors.iter().any(|f| f == "-101W1 BN at -X1011:L1/b"), "{fors:?}");
     assert!(fors.iter().all(|f| !f.starts_with(' ')), "{fors:?}");
 }
+
+/// A label's row is what it labels (doc 13 §5.3): an existing tube-label block prints the sample's tube ends as it did
+/// before the labels list took its columns, each tube's two ends in the tube list's order, the from end first, each row
+/// the tube with its end and the tube its source, so that the block's exclusion of a tube applies and the row opens the
+/// tube; a wire marker's row is the wire's end, a device label's the device.
+#[test]
+fn a_label_row_is_what_it_labels_with_its_record_as_its_source() {
+    use ew_reports::{RowId, RowKey, RowKind};
+    let s = common::sample();
+    let q = s.query();
+    let tubes = q.get::<ew_derive::TubeRows>(());
+    let rows = |kind: ew_schema::ReportKind| {
+        ew_reports::project_rows(&q, &kind, None)
+            .expect("the list")
+            .rows
+            .into_iter()
+            .filter(|r| r.kind == RowKind::Data)
+            .map(|r| (r.id, r.sources))
+            .collect::<Vec<_>>()
+    };
+    let want: Vec<(RowId, Vec<ew_schema::AnyId>)> = tubes
+        .iter()
+        .flat_map(|t| {
+            (0..2).map(move |end| (RowId::entity(t.id).with(RowKey::Index(end)), vec![t.id.cast()]))
+        })
+        .collect();
+    assert!(!want.is_empty(), "the sample has tubes");
+    assert_eq!(rows(ew_schema::ReportKind::TubeLabels), want);
+    let labels = q.get::<LabelRows>(());
+    let all = rows(ew_schema::ReportKind::Labels);
+    let row_of = |set: LabelSet| {
+        let n = labels.iter().position(|l| l.set == set).expect("a label of the set");
+        (labels[n].target.clone(), all[n].clone())
+    };
+    let (target, (id, sources)) = row_of(LabelSet::WireMarkers);
+    let ew_derive::LabelTarget::WireEnd(wire, end) = target else { panic!("a wire end") };
+    assert_eq!((id, sources), (RowId::entity(wire).with(RowKey::Index(u32::from(end))), vec![wire.cast()]));
+    let (target, (id, sources)) = row_of(LabelSet::DeviceLabels);
+    let ew_derive::LabelTarget::Device(d) = target else { panic!("a device") };
+    assert_eq!((id, sources), (RowId::entity(d), vec![d.cast()]));
+    let ids: std::collections::BTreeSet<&RowId> = all.iter().map(|(id, _)| id).collect();
+    assert_eq!(ids.len(), all.len(), "no two rows of the labels list are one");
+}
