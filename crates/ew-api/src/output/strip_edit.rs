@@ -223,7 +223,7 @@ impl Session {
     pub fn bridges(&self) -> Vec<BridgeRow> {
         let q = self.query();
         let tag = |d: Id<Device>| short_tag(&q, d);
-        ew_reports::bridge_groups(&q)
+        ew_derive::bridge_groups(&q)
             .into_iter()
             .map(|(label, strip, g)| {
                 let strip_tag = tag(strip);
@@ -701,7 +701,7 @@ fn bridge_part(
     } else {
         json!({ "copy": resolve(cx, part, BRIDGE_PART_KINDS)? })
     };
-    let groups = ew_reports::bridge_groups(q);
+    let groups = ew_derive::bridge_groups(q);
     for t in terminals {
         let id: Id<Device> = Id::from_uuid(*t);
         let Some((_, _, g)) = groups.iter().find(|(_, _, g)| g.terminals.contains(&id)) else {

@@ -219,7 +219,7 @@ pub use settings::{
     check_member as check_settings_member, company_codes, text_styles,
 };
 pub use stitch::{EdgeKind, IpInfo, Level, PairMode, ShortSource, StitchGraph, StitchGraphQ};
-pub use strip_bridges::{BridgeGroup, StripBridges};
+pub use strip_bridges::{BridgeGroup, StripBridges, bridge_groups};
 pub use structure::{
     DevicesByStructure, PageDisplayStructure, PageStructure, ResolvedSlot, ResolvedStructure, SlotSource,
     StructureOf, StructurePath, would_print_location,

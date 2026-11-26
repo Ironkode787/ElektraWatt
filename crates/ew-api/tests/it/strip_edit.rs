@@ -253,7 +253,7 @@ fn terminal_properties_show_the_printed_label_and_the_group() {
 fn bridge_groups_are_br1_and_br2() {
     let s = common::sample();
     let q = s.query();
-    let groups = ew_reports::bridge_groups(&q);
+    let groups = ew_derive::bridge_groups(&q);
     let labels: Vec<&str> = groups.iter().map(|(l, _, _)| l.as_str()).collect();
     assert_eq!(labels, ["BR1", "BR2"]);
     let x1021 = strip(&s, "-X1021");
@@ -629,7 +629,7 @@ fn several_cells_compile_to_one_set_many() {
     assert_eq!(edits[1]["value"], json!({"copy": bridge}));
     run(&mut s, &cmd);
     let q = s.query();
-    let groups = ew_reports::bridge_groups(&q);
+    let groups = ew_derive::bridge_groups(&q);
     let parts: Vec<(&str, bool)> = groups
         .iter()
         .map(|(l, _, g)| (l.as_str(), g.part.is_some()))
@@ -654,7 +654,7 @@ fn several_cells_compile_to_one_set_many() {
         .map(|n| n.records[0])
         .find(|t| {
             let q = s.query();
-            !ew_reports::bridge_groups(&q)
+            !ew_derive::bridge_groups(&q)
                 .iter()
                 .any(|(_, _, g)| g.terminals.contains(&Id::from_uuid(*t)))
         })

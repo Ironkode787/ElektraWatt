@@ -7,10 +7,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use ew_ids::Id;
+use ew_mltext::{NaturalKey, natural_key};
 use ew_schema::{BridgeKind, Connection, ConnectionKind, Device, Endpoint, PartRef};
 
 use crate::Q;
 use crate::query::{Policy, Query};
+use crate::tag::DeviceTag;
 
 /// One bridge of a strip: the bridge connections of one group (doc 08 §2.3: one bridge object per group).
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -144,4 +146,37 @@ impl Query for StripBridges {
             .collect();
         Arc::new(out)
     }
+}
+
+/// Every bridge group of the project with its label `BR<n>` and its strip: the
+/// [`StripBridges`] of every strip that a terminal names, numbered over the strips in natural order of the strip
+/// tag, then group number, then strip ID.
+pub fn bridge_groups(q: &Q) -> Vec<(String, Id<Device>, BridgeGroup)> {
+    let strips: BTreeSet<Id<Device>> = q
+        .devices()
+        .iter()
+        .filter_map(|(_, d)| d.aspects.terminal.as_ref().map(|t| t.strip))
+        .collect();
+    let mut ordered: Vec<(NaturalKey, u16, Id<Device>, BridgeGroup)> = Vec::new();
+    for strip in strips {
+        let groups = q.get::<StripBridges>(strip);
+        if groups.is_empty() {
+            continue;
+        }
+        let key = natural_key(
+            q.get::<DeviceTag>(strip)
+                .as_ref()
+                .as_ref()
+                .map_or("", |t| t.full.as_str()),
+        );
+        for g in groups.iter() {
+            ordered.push((key.clone(), g.group, strip, g.clone()));
+        }
+    }
+    ordered.sort_by(|a, b| (&a.0, a.1, a.2).cmp(&(&b.0, b.1, b.2)));
+    ordered
+        .into_iter()
+        .enumerate()
+        .map(|(i, (_, _, strip, g))| (format!("BR{}", i + 1), strip, g))
+        .collect()
 }

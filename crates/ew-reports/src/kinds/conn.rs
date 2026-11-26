@@ -10,13 +10,13 @@
 //! drawn page order (`DrawnPageOrder`, which has no report pages), not the full page order that the report
 //! engine's pagination is part of, so the kinds derive their rows inside the pagination like any other kind.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use ew_derive::{
-    BridgeGroup, CpRef, DeviceTag, EndKind, FunctionCps, PageRef, Partition, PhysicalWire, PotentialId,
-    PotentialNameOf, PotentialNames, PotentialPartition, PropSource, Q, StripBridges, WireEnd, WireRecord,
-    WireRecordSet, cp_label, cp_pin, cp_tag_from,
+    CpRef, DeviceTag, EndKind, FunctionCps, PageRef, Partition, PhysicalWire, PotentialId, PotentialNameOf,
+    PotentialNames, PotentialPartition, PropSource, Q, WireEnd, WireRecord, WireRecordSet, bridge_groups, cp_label,
+    cp_pin, cp_tag_from,
 };
 use ew_ids::Id;
 use ew_l10n::Text;
@@ -338,9 +338,9 @@ pub(super) struct Bridge {
     pub label: String,
 }
 
-/// Every bridge of the project: the strips' [`StripBridges`] groups, labelled `BR1`, `BR2` … in natural order of
-/// the strip tag, then group (then strip ID). The strips are those that some terminal names. Bridges are never wire
-/// rows (doc 08 §6.5).
+/// Every bridge of the project: the strips' [`StripBridges`](ew_derive::StripBridges) groups, labelled `BR1`, `BR2` …
+/// in natural order of the strip tag, then group (then strip ID). The strips are those that some terminal names. Bridges
+/// are never wire rows (doc 08 §6.5).
 pub(super) fn bridges(q: &Q) -> Vec<Bridge> {
     let connections = q.connections();
     bridge_groups(q)
@@ -370,33 +370,6 @@ pub(super) fn bridges(q: &Q) -> Vec<Bridge> {
         .collect()
 }
 
-/// Every bridge group of the project with its label `BR<n>` and its strip: the
-/// [`StripBridges`] of every strip that a terminal names, numbered over the strips in natural order of the strip
-/// tag, then group number, then strip ID.
-pub fn bridge_groups(q: &Q) -> Vec<(String, Id<Device>, BridgeGroup)> {
-    let strips: BTreeSet<Id<Device>> = q
-        .devices()
-        .iter()
-        .filter_map(|(_, d)| d.aspects.terminal.as_ref().map(|t| t.strip))
-        .collect();
-    let mut ordered: Vec<(NaturalKey, u16, Id<Device>, BridgeGroup)> = Vec::new();
-    for strip in strips {
-        let groups = q.get::<StripBridges>(strip);
-        if groups.is_empty() {
-            continue;
-        }
-        let key = tag_key(q, strip);
-        for g in groups.iter() {
-            ordered.push((key.clone(), g.group, strip, g.clone()));
-        }
-    }
-    ordered.sort_by(|a, b| (&a.0, a.1, a.2).cmp(&(&b.0, b.1, b.2)));
-    ordered
-        .into_iter()
-        .enumerate()
-        .map(|(i, (_, _, strip, g))| (format!("BR{}", i + 1), strip, g))
-        .collect()
-}
 
 /// The designation of a terminal device (`""` for a device that is not a terminal).
 pub(super) fn terminal_designation(q: &Q, t: Id<Device>) -> String {
