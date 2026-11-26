@@ -185,7 +185,11 @@ fn strips_are_the_terminal_diagrams() {
             assert_eq!(n.cells[0], strip.label);
             // The sample's terminals: `pos` is the seq (1-based, gapless); -X1021's bridges are EW-GEN-BRG-4.
             assert_eq!(n.cells[pos], (i + 1).to_string(), "{}: pos", strip.label);
-            let bridge = if strip.label == "-X1021" { "EW-GEN-BRG-4" } else { "" };
+            let bridge = if strip.label == "-X1021" {
+                "EW-GEN-BRG-4"
+            } else {
+                ""
+            };
             assert_eq!(n.cells[bridge_part], bridge, "{}: bridge part", strip.label);
             // The printed list names the strip first too.
             rows.push(

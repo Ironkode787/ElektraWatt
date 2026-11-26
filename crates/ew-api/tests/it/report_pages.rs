@@ -59,7 +59,9 @@ fn the_sample_page_order_includes_the_generated_pages_with_two_toc_pages() {
             .unwrap_or_else(|| panic!("no folio {l}"))
     };
     assert!(at("900") < at("901") && at("901") < at("902") && at("902") < at("903"));
-    for f in ["903", "906", "907", "908", "909", "910", "911", "912", "913", "914"] {
+    for f in [
+        "903", "906", "907", "908", "909", "910", "911", "912", "913", "914",
+    ] {
         assert!(labels.contains(&f), "folio {f} is missing");
     }
     assert_eq!(labels.last(), Some(&"914.1"));

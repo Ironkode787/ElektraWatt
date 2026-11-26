@@ -87,11 +87,9 @@ impl ReportKindDef for Consumables {
                     .sizes
                     .iter()
                     .filter_map(csa_with_unit)
-                    .map(|s| {
-                        match e.form {
-                            EndForm::TwinFerrule => TextArg::Text(text!("cell-twin-size", s)),
-                            EndForm::Ferrule | EndForm::RingLug => TextArg::Plain(s),
-                        }
+                    .map(|s| match e.form {
+                        EndForm::TwinFerrule => TextArg::Text(text!("cell-twin-size", s)),
+                        EndForm::Ferrule | EndForm::RingLug => TextArg::Plain(s),
                     })
                     .collect();
                 let what_for = measured_cell(

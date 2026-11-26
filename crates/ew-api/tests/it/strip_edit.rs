@@ -265,9 +265,18 @@ fn bridge_groups_are_br1_and_br2() {
     assert_eq!(on, [4, 4], "-X1021: BR1 and BR2");
     let numbers: Vec<String> = groups
         .iter()
-        .map(|(_, _, g)| g.part.as_ref().map(|p| ew_derive::printed_number(&q, p)).unwrap_or_default())
+        .map(|(_, _, g)| {
+            g.part
+                .as_ref()
+                .map(|p| ew_derive::printed_number(&q, p))
+                .unwrap_or_default()
+        })
         .collect();
-    assert_eq!(numbers, ["EW-GEN-BRG-4", "EW-GEN-BRG-4"], "the sample's bridges' parts");
+    assert_eq!(
+        numbers,
+        ["EW-GEN-BRG-4", "EW-GEN-BRG-4"],
+        "the sample's bridges' parts"
+    );
 }
 
 /// SE5: the resolver's kind filter, the long form and the ambiguity.
