@@ -77,6 +77,7 @@ pane-pages = Pagina's
 pane-page-view = Paginaweergave
 pane-properties = Eigenschappen
 bar-lists-parts = Stuklijst
+bar-lists-wires = Draadlijst
 pane-jobs = Taken
 status-notifications = Notificaties { $p0 }
 status-job = { $p0 } { $p1 } %

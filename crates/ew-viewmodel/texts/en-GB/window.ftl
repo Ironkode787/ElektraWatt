@@ -82,6 +82,7 @@ pane-page-view = Page view
 # The property grid.
 pane-properties = Properties
 bar-lists-parts = Parts list
+bar-lists-wires = Wire list
 pane-jobs = Jobs
 status-notifications = Notifications { $p0 }
 status-job = { $p0 } { $p1 } %

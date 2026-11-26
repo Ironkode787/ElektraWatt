@@ -188,6 +188,8 @@ pub enum Group {
     Reports,
     /// Output: the lists.
     Lists,
+    /// Output: the workshop's lists (doc 13 §12).
+    Workshop,
     /// Output: the jobs.
     Jobs,
     /// View: zoom.
@@ -204,7 +206,7 @@ pub enum Group {
 
 impl Group {
     /// Every group, in bar order.
-    pub const ALL: [Group; 37] = [
+    pub const ALL: [Group; 38] = [
         Group::Project,
         Group::Parts,
         Group::Standards,
@@ -236,6 +238,7 @@ impl Group {
         Group::Pdf,
         Group::Reports,
         Group::Lists,
+        Group::Workshop,
         Group::Jobs,
         Group::Zoom,
         Group::Show,
@@ -265,7 +268,7 @@ impl Group {
                 Tab::Fluid
             }
             Group::Run | Group::Findings | Group::Numbering | Group::Trace => Tab::Check,
-            Group::Pdf | Group::Reports | Group::Lists | Group::Jobs => Tab::Output,
+            Group::Pdf | Group::Reports | Group::Lists | Group::Workshop | Group::Jobs => Tab::Output,
             Group::Zoom | Group::Show | Group::Panels | Group::Layout | Group::Appearance => Tab::View,
         }
     }
@@ -303,6 +306,7 @@ impl Group {
             Group::Pdf => "pdf",
             Group::Reports => "reports",
             Group::Lists => "lists",
+            Group::Workshop => "workshop",
             Group::Exchange => "exchange",
             Group::Jobs => "jobs",
             Group::Zoom => "zoom",

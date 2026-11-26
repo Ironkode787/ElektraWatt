@@ -150,6 +150,7 @@ reason-tab-needs-project = Begin eerst een nieuw project of open er een: Nieuw p
 reason-no-tag-proposal = Geen geweigerde kenmerkwijziging heeft een voorstel om te aanvaarden
 reason-no-pages = Het project heeft geen pagina's
 reason-no-parts-list = Het project heeft geen stuklijst: daarvoor is een rapportblok voor de stuklijst nodig
+reason-no-wire-list = Het project heeft nog geen draadlijst: Rapport… op het tabblad Uitvoer maakt er een
 reason-no-next-page = Dit is de laatste pagina
 reason-no-previous-page = Dit is de eerste pagina
 reason-no-recent = Er zijn geen recente projecten

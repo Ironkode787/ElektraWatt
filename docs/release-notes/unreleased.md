@@ -144,3 +144,5 @@ change here.
   sample project has typed lengths on 101.1, 102.8 and 103.2.
 - text-change: The tube list says `typed` (in Dutch `getypt`) for a length typed by hand, as the wire list does, where
   it said `manual` (`handmatig`).
+- behaviour-change: The Output tab has a Workshop group with Wire list, which opens the first page of the project's
+  wire list and says so ("Opened the wire list on page 907."); a project without one opens Report… on the wire list.

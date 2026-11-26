@@ -1368,13 +1368,19 @@ impl ShellModel {
     /// `parts_summary` report block (the BOM), else of a `parts_list` block; `None` when the project has neither
     /// with a page.
     pub fn parts_list_folio(&self) -> Option<String> {
+        self.list_folio(&["parts_summary", "parts_list"])
+    }
+
+    /// The folio of the first page of the first of `kinds` that the project has a list of: the first page in page
+    /// order of a page block of that kind; `None` when it has none with a page.
+    fn list_folio(&self, kinds: &[&str]) -> Option<String> {
         let project = self.project.as_ref()?;
         let q = project.session.query();
         let rows = self.page_rows();
-        ["parts_summary", "parts_list"].into_iter().find_map(|kind| {
+        kinds.iter().find_map(|kind| {
             q.report_blocks()
                 .iter()
-                .filter(|(_, b)| b.embedded.is_none() && ew_api::output::block_kind(b) == kind)
+                .filter(|(_, b)| b.embedded.is_none() && ew_api::output::block_kind(b) == *kind)
                 .filter_map(|(id, _)| {
                     let folios = ew_api::output::report_folios(&q, &id.to_string()).ok()?;
                     let first = folios.into_iter().next()?;
@@ -1393,22 +1399,10 @@ impl ShellModel {
     pub(crate) fn act_lists_parts(&mut self) -> Outcome {
         match self.parts_list_folio() {
             Some(folio) => {
-                let mut p = Map::new();
-                p.insert("folio".to_owned(), Value::String(folio.clone()));
-                let out = self.act_page_goto(&p);
+                let out = self.open_list(&folio);
                 if out != Outcome::Done {
                     return out;
                 }
-                let _ = self.act_fit_page(&Map::new());
-                let rows = self.page_rows().to_vec();
-                if let Some(i) = rows.iter().position(|r| r.folio == folio) {
-                    let key = self.navigator.key_of(&rows, i);
-                    let mut select = Map::new();
-                    select.insert("kind".to_owned(), Value::from("pages"));
-                    select.insert("keys".to_owned(), Value::from(vec![key]));
-                    let _ = self.act_navigator_select(&select);
-                }
-                self.dismiss_export_toasts();
                 // It opens the list the set has, never a second one, and says so.
                 self.notify(strings::format(key!("toast-parts-list-opened"), &[&folio]), false);
                 self.notify_unlisted();
@@ -1416,6 +1410,47 @@ impl ShellModel {
             }
             None => Outcome::refused(key!("reason-no-parts-list")),
         }
+    }
+
+    /// `lists.wires` (Output ▸ Workshop ▸ Wire list, doc 13 §12): opens the first page of the project's wire list as
+    /// `lists.parts` opens the parts list, with a toast that names its page; a project without one opens Report block…
+    /// on the wire list (headless: refused in words, as there is no form to open).
+    pub(crate) fn act_lists_wires(&mut self) -> Outcome {
+        match self.list_folio(&["wire_list"]) {
+            Some(folio) => {
+                let out = self.open_list(&folio);
+                if out == Outcome::Done {
+                    self.notify(strings::format(key!("toast-wire-list-opened"), &[&folio]), false);
+                }
+                out
+            }
+            None if self.mode == Mode::Gui => {
+                self.act_report_block_new(&Map::from_iter([("kind".to_owned(), Value::from("wire_list"))]))
+            }
+            None => Outcome::refused(key!("reason-no-wire-list")),
+        }
+    }
+
+    /// Shows the list page `folio` as the opening of a list does: in the focused group, fitted, its row selected in the
+    /// page tree and an earlier export's toast dismissed, so its effect is in view.
+    fn open_list(&mut self, folio: &str) -> Outcome {
+        let mut p = Map::new();
+        p.insert("folio".to_owned(), Value::String(folio.to_owned()));
+        let out = self.act_page_goto(&p);
+        if out != Outcome::Done {
+            return out;
+        }
+        let _ = self.act_fit_page(&Map::new());
+        let rows = self.page_rows().to_vec();
+        if let Some(i) = rows.iter().position(|r| r.folio == folio) {
+            let key = self.navigator.key_of(&rows, i);
+            let mut select = Map::new();
+            select.insert("kind".to_owned(), Value::from("pages"));
+            select.insert("keys".to_owned(), Value::from(vec![key]));
+            let _ = self.act_navigator_select(&select);
+        }
+        self.dismiss_export_toasts();
+        Outcome::Done
     }
 
     /// Takes the visible toasts of an export off the screen (the log keeps them).

@@ -340,6 +340,21 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_lists_parts(),
         ),
     ),
+    // Output ▸ Workshop ▸ Wire list opens the first page of the project's wire list, else Report block… on that kind
+    // (doc 13 §12).
+    placed(
+        place(Group::Workshop, 1, CommandSize::Large, Some(key!("bar-lists-wires"))),
+        "route-2",
+        act(
+            "lists.wires",
+            View,
+            Menu::Output,
+            &[],
+            project_open,
+            None,
+            |s, _| s.act_lists_wires(),
+        ),
+    ),
     keeps_banner(with_params(
         "on?:bool",
         placed(

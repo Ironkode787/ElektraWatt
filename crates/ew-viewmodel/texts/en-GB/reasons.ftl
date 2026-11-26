@@ -162,6 +162,7 @@ reason-tab-needs-project = Start a new project or open one first: New project or
 reason-no-tag-proposal = No refused tag edit has a proposal to accept
 reason-no-pages = The project has no pages
 reason-no-parts-list = The project has no parts list: it needs a parts list report block
+reason-no-wire-list = The project has no wire list yet: Report… on the Output tab makes one
 reason-no-next-page = This is the last page
 reason-no-previous-page = This is the first page
 reason-no-recent = There are no recent projects
