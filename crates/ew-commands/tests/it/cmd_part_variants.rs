@@ -135,7 +135,9 @@ fn a_fork_changes_accessories_and_variants_and_refuses_a_ferrule_or_a_variant_wi
     };
     // EP2 instead of EP, and a red variant with its own number: the fork takes them.
     let red = json!([{"key": "RD", "name": {"en": "Red"}, "part_number": "T-A-RD"}]);
-    let p = e.preview(&edit(item(EP2, red.clone()), 0x0f01)).expect("the fork's preview");
+    let p = e
+        .preview(&edit(item(EP2, red.clone()), 0x0f01))
+        .expect("the fork's preview");
     e.commit(p).expect("the fork");
     // A ferrule is no accessory: the consumables count it.
     match e.preview(&edit(item(FER, red), 0x0f02)) {

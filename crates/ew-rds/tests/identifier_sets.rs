@@ -162,7 +162,10 @@ fn load() -> (Vec<SetMeta>, Vec<Category>, Vec<(String, String)>) {
             let trade = t.get("trade").map(|_| string(t, "trade", &key));
             if let Some(w) = &trade {
                 assert!(TRADES.contains(&w.as_str()), "{key}: unknown trade `{w}`");
-                assert!(group.is_none(), "{key}: a trade belongs to the category's row without a group");
+                assert!(
+                    group.is_none(),
+                    "{key}: a trade belongs to the category's row without a group"
+                );
             }
             Category {
                 description: string(t, "description", &key),
@@ -292,7 +295,11 @@ fn generate(sets: &[SetMeta], categories: &[Category], groups: &[(String, String
         .filter_map(|c| Some((c.key.as_str(), c.trade.as_deref()?)))
         .chain(groups.iter().map(|(k, t)| (k.as_str(), t.as_str())))
         .collect();
-    let _ = writeln!(s, "pub(super) static TRADES: [(&str, &str); {}] = [", traded.len());
+    let _ = writeln!(
+        s,
+        "pub(super) static TRADES: [(&str, &str); {}] = [",
+        traded.len()
+    );
     for (key, trade) in traded {
         let _ = writeln!(s, "    ({key:?}, {trade:?}),");
     }
@@ -323,9 +330,17 @@ fn generated_tables_match_the_data_file() {
 fn public_api_reflects_the_data_file() {
     let (sets, categories, groups) = load();
     for c in &categories {
-        assert_eq!(ew_rds::category_trade(&c.key), c.trade.as_deref().or_else(|| {
-            categories.iter().find(|o| o.key == c.key && o.trade.is_some()).and_then(|o| o.trade.as_deref())
-        }), "{}", c.key);
+        assert_eq!(
+            ew_rds::category_trade(&c.key),
+            c.trade.as_deref().or_else(|| {
+                categories
+                    .iter()
+                    .find(|o| o.key == c.key && o.trade.is_some())
+                    .and_then(|o| o.trade.as_deref())
+            }),
+            "{}",
+            c.key
+        );
     }
     for (key, trade) in &groups {
         assert_eq!(ew_rds::category_trade(key), Some(trade.as_str()), "{key}");
