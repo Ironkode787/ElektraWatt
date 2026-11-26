@@ -224,3 +224,6 @@ change here.
   row reads "Marker carrier" ("Markeringsdrager") as the strip editor says it, not "Strip marker"
 - behaviour-change: A device placed on a wire with a typed length cuts it into two wires that nobody measured: neither
   keeps the length (the wire list prints `—` for both); each half kept the whole wire's length.
+- behaviour-change: The SQL view's `wire.wire_part` names the part a wire is cut from, as the wire list's Wire part
+  column does: the part set on the wire or its potential, else the workshop stock's first wire part of the wire's size
+  and colour; it was NULL for a wire without a part set on it.
