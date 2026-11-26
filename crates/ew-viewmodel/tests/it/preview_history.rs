@@ -662,6 +662,41 @@ fn undo_and_redo_show_the_page_the_step_changed() {
     shell.shutdown();
 }
 
+/// The same change undone while 102, where it was made, is still on show: Undo shows 101, the page it changed (it
+/// stayed on 102).
+#[test]
+fn undo_on_the_page_a_step_was_made_from_shows_the_page_it_changed() {
+    let tmp = Tmp::new("undo-made-from");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
+    edit_on(&mut shell, "102", json!(["tag:-102F1"]), "tag:-101F1", "remote");
+    done(&mut shell, "edit.undo", json!({}));
+    assert_eq!(shell.current_folio(), Some("101"));
+    shell.shutdown();
+}
+
+/// A step that changed two pages (-101F1 on 101 and -103F1 on 103), made while 102 is on show: undone from 201 it
+/// shows the first of them; undone again after its Redo while 103 is on show, it stays on 103.
+#[test]
+fn a_step_on_two_pages_undone_from_a_third_shows_one_of_them() {
+    let tmp = Tmp::new("undo-two-pages");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
+    done(&mut shell, "page.goto", json!({"folio": "102"}));
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device",
+            "targets": [{"ref": "tag:-101F1"}, {"ref": "tag:-103F1"}], "path": "function_text", "value": "two"}}),
+    );
+    done(&mut shell, "page.goto", json!({"folio": "201"}));
+    done(&mut shell, "edit.undo", json!({}));
+    assert_eq!(shell.current_folio(), Some("101"), "the first page it changed");
+    done(&mut shell, "edit.redo", json!({}));
+    done(&mut shell, "page.goto", json!({"folio": "103"}));
+    done(&mut shell, "edit.undo", json!({}));
+    assert_eq!(shell.current_folio(), Some("103"), "a page it changed stays");
+    shell.shutdown();
+}
+
 /// A new one-page project (the builtin template, folio 101) in `mode`.
 fn small(tmp: &Tmp, mode: Mode) -> ShellModel {
     let mut s = tmp.empty_shell(mode);
@@ -847,8 +882,7 @@ fn the_purge_step() {
 
 /// The order of the persona's run: a change on 101, a page made after it, then both undone. The Undo of the new page,
 /// which takes the page it changed away, goes back to where it was made (101), the Undo of the change stays there;
-/// redone from 201 the change shows 101, and the page made again from 101, where it was made, stays there with Go to
-/// page in its toast.
+/// redone from 201 the change shows 101, and the page made again shows itself.
 #[test]
 fn undo_of_a_page_made_after_a_change_goes_back_to_where_it_was_made() {
     let tmp = Tmp::new("undo-orders");
@@ -865,11 +899,6 @@ fn undo_of_a_page_made_after_a_change_goes_back_to_where_it_was_made() {
     done(&mut shell, "edit.redo", json!({}));
     assert_eq!(shell.current_folio(), Some("101"));
     done(&mut shell, "edit.redo", json!({}));
-    assert_eq!(shell.current_folio(), Some("101"), "where it was made");
-    assert_eq!(
-        shell.toast().and_then(|t| t.action()),
-        Some("go_to"),
-        "the page made again is a click away"
-    );
+    assert_eq!(shell.current_folio(), Some("150"), "the page made again");
     shell.shutdown();
 }

@@ -116,6 +116,12 @@ impl HistoryEntry {
         ModelDiff::of_ops(&self.tx.ops)
     }
 
+    /// The pages the step changes, read in `model` (the project as it stands now), in ID order: the pages a commit's
+    /// change feed names for its ops ([`crate::affected_pages`]).
+    pub fn touched_pages(&self, model: &ew_model::Model) -> Vec<ew_ids::Id<ew_schema::Page>> {
+        crate::affected_pages(model, model, &self.tx.ops)
+    }
+
     /// The revision that committed it.
     pub fn rev(&self) -> Rev {
         self.rev

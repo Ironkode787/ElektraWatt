@@ -5,18 +5,17 @@
 //! the panel prints it, whether it is an undo step or a marker line, its revision and the folios of
 //! the pages its changes touch in the current model.
 //!
-//! **Pages.** A page record names itself; a representation, connection, page item or structure box its page; a device
-//! or a function the pages of its representations; any other record none. The folios are in page order, at most
-//! 8. **Origin.** `GUI`, `script <base name>` for a replayed command log, `external change`,
+//! **Pages.** The pages a commit's change feed names for the step's ops (`HistoryEntry::touched_pages`,
+//! `ew_commands::affected_pages`: a panel layout page for its plate, rails, ducts and placements too), drawn pages
+//! only, in page order, at most 8. **Origin.** `GUI`, `script <base name>` for a replayed command log, `external change`,
 //! `import`, else `Origin::label`. The shell's own annotations (`quick fix <rule>`) are view state and stay in the
 //! shell.
 
-use std::collections::BTreeSet;
-
-use ew_commands::{History, ModelDiff, Origin};
+use ew_commands::{History, Origin};
 use ew_derive::{PageOrder, PageRef, Q};
 use ew_ids::Id;
-use ew_schema::{Connection, Device, Function, Kind, Page, PageItem, Representation, StructureBox};
+use ew_model::Model;
+use ew_schema::Page;
 
 use crate::Session;
 
@@ -100,60 +99,8 @@ fn settings_step(params: &serde_json::Value) -> String {
     }
 }
 
-/// The pages of `diff`'s records in the model of `q` (see the module doc).
-fn pages_of(q: &Q, diff: &ModelDiff) -> BTreeSet<Id<Page>> {
-    let mut pages = BTreeSet::new();
-    let reps_of = |f: Id<Function>, out: &mut BTreeSet<Id<Page>>| {
-        for r in q.idx().reps_of_function(f) {
-            if let Some(rep) = q.reps().get(r) {
-                out.insert(rep.page);
-            }
-        }
-    };
-    for change in &diff.changes {
-        let (kind, id) = change.key();
-        match kind {
-            Kind::Page => {
-                let page: Id<Page> = id.cast();
-                if q.pages().get(page).is_some() {
-                    pages.insert(page);
-                }
-            }
-            Kind::Representation => {
-                if let Some(rep) = q.reps().get(id.cast::<Representation>()) {
-                    pages.insert(rep.page);
-                }
-            }
-            Kind::Connection => {
-                if let Some(page) = q.connections().get(id.cast::<Connection>()).and_then(|c| c.page) {
-                    pages.insert(page);
-                }
-            }
-            Kind::PageItem => {
-                if let Some(item) = q.page_items().get(id.cast::<PageItem>()) {
-                    pages.insert(item.page);
-                }
-            }
-            Kind::StructureBox => {
-                if let Some(b) = q.structure_boxes().get(id.cast::<StructureBox>()) {
-                    pages.insert(b.page);
-                }
-            }
-            Kind::Function => reps_of(id.cast::<Function>(), &mut pages),
-            Kind::Device => {
-                let functions: Vec<Id<Function>> = q.idx().functions_of_device(id.cast::<Device>()).collect();
-                for f in functions {
-                    reps_of(f, &mut pages);
-                }
-            }
-            _ => {}
-        }
-    }
-    pages
-}
-
 /// The folios of `pages` in page order, at most `MAX_HISTORY_PAGES`.
-fn folios(q: &Q, pages: &BTreeSet<Id<Page>>) -> Vec<String> {
+fn folios(q: &Q, pages: &[Id<Page>]) -> Vec<String> {
     q.get::<PageOrder>(())
         .entries
         .iter()
@@ -163,8 +110,8 @@ fn folios(q: &Q, pages: &BTreeSet<Id<Page>>) -> Vec<String> {
         .collect()
 }
 
-/// The rows of `history` over the current model `q`.
-pub(super) fn view_of(history: &History, q: &Q) -> HistoryView {
+/// The rows of `history` over the current model `model`, read through `q`.
+pub(super) fn view_of(history: &History, model: &Model, q: &Q) -> HistoryView {
     let limits = history.limits();
     let rows = history
         .entries()
@@ -187,10 +134,7 @@ pub(super) fn view_of(history: &History, q: &Q) -> HistoryView {
             step: e.is_step(),
             barrier: e.is_barrier(),
             rev: e.rev().0,
-            pages: e
-                .changes()
-                .map(|diff| folios(q, &pages_of(q, &diff)))
-                .unwrap_or_default(),
+            pages: folios(q, &e.touched_pages(model)),
         })
         .collect();
     HistoryView {
@@ -207,7 +151,7 @@ impl Session {
     /// origin text, its step and barrier flags, its revision and the folios of the pages its changes
     /// touch in the current model; the cursor and the bounds. One call per revision while the panel is open.
     pub fn history_view(&self) -> HistoryView {
-        view_of(self.history(), &self.query())
+        view_of(self.history(), self.engine.model(), &self.query())
     }
 
     /// The records the history entry `index` changes, labelled as [`Session::preview_entities`] labels them, from the

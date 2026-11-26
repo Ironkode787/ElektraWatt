@@ -334,9 +334,10 @@ History                                        oldest kept: step 1 · 12 MB of 2
 - **Undo to here** runs the needed undos as one user action and restores the page, viewport and selection of the
   target entry. **Show changes** lists the entry's entity changes with derived tags.
 - **Undo and Redo show the page the step changed**: the page, viewport and selection the step was made with when
-  that page is still on show, is one it changed, or no page it changed is left; else the page on show when the step
+  that page is one it changed, or no page it changed is left; else the page on show when the step
   changed it, else the first page it changed, as a jump (a quick fix or a Properties edit of page 1 made while page 5
-  was on show, undone on page 1, went to page 5). A step without a kept context (an external change) moves nothing;
+  was on show went to page 5). The step's pages are every page it changed, a panel layout page for its
+  plate, rails, ducts and placements too. A step without a kept context (an external change) moves nothing;
   where the page on show is not one the step changed, its toast offers Go to page.
 - **Linear history.** A new commit after undo discards the redo entries. Edit ▸ Undo and Redo carry the entry's
   label ("Undo Renumber pages (section 1)"), and so do their tooltips and accessible names.

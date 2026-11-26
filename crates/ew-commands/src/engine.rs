@@ -68,8 +68,9 @@ pub struct Change {
     /// The keys of every row put, in key order.
     pub touched_keys: Vec<AnyKey>,
     /// The pages whose content changed, in ID order: pages put, pages of representations, connections,
-    /// junctions and embedded report blocks put (old and new rows), and the pages of every representation
-    /// of a function or device put.
+    /// junctions, page items, structure boxes and embedded report blocks put (old and new rows), a legend's layout
+    /// page, the pages of every representation of a function or device put, and the panel layout pages that show a
+    /// mounting surface, a rail or duct on it or a placement on either.
     pub touched_pages: Vec<Id<Page>>,
 }
 
@@ -828,6 +829,23 @@ pub fn affected_pages(before: &Model, after: &Model, ops: &[Op]) -> Vec<Id<Page>
             }
         }
     };
+    // A mounting surface's pages: the panel layout pages whose surface view shows it.
+    let surface_pages = |s: Id<ew_schema::MountingSurface>, out: &mut BTreeSet<Id<Page>>| {
+        for m in [before, after] {
+            for (_, item) in m.table::<ew_schema::PageItem>().iter() {
+                if matches!(&item.kind, ew_schema::PageItemKind::SurfaceView(v) if v.surface == s) {
+                    out.insert(item.page);
+                }
+            }
+        }
+    };
+    let carrier_pages = |c: Id<ew_schema::Carrier>, out: &mut BTreeSet<Id<Page>>| {
+        for m in [before, after] {
+            if let Some(c) = m.table::<ew_schema::Carrier>().get(&c) {
+                surface_pages(c.surface, out);
+            }
+        }
+    };
     for op in ops {
         for row in [op.before(), op.after()].into_iter().flatten() {
             match row {
@@ -860,7 +878,25 @@ pub fn affected_pages(before: &Model, after: &Model, ops: &[Op]) -> Vec<Id<Page>
                 AnyRow::Junction(j) => {
                     pages.insert(j.page);
                 }
-                AnyRow::ReportBlock(b) => pages.extend(b.embedded.as_ref().map(|e| e.page)),
+                AnyRow::ReportBlock(b) => {
+                    pages.extend(b.embedded.as_ref().map(|e| e.page));
+                    // A legend list stands beside its layout page's plate.
+                    pages.extend(b.layout_page);
+                }
+                AnyRow::PageItem(i) => {
+                    pages.insert(i.page);
+                }
+                AnyRow::StructureBox(b) => {
+                    pages.insert(b.page);
+                }
+                // What a panel layout page draws: its plate, the rails and ducts on it and what is placed there.
+                AnyRow::MountingSurface(s) => surface_pages(s.id, &mut pages),
+                AnyRow::Carrier(c) => surface_pages(c.surface, &mut pages),
+                AnyRow::Placement(p) => match &p.carrier {
+                    ew_schema::CarrierRef::Carrier(c) => carrier_pages(*c, &mut pages),
+                    ew_schema::CarrierRef::Surface(s) => surface_pages(*s, &mut pages),
+                    ew_schema::CarrierRef::Unknown(_) => {}
+                },
                 AnyRow::Function(f) => {
                     reps_pages(before, f.id, &mut pages);
                     reps_pages(after, f.id, &mut pages);

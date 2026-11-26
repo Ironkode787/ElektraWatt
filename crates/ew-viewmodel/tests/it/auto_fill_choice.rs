@@ -106,6 +106,8 @@ fn the_form_ticks_the_cabinets_devices_and_leaves_the_field_unticked() {
     assert!(!in_cabinet(&s, "-104B1"), "the field device took no location");
     // The location and the fill are one undo step.
     done(&mut s, "edit.undo", json!({}));
+    // Its page is the layout page it placed on: the Undo stays there.
+    assert_eq!(s.current_folio(), Some("902"));
     assert!(!placed(&s, "-104E2") && !in_cabinet(&s, "-104E2"));
     assert!(in_cabinet(&s, "-104E1"));
     s.shutdown();

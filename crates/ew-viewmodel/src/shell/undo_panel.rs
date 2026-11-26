@@ -400,10 +400,10 @@ impl ShellModel {
 
     /// After an undo or redo of the step committed at `rev`, which changed the pages `pages` (folios): the page the step
     /// changed is shown. The context kept under `rev` comes back (the page as a jump if it still exists, its viewport,
-    /// and the items of its selection that still exist) when its page is on show, or is one the step changed, or no
-    /// page the step changed exists (it changed none, or the Undo of a new page took it away); else the page on show
+    /// and the items of its selection that still exist) when its page is one the step changed, or no page the step
+    /// changed exists (it changed none, or the Undo of a new page took it away); else the page on show
     /// stays when the step changed it, and the first page the step changed opens as a jump when it did not (a change
-    /// made on page 1 from page 5, by a quick fix or in Properties, undone on page 1, showed page 5). Nothing without a
+    /// made on page 1 from page 5, by a quick fix or in Properties, showed page 5). Nothing without a
     /// kept context: the toast offers Go to page.
     pub(super) fn restore_context(&mut self, rev: u64, pages: &[String]) {
         let Some(context) = self.history.contexts.get(&rev).cloned() else {
@@ -415,9 +415,8 @@ impl ShellModel {
             .find_map(|f| PageRow::by_folio(self.page_rows(), f).map(crate::canvas::PageId::of));
         let made_on = |s: &Self, page| folio(s, page).is_some_and(|f| pages.contains(&f));
         let here = self.current_page().is_some_and(|p| made_on(self, p));
-        // Where it was made: still on show, or a page it changed, or where no page it changed is left.
-        let back =
-            changed.is_none() || made_on(self, context.page) || self.current_page() == Some(context.page);
+        // Where it was made, when that is a page it changed or no page it changed is left.
+        let back = changed.is_none() || made_on(self, context.page);
         if let Some(g) = self.area.as_ref().map(|a| a.focused) {
             match changed {
                 _ if back && self.row_index(context.page).is_some() => {
