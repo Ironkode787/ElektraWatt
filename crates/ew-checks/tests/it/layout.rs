@@ -992,3 +992,58 @@ fn a_rail_of_stacked_strips_gives_one_finding_per_bracket_and_its_bom_line() {
         .collect();
     assert_eq!(rows, [("EB 10".to_owned(), "201".to_owned())]);
 }
+
+const P_COVER: u128 = 0x60c; // an end cover a person adds to a strip, 4 mm wide
+
+/// A strip's own accessories count in its width on the rail (owner, 2026-11-26): -X1031's three 6.2 mm terminals and
+/// the end cover added after its third take 22.6 mm, the next strip fits 4 mm further on, and on a rail that held the
+/// strip exactly the cover makes it EW-LAY-010.
+#[test]
+fn a_strips_own_end_cover_counts_in_its_width_on_the_rail() {
+    use ew_derive::layout::{StripLayout, next_fit, rail_items};
+    let with_cover = |fx: &mut Fx| {
+        fx.part(
+            P_COVER,
+            "EC 4",
+            &json!({"kind": "accessory", "mech": {"width": mm(4.0), "height": mm(47.0)}}),
+        );
+        fx.rec_mut(&us(STRIP))["strip"]["accessories"] =
+            json!([{"after_seq": 3, "kind": "cover", "part": {"copy": us(P_COVER)}}]);
+    };
+    // Where -X1032 (two terminals) fits on R2 behind -X1031, without and with the cover.
+    let fits = |m: &ew_model::Model| {
+        let q = ew_derive::Q::new(m);
+        let items = rail_items(&q, ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(R2)));
+        let length = mm(570.0) as i128;
+        let (strips, others): (Vec<_>, Vec<_>) = items
+            .into_iter()
+            .partition(|i| i.placement == Some(ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(PL_STRIP2))));
+        next_fit(&others, length, &strips[0], mm(58.6) as i128)
+    };
+    let bare = bracketed(58.6, 200.0).build();
+    let mut fx = bracketed(58.6, 200.0);
+    with_cover(&mut fx);
+    let covered = fx.build();
+    let q = ew_derive::Q::new(&covered);
+    let width: i128 = q
+        .get::<StripLayout>(ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(STRIP)))
+        .iter()
+        .map(|i| i.width.unwrap_or(0))
+        .sum();
+    assert_eq!(width, mm(22.6) as i128);
+    let (a, b) = (fits(&bare).expect("a place"), fits(&covered).expect("a place"));
+    assert_eq!(b - a, mm(4.0) as i128, "the next strip fits 4 mm further on");
+    // -X1031 held exactly by the rail's end (570 mm) without the cover, 4 mm beyond it with the cover.
+    let mut fx = plate();
+    fx.rec_mut(&us(PL_STRIP))["pose"] = rail_pose(551.4);
+    assert!(messages(&fx.build(), "EW-LAY-010").is_empty());
+    with_cover(&mut fx);
+    let m = fx.build();
+    assert_eq!(
+        messages(&m, "EW-LAY-010"),
+        [
+            "+J-E-2416-X1031 occupies 551.4 to 574.0 mm on the rail at (40.0, 480.0)–(610.0, 480.0) mm, beyond its \
+          0.0 to 570.0 mm; shorten it or move it"
+        ]
+    );
+}

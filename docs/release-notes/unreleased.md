@@ -78,3 +78,8 @@ change here.
 - text-change: EW-CORE-051 says which end is missing as the interruption point tool does: "place its source where the potential leaves" for a lone target, "place a target where the potential arrives" for a lone source.
 - behaviour-change: Every device symbol of the starter IEC and ISO sets prints its device's function text through a shown function-text slot, one line under its other texts; a text hidden by Hide text stays hidden, and an imported element, a symbol of your own or a copy a project holds from before prints only the texts its symbol has.
 - behaviour-change: A mirrored or half-turned symbol's wires leave its pins the new way and go round the symbol, never back through a pin or across it; in the window the turned symbol's wires are then routed again where that runs better, in the same undo step.
+- behaviour-change: the accessories a person added to a terminal strip by hand (an end cover, a partition plate, a
+  strip marker) now count in the strip's width on its rail, as the end plates its terminals' parts bring do: a strip
+  grows by each one's width (a 4 mm end cover makes a 22.6 mm strip of three terminals 26.6 mm), the items after it on
+  the rail fit that much further on, and where a rail held the strip exactly, EW-LAY-010 now says where it runs past
+  the rail's end (doc 12 §2.6)

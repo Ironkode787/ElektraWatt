@@ -528,6 +528,8 @@ pub enum StripItemKind {
     /// An accessory standing in the strip (`part_accessories`, per strip: an end plate after the last terminal whose
     /// part names it).
     Accessory(crate::DerivedAccessory),
+    /// An accessory a person added to the strip itself: its index in `Strip.accessories`.
+    Own(usize),
 }
 
 /// One item of a strip in mounting order ([`StripLayout`]).
@@ -546,8 +548,10 @@ pub struct StripItem {
 }
 
 /// `strip_layout(strip)`: a strip's items in mounting order (doc 12 §2.6, §3.4): its terminals by `seq` and, after
-/// each, the accessories its terminals' parts stand there (`part_accessories`, per strip), each with its part's width
-/// and its place along the strip. Empty for a missing device and a device without terminals.
+/// each, the accessories a person added to the strip there (`Strip.accessories` by `after_seq`; one before the first
+/// terminal stands first), then the accessories its terminals' parts stand there (`part_accessories`, per strip),
+/// each with its part's width and its place along the strip. Empty for a missing device and a device without
+/// terminals.
 #[derive(Debug)]
 pub struct StripLayout;
 
@@ -582,8 +586,38 @@ impl Query for StripLayout {
             });
             s = s.saturating_add(width.unwrap_or(0));
         };
-        for t in strip_terminals(q, *key) {
-            push(StripItemKind::Terminal(t.id), primary_part(q, &t));
+        let terminals = strip_terminals(q, *key);
+        if terminals.is_empty() {
+            return Arc::new(out);
+        }
+        // A strip's own accessories by the terminal they follow: the last whose `seq` is not above their `after_seq`.
+        let seqs: Vec<u32> = terminals
+            .iter()
+            .map(|t| t.aspects.terminal.as_ref().map_or(0, |a| a.seq))
+            .collect();
+        let own: Vec<(usize, Option<usize>, PartRef)> = strip
+            .aspects
+            .strip
+            .as_ref()
+            .map(|a| {
+                let mut v: Vec<(usize, Option<usize>, PartRef)> = a
+                    .accessories
+                    .iter()
+                    .enumerate()
+                    .map(|(i, x)| (i, seqs.iter().rposition(|s| *s <= x.after_seq), x.part.clone()))
+                    .collect();
+                v.sort_by_key(|(i, at, _)| (at.map_or(0, |k| k + 1), *i));
+                v
+            })
+            .unwrap_or_default();
+        for (i, _, part) in own.iter().filter(|o| o.1.is_none()) {
+            push(StripItemKind::Own(*i), Some(part.clone()));
+        }
+        for (k, t) in terminals.iter().enumerate() {
+            push(StripItemKind::Terminal(t.id), primary_part(q, t));
+            for (i, _, part) in own.iter().filter(|o| o.1 == Some(k)) {
+                push(StripItemKind::Own(*i), Some(part.clone()));
+            }
             for a in accessories.iter().filter(|a| a.after == Some(t.id)) {
                 push(StripItemKind::Accessory(a.clone()), Some(a.part.clone()));
             }
@@ -608,7 +642,7 @@ fn shape(q: &Q, device: &Device, part: Option<&PartRef>) -> Shape {
                     height = height.max(h);
                 }
                 (StripItemKind::Terminal(_), _, _) => known = false,
-                (StripItemKind::Accessory(_), w, _) => width += w.unwrap_or(0),
+                (StripItemKind::Accessory(_) | StripItemKind::Own(_), w, _) => width += w.unwrap_or(0),
             }
         }
         return Shape {
