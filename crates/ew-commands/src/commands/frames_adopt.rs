@@ -31,8 +31,11 @@ use crate::tx::TxBuilder;
 /// - `fields` and `values`: the template's fields of its own, each one the project does not define added, and its value
 ///   of the whole project where this project has none.
 /// - `notice` and `logo`: the template's company notice and logo (base64), as `project.company.set` sets them.
+/// - `pictures`: the image files (base64) the forms name (`FormDef::assets`: a picture put into a title block), each
+///   brought into the project's asset store as A picture… brings one.
 ///
-/// Rejected, with the pointer: `/forms/<i>` a document that is not a form copy (as `library.embed` checks it);
+/// Rejected, with the pointer: `/forms/<i>` a document that is not a form copy (as `library.embed` checks it), or one
+/// that names a picture neither the project holds nor `pictures` brings; `/pictures/<i>` as A picture… refuses a file;
 /// `/frames` and `/lists_form` naming a form that neither the project holds nor `forms` carries; `/notice` and `/logo`
 /// as `project.company.set` refuses them. Outcome: none.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -59,6 +62,9 @@ pub struct AdoptFrames {
     /// The template's company logo, an image file in base64.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub logo: Option<String>,
+    /// The pictures the forms name, image files in base64.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub pictures: Vec<String>,
 }
 
 impl Command for AdoptFrames {
@@ -70,6 +76,18 @@ impl Command for AdoptFrames {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let project = tx.project().id.as_uuid();
+        for (i, picture) in self.pictures.iter().enumerate() {
+            crate::commands::company::store_image(
+                tx,
+                Self::NAME,
+                &format!("/pictures/{i}"),
+                (
+                    text!("refusal-form-edit-the-picture"),
+                    text!("refusal-form-edit-a-picture"),
+                ),
+                picture,
+            )?;
+        }
         for (i, value) in self.forms.iter().enumerate() {
             let at = format!("/forms/{i}");
             let (doc, _) = crate::commands::library::check_copy(Self::NAME, &at, value, project)?;
@@ -80,6 +98,13 @@ impl Command for AdoptFrames {
                     text!("refusal-report-block-not-form"),
                 ));
             };
+            if let Some((g, _)) = copy.item.assets().find(|(_, sha)| tx.asset(sha).is_none()) {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    format!("{at}/graphics/{g}"),
+                    text!("refusal-form-edit-picture-missing"),
+                ));
+            }
             match tx.get::<LibCopy<FormDef>>(copy.id) {
                 Some(held) if held.sha256 == copy.sha256 => {}
                 Some(_) => tx.put(copy),

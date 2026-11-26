@@ -360,8 +360,9 @@ impl Model {
 
     raw_read! {
         /// The assets the records name, by hash: the company logo of the project row
-        /// ([`ew_schema::company_logo`]), the project's typeface (`settings.typeface`, doc 09 §4.8) and the asset of
-        /// every image or underlay page item, each when the model holds its bytes. The save writes these (doc 05 §13.3),
+        /// ([`ew_schema::company_logo`]), the project's typeface (`settings.typeface`, doc 09 §4.8), the asset of
+        /// every image or underlay page item and every picture a form copy names ([`ew_schema::FormDef::assets`]), each
+        /// when the model holds its bytes. The save writes these (doc 05 §13.3),
         /// the journal carries them and the purge keeps them.
         fn referenced_assets(&self) -> std::collections::BTreeMap<ew_schema::Sha256, ew_schema::AssetRef> {
             let held = |sha: &ew_schema::Sha256| self.assets.get(sha).map(|a| *a.reference());
@@ -383,6 +384,13 @@ impl Model {
                 };
                 if let Some(asset) = self.assets.get(&sha) {
                     named.insert(sha, *asset.reference());
+                }
+            }
+            for (_, form) in self.lib.forms.iter() {
+                for (_, sha) in form.item.assets() {
+                    if let Some(asset) = self.assets.get(sha) {
+                        named.insert(*sha, *asset.reference());
+                    }
                 }
             }
             named

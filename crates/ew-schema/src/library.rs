@@ -1986,6 +1986,17 @@ pub struct FormDef {
 }
 
 impl FormDef {
+    /// The assets the form names, each with the index of its graphic: the image of every picture among its graphics (an
+    /// imported logo, a picture put into a cell). The one answer of what a form needs of the asset store: the save, the
+    /// journal and the purge keep them, a change of a form refuses one the project lacks, and a form taken from a
+    /// template brings them.
+    pub fn assets(&self) -> impl Iterator<Item = (usize, &crate::Sha256)> + '_ {
+        self.graphics.iter().enumerate().filter_map(|(i, g)| match g {
+            Primitive::Image(img) => Some((i, &img.asset)),
+            _ => None,
+        })
+    }
+
     /// The lines of a table of cells (doc 09 §2.5, "a title block is a table"): the cells' edges where two cells meet,
     /// each drawn once, as maximal straight runs; an edge on the outline of the cells is the frame's and not one of
     /// them. Vertical lines first (by x, then y), then horizontal ones (by y, then x), each from its smaller end.

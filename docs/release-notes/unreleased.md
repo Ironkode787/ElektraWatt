@@ -252,9 +252,10 @@ change here.
 - api-add: the command `frame.set_grid` (Bulk) (doc 09 §3.9, FT-1815)
 - behaviour-change: Edit frame's Properties of the frame give a frame its own title block (Title block: Its own, or
   Shared with the other frames again), give the page its own frame, and Use the frames of a template… takes a
-  template's frames, title blocks, frame defaults, the frame of the lists, its fields of its own and its company logo
-  and notice into a project made before, previewed and in one step; a page with a frame of its own keeps it (doc 09
-  §3.9, FT-1814)
+  template's frames, title blocks, frame defaults, the frame of the lists, its fields of its own, its company logo
+  and notice and the pictures put into its title blocks into a project made before, previewed and in one step; a page
+  with a frame of its own keeps it. A picture put into a title block is written with the next save of the project
+  (doc 09 §3.9, FT-1814)
 - api-add: the commands `form.make_own` and `frames.adopt` (Bulk) (doc 09 §3.9, FT-1814)
 - behaviour-change: a QElectroTech project's own title-block variables (`%{name}` of the project's or a folio's
   properties) come in as fields of the project's own, one value for the project where every folio has the same, else

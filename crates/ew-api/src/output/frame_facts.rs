@@ -325,7 +325,7 @@ impl Session {
             .iter()
             .find(|(_, b)| b.embedded.is_none())
             .map(|(_, b)| b.form);
-        let forms: Vec<Value> = q
+        let carried: Vec<_> = q
             .forms()
             .iter()
             .filter(|(id, f)| {
@@ -334,7 +334,23 @@ impl Session {
                     ew_schema::FormKind::Frame | ew_schema::FormKind::TitleBlock
                 ) || Some(*id) == lists_form
             })
-            .filter_map(|(_, f)| serde_json::to_value(ew_schema::LibDocument::Form((**f).clone())).ok())
+            .map(|(_, f)| f)
+            .collect();
+        let forms: Vec<Value> = carried
+            .iter()
+            .filter_map(|f| serde_json::to_value(ew_schema::LibDocument::Form((***f).clone())).ok())
+            .collect();
+        // The pictures the carried forms name (a customer's logo put into a title block), each once.
+        let mut named: Vec<ew_schema::Sha256> = carried
+            .iter()
+            .flat_map(|f| f.item.assets().map(|(_, sha)| *sha).collect::<Vec<_>>())
+            .collect();
+        named.sort();
+        named.dedup();
+        let pictures: Vec<String> = named
+            .iter()
+            .filter_map(|sha| template.asset(sha))
+            .map(|(_, bytes)| ew_schema::base64_encode(&bytes))
             .collect();
         let company = project.extra.get(ew_schema::COMPANY_MEMBER);
         let notice = company.and_then(|c| c.get("notice")).cloned();
@@ -355,6 +371,9 @@ impl Session {
         }
         if let Some(l) = logo {
             params["logo"] = Value::String(l);
+        }
+        if !pictures.is_empty() {
+            params["pictures"] = serde_json::json!(pictures);
         }
         Ok(params)
     }

@@ -456,16 +456,12 @@ impl Command for EditForm {
             check_cells(Self::NAME, &form)?;
             lines_from_cells(&mut form);
         }
-        for (i, g) in form.graphics.iter().enumerate() {
-            if let Primitive::Image(img) = g
-                && tx.asset(&img.asset).is_none()
-            {
-                return Err(bad(
-                    Self::NAME,
-                    format!("/form/graphics/{i}"),
-                    text!("refusal-form-edit-picture-missing"),
-                ));
-            }
+        if let Some((i, _)) = form.assets().find(|(_, sha)| tx.asset(sha).is_none()) {
+            return Err(bad(
+                Self::NAME,
+                format!("/form/graphics/{i}"),
+                text!("refusal-form-edit-picture-missing"),
+            ));
         }
         let id = change_form(tx, Self::NAME, self.copy, form, &self.forks)?;
         Ok(Outcome::primary((Kind::Form, id.cast())))

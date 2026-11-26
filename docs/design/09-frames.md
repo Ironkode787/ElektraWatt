@@ -176,9 +176,10 @@ gets the starter frame and title block embedded as the project's own on its firs
 fields. A project made before the change takes them with **Use the frames of a template…** (`frames.adopt`, Bulk,
 previewed): a list of the templates, then a preview of the pages whose frame changes, the fields of its own added and
 the cross-references that print differently. It brings the template's frames and title blocks, its frame defaults,
-the frame its lists print on, its fields of its own (their definitions, and their values where this project has none)
-and its company logo and notice; a page with a frame of its own keeps it. One undo step; the replaced forms stay
-until purged.
+the frame its lists print on, its fields of its own (their definitions, and their values where this project has none),
+its company logo and notice, and every picture its frames and title blocks name (a customer's logo put in with A
+picture…; `FormDef::assets`, the one answer of what a form names, which the save and the purge keep too); a page with
+a frame of its own keeps it. One undo step; the replaced forms stay until purged.
 
 **Imports.** A QElectroTech project keeps the title block and the frame of each diagram ([14](14-interop.md) §4.9),
 its own variables as fields of its own (§2.10), and is changed in the same way. The EPLAN imports bring symbols, parts
