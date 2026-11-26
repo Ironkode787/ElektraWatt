@@ -3,8 +3,10 @@
 
 //! QET's own title-block variables become the project's and the pages' fields, and the title block prints
 //! the fields, not the values as fixed texts (doc 14 §4.9): a page's `=` and `+` its structure, and the values every
-//! folio shares the open revision's label, the designer and the drawing number. A value the folios do not share, and
-//! a variable of the person's own, stay text. A small hand-written project with made-up content.
+//! folio shares the open revision's label, the designer and the drawing number. A value of QET's own variables the
+//! folios do not share stays text. A variable of the person's own becomes a field of the project's own (doc 09 §2.10):
+//! one value for the project where every folio has the same, else one for each page. A small hand-written project with
+//! made-up content.
 
 use ew_import_qet::QetProjectImporter;
 use ew_import_qet::project::new_project_context;
@@ -78,7 +80,7 @@ fn the_title_block_prints_the_fields_the_import_writes() {
         " {revision.current.label}",
         " {revision.current.author.name}",
         " {project.drawing_id}",
-        " ACME",
+        " {project.prop.customer}",
     ];
     let c = cells(&b);
     assert_eq!(c[0], fields);
@@ -164,4 +166,63 @@ fn a_value_the_folios_do_not_share_stays_text() {
     assert!(!b.records.iter().any(|r| matches!(r, Record::Revision(_))));
     // The page's own fields print on each page all the same.
     assert_eq!(c[0][0], " {page.function}");
+}
+
+/// A variable of the person's own is a field of the project's own: `customer`, the same on every folio, has one value
+/// for the project; `sheet`, which the folios differ in, one for each page; each cell prints its field.
+#[test]
+fn a_variable_of_ones_own_becomes_a_field_of_the_projects_own() {
+    let sheets = TEMPLATE.replace("%{customer}", "%{customer} %{sheet}");
+    let diagram = |folio: u32, sheet: &str| {
+        format!(
+            r#"<diagram folio="{folio}" order="{folio}" title="F{folio}" titleblocktemplate="tb" titleblocktemplateCollection="embedded"><properties><property name="customer">ACME</property><property name="sheet">{sheet}</property></properties></diagram>"#
+        )
+    };
+    let xml = format!("<project title=\"Fields\">{sheets}{}{}</project>", diagram(1, "C-1"), diagram(2, "C-2"));
+    let input = ImportInput::new("x.qet", xml.into_bytes()).unwrap();
+    let b = QetProjectImporter::new()
+        .import(&input, &mut new_project_context())
+        .unwrap();
+    let c = cells(&b);
+    assert!(c[0].contains(&" {project.prop.customer} {page.prop.sheet}".to_owned()), "{:?}", c[0]);
+    assert_eq!(c[0], c[1], "both pages print one title block");
+    let project = b
+        .records
+        .iter()
+        .find_map(|r| match r {
+            Record::Project(p) => Some(p.clone()),
+            _ => None,
+        })
+        .unwrap();
+    let defs: Vec<(String, ew_mltext::MlText, String)> = project
+        .user_prop_defs
+        .iter()
+        .map(|d| {
+            (
+                d.key.to_string(),
+                d.label.clone(),
+                serde_json::to_value(&d.scope).unwrap().to_string(),
+            )
+        })
+        .collect();
+    let neutral = ew_mltext::MlText::neutral;
+    assert_eq!(
+        defs,
+        [
+            ("customer".to_owned(), neutral("customer"), "[\"project\"]".to_owned()),
+            ("sheet".to_owned(), neutral("sheet"), "[\"page\"]".to_owned()),
+        ]
+    );
+    assert_eq!(project.user_props.len(), 1);
+    assert_eq!(project.user_props[0].value, ew_mltext::MlText::neutral("ACME"));
+    let mut sheets: Vec<(u32, ew_mltext::MlText)> = b
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            Record::Page(p) => Some((p.folio.number, p.user_props.first()?.value.clone())),
+            _ => None,
+        })
+        .collect();
+    sheets.sort_by_key(|(n, _)| *n);
+    assert_eq!(sheets, [(1, neutral("C-1")), (2, neutral("C-2"))]);
 }

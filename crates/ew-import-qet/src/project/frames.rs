@@ -178,8 +178,9 @@ fn size(d: Option<crate::decimal::Decimal>, default: i64) -> (i64, bool) {
     }
 }
 
-/// Builds the frames of `project`'s diagrams; title-block logos join `assets`. `fielded(diagram, variable)` says which
-/// of QET's own variables the import wrote into a field for a diagram ([`FIELDS`]).
+/// Builds the frames of `project`'s diagrams; title-block logos join `assets`. `fielded(diagram, variable)` names the
+/// placeholder path of the field the import wrote a variable into for a diagram: one of QET's own ([`FIELDS`]), or one
+/// of the project's own variables, a field of the project's own (`project.prop.<key>`, `page.prop.<key>`).
 #[allow(clippy::too_many_arguments)]
 pub fn build(
     project: &QetProject,
@@ -189,7 +190,7 @@ pub fn build(
     used: &mut BTreeSet<String>,
     assets: &mut ItemsOut,
     findings: &mut Findings,
-    fielded: &dyn Fn(usize, &str) -> bool,
+    fielded: &dyn Fn(usize, &str) -> Option<String>,
 ) -> Frames {
     let mut out = Frames::default();
     let mut seen: BTreeSet<Id<FormDef>> = BTreeSet::new();
@@ -355,13 +356,13 @@ fn frame(
 /// What a QET variable becomes in a cell: a binding of the page or a literal value.
 enum Var {
     /// An EW placeholder path (`page.folio`).
-    Bound(&'static str),
+    Bound(String),
     /// The diagram's value.
     Text(String),
 }
 
 /// The QET variables EW binds to the page, by name.
-const BOUND: [(&str, &str); 6] = [
+pub(crate) const BOUND: [(&str, &str); 6] = [
     ("title", "page.title"),
     ("folio", "page.folio"),
     ("folio-id", "doc.page_index"),
@@ -387,22 +388,26 @@ pub(crate) const FIELDS: [(&str, &str); 9] = [
 ];
 
 /// QET's variables that hold a local file path; they print nothing.
-const PATHS: [&str; 3] = ["projectpath", "projectfilename", "savedfilepath"];
+pub(crate) const PATHS: [&str; 3] = ["projectpath", "projectfilename", "savedfilepath"];
 
-/// The variables of diagram `d`, by name; the first source that names one wins. A variable of [`FIELDS`] that
-/// `fielded` says the import wrote for the diagram prints its field.
+/// The variables of diagram `d`, by name; the first source that names one wins. A variable of [`FIELDS`] or of the
+/// project's own that `fielded` says the import wrote for the diagram prints its field.
 fn context(
     project: &QetProject,
     d: &QetDiagram,
-    fielded: &dyn Fn(usize, &str) -> bool,
+    fielded: &dyn Fn(usize, &str) -> Option<String>,
 ) -> BTreeMap<String, Var> {
     let mut ctx: BTreeMap<String, Var> = BTreeMap::new();
     for (name, path) in BOUND {
-        ctx.insert(name.to_owned(), Var::Bound(path));
+        ctx.insert(name.to_owned(), Var::Bound(path.to_owned()));
     }
-    for (name, path) in FIELDS {
-        if fielded(d.index, name) {
-            ctx.insert(name.to_owned(), Var::Bound(path));
+    let names = FIELDS
+        .iter()
+        .map(|(name, _)| *name)
+        .chain(project.properties.iter().chain(&d.properties).map(|(n, _)| n.as_str()));
+    for name in names {
+        if let Some(path) = fielded(d.index, name) {
+            ctx.entry(name.to_owned()).or_insert(Var::Bound(path));
         }
     }
     for name in PATHS {

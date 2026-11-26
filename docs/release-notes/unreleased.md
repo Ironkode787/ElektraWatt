@@ -251,3 +251,7 @@ change here.
   and notice into a project made before, previewed and in one step; a page with a frame of its own keeps it (doc 09
   §3.9, FT-1814)
 - api-add: the commands `form.make_own` and `frames.adopt` (Bulk) (doc 09 §3.9, FT-1814)
+- behaviour-change: a QElectroTech project's own title-block variables (`%{name}` of the project's or a folio's
+  properties) come in as fields of the project's own, one value for the project where every folio has the same, else
+  one for each page, and the title block's cell prints the field; the printed text is the same, and the value is now
+  typed in Title block fields… (doc 14 §4.9, FT-1814)

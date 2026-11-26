@@ -156,7 +156,8 @@ fn the_template_becomes_a_title_block_with_the_folios_values() {
         values,
         [
             " {page.title}",
-            " By: A {{ACME}} ",
+            // The person's own variable is a field of the project's own; it prints the same "{ACME}".
+            " By: A {{{project.prop.customer}}} ",
             " Sheet: {doc.page_index}/{doc.page_count} %unknown"
         ]
     );

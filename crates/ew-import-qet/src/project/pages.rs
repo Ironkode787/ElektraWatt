@@ -399,15 +399,29 @@ pub fn map(
             .and_then(|(_, v)| iso_date(v))
     });
     let titled = project.title.as_deref().is_some_and(|t| !t.trim().is_empty());
-    let fielded = |d: usize, name: &str| match name {
-        "plant" => structures.get(d).is_some_and(|s| s.function.is_some()),
-        "locmach" => structures.get(d).is_some_and(|s| s.location.is_some()),
-        "indexrev" => revision.is_some(),
-        "author" => designer.is_some(),
-        "filename" => drawing_id.is_some(),
-        "projecttitle" => titled,
-        "saveddate" | "saveddate-eu" | "saveddate-us" => edited.is_some(),
-        _ => false,
+    let own = own_fields(project);
+    let fielded = |d: usize, name: &str| {
+        let written = match name {
+            "plant" => structures.get(d).is_some_and(|s| s.function.is_some()),
+            "locmach" => structures.get(d).is_some_and(|s| s.location.is_some()),
+            "indexrev" => revision.is_some(),
+            "author" => designer.is_some(),
+            "filename" => drawing_id.is_some(),
+            "projecttitle" => titled,
+            "saveddate" | "saveddate-eu" | "saveddate-us" => edited.is_some(),
+            _ => {
+                // A variable of the project's own, where the diagram has a value: its field.
+                return own
+                    .iter()
+                    .find(|f| f.name == name && f.values.get(d).is_some_and(Option::is_some))
+                    .map(|f| f.path());
+            }
+        };
+        frames::FIELDS
+            .iter()
+            .find(|(n, _)| *n == name)
+            .filter(|_| written)
+            .map(|(_, path)| (*path).to_owned())
     };
     let frames = frames::build(
         project,
@@ -466,7 +480,11 @@ pub fn map(
             description_override: None,
             scale: Scale::NotToScale,
             grid: Grid::QET_10PX,
-            user_props: Vec::new(),
+            user_props: own
+                .iter()
+                .filter(|f| f.page)
+                .filter_map(|f| f.value(f.values.get(i).and_then(Option::as_ref)))
+                .collect(),
             source_ref: Some(ids.source_ref(key)),
             extra,
         }));
@@ -570,8 +588,12 @@ pub fn map(
             .unwrap_or_else(|_| unreachable!("a valid profile key")),
         kind: Default::default(),
         source_ref: Some(ids.source_ref(super::PROJECT_KEY)),
-        user_prop_defs: Vec::new(),
-        user_props: Vec::new(),
+        user_prop_defs: own.iter().map(OwnField::definition).collect(),
+        user_props: own
+            .iter()
+            .filter(|f| !f.page)
+            .filter_map(|f| f.value(f.values.iter().flatten().next()))
+            .collect(),
         basic_project: None,
         extra: pextra,
     };
@@ -764,4 +786,94 @@ mod tests {
         assert_eq!(iso_date("2025-04-14"), Date::new(2025, 4, 14).ok());
         assert_eq!(iso_date("14-04-2025"), None);
     }
+}
+
+/// A variable of the project's own of a QElectroTech project (`<properties>` of the project or a diagram, none of
+/// QET's own and no title-block attribute), brought in as a field of the project's own (doc 14 §4.9, doc 09 §2.10).
+struct OwnField {
+    /// The variable's name, the field's name.
+    name: String,
+    /// The field's key, minted from the name.
+    key: Ident,
+    /// One value for each page (the diagrams differ, or not all name it), else one for the project.
+    page: bool,
+    /// Each diagram's value, by diagram index: the project's property, else the diagram's (QET's order).
+    values: Vec<Option<String>>,
+}
+
+impl OwnField {
+    /// The placeholder path a cell prints it by.
+    fn path(&self) -> String {
+        let scope = if self.page { "page" } else { "project" };
+        format!("{scope}.prop.{}", self.key.as_str())
+    }
+
+    /// Its definition, of the kind text.
+    fn definition(&self) -> ew_schema::UserPropDef {
+        ew_schema::UserPropDef {
+            key: self.key.clone(),
+            label: MlText::neutral(&self.name),
+            value_kind: ew_schema::UserPropKind::Text,
+            scope: vec![if self.page {
+                ew_schema::UserPropScope::Page
+            } else {
+                ew_schema::UserPropScope::Project
+            }],
+            extra: BTreeMap::new(),
+        }
+    }
+
+    /// Its value `value`, none for an empty one.
+    fn value(&self, value: Option<&String>) -> Option<ew_schema::UserPropValue> {
+        value.filter(|v| !v.is_empty()).map(|v| ew_schema::UserPropValue {
+            key: self.key.clone(),
+            value: MlText::neutral(v),
+            extra: BTreeMap::new(),
+        })
+    }
+}
+
+/// The variables of the project's own of `project`, in the order they first stand (see [`OwnField`]).
+fn own_fields(project: &QetProject) -> Vec<OwnField> {
+    let qets = |name: &str| {
+        frames::BOUND.iter().any(|(n, _)| *n == name)
+            || frames::FIELDS.iter().any(|(n, _)| *n == name)
+            || frames::PATHS.contains(&name)
+            || name == "projecttitle"
+            || project.diagrams.iter().any(|d| d.titleblock.iter().any(|(n, _)| n == name))
+    };
+    let mut names: Vec<&str> = Vec::new();
+    for (name, _) in project.properties.iter().chain(project.diagrams.iter().flat_map(|d| &d.properties)) {
+        if !qets(name) && !names.contains(&name.as_str()) {
+            names.push(name);
+        }
+    }
+    let mut out: Vec<OwnField> = Vec::new();
+    for name in names {
+        let values: Vec<Option<String>> = project
+            .diagrams
+            .iter()
+            .map(|d| {
+                project
+                    .properties
+                    .iter()
+                    .chain(&d.properties)
+                    .find(|(n, _)| n == name)
+                    .map(|(_, v)| v.clone())
+            })
+            .collect();
+        let first = values.first().cloned().flatten();
+        let page = first.is_none() || values.iter().any(|v| *v != first);
+        let key = ew_schema::UserPropDef::mint_key(name, |k| out.iter().any(|f| f.key.as_str() == k));
+        let Ok(key) = Ident::from_input(&key) else {
+            continue;
+        };
+        out.push(OwnField {
+            name: name.to_owned(),
+            key,
+            page,
+            values,
+        });
+    }
+    out
 }
