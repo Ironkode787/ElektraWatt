@@ -142,6 +142,33 @@ fn create_page_makes_its_section_in_the_same_step() {
     assert!(reason(e.execute(&both)).contains("new_section"));
 }
 
+/// `rep.move_to_new_page` without a title takes the title of the page the symbols come from (a page made for what
+/// moves off a page continues it), and its folio number stands in the section whose range holds it.
+#[test]
+fn a_new_page_for_moved_symbols_takes_its_page_s_title_and_the_section_of_its_number() {
+    let mut e = engine(mini_model());
+    // Every symbol of page 101, so that no wire ends behind.
+    let reps: Vec<Id<Representation>> = e
+        .model()
+        .table::<Representation>()
+        .iter()
+        .filter(|(_, r)| r.page == PAGE_101)
+        .map(|(id, _)| *id)
+        .collect();
+    let cmd = ew_commands::commands::MoveRepsToNewPage {
+        reps,
+        title: Default::default(),
+        number: Some(150),
+        new_section: None,
+        keep: None,
+    };
+    let r = e.execute(&cmd).unwrap();
+    let id: Id<Page> = typed(r.outcome.primary.unwrap());
+    let title = |id: Id<Page>| e.model().table::<Page>().get(&id).unwrap().title.clone();
+    assert_eq!(title(id), title(PAGE_101));
+    assert_eq!(folio_of(&e, id), (Some(SEC1), 150, None));
+}
+
 fn labelled(section: Option<Id<Section>>, number: u32, label: &str) -> CreatePage {
     let mut c = CreatePage::at(section, number);
     c.label = Some(ident(label));

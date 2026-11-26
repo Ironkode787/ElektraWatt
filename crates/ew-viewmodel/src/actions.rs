@@ -352,6 +352,9 @@ pub struct ActionMeta {
     /// The window runs the action itself: it opens a popup only the window draws (the app menu, a canvas's context
     /// menu); dispatched to the shell, it is refused in words.
     pub window_only: bool,
+    /// The action shows a preview of what it changes before it changes anything: the foot line of its question says
+    /// that a preview follows ([`crate::palette::PaletteForm::hint`]).
+    pub previews: bool,
     /// What the action does (run by [`ShellModel::dispatch`] once the action is enabled).
     pub(crate) handler: Handler,
 }
@@ -521,6 +524,7 @@ const fn act(
         chord_param: None,
         aliases: &[],
         window_only: false,
+        previews: false,
         handler,
     }
 }
@@ -616,6 +620,12 @@ const fn in_find(mut a: ActionMeta) -> ActionMeta {
 
 const fn in_supply_panel(mut a: ActionMeta) -> ActionMeta {
     a.context = Context::SupplyPanel;
+    a
+}
+
+/// Marks an action that shows a preview before it changes anything ([`ActionMeta::previews`]).
+const fn previews(mut a: ActionMeta) -> ActionMeta {
+    a.previews = true;
     a
 }
 

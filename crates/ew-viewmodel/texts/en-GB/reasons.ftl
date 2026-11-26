@@ -256,6 +256,7 @@ reason-bulk = More than 500 records
 reason-identifiers = Identifiers change
 reason-move-keeps-wires = Wires to what stays behind become pairs of interruption points
 reason-move-leaves-items = Selected texts and boxes stay on this page
+reason-move-preview = Nothing moves before Apply
 reason-bulk-command = The command is previewed first
 reason-rebuilt = Rebuilt on the current values
 error-no-row = There is no property row { $p0 }

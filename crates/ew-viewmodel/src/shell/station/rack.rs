@@ -158,7 +158,7 @@ impl ShellModel {
             if let Some((_, on)) = drawings.first() {
                 self.new_page_folio(*on, &mut params);
             }
-            if let Some(card) = self.move_card("rep.move_to_new_page", &mut params, None) {
+            if let Some(card) = self.move_card("rep.move_to_new_page", &mut params, None, false) {
                 return card;
             }
             let makes = params.get("new_section").is_some();
@@ -210,7 +210,7 @@ impl ShellModel {
             );
         }
         let mut params = json!({"reps": reps, "page": page.to_string()});
-        if let Some(card) = self.move_card("rep.move", &mut params, None) {
+        if let Some(card) = self.move_card("rep.move", &mut params, None, false) {
             return card;
         }
         let out = self.rack_commit(cursor, "rep.move", params);

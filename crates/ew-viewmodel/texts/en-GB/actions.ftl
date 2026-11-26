@@ -382,6 +382,7 @@ palette-title = Command palette
 palette-hint = Type a command…
 palette-no-match = No matching command
 palette-form-hint = Enter applies · Esc goes back
+palette-form-hint-preview = Enter shows the preview: nothing changes before Apply · Esc goes back
 shortcuts-title = Keyboard shortcuts
 
 # The text of the describe output.

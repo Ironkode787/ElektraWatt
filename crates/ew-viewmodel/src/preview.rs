@@ -96,6 +96,30 @@ pub(crate) fn counted(parts: &[(crate::strings::CountKey, usize)], sep: &str) ->
         .join(sep)
 }
 
+/// What a card's count of items is made of, in the UI language: the count, then each kind's count in words, the
+/// largest first, then by kind ("43 items: 18 connections, 12 symbols, 1 page").
+pub(crate) fn records_made_of(entities: &[PreviewEntity]) -> String {
+    let mut kinds: Vec<(&str, usize)> = Vec::new();
+    for e in entities {
+        match kinds.iter_mut().find(|(k, _)| *k == e.kind) {
+            Some((_, n)) => *n += 1,
+            None => kinds.push((&e.kind, 1)),
+        }
+    }
+    kinds.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(b.0)));
+    let parts: Vec<String> = kinds
+        .iter()
+        .map(|(kind, n)| format!("{n} {}", crate::properties::kind_plural(kind, *n)))
+        .collect();
+    crate::strings::format(
+        key!("preview-records-made-of"),
+        &[
+            &crate::strings::format_count(crate::count_key!("preview-records"), entities.len()),
+            &parts.join(", "),
+        ],
+    )
+}
+
 /// One cross-reference text change: the folio of the representation's page (empty when it has none), the text before
 /// and after.
 #[derive(Clone, PartialEq, Eq, Debug)]

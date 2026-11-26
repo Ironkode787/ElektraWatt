@@ -67,9 +67,10 @@ Apply makes the copy in one undo step.
 
 ### Move to page…
 
-Moves the selected symbols to another schematic page, or to a new page in the section of the schematic pages. It asks
-for the page; a wire
-to a symbol that stays behind becomes a pair of interruption points, which a preview lists before anything moves.
+Moves the selected symbols to another schematic page, or to a new page in the section of the schematic pages, titled
+as the page they come from. It asks for the page, then shows a preview before anything moves: how many symbols go to
+which page, what the changed items are, and each wire to a symbol that stays behind, which becomes a pair of
+interruption points. Apply moves them and shows the page.
 The right-click menu of selected symbols has it too. See [Interruption points](things.md#interruption-points).
 
 ### Add legend

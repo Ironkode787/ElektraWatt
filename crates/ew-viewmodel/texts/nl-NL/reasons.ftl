@@ -237,6 +237,7 @@ reason-bulk = Meer dan 500 records
 reason-identifiers = Identificaties wijzigen
 reason-move-keeps-wires = Draden naar wat achterblijft worden paren onderbrekingspunten
 reason-move-leaves-items = Geselecteerde teksten en kaders blijven op deze pagina
+reason-move-preview = Er verplaatst niets vóór Toepassen
 reason-bulk-command = De opdracht wordt eerst als voorbeeld getoond
 reason-rebuilt = Opnieuw opgebouwd op de huidige waarden
 error-no-row = Er is geen eigenschapsrij { $p0 }

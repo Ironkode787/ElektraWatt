@@ -362,10 +362,7 @@ fn form_rows(ui: &mut egui::Ui, t: &Tokens, form: &PaletteForm, opened: bool, ev
     // The form says how it applies and how it goes back, in the hint style (`type.small`, tertiary).
     ui.horizontal(|ui| {
         ui.add_space(t.space_3);
-        ui.label(crate::components::small_tertiary(
-            t,
-            strings::text(key!("palette-form-hint")),
-        ));
+        ui.label(crate::components::small_tertiary(t, form.hint()));
     });
     ui.add_space(t.space_2);
 }

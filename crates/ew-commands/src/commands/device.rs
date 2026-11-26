@@ -1114,7 +1114,8 @@ impl Command for MoveReps {
 /// comes after the page of the first representation: its folio `number` in the section whose folio range holds it
 /// (none where no section does), or in the section `new_section` makes in the same step, else proposed as
 /// `page.create` proposes one after a page in that page's section (a folio in use is refused as `page.create` refuses
-/// it), with that page's type, frame form, structure and grid, titled `title`; the representations then move
+/// it), with that page's type, frame form, structure and grid, titled `title`, else as that page is; the
+/// representations then move
 /// onto it as `rep.move` with `page`, a zero `delta` and `keep` moves them, refused as that move refuses. Outcome: the
 /// new page, with the notice of a section made and the move's notices.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -1123,7 +1124,7 @@ pub struct MoveRepsToNewPage {
     /// The representations, at least one, all on one page.
     #[schemars(with = "Vec<UuidS>")]
     pub reps: Vec<Id<Representation>>,
-    /// The new page's title.
+    /// The new page's title; absent: the title of the page the representations come from.
     #[serde(default, skip_serializing_if = "MlText::is_empty")]
     #[schemars(with = "MlTextS")]
     pub title: MlText,
@@ -1167,7 +1168,12 @@ impl Command for MoveRepsToNewPage {
             label: None,
             after: Some(from.id),
             kind: from.kind.clone(),
-            title: self.title.clone(),
+            // A page made for what moves off a page continues it: it takes that page's title when none is given.
+            title: if self.title.is_empty() {
+                from.title.clone()
+            } else {
+                self.title.clone()
+            },
             structure: from.structure.clone(),
             form: from.form,
             grid: from.grid,

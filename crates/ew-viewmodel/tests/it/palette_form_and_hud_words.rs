@@ -55,12 +55,15 @@ fn a_folio_row_shows_the_page_title() {
     assert_eq!(rows[0].breadcrumb, title);
 }
 
-/// The palette form's hint text.
+/// The palette form's hint text: Enter applies, and for an action that shows a preview first (Move to page…, by its
+/// declaration) Enter shows the preview, so that the question does not read as the last step.
 #[test]
 fn the_form_hint_says_enter_and_escape() {
+    let hint = |action| ew_viewmodel::palette::PaletteForm::new(action, &[], &[]).hint();
+    assert_eq!(hint("view.min_font"), "Enter applies \u{b7} Esc goes back");
     assert_eq!(
-        strings::text(key!("palette-form-hint")),
-        "Enter applies \u{b7} Esc goes back"
+        hint("edit.move_to_page"),
+        "Enter shows the preview: nothing changes before Apply \u{b7} Esc goes back"
     );
 }
 

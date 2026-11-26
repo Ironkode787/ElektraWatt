@@ -407,10 +407,11 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     )),
     // Move to page…: the selected symbols onto another schematic page, a wire to what stays behind kept as a pair of
     // interruption points (doc 06 §3.4). On the Page tab beside Copy pages… (the Draw tab has no room at 1920), and in
-    // the right-click menu of selected symbols; started without its page it asks for it.
+    // the right-click menu of selected symbols; started without its page it asks for it. Its preview shows what the
+    // move cuts before anything moves.
     with_params(
         "page:page",
-        in_canvas(placed(
+        previews(in_canvas(placed(
             place(Group::Order, 5, CommandSize::Small, None),
             "file-arrow-right",
             act(
@@ -422,7 +423,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 None,
                 |s, p| s.act_move_to_page(p),
             ),
-        )),
+        ))),
     ),
     in_canvas(act(
         "edit.duplicate",

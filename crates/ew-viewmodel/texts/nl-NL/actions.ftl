@@ -396,6 +396,7 @@ palette-title = Opdrachtpalet
 palette-hint = Typ een opdracht…
 palette-no-match = Geen passende opdracht
 palette-form-hint = Enter past toe · Esc gaat terug
+palette-form-hint-preview = Enter toont het voorbeeld: niets verandert vóór Toepassen · Esc gaat terug
 shortcuts-title = Sneltoetsen
 describe-menu = menu { $p0 }
 describe-item = item { $p0 } "{ $p1 }"

@@ -426,6 +426,17 @@ impl PaletteForm {
         }
     }
 
+    /// The form's foot line, how it applies and how it goes back: for an action that shows a preview first
+    /// ([`crate::actions::ActionMeta::previews`]) that Enter shows the preview, for every other that Enter applies.
+    pub fn hint(&self) -> &'static str {
+        let previews = crate::actions::find(self.action).is_some_and(|a| a.previews);
+        strings::text(if previews {
+            key!("palette-form-hint-preview")
+        } else {
+            key!("palette-form-hint")
+        })
+    }
+
     /// The parameters the form runs with, typed by the signature; an empty optional row is left out.
     ///
     /// # Errors

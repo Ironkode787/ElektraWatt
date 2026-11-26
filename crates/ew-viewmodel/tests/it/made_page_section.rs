@@ -156,6 +156,7 @@ fn to_a_new_page_from_a_front_matter_page_goes_to_the_wiring_section() {
         .expect("the breaker");
     done(&mut s, "nav.show", json!({"record": device.to_string()}));
     done(&mut s, "edit.move_to_page", json!({"page": "new"}));
+    done(&mut s, "preview.apply", json!({}));
     assert_eq!(shown(&s), ("101".into(), Some(1)));
     s.shutdown();
 }

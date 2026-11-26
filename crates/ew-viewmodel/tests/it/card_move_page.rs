@@ -198,18 +198,18 @@ fn the_selected_symbols_move_to_another_page_after_the_preview_of_their_pairs() 
     let mut listed = 0;
     for d in devices {
         done(&mut s, "nav.show", json!({"record": d.to_string()}));
-        // The question answered: page 103, then Enter.
+        // The question answered: page 103, then Enter; its foot said that a preview follows, and every move shows it.
         done(&mut s, "edit.move_to_page", json!({}));
         s.set_palette_field(0, "103");
         assert_eq!(s.run_palette_selection(), Outcome::Done);
         assert!(s.palette().is_none(), "the question closes");
+        assert!(s.preview_summary().is_some(), "the preview comes first");
         listed = pairs(&s).len();
         if listed > 0 {
             break;
         }
-        // A move without a pair is made at once: undone, the next symbol is tried.
-        done(&mut s, "edit.undo", json!({}));
-        done(&mut s, "page.goto", json!({"folio": "102"}));
+        // A move without a pair: cancelled, the next symbol is tried.
+        done(&mut s, "preview.cancel", json!({}));
     }
     assert!(
         listed > 0,
@@ -234,6 +234,63 @@ fn the_selected_symbols_move_to_another_page_after_the_preview_of_their_pairs() 
         (on_102, on_103),
         "one undo step"
     );
+    s.shutdown();
+}
+
+/// Move to page's "To a new page" with a wire to what stays behind: the preview's summary says what moves where and
+/// what its count of items is made of, and every cross-reference row names its page before its colon (the points the
+/// move makes and the new page are the card's own, and a row read from the project as it stands had none); Apply
+/// makes the page titled as the page moved from and shows it.
+#[test]
+fn to_a_new_page_previews_what_moves_and_takes_the_title_of_its_page() {
+    let tmp = Tmp::new("move-new-page-preview");
+    let mut s = tmp.sample_in(Mode::Gui, true, "102");
+    done(&mut s, "page.goto", json!({"folio": "102"}));
+    let title = s.page_rows()[s.page_index()].title.clone();
+    let devices: Vec<_> = s
+        .canvas()
+        .expect("page 102")
+        .page()
+        .tables
+        .reps
+        .iter()
+        .filter_map(|r| r.device)
+        .collect();
+    let mut cut = false;
+    for d in devices {
+        done(&mut s, "nav.show", json!({"record": d.to_string()}));
+        done(&mut s, "edit.move_to_page", json!({"page": "new"}));
+        if !pairs(&s).is_empty() {
+            cut = true;
+            break;
+        }
+        done(&mut s, "preview.cancel", json!({}));
+    }
+    assert!(cut, "a symbol of page 102 with a wire to what stays behind");
+    let summary = s.preview_summary().expect("the card");
+    let (lead, made_of) = summary.split_once(" \u{b7} ").expect("lead and count");
+    assert!(
+        lead.starts_with("Moves ") && lead.contains(" to the new page "),
+        "{summary}"
+    );
+    let (count, kinds) = made_of.split_once(" items: ").expect("the count and its kinds");
+    let sum: usize = kinds
+        .split(", ")
+        .map(|k| {
+            k.split(' ')
+                .next()
+                .and_then(|n| n.parse::<usize>().ok())
+                .unwrap_or(0)
+        })
+        .sum();
+    assert_eq!(count.parse::<usize>().ok(), Some(sum), "{summary}");
+    let xrefs = s.preview_pane().xrefs();
+    assert!(!xrefs.is_empty(), "the points' references");
+    assert!(xrefs.iter().all(|x| !x.folio.is_empty()), "{xrefs:?}");
+    done(&mut s, "preview.apply", json!({}));
+    let shown = &s.page_rows()[s.page_index()];
+    assert!(shown.folio != "102", "the new page is shown");
+    assert_eq!(shown.title, title, "titled as the page moved from");
     s.shutdown();
 }
 

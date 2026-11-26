@@ -218,7 +218,11 @@ installed library's symbol by its key as well as by its address, before its firs
   card's Move to page; `rep.move` with a target page) keeps
   identities and, because it is a move, connectivity (FR-CON-004): each wire whose other end stays behind is
   kept as a **pair of interruption points**, and the window lists the pairs in a preview before anything changes
-  (FR-CON-043); Apply moves, one undo step. Move to page… is greyed until symbols are selected ("Select the
+  (FR-CON-043); Apply moves, one undo step. Move to page… always shows its preview first, and its question's foot
+  line says so: the summary says how many symbols move to which page and what the count of items is made of (each
+  kind counted), each cross-reference row names the page of its text as the move leaves it; Apply moves and shows
+  the page. To a new page makes the page where a made page goes (§2.3) with the title of the page moved from. Move to
+  page… is greyed until symbols are selected ("Select the
   symbols to move"); selected texts and boxes stay on the page, which the preview says first, counted. `rep.move`
   makes the pairs with `keep` (the two forms of the interruption-point symbol and the library documents they need,
   embedded only when the move cuts a wire); without it a wire whose other end stays behind is refused, the wire

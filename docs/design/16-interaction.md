@@ -90,6 +90,8 @@ actions.
   selection by default), scheme (pre-filled `{page}{letter}{counter}`, the token set of
   [03](03-domain-model.md) §8.2, with a live sample "-102F1"),
   include frozen (no), order (column then row). Enter runs it; a `Cost::Bulk` command opens the preview (§7.6).
+  The form's foot line says what Enter does: "Enter applies", and for an action whose declaration says that it
+  shows a preview first (`previews`: Move to page…) "Enter shows the preview: nothing changes before Apply".
   An action asks only for a parameter it cannot run without, a required one of its signature; one that asks for a
   parameter itself (a dialog) has it optional. A `page` parameter offers the pages the action takes (Move to page…:
   the other schematic pages, then a new page). The same form asks when the action is started without the parameter

@@ -321,6 +321,15 @@ preview-parts-skipped = { $p0 ->
        *[other] { $p0 } al in het project
     }
 preview-import-summary = { $p0 } · { $p1 }
+preview-records-made-of = { $p0 }: { $p1 }
+preview-move-lead = { $p0 ->
+        [one] Verplaatst 1 symbool naar pagina { $p1 }
+       *[other] Verplaatst { $p0 } symbolen naar pagina { $p1 }
+    }
+preview-move-lead-new = { $p0 ->
+        [one] Verplaatst 1 symbool naar de nieuwe pagina { $p1 }
+       *[other] Verplaatst { $p0 } symbolen naar de nieuwe pagina { $p1 }
+    }
 preview-move-stays = { $p0 ->
         [one] 1 geselecteerde tekst of kader blijft op pagina { $p1 }
        *[other] { $p0 } geselecteerde teksten en kaders blijven op pagina { $p1 }

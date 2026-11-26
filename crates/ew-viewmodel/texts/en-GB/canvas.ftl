@@ -353,6 +353,15 @@ preview-parts-skipped = { $p0 ->
        *[other] { $p0 } already in the project
     }
 preview-import-summary = { $p0 } · { $p1 }
+preview-records-made-of = { $p0 }: { $p1 }
+preview-move-lead = { $p0 ->
+        [one] Moves 1 symbol to page { $p1 }
+       *[other] Moves { $p0 } symbols to page { $p1 }
+    }
+preview-move-lead-new = { $p0 ->
+        [one] Moves 1 symbol to the new page { $p1 }
+       *[other] Moves { $p0 } symbols to the new page { $p1 }
+    }
 preview-move-stays = { $p0 ->
         [one] 1 selected text or box stays on page { $p1 }
        *[other] { $p0 } selected texts and boxes stay on page { $p1 }

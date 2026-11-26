@@ -127,6 +127,11 @@ impl ShellModel {
         if let crate::properties::CardOrigin::PageCopy { lead, .. } = &card.origin {
             return Some(lead.clone());
         }
+        // A card with a lead (Move to page's) says what it does, then what its count of items is made of.
+        if let crate::properties::CardOrigin::Bulk { lead: Some(lead), .. } = &card.origin {
+            let made_of = crate::preview::records_made_of(self.preview.entities());
+            return Some(format!("{lead} \u{b7} {made_of}"));
+        }
         let records = card.preview.result.as_ref().map_or(0, |p| p.diff().len());
         // A count of one takes the singular ("1 item · 1 page"); a count of none is left out ("0
         // cross-reference texts"), the records always said.
@@ -200,7 +205,7 @@ impl ShellModel {
         self.preview.entities = project.session.preview_entities(preview);
         // A copy of pages says first what it leaves out and what continues outside it; a move what stays.
         self.preview.notices = match &card.origin {
-            CardOrigin::PageCopy { rows, .. } | CardOrigin::Bulk { rows } => rows
+            CardOrigin::PageCopy { rows, .. } | CardOrigin::Bulk { rows, .. } => rows
                 .iter()
                 .map(|words| crate::preview::PreviewNotice {
                     words: words.clone(),
@@ -242,19 +247,34 @@ impl ShellModel {
             .collect();
         tags.sort_by(|a, b| crate::shell::natural_cmp(&a.0, &b.0).then_with(|| a.cmp(b)));
         self.preview.tags = tags;
-        let q = project.session.query();
+        // A text's page and its folio as the card leaves them: a representation the card makes (the interruption points
+        // of a move) and a page it makes (Move to page's new page) are in the candidate only, and a row read from the
+        // model as it stands had nothing before its colon.
+        let (q, candidate) = (
+            project.session.query(),
+            project.session.query_over(preview.candidate()),
+        );
         let mut xrefs: Vec<(usize, XrefChange)> = card
             .preview
             .derived
             .xrefs
             .iter()
             .map(|x| {
-                let page = q.reps().get(x.key).map(|r| r.page.as_uuid());
-                let at = page.and_then(position);
+                let page = candidate
+                    .reps()
+                    .get(x.key)
+                    .or_else(|| q.reps().get(x.key))
+                    .map(|r| r.page.as_uuid());
+                let at = page.and_then(|p| after.iter().position(|(id, _)| *id == p));
+                // A page the card takes away keeps the folio it had.
+                let folio = at
+                    .map(|i| after[i].1.clone())
+                    .or_else(|| page.and_then(position).map(|i| rows[i].folio.clone()))
+                    .unwrap_or_default();
                 (
                     at.unwrap_or(usize::MAX),
                     XrefChange {
-                        folio: at.map(|i| rows[i].folio.clone()).unwrap_or_default(),
+                        folio,
                         before: x.before.clone(),
                         after: x.after.clone(),
                     },
@@ -299,7 +319,11 @@ impl ShellModel {
     /// the reason `reason`; Apply goes through [`ShellModel::apply_bulk_card`]. A refused preview opens no card and is
     /// the outcome's message.
     pub(super) fn preview_host_card(&mut self, name: &str, params: Value, reason: Key<'static>) -> Outcome {
-        self.preview_host_card_as(name, params, reason, CardOrigin::Bulk { rows: Vec::new() })
+        let origin = CardOrigin::Bulk {
+            rows: Vec::new(),
+            lead: None,
+        };
+        self.preview_host_card_as(name, params, reason, origin)
     }
 
     /// [`ShellModel::preview_host_card`] with the card's origin (the part card).
@@ -367,12 +391,18 @@ impl ShellModel {
             let toast = self
                 .plc_addressing_toast(&card)
                 .or_else(|| self.page_copy_toast(&card));
+            let moved_to = self.moved_to(&card);
             let Card { preview, edit, .. } = card;
             let out = self.commit(edit.name.clone(), edit.params.clone(), Kept::Card(preview, None));
             if out == Outcome::Done
                 && let Some(text) = toast
             {
                 self.notify(text, true);
+            }
+            if out == Outcome::Done
+                && let Some(folio) = moved_to
+            {
+                let _ = self.dispatch("page.goto", &json!({ "folio": folio }));
             }
             return out;
         }

@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Move to page… (doc 06 §3.4): the selected symbols onto another schematic page, and the preview card a move opens
-//! when it keeps a wire to what stays behind as a pair of interruption points, which a PLC card's Move to page shares,
-//! or leaves selected texts and boxes on the page.
+//! first, which a PLC card's Move to page shares when it keeps a wire to what stays behind as a pair of interruption
+//! points or leaves selected texts and boxes on the page.
 
 use ew_api::output::Uuid;
 use serde_json::{Map, Value, json};
@@ -16,6 +16,7 @@ use crate::tools::{EntityKind, selection_kinds};
 
 /// The key of the notice by which a move names a pair of interruption points it makes.
 const PAIR: &str = "notice-rep-move-keep-pair";
+
 impl ShellModel {
     /// The folio `rep.move_to_new_page` gives the page it makes after the page `after` (`params`' `number`), where
     /// a made page of that page's kind goes ([`ShellModel::new_page_proposal`]), with the section it makes for it where
@@ -38,13 +39,15 @@ impl ShellModel {
 
     /// A cross-page move (`rep.move` or `rep.move_to_new_page` with `params`) with `keep`, the interruption-point
     /// forms of the page shown: when the move keeps a wire to what stays behind as a pair of interruption points, or
-    /// leaves selected texts and boxes on the page (`stays`, the line that says so), the preview card that lists the
-    /// pairs and that line (Apply moves); `None` otherwise, the caller then commits the move as it is, `keep` in it.
+    /// leaves selected texts and boxes on the page (`stays`, the line that says so), or `always`, the preview card that
+    /// lists the pairs and that line under its lead, which says how many symbols move to which page (Apply moves);
+    /// `None` otherwise, the caller then commits the move as it is, `keep` in it.
     pub(super) fn move_card(
         &mut self,
         name: &str,
         params: &mut Value,
         stays: Option<String>,
+        always: bool,
     ) -> Option<Outcome> {
         if let Ok((source, target, copies)) = self.ip_forms() {
             let target = target.as_ref().unwrap_or(&source);
@@ -58,26 +61,53 @@ impl ShellModel {
             name: name.to_owned(),
             params: params.clone(),
         };
-        let pairs = self
+        let notices = self
             .project
             .as_mut()
             .and_then(|p| p.session.preview(&cmd).ok())
-            .is_some_and(|preview| preview.outcome().notices.iter().any(|n| n.key() == PAIR));
-        let reason = match (pairs, &stays) {
-            (true, _) => key!("reason-move-keeps-wires"),
-            (false, Some(_)) => key!("reason-move-leaves-items"),
-            (false, None) => return None,
+            .map(|preview| preview.outcome().notices.clone())
+            .unwrap_or_default();
+        let pairs = notices.iter().any(|n| n.key() == PAIR);
+        let reason = match (pairs, &stays, always) {
+            (true, _, _) => key!("reason-move-keeps-wires"),
+            (false, Some(_), _) => key!("reason-move-leaves-items"),
+            (false, None, true) => key!("reason-move-preview"),
+            (false, None, false) => return None,
         };
         // The section made for the new page is among the command's notices, which the card shows.
         let rows = stays.into_iter().collect();
-        Some(self.preview_host_card_as(name, params.clone(), reason, CardOrigin::Bulk { rows }))
+        // What moves where: the card's summary leads with it and says what its count of items is made of.
+        let symbols = params["reps"].as_array().map_or(0, Vec::len);
+        let lead = match (name, params["number"].as_u64(), params["page"].as_str()) {
+            ("rep.move_to_new_page", number, _) => strings::format_counted(
+                crate::count_key!("preview-move-lead-new"),
+                symbols,
+                &[&number.map(|n| n.to_string()).unwrap_or_default()],
+            ),
+            (_, _, Some(page)) => {
+                let folio = self
+                    .page_rows()
+                    .iter()
+                    .find(|r| r.id.to_string() == page)
+                    .map(|r| r.folio.clone())
+                    .unwrap_or_default();
+                strings::format_counted(crate::count_key!("preview-move-lead"), symbols, &[&folio])
+            }
+            _ => String::new(),
+        };
+        let origin = CardOrigin::Bulk {
+            rows,
+            lead: Some(lead).filter(|l| !l.is_empty()),
+        };
+        Some(self.preview_host_card_as(name, params.clone(), reason, origin))
     }
 
     /// `edit.move_to_page {page}` (Page ▸ Move to page…, which asks for the page when it is left out): the selected
     /// symbols of the page shown onto the schematic page of folio `page` where they stand (`new`: a new page where a made
-    /// page of this one's kind goes, its folio as New page proposes it, [`ShellModel::new_page_folio`]), one undo step. A wire to what stays behind is kept as a pair of interruption points, which a preview card
-    /// lists first ([`ShellModel::move_card`]), as it says the selected texts and boxes that stay on the page; a move
-    /// without either is made at once and its page shown.
+    /// page of this one's kind goes, its folio as New page proposes it, [`ShellModel::new_page_folio`]), one undo step.
+    /// Its preview card comes first ([`ShellModel::move_card`]): what moves where, the pairs of interruption points
+    /// that keep a wire to what stays behind, the selected texts and boxes that stay on the page; Apply moves and shows
+    /// the page ([`ShellModel::moved_to`]).
     pub(crate) fn act_move_to_page(&mut self, p: &Map<String, Value>) -> Outcome {
         let folio = match string_param(p, "page") {
             Ok(Some(f)) => f.to_owned(),
@@ -102,7 +132,6 @@ impl ShellModel {
             .count();
         let stays = (left > 0)
             .then(|| strings::format_counted(crate::count_key!("preview-move-stays"), left, &[&page.folio]));
-        let before: Vec<Uuid> = self.page_rows().iter().map(|r| r.id).collect();
         let (name, mut params) = if folio == "new" {
             let mut params = json!({ "reps": reps });
             self.new_page_folio(here, &mut params);
@@ -118,35 +147,32 @@ impl ShellModel {
             };
             ("rep.move", json!({ "reps": reps, "page": to.to_string() }))
         };
-        if let Some(card) = self.move_card(name, &mut params, stays) {
-            return card;
-        }
-        let makes = params.get("new_section").is_some();
-        let out = self.run_commit(&ew_api::AnyCommand {
-            name: name.to_owned(),
-            params,
-        });
-        if out != Outcome::Done {
-            return out;
-        }
-        let shown = if folio == "new" {
-            self.page_rows()
-                .iter()
-                .find(|r| !before.contains(&r.id))
-                .map(|r| r.folio.clone())
-        } else {
-            Some(folio)
-        };
-        let notices = self.tools.commit_notices.join("; ");
-        if let Some(folio) = shown {
-            let _ = self.dispatch("page.goto", &json!({ "folio": folio }));
-            if makes {
-                self.notify(
-                    strings::format(key!("toast-page-new-section"), &[&folio, &notices]),
-                    true,
-                );
+        // Its question says that a preview follows (the action `previews`): every move shows its card first.
+        self.move_card(name, &mut params, stays, true)
+            .unwrap_or(Outcome::Done)
+    }
+
+    /// The page a move's card leaves on show after its Apply (`rep.move`'s page, the page `rep.move_to_new_page`
+    /// made), as a move made at once shows it; `None` for another card.
+    pub(super) fn moved_to(&self, card: &crate::properties::Card) -> Option<String> {
+        match card.edit.name.as_str() {
+            "rep.move" => {
+                let page = card.edit.params.get("page")?.as_str()?;
+                self.page_rows()
+                    .iter()
+                    .find(|r| r.id.to_string() == page)
+                    .map(|r| r.folio.clone())
             }
+            "rep.move_to_new_page" => {
+                let preview = card.preview.result.as_ref().ok()?;
+                let rows = self.page_rows();
+                self.project_session()?
+                    .preview_folios(preview)
+                    .into_iter()
+                    .find(|(id, _)| !rows.iter().any(|r| r.id == *id))
+                    .map(|(_, folio)| folio)
+            }
+            _ => None,
         }
-        Outcome::Done
     }
 }
