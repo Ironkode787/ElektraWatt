@@ -1366,3 +1366,75 @@ fn a_part_row_carries_its_rating() {
         .collect();
     assert_eq!(ratings, [("EW-GEN-FUS-1".to_owned(), "4 A".to_owned())]);
 }
+
+/// FT-2209 (a): a lamp wired above and below, its tag dragged clear to the left, turned a quarter with R and back
+/// with Shift+R. Each wire at its pins leaves the pin along the pin's new way (it kinked across it), and the dragged
+/// tag stands where it was put, through the turn and back (it swung round the lamp onto the next wire).
+#[test]
+fn a_turned_symbol_s_wires_leave_its_pins_and_its_dragged_tag_holds() {
+    use ew_api::geometry::Dir;
+    let tmp = Tmp::new("turn-wired");
+    let mut s = tmp.empty_shell(Mode::Headless);
+    common::make_project(&mut s, &tmp.0.join("new.ew"), &[]);
+    done(&mut s, "view.zoom_actual", json!({}));
+    for k in [(40, 10), (40, 22), (40, 34)] {
+        done(&mut s, "tool.place", json!({}));
+        done(&mut s, "place.pick", json!({"part": "EW-GEN-LMP-1"}));
+        let p = sheet(&s, grid_point(&s, k));
+        click(&mut s, p, json!({}));
+        done(&mut s, "tool.select", json!({}));
+    }
+    let lamp = tables(&s).reps[1].id;
+    done(&mut s, "select.set", json!({"ids": [lamp.to_string()]}));
+    let tag = |s: &ShellModel| {
+        s.canvas()
+            .unwrap()
+            .page()
+            .texts
+            .iter()
+            .find(|t| t.rep == lamp && t.slot == 0)
+            .map(|t| t.rect)
+            .expect("the tag")
+    };
+    let r = tag(&s);
+    let c = ((r.min().x.0 + r.max().x.0) / 2, (r.min().y.0 + r.max().y.0) / 2);
+    let (from, to) = (sheet(&s, c), sheet(&s, (c.0 - 20_000_000, c.1)));
+    done(&mut s, "canvas.pointer", at(from, json!({})));
+    done(&mut s, "canvas.press", at(from, json!({})));
+    done(&mut s, "canvas.pointer", at(to, json!({})));
+    done(&mut s, "canvas.release", at(to, json!({})));
+    let dragged = tag(&s);
+    assert_ne!(dragged, r, "the tag was dragged");
+    for key in ["tool.rotate_cw", "tool.rotate_ccw"] {
+        done(&mut s, "select.set", json!({"ids": [lamp.to_string()]}));
+        done(&mut s, key, json!({}));
+        assert_eq!(tag(&s), dragged, "after {key} the tag stands where it was put");
+        let t = tables(&s);
+        for cp in t.cps.iter().filter(|c| c.rep == lamp) {
+            for w in t
+                .connections
+                .iter()
+                .filter(|w| w.polyline.first() == Some(&cp.at) || w.polyline.last() == Some(&cp.at))
+            {
+                let mut line = w.polyline.clone();
+                if line.first() != Some(&cp.at) {
+                    line.reverse();
+                }
+                let (p, q) = (line[0], line[1]);
+                let way = match cp.dir {
+                    Some(Dir::Right) => q.1 == p.1 && q.0 > p.0,
+                    Some(Dir::Left) => q.1 == p.1 && q.0 < p.0,
+                    Some(Dir::Down) => q.0 == p.0 && q.1 > p.1,
+                    Some(Dir::Up) => q.0 == p.0 && q.1 < p.1,
+                    None => true,
+                };
+                assert!(
+                    way,
+                    "after {key} the wire at {} leaves along {:?}: {line:?}",
+                    cp.label, cp.dir
+                );
+            }
+        }
+    }
+    s.shutdown();
+}

@@ -210,7 +210,9 @@ installed library's symbol by its key as well as by its address, before its firs
 - **A turned or mirrored symbol stays where it stands**: `rep.transform` turns it about the grid point nearest
   the middle of its body (its graphics' bounding box, a black box's outline), not about its insertion point, so a
   turned cylinder does not land on its neighbour. Four quarter turns bring it back exactly; its wires and tubes
-  follow its connection points.
+  follow its connection points, and each leaves its connection point along the point's new way out (a step out, then
+  a turn to where it ran), never across the symbol's side. A text the person placed by hand keeps its place on the
+  page beside the symbol and its own alignment, level as every text; a turn and its reverse give its position back.
 - **Cross-page move** (Move to page… for the selected symbols, on the Page tab beside Copy pages… and in the
   right-click menu of selected symbols, which asks for the page: the other schematic pages and To a new page; a PLC
   card's Move to page; `rep.move` with a target page) keeps

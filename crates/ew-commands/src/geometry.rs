@@ -781,6 +781,59 @@ pub fn follow_ends(
     Ok(())
 }
 
+/// Makes the route leave its first vertex (`at_start`, else its last) along `out`, the unit step a wire leaves that
+/// vertex's CP by: where its end segment leaves the CP another way (a CP turned with its symbol, [`follow_end`] having
+/// kept the segment's old axis), the end leaves along `out` for one grid step and turns there towards the vertex it
+/// went to, which it meets along `out`'s axis; a vertex that then lies on a straight run near the end goes. A route of
+/// fewer than two vertices is unchanged; so is one on [`OutOfRange`].
+pub fn leave_along(route: &mut Vec<Pt2>, grid: Grid, at_start: bool, out: Pt2) -> Result<(), OutOfRange> {
+    if route.len() < 2 || out == Pt2::ORIGIN {
+        return Ok(());
+    }
+    let mut next = route.clone();
+    if !at_start {
+        next.reverse();
+    }
+    let (p, q) = (next[0], next[1]);
+    let along = |a: Nm, b: Nm, o: Nm| o.0 != 0 && (b.0 - a.0).signum() == o.0.signum();
+    let leaves = if out.x.0 != 0 {
+        q.y == p.y && along(p.x, q.x, out.x)
+    } else {
+        q.x == p.x && along(p.y, q.y, out.y)
+    };
+    if leaves {
+        return Ok(());
+    }
+    let step = |v: Nm, o: Nm| grid.at(grid.snap(v) + o.0.signum()).ok_or(OutOfRange);
+    let (stub, corner) = if out.x.0 != 0 {
+        let x = step(p.x, out.x)?;
+        (Pt2::new(x, p.y), Pt2::new(x, q.y))
+    } else {
+        let y = step(p.y, out.y)?;
+        (Pt2::new(p.x, y), Pt2::new(q.x, y))
+    };
+    if !(in_range(stub.x) && in_range(stub.y) && in_range(corner.x) && in_range(corner.y)) {
+        return Err(OutOfRange);
+    }
+    next.splice(1..1, [stub, corner]);
+    next.dedup();
+    // A vertex the new stretches made a point on a straight run goes; the stub stays.
+    let mut i = 2;
+    while i <= 3 && i + 1 < next.len() {
+        let (a, b, c) = (next[i - 1], next[i], next[i + 1]);
+        if (a.x == b.x && b.x == c.x) || (a.y == b.y && b.y == c.y) {
+            next.remove(i);
+        } else {
+            i += 1;
+        }
+    }
+    if !at_start {
+        next.reverse();
+    }
+    *route = next;
+    Ok(())
+}
+
 /// The grid coordinate nearest the middle of `a` and `b`.
 fn mid_on_grid(grid: Grid, a: Nm, b: Nm) -> Result<Nm, OutOfRange> {
     grid.snap_point(Nm(a.0 + (b.0 - a.0) / 2)).ok_or(OutOfRange)

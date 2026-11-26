@@ -83,7 +83,8 @@ it, and so does a name its author set in line already (the starter symbols). The
 
 ### 5.4 What is never moved
 
-- **A text the person moved** keeps its place and angle with its part, and is a fixed text to everything else.
+- **A text the person moved** keeps its place and angle with its part (through a turn of the part, its place on the
+  page beside it, [06](06-commands-connecting.md) §3.4), and is a fixed text to everything else.
 - **The pin texts of a drawn box** are as the scene draws them: inside the box, turned a quarter and reading from
   bottom to top on the upper and lower sides, horizontal on the left and right sides; a card drawn in one row prints
   its channels level in cells ([10](10-plc-and-bus.md) §3.6). The layout treats them as fixed texts and changes

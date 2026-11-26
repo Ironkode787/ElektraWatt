@@ -1428,8 +1428,14 @@ impl MoveReps {
 /// box turns about its insertion point. A fitted symbol (its position between grid points, its first connection point
 /// on one) is fitted again after the turn (`geometry::fitted_pos`), so its first pin stays on the grid.
 ///
+/// **A text placed by hand** (a slot override with a position) keeps its place on the page: the position is written
+/// again in the turned representation's text frame (`ew_derive::text_frame`), and an override without an angle gets
+/// its slot's angle, so the text keeps its own alignment rather than the turned symbol's; it stays beside the symbol
+/// where it was put, level as every text, and a turn and its reverse give its position back exactly.
+///
 /// Routes follow: each attached connection's route end at a CP drawn by a transformed representation (a symbol's
-/// CP or a black box's) follows that CP's displacement (`geometry::follow_end`); CPs whose geometry is unknown
+/// CP or a black box's) follows that CP's displacement (`geometry::follow_end`), and an end at a CP whose way out the
+/// turn changed then leaves it along its new way (`geometry::leave_along`), never across its side; CPs whose geometry is unknown
 /// (a symbol without CPs and without a box) leave routes unchanged. Outcome: none.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -1465,6 +1471,8 @@ impl Command for TransformReps {
         let ids: BTreeSet<Id<Representation>> = self.reps.iter().copied().collect();
         // The displacement of each drawn function CP that moves, by (page, function, CP).
         let mut moves: BTreeMap<(Id<Page>, Id<Function>, u16), Pt2> = BTreeMap::new();
+        // The way a wire leaves each drawn function CP whose way the turn changed.
+        let mut outs: BTreeMap<(Id<Page>, Id<Function>, u16), Pt2> = BTreeMap::new();
         let mut updated: Vec<Representation> = Vec::new();
         for id in &ids {
             let old = tx.require::<Representation>(*id)?;
@@ -1522,8 +1530,45 @@ impl Command for TransformReps {
                     }
                 }
             }
-            // No text override is written. A black box turned by a half turn places its texts as on
-            // the same box unturned (`ew_derive::text_frame`), so a second half turn gives back the record as it was.
+            // A text the person placed keeps its point on the page: its override's position is written in the new
+            // text frame, so the symbol turns under it about its middle and a turn and its reverse give its position
+            // back. A black box turned by a half turn places its texts as on the same box unturned
+            // (`ew_derive::text_frame`): its frame does not change, and nothing is written.
+            let frames = tx.get::<LibCopy<SymbolDef>>(old.symbol).map(|symbol| {
+                let frames = (
+                    ew_derive::text_frame(&old, &symbol.item),
+                    ew_derive::text_frame(&new, &symbol.item),
+                );
+                (symbol, frames)
+            });
+            if let Some((symbol, (from, to))) = frames
+                && from != to
+            {
+                let placed: Vec<_> = new
+                    .text_slots
+                    .iter()
+                    .filter(|o| o.pos.is_some())
+                    .cloned()
+                    .collect();
+                for mut o in placed {
+                    let Some(local) = o.pos else { continue };
+                    let kept = from
+                        .place(local)
+                        .and_then(|p| p.checked_sub(to.origin))
+                        .and_then(|d| to.orient.inverse().checked_apply(d));
+                    let Some(kept) = kept else {
+                        out_of_range(tx)?;
+                        continue;
+                    };
+                    o.pos = Some(kept);
+                    // Its angle as it prints, stored, so that it keeps its own alignment and does not take the turned
+                    // symbol's (an angle stored is the sheet's, `ew_scene` `slot_texts`).
+                    if o.angle.is_none() {
+                        o.angle = symbol.item.text_slots.get(usize::from(o.slot)).map(|s| s.rot);
+                    }
+                    new.text_slots.insert(o);
+                }
+            }
             let (Ok(before), Ok(after_cps)) = (rep_cps_checked(tx, &old), rep_cps_checked(tx, &new)) else {
                 out_of_range(tx)?;
                 continue;
@@ -1539,10 +1584,13 @@ impl Command for TransformReps {
                 if d != Pt2::ORIGIN {
                     moves.entry((old.page, after.function, after.idx)).or_insert(d);
                 }
+                if let Some(out) = after.out.filter(|o| Some(*o) != b.out) {
+                    outs.entry((old.page, after.function, after.idx)).or_insert(out);
+                }
             }
             updated.push(new);
         }
-        let functions: BTreeSet<Id<Function>> = moves.keys().map(|(_, f, _)| *f).collect();
+        let functions: BTreeSet<Id<Function>> = moves.keys().chain(outs.keys()).map(|(_, f, _)| *f).collect();
         let mut connections: BTreeSet<Id<Connection>> = BTreeSet::new();
         for f in functions {
             connections.extend(tx.connections_of_function(f));
@@ -1561,7 +1609,17 @@ impl Command for TransformReps {
             let (da, db) = (end(&c.a), end(&c.b));
             let mut next = (*c).clone();
             let grid = tx.require::<Page>(page)?.grid;
-            let followed = follow_ends(&mut next.route, grid, da, db);
+            let out = |e: &Endpoint| match e {
+                Endpoint::Cp(f, idx) => outs.get(&(page, *f, *idx)).copied(),
+                _ => None,
+            };
+            // Each end at a CP the turn gave another way out leaves along it.
+            let followed = follow_ends(&mut next.route, grid, da, db).and_then(|()| {
+                [(out(&c.a), true), (out(&c.b), false)]
+                    .into_iter()
+                    .filter_map(|(o, start)| Some((o?, start)))
+                    .try_for_each(|(o, start)| crate::geometry::leave_along(&mut next.route, grid, start, o))
+            });
             if followed.is_err() {
                 return tx.reject(text!(
                     "refusal-rep-transform-route-out-of-range",
