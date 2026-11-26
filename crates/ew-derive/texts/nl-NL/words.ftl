@@ -132,8 +132,8 @@ rework-replace = Vervangen
 rework-move-end = Einde verleggen
 rework-remake-end = Einde opnieuw afwerken
 rework-check-length = Lengte nakijken
-rework-remark = Opnieuw markeren
-rework-relabel = Opnieuw labelen
+rework-remark = Merker vervangen
+rework-relabel = Label vervangen
 rework-mount-device = Apparaat monteren
 rework-add-terminal = Klem toevoegen
 rework-add-cable = Kabel toevoegen
@@ -143,7 +143,7 @@ rework-change-colour = kleur { $p0 } → { $p1 }
 rework-change-wire-part = draadartikel { $p0 } → { $p1 }
 rework-change-end = einde { $p0 } → { $p1 }
 rework-change-remake = op { $p0 }: { $p1 } → { $p2 }
-rework-change-remark = markering op { $p0 }: { $p1 } → { $p2 }
+rework-change-remark = merker op { $p0 }: { $p1 } → { $p2 }
 rework-change-relabel = { $p0 } → { $p1 }
 rework-change-length = lengte { $p0 } → { $p1 }
 rework-changes-between = { "; " }
@@ -162,10 +162,10 @@ treatment-unknown = ?
 
 ## The label sets (doc 13 §5.3)
 
-label-set-wire-markers = Adermarkeringen
-label-set-terminal-markers = Klemmarkeringen
-label-set-strip-markers = Klemstrookmarkeringen
-label-set-cable-markers = Kabelmarkeringen
+label-set-wire-markers = Draadmerkers
+label-set-terminal-markers = Klemmerkers
+label-set-strip-markers = Klemmenstrookmerkers
+label-set-cable-markers = Kabelmerkers
 label-set-device-labels = Apparaatlabels
-label-set-tube-markers = Slangmarkeringen
+label-set-tube-markers = Slangmerkers
 label-set-plates = Frontplaatjes

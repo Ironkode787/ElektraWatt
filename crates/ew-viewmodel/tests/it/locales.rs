@@ -439,6 +439,12 @@ const OTHER_SENSES: &[(&str, &str, &str)] = &[
     ("toast-bind-off-card", "wire", "the verb (verbinden)"),
     ("rule-ew-pot-021", "wire", "the verb (verbinden)"),
     ("rule-ew-num-001", "unfreeze", "the separable verb (maak … los)"),
+    // The printed sleeve on a wire's end (doc 13 §5.1: a merker, the owner's ruling), not the drawing's wire marker.
+    (
+        "label-set-wire-markers",
+        "wire marker",
+        "the sleeve on a wire's end (draadmerker)",
+    ),
     (
         "rule-ew-core-071",
         "part",

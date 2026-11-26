@@ -147,36 +147,36 @@ rework-work = Het werk: { $p0 }.
 rework-nothing = Niets te veranderen: het project is zoals het vrijgegeven is.
 rework-not-listed = Niet vermeld: draden die alleen op een pagina verschoven of een andere route kregen, en een nieuw draadnummer.
 rework-count-remove-device = { $p0 ->
-        [one] 1 apparaat te verwijderen
-       *[other] { $p0 } apparaten te verwijderen
+        [one] 1 apparaat verwijderen
+       *[other] { $p0 } apparaten verwijderen
     }
 rework-count-remove-terminal = { $p0 ->
-        [one] 1 klem te verwijderen
-       *[other] { $p0 } klemmen te verwijderen
+        [one] 1 klem verwijderen
+       *[other] { $p0 } klemmen verwijderen
     }
 rework-count-remove-cable = { $p0 ->
-        [one] 1 kabel te verwijderen
-       *[other] { $p0 } kabels te verwijderen
+        [one] 1 kabel verwijderen
+       *[other] { $p0 } kabels verwijderen
     }
 rework-count-remark = { $p0 ->
-        [one] 1 markering opnieuw te maken
-       *[other] { $p0 } markeringen opnieuw te maken
+        [one] 1 merker vervangen
+       *[other] { $p0 } merkers vervangen
     }
 rework-count-relabel = { $p0 ->
-        [one] 1 label te vernieuwen
-       *[other] { $p0 } labels te vernieuwen
+        [one] 1 label vervangen
+       *[other] { $p0 } labels vervangen
     }
 rework-count-mount-device = { $p0 ->
-        [one] 1 apparaat te monteren
-       *[other] { $p0 } apparaten te monteren
+        [one] 1 apparaat monteren
+       *[other] { $p0 } apparaten monteren
     }
 rework-count-add-terminal = { $p0 ->
-        [one] 1 klem toe te voegen
-       *[other] { $p0 } klemmen toe te voegen
+        [one] 1 klem toevoegen
+       *[other] { $p0 } klemmen toevoegen
     }
 rework-count-add-cable = { $p0 ->
-        [one] 1 kabel toe te voegen
-       *[other] { $p0 } kabels toe te voegen
+        [one] 1 kabel toevoegen
+       *[other] { $p0 } kabels toevoegen
     }
 rework-count-pull = { $p0 ->
         [one] 1 draad uittrekken
@@ -191,8 +191,8 @@ rework-count-move-end = { $p0 ->
        *[other] { $p0 } einden verleggen
     }
 rework-count-remake-end = { $p0 ->
-        [one] 1 einde opnieuw af te werken
-       *[other] { $p0 } einden opnieuw af te werken
+        [one] 1 einde opnieuw afwerken
+       *[other] { $p0 } einden opnieuw afwerken
     }
 rework-count-check-length = { $p0 ->
         [one] 1 lengte nakijken
@@ -220,11 +220,11 @@ labels-columns = Kolommen
 labels-change = Wijzigen…
 labels-file = Bestand
 labels-set = Labelset
-labels-marker-part = Markeringsartikel
+labels-marker-part = Merkerartikel
 labels-count = Labels
 labels-misfits = { $p0 ->
-        [one] 1 label past niet op zijn markeringsartikel
-       *[other] { $p0 } labels passen niet op hun markeringsartikel
+        [one] 1 label past niet op zijn merkerartikel
+       *[other] { $p0 } labels passen niet op hun merkerartikel
     }
 labels-export = Exporteren…
 labels-show = Tonen
