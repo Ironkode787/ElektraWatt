@@ -14,6 +14,7 @@ use crate::command::{Command, Outcome};
 use crate::commands::assign::embed_closure;
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
+use crate::proxy::NmS;
 use crate::tx::TxBuilder;
 
 /// `workshop.stock` (`SetWorkshopStock`): sets the wire, ferrule and marker parts the shop keeps, in its order of
@@ -32,7 +33,16 @@ pub struct SetWorkshopStock {
     /// Library documents to embed (`lib/` JSON form): the stock's parts the project lacks, with their closure.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub copies: Vec<Value>,
+    /// What the cut list rounds a piece up to (`ProjectSettings.workshop.cut_increment`), when given; absent: it stays.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<Option<NmS>>")]
+    pub cut_increment: Option<CutIncrement>,
 }
+
+/// The cut increment `workshop.stock` sets: a length, or `null` for none (5 mm).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(transparent)]
+pub struct CutIncrement(#[schemars(with = "Option<NmS>")] pub Option<ew_units::Nm>);
 
 fn bad(at: impl Into<String>, message: ew_l10n::Text) -> CmdError {
     CmdError::invalid_params(SetWorkshopStock::NAME, at, message)
@@ -62,10 +72,21 @@ impl Command for SetWorkshopStock {
             }
         }
         let mut project = (*tx.project()).clone();
-        if project.settings.workshop.stock == self.stock {
+        let cut = match &self.cut_increment {
+            Some(CutIncrement(Some(n))) if n.0 <= 0 => {
+                return Err(bad(
+                    "/cut_increment",
+                    text!("refusal-stock-cut", ew_derive::mm_exact(i128::from(n.0))),
+                ));
+            }
+            Some(CutIncrement(n)) => *n,
+            None => project.settings.workshop.cut_increment,
+        };
+        if project.settings.workshop.stock == self.stock && project.settings.workshop.cut_increment == cut {
             return tx.reject(text!("refusal-stock-unchanged"));
         }
         project.settings.workshop.stock = self.stock.clone();
+        project.settings.workshop.cut_increment = cut;
         tx.set_project(project)?;
         Ok(Outcome::default())
     }

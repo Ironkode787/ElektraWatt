@@ -1684,6 +1684,23 @@ fn project_sections(ui: &mut Ui, shell: &ShellModel, sheet: &PropertySheet, even
                 {
                     events.push(Event::Action("section.new", serde_json::Value::Null));
                 }
+                // The workshop: how many parts its stock holds, and Edit stock… (doc 07 §2.5), on a line of its own.
+                if let Some(n) = shell.workshop_stock_count() {
+                    ui.end_row();
+                    ui.label(small(
+                        &strings::format(key!("stock-summary"), &[&n.to_string()]),
+                        t.text_secondary,
+                    ));
+                    if ui
+                        .add(egui::Link::new(small(
+                            strings::text(key!("action-workshop-edit-stock")),
+                            t.accent,
+                        )))
+                        .clicked()
+                    {
+                        events.push(Event::Action("workshop.edit_stock", serde_json::Value::Null));
+                    }
+                }
             });
         });
     ui.separator();

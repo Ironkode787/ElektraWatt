@@ -110,6 +110,7 @@ mod table;
 mod palette;
 mod parts;
 mod projects;
+pub mod stock;
 mod templates;
 pub mod text_styles;
 pub use templates::{
@@ -393,6 +394,8 @@ pub enum Dialog {
     /// Project ▸ Text styles… (`text_styles.open`): the project's text styles by what they print, each with its height,
     /// typeface, bold and a sample; Standard sizes, Reset all, Close.
     TextStyles(Box<text_styles::TextStylesDialog>),
+    /// The workshop stock (Project ▸ Edit stock…).
+    WorkshopStock(Box<stock::StockDialog>),
     /// View, Workspace, Save layout as: a name typed by the user.
     SaveWorkspace {
         /// The text of the field.

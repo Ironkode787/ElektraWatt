@@ -440,7 +440,7 @@ impl Session {
 
     /// The part numbered `number` (case aside): a held copy (no documents), else a library's part with the documents
     /// that embed it; with its kind. `None` when no part has the number.
-    fn part_by_number(&self, q: &Q, number: &str) -> Option<(LibRef, PartKind, Vec<Value>)> {
+    pub(crate) fn part_by_number(&self, q: &Q, number: &str) -> Option<(LibRef, PartKind, Vec<Value>)> {
         if let Some((_, c)) = q
             .parts()
             .iter()

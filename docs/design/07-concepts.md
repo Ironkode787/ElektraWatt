@@ -549,7 +549,9 @@ that fits it ([13](13-manufacturing-outputs.md) §4.4), a label set the first st
 to ([13](13-manufacturing-outputs.md) §9.3) and a computed wire length once (13 §3.3), 5 mm when absent. A new project starts with the starter's generic
 ferrules and markers as its stock (`file.new` embeds and names them in its one step, §9.2); a company's basic project
 names its own; a project made before has none, and Project ▸ Add the generic stock (`workshop.add_generic`) adds the
-starter's ferrules and markers the stock lacks after its own, in one step.
+starter's ferrules and markers the stock lacks after its own, in one step. Project ▸ Edit stock… (and the link under the project's Properties) opens the stock dialog: the stock in its
+order, each row moved or removed, a part added by its number (held or from a library), Add the generic stock and Cut
+to; Apply is one `workshop.stock` with the stock and the cut increment.
 
 ### 2.6 Classification: ETIM bundled, ECLASS identifiers only
 

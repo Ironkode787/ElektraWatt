@@ -897,6 +897,7 @@ refusal-stock-missing = het project bevat geen artikelkopie { $p0 }
 refusal-stock-kind = { $p0 } is geen draad, adereindhuls of merker
 refusal-stock-twice = { $p0 } staat twee keer in de voorraad
 refusal-stock-unchanged = de voorraad is ongewijzigd
+refusal-stock-cut = { $p0 } mm is geen zaagstap: geef een lengte boven nul, of geen voor 5 mm
 refusal-part-edit-fork-held = het project bevat item { $p0 } al; maak een ander afsplitsingsitem aan
 refusal-part-edit-manufacturer-missing = het project bevat geen fabrikant { $p0 }/{ $p1 } en `copies` bevat hem niet
 refusal-part-edit-needs-fork = een kopie uit een bibliotheek wordt afgesplitst: geef `fork`, de item-ID van de kopie van het project

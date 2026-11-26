@@ -150,6 +150,25 @@ pub(super) fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
         // Text styles: each style by its group and name with its height, typeface, bold and the note of a small one;
         // the style it opened at, and the line after a change.
         Dialog::TextStyles(d) => text_styles_dialog_lines(model, d, lines),
+        // The workshop stock: each part in its order with its kind, number and what it is for; the cut increment and
+        // the line under the table.
+        Dialog::WorkshopStock(d) => {
+            for (i, r) in d.rows.iter().enumerate() {
+                lines.push(format!(
+                    "  stock {} {} \"{}\" \"{}\" \"{}\" \"{}\"",
+                    i + 1,
+                    r.kind,
+                    r.number,
+                    r.size,
+                    r.marks,
+                    r.colour
+                ));
+            }
+            lines.push(format!("  cut \"{}\"", d.cut));
+            if let Some(e) = &d.error {
+                lines.push(format!("  error \"{e}\""));
+            }
+        }
     }
     for b in spec.buttons() {
         match &b.disabled {

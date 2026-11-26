@@ -285,6 +285,7 @@ reason-parts-import = Een import wordt eerst als voorbeeld getoond
 error-place-variant = Het artikel heeft geen variant { $p0 }
 reason-place-no-variants = Het geplaatste artikel heeft geen varianten
 reason-workshop-generic-held = De werkplaatsvoorraad bevat de algemene adereindhulzen en merkers al
+reason-no-stock-dialog = De voorraaddialoog is niet open
 error-parts-import = Artikeltabel geweigerd: { $p0 }
 reason-no-parts-map = Er wordt geen artikeltabel toegewezen
 error-find-field = Er is geen zoekveld { $p0 }

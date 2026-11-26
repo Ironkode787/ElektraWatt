@@ -37,3 +37,17 @@ When you know the part before you draw, place the device from it, so that the de
 The part data comes from the library: [Edit part](../reference/window/dialogs.md#edit-part) changes the project's
 copy, and the [glossary](../reference/glossary.md#part) relates EW's part to EPLAN's article and QElectroTech's
 manufacturer reference.
+
+## The workshop stock
+
+The workshop stock is the list of wire, ferrule and marker parts your shop keeps, in the order you prefer them. A
+wire takes the first wire part of its size and colour, a wire end the first ferrule that fits it, a label the first
+marker made for it; the workshop lists count them from the wires.
+
+Open it with **Project ▸ Edit stock…**, or with the Edit stock… link under the project's Properties. Each row can move
+up or down or be removed; type a part number and press **Add** to add a part, held or from a library. **Cut to** is
+what the cut list rounds every rail, duct, cable and tube up to; leave it empty for 5 mm. **Apply** writes the stock in
+one step.
+
+A new project starts with the starter's generic ferrules and markers. A project made before has none: **Add the generic
+stock** (in the dialog, or Project ▸ Add the generic stock) adds those the stock lacks, after its own parts.

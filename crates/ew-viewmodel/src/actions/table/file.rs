@@ -193,6 +193,64 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_workshop_add_generic(),
         ),
     ),
+    // Project, Edit stock…: the workshop stock dialog (doc 07 §2.5).
+    with_icon(
+        "packages",
+        act(
+            "workshop.edit_stock",
+            Command,
+            Menu::Project,
+            &[],
+            project_open,
+            slot(Menu::Project),
+            |s, _| s.act_workshop_edit_stock(),
+        ),
+    ),
+    with_params(
+        "row:uint, op:enum(up|down|remove)",
+        hidden(act(
+            "workshop.stock_row",
+            View,
+            Menu::Project,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_workshop_stock_row(p),
+        )),
+    ),
+    with_params(
+        "part:text",
+        hidden(act(
+            "workshop.stock_add",
+            View,
+            Menu::Project,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_workshop_stock_add(p),
+        )),
+    ),
+    with_params(
+        "text:text",
+        hidden(act(
+            "workshop.stock_cut",
+            View,
+            Menu::Project,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_workshop_stock_cut(p),
+        )),
+    ),
+    hidden(act(
+        "workshop.stock_apply",
+        Command,
+        Menu::Project,
+        &[],
+        writable,
+        None,
+        |s, _| s.act_workshop_stock_apply(),
+    )),
     // The parts import's column mapping step (the card's fields and its Import button).
     with_params(
         "source?:text, column?:text, member?:text, target?:enum(devices|terminals|connections)",

@@ -338,6 +338,10 @@ impl ShellModel {
     /// `workshop.add_generic`: Add the generic stock (doc 07 §2.5): the starter's generic ferrules and markers the
     /// project's workshop stock lacks join it after its own, one step; refused in words when it holds them all.
     pub(crate) fn act_workshop_add_generic(&mut self) -> Outcome {
+        // In the stock dialog it adds the generic stock to the dialog's rows, which Apply writes.
+        if matches!(self.dialog, Some(crate::shell::Dialog::WorkshopStock(_))) {
+            return self.stock_dialog_add_generic().unwrap_or(Outcome::Done);
+        }
         let Some(project) = &self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };

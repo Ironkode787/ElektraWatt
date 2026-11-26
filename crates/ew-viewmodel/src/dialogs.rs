@@ -166,6 +166,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         Dialog::NewProject(d) => new_project_spec(d),
         Dialog::Templates(_) => templates_spec(),
         Dialog::TextStyles(_) => text_styles_spec(model),
+        Dialog::WorkshopStock(_) => stock_spec(model),
         Dialog::ConfirmJournalDiscard => journal_discard_spec(),
         Dialog::ConfirmPurge { files, .. } => purge_spec(files),
         Dialog::ConfirmRemovePart { part, number } => remove_part_spec(part, number),
@@ -445,6 +446,32 @@ fn new_project_spec(d: &crate::shell::NewProjectDialog) -> DialogSpec {
 }
 
 /// Text styles: Standard sizes and Reset all beside Close; the table is the dialog's own.
+/// The workshop stock: Apply (one `workshop.stock`), Add the generic stock, Cancel; the rows, the added part and the
+/// cut increment are the dialog's own.
+fn stock_spec(model: &ShellModel) -> DialogSpec {
+    let writable = model.is_writable();
+    let mut apply = DialogButton::new(
+        key!("dialog-apply"),
+        DialogAnswer::Action("workshop.stock_apply", json!({})),
+    );
+    apply.disabled = (!writable).then(|| strings::text(key!("reason-read-only")).to_owned());
+    DialogSpec {
+        form: true,
+        secondary: vec![
+            DialogButton::new(
+                key!("action-workshop-add-generic"),
+                DialogAnswer::Action("workshop.add_generic", json!({})),
+            ),
+            cancel(),
+        ],
+        ..small(
+            strings::text(key!("stock-title")).to_owned(),
+            vec![strings::text(key!("stock-text")).to_owned()],
+            apply,
+        )
+    }
+}
+
 fn text_styles_spec(model: &ShellModel) -> DialogSpec {
     let writable = model.is_writable();
     let act = |key: Key<'_>, action: &'static str| DialogButton {

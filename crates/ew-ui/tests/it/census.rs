@@ -263,6 +263,7 @@ enum DialogKind {
     NewProject,
     Templates,
     TextStyles,
+    WorkshopStock,
     SaveWorkspace,
     Form,
     Recovery,
@@ -299,7 +300,8 @@ impl DialogKind {
             Self::ConfirmJournalDiscard => Self::NewProject,
             Self::NewProject => Self::Templates,
             Self::Templates => Self::TextStyles,
-            Self::TextStyles => Self::SaveWorkspace,
+            Self::TextStyles => Self::WorkshopStock,
+            Self::WorkshopStock => Self::SaveWorkspace,
             Self::SaveWorkspace => Self::Form,
             Self::Form => Self::Recovery,
             Self::Recovery => Self::ConfirmPurge,
@@ -341,6 +343,7 @@ fn kind(d: &Dialog) -> DialogKind {
         Dialog::NewProject(_) => DialogKind::NewProject,
         Dialog::Templates(_) => DialogKind::Templates,
         Dialog::TextStyles(_) => DialogKind::TextStyles,
+        Dialog::WorkshopStock(_) => DialogKind::WorkshopStock,
         Dialog::SaveWorkspace { .. } => DialogKind::SaveWorkspace,
         Dialog::Form(_) => DialogKind::Form,
         Dialog::Recovery { .. } => DialogKind::Recovery,
@@ -415,6 +418,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
         DialogKind::NewProject => simple("file.new", json!({})),
         DialogKind::Templates => simple("templates.open", json!({})),
         DialogKind::TextStyles => simple("text_styles.open", json!({"style": "marker"})),
+        DialogKind::WorkshopStock => simple("workshop.edit_stock", json!({})),
         // Closing the view of a station not made yet, with its head chosen, asks.
         DialogKind::DiscardStation => {
             let mut h = simple("plc.new_station", json!({}));

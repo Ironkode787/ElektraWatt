@@ -8,6 +8,7 @@
 
 error-part-length = "{ $p0 }" is geen lengte: geef millimeters, zoals 45 of 22,5.
 error-part-accessory = Geen artikel heeft nummer { $p0 }
+error-stock-kind = { $p0 } is geen draad, adereindhuls of merker: de voorraad houdt alleen die
 error-part-accessory-kind = { $p0 } is geen toebehoren: een draad, adereindhuls of merker wordt van de draden geteld. Noem het in plaats daarvan in de werkplaatsvoorraad (Projecteigenschappen ▸ Werkplaats).
 reason-no-terminal-def = Het project heeft geen klemdefinitie om in te voegen
 reason-no-accessory-part = Het project heeft geen artikel voor dit toebehoren; sluit er eerst een in

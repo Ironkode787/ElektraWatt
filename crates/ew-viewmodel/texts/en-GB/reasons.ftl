@@ -306,6 +306,7 @@ reason-parts-import = An import is previewed first
 error-place-variant = The part has no variant { $p0 }
 reason-place-no-variants = The part placed has no variants
 reason-workshop-generic-held = The workshop stock holds the generic ferrules and markers already
+reason-no-stock-dialog = The stock dialog is not open
 error-parts-import = Parts table refused: { $p0 }
 reason-no-parts-map = No parts table is being mapped
 error-find-field = There is no find field { $p0 }

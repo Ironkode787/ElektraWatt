@@ -139,7 +139,7 @@ pub fn show(
         // New project's starts and the templates' list grow with the window.
         Dialog::NewProject(_) | Dialog::Templates(_) => Some(crate::dialog::form_width(&t, window)),
         // The table of text styles is a wide one: it grows with the window as the print pre-dialog does.
-        Dialog::TextStyles(_) => Some(crate::dialog::preview_width(&t, window)),
+        Dialog::TextStyles(_) | Dialog::WorkshopStock(_) => Some(crate::dialog::preview_width(&t, window)),
         // The part editor's sections stand beside their list: it grows with the window as the print pre-dialog does.
         Dialog::PartEdit(e) if e.sectioned() => Some(crate::dialog::preview_width(&t, window)),
         _ => None,
@@ -359,6 +359,7 @@ pub fn show(
             Dialog::NewProject(d) => submit |= crate::templates::new_project(ui, d, just_opened, events),
             Dialog::Templates(d) => crate::templates::templates(ui, d, events),
             Dialog::TextStyles(d) => crate::text_styles::text_styles(ui, shell, d, just_opened, events),
+            Dialog::WorkshopStock(d) => crate::stock::stock(ui, d, events),
             Dialog::PartChoose(c) => crate::part_dialog::chooser(ui, shell, c, just_opened, events),
             Dialog::PartEdit(e) => crate::part_dialog::editor(ui, e, just_opened, events),
             Dialog::Print(p) => crate::print_dialog::body(ui, shell, p, events),

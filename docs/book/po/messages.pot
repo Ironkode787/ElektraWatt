@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-26T01:59:23Z\n"
+"POT-Creation-Date: 2026-11-26T05:57:41Z\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3579,6 +3579,35 @@ msgid ""
 "part](../reference/window/dialogs.md#edit-part) changes the project's copy, "
 "and the [glossary](../reference/glossary.md#part) relates EW's part to "
 "EPLAN's article and QElectroTech's manufacturer reference."
+msgstr ""
+
+#: src/how-to/choose-parts.md:41
+msgid "The workshop stock"
+msgstr ""
+
+#: src/how-to/choose-parts.md:43
+msgid ""
+"The workshop stock is the list of wire, ferrule and marker parts your shop "
+"keeps, in the order you prefer them. A wire takes the first wire part of its "
+"size and colour, a wire end the first ferrule that fits it, a label the "
+"first marker made for it; the workshop lists count them from the wires."
+msgstr ""
+
+#: src/how-to/choose-parts.md:47
+msgid ""
+"Open it with **Project ▸ Edit stock…**, or with the Edit stock… link under "
+"the project's Properties. Each row can move up or down or be removed; type a "
+"part number and press **Add** to add a part, held or from a library. **Cut "
+"to** is what the cut list rounds every rail, duct, cable and tube up to; "
+"leave it empty for 5 mm. **Apply** writes the stock in one step."
+msgstr ""
+
+#: src/how-to/choose-parts.md:52
+msgid ""
+"A new project starts with the starter's generic ferrules and markers. A "
+"project made before has none: **Add the generic stock** (in the dialog, or "
+"Project ▸ Add the generic stock) adds those the stock lacks, after its own "
+"parts."
 msgstr ""
 
 #: src/how-to/panel-layout.md:3

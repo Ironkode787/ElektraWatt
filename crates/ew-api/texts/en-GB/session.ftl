@@ -7,6 +7,7 @@
 
 error-part-length = "{ $p0 }" is not a length: give millimetres, as 45 or 22.5.
 error-part-accessory = No part is numbered { $p0 }
+error-stock-kind = { $p0 } is no wire, ferrule or marker: the stock keeps only those
 error-part-accessory-kind = { $p0 } is no accessory: a wire, ferrule or marker is counted from the wires. Name it in the workshop stock instead (Project properties ▸ Workshop).
 reason-no-terminal-def = The project has no terminal definition to insert
 reason-no-accessory-part = The project has no part for this accessory; embed one first

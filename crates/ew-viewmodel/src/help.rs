@@ -921,6 +921,7 @@ pub fn dialog_topic(dialog: &Dialog) -> &'static str {
         Dialog::NewProject(_) => "new-project",
         Dialog::Templates(_) => "templates",
         Dialog::TextStyles(_) => "text-styles",
+        Dialog::WorkshopStock(_) => "guide-parts",
         Dialog::SaveWorkspace { .. } => "workspaces",
         Dialog::GotoPage { .. } => "dialog-goto-page",
         // A form opens the section of its action (Check level…, Cable…), else the forms' section.

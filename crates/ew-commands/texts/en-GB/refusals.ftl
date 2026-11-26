@@ -896,6 +896,7 @@ refusal-stock-missing = the project holds no part copy { $p0 }
 refusal-stock-kind = { $p0 } is no wire, ferrule or marker
 refusal-stock-twice = { $p0 } is in the stock twice
 refusal-stock-unchanged = the stock is unchanged
+refusal-stock-cut = { $p0 } mm is no cut increment: give a length above zero, or none for 5 mm
 refusal-part-edit-fork-held = the project holds item { $p0 } already; mint another fork item
 refusal-part-edit-manufacturer-missing = the project holds no manufacturer { $p0 }/{ $p1 } and `copies` does not carry it
 refusal-part-edit-needs-fork = a copy from a library is forked: give `fork`, the item ID of the project's copy

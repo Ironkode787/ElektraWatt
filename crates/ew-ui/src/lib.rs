@@ -78,6 +78,7 @@ pub mod properties;
 mod splitter;
 mod start_page;
 mod station_view;
+mod stock;
 mod symbol_editor;
 mod templates;
 mod text_styles;
