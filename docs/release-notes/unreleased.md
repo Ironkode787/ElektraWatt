@@ -102,9 +102,10 @@ change here.
   and Delete part… deletes a part of the project's own that no device uses
 - behaviour-change: the strip editor lists the end brackets and end plates the terminals' parts bring at their places,
   read-only; Delete on such a row leaves it off that strip, and a strip's Properties take or leave each one
-- api-add: commands `workshop.stock {stock, copies?, cut_increment?}` (a `null` cut increment clears it) and `part.delete {copy}`; `part.assign` takes
-  `variant`, `device.place`'s `from_part` and `new_terminal` take `part_variant`, `part.edit_copy` changes a part's
-  `accessories` and `variants`, and `fields.set` sets a device's `accessory_choices`
+- api-add: commands `workshop.stock {stock, copies?, cut_increment?}` (a `null` cut increment clears it) and
+  `part.delete {copy}`; `part.assign` takes `variant`, `device.place`'s `from_part` and `new_terminal` take
+  `part_variant`, `part.edit_copy` changes a part's `accessories` and `variants`, and `fields.set` sets a device's
+  `accessory_choices`
 - format-variant: `Part` gains `accessories`, `variants` and the sections `wire`, `ferrule`, `marker`; `Device` gains
   `accessory_choices`; `ProjectSettings` gains `workshop`; each absent when empty
 - behaviour-change: saving a corrected part whose devices are drawn as boxes now names each box drawn anew, with its
@@ -192,3 +193,9 @@ change here.
   treatment, a twin ferrule's partner wire or its part): `at -101Q1:1: ferrule 1.5 BK → bare`.
 - behaviour-change: Project properties ▸ Workshop shows Ferrules and Two wires in one clamp with the value that
   applies while they are not set, marked as the default.
+- behaviour-change: EW-CORE-085's finding offers the quick fix "Use the part's own number": the part uses of that part
+  lose the variant key it does not hold, and the Variant row then chooses one it has
+- behaviour-change: the part dialog of a terminal strip offers no end brackets: a strip's end brackets come with its
+  terminals' parts, and a strip that holds one as a part from before keeps it and its count
+- behaviour-change: the terminal overview's Parts column is wider and its Location and Segments columns narrower, so a
+  strip with a variant among its terminals' parts keeps the house text size
