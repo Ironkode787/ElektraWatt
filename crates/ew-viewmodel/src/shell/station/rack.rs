@@ -166,8 +166,11 @@ impl ShellModel {
             if out != Outcome::Done {
                 return out;
             }
-            // The section made for the new page, said after the move (doc 06 §2.3, "Where a made page goes").
-            let section = makes.then(|| self.tools.commit_notices.join("; "));
+            // The section made for the new page, said after the move (doc 06 §2.3, "Where a made page goes"): the first
+            // of the command's notices; the move's own notices are not this toast's.
+            let section = makes
+                .then(|| self.tools.commit_notices.first().cloned())
+                .flatten();
             let made = self
                 .page_rows()
                 .iter()
