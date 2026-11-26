@@ -150,6 +150,7 @@ chip-via-rule-assumed-class = regel (niet bevestigd): fijndradige draad
 chip-via-rule-assumed-clamp = regel (niet bevestigd): klemsoort onbekend
 chip-via-rule-assumed-both = regel (niet bevestigd): fijndradige draad, klemsoort onbekend
 chip-via-made-outside = buiten het project gemaakt
+chip-via-shared-stretch = meerdere draden delen dit stuk: zet de eigen waarden van een draad in de tabel Verbindingen
 chip-via-workshop-stock = werkplaatsvoorraad
 chip-via-workshop-marking = de markering van het project
 chip-via-cut-with-cable = geknipt met de kabel { $p0 }

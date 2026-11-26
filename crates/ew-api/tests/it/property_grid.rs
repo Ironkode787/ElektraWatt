@@ -420,7 +420,8 @@ fn a_wires_length_row_says_where_its_length_comes_from() {
         }
     );
     assert_eq!(length.actions, [RowAction::Reset]);
-    assert_eq!(length.path, "overrides.length");
+    // Typed through `Session::layout_edit`, on the wire's first own connection, as the Connections table writes it.
+    assert_eq!(length.path, "derived.length");
     let sheet = s.property_sheet(&[wire(&s, "102.1")]);
     let length = row(&sheet, "connection/derived.length");
     assert_eq!(

@@ -288,3 +288,8 @@ change here.
 - behaviour-change: An end set by hand that a wire keeps on another of its own connections than the first (as a
   change of its carrier leaves it) is the one Properties, Reset, a new edit and EW-MFG-009's quick fix change; they
   wrote on the first connection and missed it.
+- behaviour-change: A wire's Length row in Properties writes where the Connections table writes, the wire's own
+  connection, from any connection of the wire; on a stretch several wires share (a star's feed arm, a chain's arm at a
+  clamp) the Length, end, part and marker rows are read-only and say "several wires share this stretch: set a wire's
+  own values in the Connections table". They showed the first wire's values there and wrote them on the shared
+  stretch, for every wire through it.

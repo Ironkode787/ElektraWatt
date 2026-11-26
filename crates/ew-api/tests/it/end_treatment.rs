@@ -505,16 +505,22 @@ fn an_end_is_reset_where_it_is_stored() {
     let (wire, k, holder, at_a) = {
         let q = s.query();
         let records = q.get::<WireRecordSet>(());
-        let shared = |c: &Id<ew_schema::Connection>| records.iter().filter(|r| r.wire.constituents.contains(c)).count() > 1;
+        let shared = |c: &Id<ew_schema::Connection>| {
+            records.iter().filter(|r| r.wire.constituents.contains(c)).count() > 1
+        };
         records
             .iter()
             .filter(|r| r.number.is_some())
             .find_map(|r| {
-                let own: Vec<(usize, Id<ew_schema::Connection>)> = (r.wire.constituents.iter().copied().enumerate())
-                    .filter(|(_, c)| !shared(c))
-                    .collect();
+                let own: Vec<(usize, Id<ew_schema::Connection>)> =
+                    (r.wire.constituents.iter().copied().enumerate())
+                        .filter(|(_, c)| !shared(c))
+                        .collect();
                 // Not the carrier, where an edit writes first: a connection of its own the wire takes its values from later.
-                let (k, c) = *own.iter().find(|(_, c)| *c != r.wire.id).filter(|_| own.len() >= 2)?;
+                let (k, c) = *own
+                    .iter()
+                    .find(|(_, c)| *c != r.wire.id)
+                    .filter(|_| own.len() >= 2)?;
                 let a = [true, false]
                     .into_iter()
                     .find(|a| ew_derive::end_through(&q, &r.wire, k, *a) == Some(0))?;
@@ -523,7 +529,11 @@ fn an_end_is_reset_where_it_is_stored() {
             .expect("a wire with two connections of its own")
     };
     let _ = k;
-    let member = if at_a { "overrides.end_a" } else { "overrides.end_b" };
+    let member = if at_a {
+        "overrides.end_a"
+    } else {
+        "overrides.end_b"
+    };
     run(
         &mut s,
         "fields.set",
@@ -531,7 +541,17 @@ fn an_end_is_reset_where_it_is_stored() {
     )
     .expect("an end stored on the last own connection");
     assert_eq!(cells(&s, &wire, &["from_end"]), ["bare"]);
-    assert_eq!(end_of(&s, &wire, 0), (holder.to_string(), if at_a { "overrides.end_a" } else { "overrides.end_b" }));
+    assert_eq!(
+        end_of(&s, &wire, 0),
+        (
+            holder.to_string(),
+            if at_a {
+                "overrides.end_a"
+            } else {
+                "overrides.end_b"
+            }
+        )
+    );
     let cmd = s
         .layout_edit(&ew_api::output::LayoutEdit {
             kind: "connection".into(),
@@ -542,5 +562,80 @@ fn an_end_is_reset_where_it_is_stored() {
         })
         .expect("Reset's command");
     run(&mut s, &cmd.name, cmd.params).expect("the end reset");
-    assert_ne!(cells(&s, &wire, &["from_end"]), ["bare"], "Reset gave the rule's back");
+    assert_ne!(
+        cells(&s, &wire, &["from_end"]),
+        ["bare"],
+        "Reset gave the rule's back"
+    );
+}
+
+/// Properties on a stretch several wires share (the star's feed arm of 101.4, 101.5 and 101.6) show no one wire's
+/// length or ends as editable: the rows are read-only and say that several wires share it; on a wire's own connection
+/// a length typed in Properties is where the Connections table writes it, the wire's first own connection.
+#[test]
+fn properties_of_a_shared_stretch_are_read_only() {
+    use ew_api::output::{Provenance, RowAction};
+    use ew_derive::WireRecordSet;
+    let mut s = common::sample();
+    let (shared, own) = {
+        let q = s.query();
+        let records = q.get::<WireRecordSet>(());
+        let star: Vec<&ew_derive::WireRecord> = records
+            .iter()
+            .filter(|r| matches!(r.number.as_deref(), Some("101.4" | "101.6")))
+            .collect();
+        let shared = (star[0].wire.constituents.iter())
+            .find(|c| star[1].wire.constituents.contains(c))
+            .copied()
+            .expect("the star's feed arm");
+        let wire = records
+            .iter()
+            .find(|r| r.own.len() >= 2)
+            .expect("a wire with two connections of its own");
+        (
+            shared,
+            (wire.own[0], wire.own[1], wire.number.clone().expect("a number")),
+        )
+    };
+    let sheet = s.property_sheet(&[shared.as_uuid()]);
+    for key in [
+        "connection/derived.length",
+        "connection/derived.from_end",
+        "connection/derived.to_part",
+    ] {
+        let row = (sheet.sections.iter().flat_map(|x| x.rows.iter()))
+            .find(|r| r.key == key)
+            .unwrap_or_else(|| panic!("no row {key}"));
+        assert!(
+            !row.actions
+                .iter()
+                .any(|a| matches!(a, RowAction::Edit | RowAction::Override | RowAction::Reset)),
+            "{key}: {:?}",
+            row.actions
+        );
+        assert_eq!(
+            row.provenance,
+            Provenance::Derived {
+                via: "several wires share this stretch: set a wire's own values in the Connections table"
+                    .into()
+            },
+            "{key}"
+        );
+    }
+    // On the wire's second own connection a length typed in Properties lands on its first, as the table's does.
+    let (first, second, no) = own;
+    let cmd = s
+        .layout_edit(&ew_api::output::LayoutEdit {
+            kind: "connection".into(),
+            target: second.as_uuid(),
+            others: Vec::new(),
+            row: "derived.length".into(),
+            text: "750".into(),
+        })
+        .expect("the length's command");
+    run(&mut s, &cmd.name, cmd.params).expect("a length typed");
+    assert_eq!(cells(&s, &no, &["length"]), ["750 mm"]);
+    let q = s.query();
+    let length = |c: Id<ew_schema::Connection>| q.connections().get(c).and_then(|c| c.overrides.length);
+    assert!(length(first).is_some() && length(second).is_none());
 }

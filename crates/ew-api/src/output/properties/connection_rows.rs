@@ -410,24 +410,56 @@ impl Session {
     }
 }
 
+/// The chip of a row of a wire's own values on a stretch several wires share (a star's feed arm, a chain's arm at a
+/// clamp): no one wire's value shows there, and none is set there.
+const SHARED_STRETCH: &str = "several wires share this stretch: set a wire's own values in the Connections table";
+
+/// The wire whose own values a row of connection `c` shows and sets (doc 13 §2.3): the one wire `c` stands for;
+/// `Err(())` on a stretch several wires share; `Ok(None)` for a connection of no wire.
+pub(crate) fn wire_alone<'a>(
+    q: &Q,
+    records: &'a [ew_derive::WireRecord],
+    c: Id<Connection>,
+) -> Result<Option<&'a ew_derive::WireRecord>, ()> {
+    match wires_of(q, c).as_slice() {
+        [] => Ok(None),
+        [(wire, _)] => Ok(records.iter().find(|r| r.wire.id == *wire)),
+        _ => Err(()),
+    }
+}
+
 /// A wire's Length row (doc 13 §3.3): the length typed on it, in millimetres, with the chip "typed by hand" and Reset
-/// where this connection holds it; a core's "cut with its cable -103W1"; else empty, with the chip "no length: type it
-/// here, or the fitter measures the wire". A length typed here is `overrides.length` of the selected connection.
+/// where the wire keeps it; a core's "cut with its cable -103W1"; else empty, with the chip "no length: type it here,
+/// or the fitter measures the wire". A length typed here goes where the Connections table writes it, the wire's first
+/// own connection (`WireRecord::own`), through `Session::layout_edit`; on a stretch several wires share the row is
+/// read-only and says so.
 fn length_row(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Built {
     let records = q.get::<WireRecordSet>(());
     let mut per = Vec::new();
-    let (mut can_override, mut can_reset) = (false, false);
+    let (mut can_override, mut can_reset, mut shared) = (false, false, false);
     for c in conns {
-        let record = wires_of(q, *c)
-            .first()
-            .and_then(|(wire, _)| records.iter().find(|r| r.wire.id == *wire));
+        let record = match wire_alone(q, &records, *c) {
+            Err(()) => {
+                shared = true;
+                per.push((
+                    None,
+                    Provenance::Derived {
+                        via: SHARED_STRETCH.into(),
+                    },
+                ));
+                continue;
+            }
+            Ok(r) => r,
+        };
         let Some(record) = record else {
             per.push((None, Provenance::Authored));
             continue;
         };
         per.push(match record.length {
             WireLength::Typed(n) => {
-                if record.wire.override_sources.length == Some(*c) {
+                if record.wire.override_sources.length.is_some()
+                    && record.wire.override_sources.length == record.own.first().copied()
+                {
                     can_reset = true;
                 } else {
                     can_override = true;
@@ -463,23 +495,24 @@ fn length_row(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Built {
         *text = format!("{} mm", crate::output::layout_edit::mm_text(q, i128::from(nm)));
     }
     let mut actions = Vec::new();
-    if can_override {
+    if can_override && !shared {
         actions.push(RowAction::Override);
     }
-    if can_reset {
+    if can_reset && !shared {
         actions.push(RowAction::Reset);
     }
-    let route = match Session::editable(Kind::Connection, "overrides.length") {
-        EditRoute::FieldsSet { .. } => EditRoute::FieldsSet {
-            kind: "connection".to_owned(),
-            path: "overrides.length".to_owned(),
-        },
-        other => other,
-    };
     derived(DerivedRow {
         kind: "connection",
         name: "length",
-        partner: Some(("overrides.length", route, false)),
+        partner: (!shared).then(|| {
+            (
+                "derived.length",
+                EditRoute::Command {
+                    command: "fields.set".to_owned(),
+                },
+                false,
+            )
+        }),
         category: Category::Electrical,
         ty: FieldType::Nm,
         value,
@@ -493,14 +526,12 @@ fn length_row(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Built {
 /// and what it assumed (a connector's contact, an end the table cannot decide and an end made outside the project have
 /// none of the four); the part with "set by hand" and Reset, else the workshop stock's. The selected connections must be
 /// of one wire: a row then sets that wire's end by hand from any of them, through `Session::layout_edit`, on the wire's
-/// own connection that holds it (`EndRecord::hand_at`).
+/// own connection that holds it (`EndRecord::hand_at`). On a stretch several wires share the rows are read-only and say
+/// so.
 fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
     let records = q.get::<WireRecordSet>(());
-    let wire_of = |c: &Id<Connection>| {
-        wires_of(q, *c)
-            .first()
-            .and_then(|(wire, _)| records.iter().find(|r| r.wire.id == *wire))
-    };
+    let shared = conns.iter().any(|c| wire_alone(q, &records, *c).is_err());
+    let wire_of = |c: &Id<Connection>| wire_alone(q, &records, *c).ok().flatten();
     let mut wires: Vec<Id<Connection>> = conns
         .iter()
         .filter_map(|c| wire_of(c).map(|r| r.wire.id))
@@ -517,9 +548,16 @@ fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
             (false, false, false, false);
         for c in conns {
             let Some(record) = wire_of(c) else {
-                ends.push((None, Provenance::Authored));
-                parts.push((None, Provenance::Authored));
-                markers.push((None, Provenance::Authored));
+                let p = if shared {
+                    Provenance::Derived {
+                        via: SHARED_STRETCH.into(),
+                    }
+                } else {
+                    Provenance::Authored
+                };
+                ends.push((None, p.clone()));
+                parts.push((None, p.clone()));
+                markers.push((None, p));
                 continue;
             };
             let end_marker = &record.ends[i];
@@ -601,8 +639,11 @@ fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
             ),
         ] {
             let (value, provenance) = merge(cx, &ty, per);
-            let mut actions = vec![RowAction::Edit];
-            if by_hand {
+            let mut actions = Vec::new();
+            if !shared {
+                actions.push(RowAction::Edit);
+            }
+            if by_hand && !shared {
                 actions.push(RowAction::Reset);
             }
             let path = format!("derived.{name}");
@@ -637,10 +678,9 @@ pub(crate) fn end_holder(
     end: usize,
 ) -> Option<(Id<Connection>, bool, Option<ew_schema::EndOverride>)> {
     let records = q.get::<WireRecordSet>(());
-    let (wire, _) = wires_of(q, c).into_iter().next()?;
-    let (holder, at_a) = records
-        .iter()
-        .find(|r| r.wire.id == wire)?
+    let (holder, at_a) = wire_alone(q, &records, c)
+        .ok()
+        .flatten()?
         .ends
         .get(end)?
         .hand_at?;

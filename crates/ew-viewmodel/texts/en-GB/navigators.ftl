@@ -154,6 +154,7 @@ chip-via-rule-assumed-class = rule (unverified): fine-stranded wire
 chip-via-rule-assumed-clamp = rule (unverified): clamp kind not known
 chip-via-rule-assumed-both = rule (unverified): fine-stranded wire, clamp kind not known
 chip-via-made-outside = made outside the project
+chip-via-shared-stretch = several wires share this stretch: set a wire's own values in the Connections table
 chip-via-workshop-stock = workshop stock
 chip-via-workshop-marking = the project's marking
 chip-via-cut-with-cable = cut with its cable { $p0 }

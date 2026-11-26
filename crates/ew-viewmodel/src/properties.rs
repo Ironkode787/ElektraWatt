@@ -2399,6 +2399,11 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
     ),
     ("rule (unverified)", None, key!("chip-via-rule-unverified")),
     ("made outside the project", None, key!("chip-via-made-outside")),
+    (
+        "several wires share this stretch: set a wire's own values in the Connections table",
+        None,
+        key!("chip-via-shared-stretch"),
+    ),
     ("workshop stock", None, key!("chip-via-workshop-stock")),
     ("workshop marking", None, key!("chip-via-workshop-marking")),
     (

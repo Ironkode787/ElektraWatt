@@ -955,6 +955,30 @@ impl Session {
             })
         };
         match (edit.kind.as_str(), name) {
+            // A wire's length typed in Properties (doc 13 §3.3), from any connection of the wire: where the Connections
+            // table writes it, the wire's first own connection (`WireRecord::own`); an empty text clears it there.
+            ("connection", "length") => {
+                let records = q.get::<ew_derive::WireRecordSet>(());
+                let Some(holder) = super::properties::wire_alone(&q, &records, Id::from_uuid(edit.target))
+                    .ok()
+                    .flatten()
+                    .and_then(|r| r.own.first().copied())
+                else {
+                    return invalid(text!("refusal-end-no-holder"));
+                };
+                let value = if text.is_empty() {
+                    Value::Null
+                } else {
+                    match parse_mm(text) {
+                        Some(nm) if nm > 0 => Value::from(i64::try_from(nm).unwrap_or(i64::MAX)),
+                        _ => return invalid(length_text()),
+                    }
+                };
+                command(
+                    "fields.set",
+                    json!({"kind": "connection", "targets": [holder.to_string()], "path": "overrides.length", "value": value}),
+                )
+            }
             // A wire's end set by hand (doc 13 §4.5), from any connection of the wire: the treatment by its word
             // (`ring_lug`, `ring lug`) or the part (a held ferrule or lug part by its ID or number); an empty text gives
             // the rule's back. One `fields.set` of the `end_a` or `end_b` of the wire's own connection that holds it.
