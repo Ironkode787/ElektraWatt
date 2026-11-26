@@ -884,9 +884,9 @@ rule-ew-mfg-009 = The end of { $wire } at { $at } set by hand does not fit: { $f
     .hint = Reset the end to the rule, choose a part of the wire's size, or set the other wire on the clamp to a twin ferrule as well.
 
 rule-ew-mfg-022 = Wire { $wire } is cut from { $part }, whose { $form ->
-        [size] size is not the wire's { $csa } mm²
+        [size] size is not the wire's { DECIMAL($csa) } mm²
         [colour] colour is not the wire's { $colour }
-       *[both] size and colour are not the wire's { $csa } mm² { $colour }
+       *[both] size and colour are not the wire's { DECIMAL($csa) } mm² { $colour }
     }
     .title = Wire part does not match the wire
     .hint = Give the wire a part of its size and colour, or leave its part empty so that it takes the first one of the workshop stock; the lists print the wire's own size and colour.

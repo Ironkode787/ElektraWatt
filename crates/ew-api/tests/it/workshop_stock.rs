@@ -163,6 +163,25 @@ fn a_wire_takes_its_stock_part_and_a_part_of_another_size_is_reported() {
     )
     .expect("the wire's part");
     assert_eq!(none(&s), 1);
+    // The wire's size is a measured value (`DECIMAL`): Dutch writes its comma where the project sets no separator, and
+    // a project that sets the comma has it in English too (the sample sets the point).
+    assert!(
+        csa.contains('.'),
+        "the sample's wire has a size with decimals: {csa}"
+    );
+    let q = s.query();
+    let mut found = ew_checks::run(&q, &ew_checks::FULL, ew_checks::CheckMode::Online)
+        .findings
+        .into_iter()
+        .find(|f| f.rule == "EW-MFG-022")
+        .expect("the finding");
+    let comma = format!("{} mm²", csa.replace('.', ","));
+    found.decimal_comma = None;
+    let dutch = ew_checks::messages::render(&found, "nl-NL");
+    assert!(dutch.contains(&comma), "{dutch}");
+    found.decimal_comma = Some(true);
+    let english = ew_checks::messages::render(&found, "en-GB");
+    assert!(english.contains(&comma), "{english}");
 }
 
 /// What the cut list cuts to: a length sets it, a command without it keeps it, and `null` (the stock dialog's empty

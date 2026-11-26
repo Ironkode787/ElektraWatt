@@ -880,9 +880,9 @@ rule-ew-mfg-009 = Het met de hand gezette einde van { $wire } op { $at } past ni
     .hint = Zet het einde terug op de regel, kies een artikel van de doorsnede van de draad, of geef ook de andere draad op de klem een twin-adereindhuls.
 
 rule-ew-mfg-022 = Draad { $wire } wordt gesneden van { $part }, waarvan { $form ->
-        [size] de doorsnede niet de { $csa } mm² van de draad is
+        [size] de doorsnede niet de { DECIMAL($csa) } mm² van de draad is
         [colour] de kleur niet het { $colour } van de draad is
-       *[both] doorsnede en kleur niet de { $csa } mm² { $colour } van de draad zijn
+       *[both] doorsnede en kleur niet de { DECIMAL($csa) } mm² { $colour } van de draad zijn
     }
     .title = Draadartikel past niet bij de draad
     .hint = Geef de draad een artikel van zijn doorsnede en kleur, of laat zijn artikel leeg zodat hij het eerste uit de werkplaatsvoorraad neemt; de lijsten drukken de eigen doorsnede en kleur van de draad af.
