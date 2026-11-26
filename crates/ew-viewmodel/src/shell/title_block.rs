@@ -45,13 +45,30 @@ enum Source {
     /// The name of the party the current revision names as its checker; only while it names one (the checker is
     /// set when the revision is approved, Check ▸ Revision ▸ Approve).
     RevisionChecker,
+    /// A value the program derives or another place sets (the folio, the supply, the revision's date): a cell shows
+    /// it, Title block fields… does not write it.
+    Derived,
 }
 
 /// The party role an open revision without an author takes for the author's name typed in the form.
 const AUTHOR_ROLE: &str = "author";
 
-/// The title-block paths the form edits, each with its label and its source (doc 09 §2.6's paths): the one list.
+/// The title-block paths a cell shows (the Shows chooser of Edit frame, doc 09 §3.9) and the form edits, each with its
+/// label and its source (doc 09 §2.6's paths): the one list. Its group is its path's scope ([`shows_group`]).
 const FIELDS: &[(&str, Key<'static>, Source)] = &[
+    ("project.supply", key!("field-word-supply"), Source::Derived),
+    ("project.notice", key!("shows-notice"), Source::Derived),
+    ("page.folio", key!("field-word-number"), Source::Derived),
+    ("page.prev", key!("shows-previous"), Source::Derived),
+    ("page.next", key!("shows-next"), Source::Derived),
+    ("page.function", key!("shows-function"), Source::Derived),
+    ("page.location", key!("shows-location"), Source::Derived),
+    ("page.scale", key!("field-word-scale"), Source::Derived),
+    ("page.last_changed_in", key!("shows-changed-in"), Source::Derived),
+    ("doc.page_index", key!("field-word-position"), Source::Derived),
+    ("doc.page_count", key!("shows-page-count"), Source::Derived),
+    ("revision.current.date", key!("field-word-date"), Source::Derived),
+    ("revision.current.state", key!("shows-state"), Source::Derived),
     ("page.title", key!("column-title"), Source::PageText("title")),
     (
         "page.description",
@@ -140,6 +157,68 @@ const FIELDS: &[(&str, Key<'static>, Source)] = &[
         Source::RevisionChecker,
     ),
 ];
+
+/// The group of the Shows chooser a path stands in, by its scope: Project, Page (the page and the document), Revision,
+/// People.
+pub(crate) fn shows_group(path: &str) -> Key<'static> {
+    match path.split('.').next() {
+        Some("page" | "doc") => key!("shows-group-page"),
+        Some("revision") => key!("shows-group-revision"),
+        Some("party") => key!("shows-group-people"),
+        _ => key!("shows-group-project"),
+    }
+}
+
+/// The parts of a person's address a cell shows, after the name: its member and its label.
+const ADDRESS: &[(&str, Key<'static>)] = &[
+    ("street", key!("field-word-street")),
+    ("postcode", key!("field-word-postcode")),
+    ("city", key!("field-word-city")),
+    ("country", key!("field-word-country")),
+];
+
+/// The paths a cell's Shows offers in words, in their groups' order (Project, Page, Revision, People): each path of
+/// [`FIELDS`] as "Project · Drawing number", each person's name and address parts as "People · Customer ▸ City".
+pub(crate) fn shows_paths() -> Vec<(String, String)> {
+    let group = |path: &str| strings::text(shows_group(path));
+    let mut out: Vec<(String, String)> = Vec::new();
+    for g in ["project", "page", "revision"] {
+        for (path, label, source) in FIELDS {
+            let scope = path.split('.').next().unwrap_or_default();
+            let here = scope == g || (g == "page" && scope == "doc");
+            if here && !matches!(source, Source::Party(_)) {
+                out.push((
+                    (*path).to_owned(),
+                    format!("{} \u{b7} {}", group(path), strings::text(*label)),
+                ));
+            }
+        }
+    }
+    for (role, label) in people() {
+        let path = format!("party.{role}.name");
+        let who = strings::text(label);
+        out.push((
+            path.clone(),
+            format!(
+                "{} \u{b7} {who} \u{25b8} {}",
+                group(&path),
+                strings::text(key!("shows-name"))
+            ),
+        ));
+        for (part, part_label) in ADDRESS {
+            let path = format!("party.{role}.address.{part}");
+            out.push((
+                path.clone(),
+                format!(
+                    "{} \u{b7} {who} \u{25b8} {}",
+                    group(&path),
+                    strings::text(*part_label)
+                ),
+            ));
+        }
+    }
+    out
+}
 
 /// Gives the first party of `role` (its serde word) the name `text`; a party of that role is added for a new name.
 fn name_party(parties: &mut Vec<Value>, role: &str, text: String) {
@@ -308,7 +387,7 @@ impl ShellModel {
                         || (facts.open_revision.is_some() && self.may_set_author())
                 }
                 Source::RevisionChecker => facts.revision_checker.is_some(),
-                Source::Edited => false,
+                Source::Edited | Source::Derived => false,
                 _ => true,
             };
             writable.then(|| FormField {
@@ -556,8 +635,8 @@ impl ShellModel {
                         _ => {}
                     }
                 }
-                // Not a field of the form: the save sets it.
-                Source::Edited => {}
+                // Not a field of the form: the save sets it, or the program derives it.
+                Source::Edited | Source::Derived => {}
                 Source::RevisionLabel if text.is_empty() => {
                     return self.form_failed(
                         TITLE_BLOCK,

@@ -68,6 +68,7 @@ pub fn marks(overlay: &Overlay, snapper: &tools::Snapper) -> Vec<ToolMark> {
                     },
                 },
                 OverlayItem::Grip { at, hot } => ToolMark::Grip { at: *at, hot: *hot },
+                OverlayItem::Fade { r } => ToolMark::Fade { r: *r },
                 OverlayItem::Paths { paths, transform } => ToolMark::Paths {
                     paths: tools::paths_on_sheet(paths, *transform, snapper),
                 },

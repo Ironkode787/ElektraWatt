@@ -196,6 +196,13 @@ pub enum OverlayItem {
         /// The slot, 0 to 3.
         slot: u8,
     },
+    /// The page's drawing faded to a third inside `r` while the frame is changed on the page (doc 09 §3.9): the window
+    /// lays the sheet's paper colour over it at two thirds, so the frame and its title block outside stay as they
+    /// print.
+    Fade {
+        /// The drawing area.
+        r: Rect,
+    },
     /// A text chip (the Measure readout; later a ghost's predicted tag): drawn by the window, listed by
     /// `ui.describe`, never composited into `canvas.snapshot`.
     Label {

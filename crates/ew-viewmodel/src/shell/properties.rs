@@ -410,6 +410,7 @@ impl ShellModel {
             epoch,
             rev,
             ids: self.sheet_ids(),
+            frame: self.frame_choice().cloned(),
         };
         if self.props.key.as_ref() == Some(&key) {
             return;
@@ -440,7 +441,10 @@ impl ShellModel {
         }
         let kinds = |s: &PropertySheet| s.sections.iter().map(|x| x.kind.clone()).collect::<Vec<_>>();
         let before = self.props.sheet.as_deref().map(kinds);
-        let sheet = self.fetch_sheet(&key.ids);
+        let sheet = match key.frame.as_ref().and_then(|c| self.frame_sheet(c)) {
+            Some(frame) => frame,
+            None => self.fetch_sheet(&key.ids),
+        };
         // A filter typed for one kind of thing does not hide the rows of another ("grid" typed on a page hid a
         // breaker's rows): it clears when the selection changes kind.
         if !same_records && before.is_some_and(|b| b != kinds(&sheet)) {

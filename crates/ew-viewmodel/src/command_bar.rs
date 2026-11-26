@@ -136,6 +136,8 @@ pub enum Group {
     Import,
     /// Page: new, properties, delete.
     Pages,
+    /// Page: the frame and its title block (Edit frame, Title block fields…).
+    Frame,
     /// Page: renumber and move.
     Order,
     /// Page: go to, back, forward, follow.
@@ -212,6 +214,7 @@ impl Group {
         Group::Standards,
         Group::Import,
         Group::Pages,
+        Group::Frame,
         Group::Order,
         Group::Go,
         Group::Select,
@@ -251,7 +254,7 @@ impl Group {
     pub const fn tab(self) -> Tab {
         match self {
             Group::Project | Group::Parts | Group::Standards | Group::Import => Tab::Project,
-            Group::Pages | Group::Order | Group::Go => Tab::Page,
+            Group::Pages | Group::Frame | Group::Order | Group::Go => Tab::Page,
             Group::Select
             | Group::Place
             | Group::Connect
@@ -281,6 +284,7 @@ impl Group {
             Group::Standards => "standards",
             Group::Import => "import",
             Group::Pages => "pages",
+            Group::Frame => "frame",
             Group::Order => "order",
             Group::Go => "go",
             Group::Select => "select",
@@ -726,6 +730,7 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
         let mut items = Vec::new();
         if spot == MenuSpot::Frame {
             items.extend(item("page.title_block"));
+            items.extend(item("frame.edit"));
         }
         items.extend(PASTE.iter().filter_map(|id| item(id)));
         items.extend(item("props.focus").map(|mut i| {
@@ -1031,6 +1036,7 @@ pub fn tool_action(name: &str) -> &'static str {
         "box_pin" => "box.add_cp",
         "paste" => "edit.paste_clip",
         "layout_place" => "tool.place_layout",
+        "frame" => "frame.edit",
         other => ACTIONS
             .iter()
             .find(|a| a.id.strip_prefix("tool.") == Some(other))
@@ -1259,6 +1265,11 @@ pub fn hud(model: &ShellModel) -> HudModel {
         ),
         None => (action, tools::tool_label(name)),
     };
+    // Edit frame: the card's sentence as its target, and its HUD's Split, Join, Picture… and Done.
+    if name == "frame" {
+        target = model.frame_facts().map(|f| model.frame_card(&f));
+        buttons.extend(model.frame_hud_buttons());
+    }
     HudModel {
         tool: action,
         tool_label,

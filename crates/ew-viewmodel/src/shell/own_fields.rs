@@ -170,6 +170,22 @@ impl ShellModel {
         if name.is_empty() && self.mode == Mode::Gui && !in_form {
             return self.open_dialog(Dialog::Form(new_field_form()));
         }
+        if name.is_empty() && self.mode == Mode::Headless {
+            return failed(key!("error-missing-param"), &["name"]);
+        }
+        // Asked from a title block's cell (its Shows): the field and the cell's value in one step.
+        if let Some(out) = self.frame_field_from_cell(&name, scope, &value) {
+            return match out {
+                Outcome::Failed { message } if in_form => self.form_failed(FIELD_NEW, message),
+                Outcome::Done => {
+                    if in_form {
+                        self.dialog = None;
+                    }
+                    Outcome::Done
+                }
+                other => other,
+            };
+        }
         let mut params = json!({"label": name, "scope": scope});
         if !value.is_empty() {
             params["value"] = Value::String(value);

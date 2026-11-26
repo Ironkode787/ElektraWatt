@@ -1302,3 +1302,5 @@ field-word-user-prop-defs = Eigen velden
 field-word-value-kind = Soort waarde
 field-help-word-own = Een eigen veld van het project: een waarde die het titelblok afdrukt en die het programma niet kent. Het menu wijzigt de naam of verwijdert het.
 field-help-project-own-new = Maakt een eigen veld van het project: de naam, of het één waarde heeft voor het hele project of één per pagina, en de waarde nu.
+choice-side-by-side = Naast elkaar
+choice-one-above = Boven elkaar

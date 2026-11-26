@@ -37,6 +37,7 @@ mod external;
 mod face_card;
 mod fields;
 mod fluid;
+mod form_edit;
 mod frames;
 mod import;
 pub(crate) mod items;
@@ -81,6 +82,7 @@ pub use edit::BULK_ABOVE;
 pub use exchange::{ExchangePin, derive_pin_map};
 pub use fields::{ASPECTS, SET_MANY_MAX_EDITS, SETTABLE};
 pub use fluid::{ClosureKindParam, ClosureParam, MediumParam, OccupancyParam, TubeField, ValveStateParam};
+pub use form_edit::{FieldFromCell, MIN_CELL, PictureInCell};
 pub use frames::FRAMES_MEMBER;
 pub use import::{
     ApplyImport, MemberChange, ReimportClass, ReimportPlan, ReimportRow, lineage_keys, member_text,
@@ -254,6 +256,8 @@ commands! {
     join::JoinDevice,
     part_edit::EditPartCopy,
     part_delete::DeletePartCopy,
+    // A frame or title block changed on the page
+    form_edit::EditForm,
     workshop::SetWorkshopStock,
     // The fields of the project's own
     user_prop::DefineUserProp,

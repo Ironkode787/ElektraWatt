@@ -90,7 +90,9 @@ impl ShellModel {
     /// the lamp's centre just after selecting it there did nothing).
     pub fn finishes_on_double_click(&self) -> bool {
         self.tools.tool.finishes_on_double_click()
-            && (self.tools.tool.name() != "select" || self.text_edit_target().is_ok())
+            && (self.tools.tool.name() != "select"
+                || self.text_edit_target().is_ok()
+                || self.pointer_on_frame())
     }
 
     /// The active-tool replacement generation; ordinary events and field edits leave it unchanged.
@@ -660,6 +662,12 @@ impl ShellModel {
             // The Supply tool's click places its marks in one undo step.
             ToolOutput::Host(crate::tools::HostStep::SupplyPlace { at }) => self.supply_place_from_tool(at),
             ToolOutput::Host(crate::tools::HostStep::PinForWire { rep, pin }) => self.pin_for_wire(rep, pin),
+            // The Edit frame tool's click, released drag and double click.
+            ToolOutput::Host(crate::tools::HostStep::FrameChoose { choice }) => self.frame_choose(choice),
+            ToolOutput::Host(crate::tools::HostStep::FrameLine { line, to }) => {
+                self.frame_line_moved(line, to)
+            }
+            ToolOutput::Host(crate::tools::HostStep::FrameType) => self.frame_type(),
             ToolOutput::Commit(cmd) => {
                 let cmd = self.with_terminal(self.without_held_copies(cmd));
                 let follows = self.tools.tool.follows(cmd.as_ref());

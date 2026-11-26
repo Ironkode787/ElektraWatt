@@ -495,7 +495,7 @@ fn aspect(q: &Q, page: PageRef, aspect: Aspect) -> Option<String> {
 }
 
 /// The page-to-sheet map of a page's frame form (the identity without one).
-fn sheet_map(q: &Q, page: PageRef) -> SheetMap {
+pub(crate) fn sheet_map(q: &Q, page: PageRef) -> SheetMap {
     let form = q.get::<PageFrameOf>(page);
     ew_scene::page::sheet_of(form.as_ref().as_ref().map(|f| &*f.form)).2
 }

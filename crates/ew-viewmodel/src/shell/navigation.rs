@@ -497,6 +497,7 @@ impl ShellModel {
             page.draft = Arc::new(draft);
         }
         page.texts = Arc::new(project.session.page_slot_texts(folio));
+        page.frame = project.session.frame_facts(folio).map(Arc::new);
         // A panel-layout page's panel data, once per (session, revision, folio); none for another page.
         if self
             .page_rows()

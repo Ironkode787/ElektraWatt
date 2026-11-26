@@ -44,7 +44,12 @@ impl ShellModel {
     }
 
     /// Opens the editor of `key` for `action` (Edit or Override) with `buffer`, else the value's text.
-    pub(super) fn begin_edit(&mut self, key: &str, action: RowAction, buffer: Option<String>) -> Outcome {
+    pub(in crate::shell) fn begin_edit(
+        &mut self,
+        key: &str,
+        action: RowAction,
+        buffer: Option<String>,
+    ) -> Outcome {
         let Some((section, row)) = self.props_find(key) else {
             return failed(key!("error-no-row"), &[key]);
         };
@@ -138,6 +143,16 @@ impl ShellModel {
         // A layout row lists the choices its sheet built (the device's parts, the turns, the
         // project's surfaces), each its own text.
         let mut details = Vec::new();
+        // A frame row's choices: Shows', the text styles, the alignments.
+        if let Some(items) = self.frame_row_choices(&row.key, filter) {
+            return Some(Choices {
+                row: key.to_owned(),
+                items,
+                details,
+                kind: ChoiceKind::Options,
+                index: None,
+            });
+        }
         let items: Vec<(String, Value)> = match (&row.route, row.ty.inner()) {
             _ if row.key == GRID_ROW => {
                 let f = filter.to_lowercase();

@@ -1241,3 +1241,17 @@ pub(super) fn part_editor_open(m: &ShellModel) -> Result<(), Text> {
         Err(key!("reason-no-part-editor").into())
     }
 }
+
+/// Edit frame: the project can be written and a page is in view whose frame the project holds ("Open a page: a frame
+/// is changed on a page that prints it").
+pub(super) fn frame_editable(m: &ShellModel) -> Result<(), Text> {
+    writable(m)?;
+    if m.canvas().is_none() {
+        return Err(key!("reason-frame-open-page").into());
+    }
+    if m.frame_facts().is_some() {
+        Ok(())
+    } else {
+        Err(key!("reason-frame-none").into())
+    }
+}

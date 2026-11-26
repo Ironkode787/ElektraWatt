@@ -40,11 +40,81 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_page_fit_grid(p),
         )),
     ),
-    // Page, Title block fields…: the focused page's title-block fields in one form, for the title block's
+    // Page ▸ Frame ▸ Edit frame: the frame and its title block changed on the page (doc 09 §3.9), also a double
+    // click on the title block or the rulers and the title block's right-click menu; while active, Done.
+    placed(
+        place(Group::Frame, 1, CommandSize::Large, None),
+        "frame",
+        act(
+            "frame.edit",
+            Command,
+            Menu::Page,
+            &[],
+            frame_editable,
+            None,
+            |s, _| s.act_frame_edit(),
+        ),
+    ),
+    // The Edit frame tool's choice, its HUD's Split, Join, Picture… and Del's Clear.
+    with_params(
+        "cells?:json, rulers?:bool",
+        hidden(act(
+            "frame.choose",
+            Command,
+            Menu::Page,
+            &[],
+            writable_page,
+            None,
+            |s, p| s.act_frame_choose(p),
+        )),
+    ),
+    with_params(
+        "dir?:enum(side_by_side|one_above)",
+        hidden(act(
+            "frame.split",
+            Command,
+            Menu::Page,
+            &[],
+            writable_page,
+            None,
+            |s, p| s.act_frame_split(p),
+        )),
+    ),
+    hidden(act(
+        "frame.join",
+        Command,
+        Menu::Page,
+        &[],
+        writable_page,
+        None,
+        |s, _| s.act_frame_join(),
+    )),
+    hidden(act(
+        "frame.clear",
+        Command,
+        Menu::Page,
+        &[],
+        writable_page,
+        None,
+        |s, _| s.act_frame_clear(),
+    )),
+    with_params(
+        "path?:text",
+        hidden(act(
+            "frame.picture",
+            Command,
+            Menu::Page,
+            &[],
+            writable_page,
+            None,
+            |s, p| s.act_frame_picture(p),
+        )),
+    ),
+    // Page ▸ Frame ▸ Title block fields…: the focused page's title-block fields in one form, for the title block's
     // right-click menu too. Its parameters are the title-block paths the form shows (`project.drawing_id`), which no
     // signature word can spell.
     placed(
-        place(Group::Pages, 2, CommandSize::Small, None),
+        place(Group::Frame, 2, CommandSize::Small, None),
         "layout-bottombar",
         act(
             "page.title_block",

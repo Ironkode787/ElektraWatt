@@ -453,6 +453,9 @@ pub struct CanvasPage {
     /// The symbols' texts where the page prints them (`Session::page_slot_texts`), fetched with the tables: what a
     /// drag of a selected symbol's text grabs. Empty for a page that is not drawn.
     pub texts: Arc<Vec<ew_api::output::SlotTextBox>>,
+    /// The page's frame and title block where the scene puts them (`Session::frame_facts`): what the Edit frame tool
+    /// points at; `None` for a page whose frame the project does not hold.
+    pub frame: Option<Arc<ew_api::output::FrameFacts>>,
 }
 
 /// The tables of a page that holds no record.
@@ -499,6 +502,7 @@ impl CanvasPage {
             panel: None,
             draft: Arc::default(),
             texts: Arc::default(),
+            frame: None,
         }
     }
 
@@ -1346,6 +1350,7 @@ mod tests {
             panel: None,
             draft: Arc::default(),
             texts: Arc::default(),
+            frame: None,
         })
     }
 

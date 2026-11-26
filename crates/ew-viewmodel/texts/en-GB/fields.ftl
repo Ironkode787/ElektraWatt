@@ -1312,3 +1312,5 @@ field-word-user-prop-defs = Fields of your own
 field-word-value-kind = Kind of value
 field-help-word-own = A field of the project's own: a value the title block prints that the program does not know. Its menu renames it or removes it.
 field-help-project-own-new = Makes a field of the project's own: its name, whether it has one value for the whole project or one for each page, and its value now.
+choice-side-by-side = Side by side
+choice-one-above = One above

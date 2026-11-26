@@ -57,6 +57,7 @@ mod chooser;
 // Draw rail and Draw duct.
 pub mod duct_draw;
 mod exchange;
+pub mod frame;
 pub mod graphic;
 // The guides of a symbol placed by hand (docs/design/06a-drafting.md §6).
 mod guides;
@@ -478,6 +479,21 @@ pub enum HostStep {
         /// The new pin: function CP index, page point and direction.
         pin: black_box::BoxCpAt,
     },
+    /// The Edit frame tool's click: `choice` is chosen on the frame (Properties shows it).
+    FrameChoose {
+        /// What is chosen.
+        choice: frame::FrameChoice,
+    },
+    /// The Edit frame tool's released drag: the title block's line `line` moves to `to` (sheet nm, its x for a
+    /// vertical line, its y for a horizontal one).
+    FrameLine {
+        /// The line, by its index in the title block's lines.
+        line: usize,
+        /// Its new place on the sheet.
+        to: i64,
+    },
+    /// The Edit frame tool's double click on a chosen cell: its text is typed (the Text row of Properties).
+    FrameType,
 }
 
 /// What follows the commit of a tool's command ([`Tool::follows`]): what the toast says, what is selected after it

@@ -103,6 +103,56 @@ impl FrameGeometry {
     }
 }
 
+/// What a person points at when a frame is changed on its page (doc 09 §3.9), in page nm: the scene answers where
+/// everything is, so the frame tool reads these and computes nothing itself.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct FrameHits {
+    /// The title block's cells, each with its index in the title block's `cells`.
+    pub cells: Vec<(usize, Rect)>,
+    /// The title block's lines between its cells (`FormDef::cell_edges`), each with its index in that list.
+    pub lines: Vec<(Pt2, Pt2)>,
+    /// The band of the column numbers along the top, while the rulers are drawn.
+    pub columns: Option<Rect>,
+    /// The band of the row letters along the left, while the rulers are drawn.
+    pub rows: Option<Rect>,
+    /// The line between the drawing area and the title block.
+    pub block_top: Option<(Pt2, Pt2)>,
+    /// The drawing area (the page's drawing fades here while the frame is changed).
+    pub drawing_area: Option<Rect>,
+}
+
+impl FrameHits {
+    /// The hit data of `form` and its title block `title_block`.
+    pub fn of(form: &FormDef, title_block: Option<&FormDef>) -> FrameHits {
+        let geometry = FrameGeometry::of(form, title_block);
+        let mut hits = FrameHits {
+            drawing_area: geometry.as_ref().map(|g| g.drawing_area),
+            ..FrameHits::default()
+        };
+        if let Some(g) = &geometry
+            && g.show_grid
+            && g.header_band > g.margin
+        {
+            let (m, h, area) = (g.margin, g.header_band, g.drawing_area);
+            hits.columns = Some(Rect::from_points(Pt2::new(h, m), Pt2::new(area.max().x, h)));
+            hits.rows = Some(Rect::from_points(Pt2::new(m, h), Pt2::new(h, area.max().y)));
+        }
+        if let Some(tb) = title_block {
+            let origin = title_block_origin(form, tb);
+            let at = |p: Pt2| p + origin;
+            hits.cells = tb
+                .cells
+                .iter()
+                .enumerate()
+                .map(|(i, c)| (i, Rect::from_points(at(c.rect.0.min()), at(c.rect.0.max()))))
+                .collect();
+            hits.lines = tb.cell_edges().into_iter().map(|(a, b)| (at(a), at(b))).collect();
+            hits.block_top = Some((origin, Pt2::new(origin.x + tb.sheet.width, origin.y)));
+        }
+        hits
+    }
+}
+
 /// Where a title block lands on a form: below the drawing area of a grid frame
 /// ([`FrameGeometry::title_block_origin`]); on a form without grid, at the bottom-left of the sheet
 /// (`(0, sheet.height − title_block.sheet.height)`; such forms are native, scale-1 frames).

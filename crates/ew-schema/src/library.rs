@@ -16,7 +16,7 @@ use std::str::FromStr;
 
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
-use ew_units::{Angle2, Dec3, Grid, Nm, Pt2, Vec2Nm};
+use ew_units::{Angle2, Dec3, Grid, Nm, Pt2, Rect, Vec2Nm};
 use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::de::{DeserializeOwned, Error as _};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -1983,6 +1983,55 @@ pub struct FormDef {
     /// Unknown members and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+impl FormDef {
+    /// The lines of a table of cells (doc 09 §2.5, "a title block is a table"): the cells' edges where two cells meet,
+    /// each drawn once, as maximal straight runs; an edge on the outline of the cells is the frame's and not one of
+    /// them. Vertical lines first (by x, then y), then horizontal ones (by y, then x), each from its smaller end.
+    pub fn cell_edges(&self) -> Vec<(Pt2, Pt2)> {
+        let rects: Vec<Rect> = self.cells.iter().map(|c| c.rect.0).collect();
+        let Some(outline) = rects.iter().copied().reduce(Rect::union) else {
+            return Vec::new();
+        };
+        // (position, from, to) of each interior edge, per direction.
+        let mut vertical: Vec<(Nm, Nm, Nm)> = Vec::new();
+        let mut horizontal: Vec<(Nm, Nm, Nm)> = Vec::new();
+        for r in &rects {
+            let (min, max) = (r.min(), r.max());
+            for x in [min.x, max.x] {
+                if x != outline.min().x && x != outline.max().x {
+                    vertical.push((x, min.y, max.y));
+                }
+            }
+            for y in [min.y, max.y] {
+                if y != outline.min().y && y != outline.max().y {
+                    horizontal.push((y, min.x, max.x));
+                }
+            }
+        }
+        let runs = |mut edges: Vec<(Nm, Nm, Nm)>| {
+            edges.sort();
+            let mut out: Vec<(Nm, Nm, Nm)> = Vec::new();
+            for (at, from, to) in edges {
+                match out.last_mut() {
+                    Some(last) if last.0 == at && from <= last.2 => last.2 = last.2.max(to),
+                    _ => out.push((at, from, to)),
+                }
+            }
+            out
+        };
+        let mut out: Vec<(Pt2, Pt2)> = runs(vertical)
+            .into_iter()
+            .map(|(x, a, b)| (Pt2::new(x, a), Pt2::new(x, b)))
+            .collect();
+        out.extend(
+            runs(horizontal)
+                .into_iter()
+                .map(|(y, a, b)| (Pt2::new(a, y), Pt2::new(b, y))),
+        );
+        out
+    }
 }
 
 /// Form kinds.

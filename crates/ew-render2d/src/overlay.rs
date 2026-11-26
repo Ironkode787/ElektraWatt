@@ -246,7 +246,16 @@ pub enum ToolMark {
         /// Whether the pointer is on it.
         hot: bool,
     },
+    /// The page's drawing faded to a third inside `r` (the paper laid over it at [`FADE_ALPHA`]), under every other
+    /// mark: the frame changed on the page (doc 09 §3.9).
+    Fade {
+        /// The rectangle.
+        r: Rect,
+    },
 }
+
+/// The opacity of the paper laid over a faded drawing (two thirds: the drawing shows at a third).
+pub const FADE_ALPHA: u8 = 170;
 
 /// The bands of the lines on the page (a wire, a fluid line: whatever is drawn as a line between two ends): a hovered
 /// or selected line is shown as itself thickened by `radius_pt`, round at its bends and ends, never as the box
@@ -376,6 +385,8 @@ pub struct Overlay {
     pub grip_rings: Vec<PxRect>,
     /// The handles' accent discs.
     pub grips: Vec<PxRect>,
+    /// The faded drawing ([`ToolMark::Fade`]), painted first in the paper colour at [`FADE_ALPHA`].
+    pub fade: Vec<PxRect>,
 }
 
 /// The sheet's rectangle on screen: with a settled transform exactly the pixels of the full-sheet raster at its
@@ -603,9 +614,21 @@ pub fn build(input: &OverlayInput<'_>) -> Overlay {
     }
     let mut grips = Vec::new();
     let mut grip_rings = Vec::new();
+    let mut fade = Vec::new();
     for mark in input.tool {
         let mut px = Vec::new();
         let token = match mark {
+            ToolMark::Fade { r } => {
+                let (a, b) = (r.min(), r.max());
+                let (x0, y0) = screen((a.x.0, a.y.0));
+                let (x1, y1) = screen((b.x.0, b.y.0));
+                push_clipped(
+                    &mut fade,
+                    PxRect::new(round_px(x0), round_px(y0), round_px(x1), round_px(y1)),
+                    &pane,
+                );
+                continue;
+            }
             ToolMark::Line { a, b, dash, token } => {
                 line_px(screen(*a), screen(*b), width, s, *dash, &pane, &mut px);
                 *token
@@ -668,6 +691,7 @@ pub fn build(input: &OverlayInput<'_>) -> Overlay {
         selected_band_edge,
         grip_rings,
         grips,
+        fade,
     }
 }
 
@@ -1032,7 +1056,8 @@ pub fn fill(image: &mut RgbaImage, r: PxRect, c: Color) {
 /// the selection's casing).
 pub fn marks<'a>(overlay: &'a Overlay, theme: &'a Theme) -> impl Iterator<Item = (PxRect, Color)> + 'a {
     let each = |rects: &'a [PxRect], c: Color| rects.iter().map(move |&r| (r, c));
-    each(&overlay.border, theme.border)
+    each(&overlay.fade, with_alpha(theme.paper, FADE_ALPHA))
+        .chain(each(&overlay.border, theme.border))
         .chain(each(&overlay.dots, theme.grid_dot))
         .chain(each(&overlay.hover, theme.hover))
         .chain(each(

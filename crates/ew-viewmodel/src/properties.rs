@@ -63,6 +63,8 @@ pub(crate) struct SheetKey {
     pub epoch: u64,
     pub rev: u64,
     pub ids: Vec<EntityRef>,
+    /// What is chosen on the frame while Edit frame is active: the sheet is the frame's then.
+    pub frame: Option<crate::tools::frame::FrameChoice>,
 }
 
 /// An open edit: the row and its buffer.

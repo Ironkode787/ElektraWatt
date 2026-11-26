@@ -429,3 +429,17 @@ Setup ▸ Enclosure… puts the new enclosure's plate on it ([Draw a panel layou
 ## Duct
 
 On a panel layout page, draws a wiring duct. Open it with Draw ▸ Duct.
+
+## Edit frame
+
+Changes the page's frame and its title block on the page. Open it with Page ▸ Frame ▸ Edit frame, a double click on
+the title block or on the column numbers or row letters, or Edit frame in the title block's menu; Done or Esc ends
+it. The page's drawing fades, and the HUD says on which frame and title block the page prints: every change shows on
+each page that prints them. A click chooses a cell (Shift adds one); Properties then shows its Text, what it Shows
+(a value of the project, the page, the revision or a person, a field of your own, New field of your own…, Company
+logo, A picture… or Text only), its Text size and its Alignment. The HUD splits the chosen cell side by side or one
+above the other, joins the chosen cells when together they make a rectangle, and puts a picture into the cell. A line
+between two cells is dragged: every cell on either side of it grows or shrinks with it, snapped to 0.5 mm (Alt: free),
+none narrower or lower than 2 mm. Each change is one undo step. The first change of the program's frame and title
+block makes them the project's own, and every page that printed them prints the project's copies; the toast says so
+once.

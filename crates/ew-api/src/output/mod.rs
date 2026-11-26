@@ -89,6 +89,7 @@ pub mod table_edit;
 // The table round trip.
 mod table_io;
 // What the window's Title block fields form reads of a page.
+mod frame_facts;
 mod title_block_fields;
 // The project's typeface: the font set its texts are shaped and drawn with (doc 09 §4.8).
 mod typeface;
@@ -201,6 +202,7 @@ pub use rows::{
 /// The names of the starter content that the shell refers to, re-exported so that it names them without naming
 /// `ew-schema`.
 pub use ew_schema::starter::{self, A3_GRID_FRAME, COVER_FRAME, GRID_FRAME, NOGRID_FRAME, TITLE_BLOCK};
+pub use frame_facts::{FrameAxis, FrameCell, FrameFacts, SheetLine, SheetRect};
 pub use list_look::{ListColumn, ListLook};
 pub use strip_edit::{
     ACCESSORY_KINDS, BridgeRow, StripCell, StripEdit, StripEditError, accessory_kind_word,

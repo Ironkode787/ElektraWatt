@@ -103,6 +103,7 @@ pub static ANCHORS: &[Anchor] = &[
     // Route and Arrange and route have their sections on the tools page.
     on(TOOLS, "layout-route", "route"),
     on(TOOLS, "layout-arrange", "arrange-and-route"),
+    on(TOOLS, "edit-frame", "edit-frame"),
     on(DIALOGS, "dialog-goto-page", "go-to-page-or-cell"),
     on(DIALOGS, "dialog-form", "form-dialogs"),
     on(DIALOGS, "dialog-purge", "purge-unused-images"),
@@ -360,6 +361,7 @@ fn own_topic(action: &str) -> Option<&'static str> {
             "guide-own-parts"
         }
         "page.title_block" | "field.new" | "field.rename" | "field.remove" => "dialog-form",
+        a if a.starts_with("frame.") => "edit-frame",
         "page.add_legend" => Thing::PanelLayout.topic(),
         "ip.supply_in" => Thing::SupplyPoint.topic(),
         "navigator.show" => "navigators",

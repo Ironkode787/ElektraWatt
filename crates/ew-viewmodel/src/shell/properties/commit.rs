@@ -32,6 +32,12 @@ impl ShellModel {
         if let Some(out) = self.commit_person(&row.key, text) {
             return out;
         }
+        // A frame row writes the title block: its text as typed, a choice by its words or its value.
+        if let Some(value) = self.frame_typed_value(&row.key, text, choice)
+            && let Some(out) = self.commit_frame_row(&row.key, &value)
+        {
+            return out;
+        }
         // A field of the project's own writes its value list.
         if let Some(out) = self.commit_own_field(&row.key, text) {
             return out;
@@ -218,6 +224,10 @@ impl ShellModel {
         let Some((section, row)) = self.props_find(key) else {
             return failed(key!("error-no-row"), &[key]);
         };
+        // A frame row writes the title block.
+        if let Some(out) = self.commit_frame_row(key, &value) {
+            return out;
+        }
         // Frame of the lists sets the Form of every list.
         if let Some(out) = self.commit_lists_frame(key, &value) {
             return out;
