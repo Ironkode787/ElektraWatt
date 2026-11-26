@@ -341,7 +341,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     // Output ▸ Workshop ▸ Wire list, Assembly lists, Cut list and Consumables open the first page of the project's list
-    // of that kind, else Report block… on that kind (doc 13 §12, 13-workshop-lists).
+    // of that kind, else Report block… on that kind (doc 13 §12, 13-workshop-lists). The wire list is the fitter's
+    // first sheet and stands large; a group holds at most two large commands.
     placed(
         place(
             Group::Workshop,
@@ -364,7 +365,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         place(
             Group::Workshop,
             2,
-            CommandSize::Large,
+            CommandSize::Small,
             Some(key!("bar-lists-assembly")),
         ),
         "assembly",
@@ -382,7 +383,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         place(
             Group::Workshop,
             3,
-            CommandSize::Large,
+            CommandSize::Small,
             Some(key!("bar-lists-cut")),
         ),
         "scissors",
@@ -400,7 +401,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         place(
             Group::Workshop,
             4,
-            CommandSize::Large,
+            CommandSize::Small,
             Some(key!("bar-lists-consumables")),
         ),
         "basket",
