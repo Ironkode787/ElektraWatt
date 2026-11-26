@@ -262,6 +262,9 @@ change here.
   one for each page, and the title block's cell prints the field; the printed text is the same, and the value is now
   typed in Title block fields…; such a variable is no longer kept a second time in the project's or the page's
   `qet.properties` (doc 14 §4.9, FT-1814)
+- behaviour-change: every region of a QElectroTech title block comes in as a cell, a logo's and an empty one's too,
+  so Edit frame can choose it and type in it, and the block's lines are its cells' edges: its first change keeps every
+  line (a line beside an empty region went) (doc 14 §4.9, FT-1814)
 - behaviour-change: the Preview of a bulk change lists the wire numbers it changes, old → new, beside the tags and the
   cross-references (Columns and rows of a frame among them); a frozen number keeps its own (doc 16 §7.6, FT-1815)
 - behaviour-change: Each wire end has a marker, the text of the sleeve on it: by default the far end as seen from this

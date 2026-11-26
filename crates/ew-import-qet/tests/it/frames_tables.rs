@@ -8,7 +8,7 @@ use ew_import_qet::QetProjectImporter;
 use ew_import_qet::project::new_project_context;
 use ew_interop_api::{ImportBatch, ImportInput};
 use ew_schema::{
-    ContinuationPolicy, FormDef, FormKind, LibCopy, LibDocument, Overflow, Page, Record, ReportBlock,
+    ContinuationPolicy, FormDef, FormKind, LibCopy, LibDocument, Overflow, Page, Primitive, Record, ReportBlock,
     ReportKind, ReportSource,
 };
 use ew_units::{Grid, Nm};
@@ -173,11 +173,17 @@ fn the_template_becomes_a_title_block_with_the_folios_values() {
             .all(|c| c.extra.get("ew.cell.inset") == Some(&serde_json::json!(0))
                 && c.extra.get("ew.cell.pixel") == Some(&serde_json::json!(px(1).at(1).unwrap().0)))
     );
-    // `hadjust` is QET's fit to the width; a cell without it is drawn as it is.
+    // `hadjust` is QET's fit to the width; a cell without it is drawn as it is. The logo's region, whose logo is not in
+    // the file, is an empty cell after them.
     let overflows: Vec<&Overflow> = first.item.cells.iter().map(|c| &c.overflow).collect();
     assert_eq!(
         overflows,
-        [&Overflow::FitWidth, &Overflow::Error, &Overflow::Error]
+        [
+            &Overflow::FitWidth,
+            &Overflow::Error,
+            &Overflow::Error,
+            &Overflow::Error
+        ]
     );
     assert!(!first.item.graphics.is_empty());
     // Equal values share one form; another author makes another.
@@ -201,6 +207,45 @@ fn the_template_becomes_a_title_block_with_the_folios_values() {
     let said = |needle: &str| b.report.entries.iter().any(|e| e.message.contains(needle));
     assert!(said("logo"), "{:?}", b.report.entries);
     assert!(said("local file path"));
+}
+
+/// Every region of an imported title block is a cell (doc 09 §2.5, "a title block is a table"), the logo's and an empty
+/// one's too, so that a person can choose it and type in it; and the block's lines are its cells' edges, the rule its
+/// first change writes them by, so that change draws the same lines.
+#[test]
+fn every_region_of_an_imported_block_is_a_cell_and_its_lines_are_their_edges() {
+    let xml = format!(
+        "<project>{TEMPLATE}{}</project>",
+        diagram(r#"folio="1" title="One""#, "")
+    );
+    let b = import(&xml);
+    let p = pages(&b);
+    let frame = form(&b, p[0].form.expect("a frame"));
+    let block = &form(&b, frame.item.title_block.expect("a title block")).item;
+    let mut lines: Vec<(i64, i64, i64, i64)> = block
+        .graphics
+        .iter()
+        .filter_map(|g| match g {
+            Primitive::Line(l) => Some((l.from.x.0, l.from.y.0, l.to.x.0, l.to.y.0)),
+            _ => None,
+        })
+        .collect();
+    let mut edges: Vec<(i64, i64, i64, i64)> = block
+        .cell_edges()
+        .into_iter()
+        .map(|(a, b)| (a.x.0, a.y.0, b.x.0, b.y.0))
+        .collect();
+    lines.sort_unstable();
+    edges.sort_unstable();
+    assert_eq!(lines, edges, "the lines the first change writes");
+    // The logo's region (the logo itself is not in the file) is a cell without a value: the line between it and the
+    // title stays.
+    assert!(
+        block.cells.iter().any(|c| c.value.is_none() && c.rect.0.min().x == Nm(0)),
+        "{:?}",
+        block.cells
+    );
+    assert!(lines.iter().any(|l| l.0 == px(1).at(20).unwrap().0 && l.2 == l.0));
 }
 
 #[test]

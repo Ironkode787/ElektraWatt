@@ -145,11 +145,11 @@ fn form(kind: FormKind, w: Nm, h: Nm) -> FormDef {
     }
 }
 
-/// A 1 px line from `a` to `b` (px).
-fn line(a: (i64, i64), b: (i64, i64)) -> Option<Primitive> {
+/// A 1 px line from `a` to `b`.
+fn line(a: Pt2, b: Pt2) -> Option<Primitive> {
     let v = json!({"line": {
-        "from": [px(a.0).0, px(a.1).0],
-        "to": [px(b.0).0, px(b.1).0],
+        "from": [a.x.0, a.y.0],
+        "to": [b.x.0, b.y.0],
         "stroke": {"pen": {"width": px(LINE_PX).0}}
     }});
     serde_json::from_value(v).ok()
@@ -591,76 +591,79 @@ fn title_block(
         }
     }
     let mut f = form(FormKind::TitleBlock, px(tw), px(th));
-    let mut segments: BTreeSet<((i64, i64), (i64, i64))> = BTreeSet::new();
     let mut logos: Vec<Primitive> = Vec::new();
+    // Every region is a cell (doc 09 §2.5): the ones without a value (a logo's, an empty field's, a unit cell no
+    // region covers) after the ones with, so that a person can choose any of them and type in it.
+    let mut empty: Vec<FormCell> = Vec::new();
     for &(c0, r0, c1, r1, cell) in &regions {
         let (x0, y0, x1, y1) = (xs[c0], ys[r0], xs[c1 + 1], ys[r1 + 1]);
-        // The edges inside the outline (the frame draws the outline).
-        if x0 > 0 {
-            segments.insert(((x0, y0), (x0, y1)));
-        }
-        if x1 < tw {
-            segments.insert(((x1, y0), (x1, y1)));
-        }
-        if y0 > 0 {
-            segments.insert(((x0, y0), (x1, y0)));
-        }
-        if y1 < th {
-            segments.insert(((x0, y1), (x1, y1)));
-        }
-        let Some(c) = cell else { continue };
-        if let Some(logo) = &c.logo {
-            match logo_image(t, logo, (x0, y0, x1, y1), assets) {
-                Ok(image) => logos.push(image),
-                Err(why) => report(format!(
-                    "the title-block logo `{logo}` is not imported ({why}); its cell stays empty"
-                )),
-            }
-            continue;
-        }
-        // QET prints ` label: value` when the label is displayed, else ` value`: always after one space
-        // (`TitleBlockTemplate::finalTextForCell`).
-        let mut value = template(&c.value, ctx, report);
-        if c.display_label && !c.label.trim().is_empty() {
-            value = format!("{}: {value}", template(c.label.trim(), ctx, report));
-        }
-        if value.trim().is_empty() {
-            continue;
-        }
-        let value = format!(" {value}");
-        let pt = c
-            .font_size
-            .filter(|p| (2..=140).contains(p))
-            .unwrap_or(DEFAULT_PT);
-        sizes.insert(pt);
-        let lines = value.lines().count();
-        let mut extra = serde_json::Map::new();
-        if lines > 1 {
-            extra.insert("ew.cell.max_lines".into(), Value::from(lines));
-        }
-        // QET draws a cell's text on the cell's edges, without an inset, as its screen lays it out:
-        // every advance a whole px.
-        extra.insert("ew.cell.inset".into(), Value::from(0));
-        extra.insert("ew.cell.pixel".into(), Value::from(px(1).0));
         let Ok(rect) = Bounds::new(Pt2::new(px(x0), px(y0)), Pt2::new(px(x1), px(y1))) else {
             continue;
         };
-        f.cells.push(FormCell {
+        // QET draws a cell's text on the cell's edges, without an inset, as its screen lays it out:
+        // every advance a whole px.
+        let mut extra = serde_json::Map::new();
+        extra.insert("ew.cell.inset".into(), Value::from(0));
+        extra.insert("ew.cell.pixel".into(), Value::from(px(1).0));
+        let pt = cell
+            .and_then(|c| c.font_size)
+            .filter(|p| (2..=140).contains(p))
+            .unwrap_or(DEFAULT_PT);
+        let mut out = FormCell {
             rect,
             label: None,
-            value: Some(value),
+            value: None,
             style: Ident::from_input(&style_key(pt)).ok()?,
-            align: align(&c.valign, &c.align),
-            overflow: if c.hadjust {
+            align: cell.map_or(Align::MiddleLeft, |c| align(&c.valign, &c.align)),
+            overflow: if cell.is_some_and(|c| c.hadjust) {
                 Overflow::FitWidth
             } else {
                 Overflow::Error
             },
             visible_if: None,
-            extra: extra.into_iter().collect(),
-        });
+            extra: Default::default(),
+        };
+        sizes.insert(pt);
+        let value = match cell {
+            Some(c) if c.logo.is_some() => {
+                let logo = c.logo.as_deref().unwrap_or_default();
+                match logo_image(t, logo, (x0, y0, x1, y1), assets) {
+                    Ok(image) => logos.push(image),
+                    Err(why) => report(format!(
+                        "the title-block logo `{logo}` is not imported ({why}); its cell stays empty"
+                    )),
+                }
+                String::new()
+            }
+            // QET prints ` label: value` when the label is displayed, else ` value`: always after one space
+            // (`TitleBlockTemplate::finalTextForCell`).
+            Some(c) => {
+                let mut value = template(&c.value, ctx, report);
+                if c.display_label && !c.label.trim().is_empty() {
+                    value = format!("{}: {value}", template(c.label.trim(), ctx, report));
+                }
+                value
+            }
+            None => String::new(),
+        };
+        if value.trim().is_empty() {
+            out.extra = extra.into_iter().collect();
+            empty.push(out);
+            continue;
+        }
+        let value = format!(" {value}");
+        let lines = value.lines().count();
+        if lines > 1 {
+            extra.insert("ew.cell.max_lines".into(), Value::from(lines));
+        }
+        out.value = Some(value);
+        out.extra = extra.into_iter().collect();
+        f.cells.push(out);
     }
-    f.graphics = segments
+    f.cells.extend(empty);
+    // The lines are the cells' edges (the frame draws the outline), as a change of the block writes them anew.
+    f.graphics = f
+        .cell_edges()
         .into_iter()
         .filter_map(|(a, b)| line(a, b))
         .chain(logos)

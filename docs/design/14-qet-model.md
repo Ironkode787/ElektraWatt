@@ -448,6 +448,9 @@ variable has an EW xref-format token (FR-XRF-003):
   centred, its bytes a project asset through the same path as a drawing's images (§4.13); a logo stored as XML
   (an SVG) is the same, its asset the SVG element as the file writes it, drawn as vectors (a form names an asset
   by hash alone, so the export takes an image's format from its bytes). A logo the asset rules refuse is
-  reported (EW-IMP-004) and its cell stays empty. A diagram without an embedded template gets the shipped
-  `ew.titleblock.qet-a4` (QET's default template).
+  reported (EW-IMP-004) and its cell stays empty. **Every region of the template is a cell** (doc 09 §2.5, "a
+  title block is a table"): a field, a logo's region and an empty one alike, the cells without a value after the
+  others, so that each can be chosen in Edit frame and typed in; the block's lines are the cells' edges
+  (`FormDef::cell_edges`), the rule a change of the block writes them by, so the first change draws the same lines.
+  A diagram without an embedded template gets the shipped `ew.titleblock.qet-a4` (QET's default template).
 
