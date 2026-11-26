@@ -886,6 +886,14 @@ rule-ew-mfg-009 = Het met de hand gezette einde van { $wire } op { $at } past ni
     .title = Met de hand gezet einde past niet
     .hint = Zet het einde terug op de regel, kies een artikel van de doorsnede van de draad, of geef ook de andere draad op de klem een twin-adereindhuls.
 
+rule-ew-mfg-020 = { $strip } heeft geen eindplaat na zijn laatste klem { $terminal }
+    .title = Klemmenstrook zonder eindplaat
+    .hint = Voeg in de klemmenstrookeditor een eindplaat toe na de laatste klem (Toebehoren toevoegen, soort Eindplaat), of noem de eindplaat in het artikel van de klem, onder Toebehoren, zodat elke klemmenstrook hem krijgt.
+
+rule-ew-mfg-021 = De brug { $bridge } van { $strip } (klemmen { $first } t/m { $last }) heeft geen artikel
+    .title = Brug zonder artikel
+    .hint = Kies een artikel in de cel Brugartikel van de klemmenstrookeditor; de stuklijst en de montagelijst noemen het dan.
+
 rule-ew-mfg-022 = Draad { $wire } wordt gesneden van { $part }, waarvan { $form ->
         [size] de doorsnede niet de { DECIMAL($csa) } mm² van de draad is
         [colour] de kleur niet het { $colour } van de draad is
@@ -1277,6 +1285,7 @@ fix-rebind-map-channel = Koppelen aan het kanaal van de kaart
 fix-declare-pelv-bond = 0 V–PE-verbinding (PELV) vastleggen
 fix-mark-cp-unused = Markeren als niet gebruikt
 fix-reset-end = Terugzetten op de regel
+fix-add-end-plate = Eindplaat { $p0 } toevoegen na { $p1 }
 fix-join-mark = Pen en markering verbinden
 fix-plc-take-out = Uit het rek halen
 fix-plc-bind-pins = De kanalen aan hun pinnen koppelen

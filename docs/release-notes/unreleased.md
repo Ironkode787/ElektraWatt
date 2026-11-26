@@ -334,3 +334,6 @@ change here.
   title, with the cut list's columns (Part number, Description, For, Pieces, Length mm, Total m); Report block… no
   longer offers the tube cut list.
 - behaviour-change: the wire list's bridge rows print the bridge's part; only a bridge without one prints TBD.
+- behaviour-change: EW-MFG-020 reports a strip whose terminals have parts and after whose last terminal no end plate
+  stands, with the quick fix Add the end plate … after … where a terminal's part names one; EW-MFG-021 reports a
+  bridge without a part (an error in release).

@@ -5,6 +5,7 @@
 //! `RuleMeta` constant that copies its row of the catalogue (ID, code, pack, kind, modes, severities,
 //! scope) and implements [`Rule`](crate::Rule).
 
+pub mod assembly;
 pub mod bus;
 // The EW-BUS rules of the pack's 1.0 content
 pub mod bus_net;

@@ -86,6 +86,8 @@ static IMPLEMENTED: &[&dyn Rule] = &[
     &shipped::mfg::MarkerDoesNotFit,
     &shipped::mfg::EndCannotBeMade,
     &shipped::mfg::EndSetByHandMisfits,
+    &shipped::assembly::NoEndPlate,
+    &shipped::assembly::BridgeWithoutPart,
     &shipped::pot::WirePartMismatch,
     &shipped::num::TagDeviates,
     &shipped::num::FrozenValueDeviates,

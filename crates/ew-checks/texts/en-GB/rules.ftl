@@ -890,6 +890,14 @@ rule-ew-mfg-009 = The end of { $wire } at { $at } set by hand does not fit: { $f
     .title = End set by hand does not fit
     .hint = Reset the end to the rule, choose a part of the wire's size, or set the other wire on the clamp to a twin ferrule as well.
 
+rule-ew-mfg-020 = { $strip } has no end plate after its last terminal { $terminal }
+    .title = Strip without an end plate
+    .hint = Add an end plate after it in the strip editor (Add accessory, kind End plate), or name the end plate in the terminal's part, under Accessories, so every strip gets it.
+
+rule-ew-mfg-021 = The bridge { $bridge } of { $strip } (terminals { $first } to { $last }) has no part
+    .title = Bridge without a part
+    .hint = Choose a part in the strip editor's Bridge part cell; the parts list and the assembly list name it then.
+
 rule-ew-mfg-022 = Wire { $wire } is cut from { $part }, whose { $form ->
         [size] size is not the wire's { DECIMAL($csa) } mm²
         [colour] colour is not the wire's { $colour }
@@ -1297,6 +1305,7 @@ fix-rebind-map-channel = Rebind to the map's channel
 fix-declare-pelv-bond = Declare 0 V–PE bond (PELV)
 fix-mark-cp-unused = Mark not used
 fix-reset-end = Reset to the rule
+fix-add-end-plate = Add the end plate { $p0 } after { $p1 }
 fix-join-mark = Join the pin and the mark
 fix-plc-take-out = Take it out of the rack
 fix-plc-bind-pins = Bind the channels to their pins

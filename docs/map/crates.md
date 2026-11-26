@@ -158,7 +158,7 @@ The `Session` facade shared by every front-end.
 | `src/output/route_measures.rs` | large | A page as the layout sees it and its measure in words: [`Session::page_draft`] is the page in ticks (`ew_drafting::DraftPage`, docs/design/06a-drafting.md §2), the labels layer's (`ew-scene`'s `draft` builds it from the page's view, with the scene's text sizes) with each wire's supply rank from its potential and the page's kind; the router reads it (`crate::routing`). |
 | `src/output/rows.rs` | large | The row exports of a chosen report block (FR-EXT-027): `ew export wires`, `ew export terminals [--strip <tag>]`, `--block <name or id>` on `bom`, `cables`, `wires` and `terminals`, `ew export report --block <name or id> --format csv\|pdf`, and `ew export report --kind <kind>`, the whole-project rows of a registered kind ([`RowExport::Kind`]). |
 | `src/output/scale_fit.rs` |  | The fitting scale of a panel-layout page and a mounting surface: the first 1:n of [`FIT_SCALES`] at which the bounding box of the surface's usable outline, drawn at 1:n on paper, fits the drawing area of the page's frame; 1:100 when none fits; none when the surface records no usable outline or the page has no frame. |
-| `src/output/strip_edit.rs` | large | The strip editor's door below the shell: [`Session::strip_edit`] compiles one strip gesture into one command, and [`Session::strip_edits`] several cell gestures into one. |
+| `src/output/strip_edit.rs` |  | The strip editor's door below the shell: [`Session::strip_edit`] compiles one strip gesture into one command, and [`Session::strip_edits`] several cell gestures into one. |
 | `src/output/table_edit.rs` |  | Table mode's pure rule (doc 16 §7.1, §7.2; moved down from the view model), so that the grid and the table round trip produce the same command for the same cells. |
 | `src/output/table_io.rs` | large | The table round trip: a navigator table as a [`Table`] ([`Session::table_export`]), and a round-trip file read back against the project's table of the same key ([`Session::table_import`]), its changed cells compiled by table mode's own rule ([`super::table_edit::compile`]) into one `fields.set_many` ([`Session::apply_table_import`]). |
 | `src/output/title_block_fields.rs` |  | What the window's Title block fields form reads of a page: the placeholder paths the page's frame and title-block forms print, in the order of their cells, each with its text now; and where those values live (the project's ID, whether the page overrides the project's description, the open revision, the parties). |
@@ -229,6 +229,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/registry.rs` |  | The registry of shipped Rust rules (ADR-0019 amendment 7: `ew-checks` owns the rule-implementation registry). |
 | `src/report.rs` |  | Check reports as text: plain lines for the terminal, Markdown for people and JSON (`ew.check-result/1`) for machines (doc 17 §3.1, §3.3; FR-EXT-024). |
 | `src/rule.rs` |  | The [`Rule`] trait and the rule metadata of doc 15 §2.3: ID, code, pack, kind, modes, severities, scope. |
+| `src/rules/assembly.rs` |  | What the assembly list cannot name (doc 13 §6.3): EW-MFG-020, a strip without an end plate after its last terminal; EW-MFG-021, a bridge without a part. |
 | `src/rules/bus.rs` |  | The EW-BUS rules of the MVP (doc 15 §4.5.2; doc 10 §3.8, §3.10): EW-BUS-001 (a station address missing or duplicate in a logical net) and EW-BUS-004 (the termination at the segment ends). |
 | `src/rules/bus_net.rs` |  | The 1.0 rules of the EW-BUS pack (doc 10 §3.8, §3.10; doc 15 §4.5.2): EW-BUS-002 (address range), -003 (PROFINET name and IP), -005 (rate), -006 (segment limits), -007 (no master), -009 (wrong bus cable or connector) and -010 (net mismatch). |
 | `src/rules/cable.rs` |  | EW-CORE cable rules of the 03x block (doc 15 §4.2; content in doc 08 §8.1): EW-CORE-031, -032, -034, -036 and -037. |
@@ -376,8 +377,10 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/cell.rs` |  | Frame cells: `cell_of(point, page)` and `rep_anchor_cell(rep)` (doc 06 §5.1, FR-PAG-020, FR-SYM-010, FR-XRF-005, D-14). |
 | `src/channel_index.rs` |  | The channel indexes (doc 10 §2.4, §3.2 step 4, §3.3): a channels-by-module index and a connection-point → channel index, as memoised derived families. |
 | `src/component.rs` |  | The incremental maintenance of the potential partition (ADR-0002 amendment 4, ARCH §6.1 "incremental connectivity"): the components an edit touched are recomputed from the per-page nets, every other component is kept as it is. |
+| `src/consumables.rs` |  | `consumable_rows()`: what to order of what the wires consume (doc 13 §3.6, FR-MFG-049), beside the parts list. |
 | `src/cp_point.rs` |  | Where a function CP is drawn: `cp_point`, `cp_end`, `rep_cp_end` and `cp_cell` (doc 06 §5.1, doc 08 §6.7). |
 | `src/cps.rs` |  | Connection-point instantiation: `function_cps(f)` (ARCH §6.4, doc 03 §7, FR-DEV-002, FR-DEV-008). |
+| `src/cut_list.rs` |  | `cut_rows()`: everything the fitter cuts to length (doc 13 §9.3, FR-MFG-030), in five groups, each piece once. |
 | `src/drawn_path.rs` |  | The path a connection is drawn along on its page (doc 06 §5.4), one rule for the page and the model: the page scene (`ew-scene`, `route::connection_polyline`) draws a wire along it, normaliser 7 of `ew-commands` splits a connection under a dropped symbol along it (its ends placed by [`rep_cp_end`](crate::rep_cp_end)), and EW-TERM-006 names a terminal lying on a wire it does not join. |
 | `src/flow.rs` |  | Potential flow: `potential_flow(potential)` (ARCH §6.4, doc 08 §3.6). |
 | `src/flow_distance.rs` |  | The per-CP flow distance: `cp_flow_distance(potential)` (doc 08 §3.8 "Orientation (From/To)" step 2). |
@@ -421,6 +424,7 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/rework.rs` |  | The rework list (doc 13 §3.5): what the fitter changes in a built cabinet between a release and now. |
 | `src/settings.rs` |  | Project settings members as queries: `settings_member(name)` (ARCH §6.4, ADR-0002 amendment 4). |
 | `src/stitch.rs` |  | The stitch graph over local nets: `stitch_graph()` (ARCH §6.4, doc 08 §3.3). |
+| `src/strip_assembly.rs` |  | `assembly_rows(strip)`: what the assembly list prints of one strip (doc 13 §6.1, FR-MFG-016): where it goes and how long it is, then every item in the order the fitter mounts it from the rail's left end. |
 | `src/strip_bridges.rs` |  | `strip_bridges(strip)`: the terminal bridges of one strip, grouped (doc 08 §2.3, §6.5). |
 | `src/structure.rs` |  | Structure: node paths and the resolved structure of pages and devices (doc 03 §5, §8.1–§8.2 step 5, FR-PRJ-019, FR-NUM-002). |
 | `src/tag.rs` |  | Device tags (doc 03 §8.2–§8.5, FR-NUM-001, FR-NUM-002, FR-DEV-021, ADR-0026, D-27, D-41). |
@@ -888,11 +892,14 @@ Built-in report row queries (a user SQL report gives an empty row set marked not
 | `src/arrange.rs` |  | Manual selection, sorting and grouping of report rows (doc 09 §3.3, FR-REP-027, FR-I18N-010). |
 | `src/csv.rs` |  | The CSV text of a report block's rows (doc 09 §1.3; `ew export cables\|bom`). |
 | `src/kind.rs` |  | The report-kind registry (doc 09 §2.4): each built-in kind is a registered Rust row query with a column schema. |
+| `src/kinds/assembly_list.rs` |  | `assembly_list`: per strip the order the fitter mounts it in (doc 13 §6.1, FR-MFG-016), from `ew_derive::assembly_rows`. |
 | `src/kinds/cable_overview.rs` |  | `cable_overview_diagrams`: the cable overview and the per-cable core lists (FR-REP-012, FR-REP-013; folio 906 of the standard layout). |
 | `src/kinds/conn.rs` |  | What the connectivity kinds (`wire_list`, `potential_overview`, `terminal_diagram`, `cable_overview_diagrams`) share: the project's physical wires with their effective properties, wire ends as cells, terminal bridges and the cell formatting of wire properties. |
+| `src/kinds/consumables.rs` |  | `consumables`: what to order of what the wires consume, beside the parts list (doc 13 §3.6, FR-MFG-049), from `ew_derive::consumable_rows`. |
+| `src/kinds/cut_list.rs` |  | `cut_list`: everything the fitter cuts to length (doc 13 §9.3, FR-MFG-030), from `ew_derive::cut_rows`; and `tube_cut_list`, a block of a project made before the cut list, which prints the cut list's Tubes group. |
 | `src/kinds/device_list.rs` |  | `device_list`: the device list (FR-REP-008). |
 | `src/kinds/enclosure_legend.rs` |  | `enclosure_legend`: the layout legend of a mounting surface (FR-LAY-012; doc 12 §5.4, doc 09 §2.2). |
-| `src/kinds/fluid.rs` |  | The fluid report kinds (doc 11 §8.1, §8.2): `tube_list` (FR-FLU-012), `tube_cut_list` and `tube_labels` (FR-FLU-013), `valve_terminal_config` (FR-FLU-015) and `medium_overview` (FR-FLU-016), over the row sources of `ew-derive` (`tube_rows`, `valve_terminal_rows`, `medium_rows`). |
+| `src/kinds/fluid.rs` |  | The fluid report kinds (doc 11 §8.1, §8.2): `tube_list` (FR-FLU-012), `tube_labels` (FR-FLU-013), `valve_terminal_config` (FR-FLU-015) and `medium_overview` (FR-FLU-016), over the row sources of `ew-derive` (`tube_rows`, `valve_terminal_rows`, `medium_rows`). |
 | `src/kinds/io_list.rs` |  | `io_list`: the I/O assignment list, one row per channel of each station's modules (FR-PLC-023; doc 10 §5). |
 | `src/kinds/labels.rs` |  | `labels`: every label of the workshop (doc 13 §5.3), from `ew_derive::LabelRows`, one row per label in the order the fitter applies them; `tube_labels` lists the tube markers of the same engine with the same columns. |
 | `src/kinds/mod.rs` |  | The built-in report kinds (doc 09 §2.4): [`builtin`] lists every kind this build derives, one module a kind or a family. |
