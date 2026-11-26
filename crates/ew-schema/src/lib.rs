@@ -93,6 +93,7 @@ mod list_area;
 mod medium;
 mod page;
 mod page_item;
+mod part_sections;
 mod plc;
 mod project;
 mod proxy;
@@ -142,22 +143,19 @@ pub use layout::{
 };
 pub use library::{
     AccessoryPer, Actuation, Actuator, Align, AlternativeKind, AlternativeRef, AnchorPolicy, ArcPrim,
-    Arrangement, CableCore, CategoryKey, CirclePrim, ClampKey, ClampType, Clearance, CoilData, Colour,
-    Confidence, Configured, ConfiguredComponent, ContactData, ContactKind, CpData, CpDef, Dash, DataArea,
-    Deprecation, Dir4, Discipline, DuctSection, EllipsePrim, EnclosureSection, ExtraVariant,
-    ExtraVariantKind, FerruleSection, FittingData, FluidPortData, FluidPortRole, FluidSection,
-    FluidTransform, FnDef, FnFlags, FormCell, FormDef, FormKind, FrameColumns, FrameGrid, FrameRows,
-    FreeProp, GalleryData, HOUSE_ROW_HEIGHT, HOUSE_ROWS_PER_PAGE, ImagePrim, InternalKind, InternalLinkDef,
-    ItemMeta, ItemStatus, LibCopy, LibItem, Library, LinePrim, MacroDef, MacroInstance, MacroKind, MacroLink,
-    MacroVariant, Manufacturer, MarkTarget, MarkerSection, MechData, MountKind, NamedPoint, OrderUnit,
-    Overflow, PLACEHOLDER_PART_NUMBER, Part, PartAccessory, PartBox, PartBoxPin, PartKind, PartSections,
-    PartVariant, PassThroughSpec, Pen, PlaceholderGroup, PlateSection, PlcAllocation, PlcAllocationStart,
+    Arrangement, CategoryKey, CirclePrim, ClampKey, ClampType, Clearance, Colour, Confidence, Configured,
+    ConfiguredComponent, ContactData, ContactKind, CpData, CpDef, Dash, DataArea, Deprecation, Dir4,
+    Discipline, EllipsePrim, ExtraVariant, ExtraVariantKind, FluidPortRole, FnDef, FnFlags, FormCell,
+    FormDef, FormKind, FrameColumns, FrameGrid, FrameRows, FreeProp, HOUSE_ROW_HEIGHT, HOUSE_ROWS_PER_PAGE,
+    ImagePrim, InternalKind, InternalLinkDef, ItemMeta, ItemStatus, LibCopy, LibItem, Library, LinePrim,
+    MacroDef, MacroInstance, MacroKind, MacroLink, MacroVariant, Manufacturer, MechData, MountKind,
+    NamedPoint, OrderUnit, Overflow, PLACEHOLDER_PART_NUMBER, Part, PartAccessory, PartBox, PartBoxPin,
+    PartKind, PartVariant, PassThroughSpec, Pen, PlaceholderGroup, PlcAllocation, PlcAllocationStart,
     PlcAreaMnemonics, PlcMnemonics, PlcParse, PlcProfileDef, PlcProfilePin, PlcRender, PlcSizeMnemonics,
-    PolygonPrim, PolylinePrim, Primitive, RailSection, RectPrim, RepType, Rgb, RowTemplate, RowTemplates,
-    SheetSpec, SheetTransform, ShrinkSpec, Side, SlotFallback, SlotKind, SolenoidPin, Stroke, SwitchPos,
-    SymbolCp, SymbolDef, TableStyle, TemplateFn, TextPrim, TextSlot, TubeData, ValueSet, ValveModel,
-    ValvePath, ValveSection, VarBinding, VarDef, VarType, WireSection, WrapPolicy, is_plain_semver,
-    next_by_last_number, next_minor, next_patch, semver_core,
+    PolygonPrim, PolylinePrim, Primitive, RectPrim, RepType, Rgb, RowTemplate, RowTemplates, SheetSpec,
+    SheetTransform, ShrinkSpec, Side, SlotFallback, SlotKind, Stroke, SwitchPos, SymbolCp, SymbolDef,
+    TableStyle, TemplateFn, TextPrim, TextSlot, ValueSet, ValveModel, ValvePath, ValveSection, VarBinding,
+    VarDef, VarType, WrapPolicy, is_plain_semver, next_by_last_number, next_minor, next_patch, semver_core,
 };
 pub use list_area::ListArea;
 pub use medium::{FluidSettings, LineKindTube, LineTagScheme, Medium, MediumDef};
@@ -170,6 +168,11 @@ pub use page_item::{
     BoxStyle, FreeText, Graphic, GraphicShape, GraphicStroke, ImageItem, LayoutLabels, LineDash, MarkerField,
     PageItem, PageItemKind, ShapeArc, ShapeCircle, ShapeLine, ShapePoints, ShapeRect, StructureBox,
     SurfaceLabelMode, SurfaceView, TextAlign, TextAnchor, Underlay, UnderlayFormat, WireMarker,
+};
+pub use part_sections::{
+    CableCore, CoilData, DuctSection, EnclosureSection, FerruleSection, FittingData, FluidPortData,
+    FluidSection, FluidTransform, GalleryData, MarkTarget, MarkerSection, PartSections, PlateSection,
+    RailSection, SolenoidPin, TubeData, WireSection,
 };
 pub use plc::{
     AddrSpec, Channel, ChannelKind, ChannelSpec, ChannelState, DeviceLink, DeviceLinkKind, Evaluation,
