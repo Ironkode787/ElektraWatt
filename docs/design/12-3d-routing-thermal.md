@@ -298,25 +298,125 @@ shows both (FR-CBL-020).
 
 ## 10. Surface features, drilling and cut-outs
 
-`surface_features(surface)` aggregates per surface side (FR-LAY-056; PM §6.11):
+**What the panel builder gets.** Every hole and cut-out he must make in each surface of his cabinet (the plate, a
+door, a wall, the top, the bottom), from what is placed on it and from what he added by hand, numbered in the order he
+makes them; and from that one list the hole table, a template to print at full size and a DXF for a machine
+([13](13-manufacturing-outputs.md) §9). Nothing of it is stored but the holes he added and the holes he moved or left
+out.
 
-| Origin | Features |
-|---|---|
-| Placement | the part's `FeaturePattern` transformed to the surface (screw-mounted modules, door devices: Ø 22.3 mm for 22 mm operators *(unverified)*, rectangular cut-outs with corner radius for fans and HMIs) |
-| Carrier fixing | rail and duct fixing holes or tapped holes at the policy pitch (default 300 mm ▲) along the path, with end margins |
-| Enclosure | gland holes on gland surfaces (metric glands: M20 ≈ 20.5 mm *(unverified)*) |
-| User | `SurfaceFeature` records |
+### 10.1 The journey
 
-Feature IDs are derived (`H1 … Hn` sorted by tool class, then v, then u). Two devices sharing one fixing produce one
-merged hole (info); a web below the minimum, a hole closer to the edge than the minimum web, or a hole under another
-device raises EW-LAY-012 (FR-LAY-057). Tap-drill cores M4 3.3, M5 4.2, M6 5.0 mm *(unverified)* are data.
+1. **First job.** His schematic is done and the plate page 902 is laid out. Unplaced devices lists the pushbuttons and
+   lamps with Mount "in a cut-out". He drags -102S1 onto the plate; the drop is refused: "-102S1 goes in a cut-out of
+   a door or a wall: place it on the door's page", and the toast offers Open the door.
+2. Open the door makes page 904 "Door", the door of -UC1 at 1:5 with "Door, seen from outside" under it, the hinge
+   ticked on the left edge, the 30 mm edge margin dashed, the datum "0" at the bottom-left corner, and on the screen
+   the plate's devices faint behind the door; and its legend page 904.1.
+3. He drags the five buttons and lamps onto the door from Unplaced devices; each lines up with the others' centres;
+   the 22 mm cut-out shows dashed under each front. He gives -101Q1 its door coupling handle (Properties ▸ Parts ▸
+   Add part…) and drags the handle from Unplaced devices onto the door, in front of the faint switch behind it.
+4. Check project says nothing: the starter parts carry their holes. Had his own lamp part none, EW-LAY-017: "The part
+   MY-LAMP-1 of -102E1 goes in a cut-out but has no holes, so the door's hole table lacks it: give it its holes (Front view
+   and holes)" with Edit part….
+5. In the part editor's **Front view and holes** he sets Shape Round and adds a hole: Kind Cut-out, Size 22 mm, X 15,
+   Y 15. The preview draws the front and its cut-out.
+6. On 902 he right-clicks near the plate's bottom-right corner: **Add hole here…** asks Kind Fixing, Size M6, For
+   "Earth stud", with X and Y from the click; Add puts it there.
+7. Output ▸ Workshop ▸ **Hole tables** opens page 915: the plate's 10 holes, then the door's 8, each with its number,
+   its X and Y from the bottom-left corner, what to make ("Ø 4.2, tap M5", "Ø 22.3") and what it is for.
+8. Output ▸ Workshop ▸ **Drilling…** lists the plate and the door with their hole counts and sheet counts; Export
+   writes "+CAB Door template.pdf", "+CAB Door.dxf" and the plate's two files. He prints the door's template at 100 %,
+   measures the 100 mm bar, tapes the five sheets at their crosses, lays the template into the door's top-left corner,
+   centre-punches through the crosses and punches the 22 mm holes.
+9. **The day after.** He moves -104E2 10 mm to the right: the hole table, the template and the DXF follow; the door
+   record is unchanged and only the placement moved. A rail lengthened by 100 mm gets its fourth fixing hole.
+10. **The tenth job.** His parts carry their holes and his basic project says Fixing holes: Self-tapping screws; he
+   lays out the door and goes straight to step 7.
 
-**Outputs** (owned with [13](13-manufacturing-outputs.md)): DXF per surface (FR-MFG-028: CIRCLE for holes, closed
-LWPOLYLINE for cut-outs, one layer per tool or feature class such as `DRILL_4.2`, `TAP_M5`, `CUT`, the outline on its
-own layer, origin at the machine datum corner, `$INSUNITS = 4`, AC1015, an EPLAN 802–805 layer preset), the hole
-table per surface (FR-MFG-029) and the cut list of rails, ducts and busbars (FR-MFG-030). All three read
-`surface_features` and carrier paths, so the DXF, the drilling drawing and the hole table cannot disagree. NC
-formats (Perforex, Steinhauer) and the RiPanel AML dialect stay Later (PARK-09).
+### 10.2 The sizes of the named holes
+
+A part and a hole by hand name a hole by its kind ([12](12-placement-pages.md) §2.5); the size made is data of
+`ew_derive::layout` (one table, with its source and whether it was checked against it):
+
+| Hole | Made as | Source | Checked |
+|---|---|---|---|
+| Cut-out 16, 22, 30 mm | Ø 16.2, Ø 22.3, Ø 30.5 mm | the mounting holes of control-circuit devices, IEC 60947-5-1 | no |
+| Gland M12, M16, M20, M25, M32, M40, M50, M63 | Ø 12.5, 16.5, 20.5, 25.5, 32.5, 40.5, 50.5, 63.5 mm: the gland's thread and 0.5 mm | the clearance hole of a metric cable gland (EN 62444; ISO 261 threads) | no |
+| Fixing M3, M4, M5, M6, M8, tapped | Ø 2.5, 3.3, 4.2, 5.0, 6.8 mm and the tap | the tap drill of the coarse thread (ISO 261 pitch, DIN 336) | no |
+| Fixing, through | Ø 3.4, 4.5, 5.5, 6.6, 9.0 mm | ISO 273, medium clearance | no |
+| Fixing, self-tapping screw | Ø 2.7, 3.7, 4.6, 5.5, 7.4 mm | a thread-forming screw's pilot hole in sheet steel, about 0.9 × the thread | no |
+
+Where a person meets a size from this table (the hole's Properties, the Drilling… dialog) it says "from the program's
+table, not checked against its standard". A shop whose punch differs types a round hole of its own size.
+
+### 10.3 What a fixing and a carrier become
+
+- **A fixing hole** of a part on the mounting plate is made as the workshop's **Fixing holes** setting says (Project
+  properties ▸ Workshop): Tapped (the default), Self-tapping screws, or Through, with a nut. In a door, a wall, the top
+  or the bottom it is a through hole: the screw goes through the sheet.
+- **A rail** is fixed on its axis and **a duct** on its centreline as the workshop's Rail fixing and Duct fixing say
+  (a screw size, at most how far apart, how far from each end; absent: M5, 300 mm, 25 mm for a rail and M4, 300 mm,
+  25 mm for a duct, the program's assumption, unchecked): along each straight piece of length `L`, one hole at the
+  given distance `e` from each end and `n − 2` between them, evenly spaced, `n = ⌈(L − 2e) / p⌉ + 1`, each place
+  rounded to the whole millimetre (half up). A piece shorter than `2e` gets one hole at its middle. The sample's
+  470 mm rails and duct have three holes each, at 25, 235 and 445 mm from their start.
+
+### 10.4 The features of a surface
+
+`surface_features(surface)` (memo per surface) is every hole of the surface, each with its centre in the surface frame,
+its `Hole`, how it is made, its owners and its number:
+
+1. **From each placement on the surface**, its part's `mech.holes`, turned with the placement and moved to its pose.
+   A strip, a part on `on_parent` and a part without holes give none.
+2. **From each rail and duct on the surface**, its fixing holes (§10.3).
+3. **Each `SurfaceFeature`** of the surface, its `purpose` its owner.
+4. **The choices** of a placement or a carrier apply: a hole moved by its `offset`, a hole left out (`omit`).
+5. **Holes that meet merge:** two holes made the same way whose centres lie within 0.5 mm of each other are one hole
+   with both owners (two parts sharing a fixing).
+6. **The numbers are the drilling order:** by how the hole is made, the smallest drill first (a tapped hole by its tap
+   drill), then the named cut-outs and the glands by size, then the rectangles by size; within one tool row by row
+   from the bottom of the surface as its page shows it (a row: the holes whose centres lie at one height, to the whole
+   millimetre), the first row left to right, the next right to left, and so on. H1 … Hn; ties by the owner's ID. The
+   number follows the hole while the surface does not change, and is never stored.
+
+A hole's owner is said in words: a device by its tag ("-102S1"), a rail or a duct by its label ("Rail 1"), a hole by
+hand by its purpose ("Earth stud"), else by its kind ("Gland M20").
+
+### 10.5 What he is told
+
+- **EW-LAY-012 Holes too close** (warning): two holes of a surface whose edges are closer than the workshop's **Web
+  between holes** (absent: 5 mm, the program's assumption), or a hole closer to the sheet's edge than its edge margin
+  and that web, or a hole off the sheet. It names both: "The cut-out of -104E2 is 3 mm from the cut-out of -104E1 on
+  the door: keep at least 5 mm between holes (Project properties ▸ Workshop ▸ Web between holes)"; "The cut-out of
+  -102E1 lies 12 mm from the door's top edge, inside its 30 mm margin".
+- **EW-LAY-017 Holes not known** (warning), once per part with its devices: a part placed in a cut-out or screwed to a
+  surface whose `mech.holes` is empty, or a device placed there without a part. "The part MY-LAMP-1 of -102E1 and
+  -104E1 goes in a cut-out but has no holes, so the door's hole table and drawings lack them: give the part its holes
+  in the part editor (Front view and holes)", with Edit part…; "-102E1 has no part, so its cut-out is not known: choose
+  its part", with Choose part…. A rail device needs no holes and is never reported.
+- **The depth behind the door** is the depth check's ([§7](#7-collision-and-clearance)): it reads `behind_door` and the
+  enclosure's usable depth.
+
+### 10.6 Where he sees and changes holes
+
+- **On the page**, the features layer draws every hole ([12](12-placement-pages.md) §5.2); a click on a hole by hand
+  selects it, a click on a derived one selects its owner, whose holes are drawn highlighted.
+- **Properties of a placement or a carrier** has a section Holes: one row per hole of its pattern, its number, X and Y
+  from the datum, how it is made, and Leave out. Typing X or Y moves the hole (`layout.hole_choice` with the offset);
+  the row then says "moved" with Reset. A hole left out is drawn nowhere and listed nowhere.
+- **Add hole here…** (the panel page's context menu; `layout.feature_add`): a form, "Add a hole to the door", with
+  Kind (Hole, Fixing, Cut-out, Gland, Rectangle), Size (its choices for a named kind, a length for a hole, width ×
+  height and a corner radius for a rectangle), X and Y from the datum (the click's point, on whole millimetres) and For.
+  Add is one `layout.feature.add`. A hole by hand drags with Select (1 mm steps, 5 mm with the coarse grid), shows Kind,
+  Size, X, Y and For in Properties, and Delete removes it.
+- **Properties of a surface** (a click on its outline or its free area): Width, Height, Hinge, Edge margin, Measured
+  from (Bottom left, Bottom right, Top left, Top right), the count of its holes with Hole table, and its page.
+
+**Left out**, each with its reason ([backlog-later](../plan/backlog-later.md)): the anti-rotation notch of a 22 mm
+cut-out (no starter part needs one); slots, keyholes and free outlines as holes; a hole under another device as a
+finding (a rail's fixing under its devices is the normal case, so the rule would mostly be noise); gland holes made
+from the cables that leave the cabinet; importing a maker's drilling pattern from his DXF; NC formats of punching
+machines (no specification read).
 
 ---
 
@@ -517,7 +617,7 @@ Budgets hold on the baseline machine BM (4-core 2018+ x64, 8 GB RAM, integrated 
 | BOM lines for enclosure, plate, rails, ducts, brackets | carriers, group accessories | MVP | `bom_rows` (FR-REP-007, D-04) |
 | Model views | `layout_scene`, cached part projections | 1.0 | pages |
 | Routes, lengths, bundles, route as duct names | committed routes, `wire_length` | 1.0 | WireRecord, machine profiles, `.ewpp` ([13](13-manufacturing-outputs.md)) |
-| Surface DXF, hole tables, cut lists | `surface_features`, carriers | 1.0 | FR-MFG-028 … 030 |
+| Hole table, drilling template (PDF at full size), drilling DXF per surface | `surface_features` (§10.4) | 0.4.0 | [13](13-manufacturing-outputs.md) §9.1, §9.2; the cut list is [13](13-workshop-lists.md) §9.3 |
 | glTF (`.glb`, node names = placement UUIDs, DT and part in extras) and STL per layout space | `layout_scene`, written by `ew-panel` | 1.0 | FR-EXP-007, `.ewpp` layout member, wiring viewer |
 | STEP AP242 assembly named by DTs | worker `ExportStep` | 1.0 (Could) | FR-EXP-008 |
 | Thermal report | `thermal(space)` | 1.0 | FR-THM-009, design verification record |

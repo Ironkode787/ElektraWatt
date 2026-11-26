@@ -17,6 +17,7 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-1603 `ew-checks`: A representation placed outside the sheet goes unreported (the release fixture's devices stood off it unnoticed until RTR-E); add a check rule for a symbol outside the frame's drawing area.
 - FT-1674 `ew-import-qet, ew-checks`: The 21 EW-IMP rules of a migration report read in English in a Dutch window: their message is the importer's own text, stored in the project. Wording them per language needs their arguments stored instead, which changes the format.
 - FT-1675 `ew-checks, ew-viewmodel`: Three texts name a thing by its ID or path: EW-REL-004 prints a revision's ID, EW-CORE-008 a form copy's ID, and the refusal of `image.file` the file's path; name them in words.
+- FT-2272 `ew-checks`: A hole under another device's footprint as a finding (FR-LAY-057's third case). Left out of EW-LAY-012: a rail's and a duct's fixings lie under the devices on them by design, so the rule would mostly report what is meant; take it when a shop shows the case that hurt.
 
 ## Command line
 
@@ -62,6 +63,7 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-2244 `ew-viewmodel, ew-ui`: A report form's table changed in the window: row heights, wrapping cells, a column's alignment. A list's columns, caption, legend and rows of its own are set in List columns… and Rows of your own…, and its frame in Edit frame; the rest of the table is the house layout.
 - FT-2245 `ew-schema, ew-viewmodel`: A name for a frame or title block of the project's own ("Customer B frame"). Today a project's own frame is named by its kind, its paper and the pages it prints on, which is enough while a project has two or three; a shop with several customer frames in one template may need names.
 - FT-2246 `ew-library, ew-viewmodel`: Frames and title blocks in the person's own library, beside the template, for a shop that keeps one block per customer across many templates. The template is the one place a frame lives for now (doc 09 §3.9).
+- FT-2279 `ew-scene, ew-api`: Dimensions on a panel page, and a door's cut-out drawing with dimensions (FR-LAY-041). The hole table gives every hole's place from the surface's datum and the template is at full size; dimensions come with the model views of the 3D view.
 
 ## Importers
 
@@ -110,6 +112,12 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-2233 `content, ew-derive`: A bridge's part from its terminals: the terminal part names its plug-in bridges by pole count, so a drawn bridge takes the one of its length. Each bridge's part is chosen in the strip editor today (doc 07 §2.5 keeps the bridge's own part beside the accessories).
 - FT-2234 `ew-schema, ew-derive`: Fork lugs and pin lugs as parts: the ferrule section describes a ring lug for a stud only. With a clamp kind that asks for one in a real project.
 - FT-2236 `ew-api, ew-viewmodel, ew-ui`: The part editor's bus, PLC and cable forms as declared rows, as its other sections are (doc 07 §5); they are hand-built forms of their own today.
+- FT-2270 `ew-schema, ew-derive`: The anti-rotation notch of a 22 mm cut-out (a selector switch's key), as a choice of the named cut-out with its size from the table; no starter part needs it.
+- FT-2271 `ew-schema, ew-derive, ew-viewmodel`: Slots, keyholes and a free outline as holes of a part and by hand; a round hole, a fixing, a named cut-out, a gland and a rectangle cover the door devices, glands and earth studs of the sample and the pilot's cabinets.
+- FT-2274 `ew-api, ew-import-dxf`: A maker's drilling pattern read from his DXF drawing into `mech.holes`, beside the outline that Import outline… reads (FR-IMP-035's second half): which circles are holes and which are outline needs a rule per maker's drawing.
+- FT-2276 `ew-viewmodel, ew-ui`: A part's front view drawn by hand in the part editor (lines and arcs, the symbol editor's tools on the part's front); the shape (rectangle or round) and an imported outline serve until a person asks for more.
+- FT-2277 `ew-schema, ew-derive`: A gland plate as a part of its own in the bottom of a cabinet (its own sheet and datum, taken off and drilled on the bench), as the mounting plate is; the bottom is one sheet until then.
+- FT-2278 `ew-derive, ew-viewmodel`: The shop's own sizes for the named cut-outs and glands (the punch it has for a 22 mm operator), as a workshop setting beside the program's table, if the pilot's shop punches other sizes; a round hole of its own size serves until then.
 
 ## Model, commands and numbering
 
@@ -194,6 +202,9 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-2252 `ew-derive, ew-reports`: The crimp profile and the torque of a wire end (doc 13 §4): no part names them yet; the machine export decides what it needs of them.
 - FT-2253 `ew-derive, ew-reports`: Tubes in the rework list (doc 13 §3.5): tubes to pull, add and mark anew after a change, when a shop with pneumatics asks.
 - FT-2254 `ew-schema, ew-derive`: Part data the workshop lists do without until a shop needs it: the thread of a ring stud on a pin's clamp (without it a ring stud takes the first ring lug of the stock that holds the wire's size, whatever its stud); a marker part that says it marks strips, tubes or plates (they take the terminal, wire and device markers of the stock); and the wire sizes a marker sleeve fits (every wire marker is the stock's first). Each is an optional member of a part's section, added when a project meets two stud sizes, a stock of its own for those labels, or two sleeve sizes.
+- FT-2273 `ew-derive`: Gland holes derived from the cables that leave the cabinet through its bottom, each sized by its cable's gland part; a person adds them by hand until then (Add hole here…).
+- FT-2275 `ew-export`: A punching or drilling machine's own file (its NC program), each with its published specification or a shop that has the machine; the DXF with a layer per way of making a hole serves until then.
+- FT-2280 `ew-export`: The drilling DXF in an older version (AutoCAD R12, AC1009) for a machine's software that reads no newer one; the program's writer writes AutoCAD 2010.
 
 ## Revisions and release
 

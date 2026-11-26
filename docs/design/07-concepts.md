@@ -331,7 +331,7 @@ verbatim (`SK 3110.000`) and search uses a normalised form (§4.3); the descript
 These members of a part are specified; not built: a supply CP's load current in `cp_pattern` (`i_load`, `Dec3` in
 A), `classification` (`{scheme: etim | eclass | iec_cdd | native,
 id, version}`), `model3d` (the STEP file's SHA-256, its source and whether it may be embedded, FR-LAY-022), `cp3d`
-(3D connection points, FR-LAY-026), `drilling`, `commercial` (suppliers, supplier
+(3D connection points, FR-LAY-026), `commercial` (suppliers, supplier
 numbers, prices with currency and date), `logistics` (pack quantity, minimum order, customs code, origin, lifecycle)
 and `docs` (datasheet references as text, images only as asset hashes). The accessories, the variants and the
 sections of the parts a wire consumes are below.
@@ -364,9 +364,9 @@ Part data is organised in **data levels**. Each level lists its consumers and th
 | L0 identity | manufacturer, part number, type, order number, GTIN, description, kind, unit | BOM (FR-REP-004), search | MVP |
 | L1 technical | `tech_data` (native keys), contact data, CP pattern (designation, potential role, level, side, clamp, cross-section range, max conductors, twin ferrule, optional load current per supply CP), function template; ETIM/ECLASS classification | symbol texts, CP instantiation, contact images, potential types, FR-CHK-021; load currents: the load summary and `api_v1_cp.i_load` (ADR-0017 amendment 3) | MVP (classification FR-PRT-018, clamp checks FR-CHK-021 and load currents: 1.0) |
 | L2 domain sections | PLC address map and solenoid map (FR-PLC-011), cable cores (FR-CBL-004), thermal P_n/I_n (FR-THM-001), tube data | `channel_addresses`, cable conductors, thermal | MVP (PLC, cores); 1.0 (thermal, tubes) |
-| L3 mechanical | W×H×D, mass, mount kind, rail offset, clearance, 2D front outline | folio 902 placements (FR-LAY-007, FR-PRT-011) | MVP |
+| L3 mechanical | W×H×D, mass, mount kind, rail offset, clearance, the front view (its shape or an imported outline) and the drilling pattern | the panel pages' placements (FR-LAY-007, FR-PRT-011), the holes of a surface (FR-LAY-032) | MVP; front view and holes 0.4.0 |
 | L4 commercial and logistics | suppliers, prices, order unit, packaging, customs code, lifecycle, successor | order lists, ERP export (FR-EXP-005) | 1.0 (FR-PRT-025) |
-| L5 3D | STEP reference by hash, mounting frames, drilling and cut-out patterns, keep-outs | 3D, collision, NC data | 1.0 |
+| L5 3D | STEP reference by hash, mounting frames, keep-outs | 3D, collision | 1.0 |
 | L6 3D connection points | per CP: position, insertion direction, clamp type, cross-section ranges, strip length, insertion depth, torque, test access | routing, wire lengths, ferrules, wiring viewer | 1.0 |
 
 **Provenance and confidence.**
@@ -400,9 +400,9 @@ re-ordering would re-hash every existing copy. The typed members:
 | Member | Shape | Requirement |
 |---|---|---|
 | `contacts` | `Vec<ContactData{kind: ContactKind (the FnDef enum: no, nc, co), cps: Vec<Ident> such as ["13", "14"], seq?: u8, special?: Ident}>` | FR-PRT-009 |
-| `mech` | `MechData{width?, height?, depth?: Nm, mount_kind?: MountKind, rail_offset?: Pt2 (rail pose to part origin), clearance?{top, bottom, left, right, front: Nm, an absent side is 0}, front_2d: Vec<Vec<Pt2>>, mass?: u32 grams}`; `MountKind` is `ts35x7_5, ts35x15, ts32, ts15, screw, busbar_adapter, door_cutout, on_parent, none` | FR-PRT-011 (L3) |
+| `mech` | `MechData{width?, height?, depth?: Nm, mount_kind?: MountKind, rail_offset?: Pt2 (rail pose to part origin), clearance?{top, bottom, left, right, front: Nm, an absent side is 0}, front_2d: Vec<Vec<Pt2>>, mass?: u32 grams, front_shape?: rectangle \| round, holes: Vec<PartHole{x, y: Nm, hole: Hole}>}` (the last two after `mass`; the front view and the drilling pattern, [12](12-placement-pages.md) §2.5); `MountKind` is `ts35x7_5, ts35x15, ts32, ts15, screw, busbar_adapter, door_cutout, on_parent, none` | FR-PRT-011 (L3), FR-LAY-032 |
 | `cp_pattern[]` | `CpData` gains, after `clamp`, `clamp_type?: screw \| spring \| push_in \| idc \| ring_stud \| plug`, `csa_min?`, `csa_max?: Dec3` mm², `max_conductors?: u8`, `twin_ferrule: bool` | FR-PRT-008 |
-| `sections` | `PartSections` gains, after `cable_cores` and `plc`, `enclosure?{width, height, depth, wall: Nm, plate?: LibRef}`, `duct?{inner_width, inner_height, slot_pitch}`, `rail?{profile: MountKind, stock_length?}`, `mounting_plate?{width, height, thickness}` | FR-PRT-024 |
+| `sections` | `PartSections` gains, after `cable_cores` and `plc`, `enclosure?{width, height, depth, wall: Nm, plate?: LibRef, doors: Vec<{hinge: left \| right, width?: Nm}>, edge_margin?, usable_depth?: Nm}`, `duct?{inner_width, inner_height, slot_pitch}`, `rail?{profile: MountKind, stock_length?}`, `mounting_plate?{width, height, thickness}` | FR-PRT-024 |
 | `sections` (consumables) | after `fluid`: `wire?{csa: Dec3, colour?: ColourSpec, class?: u8}`, `ferrule?{csa_min, csa_max: Dec3, twin: bool, insulated: bool, sleeve?: Nm, colour?: ColourSpec, stud?: Ident}`, `marker?{marks: wire \| terminal \| device \| cable, lines?: u8, chars?: u8}` | FR-PRT-035 |
 | `accessories` | `Vec<PartAccessory{part: LibRef, qty: Dec3, per: unit \| strip \| rail_group, kind?: AccessoryKind, optional: bool}>`; `AccessoryKind` is the strip accessory's (`end_plate`, `end_clamp`, `partition`, `marker`, `cover`) | FR-PRT-005, FR-REP-051 |
 | `alternatives` | `Vec<AlternativeRef{part: LibRef, kind: equivalent \| successor \| approved}>` | FR-PRT-004 |

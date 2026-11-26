@@ -155,7 +155,12 @@ pub struct WorkshopSettings {                 // ProjectSettings.workshop; absen
     pub two_wires: TwoWires,                  // twin_ferrule (default) | ferrule_each
     pub device_labels: DeviceLabels,          // on_device (default) | on_device_and_beside
     pub label_profile: Option<ExportProfile>, // absent: the generic profile (§5.4)
+    pub fixing: FixingRule,                   // a fixing hole in the plate: tapped (default) | self_tapping | through (12-3d §10.3)
+    pub rail_fixing: Option<CarrierFixing>,   // absent: M5, at most 300 mm apart, 25 mm from each end
+    pub duct_fixing: Option<CarrierFixing>,   // absent: M4, at most 300 mm apart, 25 mm from each end
+    pub min_web: Option<Nm>,                  // the web kept between two holes; absent: 5 mm (12-3d §10.5)
 }
+pub struct CarrierFixing { pub screw: Screw, pub pitch: Nm, pub from_end: Nm }   // Screw: m3 | m4 | m5 | m6 | m8
 pub struct ExportProfile {
     pub columns: Vec<ProfileColumn>,          // in file order: { key: a column key of the list, heading: String }
     pub delimiter: Delimiter,                 // comma (default) | semicolon
@@ -833,28 +838,79 @@ named in §15.
 
 ## 9. Drilling data, hole tables and cut lists
 
-### 9.1 DXF per surface (FR-MFG-028)
+The holes and cut-outs of every surface of a cabinet ([12-3d](12-3d-routing-thermal.md) §10.4, `surface_features`)
+reach the workshop three ways, all from that one query, so they cannot disagree: the hole table, a template he prints
+at full size and lays on the surface, and a DXF for a machine. His shop makes holes both by hand and on a machine, so
+both drawings are made.
 
-The machining features of a surface (FR-LAY-056, [12](12-panel-layout.md)) export as DXF AC1015 (AC1009 optional)
-through dxf 0.6.2:
+**Where they are in the window.** The Output tab's Workshop group holds, after Wire list, Rework list…, Labels…,
+Assembly lists, Cut list and Consumables:
 
-| Item | Encoding |
+- **Hole tables** (`lists.holes`) opens the project's hole table page; a project without one opens Report block… on
+  that kind, whose Create makes it (one undo step), as Wire list and the workshop lists do.
+- **Drilling…** (`drilling.export`) is the form dialog "Export the drawings for drilling": one row per surface that has
+  holes (its words, its page, its hole count, the sheets its template takes), each ticked; Template to print at full
+  size (PDF) and DXF for a machine, both ticked; Paper, A4 or A3 (the print settings' size first); the folder
+  (Drilling, beside the project, as Labels… proposes its own). A line under the rows names the findings of the holes
+  ("1 hole is closer to another than 5 mm") with Show. Export writes the files as a job; its toast says "Wrote 4 files
+  to Drilling." with Open folder. A surface without holes is not offered; with none at all the button is greyed: "No
+  surface of this project has holes yet".
+
+The command line: `ew export drilling --dir <folder> [--surface <words or ID>]… [--template a4|a3] [--no-dxf]
+[--no-template]`; `ew export report --kind hole_table --format csv|xlsx`.
+
+### 9.1 The drawings for drilling (FR-MFG-028)
+
+**The template**, `<location> <surface> template.pdf` ("+CAB Door template.pdf", in the project's language), is the
+surface at full size (1:1 on paper), seen from the side its page shows it, over as many sheets as it needs:
+
+| Item | How |
 |---|---|
-| Units and origin | `$INSUNITS = 4` (mm); origin at the machine datum corner of the surface side (configurable); back side mirrored |
-| Holes | `CIRCLE` at true diameter on layer `DRILL_<d>` (e.g. `DRILL_4.2`) |
-| Threads | `CIRCLE` at core diameter on `TAP_M<n>`; core diameters ship as unverified data |
-| Cut-outs, slots, keyholes | closed `LWPOLYLINE` with bulges for corner radii on `CUT` |
-| Outline | its own layer `OUTLINE` |
-| Layer presets | "EW default" and "EPLAN 802–805" mapping; company presets as data |
-| Determinism | entities sorted by (layer, x, y, feature ID); handles assigned in that order; coordinates from nm with 3 decimals |
+| What it covers | the surface from **the corner nearest its holes** (the corner whose two edges enclose the holes in the smallest rectangle) to 20 mm past the farthest hole, within the sheet; the two edges at that corner are drawn thick with their words ("Left edge of the door", "Top edge of the door"), so the template is laid into that corner without measuring |
+| The sheets | each paper sheet less 10 mm all round and a 12 mm band at its foot; the orientation that needs the fewer sheets (portrait on a tie); neighbouring sheets overlap by 10 mm: each sheet prints its neighbours' first 10 mm on its right and its top, tinted, and is cut along its dashed left and bottom edges; a sheet that holds no part of a hole and neither of the two edges is not printed (the map shows it empty); the printed sheets numbered row by row from the corner the template lies in |
+| Join marks | a cross at every corner where four sheets meet, on each sheet that shows it, so two sheets laid together put their crosses on each other |
+| A hole | its circle or rectangle at true size in a 0.25 mm line, a centre cross 4 mm past its edge (to centre-punch through), its number (H3), how it is made (Ø 22.3) and its owner (-102S1) in 2.5 mm text beside it |
+| Also | the edge margin thin dashed, a door's hinge ticked, the datum's "0" where it falls on the sheet |
+| The band | the project, the surface and how it is seen ("Door, seen from outside"), the revision, the sheet ("Sheet 4 of 5, row 2, column 1"), a small map of the sheets with this one filled, and a 100 mm scale bar with 10 mm ticks: "100 mm: print at actual size (100 %) and measure this bar" |
+| Left out | device outlines, labels, carriers, dimensions, the frame and the title block: it is a template for holes, not an assembly drawing |
 
-Reading the file back with the `dxf` crate must yield the feature count of FR-LAY-056 (FR-MFG-028 acceptance).
+**The DXF**, `<location> <surface>.dxf`, is written by the program's own writer (`ew-export`'s `dxf` module, the
+version, the header, the handles and the number format of its page DXFs), from a typed list of entities per layer that
+`ew-api` builds from `surface_features`; the writer knows no record:
 
-### 9.2 Hole tables (FR-MFG-029)
+| Item | How |
+|---|---|
+| Units and origin | millimetres (`$INSUNITS` 4); the origin at the surface's datum corner; x right and y up as the surface's page shows it (a door seen from outside), so nothing is mirrored |
+| `OUTLINE` | the surface's sheet as a closed `LWPOLYLINE` |
+| `MARGIN` | the edge margin's inner line as a closed `LWPOLYLINE` |
+| `HOLE_<d>` | a hole drilled through, at its drill: `CIRCLE` of that diameter (`HOLE_4.5`) |
+| `TAP_<M>` | a tapped fixing: `CIRCLE` at its tap drill (`TAP_M5`, Ø 4.2) |
+| `CUT_<d>` | a round cut-out or a gland hole: `CIRCLE` (`CUT_22.3`) |
+| `CUT_RECT` | a rectangle: a closed `LWPOLYLINE`, its corner radius as bulges |
+| `NUMBERS` | each hole's number as `TEXT`, 3 mm high, beside it |
+| Order | by layer in this table's order, then by hole number; coordinates from nanometres to 0.001 mm |
+| Left out | devices, labels, carriers, the frame, the title block and dimensions |
 
-`hole_table(surface)`: `{id, x, y, d or thread, tool, depth, side, origin}` with coordinates from the surface datum,
-as a report block and as `surfaces/<surface>-holes.csv`. `origin` names the placement, carrier fixing or user
-feature that produced the hole, so a merged duplicate hole lists both sources.
+A layer per way of making a hole lets a machine's own software take a tool per layer. A named machine's format (a
+punching machine's own file) is not written: no specification of one is read ([the later backlog](../plan/backlog-later.md)).
+
+### 9.2 The hole table (FR-MFG-029)
+
+`hole_table` (list kind `hole_table`, rows of `ew-reports` over `surface_features`) lists, surface by surface in the
+page order of their layout pages, every hole in its number's order:
+
+| Column | Cell |
+|---|---|
+| No. | H1 … Hn, the drilling order ([12-3d](12-3d-routing-thermal.md) §10.4) |
+| X mm, Y mm | the hole's centre from the surface's datum, to the 0.1 mm, half up, a whole millimetre without its ".0" (a rectangle: its centre) |
+| Hole | how it is made: "Ø 22.3", "Ø 4.2, tap M5", "Ø 4.5", "92 × 92, R 2" |
+| What | the kind and its size: "Cut-out 22 mm", "Fixing M5", "Gland M20", "Hole Ø 6", "Rectangle 92 × 92" |
+| For | its owners: device tags, "Rail 1", "Duct 1", a purpose typed by hand; two owners joined ("-101F1, -102F1") |
+
+Each surface opens with a heading row that says where its numbers are measured from: "Door, page 904, seen from
+outside, measured from the bottom-left corner". The list prints in the project's language on the set's frame, follows
+the project, and exports from its page's menu as CSV and XLSX; the CSV and XLSX lead with a Surface column. A surface
+without holes is not listed.
 
 ### 9.3 Cut lists (FR-MFG-030)
 
@@ -1053,9 +1109,10 @@ the sheet, and Labels for these changes… only the new and changed labels.
 | The wire list's pages | §3.1; Output ▸ List columns… chooses the printed columns of the list on show |
 | Connections navigator, table mode | Every column of §3.1. Length takes a length (§3.3); From end and To end a treatment or the rule's (§4.5); From marker and To marker a text, "none" or the setting's (§5.1). A value set by hand prints in the text colour, a derived one in the secondary colour ([16a](16a-design-language.md) §6.21); each edit is one `fields.set` and one undo step |
 | Properties of a wire | Length, with a chip that says where it comes from (§3.3); sections From end and To end, each named by its place ("From end · -X1011:L1 a"), with the rows End, Part and Marker; a derived value's chip says why ("rule: fine-stranded wire, clamp kind not known"), a value set by hand has the chip "set by hand" and Reset |
-| Project properties ▸ Workshop | Beside Cut to and the stock ([07](07-symbols-parts-macros.md) §2.5), the rows Marker text, Mark cable cores, Mark jumpers, Ferrules, Two wires in one clamp, Device labels and Label file columns (Change… opens the columns as List columns… shows a list's: a tick, a heading, the order). Each change is one `project.settings.set` and one undo step; Output ▸ Workshop ▸ Workshop settings shows these rows |
+| Project properties ▸ Workshop | Beside Cut to and the stock ([07](07-symbols-parts-macros.md) §2.5), the rows Marker text, Mark cable cores, Mark jumpers, Ferrules, Two wires in one clamp, Device labels, Fixing holes (Tapped, Self-tapping screws, Through, with a nut), Rail fixing and Duct fixing (each a screw, at most how far apart and how far from each end), Web between holes, and Label file columns (Change… opens the columns as List columns… shows a list's: a tick, a heading, the order). Each change is one `project.settings.set` and one undo step; Output ▸ Workshop ▸ Workshop settings shows these rows |
 | Output ▸ Workshop ▸ Labels… | A form dialog: which labels (all, or those changed since a release), one row per file with its label set, marker part and count, a tick each; the format (CSV or XLSX); the profile's columns with Change…; the folder. A line under the files names the findings of the labels ("1 marker does not fit its marker part") with Show. Export writes the files as a job; its toast names the folder with Open folder |
 | Output ▸ Workshop ▸ Rework list… | A dialog: Compare with (the released revisions whose archive is found, newest first; Archive file…), one line that counts the work ("1 device to remove, 3 wires to pull, …"), the rows of §3.5, Export… (XLSX or CSV) and Labels for these changes…. Without a release: "This project has no released revision yet: the rework list compares with a release. Release it on the Check tab, or choose an archive file" |
+| Output ▸ Workshop ▸ Hole tables, Drilling… | The hole table page and the drawings for drilling (§9) |
 | Messages | The rules of §4.6 with their fixes |
 | Draw ▸ Annotation | The drawing's wire annotation tool (§5.1); its project setting reads Wire annotations |
 
@@ -1076,7 +1133,7 @@ csv|xlsx] --out <file>` the rework list; `ew export report --kind labels` the la
 | Rework list | XLSX, CSV | two `wire_record_set()` and two `label_rows()` (§3.5) |
 | Assembly list, cut list, consumables summary | PDF pages, XLSX, CSV | `assembly_list`, `cut_list`, `consumables` ([the workshop lists](13-workshop-lists.md)) |
 | Machine files | CSV, XLSX per profile, manual list, `preflight.json` | `machine_rows` (§7) |
-| Drilling DXF, hole tables | DXF, CSV, PDF | features, `hole_table` (§9) |
+| Hole table; drilling template and DXF per surface | PDF pages, XLSX, CSV; PDF at full size; DXF | `hole_table` over `surface_features`; the drawings from the same (§9) |
 | Checklists | PDF, JSON | `checklist_rows` (§10) |
 | Rating plate data | label, report block | project properties (§10.4) |
 | `.ewpp` | ZIP | the outputs above (§8) |

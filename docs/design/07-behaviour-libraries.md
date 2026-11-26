@@ -565,7 +565,7 @@ is `#[ignore]`d (not measured, the owner's rule).
 |---|---|---|
 | **Symbol browser** (left dock tab, `Insert ▸ Symbol`, palette `device.place`, alias `symbol.place`) | tree by library and category, and search by name, category, IEC 60617 number and keyword (FR-SYM-021); previews of all 8 variants and extra variants; filtered by the current page's allowed representation types; drag onto the canvas | P1, J1 |
 | **Part browser and selection** (the place browser: Insert ▸ Device from part, `device.place` with `target = FromPart`, alias `device.place_from_part`, the journal records `device.place`, [06](06-schematic-editor.md) §3.1; the part dialog: Properties ▸ Part ▸ Choose…) | one row in both: part number, maker, description in the reader's language, then what choosing it does, in words (below); the dialog adds the fit of §4.3; search with the ranking of §4.3; favourites, recently used, used in this project (FR-PRT-015); the active row's detail: its functions, its pins with each clamp's size range, its accessories and its variants as a choice | P1, J1 |
-| **Part editor** | one dialog, its sections listed on its left and shown one at a time: Identity, Technical data, Pins and clamps, Size and mounting, Accessories, Variants, the kind's own section (Wire, Ferrule or Marker), Cable cores, PLC, Bus interfaces; a section the kind has not is not listed; Save previews; Delete part… for a part of one's own | P6 |
+| **Part editor** | one dialog, its sections listed on its left and shown one at a time: Identity, Technical data, Pins and clamps, Size and mounting, Front view and holes, Accessories, Variants, the kind's own section (Wire, Ferrule or Marker), Cable cores, PLC, Bus interfaces; a section the kind has not is not listed; Save previews; Delete part… for a part of one's own | P6 |
 | **Symbol editor** (FR-SYM-017) | canvas on the symbol grid; tools for primitives, CPs, text slots, anchor and link points; FnDef panel with the CP table (`fn_cp` assignment by drag); live A–H strip; lint panel; "test place" on a scratch page; "fork from QET import" with FnDef assignment | P6 |
 | **Macro browser and insert** | thumbnail and device list on hover (FR-MAC-006); value-set table to pick a row or edit ad hoc; ghost with conflict list (FR-MAC-005) | P1, J1 |
 | **Save as macro** | selection → dialog: name, kind, target library, insertion point; "make variable" from property-grid rows; value-set table | P6 |
@@ -592,6 +592,18 @@ is declared the same way; the bus, PLC and cable forms stay as they are. The edi
 has on its left and shows one at a time (`part.section`); a table's rows are added and removed with
 `part.table_row`, and a cell is a `part.field` named `<list>[<row>].<member>`. A library part's fork keeps its size
 and its own sections (wire, ferrule, marker): those rows stand read-only there.
+
+**Front view and holes** (a mounted part's section) says how the part looks from the side it is worked from and what
+is cut for it ([12](12-placement-pages.md) §2.5). Its row Shape is Rectangle or Round (Round only where Width equals
+Height, else refused under the row in words); a line says whether an outline is imported ("Outline: imported from a
+DXF drawing, 4 lines", with Import outline… and Remove), and an imported outline is drawn instead of the shape. Its
+table Holes has the columns X and Y (the centre, from the front's bottom-left corner), Kind (Hole, Fixing, Cut-out,
+Gland, Rectangle) and Size, which is a choice for a named kind (M3 … M8; 16, 22, 30 mm; M12 … M63) and a typed
+length, or width × height and a corner radius, for the others; one `Hole` member behind the two cells, parsed by its
+own parser. Beside the rows the preview draws the front at a fitting scale with its holes, their centre marks and the
+part origin, by the same drawing the panel page uses. Import outline… reads a DXF as `ew import dxf` does and writes
+`mech.front_2d` into the draft; a drawn outline of one's own is not edited here. A hole off the front is refused in
+words ("The hole at 40, 15 lies outside the 30 × 30 mm front").
 
 **A part of one's own, once it is used.** Save of a part whose devices are drawn as boxes previews, and the card
 names each box it draws anew and why ("-104A1-A1 on 104: a pin added"); a box drawn anew keeps its top-left corner

@@ -2,14 +2,14 @@
 
 **Status:** Draft v0.1
 
-**Purpose.** This document designs the physical side of an ElektraWatt (EW) project: layout spaces, enclosures and
-mounting surfaces modelled at 1:1 in nanometres, rails and ducts as parametric carriers, placements bound to
-schematic devices, 2D panel pages such as folio 902 as projections, the 3D scene with STEP models from the
-out-of-process OCCT worker, collision and clearance checks, wire routing with duct fill, automatic wire lengths,
-machining features, and the IEC 61439-1 / IEC TR 60890 thermal calculation. It elaborates the LAY and THM rows of
-[02b](02b-requirements-extended.md) §4–§5 on the accepted [architecture](04-architecture.md) (ADR-0001, ADR-0003,
-ADR-0016) and the entities of [domain model](03-domain-model.md) §16, and it states what the MVP, 1.0 and 1.x
-releases contain.
+**Purpose.** This document designs the physical side of an ElektraWatt (EW) project: the cabinet as a layout space
+with its enclosure and the surfaces of it (the mounting plate, the doors, the sides, the top and the bottom) modelled
+at 1:1 in nanometres; rails and ducts as parametric carriers; placements bound to schematic devices, on a rail or on a
+surface itself, a device in the door among them; a panel page per surface as its projection; the holes and cut-outs
+each surface needs and the drawings for drilling them; clearance, the wire ways and the wire lengths; and the thermal
+calculation and the 3D view, which come later. It elaborates the LAY and THM rows of
+[02b](02b-requirements-extended.md) §4–§5 on the [architecture](04-architecture.md) and the entities of the
+[domain model](03-domain-model.md) §16.
 
 **Where each section lives.** The section numbers are the ones the code and the other documents cite.
 
@@ -32,9 +32,8 @@ releases contain.
 | [§15. Edge cases and pitfalls](12-3d-routing-thermal.md#15-edge-cases-and-pitfalls) | [3D, collision, routing, lengths, drilling and thermal](12-3d-routing-thermal.md) |
 | [§16. Defects prevented](12-3d-routing-thermal.md#16-defects-prevented) | [3D, collision, routing, lengths, drilling and thermal](12-3d-routing-thermal.md) |
 
-Conventions: ▲ marks a test value for an unknown of the
-reference (U-nn) or a shop-policy default still to be confirmed by the pilot (PQ-22, PQ-24); "DT" is a
-device tag; "CP" a connection point. Values marked *(unverified)* come from the research notes and ship as data,
+Conventions: ▲ marks a shop's default still to be confirmed by the pilot; "DT" is a device tag; "CP" a connection
+point. The examples are the sample project's cabinet (`fixtures/sample/`). Values marked *(unverified)* come from the research notes and ship as data,
 never as hard-coded constants (FR-CHK-046). Source abbreviations: ARCH/arch =
 [architecture](04-architecture.md); VIS = [vision](00-vision-and-scope.md); BS = [brainstorm](01-brainstorm.md);
 PM = [panel-manufacturing](../research/panel-manufacturing.md); STD = [standards](../research/standards.md);
