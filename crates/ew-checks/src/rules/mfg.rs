@@ -35,8 +35,8 @@ pub const END_CANNOT_BE_MADE: RuleMeta = RuleMeta {
 };
 
 /// EW-MFG-008: an end of a wire the rule table cannot decide (doc 13 §4.2 row 3: a fine-stranded wire into an
-/// insulation-displacement clamp). One finding per end, target the connection that lands on it, discriminator the end
-/// (`from`, `to`); a bond wire reported by the potential that prints first.
+/// insulation-displacement clamp). One finding per end, target the connection that lands on it, discriminator the wire
+/// and the clamp ([`end_discriminator`]); a bond wire reported by the potential that prints first.
 #[derive(Clone, Copy, Debug)]
 pub struct EndCannotBeMade;
 
@@ -71,7 +71,7 @@ impl Rule for EndCannotBeMade {
                     Finding::new(
                         &END_CANNOT_BE_MADE,
                         [Target::new(Kind::Connection, connection)],
-                        if i == 0 { "from" } else { "to" },
+                        end_discriminator(r, i),
                         format!("{wire} {at}"),
                     )
                     .arg("wire", wire)
@@ -82,6 +82,13 @@ impl Rule for EndCannotBeMade {
         }
         out
     }
+}
+
+/// The discriminator of a finding about the end `i` of the wire `r`: the wire by its ID and the clamp the end lands on,
+/// so that the fingerprint moves neither with the wire's number nor with the wire turning round.
+fn end_discriminator(r: &ew_derive::WireRecord, i: usize) -> String {
+    let cp = r.wire.ends[i].cp;
+    format!("{}/{}:{}", r.wire.id, cp.function, cp.idx)
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -104,7 +111,8 @@ pub const END_SET_BY_HAND_MISFITS: RuleMeta = RuleMeta {
 /// EW-MFG-009: an end set by hand (doc 13 §4.5) that does not fit: its ferrule part takes another size than the wire's,
 /// a twin ferrule that no second wire on its clamp shares, or a ferrule part of another colour than the workshop
 /// stock's ferrule for that end. One finding per end, target the connection that holds it (`EndRecord::hand_at`),
-/// discriminator the end (`from`, `to`); its quick fix, Reset to the rule, clears the end set by hand.
+/// discriminator the wire and the clamp ([`end_discriminator`]); its quick fix, Reset to the rule, clears the end set by
+/// hand.
 #[derive(Clone, Copy, Debug)]
 pub struct EndSetByHandMisfits;
 
@@ -188,7 +196,7 @@ impl Rule for EndSetByHandMisfits {
                 let mut f = Finding::new(
                     &END_SET_BY_HAND_MISFITS,
                     [Target::new(Kind::Connection, connection)],
-                    if i == 0 { "from" } else { "to" },
+                    end_discriminator(r, i),
                     format!("{wire} {at}"),
                 )
                 .arg("wire", wire)
@@ -234,7 +242,7 @@ pub const CLAMP_CAPACITY: RuleMeta = RuleMeta {
 /// EW-POT-010: a clamp on which more conductors land than its part says it takes (`max_conductors`, doc 13 §4.3): the
 /// wire ends on the CP, a twin ferrule's two wires counted once, one finding per CP, discriminator the CP index; and a
 /// wire of a size in mm² outside the clamp's range (`csa_min`, `csa_max`), one finding per wire, discriminator the CP
-/// index and the wire. Only where the part names the capacity or the range; target the function.
+/// index and the wire's ID. Only where the part names the capacity or the range; target the function.
 #[derive(Clone, Copy, Debug)]
 pub struct ClampCapacity;
 
@@ -309,7 +317,7 @@ impl Rule for ClampCapacity {
                     }
                     let wire = wire_text(q, &r.wire);
                     out.push(
-                        finding(format!("{}/{wire}", cp.idx), "size")
+                        finding(format!("{}/{}", cp.idx, r.wire.id), "size")
                             .arg("max", TextArg::Number(0))
                             .arg("count", TextArg::Number(0))
                             .arg("range", range.clone())

@@ -161,3 +161,74 @@ fn an_end_set_by_hand_stays_with_its_cp_when_the_wire_turns_round() {
     }
     assert_eq!(from, [0, 1], "the wire turned round");
 }
+
+/// EW-MFG-009's finding about an end names the clamp and the wire, not the wire's From or To: a twin ferrule set by hand
+/// that no second wire shares keeps its fingerprint when numbering the first device 3 turns the wire round.
+#[test]
+fn an_end_s_finding_keeps_its_fingerprint_when_the_wire_turns_round() {
+    let fingerprints: Vec<_> = [1, 3]
+        .into_iter()
+        .map(|counter| {
+            let mut fx = Fx::base();
+            fx.func_tagged(0x1001, counter, P1);
+            fx.func_tagged(0x1002, 2, P1);
+            fx.conn(
+                0x2001,
+                P1,
+                cp(0x1001),
+                cp(0x1002),
+                &json!({"overrides": {"end_a": {"treatment": "twin_ferrule"}}}),
+            );
+            let f = findings_of(&fx.build(), "EW-MFG-009");
+            assert_eq!(f.len(), 1, "counter {counter}: {f:#?}");
+            f[0].fingerprint
+        })
+        .collect();
+    assert_eq!(fingerprints[0], fingerprints[1]);
+}
+
+/// EW-POT-010's finding about a wire of a size outside its clamp's range names the wire by its identity: a wire to -K1,
+/// which takes the number of the wire to -K9, leaves the finding's fingerprint as it was.
+#[test]
+fn a_size_finding_keeps_its_fingerprint_when_the_wire_is_renumbered() {
+    let model = |thin: bool| {
+        let mut fx = Fx::base();
+        fx.part(
+            PART,
+            "BOX-1",
+            &json!({"cp_pattern": [
+                {"idx": 0, "designation": "1", "clamp_type": "screw", "csa_min": "0.5", "csa_max": "1.5"},
+                {"idx": 1, "designation": "2"},
+            ]}),
+        );
+        fx.device(BOX_DEVICE, "A", Some(1))
+            .with_parts(BOX_DEVICE, &[PART]);
+        fx.drawn_function(BOX, BOX_DEVICE, P1, [0, 0]);
+        fx.rec_mut(&us(BOX))["kind"] = json!("black_box");
+        fx.func_tagged(0x1100, 9, P1);
+        fx.conn(
+            0x2001,
+            P1,
+            cp(BOX),
+            cp(0x1100),
+            &json!({"overrides": {"csa": "2.5"}}),
+        );
+        if thin {
+            // A wire of a size the clamp takes, to -K1: it numbers first.
+            fx.func_tagged(0x1101, 1, P1);
+            fx.conn(
+                0x2002,
+                P1,
+                cp(BOX),
+                cp(0x1101),
+                &json!({"overrides": {"csa": "1"}}),
+            );
+        }
+        let f = findings_of(&fx.build(), "EW-POT-010");
+        assert_eq!(f.len(), 1, "{f:#?}");
+        (f[0].message(), f[0].fingerprint)
+    };
+    let (alone, both) = (model(false), model(true));
+    assert_ne!(alone.0, both.0, "the wire took another number");
+    assert_eq!(alone.1, both.1);
+}
