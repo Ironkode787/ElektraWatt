@@ -209,6 +209,7 @@ table-reason-derived = derived
 table-reason-generated = generated
 table-reason-no-command = not editable in this table
 table-reason-end-outside = made outside the project
+table-reason-end-shared = shares every connection with another wire: none of its own holds its end
 table-reason-property-grid = edit in the property grid
 
 # A strip-editor or a potential's defining cell in a table round trip.

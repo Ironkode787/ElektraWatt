@@ -88,6 +88,24 @@ fn a_bridge_rows_length_cell_is_read_only() {
     assert_eq!(reason("101.1"), None);
 }
 
+/// A wire whose every connection another wire stands for as well (its row's first record `shared`) has no connection of
+/// its own to hold an end set by hand: its end cells say so, not that the end is made outside the project. The sample
+/// has no such wire, so 101.1's row stands for one with its first record's kind turned `shared`.
+#[test]
+fn a_wire_without_a_connection_of_its_own_says_why_its_end_is_read_only() {
+    let tmp = Tmp::new("end-shared");
+    let s = connections(&tmp);
+    let t = s.nav(NavKind::Connections).and_then(|n| n.table()).unwrap();
+    let (n, c) = at(&s, "101.1", "to_end");
+    assert_eq!(cell_reason(t, &t.nodes[n], c), None, "101.1's end is its own");
+    let mut shared = t.nodes[n].clone();
+    shared.kinds[0] = "shared".to_owned();
+    assert_eq!(
+        cell_reason(t, &shared, c).as_deref(),
+        Some("shares every connection with another wire: none of its own holds its end")
+    );
+}
+
 /// A wire's To end typed in its cell is set by hand on the connection that lands on it, in the words of the window.
 #[test]
 fn a_typed_end_is_set_by_hand_on_the_connection_that_lands_on_it() {

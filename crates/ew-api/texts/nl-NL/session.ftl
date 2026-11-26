@@ -204,6 +204,7 @@ table-reason-derived = afgeleid
 table-reason-generated = gegenereerd
 table-reason-no-command = niet te wijzigen in deze tabel
 table-reason-end-outside = buiten het project gemaakt
+table-reason-end-shared = deelt elke verbinding met een andere draad: geen eigen verbinding voor zijn einde
 table-reason-property-grid = bewerk in het eigenschappenraster
 table-reason-window = bewerk in het venster
 table-same-record = hetzelfde record als rij { $p0 }

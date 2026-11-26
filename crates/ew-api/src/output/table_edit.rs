@@ -327,7 +327,8 @@ const TYPED_PLC: [(&str, &str); 5] = [
 ];
 
 /// Why a cell is read-only (in this order), as a text key, `None` for an editable cell: "derived", "generated", "no
-/// record of this kind", "edit in the property grid", "not editable in this table" (the view model's `cell_reason`
+/// record of this kind", "edit in the property grid", "not editable in this table", and for a wire end cell of a wire
+/// with no connection of its own "shares every connection with another wire" (the view model's `cell_reason`
 /// gives the text). A column without a route that is not derived has no command yet (`table-reason-no-command`).
 pub fn cell_reason_key(table: &NavTable, node: &NavNode, column: usize) -> Option<&'static str> {
     let c = table.columns.get(column)?;
@@ -337,8 +338,10 @@ pub fn cell_reason_key(table: &NavTable, node: &NavNode, column: usize) -> Optio
     if let Some(channel) = channel_text_cell(table, node, column) {
         return channel.is_none().then_some(key!("rack-channel-no-device"));
     }
+    // A wire whose every connection another wire stands for as well has none of its own to hold an end set by hand.
     if wire_end_cell(table, node, column).is_some() {
-        return None;
+        return (node.kinds.first().map(String::as_str) == Some("shared"))
+            .then_some(key!("table-reason-end-shared"));
     }
     if c.derived {
         return Some(key!("table-reason-derived"));
