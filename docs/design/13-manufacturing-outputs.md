@@ -132,7 +132,7 @@ The machine export profiles (§7) and the package (§8) are composed in `ew-api`
 | Conductor class | `sections.wire.class` of the wire's part | treatment |
 | Ferrules and lugs | the workshop stock's parts of section `ferrule`: `csa_min`, `csa_max`, `twin`, `insulated`, `sleeve`, `colour`, `stud` | the part of an end, its colour, the strip length |
 | Markers | the workshop stock's parts of section `marker`: `marks`, `lines`, `chars` | a label's marker part, the shortening of §5.2 |
-| Typed length | `WireOverrides.length` of the wire's connections, the carrier's first | length |
+| Typed length | `WireOverrides.length` of the wire's connections, its own first (§2.3) | length |
 | Cable | the core's conductor and its cable device | the No. and the length of a core |
 | Placements | the layout's placements and layout spaces ([12](12-panel-layout.md)) | the order of device labels; a site end, a door end |
 | Workshop settings | `ProjectSettings.workshop` (§2.3) | treatment, marking, rounding, label files |
@@ -175,16 +175,27 @@ pub struct EndOverride {                      // WireOverrides.end_a and .end_b:
 
 - **An end set by hand belongs to one wire** and lives on a connection no other wire stands for (an edit writes the
   first; one stored on another is read and reset there): `end_a` holds the end reached through that endpoint `a`,
-  `end_b` through `b`; two wires at one clamp are two ends. **A wire's own values follow the wire**: a re-route or a
-  turn leaves an end with its CP, a split with the part that keeps its endpoint; a wire drawn onto it moves its length
-  and its end at `a` off the new feed arm; a dissolving junction gives the kept member what the removed one held.
-  Reset clears it.
-- **A typed length** is `WireOverrides.length` ([03](03-domain-model.md) §9); the value of the carrier wins, as for
-  every override of a physical wire. A cell of a wire's row in the Connections table (its length, colour or
-  cross-section) sets one connection of that wire which no other wire stands for: the carrier where it is the wire's
-  own, else the wire's first such connection; never a star's feed arm or a chain's arm another wire shares. A bridge
-  row has no Length cell to type in. A device placed on a wire cuts it into two wires that nobody measured: neither
-  keeps a typed length.
+  `end_b` through `b`; two wires at one clamp are two ends. Reset clears it.
+- **A typed length** is `WireOverrides.length` ([03](03-domain-model.md) §9), read as every override of a physical
+  wire: the wire's own connections first, then the carrier ([08](08-connectivity-wires.md) §4.1). A cell of a
+  wire's row in the Connections table (its length, colour or cross-section) sets the wire's first connection that no
+  other wire stands for (`WireRecord::own`, the carrier where it is the wire's own); never a star's feed arm or a
+  chain's arm another wire shares. A bridge row has no Length cell to type in.
+- **A wire's own values follow the wire.** Its length, colour, size, flags, shown annotation, a member a newer format
+  added and each end set by hand stand once, on its own connections, an end with the clamp it was set for. After every
+  command that changes the wiring, one normaliser (`own_values`, [06](06-commands-connecting.md) §3.2) restores this
+  from the states before and after, whatever the command was:
+  - a wire with the same two clamps as before (matched by `wire_changes`, §3.5) has the same values;
+  - a wire whose clamps changed has what divides of the wires it is made from (those that lost a clamp it ends at):
+    its colour, size and the other members, each end set by hand from the wire that ended at its clamp, and no typed
+    length, which nobody measured. A device placed on a wire cuts it into two such wires; a deleted arm or a junction
+    turned from a star into a chain makes one. Where it is made from two wires (the feed arm's wire when a device cuts
+    a star's feed arm, two wires joined into one), the values of the one whose ID it keeps come first, the others,
+    in ID order, fill what that one leaves unset;
+  - a new wire has what the command set on its own connections: a wire drawn onto a wire takes none of its values;
+  - a value on a connection several wires share stays there only while every wire through it has it, else each wire
+    keeps it on its own connection. A wire left without a connection of its own (the middle wire of a chain of three
+    at one junction) keeps no value of its own; its row in the table is read-only.
 - The layout's reserve ([12](12-panel-layout.md) §9) joins `WorkshopSettings` with the lengths the layout computes.
 - **Nothing about production status is authored in the project.** Status, actual lengths and technician actions live
   in the order folder (§11.3); the project format stays free of timestamps (ARCH §7.3).

@@ -80,8 +80,14 @@ pub struct PhysicalWire {
     pub potentials: Vec<PotentialId>,
     /// The pages of the constituents, in page order (the folio column).
     pub pages: Vec<Id<Page>>,
-    /// The level-7 values (CDP): the carrier's overrides, members the carrier leaves unset taken from
-    /// the other constituents in constituent order.
+    /// Where the wire keeps its own values (doc 13 §2.3): its constituents that no other wire stands for, the carrier
+    /// first, then in path order. An edit of the wire alone writes on the first. Empty for a wire every connection of
+    /// which another wire shares (the middle wire of a chain of three at one junction).
+    pub own: Vec<Id<Connection>>,
+    /// The level-7 values (CDP), each member from the first constituent that sets it in the order the wire reads
+    /// them: its own connections (`own`), then the carrier, then the other constituents in constituent order. The
+    /// unknown members merge the same way, key by key; `end_a` and `end_b` are a connection's, never the wire's
+    /// (its ends set by hand are [`crate::hand_ends`]).
     pub overrides: WireOverrides,
     /// For each level-7 value of `overrides`, the constituent connection it comes from.
     pub override_sources: OverrideSources,
@@ -90,8 +96,8 @@ pub struct PhysicalWire {
 }
 
 /// The constituent connection that supplies each level-7 value of a [`PhysicalWire`] (`None`: unset): the
-/// carrier for the values it sets, else the first other constituent, in constituent order, that sets it
-/// (a shared star feed arm, the other leg of an interruption-point pair). The provenance
+/// first that sets it in the order the wire reads its values ([`PhysicalWire::overrides`]: its own connections, the
+/// carrier, the others; a shared star feed arm, the other leg of an interruption-point pair). The provenance
 /// `PropSource::Override` names this connection.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
 pub struct OverrideSources {
@@ -111,6 +117,12 @@ pub struct OverrideSources {
     pub shielded: Option<Id<Connection>>,
     /// The twisted flag (the first constituent that sets it).
     pub twisted: Option<Id<Connection>>,
+}
+
+impl AsRef<PhysicalWire> for PhysicalWire {
+    fn as_ref(&self) -> &PhysicalWire {
+        self
+    }
 }
 
 /// The value of [`PhysicalWiresOf`].
@@ -277,6 +289,15 @@ impl Query for PhysicalWiresOf {
             .map(|c| c.key())
             .chain(own.junctions.iter().map(|j| EndpointKey::Junction(*j)))
             .collect();
+        // How many wires of the scope stand for each connection: a wire's own values live on the ones only it uses.
+        let mut wires_of: BTreeMap<Id<Connection>, usize> = BTreeMap::new();
+        let mut counted: BTreeSet<Id<Connection>> = BTreeSet::new();
+        for w in raw.iter().filter(|w| counted.insert(w.carrier)) {
+            let distinct: BTreeSet<Id<Connection>> = w.conns.iter().copied().collect();
+            for c in distinct {
+                *wires_of.entry(c).or_default() += 1;
+            }
+        }
         let mut wires: Vec<PhysicalWire> = Vec::new();
         for w in raw {
             let touches = w.conns.iter().any(|c| {
@@ -294,7 +315,8 @@ impl Query for PhysicalWiresOf {
                 page_order: &page_order,
                 bond_of_via: &bond_of_via,
             };
-            if let Some(wire) = ctx.finish(w, &mut notes) {
+            let own = own_connections(&w, &wires_of);
+            if let Some(wire) = ctx.finish(w, own, &mut notes) {
                 wires.push(wire);
             }
         }
@@ -304,6 +326,18 @@ impl Query for PhysicalWiresOf {
         let notes: Vec<DeriveNote> = notes.into_iter().collect();
         Arc::new(PhysicalWires { wires, notes })
     }
+}
+
+/// The constituents of `wire` that no other wire of the scope stands for (`wires_of` counts the wires of each), in
+/// the order the wire takes its values: the carrier, then the constituents in path order ([`PhysicalWire::own`]).
+fn own_connections(wire: &RawWire, wires_of: &BTreeMap<Id<Connection>, usize>) -> Vec<Id<Connection>> {
+    let mut out: Vec<Id<Connection>> = Vec::new();
+    for c in std::iter::once(wire.carrier).chain(wire.conns.iter().copied()) {
+        if wires_of.get(&c) == Some(&1) && wire.conns.contains(&c) && !out.contains(&c) {
+            out.push(c);
+        }
+    }
+    out
 }
 
 /// The potential, plus every potential linked to it by a bond with a `via` connection, transitively.
@@ -938,7 +972,12 @@ struct FinishCtx<'a> {
 
 impl FinishCtx<'_> {
     /// The fields of one wire (doc 08 §3.8, doc 03 §9.2).
-    fn finish(&self, w: RawWire, notes: &mut BTreeSet<DeriveNote>) -> Option<PhysicalWire> {
+    fn finish(
+        &self,
+        w: RawWire,
+        own: Vec<Id<Connection>>,
+        notes: &mut BTreeSet<DeriveNote>,
+    ) -> Option<PhysicalWire> {
         let connections = self.q.connections();
         let rows: Vec<(Id<Connection>, &Arc<Connection>)> = w
             .conns
@@ -973,21 +1012,25 @@ impl FinishCtx<'_> {
             }
         }
 
-        // Level-7 values: the carrier's, members it leaves unset from the other constituents in order.
-        let mut overrides: WireOverrides = carrier_row.overrides.clone();
-        let carrier_sets = |on: bool| on.then_some(carrier);
-        let mut sources = OverrideSources {
-            csa: carrier_sets(overrides.csa.is_some()),
-            colour: carrier_sets(overrides.colour.is_some()),
-            wire_part: carrier_sets(overrides.wire_part.is_some()),
-            insulation: carrier_sets(overrides.insulation.is_some()),
-            function: carrier_sets(overrides.function.is_some()),
-            length: carrier_sets(overrides.length.is_some()),
-            shielded: carrier_sets(overrides.flags.shielded),
-            twisted: carrier_sets(overrides.flags.twisted),
-        };
+        // Level-7 values: each member from the first constituent that sets it, the wire's own connections first,
+        // then the carrier, then the others in order.
+        let mut order: Vec<Id<Connection>> = Vec::with_capacity(rows.len());
+        for id in own
+            .iter()
+            .copied()
+            .chain([carrier])
+            .chain(rows.iter().map(|(id, _)| *id))
+        {
+            if !order.contains(&id) && rows.iter().any(|(r, _)| *r == id) {
+                order.push(id);
+            }
+        }
+        let row = |id: Id<Connection>| rows.iter().find(|(r, _)| *r == id).map(|(_, c)| *c);
+        let mut overrides = WireOverrides::default();
+        let mut sources = OverrideSources::default();
         let mut conflict: Option<Id<Connection>> = None;
-        for (id, c) in rows.iter().filter(|(id, _)| *id != carrier) {
+        for id in &order {
+            let Some(c) = row(*id) else { continue };
             let o = &c.overrides;
             macro_rules! merge {
                 ($($f:ident),*) => {$(
@@ -1010,11 +1053,22 @@ impl FinishCtx<'_> {
                 overrides.flags.twisted = true;
                 sources.twisted = Some(*id);
             }
+            for (k, v) in &o.flags.extra {
+                overrides
+                    .flags
+                    .extra
+                    .entry(k.clone())
+                    .or_insert_with(|| v.clone());
+            }
+            for (k, v) in &o.extra {
+                overrides.extra.entry(k.clone()).or_insert_with(|| v.clone());
+            }
         }
         if conflict.is_some() {
             note14(notes, NoteFact::Override);
         }
         let marker = rows.iter().any(|(_, c)| c.overrides.show_marker);
+        overrides.show_marker = marker;
 
         let bond = w.conns.iter().find_map(|c| self.bond_of_via.get(c).copied());
         let mut potentials: Vec<PotentialId> = [w.start.0, w.end.0]
@@ -1043,6 +1097,7 @@ impl FinishCtx<'_> {
             bond,
             potentials,
             pages,
+            own,
             overrides,
             override_sources: sources,
             marker,

@@ -492,3 +492,37 @@ fn a_wire_without_a_free_grid_point_on_its_path_is_refused_in_words() {
     assert!(why.contains("has no free grid point left on its path"), "{why}");
     assert_eq!(e.model().rev(), rev, "nothing is written");
 }
+
+/// A wire kept as a pair of interruption points is one wire still (doc 13 §2.3): it keeps its typed length, its colour
+/// and each end set by hand at its clamp, whichever of its ends moves, and each end is held once (the joining wire on
+/// the new page takes no copy of the wire's values).
+#[test]
+fn a_wire_kept_as_a_pair_keeps_its_values_each_end_once() {
+    let w = 0x4a0;
+    let (x, y) = (cp(FNS[0], 0), cp(FNS[1], 0));
+    for moving in [0, 1] {
+        let plain = model(&[(w, x.clone(), y.clone(), vec![at(0), at(1)])], &[]);
+        let mut e = engine(with_wire_values(
+            &plain,
+            (&x, &y),
+            400,
+            Some("BU"),
+            [Some("bare"), Some("ring_lug")],
+        ));
+        e.execute(&move_to_101(&[moving])).expect("the move");
+        assert_eq!(
+            wire_seen(e.model(), &x, &y),
+            Some((
+                Some(400),
+                Some("[\"BU\"]".into()),
+                [Some("bare".into()), Some("ring_lug".into())]
+            )),
+            "symbol {moving} moved"
+        );
+        let held: usize = rows::<Connection>(&e)
+            .iter()
+            .map(|c| usize::from(c.overrides.end_a.is_some()) + usize::from(c.overrides.end_b.is_some()))
+            .sum();
+        assert_eq!(held, 2, "symbol {moving} moved: each end held once");
+    }
+}

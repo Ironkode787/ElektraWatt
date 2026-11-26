@@ -49,17 +49,27 @@ pub struct WireRecord {
     pub flags: WireRecordFlags,
     /// Its ends: From, To.
     pub ends: [EndRecord; 2],
-    /// Where the wire keeps its own values (doc 13 §2.3): its connections that no other wire stands for, in the order
-    /// the wire takes its values (doc 08 §3.8), the carrier first, then the constituents in path order. An edit of the
-    /// wire alone writes on the first; an end stored on any of them is the wire's ([`EndRecord::hand_at`]). Empty for a
-    /// wire every connection of which another wire shares.
-    pub own: Vec<Id<Connection>>,
+}
+
+impl WireRecord {
+    /// Where the wire keeps its own values (doc 13 §2.3, [`PhysicalWire::own`]): an edit of the wire alone writes on
+    /// the first; an end stored on any of them is the wire's ([`EndRecord::hand_at`]). Empty for a wire every
+    /// connection of which another wire shares.
+    pub fn own(&self) -> &[Id<Connection>] {
+        &self.wire.own
+    }
+}
+
+impl AsRef<PhysicalWire> for WireRecord {
+    fn as_ref(&self) -> &PhysicalWire {
+        &self.wire
+    }
 }
 
 /// A wire's length (doc 13 §3.3). The layout adds the lengths it estimates and routes.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum WireLength {
-    /// Typed by hand: a constituent connection's `WireOverrides.length`, the carrier's first.
+    /// Typed by hand: a constituent connection's `WireOverrides.length`, as the wire reads it ([`PhysicalWire::overrides`]).
     Typed(Nm),
     /// A cable's core: cut with its cable.
     WithCable(Id<Device>),
@@ -182,7 +192,6 @@ impl Query for WireRecordSet {
                             field: ends.iter().any(|e| e.site),
                         },
                         ends,
-                        own: Vec::new(),
                         wire,
                         csa: props.csa,
                         colour: props.colour,

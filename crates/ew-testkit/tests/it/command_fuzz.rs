@@ -45,6 +45,7 @@
 //!   whose undo removes a copy that a `LibRef` names; `embed_then_undo_of_a_named_fndef_restores_the_sample` runs
 //!   it deterministically;
 //! - (f) the step's own verdict, the undo law and the checks of what it created ([`step::Verdict`], [`step::Post`]).
+//! - (g) after a command step that changed the wiring, a wire's own values follow the wire ([`wire_values`]).
 //!
 //! A failure panics with the seed, the step index, the oracle and the committed steps as a command log (the
 //! `ew.cmdlog/1` format; the diagnostic steps are marker lines such as `{"cmd":"#undo"}`).
@@ -69,6 +70,7 @@ mod rng;
 mod roundtrip;
 mod schema_arm;
 mod step;
+mod wire_values;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
@@ -211,6 +213,8 @@ fn sample_model() -> &'static Model {
 /// - A released revision before the open one, which `revision.withdraw` withdraws: a release is the person's.
 /// - A project-local part copy, which `part.edit_copy` edits in place: the sample's copies come from the starter
 ///   library (a copy of its 1-pole breaker under the project's library).
+/// - Values of their own on the sample's wires (a length, a colour and a size, ends set by hand), which oracle (g)
+///   follows through every step ([`wire_values`]).
 fn fuzz_base() -> &'static Model {
     static MODEL: std::sync::OnceLock<Model> = std::sync::OnceLock::new();
     MODEL.get_or_init(|| {
@@ -251,16 +255,15 @@ fn fuzz_base() -> &'static Model {
             ew_format::library_copy_hash(&ew_schema::LibDocument::Part(local.clone()))
                 .expect("a part copy has a hash"),
         );
+        let mut ops = vec![
+            Op::insert(AnyRow::of(waiver)),
+            Op::update(AnyRow::Project(before), AnyRow::Project(Arc::new(project))),
+            Op::insert(AnyRow::of(released)),
+            Op::insert(AnyRow::of(local)),
+        ];
+        ops.extend(wire_values::seed(model));
         model
-            .apply_history(
-                &[
-                    Op::insert(AnyRow::of(waiver)),
-                    Op::update(AnyRow::Project(before), AnyRow::Project(Arc::new(project))),
-                    Op::insert(AnyRow::of(released)),
-                    Op::insert(AnyRow::of(local)),
-                ],
-                Rev(model.rev().0 + 1),
-            )
+            .apply_history(&ops, Rev(model.rev().0 + 1))
             .expect("the records the arms need insert")
     })
 }
@@ -582,6 +585,10 @@ fn apply(session: &mut Session, c: &CmdStep, stats: &mut FuzzStats) -> Result<Ap
                     }
                     Post::Check(_) => {}
                 }
+            }
+            // (g) a wire's own values follow the wire.
+            if changed {
+                wire_values::check(&qb, &qa).map_err(|e| format!("`{}`: {e}", c.name))?;
             }
             // The undo law. A non-undoable command is exempt: `project.assets.purge` is a marker that never moves
             // the revision, and `revision.release` moves it but is never undone (a released revision is immutable).

@@ -962,7 +962,7 @@ impl Session {
                 let Some(holder) = super::properties::wire_alone(&q, &records, Id::from_uuid(edit.target))
                     .ok()
                     .flatten()
-                    .and_then(|r| r.own.first().copied())
+                    .and_then(|r| r.own().first().copied())
                 else {
                     return invalid(text!("refusal-end-no-holder"));
                 };

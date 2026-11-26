@@ -13,6 +13,7 @@ use ew_mltext::Ident;
 use ew_model::EndpointKey;
 use ew_schema::{
     Connection, Endpoint, Extra, Function, FunctionKind, IpDirection, Junction, NumberSpec, Page, SymbolDef,
+    WireOverrides,
 };
 use ew_units::{Grid, Nm, Pt2};
 use schemars::JsonSchema;
@@ -228,7 +229,8 @@ fn pair_name(tx: &TxBuilder<'_>, c: &Connection, taken: &BTreeSet<String>) -> Id
 /// `to`: the source point on `from` on the free grid point of the wire's old path nearest to its moved end
 /// (`old` gives an end's point before the move; `taken` the points of the page left that a pin, a junction or a
 /// source point of this move holds), the wire shortened to it; the target point on `to` at the moving end, joined to
-/// it by a wire of length zero with the old wire's kind and values. `names` gathers the pairs' names. The notice that
+/// it by a wire of length zero with the old wire's kind (the wire keeps its values as `own_values` says, doc 13 §2.3).
+/// `names` gathers the pairs' names. The notice that
 /// names the pair. Refused in words: no free grid point left on the path.
 #[allow(clippy::too_many_arguments)]
 pub(super) fn cut(
@@ -306,7 +308,7 @@ pub(super) fn cut(
         page: Some(to),
         route: Vec::new(),
         kind: c.kind.clone(),
-        overrides: c.overrides.clone(),
+        overrides: WireOverrides::default(),
         number: NumberSpec::default(),
         source_ref: None,
         computed: false,

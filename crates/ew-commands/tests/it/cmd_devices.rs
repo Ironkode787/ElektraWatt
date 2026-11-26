@@ -530,29 +530,39 @@ fn a_typed_length_goes_when_a_placed_device_cuts_the_wire() {
     }
 }
 
-/// A device placed on a star's feed arm cuts every wire through it: the lengths typed on the branches, each its own
-/// wire's, go with the wires they measured (doc 13 §2.3), and the feed arm's two parts carry none.
+/// A device placed on a star's feed arm cuts every wire through it (doc 13 §2.3): each branch's wire, now from the
+/// device, keeps what divides (its colour) and its end set by hand at its clamp, but not the length typed on it, which
+/// measured another wire; the feed arm's wire, now to the device, keeps the end at its clamp and no length either.
 #[test]
-fn a_device_on_a_stars_feed_arm_leaves_no_branch_its_length() {
+fn a_device_on_a_stars_feed_arm_keeps_what_divides_and_no_length() {
     let j: ew_ids::Id<ew_schema::Junction> = id(0x4200);
     let (feed, b1, b2): (
         ew_ids::Id<Connection>,
         ew_ids::Id<Connection>,
         ew_ids::Id<Connection>,
     ) = (id(0x4100), id(0x4101), id(0x4102));
+    let (top, one_end, two_end) = (cp(FN_102G1, 0), cp(FN_T1, 1), cp(FN_T2, 1));
     let mut f = connection(
         feed,
         Some(PAGE_102),
-        cp(FN_102G1, 0),
+        top.clone(),
         ew_schema::Endpoint::Junction(j),
     );
     f.route = vec![pt(0, -MM10), pt(0, 2 * MM10)];
-    let mut one = connection(b1, Some(PAGE_102), ew_schema::Endpoint::Junction(j), cp(FN_T1, 1));
+    let mut one = connection(
+        b1,
+        Some(PAGE_102),
+        ew_schema::Endpoint::Junction(j),
+        one_end.clone(),
+    );
     one.route = vec![pt(0, 2 * MM10), pt(MM10, 2 * MM10)];
-    one.overrides.length = Some(ew_units::Nm(300_000_000));
-    let mut two = connection(b2, Some(PAGE_102), ew_schema::Endpoint::Junction(j), cp(FN_T2, 1));
+    let mut two = connection(
+        b2,
+        Some(PAGE_102),
+        ew_schema::Endpoint::Junction(j),
+        two_end.clone(),
+    );
     two.route = vec![pt(0, 2 * MM10), pt(-MM10, 2 * MM10)];
-    two.overrides.length = Some(ew_units::Nm(500_000_000));
     let mut star = junction(j, PAGE_102, vec![feed, b1, b2]);
     star.at = pt(0, 2 * MM10);
     let model = mini_model_with(|r| {
@@ -561,12 +571,38 @@ fn a_device_on_a_stars_feed_arm_leaves_no_branch_its_length() {
         r.push(Record::Connection(two.clone()));
         r.push(Record::Junction(star.clone()));
     });
+    let model = with_wire_values(
+        &model,
+        (&top, &one_end),
+        300,
+        Some("BU"),
+        [Some("bare"), Some("ring_lug")],
+    );
+    let model = with_wire_values(
+        &model,
+        (&top, &two_end),
+        500,
+        Some("RD"),
+        [Some("ring_lug"), Some("bare")],
+    );
     let mut e = engine(model);
     let r = e.execute(&place(PAGE_102, pt(0, 0), new_device("F"))).unwrap();
-    let second: ew_ids::Id<Connection> = created(&r, Kind::Connection)[0];
-    for c in [feed, second, b1, b2] {
-        assert_eq!(row(&e, c).overrides.length, None, "{c}");
-    }
+    let dev: ew_ids::Id<Function> = created(&r, Kind::Function)[0];
+    let (upper, lower) = (cp(dev, 0), cp(dev, 1));
+    let colour = |c: &str| Some(format!("[\"{c}\"]"));
+    assert_eq!(
+        wire_seen(e.model(), &lower, &one_end),
+        Some((None, colour("BU"), [None, Some("ring_lug".into())]))
+    );
+    assert_eq!(
+        wire_seen(e.model(), &lower, &two_end),
+        Some((None, colour("RD"), [None, Some("bare".into())]))
+    );
+    // Made from both wires, the feed arm's wire takes the values of the first by ID, the one to -T1:1.
+    assert_eq!(
+        wire_seen(e.model(), &top, &upper),
+        Some((None, colour("BU"), [Some("bare".into()), None]))
+    );
 }
 
 /// A symbol dropped on the shared run of two wires of one pin (docs/design/06a-drafting.md §3.4) is refused in words:

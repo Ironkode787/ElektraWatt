@@ -266,42 +266,13 @@ fn clamp_of(q: &Q, cp: CpRef) -> Option<ClampData> {
 /// Fills the treatment, the part and who decided it of every end of `records` (doc 13 §4): the rule table per end, then
 /// the pairing per clamp (§4.3), then the part from the workshop stock (§4.4).
 pub(crate) fn treat(q: &Q, records: &mut [WireRecord]) {
-    // How many wires stand for each connection: an end set by hand lives on a connection of the wire's own.
-    let mut wires_of: BTreeMap<Id<Connection>, usize> = BTreeMap::new();
-    for r in records.iter() {
-        let mut own = r.wire.constituents.clone();
-        own.sort();
-        own.dedup();
-        for c in own {
-            *wires_of.entry(c).or_default() += 1;
-        }
-    }
     let mut hands: Vec<[Option<EndOverride>; 2]> = Vec::with_capacity(records.len());
     for r in records.iter_mut() {
-        let own = own_connections(&r.wire, &wires_of);
-        r.own = own.iter().map(|(_, c)| *c).collect();
+        let held = crate::own_values::hand_ends(q, &r.wire);
         let mut hand: [Option<EndOverride>; 2] = [None, None];
-        for (i, slot) in hand.iter_mut().enumerate() {
-            if r.wire.ends[i].kind != EndKind::Device {
-                continue;
-            }
-            // The own connection that holds the end, else the first: one answer for the read and the write.
-            let stored = own.iter().find_map(|(k, c)| {
-                let o = &q.connections().get(*c)?.overrides;
-                [(true, &o.end_a), (false, &o.end_b)]
-                    .into_iter()
-                    .find(|(a, end)| end.is_some() && end_through(q, &r.wire, *k, *a) == Some(i))
-                    .map(|(a, end)| ((*c, a), end.clone()))
-            });
-            r.ends[i].hand_at = stored.as_ref().map(|(at, _)| *at).or_else(|| {
-                own.first().and_then(|(k, c)| {
-                    [true, false]
-                        .into_iter()
-                        .find(|a| end_through(q, &r.wire, *k, *a) == Some(i))
-                        .map(|a| (*c, a))
-                })
-            });
-            *slot = stored.and_then(|(_, end)| end);
+        for (i, h) in held.into_iter().enumerate() {
+            r.ends[i].hand_at = h.as_ref().map(|h| h.at);
+            hand[i] = h.and_then(|h| h.value);
         }
         hands.push(hand);
     }
@@ -363,27 +334,6 @@ pub(crate) fn treat(q: &Q, records: &mut [WireRecord]) {
             r.ends[i].part = by_hand.or_else(|| stock_part(q, &r.ends[i].treatment, csa));
         }
     }
-}
-
-/// The connections of `wire` that no other wire stands for, each with its index among the constituents, in the order
-/// the wire takes its values (doc 08 §3.8): the carrier, then the constituents in path order. They hold the wire's ends
-/// set by hand (doc 13 §2.3); the first is where an edit writes them.
-fn own_connections(
-    wire: &PhysicalWire,
-    wires_of: &BTreeMap<Id<Connection>, usize>,
-) -> Vec<(usize, Id<Connection>)> {
-    let alone = |c: &Id<Connection>| wires_of.get(c).is_some_and(|n| *n == 1);
-    let at = |c: Id<Connection>| wire.constituents.iter().position(|x| *x == c).map(|k| (k, c));
-    let mut out: Vec<(usize, Id<Connection>)> = Vec::new();
-    for c in std::iter::once(wire.id).chain(wire.constituents.iter().copied()) {
-        if alone(&c)
-            && !out.iter().any(|(_, x)| *x == c)
-            && let Some(kc) = at(c)
-        {
-            out.push(kc);
-        }
-    }
-    out
 }
 
 /// The end of `wire` (0 its From end, 1 its To end) that its constituent `k` leads to through its endpoint `a` (`via_a`)

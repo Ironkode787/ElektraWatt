@@ -15,6 +15,12 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: a wire's own values (its typed length, colour, size, flags, annotation and each end set by hand)
+  follow the wire through every change of the wiring: a wire drawn onto it, with a bevel as with a dot, leaves it all
+  of them and takes none; a junction whose wiring changes, a T that dissolves, a device moved to another page with its
+  wires kept and a device placed on a star's feed arm leave each wire its values and each end at its clamp, held once;
+  a wire whose clamps change keeps what divides but no typed length. A value typed for a wire is read before one on a
+  stretch it shares with another wire, where it was hidden behind it (doc 13 §2.3)
 - behaviour-change: of two interruption points one grid step apart (24 V and 0 V at a supply's outputs), the lower
   one's name steps beyond its arrow over or under the wire's line, and a point's cross-references stand under and over
   its name where the name stands, so the texts of neighbouring points no longer print over each other (doc 06a §5.2,

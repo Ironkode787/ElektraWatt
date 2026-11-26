@@ -1062,99 +1062,189 @@ fn define_potential_names_a_missing_record() {
     ));
 }
 
-/// W with a typed length of 400 mm, a bare end at `a` and a ring lug at `b` set by hand.
-fn model_with_measured_wire() -> Model {
-    let (p, mut records, _) = mini_project_parts();
-    let mut w = connection(W, Some(PAGE_102), cp(FN_102F2, 4), cp(FN_102F2, 5));
-    w.route = vec![pt(0, 0), pt(4 * G, 0)];
-    w.overrides.length = Some(ew_units::Nm(400_000_000));
-    w.overrides.end_a = serde_json::from_value(serde_json::json!({"treatment": "bare"})).unwrap();
-    w.overrides.end_b = serde_json::from_value(serde_json::json!({"treatment": "ring_lug"})).unwrap();
-    records.push(Record::Connection(w));
-    Model::from_records(p, records, library()).expect("the mini model plus a measured wire")
+// ---------------------------------------------------------------------------------------------------------
+// A wire's own values follow the wire (doc 13 §2.3)
+
+/// `-102F2:4`, `-102F2:5` and `-T2:1`: the three clamps of the T and star tests.
+fn clamps3() -> [Endpoint; 3] {
+    [cp(FN_102F2, 4), cp(FN_102F2, 5), cp(FN_T2, 1)]
 }
 
-/// The treatment set by hand at an end of a connection: (`end_a`, `end_b`).
-fn hand_ends(e: &Engine, c: Id<Connection>) -> (Option<String>, Option<String>) {
-    let o = row(e, c).overrides;
-    let word = |x: Option<ew_schema::EndOverride>| {
-        x.and_then(|x| x.treatment)
-            .map(|t| serde_json::to_value(t).unwrap().as_str().unwrap().to_owned())
-    };
-    (word(o.end_a), word(o.end_b))
+/// What a person reads of a wire that nobody gave a value of its own.
+const BARE: WireSeen = (None, None, [None, None]);
+
+/// The JSON form of a colour as [`wire_seen`] gives it.
+fn colour(code: &str) -> Option<String> {
+    Some(format!("[\"{code}\"]"))
 }
 
-/// A wire's own values follow the wire (doc 13 §2.3), on a T: a wire drawn onto W makes W's part at `a` the junction's
-/// feed arm, which the new wire shares, so W's typed length and its end set by hand at `a` go to its part at `b`, which
-/// W alone uses, and the new wire inherits neither. When the new wire goes, the junction dissolves into W again, which
-/// keeps them, each end at its connection point.
+/// A wire drawn onto W, with the bevel a wire ending on a wire makes and with a dot: W keeps its typed length and both
+/// its ends set by hand at their clamps, the new wire takes none of them, and when the new wire goes, W has them still.
 #[test]
-fn a_wires_own_values_follow_it_through_a_t() {
-    let mut e = engine(model_with_measured_wire());
-    let (j, new) = split_w(&mut e, false);
-    let second = row(&e, j).sequence[1];
-    assert_eq!(
-        row(&e, W).overrides.length,
-        None,
-        "the feed arm carries no one wire's length"
-    );
-    assert_eq!(hand_ends(&e, W), (None, None));
-    assert_eq!(row(&e, second).overrides.length, Some(ew_units::Nm(400_000_000)));
-    assert_eq!(
-        hand_ends(&e, second),
-        (Some("bare".into()), Some("ring_lug".into()))
-    );
-    assert_eq!(row(&e, new).overrides.length, None);
-    e.execute(&DeleteConnections {
-        connections: vec![new],
-    })
-    .expect("the branch deleted");
-    assert!(!has(&e, j), "the junction dissolves");
-    let w = row(&e, W);
-    assert_eq!((w.a.clone(), w.b.clone()), (cp(FN_102F2, 4), cp(FN_102F2, 5)));
-    assert_eq!(w.overrides.length, Some(ew_units::Nm(400_000_000)));
-    assert_eq!(hand_ends(&e, W), (Some("bare".into()), Some("ring_lug".into())));
+fn a_wire_drawn_onto_a_wire_leaves_the_wire_its_values_with_a_bevel_and_with_a_dot() {
+    let [x, y, t] = clamps3();
+    for dot in [false, true] {
+        let model = with_wire_values(
+            &model_with_wire(),
+            (&x, &y),
+            400,
+            Some("BU"),
+            [Some("bare"), Some("ring_lug")],
+        );
+        let mut e = engine(model);
+        let (_, new) = split_w(&mut e, dot);
+        let w = (
+            Some(400),
+            colour("BU"),
+            [Some("bare".to_owned()), Some("ring_lug".to_owned())],
+        );
+        assert_eq!(wire_seen(e.model(), &x, &y), Some(w.clone()), "dot {dot}");
+        // The new wire runs from -T2:1 to -102F2:5 under the bevel's chain, to -102F2:4 under the dot's star.
+        let other = if dot { &x } else { &y };
+        assert_eq!(wire_seen(e.model(), other, &t), Some(BARE), "dot {dot}");
+        e.execute(&DeleteConnections {
+            connections: vec![new],
+        })
+        .expect("the branch deleted");
+        assert_eq!(
+            wire_seen(e.model(), &x, &y),
+            Some(w),
+            "dot {dot}: the T dissolved"
+        );
+    }
 }
 
-/// The same on a chain: a junction of two members of one wire, the member that is removed carrying the wire's own
-/// values, gives them to the kept one, each end at its connection point, whichever way round the two are drawn.
-#[test]
-fn a_dissolving_chain_keeps_the_removed_members_values() {
+/// The T of the dissolve tests: `-102F2:4` and `-102F2:5` through a junction of `style`, members drawn towards the
+/// junction or away from it (`towards`), and a branch to `-T2:1`; the wire 4–5 with its own values, the branch's wire
+/// with a length and an end of its own.
+fn t_model(style: JunctionStyle, towards: [bool; 2]) -> (Model, [Id<Connection>; 3]) {
     let (p, mut records, _) = mini_project_parts();
     let j: Id<Junction> = id(0x4200);
-    let (first, second): (Id<Connection>, Id<Connection>) = (id(0x4101), id(0x4102));
-    let mut a = connection(first, Some(PAGE_102), cp(FN_102F2, 4), Endpoint::Junction(j));
-    a.route = vec![pt(0, 0), pt(2 * G, 0)];
-    // Drawn from its far end towards the junction: its `b` is the junction.
-    let mut b = connection(second, Some(PAGE_102), cp(FN_102F2, 5), Endpoint::Junction(j));
-    b.route = vec![pt(4 * G, 0), pt(2 * G, 0)];
-    b.overrides.length = Some(ew_units::Nm(250_000_000));
-    b.overrides.end_a = serde_json::from_value(serde_json::json!({"treatment": "ring_lug"})).unwrap();
-    b.overrides.end_b = serde_json::from_value(serde_json::json!({"treatment": "bare"})).unwrap();
-    let mut t = connection(id(0x4103), Some(PAGE_102), cp(FN_T2, 1), Endpoint::Junction(j));
-    t.route = vec![pt(2 * G, 2 * G), pt(2 * G, 0)];
-    records.push(Record::Connection(a));
-    records.push(Record::Connection(b));
-    records.push(Record::Connection(t));
-    let mut jr = junction(j, PAGE_102, vec![first, second, id(0x4103)]);
-    jr.at = pt(2 * G, 0);
+    let ids: [Id<Connection>; 3] = [id(0x4101), id(0x4102), id(0x4103)];
+    let [x, y, t] = clamps3();
+    for (k, (end, towards)) in [(x.clone(), towards[0]), (y.clone(), towards[1])]
+        .into_iter()
+        .enumerate()
+    {
+        let c = if towards {
+            connection(ids[k], Some(PAGE_102), end, Endpoint::Junction(j))
+        } else {
+            connection(ids[k], Some(PAGE_102), Endpoint::Junction(j), end)
+        };
+        records.push(Record::Connection(c));
+    }
+    records.push(Record::Connection(connection(
+        ids[2],
+        Some(PAGE_102),
+        Endpoint::Junction(j),
+        t.clone(),
+    )));
+    let dot = style == JunctionStyle::Dot;
+    let mut jr = junction(j, PAGE_102, ids.to_vec());
+    jr.style = style;
+    jr.wiring = None;
     records.push(Record::Junction(jr));
-    let mut e = engine(Model::from_records(p, records, library()).expect("a T"));
-    e.execute(&DeleteConnections {
-        connections: vec![id(0x4103)],
-    })
-    .expect("the branch deleted");
-    assert!(!has(&e, second));
-    let kept = row(&e, first);
-    assert_eq!(
-        (kept.a.clone(), kept.b.clone()),
-        (cp(FN_102F2, 4), cp(FN_102F2, 5))
+    let model = Model::from_records(p, records, library()).expect("a T");
+    let model = with_wire_values(
+        &model,
+        (&x, &y),
+        250,
+        Some("BU"),
+        [Some("ring_lug"), Some("bare")],
     );
-    assert_eq!(kept.overrides.length, Some(ew_units::Nm(250_000_000)));
-    // The removed member's end at -102F2:5 (its `a`) is the kept one's `b`; its end through the junction, at -102F2:4,
-    // the kept one's `a`.
+    // The branch's wire runs from the feed arm's clamp in a star, from the second member's in a chain.
+    let branch = if dot { &x } else { &y };
+    let model = with_wire_values(&model, (branch, &t), 300, None, [None, Some("bare")]);
+    (model, ids)
+}
+
+/// A T that loses its branch dissolves into one connection, the wire 4–5, which keeps its own values, each end at its
+/// clamp, whichever way its two members are drawn and whether the T is a star or a chain; nothing of the branch's wire
+/// stays with it.
+#[test]
+fn a_t_that_dissolves_keeps_the_wire_s_values_however_it_is_drawn() {
+    let [x, y, t] = clamps3();
+    for style in [JunctionStyle::Dot, JunctionStyle::Bevel(Default::default())] {
+        for towards in [[true, true], [true, false], [false, true], [false, false]] {
+            let (model, ids) = t_model(style.clone(), towards);
+            let mut e = engine(model);
+            e.execute(&DeleteConnections {
+                connections: vec![ids[2]],
+            })
+            .expect("the branch deleted");
+            assert_eq!(
+                wire_seen(e.model(), &x, &t),
+                None,
+                "{style:?} {towards:?}: no wire to -T2:1"
+            );
+            assert_eq!(
+                wire_seen(e.model(), &y, &t),
+                None,
+                "{style:?} {towards:?}: no wire to -T2:1"
+            );
+            assert_eq!(
+                wire_seen(e.model(), &x, &y),
+                Some((
+                    Some(250),
+                    colour("BU"),
+                    [Some("ring_lug".into()), Some("bare".into())]
+                )),
+                "{style:?} {towards:?}"
+            );
+        }
+    }
+}
+
+/// A wire deleted from a star: the junction dissolves into the feed arm, which becomes the other wire's own, and that
+/// wire keeps its values on it; the deleted wire's values are gone with it.
+#[test]
+fn a_wire_deleted_from_a_star_leaves_the_other_wire_its_values_on_the_feed_arm() {
+    let [x, _, t] = clamps3();
+    let (model, ids) = t_model(JunctionStyle::Dot, [true, false]);
+    let mut e = engine(model);
+    e.execute(&DeleteConnections {
+        connections: vec![ids[1]],
+    })
+    .expect("a branch deleted");
     assert_eq!(
-        hand_ends(&e, first),
-        (Some("bare".into()), Some("ring_lug".into()))
+        wire_seen(e.model(), &x, &t),
+        Some((Some(300), None, [None, Some("bare".into())]))
+    );
+    assert_eq!(
+        row(&e, ids[0]).overrides.length,
+        Some(ew_units::Nm(300 * MM)),
+        "on the feed arm"
+    );
+}
+
+/// A junction whose wiring changes from a star to a chain and back: the wire whose two clamps stay keeps its values;
+/// the branch's wire now runs from another clamp, so it keeps its end at -T2:1 and nothing that does not divide (no
+/// typed length).
+#[test]
+fn a_junction_s_wiring_changed_keeps_each_wire_s_values() {
+    let [x, y, t] = clamps3();
+    let (model, _) = t_model(JunctionStyle::Dot, [true, false]);
+    let j: Id<Junction> = id(0x4200);
+    let mut e = engine(model);
+    let four_five = Some((
+        Some(250),
+        colour("BU"),
+        [Some("ring_lug".to_owned()), Some("bare".to_owned())],
+    ));
+    let mut chain = edit(j);
+    chain.wiring = Some(WiringChoice::Chain);
+    e.execute(&chain).expect("a chain");
+    assert_eq!(wire_seen(e.model(), &x, &y), four_five);
+    assert_eq!(
+        wire_seen(e.model(), &y, &t),
+        Some((None, None, [None, Some("bare".into())]))
+    );
+    let mut star = edit(j);
+    star.wiring = Some(WiringChoice::Star);
+    e.execute(&star).expect("a star again");
+    assert_eq!(wire_seen(e.model(), &x, &y), four_five);
+    assert_eq!(
+        wire_seen(e.model(), &x, &t),
+        Some((None, None, [None, Some("bare".into())]))
     );
 }

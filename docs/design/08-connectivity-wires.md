@@ -552,11 +552,15 @@ the level and the defining entity (FR-CON-017, FR-CON-025, D-08). This is the ch
   `flags{shielded, twisted}`. Its length is a separate value (§7.6, [12](12-panel-layout.md)).
 - **Granularity.** `wire_props_of(potential)` returns one map per physical wire, computed per potential. The
   property grid's accessor for a single wire is a cold lookup into that map (ARCH §6.3).
-- **Overrides along one wire.** A physical wire made of several connections takes level 7 from all of them. If two
-  constituents set different values, the carrier's value wins and EW-POT-014 reports the conflict. The provenance
-  of an override names the constituent connection that carries the value, not the carrier.
+- **Overrides along one wire.** A physical wire made of several connections takes level 7 from all of them, each
+  member from the first that sets it: the wire's own connections (those no other wire stands for, the carrier first),
+  then the carrier, then the others in path order. If two constituents set different values, that first one wins and
+  EW-POT-014 reports the conflict. The provenance of an override names the constituent connection that carries the
+  value, not the carrier.
 - **Shared drawn connections.** A connection that belongs to two wires, such as the feed arm of a star junction,
-  shows `‹varies›` when the two wires differ. An override on it applies to both wires.
+  shows `‹varies›` when the two wires differ. An override on it applies to both wires, where a wire's own connection
+  sets none; a change of the wiring keeps it there only while every wire through it has that value
+  ([13](13-manufacturing-outputs.md) §2.3).
 
 ```text
 $ ew query wire_props W29 --explain

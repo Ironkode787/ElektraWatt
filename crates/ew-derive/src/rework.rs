@@ -20,27 +20,32 @@ use crate::nets::CpRef;
 use crate::q::Q;
 use crate::treatment::EndTreatment;
 use crate::wire_record::{EndRecord, WireLength, WireRecord, WireRecordSet};
-use crate::wires::EndKind;
+use crate::wires::{EndKind, PhysicalWire};
 
 /// One wire of two states: its record in the earlier state (`before`, the release) and in the later one (`after`,
-/// now); one of them is `None` for a wire that is gone or new.
+/// now); one of them is `None` for a wire that is gone or new. A record is a [`WireRecord`], or a bare [`PhysicalWire`]
+/// where nothing more is read (a command's normaliser, doc 13 §2.3).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct WirePair<'a> {
+pub struct WirePair<'a, W = WireRecord> {
     /// The wire as it was.
-    pub before: Option<&'a WireRecord>,
+    pub before: Option<&'a W>,
     /// The wire as it is.
-    pub after: Option<&'a WireRecord>,
+    pub after: Option<&'a W>,
 }
 
 /// The wires of two states matched (see the module documentation): first the kept wires in the order of `after`, a
 /// new wire among them where it stands; then the wires that are gone, in the order of `before`.
-pub fn wire_changes<'a>(before: &'a [WireRecord], after: &'a [WireRecord]) -> Vec<WirePair<'a>> {
-    let by_id: BTreeMap<_, usize> = before.iter().enumerate().map(|(i, r)| (r.wire.id, i)).collect();
+pub fn wire_changes<'a, W: AsRef<PhysicalWire>>(before: &'a [W], after: &'a [W]) -> Vec<WirePair<'a, W>> {
+    let by_id: BTreeMap<_, usize> = before
+        .iter()
+        .enumerate()
+        .map(|(i, r)| (r.as_ref().id, i))
+        .collect();
     let mut taken = vec![false; before.len()];
     let mut matched: Vec<Option<usize>> = after
         .iter()
         .map(|r| {
-            let i = *by_id.get(&r.wire.id)?;
+            let i = *by_id.get(&r.as_ref().id)?;
             taken[i] = true;
             Some(i)
         })
@@ -60,7 +65,7 @@ pub fn wire_changes<'a>(before: &'a [WireRecord], after: &'a [WireRecord]) -> Ve
             *slot = Some(i);
         }
     }
-    let mut out: Vec<WirePair<'a>> = matched
+    let mut out: Vec<WirePair<'a, W>> = matched
         .into_iter()
         .zip(after)
         .map(|(i, r)| WirePair {
@@ -82,8 +87,9 @@ pub fn wire_changes<'a>(before: &'a [WireRecord], after: &'a [WireRecord]) -> Ve
 }
 
 /// A wire's two end CPs in order, the key of a wire matched by its ends.
-fn ends_key(r: &WireRecord) -> [CpRef; 2] {
-    let mut ends = [r.wire.ends[0].cp, r.wire.ends[1].cp];
+fn ends_key<W: AsRef<PhysicalWire>>(r: &W) -> [CpRef; 2] {
+    let w = r.as_ref();
+    let mut ends = [w.ends[0].cp, w.ends[1].cp];
     ends.sort();
     ends
 }

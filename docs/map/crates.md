@@ -346,6 +346,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/normalise/mod.rs` |  | Normalisers (ARCH §5.2 step 2; the registry is doc 06 §3.2): deterministic passes that add ops to the transaction of the command that ran. |
 | `src/normalise/module_pin_binding.rs` |  | Normaliser #14, module pin binding (N3; doc 06 §3.2 row 14, doc 10 §3.3). |
 | `src/normalise/online_numbering.rs` |  | Normaliser #4, online numbering (doc 06 §3.2, FR-NUM-007, FR-NUM-029), page-based scheme. |
+| `src/normalise/own_values.rs` |  | Normaliser #8a, a wire's own values follow the wire (doc 13 §2.3). |
 | `src/normalise/plc_aspects.rs` |  | Normaliser #0, PLC aspects from the part (N0; doc 06 §3.2, doc 10 §3.3). |
 | `src/normalise/revision_ensure_open.rs` |  | Normaliser #18, the automatic open revision (`revision.ensure_open`; doc 15 §5.3, FR-REV-009). |
 | `src/normalise/solenoid_binding.rs` |  | Normaliser #13, solenoid binding (N2 = N-FL-3; doc 06 §3.2 row 13, doc 10 §3.3, doc 11 §4.2; FR-PLC-051). |
@@ -412,6 +413,7 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/nets.rs` |  | Page-local nets: `page_local_nets(page)` (ARCH §6.4, doc 08 §3.3). |
 | `src/note.rs` |  | Derivation notes: what a derivation could not do as the project asks and what it did instead (ADR-0003 "profiles are never silently replaced", doc 03 §5.1 defaults). |
 | `src/numbering.rs` |  | Wire numbers: `wire_numbers()` (doc 08 §5.2, FR-NUM-019, FR-NUM-028). |
+| `src/own_values.rs` |  | A wire's own values (doc 13 §2.3): what a person set for one wire, read the way every list and check reads it. |
 | `src/pages.rs` |  | Page order with sections, dividers and generated pages (doc 09 §3.1, FR-PAG-005, FR-PAG-006, FR-PAG-008, FR-PAG-009, FR-PAG-012, FR-PAG-013, ARCH §6.4 `page_order()`). |
 | `src/part_fit.rs` |  | What fits a device (doc 07 §4.3 "What fits", FR-PRT-015, FR-DEV-033): [`part_fit`] judges a part for a device by the pins and clamps the device has wired, and [`fit_report`] says too whether a wired clamp has no size given; the part dialog (`ew-api`'s `part_offers`) asks it for every offer and words the first reason found. |
 | `src/part_text.rs` |  | The part texts of a device's symbol slots: manufacturer, part number, type designation and technical data (FR-SYM-011, FR-DEV-009, FR-DEV-016, doc 07 §9.1 step 4, D-18, D-33, D-35), and the confidence of a part's data sections (FR-PRT-031). |

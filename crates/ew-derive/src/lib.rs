@@ -84,6 +84,7 @@ mod names;
 mod nets;
 mod note;
 mod numbering;
+mod own_values;
 mod pages;
 mod part_fit;
 mod part_text;
@@ -271,6 +272,8 @@ pub use wire_props::{
 };
 pub use wire_record::{EndRecord, WireLength, WireRecord, WireRecordFlags, WireRecordSet, wire_length};
 pub use wires::{EndKind, PhysicalWire, PhysicalWiresOf, WireEnd};
+// A wire's own values (doc 13 §2.3).
+pub use own_values::{HandEnd, WireValues, hand_ends, members, wire_values, with_members};
 
 // The report-pages provider hook of `page_order` and the drawn-page order.
 pub use pages::{DrawnPageOrder, ReportPagesProvider};

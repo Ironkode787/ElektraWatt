@@ -459,7 +459,7 @@ fn length_row(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Built {
         per.push(match record.length {
             WireLength::Typed(n) => {
                 if record.wire.override_sources.length.is_some()
-                    && record.wire.override_sources.length == record.own.first().copied()
+                    && record.wire.override_sources.length == record.own().first().copied()
                 {
                     can_reset = true;
                 } else {

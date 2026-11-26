@@ -20,8 +20,6 @@ use crate::tx::TxBuilder;
 ///   `keep_second`; W′'s route is W's route up to `first_at`, W″'s from `second_at`;
 /// - the other part gets a new ID, W's kind, page and overrides and `NumberSpec::Unassigned` (online wire numbering
 ///   is off in v0); it takes W's place in the sequence of a junction at its far end;
-/// - an end set by hand (`overrides.end_a`, `end_b`, doc 13 §2.3) stays with the part that keeps its endpoint; the two
-///   new endpoints at the split take none;
 /// - bonds realised by W keep naming the kept part.
 ///
 /// `first_at` and `second_at` must lie on W's route in that order (they may be equal, for a junction). A
@@ -72,17 +70,11 @@ pub fn split_connection(
     let (new, far) = if keep_second {
         kept.a = second_end;
         kept.route = r2;
-        kept.overrides.end_a = None;
-        let mut new = new_part(w.a.clone(), first_end, r1);
-        new.overrides.end_b = None;
-        (new, &w.a)
+        (new_part(w.a.clone(), first_end, r1), &w.a)
     } else {
         kept.b = first_end;
         kept.route = r1;
-        kept.overrides.end_b = None;
-        let mut new = new_part(second_end, w.b.clone(), r2);
-        new.overrides.end_a = None;
-        (new, &w.b)
+        (new_part(second_end, w.b.clone(), r2), &w.b)
     };
     tx.put(kept);
     tx.insert(new)?;
@@ -152,38 +144,14 @@ fn from_end_beyond_b(tx: &TxBuilder<'_>, connection: Id<Connection>) -> bool {
     a_toward_first == from_is_last
 }
 
-/// The constituents of every physical wire `connection` is part of, in the snapshot before the transaction (doc 08
-/// §3.8; a star's feed arm is part of every branch's wire); none for a connection new in this transaction.
-fn wires_through(tx: &TxBuilder<'_>, connection: Id<Connection>) -> Vec<Id<Connection>> {
-    let q = ew_derive::Q::new(tx.base_model());
-    let Some(w) = q.connections().get(connection) else {
-        return Vec::new();
-    };
-    let partition = q.get::<ew_derive::PotentialPartition>(());
-    let Some(potential) = EndpointKey::of(&w.a).and_then(|k| partition.potential_at(k)) else {
-        return Vec::new();
-    };
-    let mut out: Vec<Id<Connection>> = q
-        .get::<ew_derive::PhysicalWiresOf>(potential.id)
-        .wires
-        .iter()
-        .filter(|p| p.constituents.contains(&connection))
-        .flat_map(|p| p.constituents.iter().copied())
-        .collect();
-    out.sort();
-    out.dedup();
-    out
-}
-
 /// Normaliser #7.
 ///
 /// A representation created by this transaction whose functions have no connection yet, and of whose
 /// drawn CPs at least two distinct positions lie on the stored route of one connection of its page (in ID order;
 /// connections already attached to its functions are skipped), splits that connection: the part from `a` ends at the CP met first along the path,
 /// the part to `b` starts at the CP met last, and the part toward the wire's From end keeps the connection's record
-/// (FR-CON-008). The representation then has connections, so a second run does nothing. Every wire the connection was
-/// part of is cut into two that nobody measured: no constituent of those wires keeps a typed length (`overrides.length`,
-/// doc 13 §2.3).
+/// (FR-CON-008). The representation then has connections, so a second run does nothing. The wires it cuts keep their
+/// values as `own_values` says (doc 13 §2.3).
 ///
 /// A connection's path is the one the page draws it along: its stored route. A
 /// connection without one is unrouted and has no wire geometry: it is drawn as a dashed straight line
@@ -258,8 +226,7 @@ impl Normaliser for ConnectionSplit {
                     return tx.reject(text!("refusal-split-shared-run"));
                 }
                 let keep_second = from_end_beyond_b(tx, cid);
-                let cut = wires_through(tx, cid);
-                let new = split_connection(
+                split_connection(
                     tx,
                     cid,
                     c1.pos,
@@ -268,83 +235,12 @@ impl Normaliser for ConnectionSplit {
                     Endpoint::Cp(c2.function, c2.idx),
                     keep_second,
                 )?;
-                // The device cuts every wire through the connection into two wires nobody measured (doc 13 §2.3):
-                // none of them keeps a typed length.
-                for c in cut.into_iter().chain([cid, new]) {
-                    if tx
-                        .get::<Connection>(c)
-                        .is_some_and(|c| c.overrides.length.is_some())
-                    {
-                        tx.update::<Connection>(c, |c| c.overrides.length = None)?;
-                    }
-                }
                 changed = true;
                 break;
             }
         }
         Ok(changed)
     }
-}
-
-/// The rule every normaliser that splits, merges or removes a connection follows (doc 13 §2.3): **a wire's own values
-/// follow the wire.** `from`'s overrides that `to` does not set go to `to`, which carries the wire on where `from` does
-/// not (any more) stand for it alone; with `take`, `from` gives them up. `ends` says where `from`'s `end_a` and `end_b`
-/// land on `to` (`Some(true)`: its `end_a`; `None`: nowhere), each end staying with its connection point. With `all`
-/// every member of the overrides goes (a junction's member that is removed); without, only the wire's measured length
-/// and its ends set by hand (a split, whose two parts are drawn alike).
-pub(crate) fn follow_the_wire(
-    tx: &mut TxBuilder<'_>,
-    from: Id<Connection>,
-    to: Id<Connection>,
-    ends: [Option<bool>; 2],
-    all: bool,
-    take: bool,
-) -> Result<(), CmdError> {
-    let Some(source) = tx.get::<Connection>(from).map(|c| c.overrides.clone()) else {
-        return Ok(());
-    };
-    tx.update::<Connection>(to, |c| {
-        let o = &mut c.overrides;
-        let fill = |slot: &mut Option<ew_schema::EndOverride>, value: &Option<ew_schema::EndOverride>| {
-            if slot.is_none() {
-                slot.clone_from(value);
-            }
-        };
-        for (i, at_a) in ends.into_iter().enumerate() {
-            let value = if i == 0 { &source.end_a } else { &source.end_b };
-            match at_a {
-                Some(true) => fill(&mut o.end_a, value),
-                Some(false) => fill(&mut o.end_b, value),
-                None => {}
-            }
-        }
-        if o.length.is_none() {
-            o.length = source.length;
-        }
-        if all {
-            o.csa = o.csa.take().or_else(|| source.csa.clone());
-            o.colour = o.colour.take().or_else(|| source.colour.clone());
-            o.wire_part = o.wire_part.take().or_else(|| source.wire_part.clone());
-            o.insulation = o.insulation.take().or_else(|| source.insulation.clone());
-            o.function = o.function.take().or_else(|| source.function.clone());
-        }
-    })?;
-    if take {
-        tx.update::<Connection>(from, |c| {
-            let o = &mut c.overrides;
-            o.length = None;
-            for (i, at) in ends.into_iter().enumerate() {
-                if at.is_some() {
-                    if i == 0 {
-                        o.end_a = None;
-                    } else {
-                        o.end_b = None;
-                    }
-                }
-            }
-        })?;
-    }
-    Ok(())
 }
 
 /// Whether two endpoints are the same.

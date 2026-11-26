@@ -99,7 +99,7 @@ pub(super) fn wire_list_rows(q: &Q) -> Vec<WireListRow> {
         let own: &[Id<Connection>] = (!after_heading)
             .then(|| row_entity(&r.id, 0).and_then(|w| by_wire.get(&w)))
             .flatten()
-            .map_or(&[], |w| w.own.as_slice());
+            .map_or(&[], |w| w.own());
         if let Some(at) = own.first().and_then(|s| cons.iter().position(|c| c == s)) {
             let c = cons.remove(at);
             cons.insert(0, c);

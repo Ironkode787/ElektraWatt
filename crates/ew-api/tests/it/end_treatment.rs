@@ -590,11 +590,15 @@ fn properties_of_a_shared_stretch_are_read_only() {
             .expect("the star's feed arm");
         let wire = records
             .iter()
-            .find(|r| r.own.len() >= 2)
+            .find(|r| r.own().len() >= 2)
             .expect("a wire with two connections of its own");
         (
             shared,
-            (wire.own[0], wire.own[1], wire.number.clone().expect("a number")),
+            (
+                wire.own()[0],
+                wire.own()[1],
+                wire.number.clone().expect("a number"),
+            ),
         )
     };
     let sheet = s.property_sheet(&[shared.as_uuid()]);

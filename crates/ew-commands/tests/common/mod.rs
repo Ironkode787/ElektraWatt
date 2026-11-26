@@ -13,9 +13,9 @@ use ew_commands::{CmdError, Engine, EngineOptions, HistoryLimits, Receipt};
 use ew_ids::{Id, Uuid};
 use ew_model::{AnyKey, Entity, Model};
 use ew_schema::{
-    AnyId, Device, Dir4, Enclosure, EnclosureSection, Extra, FnDef, Function, KeyedList, Kind, LayoutSpace,
-    LibCopy, LibDocument, MechData, MountKind, MountingSurface, Part, PartRef, PartUse, PlateSection,
-    Project, RailSection, Record, SymbolCp, SymbolDef,
+    AnyId, Device, Dir4, Enclosure, EnclosureSection, Endpoint, Extra, FnDef, Function, KeyedList, Kind,
+    LayoutSpace, LibCopy, LibDocument, MechData, MountKind, MountingSurface, Part, PartRef, PartUse,
+    PlateSection, Project, RailSection, Record, SymbolCp, SymbolDef,
 };
 use ew_testids::SeededSource;
 use ew_units::{Dec3, Nm, Pose3, Pt2, Quat9};
@@ -237,6 +237,118 @@ pub fn rows<T: Entity + Clone>(e: &Engine) -> Vec<T> {
         .iter()
         .map(|(_, r)| (**r).clone())
         .collect()
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// A wire's own values (doc 13 §2.3), as a person sets them and the wire list reads them
+
+/// What a person reads of one wire: its typed length in mm, its colour (its JSON form, `["BU"]`), and the treatment set
+/// by hand at each of the two clamps asked for (`"bare"`).
+pub type WireSeen = (Option<i64>, Option<String>, [Option<String>; 2]);
+
+/// The wire between the clamps `x` and `y`, as the wire list reads it; `None` when no wire runs between them.
+pub fn wire_seen(model: &Model, x: &Endpoint, y: &Endpoint) -> Option<WireSeen> {
+    let q = ew_derive::Q::new(model);
+    let clamp = |e: &Endpoint| match e {
+        Endpoint::Cp(f, i) => Some(ew_derive::CpRef {
+            function: *f,
+            idx: *i,
+        }),
+        _ => None,
+    };
+    let (x, y) = (clamp(x)?, clamp(y)?);
+    let records = q.get::<ew_derive::WireRecordSet>(());
+    let r = records.iter().find(|r| {
+        let ends = [r.wire.ends[0].cp, r.wire.ends[1].cp];
+        ends == [x, y] || ends == [y, x]
+    })?;
+    let values = ew_derive::wire_values(&q, &r.wire);
+    let word = |cp: ew_derive::CpRef| {
+        (0..2)
+            .find(|i| r.wire.ends[*i].cp == cp)
+            .and_then(|i| values.ends[i].clone())
+            .and_then(|e| e.treatment)
+            .map(|t| {
+                serde_json::to_value(t)
+                    .expect("a treatment")
+                    .as_str()
+                    .expect("a word")
+                    .to_owned()
+            })
+    };
+    Some((
+        r.length.value().map(|n| n.0 / MM),
+        values.members.get("colour").map(ToString::to_string),
+        [word(x), word(y)],
+    ))
+}
+
+/// The clamps every wire of `model` ends at, each wire once, sorted: what a test reads to find a wire it did not draw.
+pub fn wire_clamps(model: &Model) -> Vec<[Endpoint; 2]> {
+    let q = ew_derive::Q::new(model);
+    let records = q.get::<ew_derive::WireRecordSet>(());
+    let mut out: Vec<[Endpoint; 2]> = records
+        .iter()
+        .map(|r| r.wire.ends.map(|e| Endpoint::Cp(e.cp.function, e.cp.idx)))
+        .collect();
+    out.sort_by_key(|e| format!("{e:?}"));
+    out
+}
+
+/// `model` with values set on the wire between `x` and `y` where a person sets them (the wire's first own connection,
+/// `WireRecord::own`; each end in the slot `EndRecord::hand_at` names): a length in mm, a colour (`"BU"`), the
+/// treatment at `x` and at `y`.
+pub fn with_wire_values(
+    model: &Model,
+    (x, y): (&Endpoint, &Endpoint),
+    length: i64,
+    colour: Option<&str>,
+    ends: [Option<&str>; 2],
+) -> Model {
+    let q = ew_derive::Q::new(model);
+    let records = q.get::<ew_derive::WireRecordSet>(());
+    let at = |e: &Endpoint| match e {
+        Endpoint::Cp(f, i) => (*f, *i),
+        _ => panic!("a wire ends at a clamp"),
+    };
+    let r = records
+        .iter()
+        .find(|r| {
+            let ends = r.wire.ends.map(|e| (e.cp.function, e.cp.idx));
+            ends == [at(x), at(y)] || ends == [at(y), at(x)]
+        })
+        .expect("a wire between the two clamps");
+    let mut rows: std::collections::BTreeMap<Id<ew_schema::Connection>, ew_schema::Connection> =
+        Default::default();
+    let first = *r.own().first().expect("a connection of its own");
+    let conns = q.connections();
+    let fresh = |c: Id<ew_schema::Connection>| (**conns.get(c).expect("the connection")).clone();
+    let o = &mut rows.entry(first).or_insert_with(|| fresh(first)).overrides;
+    o.length = Some(Nm(length * MM));
+    o.colour = colour.map(|c| serde_json::from_value(serde_json::json!([c])).expect("a colour"));
+    for (i, end) in r.ends.iter().enumerate() {
+        let k = usize::from((r.wire.ends[i].cp.function, r.wire.ends[i].cp.idx) != at(x));
+        let (Some(word), Some((c, a))) = (ends[k], end.hand_at) else {
+            continue;
+        };
+        let value = serde_json::from_value(serde_json::json!({"treatment": word})).expect("an end");
+        let o = &mut rows.entry(c).or_insert_with(|| fresh(c)).overrides;
+        if a {
+            o.end_a = Some(value);
+        } else {
+            o.end_b = Some(value);
+        }
+    }
+    let ops: Vec<ew_model::Op> = rows
+        .into_values()
+        .map(|after| {
+            let before = q.connections().get(after.id).expect("the connection").clone();
+            ew_model::Op::update(ew_model::AnyRow::Connection(before), ew_model::AnyRow::of(after))
+        })
+        .collect();
+    model
+        .apply_history(&ops, ew_model::Rev(model.rev().0 + 1))
+        .expect("the values apply")
 }
 
 // ---------------------------------------------------------------------------------------------------------
