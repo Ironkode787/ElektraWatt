@@ -178,13 +178,21 @@ fn a_variable_of_ones_own_becomes_a_field_of_the_projects_own() {
             r#"<diagram folio="{folio}" order="{folio}" title="F{folio}" titleblocktemplate="tb" titleblocktemplateCollection="embedded"><properties><property name="customer">ACME</property><property name="sheet">{sheet}</property></properties></diagram>"#
         )
     };
-    let xml = format!("<project title=\"Fields\">{sheets}{}{}</project>", diagram(1, "C-1"), diagram(2, "C-2"));
+    let xml = format!(
+        "<project title=\"Fields\">{sheets}{}{}</project>",
+        diagram(1, "C-1"),
+        diagram(2, "C-2")
+    );
     let input = ImportInput::new("x.qet", xml.into_bytes()).unwrap();
     let b = QetProjectImporter::new()
         .import(&input, &mut new_project_context())
         .unwrap();
     let c = cells(&b);
-    assert!(c[0].contains(&" {project.prop.customer} {page.prop.sheet}".to_owned()), "{:?}", c[0]);
+    assert!(
+        c[0].contains(&" {project.prop.customer} {page.prop.sheet}".to_owned()),
+        "{:?}",
+        c[0]
+    );
     assert_eq!(c[0], c[1], "both pages print one title block");
     let project = b
         .records
@@ -209,7 +217,11 @@ fn a_variable_of_ones_own_becomes_a_field_of_the_projects_own() {
     assert_eq!(
         defs,
         [
-            ("customer".to_owned(), neutral("customer"), "[\"project\"]".to_owned()),
+            (
+                "customer".to_owned(),
+                neutral("customer"),
+                "[\"project\"]".to_owned()
+            ),
             ("sheet".to_owned(), neutral("sheet"), "[\"page\"]".to_owned()),
         ]
     );

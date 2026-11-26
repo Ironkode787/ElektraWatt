@@ -684,6 +684,103 @@ fn xref_format(project: &QetProject, findings: &mut Findings) -> Option<Value> {
     }))
 }
 
+/// A variable of the project's own of a QElectroTech project (`<properties>` of the project or a diagram, none of
+/// QET's own and no title-block attribute), brought in as a field of the project's own (doc 14 §4.9, doc 09 §2.10).
+struct OwnField {
+    /// The variable's name, the field's name.
+    name: String,
+    /// The field's key, minted from the name.
+    key: Ident,
+    /// One value for each page (the diagrams differ, or not all name it), else one for the project.
+    page: bool,
+    /// Each diagram's value, by diagram index: the project's property, else the diagram's (QET's order).
+    values: Vec<Option<String>>,
+}
+
+impl OwnField {
+    /// The placeholder path a cell prints it by.
+    fn path(&self) -> String {
+        let scope = if self.page { "page" } else { "project" };
+        format!("{scope}.prop.{}", self.key.as_str())
+    }
+
+    /// Its definition, of the kind text.
+    fn definition(&self) -> ew_schema::UserPropDef {
+        ew_schema::UserPropDef {
+            key: self.key.clone(),
+            label: MlText::neutral(&self.name),
+            value_kind: ew_schema::UserPropKind::Text,
+            scope: vec![if self.page {
+                ew_schema::UserPropScope::Page
+            } else {
+                ew_schema::UserPropScope::Project
+            }],
+            extra: BTreeMap::new(),
+        }
+    }
+
+    /// Its value `value`, none for an empty one.
+    fn value(&self, value: Option<&String>) -> Option<ew_schema::UserPropValue> {
+        value.filter(|v| !v.is_empty()).map(|v| ew_schema::UserPropValue {
+            key: self.key.clone(),
+            value: MlText::neutral(v),
+            extra: BTreeMap::new(),
+        })
+    }
+}
+
+/// The variables of the project's own of `project`, in the order they first stand (see [`OwnField`]).
+fn own_fields(project: &QetProject) -> Vec<OwnField> {
+    let qets = |name: &str| {
+        frames::BOUND.iter().any(|(n, _)| *n == name)
+            || frames::FIELDS.iter().any(|(n, _)| *n == name)
+            || frames::PATHS.contains(&name)
+            || name == "projecttitle"
+            || project
+                .diagrams
+                .iter()
+                .any(|d| d.titleblock.iter().any(|(n, _)| n == name))
+    };
+    let mut names: Vec<&str> = Vec::new();
+    for (name, _) in project
+        .properties
+        .iter()
+        .chain(project.diagrams.iter().flat_map(|d| &d.properties))
+    {
+        if !qets(name) && !names.contains(&name.as_str()) {
+            names.push(name);
+        }
+    }
+    let mut out: Vec<OwnField> = Vec::new();
+    for name in names {
+        let values: Vec<Option<String>> = project
+            .diagrams
+            .iter()
+            .map(|d| {
+                project
+                    .properties
+                    .iter()
+                    .chain(&d.properties)
+                    .find(|(n, _)| n == name)
+                    .map(|(_, v)| v.clone())
+            })
+            .collect();
+        let first = values.first().cloned().flatten();
+        let page = first.is_none() || values.iter().any(|v| *v != first);
+        let key = ew_schema::UserPropDef::mint_key(name, |k| out.iter().any(|f| f.key.as_str() == k));
+        let Ok(key) = Ident::from_input(&key) else {
+            continue;
+        };
+        out.push(OwnField {
+            name: name.to_owned(),
+            key,
+            page,
+            values,
+        });
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -786,94 +883,4 @@ mod tests {
         assert_eq!(iso_date("2025-04-14"), Date::new(2025, 4, 14).ok());
         assert_eq!(iso_date("14-04-2025"), None);
     }
-}
-
-/// A variable of the project's own of a QElectroTech project (`<properties>` of the project or a diagram, none of
-/// QET's own and no title-block attribute), brought in as a field of the project's own (doc 14 §4.9, doc 09 §2.10).
-struct OwnField {
-    /// The variable's name, the field's name.
-    name: String,
-    /// The field's key, minted from the name.
-    key: Ident,
-    /// One value for each page (the diagrams differ, or not all name it), else one for the project.
-    page: bool,
-    /// Each diagram's value, by diagram index: the project's property, else the diagram's (QET's order).
-    values: Vec<Option<String>>,
-}
-
-impl OwnField {
-    /// The placeholder path a cell prints it by.
-    fn path(&self) -> String {
-        let scope = if self.page { "page" } else { "project" };
-        format!("{scope}.prop.{}", self.key.as_str())
-    }
-
-    /// Its definition, of the kind text.
-    fn definition(&self) -> ew_schema::UserPropDef {
-        ew_schema::UserPropDef {
-            key: self.key.clone(),
-            label: MlText::neutral(&self.name),
-            value_kind: ew_schema::UserPropKind::Text,
-            scope: vec![if self.page {
-                ew_schema::UserPropScope::Page
-            } else {
-                ew_schema::UserPropScope::Project
-            }],
-            extra: BTreeMap::new(),
-        }
-    }
-
-    /// Its value `value`, none for an empty one.
-    fn value(&self, value: Option<&String>) -> Option<ew_schema::UserPropValue> {
-        value.filter(|v| !v.is_empty()).map(|v| ew_schema::UserPropValue {
-            key: self.key.clone(),
-            value: MlText::neutral(v),
-            extra: BTreeMap::new(),
-        })
-    }
-}
-
-/// The variables of the project's own of `project`, in the order they first stand (see [`OwnField`]).
-fn own_fields(project: &QetProject) -> Vec<OwnField> {
-    let qets = |name: &str| {
-        frames::BOUND.iter().any(|(n, _)| *n == name)
-            || frames::FIELDS.iter().any(|(n, _)| *n == name)
-            || frames::PATHS.contains(&name)
-            || name == "projecttitle"
-            || project.diagrams.iter().any(|d| d.titleblock.iter().any(|(n, _)| n == name))
-    };
-    let mut names: Vec<&str> = Vec::new();
-    for (name, _) in project.properties.iter().chain(project.diagrams.iter().flat_map(|d| &d.properties)) {
-        if !qets(name) && !names.contains(&name.as_str()) {
-            names.push(name);
-        }
-    }
-    let mut out: Vec<OwnField> = Vec::new();
-    for name in names {
-        let values: Vec<Option<String>> = project
-            .diagrams
-            .iter()
-            .map(|d| {
-                project
-                    .properties
-                    .iter()
-                    .chain(&d.properties)
-                    .find(|(n, _)| n == name)
-                    .map(|(_, v)| v.clone())
-            })
-            .collect();
-        let first = values.first().cloned().flatten();
-        let page = first.is_none() || values.iter().any(|v| *v != first);
-        let key = ew_schema::UserPropDef::mint_key(name, |k| out.iter().any(|f| f.key.as_str() == k));
-        let Ok(key) = Ident::from_input(&key) else {
-            continue;
-        };
-        out.push(OwnField {
-            name: name.to_owned(),
-            key,
-            page,
-            values,
-        });
-    }
-    out
 }

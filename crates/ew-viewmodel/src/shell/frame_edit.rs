@@ -573,7 +573,10 @@ impl ShellModel {
                 } else {
                     cell.printed.clone()
                 };
-                header.subtitle = Some(strings::format_count(crate::count_key!("frame-cell-where"), facts.block_pages.len()));
+                header.subtitle = Some(strings::format_count(
+                    crate::count_key!("frame-cell-where"),
+                    facts.block_pages.len(),
+                ));
                 let label = item
                     .get("label")
                     .map(|l| label_text(l, facts.language.as_deref()))
@@ -646,7 +649,10 @@ impl ShellModel {
             }
             FrameChoice::Rulers => {
                 header.title = text(key!("frame-row-rulers"));
-                header.subtitle = Some(strings::format_count(crate::count_key!("frame-pages"), facts.frame_pages.len()));
+                header.subtitle = Some(strings::format_count(
+                    crate::count_key!("frame-pages"),
+                    facts.frame_pages.len(),
+                ));
                 let typed = |key: &str, label: String, ty: FieldType, text: String, json: Value| {
                     row(key, label, ty, text, json, true)
                 };
@@ -654,7 +660,10 @@ impl ShellModel {
             }
             FrameChoice::Frame => {
                 header.title = text(key!("frame-title"));
-                header.subtitle = Some(strings::format_count(crate::count_key!("frame-pages"), facts.frame_pages.len()));
+                header.subtitle = Some(strings::format_count(
+                    crate::count_key!("frame-pages"),
+                    facts.frame_pages.len(),
+                ));
                 let sheet = &facts.frame_item["sheet"];
                 let mm = |v: &Value| crate::canvas::mm1(v.as_i64().unwrap_or(0));
                 let own = facts.block.is_some() && facts.block != facts.shared_block;
@@ -901,7 +910,9 @@ impl ShellModel {
                                 TEXT_ROW if text.trim().is_empty() => {
                                     cell.as_object_mut().map(|m| m.remove("label"));
                                 }
-                                TEXT_ROW => cell["label"] = with_label(cell.get("label"), language.as_deref(), &text),
+                                TEXT_ROW => {
+                                    cell["label"] = with_label(cell.get("label"), language.as_deref(), &text)
+                                }
                                 SHOWS_ROW if text == SHOWS_TEXT_ONLY => {
                                     cell.as_object_mut().map(|m| m.remove("value"));
                                 }

@@ -401,10 +401,13 @@ fn context(
     for (name, path) in BOUND {
         ctx.insert(name.to_owned(), Var::Bound(path.to_owned()));
     }
-    let names = FIELDS
-        .iter()
-        .map(|(name, _)| *name)
-        .chain(project.properties.iter().chain(&d.properties).map(|(n, _)| n.as_str()));
+    let names = FIELDS.iter().map(|(name, _)| *name).chain(
+        project
+            .properties
+            .iter()
+            .chain(&d.properties)
+            .map(|(n, _)| n.as_str()),
+    );
     for name in names {
         if let Some(path) = fielded(d.index, name) {
             ctx.entry(name.to_owned()).or_insert(Var::Bound(path));

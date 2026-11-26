@@ -52,6 +52,9 @@ fn ten_columns_and_six_rows_preview_the_wire_numbers_they_renumber() {
     };
     let preview = s.preview(&cmd).expect("the change previews");
     let diff = s.derived_diff(&preview);
-    assert!(!diff.wires.is_empty(), "a grid of other cells orders some wires anew");
+    assert!(
+        !diff.wires.is_empty(),
+        "a grid of other cells orders some wires anew"
+    );
     assert!(diff.wires.iter().all(|w| w.before != w.after), "{:?}", diff.wires);
 }

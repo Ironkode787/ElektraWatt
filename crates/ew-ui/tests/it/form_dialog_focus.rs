@@ -491,7 +491,11 @@ fn every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     // Use the frames of a template…: a template in the list (a copy of the release fixture).
     let template = tmp.0.join("template");
     copy_dir(Path::new(RELEASE_MIN), &template);
-    dispatch(&mut h, "templates.add", json!({"dir": template.to_string_lossy()}));
+    dispatch(
+        &mut h,
+        "templates.add",
+        json!({"dir": template.to_string_lossy()}),
+    );
     dispatch(&mut h, "ui.dismiss", json!({}));
     checked.insert(check_form(&mut h, "frame.adopt", json!({})));
     dispatch(&mut h, "ui.dismiss", json!({}));
