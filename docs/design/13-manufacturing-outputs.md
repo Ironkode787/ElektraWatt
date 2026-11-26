@@ -313,7 +313,8 @@ list, the labels, the cut list and a machine profile read the record and never r
 A length is typed in the Length cell of the Connections table or in the wire's Length row (Properties), in mm or with
 its unit ("2 m"); an empty value clears it. Properties says where a length comes from in words: "Typed by hand", "Cut
 with its cable -103W1", "No length: type it here, or the fitter measures the wire" (a text by key with its arguments,
-[04](04-architecture.md) §18). EW-MFG-001 (§4.6) says before a print how many wires have none.
+[04](04-architecture.md) §18). Where a length is asked for or can be computed, EW-MFG-001 (§4.6) says how many wires
+have none; in a project without a panel layout the wire list prints — and no rule reports it.
 
 ### 3.4 Order and grouping
 
@@ -453,7 +454,7 @@ The rules that say before a print what the fitter would ask. They run online and
 
 | Rule | Says | Severity | Fix |
 |---|---|---|---|
-| EW-MFG-001 | "41 wires have no length: the wire list prints — for them", one finding for the project while a wire that is no core has no length | info; the layout's lengths and a machine export set their own | Select them (the wires, which the Connections table then shows) |
+| EW-MFG-001 | How many wires have no length, one finding for the project while a wire that is no core has no length, raised only where a length is asked for or can be computed: by the check before an export for the workshop, and by Check project in a project that has a panel layout, whose layout gives lengths; a project without a layout raises none | info; a machine export sets its own | Select them (the wires, which the Connections table then shows) |
 | EW-MFG-004 | "The marker of 104.4 at -104B1:13 does not fit its marker part: +CAB-104A1-A2:L+ needs 16 characters on a line of 12", per end | warning | — |
 | EW-MFG-008 | "The end of 104.4 at -104B1:13 cannot be made: a fine-stranded wire into an insulation-displacement clamp", per end | warning | Set the end by hand |
 | EW-MFG-009 | "The end of 101.7 at -101F1:3 set by hand does not fit: a ferrule for 1.5 mm² on a 2.5 mm² wire" (also: a twin ferrule with no second wire; a ferrule of another collar colour than the stock's ferrule of that size), per end | warning | Reset to the rule |
@@ -1024,8 +1025,8 @@ colour and size; Output ▸ List columns… ticks the fitter's columns into it: 
 fine-stranded wire, clamp kind not known"). (3) A PE wire takes a lug: the To end cell ▸ Ring lug; the cell turns to
 the text colour and Properties show "set by hand" with Reset. (4) His shop marks with wire numbers: Output ▸ Workshop
 ▸ Workshop settings shows Project properties ▸ Workshop; Marker text ▸ Wire number at both ends, and the markers
-follow. (5) Three long wires get a length in the Length cell; Messages says "41 wires have no length" (info, Select
-them). (6) He prints 907. (7) Output ▸ Workshop ▸ Labels… lists one file per label set and marker part with its
+follow. (5) Three long wires get a length in the Length cell of the Connections table; the others print — and the fitter
+measures them. (6) He prints 907. (7) Output ▸ Workshop ▸ Labels… lists one file per label set and marker part with its
 count; Export writes them ("Wrote 6 label files to Labels.", Open folder); his label program maps Text 1 once.
 
 **The tenth job.** His basic project carries the stock and the workshop settings: he prints 907 and exports the labels.

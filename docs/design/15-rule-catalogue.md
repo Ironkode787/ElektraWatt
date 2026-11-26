@@ -201,12 +201,14 @@ has no offline mode: the 3D half is 1.0. AC-21's compared subset admits EW-LAYOU
 
 #### 4.5.5 EW-MFG
 
-EW-MFG-001, 004, 008 and 009 judge the project before a print, online and in release mode; 002, 003, 005 and 006
+EW-MFG-004, 008 and 009 judge the project before a print, online and in release mode; EW-MFG-001 judges it where a
+length is asked for or can be computed (the check before an export for the workshop, Check project in a project with a
+panel layout); 002, 003, 005 and 006
 are a machine export's pre-flight and need its profile ([13](13-manufacturing-outputs.md) §4.6, §7.3).
 
 | ID | Name | Checks | Kind | Modes | Severity | Scope | Rel | Req. | D (defects) | Def. |
 |---|---|---|---|---|---|---|---|---|---|---|
-| EW-MFG-001 | Wires without a length | One finding for the project while a wire that is no core has no length (the wire list prints —), its targets those wires; an export by profile judges each wire's length by the profile; supersedes EW-REL-002 for lengths | completeness | o r x | info (an export by profile: error, the row excluded) | project | 1.0 | FR-MFG-024, FR-MFG-051, FR-CHK-058 | D-19 | 13 §4.6 |
+| EW-MFG-001 | Wires without a length | One finding for the project while a wire that is no core has no length (the wire list prints —), its targets those wires, raised only where a length is asked for or can be computed: by the check before an export for the workshop and by Check project in a project that has a panel layout, none in a project without a layout; an export by profile judges each wire's length by the profile; supersedes EW-REL-002 for lengths | completeness | o r x | info (an export by profile: error, the row excluded) | project | 1.0 | FR-MFG-024, FR-MFG-051, FR-CHK-058 | D-19 | 13 §4.6 |
 | EW-MFG-002 | Outside the machine limits | Cross-section or wire type outside the machine's limits or magazine | conflict | x | warning (row to the manual list) | potential | 1.0 | FR-MFG-024, FR-MFG-051 | — | 13 §4.6 |
 | EW-MFG-003 | Ferrule or end treatment unavailable | A ferrule not in the machine's magazine, or an end treatment not in the profile's `end_treatments` | conflict | x | warning (manual list or finishing task) | potential | 1.0 | FR-MFG-024, FR-MFG-050 | — | 13 §4.6 |
 | EW-MFG-004 | Marker text does not fit | A marker text that does not fit its stock after the shortening of 13 §5.2 (characters per line, lines), or its encoding | conflict | o x | warning | potential | 1.0 | FR-MFG-011, FR-MFG-024 | — | 13 §4.6 |
