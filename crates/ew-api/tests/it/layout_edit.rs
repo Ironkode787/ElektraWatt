@@ -254,15 +254,21 @@ fn length_lengthens_the_rail_and_a_bad_text_is_refused_in_words() {
 fn a_placements_locked_and_rotation_rows_commit_their_commands() {
     let mut s = common::sample();
     let f1 = placement_of(&s, "-102F1");
-    let along = s
+    let nm = s
         .query()
         .table::<Placement>()
         .get(Id::from_uuid(f1))
         .unwrap()
         .pose
         .t[0]
-        .0
-        / 1_000_000;
+        .0;
+    // The position in millimetres as the row prints it: its decimals without trailing zeros.
+    let (whole, frac) = (nm / 1_000_000, nm % 1_000_000);
+    let along = if frac == 0 {
+        whole.to_string()
+    } else {
+        format!("{whole}.{}", format!("{frac:06}").trim_end_matches('0'))
+    };
     let keys: Vec<String> = rows(&s, f1).into_iter().map(|r| r.0).collect();
     assert_eq!(
         keys,

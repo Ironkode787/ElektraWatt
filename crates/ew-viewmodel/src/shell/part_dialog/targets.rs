@@ -230,8 +230,8 @@ impl ShellModel {
             c.query.lang = Some(strings::rule_language().to_owned());
             c.offers = project.session.part_offers(&c.query);
             // A layout kind is offered to a device only where panel layout
-            // attaches it (`chooser_layout_kinds`: an end bracket to a strip, an enclosure or a plate to a device
-            // without a main function, never a rail or a duct).
+            // attaches it (`chooser_layout_kinds`: an enclosure or a plate to a device without a main function, never an
+            // end bracket, a rail or a duct).
             if let PartTarget::Devices { devices, .. } = &c.target {
                 let allowed = project.session.chooser_layout_kinds(devices);
                 c.offers

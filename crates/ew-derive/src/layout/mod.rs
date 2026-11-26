@@ -19,6 +19,7 @@
 //! | [`Unplaced`] | `unplaced(space)`: the mountable devices of the space's location without a placement |
 //! | [`PlacementGeometry`] | `placement_geometry(p)`: the footprint and outline in the surface frame |
 //! | [`RailOccupancy`] | `rail_occupancy(carrier)`: the sorted intervals along a rail |
+//! | [`StripLayout`] | `strip_layout(strip)`: a strip's terminals and the accessories standing in it, in mounting order |
 //! | [`LayoutLabel`] | `layout_label((p, page, mode))`: the label text (D10) |
 //! | [`CarrierGeometry`] | `carrier_geometry(carrier)`: the axis check, length, axis and outline of a carrier |
 //! | [`layout_legend`], [`LegendRow`] | `layout_legend(surface)`: the legend rows of a surface (doc 12 §5.4) |
@@ -52,10 +53,7 @@ mod queries;
 // The rail model and the mode resolution
 mod snap;
 
-pub use accessories::{
-    Bracket, GroupAccessories, RailBrackets, StripBrackets, bracket_part, bracket_use, rail_items,
-    strip_brackets,
-};
+pub use accessories::{Bracket, GroupAccessories, RailBrackets, rail_items};
 pub use assembly::{member_order, member_slot};
 pub use carrier::{PathError, RailAxis, check_path, path_length};
 pub use fit::{Fit, Profile, RAIL_FITS, fits_rail, fits_surface, mount_label};
@@ -65,13 +63,13 @@ pub use legend::{
     page_surface, surface_pages,
 };
 pub use pose::{PoseError, PoseOn, Quarter, check_pose, clip_offset, plate_frame, rehome_pose};
-pub(crate) use queries::shown_location;
 pub use queries::{
     CarrierGeom, CarrierGeometry, Exempt, LabelMode, LayoutLabel, MountAs, Mountability, Mountable, Occupied,
-    PlacementGeom, PlacementGeometry, RailExtent, RailOccupancy, UNKNOWN_SIDE, Unplaced, fill_candidates,
-    is_earth_connection, is_earth_point, places_strip, primary_part, rail_extent, space_of_location,
-    unlocated, unlocated_drawn,
+    PlacementGeom, PlacementGeometry, RailExtent, RailOccupancy, StripItem, StripItemKind, StripLayout,
+    UNKNOWN_SIDE, Unplaced, fill_candidates, is_earth_connection, is_earth_point, places_strip, primary_part,
+    rail_extent, space_of_location, unlocated, unlocated_drawn,
 };
+pub(crate) use queries::{shown_location, strip_terminals};
 pub use snap::{
     BracketRole, BracketSpan, RailItem, Resolution, SnapError, SnapMode, brackets, cascade, cascade_mirrored,
     end_gap, free_length, min_gap, next_fit, resolve, runs, start_gap,

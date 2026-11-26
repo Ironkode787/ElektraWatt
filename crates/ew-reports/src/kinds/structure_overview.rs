@@ -90,7 +90,8 @@ impl ReportKindDef for StructureOverview {
             };
             let part = q
                 .get::<DevicePartLines>(id)
-                .first()
+                .iter()
+                .find(|l| !l.is_accessory())
                 .and_then(|l| {
                     q.parts()
                         .get(l.part)

@@ -387,10 +387,10 @@ impl Session {
         })
     }
 
-    /// The layout kinds a part dialog for `devices` offers: an end bracket only when every
-    /// device is a strip (its `aspects.strip` is set, with or without terminals); an enclosure and a mounting plate only
-    /// when every device has no main function; a rail and a duct never (they are layout items, not part uses of a
-    /// device). Every other device is offered none. Empty when `devices` is empty or one names no device.
+    /// The layout kinds a part dialog for `devices` offers: an enclosure and a mounting plate only when every device has
+    /// no main function; an end bracket never (a strip's end brackets come with its terminals' parts, doc 07 §2.5), a
+    /// rail and a duct never (they are layout items, not part uses of a device). Empty when `devices` is empty or one
+    /// names no device.
     pub fn chooser_layout_kinds(&self, devices: &[Uuid]) -> Vec<String> {
         if devices.is_empty() {
             return Vec::new();
@@ -400,13 +400,10 @@ impl Session {
             let id: Id<Device> = Id::from_uuid(*d);
             q.devices().get(id).cloned()
         };
-        let Some(found) = devices.iter().map(exists).collect::<Option<Vec<_>>>() else {
+        if devices.iter().map(exists).any(|d| d.is_none()) {
             return Vec::new();
-        };
-        let mut kinds: Vec<&str> = Vec::new();
-        if found.iter().all(|d| d.aspects.strip.is_some()) {
-            kinds.push("end_bracket");
         }
+        let mut kinds: Vec<&str> = Vec::new();
         if devices.iter().all(|d| self.main_function(*d).is_none()) {
             kinds.push("enclosure");
             kinds.push("mounting_plate");

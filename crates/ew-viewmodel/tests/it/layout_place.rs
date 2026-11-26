@@ -21,8 +21,8 @@ use serde_json::{Value, json};
 
 const MM: i64 = 1_000_000;
 
-/// The placements the set-up takes off: rail 1's but -101Q1, -101F1 and -101G1, which keep its start, and the
-/// assembly member -201K1-Q2 of rail 2. The sample places every device; these tests need unplaced devices and a rail
+/// The placements the set-up takes off: rail 1's but -101Q1, -101F1 and -101G1, which keep its start after -X1011's
+/// place, the strip -X1031 and the lamp -104E2 of rail 2, and the assembly member -201K1-Q2 of rail 2. The sample places every device; these tests need unplaced devices and a rail
 /// with room at both ends.
 const TAKEN_OFF: [&str; 12] = [
     "-X1011",
@@ -233,15 +233,15 @@ fn undo_all_once(shell: &mut ShellModel) {
     assert!(!shell.can_undo(), "the gesture was one undo step");
 }
 
-/// Rail 1 after the set-up: three devices from 26 mm, room before them and after them.
-const R1_BEFORE: [(&str, f64); 3] = [("-101Q1", 53.0), ("-101F1", 98.0), ("-101G1", 146.0)];
+/// Rail 1 after the set-up: three devices from 48.2 mm, room before them and after them.
+const R1_BEFORE: [(&str, f64); 3] = [("-101Q1", 75.2), ("-101F1", 120.2), ("-101G1", 168.2)];
 
 /// -102F1 pushed in between -101F1 and -101G1: -101G1 moves by -102F1's 18 mm.
 const R1_PUSHED: [(&str, f64); 4] = [
-    ("-101Q1", 53.0),
-    ("-101F1", 98.0),
-    ("-102F1", 125.0),
-    ("-101G1", 164.0),
+    ("-101Q1", 75.2),
+    ("-101F1", 120.2),
+    ("-102F1", 147.2),
+    ("-101G1", 186.2),
 ];
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -317,7 +317,7 @@ fn the_unplaced_devices_navigator_lists_the_devices_taken_off() {
         json!({"cmd": "layout.place", "params": {
             "device": f55.to_string(),
             "carrier": {"carrier": r1},
-            "pose": {"t": [125 * MM, 0, 0], "q": [1_000_000_000, 0, 0, 0]},
+            "pose": {"t": [147_200_000, 0, 0], "q": [1_000_000_000, 0, 0, 0]},
             "mode": "push",
         }}),
     );
@@ -420,11 +420,11 @@ fn a_device_pushed_onto_rail_1_by_a_drag() {
         hud(&shell).prompt,
         "Place -102F1 · Ctrl pushes · Alt swaps · Shift no snap · Esc done"
     );
-    let drop = on_rail(&shell, "Rail 1", 125 * MM);
+    let drop = on_rail(&shell, "Rail 1", 147_200_000);
     done(&mut shell, "canvas.pointer", at(drop, json!({"ctrl": true})));
     assert_eq!(
         ghost(&shell),
-        json!({"kind": "layout", "device": "-102F1", "carrier": "Rail 1", "mode": "push", "at_nm": [116 * MM],
+        json!({"kind": "layout", "device": "-102F1", "carrier": "Rail 1", "mode": "push", "at_nm": [138_200_000],
             "moved": 1, "refused": null})
     );
     assert!(
@@ -443,7 +443,7 @@ fn a_device_pushed_onto_rail_1_by_a_drag() {
     );
     let predicted = shell.layout_predicted_poses();
     let g1 = placement(&shell, "-101G1");
-    assert_eq!(predicted, [(f55, (125 * MM, 0, 0)), (g1, (164 * MM, 0, 0))]);
+    assert_eq!(predicted, [(f55, (147_200_000, 0, 0)), (g1, (186_200_000, 0, 0))]);
     done(&mut shell, "canvas.release", at(drop, json!({"ctrl": true})));
     assert_eq!(rail_poses(&shell, "Rail 1"), rows_of(&R1_PUSHED));
     assert_eq!(
@@ -520,12 +520,16 @@ fn a_device_pushed_onto_rail_1_from_the_keyboard() {
     );
     assert_eq!(ghost(&shell)["at_nm"], json!([0]));
     let f55 = unplaced(&shell, "-102F1");
-    let target = (f55, (125 * MM, 0, 0));
+    let target = (f55, (147_200_000, 0, 0));
     let mut steps = 0;
     while shell.layout_predicted_poses().first() != Some(&target) {
         assert_eq!(key(&mut shell, "cursor.right"), Outcome::Done);
         steps += 1;
-        assert!(steps < 100, "the arrows never reached 116 mm: {}", ghost(&shell));
+        assert!(
+            steps < 100,
+            "the arrows never reached 138.2 mm: {}",
+            ghost(&shell)
+        );
     }
     // One step back and forth lands on the same snap target.
     assert_eq!(key(&mut shell, "cursor.left"), Outcome::Done);
@@ -669,16 +673,16 @@ fn target_snapping_shift_and_the_grid_option() {
         "tool.place_layout",
         json!({"device": f55.to_string()}),
     );
-    // The left edge at 176.4 mm: -101G1 ends at 176 mm, the grid point is 175 mm.
-    let near = on_rail(&shell, "Rail 1", 185_400_000);
+    // The left edge at 198.6 mm: -101G1 ends at 198.2 mm, the grid point is 200 mm.
+    let near = on_rail(&shell, "Rail 1", 207_600_000);
     done(&mut shell, "canvas.pointer", at(near, json!({"ctrl": true})));
-    assert_eq!(ghost(&shell)["at_nm"], json!([176 * MM]));
+    assert_eq!(ghost(&shell)["at_nm"], json!([198_200_000]));
     done(
         &mut shell,
         "canvas.pointer",
         at(near, json!({"ctrl": true, "shift": true})),
     );
-    assert_eq!(ghost(&shell)["at_nm"], json!([176_400_000]));
+    assert_eq!(ghost(&shell)["at_nm"], json!([198_600_000]));
     // On the free end of the rail, 402.4 mm: the 5 mm grid gives 400, the 1 mm grid 402.
     let free = on_rail(&shell, "Rail 1", 411_400_000);
     done(&mut shell, "canvas.pointer", at(free, json!({})));
@@ -713,7 +717,9 @@ fn shell_failed_text(param: &str) -> String {
 #[test]
 fn an_assembly_member_defaults_to_push_at_its_slot() {
     let sample = Tmp::new("layout-pw5-sample");
-    let as_drawn = rail_poses(&sample.sample_shell("902"), "Rail 2");
+    let mut as_drawn = rail_poses(&sample.sample_shell("902"), "Rail 2");
+    // The set-up's other placements taken off rail 2 stay off.
+    as_drawn.retain(|(t, _, _)| t == "-201K1-Q2" || !TAKEN_OFF.contains(&t.as_str()));
     let tmp = Tmp::new("layout-pw5");
     let mut shell = writable(&tmp);
     let u9 = unplaced(&shell, "-201K1-Q2");
@@ -764,20 +770,20 @@ fn tab_cycles_the_rail_with_the_live_region() {
     assert_eq!(
         seen,
         [
-            "-101Q1, rail 1 at 53 mm, no findings",
-            "-101F1, rail 1 at 98 mm, no findings",
-            "-101G1, rail 1 at 146 mm, no findings",
-            "-101Q1, rail 1 at 53 mm, no findings",
+            "-101Q1, rail 1 at 75.2 mm, no findings",
+            "-101F1, rail 1 at 120.2 mm, no findings",
+            "-101G1, rail 1 at 168.2 mm, no findings",
+            "-101Q1, rail 1 at 75.2 mm, no findings",
         ]
     );
     assert_eq!(
         shell.tool_announcement(),
-        Some("-101Q1, rail 1 at 53 mm, no findings")
+        Some("-101Q1, rail 1 at 75.2 mm, no findings")
     );
     done(&mut shell, "layout.previous", json!({}));
     assert_eq!(
         shell.layout_live_text().as_deref(),
-        Some("-101G1, rail 1 at 146 mm, no findings")
+        Some("-101G1, rail 1 at 168.2 mm, no findings")
     );
     // On a rail only X turns it, so R goes unnamed.
     assert_eq!(
@@ -814,7 +820,7 @@ fn nudge_turn_lock_and_delete_a_selected_placement() {
     assert_eq!(key(&mut shell, "cursor.right"), Outcome::Done);
     assert_eq!(
         rail_poses(&shell, "Rail 1"),
-        rows_of(&[("-101Q1", 53.0), ("-101F1", 103.0), ("-101G1", 151.0)])
+        rows_of(&[("-101Q1", 75.2), ("-101F1", 125.2), ("-101G1", 173.2)])
     );
     // Free again: -101G1 is free to its right.
     done(&mut shell, "layout.options", json!({"mode": "free"}));
@@ -822,7 +828,7 @@ fn nudge_turn_lock_and_delete_a_selected_placement() {
     assert_eq!(key(&mut shell, "cursor.right"), Outcome::Done);
     assert_eq!(
         shell.tool_announcement(),
-        Some("-101G1, rail 1 at 156 mm, no findings")
+        Some("-101G1, rail 1 at 178.2 mm, no findings")
     );
     select_placement(&mut shell, "-101F1");
     // R on a rail is refused in words with the keymap's keys; X flips.

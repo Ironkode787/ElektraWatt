@@ -482,13 +482,14 @@ fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
         );
     }
     drop(q);
-    // -101Q1: 54 × 85 mm with its clip point at its centre, clipped 53 mm along rail 1 from (25, 580) mm: the footprint
-    // (51, 537.5)–(105, 622.5) mm of the plate frame, at 1:5 on paper from the view's datum.
+    // -101Q1: 54 × 85 mm with its clip point at its centre, clipped 75.2 mm along rail 1 from (25, 580) mm (after
+    // -X1011's bracket, its 28.2 mm with its end plate and its second bracket): the footprint (73.2, 537.5)–(127.2,
+    // 622.5) mm of the plate frame, at 1:5 on paper from the view's datum.
     assert_eq!(
         footprint_902(&s, "-101Q1"),
         Rect::from_points(
-            Pt2::new(Nm(97_847_804), Nm(36_728_152)),
-            Pt2::new(Nm(108_798_012), Nm(53_964_592))
+            Pt2::new(Nm(102_349_556), Nm(36_728_152)),
+            Pt2::new(Nm(113_299_765), Nm(53_964_592))
         )
     );
 

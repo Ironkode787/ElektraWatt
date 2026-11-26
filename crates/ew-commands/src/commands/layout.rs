@@ -15,9 +15,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use ew_derive::Q;
 use ew_derive::layout::{
     Fit, Mountable, PathError, PlacementGeometry, PoseError, PoseOn, Profile, Quarter, RailAxis, RailExtent,
-    RailItem, Resolution, SnapError, SnapMode, Unplaced, bracket_part, carrier_label, cascade,
-    cascade_mirrored, check_path, check_pose, clip_offset, fits_rail, member_order, member_slot, min_gap,
-    mount_label, next_fit, plate_frame, rail_extent, rail_items, rehome_pose, resolve,
+    RailItem, Resolution, SnapError, SnapMode, Unplaced, carrier_label, cascade, cascade_mirrored,
+    check_path, check_pose, clip_offset, fits_rail, member_order, member_slot, min_gap, mount_label,
+    next_fit, plate_frame, rail_extent, rail_items, rehome_pose, resolve,
 };
 use ew_derive::{DeviceTag, DrawnPageOrder, PageRef, StructureOf, StructurePath};
 use ew_ids::Id;
@@ -1230,7 +1230,7 @@ fn drop_item(
         s1: ext.width,
         strip: ext.strip,
         w: if ext.strip {
-            bracket_part(q, device).map(|(_, w)| w)
+            ew_derive::strip_bracket(q, device).map(|b| b.width)
         } else {
             None
         },

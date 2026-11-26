@@ -219,9 +219,10 @@ pub enum LegendItem {
     Carrier(Id<Carrier>),
     /// A placement on one of the surface's carriers or on the surface itself.
     Placement(Id<Placement>),
-    /// The derived end brackets of one bracket part on the surface's rails (doc 12 §5.4's layout-only
-    /// accessories): one row per part (and variant), quantity the number of brackets.
-    Bracket(PartRef),
+    /// The layout-only accessories of one part (doc 12 §5.4): the derived end brackets on the surface's rails and
+    /// what its carriers' parts bring with them (a duct's cover); one row per part (and variant), quantity the number of
+    /// brackets plus the carriers' accessories.
+    Accessory(PartRef),
 }
 
 /// One row of [`layout_legend`].
@@ -263,9 +264,10 @@ fn part_use_where(q: &Q, device: &Device, pred: impl Fn(&Part) -> bool) -> Optio
 ///    by `path[0]`), the DT empty, the path length in metres as the quantity (none without a derivable length);
 /// 4. the placements on the surface's carriers and on the surface itself, by the device's full designation in natural
 ///    order (then the device ID and the placement ID), each with the part use it realises;
-/// 5. the layout-only accessories (doc 12 §5.4's last group): one row per end-bracket part (and variant)
-///    of the brackets `group_accessories` derives on the surface's rails, the DT empty, the number of brackets as the
-///    quantity, by part number in natural order (then the part copy's ID and the variant).
+/// 5. the layout-only accessories (doc 12 §5.4's last group): one row per part (and variant) of the brackets
+///    `group_accessories` derives on the surface's rails and of the `unit` accessories of the surface's carriers' parts
+///    (`carrier_accessories`, a duct's cover as long as the duct), the DT empty, the number of brackets plus the
+///    accessories' quantity as the quantity, by part number in natural order (then the part copy's ID and the variant).
 ///
 /// Positions are 1 … n. Free graphics are never read (FR-LAY-008). Empty for a missing surface.
 pub fn layout_legend(q: &Q, surface: Id<MountingSurface>) -> Vec<LegendRow> {
@@ -357,24 +359,26 @@ pub fn layout_legend(q: &Q, surface: Id<MountingSurface>) -> Vec<LegendRow> {
         push(LegendItem::Placement(p), Some(device), part, Some(Dec3::ONE));
     }
 
-    // 5. The end brackets, one row per part.
-    let mut brackets: Vec<(PartRef, usize)> = Vec::new();
+    // 5. The layout-only accessories, one row per part: the end brackets and the carriers' accessories.
+    let mut accessories: Vec<(PartRef, Dec3)> = Vec::new();
+    let mut add = |part: &PartRef, qty: Dec3| match accessories.iter_mut().find(|(p, _)| p == part) {
+        Some((_, n)) => *n = Dec3(n.0.saturating_add(qty.0)),
+        None => accessories.push((part.clone(), qty)),
+    };
     for c in &order {
         for b in q.get::<GroupAccessories>(*c).iter() {
-            match brackets
-                .iter_mut()
-                .find(|(p, _)| p.copy == b.part.copy && p.variant == b.part.variant)
-            {
-                Some((_, n)) => *n = n.saturating_add(1),
-                None => brackets.push((b.part.clone(), 1)),
-            }
+            add(&b.part, Dec3::ONE);
+        }
+    }
+    if let Some(d) = &enclosure_device {
+        for a in crate::carrier_accessories(q, d, &order) {
+            add(&a.part, a.qty);
         }
     }
     let number = |p: &PartRef| natural_key(parts.get(p.copy).map_or("", |c| c.item.part_number.as_str()));
-    brackets.sort_by_cached_key(|(p, _)| (number(p), p.copy, p.variant.clone()));
-    for (part, n) in brackets {
-        let qty = Dec3::from_int(i64::try_from(n).unwrap_or(i64::MAX)).unwrap_or(Dec3(i64::MAX));
-        push(LegendItem::Bracket(part.clone()), None, Some(part), Some(qty));
+    accessories.sort_by_cached_key(|(p, _)| (number(p), p.copy, p.variant.clone()));
+    for (part, qty) in accessories {
+        push(LegendItem::Accessory(part.clone()), None, Some(part), Some(qty));
     }
 
     for (i, row) in rows.iter_mut().enumerate() {

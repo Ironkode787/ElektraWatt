@@ -21,8 +21,8 @@ use std::sync::Arc;
 
 use ew_derive::layout::{
     CarrierGeometry, GroupAccessories, LabelMode, LayoutLabel, PlacementGeometry, Profile, Quarter, RailAxis,
-    RailExtent, RailItem, Unplaced, bracket_part, brackets, carrier_labels, free_length, member_order,
-    member_slot, mount_label, primary_part, rail_extent, rail_items, runs,
+    RailExtent, RailItem, Unplaced, brackets, carrier_labels, free_length, member_order, member_slot,
+    mount_label, primary_part, rail_extent, rail_items, runs,
 };
 use ew_derive::{DeviceTag, PageRef, Policy, Q, Query, StructurePath, Tag};
 use ew_ids::{Id, Uuid};
@@ -864,7 +864,7 @@ fn placements_of(q: &Q, page: Id<Page>, surface: Id<MountingSurface>) -> Vec<Pan
             unknown: geom.unknown,
             strip: current.strip,
             bracket_width: if current.strip {
-                bracket_part(q, dev).map(|(_, w)| w)
+                ew_derive::strip_bracket(q, dev).map(|b| b.width)
             } else {
                 None
             },
@@ -904,7 +904,7 @@ fn unplaced_of(q: &Q, space: Id<LayoutSpace>, carriers: &[PanelCarrier]) -> Vec<
             .and_then(|m| Some((i128::from(m.width?.0), i128::from(m.height?.0))));
         let mount_kind = mech.as_ref().and_then(|m| m.mount_kind.clone());
         let bracket_width = if extent.strip {
-            bracket_part(q, dev).map(|(_, w)| w)
+            ew_derive::strip_bracket(q, dev).map(|b| b.width)
         } else {
             None
         };

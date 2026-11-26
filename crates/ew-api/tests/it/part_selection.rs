@@ -914,10 +914,10 @@ impl ew_testkit::dsl::CommandSink for Sink<'_> {
 /// "a strip device without terminals in the golden builder, whose chooser offers the end bracket
 /// ". A strip made by the builder's `device` verb, with the strip aspect of -X1011 and a main function of the built-in
 /// strip-segment FnDef (the sample's strips have no function of their own; the set-up embeds the FnDef) and no
-/// `terminals` step, is offered the end bracket and no other layout kind; its part dialog's offers, kept as the shell
-/// keeps them, list EW-GEN-EB-1.
+/// `terminals` step, is offered no layout kind: its end brackets come with its terminals' parts (doc 07 §2.5), so its
+/// part dialog's offers, kept as the shell keeps them, do not list EW-GEN-EB-1.
 #[test]
-fn a_strip_without_terminals_is_offered_the_end_bracket() {
+fn a_strip_is_offered_no_end_bracket() {
     let mut s = sample(None);
     let template = device(&s, "-X1011");
     let mut strip = s
@@ -961,7 +961,7 @@ fn a_strip_without_terminals_is_offered_the_end_bracket() {
         );
     }
     let kinds = s.chooser_layout_kinds(&[made.as_uuid()]);
-    assert_eq!(kinds, ["end_bracket"]);
+    assert!(kinds.is_empty(), "{kinds:?}");
     let mut offers = s.part_offers(&PartOfferQuery {
         text: "EW-GEN-EB-1".into(),
         ..PartOfferQuery::default()
@@ -969,7 +969,7 @@ fn a_strip_without_terminals_is_offered_the_end_bracket() {
     let layout = ["end_bracket", "enclosure", "mounting_plate", "rail", "duct"];
     offers.retain(|o| !layout.contains(&o.kind.as_str()) || kinds.contains(&o.kind));
     assert!(
-        numbers(&offers).contains(&"EW-GEN-EB-1"),
+        !numbers(&offers).contains(&"EW-GEN-EB-1"),
         "{:?}",
         numbers(&offers)
     );

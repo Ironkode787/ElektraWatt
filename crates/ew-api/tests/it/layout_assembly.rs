@@ -100,22 +100,28 @@ fn empty(s: &mut Session, rail: Id<Carrier>) -> usize {
 /// The CPU station -104A1 in its member order: the station, then its cards by slot.
 const MEMBERS: [&str; 3] = ["-104A1", "-104A1-A1", "-104A1-A2"];
 
-/// With the output card -104A1-A2 unplaced, `layout.place` of it with push at its old clip 137.5 mm, and
+/// With the output card -104A1-A2 unplaced, `layout.place` of it with push at its old clip, and
 /// `layout.place_assembly` of -104A1 (its one unplaced member goes after its predecessor -104A1-A1), each give the
-/// card at 137.5 mm, every other placement unchanged (the gap it left takes it); one undo restores all.
+/// card at its old clip, every other placement unchanged (the gap it left takes it); one undo restores all.
 #[test]
 fn as1_the_unplaced_member_goes_after_its_predecessor() {
+    let (full, _, r2) = session();
+    let old = clips(&full, r2)
+        .into_iter()
+        .find(|(t, _)| t == "-104A1-A2")
+        .map(|(_, c)| c)
+        .expect("the card on rail 2");
     let (s, _, r2) = session_without(Some("-104A1-A2"));
     let before = clips(&s, r2);
     let mut want = before.clone();
-    want.push(("-104A1-A2".to_owned(), 1375));
+    want.push(("-104A1-A2".to_owned(), old));
     want.sort_by_key(|(_, c)| *c);
     let (station, card) = (dev(&s, "-104A1"), dev(&s, "-104A1-A2"));
     let routes = [
         (
             "layout.place",
             json!({"device": id_json(card), "carrier": {"carrier": id_json(r2)},
-                   "pose": common::rail_at(1375), "mode": "push"}),
+                   "pose": common::rail_at(i64::try_from(old).unwrap()), "mode": "push"}),
         ),
         (
             "layout.place_assembly",
@@ -131,13 +137,13 @@ fn as1_the_unplaced_member_goes_after_its_predecessor() {
     }
 }
 
-/// Rail 2 emptied of its 11 placements, `layout.place_assembly` of -104A1 at s = 20 mm lays the three members
+/// Rail 2 emptied of its 13 placements, `layout.place_assembly` of -104A1 at s = 20 mm lays the three members
 /// abutting in member order: -104A1 70 (100 mm wide), -104A1-A1 132.5, -104A1-A2 157.5 mm (25 mm each); EW-LAY-016
 /// reports nothing on the result.
 #[test]
 fn as2_the_assembly_as_one_block_on_an_empty_rail() {
     let (mut s, _, r2) = session();
-    assert_eq!(empty(&mut s, r2), 11);
+    assert_eq!(empty(&mut s, r2), 13);
     let station = dev(&s, "-104A1");
     let q = s.query();
     let order: Vec<String> = member_order(&q, station)
@@ -214,7 +220,7 @@ fn fill_r1(s: &mut Session, r1: Id<Carrier>) -> Vec<String> {
 #[test]
 fn as3_auto_fill_on_an_empty_rail_1() {
     let (mut s, r1, _) = session();
-    assert_eq!(empty(&mut s, r1), 14);
+    assert_eq!(empty(&mut s, r1), 12);
     let notices = fill_r1(&mut s, r1);
     assert_eq!(
         clips(&s, r1),

@@ -43,18 +43,23 @@ fn the_carriers_are_labelled_with_their_rail_data() {
     assert_eq!(t.carriers[0].sentence, "rail 1");
     assert_eq!(t.carriers[0].kind, "rail");
     assert_eq!(t.carriers[2].kind, "duct");
-    // The sample's strips declare no end-bracket part: no bracket is derived.
-    assert!(t.carriers.iter().all(|c| c.brackets.is_empty()));
-    // Auto-fill rail runs each rail's items edge to edge from its start; the free length is what the run leaves.
+    // The sample's strips take the end brackets their terminals' parts declare, two each where a strip stands alone:
+    // -X1011 and -X1021 on rail 1, -X1031 on rail 2.
+    let counts: Vec<usize> = t.carriers.iter().map(|c| c.brackets.len()).collect();
+    assert_eq!(counts, [4, 2, 0]);
+    // Auto-fill rail runs each rail's items edge to edge from its start, a bracket before and after each strip; the free
+    // length is what the run and its brackets leave.
     for rail in &t.carriers[..2] {
-        let items: Vec<(i128, i128)> = rail.items.iter().map(|i| (i.s0, i.s1)).collect();
-        assert_eq!(items.first().map(|i| i.0), Some(0), "{}", rail.label);
+        let mut spans: Vec<(i128, i128)> = rail.items.iter().map(|i| (i.s0, i.s1)).collect();
+        spans.extend(rail.brackets.iter().copied());
+        spans.sort();
+        assert_eq!(spans.first().map(|i| i.0), Some(0), "{}", rail.label);
         assert!(
-            items.windows(2).all(|w| w[0].1 == w[1].0),
-            "{}: {items:?}",
+            spans.windows(2).all(|w| w[0].1 == w[1].0),
+            "{}: {spans:?}",
             rail.label
         );
-        let end = items.last().map_or(0, |i| i.1);
+        let end = spans.last().map_or(0, |i| i.1);
         assert_eq!(rail.free_length, Some(RAIL - end), "{}", rail.label);
     }
     // A duct has no rail data.

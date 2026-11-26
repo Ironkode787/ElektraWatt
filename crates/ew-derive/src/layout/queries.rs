@@ -93,7 +93,7 @@ fn mounts(kind: &MountKind) -> bool {
 }
 
 /// The terminals of a strip in strip order (`seq`, then ID).
-fn strip_terminals(q: &Q, strip: Id<Device>) -> Vec<Arc<Device>> {
+pub(crate) fn strip_terminals(q: &Q, strip: Id<Device>) -> Vec<Arc<Device>> {
     let devices = q.devices();
     let mut out: Vec<Arc<Device>> = q
         .idx()
@@ -520,24 +520,95 @@ struct Shape {
     part: Option<PartRef>,
 }
 
-/// The shape of a placement: a strip's terminals side by side (widths summed in strip order, the largest height,
-/// the clip point at the left end at mid-height), else the realised part's `W × H` with its clip point
-/// (`rail_offset`, else the centre).
+/// What one item of a strip is ([`StripItem`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum StripItemKind {
+    /// A terminal of the strip.
+    Terminal(Id<Device>),
+    /// An accessory standing in the strip (`part_accessories`, per strip: an end plate after the last terminal whose
+    /// part names it).
+    Accessory(crate::DerivedAccessory),
+}
+
+/// One item of a strip in mounting order ([`StripLayout`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct StripItem {
+    /// What it is.
+    pub kind: StripItemKind,
+    /// Its part: a terminal's primary part, the accessory's part.
+    pub part: Option<PartRef>,
+    /// Its width along the strip, `mech.width` in nanometres; `None` when its part has none.
+    pub width: Option<i128>,
+    /// Its height, `mech.height`; `None` when its part has none.
+    pub height: Option<i128>,
+    /// Where it starts along the strip, from the strip's start, in nanometres (an item without a width takes none).
+    pub s: i128,
+}
+
+/// `strip_layout(strip)`: a strip's items in mounting order (doc 12 §2.6, §3.4): its terminals by `seq` and, after
+/// each, the accessories its terminals' parts stand there (`part_accessories`, per strip), each with its part's width
+/// and its place along the strip. Empty for a missing device and a device without terminals.
+#[derive(Debug)]
+pub struct StripLayout;
+
+impl Query for StripLayout {
+    type Key = Id<Device>;
+    type Value = Vec<StripItem>;
+    const FAMILY: &'static str = "strip_layout";
+    const POLICY: Policy = Policy::Memo;
+
+    fn run(q: &Q, key: &Self::Key) -> Arc<Vec<StripItem>> {
+        let Some(strip) = q.devices().get(*key).cloned() else {
+            return Arc::new(Vec::new());
+        };
+        let accessories = crate::strip_accessories(q, &strip);
+        let size = |part: Option<&PartRef>| {
+            let m = part.and_then(|p| mech_of(q, p.copy));
+            (
+                m.and_then(|m| m.width).map(|w| i128::from(w.0)),
+                m.and_then(|m| m.height).map(|h| i128::from(h.0)),
+            )
+        };
+        let mut out: Vec<StripItem> = Vec::new();
+        let mut s = 0i128;
+        let mut push = |kind: StripItemKind, part: Option<PartRef>| {
+            let (width, height) = size(part.as_ref());
+            out.push(StripItem {
+                kind,
+                part,
+                width,
+                height,
+                s,
+            });
+            s = s.saturating_add(width.unwrap_or(0));
+        };
+        for t in strip_terminals(q, *key) {
+            push(StripItemKind::Terminal(t.id), primary_part(q, &t));
+            for a in accessories.iter().filter(|a| a.after == Some(t.id)) {
+                push(StripItemKind::Accessory(a.clone()), Some(a.part.clone()));
+            }
+        }
+        Arc::new(out)
+    }
+}
+
+/// The shape of a placement: a strip's items side by side ([`StripLayout`]: the terminals and the accessories standing
+/// in it, widths summed, the terminals' largest height, the clip point at the left end at mid-height; unknown when a
+/// terminal has no width or height), else the realised part's `W × H` with its clip point (`rail_offset`, else the
+/// centre).
 fn shape(q: &Q, device: &Device, part: Option<&PartRef>) -> Shape {
     if part.is_none() && is_strip_with_terminals(q, device) {
         let mut width = 0i128;
         let mut height = 0i128;
         let mut known = true;
-        for t in strip_terminals(q, device.id) {
-            let size = primary_part(q, &t)
-                .and_then(|p| mech_of(q, p.copy))
-                .and_then(|m| Some((m.width?, m.height?)));
-            match size {
-                Some((w, h)) => {
-                    width += i128::from(w.0);
-                    height = height.max(i128::from(h.0));
+        for item in q.get::<StripLayout>(device.id).iter() {
+            match (&item.kind, item.width, item.height) {
+                (StripItemKind::Terminal(_), Some(w), Some(h)) => {
+                    width += w;
+                    height = height.max(h);
                 }
-                None => known = false,
+                (StripItemKind::Terminal(_), _, _) => known = false,
+                (StripItemKind::Accessory(_), w, _) => width += w.unwrap_or(0),
             }
         }
         return Shape {

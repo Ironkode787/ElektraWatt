@@ -39,18 +39,18 @@ fn in_cabinet(s: &ShellModel, tag: &str) -> bool {
     panel(s).unplaced.iter().any(|u| u.label == tag)
 }
 
-/// 902 with the lamps -104E1 and -104E2 taken off their rail, and -104E2, the position switch -104B1 and the cylinder
-/// -201M1 without a location; the rail the lamps stood on.
+/// 902 with the lamps -104E1 and -104E2 taken off their rails, and -104E2, the position switch -104B1 and the cylinder
+/// -201M1 without a location; the rail -104E2 stood on (rail 2, which has room for both lamps).
 fn set_up(tmp: &Tmp, s: &mut ShellModel) -> String {
     let t = panel(s);
     let rail = t
         .placements
         .iter()
-        .find(|p| p.tag == "-104E1")
+        .find(|p| p.tag == "-104E2")
         .and_then(|p| p.carrier)
         .and_then(|c| t.carrier(c))
         .map(|c| c.label.clone())
-        .expect("-104E1 on a rail");
+        .expect("-104E2 on a rail");
     for tag in ["-104E1", "-104E2"] {
         let p = t.placements.iter().find(|p| p.tag == tag).expect(tag).id;
         done(

@@ -16,8 +16,9 @@ use ew_schema::{
 use ew_units::Dec3;
 
 use crate::Q;
+use crate::accessories::{BracketFrom, PartAccessories, placed_brackets, strip_bracket};
 use crate::cell::RepAnchorCell;
-use crate::layout::{carrier_length, carriers_in_order, metres_of_nm, page_surface, strip_brackets};
+use crate::layout::{carrier_length, carriers_in_order, metres_of_nm, page_surface};
 use crate::pages::{DrawnPageOrder, PageOrderV, PageRef};
 use crate::query::{Policy, Query};
 use crate::strip_bridges::StripBridges;
@@ -49,10 +50,16 @@ pub enum LineSource {
     /// The carriers (rails, ducts) with one part copy on the surfaces of an enclosure whose device owns the line,
     /// by their summed path length in metres (FR-LAY-004, FR-LAY-005, FR-LAY-008).
     Carrier,
-    /// The end brackets of a placed strip (FR-LAY-060): the line of the part use the strip declares its
-    /// brackets by, with the number of brackets the rails attribute to it ([`crate::layout::strip_brackets`]) instead
-    /// of the authored quantity.
+    /// The end brackets of a placed strip that holds its end bracket as a part use (a project made before
+    /// accessories, FR-LAY-060): the line of that part use, with the number of brackets the rails attribute to it
+    /// ([`crate::placed_brackets`]) instead of the authored quantity.
     GroupAccessory,
+    /// An accessory a part of the device brings with it ([`crate::PartAccessories`], doc 07 §2.5); `rail_group`: a
+    /// strip's end brackets, which print the panel pages of their rails, as [`LineSource::GroupAccessory`] does.
+    Accessory {
+        /// The strip's end brackets.
+        rail_group: bool,
+    },
     /// The plug or silencer part of a closed fluid port of the device (`CpOverride.closure.part`), one piece each
     /// (FR-FLU-028).
     Closure,
@@ -83,12 +90,20 @@ pub struct PartLine {
     pub configured: bool,
 }
 
+impl PartLine {
+    /// Whether the line counts an accessory a part brings with it ([`LineSource::Accessory`]): a reader of a device's
+    /// own part (its first line) passes over it.
+    pub fn is_accessory(&self) -> bool {
+        matches!(self.source, LineSource::Accessory { .. })
+    }
+}
+
 /// `device_part_lines(dev)`: the part lines of one device, in model order.
 ///
 /// A missing device and a device that is not fitted have no lines. Otherwise one line per part use of the
 /// device (`Device.parts` order; a cable with a length entered by hand counts its first part use, when that part is
-/// sold by the metre, by that length in metres exact to the millimetre; for a strip placed on a rail, the part
-/// use that declares its end brackets gives a
+/// sold by the metre, by that length in metres exact to the millimetre; for a strip placed on a rail, the end-bracket
+/// part use of a project made before accessories ([`crate::strip_bracket`]) gives a
 /// [`LineSource::GroupAccessory`] line whose quantity is the number of brackets attributed to the strip; a
 /// strip without a bracket on any rail keeps the authored quantity), then, for a strip device, one line of
 /// quantity 1 per strip accessory (mounting order), then one line of quantity 1 per bridge group of the
@@ -103,9 +118,11 @@ pub struct PartLine {
 /// lines, so a reader of the first line keeps the device's own part. Then the fluid lines (doc 11 §8.2, FR-FLU-014):
 /// the closure parts of its ports ([`LineSource::Closure`]), the tube parts of the tubes it owns (the device of the
 /// tube's from end, else of its to end; [`LineSource::Tube`]) and the fittings at its tube ends and the tees it owns ([`LineSource::Fitting`]), in that
-/// order. Last the plugs at the ends of the bus lines on its ports ([`LineSource::Plug`], by function, CP and line);
+/// order. Then the plugs at the ends of the bus lines on its ports ([`LineSource::Plug`], by function, CP and line);
 /// a plug at an end without a device (an interruption point, a port of no device yet) is its line's cable's, else the
-/// device's at the other end, so that every plug is in the lists once. A line whose part copy is missing is
+/// device's at the other end, so that every plug is in the lists once. Last the accessories its parts bring with them
+/// ([`LineSource::Accessory`], `part_accessories`: a part's, its carriers', a strip's end plates and end brackets). A
+/// line whose part copy is missing is
 /// dropped.
 #[derive(Debug)]
 pub struct DevicePartLines;
@@ -137,7 +154,11 @@ impl Query for DevicePartLines {
                 });
             }
         };
-        let brackets = strip_brackets(q, *key);
+        // An end bracket held as a part use counts the brackets the rails attribute to the strip on its line.
+        let brackets = strip_bracket(q, dev).and_then(|b| match b.from {
+            BracketFrom::PartUse(i) => placed_brackets(q, *key).map(|(n, _)| (i, n)),
+            _ => None,
+        });
         // A cable with a length entered counts its part sold by the metre by that length (a bus cable of 12.5 m
         // was one metre in the parts list).
         let cable_metres = match dev.aspects.cable.as_ref().map(|c| &c.length) {
@@ -149,8 +170,8 @@ impl Query for DevicePartLines {
                 .get(u.part.copy)
                 .is_some_and(|c| c.item.unit == OrderUnit::Metre);
             match (&brackets, cable_metres) {
-                (Some(b), _) if b.part_use == i => {
-                    let n = i64::try_from(b.count).unwrap_or(i64::MAX);
+                (Some((at, count)), _) if *at == i => {
+                    let n = i64::try_from(*count).unwrap_or(i64::MAX);
                     let qty = Dec3::from_int(n).unwrap_or(Dec3(i64::MAX));
                     push(&u.part, qty, LineSource::GroupAccessory);
                 }
@@ -270,6 +291,10 @@ impl Query for DevicePartLines {
                 }
             }
         }
+        for a in q.get::<PartAccessories>(*key).iter() {
+            let rail_group = a.per == ew_schema::AccessoryPer::RailGroup;
+            push(&a.part, a.qty, LineSource::Accessory { rail_group });
+        }
         Arc::new(lines)
     }
 }
@@ -298,6 +323,26 @@ fn plug_owner(q: &Q, conn: &ew_schema::Connection, end: &ew_schema::Endpoint) ->
 /// tube is in the BOM whichever way it was drawn; `None` for a tube between two tees.
 fn tube_owner(r: &crate::TubeRow) -> Option<Id<Device>> {
     r.from.device.or(r.to.device)
+}
+
+/// Whether a line counts a strip's end brackets (its own end-bracket part use or the brackets its terminals' parts
+/// declare): it prints the panel pages of the rails holding them and none of the strip's representation pages.
+fn is_bracket_line(source: LineSource) -> bool {
+    matches!(
+        source,
+        LineSource::GroupAccessory | LineSource::Accessory { rail_group: true }
+    )
+}
+
+/// The carriers with a part on the surfaces of the enclosures whose device is `device`, surface by surface in legend
+/// order: what the device's carrier lines and the accessories of its carriers count.
+pub(crate) fn enclosure_carriers(q: &Q, device: Id<Device>) -> Vec<Id<Carrier>> {
+    let carriers = q.table::<Carrier>();
+    enclosure_surfaces(q, device)
+        .into_iter()
+        .flat_map(|s| carriers_in_order(q, s))
+        .filter(|c| carriers.get(*c).is_some_and(|rec| rec.part.is_some()))
+        .collect()
 }
 
 /// The carriers of one part copy (and variant) on the surfaces of a device's enclosures: one carrier line.
@@ -363,9 +408,9 @@ fn carrier_groups(q: &Q, device: Id<Device>) -> Vec<CarrierGroup> {
 /// enclosure, its enclosures' surfaces; a line of the device of a surface (the plate), that surface. Empty for every
 /// other line.
 fn line_surfaces(q: &Q, line: &PartLine) -> BTreeSet<Id<MountingSurface>> {
-    if line.source == LineSource::GroupAccessory {
-        return strip_brackets(q, line.device)
-            .map(|b| b.surfaces)
+    if is_bracket_line(line.source) {
+        return placed_brackets(q, line.device)
+            .map(|(_, surfaces)| surfaces)
             .unwrap_or_default();
     }
     if line.source == LineSource::Carrier {
@@ -512,7 +557,7 @@ impl Query for BomRows {
             let e = acc.entry((l.line.configured, k)).or_default();
             e.qty = Dec3(e.qty.0.saturating_add(l.line.qty.0));
             e.devices.insert(l.line.device);
-            if l.line.source != LineSource::GroupAccessory {
+            if !is_bracket_line(l.line.source) {
                 e.drawn.insert(l.line.device);
             }
             e.covers.extend(l.covers.iter().copied());

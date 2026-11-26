@@ -34,12 +34,17 @@ data,-201X3,1,pc,Generic,EW-GEN-SIL-1,Silencer G1/8
 data,-UC1,1,pc,Generic,EW-GEN-ENC-1,Wall enclosure 600 × 800 × 250 mm
 data,-UC1,0.94,m,Generic,EW-GEN-RAIL-1,DIN rail TS 35 × 7.5
 data,-UC1,0.47,m,Generic,EW-GEN-DUCT-1,Wiring duct 40 × 60 mm
+data,-UC1,0.47,m,Generic,EW-GEN-COV-40,"Duct cover, 40 mm wide"
 data,-UC1-U1,1,pc,Generic,EW-GEN-PLT-1,Mounting plate 520 × 720 mm
+data,-X1011,1,pc,Generic,EW-GEN-EP-1,End plate for 5.2 mm feed-through and PE terminals
+data,-X1011,2,pc,Generic,EW-GEN-EB-1,End bracket for TS 35
 data,-X1011:L1,1,pc,Generic,EW-GEN-TRM-1,Feed-through terminal
 data,-X1011:L2,1,pc,Generic,EW-GEN-TRM-1,Feed-through terminal
 data,-X1011:L3,1,pc,Generic,EW-GEN-TRM-1,Feed-through terminal
 data,-X1011:N,1,pc,Generic,EW-GEN-TRM-1,Feed-through terminal
 data,-X1011:PE,1,pc,Generic,EW-GEN-TRM-2,Protective earth terminal
+data,-X1021,1,pc,Generic,EW-GEN-EP-1,End plate for 5.2 mm feed-through and PE terminals
+data,-X1021,2,pc,Generic,EW-GEN-EB-1,End bracket for TS 35
 data,-X1021:1,1,pc,Generic,EW-GEN-TRM-1,Feed-through terminal
 data,-X1021:2,1,pc,Generic,EW-GEN-TRM-1,Feed-through terminal
 data,-X1021:3,1,pc,Generic,EW-GEN-TRM-1,Feed-through terminal
@@ -48,6 +53,8 @@ data,-X1021:5,1,pc,Generic,EW-GEN-TRM-1,Feed-through terminal
 data,-X1021:6,1,pc,Generic,EW-GEN-TRM-1,Feed-through terminal
 data,-X1021:7,1,pc,Generic,EW-GEN-TRM-1,Feed-through terminal
 data,-X1021:8,1,pc,Generic,EW-GEN-TRM-1,Feed-through terminal
+data,-X1031,1,pc,Generic,EW-GEN-EP-1,End plate for 5.2 mm feed-through and PE terminals
+data,-X1031,2,pc,Generic,EW-GEN-EB-1,End bracket for TS 35
 data,-X1031:PE,1,pc,Generic,EW-GEN-TRM-2,Protective earth terminal
 data,-X1031:SH,1,pc,Generic,EW-GEN-TRM-2,Protective earth terminal
 data,-X1031:U,1,pc,Generic,EW-GEN-TRM-1,Feed-through terminal

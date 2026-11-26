@@ -232,8 +232,10 @@ overlaps kept for EW-LAY-006, no clearance padding and no group accessories; `la
 (memo): the device's displayed tag on the page (abbreviated) or its full designation, so renumbering changes the label
 and no layout record; a placement of one function prints its device's label without D10's ":" suffix (functions
 carry no designation member in format 0.1); `carrier_geometry(carrier)` (cold): the axis check, length, rail axis and
-outline, a rail's width from its profile. `strip_layout`, `carrier_order` and the rest of the table wait for their
-packages. The four memo families are in `verify-derived`'s sweep.
+outline, a rail's width from its profile; `strip_layout(strip)` (memo): the strip's terminals by `seq` and, after
+each, the accessories its terminals' parts stand there (`part_accessories`), each with its part's width and its place
+along the strip, whose widths make the strip's footprint. `carrier_order` and the rest of the table wait for their
+packages. The five memo families are in `verify-derived`'s sweep.
 
 ### 2.7 The mountable predicate
 

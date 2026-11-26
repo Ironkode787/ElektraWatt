@@ -80,7 +80,8 @@ impl ReportKindDef for TerminalOverview {
                 }
                 let number = q
                     .get::<DevicePartLines>(*t)
-                    .first()
+                    .iter()
+                    .find(|l| !l.is_accessory())
                     .and_then(|l| q.parts().get(l.part))
                     .map(|c| c.item.part_number.as_str().to_owned());
                 if let Some(number) = number {

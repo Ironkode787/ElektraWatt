@@ -89,7 +89,8 @@ impl ReportKindDef for TerminalDiagram {
                     .map_or(Cell::Empty, |g| Cell::Text(g.label.clone()));
                 let part = q
                     .get::<DevicePartLines>(t)
-                    .first()
+                    .iter()
+                    .find(|l| !l.is_accessory())
                     .and_then(|l| q.parts().get(l.part))
                     .map_or(Cell::Empty, |c| {
                         super::parts::part_number_cell(c.item.part_number.as_str())

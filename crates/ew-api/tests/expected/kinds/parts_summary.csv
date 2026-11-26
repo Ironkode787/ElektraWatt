@@ -30,3 +30,6 @@ data,28,0.47,m,Generic,EW-GEN-DUCT-1,Wiring duct 40 × 60 mm,-UC1,902
 data,29,8,m,Generic,EW-GEN-CBL-2,"PROFIBUS cable, 2 cores green and red, shielded",-105W1,
 data,30,10,m,Generic,EW-GEN-CBL-17,"Cable 5G2.5 mm², cores brown, black, grey, blue and green-yellow",-101W1,
 data,31,5,m,Generic,EW-GEN-CBL-25,"Cable 4G2.5 mm², cores brown, black, grey and green-yellow, shielded",-103W1,
+data,32,0.47,m,Generic,EW-GEN-COV-40,"Duct cover, 40 mm wide",-UC1,902
+data,33,6,pc,Generic,EW-GEN-EB-1,End bracket for TS 35,"-X1011, -X1021, -X1031",902
+data,34,3,pc,Generic,EW-GEN-EP-1,End plate for 5.2 mm feed-through and PE terminals,"-X1011, -X1021, -X1031",101–103

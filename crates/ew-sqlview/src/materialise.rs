@@ -690,7 +690,8 @@ pub(crate) fn terminals(s: &Source<'_>) -> Vec<Row> {
                 .map(|g| g.label.neutral_or_first().unwrap_or_default().to_owned());
             let part = q
                 .get::<DevicePartLines>(t)
-                .first()
+                .iter()
+                .find(|l| !l.is_accessory())
                 .and_then(|l| q.parts().get(l.part))
                 .map(|c| c.item.part_number.as_str().to_owned());
             let bridge = bridges.iter().find(|b| b.terminals.contains(&t));
@@ -839,7 +840,8 @@ pub(crate) fn cables(s: &Source<'_>) -> Vec<Row> {
                 .set(
                     "part_number",
                     q.get::<DevicePartLines>(id)
-                        .first()
+                        .iter()
+                        .find(|l| !l.is_accessory())
                         .and_then(|l| q.parts().get(l.part))
                         .map(|c| c.item.part_number.as_str().to_owned()),
                 )

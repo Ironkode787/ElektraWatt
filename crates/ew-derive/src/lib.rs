@@ -51,6 +51,7 @@
 // `TEXTS`, `KEYS`, `SOURCES`, `text!` and `key!`, before the modules that name a key.
 ew_l10n::texts!(crate);
 
+mod accessories;
 mod assembly;
 mod bom;
 mod bond_carrier;
@@ -104,6 +105,10 @@ mod wires;
 mod xref;
 mod xref_format;
 
+pub use accessories::{
+    BracketFrom, DeclaredBracket, DerivedAccessory, PartAccessories, StripBracket, carrier_accessories, placed_brackets,
+    strip_accessories, strip_bracket,
+};
 pub use assembly::{
     AssemblyBreakMarks, BreakSide, assembly_members, device_descendants, order_code_part, order_code_text,
     overview_rep, overview_start_page,

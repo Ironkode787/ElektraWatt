@@ -176,16 +176,17 @@ fn the_bracket_row_counts_the_derived_brackets_and_prints_902() {
     assert_eq!((qty.as_str(), folios), ("6", owned(&["103", "902"])));
     let surface = q.table::<Carrier>().get(rail).expect("the rail").surface;
     let legend = ew_derive::layout::layout_legend(&q, surface);
-    let bracket_rows: Vec<Option<String>> = legend
+    // The layout-only accessories come last, by part number: the duct's cover (0.47 m), then the brackets.
+    let accessory_rows: Vec<Option<String>> = legend
         .iter()
-        .filter(|r| matches!(r.item, ew_derive::layout::LegendItem::Bracket(_)))
+        .filter(|r| matches!(r.item, ew_derive::layout::LegendItem::Accessory(_)))
         .map(|r| r.qty.map(|d| d.to_string()))
         .collect();
-    assert_eq!(bracket_rows, [Some("5".to_owned())]);
+    assert_eq!(accessory_rows, [Some("0.47".to_owned()), Some("5".to_owned())]);
     assert!(
         matches!(
             legend.last().map(|r| &r.item),
-            Some(ew_derive::layout::LegendItem::Bracket(_))
+            Some(ew_derive::layout::LegendItem::Accessory(_))
         ),
         "the bracket row comes last"
     );

@@ -304,10 +304,30 @@ pub fn add_part_use_to(s: &mut Session, device: ew_ids::Uuid, copy: ew_ids::Uuid
 }
 
 /// The sample over its records edited by `edit` (so that it can be saved), with the memo mode `memo`, the test parts
-/// imported and the TBD end bracket added to each of its three strips: the brackets the layout derives at the ends of
-/// each strip's run on its rail (the sample's strips declare no end-bracket part of their own).
+/// imported and the TBD end bracket added to each of its three strips as a part use (a project made before accessories:
+/// it wins over the bracket the terminals' parts declare): the brackets the layout derives at the ends of each strip's
+/// run on its rail. Each strip leaves off the end plate its terminals' parts bring, so that the strips are as wide as
+/// their terminals, which the positions of these set-ups are computed from.
 pub fn sample_with_end_brackets_over(edit: impl FnOnce(&mut Vec<Record>), memo: ew_api::MemoMode) -> Session {
     let (project, mut records, lib) = sample_records();
+    let plate = lib
+        .iter()
+        .find_map(|d| match d {
+            LibDocument::Part(c) if c.item.part_number.as_str() == "EW-GEN-EP-1" => Some(c.id),
+            _ => None,
+        })
+        .expect("the sample's end plate");
+    for r in &mut records {
+        if let Record::Device(d) = r
+            && d.aspects.strip.is_some()
+        {
+            d.accessory_choices.push(ew_schema::AccessoryChoice {
+                of: plate,
+                part: None,
+                extra: Default::default(),
+            });
+        }
+    }
     edit(&mut records);
     let mut s = Session::from_records(
         project,

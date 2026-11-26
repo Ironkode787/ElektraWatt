@@ -30,3 +30,5 @@ data,27,-201X3,Generic,EW-GEN-SIL-1,Silencer G1/8,1,pc
 data,28,-X1011,,,,1,pc
 data,29,-X1021,,,,1,pc
 data,30,-X1031,,,,1,pc
+data,31,,Generic,EW-GEN-COV-40,"Duct cover, 40 mm wide",0.47 m,m
+data,32,,Generic,EW-GEN-EB-1,End bracket for TS 35,6,pc

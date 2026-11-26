@@ -112,7 +112,7 @@ fn legend_rows(q: &Q, surface: Id<MountingSurface>, set: &mut RowSet) {
             LegendItem::Surface(s) => (RowId::entity(s), s.cast()),
             LegendItem::Carrier(c) => (RowId::entity(c), c.cast()),
             LegendItem::Placement(p) => (RowId::entity(p), p.cast()),
-            LegendItem::Bracket(ref part) => {
+            LegendItem::Accessory(ref part) => {
                 let mut id = RowId::entity(surface).with(RowKey::Entity(part.copy.as_uuid()));
                 if let Some(v) = &part.variant {
                     id = id.with(RowKey::Name(v.as_str().to_owned()));

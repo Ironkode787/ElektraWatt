@@ -261,6 +261,9 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<ew_derive::layout::RailOccupancy>(memo, cold, keys.carriers.iter().copied(), o);
     // The derived end brackets of every carrier.
     check::<ew_derive::layout::GroupAccessories>(memo, cold, keys.carriers.iter().copied(), o);
+    // What the parts of every device bring with them (doc 07 §2.5), and every strip's items in mounting order.
+    check::<ew_derive::PartAccessories>(memo, cold, keys.devices.iter().copied(), o);
+    check::<ew_derive::layout::StripLayout>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::layout::PlacementGeometry>(memo, cold, keys.placements.iter().copied(), o);
     check::<ew_derive::layout::LayoutLabel>(
         memo,

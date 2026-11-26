@@ -142,6 +142,12 @@ fn rails_and_ducts_come_from_the_carriers_and_print_902() {
             (part_of(&q, "EW-GEN-ENC-1"), Dec3::ONE, LineSource::Device),
             (part_of(&q, "EW-GEN-RAIL-1"), m("0.94"), LineSource::Carrier),
             (part_of(&q, "EW-GEN-DUCT-1"), m("0.47"), LineSource::Carrier),
+            // The duct's cover, as long as the duct (what the duct part brings with it, doc 07 §2.5).
+            (
+                part_of(&q, "EW-GEN-COV-40"),
+                m("0.47"),
+                LineSource::Accessory { rail_group: false }
+            ),
         ]
     );
     let rows = q.get::<BomRows>(BomMode::Component);
@@ -165,6 +171,14 @@ fn rails_and_ducts_come_from_the_carriers_and_print_902() {
             ),
             (part_of(&q, "EW-GEN-RAIL-1"), m("0.94"), vec![uc1], p902.clone()),
             (part_of(&q, "EW-GEN-DUCT-1"), m("0.47"), vec![uc1], p902.clone()),
+            (part_of(&q, "EW-GEN-COV-40"), m("0.47"), vec![uc1], p902.clone()),
+            // The strips' end brackets print the panel page of their rails.
+            (
+                part_of(&q, "EW-GEN-EB-1"),
+                m("6"),
+                vec![dev(&s, "-X1011"), dev(&s, "-X1021"), dev(&s, "-X1031")],
+                p902.clone()
+            ),
         ]
     );
     // Placed devices keep their representation folios: no other row prints 902.
@@ -235,8 +249,9 @@ fn the_legend_of_the_plate_lists_its_rows_and_renumbers() {
     let set = legend(&q, p902);
     let rows = summary(&set);
     let placed = q.table::<Placement>().iter().count();
-    // The enclosure, the plate, two rails, one duct, then the placements.
-    assert_eq!(rows.len(), 5 + placed);
+    // The enclosure, the plate, two rails, one duct, the placements, then the duct's cover and the strips' end
+    // brackets (the layout-only accessories).
+    assert_eq!(rows.len(), 7 + placed);
     let positions: Vec<String> = rows.iter().map(|r| r.0.clone()).collect();
     assert_eq!(
         positions,
@@ -261,7 +276,10 @@ fn the_legend_of_the_plate_lists_its_rows_and_renumbers() {
         ["EW-GEN-ENC-1", "EW-GEN-PLT-1", "EW-GEN-RAIL-1", "EW-GEN-RAIL-1"]
     );
     // The placements, by DT in natural order.
-    let listed: Vec<Id<Device>> = rows[5..].iter().map(|r| r.1.expect("a DT")).collect();
+    let listed: Vec<Id<Device>> = rows[5..rows.len() - 2]
+        .iter()
+        .map(|r| r.1.expect("a DT"))
+        .collect();
     let full = |d: Id<Device>| {
         let t = q.get::<DeviceTag>(d);
         ew_mltext::natural_key(t.as_ref().as_ref().map_or("", |t| t.full.as_str()))

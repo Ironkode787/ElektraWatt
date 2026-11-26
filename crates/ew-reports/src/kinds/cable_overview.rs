@@ -128,7 +128,8 @@ fn heading(width: usize, key: &str, text: MlText) -> Row {
 
 fn part_number(q: &Q, cable: Id<Device>) -> String {
     q.get::<DevicePartLines>(cable)
-        .first()
+        .iter()
+        .find(|l| !l.is_accessory())
         .and_then(|l| q.parts().get(l.part))
         .map(|c| c.item.part_number.as_str().to_owned())
         .unwrap_or_default()

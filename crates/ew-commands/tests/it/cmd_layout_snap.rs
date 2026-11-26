@@ -19,7 +19,7 @@ use ew_commands::commands::{
 use ew_commands::{CmdError, Engine, Origin};
 use ew_derive::Q;
 use ew_derive::layout::{
-    Quarter, RailItem, RailOccupancy, Resolution, SnapMode, bracket_part, rail_extent, rail_items, resolve,
+    Quarter, RailItem, RailOccupancy, Resolution, SnapMode, rail_extent, rail_items, resolve,
 };
 use ew_ids::Id;
 use ew_model::Model;
@@ -614,7 +614,7 @@ fn ghost(
         s1: ext.width,
         strip: ext.strip,
         w: if ext.strip {
-            bracket_part(&q, &dev).map(|(_, w)| w)
+            ew_derive::strip_bracket(&q, &dev).map(|b| b.width)
         } else {
             None
         },

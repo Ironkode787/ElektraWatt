@@ -762,7 +762,7 @@ fn rows_commit_from_the_properties_grid() {
         panic!("refused")
     };
     assert_eq!(message, FAR_POSITION_REFUSAL);
-    assert_eq!(row_text(&s, "placement/derived.position"), "185 mm");
+    assert_eq!(row_text(&s, "placement/derived.position"), "207.2 mm");
     // R1's Length row lengthens the rail.
     let r1 = carrier(&panel(&s), "Rail 1").id;
     done(&mut s, "select.set", json!({"ids": [r1.to_string()]}));
