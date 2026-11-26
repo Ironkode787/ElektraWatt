@@ -4848,7 +4848,7 @@ msgid ""
 "one pin of the module's box."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:31 src/reference/window/tools.md:60 src/reference/symbol-editor.md:264
+#: src/how-to/plc-workspace.md:31 src/reference/window/tools.md:60 src/reference/symbol-editor.md:267
 msgid "Symbol"
 msgstr ""
 
@@ -5645,31 +5645,34 @@ msgid ""
 "the pins and sockets the part still has, and its bus port keeps its bus, "
 "role and address. A bus line at a socket the part no longer has keeps its "
 "end there; the card names it before **Apply**, so that you draw it to "
-"another socket. A pin or socket the part adds shows when the box is drawn "
-"again: delete the box and draw it again (a port from **Ports not drawn yet** "
-"in the **Bus** panel), or, for a part with a device box, choose **Redraw "
-"them** after saving the box (below). The editor says so above the form."
+"another socket. A pin or socket the part adds stands after the last one of "
+"its edge, the box growing to take it; a box that would then run past the "
+"drawing area (into the title block) goes back along that edge until it fits, "
+"its wires with it. The card names each box drawn anew and its page before "
+"**Apply**, and says which went back. A turned box takes the new pin when it "
+"is drawn again: delete it and draw it again, or, for a part with a device "
+"box, choose **Redraw them** after saving the box (below)."
 msgstr ""
 
-#: src/how-to/own-parts.md:80
+#: src/how-to/own-parts.md:82
 msgid ""
 "A starter part or a part of another library is not yours to change: its "
 "editor says so and offers **Copy as a part of your own…**, a new part with "
 "its data, which you save under a part number of your own."
 msgstr ""
 
-#: src/how-to/own-parts.md:83
+#: src/how-to/own-parts.md:85
 msgid "A device that is a box with pins"
 msgstr ""
 
-#: src/how-to/own-parts.md:85
+#: src/how-to/own-parts.md:87
 msgid ""
 "A circuit protector, a power supply, a drive: a device the program has no "
 "symbol for is drawn as a box with its pins on the edges. The part says which "
 "pins it has and where they stand."
 msgstr ""
 
-#: src/how-to/own-parts.md:88
+#: src/how-to/own-parts.md:90
 msgid ""
 "In the part editor, **Pins** lists the part's pins, each with its name and "
 "the potential it carries. **Add pin** adds one, the cross at a row's end "
@@ -5677,7 +5680,7 @@ msgid ""
 "symbol takes that symbol's connections: the section lists them and says so."
 msgstr ""
 
-#: src/how-to/own-parts.md:91
+#: src/how-to/own-parts.md:93
 msgid ""
 "Choose **Pins and box…**. The device box opens on the symbol editor's "
 "screen: drag each pin along its edge or onto another edge, drag the box's "
@@ -5685,7 +5688,7 @@ msgid ""
 "box](../reference/symbol-editor.md#the-device-box))."
 msgstr ""
 
-#: src/how-to/own-parts.md:94
+#: src/how-to/own-parts.md:96
 msgid ""
 "**Draw ▸ Place ▸ Device from part…** then places the part's box with one "
 "click, laid out as you drew it. On the page the box's edges and pins can "
@@ -5698,7 +5701,7 @@ msgid ""
 "left and right sides are horizontal."
 msgstr ""
 
-#: src/how-to/own-parts.md:100
+#: src/how-to/own-parts.md:102
 msgid ""
 "To change the box of a device already drawn, choose **Edit this device's "
 "box…** in its menu. A library's part becomes the project's own copy when you "
@@ -5706,17 +5709,17 @@ msgid ""
 "many boxes of the part are drawn and offers **Redraw them**."
 msgstr ""
 
-#: src/how-to/own-parts.md:104
+#: src/how-to/own-parts.md:106
 msgid ""
 "A part cannot be removed from My parts in the window yet: it stays, unused, "
 "until you delete it from the library folder."
 msgstr ""
 
-#: src/how-to/own-parts.md:106
+#: src/how-to/own-parts.md:108
 msgid "A part drawn with your own symbol"
 msgstr ""
 
-#: src/how-to/own-parts.md:108
+#: src/how-to/own-parts.md:110
 msgid ""
 "In the [symbol editor](../reference/symbol-editor.md), save the symbol with "
 "**Save**, then open **Draft** and choose **Make a part for this symbol…**. "
@@ -5724,7 +5727,7 @@ msgid ""
 "from the part is drawn with it."
 msgstr ""
 
-#: src/how-to/own-parts.md:112
+#: src/how-to/own-parts.md:114
 msgid ""
 "The PLC exchange with PLC software exports the stations of a configuration "
 "project; a switch or a device without a PLC section is not in the exported "
@@ -6490,7 +6493,7 @@ msgid ""
 "▸ Device from part…. See [Choose parts](../../how-to/choose-parts.md)."
 msgstr ""
 
-#: src/reference/window/tools.md:78 src/reference/symbol-editor.md:282
+#: src/reference/window/tools.md:78 src/reference/symbol-editor.md:285
 msgid "Terminal"
 msgstr ""
 
@@ -9288,10 +9291,14 @@ msgstr ""
 msgid ""
 "**The pin table**, on the left, lists the pins in the order they stand on "
 "the box, each with its name, the potential it carries and its edge. **Add "
-"pin** adds one; a row dragged onto another takes its place there."
+"pin** adds one; a row dragged onto another takes its place there. **Add bus "
+"interface…** opens the part editor on **Bus interfaces** with a new "
+"interface (a PROFIBUS or PROFINET port, say); the box then takes its ports "
+"from its interfaces as every bus device's does. A library's part keeps the "
+"interfaces its library gives it."
 msgstr ""
 
-#: src/reference/symbol-editor.md:137
+#: src/reference/symbol-editor.md:140
 msgid ""
 "**The drawing** shows the box as a device of the part is drawn. Drag a pin "
 "along its edge or onto another edge; drag any edge or corner of the box to "
@@ -9302,7 +9309,7 @@ msgid ""
 "copy them and paste pins of the same names, each last on its edge."
 msgstr ""
 
-#: src/reference/symbol-editor.md:142
+#: src/reference/symbol-editor.md:145
 msgid ""
 "<a id=\"a-pin-of-the-box\"></a>**Properties** shows the selected pin's "
 "**Name**, **Potential**, **Edge** and its place **Along the edge**; with no "
@@ -9311,7 +9318,7 @@ msgid ""
 "width and height."
 msgstr ""
 
-#: src/reference/symbol-editor.md:146
+#: src/reference/symbol-editor.md:149
 msgid ""
 "**Save** saves the part: a new part into your parts library and the project, "
 "a part of your own in place, and a library's part as the project's own copy, "
@@ -9325,7 +9332,7 @@ msgid ""
 "editor's ways in, where a symbol you were drawing waits to be continued."
 msgstr ""
 
-#: src/reference/symbol-editor.md:154
+#: src/reference/symbol-editor.md:157
 msgid ""
 "A PLC card takes its pins from its channels, a bus device its box on a bus "
 "page from its interfaces and ports, and a part drawn with a symbol its "
@@ -9333,15 +9340,15 @@ msgid ""
 "where its pins come from."
 msgstr ""
 
-#: src/reference/symbol-editor.md:158
+#: src/reference/symbol-editor.md:161
 msgid "AI and command-line tools"
 msgstr ""
 
-#: src/reference/symbol-editor.md:160
+#: src/reference/symbol-editor.md:163
 msgid "No remote service or generated code is required. Use `ew symbol`:"
 msgstr ""
 
-#: src/reference/symbol-editor.md:162
+#: src/reference/symbol-editor.md:165
 msgid ""
 "```text\n"
 "ew symbol template example.power \"Power block\" > power.symbol.json\n"
@@ -9355,7 +9362,7 @@ msgid ""
 "```"
 msgstr ""
 
-#: src/reference/symbol-editor.md:172
+#: src/reference/symbol-editor.md:175
 msgid ""
 "Template and schema print JSON. Validation prints stable issue codes, JSON "
 "pointers and details, exiting 0 when valid, 1 for validation findings, or 2 "
@@ -9373,7 +9380,7 @@ msgid ""
 "which blocks publication."
 msgstr ""
 
-#: src/reference/symbol-editor.md:182
+#: src/reference/symbol-editor.md:185
 msgid ""
 "The portable envelope uses `format: \"ew.symbol/1\"`, `key`, `version`, "
 "`symbol`, `function`, optional `identity`, `function_ref`, `import_notes`, "
@@ -9384,318 +9391,318 @@ msgid ""
 "publisher replaces temporary references for owned functions."
 msgstr ""
 
-#: src/reference/symbol-editor.md:188
+#: src/reference/symbol-editor.md:191
 msgid "The window and `.ewui` scripts share these actions:"
 msgstr ""
 
-#: src/reference/symbol-editor.md:190
+#: src/reference/symbol-editor.md:193
 msgid "Action"
 msgstr ""
 
-#: src/reference/symbol-editor.md:190
+#: src/reference/symbol-editor.md:193
 msgid "Parameters"
 msgstr ""
 
-#: src/reference/symbol-editor.md:192
+#: src/reference/symbol-editor.md:195
 msgid "`symbol.new`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:192
+#: src/reference/symbol-editor.md:195
 msgid "optional `key` and `name`, optional `discard: true`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:193
+#: src/reference/symbol-editor.md:196
 msgid "`symbol.open`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:193
+#: src/reference/symbol-editor.md:196
 msgid "`file`, optional import `key` (default: the file's name)"
 msgstr ""
 
-#: src/reference/symbol-editor.md:194
+#: src/reference/symbol-editor.md:197
 msgid "`symbol.candidate`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:194
+#: src/reference/symbol-editor.md:197
 msgid "zero-based `index` from an import package"
 msgstr ""
 
-#: src/reference/symbol-editor.md:195
+#: src/reference/symbol-editor.md:198
 msgid "`symbol.fork`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:195
+#: src/reference/symbol-editor.md:198
 msgid ""
 "`source`: embedded copy UUID, `library:<library UUID>:<item UUID>`, or "
 "legacy key; new `key`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:196
+#: src/reference/symbol-editor.md:199
 msgid "`symbol.draw`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:196
+#: src/reference/symbol-editor.md:199
 msgid ""
 "`tool`, `x`, `y`, optional `x2`, `y2`, `text`, arc `start`/`sweep` in whole "
 "degrees"
 msgstr ""
 
-#: src/reference/symbol-editor.md:197
+#: src/reference/symbol-editor.md:200
 msgid "`symbol.path`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:197
+#: src/reference/symbol-editor.md:200
 msgid "`points` as millimetre pairs, optional `closed` for a polygon"
 msgstr ""
 
-#: src/reference/symbol-editor.md:198
+#: src/reference/symbol-editor.md:201
 msgid "`symbol.cp`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:198
+#: src/reference/symbol-editor.md:201
 msgid ""
 "`x`, `y`, optional `idx`, `fn_cp`, `designation`, `direction` (`up`, "
 "`right`, `down`, `left`, or `lead`: along the lead that ends there)"
 msgstr ""
 
-#: src/reference/symbol-editor.md:199
+#: src/reference/symbol-editor.md:202
 msgid "`symbol.map_cp`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:199
+#: src/reference/symbol-editor.md:202
 msgid "drawing `cp`, target function `fn_cp`; an occupied compatible pin swaps"
 msgstr ""
 
-#: src/reference/symbol-editor.md:200
+#: src/reference/symbol-editor.md:203
 msgid "`symbol.role`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:200
+#: src/reference/symbol-editor.md:203
 msgid ""
 "drawing `cp` and the potential `role` of its function pin (`l1` … "
 "`undefined`; `none` clears it)"
 msgstr ""
 
-#: src/reference/symbol-editor.md:201
+#: src/reference/symbol-editor.md:204
 msgid "`symbol.slot`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:201
+#: src/reference/symbol-editor.md:204
 msgid "`kind`, `x`, `y`; e.g. `\"tag\"` or `{\"cp_designation\":1}`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:202
+#: src/reference/symbol-editor.md:205
 msgid "`symbol.link`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:202
+#: src/reference/symbol-editor.md:205
 msgid "`name`, `x`, `y`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:203
+#: src/reference/symbol-editor.md:206
 msgid "`symbol.function`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:203
+#: src/reference/symbol-editor.md:206
 msgid ""
 "existing function `key`, or `library:<library UUID>:<item UUID>` in `key`; "
 "an empty `key` takes an assigned function off"
 msgstr ""
 
-#: src/reference/symbol-editor.md:204
+#: src/reference/symbol-editor.md:207
 msgid "`symbol.replace`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:204
+#: src/reference/symbol-editor.md:207
 msgid "complete `document` object"
 msgstr ""
 
-#: src/reference/symbol-editor.md:205
+#: src/reference/symbol-editor.md:208
 msgid "`symbol.undo`, `symbol.redo`, `symbol.validate`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:205
+#: src/reference/symbol-editor.md:208
 msgid "none"
 msgstr ""
 
-#: src/reference/symbol-editor.md:206
+#: src/reference/symbol-editor.md:209
 msgid "`symbol.variant`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:206
+#: src/reference/symbol-editor.md:209
 msgid "`variant` 0–7 for A–H"
 msgstr ""
 
-#: src/reference/symbol-editor.md:207
+#: src/reference/symbol-editor.md:210
 msgid "`symbol.export`, `symbol.save`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:207
+#: src/reference/symbol-editor.md:210
 msgid "`file` or library `directory` respectively"
 msgstr ""
 
-#: src/reference/symbol-editor.md:208
+#: src/reference/symbol-editor.md:211
 msgid "`symbol.directory`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:208
+#: src/reference/symbol-editor.md:211
 msgid "library `directory` that Save uses"
 msgstr ""
 
-#: src/reference/symbol-editor.md:209
+#: src/reference/symbol-editor.md:212
 msgid "`symbol.tool`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:209
+#: src/reference/symbol-editor.md:212
 msgid "`tool`: the drawing tool to choose"
 msgstr ""
 
-#: src/reference/symbol-editor.md:210
+#: src/reference/symbol-editor.md:213
 msgid "`symbol.select`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:210
+#: src/reference/symbol-editor.md:213
 msgid ""
 "`items`: a list of things (`cp:0`, `slot:1`, `graphic:2`, `link:0`, "
 "`anchor`, each by its place in its list) or `\"all\"`; optional `mode`: "
 "`replace`, `add` or `toggle`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:211
+#: src/reference/symbol-editor.md:214
 msgid "`symbol.move`, `symbol.nudge`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:211
+#: src/reference/symbol-editor.md:214
 msgid "`dx`, `dy`: the selection moved by millimetres, or by grid steps"
 msgstr ""
 
-#: src/reference/symbol-editor.md:212
+#: src/reference/symbol-editor.md:215
 msgid ""
 "`symbol.delete`, `symbol.copy`, `symbol.cut`, `symbol.paste`, "
 "`symbol.duplicate`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:212
+#: src/reference/symbol-editor.md:215
 msgid "none; they act on the selection"
 msgstr ""
 
-#: src/reference/symbol-editor.md:213
+#: src/reference/symbol-editor.md:216
 msgid "`symbol.align`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:213
+#: src/reference/symbol-editor.md:216
 msgid "`to`: `left`, `centre`, `right`, `top`, `middle` or `bottom`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:214
+#: src/reference/symbol-editor.md:217
 msgid "`symbol.grip`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:214
+#: src/reference/symbol-editor.md:217
 msgid "`grip` (a handle of the one selected shape, counted from 0), `x`, `y`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:215
+#: src/reference/symbol-editor.md:218
 msgid "`symbol.prop`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:215
+#: src/reference/symbol-editor.md:218
 msgid ""
 "`key`, `value`: a row of Properties, of the selection or of the symbol "
 "itself (`name`, `what`, `category`, `key`, `x`, `y`, `w`, `h`, `dir`, "
 "`role`, …)"
 msgstr ""
 
-#: src/reference/symbol-editor.md:216
+#: src/reference/symbol-editor.md:219
 msgid "`symbol.grid`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:216
+#: src/reference/symbol-editor.md:219
 msgid "optional `step` in millimetres, optional `snap`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:217
+#: src/reference/symbol-editor.md:220
 msgid "`symbol.start`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:217
+#: src/reference/symbol-editor.md:220
 msgid "optional `leave: true`: the start card, or back to the draft in hand"
 msgstr ""
 
-#: src/reference/symbol-editor.md:218
+#: src/reference/symbol-editor.md:221
 msgid "`part.box`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:218
+#: src/reference/symbol-editor.md:221
 msgid ""
 "optional `part` (a part number, or `id:<copy UUID>`), optional `new: true`: "
 "the device box editor"
 msgstr ""
 
-#: src/reference/symbol-editor.md:219
+#: src/reference/symbol-editor.md:222
 msgid "`part.pin`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:219
+#: src/reference/symbol-editor.md:222
 msgid ""
 "`add: true` with optional `name`; `remove`: a pin; or `pin` with `name`, "
 "`role`, `side` (`top`, `bottom`, `left`, `right`) and `at` in millimetres "
 "along the edge"
 msgstr ""
 
-#: src/reference/symbol-editor.md:220
+#: src/reference/symbol-editor.md:223
 msgid "`part.box_size`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:220
+#: src/reference/symbol-editor.md:223
 msgid ""
 "`width`, `height` in millimetres; `from_left: true` changes the width at the "
 "left edge and `from_top: true` the height at the top"
 msgstr ""
 
-#: src/reference/symbol-editor.md:221
+#: src/reference/symbol-editor.md:224
 msgid "`part.box_select`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:221
+#: src/reference/symbol-editor.md:224
 msgid "`pins`: a list of pin numbers or `\"all\"`; optional `mode`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:222
+#: src/reference/symbol-editor.md:225
 msgid "`part.redraw_boxes`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:222
+#: src/reference/symbol-editor.md:225
 msgid ""
 "`part`: the boxes drawn of the part redrawn as it lays them out, in one undo "
 "step"
 msgstr ""
 
-#: src/reference/symbol-editor.md:223
+#: src/reference/symbol-editor.md:226
 msgid "`symbol.place`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:223
+#: src/reference/symbol-editor.md:226
 msgid "`x`, `y` on the current project page"
 msgstr ""
 
-#: src/reference/symbol-editor.md:224
+#: src/reference/symbol-editor.md:227
 msgid "`symbol.scratch`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:224
+#: src/reference/symbol-editor.md:227
 msgid "none; creates a test page in the current project"
 msgstr ""
 
-#: src/reference/symbol-editor.md:225
+#: src/reference/symbol-editor.md:228
 msgid "`symbol.close`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:225
+#: src/reference/symbol-editor.md:228
 msgid "optional `discard: true`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:227
+#: src/reference/symbol-editor.md:230
 msgid ""
 "Action coordinates are **millimetres**, unlike JSON document coordinates. "
 "Placement snaps the insertion point to the destination page grid; it never "
@@ -9716,78 +9723,78 @@ msgid ""
 "a complete six-pin example."
 msgstr ""
 
-#: src/reference/symbol-editor.md:238
+#: src/reference/symbol-editor.md:241
 msgid "Imported formats and limits"
 msgstr ""
 
-#: src/reference/symbol-editor.md:240
+#: src/reference/symbol-editor.md:243
 msgid "Input"
 msgstr ""
 
-#: src/reference/symbol-editor.md:240
+#: src/reference/symbol-editor.md:243
 msgid "Supported behaviour"
 msgstr ""
 
-#: src/reference/symbol-editor.md:242
+#: src/reference/symbol-editor.md:245
 msgid "QElectroTech `.elmt`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:242
+#: src/reference/symbol-editor.md:245
 msgid ""
 "Existing bounded element reader; preserves the QET 10 px grid and "
 "provenance. Review conversion warnings."
 msgstr ""
 
-#: src/reference/symbol-editor.md:243
+#: src/reference/symbol-editor.md:246
 msgid "EPLAN `.edz`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:243
+#: src/reference/symbol-editor.md:246
 msgid ""
 "Bounded 7-Zip or ZIP container; candidates from supported XML members. Never "
 "extracts files to disk."
 msgstr ""
 
-#: src/reference/symbol-editor.md:244
+#: src/reference/symbol-editor.md:247
 msgid "EPLAN `.ema`, `.ems`, `.esl` XML"
 msgstr ""
 
-#: src/reference/symbol-editor.md:244
+#: src/reference/symbol-editor.md:247
 msgid ""
 "PXF revision **1.23**: straight lines, rectangles, polylines, full circles "
 "and text. Each macro variant becomes a separate candidate."
 msgstr ""
 
-#: src/reference/symbol-editor.md:245
+#: src/reference/symbol-editor.md:248
 msgid "EPLAN parts XML"
 msgstr ""
 
-#: src/reference/symbol-editor.md:245
+#: src/reference/symbol-editor.md:248
 msgid ""
 "Connection designations become a generated rectangular outline. This is "
 "explicitly **not the original macro artwork**."
 msgstr ""
 
-#: src/reference/symbol-editor.md:246
+#: src/reference/symbol-editor.md:249
 msgid "EPLAN `.slk` with its companion `.sdb` folder"
 msgstr ""
 
-#: src/reference/symbol-editor.md:246
+#: src/reference/symbol-editor.md:249
 msgid ""
 "Direct read without EPLAN: observed SLK 1.2 / FE53 tables, UTF-16LE or UTF-8 "
 "descriptor, A-variant lines, axis-aligned rectangles, full circles and "
 "graphical connection points. Review required."
 msgstr ""
 
-#: src/reference/symbol-editor.md:247
+#: src/reference/symbol-editor.md:250
 msgid "Other binary macros"
 msgstr ""
 
-#: src/reference/symbol-editor.md:247
+#: src/reference/symbol-editor.md:250
 msgid "Refused with an explanation; use a supported XML macro/parts export."
 msgstr ""
 
-#: src/reference/symbol-editor.md:249
+#: src/reference/symbol-editor.md:252
 msgid ""
 "PXF arcs/ellipses, images, groups, external symbol references and "
 "unrecognised records are not faithfully reconstructed. The importer reports "
@@ -9799,7 +9806,7 @@ msgid ""
 "distributed with ElektraWatt."
 msgstr ""
 
-#: src/reference/symbol-editor.md:255
+#: src/reference/symbol-editor.md:258
 msgid ""
 "EPLAN drafts require a licence/source review and explicit acknowledgement. A "
 "download is not treated as a redistribution licence. No links or embedded "
@@ -9809,59 +9816,59 @@ msgid ""
 "names, CRCs, decompression ratio and XML depth are checked."
 msgstr ""
 
-#: src/reference/symbol-editor.md:260
+#: src/reference/symbol-editor.md:263
 msgid "How the symbol data fits together"
 msgstr ""
 
-#: src/reference/symbol-editor.md:262
+#: src/reference/symbol-editor.md:265
 msgid "Record"
 msgstr ""
 
-#: src/reference/symbol-editor.md:262
+#: src/reference/symbol-editor.md:265
 msgid "What it owns"
 msgstr ""
 
-#: src/reference/symbol-editor.md:264
+#: src/reference/symbol-editor.md:267
 msgid ""
 "Artwork, insertion/reference anchors, text slots, pin positions and "
 "directions, and each pin's function mapping."
 msgstr ""
 
-#: src/reference/symbol-editor.md:265
+#: src/reference/symbol-editor.md:268
 msgid "Function definition"
 msgstr ""
 
-#: src/reference/symbol-editor.md:265
+#: src/reference/symbol-editor.md:268
 msgid ""
 "Electrical type, pin designations, potential roles, optional/source flags "
 "and internal connections."
 msgstr ""
 
-#: src/reference/symbol-editor.md:266
+#: src/reference/symbol-editor.md:269
 msgid "Manufacturer part"
 msgstr ""
 
-#: src/reference/symbol-editor.md:266
+#: src/reference/symbol-editor.md:269
 msgid ""
 "Purchased-product information such as article number, manufacturer and "
 "technical ratings; assigned to a project device separately."
 msgstr ""
 
-#: src/reference/symbol-editor.md:267
+#: src/reference/symbol-editor.md:270
 msgid "Placed device/function"
 msgstr ""
 
-#: src/reference/symbol-editor.md:267
+#: src/reference/symbol-editor.md:270
 msgid ""
 "Device tag, function text, chosen part and embedded copies of the "
 "symbol/function definitions."
 msgstr ""
 
-#: src/reference/symbol-editor.md:269
+#: src/reference/symbol-editor.md:272
 msgid "The function types"
 msgstr ""
 
-#: src/reference/symbol-editor.md:271
+#: src/reference/symbol-editor.md:274
 msgid ""
 "What **What it is** chooses is one of these function types (the row "
 "**Function type** under **More** shows it). The type decides which "
@@ -9871,85 +9878,85 @@ msgid ""
 "black box for each."
 msgstr ""
 
-#: src/reference/symbol-editor.md:276
+#: src/reference/symbol-editor.md:279
 msgid "Function type"
 msgstr ""
 
-#: src/reference/symbol-editor.md:276
+#: src/reference/symbol-editor.md:279
 msgid "For"
 msgstr ""
 
-#: src/reference/symbol-editor.md:278
+#: src/reference/symbol-editor.md:281
 msgid "Generic black box"
 msgstr ""
 
-#: src/reference/symbol-editor.md:278
+#: src/reference/symbol-editor.md:281
 msgid ""
 "A device the program has no type for, such as a drive or a module, with "
 "connection points of its own."
 msgstr ""
 
-#: src/reference/symbol-editor.md:279
+#: src/reference/symbol-editor.md:282
 msgid "Normally open, normally closed and change-over contact"
 msgstr ""
 
-#: src/reference/symbol-editor.md:279
+#: src/reference/symbol-editor.md:282
 msgid ""
 "A contact of a relay, contactor or switch; it is listed with the coil or "
 "device that switches it."
 msgstr ""
 
-#: src/reference/symbol-editor.md:280
+#: src/reference/symbol-editor.md:283
 msgid "Coil"
 msgstr ""
 
-#: src/reference/symbol-editor.md:280
+#: src/reference/symbol-editor.md:283
 msgid "The coil of a relay or contactor; its contacts refer to it."
 msgstr ""
 
-#: src/reference/symbol-editor.md:281
+#: src/reference/symbol-editor.md:284
 msgid "Pole"
 msgstr ""
 
-#: src/reference/symbol-editor.md:281
+#: src/reference/symbol-editor.md:284
 msgid ""
 "A path through a device, or out of a source: a pole of a breaker, fuse or "
 "switch, a supply or an air supply."
 msgstr ""
 
-#: src/reference/symbol-editor.md:282
+#: src/reference/symbol-editor.md:285
 msgid "A terminal of a terminal strip, listed in the terminal diagram."
 msgstr ""
 
-#: src/reference/symbol-editor.md:283
+#: src/reference/symbol-editor.md:286
 msgid "PLC input/output"
 msgstr ""
 
-#: src/reference/symbol-editor.md:283
+#: src/reference/symbol-editor.md:286
 msgid ""
 "A channel of a PLC card, which gets an address and is listed in the PLC "
 "lists."
 msgstr ""
 
-#: src/reference/symbol-editor.md:284
+#: src/reference/symbol-editor.md:287
 msgid "Bus port"
 msgstr ""
 
-#: src/reference/symbol-editor.md:284
+#: src/reference/symbol-editor.md:287
 msgid "A port such as PROFINET or PROFIBUS; its device joins a bus net."
 msgstr ""
 
-#: src/reference/symbol-editor.md:285
+#: src/reference/symbol-editor.md:288
 msgid "Valve"
 msgstr ""
 
-#: src/reference/symbol-editor.md:285
+#: src/reference/symbol-editor.md:288
 msgid ""
 "A fluid power valve; its ports carry air or oil, and it can sit on a valve "
 "terminal."
 msgstr ""
 
-#: src/reference/symbol-editor.md:287
+#: src/reference/symbol-editor.md:290
 msgid ""
 "Typing `FE` as a designation changes the printed label; select the FE "
 "potential role to give it electrical meaning. Text slots obtain tags, "
@@ -9960,7 +9967,7 @@ msgid ""
 "reviewed."
 msgstr ""
 
-#: src/reference/symbol-editor.md:292
+#: src/reference/symbol-editor.md:295
 msgid ""
 "Keep `custom.slk` beside the complete `custom.sdb` folder (or the sibling "
 "folder named in the descriptor). Only the Symbol, Variant, Instance and Blob "
