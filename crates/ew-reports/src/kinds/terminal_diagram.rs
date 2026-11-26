@@ -5,14 +5,15 @@
 
 use std::collections::BTreeSet;
 
-use ew_derive::{Cp, CpRef, DevicePartLines, FunctionCps, PotentialNameOf, PotentialPartition, Q, short_tag};
+use ew_derive::{
+    Cp, CpRef, DevicePartLines, FunctionCps, PotentialNameOf, PotentialPartition, Q, WireRecord, short_tag,
+};
 use ew_ids::Id;
 use ew_mltext::{NaturalKey, natural_key};
 use ew_schema::{Device, Endpoint, ReportBlock, ReportKind, Side, Terminal};
 
 use super::conn::{
-    Bridge, WireRec, Wires, bridges, end_text, terminal_state, terminal_wired, text_cell, wires_by_cp,
-    words_cell,
+    Bridge, Wires, bridges, end_text, terminal_state, terminal_wired, text_cell, wires_by_cp, words_cell,
 };
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
@@ -229,7 +230,7 @@ pub(super) fn strips_of(q: &Q, block: &ReportBlock) -> Vec<Id<Device>> {
 }
 
 /// What the wire `rec` ending at `at` leads to: the far end, and the cable and core when it is a core.
-fn target_text(q: &Q, rec: &WireRec, at: CpRef) -> String {
+fn target_text(q: &Q, rec: &WireRecord, at: CpRef) -> String {
     let far = rec
         .wire
         .ends

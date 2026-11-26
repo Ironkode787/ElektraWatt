@@ -6,12 +6,12 @@
 
 use std::collections::BTreeMap;
 
-use ew_derive::{DevicePartLines, Q, short_tag};
+use ew_derive::{DevicePartLines, Q, WireRecord, short_tag};
 use ew_ids::Id;
 use ew_mltext::{MlText, NaturalKey, natural_key};
 use ew_schema::{Conductor, Device, Function, LengthSource, ReportBlock, ReportKind};
 
-use super::conn::{WireRec, Wires, colour_cell, csa_cell, end_text, text_cell, words_cell};
+use super::conn::{Wires, colour_cell, csa_cell, end_text, text_cell, words_cell};
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, Row, RowId, RowKey, RowKind, RowSet};
 
@@ -53,7 +53,7 @@ impl ReportKindDef for CableOverview {
     fn rows(&self, q: &Q, _block: &ReportBlock) -> RowSet {
         let columns = self.columns();
         let wires = Wires::of(q);
-        let by_core: BTreeMap<Id<Conductor>, &WireRec> = wires
+        let by_core: BTreeMap<Id<Conductor>, &WireRecord> = wires
             .wires
             .iter()
             .filter_map(|w| Some((w.wire.core?, w)))
@@ -201,7 +201,7 @@ fn bus_line_ports(q: &Q, cable: Id<Device>) -> [Option<Id<Function>>; 2] {
     ew_derive::cable_bus_line(q, cable).map_or([None, None], |l| [l.a.function(), l.b.function()])
 }
 
-fn cable_row(q: &Q, cable: Id<Device>, by_core: &BTreeMap<Id<Conductor>, &WireRec>) -> Row {
+fn cable_row(q: &Q, cable: Id<Device>, by_core: &BTreeMap<Id<Conductor>, &WireRecord>) -> Row {
     let (mut a, mut b) = (Vec::new(), Vec::new());
     // A bus cable's ends are the devices of its line's ports.
     let [pa, pb] = bus_line_ports(q, cable);
@@ -255,15 +255,15 @@ fn core_row(
     q: &Q,
     cable: Id<Device>,
     core: Id<Conductor>,
-    by_core: &BTreeMap<Id<Conductor>, &WireRec>,
+    by_core: &BTreeMap<Id<Conductor>, &WireRecord>,
 ) -> Option<Row> {
     let c = q.conductors().get(core)?;
     let wire = by_core.get(&core);
     let colour = wire
-        .and_then(|w| w.props.colour.as_ref().map(|p| p.value.clone()))
+        .and_then(|w| w.colour.as_ref().map(|p| p.value.clone()))
         .or_else(|| c.colour.clone());
     let csa = wire
-        .and_then(|w| w.props.csa.as_ref().map(|p| p.value.clone()))
+        .and_then(|w| w.csa.as_ref().map(|p| p.value.clone()))
         .or_else(|| c.csa.clone());
     // a core no wire runs over: the pins a bus line's signal maps give it (FR-BUS-023), else the line's port: the bus
     // line uses every core of its cable

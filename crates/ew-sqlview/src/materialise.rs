@@ -14,7 +14,8 @@ use ew_checks::{CheckReport, FindingState};
 use ew_derive::{
     BomMode, BomRows, CpRef, DevicePartLines, DeviceTag, EndKind, MainRep, PageOrder, PageRef,
     PageRefStructure, PageTitle, Potential, PotentialAttrsOf, PotentialFlow, PotentialId, PropSource, Q,
-    RepAnchorCell, ResolvedStructure, SizeRule, XrefTextOf, main_part, manufacturer_name, tech_data_text,
+    RepAnchorCell, ResolvedStructure, SizeRule, WireRecord, XrefTextOf, main_part, manufacturer_name,
+    tech_data_text,
 };
 use ew_ids::Id;
 use ew_mltext::{NaturalKey, natural_key};
@@ -22,7 +23,7 @@ use ew_rds::{Aspect, RdsSyntax};
 use ew_schema::{AcDc, Device, DeviceState, FnRole, FunctionKind, LengthSource};
 use rusqlite::types::Value as SqlValue;
 
-use crate::conn::{self, Bridge, WireRec, Wires, cp_of, device_of, ip_name, tag_short};
+use crate::conn::{self, Bridge, Wires, cp_of, device_of, ip_name, tag_short};
 use crate::rows::{Row, colour_iec, csa_parts, enum_text, json_array, ml_json, non_empty};
 use crate::schema::{
     self, BOM_ASSEMBLY, BOM_COMPONENT, BOND, CABLE, CONDUCTOR, DEVICE, FLUID_LINE, FUNCTION, MEDIUM, MESSAGE,
@@ -512,9 +513,8 @@ pub(crate) fn wire_rows(s: &Source<'_>) -> Vec<Row> {
     rows
 }
 
-fn wire_row(q: &Q, wires: &Wires, rec: &WireRec, seq: usize) -> Row {
+fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord, seq: usize) -> Row {
     let w = &rec.wire;
-    let p = &rec.props;
     let mut r = Row::new(&WIRE);
     r.set("id", uuid(w.id))
         .set("seq", seq)
@@ -529,18 +529,18 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRec, seq: usize) -> Row {
     };
     r.set("potential_id", potential.map(potential_uuid))
         .set("potential_name", non_empty(wires.potential_text(w)));
-    if let Some((value, unit)) = p.csa.as_ref().and_then(|c| csa_parts(&c.value)) {
+    if let Some((value, unit)) = rec.csa.as_ref().and_then(|c| csa_parts(&c.value)) {
         r.set("csa", value).set("csa_unit", unit);
     }
-    if let Some(c) = &p.colour {
+    if let Some(c) = &rec.colour {
         r.set("colour", ew_derive::colour_text(&c.value))
             .set("colour_iec", colour_iec(&c.value));
     }
     r.set(
         "wire_part",
-        p.wire_part
+        rec.wire_part
             .as_ref()
-            .and_then(|wp| q.parts().get(wp.value.copy))
+            .and_then(|wp| q.parts().get(wp.copy))
             .map(|c| c.item.part_number.as_str().to_owned()),
     );
     if let Some(core) = w.core.and_then(|c| q.conductors().get(c)) {
@@ -589,12 +589,15 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRec, seq: usize) -> Row {
             "pages",
             folios_json(q, w.pages.iter().map(|pg| PageRef::Drawn(*pg))),
         )
-        .set("csa_source", p.csa.as_ref().map(|c| source_name(&c.source)))
-        .set("colour_source", p.colour.as_ref().map(|c| source_name(&c.source)))
-        .set("prov_csa", p.csa.as_ref().map(|c| source_words(q, &c.source)))
+        .set("csa_source", rec.csa.as_ref().map(|c| source_name(&c.source)))
+        .set(
+            "colour_source",
+            rec.colour.as_ref().map(|c| source_name(&c.source)),
+        )
+        .set("prov_csa", rec.csa.as_ref().map(|c| source_words(q, &c.source)))
         .set(
             "prov_colour",
-            p.colour.as_ref().map(|c| source_words(q, &c.source)),
+            rec.colour.as_ref().map(|c| source_words(q, &c.source)),
         );
     r
 }
@@ -654,7 +657,7 @@ fn bridge_row(q: &Q, wires: &Wires, b: &Bridge, seq: usize) -> Row {
 pub(crate) fn terminals(s: &Source<'_>) -> Vec<Row> {
     let (q, wires, bridges) = (s.q, s.wires, s.bridges);
     let mut wired: BTreeSet<Id<Device>> = BTreeSet::new();
-    for rec in &wires.wires {
+    for rec in wires.wires.iter() {
         for e in &rec.wire.ends {
             if let Some(d) = device_of(q, e.cp.function) {
                 wired.insert(d);
@@ -758,7 +761,7 @@ pub(crate) fn terminals(s: &Source<'_>) -> Vec<Row> {
 // cable, conductor
 
 /// The wire running over each conductor.
-fn wires_by_core(wires: &Wires) -> BTreeMap<Id<ew_schema::Conductor>, &WireRec> {
+fn wires_by_core(wires: &Wires) -> BTreeMap<Id<ew_schema::Conductor>, &WireRecord> {
     wires
         .wires
         .iter()
@@ -942,7 +945,7 @@ pub(crate) fn potentials(s: &Source<'_>) -> Vec<Row> {
                     PropSource::ColourRow { .. } | PropSource::SizeRow { .. } | PropSource::PotentialDef(_)
                 )
             };
-            let mut by_id: Vec<&WireRec> = wires
+            let mut by_id: Vec<&WireRecord> = wires
                 .wires
                 .iter()
                 .filter(|w| w.wire.potentials.contains(&p.id) && w.wire.bond.is_none())
@@ -950,12 +953,12 @@ pub(crate) fn potentials(s: &Source<'_>) -> Vec<Row> {
             by_id.sort_by_key(|w| w.wire.id);
             let colour = by_id
                 .iter()
-                .find_map(|w| w.props.colour.as_ref().filter(|c| profile(&c.source)));
+                .find_map(|w| w.colour.as_ref().filter(|c| profile(&c.source)));
             let csa = by_id
                 .iter()
-                .find_map(|w| w.props.csa.as_ref().filter(|c| profile(&c.source)));
+                .find_map(|w| w.csa.as_ref().filter(|c| profile(&c.source)));
             let mut pages: BTreeSet<(usize, Id<ew_schema::Page>)> = BTreeSet::new();
-            for w in &wires.wires {
+            for w in wires.wires.iter() {
                 if w.wire.potentials.contains(&p.id) {
                     for page in &w.wire.pages {
                         pages.insert((order.position(PageRef::Drawn(*page)).unwrap_or(usize::MAX), *page));

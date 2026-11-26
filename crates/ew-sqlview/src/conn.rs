@@ -2,13 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The connectivity facts the wire, terminal, cable, conductor, potential and bond tables share: the
-//! project's physical wires with their effective properties, oriented From/To (`ew_derive::orient_wire`),
-//! in the numbering order of FR-NUM-028 with their wire numbers (`ew_derive::WireNumbers`); the terminal
-//! bridges with their labels.
+//! project's physical wires with their effective properties, oriented From/To, in the numbering order of FR-NUM-028
+//! with their wire numbers (`ew_derive::WireRecordSet`); the terminal bridges with their labels.
 //!
 //! These are the same rules the report kinds of `ew-reports` apply to the wire list, the terminal diagrams,
 //! the cable overview and the potential overview (doc 08 §3.8, §6.5), read through the same
-//! `ew-derive` queries (orientation and numbering are shared there). The remaining shared rules (bridges, member
+//! `ew-derive` queries (the wire records, orientation and numbering are shared there). The remaining shared rules (bridges, member
 //! counts, profile defaults) are restated here; no test holds them equal to the report kinds' since the
 //! reference project's acceptance SQL went. Moving those into `ew-derive` is follow-up
 //! work (the dependency rules let `ew-reports` use `ew-sqlview`, not the reverse).
@@ -17,69 +16,36 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use ew_derive::{
-    CpRef, DeviceTag, EffectiveProps, FunctionCps, Partition, PhysicalWire, PhysicalWiresOf, PotentialId,
-    PotentialNameOf, PotentialNames, PotentialPartition, Q, WireNumbers, WirePropsOf, orient_wire,
+    CpRef, DeviceTag, FunctionCps, Partition, PhysicalWire, PotentialId, PotentialNameOf, PotentialNames,
+    PotentialPartition, Q, WireRecord, WireRecordSet,
 };
 use ew_ids::Id;
 use ew_mltext::{NaturalKey, natural_key};
-use ew_schema::{BridgeKind, Connection, ConnectionKind, Device, Endpoint, Function, FunctionKind, Page};
+use ew_schema::{BridgeKind, ConnectionKind, Device, Endpoint, Function, FunctionKind, Page};
 
-/// One physical wire with its effective properties, oriented (`ends[0]` is the From end).
-#[derive(Clone, Debug)]
-pub(crate) struct WireRec {
-    /// The wire.
-    pub wire: PhysicalWire,
-    /// Its effective properties.
-    pub props: EffectiveProps,
-    /// Its wire number (`101.1`); `None` for a cable core and a wire drawn on no page.
-    pub number: Option<String>,
-}
-
-/// Every physical wire of the project in the numbering order, with the partition and the potential names.
+/// Every physical wire of the project in the numbering order (`ew_derive::WireRecordSet`), with the partition and
+/// the potential names.
 pub(crate) struct Wires {
     /// The partition.
     pub partition: Arc<Partition>,
     /// The names of every potential.
     pub names: BTreeMap<PotentialId, Arc<PotentialNames>>,
-    /// The wires in the numbering order: see [`Wires::of`].
-    pub wires: Vec<WireRec>,
+    /// The wires in the numbering order.
+    pub wires: Arc<Vec<WireRecord>>,
 }
 
 impl Wires {
-    /// Reads the partition, the physical wires of every potential (deduplicated: a bond wire belongs to two)
-    /// and their effective properties; orients each wire (doc 08 §3.8) and sorts them in the numbering order
-    /// of `wire_numbers` (FR-NUM-028, doc 08 §5.2: the From end's page, the From and To cells, the wire ID),
-    /// a wire the numbering does not list last, by ID.
+    /// Reads the partition, the names of its potentials and the project's wire records.
     pub fn of(q: &Q) -> Wires {
         let partition = q.get::<PotentialPartition>(());
-        let numbers = q.get::<WireNumbers>(());
-        let mut by_id: BTreeMap<Id<Connection>, WireRec> = BTreeMap::new();
-        let mut names = BTreeMap::new();
-        for p in partition.potentials() {
-            names.insert(p.id, q.get::<PotentialNameOf>(p.id));
-            let physical = q.get::<PhysicalWiresOf>(p.id);
-            let props = q.get::<WirePropsOf>(p.id);
-            for w in &physical.wires {
-                by_id.entry(w.id).or_insert_with(|| {
-                    let mut wire = w.clone();
-                    orient_wire(q, &mut wire);
-                    WireRec {
-                        wire,
-                        props: props.wires.get(&w.id).cloned().unwrap_or_default(),
-                        number: numbers.number(w.id).map(|n| n.label.clone()),
-                    }
-                });
-            }
-        }
-        let mut keyed: Vec<((usize, Id<Connection>), WireRec)> = by_id
-            .into_values()
-            .map(|r| ((numbers.position(r.wire.id).unwrap_or(usize::MAX), r.wire.id), r))
+        let names = partition
+            .potentials()
+            .map(|p| (p.id, q.get::<PotentialNameOf>(p.id)))
             .collect();
-        keyed.sort_by_key(|e| e.0);
         Wires {
             partition,
             names,
-            wires: keyed.into_iter().map(|(_, r)| r).collect(),
+            wires: q.get::<WireRecordSet>(()),
         }
     }
 

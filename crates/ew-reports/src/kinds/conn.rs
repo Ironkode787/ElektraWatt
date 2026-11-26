@@ -14,9 +14,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use ew_derive::{
-    BridgeGroup, CpRef, DeviceTag, EffectiveProps, EndKind, FunctionCps, PageRef, Partition, PhysicalWire,
-    PhysicalWiresOf, PotentialId, PotentialNameOf, PotentialNames, PotentialPartition, PropSource, Q,
-    StripBridges, WireEnd, WirePropsOf, level_short_tag, orient_wire, short_tag,
+    BridgeGroup, CpRef, DeviceTag, EndKind, FunctionCps, PageRef, Partition, PhysicalWire, PotentialId,
+    PotentialNameOf, PotentialNames, PotentialPartition, PropSource, Q, StripBridges, WireEnd, WireRecord,
+    WireRecordSet, level_short_tag, short_tag,
 };
 use ew_ids::Id;
 use ew_l10n::Text;
@@ -93,19 +93,22 @@ pub(super) fn terminal_state(state: &DeviceState, wired: bool, bridged: bool) ->
     }
 }
 
-/// The physical wires by the CPs they end at.
-pub(super) fn wires_by_cp(wires: &Wires) -> BTreeMap<CpRef, Vec<&WireRec>> {
-    let mut map: BTreeMap<CpRef, Vec<&WireRec>> = BTreeMap::new();
-    for rec in &wires.wires {
+/// The physical wires by the CPs they end at, each CP's in wire-ID order.
+pub(super) fn wires_by_cp(wires: &Wires) -> BTreeMap<CpRef, Vec<&WireRecord>> {
+    let mut map: BTreeMap<CpRef, Vec<&WireRecord>> = BTreeMap::new();
+    for rec in wires.wires.iter() {
         for end in &rec.wire.ends {
             map.entry(end.cp).or_default().push(rec);
         }
+    }
+    for recs in map.values_mut() {
+        recs.sort_by_key(|r| r.wire.id);
     }
     map
 }
 
 /// Whether a wire ends at any CP of the terminal `t` (the `wired` of [`terminal_state`]).
-pub(super) fn terminal_wired(q: &Q, t: Id<Device>, by_cp: &BTreeMap<CpRef, Vec<&WireRec>>) -> bool {
+pub(super) fn terminal_wired(q: &Q, t: Id<Device>, by_cp: &BTreeMap<CpRef, Vec<&WireRecord>>) -> bool {
     q.idx().functions_of_device(t).any(|f| {
         q.get::<FunctionCps>(f)
             .iter()
@@ -113,51 +116,29 @@ pub(super) fn terminal_wired(q: &Q, t: Id<Device>, by_cp: &BTreeMap<CpRef, Vec<&
     })
 }
 
-/// One physical wire of the project with its effective properties.
-#[derive(Clone, Debug)]
-pub(super) struct WireRec {
-    /// The wire.
-    pub wire: PhysicalWire,
-    /// Its effective properties.
-    pub props: EffectiveProps,
-}
-
-/// Every physical wire of the project, deduplicated (a bond wire belongs to two potentials), in wire-ID
-/// order, with the potential partition they came from.
+/// Every physical wire of the project (`ew_derive::WireRecordSet`, in the numbering order) with the potential
+/// partition they came from.
 pub(super) struct Wires {
     /// The partition.
     pub partition: Arc<Partition>,
     /// The names of every potential (`potential_name`).
     pub names: BTreeMap<PotentialId, Arc<PotentialNames>>,
     /// The wires.
-    pub wires: Vec<WireRec>,
+    pub wires: Arc<Vec<WireRecord>>,
 }
 
 impl Wires {
-    /// Reads the partition, the physical wires of every potential and their effective properties.
+    /// Reads the partition, the names of its potentials and the project's wire records.
     pub fn of(q: &Q) -> Wires {
         let partition = q.get::<PotentialPartition>(());
-        let mut by_id: BTreeMap<Id<Connection>, WireRec> = BTreeMap::new();
-        let mut names = BTreeMap::new();
-        for p in partition.potentials() {
-            names.insert(p.id, q.get::<PotentialNameOf>(p.id));
-            let physical = q.get::<PhysicalWiresOf>(p.id);
-            let props = q.get::<WirePropsOf>(p.id);
-            for w in &physical.wires {
-                by_id.entry(w.id).or_insert_with(|| {
-                    let mut wire = w.clone();
-                    orient_wire(q, &mut wire);
-                    WireRec {
-                        wire,
-                        props: props.wires.get(&w.id).cloned().unwrap_or_default(),
-                    }
-                });
-            }
-        }
+        let names = partition
+            .potentials()
+            .map(|p| (p.id, q.get::<PotentialNameOf>(p.id)))
+            .collect();
         Wires {
             partition,
             names,
-            wires: by_id.into_values().collect(),
+            wires: q.get::<WireRecordSet>(()),
         }
     }
 
@@ -343,7 +324,7 @@ pub(super) fn csa_cell(c: Option<&Csa>) -> Cell {
 /// `bond` (the bond rule), `potential` (a potential definition), `project` and `built-in` for the project
 /// default and the built-in defaults. The two values are joined, size first, when they differ
 /// (`cdp/rule`). In Dutch: `cdp`, `ader`, `regel`, `potentiaalverbinding`, `potentiaal`, `project`, `ingebouwd`.
-pub(super) fn source_text(props: &EffectiveProps) -> Cell {
+pub(super) fn source_text(rec: &WireRecord) -> Cell {
     let name = |s: &PropSource| match s {
         PropSource::Override(_) => text!("cell-source-cdp"),
         PropSource::Conductor(_) => text!("cell-source-core"),
@@ -356,8 +337,8 @@ pub(super) fn source_text(props: &EffectiveProps) -> Cell {
         PropSource::ProjectDefault => text!("cell-source-project"),
         PropSource::BuiltIn { .. } => text!("cell-source-built-in"),
     };
-    let size = props.csa.as_ref().map(|p| name(&p.source));
-    let colour = props.colour.as_ref().map(|p| name(&p.source));
+    let size = rec.csa.as_ref().map(|p| name(&p.source));
+    let colour = rec.colour.as_ref().map(|p| name(&p.source));
     let words = match (size, colour) {
         (Some(s), Some(c)) if s == c => s,
         (Some(s), Some(c)) => text!("cell-source-pair", s, c),

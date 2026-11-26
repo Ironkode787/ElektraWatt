@@ -3,14 +3,14 @@
 
 //! `wire_list`: the wire and connection list (FR-REP-014, FR-CON-034; folio 907 of the standard layout).
 
-use ew_derive::{CpRef, Q, WireNumbers, short_tag};
+use ew_derive::{CpRef, Q, WireRecord, short_tag};
 use ew_ids::Id;
 use ew_l10n::{List, TextArg};
 use ew_schema::{Device, ReportBlock, ReportKind};
 
 use super::conn::{
-    Bridge, WireRec, Wires, bridge_span, bridges, colour_cell, csa_cell, device_of, end_cells, ip_name,
-    join_texts, pages_cell, put, source_text, words_cell,
+    Bridge, Wires, bridge_span, bridges, colour_cell, csa_cell, device_of, end_cells, ip_name, join_texts,
+    pages_cell, put, source_text, words_cell,
 };
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowKind, RowSet};
@@ -64,20 +64,8 @@ impl ReportKindDef for WireList {
     fn rows(&self, q: &Q, _block: &ReportBlock) -> RowSet {
         let columns = self.columns();
         let wires = Wires::of(q);
-        let numbers = q.get::<WireNumbers>(());
-        let mut keyed: Vec<(usize, Row)> = wires
-            .wires
-            .iter()
-            .map(|rec| {
-                let at = numbers.position(rec.wire.id).unwrap_or(usize::MAX);
-                let label = numbers.number(rec.wire.id).map(|n| n.label.as_str());
-                (at, wire_row(q, &wires, rec, label))
-            })
-            .collect();
-        keyed.sort_by_key(|(at, _)| *at);
-
         let mut set = RowSet::new(columns);
-        set.rows = keyed.into_iter().map(|(_, r)| r).collect();
+        set.rows = wires.wires.iter().map(|rec| wire_row(q, &wires, rec)).collect();
 
         let bridges = bridges(q);
         if !bridges.is_empty() {
@@ -101,7 +89,7 @@ impl ReportKindDef for WireList {
     }
 }
 
-fn wire_row(q: &Q, wires: &Wires, rec: &WireRec, number: Option<&str>) -> Row {
+fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
     let w = &rec.wire;
     let (from, from_cp) = end_cells(q, &w.ends[0]);
     let (to, to_cp) = end_cells(q, &w.ends[1]);
@@ -135,25 +123,26 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRec, number: Option<&str>) -> Row {
         words_cell(&ew_l10n::Text::bare(List::new(via, between(), between())))
     };
     let part = rec
-        .props
         .wire_part
         .as_ref()
-        .and_then(|p| q.parts().get(p.value.copy))
+        .and_then(|p| q.parts().get(p.copy))
         .map_or(Cell::Empty, |c| {
             super::parts::part_number_cell(c.item.part_number.as_str())
         });
     let mut r = Row::data(
         RowId::entity(w.id),
         vec![
-            number.map_or(Cell::Empty, |n| Cell::Ident(n.to_owned())),
+            rec.number
+                .as_ref()
+                .map_or(Cell::Empty, |n| Cell::Ident(n.clone())),
             from,
             from_cp,
             to,
             to_cp,
             Cell::ident(&wires.potential_text(w)),
-            colour_cell(rec.props.colour.as_ref().map(|p| &p.value)),
-            csa_cell(rec.props.csa.as_ref().map(|p| &p.value)),
-            source_text(&rec.props),
+            colour_cell(rec.colour.as_ref().map(|p| &p.value)),
+            csa_cell(rec.csa.as_ref().map(|p| &p.value)),
+            source_text(rec),
             via,
             part,
             pages_cell(&w.pages),

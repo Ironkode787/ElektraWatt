@@ -105,7 +105,7 @@ fn potential_pages(q: &Q, wires: &Wires, p: &Potential, order: &ew_derive::PageO
     let mut add = |page: Id<Page>| {
         pages.insert((order.position(PageRef::Drawn(page)).unwrap_or(usize::MAX), page));
     };
-    for w in &wires.wires {
+    for w in wires.wires.iter() {
         if w.wire.potentials.contains(&p.id) {
             for page in &w.wire.pages {
                 add(*page);
@@ -126,13 +126,12 @@ fn member_count(q: &Q, p: &Potential) -> usize {
 
 fn potential_row(q: &Q, wires: &Wires, p: &Potential, pages: Vec<PageRef>) -> Row {
     // The profile default: the first wire by ID whose value comes from a profile row or a definition.
-    let default = |from_profile: &dyn Fn(&crate::kinds::conn::WireRec) -> bool| {
+    let default = |from_profile: &dyn Fn(&ew_derive::WireRecord) -> bool| {
         wires
             .wires
             .iter()
             .filter(|w| w.wire.potentials.contains(&p.id) && w.wire.bond.is_none() && from_profile(w))
-            .map(|w| &w.props)
-            .next()
+            .min_by_key(|w| w.wire.id)
     };
     let profile = |s: &PropSource| {
         matches!(
@@ -140,10 +139,9 @@ fn potential_row(q: &Q, wires: &Wires, p: &Potential, pages: Vec<PageRef>) -> Ro
             PropSource::ColourRow { .. } | PropSource::SizeRow { .. } | PropSource::PotentialDef(_)
         )
     };
-    let colour = default(&|w| w.props.colour.as_ref().is_some_and(|c| profile(&c.source)))
-        .and_then(|e| e.colour.as_ref());
-    let csa =
-        default(&|w| w.props.csa.as_ref().is_some_and(|c| profile(&c.source))).and_then(|e| e.csa.as_ref());
+    let colour =
+        default(&|w| w.colour.as_ref().is_some_and(|c| profile(&c.source))).and_then(|e| e.colour.as_ref());
+    let csa = default(&|w| w.csa.as_ref().is_some_and(|c| profile(&c.source))).and_then(|e| e.csa.as_ref());
     let attrs = q.get::<ew_derive::PotentialAttrsOf>(p.id);
     let names = q.get::<ew_derive::PotentialNameOf>(p.id);
     // A bus line without a profile value takes colour and size from its cable: "(cable)".
