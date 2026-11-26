@@ -1,4 +1,4 @@
-# Symbols, parts and macros: behaviour, algorithms, the window and library governance
+# Symbols, parts and macros: behaviour, algorithms and library governance
 
 A chapter of [Symbols, parts and macros](07-symbols-parts-macros.md), whose table says where each section lives.
 
@@ -29,11 +29,34 @@ A chapter of [Symbols, parts and macros](07-symbols-parts-macros.md), whose tabl
   release dialog offers it too ([05](05-project-format-and-persistence.md) §13.2).
 - An info finding counts the unused copies.
 
-**Local edits fork the item.**
-- Editing an embedded symbol or part in a project creates a **project-local fork**: a new item in the project's
-  implicit library with `meta.source = ForkOf{library, item, version}`.
-- The library item is never edited from inside a project. "Promote to company library" is a separate library write
-  that is confirmed and not undoable (ARCH §5.3).
+**Where a part lives, and what a person may change.** A person needs to know three things of a part, and the
+window says no more (§5.8). The same holds for a symbol.
+
+1. **A part he makes is his.** It is saved to **My parts**, the writable library of the user tier (key
+   `user-parts`; it holds his symbols and their function definitions beside his parts), and it is there in his next
+   project. Parts asks nothing about where to keep it. Only where the window has no user folder is a new part a part
+   of the open project, and its sheet says so.
+2. **A project carries the parts it uses.** A project takes a part when a device uses it (the embed above), so it
+   opens, prints and checks on a PC that has none of his parts. A part the project holds that no library the reader
+   can read has is **only in this project**: it is the project's own (its `library_id` is the project's), it is
+   changed in place by `part.edit_copy`, any member, and **Keep in my parts** writes it into My parts and gives the
+   project's devices that part of his (`part.assign` with `replace`, one previewed step), so that it is his here
+   and in the next project. That is how parts travel to a second PC or a colleague: with the project, kept there
+   with one click, one part or all of the project's.
+3. **A part that is not his is never changed.** A starter part, a community pack's and a library he cannot write
+   are the same on every PC that has them, and that is what the lock protects: it is the one lock, and it says so.
+   **Make my own from it** makes a new part of his with everything the other has, under a maker and a number he
+   gives; where devices of the open project are the other part, `part.assign` with `replace` gives them his, in one
+   previewed step. `part.edit_copy` refuses a library's copy in words. No command makes a fork of a library's part
+   inside a project; a project that holds such a fork (its `meta` names what it was forked from) reads it as a part
+   only in that project, and the Libraries navigator still says what it was made from.
+
+**Correcting a part of his own.** Saving a changed part of My parts writes the library item's next version and, in
+the same step, brings the open project's copy to it by "update from library", whose card names the fields that
+changed and the devices that follow. A person sees no version number to manage: the sheet says when the part was
+last changed. Another project that holds an older copy keeps it until it is opened, where the part's sheet, the list
+and the Libraries navigator say "Changed in My parts since this project took it" and Update… shows the same card:
+nothing in a project changes unseen. A part only in the project is corrected in place, with the same card.
 
 **Update from library** (FR-SYM-016, FR-PRT-014, FR-MAC-010) is a `Cost::Bulk` command previewed on a fork. The
 preview shows:
@@ -46,9 +69,9 @@ preview shows:
 
 | Change | Example | Update behaviour |
 |---|---|---|
-| patch: graphics, texts, metadata, with CP and anchor offsets unchanged | lamp symbol redrawn | applies; pages re-render |
-| minor: additive (new slot, arrangement, variant, section, accessory) or a moved anchor | ETIM class added to A9P52610 | applies; a moved anchor lists every changed xref text in the preview |
-| major: CP removed or re-indexed, FnDef changed, function template changed | MICO pattern "Out1" → "Out 1" | needs a CP mapping (by index, then designation) in the preview; unmapped CPs with connections **block** the update until mapped or the connections are removed explicitly |
+| patch: graphics, texts, metadata, with CP and anchor offsets unchanged | the lamp symbol redrawn; a clamp range given to EW-GEN-TRM-1 | applies; pages re-render |
+| minor: additive (new slot, arrangement, variant, section, accessory) or a moved anchor | the variant Blue added to a terminal | applies; a moved anchor lists every changed xref text in the preview |
+| major: CP removed or re-indexed, FnDef changed, function template changed | a contactor's contact 13-14 renamed 23-24 | needs a CP mapping (by index, then designation) in the preview; unmapped CPs with connections **block** the update until mapped or the connections are removed explicitly |
 
 ### 3.2 Symbol rules
 
@@ -69,7 +92,7 @@ preview shows:
    symbol outline or on a line end.
 4. **Representation type.** A symbol has exactly one `rep_type`. Placement offers only the symbols of the function's
    FnDef whose `rep_type` the page type allows (FR-SYM-006).
-5. **Anchor.** Every symbol declares its anchor policy explicitly; the symbol editor proposes `GraphicCentre`.
+5. **Anchor.** Every symbol declares its anchor policy explicitly; the drawing of a new symbol proposes `GraphicCentre`.
    Interruption points anchor at the arrow tip, the -201U1 bus port at its graphics ("3-B2"), the CPX power box at
    its left edge ("106-G3"). The xref cell comes from the anchor, never from the
    bounding box (D-14). The resolved anchor offset is snapped to the symbol's connection grid at save (ties toward
@@ -129,7 +152,7 @@ preview shows:
    - Unmatched template functions are created unplaced.
 4. **Derived texts.** Part text slots (manufacturer, part number, type), technical data defaults and the
    description default refresh in the same commit (FR-DEV-016). The device's own `tech_data` wins over the part's.
-5. **Quantity** is in the part's order unit: `-3W1` uses 6XV1830-0EH10 in metres. A cable's conductors are
+5. **Quantity** is in the part's order unit: the sample's cable -101W1 uses EW-GEN-CBL-17 in metres. A cable's conductors are
    generated from the part's cable-core section (FR-CBL-004).
 6. **Several part uses per device** are allowed (a valve terminal and its bus node). Each use is matched separately.
    The first use that provides the main function is the device's main part.
@@ -171,8 +194,7 @@ record kind.
   project from then on, so the dialog lists it among the project's parts for the next device. Type not known yet… is also in the Parts row's … menu beside Choose part… and in the command search (under
   placeholder, stand-in, not known, undecided, TBD: the glossary's Stand-in part), each opening the part dialog of the
   selection with the field open; Make variable in that menu says on hover that it is a macro's variable, not a stand-in
-  part. Remove from my parts library… is in the command search too (delete part, remove part) for the selected device's
-  part or the Libraries navigator's row, and New part… is in New station…'s split on the PLC tab.
+  part. New part… is in New station…'s split on the PLC tab and opens Parts with the kind of a station's card (§5.5).
 - *What prints.* The parts list has its row: no manufacturer, part number TBD, the description, the count of its
   devices; the terminal diagram's Part column prints TBD.
 - *The check.* The device has a part, so EW-CORE-041 is silent. EW-CORE-043 reports the placeholder as info online (a
@@ -185,21 +207,41 @@ record kind.
   placeholder.
 - *Not built.* A placeholder of a cable sold by the metre (it is a piece); a placeholder offered from the library.
 
-### 3.4 Data quality levels
+### 3.4 What a part lacks
 
-The quality level is **derived, never stored** (FR-PRT-021). For each category a requirement profile (data, editable
-per company) lists the mandatory fields per level. The level is the highest one whose requirements, and those of all
-lower levels, are met:
+**A part knows what it lacks, and every feature says it the same way.** What is lacking is **derived, never
+stored** (FR-PRT-021), from the one declaration of a part's fields (§2.5): each field names the features that read
+it, and for each what the feature does without the datum.
 
-| Level | Requirements (MCB example) | Effect when missing |
+| Without the datum, the feature | Example | Shown as |
 |---|---|---|
-| **basic** | L0 complete, licence and source present | below basic: cannot be saved to a company library (FR-PRT-022) |
-| **schematic-ready** | template with FnDef per function and CP designations; `ew:rated_current`, `ew:characteristic`, `ew:poles`; contact data if the category has contacts | FR-CHK-024 "incomplete mandatory data" |
-| **layout-ready** | W×H×D, mount kind, rail offset for rail parts, 2D outline or footprint | placing on folio 902 warns; EW-LAY-001 still counts the device |
-| **production-ready** | clamp type and cross-section ranges per CP; 3D model or generated box (FR-LAY-023); 3D CP data; marker carriers; accessories for terminals | lengths flagged `estimated` (FR-LAY-053); ferrule selection falls back to defaults |
+| **cannot use the part** | an enclosure without a width and a height cannot be chosen for a layout; a rail without a profile cannot be drawn | a warning at the field and under Ready for; the feature's own refusal or finding in the same words |
+| **passes the part by** | a pin without a clamp range is skipped by the check that a wire fits its clamp; a cable without an outer diameter gets no gland proposed | a note at the field; the check or the list says once which parts it passed by |
+| **takes a default** | a duct without an inner size is filled as 85 % of its outer size | a note at the field that names the default |
+| **only prints it** | a description, a colour | nothing while it is empty |
 
-The part browser shows the level as a four-step ladder with the missing fields. Library CI reports level changes in
-every pull request (§6.2).
+**One list, three readers.**
+
+- *The place* shows what the open part lacks at each field, in the contents list and under Ready for (§5.7), with
+  what the datum is for, and the list's filter Lacks something finds such parts.
+- *A feature* asks the declaration instead of testing a part's members itself: the Enclosure… offer, the rail and
+  the duct tools, the placement on a layout, the treatment of a wire end, the choice of a ferrule, a marker and a
+  gland, the hole table. Its refusal or its finding is the declared sentence with its arguments (the part, its
+  devices, the fields lacking), so a finding in Messages and the line under the field read alike.
+- *An outcome* made that way carries the part and the field as facts (`PartLack`), and the window offers **Edit
+  part…** on it, which opens Parts at the field (§5.2).
+
+A sentence is one text with arguments: the part's word for its kind, and the fields lacking as a list of their
+words, joined by the reader's language ("This cabinet cannot be chosen for a layout until it has a width and a
+height"). One reader named by several fields says its sentence once.
+
+**A field nothing reads is not asked for.** The declaration refuses a field without a reader; a member of the
+record that no feature reads is declared as stored and not asked for, with the reason, and the sheet shows a value
+it holds under About ▸ Also stored (a maker's file may have brought one). A datum is asked for from the day
+something reads it.
+
+**Confidence.** A section marked `unverified` or `test` (§2.5) is not lacking: its findings carry the marker of
+non-verified part data, and the release report lists it (FR-PRT-031).
 
 ### 3.5 Macro creation and insertion rules
 
@@ -241,42 +283,52 @@ the grid too (it was refused as off the grid, though nothing moves it).
 
 ### 3.6 Imports into libraries
 
-All importers are pure functions from bytes to `ew-schema` records (FR-IMP-001). They write into a **user or
-company library**, never directly into a project. A project then picks the result up through assignment or update.
+All importers are pure functions from bytes to `ew-schema` records (FR-IMP-001). **In the window an import is a
+door into Parts** (§5.9), not a place of its own: Import… on the Parts screen takes a file and goes on by what it
+is, and File ▸ Import… goes on to it for a file of parts. What a file brings stands in the Parts list as a set,
+unsaved, each row with what it is to what he has (new, changed, the same, refused with its reason) and with what it
+lacks; Save writes the set into My parts (§3.1), and a project takes a part when a device uses it.
 
-| Source | Release | Mapping | Rules |
+| Source | Door | Mapping | Rules |
 |---|---|---|---|
-| CSV/XLSX parts | MVP | column mapper with saved mappings; dedupe on (manufacturer, normalised part number) | report of new, updated and rejected rows (FR-PRT-016) |
-| QET project elements | MVP | `.elmt` definitions embedded in a `.qet` become symbols in the project's "QET import" library, on their native grid with source element name and UUID (FR-SYM-018, FR-IMP-008) | never leaves the project unless the user forks it; keeps QET's element-origin anchor so imported xrefs equal QET's (MF-13); the library's `library_id` is the project ID and its key `qet-import` ([05](05-project-format-and-persistence.md) §13.2) |
-| QET element collection on demand | 1.0 (FR-SYM-029) | a user-selected directory of `.elmt` files (the user's QET installation) becomes a **user** library, `meta.licence = LicenseRef-QET-elements` with QET's `ELEMENTS.LICENSE` attached and the flag `foreign_terms` | QET's terms allow use in diagrams freely and redistribution under CC-BY 3.0 with a no-ML-training clause ([oss-landscape](../research/oss-landscape.md) §2.6). Those terms are incompatible with EW's CC-BY-SA-4.0 packs, so such items are never bundled, never merged into an EW pack (`ew lib pack` refuses `foreign_terms`), and never used for model training (NFR-LIC-06) |
-| `symbol-map.csv` | MVP | QET element UUID or path → EW symbol key + CP map; generalises the pneumatic table of FR-IMP-018 | used by FR-SYM-022 exchange |
-| EDZ (7-Zip or ZIP) | 1.0 | `*.part.xml`: `P_ARTICLE_PARTNR`, `_MANUFACTURER`, `_ORDERNR`, `_TYPENR`, `_DESCR1/2` (`de_DE@…;en_US@…;` → `MlText`, FR-I18N-008); `<functiontemplate>` pins (`connectionDesignation`, `connectiondescription`, `terminalNr`, `functiondefinition`) → CP pattern and template FnDefs through the `functiondefcategory/group/id` mapping table; drilling positions, CP patterns and accessories where present (FR-IMP-025/027) | **terms notice** before the first EDZ import of a session (FR-IMP-026); `.ema` geometry never reproduced; `.e3d` ignored; pictures stored only in the user library; source file hash and import date recorded |
-| EPLAN parts XML | 1.0 | `partsmanagement` with variants, function templates, free properties, accessory lists, `length-unit` (FR-IMP-028) | into a company library |
-| BMEcat 2005, ETIM xChange | 1.x | product identification, ETIM or ECLASS feature blocks (feature system name, class, feature name, value, unit), order and price details (element names to verify against the specification) | FR-PRT-020; prices go to L4 with source and as-of date |
-| DXF blocks | 1.0 | DXF-to-symbol wizard (FR-IMP-034); vendor DXF as 2D front outline or drilling pattern (FR-IMP-035) | CPs snap to the target library's connection grid (FR-IMP-034) |
+| A table of parts, CSV or XLSX | Import… in Parts | the column map: each column of the file to a declared field of a part (§2.5), chosen by the field's word; saved per source and read again for that source's next table | dedupe on (manufacturer, normalised part number); every row new, changed, the same, duplicate or refused with its line (FR-PRT-016) |
+| EPLAN parts, EDZ (7-Zip or ZIP) or parts XML | Import… in Parts | `*.part.xml`: `P_ARTICLE_PARTNR`, `_MANUFACTURER`, `_ORDERNR`, `_TYPENR`, `_DESCR1/2` (`de_DE@…;en_US@…;` → `MlText`, FR-I18N-008); `<functiontemplate>` pins (`connectionDesignation`, `connectiondescription`, `terminalNr`, `functiondefinition`) → the pins and what the part is drawn as, through the `functiondefcategory/group/id` mapping table; sizes; free properties; `partsmanagement` with variants and accessory lists (FR-IMP-025/027/028) | the **terms notice** before the first EDZ import of a session (FR-IMP-026); `.ema` geometry never reproduced; `.e3d` ignored; pictures stored only in the user library; source file hash and import date recorded |
+| An outline drawing, DXF | Import outline… on the open part's front | the drawing's closed lines as the part's front outline, in millimetres (FR-IMP-035) | replaces the part's outline; Remove takes it out; the same reader as the command line's |
+| A symbol file: a QElectroTech element, an EPLAN symbol file, a DXF block | Import… in Parts, on the Symbols shelf | a drawing with its import report; connection points snap to the connection grid (FR-IMP-034) | an EPLAN drawing is saved only once its review is acknowledged |
+| QET project elements | the QElectroTech project import | `.elmt` definitions embedded in a `.qet` become symbols in the project's "QET import" library, on their native grid with source element name and UUID (FR-SYM-018, FR-IMP-008) | never leaves the project unless the user makes his own from it; keeps QET's element-origin anchor so imported xrefs equal QET's; the library's `library_id` is the project ID and its key `qet-import` ([05](05-project-format-and-persistence.md) §13.2) |
+| A QET element collection | `ew lib import qet-elements <library> <dir>` | the `.elmt` files below a folder become symbols and function definitions of a writable library, `meta.licence = LicenseRef-QET-elements`, the flag `foreign_terms`, the source path in `meta.sources`, the folder's `ELEMENTS.LICENSE` named by its SHA-256 (FR-SYM-029) | QET's terms allow use in diagrams freely and redistribution under CC-BY 3.0 with a no-ML-training clause ([oss-landscape](../research/oss-landscape.md) §2.6). They are incompatible with EW's CC-BY-SA-4.0 packs, so such items are never bundled, never merged into an EW pack and never used for model training (NFR-LIC-06) |
+| `symbol-map.csv` | the QElectroTech project import | QET element UUID or path → EW symbol key and CP map; generalises the pneumatic table of FR-IMP-018 | used by the symbol exchange (FR-SYM-022) |
+| BMEcat 2005, ETIM xChange | specified, not built | product identification, ETIM or ECLASS feature blocks, order and price details (element names to verify against the specification) | FR-PRT-020 |
 
-**EDZ and parts XML** are read by `ew-import-eplan` into part drafts, placed by
-`ew-import-catalog`'s one placer (the dedupe on manufacturer and `pn_norm`, a new patch version with `--bump`), written by
-`ew import edz|parts-xml --library` or from the window (Add to my parts library, the library `user-parts`); the pins,
-descriptions, sizes, free properties and provenance are read, accessories and further variants kept in `extra`, the
-picture and the drilling positions reported (14 §5.2). The previewed update of a project's part copy from a file is
-`ew import edz --project` and the window's Update (14 §5.2, AC-38). **The QET element collection** is
-`ew lib import qet-elements <library> <dir>`: the `.elmt` files below a folder become symbols and function definitions of
-a writable library under `LicenseRef-QET-elements` with `foreign_terms`, the source path kept in `meta.sources`, the
-folder's `ELEMENTS.LICENSE` named there by its SHA-256; the refusal to pack such a library (`ew lib pack`, LL-05) waits for
-the command, which is not built.
+**The table's columns are the declared fields.** A column of a table goes to a field of §2.5's declaration: every
+field that is one value (the identity, a size, how it mounts, a kind's own data, a named technical value) and, by a
+name he gives, any other technical value or free property. The window offers the fields by their words under their
+groups; a field that is the same datum in several kinds (Width, Height, Depth) is offered once and goes to the field
+of that word the row's kind has. A column no field keeps is not imported, and the mapping says so beside it. The
+session hands the importer its columns with each one's kind of value, so the importer holds no list of a part's
+members. What a table cannot say (a part's pins and what it is drawn as, its clamps per pin, its holes) is entered
+on the part's sheet, and the set's dot says which parts still lack it; or it is taken from a part like it: a column
+mapped to **Like** names a part by its number, and a new row starts as that part and takes its own columns over it.
 
-The CSV/XLSX row is built in
-`ew-import-catalog`: a column map (`member ← header`, saved as TOML per source key), a CSV reader (UTF-8 with or without
-a BOM, comma or semicolon from the header line, RFC 4180 quoting), an own bounded XLSX reader (no calamine),
-and rows into part copies with item IDs `v5(lineage(catalog, library), parts|<maker key>|<pn_norm>)`, deduplicated on
-manufacturer and normalised part number; manufacturers resolve through the libraries' master list (every tier's,
-the starter parts' "Generic" included), an alias reported EW-IMP-007, an unknown name EW-IMP-005, "A / B" split into two
-flagged candidates, unmapped columns EW-IMP-004; every row is reported new, updated, unchanged, duplicate or rejected
-with its line. Unlike the paragraph above, the import may also target a project (`ew import parts --map`), which embeds
-the parts with project-local manufacturer copies; `ew lib import parts` writes a library and refuses changed content
-under a held version unless `--bump`, taking a stale lock over only with `--take-over`. The window's column-mapping
-card is not built.
+**The table reader** is `ew-import-catalog`: the column map (`member ← header`, saved as TOML per source key), a
+CSV reader (UTF-8 with or without a BOM, comma or semicolon from the header line, RFC 4180 quoting), an own bounded
+XLSX reader, and rows into part copies with item IDs `v5(lineage(catalog, library), parts|<maker key>|<pn_norm>)`,
+deduplicated on manufacturer and normalised part number, so reading the same table again changes its parts in
+place. Manufacturers resolve through the libraries' master list (every tier's, the starter parts' "Generic"
+included), an alias reported EW-IMP-007, an unknown name EW-IMP-005, "A / B" split into two flagged candidates,
+unmapped columns EW-IMP-004. **Export as a table…** in Parts writes the selected parts with the same columns, so a
+table exported and read back unchanged brings every row as the same (§5.9).
+
+**The command line** reads the same sources into a library or a project: `ew lib import parts` and `ew import
+edz|parts-xml --library` write a library and refuse changed content under a held version unless `--bump`, taking a
+stale lock over only with `--take-over`; `ew import parts --map` embeds a table's parts in a project with
+project-local manufacturer copies; `ew import edz --project` previews the update of a project's part copy from a
+file (14 §5.2). The tables of a project's bootstrap have their own `parts.csv` with columns of their own
+([14](14-interop.md)); a table with exactly those headers is read by that reader in the window too.
+
+**EDZ and parts XML** are read by `ew-import-eplan` into part drafts and placed by `ew-import-catalog`'s one placer
+(the dedupe on manufacturer and `pn_norm`); the pins, descriptions, sizes, free properties and provenance are read,
+accessories and further variants kept beside the part, the picture and the drilling positions reported (14 §5.2).
 
 **The EDZ terms notice reads, in substance:**
 - files from the EPLAN Data Portal may be subject to terms that restrict their use to EPLAN products;
@@ -387,7 +439,7 @@ with connection points turned a quarter places its slot texts that print level a
   turned point.
   A symbol without connection points (a drawn box) keeps the steps above.
 
-The symbol editor's strip "Turned and mirrored" and a page show the same places; on a page they are the texts' first
+The drawing's strip "Turned and mirrored" (§5.6) and a page show the same places; on a page they are the texts' first
 places, which the text placer leaves only where something stands there ([06a](06a-drafting.md) §5.2).
 
 **Invariance.** Every CP offset and the anchor offset from the symbol origin are multiples of the connection grid
@@ -556,155 +608,6 @@ cache directory (rusqlite bundled), rebuilt by `ew lib index --rebuild`; search 
 and tie-breaks, and `Session::part_search` marks the hits the project holds. The compiled-in libraries
 are indexed under a pseudo path. IX-1 to IX-8 run in `crates/ew-library/tests/registry.rs`; the 500,000-part test IX-9
 is `#[ignore]`d (not measured, the owner's rule).
-
----
-
-## 5. UI and UX touchpoints
-
-| Touchpoint | Behaviour | Persona, journey |
-|---|---|---|
-| **Symbol browser** (left dock tab, `Insert ▸ Symbol`, palette `device.place`, alias `symbol.place`) | tree by library and category, and search by name, category, IEC 60617 number and keyword (FR-SYM-021); previews of all 8 variants and extra variants; filtered by the current page's allowed representation types; drag onto the canvas | P1, J1 |
-| **Part browser and selection** (the place browser: Insert ▸ Device from part, `device.place` with `target = FromPart`, alias `device.place_from_part`, the journal records `device.place`, [06](06-schematic-editor.md) §3.1; the part dialog: Properties ▸ Part ▸ Choose…) | one row in both: part number, maker, description in the reader's language, then what choosing it does, in words (below); the dialog adds the fit of §4.3; search with the ranking of §4.3; favourites, recently used, used in this project (FR-PRT-015); the active row's detail: its functions, its pins with each clamp's size range, its accessories and its variants as a choice | P1, J1 |
-| **Part editor** | one dialog, its sections listed on its left and shown one at a time: Identity, Technical data, Pins and clamps, Size and mounting, Front view and holes, Accessories, Variants, the kind's own section (Wire, Ferrule, Marker or Gland), Cable cores (with its outer diameter), PLC, Bus interfaces; a section the kind has not is not listed; Save previews; Delete part… for a part of one's own | P6 |
-| **Symbol editor** (FR-SYM-017) | canvas on the symbol grid; tools for primitives, CPs, text slots, anchor and link points; FnDef panel with the CP table (`fn_cp` assignment by drag); live A–H strip; lint panel; "test place" on a scratch page; "fork from QET import" with FnDef assignment | P6 |
-| **Macro browser and insert** | thumbnail and device list on hover (FR-MAC-006); value-set table to pick a row or edit ad hoc; ghost with conflict list (FR-MAC-005) | P1, J1 |
-| **Save as macro** | selection → dialog: name, kind, target library, insertion point; "make variable" from property-grid rows; value-set table | P6 |
-| **Library manager** | installed libraries with level, version, licence, writability and index state; in a project, every embedded copy with status (current, newer available, deprecated with successor, source missing, local fork), where-used, "update", "purge unused" | P6, J5 |
-| **Company-standard wizard** (FR-PRJ-010, FR-UI-030) | steps: logo SVG, title-block form, colour and size profile (with stated basis, D-37), identifier set (ADR-0026 default), numbering rules, structure nodes, sections, revision format, languages, report blocks; writes a basic project and offers it as the default template | P1, J1 |
-| **Import dialogs** | CSV/XLSX column mapper; EDZ with the terms notice; parts XML; BMEcat (1.x); each ends in an import report with jump-to-record | P6, J2 |
-
-**What a part's row says it does.** A part is placed by the first of its functions that has a symbol on the page,
-its main function first, and its row says which in words: "Places the circuit breaker", "Places the coil 14" (a
-valve on an electrical page). A part whose function is a black box says "Drawn as a device box" and arms the box
-tool, as its row said; a part none of whose functions has a symbol on the page stands greyed with why ("No symbol
-draws a valve on a schematic page"). A row that opens to its functions says what it holds ("3 functions: coil, 2
-contacts"). A part with variants places the variant chosen in its detail, the part's own numbers first. The browser
-files a part under its trade by its category's row of the category table (`trade` beside the letter codes,
-`crates/ew-rds/data/identifier-sets.toml`), which also names the part groups that are no function category (bus
-cables, tubes): one table, no list of categories in the window.
-
-**The part editor's sections are declared rows.** A section is a list of rows, each a member of the part by its path
-(`sections.ferrule.csa_min`), its words and its kind of value (a length, a size in mm², a count, a choice of words,
-a colour, a yes or no, a part); a table section (Accessories, Variants, the pins) is a list of such columns over a
-member that is a list. The declaration hands out the reading of the text, its check with the message in words, the
-writing into the draft and the one form renderer per kind of value, so a new member is one line. Size and mounting
-is declared the same way; the bus, PLC and cable forms stay as they are. The editor lists the sections the part's kind
-has on its left and shows one at a time (`part.section`); a table's rows are added and removed with
-`part.table_row`, and a cell is a `part.field` named `<list>[<row>].<member>`. A library part's fork keeps its size
-and its own sections (wire, ferrule, marker): those rows stand read-only there.
-
-**Front view and holes** (a mounted part's section, [12](12-placement-pages.md) §2.5): the row Shape, Rectangle or
-Round (Round only where Width equals Height); the outline line ("imported from a DXF drawing, 4 lines", Import
-outline… and Remove), an imported outline drawn instead of the shape; the table Holes with X and Y (the centre, from
-the front's bottom-left corner), Kind (Hole, Fixing, Cut-out, Gland, Rectangle) and Size (a choice for a named kind, a
-length or width × height and radius for the others), two cells over one `Hole`. The preview draws the front and its
-holes as the panel page does. A hole off the front is refused in words.
-
-**A part of one's own, once it is used.** Save of a part whose devices are drawn as boxes previews, and the card
-names each box it draws anew and why ("-104A1-A1 on 104: a pin added"); a box drawn anew keeps its top-left corner
-and stays inside the page's drawing area. Delete part… in the editor's footer deletes a part of the project's own
-(`part.delete`, one undo step); it stands greyed while devices use it, saying how many, and on a library's part, saying
-that Save makes the project's own copy; a part something else names (another part declaring it as an accessory, a
-device's accessory choice, the workshop stock) is refused in words that name the first that does ("part EP-1 cannot be
-removed: part TRM-1 still names it"): who names a copy is the one question of the link table, whose delete policy
-`edit.delete` and the store's dangling-reference check read too, a part's declared accessory a `LibRef` link. The box
-editor's Add pin offers Add bus interface…, which opens the part editor on Bus interfaces. A bus port without an
-address offers Next free address as the quick fix of its finding.
-
-**Accessories and variants of a device.** Properties of a device show, under Parts, a Variant row (the part's own
-numbers, then each variant by name and number). Properties of a strip show a row per accessory its terminals' parts
-bring (End plate, End brackets): the part counted, with the parts it comes with; typing another part's number takes
-that part, emptying the row leaves it off (both the strip's choice, `Device.accessory_choices`, through `fields.set`).
-The strip editor lists what the terminals' parts bring at their places in the mounting order (an end bracket before
-the first terminal and after the last, the end plate after the last terminal whose part names it), each read-only with
-"with <part>", and a left-off one as "left off this strip"; Delete on such a row leaves it off for that strip, the
-toast says so. The Part cell of a terminal whose part has variants chooses the variant (by its number, its name or
-the part's own number): no column of its own, so that the side columns stay on show at 1920 × 1080. The strip editor
-opens with the cursor on the strip's first terminal. The place browser's detail of a part lists its variants as a
-choice and what it brings ("Comes with": kind, part, quantity and per what); the choice (`place.variant`, by a
-variant's key, name or number) is the one the Place tool it arms takes, `device.place`'s `part_variant`, kept across
-placements and named in the tool's label. A greyed row of a part no symbol draws on the page says what it is ("No
-symbol draws a cylinder double-acting on this page").
-
-The **Macro browser** is the Macros navigator (`NavKind::Macros`): the macros of every tier, then the project's own macro copies under "In this project"; its detail shows name, version and library, description, the devices and the variables, with "No preview" where the thumbnail should be. Enter on a row, its drop on a canvas or Insert macro… (Draw ▸ Place) arms the macro tool; its click opens the `macro` card in the Preview tab with the value set and the conflicts, and Apply is one undo step; a held macro without an installed source is not inserted. **Save as macro** (Edit menu) is a window-only dialog of name, key, description and library, which is the confirmation of a write that cannot be undone; kind, insertion point and the value-set table are not built, and "make variable" is the hidden action `props.make_variable`. The **Library manager** is the Libraries navigator (`NavKind::Libraries`): the libraries by tier with version, licence, access and index state, then "In this project" with each copy's state in words (Current, Update available, Only in this project, Deprecated, Local fork), each with a hover text of what it means, and the devices that use it; Update… names how many items it updates, is disabled with its reason when they have none, and opens `library.update`'s bulk card; "purge unused" is not in it. Its rows show IDs rather than names.
-
-The **Symbol editor** opens from
-Draw ▸ Place ▸ Symbol editor… (`symbol.new`) and takes the place of the page, on a screen built as the main window is.
-With nothing in hand it shows a **start card**: New symbol, Copy a library symbol…, Device box for a part…, Import a
-file…, the draft in hand and the symbols edited lately; the draft in hand stands after the four ways in, which keep
-their places. Copy a library symbol… lists the symbols in the
-symbol browser's order, by the words of the function category each is filed under (Other last) and then by name, each
-row naming that category and its library, with the browser's picture of the symbol under the pointer (else the first)
-beside the list. With a symbol in hand: the **command bar** (Start; Select,
-Line, Rectangle, Circle, More shapes, Text; Connection point, Text field, Other marks for the cross-reference point
-and the mechanical link point; the drawing grid and Snap to grid; Test on a page, Save, the Draft menu and Close
-editor); on the left the **outline** of the symbol (its connection points, texts and shapes, each row a click to the
-thing, and To do, what keeps it from being saved, each sentence a click to the thing it is about, or Ready to save);
-in the middle the **drawing** with the symbol turned and mirrored under it (A to H); on the right **Properties**, the
-rows of what is selected, the rows several selected things share, or with nothing selected the symbol's own (Name,
-What it is, Discipline, Listed under, Library folder; Ready-made function, Function type, Key, Version, Licence, Source
-and the whole document under More). **What it is** asks in a panel builder's words (a device box, a contact, a coil,
-a protective device, a lamp, a terminal) and sets the function type and the category together (`WHAT` in
-`ew-viewmodel`); the model's word stays under More.
-
-**What a person learned on a page works on the drawing.** The selection is the view-model's (`SymbolEditor.selection`),
-so the outline, the drawing and Properties show the same things: a click selects, Shift adds, Ctrl toggles, a
-rectangle dragged from empty paper takes what lies inside it (to the right) or what it touches (to the left), and
-Ctrl+A takes everything. A shape that is not filled is met by its line (a click within a few points of it, a
-rectangle that crosses it), a filled one, a text or a picture by its face: inside an empty box is empty paper. The page's own keys act on it whenever no field is typed into, through the keymap
-(its context `symbol_editor` takes, of the canvas's keys, those of its tools and of what acts on its selection:
-`keymap::context_takes`): the arrows move it one grid step (the connection grid's with a connection point selected), Delete
-removes it (a connection point with its number's text and its pin), Ctrl+C, Ctrl+X, Ctrl+V and Ctrl+D copy, cut, paste
-and duplicate, Escape ends a gesture, then returns to Select, then clears the selection, and Ctrl+Z and Ctrl+Y step the
-editor's own history. A drag on a thing moves the selection with a ghost of where it lands; the one selected shape's
-handles drag its ends and corners (`symbol.grip`); Line up puts several things on one edge (`symbol.align`). The
-highlight and the handles are the page's (doc 16a §7.1). The tools draw as on a page: a shape by a drag or two clicks,
-a text typed where it was clicked, a connection point on the connection grid with the next number and the text that
-writes that number: inside the body one millimetre from the point, turned a quarter on an upper or lower edge
-and level on a left or right one, where a device box prints a pin's name (§2.5; one rule,
-`ew_scene::page::pin_text_place`), so a point on the lower edge has its number above it inside the box, not across
-it; a point moved alone takes that text with it, and a point given another edge in Properties has it placed again by
-the same rule; and the drawing shows the text the page prints (before, the drawing showed the point's name as an editor mark that
-no page printed, and a number text clicked onto a lower point hung across it); a tool's options
-stand on a card at the drawing's top left. The live A–H strip is drawn through the placement's own lowering. To do is
-the editor's validation, shared with `ew symbol validate`, not the library lint. "Test place" is Test on a page
-(`symbol.scratch`): a new page on the symbol's grid with an embedded test copy, one undo step for the page and one for
-the placement. Draw by coordinates, the three tabs of the left column and Pin mapping's drag list are gone: a thing's
-place and size are rows of Properties, and a connection point's function pin is its row under More.
-
-**The device box** (§2.5) is the editor's second kind of thing, on the same screen: the pin table on the left (name,
-potential, edge; a row dragged onto another takes its place; Add pin; Add bus interface…, which opens the part
-editor on Bus interfaces with a new interface row, `part.box_details {bus}`, refused in words for a library's part the
-project holds, whose interfaces are its library's), the box as a device of the part is drawn in the
-middle (a pin dragged along its edge or onto another one, any edge or corner dragged to size it: the pins on the
-edge that moves go with it, the others stay where they stand, and the edge stops one step before the nearest pin), and
-Properties of the selected pins or of the part. Its ways in: the start card (every part drawn as a box, the
-project's and every installed library's, placed or not), Pins and box… in the part editor and under a box part in the
-device browser, and Edit this device's box… on a placed box. A part that is not the person's own says in a line over
-the box what Save makes of it: a library's part the project holds becomes the project's own copy, which its devices
-take; one it does not hold opens as a new part copied from it (same number, manufacturer, pins and box, editable),
-which Save keeps in My parts; a part of My parts that the project does not hold is embedded first. Save saves the part (a new part, a part of the project in place, a part of
-My parts as its next version, a library's part as the project's own copy); where boxes of it are drawn already a
-message says how many and offers Redraw them (`part.redraw_boxes`: one `box.redraw` of every
-box, one undo step, all or none).
-In the Insert symbol picker a symbol of another connection grid says so, naming both grids as the
-status bar does ("4 mm", "QET 10 px"), and its Place puts it on the page in front: the project gets the
-symbol's copy drawn on the page's grid (`SymbolDraft::on_grid`: every length scaled by the ratio of the grid steps,
-every connection point on the page grid's point of its own index, as the starter library's QET edition), embedded
-once (`library.embed`), and the place tool is armed with it. The editor's test placement on such a page is refused
-in the same words and offers a new page with the symbol's grid: **Place on a new page with its grid** places the
-published symbol there at 40/40 mm and selects it, from the editor while its draft is saved to a library and
-unchanged (`symbol.new_page`) and as the picker's second choice (`picker.new_page`); for any other draft the editor
-offers Test on a new page. Each is one undo
-step for the page and one for the placement. New page (`page.new`) has a Connection grid, "4 mm" or "QET 10 px",
-the current page's by default; on a page whose grid is neither (an imported one) the field is empty and the new page
-still takes the current page's grid. A page's grid changes only while the page is empty. "Fork from QET import" is Fork existing symbol in the Library panel, over project copies and installed
-libraries; Open or import reads QElectroTech `.elmt`, EPLAN EDZ/PXF and the supported SLK subset into a draft with
-its import report, and an EPLAN draft saves only once its review is acknowledged. Every edit is a `symbol.*` action that scripts and AI tools share.
-
-**Accessibility (NFR-A11Y-02).** Previews expose an accessible name built from the item name, its representation
-type and its CP designations, for example "MCB 1P+N, multi-line, connection points 1, 2, N, N". Quality levels are
-shown as text plus an icon, never as colour alone (FR-UI-025).
 
 ---
 

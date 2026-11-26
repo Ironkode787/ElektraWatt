@@ -70,7 +70,7 @@ gone (deleted, its making undone) closes. The view shows, from `Session::rack_vi
   it; saved, the part stands in the catalogue, and it is the station's head only when the empty head was the place
   chosen. A library PLC part without a function template, which the place
   catalogue does not offer because nothing draws it (`PlaceCatalogue::plc_without_functions`), is listed greyed too,
-  with what to do in the part editor (a pin pattern or supply pins give it its box); taking it is refused in those words.
+  with what to do on the part's sheet in Parts (a pin pattern or supply pins give it its box); taking it is refused in those words.
 
 Side by side, a view in the group without the focus shows the same (`ShellModel::station_shown_of`, one kept per group)
 but the view's bar, which acts on the window's selection, and leaves out the catalogue where its pane is too narrow for

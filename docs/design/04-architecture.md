@@ -238,6 +238,7 @@ matches over the members by hand, and no second list is kept in step.
 | window setting | a field of `Settings` with its default | the reader and the writer of the settings file |
 | `ew` subcommand | its clap arguments and its run function | the catalogue, the reference; the schema name of a `--json` result from the result's type |
 | SQL view | a `View` with its fill function | the schema and the materialisation |
+| part field | its row of `ew_derive::part_fields`: the member's path, its word, its group, which parts have it, how a person meets it, its readers | the sheet of Parts, what a part lacks, a feature's gate, the columns of the table import and export, the guide's reference; a test holds every member of the part's schema to one row ([07](07-concepts.md) §2.5) |
 | text | one entry per language under one key | the key table, checked at build |
 
 ### 3.6 Adding a crate
@@ -262,7 +263,7 @@ size, the time of a frame); anything a script must be able to do is an action.
 ### 9.1 What the shell owns
 
 - **Which screen shows:** `ShellModel::screen()` answers one `Screen` (the start page, the first run, a project,
-  the symbol editor, …), and each model the window draws (the command bar, the panes, the dialog) is the shell's
+  Parts, …), and each model the window draws (the command bar, the panes, the dialog) is the shell's
   for that screen.
 - **What can be done:** the action table's enable check is the one gate (`enabled_with`). It answers a reason as
   a text with arguments (§18); every greyed entry, on every surface, shows that reason. A handler reads the
@@ -307,10 +308,11 @@ does not work out which screen shows, whether a refusal is shown, or what a key 
 part (a menu, a tooltip, a raised surface, a form row, an action's button with its reason) is in `components`,
 and sizes and colours are tokens.
 
-### 9.5 The symbol editor
+### 9.5 Parts and its drawing
 
-The symbol editor's canvas is the shell's canvas model and its tools are tools of §9.2, as every other tool's;
-the window holds no tool framework of its own.
+Parts, the one place for parts and symbols ([07](07-place.md) §5), is a screen of the shell with one session
+model for the open part whatever opened it. Its drawing (a symbol, a device box) is the shell's canvas model and
+its tools are tools of §9.2, as every other tool's; the window holds no tool framework of its own.
 
 ---
 

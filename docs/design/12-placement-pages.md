@@ -162,7 +162,7 @@ A part's members are the struct `Part` of `crates/ew-schema/src/library.rs` ([07
 | `mech.mount_kind` | how it mounts (below) | where it fits, EW-LAY-010 |
 | `mech.rail_offset` | the clip point in the part frame; absent: the front's centre | the pose on a rail |
 | `mech.clearance` | the room kept free around it | the padding while placing, the clearance check |
-| `mech.front_shape` | `rectangle` (absent) or `round`: the outline drawn when the part has no imported outline; `round` is a circle of diameter `width` and is allowed only where `width` = `height` | the panel page, the part editor's preview |
+| `mech.front_shape` | `rectangle` (absent) or `round`: the outline drawn when the part has no imported outline; `round` is a circle of diameter `width` and is allowed only where `width` = `height` | the panel page, the In the cabinet picture of Parts |
 | `mech.front_2d` | an outline imported from a maker's DXF drawing, polylines in the part frame; when present it is drawn instead of the shape | the panel page |
 | `mech.holes` | the drilling pattern: `PartHole {x, y, hole}` each, its centre in the part frame and its `Hole` | the features of a surface ([12-3d](12-3d-routing-thermal.md) §10) |
 | `sections.enclosure` | outer `width`, `height`, `depth`, `wall`, the `plate` part, and: `doors` (each `{hinge: left \| right, width?}`, left to right; absent: one door over the whole front, hinged on the left), `edge_margin?` (of its doors and walls), `usable_depth?` (the clear depth between the plate and the closed door) | the surfaces (§2.8), the depth check |
@@ -184,7 +184,7 @@ A part's members are the struct `Part` of `crates/ew-schema/src/library.rs` ([07
 A named hole's size comes from the program's table ([12-3d](12-3d-routing-thermal.md) §10.2), so a part names "a
 22 mm cut-out" and the hole table, the template and the DXF print the size the table gives. The text form of a hole
 (`Ø 4.5`, `M5`, `22 mm`, `M20`, `92 × 92 R 2`) is parsed by `Hole`'s own parser in `ew-schema`, with its kind, for
-the part editor's cells and the command line.
+the cells of the Holes table in Parts and the command line.
 
 **Where a mount kind fits:**
 
@@ -538,7 +538,7 @@ show their revision stamp.
 | EW-LAY-014 | Pre-assembled cable route longer than its length minus connector allowances | error | II | 1.0 | FR-LAY-050 | choose a longer cable part |
 | EW-LAY-015 | Wire in a duct whose class set excludes its segregation class (manual or pinned paths) | warning / error by policy | online | 1.0 | FR-LAY-048 | re-route |
 | EW-LAY-016 | Assembly or rack members not contiguous or not in physical order on their carrier (FR-LAY-061) | warning | online | MVP | `carrier_order` vs `Device.position` | reorder by position |
-| EW-LAY-017 | Holes not known: a part placed in a cut-out or screwed to a surface has no holes, or the device placed there has no part; one finding per part, naming its devices ([12-3d](12-3d-routing-thermal.md) §10.5) | warning | online, release | — | `surface_features` | Edit part… (the part editor at Front view and holes); for a device without a part, Choose part… |
+| EW-LAY-017 | Holes not known: a part placed in a cut-out or screwed to a surface has no holes, or the device placed there has no part; one finding per part, naming its devices ([12-3d](12-3d-routing-thermal.md) §10.5) | warning | online, release | — | `surface_features` | Edit part… (Parts at the part's Holes); for a device without a part, Choose part… |
 | EW-LAY-018 | Cable gland: a cable that leaves the cabinet has no gland placed (error at release); its gland is not known (no outer diameter, no stock gland seals it); a placed gland's hole differs from its gland's; a gland hole serves no cable (its cable gone or no longer leaving) | warning; error at release for one not placed | online, release | — | `cable_glands` | Place on the bottom; Take M32; Remove the hole; Keep it as a hole; Edit part…; Choose gland… |
 | EW-LAY-021 … 026 | Placement rules (FR-LAY-033/034): thermal zoning, EMC segregation distance, operator height, door mass, cable-entry zone, handle-axis alignment; EW-LAY-020 (depth containment) is retired, the closed door being EW-LAY-006's ([12-3d](12-3d-routing-thermal.md) §7) | warning | online | 1.0 (Could) | rhai/Rust rules with constants as data, `verified` flag | — |
 

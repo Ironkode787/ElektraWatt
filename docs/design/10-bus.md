@@ -39,7 +39,7 @@ present only on a connector or device with a termination switch (FR-BUS-004).
   line's page the cable's mark (a wire annotation listing the line, across the middle of its longest run: the tag in the
   tag style, the type under it, movable); a line no mark lists (an older file) prints the tag beside it in the tag
   style. The form also offers the project's cables made for the bus (a further line runs on in one, the person's
-  choice), and its lists end in New bus cable… and New plug…: the part editor's short form of a cable for the bus
+  choice), and its lists end in New bus cable… and New plug…: New part… in Parts with the kind given, a cable for the bus
   (its cores as the bus has them, `part_cable::bus_cores`, no cross-section needed; its `cable_for`) or of a plug (its
   bus, straight or angled, programming socket and switchable resistor, worded into its description), chosen in the
   form at once. The cable's cores are used by its line: the cable overview and `api_v1_conductor` give each core the

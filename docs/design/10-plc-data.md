@@ -458,7 +458,7 @@ state.
   gives a port-less bus-port function the first port of the bus its FnDef is filed under (a category word that
   begins the bus's stored name: `Profibus`, `Profinet`), else the first port, so the PROFINET symbol on EW-GEN-CPU-2
   takes `X1` although the part lists `DP` first.
-- **Made in the window.** Edit ▸ New part… (and New part… in the part dialog and the device browser) makes
+- **Made in the window.** New part… in Parts ([07](07-place.md) §5.5; also at the foot of the part dialog and the device browser) makes
   a part with its bus interfaces (a row each) and its PLC section as forms: the role, one channel spec (kind, count,
   data type, name pattern), the pin pattern (`pin_of`, previewed as "channel 0 → pin 1 … channel 7 → pin 8"), the
   electronics supply groups, the allowed slots and a station's `max_modules`. *Supply pins as lists.* The L+
@@ -509,10 +509,10 @@ state.
   row that changes as its columns that differ. A starter part or another
   library's part stays read-only and is copied as a new part of his own. The box of a device with ports prints the
   interface's address in its caption (the black-box frame's `bus_address` slot), "Node TBD" while it is open.
-  *Removing a part.* The part editor of a part of My parts has **Remove from my parts library…** apart from Save
-  (`part.remove_own {part?, confirm?}`). Undo does not bring the part back, so it asks first (doc 16a §6.12):
+  *Removing a part.* A part of My parts has **Remove…** on the bar of Parts
+  (`parts.remove {part?, confirm?}`). Undo does not bring the part back, so it asks first (doc 16a §6.12):
   "Remove SW-6 from your parts library?", the next projects no longer offer it and a project that uses it keeps its
-  copy; Cancel is the Primary and returns to the part editor, Remove the danger button. A script gives `confirm`, as
+  copy; Cancel is the Primary and returns to the part's sheet, Remove the danger button. A script gives `confirm`, as
   the journal's discard does, and is refused in words without it. Confirmed, the item is taken out of My parts as a
   library write is made, all or nothing
   (`ew_library::Registry::remove`), and the next projects no longer offer it. A project that holds a copy of it keeps

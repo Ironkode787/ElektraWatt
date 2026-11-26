@@ -69,7 +69,7 @@ renderer's final pass, applied to the screen only. Thumbnails, PNG export, PDF a
   the pointer rests on (a command's button or menu entry → its command's section; a property row → its row in the
   properties reference; a list's row → its thing's section, a finding → its rule page, FR-CHK-015, NFR-DOC-02; a
   thing on the page → its kind's section); else the keyboard focus (the cursor row of a list or of Properties); else
-  the selection; else the active tool → its tool section; else the screen (an open dialog first, the symbol editor, a
+  the selection; else the active tool → its tool section; else the screen (an open dialog first, Parts, a
   station's view, the page's kind, the project view, the start page). A thing without a section of its own opens its
   kind's chapter, never the documentation home.
 - **Opening.** Bundled pages open in the system browser through a local `file://` URL, as a user action with no
@@ -101,7 +101,7 @@ when the program is built; with no installed guide it shows a "user guide is not
 F1 resolves a topic for every `tool.` action, every dialog (an exhaustive match), every pane and navigator, through
 the three window reference pages `reference/window/tools.md`, `dialogs.md` and `panels.md`, and a rule's `docs`
 reference `reference/rules/<id>`. In a Dutch window F1 opens `nl/<page>` when the Dutch guide holds that page, and the
-English page otherwise. In the symbol editor F1 over the outline or the drawing opens the section of what is selected
+English page otherwise. In Parts F1 over the outline or the drawing opens the section of what is selected
 there (a connection point's, a shape's), and the outline's or the tool's section with nothing selected.
 
 The mapping lives in `ew_viewmodel::help`. Every action a menu or the bar shows has a

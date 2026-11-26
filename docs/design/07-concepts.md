@@ -23,7 +23,7 @@ flowchart LR
     EDZ["EDZ, EPLAN parts XML"]
     CAT["CSV/XLSX, BMEcat, ETIM xChange"]
     DXF["DXF blocks"]
-    ED["Symbol, part and macro editors"]
+    ED["Parts, the place for parts and symbols; Save as macro"]
   end
   subgraph LIBS["Libraries (.ewlib directories, canonical JSONL)"]
     SYS["System (shipped, read-only)"]
@@ -69,19 +69,19 @@ flowchart LR
 | **System** | installation directory (NFR-PLAT-06) | nobody (FR-PRT-012) | starter symbols, FnDefs, starter catalogue, frames, manufacturer master, ETIM data pack |
 | **Community pack** | user data directory, installed from a file or a git clone | nobody in EW; updated by reinstalling | `ew-iec60617`, `ew-iso1219`, manufacturer packs with explicit licences |
 | **Company** | a directory on a file share or in a git repository | library maintainers (P6) | company parts, macros, basic project, symbol forks |
-| **User** | OS data directory | the user | drafts, imports in progress, on-demand QET conversions |
+| **User** | OS data directory | the user | **My parts** (`user-parts`): the parts and symbols a person makes or keeps (§3.1); on-demand QET conversions |
 | **Project** | `lib/` inside the project (ARCH §7.2) | only through commands | the embedded copies actually used |
 
 **Identity:**
 - Every library has a UUID (`library_id`).
-- Every item has an `item_id` that stays the same across versions, a human key (`pxc.2904602`, `ew.iec.mcb-1pn`)
+- Every item has an `item_id` that stays the same across versions, a human key (`example.con-18-24`, `ew.iec.mcb-1pn`)
   and a semantic `version` (`MAJOR.MINOR.PATCH`). Authored items get UUIDv7; imported items get
   `v5(import namespace, source key)` (ADR-0004), so re-importing the same CSV or EDZ updates items in place. The
   version is stored once per document, never in `ItemMeta`: a library record carries it as its top-level `version`
   member after `id` (the item ID), an embedded copy in its copy metadata
   ([05](05-project-format-and-persistence.md) §13.2).
 - **Identity is the pair `(library_id, item_id)`, never a name.** Two libraries may both contain a part called
-  "2904602" without either one shadowing the other.
+  "CON-18-24" without either one shadowing the other.
 - **Published versions are immutable.** `ew lib pack` refuses to publish different content under an existing
   version, so `(library_id, item_id, version)` determines the content.
 - **Item status** (`ItemMeta.status`): `Draft | Released | Deprecated{successor: Option<LibRef>} | Withdrawn`.
@@ -318,130 +318,147 @@ sets it (lowest number wins):
   it as info, not as an error ([08](08-connections-terminals-cables.md) §6.2, §8.2).
 - A **load** (lamp, heater) declares nothing, so its two sides stay separate potentials.
 
-### 2.5 Parts and their data levels
+### 2.5 Parts
 
-The library item `Part` is the full record. A `PartCopy` (03 §7) is `LibCopy<Part>`, the same record embedded.
+**What a part is.** A part is the thing a person orders: a maker and a part number, and all the program knows of
+it. What it is called; what it is on a schematic (the symbols it is drawn with, its pins, or its box with pins and
+ports); what it is in the cabinet (its size, how it mounts, its front, its holes); what it is to a wire (its
+clamps); what it is by its kind (a cabinet with its plate and doors, a terminal with levels, a cable with cores and
+a diameter); what goes with it (what it comes with, the forms it is also sold in); and what its maker's sheet says
+of it (technical data). Three words, and the window keeps to them:
 
-Its members, each with what it holds, are the struct `Part` of `crates/ew-schema/src/library.rs`, and its stored form
-is the generated schema (`schemas/0.1/part.schema.json`). What the code does not say: the part number is kept
-verbatim (`SK 3110.000`) and search uses a normalised form (§4.3); the description is a noun phrase, never ratings
-(D-35, FR-DEV-010); `free_props` hold EPLAN's `<freeproperty>` and user fields; quantities in the order unit are
-`Dec3` (FR-PRT-026); each section of `sections` is owned by its area (FR-PRT-010).
+- a **part** is what he orders;
+- a **device** is one of them in this cabinet, with its tag;
+- a **symbol** is how a part, or one piece of it, is drawn on a schematic page.
 
-These members of a part are specified; not built: a supply CP's load current in `cp_pattern` (`i_load`, `Dec3` in
-A), `classification` (`{scheme: etim | eclass | iec_cdd | native,
-id, version}`), `model3d` (the STEP file's SHA-256, its source and whether it may be embedded, FR-LAY-022), `cp3d`
-(3D connection points, FR-LAY-026), `commercial` (suppliers, supplier
-numbers, prices with currency and date), `logistics` (pack quantity, minimum order, customs code, origin, lifecycle)
-and `docs` (datasheet references as text, images only as asset hashes). The accessories, the variants and the
-sections of the parts a wire consumes are below.
+A device is of a part; the part says what the device is and has; a symbol draws it. The record's own words
+(function template, function definition, contact data, part copy, fork, black box) are the model's and the file's,
+and no surface a panel builder works on shows them: a part is **drawn as** pieces or as a box, each with **its
+pins**, and it **lives** in My parts, in a library, or only in a project (§3.1).
 
-**Technical-data keys** (decided 2026-10-18). `tech_data` uses the one `TechValue{key, value}`
-encoding of [05](05-project-format-and-persistence.md) §3.2 on parts and devices alike. A key qualified by a
-classification scheme is spelled `"<scheme>:<id>"` inside `key` (`etim:EF001234`; schemes `etim`, `eclass`,
-`iec_cdd`), and a plain key without a colon is a native or project property (`i_out`, `curve`). Booleans and
-enumeration values are `Ident` values (`"true"`, `"false"`, the enumeration member) until a typed form is needed. One
-encoding for every property keeps the v0 schema small; ETIM features (FR-PRT-018)
-may append a typed value variant without changing stored keys.
+**The record.** The library item `Part` is the full record, and a `PartCopy` ([03](03-domain-model.md) §7) is
+`LibCopy<Part>`, the same record embedded in a project. Its members, each with what it holds, are the struct `Part`
+of `crates/ew-schema/src/library.rs` and the sections of `part_sections.rs`; its stored form is the generated schema
+(`schemas/0.1/part.schema.json`). What the code does not say: the part number is kept verbatim and search uses a
+normalised form (§4.3); the description is a noun phrase, never ratings (FR-DEV-010); quantities in the order unit
+are `Dec3` (FR-PRT-026); each section of `sections` is owned by its area (FR-PRT-010). The members stand in this
+order, `meta, kind, manufacturer, part_number, type_designation, order_number, gtin, description, category,
+tech_data, free_props, unit, cp_pattern, function_template, contacts, mech, sections, accessories, alternatives,
+configured, variants, macros, box`, then `extra`, and the order is fixed: a copy's `sha256` is taken over the item's
+compact JSON in member order, so a later re-ordering would re-hash every existing copy. A member that is added is
+optional and absent by default, so a copy without it hashes as before.
 
-Typed technical data on parts and devices use the native plain keys
-`characteristic`, `rated_current`, `channel_current` and `setpoint`. A slot text follows
-these rules: a device's own value wins over its part's; a miniature circuit-breaker prints characteristic and rated
-current composed as "C10" (the reading of U-32); other values print as value and unit ("40 A", "15 °C"); several
-values are joined with ", " in key order. Two interims apply. The main part of a device is its first part use, not
-yet "the use that provides the main function"; the manufacturer name is read from the manufacturer
-`LibRef`'s `extra["key"]`, a stopgap until typed manufacturer copies exist. The helpers `tech_data_text`,
-`main_part` and `manufacturer_name` are built in `ew-derive` (`part_text.rs`); the slot-text mapping is a product
-query of the `Session` export job (`ew_api::output::PageSlotsOf`, asked for it in
-`ew-derive`). The 24 V DC
-output of part 2904602 is recorded under the plain key `output_voltage` ("24 V") beside `rated_current`; a typed key for
-an output voltage is not built.
+**A part's data, by what it is.** The kind is what a person says first when he makes a part (§5.5), and it decides
+which groups of data the part has. Nothing is asked of a part that its kind does not have.
 
-Part data is organised in **data levels**. Each level lists its consumers and the release that first needs it:
-
-| Level | Fields | Consumers | Needed from |
-|---|---|---|---|
-| L0 identity | manufacturer, part number, type, order number, GTIN, description, kind, unit | BOM (FR-REP-004), search | MVP |
-| L1 technical | `tech_data` (native keys), contact data, CP pattern (designation, potential role, level, side, clamp, cross-section range, max conductors, twin ferrule, optional load current per supply CP), function template; ETIM/ECLASS classification | symbol texts, CP instantiation, contact images, potential types, FR-CHK-021; load currents: the load summary and `api_v1_cp.i_load` (ADR-0017 amendment 3) | MVP (classification FR-PRT-018, clamp checks FR-CHK-021 and load currents: 1.0) |
-| L2 domain sections | PLC address map and solenoid map (FR-PLC-011), cable cores (FR-CBL-004), thermal P_n/I_n (FR-THM-001), tube data | `channel_addresses`, cable conductors, thermal | MVP (PLC, cores); 1.0 (thermal, tubes) |
-| L3 mechanical | W×H×D, mass, mount kind, rail offset, clearance, the front view (its shape or an imported outline) and the drilling pattern | the panel pages' placements (FR-LAY-007, FR-PRT-011), the holes of a surface (FR-LAY-032) | MVP; front view and holes 0.4.0 |
-| L4 commercial and logistics | suppliers, prices, order unit, packaging, customs code, lifecycle, successor | order lists, ERP export (FR-EXP-005) | 1.0 (FR-PRT-025) |
-| L5 3D | STEP reference by hash, mounting frames, keep-outs | 3D, collision | 1.0 |
-| L6 3D connection points | per CP: position, insertion direction, clamp type, cross-section ranges, strip length, insertion depth, torque, test access | routing, wire lengths, ferrules, wiring viewer | 1.0 |
-
-**Provenance and confidence.**
-- `ItemMeta.sources` lists where each section came from: a datasheet reference, an EDZ file hash, a BMEcat file, a
-  CSV import, or manual entry.
-- `ItemMeta.confidence` marks each section `verified`, `unverified` or `test`. A clamp range copied from a
-  datasheet is `unverified` until checked; the generic starter parts' clamp data, ferrule colours and widths are
-  `test`.
-- Findings computed from non-verified sections carry a "based on non-verified part data" marker. The release
-  report lists every non-verified section in use (FR-PRT-031). Who may set `verified` in
-  a community pack is governed by [19](19-open-source-governance.md) §3.6.
-
-**Manufacturer master** (FR-PRT-002) records are `{key (short code, e.g. "PXC"), name, aliases, brands}`:
-- `Murrelektronik` has the alias "Murr Elektronik";
-- `Schneider Electric` has the alias "Schneider";
-- `Eaton` has the alias "Eaton / Holec" and the brand Holec.
-
-Importers resolve aliases. An unknown manufacturer creates a draft record for the maintainer to merge (D-18).
-Projects embed the manufacturers they use as copies under `lib/manufacturers/` (kind `manufacturer`,
-[05](05-project-format-and-persistence.md) §2.2); a part references its manufacturer by `LibRef`, as in the part
-copy example of 05 §3.5.
-
-`ew-schema` types the MVP members of a
-part within format 0.1 (ADR-0011 amendment 4), in this order: `meta, kind, manufacturer,
-part_number, type_designation, order_number, gtin, description, category, tech_data, free_props, unit, cp_pattern,
-function_template, contacts, mech, sections, accessories, alternatives, configured, variants, macros, box`, then
-`extra`. The order is fixed
-because a copy's `sha256` is taken over the item's compact JSON in member order, so a later
-re-ordering would re-hash every existing copy. The typed members:
-
-| Member | Shape | Requirement |
+| Group | Holds | The kinds that have it |
 |---|---|---|
-| `contacts` | `Vec<ContactData{kind: ContactKind (the FnDef enum: no, nc, co), cps: Vec<Ident> such as ["13", "14"], seq?: u8, special?: Ident}>` | FR-PRT-009 |
-| `mech` | `MechData{width?, height?, depth?: Nm, mount_kind?: MountKind, rail_offset?: Pt2 (rail pose to part origin), clearance?{top, bottom, left, right, front: Nm, an absent side is 0}, front_2d: Vec<Vec<Pt2>>, mass?: u32 grams, front_shape?: rectangle \| round, holes: Vec<PartHole{x, y: Nm, hole: Hole}>}` (the last two after `mass`; the front view and the drilling pattern, [12](12-placement-pages.md) §2.5); `MountKind` is `ts35x7_5, ts35x15, ts32, ts15, screw, busbar_adapter, door_cutout, on_parent, none` | FR-PRT-011 (L3), FR-LAY-032 |
-| `cp_pattern[]` | `CpData` gains, after `clamp`, `clamp_type?: screw \| spring \| push_in \| idc \| ring_stud \| plug`, `csa_min?`, `csa_max?: Dec3` mm², `max_conductors?: u8`, `twin_ferrule: bool` | FR-PRT-008 |
-| `sections` | `PartSections` gains, after `cable_cores` and `plc`, `enclosure?{width, height, depth, wall: Nm, plate?: LibRef, doors: Vec<{hinge: left \| right, width?: Nm}>, edge_margin?, usable_depth?: Nm}`, `duct?{inner_width, inner_height, slot_pitch}`, `rail?{profile: MountKind, stock_length?}`, `mounting_plate?{width, height, thickness}`, `cable?{outer_diameter?}` (a cable part's), `gland?{thread: m12 … m63, clamp_min, clamp_max, nut?: Nm}` (a part of `kind: gland`, its own section; a gland is no part a wire consumes) | FR-PRT-024, FR-LAY-056 |
-| `sections` (consumables) | after `fluid`: `wire?{csa: Dec3, colour?: ColourSpec, class?: u8}`, `ferrule?{csa_min, csa_max: Dec3, twin: bool, insulated: bool, sleeve?: Nm, colour?: ColourSpec, stud?: Ident}`, `marker?{marks: wire \| terminal \| device \| cable, lines?: u8, chars?: u8}` | FR-PRT-035 |
-| `accessories` | `Vec<PartAccessory{part: LibRef, qty: Dec3, per: unit \| strip \| rail_group, kind?: AccessoryKind, optional: bool}>`; `AccessoryKind` is the strip accessory's (`end_plate`, `end_clamp`, `partition`, `marker`, `cover`) | FR-PRT-005, FR-REP-051 |
-| `alternatives` | `Vec<AlternativeRef{part: LibRef, kind: equivalent \| successor \| approved}>` | FR-PRT-004 |
-| `configured` | `Configured{order_code, components: Vec<{part: LibRef, qty: Dec3}>}` | FR-PRT-006 |
-| `variants` | `KeyedList<PartVariant{key: Ident, name: MlText, part_number?, order_number?, type_designation?, gtin?: Ident, description?: MlText, tech_data: KeyedList<TechValue>}>` | FR-PRT-003 |
-| `macros` | `Vec<MacroLink{rep_type, macro: LibRef}>` | FR-PRT-027 |
-| `box` | `PartBox{width, height: Nm, pins: Vec<PartBoxPin{idx (into `cp_pattern`), side: up \| right \| down \| left (the edge, by the direction a wire leaves in), at: Nm (along the edge from the box's top-left corner)}>}`, after `macros` (added after the lock, 0.3.0) | the device box, below |
+| Identity | maker, part number, type, order number, description in each language, kind, order unit | every part |
+| On the schematic | what the part is drawn as: its pieces, each with its pins and its symbol, or its box with its pins | a device, a terminal, a pushbutton or lamp, a valve |
+| In the cabinet | width, height, depth, how it mounts, the room kept free round it and in front of it, the rail line, the mass, the front (its shape or an outline) and its holes | every part that is mounted: a device, a terminal, an end bracket, an accessory |
+| Connections | per pin: the kind of clamp, the cross-sections it takes, how many wires, whether a twin ferrule, where a wire reaches it | every part with pins |
+| the kind's own | an enclosure's outer size, mounting plate, doors, edge margin and depth behind the door; a mounting plate's size; a rail's profile; a duct's outer and inner size; a cable's cores, outer diameter and the bus it is made for; a wire's cross-section, colour, class and outer diameter; a ferrule's range, sleeve, colour and stud; a marker's target, lines and characters; a gland's thread and clamping range; a valve's coil and ports; a tube's diameters, material and pressure; a PLC part's channels; a part's network ports | that kind |
+| Technical data | the values the program computes with, by name, and any other value of the maker's sheet | every part |
+| Goes with it | what it comes with, and the forms it is also sold in (below) | every part but a wire, a ferrule and a marker |
+| About | where it came from, when it was last changed, its licence, where it is listed, and what is stored that the program does not ask for | every part |
 
-**The device box.**
-A part whose main function is a black box is drawn as a box with its pins on the edges. Its pins are
-its `cp_pattern`, which a person adds to, removes from and renames in the part editor and on the symbol editor's
-screen (§5); `box` says where they stand: the box's size, and for each pin its edge and its distance along it. Placing
-the part then draws that box with one click (`box.black`): the layout is read onto the page's connection grid in its
-order and on its sides, each distance (corner to pin, pin to pin, pin to corner) taken up to whole steps of that grid,
-so a box laid out on 4 mm comes out no tighter on a page of another grid and its pins stand on that page's grid points;
-every pin at least one step from the corners and from its neighbours, the box widened where the pins need it
-(`ew_api::part_box::steps`); a pin the layout does not list stands on the bottom edge after the others. A
-part without `box` is drawn as before, by two clicks, the first half of its pins on top and the rest below. A pin's
-place typed in the box editor between two 4 mm steps, or on a corner, goes to the nearest step clear of the corners,
-and a note says where it stands; a copy of a starter or library part keeps that part's number, which the line over
-the box says until the person gives it one of its own. The box editor's pin list stands in the order the
-pins stand on the box, and keeps its rows while the same pins are edited, so a pin given another edge stays under the
-pointer; a new selection sorts the list again. The
-placed box is the page's: its edges and pins are still dragged there (`box.reshape`), and a later change of the
-part's layout asks before it redraws. `box` is an optional member without cascade semantics (ADR-0011 amendment 6):
-an older build keeps it in `extra`, writes it back where it stands, and lays the pins out its own way. A part with a
-PLC section or bus interfaces takes its pins from its channels and ports, and a part drawn with a symbol from that
-symbol: the box editor shows such a part and says so. *Editing a pin that comes from a channel or an interface*: what is the pin's own is its place, the edge it stands on and its distance along it, and with them its
-text's place, which stands inside the box at the pin, turned by its edge; with the box's size these are edited in the
-box as on any box, saved as the part's `box`, and drawn that way wherever the card is drawn by its box (a click of the
-Device tool, Place here, Draw on a page…, Redraw them). What is the part's is the pin's name (the pin pattern's), what
-it carries (a supply pin's potential), its channel and that channel's address and kind: the box shows them and says
-that they are changed in the part editor, under PLC or Bus interfaces; such a box takes no pin and loses none. Its
-layout is written only from a pin a person placed or a size a person gave: Save on such a box nobody changed says that
-the part is unchanged, so the card stays the library's and Draw on a page draws it as a card ([06a](06a-drafting.md)
-§7.5); a part with pins of its own takes the layout the box shows at its first Save. A part
-drawn with a symbol has no device box to edit. `part.edit_copy` lets the fork of a library copy change
-`cp_pattern`, `function_template` and `box` as it does the identity, so a library part's box is changed for the
-project; its sections stay the library's.
+**The fields of a part are declared once** (`ew_derive::part_fields`), and everything that shows, asks for, reads
+or carries a part's datum is handed it from there. A field is a member of the record by its path
+(`sections.ferrule.csa_min`, `cp_pattern[].clamp_type`, `tech_data.rated_current`) with:
+
+- **its word**, one text key whichever surface shows it, and **its group** of the table above;
+- **which parts have it**: by kind, by how the part mounts, by what it is drawn as;
+- **how a person meets it**: a field typed or chosen, whose kind of value (a length, a cross-section, a count, a
+  choice of words, a colour, a yes or no, a part) is the schema's; a column of a table over a list member; a member
+  that one of the forms writes (the pieces, the terminal's grid of levels and clamps, the box, the cores, the
+  network ports, the PLC channels, the holes, the maker by name); a value that is derived or brought by a file and
+  only shown; or a member that is stored and not asked for, with the reason;
+- **a limit** the schema's type does not say (a size is above zero);
+- **its readers**: the features that read it, and for each what the feature does without it (it cannot use the
+  part, it passes the part by, it takes a default, or it only prints the value) and the sentence that says so
+  (§3.4).
+
+The declaration hands out: the sheet of the place for parts (the fields a given part has, in order, each with its
+reading and its check); what a part lacks (§3.4); the gate a feature asks before it uses a part; the columns of the
+table import and export (§3.6); and the reference page of the guide that lists every field with its kinds and its
+readers. No second list of a part's members, kinds or sections is kept anywhere.
+
+**Nothing stored that cannot be entered, nothing entered that nothing reads.** Two tests hold it from the
+structure. Every member of the part's schema, down to the members of its lists' items, has exactly one declared
+field, and every declared field is a member: a member added to the record fails the build's tests until someone
+says how a person meets it. And a field a person enters names at least one reader, while a member declared as
+stored names none: so a datum is asked for from the day a feature reads it, and not before. A stored value that is
+not asked for is kept, written back, and shown under About ▸ Also stored.
+
+**Technical data** uses the one `TechValue{key, value}` encoding of [05](05-project-format-and-persistence.md) §3.2
+on parts and devices alike. A key qualified by a classification scheme is spelled `"<scheme>:<id>"` inside `key`
+(`etim:EF001234`; schemes `etim`, `eclass`, `iec_cdd`), and a plain key without a colon is a native or project
+property. Booleans and enumeration values are `Ident` values.
+
+*The values the program computes with are fields of their kind.* A person never has to know a key: the declaration
+names each native key a feature reads, with its word, its unit and the parts that have it, and the sheet offers it
+as a field under Technical data.
+
+| Key | Word | Parts that have it | Read by |
+|---|---|---|---|
+| `rated_current` (A) | Rated current | a protective device, a switch, a contactor | the cross-section proposed for the wires a protective device protects, by the project's current table ([08](08-connections-terminals-cables.md) §4.2); the symbol's technical text |
+| `characteristic` | Trip characteristic | a circuit breaker | the symbol's technical text, composed with the rated current ("C10") |
+| `i_load` (A), `power` (W), `voltage` (V) | Load current, Power, Supply voltage | a device fed by a PLC supply | the load count of a supply ([10](10-plc-and-bus.md)) |
+| `coil_voltage`, `rated_voltage`, `output_voltage`, `output_current`, `input_voltage`, `rated_power`, `channel_current`, `setpoint` | by their names | the kinds they belong to | the symbol's technical text |
+| `colour` | Colour | a terminal, a lamp; a variant | the assembly list; a variant's own colour |
+
+Any other value is a free row of a name and a value; it prints at the symbol like the others. A slot text follows
+these rules: a device's own value wins over its variant's, which wins over its part's; a circuit breaker prints
+characteristic and rated current composed; other values print as value and unit ("40 A", "15 °C"); several values
+are joined with ", " in key order (`tech_data_text`, `main_part` and `manufacturer_name` of `ew-derive`). **What a
+wire or a cable carries is the project's rule, not a part's datum:** the cross-section proposal reads the current
+table of the project's size profile and names its basis; a part states no ampacity, because nothing would read it.
+A cable part carries what the features read: its cores, each with its own cross-section, and its outer diameter.
+
+**What a part is drawn as.** On a schematic a part is drawn as **pieces** or as **a box**.
+
+- *Pieces.* A contactor is a coil and its contacts; a circuit breaker is its poles; a pushbutton is a contact. Each
+  piece is one entry of `function_template` (a function definition and the pins of `cp_pattern` it takes) and, for
+  a contact, one entry of `contacts`; the first piece is the main one, at which the device's tag stands. A person
+  gives a piece as what it is, in his words, and its pins by name (§5.4); the program takes the starter's function
+  definition for that kind of piece with that many pins, so that the standard's symbols draw it, and makes one of
+  the person's own only where none fits. **A piece may name its symbol** (`TemplateFn.symbol`, an optional
+  reference to a symbol): a device of the part is then drawn with that symbol where the page's grid has it or can
+  take it by the picker's rule (§5.12), else, and when it names none, with a symbol of the piece's function as the
+  browser offers them. So "this part draws like that" is said on the part, for the part; the embed closure of a
+  part includes the symbols its pieces name.
+- *A terminal* is drawn as a terminal with its levels: its pins carry `level`, `side` and `clamp`, one terminal
+  function over them, each level passing through on its own ([08](08-connections-terminals-cables.md) §6).
+- *A box.* **The device box.** A part whose main piece is a box is drawn as a rectangle with its pins on the
+  edges. Its pins are its `cp_pattern`; `box` says where they stand: the box's size, and for each pin its edge and
+  its distance along it. Placing the part draws that box with one click (`box.black`): the layout is read onto the
+  page's connection grid in its order and on its sides, each distance (corner to pin, pin to pin, pin to corner)
+  taken up to whole steps of that grid, so a box laid out on 4 mm comes out no tighter on a page of another grid and
+  its pins stand on that page's grid points; every pin at least one step from the corners and from its neighbours,
+  the box widened where the pins need it; a pin the layout does not list stands on the bottom edge after the
+  others. A part without `box` is drawn by two clicks, the first half of its pins on top and the rest below. The
+  placed box is the page's: its edges and pins are still dragged there (`box.reshape`), and a later change of the
+  part's layout asks before it redraws, naming each box and why. A part with a PLC section or network ports takes
+  its pins from its channels and ports: what is the pin's own on the box is its place, and its name, what it
+  carries, its channel and its address are the channel's and the port's. `box` is an optional member without
+  cascade semantics (ADR-0011 amendment 6).
+
+**Confidence and where a datum came from.** `ItemMeta.sources` lists where each section came from (a data sheet, a
+parts file's hash, a table, typed by hand) and `ItemMeta.confidence` marks a section `verified`, `unverified` or
+`test`: a clamp range copied from a data sheet is `unverified` until checked, and the generic starter parts' clamp
+data, ferrule colours and widths are `test`. Findings computed from a non-verified section carry the marker "based
+on non-verified part data", and the release report lists every such section in use (FR-PRT-031). Who may set
+`verified` in a community pack is governed by [19](19-open-source-governance.md) §3.6.
+
+**Makers** (FR-PRT-002) are records `{key (a short code), name, aliases, brands}`. Importers resolve a maker's
+aliases to its record, and an unknown name makes a record in the library the import writes. A person types a
+maker's name on a part's sheet, which offers the makers known. Projects embed the makers they use as copies under
+`lib/manufacturers/` (kind `manufacturer`, [05](05-project-format-and-persistence.md) §2.2); a part references its
+maker by `LibRef`.
+
+**Specified and not typed:** a supply pin's load current in `cp_pattern`, `classification`, `model3d`, `cp3d`,
+`commercial`, `logistics` and `docs` stay in `extra` until their work is built, and take their place in the member
+order then.
 
 Every new member is optional and default-omitted, every new enum keeps `Unknown(Value)` and every new object its own
 `extra`. The members not built (above, and the thermal section) stay in `extra`, and take
@@ -479,17 +496,15 @@ entry of `accessories` names the accessory part, how many (`qty`, in the accesso
 `kind` says what the accessory is to a strip, in the strip accessory's own words (End plate, End bracket, Partition
 plate, Marker carrier, Cover): the assembly list prints it and the check finds the end plate by it. `optional` marks
 an accessory a person may take that the part does not need; no list counts it until he takes it. A part of kind wire,
-ferrule or marker is never an accessory: the consumables count it ([13](13-manufacturing-outputs.md) §3.6), and the
-part editor refuses it as one. The accessory is a library reference, so embedding a part embeds its accessories
+ferrule or marker is never an accessory: the consumables count it ([13](13-manufacturing-outputs.md) §3.6), and its
+row under Goes with it refuses it in words. The accessory is a library reference, so embedding a part embeds its accessories
 (its closure, §3.1).
 
-Three hands write it, each above the one before: the library's part; the project's copy (the part editor; its fork
-of a library copy changes `accessories` and `variants` as it changes the pins); and, for one device, that device's
-choice, `Device.accessory_choices: Vec<AccessoryChoice{of: Id<Part>, part?: PartRef}>` (a cable's gland is no accessory: it follows from the cable's diameter and the stock, and a cable's own choice of gland is `Device.gland`, [12](12-placement-pages.md) §3.9). A choice names the accessory
+Two hands write it, the second above the first: the part (its sheet's Goes with it, §5.4); and, for one device,
+that device's choice, `Device.accessory_choices: Vec<AccessoryChoice{of: Id<Part>, part?: PartRef}>` (a cable's gland is no accessory: it follows from the cable's diameter and the stock, and a cable's own choice of gland is `Device.gland`, [12](12-placement-pages.md) §3.9). A choice names the accessory
 copy a declaration names (`of`), as the declaring part names it (`v5(NS_LIBCOPY, library ‖ item)` of its `LibRef`), and
 a declaration and its choices are matched by that one key: `of` is a `LibRef` link, kept alive but never re-pointed,
-so a fork of the accessory's part, of the declaring part or of both, a paste and an update leave the choice
-answering its declaration. Without `part` the device does not take it, with `part` it takes it as that part
+so a part made from the accessory's part, a paste and an update leave the choice answering its declaration. Without `part` the device does not take it, with `part` it takes it as that part
 (`of` itself takes an optional one, another part swaps it). A choice lives on the device the accessory is counted
 for: a `unit` accessory on the device that uses the part, a `strip` and a `rail_group` accessory on the strip.
 Replacing a part drops the choices of accessories the new parts do not name, whichever command replaced it
@@ -518,7 +533,7 @@ stores, `BU`), a name in the reader's language ("Blue") and what it changes: its
 designation, GTIN, description and technical values (the colour among them, the native key `colour`), each absent
 where it is the part's. It changes nothing of the pins, the template, the size, the sections or the accessories, so
 a device keeps its connection points when its variant changes. A variant gives at least one of its own part number,
-order number or description, else the parts list could not tell it from the part, and the part editor refuses it.
+order number or description, else the parts list could not tell it from the part, and its row refuses it in words.
 Every list prints a variant's numbers and description where it gives them, else the part's, and its technical
 values where the device has none of its own (a device's own value wins over its variant's, which wins over its
 part's). One function hands out what a part use prints, `ew_derive::printed_part` (number, order number, type,
@@ -559,9 +574,11 @@ that fits it ([13](13-manufacturing-outputs.md) §4.4), a label set the first st
 to ([13](13-manufacturing-outputs.md) §9.3) and a computed wire length once (13 §3.3), 5 mm when absent. A new project starts with the starter's generic
 ferrules, markers and glands as its stock (`file.new` embeds and names them in its one step, §9.2); a company's basic project
 names its own; a project made before has none, and Project ▸ Add the generic stock (`workshop.add_generic`) adds the
-starter's ferrules and markers the stock lacks after its own, in one step. Project ▸ Edit stock… (and the link under the project's Properties) opens the stock dialog: the stock in its
-order, each row moved or removed, a part added by its number (held or from a library), Add the generic stock and Cut
-to; Apply is one `workshop.stock` with the stock and the cut increment.
+starter's ferrules and markers the stock lacks after its own, in one step. The stock is seen and changed in the
+place for parts (§5.10): the project's parts narrowed to its stock, in its order; a row moved, taken out or added is
+one `workshop.stock`. Cut to is a row of Project properties ▸ Workshop. **Use this stock for new projects** keeps
+the stock, in its order, as a setting of the window: a new project then starts with those parts as its stock, taken
+from My parts, and with the starter's generic ones where the setting is empty.
 
 ### 2.6 Classification: ETIM bundled, ECLASS identifiers only
 

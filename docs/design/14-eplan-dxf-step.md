@@ -241,7 +241,7 @@ second import of the same file is a copy (§2.3).
 A vendor block with ATTDEFs PIN1–PIN4 yields a symbol with four CPs on the native grid.
 
 Steps 1 to 4, 6 and 7 run in `ew-import-dxf` for every named block; each block opens as a
-draft in the symbol editor (its Open takes a `.dxf`; `ew import dxf --as symbol --library <dir>` saves the drafts),
+drawing in Parts (its Import… takes a `.dxf`; `ew import dxf --as symbol --library <dir>` saves the drafts),
 whose connection-point tool is step 5 and whose save is step 8. A block that moves a CP more than 0.1 mm reports
 EW-IMP-256 with the uniform scale that would put the CP spacing on the grid, in the draft's details only (no shipped
 rule: a draft is no project). **Part

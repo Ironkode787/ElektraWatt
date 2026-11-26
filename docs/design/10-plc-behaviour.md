@@ -324,7 +324,7 @@ drawing area split as below. Every path that makes or redraws a card's box calls
 one row, the Device tool and Insert device's Place of a card part that has no device box of its own (its box dragged
 by two corners takes the card's box at the first corner, in the size its row needs; a card of inputs and outputs gets
 its inputs' box, and its outputs' waits in the station view's To do), the Black box tool with such a part, and Place
-here; the device box editor starts a card's box with every pin in one box (`CardPins::one_box`: its channels in one
+here; arranging a card's box in Parts starts it with every pin in one box (`CardPins::one_box`: its channels in one
 row, the inputs' then the outputs'), and the device browser shows the box the Device tool places. Not a card's form,
 and so not changed: a part's own device box, which may put pins on several edges (doc 07 §2.5), a station's head and
 any other box without channel pins (its supply and bus pins laid by the black box tool, a source's outputs along the
@@ -540,8 +540,8 @@ module whose removal moves the next one onto a manual address is checked; EW-PLC
 stations the same way, and its byte sums take an IO-Link master's port windows (`module_io`). EW-BUS-008 is
 1.x. A finding carries one command fix; the Messages row of an EW-PLC-012 finding
 offers **Open the part's PLC section…** (the window's offer of its rule, beside the command fix "Rebind to the map's
-channel"): `part.edit` on the part of the channel's module, whose part editor shows the PLC section with the map for a
-part of one's own and offers Copy as a part of your own… for a library's.
+channel"): `parts.open` on the part of the channel's module at its PLC group, which shows the map for a
+part of one's own and offers Make my own from it for a library's.
 
 `address_index(cfg)` holds overlap groups, not pairs: each connected run of channel addresses in one area whose bit ranges overlap in a chain, once, so N channels on one address make one group of N. EW-PLC-001 reports one finding per group, with every member channel as a target and the first in address order as the subject; the text names the first five channels with their addresses and counts the rest (`addresses overlap in configuration project <cfg>: <channel> (<address>), …; and <N> more channels; give all but one of them another address`, the "and N more" clause only beyond five), in en-GB and nl-NL.
 

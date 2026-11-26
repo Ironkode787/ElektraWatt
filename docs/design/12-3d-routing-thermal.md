@@ -406,7 +406,7 @@ out.
 4. Check project says nothing: the starter parts carry their holes. Had his own lamp part none, EW-LAY-017: "The part
    MY-LAMP-1 of -102E1 goes in a cut-out but has no holes, so the door's hole table lacks it: give it its holes (Front view
    and holes)" with Edit part….
-5. In the part editor's **Front view and holes** he sets Shape Round and adds a hole: Kind Cut-out, Size 22 mm, X 15,
+5. On the part's sheet in Parts, under **In the cabinet**, he sets Front Round and adds a hole: Kind Cut-out, Size 22 mm, X 15,
    Y 15. The preview draws the front and its cut-out.
 6. On 902 he right-clicks near the plate's bottom-right corner: **Add hole here…** asks Kind Fixing, Size M6, For
    "Earth stud", with X and Y from the click; Add puts it there.
@@ -490,7 +490,7 @@ hand by its purpose ("Earth stud"), a gland by its cable ("-103W1"), else by its
 - **EW-LAY-017 Holes not known** (warning), once per part with its devices: a part placed in a cut-out or screwed to a
   surface whose `mech.holes` is empty, or a device placed there without a part. "The part MY-LAMP-1 of -102E1 and
   -104E1 goes in a cut-out but has no holes, so the door's hole table and drawings lack them: give the part its holes
-  in the part editor (Front view and holes)", with Edit part…; "-102E1 has no part, so its cut-out is not known: choose
+  in Parts (In the cabinet)", with Edit part…; "-102E1 has no part, so its cut-out is not known: choose
   its part", with Choose part…. A rail device needs no holes and is never reported.
 - **EW-LAY-018 Cable gland** (warning; error at release for a gland not placed): [12](12-placement-pages.md) §3.9.
 - **The depth behind the door** is the depth check's ([§7](#7-collision-and-clearance)): it reads `behind_door` and the
@@ -736,7 +736,7 @@ them", which selects them for the Connections table).
 (60 %) and Door loop (300 mm), each with the source of its default in its explanation; each change is one
 `project.settings.set` and one undo step, and changes the lengths and fills at once (§9).
 
-**A part's pins.** The part editor's Pins table has the column Wired at: top or bottom, or empty, where the drawing
+**A part's pins.** The Connections table of a part's sheet in Parts has the column Wired at: top or bottom, or empty, where the drawing
 decides and the cell shows the derived edge in the secondary colour ("top · drawing"). The Size section has the row
 Clearance in front, the Wire section the row Outer diameter.
 

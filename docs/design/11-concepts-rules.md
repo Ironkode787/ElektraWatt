@@ -462,7 +462,7 @@ solenoid where a valve holds the position ("-201K2-Q1 14"), else the position an
 the common; the texts are derived, so filling, emptying or swapping a position changes them. A wire from a PLC output
 to a pin makes that output the solenoid's (`wired_solenoid_channel`: the channel whose traced target is the plug pin):
 the valve's `PlcAddress` slot prints it and EW-FL-002 counts the solenoid as driven; no binding is stored. Not built:
-the part editor's controls for the kind, the positions and the pin map (backlog).
+the fields of a valve terminal's kind, positions and pin map on its sheet in Parts (backlog).
 
 ### 3.3 Field devices, linkages, process tags and target tracking
 

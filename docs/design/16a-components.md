@@ -248,8 +248,8 @@ next placing, sends the toasts to the canvas's bottom right, `space.4` above the
 the canvas; moving the pointer, or pressing on the stack itself, moves nothing, so a toast the user reaches for never
 moves away.
 
-**In the symbol editor** the toasts stand at the top right of its drawing, `space.4` under the editor's
-header row, so a save's toast never covers Close editor.
+**In Parts** the toasts stand at the top right of the sheet or the drawing, `space.4` under the strip that says
+where the person came from, so a save's toast never covers the way back.
 
 **In a station's view** (doc 10 §6) the top right holds the catalogue and its filter, so the toasts stand
 at the bottom right of the rack's lists, `space.4` from their edges. What the person does next is the To do's buttons,
