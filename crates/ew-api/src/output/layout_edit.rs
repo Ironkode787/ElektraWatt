@@ -101,6 +101,43 @@ pub struct LayoutPartOffer {
     pub sections: ew_schema::PartSections,
 }
 
+/// One face of a cabinet as Surface… offers it (doc 12 §3.8): `surfaces(enclosure)` in the session's words.
+#[derive(Clone, Debug)]
+pub struct SurfaceOffer {
+    /// The cabinet's enclosure.
+    pub enclosure: Uuid,
+    /// The face as `layout.surface_page` names it: the record's ID, else `<enclosure>/<kind>` (`…/door:1` for the
+    /// second door).
+    pub value: String,
+    /// The face in words: "Door" (`ew_derive::text::surface_word`), after its cabinet's tag where the project has
+    /// several cabinets.
+    pub words: crate::Text,
+    /// Its size, "600 × 800 mm", in the project's numbers; `None` where the part gives none.
+    pub size: Option<String>,
+    /// A door's hinge in words ("Left").
+    pub hinge: Option<crate::Text>,
+    /// Whether it is the mounting plate.
+    pub plate: bool,
+    /// The record, once made.
+    pub record: Option<Uuid>,
+    /// The first page that shows it.
+    pub page: Option<Uuid>,
+}
+
+/// The stored word of a surface kind (`door`), as `layout.surface.add` takes it.
+fn kind_word(kind: &ew_schema::SurfaceKind) -> &'static str {
+    use ew_schema::SurfaceKind as K;
+    match kind {
+        K::Plate => "plate",
+        K::Door => "door",
+        K::Left => "left",
+        K::Right => "right",
+        K::Top => "top",
+        K::Bottom => "bottom",
+        K::Unknown(_) => "",
+    }
+}
+
 /// Millimetres as the project prints them: the shortest decimal, the project's separator.
 pub(crate) fn mm_text(q: &Q, nm: i128) -> String {
     let text = ew_derive::mm_exact(nm);
@@ -198,88 +235,123 @@ fn tag(q: &Q, d: Id<Device>) -> String {
         .unwrap_or_default()
 }
 
-/// A surface in words, as the Surface row lists it: "<enclosure tag> plate" ("-UC1 plate") by the short
-/// tag; when two surfaces would read the same, each of them reads "<the enclosure's full designation> plate"
-/// ("=P01+J-E-2416-UC1 plate"). An enclosure without a tag gives "plate". When the full words collide too, each of the
-/// alike surfaces gains its ordinal, " (1)", " (2)", in page order ([`surface_words`]).
+/// A surface in words, as the Surface row lists it and the Properties header names it: its face after its cabinet's
+/// tag ("-UC1 mounting plate", "-UC1 door"; `ew_derive::text::surface_of`), in English ([`surface_words`]).
 pub(crate) fn surface_name(q: &Q, s: &MountingSurface) -> String {
     surface_words(q)
         .into_iter()
         .find(|(id, _)| *id == s.id)
-        .map_or_else(|| "plate".to_owned(), |(_, w)| w)
+        .map_or_else(String::new, |(_, w)| w.to_string())
 }
 
-/// The words of every mounting surface of the project ([`surface_name`]), in table order. The alike words are counted
-/// once per call: O(S log S) for S surfaces.
-///
-/// Words alike after the full designation are told apart by an ordinal from 1, in page order: by the first
-/// panel page that shows the surface, in drawn page order; the surfaces no page shows follow; then by ID.
-fn surface_words(q: &Q) -> Vec<(Id<MountingSurface>, String)> {
-    let named = |t: String| {
-        if t.is_empty() {
-            "plate".to_owned()
-        } else {
-            format!("{t} plate")
-        }
-    };
-    let tags: Vec<(Id<MountingSurface>, String, String)> = q
-        .table::<MountingSurface>()
+/// The words of every mounting surface of the project, in table order: its face after its cabinet's tag
+/// (`ew_derive::text::surface_of`). The cabinet's tag is its short one; where two cabinets read alike, each reads its
+/// full designation ("=P01+J-E-2416-UC1 door"); where those collide too, each of the alike cabinets gains its ordinal
+/// " (1)", " (2)", in page order (by the first panel page that shows one of its surfaces, in drawn page order; the
+/// cabinets no page shows follow; then by ID). Two surfaces that still read alike (two plates of one cabinet, a
+/// hostile file) each gain their ordinal the same way, by the first page that shows the surface. O(S log S) for S
+/// surfaces.
+pub(crate) fn surface_words(q: &Q) -> Vec<(Id<MountingSurface>, crate::Text)> {
+    let enclosures: Vec<(Id<Enclosure>, String, String)> = q
+        .table::<Enclosure>()
         .iter()
-        .map(|(id, s)| {
-            let device = q.table::<Enclosure>().get(s.enclosure).map(|e| e.device);
-            let (short, full) = device
-                .and_then(|d| q.try_get::<DeviceTag>(d).ok())
+        .map(|(id, e)| {
+            let (short, full) = q
+                .try_get::<DeviceTag>(e.device)
+                .ok()
                 .and_then(|t| t.as_ref().as_ref().map(|t| (t.short(), t.full.clone())))
                 .unwrap_or_default();
-            (id, named(short), named(full))
+            (id, short, full)
         })
         .collect();
     let mut shorts: BTreeMap<&str, usize> = BTreeMap::new();
-    for (_, short, _) in &tags {
+    for (_, short, _) in &enclosures {
         *shorts.entry(short.as_str()).or_default() += 1;
     }
-    let mut words: Vec<(Id<MountingSurface>, String)> = tags
+    let mut tags: Vec<(Id<Enclosure>, String)> = enclosures
         .iter()
         .map(|(id, short, full)| {
             let alike = shorts.get(short.as_str()).copied().unwrap_or(0) > 1;
             (*id, if alike { full.clone() } else { short.clone() })
         })
         .collect();
-    if !has_alike(&words) {
+    // The first page, in drawn page order, that shows each surface.
+    let first_page = || {
+        let order = q.get::<DrawnPageOrder>(());
+        let mut first: BTreeMap<Id<MountingSurface>, usize> = BTreeMap::new();
+        for (page, pg) in q.pages().iter() {
+            if pg.kind != PageType::PanelLayout {
+                continue;
+            }
+            if let Some(v) = q.get::<PageSurfaceView>(page).as_ref() {
+                let at = order.position(PageRef::Drawn(page)).unwrap_or(usize::MAX);
+                first
+                    .entry(v.surface)
+                    .and_modify(|e| *e = (*e).min(at))
+                    .or_insert(at);
+            }
+        }
+        first
+    };
+    let surfaces = q.table::<MountingSurface>();
+    if has_alike(&tags) {
+        let first = first_page();
+        let mut of_cabinet: BTreeMap<Id<Enclosure>, usize> = BTreeMap::new();
+        for (id, at) in &first {
+            if let Some(s) = surfaces.get(*id) {
+                of_cabinet
+                    .entry(s.enclosure)
+                    .and_modify(|e| *e = (*e).min(*at))
+                    .or_insert(*at);
+            }
+        }
+        number_alike(&mut tags, |id| of_cabinet.get(&id).copied());
+    }
+    let words: Vec<(Id<MountingSurface>, crate::Text)> = surfaces
+        .iter()
+        .filter_map(|(id, s)| {
+            let tag = tags
+                .iter()
+                .find(|(e, _)| *e == s.enclosure)
+                .map(|(_, t)| t.clone())?;
+            let face = ew_derive::layout::face_of(q, id)?;
+            Some((
+                id,
+                ew_derive::text::surface_of(tag, &face.kind, face.door, face.doors),
+            ))
+        })
+        .collect();
+    let mut english: Vec<(Id<MountingSurface>, String)> =
+        words.iter().map(|(id, w)| (*id, w.to_string())).collect();
+    if !has_alike(&english) {
         return words;
     }
-    // The first page, in drawn page order, that shows each surface.
-    let order = q.get::<DrawnPageOrder>(());
-    let mut first_page: BTreeMap<Id<MountingSurface>, usize> = BTreeMap::new();
-    for (page, pg) in q.pages().iter() {
-        if pg.kind != PageType::PanelLayout {
-            continue;
-        }
-        if let Some(v) = q.get::<PageSurfaceView>(page).as_ref() {
-            let at = order.position(PageRef::Drawn(page)).unwrap_or(usize::MAX);
-            first_page
-                .entry(v.surface)
-                .and_modify(|e| *e = (*e).min(at))
-                .or_insert(at);
-        }
-    }
-    number_alike(&mut words, |id| first_page.get(&id).copied());
+    let first = first_page();
+    let plain = english.clone();
+    number_alike(&mut english, |id| first.get(&id).copied());
     words
+        .into_iter()
+        .zip(plain.iter().zip(&english))
+        .map(|((id, w), ((_, before), (_, after)))| {
+            let ordinal = after.strip_prefix(before.as_str()).filter(|o| !o.is_empty());
+            match ordinal.and_then(|o| o.trim().strip_prefix('(')?.strip_suffix(')')) {
+                Some(n) => (id, text!("surface-alike", w, n.to_owned())),
+                None => (id, w),
+            }
+        })
+        .collect()
 }
 
 /// Whether two of `words` read the same.
-fn has_alike(words: &[(Id<MountingSurface>, String)]) -> bool {
+fn has_alike<K>(words: &[(K, String)]) -> bool {
     let mut seen = BTreeSet::new();
     !words.iter().all(|(_, w)| seen.insert(w.as_str()))
 }
 
 /// Tells alike words apart: each entry whose words another entry shares gains " (n)", n from 1 in page
-/// order, `page(id)` being the position of the first page that shows the surface; the surfaces no page shows follow,
-/// then by ID. O(S log S).
-fn number_alike(
-    words: &mut [(Id<MountingSurface>, String)],
-    page: impl Fn(Id<MountingSurface>) -> Option<usize>,
-) {
+/// order, `page(id)` being the position of the first page that shows it; those no page shows follow, then by ID.
+/// O(S log S).
+fn number_alike<K: Copy + Ord>(words: &mut [(K, String)], page: impl Fn(K) -> Option<usize>) {
     let mut alike: BTreeMap<String, Vec<usize>> = BTreeMap::new();
     for (i, (_, w)) in words.iter().enumerate() {
         alike.entry(w.clone()).or_default().push(i);
@@ -407,15 +479,7 @@ pub(crate) fn layout_rows(q: &Q, kind: Kind, targets: &[Uuid]) -> Option<Vec<Pro
     let mut rows = match kind {
         Kind::Placement => placement_rows(q, Id::from_uuid(id))?,
         Kind::Carrier => carrier_rows(q, Id::from_uuid(id))?,
-        Kind::MountingSurface => {
-            let s = q.table::<MountingSurface>().get(Id::from_uuid(id))?;
-            vec![bool_row(
-                "mounting_surface",
-                "pe_bond",
-                s.pe_bond,
-                "layout.surface.edit",
-            )]
-        }
+        Kind::MountingSurface => surface_rows(q, Id::from_uuid(id))?,
         Kind::Enclosure => {
             let e = q.table::<Enclosure>().get(Id::from_uuid(id))?;
             let [x, y, z] = e.pose.t;
@@ -454,6 +518,105 @@ pub(crate) fn layout_rows(q: &Q, kind: Kind, targets: &[Uuid]) -> Option<Vec<Pro
             r.actions.clear();
         }
     }
+    Some(rows)
+}
+
+/// The corners a surface's Measured from row offers, by their stored names, after the project's.
+const CORNERS: [&str; 4] = ["bottom_left", "bottom_right", "top_left", "top_right"];
+
+/// The stored name of a corner (`bottom_left`).
+fn corner_name(c: &ew_schema::Corner) -> &'static str {
+    use ew_schema::Corner as C;
+    match c {
+        C::BottomLeft | C::Unknown(_) => CORNERS[0],
+        C::BottomRight => CORNERS[1],
+        C::TopLeft => CORNERS[2],
+        C::TopRight => CORNERS[3],
+    }
+}
+
+/// The corner of its stored name (`bottom_left`); `None` for another word.
+fn corner_named(name: &str) -> Option<ew_schema::Corner> {
+    use ew_schema::Corner as C;
+    [C::BottomLeft, C::BottomRight, C::TopLeft, C::TopRight]
+        .into_iter()
+        .find(|c| corner_name(c) == name)
+}
+
+/// The words of an option of a surface's Measured from row, for the shell: a corner by its stored name ("Bottom
+/// left"), the project's as `project:<corner>` ("The project's: Bottom left"); `None` for another word.
+pub fn corner_choice_words(option: &str) -> Option<crate::Text> {
+    match option.strip_prefix("project:") {
+        Some(c) => Some(text!(
+            "surface-datum-project",
+            ew_derive::text::corner(&corner_named(c)?)
+        )),
+        None => Some(ew_derive::text::corner(&corner_named(option)?)),
+    }
+}
+
+/// The words of an option of a door's Hinge row, for the shell ("Left", "Right"); `None` for another word.
+pub fn hinge_choice_words(option: &str) -> Option<crate::Text> {
+    match option {
+        "left" => Some(ew_derive::text::hinge(&ew_schema::Hinge::Left)),
+        "right" => Some(ew_derive::text::hinge(&ew_schema::Hinge::Right)),
+        _ => None,
+    }
+}
+
+/// A surface's rows (doc 12-3d §10.6): Width and Height of its sheet, a door's Hinge, the Edge margin, Measured
+/// from (its own corner, or `project:<corner>`, the project's) and PE bond, each through `layout.surface.edit`.
+fn surface_rows(q: &Q, id: Id<MountingSurface>) -> Option<Vec<PropRow>> {
+    let s = q.table::<MountingSurface>().get(id)?;
+    let k = "mounting_surface";
+    let cmd = Some("layout.surface.edit");
+    let mm = |n: ew_units::Nm| format!("{} mm", mm_text(q, i128::from(n.0)));
+    let mut rows = Vec::new();
+    if let Some((w, h)) = ew_derive::layout::sheet_size(s) {
+        rows.push(text_row(k, "width", mm(w), Provenance::Authored, cmd));
+        rows.push(text_row(k, "height", mm(h), Provenance::Authored, cmd));
+    }
+    if s.kind == ew_schema::SurfaceKind::Door {
+        let hinge = match s.hinge {
+            Some(ew_schema::Hinge::Right) => "right",
+            _ => "left",
+        };
+        rows.push(choice_row(
+            k,
+            "hinge",
+            hinge.to_owned(),
+            vec!["left".to_owned(), "right".to_owned()],
+            cmd,
+        ));
+    }
+    if s.kind != ew_schema::SurfaceKind::Plate {
+        let margin = s.edge_margin.map(mm).unwrap_or_default();
+        let json = s
+            .edge_margin
+            .map_or(Value::Null, |_| Value::String(margin.clone()));
+        rows.push(row(
+            k,
+            "edge_margin",
+            FieldType::Text,
+            json,
+            margin,
+            Provenance::Authored,
+            cmd,
+        ));
+    }
+    let project = format!(
+        "project:{}",
+        corner_name(&q.project().settings.workshop.datum.clone().unwrap_or_default())
+    );
+    let current = s
+        .datum
+        .as_ref()
+        .map_or_else(|| project.clone(), |c| corner_name(c).to_owned());
+    let options = std::iter::once(project)
+        .chain(CORNERS.iter().map(|c| (*c).to_owned()))
+        .collect();
+    rows.push(choice_row(k, "measured_from", current, options, cmd));
+    rows.push(bool_row(k, "pe_bond", s.pe_bond, "layout.surface.edit"));
     Some(rows)
 }
 
@@ -766,11 +929,12 @@ pub(crate) fn surface_view_rows(q: &Q, page: Id<Page>) -> Vec<PropRow> {
     let k = "page";
     let view = q.get::<PageSurfaceView>(page).as_ref().clone();
     let surfaces = surfaces_in_order(q);
-    let options: Vec<String> = surfaces.iter().map(|(_, n)| n.clone()).collect();
+    // The options are the surfaces by their IDs: the window names each in its language (`Session::surface_choices`).
+    let options: Vec<String> = surfaces.iter().map(|(id, _)| id.as_uuid().to_string()).collect();
     let current = view
         .as_ref()
         .and_then(|v| surfaces.iter().find(|(id, _)| *id == v.surface))
-        .map(|(id, n)| (id.as_uuid().to_string(), n.clone()));
+        .map(|(id, n)| (id.as_uuid().to_string(), n.to_string()));
     let mut rows = Vec::new();
     let mut surface = choice_row(
         k,
@@ -851,11 +1015,42 @@ fn labels_param(show: LabelShow) -> &'static str {
     }
 }
 
-/// The project's mounting surfaces with their words, by the words, then ID.
-fn surfaces_in_order(q: &Q) -> Vec<(Id<MountingSurface>, String)> {
-    let mut out = surface_words(q);
-    out.sort_by(|a, b| ew_mltext::natural_cmp(&a.1, &b.1).then(a.0.cmp(&b.0)));
-    out
+/// The project's mounting surfaces with their words, by their cabinet's tag, then in the order of a cabinet's faces
+/// (the plate, the doors from the left, the left and the right side, the top, the bottom), then ID.
+fn surfaces_in_order(q: &Q) -> Vec<(Id<MountingSurface>, crate::Text)> {
+    let table = q.table::<MountingSurface>();
+    let tag = |s: &MountingSurface| {
+        q.table::<Enclosure>()
+            .get(s.enclosure)
+            .map(|e| tag(q, e.device))
+            .unwrap_or_default()
+    };
+    let rank = |id: Id<MountingSurface>| {
+        let Some(s) = table.get(id) else {
+            return (String::new(), 9, 0);
+        };
+        let kind = match s.kind {
+            ew_schema::SurfaceKind::Plate => 0,
+            ew_schema::SurfaceKind::Door => 1,
+            ew_schema::SurfaceKind::Left => 2,
+            ew_schema::SurfaceKind::Right => 3,
+            ew_schema::SurfaceKind::Top => 4,
+            ew_schema::SurfaceKind::Bottom => 5,
+            ew_schema::SurfaceKind::Unknown(_) => 6,
+        };
+        (tag(s), kind, ew_derive::layout::door_index(q, id).unwrap_or(0))
+    };
+    let mut out: Vec<_> = surface_words(q)
+        .into_iter()
+        .map(|(id, w)| (rank(id), id, w))
+        .collect();
+    out.sort_by(|a, b| {
+        ew_mltext::natural_cmp(&a.0.0, &b.0.0)
+            .then((a.0.1, a.0.2).cmp(&(b.0.1, b.0.2)))
+            .then_with(|| ew_mltext::natural_cmp(&a.2.to_string(), &b.2.to_string()))
+            .then(a.1.cmp(&b.1))
+    });
+    out.into_iter().map(|(_, id, w)| (id, w)).collect()
 }
 
 /// The scale a surface view set of `surface` on `page` sends: the fitting scale when the page is
@@ -903,6 +1098,7 @@ pub(crate) fn centred_datum(
             let (tx, ty) = (i128::from(tx.0), i128::from(ty.0));
             (-tx, -ty, w - tx, h - ty)
         });
+    let enclosure = enclosure.filter(|_| s.kind == ew_schema::SurfaceKind::Plate);
     let bounds = enclosure.or_else(|| {
         let us = s.usable.iter().map(|p| i128::from(p.x.0));
         let vs = s.usable.iter().map(|p| i128::from(p.y.0));
@@ -1328,6 +1524,38 @@ impl Session {
                     _ => invalid(text!("refusal-layout-row-not-here")),
                 }
             }
+            ("mounting_surface", "width" | "height" | "edge_margin") => {
+                let value = match parse_mm(text) {
+                    None if name == "edge_margin" && text.is_empty() => Value::Null,
+                    Some(l) if l > 0 || (name == "edge_margin" && l == 0) => {
+                        Value::from(i64::try_from(l).unwrap_or(i64::MAX))
+                    }
+                    _ => return invalid(text!("refusal-layout-length-above-zero")),
+                };
+                let mut params = json!({"surface": edit.target.to_string()});
+                params[name] = value;
+                command("layout.surface.edit", params)
+            }
+            ("mounting_surface", "hinge") => match text.to_ascii_lowercase().as_str() {
+                h @ ("left" | "right") => command(
+                    "layout.surface.edit",
+                    json!({"surface": edit.target.to_string(), "hinge": h}),
+                ),
+                _ => invalid(text!("refusal-layout-choose-hinge")),
+            },
+            ("mounting_surface", "measured_from") => {
+                let datum = if text.starts_with("project") {
+                    Value::Null
+                } else if let Some(c) = CORNERS.iter().find(|c| c.eq_ignore_ascii_case(text)) {
+                    Value::String((*c).to_owned())
+                } else {
+                    return invalid(text!("refusal-layout-choose-corner"));
+                };
+                command(
+                    "layout.surface.edit",
+                    json!({"surface": edit.target.to_string(), "datum": datum}),
+                )
+            }
             ("mounting_surface", "pe_bond") => match parse_bool(text) {
                 Some(on) => command(
                     "layout.surface.edit",
@@ -1395,9 +1623,9 @@ impl Session {
                         // compared as a UUID.
                         let as_id = Uuid::parse_str(text.trim()).ok();
                         let by_id = as_id.and_then(|u| surfaces.iter().find(|(id, _)| id.as_uuid() == u));
-                        let by_words: Vec<&(Id<MountingSurface>, String)> = surfaces
+                        let by_words: Vec<&(Id<MountingSurface>, crate::Text)> = surfaces
                             .iter()
-                            .filter(|(_, n)| n.eq_ignore_ascii_case(text))
+                            .filter(|(_, n)| n.to_string().eq_ignore_ascii_case(text))
                             .collect();
                         let id = match (by_id, by_words.as_slice()) {
                             (Some((id, _)), _) | (None, [(id, _)]) => *id,
@@ -1422,10 +1650,18 @@ impl Session {
                                 q.pages().get(page).map(|p| p.scale.clone()).unwrap_or_default()
                             });
                             datum = centred_datum(&q, page, id, &at).or(datum);
-                            // A new view labels a device with its tag where it fits, else its balloon (doc 12
-                            // §5.3).
+                            // A new view of a plate labels a device with its tag where it fits, else its balloon;
+                            // of a door, a side, the top or the bottom with its tag (doc 12 §5.3).
                             if view.is_none() {
-                                labels = Some(LabelShow::TagsOrNumbers);
+                                let plate = q
+                                    .table::<MountingSurface>()
+                                    .get(id)
+                                    .is_some_and(|s| s.kind == ew_schema::SurfaceKind::Plate);
+                                labels = Some(if plate {
+                                    LabelShow::TagsOrNumbers
+                                } else {
+                                    LabelShow::Tags
+                                });
                             }
                         }
                         surface = Some(id);
@@ -1559,9 +1795,84 @@ impl Session {
         held
     }
 
+    /// The faces of the project's cabinets as Surface… offers them (doc 12 §3.8): those of `enclosure`, else of every
+    /// enclosure; each face of `surfaces(enclosure)` with its words, size, hinge, record and page. A face of a kind of a
+    /// newer format is not offered.
+    pub fn surface_offers(&self, enclosure: Option<Uuid>) -> Vec<SurfaceOffer> {
+        let q = self.query();
+        let mut enclosures: Vec<(Id<Enclosure>, String)> = q
+            .table::<Enclosure>()
+            .iter()
+            .map(|(id, e)| (id, tag(&q, e.device)))
+            .filter(|(id, _)| enclosure.is_none_or(|e| id.as_uuid() == e))
+            .collect();
+        enclosures.sort_by(|a, b| ew_mltext::natural_cmp(&a.1, &b.1).then(a.0.cmp(&b.0)));
+        let several = q.table::<Enclosure>().len() > 1;
+        enclosures
+            .into_iter()
+            .flat_map(|(e, t)| {
+                ew_derive::layout::surfaces(&q, e)
+                    .into_iter()
+                    .filter(|f| !matches!(f.kind, ew_schema::SurfaceKind::Unknown(_)))
+                    .map(|f| {
+                        let words = if several {
+                            ew_derive::text::surface_of(t.clone(), &f.kind, f.door, f.doors)
+                        } else {
+                            ew_derive::text::surface_word(&f.kind, f.door, f.doors)
+                        };
+                        let value = match (f.record, f.door) {
+                            (Some(r), _) => r.as_uuid().to_string(),
+                            (None, Some(i)) if i > 0 => format!("{}/door:{i}", e.as_uuid()),
+                            (None, _) => format!("{}/{}", e.as_uuid(), kind_word(&f.kind)),
+                        };
+                        SurfaceOffer {
+                            enclosure: e.as_uuid(),
+                            value,
+                            words,
+                            size: f.size.map(|(w, h)| {
+                                format!(
+                                    "{} \u{d7} {} mm",
+                                    mm_text(&q, i128::from(w.0)),
+                                    mm_text(&q, i128::from(h.0))
+                                )
+                            }),
+                            hinge: f.hinge.as_ref().map(ew_derive::text::hinge),
+                            plate: f.kind == ew_schema::SurfaceKind::Plate,
+                            record: f.record.map(|r| r.as_uuid()),
+                            page: f.page.map(|p| p.as_uuid()),
+                        }
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect()
+    }
+
+    /// The stored word of a surface record's kind (`door`); `None` for a missing record or a kind of a newer format.
+    pub fn surface_kind_word(&self, surface: Uuid) -> Option<&'static str> {
+        let q = self.query();
+        let word = kind_word(&q.table::<MountingSurface>().get(Id::from_uuid(surface))?.kind);
+        (!word.is_empty()).then_some(word)
+    }
+
+    /// The tag of an enclosure's device as a sentence names it (`-UC1`).
+    pub fn enclosure_tag(&self, enclosure: Uuid) -> Option<String> {
+        let q = self.query();
+        Some(tag(
+            &q,
+            q.table::<Enclosure>().get(Id::from_uuid(enclosure))?.device,
+        ))
+    }
+
+    /// The enclosure whose surface the panel page `page` shows; `None` for another page.
+    pub fn page_enclosure(&self, page: Uuid) -> Option<Uuid> {
+        let q = self.query();
+        let surface = ew_derive::layout::page_surface(&q, Id::from_uuid(page))?;
+        Some(q.table::<MountingSurface>().get(surface)?.enclosure.as_uuid())
+    }
+
     /// The Surface row's choices: the project's mounting surfaces as `(surface, words)`, in the row's
-    /// order; choosing one commits its ID.
-    pub fn surface_choices(&self) -> Vec<(Uuid, String)> {
+    /// order, the words a text the window renders in its language ("-UC1 door"); choosing one commits its ID.
+    pub fn surface_choices(&self) -> Vec<(Uuid, crate::Text)> {
         surfaces_in_order(&self.query())
             .into_iter()
             .map(|(id, w)| (id.as_uuid(), w))
@@ -1634,12 +1945,11 @@ impl Session {
         out
     }
 
-    /// The enclosures of the project's locations as `(location node, enclosure tag, its first mounting surface)`, in
+    /// The enclosures of the project's locations as `(location node, enclosure tag, its mounting plate)`, in
     /// [`Self::layout_locations`]' order: what the Create enclosure dialog offers to draw on a layout page. An
-    /// enclosure without a mounting surface is left out: there is nothing to draw.
+    /// enclosure without a mounting plate is left out: there is nothing to draw.
     pub fn location_enclosures(&self) -> Vec<(Uuid, String, Uuid)> {
         let q = self.query();
-        let surfaces = surfaces_in_order(&q);
         self.layout_locations()
             .into_iter()
             .filter_map(|(location, _)| {
@@ -1649,11 +1959,10 @@ impl Session {
                     .find(|(_, s)| s.location.as_uuid() == location)
                     .map(|(id, _)| id)?;
                 let (enclosure, e) = q.table::<Enclosure>().iter().find(|(_, e)| e.space == space)?;
-                let (surface, _) = surfaces.iter().find(|(s, _)| {
-                    q.table::<MountingSurface>()
-                        .get(*s)
-                        .is_some_and(|m| m.enclosure == enclosure)
-                })?;
+                let surface = ew_derive::layout::surfaces(&q, enclosure)
+                    .into_iter()
+                    .find(|f| f.kind == ew_schema::SurfaceKind::Plate)?
+                    .record?;
                 let tag = q
                     .try_get::<DeviceTag>(e.device)
                     .ok()

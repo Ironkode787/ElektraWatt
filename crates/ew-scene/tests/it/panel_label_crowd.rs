@@ -58,6 +58,7 @@ fn row(show: LabelShow, moved: Option<Pt2>) -> PageView {
                 .collect(),
             show,
             linked: false,
+            behind: Vec::new(),
         }),
         ..blank_page(0x01)
     }

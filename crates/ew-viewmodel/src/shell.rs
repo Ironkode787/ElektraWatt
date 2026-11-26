@@ -92,6 +92,8 @@ mod jobs;
 pub(crate) use jobs::file_url_of;
 // Placing on a panel page.
 mod layout;
+// Surface…: the page of a face of a cabinet.
+mod surfaces;
 // The message panel.
 mod messages;
 mod move_page;

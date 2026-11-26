@@ -1486,7 +1486,7 @@ impl ShellModel {
     /// mounting plate, centred at its fitting scale, as the page's Surface row would (one more undo step): the
     /// person lands where the rails, ducts and devices are drawn. Another page, or one that shows a plate already,
     /// is left as it is. Whether the page now shows the plate.
-    fn show_new_surface(&mut self, page: Option<Uuid>, before: &[(Uuid, String)]) -> bool {
+    fn show_new_surface(&mut self, page: Option<Uuid>, before: &[(Uuid, ew_api::Text)]) -> bool {
         let Some(page) = page else { return false };
         if !self.on_panel_page() || self.panel_tables().is_some() {
             return false;
@@ -1507,7 +1507,7 @@ impl ShellModel {
 
     /// The panel layout page `page` shows the mounting surface `surface`, as its Surface row sets it: one undo step.
     /// Whether it does.
-    fn show_surface(&mut self, page: Uuid, surface: Uuid) -> bool {
+    pub(super) fn show_surface(&mut self, page: Uuid, surface: Uuid) -> bool {
         let Some(project) = &self.project else {
             return false;
         };
@@ -2135,7 +2135,7 @@ impl ShellModel {
     }
 
     /// The end of a set-up action: a failure stays in its dialog, a success closes it.
-    fn layout_form_done(&mut self, action: &str, out: Outcome) -> Outcome {
+    pub(super) fn layout_form_done(&mut self, action: &str, out: Outcome) -> Outcome {
         match out {
             Outcome::Failed { message } => self.form_failed(action, in_words(&message)),
             Outcome::Done => {

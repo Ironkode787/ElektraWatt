@@ -74,7 +74,7 @@
 
 use std::sync::Arc;
 
-use ew_dl::{DashPattern, Destination, EntityRef, Item, Link, Path, Pen, Stroke};
+use ew_dl::{DashPattern, Destination, EntityRef, Item, Link, Path, PathBuilder, Pen, Stroke};
 use ew_ids::Id;
 use ew_schema::{Align, Carrier, Enclosure, MountingSurface, PageItem, Placement, Scale};
 use ew_text::{Shaped, TextStyle};
@@ -188,6 +188,9 @@ pub struct PanelView {
     /// Whether the surface has a legend page (doc 12 §5.4): each footprint is then the target of
     /// [`Destination::Placement`](ew_dl::Destination::Placement), where its legend row links to; without one nothing is.
     pub linked: bool,
+    /// On a door's page, the plate's footprints behind the door in the door's frame ([`Layer::Highlights`]
+    /// (ew_dl::Layer::Highlights): on the screen only), so that a handle is put in front of its switch.
+    pub behind: Vec<Rect>,
 }
 
 /// What a surface view labels each placement with (doc 12 §5.3, the view's `labels`).
@@ -209,12 +212,23 @@ pub enum LabelShow {
 pub struct SurfaceOutline {
     /// The surface.
     pub surface: Id<MountingSurface>,
-    /// The enclosure and its outer outline in the surface's frame, when its size is known.
+    /// The enclosure and its outer outline in the surface's frame, when its size is known (the plate's page).
     pub enclosure: Option<(Id<Enclosure>, Rect)>,
     /// The plate's outline in the surface's frame, when known.
     pub plate: Option<Rect>,
-    /// The usable polygon.
+    /// The usable polygon (the plate's).
     pub usable: Vec<Pt2>,
+    /// The sheet of a door, a wall, the top or the bottom, drawn as its outline.
+    pub sheet: Option<Rect>,
+    /// The inner line of a door's or a wall's edge margin, thin dashed.
+    pub margin: Option<Rect>,
+    /// A door's hinge: on its right edge (else its left), and the word beside its ticks ("Hinge").
+    pub hinge: Option<(bool, String)>,
+    /// The datum mark: the corner of the sheet (the plate's outline on its page) the holes are measured from, its
+    /// two edges' directions into the sheet (`±1` along `u`, `±1` along `v`), and its text ("0").
+    pub datum: Option<(Pt2, (i8, i8), String)>,
+    /// The caption under the drawing ("Door, seen from outside").
+    pub caption: Option<String>,
 }
 
 /// One carrier as `carrier_geometry` gives it.
@@ -655,26 +669,144 @@ fn centre(r: Rect) -> Pt2 {
     Pt2::new(mid(r.min().x, r.max().x), mid(r.min().y, r.max().y))
 }
 
+/// A hinge tick's length on paper, outside the hinge edge.
+pub const HINGE_TICK: Nm = Nm(1_500_000);
+/// How many ticks mark a hinge edge.
+const HINGE_TICKS: i64 = 9;
+/// The datum mark's arrows' length on paper along the sheet's edges.
+pub const DATUM_ARROW: Nm = Nm(5_000_000);
+/// The gap between the drawing and its caption on paper.
+pub const CAPTION_GAP: Nm = Nm(4_000_000);
+/// The colour of the plate's footprints behind a door (the design's tertiary text colour, on the screen only).
+const BEHIND: ew_dl::Color = ew_dl::Color::from_rgb8(0x95, 0x9d, 0xa8);
+
 impl Builder<'_> {
     /// [`Layer::Surface`](ew_dl::Layer::Surface).
     pub(crate) fn panel_surface(&mut self, view: &PageView) {
         let Some(panel) = &view.panel else { return };
         let Some(s) = &panel.surface else { return };
         let p = &panel.projection;
+        let entity = EntityRef(s.surface.as_uuid());
         if let Some(r) = s.enclosure.and_then(|(_, r)| p.rect(r)) {
+            self.push(Item::path(Path::rect(r), Some(Stroke::pen(Pen::P052)), None));
+        }
+        if let Some(r) = s.sheet.and_then(|r| p.rect(r)) {
             self.push(Item::path(Path::rect(r), Some(Stroke::pen(Pen::P052)), None));
         }
         if let Some(r) = s.plate.and_then(|r| p.rect(r)) {
             self.push(Item::path(Path::rect(r), Some(Stroke::pen(Pen::P026)), None));
         }
+        let dashed = || Some(Stroke::pen(Pen::P013).dashed(DashPattern::Dash42));
         if s.usable.len() >= 3
             && let Some(pts) = p.points(&s.usable)
         {
-            self.push(Item::path(
-                Path::polygon(&pts),
-                Some(Stroke::pen(Pen::P013).dashed(DashPattern::Dash42)),
-                None,
-            ));
+            self.push(Item::path(Path::polygon(&pts), dashed(), None));
+        }
+        if let Some(r) = s.margin.and_then(|r| p.rect(r)) {
+            self.push(Item::path(Path::rect(r), dashed(), None));
+        }
+        if let (Some((right, word)), Some(r)) = (&s.hinge, s.sheet.and_then(|r| p.rect(r))) {
+            // Ticks outside the hinge edge, evenly along it, and the word beside them, reading bottom to top.
+            let (x, out) = if *right { (r.max().x, 1) } else { (r.min().x, -1) };
+            let (top, bottom) = (r.min().y, r.max().y);
+            let span = bottom.0 - top.0;
+            let mut path = PathBuilder::default();
+            for i in 1..=HINGE_TICKS {
+                let y = Nm(top.0 + span * i / (HINGE_TICKS + 1));
+                path = path
+                    .move_to(Pt2::new(x, y))
+                    .line_to(Pt2::new(Nm(x.0 + out * HINGE_TICK.0), y));
+            }
+            self.push(Item::path(path.build(), Some(Stroke::pen(Pen::P026)), None));
+            self.text(&TextSpec {
+                text: word,
+                at: Pt2::new(Nm(x.0 + out * 2 * HINGE_TICK.0), Nm(top.0 + span / 2)),
+                angle: Angle2(90_000),
+                align: if *right {
+                    &Align::TopCentre
+                } else {
+                    &Align::BottomCentre
+                },
+                style_key: LAYOUT_LABEL_STYLE,
+                entity,
+                link: None,
+                items: &[],
+            });
+        }
+        if let Some((corner, (du, dv), zero)) = &s.datum
+            && let Some(c) = p.point(*corner)
+        {
+            // Two short arrows from the corner along its edges, and "0" outside the corner.
+            let (dx, dy) = (i64::from(*du), -i64::from(*dv));
+            let a = DATUM_ARROW.0;
+            let head = a / 5;
+            let mut path = PathBuilder::default();
+            for (ex, ey) in [(dx, 0), (0, dy)] {
+                let tip = Pt2::new(Nm(c.x.0 + ex * a), Nm(c.y.0 + ey * a));
+                // The arrow's head: two strokes back from the tip.
+                let (bx, by) = (tip.x.0 - ex * head, tip.y.0 - ey * head);
+                let (nx, ny) = (ey.abs() * head / 2, ex.abs() * head / 2);
+                path = path
+                    .move_to(c)
+                    .line_to(tip)
+                    .move_to(Pt2::new(Nm(bx + nx), Nm(by + ny)))
+                    .line_to(tip)
+                    .line_to(Pt2::new(Nm(bx - nx), Nm(by - ny)));
+            }
+            self.push(Item::path(path.build(), Some(Stroke::pen(Pen::P013)), None));
+            let align = match (dx > 0, dy > 0) {
+                (true, true) => Align::BottomRight,
+                (true, false) => Align::TopRight,
+                (false, true) => Align::BottomLeft,
+                (false, false) => Align::TopLeft,
+            };
+            let off = head;
+            self.text(&TextSpec {
+                text: zero,
+                at: Pt2::new(Nm(c.x.0 - dx * off), Nm(c.y.0 - dy * off)),
+                angle: Angle2::ZERO,
+                align: &align,
+                style_key: LAYOUT_LABEL_STYLE,
+                entity,
+                link: None,
+                items: &[],
+            });
+        }
+        let outer = s
+            .enclosure
+            .map(|(_, r)| r)
+            .or(s.sheet)
+            .or(s.plate)
+            .and_then(|r| p.rect(r));
+        if let (Some(caption), Some(r)) = (&s.caption, outer) {
+            self.text(&TextSpec {
+                text: caption,
+                at: Pt2::new(centre(r).x, Nm(r.max().y.0 + CAPTION_GAP.0)),
+                angle: Angle2::ZERO,
+                align: &Align::TopCentre,
+                style_key: LAYOUT_LABEL_STYLE,
+                entity,
+                link: None,
+                items: &[],
+            });
+        }
+        // The surface's outlines and words carry no entity (the module documentation): its entity above only
+        // names it in a finding of an unknown text style.
+        for item in &mut self.out.list.items {
+            item.entity = None;
+        }
+    }
+
+    /// [`Layer::Highlights`](ew_dl::Layer::Highlights) of a panel page: the plate's footprints behind a door, thin
+    /// dashed in a faint grey (on the screen only).
+    pub(crate) fn panel_highlights(&mut self, view: &PageView) {
+        let Some(panel) = &view.panel else { return };
+        let p = &panel.projection;
+        for r in panel.behind.iter().filter_map(|r| p.rect(*r)) {
+            let stroke = Stroke::pen(Pen::P013)
+                .dashed(DashPattern::Dash42)
+                .with_brush(ew_dl::Brush::Solid(BEHIND));
+            self.push(Item::path(Path::rect(r), Some(stroke), None));
         }
     }
 

@@ -1178,6 +1178,10 @@ fn form_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogSpec 
         },
         ..DialogButton::new(form.ok_key, DialogAnswer::Submit)
     };
+    // Surface…'s Primary names the act: Go to page 902 for a face a page shows.
+    if let Some((Some(label), _)) = model.surface_choice() {
+        primary.label = label;
+    }
     if let Some((label, new_page, _, _)) = choice {
         primary.label = label;
         if new_page {
@@ -1193,14 +1197,24 @@ fn form_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogSpec 
     DialogSpec {
         secondary,
         form: true,
+        // Surface… asks which face.
+        asks: form.action == "layout.surface_page",
         ..small(
-            strings::text(form.title_key).to_owned(),
+            match form.action {
+                "layout.surface_page" => model.surface_chooser_title(),
+                _ => strings::text(form.title_key).to_owned(),
+            },
             // The Auto-fill rail dialog says which devices it fills with, and why there are none.
             match form.action {
                 "layout.auto_fill_rail" => std::iter::once(model.fill_devices_text())
                     .chain(model.fill_cause())
                     .collect(),
                 "layout.enclosure_new" => model.enclosure_form_notes(),
+                "layout.surface_page" => {
+                    std::iter::once(strings::text(key!("surface-chooser-text")).to_owned())
+                        .chain(model.surface_choice().map(|(_, line)| line))
+                        .collect()
+                }
                 "page.title_block" => model.title_block_notes(),
                 "project.check_level" => vec![strings::text(key!("check-level-purpose")).to_owned()],
                 "project.save_as_template" => vec![strings::text(key!("save-template-text")).to_owned()],

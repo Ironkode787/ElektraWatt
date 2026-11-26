@@ -579,10 +579,10 @@ fn the_editors_text_is_padded_from_the_fields_edge() {
     dispatch(&mut h, "props.edit", json!({"row": "page/derived.surface"}));
     settle(&mut h);
     let (text, rect) = focused_field(&h);
-    assert_eq!(text, "-UC1 plate");
+    assert_eq!(text, "-UC1 mounting plate");
     let at = painted_texts(&h)
         .into_iter()
-        .find(|(t, p)| t == "-UC1 plate" && rect.expand(1.0).contains(*p))
+        .find(|(t, p)| t == "-UC1 mounting plate" && rect.expand(1.0).contains(*p))
         .map(|(_, p)| p)
         .unwrap_or_else(|| {
             panic!(

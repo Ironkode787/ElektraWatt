@@ -370,3 +370,16 @@ change here.
 - format-variant: part PartKind gland (a cable gland; doc 12 §3.9)
 - format-variant: record surface_feature.schema.json (a hole a person added to a surface, by hand or a cable's gland,
   rank 58 in `layout/<space>.jsonl`; doc 12 §2.2)
+- behaviour-change: a cabinet's door, sides, top and bottom are surfaces of their own: Draw ▸ Enclosure ▾ ▸ Surface…
+  (and a panel page's context menu, "Surface: Door") asks which face of the cabinet and goes to its page, or makes, in
+  one undo step, the face from the enclosure part, a panel layout page after the plate's page with the face drawn as
+  it is seen from its side (a door from outside, its hinge ticked, its edge margin dashed) and its legend page; on a
+  door's page the plate's devices show faint behind it on the screen (doc 12 §2.8, §3.8, FT-1843)
+- behaviour-change: a panel layout page writes its caption under the drawing ("Mounting plate, seen from the front")
+  and marks the corner its holes are measured from with "0"; a surface's Properties show its Width, Height, a door's
+  Hinge, its Edge margin and Measured from (its own corner or the project's) (doc 12 §2.8, §5.2)
+- text-change: the page's Surface row names a surface by its cabinet's tag and its face, "-UC1 mounting plate" (it was
+  "-UC1 plate"), in the window's language
+- api-add: `layout.surface.add {enclosure, kind, door?, width?, height?}` makes a face of a cabinet from its part, and
+  `layout.surface.edit` takes `width`, `height`, `hinge`, `datum` and `edge_margin` beside `pe_bond`, which is now
+  optional (doc 12 §3.7)

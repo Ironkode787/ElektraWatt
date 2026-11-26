@@ -15,6 +15,7 @@
 //! | [`Quarter`], [`check_pose`], [`PoseOn`] | The degrees of freedom of a pose per carrier kind (doc 12 §2.3) |
 //! | [`clip_offset`], [`rehome_pose`] | The surface pose equivalent to a rail pose (doc 12 §3.6, `rehome_to_surface`) |
 //! | [`plate_frame`] | The frame and usable rectangle of a plate centred in its enclosure |
+//! | [`surfaces`], [`Face`], [`surface_frame`], [`surface_datum`] | The plate and the six faces of a cabinet, the frame and sheet of a face made from its part, the corner a surface is measured from (doc 12 §2.8) |
 //! | [`Mountable`] | `mountable(dev)`: the mountable predicate as built (D8, doc 12 §2.7) |
 //! | [`Unplaced`] | `unplaced(space)`: the mountable devices of the space's location without a placement |
 //! | [`PlacementGeometry`] | `placement_geometry(p)`: the footprint and outline in the surface frame |
@@ -50,6 +51,8 @@ mod legend;
 mod pose;
 // The layout queries (doc 12 §2.6)
 mod queries;
+// The surfaces of a cabinet (doc 12 §2.8)
+mod surfaces;
 // The rail model and the mode resolution
 mod snap;
 
@@ -73,6 +76,10 @@ pub(crate) use queries::{shown_location, strip_terminals};
 pub use snap::{
     BracketRole, BracketSpan, RailItem, Resolution, SnapError, SnapMode, brackets, cascade, cascade_mirrored,
     end_gap, free_length, min_gap, next_fit, resolve, runs, start_gap,
+};
+pub use surfaces::{
+    Face, door_count, door_index, enclosure_section, face_of, face_size, sheet_size, surface_datum,
+    surface_frame, surface_page, surfaces, to_enclosure,
 };
 
 #[cfg(test)]

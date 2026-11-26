@@ -89,8 +89,6 @@ auto-fill-devices = { $p0 ->
         [one] 1 device
        *[other] { $p0 } devices
     }
-surface-plate = plate
-surface-plate-of = { $p0 } plate
 rack-new-title = New station
 rack-create = Create
 rack-kind = What it is
@@ -332,3 +330,20 @@ arrange-blocked-faults = { $p0 ->
         [one] 1 fault stays on the page; Check project names it
        *[other] { $p0 } faults stay on the page; Check project names them
     }.
+
+# Surface… (doc 12 §3.8)
+surface-chooser-title = Which surface?
+surface-chooser-title-of = Which surface of { $p0 }?
+surface-chooser-text = A surface is drawn on a page of its own, as it is seen from the side it is worked from.
+surface-chooser-field = Surface
+surface-chooser-new-page = Draw on a new page
+surface-chooser-go = Go to page { $p0 }
+surface-chooser-hinged = hinged { $p0 }
+surface-chooser-page = page { $p0 }
+surface-chooser-new = new page
+surface-chooser-line = It is drawn on a new page after the cabinet's plate page, at the scale that fits, with its legend page. One undo step.
+surface-chooser-shown = Page { $p0 } shows it.
+toast-surface-drawn = { $p0 } is drawn on page { $p1 }, with its legend page.
+canvas-surface-entry = Surface: { $p0 }
+reason-surface-no-plate-page = The cabinet's mounting plate is on no page yet: draw it first with Enclosure….
+error-no-surface = No surface of the cabinet is called “{ $p0 }”.

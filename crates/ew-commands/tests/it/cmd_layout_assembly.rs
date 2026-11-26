@@ -12,10 +12,10 @@ use crate::common;
 
 use common::*;
 use ew_commands::commands::{
-    AddCarrier, AttachChildren, AutoFill, CarrierKindParam, CarrierParamsParam, ChildSpec,
+    AddCarrier, AddSurface, AttachChildren, AutoFill, CarrierKindParam, CarrierParamsParam, ChildSpec,
     CreateEnclosureFromPart, CreateLayoutSpace, DeleteSelection, EditEnclosure, EditLayoutSpace, EditSurface,
-    FillOrder, KindName, MovePlacement, PageScope, PlaceAssembly, PlaceDevice, PlaceMode, PlaceOnParam,
-    RemovePlacement, RenumberPages, TargetRef,
+    FaceParam, FillOrder, KindName, MovePlacement, PageScope, PlaceAssembly, PlaceDevice, PlaceMode,
+    PlaceOnParam, RemovePlacement, RenumberPages, TargetRef,
 };
 use ew_commands::{CmdError, Command, Cost, Engine, Origin};
 use ew_derive::Q;
@@ -118,12 +118,15 @@ struct Spec {
     enclosure_copies: bool,
     /// How many extra 18 mm devices (the bulk fill).
     many: u32,
+    /// Whether the enclosure part gives its depth.
+    depth: bool,
 }
 
 const FULL: Spec = Spec {
     uc1: true,
     enclosure_copies: true,
     many: 0,
+    depth: true,
 };
 
 fn model(spec: &Spec) -> Model {
@@ -218,7 +221,13 @@ fn model(spec: &Spec) -> Model {
     let mut lib = library();
     lib.extend(device_copies().into_iter().map(LibDocument::Part));
     if spec.enclosure_copies {
-        lib.extend([enclosure_copy(), plate_copy()].map(LibDocument::Part));
+        let mut enclosure = enclosure_copy();
+        if !spec.depth
+            && let Some(sec) = &mut enclosure.item.sections.enclosure
+        {
+            sec.depth = None;
+        }
+        lib.extend([enclosure, plate_copy()].map(LibDocument::Part));
     }
     Model::from_records(p, records, lib).expect("valid")
 }
@@ -727,6 +736,7 @@ fn an_enclosure_from_its_part() {
         uc1: false,
         enclosure_copies: false,
         many: 0,
+        depth: true,
     }));
     let before = lines(e.model());
     let cursor = e.history().cursor();
@@ -805,6 +815,7 @@ fn create_from_part_refusals_and_reuse() {
         uc1: false,
         enclosure_copies: false,
         many: 0,
+        depth: true,
     }));
     let no_section = CreateEnclosureFromPart {
         part: copy_id(ITEM_MCB),
@@ -937,7 +948,12 @@ fn the_edits_change_one_member() {
     let surface = get(&f.e, f.surface).unwrap();
     f.e.execute(&EditSurface {
         surface: f.surface,
-        pe_bond: true,
+        pe_bond: Some(true),
+        width: None,
+        height: None,
+        hinge: None,
+        datum: None,
+        edge_margin: None,
     })
     .unwrap();
     let mut want = surface.clone();
@@ -947,7 +963,12 @@ fn the_edits_change_one_member() {
     assert_eq!(
         invalid(f.e.execute(&EditSurface {
             surface: id(0xeeee),
-            pe_bond: true
+            pe_bond: Some(true),
+            width: None,
+            height: None,
+            hinge: None,
+            datum: None,
+            edge_margin: None,
         })),
         (
             "/surface".to_owned(),
@@ -1200,4 +1221,69 @@ fn finding1_a_concurrent_re_tag_reruns_auto_fill() {
     );
     f.e.commit(preview).unwrap();
     assert_eq!(clips(&f.e, &[k(4), k(5)]), vec![9, 27], "-100K4 before -101K5");
+}
+
+fn face(enclosure: Id<Enclosure>, kind: FaceParam, door: Option<u16>) -> AddSurface {
+    AddSurface {
+        enclosure,
+        kind,
+        door,
+        width: None,
+        height: None,
+    }
+}
+
+/// `layout.surface.add` makes a face from the enclosure part (doc 12 §3.7): the door of the 750 × 1000 mm cabinet,
+/// hinged left, at the front; refused in words: the plate, a second door, a door the part does not list, and a face
+/// whose size neither the part nor the act gives. `layout.surface.edit` sets the datum and clears it again.
+#[test]
+fn a_surface_is_made_from_the_part_and_refused_in_words() {
+    let mut f = fx();
+    let door: Id<MountingSurface> = made(f.e.execute(&face(f.enclosure, FaceParam::Door, None)).unwrap());
+    let d = get(&f.e, door).unwrap();
+    assert_eq!(d.kind, SurfaceKind::Door);
+    assert_eq!(d.hinge, Some(ew_schema::Hinge::Left));
+    assert_eq!(d.usable[2], p(750, 1000));
+    assert_eq!(d.frame.t[2], Nm(420 * MM), "at the front");
+    assert_eq!(
+        reason(f.e.execute(&face(f.enclosure, FaceParam::Plate, None))),
+        "-UC1's mounting plate is made with the enclosure; open its page with Surface\u{2026} instead"
+    );
+    assert_eq!(
+        reason(f.e.execute(&face(f.enclosure, FaceParam::Door, None))),
+        "-UC1 door is made already"
+    );
+    assert_eq!(
+        reason(f.e.execute(&face(f.enclosure, FaceParam::Door, Some(1)))),
+        "the part of -UC1 lists 1 door(s); choose one of them"
+    );
+    let mut flat = fx_with(&Spec { depth: false, ..FULL });
+    assert_eq!(
+        reason(flat.e.execute(&face(flat.enclosure, FaceParam::Bottom, None))),
+        "the part of -UC1 gives no size for its Bottom: type its width and height"
+    );
+    let bottom: Id<MountingSurface> = made(
+        flat.e
+            .execute(&AddSurface {
+                width: Some(Nm(750 * MM)),
+                height: Some(Nm(300 * MM)),
+                ..face(flat.enclosure, FaceParam::Bottom, None)
+            })
+            .unwrap(),
+    );
+    assert_eq!(get(&flat.e, bottom).unwrap().usable[2], p(750, 300));
+    // The datum: set, then the project's again.
+    let edit = |datum: Option<ew_schema::Corner>| EditSurface {
+        surface: door,
+        pe_bond: None,
+        width: None,
+        height: None,
+        hinge: None,
+        datum: Some(datum),
+        edge_margin: None,
+    };
+    f.e.execute(&edit(Some(ew_schema::Corner::TopLeft))).unwrap();
+    assert_eq!(get(&f.e, door).unwrap().datum, Some(ew_schema::Corner::TopLeft));
+    f.e.execute(&edit(None)).unwrap();
+    assert_eq!(get(&f.e, door).unwrap().datum, None);
 }

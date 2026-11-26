@@ -139,6 +139,8 @@ pub(crate) struct Parts {
     pub carriers: bool,
     pub placements: bool,
     pub labels: bool,
+    /// The plate's footprints behind a door (the highlights layer).
+    pub behind: bool,
 }
 
 impl Parts {
@@ -147,6 +149,7 @@ impl Parts {
         carriers: false,
         placements: false,
         labels: false,
+        behind: false,
     };
 }
 
@@ -167,9 +170,53 @@ fn bounds(pts: &[Pt2]) -> Option<Rect> {
     Some(it.fold(first, |r, p| r.union(Rect::from_point(*p))))
 }
 
-/// The surface's outlines: the enclosure's outer rectangle (its part's enclosure section, placed by the plate frame),
-/// the plate (its device's mounting-plate section, else the usable polygon's bounds) and the usable polygon.
+/// The surface's outlines (doc 12 §5.2). The plate's page: the enclosure's outer rectangle (its part's enclosure
+/// section, placed by the plate frame), the plate (its device's mounting-plate section, else the usable polygon's
+/// bounds) and the usable polygon. Any other surface's page: its sheet, its edge margin, a door's hinge. Both: the
+/// datum mark at the corner the holes are measured from and the caption, in the project's language.
 fn surface_outline(q: &Q, s: &MountingSurface) -> SurfaceOutline {
+    let lang = ew_derive::print_language(q);
+    let words = |t: &crate::Text| super::print::in_print_language(t, lang.as_ref());
+    let face = ew_derive::layout::face_of(q, s.id);
+    let caption = face
+        .as_ref()
+        .map(|f| words(&ew_derive::text::surface_caption(&f.kind, f.door, f.doors)));
+    let corner_of = |r: Rect| {
+        use ew_schema::Corner as C;
+        let (a, b) = (r.min(), r.max());
+        let (at, dirs) = match ew_derive::layout::surface_datum(q, s) {
+            C::BottomLeft | C::Unknown(_) => (a, (1, 1)),
+            C::BottomRight => (Pt2::new(b.x, a.y), (-1, 1)),
+            C::TopLeft => (Pt2::new(a.x, b.y), (1, -1)),
+            C::TopRight => (b, (-1, -1)),
+        };
+        (at, dirs, "0".to_owned())
+    };
+    if s.kind != ew_schema::SurfaceKind::Plate {
+        let sheet = bounds(&s.usable);
+        let margin = s.edge_margin.filter(|m| m.0 > 0).zip(sheet).and_then(|(m, r)| {
+            let a = Pt2::new(r.min().x.checked_add(m)?, r.min().y.checked_add(m)?);
+            let b = Pt2::new(r.max().x.checked_sub(m)?, r.max().y.checked_sub(m)?);
+            (a.x < b.x && a.y < b.y).then(|| Rect::from_points(a, b))
+        });
+        let hinge = (s.kind == ew_schema::SurfaceKind::Door).then(|| {
+            (
+                s.hinge == Some(ew_schema::Hinge::Right),
+                words(&ew_derive::text::hinge_word()),
+            )
+        });
+        return SurfaceOutline {
+            surface: s.id,
+            enclosure: None,
+            plate: None,
+            usable: Vec::new(),
+            sheet,
+            margin,
+            hinge,
+            datum: sheet.map(corner_of),
+            caption,
+        };
+    }
     let enclosure = q.table::<Enclosure>().get(s.enclosure).cloned().and_then(|e| {
         let (w, h) = part_section(q, e.device, |p| {
             let sec = p.sections.enclosure.as_ref()?;
@@ -195,7 +242,44 @@ fn surface_outline(q: &Q, s: &MountingSurface) -> SurfaceOutline {
         enclosure,
         plate,
         usable: s.usable.clone(),
+        sheet: None,
+        margin: None,
+        hinge: None,
+        datum: plate.map(corner_of),
+        caption,
     }
+}
+
+/// On a door's page, the footprints of its enclosure's plate in the door's frame (doc 12 §5.2): a plate point and a
+/// door point of the same `x`, `y` in the enclosure's front view lie one in front of the other (`to_enclosure`).
+fn behind_door(q: &Q, door: &MountingSurface) -> Vec<Rect> {
+    if door.kind != ew_schema::SurfaceKind::Door {
+        return Vec::new();
+    }
+    let Some(plate) = q
+        .table::<MountingSurface>()
+        .iter()
+        .find(|(_, s)| s.enclosure == door.enclosure && s.kind == ew_schema::SurfaceKind::Plate)
+        .map(|(id, _)| id)
+    else {
+        return Vec::new();
+    };
+    let shift = |p: Pt2| {
+        let e = ew_derive::layout::to_enclosure(q, plate, p)?;
+        Some(Pt2::new(
+            e.x.checked_sub(door.frame.t[0])?,
+            e.y.checked_sub(door.frame.t[1])?,
+        ))
+    };
+    placements(q, &placements_on(q, plate))
+        .into_iter()
+        .filter_map(|d| {
+            Some(Rect::from_points(
+                shift(d.footprint.min())?,
+                shift(d.footprint.max())?,
+            ))
+        })
+        .collect()
 }
 
 /// The carriers of a surface with their geometry, by ID.
@@ -422,6 +506,11 @@ pub(crate) fn panel_view(q: &Q, page: Id<Page>, parts: Parts) -> Option<PanelVie
         },
         show: view.show,
         linked: parts.placements && !legend_blocks(q, surface.id).is_empty(),
+        behind: if parts.behind {
+            behind_door(q, &surface)
+        } else {
+            Vec::new()
+        },
     })
 }
 
@@ -1180,6 +1269,7 @@ fn legend_offer_of(q: &Q, page: Id<Page>) -> LegendOffer {
     let Some(layout) = view.surface.as_ref().and_then(|s| {
         s.enclosure
             .map(|(_, r)| r)
+            .or(s.sheet)
             .or(s.plate)
             .or_else(|| bounds(&s.usable))
             .and_then(|r| p.rect(r))

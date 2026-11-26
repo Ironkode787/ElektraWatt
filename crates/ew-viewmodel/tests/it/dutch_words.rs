@@ -831,7 +831,7 @@ fn the_scheme_grid_factor_surface_view_and_sizes_read_in_words() {
             (
                 words(&[
                     "Grid step multiplier: 7.9375 mm",
-                    "Surface: -UC1 plate",
+                    "Surface: -UC1 mounting plate",
                     "Label mode: Abbreviated"
                 ]),
                 words(&["Pre-delivery"]),

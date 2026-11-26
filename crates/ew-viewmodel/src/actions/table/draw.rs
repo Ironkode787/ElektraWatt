@@ -776,6 +776,22 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_layout_choose_plate(),
         ),
     ),
+    // Surface… (doc 12 §3.8): in the Enclosure split and, per face, in a panel page's context menu.
+    with_params(
+        "surface?:text",
+        with_icon(
+            "layout-board",
+            act(
+                "layout.surface_page",
+                Command,
+                Menu::Draw,
+                &[],
+                surfaces_offered,
+                grp(Group::PanelLayout),
+                |s, p| s.act_layout_surface_page(p),
+            ),
+        ),
+    ),
     keeps_banner(in_canvas(placed(
         place(Group::PanelLayout, 3, CommandSize::Small, Some(key!("bar-rail"))),
         "ew-din-rail",

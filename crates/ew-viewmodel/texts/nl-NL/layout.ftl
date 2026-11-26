@@ -88,8 +88,6 @@ auto-fill-devices = { $p0 ->
         [one] 1 apparaat
        *[other] { $p0 } apparaten
     }
-surface-plate = montageplaat
-surface-plate-of = { $p0 } montageplaat
 rack-new-title = Nieuw station
 rack-create = Maken
 rack-kind = Wat het is
@@ -331,3 +329,20 @@ arrange-blocked-faults = { $p0 ->
         [one] 1 fout blijft op de pagina; Project controleren noemt hem
        *[other] { $p0 } fouten blijven op de pagina; Project controleren noemt ze
     }.
+
+# Surface… (doc 12 §3.8)
+surface-chooser-title = Welk vlak?
+surface-chooser-title-of = Welk vlak van { $p0 }?
+surface-chooser-text = Een vlak wordt op een eigen pagina getekend, gezien vanaf de kant waar eraan gewerkt wordt.
+surface-chooser-field = Vlak
+surface-chooser-new-page = Tekenen op een nieuwe pagina
+surface-chooser-go = Naar pagina { $p0 }
+surface-chooser-hinged = scharnier { $p0 }
+surface-chooser-page = pagina { $p0 }
+surface-chooser-new = nieuwe pagina
+surface-chooser-line = Het wordt getekend op een nieuwe pagina na de pagina van de montageplaat, op de schaal die past, met zijn legendapagina. Eén stap ongedaan te maken.
+surface-chooser-shown = Pagina { $p0 } toont het.
+toast-surface-drawn = { $p0 } is getekend op pagina { $p1 }, met zijn legendapagina.
+canvas-surface-entry = Vlak: { $p0 }
+reason-surface-no-plate-page = De montageplaat van de kast staat nog op geen pagina: teken die eerst met Kast….
+error-no-surface = Geen vlak van de kast heet “{ $p0 }”.

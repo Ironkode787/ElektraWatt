@@ -2267,8 +2267,178 @@ impl Command for EditEnclosure {
     }
 }
 
-/// `layout.surface.edit` (`EditSurface`): sets whether a mounting surface (the plate) is bonded to protective
-/// earth. Nothing else changes. Rejected: a surface that does not exist (`/surface`). Interactive. Outcome: the surface.
+/// A face of a cabinet other than the plate, as `layout.surface.add` names it (doc 12 §2.8).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum FaceParam {
+    /// The mounting plate (refused: it is made with the enclosure).
+    Plate,
+    /// A door, seen from outside.
+    Door,
+    /// The left side.
+    Left,
+    /// The right side.
+    Right,
+    /// The top.
+    Top,
+    /// The bottom.
+    Bottom,
+}
+
+impl FaceParam {
+    /// The stored kind.
+    pub fn kind(self) -> SurfaceKind {
+        match self {
+            FaceParam::Plate => SurfaceKind::Plate,
+            FaceParam::Door => SurfaceKind::Door,
+            FaceParam::Left => SurfaceKind::Left,
+            FaceParam::Right => SurfaceKind::Right,
+            FaceParam::Top => SurfaceKind::Top,
+            FaceParam::Bottom => SurfaceKind::Bottom,
+        }
+    }
+}
+
+/// The enclosure section of an enclosure's device as the transaction holds it.
+fn enclosure_section_of(tx: &TxBuilder<'_>, enclosure: &Enclosure) -> Option<EnclosureSection> {
+    tx.get::<Device>(enclosure.device)?
+        .parts
+        .iter()
+        .filter_map(|u| part_copy(tx, u.part.copy))
+        .find_map(|c| c.item.sections.enclosure.clone())
+}
+
+/// `layout.surface.add` (`AddSurface`, doc 12 §3.7): makes one face of an enclosure from its part (doc 12 §2.8): its
+/// frame, its sheet (the part's size, or `width` and `height` where given), a door's hinge and the edge margin. A door
+/// is the `door`-th of the part's doors from the left (default the first).
+///
+/// Rejected in words: the plate (it is made with the enclosure); a face the enclosure has already; a door the part
+/// does not list; a face whose size the part does not give and the act does not give either; a width or height of
+/// zero or less. Interactive. Outcome: the new surface.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct AddSurface {
+    /// The enclosure.
+    #[schemars(with = "UuidS")]
+    pub enclosure: Id<Enclosure>,
+    /// The face.
+    pub kind: FaceParam,
+    /// A door's place among the part's doors, from the left (0 …); default the first.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub door: Option<u16>,
+    /// The sheet's width; default the part's.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub width: Option<Nm>,
+    /// The sheet's height; default the part's.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub height: Option<Nm>,
+}
+
+impl Command for AddSurface {
+    const NAME: &'static str = "layout.surface.add";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let Some(enclosure) = tx.get::<Enclosure>(self.enclosure) else {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/enclosure",
+                text!("refusal-params-enclosure-gone"),
+            ));
+        };
+        let kind = self.kind.kind();
+        let tag = tag(tx, enclosure.device);
+        if kind == SurfaceKind::Plate {
+            return tx.reject(text!("refusal-layout-surface-plate", tag));
+        }
+        let section = enclosure_section_of(tx, &enclosure).unwrap_or_default();
+        let doors = ew_derive::layout::door_count(&section);
+        let door = (kind == SurfaceKind::Door).then(|| usize::from(self.door.unwrap_or(0)));
+        if door.is_some_and(|i| i >= doors) {
+            return tx.reject(text!("refusal-layout-surface-no-door", tag, doors.to_string()));
+        }
+        let made: Vec<MountingSurface> = tx
+            .iter::<MountingSurface>()
+            .into_iter()
+            .filter(|s| s.enclosure == self.enclosure && s.kind == kind)
+            .map(|s| (*s).clone())
+            .collect();
+        // One record per face; of the doors, one per door the part lists.
+        if made.len() >= door.map_or(1, |_| doors) {
+            let word = ew_derive::text::surface_of(tag.clone(), &kind, door, doors);
+            let page = {
+                let q = Q::new(tx.base_model());
+                made.iter()
+                    .find_map(|s| ew_derive::layout::surface_page(&q, s.id))
+            };
+            return tx.reject(match page.and_then(|p| crate::words::folio(tx, p)) {
+                Some(folio) => text!("refusal-layout-surface-exists-page", word, folio),
+                None => text!("refusal-layout-surface-exists", word),
+            });
+        }
+        for (value, at) in [(self.width, "/width"), (self.height, "/height")] {
+            if value.is_some_and(|v| v <= Nm::ZERO) {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    at,
+                    text!("refusal-layout-surface-size"),
+                ));
+            }
+        }
+        let part_size = ew_derive::layout::face_size(&section, &kind, door);
+        let size = match (self.width, self.height, part_size) {
+            (Some(w), Some(h), _) => (w, h),
+            (w, h, Some((pw, ph))) => (w.unwrap_or(pw), h.unwrap_or(ph)),
+            _ => {
+                let word = ew_derive::text::surface_word(&kind, door, doors);
+                return tx.reject(text!("refusal-layout-surface-no-size", tag, word));
+            }
+        };
+        let Some((frame, usable)) = ew_derive::layout::surface_frame(&section, &kind, door, Some(size))
+        else {
+            let word = ew_derive::text::surface_word(&kind, door, doors);
+            return tx.reject(text!("refusal-layout-surface-no-size", tag, word));
+        };
+        let hinge = door.map(|i| {
+            section.doors.get(i).map_or(
+                if i > 0 && i + 1 == doors {
+                    ew_schema::Hinge::Right
+                } else {
+                    ew_schema::Hinge::Left
+                },
+                |d| d.hinge.clone(),
+            )
+        });
+        let id: Id<MountingSurface> = tx.mint();
+        tx.insert(MountingSurface {
+            id,
+            v: 1,
+            enclosure: self.enclosure,
+            kind,
+            device: None,
+            frame,
+            usable,
+            pe_bond: false,
+            hinge,
+            datum: None,
+            edge_margin: section.edge_margin,
+            extra: Extra::new(),
+        })?;
+        Ok(Outcome::primary((Kind::MountingSurface, id.cast())))
+    }
+}
+
+/// `layout.surface.edit` (`EditSurface`, doc 12 §3.7): changes a mounting surface: whether it is bonded to protective
+/// earth, its sheet's width and height, a door's hinge, the corner its holes are measured from and its edge margin.
+/// `datum`, `hinge` and `edge_margin` given as `null` clear the member (the datum then is the project's). A size that
+/// leaves a placement outside the sheet is done; EW-LAY-010 reports it. Rejected: a surface that does not exist
+/// (`/surface`); a width, height or margin below zero (zero for a size); a hinge on a surface that is no door.
+/// Interactive. Outcome: the surface.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct EditSurface {
@@ -2276,7 +2446,38 @@ pub struct EditSurface {
     #[schemars(with = "UuidS")]
     pub surface: Id<MountingSurface>,
     /// Whether it is bonded to protective earth.
-    pub pe_bond: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pe_bond: Option<bool>,
+    /// The sheet's width.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub width: Option<Nm>,
+    /// The sheet's height.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub height: Option<Nm>,
+    /// A door's hinge; `null` clears it.
+    #[serde(
+        default,
+        deserialize_with = "present",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub hinge: Option<Option<ew_schema::Hinge>>,
+    /// The corner its holes are measured from; `null`: the project's.
+    #[serde(
+        default,
+        deserialize_with = "present",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub datum: Option<Option<ew_schema::Corner>>,
+    /// The edge margin; `null`: none.
+    #[serde(
+        default,
+        deserialize_with = "present",
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[schemars(with = "Option<Option<NmS>>")]
+    pub edge_margin: Option<Option<Nm>>,
 }
 
 impl Command for EditSurface {
@@ -2287,15 +2488,62 @@ impl Command for EditSurface {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
-        if !tx.exists::<MountingSurface>(self.surface) {
+        let Some(surface) = tx.get::<MountingSurface>(self.surface) else {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/surface",
                 text!("refusal-params-surface-gone"),
             ));
+        };
+        for (value, at) in [(self.width, "/width"), (self.height, "/height")] {
+            if value.is_some_and(|v| v <= Nm::ZERO) {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    at,
+                    text!("refusal-layout-surface-size"),
+                ));
+            }
         }
-        let pe_bond = self.pe_bond;
-        tx.update::<MountingSurface>(self.surface, |s| s.pe_bond = pe_bond)?;
+        if self.edge_margin.flatten().is_some_and(|m| m < Nm::ZERO) {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/edge_margin",
+                text!("refusal-layout-surface-margin"),
+            ));
+        }
+        if matches!(self.hinge, Some(Some(_))) && surface.kind != SurfaceKind::Door {
+            return tx.reject(text!("refusal-layout-surface-hinge"));
+        }
+        let size = match (self.width, self.height) {
+            (None, None) => None,
+            (w, h) => {
+                let (ow, oh) = ew_derive::layout::sheet_size(&surface).unwrap_or((Nm::ZERO, Nm::ZERO));
+                Some((w.unwrap_or(ow), h.unwrap_or(oh)))
+            }
+        };
+        let edit = self.clone();
+        tx.update::<MountingSurface>(self.surface, |s| {
+            if let Some(on) = edit.pe_bond {
+                s.pe_bond = on;
+            }
+            if let Some((w, h)) = size {
+                s.usable = vec![
+                    Pt2::new(Nm::ZERO, Nm::ZERO),
+                    Pt2::new(w, Nm::ZERO),
+                    Pt2::new(w, h),
+                    Pt2::new(Nm::ZERO, h),
+                ];
+            }
+            if let Some(hinge) = edit.hinge {
+                s.hinge = hinge;
+            }
+            if let Some(datum) = edit.datum {
+                s.datum = datum;
+            }
+            if let Some(margin) = edit.edge_margin {
+                s.edge_margin = margin;
+            }
+        })?;
         Ok(Outcome::primary((Kind::MountingSurface, self.surface.cast())))
     }
 }

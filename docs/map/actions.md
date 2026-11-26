@@ -214,6 +214,7 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `layout.reset_labels` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_reset_labels` `crates/ew-viewmodel/src/shell/layout.rs` | `action-layout-reset-labels` |
 | `layout.options` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_options` `crates/ew-viewmodel/src/shell/layout.rs` | `action-layout-options`, `layout-options-grid`, `layout-options-mode` |
 | `layout.choose_plate` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_choose_plate` `crates/ew-viewmodel/src/shell/layout.rs` | `action-layout-choose-plate` |
+| `layout.surface_page` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_surface_page` `crates/ew-viewmodel/src/shell/surfaces.rs` | `action-layout-surface-page` |
 | `tool.rail_draw` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_tool_rail_draw` `crates/ew-viewmodel/src/shell/layout.rs` | `action-tool-rail-draw` |
 | `tool.duct_draw` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_tool_duct_draw` `crates/ew-viewmodel/src/shell/layout.rs` | `action-tool-duct-draw` |
 | `layout.auto_fill_rail` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_auto_fill_rail` `crates/ew-viewmodel/src/shell/layout.rs` | `action-layout-auto-fill-rail`, `refusal-layout-auto-fill-rail` |

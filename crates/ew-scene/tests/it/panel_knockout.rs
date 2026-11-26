@@ -85,6 +85,7 @@ fn view(labels: bool) -> PageView {
             },
             show: ew_scene::panel::LabelShow::Tags,
             linked: false,
+            behind: Vec::new(),
         }),
         ..blank_page(0x01)
     }

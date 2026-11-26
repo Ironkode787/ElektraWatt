@@ -15,9 +15,9 @@
 //! | [`SurfaceLayer`] | [`Layer::Surface`] | the surface outlines of the page's surface view (`panel.rs`) |
 //! | [`CarriersLayer`] | [`Layer::Carriers`] | the carriers of the page's surface view and its placement labels, which the carriers are cut around (`panel.rs`) |
 //! | [`PlacementsLayer`] | [`Layer::Placements`] | the placements of the page's surface view (`panel.rs`) |
+//! | [`HighlightsLayer`] | [`Layer::Highlights`] | on a door's page, the placements of its enclosure's plate (`panel.rs`); screen only |
 //!
-//! The other layers (revision marks, highlights, features, dimensions) are drawn by no rule of `ew-scene` yet and are
-//! empty. Each family is `ew_scene::page::page_display_list` over a partial view; a test holds every layer equal
+//! The other layers (revision marks, features, dimensions) are drawn by no rule of `ew-scene` yet and are empty. Each family is `ew_scene::page::page_display_list` over a partial view; a test holds every layer equal
 //! to the same function over the full view ([`page_view`]) on every page of the sample project. The display
 //! language is the neutral one (no `lang` key yet: the views print neutral texts until multi-language output,
 //! FR-I18N-005).
@@ -256,13 +256,14 @@ impl ViewParts {
                 tables: true,
                 ..none
             },
-            Layer::Surface | Layer::Carriers | Layer::Placements => ViewParts {
+            Layer::Surface | Layer::Carriers | Layer::Placements | Layer::Highlights => ViewParts {
                 panel: Parts {
                     surface: layer == Layer::Surface,
                     carriers: layer == Layer::Carriers,
                     placements: layer == Layer::Placements,
                     // The carriers are cut around the labels' knockout boxes.
                     labels: layer == Layer::Carriers,
+                    behind: layer == Layer::Highlights,
                 },
                 needs_panel: true,
                 ..drawn
@@ -297,6 +298,7 @@ impl ViewParts {
                 carriers: self.panel.carriers || o.panel.carriers,
                 placements: self.panel.placements || o.panel.placements,
                 labels: self.panel.labels || o.panel.labels,
+                behind: self.panel.behind || o.panel.behind,
             },
             needs_panel: self.needs_panel && o.needs_panel,
         }
@@ -534,6 +536,12 @@ layer_family!(
     "page_display_list_placements",
     Layer::Placements
 );
+layer_family!(
+    /// `page_display_list(page, highlights)`: on a door's page, the plate's footprints behind the door (screen only).
+    HighlightsLayer,
+    "page_display_list_highlights",
+    Layer::Highlights
+);
 
 /// `page_display_list(page, layer)` through the layer's memoised family; an empty layer for the layers no rule
 /// draws yet.
@@ -547,6 +555,7 @@ pub fn page_layer(q: &Q, page: PageRef, layer: Layer) -> Arc<PageLayer> {
         Layer::Surface => q.get::<SurfaceLayer>(page),
         Layer::Carriers => q.get::<CarriersLayer>(page),
         Layer::Placements => q.get::<PlacementsLayer>(page),
+        Layer::Highlights => q.get::<HighlightsLayer>(page),
         _ => Arc::new(PageLayer::default()),
     }
 }

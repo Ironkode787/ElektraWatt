@@ -80,6 +80,18 @@ impl ShellModel {
             self.props.choices = None;
             return self.commit_value(key, Value::String(id.to_string()), text.to_owned(), Vec::new());
         }
+        // A Surface typed in the window's words is that surface, by its ID.
+        if row.key == super::SURFACE_ROW
+            && let Some(id) = self.project.as_ref().and_then(|p| {
+                p.session
+                    .surface_choices()
+                    .into_iter()
+                    .find(|(_, w)| strings::render(w).eq_ignore_ascii_case(text.trim()))
+                    .map(|(id, _)| id)
+            })
+        {
+            return self.commit_layout_row(&section, &row, &id.to_string());
+        }
         // A word of an enumerated row is read back as its stored word.
         let typed = crate::properties::enum_value_of(&section.kind, &row, text);
         // A layout row compiles through `Session::layout_edit`.

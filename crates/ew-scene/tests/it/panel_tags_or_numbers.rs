@@ -86,6 +86,7 @@ fn page(show: LabelShow, linked: bool) -> PageView {
                 .collect(),
             show,
             linked,
+            behind: Vec::new(),
         }),
         ..blank_page(0x01)
     }

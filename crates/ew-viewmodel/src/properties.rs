@@ -1843,8 +1843,8 @@ pub fn ends_in_words(
 }
 
 /// A choice of a row its own command commits in the UI language's words (W51 finding J): a panel page's Label
-/// mode as its `choice-label_mode-<mode>` text, a Surface as its enclosure's tag and the keyed word for the plate
-/// ("-UC1 montageplaat", with its ordinal " (2)" kept); any other choice as it is. The option itself is what the
+/// mode as its `choice-label_mode-<mode>` text, a door's Hinge and a surface's Measured from in the session's words;
+/// any other choice as it is (a page's Surface is named by [`surfaces_in_words`]). The option itself is what the
 /// command reads.
 pub fn command_choice_text(path: &str, option: &str) -> String {
     match path.rsplit('.').next().unwrap_or(path) {
@@ -1858,23 +1858,26 @@ pub fn command_choice_text(path: &str, option: &str) -> String {
             option.to_lowercase().replace(' ', "_")
         ))
         .map_or_else(|| option.to_owned(), str::to_owned),
-        "surface" => {
-            let (words, ordinal) = match option.rsplit_once(" (") {
-                Some((w, n)) if n.ends_with(')') && n[..n.len() - 1].bytes().all(|b| b.is_ascii_digit()) => {
-                    (w, &option[w.len()..])
-                }
-                _ => (option, ""),
-            };
-            let plate = if words == "plate" {
-                strings::text(key!("surface-plate")).to_owned()
-            } else if let Some(tag) = words.strip_suffix(" plate") {
-                strings::format(key!("surface-plate-of"), &[tag])
-            } else {
-                return option.to_owned();
-            };
-            format!("{plate}{ordinal}")
-        }
+        "hinge" => ew_api::output::hinge_choice_words(option)
+            .map_or_else(|| option.to_owned(), |t| strings::render(&t)),
+        "measured_from" => ew_api::output::corner_choice_words(option)
+            .map_or_else(|| option.to_owned(), |t| strings::render(&t)),
         _ => option.to_owned(),
+    }
+}
+
+/// Writes a panel page's Surface row in the UI language's words: its value, a surface's ID, as `words` names it
+/// (`Session::surface_choices`, "-UC1 deur").
+pub fn surfaces_in_words(sheet: &mut PropertySheet, words: impl Fn(&str) -> Option<String>) {
+    for row in sheet.sections.iter_mut().flat_map(|s| s.rows.iter_mut()) {
+        if row.key != "page/derived.surface" {
+            continue;
+        }
+        if let RowValue::One { json, text } = &mut row.value
+            && let Some(w) = json.as_str().and_then(&words)
+        {
+            *text = w;
+        }
     }
 }
 

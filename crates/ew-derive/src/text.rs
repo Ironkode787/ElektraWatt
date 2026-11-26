@@ -10,8 +10,8 @@
 use ew_l10n::{Text, TextArg};
 use ew_mltext::MlText;
 use ew_schema::{
-    AddrValue, ColourCode, ColourSpec, Csa, FluidPortRole, Kind, LengthSource, LineKind, PotentialType,
-    TagSpec,
+    AddrValue, ColourCode, ColourSpec, Corner, Csa, FluidPortRole, Hinge, Kind, LengthSource, LineKind,
+    PotentialType, SurfaceKind, TagSpec,
 };
 use ew_units::{Dec3, Nm};
 
@@ -839,6 +839,92 @@ pub fn open_item(category: OpenItem) -> Text {
         OpenItem::UnconnectedCp => text!("open-item-unconnected-cp"),
         OpenItem::MissingLength => text!("open-item-missing-length"),
     }
+}
+
+/// A surface of a cabinet in words as it stands alone (doc 12 §2.8): "Mounting plate", "Door", of two doors "Left
+/// door" and "Right door", of three or more "Door 1" … from the left, "Left side", "Right side", "Top", "Bottom";
+/// "Surface" for a kind of a newer format. `door` is a door's place from the left, `doors` how many the cabinet has.
+pub fn surface_word(kind: &SurfaceKind, door: Option<usize>, doors: usize) -> Text {
+    match kind {
+        SurfaceKind::Plate => text!("surface-plate"),
+        SurfaceKind::Door => match (doors, door.unwrap_or(0)) {
+            (0 | 1, _) => text!("surface-door"),
+            (2, 0) => text!("surface-door-left"),
+            (2, _) => text!("surface-door-right"),
+            (_, i) => text!("surface-door-n", (i + 1).to_string()),
+        },
+        SurfaceKind::Left => text!("surface-left"),
+        SurfaceKind::Right => text!("surface-right"),
+        SurfaceKind::Top => text!("surface-top"),
+        SurfaceKind::Bottom => text!("surface-bottom"),
+        SurfaceKind::Unknown(_) => text!("surface-other"),
+    }
+}
+
+/// A surface after its cabinet's tag, as the page's Surface row and a refusal name it: "-UC1 mounting plate",
+/// "-UC1 door", "-UC1 left door", "-UC1 door 3".
+pub fn surface_of(tag: impl Into<TextArg>, kind: &SurfaceKind, door: Option<usize>, doors: usize) -> Text {
+    let tag = tag.into();
+    match kind {
+        SurfaceKind::Plate => text!("surface-of-plate", tag),
+        SurfaceKind::Door => match (doors, door.unwrap_or(0)) {
+            (0 | 1, _) => text!("surface-of-door", tag),
+            (2, 0) => text!("surface-of-door-left", tag),
+            (2, _) => text!("surface-of-door-right", tag),
+            (_, i) => text!("surface-of-door-n", tag, (i + 1).to_string()),
+        },
+        SurfaceKind::Left => text!("surface-of-left", tag),
+        SurfaceKind::Right => text!("surface-of-right", tag),
+        SurfaceKind::Top => text!("surface-of-top", tag),
+        SurfaceKind::Bottom => text!("surface-of-bottom", tag),
+        SurfaceKind::Unknown(_) => text!("surface-of-other", tag),
+    }
+}
+
+/// How a surface is seen on its page and its drawings: "seen from the front", "seen from outside", "seen from
+/// below; the door's edge at the top".
+pub fn surface_seen(kind: &SurfaceKind) -> Text {
+    match kind {
+        SurfaceKind::Plate | SurfaceKind::Unknown(_) => text!("surface-seen-front"),
+        SurfaceKind::Door => text!("surface-seen-outside"),
+        SurfaceKind::Left => text!("surface-seen-left"),
+        SurfaceKind::Right => text!("surface-seen-right"),
+        SurfaceKind::Top => text!("surface-seen-above"),
+        SurfaceKind::Bottom => text!("surface-seen-below"),
+    }
+}
+
+/// The caption under a surface's drawing: "Mounting plate, seen from the front", "Door, seen from outside".
+pub fn surface_caption(kind: &SurfaceKind, door: Option<usize>, doors: usize) -> Text {
+    text!(
+        "surface-caption",
+        surface_word(kind, door, doors),
+        surface_seen(kind)
+    )
+}
+
+/// A corner of a sheet as a choice names it: "Bottom left", "Top right"; a corner of a newer format as the
+/// bottom-left one, which is what a build reads it as.
+pub fn corner(c: &Corner) -> Text {
+    match c {
+        Corner::BottomLeft | Corner::Unknown(_) => text!("corner-bottom-left"),
+        Corner::BottomRight => text!("corner-bottom-right"),
+        Corner::TopLeft => text!("corner-top-left"),
+        Corner::TopRight => text!("corner-top-right"),
+    }
+}
+
+/// A door's hinge side as a choice names it: "Left", "Right".
+pub fn hinge(h: &Hinge) -> Text {
+    match h {
+        Hinge::Right => text!("hinge-right"),
+        Hinge::Left | Hinge::Unknown(_) => text!("hinge-left"),
+    }
+}
+
+/// The word a door's page writes beside its hinge: "Hinge".
+pub fn hinge_word() -> Text {
+    text!("hinge-word")
 }
 
 /// `text` in every language of this crate's text files, as the lists print a word of the program in the project's

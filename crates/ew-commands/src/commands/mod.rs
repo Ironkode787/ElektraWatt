@@ -94,7 +94,9 @@ pub use items::{
     StrokeParam,
 };
 pub use join::JoinClass;
-pub use layout::{CarrierKindParam, CarrierParamsParam, CarrierThen, FillOrder, PlaceMode, PlaceOnParam};
+pub use layout::{
+    CarrierKindParam, CarrierParamsParam, CarrierThen, FaceParam, FillOrder, PlaceMode, PlaceOnParam,
+};
 pub use library_update::{ChangeClass, CopyDiff, CpMapParam, FieldChange, classify_update};
 pub use macro_insert::{MACRO_KINDS, binding_field_ok, coerce_value, instantiate};
 pub use merge::Take;
@@ -288,5 +290,6 @@ commands! {
     layout::CreateEnclosureFromPart,
     layout::EditLayoutSpace,
     layout::EditEnclosure,
+    layout::AddSurface,
     layout::EditSurface,
 }

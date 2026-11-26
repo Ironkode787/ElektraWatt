@@ -324,7 +324,7 @@ fn create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosure()
         json!({"kind": "location", "designation": "J-E-999"}),
     );
     let surfaces_before = surfaces(&s);
-    assert_eq!(surfaces_before, ["-UC1 plate"]);
+    assert_eq!(surfaces_before.len(), 1, "-UC1's plate");
     let rev = s.revision();
     done(
         &mut s,
@@ -334,9 +334,9 @@ fn create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosure()
     assert!(s.dialog().is_none());
     let plates = surfaces(&s);
     assert_eq!(plates.len(), 2, "one plate more: {plates:?}");
-    let plate = plates.iter().find(|n| *n != "-UC1 plate").unwrap().clone();
+    let plate = plates.iter().find(|n| **n != surfaces_before[0]).unwrap().clone();
     done(&mut s, "edit.undo", json!({}));
-    assert_eq!(surfaces(&s), ["-UC1 plate"], "one undo step");
+    assert_eq!(surfaces(&s), surfaces_before, "one undo step");
     assert_ne!(s.revision(), rev);
     done(&mut s, "edit.redo", json!({}));
     // A new panel layout page shows the new plate centred in its frame.
@@ -520,6 +520,7 @@ const PS1_SCALE: &str = "1:5";
 const PS1_DATUM: &str = NEW_PROJECT_DATUM;
 
 /// The Surface view row's choices on the page shown (the project's plates by their words).
+/// The Surface row's options: the surfaces by their IDs.
 fn surfaces(s: &ShellModel) -> Vec<String> {
     let sheet = s.properties().sheet().expect("the page's Properties");
     let row = sheet
@@ -1232,7 +1233,10 @@ fn the_surface_row_chooses_a_surface_by_its_id() {
         let id = v.as_str().expect("an ID");
         assert!(Uuid::parse_str(id).is_ok(), "{id}");
     }
-    let i = items.iter().position(|(w, _)| w != "-UC1 plate").unwrap();
+    let i = items
+        .iter()
+        .position(|(w, _)| w != "-UC1 mounting plate")
+        .unwrap();
     let chosen = items[i].1.clone();
     done(&mut s, "props.choose", json!({"index": i}));
     let step = s.recorded_commands().last().unwrap();
@@ -1243,4 +1247,4 @@ fn the_surface_row_chooses_a_surface_by_its_id() {
 }
 
 /// The Surface row's choices on the sample with the enclosure of +J-E-999 added.
-const SURFACE_WORDS: [&str; 2] = ["-UC1 plate", "-UC2 plate"];
+const SURFACE_WORDS: [&str; 2] = ["-UC1 mounting plate", "-UC2 mounting plate"];

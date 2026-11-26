@@ -403,6 +403,7 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/layout/queries.rs` | large | The layout queries of the MVP (doc 12 §2.6): `mountable(dev)`, `unplaced(space)`, `placement_geometry(p)`, `rail_occupancy(carrier)`, `layout_label(p)` (D10's text) and `carrier_geometry(carrier)`. |
 | `src/layout/snap.rs` |  | The rail model and the mode resolution (doc 12 §3.3, §3.4): pure functions over the items of one rail, shared by the layout tool's ghost (part 3) and the `layout.place` and `layout.move` commands, so the ghost and the commit agree by construction. |
 | `src/layout/snap/tests.rs` |  | The rail model and the resolver over two hand-made 570 mm rails (the spec's numbers by hand) and over random rails (property tests: every mode's result holds the rules). |
+| `src/layout/surfaces.rs` |  | The surfaces of a cabinet (doc 12 §2.8): the mounting plate and the six faces, each seen from the side it is worked from, with its sheet, its frame in the enclosure, a door's hinge, the edge margin and the datum its holes are measured from. |
 | `src/layout/tests.rs` |  | The layout geometry and the compatibility table of doc 12 §3.3. |
 | `src/lib.rs` |  | All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-0003). |
 | `src/links.rs` |  | Per-function and per-terminal inputs of the stitch graph, as memoised families: |
@@ -1349,6 +1350,7 @@ Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command 
 | `src/shell/supply_in.rs` |  | Supply comes in here… (`ip.supply_in`): the selected interruption points are where the supply enters the drawing set from another one (L1, L2, L3, N, PE from another drawing). |
 | `src/shell/supply_place.rs` |  | Supply (`supply.place`): the Draw tab's button for what comes in from the mains. |
 | `src/shell/supply_potential.rs` |  | The supply marks' Potential panel (`ip.supply_potential`, H9): when supply marks are placed (points marked with Supply comes in here…, or external points the Interruption tool places), one or a group in one go, a small panel opens at them with a row per mark: its name, the kind of conductor (L1, L2, L3, L, N, PE, L+, M, …) and the voltage with AC or DC (`230 V AC`), pre-filled from the name where the name tells it ([`from_name`]). |
+| `src/shell/surfaces.rs` |  | Surface… (`layout.surface_page`, doc 12 §3.8): the page of one face of a cabinet. |
 | `src/shell/symbol_editor.rs` | large | The symbol editor's independent draft, history and GUI/headless actions. |
 | `src/shell/symbol_editor/device_box.rs` | large | The device box, the symbol editor's second kind of thing (doc 07 §2.5): a part that is drawn as a box with pins. |
 | `src/shell/symbol_editor/selection.rs` |  | What is selected in the symbol editor's drawing, and what a person does with it as on a page: select (one, more, all), move by the pointer or the arrow keys, delete, copy, cut, paste, duplicate, line up, and drag a shape's handle. |

@@ -364,7 +364,7 @@ fn the_panel_pages_surface_view_rows_set_the_view() {
             ("page/derived.datum", set),
         ]
     );
-    assert_eq!(view[0].1, "-UC1 plate");
+    assert_eq!(view[0].1, "-UC1 mounting plate");
     assert_eq!(view[1].1, "Abbreviated");
     assert_eq!(
         view[2].1, "Tags or numbers",
@@ -542,26 +542,37 @@ fn two_uc1_plates_read_by_their_full_designations_and_the_choice_sets_the_one_ch
     let page = page_of(&s, "902");
     let first = plate(&s);
     let second = field_enclosure(&mut s);
-    let choices = s.surface_choices();
+    let choices: Vec<(Uuid, String)> = s
+        .surface_choices()
+        .into_iter()
+        .map(|(id, w)| (id, w.to_string()))
+        .collect();
     assert_eq!(
         choices,
         [
-            (first, "+CAB-UC1 plate".to_owned()),
-            (second, "+FLD-UC1 plate".to_owned()),
+            (first, "+CAB-UC1 mounting plate".to_owned()),
+            (second, "+FLD-UC1 mounting plate".to_owned()),
         ]
     );
+    // The row offers the surfaces by their IDs; the window names each in its language.
     assert_eq!(
         options_of(&s, page, "page/derived.surface"),
-        ["+CAB-UC1 plate", "+FLD-UC1 plate"]
+        [first.to_string(), second.to_string()]
     );
-    assert_eq!(text_of(&s, page, "page/derived.surface"), "+CAB-UC1 plate");
+    assert_eq!(
+        text_of(&s, page, "page/derived.surface"),
+        "+CAB-UC1 mounting plate"
+    );
     // The choice by its value: the second surface, though the words differ from the shown ones only in the location.
     let cmd = edit(&s, "page", page, "surface", &second.to_string()).unwrap();
     assert_eq!(cmd.params["surface"], json!(second.to_string()));
     run(&mut s, &cmd);
-    assert_eq!(text_of(&s, page, "page/derived.surface"), "+FLD-UC1 plate");
+    assert_eq!(
+        text_of(&s, page, "page/derived.surface"),
+        "+FLD-UC1 mounting plate"
+    );
     // Typed words name one surface.
-    let cmd = edit(&s, "page", page, "surface", "+CAB-UC1 plate").unwrap();
+    let cmd = edit(&s, "page", page, "surface", "+CAB-UC1 mounting plate").unwrap();
     assert_eq!(cmd.params["surface"], json!(first.to_string()));
     run(&mut s, &cmd);
     // A list chosen before the second enclosure was deleted: its ID is refused in words, without the ID.
@@ -584,8 +595,8 @@ fn two_uc1_plates_read_by_their_full_designations_and_the_choice_sets_the_one_ch
     );
 }
 
-/// A hostile file: two surfaces of one enclosure read alike after the full designation too, so each gains
-/// its ordinal in page order: 902 shows -UC1's plate, which reads "(1)"; the other, shown by no page, "(2)".
+/// A hostile file: two plates of one enclosure read alike, so each gains its ordinal in page order: 902 shows -UC1's
+/// plate, which reads "(1)"; the other, shown by no page, "(2)".
 #[test]
 fn two_surfaces_of_one_enclosure_read_with_their_ordinals() {
     let twin = Uuid::from_u128(0x7717);
@@ -603,18 +614,23 @@ fn two_surfaces_of_one_enclosure_read_with_their_ordinals() {
         ..copy
     }));
     let s = common::session_of(project, records, lib);
+    let choices: Vec<(Uuid, String)> = s
+        .surface_choices()
+        .into_iter()
+        .map(|(id, w)| (id, w.to_string()))
+        .collect();
     assert_eq!(
-        s.surface_choices(),
+        choices,
         [
-            (plate, "+CAB-UC1 plate (1)".to_owned()),
-            (twin, "+CAB-UC1 plate (2)".to_owned()),
+            (plate, "-UC1 mounting plate (1)".to_owned()),
+            (twin, "-UC1 mounting plate (2)".to_owned()),
         ]
     );
     assert_eq!(
         text_of(&s, page_of(&s, "902"), "page/derived.surface"),
-        "+CAB-UC1 plate (1)"
+        "-UC1 mounting plate (1)"
     );
-    assert_eq!(s.property_sheet(&[twin]).header.title, "+CAB-UC1 plate (2)");
+    assert_eq!(s.property_sheet(&[twin]).header.title, "-UC1 mounting plate (2)");
 }
 
 /// Device is a link (its tag the words); Realised part offers only the part uses `layout.move {part}`
@@ -956,7 +972,7 @@ fn a_new_panel_page_takes_the_fitting_scale_with_its_surface() {
         .id;
     let plate = plate(&s);
     assert_eq!(scale_of(&s, p902), ew_schema::Scale::OneTo(5));
-    let keep = edit(&s, "page", p902, "surface", "-UC1 plate").unwrap();
+    let keep = edit(&s, "page", p902, "surface", "-UC1 mounting plate").unwrap();
     assert_eq!(keep.params.get("scale"), None, "a chosen scale is kept");
 
     let before: Vec<Uuid> = s.page_rows().into_iter().map(|r| r.id).collect();
@@ -977,7 +993,7 @@ fn a_new_panel_page_takes_the_fitting_scale_with_its_surface() {
     let n = s.fitting_scale(new, plate).expect("the plate fits a scale");
     assert_eq!(n, 5, "-UC1's plate on the page frame's drawing area, as on 902");
     let datum = s.centred_surface_datum(new, plate).expect("a centred datum");
-    let cmd = edit(&s, "page", new, "surface", "-UC1 plate").unwrap();
+    let cmd = edit(&s, "page", new, "surface", "-UC1 mounting plate").unwrap();
     assert_eq!(cmd.name, "page.surface_view.set");
     assert_eq!(
         cmd.params,
@@ -990,7 +1006,7 @@ fn a_new_panel_page_takes_the_fitting_scale_with_its_surface() {
     // The page now has its scale: a later edit sends none.
     let again = edit(&s, "page", new, "label_mode", "Full").unwrap();
     assert_eq!(again.params.get("scale"), None);
-    let again = edit(&s, "page", new, "surface", "-UC1 plate").unwrap();
+    let again = edit(&s, "page", new, "surface", "-UC1 mounting plate").unwrap();
     assert_eq!(again.params.get("scale"), None);
 }
 

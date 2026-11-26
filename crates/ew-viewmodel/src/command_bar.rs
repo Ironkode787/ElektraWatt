@@ -395,11 +395,16 @@ pub const fn place(
 /// The split buttons: the main action runs the default, the chevron opens its variants (doc 16a §5.2).
 pub const SPLITS: &[(&str, &[&str])] = &[
     ("tool.mirror_x", &["tool.mirror_x", "tool.mirror_y"]),
-    // Enclosure… and the plate a layout page shows, and Fit the
-    // layout to the sheet.
+    // Enclosure…, the plate a layout page shows, the page of another face of the cabinet, and Fit the layout to the
+    // sheet.
     (
         "layout.enclosure_new",
-        &["layout.enclosure_new", "layout.choose_plate", "layout.fit_sheet"],
+        &[
+            "layout.enclosure_new",
+            "layout.choose_plate",
+            "layout.surface_page",
+            "layout.fit_sheet",
+        ],
     ),
     // New station… and New part…, for a card or a head station of one's own.
     ("plc.new_station", &["plc.new_station", "part.new"]),
@@ -769,6 +774,14 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
             }
             items.extend(item("layout.reset_labels"));
             items.extend(item("layout.fit_sheet"));
+            // The cabinet's other faces, each its page (doc 12 §3.8).
+            for (label, params) in model.surface_menu() {
+                items.extend(model.menu_item("layout.surface_page").map(|mut i| {
+                    i.params = params.clone();
+                    i.label = label.clone();
+                    i
+                }));
+            }
         }
         // A schematic page offers New station… (the rack comes first).
         let kind = model.page_rows().get(model.page_index()).map(|r| &r.kind);

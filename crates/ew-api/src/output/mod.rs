@@ -138,7 +138,9 @@ pub use layers::{
     page_view, text_style_table,
 };
 pub(crate) use layout_edit::LayoutPartOffer;
-pub use layout_edit::{LayoutEdit, LayoutEditError, parse_mm};
+pub use layout_edit::{
+    LayoutEdit, LayoutEditError, SurfaceOffer, corner_choice_words, hinge_choice_words, parse_mm,
+};
 pub use navigation::{
     CellLabel, GotoError, LinkTarget, PageCells, PageCp, PageListTable, PageRow, page_kind_name,
 };

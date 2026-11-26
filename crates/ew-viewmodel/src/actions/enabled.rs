@@ -507,6 +507,17 @@ pub(super) fn plate_choosable(m: &ShellModel) -> Result<(), Text> {
     }
 }
 
+/// Surface…: a project that can be changed has a cabinet (an enclosure brings its plate).
+pub(super) fn surfaces_offered(m: &ShellModel) -> Result<(), Text> {
+    has_pages(m)?;
+    writable(m)?;
+    if m.has_plates() {
+        Ok(())
+    } else {
+        Err(key!("reason-no-plate").into())
+    }
+}
+
 /// Reset label positions: a label of the panel page shown was moved.
 pub(super) fn labels_moved(m: &ShellModel) -> Result<(), Text> {
     panel_page(m)?;

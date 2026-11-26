@@ -258,3 +258,108 @@ fn millimetres_are_printed_exactly() {
     assert_eq!(mm_exact(-1), "-0.000001");
     assert_eq!(mm_exact(0), "0");
 }
+
+/// An enclosure section of `width × height × depth` mm with `doors`.
+fn section(w: i64, h: i64, d: i64, doors: Vec<ew_schema::DoorSpec>) -> ew_schema::EnclosureSection {
+    ew_schema::EnclosureSection {
+        width: Some(Nm(w * MM)),
+        height: Some(Nm(h * MM)),
+        depth: Some(Nm(d * MM)),
+        doors,
+        edge_margin: Some(Nm(30 * MM)),
+        ..Default::default()
+    }
+}
+
+fn door(hinge: ew_schema::Hinge, width: Option<i64>) -> ew_schema::DoorSpec {
+    ew_schema::DoorSpec {
+        hinge,
+        width: width.map(|w| Nm(w * MM)),
+        extra: Default::default(),
+    }
+}
+
+/// One door covers the whole front, hinged on the left; of two, each its width at its place; a side, the top and the
+/// bottom are the depth by the height or the width; without a depth they are not offered.
+#[test]
+fn a_cabinet_s_faces_take_their_sizes_and_places_from_the_part() {
+    use ew_schema::{Hinge, SurfaceKind as K};
+    let one = section(600, 800, 250, Vec::new());
+    assert_eq!(door_count(&one), 1);
+    assert_eq!(
+        face_size(&one, &K::Door, Some(0)),
+        Some((Nm(600 * MM), Nm(800 * MM)))
+    );
+    assert_eq!(
+        face_size(&one, &K::Left, None),
+        Some((Nm(250 * MM), Nm(800 * MM)))
+    );
+    assert_eq!(
+        face_size(&one, &K::Bottom, None),
+        Some((Nm(600 * MM), Nm(250 * MM)))
+    );
+    let (frame, sheet) = surface_frame(&one, &K::Door, Some(0), None).unwrap();
+    assert_eq!(
+        frame.t,
+        [Nm(0), Nm(0), Nm(250 * MM)],
+        "the door stands at the front"
+    );
+    assert_eq!(frame.q, Quat9::IDENTITY, "seen from outside: nothing is mirrored");
+    assert_eq!(sheet[2], p(600, 800));
+    // A bottom is turned a quarter about x, a right side a quarter about y at the right front edge.
+    let (bottom, _) = surface_frame(&one, &K::Bottom, None, None).unwrap();
+    assert_ne!(bottom.q, Quat9::IDENTITY);
+    let (right, _) = surface_frame(&one, &K::Right, None, None).unwrap();
+    assert_eq!(right.t, [Nm(600 * MM), Nm(0), Nm(250 * MM)]);
+    let two = section(
+        1200,
+        2000,
+        400,
+        vec![door(Hinge::Left, Some(500)), door(Hinge::Right, None)],
+    );
+    assert_eq!(
+        face_size(&two, &K::Door, Some(1)),
+        Some((Nm(700 * MM), Nm(2000 * MM)))
+    );
+    let (second, _) = surface_frame(&two, &K::Door, Some(1), None).unwrap();
+    assert_eq!(
+        second.t[0],
+        Nm(500 * MM),
+        "the right door starts where the left one ends"
+    );
+    assert_eq!(
+        face_size(&two, &K::Door, Some(2)),
+        None,
+        "a door the part does not list"
+    );
+    let flat = ew_schema::EnclosureSection {
+        depth: None,
+        ..one.clone()
+    };
+    assert_eq!(face_size(&flat, &K::Top, None), None);
+    assert_eq!(surface_frame(&flat, &K::Top, None, None), None);
+    assert!(
+        surface_frame(&flat, &K::Top, None, Some((Nm(600 * MM), Nm(200 * MM)))).is_some(),
+        "a size typed"
+    );
+    assert_eq!(
+        surface_frame(&one, &K::Plate, None, None),
+        None,
+        "the plate is plate_frame's"
+    );
+}
+
+/// A door's words follow how many doors the cabinet has.
+#[test]
+fn a_door_is_named_by_its_place_among_the_doors() {
+    use crate::text::surface_word;
+    use ew_schema::SurfaceKind as K;
+    assert_eq!(surface_word(&K::Door, Some(0), 1).to_string(), "Door");
+    assert_eq!(surface_word(&K::Door, Some(0), 2).to_string(), "Left door");
+    assert_eq!(surface_word(&K::Door, Some(1), 2).to_string(), "Right door");
+    assert_eq!(surface_word(&K::Door, Some(2), 3).to_string(), "Door 3");
+    assert_eq!(
+        crate::text::surface_caption(&K::Bottom, None, 1).to_string(),
+        "Bottom, seen from below; the door's edge at the top"
+    );
+}

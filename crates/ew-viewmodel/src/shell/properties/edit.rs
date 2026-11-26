@@ -222,8 +222,9 @@ impl ShellModel {
                 p.session
                     .surface_choices()
                     .into_iter()
-                    .filter(|(_, w)| w.to_lowercase().contains(&f))
-                    .map(|(id, w)| (w, Value::String(id.to_string())))
+                    .map(|(id, w)| (strings::render(&w), id))
+                    .filter(|(w, _)| w.to_lowercase().contains(&f))
+                    .map(|(w, id)| (w, Value::String(id.to_string())))
                     .collect()
             }
             (

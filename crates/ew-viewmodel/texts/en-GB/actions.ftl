@@ -145,7 +145,7 @@ command-layout-auto_fill = Auto-fill rail
 command-layout-enclosure-create_from_part = Create enclosure from part
 command-layout-space-edit = Rename layout space
 command-layout-enclosure-edit = Move enclosure
-command-layout-surface-edit = Edit plate
+command-layout-surface-edit = Edit surface
 
 # Actions.
 action-file-open = Open…
@@ -758,6 +758,8 @@ action-layout-options = Placing options
 # the set-up dialogs.
 group-panel-layout = Layout
 action-layout-choose-plate = Mounting plate…
+action-layout-surface-page = Surface…
+command-layout-surface-add = Make a surface
 action-layout-locate-devices = Give location…
 action-tool-rail-draw = Rail
 action-tool-duct-draw = Duct

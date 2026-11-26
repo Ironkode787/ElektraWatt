@@ -770,6 +770,7 @@ pub fn page_display_list(
         Layer::Surface => b.panel_surface(view),
         Layer::Carriers => b.panel_carriers(view),
         Layer::Placements => b.panel_placements(view),
+        Layer::Highlights => b.panel_highlights(view),
         _ => {}
     }
     b.out
