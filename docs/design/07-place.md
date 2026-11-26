@@ -38,7 +38,7 @@ in view whole, and the pictures are larger; nothing is stretched.
 **The command bar** has two tabs. **Part**: Back; New part, Like this, New symbol; Import, Export; Make my own, Keep
 in my parts; Remove; and at the right end Discard and the next step, Save. **Drawing**: To the part; Select, Line,
 Rectangle, Circle, More shapes, Text; Pin, Text field, Other marks; the drawing grid and Snap; Test on a page; and
-the next step, Done. Drawing is greyed with its reason while nothing is being drawn. No button is hidden or moves by
+the next step: Done, or for a drawing that was opened from a page, Save and place on that page (§5.6). Drawing is greyed with its reason while nothing is being drawn. No button is hidden or moves by
 state: one that cannot run stands greyed and says why.
 
 **The three states.**
@@ -64,6 +64,7 @@ where a field is meant, the field:
 | From | Entry |
 |---|---|
 | anywhere | Project ▸ Parts and Draw ▸ Place ▸ Parts on the command bar; the app menu; the start page, also with no project open; F9; the command search under Parts, My parts, New part, and under the names of what Parts replaced (Symbol editor, Edit stock, New cable type) |
+| a page, when a symbol is needed that nobody has | **New symbol** on Draw ▸ Place, beside Symbol (Ctrl+I), which opens Parts on a new drawing at once; New symbol… at the foot of the Insert symbol picker, where a search that found nothing ends; Draw one like it… in a placed symbol's context menu; the command search under New symbol, Draw a symbol and Symbol editor (§5.6) |
 | a device on a page | Open part in its context menu; the Parts row of Properties (the row's link, and Open part in its menu beside Choose part…) |
 | the part dialog and the device browser | Open in Parts on the active row's detail; **New part…** at the list's foot |
 | a finding, a refusal, a toast | **Edit part…**, offered by every outcome that comes from a part's missing datum (§5.7) |
@@ -75,7 +76,8 @@ where a field is meant, the field:
 to Messages. Back on the bar returns to where he was, with the page, the selection and an open dialog as he left
 them. Coming from a chooser, Save reads **Save and use for -102Q1**: the part is saved, given to the device, and he
 is back on the page with the device selected; from the part dialog without saving, Back returns to the dialog with
-the opened part under the cursor. Back with unsaved changes asks: Save, Discard or stay.
+the opened part under the cursor. Coming from a page for a new symbol, the next step reads **Save and place on
+102** and Back is Back without it (§5.6). Back with unsaved changes asks: Save, Discard or stay.
 
 ### 5.3 Finding a part
 
@@ -215,6 +217,35 @@ sentence what is being drawn and for what. Done returns to the sheet; nothing is
   from the Symbols shelf, or made with New symbol. It has a short sheet (Name, What it is, Listed under, its pins)
   and the drawing. What it is asks in a panel builder's words and sets what the program needs under it. Its sheet
   lists Parts drawn with it. A symbol that is not his is not changed: Make my own from it.
+- **A new symbol, in the middle of a page.** Drawing a symbol of one's own is a thing a person does often, so it is
+  one click from a page and its way back finishes the errand. New symbol (the Draw tab, Ctrl+I, the picker's foot)
+  opens Parts on a new drawing at once, with no question first; the strip says "A new symbol for page 102 Control
+  24 V DC" and holds Back without it. The drawing opens ready to draw on:
+  - on **the page's connection grid**, so that what he draws fits the page he came from;
+  - with **What it is** as he chose it for the symbol he drew last, the discipline of the page (a fluid page gives a
+    pneumatic symbol), and Listed under following from them;
+  - with **the texts its kind needs** already placed where the standard puts them ([07a](07a-symbol-design-standard.md):
+    the device tag, and the cross-reference of a coil or a contact), so that To do lists only what is his to give:
+    a name, and the pins;
+  - with **his drawing grid, Snap and the tool** as he left them the last time.
+
+  New symbol's menu offers two more starts: **Like the last one**, a copy of the symbol he saved last, and **Like
+  the selected one** when a symbol is selected on the page (the same as Draw one like it… in its context menu). The
+  Symbols shelf leads with Lately drawn and keeps the scope he used last.
+
+  The next step is **Save and place on 102** (Ctrl+Enter): the symbol is saved with his parts, the window is back on
+  the page, and the Place tool is armed with the symbol under the pointer, as if he had picked it in the symbol
+  picker, which lists it first under Recent from then on. One click places it. For a drawing started as Like the
+  selected one the next step is **Save and use for -102S1**: the selected symbol is exchanged for the new one, its
+  wires kept by the exchange's rule (§3.2 rule 7). Back without it returns to the page as it was; the drawing is
+  kept as the draft in hand and New symbol offers to go on with it. Where he changed the symbol's connection grid
+  so that it differs from the page's, the strip says so before he saves, naming both grids as the status bar does
+  ("This symbol is on 4 mm; page 102 is on QET 10 px: it is placed as a copy drawn on the page's grid"), and the
+  placing follows the picker's rule for a symbol of another grid (§5.12).
+- **What a person who draws weekly repeats, and what the program keeps.** He gives each symbol its name, its pins
+  and its shapes: those are the symbol. He gives nothing else twice: the grid is the page's; what it is, the
+  drawing grid, Snap and the tool are his last; the texts of its kind stand ready; a symbol like the last one or
+  like the one on the page is one entry; nothing asks where to keep it.
 - **A symbol from a file** (a QElectroTech element, an EPLAN symbol file, a DXF drawing) comes in by Import… as a
   drawing with its import report; one brought from EPLAN is saved only once its review is acknowledged.
 
