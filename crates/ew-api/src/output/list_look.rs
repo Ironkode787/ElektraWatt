@@ -71,7 +71,11 @@ impl Session {
             .iter()
             .filter(|(_, c)| {
                 c.library_id.as_uuid() == project
-                    && c.item.meta.key.as_ref().is_some_and(|k| k.as_str() == ew_schema::starter::NOGRID_FRAME)
+                    && c.item
+                        .meta
+                        .key
+                        .as_ref()
+                        .is_some_and(|k| k.as_str() == ew_schema::starter::NOGRID_FRAME)
             })
             .map(|(id, c)| (id, c.item.title_block))
             .collect();

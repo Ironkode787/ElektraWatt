@@ -417,17 +417,31 @@ fn block_bottom(frame: &FormDef, block: &FormDef) -> (i128, i128) {
     let (rn, rd) = (i128::from(g.rows.height.num()), i128::from(g.rows.height.den()));
     let rows = (rn * i128::from(g.rows.count), rd);
     let den = hd * rows.1;
-    (hn * rows.1 + rows.0 * hd + i128::from(block.sheet.height.0) * den, den)
+    (
+        hn * rows.1 + rows.0 * hd + i128::from(block.sheet.height.0) * den,
+        den,
+    )
 }
 
 /// The copy the project made of the form copy `original` (its `fork_of`).
 fn fork_of(e: &Engine, original: Id<FormDef>) -> LibCopy<FormDef> {
-    let item = copy(e, original).expect("the original").item_id.as_uuid().to_string();
+    let item = copy(e, original)
+        .expect("the original")
+        .item_id
+        .as_uuid()
+        .to_string();
     e.model()
         .table::<LibCopy<FormDef>>()
         .iter()
         .map(|(_, c)| c)
-        .find(|c| c.item.meta.extra.get("source").and_then(|s| s["fork_of"]["item"].as_str()) == Some(item.as_str()))
+        .find(|c| {
+            c.item
+                .meta
+                .extra
+                .get("source")
+                .and_then(|s| s["fork_of"]["item"].as_str())
+                == Some(item.as_str())
+        })
         .map(|c| (**c).clone())
         .unwrap_or_else(|| panic!("a fork of {original:?}"))
 }

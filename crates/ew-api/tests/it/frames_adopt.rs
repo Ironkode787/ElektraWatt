@@ -51,6 +51,9 @@ fn the_templates_title_block_brings_the_picture_put_into_it() {
         .collect();
     assert!(pictures.len() >= 2, "the adopted block names both pictures");
     for sha in pictures {
-        assert!(older.asset(&sha).is_some(), "the project holds the picture {sha:?}");
+        assert!(
+            older.asset(&sha).is_some(),
+            "the project holds the picture {sha:?}"
+        );
     }
 }

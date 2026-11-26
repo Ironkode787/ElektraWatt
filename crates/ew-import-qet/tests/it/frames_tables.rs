@@ -8,8 +8,8 @@ use ew_import_qet::QetProjectImporter;
 use ew_import_qet::project::new_project_context;
 use ew_interop_api::{ImportBatch, ImportInput};
 use ew_schema::{
-    ContinuationPolicy, FormDef, FormKind, LibCopy, LibDocument, Overflow, Page, Primitive, Record, ReportBlock,
-    ReportKind, ReportSource,
+    ContinuationPolicy, FormDef, FormKind, LibCopy, LibDocument, Overflow, Page, Primitive, Record,
+    ReportBlock, ReportKind, ReportSource,
 };
 use ew_units::{Grid, Nm};
 
@@ -241,7 +241,10 @@ fn every_region_of_an_imported_block_is_a_cell_and_its_lines_are_their_edges() {
     // The logo's region (the logo itself is not in the file) is a cell without a value: the line between it and the
     // title stays.
     assert!(
-        block.cells.iter().any(|c| c.value.is_none() && c.rect.0.min().x == Nm(0)),
+        block
+            .cells
+            .iter()
+            .any(|c| c.value.is_none() && c.rect.0.min().x == Nm(0)),
         "{:?}",
         block.cells
     );

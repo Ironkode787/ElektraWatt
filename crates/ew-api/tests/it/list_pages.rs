@@ -361,15 +361,24 @@ fn after_the_first_change_of_the_title_block_a_new_list_starts_on_the_frame_with
             "forks": facts.block_forks.iter().map(|u| u.to_string()).collect::<Vec<_>>()}),
     );
     let after = s.frame_facts("101").expect("page 101's frame");
-    let list = s.new_list_form().expect("the project's copy of the frame without rulers");
+    let list = s
+        .new_list_form()
+        .expect("the project's copy of the frame without rulers");
     let q = s.query();
-    let form = q.forms().get(ew_ids::Id::from_uuid(list)).expect("a form the project holds");
+    let form = q
+        .forms()
+        .get(ew_ids::Id::from_uuid(list))
+        .expect("a form the project holds");
     assert_eq!(
         form.item.meta.key.as_ref().map(|k| k.as_str()),
         Some(ew_api::output::NOGRID_FRAME),
         "the frame without rulers"
     );
-    assert_eq!(form.library_id.as_uuid(), q.project().id.as_uuid(), "the project's copy");
+    assert_eq!(
+        form.library_id.as_uuid(),
+        q.project().id.as_uuid(),
+        "the project's copy"
+    );
     assert_eq!(
         form.item.title_block.map(|b| b.as_uuid()),
         after.block,

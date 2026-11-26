@@ -135,7 +135,9 @@ fn hiding_the_rulers_changes_the_cross_references_alone() {
     assert!(diff.wires.is_empty(), "no wire renumbered: {:?}", diff.wires);
     assert!(diff.tags.is_empty(), "no tag changed: {:?}", diff.tags);
     assert!(
-        diff.xrefs.iter().any(|c| c.before == "103-C1" && c.after == "103"),
+        diff.xrefs
+            .iter()
+            .any(|c| c.before == "103-C1" && c.after == "103"),
         "{:?}",
         diff.xrefs
     );
