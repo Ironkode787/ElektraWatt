@@ -306,7 +306,7 @@ fn derived_rows(q: &Q, strip: Id<Device>, terminals: &[Uuid]) -> Vec<DerivedRow>
     };
     let word = |kind: &Option<ew_schema::AccessoryKind>| {
         kind.as_ref()
-            .map(crate::output::strip_edit::accessory_word)
+            .map(ew_derive::text::accessory_kind)
             .unwrap_or_else(|| text!("strips-accessory"))
     };
     let last = terminals.len().checked_sub(1);
@@ -417,7 +417,7 @@ fn accessory_rows(q: &Q, strip: Id<Device>, seqs: &[u32]) -> Vec<AccessoryRow> {
             index,
             after,
             pos: format!("{after_seq}.{k}"),
-            word: crate::output::strip_edit::accessory_word(&a.kind),
+            word: ew_derive::text::accessory_kind(&a.kind),
             part,
         });
     }

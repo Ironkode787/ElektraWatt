@@ -169,3 +169,18 @@ label-set-cable-markers = Kabelmerkers
 label-set-device-labels = Apparaatlabels
 label-set-tube-markers = Slangmerkers
 label-set-plates = Frontplaatjes
+
+## A strip accessory's kind (07 §2.5): the strip editor's rows and the assembly list's Item
+
+accessory-end-plate = Eindplaat
+accessory-end-clamp = Eindsteun
+accessory-partition = Scheidingsplaat
+accessory-marker = Markeringsdrager
+accessory-cover = Afdekking
+accessory-other = Toebehoren
+accessory-end-plate-plural = Eindplaten
+accessory-end-clamp-plural = Eindsteunen
+accessory-partition-plural = Scheidingsplaten
+accessory-marker-plural = Markeringsdragers
+accessory-cover-plural = Afdekkingen
+accessory-other-plural = Toebehoren

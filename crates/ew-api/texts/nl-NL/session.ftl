@@ -391,19 +391,6 @@ nav-rack = Rek { $p0 }
 nav-fluid-terminals = Ventieleilanden
 nav-fluid-devices = Fluïdumapparaten
 nav-fluid-media = Media
-# A strip accessory's kind (output::strip_edit).
-accessory-end-plate = Eindplaat
-accessory-end-clamp = Eindsteun
-accessory-partition = Scheidingsplaat
-accessory-marker = Markeringsdrager
-accessory-cover = Afdekking
-accessory-other = Toebehoren
-accessory-end-plate-plural = Eindplaten
-accessory-end-clamp-plural = Eindsteunen
-accessory-partition-plural = Scheidingsplaten
-accessory-marker-plural = Markeringsdragers
-accessory-cover-plural = Afdekkingen
-accessory-other-plural = Toebehoren
 # An interruption point's direction (output::navigators::ips; the context menu's choice too).
 choice-source = Bron
 choice-target = Doel

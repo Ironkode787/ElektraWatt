@@ -402,19 +402,6 @@ nav-rack = Rack { $p0 }
 nav-fluid-terminals = Valve terminals
 nav-fluid-devices = Fluid devices
 nav-fluid-media = Media
-# A strip accessory's kind (output::strip_edit).
-accessory-end-plate = End plate
-accessory-end-clamp = End bracket
-accessory-partition = Partition plate
-accessory-marker = Marker carrier
-accessory-cover = Cover
-accessory-other = Accessory
-accessory-end-plate-plural = End plates
-accessory-end-clamp-plural = End brackets
-accessory-partition-plural = Partition plates
-accessory-marker-plural = Marker carriers
-accessory-cover-plural = Covers
-accessory-other-plural = Accessories
 # An interruption point's direction (output::navigators::ips; the context menu's choice too).
 choice-source = Source
 choice-target = Target

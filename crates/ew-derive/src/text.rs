@@ -897,3 +897,30 @@ pub fn label_set(set: crate::labels::LabelSet) -> Text {
         S::Plates => text!("label-set-plates"),
     }
 }
+
+/// The word of a strip accessory's kind (doc 07 §2.5): "End plate", "End bracket"; "Accessory" for a kind of a newer
+/// format. The strip editor's rows and the assembly list's Item column print it.
+pub fn accessory_kind(kind: &ew_schema::AccessoryKind) -> Text {
+    use ew_schema::AccessoryKind as K;
+    match kind {
+        K::EndPlate => text!("accessory-end-plate"),
+        K::EndClamp => text!("accessory-end-clamp"),
+        K::Partition => text!("accessory-partition"),
+        K::Marker => text!("accessory-marker"),
+        K::Cover => text!("accessory-cover"),
+        K::Unknown(_) => text!("accessory-other"),
+    }
+}
+
+/// The plural of an accessory kind's word ([`accessory_kind`]): "End brackets" for a row that counts the pair.
+pub fn accessory_kinds(kind: &ew_schema::AccessoryKind) -> Text {
+    use ew_schema::AccessoryKind as K;
+    match kind {
+        K::EndPlate => text!("accessory-end-plate-plural"),
+        K::EndClamp => text!("accessory-end-clamp-plural"),
+        K::Partition => text!("accessory-partition-plural"),
+        K::Marker => text!("accessory-marker-plural"),
+        K::Cover => text!("accessory-cover-plural"),
+        K::Unknown(_) => text!("accessory-other-plural"),
+    }
+}

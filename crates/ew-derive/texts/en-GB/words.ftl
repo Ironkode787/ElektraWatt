@@ -173,3 +173,18 @@ label-set-cable-markers = Cable markers
 label-set-device-labels = Device labels
 label-set-tube-markers = Tube markers
 label-set-plates = Plates
+
+## A strip accessory's kind (07 §2.5): the strip editor's rows and the assembly list's Item
+
+accessory-end-plate = End plate
+accessory-end-clamp = End bracket
+accessory-partition = Partition plate
+accessory-marker = Marker carrier
+accessory-cover = Cover
+accessory-other = Accessory
+accessory-end-plate-plural = End plates
+accessory-end-clamp-plural = End brackets
+accessory-partition-plural = Partition plates
+accessory-marker-plural = Marker carriers
+accessory-cover-plural = Covers
+accessory-other-plural = Accessories
