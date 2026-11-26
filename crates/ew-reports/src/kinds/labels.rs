@@ -71,7 +71,8 @@ pub fn label_column_words(c: LabelColumn, lang: Option<&ew_mltext::LangTag>) -> 
 pub(super) fn label_set_rows(q: &Q, keep: impl Fn(LabelSet) -> bool) -> RowSet {
     let columns = label_columns();
     let records = q.get::<WireRecordSet>(());
-    let records: BTreeMap<Id<Connection>, &ew_derive::WireRecord> = records.iter().map(|r| (r.wire.id, r)).collect();
+    let records: BTreeMap<Id<Connection>, &ew_derive::WireRecord> =
+        records.iter().map(|r| (r.wire.id, r)).collect();
     let tubes = q.get::<ew_derive::TubeRows>(());
     let tubes: BTreeMap<Id<Connection>, &ew_derive::TubeRow> = tubes.iter().map(|t| (t.id, t)).collect();
     let mut set = RowSet::new(columns.clone());
@@ -116,19 +117,16 @@ pub(super) fn label_set_rows(q: &Q, keep: impl Fn(LabelSet) -> bool) -> RowSet {
 /// of a terminal; a plate, which labels a device a device label labels too, says so.
 fn label_row_id(l: &LabelRecord) -> (RowId, AnyId) {
     match &l.target {
-        LabelTarget::WireEnd(c, end) | LabelTarget::TubeEnd(c, end) => (
-            RowId::entity(*c).with(RowKey::Index(u32::from(*end))),
-            c.cast(),
-        ),
-        LabelTarget::Device(d) if l.set == LabelSet::Plates => (
-            RowId::entity(*d).with(RowKey::Name("plate".to_owned())),
-            d.cast(),
-        ),
+        LabelTarget::WireEnd(c, end) | LabelTarget::TubeEnd(c, end) => {
+            (RowId::entity(*c).with(RowKey::Index(u32::from(*end))), c.cast())
+        }
+        LabelTarget::Device(d) if l.set == LabelSet::Plates => {
+            (RowId::entity(*d).with(RowKey::Name("plate".to_owned())), d.cast())
+        }
         LabelTarget::Device(d) => (RowId::entity(*d), d.cast()),
-        LabelTarget::TerminalLevel(d, level) => (
-            RowId::entity(*d).with(RowKey::Index(u32::from(*level))),
-            d.cast(),
-        ),
+        LabelTarget::TerminalLevel(d, level) => {
+            (RowId::entity(*d).with(RowKey::Index(u32::from(*level))), d.cast())
+        }
     }
 }
 

@@ -419,7 +419,10 @@ impl ShellModel {
         let Some(project) = &self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        let value = match project.session.label_profile_value(&columns, delimiter.as_deref()) {
+        let value = match project
+            .session
+            .label_profile_value(&columns, delimiter.as_deref())
+        {
             Ok(v) => v,
             Err(_) => return failed(key!("error-bad-param"), &["delimiter"]),
         };

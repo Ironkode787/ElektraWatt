@@ -8,8 +8,8 @@ use std::collections::BTreeMap;
 
 use ew_derive::layout::StripItemKind;
 use ew_derive::{
-    AssemblyItem, AssemblyItemKind, BracketFrom, LabelRows, LabelSet, Q, StripAssembly,
-    assembly_rows, mm_tenth_short, short_tag, strip_bracket,
+    AssemblyItem, AssemblyItemKind, BracketFrom, LabelRows, LabelSet, Q, StripAssembly, assembly_rows,
+    mm_tenth_short, short_tag, strip_bracket,
 };
 use ew_ids::Id;
 use ew_l10n::{Text, TextArg};
@@ -188,7 +188,11 @@ fn with_words(q: &Q, with: &[Id<Part>]) -> Option<Text> {
 /// of a terminal's levels.
 fn terminal_markers(q: &Q) -> BTreeMap<Id<Device>, String> {
     let mut out: BTreeMap<Id<Device>, String> = BTreeMap::new();
-    for l in q.get::<LabelRows>(()).iter().filter(|l| l.set == LabelSet::TerminalMarkers) {
+    for l in q
+        .get::<LabelRows>(())
+        .iter()
+        .filter(|l| l.set == LabelSet::TerminalMarkers)
+    {
         if let Some(d) = l.target.device() {
             let text = out.entry(d).or_default();
             if !text.is_empty() {

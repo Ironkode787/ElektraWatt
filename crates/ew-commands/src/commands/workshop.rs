@@ -141,8 +141,12 @@ pub(crate) fn set_member(tx: &mut TxBuilder<'_>, path: &str, value: &Value) -> R
             let profile: ew_schema::ExportProfile = match member_value(&member, value) {
                 Ok(p) => p,
                 Err(refused) => match serde_json::from_value::<ew_schema::ExportProfile>(value.clone()) {
-                    Ok(p) if matches!(p.delimiter, ew_schema::Delimiter::Unknown(_))
-                        && workshop.label_profile.as_ref().is_some_and(|s| s.delimiter == p.delimiter) =>
+                    Ok(p)
+                        if matches!(p.delimiter, ew_schema::Delimiter::Unknown(_))
+                            && workshop
+                                .label_profile
+                                .as_ref()
+                                .is_some_and(|s| s.delimiter == p.delimiter) =>
                     {
                         p
                     }

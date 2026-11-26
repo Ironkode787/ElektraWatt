@@ -3,14 +3,12 @@
 
 //! `terminal_diagram`: the terminal diagram of one strip (FR-REP-009; from folio 903 of the standard layout).
 
-use std::collections::BTreeSet;
-
 use ew_derive::{
     Cp, CpRef, DevicePartLines, FunctionCps, PotentialNameOf, PotentialPartition, Q, WireRecord, short_tag,
 };
 use ew_ids::Id;
 use ew_mltext::{NaturalKey, natural_key};
-use ew_schema::{Device, Endpoint, ReportBlock, ReportKind, Side, Terminal};
+use ew_schema::{Device, Endpoint, ReportBlock, ReportKind, Side};
 
 use super::conn::{
     Bridge, Wires, bridges, end_text, terminal_state, terminal_wired, text_cell, wires_by_cp, words_cell,

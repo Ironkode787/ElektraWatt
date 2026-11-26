@@ -273,7 +273,8 @@ impl Query for LabelRows {
                     if function_texts && !function.is_empty() {
                         lines.push(function.to_owned());
                     }
-                    let target = level.map_or(LabelTarget::Device(t.id), |l| LabelTarget::TerminalLevel(t.id, l));
+                    let target =
+                        level.map_or(LabelTarget::Device(t.id), |l| LabelTarget::TerminalLevel(t.id, l));
                     push(LabelSet::TerminalMarkers, target, lines, 1);
                 }
             }

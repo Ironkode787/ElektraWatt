@@ -470,7 +470,12 @@ pub fn terminal_levels(q: &Q, terminal: Id<ew_schema::Device>) -> Vec<Option<u8>
     let mut carried: Vec<u8> = q
         .idx()
         .functions_of_device(terminal)
-        .flat_map(|f| q.get::<FunctionCps>(f).iter().filter_map(|c| c.level).collect::<Vec<_>>())
+        .flat_map(|f| {
+            q.get::<FunctionCps>(f)
+                .iter()
+                .filter_map(|c| c.level)
+                .collect::<Vec<_>>()
+        })
         .collect();
     carried.sort_unstable();
     let mut levels: Vec<u8> = Vec::new();

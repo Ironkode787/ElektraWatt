@@ -124,9 +124,15 @@ fn label_file_columns_keep_what_this_build_does_not_know() {
             v.to_string()
         })
         .collect();
-    std::fs::write(&file, lines.join("
-") + "
-").expect("written");
+    std::fs::write(
+        &file,
+        lines.join(
+            "
+",
+        ) + "
+",
+    )
+    .expect("written");
     let mut s = tmp.sample_in(ew_viewmodel::shell::Mode::Gui, true, "101");
     done(&mut s, "labels.columns", json!({}));
     let form = common::form(&s);
@@ -156,7 +162,8 @@ fn label_file_columns_keep_what_this_build_does_not_know() {
     done(&mut s, "file.save", json!({}));
     let (session, _) =
         ew_viewmodel::ew_api::Session::open_read_only(&tmp.sample_copy(), "test").expect("the saved copy");
-    let stored = serde_json::to_value(&session.query().project().settings.workshop.label_profile).expect("JSON");
+    let stored =
+        serde_json::to_value(&session.query().project().settings.workshop.label_profile).expect("JSON");
     assert_eq!(
         stored,
         json!({

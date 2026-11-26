@@ -215,14 +215,27 @@ fn a_label_row_is_what_it_labels_with_its_record_as_its_source() {
     let labels = q.get::<LabelRows>(());
     let all = rows(ew_schema::ReportKind::Labels);
     let row_of = |set: LabelSet| {
-        let n = labels.iter().position(|l| l.set == set).expect("a label of the set");
+        let n = labels
+            .iter()
+            .position(|l| l.set == set)
+            .expect("a label of the set");
         (labels[n].target.clone(), all[n].clone())
     };
     let (target, (id, sources)) = row_of(LabelSet::WireMarkers);
-    let ew_derive::LabelTarget::WireEnd(wire, end) = target else { panic!("a wire end") };
-    assert_eq!((id, sources), (RowId::entity(wire).with(RowKey::Index(u32::from(end))), vec![wire.cast()]));
+    let ew_derive::LabelTarget::WireEnd(wire, end) = target else {
+        panic!("a wire end")
+    };
+    assert_eq!(
+        (id, sources),
+        (
+            RowId::entity(wire).with(RowKey::Index(u32::from(end))),
+            vec![wire.cast()]
+        )
+    );
     let (target, (id, sources)) = row_of(LabelSet::DeviceLabels);
-    let ew_derive::LabelTarget::Device(d) = target else { panic!("a device") };
+    let ew_derive::LabelTarget::Device(d) = target else {
+        panic!("a device")
+    };
     assert_eq!((id, sources), (RowId::entity(d), vec![d.cast()]));
     let ids: std::collections::BTreeSet<&RowId> = all.iter().map(|(id, _)| id).collect();
     assert_eq!(ids.len(), all.len(), "no two rows of the labels list are one");

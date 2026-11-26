@@ -173,7 +173,10 @@ fn want(qb: &Q, before: &[PhysicalWire], qa: &Q, after: &[PhysicalWire]) -> Vec<
             // The wires it is made from: the one whose ID it keeps first, then in order.
             let mut from: Vec<usize> = by_id.get(&ia).copied().into_iter().collect();
             for (ib, b) in before.iter().enumerate() {
-                if !kept.contains(&ib) && !from.contains(&ib) && clamps(b).iter().any(|c| clamps(a).contains(c)) {
+                if !kept.contains(&ib)
+                    && !from.contains(&ib)
+                    && clamps(b).iter().any(|c| clamps(a).contains(c))
+                {
                     from.push(ib);
                 }
             }
