@@ -245,12 +245,24 @@ impl Session {
                 if !links.contains(&link) {
                     links.push(link);
                 }
+                // Why no protective device's rating sizes (or checks) the wire's size (doc 08 §4.2); a PE wire takes
+                // its ends' ratings and is not said.
+                let pe = matches!(class, Some(ew_schema::CircuitClass::Pe));
+                let unrated = (name == "csa" && !pe)
+                    .then(|| ew_derive::unrated(q, *c))
+                    .flatten();
                 let provenance = match &source {
+                    // A size set by hand behind a breaker no supply reaches is checked against no rating: said.
                     PropSource::Override(at) if at == c => {
                         can_reset = true;
-                        Provenance::Overridden {
-                            note: "override (CDP)".into(),
+                        let mut note = "override (CDP)".to_owned();
+                        if let Some(ew_derive::Unrated::UnfedProtection(device)) = unrated {
+                            note.push_str(&format!(
+                                " · no supply found upstream of {}, so its rating is not used",
+                                device_tag_text(q, device)
+                            ));
                         }
+                        Provenance::Overridden { note }
                     }
                     PropSource::Override(at) => {
                         can_override = true;
@@ -268,16 +280,23 @@ impl Session {
                     other => {
                         can_override = true;
                         let mut via = prop_via(q, other, &potential, class.as_ref());
-                        // A size from the profile behind a protective device that nothing feeds: its rating is not
-                        // read, and the row says why (doc 08 §4.2).
-                        if name == "csa"
-                            && other.level() < 3
-                            && let Some(device) = ew_derive::unfed_protection(q, *c)
+                        // A size from the profile that no protective device's rating sizes says why at the size: a
+                        // device that nothing feeds, no supply, or no protective device upstream.
+                        if other.level() < 3
+                            && let Some(why) = unrated
                         {
-                            via.push_str(&format!(
-                                " · no supply found upstream of {}, so its rating is not used",
-                                device_tag_text(q, device)
-                            ));
+                            via.push_str(&match why {
+                                ew_derive::Unrated::UnfedProtection(device) => format!(
+                                    " · no supply found upstream of {}, so its rating is not used",
+                                    device_tag_text(q, device)
+                                ),
+                                ew_derive::Unrated::NoSupply => {
+                                    " · no supply found upstream, so no protective device sizes it".to_owned()
+                                }
+                                ew_derive::Unrated::NoProtection => {
+                                    " · no protective device upstream sizes it".to_owned()
+                                }
+                            });
                         }
                         Provenance::Derived { via }
                     }

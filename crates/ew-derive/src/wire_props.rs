@@ -459,6 +459,37 @@ pub fn unfed_protection(q: &Q, conn: Id<Connection>) -> Option<Id<Device>> {
     })
 }
 
+/// Why no protective device's rating sizes a wire (doc 08 §4.2): what its Cross-section row says beside a size of
+/// the profile ([`unrated`]).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Unrated {
+    /// It ends on this protective device, whose potential no supply reaches ([`unfed_protection`]).
+    UnfedProtection(Id<Device>),
+    /// No supply reaches its potential.
+    NoSupply,
+    /// A supply reaches it, and no protective device stands upstream.
+    NoProtection,
+}
+
+/// Why no protective device's rating sizes the connection `conn` (doc 08 §4.2): a protective device at an end that no
+/// supply feeds, else no supply reaching its potential, else no protective device upstream; `None` where one stands
+/// upstream (its rating sizes the wire, or its device states none).
+pub fn unrated(q: &Q, conn: Id<Connection>) -> Option<Unrated> {
+    if let Some(device) = unfed_protection(q, conn) {
+        return Some(Unrated::UnfedProtection(device));
+    }
+    let c = q.connections().get(conn)?;
+    let potential = [&c.a, &c.b]
+        .into_iter()
+        .filter_map(EndpointKey::of)
+        .find_map(|at| potential_id_at(q, at))?;
+    let flow = q.get::<crate::PotentialFlow>(potential);
+    match (*flow).as_ref() {
+        Some(f) if f.distance.is_some() => f.protected_by.is_none().then_some(Unrated::NoProtection),
+        _ => Some(Unrated::NoSupply),
+    }
+}
+
 /// The reads shared by the wires of one query.
 struct Ctx<'a> {
     q: &'a Q,

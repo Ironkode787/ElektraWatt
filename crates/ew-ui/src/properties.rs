@@ -1001,6 +1001,9 @@ impl PropertiesPane {
             && shell
                 .row_menu(&row.key)
                 .contains(&ew_viewmodel::properties::RowMenuItem::DefinePotential);
+        // A derived value a person may set (a wire's Cross-section): a click types its own value, as Enter does, so the
+        // override is the row itself and not only an entry behind "…".
+        let overridable = !header && !editable && !link && row.actions.contains(&RowAction::Override);
         // A click on a read-only value moves the row cursor there (no focus stop of its own): what is typed next goes to
         // that row and is refused with its reason, never into the row before (a text must not land in the date
         // row above).
@@ -1167,7 +1170,7 @@ impl PropertiesPane {
             events.push(Event::Action("props.row", json!({"to": row.key})));
             if link {
                 events.push(Event::Action("props.follow", json!({"row": row.key})));
-            } else if editable || cable || defines {
+            } else if editable || cable || defines || overridable {
                 events.push(Event::Action("props.edit", json!({})));
             }
         }

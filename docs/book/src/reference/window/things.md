@@ -38,7 +38,9 @@ To change one: select it. The selected wire shows a ring at each of its two ends
 change its route
 ([Change a wire's route by hand](tools.md#change-a-wires-route-by-hand)), or choose **Route** to route it again
 ([Route](tools.md#route)). Its number, colour and cross-section are its rows in Properties, explained under
-[Connection](../properties.md#connection).
+[Connection](../properties.md#connection); click one to give the wire its own value. The Cross-section row says
+where its size comes from, and why no protective device sizes it when none does (no supply, or no protective device
+upstream).
 
 ## Cables and their marks
 

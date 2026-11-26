@@ -234,8 +234,8 @@ pub use wire_profile::{
     csa_short_of, current_table_basis,
 };
 pub use wire_props::{
-    ConnWireProps, EffectiveProps, EndClass, EndRating, EndScope, PropSource, Prov, SizeRule, WirePropsMap,
-    WirePropsOf, pick, unfed_protection, wire_props_below_overrides, wire_rating,
+    ConnWireProps, EffectiveProps, EndClass, EndRating, EndScope, PropSource, Prov, SizeRule, Unrated,
+    WirePropsMap, WirePropsOf, pick, unfed_protection, unrated, wire_props_below_overrides, wire_rating,
 };
 pub use wires::{EndKind, PhysicalWire, PhysicalWiresOf, WireEnd};
 

@@ -633,11 +633,14 @@ rows = [ { class = "control", csa = "0.75" }, { class = "mains", csa = "1.5" } ]
     core's and the wire's own override win over it. So it is a proposal the person changes in Properties, whose chip
     names its source: "potential 24V/102F1:2 · protected by -102F1, rated 16 A · IEC 60204-1:2016 Table 6, method B2,
     PVC-insulated copper, 40 °C"; its link goes to the protecting device's Parts row.
-  - *Behind a device that nothing feeds* (0.3.5). The protecting device is found by the flow from a supply; behind a
-    breaker that no supply reaches there is no circuit to follow and the rating is not read. Where the wire's size
-    comes from below level 3 and a protective device with a rating ends the wire on a potential the flow does not
-    reach, its Cross-section row's chip reads "no supply" in place of "profile", and its text adds "no supply found
-    upstream of -101F1, so its rating is not used" (`unfed_protection`).
+  - *What a draughtsman is told.* The protecting device is found by the flow from a supply, so where no rating sizes
+    a wire whose size comes from below level 3, its Cross-section row says why at the size (`unrated`): chip "no
+    supply" with "no supply found upstream of -101F1, so its rating is not used" where it ends on a rated protective
+    device that no supply reaches, else "no supply found upstream, so no protective device sizes it", or chip "no
+    protection" with "no protective device upstream sizes it" (a PE wire, sized by its ends, is not said). The row is
+    its own override: a click types the wire's own size, as Enter does, and Reset in its menu takes it back. A size set
+    by hand is checked against the same rating the derived size reads (EW-POT-022, `wire_rating`), so behind a breaker
+    no supply reaches the rating neither sizes nor checks the wire, and the row says so beside a size set by hand too.
   - *A size set by hand below it* (0.3.5). A wire whose own cross-section (level 7, in mm²) is below the least size
     the current table gives for its protecting device's rating is EW-POT-022 (warning, online and at release; a size
     below the table's first row is reported where the rating is above what that row carries). Its fix "Take the
