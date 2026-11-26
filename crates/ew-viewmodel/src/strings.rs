@@ -380,8 +380,8 @@ pub fn decimal(number: &str) -> String {
     number.replace('.', text(key!("number-decimal-point")))
 }
 
-/// The language of the check rules' messages for the UI language now: `nl-NL` for Dutch, else `en-GB`
-/// (`ew-checks` falls back to en-GB per message).
+/// The language tag of the UI language now, `nl-NL` for Dutch, else `en-GB`: the language of the check rules'
+/// messages (`ew-checks` falls back to en-GB per message) and of a field's value typed in the window.
 pub fn rule_language() -> &'static str {
     match locale() {
         "nl" => "nl-NL",

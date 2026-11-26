@@ -212,7 +212,7 @@ pub use table_io::{
     CellOutcome, ImportCell, ImportTableOptions, TABLE_NAVIGATORS, TableApplyError, TableError, TableImport,
     TableImportError, guard_table_read,
 };
-pub use title_block_fields::{OwnField, OwnFieldValues, TitleBlockFacts};
+pub use title_block_fields::{OwnField, OwnFieldValues, TitleBlockFacts, typed_own_values};
 pub use typeface::{DrawingFonts, ProjectFonts, ProjectFontsQ, TypefaceState, font_files, fonts};
 pub use underlay::{UNDERLAY_IMPORTER, UnderlaySource, underlay_cache_dir};
 pub use view::{

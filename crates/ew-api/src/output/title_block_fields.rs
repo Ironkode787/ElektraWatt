@@ -7,6 +7,7 @@
 
 use ew_derive::{PageRef, TbValue, TitleBlockValues, current_revision, open_revision};
 use ew_ids::{Id, Uuid};
+use ew_mltext::MlText;
 use ew_schema::{Page, Revision, UserPropScope, UserPropValue};
 use serde_json::Value;
 
@@ -238,9 +239,17 @@ impl Session {
             .collect()
     }
 
-    /// The edits of `fields.set_many` that give the field `key` the value `text` (empty: none) on each of `targets`
-    /// (with `page`, pages; else the project's one ID), each record's value list written whole.
-    pub fn own_field_edits(&self, page: bool, targets: &[Uuid], key: &str, text: &str) -> Vec<Value> {
+    /// The edits of `fields.set_many` that give the field `key` the value `text` typed in `language` (the window's,
+    /// `nl-NL`; empty: none) on each of `targets` (with `page`, pages; else the project's one ID), each record's value
+    /// list written whole by [`typed_own_values`].
+    pub fn own_field_edits(
+        &self,
+        page: bool,
+        targets: &[Uuid],
+        key: &str,
+        text: &str,
+        language: Option<&str>,
+    ) -> Vec<Value> {
         let q = self.query();
         let project = q.project();
         let lists: Vec<(Uuid, Vec<UserPropValue>)> = if page {
@@ -256,16 +265,43 @@ impl Session {
         lists
             .into_iter()
             .map(|(target, values)| {
-                let mut list: Vec<Value> = values
-                    .iter()
-                    .filter(|v| v.key.as_str() != key)
-                    .filter_map(|v| serde_json::to_value(v).ok())
-                    .collect();
-                if !text.trim().is_empty() {
-                    list.push(serde_json::json!({"key": key, "value": text.trim()}));
-                }
+                let values: Vec<Value> = values.iter().filter_map(|v| serde_json::to_value(v).ok()).collect();
+                let list = typed_own_values(&values, key, text, language);
                 serde_json::json!({"kind": kind, "targets": [target.to_string()], "path": "user_props", "value": list})
             })
             .collect()
     }
+}
+
+/// A record's values of the fields of the project's own (`user_props`, in their JSON form) with the field `key` given
+/// the text `text` typed in `language` (the window's, `nl-NL`) (doc 09 §2.10): a value of several languages keeps the
+/// others and takes `text` as that language's, an empty text removing that language; any other value becomes the
+/// neutral text `text`; a value left empty goes. The one rule of a field's row in Properties and of Title block
+/// fields….
+pub fn typed_own_values(values: &[Value], key: &str, text: &str, language: Option<&str>) -> Vec<Value> {
+    let text = text.trim();
+    let at = values.iter().position(|v| v["key"] == key);
+    let old: Option<MlText> = at.and_then(|i| serde_json::from_value(values[i]["value"].clone()).ok());
+    let tag = language.and_then(|l| l.parse::<ew_mltext::LangTag>().ok());
+    let new = match (old, tag) {
+        (Some(mut m), Some(tag)) if !m.is_neutral() => {
+            m.set_lang(tag, text);
+            m
+        }
+        _ => MlText::neutral(text),
+    };
+    let mut out = values.to_vec();
+    let entry = serde_json::json!({"key": key, "value": new});
+    match (at, new.is_empty()) {
+        (Some(i), true) => {
+            out.remove(i);
+        }
+        (Some(i), false) => {
+            // The record's other members of the value (a newer format's) stay.
+            out[i]["value"] = entry["value"].clone();
+        }
+        (None, true) => {}
+        (None, false) => out.push(entry),
+    }
+    out
 }

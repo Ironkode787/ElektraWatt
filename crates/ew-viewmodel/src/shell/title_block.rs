@@ -567,10 +567,12 @@ impl ShellModel {
                 } else {
                     (&mut project_props, &mut project_props_changed)
                 };
-                list.retain(|v| v["key"] != own.key.as_str());
-                if !text.is_empty() {
-                    list.push(json!({"key": own.key, "value": text}));
-                }
+                *list = ew_api::output::typed_own_values(
+                    list,
+                    own.key.as_str(),
+                    &text,
+                    Some(strings::rule_language()),
+                );
                 *changed = true;
                 continue;
             }

@@ -117,8 +117,8 @@ impl ShellModel {
         }
     }
 
-    /// A value typed into a field's row: its project's or pages' value lists written whole (`fields.set_many` of
-    /// `user_props`), an empty text removing the value; the row New field of your own… opens its form. `None` for
+    /// A value typed into a field's row, in the window's language: its project's or pages' value lists written whole
+    /// (`fields.set_many` of `user_props`, `ew_api::output::typed_own_values`), an empty text removing the value; the row New field of your own… opens its form. `None` for
     /// another row.
     pub(super) fn commit_own_field(&mut self, key: &str, text: &str) -> Option<Outcome> {
         if key == OWN_NEW_ROW {
@@ -132,6 +132,8 @@ impl ShellModel {
             &section.targets,
             &field,
             text,
+            // The window's language, as the row shows the value.
+            Some(strings::rule_language()),
         );
         let cmd = AnyCommand {
             name: "fields.set_many".to_owned(),
