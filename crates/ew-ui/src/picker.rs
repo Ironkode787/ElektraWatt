@@ -815,6 +815,66 @@ fn detail(ui: &mut Ui, t: &Tokens, shell: &ShellModel, picker: &Picker, events: 
     if let Some(view) = &picker.card {
         crate::part_card::body(ui, t, view, false, events);
     }
+    // A part's variants (the one its placements take chosen here) and what it brings with it (doc 07 §5).
+    if let Some(part) = picker.current_part().and_then(|p| picker.catalogue.parts.get(p)) {
+        if !part.variants.is_empty() {
+            let own = part.part_number.clone();
+            let chosen = picker
+                .variant
+                .as_ref()
+                .and_then(|k| part.variants.iter().find(|v| &v.0 == k));
+            let words = |v: Option<&(String, String, String)>| match v {
+                Some((_, name, number)) => format!("{name} \u{b7} {number}"),
+                None => own.clone(),
+            };
+            crate::components::form_row(ui, strings::text(key!("picker-variant")), |ui, label| {
+                let mut picked: Option<Option<String>> = None;
+                crate::components::choice(
+                    ui,
+                    egui::ComboBox::from_id_salt("picker-variant").selected_text(words(chosen)),
+                    |ui| {
+                        if ui.selectable_label(chosen.is_none(), words(None)).clicked() {
+                            picked = Some(None);
+                        }
+                        for v in &part.variants {
+                            if ui
+                                .selectable_label(chosen.is_some_and(|c| c.0 == v.0), words(Some(v)))
+                                .clicked()
+                            {
+                                picked = Some(Some(v.0.clone()));
+                            }
+                        }
+                    },
+                )
+                .response
+                .labelled_by(label);
+                if let Some(key) = picked {
+                    events.push(Event::Action(
+                        "place.variant",
+                        json!({ "variant": key.unwrap_or_default() }),
+                    ));
+                }
+            });
+        }
+        if !part.accessories.is_empty() {
+            line(
+                ui,
+                strings::text(key!("picker-comes-with")),
+                &t.type_small,
+                t.text_secondary,
+            );
+            for a in &part.accessories {
+                let kind = if a.kind.is_empty() {
+                    strings::text(key!("picker-accessory")).to_owned()
+                } else {
+                    strings::field_choice_text("part", "accessories[].kind", &a.kind)
+                };
+                let per = strings::field_choice_text("part", "accessories[].per", &a.per);
+                let text = strings::format(key!("picker-comes-with-line"), &[&kind, &a.number, &a.qty, &per]);
+                line(ui, &text, &t.type_small, t.text_secondary);
+            }
+        }
+    }
     if let Some(reason) = &reason {
         line(ui, reason, &t.type_small, t.text_secondary);
     }

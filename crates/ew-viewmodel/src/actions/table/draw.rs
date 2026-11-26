@@ -157,6 +157,18 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ))),
     )),
     keeps_banner(with_params(
+        "variant:text",
+        hidden(act(
+            "place.variant",
+            View,
+            Menu::Draw,
+            &[],
+            editable_page,
+            None,
+            |s, p| s.act_place_variant(p),
+        )),
+    )),
+    keeps_banner(with_params(
         "text:text",
         hidden(act(
             "picker.filter",

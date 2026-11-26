@@ -605,8 +605,11 @@ the first terminal and after the last, the end plate after the last terminal who
 "with <part>", and a left-off one as "left off this strip"; Delete on such a row leaves it off for that strip, the
 toast says so. The Part cell of a terminal whose part has variants chooses the variant (by its number, its name or
 the part's own number): no column of its own, so that the side columns stay on show at 1920 × 1080. The strip editor
-opens with the cursor on the strip's first terminal. The place tool's options card shows Variant when the part it
-places has variants.
+opens with the cursor on the strip's first terminal. The place browser's detail of a part lists its variants as a
+choice and what it brings ("Comes with": kind, part, quantity and per what); the choice (`place.variant`, by a
+variant's key, name or number) is the one the Place tool it arms takes, `device.place`'s `part_variant`, kept across
+placements and named in the tool's label. A greyed row of a part no symbol draws on the page says what it is ("No
+symbol draws a cylinder double-acting on this page").
 
 The **Macro browser** is the Macros navigator (`NavKind::Macros`): the macros of every tier, then the project's own macro copies under "In this project"; its detail shows name, version and library, description, the devices and the variables, with "No preview" where the thumbnail should be. Enter on a row, its drop on a canvas or Insert macro… (Draw ▸ Place) arms the macro tool; its click opens the `macro` card in the Preview tab with the value set and the conflicts, and Apply is one undo step; a held macro without an installed source is not inserted. **Save as macro** (Edit menu) is a window-only dialog of name, key, description and library, which is the confirmation of a write that cannot be undone; kind, insertion point and the value-set table are not built, and "make variable" is the hidden action `props.make_variable`. The **Library manager** is the Libraries navigator (`NavKind::Libraries`): the libraries by tier with version, licence, access and index state, then "In this project" with each copy's state in words (Current, Update available, Only in this project, Deprecated, Local fork), each with a hover text of what it means, and the devices that use it; Update… names how many items it updates, is disabled with its reason when they have none, and opens `library.update`'s bulk card; "purge unused" is not in it. Its rows show IDs rather than names.
 

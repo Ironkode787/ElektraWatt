@@ -196,6 +196,23 @@ pub struct CataloguePart {
     /// Whether the browser files the part under PLC and bus whatever its category says: a PLC card or a station's
     /// head, or a part with a bus interface. A valve terminal is filed as a valve terminal, with its plates and valves.
     pub plc_bus: bool,
+    /// What the part brings with it (doc 07 §2.5), as the browser's detail lists it ("Comes with").
+    pub accessories: Vec<CatalogueAccessory>,
+    /// The part's variants: (key, name, number), in the part's order; empty for a part without variants.
+    pub variants: Vec<(String, String, String)>,
+}
+
+/// One accessory of a catalogue part ([`CataloguePart::accessories`]), as the file spells its words.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct CatalogueAccessory {
+    /// Its kind (`end_plate`, `end_clamp`, …), empty without one.
+    pub kind: String,
+    /// The accessory's part number, empty when the project does not hold it yet.
+    pub number: String,
+    /// Its quantity.
+    pub qty: String,
+    /// Per what it counts (`unit`, `strip`, `rail_group`).
+    pub per: String,
 }
 
 /// What a part is to a PLC, from its PLC and bus sections ([`CataloguePart::plc`]).
@@ -780,6 +797,41 @@ fn catalogue_part(
             && (part.sections.plc.is_some()
                 || part.sections.bus.as_ref().is_some_and(|b| !b.ports.is_empty())),
         plc: catalogue_plc(part),
+        accessories: part
+            .accessories
+            .iter()
+            .map(|a| CatalogueAccessory {
+                kind: a
+                    .kind
+                    .as_ref()
+                    .map(crate::part_editor::stored_word)
+                    .unwrap_or_default(),
+                number: q
+                    .parts()
+                    .get(ew_ids::v5::lib_copy_id::<Part>(
+                        a.part.library.as_uuid(),
+                        a.part.item.as_uuid(),
+                    ))
+                    .map(|c| c.item.part_number.as_str().to_owned())
+                    .unwrap_or_default(),
+                qty: a.qty.to_string(),
+                per: crate::part_editor::stored_word(&a.per),
+            })
+            .collect(),
+        variants: part
+            .variants
+            .iter()
+            .map(|v| {
+                (
+                    v.key.as_str().to_owned(),
+                    v.name.neutral_or_first().unwrap_or(v.key.as_str()).to_owned(),
+                    part.with_variant(Some(v.key.as_str()))
+                        .part_number
+                        .as_str()
+                        .to_owned(),
+                )
+            })
+            .collect(),
     })
 }
 

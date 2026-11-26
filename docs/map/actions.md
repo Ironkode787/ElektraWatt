@@ -134,6 +134,7 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `structure.new` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_structure_new` `crates/ew-viewmodel/src/shell/creation/pages.rs` | `action-structure-new`, `toast-structure-new` |
 | `external_ref.new` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_external_ref_new` `crates/ew-viewmodel/src/shell/creation/forms.rs` | `action-external-ref-new`, `toast-external-ref-new` |
 | `place.pick` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_place_pick` `crates/ew-viewmodel/src/shell/editing/actions.rs` | `action-place-pick` |
+| `place.variant` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_place_variant` `crates/ew-viewmodel/src/shell/editing/actions.rs` | `action-place-variant`, `error-place-variant`, `place-variant` |
 | `picker.filter` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_picker_filter` `crates/ew-viewmodel/src/shell/editing/actions.rs` | `action-picker-filter`, `picker-filter-hint` |
 | `picker.row` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_picker_row` `crates/ew-viewmodel/src/shell/editing/actions.rs` | `action-picker-row`, `reason-no-picker-row` |
 | `picker.category` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_picker_category` `crates/ew-viewmodel/src/shell/editing/actions.rs` | `action-picker-category` |

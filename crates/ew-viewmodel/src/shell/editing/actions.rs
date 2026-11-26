@@ -519,6 +519,53 @@ impl ShellModel {
 
     /// Shift+V with Place: the next catalogue symbol (key order, wrapping) that draws the same function
     /// definition and the page allows; an embedded one only (a starter symbol is chosen through the picker).
+    /// `place.variant {variant}` (the Variant option of a part placement, doc 07 §5): the variant, by its key, name or
+    /// number (empty: the part's own), that the armed Place tool's next placements take, or that the browser's current
+    /// row arms it with. Refused in words for a part without variants and a text that names none of its variants.
+    pub(crate) fn act_place_variant(&mut self, p: &Map<String, Value>) -> Outcome {
+        let text = match string_param(p, "variant") {
+            Ok(v) => v.unwrap_or_default().trim().to_owned(),
+            Err(e) => return e,
+        };
+        if let Some(picker) = &mut self.tools.picker {
+            let part = picker.current_part();
+            let Some(part) = part.and_then(|i| picker.catalogue.parts.get(i)) else {
+                return Outcome::refused(key!("reason-place-no-variants"));
+            };
+            if part.variants.is_empty() {
+                return Outcome::refused(key!("reason-place-no-variants"));
+            }
+            if text.is_empty() {
+                picker.variant = None;
+                return Outcome::Done;
+            }
+            return match part
+                .variants
+                .iter()
+                .find(|v| v.0 == text || v.1 == text || v.2 == text)
+            {
+                Some(v) => {
+                    picker.variant = Some(v.0.clone());
+                    Outcome::Done
+                }
+                None => failed(key!("error-place-variant"), &[&text]),
+            };
+        }
+        let set = self
+            .with_tool(|t, _| {
+                t.as_any_mut()
+                    .and_then(|a| a.downcast_mut::<PlaceTool>())
+                    .map(|p| p.set_part_variant(&text))
+            })
+            .flatten();
+        match set {
+            Some(true) => Outcome::Done,
+            Some(false) if text.is_empty() => Outcome::refused(key!("reason-place-no-variants")),
+            Some(false) => failed(key!("error-place-variant"), &[&text]),
+            None => Outcome::refused(key!("reason-place-no-variants")),
+        }
+    }
+
     pub(super) fn next_rep_type(&mut self) -> Outcome {
         let Some(cat) = self.catalogue() else {
             return Outcome::refused(key!("reason-no-catalogue"));

@@ -293,6 +293,9 @@ pub struct PendingTerminal {
 /// The picker's state.
 #[derive(Clone, Debug)]
 pub struct Picker {
+    /// The variant (key) the detail's Variant choice picked for the current row's part, which the Place tool it arms
+    /// takes (`place.variant`); `None`: the part's own.
+    pub variant: Option<String>,
     /// Why it was opened.
     pub mode: PickerMode,
     /// The filter text.
@@ -351,6 +354,7 @@ impl Picker {
     /// A picker over `catalogue` in `mode`, the filter empty, the first row current.
     pub fn new(mode: PickerMode, folio: &str, catalogue: Arc<PlaceCatalogue>) -> Picker {
         let mut p = Picker {
+            variant: None,
             mode,
             filter: String::new(),
             row: 0,
@@ -731,6 +735,14 @@ impl Picker {
         self.row = target.clamp(0, n - 1) as usize;
     }
 
+    /// The part of the current row (a part's row or one of its functions), if it is one.
+    pub fn current_part(&self) -> Option<usize> {
+        match self.rows.get(self.row)? {
+            PickerRow::Part(p) | PickerRow::PartFn(p, _) => Some(*p),
+            _ => None,
+        }
+    }
+
     /// The symbol row `i` of the catalogue.
     pub fn symbol(&self, i: usize) -> Option<&CatalogueSymbol> {
         self.catalogue.symbols.get(i)
@@ -835,6 +847,22 @@ impl Picker {
                     key!("reason-rep-type-pages"),
                     &[&types.join(", ")],
                 ));
+            }
+        }
+        // A function no symbol draws on this page names what it is, in a person's words.
+        if reason == key!("reason-no-symbol-for-function") {
+            let function = match row {
+                PickerRow::PartFn(p, k) => Some(self.function_words(p, k)),
+                PickerRow::Part(p) => self.part_main(p).map(|k| self.function_words(p, k)),
+                _ => None,
+            };
+            if let Some(f) = function.filter(|f| !f.is_empty()) {
+                let mut chars = f.chars();
+                let lower = chars
+                    .next()
+                    .map(|c| c.to_lowercase().chain(chars).collect::<String>())
+                    .unwrap_or_default();
+                return Some(crate::strings::format(key!("reason-no-symbol-draws"), &[&lower]));
             }
         }
         Some(crate::strings::text(reason).to_owned())

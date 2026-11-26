@@ -151,6 +151,10 @@ pub struct PlaceTool {
     spacing: u32,
     /// Whether a commit was made and the host has not taken the rest of its row ([`Self::take_row_rest`]).
     row_due: bool,
+    /// The Variant option (key, name) of a part placement; `None`: the part's own.
+    part_variant: Option<(String, String)>,
+    /// The variants of the placed part, (key, name, number); empty for a part without them.
+    part_variants: Vec<(String, String, String)>,
 }
 
 /// Whether `p` lies inside the polygon (even-odd rule, the boundary inside), exactly in `i128`.
@@ -232,6 +236,53 @@ impl PlaceTool {
             row: 1,
             spacing: 2,
             row_due: false,
+            part_variant: None,
+            part_variants: Vec::new(),
+        }
+    }
+
+    /// The variants of the part the placement takes ((key, name, number), the place catalogue's) and the one chosen
+    /// in the browser: the Variant option, kept across placements until it is changed (doc 07 §5).
+    pub fn with_part_variants(
+        mut self,
+        variants: Vec<(String, String, String)>,
+        chosen: Option<String>,
+    ) -> PlaceTool {
+        self.part_variant = chosen.and_then(|k| {
+            variants
+                .iter()
+                .find(|v| v.0 == k)
+                .map(|v| (v.0.clone(), v.1.clone()))
+        });
+        self.part_variants = variants;
+        self
+    }
+
+    /// The Variant option: the key and the name of the part's variant the next placement takes.
+    pub fn part_variant(&self) -> Option<&(String, String)> {
+        self.part_variant.as_ref()
+    }
+
+    /// Sets the Variant option (`place.variant`) by a variant's key, name or number; an empty text is the part's own.
+    /// `false` for a placement of a part without variants or a text that names none of them.
+    pub fn set_part_variant(&mut self, text: &str) -> bool {
+        if self.part_variants.is_empty() {
+            return false;
+        }
+        if text.is_empty() {
+            self.part_variant = None;
+            return true;
+        }
+        match self
+            .part_variants
+            .iter()
+            .find(|v| v.0 == text || v.1 == text || v.2 == text)
+        {
+            Some(v) => {
+                self.part_variant = Some((v.0.clone(), v.1.clone()));
+                true
+            }
+            None => false,
         }
     }
 
@@ -398,6 +449,22 @@ impl PlaceTool {
     /// The target the command sends at the insertion point `pos` (page nm): a `new_device` target inside a black
     /// box joins the box's device.
     fn effective_target(&self, cx: &ToolCx<'_>, pos: (i64, i64)) -> (Value, &'static str, String) {
+        let (mut target, word, mut label) = self.target_of(cx, pos);
+        if let Some((key, words)) = &self.part_variant {
+            for inner in ["from_part", "new_terminal"] {
+                if let Some(o) = target.get_mut(inner).and_then(Value::as_object_mut)
+                    && o.contains_key("part")
+                {
+                    o.insert("part_variant".to_owned(), Value::String(key.clone()));
+                    label = strings::format(key!("place-target-variant"), &[&label, words]);
+                }
+            }
+        }
+        (target, word, label)
+    }
+
+    /// [`Self::effective_target`] without the Variant option.
+    fn target_of(&self, cx: &ToolCx<'_>, pos: (i64, i64)) -> (Value, &'static str, String) {
         match &self.target {
             PlaceTarget::NewDevice { letter } => {
                 let mut best: Option<(i128, EntityRef, &ew_api::output::TableRep)> = None;

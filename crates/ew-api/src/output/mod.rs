@@ -145,7 +145,8 @@ pub use scale_fit::fitting_scale;
 // The panel tables and the pure items of `ew_derive::layout` the layout tool runs, so that
 // `ew-viewmodel` keeps its one dependency.
 pub use editing::{
-    CatalogueInterface, CataloguePart, CataloguePlc, PlcGroup, bus_port_symbol_key, part_interfaces,
+    CatalogueAccessory, CatalogueInterface, CataloguePart, CataloguePlc, PlcGroup, bus_port_symbol_key,
+    part_interfaces,
 };
 pub use ew_derive::layout::{
     Fit, Profile, RailExtent, RailItem, Resolution, SnapError, SnapMode, brackets, end_gap, fits_rail,

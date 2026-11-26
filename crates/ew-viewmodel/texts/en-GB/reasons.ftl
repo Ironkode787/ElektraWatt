@@ -37,6 +37,7 @@ reason-rep-type-pages = Goes on a page of type { $p0 }
 reason-black-box-tool = This part is placed as a black box: use the Black box tool ({ $p0 })
 reason-black-box-tool-unbound = This part is placed as a black box: use the Black box tool
 reason-no-symbol-for-function = No symbol for this function on this page
+reason-no-symbol-draws = No symbol draws a { $p0 } on this page
 reason-valve-no-cell-symbol = This valve has no symbol to draw it on a valve position: it would stand there undrawn
 reason-no-catalogue = Nothing can be placed on this page
 reason-unknown-symbol = No such symbol, part or function for this page
@@ -302,6 +303,8 @@ reason-find-replace = A replace is previewed first
 
 # The parts table import.
 reason-parts-import = An import is previewed first
+error-place-variant = The part has no variant { $p0 }
+reason-place-no-variants = The part placed has no variants
 reason-workshop-generic-held = The workshop stock holds the generic ferrules and markers already
 error-parts-import = Parts table refused: { $p0 }
 reason-no-parts-map = No parts table is being mapped

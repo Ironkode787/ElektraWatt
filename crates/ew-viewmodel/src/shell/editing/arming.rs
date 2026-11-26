@@ -178,6 +178,12 @@ impl ShellModel {
             Ok(v) => v.map(str::to_owned),
             Err(e) => return e,
         };
+        // The variant the browser chose for the part (the Variant option), and the part's variants.
+        let chosen_variant = self.tools.picker.as_ref().and_then(|p| p.variant.clone());
+        let part_variants = match &pick {
+            Pick::PartFn(pi, _) | Pick::PartSymbol(pi, _) => cat.parts[*pi].variants.clone(),
+            _ => Vec::new(),
+        };
         // On a bus-topology page a part with bus interfaces is placed as its interfaces, a box each, with every port
         // (doc 10 §2.7): a station as a switch or a drive, its supply pins left to its place on a schematic page.
         if let Pick::PartFn(pi, _) | Pick::PartSymbol(pi, _) = &pick
@@ -344,7 +350,7 @@ impl ShellModel {
                 PlaceTarget::NewDevice { letter }
             }
         };
-        self.arm_place_tool(shape, target, p, copies)
+        self.arm_place_tool(shape, target, p, copies, (part_variants, chosen_variant))
     }
 
     /// Arms the Place tool with `shape` for `target`: its autoconnect hints, the Join chooser where the symbol's FnDef
@@ -356,6 +362,7 @@ impl ShellModel {
         target: PlaceTarget,
         p: &Map<String, Value>,
         copies: Vec<Value>,
+        (part_variants, chosen_variant): (Vec<(String, String, String)>, Option<String>),
     ) -> Outcome {
         self.tools.picker = None;
         let autoconnect = self.page_autoconnects();
@@ -389,6 +396,7 @@ impl ShellModel {
             .clamp(1, TERMINAL_SPACING_MAX);
         self.activate_tool(Box::new(
             PlaceTool::new(shape, target)
+                .with_part_variants(part_variants, chosen_variant)
                 .with_autoconnect(autoconnect)
                 .with_joinable(joinable)
                 .with_copies(copies)

@@ -168,6 +168,10 @@ pub enum PlaceTarget {
         /// The letter code of the new device.
         #[schemars(with = "IdentS")]
         letter: Ident,
+        /// The variant of the part the device takes (its key; doc 07 §2.5); absent: the part's own.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[schemars(with = "Option<IdentS>")]
+        part_variant: Option<Ident>,
     },
     /// One new terminal of an existing strip, created as `terminal.add` creates it and placed (`device.place`
     /// only).
@@ -186,7 +190,40 @@ pub enum PlaceTarget {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         #[schemars(with = "Option<UuidS>")]
         part: Option<Id<Part>>,
+        /// The variant of `part` the terminal takes (its key); absent: the part's own.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[schemars(with = "Option<IdentS>")]
+        part_variant: Option<Ident>,
     },
+}
+
+/// Gives the part use of `part` on the device of `function` the variant `variant` (the place tool's Variant
+/// option); refused in words for a variant the part does not have.
+fn give_part_variant(
+    tx: &mut TxBuilder<'_>,
+    function: Id<Function>,
+    part: Id<Part>,
+    variant: Option<&Ident>,
+) -> Result<(), CmdError> {
+    let Some(v) = variant else { return Ok(()) };
+    let Some(copy) = tx.get::<LibCopy<Part>>(part) else {
+        return Ok(());
+    };
+    if copy.item.variant(v.as_str()).is_none() {
+        return tx.reject(text!(
+            "refusal-assign-variant",
+            copy.item.part_number.as_str(),
+            v.as_str()
+        ));
+    }
+    let Some(device) = tx.get::<Function>(function).and_then(|f| f.device) else {
+        return Ok(());
+    };
+    tx.update::<Device>(device, |d| {
+        for u in d.parts.iter_mut().filter(|u| u.part.copy == part) {
+            u.part.variant = Some(v.clone());
+        }
+    })
 }
 
 fn aux() -> FnRole {
@@ -349,18 +386,26 @@ impl Command for PlaceSymbol {
                 part,
                 template,
                 letter,
+                part_variant,
             } => {
                 let symbol_def = place_fndef(tx, &symbol, None)?;
-                insert_from_part(tx, *part, *template, letter, PartEntry::Normal(symbol_def))?
+                let f = insert_from_part(tx, *part, *template, letter, PartEntry::Normal(symbol_def))?;
+                give_part_variant(tx, f, *part, part_variant.as_ref())?;
+                f
             }
             PlaceTarget::NewTerminal {
                 strip,
                 designation,
                 seq,
                 part,
+                part_variant,
             } => {
                 let def = place_fndef(tx, &symbol, None)?;
-                insert_new_terminal(tx, *strip, designation, *seq, def, *part)?
+                let f = insert_new_terminal(tx, *strip, designation, *seq, def, *part)?;
+                if let Some(p) = part {
+                    give_part_variant(tx, f, *p, part_variant.as_ref())?;
+                }
+                f
             }
         };
         let rep: Id<Representation> = tx.mint();
@@ -2009,7 +2054,12 @@ impl Command for PlaceBlackBox {
                 part,
                 template,
                 letter,
-            } => insert_from_part(tx, *part, *template, letter, PartEntry::BlackBox)?,
+                part_variant,
+            } => {
+                let f = insert_from_part(tx, *part, *template, letter, PartEntry::BlackBox)?;
+                give_part_variant(tx, f, *part, part_variant.as_ref())?;
+                f
+            }
             PlaceTarget::NewTerminal { .. } => {
                 return Err(CmdError::invalid_params(
                     Self::NAME,

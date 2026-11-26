@@ -223,3 +223,37 @@ fn the_starter_contactor_is_under_contactors_with_the_letter_q() {
     assert_eq!(contactor.letter.as_deref(), Some("Q"));
     s.shutdown();
 }
+
+/// The browser's detail chooses a part's variant (`place.variant`, by key, name or number) for the Place tool it
+/// arms, and refuses one the part does not have; a cylinder on an electrical page says what no symbol draws.
+#[test]
+fn the_browser_chooses_a_variant_and_says_what_no_symbol_draws() {
+    let tmp = Tmp::new("browser-variant");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
+    done(&mut s, "tool.place_part", json!({}));
+    done(&mut s, "picker.filter", json!({"text": "EW-GEN-TRM-1"}));
+    let p = s.picker().expect("the browser");
+    let row = p
+        .rows
+        .iter()
+        .position(|r| matches!(r, PickerRow::Part(i) if p.catalogue.parts[*i].part_number == "EW-GEN-TRM-1"))
+        .expect("the terminal's row");
+    done(&mut s, "picker.row", json!({"to": "first", "step": row}));
+    done(&mut s, "place.variant", json!({"variant": "EW-GEN-TRM-1-BU"}));
+    assert_eq!(s.picker().and_then(|p| p.variant.clone()).as_deref(), Some("BU"));
+    assert!(matches!(
+        s.dispatch("place.variant", &json!({"variant": "RD"})),
+        ew_viewmodel::shell::Outcome::Failed { .. }
+    ));
+    done(&mut s, "picker.filter", json!({"text": "EW-GEN-CYL-1"}));
+    let p = s.picker().expect("the browser");
+    let cyl = p
+        .rows
+        .iter()
+        .copied()
+        .find(|r| matches!(r, PickerRow::Part(i) if p.catalogue.parts[*i].part_number == "EW-GEN-CYL-1"))
+        .expect("the cylinder's row");
+    let words = p.disabled_words(cyl).expect("greyed");
+    assert!(words.starts_with("No symbol draws a "), "{words}");
+    s.shutdown();
+}

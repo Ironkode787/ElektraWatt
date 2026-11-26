@@ -601,6 +601,7 @@ fn a_two_pin_symbol_or_a_terminal_dropped_on_an_unrouted_wire_does_not_split_it(
         designation: ident("9"),
         seq: None,
         part: None,
+        part_variant: None,
     };
     for target in [new_device("F"), terminal] {
         let (mut e, wire, _, _) = hinted_wire(pt(0, 6 * G));

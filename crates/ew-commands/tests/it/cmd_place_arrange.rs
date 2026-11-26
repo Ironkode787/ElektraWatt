@@ -314,6 +314,7 @@ fn from_part(part: Id<ew_schema::Part>, template: u16, letter: &str) -> PlaceTar
         part,
         template,
         letter: ident(letter),
+        part_variant: None,
     }
 }
 
@@ -597,6 +598,7 @@ fn new_terminal(strip: Id<Device>, designation: &str, seq: Option<u32>) -> Place
         designation: ident(designation),
         seq,
         part: None,
+        part_variant: None,
     }
 }
 
@@ -760,6 +762,7 @@ fn new_terminal_with_a_part_carries_the_part_use() {
         designation: ident("9"),
         seq: None,
         part: Some(part),
+        part_variant: None,
     };
     let rev = e.model().rev();
     rejected_with(
