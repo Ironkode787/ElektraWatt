@@ -340,8 +340,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_lists_parts(),
         ),
     ),
-    // Output ▸ Workshop ▸ Wire list opens the first page of the project's wire list, else Report block… on that kind
-    // (doc 13 §12).
+    // Output ▸ Workshop ▸ Wire list, Assembly lists, Cut list and Consumables open the first page of the project's list
+    // of that kind, else Report block… on that kind (doc 13 §12, 13-workshop-lists).
     placed(
         place(
             Group::Workshop,
@@ -357,7 +357,56 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             &[],
             project_open,
             None,
-            |s, _| s.act_lists_wires(),
+            |s, _| s.act_open_list("wire_list"),
+        ),
+    ),
+    placed(
+        place(
+            Group::Workshop,
+            2,
+            CommandSize::Large,
+            Some(key!("bar-lists-assembly")),
+        ),
+        "assembly",
+        act(
+            "lists.assembly",
+            View,
+            Menu::Output,
+            &[],
+            project_open,
+            None,
+            |s, _| s.act_open_list("assembly_list"),
+        ),
+    ),
+    placed(
+        place(Group::Workshop, 3, CommandSize::Large, Some(key!("bar-lists-cut"))),
+        "scissors",
+        act(
+            "lists.cut",
+            View,
+            Menu::Output,
+            &[],
+            project_open,
+            None,
+            |s, _| s.act_open_list("cut_list"),
+        ),
+    ),
+    placed(
+        place(
+            Group::Workshop,
+            4,
+            CommandSize::Large,
+            Some(key!("bar-lists-consumables")),
+        ),
+        "box",
+        act(
+            "lists.consumables",
+            View,
+            Menu::Output,
+            &[],
+            project_open,
+            None,
+            |s, _| s.act_open_list("consumables"),
         ),
     ),
     // Output ▸ Workshop ▸ Rework list…: what the fitter changes since a release (doc 13 §3.5); the dialog's Archive
@@ -365,7 +414,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     with_params(
         "revision?:text",
         placed(
-            place(Group::Workshop, 2, CommandSize::Small, None),
+            place(Group::Workshop, 5, CommandSize::Small, None),
             "refresh",
             act(
                 "rework.show",
@@ -383,7 +432,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     with_params(
         "since?:text, archive?:path, format?:enum(csv|xlsx)",
         placed(
-            place(Group::Workshop, 3, CommandSize::Small, None),
+            place(Group::Workshop, 6, CommandSize::Small, None),
             "sticker",
             act(
                 "labels.show",
@@ -446,7 +495,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     // Output ▸ Workshop ▸ Workshop settings: the project's Properties at its Workshop rows (doc 13 §12).
     placed(
-        place(Group::Workshop, 4, CommandSize::Small, None),
+        place(Group::Workshop, 7, CommandSize::Small, None),
         "file-settings",
         act(
             "workshop.settings",

@@ -337,3 +337,5 @@ change here.
 - behaviour-change: EW-MFG-020 reports a strip whose terminals have parts and after whose last terminal no end plate
   stands, with the quick fix Add the end plate … after … where a terminal's part names one; EW-MFG-021 reports a
   bridge without a part (an error in release).
+- behaviour-change: Output ▸ Workshop gains Assembly lists, Cut list and Consumables, each of which opens the first page
+  of the project's list of that kind, else Report block… on it.

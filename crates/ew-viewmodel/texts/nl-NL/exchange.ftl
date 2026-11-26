@@ -38,6 +38,9 @@ report-rows-tube-labels = Een slang geeft het rijen
 report-rows-valve-terminal-config = Een ventieleiland geeft het rijen: plaats er een via Apparaat ▸ Ventieleilanden
 report-rows-medium-overview = Een medium op een slang geeft het rijen
 report-rows-labels = Een label van de werkplaats geeft het rijen
+report-rows-assembly-list = Een klemmenstrook geeft het rijen
+report-rows-cut-list = Een rail, een kabelgoot, een kabel, een draad of een slang geeft het rijen
+report-rows-consumables = Een draad of een label van de werkplaats geeft het rijen
 # The export toast names its pages by kind.
 export-pages-drawing = { $p0 ->
         [one] 1 tekeningpagina

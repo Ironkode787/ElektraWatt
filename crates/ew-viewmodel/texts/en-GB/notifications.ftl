@@ -492,7 +492,7 @@ toast-parts-unlisted = { $p0 ->
        *[other] { $p0 } devices have no part and are not in the parts list. Select them, then Edit ▸ Choose part… gives them one, or Type not known yet… lists them by a description until it is known
     }.
 toast-parts-list-opened = Opened the set's parts list on page { $p0 }; it makes no second one. Report… on the Output tab adds another list.
-toast-wire-list-opened = Opened the wire list on page { $p0 }.
+toast-list-opened = Opened the { $p0 } on page { $p1 }.
 toast-rework-written = Wrote the rework list to { $p0 }.
 toast-labels-written = { $p0 ->
         [one] Wrote 1 label file to { $p1 }

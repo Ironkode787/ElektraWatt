@@ -114,7 +114,10 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `report_block.columns` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_report_block_columns` `crates/ew-viewmodel/src/shell/list_look.rs` | `action-report-block-columns`, `field-help-report-block-columns-item-key`, `field-report-block-columns-item-key`, `form-hint-report-block-columns-caption`, `form-hint-report-block-columns-legend` |
 | `report_block.rows` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_report_block_rows` `crates/ew-viewmodel/src/shell/list_look.rs` | `action-report-block-rows` |
 | `lists.parts` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_lists_parts` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-lists-parts`, `bar-lists-parts` |
-| `lists.wires` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_lists_wires` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-lists-wires`, `bar-lists-wires` |
+| `lists.wires` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_open_list` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-lists-wires`, `bar-lists-wires` |
+| `lists.assembly` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_open_list` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-lists-assembly`, `bar-lists-assembly` |
+| `lists.cut` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_open_list` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-lists-cut`, `bar-lists-cut` |
+| `lists.consumables` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_open_list` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-lists-consumables`, `bar-lists-consumables` |
 | `rework.show` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_rework_show` `crates/ew-viewmodel/src/shell/rework.rs` | `action-rework-show` |
 | `labels.show` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_labels_show` `crates/ew-viewmodel/src/shell/labels.rs` | `action-labels-show`, `labels-show` |
 | `labels.tick` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_labels_tick` `crates/ew-viewmodel/src/shell/labels.rs` | `action-labels-tick` |

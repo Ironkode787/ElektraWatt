@@ -444,7 +444,7 @@ toast-parts-unlisted = { $p0 ->
        *[other] { $p0 } apparaten hebben geen artikel en staan niet in de stuklijst. Selecteer ze; Bewerken ▸ Artikel kiezen… geeft ze er een, of Type nog onbekend… zet ze met een omschrijving in de lijst tot het bekend is
     }.
 toast-parts-list-opened = De stuklijst van de set op pagina { $p0 } geopend; er komt geen tweede. Rapport… op het tabblad Uitvoer voegt nog een lijst toe.
-toast-wire-list-opened = De draadlijst geopend op pagina { $p0 }.
+toast-list-opened = De { $p0 } geopend op pagina { $p1 }.
 toast-rework-written = De wijzigingslijst geschreven naar { $p0 }.
 toast-labels-written = { $p0 ->
         [one] 1 labelbestand naar { $p1 } geschreven

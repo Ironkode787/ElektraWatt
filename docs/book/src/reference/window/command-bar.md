@@ -307,6 +307,24 @@ In the Workshop group. Shows the first page of the project's wire list, the fitt
 colour, its cross-section, its length and what goes on each end; List columns… adds the potential, the source, the
 joins and the wire part. A project without a wire list opens Report block… on the wire list.
 
+### Open assembly lists
+
+In the Workshop group. Shows the first page of the project's assembly lists: per terminal strip first where it goes
+on its rail and how long it is, then every item in the order the fitter mounts it (end brackets, terminals with their
+part, colour and marker, end plates), then its bridges. A project without assembly lists opens Report block… on them.
+
+### Open cut list
+
+In the Workshop group. Shows the first page of the project's cut list: the rails, the ducts with their covers, the
+cables, the wires and the tubes to cut, each piece rounded up to the cut increment of Project properties ▸ Workshop (a
+wire as long as the wire list says). A project without a cut list opens Report block… on it.
+
+### Open consumables
+
+In the Workshop group. Shows the first page of the project's consumables: the metres of each wire, the ferrules and
+lugs per part and the markers per label set, what to order beside the parts list. A project without one opens Report
+block… on it.
+
 ### Rework list…
 
 In the Workshop group. Compares the project as it is with a release and lists what the fitter changes in the built

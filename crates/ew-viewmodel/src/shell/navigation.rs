@@ -1413,22 +1413,27 @@ impl ShellModel {
         }
     }
 
-    /// `lists.wires` (Output ▸ Workshop ▸ Wire list, doc 13 §12): opens the first page of the project's wire list as
-    /// `lists.parts` opens the parts list, with a toast that names its page; a project without one opens Report block…
-    /// on the wire list (headless: refused in words, as there is no form to open).
-    pub(crate) fn act_lists_wires(&mut self) -> Outcome {
-        match self.list_folio(&["wire_list"]) {
+    /// The workshop lists of the Output tab's Workshop group (doc 13 §12, 13-workshop-lists): `lists.wires` (the wire
+    /// list), `lists.assembly` (the assembly lists), `lists.cut` (the cut list) and `lists.consumables` open the first
+    /// page of the project's list of `kind` as `lists.parts` opens the parts list, with a toast that names it and its
+    /// page; a project without one opens Report block… on that kind (headless: refused in words, as there is no form to
+    /// open).
+    pub(crate) fn act_open_list(&mut self, kind: &str) -> Outcome {
+        let words = strings::in_sentence(&super::creation::report_kind_words(kind));
+        match self.list_folio(&[kind]) {
             Some(folio) => {
                 let out = self.open_list(&folio);
                 if out == Outcome::Done {
-                    self.notify(strings::format(key!("toast-wire-list-opened"), &[&folio]), false);
+                    self.notify(strings::format(key!("toast-list-opened"), &[&words, &folio]), false);
                 }
                 out
             }
             None if self.mode == Mode::Gui => {
-                self.act_report_block_new(&Map::from_iter([("kind".to_owned(), Value::from("wire_list"))]))
+                self.act_report_block_new(&Map::from_iter([("kind".to_owned(), Value::from(kind))]))
             }
-            None => Outcome::refused(key!("reason-no-wire-list")),
+            None => Outcome::Refused {
+                reason: strings::keyed(key!("reason-no-list"), vec![words.into()]),
+            },
         }
     }
 

@@ -40,6 +40,9 @@ report-rows-tube-labels = A tube gives it rows
 report-rows-valve-terminal-config = A valve terminal gives it rows: place one from Device ▸ Valve terminals
 report-rows-medium-overview = A medium on a tube gives it rows
 report-rows-labels = A label of the workshop gives it rows
+report-rows-assembly-list = A terminal strip gives it rows
+report-rows-cut-list = A rail, a duct, a cable, a wire or a tube gives it rows
+report-rows-consumables = A wire or a label of the workshop gives it rows
 # The export toast names its pages by kind.
 export-pages-drawing = { $p0 ->
         [one] 1 drawing page
