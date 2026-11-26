@@ -169,17 +169,15 @@ and -013 are built.
 |---|---|---|---|---|---|---|---|---|---|---|
 | EW-LAY-002 | *Structural:* placement without device | Placements reference devices; deleting the device cascades; on lenient import an unmatched rectangle becomes a layout graphic, never a placement | structural | p | — | — | MVP | FR-LAY-017 | D-02 | 12 §4 |
 | EW-LAY-005 | CP pattern incomplete | The CP3D pattern does not cover the device's physical schematic CPs after the macro mapping table; blocks routing of the affected wires | completeness | o r | error | space | 1.0 | FR-LAY-027 | — | 12 §4 |
-| EW-LAY-007 | Clearance violated | A clearance zone violated, with the amount | conflict | f r | warning | space | 1.0 | FR-LAY-029 | — | 12 §4 |
-| EW-LAY-008 | Duct fill over limit | A duct edge over the fill limit, on committed routes | conflict | o r | warning or error (shop warning and error limits) | carrier | 1.0 | FR-LAY-049 | — | 12 §4 |
-| EW-LAY-009 | Wire unroutable | No path, a blocked stub or a broken pinned path | completeness | f r | error | space | 1.0 | FR-LAY-045 | D-19 | 12 §4 |
-| EW-LAY-011 | Stale route or length | A committed route or length whose input hash changed; supersedes EW-REL-002 for routes | completeness | o r | warning/error | space | 1.0 | FR-LAY-046 | D-19 | 12 §4 |
+| EW-LAY-007 | Clearance violated | A footprint or a duct inside the zone a device's part keeps free, with the side and the amount | conflict | o r | warning | space | 1.0 | FR-LAY-029 | — | 12 §7 |
+| EW-LAY-008 | Duct fill over limit | A duct over the shop's fill limit where it is fullest, on the stored ways | conflict | o r | warning | carrier | 1.0 | FR-LAY-049 | — | 12 §8.6 |
+| EW-LAY-011 | Stale way | Ways that no longer hold, one finding per moved device or changed duct with its wires as targets; supersedes EW-REL-002 for ways and their lengths | completeness | o r | warning/error | space | 1.0 | FR-LAY-046 | D-19 | 12 §8.5 |
 | EW-LAY-012 | Holes too close | Two holes of a surface closer than the workshop's web between holes, a hole closer to the sheet's edge than its edge margin and that web, or a hole off the sheet; it names both holes by their owners | conflict | o r | warning | surface | 0.4.0 | FR-LAY-057 | — | 12 §4 |
 | EW-LAY-013 | Door-swing collision | A door-mounted solid collides during the swing, reported with the angle | conflict | f r | error | space | 1.x | FR-LAY-031 | — | 12 §4 |
 | EW-LAY-014 | Pre-assembled cable too short | A route longer than the cable length minus its connector allowances | conflict | f r | error | space | 1.0 | FR-LAY-050 | D-19 | 12 §4 |
 | EW-LAY-015 | Segregation class violated | A wire in a duct whose class set excludes its segregation class (manual or pinned paths) | conflict | o r | warning or error (policy) | carrier | 1.0 | FR-LAY-048 | — | 12 §4 |
 | EW-LAY-017 | Holes not known | A part placed in a cut-out or screwed to a surface has no holes, or a device placed there has no part, so the surface's hole table and drawings lack its holes; one finding per part, naming its devices; Edit part… opens the part editor at Front view and holes, Choose part… for a device without one | completeness | o r | warning | surface | 0.4.0 | FR-LAY-057 | — | 12 §4 |
 | EW-LAY-018 | Cable gland | A cable that leaves the cabinet has no gland placed; its gland is not known (no outer diameter, no stock gland seals it); a placed gland's hole differs from its gland's; a gland hole serves no cable any more | completeness | o r | warning; error at release for a gland not placed | space | 0.4.0 | FR-LAY-056 | — | 12 §4 |
-| EW-LAY-020 | Depth containment | Placement rule: a device deeper than the usable depth at its position | conflict | o r | warning | space | 1.0 | FR-LAY-033 | — | 12 §4 |
 | EW-LAY-021 | Thermal zoning | Placement rule: a device outside the thermal zone its part allows | hygiene | o r | warning | space | 1.0 | FR-LAY-033 | — | 12 §4 |
 | EW-LAY-022 | EMC segregation distance | Placement rule: segregation distance between EMC classes below the policy value | hygiene | o r | warning | space | 1.0 | FR-LAY-033 | — | 12 §4 |
 | EW-LAY-023 | Operator height | Placement rule: an operator device outside the operator heights of the installation | hygiene | o r | warning | surface | 1.0 | FR-LAY-033 | — | 12 §4 |
@@ -187,7 +185,12 @@ and -013 are built.
 | EW-LAY-025 | Cable-entry zone | Placement rule: a device inside the cable-entry zone | hygiene | o r | warning | surface | 1.0 | FR-LAY-033 | — | 12 §4 |
 | EW-LAY-026 | Handle-axis alignment | Placement rule: handle and switch-body axes of a door-coupled rotary switch (S51) not aligned within the part's shaft-length range | conflict | o r | warning | space | 1.0 | FR-LAY-034 | — | 12 §4 |
 
-EW-LAY-020 … 026 are Could rows of FR-LAY-033 and FR-LAY-034; their constants ship as data with a `verified` flag.
+EW-LAY-021 … 026 are Could rows of FR-LAY-033 and FR-LAY-034; their constants ship as data with a `verified` flag.
+EW-LAY-009 (wire unroutable) and EW-LAY-020 (depth containment) are retired: a wire without a way is named by Route's
+preview and its Properties and counted by EW-MFG-001, and what reaches the closed door is EW-LAY-006's
+([12](12-panel-layout.md) §7, §8.2). At 1.0 EW-LAY-006 judges the closed door by number: a device or a duct of the
+plate that reaches the door, and a device of the plate and one of the door that meet when it is closed, each finding
+naming both things (12 §7).
 
 The MVP rules EW-LAY-001, -003, -004,
 -006 (2D), -010 and -016 ship in `ew-checks` (`rules/layout.rs`) with their catalogue rows, rule pages and en-GB and
@@ -210,7 +213,7 @@ are a machine export's pre-flight and need its profile ([13](13-manufacturing-ou
 
 | ID | Name | Checks | Kind | Modes | Severity | Scope | Rel | Req. | D (defects) | Def. |
 |---|---|---|---|---|---|---|---|---|---|---|
-| EW-MFG-001 | Wires without a length | One finding for the project while a wire that is no core has no length (the wire list prints —), its targets those wires, raised only where a length is asked for or can be computed: by the check before an export for the workshop and by Check project in a project that has a panel layout, none in a project without a layout; an export by profile judges each wire's length by the profile; supersedes EW-REL-002 for lengths | completeness | o r x | info (an export by profile: error, the row excluded) | project | 1.0 | FR-MFG-024, FR-MFG-051, FR-CHK-058 | D-19 | 13 §4.6 |
+| EW-MFG-001 | Wires without a length | One finding for the project while a wire of a cabinet that is no core and no field wire has no length (the wire list prints —), its targets those wires, raised only where a length is asked for or can be computed: by the check before an export for the workshop and by Check project in a project that has a panel layout, none in a project without a layout; an export by profile judges each wire's length by the profile; supersedes EW-REL-002 for lengths | completeness | o r x | info (an export by profile: error, the row excluded) | project | 1.0 | FR-MFG-024, FR-MFG-051, FR-CHK-058 | D-19 | 13 §4.6 |
 | EW-MFG-002 | Outside the machine limits | Cross-section or wire type outside the machine's limits or magazine | conflict | x | warning (row to the manual list) | potential | 1.0 | FR-MFG-024, FR-MFG-051 | — | 13 §4.6 |
 | EW-MFG-003 | Ferrule or end treatment unavailable | A ferrule not in the machine's magazine, or an end treatment not in the profile's `end_treatments` | conflict | x | warning (manual list or finishing task) | potential | 1.0 | FR-MFG-024, FR-MFG-050 | — | 13 §4.6 |
 | EW-MFG-004 | Marker text does not fit | A marker text that does not fit its stock after the shortening of 13 §5.2 (characters per line, lines), or its encoding | conflict | o r x | warning | potential | 1.0 | FR-MFG-011, FR-MFG-024 | — | 13 §4.6 |

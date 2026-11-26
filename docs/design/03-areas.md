@@ -318,34 +318,27 @@ classDiagram
     +pose: Pose3
     +locked: bool
   }
-  class RouteOverride {
-    +connection: ConnectionId
-    +path: Vec~RouteNodeRef~
-    +pinned: bool
-    +bundle: Ident?
-    +seq: u32?
-  }
-  class RoutingGraph {
+  class DuctGraph {
     <<derived>>
-    +nodes: duct slot junction stub hole free
-    +edges: length capacity class_mask cost
+    +pieces: duct centrelines
+    +joints: corner T cross
   }
-  class Route {
+  class CommittedRoute {
     <<committed>>
-    +wire: WireId
-    +edges: Vec~EdgeRef~
-    +length: Nm
-    +input_hash: Hash
+    +space: LayoutSpaceId
+    +wire: ConnectionId
+    +ends: pin place and height, twice
+    +way: duct stretches, door
+    +run: Nm
   }
   LayoutSpace "1" *-- "1..*" Enclosure
   Enclosure "1" *-- "1..*" MountingSurface
   MountingSurface "1" *-- "0..*" Carrier
   Carrier "1" o-- "0..*" Placement3D
   Placement3D ..> Device
-  RoutingGraph ..> Carrier
-  RoutingGraph ..> Placement3D
-  Route ..> RoutingGraph
-  RouteOverride ..> Route : survives re-routing
+  DuctGraph ..> Carrier
+  CommittedRoute ..> DuctGraph
+  CommittedRoute ..> Placement3D : its ends' pins
 ```
 
 | Entity and purpose | Kind | Key attributes | Relationships, identity, lifecycle | Invariants |
@@ -355,10 +348,10 @@ classDiagram
 | `MountingSurface` | A | `kind: plate \| door \| left \| right \| top \| bottom`, `device?` (a surface part of its own: the mounting plate -UC1-U1, child of -UC1), `frame: Pose3` (u, v as the surface is seen from the side it is worked from, w towards that side), `usable` (the sheet's outline), `edge_margin?`, `hinge?: left \| right` (a door), `datum?` (the corner it is measured from; absent: bottom left), `pe_bond: bool` (FR-LAY-058) | One per face of the enclosure; the plate is made with it, every other face when a page first shows it ([12](12-placement-pages.md) §2.8, §3.1). A layout page is a view of one surface at a stated scale or "not to scale" (FR-LAY-010) | — |
 | `Carrier`: rail, duct, busbar or the surface itself | A | `kind`, `part?` (layout-only part, counted in the BOM; FR-LAY-008), `path` in the surface frame, `params` (rail profile TS 35×7.5; duct W×H "40×60", slot pitch; FR-LAY-004/005), `pe_bond` | Poses of its placements are relative to it, so moving a rail moves its devices | — |
 | `Placement3D`: a device, one function (e.g. a door handle) or one strip segment (e.g. a single terminal) on a carrier | A | `device`, `function?`, `part?: PartRef` (added: which part use of the device it realises; None = the primary mountable part), `segment?: SeqRange` (added: a terminal range when a strip is placed in pieces), `carrier: CarrierRef = Carrier \| Surface \| Placement` (delete policy forbid), `pose: Pose3` relative to the carrier, `variant`, `locked` (FR-LAY-006) | Stores no tag text: labels are `layout_label(placement)`, so "T51" cannot exist (D-02). Geometry comes from the part (FR-LAY-007). Panel-front representations are derived from placements by `panel_front_reps(dev)`, never stored | S: the device exists. Chk EW-LAY-001 unplaced device, EW-LAY-003 part use not on the device, EW-LAY-004 location ≠ space location |
-| `RouteOverride` | A | `connection` (physical wire ID), `path: Vec<RouteNodeRef>`, `pinned`, `bundle?`, `seq?` (added); no length: a manual length lives in `WireOverrides.length` of the carrier connection (§9) | Keyed by connection ID, so it survives re-routing (FR-LAY-047, FR-LAY-054) | — |
-| `RoutingPath`, `SurfaceFeature` (added) | A, layout file (ranks 57, 58) | routing path: `kind: FreeAir \| Hinge \| WiringHole \| Guide`, points, class set, cost factor (FR-LAY-043/044); surface feature: a hole a person added to a surface, `{surface, at, hole, purpose?, cable?, for_cable}` (an earth stud, a spare entry; a cable's gland he placed; FR-LAY-056) | Every other hole is derived by `surface_features(surface)`; a derived hole moved or left out is a `HoleChoice` of its placement or carrier ([12-3d](12-3d-routing-thermal.md) §10) | — |
-| `RoutingGraph` | D, Class II | duct centrelines at mid-depth with slot nodes every max(slot pitch, 25 mm), joints, CP stubs, free-air and hinge paths; edges with length, capacity, segregation mask, cost (FR-LAY-042/043) | Built on a fork from carriers and placements | — |
-| `Route`, wire length | C | per wire: path as `RouteNodeRef = Duct{carrier, seg, s} \| Joint{carrier, vertex} \| Path{routing_path, idx} \| Stub{cp} \| Entry{feature}` (carrier positions, not graph indices, so the route stays readable after a graph rebuild), `length: Nm` = the unrounded calibrated length (stubs + path + Δz + end allowances + reserve, FR-LAY-051), `input_hash`; rounding happens once, in the `WireRecord`, to the project length increment ([13](13-manufacturing-outputs.md) §3.3) | Only `RouteWires` writes it (FR-LAY-046); EW-LAY-011 flags a stale input hash | Release exports require fresh routes |
+| `RouteOverride`, `RoutingPath` | reserved (ranks 55, 57) | none typed: a way is not pinned by hand and no path is drawn ([12](12-panel-layout.md) §8.7); a manual length lives in `WireOverrides.length` of the carrier connection (§9) | — | — |
+| `SurfaceFeature` (added) | A, layout file (rank 58) | a hole a person added to a surface, `{surface, at, hole, purpose?, cable?, for_cable}` (an earth stud, a spare entry; a cable's gland he placed; FR-LAY-056) | Every other hole is derived by `surface_features(surface)`; a derived hole moved or left out is a `HoleChoice` of its placement or carrier ([12-3d](12-3d-routing-thermal.md) §10) | — |
+| `DuctGraph` | D | the ducts of a surface as pieces of their centrelines, joined where their outlines touch: corners, T and crosses (FR-LAY-042) | `duct_graph(surface)`, from the carriers | — |
+| `CommittedRoute`, wire length | C, layout file (rank 56) | per wire: the space, the wire (its carrier connection), its two ends (CP, surface, the pin's place and height), the way as duct stretches and a door's crossing, `run` (the way's length, unrounded, without reserve or loop); the length is made from `run`, the reserve per end and the door loop and rounded once, in the `WireRecord`, to the cut increment ([12](12-panel-layout.md) §8.5, §9) | Only Route writes it (FR-LAY-046); a moved end or a changed duct stales it (EW-LAY-011) | Release exports require fresh ways |
 
 Five kinds are typed within format 0.1: `layout_space`
 `{location, name}`, `enclosure {space, device, pose}`, `mounting_surface {enclosure, kind, device?, frame, usable,
@@ -432,6 +425,8 @@ classDiagram
     +two_wires: TwinFerrule or FerruleEach
     +device_labels: OnDevice or OnDeviceAndBeside
     +label_profile: ExportProfile?
+    +reserve, door_loop: Nm?
+    +fill_limit: percent?
   }
   class LabelRecord {
     <<derived>>
@@ -457,11 +452,11 @@ classDiagram
 
 | Entity and purpose | Kind | Key attributes | Relationships, identity, lifecycle | Invariants |
 |---|---|---|---|---|
-| `WireRecord`: one row of the wire list per physical wire (FR-MFG-001) | D | the physical wire (§9.2) with its From end first, effective csa and colour, the wire part (the chain's, else the stock's of its size and colour), the printed number (none for a core), the length and where it comes from (typed, with its cable, missing; the layout adds estimated and routed, rounded once to the cut increment), `flags.field`, two `EndRecord`s | `wire_record_set()` of `ew-derive`; one row source for the page, XLSX, CSV and `.ewpp` (ADR-0018); the consumables and the cut list read it ([13](13-manufacturing-outputs.md) §2.4, §3) | — |
+| `WireRecord`: one row of the wire list per physical wire (FR-MFG-001) | D | the physical wire (§9.2) with its From end first, effective csa and colour, the wire part (the chain's, else the stock's of its size and colour), the printed number (none for a core), the length and where it comes from (typed, with its cable, routed, stale or missing; a routed one rounded once to the cut increment), `flags.field`, two `EndRecord`s | `wire_record_set()` of `ew-derive`; one row source for the page, XLSX, CSV and `.ewpp` (ADR-0018); the consumables and the cut list read it ([13](13-manufacturing-outputs.md) §2.4, §3) | — |
 | `EndRecord` | D | treatment `Ferrule \| TwinFerrule{partner} \| RingLug \| Bare \| Connector \| External \| Unknown{reason}`, its part from the workshop stock, whether it is made on site, decided by rule (with the assumption made) or by hand; the marker text, one entry per printed line | The rule table over the clamp and the conductor class, the pairing on one clamp and the shop's settings ([13](13-manufacturing-outputs.md) §4); an `EndOverride` wins | Chk: EW-MFG-008, EW-MFG-009, EW-POT-010 |
 | `EndOverride` | A, `WireOverrides.end_a` and `end_b` (§9) | treatment, ferrule or ring lug part, marker text or none | On a connection of the wire's own (one no other wire stands for): `end_a` is the wire's end reached through the connection's endpoint `a`, `end_b` through `b`, so each wire at a clamp has its own end and it stays with its CP whichever way the wire reads ([13](13-manufacturing-outputs.md) §2.3) | — |
 | Wire, ferrule, marker sections | L (FR-PRT-035) | `wire{csa, colour, class}`, `ferrule{csa_min, csa_max, twin, insulated, sleeve, colour, stud}`, `marker{marks, lines, chars}` ([07](07-symbols-parts-macros.md) §2.5) | Machine magazines prefer their own ferrules | — |
-| `WorkshopSettings` | A, `ProjectSettings.workshop` | the stock (wire, ferrule and marker parts in the shop's order) and the cut increment ([07](07-symbols-parts-macros.md) §2.5); the marker text (destination, wire number, both ends, potential), whether cores and jumpers are marked, ferrules (every fine-stranded end, or not into spring and push-in clamps), two wires in one clamp (one twin ferrule, or a ferrule each), device labels, the label files' export profile; the layout adds the reserve ([12](12-panel-layout.md) §9) | From the basic project ([13](13-manufacturing-outputs.md) §2.3) | — |
+| `WorkshopSettings` | A, `ProjectSettings.workshop` | the stock (wire, ferrule and marker parts in the shop's order) and the cut increment ([07](07-symbols-parts-macros.md) §2.5); the marker text (destination, wire number, both ends, potential), whether cores and jumpers are marked, ferrules (every fine-stranded end, or not into spring and push-in clamps), two wires in one clamp (one twin ferrule, or a ferrule each), device labels, the label files' export profile; for the layout's lengths and fill the reserve per end, the duct fill limit and the door loop ([12](12-panel-layout.md) §8.6, §9) | From the basic project ([13](13-manufacturing-outputs.md) §2.3) | — |
 | `LabelRecord` | D | label set (wire, terminal, strip, cable markers, device labels, tube markers, plates), what it labels, up to three lines, copies, marker part, whether it fits | `label_rows()`: one engine for every label, in the order applied; one label file per label set and marker part ([13](13-manufacturing-outputs.md) §5) | Chk: EW-MFG-004 |
 | `ProductionPackage` `.ewpp` | X, Class II | ZIP with deterministic member order: manifest, project, devices, wires, cables, terminals, labels, layout glTF, surface DXF, cut lists, checklists, PDF, machine exports; revision and content hash (FR-MFG-031/032) | Written by export; frozen into the as-built archive at release | Release refuses stale Class II inputs (FR-MFG-025) |
 

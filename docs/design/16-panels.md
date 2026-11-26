@@ -383,7 +383,7 @@ records, otherwise a phase text), elapsed time and Cancel. A finished job leaves
 | Fresh | plain value | "810 mm" |
 | Computing | clock icon and phase text | "routing 3 of 5 wires" |
 | Behind (Rev < current) | hatched background, "as of rev n", re-run action | "Offline check as of rev 212 · 3 edits since · Re-run" |
-| Stale committed value | pin icon, hatch, text | "810 mm · re-route pending" (EW-LAY-011) |
+| Stale committed value | "≈" before the value, the source word "stale" | "≈ 735 mm · stale" (EW-LAY-011, [12](12-panel-layout.md) §8.5) |
 | Failed | error icon, cause, remedy | "STEP import failed: file has no solids · Replace model" |
 | Blocking release | the same, with "blocks release" | stale lengths at release (FR-REV-007) |
 

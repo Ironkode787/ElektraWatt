@@ -147,7 +147,8 @@ rule**. Ranks are never reused or renumbered.
 | 45 (same kind) | page-oriented `report_block` | `report-blocks.jsonl` | — |
 | 46 | `macro_instance` | page file of the macro's anchor page | anchor page |
 | 47 | `placeholder_group` (reserved: [03](03-domain-model.md) §7 keeps placeholder groups inside `MacroDef`, so no project record uses it yet) | page file of the anchor page | anchor page |
-| 50–56 | `layout_space`, `enclosure`, `mounting_surface`, `carrier`, `placement`, `route_override`, `committed_route` | `layout/<space>.jsonl` | space via carrier → surface → enclosure |
+| 50–55 | `layout_space`, `enclosure`, `mounting_surface`, `carrier`, `placement`, `route_override` | `layout/<space>.jsonl` | space via carrier → surface → enclosure |
+| 56 | `committed_route` | `layout/<space>.jsonl` | its `space` |
 | 57, 58 | `routing_path`, `surface_feature` | `layout/<space>.jsonl` | space |
 | 60–62 | `revision`, `waiver`, `comment` | own root file | — |
 | 63 | `transmittal` | `revisions.jsonl` | its revision |
@@ -240,15 +241,25 @@ Ranks 50 to 54 (`layout_space`, `enclosure`,
 enclosure names its space, and a surface, carrier and placement reach it through carrier → surface → enclosure. The
 follow closure re-keys the dependants of `Carrier.surface`, `MountingSurface.enclosure` and `Enclosure.space`, so a
 carrier moved to another surface moves its placements' lines, and an incremental save equals a full save (LM-1).
-Ranks 55 to 58 (`route_override`, `committed_route`, `routing_path`, `surface_feature`) have no table and are
-kept and written as unknown records.
+Rank 56, `committed_route`, is typed (below); ranks 55, 57 and 58 (`route_override`, `routing_path`,
+`surface_feature`) have no table and are kept and written as unknown records.
 
 A property test guards the table: after any random command sequence, incremental saves must equal a full save,
 byte for byte (NFR-REL-16).
 
 **Committed computations** (`Committed<T>{value, input_hash, rev}`, ADR-0003) are persisted without `rev`, which is
-a session-local counter. A routed path is a `committed_route` record with ID `v5(connection, "route")`. Frozen wire
-numbers live in `Connection.number`. A released revision's report snapshots live in its archive (§14).
+a session-local counter. Frozen wire numbers live in `Connection.number`. A released revision's report snapshots live
+in its archive (§14).
+
+**`committed_route`** ([12](12-panel-layout.md) §8.5): the stored way of one wire, written only by Route, in the
+layout file of its `space`, with ID `v5(wire, "route")`: `{"$k", "id", "$v"?, "space", "wire", "ends": [End, End],
+"way": [Step], "run": <nm>}`, where `End` is `{"cp": [<function>, <idx>], "surface",
+"at": [<u>, <v>], "h": <nm>}` and `Step` is externally tagged, `{"duct": {"carrier", "from", "to"}}` or `{"door":
+<surface>}`, a step of a newer format kept as `Unknown(Value)`. `space` and `wire` (the wire's carrier connection) are
+cascade links. The kind was reserved with its rank, so its typed table is additive within format 0.1 (ADR-0011
+amendments 4 and 6): no format and no `$v` bump, the published schemas re-blessed with `committed_route.schema.json`.
+An older build keeps the lines verbatim and does not apply the links; a record whose wire or space is gone is not read
+and the next Route removes it.
 
 ---
 

@@ -181,7 +181,7 @@ The IEC 81346 prefixes that appear in tags:
 | **Document kind (aspect `&`)** | The IEC 81346 / IEC 61355 aspect for the kind of document; it is used for pages only and excluded from device numbering. | Document type block | — | [03 §5](03-domain-model.md) |
 | **Drafting scheme** | The default check scheme while editing: all loaded packs online, with completeness rules pending on the page being edited. | — | — | [15 §4.9](15-checks-revisions-collaboration.md) |
 | **Drilling data** | DXF per mounting surface with the hole and cut-out geometry from placed devices. | Drilling data (Pro Panel) | — | [13 §9.1](13-manufacturing-outputs.md) |
-| **Duct fill** | A derived measure of how much of a wiring duct's cross-section the routed wires use. | Duct fill (Pro Panel) | — | [12 §8.6](12-panel-layout.md) |
+| **Duct fill** | How much of a wiring duct's inner area the wires laid in it take, where it is fullest, against the shop's fill limit. | Duct fill (Pro Panel) | — | [12 §8.6](12-panel-layout.md) |
 | **DWG** | AutoCAD binary drawing format; read through a user-installed converter. | DWG import | — | [14 §6.5](14-interop.md) |
 | **DXF** | Drawing exchange format: read for underlays and drawings (R12–2018), written as AC1024 for pages and AC1015 for drilling data. | DXF/DWG import and export | DXF export of folios | [14 §6](14-interop.md) |
 
@@ -344,7 +344,6 @@ The IEC 81346 prefixes that appear in tags:
 |---|---|---|---|---|
 | **Natural sort** | Ordering in which numbers inside identifiers sort numerically (X2 before X10). | Sort by identifier | — | [03 §3.3](03-domain-model.md) |
 | **Navigator** | A dockable tree or list view over the project (pages, devices, connections, terminals, cables, PLC, potentials, messages) with filters and drag-to-place. | Navigator | Element/collection panels | [16 §5](16-ux-ui.md) |
-| **Negotiated congestion** | The routing method (rip-up and re-route with rising penalties) used to route wires through ducts. | Wiring Manager routing | — | [12 §8.4](12-panel-layout.md) |
 | **Net** | Connection points joined by wires, cores, bus lines, internal links, junctions and interruption-point pairs. A signal is nets joined by internal links; a potential is signals joined by bridges. | Net (autoconnect) | Conductor network | [08 §3.3](08-connections-terminals-cables.md) |
 | **NetDef** | A record that names a net or signal scope (`NetDef.scope`). | Net definition | — | [03 §9](03-domain-model.md) |
 | **Neutral text** | The language-independent branch of `MlText`. | Neutral language text | — | [03 §3.3](03-domain-model.md) |
@@ -438,8 +437,7 @@ The IEC 81346 prefixes that appear in tags:
 | **Revision (`Revision`)** | A released or draft state of a project with a label, purpose, sign-off and change record. | Revision (revision management) | Revision field text | [03 §18](03-domain-model.md), [15 §5](15-checks-revisions-collaboration.md) |
 | **Rework list** | What the fitter changes in a built cabinet between a release and now: devices to remove or mount, wires to pull, replace or add, ends to move or re-make, markers and labels to change. | Revision comparison for production | — | [13 §3.5](13-manufacturing-outputs.md) |
 | **Rhai** | The embedded scripting language (v1.26.1) used for formulas, rule packs and automation. Formulas are pure and read through tracked accessors. | Scripting (C#/.NET API) | — | [04 §10.3](04-architecture.md), [ADR-0020](../adr/0020-extensibility-tiers-and-security-model.md) |
-| **Route (`RouteWires`)** | The command that computes wire paths and lengths and stores them as a committed computation. | Wiring Manager route | — | [12 §8.5](12-panel-layout.md) |
-| **Routing graph** | The graph of ducts, rails and free surfaces over which wires are routed. | Routing path network | — | [12 §8.1](12-panel-layout.md) |
+| **Route (on a panel page)** | The command that lays each wire of a cabinet its way through the ducts, previewed, and stores the ways as committed computations from which the lengths are made. | Wiring Manager route | — | [12 §8.5](12-panel-layout.md) |
 | **Row set (`RowSet`)** | One row source for every consumer: reports, XLSX, CSV, SQL and the API return the same typed rows. | — | — | [09 §2.3](09-reports-forms-output.md) |
 | **Rule** | A named check with an ID, class code, kind, modes, default severity and scope. | Check | — | [15 §2.3](15-checks-revisions-collaboration.md) |
 | **Rule ID** | The form `owner-family-number`, for example EW-POT-013, with a six-digit code (005013) for external use. | Check number | — | [15 §2.2](15-checks-revisions-collaboration.md) |
@@ -515,6 +513,7 @@ The IEC 81346 prefixes that appear in tags:
 | Term | Definition | EPLAN | QElectroTech | Defined in |
 |---|---|---|---|---|
 | **Waiver** | A reviewed, expiring exemption of one finding, created by a `HumanOnly` command; the finding stays recorded. | Check suppression | — | [15 §2.5](15-checks-revisions-collaboration.md) |
+| **Way** | Where a wire runs in the cabinet: from its pin into a duct, along the ducts, to its other pin, or directly between neighbours; stale when an end or a duct on it moved. | Routing path | — | [12 §8.1](12-panel-layout.md) |
 | **Wire annotation** | The page item (stored as `wire_marker`) that shows a CDP's content beside wires: number, size, colours. It lists connections, has a position and an angle and prints one group text such as "2.5 BK BU". Drawing notation, not a wire marker. | Connection definition point symbol | Conductor text | [08 §4.5](08-connections-terminals-cables.md), [03 §6](03-domain-model.md) |
 | **Wire end** | One termination of a wire: locus (device tag and connection point), level and clamp. | Connection end | — | [13 §2.1](13-manufacturing-outputs.md) |
 | **Wire kind per page type** | The connection kind the Wire tool draws on a page, fixed by its page type: a `Wire` on multi-line pages, an `Overview` connection on single-line, overview and assembly-overview pages, and nothing yet on bus-topology and fluid pages, whose `Bus` and `Fluid` kinds are not drawn. | — | — | [06 §2.2](06-schematic-editor.md) |
@@ -522,7 +521,7 @@ The IEC 81346 prefixes that appear in tags:
 | **Wire number** | The identifier of a wire, derived by a scheme (for example from the From end) or frozen. | Connection number | Conductor number | [08 §5](08-connections-terminals-cables.md) |
 | **Wire type key** | The machine's identity of a wire stock: cross-section plus colour (plus part), such as "0.75 DBU". | Wire type | — | [13 §2.1](13-manufacturing-outputs.md) |
 | **Wire-property inheritance** | The chain from project defaults through profile rules, potential definition and net to connection overrides that fixes colour and size, each with provenance. | Connection properties by potential | Conductor properties | [08 §4.1](08-connections-terminals-cables.md) |
-| **Wiring manager** | The 3D panel tool for routed wires per layout space. | Wiring Manager | — | [12 §8.8](12-panel-layout.md) |
+| **Wiring manager** | EPLAN's table of routed wires; in EW the Connections table in table mode, with each wire's length and its source. | Wiring Manager | — | [12 §8.8](12-panel-layout.md) |
 | **Wiring sequence** | The order in which wires of a bundle or junction are made. | Wiring order | — | [12 §8.7](12-panel-layout.md) |
 | **Wiring viewer (`ew-wiring-viewer`)** | A read-only viewer for shop-floor use of the production package (1.0 Should). | Smart Wiring | — | [13 §11](13-manufacturing-outputs.md) |
 | **Work copy** | A copy of a project for working without git, with a base generation for later merge (1.0). | — | — | [15 §6.8](15-checks-revisions-collaboration.md) |

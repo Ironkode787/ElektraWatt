@@ -97,13 +97,13 @@ says its members; what they mean:
 | `Carrier` | `surface`, `kind: rail \| duct`, `part?`, `path` (surface frame), `params` (§2.4), `pe_bond`, `hole_choices` | a layout-only part, counted in the parts list by length; `hole_choices`: its fixing holes moved or left out ([12-3d](12-3d-routing-thermal.md) §10.4) |
 | `Placement` | `device`, `function?`, `part?`, `carrier: carrier \| surface`, `pose`, `locked`, `label_at?`, `hole_choices` | §2.3 |
 | `SurfaceFeature` | `surface`, `at` (its centre in the surface frame), `hole` (§2.5), `purpose?` (what it is for, in the person's words: "Earth stud"), `cable?` (the cable whose gland it holds, §3.9; delete policy unlink), `for_cable` (made for a cable: true stays when the cable is gone) | a hole a person added: by hand, or a cable's gland he placed; every other hole is derived ([12-3d](12-3d-routing-thermal.md) §10) |
-| `RouteOverride` | `connection` (physical wire ID, 08 §3.8), `path: Vec<RouteNodeRef>`, `pinned`, `bundle: Ident?` **(add)**, `seq: u32?` **(add)** | Survives re-routing (FR-LAY-047, FR-LAY-054). A manual length is not stored here but in `WireOverrides.length` **(add)** of the wire's carrier connection ([03](03-domain-model.md) §9, [13](13-manufacturing-outputs.md) §3.3), so that it also exists without a layout space |
-| `committed_route` | `wire`, `path: Vec<RouteNodeRef>`, `len: LengthBreakdown` (ending in the unrounded calibrated length `L_cal`, §9), `input_hash` | `Committed<T>` without `rev` (05 §2); ID `v5(connection, "route")`; rounding happens once, when the `WireRecord` is built ([13](13-manufacturing-outputs.md) §3.3) |
-| `RoutingPath` **(add)** | `space`, `kind: FreeAir \| Hinge{loop_allowance} \| WiringHole{feature} \| Guide`, `points: Vec<RouteAnchor>`, `class_set`, `cost_factor` | User routing paths (FR-LAY-043/044) |
+| `RouteOverride` | none: rank 55 stays reserved | A way is not pinned by hand ([12-3d](12-3d-routing-thermal.md) §8.7). A length typed by hand is `WireOverrides.length` of the wire's carrier connection ([03](03-domain-model.md) §9, [13](13-manufacturing-outputs.md) §3.3), so that it also exists without a layout space |
+| `committed_route` | `space`, `wire`, `ends`, `way`, `run` ([12-3d](12-3d-routing-thermal.md) §8.5) | Written only by Route; ID `v5(wire, "route")`; the length is made from `run` and rounded once, when the `WireRecord` is built ([12-3d](12-3d-routing-thermal.md) §9) |
+| `RoutingPath` | none: rank 57 stays reserved | No path is drawn by the person ([12-3d](12-3d-routing-thermal.md) §8.7); a door's crossing is derived ([12-3d](12-3d-routing-thermal.md) §8.1) |
 
-`RouteNodeRef = Duct{carrier, seg, s} | Joint{carrier, vertex} | Path{routing_path, idx} | Stub{cp} | Entry{feature}`.
-It names carrier positions, not graph node indices, so a committed route stays readable after the graph is rebuilt.
-The route records are [12-3d](12-3d-routing-thermal.md) §8's. Authored layout records get UUIDv7 IDs.
+A stored way names positions along ducts, not nodes of a graph, so it stays readable after the graph is built again
+([12-3d](12-3d-routing-thermal.md) §8.5). Authored layout records get UUIDv7 IDs; a `committed_route` record uses
+UUIDv5 over its wire (ADR-0004).
 
 A `HoleChoice` is `{index, offset?, omit}`: the hole of its owner's pattern at `index` (a part's `mech.holes` in its
 order; a carrier's fixings counted from the start of its path) moved by `offset` (`u`, `v` in the surface frame) or
@@ -527,12 +527,12 @@ show their revision stamp.
 | EW-LAY-003 | Placement's part use is not on the device (FR-LAY-059) | error | online | MVP | `Placement.part` ∉ `device.parts` | realise primary part |
 | EW-LAY-004 | Device location ≠ layout space location | warning | online | MVP | structure query | remove / move placement |
 | EW-LAY-005 | CP3D pattern does not cover the device's physical schematic CPs (after the macro mapping table) | error (blocks routing of affected wires) | online | 1.0 | designation multiset per function | open macro editor; add mapping entry |
-| EW-LAY-006 | Overlap or collision: 2D footprints per surface (MVP); 3D solids, door closed (1.0) | error | online (2D); II (3D) | MVP / 1.0 | §7 | — |
-| EW-LAY-007 | Clearance zone violated, with the amount | warning | II | 1.0 | `distance` on keep-outs | — |
-| EW-LAY-008 | Duct edge over fill limit: warning limit, error limit (shop policy) | warning / error | online on committed routes | 1.0 | `duct_fill` | re-route; widen duct |
-| EW-LAY-009 | Wire unroutable (no path, blocked stub, pinned path broken) | error | II | 1.0 | router report | add routing path |
+| EW-LAY-006 | Overlap or collision: 2D footprints per surface (MVP); the closed door, by number ([12-3d](12-3d-routing-thermal.md) §7, 1.0); solids with the 3D view | error | online, release | MVP / 1.0 | §7 | — |
+| EW-LAY-007 | A footprint or a duct inside a device's clearance zone, with the side and the amount ([12-3d](12-3d-routing-thermal.md) §7) | warning | online, release | 1.0 | zones from `placement_geometry` and `mech.clearance` | — |
+| EW-LAY-008 | A duct over the shop's fill limit where it is fullest ([12-3d](12-3d-routing-thermal.md) §8.6) | warning | online, release | 1.0 | `duct_fill` | — |
+| EW-LAY-009 | Retired: a wire without a way is named by Route's preview and its Properties and counted by EW-MFG-001 ([12-3d](12-3d-routing-thermal.md) §8.2, §9) | — | — | — | — | — |
 | EW-LAY-010 | Carrier compatibility: mount kind ≠ carrier profile; a part in a cut-out on the plate or a rail, a rail or screwed part in a cut-out; pose off the carrier; outside the usable area (a door's or a wall's less its edge margin); rail or strip overflow | error | online | MVP | pose and occupancy validation | move to compatible carrier |
-| EW-LAY-011 | Committed route or length stale (input hash changed) | warning; error at release | online | 1.0 | `route_status` | re-route the listed wires |
+| EW-LAY-011 | Ways that no longer hold, one finding per moved device or changed duct ([12-3d](12-3d-routing-thermal.md) §8.5) | warning; error at release | online, release | 1.0 | `route_status` | Route |
 | EW-LAY-012 | Holes too close: two holes of a surface closer than the workshop's web between holes, or a hole closer to the edge than the edge margin and that web, or off the sheet ([12-3d](12-3d-routing-thermal.md) §10.5) | warning | online, release | — | `surface_features` | — |
 | EW-LAY-013 | Door-swing collision, with the angle | error | II | 1.x | sweep (FR-LAY-031) | — |
 | EW-LAY-014 | Pre-assembled cable route longer than its length minus connector allowances | error | II | 1.0 | FR-LAY-050 | choose a longer cable part |
@@ -540,7 +540,7 @@ show their revision stamp.
 | EW-LAY-016 | Assembly or rack members not contiguous or not in physical order on their carrier (FR-LAY-061) | warning | online | MVP | `carrier_order` vs `Device.position` | reorder by position |
 | EW-LAY-017 | Holes not known: a part placed in a cut-out or screwed to a surface has no holes, or the device placed there has no part; one finding per part, naming its devices ([12-3d](12-3d-routing-thermal.md) §10.5) | warning | online, release | — | `surface_features` | Edit part… (the part editor at Front view and holes); for a device without a part, Choose part… |
 | EW-LAY-018 | Cable gland: a cable that leaves the cabinet has no gland placed (error at release); its gland is not known (no outer diameter, no stock gland seals it); a placed gland's hole differs from its gland's; a gland hole serves no cable (its cable gone or no longer leaving) | warning; error at release for one not placed | online, release | — | `cable_glands` | Place on the bottom; Take M32; Remove the hole; Keep it as a hole; Edit part…; Choose gland… |
-| EW-LAY-020 … 026 | Placement rules (FR-LAY-033/034): depth containment, thermal zoning, EMC segregation distance, operator height, door mass, cable-entry zone, handle-axis alignment | warning | online | 1.0 (Could) | rhai/Rust rules with constants as data, `verified` flag | — |
+| EW-LAY-021 … 026 | Placement rules (FR-LAY-033/034): thermal zoning, EMC segregation distance, operator height, door mass, cable-entry zone, handle-axis alignment; EW-LAY-020 (depth containment) is retired, the closed door being EW-LAY-006's ([12-3d](12-3d-routing-thermal.md) §7) | warning | online | 1.0 (Could) | rhai/Rust rules with constants as data, `verified` flag | — |
 
 Rule constants (fill limits, clearances, heights, segregation distances) ship with a `verified` flag; an
 unverified constant reports at most a warning (FR-CHK-046).

@@ -157,7 +157,7 @@ A workspace is a named dock layout with its panels and canvas kinds. Users save 
 | Schematic | pages, devices, strips, cables, potentials, IPs, structure, PLC | page tabs | property grid | messages, find, wire list, history, jobs | MVP |
 | PLC | PLC navigator, bus navigator | page tabs (203–206) | property grid | PLC grid, exchange results | 1.0 ([10](10-plc-and-bus.md) §6) |
 | Fluid | fluid navigator, devices | fluid pages | property grid | tube table, medium table | 1.0 ([11](11-fluid-power.md) §7) |
-| Panel 3D | layout navigator, unplaced devices | 3D canvas, panel pages | property grid | wiring manager, routing preview, thermal | 1.0 ([12](12-panel-layout.md) §12.3) |
+| Panel 3D | layout navigator, unplaced devices | 3D canvas, panel pages | property grid | thermal | 1.0 ([12](12-panel-layout.md) §12.3) |
 | Manufacturing | label sets, machine profiles, orders | 3D or plate view | property grid | wire table, pre-flight findings | 1.0 ([13](13-manufacturing-outputs.md) §12) |
 
 The shipped workspaces are files the program does not write: View ▸ Workspaces lists them first

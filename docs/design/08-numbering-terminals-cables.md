@@ -441,8 +441,8 @@ cable rows and in the bus cable list (FR-BUS-008).
 | Source | Release | Rule |
 |---|---|---|
 | Manual, FromPart, Missing | MVP | Missing is a warning while the drawing grows and an error that blocks release in the check for delivery (EW-CORE-033, FR-CHK-033) |
-| Routed | 1.0 | a committed computation from `RouteWires`; stale once its input hash changes (EW-LAY-011, FR-CBL-010) |
-| Estimated | 1.0 | from footprints and duct paths, flagged (FR-LAY-053) |
+| Routed | later | from a cable's way, once Route lays cables ([12](12-panel-layout.md) §8.7: it lays wires only); stale once that way no longer holds (EW-LAY-011, FR-CBL-010) |
+| Estimated | — | not made: no length is estimated without a way ([12](12-panel-layout.md) §9, FR-LAY-053) |
 
 Example: -106W1 and -106W2 are FromPart (2 m, ▲). -3W1 is Missing (EF-08). The cable length is the cable's value.
 Single-wire lengths belong to [12](12-panel-layout.md) and [13](13-manufacturing-outputs.md).

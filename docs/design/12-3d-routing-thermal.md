@@ -98,201 +98,282 @@ EDZ connection-point and drilling patterns map into the same records when the us
 
 ## 7. Collision and clearance
 
-**Proxies per placement** (PM §6.4): L0 oriented box from W×H×D; L1 convex hull or hull compound from the worker;
-L2 the LOD1 triangle mesh. Keep-outs are separate box proxies flagged soft. Carriers and enclosure walls are exact
-parametric shapes.
+The cabinet is judged in 2D and by number: a footprint is a rectangle on its surface (§2.6), and how far a thing
+stands out of its surface is a number. Collision of solids comes with the 3D view (§6).
 
-**Pipeline** (parry3d 0.31.1; 0.31.0 is yanked):
+| Rule | What it reports | Severity |
+|---|---|---|
+| EW-LAY-006, on a surface | two footprints that overlap, a footprint and a duct, a rail and a duct (§4) | error |
+| EW-LAY-006, the closed door | a device or a duct of the plate that reaches the closed door, and a device of the plate and one of the door that meet when it is closed | error |
+| EW-LAY-007 | a footprint or a duct inside the room a device's part asks to keep free | warning |
 
-1. Broad phase: one `Bvh` over L0 AABBs per layout space, refitted per changed leaf.
-2. Allowed-contact filter: (placement, its carrier); (carrier, its surface); joined carriers (duct T-joints, rail on
-   plate); neighbours on one rail with penetration ≤ 0.1 mm; members of one assembly; thin solids excluded.
-3. Narrow phase: `intersection_test` on L1; L2 only where L1 intersects. Since 0.31 the result names the sub-shape,
-   which the 3D view highlights (FR-LAY-028).
-4. Clearance: `distance` between soft keep-outs and solids; EW-LAY-007 reports `required − actual` (FR-LAY-029).
-5. Door closed (FR-LAY-030): door-surface placements posed at the closed door against plate placements and the
-   enclosure interior; door cut-outs against the door's reinforcement keep-out.
-6. Door swing (1.x, FR-LAY-031): sub-sweeps of at most 15° with `sweep_time_of_impact`, or 5° discrete steps as the
-   fallback; EW-LAY-013 reports the first contact angle.
+**The room a part keeps free.** A part's clearance (`mech.clearance`: top, bottom, left, right, front;
+[07](07-symbols-parts-macros.md) §2.5) is what its maker asks to keep free around it, for heat, for an arc or for a
+hand. Its zone on the surface is the footprint grown by the four sides, turned with the part. On a rail, placing and moving keep the left and the right
+clear already (the snap pads them, §3.3); the zone judges the rest: what stands above and below, and a device put
+closer by hand (Shift while dragging, a typed position) or by a later change of its part. EW-LAY-007 reports each
+footprint and each duct inside a zone once, naming the two, the side and the amount: "-101G1 keeps 25 mm free below
+it (its part's clearance); duct 1 is 10 mm from it, 15 mm too close". The device's own rail and the end brackets of
+strips are not judged, nor the zone of an unknown footprint.
 
-**Interaction.** While dragging, the dragged placement is tested against the BVH at L0 and L1 every frame and shown
-as a red ghost on contact; full L2 results come at drag end (NFR-PERF-17). Findings are sorted by the pair of
-placement IDs, so the message list is deterministic.
+**What a thing takes out of its surface.** A device on a rail takes the rail's height (from its profile: 7.5 mm for
+TS 35 × 7.5, 15 mm for TS 35 × 15 and TS 32, 5.5 mm for TS 15; the last two unverified) plus its part's depth plus the
+clearance its part keeps in front; a device on the plate itself its depth and its front clearance; a duct its height.
+A device in the door takes its depth behind the door, from the door's inside face (§2.2).
 
-**MVP 2D overlap.** Before 3D exists, EW-LAY-006 tests footprint rectangles (plus clearance padding in rail direction)
-per surface with an rstar index. The 1.0 implementation replaces it under the same rule ID.
+**The closed door.** The room between the plate and the closed door is the door's (§2.2: the plate's depth to the
+door). EW-LAY-006 reports, naming the things:
+
+- a device or a duct of the plate that takes more than that room: "-101G1 reaches 117.5 mm from the plate; the closed
+  door is 110 mm away";
+- a device of the plate and a device of the door whose footprints overlap when the door is closed, seen from the
+  front, and which together take more than the room: "-101G1 and -102S1 in the door meet when the door is closed: they
+  take 117.5 and 45 mm of the 150 mm between the plate and the door".
+
+A device without a depth is not judged, nor a cabinet whose room to the door is not known; the device's Properties
+say "Depth not known: the closed door is not checked for it". On the sample no device reaches the door: the deepest,
+-101G1, takes 117.5 mm (110 mm on its 7.5 mm rail).
 
 ---
 
 ## 8. Routing
 
-### 8.1 Routing graph
+A wire's **way** is where it runs in the cabinet: out of its pin, into a duct, along the ducts, out to its other pin.
+Route finds each way on the 2D layout. The plate's ducts and footprints give the way in the plane, and two numbers
+give the third dimension: how far a pin stands out of the plate, and the height at which wires lie in a duct. No 3D
+connection point and no model is read.
 
-`routing_graph(space)` is built on the routing fork (FR-LAY-042; PM §6.7). All node IDs are `v5(space, kind,
-carrier, segment, index)`, so the graph is identical on every run.
+### 8.1 The ways of a cabinet
 
-| Element | Construction | Edge attributes |
-|---|---|---|
-| Duct centreline | per straight segment at mid-depth `z = plate + height/2`; nodes at every slot position | length; capacity = inner area × fill limit; class set; cost factor 1.0 |
-| Slot nodes | both long sides, every `max(slot_pitch, 25 mm)` | slot → centreline edge of length width/2 |
-| Joints | each T, corner and cross is expanded into one port node per incident segment; port-to-port edges carry the **bend penalty** (default 20 mm-equivalent ▲) for 90° turns, 0 for straight passes | — |
-| CP stubs | per CP3D: escape 15 mm against `dir`, then an orthogonal plate-parallel run to the nearest slot node on a duct side facing the CP (top-face CPs prefer the duct above); line of sight checked by ray casts against the scene BVH, trying the next 8 slot nodes on failure | marked free-air; length; cost factor 1.0 within the stub |
-| User paths | `RoutingPath` free-air segments (cost factor 1.5–3 ▲), hinge paths plate → door with loop allowance (default 300 mm), guides | class set |
-| Cable entries | gland features of the gland surface (1.0) | entry nodes for cables leaving the space |
-| Wiring holes | through-plate passages (1.x, FR-LAY-044) | front ↔ rear |
+**Where a pin is.** A pin stands on the top or the bottom edge of its device's footprint, in the part's frame (§2.1),
+turned with the part:
 
-A blocked stub (no line of sight to any of 9 candidates) becomes a direct free-air edge with cost factor 3 and is
-flagged; if even that intersects, the wire is EW-LAY-009. The reference set's graph has about 400 duct nodes and 150 stubs; a
-2,000-wire cabinet stays under 10,000 nodes.
+- where the part says it: the pin's `face` in the part's pins (`CpData.face`: `top` or `bottom`;
+  [07](07-symbols-parts-macros.md) §2.5);
+- else where the drawing shows it: a pin a wire leaves upwards on the page that draws it (its symbol's or its device
+  box's connection point as the page turns it; of a function drawn twice, the first page in page order) is on the top
+  edge, any other on the bottom edge. A schematic draws a device's supply at the top, and that is where its maker puts it in
+  most cases; where he does not (a power supply with its input below), the part says so once, for every device of it.
+
+The pins of one edge share it evenly in the order of the part's pins (of the device's function CPs where it has no
+part): the k-th of n stands at (k + ½)/n of the edge. A terminal's pins stand on its own width within its strip
+(§3.4): side 1 and side 2 on the edges its drawing gives them, so a strip turned on its rail turns its sides with it.
+A pin's **height** above the plate is the rail's height plus half its device's depth (the rail's alone where the
+depth is not known).
+
+**The ducts as a graph.** A duct's centreline (§2.4) is a chain of straight pieces. Two ducts are joined where their
+outlines touch or overlap, at the point of the one's centreline nearest the other's, which makes a corner, a T or a
+cross; the stretch from a duct's end to that point belongs to the joint. Wires lie in a duct at half its height.
+
+**Into a duct.** From its pin a wire leaves straight out of its edge (up from the top edge, down from the bottom one)
+to the first duct that line meets; or back across its own device's front to the first duct on the other side. A line
+that meets another footprint first stops there: that way is not taken. The **stub** is the distance from the pin to
+the duct's centreline; the **climb** the difference between the pin's height and the duct's half height.
+
+**A direct way.** Between two pins of one device, or of two devices that stand side by side on one rail (no footprint
+between them), a wire may run straight from pin to pin over the fronts: across plus along, plus the difference of the
+two heights. Route takes it where it is shorter than the way through the ducts: the sample's jumper 101.14 from
+-101G1:+#1 to -101G1:+#2, and 101.12 from -101F1:2 to -101G1:L, run so.
+
+**To the door.** A wire to a device in a door (§2.2) runs through the ducts to the end or the corner of a duct from
+which the rest is shortest; from there in free air to the plate's edge on the door's hinge side, across the hinge in
+the door loop the shop leaves (`workshop.door_loop`, §9), along the door from its hinge edge to the device (across
+plus up), and up half the device's depth to its pin. A pin in a door stands at its device's centre. Two devices in one
+door are joined directly on the door, device to device.
+
+**A wire that leaves the cabinet.** A wire with an end outside the cabinet (an external point, or a device of another
+location: a field wire, [13](13-manufacturing-outputs.md) §2.1) is made on site and gets no way. Inside the cabinet
+the shop wires to a terminal's inner side, and what leaves from its field side is a cable's. A cable's core gets no
+way: it is cut with its cable.
 
 ### 8.2 What is routed
 
-| Object | Routed as | Notes |
-|---|---|---|
-| Physical wire (08 §3.8) | one route between its two CP3D stubs | Key = physical wire ID (the target-side connection UUID); through junctions and interruption-point pairs the decomposition of 08 applies, so W13 and W14 from F55:2 are two routes |
-| Wire bridge (jumper wire) | a wire | — |
-| Plug-in bridge | not routed | a bridge connection with its part (FR-TRM-007) |
-| Multi-core cable inside the space (-106W1, -106W2) | one object with its outer diameter, from the centroid of end A's CPs to end B's connector CP; core breakouts added per core | length check EW-LAY-014 (FR-LAY-050) |
-| Cable leaving the space (-3W1; the supply cable -101W1 of A-R, ▲U-20) | internal route to its cable entry; the external length is authored | FR-CBL-020 (§9) |
-| Bus cable | as a cable with class `BUS` | -3W1 |
-| Tube (1.x) | `RouteTubes` on the same graph with a fluid class mask ([11](11-fluid-power.md), FR-FLU-024) | — |
+Every physical wire ([08](08-connections-terminals-cables.md) §3.8) that is no core and no bridge and whose two ends
+are on devices of the cabinet's location (the location of the layout space) is the cabinet's. Its way is keyed by the
+physical wire's ID, its carrier connection, never by a layout carrier (§15 item 5). Of the cabinet's wires, a wire
+gets no way, and is told why in words with what to do:
 
-**Segregation** (FR-LAY-048). A wire's class is derived from its potential type, voltage and cable data
-(`MAINS_AC` for L-1/N-1, `SELV_DC` for 24VDC-1, `BUS` for -3W1). A duct's `class_set` filters edges per wire; a
-policy table states which classes may share a duct. EN 60204-1 permits mixing when insulated for the highest
-voltage *(clause 13.1.3, unverified)*, so the default policy only separates `BUS` and `ANALOG_SHIELDED` from
-`MAINS_AC`.
+| Why | The words |
+|---|---|
+| An end's device is not placed | "-102S1 is not placed: place it, then route again" |
+| An end's pin meets no duct and the wire has no direct way | "-104A1-A1:M meets no duct: draw a duct above or below rail 2, or type the length" (the sample without duct 1) |
+| An end is on another surface than the plate or a door, or the wire runs between two doors | "-109E1 is on a side wall: Route lays wires on the plate and into the doors; type the length" |
 
-### 8.3 Path search
+### 8.3 The search
 
-- **A\*** over the graph with **integer costs**: `cost(e) = length_nm(e) × factor_permille(e) / 1000 + bend +
-  congestion`, all `u64`. The heuristic is the integer square root of the squared Euclidean distance in nm (squared
-  in `u128`, since a 6 m bayed suite exceeds `u64`), which is admissible because every factor is ≥ 1.0 and bend and
-  congestion terms are ≥ 0. The open set orders by `(f, h, node_id)`, and adjacency lists are sorted by node ID.
-  Floats never decide a path, so results are identical across platforms, thread counts and record load order
-  (NFR-REL-07).
-- Because the `(f, h, node_id)` tie-break is part of the specification, EW keeps its own A\* (about 150 lines)
-  rather than depending on the internal heap order of `pathfinding` 4.16.0's `astar`.
-- **Alternatives** for one wire: Yen k-shortest paths (k = 3) on request in the wiring manager (FR-LAY-045), via
-  `pathfinding::yen` over the same sorted successor lists *(determinism to verify in the shuffle-order test)*.
+A way is the shortest path through the graph of §8.1 from one pin's entries to the other's, the direct way and the
+door's crossing included, by its length in integer nanometres. Every length is a sum of coordinate differences
+(carriers are axis-parallel, turns are quarter turns), and ties go to the lower duct ID, then the lower position
+along it, so the same cabinet gives the same ways on every machine and in every order of its records (NFR-REL-07).
+The search is a plain shortest path over a graph of tens of nodes per duct; it shares nothing with the router of
+schematic pages ([06a](06a-drafting.md)), whose lattice and prices are a page's.
 
-### 8.4 Negotiated congestion
+### 8.4 One pass
 
-After PathFinder (PM §6.7), deterministic:
+The planned wires (§8.5) are laid one after another in the order of the wire list
+([08](08-connections-terminals-cables.md) §5.2). Each takes the shortest way that **has room**: a way along which no
+piece of duct goes over the project's fill limit (§8.6) with this wire in it, or the direct way where it is shorter.
+Where no way has room, the wire takes the shortest way all the same, and its duct goes over its limit (EW-LAY-008,
+§8.6). The ways not planned hold their room.
 
-```text
-order = wires sorted by (csa × estimated_length desc, wire_id asc)
-h[e] = 0
-for iter in 1..=max_iter (policy 3..10, default 8):
-    p_fac = p0 × 1.5^(iter-1)                         // fixed-point permille
-    for w in order:
-        if w is pinned: path[w] = override path; continue
-        if iter > 1 and path[w] uses no overflowed edge: continue
-        rip_up(w)
-        cost_w(e) = base(e) × (1 + h[e]) × (1 + p_fac × over(e, w))
-        //  over(e, w) = max(0, occ[e] + area(w) − cap[e]) / cap[e]
-        path[w] = astar(stub_a(w), stub_b(w), cost_w, class_mask(w))   // None → EW-LAY-009
-        add(w)
-    overflow = Σ max(0, occ[e] − cap[e])
-    if overflow == 0: break
-    for e with occ[e] > cap[e]: h[e] += h_inc × (occ[e] − cap[e]) / cap[e]
-    if overflow did not fall in 2 iterations: break
-report EW-LAY-008 for every edge still over its error limit
+No second pass moves wires out of a full duct to make room for others. Route already avoids a full duct where a way
+with room exists, and the sample needs none: the fullest piece of its one duct holds 20 wires, 9 % of its area. A
+cabinet whose duct goes over its limit is told so, and gets a wider duct or a second one.
+
+### 8.5 Route, the stored ways and when a way no longer holds
+
+**Route** (`layout.route` on a panel page; the Draw tab's Connect group, as on a schematic page, [06a](06a-drafting.md)
+§7.1) plans the cabinet of the layout space the page shows:
+
+- with nothing selected, the cabinet's wires without a way and those whose way no longer holds (below);
+- with a selection, the wires at the selected devices, through the selected ducts, or the selected wires (from the
+  Connections table), whatever their state;
+- with the preview's tick **Route every wire again**, every wire of the cabinet.
+
+It always shows a preview first (ADR-0008's fork); the card and the canvas are §12.5. Apply stores the plan in one
+`layout.route` command: one undo step. `ew route` on a panel page runs the same plan and stores it; `--dry-run` prints
+it.
+
+**What Route stores.** One `committed_route` record per wire with a way, in the layout file of its space (rank 56,
+[05](05-project-format-and-persistence.md) §2), ID `v5(wire, "route")`, written only by `layout.route`:
+
+| Member | What it holds |
+|---|---|
+| `space` | the layout space (delete policy cascade) |
+| `wire` | the physical wire's ID, its carrier connection (delete policy cascade) |
+| `ends` | per end, From first: the CP, the surface the pin was on, its place in that surface's frame and its height |
+| `way` | the steps in order: `{"duct": {carrier, from, to}}`, a stretch of a duct between two positions along its path in nm; `{"door": surface}` where it crosses a door's hinge; empty for a direct way |
+| `run` | the way's length in nm, as computed, before any reserve or loop is added or anything rounded |
+
+The record of the sample's 101.8, from -101Q1:2 on its bottom edge down into duct 1, along it and back across
+-103F1's front to its pin 1 (IDs shortened):
+
+```json
+{"$k":"committed_route","id":"…","space":"…","wire":"…","ends":[{"cp":["…",1],"surface":"…","at":[82200000,537500000],"h":42500000},{"cp":["…",0],"surface":"…","at":[419000000,622500000],"h":42500000}],"way":[{"duct":{"carrier":"…","from":57200000,"to":394000000}}],"run":641800000}
 ```
 
-Wire areas are integer µm² with π/4 ≈ 355/452. Wires are routed sequentially within an iteration, which keeps the
-algorithm faithful to PathFinder; graph construction and stub ray casts run on rayon. If the M4 benchmark misses
-NFR-PERF-16, the fallback routes each iteration in parallel against the occupancy at iteration start, followed by a
-sequential repair pass. Both are thread-count independent.
+The way is stored so that a length does not change behind the person's back: the length is made from `run` (§9), and
+what changes in the cabinet afterwards changes no length until he routes again. The rounded length, the reserve, the
+loop and the fill are never stored.
 
-### 8.5 `RouteWires`, committed routes and staleness
+**When a way no longer holds.** A way holds while what it was laid from is as it was: its ends are the pins as they
+are now, and its run, measured again along its stored steps over the ducts as they are now, is the run it stored.
+These are the inputs it read, kept as they were and compared as they are (ADR-0003's input hash, here the inputs
+themselves: no hash is needed for two numbers and two points). It no longer holds (it is **stale**) when:
 
-- `RouteWires{scope, options}` is `Cost::Bulk`: it builds the graph on a fork, routes, computes lengths and returns
-  a preview (changed lengths, new findings, fill heat-map). Accept commits `committed_route` records (FR-LAY-046).
-  Routing is never in the interactive path (arch §16).
-- **Input hash per wire** = SHA-256 over the canonical encoding of: both end CP3D world positions and directions
-  (pose chain, part geometry hash), the wire's routing properties (OD, class, csa), the geometry hashes of the
-  carriers and routing paths on its committed path, its `RouteOverride`, and the routing and length policy. Other
-  wires are excluded on purpose: moving -102F2 stales only the wires at -102F2 (EW-LAY-011), not the cabinet.
-- **Fill is recomputed** online from the committed routes (`duct_fill`), so a re-route of one wire updates EW-LAY-008
-  immediately.
-- **Overrides** (FR-LAY-047): a pinned path is used verbatim; a broken pinned path (deleted duct) yields EW-LAY-009
-  with reason "pinned path broken" and keeps the override for the user to repair.
-- **Release** (FR-MFG-025): the pre-delivery scheme fails while any EW-LAY-011 or EW-LAY-009 finding is open.
+- an end's pin is not where it was: its device moved, turned, went to another surface or another rail, or took
+  another part ("-X1031 moved");
+- the wire now lands on another pin at an end ("its end moved from -102Q1:2 to -102Q1:4");
+- an end's device is no longer placed;
+- a duct on its way moved, changed its size or is gone ("duct 1 changed").
+
+Nothing else stales a way: not another wire, not a new duct (Route again uses it), not a renumbering, not the wire's
+size or colour (the fill follows them at once), and not the settings of §9 (the length follows them at once). A stale
+way keeps its length: the lists print it with "≈" ([09](09-output.md) §12 item 12), and the Connections table's
+Length from says "stale". EW-LAY-011 reports one finding per cause, a moved device or a changed duct, with its wires as
+targets: "The ways of 5 wires at -X1031 no longer hold: it moved. Route gives them new ones." (warning; error in
+release mode), with Route as its quick fix.
+
+**A record whose wire is gone.** A junction edit can make another connection the carrier of a wire: the wire is then
+a wire without a way, and its old record is not read. A record whose wire or space is gone (an older build keeps the
+kind verbatim and does not delete it) is not read either; the next Route removes such records.
 
 ### 8.6 Duct fill
 
-`fill(e) = Σ_{w on e} (π/4)·OD_w² / A_inner(e)` per centreline edge (FR-LAY-049). OD comes from the wire part; a
-default OD table *(unverified: H05V-K 0.75 ≈ 2.7 mm, H07V-K 1.5 ≈ 3.3 mm)* is flagged in every result. Inner area
-comes from the duct part, else 0.85 × nominal. Example: a 40×60 duct without inner data has 2,040 mm²; 30 H05V-K
-0.75 wires at the default 2.7 mm occupy 171.8 mm², a fill of 8.4 % with the "default OD" flag. Limits are shop
-policy, defaulting to 60 % warning and 80 % error (PQ-22). The 3D view and the 2D page show the fill as a
-heat-map with numeric labels and pattern classes (§12.4).
+`duct_fill(duct)` gives, per piece of the duct between the points where ways enter or leave it, the area of the wires
+whose stored way runs along it over the duct's inner area, and the duct's **fill**: that of its fullest piece.
 
-### 8.7 Bundles and wiring sequence
+- A wire's area is π/4 · OD². Its outer diameter comes from its wire part (`sections.wire.outer_diameter`,
+  [07](07-symbols-parts-macros.md) §2.5), else from the table below by its cross-section, else the wire is not
+  counted and the fill says so ("1 wire without a diameter not counted").
+- The inner area is the duct part's inner width × inner height (`sections.duct`), else 0.85 × the nominal width ×
+  height (PM §5.3, unverified).
+- The **fill limit** is the shop's (`workshop.fill_limit`, §9): 60 % unless set.
 
-Derived by default by `bundle_sequence(space)` (FR-LAY-054; PM §6.9): group by (start strip or device) × (first
-duct entry node); split above
-the maximum bundle size; order bundles bottom to top; within a strip the lower level first; long before short in
-the same duct; door wiring last. `bundle.seq` numbers are derived; `RouteOverride.bundle/seq` overrides survive
-re-routing.
+| Cross-section (mm²) | 0.5 | 0.75 | 1 | 1.5 | 2.5 | 4 | 6 |
+|---|---|---|---|---|---|---|---|
+| Outer diameter (mm) | 2.5 | 2.7 | 2.9 | 3.3 | 3.9 | 4.6 | 5.3 |
 
-### 8.8 Wiring manager
+The table is data of `ew-derive` with its source (PM §6.7: H05V-K to 1 mm², H07V-K above), unverified; a fill that
+read it says "with default diameters (unverified)". A cable gets no way and is not counted.
 
-A table per layout space (FR-LAY-055): wire number, ends (DT:CP level/clamp), route as duct names (D1 → D2 → D4),
-length and source, bundle, maximum fill along the route, status (fresh, stale, unrouted, pinned). Selecting rows
-and "re-route" runs `RouteWires{scope: Wires(ids)}`, a previewed transaction for those wires only.
+A duct over its limit is EW-LAY-008 (warning): "Duct 1 (40×60) is 72 % full where it is fullest; the limit is 60 %:
+widen it or add a duct". On the sample, 23 ways run in duct 1; its fullest piece holds 20 of them, 178.4 mm² of its
+2,040 mm² (0.85 × 40 × 60): 9 %.
+
+### 8.7 What Route does not do
+
+Route offers no alternative way for a wire, and a way cannot be pinned by hand: where Route's way is not the fitter's,
+a typed length wins (§9). It keeps no segregation classes (a duct for mains only), makes no bundles and no wiring
+sequence, and lays no cable: a cable's length is typed or its part's ([08](08-connections-terminals-cables.md) §7.6).
+It routes no wire through a wiring hole or along a path the person draws, and none to a side wall, the roof or the
+floor.
+
+### 8.8 No wiring manager
+
+The table of a cabinet's wires is the Connections navigator in table mode ([13](13-manufacturing-outputs.md) §12):
+its Length and Length from columns say every wire's length and whether it is routed, stale, typed, with its cable or
+missing; a sort on Length from lists the stale ones; a selection there and Route on the panel page lay those wires
+again. A wire's way is shown where it is (§12.5); a duct's wires are one click from the duct (§8.6, §12.5).
 
 ---
 
 ## 9. Wire lengths
 
-**Formula** (FR-LAY-051; PM §6.8):
+**The length of a routed wire** is made from its stored way, in integer nanometres, and rounded once:
 
-`L_raw = stub_A + path + stub_B + Δz_A + Δz_B + a_A + a_B + reserve + Σ family offsets`
-`L_cal = L_raw × calibration`, stored unrounded in the committed route; `L_out = ⌈L_cal / increment⌉ × increment`,
-computed once, when the `WireRecord` is built ([13](13-manufacturing-outputs.md) §3.3, FR-MFG-051)
+`L = ⌈(run + 2 · reserve + loop) / increment⌉ · increment`
 
-| Term | Source |
-|---|---|
-| `stub` | CP escape plus the plate-parallel run to the slot (§8.1) |
-| `path` | graph edges along centrelines, including the slot entries, joints and user paths |
-| `Δz` | height of the CP above the plate minus the duct mid-depth, per end; forgetting it gives systematically short wires (PM §11 pitfall 4) |
-| `a` | per-end allowance: `strip_len + insertion_depth + bend allowance` (default 2 × OD, policy) |
-| `reserve` | `WorkshopSettings.reserve` ([03](03-domain-model.md) §17, added with the layout's lengths): fixed (default 100 mm) or proportional, plus a door extra and the hinge loop allowance |
-| family offset | per device family, from calibration (FR-LAY-052) |
-| `increment` | `WorkshopSettings.cut_increment`: the project's cut increment (5 mm when absent); machine profiles only declare their resolution and never re-round (FR-MFG-051) |
+| Term | What it is | From |
+|---|---|---|
+| `run` | the way's length: the two stubs and climbs, the stretches along the ducts, or the direct way; for a door way the free air to the plate's edge, along the door and up the door device | the stored way (§8.5) |
+| `reserve` | what the fitter adds at each end: stripping, the bend into the clamp and a little to spare | `workshop.reserve`, 50 mm unless set (PM §6.8: a fixed reserve of 50 to 150 mm per wire; unverified) |
+| `loop` | the loop across a door's hinge, for a door way only | `workshop.door_loop`, 300 mm unless set (PM §6.7; unverified) |
+| `increment` | what a piece is cut to | `workshop.cut_increment`, 5 mm unless set ([07](07-symbols-parts-macros.md) §2.5) |
 
-All terms are `Nm`; the calibration factor is a rational (`1030/1000`). Every length carries a `LengthBreakdown`
-and a source, aligned with `LengthSource` of [08](08-connections-terminals-cables.md) §7.6: `Routed`, `Estimated`
-(FR-LAY-053), `Manual` (`WireOverrides.length`, §2.2), `FromPart` (cores of pre-assembled cables such as -106W1)
-or `Missing`.
+The rounding is `ew_units::arith`'s, upwards, in `wire_record_set()` ([13](13-manufacturing-outputs.md) §3.3);
+nothing that reads the record rounds a wire's length again. A change of the reserve, the loop or the increment
+changes every routed length at once: the shop changed its rule, and no way changed.
 
-**Worked example** (PM §6.8 inputs, illustrative geometry): W29, -102F2:Out1 → -X1031:1 clamp a, potential
-24VDC-1.
+**Where a length comes from.** `WireLength` of `ew-derive` ([13](13-manufacturing-outputs.md) §2.4), first match
+wins:
 
-| Term | Value |
-|---|---|
-| Stub A (escape 15 + run 30) | 45 mm |
-| Δz A (CP 95 mm above plate − duct mid-depth 30) | 65 mm |
-| Path (top duct 140 + left duct 260 + middle duct 90) | 490 mm |
-| Stub B (15 + 25) | 40 mm |
-| Δz B (60 − 30) | 30 mm |
-| Allowances 2 × (10 strip + 2 insertion + 6 bend) | 36 mm |
-| Reserve | 100 mm |
-| **L_raw** | **806 mm** in the committed route → **810 mm** in the `WireRecord` at the 10 mm project increment |
-| With calibration 1.03 | 830.18 mm → **840 mm** |
+| Source | When | Length | Length from |
+|---|---|---|---|
+| `Typed(n)` | a constituent connection carries `WireOverrides.length` | n, as typed, never rounded | typed |
+| `WithCable(cable)` | the wire is a core | `cable` | cable |
+| `Routed{length, run}` | the wire has a stored way that holds | L | routed |
+| `Stale{length, run, why}` | the wire has a stored way that no longer holds (§8.5) | ≈ L | stale |
+| `Missing` | none of these | — | missing; `site` for a field wire, whose length the site gives |
 
-**Estimated lengths** (FR-LAY-053, HMW-13). Without CP3D data or with an incomplete duct network, each end is the
-footprint centre of the placement projected to the nearest duct side of the 2D plate layout, with a default stub
-(50 mm ▲) and default Δz (device depth / 2 − duct mid-depth); path search is the same A\* on the 2D duct graph.
-Source `Estimated`, flagged in the wire list and blocking only machine profiles that demand routed lengths
-(EW-MFG pre-flight, FR-MFG-024).
+A typed length wins and stays as typed. Route still lays a typed wire, so that its duct counts it, and its Properties
+say both: "Typed by hand. Route gives it 225 mm: clear the length to take it." No length is estimated before Route:
+a wire of the cabinet has a length when Route has laid it or when one is typed.
 
-**Cable lengths** (FR-CBL-010). A shop-cut cable fully inside the space takes `Routed` from its committed route. A
-pre-assembled cable keeps `FromPart` (-106W1, -106W2: 2 m ▲); its route only feeds EW-LAY-014. For a cable that leaves
-the space, the routed internal part to the cable entry is added to the authored external length; the length source
-shows both (FR-CBL-020).
+**What a person is told.** Properties of a wire explain its length as one text with its numbers: "Routed: 881 mm of way,
+50 mm reserve at each end and a 300 mm door loop, rounded up to 1,285 mm"; "Stale: -X1031 moved. Route gives it a new
+way"; "No way yet: Route on page 902 gives it one, or type its length here"; "No way: -102S1 is not placed".
+
+**What reads the length.** The record is the one source (ADR-0018):
+
+- the wire list ([13](13-manufacturing-outputs.md) §3.1): Length and Length from, a stale length with "≈";
+- the cut list's wires and the consumables' metres ([the workshop lists](13-workshop-lists.md) §3.6, §9.3): the
+  record's length as it is, a stale one with "≈", a sum that holds one with "≈";
+- the rework list ([13](13-manufacturing-outputs.md) §3.5): Check length where a length changed since the release;
+- the check before an export for the workshop: the length and its source.
+
+**EW-MFG-001.** In a project with a panel layout, Check project and the check before an export report the cabinet's
+wires without a length, one finding: "12 wires of +CAB have no length: Route gives them one, or type it" (info), with
+Select them. Field wires and cores are not counted: the site and the cable give their lengths. A stale length is
+EW-LAY-011's (§8.5), not EW-MFG-001's.
+
+**Worked example** (the sample, its door devices in the door; `run` in mm):
+
+| Wire | Way | Run | Length |
+|---|---|---|---|
+| 101.4, -X1011:PE (clamp a) to -101G1:PE | down 117.5 into duct 1, climb 2.5, along 154.8, back across -101G1's front 185, climb 32.5 | 492.3 | 595 (+ 2 × 50, rounded up) |
+| 101.14, -101G1:+#1 to -101G1:+#2 | direct, along the bottom edge | 15.0 | 115 |
+| 104.3, -104A1-A1:M to -104E1:X2 in the door | back across the module's front 220, climb 15, along duct 1 to its hinge end 160.7, free air 25, along the door 440, up the lamp 20 | 880.7 | 1,285 (+ 2 × 50 + 300 loop) |
 
 ---
 
@@ -460,7 +541,7 @@ load model, simultaneity default, rated-value default).
 
 `I_b` comes from the load model (`load_summary`, FR-REP-026) where available, else simultaneity × rated current,
 else the rated current (conservative). Conductor losses use routed length × loss per metre from a user-supplied
-IEC 61439-1 Annex H table (*verify table*); unrouted wires use estimated lengths and are flagged.
+IEC 61439-1 Annex H table (*verify table*); a wire without a routed or typed length (§9) adds no loss and is flagged.
 
 ### 11.3 Effective cooling surface A_e
 
@@ -578,15 +659,16 @@ step) and fills the rail.
 
 ### 12.3 Panels
 
-Layout navigator (space → enclosure → surfaces → carriers → placements, FR-UI-006), unplaced-devices list, wiring
-manager (§8.8), routing preview (diff of lengths and findings, accept/cancel, FR-UI-022), thermal panel (inputs,
-results, per-device table, proposals, stale badge, FR-UI-024), panel-macro editor (§6.3). The Panel 3D workspace
-groups them (FR-UI-003).
+Layout navigator (space → enclosure → surfaces → carriers → placements, FR-UI-006), unplaced-devices list,
+thermal panel (inputs, results, per-device table, proposals, stale badge, FR-UI-024), panel-macro editor (§6.3).
+The Panel 3D workspace groups them (FR-UI-003). Route's preview is a card of the Preview tab and the cabinet's wires
+are the Connections table (§8.8, §12.5): neither is a panel of its own.
 
 ### 12.4 Accessibility and degraded hosts
 
-- No meaning in colour alone (NFR-A11Y-03): collisions are red plus hatch plus icon; fill classes carry pattern and
-  percentage text; stale lengths carry a badge and the text "re-route pending".
+- No meaning in colour alone (NFR-A11Y-03): collisions are red plus hatch plus icon; a duct's fill is a number
+  ("9 %"), and one over its limit carries the warning icon and the word "over"; a stale length prints "≈" and its
+  Length from says "stale"; a stale way is drawn dashed.
 - Keyboard placement (NFR-A11Y-01): Tab cycles placements in `carrier_order`, arrows move by snap step, Enter opens
   the property grid. The live region announces "-102F1, MCB, rail R1 at 158 mm, no findings" (NFR-A11Y-02; with
   -102G1's clip point at s = 96 mm as in §2.3, clip points at the part centres, no lateral clearance, a 70 mm PSU
@@ -594,6 +676,69 @@ groups them (FR-UI-003).
 - GPU-less hosts (NFR-PLAT-03): 3D runs on DX12 WARP or a software Vulkan adapter where one exists, with LOD1 or
   boxes only and frames rendered on demand; otherwise the 3D canvas is disabled with an explanation. The 2D panel
   pages stay fully available on the CPU renderer.
+
+### 12.5 Ways, lengths and fill in the window
+
+The panel builder routes on the panel page, where he placed the devices and drew the ducts, and reads the lengths
+where he reads every wire: the Connections table, a wire's Properties and the wire list. A way and a fill are screen
+marks of the panel page ([16a](16a-design-language.md) §7): the page prints as it did, with no line of a way on it.
+
+**The first time.** (1) Every device of the cabinet is placed; the HUD of the panel page names the next step, "Route
+gives each wire its way through the ducts and its length", with Route. (2) Route (the Draw tab's Connect group; on a
+schematic page the same button routes the drawing) shows the preview. The canvas shows the cabinet whole while the
+card is open (and the page as it was when it closes): every planned way as a line from its pins into the ducts and
+along them, in `canvas.ghost`, the ways in a duct side by side across its width; the wires to a door as one arrow
+to the hinge side with their count; and on each duct a chip with its fill where it is fullest ("9 %"; over the limit
+the chip takes the warning icon, "72 % · over 60 %"). A row of the card hovered or selected shows its way alone, in
+the accent. In the Preview tab the card:
+
+- the lead: "Route: cabinet +CAB. 41 wires get a way through the ducts; 3 are made on site. Nothing has changed
+  yet.";
+- **Ducts:** per duct its label, size and fill where fullest ("Duct 1 · 40×60 · 9 % of 2,040 mm²"), one over the
+  limit first;
+- **Lengths:** per wire its number, its ends and its length, a wire whose way changes as "735 → 680 mm";
+- **Typed by hand:** the wires that keep their typed length, with what Route gives ("101.1 keeps 400 mm; Route gives
+  225 mm");
+- **Made on site** and **Without a way:** per wire the reason in the words of §8.2;
+- the tick **Route every wire again**, with the count of the wires whose way still holds; ticked, the card plans again;
+- Apply and Cancel.
+
+(3) Apply stores every way in one undo step ("Route the cabinet +CAB"); the toast says "Routed 41 wires of +CAB." with
+Undo. (4) In the Connections table (table mode) the Length column holds every length, in the secondary colour as a
+derived value, and Length from says "routed". (5) A wire selected there or on a schematic page shows its way on the
+panel page: a 2-px accent line from pin to pin, its pins as connection-point rings, and a chip with its number and
+length ("104.3 · 1,285 mm"); a device selected on the panel page shows the ways of its wires. Properties of the wire
+show Length with its source chip and the explanation of §9, and the row Way ("Duct 1, door", "direct") with Show on
+902.
+
+**The tenth job.** His basic project carries his reserve, his fill limit and his door loop, and his company library
+the edge of every pin his drawings do not show the way his parts are built. He places the devices, draws the ducts,
+presses Route, applies and prints: the lengths come with the list.
+
+**The day after.** He turns -X1031 so that its inner side faces the duct. The toast of the turn says "Turned -X1031.
+The ways of 5 wires no longer hold." with Route; the HUD says it until he routes; the Connections table prints their
+lengths "≈ 735" with Length from "stale"; Messages hold EW-LAY-011. Route then plans those five only, and the card
+lists "103.5 · 735 → 680 mm". A duct he widened, moved or deleted says the same of its wires.
+
+**A duct.** Selected, it shows its fill chip and its fullest piece hatched in `canvas.stale`'s pattern (§8.6). Its
+Properties show Size, Inner area ("2,040 mm² · 0.85 × 40 × 60: the part gives no inner size"), Fill ("9 % where
+fullest · the limit is 60 %", "with default diameters (unverified)" where it read the table) and Wires ("23 · Select
+them", which selects them for the Connections table).
+
+**The shop's numbers.** Project properties ▸ Workshop holds, beside Cut to: Reserve per end (50 mm), Duct fill limit
+(60 %) and Door loop (300 mm), each with the source of its default in its explanation; each change is one
+`project.settings.set` and one undo step, and changes the lengths and fills at once (§9).
+
+**A part's pins.** The part editor's Pins table has the column Wired at: top or bottom, or empty, where the drawing
+decides and the cell shows the derived edge in the secondary colour ("top · drawing"). The Size section has the row
+Clearance in front, the Wire section the row Outer diameter.
+
+Route is one action, `layout.route`, whichever page it runs on: on a schematic, fluid or bus page it routes the drawing
+([06a](06a-drafting.md) §7), on a panel page that shows a cabinet's plate it routes the cabinet, and elsewhere it is
+greyed with its reason. One button and one word serve the one intent, to route the wires of the page in front of him;
+two buttons named Route in one bar would ask which is which. It stands in Draw ▸ Connect, the HUD of the panel page,
+the toast of a move, EW-LAY-011's quick fix and the menus of a duct, a placement and a wire; Show on the layout page
+is the Way row's.
 
 ---
 
@@ -610,8 +755,8 @@ Budgets hold on the baseline machine BM (4-core 2018+ x64, 8 GB RAM, integrated 
 | 3D view, 10,000 instanced placements | ≥ 30 fps | NFR-PERF-17 | instancing, culling, LOD by projected size |
 | Drag feedback in 3D | inside the 16 ms frame | NFR-PERF-17 | BVH leaf refit; L0/L1 only |
 | Full collision, 500 placements | ≤ 10 ms after drag end | NFR-PERF-17 | hull narrow phase, mesh only on hull hits, rayon over pairs |
-| `RouteWires`, 2,000 wires | ≤ 5 s | NFR-PERF-16 | < 10k nodes, integer A\*, ≤ 10 iterations, rip-up only on overflow |
-| Re-route one wire | ≤ 50 ms | NFR-PERF-16 | A\* against committed occupancy and history |
+| Route, 2,000 wires | ≤ 5 s (not measured) | NFR-PERF-16 | one pass; a shortest path per wire over the duct pieces of one cabinet, integer lengths |
+| Route one wire again | ≤ 50 ms (not measured) | NFR-PERF-16 | the same search against the stored ways' room |
 | STEP import 20 MB / cached reopen | ≤ 30 s / ≤ 1 s | NFR-PERF-18 | worker pool; rkyv memory-mapped cache |
 | Thermal recalculation, 500 placements | ≤ 200 ms | NFR-PERF-23 | one pass over placements; coefficient lookups |
 | Project open with layout | inside NFR-PERF-03 | NFR-PERF-03 | meshes load lazily on first 3D view; layout records are small |
@@ -627,7 +772,7 @@ Budgets hold on the baseline machine BM (4-core 2018+ x64, 8 GB RAM, integrated 
 | Placement legend, PART DATA, mounting list | `layout_legend`, `device_part_lines` | MVP (embedded) / 1.0 (page reports, FR-REP-023) | pages, XLSX, CSV |
 | BOM lines for enclosure, plate, rails, ducts, brackets | carriers, group accessories | MVP | `bom_rows` (FR-REP-007, D-04) |
 | Model views | `layout_scene`, cached part projections | 1.0 | pages |
-| Routes, lengths, bundles, route as duct names | committed routes, `wire_length` | 1.0 | WireRecord, machine profiles, `.ewpp` ([13](13-manufacturing-outputs.md)) |
+| Ways and lengths | `committed_route` records, `wire_record_set()` (§8.5, §9) | 1.0 | the wire list, the cut list, the consumables, the rework list, machine profiles, `.ewpp` ([13](13-manufacturing-outputs.md)) |
 | Hole table, drilling template (PDF at full size), drilling DXF per surface | `surface_features` (§10.4) | 0.4.0 | [13](13-drilling.md) §9.1, §9.2; the cut list is [13](13-workshop-lists.md) §9.3 |
 | glTF (`.glb`, node names = placement UUIDs, DT and part in extras) and STL per layout space | `layout_scene`, written by `ew-panel` | 1.0 | FR-EXP-007, `.ewpp` layout member, wiring viewer |
 | STEP AP242 assembly named by DTs | worker `ExportStep` | 1.0 (Could) | FR-EXP-008 |
@@ -650,12 +795,16 @@ Every output is deterministic: no wall-clock times, members and rows in derived 
 5. **Two meanings of "carrier".** [08](08-connections-terminals-cables.md) §3.8 calls the connection that holds a
    physical wire's number its "carrier connection"; the layout `Carrier` is a rail or duct. Routes key on the
    physical wire ID, never on the layout carrier.
-6. **TWIN clamps.** "-X1031:1+" alone does not say which clamp; wire ends name level and clamp, and CP3D has one
-   entry per clamp (PM §4.4).
-7. **Δz and default ODs** make lengths too short and fill too optimistic; both are explicit terms and flags.
-8. **Non-determinism** changes machine files on every regeneration. Integer costs, sorted adjacency, UUID tie-breaks
-   and a shuffle-order CI test prevent it.
-9. **Overrides lost on regeneration.** Pins, bundles, manual lengths and locks are keyed by UUID and survive.
+6. **Two clamps of one terminal.** A terminal's two sides are two pins on two edges of its width (§8.1), and a wire
+   end names its clamp (`-X1011:L1` clamp a), so the way leaves from the side the wire lands on.
+7. **The third dimension and default diameters.** A length without the climb from a pin to the duct is short, and a
+   fill with diameters too small is optimistic: the climb is a term of every way (§8.1), and a fill that read the table
+   of diameters says so (§8.6).
+8. **Non-determinism** changes machine files on every regeneration. Integer lengths, the wire list's order and ties
+   by duct ID and position prevent it (§8.3); a test lays the sample's wires from its records in another order and
+   compares.
+9. **Lengths that change behind his back.** A way is stored and its length made from it (§8.5); a move stales it and
+   says so, and only Route lays it again. A typed length and a lock are keyed by UUID and survive every Route.
 10. **Concurrent edits.** Two branches that both place on rail R1 merge cleanly record by record and overlap
     afterwards; the post-merge integrity check reports EW-LAY-006 (ADR-0012).
 11. **Copy-paste between projects** remaps carrier IDs; a placement whose carrier did not come along is re-homed to
@@ -685,7 +834,7 @@ The tests open the sample project (`fixtures/sample/`).
 | D-01 stale tags after renumber | S | Labels and legend are derived; layout files untouched by renumbering |
 | D-03 "+JE2416" vs "+J-E-2416" | S | One structure node; identifier suppression prints "-X1031" |
 | D-21 PE continuity not drawn | C | MVP: rail-bonded terminals join the location PE node ([08](08-connections-terminals-cables.md) §3.7); 1.0: `pe_bond` on rails and plate, continuity through carriers (FR-CHK-029) |
-| D-19 missing lengths | C | Routed, estimated or manual lengths with source; release gate on missing and stale lengths |
+| D-19 missing lengths | C | Routed or typed lengths with their source; EW-MFG-001 counts the cabinet's wires without one, EW-LAY-011 the stale ones |
 | D-29, D-31 shrunk label text | S + C | Paper-height label styles; rotate, leader or balloon, never shrink |
 | D-05, D-06 title-block drift on 902 | S | Layout pages are ordinary pages with bound title blocks |
 | D-10 overview vs layout order | S + C | Assembly members placed in `Device.position` order; EW-LAY-016 |
