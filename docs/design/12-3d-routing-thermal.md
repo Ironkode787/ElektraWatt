@@ -322,16 +322,24 @@ out.
    Y 15. The preview draws the front and its cut-out.
 6. On 902 he right-clicks near the plate's bottom-right corner: **Add hole here…** asks Kind Fixing, Size M6, For
    "Earth stud", with X and Y from the click; Add puts it there.
-7. Output ▸ Workshop ▸ **Hole tables** opens page 915: the plate's 10 holes, then the door's 8, each with its number,
-   its X and Y from the bottom-left corner, what to make ("Ø 4.2, tap M5", "Ø 22.3") and what it is for.
-8. Output ▸ Workshop ▸ **Drilling…** lists the plate and the door with their hole counts and sheet counts; Export
-   writes "+CAB Door template.pdf", "+CAB Door.dxf" and the plate's two files. He prints the door's template at 100 %,
+7. The HUD says "2 glands to place: Bottom". Bottom makes page 905 (the bottom seen from below, the door's edge at the
+   top). Unplaced devices lists under Glands "-101W1 · gland M20" and "-103W1 · gland M25"; he selects both and drops
+   them near the bottom's left: they stand in a row 35 mm apart, so their nuts clear each other
+   ([12](12-placement-pages.md) §3.9). -103W1's Properties say "Gland: EW-GEN-GLD-M25, proposed: 12.5 mm, in its 9 …
+   16 mm · Bottom of -UC1, H2". His shop measures this job from the top-left: Project properties ▸ Workshop ▸ Holes ▸
+   Measured from: Top left, once for every surface (a surface's own Measured from, in its Properties, still wins).
+8. Output ▸ Workshop ▸ **Hole tables** opens page 915: the plate's 10 holes, the door's 8 and the bottom's 2, each
+   with its number, its X and Y from the corner the surface's heading names, what to make ("Ø 4.2, tap M5", "Ø 22.3",
+   "Ø 25.5") and what it is for (a rail, a device, a cable).
+9. Output ▸ Workshop ▸ **Drilling…** lists the plate, the door and the bottom with their hole counts and sheet counts;
+   Export writes "+CAB Door template.pdf", "+CAB Door.dxf" and the others' files. He prints the door's template at 100 %,
    measures the 100 mm bar, tapes the five sheets at their crosses, lays the template into the door's top-left corner,
    centre-punches through the crosses and punches the 22 mm holes.
-9. **The day after.** He moves -104E2 10 mm to the right: the hole table, the template and the DXF follow; the door
-   record is unchanged and only the placement moved. A rail lengthened by 100 mm gets its fourth fixing hole.
-10. **The tenth job.** His parts carry their holes and his basic project says Fixing holes: Self-tapping screws; he
-   lays out the door and goes straight to step 7.
+10. **The day after.** He moves -104E2 10 mm to the right: the hole table, the template and the DXF follow; the door
+   record is unchanged and only the placement moved. A rail lengthened by 100 mm gets its fourth fixing hole. A new
+   cable to a sensor in the field is one more gland to place; -103W1 given a thicker part keeps its M25 hole and
+   EW-LAY-018 offers Take M32. **The tenth job:** his parts carry their holes and his basic project sets the workshop's
+   Holes rows once; he lays out the door and the bottom and goes straight to step 8.
 
 ### 10.2 The sizes of the named holes
 
@@ -347,7 +355,8 @@ A part and a hole by hand name a hole by its kind ([12](12-placement-pages.md) �
 | Fixing, self-tapping screw | Ø 2.7, 3.7, 4.6, 5.5, 7.4 mm | a thread-forming screw's pilot hole in sheet steel, about 0.9 × the thread | no |
 
 Where a person meets a size from this table (the hole's Properties, the Drilling… dialog) it says "from the program's
-table, not checked against its standard". A shop whose punch differs types a round hole of its own size.
+table, not checked against its standard". A shop whose punch differs types a round hole of its own size. The cable
+diameters a gland seals are not this table's: they are each gland part's data ([12](12-placement-pages.md) §2.5, §3.9).
 
 ### 10.3 What a fixing and a carrier become
 
@@ -369,7 +378,8 @@ its `Hole`, how it is made, its owners and its number:
 1. **From each placement on the surface**, its part's `mech.holes`, turned with the placement and moved to its pose.
    A strip, a part on `on_parent` and a part without holes give none.
 2. **From each rail and duct on the surface**, its fixing holes (§10.3).
-3. **Each `SurfaceFeature`** of the surface, its `purpose` its owner.
+3. **Each `SurfaceFeature`** of the surface: a hole by hand, its `purpose` its owner; a cable's gland, its cable its
+   owner and its stored hole its size ([12](12-placement-pages.md) §3.9).
 4. **The choices** of a placement or a carrier apply: a hole moved by its `offset`, a hole left out (`omit`).
 5. **Holes that meet merge:** two holes made the same way whose centres lie within 0.5 mm of each other are one hole
    with both owners (two parts sharing a fixing).
@@ -380,7 +390,7 @@ its `Hole`, how it is made, its owners and its number:
    number follows the hole while the surface does not change, and is never stored.
 
 A hole's owner is said in words: a device by its tag ("-102S1"), a rail or a duct by its label ("Rail 1"), a hole by
-hand by its purpose ("Earth stud"), else by its kind ("Gland M20").
+hand by its purpose ("Earth stud"), a gland by its cable ("-103W1"), else by its kind ("Gland M20").
 
 ### 10.5 What he is told
 
@@ -394,6 +404,7 @@ hand by its purpose ("Earth stud"), else by its kind ("Gland M20").
   -104E1 goes in a cut-out but has no holes, so the door's hole table and drawings lack them: give the part its holes
   in the part editor (Front view and holes)", with Edit part…; "-102E1 has no part, so its cut-out is not known: choose
   its part", with Choose part…. A rail device needs no holes and is never reported.
+- **EW-LAY-018 Cable gland** (warning; error at release for a gland not placed): [12](12-placement-pages.md) §3.9.
 - **The depth behind the door** is the depth check's ([§7](#7-collision-and-clearance)): it reads `behind_door` and the
   enclosure's usable depth.
 
@@ -410,12 +421,12 @@ hand by its purpose ("Earth stud"), else by its kind ("Gland M20").
   Add is one `layout.feature.add`. A hole by hand drags with Select (1 mm steps, 5 mm with the coarse grid), shows Kind,
   Size, X, Y and For in Properties, and Delete removes it.
 - **Properties of a surface** (a click on its outline or its free area): Width, Height, Hinge, Edge margin, Measured
-  from (Bottom left, Bottom right, Top left, Top right), the count of its holes with Hole table, and its page.
+  from (Bottom left, Bottom right, Top left, Top right, or "The project's: Bottom left"; the project's is Project
+  properties ▸ Workshop ▸ Holes ▸ Measured from), the count of its holes with Hole table, and its page.
 
 **Left out**, each with its reason ([backlog-later](../plan/backlog-later.md)): the anti-rotation notch of a 22 mm
 cut-out (no starter part needs one); slots, keyholes and free outlines as holes; a hole under another device as a
-finding (a rail's fixing under its devices is the normal case, so the rule would mostly be noise); gland holes made
-from the cables that leave the cabinet; importing a maker's drilling pattern from his DXF; NC formats of punching
+finding (a rail's fixing under its devices is the normal case, so the rule would mostly be noise); importing a maker's drilling pattern from his DXF; NC formats of punching
 machines (no specification read).
 
 ---

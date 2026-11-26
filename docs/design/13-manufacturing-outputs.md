@@ -146,7 +146,7 @@ back.
 
 ```rust
 pub struct WorkshopSettings {                 // ProjectSettings.workshop; absent: every default below
-    pub stock: Vec<PartRef>,                  // the wire, ferrule and marker parts the shop keeps, in its order (07 §2.5)
+    pub stock: Vec<PartRef>,                  // the wire, ferrule, marker and gland parts the shop keeps, in its order (07 §2.5)
     pub cut_increment: Option<Nm>,            // what a piece is rounded up to, 5 mm when absent (07 §2.5; here §3.3)
     pub marking: Marking,                     // destination (default) | wire_number | both_ends | potential
     pub mark_cores: bool,                     // default false: a core is known by its colour or number
@@ -159,6 +159,7 @@ pub struct WorkshopSettings {                 // ProjectSettings.workshop; absen
     pub rail_fixing: Option<CarrierFixing>,   // absent: M5, at most 300 mm apart, 25 mm from each end
     pub duct_fixing: Option<CarrierFixing>,   // absent: M4, at most 300 mm apart, 25 mm from each end
     pub min_web: Option<Nm>,                  // the web kept between two holes; absent: 5 mm (12-3d §10.5)
+    pub datum: Option<Corner>,                // the corner holes are measured from; absent: bottom left (12 §2.8)
 }
 pub struct CarrierFixing { pub screw: Screw, pub pitch: Nm, pub from_end: Nm }   // Screw: m3 | m4 | m5 | m6 | m8
 pub struct ExportProfile {
@@ -1038,7 +1039,7 @@ the sheet, and Labels for these changes… only the new and changed labels.
 | The wire list's pages | §3.1; Output ▸ List columns… chooses the printed columns of the list on show |
 | Connections navigator, table mode | Every column of §3.1. Length takes a length (§3.3); From end and To end a treatment or the rule's (§4.5); From marker and To marker a text, "none" or the setting's (§5.1). A value set by hand prints in the text colour, a derived one in the secondary colour ([16a](16a-design-language.md) §6.21); each edit is one `fields.set` and one undo step |
 | Properties of a wire | Length, with a chip that says where it comes from (§3.3); sections From end and To end, each named by its place ("From end · -X1011:L1 a"), with the rows End, Part and Marker; a derived value's chip says why ("rule: fine-stranded wire, clamp kind not known"), a value set by hand has the chip "set by hand" and Reset |
-| Project properties ▸ Workshop | Beside Cut to and the stock ([07](07-symbols-parts-macros.md) §2.5), the rows Marker text, Mark cable cores, Mark jumpers, Ferrules, Two wires in one clamp, Device labels, Fixing holes (Tapped, Self-tapping screws, Through, with a nut), Rail fixing and Duct fixing (each a screw, at most how far apart and how far from each end), Web between holes, and Label file columns (Change… opens the columns as List columns… shows a list's: a tick, a heading, the order). Each change is one `project.settings.set` and one undo step; Output ▸ Workshop ▸ Workshop settings shows these rows |
+| Project properties ▸ Workshop | Beside Cut to and the stock ([07](07-symbols-parts-macros.md) §2.5), the rows Marker text, Mark cable cores, Mark jumpers, Ferrules, Two wires in one clamp, Device labels, Fixing holes (Tapped, Self-tapping screws, Through, with a nut), Rail fixing and Duct fixing (each a screw, at most how far apart and how far from each end), Web between holes, Measured from, and Label file columns (Change… opens the columns as List columns… shows a list's: a tick, a heading, the order). Each change is one `project.settings.set` and one undo step; Output ▸ Workshop ▸ Workshop settings shows these rows |
 | Output ▸ Workshop ▸ Labels… | A form dialog: which labels (all, or those changed since a release), one row per file with its label set, marker part and count, a tick each; the format (CSV or XLSX); the profile's columns with Change…; the folder. A line under the files names the findings of the labels ("1 marker does not fit its marker part") with Show. Export writes the files as a job; its toast names the folder with Open folder |
 | Output ▸ Workshop ▸ Rework list… | A dialog: Compare with (the released revisions whose archive is found, newest first; Archive file…), one line that counts the work ("1 device to remove, 3 wires to pull, …"), the rows of §3.5, Export… (XLSX or CSV) and Labels for these changes…. Without a release: "This project has no released revision yet: the rework list compares with a release. Release it on the Check tab, or choose an archive file" |
 | Output ▸ Workshop ▸ Hole tables, Drilling… | The hole table page and the drawings for drilling (§9) |

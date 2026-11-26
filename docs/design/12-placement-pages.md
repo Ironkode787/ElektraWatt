@@ -75,7 +75,7 @@ flowchart LR
 |---|---|---|
 | Enclosure | its outside bottom-left-rear corner; x right and y up as seen from the front, z towards the door | the surfaces' frames, the wire ways |
 | Mounting surface | `frame: Pose3` in the enclosure: `u` right and `v` up as the surface is seen from the side it is worked from (§2.8), `w` towards that side | the page, carrier paths, poses, holes |
-| Datum of a surface | the corner of its sheet it is measured from, the bottom-left one unless it says another (`MountingSurface.datum`) | the hole table, the drawings for drilling, the view's datum mark |
+| Datum of a surface | the corner of its sheet it is measured from: the surface's own (`MountingSurface.datum`), else the project's (`WorkshopSettings.datum`), else the bottom-left one | the hole table, the drawings for drilling, the view's datum mark |
 | Carrier | rail: the start of its axis, `s` along it; duct: the start of its centreline | placement poses |
 | Part | the bottom-left corner of its front: `x` right and `y` up as the front is seen, `z` out of the front; a door device's depth runs behind the door. `rail_offset` is the rail clip point in this frame | footprint, front view, holes |
 
@@ -93,10 +93,10 @@ says its members; what they mean:
 |---|---|---|
 | `LayoutSpace` | `location` (+CAB), `name?` | one per location's cabinet; `install`, `thermal`, `policy` are kept verbatim until thermal types them |
 | `Enclosure` | `space`, `device` (-UC1, which carries the enclosure part), `pose` | the enclosure is a device, so its part reaches the parts list by the one path |
-| `MountingSurface` | `enclosure`, `kind: plate \| door \| left \| right \| top \| bottom`, `device?` (a surface part of its own: the plate -UC1-U1), `frame`, `usable` (the sheet's outline in its frame), `edge_margin?` (the strip along a door's or a wall's edge where nothing is cut), `hinge?: left \| right` (a door), `datum?: bottom_left \| bottom_right \| top_left \| top_right` (absent: bottom left), `pe_bond` | one per face of the cabinet (§2.8); the plate is made with the enclosure, every other face the first time a page shows it (§3.1) |
+| `MountingSurface` | `enclosure`, `kind: plate \| door \| left \| right \| top \| bottom`, `device?` (a surface part of its own: the plate -UC1-U1), `frame`, `usable` (the sheet's outline in its frame), `edge_margin?` (the strip along a door's or a wall's edge where nothing is cut), `hinge?: left \| right` (a door), `datum?: bottom_left \| bottom_right \| top_left \| top_right` (absent: the project's, `WorkshopSettings.datum`, bottom left when that is absent too), `pe_bond` | one per face of the cabinet (§2.8); the plate is made with the enclosure, every other face the first time a page shows it (§3.1) |
 | `Carrier` | `surface`, `kind: rail \| duct`, `part?`, `path` (surface frame), `params` (§2.4), `pe_bond`, `hole_choices` | a layout-only part, counted in the parts list by length; `hole_choices`: its fixing holes moved or left out ([12-3d](12-3d-routing-thermal.md) §10.4) |
 | `Placement` | `device`, `function?`, `part?`, `carrier: carrier \| surface`, `pose`, `locked`, `label_at?`, `hole_choices` | §2.3 |
-| `SurfaceFeature` | `surface`, `at` (its centre in the surface frame), `hole` (§2.5), `purpose?` (what it is for, in the person's words: "Earth stud", "Gland for -103W1") | a hole a person added; every other hole is derived ([12-3d](12-3d-routing-thermal.md) §10) |
+| `SurfaceFeature` | `surface`, `at` (its centre in the surface frame), `hole` (§2.5), `purpose?` (what it is for, in the person's words: "Earth stud"), `cable?` (the cable whose gland it holds, §3.9; delete policy unlink), `for_cable` (made for a cable: true stays when the cable is gone) | a hole a person added: by hand, or a cable's gland he placed; every other hole is derived ([12-3d](12-3d-routing-thermal.md) §10) |
 | `RouteOverride` | `connection` (physical wire ID, 08 §3.8), `path: Vec<RouteNodeRef>`, `pinned`, `bundle: Ident?` **(add)**, `seq: u32?` **(add)** | Survives re-routing (FR-LAY-047, FR-LAY-054). A manual length is not stored here but in `WireOverrides.length` **(add)** of the wire's carrier connection ([03](03-domain-model.md) §9, [13](13-manufacturing-outputs.md) §3.3), so that it also exists without a layout space |
 | `committed_route` | `wire`, `path: Vec<RouteNodeRef>`, `len: LengthBreakdown` (ending in the unrounded calibrated length `L_cal`, §9), `input_hash` | `Committed<T>` without `rev` (05 §2); ID `v5(connection, "route")`; rounding happens once, when the `WireRecord` is built ([13](13-manufacturing-outputs.md) §3.3) |
 | `RoutingPath` **(add)** | `space`, `kind: FreeAir \| Hinge{loop_allowance} \| WiringHole{feature} \| Guide`, `points: Vec<RouteAnchor>`, `class_set`, `cost_factor` | User routing paths (FR-LAY-043/044) |
@@ -167,6 +167,8 @@ A part's members are the struct `Part` of `crates/ew-schema/src/library.rs` ([07
 | `mech.holes` | the drilling pattern: `PartHole {x, y, hole}` each, its centre in the part frame and its `Hole` | the features of a surface ([12-3d](12-3d-routing-thermal.md) §10) |
 | `sections.enclosure` | outer `width`, `height`, `depth`, `wall`, the `plate` part, and: `doors` (each `{hinge: left \| right, width?}`, left to right; absent: one door over the whole front, hinged on the left), `edge_margin?` (of its doors and walls), `usable_depth?` (the clear depth between the plate and the closed door) | the surfaces (§2.8), the depth check |
 | `sections.mounting_plate` | its `width`, `height`, `thickness` | the plate surface |
+| `sections.cable.outer_diameter` | a cable part's outer diameter | the size of its gland (§3.9) |
+| `sections.gland` | a gland part (`kind: gland`): `thread` (M12 … M63), `clamp_min`, `clamp_max` (the cable diameters it seals), `nut?` (the room its nut takes, across its corners) | the gland a cable gets, the pitch of a row of glands |
 | `sections.rail`, `sections.duct` | a rail's profile and stock length; a duct's inner size and slot pitch | carriers, cut list, duct fill |
 
 **A `Hole`** is one of:
@@ -216,6 +218,7 @@ and lengths are [12-3d](12-3d-routing-thermal.md) §8 and §9's.
 | `surface_features(surface)` | every hole of the surface with its owners, numbered in drilling order ([12-3d](12-3d-routing-thermal.md) §10.4) | memo |
 | `surfaces(enclosure)` | the enclosure's six faces (§2.8): for each its kind, the record if it has one, its size from the part, its page | cold |
 | `behind_door(p)` | how far a placement in a door or a wall reaches behind it: its part's depth and the greatest depth of the device's `on_parent` parts | cold |
+| `cable_glands(space)` | each cable with an end in the space's location and an end outside it: its gland part (its chosen one, else the proposal) or why it has none, and the `SurfaceFeature` that holds it, if placed (§3.9) | memo |
 | `to_enclosure(surface, pt)` | a point of a surface in the enclosure's front view (`x`, `y`): a door's point lies in front of the plate's point of the same `x`, `y` | cold |
 
 **The footprint.** On a rail the clip point lies on the axis at `s`; on a surface the pose is the front's bottom-left
@@ -271,8 +274,11 @@ is drawn as a person sees it from the side it is worked from, standing in front 
 - **A door's hinge** is the part's (`doors[i].hinge`): one door is hinged on the left unless the part says otherwise;
   of two, the left door on the left and the right door on the right. The page draws it (§5.2); the wire ways read it
   to cross to the door ([12-3d](12-3d-routing-thermal.md) §8).
-- **The datum** of each surface is its bottom-left corner unless Properties' Measured from says another corner. The
-  hole table and the DXF measure from it; the page marks it (§5.2).
+- **The datum** differs from job to job, so it is a setting: the surface's Properties ▸ Measured from (Bottom left,
+  Bottom right, Top left, Top right, or "The project's: Bottom left", which clears it), and for every surface of the
+  project at once Project properties ▸ Workshop ▸ Holes ▸ Measured from (bottom left when not set), so a shop that
+  always measures from the top-left sets it once. The hole table's heading, the template's band and the DXF's origin
+  and its `DATUM` layer say which corner it is ([13](13-drilling.md) §9); the page marks it with its "0" (§5.2).
 - **Seen from outside, a door lies in front of the plate as drawn:** its `x`, `y` are the plate's, shifted by the
   plate's place in the enclosure, so nothing is mirrored. The door's page shows the plate's footprints behind it on
   the screen (§5.2), and `to_enclosure` gives the depth check and the wire ways the same mapping.
@@ -462,6 +468,48 @@ behind the door with its operator (`behind_door`).
 devices with their parts (§5.4). The device's symbol on its schematic page is unchanged; the door is a place of the
 layout only.
 
+### 3.9 Cable glands
+
+**Every cable that leaves the cabinet goes through a gland**, and the gland is a part he orders and mounts, so it is a
+part of the project: the parts list counts it on its cable's line and the legend of the surface it sits in lists it.
+It is no accessory of the cable's part, since which gland a cable takes follows from the cable's diameter and the
+shop's stock, not from the cable's maker; and it is no device of its own, since it has no tag, no function and no
+schematic symbol.
+
+- **Which cables.** A cable with an end in the cabinet's location and an end outside it (another location, or an
+  external point) gets one gland in that cabinet; a cable between two cabinets one in each. On the sample -101W1 (the
+  supply, from outside) and -103W1 (to the motor +FLD-103M1) get one; -105W1 runs from -104A1 to -201K1 inside +CAB and
+  gets none. A field wire that is in no cable gets none.
+- **Which gland** (`cable_glands`): the cable's own choice (`Device.gland`, set in its Properties), else the first gland
+  part of the workshop stock ([07](07-symbols-parts-macros.md) §2.5) whose clamping range holds the cable part's outer
+  diameter. The generic glands of the starter library (M16 … M40, their ranges unchecked) are the stock of a new
+  project, so a shop with its own glands puts its maker's first; the clamping ranges are the gland parts' data and the
+  hole of a thread is the table of [12-3d](12-3d-routing-thermal.md) §10.2, one home each. -101W1 (10.5 mm) takes
+  EW-GEN-GLD-M20, -103W1 (12.5 mm) EW-GEN-GLD-M25. Without one the cable says why: "the part EW-GEN-CBL-17 gives no
+  outer diameter" or "no gland of the stock seals 23 mm", each with what to do (Edit part…, Choose gland…).
+- **The glands wait to be placed** as devices that go in a cut-out do: Unplaced devices lists them under Glands, each
+  named by its cable ("-103W1 · gland M25"), and a panel page's HUD says "2 glands to place: Bottom". He drags one, or
+  several selected, onto the bottom (or the top or a side; a door and the plate refuse a gland in words: "A gland goes
+  through a wall of the cabinet: place it on the bottom, the top or a side"). Several dropped together stand in a row
+  from the drop to the right, in the list's order, each **at the pitch the program proposes so that the nuts clear each
+  other**: half of each neighbour's nut and the workshop's web between holes (`nut` absent: 1.4 × the thread). A single
+  gland snaps to the row of the glands placed already at that pitch. One drop is one undo step
+  (`layout.glands_place {surface, at, cables}`).
+- **What a placed gland stores** is a `SurfaceFeature` with its `cable`, `for_cable` and its `hole`, the hole of its
+  gland's thread when he placed it: a hole he has drilled is a fact, so it does not change behind him when the cable
+  does (a value frozen on purpose, which the check holds against the derived one).
+- **The day after.** A cable that comes to leave the cabinet is one more gland to place, and EW-LAY-018 says so. A
+  cable whose gland changes (a thicker cable: M32 now) keeps its hole, and EW-LAY-018 says "The gland hole of -103W1 on
+  the bottom is M25; its gland is now M32", with Take M32. A cable deleted, or no longer leaving the cabinet, leaves its
+  hole without a cable, and EW-LAY-018 says "The gland hole H2 on the bottom serves no cable", with Remove the hole and
+  Keep it as a hole (it becomes one by hand). Moving the cable's end does not move its gland.
+- **A gland by hand** (Add hole here…, Kind Gland) stays possible: a spare entry, a breather. It has no cable and no
+  part in the parts list.
+- **Where he sees it.** The cable's Properties have a section Gland: the gland part, "proposed: 12.5 mm, in its
+  9 … 16 mm" or "chosen" with Choose gland… and Reset, where it is placed ("Bottom of -UC1, H2, page 905") or "Not
+  placed" with Place on the bottom, and for a cable that does not leave, "None: both its ends are in +CAB". On the page
+  a placed gland is drawn as its hole with its cable's tag as its label; the hole table's For column names the cable.
+
 ---
 
 ## 4. Layout checks (EW-LAYOUT)
@@ -491,6 +539,7 @@ show their revision stamp.
 | EW-LAY-015 | Wire in a duct whose class set excludes its segregation class (manual or pinned paths) | warning / error by policy | online | 1.0 | FR-LAY-048 | re-route |
 | EW-LAY-016 | Assembly or rack members not contiguous or not in physical order on their carrier (FR-LAY-061) | warning | online | MVP | `carrier_order` vs `Device.position` | reorder by position |
 | EW-LAY-017 | Holes not known: a part placed in a cut-out or screwed to a surface has no holes, or the device placed there has no part; one finding per part, naming its devices ([12-3d](12-3d-routing-thermal.md) §10.5) | warning | online, release | — | `surface_features` | Edit part… (the part editor at Front view and holes); for a device without a part, Choose part… |
+| EW-LAY-018 | Cable gland: a cable that leaves the cabinet has no gland placed (error at release); its gland is not known (no outer diameter, no stock gland seals it); a placed gland's hole differs from its gland's; a gland hole serves no cable (its cable gone or no longer leaving) | warning; error at release for one not placed | online, release | — | `cable_glands` | Place on the bottom; Take M32; Remove the hole; Keep it as a hole; Edit part…; Choose gland… |
 | EW-LAY-020 … 026 | Placement rules (FR-LAY-033/034): depth containment, thermal zoning, EMC segregation distance, operator height, door mass, cable-entry zone, handle-axis alignment | warning | online | 1.0 (Could) | rhai/Rust rules with constants as data, `verified` flag | — |
 
 Rule constants (fill limits, clearances, heights, segregation distances) ship with a `verified` flag; an
@@ -515,11 +564,9 @@ the door on another, each wall on its own. It carries:
 
 The page is an ordinary page of the page order: its title block, Prev and Next and its contents entry are derived.
 
-**Why one page per surface.** A page is one surface at one scale with one datum, one legend and one drawing for the
-workshop: the door's page is what the fitter takes to the door. Laid out side by side, a door and its plate would
-share a scale and a frame, and the legend, the item numbers and the hole table would each have to say which surface a
-row is on. What the side-by-side view gives, the plate behind the door, the door's page shows on the screen (§5.2),
-and the depth check says in words ([12-3d](12-3d-routing-thermal.md) §7).
+**One page per surface.** A page is one surface at one scale with one datum, one legend and one drawing for the
+workshop: the door's page is what the fitter takes to the door. The plate behind the door shows on the door's page on
+the screen (§5.2).
 
 **Projection.** A model point (u, v) of the surface maps to paper by
 `x = datum.x + u·num/den`, `y = datum.y − v·num/den` (paper y points down), computed in i128 nm with one
@@ -633,7 +680,8 @@ quantity that is not a count of pieces prints with its unit ("0.47 m" for a rail
 page, is made without a Unit column; a count prints bare, and the CSV and XLSX write the number beside the Unit
 column. **Order:** on the plate's legend the enclosure and the plate first, the carriers (rails, ducts) next; on every
 surface's legend then its placements by tag in natural order, each with the part it realises (so -101Q1's switch is a
-row of the plate's legend and its handle a row of the door's), then layout-only accessories. Positions are derived and
+row of the plate's legend and its handle a row of the door's), then the glands placed on it by their cables' tags,
+then layout-only accessories. Positions are derived and
 renumber when rows are added; balloons and the legend read the same query, so they cannot disagree. Rows come from the
 same `RowSet` as XLSX and CSV.
 

@@ -565,7 +565,7 @@ is `#[ignore]`d (not measured, the owner's rule).
 |---|---|---|
 | **Symbol browser** (left dock tab, `Insert ▸ Symbol`, palette `device.place`, alias `symbol.place`) | tree by library and category, and search by name, category, IEC 60617 number and keyword (FR-SYM-021); previews of all 8 variants and extra variants; filtered by the current page's allowed representation types; drag onto the canvas | P1, J1 |
 | **Part browser and selection** (the place browser: Insert ▸ Device from part, `device.place` with `target = FromPart`, alias `device.place_from_part`, the journal records `device.place`, [06](06-schematic-editor.md) §3.1; the part dialog: Properties ▸ Part ▸ Choose…) | one row in both: part number, maker, description in the reader's language, then what choosing it does, in words (below); the dialog adds the fit of §4.3; search with the ranking of §4.3; favourites, recently used, used in this project (FR-PRT-015); the active row's detail: its functions, its pins with each clamp's size range, its accessories and its variants as a choice | P1, J1 |
-| **Part editor** | one dialog, its sections listed on its left and shown one at a time: Identity, Technical data, Pins and clamps, Size and mounting, Front view and holes, Accessories, Variants, the kind's own section (Wire, Ferrule or Marker), Cable cores, PLC, Bus interfaces; a section the kind has not is not listed; Save previews; Delete part… for a part of one's own | P6 |
+| **Part editor** | one dialog, its sections listed on its left and shown one at a time: Identity, Technical data, Pins and clamps, Size and mounting, Front view and holes, Accessories, Variants, the kind's own section (Wire, Ferrule, Marker or Gland), Cable cores (with its outer diameter), PLC, Bus interfaces; a section the kind has not is not listed; Save previews; Delete part… for a part of one's own | P6 |
 | **Symbol editor** (FR-SYM-017) | canvas on the symbol grid; tools for primitives, CPs, text slots, anchor and link points; FnDef panel with the CP table (`fn_cp` assignment by drag); live A–H strip; lint panel; "test place" on a scratch page; "fork from QET import" with FnDef assignment | P6 |
 | **Macro browser and insert** | thumbnail and device list on hover (FR-MAC-006); value-set table to pick a row or edit ad hoc; ghost with conflict list (FR-MAC-005) | P1, J1 |
 | **Save as macro** | selection → dialog: name, kind, target library, insertion point; "make variable" from property-grid rows; value-set table | P6 |
@@ -874,7 +874,10 @@ Seven further symbols join the starter set for the pilot corpus (§2.3).
 - **The workshop stock.** Generic ferrules `EW-GEN-FER-0.5` … `-6` (insulated, single) and `EW-GEN-FER-2X0.5` …
   `-2X2.5` (twin), their colours those of DIN 46228-4 and flagged unverified; the markers `EW-GEN-MRK-1` (wire),
   `EW-GEN-MRK-2` (terminal, 5.2 mm) and `EW-GEN-MRK-3` (device). No wire part is shipped: a wire without one is
-  listed and ordered by its size and colour. A new project takes the ferrules and markers as its stock (§2.5).
+  listed and ordered by its size and colour. Cable glands `EW-GEN-GLD-M16` … `-M40`, clamping ranges unverified. A
+  new project takes the ferrules, markers and glands as its stock (§2.5).
+- **The cabinet.** Pushbuttons and lamps go in a 22 mm cut-out; `EW-GEN-HDL-1` is a door coupling handle; the
+  enclosure names its door; the cables give their outer diameter ([12](12-placement-pages.md) §2.5).
 
 ### 9.3 Macros of an assembly
 

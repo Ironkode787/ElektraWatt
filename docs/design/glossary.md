@@ -121,6 +121,7 @@ The IEC 81346 prefixes that appear in tags:
 | Term | Definition | EPLAN | QElectroTech | Defined in |
 |---|---|---|---|---|
 | **Cable** | A device with the `Cable` aspect, holding conductors (cores) and optionally a shield. Its definition line and conductor assignment are on the cable page. | Cable | Cable (QET 0.9 cable data) | [08 §7](08-connections-terminals-cables.md) |
+| **Cable gland** | The part a cable that leaves the cabinet goes through, sealed in a hole of a wall: sized from the cable's outer diameter by the stock glands' clamping ranges, placed on the bottom, the top or a side, counted on its cable's line of the parts list. | — | — | [12 §3.9](12-placement-pages.md) |
 | **CAEX** | The XML schema (IEC 62424) underlying AutomationML; implemented by the permissive `ew-caex` crate. | — | — | [10 §4](10-plc-and-bus.md), [04 §3](04-architecture.md) |
 | **Canonical JSON Lines** | The byte-exact file encoding of a project: one record per line, sorted by the ID's random bits, no machine- or time-specific data. It gives clean git diffs and reproducible hashes. | — (binary EDB) | — (one XML file) | [05 §3](05-project-format-and-persistence.md), [ADR-0010](../adr/0010-project-storage-jsonl-directory.md) |
 | **Caption chip** | A small pill on a canvas or panel that names an object in `type.caption`, such as a highlight's name or a Place ghost's tag; placed clear of the pointer and the chrome. | — | — | [16a §6.16, §7.4](16a-design-language.md) |

@@ -402,7 +402,7 @@ re-ordering would re-hash every existing copy. The typed members:
 | `contacts` | `Vec<ContactData{kind: ContactKind (the FnDef enum: no, nc, co), cps: Vec<Ident> such as ["13", "14"], seq?: u8, special?: Ident}>` | FR-PRT-009 |
 | `mech` | `MechData{width?, height?, depth?: Nm, mount_kind?: MountKind, rail_offset?: Pt2 (rail pose to part origin), clearance?{top, bottom, left, right, front: Nm, an absent side is 0}, front_2d: Vec<Vec<Pt2>>, mass?: u32 grams, front_shape?: rectangle \| round, holes: Vec<PartHole{x, y: Nm, hole: Hole}>}` (the last two after `mass`; the front view and the drilling pattern, [12](12-placement-pages.md) §2.5); `MountKind` is `ts35x7_5, ts35x15, ts32, ts15, screw, busbar_adapter, door_cutout, on_parent, none` | FR-PRT-011 (L3), FR-LAY-032 |
 | `cp_pattern[]` | `CpData` gains, after `clamp`, `clamp_type?: screw \| spring \| push_in \| idc \| ring_stud \| plug`, `csa_min?`, `csa_max?: Dec3` mm², `max_conductors?: u8`, `twin_ferrule: bool` | FR-PRT-008 |
-| `sections` | `PartSections` gains, after `cable_cores` and `plc`, `enclosure?{width, height, depth, wall: Nm, plate?: LibRef, doors: Vec<{hinge: left \| right, width?: Nm}>, edge_margin?, usable_depth?: Nm}`, `duct?{inner_width, inner_height, slot_pitch}`, `rail?{profile: MountKind, stock_length?}`, `mounting_plate?{width, height, thickness}` | FR-PRT-024 |
+| `sections` | `PartSections` gains, after `cable_cores` and `plc`, `enclosure?{width, height, depth, wall: Nm, plate?: LibRef, doors: Vec<{hinge: left \| right, width?: Nm}>, edge_margin?, usable_depth?: Nm}`, `duct?{inner_width, inner_height, slot_pitch}`, `rail?{profile: MountKind, stock_length?}`, `mounting_plate?{width, height, thickness}`, `cable?{outer_diameter?}` (a cable part's), `gland?{thread: m12 … m63, clamp_min, clamp_max, nut?: Nm}` (a part of `kind: gland`, its own section; a gland is no part a wire consumes) | FR-PRT-024, FR-LAY-056 |
 | `sections` (consumables) | after `fluid`: `wire?{csa: Dec3, colour?: ColourSpec, class?: u8}`, `ferrule?{csa_min, csa_max: Dec3, twin: bool, insulated: bool, sleeve?: Nm, colour?: ColourSpec, stud?: Ident}`, `marker?{marks: wire \| terminal \| device \| cable, lines?: u8, chars?: u8}` | FR-PRT-035 |
 | `accessories` | `Vec<PartAccessory{part: LibRef, qty: Dec3, per: unit \| strip \| rail_group, kind?: AccessoryKind, optional: bool}>`; `AccessoryKind` is the strip accessory's (`end_plate`, `end_clamp`, `partition`, `marker`, `cover`) | FR-PRT-005, FR-REP-051 |
 | `alternatives` | `Vec<AlternativeRef{part: LibRef, kind: equivalent \| successor \| approved}>` | FR-PRT-004 |
@@ -485,7 +485,7 @@ part editor refuses it as one. The accessory is a library reference, so embeddin
 
 Three hands write it, each above the one before: the library's part; the project's copy (the part editor; its fork
 of a library copy changes `accessories` and `variants` as it changes the pins); and, for one device, that device's
-choice, `Device.accessory_choices: Vec<AccessoryChoice{of: Id<Part>, part?: PartRef}>`. A choice names the accessory
+choice, `Device.accessory_choices: Vec<AccessoryChoice{of: Id<Part>, part?: PartRef}>` (a cable's gland is no accessory: it follows from the cable's diameter and the stock, and a cable's own choice of gland is `Device.gland`, [12](12-placement-pages.md) §3.9). A choice names the accessory
 copy a declaration names (`of`), as the declaring part names it (`v5(NS_LIBCOPY, library ‖ item)` of its `LibRef`), and
 a declaration and its choices are matched by that one key: `of` is a `LibRef` link, kept alive but never re-pointed,
 so a fork of the accessory's part, of the declaring part or of both, a paste and an update leave the choice
@@ -551,12 +551,13 @@ its size and colour. A wire part whose size or colour is not the wire's is repor
 prints the wire's colour, the one the drawing shows: a shop that cut by the part would cut the wrong one.
 
 **The workshop stock.** `ProjectSettings.workshop: WorkshopSettings{stock: Vec<PartRef>, cut_increment?: Nm}`, a
-typed member of the project's settings. `stock` holds the wire, ferrule and marker parts the shop keeps, in its
+typed member of the project's settings. `stock` holds the wire, ferrule, marker and gland parts the shop keeps, in its
 order of preference: a wire takes the first stock wire part of its size and colour, an end the first stock ferrule
 that fits it ([13](13-manufacturing-outputs.md) §4.4), a label set the first stock marker that marks it
-([13](13-manufacturing-outputs.md) §5.3). `cut_increment` is what the cut list rounds a piece up
+([13](13-manufacturing-outputs.md) §5.3), a cable that leaves the cabinet the first stock gland that seals it
+([12](12-placement-pages.md) §3.9). `cut_increment` is what the cut list rounds a piece up
 to ([13](13-manufacturing-outputs.md) §9.3) and a computed wire length once (13 §3.3), 5 mm when absent. A new project starts with the starter's generic
-ferrules and markers as its stock (`file.new` embeds and names them in its one step, §9.2); a company's basic project
+ferrules, markers and glands as its stock (`file.new` embeds and names them in its one step, §9.2); a company's basic project
 names its own; a project made before has none, and Project ▸ Add the generic stock (`workshop.add_generic`) adds the
 starter's ferrules and markers the stock lacks after its own, in one step. Project ▸ Edit stock… (and the link under the project's Properties) opens the stock dialog: the stock in its
 order, each row moved or removed, a part added by its number (held or from a library), Add the generic stock and Cut
