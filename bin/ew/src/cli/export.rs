@@ -3,6 +3,8 @@
 
 //! `ew export` in its kinds, `ew export-ewz`, `ew extract`, `ew export pages` and `ew render`.
 
+use clap::Args;
+
 use super::*;
 
 impl Leaf for CablesCli {
@@ -1207,4 +1209,70 @@ pub(super) fn run_render(a: &RenderArgs, io: &mut Io<'_>) -> i32 {
         errln!(io, "{findings}");
     }
     0
+}
+
+/// `ew export rework`.
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct ReworkCli {
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
+    /// The release to compare with, by its label (default: the last one whose archive is found).
+    #[arg(long, value_name = "revision", conflicts_with = "archive")]
+    pub(super) since: Option<String>,
+    /// An archive file to compare with.
+    #[arg(long, value_name = "file", allow_hyphen_values = true)]
+    pub(super) archive: Option<PathBuf>,
+    /// The format: csv (default) or xlsx.
+    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = table_format())]
+    pub(super) format: Option<ReportPages>,
+    /// The file to write (required).
+    #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
+    pub(super) out: Option<PathBuf>,
+}
+
+impl ReworkCli {
+    /// The file to write: `--out` is needed.
+    pub(super) fn file(&self) -> Result<&PathBuf, clap::Error> {
+        self.out.as_ref().ok_or_else(|| {
+            usage_error(
+                &["export", "rework"],
+                "`ew export rework` writes a file: give `--out <file>`",
+            )
+        })
+    }
+}
+
+/// `ew export labels`.
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct LabelsCli {
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
+    /// Only the labels the rework list against this release (by its label) names.
+    #[arg(long, value_name = "revision")]
+    pub(super) since: Option<String>,
+    /// The format: csv (default) or xlsx.
+    #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = table_format())]
+    pub(super) format: Option<ReportPages>,
+    /// The folder to write into (required).
+    #[arg(
+        long,
+        value_name = "folder",
+        allow_hyphen_values = true,
+        overrides_with = "dir"
+    )]
+    pub(super) dir: Option<PathBuf>,
+}
+
+impl LabelsCli {
+    /// The folder to write into: `--dir` is needed.
+    pub(super) fn folder(&self) -> Result<&PathBuf, clap::Error> {
+        self.dir.as_ref().ok_or_else(|| {
+            usage_error(
+                &["export", "labels"],
+                "`ew export labels` writes files: give `--dir <folder>`",
+            )
+        })
+    }
 }

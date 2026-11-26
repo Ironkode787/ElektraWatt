@@ -865,7 +865,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&root);
         let out = ew_testdir::Tmp::new("ew-cli-rework-out");
         let rework = |since: Option<&str>, archive: Option<PathBuf>, xlsx: bool, file: &str| {
-            let a = crate::cli::tree::ReworkCli {
+            let a = crate::cli::export::ReworkCli {
                 project: crate::cli::tree::ProjectArg(Some(dir.to_path_buf())),
                 since: since.map(str::to_owned),
                 archive,
