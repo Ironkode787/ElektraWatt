@@ -195,13 +195,12 @@ fn strips_cell(shell: &ShellModel, key: &str, label: &str) -> String {
 fn the_strip_editor_and_its_chooser_list() {
     let tmp = Tmp::new();
     let mut h = window(&tmp);
-    // Two end brackets (the sample holds none), so that Add accessory has to ask.
+    // A second end bracket beside the starter's (the sample's terminals bring it), so that Add accessory has to ask.
     let csv = tmp.0.join("brackets.csv");
     std::fs::write(
         &csv,
         "key,manufacturer,part_number,kind,type_designation,description,unit,test_data,tech_data\n\
-         ACME end bracket,ACME,EB-1,end_bracket,,End bracket,piece,,\n\
-         ACME wide end bracket,ACME,EB-2,end_bracket,,Wide end bracket,piece,,\n",
+         ACME end bracket,ACME,EB-1,end_bracket,,End bracket,piece,,\n",
     )
     .expect("the parts table");
     {

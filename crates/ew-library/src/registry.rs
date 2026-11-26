@@ -412,6 +412,7 @@ fn closure_refs(doc: &LibDocument) -> Vec<(Uuid, Uuid, String)> {
         LibDocument::Part(c) => {
             let mut out: Vec<_> = c.item.function_template.iter().map(|t| r(&t.fndef)).collect();
             out.extend(c.item.macros.iter().map(|m| r(&m.macro_ref)));
+            out.extend(c.item.accessories.iter().map(|a| r(&a.part)));
             out.push(r(&c.item.manufacturer));
             out
         }

@@ -232,6 +232,7 @@ fn new_child(
         position: Some(position),
         structure: Default::default(),
         parts,
+        accessory_choices: Vec::new(),
         function_text: MlText::default(),
         process_tag: None,
         tech_data: Default::default(),

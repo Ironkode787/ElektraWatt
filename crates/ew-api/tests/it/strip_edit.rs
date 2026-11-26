@@ -333,7 +333,8 @@ fn the_part_resolver_filters_by_kind_and_lists_every_match() {
         matches!(err, StripEditError::Invalid(ref m) if m.to_string().contains("533356")),
         "{err:?}"
     );
-    // Two TBD copies of one kind: ambiguous, both listed with the long form.
+    // Two TBD copies of one kind beside the starter's end bracket (the sample's terminals bring it): ambiguous, each listed
+    // with the long form.
     let second = consistent(tbd_copy(
         "",
         "0b6e3a2c-0000-5000-8000-000000000002",
@@ -362,9 +363,13 @@ fn the_part_resolver_filters_by_kind_and_lists_every_match() {
     let texts: Vec<&str> = choices.iter().map(|c| c.text.as_str()).collect();
     assert_eq!(
         texts,
-        ["TBD (TBD) · End bracket", "TBD (TBD) · End bracket, wide"]
+        [
+            "EW-GEN-EB-1 (Generic) · End bracket for TS 35",
+            "TBD (TBD) · End bracket",
+            "TBD (TBD) · End bracket, wide"
+        ]
     );
-    assert_eq!(choices[0].value, json!(format!("id:{bracket}")));
+    assert_eq!(choices[1].value, json!(format!("id:{bracket}")));
     // The choice's value resolves.
     let cmd = s
         .strip_edit(&StripEdit::AddAccessory {
@@ -377,24 +382,25 @@ fn the_part_resolver_filters_by_kind_and_lists_every_match() {
     assert_eq!(cmd.params["value"][0]["part"]["copy"], json!(bracket));
 }
 
-/// No part of the kind refuses `reason-no-accessory-part`; the one copy is taken without a text.
+/// No part of the kind refuses `reason-no-accessory-part` (a new project's strip); the one copy is taken without a
+/// text (the sample holds the starter's end bracket, which its terminals bring with them).
 #[test]
 fn add_accessory_takes_the_one_copy_or_refuses() {
-    let mut s = common::sample();
+    let mut fresh = common::new_project(7);
+    let receipt = common::run_cmd(&mut fresh, "device.create", json!({"letter": "X", "strip": {}}));
+    let x = receipt.outcome.primary.expect("the strip").1.as_uuid();
+    let err = fresh
+        .strip_edit(&StripEdit::AddAccessory {
+            strip: x,
+            after_seq: 0,
+            kind: "end_clamp".into(),
+            part: None,
+        })
+        .unwrap_err();
+    assert_eq!(err, StripEditError::Refused("reason-no-accessory-part"));
+    let s = common::sample();
     let x = strip(&s, "-X1021");
-    let had = copy_of(&s, "TBD", "end_bracket").is_some();
-    if !had {
-        let err = s
-            .strip_edit(&StripEdit::AddAccessory {
-                strip: x,
-                after_seq: 8,
-                kind: "end_clamp".into(),
-                part: None,
-            })
-            .unwrap_err();
-        assert_eq!(err, StripEditError::Refused("reason-no-accessory-part"));
-    }
-    let (bracket, _) = with_tbd_parts(&mut s);
+    let bracket = copy_of(&s, "EW-GEN-EB-1", "end_bracket").expect("the starter's end bracket");
     let cmd = s
         .strip_edit(&StripEdit::AddAccessory {
             strip: x,

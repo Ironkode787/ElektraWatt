@@ -477,8 +477,10 @@ pub(crate) fn emit(
                 }),
                 ..PartSections::default()
             },
+            accessories: Vec::new(),
             alternatives: Vec::new(),
             configured: None,
+            variants: Default::default(),
             macros: Vec::new(),
             box_: None,
             extra: Default::default(),

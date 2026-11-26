@@ -3,8 +3,8 @@
   "id": "0b622c73-2633-5fd3-a358-022c75588f20",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "d6c3df47-f4fa-509f-a859-716189ba661c",
-  "version": "0.1.1",
-  "sha256": "sha256:89d88b039412a60fd65a883636739f2a3c612aa1756c9267f48fa2168b62aac1",
+  "version": "0.1.2",
+  "sha256": "sha256:9434142c8c7931fa07946c6a6adf6788f6daeb7b8d92538419430ab60903e1fc",
   "meta": {"key": "EW-GEN-DUCT-1", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "kind": "duct",
   "manufacturer": {
@@ -15,5 +15,16 @@
   "part_number": "EW-GEN-DUCT-1",
   "description": {"en": "Wiring duct 40 × 60 mm", "nl": "Kabelgoot 40 × 60 mm"},
   "unit": "m",
-  "mech": {"width": 40000000, "height": 60000000}
+  "mech": {"width": 40000000, "height": 60000000},
+  "accessories": [
+    {
+      "part": {
+        "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+        "item": "73e97853-ac3c-577b-b32b-e5e120dda8e5",
+        "version_req": "^0.1"
+      },
+      "qty": "1",
+      "per": "unit"
+    }
+  ]
 }

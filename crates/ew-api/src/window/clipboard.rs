@@ -509,6 +509,12 @@ fn named_copies(record: &Record, out: &mut BTreeSet<(Kind, Uuid)>) {
             for p in &d.parts {
                 out.insert((Kind::Part, p.part.copy.as_uuid()));
             }
+            for c in &d.accessory_choices {
+                out.insert((Kind::Part, c.of.as_uuid()));
+                if let Some(p) = &c.part {
+                    out.insert((Kind::Part, p.copy.as_uuid()));
+                }
+            }
             if let Some(s) = &d.aspects.strip {
                 for a in &s.accessories {
                     out.insert((Kind::Part, a.part.copy.as_uuid()));
@@ -974,7 +980,27 @@ impl Session {
                 _ => {}
             }
         }
-        // A part's closure holds its manufacturer: the held manufacturer copy travels with the part.
+        // A part's closure holds its accessories and its manufacturer: their held copies travel with the part.
+        let accessories: Vec<Uuid> = named
+            .iter()
+            .filter(|(k, _)| *k == Kind::Part)
+            .filter_map(|(_, id)| q.parts().get(Id::from_uuid(*id)).cloned())
+            .flat_map(|p| {
+                p.item
+                    .accessories
+                    .iter()
+                    .map(|a| {
+                        ew_ids::v5::lib_copy_id::<ew_schema::Part>(
+                            a.part.library.as_uuid(),
+                            a.part.item.as_uuid(),
+                        )
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .filter(|id| q.parts().get(*id).is_some())
+            .map(|id| id.as_uuid())
+            .collect();
+        named.extend(accessories.into_iter().map(|id| (Kind::Part, id)));
         let makers: Vec<Uuid> = named
             .iter()
             .filter(|(k, _)| *k == Kind::Part)

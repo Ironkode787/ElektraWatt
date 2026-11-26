@@ -689,6 +689,7 @@ pub(crate) fn emit_project(
         text_styles: Default::default(),
         process_tag_scheme: None,
         typeface: None,
+        workshop: Default::default(),
         extra: numbering(&mut r)
             .map(|n| ("numbering".to_owned(), n))
             .into_iter()

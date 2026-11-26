@@ -2165,6 +2165,7 @@ fn enclosure_device(
         position: None,
         structure: structure.clone(),
         parts: vec![one_of(part)],
+        accessory_choices: Vec::new(),
         function_text: Default::default(),
         process_tag: None,
         tech_data: Default::default(),

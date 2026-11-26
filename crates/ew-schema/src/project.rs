@@ -13,19 +13,19 @@ use std::collections::BTreeMap;
 use ew_ids::Id;
 use ew_mltext::{Ident, LangTag, MlText};
 use ew_rds::Aspect;
-use ew_units::Dec3;
+use ew_units::{Dec3, Nm};
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 use crate::error::SchemaError;
 use crate::json::{Extra, Open, de_extra, is_default, is_false, is_v1, v1};
-use crate::proxy::{AspectS, Dec3S, IdentS, LangTagS, MlTextS, UuidS};
+use crate::proxy::{AspectS, Dec3S, IdentS, LangTagS, MlTextS, NmS, UuidS};
 use crate::revision::LabelFormat;
 use crate::set::Set;
 use crate::text_style::TextStyleSpec;
 use crate::track::{invalid, malformed, open_enum};
-use crate::value::{AnyId, Date, Quantity, Sha256, SourceRef};
+use crate::value::{AnyId, Date, PartRef, Quantity, Sha256, SourceRef};
 
 // ---------------------------------------------------------------------------------------------------------
 // Project
@@ -331,9 +331,37 @@ pub struct ProjectSettings {
     /// `extra` and prints with the bundled faces).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub typeface: Option<TypefaceFile>,
+    /// The workshop settings (doc 07 §2.5 "The workshop stock"): the stock the shop keeps and what the cut list rounds
+    /// to; optional and additive within format 0.1 (an older build keeps it in `extra`).
+    #[serde(default, skip_serializing_if = "WorkshopSettings::is_empty")]
+    pub workshop: WorkshopSettings,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+/// The workshop settings of a project ([`ProjectSettings::workshop`]).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct WorkshopSettings {
+    /// The wire, ferrule and marker parts the shop keeps, in its order of preference: a wire takes the first stock
+    /// wire part of its size and colour, an end the first stock ferrule that fits it, a label kind the first stock
+    /// marker that marks it.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub stock: Vec<PartRef>,
+    /// What the cut list rounds a piece up to; absent: 5 mm.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub cut_increment: Option<Nm>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+impl WorkshopSettings {
+    /// Whether nothing is set.
+    pub fn is_empty(&self) -> bool {
+        *self == WorkshopSettings::default()
+    }
 }
 
 /// A font file of the user's that the project holds (doc 09 §4.8): the asset `assets/<sha256>.ttf` or `.otf` and the

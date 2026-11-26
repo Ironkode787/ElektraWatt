@@ -623,6 +623,10 @@
             }
           ],
           "description": "The project's typeface (doc 09 §4.8): the font file every text of the Standard typeface prints in; absent:\nthe bundled Noto Sans. Optional and additive within format 0.1 (since 0.3.5; an older build keeps it in\n`extra` and prints with the bundled faces)."
+        },
+        "workshop": {
+          "$ref": "#/$defs/WorkshopSettings",
+          "description": "The workshop settings (doc 07 §2.5 \"The workshop stock\"): the stock the shop keeps and what the cut list rounds\nto; optional and additive within format 0.1 (an older build keeps it in `extra`)."
         }
       },
       "type": "object"
@@ -1106,6 +1110,31 @@
       "minLength": 36,
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
       "type": "string"
+    },
+    "WorkshopSettings": {
+      "additionalProperties": true,
+      "description": "The workshop settings of a project ([`ProjectSettings::workshop`]).",
+      "properties": {
+        "cut_increment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "What the cut list rounds a piece up to; absent: 5 mm."
+        },
+        "stock": {
+          "description": "The wire, ferrule and marker parts the shop keeps, in its order of preference: a wire takes the first stock\nwire part of its size and colour, an end the first stock ferrule that fits it, a label kind the first stock\nmarker that marks it.",
+          "items": {
+            "$ref": "#/$defs/PartRef"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",

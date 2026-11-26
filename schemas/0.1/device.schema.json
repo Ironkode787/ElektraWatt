@@ -1,5 +1,30 @@
 {
   "$defs": {
+    "AccessoryChoice": {
+      "additionalProperties": true,
+      "description": "A device's choice of one accessory its parts declare ([`Device::accessory_choices`]): without `part` the device\ndoes not take it, with `part` it takes it as that part.",
+      "properties": {
+        "of": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The accessory copy a declaration names."
+        },
+        "part": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PartRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The part it is taken as; absent: not taken."
+        }
+      },
+      "required": [
+        "of"
+      ],
+      "type": "object"
+    },
     "AccessoryKind": {
       "description": "Kind of a strip accessory.",
       "oneOf": [
@@ -1306,6 +1331,13 @@
       "maximum": 65535,
       "minimum": 0,
       "type": "integer"
+    },
+    "accessory_choices": {
+      "description": "The device's choices of the accessories its parts declare (doc 07 §2.5 \"Accessories\"): one taken off or\ntaken as another part. On the device the accessory is counted for: a `unit` accessory on the device that uses\nthe part, a `strip` and a `rail_group` accessory on the strip.",
+      "items": {
+        "$ref": "#/$defs/AccessoryChoice"
+      },
+      "type": "array"
     },
     "assembly": {
       "anyOf": [

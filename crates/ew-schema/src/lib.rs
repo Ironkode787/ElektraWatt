@@ -124,10 +124,10 @@ pub use connect::{
     TubeSpec, WireFlags, WireOverrides, WireProps,
 };
 pub use device::{
-    AccessoryKind, Assembly, AssemblyConfig, BomBasis, Cable, ClosureKind, CoreIdMode, CpOverride, Device,
-    DeviceAspects, DeviceKind, DeviceState, FnRole, FrozenTag, Function, FunctionKind, IpDirection, IpSpec,
-    LabelMode, LengthSource, LevelRole, LevelSpec, PortClosure, Strip, StripAccessory, TagPrint, TagScheme,
-    TagSign, TagSpec, Terminal, TerminalGroup,
+    AccessoryChoice, AccessoryKind, Assembly, AssemblyConfig, BomBasis, Cable, ClosureKind, CoreIdMode,
+    CpOverride, Device, DeviceAspects, DeviceKind, DeviceState, FnRole, FrozenTag, Function, FunctionKind,
+    IpDirection, IpSpec, LabelMode, LengthSource, LevelRole, LevelSpec, PortClosure, Strip, StripAccessory,
+    TagPrint, TagScheme, TagSign, TagSpec, Terminal, TerminalGroup,
 };
 pub use error::{MalformedVariant, SchemaError};
 pub use exchange::{ExchangeObject, ExchangeRecord, ForeignId};
@@ -141,22 +141,23 @@ pub use layout::{
     Placement, RailParams, SurfaceKind,
 };
 pub use library::{
-    Actuation, Actuator, Align, AlternativeKind, AlternativeRef, AnchorPolicy, ArcPrim, Arrangement,
-    CableCore, CategoryKey, CirclePrim, ClampKey, ClampType, Clearance, CoilData, Colour, Confidence,
-    Configured, ConfiguredComponent, ContactData, ContactKind, CpData, CpDef, Dash, DataArea, Deprecation,
-    Dir4, Discipline, DuctSection, EllipsePrim, EnclosureSection, ExtraVariant, ExtraVariantKind,
-    FittingData, FluidPortData, FluidPortRole, FluidSection, FluidTransform, FnDef, FnFlags, FormCell,
-    FormDef, FormKind, FrameColumns, FrameGrid, FrameRows, FreeProp, GalleryData, HOUSE_ROW_HEIGHT,
-    HOUSE_ROWS_PER_PAGE, ImagePrim, InternalKind, InternalLinkDef, ItemMeta, ItemStatus, LibCopy, LibItem,
-    Library, LinePrim, MacroDef, MacroInstance, MacroKind, MacroLink, MacroVariant, Manufacturer, MechData,
-    MountKind, NamedPoint, OrderUnit, Overflow, PLACEHOLDER_PART_NUMBER, Part, PartBox, PartBoxPin, PartKind,
-    PartSections, PassThroughSpec, Pen, PlaceholderGroup, PlateSection, PlcAllocation, PlcAllocationStart,
+    AccessoryPer, Actuation, Actuator, Align, AlternativeKind, AlternativeRef, AnchorPolicy, ArcPrim,
+    Arrangement, CableCore, CategoryKey, CirclePrim, ClampKey, ClampType, Clearance, CoilData, Colour,
+    Confidence, Configured, ConfiguredComponent, ContactData, ContactKind, CpData, CpDef, Dash, DataArea,
+    Deprecation, Dir4, Discipline, DuctSection, EllipsePrim, EnclosureSection, ExtraVariant,
+    ExtraVariantKind, FerruleSection, FittingData, FluidPortData, FluidPortRole, FluidSection,
+    FluidTransform, FnDef, FnFlags, FormCell, FormDef, FormKind, FrameColumns, FrameGrid, FrameRows,
+    FreeProp, GalleryData, HOUSE_ROW_HEIGHT, HOUSE_ROWS_PER_PAGE, ImagePrim, InternalKind, InternalLinkDef,
+    ItemMeta, ItemStatus, LibCopy, LibItem, Library, LinePrim, MacroDef, MacroInstance, MacroKind, MacroLink,
+    MacroVariant, Manufacturer, MarkTarget, MarkerSection, MechData, MountKind, NamedPoint, OrderUnit,
+    Overflow, PLACEHOLDER_PART_NUMBER, Part, PartAccessory, PartBox, PartBoxPin, PartKind, PartSections,
+    PartVariant, PassThroughSpec, Pen, PlaceholderGroup, PlateSection, PlcAllocation, PlcAllocationStart,
     PlcAreaMnemonics, PlcMnemonics, PlcParse, PlcProfileDef, PlcProfilePin, PlcRender, PlcSizeMnemonics,
     PolygonPrim, PolylinePrim, Primitive, RailSection, RectPrim, RepType, Rgb, RowTemplate, RowTemplates,
     SheetSpec, SheetTransform, ShrinkSpec, Side, SlotFallback, SlotKind, SolenoidPin, Stroke, SwitchPos,
     SymbolCp, SymbolDef, TableStyle, TemplateFn, TextPrim, TextSlot, TubeData, ValueSet, ValveModel,
-    ValvePath, ValveSection, VarBinding, VarDef, VarType, WrapPolicy, is_plain_semver, next_by_last_number,
-    next_minor, next_patch, semver_core,
+    ValvePath, ValveSection, VarBinding, VarDef, VarType, WireSection, WrapPolicy, is_plain_semver,
+    next_by_last_number, next_minor, next_patch, semver_core,
 };
 pub use list_area::ListArea;
 pub use medium::{FluidSettings, LineKindTube, LineTagScheme, Medium, MediumDef};
@@ -183,7 +184,7 @@ pub use project::{
     ImportLineage, ImportRun, IpPairing, IpPairingMode, IpPairingScope, LineageAnchor, LineageCopy,
     MasterData, Party, PartyRole, Project, ProjectKind, ProjectLanguages, ProjectSettings, RecordHash,
     RunEntry, RunFix, RunLocation, RunMode, RunSeverity, RunSource, RunStats, RunTarget, Section,
-    StructureNode, SupplyOrigin, SupplySpec, TagCase, TypefaceFile,
+    StructureNode, SupplyOrigin, SupplySpec, TagCase, TypefaceFile, WorkshopSettings,
 };
 pub use record::{AnchorRef, CopyMeta, LibDocument, Record, Unknowns};
 pub use revision::{

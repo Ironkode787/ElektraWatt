@@ -198,6 +198,7 @@ pub fn device(device_id: Id<Device>, letter: &str, counter: u32) -> Device {
             ..Default::default()
         },
         parts: vec![],
+        accessory_choices: Vec::new(),
         function_text: MlText::default(),
         process_tag: None,
         tech_data: Default::default(),
@@ -476,8 +477,10 @@ pub fn part(part_id: Id<Part>, part_number: &str) -> LibCopy<Part> {
         contacts: vec![],
         mech: None,
         sections: Default::default(),
+        accessories: vec![],
         alternatives: vec![],
         configured: None,
+        variants: Default::default(),
         macros: vec![],
         box_: None,
         extra: Extra::new(),

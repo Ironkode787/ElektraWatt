@@ -195,9 +195,9 @@ pub fn import_parts(s: &mut ShellModel, tmp: &Tmp, rows: &str) {
     done(s, "preview.apply", json!({}));
 }
 
-/// The end bracket EB-1 and the bridge BRIDGE-1 as [`import_parts`] rows (the sample holds no accessory part).
-pub const ACCESSORY_PARTS: &str = "EB-1,Generic,EB-1,end_bracket,,End bracket,piece,,,9,45,35,ts35x7_5,,,,,\n\
-                                   BRIDGE-1,Generic,BRIDGE-1,accessory,,Plug-in bridge,piece,,,,,,,,,,,\n";
+/// The bridge BRIDGE-1 as an [`import_parts`] row (the sample holds no bridge part; its end bracket is the starter's
+/// EW-GEN-EB-1, which its terminals bring with them).
+pub const ACCESSORY_PARTS: &str = "BRIDGE-1,Generic,BRIDGE-1,accessory,,Plug-in bridge,piece,,,,,,,,,,,\n";
 
 /// A headless shell with a writable copy of the sample on folio 103 and a second strip made there, -X1032, of one
 /// terminal (1) in the page's empty lower right: the sample draws one strip per page.

@@ -961,7 +961,7 @@ The persisted record type of every entity kind (plain serde structs), the kind r
 | `src/page.rs` |  | Pages, representations and report blocks (doc 03 §6, doc 09 §2.2): `page` (rank 30) and its page-owned `representation` (33), and `report_block` (45). |
 | `src/page_item.rs` |  | Page items and structure boxes (doc 03 §5, §6; doc 05 §2.2): the page-owned kinds `page_item` (rank 43) and `structure_box` (rank 44), typed within format 0.1 under ADR-0011 amendment 4: additive, no format or `$v` bump, an older build keeps the records verbatim. |
 | `src/plc.rs` | large | PLC records (doc 03 §13, doc 10 §2.2–§2.6): `plc_config_project` (rank 11), `channel` (37), the device aspects `plc_station` and `plc_module`, the part's `plc` section, and the functional `device_link` (42; doc 03 §7, doc 11 §3.1). |
-| `src/project.rs` |  | Project and structure records (doc 03 §5): `project` and `import_lineage` in `project.jsonl`; `structure_node`, `section` and `external_ref` in `structure.jsonl`; `import_run` in `imports/<run-uuid>.jsonl`. |
+| `src/project.rs` | large | Project and structure records (doc 03 §5): `project` and `import_lineage` in `project.jsonl`; `structure_node`, `section` and `external_ref` in `structure.jsonl`; `import_run` in `imports/<run-uuid>.jsonl`. |
 | `src/proxy.rs` |  | JSON Schema stand-ins for the value types of the foundation crates. |
 | `src/record.rs` |  | The record envelope: one JSON Lines record ([`Record`]) or one library document ([`LibDocument`]), tagged by `$k` as the first member (doc 05 §3.1). |
 | `src/revision.rs` |  | Revisions (doc 03 §18, doc 15 §5; FR-REV-001, FR-REV-012): the `revision` record (rank 60, `revisions.jsonl`). |

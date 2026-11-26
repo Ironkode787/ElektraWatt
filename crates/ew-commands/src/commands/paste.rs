@@ -257,6 +257,7 @@ mod tests {
                 "structure": {"functional_assignment": C, "function": C, "installation_site": C, "location": C,
                     "document_kind": C, "user_defined": C, "type": C},
                 "parts": [{"part": {"copy": D}, "qty": "1"}],
+                "accessory_choices": [{"of": D, "part": {"copy": D}}],
                 "source_ref": {"lineage": E, "key": "k"},
                 "strip": {"accessories": [{"after_seq": 1, "kind": "end_plate", "part": {"copy": D}}]},
                 "terminal": {"strip": B, "seq": 1, "designation": "1"},
@@ -315,6 +316,9 @@ mod tests {
         ("device.parent", Some(false)),
         ("device.parts[].part.copy", Some(true)),
         ("device.strip.accessories[].part.copy", Some(true)),
+        // An accessory choice names the accessory it is about (mandatory) and, optionally, the part it takes instead.
+        ("device.accessory_choices[].of", Some(true)),
+        ("device.accessory_choices[].part.copy", Some(false)),
         ("device.structure.functional_assignment", Some(false)),
         ("device.structure.function", Some(false)),
         ("device.structure.installation_site", Some(false)),

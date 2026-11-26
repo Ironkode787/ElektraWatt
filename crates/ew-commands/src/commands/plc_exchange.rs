@@ -896,6 +896,7 @@ fn new_device(
         position: None,
         structure: Default::default(),
         parts: Vec::new(),
+        accessory_choices: Vec::new(),
         function_text: MlText::default(),
         process_tag: None,
         tech_data: Default::default(),
@@ -1116,6 +1117,7 @@ impl Command for ApplyInstrumentList {
                         position: None,
                         structure: Default::default(),
                         parts: Vec::new(),
+                        accessory_choices: Vec::new(),
                         function_text: if row.description.is_empty() {
                             MlText::default()
                         } else {

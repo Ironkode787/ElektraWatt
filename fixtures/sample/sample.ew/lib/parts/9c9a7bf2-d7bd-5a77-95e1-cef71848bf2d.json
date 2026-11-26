@@ -1,0 +1,18 @@
+{
+  "$k": "part",
+  "id": "9c9a7bf2-d7bd-5a77-95e1-cef71848bf2d",
+  "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+  "item_id": "73e97853-ac3c-577b-b32b-e5e120dda8e5",
+  "version": "0.1.1",
+  "sha256": "sha256:f3200fc6abf61b09d4d42e1229a76089bfcb5ba984b647b02f9aa3ceecb43277",
+  "meta": {"key": "EW-GEN-COV-40", "licence": "CC0-1.0", "sources": ["ew.original"], "confidence": {"part": "test"}},
+  "kind": "accessory",
+  "manufacturer": {
+    "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+    "item": "f4260253-4a2b-5c11-a3d6-b01e2aa5efe6",
+    "version_req": "^0.1"
+  },
+  "part_number": "EW-GEN-COV-40",
+  "description": {"en": "Duct cover, 40 mm wide", "nl": "Gootdeksel, 40 mm breed"},
+  "unit": "m"
+}

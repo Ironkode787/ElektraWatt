@@ -450,6 +450,12 @@ pub static LINKS: &[LinkDecl] = &[
         ..link!(Project."settings.fluid.default_tube.part.copy" -> Part, Forbid, None,
             |v, out| opt(v.settings.fluid.default_tube.part.as_ref().map(|p| p.copy), out))
     },
+    // The workshop stock (doc 07 §2.5): its parts are kept alive like part uses.
+    link!(Project."settings.workshop.stock[].copy" -> Part, Forbid, None, |v, out| {
+        for p in &v.settings.workshop.stock {
+            id(p.copy, out);
+        }
+    }),
     link!(Project."supply.origin.source" -> ExternalRef, Unlink, None,
     |v, out| opt(v.supply.as_ref().and_then(|s| s.origin.as_ref()).and_then(|o| o.source), out),
     Some(|row, del| {
@@ -504,6 +510,18 @@ pub static LINKS: &[LinkDecl] = &[
             for a in &s.accessories {
                 id(a.part.copy, out);
             }
+        }
+    }),
+    // A device's accessory choices (doc 07 §2.5): the accessory copy a declaration names and the part it is taken as,
+    // kept alive like a part use.
+    link!(Device."accessory_choices[].of" -> Part, Forbid, None, |v, out| {
+        for c in &v.accessory_choices {
+            id(c.of, out);
+        }
+    }),
+    link!(Device."accessory_choices[].part.copy" -> Part, Forbid, None, |v, out| {
+        for c in &v.accessory_choices {
+            opt(c.part.as_ref().map(|p| p.copy), out);
         }
     }),
     DEVICE_SLOTS[0],
@@ -1107,6 +1125,18 @@ const OWN_NOT_LINKS: &[(&str, &str, &str)] = &[
         "part",
         "alternatives[].part.item",
         "LibRef to an alternative part offered from the library (FR-PRT-004), never resolved to an embedded copy",
+    ),
+    (
+        "part",
+        "accessories[].part.library",
+        "LibRef to an accessory part (doc 07 §2.5): embedding the part embeds it (its closure), and the readers resolve \
+         it to the embedded copy",
+    ),
+    (
+        "part",
+        "accessories[].part.item",
+        "LibRef to an accessory part (doc 07 §2.5): embedding the part embeds it (its closure), and the readers resolve \
+         it to the embedded copy",
     ),
     (
         "part",

@@ -962,6 +962,7 @@ impl Command for AddValve {
             position: Some(position),
             structure: self.structure.clone(),
             parts: vec![self.part.clone()],
+            accessory_choices: Vec::new(),
             function_text: MlText::default(),
             process_tag: None,
             tech_data: Default::default(),

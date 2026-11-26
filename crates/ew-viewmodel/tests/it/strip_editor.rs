@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The strip editor on copies of the sample, headless, with an end bracket and a bridge part imported (the sample has
-//! no accessory part): the `Order` sort, the `pos` cells and the accessory rows, the Group column and the Properties
-//! Group row, insert, delete and move, and the describe lines.
+//! The strip editor on copies of the sample, headless, with a bridge part imported (the sample's end bracket is the
+//! starter's, which its terminals bring with them): the `Order` sort, the `pos` cells and the accessory rows, the Group
+//! column and the Properties Group row, insert, delete and move, and the describe lines.
 
 use crate::common;
 
@@ -130,7 +130,7 @@ fn order_sort_pos_cells_accessory_rows_and_reasons() {
     let labels = strip_texts(&shell, "Function text");
     assert_eq!(labels[0], "End bracket");
     assert_eq!(labels[5], "End bracket");
-    assert_eq!(strip_texts(&shell, "Part")[0], "EB-1");
+    assert_eq!(strip_texts(&shell, "Part")[0], "EW-GEN-EB-1");
     assert_eq!(strip_texts(&shell, "Terminal")[0], "");
 
     // The read-only reasons.
@@ -162,7 +162,7 @@ fn order_sort_pos_cells_accessory_rows_and_reasons() {
     );
     assert_eq!(
         lines_with(&shell, "  editing "),
-        ["  editing \"Part\" buffer \"EB-1\""]
+        ["  editing \"Part\" buffer \"EW-GEN-EB-1\""]
     );
     done(&mut shell, "ui.dismiss", json!({}));
     // A terminal without a bridge: a new terminal at the end of -X1021.
@@ -514,7 +514,7 @@ fn se14_describe_lines() {
     );
     assert!(
         d.contains(
-            "\n  accessory \"-X1021\" \"8.1\" \"\" \"End bracket\" \"\" \"EB-1\" \"\" \"\" \"\" \"\" \"\" \"\" cursor \"Strip\"\n"
+            "\n  accessory \"-X1021\" \"8.1\" \"\" \"End bracket\" \"\" \"EW-GEN-EB-1\" \"\" \"\" \"\" \"\" \"\" \"\" cursor \"Strip\"\n"
         ),
         "{d}"
     );
@@ -552,7 +552,7 @@ fn an_untagged_strips_accessory_row_names_it_in_words() {
     assert_eq!(
         rows,
         [
-            "  accessory \"New terminal strip \u{b7} no tag yet\" \"0.1\" \"\" \"End bracket\" \"\" \"EB-1\" \"\" \"\" \"\" \"\" \
+            "  accessory \"New terminal strip \u{b7} no tag yet\" \"0.1\" \"\" \"End bracket\" \"\" \"EW-GEN-EB-1\" \"\" \"\" \"\" \"\" \
              \"\" \"\" cursor \"Strip\""
         ]
     );

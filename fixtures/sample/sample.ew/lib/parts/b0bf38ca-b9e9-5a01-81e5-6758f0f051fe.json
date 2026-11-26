@@ -1,0 +1,21 @@
+{
+  "$k": "part",
+  "id": "b0bf38ca-b9e9-5a01-81e5-6758f0f051fe",
+  "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+  "item_id": "2053a899-5da3-50d0-8a4e-b5a772cb2c25",
+  "version": "0.1.1",
+  "sha256": "sha256:ea670cf7a690dd158348bb682af0d87b1c5c52cc9e3490d69bdaf05668fae864",
+  "meta": {"key": "EW-GEN-EP-1", "licence": "CC0-1.0", "sources": ["ew.original"], "confidence": {"part": "test"}},
+  "kind": "accessory",
+  "manufacturer": {
+    "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+    "item": "f4260253-4a2b-5c11-a3d6-b01e2aa5efe6",
+    "version_req": "^0.1"
+  },
+  "part_number": "EW-GEN-EP-1",
+  "description": {
+    "en": "End plate for 5.2 mm feed-through and PE terminals",
+    "nl": "Eindplaat voor doorgangs- en aardklemmen van 5,2 mm"
+  },
+  "mech": {"width": 2200000, "height": 45000000, "depth": 40000000, "mount_kind": "ts35x7_5"}
+}

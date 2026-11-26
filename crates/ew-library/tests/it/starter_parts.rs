@@ -61,8 +61,11 @@ const VERSION: &str = "0.1.0";
 /// program knows has a generic cable and plug (the Ethernet cable EW-GEN-CBL-3 is made for EtherCAT too, the
 /// eight-core Ethernet cable EW-GEN-CBL-26, the CANopen, AS-Interface and IO-Link cables EW-GEN-CBL-27 to -29 and the
 /// plugs EW-GEN-PLG-6 to -10 were added), 0.19.0 since every part carries a Dutch description and the three-wire PNP proximity sensor
-/// EW-GEN-PRX-1 was added, 0.20.0 since the two-level feed-through terminal EW-GEN-TRM-3 was added.
-const LIBRARY_VERSION: &str = "0.20.0";
+/// EW-GEN-PRX-1 was added, 0.20.0 since the two-level feed-through terminal EW-GEN-TRM-3 was added, 0.21.0 since the
+/// parts for the workshop were added (the end plates EW-GEN-EP-1 and -2, the plug-in bridges EW-GEN-BRG-2, -3, -4 and
+/// -10, the duct cover EW-GEN-COV-40, the ferrules EW-GEN-FER-… and the markers EW-GEN-MRK-1 to -3) and the terminals,
+/// the duct and the breakers name their accessories, their colour, their variant and their clamps (doc 07 §9.2).
+const LIBRARY_VERSION: &str = "0.21.0";
 /// The version of a part not in [`BUMPED`]: 0.1.1 since every part gained its Dutch description.
 const PART_VERSION: &str = "0.1.1";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
@@ -70,7 +73,8 @@ const PART_VERSION: &str = "0.1.1";
 /// and the contactor template their contacts beside the coil. The CPU's bus section, after 0.2.0.
 /// The dimensions. The valve's solenoid 14 leaves the pattern for its fluid section, a
 /// major change. The on/off switch on the manual-command FnDef, letter S. The contactor's own category. The cable's
-/// cores' cross-section), each one patch further since every part gained its Dutch description.
+/// cores' cross-section), each one patch further since every part gained its Dutch description; the terminals, the duct
+/// and the breakers one more since they name their accessories, variant and clamps (0.21.0).
 const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-SEL-1", "0.1.2"),
     ("EW-GEN-VLV-1", "0.3.1"),
@@ -78,19 +82,158 @@ const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-RLY-1", "0.1.3"),
     ("EW-GEN-CON-1", "0.1.4"),
     ("EW-GEN-CPU-1", "0.1.3"),
-    ("EW-GEN-MCB-1", "0.1.2"),
-    ("EW-GEN-MCB-2", "0.1.2"),
+    ("EW-GEN-MCB-1", "0.1.3"),
+    ("EW-GEN-MCB-2", "0.1.3"),
+    ("EW-GEN-MCB-3", "0.1.2"),
+    ("EW-GEN-MCB-4", "0.1.2"),
     ("EW-GEN-FUS-1", "0.1.2"),
     ("EW-GEN-SW-1", "0.1.3"),
     ("EW-GEN-PSU-1", "0.1.3"),
     ("EW-GEN-DI-1", "0.1.2"),
     ("EW-GEN-DO-1", "0.1.2"),
-    ("EW-GEN-TRM-1", "0.1.2"),
-    ("EW-GEN-TRM-2", "0.1.2"),
+    ("EW-GEN-TRM-1", "0.1.3"),
+    ("EW-GEN-TRM-2", "0.1.3"),
+    ("EW-GEN-TRM-3", "0.1.2"),
+    ("EW-GEN-DUCT-1", "0.1.2"),
     ("EW-GEN-CBL-1", "0.1.2"),
     ("EW-GEN-VTM-1", "0.1.3"),
     ("EW-GEN-CBL-3", "0.1.2"),
 ];
+
+/// The accessories of part `number` (doc 07 §2.5, §9.2): the terminals' end plate per strip and end bracket per rail
+/// group, the duct's cover per metre.
+fn accessories(number: &str) -> Option<Value> {
+    let acc = |part: &str, per: &str, kind: Option<&str>| {
+        let mut a = json!({"part": part_ref(part), "qty": "1", "per": per});
+        if let Some(k) = kind {
+            a["kind"] = json!(k);
+        }
+        a
+    };
+    match number {
+        "EW-GEN-TRM-1" | "EW-GEN-TRM-2" => Some(json!([
+            acc("EW-GEN-EP-1", "strip", Some("end_plate")),
+            acc("EW-GEN-EB-1", "rail_group", Some("end_clamp")),
+        ])),
+        "EW-GEN-TRM-3" => Some(json!([
+            acc("EW-GEN-EP-2", "strip", Some("end_plate")),
+            acc("EW-GEN-EB-1", "rail_group", Some("end_clamp")),
+        ])),
+        "EW-GEN-DUCT-1" => Some(json!([acc("EW-GEN-COV-40", "unit", None)])),
+        _ => None,
+    }
+}
+
+/// The variants of part `number` (doc 07 §2.5 "Variants"): the grey feed-through terminal is sold in blue too.
+fn variants(number: &str) -> Option<Value> {
+    match number {
+        "EW-GEN-TRM-1" => Some(json!([{
+            "key": "BU",
+            "name": {"en": "Blue", "nl": "Blauw"},
+            "part_number": "EW-GEN-TRM-1-BU",
+            "description": {"en": "Feed-through terminal, blue", "nl": "Doorgangsklem, blauw"},
+            "tech_data": [{"key": "colour", "value": "BU"}],
+        }])),
+        _ => None,
+    }
+}
+
+/// The clamp data of every CP of part `number` that is a clamp (FR-PRT-008): the type, the cross-section range in mm²,
+/// the most conductors and whether it takes a twin ferrule; test data (`meta.confidence` `cp_pattern`). The PE
+/// terminal's rail contact RF is no clamp.
+fn clamps(number: &str, designation: &str) -> Option<Value> {
+    match number {
+        "EW-GEN-TRM-1" | "EW-GEN-TRM-2" | "EW-GEN-TRM-3" if designation != "RF" => Some(json!({
+            "clamp_type": "screw", "csa_min": "0.2", "csa_max": "4", "max_conductors": 2, "twin_ferrule": true,
+        })),
+        "EW-GEN-MCB-1" | "EW-GEN-MCB-2" | "EW-GEN-MCB-3" | "EW-GEN-MCB-4" => {
+            Some(json!({"clamp_type": "screw", "csa_min": "0.75", "csa_max": "25"}))
+        }
+        _ => None,
+    }
+}
+
+/// A part's accessory that is mounted with it: an end plate or a plug-in bridge (kind accessory), no template.
+fn accessory(number: &'static str, description: [&'static str; 2], mech: Option<Mech>) -> Def {
+    Def {
+        number,
+        kind: Some("accessory"),
+        description,
+        cps: Vec::new(),
+        template: Vec::new(),
+        contacts: Vec::new(),
+        tech: Vec::new(),
+        plc: None,
+        mech,
+        sections: None,
+        unit: None,
+    }
+}
+
+/// A generic insulated ferrule (DIN 46228-4) for `csa` mm² (`twin`: two wires of that size): its colour that of the
+/// standard (flagged unverified), its sleeve 8 mm up to 1.5 mm² and 10 mm from 2.5 mm².
+fn ferrule(number: &'static str, description: [&'static str; 2], csa: &str, twin: bool, colour: &str) -> Def {
+    let sleeve = if matches!(csa, "0.5" | "0.75" | "1" | "1.5") {
+        "8"
+    } else {
+        "10"
+    };
+    let mut section =
+        json!({"csa_min": csa, "csa_max": csa, "insulated": true, "sleeve": mm(sleeve), "colour": [colour]});
+    if twin {
+        section["twin"] = json!(true);
+    }
+    Def {
+        number,
+        kind: Some("ferrule"),
+        description,
+        cps: Vec::new(),
+        template: Vec::new(),
+        contacts: Vec::new(),
+        tech: Vec::new(),
+        plc: None,
+        mech: None,
+        sections: Some(json!({"ferrule": section})),
+        unit: None,
+    }
+}
+
+/// A generic marker: what it marks, its lines and characters per line.
+fn marker(number: &'static str, description: [&'static str; 2], marks: &str, lines: u8, chars: u8) -> Def {
+    Def {
+        number,
+        kind: Some("marker"),
+        description,
+        cps: Vec::new(),
+        template: Vec::new(),
+        contacts: Vec::new(),
+        tech: Vec::new(),
+        plc: None,
+        mech: None,
+        sections: Some(json!({"marker": {"marks": marks, "lines": lines, "chars": chars}})),
+        unit: None,
+    }
+}
+
+/// The confidence of the sections of part `number` that hold test data (doc 07 §2.5): the clamp data of the terminals
+/// and breakers, the parts for the workshop, and the ferrules' colours, unverified against DIN 46228-4.
+fn confidence(number: &str, kind: Option<&str>) -> Option<Value> {
+    if clamps(number, "1").is_some() {
+        return Some(json!({"cp_pattern": "test"}));
+    }
+    match kind {
+        Some("ferrule") => Some(json!({"part": "test", "sections.ferrule": "unverified"})),
+        Some("marker") => Some(json!({"part": "test"})),
+        Some("accessory")
+            if ["EW-GEN-EP-", "EW-GEN-BRG-", "EW-GEN-COV-"]
+                .iter()
+                .any(|p| number.starts_with(p)) =>
+        {
+            Some(json!({"part": "test"}))
+        }
+        _ => None,
+    }
+}
 
 /// The bus section of part `number`: the generic CPUs' interfaces (EW-GEN-CPU-1's DP master; EW-GEN-CPU-2's DP
 /// master and PROFINET controller X1), the remote I/O head's DP slave and PROFINET device X1, and the bus systems
@@ -211,11 +354,12 @@ fn fndef(key: &str) -> Value {
     })
 }
 
-/// The reference to the mounting plate EW-GEN-PLT-1 of this library, built as the manufacturer reference is.
-fn plate_ref() -> Value {
+/// The reference to part `number` of this library (the enclosure's mounting plate, an accessory), built as the
+/// manufacturer reference is.
+fn part_ref(number: &str) -> Value {
     json!({
         "library": starter_parts_library().to_string(),
-        "item": item_id("part", "EW-GEN-PLT-1").to_string(),
+        "item": item_id("part", number).to_string(),
         "version_req": "^0.1",
     })
 }
@@ -1673,7 +1817,7 @@ fn defs() -> Vec<Def> {
             cps: cps(&["1", "2"]),
             template: vec![("ew.fn.terminal", true, vec![0, 1])],
             contacts: Vec::new(),
-            tech: Vec::new(),
+            tech: vec![("colour", json!("GY"))],
             plc: None,
             mech: ts35("5.2", "45", "40"),
             sections: None,
@@ -1686,7 +1830,7 @@ fn defs() -> Vec<Def> {
             cps: vec![("1", Some("pe")), ("2", Some("pe")), ("RF", Some("pe"))],
             template: vec![("ew.fn.terminal-pe", true, vec![0, 1, 2])],
             contacts: Vec::new(),
-            tech: Vec::new(),
+            tech: vec![("colour", json!("GNYE"))],
             plc: None,
             mech: ts35("5.2", "45", "40"),
             sections: None,
@@ -1847,7 +1991,7 @@ fn defs() -> Vec<Def> {
                 "width": mm("600"),
                 "height": mm("800"),
                 "depth": mm("250"),
-                "plate": plate_ref(),
+                "plate": part_ref("EW-GEN-PLT-1"),
             }})),
             unit: None,
         },
@@ -1908,6 +2052,193 @@ fn defs() -> Vec<Def> {
             sections: None,
             unit: None,
         },
+        // The parts for the workshop (doc 07 §9.2): what the terminals and the duct bring with them, and the stock a
+        // new project starts with.
+        accessory(
+            "EW-GEN-EP-1",
+            [
+                "End plate for 5.2 mm feed-through and PE terminals",
+                "Eindplaat voor doorgangs- en aardklemmen van 5,2 mm",
+            ],
+            ts35("2.2", "45", "40"),
+        ),
+        accessory(
+            "EW-GEN-EP-2",
+            [
+                "End plate for 5.2 mm two-level terminals",
+                "Eindplaat voor klemmen met twee etages van 5,2 mm",
+            ],
+            ts35("2.2", "65", "50"),
+        ),
+        accessory(
+            "EW-GEN-BRG-2",
+            [
+                "Plug-in bridge, 2 poles, for 5.2 mm terminals",
+                "Insteekbrug, 2-polig, voor klemmen van 5,2 mm",
+            ],
+            None,
+        ),
+        accessory(
+            "EW-GEN-BRG-3",
+            [
+                "Plug-in bridge, 3 poles, for 5.2 mm terminals",
+                "Insteekbrug, 3-polig, voor klemmen van 5,2 mm",
+            ],
+            None,
+        ),
+        accessory(
+            "EW-GEN-BRG-4",
+            [
+                "Plug-in bridge, 4 poles, for 5.2 mm terminals",
+                "Insteekbrug, 4-polig, voor klemmen van 5,2 mm",
+            ],
+            None,
+        ),
+        accessory(
+            "EW-GEN-BRG-10",
+            [
+                "Plug-in bridge, 10 poles, for 5.2 mm terminals",
+                "Insteekbrug, 10-polig, voor klemmen van 5,2 mm",
+            ],
+            None,
+        ),
+        Def {
+            unit: Some("m"),
+            ..accessory(
+                "EW-GEN-COV-40",
+                ["Duct cover, 40 mm wide", "Gootdeksel, 40 mm breed"],
+                None,
+            )
+        },
+        ferrule(
+            "EW-GEN-FER-0.5",
+            ["Ferrule 0.5 mm², insulated", "Adereindhuls 0,5 mm², geïsoleerd"],
+            "0.5",
+            false,
+            "WH",
+        ),
+        ferrule(
+            "EW-GEN-FER-0.75",
+            ["Ferrule 0.75 mm², insulated", "Adereindhuls 0,75 mm², geïsoleerd"],
+            "0.75",
+            false,
+            "GY",
+        ),
+        ferrule(
+            "EW-GEN-FER-1",
+            ["Ferrule 1 mm², insulated", "Adereindhuls 1 mm², geïsoleerd"],
+            "1",
+            false,
+            "RD",
+        ),
+        ferrule(
+            "EW-GEN-FER-1.5",
+            ["Ferrule 1.5 mm², insulated", "Adereindhuls 1,5 mm², geïsoleerd"],
+            "1.5",
+            false,
+            "BK",
+        ),
+        ferrule(
+            "EW-GEN-FER-2.5",
+            ["Ferrule 2.5 mm², insulated", "Adereindhuls 2,5 mm², geïsoleerd"],
+            "2.5",
+            false,
+            "BU",
+        ),
+        ferrule(
+            "EW-GEN-FER-4",
+            ["Ferrule 4 mm², insulated", "Adereindhuls 4 mm², geïsoleerd"],
+            "4",
+            false,
+            "GY",
+        ),
+        ferrule(
+            "EW-GEN-FER-6",
+            ["Ferrule 6 mm², insulated", "Adereindhuls 6 mm², geïsoleerd"],
+            "6",
+            false,
+            "YE",
+        ),
+        ferrule(
+            "EW-GEN-FER-2X0.5",
+            [
+                "Twin ferrule 2 × 0.5 mm², insulated",
+                "Twin-adereindhuls 2 × 0,5 mm², geïsoleerd",
+            ],
+            "0.5",
+            true,
+            "WH",
+        ),
+        ferrule(
+            "EW-GEN-FER-2X0.75",
+            [
+                "Twin ferrule 2 × 0.75 mm², insulated",
+                "Twin-adereindhuls 2 × 0,75 mm², geïsoleerd",
+            ],
+            "0.75",
+            true,
+            "GY",
+        ),
+        ferrule(
+            "EW-GEN-FER-2X1",
+            [
+                "Twin ferrule 2 × 1 mm², insulated",
+                "Twin-adereindhuls 2 × 1 mm², geïsoleerd",
+            ],
+            "1",
+            true,
+            "RD",
+        ),
+        ferrule(
+            "EW-GEN-FER-2X1.5",
+            [
+                "Twin ferrule 2 × 1.5 mm², insulated",
+                "Twin-adereindhuls 2 × 1,5 mm², geïsoleerd",
+            ],
+            "1.5",
+            true,
+            "BK",
+        ),
+        ferrule(
+            "EW-GEN-FER-2X2.5",
+            [
+                "Twin ferrule 2 × 2.5 mm², insulated",
+                "Twin-adereindhuls 2 × 2,5 mm², geïsoleerd",
+            ],
+            "2.5",
+            true,
+            "BU",
+        ),
+        marker(
+            "EW-GEN-MRK-1",
+            [
+                "Wire marker, 1 line of 10 characters",
+                "Draadmerker, 1 regel van 10 tekens",
+            ],
+            "wire",
+            1,
+            10,
+        ),
+        marker(
+            "EW-GEN-MRK-2",
+            [
+                "Terminal marker for 5.2 mm terminals",
+                "Klemmerker voor klemmen van 5,2 mm",
+            ],
+            "terminal",
+            1,
+            4,
+        ),
+        marker(
+            "EW-GEN-MRK-3",
+            [
+                "Device label, 1 line of 12 characters",
+                "Apparaatlabel, 1 regel van 12 tekens",
+            ],
+            "device",
+            1,
+            12,
+        ),
         // A generic cable, so that a new project creates a cable from the starter set alone (tutorial 2).
         Def {
             number: "EW-GEN-CBL-1",
@@ -2096,6 +2427,9 @@ fn parts() -> Vec<LibDocument> {
                         cp["side"] = json!(side);
                         cp["clamp"] = json!({"clamp": clamp});
                     }
+                    if let Some(Value::Object(data)) = clamps(d.number, des) {
+                        cp.as_object_mut().unwrap().extend(data);
+                    }
                     cp
                 }).collect::<Vec<_>>(),
             });
@@ -2157,6 +2491,15 @@ fn parts() -> Vec<LibDocument> {
             }
             if let Some(bus) = bus_section(d.number) {
                 add_section(&mut v, "bus", bus);
+            }
+            if let Some(a) = accessories(d.number) {
+                v["accessories"] = a;
+            }
+            if let Some(variants) = variants(d.number) {
+                v["variants"] = variants;
+            }
+            if let Some(c) = confidence(d.number, d.kind) {
+                v["meta"]["confidence"] = c;
             }
             LibDocument::from_value(v).unwrap_or_else(|e| panic!("{}: {e}", d.number))
         })
@@ -2248,7 +2591,7 @@ fn the_shipped_library_is_the_generated_one() {
 /// The layout tools use them; they carry no function template.
 fn is_layout(kind: &PartKind) -> bool {
     // the generic cable carries no template either: `the_generic_cable_has_its_cores` checks it; nor do the tubes
-    // and the fittings, whose fluid section is their data
+    // and the fittings, whose fluid section is their data, nor the ferrules and the markers, whose sections are theirs
     matches!(
         kind,
         PartKind::Enclosure
@@ -2259,6 +2602,8 @@ fn is_layout(kind: &PartKind) -> bool {
             | PartKind::Cable
             | PartKind::Tube
             | PartKind::Accessory
+            | PartKind::Ferrule
+            | PartKind::Marker
     )
 }
 
@@ -2469,7 +2814,7 @@ fn the_layout_parts_read_back_from_the_shipped_files() {
             .get(number)
             .unwrap_or_else(|| panic!("{number} is shipped"));
         assert_eq!(rec["kind"], kind, "{number}");
-        assert_eq!(rec["version"], "0.1.1", "{number}");
+        assert_eq!(rec["version"], part_version(number), "{number}");
         assert_eq!(rec.get("unit"), unit.map(|u| json!(u)).as_ref(), "{number}");
         assert_eq!(rec.get(member), Some(&value), "{number}");
         assert!(rec.get("category").is_none(), "{number}");
@@ -2484,8 +2829,8 @@ fn the_dimensioned_parts_read_back_from_the_shipped_files() {
     let shipped = shipped_parts();
     // (part number, version, width, height, depth) in nanometres.
     let dims = [
-        ("EW-GEN-MCB-1", "0.1.2", 18000000, 85000000, 70000000),
-        ("EW-GEN-MCB-2", "0.1.2", 36000000, 85000000, 70000000),
+        ("EW-GEN-MCB-1", "0.1.3", 18000000, 85000000, 70000000),
+        ("EW-GEN-MCB-2", "0.1.3", 36000000, 85000000, 70000000),
         ("EW-GEN-FUS-1", "0.1.2", 18000000, 85000000, 60000000),
         ("EW-GEN-SW-1", "0.1.3", 18000000, 85000000, 70000000),
         ("EW-GEN-RLY-1", "0.1.3", 27000000, 80000000, 70000000),
@@ -2494,8 +2839,8 @@ fn the_dimensioned_parts_read_back_from_the_shipped_files() {
         ("EW-GEN-CPU-1", "0.1.3", 100000000, 100000000, 75000000),
         ("EW-GEN-DI-1", "0.1.2", 25000000, 100000000, 75000000),
         ("EW-GEN-DO-1", "0.1.2", 25000000, 100000000, 75000000),
-        ("EW-GEN-TRM-1", "0.1.2", 5200000, 45000000, 40000000),
-        ("EW-GEN-TRM-2", "0.1.2", 5200000, 45000000, 40000000),
+        ("EW-GEN-TRM-1", "0.1.3", 5200000, 45000000, 40000000),
+        ("EW-GEN-TRM-2", "0.1.3", 5200000, 45000000, 40000000),
     ];
     for (number, version, width, height, depth) in dims {
         let rec = shipped
@@ -2572,6 +2917,38 @@ fn the_compiled_in_registry_resolves_a_part_with_its_closure() {
             Some(Kind::Fndef),
             Some(Kind::Manufacturer)
         ]
+    );
+}
+
+/// A part's accessories are in its closure (doc 07 §2.5): embedding the grey terminal embeds its end plate and its end
+/// bracket after its FnDef, and the terminal reads back with its colour, its blue variant and its clamps.
+#[test]
+fn a_terminal_brings_its_accessories_and_its_variant() {
+    let reg = Registry::starter_only();
+    let r = LibRef {
+        library: ew_ids::Id::from_uuid(starter_parts_library()),
+        item: ew_ids::Id::from_uuid(item_id("part", "EW-GEN-TRM-1")),
+        version_req: "^0.1".into(),
+        extra: Default::default(),
+    };
+    let closure = reg.closure(&r).unwrap();
+    let numbers: Vec<&str> = closure
+        .iter()
+        .filter_map(|d| match d {
+            LibDocument::Part(c) => Some(c.item.part_number.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(numbers, ["EW-GEN-TRM-1", "EW-GEN-EP-1", "EW-GEN-EB-1"]);
+    let trm = &shipped_parts()["EW-GEN-TRM-1"];
+    assert_eq!(trm["tech_data"], json!([{"key": "colour", "value": "GY"}]));
+    assert_eq!(trm["variants"][0]["part_number"], json!("EW-GEN-TRM-1-BU"));
+    assert_eq!(trm["cp_pattern"][0]["csa_max"], json!("4"));
+    assert_eq!(trm["meta"]["confidence"], json!({"cp_pattern": "test"}));
+    let ferrule = &shipped_parts()["EW-GEN-FER-2X1.5"];
+    assert_eq!(
+        ferrule["sections"]["ferrule"],
+        json!({"csa_min": "1.5", "csa_max": "1.5", "twin": true, "insulated": true, "sleeve": 8000000, "colour": ["BK"]})
     );
 }
 

@@ -15,6 +15,56 @@
         }
       ]
     },
+    "AccessoryKind": {
+      "description": "Kind of a strip accessory.",
+      "oneOf": [
+        {
+          "const": "end_plate",
+          "description": "End plate.",
+          "type": "string"
+        },
+        {
+          "const": "end_clamp",
+          "description": "End clamp (end bracket).",
+          "type": "string"
+        },
+        {
+          "const": "partition",
+          "description": "Partition plate.",
+          "type": "string"
+        },
+        {
+          "const": "marker",
+          "description": "Marker carrier.",
+          "type": "string"
+        },
+        {
+          "const": "cover",
+          "description": "Cover.",
+          "type": "string"
+        }
+      ]
+    },
+    "AccessoryPer": {
+      "description": "Per what an accessory counts (doc 07 §2.5 \"Accessories\").",
+      "oneOf": [
+        {
+          "const": "unit",
+          "description": "Per piece of the part a device uses, or per metre of a part sold by the metre.",
+          "type": "string"
+        },
+        {
+          "const": "strip",
+          "description": "Once per terminal strip whose terminals use the part, after the last of them.",
+          "type": "string"
+        },
+        {
+          "const": "rail_group",
+          "description": "The end brackets of a run of strips on one rail: k abutting strips take k + 1.",
+          "type": "string"
+        }
+      ]
+    },
     "AlternativeKind": {
       "description": "How an alternative part relates to a part (FR-PRT-004).",
       "oneOf": [
@@ -912,6 +962,66 @@
       },
       "type": "object"
     },
+    "FerruleSection": {
+      "additionalProperties": true,
+      "description": "The ferrule section of a part (FR-PRT-035): the cross-sections it takes, a twin ferrule, a ring lug's stud.",
+      "properties": {
+        "colour": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ColourSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The colour the fitter takes."
+        },
+        "csa_max": {
+          "$ref": "#/$defs/Dec3",
+          "description": "The largest cross-section it takes, in mm²."
+        },
+        "csa_min": {
+          "$ref": "#/$defs/Dec3",
+          "description": "The smallest cross-section it takes, in mm²."
+        },
+        "insulated": {
+          "description": "An insulated ferrule.",
+          "type": "boolean"
+        },
+        "sleeve": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The sleeve length: the strip length the wire list prints."
+        },
+        "stud": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The stud of a ring lug (`M4`)."
+        },
+        "twin": {
+          "description": "A twin ferrule: two wires in one.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "csa_min",
+        "csa_max"
+      ],
+      "type": "object"
+    },
     "FittingData": {
       "additionalProperties": true,
       "description": "The data of a fitting part (doc 11 §2.6).",
@@ -1572,6 +1682,65 @@
       ],
       "description": "A part-data map (doc 10 §2.6): an expression \"<k>n[+<c>]\" or \"<k>p[+<c>]\", or an explicit list."
     },
+    "MarkTarget": {
+      "description": "What a marker part marks.",
+      "oneOf": [
+        {
+          "const": "wire",
+          "description": "A wire.",
+          "type": "string"
+        },
+        {
+          "const": "terminal",
+          "description": "A terminal.",
+          "type": "string"
+        },
+        {
+          "const": "device",
+          "description": "A device.",
+          "type": "string"
+        },
+        {
+          "const": "cable",
+          "description": "A cable.",
+          "type": "string"
+        }
+      ]
+    },
+    "MarkerSection": {
+      "additionalProperties": true,
+      "description": "The marker section of a part (FR-PRT-035): what it marks and how much text it holds.",
+      "properties": {
+        "chars": {
+          "description": "The characters per line it holds.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lines": {
+          "description": "The lines of text it holds.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "marks": {
+          "$ref": "#/$defs/MarkTarget",
+          "description": "What the marker marks."
+        }
+      },
+      "required": [
+        "marks"
+      ],
+      "type": "object"
+    },
     "MechData": {
       "additionalProperties": true,
       "description": "Mechanical data of a part, level L3 (FR-PRT-011, doc 12 §2.5): lengths in nanometres, the mass in grams.",
@@ -1807,6 +1976,45 @@
           ]
         }
       },
+      "type": "object"
+    },
+    "PartAccessory": {
+      "additionalProperties": true,
+      "description": "One accessory of a part (doc 07 §2.5 \"Accessories\"): the accessory part, how many in its order unit, and per what.",
+      "properties": {
+        "kind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AccessoryKind"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "What the accessory is to a strip (End plate, End bracket …)."
+        },
+        "optional": {
+          "description": "An accessory a person may take that the part does not need: no list counts it until he takes it.",
+          "type": "boolean"
+        },
+        "part": {
+          "$ref": "#/$defs/LibRef",
+          "description": "The accessory part, a library reference (embedding the part embeds it)."
+        },
+        "per": {
+          "$ref": "#/$defs/AccessoryPer",
+          "description": "Per what the quantity counts."
+        },
+        "qty": {
+          "$ref": "#/$defs/Dec3",
+          "description": "How many, in the accessory's order unit."
+        }
+      },
+      "required": [
+        "part",
+        "qty",
+        "per"
+      ],
       "type": "object"
     },
     "PartBox": {
@@ -2047,7 +2255,7 @@
     },
     "PartSections": {
       "additionalProperties": true,
-      "description": "Domain sections of a part (FR-PRT-010). Typed: the cable cores, the PLC section and the carrier sections of\nFR-PRT-024 (enclosure, duct, rail, mounting plate); the other sections stay in `extra`.",
+      "description": "Domain sections of a part (FR-PRT-010). Typed: the cable cores, the PLC section, the carrier sections of\nFR-PRT-024 (enclosure, duct, rail, mounting plate), the bus and fluid sections and the sections of the parts a wire\nconsumes (wire, ferrule, marker, FR-PRT-035); the other sections stay in `extra`.",
       "properties": {
         "bus": {
           "anyOf": [
@@ -2089,6 +2297,17 @@
           ],
           "description": "The enclosure section: outer and wall dimensions and the mounting plate (doc 12 §2.5)."
         },
+        "ferrule": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FerruleSection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The ferrule section of a ferrule part (FR-PRT-035)."
+        },
         "fluid": {
           "anyOf": [
             {
@@ -2099,6 +2318,17 @@
             }
           ],
           "description": "The fluid section: the solenoids a valve part declares (doc 11 §2.6)."
+        },
+        "marker": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MarkerSection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The marker section of a marker part (FR-PRT-035)."
         },
         "mounting_plate": {
           "anyOf": [
@@ -2132,8 +2362,93 @@
             }
           ],
           "description": "The rail section: profile and stock length."
+        },
+        "wire": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WireSection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The wire section of a wire part (FR-PRT-035): the stock a wire is cut from."
         }
       },
+      "type": "object"
+    },
+    "PartVariant": {
+      "additionalProperties": true,
+      "description": "One variant of a part (FR-PRT-003, doc 07 §2.5 \"Variants\"): what it changes of the part, each member absent where\nit is the part's. It changes nothing of the pins, the template, the size, the sections or the accessories.",
+      "properties": {
+        "description": {
+          "$ref": "#/$defs/MlText",
+          "description": "Its own description."
+        },
+        "gtin": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Its own GTIN."
+        },
+        "key": {
+          "$ref": "#/$defs/Ident",
+          "description": "The key a part use stores (`BU`)."
+        },
+        "name": {
+          "$ref": "#/$defs/MlText",
+          "description": "Its name in the reader's language (\"Blue\")."
+        },
+        "order_number": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Its own order number."
+        },
+        "part_number": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Its own part number."
+        },
+        "tech_data": {
+          "description": "Its own technical values (the colour among them, key `colour`), keyed by `key`.",
+          "items": {
+            "$ref": "#/$defs/TechValue"
+          },
+          "type": "array"
+        },
+        "type_designation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Its own type designation."
+        }
+      },
+      "required": [
+        "key",
+        "name"
+      ],
       "type": "object"
     },
     "PinMap": {
@@ -3101,6 +3416,41 @@
         }
       ],
       "type": "array"
+    },
+    "WireSection": {
+      "additionalProperties": true,
+      "description": "The wire section of a part (FR-PRT-035, doc 07 §2.5 \"The parts a wire consumes\").",
+      "properties": {
+        "class": {
+          "description": "The conductor class of IEC 60228 (1, 2, 5, 6).",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "colour": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ColourSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The colour."
+        },
+        "csa": {
+          "$ref": "#/$defs/Dec3",
+          "description": "The cross-section in mm²."
+        }
+      },
+      "required": [
+        "csa"
+      ],
+      "type": "object"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -3117,6 +3467,13 @@
       "maximum": 65535,
       "minimum": 0,
       "type": "integer"
+    },
+    "accessories": {
+      "description": "What the part brings with it (FR-PRT-005, FR-REP-051, doc 07 §2.5 \"Accessories\"): an end plate per strip, the\nend brackets per rail group, a duct's cover per metre.",
+      "items": {
+        "$ref": "#/$defs/PartAccessory"
+      },
+      "type": "array"
     },
     "alternatives": {
       "description": "Alternative parts (FR-PRT-004).",
@@ -3296,6 +3653,13 @@
     "unit": {
       "$ref": "#/$defs/OrderUnit",
       "description": "Order unit; default piece."
+    },
+    "variants": {
+      "description": "The part as its maker also sells it under its own number (FR-PRT-003, doc 07 §2.5 \"Variants\"), keyed by\n`key`, the `PartRef.variant` a part use stores.",
+      "items": {
+        "$ref": "#/$defs/PartVariant"
+      },
+      "type": "array"
     },
     "version": {
       "description": "The item's semantic version (`MAJOR.MINOR.PATCH`).",

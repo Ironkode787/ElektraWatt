@@ -66,6 +66,11 @@ pub struct Device {
     /// Part uses; parts attach only to devices.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub parts: Vec<PartUse>,
+    /// The device's choices of the accessories its parts declare (doc 07 §2.5 "Accessories"): one taken off or
+    /// taken as another part. On the device the accessory is counted for: a `unit` accessory on the device that uses
+    /// the part, a `strip` and a `rail_group` accessory on the strip.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub accessory_choices: Vec<AccessoryChoice>,
     /// Manual function text (the automatic text falls back to the path function text, FR-DEV-011).
     #[serde(default, skip_serializing_if = "MlText::is_empty")]
     #[schemars(with = "MlTextS")]
@@ -393,6 +398,21 @@ pub struct StripAccessory {
     pub kind: AccessoryKind,
     /// The part.
     pub part: PartRef,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// A device's choice of one accessory its parts declare ([`Device::accessory_choices`]): without `part` the device
+/// does not take it, with `part` it takes it as that part.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct AccessoryChoice {
+    /// The accessory copy a declaration names.
+    #[schemars(with = "UuidS")]
+    pub of: Id<crate::Part>,
+    /// The part it is taken as; absent: not taken.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub part: Option<PartRef>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

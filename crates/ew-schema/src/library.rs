@@ -1372,12 +1372,20 @@ pub struct Part {
     /// Domain sections.
     #[serde(default, skip_serializing_if = "PartSections::is_empty")]
     pub sections: PartSections,
+    /// What the part brings with it (FR-PRT-005, FR-REP-051, doc 07 §2.5 "Accessories"): an end plate per strip, the
+    /// end brackets per rail group, a duct's cover per metre.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub accessories: Vec<PartAccessory>,
     /// Alternative parts (FR-PRT-004).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub alternatives: Vec<AlternativeRef>,
     /// The order code and components of a configured product (FR-PRT-006), beside [`PartKind::Configured`].
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub configured: Option<Configured>,
+    /// The part as its maker also sells it under its own number (FR-PRT-003, doc 07 §2.5 "Variants"), keyed by
+    /// `key`, the `PartRef.variant` a part use stores.
+    #[serde(default, skip_serializing_if = "KeyedList::is_empty")]
+    pub variants: KeyedList<PartVariant>,
     /// Macros per representation type (FR-PRT-027).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub macros: Vec<MacroLink>,
@@ -1400,6 +1408,95 @@ impl Part {
     /// Whether the part is a placeholder: its number is [`PLACEHOLDER_PART_NUMBER`].
     pub fn is_placeholder(&self) -> bool {
         self.part_number.as_str() == PLACEHOLDER_PART_NUMBER
+    }
+
+    /// The variant of key `key`, if the part holds it.
+    pub fn variant(&self, key: &str) -> Option<&PartVariant> {
+        self.variants.iter().find(|v| v.key.as_str() == key)
+    }
+}
+
+/// One accessory of a part (doc 07 §2.5 "Accessories"): the accessory part, how many in its order unit, and per what.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct PartAccessory {
+    /// The accessory part, a library reference (embedding the part embeds it).
+    pub part: LibRef,
+    /// How many, in the accessory's order unit.
+    #[schemars(with = "Dec3S")]
+    pub qty: Dec3,
+    /// Per what the quantity counts.
+    pub per: AccessoryPer,
+    /// What the accessory is to a strip (End plate, End bracket …).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<crate::AccessoryKind>,
+    /// An accessory a person may take that the part does not need: no list counts it until he takes it.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub optional: bool,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// Per what an accessory counts (doc 07 §2.5 "Accessories").
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "AccessoryPer")]
+pub enum AccessoryPer {
+    /// Per piece of the part a device uses, or per metre of a part sold by the metre.
+    Unit,
+    /// Once per terminal strip whose terminals use the part, after the last of them.
+    Strip,
+    /// The end brackets of a run of strips on one rail: k abutting strips take k + 1.
+    RailGroup,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// One variant of a part (FR-PRT-003, doc 07 §2.5 "Variants"): what it changes of the part, each member absent where
+/// it is the part's. It changes nothing of the pins, the template, the size, the sections or the accessories.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct PartVariant {
+    /// The key a part use stores (`BU`).
+    #[schemars(with = "IdentS")]
+    pub key: Ident,
+    /// Its name in the reader's language ("Blue").
+    #[schemars(with = "MlTextS")]
+    pub name: MlText,
+    /// Its own part number.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub part_number: Option<Ident>,
+    /// Its own order number.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub order_number: Option<Ident>,
+    /// Its own type designation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub type_designation: Option<Ident>,
+    /// Its own GTIN.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub gtin: Option<Ident>,
+    /// Its own description.
+    #[serde(default, skip_serializing_if = "MlText::is_empty")]
+    #[schemars(with = "MlTextS")]
+    pub description: MlText,
+    /// Its own technical values (the colour among them, key `colour`), keyed by `key`.
+    #[serde(default, skip_serializing_if = "KeyedList::is_empty")]
+    pub tech_data: KeyedList<TechValue>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+impl PartVariant {
+    /// Whether the variant gives at least one of its own part number, order number or description, so that a parts
+    /// list can tell it from its part (the part editor and `part.edit_copy` refuse a variant without).
+    pub fn has_own_number(&self) -> bool {
+        self.part_number.is_some() || self.order_number.is_some() || !self.description.is_empty()
     }
 }
 
@@ -1786,8 +1883,9 @@ pub struct TemplateFn {
     pub extra: Extra,
 }
 
-/// Domain sections of a part (FR-PRT-010). Typed: the cable cores, the PLC section and the carrier sections of
-/// FR-PRT-024 (enclosure, duct, rail, mounting plate); the other sections stay in `extra`.
+/// Domain sections of a part (FR-PRT-010). Typed: the cable cores, the PLC section, the carrier sections of
+/// FR-PRT-024 (enclosure, duct, rail, mounting plate), the bus and fluid sections and the sections of the parts a wire
+/// consumes (wire, ferrule, marker, FR-PRT-035); the other sections stay in `extra`.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct PartSections {
     /// Cores of a cable part, from which conductors are generated (FR-CBL-004).
@@ -1814,9 +1912,101 @@ pub struct PartSections {
     /// The fluid section: the solenoids a valve part declares (doc 11 §2.6).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fluid: Option<FluidSection>,
+    /// The wire section of a wire part (FR-PRT-035): the stock a wire is cut from.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wire: Option<WireSection>,
+    /// The ferrule section of a ferrule part (FR-PRT-035).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ferrule: Option<FerruleSection>,
+    /// The marker section of a marker part (FR-PRT-035).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub marker: Option<MarkerSection>,
     /// Unknown members (other sections).
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+/// The wire section of a part (FR-PRT-035, doc 07 §2.5 "The parts a wire consumes").
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct WireSection {
+    /// The cross-section in mm².
+    #[schemars(with = "Dec3S")]
+    pub csa: Dec3,
+    /// The colour.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub colour: Option<ColourSpec>,
+    /// The conductor class of IEC 60228 (1, 2, 5, 6).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub class: Option<u8>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The ferrule section of a part (FR-PRT-035): the cross-sections it takes, a twin ferrule, a ring lug's stud.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct FerruleSection {
+    /// The smallest cross-section it takes, in mm².
+    #[schemars(with = "Dec3S")]
+    pub csa_min: Dec3,
+    /// The largest cross-section it takes, in mm².
+    #[schemars(with = "Dec3S")]
+    pub csa_max: Dec3,
+    /// A twin ferrule: two wires in one.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub twin: bool,
+    /// An insulated ferrule.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub insulated: bool,
+    /// The sleeve length: the strip length the wire list prints.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub sleeve: Option<Nm>,
+    /// The colour the fitter takes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub colour: Option<ColourSpec>,
+    /// The stud of a ring lug (`M4`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub stud: Option<Ident>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The marker section of a part (FR-PRT-035): what it marks and how much text it holds.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct MarkerSection {
+    /// What the marker marks.
+    pub marks: MarkTarget,
+    /// The lines of text it holds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lines: Option<u8>,
+    /// The characters per line it holds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chars: Option<u8>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// What a marker part marks.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "MarkTarget")]
+pub enum MarkTarget {
+    /// A wire.
+    Wire,
+    /// A terminal.
+    Terminal,
+    /// A device.
+    Device,
+    /// A cable.
+    Cable,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// The fluid section of a part (doc 11 §2.6). The solenoids of a valve part, the k-th being the k-th template entry on
@@ -2842,6 +3032,7 @@ keyed!(SymbolCp, idx: u16);
 keyed!(CpDef, idx: u16);
 keyed!(CpData, idx: u16);
 keyed!(FreeProp, key: Ident);
+keyed!(PartVariant, key: Ident);
 
 open_enum!(
     Confidence,
@@ -2870,6 +3061,8 @@ open_enum!(
     OrderUnit,
     ClampType,
     MountKind,
+    AccessoryPer,
+    MarkTarget,
     AlternativeKind,
     FormKind,
     Overflow,

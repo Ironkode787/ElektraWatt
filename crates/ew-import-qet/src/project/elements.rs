@@ -616,6 +616,7 @@ impl Mx<'_, '_> {
             position: None,
             structure: Default::default(),
             parts: Vec::new(),
+            accessory_choices: Vec::new(),
             function_text,
             process_tag: None,
             tech_data: Default::default(),

@@ -3,9 +3,14 @@
   "id": "7f57b77a-6a32-5397-93e4-66e35de395d0",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "079a22df-17f4-5370-a7d6-ed8f1ccd67c0",
-  "version": "0.1.1",
-  "sha256": "sha256:6a49b3ce863901a1b455ea000c57548f1cf5c3c5c28430b12fd98ccfc4603d96",
-  "meta": {"key": "EW-GEN-MCB-4", "licence": "CC0-1.0", "sources": ["ew.original"]},
+  "version": "0.1.2",
+  "sha256": "sha256:ee70596e8c028ea2b54f5a4d10fa9dc2d4c9b78c5d2631b0283b6eac15f15e2a",
+  "meta": {
+    "key": "EW-GEN-MCB-4",
+    "licence": "CC0-1.0",
+    "sources": ["ew.original"],
+    "confidence": {"cp_pattern": "test"}
+  },
   "manufacturer": {
     "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
     "item": "f4260253-4a2b-5c11-a3d6-b01e2aa5efe6",
@@ -16,10 +21,10 @@
   "category": ["ProtectionOvercurrent", "MCB", "2P"],
   "tech_data": [{"key": "characteristic", "value": "C"}, {"key": "rated_current", "value": {"value": "16", "unit": "A"}}],
   "cp_pattern": [
-    {"idx": 0, "designation": "1"},
-    {"idx": 1, "designation": "2"},
-    {"idx": 2, "designation": "3"},
-    {"idx": 3, "designation": "4"}
+    {"idx": 0, "designation": "1", "clamp_type": "screw", "csa_min": "0.75", "csa_max": "25"},
+    {"idx": 1, "designation": "2", "clamp_type": "screw", "csa_min": "0.75", "csa_max": "25"},
+    {"idx": 2, "designation": "3", "clamp_type": "screw", "csa_min": "0.75", "csa_max": "25"},
+    {"idx": 3, "designation": "4", "clamp_type": "screw", "csa_min": "0.75", "csa_max": "25"}
   ],
   "function_template": [
     {
