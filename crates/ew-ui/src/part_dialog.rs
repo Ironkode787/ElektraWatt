@@ -993,7 +993,8 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
             } else {
                 // A cable part of one's own (New cable type…): its identity, then the cable section.
                 ui.label(
-                    RichText::new(strings::text(key!("part-section-cable"))).font(theme::font(&t.type_body_strong)),
+                    RichText::new(strings::text(key!("part-section-cable")))
+                        .font(theme::font(&t.type_body_strong)),
                 );
                 save |= cable_section(ui, d, events);
             }

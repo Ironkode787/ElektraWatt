@@ -175,11 +175,14 @@ fn back_inside(
 ) -> Option<Pt2> {
     let frame = crate::numbering::frame_grid(tx, page)?;
     let inside = |at: Pt2, (outline, cps): (&[Pt2], &[BoxCp])| {
-        outline
-            .iter()
-            .copied()
-            .chain(cps.iter().map(|c| c.pos))
-            .all(|p| ew_derive::cell_in_grid(&frame, page.grid, Pt2::new(Nm(at.x.0 + p.x.0), Nm(at.y.0 + p.y.0))).is_some())
+        outline.iter().copied().chain(cps.iter().map(|c| c.pos)).all(|p| {
+            ew_derive::cell_in_grid(
+                &frame,
+                page.grid,
+                Pt2::new(Nm(at.x.0 + p.x.0), Nm(at.y.0 + p.y.0)),
+            )
+            .is_some()
+        })
     };
     if inside(pos, after) || !inside(pos, before) {
         return None;
@@ -187,7 +190,13 @@ fn back_inside(
     let from = page.grid.snap(if along_x { pos.x } else { pos.y });
     (1..)
         .map_while(|k| page.grid.at(from - k))
-        .map(|c| if along_x { Pt2::new(c, pos.y) } else { Pt2::new(pos.x, c) })
+        .map(|c| {
+            if along_x {
+                Pt2::new(c, pos.y)
+            } else {
+                Pt2::new(pos.x, c)
+            }
+        })
         .take_while(|to| inside(*to, before))
         .find(|to| inside(*to, after))
         .map(|to| Pt2::new(Nm(to.x.0 - pos.x.0), Nm(to.y.0 - pos.y.0)))

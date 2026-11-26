@@ -7,8 +7,8 @@
 //! back inside it, and the Save's card says so (FT-2208).
 
 use crate::common::{Tmp, cursor, done, grid_point, new_project, tables};
-use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::ew_api::output::TableBox;
+use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::ShellModel;
 use serde_json::json;
 

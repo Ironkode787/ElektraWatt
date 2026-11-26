@@ -556,7 +556,10 @@ pub(crate) fn redrawn_boxes(before: &Q, after: &Q) -> Vec<RedrawnBox> {
             }
             Some(RedrawnBox {
                 device: functions.get(*rep.functions.first()?)?.device?,
-                folio: pages.get(rep.page).map(|p| ew_derive::folio_label(p)).unwrap_or_default(),
+                folio: pages
+                    .get(rep.page)
+                    .map(|p| ew_derive::folio_label(p))
+                    .unwrap_or_default(),
                 moved: old.pos != rep.pos,
             })
         })

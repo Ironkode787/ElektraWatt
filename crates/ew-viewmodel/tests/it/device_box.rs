@@ -190,7 +190,10 @@ fn add_bus_interface_opens_the_part_editor_on_a_new_interface() {
         failed(&mut s, "part.box_details", json!({"bus": true})).contains("make a part of your own from it"),
         "a library's part"
     );
-    assert!(s.symbol_editor().and_then(|e| e.device_box()).is_some(), "the box stays open");
+    assert!(
+        s.symbol_editor().and_then(|e| e.device_box()).is_some(),
+        "the box stays open"
+    );
     done(&mut s, "symbol.close", json!({}));
     done(&mut s, "part.box", json!({"new": true}));
     done(&mut s, "part.box_details", json!({"bus": true}));

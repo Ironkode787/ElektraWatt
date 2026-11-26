@@ -138,7 +138,9 @@ fn next_free_addresses(q: &Q, ports: &[Id<Function>]) -> BTreeMap<Id<Function>, 
             .and_then(|(p, _)| p.address_range.map(|r| (r.min, r.max)))
             .unwrap_or(crate::rules::bus_net::PROFIBUS_RANGE);
         let (start, max) = (min.max(1), max.min(u16::from(u8::MAX)));
-        let from = highest.map_or(start, |h| h.saturating_add(1)).clamp(start, max.saturating_add(1));
+        let from = highest
+            .map_or(start, |h| h.saturating_add(1))
+            .clamp(start, max.saturating_add(1));
         let free = (from..=max)
             .chain(start..from)
             .find(|a| !taken.contains(a))

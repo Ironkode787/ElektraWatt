@@ -193,7 +193,10 @@ fn ew_bus_001_offers_the_next_free_address_for_a_tbd_port() {
     let given: Vec<Value> = fixes(ports).into_iter().map(|(_, v, _)| v).collect();
     assert_eq!(
         given,
-        [json!({"value": {"profibus": 2}}), json!({"value": {"profibus": 3}})]
+        [
+            json!({"value": {"profibus": 2}}),
+            json!({"value": {"profibus": 3}})
+        ]
     );
 }
 

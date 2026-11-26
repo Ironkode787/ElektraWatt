@@ -504,7 +504,7 @@ state.
   on, the box growing past its far end where it needs to (a turned box, or one that is no rectangle, takes it when it
   is redrawn), and a box so grown that would pass the page's drawing area goes back along that row by whole grid steps
   until it stands inside, its CPs' wires with it; else it keeps its top-left (`back_inside`; the card names each box
-  drawn anew, "Drawn anew: -3K2 on page 102", and one that went back, `redrawn_boxes`, FT-2208); the ports its functions carry keep their values (N5 never rewrites one). The card lists the changes in words: each interface that changes ("Interface X1:
+  drawn anew, "Drawn anew: -3K2 on page 102", and one that went back, `redrawn_boxes`); the ports its functions carry keep their values (N5 never rewrites one). The card lists the changes in words: each interface that changes ("Interface X1:
   8 ports → 6 ports"), each PLC field the forms show, the pins made again as their designations, and a parts-list
   row that changes as its columns that differ. A starter part or another
   library's part stays read-only and is copied as a new part of his own. The box of a device with ports prints the
