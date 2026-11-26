@@ -266,9 +266,11 @@ change here.
   (warning) names it. The wire list prints From marker and To marker by default; a marker is set by hand in the
   Connections table's marker cells or the wire's Properties (`—` for none).
 - behaviour-change: A new list kind, Labels (`labels`), lists every label of the workshop in the order the fitter
-  applies them: the wire markers, the terminal and strip markers, the cable markers (two per cable), the device labels
-  (two where Project properties ▸ Workshop ▸ Device labels says on the device and beside it), the tube markers and the
-  plates of the devices in the door, each with its texts, copies and the stock's marker part that marks its set.
+  applies them: the wire markers, the terminal markers (with the function text on a second line where the strip prints
+  function texts) and strip markers, the cable markers (two per cable), the device labels (placed devices in mounting
+  order, then the others; two where Project properties ▸ Workshop ▸ Device labels says on the device and beside it), the
+  tube markers and the plates of the devices in the door, each with its texts, copies and the stock's marker part that
+  marks its set.
 - behaviour-change: The tube labels list (`tube_labels`) has the labels list's columns (Set, For, Text 1 to 3, Copies,
   Marker part, Note) where it had Tube, At and Label text.
 - behaviour-change: The rework list also lists the labels' work: Remove device, Remove terminal, Remove cable, Re-mark (a

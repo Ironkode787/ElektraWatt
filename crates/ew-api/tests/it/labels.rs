@@ -67,3 +67,51 @@ fn the_labels_follow_the_fitters_order_with_their_marker_parts() {
     .expect("labels beside the devices");
     assert_eq!(copies(&s, LabelSet::DeviceLabels), 2);
 }
+
+/// The device labels of the placed devices come in their mounting order, before the devices no layout places.
+#[test]
+fn the_placed_devices_are_labelled_before_the_others() {
+    let s = common::sample();
+    let q = s.query();
+    let placed = |id: ew_ids::Id<ew_schema::Device>| q.idx().placements_of_device(id).next().is_some();
+    let order: Vec<bool> = q
+        .get::<LabelRows>(())
+        .iter()
+        .filter(|l| l.set == LabelSet::DeviceLabels)
+        .filter_map(|l| match l.target {
+            ew_derive::LabelTarget::Device(d) => Some(placed(d)),
+            _ => None,
+        })
+        .collect();
+    assert!(order.contains(&true) && order.contains(&false), "{order:?}");
+    assert!(order.windows(2).all(|w| w[0] || !w[1]), "{order:?}");
+}
+
+/// A terminal's marker carries its function text on a second line where its strip prints function texts.
+#[test]
+fn a_terminal_marker_says_its_function_where_the_strip_prints_it() {
+    let mut s = common::sample();
+    let lines = |s: &Session| {
+        let id = s.resolve_reference("tag:-X1021:1").expect("the terminal");
+        s.query()
+            .get::<LabelRows>(())
+            .iter()
+            .find(|l| l.set == LabelSet::TerminalMarkers && l.target == ew_derive::LabelTarget::Device(ew_ids::Id::from_uuid(id)))
+            .map(|l| l.lines.clone())
+            .expect("the terminal's marker")
+    };
+    let terminal = s.resolve_reference("tag:-X1021:1").expect("the terminal").to_string();
+    let strip = s.resolve_reference("tag:-X1021").expect("the strip").to_string();
+    common::run_cmd(
+        &mut s,
+        "fields.set",
+        json!({"kind": "device", "targets": [terminal], "path": "function_text", "value": {"en": "24V"}}),
+    );
+    assert_eq!(lines(&s), ["1"]);
+    common::run_cmd(
+        &mut s,
+        "fields.set",
+        json!({"kind": "device", "targets": [strip], "path": "strip.label_mode", "value": "function_text"}),
+    );
+    assert_eq!(lines(&s), ["1", "24V"]);
+}

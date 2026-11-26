@@ -6,13 +6,17 @@
 //! labels, the tube markers of the tube list and the plates of the door. Each label names its marker part, the first
 //! marker of the workshop stock that marks its set, and whether its text fits it.
 
+use std::cmp::Reverse;
 use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_mltext::natural_key;
-use ew_schema::{Connection, Device, DeviceLabels, MarkTarget, MountKind, Part};
+use ew_schema::{
+    CarrierRef, Connection, Device, DeviceLabels, LabelMode, MarkTarget, MountKind, MountingSurface, Part, Placement,
+};
 
 use crate::fluid_rows::TubeRows;
+use crate::layout::{CarrierGeometry, PlacementGeometry};
 use crate::marking::{MarkerText, shorten};
 use crate::q::Q;
 use crate::query::{Policy, Query};
@@ -147,8 +151,14 @@ impl Query for LabelRows {
             .iter()
             .filter(|(id, _)| devices.get(*id).is_some_and(|d| d.aspects.strip.is_some()))
             .collect();
-        // Terminal markers: strips in natural tag order, terminals in mounting order; the designation.
+        // Terminal markers: strips in natural tag order, terminals in mounting order; the designation, and under it the
+        // function text where the strip prints function texts (doc 08 §6.1).
+        let lang = crate::print_language(q);
         for (strip, _) in &strips {
+            let function_texts = devices
+                .get(*strip)
+                .and_then(|s| s.aspects.strip.as_ref())
+                .is_some_and(|s| s.label_mode == LabelMode::FunctionText);
             let mut terminals: Vec<_> = q
                 .idx()
                 .terminals_of_strip(*strip)
@@ -164,12 +174,12 @@ impl Query for LabelRows {
                 else {
                     continue;
                 };
-                push(
-                    LabelSet::TerminalMarkers,
-                    LabelTarget::Device(t.id),
-                    vec![designation],
-                    1,
-                );
+                let mut lines = vec![designation];
+                let function = crate::text_in(&t.function_text, lang.as_ref());
+                if function_texts && !function.is_empty() {
+                    lines.push(function.to_owned());
+                }
+                push(LabelSet::TerminalMarkers, LabelTarget::Device(t.id), lines, 1);
             }
         }
         // Strip markers: the strip's tag.
@@ -213,7 +223,11 @@ impl Query for LabelRows {
             DeviceLabels::OnDeviceAndBeside => 2,
             DeviceLabels::OnDevice | DeviceLabels::Unknown(_) => 1,
         };
-        for (id, tag) in &by_tag {
+        // Placed devices in mounting order (per surface, carriers from the top, along each from the left), then the
+        // others in natural tag order.
+        let mut labelled: Vec<&(Id<Device>, String)> = by_tag.iter().collect();
+        labelled.sort_by_cached_key(|(id, _)| mounting_key(q, *id).map_or((1, None), |k| (0, Some(k))));
+        for (id, tag) in labelled.iter().copied() {
             let Some(d) = devices.get(*id) else { continue };
             let a = &d.aspects;
             if a.terminal.is_some() || a.strip.is_some() || a.cable.is_some() || d.parts.is_empty() {
@@ -246,17 +260,38 @@ impl Query for LabelRows {
                 );
             }
         }
-        // Plates: a device in the door by its function text in the project's language.
-        for (id, _) in &by_tag {
+        // Plates: a device in the door by its function text in the project's language, in the door's mounting order.
+        for (id, _) in labelled.iter().copied() {
             let Some(d) = devices.get(*id) else { continue };
             if !door(d) {
                 continue;
             }
-            let text = crate::text_in(&d.function_text, crate::print_language(q).as_ref()).to_owned();
+            let text = crate::text_in(&d.function_text, lang.as_ref()).to_owned();
             if !text.is_empty() {
                 push(LabelSet::Plates, LabelTarget::Device(*id), vec![text], 1);
             }
         }
         Arc::new(out)
     }
+}
+
+/// Where a placed device stands in the mounting order: its first placement's surface, the top of its carrier (a
+/// placement on the surface itself: of its footprint) from the top down, and the footprint's left edge. `None` for a
+/// device without a placement whose geometry is known.
+fn mounting_key(q: &Q, device: Id<Device>) -> Option<(Id<MountingSurface>, Reverse<i64>, i64)> {
+    let (placement, geom) = q
+        .idx()
+        .placements_of_device(device)
+        .filter_map(|p| Some((q.table::<Placement>().get(p)?.clone(), q.get::<PlacementGeometry>(p).as_ref().clone()?)))
+        .min_by_key(|(p, _)| p.id)?;
+    let carrier_top = match placement.carrier {
+        CarrierRef::Carrier(c) => q
+            .get::<CarrierGeometry>(c)
+            .as_ref()
+            .as_ref()
+            .and_then(|g| g.outline.iter().map(|r| r.max().y.0).max()),
+        CarrierRef::Surface(_) | CarrierRef::Unknown(_) => None,
+    };
+    let top = carrier_top.unwrap_or(geom.footprint.max().y.0);
+    Some((geom.surface, Reverse(top), geom.footprint.min().x.0))
 }
