@@ -155,6 +155,48 @@ fn ew_bus_001_reports_a_tbd_address_and_supersedes_ew_core_044() {
     assert!(findings_of(&m, "EW-CORE-044").is_empty(), "superseded");
 }
 
+/// EW-BUS-001 (FT-2208): an open PROFIBUS address's quick fix gives the port the next free station address, counted on
+/// from the highest the net holds; two open ports are given two addresses, so applying both makes no duplicate.
+#[test]
+fn ew_bus_001_offers_the_next_free_address_for_a_tbd_port() {
+    let fixes = |ports| {
+        let mut f = findings_of(&line(ports).build(), "EW-BUS-001");
+        f.sort_by_key(|f| f.subject_english().clone());
+        f.iter()
+            .map(|f| {
+                let fix = f.fix.as_ref().expect("a quick fix");
+                assert_eq!(
+                    (fix.command.as_str(), &fix.params["path"]),
+                    ("fields.set", &json!("bus_port.address"))
+                );
+                (
+                    f.subject_english().clone(),
+                    fix.params["value"].clone(),
+                    ew_checks::messages::fix_label(fix, "en-GB"),
+                )
+            })
+            .collect::<Vec<_>>()
+    };
+    let mut ports = consistent();
+    ports[1].1 = json!("tbd");
+    assert_eq!(
+        fixes(ports),
+        [(
+            NAME_B.to_owned(),
+            json!({"value": {"profibus": 4}}),
+            "Give it the next free address, 4".to_owned()
+        )]
+    );
+    let mut ports = consistent();
+    ports[1].1 = json!("tbd");
+    ports[2].1 = json!("tbd");
+    let given: Vec<Value> = fixes(ports).into_iter().map(|(_, v, _)| v).collect();
+    assert_eq!(
+        given,
+        [json!({"value": {"profibus": 2}}), json!({"value": {"profibus": 3}})]
+    );
+}
+
 /// EW-BUS-001: two ports on one PROFIBUS address are one `duplicate` finding with both ports as targets.
 #[test]
 fn ew_bus_001_reports_a_duplicate_address_once() {

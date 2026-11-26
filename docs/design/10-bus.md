@@ -147,7 +147,11 @@ text changes from "Switch to "ON"" to "Switch to "OFF"" because the text is a pr
 `termination` (FR-BUS-004).
 
 **Addresses.**
-- `AddrValue::Tbd` renders "TBD", appears in the open-items list and blocks release (EW-BUS-001, FR-CHK-034).
+- `AddrValue::Tbd` renders "TBD", appears in the open-items list and blocks release (EW-BUS-001, FR-CHK-034). On a
+  PROFIBUS DP port EW-BUS-001's quick fix "Give it the next free address" sets the first station address after the
+  highest the logical net holds that no port of it has, wrapping to the range's start; the range is the part's
+  `address_range`, else 1–125 (0 is left to the programming device). The open ports of one net are given distinct
+  addresses (FT-2208).
 - `NotApplicable` is for ports without addresses (IO-Link device side).
 - Ranges, segment lengths and PROFINET name rules are data with a `verified` flag. Unverified constants report at
   most a warning (FR-CHK-046; NFR-COMP-05).

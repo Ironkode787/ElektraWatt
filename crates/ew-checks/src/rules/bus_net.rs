@@ -30,7 +30,7 @@ fn port_words(q: &Q, f: Id<Function>) -> String {
 /// The part port that a drawn port comes from: the first port with the same interface and label among the bus
 /// sections of its device's parts, with the confidence of that part's `bus` section (a finding that rests on
 /// it is marked when it is not verified).
-fn part_port(q: &Q, function: &Function, port: &BusPort) -> Option<(PartBusPort, Confidence)> {
+pub(crate) fn part_port(q: &Q, function: &Function, port: &BusPort) -> Option<(PartBusPort, Confidence)> {
     let device = q.devices().get(function.device?)?;
     let parts = q.parts();
     device.parts.iter().find_map(|u| {
@@ -86,7 +86,7 @@ pub const ADDRESS_RANGE: RuleMeta = RuleMeta {
 };
 
 /// The PROFIBUS DP station addresses (0–125, doc 10 §3.8), unverified: a warning at most.
-const PROFIBUS_RANGE: (u16, u16) = (0, 125);
+pub(crate) const PROFIBUS_RANGE: (u16, u16) = (0, 125);
 
 /// EW-BUS-002: a PROFIBUS station address outside the range its part's port states (`PartBusPort.address_range`,
 /// FR-BUS-009), else outside 0–125 (unverified data). One warning per port, target the port.

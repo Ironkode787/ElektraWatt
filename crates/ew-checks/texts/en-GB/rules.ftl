@@ -1257,6 +1257,7 @@ rule-ew-imp-114 =
 fix-take-proposed-size = Take the proposed size
 fix-drop-override = Drop override
 fix-variant-own = Use the part's own number
+fix-next-free-address = Give it the next free address, { $p0 }
 fix-anchor-graphics-centre = Anchor at the graphics centre
 fix-renumber-newer = Renumber the newer
 fix-unfreeze-tag = Unfreeze the tag

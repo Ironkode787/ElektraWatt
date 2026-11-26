@@ -5,7 +5,7 @@
 //! missing or duplicate in a logical net) and EW-BUS-004 (the termination at the segment ends). They read the bus
 //! model of D11: the ports (`Function.bus_port`), `net_members(lnet)` and `bus_segments(pnet)`.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::{BusSegments, DeviceTag, NetMembersOf, Q, SegmentMember, external_partner_text};
 use ew_ids::Id;
@@ -14,7 +14,7 @@ use ew_schema::{
     PortRole,
 };
 
-use crate::finding::{Finding, Severity, Target};
+use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 use crate::rules::Named;
 use crate::rules::term::full_tag;
@@ -102,9 +102,54 @@ pub const BUS_ADDRESS: RuleMeta = RuleMeta {
 /// target and discriminator `address`, which supersedes EW-CORE-044's finding for the same port; and one finding
 /// per PROFIBUS address that two or more ports share, with those ports as targets and discriminator `duplicate`. A
 /// port without an address (`not_applicable`) and an address form of a newer format are not checked. An error in
-/// both modes.
+/// both modes. The finding of an open PROFIBUS DP address carries the quick fix "Give it the next free address"
+/// ([`next_free_addresses`]).
 #[derive(Clone, Copy, Debug)]
 pub struct BusAddress;
+
+/// The next free PROFIBUS DP station address of each open (`tbd`) PROFIBUS DP port of a net, in the order of
+/// `ports` (FT-2208): the first address of the port's range (its part's `address_range`, else 0–125) that no port of
+/// the net holds and no earlier open port is given, counted on from the highest address held and wrapping to the
+/// range's start (0 is left to the programming device when the range starts there). A port whose range is full gets
+/// none.
+fn next_free_addresses(q: &Q, ports: &[Id<Function>]) -> BTreeMap<Id<Function>, u8> {
+    let functions = q.functions();
+    let mut taken: BTreeSet<u16> = ports
+        .iter()
+        .filter_map(|f| match &functions.get(*f)?.bus_port.as_ref()?.address {
+            AddrValue::Value(NetAddress::Profibus(n)) => Some(u16::from(*n)),
+            _ => None,
+        })
+        .collect();
+    let highest = taken.last().copied();
+    let mut out = BTreeMap::new();
+    for f in ports {
+        let Some(function) = functions.get(*f) else {
+            continue;
+        };
+        let Some(port) = function
+            .bus_port
+            .as_ref()
+            .filter(|p| p.bus == BusSystem::ProfibusDp && p.address == AddrValue::Tbd)
+        else {
+            continue;
+        };
+        let (min, max) = crate::rules::bus_net::part_port(q, function, port)
+            .and_then(|(p, _)| p.address_range.map(|r| (r.min, r.max)))
+            .unwrap_or(crate::rules::bus_net::PROFIBUS_RANGE);
+        let (start, max) = (min.max(1), max.min(u16::from(u8::MAX)));
+        let from = highest.map_or(start, |h| h.saturating_add(1)).clamp(start, max.saturating_add(1));
+        let free = (from..=max)
+            .chain(start..from)
+            .find(|a| !taken.contains(a))
+            .and_then(|a| u8::try_from(a).ok());
+        if let Some(a) = free {
+            taken.insert(u16::from(a));
+            out.insert(*f, a);
+        }
+    }
+    out
+}
 
 impl Rule for BusAddress {
     fn meta(&self) -> &'static RuleMeta {
@@ -122,7 +167,9 @@ impl Rule for BusAddress {
         let functions = q.functions();
         let mut out = Vec::new();
         let mut by_address: BTreeMap<u8, Vec<Id<Function>>> = BTreeMap::new();
-        for f in &q.get::<NetMembersOf>(net).ports {
+        let members = q.get::<NetMembersOf>(net);
+        let free = next_free_addresses(q, &members.ports);
+        for f in &members.ports {
             let Some(function) = functions.get(*f) else {
                 continue;
             };
@@ -133,17 +180,28 @@ impl Rule for BusAddress {
                 AddrValue::Tbd => {
                     // An untagged port by the selector `end`, so each language words it.
                     let (name, end, words) = end_words(q, *f);
-                    out.push(
-                        Finding::new(
-                            &BUS_ADDRESS,
-                            [Target::new(Kind::Function, *f)],
-                            "address",
-                            name.clone(),
-                        )
-                        .arg("form", "tbd")
-                        .arg("end", end)
-                        .arg("port", words),
-                    );
+                    let finding = Finding::new(
+                        &BUS_ADDRESS,
+                        [Target::new(Kind::Function, *f)],
+                        "address",
+                        name.clone(),
+                    )
+                    .arg("form", "tbd")
+                    .arg("end", end)
+                    .arg("port", words);
+                    out.push(match free.get(f) {
+                        Some(a) => finding.with_fix(QuickFix {
+                            label: text!("fix-next-free-address", a.to_string()),
+                            command: "fields.set".to_owned(),
+                            params: serde_json::json!({
+                                "kind": "function",
+                                "targets": [f.to_string()],
+                                "path": "bus_port.address",
+                                "value": {"value": {"profibus": a}},
+                            }),
+                        }),
+                        None => finding,
+                    });
                 }
                 AddrValue::Value(NetAddress::Profibus(n)) => by_address.entry(*n).or_default().push(*f),
                 _ => {}
