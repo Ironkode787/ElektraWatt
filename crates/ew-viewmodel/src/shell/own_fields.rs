@@ -58,9 +58,11 @@ impl ShellModel {
             };
             // The stored lists are these rows: their raw rows go.
             section.rows.retain(|r| {
-                !["user_props", "user_prop_defs"]
-                    .iter()
-                    .any(|m| r.path == *m || r.path.starts_with(&format!("{m}[")) || r.path.starts_with(&format!("{m}.")))
+                !["user_props", "user_prop_defs"].iter().any(|m| {
+                    r.path == *m
+                        || r.path.starts_with(&format!("{m}["))
+                        || r.path.starts_with(&format!("{m}."))
+                })
             });
             let Some(model) = section.rows.first().cloned() else {
                 continue;

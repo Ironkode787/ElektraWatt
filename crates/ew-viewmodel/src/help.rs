@@ -359,7 +359,7 @@ fn own_topic(action: &str) -> Option<&'static str> {
         "part.edit" | "part.new" | "part.save" | "part.field" | "part.pin" | "part.bus_row" => {
             "guide-own-parts"
         }
-        "page.title_block" => "dialog-form",
+        "page.title_block" | "field.new" | "field.rename" | "field.remove" => "dialog-form",
         "page.add_legend" => Thing::PanelLayout.topic(),
         "ip.supply_in" => Thing::SupplyPoint.topic(),
         "navigator.show" => "navigators",
