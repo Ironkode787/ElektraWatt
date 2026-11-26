@@ -6344,9 +6344,9 @@ msgstr ""
 
 #: src/reference/window/tools.md:22
 msgid ""
-"On a wire: Route, Wire marker, Define potential…, Cable… and Print wire "
-"numbers; a wire does not turn, so there is no Rotate or Mirror. On several "
-"selected wires: Make cable from the selection…."
+"On a wire: Route, Wire marker, Define potential…, Cable… and Show wire "
+"numbers on the pages; a wire does not turn, so there is no Rotate or Mirror. "
+"On several selected wires: Make cable from the selection…."
 msgstr ""
 
 #: src/reference/window/tools.md:24
@@ -6391,7 +6391,7 @@ msgstr ""
 #: src/reference/window/tools.md:40
 msgid ""
 "On the title block: Title block fields…. On an empty spot: Paste, Paste in "
-"place, Page properties, New page… and Print wire numbers."
+"place, Page properties, New page… and Show wire numbers on the pages."
 msgstr ""
 
 #: src/reference/window/tools.md:42
@@ -7060,17 +7060,17 @@ msgstr ""
 
 #: src/reference/window/tools.md:394
 msgid ""
-"The wires' numbers print on the page with **Draw ▸ Connect ▸ Print wire "
-"numbers** or the checkbox of that name in the project's Properties, one "
-"setting for the whole project that the PDF and print follow too: each wire's "
-"number stands beside it, once, at the middle of its longest segment, and on "
-"a wire that carries its own marker the number comes first in the marker's "
-"text (`101.1 1.5 BK`). A cable's core prints no number; its cable and core "
-"name it. Each wire is one conductor with its own number: a 24 V rail tapped "
-"by four branches is four wires, each piece of the rail sharing the number of "
-"the branch it feeds. **Draw ▸ Connect ▸ Number wires by potential** gives "
-"every wire of a potential the potential's name instead, one code for the "
-"whole rail."
+"The wires' numbers print on the page with **Draw ▸ Connect ▸ Show wire "
+"numbers on the pages** or the checkbox of that name in the project's "
+"Properties, one setting for the whole project that the PDF and print follow "
+"too: each wire's number stands beside it, once, at the middle of its longest "
+"segment, and on a wire that carries its own marker the number comes first in "
+"the marker's text (`101.1 1.5 BK`). A cable's core prints no number; its "
+"cable and core name it. Each wire is one conductor with its own number: a 24 "
+"V rail tapped by four branches is four wires, each piece of the rail sharing "
+"the number of the branch it feeds. **Draw ▸ Connect ▸ Number wires by "
+"potential** gives every wire of a potential the potential's name instead, "
+"one code for the whole rail."
 msgstr ""
 
 #: src/reference/window/tools.md:401

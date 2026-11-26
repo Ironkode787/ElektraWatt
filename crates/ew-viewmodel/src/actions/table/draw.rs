@@ -1017,7 +1017,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_crossings(p),
         ),
     )),
-    // Draw ▸ Connect ▸ Print wire numbers, beside the crossings and the wire markers: every wire's number
+    // Draw ▸ Connect ▸ Show wire numbers on the pages, beside the crossings and the wire markers: every wire's number
     // on the page, the PDF and print.
     keeps_banner(with_params(
         "on?:bool",

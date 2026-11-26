@@ -759,7 +759,7 @@ pub(crate) fn page_texts(d: &mut Driver) -> Vec<String> {
     out
 }
 
-/// Print wire numbers (Draw ▸ Connect ▸ Print wire numbers), run from the command search, prints the number of each
+/// Show wire numbers on the pages (Draw ▸ Connect ▸ Show wire numbers on the pages), run from the command search, prints the number of each
 /// of the page's two wires on the page of a new project (`1.1`, `1.2`: the page's folio and the counter); ticked off,
 /// the numbers are gone.
 #[test]
@@ -780,13 +780,13 @@ fn print_wire_numbers_puts_each_wires_number_on_the_page() {
         Vec::<String>::new(),
         "no numbers before the setting"
     );
-    // The command search, clicked: "Print wire numbers" typed, Enter.
+    // The command search, clicked: "Show wire numbers on the pages" typed, Enter.
     let tick = |d: &mut Driver| {
         d.input(&click(
             d.find("Search commands and devices").expect("the command search"),
         ));
         d.settle();
-        d.input(&typed("Print wire numbers"));
+        d.input(&typed("Show wire numbers on the pages"));
         d.settle();
         d.input(&key("enter"));
         d.settle();

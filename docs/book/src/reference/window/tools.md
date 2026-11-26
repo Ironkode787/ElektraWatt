@@ -19,7 +19,7 @@ come the general ones (Rotate, Mirror, Renumber devices… and Move to page… o
 Properties of selection). A right click selects the thing first; Shift+F10 or the menu key opens the same menu for the
 selection.
 
-- On a wire: Route, Wire marker, Define potential…, Cable… and Print wire numbers; a wire does not turn, so
+- On a wire: Route, Wire marker, Define potential…, Cable… and Show wire numbers on the pages; a wire does not turn, so
   there is no Rotate or Mirror. On several selected wires: Make cable from the selection….
 - On a terminal: Add terminal (the strip's next number, of the terminal's kind and part, floating at the pointer),
   Choose part… and Edit strip, which opens the strip editor. On several selected terminals: Choose part…, for them
@@ -37,7 +37,7 @@ selection.
   what each carries (its kind of conductor and voltage; Enter takes them, Escape leaves them without). On a marked
   point the entry reads Remove the supply mark, and Potential… opens that panel again. The same link stands under the
   point's name in Properties.
-- On the title block: Title block fields…. On an empty spot: Paste, Paste in place, Page properties, New page… and Print wire numbers.
+- On the title block: Title block fields…. On an empty spot: Paste, Paste in place, Page properties, New page… and Show wire numbers on the pages.
 
 A navigator's row offers what the same thing offers on the page; a right click on a row selects it first. A device's
 row offers Go to (its first placement), its symbol's entries and Properties of selection; a cable's row Cable… and Go
@@ -391,7 +391,7 @@ colour is every marked wire's, and a list (`BK, BU`) gives each wire its own in 
 colour the project does not know is refused with the codes it knows. The marker prints a short line across the wires
 and its text beyond the line's end, clear of the wires.
 
-The wires' numbers print on the page with **Draw ▸ Connect ▸ Print wire numbers** or the checkbox of that name in the
+The wires' numbers print on the page with **Draw ▸ Connect ▸ Show wire numbers on the pages** or the checkbox of that name in the
 project's Properties, one setting for the whole project that the PDF and print follow too: each wire's number stands beside it, once, at the middle of its longest segment, and on a
 wire that carries its own marker the number comes first in the marker's text (`101.1 1.5 BK`). A cable's core prints
 no number; its cable and core name it. Each wire is one conductor with its own number: a 24 V rail tapped by four

@@ -338,7 +338,7 @@ thing; one that cannot run now is disabled with its reason, as the command row's
 | Under the pointer | First entries |
 |---|---|
 | A connection point | Mark not used, or Mark used |
-| One wire | Route, Wire marker, Define potential…, Cable… (a core's own cable), Print wire numbers (checked when on) |
+| One wire | Route, Wire marker, Define potential…, Cable… (a core's own cable), Show wire numbers on the pages (checked when on) |
 | Several selected wires | Make cable from the selection… |
 | A junction | Define potential… |
 | An interruption point | Supply comes in here… (Remove the supply mark on a marked point), Go to partner (its cross-reference's cell; disabled while it has none or the point is external), Direction: Source, Direction: Target (the current one checked), Continue on page… |
@@ -348,7 +348,7 @@ thing; one that cannot run now is disabled with its reason, as the command row's
 | A symbol of a device | on a coil Add contact per free contact of its device by name (each floats its symbol; disabled with the way round when there is none), on a contact Go to coil; Join device… where another device can take its function (a contact a relay's or a contactor's, a function a device that lists it unplaced; never otherwise); Choose part…; Edit symbol (disabled with the reason a symbol can only be copied), Copy and edit; Define potential… on a symbol of one connection point |
 | A placement of a panel page | Turn, Flip, Lock or Unlock, Delete (and nothing general) |
 | The frame or the title block | Title block fields…, then an empty spot's entries |
-| An empty spot | Paste, Paste in place, Page properties, New page…, Print wire numbers (not on a panel page) |
+| An empty spot | Paste, Paste in place, Page properties, New page…, Show wire numbers on the pages (not on a panel page) |
 
 After an object's own entries come the general ones, where they can apply:
 

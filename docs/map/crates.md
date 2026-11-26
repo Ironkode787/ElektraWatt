@@ -1324,7 +1324,7 @@ Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command 
 | `src/shell/tools.rs` | large | The tool host in the shell: one active tool per window acting on the focused group's canvas, its overlay, the preview protocol over `Session::preview_with`, the Escape chain, the keyboard tool input, the link hover preview and the selection. |
 | `src/shell/undo_panel.rs` |  | The history panel's host duties and context restore (doc 16 §8.1, FR-UI-023). |
 | `src/shell/wire_colours.rs` |  | The wire-colour view's host duties (FR-UI-047). |
-| `src/shell/wiring.rs` | large | The tool host's duties: arming the Wire tool and the keyboard route editor, the junction sequence editor popup and its commits, the crossings and wire-number settings (Print wire numbers also as a row of the project's Properties), and the Wire tool's live region. |
+| `src/shell/wiring.rs` | large | The tool host's duties: arming the Wire tool and the keyboard route editor, the junction sequence editor popup and its commits, the crossings and wire-number settings (Show wire numbers on the pages also as a row of the project's Properties), and the Wire tool's live region. |
 | `src/shell/workspaces.rs` |  | Named workspaces (UX/UI doc 16 section 2.5, 2.6 and 3.4): the dock layout of the project view, the workspace files `workspaces/<name>.json` in the configuration directory, and the actions that load, save and reset them. |
 | `src/status.rs` |  | The status-bar model (UX/UI doc 16 section 3.6). |
 | `src/strings.rs` | large | The texts of the shell, by key, in the UI language. |

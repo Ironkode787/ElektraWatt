@@ -16,3 +16,4 @@ from this file on both branches. From then on a fix to a candidate writes its li
 change here.
 
 - behaviour-change: Undo and Redo show a page the step changed, also when it was made from another page that is still on show; a step on a panel layout page (its plate, rails, ducts, placements) names that page in the history.
+- text-change: Draw ▸ Connect ▸ Print wire numbers, its checkbox in the project's Properties and the step Undo names are now Show wire numbers on the pages (Dutch: Draadnummers op de pagina's tonen); its hint reads "Switch on Show wire numbers on the pages to see them."

@@ -282,7 +282,7 @@ derived marker texts. The per-page marker mode of FR-CON-024 is not built.
 `wire_numbers?: bool` prints every wire's number on its pages, the PDF and print; absent (or anything but
 `true`) means no numbers. It is read by the page view (`ew_derive::connection_number`, the number of the wire a
 connection belongs to; a cable's core prints none) and set by `project.settings.set` like the other members (`null`
-removes it), in the window by Draw ▸ Connect ▸ Print wire numbers and by its checkbox in the Main group of the
+removes it), in the window by Draw ▸ Connect ▸ Show wire numbers on the pages and by its checkbox in the Main group of the
 project's Properties, each with a toast that says what it now is for the whole project. It is an additive member of
 this open object (ADR-0011 decision 6): an older build keeps the member in `extra` and prints no numbers.
 

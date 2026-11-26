@@ -10,12 +10,12 @@ announce-place-no-cell = Place { $p0 }: { $p1 }, variant { $p2 }
 banner-host-commit = { $p0 } failed: { $p1 }
 announce-wire-routing = Wire: routing from { $p0 }. Click a connection point; { $p1 } removes the last bend; { $p2 } cancels
 toast-tube-no-size = This project has no default tube: Fluid ▸ Fluid settings… sets its size, and each tube's Tube row changes it.
-# Print wire numbers and Number wires by potential: what the switch now is, for the whole project.
+# Show wire numbers on the pages and Number wires by potential: what the switch now is, for the whole project.
 toast-wire-numbers-on = Wire numbers now print on every page of the project, in the PDF and in print.
 toast-wire-numbers-off = Wire numbers no longer print on any page of the project.
 toast-wire-numbering-potential = Every wire of a potential now gets the same number, its potential's, in the whole project.
 toast-wire-numbering-own = Every wire now gets its own number again, in the whole project.
-toast-wire-numbers-hidden = The numbers show on the pages once Print wire numbers is on.
+toast-wire-numbers-hidden = Switch on Show wire numbers on the pages to see them.
 toast-box-pin-part = The pins of a part's box are the part's: they are edited in its device box, opened now.
 toast-box-pin-side-full = This side of the box has no free point for another pin; make the box larger or add the pin on another side.
 toast-drawn-as-box = { $p0 } has no symbol of its own and is drawn as a box, by the Black box tool: click its first corner, then its opposite corner.

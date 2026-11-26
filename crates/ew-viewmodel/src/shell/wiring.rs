@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The tool host's duties: arming the Wire tool and the keyboard route editor, the junction
-//! sequence editor popup and its commits, the crossings and wire-number settings (Print wire numbers also as a row of
+//! sequence editor popup and its commits, the crossings and wire-number settings (Show wire numbers on the pages also as a row of
 //! the project's Properties), and the Wire tool's live region.
 //!
 //! **Reads.** The junction editor reads the page tables the canvas already holds and `Session::junction_wires` once
@@ -437,7 +437,7 @@ impl ShellModel {
         self.run_commit(&cmd)
     }
 
-    /// `project.wire_numbers {on?}` (Draw ▸ Connect ▸ Print wire numbers): commits the drawing setting (`project.settings.set`)
+    /// `project.wire_numbers {on?}` (Draw ▸ Connect ▸ Show wire numbers on the pages): commits the drawing setting (`project.settings.set`)
     /// with `wire_numbers: true`, or with `null` (the member removed: no numbers, as a project without the setting) to
     /// turn it off; without `on` it toggles. The pages, the PDF and print follow the setting; a toast says what it now
     /// is, for the whole project.
@@ -466,7 +466,7 @@ impl ShellModel {
     /// `project.wire_numbering {on?}` (Draw ▸ Connect ▸ Number wires by potential, doc 08 §5.2): commits
     /// the drawing setting (`project.settings.set`) with `wire_numbering: per_potential` (every wire of a potential prints its potential's
     /// code), or with `null` (each wire its own number) to turn it off; without `on` it toggles. A toast says what the
-    /// wires now get, and while Print wire numbers is off that the numbers show once it is on.
+    /// wires now get, and while Show wire numbers on the pages is off that the numbers show once it is on.
     pub(crate) fn act_wire_numbering(&mut self, p: &Map<String, Value>) -> Outcome {
         let on = if p.contains_key("on") {
             flag(p, "on")
@@ -496,10 +496,10 @@ impl ShellModel {
         out
     }
 
-    /// The row key of Print wire numbers in the project's Properties ([`ShellModel::wire_numbers_in_row`]).
+    /// The row key of Show wire numbers on the pages in the project's Properties ([`ShellModel::wire_numbers_in_row`]).
     pub(super) const WIRE_NUMBERS_ROW: &'static str = "project/settings.drawing.wire_numbers";
 
-    /// The project's sheet gets Print wire numbers as a checkbox of Main (the switch looked
+    /// The project's sheet gets Show wire numbers on the pages as a checkbox of Main (the switch looked
     /// for there and under the filter "wire"); ticking it runs `project.wire_numbers` ([`ShellModel::commit_text`]).
     pub(super) fn wire_numbers_in_row(&self, sheet: &mut PropertySheet) {
         let on = self.wire_numbers_on();
@@ -529,7 +529,7 @@ impl ShellModel {
         }
     }
 
-    /// Print wire numbers ticked or cleared in the project's Properties: `project.wire_numbers` with `on`; `None` for
+    /// Show wire numbers on the pages ticked or cleared in the project's Properties: `project.wire_numbers` with `on`; `None` for
     /// another row.
     pub(super) fn commit_wire_numbers_row(&mut self, key: &str, text: &str) -> Option<Outcome> {
         if key != Self::WIRE_NUMBERS_ROW {

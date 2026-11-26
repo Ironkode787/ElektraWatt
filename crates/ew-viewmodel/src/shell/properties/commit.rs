@@ -32,7 +32,7 @@ impl ShellModel {
         if let Some(out) = self.commit_person(&row.key, text) {
             return out;
         }
-        // Print wire numbers runs its own action, toast and all.
+        // Show wire numbers on the pages runs its own action, toast and all.
         if let Some(out) = self.commit_wire_numbers_row(&row.key, text) {
             return out;
         }

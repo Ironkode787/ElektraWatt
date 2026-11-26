@@ -16,5 +16,5 @@ fn undo_of_print_wire_numbers_names_it() {
     let mut s = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut s, "project.wire_numbers", json!({"on": true}));
     done(&mut s, "edit.undo", json!({}));
-    assert_eq!(toast(&s), "Undone: Print wire numbers");
+    assert_eq!(toast(&s), "Undone: Show wire numbers on the pages");
 }

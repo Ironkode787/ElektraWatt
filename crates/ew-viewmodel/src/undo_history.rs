@@ -226,7 +226,7 @@ impl HistoryPane {
 }
 
 /// A step of `project.settings.set` in words, by the member it sets (`ew_api::window::SETTINGS_STEP`): a drawing setting
-/// changed alone by its setting ("Print wire numbers"), the drawing settings, the frame defaults, the languages and
+/// changed alone by its setting ("Show wire numbers on the pages"), the drawing settings, the frame defaults, the languages and
 /// the supply by their own words ("Set frames"), a member of the settable table by the command's title ("Set project
 /// settings"). The one place that words a member.
 fn setting_words(member: &str) -> String {
@@ -397,7 +397,7 @@ mod tests {
         assert_eq!(
             words(),
             [
-                "Print wire numbers",
+                "Show wire numbers on the pages",
                 "Set drawing data",
                 "Set frames",
                 "Set languages",
@@ -413,7 +413,7 @@ mod tests {
         assert_eq!(
             dutch,
             [
-                "Draadnummers afdrukken",
+                "Draadnummers op de pagina's tonen",
                 "Tekeninggegevens instellen",
                 "Kaders instellen",
                 "Talen instellen",

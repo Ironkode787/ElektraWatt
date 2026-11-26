@@ -967,7 +967,7 @@ const PRIMARY: &[(&str, &[&str])] = &[
             // The people the title block prints, one plain row each (`ShellModel::people_in_rows`).
             "people",
             "master.created",
-            // Print wire numbers, for the whole project (`ShellModel::wire_numbers_in_row`).
+            // Show wire numbers on the pages, for the whole project (`ShellModel::wire_numbers_in_row`).
             "settings.drawing.wire_numbers",
             // The frame every list prints on (`ShellModel::lists_frame_in_row`).
             "lists.form",

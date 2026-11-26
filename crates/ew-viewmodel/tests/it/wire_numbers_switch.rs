@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Print wire numbers is found where a person looks for a project-wide switch: a checkbox in the
+//! Show wire numbers on the pages is found where a person looks for a project-wide switch: a checkbox in the
 //! project's Properties that the filter "wire" finds, its state in the command search, a toast that says what it now
 //! is for the whole project; Number wires by potential says what it did, also while the numbers are not printed.
 
@@ -14,7 +14,7 @@ use serde_json::json;
 
 const ROW: &str = "project/settings.drawing.wire_numbers";
 
-/// The label and the checkbox's state of Print wire numbers among the project's rows the filter `filter` leaves.
+/// The label and the checkbox's state of the wire-number switch among the project's rows the filter `filter` leaves.
 fn row_under_filter(s: &ShellModel, filter: &str) -> Option<(String, bool)> {
     let sheet = s.properties().sheet()?;
     visible_rows(sheet, &Default::default(), false, filter)
@@ -30,7 +30,7 @@ fn palette_crumb(s: &mut ShellModel) -> String {
     if s.palette().is_none() {
         done(s, "tools.palette", json!({}));
     }
-    s.set_palette_query("print wire numbers");
+    s.set_palette_query("show wire numbers");
     let entries = s.palette_entries();
     let entry = entries
         .iter()
@@ -47,7 +47,7 @@ fn print_wire_numbers_is_a_row_of_the_project_with_its_state_and_a_toast() {
     done(&mut s, "props.project", json!({}));
     assert_eq!(
         row_under_filter(&s, "wire"),
-        Some(("Print wire numbers".to_owned(), false)),
+        Some(("Show wire numbers on the pages".to_owned(), false)),
         "the sample prints no wire numbers"
     );
     assert!(
@@ -60,7 +60,10 @@ fn print_wire_numbers_is_a_row_of_the_project_with_its_state_and_a_toast() {
     done(&mut s, "project.wire_numbering", json!({"on": true}));
     let said = toast(&s);
     assert!(said.contains("its potential's"), "{said}");
-    assert!(said.contains("once Print wire numbers is on"), "{said}");
+    assert!(
+        said.contains("Switch on Show wire numbers on the pages"),
+        "{said}"
+    );
 
     done(&mut s, "props.project", json!({}));
     done(&mut s, "props.set", json!({"row": ROW, "value": "yes"}));
@@ -78,7 +81,7 @@ fn print_wire_numbers_is_a_row_of_the_project_with_its_state_and_a_toast() {
     done(&mut s, "project.wire_numbering", json!({"on": false}));
     let said = toast(&s);
     assert!(said.contains("its own number"), "{said}");
-    assert!(!said.contains("once Print wire numbers"), "{said}");
+    assert!(!said.contains("Switch on Show wire numbers"), "{said}");
 
     done(&mut s, "props.project", json!({}));
     done(&mut s, "props.set", json!({"row": ROW, "value": "no"}));

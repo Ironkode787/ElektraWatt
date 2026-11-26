@@ -177,7 +177,7 @@ impl ShellModel {
                 continue;
             };
             // A switch says whether it is on and what running it does, after where it lives ("Draw · Connect · Off,
-            // Enter switches it on"): a bare "Off" beside "Print wire numbers" read as what the command does.
+            // Enter switches it on"): a bare "Off" beside "Show wire numbers on the pages" read as what the command does.
             let mut breadcrumb = actions::breadcrumb_of(meta, label);
             if let Some(on) = actions::switch_on(self, meta.id) {
                 let word = if on {

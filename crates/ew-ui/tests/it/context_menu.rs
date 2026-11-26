@@ -173,7 +173,7 @@ fn a_terminals_menu_is_as_wide_as_its_widest_entry() {
     assert!(rows[0].width() < 360.0, "no wider than its entries: {rows:?}");
 }
 
-/// A right click on a wire offers Route, Wire marker, Define potential…, Cable… and Print wire numbers
+/// A right click on a wire offers Route, Wire marker, Define potential…, Cable… and Show wire numbers on the pages
 /// (which prints them); two wires selected offer Make cable from the selection…, which opens the cable's form.
 #[test]
 fn a_wires_menu_and_two_wires_make_a_cable() {
@@ -216,13 +216,13 @@ fn a_wires_menu_and_two_wires_make_a_cable() {
             "Wire marker",
             "Define potential",
             "Cable…",
-            "Print wire numbers",
+            "Show wire numbers on the pages",
             "Cut",
         ],
     );
     assert!(tops[..5].iter().all(|t| *t < tops[5]), "{tops:?}");
     assert!(!h.state().shell().wire_numbers_on());
-    entry(&h, first, "Print wire numbers").click();
+    entry(&h, first, "Show wire numbers on the pages").click();
     settle(&mut h);
     assert!(h.state().shell().wire_numbers_on(), "the numbers print");
     // A click on the first wire, a Shift+click on the second: both selected, and a right click on the first keeps them.
