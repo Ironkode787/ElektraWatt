@@ -989,12 +989,7 @@ impl Session {
                 p.item
                     .accessories
                     .iter()
-                    .map(|a| {
-                        ew_ids::v5::lib_copy_id::<ew_schema::Part>(
-                            a.part.library.as_uuid(),
-                            a.part.item.as_uuid(),
-                        )
-                    })
+                    .map(ew_derive::accessory_copy)
                     .collect::<Vec<_>>()
             })
             .filter(|id| q.parts().get(*id).is_some())

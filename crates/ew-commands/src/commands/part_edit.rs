@@ -320,7 +320,7 @@ impl Command for EditPartCopy {
         // What a part brings with it is a part the project holds (embedded with it), and never one a wire consumes:
         // the consumables count those (doc 07 §2.5).
         for (i, a) in part.accessories.iter().enumerate() {
-            let id: Id<Part> = v5::lib_copy_id(a.part.library.as_uuid(), a.part.item.as_uuid());
+            let id: Id<Part> = ew_derive::accessory_copy(a);
             let Some(copy) = tx.get::<LibCopy<Part>>(id) else {
                 return Err(bad(
                     format!("/part/accessories/{i}"),

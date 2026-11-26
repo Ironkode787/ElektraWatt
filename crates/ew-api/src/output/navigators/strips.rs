@@ -349,12 +349,11 @@ fn derived_rows(q: &Q, strip: Id<Device>, terminals: &[Uuid]) -> Vec<DerivedRow>
             let d = q.devices().get(Id::from_uuid(*t))?;
             d.parts.iter().find_map(|u| {
                 let copy = q.parts().get(u.part.copy)?;
-                let a = copy.item.accessories.iter().find(|a| {
-                    ew_ids::v5::lib_copy_id::<ew_schema::Part>(
-                        a.part.library.as_uuid(),
-                        a.part.item.as_uuid(),
-                    ) == c.of
-                })?;
+                let a = copy
+                    .item
+                    .accessories
+                    .iter()
+                    .find(|a| ew_derive::accessory_copy(a) == c.of)?;
                 Some((a.kind.clone(), u.part.copy, index_of(d.id)))
             })
         });

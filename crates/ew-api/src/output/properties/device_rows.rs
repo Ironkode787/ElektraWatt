@@ -113,12 +113,6 @@ pub(crate) fn strip_accessory_rows(q: &Q, strip: Id<Device>) -> Vec<StripAccesso
             .ok()
             .and_then(|v| v.as_str().map(|w| format!("accessory.{w}"))),
     };
-    let number = |p: Id<ew_schema::Part>| {
-        q.parts()
-            .get(p)
-            .map(|c| c.item.part_number.as_str().to_owned())
-            .unwrap_or_default()
-    };
     let mut out: Vec<StripAccessoryRow> = Vec::new();
     let mut push = |row: StripAccessoryRow| {
         if !out.iter().any(|o| o.0 == row.0) {
@@ -129,11 +123,11 @@ pub(crate) fn strip_accessory_rows(q: &Q, strip: Id<Device>) -> Vec<StripAccesso
         && let Some(d) = &b.declared
         && let Some(n) = name(&d.kind)
     {
-        push((n, d.of, number(b.part.copy), vec![d.with]));
+        push((n, d.of, ew_derive::printed_number(q, &b.part), vec![d.with]));
     }
     for a in ew_derive::strip_accessories(q, device) {
         if let Some(n) = name(&a.kind) {
-            push((n, a.of, number(a.part.copy), a.with.clone()));
+            push((n, a.of, ew_derive::printed_number(q, &a.part), a.with.clone()));
         }
     }
     // Left off: a choice without a part, of an accessory its terminals' parts name.
@@ -142,12 +136,7 @@ pub(crate) fn strip_accessory_rows(q: &Q, strip: Id<Device>) -> Vec<StripAccesso
             copy.item
                 .accessories
                 .iter()
-                .find(|a| {
-                    ew_ids::v5::lib_copy_id::<ew_schema::Part>(
-                        a.part.library.as_uuid(),
-                        a.part.item.as_uuid(),
-                    ) == c.of
-                })
+                .find(|a| ew_derive::accessory_copy(a) == c.of)
                 .map(|a| (a.kind.clone(), copy.id))
         });
         if let Some((kind, from)) = found

@@ -808,10 +808,7 @@ fn catalogue_part(
                     .unwrap_or_default(),
                 number: q
                     .parts()
-                    .get(ew_ids::v5::lib_copy_id::<Part>(
-                        a.part.library.as_uuid(),
-                        a.part.item.as_uuid(),
-                    ))
+                    .get(ew_derive::accessory_copy(a))
                     .map(|c| c.item.part_number.as_str().to_owned())
                     .unwrap_or_default(),
                 qty: a.qty.to_string(),
