@@ -15,7 +15,7 @@ use ew_model::EndpointKey;
 use ew_rds::Aspect;
 use ew_schema::{
     Channel, Connection, ConnectionKind, Device, DeviceKind, DeviceState, FluidPortRole, Function,
-    LengthSource, LibCopy, LineKind, LineTagScheme, Medium, MediumDef, NumberSpec, Page, Part,
+    LengthSource, LineKind, LineTagScheme, Medium, MediumDef, NumberSpec, Page, Part,
 };
 use ew_units::Nm;
 
@@ -311,14 +311,11 @@ pub struct VtRow {
     pub state: Option<DeviceState>,
 }
 
-/// The part number of a device's first part use; empty without.
+/// The part number a device's first part use prints ([`crate::printed_number`]); empty without.
 pub fn part_number(q: &Q, d: Id<Device>) -> String {
-    let parts = q.table::<LibCopy<Part>>();
     q.devices()
         .get(d)
-        .and_then(|dev| dev.parts.first())
-        .and_then(|u| parts.get(u.part.copy))
-        .map(|c| c.item.part_number.as_str().to_owned())
+        .and_then(|dev| dev.parts.first().map(|u| crate::printed_number(q, &u.part)))
         .unwrap_or_default()
 }
 
@@ -578,7 +575,7 @@ pub fn tube_spec_text(q: &Q, t: &ew_schema::TubeSpec) -> String {
         parts.push(c);
     }
     if parts.is_empty()
-        && let Some(c) = t.part.as_ref().and_then(|p| q.parts().get(p.copy))
+        && let Some(c) = t.part.as_ref().and_then(|p| crate::printed_part(q, p))
     {
         parts.push(c.item.part_number.as_str().to_owned());
     }

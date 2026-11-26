@@ -349,7 +349,11 @@ pub fn layout_legend(q: &Q, surface: Id<MountingSurface>) -> Vec<LegendRow> {
             let device = devices.get(pl.device)?;
             let tag = q.get::<DeviceTag>(pl.device);
             let full = tag.as_ref().as_ref().map_or("", |t| t.full.as_str());
-            let part = pl.part.clone().or_else(|| primary_part(q, device));
+            // The part use the placement realises, with the variant the device names for it.
+            let part = match &pl.part {
+                Some(r) => Some(device.parts.iter().find(|u| u.part.copy == r.copy).map_or_else(|| r.clone(), |u| u.part.clone())),
+                None => primary_part(q, device),
+            };
             Some((natural_key(full), pl.device, p, part))
         })
         .collect();
@@ -375,7 +379,7 @@ pub fn layout_legend(q: &Q, surface: Id<MountingSurface>) -> Vec<LegendRow> {
             add(&a.part, a.qty);
         }
     }
-    let number = |p: &PartRef| natural_key(parts.get(p.copy).map_or("", |c| c.item.part_number.as_str()));
+    let number = |p: &PartRef| natural_key(&crate::printed_number(q, p));
     accessories.sort_by_cached_key(|(p, _)| (number(p), p.copy, p.variant.clone()));
     for (part, qty) in accessories {
         push(LegendItem::Accessory(part.clone()), None, Some(part), Some(qty));

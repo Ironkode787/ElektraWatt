@@ -131,8 +131,7 @@ pub(crate) fn plc_channels(s: &Source<'_>) -> Vec<Row> {
                 .set("module", tag_short(q, r.module))
                 .set(
                     "part_number",
-                    r.part
-                        .and_then(|p| q.parts().get(p).map(|c| c.item.part_number.to_string())),
+                    ew_derive::module_part(q, r.module).map(|(c, _)| c.item.part_number.to_string()),
                 )
                 .set("channel", i64::from(r.number))
                 .set("designation", r.text.designation.clone())
@@ -540,7 +539,7 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord, seq: usize) -> Row {
         "wire_part",
         rec.wire_part
             .as_ref()
-            .and_then(|wp| q.parts().get(wp.copy))
+            .and_then(|wp| ew_derive::printed_part(q, wp))
             .map(|c| c.item.part_number.as_str().to_owned()),
     );
     if let Some(core) = w.core.and_then(|c| q.conductors().get(c)) {

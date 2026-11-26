@@ -519,7 +519,11 @@ a device keeps its connection points when its variant changes. A variant gives a
 order number or description, else the parts list could not tell it from the part, and the part editor refuses it.
 Every list prints a variant's numbers and description where it gives them, else the part's, and its technical
 values where the device has none of its own (a device's own value wins over its variant's, which wins over its
-part's). A part use naming a key its part does not hold prints the part and is reported (EW-CORE-085).
+part's). One function hands out what a part use prints, `ew_derive::printed_part` (number, order number, type,
+description and technical values, the variant's over the part's): the lists, the slot texts, the strip editor and the
+SQL view read a part use through it, and a placement's row prints the variant its device names for the part use it
+realises. A reader of a part copy itself (the libraries, the part dialog, an editable Parts row, a finding about a
+copy) reads the copy. A part use naming a key its part does not hold prints the part and is reported (EW-CORE-085).
 
 **The parts a wire consumes** (FR-PRT-035). The wire, the ferrule and the marker carry a section each, and every
 member has a reader:

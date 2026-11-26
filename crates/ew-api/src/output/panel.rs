@@ -958,7 +958,7 @@ fn unplaced_of(q: &Q, space: Id<LayoutSpace>, carriers: &[PanelCarrier]) -> Vec<
             label: device_tag(q, d),
             part_number: part
                 .as_ref()
-                .and_then(|p| parts.get(p.copy))
+                .and_then(|p| ew_derive::printed_part(q, p))
                 .map(|c| c.item.part_number.to_string()),
             size,
             mount_label: mount_kind.as_ref().map(mount_label).unwrap_or_default(),

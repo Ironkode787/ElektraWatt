@@ -90,7 +90,6 @@ pub fn page_valve_glyphs(q: &Q, page: Id<Page>) -> Vec<ValveGlyphsView> {
     let reps = q.reps();
     let functions = q.functions();
     let devices = q.devices();
-    let parts = q.parts();
     let mut ids: Vec<Id<Representation>> = q.idx().reps_by_page(page).collect();
     ids.sort();
     let mut out = Vec::new();
@@ -121,8 +120,7 @@ pub fn page_valve_glyphs(q: &Q, page: Id<Page>) -> Vec<ValveGlyphsView> {
                     part_number: devices
                         .get(*device)
                         .and_then(|d| d.parts.first())
-                        .and_then(|u| parts.get(u.part.copy))
-                        .map(|c| c.item.part_number.as_str().to_owned())
+                        .map(|u| ew_derive::printed_number(q, &u.part))
                         .unwrap_or_default(),
                 },
                 ew_derive::ValveSlot::Blank { device } => ValveGlyph::Blank {

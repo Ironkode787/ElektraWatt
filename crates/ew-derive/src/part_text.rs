@@ -15,6 +15,14 @@
 //! first part use whose copy exists (doc 07 §3.3 step 6). A device with one part use prints
 //! that part.
 //!
+//! # What a part use prints
+//!
+//! [`printed_part`] hands out what a part use prints: its copy as its variant lists it (`Part::with_variant`: the
+//! variant's part number, order number, type designation, GTIN, description and technical values, else the part's).
+//! Every list, the slot texts and the SQL view read a part use's number, order number, type, description and
+//! technical values through it; the device's own technical values win over them ([`tech_data_text`]). A reader of a
+//! part copy itself (the libraries, the part dialog, a finding about a copy) reads the copy.
+//!
 //! # The manufacturer
 //!
 //! A part names its manufacturer by a `LibRef`, which resolves to the embedded manufacturer copy of `(library,
@@ -33,7 +41,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use ew_ids::{Id, v5};
-use ew_schema::{Confidence, Device, FnDef, FnRole, LibCopy, LibRef, Manufacturer, Part, TechVal, Unit};
+use ew_schema::{Confidence, Device, FnDef, FnRole, LibCopy, LibRef, Manufacturer, Part, PartRef, TechVal, Unit};
 
 use crate::Q;
 
@@ -52,6 +60,24 @@ fn main_function_def(q: &Q, device: Id<Device>) -> Option<Id<FnDef>> {
         .map(|f| f.def)
 }
 
+/// What the part use `part` prints (see the module documentation): its copy as its variant lists it; `None` when the
+/// project holds no copy of it.
+pub fn printed_part(q: &Q, part: &PartRef) -> Option<Arc<LibCopy<Part>>> {
+    let copy = q.parts().get(part.copy).cloned()?;
+    match copy.item.with_variant(part.variant.as_ref().map(|v| v.as_str())) {
+        std::borrow::Cow::Borrowed(_) => Some(copy),
+        std::borrow::Cow::Owned(item) => Some(Arc::new(LibCopy {
+            item,
+            ..LibCopy::clone(&copy)
+        })),
+    }
+}
+
+/// The part number the part use `part` prints ([`printed_part`]); empty when the project holds no copy of it.
+pub fn printed_number(q: &Q, part: &PartRef) -> String {
+    printed_part(q, part).map_or_else(String::new, |c| c.item.part_number.as_str().to_owned())
+}
+
 /// The part a device's slots print: the first part use whose copy's template has a `main`
 /// function with the FnDef of the device's main function, else the first part use whose copy exists, as its variant is
 /// listed (`Part::with_variant`: the variant's numbers, description and technical values). The functions are read only
@@ -59,15 +85,10 @@ fn main_function_def(q: &Q, device: Id<Device>) -> Option<Id<FnDef>> {
 pub fn main_part(q: &Q, device: Id<Device>) -> Option<Arc<LibCopy<Part>>> {
     let dev = q.devices().get(device)?;
     let parts = q.parts();
-    let held: Vec<(Arc<LibCopy<Part>>, Option<&str>)> = dev
+    let held: Vec<(Arc<LibCopy<Part>>, &PartRef)> = dev
         .parts
         .iter()
-        .filter_map(|u| {
-            Some((
-                parts.get(u.part.copy).cloned()?,
-                u.part.variant.as_ref().map(|v| v.as_str()),
-            ))
-        })
+        .filter_map(|u| Some((parts.get(u.part.copy).cloned()?, &u.part)))
         .collect();
     let chosen = if held.len() > 1
         && let Some(def) = main_function_def(q, device)
@@ -81,14 +102,7 @@ pub fn main_part(q: &Q, device: Id<Device>) -> Option<Arc<LibCopy<Part>>> {
     } else {
         held.into_iter().next()?
     };
-    let (copy, variant) = chosen;
-    match copy.item.with_variant(variant) {
-        std::borrow::Cow::Borrowed(_) => Some(copy),
-        std::borrow::Cow::Owned(item) => Some(Arc::new(LibCopy {
-            item,
-            ..LibCopy::clone(&copy)
-        })),
-    }
+    printed_part(q, chosen.1)
 }
 
 /// The embedded manufacturer copy a manufacturer reference resolves to, if the project holds it.

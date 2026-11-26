@@ -44,8 +44,7 @@ pub(super) fn strips_table(q: &Q, b: &mut Builder) {
         let number = g
             .part
             .as_ref()
-            .and_then(|p| q.parts().get(p.copy))
-            .map(|c| c.item.part_number.as_str().to_owned())
+            .map(|p| ew_derive::printed_number(q, p))
             .unwrap_or_default();
         for t in &g.terminals {
             bridge_parts.entry(*t).or_insert_with(|| number.clone());
@@ -327,7 +326,7 @@ fn derived_rows(q: &Q, strip: Id<Device>, terminals: &[Uuid]) -> Vec<DerivedRow>
             of: d.of.as_uuid(),
             after,
             word: word(&d.kind),
-            part: number(b.part.copy),
+            part: ew_derive::printed_number(q, &b.part),
             with: with(&[d.with]),
             left_off: false,
         };
@@ -339,7 +338,7 @@ fn derived_rows(q: &Q, strip: Id<Device>, terminals: &[Uuid]) -> Vec<DerivedRow>
             of: a.of.as_uuid(),
             after: a.after.and_then(index_of),
             word: word(&a.kind),
-            part: number(a.part.copy),
+            part: ew_derive::printed_number(q, &a.part),
             with: with(&a.with),
             left_off: false,
         });
@@ -414,11 +413,7 @@ fn accessory_rows(q: &Q, strip: Id<Device>, seqs: &[u32]) -> Vec<AccessoryRow> {
         last = Some(after_seq);
         let a = &aspect.accessories[index];
         let after = seqs.iter().rposition(|s| *s <= after_seq);
-        let part = q
-            .parts()
-            .get(a.part.copy)
-            .map(|c| c.item.part_number.as_str().to_owned())
-            .unwrap_or_default();
+        let part = ew_derive::printed_number(q, &a.part);
         out.push(AccessoryRow {
             index,
             after,

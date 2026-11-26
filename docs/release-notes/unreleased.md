@@ -205,3 +205,7 @@ change here.
 - behaviour-change: Delete part… refuses a part of your own that another part names as its accessory (and so does
   any delete of such a part), naming the part that names it; before, the end plate went, and it dropped out of the
   parts list and the strip widths without a finding
+- behaviour-change: a device that takes a variant of its part prints the variant's own number in the enclosure
+  legend (page 902 and its CSV and XLSX), the valve terminal list, the I/O list, the PLC overview and the bus lists,
+  the strip editor and the SQL view's PLC channels, as the parts list did already; the legend no longer prints one
+  number on two rows

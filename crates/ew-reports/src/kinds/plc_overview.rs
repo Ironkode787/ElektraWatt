@@ -178,7 +178,7 @@ fn ident(text: Option<&str>) -> Cell {
 fn plc_row(q: &Q, columns: &[ColumnDef], r: &PlcRow) -> Row {
     let mut cells = vec![Cell::Empty; columns.len()];
     put(columns, &mut cells, "module", Cell::Ident(short_tag(q, r.module)));
-    if let Some(part) = r.part.and_then(|p| q.parts().get(p)) {
+    if let Some((part, _)) = ew_derive::module_part(q, r.module) {
         put(
             columns,
             &mut cells,

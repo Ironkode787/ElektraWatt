@@ -157,7 +157,7 @@ pub(super) fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
     let part = rec
         .wire_part
         .as_ref()
-        .and_then(|p| q.parts().get(p.copy))
+        .and_then(|p| ew_derive::printed_part(q, p))
         .map_or(Cell::Empty, |c| {
             super::parts::part_number_cell(c.item.part_number.as_str())
         });

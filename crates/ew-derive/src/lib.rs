@@ -184,7 +184,9 @@ pub use pages::{
     GeneratedPage, Origin, PageEntry, PageKey, PageOrder, PageOrderV, PageRef, PageRefStructure, PageTitle,
     SectionStructure, drawn_page_key, folio_label, map_ml, print_language, section_ranks, text_in,
 };
-pub use part_text::{main_part, manufacturer_copy, manufacturer_name, part_confidence, tech_data_text};
+pub use part_text::{
+    main_part, manufacturer_copy, manufacturer_name, part_confidence, printed_number, printed_part, tech_data_text,
+};
 pub use pattern::{PatternError, expand_pattern};
 pub use plc::{
     AddressIndex, AddressUse, ChannelAddr, ChannelAddresses, ChannelStates, ChannelTargets, ChannelTexts,

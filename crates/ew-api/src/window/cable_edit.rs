@@ -146,8 +146,7 @@ impl Session {
             q.devices()
                 .get(Id::from_uuid(id))
                 .and_then(|d| d.parts.first())
-                .and_then(|p| q.parts().get(p.part.copy))
-                .map(|c| c.item.part_number.as_str().to_owned())
+                .map(|p| ew_derive::printed_number(&q, &p.part))
         };
         for pass in 0..2 {
             let mut alike: BTreeMap<String, Vec<usize>> = BTreeMap::new();

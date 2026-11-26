@@ -78,7 +78,7 @@ pub(super) fn unplaced_table(q: &Q, b: &mut Builder) {
                 .unwrap_or_default();
             let cells = vec![
                 label.clone(),
-                copy.map(|c| c.item.part_number.to_string()).unwrap_or_default(),
+                part.as_ref().map(|p| ew_derive::printed_number(q, p)).unwrap_or_default(),
                 size.map(|(w, h)| format!("{} × {}", mm(w), mm(h)))
                     .unwrap_or_default(),
                 mech.as_ref()

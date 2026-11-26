@@ -187,7 +187,7 @@ pub(super) fn bus_line_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -
         };
         let part = plug
             .as_ref()
-            .and_then(|p| q.parts().get(p.part.copy))
+            .and_then(|p| ew_derive::printed_part(q, &p.part))
             .map_or_else(|| none.clone(), |p| p.item.part_number.to_string());
         format!("{at}: {part}")
     };

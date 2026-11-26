@@ -282,11 +282,10 @@ fn port_row(
     }
     if let Some(d) = q.functions().get(f).and_then(|func| func.device) {
         put(c, &mut cells, "station", Cell::ident(&short_tag(q, d)));
-        let part = q.devices().get(d).and_then(|dev| {
-            dev.parts
-                .first()
-                .and_then(|u| q.parts().get(u.part.copy).map(|p| p.item.part_number.to_string()))
-        });
+        let part = q
+            .devices()
+            .get(d)
+            .and_then(|dev| dev.parts.first().map(|u| ew_derive::printed_number(q, &u.part)));
         put(
             c,
             &mut cells,
@@ -548,11 +547,10 @@ impl ReportKindDef for BusCableList {
                     put(c, &mut cells, "segment", Cell::ident(&net));
                 }
             }
-            let part = q.devices().get(cable).and_then(|d| {
-                d.parts
-                    .first()
-                    .and_then(|u| q.parts().get(u.part.copy).map(|p| p.item.part_number.to_string()))
-            });
+            let part = q
+                .devices()
+                .get(cable)
+                .and_then(|d| d.parts.first().map(|u| ew_derive::printed_number(q, &u.part)));
             put(c, &mut cells, "part", Cell::ident(&part.unwrap_or_default()));
             put(c, &mut cells, "length", length_cell(q, cable));
             let end = |f: Id<Function>, plug: Option<Id<Part>>| {

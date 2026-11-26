@@ -121,7 +121,7 @@ fn legend_rows(q: &Q, surface: Id<MountingSurface>, set: &mut RowSet) {
             }
         };
         let carrier = matches!(row.item, LegendItem::Carrier(_));
-        let copy = row.part.as_ref().and_then(|p| q.parts().get(p.copy));
+        let copy = row.part.as_ref().and_then(|p| ew_derive::printed_part(q, p));
         let (manufacturer, part_number, description, unit) = match copy {
             Some(copy) => (
                 manufacturer_cell(q, &copy.item.manufacturer),

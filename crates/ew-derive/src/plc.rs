@@ -60,15 +60,15 @@ use crate::query::{Policy, Query};
 // ---------------------------------------------------------------------------------------------------------
 // Shared helpers
 
-/// The part use of a module device that supplies its PLC section, with the section.
+/// The part use of a module device that supplies its PLC section, as it prints ([`crate::printed_part`]), with the
+/// section.
 pub fn module_part(q: &Q, module: Id<Device>) -> Option<(Arc<LibCopy<Part>>, PlcSection)> {
     let dev = q.devices().get(module)?;
-    let parts = q.parts();
     let named = dev.aspects.plc_module.as_ref().and_then(|m| m.part_use);
     let with_plc = |i: usize| {
-        let copy = parts.get(dev.parts.get(i)?.part.copy)?;
+        let copy = crate::printed_part(q, &dev.parts.get(i)?.part)?;
         let plc = copy.item.sections.plc.clone()?;
-        Some((Arc::clone(copy), plc))
+        Some((copy, plc))
     };
     match named {
         Some(i) => with_plc(usize::from(i)),

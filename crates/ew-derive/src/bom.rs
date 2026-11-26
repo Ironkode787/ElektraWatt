@@ -100,10 +100,9 @@ impl PartLine {
     /// `f` of the line's part as its variant is listed (`Part::with_variant`): every list prints a variant's numbers
     /// and description where it gives them, else the part's; `None` when the copy is missing.
     pub fn with_part<R>(&self, q: &Q, f: impl FnOnce(&Part) -> R) -> Option<R> {
-        let copy = q.parts().get(self.part)?.clone();
-        Some(f(&copy
-            .item
-            .with_variant(self.variant.as_ref().map(Ident::as_str))))
+        let mut part = PartRef::new(self.part);
+        part.variant = self.variant.clone();
+        Some(f(&crate::printed_part(q, &part)?.item))
     }
 
     /// The part number the line prints (its variant's, else its part's); `None` when the copy is missing.
