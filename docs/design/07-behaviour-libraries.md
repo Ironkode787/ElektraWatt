@@ -602,7 +602,7 @@ device's accessory choice, the workshop stock) is refused in words that name the
 removed: part TRM-1 still names it"): who names a copy is the one question of the link table, whose delete policy
 `edit.delete` and the store's dangling-reference check read too, a part's declared accessory a `LibRef` link. The box
 editor's Add pin offers Add bus interface…, which opens the part editor on Bus interfaces. A bus port without an
-address offers Next free address in its Address row's menu and as the quick fix of its finding.
+address offers Next free address as the quick fix of its finding.
 
 **Accessories and variants of a device.** Properties of a device show, under Parts, a Variant row (the part's own
 numbers, then each variant by name and number). Properties of a strip show a row per accessory its terminals' parts

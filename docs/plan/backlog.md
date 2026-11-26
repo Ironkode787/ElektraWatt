@@ -23,6 +23,10 @@ what the owner's test of 0.3.5 finds is added here.
 - FT-2206 `content, ew-viewmodel`: The starter content's 24 V power supply EW-GEN-PSU-1 has no symbol of its own and is drawn as a device box (its browser row says so before the click). A power-supply symbol (doc 07a) would make it the first symbol device of its kind; the black-box tests that place it from the browser (the starter symbol paths, the device box, the wire around a box, the missing FnDef of a two-FnDef part) then need another black-box part.
 - FT-2212 `ew-ui`: At the zoom a page opens with, the pins of a card or a strip are about 8 pixels apart; a persona run needed 21 undos for clicks that took the neighbour. The pin under the pointer shown before the click, or a larger target.
 
+- FT-2255 `ew-commands, ew-viewmodel`: A new accessory or variant row of the part editor that is left empty is refused with the reader's own message ("missing field `qty`") and not in words. A row that lacks a value says which one, as the other forms do.
+- FT-2256 `ew-derive, ew-commands`: A part that names an accessory keeps counting the library's copy after the accessory's part is corrected in the project: the devices that used the library's copy take the project's own copy, a declaration by another part does not. A declared accessory resolves to the project's own copy of that item where the project has made one.
+- FT-2257 `ew-viewmodel`: Next free address is offered only as the quick fix of the finding for an open PROFIBUS port. A person looks for it at the Address row of the port: the row's menu offers it, for every bus whose part gives an address range.
+
 #### The page's drawing
 
 
