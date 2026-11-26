@@ -580,8 +580,8 @@ pub struct BridgeView {
     pub clamps: Vec<(Id<Function>, u16)>,
 }
 
-/// A device's function text that no slot of the symbol of `rep` prints (the symbol has no function-text slot, or its
-/// slot is hidden): printed at `rep` where the text placer places a path's function text (docs/design/06a-texts-window.md
+/// A device's function text that no slot of the symbol of `rep` prints (a starter symbol without a function-text
+/// slot): printed at `rep` where the text placer places a path's function text (docs/design/06a-texts-window.md
 /// §5.2), in the style of a function-text slot.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct FunctionTextView {

@@ -70,7 +70,8 @@
 //!   the first drawn function's `ew_derive::PlcAddressText` text; every other kind has no value. An
 //!   empty text is not listed.
 //! - **Function texts no slot prints** ([`page_function_texts`]): a device's function text where the symbol of a
-//!   representation that prints its tag shows no function-text slot; the scene places it as a path's function text.
+//!   representation that prints its tag is a starter symbol without a function-text slot; the scene places it as a
+//!   path's function text.
 //! - **Strip tags at terminals drawn alone** (doc 08 §6.7, [`page_strip_tags`]): on a page that shows
 //!   terminals of a strip, no segment of it and no text bound to its name (doc 06 §3.8), the strip's displayed tag for
 //!   the page, once, at the strip's first

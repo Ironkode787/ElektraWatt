@@ -76,3 +76,4 @@ change here.
   Enter does (doc 08 §4.2, FT-2211)
 - text-change: Draw ▸ Connect ▸ Print wire numbers, its checkbox in the project's Properties and the step Undo names are now Show wire numbers on the pages (Dutch: Draadnummers op de pagina's tonen); its hint reads "Switch on Show wire numbers on the pages to see them."
 - text-change: EW-CORE-051 says which end is missing as the interruption point tool does: "place its source where the potential leaves" for a lone target, "place a target where the potential arrives" for a lone source.
+- behaviour-change: A function text prints as a label of its own only on a starter symbol that has no function-text slot (a push button, a coil); a slot hidden by its library or by Hide text stays hidden, and an imported element or a symbol of your own prints only what its author put in it. The starter lamp shows its function-text slot.

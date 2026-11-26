@@ -249,3 +249,48 @@ fn an_imported_pages_texts_stay_where_the_drawing_has_them() {
 fn a_bound_imported_pages_texts_stay_where_the_drawing_has_them() {
     stays(MAP);
 }
+
+/// The texts of `items` and the groups in them.
+fn glyphs(items: &[ew_dl::Item], out: &mut Vec<String>) {
+    for item in items {
+        match &item.kind {
+            ew_dl::ItemKind::Glyphs(run) => out.push(run.text.clone()),
+            ew_dl::ItemKind::Group(g) => glyphs(&g.items, out),
+            _ => {}
+        }
+    }
+}
+
+/// FT-2209 (b): an imported element prints no text its drawing did not show. The coil -1K1 carries a description,
+/// which the import keeps as its device's function text, and its element shows no text for it (its symbol has no
+/// function-text slot): imported with and without the symbol map, the page prints the description nowhere.
+#[test]
+fn an_imported_description_the_drawing_does_not_show_prints_nowhere() {
+    let label = r#"<elementInformation name="label">-1K1</elementInformation>"#;
+    let text = project().replace(
+        label,
+        &format!(r#"{label}<elementInformation name="description">Pump on</elementInformation>"#),
+    );
+    for (name, map) in [("desc-plain", ""), ("desc-bound", MAP)] {
+        let s = import(&qet_folder(
+            &format!("ew-qet-stay-{name}"),
+            "stay.qet",
+            &text,
+            map,
+        ));
+        let q = s.query();
+        assert!(
+            q.devices()
+                .iter()
+                .any(|(_, d)| d.function_text.neutral_or_first() == Some("Pump on")),
+            "{name}: the description is the device's function text"
+        );
+        let layer = ew_api::output::page_layer(&q, PageRef::Drawn(page(&s)), Layer::Labels);
+        let mut printed = Vec::new();
+        glyphs(&layer.list.items, &mut printed);
+        assert!(
+            !printed.iter().any(|t| t.contains("Pump on")),
+            "{name}: {printed:?}"
+        );
+    }
+}

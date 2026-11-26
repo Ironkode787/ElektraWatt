@@ -561,9 +561,11 @@ pub fn page_strip_tags(q: &Q, page: Id<Page>) -> Vec<StripTagView> {
 
 /// `page_function_texts(page)`: the function texts on a drawn page that no slot prints, by representation ID: each
 /// representation that prints its device's tag (`ew_derive::tag_slot_shown`), of a device with a function text, whose
-/// symbol shows no function-text slot (it has none, or it is hidden) prints the text where the text placer places a
-/// path's function text. A terminal, which prints its function text as its label, an interruption point and a strip
-/// segment or contact image print none.
+/// symbol is a starter symbol without a function-text slot at all prints the text where the text placer places a
+/// path's function text. A slot that is hidden, by the library or by the person (Hide text), stays hidden and nothing
+/// prints in its place; a symbol of any other library (an imported element, one of the person's own) prints what its
+/// author put in it, so an imported drawing shows no text its source did not. A terminal, which prints its function
+/// text as its label, an interruption point and a strip segment or contact image print none.
 pub fn page_function_texts(q: &Q, page: Id<Page>) -> Vec<FunctionTextView> {
     let (reps, functions, devices, symbols) = (q.reps(), q.functions(), q.devices(), q.symbols());
     let mut out = Vec::new();
@@ -581,16 +583,15 @@ pub fn page_function_texts(q: &Q, page: Id<Page>) -> Vec<FunctionTextView> {
         else {
             continue;
         };
-        let Some(def) = symbols.get(rep.symbol).map(|s| &s.item) else {
+        let Some(symbol) = symbols.get(rep.symbol) else {
             continue;
         };
+        let def = &symbol.item;
         let text = neutral(&device.function_text);
-        let slotted = def.text_slots.iter().enumerate().any(|(i, s)| {
-            s.kind == SlotKind::FunctionText
-                && u16::try_from(i).is_ok_and(|i| ew_derive::slot_shown(rep, def, i))
-        });
+        let slotted = def.text_slots.iter().any(|s| s.kind == SlotKind::FunctionText);
         if text.is_empty()
             || slotted
+            || symbol.library_id.as_uuid() != ew_schema::starter::LIBRARY
             || device.aspects.terminal.is_some()
             || ew_derive::tag_slot_shown(rep, def).is_none()
         {

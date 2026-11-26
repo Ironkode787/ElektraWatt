@@ -3,8 +3,8 @@
   "id": "910b3784-95b2-50a6-af5d-d3e0bdd51271",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "c0dedc82-6bdf-5b56-8911-a4871c827294",
-  "version": "0.2.2",
-  "sha256": "sha256:188153b3281b5792478337636bcd72d4e4437d4db7a5a6417a19e1266b70b54f",
+  "version": "0.2.3",
+  "sha256": "sha256:26b4f72329b8e3c19a333158e2baf2554cd3271dbe0b4e7473b9c93f39531f97",
   "meta": {
     "key": "ew.iec.lamp",
     "licence": "CC-BY-SA-4.0",
@@ -142,7 +142,8 @@
         -4000000,
         17000000
       ],
-      "align": "top_right"
+      "align": "top_right",
+      "visible": true
     },
     {
       "kind": "tech_data",

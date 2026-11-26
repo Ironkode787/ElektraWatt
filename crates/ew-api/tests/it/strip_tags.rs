@@ -489,11 +489,11 @@ fn a_strip_drawn_by_its_segments_draws_its_terminals_cps_on_both_sides() {
     }
 }
 
-/// FT-2209 (b): a function text typed in Properties is drawn where no slot prints it. The push button -102S1's symbol
-/// has no function-text slot, the lamp -102E1's has one, hidden: each prints its function text among its texts on the
-/// page, once; a terminal prints its own as its label and nothing more.
+/// FT-2209 (b): a function text typed in Properties is drawn. The push button -102S1's starter symbol has no
+/// function-text slot, so the text is a label of its own among its texts; the lamp -102E1's starter symbol shows its
+/// function-text slot, which prints it. Each prints it once.
 #[test]
-fn a_function_text_no_slot_prints_is_drawn_with_its_symbol_s_texts() {
+fn a_function_text_is_drawn_by_its_slot_or_where_a_starter_symbol_has_none() {
     let mut g = Sample::new();
     g.set_function_text("-102S1", "Start conveyor");
     g.set_function_text("-102E1", "Conveyor running");
@@ -508,4 +508,26 @@ fn a_function_text_no_slot_prints_is_drawn_with_its_symbol_s_texts() {
             "{text}: {printed:?}"
         );
     }
+}
+
+/// FT-2209 (b): a function-text slot the person hid with Hide text stays hidden, and no label prints the text in its
+/// place: the lamp -102E1's slot hidden, its function text prints nowhere on the page.
+#[test]
+fn a_hidden_function_text_stays_hidden() {
+    let mut g = Sample::new();
+    g.set_function_text("-102E1", "Conveyor running");
+    let lamp = rep_ids(&mut g, &["-102E1"])[0];
+    g.rep_mut("-102E1").text_slots.insert(ew_schema::SlotOverride {
+        slot: 1,
+        pos: None,
+        angle: None,
+        visible: Some(false),
+        extra: Default::default(),
+    });
+    let s = g.session();
+    let printed: Vec<String> = texts(&s, 102).into_values().flatten().collect();
+    assert!(
+        !printed.iter().any(|t| t == "Conveyor running"),
+        "{lamp}: {printed:?}"
+    );
 }
