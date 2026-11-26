@@ -12,6 +12,7 @@ use super::Seg::{self, C, L, M, Q, Z};
 
 /// The number of icons in the table.
 pub const COUNT: usize = 155;
+pub const COUNT: usize = 154;
 
 /// One icon of the table, named by its key in `snake_case` (`ew_` for the project's own glyphs).
 #[allow(non_camel_case_types, missing_docs)]
@@ -49,7 +50,9 @@ pub enum IconId {
     chevron_right,
     circle_check,
     circle_dot,
+    circle_plus,
     circle_x,
+    circles,
     circuit_switch_open,
     clipboard_list,
     code,
@@ -209,7 +212,9 @@ impl IconId {
         IconId::chevron_right,
         IconId::circle_check,
         IconId::circle_dot,
+        IconId::circle_plus,
         IconId::circle_x,
+        IconId::circles,
         IconId::circuit_switch_open,
         IconId::clipboard_list,
         IconId::code,
@@ -369,7 +374,9 @@ pub const KEYS: [&str; COUNT] = [
     "chevron-right",
     "circle-check",
     "circle-dot",
+    "circle-plus",
     "circle-x",
+    "circles",
     "circuit-switch-open",
     "clipboard-list",
     "code",
@@ -979,6 +986,18 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         C(21.0, 7.029, 16.971, 3.0, 12.0, 3.0),
         C(7.029, 3.0, 3.0, 7.029, 3.0, 12.0),
     ],
+    // circle-plus
+    &[
+        M(3.0, 12.0),
+        C(3.0, 16.971, 7.029, 21.0, 12.0, 21.0),
+        C(16.971, 21.0, 21.0, 16.971, 21.0, 12.0),
+        C(21.0, 7.029, 16.971, 3.0, 12.0, 3.0),
+        C(7.029, 3.0, 3.0, 7.029, 3.0, 12.0),
+        M(9.0, 12.0),
+        L(15.0, 12.0),
+        M(12.0, 9.0),
+        L(12.0, 15.0),
+    ],
     // circle-x
     &[
         M(3.0, 12.0),
@@ -990,6 +1009,24 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(14.0, 14.0),
         M(14.0, 10.0),
         L(10.0, 14.0),
+    ],
+    // circles
+    &[
+        M(8.0, 7.0),
+        C(8.0, 9.209, 9.791, 11.0, 12.0, 11.0),
+        C(14.209, 11.0, 16.0, 9.209, 16.0, 7.0),
+        C(16.0, 4.791, 14.209, 3.0, 12.0, 3.0),
+        C(9.791, 3.0, 8.0, 4.791, 8.0, 7.0),
+        M(2.5, 17.0),
+        C(2.5, 19.209, 4.291, 21.0, 6.5, 21.0),
+        C(8.709, 21.0, 10.5, 19.209, 10.5, 17.0),
+        C(10.5, 14.791, 8.709, 13.0, 6.5, 13.0),
+        C(4.291, 13.0, 2.5, 14.791, 2.5, 17.0),
+        M(13.5, 17.0),
+        C(13.5, 19.209, 15.291, 21.0, 17.5, 21.0),
+        C(19.709, 21.0, 21.5, 19.209, 21.5, 17.0),
+        C(21.5, 14.791, 19.709, 13.0, 17.5, 13.0),
+        C(15.291, 13.0, 13.5, 14.791, 13.5, 17.0),
     ],
     // circuit-switch-open
     &[

@@ -66,6 +66,10 @@ fn the_sample_page_order_includes_the_generated_pages_with_two_toc_pages() {
         assert!(labels.contains(&f), "folio {f} is missing");
     }
     assert_eq!(labels.last(), Some(&"914.1"));
+    for f in ["903", "904", "906", "907", "908", "909", "910", "911", "915"] {
+        assert!(labels.contains(&f), "folio {f} is missing");
+    }
+    assert_eq!(labels.last(), Some(&"915"));
 
     // The whole order: the sample's 35 pages. The parts list 901 paginates into 901 and 901.1 (31 rows), the legend of
     // the layout 902 into 902.1 and 902.2 (30 rows), the wire list 907 into 907, 907.1 and 907.2, the PLC overview 908
@@ -74,7 +78,7 @@ fn the_sample_page_order_includes_the_generated_pages_with_two_toc_pages() {
     // The whole order: the sample's pages. The parts list 901 paginates into 901 and 901.1, the legend of the layout
     // 902 into 902.1 and 902.2, the door's 904 has its legend 904.1, the wire list 907 into 907, 907.1 and 907.2, the
     // PLC overview 908 into 908 and 908.1 (24 channels), the potential overview and the device tag overview into two
-    // pages each.
+    // pages each; the hole table is 915.
     assert_eq!(
         labels,
         [
@@ -82,7 +86,7 @@ fn the_sample_page_order_includes_the_generated_pages_with_two_toc_pages() {
             "902", "902.1", "902.2", "903", "906", "907", "907.1", "907.2", "908", "908.1", "909", "909.1",
             "910", "910.1", "911", "912", "912.1", "913", "913.1", "914", "914.1",
             "902", "902.1", "902.2", "903", "904", "904.1", "906", "907", "907.1", "907.2", "908", "908.1",
-            "909", "909.1", "910", "910.1", "911",
+            "909", "909.1", "910", "910.1", "911", "915",
         ]
     );
 
@@ -108,6 +112,7 @@ fn the_sample_page_order_includes_the_generated_pages_with_two_toc_pages() {
     assert_eq!(g.page_count, 2);
 
     // Prev/Next run through the generated pages (FR-PAG-013): 1 has no Prev, 914.1 no Next.
+    // Prev/Next run through the generated pages (FR-PAG-013): 1 has no Prev, the hole table 915 no Next.
     let first = order.entries[0].page;
     assert!(order.prev(first).is_none());
     assert_eq!(order.next(first).map(|e| e.page), Some(toc1));
@@ -115,6 +120,7 @@ fn the_sample_page_order_includes_the_generated_pages_with_two_toc_pages() {
     let last = order.entries.last().unwrap().page;
     assert!(order.next(last).is_none());
     assert_eq!(title(&q, last), "Consumables");
+    assert_eq!(title(&q, last), "Hole table");
 }
 
 /// A generated page of a block outside every section (the TOC) takes the structure all drawn pages share: with the

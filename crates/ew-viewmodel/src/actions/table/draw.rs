@@ -776,6 +776,22 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_layout_choose_plate(),
         ),
     ),
+    // Add hole here… (doc 12-3d §10.6): a hole by hand on the panel page's surface, from its context menu.
+    with_params(
+        "x_mm?:mm, y_mm?:mm, kind?:text, size?:text, x?:text, y?:text, purpose?:text",
+        with_icon(
+            "circle-plus",
+            act(
+                "layout.feature_add",
+                Command,
+                Menu::Draw,
+                &[],
+                panel_page_shown,
+                grp(Group::PanelLayout),
+                |s, p| s.act_layout_feature_add(p),
+            ),
+        ),
+    ),
     // Surface… (doc 12 §3.8): in the Enclosure split and, per face, in a panel page's context menu.
     with_params(
         "surface?:text",

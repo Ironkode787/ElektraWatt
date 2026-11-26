@@ -201,10 +201,10 @@ fn a_parts_list_links_each_device_to_its_main_representation() {
         &mut s,
         "report_block.create",
         json!({"source": {"kind": "parts_list"}, "form": json!(b.form), "section": json!(b.section),
-            "first_folio": 915, "title": "Parts List {n}"}),
+            "first_folio": 920, "title": "Parts List {n}"}),
     );
     let q = s.query();
-    let rows = block_rows(&q, "915");
+    let rows = block_rows(&q, "920");
     assert!(!rows.is_empty());
     // Each row links exactly its device's main representation, whole, in the Device column.
     let mut unlinked: Vec<&str> = Vec::new();

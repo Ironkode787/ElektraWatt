@@ -563,6 +563,9 @@ pub struct PlacementGeom {
     /// The front is drawn round: the part's `front_shape` is `round` on a square front and it has no `front_2d`
     /// (doc 12 §2.5); the circle is the footprint's inscribed one.
     pub round: bool,
+    /// The part's holes (`mech.holes`, in its order) with their centres in the surface frame, as the part is turned
+    /// and placed; a centre outside the `Nm` range is left out. Empty for an unknown footprint.
+    pub holes: Vec<(Pt2, ew_schema::Hole)>,
 }
 
 /// The shape of what a placement realises, in the part frame.
@@ -576,6 +579,8 @@ struct Shape {
     part: Option<PartRef>,
     /// The front is round ([`PlacementGeom::round`]).
     round: bool,
+    /// The part's holes in the part frame.
+    holes: Vec<ew_schema::PartHole>,
 }
 
 /// What one item of a strip is ([`StripItem`]).
@@ -709,6 +714,7 @@ fn shape(q: &Q, device: &Device, part: Option<&PartRef>) -> Shape {
             outline: Vec::new(),
             part: None,
             round: false,
+            holes: Vec::new(),
         };
     }
     let part = match part {
@@ -726,6 +732,11 @@ fn shape(q: &Q, device: &Device, part: Option<&PartRef>) -> Shape {
             Vec::new()
         },
         round: mech.is_some_and(|m| m.front_2d.is_empty() && m.front_is_round()),
+        holes: if size.is_some() {
+            mech.map(|m| m.holes.clone()).unwrap_or_default()
+        } else {
+            Vec::new()
+        },
         part,
     }
 }
@@ -818,6 +829,7 @@ fn placement_geom(q: &Q, key: Id<Placement>) -> Option<PlacementGeom> {
             outline: Vec::new(),
             part: shape.part,
             round: false,
+            holes: Vec::new(),
         });
     };
     let origin = if on_rail {
@@ -832,6 +844,11 @@ fn placement_geom(q: &Q, key: Id<Placement>) -> Option<PlacementGeom> {
     };
     let footprint = Rect::from_points(place((0, 0))?, place((w, h))?);
     let outline = placed_outline(&shape.outline, place);
+    let holes = shape
+        .holes
+        .iter()
+        .filter_map(|h| Some((place((i128::from(h.x.0), i128::from(h.y.0)))?, h.hole.clone())))
+        .collect();
     Some(PlacementGeom {
         surface,
         footprint,
@@ -840,6 +857,7 @@ fn placement_geom(q: &Q, key: Id<Placement>) -> Option<PlacementGeom> {
         outline,
         part: shape.part,
         round: shape.round,
+        holes,
     })
 }
 

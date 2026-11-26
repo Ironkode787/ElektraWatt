@@ -541,6 +541,8 @@ pub enum ReportKind {
     CutList,
     /// Consumables: what the wires consume, ferrules and markers (doc 13 §3.6, FR-MFG-049).
     Consumables,
+    /// Hole table: every hole of every surface, numbered in drilling order (doc 13 §9.2, FR-MFG-029).
+    HoleTable,
     /// A kind of a newer format, kept verbatim.
     #[serde(skip)]
     Unknown(Value),

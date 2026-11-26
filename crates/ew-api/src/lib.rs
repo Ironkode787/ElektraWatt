@@ -235,6 +235,7 @@ pub use ew_mltext::to_nfc;
 /// The format this version writes, and the migration chain a project of an older format runs through at open:
 /// `ew upgrade` names the format, and a test passes its own chain in [`StoreOptions`].
 pub use ew_schema::FORMAT;
+pub use ew_schema::HoleKind;
 /// The project's revision label format (doc 15 §5.2, FR-REV-002): the new-project wizard checks the first label
 /// against it, as `revision.create` does (EW-REL-004).
 pub use ew_schema::LabelFormat;

@@ -44,9 +44,12 @@ use crate::tx::TxBuilder;
 use ew_l10n::{Text, TextArg};
 
 mod assemblies;
+// The holes of a surface: a hole by hand and a derived hole's choice
+mod features;
 
 use assemblies::rail_in_sentence;
 pub use assemblies::{AutoFill, FillOrder, PlaceAssembly};
+pub use features::{AddFeature, EditFeature, HoleChoiceEdit};
 
 /// The layout deletes are `Bulk` when they remove or rehome more than this many placements.
 pub const LAYOUT_BULK_ABOVE: usize = 200;

@@ -72,12 +72,13 @@ impl std::fmt::Display for LayoutEditError {
 impl std::error::Error for LayoutEditError {}
 
 /// The layout kinds whose sheet is built here (their catalogue rows are not shown: the rows replace them).
-pub(crate) const LAYOUT_KINDS: [Kind; 5] = [
+pub(crate) const LAYOUT_KINDS: [Kind; 6] = [
     Kind::Placement,
     Kind::Carrier,
     Kind::MountingSurface,
     Kind::Enclosure,
     Kind::LayoutSpace,
+    Kind::SurfaceFeature,
 ];
 
 /// One part a set-up dialog or a drawing tool offers (part 4): a project copy, or a library's part with the
@@ -397,6 +398,19 @@ pub(crate) fn layout_title(q: &Q, kind: Kind, id: Uuid) -> Option<String> {
                 None => location_text(q, s.location),
             }
         }
+        // A hole by hand by its number on its surface ("H10").
+        Kind::SurfaceFeature => {
+            let f = q.table::<ew_schema::SurfaceFeature>().get(Id::from_uuid(id))?;
+            let no = q
+                .get::<ew_derive::layout::SurfaceFeatures>(f.surface)
+                .iter()
+                .find(|x| {
+                    x.owners
+                        .contains(&ew_derive::layout::Owner::ByHand { feature: f.id })
+                })
+                .map(|x| x.no)?;
+            format!("H{no}")
+        }
         _ => return None,
     })
 }
@@ -480,6 +494,7 @@ pub(crate) fn layout_rows(q: &Q, kind: Kind, targets: &[Uuid]) -> Option<Vec<Pro
         Kind::Placement => placement_rows(q, Id::from_uuid(id))?,
         Kind::Carrier => carrier_rows(q, Id::from_uuid(id))?,
         Kind::MountingSurface => surface_rows(q, Id::from_uuid(id))?,
+        Kind::SurfaceFeature => feature_rows(q, Id::from_uuid(id))?,
         Kind::Enclosure => {
             let e = q.table::<Enclosure>().get(Id::from_uuid(id))?;
             let [x, y, z] = e.pose.t;
@@ -617,7 +632,42 @@ fn surface_rows(q: &Q, id: Id<MountingSurface>) -> Option<Vec<PropRow>> {
         .collect();
     rows.push(choice_row(k, "measured_from", current, options, cmd));
     rows.push(bool_row(k, "pe_bond", s.pe_bond, "layout.surface.edit"));
+    let holes = q.get::<ew_derive::layout::SurfaceFeatures>(id).len();
+    rows.push(text_row(
+        k,
+        "holes",
+        holes.to_string(),
+        derived_of("hole table"),
+        None,
+    ));
     Some(rows)
+}
+
+/// A hole by hand's rows (doc 12-3d §10.6): Kind, Size, X and Y from the surface's datum and For, through
+/// `layout.feature.edit`.
+fn feature_rows(q: &Q, id: Id<ew_schema::SurfaceFeature>) -> Option<Vec<PropRow>> {
+    let f = q.table::<ew_schema::SurfaceFeature>().get(id)?;
+    let s = q.table::<MountingSurface>().get(f.surface)?;
+    let k = "surface_feature";
+    let cmd = Some("layout.feature.edit");
+    let kinds = ew_schema::HoleKind::ALL
+        .iter()
+        .map(|k| k.word().to_owned())
+        .collect();
+    let kind = f.hole.kind().map(ew_schema::HoleKind::word).unwrap_or_default();
+    let (x, y) = ew_derive::layout::from_datum(q, s, (i128::from(f.at.x.0), i128::from(f.at.y.0)));
+    let purpose = f
+        .purpose
+        .neutral_or_first()
+        .map(str::to_owned)
+        .unwrap_or_default();
+    Some(vec![
+        choice_row(k, "kind", kind.to_owned(), kinds, cmd),
+        text_row(k, "size", f.hole.to_string(), Provenance::Authored, cmd),
+        text_row(k, "x", format!("{} mm", mm_text(q, x)), Provenance::Authored, cmd),
+        text_row(k, "y", format!("{} mm", mm_text(q, y)), Provenance::Authored, cmd),
+        text_row(k, "purpose", purpose, Provenance::Authored, cmd),
+    ])
 }
 
 /// The quarter turns of a pose (0 when it is no quarter turn).
@@ -787,25 +837,125 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
         };
         rows.push(text_row(k, "clearance", text, derived_of("part"), None));
     }
+    if let Some(s) = placement_surface(q, id) {
+        let pattern = ew_derive::layout::placement_holes(q, id);
+        rows.extend(hole_rows(
+            q,
+            k,
+            &s,
+            HoleOwner::Placement(id),
+            &pattern,
+            &p.hole_choices,
+        ));
+    }
     Some(rows)
+}
+
+/// The surface a placement stands on, by its geometry (on a rail: the rail's surface).
+fn placement_surface(q: &Q, id: Id<Placement>) -> Option<std::sync::Arc<MountingSurface>> {
+    let s = q
+        .get::<ew_derive::layout::PlacementGeometry>(id)
+        .as_ref()
+        .as_ref()?
+        .surface;
+    q.table::<MountingSurface>().get(s).cloned()
+}
+
+/// Whose holes a Holes section lists.
+#[derive(Clone, Copy)]
+enum HoleOwner {
+    Placement(Id<Placement>),
+    Carrier(Id<Carrier>),
+}
+
+/// The words of how a hole is made, for a row's chip: "Ø 22.3", "Ø 4.2 · tap M5", "92 × 92" (the chip puts "tap" in
+/// the window's language).
+fn made_chip(m: &ew_derive::layout::Made) -> String {
+    use ew_derive::layout::Made;
+    let d = |n: ew_units::Nm| format!("\u{d8} {}", ew_derive::mm_tenth(i128::from(n.0)));
+    match m {
+        Made::Drill { d: n } | Made::Punch { d: n } => d(*n),
+        Made::Tap { drill, screw } => format!("{} \u{b7} tap M{}", d(*drill), screw.mm().unwrap_or_default()),
+        Made::Cut { w, h, .. } => format!(
+            "{} \u{d7} {}",
+            ew_derive::mm_tenth_short(i128::from(w.0)),
+            ew_derive::mm_tenth_short(i128::from(h.0))
+        ),
+    }
+}
+
+/// The Holes rows of a placement or a carrier (doc 12-3d §10.6): per hole of its pattern, `holes[i]`, its centre from
+/// the surface's datum ("270, 480 mm") with its number and how it is made in the chip, "moved" where its choice moved
+/// it (typing X and Y moves it, Reset puts it back), and `holes[i].omit`, Leave out; both through
+/// `layout.hole_choice`. A hole left out has no centre and no number.
+fn hole_rows(
+    q: &Q,
+    kind: &str,
+    s: &MountingSurface,
+    owner: HoleOwner,
+    pattern: &[(ew_units::Pt2, ew_schema::Hole)],
+    choices: &[ew_schema::HoleChoice],
+) -> Vec<PropRow> {
+    use ew_derive::layout::Owner;
+    let features = q.get::<ew_derive::layout::SurfaceFeatures>(s.id);
+    let cmd = Some("layout.hole_choice");
+    let mut rows = Vec::new();
+    for (i, (at, _)) in pattern.iter().enumerate() {
+        let Ok(index) = u16::try_from(i) else { break };
+        let me = match owner {
+            HoleOwner::Placement(p) => Owner::Placement { p, index },
+            HoleOwner::Carrier(c) => Owner::Carrier { c, index },
+        };
+        let choice = choices.iter().find(|c| c.index == index);
+        let omitted = choice.is_some_and(|c| c.omit);
+        let feature = features.iter().find(|f| f.owners.contains(&me));
+        let name = format!("holes[{i}]");
+        let mut r = if let (Some(f), false) = (feature, omitted) {
+            let (x, y) = ew_derive::layout::from_datum(q, s, (i128::from(f.at.x.0), i128::from(f.at.y.0)));
+            let text = format!("{}{}{} mm", mm_text(q, x), list_sep(q), mm_text(q, y));
+            let via = format!("H{} \u{b7} {}", f.no, made_chip(&f.made));
+            let provenance = if choice.is_some_and(|c| c.offset.is_some()) {
+                Provenance::Overridden {
+                    note: format!("moved \u{b7} {via}"),
+                }
+            } else {
+                derived_of(&via)
+            };
+            text_row(kind, &name, text, provenance, cmd)
+        } else {
+            let _ = at;
+            text_row(
+                kind,
+                &name,
+                String::new(),
+                Provenance::Overridden {
+                    note: "left out".to_owned(),
+                },
+                cmd,
+            )
+        };
+        if choice.is_some() {
+            r.actions.push(RowAction::Reset);
+        }
+        rows.push(r);
+        rows.push(bool_row(
+            kind,
+            &format!("holes[{i}].omit"),
+            omitted,
+            "layout.hole_choice",
+        ));
+    }
+    rows
 }
 
 /// The centre of a footprint measured from a surface's datum corner (doc 12 §3.8): its distances from the corner's two
 /// edges, positive into the sheet.
 fn centre_from_datum(q: &Q, s: &MountingSurface, fp: ew_units::Rect) -> (i128, i128) {
-    let (w, h) = ew_derive::layout::sheet_size(s).unwrap_or_default();
     let c = (
         (i128::from(fp.min().x.0) + i128::from(fp.max().x.0)) / 2,
         (i128::from(fp.min().y.0) + i128::from(fp.max().y.0)) / 2,
     );
-    let (w, h) = (i128::from(w.0), i128::from(h.0));
-    use ew_schema::Corner as C;
-    match ew_derive::layout::surface_datum(q, s) {
-        C::BottomLeft | C::Unknown(_) => c,
-        C::BottomRight => (w - c.0, c.1),
-        C::TopLeft => (c.0, h - c.1),
-        C::TopRight => (w - c.0, h - c.1),
-    }
+    ew_derive::layout::from_datum(q, s, c)
 }
 
 /// The part copies of the device's part uses that the Realised part row offers for a placement on `on`: the
@@ -970,6 +1120,17 @@ fn carrier_rows(q: &Q, id: Id<Carrier>) -> Option<Vec<PropRow>> {
         _ => {}
     }
     rows.push(bool_row(k, "pe_bond", c.pe_bond, "layout.carrier.edit"));
+    if let Some(s) = q.table::<MountingSurface>().get(c.surface) {
+        let pattern = ew_derive::layout::carrier_fixings(c, &q.project().settings.workshop);
+        rows.extend(hole_rows(
+            q,
+            k,
+            s,
+            HoleOwner::Carrier(id),
+            &pattern,
+            &c.hole_choices,
+        ));
+    }
     Some(rows)
 }
 
@@ -1416,6 +1577,100 @@ impl Session {
                     json!({"parent": parent.as_uuid().to_string(),
                         "children": [{"device": edit.target.to_string(), "position": position}]}),
                 )
+            }
+            // A hole by hand: its kind and size together, X and Y from the datum, what it is for.
+            ("surface_feature", n) => {
+                let fid = Id::<ew_schema::SurfaceFeature>::from_uuid(edit.target);
+                let Some(f) = q.table::<ew_schema::SurfaceFeature>().get(fid).cloned() else {
+                    return invalid(text!("refusal-layout-hole-row"));
+                };
+                let mut params = json!({ "feature": edit.target.to_string() });
+                match n {
+                    "kind" => {
+                        params["kind"] = json!(text);
+                        params["size"] = json!(f.hole.to_string());
+                    }
+                    "size" => params["size"] = json!(text),
+                    "purpose" => params["purpose"] = json!(text),
+                    "x" | "y" => {
+                        let Some(mm) = parse_mm(text) else {
+                            return invalid(length_text());
+                        };
+                        let Some(s) = q.table::<MountingSurface>().get(f.surface) else {
+                            return invalid(text!("refusal-layout-hole-row"));
+                        };
+                        let now = ew_derive::layout::from_datum(
+                            &q,
+                            s,
+                            (i128::from(f.at.x.0), i128::from(f.at.y.0)),
+                        );
+                        let measured = if n == "x" { (mm, now.1) } else { (now.0, mm) };
+                        let (u, v) = ew_derive::layout::from_datum(&q, s, measured);
+                        params["at"] = json!([
+                            i64::try_from(u).unwrap_or_default(),
+                            i64::try_from(v).unwrap_or_default()
+                        ]);
+                    }
+                    _ => return invalid(text!("refusal-layout-hole-row")),
+                }
+                command("layout.feature.edit", params)
+            }
+            // A hole's row of a placement or a carrier (doc 12-3d §10.6): X and Y from the surface's datum move it,
+            // an empty text puts it back; Leave out leaves it out.
+            ("placement" | "carrier", n) if n.starts_with("holes[") => {
+                let (index, omit_row) = match n.strip_prefix("holes[").and_then(|r| r.split_once(']')) {
+                    Some((i, rest)) => (i.parse::<u16>().ok(), rest == ".omit"),
+                    None => (None, false),
+                };
+                let Some(index) = index else {
+                    return invalid(text!("refusal-layout-hole-row"));
+                };
+                let owner = if edit.kind == "placement" {
+                    "placement"
+                } else {
+                    "carrier"
+                };
+                let mut params = json!({ owner: edit.target.to_string(), "index": index });
+                if omit_row {
+                    match parse_bool(text) {
+                        Some(true) => params["omit"] = json!(true),
+                        Some(false) => {}
+                        None => return invalid(text!("refusal-layout-choose-yes-no")),
+                    }
+                } else if !text.is_empty() {
+                    let Some(v) = parse_mm_list(&q, text.trim_end_matches("mm").trim(), 2) else {
+                        return invalid(pair_text());
+                    };
+                    let surface = if edit.kind == "placement" {
+                        placement_surface(&q, Id::from_uuid(edit.target))
+                    } else {
+                        q.table::<Carrier>()
+                            .get(Id::from_uuid(edit.target))
+                            .and_then(|c| q.table::<MountingSurface>().get(c.surface).cloned())
+                    };
+                    let Some(s) = surface else {
+                        return invalid(text!("refusal-layout-hole-row"));
+                    };
+                    let pattern = if edit.kind == "placement" {
+                        ew_derive::layout::placement_holes(&q, Id::from_uuid(edit.target))
+                    } else {
+                        q.table::<Carrier>()
+                            .get(Id::from_uuid(edit.target))
+                            .map(|c| ew_derive::layout::carrier_fixings(c, &q.project().settings.workshop))
+                            .unwrap_or_default()
+                    };
+                    let Some((at, _)) = pattern.get(usize::from(index)) else {
+                        return invalid(text!("refusal-layout-hole-row"));
+                    };
+                    // The typed point from the datum, in the surface frame; the offset from the hole's own place.
+                    let (u, v) = ew_derive::layout::from_datum(&q, &s, (v[0], v[1]));
+                    let offset = (u - i128::from(at.x.0), v - i128::from(at.y.0));
+                    params["offset"] = json!([
+                        i64::try_from(offset.0).unwrap_or_default(),
+                        i64::try_from(offset.1).unwrap_or_default()
+                    ]);
+                }
+                command("layout.hole_choice", params)
             }
             ("placement", _) => {
                 let Some(p) = q.table::<Placement>().get(Id::from_uuid(edit.target)) else {
@@ -1940,6 +2195,25 @@ impl Session {
                     .collect::<Vec<_>>()
             })
             .collect()
+    }
+
+    /// A point `(u, v)` of `surface` measured from its datum corner (the same map takes it back); the point itself for
+    /// a surface the project does not hold.
+    pub fn surface_measured(&self, surface: Uuid, pt: (i128, i128)) -> (i128, i128) {
+        let q = self.query();
+        match q.table::<MountingSurface>().get(Id::from_uuid(surface)) {
+            Some(s) => ew_derive::layout::from_datum(&q, s, pt),
+            None => pt,
+        }
+    }
+
+    /// A surface after its cabinet's tag, in words ("-UC1 door"), as the page's Surface row names it.
+    pub fn surface_in_words(&self, surface: Uuid) -> Option<crate::Text> {
+        let q = self.query();
+        surface_words(&q)
+            .into_iter()
+            .find(|(id, _)| id.as_uuid() == surface)
+            .map(|(_, w)| w)
     }
 
     /// The stored word of a surface record's kind (`door`); `None` for a missing record or a kind of a newer format.

@@ -410,3 +410,24 @@ change here.
   `mech` of a project-local copy); Save was refused
 - api-add: the hidden actions `part.outline_import {path?}` and `part.outline_remove`; the part editor's declared
   table names a hole's two cells `hole.kind` and `hole.size` (`mech.holes[0].hole.size`)
+- format-variant: report_block ReportKind hole_table (every hole of every surface, numbered in drilling order; doc 13
+  §9.2)
+- behaviour-change: every hole and cut-out of a surface is derived from what is placed on it and what is added by hand
+  (doc 12-3d §10): a part's holes, a rail's and a duct's fixing holes (M5 and M4, at most 300 mm apart, 25 mm from
+  each end, unless Project properties ▸ Workshop says otherwise), the holes by hand; made as the workshop says (a
+  fixing in the plate tapped by default, in a door through), numbered in drilling order. A panel layout page draws
+  them at true size with a centre cross, dashed under a device
+- behaviour-change: Add hole here… in a panel page's context menu adds a hole by hand (Kind, Size, X and Y from the
+  surface's corner, For); a selected hole by hand shows its Kind, Size, X, Y and For in Properties; a placement's and
+  a rail's or duct's Properties list their holes, each moved by typing its X and Y and left out with Leave out; a
+  surface's Properties count its holes
+- behaviour-change: Output ▸ Workshop ▸ Hole tables shows the project's hole table, else opens Report block… on it;
+  the hole table lists each surface's holes after a heading that names its page and the corner they are measured
+  from, with X and Y, how each is made ("Ø 4.2, tap M5"), what it is and what it is for. The sample has an earth stud
+  on its plate and its hole table on page 915
+- behaviour-change: EW-LAY-012 Holes too close (two holes closer than the web between holes, a hole in a sheet's edge
+  margin or off the sheet) and EW-LAY-017 Holes not known (a part in a cut-out or screwed to a surface without
+  holes, or a device placed there without a part), both warnings
+- api-add: `layout.feature.add {surface, at, kind, size, purpose?}`, `layout.feature.edit {feature, at?, kind?, size?,
+  purpose?, for_cable?}` and `layout.hole_choice {placement | carrier, index, offset?, omit?}`; the normaliser
+  `stale_hole_choices` drops a placement's or a carrier's hole choices when its pattern changes

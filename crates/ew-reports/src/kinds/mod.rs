@@ -16,6 +16,7 @@ mod cut_list;
 mod device_list;
 mod enclosure_legend;
 mod fluid;
+mod hole_table;
 mod io_list;
 mod labels;
 mod numbering_report;
@@ -41,6 +42,8 @@ pub use cut_list::{CutList, TubeCutList};
 pub use device_list::DeviceList;
 pub use enclosure_legend::EnclosureLegend;
 pub use fluid::{MediumOverview, TubeLabels, TubeList, ValveTerminalConfig};
+pub use fluid::{MediumOverview, TubeCutList, TubeLabels, TubeList, ValveTerminalConfig};
+pub use hole_table::HoleTable;
 pub use io_list::IoList;
 pub use labels::{LabelFile, Labels, label_column_words, label_files};
 pub use numbering_report::NumberingReport;
@@ -97,5 +100,6 @@ pub(crate) fn builtin() -> Vec<&'static dyn ReportKindDef> {
         &AssemblyList,
         &CutList,
         &Consumables,
+        &HoleTable,
     ]
 }

@@ -245,3 +245,17 @@ hole-error-not-a-cutout = "{ $p0 }" is no cut-out: type one of { $p1 } mm.
 hole-error-not-a-gland = "{ $p0 }" is no gland thread: type one of { $p1 }.
 hole-error-not-rect = "{ $p0 }" is no rectangle: type width × height, then R and the corner radius if it has one, as 92 × 92 R 2.
 hole-error-not-positive = A size must be greater than 0 mm.
+
+## How a hole is made and what it is (doc 13 §9.2)
+
+made-tap = Ø { $p0 }, tap { $p1 }
+hole-what-round = Hole Ø { $p0 }
+hole-what-fixing = Fixing { $p0 }
+hole-what-cutout = Cut-out { $p0 }
+hole-what-gland = Gland { $p0 }
+hole-what-rect = Rectangle { $p0 }
+corner-in-sentence-bottom-left = bottom-left
+corner-in-sentence-bottom-right = bottom-right
+corner-in-sentence-top-left = top-left
+corner-in-sentence-top-right = top-right
+hole-table-heading = { $p0 }, page { $p1 }, { $p2 }, measured from the { $p3 } corner

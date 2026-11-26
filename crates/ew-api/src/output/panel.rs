@@ -141,6 +141,8 @@ pub(crate) struct Parts {
     pub labels: bool,
     /// The plate's footprints behind a door (the highlights layer).
     pub behind: bool,
+    /// The holes of the surface (the features layer).
+    pub features: bool,
 }
 
 impl Parts {
@@ -150,6 +152,7 @@ impl Parts {
         placements: false,
         labels: false,
         behind: false,
+        features: false,
     };
 }
 
@@ -507,7 +510,51 @@ pub(crate) fn panel_view(q: &Q, page: Id<Page>, parts: Parts) -> Option<PanelVie
         } else {
             Vec::new()
         },
+        features: if parts.features {
+            feature_draws(q, &surface)
+        } else {
+            Vec::new()
+        },
     })
+}
+
+/// The holes of `surface` as its features layer draws them (`ew_derive::layout::SurfaceFeatures`): at their made size,
+/// dashed where a footprint covers the centre; a hole by hand selects its record, a derived one its first owner.
+fn feature_draws(q: &Q, surface: &MountingSurface) -> Vec<ew_scene::panel::FeatureDraw> {
+    use ew_derive::layout::{Made, Owner, PlacementGeometry, SurfaceFeatures};
+    let footprints: Vec<Rect> = placements_on(q, surface.id)
+        .into_iter()
+        .chain(
+            q.idx()
+                .carriers_of_surface(surface.id)
+                .flat_map(|c| q.idx().placements_by_carrier(c).collect::<Vec<_>>()),
+        )
+        .filter_map(|p| {
+            q.get::<PlacementGeometry>(p)
+                .as_ref()
+                .as_ref()
+                .map(|g| g.footprint)
+        })
+        .collect();
+    q.get::<SurfaceFeatures>(surface.id)
+        .iter()
+        .filter_map(|f| {
+            let hidden = footprints.iter().any(|r| r.contains(f.at));
+            let entity = match f.owners.first()? {
+                Owner::ByHand { feature } => Some(feature.as_uuid()),
+                _ if hidden => None,
+                Owner::Placement { p, .. } => Some(p.as_uuid()),
+                Owner::Carrier { c, .. } => Some(c.as_uuid()),
+            };
+            Some(ew_scene::panel::FeatureDraw {
+                at: f.at,
+                size: f.made.extent(),
+                round: !matches!(f.made, Made::Cut { .. }),
+                hidden,
+                entity,
+            })
+        })
+        .collect()
 }
 
 /// The legend lists of `surface` (doc 12 §5.4): the page blocks of kind `enclosure_legend` whose layout page shows it,

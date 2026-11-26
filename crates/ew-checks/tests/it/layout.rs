@@ -1047,3 +1047,66 @@ fn a_strips_own_end_cover_counts_in_its_width_on_the_rail() {
         ]
     );
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// EW-LAY-012 and EW-LAY-017: the holes of a surface (doc 12-3d §10.5)
+
+/// A hole by hand on the plate: `kind` and `hole` its stored form, at `(u, v)` mm.
+fn hole(fx: &mut Fx, n: u128, (u, v): (f64, f64), hole: Value) {
+    fx.push(json!({"$k": "surface_feature", "id": us(n), "surface": us(PLATE), "at": [mm(u), mm(v)], "hole": hole}));
+}
+
+/// Two cut-outs 25 mm apart (their 22.3 mm holes 2.7 mm apart), a fixing 2 mm from the plate's left edge and a hole off
+/// the plate: one finding each, in words; the plate with its rails and ducts alone is silent.
+#[test]
+fn holes_too_close_to_each_other_or_the_edge_or_off_the_sheet_are_reported() {
+    assert!(
+        findings_of(&plate().build(), "EW-LAY-012").is_empty(),
+        "the rails' and ducts' holes keep their web"
+    );
+    let mut fx = plate();
+    hole(&mut fx, 0x701, (300.0, 100.0), json!({"cutout": "d22"}));
+    hole(&mut fx, 0x702, (325.0, 100.0), json!({"cutout": "d22"}));
+    hole(&mut fx, 0x703, (2.0, 450.0), json!({"fixing": "m3"}));
+    hole(&mut fx, 0x704, (700.0, 100.0), json!({"round": {"d": mm(6.0)}}));
+    let m = fx.build();
+    let found = messages(&m, "EW-LAY-012");
+    assert_eq!(found.len(), 3, "{found:#?}");
+    assert!(
+        found.iter().any(|f| f.contains(" is 2.7 mm from H")),
+        "{found:#?}"
+    );
+    assert!(
+        found.iter().any(|f| f.contains(" lies 0.8 mm from the edge of ")),
+        "{found:#?}"
+    );
+    assert!(
+        found.iter().any(|f| f.ends_with("; move it onto the sheet")),
+        "{found:#?}"
+    );
+}
+
+/// Two devices of a screw-mounted part without holes on the plate itself: one finding for the part, naming both.
+#[test]
+fn a_part_without_holes_on_a_surface_is_reported_once_with_its_devices() {
+    let mut fx = plate();
+    for (d, pl, u) in [(0xdbu128, 0xfbu128, 300.0), (0xdc, 0xfc, 400.0)] {
+        device(&mut fx, d, "E", u32::try_from(d - 0xda).unwrap(), LOC, &[P_SCREW]);
+        place(
+            &mut fx,
+            pl,
+            d,
+            Some(P_SCREW),
+            json!({"surface": us(PLATE)}),
+            pose([mm(u), mm(20.0), 0], 0),
+        );
+    }
+    let m = fx.build();
+    let found = messages(&m, "EW-LAY-017");
+    assert_eq!(found.len(), 1, "{found:#?}");
+    assert!(found[0].contains("+J-E-2416-E1, +J-E-2416-E2"), "{}", found[0]);
+    assert!(
+        findings_of(&plate().build(), "EW-LAY-017").is_empty(),
+        "a part on a rail needs no holes"
+    );
+}

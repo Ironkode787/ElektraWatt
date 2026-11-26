@@ -1,0 +1,21 @@
+row,Surface,No.,X mm,Y mm,Hole,What,For
+heading,"Mounting plate, page 902, seen from the front, measured from the bottom-left corner",,,,,,
+data,Mounting plate,H1,50,440,"Ø 3.3, tap M4",Fixing M4,Duct 1
+data,Mounting plate,H2,260,440,"Ø 3.3, tap M4",Fixing M4,Duct 1
+data,Mounting plate,H3,470,440,"Ø 3.3, tap M4",Fixing M4,Duct 1
+data,Mounting plate,H4,50,270,"Ø 4.2, tap M5",Fixing M5,Rail 2
+data,Mounting plate,H5,260,270,"Ø 4.2, tap M5",Fixing M5,Rail 2
+data,Mounting plate,H6,470,270,"Ø 4.2, tap M5",Fixing M5,Rail 2
+data,Mounting plate,H7,470,580,"Ø 4.2, tap M5",Fixing M5,Rail 1
+data,Mounting plate,H8,260,580,"Ø 4.2, tap M5",Fixing M5,Rail 1
+data,Mounting plate,H9,50,580,"Ø 4.2, tap M5",Fixing M5,Rail 1
+data,Mounting plate,H10,490,40,"Ø 5.0, tap M6",Fixing M6,Earth stud
+heading,"Door, page 904, seen from outside, measured from the bottom-left corner",,,,,,
+data,Door,H1,113.5,622.5,Ø 4.5,Fixing M4,-101Q1
+data,Door,H2,161.5,622.5,Ø 4.5,Fixing M4,-101Q1
+data,Door,H3,270,480,Ø 22.3,Cut-out 22 mm,-102S1
+data,Door,H4,330,480,Ø 22.3,Cut-out 22 mm,-102S2
+data,Door,H5,360,560,Ø 22.3,Cut-out 22 mm,-104E2
+data,Door,H6,300,560,Ø 22.3,Cut-out 22 mm,-104E1
+data,Door,H7,240,560,Ø 22.3,Cut-out 22 mm,-102E1
+data,Door,H8,137.5,622.5,Ø 22.3,Cut-out 22 mm,-101Q1

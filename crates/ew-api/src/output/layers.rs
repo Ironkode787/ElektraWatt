@@ -16,6 +16,7 @@
 //! | [`CarriersLayer`] | [`Layer::Carriers`] | the carriers of the page's surface view and its placement labels, which the carriers are cut around (`panel.rs`) |
 //! | [`PlacementsLayer`] | [`Layer::Placements`] | the placements of the page's surface view (`panel.rs`) |
 //! | [`HighlightsLayer`] | [`Layer::Highlights`] | on a door's page, the placements of its enclosure's plate (`panel.rs`); screen only |
+//! | [`FeaturesLayer`] | [`Layer::Features`] | the holes of a panel page's surface (`panel.rs`, `ew_derive::layout::SurfaceFeatures`) |
 //!
 //! The other layers (revision marks, features, dimensions) are drawn by no rule of `ew-scene` yet and are empty. Each family is `ew_scene::page::page_display_list` over a partial view; a test holds every layer equal
 //! to the same function over the full view ([`page_view`]) on every page of the sample project. The display
@@ -256,18 +257,21 @@ impl ViewParts {
                 tables: true,
                 ..none
             },
-            Layer::Surface | Layer::Carriers | Layer::Placements | Layer::Highlights => ViewParts {
-                panel: Parts {
-                    surface: layer == Layer::Surface,
-                    carriers: layer == Layer::Carriers,
-                    placements: layer == Layer::Placements,
-                    // The carriers are cut around the labels' knockout boxes.
-                    labels: layer == Layer::Carriers,
-                    behind: layer == Layer::Highlights,
-                },
-                needs_panel: true,
-                ..drawn
-            },
+            Layer::Surface | Layer::Carriers | Layer::Placements | Layer::Highlights | Layer::Features => {
+                ViewParts {
+                    panel: Parts {
+                        surface: layer == Layer::Surface,
+                        carriers: layer == Layer::Carriers,
+                        placements: layer == Layer::Placements,
+                        // The carriers are cut around the labels' knockout boxes.
+                        labels: layer == Layer::Carriers,
+                        behind: layer == Layer::Highlights,
+                        features: layer == Layer::Features,
+                    },
+                    needs_panel: true,
+                    ..drawn
+                }
+            }
             _ => return None,
         })
     }
@@ -299,6 +303,7 @@ impl ViewParts {
                 placements: self.panel.placements || o.panel.placements,
                 labels: self.panel.labels || o.panel.labels,
                 behind: self.panel.behind || o.panel.behind,
+                features: self.panel.features || o.panel.features,
             },
             needs_panel: self.needs_panel && o.needs_panel,
         }
@@ -542,6 +547,12 @@ layer_family!(
     "page_display_list_highlights",
     Layer::Highlights
 );
+layer_family!(
+    /// `page_display_list(page, features)`: the holes of a panel page's surface (doc 12 §5.2).
+    FeaturesLayer,
+    "page_display_list_features",
+    Layer::Features
+);
 
 /// `page_display_list(page, layer)` through the layer's memoised family; an empty layer for the layers no rule
 /// draws yet.
@@ -556,6 +567,7 @@ pub fn page_layer(q: &Q, page: PageRef, layer: Layer) -> Arc<PageLayer> {
         Layer::Carriers => q.get::<CarriersLayer>(page),
         Layer::Placements => q.get::<PlacementsLayer>(page),
         Layer::Highlights => q.get::<HighlightsLayer>(page),
+        Layer::Features => q.get::<FeaturesLayer>(page),
         _ => Arc::new(PageLayer::default()),
     }
 }

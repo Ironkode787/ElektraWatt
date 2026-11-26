@@ -963,6 +963,68 @@ pub fn hinge_word() -> Text {
     text!("hinge-word")
 }
 
+/// How a hole is made, as the hole table's Hole cell and a hole's Properties say it (doc 13 §9.2): "Ø 22.3", "Ø 4.2,
+/// tap M5", "92 × 92, R 2"; a diameter to the 0.1 mm, a rectangle's sides to the millimetre.
+pub fn made(m: &crate::layout::Made) -> Text {
+    use crate::layout::Made;
+    let d = |n: Nm| format!("\u{d8} {}", mm_tenth(i128::from(n.0)));
+    match m {
+        Made::Drill { d: n } | Made::Punch { d: n } => Text::bare(TextArg::Plain(d(*n))),
+        Made::Tap { drill, screw } => text!(
+            "made-tap",
+            mm_tenth(i128::from(drill.0)),
+            screw
+                .mm()
+                .map_or_else(|| format!("{screw:?}"), |n| format!("M{n}"))
+        ),
+        Made::Cut { w, h, r } => {
+            let side = |n: Nm| mm_tenth_short(i128::from(n.0));
+            let sides = format!("{} \u{d7} {}", side(*w), side(*h));
+            Text::bare(TextArg::Plain(match r {
+                Some(r) => format!("{sides}, R {}", side(*r)),
+                None => sides,
+            }))
+        }
+    }
+}
+
+/// A hole's kind and size, as the hole table's What cell says it (doc 13 §9.2): "Cut-out 22 mm", "Fixing M5", "Gland
+/// M20", "Hole Ø 6", "Rectangle 92 × 92"; a hole of a newer format by its stored form.
+pub fn hole_what(hole: &ew_schema::Hole) -> Text {
+    use ew_schema::Hole;
+    let mm = |n: Nm| mm_tenth_short(i128::from(n.0));
+    match hole {
+        Hole::Round { d } => text!("hole-what-round", mm(*d)),
+        Hole::Fixing(_) => text!("hole-what-fixing", hole.to_string()),
+        Hole::Cutout(_) => text!("hole-what-cutout", hole.to_string()),
+        Hole::Gland(_) => text!("hole-what-gland", hole.to_string()),
+        Hole::Rect { w, h, .. } => text!("hole-what-rect", format!("{} \u{d7} {}", mm(*w), mm(*h))),
+        Hole::Unknown(_) => Text::bare(TextArg::Plain(hole.to_string())),
+    }
+}
+
+/// A corner inside a sentence: "bottom-left", "top-right" (the hole table's heading, the drawings' band).
+pub fn corner_in_sentence(c: &Corner) -> Text {
+    match c {
+        Corner::BottomLeft | Corner::Unknown(_) => text!("corner-in-sentence-bottom-left"),
+        Corner::BottomRight => text!("corner-in-sentence-bottom-right"),
+        Corner::TopLeft => text!("corner-in-sentence-top-left"),
+        Corner::TopRight => text!("corner-in-sentence-top-right"),
+    }
+}
+
+/// The heading of a surface's holes in the hole table (doc 13 §9.2): "Door, page 904, seen from outside, measured from
+/// the bottom-left corner".
+pub fn hole_table_heading(surface: Text, folio: &str, seen: Text, corner: &Corner) -> Text {
+    text!(
+        "hole-table-heading",
+        surface,
+        folio,
+        seen,
+        corner_in_sentence(corner)
+    )
+}
+
 /// Why a hole's text does not parse ([`ew_schema::Hole::parse`]), as the part editor's Holes table and the forms that
 /// take a hole say it: "\"M7\" is no screw size: type one of M3, M4, M5, M6, M8".
 pub fn hole_error(e: &ew_schema::HoleParseError) -> Text {

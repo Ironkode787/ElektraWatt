@@ -332,6 +332,17 @@ arrange-blocked-faults = { $p0 ->
 
 # Surface… (doc 12 §3.8)
 surface-chooser-title = Welk vlak?
+feature-form-title = Een gat toevoegen
+feature-form-title-of = Een gat toevoegen aan { $p0 }
+feature-form-add = Toevoegen
+feature-form-kind = Soort
+feature-form-size = Grootte
+feature-form-x = X (mm)
+feature-form-y = Y (mm)
+feature-form-purpose = Voor
+feature-form-xy = Geef X en Y in millimeter vanaf de hoek waarvandaan het vlak gemeten wordt.
+feature-form-size-missing = Geef de grootte van het gat: een diameter voor een gat, M3 tot M8 voor een bevestiging, 16, 22 of 30 voor een uitsparing, M12 tot M63 voor een wartel, breedte × hoogte voor een rechthoek.
+reason-no-hole-table = Het project heeft nog geen gatentabel: voeg er een toe met Rapportblok… (Gatentabel).
 surface-chooser-title-of = Welk vlak van { $p0 }?
 surface-chooser-text = Een vlak wordt op een eigen pagina getekend, gezien vanaf de kant waar eraan gewerkt wordt.
 surface-chooser-field = Vlak

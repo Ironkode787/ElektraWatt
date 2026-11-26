@@ -333,6 +333,17 @@ arrange-blocked-faults = { $p0 ->
 
 # Surface… (doc 12 §3.8)
 surface-chooser-title = Which surface?
+feature-form-title = Add a hole
+feature-form-title-of = Add a hole to { $p0 }
+feature-form-add = Add
+feature-form-kind = Kind
+feature-form-size = Size
+feature-form-x = X (mm)
+feature-form-y = Y (mm)
+feature-form-purpose = For
+feature-form-xy = Give X and Y in millimetres from the corner the surface is measured from.
+feature-form-size-missing = Give the hole's size: a diameter for a hole, M3 to M8 for a fixing, 16, 22 or 30 for a cut-out, M12 to M63 for a gland, width × height for a rectangle.
+reason-no-hole-table = The project has no hole table yet: add one with Report block… (Hole table).
 surface-chooser-title-of = Which surface of { $p0 }?
 surface-chooser-text = A surface is drawn on a page of its own, as it is seen from the side it is worked from.
 surface-chooser-field = Surface

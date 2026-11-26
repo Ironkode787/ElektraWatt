@@ -237,6 +237,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/rules/device.rs` |  | EW-CORE device and part rules of the 04x block (doc 15 §4.2): EW-CORE-041 to -045 and -048, EW-CORE-085 (a variant the part does not hold), and EW-CORE-008's `form` half and `channel` half. |
 | `src/rules/fluid.rs` |  | The EW-FL pack, its MVP rules (doc 15 §4.5.3, doc 11 §6): EW-FL-001, -002, -004, -011 and -013. |
 | `src/rules/fluid_media.rs` |  | The EW-FL pack, its 1.0 rules (doc 11 §6, doc 15 §4.5.3): EW-FL-005 … -010, -012 and -014. |
+| `src/rules/holes.rs` |  | The rules of a surface's holes (doc 12-3d §10.5, doc 15): EW-LAY-012 Holes too close and EW-LAY-017 Holes not known, both over `ew_derive::layout::SurfaceFeatures`. |
 | `src/rules/imp.rs` |  | The EW-IMP findings of the migration report (doc 14 §2.5): the import-only facts an importer recorded in the project's import runs, read back as findings. |
 | `src/rules/iolink.rs` |  | The EW-IOL rules of the EW-BUS pack's 1.0 content (doc 10 §3.8, §3.10; doc 15 §4.5.2; FR-BUS-019): EW-IOL-001 (port class and mode) and EW-IOL-002 (process data and cable length). |
 | `src/rules/layout.rs` | large | The MVP rules of the EW-LAYOUT pack (doc 15 §4.5.4): EW-LAY-001, -003, -004, -006 (2D), -010 and -016. |
@@ -297,6 +298,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/commands/languages.rs` |  | The member `languages` of `project.settings.set`: the project's languages and printed formats (doc 03 §5 `ProjectLanguages`, `Formatting`; doc 16 §9.2 step 8). |
 | `src/commands/layout.rs` | large | The `layout.*` commands (doc 12 §3): layout spaces, enclosures with their plate, carriers and placements, each one undo step. |
 | `src/commands/layout/assemblies.rs` |  | The layout's commands that place an assembly with its members, and the auto-fill of a rail. |
+| `src/commands/layout/features.rs` |  | The holes of a surface (doc 12 §3.7, doc 12-3d §10.6): a hole by hand (`layout.feature.add`, `layout.feature.edit`) and the choice that moves a derived hole or leaves it out (`layout.hole_choice`). |
 | `src/commands/library.rs` |  | `library.embed` (`EmbedLibraryCopies`): embeds library items into the project as copies with their lineage (doc 05 §13.2, doc 07 §3.1). |
 | `src/commands/library_update.rs` | large | `library.update` (`UpdateLibraryCopies`, FR-PRT-014, FR-SYM-016) and the update classification of doc 07 §4.5 ([`classify_update`]), which the session's update plan shows on the card. |
 | `src/commands/macro_insert.rs` |  | `macro.insert` (doc 07 §3.5, §4.6): inserts a window or page macro in one transaction, with its values, its placeholder groups and its closure as parameters, so a command log replays the insertion exactly on a machine with no library installed. |
@@ -351,6 +353,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/normalise/revision_ensure_open.rs` |  | Normaliser #18, the automatic open revision (`revision.ensure_open`; doc 15 §5.3, FR-REV-009). |
 | `src/normalise/solenoid_binding.rs` |  | Normaliser #13, solenoid binding (N2 = N-FL-3; doc 06 §3.2 row 13, doc 10 §3.3, doc 11 §4.2; FR-PLC-051). |
 | `src/normalise/stale_choices.rs` |  | Normaliser `stale_choices` (doc 07 §3.3 rule 8): a device's accessory choices answer the accessories its parts declare, so a choice whose accessory no part names any more goes, whichever command changed the parts. |
+| `src/normalise/stale_hole_choices.rs` |  | Normaliser `stale_hole_choices` (doc 12 §2.2, doc 12-3d §10.6): a placement's and a carrier's hole choices answer the holes of its pattern by index, so they go when the pattern changes, whichever command changed it. |
 | `src/normalise/tube_tags.rs` |  | Normaliser N-FL-5 `tube_tags` (doc 11 §4.2, FR-FLU-011): the line tags of fluid lines. |
 | `src/normalise/valve_functions.rs` |  | Normaliser N-FL-1 `valve_functions` (doc 06 §3.2 row 1, doc 11 §4.2, FR-FLU-003): a valve's functions follow its valve part. |
 | `src/normalise/wire_numbering.rs` |  | Normaliser #12, online wire numbering (doc 06 §3.2, FR-NUM-019, FR-NUM-021), v0 subset. |
@@ -397,6 +400,7 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/layout/assembly.rs` |  | The member order of an assembly or PLC station (FR-LAY-061): one function shared by `layout.place_assembly`, `layout.auto_fill` and EW-LAY-016, so that the layout and the check cannot disagree. |
 | `src/layout/carrier.rs` |  | Carrier paths: the axis-parallel check, the length and a rail's axis. |
 | `src/layout/fit.rs` |  | The mount-kind compatibility table (doc 12 §2.5, §3.3): which rail profiles and which surfaces a part's mount kind fits. |
+| `src/layout/holes.rs` |  | The holes of a surface (doc 12-3d §10): the sizes the named holes are made at ([`HOLE_SIZES`]), how a hole is made ([`made`]), a rail's and a duct's fixing holes ([`carrier_fixings`]) and [`SurfaceFeatures`], every hole of a surface with its owners, numbered in drilling order. |
 | `src/layout/legend.rs` |  | The layout legend of a mounting surface (doc 12 §5.4), the surface a panel page shows, and the legend order of carriers that the BOM's carrier lines share (part 4). |
 | `src/layout/mod.rs` |  | The layout's pure geometry (doc 12 §2.1–§2.4, §3.3): carrier paths, the mount-kind compatibility table and the pose validator, shared by the `layout.*` commands (`ew-commands`) and part 5's EW-LAY-010. |
 | `src/layout/pose.rs` |  | Poses on carriers (doc 12 §2.3): quarter turns about `w`, the degrees of freedom per carrier kind, the surface pose equivalent to a rail pose and the frame of a plate centred in its enclosure. |
@@ -903,6 +907,8 @@ Built-in report row queries (a user SQL report gives an empty row set marked not
 | `src/kinds/device_list.rs` |  | `device_list`: the device list (FR-REP-008). |
 | `src/kinds/enclosure_legend.rs` |  | `enclosure_legend`: the layout legend of a mounting surface (FR-LAY-012; doc 12 §5.4, doc 09 §2.2). |
 | `src/kinds/fluid.rs` |  | The fluid report kinds (doc 11 §8.1, §8.2): `tube_list` (FR-FLU-012), `tube_labels` (FR-FLU-013), `valve_terminal_config` (FR-FLU-015) and `medium_overview` (FR-FLU-016), over the row sources of `ew-derive` (`tube_rows`, `valve_terminal_rows`, `medium_rows`). |
+| `src/kinds/fluid.rs` |  | The fluid report kinds (doc 11 §8.1, §8.2): `tube_list` (FR-FLU-012), `tube_cut_list` and `tube_labels` (FR-FLU-013), `valve_terminal_config` (FR-FLU-015) and `medium_overview` (FR-FLU-016), over the row sources of `ew-derive` (`tube_rows`, `valve_terminal_rows`, `medium_rows`). |
+| `src/kinds/hole_table.rs` |  | `hole_table`: every hole of every surface of the project, surface by surface (doc 13 §9.2, FR-MFG-029). |
 | `src/kinds/io_list.rs` |  | `io_list`: the I/O assignment list, one row per channel of each station's modules (FR-PLC-023; doc 10 §5). |
 | `src/kinds/labels.rs` |  | `labels`: every label of the workshop (doc 13 §5.3), from `ew_derive::LabelRows`, one row per label in the order the fitter applies them; `tube_labels` lists the tube markers of the same engine with the same columns. |
 | `src/kinds/mod.rs` |  | The built-in report kinds (doc 09 §2.4): [`builtin`] lists every kind this build derives, one module a kind or a family. |
@@ -1302,6 +1308,7 @@ Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command 
 | `src/shell/editing/arming.rs` |  | Arming the canvas tools: a catalogue row, a strip, a part or a black box the next click places. |
 | `src/shell/eplan_import.rs` |  | File ▸ Import… of EPLAN data (doc 14 §5, §13): an EDZ or a parts XML, and a report spreadsheet. |
 | `src/shell/external.rs` |  | The driver status: the window's half of collaboration. |
+| `src/shell/features.rs` |  | The holes of a surface in the window (doc 12-3d §10.6, doc 13 §9.2): Add hole here… (`layout.feature_add`), the form of a hole by hand on the focused panel page's surface, and Hole tables (`lists.holes`), the project's hole table. |
 | `src/shell/find.rs` |  | The find pane in the shell: the query as typed, `find.run` (one `Session::find` call; typing makes none), the result cursor and the jump, and the replace through the inline preview card. |
 | `src/shell/fluid.rs` |  | The window's entries of the fluid commands (doc 11): a valve terminal's overview, its valves, slots, solenoids, plugs and multi-pin terminal drawn, a cell filled, a line's medium set. |
 | `src/shell/forms.rs` |  | The small forms' machinery: a form's fields and its table ([`FormDialog`], [`FormField`], [`FormTable`]), a form's spec (`Spec`: its action, its title and its fields), the parameters a form sends, typing into a field and the fields that follow it, Enter (`submit_form`: the action with the fields, a refusal kept under them), and the commit path of a create (`host_create`: a preview, then the host's commit). |

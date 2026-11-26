@@ -181,6 +181,7 @@ fn a_rails_rows_name_their_commands_and_read_the_free_length() {
     let got: Vec<(String, String, Option<String>)> = rows(&s, r1)
         .into_iter()
         .filter(|r| r.0 != "carrier/derived.part" && r.0 != "carrier/derived.free_length")
+        .filter(|r| !r.0.starts_with("carrier/derived.holes["))
         .collect();
     let edit = Some("layout.carrier.edit".to_owned());
     assert_eq!(
@@ -1055,4 +1056,102 @@ fn fit_the_layout_to_the_sheet_changes_the_scale_and_the_datum_only() {
     assert_eq!(cmd.params["datum_at"], json!([centred.0, centred.1]));
     assert_eq!(poses(&s), before, "no stored pose moves");
     assert!(s.sheet_fit(p902).is_none(), "a fitted page has nothing to fit");
+}
+
+/// The holes of the plate as `(x, y)` mm from its datum with their owners' kinds, in drilling order.
+fn plate_holes(s: &Session) -> Vec<(i64, i64)> {
+    let q = s.query();
+    let plate = q
+        .table::<MountingSurface>()
+        .iter()
+        .find(|(_, m)| m.kind == ew_schema::SurfaceKind::Plate)
+        .map(|(id, _)| id)
+        .expect("the plate");
+    q.get::<ew_derive::layout::SurfaceFeatures>(plate)
+        .iter()
+        .map(|f| (f.at.x.0 / 1_000_000, f.at.y.0 / 1_000_000))
+        .collect()
+}
+
+/// Rail 1's Holes rows (doc 12-3d §10.6): its three fixing holes at 25, 235 and 445 mm along it, from the plate's
+/// datum; typing X and Y moves one (`layout.hole_choice` with its offset), Leave out leaves one out, an empty text
+/// puts it back; lengthening the rail drops its choices (the pattern changed).
+#[test]
+fn a_rails_fixing_holes_are_listed_moved_left_out_and_put_back() {
+    let mut s = common::sample();
+    let r1 = carrier(&s, CarrierKind::Rail, 0);
+    let (x, y, _) = rail_mm(&s, r1);
+    let holes: Vec<(String, String)> = rows(&s, r1)
+        .into_iter()
+        .filter(|r| r.0.starts_with("carrier/derived.holes[") && !r.0.ends_with(".omit"))
+        .map(|r| (r.0, r.1))
+        .collect();
+    assert_eq!(
+        holes,
+        [
+            (
+                "carrier/derived.holes[0]".to_owned(),
+                format!("{}, {y} mm", x + 25)
+            ),
+            (
+                "carrier/derived.holes[1]".to_owned(),
+                format!("{}, {y} mm", x + 235)
+            ),
+            (
+                "carrier/derived.holes[2]".to_owned(),
+                format!("{}, {y} mm", x + 445)
+            ),
+        ]
+    );
+    let moved = edit(&s, "carrier", r1, "holes[1]", &format!("{}, {y}", x + 245)).expect("a move");
+    assert_eq!(moved.name, "layout.hole_choice");
+    run(&mut s, &moved);
+    assert!(plate_holes(&s).contains(&(x + 245, y)), "{:?}", plate_holes(&s));
+    let left_out = edit(&s, "carrier", r1, "holes[2].omit", "true").expect("leave out");
+    run(&mut s, &left_out);
+    assert!(!plate_holes(&s).contains(&(x + 445, y)));
+    let back = edit(&s, "carrier", r1, "holes[1]", "").expect("put back");
+    run(&mut s, &back);
+    assert!(plate_holes(&s).contains(&(x + 235, y)));
+    // A longer rail has another pattern: its one choice left (hole 3 left out) goes.
+    let longer = edit(&s, "carrier", r1, "length", "570 mm").expect("a length");
+    run(&mut s, &longer);
+    let q = s.query();
+    assert!(
+        q.table::<Carrier>()
+            .get(Id::from_uuid(r1))
+            .unwrap()
+            .hole_choices
+            .is_empty()
+    );
+}
+
+/// Add hole here…'s command refuses in words a size that does not read for its kind and a centre off the sheet, and
+/// makes the hole with its purpose.
+#[test]
+fn a_hole_by_hand_is_refused_in_words_or_made() {
+    let mut s = common::sample();
+    let q = s.query();
+    let plate = q
+        .table::<MountingSurface>()
+        .iter()
+        .find(|(_, m)| m.kind == ew_schema::SurfaceKind::Plate)
+        .map(|(id, _)| id.as_uuid())
+        .expect("the plate");
+    drop(q);
+    let add = |at: [i64; 2], size: &str| AnyCommand {
+        name: "layout.feature.add".into(),
+        params: json!({"surface": plate.to_string(), "at": at, "kind": "fixing", "size": size, "purpose": "Earth stud"}),
+    };
+    let refused = |s: &mut Session, cmd: AnyCommand| s.execute(&cmd).unwrap_err().to_string();
+    let m7 = refused(&mut s, add([100_000_000, 100_000_000], "M7"));
+    assert!(
+        m7.contains("\"M7\" is no screw size: type one of M3, M4, M5, M6, M8"),
+        "{m7}"
+    );
+    let off = refused(&mut s, add([-1_000_000, 100_000_000], "M6"));
+    assert!(off.contains("lies off the surface"), "{off}");
+    let before = plate_holes(&s).len();
+    run(&mut s, &add([100_000_000, 100_000_000], "M6"));
+    assert_eq!(plate_holes(&s).len(), before + 1);
 }

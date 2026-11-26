@@ -774,6 +774,13 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
             }
             items.extend(item("layout.reset_labels"));
             items.extend(item("layout.fit_sheet"));
+            // A hole by hand where the menu opened (doc 12-3d §10.6).
+            items.extend(model.menu_item("layout.feature_add").map(|mut i| {
+                if let Some((x, y)) = at {
+                    i.params = serde_json::json!({ "x_mm": x as f64 / 1e6, "y_mm": y as f64 / 1e6 });
+                }
+                i
+            }));
             // The cabinet's other faces, each its page (doc 12 §3.8).
             for (label, params) in model.surface_menu() {
                 items.extend(model.menu_item("layout.surface_page").map(|mut i| {

@@ -575,6 +575,19 @@ rule-ew-lay-016 = { $form ->
     }
     .title = Assembly order
     .hint = Place the assembly's parent first and its members next to it, in the order of their positions.
+rule-ew-lay-012 = { $form ->
+        [close] { $hole } is { DECIMAL($gap) } mm from { $other } on { $surface }: keep at least { DECIMAL($web) } mm between holes (Project properties ▸ Workshop ▸ Web between holes)
+        [edge] { $hole } lies { DECIMAL($distance) } mm from the edge of { $surface }, inside its { DECIMAL($margin) } mm margin and the { DECIMAL($web) } mm web; move it inward
+       *[off] { $hole } lies off { $surface }; move it onto the sheet
+    }
+    .title = Holes too close
+    .hint = Move a hole, or keep the web between holes the workshop needs.
+rule-ew-lay-017 = { $form ->
+        [part] The part { $part } of { $devices } goes in a cut-out or is screwed on, but has no holes, so the hole table and the drawings of { $surface } lack them: give the part its holes in the part editor (Front view and holes)
+       *[device] { $device } has no part, so its holes on { $surface } are not known: choose its part
+    }
+    .title = Holes not known
+    .hint = Give the part its holes in the part editor (Front view and holes), or choose the device's part.
 
 ## EW-NUM: numbering
 
@@ -1343,6 +1356,7 @@ word-lookalike = { $p0 } (looks like { $p1 })
 word-none = none
 word-the-rail-at = the rail at { $p0 }
 word-a-surface = a surface
+word-hole-of = { $p0 } ({ $p1 })
 word-terminal = terminal
 word-strip = strip
 word-another-strip = another strip

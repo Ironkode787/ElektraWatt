@@ -241,3 +241,17 @@ hole-error-not-a-cutout = "{ $p0 }" is geen uitsparing: typ een van { $p1 } mm.
 hole-error-not-a-gland = "{ $p0 }" is geen wartelschroefdraad: typ een van { $p1 }.
 hole-error-not-rect = "{ $p0 }" is geen rechthoek: typ breedte × hoogte, en daarna R en de hoekstraal als die er is, zoals 92 × 92 R 2.
 hole-error-not-positive = Een maat moet groter zijn dan 0 mm.
+
+## Hoe een gat gemaakt wordt en wat het is (doc 13 §9.2)
+
+made-tap = Ø { $p0 }, { $p1 } tappen
+hole-what-round = Gat Ø { $p0 }
+hole-what-fixing = Bevestiging { $p0 }
+hole-what-cutout = Uitsparing { $p0 }
+hole-what-gland = Wartel { $p0 }
+hole-what-rect = Rechthoek { $p0 }
+corner-in-sentence-bottom-left = linksonder
+corner-in-sentence-bottom-right = rechtsonder
+corner-in-sentence-top-left = linksboven
+corner-in-sentence-top-right = rechtsboven
+hole-table-heading = { $p0 }, pagina { $p1 }, { $p2 }, gemeten vanaf de hoek { $p3 }

@@ -94,6 +94,8 @@ pub(crate) use jobs::file_url_of;
 mod layout;
 // Surface…: the page of a face of a cabinet.
 mod surfaces;
+// The holes of a surface: Add hole here… and Hole tables
+mod features;
 // The message panel.
 mod messages;
 mod move_page;

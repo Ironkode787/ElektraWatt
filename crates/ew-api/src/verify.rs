@@ -34,10 +34,10 @@ use ew_schema::{
 };
 
 use crate::output::{
-    CarriersLayer, CpTargetsByPage, FrameLayer, LabelsLayer, LegendOfferOf, PageBindingsOf, PageCpTargetsOf,
-    PageDigest, PageEmbeddedOf, PageFrameOf, PageGridOf, PageKnockoutsOf, PageRepsOf, PageSlotsOf,
-    PageSurfaceView, PageTableOf, PlacementsLayer, ShapedText, SurfaceLayer, SymbolsLayer, TablesLayer,
-    WiresLayer,
+    CarriersLayer, CpTargetsByPage, FeaturesLayer, FrameLayer, LabelsLayer, LegendOfferOf, PageBindingsOf,
+    PageCpTargetsOf, PageDigest, PageEmbeddedOf, PageFrameOf, PageGridOf, PageKnockoutsOf, PageRepsOf,
+    PageSlotsOf, PageSurfaceView, PageTableOf, PlacementsLayer, ShapedText, SurfaceLayer, SymbolsLayer,
+    TablesLayer, WiresLayer,
 };
 use crate::{Mismatch, Session};
 
@@ -57,8 +57,9 @@ struct Keys {
     potentials: Vec<PotentialId>,
     /// The profile keys of the potentials, and the same attributes with each known circuit class.
     profile_keys: BTreeSet<ProfileKey>,
-    /// The layout spaces, carriers and placements.
+    /// The layout spaces, surfaces, carriers and placements.
     spaces: Vec<Id<ew_schema::LayoutSpace>>,
+    surfaces: Vec<Id<ew_schema::MountingSurface>>,
     carriers: Vec<Id<ew_schema::Carrier>>,
     placements: Vec<Id<ew_schema::Placement>>,
     /// The fluid lines.
@@ -103,6 +104,7 @@ impl Keys {
             potentials,
             profile_keys,
             spaces: q.table::<ew_schema::LayoutSpace>().ids().collect(),
+            surfaces: q.table::<ew_schema::MountingSurface>().ids().collect(),
             carriers: q.table::<ew_schema::Carrier>().ids().collect(),
             placements: q.table::<ew_schema::Placement>().ids().collect(),
             fluid_lines: q
@@ -267,6 +269,8 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<ew_derive::PartAccessories>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::layout::StripLayout>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::layout::PlacementGeometry>(memo, cold, keys.placements.iter().copied(), o);
+    // The holes of every surface (doc 12-3d §10.4).
+    check::<ew_derive::layout::SurfaceFeatures>(memo, cold, keys.surfaces.iter().copied(), o);
     check::<ew_derive::layout::LayoutLabel>(
         memo,
         cold,
@@ -302,6 +306,7 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<SurfaceLayer>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<CarriersLayer>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<PlacementsLayer>(memo, cold, keys.page_refs.iter().copied(), o);
+    check::<FeaturesLayer>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<LegendOfferOf>(memo, cold, keys.pages.iter().copied(), o);
     let shaped: BTreeSet<(String, ew_text::TextStyle)> = keys
         .pages

@@ -1202,6 +1202,7 @@ fn form_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogSpec 
         ..small(
             match form.action {
                 "layout.surface_page" => model.surface_chooser_title(),
+                "layout.feature_add" => model.feature_form_title(),
                 _ => strings::text(form.title_key).to_owned(),
             },
             // The Auto-fill rail dialog says which devices it fills with, and why there are none.

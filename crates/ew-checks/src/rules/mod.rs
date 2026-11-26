@@ -20,6 +20,8 @@ pub mod imp;
 // The EW-IOL rules
 pub mod iolink;
 // The EW-LAYOUT MVP rules
+// The holes of a surface: EW-LAY-012, EW-LAY-017
+pub mod holes;
 pub mod layout;
 // The rules of the wire's ends for the workshop (doc 13 §4.6)
 pub mod mfg;

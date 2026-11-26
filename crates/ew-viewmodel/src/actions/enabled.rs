@@ -507,6 +507,17 @@ pub(super) fn plate_choosable(m: &ShellModel) -> Result<(), Text> {
     }
 }
 
+/// Add hole here…: a panel page is shown in a project that can be changed.
+pub(super) fn panel_page_shown(m: &ShellModel) -> Result<(), Text> {
+    has_pages(m)?;
+    writable(m)?;
+    if m.panel_tables().is_some() {
+        Ok(())
+    } else {
+        Err(key!("reason-no-panel-page").into())
+    }
+}
+
 /// Surface…: a project that can be changed has a cabinet (an enclosure brings its plate).
 pub(super) fn surfaces_offered(m: &ShellModel) -> Result<(), Text> {
     has_pages(m)?;

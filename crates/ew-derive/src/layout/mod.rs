@@ -45,6 +45,8 @@ mod accessories;
 mod assembly;
 mod carrier;
 mod fit;
+// The holes of a surface (doc 12-3d §10)
+mod holes;
 // The layout legend and the surface of a panel page
 mod legend;
 mod pose;
@@ -59,6 +61,10 @@ pub use accessories::{Bracket, GroupAccessories, RailBrackets, rail_items};
 pub use assembly::{member_order, member_slot};
 pub use carrier::{PathError, RailAxis, check_path, path_length};
 pub use fit::{Fit, Profile, RAIL_FITS, fits_rail, fits_surface};
+pub use holes::{
+    Feature, HOLE_SIZES, HoleSizes, Made, Owner, SizeFamily, SurfaceFeatures, carrier_fixings, chosen,
+    duct_fixing_default, fixings, hole_size, made, placement_holes, rail_fixing_default,
+};
 pub use legend::{
     CarrierLabel, CarrierLabelKind, CarrierOrder, LegendItem, LegendRow, carrier_label, carrier_labels,
     carrier_length, carrier_order, carriers_in_order, layout_legend, legend_layout_page, metres_of_nm,
@@ -77,7 +83,7 @@ pub use snap::{
     end_gap, free_length, min_gap, next_fit, resolve, runs, start_gap,
 };
 pub use surfaces::{
-    Face, behind_door, door_count, door_index, enclosure_section, face_of, face_size, sheet_size,
+    Face, behind_door, door_count, door_index, enclosure_section, face_of, face_size, from_datum, sheet_size,
     surface_datum, surface_frame, surface_page, surfaces, to_enclosure,
 };
 

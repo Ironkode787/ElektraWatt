@@ -1374,7 +1374,7 @@ impl ShellModel {
 
     /// The folio of the first page of the first of `kinds` that the project has a list of: the first page in page
     /// order of a page block of that kind; `None` when it has none with a page.
-    fn list_folio(&self, kinds: &[&str]) -> Option<String> {
+    pub(super) fn list_folio(&self, kinds: &[&str]) -> Option<String> {
         let project = self.project.as_ref()?;
         let q = project.session.query();
         let rows = self.page_rows();
@@ -1442,7 +1442,7 @@ impl ShellModel {
 
     /// Shows the list page `folio` as the opening of a list does: in the focused group, fitted, its row selected in the
     /// page tree and an earlier export's toast dismissed, so its effect is in view.
-    fn open_list(&mut self, folio: &str) -> Outcome {
+    pub(super) fn open_list(&mut self, folio: &str) -> Outcome {
         let mut p = Map::new();
         p.insert("folio".to_owned(), Value::String(folio.to_owned()));
         let out = self.act_page_goto(&p);

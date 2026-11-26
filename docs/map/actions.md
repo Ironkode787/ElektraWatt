@@ -124,6 +124,7 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `labels.misfits` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_labels_misfits` `crates/ew-viewmodel/src/shell/labels.rs` | `action-labels-misfits`, `labels-misfits` |
 | `labels.write` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_labels_write` `crates/ew-viewmodel/src/shell/labels.rs` | `action-labels-write` |
 | `labels.columns` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_labels_columns` `crates/ew-viewmodel/src/shell/labels.rs` | `action-labels-columns`, `labels-columns`, `labels-columns-title` |
+| `lists.holes` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_lists_holes` `crates/ew-viewmodel/src/shell/features.rs` | `action-lists-holes` |
 | `workshop.settings` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_workshop_settings` `crates/ew-viewmodel/src/shell/labels.rs` | `action-workshop-settings` |
 | `rework.archive` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_rework_archive` `crates/ew-viewmodel/src/shell/rework.rs` | `action-rework-archive`, `rework-archive-file` |
 | `rework.export` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_rework_export` `crates/ew-viewmodel/src/shell/rework.rs` | `action-rework-export`, `rework-export` |
@@ -214,6 +215,7 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `layout.reset_labels` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_reset_labels` `crates/ew-viewmodel/src/shell/layout.rs` | `action-layout-reset-labels` |
 | `layout.options` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_options` `crates/ew-viewmodel/src/shell/layout.rs` | `action-layout-options`, `layout-options-grid`, `layout-options-mode` |
 | `layout.choose_plate` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_choose_plate` `crates/ew-viewmodel/src/shell/layout.rs` | `action-layout-choose-plate` |
+| `layout.feature_add` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_feature_add` `crates/ew-viewmodel/src/shell/features.rs` | `action-layout-feature-add`, `command-layout-feature-add` |
 | `layout.surface_page` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_surface_page` `crates/ew-viewmodel/src/shell/surfaces.rs` | `action-layout-surface-page` |
 | `tool.rail_draw` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_tool_rail_draw` `crates/ew-viewmodel/src/shell/layout.rs` | `action-tool-rail-draw` |
 | `tool.duct_draw` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_tool_duct_draw` `crates/ew-viewmodel/src/shell/layout.rs` | `action-tool-duct-draw` |

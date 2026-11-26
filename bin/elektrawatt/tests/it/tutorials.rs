@@ -532,6 +532,7 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
             "row level 2 page \"913.1\" \"Cut list\" generated changed \"V1.0\"",
             "row level 2 page \"914\" \"Consumables\" generated changed \"V1.0\"",
             "row level 2 page \"914.1\" \"Consumables\" generated changed \"V1.0\"",
+            "row level 2 page \"915\" \"Hole table\" generated changed \"V1.0\"",
         ]
     );
     // Step 1's toast, which says where the copy is (F4), and step 3's; every device of the sample has a part, so no
@@ -547,6 +548,7 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
         lines_of(&preview, &["dialog \"Print\"", "preview \""]),
         ["dialog \"Print\"", "preview \"2 of 39\" page 2"]
         ["dialog \"Print\"", "preview \"2 of 35\" page 2"]
+        ["dialog \"Print\"", "preview \"2 of 36\" page 2"]
     );
     assert_eq!(
         lines_of(&end, &["row level 2 page \"91", "title:"]),
@@ -565,6 +567,11 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
             "row level 2 page \"915.1\" \"Parts list\" generated changed \"V1.0\"",
             "row level 2 page \"915.2\" \"Parts list\" generated changed \"V1.0\"",
             "row level 2 page \"916\" \"Terminal overview\" generated changed \"V1.0\"",
+            "row level 2 page \"912\" \"Parts list\" generated changed \"V1.0\"",
+            "row level 2 page \"912.1\" \"Parts list\" generated changed \"V1.0\"",
+            "row level 2 page \"912.2\" \"Parts list\" generated changed \"V1.0\"",
+            "row level 2 page \"913\" \"Terminal overview\" generated changed \"V1.0\"",
+            "row level 2 page \"915\" \"Hole table\" generated changed \"V1.0\"",
         ]
     );
     let toast = lines_of(&end, &["toast \"Exported"]);
@@ -573,6 +580,7 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
             && toast[0].starts_with(
                 "toast \"Exported reports.pdf: 8 drawing pages, 3 section divider pages and 28 report pages, "
                 "toast \"Exported reports.pdf: 9 drawing pages, 3 section divider pages and 23 report pages, "
+                "toast \"Exported reports.pdf: 9 drawing pages, 3 section divider pages and 24 report pages, "
             ),
         "{toast:?}"
     );

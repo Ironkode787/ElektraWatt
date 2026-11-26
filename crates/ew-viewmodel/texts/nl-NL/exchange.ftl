@@ -41,6 +41,7 @@ report-rows-labels = Een label van de werkplaats geeft het rijen
 report-rows-assembly-list = Een klemmenstrook geeft het rijen
 report-rows-cut-list = Een rail, een kabelgoot, een kabel, een draad of een slang geeft het rijen
 report-rows-consumables = Een draad of een label van de werkplaats geeft het rijen
+report-rows-hole-table = Een gat van een vlak geeft het rijen
 # The export toast names its pages by kind.
 export-pages-drawing = { $p0 ->
         [one] 1 tekeningpagina

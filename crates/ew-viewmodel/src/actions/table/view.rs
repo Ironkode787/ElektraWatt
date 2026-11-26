@@ -499,9 +499,24 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_labels_columns(p),
         )),
     ),
-    // Output ▸ Workshop ▸ Workshop settings: the project's Properties at its Workshop rows (doc 13 §12).
+    // Output ▸ Workshop ▸ Hole tables opens the project's hole table, else Report block… on that kind (doc 13 §9).
     placed(
         place(Group::Workshop, 7, CommandSize::Small, None),
+        place(Group::Workshop, 4, CommandSize::Small, None),
+        "circles",
+        act(
+            "lists.holes",
+            View,
+            Menu::Output,
+            &[],
+            project_open,
+            None,
+            |s, _| s.act_lists_holes(),
+        ),
+    ),
+    // Output ▸ Workshop ▸ Workshop settings: the project's Properties at its Workshop rows (doc 13 §12).
+    placed(
+        place(Group::Workshop, 5, CommandSize::Small, None),
         "file-settings",
         act(
             "workshop.settings",

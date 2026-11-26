@@ -25,6 +25,7 @@
 //! |---|---|
 //! | [`Layer::Surface`](ew_dl::Layer::Surface) | the enclosure outline ([`Pen::P052`]), the plate outline ([`Pen::P026`]), the usable polygon thin dashed ([`Pen::P013`], 4:2) |
 //! | [`Layer::Carriers`](ew_dl::Layer::Carriers) | per carrier by ID: its outline rectangles ([`Pen::P026`]); a rail's axis as a chain line ([`Pen::P013`], dash-dot); a duct's "W×H" label in mm, in the layout-label style, centred on its longest segment and turned to read bottom to top on a vertical one. The outlines and the axis are cut around every placement label's knockout box (see below) |
+//! | [`Layer::Features`](ew_dl::Layer::Features) | per hole of the surface ([`FeatureDraw`]): a round hole as its circle at true size, a rectangle as its outline, each with a centre cross ([`Pen::P013`]); dashed under a footprint |
 //! | [`Layer::Placements`](ew_dl::Layer::Placements) | per placement by ID: its `front_2d` outline (FR-LAY-011), else its footprint rectangle ([`Pen::P026`]; an unknown footprint 4:2 dashed); then each derived end bracket ([`BracketDraw`]) as a rectangle in the footprints' pen ([`Pen::P026`]), by its strip's placement, then its rectangle |
 //! | [`Layer::Labels`](ew_dl::Layer::Labels) | per placement by ID: its label (see below), after the page items' texts |
 //!
@@ -191,6 +192,24 @@ pub struct PanelView {
     /// On a door's page, the plate's footprints behind the door in the door's frame ([`Layer::Highlights`]
     /// (ew_dl::Layer::Highlights): on the screen only), so that a handle is put in front of its switch.
     pub behind: Vec<Rect>,
+    /// The holes of the surface ([`Layer::Features`](ew_dl::Layer::Features)).
+    pub features: Vec<FeatureDraw>,
+}
+
+/// One hole of a surface as its page draws it (doc 12 §5.2).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct FeatureDraw {
+    /// Its centre in the surface frame.
+    pub at: Pt2,
+    /// Its size across as made: a round hole's diameter twice, a rectangle's width and height.
+    pub size: (Nm, Nm),
+    /// A round hole (else a rectangle).
+    pub round: bool,
+    /// It lies under a footprint: drawn dashed, a hidden line.
+    pub hidden: bool,
+    /// The entity a click selects: a hole by hand's own record, a derived hole's owner; `None` for a derived hole
+    /// under a footprint, where a click selects the footprint.
+    pub entity: Option<ew_ids::Uuid>,
 }
 
 /// What a surface view labels each placement with (doc 12 §5.3, the view's `labels`).
@@ -876,6 +895,59 @@ impl Builder<'_> {
 
     /// [`Layer::Highlights`](ew_dl::Layer::Highlights) of a panel page: the plate's footprints behind a door, thin
     /// dashed in a faint grey (on the screen only).
+    /// [`Layer::Features`](ew_dl::Layer::Features): every hole of the surface at true size with its centre cross,
+    /// dashed under a footprint.
+    pub(crate) fn panel_features(&mut self, view: &PageView) {
+        let Some(panel) = &view.panel else { return };
+        let p = panel.projection;
+        for f in &panel.features {
+            let (Some(c), w, h) = (
+                p.point(f.at),
+                p.length(i128::from(f.size.0.0)),
+                p.length(i128::from(f.size.1.0)),
+            ) else {
+                continue;
+            };
+            let (Ok(hw), Ok(hh)) = (i64::try_from(w / 2), i64::try_from(h / 2)) else {
+                continue;
+            };
+            let stroke = if f.hidden {
+                Stroke::pen(Pen::P013).dashed(DashPattern::Dash42)
+            } else {
+                Stroke::pen(Pen::P013)
+            };
+            let at =
+                |dx: i64, dy: i64| Some(Pt2::new(Nm(c.x.0.checked_add(dx)?), Nm(c.y.0.checked_add(dy)?)));
+            let (Some(a), Some(b), Some(l), Some(r), Some(t), Some(d)) = (
+                at(-hw, -hh),
+                at(hw, hh),
+                at(-hw, 0),
+                at(hw, 0),
+                at(0, -hh),
+                at(0, hh),
+            ) else {
+                continue;
+            };
+            let outline = if f.round {
+                Path::circle(c, Nm(hw))
+            } else {
+                Path::rect(Rect::from_points(a, b))
+            };
+            let with = |item: Item| match f.entity {
+                Some(e) => item.with_entity(EntityRef(e)),
+                None => item,
+            };
+            self.push(with(Item::path(outline, Some(stroke.clone()), None)));
+            for (from, to) in [(l, r), (t, d)] {
+                self.push(with(Item::path(
+                    Path::line(from, to),
+                    Some(Stroke::pen(Pen::P013)),
+                    None,
+                )));
+            }
+        }
+    }
+
     pub(crate) fn panel_highlights(&mut self, view: &PageView) {
         let Some(panel) = &view.panel else { return };
         let p = &panel.projection;

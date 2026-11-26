@@ -99,12 +99,12 @@ fn location_of(q: &Q, device: Id<Device>) -> Option<Id<StructureNode>> {
 }
 
 /// A device as printed: its full designation.
-fn device_name(q: &Q, device: Id<Device>) -> Named {
+pub(super) fn device_name(q: &Q, device: Id<Device>) -> Named {
     full_tag(q, device, text!("word-a-device-without-designation"))
 }
 
 /// A part as printed: its part number.
-fn part_name(q: &Q, part: &PartRef) -> Named {
+pub(super) fn part_name(q: &Q, part: &PartRef) -> Named {
     q.table::<LibCopy<Part>>().get(part.copy).map_or_else(
         || text!("word-a-missing-part").into(),
         |c| c.item.part_number.to_string().into(),
@@ -112,7 +112,7 @@ fn part_name(q: &Q, part: &PartRef) -> Named {
 }
 
 /// A surface after its cabinet's tag ("-UC1 door"), as a finding names it; "a surface" without one.
-fn surface_words(q: &Q, surface: Option<Id<MountingSurface>>) -> ew_l10n::TextArg {
+pub(super) fn surface_words(q: &Q, surface: Option<Id<MountingSurface>>) -> ew_l10n::TextArg {
     let face = surface.and_then(|s| ew_derive::layout::face_of(q, s));
     let tag = surface
         .and_then(|s| q.table::<MountingSurface>().get(s))
@@ -134,7 +134,7 @@ fn placement_surface(q: &Q, pl: &Placement) -> Option<Id<MountingSurface>> {
 }
 
 /// The finding shown on the first panel-layout page whose surface view shows `surface`, when there is one.
-fn shown(f: Finding, q: &Q, surface: Option<Id<MountingSurface>>) -> Finding {
+pub(super) fn shown(f: Finding, q: &Q, surface: Option<Id<MountingSurface>>) -> Finding {
     match surface.and_then(|s| surface_pages(q, s).into_iter().next()) {
         Some(page) => f.on_page(page),
         None => f,
@@ -151,7 +151,7 @@ fn placement_targets(pl: &Placement) -> [Target; 2] {
 
 /// The part use a placement realises: its `part`, else the device's primary part (an imported `None` means the
 /// primary); `None` for a strip and a device without parts.
-fn realised_part(q: &Q, pl: &Placement) -> Option<PartRef> {
+pub(super) fn realised_part(q: &Q, pl: &Placement) -> Option<PartRef> {
     if let Some(p) = &pl.part {
         return Some(p.clone());
     }
@@ -159,7 +159,10 @@ fn realised_part(q: &Q, pl: &Placement) -> Option<PartRef> {
 }
 
 /// The mount kind of a part use (`None`: no copy, no `mech` or no mount kind), with the copy for its confidence.
-fn mount_of(q: &Q, part: Option<&PartRef>) -> (Option<MountKind>, Option<std::sync::Arc<LibCopy<Part>>>) {
+pub(super) fn mount_of(
+    q: &Q,
+    part: Option<&PartRef>,
+) -> (Option<MountKind>, Option<std::sync::Arc<LibCopy<Part>>>) {
     let Some(part) = part else {
         return (None, None);
     };

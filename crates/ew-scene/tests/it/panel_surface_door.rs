@@ -54,6 +54,7 @@ fn door(right: bool) -> PageView {
             show: Default::default(),
             linked: false,
             behind: vec![Rect::from_points(mm(100, 500), mm(118, 590))],
+            features: Vec::new(),
         }),
         ..blank_page(0x01)
     }

@@ -342,10 +342,19 @@ A line says how many labels do not fit their marker part. Export… writes the t
 The CSV writes each value as it is, for your label program's import; opened in a spreadsheet, a value that starts
 with `-`, `+` or `=` is read as a formula, so open the XLSX there.
 
+### Hole tables
+
+In the Workshop group. Shows the first page of the project's hole table: every hole and cut-out of each surface of
+the cabinet (the mounting plate, a door, a side, the top, the bottom), surface by surface, numbered in the order they
+are made, with X and Y from the corner the surface's heading names, how each is made and what it is for. A project
+without a hole table opens Report block… on the hole table.
+
 ### Workshop settings
 
 In the Workshop group. Shows the project's Properties at its Workshop rows: the stock, the ferrules, two wires in one
-clamp, the marker text, the marking of cores and jumpers, the device labels and the label file columns.
+clamp, the marker text, the marking of cores and jumpers, the device labels, the label file columns and the holes:
+how a fixing hole in the plate is made, the rails' and the ducts' fixings, the web between holes and the corner the
+holes are measured from.
 
 ## View
 

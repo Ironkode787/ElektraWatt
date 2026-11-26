@@ -168,6 +168,7 @@ refusal-end-treatment-unknown = { $p0 } is geen afwerking; kies adereindhuls, tw
 refusal-end-part-unknown = Het project bevat geen artikel van een adereindhuls of ringkabelschoen { $p0 }; kies er een uit de lijst.
 refusal-layout-length-comma = Typ een lengte in millimeters, zoals 158,5.
 refusal-layout-lengths-two = Typ twee lengtes in millimeters, zoals 40, 740.
+refusal-layout-hole-row = Die rij noemt geen gat van het patroon.
 refusal-layout-lengths-two-comma = Typ twee lengtes in millimeters, zoals 40; 740.
 refusal-layout-lengths-three = Typ drie lengtes in millimeters, zoals 10, 20, 0.
 refusal-layout-lengths-three-comma = Typ drie lengtes in millimeters, zoals 10; 20; 0.

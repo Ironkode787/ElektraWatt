@@ -292,4 +292,7 @@ commands! {
     layout::EditEnclosure,
     layout::AddSurface,
     layout::EditSurface,
+    layout::AddFeature,
+    layout::EditFeature,
+    layout::HoleChoiceEdit,
 }

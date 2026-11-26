@@ -22,6 +22,7 @@
 //! | 14 | `module_pin_binding` | N3: a new unbound channel of a module whose part has a channel → pin map binds the module pin (doc 10 §3.3) |
 //! | 14a | `bus_ports` | N5: a device that is new or whose bus part (the first part use with a `bus` section with ports) changed, or a bus-port function new to or moved onto a device with a bus part, gives the part's uncarried ports to the device's port-less bus-port functions in list and ID order: address `not_applicable` for a passive port, else `tbd`, no nets; it never rewrites a port, and a carried port that disagrees with the part gives a notice |
 //! | 14a' | `stale_choices` | Doc 07 §3.3 rule 8: a device whose parts changed (or that is new) drops the accessory choices whose accessory none of its parts names any more, and so does the strip of a terminal whose parts changed, for its terminals' parts: every way of changing a device's parts (`part.assign`, `fields.set` of `parts` from the Parts row or the strip editor's Part cell) passes it |
+//! | 14a'' | `stale_hole_choices` | Doc 12 §2.2: a placement whose realised part has other holes, or a carrier whose path's pieces have other lengths, drops its hole choices, which answer its pattern's holes by index |
 //! | 14b | `bus_nets` | N6: a new or changed `Bus` line between two ports of one bus system puts them in one logical net: the net one of them names, else a new net named for the bus system with the master or controller port as its master; it never changes a net a port names |
 //! | 16 | `drives_link` | N-FL-4: a new fluid line whose fluid net holds a valve's working port and the consumer port of exactly one other device outside the valve's parent chain links the valve to that device (`drives`), unless the valve has a `drives` link |
 //! | 18 (doc 06) | `ip_form` | An interruption point drawn with one of EW's arrow forms whose direction changed takes the twin form of its new direction, unturned; a project without the twin refuses the change |
@@ -51,6 +52,7 @@ pub(crate) mod plc_aspects;
 mod revision_ensure_open;
 mod solenoid_binding;
 mod stale_choices;
+mod stale_hole_choices;
 mod tube_tags;
 mod valve_functions;
 mod wire_numbering;
@@ -71,6 +73,7 @@ pub use plc_aspects::PlcAspects;
 pub use revision_ensure_open::RevisionEnsureOpen;
 pub use solenoid_binding::SolenoidBinding;
 pub use stale_choices::StaleChoices;
+pub use stale_hole_choices::StaleHoleChoices;
 pub use tube_tags::TubeTags;
 pub use valve_functions::ValveFunctions;
 pub use wire_numbering::WireNumbering;
@@ -112,6 +115,7 @@ pub fn registry() -> Vec<Box<dyn Normaliser>> {
         Box::new(ModulePinBinding),
         Box::new(BusPorts),
         Box::new(StaleChoices),
+        Box::new(StaleHoleChoices),
         Box::new(BusNets),
         Box::new(DrivesLink),
         Box::new(IpForm),

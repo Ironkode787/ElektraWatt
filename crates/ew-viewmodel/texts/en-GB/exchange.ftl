@@ -43,6 +43,7 @@ report-rows-labels = A label of the workshop gives it rows
 report-rows-assembly-list = A terminal strip gives it rows
 report-rows-cut-list = A rail, a duct, a cable, a wire or a tube gives it rows
 report-rows-consumables = A wire or a label of the workshop gives it rows
+report-rows-hole-table = A hole of a surface gives it rows
 # The export toast names its pages by kind.
 export-pages-drawing = { $p0 ->
         [one] 1 drawing page

@@ -4,6 +4,7 @@ msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
 "POT-Creation-Date: 2026-11-26T19:17:52Z\n"
 "POT-Creation-Date: 2026-11-26T21:30:51Z\n"
+"POT-Creation-Date: 2026-11-26T23:09:01Z\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -803,6 +804,7 @@ msgid ""
 "`reports.pdf`. When the export is done, the toast says \"Exported "
 "reports.pdf: 8 drawing pages, 3 section divider pages and 28 report pages\", "
 "reports.pdf: 9 drawing pages, 3 section divider pages and 23 report pages\", "
+"reports.pdf: 9 drawing pages, 3 section divider pages and 24 report pages\", "
 "with the file's size. Open the file from the toast to see it: one PDF/A-2b "
 "file with every page, its outline and its cross-reference links."
 msgstr ""
@@ -812,6 +814,7 @@ msgid ""
 "Choose **Output ▸ Print…** (`Ctrl+P`). The Print dialog shows the range, the "
 "paper and a preview of the first page: \"1 of 39\". Step to the next page in "
 "paper and a preview of the first page: \"1 of 35\". Step to the next page in "
+"paper and a preview of the first page: \"1 of 36\". Step to the next page in "
 "the preview to see page 2. Choose **Cancel** to close the dialog without "
 "printing."
 msgstr ""
@@ -6988,6 +6991,8 @@ msgstr ""
 
 #: src/reference/window/command-bar.md:345
 msgid "Workshop settings"
+#: src/reference/window/command-bar.md:327
+msgid "Hole tables"
 msgstr ""
 
 #: src/reference/window/command-bar.md:347
@@ -7003,9 +7008,36 @@ msgstr ""
 
 #: src/reference/window/command-bar.md:352
 msgid "Back"
+"In the Workshop group. Shows the first page of the project's hole table: "
+"every hole and cut-out of each surface of the cabinet (the mounting plate, a "
+"door, a side, the top, the bottom), surface by surface, numbered in the "
+"order they are made, with X and Y from the corner the surface's heading "
+"names, how each is made and what it is for. A project without a hole table "
+"opens Report block… on the hole table."
+msgstr ""
+
+#: src/reference/window/command-bar.md:334
+msgid "Workshop settings"
 msgstr ""
 
 #: src/reference/window/command-bar.md:354
+msgid ""
+"In the Workshop group. Shows the project's Properties at its Workshop rows: "
+"the stock, the ferrules, two wires in one clamp, the marker text, the "
+"marking of cores and jumpers, the device labels, the label file columns and "
+"the holes: how a fixing hole in the plate is made, the rails' and the ducts' "
+"fixings, the web between holes and the corner the holes are measured from."
+msgstr ""
+
+#: src/reference/window/command-bar.md:341
+msgid "View"
+msgstr ""
+
+#: src/reference/window/command-bar.md:343
+msgid "Back"
+msgstr ""
+
+#: src/reference/window/command-bar.md:345
 msgid ""
 "Goes back to the place shown before the last jump (a cross-reference "
 "followed, a page opened)."
@@ -7024,6 +7056,19 @@ msgid "Follow cross-reference"
 msgstr ""
 
 #: src/reference/window/command-bar.md:362
+#: src/reference/window/command-bar.md:347
+msgid "Forward"
+msgstr ""
+
+#: src/reference/window/command-bar.md:349
+msgid "Goes forward again after **Back**."
+msgstr ""
+
+#: src/reference/window/command-bar.md:351
+msgid "Follow cross-reference"
+msgstr ""
+
+#: src/reference/window/command-bar.md:353
 msgid ""
 "Goes to the place the cross-reference under the pointer or selected names."
 msgstr ""
@@ -7081,6 +7126,59 @@ msgid "Theme"
 msgstr ""
 
 #: src/reference/window/command-bar.md:390
+#: src/reference/window/command-bar.md:355
+msgid "Zoom in"
+msgstr ""
+
+#: src/reference/window/command-bar.md:357
+msgid "Shows the page larger, around the middle of the view."
+msgstr ""
+
+#: src/reference/window/command-bar.md:359
+msgid "Zoom out"
+msgstr ""
+
+#: src/reference/window/command-bar.md:361
+msgid "Shows the page smaller."
+msgstr ""
+
+#: src/reference/window/command-bar.md:363
+msgid "Actual size"
+msgstr ""
+
+#: src/reference/window/command-bar.md:365
+msgid "Shows the page at its printed size."
+msgstr ""
+
+#: src/reference/window/command-bar.md:367
+msgid "Fit page"
+msgstr ""
+
+#: src/reference/window/command-bar.md:369
+msgid "Shows the whole page in the view."
+msgstr ""
+
+#: src/reference/window/command-bar.md:371
+msgid "Side by side"
+msgstr ""
+
+#: src/reference/window/command-bar.md:373
+msgid "Shows two pages side by side, each in its own group of tabs."
+msgstr ""
+
+#: src/reference/window/command-bar.md:375
+msgid "Grid"
+msgstr ""
+
+#: src/reference/window/command-bar.md:377
+msgid "Shows or hides the drawing grid on the page."
+msgstr ""
+
+#: src/reference/window/command-bar.md:379
+msgid "Theme"
+msgstr ""
+
+#: src/reference/window/command-bar.md:381
 msgid ""
 "Chooses the window's colours. See "
 "[Appearance](../../how-to/application-window.md#appearance)."
@@ -7107,6 +7205,27 @@ msgid "Show tips"
 msgstr ""
 
 #: src/reference/window/command-bar.md:402
+#: src/reference/window/command-bar.md:383
+msgid "Density"
+msgstr ""
+
+#: src/reference/window/command-bar.md:385
+msgid "Chooses how close the window's rows and buttons stand."
+msgstr ""
+
+#: src/reference/window/command-bar.md:387
+msgid "UI scale"
+msgstr ""
+
+#: src/reference/window/command-bar.md:389
+msgid "Makes the whole window larger or smaller."
+msgstr ""
+
+#: src/reference/window/command-bar.md:391
+msgid "Show tips"
+msgstr ""
+
+#: src/reference/window/command-bar.md:393
 msgid ""
 "Shows or hides the tips the window gives on the canvas and in empty panels."
 msgstr ""
@@ -7116,6 +7235,11 @@ msgid "Frame statistics"
 msgstr ""
 
 #: src/reference/window/command-bar.md:406
+#: src/reference/window/command-bar.md:395
+msgid "Frame statistics"
+msgstr ""
+
+#: src/reference/window/command-bar.md:397
 msgid ""
 "Shows how long the window takes to draw each frame, for a report of a slow "
 "window."

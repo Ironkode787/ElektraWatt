@@ -33,6 +33,10 @@ const EXCLUDED: &[(&str, &str)] = &[
         "it goes with the project's own panel layout (doc 12 §5.4), which Enclosure… makes",
     ),
     (
+        "the hole table 915",
+        "it lists the holes of the project's own surfaces, which the basic project has none of",
+    ),
+    (
         "the location nodes",
         "the project's own cabinets and process field; the wizard's location field is empty by default",
     ),
@@ -150,6 +154,7 @@ fn conventions(dir: &Path, page_types: &BTreeSet<String>) -> Vec<(String, Value)
             !(903..=905).contains(&folio) && !(912..=914).contains(&folio)
         })
         .filter(|b| b.get("layout_page").is_none())
+        .filter(|b| b["source"]["kind"] != "hole_table")
         .map(|b| {
             let title = if b["first_folio"] == 908 {
                 Value::Null

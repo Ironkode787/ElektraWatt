@@ -257,6 +257,19 @@ pub fn surface_datum(q: &Q, surface: &MountingSurface) -> Corner {
         .unwrap_or_default()
 }
 
+/// A point `(u, v)` of a surface measured from its datum corner (doc 12 §2.8): its distances from the corner's two
+/// edges, positive into the sheet. The same map takes a measured point back to the surface frame.
+pub fn from_datum(q: &Q, s: &MountingSurface, (u, v): (i128, i128)) -> (i128, i128) {
+    let (w, h) = sheet_size(s).unwrap_or_default();
+    let (w, h) = (i128::from(w.0), i128::from(h.0));
+    match surface_datum(q, s) {
+        Corner::BottomLeft | Corner::Unknown(_) => (u, v),
+        Corner::BottomRight => (w - u, v),
+        Corner::TopLeft => (u, h - v),
+        Corner::TopRight => (w - u, h - v),
+    }
+}
+
 /// `to_enclosure(surface, pt)`: a point of the plate or of a door in the enclosure's front view (`x`, `y`), so that a
 /// door's point lies in front of the plate's point of the same `x`, `y` (doc 12 §2.8: seen from outside, nothing is
 /// mirrored); `None` for any other face, a kind of a newer format or a missing surface.

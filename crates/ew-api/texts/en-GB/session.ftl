@@ -167,6 +167,7 @@ refusal-end-treatment-unknown = { $p0 } is no end treatment; choose ferrule, twi
 refusal-end-part-unknown = The project holds no ferrule or ring lug part { $p0 }; choose one of the list.
 refusal-layout-length-comma = Type a length in millimetres, such as 158,5.
 refusal-layout-lengths-two = Type two lengths in millimetres, such as 40, 740.
+refusal-layout-hole-row = That row names no hole of the pattern.
 refusal-layout-lengths-two-comma = Type two lengths in millimetres, such as 40; 740.
 refusal-layout-lengths-three = Type three lengths in millimetres, such as 10, 20, 0.
 refusal-layout-lengths-three-comma = Type three lengths in millimetres, such as 10; 20; 0.

@@ -133,9 +133,9 @@ pub use fields::{
 pub(crate) use fields::{FieldSpec, library_fields};
 pub use job::{DxfExportJob, ExportJob, PrintSetJob};
 pub use layers::{
-    CarriersLayer, FrameLayer, LabelsLayer, PageKnockoutsOf, PageLayer, PlacementsLayer, SurfaceLayer,
-    SymbolsLayer, TablesLayer, WiresLayer, new_project_text_style_table, page_kind, page_layer, page_scene,
-    page_view, text_style_table,
+    CarriersLayer, FeaturesLayer, FrameLayer, LabelsLayer, PageKnockoutsOf, PageLayer, PlacementsLayer,
+    SurfaceLayer, SymbolsLayer, TablesLayer, WiresLayer, new_project_text_style_table, page_kind, page_layer,
+    page_scene, page_view, text_style_table,
 };
 pub(crate) use layout_edit::LayoutPartOffer;
 pub use layout_edit::{

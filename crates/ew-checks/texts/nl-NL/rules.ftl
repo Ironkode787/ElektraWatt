@@ -575,6 +575,19 @@ rule-ew-lay-016 = { $form ->
     }
     .title = Montagevolgorde
     .hint = Plaats eerst de ouder van de samenstelling en de leden ernaast, in de volgorde van hun posities.
+rule-ew-lay-012 = { $form ->
+        [close] { $hole } ligt { DECIMAL($gap) } mm van { $other } op { $surface }: houd minstens { DECIMAL($web) } mm tussen gaten (Projecteigenschappen ▸ Werkplaats ▸ Ruimte tussen gaten)
+        [edge] { $hole } ligt { DECIMAL($distance) } mm van de rand van { $surface }, binnen de randstrook van { DECIMAL($margin) } mm en de ruimte van { DECIMAL($web) } mm; schuif het naar binnen
+       *[off] { $hole } ligt buiten { $surface }; schuif het op de plaat
+    }
+    .title = Gaten te dicht bij elkaar
+    .hint = Verschuif een gat, of houd de ruimte tussen gaten aan die de werkplaats nodig heeft.
+rule-ew-lay-017 = { $form ->
+        [part] Het artikel { $part } van { $devices } gaat in een uitsparing of wordt vastgeschroefd, maar heeft geen gaten, dus de gatentabel en de tekeningen van { $surface } missen ze: geef het artikel zijn gaten in de artikeleditor (Vooraanzicht en gaten)
+       *[device] { $device } heeft geen artikel, dus zijn gaten op { $surface } zijn niet bekend: kies zijn artikel
+    }
+    .title = Gaten niet bekend
+    .hint = Geef het artikel zijn gaten in de artikeleditor (Vooraanzicht en gaten), of kies het artikel van het apparaat.
 
 rule-ew-num-001 = { $frozen }: vastgezet, wijkt af van het nummeringsschema (afgeleide waarde { $derived })
     .title = Kenmerk wijkt af van het nummeringsschema
@@ -1323,6 +1336,7 @@ word-lookalike = { $p0 } → { $p1 }
 word-none = geen
 word-the-rail-at = de rail bij { $p0 }
 word-a-surface = een vlak
+word-hole-of = { $p0 } ({ $p1 })
 word-terminal = klem
 word-strip = klemmenstrook
 word-another-strip = een andere klemmenstrook
