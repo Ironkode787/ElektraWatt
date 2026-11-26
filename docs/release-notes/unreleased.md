@@ -170,9 +170,10 @@ change here.
   confirmed by a panel builder: `ferrule 1.5 BK`, `twin 2.5 BU · 101.6` (two wires of one size on one clamp, where
   it takes one), `ring lug`, `bare`, `connector`, `?` where the end cannot be made, `—` for an end made outside the
   project; From part, To part, From strip length and To strip length name the ferrule from the workshop stock and its
-  sleeve. They are in the list's CSV and XLSX, in List columns… and in the Connections table. Project properties ▸ Workshop has Ferrules (every fine-stranded end, or not into spring or push-in
-  clamps) and Two wires in one clamp (a twin ferrule, or a ferrule each); `project.settings.set` sets them as
-  `workshop.ferrules` and `workshop.two_wires`.
+  sleeve. They are in the list's CSV and XLSX, in List columns… and in the Connections table. Project properties ▸
+  Workshop has Ferrules (by default none into a spring or push-in clamp, where the end stays bare, and one on every
+  other fine-stranded end; or one on every fine-stranded end) and Two wires in one clamp (a twin ferrule, or a ferrule
+  each); `project.settings.set` sets them as `workshop.ferrules` and `workshop.two_wires`.
 - behaviour-change: Two new checks: EW-POT-010 (error) when more conductors land on a clamp than its part says it
   takes, a twin ferrule counted once; EW-MFG-008 (warning) for an end that cannot be made, a fine-stranded wire into an
   insulation-displacement clamp.

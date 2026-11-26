@@ -161,7 +161,7 @@
         },
         {
           "const": "not_into_spring_clamps",
-          "description": "Every fine-stranded end but those into a spring or push-in clamp, which holds the strands itself.",
+          "description": "Every fine-stranded end but those into a spring or push-in clamp, which holds the strands itself: the default\n(the owner's shop rule, 2026-11-26).",
           "type": "string"
         }
       ]
@@ -1233,7 +1233,7 @@
         },
         "ferrules": {
           "$ref": "#/$defs/FerruleRule",
-          "description": "Which fine-stranded ends take a ferrule (doc 13 §4.2); absent: every one."
+          "description": "Which fine-stranded ends take a ferrule (doc 13 §4.2); absent: every one but those into a spring or push-in\nclamp."
         },
         "stock": {
           "description": "The wire, ferrule and marker parts the shop keeps, in its order of preference: a wire takes the first stock\nwire part of its size and colour, an end the first stock ferrule that fits it, a label kind the first stock\nmarker that marks it.",

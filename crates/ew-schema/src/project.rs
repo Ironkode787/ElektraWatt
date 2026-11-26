@@ -419,7 +419,8 @@ pub struct WorkshopSettings {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<NmS>")]
     pub cut_increment: Option<Nm>,
-    /// Which fine-stranded ends take a ferrule (doc 13 §4.2); absent: every one.
+    /// Which fine-stranded ends take a ferrule (doc 13 §4.2); absent: every one but those into a spring or push-in
+    /// clamp.
     #[serde(default, skip_serializing_if = "is_default")]
     pub ferrules: FerruleRule,
     /// What two wires of one size on one clamp take (doc 13 §4.3); absent: a twin ferrule.
@@ -437,9 +438,10 @@ pub struct WorkshopSettings {
 #[schemars(rename = "FerruleRule")]
 pub enum FerruleRule {
     /// Every fine-stranded end.
-    #[default]
     EveryFineStrandedEnd,
-    /// Every fine-stranded end but those into a spring or push-in clamp, which holds the strands itself.
+    /// Every fine-stranded end but those into a spring or push-in clamp, which holds the strands itself: the default
+    /// (the owner's shop rule, 2026-11-26).
+    #[default]
     NotIntoSpringClamps,
     /// A value of a newer format, kept verbatim.
     #[serde(skip)]

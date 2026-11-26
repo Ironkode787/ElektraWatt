@@ -675,5 +675,11 @@ mod tests {
                 .iter()
                 .all(|r| !r.verified && !r.source.is_empty())
         );
+        // The default (the owner's shop rule): a fine-stranded end into a spring or push-in clamp stays bare, into a
+        // screw clamp it takes a ferrule.
+        let default = FerruleRule::default();
+        for (kind, row) in [(ClampType::Spring, 5), (ClampType::PushIn, 5), (ClampType::Screw, 6)] {
+            assert_eq!(rule_for(Some(&clamp(kind.clone())), Some(5), &default).0.row, row, "{kind:?}");
+        }
     }
 }

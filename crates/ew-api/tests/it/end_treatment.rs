@@ -86,12 +86,12 @@ fn the_workshop_members_are_set_in_words() {
     run(
         &mut s,
         "project.settings.set",
-        json!({"member": "workshop.ferrules", "value": "not_into_spring_clamps"}),
+        json!({"member": "workshop.ferrules", "value": "every_fine_stranded_end"}),
     )
-    .expect("not into spring clamps");
+    .expect("every fine-stranded end");
     assert_eq!(
         s.query().project().settings.workshop.ferrules,
-        ew_schema::FerruleRule::NotIntoSpringClamps
+        ew_schema::FerruleRule::EveryFineStrandedEnd
     );
     let refused = run(
         &mut s,
@@ -111,7 +111,7 @@ fn the_workshop_members_are_set_in_words() {
     .expect("the default");
     assert_eq!(
         s.query().project().settings.workshop.ferrules,
-        ew_schema::FerruleRule::EveryFineStrandedEnd
+        ew_schema::FerruleRule::NotIntoSpringClamps
     );
 }
 

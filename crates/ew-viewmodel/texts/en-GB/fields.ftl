@@ -1083,7 +1083,7 @@ field-help-project-settings-workshop = The project's settings for the workshop: 
 field-help-project-settings-workshop-stock = The wires, ferrules and markers the shop keeps, in its order of preference: a wire, a wire end and a label take the first that fits them.
 field-help-project-settings-workshop-stock-item = One part the shop keeps.
 field-help-project-settings-workshop-cut-increment = What the cut list rounds each piece up to; empty: 5 mm.
-field-help-project-settings-workshop-ferrules = Which fine-stranded wire ends take a ferrule: every one, or every one but those into a spring or push-in clamp, which holds the strands itself; empty: every one.
+field-help-project-settings-workshop-ferrules = Which fine-stranded wire ends take a ferrule: every one, or every one but those into a spring or push-in clamp, which holds the strands itself; empty: every one but those into a spring or push-in clamp.
 field-help-project-settings-workshop-two-wires = What two wires of one size on one clamp take: one twin ferrule, where the clamp takes one, or a ferrule each; empty: a twin ferrule.
 # The fluid fields and choices.
 field-word-fitting = Fitting

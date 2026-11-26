@@ -151,7 +151,7 @@ pub struct WorkshopSettings {                 // ProjectSettings.workshop; absen
     pub marking: Marking,                     // destination (default) | wire_number | both_ends | potential
     pub mark_cores: bool,                     // default false: a core is known by its colour or number
     pub mark_jumpers: bool,                   // default false: a jumper on one device carries no marker
-    pub ferrules: FerruleRule,                // every_fine_stranded_end (default) | not_into_spring_clamps
+    pub ferrules: FerruleRule,                // not_into_spring_clamps (default) | every_fine_stranded_end
     pub two_wires: TwoWires,                  // twin_ferrule (default) | ferrule_each
     pub device_labels: DeviceLabels,          // on_device (default) | on_device_and_beside
     pub label_profile: Option<ExportProfile>, // absent: the generic profile (§5.4)
@@ -407,8 +407,10 @@ wire whose class nothing names is taken as fine-stranded, the common panel wire.
 says so in Properties ("rule: fine-stranded wire, clamp kind not known") and in its source; the printed list prints the
 treatment only.
 
-**What the shop sets** (`WorkshopSettings`, §2.3): `ferrules` (every fine-stranded end, or not into spring and push-in
-clamps: row 5), `two_wires` (§4.3) and the order of its stock (§4.4). Fork and pin lugs are not made by this design: no
+**What the shop sets** (`WorkshopSettings`, §2.3): `ferrules`, by default no ferrule into a spring or push-in clamp
+(row 5: the end stays bare) and a ferrule on every other fine-stranded end, a screw clamp's (row 6), or else a
+ferrule on every fine-stranded end; `two_wires` (§4.3: two wires of one size on one clamp, a screw clamp by default,
+share a twin ferrule) and the order of its stock (§4.4). The default is the owner's shop rule (2026-11-26). Fork and pin lugs are not made by this design: no
 part section describes them yet.
 
 ### 4.3 Two or more wires on one clamp

@@ -1073,7 +1073,7 @@ field-help-project-settings-workshop = De instellingen van het project voor de w
 field-help-project-settings-workshop-stock = De draden, adereindhulzen en merkers die de werkplaats aanhoudt, in volgorde van voorkeur: een draad, een draadeinde en een label nemen de eerste die past.
 field-help-project-settings-workshop-stock-item = Eén artikel dat de werkplaats aanhoudt.
 field-help-project-settings-workshop-cut-increment = Waarop de zaaglijst elk stuk naar boven afrondt; leeg: 5 mm.
-field-help-project-settings-workshop-ferrules = Welke fijndradige draadeinden een adereindhuls krijgen: elk, of elk behalve die in een veer- of push-in-klem, die de aders zelf vasthoudt; leeg: elk.
+field-help-project-settings-workshop-ferrules = Welke fijndradige draadeinden een adereindhuls krijgen: elk, of elk behalve die in een veer- of push-in-klem, die de aders zelf vasthoudt; leeg: elk behalve die in een veer- of push-in-klem.
 field-help-project-settings-workshop-two-wires = Wat twee draden van één doorsnede op één klem krijgen: één twin-adereindhuls, waar de klem die neemt, of elk een adereindhuls; leeg: een twin-adereindhuls.
 # de fluïdumvelden en -keuzes.
 field-word-fitting = Koppeling
