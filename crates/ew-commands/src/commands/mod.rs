@@ -82,7 +82,7 @@ pub use edit::BULK_ABOVE;
 pub use exchange::{ExchangePin, derive_pin_map};
 pub use fields::{ASPECTS, SET_MANY_MAX_EDITS, SETTABLE};
 pub use fluid::{ClosureKindParam, ClosureParam, MediumParam, OccupancyParam, TubeField, ValveStateParam};
-pub use form_edit::{FieldFromCell, MIN_CELL, PictureInCell};
+pub use form_edit::{FieldFromCell, GridAxis, MAX_AXIS, MAX_FIRST, MIN_CELL, PictureInCell, forked_copies};
 pub use frames::FRAMES_MEMBER;
 pub use import::{
     ApplyImport, MemberChange, ReimportClass, ReimportPlan, ReimportRow, lineage_keys, member_text,
@@ -258,6 +258,8 @@ commands! {
     part_delete::DeletePartCopy,
     // A frame or title block changed on the page
     form_edit::EditForm,
+    // The columns and rows of a frame
+    form_edit::SetFrameGrid,
     workshop::SetWorkshopStock,
     // The fields of the project's own
     user_prop::DefineUserProp,

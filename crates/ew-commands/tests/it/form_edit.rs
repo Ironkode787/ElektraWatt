@@ -231,3 +231,63 @@ fn what_a_title_block_cannot_be_is_refused() {
     out["cells"][1]["rect"][1][0] = json!(900_000_000);
     refuse(out, "/form/cells/1");
 }
+
+/// `frame.set_grid` (doc 09 §3.9, doc 06 §2.4): 10 columns from 1 and 6 rows share the drawing area exactly, so its
+/// outer edges stay; a title block that grows over the drawing of a page of the frame is refused, naming the page.
+#[test]
+fn columns_and_rows_share_the_drawing_area_and_a_block_does_not_grow_over_drawing() {
+    let mut e = engine(model());
+    let project = e.model().project().id.as_uuid();
+    let fork = Uuid::from_u128(0xf1);
+    let old = copy(&e, form_id(GRID))
+        .expect("the grid frame")
+        .item
+        .grid
+        .expect("its grid");
+    commit(
+        &mut e,
+        "frame.set_grid",
+        json!({"frame": GRID, "columns": {"count": 10, "first": 1}, "rows": {"count": 6},
+            "forks": [fork.to_string()]}),
+    );
+    let new_id: Id<FormDef> = v5::lib_copy_id(project, fork);
+    let new = copy(&e, new_id)
+        .expect("the frame's fork")
+        .item
+        .grid
+        .expect("its grid");
+    let length =
+        |step: ew_units::Grid, n: u16| (u128::from(step.num()) * u128::from(n), u128::from(step.den()));
+    let same = |a: (u128, u128), b: (u128, u128)| a.0 * b.1 == b.0 * a.1;
+    assert_eq!(
+        (new.columns.count, new.columns.start_index, new.rows.count),
+        (10, 1, 6)
+    );
+    assert!(
+        same(length(new.columns.width, 10), length(old.columns.width, 17)),
+        "the width stays exactly"
+    );
+    assert!(
+        same(length(new.rows.height, 6), length(old.rows.height, 8)),
+        "the height stays exactly"
+    );
+    let page = e
+        .model()
+        .table::<Page>()
+        .get(&PAGE_101)
+        .expect("page 101")
+        .clone();
+    assert_eq!(page.form, Some(new_id), "the page prints on the fork");
+
+    // A title block 165 mm higher leaves the rows 4 mm: the drawing of page 101 lies where it would grow.
+    let block = copy(&e, form_id(BLOCK)).expect("the block").item.sheet.height;
+    let forks: Vec<String> = (2..=5).map(|n| Uuid::from_u128(0xf0 + n).to_string()).collect();
+    let r = e.preview(&AnyCommand {
+        name: "frame.set_grid".to_owned(),
+        params: json!({"frame": new_id.to_string(), "title_block_height": block.0 + 165_000_000, "forks": forks}),
+    });
+    match r {
+        Err(CmdError::Rejected { text, .. }) => assert!(text.to_string().contains("101"), "{text}"),
+        other => panic!("expected the refusal naming page 101, got {other:?}"),
+    }
+}

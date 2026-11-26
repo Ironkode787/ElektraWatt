@@ -216,6 +216,22 @@ fn anchor_cell_with(rows: &impl Rows, rep: Id<Representation>) -> Option<ew_deri
     ew_derive::printed_cell(&grid, page.grid, point)
 }
 
+/// The frame form a drawn page prints on, by the rule of `ew_derive::frame_form_of`: its own held form, else the
+/// frame defaults' entry of its type, else their default; `None` for the built-in frame.
+fn frame_form_with(rows: &impl Rows, page: &Page) -> Option<Id<FormDef>> {
+    let held = |id: Id<FormDef>| rows.row::<LibCopy<FormDef>>(id).is_some();
+    page.form.filter(|f| held(*f)).or_else(|| {
+        let frames = rows.project_settings_frames();
+        let settings = ew_derive::FrameSettingsValue::parse(frames.as_ref());
+        ew_derive::frame_form_from_settings(&settings, &page.kind, true, held)
+    })
+}
+
+/// The frame form a page of a transaction prints on ([`frame_form_with`]).
+pub(crate) fn frame_form(tx: &TxBuilder<'_>, page: &Page) -> Option<Id<FormDef>> {
+    frame_form_with(tx, page)
+}
+
 /// The frame grid of a page in a transaction, by the rule of `ew_derive::FrameGridOf`.
 pub(crate) fn frame_grid(tx: &TxBuilder<'_>, page: &Page) -> Option<FrameGrid> {
     frame_grid_with(tx, page)
@@ -223,13 +239,7 @@ pub(crate) fn frame_grid(tx: &TxBuilder<'_>, page: &Page) -> Option<FrameGrid> {
 
 /// The frame grid of a page, by the rule of `ew_derive::FrameGridOf`.
 fn frame_grid_with(rows: &impl Rows, page: &Page) -> Option<FrameGrid> {
-    let held = |id: Id<FormDef>| rows.row::<LibCopy<FormDef>>(id).is_some();
-    let form = page.form.filter(|f| held(*f)).or_else(|| {
-        let frames = rows.project_settings_frames();
-        let settings = ew_derive::FrameSettingsValue::parse(frames.as_ref());
-        ew_derive::frame_form_from_settings(&settings, &page.kind, true, held)
-    });
-    match form {
+    match frame_form_with(rows, page) {
         None if matches!(
             page.kind,
             PageType::TitlePage | PageType::TableOfContents | PageType::SectionDivider

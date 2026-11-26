@@ -32,6 +32,8 @@ pub const SHOWS_ROW: &str = "frame/shows";
 pub const SIZE_ROW: &str = "frame/size";
 /// A chosen cell's Alignment row.
 pub const ALIGN_ROW: &str = "frame/align";
+/// The frame's Columns and rows row: a click chooses the rulers.
+pub const RULERS_ROW: &str = "frame/rulers";
 
 /// The alignments a cell takes, by the stored word.
 const ALIGNS: &[(&str, crate::strings::Key<'static>)] = &[
@@ -617,7 +619,18 @@ impl ShellModel {
                     ),
                 ]
             }
-            FrameChoice::Frame | FrameChoice::Rulers => {
+            FrameChoice::Rulers => {
+                header.title = text(key!("frame-row-rulers"));
+                header.subtitle = Some(strings::format(
+                    key!("frame-pages"),
+                    &[&facts.frame_pages.len().to_string()],
+                ));
+                let typed = |key: &str, label: String, ty: FieldType, text: String, json: Value| {
+                    row(key, label, ty, text, json, true)
+                };
+                self.ruler_rows(&facts, &typed)
+            }
+            FrameChoice::Frame => {
                 header.title = text(key!("frame-title"));
                 header.subtitle = Some(strings::format(
                     key!("frame-pages"),
@@ -669,7 +682,7 @@ impl ShellModel {
                             axis(r, key!("frame-axis-letters"), key!("frame-axis-numbers"))
                         ),
                         Value::Null,
-                        false,
+                        true,
                     ));
                 }
                 rows
@@ -758,6 +771,14 @@ impl ShellModel {
                 .iter()
                 .map(|(a, k)| (strings::text(*k).to_owned(), Value::String((*a).to_owned())))
                 .collect(),
+            "frame/columns.counting" | "frame/rows.counting" => vec![
+                (strings::text(key!("frame-numbers")).to_owned(), json!("numbers")),
+                (strings::text(key!("frame-letters")).to_owned(), json!("letters")),
+            ],
+            "frame/rows.skip_io" | "frame/drawn" => vec![
+                (strings::text(key!("frame-yes")).to_owned(), json!(true)),
+                (strings::text(key!("frame-no")).to_owned(), json!(false)),
+            ],
             _ => return None,
         };
         Some(
@@ -771,7 +792,15 @@ impl ShellModel {
     /// The value a text typed into the frame row `row` names: the Text row's text itself; for a row of choices, the
     /// choice `choice` of its list, else the one whose words or value the text is. `None` for another row or no match.
     pub(super) fn frame_typed_value(&self, row: &str, text: &str, choice: Option<usize>) -> Option<Value> {
-        if row == TEXT_ROW {
+        let typed_rows = [
+            TEXT_ROW,
+            "frame/columns.count",
+            "frame/columns.first",
+            "frame/rows.count",
+            "frame/rows.first",
+            "frame/block_height",
+        ];
+        if typed_rows.contains(&row) {
             return Some(Value::String(text.to_owned()));
         }
         let items = self.frame_row_choices(row, "")?;
@@ -791,6 +820,9 @@ impl ShellModel {
     pub(super) fn commit_frame_row(&mut self, row: &str, value: &Value) -> Option<Outcome> {
         if !row.starts_with(&format!("{FRAME_KIND}/")) {
             return None;
+        }
+        if let Some(out) = self.commit_ruler_row(&row[FRAME_KIND.len() + 1..], value) {
+            return Some(out);
         }
         let cells = self.chosen_cells()?;
         self.props.edit = None;
@@ -859,5 +891,225 @@ impl ShellModel {
             return Outcome::Done;
         }
         self.begin_edit(TEXT_ROW, RowAction::Edit, None)
+    }
+}
+
+/// The rulers' rows: `frame/<axis>.<member>` for the columns and the rows, `frame/drawn` and `frame/block_height`.
+const RULER_ROWS: &[&str] = &[
+    "columns.count",
+    "columns.counting",
+    "columns.first",
+    "rows.count",
+    "rows.counting",
+    "rows.first",
+    "rows.skip_io",
+    "drawn",
+    "block_height",
+];
+
+/// The letters of an axis counted with letters: `A … Z`, without I and O when `skip_io`.
+fn axis_letters(skip_io: bool) -> Vec<char> {
+    ('A'..='Z')
+        .filter(|c| !(skip_io && matches!(c, 'I' | 'O')))
+        .collect()
+}
+
+/// The index of a letter label (`A` 0, `Z` 25, `AA` 26 …) over `letters`; `None` for a text that is no such label.
+fn letter_index(text: &str, letters: &[char]) -> Option<u16> {
+    let mut index: u64 = 0;
+    let mut any = false;
+    for c in text.trim().chars() {
+        let d = letters.iter().position(|l| l.eq_ignore_ascii_case(&c))? as u64;
+        index = index.checked_mul(letters.len() as u64)?.checked_add(d + 1)?;
+        any = true;
+    }
+    any.then(|| index - 1).and_then(|i| u16::try_from(i).ok())
+}
+
+impl ShellModel {
+    /// The parameters of the open Columns and rows card (`frame.set_grid`), if one is open.
+    fn grid_pending(&self) -> Option<Value> {
+        self.props
+            .card
+            .as_ref()
+            .filter(|c| c.edit.name == "frame.set_grid")
+            .map(|c| c.edit.params.clone())
+    }
+
+    /// The rulers' rows: Columns and Rows, each How many, Counted with, First (the rows' Skip I and O), Drawn and the
+    /// title block's height, each with the value of the open card where it changes one.
+    fn ruler_rows(
+        &self,
+        facts: &FrameFacts,
+        row: &dyn Fn(&str, String, FieldType, String, Value) -> PropRow,
+    ) -> Vec<PropRow> {
+        let pending = self.grid_pending().unwrap_or(Value::Null);
+        let text = |k: crate::strings::Key<'static>| strings::text(k).to_owned();
+        let mut rows = Vec::new();
+        for (axis, facts_axis, heading) in [
+            ("columns", &facts.columns, key!("frame-columns")),
+            ("rows", &facts.rows, key!("frame-rows")),
+        ] {
+            let Some(a) = facts_axis else { continue };
+            let p = &pending[axis];
+            let count = p["count"].as_u64().map_or(a.count.to_string(), |c| c.to_string());
+            let letters = p["counting"].as_str().map_or(a.letters, |c| c == "letters");
+            let skip = p["skip_io"].as_bool().unwrap_or(a.skip_io);
+            let first = match p["first"].as_u64() {
+                Some(i) if letters => {
+                    let l = axis_letters(skip);
+                    let mut k = i as usize;
+                    let mut out = Vec::new();
+                    loop {
+                        out.push(l[k % l.len()]);
+                        if k < l.len() {
+                            break;
+                        }
+                        k = k / l.len() - 1;
+                    }
+                    out.iter().rev().collect()
+                }
+                Some(i) => i.to_string(),
+                None => a.first.clone(),
+            };
+            let name = |k: crate::strings::Key<'static>| format!("{} \u{b7} {}", text(heading), text(k));
+            let counting = if letters {
+                key!("frame-letters")
+            } else {
+                key!("frame-numbers")
+            };
+            rows.push(row(
+                &format!("{axis}.count"),
+                name(key!("frame-how-many")),
+                FieldType::Text,
+                count.clone(),
+                json!(count),
+            ));
+            rows.push(row(
+                &format!("{axis}.counting"),
+                name(key!("frame-counted-with")),
+                FieldType::Enum { options: Vec::new() },
+                text(counting),
+                json!(if letters { "letters" } else { "numbers" }),
+            ));
+            rows.push(row(
+                &format!("{axis}.first"),
+                name(key!("frame-first")),
+                FieldType::Text,
+                first.clone(),
+                json!(first),
+            ));
+            if axis == "rows" {
+                let yes = if skip { key!("frame-yes") } else { key!("frame-no") };
+                rows.push(row(
+                    "rows.skip_io",
+                    name(key!("frame-skip-io")),
+                    FieldType::Enum { options: Vec::new() },
+                    text(yes),
+                    json!(skip),
+                ));
+            }
+        }
+        let drawn = pending["drawn"].as_bool().unwrap_or(facts.drawn);
+        rows.push(row(
+            "drawn",
+            text(key!("frame-drawn")),
+            FieldType::Enum { options: Vec::new() },
+            text(if drawn {
+                key!("frame-yes")
+            } else {
+                key!("frame-no")
+            }),
+            json!(drawn),
+        ));
+        if let Some(block) = &facts.block_item {
+            let h = pending["title_block_height"]
+                .as_i64()
+                .unwrap_or_else(|| block["sheet"]["height"].as_i64().unwrap_or(0));
+            let mm = crate::canvas::mm1(h);
+            rows.push(row(
+                "block_height",
+                text(key!("frame-block-height")),
+                FieldType::Text,
+                mm.clone(),
+                json!(mm),
+            ));
+        }
+        rows
+    }
+
+    /// A value given to a rulers' row: the open Columns and rows card's parameters with it, previewed again
+    /// (`frame.set_grid`, Bulk); a count, a first label or a height that cannot be taken is refused under the row in
+    /// words. `None` for another row.
+    fn commit_ruler_row(&mut self, member: &str, value: &Value) -> Option<Outcome> {
+        if !RULER_ROWS.contains(&member) {
+            return None;
+        }
+        let facts = self.frame_facts()?;
+        let key = format!("{FRAME_KIND}/{member}");
+        let mut params = self
+            .grid_pending()
+            .unwrap_or_else(|| json!({"frame": facts.frame.to_string()}));
+        let text = match value {
+            Value::String(s) => s.trim().to_owned(),
+            other => other.to_string(),
+        };
+        let refuse = |s: &mut Self, k: crate::strings::Key<'static>| {
+            let message = strings::text(k).to_owned();
+            s.error_under_row(key.clone(), message.clone());
+            Outcome::Failed { message }
+        };
+        let (axis, part) = member.split_once('.').unwrap_or((member, ""));
+        match (axis, part) {
+            (_, "count") => match text.parse::<u16>() {
+                Ok(n) if (1..=ew_api::MAX_AXIS).contains(&n) => params[axis]["count"] = json!(n),
+                _ => return Some(refuse(self, key!("error-frame-count"))),
+            },
+            (_, "counting") => params[axis]["counting"] = json!(text),
+            (_, "first") => {
+                let facts_axis = if axis == "columns" {
+                    &facts.columns
+                } else {
+                    &facts.rows
+                };
+                let letters = params[axis]["counting"]
+                    .as_str()
+                    .map_or(facts_axis.as_ref().is_some_and(|a| a.letters), |c| c == "letters");
+                let skip = params[axis]["skip_io"]
+                    .as_bool()
+                    .unwrap_or(facts_axis.as_ref().is_some_and(|a| a.skip_io));
+                let index = if letters {
+                    letter_index(&text, &axis_letters(skip))
+                } else {
+                    text.parse::<u16>().ok()
+                };
+                match index.filter(|i| *i <= ew_api::MAX_FIRST) {
+                    Some(i) => params[axis]["first"] = json!(i),
+                    None if letters => return Some(refuse(self, key!("error-frame-first-letter"))),
+                    None => return Some(refuse(self, key!("error-frame-first-number"))),
+                }
+            }
+            ("rows", "skip_io") => {
+                params["rows"]["skip_io"] = json!(value.as_bool().unwrap_or(text == "true"))
+            }
+            ("drawn", _) => params["drawn"] = json!(value.as_bool().unwrap_or(text == "true")),
+            ("block_height", _) => match ew_api::output::parse_mm(&text) {
+                Some(nm) if nm >= i128::from(ew_api::MIN_CELL.0) => {
+                    params["title_block_height"] = json!(nm);
+                }
+                _ => return Some(refuse(self, key!("error-frame-block-height"))),
+            },
+            _ => return None,
+        }
+        // The forks of the copies the change makes the project's own: the title block's too with its height.
+        let forks = if params.get("title_block_height").is_some() {
+            &facts.grid_forks
+        } else {
+            &facts.frame_forks
+        };
+        params["forks"] = json!(forks.iter().map(|u| u.to_string()).collect::<Vec<_>>());
+        self.props.edit = None;
+        self.props.choices = None;
+        Some(self.preview_host_card("frame.set_grid", params, key!("reason-frame-grid")))
     }
 }

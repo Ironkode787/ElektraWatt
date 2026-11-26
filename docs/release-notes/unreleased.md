@@ -239,3 +239,9 @@ change here.
 - api-add: the command `form.edit`, the one change of a frame or title block copy (forked when it is not the
   project's own, every reference re-pointed); a title block's lines are its cells' edges (`FormDef::cell_edges`)
   (doc 09 §2.5, §3.9, FT-1814)
+- behaviour-change: Edit frame's click on the column numbers or row letters chooses them: Properties sets how many
+  columns and rows, counted with numbers or letters, from which first label, rows skipping I and O, whether they are
+  drawn and the title block's height; the change is previewed with the cross-references and tags that print
+  differently and applied in one step, the drawing area's edges kept exactly; a title block that would grow over
+  drawing is refused naming the page (doc 09 §3.9, FT-1815)
+- api-add: the command `frame.set_grid` (Bulk) (doc 09 §3.9, FT-1815)

@@ -11,10 +11,10 @@ use ew_ids::{Id, v5};
 use ew_l10n::Text;
 use ew_mltext::MlText;
 use ew_schema::{
-    FormDef, FormKind, ImagePrim, Kind, LibCopy, LibDocument, LibItem, LinePrim, Page, Pen, Primitive,
-    ReportBlock, Stroke, UserPropScope,
+    Counting, FormDef, FormKind, ImagePrim, Kind, LibCopy, LibDocument, LibItem, LinePrim, Page, Pen,
+    Primitive, ReportBlock, Stroke, UserPropScope,
 };
-use ew_units::{Nm, Pt2, Rect};
+use ew_units::{Grid, Nm, Pt2, Rect};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -186,42 +186,89 @@ pub(crate) fn change_form(
     item: FormDef,
     forks: &[Id<LibItem>],
 ) -> Result<Id<FormDef>, CmdError> {
-    let held = tx.require::<LibCopy<FormDef>>(copy)?;
+    let renamed = change_forms(tx, command, vec![(copy, item)], forks)?;
+    Ok(renamed.get(&copy).copied().unwrap_or(copy))
+}
+
+/// The copies a change of `edited` forks, in the order their forks' item IDs are given: each edited copy that is not
+/// the project's own, in the order of `edited`, then every other frame that names an edited title block and is not the
+/// project's own, in copy ID order. The one rule of `form.edit`, `frame.set_grid` and the window's fork IDs.
+pub fn forked_copies(
+    copies: &[(Id<FormDef>, &LibCopy<FormDef>)],
+    edited: &[Id<FormDef>],
+    project: ew_ids::Uuid,
+) -> Vec<Id<FormDef>> {
+    let local = |c: &LibCopy<FormDef>| c.library_id.as_uuid() == project;
+    let held = |id: Id<FormDef>| copies.iter().find(|(i, _)| *i == id).map(|(_, c)| *c);
+    let mut out: Vec<Id<FormDef>> = edited
+        .iter()
+        .copied()
+        .filter(|id| held(*id).is_some_and(|c| !local(c)))
+        .collect();
+    let mut frames: Vec<Id<FormDef>> = copies
+        .iter()
+        .filter(|(id, c)| {
+            !local(c)
+                && !out.contains(id)
+                && c.item.title_block.is_some_and(|b| {
+                    edited.contains(&b) && held(b).is_some_and(|b| b.item.kind == FormKind::TitleBlock)
+                })
+        })
+        .map(|(id, _)| *id)
+        .collect();
+    frames.sort();
+    frames.dedup();
+    out.extend(frames);
+    out
+}
+
+/// Changes each copy of `edits` to its item: a copy of the project's own in place; the others, and every other frame
+/// that names an edited title block and is not the project's own, forked under `forks` in [`forked_copies`] order, with
+/// every reference re-pointed. The old copy → the copy the project names afterwards, for each forked one.
+pub(crate) fn change_forms(
+    tx: &mut TxBuilder<'_>,
+    command: &str,
+    edits: Vec<(Id<FormDef>, FormDef)>,
+    forks: &[Id<LibItem>],
+) -> Result<BTreeMap<Id<FormDef>, Id<FormDef>>, CmdError> {
     let project = tx.project().id.as_uuid();
-    if held.library_id.as_uuid() == project {
-        if !forks.is_empty() {
-            return Err(bad(command, "/forks", text!("refusal-form-edit-local-fork")));
-        }
-        let mut changed = (*held).clone();
-        changed.item = item;
-        changed.sha256 = hash(&changed)?;
-        tx.put(changed);
-        return Ok(copy);
-    }
-    // The copies to fork: the form, then (a title block's) every frame that names it and is not the project's own.
-    let mut to_fork: Vec<(Id<FormDef>, FormDef)> = vec![(copy, item)];
-    if held.item.kind == FormKind::TitleBlock {
-        let mut frames: Vec<_> = tx
-            .iter::<LibCopy<FormDef>>()
-            .into_iter()
-            .filter(|f| f.item.title_block == Some(copy) && f.library_id.as_uuid() != project)
-            .collect();
-        frames.sort_by_key(|f| f.id);
-        to_fork.extend(frames.into_iter().map(|f| (f.id, f.item.clone())));
+    let held = tx.iter::<LibCopy<FormDef>>();
+    let copies: Vec<(Id<FormDef>, &LibCopy<FormDef>)> = held.iter().map(|c| (c.id, &**c)).collect();
+    let edited: Vec<Id<FormDef>> = edits.iter().map(|(id, _)| *id).collect();
+    let to_fork = forked_copies(&copies, &edited, project);
+    if to_fork.is_empty() && !forks.is_empty() {
+        return Err(bad(command, "/forks", text!("refusal-form-edit-local-fork")));
     }
     if forks.len() < to_fork.len() {
         return Err(bad(command, "/forks", text!("refusal-form-edit-needs-forks")));
     }
     let mut renamed: BTreeMap<Id<FormDef>, Id<FormDef>> = BTreeMap::new();
-    for ((old, _), fork) in to_fork.iter().zip(forks) {
+    for (old, fork) in to_fork.iter().zip(forks) {
         let id: Id<FormDef> = v5::lib_copy_id(project, fork.as_uuid());
-        if tx.exists::<LibCopy<FormDef>>(id) {
+        if tx.exists::<LibCopy<FormDef>>(id) || renamed.values().any(|v| *v == id) {
             return Err(bad(command, "/forks", text!("refusal-form-edit-fork-held")));
         }
         renamed.insert(*old, id);
     }
-    for ((old, mut item), fork) in to_fork.into_iter().zip(forks) {
-        let original = tx.require::<LibCopy<FormDef>>(old)?;
+    // The edited copies of the project's own, in place.
+    for (id, item) in &edits {
+        if renamed.contains_key(id) {
+            continue;
+        }
+        let mut changed = (*tx.require::<LibCopy<FormDef>>(*id)?).clone();
+        changed.item = item.clone();
+        if let Some(block) = changed.item.title_block.and_then(|b| renamed.get(&b)) {
+            changed.item.title_block = Some(*block);
+        }
+        changed.sha256 = hash(&changed)?;
+        tx.put(changed);
+    }
+    for (old, fork) in to_fork.iter().zip(forks) {
+        let original = tx.require::<LibCopy<FormDef>>(*old)?;
+        let mut item = edits
+            .iter()
+            .find(|(id, _)| id == old)
+            .map_or_else(|| original.item.clone(), |(_, item)| item.clone());
         item.meta.extra.insert(
             "source".into(),
             json!({"fork_of": {
@@ -234,7 +281,7 @@ pub(crate) fn change_form(
             item.title_block = Some(*block);
         }
         let mut forked = LibCopy {
-            id: renamed[&old],
+            id: renamed[old],
             v: original.v,
             library_id: Id::from_uuid(project),
             item_id: *fork,
@@ -246,7 +293,7 @@ pub(crate) fn change_form(
         tx.insert(forked)?;
     }
     repoint_forms(tx, &renamed)?;
-    Ok(renamed[&copy])
+    Ok(renamed)
 }
 
 /// Every reference to a renamed form copy names its new copy: a page's frame, a report block's form, a form's title
@@ -423,4 +470,302 @@ impl Command for EditForm {
         let id = change_form(tx, Self::NAME, self.copy, form, &self.forks)?;
         Ok(Outcome::primary((Kind::Form, id.cast())))
     }
+}
+
+/// One axis of `frame.set_grid`: what changes of the columns or the rows; an absent member stays.
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct GridAxis {
+    /// How many, 1 to 100.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub count: Option<u16>,
+    /// Counted with numbers or letters.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub counting: Option<Counting>,
+    /// The index of the first label, 0 to 999 (the number itself, or the letter at it: 0 is A).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first: Option<u16>,
+    /// Letters skip I and O.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skip_io: Option<bool>,
+}
+
+/// The largest count of columns or rows.
+pub const MAX_AXIS: u16 = 100;
+
+/// The largest index of a first label.
+pub const MAX_FIRST: u16 = 999;
+
+/// `frame.set_grid` (`SetFrameGrid`): the columns and rows of a frame (doc 09 §3.9, doc 06 §2.4): how many, counted
+/// with numbers or letters, from which first label, letters skipping I and O; whether the rulers are drawn; and the
+/// height of its title block. The paper and the drawing area's outer edges stay: the columns share the drawing area's
+/// width and the rows its height, each an exact step; a taller title block takes its height from the rows (its cells'
+/// heights scaled with it, its lines written anew). Bulk (previewed): what prints differently is listed before it is
+/// applied. A frame or title block that is not the project's own is forked as `form.edit` forks it (`forks`, in
+/// `forked_copies` order).
+///
+/// Rejected, with the pointer: `/frame` not a frame with a grid the project holds; a count outside 1 to 100; a first
+/// label outside 0 to 999; a title-block height below 2 mm or one that leaves the rows no height; a title block that
+/// grows over a connection point, a bend of a wire or a symbol's anchor of a page of the frame, naming the page;
+/// nothing changed. Outcome: the frame (its fork for a fork).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SetFrameGrid {
+    /// The frame.
+    #[schemars(with = "UuidS")]
+    pub frame: Id<FormDef>,
+    /// The columns, along the top.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub columns: Option<GridAxis>,
+    /// The rows, along the left.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rows: Option<GridAxis>,
+    /// Whether the rulers are drawn.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub drawn: Option<bool>,
+    /// The title block's height, nm.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<i64>")]
+    pub title_block_height: Option<Nm>,
+    /// The item IDs of the forks, for a frame or title block that is not the project's own.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(with = "Vec<UuidS>")]
+    pub forks: Vec<Id<LibItem>>,
+}
+
+/// The step of `new` cells over the length of `old` cells of `step` (`None` on overflow or a step under 1 nm).
+fn shared_step(step: Grid, old: u16, new: u16) -> Option<Grid> {
+    let num = step.num().checked_mul(u64::from(old))?;
+    let den = step.den().checked_mul(u64::from(new))?;
+    Grid::new(num, den).ok()
+}
+
+/// One axis changed as `a` says; refused at `at` for a count, a first label or a counting the frame cannot take.
+/// The members of one axis of a frame grid that `frame.set_grid` changes.
+struct AxisMut<'a> {
+    count: &'a mut u16,
+    step: &'a mut Grid,
+    labels: &'a mut Vec<ew_mltext::Ident>,
+    counting: &'a mut Counting,
+    first: &'a mut u16,
+    skip_io: &'a mut bool,
+}
+
+fn change_axis(at: &str, a: &GridAxis, axis: AxisMut<'_>) -> Result<(), CmdError> {
+    let AxisMut {
+        count,
+        step,
+        labels,
+        counting,
+        first,
+        skip_io,
+    } = axis;
+    let name = SetFrameGrid::NAME;
+    if a.count.is_some_and(|c| !(1..=MAX_AXIS).contains(&c)) {
+        return Err(bad(
+            name,
+            format!("{at}/count"),
+            text!("refusal-frame-grid-count"),
+        ));
+    }
+    if a.first.is_some_and(|f| f > MAX_FIRST) {
+        return Err(bad(
+            name,
+            format!("{at}/first"),
+            text!("refusal-frame-grid-first"),
+        ));
+    }
+    if matches!(a.counting, Some(Counting::Unknown(_))) {
+        return Err(bad(
+            name,
+            format!("{at}/counting"),
+            text!("refusal-frame-grid-counting"),
+        ));
+    }
+    if let Some(n) = a.count.filter(|n| n != count) {
+        *step = shared_step(*step, *count, n)
+            .ok_or_else(|| bad(name, format!("{at}/count"), text!("refusal-frame-grid-too-fine")))?;
+        *count = n;
+        labels.clear();
+    }
+    if let Some(k) = &a.counting {
+        *counting = k.clone();
+    }
+    if let Some(f) = a.first {
+        *first = f;
+    }
+    if let Some(s) = a.skip_io {
+        *skip_io = s;
+    }
+    Ok(())
+}
+
+impl Command for SetFrameGrid {
+    const NAME: &'static str = "frame.set_grid";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME).bulk()
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let held = held_frame_form(tx, Self::NAME, self.frame)?;
+        let mut frame = held.item.clone();
+        if frame.kind != FormKind::Frame || frame.grid.is_none() {
+            return Err(bad(Self::NAME, "/frame", text!("refusal-frame-grid-no-grid")));
+        }
+        {
+            let grid = frame.grid.as_mut().expect("checked above");
+            if let Some(a) = &self.columns {
+                let c = &mut grid.columns;
+                change_axis(
+                    "/columns",
+                    a,
+                    AxisMut {
+                        count: &mut c.count,
+                        step: &mut c.width,
+                        labels: &mut c.labels,
+                        counting: &mut c.counting,
+                        first: &mut c.start_index,
+                        skip_io: &mut c.skip_io,
+                    },
+                )?;
+            }
+            if let Some(a) = &self.rows {
+                let r = &mut grid.rows;
+                change_axis(
+                    "/rows",
+                    a,
+                    AxisMut {
+                        count: &mut r.count,
+                        step: &mut r.height,
+                        labels: &mut r.labels,
+                        counting: &mut r.counting,
+                        first: &mut r.start_index,
+                        skip_io: &mut r.skip_io,
+                    },
+                )?;
+            }
+            match self.drawn {
+                Some(true) => {
+                    grid.extra.remove(ew_schema::EXTRA_SHOW_GRID);
+                }
+                Some(false) => {
+                    grid.extra
+                        .insert(ew_schema::EXTRA_SHOW_GRID.into(), Value::Bool(false));
+                }
+                None => {}
+            }
+        }
+        let mut edits: Vec<(Id<FormDef>, FormDef)> = Vec::new();
+        // A taller or lower title block takes its height from the rows: one exact step per row over the rest.
+        if let Some(h) = self.title_block_height {
+            let Some(block_id) = frame.title_block else {
+                return Err(bad(
+                    Self::NAME,
+                    "/title_block_height",
+                    text!("refusal-frame-grid-no-block"),
+                ));
+            };
+            let mut block = tx.require::<LibCopy<FormDef>>(block_id)?.item.clone();
+            let old = block.sheet.height;
+            if h != old {
+                if h < MIN_CELL {
+                    return Err(bad(
+                        Self::NAME,
+                        "/title_block_height",
+                        text!("refusal-frame-grid-block-low"),
+                    ));
+                }
+                let high = || {
+                    bad(
+                        Self::NAME,
+                        "/title_block_height",
+                        text!("refusal-frame-grid-block-high"),
+                    )
+                };
+                let r = &mut frame.grid.as_mut().expect("checked above").rows;
+                // (num·count − d·den) / (den·count): the rows' length less the growth `d`.
+                let d = i128::from(h.0) - i128::from(old.0);
+                let total = i128::from(r.height.num()) * i128::from(r.count) - d * i128::from(r.height.den());
+                let den = r.height.den().checked_mul(u64::from(r.count)).ok_or_else(high)?;
+                let total = u64::try_from(total).ok().filter(|t| *t > 0).ok_or_else(high)?;
+                r.height = Grid::new(total, den).map_err(|_| high())?;
+                let scale = |y: Nm| {
+                    Nm(
+                        i64::try_from(i128::from(y.0) * i128::from(h.0) / i128::from(old.0.max(1)))
+                            .unwrap_or(0),
+                    )
+                };
+                let scaled = |b: ew_schema::Bounds| {
+                    let (min, max) = (b.0.min(), b.0.max());
+                    ew_schema::Bounds(Rect::from_points(
+                        Pt2::new(min.x, scale(min.y)),
+                        Pt2::new(max.x, scale(max.y)),
+                    ))
+                };
+                for c in &mut block.cells {
+                    c.rect = scaled(c.rect);
+                }
+                for g in &mut block.graphics {
+                    if let Primitive::Image(img) = g {
+                        img.rect = scaled(img.rect);
+                    }
+                }
+                block.sheet.height = h;
+                lines_from_cells(&mut block);
+                if d > 0 {
+                    refuse_drawing_under(tx, self.frame, &frame)?;
+                }
+                edits.push((block_id, block));
+            }
+        }
+        if frame == held.item && edits.is_empty() {
+            return tx.reject(text!("refusal-frame-grid-unchanged"));
+        }
+        edits.insert(0, (self.frame, frame));
+        let renamed = change_forms(tx, Self::NAME, edits, &self.forks)?;
+        let id = renamed.get(&self.frame).copied().unwrap_or(self.frame);
+        Ok(Outcome::primary((Kind::Form, id.cast())))
+    }
+}
+
+/// Refuses a frame whose drawing area (`frame`'s new grid) leaves out a connection point, a bend of a wire or a
+/// symbol's anchor of a page that prints the frame `id`, naming the first such page.
+fn refuse_drawing_under(tx: &TxBuilder<'_>, id: Id<FormDef>, frame: &FormDef) -> Result<(), CmdError> {
+    let Some(grid) = &frame.grid else {
+        return Ok(());
+    };
+    let mut pages: Vec<_> = tx
+        .iter::<Page>()
+        .into_iter()
+        .filter(|p| crate::numbering::frame_form(tx, p) == Some(id))
+        .collect();
+    pages.sort_by_key(|p| (p.folio.number, p.id));
+    for page in pages {
+        let outside = |p: &Pt2| ew_derive::cell_in_grid(grid, page.grid, *p).is_none();
+        let mut points: Vec<Pt2> = Vec::new();
+        for rep in tx
+            .reps_on_page(page.id)
+            .into_iter()
+            .filter_map(|r| tx.get::<ew_schema::Representation>(r))
+        {
+            points.extend(crate::geometry::rep_cps(tx, &rep).iter().map(|c| c.pos));
+            points.extend(
+                tx.get::<LibCopy<ew_schema::SymbolDef>>(rep.symbol)
+                    .and_then(|s| ew_derive::anchor_point_of(&s.item, &rep)),
+            );
+        }
+        for c in tx.connections_on_page(page.id) {
+            if let Some(c) = tx.get::<ew_schema::Connection>(c) {
+                points.extend(c.route.iter().copied());
+            }
+        }
+        if points.iter().any(outside) {
+            return tx.reject(text!(
+                "refusal-frame-grid-drawing-under",
+                crate::words::page(tx, page.id)
+            ));
+        }
+    }
+    Ok(())
 }

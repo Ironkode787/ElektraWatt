@@ -76,6 +76,7 @@
     - [`fluid.port.close`](reference/commands/fluid.port.close.md)
     - [`fluid.tube.set`](reference/commands/fluid.tube.set.md)
     - [`form.edit`](reference/commands/form.edit.md)
+    - [`frame.set_grid`](reference/commands/frame.set_grid.md)
     - [`ip.arrange`](reference/commands/ip.arrange.md)
     - [`ip.continue`](reference/commands/ip.continue.md)
     - [`ip.place`](reference/commands/ip.place.md)

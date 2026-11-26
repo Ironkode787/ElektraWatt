@@ -989,3 +989,4 @@ action-frame-join = Join the cells
 action-frame-clear = Clear the cell
 action-frame-picture = Picture…
 command-form-edit = Change a frame or title block
+command-frame-set_grid = Set the columns and rows of a frame

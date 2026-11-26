@@ -956,3 +956,4 @@ action-frame-join = Vakken samenvoegen
 action-frame-clear = Vak leegmaken
 action-frame-picture = Afbeelding…
 command-form-edit = Kader of titelblok wijzigen
+command-frame-set_grid = Kolommen en rijen van een kader instellen

@@ -77,6 +77,9 @@ pub struct FrameFacts {
     pub block_forks: Vec<Uuid>,
     /// The item ID a change of the frame forks it under; none for a frame of the project's own.
     pub frame_forks: Vec<Uuid>,
+    /// The item IDs a change of the frame and its title block together (`frame.set_grid` with the block's height)
+    /// forks them and the other frames of the block under.
+    pub grid_forks: Vec<Uuid>,
     /// The folio labels of the pages that print the frame, in page order.
     pub frame_pages: Vec<String>,
     /// The folio labels of the pages that print the title block, by any frame, in page order.
@@ -223,25 +226,21 @@ impl Session {
         }
         // A first change of the block forks it and each frame that names it and is not the project's own, in copy ID
         // order (as `form.edit` takes them).
-        let block_forks = match &block {
-            Some((b, copy)) if !local(copy) => {
-                let mut copies = vec![*b];
-                let mut frames: Vec<Id<FormDef>> = q
-                    .forms()
-                    .iter()
-                    .filter(|(_, f)| f.item.title_block == Some(*b) && !local(f))
-                    .map(|(id, _)| id)
-                    .collect();
-                frames.sort();
-                copies.extend(frames);
-                fork_items(&q, project, &copies)
-            }
-            _ => Vec::new(),
+        // The forks a first change takes, by `form.edit`'s and `frame.set_grid`'s one rule.
+        let held = q.forms();
+        let copies: Vec<(Id<FormDef>, &LibCopy<FormDef>)> = held.iter().map(|(id, c)| (id, &**c)).collect();
+        let forks = |edited: &[Id<FormDef>]| {
+            fork_items(
+                &q,
+                project,
+                &ew_commands::commands::forked_copies(&copies, edited, project),
+            )
         };
-        let frame_forks = if local(frame) {
-            Vec::new()
-        } else {
-            fork_items(&q, project, &[frame_id])
+        let block_forks = block.as_ref().map(|(b, _)| forks(&[*b])).unwrap_or_default();
+        let frame_forks = forks(&[frame_id]);
+        let grid_forks = match &block {
+            Some((b, _)) => forks(&[frame_id, *b]),
+            None => frame_forks.clone(),
         };
         let grid = frame.item.grid.as_ref();
         Some(FrameFacts {
@@ -260,6 +259,7 @@ impl Session {
             block_local: block.as_ref().is_some_and(|(_, c)| local(c)),
             block_forks,
             frame_forks,
+            grid_forks,
             frame_pages,
             block_pages,
             cells,

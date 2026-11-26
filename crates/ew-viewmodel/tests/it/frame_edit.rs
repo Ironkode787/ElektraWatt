@@ -132,3 +132,50 @@ fn the_journey_changes_the_title_block_on_the_page_and_its_fields_are_typed_in_t
     assert_eq!(s.revision(), before.map(|r| r + 1), "one step");
     assert_eq!(printed(&s, notice + 1), "Customer sheet: C-102");
 }
+
+/// The journey's step 5: a click on the rulers' row chooses them; How many, First and the rows' count typed in
+/// Properties open the Columns and rows card, whose preview lists the cross-references that move; Apply writes them in
+/// one step, and page 101 then counts 10 columns from 1 and 6 rows.
+#[test]
+fn columns_and_rows_are_set_in_properties_and_applied_from_their_card() {
+    let tmp = Tmp::new("frame-edit-rulers");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
+    done(&mut s, "props.show", json!({"on": true}));
+    done(&mut s, "frame.edit", json!({}));
+    done(&mut s, "frame.choose", json!({"rulers": true}));
+    done(
+        &mut s,
+        "props.set",
+        json!({"row": "frame/columns.count", "value": "10"}),
+    );
+    done(
+        &mut s,
+        "props.set",
+        json!({"row": "frame/columns.first", "value": "1"}),
+    );
+    done(
+        &mut s,
+        "props.set",
+        json!({"row": "frame/rows.count", "value": "6"}),
+    );
+    assert!(s.properties().card().is_some(), "the card waits for Apply");
+    let refused = common::failed(
+        &mut s,
+        "props.set",
+        json!({"row": "frame/rows.first", "value": "7"}),
+    );
+    assert_eq!(refused, "Type a letter, such as A.");
+    done(&mut s, "preview.apply", json!({}));
+    let facts = s.frame_facts().expect("the frame");
+    let columns = facts.columns.clone().expect("columns");
+    let rows = facts.rows.clone().expect("rows");
+    assert_eq!(
+        (
+            columns.count,
+            columns.first.as_str(),
+            rows.count,
+            rows.first.as_str()
+        ),
+        (10, "1", 6, "A")
+    );
+}

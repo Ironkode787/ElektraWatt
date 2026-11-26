@@ -335,6 +335,10 @@ impl ShellModel {
             RowAction::Edit if key == crate::shell::own_fields::OWN_NEW_ROW => {
                 self.act_field_new(&Map::new())
             }
+            // The frame's Columns and rows: a click chooses the rulers.
+            RowAction::Edit if key == crate::shell::frame_edit::RULERS_ROW => {
+                self.frame_choose(crate::tools::frame::FrameChoice::Rulers)
+            }
             RowAction::Edit => self.begin_edit(key, RowAction::Edit, None),
             RowAction::Override => self.begin_edit(key, RowAction::Override, None),
             RowAction::Clear | RowAction::Reset | RowAction::Unfreeze => {
