@@ -4,7 +4,7 @@
 //! `part.delete` (`DeletePartCopy`): Delete part… of the part editor (doc 07 §5).
 
 use ew_ids::Id;
-use ew_schema::{Device, Kind, LibCopy, Part};
+use ew_schema::{Kind, LibCopy, Part};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -14,10 +14,12 @@ use crate::meta::CommandMeta;
 use crate::proxy::UuidS;
 use crate::tx::TxBuilder;
 
-/// `part.delete` (`DeletePartCopy`): deletes a part of the project's own (a project-local part copy) that no device
-/// uses. A part from a library is kept (it is the library's; the project drops a copy nothing uses when it is
-/// purged); a part a device, another part's accessory, a device's choice or the workshop stock still names is refused
-/// in words by the delete policy that guards the link. One undo step. Outcome: none.
+/// `part.delete` (`DeletePartCopy`): deletes a part of the project's own (a project-local part copy) that nothing
+/// names. A part from a library is kept (it is the library's; the project drops a copy nothing uses when it is
+/// purged). Who names the copy is the link table's one question (`ew_model::LINKS`, the delete policy that edit.delete
+/// and the store's dangling-reference check read too): a part a device uses, another part declares as its accessory,
+/// a device's choice or the workshop stock names is refused in words that name the first that does. One undo step.
+/// Outcome: none.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DeletePartCopy {
@@ -47,14 +49,6 @@ impl Command for DeletePartCopy {
         let number = held.item.part_number.as_str().to_owned();
         if held.library_id.as_uuid() != tx.project().id.as_uuid() {
             return Err(bad(text!("refusal-part-delete-library", number)));
-        }
-        let users = tx
-            .iter::<Device>()
-            .iter()
-            .filter(|d| d.parts.iter().any(|u| u.part.copy == self.copy))
-            .count();
-        if users > 0 {
-            return Err(bad(text!("refusal-part-delete-used", number, users.to_string())));
         }
         tx.delete((Kind::Part, self.copy.cast()))?;
         Ok(Outcome::default())

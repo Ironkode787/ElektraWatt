@@ -592,7 +592,10 @@ and its own sections (wire, ferrule, marker): those rows stand read-only there.
 names each box it draws anew and why ("-104A1-A1 on 104: a pin added"); a box drawn anew keeps its top-left corner
 and stays inside the page's drawing area. Delete part… in the editor's footer deletes a part of the project's own
 (`part.delete`, one undo step); it stands greyed while devices use it, saying how many, and on a library's part, saying
-that Save makes the project's own copy. The box
+that Save makes the project's own copy; a part something else names (another part declaring it as an accessory, a
+device's accessory choice, the workshop stock) is refused in words that name the first that does ("part EP-1 cannot be
+removed: part TRM-1 still names it"): who names a copy is the one question of the link table, whose delete policy
+`edit.delete` and the store's dangling-reference check read too, a part's declared accessory a `LibRef` link. The box
 editor's Add pin offers Add bus interface…, which opens the part editor on Bus interfaces. A bus port without an
 address offers Next free address in its Address row's menu and as the quick fix of its finding.
 

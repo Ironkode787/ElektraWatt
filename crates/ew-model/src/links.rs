@@ -1008,6 +1008,12 @@ pub static LINKS: &[LinkDecl] = &[
             lib_ref(&t.fndef, out);
         }
     }),
+    // An accessory a part declares (doc 07 §2.5): the part that names it keeps it in the project.
+    lib_ref_link!(Part."accessories[].part.item" -> Part, |v, out| {
+        for a in &v.item.accessories {
+            lib_ref(&a.part, out);
+        }
+    }),
 ];
 
 /// Every ID-valued schema member that is **not** a link, as `(kind name, field path, reason)`: the members of a
@@ -1132,14 +1138,7 @@ const OWN_NOT_LINKS: &[(&str, &str, &str)] = &[
     (
         "part",
         "accessories[].part.library",
-        "LibRef to an accessory part (doc 07 §2.5): embedding the part embeds it (its closure), and the readers resolve \
-         it to the embedded copy",
-    ),
-    (
-        "part",
-        "accessories[].part.item",
-        "LibRef to an accessory part (doc 07 §2.5): embedding the part embeds it (its closure), and the readers resolve \
-         it to the embedded copy",
+        "the library half of the LibRef link part.accessories[].part.item (the copy ID is v5(NS_LIBCOPY, library ‖ item))",
     ),
     (
         "part",

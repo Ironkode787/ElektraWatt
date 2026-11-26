@@ -202,3 +202,6 @@ change here.
 - behaviour-change: a strip's choice of what its terminals' parts bring (an end plate left off, a cover swapped) now
   holds when the accessory's part or the terminal's part is corrected as the project's own copy; before, the end
   plate came back and the swap was undone without a word
+- behaviour-change: Delete part… refuses a part of your own that another part names as its accessory (and so does
+  any delete of such a part), naming the part that names it; before, the end plate went, and it dropped out of the
+  parts list and the strip widths without a finding

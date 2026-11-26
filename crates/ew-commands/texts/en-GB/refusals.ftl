@@ -888,7 +888,6 @@ refusal-part-edit-tech-twice = { $p0 } is given twice
 refusal-part-edit-not-part = not a part item: { $p0 }
 refusal-part-edit-copy-missing = the project holds no part copy { $p0 }
 refusal-part-delete-library = { $p0 } is a library's part: the project keeps its copy while a device uses it, and a purge drops it when none does
-refusal-part-delete-used = { $p0 } is used by { $p1 } devices: give them another part first
 refusal-part-edit-accessory-missing = the accessory in row { $p0 } is no part the project holds
 refusal-part-edit-accessory-kind = { $p0 } is a wire, ferrule or marker: the consumables count it, it is no accessory
 refusal-part-edit-variant-number = the variant { $p0 } has no part number, order number or description of its own

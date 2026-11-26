@@ -152,3 +152,42 @@ fn delete_part_deletes_a_part_of_the_projects_own_and_keeps_a_librarys() {
     .expect("deleted");
     assert!(s.query().parts().iter().all(|(id, _)| id.as_uuid() != own));
 }
+
+/// A new part of the project's own, `number`, with the accessory `accessory` when given.
+fn own_part(s: &mut Session, number: &str, accessory: Option<&str>) {
+    let mut d = s.new_part_draft().expect("a new part");
+    d.to_library = false;
+    s.set_draft_field(&mut d, "manufacturer", "Acme").expect("a maker");
+    s.set_draft_field(&mut d, "part_number", number).expect("a number");
+    if let Some(a) = accessory {
+        assert!(d.add_table_row("accessories"));
+        s.set_draft_field(&mut d, "accessories[0].part", a).expect("its accessory");
+        s.set_draft_field(&mut d, "accessories[0].qty", "1").expect("one");
+        s.set_draft_field(&mut d, "accessories[0].per", "strip").expect("per strip");
+    }
+    let made = s.new_part_command(&d).expect("the new part's command");
+    run(s, &made.command).expect("the part is made");
+}
+
+/// Delete part… asks who names the copy: a part of one's own that another part names as its accessory is refused in
+/// words that name that part, and goes once nothing names it.
+#[test]
+fn delete_part_refuses_a_part_another_part_names_as_its_accessory() {
+    let mut s = common::sample();
+    own_part(&mut s, "OWN-EP", None);
+    own_part(&mut s, "OWN-TRM", Some("OWN-EP"));
+    let plate = copy_of(&s, "OWN-EP");
+    let delete = |copy: Uuid| AnyCommand {
+        name: "part.delete".into(),
+        params: json!({ "copy": copy.to_string() }),
+    };
+    let refused = match run(&mut s, &delete(plate)).unwrap_err() {
+        ew_api::CmdError::Model(_, Some(words)) => words.to_string(),
+        other => panic!("refused in words: {other}"),
+    };
+    assert_eq!(refused, "part OWN-EP cannot be removed: part OWN-TRM still names it");
+    assert!(s.query().parts().iter().any(|(id, _)| id.as_uuid() == plate));
+    let terminal = copy_of(&s, "OWN-TRM");
+    run(&mut s, &delete(terminal)).expect("the terminal's part goes");
+    run(&mut s, &delete(plate)).expect("then the end plate's");
+}

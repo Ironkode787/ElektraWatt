@@ -889,7 +889,6 @@ refusal-part-edit-tech-twice = { $p0 } wordt twee keer gegeven
 refusal-part-edit-not-part = geen artikelitem: { $p0 }
 refusal-part-edit-copy-missing = het project bevat geen artikelkopie { $p0 }
 refusal-part-delete-library = { $p0 } is een artikel uit een bibliotheek: het project houdt de kopie zolang een apparaat het gebruikt, en een opschoning verwijdert hem als geen enkel apparaat dat doet
-refusal-part-delete-used = { $p0 } wordt gebruikt door { $p1 } apparaten: geef ze eerst een ander artikel
 refusal-part-edit-accessory-missing = het toebehoren in rij { $p0 } is geen artikel dat het project bevat
 refusal-part-edit-accessory-kind = { $p0 } is een draad, adereindhuls of merker: de verbruiksmaterialen tellen het, het is geen toebehoren
 refusal-part-edit-variant-number = de variant { $p0 } heeft geen eigen artikelnummer, bestelnummer of omschrijving

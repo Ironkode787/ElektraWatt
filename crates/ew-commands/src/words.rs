@@ -141,6 +141,12 @@ pub(crate) fn record(tx: &TxBuilder<'_>, key: ew_model::AnyKey) -> TextArg {
         Kind::Representation => symbol(tx, id.cast()).into(),
         Kind::Connection => wire(tx, id.cast()).into(),
         Kind::Junction => junction(tx, id.cast()).into(),
+        Kind::Part => tx
+            .get::<ew_schema::LibCopy<ew_schema::Part>>(id.cast())
+            .map_or_else(
+                || kind_words(Kind::Part),
+                |c| text!("refusal-words-part-named", c.item.part_number.as_str()).into(),
+            ),
         other => kind_words(other),
     }
 }
