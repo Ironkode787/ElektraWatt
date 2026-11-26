@@ -43,6 +43,7 @@ use ew_units::{Grid, Nm, Pt2};
 use serde_json::Value;
 
 use crate::Q;
+use crate::pages::{PageOrder, PageRef};
 use crate::query::{Policy, Query};
 use crate::text_frame::{TextFrame, text_frame};
 
@@ -221,6 +222,32 @@ pub fn frame_form_of(
         return Some(own);
     }
     frame_form_from_settings(&q.get::<FrameSettings>(()), kind, with_default, held)
+}
+
+/// The held frame form a page of the page order prints on, by its ID (the page output's, which the Pages navigator
+/// names): a drawn page's own or its type's default, a generated page's block's, a section divider's default, else the
+/// no-grid frame; `None` when the project holds none of them.
+pub fn page_frame_form(q: &Q, key: &PageRef) -> Option<Id<FormDef>> {
+    let own = match *key {
+        PageRef::Drawn(p) => q
+            .pages()
+            .get(p)
+            .and_then(|pg| frame_form_of(q, pg.form, &pg.kind, true)),
+        PageRef::Generated { .. } => q.get::<PageOrder>(()).generated(*key).map(|g| g.form),
+        PageRef::Divider(_) => frame_form_of(q, None, &PageType::SectionDivider, false),
+    };
+    own.filter(|id| q.forms().get(*id).is_some()).or_else(|| {
+        q.forms()
+            .iter()
+            .find(|(_, f)| {
+                f.item
+                    .meta
+                    .key
+                    .as_ref()
+                    .is_some_and(|k| k.as_str() == ew_schema::starter::NOGRID_FRAME)
+            })
+            .map(|(id, _)| id)
+    })
 }
 
 /// The settings part of [`frame_form_of`] (a page without a held own form): the frame defaults' entry of the page's

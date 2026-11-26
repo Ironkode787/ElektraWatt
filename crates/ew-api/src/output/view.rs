@@ -254,32 +254,6 @@ fn form_by_key(q: &Q, key: &str) -> Option<Arc<FormDef>> {
         .map(|(_, f)| Arc::new(f.item.clone()))
 }
 
-/// The held frame form a page of the page order prints on, by its ID ([`PageFrameOf`]'s, which the Pages navigator
-/// names): a drawn page's own or its type's default, a generated page's block's, a section divider's default, else the
-/// no-grid frame; `None` when the project holds none of them.
-pub(crate) fn page_frame_id(q: &Q, key: &PageRef) -> Option<Id<FormDef>> {
-    let own = match *key {
-        PageRef::Drawn(p) => q
-            .pages()
-            .get(p)
-            .and_then(|pg| frame_form_of(q, pg.form, &pg.kind, true)),
-        PageRef::Generated { .. } => q.get::<PageOrder>(()).generated(*key).map(|g| g.form),
-        PageRef::Divider(_) => frame_form_of(q, None, &PageType::SectionDivider, false),
-    };
-    own.filter(|id| q.forms().get(*id).is_some()).or_else(|| {
-        q.forms()
-            .iter()
-            .find(|(_, f)| {
-                f.item
-                    .meta
-                    .key
-                    .as_ref()
-                    .is_some_and(|k| k.as_str() == ew_schema::starter::NOGRID_FRAME)
-            })
-            .map(|(id, _)| id)
-    })
-}
-
 /// `page_frame(page)`: the frame form of a page of the page order and its title block (see the module
 /// documentation); `None` when the page has no form and the project library holds no no-grid frame.
 #[derive(Debug)]
@@ -292,7 +266,7 @@ impl Query for PageFrameOf {
     const POLICY: Policy = Policy::Memo;
 
     fn run(q: &Q, key: &PageRef) -> Arc<Option<FrameForms>> {
-        let frame = page_frame_id(q, key)
+        let frame = ew_derive::page_frame_form(q, key)
             .and_then(|id| form(q, id))
             .map(|form| FrameForms {
                 title_block: form.title_block.and_then(|id| self::form(q, id)),

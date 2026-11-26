@@ -14,7 +14,6 @@ use super::{Builder, NavOpen, NavRole};
 use super::{plain, yes_no};
 use crate::Session;
 use crate::output::PageRow;
-use crate::output::view::page_frame_id;
 
 impl Session {
     /// The Pages tree as built (section view): section nodes (front matter first, as the page order
@@ -60,7 +59,7 @@ impl Session {
                 badges.push("QET grid".to_owned());
             }
             // The frame by the name Properties' Form row gives it, never its key.
-            let frame = page_frame_id(&q, &entry.page)
+            let frame = ew_derive::page_frame_form(&q, &entry.page)
                 .and_then(|id| frames.iter().find(|(f, _)| *f == id.as_uuid()))
                 .map_or_else(|| plain(""), |(_, name)| name.clone());
             let cells = vec![
