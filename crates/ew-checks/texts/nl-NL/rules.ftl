@@ -931,12 +931,15 @@ rule-ew-pot-009 = { $cp_shared ->
     .title = Niet-aangesloten aansluitpunt
     .hint = Open de melding: de pagina opent met het apparaat geselecteerd. Teken een draad naar het aansluitpunt, of klik er met rechts op en kies Markeren als niet gebruikt als het bewust vrij blijft.
 
-rule-ew-pot-010 = { $cp } neemt { $max ->
-        [one] 1 geleider
-       *[other] { $max } geleiders
-    }; er komen er { $count } op
+rule-ew-pot-010 = { $form ->
+        [size] { $cp } neemt { $range } mm²; { $wire } van { $csa } mm² komt erop
+       *[count] { $cp } neemt { $max ->
+            [one] 1 geleider
+           *[other] { $max } geleiders
+        }; er komen er { $count } op
+    }
     .title = Klemcapaciteit overschreden
-    .hint = Leg een draad op een andere klem, of geef twee draden van één doorsnede een twin-adereindhuls waar de klem die neemt.
+    .hint = Leg een draad op een andere klem, geef twee draden van één doorsnede een twin-adereindhuls waar de klem die neemt, of leg een draad van een andere doorsnede op een klem die ervoor gemaakt is.
 
 rule-ew-pot-011 = { $potential }: het is niet duidelijk welke draad { $place ->
         [junction] de aftakking { $at ->

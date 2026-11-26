@@ -167,12 +167,14 @@ pub struct EndOverride {                      // WireOverrides.end_a and .end_b:
 }
 ```
 
-- **An end set by hand lives on the connection that lands on the clamp**: in `end_a` when that connection's endpoint
-  `a` is the wire's end, else in `end_b`. A renumber, a re-route or a junction edit that keeps that connection leaves it
-  where it is, and no list of ends by CP can be left behind; a device put onto the connection splits it, and the end
-  stays with the part that keeps its endpoint. The derivation reads it only where that endpoint is a wire's end at a
-  CP; Reset clears it. Where the connection is a star's feed arm or a chain's arm at the CP, the end it holds is the
-  end of every wire that shares it.
+- **An end set by hand belongs to one wire and lives on a connection of that wire's own**, one no other wire stands
+  for: the first in the order the wire takes its values (the carrier, then its constituents in path order), the one a
+  cell of its row sets. `end_a` holds the wire's end reached through that connection's endpoint `a`, `end_b` the end
+  reached through `b`, whichever way round the list reads the wire and whatever star or chain the clamp is reached
+  through: two wires at one clamp are two ends, set apart. A renumber, a re-route, a junction edit that keeps the
+  connection, the loss of a sibling at a star and a change that turns the wire round leave each end with its CP; a
+  device put onto the connection splits it, and each end stays with the part that keeps its endpoint. A wire none of
+  whose connections is its own has no end set by hand. Reset clears it.
 - **A typed length** is `WireOverrides.length` ([03](03-domain-model.md) §9); the value of the carrier wins, as for
   every override of a physical wire. A cell of a wire's row in the Connections table (its length, colour or
   cross-section) sets one connection of that wire which no other wire stands for: the carrier where it is the wire's
@@ -449,9 +451,8 @@ or another colour scheme is the choice of its stock.
 In the Connections table's From end or To end cell, or in the wire's Properties (section From end or To end, rows From
 end and From part, To end and To part), a person chooses ferrule, twin ferrule, ring lug or bare; an empty cell gives
 the rule's own back; in the Part row, a ferrule or lug part the project holds. The choice is one `fields.set` of the
-connection's `end_a` or `end_b` (§2.3) and one undo step. Properties sets it where the selected connection is the one
-that lands on the end (always for a wire of one connection); for another selection the row is read-only and the
-table's cell sets it. The cell prints the treatment as the list does, and Properties shows the chip "set by hand" with
+connection's `end_a` or `end_b` (§2.3) and one undo step. Properties set both ends of a wire from any of its
+connections; a selection of several wires shows them read-only. The cell prints the treatment as the list does, and Properties shows the chip "set by hand" with
 Reset, which clears it and gives the rule's treatment back; a rule's end says "rule (unverified)" and what it
 assumed. An end set by hand takes no part in the pairing of §4.3; a
 twin ferrule set by hand pairs with the other end on its clamp that is set or paired as twin.
@@ -467,7 +468,7 @@ The rules that say before a print what the fitter would ask. They run online and
 | EW-MFG-004 | "The marker of 104.4 at -104B1:13 does not fit its marker part: +CAB-104A1-A2:L+ needs 16 characters on a line of 12", per end | warning | — |
 | EW-MFG-008 | "The end of 104.4 at -104B1:13 cannot be made: a fine-stranded wire into an insulation-displacement clamp", per end | warning | Set the end by hand |
 | EW-MFG-009 | "The end of 101.7 at -101F1:3 set by hand does not fit: a ferrule for 1.5 mm² on a 2.5 mm² wire" (also: a twin ferrule with no second wire; a ferrule of another collar colour than the stock's ferrule of that size), per end | warning | Reset to the rule |
-| EW-POT-010 | "-X1011:PE clamp a takes 1 conductor; 2 land on it", per clamp, only where the part names its capacity | error | — |
+| EW-POT-010 | "-X1011:PE clamp a takes 1 conductor; 2 land on it", per clamp, only where the part names its capacity; "-X1011:PE clamp a takes 0.5–1.5 mm²; 101.4 of 2.5 mm² lands on it", per wire, only where the part names the range | error | — |
 
 A wire part that does not match the wire is EW-MFG-022 ([07](07-symbols-parts-macros.md) §2.5). The machine export's own
 rules (EW-MFG-002, 003, 005, 006) are §7.3's, EW-MFG-010 the package's (§8), EW-MFG-011 the feedback's (§11.4).
@@ -1087,7 +1088,7 @@ csv|xlsx] --out <file>` the rework list; `ew export report --kind labels` the la
 
 | # | Case | Handling |
 |---|---|---|
-| 1 | A junction edit changes which connection carries a wire | An end set by hand lives on the connection at the clamp, not on the carrier (§2.3); the rework list matches the wire by its two end CPs (§3.5) |
+| 1 | A junction edit changes which connection carries a wire | An end set by hand lives on a connection of the wire's own, by the endpoint that leads to it (§2.3); the rework list matches the wire by its two end CPs (§3.5) |
 | 2 | Several wires on one clamp of a terminal | The end prints the terminal and its clamp (§3.2); pairing gives twin ferrules (§4.3); EW-POT-010 counts a twin as one conductor |
 | 3 | Bridges drawn like wires | A bridge is never a wire row: the list prints it in its bridge block, the assembly list mounts it ([the workshop lists](13-workshop-lists.md) §6) |
 | 4 | Two sizes on one clamp | No twin ferrule: a ferrule each, and EW-POT-010 where the clamp takes fewer conductors |

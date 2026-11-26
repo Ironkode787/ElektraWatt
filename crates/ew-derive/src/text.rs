@@ -324,6 +324,7 @@ pub fn rework_action(action: ReworkAction) -> Text {
         ReworkAction::Pull => text!("rework-pull"),
         ReworkAction::Replace => text!("rework-replace"),
         ReworkAction::MoveEnd => text!("rework-move-end"),
+        ReworkAction::RemakeEnd => text!("rework-remake-end"),
         ReworkAction::CheckLength => text!("rework-check-length"),
         ReworkAction::Add => text!("rework-add"),
     }
@@ -349,6 +350,13 @@ pub fn rework_change(change: &ReworkChange) -> Text {
             text!("rework-change-wire-part", or_none(b.clone()), or_none(a.clone()))
         }
         ReworkChange::End(b, a) => text!("rework-change-end", b.clone(), a.clone()),
+        ReworkChange::RemakeEnd(at, b, a) => {
+            let words = |e: &crate::rework::EndMade| -> TextArg {
+                end_treatment(&e.treatment, e.colour.as_ref(), e.stud.as_deref(), e.partner.as_deref())
+                    .map_or_else(|| NONE.into(), TextArg::from)
+            };
+            text!("rework-change-remake", at.clone(), words(b), words(a))
+        }
         ReworkChange::Length(b, a) => {
             let value = |l: &WireLength, unit: bool| -> TextArg {
                 match l {

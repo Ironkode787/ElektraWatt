@@ -182,8 +182,14 @@ fn an_end_set_by_hand_prints_as_set_and_a_misfit_is_reported() {
         )
     };
     assert_eq!(misfits(&s), Vec::new());
-    // Its To end row in Properties: the ring lug, set by hand, with Reset, on the member that holds it.
+    // Its To end row in Properties: the ring lug, set by hand, with Reset; the stored member is not shown again.
     let sheet = s.property_sheet(&[holder.parse().expect("an ID")]);
+    let rows: Vec<&ew_api::output::PropRow> = sheet.sections.iter().flat_map(|x| x.rows.iter()).collect();
+    assert!(
+        rows.iter().all(|r| !r.path.starts_with("overrides.end_")),
+        "{:?}",
+        rows.iter().map(|r| &r.path).collect::<Vec<_>>()
+    );
     let row = (sheet.sections.iter().flat_map(|x| x.rows.iter()))
         .find(|r| r.key == "connection/derived.to_end")
         .expect("the To end row");
@@ -197,7 +203,7 @@ fn an_end_set_by_hand_prints_as_set_and_a_misfit_is_reported() {
             &ew_api::output::Provenance::Overridden {
                 note: "set by hand".into()
             },
-            format!("{member}.treatment").as_str()
+            "derived.to_end"
         )
     );
     assert!(row.actions.contains(&ew_api::output::RowAction::Reset), "{row:?}");
@@ -227,4 +233,105 @@ fn an_end_set_by_hand_prints_as_set_and_a_misfit_is_reported() {
     );
     let unknown = ew_ids::Uuid::from_u128(0x5e47_0000_0000_4000_8000_0000_0000_0042).to_string();
     set(&mut s, json!({"part": {"copy": unknown}})).expect_err("a part the project does not hold");
+}
+
+/// The cells `keys` of the wires `nos`.
+fn ends(s: &Session, nos: &[&str], key: &str) -> Vec<String> {
+    nos.iter().map(|n| cells(s, n, &[key]).remove(0)).collect()
+}
+
+/// 101.4, 101.5 and 101.6 land on -X1011:PE clamp a through one star's feed arm: each wire's end there is its own. Two
+/// of them set by hand to two treatments keep them, and the third keeps the rule's; each is stored on a connection of
+/// its own wire, never on the shared arm. The star then loses 101.5: the two ends set by hand stay.
+#[test]
+fn two_wires_at_one_clamp_keep_their_own_ends() {
+    let mut s = common::sample();
+    let star = ["101.4", "101.5", "101.6"];
+    let shared: Vec<String> = {
+        let t = s.navigator_table(NavKind::Connections);
+        let records = |no: &str| {
+            (t.nodes.iter())
+                .find(|n| n.table_row && n.label == no)
+                .map(|n| n.records.iter().map(ToString::to_string).collect::<Vec<_>>())
+                .unwrap_or_default()
+        };
+        let (a, b) = (records("101.4"), records("101.6"));
+        a.into_iter().filter(|r| b.contains(r)).collect()
+    };
+    assert!(!shared.is_empty(), "the star's feed arm");
+    for (no, treatment) in [("101.4", "ring_lug"), ("101.6", "bare")] {
+        let (holder, member) = end_of(&s, no, 0);
+        assert!(!shared.contains(&holder), "{no} holds its end on the shared arm");
+        run(
+            &mut s,
+            "fields.set",
+            json!({"kind": "connection", "targets": [holder], "path": member, "value": {"treatment": treatment}}),
+        )
+        .expect("an end set by hand");
+    }
+    assert_eq!(ends(&s, &star, "from_end"), ["ring lug", "ferrule 0.75 GY", "bare"]);
+    // 101.5 is pulled: the connections no other wire stands for go, the star keeps two wires.
+    let gone: Vec<String> = {
+        let t = s.navigator_table(NavKind::Connections);
+        let row = (t.nodes.iter()).find(|n| n.table_row && n.label == "101.5").expect("101.5");
+        let others: Vec<String> = (t.nodes.iter())
+            .filter(|n| n.table_row && n.label != "101.5")
+            .flat_map(|n| n.records.iter().map(ToString::to_string))
+            .collect();
+        row.records.iter().map(ToString::to_string).filter(|r| !others.contains(r)).collect()
+    };
+    run(&mut s, "connection.delete", json!({ "connections": gone })).expect("101.5 pulled");
+    // The numbers follow the pull; the two wires are known by their To ends, -101G1 and -X1031:PE.
+    let t = s.navigator_table(NavKind::Connections);
+    let col = |k: &str| t.columns.iter().position(|c| c.key == k).expect("a column");
+    let from_end_to = |to: &str| {
+        (t.nodes.iter())
+            .find(|n| n.table_row && n.cells[col("from")] == "-X1011:PE" && n.cells[col("to")] == to)
+            .map(|n| n.cells[col("from_end")].clone())
+            .unwrap_or_else(|| panic!("no wire to {to}"))
+    };
+    assert_eq!([from_end_to("-101G1"), from_end_to("-X1031:PE")], ["ring lug", "bare"]);
+}
+
+/// From any connection of a wire, Properties set both of its ends (`Session::layout_edit` of the rows From end and
+/// To end); the stored member is the wire's own connection's.
+#[test]
+fn properties_set_either_end_of_a_wire() {
+    let mut s = common::sample();
+    let (holder, _) = end_of(&s, "101.1", 0);
+    for (row, text, cell) in [("derived.from_end", "bare", "from_end"), ("derived.to_end", "ring_lug", "to_end")] {
+        let cmd = s
+            .layout_edit(&ew_api::output::LayoutEdit {
+                kind: "connection".into(),
+                target: holder.parse().expect("an ID"),
+                others: Vec::new(),
+                row: row.into(),
+                text: text.into(),
+            })
+            .expect("the end's command");
+        run(&mut s, &cmd.name, cmd.params).expect("the end set by hand");
+        assert_eq!(cells(&s, "101.1", &[cell])[0], text.replace('_', " "));
+    }
+}
+
+/// A workshop setting that is not set shows the value that applies, as the project's default.
+#[test]
+fn an_unset_workshop_setting_shows_its_default() {
+    let s = common::sample();
+    let sheet = s.property_sheet(&[s.query().project().id.as_uuid()]);
+    let row = (sheet.sections.iter().flat_map(|x| x.rows.iter()))
+        .find(|r| r.key == "project/settings.workshop.two_wires")
+        .expect("the Two wires row");
+    assert_eq!(
+        (&row.value, &row.provenance),
+        (
+            &ew_api::output::RowValue::One {
+                json: json!("twin_ferrule"),
+                text: "twin_ferrule".into()
+            },
+            &ew_api::output::Provenance::Derived {
+                via: "project default".into()
+            }
+        )
+    );
 }

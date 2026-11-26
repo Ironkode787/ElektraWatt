@@ -955,6 +955,57 @@ impl Session {
             })
         };
         match (edit.kind.as_str(), name) {
+            // A wire's end set by hand (doc 13 §4.5), from any connection of the wire: the treatment by its word
+            // (`ring_lug`, `ring lug`) or the part (a held ferrule or lug part by its ID or number); an empty text gives
+            // the rule's back. One `fields.set` of the `end_a` or `end_b` of the wire's own connection that holds it.
+            ("connection", "from_end" | "to_end" | "from_part" | "to_part") => {
+                let end = usize::from(name.starts_with("to_"));
+                let Some((holder, at_a, current)) =
+                    super::properties::end_holder(&q, Id::from_uuid(edit.target), end)
+                else {
+                    return invalid(text!("refusal-end-no-holder"));
+                };
+                let mut value = current
+                    .map(|o| serde_json::to_value(o).unwrap_or(Value::Null))
+                    .filter(Value::is_object)
+                    .unwrap_or_else(|| json!({}));
+                let member = if name.ends_with("_end") { "treatment" } else { "part" };
+                let set = if text.is_empty() {
+                    Value::Null
+                } else if member == "treatment" {
+                    let word = text.to_lowercase().replace([' ', '-'], "_");
+                    match word.as_str() {
+                        "ferrule" | "twin_ferrule" | "ring_lug" | "bare" => Value::String(word),
+                        _ => return invalid(text!("refusal-end-treatment-unknown", text.to_owned())),
+                    }
+                } else {
+                    let parts = q.parts();
+                    let id = serde_json::from_str::<Value>(text)
+                        .ok()
+                        .and_then(|v| v.get("copy").and_then(Value::as_str).map(str::to_owned))
+                        .unwrap_or_else(|| text.trim_start_matches("id:").to_owned());
+                    let found = parts.iter().find(|(pid, c)| {
+                        c.item.sections.ferrule.is_some()
+                            && (pid.to_string() == id || c.item.part_number.as_str() == text)
+                    });
+                    match found {
+                        Some((pid, _)) => json!({ "copy": pid.to_string() }),
+                        None => return invalid(text!("refusal-end-part-unknown", text.to_owned())),
+                    }
+                };
+                if let Some(o) = value.as_object_mut() {
+                    if set.is_null() {
+                        o.remove(member);
+                    } else {
+                        o.insert(member.to_owned(), set);
+                    }
+                }
+                let path = if at_a { "overrides.end_a" } else { "overrides.end_b" };
+                command(
+                    "fields.set",
+                    json!({"kind": "connection", "targets": [holder.to_string()], "path": path, "value": value}),
+                )
+            }
             // The variant of a device's part: one of the row's words, or a variant's key; the part's own number (or an
             // empty text) clears it. One `fields.set` of the device's parts, the part use's variant alone changed.
             // A strip's accessory its terminals' parts bring: a part number takes that part, an empty text leaves it

@@ -1,9 +1,10 @@
 row,Action,No.,From,CP,To,CP,Colour,mm²,Length,From end,To end,Change
 data,Pull,104.6,-104A1-A2,3,-104E2,X1,BK,0.75 mm²,—,ferrule 0.75 GY,ferrule 0.75 GY,
 data,Pull,104.9,-104A1,M,-104E2,X2,BU,0.75 mm²,—,twin 0.75 GY · 101.19,twin 0.75 GY · 104.7,
-data,Replace,101.7,-X1011:N,a,-101F1,3,BU,2.5 mm²,—,ferrule 2.5 BU,ferrule 2.5 BU,size 1.5 → 2.5 mm²
+data,Replace,101.7,-X1011:N,a,-101F1,3,BU,2.5 mm²,—,ferrule 2.5 BU,ferrule 2.5 BU,size 1.5 → 2.5 mm²; at -X1011:N/a: ferrule 1.5 BK → ferrule 2.5 BU; at -101F1:3: ferrule 1.5 BK → ferrule 2.5 BU
 data,Move end,104.5,+FLD-104B1,14,+CAB-104A1-A1,4,DBU,0.75 mm²,—,ferrule 0.75 GY,ferrule 0.75 GY,end -104A1-A1:2 → -104A1-A1:4
 data,Move end,104.7,-104A1,M,-104E1,X2,BU,0.75 mm²,—,twin 0.75 GY · 101.19,twin 0.75 GY · 104.3,end -104E2:X2 → -104A1:M
+data,Re-make end,101.19,-101G1,-#1,-104A1,M,BU,0.75 mm²,—,ferrule 0.75 GY,twin 0.75 GY · 104.7,at -104A1:M: twin 0.75 GY · 104.9 → twin 0.75 GY · 104.7
 data,Check length,103.2,-102Q1,2,-X1031:U,a,BK,2.5 mm²,650 mm,ferrule 2.5 BU,ferrule 2.5 BU,length 600 → 650 mm
 data,Add,102.10,-X1021:3,a,-102S3,13,DBU,2.5 mm²,—,ferrule 2.5 BU,ferrule 2.5 BU,
 data,Add,102.11,-102S3,14,-104A1-A1,2,DBU,2.5 mm²,—,ferrule 2.5 BU,ferrule 2.5 BU,

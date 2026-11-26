@@ -10,7 +10,7 @@ use std::collections::BTreeSet;
 
 use ew_derive::{
     EndTreatment, NameSource, PotentialNameOf, PotentialPartition, PropSource, Q, TreatedBy, WireLength,
-    WireNumbers, WireRecordSet, cp_label, end_connection,
+    WireNumbers, WireRecordSet, cp_label,
 };
 use ew_ids::{Id, Uuid};
 use ew_model::EndpointKey;
@@ -488,37 +488,37 @@ fn length_row(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Built {
     })
 }
 
-/// A wire's From end and To end (doc 13 §4.5), each an End row and a Part row under its own heading: the treatment
-/// (`ferrule`, `twin_ferrule`, `ring_lug`, `bare`) with the chip "set by hand" and Reset where the selected connection
-/// holds it, else the rule's, unverified, and what it assumed (a connector's contact, an end the table cannot decide and
-/// an end made outside the project have none of the four); the part with "set by hand", else the workshop stock's. A
-/// row sets the end by hand where the one selected connection is the one that lands on the end (`overrides.end_a` when
-/// it lands there by its endpoint `a`, else `end_b`); with another selection it is read-only, and the Connections
-/// table's end cells set it.
+/// A wire's From end and To end (doc 13 §4.5), each a treatment row and a part row under its own heading: the treatment
+/// (`ferrule`, `twin_ferrule`, `ring_lug`, `bare`) with the chip "set by hand" and Reset, else the rule's, unverified,
+/// and what it assumed (a connector's contact, an end the table cannot decide and an end made outside the project have
+/// none of the four); the part with "set by hand" and Reset, else the workshop stock's. The selected connections must be
+/// of one wire: a row then sets that wire's end by hand from any of them, through `Session::layout_edit`, on the wire's
+/// own connection that holds it (`EndRecord::hand_at`).
 fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
     let records = q.get::<WireRecordSet>(());
+    let wire_of = |c: &Id<Connection>| {
+        wires_of(q, *c)
+            .first()
+            .and_then(|(wire, _)| records.iter().find(|r| r.wire.id == *wire))
+    };
+    let mut wires: Vec<Id<Connection>> = conns.iter().filter_map(|c| wire_of(c).map(|r| r.wire.id)).collect();
+    wires.dedup();
+    let one_wire = wires.len() == 1 && conns.iter().all(|c| wire_of(c).is_some());
     let mut out = Vec::new();
     for (i, category, names) in [
         (0, Category::FromEnd, ("from_end", "from_part")),
         (1, Category::ToEnd, ("to_end", "to_part")),
     ] {
         let (mut ends, mut parts) = (Vec::new(), Vec::new());
-        let (mut can_reset_end, mut can_reset_part) = (false, false);
-        let mut at: Option<(Id<Connection>, bool)> = None;
+        let (mut by_hand_end, mut by_hand_part, mut holder) = (false, false, false);
         for c in conns {
-            let record = wires_of(q, *c)
-                .first()
-                .and_then(|(wire, _)| records.iter().find(|r| r.wire.id == *wire));
-            let Some(record) = record else {
+            let Some(record) = wire_of(c) else {
                 ends.push((None, Provenance::Authored));
                 parts.push((None, Provenance::Authored));
                 continue;
             };
             let end = &record.ends[i];
-            let holder = end_connection(q, &record.wire, i);
-            if conns.len() == 1 && holder.is_some_and(|(h, _)| h == *c) {
-                at = holder;
-            }
+            holder |= end.hand_at.is_some();
             let word = match end.treatment {
                 EndTreatment::Ferrule { .. } => Some("ferrule"),
                 EndTreatment::TwinFerrule { .. } => Some("twin_ferrule"),
@@ -526,38 +526,35 @@ fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
                 EndTreatment::Bare => Some("bare"),
                 EndTreatment::Connector | EndTreatment::External | EndTreatment::Unknown { .. } => None,
             };
-            let hand_part = ew_derive::end_override(q, &record.wire, i)
-                .and_then(|o| o.part)
-                .is_some();
-            let by = |hand: bool| match (hand, end.treated_by) {
-                (true, _) => Provenance::Overridden {
-                    note: "set by hand".into(),
-                },
-                (false, TreatedBy::Rule { assumed, .. }) => Provenance::Derived {
-                    via: match (assumed.class, assumed.clamp) {
-                        (true, true) => "rule (unverified): fine-stranded wire, clamp kind not known",
-                        (true, false) => "rule (unverified): fine-stranded wire",
-                        (false, true) => "rule (unverified): clamp kind not known",
-                        (false, false) => "rule (unverified)",
-                    }
-                    .into(),
-                },
-                (false, TreatedBy::Outside) => Provenance::Derived {
-                    via: "made outside the project".into(),
-                },
-                (false, TreatedBy::Hand) => Provenance::Overridden {
-                    note: "set by hand".into(),
-                },
+            let set_by_hand = || Provenance::Overridden {
+                note: "set by hand".into(),
             };
             let hand_end = end.treated_by == TreatedBy::Hand;
-            can_reset_end |= hand_end && at.is_some();
-            can_reset_part |= hand_part && at.is_some();
-            ends.push((word.map(Value::from), by(hand_end)));
+            by_hand_end |= hand_end;
+            by_hand_part |= end.part_by_hand;
+            ends.push((
+                word.map(Value::from),
+                match end.treated_by {
+                    TreatedBy::Hand => set_by_hand(),
+                    TreatedBy::Rule { assumed, .. } => Provenance::Derived {
+                        via: match (assumed.class, assumed.clamp) {
+                            (true, true) => "rule (unverified): fine-stranded wire, clamp kind not known",
+                            (true, false) => "rule (unverified): fine-stranded wire",
+                            (false, true) => "rule (unverified): clamp kind not known",
+                            (false, false) => "rule (unverified)",
+                        }
+                        .into(),
+                    },
+                    TreatedBy::Outside => Provenance::Derived {
+                        via: "made outside the project".into(),
+                    },
+                },
+            ));
             let part = end.part.map(|p| serde_json::json!({ "copy": p.to_string() }));
             parts.push((
                 part,
-                if hand_part {
-                    by(true)
+                if end.part_by_hand {
+                    set_by_hand()
                 } else {
                     Provenance::Derived {
                         via: "workshop stock".into(),
@@ -571,24 +568,29 @@ fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
                 .to_vec(),
         }));
         let part = FieldType::Optional(Box::new(FieldType::Link { kind: "part".into() }));
-        for (name, member, ty, per, can_reset) in [
-            (names.0, "treatment", treatment, ends, can_reset_end),
-            (names.1, "part", part, parts, can_reset_part),
+        let editable = one_wire && holder;
+        for (name, ty, per, by_hand) in [
+            (names.0, treatment, ends, by_hand_end),
+            (names.1, part, parts, by_hand_part),
         ] {
             let (value, provenance) = merge(cx, &ty, per);
-            let path = at.map(|(_, a)| format!("overrides.end_{}.{member}", if a { "a" } else { "b" }));
-            let route = at.map(|(_, a)| EditRoute::FieldsSet {
-                kind: "connection".to_owned(),
-                path: format!("overrides.end_{}", if a { "a" } else { "b" }),
-            });
-            let mut actions = vec![RowAction::Override];
-            if can_reset {
+            let mut actions = vec![RowAction::Edit];
+            if by_hand {
                 actions.push(RowAction::Reset);
             }
+            let path = format!("derived.{name}");
             out.push(derived(DerivedRow {
                 kind: "connection",
                 name,
-                partner: path.as_deref().zip(route).map(|(p, r)| (p, r, false)),
+                partner: editable.then(|| {
+                    (
+                        path.as_str(),
+                        EditRoute::Command {
+                            command: "fields.set".to_owned(),
+                        },
+                        false,
+                    )
+                }),
                 category,
                 ty,
                 value,
@@ -598,6 +600,20 @@ fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
         }
     }
     out
+}
+
+/// Where the end `end` (0 the From end, 1 the To end) of the wire of connection `c` is set by hand
+/// (`EndRecord::hand_at`): the wire's own connection that holds it, whether in `end_a`, and what it holds now.
+pub(crate) fn end_holder(
+    q: &Q,
+    c: Id<Connection>,
+    end: usize,
+) -> Option<(Id<Connection>, bool, Option<ew_schema::EndOverride>)> {
+    let records = q.get::<WireRecordSet>(());
+    let (wire, _) = wires_of(q, c).into_iter().next()?;
+    let (holder, at_a) = records.iter().find(|r| r.wire.id == wire)?.ends.get(end)?.hand_at?;
+    let o = &q.connections().get(holder)?.overrides;
+    Some((holder, at_a, if at_a { o.end_a.clone() } else { o.end_b.clone() }))
 }
 
 /// The row that holds the source of the wire property `name` (`csa`, `colour`, `shielded`): the same

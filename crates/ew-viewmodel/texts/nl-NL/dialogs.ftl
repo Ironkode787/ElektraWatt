@@ -158,6 +158,10 @@ rework-count-move-end = { $p0 ->
         [one] 1 einde verleggen
        *[other] { $p0 } einden verleggen
     }
+rework-count-remake-end = { $p0 ->
+        [one] 1 einde opnieuw af te werken
+       *[other] { $p0 } einden opnieuw af te werken
+    }
 rework-count-check-length = { $p0 ->
         [one] 1 lengte nakijken
        *[other] { $p0 } lengtes nakijken

@@ -17,7 +17,8 @@ use ew_schema::{ColourSpec, Csa, PartRef};
 use crate::joins::cp_label;
 use crate::nets::CpRef;
 use crate::q::Q;
-use crate::wire_record::{WireLength, WireRecord, WireRecordSet};
+use crate::treatment::EndTreatment;
+use crate::wire_record::{EndRecord, WireLength, WireRecord, WireRecordSet};
 use crate::wires::EndKind;
 
 /// One wire of two states: its record in the earlier state (`before`, the release) and in the later one (`after`,
@@ -96,6 +97,8 @@ pub enum ReworkAction {
     Replace,
     /// An end of a kept wire lands on another CP.
     MoveEnd,
+    /// An end of a kept wire, on the same CP, takes another treatment or part.
+    RemakeEnd,
     /// The length changed.
     CheckLength,
     /// A wire is new.
@@ -113,8 +116,23 @@ pub enum ReworkChange {
     WirePart(Option<String>, Option<String>),
     /// An end that lands on another CP: the CP before and after (`-104A1-A1:2`).
     End(String, String),
+    /// An end on the same CP made another way: the CP, and the end before and after.
+    RemakeEnd(String, EndMade, EndMade),
     /// The length, before and after.
     Length(WireLength, WireLength),
+}
+
+/// An end as a Re-make end change prints it: its treatment, the colour and stud of its part, the twin partner's number.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct EndMade {
+    /// The treatment.
+    pub treatment: EndTreatment,
+    /// The colour of its part.
+    pub colour: Option<ColourSpec>,
+    /// The stud of its part (a ring lug's).
+    pub stud: Option<String>,
+    /// The number of a twin ferrule's partner wire.
+    pub partner: Option<String>,
 }
 
 /// One row of the rework list: an action on one wire, the wire as the row prints it (as the release had it for a
@@ -170,6 +188,7 @@ fn action_of(change: &ReworkChange) -> ReworkAction {
             ReworkAction::Replace
         }
         ReworkChange::End(..) => ReworkAction::MoveEnd,
+        ReworkChange::RemakeEnd(..) => ReworkAction::RemakeEnd,
         ReworkChange::Length(..) => ReworkAction::CheckLength,
     }
 }
@@ -211,10 +230,51 @@ fn changes(base: &Q, b: &WireRecord, now: &Q, a: &WireRecord) -> Vec<ReworkChang
             ));
         }
     }
+    // An end kept on its CP that is made another way: its treatment (a twin ferrule by its partner wire, not by the
+    // partner's number) or its part.
+    for (end_b, end_a) in pairs {
+        let at = |r: &WireRecord, cp: CpRef| r.wire.ends.iter().position(|e| e.cp == cp);
+        let (Some(ib), Some(ia)) = (at(b, end_b), at(a, end_a)) else {
+            continue;
+        };
+        let (eb, ea) = (&b.ends[ib], &a.ends[ia]);
+        if end_b == end_a
+            && (eb.treatment != ea.treatment
+                || part_number(base, eb.part.map(PartRef::new).as_ref()) != part_number(now, ea.part.map(PartRef::new).as_ref()))
+        {
+            out.push(ReworkChange::RemakeEnd(
+                end_label(now, a, end_a),
+                made(base, eb),
+                made(now, ea),
+            ));
+        }
+    }
     if b.length != a.length {
         out.push(ReworkChange::Length(b.length, a.length));
     }
     out
+}
+
+/// An end as a Re-make end change prints it.
+fn made(q: &Q, e: &EndRecord) -> EndMade {
+    let ferrule = e
+        .part
+        .and_then(|p| q.parts().get(p))
+        .and_then(|c| c.item.sections.ferrule.clone());
+    let partner = match e.treatment {
+        EndTreatment::TwinFerrule { partner: Some(p), .. } => q
+            .get::<WireRecordSet>(())
+            .iter()
+            .find(|r| r.wire.id == p)
+            .and_then(|r| r.number.clone()),
+        _ => None,
+    };
+    EndMade {
+        treatment: e.treatment,
+        colour: ferrule.as_ref().and_then(|f| f.colour.clone()),
+        stud: ferrule.and_then(|f| f.stud).map(|s| s.as_str().to_owned()),
+        partner,
+    }
 }
 
 /// An end as the Change cell names it: its CP's label, `ext. <name>` for an external end.

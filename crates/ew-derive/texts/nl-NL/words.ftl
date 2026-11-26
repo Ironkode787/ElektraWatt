@@ -127,12 +127,14 @@ length-source-missing = ontbreekt
 rework-pull = Uittrekken
 rework-replace = Vervangen
 rework-move-end = Einde verleggen
+rework-remake-end = Einde opnieuw afwerken
 rework-check-length = Lengte nakijken
 rework-add = Toevoegen
 rework-change-size = doorsnede { $p0 } → { $p1 }
 rework-change-colour = kleur { $p0 } → { $p1 }
 rework-change-wire-part = draadartikel { $p0 } → { $p1 }
 rework-change-end = einde { $p0 } → { $p1 }
+rework-change-remake = op { $p0 }: { $p1 } → { $p2 }
 rework-change-length = lengte { $p0 } → { $p1 }
 rework-changes-between = { "; " }
 

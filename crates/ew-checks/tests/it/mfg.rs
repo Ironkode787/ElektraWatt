@@ -18,6 +18,11 @@ const BOX_DEVICE: u128 = 0x3001;
 
 /// The black box with its clamp `clamp` on pin 1, and `wires` wires from it to functions of their own.
 fn clamp(clamp: &Value, wires: u128) -> Model {
+    clamp_with(clamp, wires, &none())
+}
+
+/// [`clamp`] with the wires' members `wire` (their overrides).
+fn clamp_with(clamp: &Value, wires: u128, wire: &Value) -> Model {
     let mut fx = Fx::base();
     let mut pin = json!({"idx": 0, "designation": "1"});
     for (k, v) in clamp.as_object().expect("an object") {
@@ -34,7 +39,7 @@ fn clamp(clamp: &Value, wires: u128) -> Model {
     fx.rec_mut(&us(BOX))["kind"] = json!("black_box");
     for n in 0..wires {
         fx.func(0x1100 + n, P1);
-        fx.conn(0x2001 + n, P1, cp(BOX), cp(0x1100 + n), &none());
+        fx.conn(0x2001 + n, P1, cp(BOX), cp(0x1100 + n), wire);
     }
     fx.build()
 }
@@ -89,6 +94,66 @@ fn pot010_reports_more_conductors_than_the_clamp_takes() {
                 clamp(&json!({"clamp_type": "screw", "max_conductors": 1}), 1),
             ),
             Case::silent("capacity not named", clamp(&json!({"clamp_type": "screw"}), 3)),
+            Case::reports(
+                "a size outside the range",
+                clamp_with(
+                    &json!({"clamp_type": "screw", "csa_min": "0.5", "csa_max": "1.5"}),
+                    1,
+                    &json!({"overrides": {"csa": "2.5"}}),
+                ),
+                |c, f| {
+                    assert_eq!(f.len(), 1, "case {c}: {f:#?}");
+                    assert!(
+                        f[0].message().contains("takes 0.5–1.5 mm²; ") && f[0].message().ends_with("of 2.5 mm² lands on it"),
+                        "{}",
+                        f[0].message()
+                    );
+                    assert_worded(f);
+                },
+            ),
+            Case::silent(
+                "a size inside the range",
+                clamp_with(
+                    &json!({"clamp_type": "screw", "csa_min": "0.5", "csa_max": "2.5"}),
+                    1,
+                    &json!({"overrides": {"csa": "2.5"}}),
+                ),
+            ),
         ],
     );
+}
+
+/// One wire from -K<counter> to -K2 whose end at the first is set bare by hand (`end_a`: the end the connection reaches
+/// through its endpoint a). The wire reads From the lower tag: numbering the first 3 turns the wire round, and the end
+/// set by hand stays at its connection point.
+#[test]
+fn an_end_set_by_hand_stays_with_its_cp_when_the_wire_turns_round() {
+    let mut from = Vec::new();
+    for counter in [1, 3] {
+        let mut fx = Fx::base();
+        fx.func_tagged(0x1001, counter, P1);
+        fx.func_tagged(0x1002, 2, P1);
+        fx.conn(
+            0x2001,
+            P1,
+            cp(0x1001),
+            cp(0x1002),
+            &json!({"overrides": {"end_a": {"treatment": "bare"}}}),
+        );
+        let m = fx.build();
+        let q = ew_derive::Q::new(&m);
+        let set = q.get::<ew_derive::WireRecordSet>(());
+        let r = set.first().expect("the wire");
+        let at = (r.wire.ends.iter())
+            .position(|e| e.cp.function.to_string() == us(0x1001))
+            .expect("its end at the first function");
+        assert_eq!(
+            (r.ends[at].treatment, r.ends[at].treated_by),
+            (ew_derive::EndTreatment::Bare, ew_derive::TreatedBy::Hand),
+            "counter {counter}"
+        );
+        assert!(r.ends[1 - at].treated_by != ew_derive::TreatedBy::Hand, "counter {counter}");
+        from.push(at);
+    }
+    assert_eq!(from, [0, 1], "the wire turned round");
 }

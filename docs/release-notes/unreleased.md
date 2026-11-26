@@ -177,8 +177,15 @@ change here.
 - behaviour-change: A wire's end can be set by hand: in the Connections table's From end or To end cell (ferrule, twin
   ferrule, ring lug or bare; an empty cell gives the rule's back), or in the wire's Properties, whose new sections From
   end and To end show each end's treatment and part with "set by hand" and Reset, or the rule's, unverified, and what
-  it assumed. The end is stored on the connection that lands on it (`overrides.end_a`, `end_b`; a part must be one the
-  project holds) and stays with the part that keeps that end when a device splits the connection. EW-MFG-009
+  it assumed, set from any connection of the wire. Each wire's end is its own, also where several wires share a star's
+  or a chain's arm to one clamp: it is stored on a connection of that wire alone (`overrides.end_a`, `end_b`: the end
+  reached through its endpoint a or b; a part must be one the project holds), stays with its connection point when the
+  wire turns round or loses a sibling, and with the part that keeps that end when a device splits the connection. EW-MFG-009
   (warning) reports an end set by hand that does not fit: a ferrule part of another size than the wire's, a twin
   ferrule with no second wire, a ferrule of another colour than the stock's; its quick fix resets the end to the rule.
   The sample project's 101.4 lands on -101G1:PE with a ring lug.
+- behaviour-change: EW-POT-010 also reports a wire whose size lies outside its clamp's range, where the part names one.
+- behaviour-change: The rework list's Re-make end lists an end that stays on its clamp but is made another way (its
+  treatment, a twin ferrule's partner wire or its part): `at -101Q1:1: ferrule 1.5 BK → bare`.
+- behaviour-change: Project properties ▸ Workshop shows Ferrules and Two wires in one clamp with the value that
+  applies while they are not set, marked as the default.

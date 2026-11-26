@@ -103,8 +103,8 @@ pub const END_SET_BY_HAND_MISFITS: RuleMeta = RuleMeta {
 
 /// EW-MFG-009: an end set by hand (doc 13 §4.5) that does not fit: its ferrule part takes another size than the wire's,
 /// a twin ferrule that no second wire on its clamp shares, or a ferrule part of another colour than the workshop
-/// stock's ferrule for that end. One finding per end, target the connection that holds it, discriminator the end
-/// (`from`, `to`); its quick fix, Reset to the rule, clears the end set by hand.
+/// stock's ferrule for that end. One finding per end, target the connection that holds it (`EndRecord::hand_at`),
+/// discriminator the end (`from`, `to`); its quick fix, Reset to the rule, clears the end set by hand.
 #[derive(Clone, Copy, Debug)]
 pub struct EndSetByHandMisfits;
 
@@ -129,10 +129,10 @@ impl Rule for EndSetByHandMisfits {
                 _ => None,
             };
             for (i, end) in r.ends.iter().enumerate() {
-                if end.treated_by != TreatedBy::Hand {
+                if end.treated_by != TreatedBy::Hand && !end.part_by_hand {
                     continue;
                 }
-                let Some((connection, at_a)) = ew_derive::end_connection(q, &r.wire, i) else {
+                let Some((connection, at_a)) = end.hand_at else {
                     continue;
                 };
                 let ferrule = end
@@ -232,8 +232,9 @@ pub const CLAMP_CAPACITY: RuleMeta = RuleMeta {
 };
 
 /// EW-POT-010: a clamp on which more conductors land than its part says it takes (`max_conductors`, doc 13 §4.3): the
-/// wire ends on the CP, a twin ferrule's two wires counted once. Only where the part names the clamp's capacity. One
-/// finding per CP, target the function, discriminator the CP index.
+/// wire ends on the CP, a twin ferrule's two wires counted once, one finding per CP, discriminator the CP index; and a
+/// wire of a size in mm² outside the clamp's range (`csa_min`, `csa_max`), one finding per wire, discriminator the CP
+/// index and the wire. Only where the part names the capacity or the range; target the function.
 #[derive(Clone, Copy, Debug)]
 pub struct ClampCapacity;
 
@@ -248,30 +249,70 @@ impl Rule for ClampCapacity {
         };
         let mut functions: Vec<_> = q.idx().functions_of_device(device).collect();
         functions.sort();
-        let counts = clamp_conductors(&q.get::<WireRecordSet>(()));
+        let records = q.get::<WireRecordSet>(());
+        let counts = clamp_conductors(&records);
         let mut out = Vec::new();
         for f in functions {
             for cp in q.get::<FunctionCps>(f).iter() {
-                let Some(max) = cp.clamp_data.as_ref().and_then(|c| c.max_conductors) else {
+                let Some(clamp) = cp.clamp_data.as_ref() else {
                     continue;
                 };
                 let at = CpRef::new(f, cp.idx);
-                let count = counts.get(&at).copied().unwrap_or(0);
-                if count <= usize::from(max) {
-                    continue;
-                }
                 let label = cp_label(q, at);
-                out.push(
+                let finding = |discriminator: String, form: &'static str| {
                     Finding::new(
                         &CLAMP_CAPACITY,
                         [Target::new(Kind::Function, f)],
-                        cp.idx.to_string(),
+                        discriminator,
                         label.clone(),
                     )
-                    .arg("cp", label)
-                    .arg("max", TextArg::Number(i64::from(max)))
-                    .arg("count", TextArg::Number(i64::try_from(count).unwrap_or(i64::MAX))),
-                );
+                    .arg("cp", label.clone())
+                    .arg("form", form)
+                };
+                let count = counts.get(&at).copied().unwrap_or(0);
+                if let Some(max) = clamp.max_conductors
+                    && count > usize::from(max)
+                {
+                    out.push(
+                        finding(cp.idx.to_string(), "count")
+                            .arg("max", TextArg::Number(i64::from(max)))
+                            .arg("count", TextArg::Number(i64::try_from(count).unwrap_or(i64::MAX)))
+                            .arg("range", "")
+                            .arg("wire", "")
+                            .arg("csa", ""),
+                    );
+                }
+                // A wire of a size outside the clamp's range, where its part names one.
+                let (min, max) = clamp.csa;
+                if min.is_none() && max.is_none() {
+                    continue;
+                }
+                let range = match (min, max) {
+                    (Some(a), Some(b)) if a == b => a.to_string(),
+                    (Some(a), Some(b)) => format!("{a}–{b}"),
+                    (Some(a), None) => format!("≥ {a}"),
+                    (None, Some(b)) => format!("≤ {b}"),
+                    (None, None) => String::new(),
+                };
+                for r in records.iter() {
+                    let Some(ew_schema::Csa::Mm2(size)) = r.csa.as_ref().map(|c| &c.value) else {
+                        continue;
+                    };
+                    let lands = r.wire.ends.iter().any(|e| e.cp == at && e.kind == ew_derive::EndKind::Device);
+                    let outside = min.is_some_and(|m| *size < m) || max.is_some_and(|m| *size > m);
+                    if !lands || !outside {
+                        continue;
+                    }
+                    let wire = wire_text(q, &r.wire);
+                    out.push(
+                        finding(format!("{}/{wire}", cp.idx), "size")
+                            .arg("max", TextArg::Number(0))
+                            .arg("count", TextArg::Number(0))
+                            .arg("range", range.clone())
+                            .arg("wire", wire)
+                            .arg("csa", size.to_string()),
+                    );
+                }
             }
         }
         out

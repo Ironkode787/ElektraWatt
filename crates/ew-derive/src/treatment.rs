@@ -4,7 +4,7 @@
 //! The treatment of a wire's ends (doc 13 §4): what the fitter puts on each end of a wire, by the rule table
 //! [`TREATMENT_RULES`] over the end's clamp and the wire's conductor class, the pairing of two wires of one size on one
 //! clamp into a twin ferrule (§4.3) and the part of each end from the workshop stock (§4.4), unless a person set the end
-//! by hand (§4.5: `WireOverrides.end_a` or `end_b` of the connection that lands on it, [`end_override`]). [`treat`] fills
+//! by hand (§4.5: `WireOverrides.end_a` or `end_b` of a connection of the wire's own, [`EndRecord::hand_at`]). [`treat`] fills
 //! the ends of the records of `wire_record_set()`; [`clamp_conductors`] counts the conductors each clamp takes for
 //! EW-POT-010.
 
@@ -266,6 +266,40 @@ fn clamp_of(q: &Q, cp: CpRef) -> Option<ClampData> {
 /// Fills the treatment, the part and who decided it of every end of `records` (doc 13 §4): the rule table per end, then
 /// the pairing per clamp (§4.3), then the part from the workshop stock (§4.4).
 pub(crate) fn treat(q: &Q, records: &mut [WireRecord]) {
+    // How many wires stand for each connection: an end set by hand lives on a connection of the wire's own.
+    let mut wires_of: BTreeMap<Id<Connection>, usize> = BTreeMap::new();
+    for r in records.iter() {
+        let mut own = r.wire.constituents.clone();
+        own.sort();
+        own.dedup();
+        for c in own {
+            *wires_of.entry(c).or_default() += 1;
+        }
+    }
+    let mut hands: Vec<[Option<EndOverride>; 2]> = Vec::with_capacity(records.len());
+    for r in records.iter_mut() {
+        let own = own_connections(&r.wire, &wires_of);
+        let mut hand: [Option<EndOverride>; 2] = [None, None];
+        for i in 0..2 {
+            if r.wire.ends[i].kind != EndKind::Device {
+                continue;
+            }
+            r.ends[i].hand_at = own.first().and_then(|(k, c)| {
+                [true, false]
+                    .into_iter()
+                    .find(|a| end_through(q, &r.wire, *k, *a) == Some(i))
+                    .map(|a| (*c, a))
+            });
+            hand[i] = own.iter().find_map(|(k, c)| {
+                let o = &q.connections().get(*c)?.overrides;
+                [(true, &o.end_a), (false, &o.end_b)]
+                    .into_iter()
+                    .find(|(a, end)| end.is_some() && end_through(q, &r.wire, *k, *a) == Some(i))
+                    .and_then(|(_, end)| end.clone())
+            });
+        }
+        hands.push(hand);
+    }
     let project = q.project();
     let workshop = &project.settings.workshop;
     let parts = q.parts();
@@ -277,15 +311,14 @@ pub(crate) fn treat(q: &Q, records: &mut [WireRecord]) {
             .and_then(|w| w.class)
     };
     let mut clamps: BTreeMap<CpRef, Option<ClampData>> = BTreeMap::new();
-    for r in records.iter_mut() {
+    for (n, r) in records.iter_mut().enumerate() {
         let csa = mm2(r);
         let class = class_of(r);
         let wire_ends = r.wire.ends;
         for (i, end) in wire_ends.iter().enumerate() {
-            let by_hand = (end.kind == EndKind::Device)
-                .then(|| end_override(q, &r.wire, i))
-                .flatten()
-                .and_then(|o| match o.treatment? {
+            let by_hand = hands[n][i]
+                .as_ref()
+                .and_then(|o| match o.treatment.as_ref()? {
                     TreatmentKind::Ferrule => Some(EndTreatment::Ferrule { csa }),
                     TreatmentKind::TwinFerrule => Some(EndTreatment::TwinFerrule { csa, partner: None }),
                     TreatmentKind::RingLug => Some(EndTreatment::RingLug),
@@ -319,24 +352,69 @@ pub(crate) fn treat(q: &Q, records: &mut [WireRecord]) {
         }
     }
     pair(records, &clamps, &workshop.two_wires);
-    for r in records.iter_mut() {
+    for (n, r) in records.iter_mut().enumerate() {
         let csa = mm2(r);
         for i in 0..r.ends.len() {
-            let by_hand = end_override(q, &r.wire, i).and_then(|o| o.part).map(|p| p.copy);
+            let by_hand = hands[n][i].as_ref().and_then(|o| o.part.as_ref()).map(|p| p.copy);
+            r.ends[i].part_by_hand = by_hand.is_some();
             r.ends[i].part = by_hand.or_else(|| stock_part(q, &r.ends[i].treatment, csa));
         }
     }
 }
 
-/// The end of `wire` at `end` (0 the From end, 1 the To end) set by hand: the `end_a` or `end_b` of the connection that
-/// lands on it ([`end_connection`]), as stored.
-pub fn end_override(q: &Q, wire: &PhysicalWire, end: usize) -> Option<EndOverride> {
-    if wire.ends.get(end)?.kind != EndKind::Device {
-        return None;
+/// The connections of `wire` that no other wire stands for, each with its index among the constituents, in the order
+/// the wire takes its values (doc 08 §3.8): the carrier, then the constituents in path order. They hold the wire's ends
+/// set by hand (doc 13 §2.3); the first is where an edit writes them.
+fn own_connections(wire: &PhysicalWire, wires_of: &BTreeMap<Id<Connection>, usize>) -> Vec<(usize, Id<Connection>)> {
+    let alone = |c: &Id<Connection>| wires_of.get(c).is_some_and(|n| *n == 1);
+    let at = |c: Id<Connection>| wire.constituents.iter().position(|x| *x == c).map(|k| (k, c));
+    let mut out: Vec<(usize, Id<Connection>)> = Vec::new();
+    for c in std::iter::once(wire.id).chain(wire.constituents.iter().copied()) {
+        if alone(&c) && !out.iter().any(|(_, x)| *x == c)
+            && let Some(kc) = at(c)
+        {
+            out.push(kc);
+        }
     }
-    let (connection, at_a) = end_connection(q, wire, end)?;
-    let o = &q.connections().get(connection)?.overrides;
-    if at_a { o.end_a.clone() } else { o.end_b.clone() }
+    out
+}
+
+/// The end of `wire` (0 its From end, 1 its To end) that its constituent `k` leads to through its endpoint `a` (`via_a`)
+/// or `b`: the end the connection lands on itself, else the end its neighbours on the wire's path lead to (the
+/// constituents run from the end the first of them lands on). What `end_a` and `end_b` of a connection mean: the wire's
+/// end reached through that endpoint, whichever way round the wire reads.
+pub fn end_through(q: &Q, wire: &PhysicalWire, k: usize, via_a: bool) -> Option<usize> {
+    let conns = q.connections();
+    let at = |j: usize| -> Option<(Endpoint, Endpoint)> {
+        let c = conns.get(*wire.constituents.get(j)?)?;
+        Some((c.a.clone(), c.b.clone()))
+    };
+    let (a, b) = at(k)?;
+    let (near, far) = if via_a { (a, b) } else { (b, a) };
+    let cp = |e: usize| Endpoint::Cp(wire.ends[e].cp.function, wire.ends[e].cp.idx);
+    for e in 0..2 {
+        if near == cp(e) && far != cp(e) {
+            return Some(e);
+        }
+    }
+    for e in 0..2 {
+        if far == cp(e) && near != cp(e) {
+            return Some(1 - e);
+        }
+    }
+    let first = at(0)?;
+    let start = (0..2).find(|e| first.0 == cp(*e) || first.1 == cp(*e))?;
+    let touches = |j: Option<usize>, p: &Endpoint| {
+        j.and_then(|j| at(j)).is_some_and(|(x, y)| x == *p || y == *p)
+    };
+    let (before, after) = (k.checked_sub(1), (k + 1 < wire.constituents.len()).then_some(k + 1));
+    if touches(before, &near) || touches(after, &far) {
+        Some(start)
+    } else if touches(after, &near) || touches(before, &far) {
+        Some(1 - start)
+    } else {
+        None
+    }
 }
 
 /// The pairing of doc 13 §4.3: on every CP two or more ferrule ends the rule decided land on, sorted by size (largest

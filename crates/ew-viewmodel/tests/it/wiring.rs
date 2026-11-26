@@ -1323,6 +1323,19 @@ fn a_stored_route_and_a_contact_inserted_split_the_wire() {
     );
     let ends = [&kept, &half].map(|c| c["overrides"].get("end_a").is_some());
     assert_eq!(ends.iter().filter(|e| **e).count(), 1, "{kept} {half}");
+    // The wire that lands on -101G1:PE keeps its ring lug there, the project's one end set by hand.
+    let t = session.navigator_table(ew_api::output::NavKind::Connections);
+    let col = |k: &str| t.columns.iter().position(|c| c.key == k).expect("a column");
+    let rings: Vec<(String, String)> = (t.nodes.iter().filter(|n| n.table_row))
+        .flat_map(|n| {
+            [("from", "from_cp", "from_end"), ("to", "to_cp", "to_end")]
+                .into_iter()
+                .filter(|(_, _, e)| n.cells[col(e)] == "ring lug")
+                .map(|(d, c, _)| (n.cells[col(d)].clone(), n.cells[col(c)].clone()))
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    assert_eq!(rings, [("-101G1".to_owned(), "PE".to_owned())]);
     assert_eq!(
         kept.get("number"),
         None,

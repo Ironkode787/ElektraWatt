@@ -69,6 +69,7 @@ fn counted(action: ReworkAction, n: usize) -> String {
         A::Pull => crate::count_key!("rework-count-pull"),
         A::Replace => crate::count_key!("rework-count-replace"),
         A::MoveEnd => crate::count_key!("rework-count-move-end"),
+        A::RemakeEnd => crate::count_key!("rework-count-remake-end"),
         A::CheckLength => crate::count_key!("rework-count-check-length"),
         A::Add => crate::count_key!("rework-count-add"),
     };

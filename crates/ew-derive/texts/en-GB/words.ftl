@@ -131,12 +131,14 @@ length-source-missing = missing
 rework-pull = Pull
 rework-replace = Replace
 rework-move-end = Move end
+rework-remake-end = Re-make end
 rework-check-length = Check length
 rework-add = Add
 rework-change-size = size { $p0 } → { $p1 }
 rework-change-colour = colour { $p0 } → { $p1 }
 rework-change-wire-part = wire part { $p0 } → { $p1 }
 rework-change-end = end { $p0 } → { $p1 }
+rework-change-remake = at { $p0 }: { $p1 } → { $p2 }
 rework-change-length = length { $p0 } → { $p1 }
 rework-changes-between = { "; " }
 

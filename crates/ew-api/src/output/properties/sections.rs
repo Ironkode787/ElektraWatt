@@ -266,6 +266,32 @@ impl SectionCx<'_, '_> {
     }
 }
 
+/// The rows of the workshop settings that are not set (doc 13 §2.3: Ferrules, Two wires in one clamp): the value that
+/// applies, its default, with the chip "project default".
+fn workshop_defaults(built: &mut [Built]) {
+    let defaults = [
+        (
+            "project/settings.workshop.ferrules",
+            serde_json::to_value(ew_schema::FerruleRule::default()),
+        ),
+        (
+            "project/settings.workshop.two_wires",
+            serde_json::to_value(ew_schema::TwoWires::default()),
+        ),
+    ];
+    for b in built.iter_mut().filter(|b| b.row.value == RowValue::Absent) {
+        if let Some((_, Ok(Value::String(word)))) = defaults.iter().find(|(key, _)| *key == b.row.key) {
+            b.row.value = RowValue::One {
+                json: Value::String(word.clone()),
+                text: word.clone(),
+            };
+            b.row.provenance = Provenance::Derived {
+                via: "project default".into(),
+            };
+        }
+    }
+}
+
 /// The library provenance of a part reference: the embedded copy's library, item and version.
 fn library_provenance(q: &Q, json: &Value) -> Option<Provenance> {
     let copy = Uuid::parse_str(json.get("copy")?.as_str()?).ok()?;
@@ -455,6 +481,17 @@ impl Session {
         }
         if (generated.is_none() || kind != Kind::ReportBlock) && !fluid_lines {
             built.extend(self.derived_rows(q, cx, kind, &targets, &jsons));
+        }
+        // A wire's ends show once, in their sections From end and To end (doc 13 §4.5): the stored members of the
+        // connection that holds them are not shown again.
+        if kind == Kind::Connection {
+            built.retain(|b| {
+                b.derived || !(b.row.path.starts_with("overrides.end_a") || b.row.path.starts_with("overrides.end_b"))
+            });
+        }
+        // A workshop setting that is not set shows the value that applies, as the project's default.
+        if kind == Kind::Project {
+            workshop_defaults(&mut built);
         }
         // A valve's position is its derived row, not the stored member a second time; an aspect's structure row (with
         // Override and Reset) stands for its stored member likewise, so two rows never share a label.

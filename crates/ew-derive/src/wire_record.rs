@@ -90,6 +90,12 @@ pub struct EndRecord {
     pub site: bool,
     /// Who decided the treatment.
     pub treated_by: TreatedBy,
+    /// Whether the part was set by hand.
+    pub part_by_hand: bool,
+    /// Where the end is set by hand (doc 13 §2.3): the wire's first connection that no other wire stands for and whether
+    /// in its `end_a` (the end reached through its endpoint `a`) or `end_b`; `None` for an end made outside the project
+    /// and for a wire without a connection of its own.
+    pub hand_at: Option<(Id<Connection>, bool)>,
 }
 
 /// The length of a wire (doc 13 §3.3): typed, else a core's cable, else missing.
@@ -152,6 +158,8 @@ impl Query for WireRecordSet {
                         part: None,
                         site: site_end(q, &e, &spaces),
                         treated_by: TreatedBy::Outside,
+                        part_by_hand: false,
+                        hand_at: None,
                     });
                     WireRecord {
                         length: wire_length(q, &wire),

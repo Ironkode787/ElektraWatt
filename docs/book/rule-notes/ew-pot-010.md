@@ -1,7 +1,8 @@
 ## What it checks
 
-A clamp on which more conductors land than its part says it takes. Two wires of one size that share a twin ferrule
-count as one conductor. A clamp whose part names no capacity is not judged. One finding per clamp.
+A clamp on which more conductors land than its part says it takes, and a wire whose size lies outside the range the
+clamp's part names. Two wires of one size that share a twin ferrule count as one conductor. A clamp whose part names
+neither is not judged. One finding per clamp, and one per wire of another size.
 
 ## Why
 

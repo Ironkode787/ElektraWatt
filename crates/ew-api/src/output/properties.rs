@@ -41,6 +41,7 @@ use crate::Session;
 
 mod bus_rows;
 mod connection_rows;
+pub(crate) use connection_rows::end_holder;
 mod context;
 mod device_rows;
 mod fluid_rows;

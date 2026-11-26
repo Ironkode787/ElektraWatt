@@ -940,12 +940,15 @@ rule-ew-pot-009 = { $cp_shared ->
     .title = Unconnected CP
     .hint = Open the message: its page opens with the device selected. Draw a wire to the connection point, or right-click it and choose Mark not used when it stays free on purpose.
 
-rule-ew-pot-010 = { $cp } takes { $max ->
-        [one] 1 conductor
-       *[other] { $max } conductors
-    }; { $count } land on it
+rule-ew-pot-010 = { $form ->
+        [size] { $cp } takes { $range } mm²; { $wire } of { $csa } mm² lands on it
+       *[count] { $cp } takes { $max ->
+            [one] 1 conductor
+           *[other] { $max } conductors
+        }; { $count } land on it
+    }
     .title = Clamp capacity exceeded
-    .hint = Land a wire on another clamp, or give two wires of one size a twin ferrule where the clamp takes one.
+    .hint = Land a wire on another clamp, give two wires of one size a twin ferrule where the clamp takes one, or land a wire of another size on a clamp made for it.
 
 rule-ew-pot-011 = { $potential }: it is unclear which wire feeds { $place ->
         [junction] the junction { $at ->

@@ -163,6 +163,10 @@ rework-count-move-end = { $p0 ->
         [one] 1 end to move
        *[other] { $p0 } ends to move
     }
+rework-count-remake-end = { $p0 ->
+        [one] 1 end to re-make
+       *[other] { $p0 } ends to re-make
+    }
 rework-count-check-length = { $p0 ->
         [one] 1 length to check
        *[other] { $p0 } lengths to check
