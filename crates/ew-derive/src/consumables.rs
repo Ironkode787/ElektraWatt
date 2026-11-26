@@ -168,11 +168,7 @@ pub fn consumable_rows(q: &Q) -> Consumables {
         }
     }
     out.wires.sort_by_cached_key(|w| {
-        (
-            w.csa.as_ref().and_then(mm2),
-            w.colour.as_ref().map(crate::colour_text).unwrap_or_default(),
-            w.part.as_ref().map(|p| natural_key(&printed_number(q, p))),
-        )
+        crate::cut_list::wire_order(q, w.part.as_ref(), w.csa.as_ref(), w.colour.as_ref())
     });
     out.ends.sort_by_cached_key(|e| {
         (

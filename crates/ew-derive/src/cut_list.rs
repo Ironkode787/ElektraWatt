@@ -295,9 +295,7 @@ fn wire_rows(q: &Q) -> Vec<CutRow> {
     groups.sort_by_cached_key(|((part_csa_colour, length), _, _, _)| {
         let (part, csa, colour) = part_csa_colour;
         (
-            csa.as_ref().and_then(csa_mm2),
-            colour.as_ref().map(crate::colour_text).unwrap_or_default(),
-            part.as_ref().map(|p| natural_key(&printed_number(q, p))),
+            wire_order(q, part.as_ref(), csa.as_ref(), colour.as_ref()),
             length.is_none(),
             *length,
         )
@@ -314,12 +312,38 @@ fn wire_rows(q: &Q) -> Vec<CutRow> {
         .collect()
 }
 
-/// A cross-section's square millimetres, for the order of the rows; `None` for another unit.
-fn csa_mm2(c: &Csa) -> Option<Dec3> {
-    match c {
-        Csa::Mm2(d) => Some(*d),
-        _ => None,
-    }
+/// The order of a wire row of the cut list and the consumables (doc 13 §3.6, §9.3): its size in mm², its colour, then
+/// its part number. A row of a wire part takes its size and colour from the part's wire section, so that it stands
+/// among the rows of its size; a size in another unit (AWG) or none sorts first.
+pub(crate) type WireOrder = (Option<Dec3>, String, Option<NaturalKey>);
+
+/// The [`WireOrder`] of a row of the wire part `part`, else of the size `csa` and the colour `colour`.
+pub(crate) fn wire_order(
+    q: &Q,
+    part: Option<&PartRef>,
+    csa: Option<&Csa>,
+    colour: Option<&ColourSpec>,
+) -> WireOrder {
+    let Some(part) = part else {
+        return (
+            csa.and_then(|c| match c {
+                Csa::Mm2(d) => Some(*d),
+                _ => None,
+            }),
+            colour.map(crate::colour_text).unwrap_or_default(),
+            None,
+        );
+    };
+    let section = crate::printed_part(q, part).and_then(|c| c.item.sections.wire.clone());
+    (
+        section.as_ref().map(|w| w.csa),
+        section
+            .as_ref()
+            .and_then(|w| w.colour.as_ref())
+            .map(crate::colour_text)
+            .unwrap_or_default(),
+        Some(natural_key(&printed_number(q, part))),
+    )
 }
 
 /// The order of a tube row: the part number (else material, size and colour), then its length, none last.

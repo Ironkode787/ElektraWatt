@@ -3,8 +3,8 @@
 
 //! The workshop lists on the sample (doc 13 §6, §9.3): a strip whose end plate was left off is EW-MFG-020 and its fix
 //! adds one back, a bridge without a part is EW-MFG-021 and prints TBD, the cut increment rounds each piece once, and a
-//! `tube_cut_list` block prints the cut list's Tubes group, which Report block… no longer offers. The lists' rows on the
-//! whole sample are the kind CSVs of `report_kinds`.
+//! `tube_cut_list` block prints the cut list's Tubes group, which Report block… no longer offers; a wire part's rows
+//! among their size's. The lists' rows on the whole sample are the kind CSVs of `report_kinds`.
 
 use crate::common;
 
@@ -356,4 +356,36 @@ fn every_cut_list_row_names_what_it_is_cut_for() {
         .map(|r| r.sources.len())
         .sum();
     assert_eq!(named, tubes, "every tube on one row");
+}
+
+/// A wire part in the stock: the 1.5 mm² BK wires take it, and their rows in the cut list and in the consumables stand
+/// among the rows of their size and colour (after 0.75 mm², before 1.5 mm² BU), not before every size.
+#[test]
+fn a_wire_part_row_stands_among_the_rows_of_its_size() {
+    let mut s = common::sample();
+    let (part, doc) = common::wire_part(0x7201, "WIRE-1.5-BK", "1.5", &json!(["BK"]));
+    let mut stock = serde_json::to_value(&s.query().project().settings.workshop.stock).unwrap();
+    stock
+        .as_array_mut()
+        .expect("the stock")
+        .push(json!({"copy": part.to_string()}));
+    run(&mut s, "workshop.stock", json!({"stock": stock, "copies": [doc]}));
+    for (kind, group) in [("cut_list", "heading,Wires,"), ("consumables", "heading,Wire,")] {
+        let rows: Vec<String> = lines(&s, kind)
+            .into_iter()
+            .skip_while(|l| !l.starts_with(group))
+            .skip(1)
+            .take_while(|l| !l.starts_with("heading,"))
+            .collect();
+        let at = |what: &str| {
+            rows.iter()
+                .position(|l| l.contains(what))
+                .unwrap_or_else(|| panic!("{kind}: no {what}: {rows:#?}"))
+        };
+        let part_row = at("WIRE-1.5-BK");
+        assert!(
+            at("0.75 mm² GNYE") < part_row && part_row < at("1.5 mm² BU"),
+            "{kind}: {rows:#?}"
+        );
+    }
 }

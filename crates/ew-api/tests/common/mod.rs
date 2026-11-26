@@ -11,6 +11,30 @@ use ew_api::{Session, SessionOptions};
 use ew_interop_api::ImportBatch;
 use ew_schema::{LibDocument, Record};
 
+/// A wire part copy of a library of its own, as a library document: `csa` mm² in `colour`, numbered `number`, its ID
+/// from `n`. The workshop stock tests and the workshop lists' give it to the stock (`workshop.stock`'s `copies`).
+pub fn wire_part(
+    n: u128,
+    number: &str,
+    csa: &str,
+    colour: &serde_json::Value,
+) -> (ew_ids::Id<ew_schema::Part>, serde_json::Value) {
+    use serde_json::json;
+    let library = ew_ids::Uuid::from_u128(0x5e47_0000_0000_4000_8000_0000_0000_0001);
+    let item = ew_ids::Uuid::from_u128(n);
+    let id: ew_ids::Id<ew_schema::Part> = ew_ids::v5::lib_copy_id(library, item);
+    let mut doc = json!({
+        "$k": "part", "id": id.to_string(), "library_id": library.to_string(), "item_id": item.to_string(),
+        "version": "1.0.0", "sha256": format!("sha256:{}", "0".repeat(64)),
+        "kind": "wire", "part_number": number,
+        "manufacturer": {"library": library.to_string(), "item": library.to_string(), "version_req": "*"},
+        "sections": {"wire": {"csa": csa, "colour": colour}},
+    });
+    let parsed = LibDocument::from_value(doc.clone()).expect("a part document");
+    doc["sha256"] = json!(ew_schema::Sha256(ew_format::library_copy_hash(&parsed).unwrap()).to_string());
+    (id, doc)
+}
+
 /// The repository root.
 pub fn repo() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")

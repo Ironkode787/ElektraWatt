@@ -10,26 +10,9 @@ use crate::common;
 
 use ew_api::{AnyCommand, Session};
 use ew_derive::{PhysicalWiresOf, Q, WirePropsOf, wire_part_of};
-use ew_ids::{Id, Uuid};
-use ew_schema::{Csa, LibCopy, LibDocument, Part, PartKind};
+use ew_ids::Id;
+use ew_schema::{Csa, LibCopy, Part, PartKind};
 use serde_json::{Value, json};
-
-/// A wire part copy of a library of its own: `csa` mm² in `colour`, numbered `number`.
-fn wire_part(n: u128, number: &str, csa: &str, colour: &Value) -> (Id<Part>, Value) {
-    let library = Uuid::from_u128(0x5e47_0000_0000_4000_8000_0000_0000_0001);
-    let item = Uuid::from_u128(n);
-    let id: Id<Part> = ew_ids::v5::lib_copy_id(library, item);
-    let mut doc = json!({
-        "$k": "part", "id": id.to_string(), "library_id": library.to_string(), "item_id": item.to_string(),
-        "version": "1.0.0", "sha256": format!("sha256:{}", "0".repeat(64)),
-        "kind": "wire", "part_number": number,
-        "manufacturer": {"library": library.to_string(), "item": library.to_string(), "version_req": "*"},
-        "sections": {"wire": {"csa": csa, "colour": colour}},
-    });
-    let parsed = LibDocument::from_value(doc.clone()).expect("a part document");
-    doc["sha256"] = json!(ew_schema::Sha256(ew_format::library_copy_hash(&parsed).unwrap()).to_string());
-    (id, doc)
-}
 
 fn run(s: &mut Session, name: &str, params: Value) -> Result<ew_api::Receipt, ew_api::CmdError> {
     let cmd = AnyCommand {
@@ -95,8 +78,8 @@ fn a_new_project_starts_with_the_generic_stock() {
 fn a_wire_takes_its_stock_part_and_a_part_of_another_size_is_reported() {
     let mut s = common::sample();
     let (p, wire, csa, colour) = a_wire(&s.query());
-    let (other, other_doc) = wire_part(0x7101, "WIRE-OTHER", "16", &colour);
-    let (fits, fits_doc) = wire_part(0x7102, "WIRE-FITS", &csa, &colour);
+    let (other, other_doc) = common::wire_part(0x7101, "WIRE-OTHER", "16", &colour);
+    let (fits, fits_doc) = common::wire_part(0x7102, "WIRE-FITS", &csa, &colour);
     let stock = json!([{"copy": other.to_string()}, {"copy": fits.to_string()}]);
     run(
         &mut s,
@@ -220,7 +203,7 @@ fn add_the_generic_stock_adds_what_the_stock_lacks_after_its_own() {
         "the sample holds the generic stock"
     );
     let (_, _, _, colour) = a_wire(&s.query());
-    let (own, own_doc) = wire_part(0x7103, "WIRE-OWN", "1.5", &colour);
+    let (own, own_doc) = common::wire_part(0x7103, "WIRE-OWN", "1.5", &colour);
     run(
         &mut s,
         "workshop.stock",
