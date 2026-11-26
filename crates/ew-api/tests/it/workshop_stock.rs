@@ -165,6 +165,32 @@ fn a_wire_takes_its_stock_part_and_a_part_of_another_size_is_reported() {
     assert_eq!(none(&s), 1);
 }
 
+/// What the cut list cuts to: a length sets it, a command without it keeps it, and `null` (the stock dialog's empty
+/// Cut to) clears it, so the 5 mm of an unset increment holds again.
+#[test]
+fn an_empty_cut_to_clears_the_cut_increment() {
+    let mut s = common::sample();
+    let stock = serde_json::to_value(&s.query().project().settings.workshop.stock).unwrap();
+    let cut = |s: &Session| s.query().project().settings.workshop.cut_increment;
+    run(
+        &mut s,
+        "workshop.stock",
+        json!({"stock": stock, "cut_increment": 10_000_000}),
+    )
+    .expect("cut to 10 mm");
+    assert_eq!(cut(&s), Some(ew_units::Nm::from_mm(10)));
+    run(&mut s, "workshop.stock", json!({"stock": [], "copies": []}))
+        .expect("a stock without the cut increment");
+    assert_eq!(cut(&s), Some(ew_units::Nm::from_mm(10)), "absent: it stays");
+    run(
+        &mut s,
+        "workshop.stock",
+        json!({"stock": stock, "cut_increment": null}),
+    )
+    .expect("Cut to emptied");
+    assert_eq!(cut(&s), None);
+}
+
 /// Add the generic stock: a project without stock gets the starter's ferrules and markers; a project that holds them
 /// all is offered nothing; one of its own stock parts stays first.
 #[test]

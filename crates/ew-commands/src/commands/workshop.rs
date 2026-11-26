@@ -6,6 +6,7 @@
 use std::collections::BTreeSet;
 
 use ew_schema::{LibCopy, Part, PartRef};
+use ew_units::Nm;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -18,13 +19,14 @@ use crate::proxy::NmS;
 use crate::tx::TxBuilder;
 
 /// `workshop.stock` (`SetWorkshopStock`): sets the wire, ferrule and marker parts the shop keeps, in its order of
-/// preference (`ProjectSettings.workshop.stock`; the cut increment and the other members stay), embedding the copies
+/// preference (`ProjectSettings.workshop.stock`), and, when given, what the cut list cuts to
+/// (`ProjectSettings.workshop.cut_increment`: a length sets it, `null` clears it, absent keeps it), embedding the copies
 /// the command carries (the part and its closure, as `part.assign` embeds them). A new project's generic stock, Add
 /// the generic stock and the stock dialog each send it.
 ///
 /// Rejected, with the pointer: a document of `copies` as `library.embed` refuses it, or another version of a held copy
 /// (`/copies/i`); a stock entry whose copy the project does not hold, a part that is no wire, ferrule or marker, or a
-/// part listed twice (`/stock/i`). One undo step. Outcome: none.
+/// part listed twice (`/stock/i`); a cut increment of zero or less (`/cut_increment`). One undo step. Outcome: none.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SetWorkshopStock {
@@ -33,16 +35,15 @@ pub struct SetWorkshopStock {
     /// Library documents to embed (`lib/` JSON form): the stock's parts the project lacks, with their closure.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub copies: Vec<Value>,
-    /// What the cut list rounds a piece up to (`ProjectSettings.workshop.cut_increment`), when given; absent: it stays.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// What the cut list rounds a piece up to: a length sets it, `null` clears it (5 mm), absent keeps it.
+    #[serde(
+        default,
+        deserialize_with = "crate::commands::layout::present",
+        skip_serializing_if = "Option::is_none"
+    )]
     #[schemars(with = "Option<Option<NmS>>")]
-    pub cut_increment: Option<CutIncrement>,
+    pub cut_increment: Option<Option<Nm>>,
 }
-
-/// The cut increment `workshop.stock` sets: a length, or `null` for none (5 mm).
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
-#[serde(transparent)]
-pub struct CutIncrement(#[schemars(with = "Option<NmS>")] pub Option<ew_units::Nm>);
 
 fn bad(at: impl Into<String>, message: ew_l10n::Text) -> CmdError {
     CmdError::invalid_params(SetWorkshopStock::NAME, at, message)
@@ -73,13 +74,13 @@ impl Command for SetWorkshopStock {
         }
         let mut project = (*tx.project()).clone();
         let cut = match &self.cut_increment {
-            Some(CutIncrement(Some(n))) if n.0 <= 0 => {
+            Some(Some(n)) if n.0 <= 0 => {
                 return Err(bad(
                     "/cut_increment",
                     text!("refusal-stock-cut", ew_derive::mm_exact(i128::from(n.0))),
                 ));
             }
-            Some(CutIncrement(n)) => *n,
+            Some(n) => *n,
             None => project.settings.workshop.cut_increment,
         };
         if project.settings.workshop.stock == self.stock && project.settings.workshop.cut_increment == cut {

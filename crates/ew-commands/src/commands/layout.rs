@@ -52,7 +52,9 @@ pub use assemblies::{AutoFill, FillOrder, PlaceAssembly};
 pub const LAYOUT_BULK_ABOVE: usize = 200;
 
 /// A present member (a value or `null`) as `Some`.
-fn present<'de, D: Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<Option<Option<T>>, D::Error> {
+pub(crate) fn present<'de, D: Deserializer<'de>, T: Deserialize<'de>>(
+    d: D,
+) -> Result<Option<Option<T>>, D::Error> {
     Option::<T>::deserialize(d).map(Some)
 }
 

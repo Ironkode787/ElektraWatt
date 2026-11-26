@@ -102,7 +102,7 @@ change here.
   and Delete part… deletes a part of the project's own that no device uses
 - behaviour-change: the strip editor lists the end brackets and end plates the terminals' parts bring at their places,
   read-only; Delete on such a row leaves it off that strip, and a strip's Properties take or leave each one
-- api-add: commands `workshop.stock {stock, copies?, cut_increment?}` and `part.delete {copy}`; `part.assign` takes
+- api-add: commands `workshop.stock {stock, copies?, cut_increment?}` (a `null` cut increment clears it) and `part.delete {copy}`; `part.assign` takes
   `variant`, `device.place`'s `from_part` and `new_terminal` take `part_variant`, `part.edit_copy` changes a part's
   `accessories` and `variants`, and `fields.set` sets a device's `accessory_choices`
 - format-variant: `Part` gains `accessories`, `variants` and the sections `wire`, `ferrule`, `marker`; `Device` gains
