@@ -51,14 +51,12 @@ fn printing(template: &str) -> Model {
     printing_on(&[PAGE_101, PAGE_102], "value", template)
 }
 
-/// The mini project whose frame, on `pages`, has a cell whose `member` (`value` or `label`) is `template`.
+/// The mini project whose frame, on `pages` alone, has a cell whose `member` (`value` or `label`) is `template`.
 fn printing_on(pages: &[Id<Page>], member: &str, template: &str) -> Model {
     let (p, mut records, _) = mini_project_parts();
     for r in &mut records {
-        if let Record::Page(page) = r
-            && pages.contains(&page.id)
-        {
-            page.form = Some(FORM);
+        if let Record::Page(page) = r {
+            page.form = pages.contains(&page.id).then_some(FORM);
         }
     }
     let mut lib = library();
@@ -141,7 +139,7 @@ fn a_field_a_frame_prints_is_not_removed() {
         json!({"label": "Order number", "scope": "project"}),
     );
     let (_, text) = refused(&mut e, &any("user_prop.remove", json!({"key": "order_number"})));
-    assert!(text.contains("101") && text.contains("102"), "{text}");
+    assert!(text.contains("of pages 101"), "{text}");
     assert!(text.contains("Order number"), "{text}");
     assert!(!text.contains("order_number"), "never the key: {text}");
     assert_eq!(keys(&e), ["order_number"]);
@@ -164,6 +162,19 @@ fn a_field_a_cells_text_names_is_not_removed() {
     let (_, text) = refused(&mut e, &any("user_prop.remove", json!({"key": "order_number"})));
     assert!(text.contains("Order number"), "{text}");
     assert_eq!(keys(&e), ["order_number"]);
+}
+
+/// One page that prints the frame is named in the singular, several in the plural.
+#[test]
+fn the_refusal_names_one_page_in_the_singular() {
+    let mut e = engine(printing_on(&[PAGE_101], "value", "{project.prop.order_number}"));
+    commit(
+        &mut e,
+        "user_prop.define",
+        json!({"label": "Order number", "scope": "project"}),
+    );
+    let (_, text) = refused(&mut e, &any("user_prop.remove", json!({"key": "order_number"})));
+    assert!(text.contains("of page 101 "), "{text}");
 }
 
 /// The refusals in words: an empty name, an unknown key, a value for a field the project does not define for that

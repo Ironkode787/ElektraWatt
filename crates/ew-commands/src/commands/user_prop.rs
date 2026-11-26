@@ -221,8 +221,8 @@ impl Command for RemoveUserProp {
 }
 
 /// The refusal of a field a held form shows in a cell's value or text: the first such form, named as a title block or a
-/// frame with the pages that print it (page-order runs of two or more as "101 to 105"); `None` when no held form shows
-/// it.
+/// frame with the pages that print it ("page 101", "pages 101 to 105 and 201": page-order runs of two or more as "101 to
+/// 105"); `None` when no held form shows it.
 fn shown_by_a_form(tx: &TxBuilder<'_>, def: &UserPropDef) -> Option<Text> {
     let paths: Vec<String> = def
         .scope
@@ -260,6 +260,7 @@ fn shown_by_a_form(tx: &TxBuilder<'_>, def: &UserPropDef) -> Option<Text> {
         })
         .collect();
     let mut runs: Vec<TextArg> = Vec::new();
+    let count = prints.iter().filter(|p| **p).count();
     let mut i = 0;
     while i < prints.len() {
         if !prints[i] {
@@ -288,10 +289,12 @@ fn shown_by_a_form(tx: &TxBuilder<'_>, def: &UserPropDef) -> Option<Text> {
                 text!("refusal-join-comma"),
                 text!("refusal-join-and"),
             ));
-            if block {
-                text!("refusal-user-prop-shown-block-pages", pages, name)
-            } else {
-                text!("refusal-user-prop-shown-frame-pages", pages, name)
+            // "page 101", "pages 101 to 105 and 201".
+            match (block, count == 1) {
+                (true, true) => text!("refusal-user-prop-shown-block-page", pages, name),
+                (true, false) => text!("refusal-user-prop-shown-block-pages", pages, name),
+                (false, true) => text!("refusal-user-prop-shown-frame-page", pages, name),
+                (false, false) => text!("refusal-user-prop-shown-frame-pages", pages, name),
             }
         }
     })
