@@ -11,9 +11,11 @@
 //!
 //! **A mark on a pin joins it**, as a point of the IP tool does: the pointer within the catch distance of a pin
 //! ([`super::snap::Snapper::snap_cp`]) puts the CP of the first mark that comes so near on it, the group on the grid
-//! with it; a mark whose CP then lies on a pin (of a symbol, or on a drawn box's left side, where the target's arrow
-//! points away from the box) joins it with `connection.draw_to_ip`, and the ghost names each pin a mark joins
-//! ([`Ghost::Supply`](super::Ghost::Supply)). Alt places the marks free.
+//! with it; a mark whose CP then lies on a pin joins it with `connection.draw_to_ip`, and the ghost names each pin a
+//! mark joins ([`Ghost::Supply`](super::Ghost::Supply)). What a mark may join is the IP tool's rule
+//! ([`super::ip::drop_on_cp`]): on another interruption point, or with its arrow into a drawn box, the click is refused
+//! in that rule's words ([`SupplyTool::refusal`]); on a box's upper or lower side, off which the IP tool stands its
+//! point with a wire, a mark stands free. Alt places the marks free.
 
 use std::sync::Arc;
 
@@ -23,6 +25,8 @@ use super::{
 use crate::key;
 use ew_api::geometry::Dir;
 use ew_api::output::{PageTables, SymbolShape, TableCp};
+
+use super::ip::{DropOn, box_side, drop_on_cp};
 
 /// The marks' spacing in grid steps.
 pub const SUPPLY_STEPS: i64 = 2;
@@ -105,21 +109,39 @@ impl SupplyTool {
         Some(super::ip::pin_point(tables, (pos.0 + c.at.0, pos.1 + c.at.1)))
     }
 
-    /// The pin each mark at `positions` (page nm) joins: a CP of the page under the mark's CP that no interruption
-    /// point draws, of a symbol or on a drawn box's left side; none with Alt held.
+    /// What the mark at `pos` (page nm) does where its CP lands ([`mark_drop`]).
+    fn drop_on(&self, pos: (i64, i64), tables: &PageTables) -> DropOn {
+        self.cp_of(pos, tables)
+            .map_or(DropOn::Free, |c| mark_drop(tables, c, self.free))
+    }
+
+    /// The pin each mark at `positions` (page nm) joins ([`Self::drop_on`]); none with Alt held.
     pub fn joins(&self, positions: &[(i64, i64)], tables: &PageTables) -> Vec<Option<TableCp>> {
         positions
             .iter()
-            .map(|&pos| {
-                let c = self.cp_of(pos, tables)?;
-                (!self.free).then_some(())?;
-                tables
-                    .cps
-                    .iter()
-                    .find(|x| x.at == c && joinable(tables, x))
-                    .cloned()
+            .map(|&pos| match self.drop_on(pos, tables) {
+                DropOn::Pin(pin) => Some(pin),
+                DropOn::Free | DropOn::Refused(_) => None,
             })
             .collect()
+    }
+
+    /// The words of the refusal of a click at the press point `at` (sheet nm, and whether Alt is held; `None` for Enter
+    /// at the current point), with the overlay there (the ghost stays); `None` where the click places the marks. A
+    /// mark the IP tool's rule refuses there refuses the click in that rule's words ([`Self::drop_on`]), as the IP
+    /// tool's refusal does: the host asks before it sends the click.
+    pub fn refusal(&mut self, at: Option<((i64, i64), bool)>, cx: &ToolCx<'_>) -> Option<(String, Overlay)> {
+        if let Some((at, alt)) = at {
+            let _ = self.moved(at, alt, true, cx);
+        }
+        let (_, first) = self.at?;
+        let text = self.positions(first, cx).into_iter().find_map(|pos| {
+            match self.drop_on(pos, &cx.page.tables) {
+                DropOn::Refused(text) => Some(text),
+                DropOn::Free | DropOn::Pin(_) => None,
+            }
+        })?;
+        Some((text, self.overlay(cx)))
     }
 
     /// The group moved to the sheet point `at`: on the grid point under it; by the pointer (`pointer`) without Alt,
@@ -138,10 +160,7 @@ impl SupplyTool {
                     .snapper
                     .snap_cp(cx.snapper.page_to_sheet(cp), cx.points_per_nm)?;
                 let on = super::ip::pin_point(tables, pin.page_nm);
-                tables
-                    .cps
-                    .iter()
-                    .any(|x| x.at == on && joinable(tables, x))
+                matches!(mark_drop(tables, on, false), DropOn::Pin(_))
                     .then_some((pin.page_nm.0 - c.at.0, pin.page_nm.1 - c.at.1 - i * step))
             });
             if let Some(first) = caught {
@@ -196,14 +215,17 @@ impl SupplyTool {
     }
 }
 
-/// Whether a mark may join `cp`: no interruption point draws it, and on a drawn box it lies on the left side, where a
-/// target's arrow points away from the box (the IP tool stands a point off the other sides).
-fn joinable(tables: &PageTables, cp: &TableCp) -> bool {
-    tables
-        .reps
-        .iter()
-        .find(|r| r.id == cp.rep)
-        .is_none_or(|r| r.ip.is_none() && (r.black_box.is_none() || cp.dir == Some(Dir::Left)))
+/// What a mark whose CP lands on the page point `c` does there, by the IP tool's rule ([`drop_on_cp`]) for a target
+/// of EW's form: it joins a pin, is refused, or stands free (no pin there, Alt held (`free`), or a pin on a drawn box's
+/// upper or lower side, off which the IP tool stands its point with a wire and the marks, one under the other, do not).
+fn mark_drop(tables: &PageTables, c: (i64, i64), free: bool) -> DropOn {
+    match drop_on_cp(tables, c, true, free, || true) {
+        Some(DropOn::Pin(pin)) if matches!(box_side(tables, &pin, true), Some(Dir::Up | Dir::Down)) => {
+            DropOn::Free
+        }
+        Some(drop) => drop,
+        None => DropOn::Free,
+    }
 }
 
 /// The page's grid step (nm, rounded down), at least 1.

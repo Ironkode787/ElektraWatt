@@ -572,7 +572,8 @@ impl ShellModel {
     }
 
     /// The IP tool's click (a primary press or Enter) whose point's CP would lie on another interruption
-    /// point, or an external connection point's on a pin, is refused: nothing is
+    /// point, or an external connection point's on a pin, is refused, and so is the Supply tool's where a mark's would
+    /// (the IP tool's rule, `drop_on_cp`): nothing is
     /// committed, the ghost stays where the click put it, the words stand in the HUD until the next canvas input and
     /// in a warning toast. `None` for every other event, tool or drop.
     pub(super) fn ip_drop_refused(&mut self, ev: &CanvasEvent) -> Option<Outcome> {
@@ -585,14 +586,17 @@ impl ShellModel {
             CanvasEvent::Activate => None,
             _ => return None,
         };
-        if self.tools.tool.name() != "ip" {
+        if !matches!(self.tools.tool.name(), "ip" | "supply") {
             return None;
         }
         let (text, overlay) = self
             .with_tool(|t, cx| {
-                t.as_any_mut()
-                    .and_then(|a| a.downcast_mut::<IpTool>())
-                    .and_then(|ip| ip.refusal(at, cx))
+                let any = t.as_any_mut()?;
+                if let Some(ip) = any.downcast_mut::<IpTool>() {
+                    return ip.refusal(at, cx);
+                }
+                any.downcast_mut::<crate::tools::supply_place::SupplyTool>()?
+                    .refusal(at, cx)
             })
             .flatten()?;
         self.tools.overlay = overlay;

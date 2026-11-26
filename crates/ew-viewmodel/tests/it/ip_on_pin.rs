@@ -861,3 +861,42 @@ fn a_supply_mark_set_beside_a_pin_joins_it() {
     assert_eq!(l_cp.at, pin.at, "the mark's CP on the pin");
     assert_eq!(conns[0].polyline, vec![pin.at], "a wire of length zero");
 }
+
+/// The Supply tool's marks set again where they stand: the first mark's CP would lie on the mark L, which stands on
+/// the pin. The IP tool's rule refuses it, in its words (it stacked a second L on the first and joined it): nothing
+/// committed, the ghost kept.
+#[test]
+fn a_supply_mark_on_a_mark_is_refused_as_the_ip_tool_refuses_it() {
+    let tmp = Tmp::new("supply-on-mark");
+    let mut s = with_a_free_button(&tmp);
+    let pin = cp(&s, "-102S3:14");
+    done(&mut s, "supply.place", json!({"system": "supply_1p"}));
+    let snapper = &s.canvas().unwrap().page().snapper;
+    let near = snapper.page_to_sheet((pin.at.0 + 1_600_000, pin.at.1));
+    done(&mut s, "canvas.pointer", at(near, json!({})));
+    done(&mut s, "canvas.press", at(near, json!({})));
+    let l = tables(&s)
+        .reps
+        .iter()
+        .find(|r| r.ip.as_ref().is_some_and(|ip| ip.name == "L"))
+        .expect("the mark L")
+        .clone();
+    done(&mut s, "supply.place", json!({"system": "supply_1p"}));
+    let on = s.canvas().unwrap().page().snapper.page_to_sheet(l.pos);
+    done(&mut s, "canvas.pointer", at(on, json!({})));
+    assert_eq!(ghost(&s)["joins"], json!([]), "the ghost joins nothing there");
+    let before = tables(&s);
+    let rev = s.revision();
+    assert_eq!(
+        refused(&mut s, "canvas.press", at(on, json!({}))),
+        "reason-ip-not-placed"
+    );
+    let words =
+        "Not placed: the interruption point L is already here; place it on a pin or a free grid point";
+    assert_eq!(s.revision(), rev, "nothing committed");
+    assert_eq!(*tables(&s), *before);
+    assert_eq!(s.tool().name(), "supply");
+    assert!(!s.tool_overlay().items.is_empty(), "the ghost stays");
+    assert_eq!(s.tool_notice(), Some(words));
+    assert_eq!(toast(&s), words);
+}

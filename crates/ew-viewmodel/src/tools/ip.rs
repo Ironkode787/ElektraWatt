@@ -185,6 +185,59 @@ pub(super) fn pin_point(tables: &PageTables, p: (i64, i64)) -> (i64, i64) {
     }
 }
 
+/// What an interruption point whose CP lands on the page point `c` does with the CPs of `tables` there: the one rule
+/// of every tool that sets interruption points (the IP tool, the Supply tool's marks). `None` where no CP lies there.
+/// On the CP of an interruption point it is refused, Alt (`free`) or not (16a P10: no point stacked on another);
+/// on another CP (a pin, free or wired) it joins the first in the tables' order, `Free` with Alt; but where the tool
+/// draws EW's two forms (`forms`), an arrow that would point into a drawn box from its side is refused (`target`: the
+/// point is a target, asked only there).
+pub(super) fn drop_on_cp(
+    tables: &PageTables,
+    c: (i64, i64),
+    forms: bool,
+    free: bool,
+    target: impl FnOnce() -> bool,
+) -> Option<DropOn> {
+    let under: Vec<&TableCp> = tables.cps.iter().filter(|x| x.at == c).collect();
+    // An interruption point's CP anywhere among them refuses, whatever the tables' order (after a connecting drop
+    // the new point's CP and the pin coincide).
+    let ip_name = under.iter().find_map(|x| {
+        tables
+            .reps
+            .iter()
+            .find(|r| r.id == x.rep)
+            .and_then(|r| r.ip.as_ref())
+            .map(|ip| ip.name.clone())
+    });
+    if let Some(name) = ip_name {
+        return Some(DropOn::Refused(crate::strings::format(
+            key!("notice-ip-on-ip"),
+            &[&name],
+        )));
+    }
+    let pin = under.first()?;
+    if free {
+        return Some(DropOn::Free);
+    }
+    let words = |k| crate::strings::format(k, &[&crate::describe::pin_in_sentence(&pin.label)]);
+    Some(match (box_side(tables, pin, forms), target()) {
+        (Some(Dir::Left), false) => DropOn::Refused(words(key!("notice-ip-into-box-source"))),
+        (Some(Dir::Right), true) => DropOn::Refused(words(key!("notice-ip-into-box-target"))),
+        _ => DropOn::Pin((*pin).clone()),
+    })
+}
+
+/// The way `pin` leaves its drawn box, where it is a pin on a box's side of `tables` and the tool draws EW's two forms
+/// (`forms`), whose arrow is never turned (doc 06 §3.5); `None` for a pin of a symbol, or with a symbol the person
+/// turns.
+pub(super) fn box_side(tables: &PageTables, pin: &TableCp, forms: bool) -> Option<Dir> {
+    let drawn_box = tables
+        .reps
+        .iter()
+        .any(|r| r.id == pin.rep && r.black_box.is_some());
+    (forms && drawn_box).then_some(pin.dir).flatten()
+}
+
 /// Whether the page point `c` lies on a junction of `tables` or strictly inside a connection's polyline: on one of its
 /// segments, a bend included, but at neither of its ends. As the Wire tool's `resolve_target` looks, after
 /// the connection points: the junctions, then the segments.
@@ -488,7 +541,7 @@ pub struct IpTool {
 
 /// What a click does with the ghost's CP where it is.
 #[derive(Clone, PartialEq, Eq, Debug)]
-enum DropOn {
+pub(super) enum DropOn {
     /// A free grid point, or Alt held: `ip.place`.
     Free,
     /// The pin of the page at the ghost's CP (the first in the page tables' order): `connection.draw_to_ip`.
@@ -658,26 +711,10 @@ impl IpTool {
         }
     }
 
-    /// The CPs of the page that lie under the ghost's CP at the insertion point `pos`.
-    fn pins_under<'a>(
-        &self,
-        cx: &'a ToolCx<'_>,
-        pos: (i64, i64),
-    ) -> impl Iterator<Item = &'a TableCp> + use<'a> {
-        let c = self.cp_at(pos, &cx.page.tables);
-        cx.page.tables.cps.iter().filter(move |x| c == Some(x.at))
-    }
-
     /// The way `pin` leaves its drawn box, where it is a pin on a box's side and the tool draws EW's two forms, whose
     /// arrow is never turned (doc 06 §3.5); `None` for a pin of a symbol, or with a symbol the person turns.
     fn box_side(&self, cx: &ToolCx<'_>, pin: &TableCp) -> Option<Dir> {
-        let drawn_box = cx
-            .page
-            .tables
-            .reps
-            .iter()
-            .any(|r| r.id == pin.rep && r.black_box.is_some());
-        (self.forms() && drawn_box).then_some(pin.dir).flatten()
+        box_side(&cx.page.tables, pin, self.forms())
     }
 
     /// Where a point dropped on `pin` at the insertion point `pos` stands, and the route of its wire from the pin
@@ -824,39 +861,11 @@ impl IpTool {
             return DropOn::Free;
         };
         let tables = &cx.page.tables;
-        let under: Vec<&TableCp> = self.pins_under(cx, pos).collect();
-        // An interruption point's CP anywhere among them refuses, whatever the tables' order (after a connecting drop
-        // the new point's CP and the pin coincide).
-        let ip_name = under.iter().find_map(|x| {
-            tables
-                .reps
-                .iter()
-                .find(|r| r.id == x.rep)
-                .and_then(|r| r.ip.as_ref())
-                .map(|ip| ip.name.clone())
-        });
-        if let Some(name) = ip_name {
-            return DropOn::Refused(crate::strings::format(key!("notice-ip-on-ip"), &[&name]));
-        }
         // A pin always wins, without the room rule below: the pin decides where its mark stands (the second
         // mark of a power supply's two pins, a grid step apart, was refused, and Alt then placed it unjoined).
-        if let Some(pin) = under.first() {
-            if self.suppressed {
-                return DropOn::Free;
-            }
-            // But an arrow that would point into a drawn box from its side is not placed there.
-            let target = self.resolve(cx, Some(pos)).1 == IpDir::Target;
-            return match (self.box_side(cx, pin), target) {
-                (Some(Dir::Left), false) => DropOn::Refused(crate::strings::format(
-                    key!("notice-ip-into-box-source"),
-                    &[&crate::describe::pin_in_sentence(&pin.label)],
-                )),
-                (Some(Dir::Right), true) => DropOn::Refused(crate::strings::format(
-                    key!("notice-ip-into-box-target"),
-                    &[&crate::describe::pin_in_sentence(&pin.label)],
-                )),
-                _ => DropOn::Pin((*pin).clone()),
-            };
+        let target = || self.resolve(cx, Some(pos)).1 == IpDir::Target;
+        if let Some(drop) = drop_on_cp(tables, c, self.forms(), self.suppressed, target) {
+            return drop;
         }
         // Without a pin, a point on a junction or strictly inside a wire would sit on it without joining it, so it is
         // refused. A wire's bare end is no wire's inside: the point places free.

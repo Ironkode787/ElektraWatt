@@ -586,7 +586,7 @@ impl ShellModel {
             return Outcome::refused(key!("reason-designation-needed"));
         }
         // The IP tool's click on another interruption point, or an external point's on a pin, is refused in
-        // words before it reaches the tool; the ghost stays.
+        // words before it reaches the tool, and so is a Supply tool's mark there; the ghost stays.
         if let Some(out) = self.ip_drop_refused(ev) {
             return out;
         }
