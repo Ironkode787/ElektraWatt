@@ -754,3 +754,54 @@ fn a_strips_properties_take_or_leave_its_accessories() {
     let device = q.devices().get(Id::<Device>::from_uuid(x)).unwrap();
     assert!(device.accessory_choices.iter().all(|c| c.part.is_some()));
 }
+
+/// The held copy of the part `number`.
+fn held(s: &Session, number: &str) -> Uuid {
+    s.query()
+        .parts()
+        .iter()
+        .find(|(_, c)| c.item.part_number.as_str() == number)
+        .map(|(id, _)| id.as_uuid())
+        .unwrap_or_else(|| panic!("{number} is held"))
+}
+
+/// The library part `number` forked as the project's own (its description changed), as Edit part… saves it.
+fn fork(s: &mut Session, number: &str) {
+    let mut d = s.part_draft(held(s, number)).expect("its draft");
+    s.set_draft_field(&mut d, "description", "corrected").unwrap();
+    let plan = s.part_edit_plan(&d).expect("the fork");
+    assert!(plan.fork.is_some(), "{number} is forked");
+    let preview = s.preview(&plan.command).expect("its preview");
+    s.commit(preview).expect("the fork");
+}
+
+/// A choice names the accessory as the declaring part names it, so no change of a copy's identity loses it: -X1031's
+/// end plate left off stays off when the end plate's part is forked, when its terminals' part is, and when both are,
+/// and the strip's accessories hold no end plate each time.
+#[test]
+fn a_left_off_end_plate_stays_off_when_its_parts_are_forked() {
+    for forks in [&["EW-GEN-EP-1"][..], &["EW-GEN-TRM-1"], &["EW-GEN-EP-1", "EW-GEN-TRM-1"]] {
+        let mut s = common::sample();
+        let x = strip(&s, "-X1031");
+        let of = held(&s, "EW-GEN-EP-1");
+        let cmd = s
+            .strip_edit(&StripEdit::Choice { strip: x, of, part: None })
+            .unwrap();
+        run(&mut s, &cmd);
+        for number in forks {
+            fork(&mut s, number);
+        }
+        let q = s.query();
+        let device = q.devices().get(Id::<Device>::from_uuid(x)).unwrap();
+        let plates = ew_derive::strip_accessories(&q, &device)
+            .into_iter()
+            .filter(|a| a.kind == Some(ew_schema::AccessoryKind::EndPlate))
+            .count();
+        assert_eq!(plates, 0, "{forks:?}: the end plate stays off");
+        assert_eq!(
+            device.accessory_choices.iter().map(|c| c.of.as_uuid()).collect::<Vec<_>>(),
+            [of],
+            "{forks:?}: the choice still names the declared end plate"
+        );
+    }
+}

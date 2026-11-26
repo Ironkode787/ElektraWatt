@@ -199,3 +199,6 @@ change here.
   terminals' parts, and a strip that holds one as a part from before keeps it and its count
 - behaviour-change: the terminal overview's Parts column is wider and its Location and Segments columns narrower, so a
   strip with a variant among its terminals' parts keeps the house text size
+- behaviour-change: a strip's choice of what its terminals' parts bring (an end plate left off, a cover swapped) now
+  holds when the accessory's part or the terminal's part is corrected as the project's own copy; before, the end
+  plate came back and the swap was undone without a word

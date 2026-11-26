@@ -486,7 +486,10 @@ part editor refuses it as one. The accessory is a library reference, so embeddin
 Three hands write it, each above the one before: the library's part; the project's copy (the part editor; its fork
 of a library copy changes `accessories` and `variants` as it changes the pins); and, for one device, that device's
 choice, `Device.accessory_choices: Vec<AccessoryChoice{of: Id<Part>, part?: PartRef}>`. A choice names the accessory
-copy a declaration names (`of`): without `part` the device does not take it, with `part` it takes it as that part
+copy a declaration names (`of`), as the declaring part names it (`v5(NS_LIBCOPY, library ‖ item)` of its `LibRef`), and
+a declaration and its choices are matched by that one key: `of` is a `LibRef` link, kept alive but never re-pointed,
+so a fork of the accessory's part, of the declaring part or of both, a paste and an update leave the choice
+answering its declaration. Without `part` the device does not take it, with `part` it takes it as that part
 (`of` itself takes an optional one, another part swaps it). A choice lives on the device the accessory is counted
 for: a `unit` accessory on the device that uses the part, a `strip` and a `rail_group` accessory on the strip.
 Replacing a part (`part.assign`) drops the choices of accessories the new part does not name.

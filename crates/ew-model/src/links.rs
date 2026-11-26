@@ -16,11 +16,13 @@
 //!   [`Policy::Unlink`] are computed by `Model::delete_plan` (behind `raw-read`), which a transaction
 //!   includes, and `apply` only verifies the result.
 //!
-//! Two link fields are **`LibRef` links** ([`LinkDecl::lib_ref`]): `symbol.fndef` and
+//! Some link fields are **`LibRef` links** ([`LinkDecl::lib_ref`]): `symbol.fndef` and
 //! `part.function_template[].fndef` name a library item by `{library, item}`, and within a project such a
 //! reference resolves to the embedded copy of `(library, item)` (doc 07 §3.1), whose ID is
-//! `v5(NS_LIBCOPY, library ‖ item)` (doc 05 §13.2). The target ID is therefore a pure function of the
-//! referring row, and the field is a link exactly while that copy is embedded. A reference to an item the
+//! `v5(NS_LIBCOPY, library ‖ item)` (doc 05 §13.2); `device.accessory_choices[].of` stores that ID of the accessory a
+//! part declares, the key its choices are matched by. The target ID is therefore a pure function of the
+//! referring row (or of the declaration it names), and the field is a link exactly while that copy is embedded; a
+//! fork (`part.edit_copy`) never re-points it, since the declaration it answers keeps naming the same item. A reference to an item the
 //! project does not carry (an external library item, a provisional built-in item) names nothing and is not
 //! dangling, so a project still opens without its libraries (NFR-REL-11). The keep-alive of an embedded
 //! copy ([`Policy::Forbid`]) is therefore a **delete-time** rule, not a structural one (EW-INV-021,
@@ -303,14 +305,14 @@ macro_rules! link {
     };
 }
 
-/// A `LibRef` link to an FnDef copy: forbid at delete time (EW-INV-021), served by the generic referrer
-/// index, conditional on the copy being embedded ([`LinkDecl::lib_ref`]).
-macro_rules! fndef_lib_ref_link {
-    ($from:ident . $field:literal, |$v:ident, $out:ident| $body:expr) => {
+/// A `LibRef` link to a library copy: forbid at delete time (EW-INV-021), served by the generic referrer
+/// index, conditional on the copy being embedded, and never re-pointed ([`LinkDecl::lib_ref`]).
+macro_rules! lib_ref_link {
+    ($from:ident . $field:literal -> $to:ident, |$v:ident, $out:ident| $body:expr) => {
         LinkDecl {
             from: Kind::$from,
             field: $field,
-            to: Kind::Fndef,
+            to: Kind::$to,
             policy: Policy::Forbid,
             index: None,
             lib_ref: true,
@@ -512,9 +514,10 @@ pub static LINKS: &[LinkDecl] = &[
             }
         }
     }),
-    // A device's accessory choices (doc 07 §2.5): the accessory copy a declaration names and the part it is taken as,
-    // kept alive like a part use.
-    link!(Device."accessory_choices[].of" -> Part, Forbid, None, |v, out| {
+    // A device's accessory choices (doc 07 §2.5): the accessory copy a declaration names, as the declaring part names
+    // it (`v5(NS_LIBCOPY, library ‖ item)` of its `LibRef`), and the part it is taken as. The first is the key a
+    // declaration and its choices are matched by, so it is a `LibRef` link: kept alive, never re-pointed by a fork.
+    lib_ref_link!(Device."accessory_choices[].of" -> Part, |v, out| {
         for c in &v.accessory_choices {
             id(c.of, out);
         }
@@ -999,8 +1002,8 @@ pub static LINKS: &[LinkDecl] = &[
     // library copies
     link!(Form."title_block" -> Form, Forbid, None, |v, out| opt(v.item.title_block, out)),
     link!(Form."continuation" -> Form, Forbid, None, |v, out| opt(v.item.continuation, out)),
-    fndef_lib_ref_link!(Symbol."fndef.item", |v, out| lib_ref(&v.item.fndef, out)),
-    fndef_lib_ref_link!(Part."function_template[].fndef.item", |v, out| {
+    lib_ref_link!(Symbol."fndef.item" -> Fndef, |v, out| lib_ref(&v.item.fndef, out)),
+    lib_ref_link!(Part."function_template[].fndef.item" -> Fndef, |v, out| {
         for t in &v.item.function_template {
             lib_ref(&t.fndef, out);
         }
