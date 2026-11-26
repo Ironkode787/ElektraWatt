@@ -91,7 +91,7 @@ impl ReportKindDef for StructureOverview {
             let part = q
                 .get::<DevicePartLines>(id)
                 .iter()
-                .find(|l| !l.is_accessory())
+                .find(|l| l.is_own())
                 .and_then(|l| l.part_number(q))
                 .map_or(Cell::Empty, Cell::Ident);
             let location = q

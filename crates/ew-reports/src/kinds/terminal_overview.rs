@@ -81,7 +81,7 @@ impl ReportKindDef for TerminalOverview {
                 let number = q
                     .get::<DevicePartLines>(*t)
                     .iter()
-                    .find(|l| !l.is_accessory())
+                    .find(|l| l.is_own())
                     .and_then(|l| l.part_number(q));
                 if let Some(number) = number {
                     match parts.iter_mut().find(|(n, _)| *n == number) {

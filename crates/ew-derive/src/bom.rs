@@ -91,10 +91,11 @@ pub struct PartLine {
 }
 
 impl PartLine {
-    /// Whether the line counts an accessory a part brings with it ([`LineSource::Accessory`]): a reader of a device's
-    /// own part (its first line) passes over it.
-    pub fn is_accessory(&self) -> bool {
-        matches!(self.source, LineSource::Accessory { .. })
+    /// Whether the line is a part use of the device itself ([`LineSource::Device`]): the device's own part, which a
+    /// list that names one part per device prints (its first such line). A strip's end plates, end brackets, own
+    /// accessories and bridges, an enclosure's carriers, a device's tubes, fittings, closures and plugs are not.
+    pub fn is_own(&self) -> bool {
+        matches!(self.source, LineSource::Device)
     }
 
     /// `f` of the line's part as its variant is listed (`Part::with_variant`): every list prints a variant's numbers

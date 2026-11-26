@@ -129,7 +129,7 @@ fn heading(width: usize, key: &str, text: MlText) -> Row {
 fn part_number(q: &Q, cable: Id<Device>) -> String {
     q.get::<DevicePartLines>(cable)
         .iter()
-        .find(|l| !l.is_accessory())
+        .find(|l| l.is_own())
         .and_then(|l| l.part_number(q))
         .unwrap_or_default()
 }

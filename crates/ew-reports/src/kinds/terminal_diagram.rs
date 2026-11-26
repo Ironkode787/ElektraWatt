@@ -89,7 +89,7 @@ impl ReportKindDef for TerminalDiagram {
                 let part = q
                     .get::<DevicePartLines>(t)
                     .iter()
-                    .find(|l| !l.is_accessory())
+                    .find(|l| l.is_own())
                     .and_then(|l| l.part_number(q))
                     .map_or(Cell::Empty, |n| super::parts::part_number_cell(&n));
 
