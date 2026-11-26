@@ -42,11 +42,13 @@ pub const PART_EDITABLE: [&str; 10] = [
 ];
 
 /// The members a project-local copy may change besides [`PART_EDITABLE`]: the domain sections, the CP pattern and
-/// the function template, which the part editor's bus and PLC forms make, the device box, and what the part brings
-/// with it and its variants (doc 07 §2.5). A copy from a library keeps its sections; its fork takes the others
-/// ([`PART_EDITABLE_FORK`]).
-pub const PART_EDITABLE_LOCAL: [&str; 6] = [
+/// the function template, which the part editor's bus and PLC forms make, the device box, what the part brings
+/// with it and its variants (doc 07 §2.5), and its mechanical data, which Size and mounting and Front view and holes
+/// edit on a part of one's own (doc 07 §5). A copy from a library keeps its sections and its mechanical data; its
+/// fork takes the others ([`PART_EDITABLE_FORK`]).
+pub const PART_EDITABLE_LOCAL: [&str; 7] = [
     "sections",
+    "mech",
     "cp_pattern",
     "function_template",
     "box",

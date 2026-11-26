@@ -128,6 +128,7 @@ new-project-other-change = Choose another…
 # New cable type… (a cable part's small form) and the cable section of a cable part.
 dialog-cable-type-new-title = New cable type
 prompt-open-font-title = Choose a font file for the Standard typeface
+prompt-open-outline-title = Choose a DXF drawing of the part's front
 new-project-folder-new = This folder is not there yet: Create makes it.
 new-project-folder-file = A file of that name is in the folder's way: type another folder, or choose one with Browse….
 new-project-folder-no-drive = That drive is not there: type a folder on a drive this computer has, or choose one with Browse….

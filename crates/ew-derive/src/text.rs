@@ -963,6 +963,36 @@ pub fn hinge_word() -> Text {
     text!("hinge-word")
 }
 
+/// Why a hole's text does not parse ([`ew_schema::Hole::parse`]), as the part editor's Holes table and the forms that
+/// take a hole say it: "\"M7\" is no screw size: type one of M3, M4, M5, M6, M8".
+pub fn hole_error(e: &ew_schema::HoleParseError) -> Text {
+    use ew_schema::{Cutout, Gland, HoleParseError, Screw};
+    fn sizes<T>(all: &[T], mm: impl Fn(&T) -> Option<u32>, form: impl Fn(u32) -> String) -> String {
+        all.iter().filter_map(mm).map(form).collect::<Vec<_>>().join(", ")
+    }
+    let metric = |n: u32| format!("M{n}");
+    match e {
+        HoleParseError::NoNumber => text!("hole-error-no-number"),
+        HoleParseError::NotAScrew { text } => text!(
+            "hole-error-not-a-screw",
+            text.as_str(),
+            sizes(&Screw::ALL, Screw::mm, metric)
+        ),
+        HoleParseError::NotACutout { text } => text!(
+            "hole-error-not-a-cutout",
+            text.as_str(),
+            sizes(&Cutout::ALL, Cutout::mm, |n| n.to_string())
+        ),
+        HoleParseError::NotAGland { text } => text!(
+            "hole-error-not-a-gland",
+            text.as_str(),
+            sizes(&Gland::ALL, Gland::mm, metric)
+        ),
+        HoleParseError::NotRect { text } => text!("hole-error-not-rect", text.as_str()),
+        HoleParseError::NotPositive => text!("hole-error-not-positive"),
+    }
+}
+
 /// `text` in every language of this crate's text files, as the lists print a word of the program in the project's
 /// language.
 pub fn in_languages(text: &Text) -> MlText {

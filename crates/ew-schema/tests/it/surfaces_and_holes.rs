@@ -26,6 +26,27 @@ fn canonical(template: &str) -> Record {
     record
 }
 
+/// A hole kind's word is the member that names it in a hole's stored form, and names the kind back.
+#[test]
+fn a_hole_kinds_word_names_its_stored_form() {
+    for (kind, text) in [
+        (HoleKind::Round, "4.5"),
+        (HoleKind::Fixing, "M5"),
+        (HoleKind::Cutout, "22"),
+        (HoleKind::Gland, "M20"),
+        (HoleKind::Rect, "92 x 92"),
+    ] {
+        let json = serde_json::to_value(Hole::parse(kind, text).unwrap()).unwrap();
+        let stored = json
+            .as_object()
+            .and_then(|o| o.keys().next().cloned())
+            .or_else(|| json.as_str().map(str::to_owned))
+            .unwrap();
+        assert_eq!(stored, kind.word(), "{json}");
+        assert_eq!(HoleKind::of_word(kind.word()), Some(kind));
+    }
+}
+
 #[test]
 fn the_surface_feature_is_an_implemented_layout_file_kind() {
     let kind = Kind::SurfaceFeature;

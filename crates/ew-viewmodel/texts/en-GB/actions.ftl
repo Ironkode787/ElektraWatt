@@ -681,6 +681,8 @@ action-part-bus-row = Add or remove a bus interface
 action-part-delete = Delete part…
 action-part-section = Show a section of the part
 action-part-table-row = Add or remove a row of the part's table
+action-part-outline-import = Import an outline for the part's front
+action-part-outline-remove = Remove the front's imported outline
 action-part-remove-own = Remove from my parts library…
 action-paste-resolve = Resolve paste
 

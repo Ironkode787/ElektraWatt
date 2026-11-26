@@ -401,3 +401,12 @@ change here.
   -101Q1 takes the handle, and its door page 904 holds the handle, the lamps and the pushbuttons (doc 12 §3.4)
 - api-add: `layout.place` takes `part` (the device's part use to place, its first by default), and the Unplaced
   navigator's rows of a further part use are keyed `device:<device>:<part>` (doc 12 §3.4)
+- behaviour-change: the part editor's Front view and holes: the front's Shape (Rectangle or Round), its outline
+  imported from a DXF drawing (Import outline…, Remove) and the table Holes, each hole by its X, Y, Kind (Hole,
+  Fixing, Cut-out, Gland, Rectangle) and Size, with a preview of the front and its holes; a size that does not read
+  for its kind, a hole off the front and a round front of unequal sides are refused in words. It is edited on a new
+  part and a part of one's own, and read-only on a library part (doc 07 §5, FT-1771)
+- behaviour-change: a project's own part changes its size and mounting in the part editor (`part.edit_copy` takes
+  `mech` of a project-local copy); Save was refused
+- api-add: the hidden actions `part.outline_import {path?}` and `part.outline_remove`; the part editor's declared
+  table names a hole's two cells `hole.kind` and `hole.size` (`mech.holes[0].hole.size`)

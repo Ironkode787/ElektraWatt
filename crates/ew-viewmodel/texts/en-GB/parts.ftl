@@ -254,6 +254,7 @@ part-section-identity = Identity
 part-section-technical = Technical data
 part-section-pins = Pins and clamps
 part-section-size = Size and mounting
+part-section-front = Front view and holes
 part-section-accessories = Accessories
 part-section-variants = Variants
 part-section-wire = Wire
@@ -262,9 +263,20 @@ part-section-marker = Marker
 part-section-accessories-hint = What this part brings with it. Per piece: for each terminal or device of this part. Per strip: once for each strip whose terminals use this part, after the last of them. Per rail group: the end brackets of a run of strips on one rail, one before it and one after each strip.
 part-section-variants-hint = The colours or versions of this part that a device chooses in Properties. Each gives its own part number, order number or description, so that a list tells them apart.
 part-section-pins-hint = The clamps of the pins: the wires each takes. A clamp without a range takes any wire.
+part-section-front-hint = The front as the panel page draws it, and the holes a door or a plate gets for the part: X and Y are a hole's centre, from the front's bottom-left corner.
+part-front-outline = Outline
+part-front-outline-none = None: the shape is drawn
+part-front-outline-lines = { $p0 ->
+    [one] imported from a DXF drawing, 1 line
+   *[other] imported from a DXF drawing, { $p0 } lines
+    }
+part-front-import = Import outline…
+part-front-remove = Remove
+part-front-preview = Preview of the front and its holes
 part-section-hidden = A section the part's kind has not (ferrule, marker, cable cores, PLC) is not listed.
 part-section-locked = A part from a library keeps these: they change on a project's own part.
 part-table-add-accessories = Add accessory
 part-table-add-variants = Add variant
+part-table-add-mech-holes = Add hole
 part-table-remove = Remove row { $p0 }
 part-table-empty = None yet

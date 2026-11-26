@@ -119,7 +119,8 @@ mod part_editor;
 mod part_rows;
 mod stock;
 pub use part_rows::{
-    DraftRow, DraftTable, PART_SECTIONS, PartRow, PartSection, PartTable, Shown, part_section,
+    DraftRow, DraftTable, HOLE_KIND, HOLE_SIZE, PART_SECTIONS, PartRow, PartSection, PartTable, Shown,
+    part_section,
 };
 pub use stock::StockRow;
 mod part_new;

@@ -9,7 +9,7 @@ use super::{
 };
 use crate::key;
 use crate::properties::{CardOrigin, PartCard};
-use crate::shell::{Dialog, Outcome, ShellModel, failed, flag, string_param};
+use crate::shell::{Dialog, Outcome, Prompt, ShellModel, failed, flag, string_param};
 use crate::strings;
 use ew_api::output::{NavKind, NavRole, Uuid};
 use ew_api::{OfferView, PartDraftError, PartOfferQuery, PartPick};
@@ -340,6 +340,48 @@ impl ShellModel {
                 key!("error-bad-param"),
                 &[if remove.is_some() { "remove" } else { "table" }],
             )
+        }
+    }
+
+    /// `part.outline_import {path?}` (Import outline… of Front view and holes, doc 07 §5): the front outline of the DXF
+    /// drawing at `path` into the editor's draft, drawn instead of the front's shape; without `path` the file dialog
+    /// asks. Refused in words, under the editor, where the section is not the person's to change, the file cannot be
+    /// read or holds no line; Save writes it.
+    pub(crate) fn act_part_outline_import(&mut self, p: &Map<String, Value>) -> Outcome {
+        let path = match string_param(p, "path") {
+            Err(e) => return e,
+            Ok(Some(path)) => std::path::PathBuf::from(path),
+            Ok(None) => return self.need_path("part.outline_import", Prompt::OpenOutline, "path", p),
+        };
+        let Some(project) = &self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let Some(Dialog::PartEdit(editor)) = &mut self.dialog else {
+            return Outcome::refused(key!("reason-no-part-editor"));
+        };
+        match project.session.draft_outline_import(&mut editor.draft, &path) {
+            Ok(_) => {
+                editor.error = None;
+                Outcome::Done
+            }
+            Err(message) => {
+                editor.error = Some(message.clone());
+                Outcome::Failed { message }
+            }
+        }
+    }
+
+    /// `part.outline_remove` (Remove of Front view and holes): the front's imported outline goes from the draft, and the
+    /// front is drawn by its shape again.
+    pub(crate) fn act_part_outline_remove(&mut self) -> Outcome {
+        let Some(Dialog::PartEdit(editor)) = &mut self.dialog else {
+            return Outcome::refused(key!("reason-no-part-editor"));
+        };
+        if editor.draft.remove_outline() {
+            editor.error = None;
+            Outcome::Done
+        } else {
+            failed(key!("error-part-field"), &["outline"])
         }
     }
 

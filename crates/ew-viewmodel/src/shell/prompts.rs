@@ -74,6 +74,12 @@ impl Prompt {
                 None,
                 vec![filter("TrueType, OpenType", &["ttf", "otf"])],
             ),
+            Prompt::OpenOutline => (
+                title(key!("prompt-open-outline-title")),
+                PickKind::File,
+                None,
+                vec![filter("DXF", &["dxf"])],
+            ),
             Prompt::SavePdf => (
                 title(key!("prompt-export-title")),
                 PickKind::Save,

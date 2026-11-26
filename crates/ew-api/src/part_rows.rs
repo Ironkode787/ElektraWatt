@@ -5,14 +5,15 @@
 //! [`PART_SECTIONS`] on its left and shows one at a time. A section of declared rows names the part's members by
 //! their paths; each row's value type is the part schema's ([`crate::output::library_fields`]), so a member is one
 //! line of this table and its text is read and checked by the property grid's rules. A table section names a list
-//! member and the members of its item that are its columns. Identity, Technical data, Pins, Bus, PLC and Cable keep
-//! forms of their own; Pins adds the clamp columns of the pin pattern as its table.
+//! member and the members of its item that are its columns; an item's [`Hole`] is two cells, its Kind and its Size.
+//! Identity, Technical data, Pins, Bus, PLC and Cable keep forms of their own; Pins adds the clamp columns of the pin
+//! pattern as its table. Front view and holes adds the front's imported outline and its preview.
 
 use std::sync::OnceLock;
 
 use ew_derive::Q;
 use ew_ids::Id;
-use ew_schema::{Kind, LibCopy, LibDocument, LibRef, Part, PartKind};
+use ew_schema::{Hole, HoleKind, Kind, LibCopy, LibDocument, LibRef, Part, PartKind};
 use serde_json::{Map, Value};
 
 use crate::Session;
@@ -41,7 +42,16 @@ pub struct PartTable {
     pub key: Option<&'static str>,
     /// The item's members the columns edit, in their order.
     pub columns: &'static [&'static str],
+    /// Whether its items hold a [`Hole`] in `hole`, edited in two cells after the columns: its Kind ([`HOLE_KIND`],
+    /// a choice of [`HoleKind`]'s words) and its Size ([`HOLE_SIZE`], the text [`Hole::parse`] reads).
+    pub hole: bool,
 }
+
+/// The cell of a table's hole that holds its kind ([`PartTable::hole`]).
+pub const HOLE_KIND: &str = "hole.kind";
+
+/// The cell of a table's hole that holds its size as text ("22 mm", "M5", "Ø 4.5", "92 × 92 R 2").
+pub const HOLE_SIZE: &str = "hole.size";
 
 /// A section of the part editor.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -110,6 +120,7 @@ pub const PART_SECTIONS: &[PartSection] = &[
                 "max_conductors",
                 "twin_ferrule",
             ],
+            hole: false,
         }),
         shown: Shown::Mounted,
     },
@@ -130,12 +141,24 @@ pub const PART_SECTIONS: &[PartSection] = &[
         shown: Shown::Mounted,
     },
     PartSection {
+        word: "front",
+        rows: &[row("mech.front_shape")],
+        table: Some(PartTable {
+            path: "mech.holes",
+            key: None,
+            columns: &["x", "y"],
+            hole: true,
+        }),
+        shown: Shown::Mounted,
+    },
+    PartSection {
         word: "accessories",
         rows: &[],
         table: Some(PartTable {
             path: "accessories",
             key: None,
             columns: &["part", "kind", "qty", "per", "optional"],
+            hole: false,
         }),
         shown: Shown::Mounted,
     },
@@ -146,6 +169,7 @@ pub const PART_SECTIONS: &[PartSection] = &[
             path: "variants",
             key: None,
             columns: &["key", "name", "part_number", "order_number", "type_designation"],
+            hole: false,
         }),
         shown: Shown::Mounted,
     },
@@ -315,14 +339,68 @@ impl PartDraft {
     }
 
     /// Whether the rows of section `word` may be changed: a kind's own section (a wire's, a ferrule's, a marker's)
-    /// only on a project-local part, which `part.edit_copy` lets change them; the size on a part of one's own or a new
-    /// one (a library part's fork keeps its mechanical data); the others on any part the editor saves.
+    /// only on a project-local part, which `part.edit_copy` lets change them; the size and the front view and holes
+    /// on a part of one's own or a new one (a library part's fork keeps its mechanical data); the others on any part
+    /// the editor saves.
     pub fn section_editable(&self, word: &str) -> bool {
         match part_section(word) {
             Some(s) if s.shown == Shown::Own => self.own && !self.fork,
-            Some(s) if s.word == "size" => self.own || self.new,
+            Some(s) if s.word == "size" || s.word == "front" => self.own || self.new,
             _ => true,
         }
+    }
+
+    /// Remove of Front view and holes: the imported outline goes, and the front is drawn by its shape again; `false`
+    /// where the section is not the person's to change.
+    pub fn remove_outline(&mut self) -> bool {
+        if !self.section_editable("front") {
+            return false;
+        }
+        self.outline.clear();
+        true
+    }
+
+    /// The front as Front view and holes previews it ([`ew_scene::panel::part_front`]): the width, height and shape as
+    /// typed, the imported outline and every hole whose cells read; `None` without a width and a height.
+    pub fn front_preview(&self) -> Option<(ew_dl::DisplayList, (ew_units::Nm, ew_units::Nm))> {
+        let mm = |path: &str| {
+            crate::output::parse_mm(&self.row(path)?.text)
+                .and_then(|n| i64::try_from(n).ok())
+                .map(ew_units::Nm)
+        };
+        let holes = self
+            .table("mech.holes")
+            .map(|t| {
+                (0..t.rows.len())
+                    .filter_map(|i| {
+                        let text = |m: &str| {
+                            let c = t.columns.iter().position(|(x, _)| *x == m)?;
+                            t.rows[i].get(c).map(String::as_str)
+                        };
+                        let (kind, size) = hole_texts(t, i)?;
+                        Some(ew_schema::PartHole {
+                            x: mm_of(text("x")?)?,
+                            y: mm_of(text("y")?)?,
+                            hole: hole_of("", &kind, &size).ok()??,
+                            extra: Default::default(),
+                        })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        let shape = self
+            .row("mech.front_shape")
+            .map(|r| r.text.as_str())
+            .unwrap_or_default();
+        let mech = ew_schema::MechData {
+            width: mm("mech.width"),
+            height: mm("mech.height"),
+            front_shape: (shape == "round").then_some(ew_schema::FrontShape::Round),
+            front_2d: self.outline.clone(),
+            holes,
+            ..Default::default()
+        };
+        ew_scene::panel::part_front(&mech)
     }
 
     /// The draft's declared row at `path`.
@@ -375,6 +453,93 @@ impl PartDraft {
     }
 }
 
+/// The text of a hole's cell `member` ([`HOLE_KIND`], [`HOLE_SIZE`]) of a table's `item`: the kind's word and the
+/// size's text form; a hole of a newer format gives no kind and its stored form.
+fn hole_cell(item: &Value, member: &str) -> String {
+    let Some(v) = item.get("hole").filter(|v| !v.is_null()) else {
+        return String::new();
+    };
+    let hole: Hole = serde_json::from_value(v.clone()).unwrap_or(Hole::Unknown(v.clone()));
+    match member {
+        HOLE_KIND => hole.kind().map(|k| k.word().to_owned()).unwrap_or_default(),
+        _ => hole.to_string(),
+    }
+}
+
+/// A length in millimetres as a cell holds it.
+fn mm_of(text: &str) -> Option<ew_units::Nm> {
+    crate::output::parse_mm(text)
+        .and_then(|n| i64::try_from(n).ok())
+        .map(ew_units::Nm)
+}
+
+/// The kind and size texts of row `row` of a table with a hole.
+fn hole_texts(t: &DraftTable, row: usize) -> Option<(String, String)> {
+    let text = |m: &str| {
+        let c = t.columns.iter().position(|(x, _)| *x == m)?;
+        t.rows.get(row)?.get(c).cloned()
+    };
+    Some((text(HOLE_KIND)?, text(HOLE_SIZE)?))
+}
+
+/// The hole of a row's kind and size texts; `None` while either is empty (Save asks for both); the size's message,
+/// in words, on `field` where it does not read for its kind.
+fn hole_of(field: &str, kind: &str, size: &str) -> Result<Option<Hole>, DraftMessage> {
+    let (Some(kind), false) = (HoleKind::of_word(kind.trim()), size.trim().is_empty()) else {
+        return Ok(None);
+    };
+    Hole::parse(kind, size).map(Some).map_err(|e| {
+        let why = ew_derive::text::hole_error(&e);
+        let args: Vec<String> = why.args().iter().map(ToString::to_string).collect();
+        let args: Vec<&str> = args.iter().map(String::as_str).collect();
+        message(field, why.key(), &args)
+    })
+}
+
+/// Front view and holes written into the part's `json` (doc 07 §5): the imported outline where Import outline… or
+/// Remove changed it; then its checks, in words: a round front needs the same width and height, and a hole's centre
+/// lies on the front.
+fn apply_front(draft: &PartDraft, json: &mut Value) -> Result<(), PartDraftError> {
+    let held = draft.original.mech.as_ref().map(|m| &m.front_2d);
+    if held.map_or(!draft.outline.is_empty(), |h| *h != draft.outline) {
+        let outline = if draft.outline.is_empty() {
+            Value::Null
+        } else {
+            serde_json::to_value(&draft.outline).expect("an outline has a JSON form")
+        };
+        set_at(json, "mech.front_2d", outline);
+    }
+    let mech = json.get("mech");
+    let nm = |v: Option<&Value>, m: &str| v.and_then(|v| v.get(m)).and_then(Value::as_i64);
+    let (w, h) = (nm(mech, "width"), nm(mech, "height"));
+    let round = mech.and_then(|m| m.get("front_shape")).and_then(Value::as_str) == Some("round");
+    if round && (w.is_none() || w != h) {
+        return Err(PartDraftError::Field(message(
+            "mech.front_shape",
+            key!("error-part-front-round"),
+            &[],
+        )));
+    }
+    let (Some(w), Some(h)) = (w, h) else {
+        return Ok(());
+    };
+    let holes = mech.and_then(|m| m.get("holes")).and_then(Value::as_array);
+    for (i, hole) in holes.into_iter().flatten().enumerate() {
+        let (Some(x), Some(y)) = (nm(Some(hole), "x"), nm(Some(hole), "y")) else {
+            continue;
+        };
+        if !(0..=w).contains(&x) || !(0..=h).contains(&y) {
+            let mm = |n: i64| ew_derive::mm_exact(i128::from(n));
+            return Err(PartDraftError::Field(message(
+                &format!("mech.holes[{i}].x"),
+                key!("error-part-hole-off"),
+                &[&(i + 1).to_string(), &mm(x), &mm(y), &mm(w), &mm(h)],
+            )));
+        }
+    }
+    Ok(())
+}
+
 /// A table cell's field `<list>[<row>].<member>` as (list, row, member).
 pub(crate) fn cell(field: &str) -> Option<(&str, usize, &str)> {
     let (head, member) = field.rsplit_once("].")?;
@@ -407,13 +572,21 @@ impl Session {
             let Some(t) = s.table else {
                 continue;
             };
-            let columns: Vec<(&'static str, FieldType)> = t
+            let mut columns: Vec<(&'static str, FieldType)> = t
                 .columns
                 .iter()
                 .filter_map(|c| Some((*c, field_type(&format!("{}[].{c}", t.path))?)))
                 .collect();
-            let items = json
-                .get(t.path)
+            if t.hole {
+                columns.push((
+                    HOLE_KIND,
+                    FieldType::Enum {
+                        options: HoleKind::ALL.iter().map(|k| k.word().to_owned()).collect(),
+                    },
+                ));
+                columns.push((HOLE_SIZE, FieldType::Text));
+            }
+            let items = value_at(&json, t.path)
                 .and_then(Value::as_array)
                 .cloned()
                 .unwrap_or_default();
@@ -432,6 +605,7 @@ impl Session {
                     columns
                         .iter()
                         .map(|(m, ty)| match item.get(*m).filter(|v| !v.is_null()) {
+                            _ if matches!(*m, HOLE_KIND | HOLE_SIZE) => hole_cell(item, m),
                             Some(v) if is_part_ref(ty) => serde_json::from_value::<LibRef>(v.clone())
                                 .ok()
                                 .and_then(|r| self.ref_number(q, &r))
@@ -453,6 +627,53 @@ impl Session {
             });
         }
         (rows, tables)
+    }
+
+    /// Import outline… of Front view and holes: the front outline of the DXF drawing at `path` into `draft`, read as
+    /// the command line's outline import reads it, in millimetres where the drawing names no unit (a front is drawn in
+    /// millimetres); the number of its lines. A file larger than an import takes is refused before it is read.
+    ///
+    /// # Errors
+    ///
+    /// In words: the section is not the person's to change, the file cannot be read, the front door's refusal, a
+    /// drawing without a line.
+    pub fn draft_outline_import(
+        &self,
+        draft: &mut PartDraft,
+        path: &std::path::Path,
+    ) -> Result<usize, String> {
+        if !draft.section_editable("front") {
+            return Err(text!("error-part-outline-locked").to_string());
+        }
+        let name = path
+            .file_name()
+            .map_or_else(String::new, |n| n.to_string_lossy().into_owned());
+        let limit = crate::import::Limits::default().max_input_bytes;
+        let read = std::fs::metadata(path).and_then(|m| {
+            if m.len() > limit {
+                Ok(None)
+            } else {
+                std::fs::read(path).map(Some)
+            }
+        });
+        let bytes = match read {
+            Ok(Some(b)) => b,
+            // In the front door's words, which say what an import takes.
+            Ok(None) => {
+                let refusal = crate::import::Refusal::Import(crate::import::ImportError::LimitExceeded {
+                    what: "input size".to_owned(),
+                    limit,
+                });
+                return Err(crate::dxf::DxfError::from(refusal).to_string());
+            }
+            Err(e) => {
+                return Err(text!("error-part-outline-unreadable", name.as_str(), e.to_string()).to_string());
+            }
+        };
+        let lines = crate::dxf::read_outline(&name, &bytes, Some(ew_import_dxf::Unit::Millimetre))?;
+        let n = lines.len();
+        draft.outline = lines;
+        Ok(n)
     }
 
     /// The part number of the part `r` names: the held copy's, else the library's.
@@ -579,6 +800,7 @@ impl Session {
             return Some(Err(PartDraftError::Refused(key!("error-part-field"))));
         }
         let q = self.query();
+        let mut pair = None;
         let (ty, positive) = if let Some(r) = draft.rows.iter_mut().find(|r| r.path == field) {
             r.text = text.to_owned();
             let positive = section.rows.iter().any(|x| x.path == field && x.positive);
@@ -589,10 +811,22 @@ impl Session {
             let c = t.columns.iter().position(|(m, _)| *m == member)?;
             let slot = t.rows.get_mut(row)?.get_mut(c)?;
             *slot = text.to_owned();
+            if matches!(member, HOLE_KIND | HOLE_SIZE) {
+                pair = hole_texts(t, row).map(|(k, s)| (format!("{path}[{row}].{HOLE_SIZE}"), k, s));
+            }
             (t.columns[c].1.clone(), false)
         };
-        let result = self.row_value(&q, field, &ty, positive, text, &mut Vec::new());
+        // A hole's kind is a choice of its words; its size is read with its kind, its message under the size.
+        let result = self
+            .row_value(&q, field, &ty, positive, text, &mut Vec::new())
+            .and_then(|v| match &pair {
+                Some((at, kind, size)) => hole_of(at, kind, size).map(|_| v),
+                None => Ok(v),
+            });
         draft.messages.retain(|m| m.field != field);
+        if let Some((at, _, _)) = &pair {
+            draft.messages.retain(|m| m.field != *at);
+        }
         Some(match result {
             Ok(_) => Ok(()),
             Err(m) => {
@@ -630,8 +864,7 @@ impl Session {
             else {
                 continue;
             };
-            let held = original
-                .get(t.path)
+            let held = value_at(&original, t.path)
                 .and_then(Value::as_array)
                 .cloned()
                 .unwrap_or_default();
@@ -642,9 +875,27 @@ impl Session {
                     .and_then(|o| held.get(o).cloned())
                     .unwrap_or_else(|| Value::Object(Map::new()));
                 let opened = origin.and_then(|o| d.opened.get(o));
+                // A hole's row, new or changed, gives every cell; its kind and size are written together.
+                if t.hole && opened != Some(texts) {
+                    if let Some(c) = texts.iter().position(|x| x.trim().is_empty()) {
+                        return Err(PartDraftError::Field(message(
+                            &format!("{}[{i}].{}", t.path, d.columns[c].0),
+                            key!("error-part-hole-incomplete"),
+                            &[&(i + 1).to_string()],
+                        )));
+                    }
+                    let (kind, size) = hole_texts(d, i).unwrap_or_default();
+                    let hole = hole_of(&format!("{}[{i}].{HOLE_SIZE}", t.path), &kind, &size)
+                        .map_err(PartDraftError::Field)?;
+                    set_at(
+                        &mut item,
+                        "hole",
+                        serde_json::to_value(hole).expect("a hole has a JSON form"),
+                    );
+                }
                 for (c, ((m, ty), text)) in d.columns.iter().zip(texts).enumerate() {
-                    // A cell as it was opened keeps its item's value.
-                    if opened.and_then(|o| o.get(c)) == Some(text) {
+                    // A cell as it was opened keeps its item's value; the hole's cells are written above.
+                    if opened.and_then(|o| o.get(c)) == Some(text) || matches!(*m, HOLE_KIND | HOLE_SIZE) {
                         continue;
                     }
                     let field = format!("{}[{i}].{m}", t.path);
@@ -656,6 +907,9 @@ impl Session {
                 items.push(item);
             }
             set_at(&mut json, t.path, Value::Array(items));
+        }
+        if draft.section_editable("front") {
+            apply_front(draft, &mut json)?;
         }
         *p = serde_json::from_value(json).map_err(|e| {
             PartDraftError::Field(message("rows", key!("error-part-value"), &[&e.to_string()]))

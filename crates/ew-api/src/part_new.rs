@@ -114,6 +114,11 @@ impl Session {
             tech: Vec::new(),
             rows,
             tables,
+            outline: original
+                .mech
+                .as_ref()
+                .map(|m| m.front_2d.clone())
+                .unwrap_or_default(),
             messages: Vec::new(),
             fork: false,
             library: None,

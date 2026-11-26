@@ -7,6 +7,11 @@
 # caps, identifiers and units are not translated.
 
 error-part-length = "{ $p0 }" is geen lengte: geef millimeters, zoals 45 of 22,5.
+error-part-hole-incomplete = Gat { $p0 } heeft zijn X, zijn Y, zijn soort en zijn maat nodig.
+error-part-hole-off = Gat { $p0 } op { $p1 }, { $p2 } mm ligt buiten de voorkant, die { $p3 } × { $p4 } mm is: het midden wordt gemeten vanaf de linkeronderhoek van de voorkant.
+error-part-front-round = Een ronde voorkant heeft dezelfde breedte en hoogte nodig: geef beide bij Afmetingen en montage, of kies Rechthoek.
+error-part-outline-locked = Een artikel uit een bibliotheek houdt zijn vooraanzicht: Contour importeren… wijzigt een eigen artikel van het project of een nieuw artikel.
+error-part-outline-unreadable = { $p0 } is niet te lezen: { $p1 }
 error-part-accessory = Geen artikel heeft nummer { $p0 }
 error-stock-kind = { $p0 } is geen draad, adereindhuls of merker: de voorraad houdt alleen die
 error-part-accessory-kind = { $p0 } is geen toebehoren: een draad, adereindhuls of merker wordt van de draden geteld. Noem het in plaats daarvan in de werkplaatsvoorraad (Projecteigenschappen ▸ Werkplaats).
@@ -361,6 +366,7 @@ dxf-input-invalid = Het bestand is geen DXF-tekening die deze lezer begrijpt.
 dxf-no-unit = De tekening noemt geen eenheid. Kies de eenheid waarin ze getekend is.
 dxf-no-blocks = De tekening heeft geen blok met een naam om een symbool van te maken.
 dxf-no-page = Het project heeft geen getekende pagina { $p0 }.
+dxf-outline-empty = { $p0 } bevat geen lijn om een contour van te maken.
 
 # A date typed in the project's date format.
 refusal-input-date = `{ $p0 }` is geen datum: typ hem als { $p1 }

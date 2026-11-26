@@ -153,6 +153,23 @@ impl HoleKind {
         HoleKind::Gland,
         HoleKind::Rect,
     ];
+
+    /// The kind's word, the member that names it in a [`Hole`]'s stored form (`round`, `fixing`, `cutout`, `gland`,
+    /// `rect`).
+    pub fn word(self) -> &'static str {
+        match self {
+            HoleKind::Round => "round",
+            HoleKind::Fixing => "fixing",
+            HoleKind::Cutout => "cutout",
+            HoleKind::Gland => "gland",
+            HoleKind::Rect => "rect",
+        }
+    }
+
+    /// The kind of the word `word` ([`HoleKind::word`]).
+    pub fn of_word(word: &str) -> Option<HoleKind> {
+        HoleKind::ALL.into_iter().find(|k| k.word() == word)
+    }
 }
 
 /// Why a hole's text does not parse ([`Hole::parse`]): a typed fact the window and the command line put in words.

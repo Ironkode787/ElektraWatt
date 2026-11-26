@@ -609,6 +609,8 @@ pub enum Prompt {
     OpenImage,
     /// A font file of one typeface, TTF or OTF (Text styles' Choose a font file…).
     OpenFont,
+    /// A DXF drawing of a part's front (the part editor's Import outline…).
+    OpenOutline,
     /// An existing keymap file (the keymap editor's Import…).
     OpenKeymap,
     /// A keymap file name (the keymap editor's Export…).

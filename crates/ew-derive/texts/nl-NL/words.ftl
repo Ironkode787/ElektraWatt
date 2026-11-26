@@ -232,3 +232,12 @@ carrier-rail = Rail { $p0 }
 carrier-duct = Kabelgoot { $p0 }
 carrier-rail-in-sentence = rail { $p0 }
 carrier-duct-in-sentence = kabelgoot { $p0 }
+
+## Waarom de maat van een gat niet te lezen is (doc 12 §2.5)
+
+hole-error-no-number = Geef de maat in millimeter, zoals 4,5 of 22.
+hole-error-not-a-screw = "{ $p0 }" is geen schroefmaat: typ een van { $p1 }.
+hole-error-not-a-cutout = "{ $p0 }" is geen uitsparing: typ een van { $p1 } mm.
+hole-error-not-a-gland = "{ $p0 }" is geen wartelschroefdraad: typ een van { $p1 }.
+hole-error-not-rect = "{ $p0 }" is geen rechthoek: typ breedte × hoogte, en daarna R en de hoekstraal als die er is, zoals 92 × 92 R 2.
+hole-error-not-positive = Een maat moet groter zijn dan 0 mm.

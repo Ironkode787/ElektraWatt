@@ -6,6 +6,11 @@
 # arguments, always strings. The source language and the fallback of every other.
 
 error-part-length = "{ $p0 }" is not a length: give millimetres, as 45 or 22.5.
+error-part-hole-incomplete = Hole { $p0 } needs its X, its Y, its kind and its size.
+error-part-hole-off = Hole { $p0 } at { $p1 }, { $p2 } mm lies off the front, which is { $p3 } × { $p4 } mm: its centre is measured from the front's bottom-left corner.
+error-part-front-round = A round front needs the same Width and Height: give both in Size and mounting, or choose Rectangle.
+error-part-outline-locked = A part from a library keeps its front view: Import outline… changes a project's own part or a new one.
+error-part-outline-unreadable = { $p0 } cannot be read: { $p1 }
 error-part-accessory = No part is numbered { $p0 }
 error-stock-kind = { $p0 } is no wire, ferrule or marker: the stock keeps only those
 error-part-accessory-kind = { $p0 } is no accessory: a wire, ferrule or marker is counted from the wires. Name it in the workshop stock instead (Project properties ▸ Workshop).
@@ -372,6 +377,7 @@ dxf-input-invalid = The file is no DXF drawing this reader understands.
 dxf-no-unit = The drawing names no unit. Choose the unit it is drawn in.
 dxf-no-blocks = The drawing has no named block to make a symbol of.
 dxf-no-page = The project has no drawn page { $p0 }.
+dxf-outline-empty = { $p0 } holds no line to make an outline of.
 
 # A date typed in the project's date format.
 refusal-input-date = `{ $p0 }` is not a date: type it as { $p1 }

@@ -236,3 +236,12 @@ carrier-rail = Rail { $p0 }
 carrier-duct = Duct { $p0 }
 carrier-rail-in-sentence = rail { $p0 }
 carrier-duct-in-sentence = duct { $p0 }
+
+## Why a hole's size does not read (doc 12 §2.5)
+
+hole-error-no-number = Give the size in millimetres, as 4.5 or 22.
+hole-error-not-a-screw = "{ $p0 }" is no screw size: type one of { $p1 }.
+hole-error-not-a-cutout = "{ $p0 }" is no cut-out: type one of { $p1 } mm.
+hole-error-not-a-gland = "{ $p0 }" is no gland thread: type one of { $p1 }.
+hole-error-not-rect = "{ $p0 }" is no rectangle: type width × height, then R and the corner radius if it has one, as 92 × 92 R 2.
+hole-error-not-positive = A size must be greater than 0 mm.

@@ -264,6 +264,7 @@ impl Platform for VisualPlatform {
             | Prompt::OpenPartsTable
             | Prompt::OpenImage
             | Prompt::OpenFont
+            | Prompt::OpenOutline
             | Prompt::OpenKeymap
             | Prompt::OpenTable
             | Prompt::OpenEwz
@@ -280,6 +281,7 @@ impl Platform for VisualPlatform {
             | Prompt::OpenPartsTable
             | Prompt::OpenImage
             | Prompt::OpenFont
+            | Prompt::OpenOutline
             | Prompt::OpenKeymap
             | Prompt::OpenTable
             | Prompt::OpenEwz

@@ -768,7 +768,10 @@ fn declared_table(
     }
     if editable && table.key.is_none() {
         ui.add_space(t.space_2);
-        let add = strings::text(strings::Key::run_time(&format!("part-table-add-{}", table.path)));
+        let add = strings::text(strings::Key::run_time(&format!(
+            "part-table-add-{}",
+            table.path.replace('.', "-")
+        )));
         if ui.button(format!("+ {add}")).clicked() {
             events.push(Event::Action("part.table_row", json!({ "table": table.path })));
         }
@@ -785,6 +788,7 @@ fn section_list(ui: &mut Ui, e: &PartEditor, events: &mut Vec<Event>) {
             "technical" => d.tech.len(),
             "pins" => d.pins.len(),
             "accessories" | "variants" => d.table(s.word).map_or(0, |x| x.rows.len()),
+            "front" => d.table("mech.holes").map_or(0, |x| x.rows.len()),
             "bus" => d.bus.len(),
             _ => 0,
         };
@@ -857,6 +861,7 @@ fn section_body(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec
             }
         }
         "size" => save |= size_rows(ui, d, events),
+        "front" => save |= front_section(ui, d, section, editable, events),
         "bus" => bus_section(ui, d, just_opened, events),
         "plc" => save |= plc_section(ui, d, events),
         "cable" => save |= cable_section(ui, d, events),
@@ -872,6 +877,139 @@ fn section_body(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec
         }
     }
     save
+}
+
+/// Front view and holes (doc 07 §5): the Shape row, the outline line with Import outline… and Remove, the Holes table
+/// with its Kind and Size cells, and the preview of the front and its holes as the panel page draws them. `true` when
+/// Enter was pressed in a field.
+fn front_section(
+    ui: &mut Ui,
+    d: &ew_viewmodel::ew_api::PartDraft,
+    section: &ew_viewmodel::ew_api::PartSection,
+    editable: bool,
+    events: &mut Vec<Event>,
+) -> bool {
+    let t = theme::current(ui.ctx());
+    let mut save = false;
+    for r in section.rows {
+        if let Some(row) = d.row(r.path) {
+            save |= declared_row(ui, row, editable, events);
+        }
+    }
+    let label = strings::text(key!("part-front-outline"));
+    crate::components::form_row(ui, label, |ui, _| {
+        ui.spacing_mut().item_spacing.x = t.space_2;
+        let words = if d.outline.is_empty() {
+            strings::text(key!("part-front-outline-none")).to_owned()
+        } else {
+            strings::format(key!("part-front-outline-lines"), &[&d.outline.len().to_string()])
+        };
+        ui.label(RichText::new(words).color(t.text_secondary.color32()));
+        if editable {
+            if ui.button(strings::text(key!("part-front-import"))).clicked() {
+                events.push(Event::Action("part.outline_import", json!({})));
+            }
+            if !d.outline.is_empty() && ui.button(strings::text(key!("part-front-remove"))).clicked() {
+                events.push(Event::Action("part.outline_remove", json!({})));
+            }
+        }
+    });
+    ui.add_space(t.space_3);
+    if let Some(table) = section.table.and_then(|x| d.table(x.path)) {
+        declared_table(ui, d, table, editable, events);
+    }
+    ui.add_space(t.space_3);
+    front_preview(ui, d);
+    save
+}
+
+/// The preview of Front view and holes: the draft's front ([`ew_viewmodel::ew_api::PartDraft::front_preview`])
+/// rendered by the CPU renderer at the resolution that fits a box of the section's width, centred on the sheet's
+/// colour with a 1-px border; none without a width and a height. The texture is kept while the front and the
+/// resolution stay the same.
+fn front_preview(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft) {
+    let Some((list, (w, h))) = d.front_preview() else {
+        return;
+    };
+    let t = theme::current(ui.ctx());
+    let width = ui.available_width().max(1.0);
+    let height = (t.size_row * 8.0).min(width);
+    let (rect, response) = ui.allocate_exact_size(vec2(width, height), Sense::hover());
+    let name = strings::text(key!("part-front-preview"));
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Image, true, name));
+    let ppp = f64::from(ui.ctx().pixels_per_point());
+    let (sw, sh) = (w.0.max(1) as f64, h.0.max(1) as f64);
+    let inner = |l: f32| (f64::from(l) - 8.0).max(1.0) * ppp;
+    // pixels per nm at 1 dpi: 1 / 25.4e6
+    let dpi = (inner(width) / sw).min(inner(height) / sh) * 25_400_000.0;
+    let dpi = (dpi.floor() as u32).clamp(12, 600);
+    let slot = egui::Id::unique("part-front-preview");
+    let list = std::sync::Arc::new(list);
+    let kept = ui
+        .ctx()
+        .data(|m| m.get_temp::<(std::sync::Arc<ew_dl::DisplayList>, u32, egui::TextureHandle)>(slot))
+        .filter(|(l, k, _)| **l == *list && *k == dpi)
+        .map(|(_, _, texture)| texture);
+    let texture = match kept {
+        Some(texture) => Some(texture),
+        None => {
+            let px = |nm: i64| u32::try_from(i128::from(nm) * i128::from(dpi) / 25_400_000).ok();
+            let options = px(w.0).zip(px(h.0)).map(|(pw, ph)| ew_render_cpu::RegionOptions {
+                dpi,
+                x: 0,
+                y: 0,
+                width: pw.clamp(1, 4096),
+                height: ph.clamp(1, 4096),
+                background: ew_dl::Color::WHITE,
+                surround: ew_dl::Color::WHITE,
+            });
+            let sheet = ew_render_cpu::SheetSize { width: w, height: h };
+            let bounds = ew_render_cpu::ItemBounds::of(&list, None);
+            let image = options.and_then(|o| {
+                ew_render_cpu::render_region(
+                    &list,
+                    Some(&bounds),
+                    sheet,
+                    &o,
+                    ew_viewmodel::ew_api::output::font_bytes(),
+                    None,
+                )
+                .ok()
+            });
+            let made = image.map(|(image, _)| {
+                let colour = egui::ColorImage::from_rgba_unmultiplied(
+                    [image.width as usize, image.height as usize],
+                    &image.pixels,
+                );
+                ui.ctx()
+                    .load_texture("part-front-preview", colour, egui::TextureOptions::LINEAR)
+            });
+            if let Some(texture) = &made {
+                ui.ctx()
+                    .data_mut(|m| m.insert_temp(slot, (list.clone(), dpi, texture.clone())));
+            }
+            made
+        }
+    };
+    let painter = ui.painter();
+    painter.rect_filled(rect, theme::radius(t.radius_sm), t.canvas_sheet.color32());
+    if let Some(texture) = texture {
+        let size = texture.size_vec2() / ui.ctx().pixels_per_point();
+        let scale = (rect.width() / size.x).min(rect.height() / size.y).min(1.0);
+        let shown = egui::Rect::from_center_size(rect.center(), size * scale);
+        painter.image(
+            texture.id(),
+            shown,
+            egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+            theme::NO_TINT,
+        );
+    }
+    painter.rect_stroke(
+        rect,
+        theme::radius(t.radius_sm),
+        theme::stroke(t.border_width, t.border_default),
+        egui::StrokeKind::Inside,
+    );
 }
 
 /// The read-only facts under the identity: the functions and where the part comes from (a new part has neither yet).

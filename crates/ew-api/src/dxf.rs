@@ -346,15 +346,7 @@ pub fn import_part_outline(
     bytes: &[u8],
     unit: Option<Unit>,
 ) -> Result<PartOutline, String> {
-    let limits = Limits::default();
-    let lines = front_door(name, &[bytes.len() as u64], &limits, None, || {
-        ew_import_dxf::outline(bytes, &limits, unit).map(Outline)
-    })
-    .map_err(|r| DxfError::from(r).to_string())?
-    .0;
-    if lines.is_empty() {
-        return Err(format!("{name} holds no line to make an outline of."));
-    }
+    let lines = read_outline(name, bytes, unit)?;
     let mut tiers = crate::library::LibraryTiers::for_user(vec![], vec![])
         .ok_or("No user library directory is configured.")?;
     tiers.company.push(library.to_path_buf());
@@ -383,6 +375,29 @@ pub fn import_part_outline(
         version: part.version,
         lines: lines.len(),
     })
+}
+
+/// The front outline of the DXF drawing `bytes` named `name` (read in `unit` when its header names none) through the
+/// front door, as `mech.front_2d` holds it: the command line's outline import and the part editor's Import outline….
+///
+/// # Errors
+///
+/// In words: the front door's refusal, a missing unit, a drawing without a line.
+pub(crate) fn read_outline(
+    name: &str,
+    bytes: &[u8],
+    unit: Option<Unit>,
+) -> Result<Vec<Vec<ew_units::Pt2>>, String> {
+    let limits = Limits::default();
+    let lines = front_door(name, &[bytes.len() as u64], &limits, None, || {
+        ew_import_dxf::outline(bytes, &limits, unit).map(Outline)
+    })
+    .map_err(|r| DxfError::from(r).to_string())?
+    .0;
+    if lines.is_empty() {
+        return Err(text!("dxf-outline-empty", name).to_string());
+    }
+    Ok(lines)
 }
 
 /// An outline through the front door.

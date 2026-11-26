@@ -952,6 +952,27 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         )),
     ),
     with_params(
+        "path?:text",
+        hidden(act(
+            "part.outline_import",
+            View,
+            Menu::Edit,
+            &[],
+            part_editor_open,
+            None,
+            |s, p| s.act_part_outline_import(p),
+        )),
+    ),
+    hidden(act(
+        "part.outline_remove",
+        View,
+        Menu::Edit,
+        &[],
+        part_editor_open,
+        None,
+        |s, _| s.act_part_outline_remove(),
+    )),
+    with_params(
         "remove?:uint",
         hidden(act(
             "part.bus_row",

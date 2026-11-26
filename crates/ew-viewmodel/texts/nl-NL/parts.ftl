@@ -249,6 +249,7 @@ part-section-identity = Identiteit
 part-section-technical = Technische gegevens
 part-section-pins = Aansluitingen en klemmen
 part-section-size = Afmetingen en montage
+part-section-front = Vooraanzicht en gaten
 part-section-accessories = Toebehoren
 part-section-variants = Varianten
 part-section-wire = Draad
@@ -257,9 +258,20 @@ part-section-marker = Merker
 part-section-accessories-hint = Wat dit artikel meebrengt. Per stuk: voor elke klem of elk apparaat van dit artikel. Per klemmenstrook: eenmaal voor elke strook waarvan de klemmen dit artikel gebruiken, na de laatste. Per railgroep: de eindsteunen van een rij stroken op één rail, één ervoor en één na elke strook.
 part-section-variants-hint = De kleuren of uitvoeringen van dit artikel die een apparaat kiest in Eigenschappen. Elk heeft een eigen artikelnummer, bestelnummer of omschrijving, zodat een lijst ze uit elkaar houdt.
 part-section-pins-hint = De klemmen van de aansluitingen: de draden die elk opneemt. Een klem zonder bereik neemt elke draad.
+part-section-front-hint = De voorkant zoals de paneelpagina hem tekent, en de gaten die een deur of een plaat voor het artikel krijgt: X en Y zijn het midden van een gat, vanaf de linkeronderhoek van de voorkant.
+part-front-outline = Contour
+part-front-outline-none = Geen: de vorm wordt getekend
+part-front-outline-lines = { $p0 ->
+    [one] geïmporteerd uit een DXF-tekening, 1 lijn
+   *[other] geïmporteerd uit een DXF-tekening, { $p0 } lijnen
+    }
+part-front-import = Contour importeren…
+part-front-remove = Verwijderen
+part-front-preview = Voorbeeld van de voorkant en de gaten
 part-section-hidden = Een sectie die de soort van het artikel niet heeft (adereindhuls, merker, kabeladers, PLC) staat er niet.
 part-section-locked = Een artikel uit een bibliotheek houdt deze: ze veranderen bij een eigen artikel van het project.
 part-table-add-accessories = Toebehoren toevoegen
 part-table-add-variants = Variant toevoegen
+part-table-add-mech-holes = Gat toevoegen
 part-table-remove = Rij { $p0 } verwijderen
 part-table-empty = Nog geen

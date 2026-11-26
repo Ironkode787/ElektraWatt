@@ -666,6 +666,81 @@ fn longest(rects: &[Rect]) -> Option<(Pt2, bool)> {
 }
 
 /// The centre of a rectangle (halving toward −∞).
+/// A part's front drawn in `r` (doc 12 §5.2): its rectangle, or for a round front the rectangle's inscribed circle; the
+/// panel page's placements and the part editor's preview ([`part_front`]) draw it so.
+fn front_path(r: Rect, round: bool) -> Path {
+    if round {
+        let half = Nm((r.max().x.0 - r.min().x.0).min(r.max().y.0 - r.min().y.0) / 2);
+        Path::circle(centre(r), half)
+    } else {
+        Path::rect(r)
+    }
+}
+
+/// The margin round a part's front in the part editor's preview: 5 mm.
+pub const FRONT_MARGIN: Nm = Nm(5_000_000);
+
+/// A part's front as the part editor's preview draws it (doc 07 §5, Front view and holes): its imported outline
+/// (`front_2d`), else its rectangle or round front as the panel page draws a placement, in the footprints' pen; its
+/// holes ([`ew_schema::PartHole`]) at their nominal sizes (a fixing's screw, a cut-out's class, a gland's thread),
+/// thin. The list is on a sheet of the front's size and [`FRONT_MARGIN`] on every side, the part frame's `y` up
+/// (the front's bottom-left corner at the margin's corner); `None` without a width and a height above zero, or
+/// where a length leaves the sheet's range.
+pub fn part_front(mech: &ew_schema::MechData) -> Option<(ew_dl::DisplayList, (Nm, Nm))> {
+    let (w, h) = (mech.width?, mech.height?);
+    if w <= Nm::ZERO || h <= Nm::ZERO {
+        return None;
+    }
+    let m = FRONT_MARGIN.0;
+    let sheet = (Nm(w.0.checked_add(2 * m)?), Nm(h.0.checked_add(2 * m)?));
+    // The part frame (x right, y up) on the sheet (y down).
+    let at = |p: Pt2| {
+        Some(Pt2::new(
+            Nm(p.x.0.checked_add(m)?),
+            Nm(sheet.1.0.checked_sub(m)?.checked_sub(p.y.0)?),
+        ))
+    };
+    let box_of = |c: Pt2, bw: Nm, bh: Nm| {
+        let c = at(c)?;
+        let (hx, hy) = (bw.0 / 2, bh.0 / 2);
+        Some(Rect::from_points(
+            Pt2::new(Nm(c.x.0.checked_sub(hx)?), Nm(c.y.0.checked_sub(hy)?)),
+            Pt2::new(Nm(c.x.0.checked_add(hx)?), Nm(c.y.0.checked_add(hy)?)),
+        ))
+    };
+    let mut list = ew_dl::DisplayList::new();
+    let pen = Stroke::pen(Pen::P026);
+    if mech.front_2d.is_empty() {
+        let r = box_of(Pt2::new(Nm(w.0 / 2), Nm(h.0 / 2)), w, h)?;
+        list.push(Item::path(front_path(r, mech.front_is_round()), Some(pen), None));
+    } else {
+        for line in mech.front_2d.iter().filter(|l| l.len() >= 2) {
+            let pts: Option<Vec<Pt2>> = line.iter().map(|p| at(*p)).collect();
+            list.push(Item::path(Path::polyline(&pts?), Some(pen.clone()), None));
+        }
+    }
+    for hole in &mech.holes {
+        let c = Pt2::new(hole.x, hole.y);
+        let mm = |n: Option<u32>| n.map(|n| Nm::from_mm(i64::from(n)));
+        let d = match &hole.hole {
+            ew_schema::Hole::Round { d } => Some(*d),
+            ew_schema::Hole::Fixing(s) => mm(s.mm()),
+            ew_schema::Hole::Cutout(k) => mm(k.mm()),
+            ew_schema::Hole::Gland(g) => mm(g.mm()),
+            ew_schema::Hole::Rect { .. } | ew_schema::Hole::Unknown(_) => None,
+        };
+        let path = match (&hole.hole, d) {
+            (ew_schema::Hole::Rect { w, h, .. }, _) => Some(Path::rect(box_of(c, *w, *h)?)),
+            (_, Some(d)) => Some(Path::circle(at(c)?, Nm(d.0 / 2))),
+            _ => None,
+        };
+        if let Some(path) = path {
+            list.push(Item::path(path, Some(Stroke::pen(Pen::P013)), None));
+        }
+    }
+    Some((list, sheet))
+}
+
 fn centre(r: Rect) -> Pt2 {
     let mid = |a: Nm, b: Nm| Nm(a.0 + (b.0 - a.0).div_euclid(2));
     Pt2::new(mid(r.min().x, r.max().x), mid(r.min().y, r.max().y))
@@ -1085,13 +1160,7 @@ impl Builder<'_> {
                     } else {
                         Stroke::pen(Pen::P026)
                     };
-                    // A round front: the footprint's inscribed circle (doc 12 §5.2).
-                    let path = if d.round && !d.unknown {
-                        let half = Nm((r.max().x.0 - r.min().x.0).min(r.max().y.0 - r.min().y.0) / 2);
-                        Path::circle(centre(r), half)
-                    } else {
-                        Path::rect(r)
-                    };
+                    let path = front_path(r, d.round && !d.unknown);
                     self.push(linked(Item::path(path, Some(stroke), None).with_entity(entity)));
                 }
             }

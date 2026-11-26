@@ -123,6 +123,7 @@ new-project-other-change = Een ander kiezen…
 # Nieuw kabeltype… (het kleine formulier van een kabelartikel) en het kabeldeel van een kabelartikel.
 dialog-cable-type-new-title = Nieuw kabeltype
 prompt-open-font-title = Kies een lettertypebestand voor het standaardlettertype
+prompt-open-outline-title = Kies een DXF-tekening van de voorkant van het artikel
 new-project-folder-new = Deze map bestaat nog niet: Maken maakt hem aan.
 new-project-folder-file = Een bestand met die naam staat de map in de weg: typ een andere map, of kies er een met Bladeren….
 new-project-folder-no-drive = Dat station is er niet: typ een map op een station van deze computer, of kies er een met Bladeren….

@@ -97,8 +97,11 @@ pub struct PartDraft {
     /// The declared rows of the sections ([`crate::part_rows::PART_SECTIONS`]): Size and mounting, a wire's, a
     /// ferrule's and a marker's own data.
     pub rows: Vec<crate::part_rows::DraftRow>,
-    /// The declared tables: the pins' clamps, the accessories, the variants.
+    /// The declared tables: the pins' clamps, the accessories, the variants, the front's holes.
     pub tables: Vec<crate::part_rows::DraftTable>,
+    /// The front's imported outline (`mech.front_2d`), drawn instead of its shape: Import outline… sets it, Remove
+    /// empties it, Save writes it.
+    pub outline: Vec<Vec<ew_units::Pt2>>,
     /// The messages of the fields that do not parse, in the order they were found.
     pub messages: Vec<DraftMessage>,
     /// Whether saving forks the copy (a copy from a library).
@@ -758,6 +761,7 @@ impl Session {
             tech,
             rows,
             tables,
+            outline: p.mech.as_ref().map(|m| m.front_2d.clone()).unwrap_or_default(),
             messages: Vec::new(),
             fork: lib != project,
             own,
