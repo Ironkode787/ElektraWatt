@@ -266,7 +266,7 @@ fn group_labels_through_the_table_and_the_properties_row() {
     assert_eq!(params["targets"].as_array().map(Vec::len), Some(1), "{params}");
     assert_eq!(
         &strip_texts(&shell, "Bridge part")[..5],
-        ["BRIDGE-1", "BRIDGE-1", "BRIDGE-1", "BRIDGE-1", ""]
+        ["BRIDGE-1", "BRIDGE-1", "BRIDGE-1", "BRIDGE-1", "EW-GEN-BRG-4"]
     );
     shell.shutdown();
 }
@@ -508,7 +508,7 @@ fn se14_describe_lines() {
     let d = shell.describe();
     assert!(
         d.contains(
-            "navigator \"Terminal strips\" kind strips view tree table sort \"Order\" ascending filter \"strip:-X1021\" rows 12 showing 1 to 12\n  columns \"Strip\" \"Pos\" \"Terminal\" \"Function text\" \"Group\" \"Part\" \"Potential\" \"Side 1 (clamp a)\" \"Side 2 (clamp b)\" \"Bridge\" \"Bridge part\" \"State\"\n  accessory \"-X1021\" \"\" \"\" \"End bracket\" \"\" \"EW-GEN-EB-1\" \"with EW-GEN-TRM-1\" \"\" \"\" \"\" \"\" \"\"\n  row \"-X1021\" \"1\" \"1\" \"\" \"\" \"EW-GEN-TRM-1\" \"24V/102F1:2\" \"-102F1:2\" \"-102S2:11\" \"BR1\" \"\" \"used\"\n"
+            "navigator \"Terminal strips\" kind strips view tree table sort \"Order\" ascending filter \"strip:-X1021\" rows 12 showing 1 to 12\n  columns \"Strip\" \"Pos\" \"Terminal\" \"Function text\" \"Group\" \"Part\" \"Potential\" \"Side 1 (clamp a)\" \"Side 2 (clamp b)\" \"Bridge\" \"Bridge part\" \"State\"\n  accessory \"-X1021\" \"\" \"\" \"End bracket\" \"\" \"EW-GEN-EB-1\" \"with EW-GEN-TRM-1\" \"\" \"\" \"\" \"\" \"\"\n  row \"-X1021\" \"1\" \"1\" \"\" \"\" \"EW-GEN-TRM-1\" \"24V/102F1:2\" \"-102F1:2\" \"-102S2:11\" \"BR1\" \"EW-GEN-BRG-4\" \"used\"\n"
         ),
         "{d}"
     );

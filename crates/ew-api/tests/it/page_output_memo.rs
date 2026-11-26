@@ -67,7 +67,9 @@ fn assert_equals_cold(s: &Session) -> Vec<u8> {
 }
 
 /// A colour override on a wire of folio 102: the wires and labels of that page may run again, the generated wire
-/// list prints the new colour, and no frame (title block) and no symbol layer runs again.
+/// list prints the new colour, and no frame (title block) and no symbol layer runs again. The colour, BK, is one the
+/// sample's wires of each size of folio 102 (0.75 and 2.5 mm²) have already, so the cut list and the consumables keep
+/// their rows: a row more may add a page to them, and every page's cross-references would then run again.
 #[test]
 fn a_wire_edit_rebuilds_no_title_block() {
     let mut s = crate::common::sample();
@@ -91,7 +93,7 @@ fn a_wire_edit_rebuilds_no_title_block() {
         .next()
         .expect("folio 102 has a wire");
     drop(q);
-    let candidates: Vec<AnyCommand> = [json!(["RD"]), json!("RD")]
+    let candidates: Vec<AnyCommand> = [json!(["BK"]), json!("BK")]
         .into_iter()
         .map(|value| AnyCommand {
             name: "fields.set".into(),

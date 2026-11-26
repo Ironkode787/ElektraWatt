@@ -770,12 +770,12 @@ fn describe_lines_words_and_counts() {
     let d = shell.describe();
     assert!(
         d.contains(
-            "navigator \"Terminal strips\" kind strips view tree table sort \"Terminal\" ascending filter \"x1021 kind:terminal\" rows 9 showing 1 to 9\n  columns \"Strip\" \"Pos\" \"Terminal\" \"Function text\" \"Group\" \"Part\" \"Potential\" \"Side 1 (clamp a)\" \"Side 2 (clamp b)\" \"Bridge\" \"Bridge part\" \"State\"\n  row \"-X1021\" \"1\" \"1\" \"\" \"\" \"EW-GEN-TRM-1\" \"24V/102F1:2\" \"-102F1:2\" \"-102S2:11\" \"BR1\" \"\" \"used\"\n"
+            "navigator \"Terminal strips\" kind strips view tree table sort \"Terminal\" ascending filter \"x1021 kind:terminal\" rows 9 showing 1 to 9\n  columns \"Strip\" \"Pos\" \"Terminal\" \"Function text\" \"Group\" \"Part\" \"Potential\" \"Side 1 (clamp a)\" \"Side 2 (clamp b)\" \"Bridge\" \"Bridge part\" \"State\"\n  row \"-X1021\" \"1\" \"1\" \"\" \"\" \"EW-GEN-TRM-1\" \"24V/102F1:2\" \"-102F1:2\" \"-102S2:11\" \"BR1\" \"EW-GEN-BRG-4\" \"used\"\n"
         ),
         "{d}"
     );
     assert!(
-        d.contains("\n  row \"-X1021\" \"6\" \"6\" \"\" \"\" \"EW-GEN-TRM-1\" \"0V\" \"\" \"-102Q1:A2\" \"BR2\" \"\" \"used\" cursor \"Function text\"\n"),
+        d.contains("\n  row \"-X1021\" \"6\" \"6\" \"\" \"\" \"EW-GEN-TRM-1\" \"0V\" \"\" \"-102Q1:A2\" \"BR2\" \"EW-GEN-BRG-4\" \"used\" cursor \"Function text\"\n"),
         "{d}"
     );
     assert!(

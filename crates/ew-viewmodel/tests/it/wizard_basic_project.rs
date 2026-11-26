@@ -25,6 +25,10 @@ const EXCLUDED: &[(&str, &str)] = &[
         "the per-strip and per-device blocks: their selection names project records (908's names its station)",
     ),
     (
+        "report blocks 912 to 914",
+        "the workshop lists the sample shows; a new project makes them from Output ▸ Workshop when the shop needs them",
+    ),
+    (
         "the legend list of a layout page",
         "it goes with the project's own panel layout (doc 12 §5.4), which Enclosure… makes",
     ),
@@ -141,7 +145,10 @@ fn conventions(dir: &Path, page_types: &BTreeSet<String>) -> Vec<(String, Value)
     let mut blocks: Vec<Value> = records(dir, &["report-blocks.jsonl"])
         .into_iter()
         .filter(|b| b["$k"] == "report_block")
-        .filter(|b| !(903..=905).contains(&b["first_folio"].as_u64().unwrap_or(0)))
+        .filter(|b| {
+            let folio = b["first_folio"].as_u64().unwrap_or(0);
+            !(903..=905).contains(&folio) && !(912..=914).contains(&folio)
+        })
         .filter(|b| b.get("layout_page").is_none())
         .map(|b| {
             let title = if b["first_folio"] == 908 {

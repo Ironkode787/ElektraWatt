@@ -12,8 +12,8 @@ use ew_api::{AnyCommand, Recovery, Session, SessionOptions, StoreOptions};
 use ew_testdir::Tmp;
 
 /// The sample's pages: the title page, two of contents, three section dividers, the seven drawn pages and the
-/// sixteen generated pages of its reports and its layout's legend.
-const PAGES: u32 = 29;
+/// twenty-two generated pages of its reports and its layout's legend.
+const PAGES: u32 = 35;
 
 /// An editing session on a copy of the sample (the committed project is only read, never opened).
 fn sample_copy(tmp: &Tmp) -> Session {

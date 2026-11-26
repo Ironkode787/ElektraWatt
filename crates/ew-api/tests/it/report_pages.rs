@@ -59,20 +59,21 @@ fn the_sample_page_order_includes_the_generated_pages_with_two_toc_pages() {
             .unwrap_or_else(|| panic!("no folio {l}"))
     };
     assert!(at("900") < at("901") && at("901") < at("902") && at("902") < at("903"));
-    for f in ["903", "906", "907", "908", "909", "910", "911"] {
+    for f in ["903", "906", "907", "908", "909", "910", "911", "912", "913", "914"] {
         assert!(labels.contains(&f), "folio {f} is missing");
     }
-    assert_eq!(labels.last(), Some(&"911"));
+    assert_eq!(labels.last(), Some(&"914.1"));
 
-    // The whole order: the sample's 29 pages. The parts list 901 paginates into 901 and 901.1 (31 rows), the legend of
+    // The whole order: the sample's 35 pages. The parts list 901 paginates into 901 and 901.1 (31 rows), the legend of
     // the layout 902 into 902.1 and 902.2 (30 rows), the wire list 907 into 907, 907.1 and 907.2, the PLC overview 908
-    // into 908 and 908.1 (24 channels), the potential overview and the device tag overview into two pages each.
+    // into 908 and 908.1 (24 channels), the potential overview, the device tag overview and the three workshop lists
+    // (912 to 914) into two pages each.
     assert_eq!(
         labels,
         [
             "1", "2", "2.1", "100", "101", "102", "103", "104", "105", "200", "201", "900", "901", "901.1",
             "902", "902.1", "902.2", "903", "906", "907", "907.1", "907.2", "908", "908.1", "909", "909.1",
-            "910", "910.1", "911",
+            "910", "910.1", "911", "912", "912.1", "913", "913.1", "914", "914.1",
         ]
     );
 
@@ -97,14 +98,14 @@ fn the_sample_page_order_includes_the_generated_pages_with_two_toc_pages() {
     assert_eq!(g.id, v5::report_page_id(toc, 0));
     assert_eq!(g.page_count, 2);
 
-    // Prev/Next run through the generated pages (FR-PAG-013): 1 has no Prev, 911 no Next.
+    // Prev/Next run through the generated pages (FR-PAG-013): 1 has no Prev, 914.1 no Next.
     let first = order.entries[0].page;
     assert!(order.prev(first).is_none());
     assert_eq!(order.next(first).map(|e| e.page), Some(toc1));
     assert_eq!(order.next(toc1).map(|e| e.page), Some(toc2));
     let last = order.entries.last().unwrap().page;
     assert!(order.next(last).is_none());
-    assert_eq!(title(&q, last), "Revision Overview");
+    assert_eq!(title(&q, last), "Consumables");
 }
 
 /// A generated page of a block outside every section (the TOC) takes the structure all drawn pages share: with the

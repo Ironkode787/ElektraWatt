@@ -33,6 +33,12 @@ navigator "Pages" mode section sort folio filter ""
   row level 2 page "910" "Device Tag Overview 1" generated changed "V1.0"
   row level 2 page "910.1" "Device Tag Overview 2" generated changed "V1.0"
   row level 2 page "911" "Revision Overview" generated changed "V1.0"
+  row level 2 page "912" "Assembly lists" generated changed "V1.0"
+  row level 2 page "912.1" "Assembly lists" generated changed "V1.0"
+  row level 2 page "913" "Cut list" generated changed "V1.0"
+  row level 2 page "913.1" "Cut list" generated changed "V1.0"
+  row level 2 page "914" "Consumables" generated changed "V1.0"
+  row level 2 page "914.1" "Consumables" generated changed "V1.0"
 ## section 1 collapsed
 +   row level 2 page "1" "Title page" badge "QET 10 px" changed "V1.0" current
 +   row level 1 "Section 1 - Wiring Definition" collapsed cursor
@@ -79,8 +85,14 @@ navigator "Pages" mode flat sort folio filter ""
   row level 1 page "910" "Device Tag Overview 1" generated changed "V1.0"
   row level 1 page "910.1" "Device Tag Overview 2" generated changed "V1.0"
   row level 1 page "911" "Revision Overview" generated changed "V1.0"
+  row level 1 page "912" "Assembly lists" generated changed "V1.0"
+  row level 1 page "912.1" "Assembly lists" generated changed "V1.0"
+  row level 1 page "913" "Cut list" generated changed "V1.0"
+  row level 1 page "913.1" "Cut list" generated changed "V1.0"
+  row level 1 page "914" "Consumables" generated changed "V1.0"
+  row level 1 page "914.1" "Consumables" generated changed "V1.0"
 ## flat view by type
-folios 1 100 200 900 101 102 103 104 105 201 902 2 2.1 901 901.1 902.1 902.2 903 906 907 907.1 907.2 908 908.1 909 909.1 910 910.1 911
+folios 1 100 200 900 101 102 103 104 105 201 902 2 2.1 901 901.1 902.1 902.2 903 906 907 907.1 907.2 908 908.1 909 909.1 910 910.1 911 912 912.1 913 913.1 914 914.1
 ## 103 shown, cursor moved down
 +   row level 2 page "1" "Title page" badge "QET 10 px" changed "V1.0"
 +   row level 2 page "103" "Motor" badge "QET 10 px" changed "V1.0" current

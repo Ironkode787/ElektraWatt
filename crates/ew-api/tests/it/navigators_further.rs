@@ -183,9 +183,10 @@ fn strips_are_the_terminal_diagrams() {
             .collect();
         for (i, n) in terminals.iter().enumerate() {
             assert_eq!(n.cells[0], strip.label);
-            // The sample's terminals: `pos` is the seq (1-based, gapless), no bridge has a part.
+            // The sample's terminals: `pos` is the seq (1-based, gapless); -X1021's bridges are EW-GEN-BRG-4.
             assert_eq!(n.cells[pos], (i + 1).to_string(), "{}: pos", strip.label);
-            assert_eq!(n.cells[bridge_part], "", "{}: bridge part", strip.label);
+            let bridge = if strip.label == "-X1021" { "EW-GEN-BRG-4" } else { "" };
+            assert_eq!(n.cells[bridge_part], bridge, "{}: bridge part", strip.label);
             // The printed list names the strip first too.
             rows.push(
                 n.cells
@@ -495,7 +496,8 @@ fn ips_structure_blocks() {
         (NavRole::Location, "location")
     );
 
-    // Report blocks: the wizard's standard layout, nine page blocks, and the legend Enclosure… made as 902's page.
+    // Report blocks: the wizard's standard layout, nine page blocks, the legend Enclosure… made as 902's page, and the
+    // workshop lists 912 to 914.
     let t = s.navigator_table(NavKind::Blocks);
     assert_tree_contract(&t);
     let rows = table_rows(&t);
@@ -507,7 +509,7 @@ fn ips_structure_blocks() {
     assert_eq!(
         paged,
         [
-            "2", "901", "902.1", "903", "906", "907", "908", "909", "910", "911"
+            "2", "901", "902.1", "903", "906", "907", "908", "909", "910", "911", "912", "913", "914"
         ]
     );
     assert!(rows.iter().all(|n| n.cells[4] != "0"), "no embedded block");
