@@ -40,12 +40,22 @@ pub trait ReportKindDef: Send + Sync {
     fn rows(&self, q: &Q, block: &ReportBlock) -> RowSet;
 
     /// What an **embedded** block of this kind prints: the printed columns with their weights, the box
-    /// title, whether each flow column draws a header row, and the number of flow columns. The default prints every
-    /// column at weight 1 under a header row, no title, one flow column ([`EmbeddedLayout::every_column`]). The
-    /// layout is presentation only: the rows, the CSV and the other exports keep every column of
-    /// [`columns`](ReportKindDef::columns).
+    /// title, whether each flow column draws a header row, and the number of flow columns. The default prints the
+    /// columns a page block prints ([`printed`](ReportKindDef::printed), else every column) at weight 1 under a header
+    /// row, no title, one flow column ([`EmbeddedLayout::every_column`]). The layout is presentation only: the rows,
+    /// the CSV and the other exports keep every column of [`columns`](ReportKindDef::columns).
     fn embedded_layout(&self) -> EmbeddedLayout {
-        EmbeddedLayout::every_column(&self.columns())
+        let columns = self.columns();
+        match self.printed() {
+            Some(keys) => {
+                let printed: Vec<ColumnDef> = keys
+                    .iter()
+                    .filter_map(|k| columns.iter().find(|c| c.key == *k).cloned())
+                    .collect();
+                EmbeddedLayout::every_column(&printed)
+            }
+            None => EmbeddedLayout::every_column(&columns),
+        }
     }
 
     /// The columns a page block of this kind prints when the block chooses none (`ReportBlock.columns` empty, doc 09

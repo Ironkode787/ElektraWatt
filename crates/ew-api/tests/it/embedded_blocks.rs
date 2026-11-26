@@ -7,7 +7,7 @@
 //! linking kinds on 101).
 //!
 //! - `part_data_on_902_lists_the_enclosure_and_the_plate_under_its_title`
-//! - `a_kind_without_a_layout_draws_every_column_and_reports_the_rows_it_cannot_hold`,
+//! - `a_kind_without_a_layout_draws_its_printed_columns_and_reports_the_rows_it_cannot_hold`,
 //!   `a_block_whose_rows_do_not_derive_draws_its_reason`, `the_tables_layer_does_not_depend_on_record_order`
 //! - `the_legend_exports_through_the_named_block_path_and_no_default_export_changes`
 //! - `an_embedded_block_draws_no_back_links`
@@ -182,10 +182,11 @@ fn the_legend_exports_through_the_named_block_path_and_no_default_export_changes
     }
 }
 
-/// A `wire_list` block (a kind that declares no layout) embedded on schematic page 101 draws every column under
-/// a header row, the rows its rect holds, and reports the rest.
+/// A `wire_list` block (a kind that declares no layout) embedded on schematic page 101 draws the columns a page of the
+/// list prints (`ReportKindDef::printed`, doc 09 §3.8) under a header row, the rows its rect holds, and reports the
+/// rest.
 #[test]
-fn a_kind_without_a_layout_draws_every_column_and_reports_the_rows_it_cannot_hold() {
+fn a_kind_without_a_layout_draws_its_printed_columns_and_reports_the_rows_it_cannot_hold() {
     let id = Id::from_uuid(Uuid::from_u128(0x4b42_0001));
     let s = sample_with(|records| {
         // 16.31–277.27 × 20.00–88.00 mm printed: 68 mm hold ten rows of 6.52 mm, a header and nine data rows.
@@ -200,7 +201,14 @@ fn a_kind_without_a_layout_draws_every_column_and_reports_the_rows_it_cannot_hol
     });
     let q = s.query();
     let set = q.get::<BlockRows>(id);
-    let labels: Vec<String> = set.columns.iter().map(|c| c.english().to_owned()).collect();
+    let printed = ew_reports::Registry::builtin()
+        .get(&ReportKind::WireList)
+        .and_then(|k| k.printed())
+        .expect("the wire list's printed columns");
+    let labels: Vec<String> = (printed.iter())
+        .filter_map(|k| set.column(k))
+        .map(|i| set.columns[i].english().to_owned())
+        .collect();
     assert!(
         set.rows.len() > 9,
         "the wire list has more rows than the rect holds"
@@ -214,7 +222,7 @@ fn a_kind_without_a_layout_draws_every_column_and_reports_the_rows_it_cannot_hol
             drawn: 9
         })
     );
-    // Every column at weight 1 leaves the longest wire-list texts too wide: they shrink, are cut with an ellipsis at
+    // The printed columns at weight 1 leave the longest wire-list texts too wide: they shrink, are cut with an ellipsis at
     // the smallest size and reported (never printed over the next cell), and only the nine drawn rows report.
     for f in &findings[1..] {
         match f {
