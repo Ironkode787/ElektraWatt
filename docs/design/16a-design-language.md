@@ -49,6 +49,7 @@ differ the mockup wins, except for the two corrections that requirements force (
 | [§6.24 Finding rows, History rows and the chip line](16a-components-more.md#624-finding-rows-history-rows-and-the-chip-line) | [components: palettes, chips, grids, choosers, preview cards and finding rows](16a-components-more.md) |
 | [§6.25 The built widgets mapped](16a-components-more.md#625-the-built-widgets-mapped) | [components: palettes, chips, grids, choosers, preview cards and finding rows](16a-components-more.md) |
 | [§6.26 The print pre-dialog](16a-components-more.md#626-the-print-pre-dialog) | [components: palettes, chips, grids, choosers, preview cards and finding rows](16a-components-more.md) |
+| [§6.27 The sheet of Parts](16a-components-more.md#627-the-sheet-of-parts) | [components: palettes, chips, grids, choosers, preview cards and finding rows](16a-components-more.md) |
 | [§7. Canvas overlays](16a-overlays-wording.md#7-canvas-overlays) | [canvas overlays, wording, command progression and sources](16a-overlays-wording.md) |
 | [§8. Wording and capitalisation](16a-overlays-wording.md#8-wording-and-capitalisation) | [canvas overlays, wording, command progression and sources](16a-overlays-wording.md) |
 | [§9. Command progression](16a-overlays-wording.md#9-command-progression) | [canvas overlays, wording, command progression and sources](16a-overlays-wording.md) |

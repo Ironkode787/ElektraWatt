@@ -333,3 +333,32 @@ most 56 % of the window's height.
   icon; the first focus lands on the chosen Range radio and not on the Primary; an A3 preview
   without a fit draws no paper edge.
 
+### 6.27 The sheet of Parts
+
+The place for parts and symbols ([07](07-place.md) §5) is built from the components above and five of its own.
+
+- **The sheet**: `color.surface.panel` on `canvas.surround` with `elevation.1` and `radius.lg` top corners, as wide as
+  the middle column allows up to 1,000 px (1,380 px in two columns of groups at 2560 × 1440), `space.6` side padding.
+  A contents list of 168 px stands at its left edge, its rows `size.row` in `type.small`, the group in view marked
+  as a Selected tree row (§6.6), a 7-px `color.warning` dot at the right of a group that lacks something. The
+  heading is the part number in `type.title` over the description in `color.text.secondary`, with state chips
+  (§6.16) at its right. A group is a `type.body.strong` heading over its fields, a `color.border.subtle` hairline
+  and `space.4` above it.
+- **A sheet field**: a property row (§6.8) with a 150-px label, two to a line. Its value has no frame at rest but a
+  `color.border.subtle` underline; hover shows the hover overlay, focus the focus ring; an empty value a person
+  should give has a dashed `color.border.default` frame and its hint in `color.text.disabled`. Under the value, in
+  `type.small`: what the datum is for in `color.text.tertiary`; what follows while it is empty in `color.warning`
+  with the 16-px warning icon; a text that cannot be read in `color.error` with the same icon. The value of a part
+  that is not the person's own is plain text without the underline.
+- **The strip**: one line of `size.panel_header` + 4 px over the sheet or the drawing, `color.accent.subtle` with a
+  hairline under it (`color.warning.subtle` when it speaks of a finding), a sentence in `type.body` with the names
+  in SemiBold, and at its right one Secondary button, the way back. At most one strip shows.
+- **A Ready for row**: a 16-px icon (check in `color.success`, warning in `color.warning`, a dash in
+  `color.text.tertiary`), the feature in `type.body` SemiBold and under it one sentence in `type.small`,
+  `color.text.secondary`; a hairline between rows. Never colour alone.
+- **A kind card** (the first question of New part…): `radius.lg`, a 1-px `color.border.default`, `space.4` padding, a
+  20-px icon, the kind in SemiBold and one line of `type.small` in `color.text.secondary`; three to a row; hover
+  the hover overlay, the chosen one the Selected state with an accent border. Enter takes the card under the cursor.
+- **The lock line**: one line under the heading on `color.surface.sunken`, `radius.md`, the lock icon, a sentence
+  that says why the part cannot be changed, and at its right the Secondary that leads on.
+
