@@ -289,8 +289,8 @@ fn end_label(q: &Q, r: &WireRecord, cp: CpRef) -> String {
     if external { format!("ext. {label}") } else { label }
 }
 
-/// The part number of a wire part, `None` without one or for a part the project does not hold.
+/// The part number a wire part prints (`printed_part`), `None` without one or for a part the project does not hold.
 fn part_number(q: &Q, part: Option<&PartRef>) -> Option<String> {
-    part.and_then(|p| q.parts().get(p.copy))
+    part.and_then(|p| crate::printed_part(q, p))
         .map(|c| c.item.part_number.as_str().to_owned())
 }
