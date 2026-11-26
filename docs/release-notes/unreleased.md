@@ -383,3 +383,21 @@ change here.
 - api-add: `layout.surface.add {enclosure, kind, door?, width?, height?}` makes a face of a cabinet from its part, and
   `layout.surface.edit` takes `width`, `height`, `hinge`, `datum` and `edge_margin` beside `pe_bond`, which is now
   optional (doc 12 §3.7)
+- behaviour-change: a device whose part goes in a cut-out (a pushbutton, a pilot lamp, a handle) is placed on a door's
+  or a wall's page, drawn round where its front is round; dropped on the plate or a rail it is refused in words with
+  Open the door, and the bar under a plate's page counts the devices that wait for the door with a Door button. A
+  device's further part that goes in a cut-out (a main switch's door handle) is a row of its own in Unplaced and in
+  EW-LAY-001 ("-101Q1's part EW-GEN-HDL-1 has no place in the layout"), placed as the device is (doc 12 §2.7, §3.4)
+- behaviour-change: a placement on a door's or a wall's page shows its Surface and its centre from the surface's
+  measured-from corner in Properties, and on a door's page whether the plate behind it holds something there (doc 12
+  §3.4)
+- behaviour-change: EW-LAY-010 names a cut-out device on the plate ("goes in a cut-out of a door or a wall"), a rail
+  part on a door or a wall, and a device in a face's edge margin (doc 12 §2.7)
+- text-change: a mounting's kind ("rail", "cut-out", "screws") and a rail's or duct's name ("Rail 1") in Unplaced,
+  Properties and the refusals are in the window's language; they were English in the Dutch window
+- behaviour-change: the starter library 0.22.0: the pushbuttons EW-GEN-PB-1, -PB-2 and the pilot lamps EW-GEN-LMP-1 to
+  -LMP-4 go in a 22 mm cut-out with their front and depth, the enclosure EW-GEN-ENC-1 has a door hinged left, an edge
+  margin of 30 mm and a usable depth of 200 mm, and the door handle EW-GEN-HDL-1 is new; the sample's main switch
+  -101Q1 takes the handle, and its door page 904 holds the handle, the lamps and the pushbuttons (doc 12 §3.4)
+- api-add: `layout.place` takes `part` (the device's part use to place, its first by default), and the Unplaced
+  navigator's rows of a further part use are keyed `device:<device>:<part>` (doc 12 §3.4)

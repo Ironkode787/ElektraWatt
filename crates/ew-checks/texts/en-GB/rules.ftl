@@ -493,7 +493,10 @@ rule-ew-fl-014 = tube { $tube } crosses from { $from } to { $to } without a bulk
 
 ## EW-LAYOUT: panel layout (at the project scope until space and surface scope kinds exist)
 
-rule-ew-lay-001 = { $device } is not placed in the layout of { $location }; place it on a rail or on the mounting plate
+rule-ew-lay-001 = { $form ->
+        [part] { $device } with its part { $part } is not placed in the layout of { $location }; place it on its surface
+       *[device] { $device } is not placed in the layout of { $location }; place it on a rail or on the mounting plate
+    }
     .title = Unplaced device
     .hint = Place the device on a rail or on the mounting plate of its location's layout.
 
@@ -527,8 +530,11 @@ rule-ew-lay-010 = { $form ->
         [surface_turn] { $device } is turned on the mounting plate by an angle other than a multiple of 90°; turn it back
         [off_surface] { $device } is placed off the plane of the mounting plate; place it on the plate
         [surface] { $device } (part { $part }) does not mount on the plate itself; place it on a rail
+        [cutout] { $device } (part { $part }) goes in a cut-out of a door or a wall: place it on the door's page
+        [surface_face] { $device } (part { $part }) does not mount on { $surface } itself; place it on a rail
         [overflow] { $device } occupies { DECIMAL($from) } to { DECIMAL($to) } mm on the rail at { $rail }, beyond its { DECIMAL("0.0") } to { DECIMAL($length) } mm; shorten it or move it
         [outside] { $device } lies outside the usable area of the mounting plate; move it inside
+        [outside_margin] { $device } lies outside { $surface } less its { DECIMAL($margin) } mm edge margin; move it inside
         [bracket_overlap] The end bracket { $side ->
             [before] before
            *[after] after
@@ -1335,6 +1341,8 @@ word-scope-of-kind = a { $p0 } scope
 word-stranded-load = load { $p0 } stays connected to { $p1 }
 word-lookalike = { $p0 } (looks like { $p1 })
 word-none = none
+word-the-rail-at = the rail at { $p0 }
+word-a-surface = a surface
 word-terminal = terminal
 word-strip = strip
 word-another-strip = another strip

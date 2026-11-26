@@ -28,7 +28,7 @@ pub(super) fn unplaced_table(q: &Q, b: &mut Builder) {
             mm_text(q, nm)
         }
     };
-    use ew_derive::layout::{Unplaced, mount_label, primary_part, rail_extent};
+    use ew_derive::layout::{Unplaced, primary_part, rail_extent};
     let devices = q.devices();
     let parts = q.table::<ew_schema::LibCopy<ew_schema::Part>>();
     for (sid, space) in q.table::<ew_schema::LayoutSpace>().iter() {
@@ -49,11 +49,17 @@ pub(super) fn unplaced_table(q: &Q, b: &mut Builder) {
             None,
             vec![("kind".to_owned(), "location".to_owned())],
         );
-        for d in q.get::<Unplaced>(sid).iter().copied() {
+        for (d, use_part) in q.get::<Unplaced>(sid).iter() {
+            let d = *d;
             let Some(dev) = devices.get(d) else {
                 continue;
             };
-            let part = primary_part(q, dev);
+            let primary = primary_part(q, dev);
+            let part = use_part.clone().or_else(|| primary.clone());
+            // A part use beside the primary one (a door coupling handle) is a row of its own, keyed by its part.
+            let second = use_part
+                .as_ref()
+                .filter(|u| primary.as_ref().is_none_or(|p| p.copy != u.copy));
             let copy = part.as_ref().and_then(|p| parts.get(p.copy));
             let mech = copy.and_then(|c| c.item.mech.clone());
             let size = mech
@@ -76,27 +82,36 @@ pub(super) fn unplaced_table(q: &Q, b: &mut Builder) {
                 .ok()
                 .and_then(|t| t.as_ref().as_ref().map(ew_derive::Tag::short))
                 .unwrap_or_default();
-            let cells = vec![
+            let mut cells = plains(vec![
                 label.clone(),
                 part.as_ref()
                     .map(|p| ew_derive::printed_number(q, p))
                     .unwrap_or_default(),
                 size.map(|(w, h)| format!("{} × {}", mm(w), mm(h)))
                     .unwrap_or_default(),
+            ]);
+            cells.push(
                 mech.as_ref()
                     .and_then(|m| m.mount_kind.as_ref())
-                    .map(mount_label)
-                    .unwrap_or_default(),
-            ];
+                    .map_or_else(|| plain(String::new()), ew_derive::text::mount_kind),
+            );
+            let (key, words, records) = match second {
+                Some(u) => (
+                    format!("device:{}:{}", d.as_uuid(), u.copy.as_uuid()),
+                    format!("{label} \u{b7} {}", ew_derive::printed_number(q, u)),
+                    vec![d.as_uuid(), u.copy.as_uuid()],
+                ),
+                None => (format!("device:{}", d.as_uuid()), label, vec![d.as_uuid()]),
+            };
             b.push(
                 Some(lnode),
                 NavRole::Device,
-                &format!("device:{}", d.as_uuid()),
-                plain(label),
+                &key,
+                plain(words),
                 badges,
-                vec![d.as_uuid()],
+                records,
                 Vec::new(),
-                Some(plains(cells)),
+                Some(cells),
                 vec![("kind".to_owned(), "device".to_owned())],
             );
         }

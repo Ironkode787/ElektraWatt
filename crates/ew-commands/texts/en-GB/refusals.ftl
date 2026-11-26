@@ -711,24 +711,17 @@ refusal-fluid-lines-none = select one or more tubes
 refusal-fluid-length-positive = a tube length is longer than zero, not { $p0 } mm
 refusal-words-connection-end = an end of a newer format
 # The panel layout: layout.place, layout.move, layout.place_assembly, layout.auto_fill, the carriers, spaces and enclosures.
-refusal-words-rail = rail { $p0 }
-refusal-words-duct = duct { $p0 }
-refusal-words-rail-label = Rail { $p0 }
-refusal-words-duct-label = Duct { $p0 }
 refusal-words-device-gone-start = A device that is not in the project
 refusal-layout-the-rail = the rail
 refusal-layout-the-assembly = the assembly { $p0 }
 refusal-layout-the-assembly-start = The assembly { $p0 }
 refusal-layout-a-placement = a placement
-refusal-layout-mount-screw = screw-mounted
-refusal-layout-mount-busbar-adapter = busbar adapter
-refusal-layout-mount-door-cutout = door cut-out
-refusal-layout-mount-on-parent = mounted on its parent
-refusal-layout-mount-none = not mounted
 refusal-layout-rail-path = the rail's path is not two points on one horizontal or vertical line; edit the rail first
 refusal-layout-carrier-unknown = the carrier is of a kind this build does not know; it carries no placements
 refusal-layout-part-no-surface = Part { $p0 } does not mount on a surface; choose a part that mounts on it.
 refusal-layout-does-not-fit = { $p0 } ({ $p1 }) does not fit a { $p2 } rail
+refusal-layout-cutout = { $p0 } goes in a cut-out of a door or a wall: place it on the door's page
+refusal-layout-rail-on-face = { $p0 } mounts on a { $p1 } rail: drop it on a rail
 refusal-layout-pose-rail-axis = a pose on a rail lies on its axis: t = (s, 0, 0)
 refusal-layout-pose-rail-turn = a pose on a rail turns by 0° or 180° about the surface normal only
 refusal-layout-pose-off-rail = the pose is off the rail: s = { $p0 } mm is outside [0, { $p1 } mm]

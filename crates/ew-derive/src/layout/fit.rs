@@ -1,9 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The mount-kind compatibility table (doc 12 §3.3): which rail profiles a part's mount kind fits.
+//! The mount-kind compatibility table (doc 12 §2.5, §3.3): which rail profiles and which surfaces a part's mount kind
+//! fits.
 
-use ew_schema::MountKind;
+use ew_schema::{MountKind, SurfaceKind};
 
 /// A rail profile (doc 12 §2.4: `profile: Ts35x7_5 | Ts35x15 | Ts32 | Ts15`), the rail kinds of [`MountKind`].
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -90,32 +91,19 @@ pub fn fits_rail(mount: Option<&MountKind>, profile: &MountKind) -> Fit {
     if fits { Fit::Fits } else { Fit::DoesNotFit }
 }
 
-/// Whether a part of mount kind `mount` goes on a mounting surface itself (doc 12 §3.3: screw-mounted devices go on
-/// surfaces). EW-LAY-010 reports a rail device on a surface ("rail device not on a rail"); the commands accept it,
-/// because `rehome_to_surface` creates exactly that state.
-pub fn fits_surface(mount: Option<&MountKind>) -> Fit {
+/// Whether a part of mount kind `mount` goes on a mounting surface of kind `surface` itself (doc 12 §2.5): a screwed
+/// part on every surface (the plate, and the inside of a door or a wall), a part in a cut-out in a door, a wall, the
+/// top or the bottom and never the plate; a rail part, a part on its parent or not mounted on no surface itself
+/// (EW-LAY-010 reports a rail device on the plate, which `rehome_to_surface` makes). `Unknown` for a part without a
+/// mount kind, and for a kind of a newer format.
+pub fn fits_surface(mount: Option<&MountKind>, surface: &SurfaceKind) -> Fit {
+    if matches!(surface, SurfaceKind::Unknown(_)) {
+        return Fit::Unknown;
+    }
     match mount {
         None | Some(MountKind::Unknown(_)) => Fit::Unknown,
         Some(MountKind::Screw) => Fit::Fits,
+        Some(MountKind::DoorCutout) if *surface != SurfaceKind::Plate => Fit::Fits,
         Some(_) => Fit::DoesNotFit,
-    }
-}
-
-/// A mount kind in words, as every text names it (one vocabulary for the refusals of the
-/// `layout.*` commands, the Unplaced devices navigator's Mount column and the layout tool's texts): "TS 35×7.5",
-/// "TS 35×15", "TS 32", "TS 15", "screw-mounted", "busbar adapter", "door cut-out", "mounted on its parent",
-/// "not mounted"; a kind of a newer format by its stored name.
-pub fn mount_label(kind: &MountKind) -> String {
-    match kind {
-        MountKind::Ts35x7_5 => "TS 35×7.5".into(),
-        MountKind::Ts35x15 => "TS 35×15".into(),
-        MountKind::Ts32 => "TS 32".into(),
-        MountKind::Ts15 => "TS 15".into(),
-        MountKind::Screw => "screw-mounted".into(),
-        MountKind::BusbarAdapter => "busbar adapter".into(),
-        MountKind::DoorCutout => "door cut-out".into(),
-        MountKind::OnParent => "mounted on its parent".into(),
-        MountKind::None => "not mounted".into(),
-        MountKind::Unknown(v) => v.to_string(),
     }
 }

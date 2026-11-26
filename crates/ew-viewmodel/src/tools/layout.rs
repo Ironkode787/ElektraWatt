@@ -110,8 +110,9 @@ pub fn mode_word(mode: SnapMode) -> &'static str {
 /// What a gesture places: an unplaced device, or a placement it moves.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Source {
-    /// An unplaced device (`layout.place`).
-    Device(Uuid),
+    /// An unplaced device (`layout.place`) and the part copy of the part use it places (`None`: its first unplaced
+    /// row's).
+    Device(Uuid, Option<Uuid>),
     /// A placement (`layout.move`).
     Placement(Uuid),
 }
@@ -172,6 +173,8 @@ pub struct Resolved {
     /// On the plate, how far the snapping moved the drawn footprint from where the pointer put it, surface nm: the
     /// keyboard steps from where the ghost is drawn. `(0, 0)` on a rail.
     pub drawn_shift: (i128, i128),
+    /// A part in a cut-out dropped on the plate or a rail: the refusal offers Open the door (doc 12 §3.3).
+    pub cutout: bool,
 }
 
 /// Where an arrow takes a floating ghost ([`LayoutGesture::step`]).
@@ -275,12 +278,12 @@ impl LayoutGesture {
     pub fn new(source: Source, panel: &PanelTables) -> LayoutGesture {
         let turn = match source {
             Source::Placement(p) => panel.placement(p).map_or(0, |p| p.pose.2),
-            Source::Device(_) => 0,
+            Source::Device(..) => 0,
         };
         let (label, chip) = match source {
-            Source::Device(d) => {
+            Source::Device(d, part) => {
                 let l = panel
-                    .unplaced_device(d)
+                    .unplaced_part(d, part)
                     .map(|u| u.label.clone())
                     .unwrap_or_default();
                 (l.clone(), l)
@@ -424,9 +427,14 @@ impl LayoutGesture {
     }
 
     /// A refused release's answer: the refusal in words as the ghost's chip showed it (the tool's own, which names the
-    /// way, else the command's); the plain `reason-layout-refused` when no words are known.
+    /// way, else the command's); the plain `reason-layout-refused` when no words are known. A part in a cut-out
+    /// dropped on the plate or a rail answers `reason-layout-cutout`, whose toast offers Open the door.
     pub fn refused_output(&self) -> ToolOutput {
-        let key = key!("reason-layout-refused");
+        let key = if self.current.as_ref().is_some_and(|r| r.cutout) {
+            key!("reason-layout-cutout")
+        } else {
+            key!("reason-layout-refused")
+        };
         match self.refusal().filter(|t| !t.is_empty()) {
             Some(text) => ToolOutput::RefusedWith(key, capitalised(&text)),
             None => ToolOutput::Refused(key),
@@ -606,8 +614,8 @@ impl LayoutGesture {
     /// The rail item of the source at the current turn, at `s0 = 0`.
     fn rail_item(&self, panel: &PanelTables) -> Option<RailItem> {
         let (e0, e2, strip_w, locked, placement) = match self.source {
-            Source::Device(d) => {
-                let u = panel.unplaced_device(d)?;
+            Source::Device(d, part) => {
+                let u = panel.unplaced_part(d, part)?;
                 (u.extent, u.extent_flipped, u.bracket_width, false, None)
             }
             Source::Placement(p) => {
@@ -640,7 +648,7 @@ impl LayoutGesture {
             return Vec::new();
         };
         let id = match self.source {
-            Source::Device(d) => d,
+            Source::Device(d, _) => d,
             Source::Placement(p) => p,
         };
         match &r.drop {
@@ -757,6 +765,21 @@ fn across_of(axis: &PanelAxis, fp: SurfaceBox) -> (i128, i128) {
     (a.min(b), a.max(b))
 }
 
+/// The part use a device floats with: the one given, else its first unplaced row's (a door coupling handle once its
+/// switch is placed).
+fn part_of(panel: &PanelTables, device: Uuid, part: Option<Uuid>) -> Option<Uuid> {
+    part.or_else(|| panel.unplaced_device(device).and_then(|u| u.part))
+}
+
+/// The parameters of `layout.place` for a device and the part use it places.
+fn place_params(device: Uuid, part: Option<Uuid>) -> Value {
+    let mut p = json!({ "device": device.to_string() });
+    if let Some(part) = part {
+        p["part"] = json!(part.to_string());
+    }
+    p
+}
+
 /// Resolves `g` at the sheet point `at` (see the module documentation).
 fn resolve_at(
     g: &LayoutGesture,
@@ -768,15 +791,15 @@ fn resolve_at(
     let label = g.label.clone();
     // The source's data.
     let (extent0, extent2, strip_w, size, mount, mount_label, placement, locked, footprint) = match g.source {
-        Source::Device(d) => {
-            let u = panel.unplaced_device(d)?;
+        Source::Device(d, part) => {
+            let u = panel.unplaced_part(d, part)?;
             (
                 u.extent,
                 u.extent_flipped,
                 u.bracket_width,
                 u.size,
                 u.mount_kind.clone(),
-                u.mount_label.clone(),
+                strings::render(&u.mount_label),
                 None,
                 false,
                 None,
@@ -790,7 +813,7 @@ fn resolve_at(
                 row.bracket_width,
                 None,
                 row.mount_kind.clone(),
-                row.mount_label.clone(),
+                strings::render(&row.mount_label),
                 Some(row),
                 row.locked,
                 Some(surface_box(row.footprint)),
@@ -806,6 +829,9 @@ fn resolve_at(
     let k = surface_per_sheet(cx, panel, at);
     let reach = (reach_sheet * k).min(9.0e30) as i128;
     let rail_profile = mount.as_ref().and_then(Profile::of);
+    // A part in a cut-out goes in a door or a wall (doc 12 §3.3): on the plate and on a rail it is refused in words.
+    let in_cutout = mount == Some(ew_api::symbols::schema::MountKind::DoorCutout);
+    let cutout_text = || strings::format(key!("layout-cutout"), &[&label]);
     // The nearest rail within reach whose axis the pointer projects onto between its ends. A mount kind that is no
     // rail kind and is known (screw-mounted, a busbar adapter, a door cut-out) always targets the plate.
     let mut best: Option<(i128, usize)> = None;
@@ -855,8 +881,8 @@ fn resolve_at(
             let (s_ptr, _) = axis.project(anchor_ptr);
             // The mode, and the slot default.
             let slot = match g.source {
-                Source::Device(d) => panel
-                    .unplaced_device(d)
+                Source::Device(d, part) => panel
+                    .unplaced_part(d, part)
                     .and_then(|u| u.slots.iter().find(|(r, _)| *r == c.id).map(|(_, s)| *s)),
                 Source::Placement(_) => None,
             };
@@ -909,14 +935,14 @@ fn resolve_at(
             let result = resolve(&c.items, length, moved_item, s_input, mode);
             let tx = s_input + ext.clip;
             let mut params = match g.source {
-                Source::Device(d) => json!({ "device": d.to_string() }),
+                Source::Device(d, part) => place_params(d, part),
                 Source::Placement(p) => json!({ "placement": p.to_string() }),
             };
             params["carrier"] = json!({ "carrier": c.id.to_string() });
             params["pose"] = json!({ "t": [clamp64(tx), 0, 0], "q": quarter_quat(turn) });
             params["mode"] = json!(mode_word(mode));
             let name = match g.source {
-                Source::Device(_) => "layout.place",
+                Source::Device(..) => "layout.place",
                 Source::Placement(_) => "layout.move",
             };
             let command = Some(AnyCommand {
@@ -990,18 +1016,26 @@ fn resolve_at(
                     mode,
                     moved,
                 },
-                target: c.label.clone(),
+                target: strings::render(&c.label),
                 footprint,
                 neighbours,
                 brackets: brackets_box,
                 // A rail of another profile says so itself; the command's refusal would name the profiles only.
-                local_text: (fit == Fit::DoesNotFit).then(|| {
-                    strings::format(key!("layout-wrong-rail"), &[&label, &c.sentence, &mount_label])
-                }),
-                refused: result.is_err() || fit == Fit::DoesNotFit,
+                local_text: if in_cutout {
+                    Some(cutout_text())
+                } else {
+                    (fit == Fit::DoesNotFit).then(|| {
+                        strings::format(
+                            key!("layout-wrong-rail"),
+                            &[&label, &strings::render(&c.sentence), &mount_label],
+                        )
+                    })
+                },
+                refused: result.is_err() || fit == Fit::DoesNotFit || in_cutout,
                 command,
                 sheet: SheetGeom::default(),
                 drawn_shift: (0, 0),
+                cutout: in_cutout,
             })
         }
         None => {
@@ -1078,13 +1112,18 @@ fn resolve_at(
             let on_rail = placement
                 .and_then(|p| p.carrier)
                 .and_then(|c| panel.carrier(c))
-                .map(|c| c.sentence.clone());
-            let local_text = rail_profile.map(|_| match &on_rail {
-                Some(rail) => strings::format(key!("layout-on-rail"), &[&label, rail, &mount_label]),
-                None => strings::format(key!("layout-off-rail"), &[&label, &mount_label]),
-            });
+                .map(|c| strings::render(&c.sentence));
+            let cutout = in_cutout && panel.plate;
+            let local_text = if cutout {
+                Some(cutout_text())
+            } else {
+                rail_profile.map(|_| match &on_rail {
+                    Some(rail) => strings::format(key!("layout-on-rail"), &[&label, rail, &mount_label]),
+                    None => strings::format(key!("layout-off-rail"), &[&label, &mount_label]),
+                })
+            };
             let mut params = match g.source {
-                Source::Device(d) => json!({ "device": d.to_string() }),
+                Source::Device(d, part) => place_params(d, part),
                 Source::Placement(p) => json!({ "placement": p.to_string() }),
             };
             params["carrier"] = json!({ "surface": panel.surface.to_string() });
@@ -1094,7 +1133,7 @@ fn resolve_at(
             });
             params["mode"] = json!("free");
             let name = match g.source {
-                Source::Device(_) => "layout.place",
+                Source::Device(..) => "layout.place",
                 Source::Placement(_) => "layout.move",
             };
             Some(Resolved {
@@ -1111,6 +1150,7 @@ fn resolve_at(
                 local_text,
                 sheet: SheetGeom::default(),
                 drawn_shift: (u_min - min0.0, v_min - min0.1),
+                cutout,
             })
         }
     }
@@ -1165,16 +1205,20 @@ pub fn snap_left(
 #[derive(Clone, Debug)]
 pub struct LayoutPlaceTool {
     device: Option<Uuid>,
+    /// The part copy of the part use it places (a door coupling handle beside a device's switch); `None`: the
+    /// device's first unplaced part use.
+    part: Option<Uuid>,
     gesture: Option<LayoutGesture>,
     /// The last pointer or cursor point and the modifiers held.
     last: Option<((i64, i64), Mods)>,
 }
 
 impl LayoutPlaceTool {
-    /// The tool armed with `device` (`None`: it floats nothing until a device is chosen).
-    pub fn new(device: Option<Uuid>) -> LayoutPlaceTool {
+    /// The tool armed with `device` and its part use `part` (`None`: it floats nothing until a device is chosen).
+    pub fn new(device: Option<Uuid>, part: Option<Uuid>) -> LayoutPlaceTool {
         LayoutPlaceTool {
             device,
+            part,
             gesture: None,
             last: None,
         }
@@ -1199,9 +1243,9 @@ impl LayoutPlaceTool {
         let Some(panel) = cx.page.panel.as_deref() else {
             return ToolOutput::None;
         };
-        let g = self
-            .gesture
-            .get_or_insert_with(|| LayoutGesture::new(Source::Device(device), panel));
+        let g = self.gesture.get_or_insert_with(|| {
+            LayoutGesture::new(Source::Device(device, part_of(panel, device, self.part)), panel)
+        });
         g.update(at, mods, cx);
         track_output(g)
     }
@@ -1364,9 +1408,9 @@ impl LayoutPlaceTool {
         let Some(panel) = cx.page.panel.as_deref() else {
             return ToolOutput::None;
         };
-        let g = self
-            .gesture
-            .get_or_insert_with(|| LayoutGesture::new(Source::Device(device), panel));
+        let g = self.gesture.get_or_insert_with(|| {
+            LayoutGesture::new(Source::Device(device, part_of(panel, device, self.part)), panel)
+        });
         g.update(at, mods, cx);
         match g.commit() {
             Some(cmd) => ToolOutput::Commit(Box::new(cmd)),

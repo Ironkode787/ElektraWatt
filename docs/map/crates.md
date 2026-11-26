@@ -396,7 +396,7 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/layout/accessories.rs` |  | The items of a rail and its derived end brackets (FR-LAY-060, doc 12 §3.4): [`rail_items`] turns `rail_occupancy` into the rail model's items (the strips with their bracket widths, [`crate::strip_bracket`]), and the memo query [`GroupAccessories`] (`group_accessories(carrier)`) lists the end brackets the strips need. |
 | `src/layout/assembly.rs` |  | The member order of an assembly or PLC station (FR-LAY-061): one function shared by `layout.place_assembly`, `layout.auto_fill` and EW-LAY-016, so that the layout and the check cannot disagree. |
 | `src/layout/carrier.rs` |  | Carrier paths: the axis-parallel check, the length and a rail's axis. |
-| `src/layout/fit.rs` |  | The mount-kind compatibility table (doc 12 §3.3): which rail profiles a part's mount kind fits. |
+| `src/layout/fit.rs` |  | The mount-kind compatibility table (doc 12 §2.5, §3.3): which rail profiles and which surfaces a part's mount kind fits. |
 | `src/layout/legend.rs` |  | The layout legend of a mounting surface (doc 12 §5.4), the surface a panel page shows, and the legend order of carriers that the BOM's carrier lines share (part 4). |
 | `src/layout/mod.rs` |  | The layout's pure geometry (doc 12 §2.1–§2.4, §3.3): carrier paths, the mount-kind compatibility table and the pose validator, shared by the `layout.*` commands (`ew-commands`) and part 5's EW-LAY-010. |
 | `src/layout/pose.rs` |  | Poses on carriers (doc 12 §2.3): quarter turns about `w`, the degrees of freedom per carrier kind, the surface pose equivalent to a rail pose and the frame of a plate centred in its enclosure. |
@@ -431,7 +431,7 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/strip_bridges.rs` |  | `strip_bridges(strip)`: the terminal bridges of one strip, grouped (doc 08 §2.3, §6.5). |
 | `src/structure.rs` |  | Structure: node paths and the resolved structure of pages and devices (doc 03 §5, §8.1–§8.2 step 5, FR-PRJ-019, FR-NUM-002). |
 | `src/tag.rs` |  | Device tags (doc 03 §8.2–§8.5, FR-NUM-001, FR-NUM-002, FR-DEV-021, ADR-0026, D-27, D-41). |
-| `src/text.rs` |  | How a value of the domain is printed as a string that no language changes (doc 04 §3.4): one function per value. |
+| `src/text.rs` | large | How a value of the domain is printed as a string that no language changes (doc 04 §3.4): one function per value. |
 | `src/text_frame.rs` |  | The frame a representation's slot texts are placed in: [`text_frame`]. |
 | `src/title_block.rs` |  | Title-block values: `title_block(page)` (doc 09 §2.6–§2.7, FR-REP-033, FR-REP-036, FR-REP-037, FR-REV-003, D-05, D-06, D-30). |
 | `src/toc.rs` |  | The table of contents: `toc_rows()` (FR-REP-003, REF-012, REF-104, doc 09 §3.1). |

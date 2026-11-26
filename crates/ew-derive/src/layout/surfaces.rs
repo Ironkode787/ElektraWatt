@@ -270,3 +270,32 @@ pub fn to_enclosure(q: &Q, surface: Id<MountingSurface>, pt: Pt2) -> Option<Pt2>
         _ => None,
     }
 }
+
+/// `behind_door(p)`: how far a placement in a door, a wall, the top or the bottom reaches behind it (doc 12 §2.6): the
+/// greater of its part's depth and the depths of its device's parts mounted on their parent (a contact block behind its
+/// operator); `None` for a placement on the plate or a rail, or where no part gives a depth.
+pub fn behind_door(q: &Q, placement: Id<ew_schema::Placement>) -> Option<Nm> {
+    let p = q.table::<ew_schema::Placement>().get(placement)?;
+    let ew_schema::CarrierRef::Surface(s) = p.carrier else {
+        return None;
+    };
+    let kind = &q.table::<MountingSurface>().get(s)?.kind;
+    if matches!(kind, SurfaceKind::Plate | SurfaceKind::Unknown(_)) {
+        return None;
+    }
+    let geom = q.get::<super::PlacementGeometry>(placement);
+    let realised = geom.as_ref().as_ref()?.part.clone()?;
+    let copies = q.table::<LibCopy<Part>>();
+    let mech = |copy: Id<Part>| copies.get(copy).and_then(|c| c.item.mech.clone());
+    let device = q.devices().get(p.device)?;
+    let on_parent = device
+        .parts
+        .iter()
+        .filter_map(|u| mech(u.part.copy))
+        .filter(|m| m.mount_kind == Some(ew_schema::MountKind::OnParent));
+    std::iter::once(mech(realised.copy))
+        .flatten()
+        .chain(on_parent)
+        .filter_map(|m| m.depth)
+        .max()
+}

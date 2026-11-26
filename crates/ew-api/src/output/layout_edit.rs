@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::layout::{
     Fit, LabelMode, LayoutLabel, PlacementGeometry, Quarter, RailAxis, brackets, carrier_labels, fits_rail,
-    free_length, mount_label, path_length, rail_items,
+    free_length, path_length, rail_items,
 };
 use ew_derive::{DeviceTag, DrawnPageOrder, PageRef, Q};
 use ew_ids::{Id, Uuid};
@@ -223,7 +223,7 @@ fn carrier_label(q: &Q, c: &Carrier) -> String {
     carrier_labels(q, c.surface)
         .into_iter()
         .find(|(id, _)| *id == c.id)
-        .map(|(_, l)| l.label())
+        .map(|(_, l)| ew_derive::text::carrier_label(l).to_string())
         .unwrap_or_default()
 }
 
@@ -669,17 +669,53 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
     }
     rows.push(part_row);
     let turn = quarter(&p.pose);
-    let (carrier_text, on_rail) = match &p.carrier {
-        CarrierRef::Carrier(c) => (
+    // A door, a wall, the top or the bottom: the surface in words and the centre from its datum.
+    let face = match &p.carrier {
+        CarrierRef::Surface(s) => q
+            .table::<MountingSurface>()
+            .get(*s)
+            .filter(|s| s.kind != ew_schema::SurfaceKind::Plate)
+            .cloned(),
+        _ => None,
+    };
+    let (carrier_text, on_rail) = match (&p.carrier, &face) {
+        (CarrierRef::Carrier(c), _) => (
             q.table::<Carrier>()
                 .get(*c)
                 .map(|c| carrier_label(q, c))
                 .unwrap_or_default(),
             true,
         ),
+        (_, Some(s)) => (surface_name(q, s), false),
         _ => ("Plate".to_owned(), false),
     };
     rows.push(text_row(k, "carrier", carrier_text, Provenance::Authored, None));
+    if let (Some(s), Some(g)) = (&face, &geom) {
+        let (x, y) = centre_from_datum(q, s, g.footprint);
+        for (name, v) in [("centre_x", x), ("centre_y", y)] {
+            let text = format!("{} mm", mm_text(q, v));
+            rows.push(text_row(k, name, text, Provenance::Authored, Some("layout.move")));
+        }
+        let mech = g
+            .part
+            .as_ref()
+            .and_then(|r| q.table::<LibCopy<Part>>().get(r.copy))
+            .and_then(|c| c.item.mech.clone());
+        if let Some(m) = mech.filter(|m| m.width.is_some() && m.height.is_some()) {
+            let shape = if m.front_is_round() { "Round" } else { "Rectangle" };
+            let (w, h) = (m.width.unwrap_or_default(), m.height.unwrap_or_default());
+            let text = format!(
+                "{shape}, {} \u{d7} {} mm",
+                mm_text(q, i128::from(w.0)),
+                mm_text(q, i128::from(h.0))
+            );
+            rows.push(text_row(k, "front", text, derived_of("part"), None));
+        }
+        if let Some(d) = ew_derive::layout::behind_door(q, id) {
+            let text = format!("{} mm", mm_text(q, i128::from(d.0)));
+            rows.push(text_row(k, "behind_door", text, derived_of("part"), None));
+        }
+    }
     let [tx, ty, _] = p.pose.t;
     let position = if on_rail {
         format!("{} mm", mm_text(q, i128::from(tx.0)))
@@ -691,13 +727,15 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
             mm_text(q, i128::from(ty.0))
         )
     };
-    rows.push(text_row(
-        k,
-        "position",
-        position,
-        Provenance::Authored,
-        Some("layout.move"),
-    ));
+    if face.is_none() {
+        rows.push(text_row(
+            k,
+            "position",
+            position,
+            Provenance::Authored,
+            Some("layout.move"),
+        ));
+    }
     let (rotation, options) = if on_rail {
         (
             RAIL_TURNS[usize::from(turn == 2)].to_owned(),
@@ -750,6 +788,24 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
         rows.push(text_row(k, "clearance", text, derived_of("part"), None));
     }
     Some(rows)
+}
+
+/// The centre of a footprint measured from a surface's datum corner (doc 12 §3.8): its distances from the corner's two
+/// edges, positive into the sheet.
+fn centre_from_datum(q: &Q, s: &MountingSurface, fp: ew_units::Rect) -> (i128, i128) {
+    let (w, h) = ew_derive::layout::sheet_size(s).unwrap_or_default();
+    let c = (
+        (i128::from(fp.min().x.0) + i128::from(fp.max().x.0)) / 2,
+        (i128::from(fp.min().y.0) + i128::from(fp.max().y.0)) / 2,
+    );
+    let (w, h) = (i128::from(w.0), i128::from(h.0));
+    use ew_schema::Corner as C;
+    match ew_derive::layout::surface_datum(q, s) {
+        C::BottomLeft | C::Unknown(_) => c,
+        C::BottomRight => (w - c.0, c.1),
+        C::TopLeft => (c.0, h - c.1),
+        C::TopRight => (w - c.0, h - c.1),
+    }
 }
 
 /// The part copies of the device's part uses that the Realised part row offers for a placement on `on`: the
@@ -852,7 +908,7 @@ fn carrier_rows(q: &Q, id: Id<Carrier>) -> Option<Vec<PropRow>> {
             rows.push(text_row(
                 k,
                 "profile",
-                mount_label(&r.profile),
+                ew_derive::text::mount_kind(&r.profile).to_string(),
                 Provenance::Authored,
                 None,
             ));
@@ -1381,6 +1437,45 @@ impl Session {
                         command(
                             "layout.move",
                             json!({"placement": pid, "pose": {"t": [s, 0, 0], "q": q9(turn)}, "mode": "free"}),
+                        )
+                    }
+                    // The centre from the surface's datum: the pose moves by what the centre moves.
+                    "centre_x" | "centre_y" => {
+                        let Some(v) = parse_mm(text) else {
+                            return invalid(length_text());
+                        };
+                        let surface = match &p.carrier {
+                            CarrierRef::Surface(s) => q.table::<MountingSurface>().get(*s).cloned(),
+                            _ => None,
+                        };
+                        let geom = q.get::<PlacementGeometry>(p.id);
+                        let (Some(s), Some(g)) = (surface, geom.as_ref().as_ref()) else {
+                            return invalid(text!("refusal-layout-row-not-here"));
+                        };
+                        let now = centre_from_datum(&q, &s, g.footprint);
+                        // Along the datum's edge: a corner on the right or the top counts the other way.
+                        use ew_schema::Corner as C;
+                        let datum = ew_derive::layout::surface_datum(&q, &s);
+                        let (sx, sy) = match datum {
+                            C::BottomRight => (-1, 1),
+                            C::TopLeft => (1, -1),
+                            C::TopRight => (-1, -1),
+                            _ => (1, 1),
+                        };
+                        let (dx, dy) = if name == "centre_x" {
+                            (sx * (v - now.0), 0)
+                        } else {
+                            (0, sy * (v - now.1))
+                        };
+                        let (Ok(x), Ok(y)) = (
+                            i64::try_from(i128::from(tx.0) + dx),
+                            i64::try_from(i128::from(ty.0) + dy),
+                        ) else {
+                            return invalid(length_text());
+                        };
+                        command(
+                            "layout.move",
+                            json!({"placement": pid, "pose": {"t": [x, y, tz.0], "q": q9(turn)}, "mode": "free"}),
                         )
                     }
                     "position" => {
@@ -1971,6 +2066,22 @@ impl Session {
                 Some((location, tag, surface.as_uuid()))
             })
             .collect()
+    }
+
+    /// The command that gives the page `to` the structure of the page `from` (a surface's new page takes its plate's
+    /// page's location, doc 12 §3.8); `None` where `from` names no slot or a page is missing.
+    pub fn page_structure_from(&self, from: Uuid, to: Uuid) -> Option<AnyCommand> {
+        let q = self.query();
+        let structure = &q.pages().get(Id::from_uuid(from))?.structure;
+        q.pages().get(Id::from_uuid(to))?;
+        if structure.is_empty() {
+            return None;
+        }
+        Some(AnyCommand {
+            name: "fields.set".into(),
+            params: json!({"kind": "page", "targets": [to.to_string()], "path": "structure",
+                "value": serde_json::to_value(structure).ok()?}),
+        })
     }
 
     /// The location and function nodes the page `page` names (its structure's explicit slots), for the Create

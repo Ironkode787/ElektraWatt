@@ -29,6 +29,10 @@ pub(crate) struct Mech {
     pub(crate) height: &'static str,
     pub(crate) depth: Option<&'static str>,
     pub(crate) mount: Option<&'static str>,
+    /// The front's shape (`round`, `rectangle`); `None`: not given (a rectangle).
+    pub(crate) front: Option<&'static str>,
+    /// The drilling pattern: each hole's centre in millimetres from the front's bottom-left corner and its hole.
+    pub(crate) holes: Vec<(&'static str, &'static str, Value)>,
 }
 
 /// The mount kind of a part on a top-hat rail TS 35 × 7.5 (`MountKind::Ts35x7_5`).
@@ -41,6 +45,21 @@ fn ts35(width: &'static str, height: &'static str, depth: &'static str) -> Optio
         height,
         depth: Some(depth),
         mount: Some(TS35),
+        front: None,
+        holes: Vec::new(),
+    })
+}
+
+/// The mechanical data of a 22 mm operator in a cabinet door (doc 12 §2.5): a round front 30 × 30 mm reaching `depth`
+/// mm behind the door, in a 22 mm cut-out at its centre.
+fn door_22(depth: &'static str) -> Option<Mech> {
+    Some(Mech {
+        width: "30",
+        height: "30",
+        depth: Some(depth),
+        mount: Some("door_cutout"),
+        front: Some("round"),
+        holes: vec![("15", "15", json!({"cutout": "d22"}))],
     })
 }
 
@@ -52,6 +71,16 @@ pub(crate) fn mech_json(m: &Mech) -> Value {
     }
     if let Some(k) = m.mount {
         v["mount_kind"] = json!(k);
+    }
+    if let Some(f) = m.front {
+        v["front_shape"] = json!(f);
+    }
+    if !m.holes.is_empty() {
+        v["holes"] = m
+            .holes
+            .iter()
+            .map(|(x, y, hole)| json!({"x": mm(x), "y": mm(y), "hole": hole}))
+            .collect();
     }
     v
 }
@@ -131,7 +160,7 @@ fn lamp(number: &'static str, description: [&'static str; 2], colour: &str) -> D
         contacts: Vec::new(),
         tech: vec![("colour", json!(colour)), ("rated_voltage", q("24", "V"))],
         plc: None,
-        mech: None,
+        mech: door_22("40"),
         sections: None,
         unit: None,
     }
@@ -404,7 +433,7 @@ pub(crate) fn defs() -> Vec<Def> {
             contacts: vec![("no", vec!["13", "14"])],
             tech: Vec::new(),
             plc: None,
-            mech: None,
+            mech: door_22("45"),
             sections: None,
             unit: None,
         },
@@ -510,7 +539,7 @@ pub(crate) fn defs() -> Vec<Def> {
             contacts: vec![("nc", vec!["11", "12"])],
             tech: Vec::new(),
             plc: None,
-            mech: None,
+            mech: door_22("45"),
             sections: None,
             unit: None,
         },
@@ -572,7 +601,7 @@ pub(crate) fn defs() -> Vec<Def> {
             contacts: Vec::new(),
             tech: vec![("rated_voltage", q("24", "V"))],
             plc: None,
-            mech: None,
+            mech: door_22("40"),
             sections: None,
             unit: None,
         },
@@ -1636,7 +1665,38 @@ pub(crate) fn defs() -> Vec<Def> {
                 "height": mm("800"),
                 "depth": mm("250"),
                 "plate": part_ref("EW-GEN-PLT-1"),
+                "doors": [{"hinge": "left"}],
+                "edge_margin": mm("30"),
+                "usable_depth": mm("200"),
             }})),
+            unit: None,
+        },
+        // A door coupling handle for a main switch: a part beside the switch, in the door in front of it.
+        Def {
+            number: "EW-GEN-HDL-1",
+            kind: None,
+            description: [
+                "Door coupling handle for a main switch",
+                "Deurkoppelingsgreep voor een hoofdschakelaar",
+            ],
+            cps: Vec::new(),
+            template: Vec::new(),
+            contacts: Vec::new(),
+            tech: Vec::new(),
+            plc: None,
+            mech: Some(Mech {
+                width: "65",
+                height: "65",
+                depth: Some("25"),
+                mount: Some("door_cutout"),
+                front: Some("rectangle"),
+                holes: vec![
+                    ("32.5", "32.5", json!({"cutout": "d22"})),
+                    ("8.5", "32.5", json!({"fixing": "m4"})),
+                    ("56.5", "32.5", json!({"fixing": "m4"})),
+                ],
+            }),
+            sections: None,
             unit: None,
         },
         Def {
@@ -1679,6 +1739,8 @@ pub(crate) fn defs() -> Vec<Def> {
                 height: "60",
                 depth: None,
                 mount: None,
+                front: None,
+                holes: Vec::new(),
             }),
             sections: None,
             unit: Some("m"),

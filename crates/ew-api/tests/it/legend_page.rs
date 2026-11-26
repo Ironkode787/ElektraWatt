@@ -387,11 +387,13 @@ fn a_legend_pages_properties_show_the_title_it_prints() {
 fn the_legend_by_kind_lists_every_layout_as_its_legend_page_does() {
     let (s, page, _, block) = cabinet();
     let q = s.query();
-    let (sample_block, sample_layout) = q
+    // The sample's legend lists: its plate's (902) and its door's (904).
+    let samples: Vec<(Id<ReportBlock>, Id<ew_schema::Page>)> = q
         .report_blocks()
         .iter()
-        .find_map(|(id, b)| b.layout_page.filter(|p| p.as_uuid() != page).map(|p| (id, p)))
-        .expect("the sample's legend list");
+        .filter_map(|(id, b)| b.layout_page.filter(|p| p.as_uuid() != page).map(|p| (id, p)))
+        .collect();
+    assert!(!samples.is_empty(), "the sample's legend lists");
     let set = ew_reports::project_rows(&q, &ReportKind::EnclosureLegend, None).expect("the kind's rows");
     let mut runs: Vec<(Vec<Uuid>, Vec<String>)> = Vec::new();
     for row in &set.rows {
@@ -406,10 +408,11 @@ fn the_legend_by_kind_lists_every_layout_as_its_legend_page_does() {
     let order = q.get::<PageOrder>(());
     let at = |p: Uuid| order.position(PageRef::Drawn(Id::from_uuid(p)));
     drop(q);
-    let mut want = vec![
-        (vec![sample_layout.as_uuid()], row_ids(&s, sample_block)),
-        (vec![page], row_ids(&s, block)),
-    ];
+    let mut want: Vec<(Vec<Uuid>, Vec<String>)> = samples
+        .iter()
+        .map(|(b, p)| (vec![p.as_uuid()], row_ids(&s, *b)))
+        .collect();
+    want.push((vec![page], row_ids(&s, block)));
     want.sort_by_key(|(layout, _)| at(layout[0]));
     assert_eq!(runs, want);
     let csv = ew_api::output::row_export(

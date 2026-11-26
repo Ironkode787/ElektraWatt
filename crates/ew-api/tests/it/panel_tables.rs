@@ -38,15 +38,15 @@ fn without_f1_placement() -> Session {
 #[test]
 fn the_carriers_are_labelled_with_their_rail_data() {
     let t = tables();
-    let labels: Vec<&str> = t.carriers.iter().map(|c| c.label.as_str()).collect();
+    let labels: Vec<String> = t.carriers.iter().map(|c| c.label.to_string()).collect();
     assert_eq!(labels, ["Rail 1", "Rail 2", "Duct 1"]);
-    assert_eq!(t.carriers[0].sentence, "rail 1");
+    assert_eq!(t.carriers[0].sentence.to_string(), "rail 1");
     assert_eq!(t.carriers[0].kind, "rail");
     assert_eq!(t.carriers[2].kind, "duct");
     // The sample's strips take the end brackets their terminals' parts declare, two each where a strip stands alone:
-    // -X1011 and -X1021 on rail 1, -X1031 on rail 2.
+    // -X1011, -X1021 and -X1031 on rail 1.
     let counts: Vec<usize> = t.carriers.iter().map(|c| c.brackets.len()).collect();
-    assert_eq!(counts, [4, 2, 0]);
+    assert_eq!(counts, [6, 0, 0]);
     // Auto-fill rail runs each rail's items edge to edge from its start, a bracket before and after each strip; the free
     // length is what the run and its brackets leave.
     for rail in &t.carriers[..2] {
@@ -77,8 +77,13 @@ fn an_unplaced_device_comes_with_its_size_and_mount_kind() {
         panic!("one unplaced device: {:?}", t.unplaced)
     };
     assert_eq!(
-        (f1.label.as_str(), f1.strip, f1.assembly, f1.mount_label.as_str()),
-        ("-102F1", false, false, "TS 35×7.5")
+        (
+            f1.label.as_str(),
+            f1.strip,
+            f1.assembly,
+            f1.mount_label.to_string()
+        ),
+        ("-102F1", false, false, "TS 35×7.5".to_owned())
     );
     assert_eq!(f1.device, s.resolve_reference("tag:-102F1").expect("-102F1"));
     assert_eq!(f1.part_number.as_deref(), Some("EW-GEN-MCB-1"));

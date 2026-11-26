@@ -224,3 +224,15 @@ corner-top-right = Top right
 hinge-left = Left
 hinge-right = Right
 hinge-word = Hinge
+
+## How a part mounts, and a carrier's label (doc 12 §2.5)
+
+mount-screw = screw-mounted
+mount-busbar-adapter = busbar adapter
+mount-door-cutout = in a cut-out
+mount-on-parent = mounted on its parent
+mount-none = not mounted
+carrier-rail = Rail { $p0 }
+carrier-duct = Duct { $p0 }
+carrier-rail-in-sentence = rail { $p0 }
+carrier-duct-in-sentence = duct { $p0 }

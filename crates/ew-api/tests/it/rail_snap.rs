@@ -186,9 +186,9 @@ fn the_test_rail_has_four_brackets() {
     );
 }
 
-/// The free lengths (`L − Σ items − Σ brackets`): rail 1 141 mm (470 mm less its 9 devices, 329 mm, -102F1 being
-/// unplaced), rail 2 120 mm (its 12 devices, 350 mm), the test rail 336.4 mm (470 mm less the three strips, 93.6 mm,
-/// and four brackets).
+/// The free lengths (`L − Σ items − Σ brackets`): rail 1 181 mm and rail 2 180 mm (470 mm less their devices,
+/// -102F1 being unplaced and the lamps and pushbuttons in the door), the test rail 336.4 mm (470 mm less the three
+/// strips, 93.6 mm, and four brackets).
 #[test]
 fn free_lengths_of_the_rails() {
     let (s, r1, r2, rail) = session();
@@ -199,7 +199,7 @@ fn free_lengths_of_the_rails() {
         let items = rail_items(&q, rail);
         free_length(axis.length, &items, &brackets(&items)) * 10 / MM
     };
-    assert_eq!((free(r1), free(r2), free(rail)), (1410, 1200, 3364));
+    assert_eq!((free(r1), free(r2), free(rail)), (1810, 1800, 3364));
 }
 
 /// The sample's carriers are Rail 1, Rail 2 and Duct 1.
@@ -210,7 +210,7 @@ fn carrier_labels_are_numbered_by_kind() {
     let q: Q = s.query();
     let labels: Vec<(Id<Carrier>, String)> = carrier_labels(&q, tables.surface_id)
         .into_iter()
-        .map(|(c, l)| (c, l.label()))
+        .map(|(c, l)| (c, ew_derive::text::carrier_label(l).to_string()))
         .collect();
     let expected: Vec<(Id<Carrier>, String)> = tables
         .carriers
@@ -224,7 +224,10 @@ fn carrier_labels_are_numbered_by_kind() {
         n: 1,
     };
     assert_eq!(
-        (one.label(), one.in_sentence()),
+        (
+            ew_derive::text::carrier_label(one).to_string(),
+            ew_derive::text::carrier_in_sentence(one).to_string()
+        ),
         ("Rail 1".into(), "rail 1".into())
     );
 }
@@ -275,8 +278,8 @@ fn sn2_free_on_rail_1() {
 }
 
 /// -102F1 dropped with its left edge at -101G1's (clip 147.2 mm) stays and pushes -101G1 18 mm to the right, into the
-/// gap [198.2, 280], in one step; one undo restores it; a locked one refuses; the 300 mm test part dropped with its left
-/// edge at -102S2's pushes past the rail end.
+/// gap after it, in one step; one undo restores it; a locked one refuses; the 300 mm test part dropped at 430 mm
+/// pushes past the rail end.
 #[test]
 fn sn3_push_on_rail_1() {
     let (mut s, r1, _, _) = session();
@@ -311,14 +314,14 @@ fn sn3_push_on_rail_1() {
     widen_f1(&mut s);
     let refused = refusal(place(&mut s, f1, r1, 4300, "push"));
     assert!(
-        refused.starts_with("Pushing would move -104E1 past the rail end by "),
+        refused.starts_with("Pushing would move -201X2 past the rail end by "),
         "{refused}"
     );
 }
 
-/// -101F1 [102.2, 138.2] dropped onto -102S2 [280, 300] trades places with it within the span they bound:
-/// -102S2 at 102.2 mm (clip 112.2), -101G1 after it at 122.2 mm (clip 152.2), -101F1 ending at 300 mm (clip 282), and
-/// nothing else moves; two valves on rail 2 swap; a swap onto another rail or onto an empty spot is refused.
+/// -101F1 [102.2, 138.2] dropped onto -102Q1 trades places with it within the span they bound: -102Q1 at clip 124.7 mm,
+/// -101G1 after it at clip 177.2, -101F1 at clip 307, and nothing else moves; two valves on rail 2 swap; a swap onto
+/// another rail or onto an empty spot is refused.
 #[test]
 fn swap_on_rail_1_and_rail_2() {
     let (mut s, r1, r2, _) = session();
@@ -327,15 +330,15 @@ fn swap_on_rail_1_and_rail_2() {
     mv(&mut s, f1, 2900, "swap").unwrap();
     let after = clips(&s, r1);
     let changed: Vec<(String, i128)> = after.iter().filter(|c| !before.contains(c)).cloned().collect();
-    let want: Vec<(String, i128)> = [("-102S2", 1122), ("-101G1", 1522), ("-101F1", 2820)]
+    let want: Vec<(String, i128)> = [("-102Q1", 1247), ("-101G1", 1772), ("-101F1", 3070)]
         .iter()
         .map(|(t, c)| ((*t).to_owned(), *c))
         .collect();
     assert_eq!(changed, want, "nothing else moved");
     let r2_before = clips(&s, r2);
-    mv(&mut s, q1, 2882, "swap").unwrap();
-    assert_eq!(clip_of(&s, r2, "-201K1-Q1"), 2882);
-    assert_eq!(clip_of(&s, r2, "-201K1-Q2"), 2682);
+    mv(&mut s, q1, 2200, "swap").unwrap();
+    assert_eq!(clip_of(&s, r2, "-201K1-Q1"), 2200);
+    assert_eq!(clip_of(&s, r2, "-201K1-Q2"), 2000);
     let changed: Vec<_> = clips(&s, r2)
         .into_iter()
         .filter(|c| !r2_before.contains(c))
@@ -352,7 +355,7 @@ fn swap_on_rail_1_and_rail_2() {
         "Swap works within one rail; use push or free to place it there."
     );
     assert_eq!(
-        refusal(mv(&mut s, f1, 4650, "swap")),
+        refusal(mv(&mut s, f1, 2100, "swap")),
         "Drop onto a placement to swap with it."
     );
 }

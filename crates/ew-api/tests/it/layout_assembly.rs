@@ -137,13 +137,13 @@ fn as1_the_unplaced_member_goes_after_its_predecessor() {
     }
 }
 
-/// Rail 2 emptied of its 13 placements, `layout.place_assembly` of -104A1 at s = 20 mm lays the three members
+/// Rail 2 emptied of its 9 placements, `layout.place_assembly` of -104A1 at s = 20 mm lays the three members
 /// abutting in member order: -104A1 70 (100 mm wide), -104A1-A1 132.5, -104A1-A2 157.5 mm (25 mm each); EW-LAY-016
 /// reports nothing on the result.
 #[test]
 fn as2_the_assembly_as_one_block_on_an_empty_rail() {
     let (mut s, _, r2) = session();
-    assert_eq!(empty(&mut s, r2), 13);
+    assert_eq!(empty(&mut s, r2), 9);
     let station = dev(&s, "-104A1");
     let q = s.query();
     let order: Vec<String> = member_order(&q, station)
@@ -220,7 +220,7 @@ fn fill_r1(s: &mut Session, r1: Id<Carrier>) -> Vec<String> {
 #[test]
 fn as3_auto_fill_on_an_empty_rail_1() {
     let (mut s, r1, _) = session();
-    assert_eq!(empty(&mut s, r1), 12);
+    assert_eq!(empty(&mut s, r1), 11);
     let notices = fill_r1(&mut s, r1);
     assert_eq!(
         clips(&s, r1),

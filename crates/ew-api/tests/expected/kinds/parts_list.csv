@@ -5,6 +5,7 @@ data,-105W1,8,m,Generic,EW-GEN-CBL-2,"PROFIBUS cable, 2 cores green and red, shi
 data,-101F1,1,pc,Generic,EW-GEN-MCB-4,"Miniature circuit breaker, 2 poles"
 data,-101G1,1,pc,Generic,EW-GEN-PSU-1,"Power supply unit, AC to DC"
 data,-101Q1,1,pc,Generic,EW-GEN-SW-3,"Main switch, 3 poles"
+data,-101Q1,1,pc,Generic,EW-GEN-HDL-1,Door coupling handle for a main switch
 data,-102E1,1,pc,Generic,EW-GEN-LMP-1,Pilot lamp
 data,-102F1,1,pc,Generic,EW-GEN-MCB-1,"Miniature circuit breaker, 1 pole"
 data,-102Q1,1,pc,Generic,EW-GEN-CON-1,Contactor with three main contacts and one auxiliary normally open contact

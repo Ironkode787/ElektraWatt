@@ -65,7 +65,7 @@ pub enum IndexRead {
     PlacementsOfDevice(Id<Device>),
     /// `Placement.carrier` (a carrier) → placements.
     PlacementsOnCarrier(Id<ew_schema::Carrier>),
-    /// `Placement.carrier` (a surface itself) → placements (the generic referrer index of the link).
+    /// `Placement.carrier` (a surface itself) → placements.
     PlacementsOnSurface(Id<ew_schema::MountingSurface>),
     /// `Carrier.surface` → carriers.
     CarriersOfSurface(Id<ew_schema::MountingSurface>),
@@ -147,12 +147,9 @@ impl IndexRead {
             IndexRead::PlacementsOnCarrier(c) => {
                 idx.placements_by_carrier().get(&c).map(|v| v.cast()).collect()
             }
-            IndexRead::PlacementsOnSurface(s) => referrers_through(
-                idx,
-                Kind::Placement,
-                "carrier.surface",
-                (Kind::MountingSurface, s.cast()),
-            ),
+            IndexRead::PlacementsOnSurface(s) => {
+                idx.placements_by_surface().get(&s).map(|v| v.cast()).collect()
+            }
             IndexRead::CarriersOfSurface(s) => idx.carriers_by_surface().get(&s).map(|v| v.cast()).collect(),
             IndexRead::DeviceChildren(d) => idx.device_children().get(&d).map(|v| v.cast()).collect(),
         };
@@ -986,15 +983,14 @@ fn same_opt(a: Option<&AnyRow>, b: Option<&AnyRow>) -> bool {
 mod tests {
     use super::*;
 
-    /// The links that `IndexRead` reads through the generic referrer index (the channel reads, the surface
-    /// placement read, the macro-member read) are declared, with the target kind the lookup keys on (a misspelt
+    /// The links that `IndexRead` reads through the generic referrer index (the channel reads, the macro-member
+    /// read) are declared, with the target kind the lookup keys on (a misspelt
     /// name would make the index answer nothing).
     #[test]
     fn the_referrer_links_of_the_index_reads_exist() {
         for (from, field, to) in [
             (Kind::Channel, "module", Kind::Device),
             (Kind::Channel, "binding.cp[0]", Kind::Function),
-            (Kind::Placement, "carrier.surface", Kind::MountingSurface),
             (Kind::MacroInstance, "members[][1]", Kind::Page),
         ] {
             let link = ew_model::LINKS

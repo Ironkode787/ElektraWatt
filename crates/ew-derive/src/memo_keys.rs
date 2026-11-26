@@ -386,7 +386,7 @@ mod tests {
         Kind::Form,
     ];
 
-    const INDEXES: [IndexName; 18] = [
+    const INDEXES: [IndexName; 20] = [
         IndexName::FunctionsByDevice,
         IndexName::RepsByPage,
         IndexName::RepsByFunction,
@@ -405,6 +405,8 @@ mod tests {
         IndexName::PlacementsByDevice,
         IndexName::PlacementsByCarrier,
         IndexName::CarriersBySurface,
+        IndexName::PlacementsBySurface,
+        IndexName::FeaturesBySurface,
     ];
 
     /// The `i`-th ID of a pool as UUID text.
@@ -604,6 +606,8 @@ mod tests {
         id_buckets!(out, IndexName::PlacementsByDevice, ix.placements_by_device());
         id_buckets!(out, IndexName::PlacementsByCarrier, ix.placements_by_carrier());
         id_buckets!(out, IndexName::CarriersBySurface, ix.carriers_by_surface());
+        id_buckets!(out, IndexName::PlacementsBySurface, ix.placements_by_surface());
+        id_buckets!(out, IndexName::FeaturesBySurface, ix.features_by_surface());
         out
     }
 

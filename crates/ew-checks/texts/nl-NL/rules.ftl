@@ -493,7 +493,10 @@ rule-ew-fl-014 = slang { $tube } gaat van { $from } naar { $to } zonder schotdoo
     .title = Slang verlaat een locatie
     .hint = Plaats een schotdoorvoer waar de slang de locatie verlaat, of aanvaard de overgang.
 
-rule-ew-lay-001 = { $device } is niet geplaatst in de layout van { $location }; plaats het op een rail of op de montageplaat
+rule-ew-lay-001 = { $form ->
+        [part] { $device } met zijn artikel { $part } is niet geplaatst in de layout van { $location }; plaats het op zijn vlak
+       *[device] { $device } is niet geplaatst in de layout van { $location }; plaats het op een rail of op de montageplaat
+    }
     .title = Niet geplaatst apparaat
     .hint = Plaats het apparaat op een rail of op de montageplaat van de layout van zijn locatie.
 
@@ -527,8 +530,11 @@ rule-ew-lay-010 = { $form ->
         [surface_turn] { $device } is op de montageplaat gedraaid over een andere hoek dan een veelvoud van 90°; draai het terug
         [off_surface] { $device } ligt niet in het vlak van de montageplaat; plaats het op de plaat
         [surface] { $device } (artikel { $part }) wordt niet op de plaat zelf gemonteerd; plaats het op een rail
+        [cutout] { $device } (artikel { $part }) komt in een uitsparing van een deur of een wand: plaats het op de pagina van de deur
+        [surface_face] { $device } (artikel { $part }) wordt niet op { $surface } zelf gemonteerd; plaats het op een rail
         [overflow] { $device } beslaat { DECIMAL($from) } tot { DECIMAL($to) } mm op de rail bij { $rail }, voorbij { DECIMAL("0.0") } tot { DECIMAL($length) } mm; maak het korter of verplaats het
         [outside] { $device } ligt buiten het bruikbare vlak van de montageplaat; verplaats het naar binnen
+        [outside_margin] { $device } ligt buiten { $surface } min de randstrook van { DECIMAL($margin) } mm; verplaats het naar binnen
         [bracket_overlap] De eindsteun { $side ->
             [before] vóór
            *[after] na
@@ -1315,6 +1321,8 @@ word-scope-of-kind = een bereik van soort { $p0 }
 word-stranded-load = { $p0 } → { $p1 }
 word-lookalike = { $p0 } → { $p1 }
 word-none = geen
+word-the-rail-at = de rail bij { $p0 }
+word-a-surface = een vlak
 word-terminal = klem
 word-strip = klemmenstrook
 word-another-strip = een andere klemmenstrook

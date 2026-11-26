@@ -597,10 +597,16 @@ impl ShellModel {
                                 .then(|| node.records.first().map(|r| DragSource::Device(r.to_string())))
                                 .flatten()
                         })
-                        // Every device row of the Unplaced devices navigator drops onto a panel page.
+                        // Every device row of the Unplaced devices navigator drops onto a panel page; a second
+                        // part use's row (a door coupling handle) as `<device>/<part>`.
                         .or_else(|| {
                             (k == NavKind::Unplaced && node.role == ew_api::output::NavRole::Device)
-                                .then(|| node.records.first().map(|r| DragSource::Device(r.to_string())))
+                                .then(|| {
+                                    node.records.first().map(|r| match node.records.get(1) {
+                                        Some(part) => DragSource::Device(format!("{r}/{part}")),
+                                        None => DragSource::Device(r.to_string()),
+                                    })
+                                })
                                 .flatten()
                         })
                         // A station's or a bus device's row drops onto a bus page (a CPU dragged
@@ -1637,8 +1643,9 @@ impl ShellModel {
             && node.role == ew_api::output::NavRole::Device
             && let Some(device) = node.records.first().copied()
         {
+            let part = node.records.get(1).copied();
             self.set_cursor(kind, &key);
-            return self.place_layout_device(device);
+            return self.place_layout_device(device, part);
         }
         // Enter on an unplaced terminal row arms the Place tool with its terminal's main function on the
         // page of the focused tab (the drop of the row onto a canvas does the same).

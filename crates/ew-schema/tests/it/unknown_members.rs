@@ -222,9 +222,10 @@ fn run(texts: &[(String, bool)], tally: &mut Tally) {
 /// entry, location, target and hash objects keep unknown members. The medium lines add a multi-language `name` and
 /// an enum wrapper (a definition's `at`); the medium, its tubes and the definition keep unknown members. The
 /// exchange record line adds one map of texts keyed by field names (`fields`), which takes no other value; the
-/// record, the foreign ID, the ownership and the stamp keep unknown members.
+/// record, the foreign ID, the ownership and the stamp keep unknown members. The surface feature line adds an enum
+/// wrapper (its `hole`) and a multi-language `purpose`; the feature keeps unknown members.
 const MIN_SURVIVORS: usize = 300;
-const MAX_REJECTED: usize = 110;
+const MAX_REJECTED: usize = 112;
 
 fn examples() -> Vec<(String, bool)> {
     let mut all: Vec<(String, bool)> = DOC05_LINES.iter().map(|l| (fill(l), false)).collect();

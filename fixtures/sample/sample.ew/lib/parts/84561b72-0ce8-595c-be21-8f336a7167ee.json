@@ -3,8 +3,8 @@
   "id": "84561b72-0ce8-595c-be21-8f336a7167ee",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "7b2ad922-5395-5f7a-9b84-3ba96b073523",
-  "version": "0.1.1",
-  "sha256": "sha256:fde339985a6a0d546031c3afd964885836e5a5b7a2f7c1489cc22b473c9db6a4",
+  "version": "0.1.2",
+  "sha256": "sha256:949924bcdd6723f645e66d8ea0a2bf93f08fa7433583c866d1494a2e81d7d958",
   "meta": {"key": "EW-GEN-LMP-3", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "manufacturer": {
     "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
@@ -27,5 +27,13 @@
       "main": true,
       "cps": [0, 1]
     }
-  ]
+  ],
+  "mech": {
+    "width": 30000000,
+    "height": 30000000,
+    "depth": 40000000,
+    "mount_kind": "door_cutout",
+    "front_shape": "round",
+    "holes": [{"x": 15000000, "y": 15000000, "hole": {"cutout": "d22"}}]
+  }
 }

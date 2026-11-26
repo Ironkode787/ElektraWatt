@@ -220,3 +220,15 @@ corner-top-right = Rechtsboven
 hinge-left = Links
 hinge-right = Rechts
 hinge-word = Scharnier
+
+## Hoe een artikel gemonteerd wordt, en het label van een drager (doc 12 §2.5)
+
+mount-screw = geschroefd
+mount-busbar-adapter = stroomrailadapter
+mount-door-cutout = in een uitsparing
+mount-on-parent = op zijn ouder gemonteerd
+mount-none = niet gemonteerd
+carrier-rail = Rail { $p0 }
+carrier-duct = Kabelgoot { $p0 }
+carrier-rail-in-sentence = rail { $p0 }
+carrier-duct-in-sentence = kabelgoot { $p0 }

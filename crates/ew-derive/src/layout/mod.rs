@@ -32,7 +32,6 @@
 //! | [`rail_items`], [`rail_extent`] | A rail's items from `rail_occupancy`; what a device takes along a rail |
 //! | [`GroupAccessories`], [`RailBrackets`] | `group_accessories(carrier)`: the derived end brackets of a rail and their count per strip (FR-LAY-060) |
 //! | [`member_order`], [`member_slot`] | The member order of an assembly, shared with EW-LAY-016, and where a member is pushed in |
-//! | [`mount_label`] | A mount kind in words, for every text that names one |
 //! | [`next_fit`] | Where a fill places an item: the first fit at or after a floor |
 //!
 //! Frames (doc 12 §2.1): a surface's `u` grows to the right and `v` upwards; a rail's pose `t = (s, 0, 0)` is the part's
@@ -59,7 +58,7 @@ mod snap;
 pub use accessories::{Bracket, GroupAccessories, RailBrackets, rail_items};
 pub use assembly::{member_order, member_slot};
 pub use carrier::{PathError, RailAxis, check_path, path_length};
-pub use fit::{Fit, Profile, RAIL_FITS, fits_rail, fits_surface, mount_label};
+pub use fit::{Fit, Profile, RAIL_FITS, fits_rail, fits_surface};
 pub use legend::{
     CarrierLabel, CarrierLabelKind, CarrierOrder, LegendItem, LegendRow, carrier_label, carrier_labels,
     carrier_length, carrier_order, carriers_in_order, layout_legend, legend_layout_page, metres_of_nm,
@@ -78,8 +77,8 @@ pub use snap::{
     end_gap, free_length, min_gap, next_fit, resolve, runs, start_gap,
 };
 pub use surfaces::{
-    Face, door_count, door_index, enclosure_section, face_of, face_size, sheet_size, surface_datum,
-    surface_frame, surface_page, surfaces, to_enclosure,
+    Face, behind_door, door_count, door_index, enclosure_section, face_of, face_size, sheet_size,
+    surface_datum, surface_frame, surface_page, surfaces, to_enclosure,
 };
 
 #[cfg(test)]

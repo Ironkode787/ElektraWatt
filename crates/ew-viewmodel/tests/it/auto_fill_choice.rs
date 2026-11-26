@@ -39,19 +39,19 @@ fn in_cabinet(s: &ShellModel, tag: &str) -> bool {
     panel(s).unplaced.iter().any(|u| u.label == tag)
 }
 
-/// 902 with the lamps -104E1 and -104E2 taken off their rails, and -104E2, the position switch -104B1 and the cylinder
-/// -201M1 without a location; the rail -104E2 stood on (rail 2, which has room for both lamps).
+/// 902 with the breakers -102F1 and -103F1 taken off rail 1, and -103F1, the position switch -104B1 and the cylinder
+/// -201M1 without a location; the rail -103F1 stood on (rail 1, which has room for both breakers).
 fn set_up(tmp: &Tmp, s: &mut ShellModel) -> String {
     let t = panel(s);
     let rail = t
         .placements
         .iter()
-        .find(|p| p.tag == "-104E2")
+        .find(|p| p.tag == "-103F1")
         .and_then(|p| p.carrier)
         .and_then(|c| t.carrier(c))
-        .map(|c| c.label.clone())
-        .expect("-104E2 on a rail");
-    for tag in ["-104E1", "-104E2"] {
+        .map(|c| c.label.to_string())
+        .expect("-103F1 on a rail");
+    for tag in ["-102F1", "-103F1"] {
         let p = t.placements.iter().find(|p| p.tag == tag).expect(tag).id;
         done(
             s,
@@ -59,7 +59,7 @@ fn set_up(tmp: &Tmp, s: &mut ShellModel) -> String {
             json!({"cmd": "layout.remove", "params": {"placement": p.to_string()}}),
         );
     }
-    let targets: Vec<String> = devices(tmp, &["-104E2", "-104B1", "-201M1"])
+    let targets: Vec<String> = devices(tmp, &["-103F1", "-104B1", "-201M1"])
         .iter()
         .map(ToString::to_string)
         .collect();
@@ -69,7 +69,7 @@ fn set_up(tmp: &Tmp, s: &mut ShellModel) -> String {
         json!({"cmd": "fields.set", "params": {"kind": "device", "targets": targets,
             "path": "structure.location", "value": "none"}}),
     );
-    assert!(in_cabinet(s, "-104E1") && !in_cabinet(s, "-104E2"));
+    assert!(in_cabinet(s, "-102F1") && !in_cabinet(s, "-103F1"));
     rail
 }
 
@@ -91,25 +91,25 @@ fn the_form_ticks_the_cabinets_devices_and_leaves_the_field_unticked() {
             .map(|r| r.cells[0] == "yes")
             .unwrap_or_else(|| panic!("{tag} is offered: {:?}", table.rows))
     };
-    assert!(tick("-104E1"), "the cabinet's own lamp");
+    assert!(tick("-102F1"), "the cabinet's own breaker");
     assert!(
-        tick("-104E2"),
-        "a lamp without a location whose part goes on the rail"
+        tick("-103F1"),
+        "a breaker without a location whose part goes on the rail"
     );
     assert!(!tick("-104B1"), "a position switch is field equipment");
     assert!(!tick("-201M1"), "so is a cylinder");
 
     assert_eq!(s.submit_form(), Outcome::Done);
-    // -104E2 is placed in the cabinet's space, so it took the cabinet's location (the fill places no other).
-    assert!(placed(&s, "-104E1") && placed(&s, "-104E2"));
+    // -103F1 is placed in the cabinet's space, so it took the cabinet's location (the fill places no other).
+    assert!(placed(&s, "-102F1") && placed(&s, "-103F1"));
     assert!(!placed(&s, "-104B1") && !placed(&s, "-201M1"));
     assert!(!in_cabinet(&s, "-104B1"), "the field device took no location");
     // The location and the fill are one undo step.
     done(&mut s, "edit.undo", json!({}));
     // Its page is the layout page it placed on: the Undo stays there.
     assert_eq!(s.current_folio(), Some("902"));
-    assert!(!placed(&s, "-104E2") && !in_cabinet(&s, "-104E2"));
-    assert!(in_cabinet(&s, "-104E1"));
+    assert!(!placed(&s, "-103F1") && !in_cabinet(&s, "-103F1"));
+    assert!(in_cabinet(&s, "-102F1"));
     s.shutdown();
 }
 
@@ -118,31 +118,31 @@ fn a_script_names_the_devices_or_takes_the_guess() {
     let tmp = Tmp::new("fill-script");
     let mut s = tmp.sample_in(Mode::Headless, true, "902");
     let rail = set_up(&tmp, &mut s);
-    // Named: only -104E2, which takes the cabinet's location with it.
+    // Named: only -103F1, which takes the cabinet's location with it.
     done(
         &mut s,
         "layout.auto_fill_rail",
-        json!({"rail": rail, "order": "dt", "devices": ["-104E2"]}),
+        json!({"rail": rail, "order": "dt", "devices": ["-103F1"]}),
     );
-    assert!(placed(&s, "-104E2") && !placed(&s, "-104E1"));
+    assert!(placed(&s, "-103F1") && !placed(&s, "-102F1"));
     // A device it does not offer (now placed) is refused in words.
     let Outcome::Failed { message } = s.dispatch(
         "layout.auto_fill_rail",
-        &json!({"rail": rail, "order": "dt", "devices": ["-104E2"]}),
+        &json!({"rail": rail, "order": "dt", "devices": ["-103F1"]}),
     ) else {
         panic!("a placed device is refused")
     };
     assert!(
-        message.starts_with("-104E2 is not a device Auto-fill rail can place here"),
+        message.starts_with("-103F1 is not a device Auto-fill rail can place here"),
         "{message}"
     );
-    // The guess: -104E1, and not the field devices.
+    // The guess: -102F1, and not the field devices.
     done(
         &mut s,
         "layout.auto_fill_rail",
         json!({"rail": rail, "order": "dt"}),
     );
-    assert!(placed(&s, "-104E1"));
+    assert!(placed(&s, "-102F1"));
     assert!(!placed(&s, "-104B1") && !placed(&s, "-201M1"));
     assert!(!in_cabinet(&s, "-201M1"));
     s.shutdown();

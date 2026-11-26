@@ -346,3 +346,11 @@ toast-surface-drawn = { $p0 } is getekend op pagina { $p1 }, met zijn legendapag
 canvas-surface-entry = Vlak: { $p0 }
 reason-surface-no-plate-page = De montageplaat van de kast staat nog op geen pagina: teken die eerst met Kast….
 error-no-surface = Geen vlak van de kast heet “{ $p0 }”.
+layout-cutout = { $p0 } komt in een uitsparing van een deur of een wand: plaats het op de pagina van de deur.
+layout-open-door = Deur openen
+reason-layout-cutout = Het artikel komt in een uitsparing van een deur of een wand.
+hud-layout-door = Deur
+hud-layout-cutout = { $p0 ->
+        [one] 1 apparaat komt in een uitsparing
+       *[other] { $p0 } apparaten komen in een uitsparing
+    }

@@ -239,9 +239,10 @@ EW-LAY-001 and the unplaced list need one definition of "a device that must appe
 2. The device of an enclosure or of a surface is exempt: they are the layout (-UC1, -UC1-U1).
 3. A strip with terminals is mountable as one placement without a part (-X1011, -X1021, -X1031).
 4. A terminal of a strip, a cable and a device without functions are exempt (-X1011:1, -101W1).
-5. **Each part use whose part has a mount kind other than `none` and `on_parent` is to be placed**, the first such
-   use the primary part: -101Q1 with its switch (TS 35) and its door coupling handle (in a cut-out) is listed twice
-   until both are placed.
+5. **The primary part is to be placed, and each further part use whose part goes in a cut-out**: the primary part is
+   the first part use whose mount kind is other than `none` and `on_parent`; -101Q1 with its switch (TS 35) and its
+   door coupling handle (in a cut-out) is listed twice until both are placed. A further part use on a rail or on
+   screws is placed with its device, as projects made before hold it (an accessory listed as a part use of its own).
 6. Part uses that are all `on_parent` or `none` are exempt (-201K1-Q1, mounted on its valve terminal).
 7. Part uses without a mount kind are mountable with an unknown footprint.
 8. A device without parts whose functions are all of the PE point's FnDef category is exempt as an integral PE

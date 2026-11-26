@@ -1,4 +1,4 @@
-{"$k":"device","id":"019b76da-a825-7000-8000-000000000025","tag":{"letter":"Q","counter":1},"parts":[{"part":{"copy":"2ca76f55-fbf2-592a-a1a0-8c206566ce5b"},"qty":"1"}]}
+{"$k":"device","id":"019b76da-a825-7000-8000-000000000025","tag":{"letter":"Q","counter":1},"parts":[{"part":{"copy":"2ca76f55-fbf2-592a-a1a0-8c206566ce5b"},"qty":"1"},{"part":{"copy":"034fea49-afd9-56c0-8c00-8ed98d961cfd"},"qty":"1"}]}
 {"$k":"device","id":"019b76da-a925-7000-8000-000000000125","tag":{"letter":"A","counter":1},"parts":[{"part":{"copy":"e0f1702b-cfda-563b-a9e4-f12c226e8e3e"},"qty":"1"}],"plc_station":{"config_project":"e13b1bba-e4ba-5414-b75a-b9c86cad85dd","role":"cpu"}}
 {"$k":"function","id":"019b76da-a826-7000-8000-000000000026","device":"019b76da-a825-7000-8000-000000000025","def":"0cf9956e-02ca-58c7-b1c5-36ee59bf37c9","template_entry":0}
 {"$k":"function","id":"019b76da-a928-7000-8000-000000000128","device":"019b76da-a925-7000-8000-000000000125","def":"3d012b01-31ef-5047-a43d-2b74f9049911","kind":"black_box","template_entry":0}

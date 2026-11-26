@@ -513,6 +513,8 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
             "row level 2 page \"902.1\" \"Legend of layout 902\" generated changed \"V1.0\"",
             "row level 2 page \"902.2\" \"Legend of layout 902\" generated changed \"V1.0\"",
             "row level 2 page \"903\" \"Terminal Diagram 1\" generated changed \"V1.0\"",
+            "row level 2 page \"904\" \"Door\" badge \"QET 10 px\" changed \"V1.0\"",
+            "row level 2 page \"904.1\" \"Legend of layout 904\" generated changed \"V1.0\"",
             "row level 2 page \"906\" \"Cable Overview and Diagrams\" generated changed \"V1.0\"",
             "row level 2 page \"907\" \"Wire List 1\" generated changed \"V1.0\"",
             "row level 2 page \"907.1\" \"Wire List 2\" generated changed \"V1.0\"",
@@ -544,6 +546,7 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
     assert_eq!(
         lines_of(&preview, &["dialog \"Print\"", "preview \""]),
         ["dialog \"Print\"", "preview \"2 of 39\" page 2"]
+        ["dialog \"Print\"", "preview \"2 of 35\" page 2"]
     );
     assert_eq!(
         lines_of(&end, &["row level 2 page \"91", "title:"]),
@@ -569,6 +572,7 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
         toast.len() == 1
             && toast[0].starts_with(
                 "toast \"Exported reports.pdf: 8 drawing pages, 3 section divider pages and 28 report pages, "
+                "toast \"Exported reports.pdf: 9 drawing pages, 3 section divider pages and 23 report pages, "
             ),
         "{toast:?}"
     );

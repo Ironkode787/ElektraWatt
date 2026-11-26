@@ -842,14 +842,14 @@ fn a_basic_project_without_devices_keeps_only_the_layout_space() {
     let work = temp("bp2-layout");
     let state = work.join("state");
     let sample = open_sample();
-    // The sample's layout, by name: 1 space, 1 enclosure, 1 surface, 3 carriers (two rails and the duct), 25
-    // placements.
+    // The sample's layout, by name: 1 space, 1 enclosure, 2 surfaces (the plate and the door), 3 carriers (two rails
+    // and the duct), 26 placements.
     let sample_layout: Vec<(&str, usize)> = vec![
         ("layout_space", 1),
         ("enclosure", 1),
-        ("mounting_surface", 1),
+        ("mounting_surface", 2),
         ("carrier", 3),
-        ("placement", 25),
+        ("placement", 26),
     ];
     let gc = kind_counts(&sample);
     for (kind, n) in &sample_layout {

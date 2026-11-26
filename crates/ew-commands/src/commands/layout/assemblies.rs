@@ -146,7 +146,7 @@ fn moved_poses(
 pub(super) fn rail_in_sentence(q: &Q, carrier: Id<Carrier>) -> Text {
     carrier_label(q, carrier).map_or_else(
         || text!("refusal-layout-the-rail"),
-        crate::words::carrier_in_sentence,
+        ew_derive::text::carrier_in_sentence,
     )
 }
 
@@ -537,8 +537,8 @@ fn space_of_carrier(q: &Q, carrier: Id<Carrier>) -> Option<Id<LayoutSpace>> {
     Some(q.table::<Enclosure>().get(enclosure)?.space)
 }
 
-/// `layout.auto_fill`'s default list: the unplaced devices of the rail's space whose primary part does not
-/// refuse the rail's profile, in the order of `unplaced(space)`.
+/// `layout.auto_fill`'s default list: the unplaced devices of the rail's space whose primary part is unplaced and
+/// does not refuse the rail's profile, in the order of `unplaced(space)`.
 fn fill_list(q: &Q, carrier: Id<Carrier>) -> Vec<Id<Device>> {
     let Some(space) = space_of_carrier(q, carrier) else {
         return Vec::new();
@@ -549,9 +549,17 @@ fn fill_list(q: &Q, carrier: Id<Carrier>) -> Vec<Id<Device>> {
     });
     let devices = q.devices();
     let copies = q.table::<LibCopy<Part>>();
+    let primary = |d: Id<Device>| {
+        devices
+            .get(d)
+            .and_then(|dev| ew_derive::layout::primary_part(q, dev))
+            .map(|p| p.copy)
+    };
+    // A device's primary part is a fill's; a second part use (a door coupling handle) is not.
     q.get::<Unplaced>(space)
         .iter()
-        .copied()
+        .filter(|(d, part)| part.as_ref().is_none_or(|p| Some(p.copy) == primary(*d)))
+        .map(|(d, _)| *d)
         .filter(|d| {
             let Some(profile) = &profile else {
                 return true;
@@ -735,6 +743,16 @@ impl Command for AutoFill {
     }
 }
 
+/// Whether a device's primary part use is placed: a placement that names no part or its primary part. A second part use
+/// placed in a door (a door coupling handle) leaves the device's rail part to a fill.
+fn primary_placed(tx: &TxBuilder<'_>, q: &Q, device: &Device) -> bool {
+    let primary = ew_derive::layout::primary_part(q, device).map(|p| p.copy);
+    tx.placements_of_device(device.id)
+        .into_iter()
+        .filter_map(|p| tx.get::<Placement>(p))
+        .any(|p| p.part.as_ref().is_none_or(|r| Some(r.copy) == primary))
+}
+
 /// Why `layout.auto_fill` does not place a listed device, after the tag and a colon: placed already, of
 /// another space, not mountable, or a mount kind the rail's profile refuses; `None` when it is a candidate.
 fn fill_refusal(
@@ -744,7 +762,7 @@ fn fill_refusal(
     space: Option<&LayoutSpace>,
     profile: Option<&MountKind>,
 ) -> Option<Text> {
-    if !tx.placements_of_device(device.id).is_empty() {
+    if primary_placed(tx, q, device) {
         return Some(text!("refusal-layout-fill-placed"));
     }
     let location = q

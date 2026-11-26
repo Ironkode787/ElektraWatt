@@ -684,6 +684,15 @@ impl ShellModel {
                 self.tools.preview = None;
                 self.tools.notice = Some(text.clone());
                 self.tools.notice_sticky = true;
+                // A part in a cut-out dropped on the plate or a rail: the toast offers the door's page (doc 12 §3.3).
+                if reason_key == key!("reason-layout-cutout") {
+                    let door = self.session_offer(
+                        "open_door",
+                        key!("layout-open-door"),
+                        vec![("layout.surface_page", serde_json::json!({ "surface": "door" }))],
+                    );
+                    self.notify_offer(text.clone(), door);
+                }
                 self.tools.announcement = Some(text);
                 Outcome::Refused {
                     reason: reason_key.into(),

@@ -584,7 +584,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // on a panel page the shell maps them to these hidden actions (`ShellModel::shortcut_action`); Shift+Tab is
     // `layout.previous`'s own canvas binding.
     with_params(
-        "device:ref",
+        "device:ref, part?:ref",
         hidden(act(
             "tool.place_layout",
             Command,

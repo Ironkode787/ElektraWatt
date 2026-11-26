@@ -88,7 +88,7 @@ fn carrier_word(kind: &CarrierKind) -> &'static str {
 /// reader's words.
 fn profile_text(kind: &MountKind) -> ew_l10n::TextArg {
     match Profile::of(kind) {
-        Some(_) => ew_derive::layout::mount_label(kind).into(),
+        Some(_) => ew_derive::text::mount_kind(kind).into(),
         None => text!("word-an-unknown-profile").into(),
     }
 }
@@ -109,6 +109,19 @@ fn part_name(q: &Q, part: &PartRef) -> Named {
         || text!("word-a-missing-part").into(),
         |c| c.item.part_number.to_string().into(),
     )
+}
+
+/// A surface after its cabinet's tag ("-UC1 door"), as a finding names it; "a surface" without one.
+fn surface_words(q: &Q, surface: Option<Id<MountingSurface>>) -> ew_l10n::TextArg {
+    let face = surface.and_then(|s| ew_derive::layout::face_of(q, s));
+    let tag = surface
+        .and_then(|s| q.table::<MountingSurface>().get(s))
+        .and_then(|s| q.table::<Enclosure>().get(s.enclosure))
+        .map(|e| device_name(q, e.device));
+    match (face, tag) {
+        (Some(f), Some(t)) => ew_derive::text::surface_of(t, &f.kind, f.door, f.doors).into(),
+        _ => text!("word-a-surface").into(),
+    }
 }
 
 /// The mounting surface a placement sits on: its carrier's surface, or the surface itself.
@@ -245,18 +258,30 @@ impl Rule for UnplacedDevice {
         let mut out = Vec::new();
         for (space_id, space) in q.table::<LayoutSpace>().iter() {
             let location = location_text(q, space.location);
-            for device in q.get::<Unplaced>(space_id).iter() {
+            for (device, part) in q.get::<Unplaced>(space_id).iter() {
                 let name = device_name(q, *device);
-                out.push(
-                    Finding::new(
-                        &UNPLACED_DEVICE,
-                        [Target::new(Kind::Device, *device)],
-                        "unplaced",
-                        name.clone(),
-                    )
-                    .arg("device", name)
-                    .arg("location", location.clone()),
-                );
+                // A part use beside the primary one (a door coupling handle) is reported for itself.
+                let primary = q.devices().get(*device).and_then(|d| primary_part(q, d));
+                let second = part
+                    .as_ref()
+                    .filter(|p| Some(p.copy) != primary.as_ref().map(|r| r.copy));
+                let (discriminator, form) = match second {
+                    Some(p) => (format!("unplaced:{}", p.copy.as_uuid()), "part"),
+                    None => ("unplaced".to_owned(), "device"),
+                };
+                let mut f = Finding::new(
+                    &UNPLACED_DEVICE,
+                    [Target::new(Kind::Device, *device)],
+                    &discriminator,
+                    name.clone(),
+                )
+                .arg("form", form)
+                .arg("device", name)
+                .arg("location", location.clone());
+                if let Some(p) = second {
+                    f = f.arg("part", part_name(q, p));
+                }
+                out.push(f);
             }
         }
         out
@@ -902,7 +927,9 @@ fn placement_cases(q: &Q, pl: &Placement, out: &mut Vec<Finding>) {
             let CarrierParams::Rail(params) = &carrier.params else {
                 return;
             };
-            if fits_rail(mount.as_ref(), &params.profile) == Fit::DoesNotFit {
+            if mount == Some(MountKind::DoorCutout) {
+                out.push(mark(lay010(q, pl, "cutout").arg("part", part_text.clone())));
+            } else if fits_rail(mount.as_ref(), &params.profile) == Fit::DoesNotFit {
                 let profile = profile_text(&params.profile);
                 out.push(mark(
                     lay010(q, pl, "profile")
@@ -922,8 +949,22 @@ fn placement_cases(q: &Q, pl: &Placement, out: &mut Vec<Finding>) {
                 out.push(f);
                 return;
             }
-            if fits_surface(mount.as_ref()) == Fit::DoesNotFit {
-                out.push(mark(lay010(q, pl, "surface").arg("part", part_text.clone())));
+            let kind = placement_surface(q, pl)
+                .and_then(|s| q.table::<MountingSurface>().get(s))
+                .map(|s| s.kind.clone());
+            if let Some(kind) = kind
+                && fits_surface(mount.as_ref(), &kind) == Fit::DoesNotFit
+            {
+                let form = match (&mount, &kind) {
+                    (Some(MountKind::DoorCutout), _) => "cutout",
+                    (_, SurfaceKind::Plate) => "surface",
+                    _ => "surface_face",
+                };
+                let mut f = lay010(q, pl, form).arg("part", part_text.clone());
+                if form == "surface_face" {
+                    f = f.arg("surface", surface_words(q, placement_surface(q, pl)));
+                }
+                out.push(mark(f));
             }
             None
         }
@@ -949,12 +990,35 @@ fn placement_cases(q: &Q, pl: &Placement, out: &mut Vec<Finding>) {
         );
     }
     // borrowed, not cloned per placement
-    let usable: &[Pt2] = q
-        .table::<MountingSurface>()
-        .get(geom.surface)
-        .map_or(&[], |s| s.usable.as_slice());
-    if inside_usable(usable, geom.footprint) == Some(false) {
-        out.push(lay010(q, pl, "outside"));
+    let surface = q.table::<MountingSurface>().get(geom.surface);
+    let usable: &[Pt2] = surface.map_or(&[], |s| s.usable.as_slice());
+    // A door's or a wall's usable area is its sheet less its edge margin (doc 12 §2.8).
+    let margin = surface
+        .filter(|s| s.kind != SurfaceKind::Plate)
+        .and_then(|s| s.edge_margin)
+        .filter(|m| m.0 > 0);
+    match margin {
+        None if inside_usable(usable, geom.footprint) == Some(false) => {
+            out.push(lay010(q, pl, "outside"));
+        }
+        Some(m) => {
+            let inner = ew_derive::layout::sheet_size(surface.expect("a margin is a surface's"))
+                .map(|(w, h)| Rect::from_points(Pt2::new(m, m), Pt2::new(w - m, h - m)));
+            let fp = geom.footprint;
+            if inner.is_some_and(|r| {
+                fp.min().x < r.min().x
+                    || fp.min().y < r.min().y
+                    || fp.max().x > r.max().x
+                    || fp.max().y > r.max().y
+            }) {
+                out.push(
+                    lay010(q, pl, "outside_margin")
+                        .arg("surface", surface_words(q, Some(geom.surface)))
+                        .arg("margin", ew_derive::mm_tenth(i128::from(m.0))),
+                );
+            }
+        }
+        None => {}
     }
 }
 
@@ -986,8 +1050,10 @@ fn bracket_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
     }
     let occupancy = q.get::<RailOccupancy>(id);
     let placements = q.table::<Placement>();
-    let rail =
-        carrier_label(q, id).map_or_else(|| format!("the rail at {}", carrier_at(c)), |l| l.in_sentence());
+    let rail: ew_l10n::TextArg = carrier_label(q, id).map_or_else(
+        || text!("word-the-rail-at", carrier_at(c)).into(),
+        |l| ew_derive::text::carrier_in_sentence(l).into(),
+    );
     // A bracket is "before" its strip when it is its run's start bracket, as `brackets` made it, zero-length ones
     // included: two zero-length brackets at one point read, and fingerprint, apart.
     let side = |i: usize| match brackets.get(i).map(|b| b.role) {

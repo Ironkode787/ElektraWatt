@@ -712,24 +712,17 @@ refusal-fluid-lines-none = selecteer een of meer slangen
 refusal-fluid-length-positive = een slanglengte is langer dan nul, niet { $p0 } mm
 refusal-words-connection-end = een uiteinde van een nieuwer formaat
 # The panel layout: layout.place, layout.move, layout.place_assembly, layout.auto_fill, the carriers, spaces and enclosures.
-refusal-words-rail = rail { $p0 }
-refusal-words-duct = kabelgoot { $p0 }
-refusal-words-rail-label = Rail { $p0 }
-refusal-words-duct-label = Kabelgoot { $p0 }
 refusal-words-device-gone-start = Een apparaat dat niet in het project staat
 refusal-layout-the-rail = de rail
 refusal-layout-the-assembly = de samenstelling { $p0 }
 refusal-layout-the-assembly-start = De samenstelling { $p0 }
 refusal-layout-a-placement = een plaatsing
-refusal-layout-mount-screw = geschroefd
-refusal-layout-mount-busbar-adapter = stroomrailadapter
-refusal-layout-mount-door-cutout = deuruitsparing
-refusal-layout-mount-on-parent = op zijn ouder gemonteerd
-refusal-layout-mount-none = niet gemonteerd
 refusal-layout-rail-path = het pad van de rail bestaat niet uit twee punten op één horizontale of verticale lijn; bewerk eerst de rail
 refusal-layout-carrier-unknown = de drager is van een soort die deze versie niet kent; hij draagt geen plaatsingen
 refusal-layout-part-no-surface = Artikel { $p0 } wordt niet op een montagevlak gemonteerd; kies een artikel dat erop wordt gemonteerd.
 refusal-layout-does-not-fit = { $p0 } ({ $p1 }) past niet op een rail { $p2 }
+refusal-layout-cutout = { $p0 } komt in een uitsparing van een deur of een wand: plaats het op de pagina van de deur
+refusal-layout-rail-on-face = { $p0 } wordt op een rail { $p1 } gemonteerd: zet het op een rail
 refusal-layout-pose-rail-axis = een stand op een rail ligt op haar as: t = (s, 0, 0)
 refusal-layout-pose-rail-turn = een stand op een rail draait alleen 0° of 180° om de normaal van het vlak
 refusal-layout-pose-off-rail = de stand ligt naast de rail: s = { $p0 } mm ligt buiten [0, { $p1 } mm]

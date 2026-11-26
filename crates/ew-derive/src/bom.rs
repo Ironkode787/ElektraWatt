@@ -380,9 +380,10 @@ fn enclosure_surfaces(q: &Q, device: Id<Device>) -> Vec<Id<MountingSurface>> {
     if enclosures.is_empty() {
         return Vec::new();
     }
+    // The plate's legend lists the enclosure; a door's or a wall's does not (doc 12 §5.4).
     q.table::<MountingSurface>()
         .iter()
-        .filter(|(_, s)| enclosures.contains(&s.enclosure))
+        .filter(|(_, s)| enclosures.contains(&s.enclosure) && s.kind == ew_schema::SurfaceKind::Plate)
         .map(|(id, _)| id)
         .collect()
 }
@@ -419,7 +420,7 @@ fn carrier_groups(q: &Q, device: Id<Device>) -> Vec<CarrierGroup> {
 
 /// The surfaces a part line of a layout object shows: a carrier line's carriers' surfaces; an
 /// end-bracket line, the surfaces of the rails holding its brackets; any other line of the device of an
-/// enclosure, its enclosures' surfaces; a line of the device of a surface (the plate), that surface. Empty for every
+/// enclosure, its enclosures' plates; a line of the device of a surface (the plate), that surface. Empty for every
 /// other line.
 fn line_surfaces(q: &Q, line: &PartLine) -> BTreeSet<Id<MountingSurface>> {
     if is_bracket_line(line.source) {

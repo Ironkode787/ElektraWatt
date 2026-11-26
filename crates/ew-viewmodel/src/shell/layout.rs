@@ -218,7 +218,7 @@ impl ShellModel {
                     key!("layout-live-rail"),
                     &[
                         &row.tag,
-                        &rail.sentence,
+                        &strings::render(&rail.sentence),
                         &mm_text(i128::from(row.pose.0), comma),
                         &findings,
                     ],
@@ -273,14 +273,36 @@ impl ShellModel {
             Ok(None) => return failed(key!("error-missing-param"), &["device"]),
             Err(e) => return e,
         };
-        let Ok(device) = device.parse::<Uuid>() else {
+        // An Unplaced devices row of a second part use drags as `<device>/<part>`.
+        let (device, part) = match device.split_once('/') {
+            Some((d, p)) => (d.to_owned(), Some(p.to_owned())),
+            None => (
+                device,
+                string_param(p, "part")
+                    .ok()
+                    .flatten()
+                    .map(|s| s.trim().to_owned()),
+            ),
+        };
+        // A device by its ID or by a reference (`tag:-102S1`), as a script names it.
+        let resolved = device.parse::<Uuid>().ok().or_else(|| {
+            self.project
+                .as_ref()
+                .and_then(|p| p.session.resolve_reference(&device).ok())
+        });
+        let Some(device) = resolved else {
             return failed(key!("error-bad-param"), &["device"]);
         };
-        self.place_layout_device(device)
+        let part = match part.map(|p| p.parse::<Uuid>()) {
+            Some(Ok(p)) => Some(p),
+            Some(Err(_)) => return failed(key!("error-bad-param"), &["part"]),
+            None => None,
+        };
+        self.place_layout_device(device, part)
     }
 
     /// Arms the layout place tool with `device` (see [`ShellModel::act_place_layout`]).
-    pub(super) fn place_layout_device(&mut self, device: Uuid) -> Outcome {
+    pub(super) fn place_layout_device(&mut self, device: Uuid, part: Option<Uuid>) -> Outcome {
         let Some(panel) = self.panel_tables() else {
             let text = strings::text(key!("reason-no-panel-page")).to_owned();
             return self.refuse_with(text, key!("reason-no-panel-page"));
@@ -289,7 +311,7 @@ impl ShellModel {
             let text = strings::text(key!("reason-no-unplaced-device")).to_owned();
             return self.refuse_with(text, key!("reason-no-unplaced-device"));
         }
-        self.activate_tool(Box::new(LayoutPlaceTool::new(Some(device))));
+        self.activate_tool(Box::new(LayoutPlaceTool::new(Some(device), part)));
         // The ghost floats at once: under the pointer when the canvas knows where it is, else at the grid cursor, else
         // at the start of the first rail it fits (on the plate's centre for a device that no rail takes); the canvas
         // takes the focus, so the arrows step it and Enter drops it (doc 16 §4.8's keyboard twin).
@@ -1799,7 +1821,7 @@ impl ShellModel {
             .carriers
             .iter()
             .filter(|c| c.axis.is_some())
-            .map(|c| (c.id.to_string(), c.label.clone()))
+            .map(|c| (c.id.to_string(), strings::render(&c.label)))
             .collect();
         let offer = self.fill_offer(&panel);
         let Some(order) = given("order") else {
@@ -1920,7 +1942,7 @@ impl ShellModel {
         };
         let sentence = panel
             .carrier(rail)
-            .map(|c| c.sentence.clone())
+            .map(|c| strings::render(&c.sentence))
             .unwrap_or_default();
         let before = panel
             .placements

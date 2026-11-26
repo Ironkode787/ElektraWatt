@@ -347,3 +347,11 @@ toast-surface-drawn = { $p0 } is drawn on page { $p1 }, with its legend page.
 canvas-surface-entry = Surface: { $p0 }
 reason-surface-no-plate-page = The cabinet's mounting plate is on no page yet: draw it first with Enclosure….
 error-no-surface = No surface of the cabinet is called “{ $p0 }”.
+layout-cutout = { $p0 } goes in a cut-out of a door or a wall: place it on the door's page.
+layout-open-door = Open the door
+reason-layout-cutout = The part goes in a cut-out of a door or a wall.
+hud-layout-door = Door
+hud-layout-cutout = { $p0 ->
+        [one] 1 device goes in a cut-out
+       *[other] { $p0 } devices go in a cut-out
+    }

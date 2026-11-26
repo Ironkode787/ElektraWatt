@@ -447,10 +447,11 @@ fn enclosure_part(s: &Session) -> Uuid {
         .part
 }
 
-/// The lamp -102E1 taken off its rail and placed on -UC1's plate at (300, 400) mm; the placement's ID.
-fn lamp_on_the_plate(s: &mut Session) -> Uuid {
-    let lamp = s.resolve_reference("-102E1").expect("the lamp");
-    let on_rail = placement_of(s, "-102E1");
+/// The contactor -102Q1 taken off its rail (the lamps go in the door) and placed on -UC1's plate at (300, 400) mm; the
+/// placement's ID.
+fn device_on_the_plate(s: &mut Session) -> Uuid {
+    let device = s.resolve_reference("-102Q1").expect("the contactor");
+    let on_rail = placement_of(s, "-102Q1");
     run(
         s,
         &AnyCommand {
@@ -463,11 +464,11 @@ fn lamp_on_the_plate(s: &mut Session) -> Uuid {
         s,
         &AnyCommand {
             name: "layout.place".into(),
-            params: json!({"device": lamp.to_string(), "carrier": {"surface": plate.to_string()},
+            params: json!({"device": device.to_string(), "carrier": {"surface": plate.to_string()},
                 "pose": {"t": [300_000_000, 400_000_000, 0], "q": [1_000_000_000, 0, 0, 0]}}),
         },
     );
-    placement_of(s, "-102E1")
+    placement_of(s, "-102Q1")
 }
 
 /// The ID of the sample's location node `code`.
@@ -547,17 +548,20 @@ fn two_uc1_plates_read_by_their_full_designations_and_the_choice_sets_the_one_ch
         .into_iter()
         .map(|(id, w)| (id, w.to_string()))
         .collect();
+    // The plates, then +CAB's door (the sample's page 904 shows it).
+    let door = choices[2].0;
     assert_eq!(
         choices,
         [
             (first, "+CAB-UC1 mounting plate".to_owned()),
             (second, "+FLD-UC1 mounting plate".to_owned()),
+            (door, "+CAB-UC1 door".to_owned()),
         ]
     );
     // The row offers the surfaces by their IDs; the window names each in its language.
     assert_eq!(
         options_of(&s, page, "page/derived.surface"),
-        [first.to_string(), second.to_string()]
+        [first.to_string(), second.to_string(), door.to_string()]
     );
     assert_eq!(
         text_of(&s, page, "page/derived.surface"),
@@ -620,12 +624,13 @@ fn two_surfaces_of_one_enclosure_read_with_their_ordinals() {
         .map(|(id, w)| (id, w.to_string()))
         .collect();
     assert_eq!(
-        choices,
+        choices[..2],
         [
             (plate, "-UC1 mounting plate (1)".to_owned()),
             (twin, "-UC1 mounting plate (2)".to_owned()),
         ]
     );
+    assert_eq!(choices[2].1, "-UC1 door", "the door reads alike with nothing");
     assert_eq!(
         text_of(&s, page_of(&s, "902"), "page/derived.surface"),
         "-UC1 mounting plate (1)"
@@ -728,7 +733,7 @@ fn the_layout_rows_refusals_read_whole() {
         "Type three lengths in millimetres, such as 10, 20, 0."
     );
     // A plate placement's rotation takes a quarter turn.
-    let plate = lamp_on_the_plate(&mut s);
+    let plate = device_on_the_plate(&mut s);
     assert_eq!(
         refusal(edit(&s, "placement", plate, "rotation", "45°")),
         "Choose 0°, 90°, 180° or 270°."
@@ -808,7 +813,7 @@ fn position_realised_part_rotation_duct_size_and_datum_commit() {
     assert_eq!(cmd.params["part"], json!(other.as_uuid().to_string()));
     run(&mut s, &cmd);
     assert_eq!(text_of(&s, f1, "placement/derived.realised_part"), "EW-GEN-MCB-4");
-    let plate = lamp_on_the_plate(&mut s);
+    let plate = device_on_the_plate(&mut s);
     let cmd = edit(&s, "placement", plate, "rotation", "180°").unwrap();
     run(&mut s, &cmd);
     assert_eq!(text_of(&s, plate, "placement/derived.rotation"), "180°");

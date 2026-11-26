@@ -3,8 +3,8 @@
 
 //! Surface… (`layout.surface_page`, doc 12 §3.8): the page of one face of a cabinet. It goes to the page that shows
 //! the face; where none does it makes, in one undo step, the face's record if it has none (`layout.surface.add`), a
-//! panel layout page after the cabinet's plate page (the first free folio after it, as New page proposes), its view
-//! fitted to the sheet and its legend page. Without a face it asks which, in a chooser of the cabinet's faces with
+//! panel layout page after the cabinet's plate page (the first free folio after it, as New page proposes) in the plate
+//! page's location, its view fitted to the sheet and its legend page. Without a face it asks which, in a chooser of the cabinet's faces with
 //! their sizes and pages (`Session::surface_offers`).
 
 use ew_api::output::SurfaceOffer;
@@ -151,6 +151,21 @@ impl ShellModel {
             return self.layout_form_done(ACTION, out);
         }
         steps += 1;
+        // The page is the cabinet's, as its plate's page is: it takes that page's structure.
+        let structure = self.focused_page_id().and_then(|page| {
+            self.project
+                .as_ref()?
+                .session
+                .page_structure_from(plate_page, page)
+        });
+        if let Some(cmd) = structure {
+            let out = self.host_create(&cmd.name, cmd.params);
+            if out != Outcome::Done {
+                self.take_back(steps);
+                return self.layout_form_done(ACTION, out);
+            }
+            steps += 1;
+        }
         let shown = self
             .focused_page_id()
             .is_some_and(|page| self.show_surface(page, surface));

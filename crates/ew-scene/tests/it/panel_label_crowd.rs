@@ -43,6 +43,7 @@ fn row(show: LabelShow, moved: Option<Pt2>) -> PageView {
                     footprint: fp(i),
                     unknown: false,
                     outline: Vec::new(),
+                    round: false,
                 })
                 .collect(),
             brackets: Vec::new(),

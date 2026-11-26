@@ -105,9 +105,29 @@ fn the_compatibility_table_matches_doc_12() {
     }
     assert_eq!(fits_rail(Option::None, &Ts35x7_5), Fit::Unknown);
     assert_eq!(fits(Unknown(serde_json::json!("ts99")), Ts35x7_5), Fit::Unknown);
-    assert_eq!(fits_surface(Some(&Screw)), Fit::Fits);
-    assert_eq!(fits_surface(Some(&Ts35x7_5)), Fit::DoesNotFit);
-    assert_eq!(fits_surface(Option::None), Fit::Unknown);
+    // Where a mount kind fits (doc 12 §2.5): screwed on every surface, in a cut-out of a door, a wall, the top or the
+    // bottom and never the plate, a rail part on no surface itself.
+    use ew_schema::SurfaceKind as K;
+    for surface in [K::Plate, K::Door, K::Left, K::Right, K::Top, K::Bottom] {
+        assert_eq!(fits_surface(Some(&Screw), &surface), Fit::Fits, "{surface:?}");
+        assert_eq!(
+            fits_surface(Some(&Ts35x7_5), &surface),
+            Fit::DoesNotFit,
+            "{surface:?}"
+        );
+        assert_eq!(
+            fits_surface(Some(&OnParent), &surface),
+            Fit::DoesNotFit,
+            "{surface:?}"
+        );
+        assert_eq!(fits_surface(Option::None, &surface), Fit::Unknown, "{surface:?}");
+        let cutout = if surface == K::Plate {
+            Fit::DoesNotFit
+        } else {
+            Fit::Fits
+        };
+        assert_eq!(fits_surface(Some(&DoorCutout), &surface), cutout, "{surface:?}");
+    }
     for (device, rails) in RAIL_FITS {
         assert!(
             rails.contains(&device),

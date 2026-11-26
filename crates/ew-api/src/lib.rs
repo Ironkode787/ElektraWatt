@@ -951,10 +951,13 @@ impl Session {
             .collect()
     }
 
-    /// `unplaced(space)` (FR-LAY-013, doc 12 §2.6): the mountable devices of the space's location
-    /// without a placement, in natural order of their full tag ([`ew_derive::layout::Unplaced`]). Empty for a space
-    /// that is not in the project.
-    pub fn unplaced(&self, space: ew_ids::Id<ew_schema::LayoutSpace>) -> Vec<ew_ids::Id<ew_schema::Device>> {
+    /// `unplaced(space)` (FR-LAY-013, doc 12 §2.6): each part use to place of the space's location without a
+    /// placement, as `(device, part)`, in natural order of the device's full tag ([`ew_derive::layout::Unplaced`]).
+    /// Empty for a space that is not in the project.
+    pub fn unplaced(
+        &self,
+        space: ew_ids::Id<ew_schema::LayoutSpace>,
+    ) -> Vec<(ew_ids::Id<ew_schema::Device>, Option<ew_schema::PartRef>)> {
         self.query()
             .get::<ew_derive::layout::Unplaced>(space)
             .as_ref()

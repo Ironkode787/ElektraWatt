@@ -395,8 +395,10 @@ fn a_free_graphic_on_the_panel_page_is_counted_nowhere() {
         *a.get::<ew_derive::layout::Unplaced>(id(SPACE)),
         *b.get::<ew_derive::layout::Unplaced>(id(SPACE))
     );
-    assert_eq!(
-        *b.get::<ew_derive::layout::Unplaced>(id(SPACE)),
-        vec![id::<Device>(D_F3)]
-    );
+    let unplaced: Vec<Id<Device>> = b
+        .get::<ew_derive::layout::Unplaced>(id(SPACE))
+        .iter()
+        .map(|(d, _)| *d)
+        .collect();
+    assert_eq!(unplaced, vec![id::<Device>(D_F3)]);
 }

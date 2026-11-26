@@ -3,8 +3,8 @@
   "id": "c9b0a5d3-2af3-5357-9cfe-5f7cddd9d30d",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "366cdec9-53a0-5b23-85e1-c3e9d702481a",
-  "version": "0.1.1",
-  "sha256": "sha256:741b739688a5cd7de49caff6124977886a8ff2ac19b29e191bacc415f85be32b",
+  "version": "0.1.2",
+  "sha256": "sha256:85644a3b0a73268091529642e27fbad6c60d6db980e8ce4d1d9eb24f0c13b98e",
   "meta": {"key": "EW-GEN-ENC-1", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "kind": "enclosure",
   "manufacturer": {
@@ -23,7 +23,10 @@
         "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
         "item": "4906ee70-10d6-5675-bcb6-95da2271bf12",
         "version_req": "^0.1"
-      }
+      },
+      "doors": [{"hinge": "left"}],
+      "edge_margin": 30000000,
+      "usable_depth": 200000000
     }
   }
 }

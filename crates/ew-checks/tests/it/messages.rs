@@ -132,6 +132,7 @@ fn every_word_is_in_every_language_and_nl_nl_words_names_and_decimals() {
         "EW-LAY-001",
         "",
         &[
+            ("form", TextArg::Plain("device".to_owned())),
             (
                 "device",
                 ew_checks::text!("word-a-device-without-designation").into(),

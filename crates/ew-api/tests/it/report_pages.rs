@@ -22,9 +22,9 @@ use ew_mltext::MlText;
 use ew_schema::Record;
 use ew_schema::{ReportBlock, ReportKind, ReportSource};
 
-/// The sample's pages without the report engine: the title page, the seven drawn pages and the three section
+/// The sample's pages without the report engine: the title page, the eight drawn pages and the three section
 /// dividers.
-const PAGES_WITHOUT_REPORTS: usize = 11;
+const PAGES_WITHOUT_REPORTS: usize = 12;
 
 /// The ID of the sample's table of contents block (folio 2).
 fn toc_block() -> Id<ReportBlock> {
@@ -62,6 +62,7 @@ fn the_sample_page_order_includes_the_generated_pages_with_two_toc_pages() {
     for f in [
         "903", "906", "907", "908", "909", "910", "911", "912", "913", "914",
     ] {
+    for f in ["903", "904", "906", "907", "908", "909", "910", "911"] {
         assert!(labels.contains(&f), "folio {f} is missing");
     }
     assert_eq!(labels.last(), Some(&"914.1"));
@@ -70,12 +71,18 @@ fn the_sample_page_order_includes_the_generated_pages_with_two_toc_pages() {
     // the layout 902 into 902.1 and 902.2 (30 rows), the wire list 907 into 907, 907.1 and 907.2, the PLC overview 908
     // into 908 and 908.1 (24 channels), the potential overview, the device tag overview and the three workshop lists
     // (912 to 914) into two pages each.
+    // The whole order: the sample's pages. The parts list 901 paginates into 901 and 901.1, the legend of the layout
+    // 902 into 902.1 and 902.2, the door's 904 has its legend 904.1, the wire list 907 into 907, 907.1 and 907.2, the
+    // PLC overview 908 into 908 and 908.1 (24 channels), the potential overview and the device tag overview into two
+    // pages each.
     assert_eq!(
         labels,
         [
             "1", "2", "2.1", "100", "101", "102", "103", "104", "105", "200", "201", "900", "901", "901.1",
             "902", "902.1", "902.2", "903", "906", "907", "907.1", "907.2", "908", "908.1", "909", "909.1",
             "910", "910.1", "911", "912", "912.1", "913", "913.1", "914", "914.1",
+            "902", "902.1", "902.2", "903", "904", "904.1", "906", "907", "907.1", "907.2", "908", "908.1",
+            "909", "909.1", "910", "910.1", "911",
         ]
     );
 
@@ -289,8 +296,8 @@ fn assert_toc_lists_every_page_once(order: &PageOrderV) {
 fn large_projects_settle_the_toc_with_every_page_listed_once() {
     let s = common::sample();
     let fixed = PAGES_WITHOUT_REPORTS as u32;
-    // D = 11 + extra other pages, 23 rows per TOC page, one TOC block: n = ceil(D / 22). 11 fixed pages + 8 = 19 others
-    // settle at 1 TOC page; 546 others need 25 (24 pages hold 552 rows, short of 546 + 24); 10,011 need 456.
+    // D = 12 + extra other pages, 23 rows per TOC page, one TOC block: n = ceil(D / 22). 12 fixed pages + 8 = 20 others
+    // settle at 1 TOC page; 547 others need 25 (24 pages hold 552 rows, short of 547 + 24); 10,012 need 456.
     for (extra, toc_pages) in [(8, 1), (535, 25), (600, 28), (2_000, 92), (10_000, 456)] {
         let q = Q::new(&s.world().model).with_report_pages(scripted(extra));
         let order = q.get::<PageOrder>(());

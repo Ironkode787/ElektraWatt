@@ -11,7 +11,7 @@ use ew_l10n::{Text, TextArg};
 use ew_mltext::MlText;
 use ew_schema::{
     AddrValue, ColourCode, ColourSpec, Corner, Csa, FluidPortRole, Hinge, Kind, LengthSource, LineKind,
-    PotentialType, SurfaceKind, TagSpec,
+    MountKind, PotentialType, SurfaceKind, TagSpec,
 };
 use ew_units::{Dec3, Nm};
 
@@ -838,6 +838,42 @@ pub fn open_item(category: OpenItem) -> Text {
         OpenItem::UnplacedDevice => text!("open-item-unplaced-device"),
         OpenItem::UnconnectedCp => text!("open-item-unconnected-cp"),
         OpenItem::MissingLength => text!("open-item-missing-length"),
+    }
+}
+
+/// A mount kind in words, as every text names one (the refusals of the `layout.*` commands, the Unplaced devices
+/// navigator's Mount column, the checks, the layout tool's texts): a rail profile as printed ("TS 35×7.5", the same in
+/// every language), "screw-mounted", "in a cut-out", "busbar adapter", "mounted on its parent", "not mounted"; a kind
+/// of a newer format by its stored name.
+pub fn mount_kind(kind: &MountKind) -> Text {
+    match kind {
+        MountKind::Ts35x7_5 => Text::bare(TextArg::Plain("TS 35\u{d7}7.5".into())),
+        MountKind::Ts35x15 => Text::bare(TextArg::Plain("TS 35\u{d7}15".into())),
+        MountKind::Ts32 => Text::bare(TextArg::Plain("TS 32".into())),
+        MountKind::Ts15 => Text::bare(TextArg::Plain("TS 15".into())),
+        MountKind::Screw => text!("mount-screw"),
+        MountKind::BusbarAdapter => text!("mount-busbar-adapter"),
+        MountKind::DoorCutout => text!("mount-door-cutout"),
+        MountKind::OnParent => text!("mount-on-parent"),
+        MountKind::None => text!("mount-none"),
+        MountKind::Unknown(v) => Text::bare(TextArg::Plain(v.to_string())),
+    }
+}
+
+/// A carrier's label as it stands alone (a legend cell, a Properties row, a ghost's chip, a hole's owner): "Rail 1",
+/// "Duct 3".
+pub fn carrier_label(label: crate::layout::CarrierLabel) -> Text {
+    match label.kind {
+        crate::layout::CarrierLabelKind::Rail => text!("carrier-rail", label.n.to_string()),
+        crate::layout::CarrierLabelKind::Duct => text!("carrier-duct", label.n.to_string()),
+    }
+}
+
+/// A carrier's label inside a sentence (doc 16a §8, sentence case): "rail 1", "duct 3".
+pub fn carrier_in_sentence(label: crate::layout::CarrierLabel) -> Text {
+    match label.kind {
+        crate::layout::CarrierLabelKind::Rail => text!("carrier-rail-in-sentence", label.n.to_string()),
+        crate::layout::CarrierLabelKind::Duct => text!("carrier-duct-in-sentence", label.n.to_string()),
     }
 }
 

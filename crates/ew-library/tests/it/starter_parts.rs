@@ -66,8 +66,10 @@ const VERSION: &str = "0.1.0";
 /// EW-GEN-PRX-1 was added, 0.20.0 since the two-level feed-through terminal EW-GEN-TRM-3 was added, 0.21.0 since the
 /// parts for the workshop were added (the end plates EW-GEN-EP-1 and -2, the plug-in bridges EW-GEN-BRG-2, -3, -4 and
 /// -10, the duct cover EW-GEN-COV-40, the ferrules EW-GEN-FER-… and the markers EW-GEN-MRK-1 to -3) and the terminals,
-/// the duct and the breakers name their accessories, their colour, their variant and their clamps (doc 07 §9.2).
-const LIBRARY_VERSION: &str = "0.21.0";
+/// the duct and the breakers name their accessories, their colour, their variant and their clamps (doc 07 §9.2), 0.22.0
+/// since the pushbuttons and the lamps go in a 22 mm cut-out of a door with their round fronts, the enclosure names its
+/// door, edge margin and usable depth, and the door coupling handle EW-GEN-HDL-1 was added (doc 12 §3.8).
+const LIBRARY_VERSION: &str = "0.22.0";
 /// The version of a part not in [`BUMPED`]: 0.1.1 since every part gained its Dutch description.
 const PART_VERSION: &str = "0.1.1";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
@@ -100,6 +102,13 @@ const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-CBL-1", "0.1.2"),
     ("EW-GEN-VTM-1", "0.1.3"),
     ("EW-GEN-CBL-3", "0.1.2"),
+    ("EW-GEN-PB-1", "0.1.2"),
+    ("EW-GEN-PB-2", "0.1.2"),
+    ("EW-GEN-LMP-1", "0.1.2"),
+    ("EW-GEN-LMP-2", "0.1.2"),
+    ("EW-GEN-LMP-3", "0.1.2"),
+    ("EW-GEN-LMP-4", "0.1.2"),
+    ("EW-GEN-ENC-1", "0.1.2"),
 ];
 
 /// The accessories of part `number` (doc 07 §2.5, §9.2): the terminals' end plate per strip and end bracket per rail
@@ -611,7 +620,8 @@ fn the_generic_manufacturer_constant_is_the_shipped_records_item() {
 /// Every part carries a description, the manufacturer "Generic", a part number of the fixed form, a function
 /// template with one main function on starter FnDefs whose CP indices exist, and contacts whose CPs are in its CP
 /// pattern; no order data. The five layout parts have no function template and are skipped here
-/// (`the_layout_parts_read_back_from_the_shipped_files` checks them).
+/// (`the_layout_parts_read_back_from_the_shipped_files` checks them), as is a mechanical part without pins (the door
+/// coupling handle, `the_dimensioned_parts_read_back_from_the_shipped_files`).
 #[test]
 fn every_generic_part_is_usable() {
     let numbers: Vec<&str> = defs().iter().map(|d| d.number).collect();
@@ -622,7 +632,9 @@ fn every_generic_part_is_usable() {
     for doc in parts() {
         let LibDocument::Part(c) = doc else { panic!() };
         let p = &c.item;
-        if is_layout(&p.kind) {
+        // A mechanical part a device carries beside its own (the door coupling handle) has no pins and no function.
+        let mechanical = p.cp_pattern.is_empty() && p.function_template.is_empty() && p.mech.is_some();
+        if is_layout(&p.kind) || mechanical {
             continue;
         }
         let n = p.part_number.as_str();
@@ -702,7 +714,8 @@ fn the_layout_parts_read_back_from_the_shipped_files() {
             "enclosure",
             None,
             "sections",
-            json!({"enclosure": {"width": 600000000, "height": 800000000, "depth": 250000000, "plate": plate}}),
+            json!({"enclosure": {"width": 600000000, "height": 800000000, "depth": 250000000, "plate": plate,
+                "doors": [{"hinge": "left"}], "edge_margin": 30000000, "usable_depth": 200000000}}),
         ),
         (
             "EW-GEN-PLT-1",
@@ -747,7 +760,8 @@ fn the_layout_parts_read_back_from_the_shipped_files() {
 }
 
 /// The twelve parts with dimensions read back from the shipped files, each at its version, with its `mech`
-/// as whole nanometres and the mount kind `ts35x7_5`; the door and field parts carry no `mech`.
+/// as whole nanometres and the mount kind `ts35x7_5`; the pushbuttons and the lamps go in a 22 mm cut-out of a door
+/// with a round front, the door coupling handle in one with its two fixings; the field parts carry no `mech`.
 #[test]
 fn the_dimensioned_parts_read_back_from_the_shipped_files() {
     let shipped = shipped_parts();
@@ -777,14 +791,37 @@ fn the_dimensioned_parts_read_back_from_the_shipped_files() {
             "{number}"
         );
     }
-    for number in [
-        "EW-GEN-SEL-1",
-        "EW-GEN-PB-1",
-        "EW-GEN-POS-1",
-        "EW-GEN-LMP-1",
-        "EW-GEN-MOT-1",
-        "EW-GEN-VLV-1",
+    let door = |depth: i64| {
+        json!({"width": 30000000, "height": 30000000, "depth": depth, "mount_kind": "door_cutout",
+            "front_shape": "round", "holes": [{"x": 15000000, "y": 15000000, "hole": {"cutout": "d22"}}]})
+    };
+    for (number, depth) in [
+        ("EW-GEN-PB-1", 45000000),
+        ("EW-GEN-PB-2", 45000000),
+        ("EW-GEN-LMP-1", 40000000),
+        ("EW-GEN-LMP-2", 40000000),
+        ("EW-GEN-LMP-3", 40000000),
+        ("EW-GEN-LMP-4", 40000000),
     ] {
+        let rec = shipped
+            .get(number)
+            .unwrap_or_else(|| panic!("{number} is shipped"));
+        assert_eq!(rec.get("mech"), Some(&door(depth)), "{number}");
+    }
+    let handle = shipped
+        .get("EW-GEN-HDL-1")
+        .expect("the door coupling handle is shipped");
+    assert_eq!(
+        handle.get("mech"),
+        Some(
+            &json!({"width": 65000000, "height": 65000000, "depth": 25000000, "mount_kind": "door_cutout",
+            "front_shape": "rectangle", "holes": [
+                {"x": 32500000, "y": 32500000, "hole": {"cutout": "d22"}},
+                {"x": 8500000, "y": 32500000, "hole": {"fixing": "m4"}},
+                {"x": 56500000, "y": 32500000, "hole": {"fixing": "m4"}}]})
+        )
+    );
+    for number in ["EW-GEN-SEL-1", "EW-GEN-POS-1", "EW-GEN-MOT-1", "EW-GEN-VLV-1"] {
         let rec = shipped
             .get(number)
             .unwrap_or_else(|| panic!("{number} is shipped"));

@@ -22,7 +22,7 @@ use std::sync::Arc;
 use ew_derive::layout::{
     CarrierGeometry, GroupAccessories, LabelMode, LayoutLabel, PlacementGeometry, Profile, Quarter, RailAxis,
     RailExtent, RailItem, Unplaced, brackets, carrier_labels, free_length, member_order, member_slot,
-    mount_label, primary_part, rail_extent, rail_items, runs,
+    primary_part, rail_extent, rail_items, runs,
 };
 use ew_derive::{DeviceTag, PageRef, Policy, Q, Query, StructurePath, Tag};
 use ew_ids::{Id, Uuid};
@@ -316,12 +316,7 @@ pub(crate) fn placements_on(q: &Q, surface: Id<MountingSurface>) -> Vec<Id<Place
         .carriers_of_surface(surface)
         .flat_map(|c| q.idx().placements_by_carrier(c).collect::<Vec<_>>())
         .collect();
-    ids.extend(
-        q.table::<Placement>()
-            .iter()
-            .filter(|(_, p)| p.carrier == CarrierRef::Surface(surface))
-            .map(|(id, _)| id),
-    );
+    ids.extend(q.idx().placements_on_surface(surface));
     ids.sort();
     ids.dedup();
     ids
@@ -338,6 +333,7 @@ fn placements(q: &Q, ids: &[Id<Placement>]) -> Vec<PlacementDraw> {
                 footprint: g.footprint,
                 unknown: g.unknown,
                 outline: g.outline.clone(),
+                round: g.round,
             })
         })
         .collect()
@@ -607,10 +603,10 @@ pub struct PanelCarrier {
     pub carrier: Id<Carrier>,
     /// `rail` or `duct`.
     pub kind: &'static str,
-    /// Its label: "Rail 1", "Duct 2".
-    pub label: String,
+    /// Its label: "Rail 1", "Duct 2" (`ew_derive::text::carrier_label`), which the window renders in its language.
+    pub label: crate::Text,
     /// Its label in a sentence: "rail 1".
-    pub sentence: String,
+    pub sentence: crate::Text,
     /// The path, surface nm.
     pub path: Vec<(i64, i64)>,
     /// A rail's axis; `None` for a duct and for a rail whose path is not valid.
@@ -671,8 +667,8 @@ pub struct PanelPlacement {
     pub pads: [i128; 2],
     /// The realised part's mount kind.
     pub mount_kind: Option<MountKind>,
-    /// The mount kind in words (`TS 35×7.5`, `screw-mounted`); empty without one.
-    pub mount_label: String,
+    /// The mount kind in words (`TS 35×7.5`, `screw-mounted`; `ew_derive::text::mount_kind`); empty without one.
+    pub mount_label: crate::Text,
     /// The clip point's distance from the footprint's left edge along a rail, for its current turn.
     pub clip: i128,
     /// What it takes along a rail turned 0°.
@@ -681,21 +677,26 @@ pub struct PanelPlacement {
     pub extent_flipped: RailExtent,
 }
 
-/// One unplaced device of the surface's layout space, in `unplaced` order (natural full tag).
+/// One unplaced part use of the surface's layout space, in `unplaced` order (natural full tag, then the part use's
+/// order): a device with a door coupling handle beside its switch is two rows until both are placed.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct UnplacedDevice {
     /// The device's ID.
     pub device: Uuid,
+    /// The part copy to place; `None` for a strip and a device without parts.
+    pub part: Option<Uuid>,
+    /// Whether it is a part use beside the primary one (a door coupling handle).
+    pub second: bool,
     /// Its tag as a sentence names it (`F55`, `-201U9`).
     pub label: String,
     /// The primary part's number; `None` without a part.
     pub part_number: Option<String>,
     /// The primary part's `W × H`, nm; `None` when unknown.
     pub size: Option<(i128, i128)>,
-    /// The primary part's mount kind.
+    /// The part's mount kind.
     pub mount_kind: Option<MountKind>,
     /// The mount kind in words (`TS 35×7.5`, `screw-mounted`); empty without one.
-    pub mount_label: String,
+    pub mount_label: crate::Text,
     /// Whether it is a strip placed as a whole.
     pub strip: bool,
     /// A strip's declared end-bracket width.
@@ -722,6 +723,8 @@ pub struct PanelTables {
     pub surface: Uuid,
     /// The surface record.
     pub surface_id: Id<MountingSurface>,
+    /// Whether the surface is the mounting plate (else a door, a wall, the top or the bottom).
+    pub plate: bool,
     /// The projection the placements layer draws with (`page_surface_view`, the frame's factor included).
     pub projection: Projection,
     /// The surface's usable polygon.
@@ -772,9 +775,15 @@ impl PanelTables {
         self.carriers.iter().find(|c| c.id == id)
     }
 
-    /// The unplaced row of the device `id`.
+    /// The first unplaced row of the device `id` (its primary part's, while that is unplaced).
     pub fn unplaced_device(&self, id: Uuid) -> Option<&UnplacedDevice> {
         self.unplaced.iter().find(|u| u.device == id)
+    }
+
+    /// The unplaced row of the device `id` with the part `part`, else its first.
+    pub fn unplaced_part(&self, id: Uuid, part: Option<Uuid>) -> Option<&UnplacedDevice> {
+        part.and_then(|p| self.unplaced.iter().find(|u| u.device == id && u.part == Some(p)))
+            .or_else(|| self.unplaced_device(id))
     }
 
     /// The surface point of the page point `p` ([`surface_of_page`]).
@@ -883,8 +892,8 @@ fn carriers_of(q: &Q, surface: Id<MountingSurface>) -> Vec<PanelCarrier> {
             id: id.as_uuid(),
             carrier: id,
             kind: if rail { "rail" } else { "duct" },
-            label: label.label(),
-            sentence: label.in_sentence(),
+            label: ew_derive::text::carrier_label(label),
+            sentence: ew_derive::text::carrier_in_sentence(label),
             path: c.path.iter().copied().map(xy).collect(),
             axis,
             length,
@@ -899,6 +908,14 @@ fn carriers_of(q: &Q, surface: Id<MountingSurface>) -> Vec<PanelCarrier> {
         });
     }
     out
+}
+
+/// A mount kind in words; an empty text without one.
+fn mount_words(kind: Option<&MountKind>) -> crate::Text {
+    kind.map_or_else(
+        || crate::Text::bare(crate::TextArg::Plain(String::new())),
+        ew_derive::text::mount_kind,
+    )
 }
 
 /// The mount kind of a part use's part.
@@ -959,10 +976,7 @@ fn placements_of(q: &Q, page: Id<Page>, surface: Id<MountingSurface>) -> Vec<Pan
             },
             pads: current.pad,
             mount_kind: mount_of(q, realised.as_ref()),
-            mount_label: mount_of(q, realised.as_ref())
-                .as_ref()
-                .map(mount_label)
-                .unwrap_or_default(),
+            mount_label: mount_words(mount_of(q, realised.as_ref()).as_ref()),
             clip: current.clip,
             extent,
             extent_flipped,
@@ -977,11 +991,16 @@ fn unplaced_of(q: &Q, space: Id<LayoutSpace>, carriers: &[PanelCarrier]) -> Vec<
     let parts = q.table::<LibCopy<Part>>();
     let placements = q.table::<Placement>();
     let mut out = Vec::new();
-    for d in q.get::<Unplaced>(space).iter().copied() {
+    for (d, use_part) in q.get::<Unplaced>(space).iter() {
+        let d = *d;
         let Some(dev) = devices.get(d) else {
             continue;
         };
-        let part = primary_part(q, dev);
+        let primary = primary_part(q, dev);
+        let part = use_part.clone().or_else(|| primary.clone());
+        let second = use_part
+            .as_ref()
+            .is_some_and(|u| primary.as_ref().is_none_or(|p| p.copy != u.copy));
         let mech = part
             .as_ref()
             .and_then(|p| parts.get(p.copy))
@@ -1044,13 +1063,15 @@ fn unplaced_of(q: &Q, space: Id<LayoutSpace>, carriers: &[PanelCarrier]) -> Vec<
         }
         out.push(UnplacedDevice {
             device: d.as_uuid(),
+            part: use_part.as_ref().map(|p| p.copy.as_uuid()),
+            second,
             label: device_tag(q, d),
             part_number: part
                 .as_ref()
                 .and_then(|p| ew_derive::printed_part(q, p))
                 .map(|c| c.item.part_number.to_string()),
             size,
-            mount_label: mount_kind.as_ref().map(mount_label).unwrap_or_default(),
+            mount_label: mount_words(mount_kind.as_ref()),
             mount_kind,
             strip: extent.strip,
             bracket_width,
@@ -1080,6 +1101,7 @@ pub(crate) fn panel_tables_of(q: &Q, folio: &str, page: Id<Page>) -> Option<Pane
         page: page.as_uuid(),
         surface: surface.id.as_uuid(),
         surface_id: surface.id,
+        plate: surface.kind == ew_schema::SurfaceKind::Plate,
         projection: view.projection,
         usable: surface.usable.iter().copied().map(xy).collect(),
         location,

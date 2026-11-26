@@ -1534,6 +1534,25 @@ fn select_prompt(model: &ShellModel, stack: &mut usize, buttons: &mut Vec<HudBut
             Some(t) if t.placements.is_empty() => {
                 strings::format(key!("auto-fill-cause-none"), &[&t.location])
             }
+            // Devices of the cabinet that go in a cut-out wait for the door's page (doc 12 §3.8).
+            Some(t)
+                if t.plate
+                    && t.unplaced
+                        .iter()
+                        .any(|u| u.mount_kind == Some(ew_api::symbols::schema::MountKind::DoorCutout)) =>
+            {
+                let n = t
+                    .unplaced
+                    .iter()
+                    .filter(|u| u.mount_kind == Some(ew_api::symbols::schema::MountKind::DoorCutout))
+                    .count();
+                buttons.push(button(
+                    strings::text(key!("hud-layout-door")).to_owned(),
+                    "layout.surface_page",
+                    serde_json::json!({ "surface": "door" }),
+                ));
+                strings::format_count(crate::count_key!("hud-layout-cutout"), n)
+            }
             Some(_) => hint(),
         }
     } else if let Some(list) = model.list_pages(model.page_index()) {

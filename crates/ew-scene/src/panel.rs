@@ -255,6 +255,8 @@ pub struct PlacementDraw {
     pub unknown: bool,
     /// The `front_2d` outline placed in the surface's frame; empty draws the footprint (FR-LAY-011).
     pub outline: Vec<Vec<Pt2>>,
+    /// The front is round (doc 12 §2.5): the footprint's inscribed circle is drawn instead of its rectangle.
+    pub round: bool,
 }
 
 /// One derived end bracket (`group_accessories`): a rectangle of the bracket's width along the rail by
@@ -1083,9 +1085,14 @@ impl Builder<'_> {
                     } else {
                         Stroke::pen(Pen::P026)
                     };
-                    self.push(linked(
-                        Item::path(Path::rect(r), Some(stroke), None).with_entity(entity),
-                    ));
+                    // A round front: the footprint's inscribed circle (doc 12 §5.2).
+                    let path = if d.round && !d.unknown {
+                        let half = Nm((r.max().x.0 - r.min().x.0).min(r.max().y.0 - r.min().y.0) / 2);
+                        Path::circle(centre(r), half)
+                    } else {
+                        Path::rect(r)
+                    };
+                    self.push(linked(Item::path(path, Some(stroke), None).with_entity(entity)));
                 }
             }
         }

@@ -248,7 +248,12 @@ fn the_legend_of_the_plate_lists_its_rows_and_renumbers() {
     let q = s.query();
     let set = legend(&q, p902);
     let rows = summary(&set);
-    let placed = q.table::<Placement>().iter().count();
+    // The placements on the plate's rails (the door's are its own legend's).
+    let placed = q
+        .table::<Placement>()
+        .iter()
+        .filter(|(_, p)| matches!(p.carrier, ew_schema::CarrierRef::Carrier(_)))
+        .count();
     // The enclosure, the plate, two rails, one duct, the placements, then the duct's cover and the strips' end
     // brackets (the layout-only accessories).
     assert_eq!(rows.len(), 7 + placed);
@@ -284,7 +289,12 @@ fn the_legend_of_the_plate_lists_its_rows_and_renumbers() {
         let t = q.get::<DeviceTag>(d);
         ew_mltext::natural_key(t.as_ref().as_ref().map_or("", |t| t.full.as_str()))
     };
-    let mut sorted: Vec<Id<Device>> = q.table::<Placement>().iter().map(|(_, p)| p.device).collect();
+    let mut sorted: Vec<Id<Device>> = q
+        .table::<Placement>()
+        .iter()
+        .filter(|(_, p)| matches!(p.carrier, ew_schema::CarrierRef::Carrier(_)))
+        .map(|(_, p)| p.device)
+        .collect();
     sorted.sort_by_key(|d| (full(*d), *d));
     assert_eq!(listed, sorted);
     drop(q);

@@ -453,7 +453,12 @@ fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
     );
 
     let placements = layer(&q, "902", Layer::Placements);
-    for (id, _) in q.table::<Placement>().iter() {
+    // The plate's placements (on its rails); the door's are 904's.
+    for (id, _) in q
+        .table::<Placement>()
+        .iter()
+        .filter(|(_, p)| matches!(p.carrier, ew_schema::CarrierRef::Carrier(_)))
+    {
         let g = q.get::<PlacementGeometry>(id);
         let g = g.as_ref().as_ref().expect("a geometry");
         let expected = projection.rect(g.footprint).expect("in range");
@@ -847,7 +852,7 @@ fn a_file_with_a_scale_of_one_to_zero_opens_and_draws_one_to_one() {
             edited += 1;
         }
     }
-    assert_eq!(edited, 1, "902's line is the one with a scale");
+    assert_eq!(edited, 2, "902's and 904's lines are the ones with a scale");
     let mut options = StoreOptions::new("panel-scale-0");
     options.state_dir = Some(state.0.clone());
     let (mut s, _) = Session::open(&dir, options, SessionOptions::default(), Recovery::Discard)

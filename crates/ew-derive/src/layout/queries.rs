@@ -172,6 +172,10 @@ pub enum Mountability {
         how: MountAs,
         /// The primary part (cases 5 and 7); `None` for a strip and a device without parts.
         primary: Option<PartRef>,
+        /// Each part use to place, in the device's order (case 5: the primary part and every other part use that goes
+        /// in a cut-out, so -101Q1's switch and its door coupling handle; case 7: the primary alone); empty for a
+        /// strip and a device without parts.
+        uses: Vec<PartRef>,
     },
 }
 
@@ -190,7 +194,7 @@ impl Mountability {
 /// 3. a strip with terminals: mountable, placed as a strip;
 /// 4. a terminal of a strip, a cable, a device without functions (EW-CORE-041's predicates): exempt;
 /// 5. a part use whose part has a mount kind other than `none` and `on_parent`: mountable, the first such use is the
-///    primary part;
+///    primary part, and every other part use that goes in a cut-out is to be placed as well (a door coupling handle);
 /// 6. part uses that are all `on_parent` or `none`: exempt;
 /// 7. part uses without a mount kind: mountable, unknown footprint;
 /// 8. an earth connection (no part use and every function an earth point, [`is_earth_connection`]): exempt;
@@ -242,6 +246,7 @@ fn mountability_of_kind(q: &Q, dev: Id<Device>, device: &Device) -> Mountability
         return Mountability::Mountable {
             how: MountAs::Strip,
             primary: None,
+            uses: Vec::new(),
         };
     }
     // 4
@@ -259,9 +264,21 @@ fn mountability_of_kind(q: &Q, dev: Id<Device>, device: &Device) -> Mountability
         let kinds: Vec<Option<MountKind>> = device.parts.iter().map(|u| mount_kind_of(q, &u.part)).collect();
         // 5
         if let Some(i) = kinds.iter().position(|k| k.as_ref().is_some_and(mounts)) {
+            // The primary part, and beside it each part use that goes in a cut-out (a door coupling handle beside
+            // its switch). A further rail or screwed part use is not one to place: an existing project with two
+            // such parts on one device reads as before (the owner's to decide, doc 12 §2.7 rule 5).
+            let uses = device
+                .parts
+                .iter()
+                .zip(&kinds)
+                .enumerate()
+                .filter(|(j, (_, k))| *j == i || *k == &Some(MountKind::DoorCutout))
+                .map(|(_, (u, _))| u.part.clone())
+                .collect();
             return Mountability::Mountable {
                 how: MountAs::Part,
                 primary: Some(device.parts[i].part.clone()),
+                uses,
             };
         }
         // 6
@@ -270,9 +287,11 @@ fn mountability_of_kind(q: &Q, dev: Id<Device>, device: &Device) -> Mountability
         }
         // 7
         let first = kinds.iter().position(Option::is_none).unwrap_or(0);
+        let primary = device.parts[first].part.clone();
         return Mountability::Mountable {
             how: MountAs::PartWithoutMountKind,
-            primary: Some(device.parts[first].part.clone()),
+            primary: Some(primary.clone()),
+            uses: vec![primary],
         };
     }
     // 8
@@ -283,29 +302,32 @@ fn mountability_of_kind(q: &Q, dev: Id<Device>, device: &Device) -> Mountability
     Mountability::Mountable {
         how: MountAs::NoPart,
         primary: None,
+        uses: Vec::new(),
     }
 }
 
 // ---------------------------------------------------------------------------------------------------------
 // unplaced(space)
 
-/// `unplaced(space)`: the mountable devices of the space's location without a placement, in natural order of their
-/// full tag (then ID) (FR-LAY-001, FR-LAY-013; doc 12 §2.6).
+/// `unplaced(space)`: each part use to place of the space's location without a placement, as `(device, part)`, in
+/// natural order of the device's full tag (then ID), then the part use's order (FR-LAY-001, FR-LAY-013; doc 12 §2.6,
+/// §2.7 rule 5). A strip and a device without parts are one entry without a part.
 ///
 /// A device belongs to the space when its own location node is the space's location and the space is that location's
-/// layout space ([`space_of_location`]); a device of another location is never listed. A device counts as placed when
-/// any placement names it, wherever it sits (a placement in another location's space is EW-LAY-004's). A missing space
-/// lists nothing.
+/// layout space ([`space_of_location`]); a device of another location is never listed. A part use counts as placed
+/// when a placement of the device realises it, wherever it sits (a placement in another location's space is
+/// EW-LAY-004's): a placement that names its part, or one that names none for the primary part. A missing space lists
+/// nothing.
 #[derive(Debug)]
 pub struct Unplaced;
 
 impl Query for Unplaced {
     type Key = Id<LayoutSpace>;
-    type Value = Vec<Id<Device>>;
+    type Value = Vec<(Id<Device>, Option<PartRef>)>;
     const FAMILY: &'static str = "unplaced";
     const POLICY: Policy = Policy::Memo;
 
-    fn run(q: &Q, key: &Self::Key) -> Arc<Vec<Id<Device>>> {
+    fn run(q: &Q, key: &Self::Key) -> Arc<Vec<(Id<Device>, Option<PartRef>)>> {
         let Some(space) = q.table::<LayoutSpace>().get(*key).cloned() else {
             return Arc::new(Vec::new());
         };
@@ -313,23 +335,46 @@ impl Query for Unplaced {
             return Arc::new(Vec::new());
         }
         let by_node = q.get::<DevicesByStructure>(());
-        let mut out: Vec<(NaturalKey, Id<Device>)> = by_node
+        let mut devices: Vec<(NaturalKey, Id<Device>)> = by_node
             .get(&space.location)
             .into_iter()
             .flatten()
             .copied()
             .filter(|d| location_of(q, *d) == Some(space.location))
-            .filter(|d| q.get::<Mountable>(*d).is_mountable())
-            .filter(|d| q.idx().placements_of_device(*d).next().is_none())
             .map(|d| {
                 let tag = q.get::<DeviceTag>(d);
                 let full = tag.as_ref().as_ref().map_or("", |t| t.full.as_str());
                 (natural_key(full), d)
             })
             .collect();
-        out.sort();
-        out.dedup_by_key(|(_, d)| *d);
-        Arc::new(out.into_iter().map(|(_, d)| d).collect())
+        devices.sort();
+        devices.dedup_by_key(|(_, d)| *d);
+        let placements = q.table::<Placement>();
+        let mut out = Vec::new();
+        for (_, d) in devices {
+            let m = q.get::<Mountable>(d);
+            let Mountability::Mountable { primary, uses, .. } = m.as_ref() else {
+                continue;
+            };
+            let placed: Vec<Option<Id<Part>>> = q
+                .idx()
+                .placements_of_device(d)
+                .filter_map(|p| placements.get(p))
+                .map(|p| p.part.as_ref().or(primary.as_ref()).map(|r| r.copy))
+                .collect();
+            if uses.is_empty() {
+                if placed.is_empty() {
+                    out.push((d, None));
+                }
+                continue;
+            }
+            out.extend(
+                uses.iter()
+                    .filter(|u| !placed.contains(&Some(u.copy)))
+                    .map(|u| (d, Some(u.clone()))),
+            );
+        }
+        Arc::new(out)
     }
 }
 
@@ -477,9 +522,17 @@ pub fn fill_candidates(q: &Q, space: Id<LayoutSpace>) -> Vec<(Id<Device>, bool)>
         });
         !field && !behind_terminals(q, d)
     };
+    // A device is offered for its primary part: a second part use (a door coupling handle) is not a fill's.
+    let primary = |d: Id<Device>| {
+        devices
+            .get(d)
+            .and_then(|dev| primary_part(q, dev))
+            .map(|p| p.copy)
+    };
     located
         .iter()
-        .map(|d| (*d, guess(*d, true)))
+        .filter(|(d, part)| part.as_ref().is_none_or(|p| Some(p.copy) == primary(*d)))
+        .map(|(d, _)| (*d, guess(*d, true)))
         .chain(unlocated(q).into_iter().map(|d| (d, guess(d, false))))
         .collect()
 }
@@ -507,6 +560,9 @@ pub struct PlacementGeom {
     /// The part use realised: the placement's `part`, else the device's primary part (an imported `None` means the
     /// primary); `None` for a strip and a device without parts.
     pub part: Option<PartRef>,
+    /// The front is drawn round: the part's `front_shape` is `round` on a square front and it has no `front_2d`
+    /// (doc 12 §2.5); the circle is the footprint's inscribed one.
+    pub round: bool,
 }
 
 /// The shape of what a placement realises, in the part frame.
@@ -518,6 +574,8 @@ struct Shape {
     /// The `front_2d` polylines in the part frame.
     outline: Vec<Vec<Pt2>>,
     part: Option<PartRef>,
+    /// The front is round ([`PlacementGeom::round`]).
+    round: bool,
 }
 
 /// What one item of a strip is ([`StripItem`]).
@@ -650,6 +708,7 @@ fn shape(q: &Q, device: &Device, part: Option<&PartRef>) -> Shape {
             clip: if known { (0, height / 2) } else { (0, 0) },
             outline: Vec::new(),
             part: None,
+            round: false,
         };
     }
     let part = match part {
@@ -666,6 +725,7 @@ fn shape(q: &Q, device: &Device, part: Option<&PartRef>) -> Shape {
         } else {
             Vec::new()
         },
+        round: mech.is_some_and(|m| m.front_2d.is_empty() && m.front_is_round()),
         part,
     }
 }
@@ -757,6 +817,7 @@ fn placement_geom(q: &Q, key: Id<Placement>) -> Option<PlacementGeom> {
             unknown: true,
             outline: Vec::new(),
             part: shape.part,
+            round: false,
         });
     };
     let origin = if on_rail {
@@ -778,6 +839,7 @@ fn placement_geom(q: &Q, key: Id<Placement>) -> Option<PlacementGeom> {
         unknown: false,
         outline,
         part: shape.part,
+        round: shape.round,
     })
 }
 

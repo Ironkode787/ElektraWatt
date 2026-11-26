@@ -16,8 +16,8 @@ use ew_derive::Q;
 use ew_derive::layout::{
     Fit, Mountable, PathError, PlacementGeometry, PoseError, PoseOn, Profile, Quarter, RailAxis, RailExtent,
     RailItem, Resolution, SnapError, SnapMode, Unplaced, carrier_label, cascade, cascade_mirrored,
-    check_path, check_pose, clip_offset, fits_rail, member_order, member_slot, min_gap, mount_label,
-    next_fit, plate_frame, rail_extent, rail_items, rehome_pose, resolve,
+    check_path, check_pose, clip_offset, fits_rail, member_order, member_slot, min_gap, next_fit,
+    plate_frame, rail_extent, rail_items, rehome_pose, resolve,
 };
 use ew_derive::{DeviceTag, DrawnPageOrder, PageRef, StructureOf, StructurePath};
 use ew_ids::Id;
@@ -161,16 +161,9 @@ fn tag(tx: &TxBuilder<'_>, device: Id<Device>) -> TextArg {
     crate::words::device(tx, device)
 }
 
-/// A mount kind or a rail profile in words ([`mount_label`]'s, keyed): a profile name stays as it is.
+/// A mount kind or a rail profile in words (`ew_derive::text::mount_kind`).
 fn mount_words(kind: &MountKind) -> TextArg {
-    match kind {
-        MountKind::Screw => text!("refusal-layout-mount-screw").into(),
-        MountKind::BusbarAdapter => text!("refusal-layout-mount-busbar-adapter").into(),
-        MountKind::DoorCutout => text!("refusal-layout-mount-door-cutout").into(),
-        MountKind::OnParent => text!("refusal-layout-mount-on-parent").into(),
-        MountKind::None => text!("refusal-layout-mount-none").into(),
-        other => TextArg::Plain(mount_label(other)),
-    }
+    ew_derive::text::mount_kind(kind).into()
 }
 
 /// The part copy of a part use, if the project holds it.
@@ -236,6 +229,8 @@ fn placement_clip(tx: &TxBuilder<'_>, device: &Device, part: Option<&PartRef>) -
 struct Target {
     on: PoseOn,
     profile: Option<MountKind>,
+    /// The kind of the surface a placement sits on itself; `None` on a carrier.
+    surface: Option<SurfaceKind>,
 }
 
 /// The target of a placement, or a refusal at `at` when the carrier or surface does not exist or cannot carry it.
@@ -261,26 +256,29 @@ fn target(tx: &TxBuilder<'_>, name: &'static str, at: &str, on: CarrierRef) -> R
                     Ok(Target {
                         on: PoseOn::Rail(axis),
                         profile,
+                        surface: None,
                     })
                 }
                 (CarrierKind::Duct, _) => Ok(Target {
                     on: PoseOn::Duct,
                     profile: None,
+                    surface: None,
                 }),
                 (CarrierKind::Unknown(_), _) => tx.reject(text!("refusal-layout-carrier-unknown")),
             }
         }
         CarrierRef::Surface(s) => {
-            if !tx.exists::<MountingSurface>(s) {
+            let Some(surface) = tx.get::<MountingSurface>(s) else {
                 return Err(CmdError::invalid_params(
                     name,
                     at,
                     text!("refusal-params-surface-gone"),
                 ));
-            }
+            };
             Ok(Target {
                 on: PoseOn::Surface,
                 profile: None,
+                surface: Some(surface.kind.clone()),
             })
         }
         CarrierRef::Unknown(_) => Err(CmdError::invalid_params(
@@ -292,14 +290,32 @@ fn target(tx: &TxBuilder<'_>, name: &'static str, at: &str, on: CarrierRef) -> R
 }
 
 /// Refuses a part whose mount kind does not fit the target rail's profile (doc 12 §3.3: "-102F1 (TS 35) does not fit a
-/// TS 32 rail"), and on a surface a part that mounts on its parent or not at all. A part without a
-/// mount kind, a strip and a partless device are not judged here.
+/// TS 32 rail"), on a surface a part that mounts on its parent or not at all, a part in a cut-out on the plate or a
+/// rail ("-102S1 goes in a cut-out of a door or a wall: place it on the door's page") and a rail part on a door, a wall,
+/// the top or the bottom itself ("-101F1 mounts on a TS 35×7.5 rail: drop it on a rail"); a rail part on the plate is
+/// EW-LAY-010's, since `rehome_to_surface` makes it. A part without a mount kind, a strip and a partless device are not
+/// judged here.
 fn check_fit(
     tx: &TxBuilder<'_>,
     device: Id<Device>,
     part: Option<&PartRef>,
     target: &Target,
 ) -> Result<(), CmdError> {
+    let kind = part.and_then(|p| mech_of(tx, p.copy)).and_then(|m| m.mount_kind);
+    let on_plate_or_rail = target.profile.is_some() || target.surface == Some(SurfaceKind::Plate);
+    if kind == Some(MountKind::DoorCutout) && on_plate_or_rail {
+        return tx.reject(text!("refusal-layout-cutout", tag(tx, device)));
+    }
+    if let (Some(k), Some(surface)) = (&kind, &target.surface)
+        && Profile::of(k).is_some()
+        && !matches!(surface, SurfaceKind::Plate | SurfaceKind::Unknown(_))
+    {
+        return tx.reject(text!(
+            "refusal-layout-rail-on-face",
+            tag(tx, device),
+            mount_words(k)
+        ));
+    }
     if matches!(target.on, PoseOn::Surface) {
         let copy = part.and_then(|p| part_copy(tx, p.copy));
         if let Some(copy) = copy.filter(|c| {

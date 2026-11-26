@@ -22,20 +22,17 @@ use serde_json::{Value, json};
 const MM: i64 = 1_000_000;
 
 /// The placements the set-up takes off: rail 1's but -101Q1, -101F1 and -101G1, which keep its start after -X1011's
-/// place, the strip -X1031 and the lamp -104E2 of rail 2, and the assembly member -201K1-Q2 of rail 2. The sample places every device; these tests need unplaced devices and a rail
-/// with room at both ends.
-const TAKEN_OFF: [&str; 12] = [
+/// place, and the assembly member -201K1-Q2 of rail 2. The sample places every device (its lamps and pushbuttons in the
+/// door); these tests need unplaced devices and a rail with room at both ends.
+const TAKEN_OFF: [&str; 9] = [
     "-X1011",
     "-102F1",
     "-X1021",
-    "-102S2",
-    "-102S1",
     "-102Q1",
-    "-102E1",
     "-103F1",
     "-X1031",
-    "-104E1",
-    "-104E2",
+    "-201X1",
+    "-201X2",
     "-201K1-Q2",
 ];
 
@@ -270,15 +267,12 @@ fn the_unplaced_devices_navigator_lists_the_devices_taken_off() {
         shown,
         vec![
             row("location", 1, "+CAB", &[]),
-            row("device", 2, "-102E1", &["unknown size"]),
             row("device", 2, "-102F1", &[]),
             row("device", 2, "-102Q1", &[]),
-            row("device", 2, "-102S1", &["unknown size"]),
-            row("device", 2, "-102S2", &["unknown size"]),
             row("device", 2, "-103F1", &[]),
-            row("device", 2, "-104E1", &["unknown size"]),
-            row("device", 2, "-104E2", &["unknown size"]),
             row("device", 2, "-201K1-Q2", &["assembly", "unknown size"]),
+            row("device", 2, "-201X1", &["unknown size"]),
+            row("device", 2, "-201X2", &["unknown size"]),
             row("device", 2, "-X1011", &["strip"]),
             row("device", 2, "-X1021", &["strip"]),
             row("device", 2, "-X1031", &["strip"]),
@@ -573,7 +567,7 @@ fn refused_drops_and_a_plate_placement() {
         .find(|c| !rails.contains(&c.id))
         .expect("the TS 32 rail")
         .label
-        .clone();
+        .to_string();
     let rail = ts32.to_lowercase();
     let revision = shell.revision();
     let f55 = unplaced(&shell, "-102F1");

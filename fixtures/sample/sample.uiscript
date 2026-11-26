@@ -780,6 +780,30 @@
 {"action":"ui.dismiss","params":{}}
 {"action":"layout.auto_fill_rail","params":{"order":"schematic","rail":"rail 1"}}
 {"action":"layout.auto_fill_rail","params":{"order":"schematic","rail":"rail 2"}}
+{"action":"select.set","params":{"refs":["tag:-101Q1"]}}
+{"action":"part.choose","params":{"add":true}}
+{"action":"part.pick","params":{"part":"EW-GEN-HDL-1"}}
+{"action":"page.goto","params":{"folio":"902"}}
+{"action":"layout.surface_page","params":{"surface":"door"}}
+{"action":"tool.place_layout","params":{"device":"tag:-101Q1"}}
+{"action":"canvas.pointer","params":{"x_mm":115.895,"y_mm":54.472}}
+{"action":"canvas.release","params":{"x_mm":115.895,"y_mm":54.472}}
+{"action":"tool.place_layout","params":{"device":"tag:-102E1"}}
+{"action":"canvas.pointer","params":{"x_mm":136.174,"y_mm":66.638}}
+{"action":"canvas.release","params":{"x_mm":136.174,"y_mm":66.638}}
+{"action":"tool.place_layout","params":{"device":"tag:-104E1"}}
+{"action":"canvas.pointer","params":{"x_mm":148.34,"y_mm":66.638}}
+{"action":"canvas.release","params":{"x_mm":148.34,"y_mm":66.638}}
+{"action":"tool.place_layout","params":{"device":"tag:-104E2"}}
+{"action":"canvas.pointer","params":{"x_mm":160.507,"y_mm":66.638}}
+{"action":"canvas.release","params":{"x_mm":160.507,"y_mm":66.638}}
+{"action":"tool.place_layout","params":{"device":"tag:-102S1"}}
+{"action":"canvas.pointer","params":{"x_mm":142.257,"y_mm":82.861}}
+{"action":"canvas.release","params":{"x_mm":142.257,"y_mm":82.861}}
+{"action":"tool.place_layout","params":{"device":"tag:-102S2"}}
+{"action":"canvas.pointer","params":{"x_mm":154.424,"y_mm":82.861}}
+{"action":"canvas.release","params":{"x_mm":154.424,"y_mm":82.861}}
+{"action":"ui.dismiss","params":{}}
 {"action":"navigator.show","params":{"kind":"connections"}}
 {"action":"navigator.table","params":{"kind":"connections","on":true}}
 {"action":"table.set","params":{"kind":"connections","column":"length","value":"400","rows":["101.1"]}}

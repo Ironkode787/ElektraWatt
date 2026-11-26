@@ -212,6 +212,7 @@ fn the_mountable_predicate_case_by_case() {
     let mountable = |how, primary: Option<u128>| Mountability::Mountable {
         how,
         primary: primary.map(|p| PartRef::new(id(p))),
+        uses: primary.map(|p| PartRef::new(id(p))).into_iter().collect(),
     };
     assert_eq!(of(D_ELSEWHERE), Mountability::NotConsidered, "case 1");
     assert_eq!(of(D_ENCLOSURE), Mountability::Exempt(Exempt::Layout), "case 2");
@@ -237,9 +238,13 @@ fn the_mountable_predicate_case_by_case() {
 fn unplaced_lists_the_mountable_devices_without_a_placement_in_tag_order() {
     let m = fixture(false).build();
     let q = Q::new(&m);
-    let list: Vec<Id<Device>> = q.get::<Unplaced>(id(SPACE)).as_ref().clone();
-    // D_ELSEWHERE is of location B; the placed devices, the exempt ones and the enclosure are out.
-    assert_eq!(list, vec![id(D_BARE), id(D_NOPART)]);
+    let list: Vec<(Id<Device>, Option<PartRef>)> = q.get::<Unplaced>(id(SPACE)).as_ref().clone();
+    // D_ELSEWHERE is of location B; the placed devices, the exempt ones and the enclosure are out. A device is listed
+    // with its part use to place, a device without parts without one.
+    assert_eq!(
+        list,
+        vec![(id(D_BARE), Some(PartRef::new(id(P_BARE)))), (id(D_NOPART), None)]
+    );
     assert!(
         q.get::<Unplaced>(id(0x9999)).is_empty(),
         "a missing space lists nothing"

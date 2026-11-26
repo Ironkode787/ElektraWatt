@@ -220,7 +220,7 @@ fn refuse_layout_delete(tx: &TxBuilder<'_>, keys: &[AnyKey]) -> Result<(), CmdEr
             if n > 0 {
                 return tx.reject(text!(
                     "refusal-edit-delete-carrier-holds",
-                    crate::words::carrier_label(label),
+                    ew_derive::text::carrier_label(label),
                     holds(n)
                 ));
             }

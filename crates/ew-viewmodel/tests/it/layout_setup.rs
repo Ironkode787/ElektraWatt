@@ -324,7 +324,7 @@ fn create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosure()
         json!({"kind": "location", "designation": "J-E-999"}),
     );
     let surfaces_before = surfaces(&s);
-    assert_eq!(surfaces_before.len(), 1, "-UC1's plate");
+    assert_eq!(surfaces_before.len(), 2, "-UC1's plate and door");
     let rev = s.revision();
     done(
         &mut s,
@@ -333,8 +333,12 @@ fn create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosure()
     );
     assert!(s.dialog().is_none());
     let plates = surfaces(&s);
-    assert_eq!(plates.len(), 2, "one plate more: {plates:?}");
-    let plate = plates.iter().find(|n| **n != surfaces_before[0]).unwrap().clone();
+    assert_eq!(plates.len(), 3, "one plate more: {plates:?}");
+    let plate = plates
+        .iter()
+        .find(|n| !surfaces_before.contains(n))
+        .unwrap()
+        .clone();
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(surfaces(&s), surfaces_before, "one undo step");
     assert_ne!(s.revision(), rev);
@@ -665,7 +669,7 @@ fn unplace(s: &mut ShellModel, tags: &[&str]) {
 fn location_on_the_none_group_gives_its_devices_a_cabinet_in_one_step() {
     let tmp = Tmp::new("devices-location");
     let mut s = tmp.sample_in(Mode::Gui, true, "902");
-    unplace(&mut s, &["-104E1", "-104E2"]);
+    unplace(&mut s, &["-102F1", "-103F1"]);
     let unplaced: Vec<String> = panel(&s).unplaced.iter().map(|u| u.device.to_string()).collect();
     done(
         &mut s,
@@ -1247,4 +1251,4 @@ fn the_surface_row_chooses_a_surface_by_its_id() {
 }
 
 /// The Surface row's choices on the sample with the enclosure of +J-E-999 added.
-const SURFACE_WORDS: [&str; 2] = ["-UC1 mounting plate", "-UC2 mounting plate"];
+const SURFACE_WORDS: [&str; 3] = ["-UC1 mounting plate", "-UC1 door", "-UC2 mounting plate"];

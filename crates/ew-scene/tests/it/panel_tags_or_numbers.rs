@@ -70,6 +70,7 @@ fn page(show: LabelShow, linked: bool) -> PageView {
                     footprint: *fp,
                     unknown: false,
                     outline: Vec::new(),
+                    round: false,
                 })
                 .collect(),
             brackets: Vec::new(),

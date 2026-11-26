@@ -75,6 +75,7 @@ fn view(labels: bool) -> PageView {
                     footprint,
                     unknown: false,
                     outline: Vec::new(),
+                    round: false,
                 })
                 .collect(),
             brackets: Vec::new(),

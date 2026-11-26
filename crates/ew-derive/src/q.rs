@@ -903,6 +903,30 @@ impl<'q> IdxView<'q> {
         )
     }
 
+    /// The placements on a mounting surface itself (`Placement.carrier` naming the surface).
+    pub fn placements_on_surface(
+        &self,
+        surface: Id<ew_schema::MountingSurface>,
+    ) -> impl Iterator<Item = Id<ew_schema::Placement>> + 'q {
+        self.by_id(
+            IndexName::PlacementsBySurface,
+            self.indexes().placements_by_surface(),
+            surface,
+        )
+    }
+
+    /// The holes added to a mounting surface (`SurfaceFeature.surface`).
+    pub fn features_of_surface(
+        &self,
+        surface: Id<ew_schema::MountingSurface>,
+    ) -> impl Iterator<Item = Id<ew_schema::SurfaceFeature>> + 'q {
+        self.by_id(
+            IndexName::FeaturesBySurface,
+            self.indexes().features_by_surface(),
+            surface,
+        )
+    }
+
     /// The pages of a section (`Folio.section`).
     pub fn pages_of_section(&self, section: Id<Section>) -> impl Iterator<Item = Id<Page>> + 'q {
         self.by_id(

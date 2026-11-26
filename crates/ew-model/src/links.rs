@@ -123,6 +123,10 @@ pub enum IndexName {
     PlacementsByCarrier,
     /// `Carrier.surface` → carriers.
     CarriersBySurface,
+    /// `Placement.carrier` (the surface itself) → placements.
+    PlacementsBySurface,
+    /// `SurfaceFeature.surface` → the holes added to a surface.
+    FeaturesBySurface,
 }
 
 /// One link occurrence in a record: the target ID, and for a CP endpoint the CP index.
@@ -988,13 +992,13 @@ pub static LINKS: &[LinkDecl] = &[
             id(c, out);
         }
     }),
-    link!(Placement."carrier.surface" -> MountingSurface, Forbid, None, |v, out| {
+    link!(Placement."carrier.surface" -> MountingSurface, Forbid, Some(I::PlacementsBySurface), |v, out| {
         if let CarrierRef::Surface(s) = v.carrier {
             id(s, out);
         }
     }),
     // a hole by hand or a cable's gland goes with its surface; its cable may go (the hole stays, doc 12 §3.9)
-    link!(SurfaceFeature."surface" -> MountingSurface, Cascade, None, |v, out| id(v.surface, out)),
+    link!(SurfaceFeature."surface" -> MountingSurface, Cascade, Some(I::FeaturesBySurface), |v, out| id(v.surface, out)),
     link!(SurfaceFeature."cable" -> Device, Unlink, None, |v, out| opt(v.cable, out),
     Some(|row, del| {
         let AnyRow::SurfaceFeature(f) = row else { return Some(row.clone()) };

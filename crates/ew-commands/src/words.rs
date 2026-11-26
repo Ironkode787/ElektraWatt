@@ -6,7 +6,6 @@
 //! not exist has no words: the refusal says so and its JSON Pointer names the parameter. The words are keyed:
 //! a tag or a number is a plain argument, every word around it a [`Text`] in the window's language.
 
-use ew_derive::layout::{CarrierLabel, CarrierLabelKind};
 use ew_derive::{Q, short_tag};
 use ew_schema::{
     Connection, Device, Function, FunctionKind, Junction, Kind, Page, PageType, RepType, Representation,
@@ -291,22 +290,6 @@ pub fn comma_joined(items: Vec<Text>) -> Option<Text> {
     let mut rest = items.into_iter().rev();
     let last = rest.next()?;
     Some(rest.fold(last, |tail, item| text!("refusal-words-list-comma", item, tail)))
-}
-
-/// A carrier's label inside a sentence ("rail 1", "duct 3"; [`CarrierLabel::in_sentence`], keyed).
-pub(crate) fn carrier_in_sentence(label: CarrierLabel) -> Text {
-    match label.kind {
-        CarrierLabelKind::Rail => text!("refusal-words-rail", label.n.to_string()),
-        CarrierLabelKind::Duct => text!("refusal-words-duct", label.n.to_string()),
-    }
-}
-
-/// A carrier's label as it stands alone ("Rail 1", "Duct 3"; [`CarrierLabel::label`], keyed).
-pub(crate) fn carrier_label(label: CarrierLabel) -> Text {
-    match label.kind {
-        CarrierLabelKind::Rail => text!("refusal-words-rail-label", label.n.to_string()),
-        CarrierLabelKind::Duct => text!("refusal-words-duct-label", label.n.to_string()),
-    }
 }
 
 /// A point of a page by its position and page ("x 120, y 45.5 mm on page 3").

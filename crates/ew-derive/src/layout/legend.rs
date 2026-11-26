@@ -14,8 +14,8 @@ use std::cmp::Reverse;
 use ew_ids::Id;
 use ew_mltext::{NaturalKey, natural_key};
 use ew_schema::{
-    Carrier, CarrierKind, CarrierRef, Device, Enclosure, LibCopy, MountingSurface, Page, PageItemKind,
-    PageType, Part, PartRef, Placement, ReportBlock,
+    Carrier, CarrierKind, Device, Enclosure, LibCopy, MountingSurface, Page, PageItemKind, PageType, Part,
+    PartRef, Placement, ReportBlock, SurfaceKind,
 };
 use ew_units::Dec3;
 
@@ -139,30 +139,6 @@ pub struct CarrierLabel {
     pub n: u32,
 }
 
-impl CarrierLabel {
-    /// The label as it stands alone (a legend cell, a Properties row, a ghost's chip): "Rail 1", "Duct 3".
-    pub fn label(self) -> String {
-        match self.kind {
-            CarrierLabelKind::Rail => format!("Rail {}", self.n),
-            CarrierLabelKind::Duct => format!("Duct {}", self.n),
-        }
-    }
-
-    /// The label inside a sentence (doc 16a §8, sentence case): "rail 1", "duct 3".
-    pub fn in_sentence(self) -> String {
-        match self.kind {
-            CarrierLabelKind::Rail => format!("rail {}", self.n),
-            CarrierLabelKind::Duct => format!("duct {}", self.n),
-        }
-    }
-}
-
-impl std::fmt::Display for CarrierLabel {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.label())
-    }
-}
-
 /// `carrier_labels(surface)`: the surface's rails and ducts in legend order ([`carriers_in_order`]: rails,
 /// then ducts, each top to bottom then left to right by `path[0]`), each kind numbered from 1. A carrier of a kind this
 /// build does not know gets no label (it carries no placements): three rails and five ducts are Rail 1 … 3
@@ -257,9 +233,11 @@ fn part_use_where(q: &Q, device: &Device, pred: impl Fn(&Part) -> bool) -> Optio
 
 /// `layout_legend(surface)`: the legend of one mounting surface (doc 12 §5.4, FR-LAY-012), in order:
 ///
-/// 1. the enclosure: its device and that device's part use with an enclosure section (else its first part use);
-/// 2. the surface: its device and that device's part use with a mounting-plate section (else its first part use);
-///    a surface without a device lists the enclosure section's plate part when its copy is in the project;
+/// 1. on the plate's legend, the enclosure: its device and that device's part use with an enclosure section (else its
+///    first part use);
+/// 2. on the plate's legend, the plate: its device and that device's part use with a mounting-plate section (else its
+///    first part use); a plate without a device lists the enclosure section's plate part when its copy is in the
+///    project;
 /// 3. one row per carrier, in legend order ([`carrier_order`]: rails, then ducts, each top to bottom then left to right
 ///    by `path[0]`), the DT empty, the path length in metres as the quantity (none without a derivable length);
 /// 4. the placements on the surface's carriers and on the surface itself, by the device's full designation in natural
@@ -287,10 +265,11 @@ pub fn layout_legend(q: &Q, surface: Id<MountingSurface>) -> Vec<LegendRow> {
         });
     };
 
-    // 1. The enclosure.
+    // 1. The enclosure, on the plate's legend.
+    let plate = s.kind == SurfaceKind::Plate;
     let enclosure = q.table::<Enclosure>().get(s.enclosure).cloned();
     let enclosure_device = enclosure.as_ref().and_then(|e| devices.get(e.device).cloned());
-    if let Some(e) = &enclosure {
+    if let Some(e) = enclosure.as_ref().filter(|_| plate) {
         let part = enclosure_device
             .as_ref()
             .and_then(|d| part_use_where(q, d, |p| p.sections.enclosure.is_some()));
@@ -312,12 +291,14 @@ pub fn layout_legend(q: &Q, surface: Id<MountingSurface>) -> Vec<LegendRow> {
             .filter(|p| parts.contains(*p))
             .map(PartRef::new),
     };
-    push(
-        LegendItem::Surface(surface),
-        s.device,
-        plate_part,
-        Some(Dec3::ONE),
-    );
+    if plate {
+        push(
+            LegendItem::Surface(surface),
+            s.device,
+            plate_part,
+            Some(Dec3::ONE),
+        );
+    }
 
     // 3. The carriers.
     let carriers = q.table::<Carrier>();
@@ -334,12 +315,7 @@ pub fn layout_legend(q: &Q, surface: Id<MountingSurface>) -> Vec<LegendRow> {
     for c in &order {
         on.extend(q.idx().placements_by_carrier(*c));
     }
-    on.extend(
-        placements
-            .iter()
-            .filter(|(_, p)| p.carrier == CarrierRef::Surface(surface))
-            .map(|(id, _)| id),
-    );
+    on.extend(q.idx().placements_on_surface(surface));
     /// A placement keyed for the legend order: the natural key of its full tag, its device and its own ID.
     type Keyed = (NaturalKey, Id<Device>, Id<Placement>, Option<PartRef>);
     let mut keyed: Vec<Keyed> = on
