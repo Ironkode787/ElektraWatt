@@ -286,17 +286,23 @@ fn an_old_tube_cut_list_block_reads_its_stored_keys_as_the_new_columns() {
         "sorted by the pieces; the row of the tube left out is out"
     );
     assert!(
-        lines(&s, "cut_list").iter().any(|l| l.starts_with("data,EW-GEN-TUB-6,") && l.ends_with(",2,1005,2.01")),
+        lines(&s, "cut_list")
+            .iter()
+            .any(|l| l.starts_with("data,EW-GEN-TUB-6,") && l.ends_with(",2,1005,2.01")),
         "two pieces of 1001 mm cut to 1005 mm"
     );
     let q = s.query();
     let set = q.get::<ew_reports::BlockRows>(ew_ids::Id::from_uuid(block.parse().unwrap()));
     assert!(
-        set.rows.iter().all(|r| !r.id.entities().any(|e| e.to_string() == left_out)),
+        set.rows
+            .iter()
+            .all(|r| !r.id.entities().any(|e| e.to_string() == left_out)),
         "the tube left out"
     );
     drop(q);
-    let look = s.block_look(block.parse().unwrap(), "en-GB").expect("the block's look");
+    let look = s
+        .block_look(block.parse().unwrap(), "en-GB")
+        .expect("the block's look");
     let shown: Vec<(&str, u32, &str)> = look
         .columns
         .iter()
@@ -305,7 +311,12 @@ fn an_old_tube_cut_list_block_reads_its_stored_keys_as_the_new_columns() {
         .collect();
     assert_eq!(
         shown,
-        [("description", 28, ""), ("part_number", 16, "Tube"), ("pieces", 8, ""), ("total", 12, "")]
+        [
+            ("description", 28, ""),
+            ("part_number", 16, "Tube"),
+            ("pieces", 8, ""),
+            ("total", 12, "")
+        ]
     );
     assert_eq!(
         look.added,
@@ -337,7 +348,11 @@ fn every_cut_list_row_names_what_it_is_cut_for() {
     let named: usize = set
         .rows
         .iter()
-        .filter(|r| r.sources.iter().any(|s| q.get::<ew_derive::TubeRows>(()).iter().any(|t| t.id.cast() == *s)))
+        .filter(|r| {
+            r.sources
+                .iter()
+                .any(|s| q.get::<ew_derive::TubeRows>(()).iter().any(|t| t.id.cast() == *s))
+        })
         .map(|r| r.sources.len())
         .sum();
     assert_eq!(named, tubes, "every tube on one row");

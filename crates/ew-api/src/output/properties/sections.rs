@@ -555,8 +555,10 @@ impl Session {
         {
             let defs = def.columns();
             let word = |key: &str| {
-                ew_reports::column_of(&defs, key)
-                    .map_or_else(|| key.to_owned(), |i| crate::output::view::neutral(&defs[i].label))
+                ew_reports::column_of(&defs, key).map_or_else(
+                    || key.to_owned(),
+                    |i| crate::output::view::neutral(&defs[i].label),
+                )
             };
             let mut in_words = |key: &str, words: String| {
                 if let Some(row) = built.iter_mut().find(|r| r.row.key == key)
