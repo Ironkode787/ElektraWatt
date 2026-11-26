@@ -233,7 +233,7 @@ fn the_wire_list_workbook_reads_back_as_the_wire_list() {
     assert!(workbook.contains("<sheet name=\"_ew\" sheetId=\"2\" state=\"hidden\" r:id=\"rId2\"/>"));
 }
 
-/// The bill of materials' Qty is a numeric cell (the sample's 15 feed-through terminals, its rails' 0.94 m and
+/// The bill of materials' Qty is a numeric cell (the sample's 14 grey feed-through terminals, its rails' 0.94 m and
 /// its duct's 0.47 m); the block of folio 908 has the rows of its CSV (FR-EXT-027); the terminal diagrams give one
 /// sheet per strip; `ew sql` writes the query's rows.
 #[test]
@@ -249,7 +249,7 @@ fn the_row_exports_and_sql_write_workbooks() {
     }
     let xml = part(&bom, "xl/worksheets/sheet1.xml");
     assert!(
-        xml.contains("<c r=\"C2\"><v>15</v></c>"),
+        xml.contains("<c r=\"C2\"><v>14</v></c>"),
         "row 2's quantity is a number"
     );
     assert!(xml.contains("<v>0.94</v>") && xml.contains("<v>0.47</v>"));
