@@ -153,3 +153,6 @@ change here.
   <revision> | --archive <file>] [--format csv|xlsx] --out <file>` writes the same list.
 - behaviour-change: Output ▸ List columns… on a wire list offers its new columns Length, Length from and From end,
   unticked; a wire list page whose block chooses no columns prints the same twelve columns as before.
+- behaviour-change: The Connections table opens with the columns a length is typed in: No., From, CP, To, CP, Colour,
+  mm² and Length, and the window's left column widens to show them; Potential, Source, Via, Wire part, Pages, Length
+  from and From end are in its Columns menu. It opened with every column.

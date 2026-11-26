@@ -215,15 +215,35 @@ pub struct Chooser {
     pub items: Vec<(String, String)>,
 }
 
-/// The columns the Pages table shows when it opens, after the key column Folio: the title and "Changed in",
-/// so that the change status fits the default navigator width. Type, Frame and Generated stay in the column chooser.
-pub const PAGES_COLUMNS: [&str; 2] = ["title", "changed_in"];
+/// The columns a table shows when it opens, after its key column, where it shows fewer than all; every other column
+/// stays in the column chooser.
+///
+/// - Pages: the title and "Changed in", so that the change status fits the default navigator width (Type, Frame and
+///   Generated in the chooser).
+/// - Connections: what the fitter's work is typed and read in (doc 13 §12): the ends with their pins, the colour, the
+///   cross-section and the length; the dock widens the column to show them (Potential, Source, Via, Wire part, Pages,
+///   Length from and From end in the chooser).
+pub fn opening_columns(kind: NavKind) -> Option<&'static [&'static str]> {
+    match kind {
+        NavKind::Pages => Some(&["title", "changed_in"]),
+        NavKind::Connections => Some(&[
+            "from",
+            "from_cp",
+            "to",
+            "to_cp",
+            "colour",
+            "cross_section",
+            "length",
+        ]),
+        _ => None,
+    }
+}
 
 impl TableMode {
-    /// The Pages table as it opens: [`PAGES_COLUMNS`] on show.
-    pub(crate) fn pages() -> TableMode {
+    /// The table of `kind` as it opens: its [`opening_columns`] on show, else every column.
+    pub(crate) fn opening(kind: NavKind) -> TableMode {
         TableMode {
-            columns: Some(PAGES_COLUMNS.iter().map(|k| (*k).to_owned()).collect()),
+            columns: opening_columns(kind).map(|keys| keys.iter().map(|k| (*k).to_owned()).collect()),
             ..TableMode::default()
         }
     }

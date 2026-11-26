@@ -306,8 +306,9 @@ impl TableUi {
             t.show(ui, &mut delegate);
             // The strip editor's side columns in a wide window: the width its columns lack is reported, and
             // the dock widens the left column by it (as far as its default share may grow). The
-            // Libraries table likewise, so that its State column (an unreadable library's reason) is in reach.
-            if matches!(kind, NavKind::Strips | NavKind::Libraries) {
+            // Libraries table likewise, so that its State column (an unreadable library's reason) is in reach, and the
+            // Connections table, so that the lengths are typed where the ends are read (doc 13 §12).
+            if matches!(kind, NavKind::Strips | NavKind::Libraries | NavKind::Connections) {
                 let widths = egui_table::TableState::load(ui.ctx(), id).map(|s| s.col_widths);
                 let need: f32 = column_ids
                     .iter()
