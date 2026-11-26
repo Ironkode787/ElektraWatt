@@ -204,11 +204,7 @@ pub(super) fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
             EndTreatment::TwinFerrule {
                 partner: Some(partner),
                 ..
-            } => wires
-                .wires
-                .iter()
-                .find(|r| r.wire.id == partner)
-                .and_then(|r| wire_no(q, r)),
+            } => wires.get(partner).and_then(|r| wire_no(q, r)),
             _ => None,
         };
         let words = ew_derive::text::end_treatment(

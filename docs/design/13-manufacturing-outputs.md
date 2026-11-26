@@ -245,7 +245,7 @@ lists it prints into its archive (FR-REV-011).
 
 | Query | Reads | Policy | Class |
 |---|---|---|---|
-| `wire_record_set()` | `physical_wires_of`, `wire_props_of`, `wire_numbers`, tags, clamp data, the workshop stock, settings | cold; a memo per potential where a measurement asks for it | I |
+| `wire_record_set()` | `physical_wires_of`, `wire_props_of`, `wire_numbers`, tags, clamp data, the workshop stock, settings | Memo: one value for every reader of a state (the lists, and the checks per potential and per device, which computed it again each) | I |
 | `label_rows()` | `wire_record_set()`, strips and terminals, cables, devices, placements, `tube_rows`, the stock's markers | cold | I |
 | the rework list | two `wire_record_set()` and two `label_rows()`, one of them read from an archive | computed when asked, in a job | II (the archive is a file) |
 | `assembly_rows(strip)`, `consumables`, `cut_list` | [the workshop lists](13-workshop-lists.md) | Memo, cold | I |

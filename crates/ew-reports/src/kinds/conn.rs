@@ -124,6 +124,8 @@ pub(super) struct Wires {
     pub names: BTreeMap<PotentialId, Arc<PotentialNames>>,
     /// The wires.
     pub wires: Arc<Vec<WireRecord>>,
+    /// The index of each wire in `wires`, by its ID.
+    pub by_id: BTreeMap<Id<Connection>, usize>,
 }
 
 impl Wires {
@@ -134,11 +136,19 @@ impl Wires {
             .potentials()
             .map(|p| (p.id, q.get::<PotentialNameOf>(p.id)))
             .collect();
+        let wires = q.get::<WireRecordSet>(());
+        let by_id = wires.iter().enumerate().map(|(i, r)| (r.wire.id, i)).collect();
         Wires {
             partition,
             names,
-            wires: q.get::<WireRecordSet>(()),
+            wires,
+            by_id,
         }
+    }
+
+    /// The wire with the ID `id`.
+    pub fn get(&self, id: Id<Connection>) -> Option<&WireRecord> {
+        self.by_id.get(&id).and_then(|i| self.wires.get(*i))
     }
 
     /// The name of a potential, `""` when unknown.

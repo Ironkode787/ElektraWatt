@@ -9,8 +9,10 @@
 use ew_derive::{
     LabelColumn, LabelRecord, LabelRows, LabelSet, LabelTarget, Q, WireRecordSet, cp_label, short_tag,
 };
+use std::collections::BTreeMap;
+
 use ew_ids::Id;
-use ew_schema::{AnyId, ExportProfile, Part, ReportBlock, ReportKind};
+use ew_schema::{AnyId, Connection, ExportProfile, Part, ReportBlock, ReportKind};
 
 use super::conn::{put, words_cell};
 use crate::kind::ReportKindDef;
@@ -69,7 +71,9 @@ pub fn label_column_words(c: LabelColumn, lang: Option<&ew_mltext::LangTag>) -> 
 pub(super) fn label_set_rows(q: &Q, keep: impl Fn(LabelSet) -> bool) -> RowSet {
     let columns = label_columns();
     let records = q.get::<WireRecordSet>(());
+    let records: BTreeMap<Id<Connection>, &ew_derive::WireRecord> = records.iter().map(|r| (r.wire.id, r)).collect();
     let tubes = q.get::<ew_derive::TubeRows>(());
+    let tubes: BTreeMap<Id<Connection>, &ew_derive::TubeRow> = tubes.iter().map(|t| (t.id, t)).collect();
     let mut set = RowSet::new(columns.clone());
     for l in q.get::<LabelRows>(()).iter().filter(|l| keep(l.set)) {
         let mut cells = vec![Cell::Empty; columns.len()];
@@ -128,16 +132,17 @@ fn label_row_id(l: &LabelRecord) -> (RowId, AnyId) {
     }
 }
 
-/// What a label is for, as the For cell prints it: "101.1 at -X1011:L1", a device's tag, "203.1 at -201U3-Q1:2".
+/// What a label is for, as the For cell prints it: "101.1 at -X1011:L1", a device's tag, "203.1 at -201U3-Q1:2";
+/// `records` and `tubes` by their IDs.
 fn label_for(
     q: &Q,
     l: &LabelRecord,
-    records: &[ew_derive::WireRecord],
-    tubes: &[ew_derive::TubeRow],
+    records: &BTreeMap<Id<Connection>, &ew_derive::WireRecord>,
+    tubes: &BTreeMap<Id<Connection>, &ew_derive::TubeRow>,
 ) -> Cell {
     match &l.target {
         LabelTarget::WireEnd(wire, end) => {
-            let Some(r) = records.iter().find(|r| r.wire.id == *wire) else {
+            let Some(r) = records.get(wire) else {
                 return Cell::Empty;
             };
             // A core has no number: its cable and core name it, as the wire list's No. does.
@@ -148,7 +153,7 @@ fn label_for(
         LabelTarget::Device(d) => Cell::Ident(short_tag(q, *d)),
         LabelTarget::TerminalLevel(d, level) => Cell::Ident(ew_derive::level_short_tag(q, *d, Some(*level))),
         LabelTarget::TubeEnd(tube, end) => {
-            let Some(t) = tubes.iter().find(|t| t.id == *tube) else {
+            let Some(t) = tubes.get(tube) else {
                 return Cell::Empty;
             };
             let at = if *end == 0 { &t.from } else { &t.to };

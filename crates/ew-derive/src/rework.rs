@@ -12,7 +12,8 @@
 
 use std::collections::BTreeMap;
 
-use ew_schema::{ColourSpec, Csa, PartRef};
+use ew_ids::Id;
+use ew_schema::{ColourSpec, Connection, Csa, PartRef};
 
 use crate::joins::cp_label;
 use crate::labels::{LabelRecord, LabelRows, LabelSet, LabelTarget};
@@ -187,6 +188,10 @@ pub struct ReworkItem {
 /// work, by action and then in the numbering order of the state each row prints.
 pub fn rework(base: &Q, now: &Q) -> Vec<ReworkItem> {
     let (before, after) = (base.get::<WireRecordSet>(()), now.get::<WireRecordSet>(()));
+    let numbers = |set: &[WireRecord]| -> BTreeMap<Id<Connection>, Option<String>> {
+        set.iter().map(|r| (r.wire.id, r.number.clone())).collect()
+    };
+    let (numbers_before, numbers_now) = (numbers(&before), numbers(&after));
     let mut items: Vec<ReworkItem> = wire_changes(&before, &after)
         .into_iter()
         .filter_map(|pair| match (pair.before, pair.after) {
@@ -201,7 +206,7 @@ pub fn rework(base: &Q, now: &Q) -> Vec<ReworkItem> {
                 changes: Vec::new(),
             }),
             (Some(b), Some(a)) => {
-                let changes = changes(base, b, now, a);
+                let changes = changes((base, &numbers_before), b, (now, &numbers_now), a);
                 let action = changes.iter().map(action_of).min()?;
                 Some(ReworkItem {
                     action,
@@ -289,8 +294,17 @@ fn action_of(change: &ReworkChange) -> ReworkAction {
     }
 }
 
-/// What changed on a kept wire, `b` in the release and `a` now; the values, never their sources.
-fn changes(base: &Q, b: &WireRecord, now: &Q, a: &WireRecord) -> Vec<ReworkChange> {
+/// The printed numbers of a state's wires, by wire ID: what a twin ferrule names its partner by.
+type Numbers = BTreeMap<Id<Connection>, Option<String>>;
+
+/// What changed on a kept wire, `b` in the release and `a` now, each state with its wires' numbers; the values, never
+/// their sources.
+fn changes(
+    (base, numbers_base): (&Q, &Numbers),
+    b: &WireRecord,
+    (now, numbers_now): (&Q, &Numbers),
+    a: &WireRecord,
+) -> Vec<ReworkChange> {
     let mut out = Vec::new();
     let size = |r: &WireRecord| r.csa.as_ref().map(|p| p.value.clone());
     let (size_b, size_a) = (size(b), size(a));
@@ -341,8 +355,8 @@ fn changes(base: &Q, b: &WireRecord, now: &Q, a: &WireRecord) -> Vec<ReworkChang
         {
             out.push(ReworkChange::RemakeEnd(
                 end_label(now, a, end_a),
-                made(base, eb),
-                made(now, ea),
+                made(base, numbers_base, eb),
+                made(now, numbers_now, ea),
             ));
         }
         // The marker on the same CP that says another text (doc 13 §3.5 Re-mark).
@@ -364,18 +378,14 @@ fn changes(base: &Q, b: &WireRecord, now: &Q, a: &WireRecord) -> Vec<ReworkChang
     out
 }
 
-/// An end as a Re-make end change prints it.
-fn made(q: &Q, e: &EndRecord) -> EndMade {
+/// An end as a Re-make end change prints it, the twin partner by its number in `numbers`.
+fn made(q: &Q, numbers: &Numbers, e: &EndRecord) -> EndMade {
     let ferrule = e
         .part
         .and_then(|p| q.parts().get(p))
         .and_then(|c| c.item.sections.ferrule.clone());
     let partner = match e.treatment {
-        EndTreatment::TwinFerrule { partner: Some(p), .. } => q
-            .get::<WireRecordSet>(())
-            .iter()
-            .find(|r| r.wire.id == p)
-            .and_then(|r| r.number.clone()),
+        EndTreatment::TwinFerrule { partner: Some(p), .. } => numbers.get(&p).cloned().flatten(),
         _ => None,
     };
     EndMade {

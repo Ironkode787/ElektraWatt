@@ -255,6 +255,8 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<WireNumbers>(memo, cold, [()], o);
     check::<WireProfilesQ>(memo, cold, [()], o);
     check::<WirePropsOf>(memo, cold, keys.potentials.iter().copied(), o);
+    // The workshop's wire records (doc 13 §2.4): one value that the lists and the checks read.
+    check::<ew_derive::WireRecordSet>(memo, cold, [()], o);
     check::<XrefTextOf>(memo, cold, keys.reps.iter().copied(), o);
     // The layout queries; a label in both modes on every page (the abbreviated one reads the page).
     check::<ew_derive::layout::Unplaced>(memo, cold, keys.spaces.iter().copied(), o);

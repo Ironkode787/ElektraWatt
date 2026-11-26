@@ -149,8 +149,10 @@ fn site_end(q: &Q, end: &WireEnd, spaces: &BTreeSet<Id<StructureNode>>) -> bool 
     }
 }
 
-/// `wire_record_set()`: see the module documentation. Policy Cold: the families it reads (the partition, the
-/// physical wires, the wire properties and numbers) are memoised themselves.
+/// `wire_record_set()`: see the module documentation. Policy Memo: one value for every reader in a state. The checks read
+/// it once per potential and per device they check, and a family of policy Cold is computed again in every memoised
+/// execution that reads it, so every such check computed the whole set again: each wire's treatment and markers once
+/// per potential and per device of the project.
 #[derive(Debug)]
 pub struct WireRecordSet;
 
@@ -158,7 +160,7 @@ impl Query for WireRecordSet {
     type Key = ();
     type Value = Vec<WireRecord>;
     const FAMILY: &'static str = "wire_record_set";
-    const POLICY: Policy = Policy::Cold;
+    const POLICY: Policy = Policy::Memo;
 
     fn run(q: &Q, _key: &()) -> Arc<Vec<WireRecord>> {
         let partition = q.get::<PotentialPartition>(());
