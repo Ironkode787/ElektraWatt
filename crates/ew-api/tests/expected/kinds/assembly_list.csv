@@ -1,0 +1,34 @@
+row,Pos,Item,Terminal,Part number,Description,Colour,Width mm,Marker,Note
+heading,-X1011 · on rail 1 from 0 to 48.2 mm · rail cut to 470 mm · 5 terminals · 48.2 mm with its end brackets,,,,,,,,
+data,1,End bracket,,EW-GEN-EB-1,End bracket for TS 35,,10,,with EW-GEN-TRM-1
+data,2,Terminal,L1,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,L1,
+data,3,Terminal,L2,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,L2,
+data,4,Terminal,L3,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,L3,
+data,5,Terminal,N,EW-GEN-TRM-1-BU,"Feed-through terminal, blue",BU,5.2,N,
+data,6,Terminal,PE,EW-GEN-TRM-2,Protective earth terminal,GNYE,5.2,PE,
+data,7,End plate,,EW-GEN-EP-1,End plate for 5.2 mm feed-through and PE terminals,,2.2,,"with EW-GEN-TRM-1, EW-GEN-TRM-2"
+data,8,End bracket,,EW-GEN-EB-1,End bracket for TS 35,,10,,with EW-GEN-TRM-1
+heading,-X1021 · on rail 1 from 216.2 to 280 mm · rail cut to 470 mm · 8 terminals · 63.8 mm with its end brackets,,,,,,,,
+data,1,End bracket,,EW-GEN-EB-1,End bracket for TS 35,,10,,with EW-GEN-TRM-1
+data,2,Terminal,1,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,1,
+data,3,Terminal,2,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,2,
+data,4,Terminal,3,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,3,
+data,5,Terminal,4,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,4,
+data,6,Terminal,5,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,5,
+data,7,Terminal,6,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,6,
+data,8,Terminal,7,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,7,
+data,9,Terminal,8,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,8,
+data,10,End plate,,EW-GEN-EP-1,End plate for 5.2 mm feed-through and PE terminals,,2.2,,with EW-GEN-TRM-1
+data,11,End bracket,,EW-GEN-EB-1,End bracket for TS 35,,10,,with EW-GEN-TRM-1
+heading,Bridges of -X1021,,,,,,,,
+data,,Bridge BR1,1 to 4,EW-GEN-BRG-4,"Plug-in bridge, 4 poles, for 5.2 mm terminals",,,,4 poles
+data,,Bridge BR2,5 to 8,EW-GEN-BRG-4,"Plug-in bridge, 4 poles, for 5.2 mm terminals",,,,4 poles
+heading,-X1031 · on rail 2 from 0 to 48.2 mm · rail cut to 470 mm · 5 terminals · 48.2 mm with its end brackets,,,,,,,,
+data,1,End bracket,,EW-GEN-EB-1,End bracket for TS 35,,10,,with EW-GEN-TRM-1
+data,2,Terminal,U,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,U,
+data,3,Terminal,V,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,V,
+data,4,Terminal,W,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,W,
+data,5,Terminal,PE,EW-GEN-TRM-2,Protective earth terminal,GNYE,5.2,PE,
+data,6,Terminal,SH,EW-GEN-TRM-2,Protective earth terminal,GNYE,5.2,SH,
+data,7,End plate,,EW-GEN-EP-1,End plate for 5.2 mm feed-through and PE terminals,,2.2,,"with EW-GEN-TRM-1, EW-GEN-TRM-2"
+data,8,End bracket,,EW-GEN-EB-1,End bracket for TS 35,,10,,with EW-GEN-TRM-1

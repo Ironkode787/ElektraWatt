@@ -1,2 +1,2 @@
-row,Material,OD×ID,Colour,Tube part,Pieces,Total length
-data,PU,6×4,BU,EW-GEN-TUB-6,7,length missing
+row,Part number,Description,For,Pieces,Length mm,Total m
+data,EW-GEN-TUB-6,"Tube PU 6 × 4 mm, blue",,7,length missing,

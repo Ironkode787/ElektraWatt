@@ -31,7 +31,7 @@ data,+CAB-201X3,Device,,EW-GEN-SIL-1,+CAB
 data,+CAB-UC1,Device,,EW-GEN-ENC-1,+CAB
 data,+CAB-UC1-U1,Device,,EW-GEN-PLT-1,+CAB
 data,+CAB-X1011,Device,,,+CAB
-data,+CAB-X1021,Device,,,+CAB
+data,+CAB-X1021,Device,,EW-GEN-BRG-4,+CAB
 data,+CAB-X1031,Device,,,+CAB
 data,+FLD-103M1,Device,,EW-GEN-MOT-1,+FLD
 data,+FLD-104B1,Device,,EW-GEN-POS-1,+FLD

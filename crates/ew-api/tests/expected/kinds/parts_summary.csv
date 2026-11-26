@@ -28,9 +28,10 @@ data,26,1,pc,Generic,EW-GEN-ENC-1,Wall enclosure 600 × 800 × 250 mm,-UC1,902
 data,27,1,pc,Generic,EW-GEN-PLT-1,Mounting plate 520 × 720 mm,-UC1-U1,902
 data,28,0.94,m,Generic,EW-GEN-RAIL-1,DIN rail TS 35 × 7.5,-UC1,902
 data,29,0.47,m,Generic,EW-GEN-DUCT-1,Wiring duct 40 × 60 mm,-UC1,902
-data,30,8,m,Generic,EW-GEN-CBL-2,"PROFIBUS cable, 2 cores green and red, shielded",-105W1,
-data,31,10,m,Generic,EW-GEN-CBL-17,"Cable 5G2.5 mm², cores brown, black, grey, blue and green-yellow",-101W1,
-data,32,5,m,Generic,EW-GEN-CBL-25,"Cable 4G2.5 mm², cores brown, black, grey and green-yellow, shielded",-103W1,
-data,33,0.47,m,Generic,EW-GEN-COV-40,"Duct cover, 40 mm wide",-UC1,902
-data,34,6,pc,Generic,EW-GEN-EB-1,End bracket for TS 35,"-X1011, -X1021, -X1031",902
-data,35,3,pc,Generic,EW-GEN-EP-1,End plate for 5.2 mm feed-through and PE terminals,"-X1011, -X1021, -X1031",101–103
+data,30,2,pc,Generic,EW-GEN-BRG-4,"Plug-in bridge, 4 poles, for 5.2 mm terminals",-X1021,102
+data,31,8,m,Generic,EW-GEN-CBL-2,"PROFIBUS cable, 2 cores green and red, shielded",-105W1,
+data,32,10,m,Generic,EW-GEN-CBL-17,"Cable 5G2.5 mm², cores brown, black, grey, blue and green-yellow",-101W1,
+data,33,5,m,Generic,EW-GEN-CBL-25,"Cable 4G2.5 mm², cores brown, black, grey and green-yellow, shielded",-103W1,
+data,34,0.47,m,Generic,EW-GEN-COV-40,"Duct cover, 40 mm wide",-UC1,902
+data,35,6,pc,Generic,EW-GEN-EB-1,End bracket for TS 35,"-X1011, -X1021, -X1031",902
+data,36,3,pc,Generic,EW-GEN-EP-1,End plate for 5.2 mm feed-through and PE terminals,"-X1011, -X1021, -X1031",101–103

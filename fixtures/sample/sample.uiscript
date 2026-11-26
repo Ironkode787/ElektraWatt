@@ -786,5 +786,15 @@
 {"action":"table.set","params":{"kind":"connections","column":"length","value":"450","rows":["102.8"]}}
 {"action":"table.set","params":{"kind":"connections","column":"length","value":"600","rows":["103.2"]}}
 {"action":"table.set","params":{"kind":"connections","column":"to_end","value":"ring lug","rows":["101.4"]}}
+{"action":"strip.edit","params":{"strip":"-X1021"}}
+{"action":"table.cell","params":{"kind":"strips","row":"-X1021:1","column":"bridge_part"}}
+{"action":"part.choose","params":{}}
+{"action":"part.pick","params":{"part":"EW-GEN-BRG-4"}}
+{"action":"table.cell","params":{"kind":"strips","row":"-X1021:5","column":"bridge_part"}}
+{"action":"part.choose","params":{}}
+{"action":"part.pick","params":{"part":"EW-GEN-BRG-4"}}
+{"action":"report_block.new","params":{"kind":"assembly_list","folio":"912"}}
+{"action":"report_block.new","params":{"kind":"cut_list","folio":"913"}}
+{"action":"report_block.new","params":{"kind":"consumables","folio":"914"}}
 {"action":"file.save","params":{}}
 {"action":"app.quit","params":{}}

@@ -54,5 +54,5 @@ data,104.7,-104E2,X2,-104E1,X2,0V,BU,0.75 mm²,rule/built-in,104-D4 chain on -10
 data,104.8,+CAB-104A1,L+,+FLD-104B1,13,24V,DBU,0.75 mm²,rule,"104-E2 chain on -104A1:L+, -104B1:13",,104,—,missing,twin 0.75 GY · 101.16,twin 0.75 GY · 104.4,EW-GEN-FER-2X0.75,EW-GEN-FER-2X0.75,8 mm,8 mm,+FLD-104B1: / 13,+CAB-104A1: / L+
 data,104.9,-104A1,M,-104E2,X2,0V,BU,0.75 mm²,rule/built-in,"104-D4 chain on -104A1:M, -104E2:X2",,104,—,missing,twin 0.75 GY · 101.19,twin 0.75 GY · 104.7,EW-GEN-FER-2X0.75,EW-GEN-FER-2X0.75,8 mm,8 mm,-104E2:X2,-104A1:M
 heading,Bridges,,,,,,,,,,,,,,,,,,,,,
-data,BR1,-X1021:1,,-X1021:4,,24V/102F1:2,,,,,TBD,,,,"plug-in bridge, terminals 1–4",,,,,,,
-data,BR2,-X1021:5,,-X1021:8,,0V,,,,,TBD,,,,"plug-in bridge, terminals 5–8",,,,,,,
+data,BR1,-X1021:1,,-X1021:4,,24V/102F1:2,,,,,EW-GEN-BRG-4,,,,"plug-in bridge, terminals 1–4",,,,,,,
+data,BR2,-X1021:5,,-X1021:8,,0V,,,,,EW-GEN-BRG-4,,,,"plug-in bridge, terminals 5–8",,,,,,,

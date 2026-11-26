@@ -373,7 +373,7 @@ fn new_placeholder(q: &Q, what: &str) -> ew_schema::LibCopy<ew_schema::Part> {
     copy
 }
 
-/// An `open_items` block at folio 914 paginates inside the page order with no
+/// An `open_items` block at folio 917 paginates inside the page order with no
 /// cycle; a change of the page order (a new block before it, a drawn page reorder) leaves its rows as they are; -101G1
 /// given a TBD part adds one "TBD value" row and the block's pages follow in the same snapshot.
 #[test]
@@ -383,10 +383,10 @@ fn the_open_items_block_paginates_inside_the_page_order() {
     run(
         &mut s,
         "report_block.create",
-        json!({"source": {"kind": "open_items"}, "form": form, "section": section, "first_folio": 914,
+        json!({"source": {"kind": "open_items"}, "form": form, "section": section, "first_folio": 917,
                "title": "Open Items {n}", "empty": {"one_page": "No entries"}}),
     );
-    let rows = assert_paginates(&s, "914");
+    let rows = assert_paginates(&s, "917");
     {
         let q = s.query();
         assert_eq!(rows, texts(&q, &kind_rows(&q)), "the block lists the kind's rows");
@@ -402,10 +402,10 @@ fn the_open_items_block_paginates_inside_the_page_order() {
     run(
         &mut s,
         "report_block.create",
-        json!({"source": {"kind": "device_list"}, "form": form, "section": section, "first_folio": 912,
+        json!({"source": {"kind": "device_list"}, "form": form, "section": section, "first_folio": 915,
                "title": "Device List {n}"}),
     );
-    assert_eq!(assert_paginates(&s, "914"), rows);
+    assert_eq!(assert_paginates(&s, "917"), rows);
     assert_eq!(csv(&s), csv_before);
 
     // A drawn page reorder: the same open items (rule and fingerprint), whatever tags and folios now print.
@@ -432,12 +432,12 @@ fn the_open_items_block_paginates_inside_the_page_order() {
         "page.reorder",
         json!({"pages": [moved], "before": before}),
     );
-    assert_paginates(&s, "914");
+    assert_paginates(&s, "917");
     assert_eq!(row_keys(&kind_rows(&s.query())), keys_before);
     assert_eq!(row_keys(&kind_rows(&s.query())), checked_keys(&s));
 
     // -101G1 given a new placeholder part: one more "TBD value" row, the block's pages follow.
-    let rows_before = assert_paginates(&s, "914");
+    let rows_before = assert_paginates(&s, "917");
     let copy = new_placeholder(&s.query(), "Power supply 24 V");
     let g1 = s.resolve_reference("-101G1").expect("the power supply");
     run(
@@ -446,7 +446,7 @@ fn the_open_items_block_paginates_inside_the_page_order() {
         json!({"devices": [g1], "part": copy.id,
                "copies": [serde_json::to_value(ew_schema::LibDocument::Part(copy.clone())).unwrap()]}),
     );
-    let rows_after = assert_paginates(&s, "914");
+    let rows_after = assert_paginates(&s, "917");
     let added: Vec<&Vec<String>> = rows_after.iter().filter(|r| !rows_before.contains(r)).collect();
     assert_eq!(
         added,
@@ -494,10 +494,10 @@ fn no_open_items_print_the_empty_page() {
         &mut s,
         "report_block.create",
         json!({"source": {"kind": "open_items"}, "form": nogrid["id"], "form_copies": [nogrid, title_block],
-               "first_folio": 914, "title": "Open Items {n}", "empty": {"one_page": "No entries"}}),
+               "first_folio": 917, "title": "Open Items {n}", "empty": {"one_page": "No entries"}}),
     );
     let q = s.query();
-    let pages = pages_of(&q, "914");
+    let pages = pages_of(&q, "917");
     assert_eq!(pages.len(), 1, "{pages:?}");
     let order = q.get::<PageOrder>(());
     let note = order

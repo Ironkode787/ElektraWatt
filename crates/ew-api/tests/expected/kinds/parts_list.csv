@@ -43,6 +43,8 @@ data,-X1011:L2,1,pc,Generic,EW-GEN-TRM-1,Feed-through terminal
 data,-X1011:L3,1,pc,Generic,EW-GEN-TRM-1,Feed-through terminal
 data,-X1011:N,1,pc,Generic,EW-GEN-TRM-1-BU,"Feed-through terminal, blue"
 data,-X1011:PE,1,pc,Generic,EW-GEN-TRM-2,Protective earth terminal
+data,-X1021,1,pc,Generic,EW-GEN-BRG-4,"Plug-in bridge, 4 poles, for 5.2 mm terminals"
+data,-X1021,1,pc,Generic,EW-GEN-BRG-4,"Plug-in bridge, 4 poles, for 5.2 mm terminals"
 data,-X1021,1,pc,Generic,EW-GEN-EP-1,End plate for 5.2 mm feed-through and PE terminals
 data,-X1021,2,pc,Generic,EW-GEN-EB-1,End bracket for TS 35
 data,-X1021:1,1,pc,Generic,EW-GEN-TRM-1,Feed-through terminal

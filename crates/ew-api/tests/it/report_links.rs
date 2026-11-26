@@ -310,7 +310,7 @@ fn the_toc_and_the_device_tag_overview_link_their_pages_and_devices() {
     assert_eq!(plc.iter().flat_map(|r| &r.links).count(), cp);
 }
 
-/// The and the fixture blocks (912 `device_list`, 913 `terminal_overview`, 914 `open_items`) draw the
+/// The and the fixture blocks (915 `device_list`, 916 `terminal_overview`, 917 `open_items`) draw the
 /// links: a device's tag and main-representation cell link the cell the latter prints; a strip links its main
 /// representation; an open item links its page, else its first device's main representation, else nothing. Two open
 /// items are made for it: the valve terminal's DP address left TBD (neither a page nor a device: no link) and the
@@ -321,9 +321,9 @@ fn the_fixture_blocks_draw_their_links() {
     let b = block(&s.query(), 910);
     let (form, section) = (json!(b.form), json!(b.section));
     for (kind, folio, title) in [
-        ("device_list", 912, "Device List {n}"),
-        ("terminal_overview", 913, "Terminal Overview {n}"),
-        ("open_items", 914, "Open Items {n}"),
+        ("device_list", 915, "Device List {n}"),
+        ("terminal_overview", 916, "Terminal Overview {n}"),
+        ("open_items", 917, "Open Items {n}"),
     ] {
         run(
             &mut s,
@@ -354,7 +354,7 @@ fn the_fixture_blocks_draw_their_links() {
     );
     let q = s.query();
 
-    for r in block_rows(&q, "912") {
+    for r in block_rows(&q, "915") {
         let main_rep = r.cells[5].clone();
         if main_rep.is_empty() {
             assert_eq!(r.links, [], "{}", r.cells[0]);
@@ -368,7 +368,7 @@ fn the_fixture_blocks_draw_their_links() {
         assert_eq!(targets(&s, &links), [want.clone(), want], "{}", r.cells[0]);
     }
 
-    let strips: Vec<(String, Vec<Target>)> = block_rows(&q, "913")
+    let strips: Vec<(String, Vec<Target>)> = block_rows(&q, "916")
         .iter()
         .map(|r| (r.cells[0].clone(), targets(&s, &links_of(r, 0))))
         .collect();
@@ -381,7 +381,7 @@ fn the_fixture_blocks_draw_their_links() {
         ]
     );
 
-    let items: Vec<(String, Vec<Target>)> = block_rows(&q, "914")
+    let items: Vec<(String, Vec<Target>)> = block_rows(&q, "917")
         .iter()
         .map(|r| {
             assert!(r.links.iter().all(|l| l.column == 1 && l.span.is_none()));

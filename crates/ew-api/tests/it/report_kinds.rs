@@ -476,7 +476,7 @@ fn folios_but(q: &Q, but: &[&str]) -> Vec<String> {
         .collect()
 }
 
-/// `device_list` and `terminal_overview` blocks made by `report_block.create` at folios 912 and 913
+/// `device_list` and `terminal_overview` blocks made by `report_block.create` at folios 915 and 916
 /// paginate with the house layout, no placeholder page and no overflow (no cell below the 1.8 mm floor); the TOC
 /// lists them; every other page keeps its folio and order.
 #[test]
@@ -485,8 +485,8 @@ fn the_list_kinds_paginate_on_the_house_table() {
     let before = folios_but(&s.query(), &[]);
     let (form, section) = form_of_910(&s);
     for (kind, folio, title) in [
-        ("device_list", 912, "Device List {n}"),
-        ("terminal_overview", 913, "Terminal Overview {n}"),
+        ("device_list", 915, "Device List {n}"),
+        ("terminal_overview", 916, "Terminal Overview {n}"),
     ] {
         run(
             &mut s,
@@ -496,20 +496,20 @@ fn the_list_kinds_paginate_on_the_house_table() {
         );
     }
     let q = s.query();
-    assert_eq!(folios_but(&q, &["912", "913"]), before);
+    assert_eq!(folios_but(&q, &["915", "916"]), before);
     let order = q.get::<PageOrder>(());
     let pages: Vec<(String, PageRef)> = order
         .entries
         .iter()
         .filter(|e| {
-            ["912", "913"]
+            ["915", "916"]
                 .iter()
                 .any(|b| e.folio == *b || e.folio.starts_with(&format!("{b}.")))
         })
         .map(|e| (e.folio.clone(), e.page))
         .collect();
     let folios: Vec<&str> = pages.iter().map(|(f, _)| f.as_str()).collect();
-    assert_eq!(folios, ["912", "912.1", "913"]);
+    assert_eq!(folios, ["915", "915.1", "916"]);
     let page_910 = order
         .entries
         .iter()
@@ -541,7 +541,7 @@ fn the_list_kinds_paginate_on_the_house_table() {
     let listed: Vec<String> = (0..toc.rows.len())
         .map(|i| row_texts(&q, &toc, i)[0].clone())
         .collect();
-    for folio in ["912", "912.1", "913"] {
+    for folio in ["915", "915.1", "916"] {
         assert!(
             listed.iter().any(|f| f == folio),
             "the TOC lists {folio}: {listed:?}"

@@ -18,21 +18,22 @@ drawn: EW generates them from the schematic, so they follow every change.
 2. Read the report pages in the Pages navigator, in section 9 (folios 900 to 999). They are marked generated: the
    parts list (Partlist, 901 and 901.1), the legend of the panel layout 902 (902.1 and 902.2), the terminal
    diagrams of the three terminal strips (903), the cable
-   overview and diagrams (906), the wire list, the PLC overview, the potential overview, the device tag overview and
-   the revision overview. Click one, such as 903, to see it.
+   overview and diagrams (906), the wire list, the PLC overview, the potential overview, the device tag overview,
+   the revision overview, and the workshop lists: the assembly lists (912), the cut list (913) and the consumables
+   (914). Click one, such as 903, to see it.
 3. Choose **Output ▸ Report block…** (on the Page or the Output tab: **Report**). In the form, choose the report **Parts list**,
-   keep or type the first folio `912`, type the title `Parts list`, and choose **Create**.
-   The toast says "Added the report block Parts list from folio 912". The Pages navigator lists the new pages 912 to
-   912.2: the parts list device by device, where the Partlist on 901 sums the parts up.
-4. Choose **Output ▸ Report block…** again, choose **Terminal overview**, the first folio `913` and the title
+   keep or type the first folio `915`, type the title `Parts list`, and choose **Create**.
+   The toast says "Added the report block Parts list from folio 915". The Pages navigator lists the new pages 915 to
+   915.2: the parts list device by device, where the Partlist on 901 sums the parts up.
+4. Choose **Output ▸ Report block…** again, choose **Terminal overview**, the first folio `916` and the title
    `Terminal overview`, and choose **Create**.
-   The page 913 lists every terminal strip of the project on one page.
+   The page 916 lists every terminal strip of the project on one page.
 5. Choose **Output ▸ Export PDF…** (`Ctrl+Shift+E`) and save the file as `reports.pdf`.
-   When the export is done, the toast says "Exported reports.pdf: 8 drawing pages, 3 section divider pages and 22
+   When the export is done, the toast says "Exported reports.pdf: 8 drawing pages, 3 section divider pages and 28
    report pages", with the file's size. Open the file
    from the toast to see it: one PDF/A-2b file with every page, its outline and its cross-reference links.
 6. Choose **Output ▸ Print…** (`Ctrl+P`).
-   The Print dialog shows the range, the paper and a preview of the first page: "1 of 33". Step to the next page in
+   The Print dialog shows the range, the paper and a preview of the first page: "1 of 39". Step to the next page in
    the preview to see page 2. Choose **Cancel** to close the dialog without printing.
 7. Choose **File ▸ Save** (`Ctrl+S`).
    The title bar no longer marks the project as changed.
@@ -42,7 +43,7 @@ drawn: EW generates them from the schematic, so they follow every change.
 - A report block generates report pages from the project: a parts list, terminal diagrams, a cable list and more.
   **Output ▸ Report block…** (the Output tab's **Report**) adds one, from the first folio you give: every list, a
   tube list or a PLC card list too, is made this way; a list is no page type of **New page**. Without a title of your
-  own, its pages take the report's name ("912 Tube list"). A block with nothing to list yet makes no page: its toast
+  own, its pages take the report's name ("915 Tube list"). A block with nothing to list yet makes no page: its toast
   says so and what gives it rows, such as a valve terminal for the valve-terminal configuration.
 - Report pages follow the drawing: change a device, a terminal or a cable, and its report pages change with it.
 - **Output ▸ Export PDF…** writes every page into one PDF; **Output ▸ Print…** shows each page before it prints.

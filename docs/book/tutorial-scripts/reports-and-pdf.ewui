@@ -1,9 +1,9 @@
 {"$schema":"ew.uiscript/1","label":"Tutorial 4: reports and PDF"}
 {"action":"help.tutorials","params":{"tutorial":"reports-and-pdf","dir":"reports.ew"}}
 {"action":"ui.describe"}
-{"action":"report_block.new","params":{"kind":"parts_list","folio":"912","title":"Parts list"}}
+{"action":"report_block.new","params":{"kind":"parts_list","folio":"915","title":"Parts list"}}
 {"action":"ui.describe"}
-{"action":"report_block.new","params":{"kind":"terminal_overview","folio":"913","title":"Terminal overview"}}
+{"action":"report_block.new","params":{"kind":"terminal_overview","folio":"916","title":"Terminal overview"}}
 {"action":"file.export_pdf","params":{"path":"reports.pdf"}}
 {"action":"file.print"}
 {"action":"print.page","params":{"to":"next"}}

@@ -524,6 +524,12 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
             "row level 2 page \"910\" \"Device Tag Overview 1\" generated changed \"V1.0\"",
             "row level 2 page \"910.1\" \"Device Tag Overview 2\" generated changed \"V1.0\"",
             "row level 2 page \"911\" \"Revision Overview\" generated changed \"V1.0\"",
+            "row level 2 page \"912\" \"Assembly lists\" generated changed \"V1.0\"",
+            "row level 2 page \"912.1\" \"Assembly lists\" generated changed \"V1.0\"",
+            "row level 2 page \"913\" \"Cut list\" generated changed \"V1.0\"",
+            "row level 2 page \"913.1\" \"Cut list\" generated changed \"V1.0\"",
+            "row level 2 page \"914\" \"Consumables\" generated changed \"V1.0\"",
+            "row level 2 page \"914.1\" \"Consumables\" generated changed \"V1.0\"",
         ]
     );
     // Step 1's toast, which says where the copy is (F4), and step 3's; every device of the sample has a part, so no
@@ -532,12 +538,12 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
         lines_of(&parts, &["toast"]),
         [
             "toast \"The tutorial's practice project is under Tutorials in your projects folder.\" show_folder",
-            "toast \"Added the report block Parts list from folio 912.\" undo",
+            "toast \"Added the report block Parts list from folio 915.\" undo",
         ]
     );
     assert_eq!(
         lines_of(&preview, &["dialog \"Print\"", "preview \""]),
-        ["dialog \"Print\"", "preview \"2 of 33\" page 2"]
+        ["dialog \"Print\"", "preview \"2 of 39\" page 2"]
     );
     assert_eq!(
         lines_of(&end, &["row level 2 page \"91", "title:"]),
@@ -546,17 +552,23 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
             "row level 2 page \"910\" \"Device Tag Overview 1\" generated changed \"V1.0\"",
             "row level 2 page \"910.1\" \"Device Tag Overview 2\" generated changed \"V1.0\"",
             "row level 2 page \"911\" \"Revision Overview\" generated changed \"V1.0\"",
-            "row level 2 page \"912\" \"Parts list\" generated changed \"V1.0\"",
-            "row level 2 page \"912.1\" \"Parts list\" generated changed \"V1.0\"",
-            "row level 2 page \"912.2\" \"Parts list\" generated changed \"V1.0\"",
-            "row level 2 page \"913\" \"Terminal overview\" generated changed \"V1.0\"",
+            "row level 2 page \"912\" \"Assembly lists\" generated changed \"V1.0\"",
+            "row level 2 page \"912.1\" \"Assembly lists\" generated changed \"V1.0\"",
+            "row level 2 page \"913\" \"Cut list\" generated changed \"V1.0\"",
+            "row level 2 page \"913.1\" \"Cut list\" generated changed \"V1.0\"",
+            "row level 2 page \"914\" \"Consumables\" generated changed \"V1.0\"",
+            "row level 2 page \"914.1\" \"Consumables\" generated changed \"V1.0\"",
+            "row level 2 page \"915\" \"Parts list\" generated changed \"V1.0\"",
+            "row level 2 page \"915.1\" \"Parts list\" generated changed \"V1.0\"",
+            "row level 2 page \"915.2\" \"Parts list\" generated changed \"V1.0\"",
+            "row level 2 page \"916\" \"Terminal overview\" generated changed \"V1.0\"",
         ]
     );
     let toast = lines_of(&end, &["toast \"Exported"]);
     assert!(
         toast.len() == 1
             && toast[0].starts_with(
-                "toast \"Exported reports.pdf: 8 drawing pages, 3 section divider pages and 22 report pages, "
+                "toast \"Exported reports.pdf: 8 drawing pages, 3 section divider pages and 28 report pages, "
             ),
         "{toast:?}"
     );
