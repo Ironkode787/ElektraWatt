@@ -48,6 +48,14 @@ fn a_terminals_sections_rows_and_tables_are_read_checked_and_saved() {
     for w in ["wire", "ferrule", "marker"] {
         assert!(!words.contains(&w), "{words:?}");
     }
+    // A ferrule lists its own section and none of a mounted part's.
+    let ferrule = copy_of(&s, "EW-GEN-FER-1.5");
+    let ferrule = s.part_draft(ferrule).expect("the ferrule's draft");
+    let theirs: Vec<&str> = ferrule.sections().iter().map(|x| x.word).collect();
+    assert!(theirs.contains(&"ferrule"), "{theirs:?}");
+    for w in ["pins", "size", "accessories", "variants", "wire", "marker"] {
+        assert!(!theirs.contains(&w), "{theirs:?}");
+    }
     // The accessories read as part numbers and words.
     let acc = d.table("accessories").expect("the accessories' table").clone();
     let col = |m: &str| acc.columns.iter().position(|(c, _)| *c == m).expect(m);

@@ -52,6 +52,25 @@ pub struct PartSection {
     pub rows: &'static [PartRow],
     /// Its declared table, if any.
     pub table: Option<PartTable>,
+    /// Which parts it is listed for.
+    pub shown: Shown,
+}
+
+/// Which parts the editor lists a section for ([`PartDraft::sections`]).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Shown {
+    /// Every part.
+    Always,
+    /// A part that is mounted: every kind but a cable and one a wire consumes ([`PartKind::is_consumable`]).
+    Mounted,
+    /// The kind's own section ([`PartKind::own_section`]): the section whose rows are that member's.
+    Own,
+    /// A cable.
+    Cable,
+    /// A part of one's own, a new part, or one that has bus interfaces.
+    Bus,
+    /// A device of one's own or a new one.
+    Plc,
 }
 
 const fn row(path: &'static str) -> PartRow {
@@ -65,18 +84,19 @@ const fn size(path: &'static str) -> PartRow {
     PartRow { path, positive: true }
 }
 
-const fn form(word: &'static str) -> PartSection {
+const fn form(word: &'static str, shown: Shown) -> PartSection {
     PartSection {
         word,
         rows: &[],
         table: None,
+        shown,
     }
 }
 
 /// The editor's sections in the order its list shows them.
 pub const PART_SECTIONS: &[PartSection] = &[
-    form("identity"),
-    form("technical"),
+    form("identity", Shown::Always),
+    form("technical", Shown::Always),
     PartSection {
         word: "pins",
         rows: &[],
@@ -91,6 +111,7 @@ pub const PART_SECTIONS: &[PartSection] = &[
                 "twin_ferrule",
             ],
         }),
+        shown: Shown::Mounted,
     },
     PartSection {
         word: "size",
@@ -106,6 +127,7 @@ pub const PART_SECTIONS: &[PartSection] = &[
             row("mech.clearance.right"),
         ],
         table: None,
+        shown: Shown::Mounted,
     },
     PartSection {
         word: "accessories",
@@ -115,6 +137,7 @@ pub const PART_SECTIONS: &[PartSection] = &[
             key: None,
             columns: &["part", "kind", "qty", "per", "optional"],
         }),
+        shown: Shown::Mounted,
     },
     PartSection {
         word: "variants",
@@ -124,6 +147,7 @@ pub const PART_SECTIONS: &[PartSection] = &[
             key: None,
             columns: &["key", "name", "part_number", "order_number", "type_designation"],
         }),
+        shown: Shown::Mounted,
     },
     PartSection {
         word: "wire",
@@ -133,6 +157,7 @@ pub const PART_SECTIONS: &[PartSection] = &[
             row("sections.wire.class"),
         ],
         table: None,
+        shown: Shown::Own,
     },
     PartSection {
         word: "ferrule",
@@ -146,6 +171,7 @@ pub const PART_SECTIONS: &[PartSection] = &[
             row("sections.ferrule.stud"),
         ],
         table: None,
+        shown: Shown::Own,
     },
     PartSection {
         word: "marker",
@@ -155,10 +181,11 @@ pub const PART_SECTIONS: &[PartSection] = &[
             row("sections.marker.chars"),
         ],
         table: None,
+        shown: Shown::Own,
     },
-    form("bus"),
-    form("plc"),
-    form("cable"),
+    form("bus", Shown::Bus),
+    form("plc", Shown::Plc),
+    form("cable", Shown::Cable),
 ];
 
 /// The section named `word`.
@@ -264,34 +291,36 @@ fn set_at(v: &mut Value, path: &str, value: Value) {
 }
 
 impl PartDraft {
-    /// The sections the editor lists for the draft, in [`PART_SECTIONS`]' order: a section the part's kind has not is
-    /// left out (a wire's, a ferrule's and a marker's for another kind; accessories and variants for those three;
-    /// the PLC section and the bus interfaces of a part that is not one's own and has none).
+    /// The sections the editor lists for the draft, in [`PART_SECTIONS`]' order, each as its [`Shown`] declares: the
+    /// mounted part's sections for every kind but a cable and one a wire consumes, the kind's own section (a wire's, a
+    /// ferrule's, a marker's) for that kind alone, the bus interfaces and the PLC section of a part that is not one's
+    /// own only where it has them.
     pub fn sections(&self) -> Vec<&'static PartSection> {
-        let kind = self.text("kind");
-        let consumable = matches!(kind, "wire" | "ferrule" | "marker");
+        let kind = serde_json::from_value::<PartKind>(Value::String(self.text("kind").to_owned()))
+            .unwrap_or(PartKind::Unknown(Value::Null));
+        let own = kind.own_section().map(|m| format!("sections.{m}."));
         PART_SECTIONS
             .iter()
-            .filter(|s| match s.word {
-                "pins" => !consumable && kind != "cable",
-                "size" => !consumable && kind != "cable",
-                "accessories" | "variants" => !consumable && kind != "cable",
-                "wire" | "ferrule" | "marker" => kind == s.word,
-                "bus" => self.new || self.own || !self.bus.is_empty(),
-                "plc" => (self.new || self.own) && kind == "device",
-                "cable" => kind == "cable",
-                _ => true,
+            .filter(|s| match s.shown {
+                Shown::Always => true,
+                Shown::Mounted => !kind.is_consumable() && kind != PartKind::Cable,
+                Shown::Own => own
+                    .as_ref()
+                    .is_some_and(|own| s.rows.iter().all(|r| r.path.starts_with(own.as_str()))),
+                Shown::Cable => kind == PartKind::Cable,
+                Shown::Bus => self.new || self.own || !self.bus.is_empty(),
+                Shown::Plc => (self.new || self.own) && kind == PartKind::Device,
             })
             .collect()
     }
 
-    /// Whether the rows of section `word` may be changed: a part's own sections (wire, ferrule, marker) only on a
-    /// project-local part, which `part.edit_copy` lets change them; the size on a part of one's own or a new one (a
-    /// library part's fork keeps its mechanical data); the others on any part the editor saves.
+    /// Whether the rows of section `word` may be changed: a kind's own section (a wire's, a ferrule's, a marker's)
+    /// only on a project-local part, which `part.edit_copy` lets change them; the size on a part of one's own or a new
+    /// one (a library part's fork keeps its mechanical data); the others on any part the editor saves.
     pub fn section_editable(&self, word: &str) -> bool {
-        match word {
-            "wire" | "ferrule" | "marker" => self.own && !self.fork,
-            "size" => self.own || self.new,
+        match part_section(word) {
+            Some(s) if s.shown == Shown::Own => self.own && !self.fork,
+            Some(s) if s.word == "size" => self.own || self.new,
             _ => true,
         }
     }

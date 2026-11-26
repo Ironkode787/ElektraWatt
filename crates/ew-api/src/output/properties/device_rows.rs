@@ -97,12 +97,7 @@ pub(crate) fn variant_parts(q: &Q, device: Id<Device>, text: &str) -> Result<Val
 
 /// One accessory row of a strip's Properties ([`strip_accessory_rows`]): the row's name (`accessory.<kind>`), the
 /// accessory copy the declaration names, the part counted (empty: left off) and the parts it comes with.
-pub(crate) type StripAccessoryRow = (
-    &'static str,
-    Id<ew_schema::Part>,
-    String,
-    Vec<Id<ew_schema::Part>>,
-);
+pub(crate) type StripAccessoryRow = (String, Id<ew_schema::Part>, String, Vec<Id<ew_schema::Part>>);
 
 /// The accessories of a strip its terminals' parts bring, one per kind (doc 07 §5, Properties ▸ Accessories): the
 /// row's name (`accessory.<kind>`), the accessory copy the declaration names, the part counted (empty: left off) and
@@ -111,13 +106,12 @@ pub(crate) fn strip_accessory_rows(q: &Q, strip: Id<Device>) -> Vec<StripAccesso
     let Some(device) = q.devices().get(strip) else {
         return Vec::new();
     };
+    // The row's name is the kind's own word (`end_plate`); a kind of a newer format has no row.
     let name = |kind: &Option<ew_schema::AccessoryKind>| match kind {
-        Some(ew_schema::AccessoryKind::EndPlate) => Some("accessory.end_plate"),
-        Some(ew_schema::AccessoryKind::EndClamp) => Some("accessory.end_clamp"),
-        Some(ew_schema::AccessoryKind::Partition) => Some("accessory.partition"),
-        Some(ew_schema::AccessoryKind::Marker) => Some("accessory.marker"),
-        Some(ew_schema::AccessoryKind::Cover) => Some("accessory.cover"),
-        _ => None,
+        Some(ew_schema::AccessoryKind::Unknown(_)) | None => None,
+        Some(k) => serde_json::to_value(k)
+            .ok()
+            .and_then(|v| v.as_str().map(|w| format!("accessory.{w}"))),
     };
     let number = |p: Id<ew_schema::Part>| {
         q.parts()
@@ -446,9 +440,9 @@ impl Session {
                     .collect();
                 out.push(derived(DerivedRow {
                     kind: "device",
-                    name,
+                    name: &name,
                     partner: Some((
-                        name,
+                        &name,
                         EditRoute::Command {
                             command: "fields.set".to_owned(),
                         },

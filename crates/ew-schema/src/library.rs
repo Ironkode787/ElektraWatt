@@ -1622,7 +1622,18 @@ impl PartKind {
     /// Whether a wire consumes the part (a wire, a ferrule, a marker): the consumables count it from the wires, and it
     /// is no accessory of another part (doc 07 §2.5).
     pub fn is_consumable(&self) -> bool {
-        matches!(self, PartKind::Wire | PartKind::Ferrule | PartKind::Marker)
+        self.own_section().is_some()
+    }
+
+    /// The member of [`crate::PartSections`] that is the kind's own (doc 07 §2.5 "The parts a wire consumes"): a
+    /// wire's `wire`, a ferrule's `ferrule`, a marker's `marker`; `None` for every other kind.
+    pub fn own_section(&self) -> Option<&'static str> {
+        match self {
+            PartKind::Wire => Some("wire"),
+            PartKind::Ferrule => Some("ferrule"),
+            PartKind::Marker => Some("marker"),
+            _ => None,
+        }
     }
 }
 
