@@ -351,7 +351,8 @@ Action, No., From, CP, To, CP, Colour, mm², Length, From end, To end, From mark
 prints as the release had it, every other row as it is now.
 
 **What it does not report**: a wire that only moved on a page or took another route, a new number while no marker
-changes (with destination marking a renumber needs no work), a change of source that keeps the value (a size that
+changes (with destination marking a renumber needs no work; a twin ferrule is compared by its partner wire, not by the
+partner's number), a change of source that keeps the value (a size that
 moves from the wire to the profile), a potential renamed while no marker names it. Tubes are the fluid lists'.
 
 **Where it goes.** The Rework list… dialog shows the rows and exports them as XLSX and CSV through the list's writers;
@@ -1014,6 +1015,22 @@ The panel builder of [vision](00-vision-and-scope.md) who wires his cabinets him
 workshop has **no workspace of its own**: what it needs is a list page, the Connections navigator in table mode,
 Properties, two dialogs and Messages, each where the program already puts its kind of thing. Layout details belong to
 [16](16-ux-ui.md) and [16a](16a-design-language.md).
+
+**The first job.** (1) The schematic is checked; Output ▸ Workshop ▸ Wire list opens page 907: per wire its ends,
+colour, size, length, each end's treatment (`ferrule 1.5 BK`, `twin 2.5 BU · 102.8`) and markers (`-101Q1:1`).
+(2) A ferrule he did not expect: in the Connections table the cell is grey, and the wire's Properties say why ("rule:
+fine-stranded wire, clamp kind not known"). (3) A PE wire takes a lug: the To end cell ▸ Ring lug; the cell turns to
+the text colour and Properties show "set by hand" with Reset. (4) His shop marks with wire numbers: Output ▸ Workshop
+▸ Workshop settings shows Project properties ▸ Workshop; Marker text ▸ Wire number at both ends, and the markers
+follow. (5) Three long wires get a length in the Length cell; Messages says "41 wires have no length" (info, Select
+them). (6) He prints 907. (7) Output ▸ Workshop ▸ Labels… lists one file per label set and marker part with its
+count; Export writes them ("Wrote 6 label files to Labels.", Open folder); his label program maps Text 1 once.
+
+**The tenth job.** His basic project carries the stock and the workshop settings: he prints 907 and exports the labels.
+
+**The day after.** Before delivery the list and the labels follow the change; he prints again. After a release,
+Output ▸ Workshop ▸ Rework list… compares with it ("1 device to remove, 3 wires to pull, …"); Export… gives the fitter
+the sheet, and Labels for these changes… only the new and changed labels.
 
 | Touchpoint | Behaviour |
 |---|---|
