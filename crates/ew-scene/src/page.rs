@@ -536,8 +536,6 @@ pub struct PageView {
     /// The strip tags printed at terminals drawn alone (doc 08 §6.7), drawn into
     /// [`Layer::Labels`] after the slot and pin texts.
     pub strip_tags: Vec<StripTagView>,
-    /// The function texts no slot of their symbol prints, drawn into [`Layer::Labels`] after the strip tags.
-    pub function_texts: Vec<FunctionTextView>,
     /// The boxes of the texts a line of the page runs through, which [`Layer::Wires`] cuts its lines round
     /// ([`crate::knockout`]): the labels layer's [`LayerList::knockouts`], filled by the caller; empty draws
     /// every line whole.
@@ -578,17 +576,6 @@ pub struct PartFacts {
 pub struct BridgeView {
     /// The clamps, one per terminal.
     pub clamps: Vec<(Id<Function>, u16)>,
-}
-
-/// A device's function text that no slot of the symbol of `rep` prints (a starter symbol without a function-text
-/// slot): printed at `rep` where the text placer places a path's function text (docs/design/06a-texts-window.md
-/// §5.2), in the style of a function-text slot.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct FunctionTextView {
-    /// The representation it stands at.
-    pub rep: Id<Representation>,
-    /// The device's function text.
-    pub text: String,
 }
 
 /// A strip's tag printed once on a page that shows its terminals without a segment (doc 08 §6.7): at the

@@ -43,11 +43,9 @@ stand over its tag.
 | Wire number, tube tag | along the wire: on a vertical stretch right of the line, turned to read from the bottom; on a horizontal stretch above the line. Tried on each straight stretch at least the text's length plus two steps long: first level with the number of the parallel wire beside it that is already placed, then at the middle of the longest stretch, then at its quarters, then on the other side of the line | 5 |
 | Type text of a cable mark; the cable's tag | the type left of the row of ticks, the tag right of it; both right; both left | 5 |
 
-A device's function text on a starter symbol that has no function-text slot at all is a label of each representation
-that prints the device's tag, with the places of a path's function text, in a function-text slot's style. A slot that
-is hidden, by its library or by Hide text, stays hidden and nothing prints in its place; a symbol of any other library
-(an imported element, a symbol of the person's own) prints what its author put in it; a terminal prints its function
-text as its label instead.
+A device's function text prints through its symbol's function-text slot and nowhere else: every symbol of the
+starter IEC and ISO sets has one, shown ([07a](07a-symbol-design-standard.md), "Text"); a slot hidden by Hide text
+stays hidden, and a symbol without a slot (an imported element, a symbol of the person's own) prints none.
 
 The texts of one part on one side are a block: they keep their order and stand line under line. Where tags of a
 row are wider than the row's pitch, every second one takes its "one line lower" place: two rows, as a

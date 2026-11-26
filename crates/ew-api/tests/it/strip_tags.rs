@@ -7,7 +7,7 @@
 //! the strip; `tag_print` PerPage prints a strip's tag at its first segment on each page. The sample's records, edited
 //! before the session opens: strip -X1011's terminals stand alone on 101; two segments of strip -X1031 are added on
 //! page 103 beside its terminals drawn alone. Where a segment draws its terminals' connection points: the page tables
-//! and the page's CPs of a strip drawn by its segments alone. A function text no slot prints is drawn with its symbol's texts.
+//! and the page's CPs of a strip drawn by its segments alone. A device's function text prints through its symbol's slot alone.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -489,28 +489,74 @@ fn a_strip_drawn_by_its_segments_draws_its_terminals_cps_on_both_sides() {
     }
 }
 
-/// FT-2209 (b): a function text typed in Properties is drawn. The push button -102S1's starter symbol has no
-/// function-text slot, so the text is a label of its own among its texts; the lamp -102E1's starter symbol shows its
-/// function-text slot, which prints it. Each prints it once.
+/// FT-2209 (b): a function text typed in Properties prints through its symbol's function-text slot, once, on a
+/// push button, a lamp, a coil, a motor and a breaker of the sample, which places them from the starter symbols.
 #[test]
-fn a_function_text_is_drawn_by_its_slot_or_where_a_starter_symbol_has_none() {
+fn a_typed_function_text_prints_through_its_symbol_s_slot() {
+    let devices = [
+        ("-102S1", "Start conveyor"),
+        ("-102E1", "Conveyor running"),
+        ("-102Q1", "Conveyor motor on"),
+        ("-103M1", "Conveyor drive"),
+        ("-101F1", "Control supply"),
+    ];
     let mut g = Sample::new();
-    g.set_function_text("-102S1", "Start conveyor");
-    g.set_function_text("-102E1", "Conveyor running");
-    let reps = rep_ids(&mut g, &["-102S1", "-102E1"]);
+    for (tag, text) in devices {
+        g.set_function_text(tag, text);
+    }
+    let tags: Vec<&str> = devices.iter().map(|(t, _)| *t).collect();
+    let reps = rep_ids(&mut g, &tags);
     let s = g.session();
-    let texts = texts(&s, 102);
-    for (rep, text) in reps.iter().zip(["Start conveyor", "Conveyor running"]) {
-        let printed = texts.get(rep).cloned().unwrap_or_default();
+    let pages: Vec<BTreeMap<Uuid, Vec<String>>> = [101, 102, 103].map(|n| texts(&s, n)).into();
+    for (rep, (tag, text)) in reps.iter().zip(devices) {
+        let printed: Vec<String> = pages
+            .iter()
+            .filter_map(|p| p.get(rep))
+            .flatten()
+            .cloned()
+            .collect();
         assert_eq!(
             printed.iter().filter(|t| *t == text).count(),
             1,
-            "{text}: {printed:?}"
+            "{tag} {text}: {printed:?}"
         );
     }
 }
 
-/// FT-2209 (b): a function-text slot the person hid with Hide text stays hidden, and no label prints the text in its
+/// FT-2209 (b): a project's symbol copies are its own. A project that holds the push button's copy from before the
+/// slot (a copy without a function-text slot) prints the push button's function text nowhere, as it did.
+#[test]
+fn an_older_copy_without_the_slot_prints_no_function_text() {
+    let mut g = Sample::new();
+    g.set_function_text("-102S1", "Start conveyor");
+    let button = g.rep_mut("-102S1").symbol;
+    for doc in &mut g.lib {
+        if let LibDocument::Symbol(c) = doc
+            && c.id == button
+        {
+            let at = c
+                .item
+                .text_slots
+                .iter()
+                .position(|t| t.kind == ew_schema::SlotKind::FunctionText)
+                .expect("the starter push button's function-text slot");
+            assert_eq!(
+                at + 1,
+                c.item.text_slots.len(),
+                "the slot is the last, as an appended one"
+            );
+            c.item.text_slots.pop();
+            for a in &mut c.item.arrangements {
+                a.slots.remove(&u16::try_from(at).expect("a slot index"));
+            }
+        }
+    }
+    let s = g.session();
+    let printed: Vec<String> = texts(&s, 102).into_values().flatten().collect();
+    assert!(!printed.iter().any(|t| t == "Start conveyor"), "{printed:?}");
+}
+
+/// FT-2209 (b): a function-text slot the person hid with Hide text stays hidden, and nothing prints the text in its
 /// place: the lamp -102E1's slot hidden, its function text prints nowhere on the page.
 #[test]
 fn a_hidden_function_text_stays_hidden() {
