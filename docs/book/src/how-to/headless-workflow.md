@@ -189,14 +189,14 @@ export written to out/wires.csv
 Open `out/wires.csv` in a text editor or a spreadsheet. It starts like this:
 
 ```text
-row,No.,From,CP,To,CP,Potential,Colour,mm²,Source,Via,Wire part,Pages,Length,Length from,From end,To end,From part,To part,From strip length,To strip length,From marker,To marker
-data,-101W1 BN,ext. L1,,-X1011:L1,b,L1,BN,2.5 mm²,core,,,101,cable,cable,—,ferrule 2.5 BU,,EW-GEN-FER-2.5,,10 mm,,
-data,-101W1 BK,ext. L2,,-X1011:L2,b,L2,BK,2.5 mm²,core,,,101,cable,cable,—,ferrule 2.5 BU,,EW-GEN-FER-2.5,,10 mm,,
-data,-101W1 GY,ext. L3,,-X1011:L3,b,L3,GY,2.5 mm²,core,,,101,cable,cable,—,ferrule 2.5 BU,,EW-GEN-FER-2.5,,10 mm,,
-data,-101W1 GNYE,ext. PE,,-X1011:PE,b,PE,GNYE,2.5 mm²,core,,,101,cable,cable,—,ferrule 2.5 BU,,EW-GEN-FER-2.5,,10 mm,,
-data,-101W1 BU,ext. N,,-X1011:N,b,N,BU,2.5 mm²,core,,,101,cable,cable,—,ferrule 2.5 BU,,EW-GEN-FER-2.5,,10 mm,,
-data,101.1,-X1011:L1,a,-101Q1,1,L1,BK,1.5 mm²,rule,,,101,400 mm,typed,ferrule 1.5 BK,ferrule 1.5 BK,EW-GEN-FER-1.5,EW-GEN-FER-1.5,8 mm,8 mm,-101Q1:1,-X1011:L1
-data,101.2,-X1011:L2,a,-101Q1,3,L2,BK,1.5 mm²,rule,,,101,190 mm,routed,ferrule 1.5 BK,ferrule 1.5 BK,EW-GEN-FER-1.5,EW-GEN-FER-1.5,8 mm,8 mm,-101Q1:3,-X1011:L2
+row,No.,From,CP,To,CP,Potential,Colour,mm²,Source,Via,Wire part,Pages,Length mm,Length from,From end,To end,From part,To part,From strip length mm,To strip length mm,From marker,To marker
+data,-101W1 BN,ext. L1,,-X1011:L1,b,L1,BN,2.5,core,,,101,cable,cable,—,ferrule 2.5 BU,,EW-GEN-FER-2.5,,10,,
+data,-101W1 BK,ext. L2,,-X1011:L2,b,L2,BK,2.5,core,,,101,cable,cable,—,ferrule 2.5 BU,,EW-GEN-FER-2.5,,10,,
+data,-101W1 GY,ext. L3,,-X1011:L3,b,L3,GY,2.5,core,,,101,cable,cable,—,ferrule 2.5 BU,,EW-GEN-FER-2.5,,10,,
+data,-101W1 GNYE,ext. PE,,-X1011:PE,b,PE,GNYE,2.5,core,,,101,cable,cable,—,ferrule 2.5 BU,,EW-GEN-FER-2.5,,10,,
+data,-101W1 BU,ext. N,,-X1011:N,b,N,BU,2.5,core,,,101,cable,cable,—,ferrule 2.5 BU,,EW-GEN-FER-2.5,,10,,
+data,101.1,-X1011:L1,a,-101Q1,1,L1,BK,1.5,rule,,,101,400,typed,ferrule 1.5 BK,ferrule 1.5 BK,EW-GEN-FER-1.5,EW-GEN-FER-1.5,8,8,-101Q1:1,-X1011:L1
+data,101.2,-X1011:L2,a,-101Q1,3,L2,BK,1.5,rule,,,101,190,routed,ferrule 1.5 BK,ferrule 1.5 BK,EW-GEN-FER-1.5,EW-GEN-FER-1.5,8,8,-101Q1:3,-X1011:L2
 ```
 
 The cores of the supply cable `-101W1` come first: each is cut with its cable, so its length says `cable`, and the
