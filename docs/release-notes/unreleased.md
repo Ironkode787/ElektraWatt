@@ -23,6 +23,17 @@ change here.
 - behaviour-change: `part.edit_copy` takes a change of any member of a part; it refused the mechanical data, the
   contacts, the sections of a library copy's fork and the free properties (doc 07 §5.4)
 - text-change: the guide's reference gains the page Parts ▸ Fields, every field of a part with what reads it
+- behaviour-change: Parts is a screen of its own (Project ▸ Parts, `F9`; doc 07 §5) and replaces the part editor
+  dialog: the list of the project's, your own and the libraries' parts with its scopes and filters, the open part's
+  sheet with its groups one under another (two columns at 2560 × 1440), how it is drawn and its front beside it, and
+  Ready for, what the program's features still lack of it. Edit part…, New part…, New cable type…, New bus cable…,
+  New plug… and a station's New part… open it; Back (or Escape) returns. A starter part is never changed: Make my own
+  from it; a part only in this project has Keep in my parts; Remove… takes a part out of My parts or of the project.
+  The tick "Also add to my parts library" goes: a part you make is in My parts
+- api-break: the window's part actions are `parts.open`, `parts.find`, `parts.new`, `parts.field`, `parts.row`,
+  `parts.outline`, `parts.save`, `parts.discard`, `parts.own`, `parts.keep`, `parts.remove` and `parts.back`;
+  `part.edit`, `part.new`, `part.field`, `part.save`, `part.section`, `part.table_row`, `part.bus_row`,
+  `part.outline_import`, `part.outline_remove`, `part.delete` and `part.remove_own` go
 - behaviour-change: a wire that ends open, or outside the project, at an interruption point across its pair, with a
   chain or a star behind the pair, shows and takes its ends set by hand at its clamps and keeps them through a change
   of the wiring; they read as the rule's and went at the next change (doc 13 §2.3)

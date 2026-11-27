@@ -114,10 +114,10 @@ impl Session {
 
     /// The part of the open sheet as its texts give it now, else as it was opened.
     pub fn sheet_part(&self, sheet: &PartSheet) -> Part {
-        if sheet.new || sheet.own {
-            if let Ok(p) = self.sectioned_item(sheet) {
-                return p;
-            }
+        if (sheet.new || sheet.own)
+            && let Ok(p) = self.sectioned_item(sheet)
+        {
+            return p;
         }
         self.draft_part(sheet)
             .map(|(p, _)| p)
@@ -218,7 +218,8 @@ impl Session {
             .find(|l| l.id == lib)
             .map(|l| l.name)
             .unwrap_or_default();
-        let failed = |e: String| PartDraftError::Field(message("part", key!("error-part-library"), &[&name, &e]));
+        let failed =
+            |e: String| PartDraftError::Field(message("part", key!("error-part-library"), &[&name, &e]));
         let maker = ew_derive::manufacturer_name(&self.query(), &held.item.manufacturer);
         let mine: Vec<Part> = self
             .libraries()

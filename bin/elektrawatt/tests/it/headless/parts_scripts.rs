@@ -15,7 +15,6 @@
 use std::path::Path;
 use std::process::{Command, Output, Stdio};
 
-use ew_testkit::library::starter_version;
 use ew_viewmodel::ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 
@@ -268,7 +267,10 @@ pub(crate) fn ps7_the_own_part_script_is_deterministic_and_replays_case(twice: b
             ("part.pick", json!({"part": "EW-GEN-MCB-2"})),
             ("parts.open", json!({})),
             ("parts.own", json!({})),
-            ("parts.field", json!({"field": "manufacturer", "value": "Example"})),
+            (
+                "parts.field",
+                json!({"field": "manufacturer", "value": "Example"}),
+            ),
             ("parts.field", json!({"field": "part_number", "value": "MCB-OWN"})),
             (
                 "parts.field",
@@ -282,7 +284,10 @@ pub(crate) fn ps7_the_own_part_script_is_deterministic_and_replays_case(twice: b
     });
     assert_eq!(commands, 2, "the choice and the part made");
     let d = describe(&lines[11]);
-    assert!(d.lines().any(|l| l.trim_start().starts_with("open \"MCB-OWN\"")), "{d}");
+    assert!(
+        d.lines().any(|l| l.trim_start().starts_with("open \"MCB-OWN\"")),
+        "{d}"
+    );
     assert!(has_line(d, "field \"Description\" \"MCB 1P+N C4\""), "{d}");
 }
 

@@ -20,7 +20,7 @@ use serde_json::{Map, Value};
 use crate::Session;
 use crate::library::ItemQuery;
 use crate::output::{FieldType, InputError, format_field_value};
-use crate::part_editor::{DraftMessage, PartSheet, PartDraftError, message};
+use crate::part_editor::{DraftMessage, PartDraftError, PartSheet, message};
 use crate::part_offers::lib_ref;
 
 /// The cell of a table's hole that holds its kind ([`DraftTable::hole`]).

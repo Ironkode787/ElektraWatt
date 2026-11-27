@@ -149,6 +149,12 @@ fn smoke_script(dir: &Path, png: &Path, pdf: &Path) -> String {
             "command.run",
             json!({"cmd": "page.create", "params": {"number": 999, "title": "Smoke"}}),
         ),
+        // Parts: a starter part of the project opened, made one's own, a field typed, and left without it.
+        ("parts.open", json!({"part": "EW-GEN-MCB-1"})),
+        ("parts.own", json!({})),
+        ("parts.field", json!({"field": "part_number", "value": "SMOKE-1"})),
+        ("parts.discard", json!({})),
+        ("parts.back", json!({})),
         ("file.save", json!({})),
         ("file.close", json!({})),
         ("file.open", json!({ "dir": dir })),
@@ -182,14 +188,14 @@ fn the_smoke_script_runs_on_the_sample() {
     assert_eq!(lines[0]["$schema"], "ew.uitranscript/1");
     assert_eq!(lines[0]["version"], env!("CARGO_PKG_VERSION"));
     let steps = &lines[1..];
-    assert_eq!(steps.len(), 10);
+    assert_eq!(steps.len(), 15);
     for (i, step) in steps.iter().enumerate() {
         assert_eq!(step["step"], i + 1);
         assert_eq!(step["outcome"], "done", "{step}");
         assert_eq!(step["reason"], Value::Null);
         assert_eq!(step["message"], Value::Null);
     }
-    // The states: open, goto, snapshot, export, edit, save, close, reopen.
+    // The states: open, goto, snapshot, export, edit, Parts (five steps, nothing kept), save, close, reopen.
     let state = |i: usize| &steps[i]["state"];
     assert_eq!(state(0)["project"], "sample.ew");
     assert_eq!(state(0)["title"], "sample.ew - ElektraWatt");
@@ -208,15 +214,16 @@ fn the_smoke_script_runs_on_the_sample() {
     assert_eq!(state(4)["can_undo"], true);
     assert_eq!(state(4)["page_count"].as_u64().unwrap(), count + 1);
     assert!(state(4)["title"].as_str().unwrap().starts_with('*'));
-    assert_eq!(state(5)["dirty"], false);
-    assert_eq!(state(6)["project"], Value::Null);
-    assert_eq!(state(6)["title"], "ElektraWatt");
+    assert_eq!(state(9)["page_count"].as_u64().unwrap(), count + 1);
+    assert_eq!(state(10)["dirty"], false);
+    assert_eq!(state(11)["project"], Value::Null);
+    assert_eq!(state(11)["title"], "ElektraWatt");
     // The canvas member: the page on show, null without a project.
     assert_eq!(state(1)["canvas"]["folio"], "103");
     assert_eq!(state(1)["canvas"]["backend"], "CPU");
-    assert_eq!(state(6)["canvas"], Value::Null);
-    assert_eq!(state(7)["page_count"].as_u64().unwrap(), count + 1);
-    let describe = steps[8]["describe"].as_str().unwrap();
+    assert_eq!(state(11)["canvas"], Value::Null);
+    assert_eq!(state(12)["page_count"].as_u64().unwrap(), count + 1);
+    let describe = steps[13]["describe"].as_str().unwrap();
     assert!(
         describe.contains("page \"999\""),
         "the new page is in the page list"

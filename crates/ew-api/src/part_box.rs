@@ -23,7 +23,7 @@ use ew_schema::{BoxCp, CpData, Part, PotentialType, Representation, TemplateFn};
 pub use ew_schema::{Dir4, PartBox, PartBoxPin};
 use ew_units::{Grid, Nm, Pt2};
 
-use crate::part_editor::{PartSheet, PartDraftError, enum_words, message};
+use crate::part_editor::{PartDraftError, PartSheet, enum_words, message};
 use crate::{AnyCommand, Session};
 
 /// The connection grid's step the device box is edited on, in nanometres: the native 4 mm.

@@ -15,9 +15,7 @@
 //! card's changed members in words, the presets of a new station's part and a new plug's description.
 
 use ew_api::output::{NavKind, Uuid};
-use ew_api::{
-    ApiError, AssignMode, Fit, OfferView, PartDraftError, PartOffer, PartOfferQuery, PartTarget,
-};
+use ew_api::{ApiError, AssignMode, Fit, OfferView, PartDraftError, PartOffer, PartOfferQuery, PartTarget};
 use serde_json::{Map, Value};
 
 use super::{Dialog, Outcome, ShellModel, failed, flag, string_param};

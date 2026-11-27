@@ -1150,7 +1150,6 @@ dependencies = [
  "ew-render2d",
  "ew-scene",
  "ew-testdir",
- "ew-testkit",
  "ew-ui",
  "ew-units",
  "ew-viewmodel",

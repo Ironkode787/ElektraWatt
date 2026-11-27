@@ -178,7 +178,7 @@ fn each_glossary_term_finds_its_action() {
         ("element", Some("tool.place")),
         ("function", Some("tool.place")),
         ("device", Some("tool.place_part")),
-        ("part", Some("tool.place_part")),
+        ("part", Some("parts.open")),
         // Terms with no action (the glossary keeps their rows; the palette has nothing to run).
         ("update reports", None),
         ("potential definition point", None),

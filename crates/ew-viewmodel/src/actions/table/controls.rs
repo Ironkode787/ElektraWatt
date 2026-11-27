@@ -899,58 +899,118 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         placed(
             place(Group::Parts, 0, CommandSize::Large, Some(key!("bar-parts"))),
             "packages",
-            act("parts.open", View, Menu::Edit, &["F9"], writable, slot(Menu::Edit), |s, p| {
-                s.act_parts_open(p)
-            }),
+            act(
+                "parts.open",
+                View,
+                Menu::Edit,
+                &["F9"],
+                writable,
+                slot(Menu::Edit),
+                |s, p| s.act_parts_open(p),
+            ),
         ),
     ),
     with_params(
         "text?:text, scope?:enum(all|project|mine), kind?:text, lacking?:bool",
-        hidden(act("parts.find", View, Menu::Edit, &[], parts_shown, None, |s, p| {
-            s.act_parts_find(p)
-        })),
+        hidden(act(
+            "parts.find",
+            View,
+            Menu::Edit,
+            &[],
+            parts_shown,
+            None,
+            |s, p| s.act_parts_find(p),
+        )),
     ),
     // New part… in Edit and in the place's bar; New part… of the part dialog and the device browser, New cable type… and
     // a bus line's New bus cable… and New plug…, and New station…'s split on the PLC tab.
     with_params(
         "kind?:text, from?:text, symbol?:text, plc?:text, cable?:bool, bus?:text, plug?:bool, field?:text",
-        act("parts.new", View, Menu::Edit, &[], writable, slot(Menu::Edit), |s, p| {
-            s.act_parts_new(p)
-        }),
+        act(
+            "parts.new",
+            View,
+            Menu::Edit,
+            &[],
+            writable,
+            slot(Menu::Edit),
+            |s, p| s.act_parts_new(p),
+        ),
     ),
     with_params(
         "field:text, value:text",
-        hidden(act("parts.field", View, Menu::Edit, &[], part_editable, None, |s, p| {
-            s.act_parts_field(p)
-        })),
+        hidden(act(
+            "parts.field",
+            View,
+            Menu::Edit,
+            &[],
+            part_editable,
+            None,
+            |s, p| s.act_parts_field(p),
+        )),
     ),
     with_params(
         "table:text, remove?:uint",
-        hidden(act("parts.row", View, Menu::Edit, &[], part_editable, None, |s, p| {
-            s.act_parts_row(p)
-        })),
+        hidden(act(
+            "parts.row",
+            View,
+            Menu::Edit,
+            &[],
+            part_editable,
+            None,
+            |s, p| s.act_parts_row(p),
+        )),
     ),
     with_params(
         "path?:path",
-        hidden(act("parts.outline", View, Menu::Edit, &[], part_editable, None, |s, p| {
-            s.act_parts_outline(p)
-        })),
+        hidden(act(
+            "parts.outline",
+            View,
+            Menu::Edit,
+            &[],
+            part_editable,
+            None,
+            |s, p| s.act_parts_outline(p),
+        )),
     ),
     with_params(
         "another?:bool",
-        hidden(act("parts.save", Command, Menu::Edit, &[], part_savable, None, |s, p| {
-            s.act_parts_save(p)
-        })),
+        hidden(act(
+            "parts.save",
+            Command,
+            Menu::Edit,
+            &[],
+            part_savable,
+            None,
+            |s, p| s.act_parts_save(p),
+        )),
     ),
-    hidden(act("parts.discard", View, Menu::Edit, &[], part_changed, None, |s, _| {
-        s.act_parts_discard()
-    })),
-    hidden(act("parts.own", View, Menu::Edit, &[], part_not_mine, None, |s, _| {
-        s.act_parts_own()
-    })),
-    hidden(act("parts.keep", Command, Menu::Edit, &[], part_only_here, None, |s, _| {
-        s.act_parts_keep()
-    })),
+    hidden(act(
+        "parts.discard",
+        View,
+        Menu::Edit,
+        &[],
+        part_changed,
+        None,
+        |s, _| s.act_parts_discard(),
+    )),
+    hidden(act(
+        "parts.own",
+        View,
+        Menu::Edit,
+        &[],
+        part_not_mine,
+        None,
+        |s, _| s.act_parts_own(),
+    )),
+    hidden(act(
+        "parts.keep",
+        Command,
+        Menu::Edit,
+        &[],
+        part_only_here,
+        None,
+        |s, _| s.act_parts_keep(),
+    )),
     // Remove…: a part of My parts taken out of it, confirmed; a part only in this project taken out of it.
     with_params(
         "confirm?:bool",
@@ -964,9 +1024,15 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_parts_remove(p),
         ),
     ),
-    hidden(act("parts.back", View, Menu::Edit, &[], parts_shown, None, |s, _| {
-        s.act_parts_back()
-    })),
+    hidden(act(
+        "parts.back",
+        View,
+        Menu::Edit,
+        &[],
+        parts_shown,
+        None,
+        |s, _| s.act_parts_back(),
+    )),
     // The device box (doc 07 §2.5): a part's pins and where they stand on its box, edited on the symbol
     // editor's screen.
     with_params(

@@ -2017,7 +2017,11 @@ fn part_choose_lines(
 /// The lines of Parts: its list's query and rows, then the open part's where it lives, its fields, its tables and
 /// forms.
 fn parts_lines(place: &crate::shell::parts_place::PartsPlace, lines: &mut Vec<String>) {
-    lines.push(format!("parts \"{}\" scope {}", user(&place.query), place.scope.word()));
+    lines.push(format!(
+        "parts \"{}\" scope {}",
+        user(&place.query),
+        place.scope.word()
+    ));
     if let Some(strip) = place.strip() {
         lines.push(format!("  strip \"{}\"", user(&strip)));
     }

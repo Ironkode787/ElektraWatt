@@ -1353,7 +1353,9 @@ pub(super) fn part_removable(m: &ShellModel) -> Result<(), Text> {
         ew_api::parts::Lives::OnlyHere if open.sheet.users == 0 => Ok(()),
         ew_api::parts::Lives::OnlyHere => Err(strings::keyed(
             key!("reason-part-remove-used"),
-            vec![ew_api::TextArg::Number(i64::try_from(open.sheet.users).unwrap_or(i64::MAX))],
+            vec![ew_api::TextArg::Number(
+                i64::try_from(open.sheet.users).unwrap_or(i64::MAX),
+            )],
         )),
         _ => Err(key!("reason-part-not-own").into()),
     }

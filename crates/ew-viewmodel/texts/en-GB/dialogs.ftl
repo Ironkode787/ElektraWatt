@@ -60,12 +60,10 @@ dialog-purge = Purge
 save-macro-title = Save as macro
 dialog-save-macro = Save to library
 dialog-part-choose-title = Choose a part for { $p0 }
-dialog-part-edit-title = Edit part { $p0 }
 
 # The lane's own additions beside §9.5 (proposed): the dialogs' targets and buttons, the kind, category and
 # value messages, the detail line and the favourite of a project-local part.
 dialog-part-choose-button = Choose
-dialog-part-new-title = New part
 confirm-part-remove-title = Remove { $p0 } from your parts library?
 confirm-part-remove-text = The next projects no longer offer it, and undo does not bring it back; a project that uses it keeps its copy.
 dialog-remove = Remove
@@ -126,15 +124,12 @@ save-template-default-name = { $p0 } template
 save-template-failed = The template could not be written: { $p0 }
 new-project-other-change = Choose another…
 # New cable type… (a cable part's small form) and the cable section of a cable part.
-dialog-cable-type-new-title = New cable type
 prompt-open-font-title = Choose a font file for the Standard typeface
 prompt-open-outline-title = Choose a DXF drawing of the part's front
 new-project-folder-new = This folder is not there yet: Create makes it.
 new-project-folder-file = A file of that name is in the folder's way: type another folder, or choose one with Browse….
 new-project-folder-no-drive = That drive is not there: type a folder on a drive this computer has, or choose one with Browse….
 edit-section-title = Edit section
-dialog-bus-cable-new-title = New bus cable
-dialog-bus-plug-new-title = New bus plug
 form-field-new-title = New field of your own
 dialog-create-field = Create field
 form-field-name = Name

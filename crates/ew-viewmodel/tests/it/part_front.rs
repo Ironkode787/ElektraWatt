@@ -86,11 +86,7 @@ fn a_part_of_my_parts_changes_its_front_view_and_holes() {
     );
     let dxf = tmp.0.join("front.dxf");
     std::fs::write(&dxf, SQUARE_DXF).unwrap();
-    done(
-        &mut s,
-        "parts.outline",
-        json!({"path": dxf.to_string_lossy()}),
-    );
+    done(&mut s, "parts.outline", json!({"path": dxf.to_string_lossy()}));
     done(&mut s, "parts.save", json!({}));
     done(&mut s, "preview.apply", json!({}));
     let (holes, lines) = front_of(&mut s);
@@ -103,7 +99,11 @@ fn a_part_of_my_parts_changes_its_front_view_and_holes() {
     );
     assert_eq!(lines, 1);
     // Remove: the front is drawn by its shape again.
-    done(&mut s, "parts.field", json!({"field": "mech.front_2d", "value": ""}));
+    done(
+        &mut s,
+        "parts.field",
+        json!({"field": "mech.front_2d", "value": ""}),
+    );
     done(&mut s, "parts.save", json!({}));
     done(&mut s, "preview.apply", json!({}));
     let (_, lines) = front_of(&mut s);

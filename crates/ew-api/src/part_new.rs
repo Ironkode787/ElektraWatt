@@ -25,7 +25,7 @@ use ew_mltext::Ident;
 use ew_schema::{Kind, LibCopy, LibDocument, LibRef, Manufacturer, Part, Sha256, TemplateFn};
 use serde_json::{Value, json};
 
-use crate::part_editor::{BusRow, PartSheet, PartDraftError, bus_section, message};
+use crate::part_editor::{BusRow, PartDraftError, PartSheet, bus_section, message};
 use crate::{AnyCommand, Session};
 
 /// What saving a new part does: the command that brings it into the project and the library it was added to.
@@ -317,7 +317,12 @@ impl Session {
     }
 
     /// The part `number` of manufacturer `maker` among `parts` (part number and name compared without regard to case).
-    pub(crate) fn same_part<'a>(&self, parts: impl IntoIterator<Item = &'a Part>, number: &str, maker: &str) -> bool {
+    pub(crate) fn same_part<'a>(
+        &self,
+        parts: impl IntoIterator<Item = &'a Part>,
+        number: &str,
+        maker: &str,
+    ) -> bool {
         let q = self.query();
         parts.into_iter().any(|p| {
             p.part_number.as_str().eq_ignore_ascii_case(number)
@@ -465,7 +470,11 @@ impl Session {
         if item == draft.original {
             return Err(PartDraftError::Refused(key!("reason-part-unchanged")));
         }
-        let held = self.query().parts().get(Id::from_uuid(draft.copy)).map(|c| (**c).clone());
+        let held = self
+            .query()
+            .parts()
+            .get(Id::from_uuid(draft.copy))
+            .map(|c| (**c).clone());
         let in_project = held.is_some();
         let held = match (held, draft.source) {
             (Some(h), _) => h,

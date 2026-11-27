@@ -762,11 +762,15 @@ fn a_module_drawn_from_the_station_view_is_one_row_of_pins_along_one_edge() {
 fn new_part_from_the_rack_starts_as_what_was_asked() {
     let tmp = Tmp::new();
     let mut h = new_project(&tmp);
-    let draft_text =
-        |h: &egui_kittest::Harness<'static, ew_ui::app::App>, field: &str| match h.state().shell().parts_place().and_then(|p| p.sheet.as_ref()) {
-            Some(e) => e.sheet.text(field).to_owned(),
-            None => panic!("a part open in Parts"),
-        };
+    let draft_text = |h: &egui_kittest::Harness<'static, ew_ui::app::App>, field: &str| match h
+        .state()
+        .shell()
+        .parts_place()
+        .and_then(|p| p.sheet.as_ref())
+    {
+        Some(e) => e.sheet.text(field).to_owned(),
+        None => panic!("a part open in Parts"),
+    };
     dispatch(&mut h, "plc.new_station", json!({}));
     dispatch(&mut h, "plc.rack_set", json!({"kind": "remote"}));
     dispatch(&mut h, "plc.rack_select", json!({"head": true}));

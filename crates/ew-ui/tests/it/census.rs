@@ -483,7 +483,10 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             for (action, params) in [
                 ("file.open", json!({ "dir": dir.to_string_lossy() })),
                 ("parts.new", json!({})),
-                ("parts.field", json!({"field": "manufacturer", "value": "Example"})),
+                (
+                    "parts.field",
+                    json!({"field": "manufacturer", "value": "Example"}),
+                ),
                 ("parts.field", json!({"field": "part_number", "value": "SW-6"})),
                 ("parts.save", json!({})),
                 ("parts.open", json!({"part": "SW-6"})),

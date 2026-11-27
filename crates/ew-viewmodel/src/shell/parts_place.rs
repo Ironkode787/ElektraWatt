@@ -18,8 +18,8 @@ use ew_api::{OfferView, PartDraftError, PartOfferQuery, PartPick, PartSheet};
 use serde_json::{Map, Value};
 
 use super::part_dialog::{
-    BusPart, PLC_PRESETS, PartChooser, card_fields, draft_refusal, matches_text, plc_preset, plug_description,
-    preset_bus,
+    BusPart, PLC_PRESETS, PartChooser, card_fields, draft_refusal, matches_text, plc_preset,
+    plug_description, preset_bus,
 };
 use crate::key;
 use crate::properties::{CardOrigin, PartCard};
@@ -137,7 +137,10 @@ impl PartsPlace {
         match &self.origin {
             Origin::Project | Origin::Station | Origin::Browser => None,
             Origin::Chooser(c) => Some(strings::format(key!("parts-strip-choosing"), &[&c.target_text])),
-            Origin::Form(f) => Some(strings::format(key!("parts-strip-form"), &[strings::text(f.title_key)])),
+            Origin::Form(f) => Some(strings::format(
+                key!("parts-strip-form"),
+                &[strings::text(f.title_key)],
+            )),
         }
     }
 
@@ -256,7 +259,9 @@ impl ShellModel {
         }
         let origin = match self.dialog.take() {
             Some(Dialog::PartChoose(c)) => Origin::Chooser(c),
-            Some(Dialog::Form(f)) if super::cables::chooses_cable_type(&f) || f.action == super::cables::BUS_CABLE => {
+            Some(Dialog::Form(f))
+                if super::cables::chooses_cable_type(&f) || f.action == super::cables::BUS_CABLE =>
+            {
                 Origin::Form(Box::new(f))
             }
             other => {
@@ -1107,7 +1112,10 @@ impl ShellModel {
 impl ShellModel {
     /// The schematic picture of the open sheet's part as its texts give it now (doc 07 §5.6): its pieces drawn by
     /// their functions' symbols.
-    pub fn part_schematic(&self, sheet: &PartSheet) -> Option<(ew_dl::DisplayList, (ew_units::Nm, ew_units::Nm))> {
+    pub fn part_schematic(
+        &self,
+        sheet: &PartSheet,
+    ) -> Option<(ew_dl::DisplayList, (ew_units::Nm, ew_units::Nm))> {
         let session = &self.project.as_ref()?.session;
         session.part_schematic(&session.sheet_part(sheet))
     }

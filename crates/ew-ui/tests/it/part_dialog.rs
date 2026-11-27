@@ -126,7 +126,13 @@ fn the_part_editor_by_keyboard() {
     dispatch(&mut h, "parts.open", json!({}));
     settle(&mut h);
     settle(&mut h);
-    assert!(h.state().shell().parts_place().and_then(|p| p.sheet.as_ref()).is_some());
+    assert!(
+        h.state()
+            .shell()
+            .parts_place()
+            .and_then(|p| p.sheet.as_ref())
+            .is_some()
+    );
     // The starter part is made the person's own, where its fields are typed into.
     dispatch(&mut h, "parts.own", json!({}));
     settle(&mut h);

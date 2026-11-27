@@ -9,8 +9,8 @@
 
 use egui::{Key, RichText, ScrollArea, Sense, TextEdit, Ui, UiBuilder, pos2, vec2};
 use ew_viewmodel::command_bar::{ButtonKind, CommandButton, CommandSize};
-use ew_viewmodel::ew_api::part_fields::Group;
 use ew_viewmodel::ew_api::output::Uuid;
+use ew_viewmodel::ew_api::part_fields::Group;
 use ew_viewmodel::ew_api::parts::{Lives, PartFound, PartScope};
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::shell::parts_place::{OpenSheet, PartsPlace, lives_word};
@@ -90,7 +90,16 @@ pub(crate) fn toolbar(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) 
     let open = place.sheet.as_ref();
     let push = |events: &mut Vec<Event>, id: &'static str| events.push(Event::Action(id, json!({})));
     ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-        if place_command(ui, "parts.back", place.back_label(), "arrow-left", CommandSize::Large, None).clicked() {
+        if place_command(
+            ui,
+            "parts.back",
+            place.back_label(),
+            "arrow-left",
+            CommandSize::Large,
+            None,
+        )
+        .clicked()
+        {
             push(events, "parts.back");
         }
         bar_divider(ui);
@@ -129,7 +138,16 @@ pub(crate) fn toolbar(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) 
             ("parts.keep", key!("parts-keep"), "folder-plus"),
             ("parts.remove", key!("parts-remove"), "trash"),
         ] {
-            if place_command(ui, id, strings::text(key), icon, CommandSize::Large, refusal(shell, id)).clicked() {
+            if place_command(
+                ui,
+                id,
+                strings::text(key),
+                icon,
+                CommandSize::Large,
+                refusal(shell, id),
+            )
+            .clicked()
+            {
                 push(events, id);
             }
         }
@@ -185,20 +203,30 @@ impl PlaceView {
         let t = theme::current(ui.ctx());
         let wide = usize::from(ui.ctx().content_rect().width() >= WIDE);
         let full = ui.available_rect_before_wrap();
-        ui.painter().rect_filled(full, theme::SQUARE, t.canvas_surround.color32());
+        ui.painter()
+            .rect_filled(full, theme::SQUARE, t.canvas_surround.color32());
         let list = egui::Rect::from_min_size(full.min, vec2(LIST_WIDTH[wide], full.height()));
-        let pictures = egui::Rect::from_min_max(
-            pos2(full.right() - PICTURES_WIDTH[wide], full.top()),
-            full.max,
+        let pictures =
+            egui::Rect::from_min_max(pos2(full.right() - PICTURES_WIDTH[wide], full.top()), full.max);
+        let middle = egui::Rect::from_min_max(
+            pos2(list.right(), full.top()),
+            pos2(pictures.left(), full.bottom()),
         );
-        let middle = egui::Rect::from_min_max(pos2(list.right(), full.top()), pos2(pictures.left(), full.bottom()));
-        ui.scope_builder(UiBuilder::new().max_rect(list), |ui| list_column(ui, place, events));
-        ui.scope_builder(UiBuilder::new().max_rect(middle.shrink2(vec2(t.space_4, t.space_3))), |ui| {
-            self.sheet_column(ui, shell, place, wide == 1, events);
+        ui.scope_builder(UiBuilder::new().max_rect(list), |ui| {
+            list_column(ui, place, events)
         });
-        ui.scope_builder(UiBuilder::new().max_rect(pictures.shrink2(vec2(t.space_3, t.space_3))), |ui| {
-            pictures_column(ui, shell, place, events);
-        });
+        ui.scope_builder(
+            UiBuilder::new().max_rect(middle.shrink2(vec2(t.space_4, t.space_3))),
+            |ui| {
+                self.sheet_column(ui, shell, place, wide == 1, events);
+            },
+        );
+        ui.scope_builder(
+            UiBuilder::new().max_rect(pictures.shrink2(vec2(t.space_3, t.space_3))),
+            |ui| {
+                pictures_column(ui, shell, place, events);
+            },
+        );
         ui.allocate_rect(full, Sense::hover());
     }
 
@@ -219,7 +247,9 @@ impl PlaceView {
         let Some(open) = &place.sheet else {
             ui.add_space(t.space_6);
             ui.vertical_centered(|ui| {
-                ui.label(RichText::new(strings::text(key!("parts-none-open"))).color(t.text_secondary.color32()));
+                ui.label(
+                    RichText::new(strings::text(key!("parts-none-open"))).color(t.text_secondary.color32()),
+                );
             });
             return;
         };
@@ -230,12 +260,15 @@ impl PlaceView {
             self.seen = Some(key);
             self.scroll_to = open.group;
         }
-        let width = ui.available_width().min(SHEET_WIDTH[usize::from(two)] + CONTENTS_WIDTH);
+        let width = ui
+            .available_width()
+            .min(SHEET_WIDTH[usize::from(two)] + CONTENTS_WIDTH);
         let rect = egui::Rect::from_min_size(
             pos2(ui.max_rect().center().x - width / 2.0, ui.cursor().top()),
             vec2(width, ui.available_height()),
         );
-        ui.painter().rect_filled(rect, theme::radius(t.radius_lg), t.surface_panel.color32());
+        ui.painter()
+            .rect_filled(rect, theme::radius(t.radius_lg), t.surface_panel.color32());
         let groups = sheet_groups(open);
         ui.scope_builder(UiBuilder::new().max_rect(rect.shrink(t.space_4)), |ui| {
             ui.horizontal_top(|ui| {
@@ -246,10 +279,7 @@ impl PlaceView {
                         ui.set_width(CONTENTS_WIDTH);
                         ui.add_space(t.space_7);
                         for g in &groups {
-                            let lacks = open
-                                .lacks
-                                .iter()
-                                .any(|l| l.fields.iter().any(|f| f.group == *g));
+                            let lacks = open.lacks.iter().any(|l| l.fields.iter().any(|f| f.group == *g));
                             let name = strings::text(strings::Key::run_time(g.word()));
                             let spoken = strings::format(key!("part-section-name"), &[name]);
                             let r = ui.horizontal(|ui| {
@@ -278,30 +308,32 @@ impl PlaceView {
                 ScrollArea::vertical()
                     .id_salt(("parts-sheet", open.opened))
                     .auto_shrink([false, false])
-                    .show(ui, |ui| ui.vertical(|ui| {
-                        heading(ui, shell, place, open, events);
-                        let body = |ui: &mut Ui, groups: &[Group], events: &mut Vec<Event>| {
-                            for g in groups {
-                                let r = ui.scope(|ui| group_body(ui, open, *g, anew, events)).response;
-                                if scroll_to == Some(*g) {
-                                    r.scroll_to_me(Some(egui::Align::TOP));
+                    .show(ui, |ui| {
+                        ui.vertical(|ui| {
+                            heading(ui, shell, place, open, events);
+                            let body = |ui: &mut Ui, groups: &[Group], events: &mut Vec<Event>| {
+                                for g in groups {
+                                    let r = ui.scope(|ui| group_body(ui, open, *g, anew, events)).response;
+                                    if scroll_to == Some(*g) {
+                                        r.scroll_to_me(Some(egui::Align::TOP));
+                                    }
                                 }
+                            };
+                            if two && groups.len() > 2 {
+                                let half = groups.len().div_ceil(2);
+                                ui.columns(2, |cols| {
+                                    body(&mut cols[0], &groups[..half], events);
+                                    body(&mut cols[1], &groups[half..], events);
+                                });
+                            } else {
+                                body(ui, &groups, events);
                             }
-                        };
-                        if two && groups.len() > 2 {
-                            let half = groups.len().div_ceil(2);
-                            ui.columns(2, |cols| {
-                                body(&mut cols[0], &groups[..half], events);
-                                body(&mut cols[1], &groups[half..], events);
-                            });
-                        } else {
-                            body(ui, &groups, events);
-                        }
-                        if let Some(text) = open.foot_message() {
-                            ui.add_space(t.space_3);
-                            ui.label(RichText::new(text).color(t.error.color32()));
-                        }
-                    }));
+                            if let Some(text) = open.foot_message() {
+                                ui.add_space(t.space_3);
+                                ui.label(RichText::new(text).color(t.error.color32()));
+                            }
+                        })
+                    });
             });
         });
     }
@@ -408,7 +440,10 @@ fn heading_chips(open: &OpenSheet) -> Vec<String> {
         out.push(strings::text(key!("parts-changed")).to_owned());
     }
     if open.sheet.users > 0 {
-        out.push(strings::format_count(count_key!("parts-used-by"), open.sheet.users));
+        out.push(strings::format_count(
+            count_key!("parts-used-by"),
+            open.sheet.users,
+        ));
     }
     out
 }
@@ -425,7 +460,10 @@ fn group_body(ui: &mut Ui, open: &OpenSheet, group: Group, anew: bool, events: &
         theme::stroke(t.border_width, t.border_subtle),
     );
     ui.add_space(t.space_2);
-    ui.label(RichText::new(strings::text(strings::Key::run_time(group.word()))).font(theme::font(&t.type_body_strong)));
+    ui.label(
+        RichText::new(strings::text(strings::Key::run_time(group.word())))
+            .font(theme::font(&t.type_body_strong)),
+    );
     if let Some(text) = strings::lookup(&format!("part-hint-{}", group.name())) {
         ui.add(egui::Label::new(components::small_secondary(&t, text)).wrap());
     }
@@ -514,81 +552,105 @@ fn group_fields(
 fn list_column(ui: &mut Ui, place: &PartsPlace, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
     let rect = ui.max_rect();
-    ui.painter().rect_filled(rect, theme::SQUARE, t.surface_panel.color32());
-    ui.painter().vline(rect.right(), rect.y_range(), theme::stroke(t.border_width, t.border_subtle));
-    ui.scope_builder(UiBuilder::new().max_rect(rect.shrink2(vec2(t.space_3, t.space_3))), |ui| {
-        ui.label(RichText::new(strings::text(key!("parts-title"))).font(theme::font(&t.type_label)));
-        ui.add_space(t.space_2);
-        let mut query = place.query.clone();
-        let r = ui.add(
-            TextEdit::singleline(&mut query)
-                .hint_text(strings::text(key!("parts-search-hint")))
-                .desired_width(f32::INFINITY),
-        );
-        let search_name = strings::text(key!("parts-search-name"));
-        r.widget_info(|| named_edit(&place.query, &query, search_name));
-        if r.changed() {
-            events.push(Event::Action("parts.find", json!({ "text": query })));
-        }
-        ui.add_space(t.space_2);
-        ui.horizontal(|ui| {
-            for (scope, key) in [
-                (PartScope::All, key!("parts-scope-all")),
-                (PartScope::Project, key!("parts-scope-project")),
-                (PartScope::Mine, key!("parts-scope-mine")),
-            ] {
-                if ui.selectable_label(place.scope == scope, strings::text(key)).clicked() {
-                    events.push(Event::Action("parts.find", json!({ "scope": scope.word() })));
-                }
-            }
-        });
-        ui.horizontal(|ui| {
-            let kind = place.kind.as_deref().map_or_else(
-                || strings::text(key!("parts-filter-kind")).to_owned(),
-                ew_viewmodel::shell::part_dialog::part_kind_word,
+    ui.painter()
+        .rect_filled(rect, theme::SQUARE, t.surface_panel.color32());
+    ui.painter().vline(
+        rect.right(),
+        rect.y_range(),
+        theme::stroke(t.border_width, t.border_subtle),
+    );
+    ui.scope_builder(
+        UiBuilder::new().max_rect(rect.shrink2(vec2(t.space_3, t.space_3))),
+        |ui| {
+            ui.label(RichText::new(strings::text(key!("parts-title"))).font(theme::font(&t.type_label)));
+            ui.add_space(t.space_2);
+            let mut query = place.query.clone();
+            let r = ui.add(
+                TextEdit::singleline(&mut query)
+                    .hint_text(strings::text(key!("parts-search-hint")))
+                    .desired_width(f32::INFINITY),
             );
-            let mut picked = None;
-            let name = strings::text(key!("parts-filter-kind"));
-            let r = components::choice(ui, egui::ComboBox::from_id_salt("parts-kind").selected_text(kind), |ui| {
-                if ui.selectable_label(place.kind.is_none(), strings::text(key!("parts-filter-kind-all"))).clicked() {
-                    picked = Some("all".to_owned());
-                }
-                for k in ew_viewmodel::shell::part_dialog::part_kinds() {
-                    let word = ew_viewmodel::shell::part_dialog::part_kind_word(&k);
-                    if ui.selectable_label(place.kind.as_deref() == Some(k.as_str()), word).clicked() {
-                        picked = Some(k);
+            let search_name = strings::text(key!("parts-search-name"));
+            r.widget_info(|| named_edit(&place.query, &query, search_name));
+            if r.changed() {
+                events.push(Event::Action("parts.find", json!({ "text": query })));
+            }
+            ui.add_space(t.space_2);
+            ui.horizontal(|ui| {
+                for (scope, key) in [
+                    (PartScope::All, key!("parts-scope-all")),
+                    (PartScope::Project, key!("parts-scope-project")),
+                    (PartScope::Mine, key!("parts-scope-mine")),
+                ] {
+                    if ui
+                        .selectable_label(place.scope == scope, strings::text(key))
+                        .clicked()
+                    {
+                        events.push(Event::Action("parts.find", json!({ "scope": scope.word() })));
                     }
                 }
             });
-            r.response
-                .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, name));
-            if let Some(k) = picked {
-                events.push(Event::Action("parts.find", json!({ "kind": k })));
-            }
-            if ui
-                .selectable_label(place.lacking, strings::text(key!("parts-filter-lacking")))
-                .clicked()
-            {
-                events.push(Event::Action("parts.find", json!({ "lacking": !place.lacking })));
-            }
-        });
-        ui.label(components::small_secondary(
-            &t,
-            &strings::format_count(count_key!("parts-count"), place.found.len()),
-        ));
-        ui.add_space(t.space_2);
-        let open = place.sheet.as_ref().map(|o| o.sheet.copy);
-        ScrollArea::vertical()
-            .id_salt("parts-list")
-            .auto_shrink([false, false])
-            .show(ui, |ui| {
-                for row in &place.found {
-                    if list_row(ui, row, open == Some(row.copy)).clicked() {
-                        events.push(Event::Action("parts.open", json!({ "part": row.param() })));
-                    }
+            ui.horizontal(|ui| {
+                let kind = place.kind.as_deref().map_or_else(
+                    || strings::text(key!("parts-filter-kind")).to_owned(),
+                    ew_viewmodel::shell::part_dialog::part_kind_word,
+                );
+                let mut picked = None;
+                let name = strings::text(key!("parts-filter-kind"));
+                let r = components::choice(
+                    ui,
+                    egui::ComboBox::from_id_salt("parts-kind").selected_text(kind),
+                    |ui| {
+                        if ui
+                            .selectable_label(
+                                place.kind.is_none(),
+                                strings::text(key!("parts-filter-kind-all")),
+                            )
+                            .clicked()
+                        {
+                            picked = Some("all".to_owned());
+                        }
+                        for k in ew_viewmodel::shell::part_dialog::part_kinds() {
+                            let word = ew_viewmodel::shell::part_dialog::part_kind_word(&k);
+                            if ui
+                                .selectable_label(place.kind.as_deref() == Some(k.as_str()), word)
+                                .clicked()
+                            {
+                                picked = Some(k);
+                            }
+                        }
+                    },
+                );
+                r.response
+                    .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, name));
+                if let Some(k) = picked {
+                    events.push(Event::Action("parts.find", json!({ "kind": k })));
+                }
+                if ui
+                    .selectable_label(place.lacking, strings::text(key!("parts-filter-lacking")))
+                    .clicked()
+                {
+                    events.push(Event::Action("parts.find", json!({ "lacking": !place.lacking })));
                 }
             });
-    });
+            ui.label(components::small_secondary(
+                &t,
+                strings::format_count(count_key!("parts-count"), place.found.len()),
+            ));
+            ui.add_space(t.space_2);
+            let open = place.sheet.as_ref().map(|o| o.sheet.copy);
+            ScrollArea::vertical()
+                .id_salt("parts-list")
+                .auto_shrink([false, false])
+                .show(ui, |ui| {
+                    for row in &place.found {
+                        if list_row(ui, row, open == Some(row.copy)).clicked() {
+                            events.push(Event::Action("parts.open", json!({ "part": row.param() })));
+                        }
+                    }
+                });
+        },
+    );
 }
 
 /// One row of the list: the part number and the maker, the description under them, where it lives at the right and
@@ -648,7 +710,10 @@ fn list_row(ui: &mut Ui, row: &PartFound, open: bool) -> egui::Response {
         small,
         t.text_secondary.color32(),
     );
-    let name = format!("{} {} \u{b7} {lives}", row.offer.part_number, row.offer.manufacturer);
+    let name = format!(
+        "{} {} \u{b7} {lives}",
+        row.offer.part_number, row.offer.manufacturer
+    );
     r.widget_info(|| egui::WidgetInfo::selected(egui::Role::ListItem, true, open, &name));
     r
 }
@@ -670,17 +735,33 @@ fn pictures_column(ui: &mut Ui, shell: &ShellModel, place: &PartsPlace, events: 
             }
             picture_card(ui, key!("part-group-schematic"), |ui| {
                 match shell.part_schematic(&open.sheet) {
-                    Some((list, size)) => rendered(ui, "parts-schematic", key!("parts-schematic-picture"), &list, size),
+                    Some((list, size)) => rendered(
+                        ui,
+                        "parts-schematic",
+                        key!("parts-schematic-picture"),
+                        &list,
+                        size,
+                    ),
                     None => {
-                        ui.label(components::small_secondary(&t, strings::text(key!("parts-no-schematic"))));
+                        ui.label(components::small_secondary(
+                            &t,
+                            strings::text(key!("parts-no-schematic")),
+                        ));
                     }
                 }
             });
             ui.add_space(t.space_3);
-            picture_card(ui, key!("part-group-cabinet"), |ui| match open.sheet.front_preview() {
-                Some((list, size)) => rendered(ui, "parts-front", key!("part-front-preview"), &list, size),
-                None => {
-                    ui.label(components::small_secondary(&t, strings::text(key!("parts-no-front"))));
+            picture_card(ui, key!("part-group-cabinet"), |ui| {
+                match open.sheet.front_preview() {
+                    Some((list, size)) => {
+                        rendered(ui, "parts-front", key!("part-front-preview"), &list, size)
+                    }
+                    None => {
+                        ui.label(components::small_secondary(
+                            &t,
+                            strings::text(key!("parts-no-front")),
+                        ));
+                    }
                 }
             });
             ui.add_space(t.space_4);
@@ -726,12 +807,16 @@ fn ready_for(ui: &mut Ui, open: &OpenSheet) {
                         .font(theme::font(&t.type_body_strong)),
                 );
                 ui.add(
-                    egui::Label::new(components::small_secondary(&t, &strings::render(&lack.text()))).wrap(),
+                    egui::Label::new(components::small_secondary(&t, strings::render(&lack.text()))).wrap(),
                 );
             });
         });
         let line = ui.available_rect_before_wrap();
-        ui.painter().hline(line.x_range(), line.top(), theme::stroke(t.border_width, t.border_subtle));
+        ui.painter().hline(
+            line.x_range(),
+            line.top(),
+            theme::stroke(t.border_width, t.border_subtle),
+        );
         ui.add_space(t.space_1);
     }
 }
@@ -826,7 +911,17 @@ fn identity_rows(ui: &mut Ui, e: &OpenSheet, just_opened: bool, events: &mut Vec
     let mut first = just_opened;
     for f in &fields {
         let label = identity_label(e, f);
-        if *f == "kind" {
+        if !e.editable() {
+            // A part that is not the person's own shows its values as text (doc 07 §5.1).
+            let value = match *f {
+                "kind" => ew_viewmodel::shell::part_dialog::part_kind_word(d.text(f)),
+                _ if d.text(f).is_empty() => "\u{2014}".to_owned(),
+                _ => d.text(f).to_owned(),
+            };
+            crate::components::form_row(ui, &label, |ui, _| {
+                ui.label(RichText::new(value));
+            });
+        } else if *f == "kind" {
             kind_field(ui, &label, d.text(f), events);
         } else {
             let focus = std::mem::take(&mut first);
@@ -850,14 +945,7 @@ fn identity_label(e: &OpenSheet, field: &str) -> String {
 /// The technical data of a draft, each a `tech:<key>` field.
 fn tech_rows(ui: &mut Ui, e: &OpenSheet, events: &mut Vec<Event>) -> bool {
     let d = &e.sheet;
-    let t = theme::current(ui.ctx());
     let mut save = false;
-    ui.label(
-        RichText::new(strings::text(strings::Key::run_time(
-            ew_viewmodel::ew_api::part_fields::Group::Technical.word(),
-        )))
-        .font(theme::font(&t.type_body_strong)),
-    );
     // A cable's outer diameter is a row of its cable section.
     let cable = d.text("kind") == "cable";
     for (k, v) in d.tech.iter().filter(|(k, _)| !(cable && k == "outer_diameter")) {
@@ -874,9 +962,8 @@ fn tech_rows(ui: &mut Ui, e: &OpenSheet, events: &mut Vec<Event>) -> bool {
     save
 }
 
-/// In the cabinet, from the declared rows of the group: each with its hint, and the outline as typed, to scale over a
-/// 35 mm rail; the front's shape, its outline, its holes and its preview after them. `true` when Enter was pressed in a
-/// field.
+/// In the cabinet, from the declared rows of the group, each with its hint; the front's shape, its outline and its holes
+/// after them (the pictures column draws the front). `true` when Enter was pressed in a field.
 fn cabinet_rows(
     ui: &mut Ui,
     d: &ew_viewmodel::ew_api::PartSheet,
@@ -896,15 +983,7 @@ fn cabinet_rows(
     {
         save |= declared_row(ui, row, editable, events);
         match row.path {
-            "mech.depth" => {
-                hint(ui, key!("part-size-hint-dimensions"));
-                let mm = |f: &str| {
-                    ew_viewmodel::ew_api::output::parse_mm(d.text(f)).and_then(|n| i64::try_from(n).ok())
-                };
-                if let (Some(w), Some(h)) = (mm("mech.width"), mm("mech.height")) {
-                    crate::part_card::outline(ui, &t, w, h);
-                }
-            }
+            "mech.depth" => hint(ui, key!("part-size-hint-dimensions")),
             "mech.mount_kind" => hint(ui, key!("part-size-hint-mount")),
             "mech.mass" => hint(ui, key!("part-size-hint-mass")),
             "mech.clearance.right" => hint(ui, key!("part-size-hint-clearance")),
@@ -1049,7 +1128,10 @@ fn table_cell(
             .response
             .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, name));
             if let Some(c) = picked.filter(|c| c != text) {
-                events.push(Event::Action("parts.field", json!({ "field": field, "value": c })));
+                events.push(Event::Action(
+                    "parts.field",
+                    json!({ "field": field, "value": c }),
+                ));
             }
         }
         FieldType::Bool => {
@@ -1193,7 +1275,10 @@ fn front_section(
                 events.push(Event::Action("parts.outline", json!({})));
             }
             if !d.outline.is_empty() && ui.button(strings::text(key!("part-front-remove"))).clicked() {
-                events.push(Event::Action("parts.field", json!({ "field": "mech.front_2d", "value": "" })));
+                events.push(Event::Action(
+                    "parts.field",
+                    json!({ "field": "mech.front_2d", "value": "" }),
+                ));
             }
         }
     });
@@ -1201,19 +1286,7 @@ fn front_section(
     if let Some(table) = d.table("mech.holes") {
         declared_table(ui, d, table, editable, events);
     }
-    ui.add_space(t.space_3);
-    front_preview(ui, d);
     save
-}
-
-/// The preview of Front view and holes: the draft's front ([`ew_viewmodel::ew_api::PartSheet::front_preview`])
-/// rendered by the CPU renderer at the resolution that fits a box of the section's width, centred on the sheet's
-/// colour with a 1-px border; none without a width and a height. The texture is kept while the front and the
-/// resolution stay the same.
-fn front_preview(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartSheet) {
-    if let Some((list, size)) = d.front_preview() {
-        rendered(ui, "part-front-preview", key!("part-front-preview"), &list, size);
-    }
 }
 
 /// A picture of the place: `list`, of `(w, h)`, rendered by the CPU renderer at the resolution that fits the width
@@ -1276,8 +1349,7 @@ fn rendered(
                     [image.width as usize, image.height as usize],
                     &image.pixels,
                 );
-                ui.ctx()
-                    .load_texture(salt, colour, egui::TextureOptions::LINEAR)
+                ui.ctx().load_texture(salt, colour, egui::TextureOptions::LINEAR)
             });
             if let Some(texture) = &made {
                 ui.ctx()
@@ -1475,7 +1547,10 @@ fn labelled_combo(
         .response;
         combo.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, label_text));
         if let Some(c) = picked.filter(|c| c != value) {
-            events.push(Event::Action("parts.field", json!({ "field": field, "value": c })));
+            events.push(Event::Action(
+                "parts.field",
+                json!({ "field": field, "value": c }),
+            ));
         }
     });
 }
@@ -1940,8 +2015,10 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartSheet, just_opened: bo
                             combo
                                 .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, &name));
                             if let Some(c) = picked.filter(|c| c != value) {
-                                events
-                                    .push(Event::Action("parts.field", json!({ "field": field, "value": c })));
+                                events.push(Event::Action(
+                                    "parts.field",
+                                    json!({ "field": field, "value": c }),
+                                ));
                             }
                         }
                         None => {
@@ -1971,7 +2048,10 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartSheet, just_opened: bo
                     let words = strings::format(key!("part-bus-remove"), &[row.interface.as_str()]);
                     let remove = crate::components::icon_button(ui, crate::icons::IconId::x, &words);
                     if remove.clicked() {
-                        events.push(Event::Action("parts.row", json!({ "table": "bus", "remove": i + 1 })));
+                        events.push(Event::Action(
+                            "parts.row",
+                            json!({ "table": "bus", "remove": i + 1 }),
+                        ));
                     }
                 }
             });
@@ -2007,4 +2087,3 @@ fn field_message(d: &ew_viewmodel::ew_api::PartSheet, field: &str) -> Option<Str
     d.message(field)
         .map(|m| ew_viewmodel::shell::part_dialog::message_text(strings::Key::run_time(m.key), &m.args))
 }
-

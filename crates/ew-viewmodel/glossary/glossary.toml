@@ -47,7 +47,7 @@ nl-NL = "Het product met een kenmerk (-102F1) dat zijn functies bundelt; het ken
 ew = "Part"
 eplan = ["Part", "Article"]
 qet = ["Manufacturer reference"]
-actions = ["tool.place_part", "parts.import"]
+actions = ["parts.open", "tool.place_part", "parts.import"]
 [term.labels]
 en-GB = "Part"
 nl-NL = "Artikel"

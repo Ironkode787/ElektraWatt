@@ -33,7 +33,10 @@ fn removing_a_part_from_my_parts_asks_and_cancel_keeps_it() {
     let mut d = new_project(&tmp);
     for (action, params) in [
         ("parts.new", json!({})),
-        ("parts.field", json!({"field": "manufacturer", "value": "Example"})),
+        (
+            "parts.field",
+            json!({"field": "manufacturer", "value": "Example"}),
+        ),
         ("parts.field", json!({"field": "part_number", "value": "SW-6"})),
         ("parts.save", json!({})),
     ] {
@@ -49,7 +52,11 @@ fn removing_a_part_from_my_parts_asks_and_cancel_keeps_it() {
     );
     press(&mut d, "Cancel");
     assert!(
-        d.shell_mut().dialog().is_none() && d.shell_mut().parts_place().and_then(|p| p.sheet.as_ref()).is_some(),
+        d.shell_mut().dialog().is_none()
+            && d.shell_mut()
+                .parts_place()
+                .and_then(|p| p.sheet.as_ref())
+                .is_some(),
         "Cancel returns to the part in Parts"
     );
     assert!(in_my_parts(&tmp, "SW-6"), "Cancel leaves the part in My parts");

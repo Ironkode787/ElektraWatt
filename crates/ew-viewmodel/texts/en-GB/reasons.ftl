@@ -486,7 +486,6 @@ error-part-unknown = No part is called “{ $p0 }”
 reason-part-favourite-local = Only a part from a library can be a favourite
 reason-no-part-dialog = Open the part dialog first
 reason-part-placeholder-target = A placeholder is a device's part; a bridge or an accessory takes a real part
-reason-no-part-editor = Open the part editor first
 reason-part-edit = A part is edited
 error-part-remove-confirm = Removing a part from your parts library is not undone: the step needs "confirm": true.
 

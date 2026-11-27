@@ -47,8 +47,6 @@ smithay-clipboard = "=0.7.2"
 
 [dev-dependencies]
 automod.workspace = true
-# The starter part versions of the tests (`ew_testkit::library::starter_version`,; dev-only edge).
-ew-testkit = { path = "../../crates/ew-testkit" }
 # The fresh temporary directory of the tests (dev-only edge, `[allowed_dev_edges]`).
 ew-testdir = { path = "../../crates/ew-testdir" }
 serde_json = "1.0.154"

@@ -462,14 +462,14 @@ fn the_part_editor_refuses_with_a_message() {
     let mut s = writable(&tmp);
     own_mcb(&mut s);
     done(&mut s, "parts.open", json!({ "part": "MCB-OWN" }));
-    assert_eq!(
-        lines(&s, "open "),
-        ["open \"MCB-OWN\" Only in this project"]
-    );
+    assert_eq!(lines(&s, "open "), ["open \"MCB-OWN\" Only in this project"]);
     assert!(lines(&s, "field ").contains(&"field \"Part number\" \"MCB-OWN\"".to_owned()));
     assert!(lines(&s, "tech ").contains(&"tech \"rated_current\" \"10 A\"".to_owned()));
     // An unchanged part.
-    assert_eq!(refused(&mut s, "parts.save", json!({})), "reason-part-not-changed");
+    assert_eq!(
+        refused(&mut s, "parts.save", json!({})),
+        "reason-part-not-changed"
+    );
     let n = steps(&s);
     let cases: [(&str, &str, &str, &str); 4] = [
         ("manufacturer", "", "Maker", "A part needs a manufacturer"),
@@ -546,7 +546,10 @@ fn an_edit_in_place_is_previewed() {
     assert_eq!(steps(&s), n + 1);
     let (cmd, params) = last(&s);
     assert_eq!(cmd, "part.edit_copy");
-    assert!(params.get("fork").is_none_or(Value::is_null), "in place: {params}");
+    assert!(
+        params.get("fork").is_none_or(Value::is_null),
+        "in place: {params}"
+    );
     done(&mut s, "edit.undo", json!({}));
     s.shutdown();
 }
@@ -576,10 +579,7 @@ fn a_starter_part_is_made_ones_own_not_changed() {
         "{}",
         s.describe()
     );
-    assert_eq!(
-        lines(&s, "field \"Part number\""),
-        ["field \"Part number\" \"\""]
-    );
+    assert_eq!(lines(&s, "field \"Part number\""), ["field \"Part number\" \"\""]);
     s.shutdown();
 }
 

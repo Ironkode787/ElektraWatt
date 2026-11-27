@@ -179,6 +179,7 @@ The `Session` facade shared by every front-end.
 | `src/part_offers.rs` |  | The part selection dialog's data. |
 | `src/part_plc.rs` |  | The PLC section of a new part as a form (doc 10 §2.6): what the part is in the PLC model, its channels, the pin pattern, the supply pins, the allowed slots and a station's module limit, as texts checked one by one. |
 | `src/part_rows.rs` |  | The part editor's groups and their declared rows (doc 07 §5.4): the editor lists the groups of the part's sheet ([`ew_derive::part_fields::Group`]) on its left and shows one at a time. |
+| `src/parts.rs` |  | Parts, the one place for parts (doc 07 §5): what its list finds ([`Session::parts_find`]), where a part lives ([`Lives`], doc 07 §5.8), what the open sheet lacks ([`Session::sheet_lacks`]) and Keep in my parts ([`Session::keep_in_my_parts`]). |
 | `src/plc_exchange.rs` |  | The PLC exchange of a session (doc 10 §4, §7): the files a configuration project is exported as, the preview of a file that comes back, the exchange status and the instrument list. |
 | `src/qet_collection.rs` |  | A QElectroTech element collection into a user library, on demand (doc 07 §3.6, FR-SYM-029): the `.elmt` files of a directory (the user's QET installation) become symbols and function definitions of a writable library, each on the QET 10 px grid with its source path, under the licence `LicenseRef-QET-elements` and the flag `foreign_terms`. |
 | `src/queries.rs` | large | The public queries of `ew query` (doc 17 §3.3 and §3.4, FR-EXT-005). |
@@ -1102,7 +1103,7 @@ The seeded, reproducible UUIDv7 source of the tests (doc 18 §2.2). A dev-only c
 
 ## ew-testkit
 
-`crates/ew-testkit` · GPL-3.0-or-later · tier tests · depends on `ew-ids`, `ew-model`, `ew-schema`, `ew-units` · used by none · in tests by `elektrawatt`, `ew-api`, `ew-viewmodel`
+`crates/ew-testkit` · GPL-3.0-or-later · tier tests · depends on `ew-ids`, `ew-model`, `ew-schema`, `ew-units` · used by none · in tests by `ew-api`, `ew-viewmodel`
 
 The test kit, a crate only tests depend on: the builder DSL that speaks the commands' JSON parameters ([`dsl`]) and a synthetic parts library ([`library`]). Its own tests hold the command fuzzer and the hostile corpus (`hostile/`).
 
@@ -1183,9 +1184,10 @@ The window of the desktop program in egui: it paints the shell model of `ew-view
 | `src/page_view.rs` |  | The page view: the current page as the CPU renderer's image, read-only, fitted to the pane with its aspect ratio kept. |
 | `src/palette.rs` |  | The command palette (FR-UI-012), restyled to doc 16a §6.14; its behaviour: Ctrl+K opens a popover with a search field; the shell ranks the entries (`ew_viewmodel::palette`: fuzzy score, glossary aliases, recents, the prefixes `>`, `@`, `#`, `:` and `?`); disabled entries follow the enabled ones with their reason; Enter runs the selected enabled entry or opens its parameter form (one row per parameter, Enter runs it, Escape returns to the list); Escape closes the palette. |
 | `src/part_card.rs` |  | A part's data at a glance: the card under the device browser's picture, on a device's row in the Devices list (its tooltip) and behind Part details in Properties. |
-| `src/part_dialog.rs` | large | The bodies of the part selection dialog and the part editor inside the 640-px form dialog frame (`crate::dialog`). |
+| `src/part_dialog.rs` |  | The body of the part selection dialog inside the 640-px form dialog frame (`crate::dialog`). |
 | `src/parts_card.rs` |  | The inline preview card of File, Import, Parts table…: a card floating at the top centre while the card's origin is an import. |
 | `src/parts_map.rs` |  | The column mapping step of File, Import, Parts table…: a card floating in the window's centre, where a dialog stands (at the top of the window it read as a strip left behind), while `ShellModel::parts_map` is open, before the import card (doc 16a §6.9, `elevation.1`). |
+| `src/parts_place.rs` | large | Parts, the one place for parts (doc 07 §5, doc 16a §6.27): its command row (the Part tab), the list with its scopes and filters, the open part's sheet (the strip of where the person came from, the heading, the lock line of a part that is not his, the contents list and the groups one under another, in two columns at 2560 × 1440), and the pictures beside it (the schematic, the front in the cabinet) with Ready for, or the card of what Save changes. |
 | `src/picker.rs` | large | The device and symbol browser: one overlay for Insert symbol, Insert device, Change symbol, Insert black box and the strip chooser, over a backdrop, the window less `space.6` on each side and most of its height. |
 | `src/preview.rs` |  | The Preview tab (FR-UI-022), restyled to doc 16a §6.23. |
 | `src/print_dialog.rs` |  | The print pre-dialog (doc 16a §6.12): the options on the left on §6.12's form rows, the preview of the print set on the right at the page's aspect ratio, `<n> of <m>` with Previous and Next under it, the stamp visible. |
@@ -1343,10 +1345,10 @@ Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command 
 | `src/shell/own_fields.rs` |  | The fields of the project's own in the window (doc 09 §2.10): their rows under Fields of your own in Project properties (each project field's value) and Page properties (each page field's value), New field of your own…, and a row's Rename… and Remove. |
 | `src/shell/page_copy.rs` |  | Page ▸ Copy pages… (`pages.copy`, doc 06 §3.6, "A copy of pages"): the marked pages copied for a second installation by the rule of its form (a folio offset or the page after which the copies go, a structure node of the copy's own, renamed titles, frozen tags and interruption-point names). |
 | `src/shell/palette.rs` |  | The command palette in the shell (FR-UI-012; the matching in [`crate::palette`]): the entries of a query by its prefix, ranked with the aliases of the glossary and the recents, and Enter: an action runs (or opens its parameter form), a page is shown, a cell is gone to, an object is selected and a rule shows Messages filtered to it. |
-| `src/shell/part_dialog.rs` | large | The part selection dialog and the part editor. |
-| `src/shell/part_dialog/editor.rs` |  | The part editor of the part dialog: the copy it edits, Edit part, New part, a bus port's row, a field, the own-part removal and Save. |
+| `src/shell/part_dialog.rs` |  | The part selection dialog, and the words and presets Parts shares with it. |
 | `src/shell/part_dialog/targets.rs` |  | What the part dialog gives a part to: the terminals of a strip and the cells of a grid, and the dialog's refresh. |
 | `src/shell/parts.rs` |  | File, Import, Parts table…: the headless action `parts.import`. |
+| `src/shell/parts_place.rs` | large | Parts, the one place for parts (doc 07 §5): a screen of its own ([`Screen::Parts`](super::Screen::Parts)) with the list, the open part's sheet and its pictures. |
 | `src/shell/plc_exchange.rs` |  | The PLC's files and previews (doc 10 §4, §6). |
 | `src/shell/print.rs` |  | The print pre-dialog and its print job. |
 | `src/shell/projects.rs` | large | A project in and out of the shell: Open, Save, Save as, Close and Quit with the unsaved-changes guard; New project, Open sample project and Tutorials, Import QElectroTech project, and discarding the journal of an earlier session. |

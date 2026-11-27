@@ -85,10 +85,7 @@ fn a_part_removed_from_my_parts_stays_in_the_project_that_uses_it() {
     let (label, action, params) = danger(&s);
     assert_eq!((label.as_str(), action), ("Remove", "parts.remove"));
     done(&mut s, action, params);
-    assert!(
-        s.dialog().is_none(),
-        "the confirmation gives way"
-    );
+    assert!(s.dialog().is_none(), "the confirmation gives way");
     let said = toast(&s);
     assert!(
         said.starts_with("Removed DI-4 from your parts library")

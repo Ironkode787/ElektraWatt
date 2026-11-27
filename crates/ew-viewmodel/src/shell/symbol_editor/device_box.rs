@@ -13,7 +13,7 @@ use crate::shell::{Outcome, ShellModel};
 use crate::{key, strings};
 use ew_api::output::Uuid;
 use ew_api::part_box::{BoxSteps, Dir4, EDIT_STEP, PinsFrom};
-use ew_api::{PartSheet, PartDraftError};
+use ew_api::{PartDraftError, PartSheet};
 use serde_json::{Map, Value, json};
 
 /// The edges of a box in the order the pin table lists them, each with the word an action names it by.
@@ -1105,8 +1105,9 @@ impl ShellModel {
             project.session.new_part_command(&draft).map(|made| made.command)
         } else if draft.own && draft.fork {
             project.session.own_part_update(&draft).and_then(|plan| {
-                plan.map(|p| p.command)
-                    .ok_or(ew_api::PartDraftError::Refused(key!("reason-part-edit-target").as_str()))
+                plan.map(|p| p.command).ok_or(ew_api::PartDraftError::Refused(
+                    key!("reason-part-edit-target").as_str(),
+                ))
             })
         } else {
             project.session.part_edit_command(&draft)

@@ -457,7 +457,6 @@ error-part-unknown = Geen artikel heet “{ $p0 }”
 reason-part-favourite-local = Alleen een artikel uit een bibliotheek kan een favoriet zijn
 reason-no-part-dialog = Open eerst de artikeldialoog
 reason-part-placeholder-target = Een plaatsvervanger is het artikel van een apparaat; een brug of een toebehoren krijgt een echt artikel
-reason-no-part-editor = Open eerst de artikeleditor
 reason-part-edit = Er wordt een artikel bewerkt
 error-part-remove-confirm = Een artikel uit uw artikelbibliotheek verwijderen wordt niet ongedaan gemaakt: de stap vraagt om "confirm": true.
 reason-paste-versions = De geplakte records gebruiken een andere versie van { $p0 }; kies De kopie van het project gebruiken of De kopie van het project bijwerken

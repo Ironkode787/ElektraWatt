@@ -520,7 +520,11 @@ impl App {
     /// else none (tests; every handle is a named `Splitter` node).
     #[doc(hidden)]
     pub fn splitter_count(&self) -> usize {
-        if !matches!(self.shell.screen(), Screen::FirstRun | Screen::Wizard | Screen::Parts) && self.shell.has_project() {
+        if !matches!(
+            self.shell.screen(),
+            Screen::FirstRun | Screen::Wizard | Screen::Parts
+        ) && self.shell.has_project()
+        {
             self.dock.splitters() + self.area_splitters
         } else {
             0

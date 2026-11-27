@@ -10,7 +10,6 @@
 //! `type.body.strong`, the manufacturer, the elided description, the source badge and the fit badge. AccessKit: the
 //! list is a `ListBox` named "Parts" whose rows are `ListBoxOption`s with position and set size.
 
-
 use egui::{Key, RichText, ScrollArea, Sense, TextEdit, Ui, vec2};
 use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
