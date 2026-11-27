@@ -625,7 +625,9 @@ impl Session {
             SourceFormat::Xlsx => ew_derive::print_language(&self.query()),
             SourceFormat::Csv => None,
         };
-        let current = self.current_table(&key, lang.as_ref()).map_err(TableImportError::Table)?;
+        let current = self
+            .current_table(&key, lang.as_ref())
+            .map_err(TableImportError::Table)?;
         let preset = match (format, options.preset) {
             (SourceFormat::Xlsx, _) => None,
             (SourceFormat::Csv, Some(p)) => Some(p),

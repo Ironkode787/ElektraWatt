@@ -164,3 +164,66 @@ fn the_ew_preset_is_the_row_export_dialect() {
             .all(|r| matches!(r.cells[qty], TableCell::Number(_)))
     );
 }
+
+/// A Dutch project's list in Excel is in Dutch, as its page (owner, 2026-11-27: people read the Excel file): its
+/// headings and the program's words in its cells, its sizes and lengths numbers without a decimal sign; the same
+/// list's CSV keeps the English headings and words, which programs read; an English project's workbook stays English.
+/// The Dutch workbook of the I/O list reads back against its own words: unchanged, it applies nothing.
+#[test]
+fn a_dutch_projects_workbook_is_dutch_and_its_csv_english() {
+    let english = crate::common::sample();
+    let mut dutch = crate::common::sample();
+    crate::common::run_cmd(
+        &mut dutch,
+        "project.settings.set",
+        serde_json::json!({"member": "languages", "value": {"source": "nl-NL"}}),
+    );
+    let wires = RowExport::Kind("wire_list".to_owned());
+    let sheet = |bytes: &[u8]| {
+        read_sheet(
+            bytes,
+            ew_api::catalog::SourceFormat::Xlsx,
+            None,
+            &ew_api::catalog::table_limits(),
+        )
+        .unwrap()
+    };
+    let nl = sheet(&workbook(&dutch, &wires));
+    for heading in ["Nr.", "Kleur", "Lengte mm"] {
+        assert!(
+            nl.headers.iter().any(|h| h == heading),
+            "{heading}: {:?}",
+            nl.headers
+        );
+    }
+    assert!(!nl.headers.iter().any(|h| h == "Colour"), "{:?}", nl.headers);
+    let cells: Vec<&String> = nl.rows.iter().flatten().collect();
+    assert!(
+        cells.iter().any(|c| c.starts_with("huls ")),
+        "the program's words in Dutch"
+    );
+    assert!(
+        cells.iter().any(|c| *c == "2.5") && !cells.iter().any(|c| *c == "2,5"),
+        "numbers stay numbers"
+    );
+    let en = sheet(&workbook(&english, &wires));
+    assert!(en.headers.iter().any(|h| h == "Colour"), "{:?}", en.headers);
+    let first = |text: String| text.lines().next().unwrap_or_default().to_owned();
+    let csv_line = first(csv(&dutch, &wires, Preset::ExcelEn));
+    assert!(
+        csv_line.contains("Colour") && !csv_line.contains("Kleur"),
+        "{csv_line}"
+    );
+    assert!(
+        !csv(&dutch, &wires, Preset::ExcelEn).contains("huls "),
+        "the CSV's words stay English"
+    );
+    let io = RowExport::Kind("io_list".to_owned());
+    let import = dutch
+        .table_import(
+            &workbook(&dutch, &io),
+            &ew_api::output::ImportTableOptions::default(),
+        )
+        .expect("the Dutch workbook reads back");
+    assert!(import.command.is_none(), "{:?}", import.cells);
+}

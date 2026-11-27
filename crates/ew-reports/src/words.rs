@@ -5,7 +5,7 @@
 //! note of a list that is not derived stand in `texts/<language>/lists.ftl` and are made with `text!`.
 //!
 //! A heading or a word reaches a row set as the multi-language text of its renderings in every language of those files
-//! ([`in_languages`]), so that a list page prints it in the project's language, the CSV and the XLSX in English, and
+//! ([`in_languages`]), so that a list page and its XLSX print it in the project's language, the CSV in English, and
 //! the sorting and grouping read it in the project's source language, each by the rule it has for every other text. A
 //! word that [`crate::render::render`] adds at the edge (yes and no, the text of a value to be decided, a missing value,
 //! the piece) is rendered there in the output language ([`text`]).

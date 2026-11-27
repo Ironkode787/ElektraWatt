@@ -97,8 +97,9 @@ In the project's language, in a folder per kind; the sample's names (drawing num
 
 - **The lists** are those whose kind is a workshop list: `ReportKindDef::workshop`, declared with the kind, which the
   package and nothing else reads. Each list is the whole project's rows in the kind's order and every column, as
-  `ew export report --kind <kind> --format xlsx` writes it; a project without a page of that kind still gets the
-  file. The cut list's Tubes group is the tube cut list of the package ([11](11-fluid-power.md) §8.2).
+  `ew export report --kind <kind> --format xlsx` writes it: its headings and the program's words in its cells in the
+  project's language, as its page prints them, its numbers numbers ([09](09-reports-forms.md) §3.8); a project
+  without a page of that kind still gets the file. The cut list's Tubes group is the tube cut list of the package ([11](11-fluid-power.md) §8.2).
 - **A member without content** is not written, and the dialog says why on its row: the drawings for drilling and the
   hole table of a project whose surfaces have no holes ("No surface of this project has holes yet"), label files
   without labels.

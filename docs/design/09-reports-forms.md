@@ -817,7 +817,9 @@ program ships), the starter title blocks have Dutch labels, and a page prints in
 project's language (`languages.source`; `nl` and `nl-NL` alike, `ew_derive::text_in`): the headings, the caption, the
 legend, the rows' texts, the terminal states, the title block's labels and multi-language values, and quantities with
 the language's decimal sign unless the project sets its own separator. A project without a language prints English
-as before. The CSV and XLSX headers stay English.
+as before. A list's XLSX is read by people and has the page's headings in the project's language; its CSV is read by
+programs and keeps the English headings. The label files keep their headings in both forms (a label program maps them
+once).
 
 **The program's own words.** Every word the program writes into a cell itself is a text by key of the list texts, as
 the headings are, rendered in every language they ship where the cell is made (`ew_reports::words::in_languages`); a
@@ -830,7 +832,9 @@ check --lang` words it) and severity, the piece's symbol, "yes" and "no", "TBD" 
 (`ew_reports::render`). The boxes on a drawn page (the legend, PART DATA, the PLC overview box, the cover's tables)
 print their titles, headers and cells in the project's language too. A value of the project's data (a tag, a part
 number, a description, a colour code) prints as it is; notation (DI, PE, IO-Link, `IP`, `ext.`) is the same in both.
-The CSV and XLSX cells stay English, as their headers.
+A list's XLSX holds these words in the project's language, as its headings, by the same writer (`ew_reports::table`,
+which the list's export, `ew export report --format xlsx` and the package call); a number stays a number with no
+decimal sign written into it. The CSV cells stay English, as its headers.
 
 **The title.** A list's title is the person's or the program's. One a person types is kept as typed (a neutral text,
 printed in every language). The program's own is a multi-language text in every language it ships: Report block…

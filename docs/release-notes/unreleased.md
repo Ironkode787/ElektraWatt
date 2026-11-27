@@ -848,3 +848,7 @@ change here.
 - behaviour-change: on a page of a Dutch project the size in a wire end's treatment and a hole's diameter print the
   Dutch decimal sign, as every other quantity of the lists does ("huls 1,5 BK", "Ø 3,3"); a twin ferrule's partner
   keeps its wire number as it is ("twin 2,5 BU · 101.6")
+- behaviour-change: a Dutch project's lists in Excel are now Dutch, as their pages: the headings, the group and strip
+  headings and the program's words in the cells (the list's Excel export, `ew export report --format xlsx` and the
+  package's lists alike); numbers stay numbers. Their CSV stays English, and the label files keep their headings in
+  both forms. A script that read the English headings of a Dutch project's Excel list reads its CSV instead

@@ -737,7 +737,7 @@ pub fn row_output(
             (RowsOutput::Csv(csv), table.rows.len())
         }
         RowsFormat::Xlsx(meta) => {
-            // An Excel file is read by people: in the project's language, as the list's page (doc 09 §4.7).
+            // An Excel file is read by people: in the project's language, as the list's page (doc 09 §3.8).
             let tables = sheets(q, &chosen, ew_derive::print_language(q).as_ref());
             let rows = tables.iter().map(|t| t.rows.len()).sum();
             let bytes = ew_reports::xlsx::xlsx(&tables, &with_base_digest(meta, &tables))
@@ -795,7 +795,9 @@ fn sheets(q: &Q, chosen: &Chosen, lang: Option<&LangTag>) -> Vec<Table> {
         Body::Strip(set, tag) => vec![Table::from_rowset(q, set, tag, &chosen.key, lang)],
         Body::Strips(template, strips) => strips
             .iter()
-            .map(|(tag, rows)| Table::from_rowset(q, &with_rows(template, rows.clone()), tag, &chosen.key, lang))
+            .map(|(tag, rows)| {
+                Table::from_rowset(q, &with_rows(template, rows.clone()), tag, &chosen.key, lang)
+            })
             .collect(),
     }
 }
