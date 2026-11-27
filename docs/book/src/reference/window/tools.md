@@ -265,6 +265,15 @@ them anew would make the page better, its Route these too… shows that plan in 
 them drawn again, select them and choose Route. When no wire would run better, it says "Nothing to route: no wire
 would run better."
 
+On a panel layout page that shows a cabinet's mounting plate, the same Route routes the cabinet instead: it lays each
+wire of the cabinet through the ducts and gives it its length. With nothing selected it plans the wires without a way
+and those whose way no longer holds; with devices, ducts or wires selected, the wires at them. Nothing changes until
+you choose Apply: the page shows each planned way and each duct's fill, and the card in the Preview tab lists the
+ducts, the lengths, the wires typed by hand, those made on site and those without a way with what to do; its tick
+Route every wire again plans every wire of the cabinet. Apply stores the ways in one undo step. The steps are
+[Route the cabinet's wires and give them their lengths](../../how-to/route-wires.md). On a page that is neither,
+Route is greyed with its reason (a door's page, a list).
+
 ## Arrange and route
 
 Moves the symbols of the selection, or with nothing selected the symbols of the page, to where the page is best for
