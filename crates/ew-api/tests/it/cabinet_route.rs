@@ -593,7 +593,10 @@ fn a_wire_the_cabinet_no_longer_routes_keeps_no_way() {
     let q = s.query();
     let id = ew_ids::Id::<ew_schema::Connection>::from_uuid(carrier);
     let route = ew_ids::v5::route_id::<_, ew_schema::CommittedRoute>(id);
-    assert!(q.table::<ew_schema::CommittedRoute>().contains(route), "the sample lays 101.8");
+    assert!(
+        q.table::<ew_schema::CommittedRoute>().contains(route),
+        "the sample lays 101.8"
+    );
     let duct = q
         .table::<ew_schema::Carrier>()
         .iter()

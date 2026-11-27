@@ -71,10 +71,26 @@ fn route_on_902_opens_the_cabinets_card_and_apply_stores_the_ways() {
         ]
     );
     let groups: Vec<_> = card.columns().groups().cloned().collect();
-    let typed = groups[2].rows.iter().find(|r| r.cells[0] == "101.1").expect("101.1");
-    assert!(typed.cells[1].starts_with("keeps 400 mm; Route gives "), "{:?}", typed.cells);
-    let site = groups[3].rows.iter().find(|r| r.cells[0] == "104.4").expect("104.4");
-    assert!(site.cells[1].starts_with("its end ") && site.cells[1].ends_with(" is in +FLD"), "{:?}", site.cells);
+    let typed = groups[2]
+        .rows
+        .iter()
+        .find(|r| r.cells[0] == "101.1")
+        .expect("101.1");
+    assert!(
+        typed.cells[1].starts_with("keeps 400 mm; Route gives "),
+        "{:?}",
+        typed.cells
+    );
+    let site = groups[3]
+        .rows
+        .iter()
+        .find(|r| r.cells[0] == "104.4")
+        .expect("104.4");
+    assert!(
+        site.cells[1].starts_with("its end ") && site.cells[1].ends_with(" is in +FLD"),
+        "{:?}",
+        site.cells
+    );
     let duct = &groups[0].rows[0];
     assert!(
         duct.cells[2].contains(" wires · fullest piece ")
@@ -134,16 +150,24 @@ fn route_on_902_opens_the_cabinets_card_and_apply_stores_the_ways() {
         "drawn dashed"
     );
     let offered = shell.notifications().visible().iter().any(|n| {
-        n.text.starts_with("Turned -X1031. The ways of ") && n.label("route") == "Route" && !n.label("undo").is_empty()
+        n.text.starts_with("Turned -X1031. The ways of ")
+            && n.label("route") == "Route"
+            && !n.label("undo").is_empty()
     });
-    assert!(offered, "the toast says the turn and offers Undo and Route: {:?}", toasts(&shell));
+    assert!(
+        offered,
+        "the toast says the turn and offers Undo and Route: {:?}",
+        toasts(&shell)
+    );
 
     // Route plans the wires whose ways no longer hold: the card, the canvas's ways and the duct's chip.
     done(&mut shell, "layout.route", json!({}));
     let card = cabinet_card(&shell).expect("the cabinet's card");
     assert!(card.lead.starts_with("Route: cabinet +CAB. "), "{}", card.lead);
     assert!(
-        card.columns().groups().any(|g| g.heading == "Lengths" && g.count == Some(g.rows.len())),
+        card.columns()
+            .groups()
+            .any(|g| g.heading == "Lengths" && g.count == Some(g.rows.len())),
         "{card:?}"
     );
     let marks = shell.cabinet_marks(0);

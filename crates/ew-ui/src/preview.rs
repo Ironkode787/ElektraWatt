@@ -353,7 +353,7 @@ fn card_group(
         if response.clicked()
             && let Some((action, params)) = &r.action
         {
-            events.push(Event::Action(*action, params.clone()));
+            events.push(Event::Action(action, params.clone()));
         }
     }
     if let Some(tick) = &g.tick {

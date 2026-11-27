@@ -187,14 +187,11 @@ fn spread(pins: Vec<Pin>, x0: i128, width: i128, h: i128, out: &mut Vec<(Pin, (i
     }
 }
 
+/// The pins of a placement in the part's frame, each with its point and the point on its other edge.
+type Spread = Vec<(Pin, (i128, i128), (i128, i128))>;
+
 /// [`spread`], each pin with where it would stand on its other edge, the other pins as they are.
-fn spread_both(
-    pins: Vec<Pin>,
-    x0: i128,
-    width: i128,
-    h: i128,
-    out: &mut Vec<(Pin, (i128, i128), (i128, i128))>,
-) {
+fn spread_both(pins: Vec<Pin>, x0: i128, width: i128, h: i128, out: &mut Spread) {
     let mut here = Vec::new();
     spread(pins.clone(), x0, width, h, &mut here);
     for (pin, at) in here {
@@ -264,7 +261,7 @@ fn spots(q: &Q, key: Id<Placement>) -> Option<PinSpotsV> {
             spots,
         });
     }
-    let mut placed: Vec<(Pin, (i128, i128), (i128, i128))> = Vec::new();
+    let mut placed: Spread = Vec::new();
     let mut depth_by_fn: Vec<(Id<Function>, Option<Nm>)> = Vec::new();
     if places_strip(q, &device, pl.part.as_ref()) {
         for item in q.get::<StripLayout>(device.id).iter() {

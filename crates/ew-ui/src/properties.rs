@@ -1171,7 +1171,7 @@ impl PropertiesPane {
             child.painter().galley(at, g, t.accent.color32());
             if link.clicked() {
                 for (action, params) in &l.actions {
-                    events.push(Event::Action(*action, params.clone()));
+                    events.push(Event::Action(action, params.clone()));
                 }
             }
         }

@@ -792,11 +792,18 @@ fn a_stored_way_of_a_wire_the_cabinet_no_longer_routes_is_read_nowhere_and_route
     field.record(K3)["structure"] = json!({"location": uid(0x11)});
     let m = field.build();
     let q = Q::new(&m);
-    assert_eq!(status(&q, W1), RouteStatus::None, "nothing read from the leftover");
+    assert_eq!(
+        status(&q, W1),
+        RouteStatus::None,
+        "nothing read from the leftover"
+    );
     assert_eq!(length(&q, W1), WireLength::Missing);
     assert!(!fill(&q).contains(&id(W1)), "not in its duct");
     let route_of_w1: Id<ew_schema::CommittedRoute> = v5::route_id(id::<ew_schema::Connection>(W1));
-    assert!(plan(&q, &RouteScope::Due).gone.contains(&route_of_w1), "Route's next run removes it");
+    assert!(
+        plan(&q, &RouteScope::Due).gone.contains(&route_of_w1),
+        "Route's next run removes it"
+    );
 }
 
 /// The reasons a wire gets no way are its own (doc 12 §8.2): two pins whose ducts do not meet; two devices in two doors;
@@ -817,12 +824,16 @@ fn a_wire_without_a_way_is_told_its_own_reason() {
     );
     // L2 in a second door, K6 on a second plate.
     let mut fx = door_cabinet("left");
-    fx.push(json!({"$k": "mounting_surface", "id": uid(0x2b), "enclosure": uid(ENCL), "kind": "door",
+    fx.push(
+        json!({"$k": "mounting_surface", "id": uid(0x2b), "enclosure": uid(ENCL), "kind": "door",
                    "frame": {"t": [mm(600), 0, mm(250)], "q": [1_000_000_000, 0, 0, 0]}, "hinge": "right",
-                   "usable": [[0, 0], [mm(600), 0], [mm(600), mm(800)], [0, mm(800)]]}));
+                   "usable": [[0, 0], [mm(600), 0], [mm(600), mm(800)], [0, mm(800)]]}),
+    );
     fx.record(pl(L2))["carrier"] = json!({"surface": uid(0x2b)});
-    fx.push(json!({"$k": "mounting_surface", "id": uid(0x2c), "enclosure": uid(ENCL), "kind": "plate",
-                   "frame": {"t": [0, 0, mm(10)], "q": [1_000_000_000, 0, 0, 0]}}));
+    fx.push(
+        json!({"$k": "mounting_surface", "id": uid(0x2c), "enclosure": uid(ENCL), "kind": "plate",
+                   "frame": {"t": [0, 0, mm(10)], "q": [1_000_000_000, 0, 0, 0]}}),
+    );
     fx.record(pl(K6))["carrier"] = json!({"surface": uid(0x2c)});
     fx.record(pl(K6))["pose"] = json!({"t": [mm(300), mm(300), 0], "q": [1_000_000_000, 0, 0, 0]});
     let m = fx.build();
