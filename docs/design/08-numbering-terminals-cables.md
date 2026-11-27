@@ -660,7 +660,7 @@ Report kind names are those of [09](09-reports-forms-output.md) §2.4.
 `to_clamp`, `potential_id`, `potential_name`, `csa`, `csa_unit`, `colour`, `colour_iec`, `wire_part`, `length_nm`,
 `length_source`, `cable_id`, `cable_tag`, `core`, `pages`, `prov_csa`, `prov_colour`.
 
-PDF, XLSX, CSV and `.ewpp` read the same row source, so the printed list and the machine file cannot disagree
+PDF, XLSX, CSV and the production package read the same row source, so the printed list and the machine file cannot disagree
 (FR-REP-030, ADR-0018).
 
 ---

@@ -111,7 +111,7 @@ dashed hover outline over `DisplayList::entity_bounds`) are screen-space primiti
   krilla has no optional content (layers, C-11), and v1 does not offer layers.
 - **SVG, DXF and PNG.** An own SVG writer; DXF (AC1024, layer mapping) via dxf 0.6.2; PNG through `ew-export` →
   `ew-render-cpu` (vello_cpu). PNGs are byte-identical per build target (vello_cpu `Level::baseline()`) and compare within the dify tolerance across targets (ADR-0015 amendment 6); PDF, SVG, XLSX, CSV, JSONL
-  and `.ewpp` stay byte-identical (ADR-0015). `ew export pdf|svg|png` write through the page output of `ew-api`.
+  and the production package stay byte-identical (ADR-0015). `ew export pdf|svg|png` write through the page output of `ew-api`.
 - **Printing.** PDF is the print master. Small adapters in `ew-print` hand it to the OS: the xdg Print portal or CUPS
   on Linux and `PrintDlgEx` with banded vello_cpu rendering on Windows. Scale-to-fit stamps the
   scale, folio ranges and monochrome mode are supported, and `ew print` prints from the CLI (G9).
@@ -158,10 +158,10 @@ not built are listed in [extensibility](17-extensibility.md) §3.3; this table s
 | Group | Subcommands |
 |---|---|
 | Inspect | `ew check [--scheme <s>] [--gate] [--integrity] [--format …\|sarif] [--baseline …]` (CI exit codes); `ew query <name> <key> [--json] [--explain]`; `ew verify-derived`; `ew find`; `ew sql <project> "<select>"`, `ew sql dump`, `ew sql schema`; `ew commands`, `ew queries`, `ew schema <name>` |
-| Output | `ew export pdf\|svg\|png\|dxf`, `bom`, `wires`, `terminals`, `cables`; `ew export report --block <name\|id>`; `ew export plc-aml\|plc-xlsx\|plcopen\|ewpp\|machine <profile>\|labels\|drilling\|tubes\|ewz`; `ew render --page 103 --png` (CPU backend: ideal for CI and agents); `ew print`; `ew review <base> <head>`. Every export that writes project content takes `--omit-personal-data` |
+| Output | `ew export pdf\|svg\|png\|dxf`, `bom`, `wires`, `terminals`, `cables`; `ew export report --block <name\|id>`; `ew export plc-aml\|plc-xlsx\|plcopen\|package\|labels\|drilling\|tubes\|ewz`; `ew render --page 103 --png` (CPU backend: ideal for CI and agents); `ew print`; `ew review <base> <head>`. Every export that writes project content takes `--omit-personal-data` |
 | Import | `ew import qet\|csv\|io-list\|edz\|dxf\|plc-aml\|table`; `ew verify-migration <project> --reference <pdf>` |
 | Edit | `ew apply <project> <file.ewcmd>`; `ew script run`; `ew jobs run <file.ewjobs>` (KiCad-style jobsets) |
-| Format and VCS | `ew fmt [--check]`, `ew upgrade`, `ew recover`, `ew git setup [--global] [--hooks]`; `ew diff`, `ew diff --textconv`, `ew diff <a.ewpp> <b.ewpp> --wires`; `ew merge-driver %O %A %B %L %P`, `ew merge resolve` |
+| Format and VCS | `ew fmt [--check]`, `ew upgrade`, `ew recover`, `ew git setup [--global] [--hooks]`; `ew diff`, `ew diff --textconv`; `ew merge-driver %O %A %B %L %P`, `ew merge resolve` |
 | Revisions and waivers | `ew revision approve\|release\|withdraw`; `ew archive verify\|rebuild`; `ew waiver list\|add\|remove` |
 | Domain | `ew plc status`; `ew mfg …`; `ew lib lint\|render\|pack` |
 | Trust, agents, plugins | `ew trust status\|grant\|revoke\|sign`; `ew mcp [--stdio\|--listen 127.0.0.1:0]`; `ew plugin install\|list\|…` (v1.x) |
@@ -334,7 +334,7 @@ fields do not exist** (D-05, D-06, D-30).
 **Embedded report blocks** are page items bound to a filtered row source. Examples: the "PART DATA" boxes on 201,
 202 and 902, and the cover's colour and size tables generated from the active profile (REF-005, D-08).
 
-**One row source feeds the PDF, XLSX, CSV and `.ewpp`**, so the printed wire list and the machine file cannot
+**One row source feeds the PDF, XLSX, CSV and the production package**, so the printed wire list and the machine file cannot
 disagree.
 
 **Machine-export profiles are data.** A profile is TOML:

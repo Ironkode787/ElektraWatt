@@ -105,7 +105,7 @@ the baseline machine (4-core 2018+ x64, 8 GB RAM, integrated GPU).
 | SC-4 | **QET migration.** ≥ 22 of the 24 QET example projects and every pilot project import without structural errors; cross-reference texts identical; every lenient-mode violation (D-11, D-12 …) in the migration report | MVP at full scope; closed at G-M3 in the plan of record, where lever (b) ships the migration in the 0.x release after the MVP (§9.1, gates §8.3) | QET corpus fixture |
 | SC-5 | **Performance.** Frame ≤ 16 ms while editing; open S ≤ 0.5 s, M ≤ 2 s, L ≤ 5 s, XL ≤ 20 s; full check S ≤ 2 s, XL ≤ 60 s; XL peak memory ≤ 4 GB; ≥ 30 fps for an A4 page on the CPU renderer | MVP (S/M), 1.0 (L/XL) | Nightly gate, fails on > 15 % regression |
 | SC-6 | **Determinism and longevity.** Byte-identical project files and PDF on all platforms; every released format fixture opens in every later build; a pinned derivation profile reproduces tags, xrefs and wire numbers after an upgrade | MVP; 1.0 (format freeze) | Shuffle-order tests, fixture corpus, per-profile goldens |
-| SC-7 | **Manufacturing.** The golden `.ewpp` holds the wire list with routed lengths and ferrules; Komax and Rittal WT files load in the machine software without manual edits; printed wire list and machine file are row-identical | 1.0 | Golden 3D fixture; machine acceptance with a partner shop |
+| SC-7 | **Manufacturing.** The golden production package holds the wire list with routed lengths and ferrules; Komax and Rittal WT files load in the machine software without manual edits; printed wire list and machine file are row-identical | 1.0 | Golden 3D fixture; machine acceptance with a partner shop |
 | SC-8 | **PLC exchange.** AML AR APC (CAEX 2.15) of station -201U1 (Q0.0 … Q6.7) imports into TIA Portal V21 without errors; a tag-table round trip yields no unintended differences; CODESYS accepts the PLCopen XML | 1.0 | Exchange test with real installations |
 | SC-9 | **Usability.** Before M2, two EPLAN users and one QET user complete ≥ 80 % of core tasks (place, wire, terminal strip, renumber, export PDF) unassisted; repeated at 1.0 with ≥ 5 users | MVP, 1.0 | Protocol in [UX](16-ux-ui.md) |
 | SC-10 | **Privacy and supply chain.** Zero outbound connections without a user action; every release has SBOM, signatures and provenance, and no known unpatched high or critical advisory | MVP | CI network sandbox, release pipeline (ADR-0023) |
@@ -192,7 +192,7 @@ recorded (ADR-0028, proposed).
 Enclosure NSYPLA1074G and backplate NSYPMM107 → rails and 40x60 ducts → devices placed from the
 **unplaced-devices list** (-102G1, -101F1, X1031 …), each placement bound to its device (D-02, D-32) → STEP models
 through the isolated worker → collision checks → `RouteWires` previewed on a fork, then committed → ferrules by
-wire-class rule → wire list, labels, terminal assembly list, Komax and Rittal WT files → `.ewpp` frozen with the
+wire-class rule → wire list, labels, terminal assembly list, Komax and Rittal WT files → the production package frozen with the
 release. After a change, "wires changed since V1.0" is a derived list for the shop floor.
 
 ### J4 PLC I/O round trip with TIA Portal (1.0)
@@ -341,7 +341,7 @@ re-baselines them from measured velocity at G-M1.
 | **FLU** fluid power | Pneumatic ISO 1219 symbols, ports 1–5/12/14, fluid connections | Media propagation, tube specs, tube list, fluid BOM | 3D tube routing, hydraulics | — |
 | **LAY** panel layout | 2D panel front bound to devices with part dimensions (folio 902), unplaced-device list | 3D cabinet, rails, ducts, STEP via worker, collision, routing, lengths, duct fill, door cut-outs, basic busbars | Bayed suites, door-swing sweep, topology (routing-path networks for field cables) | Bent copper |
 | **THM** thermal | — | Single-compartment calculation (IEC TR 60890 / IEC 61439-1 10.10), climate sizing | Multi-compartment | Forced-ventilation curves |
-| **MFG** manufacturing | Wire list and terminal plans as reports | `.ewpp`, ferrules, labels, Komax/Rittal WT/generic profiles, drilling DXF, checklists, read-only wiring viewer | Wiring status logging, more machine profiles | NC formats, tablet viewer |
+| **MFG** manufacturing | Wire list and terminal plans as reports | the production package, ferrules, labels, Komax/Rittal WT/generic profiles, drilling DXF, checklists, read-only wiring viewer | Wiring status logging, more machine profiles | NC formats, tablet viewer |
 | **IMP** import | QET `.qet`, `.elmt`, title blocks; `ew import csv` | EDZ, DXF, EPLAN parts XML, DWG through the user-installed ODA converter (Should) | QETZ, native DWG (acadrust) | EPLAN project XML (experimental) |
 | **EXP** data exchange | BOM, wire, terminal CSV/XLSX; Excel round trip of tables | AML, PLCopen XML, glTF/STL of the cabinet | EW→QET export (if requested) | EPLAN XML export, SISTEMA / VDMA 66413 data export |
 | **UI** interface | egui shell, navigators, property grid with provenance, command palette, keymaps, accessibility, CPU fallback | PLC, Fluid, Panel 3D and Manufacturing workspaces, second monitors | — | Alternative chrome |

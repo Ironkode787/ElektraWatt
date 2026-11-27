@@ -1,6 +1,6 @@
 # ADR-0014: GUI toolkit: egui/eframe behind `ew-ui`, over a toolkit-agnostic `ew-viewmodel`
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-28 (amendment 4) and 2026-11-23 (amendment 5, with ADR-0035) · as-built notes 2026-10-22 (cycles 19, 20 and 22), 2026-10-23 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-28 (amendment 4) and 2026-11-23 (amendment 5, with ADR-0035), 2026-11-27 (a line, with ADR-0018) · as-built notes 2026-10-22 (cycles 19, 20 and 22), 2026-10-23 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -155,6 +155,8 @@ A note, not an amendment: the decision is unchanged. WP-S2.03 part 1, the read-o
   `UiBuilder::accessibility_parent`, asserted in kittest. egui_tiles 0.18.0 exposes no tab-bar node, so the `TabList`
   role is not set: it joins FT-338 with the splitter names (amendment 2's walker counts the canvas area's splitter).
 - **No new dependency.** The view models stay free of `uuid`: tabs hold `PageId` values.
+
+**2026-11-27, with ADR-0018 amendment 6.** The wiring viewer, when it is built, reads that package: the production package is one ZIP of the workshop's files with a manifest, not a `.ewpp` with data members and a permissive reader; the crates `ew-ewpp` and `ew-mfg` are not made, and the archive holds no package ([ADR-0018](0018-reports-forms-engine-and-machine-profiles.md) amendment 6).
 
 ## Consequences
 

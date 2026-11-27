@@ -19,7 +19,7 @@ the fluid part of the QET importer.
 | Connection invariants CI-01 … CI-07, physical-wire rules, colour codes | [08-connections-terminals-cables](08-connections-terminals-cables.md) |
 | Forms, pagination, the shared row source for PDF/XLSX/CSV | [09-reports-forms-output](09-reports-forms-output.md) |
 | 3D tube routing (1.x), carriers | [12-panel-layout](12-panel-layout.md) |
-| Label engine, `.ewpp` | [13-manufacturing-outputs](13-manufacturing-outputs.md) |
+| Label engine, production package | [13-manufacturing-outputs](13-manufacturing-outputs.md) |
 | QET parser and the general symbol map | [14-interop](14-interop.md) |
 | Final rule IDs and severities | [15-checks-revisions-collaboration](15-checks-revisions-collaboration.md) |
 

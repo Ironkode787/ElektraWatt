@@ -81,7 +81,7 @@ graph TD
     dxf[ew-import-dxf]
     itab["ew-import-tables<br/>(golden CSV, table round trip)"]
     cmd["ew-commands: ApplyImport,<br/>import passes, table.apply_changes"]
-    exp["ew-export, ew-reports, ew-plc, ew-mfg"]
+    exp["ew-export, ew-reports, ew-plc"]
   end
   iapi --> schema
   iapi --> rds

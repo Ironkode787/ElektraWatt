@@ -177,8 +177,8 @@ after Session::commit(tx) in oracle mode:
 | Variation | Method | Compared | Cadence |
 |---|---|---|---|
 | Record order | The loader permutes lines within each file and the file order (seeded) | JSONL after save, findings, PDF/SVG/CSV digests | PR |
-| Threads and spawn order | `RAYON_NUM_THREADS` = 1, 2 and 8; job submission order shuffled | Export digests, routing (1.0), `.ewpp` (1.0) | PR |
-| Platform | Same commit on Windows and Linux | SHA-256 of GP PDF, SVG, CSV, XLSX, JSONL and `.ewpp`; PNG within the dify tolerance (ADR-0015 amendments 3 and 6; NFR-REL-07 and FR-OUT-014 say the same) | N; release gate (AC-14, FR-OUT-019) |
+| Threads and spawn order | `RAYON_NUM_THREADS` = 1, 2 and 8; job submission order shuffled | Export digests, routing (1.0), the production package (1.0) | PR |
+| Platform | Same commit on Windows and Linux | SHA-256 of GP PDF, SVG, CSV, XLSX, JSONL and the production package; PNG within the dify tolerance (ADR-0015 amendments 3 and 6; NFR-REL-07 and FR-OUT-014 say the same) | N; release gate (AC-14, FR-OUT-019) |
 | Locale, time zone | `LC_ALL` en_US, nl_NL, de_DE, tr_TR; `TZ` UTC−10 and UTC+14 | File and PDF digests | N |
 | Wall clock | Two runs with the clock faked 24 h apart; `SOURCE_DATE_EPOCH` unset | Output digests | PR |
 | Build-time data | Every CI and release build asserts that `ICU4X_DATA_DIR` is unset: the build scripts of the ICU4X data crates read it, and other segmentation data would change line breaks and so every text layout. Every release build of `elektrawatt` also asserts `PKG_CONFIG=false` and no target-specific `PKG_CONFIG_*` variable, so x11-dl's build script bakes no build-host library directory into the binary (§5.4) | The assertion itself | PR; release (CI-R-03) |
@@ -186,7 +186,7 @@ after Session::commit(tx) in oracle mode:
 
 **Static rules** (NFR-MAINT-12). In crates that produce persisted or exported bytes (`ew-format`, `ew-model`,
 `ew-derive`, `ew-rhai`, `ew-commands`, `ew-checks`, `ew-text`, `ew-reports`, `ew-scene`, `ew-export`, `ew-plcaddr`,
-`ew-caex`, `ew-plc`, `ew-panel`, `ew-ewpp`, `ew-mfg`, `ew-sqlview` and the importers), `clippy.toml` sets:
+`ew-caex`, `ew-plc`, `ew-panel`, `ew-sqlview` and the importers), `clippy.toml` sets:
 - `disallowed-types`: the hash maps and sets of `std::collections`, `hashbrown` and `imbl`. Use `BTreeMap`,
   `imbl::OrdMap`, `IndexMap` with a defined insertion order, or sorted vectors.
 - `disallowed-methods`: `SystemTime::now` and `Instant::now` (except through the `ew-ids` UUIDv7 generator, which the
@@ -333,8 +333,8 @@ platform's order (doc 16a); on Linux its test prints that it is skipped. The sui
 
 - **Targets.** Every target listed in 14 §11 (`qet_project`, `qetz`, `edz_7z`, `edz_zip`, `dxf`, `table_xlsx` …),
   plus the AML, GSD, GSDML and IODD targets of 10, the JSONL loader and migration chain, `.ewz`, the merge driver and
-  textconv (git runs both automatically on fetched content), the STEP IPC decoder, the `.ewpp` package reader and
-  the machine feedback and status-log parsers (13 §11.3, 1.x), the SQL sandbox (hostile SQL text against the
+  textconv (git runs both automatically on fetched content), the STEP IPC decoder, the
+  machine feedback and status-log parsers (13 §11.3, 1.x), the SQL sandbox (hostile SQL text against the
   authorizer) and rhai formula evaluation under its limits. The limits themselves are FR-IMP-005 and NFR-SEC-02
   with the per-parser values of 14 §11.
 - **Properties per target.** No panic. The batch validates against the `ew-schema` JSON Schemas. `ApplyImport` on an
@@ -546,7 +546,7 @@ budgets on real projects and exercises the importer ([14](14-interop.md) §12).
 | `part.search`, `part.reindex` | NFR-PERF-21 | Synthetic 500,000-part library | First 50 results; full index rebuild |
 | `aml.export`, `aml.preview` | NFR-PERF-22 | XL (10,000 channels), with a concurrent scripted edit | Wall time (1.0) |
 | `thermal` | NFR-PERF-23 | Largest layout space of XL | Recalculation time (1.0) |
-| `ewpp.export`, `wire_records` | NFR-PERF-24 | L; M | Export time and UI-thread holds; per-potential re-evaluation (1.0) |
+| `package.export`, `wire_records` | NFR-PERF-24 | L; M | Export time and UI-thread holds; per-potential re-evaluation (1.0) |
 | `import.qet` | NFR-PERF-25 | Reference-size file, 3.5 MB corpus file, M-class project, 24-file batch | Time to the import preview; batch time |
 
 ### 4.3 Runner and measurement

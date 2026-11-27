@@ -77,7 +77,7 @@ texts in `LICENSES/` are exempt, as the REUSE specification provides.
 | L1 | Application and GPL-layer crates (the GPL rows of [04](04-architecture.md) §3) | `crates/ew-{model,rhai,derive,commands,checks,sqlview,library,store,text,reports,scene,render2d,render-cpu,export,print,plc,panel,render3d,mfg,import-eplan,import-dxf,import-catalog,import-tables,script,plugin-host,jobs,api,viewmodel,ui,viewer,testkit,py}/`, `bin/{elektrawatt,ew,ew-wiring-viewer,ew-step-worker}/`, `tools/blind/reference/` (generated from `ew-viewmodel`'s strings, the `docs-gen` precedent), `docs/map/` (the action and crate maps, generated from the crates' source, the same precedent) | `GPL-3.0-or-later WITH LicenseRef-ElektraWatt-plugin-exception` | ADR-0024, ADR-0025; until ADR-0025 is accepted, `GPL-3.0-or-later` (LG-2) |
 | L2 | `ew-import-qet`, files written by EW | `crates/ew-import-qet/` | `GPL-3.0-or-later` (no exception) | C-8, NFR-LIC-05 |
 | L3 | `ew-import-qet`, files containing ported QET code | `crates/ew-import-qet/src/qet_port/` | `GPL-2.0-or-later`, with the original QET notices kept verbatim | NFR-LIC-05 |
-| L4 | Permissive layer (the P rows of [04](04-architecture.md) §3) | `crates/ew-{units,ids,mltext,rds,schema,format,interop-api,dl,step-proto,memo,plcaddr,caex,devdesc,ewpp,signature}/`; from 1.x `ew-plugin-wit`, `ew-plugin-sdk` ([17](17-extensibility.md), FR-EXT-036) | `MIT OR Apache-2.0` | ADR-0024, NFR-MAINT-02 |
+| L4 | Permissive layer (the P rows of [04](04-architecture.md) §3) | `crates/ew-{units,ids,mltext,rds,schema,format,interop-api,dl,step-proto,memo,plcaddr,caex,devdesc,signature}/`; from 1.x `ew-plugin-wit`, `ew-plugin-sdk` ([17](17-extensibility.md), FR-EXT-036) | `MIT OR Apache-2.0` | ADR-0024, NFR-MAINT-02 |
 | L5 | JSON Schemas | `schemas/<format>/` | `MIT OR Apache-2.0` | [05](05-project-format-and-persistence.md) §10.4 |
 | L6 | Built-in rule packs, report packs and machine profiles: data files (TOML, rhai, SQL, Fluent) | `packs/` | `MIT OR Apache-2.0` | ADR-0024 decision 1 |
 | L7 | Symbols, FnDefs, frames, forms, page and report templates, macros, basic-project examples | system library in `content/`; repositories `elektrawatt-symbols`, `elektrawatt-macros` | `CC-BY-SA-4.0 WITH <design exception>` (§3.1, LR-07) | ADR-0024, [07](07-symbols-parts-macros.md) §3.8 |
@@ -106,7 +106,7 @@ graph LR
     port["qet_port/: GPL-2.0-or-later, original notices"]
   end
   subgraph PERM["L4–L6 permissive: MIT OR Apache-2.0"]
-    p["ew-units … ew-ewpp, schemas/, packs/"]
+    p["ew-units … ew-signature, schemas/, packs/"]
   end
   subgraph CONT["Content"]
     sym["L7 symbols, forms, macros: CC-BY-SA-4.0 + design exception"]
@@ -122,7 +122,7 @@ graph LR
   gpl -. "embeds copies (design exception)" .-> sym
 ```
 
-Outputs are outside every row. Projects, PDFs, reports, `.ewpp` packages, machine files and as-built archives
+Outputs are outside every row. Projects, PDFs, reports, production packages, machine files and as-built archives
 made with EW are the user's, including the symbol and form copies embedded in them (NFR-LIC-09).
 
 ### 2.2 Licence and provenance metadata in the model
@@ -224,7 +224,7 @@ prose files is NFR-DOC-08.
 | LR-04 | `GPL-2.0-or-later` appears only under `crates/ew-import-qet/src/qet_port/`. Only `ew-api` depends on `ew-import-qet` directly; `ew-plugin-host` and the L4 crates never reach it. | Licence-map check; dependency rule (NFR-LIC-05, NFR-MAINT-01) |
 | LR-05 | Code copied or ported from another project is declared in the PR template (project, licence, commit), keeps its notices, is listed in `NOTICE` and must be compatible with the destination row. Only MIT, Apache-2.0, BSD, ISC, Zlib, Unicode-3.0 and CC0-1.0 code may enter L4. | PR template; review; licence-map check |
 | LR-06 | No third-party engineering content is committed or shipped without an explicit redistribution licence. The list of what is never shipped is NFR-LIC-06: IEC 60617 database content, ECLASS dictionary content, EDZ and Data Portal content, the QET element collection, vendor STEP/DXF/images, Tahoma, standard texts and tables. | Library linter EW-LIB-005, EW-LIB-006, EW-LIB-011; release content audit: the release content audit is `ew-library`'s test `content_audit` (a licence and a source on every shipped record, the licence allowed by its kind and by `ci/licence-map.toml`) with `content/README.md`, the inventory of each shipped content set, which the test keeps complete; RC-07's evidence is that page, `NOTICE` and the test's run on the release commit. |
-| LR-07 | Symbols, frames, forms and macros carry the design exception. If counsel confirms that its text fits, the SPDX-listed `KiCad-libraries-exception` is used verbatim (**verify** it is on the SPDX exceptions list); otherwise a project-specific exception. It must cover projects with embedded copies, PDFs, reports, `.ewpp`, machine files, exported QET/DXF/SVG and as-built archives. | EW-LIB-005; legal review (NFR-LIC-09) |
+| LR-07 | Symbols, frames, forms and macros carry the design exception. If counsel confirms that its text fits, the SPDX-listed `KiCad-libraries-exception` is used verbatim (**verify** it is on the SPDX exceptions list); otherwise a project-specific exception. It must cover projects with embedded copies, PDFs, reports, production packages, machine files, exported QET/DXF/SVG and as-built archives. | EW-LIB-005; legal review (NFR-LIC-09) |
 | LR-08 | The plugin exception follows the technical scope of [17](17-extensibility.md) §12: WIT-world-only plugins, excluding EW modifications and every file without the exception (L2, L3). | Legal review; LR-04 |
 | LR-09 | Outputs are free of EW's copyleft. `LICENSE.md`, the About dialog and the docs say so in the same words. | Text assertion in CI (NFR-LIC-09) |
 | LR-10 | The bundled-asset allowlist (fonts, icons, data packs) is separate from the crate allowlist of NFR-LIC-04. A new asset licence needs maintainer consensus and a `NOTICE` entry. | REUSE lint over `assets/` and `content/` |

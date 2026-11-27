@@ -45,7 +45,7 @@ flowchart LR
     PW --> CR["cable_rows(cable)"]
   end
   A --> D
-  WP & WN & TR & CR --> O["Display lists, reports 903-909,<br/>checks, SQL api_v1, .ewpp (1.0)"]
+  WP & WN & TR & CR --> O["Display lists, reports 903-909,<br/>checks, SQL api_v1, production package (1.0)"]
   N["ew-commands normalisers (registry: 06 §3.2):<br/>junction clean-up, clamp pick, conductor assignment,<br/>number transfer, online numbering"] -.-> A
 ```
 

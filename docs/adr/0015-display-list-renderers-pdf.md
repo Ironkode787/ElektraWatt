@@ -1,6 +1,6 @@
 # ADR-0015: One display-list IR; wgpu canvas plus an always-built CPU renderer; krilla PDF/A-2b; PDF as print master
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-20, 2026-10-22, 2026-10-30 (no macOS print adapter), 2026-11-02 (amendment 7: the `ew-scene` → `ew-derive` edge as built) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-20, 2026-10-22, 2026-10-30 (no macOS print adapter), 2026-11-02 (amendment 7: the `ew-scene` → `ew-derive` edge as built), 2026-11-27 (a line, with ADR-0018) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -185,6 +185,8 @@ Amendments 1 to 4 were accepted on 2026-10-18, amendments 5 to 7 on 2026-10-19, 
       (exit code 3) and the CPU renderer remains the headless and fallback path. Supply chain: lyon_tessellation,
       lyon_path, lyon_geom and float_next_after are cargo-vet exemptions under ID-476's hold until FT-326 audits them
      .
+
+**2026-11-27, with ADR-0018 amendment 6.** Where this record names `.ewpp`, read the production package: the production package is one ZIP of the workshop's files with a manifest, not a `.ewpp` with data members and a permissive reader; the crates `ew-ewpp` and `ew-mfg` are not made, and the archive holds no package ([ADR-0018](0018-reports-forms-engine-and-machine-profiles.md) amendment 6).
 
 ## Consequences
 

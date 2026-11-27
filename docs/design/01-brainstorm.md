@@ -165,7 +165,7 @@ Four root causes explain all 42 defects
 
 | ID | Idea | V | E | Rel. | Area | Rationale |
 |---|---|---|---|---|---|---|
-| IDEA-054 | Open production package `.ewpp` (wires, terminals, labels, cut lists, DXF, glTF, checklists, PDF/A, status logs) with JSON Schemas | H | M | 1.0 | MFG | One documented hand-off ([panel-manufacturing](../research/panel-manufacturing.md) §8) |
+| IDEA-054 | Open production package (wires, terminals, labels, cut lists, DXF, glTF, checklists, PDF/A, status logs) with JSON Schemas | H | M | 1.0 | MFG | One documented hand-off ([panel-manufacturing](../research/panel-manufacturing.md) §8) |
 | IDEA-055 | Machine profiles as TOML: Komax TopConvert CSV, Rittal WT CSV, Weidmüller WPC XLSX, generic; pre-flight checks | H | M | 1.0 | MFG | A new machine is a file, not code (ADR-0018) |
 | IDEA-056 | Label sets from one engine: wire, terminal, device, cable, door; deterministic DT abbreviation | H | M | 1.0 | MFG | EN 60204-1 13.2.1 |
 | IDEA-057 ★ | **Tablet wiring viewer:** work queue by bundle, 3D highlight of both CPs, schematic snippet, done/problem. Read-only in 1.0, status log and QR jump in 1.x | H | H | 1.0 / 1.x | MFG | Smart Wiring class, offline, from the open `.ewpp` |

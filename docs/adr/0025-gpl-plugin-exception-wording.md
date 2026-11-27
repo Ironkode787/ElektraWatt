@@ -1,6 +1,6 @@
 # ADR-0025: Wording of the GPL plugin exception
 
-**Status:** Proposed · **Date:** 2026-10-17 · **Deciders:** project owner, with counsel
+**Status:** Proposed · a line 2026-11-27 · **Date:** 2026-10-17 · **Deciders:** project owner, with counsel
 
 ## Context
 
@@ -77,6 +77,8 @@
    documents (SPDX `AdditionRef-` syntax, design-exception coverage, CRA steward scope). This must happen before the
    first non-maintainer PR is merged (LG-2; NFR-LIC-12).
    The exception is applied in the same commit that adds the headers to every GPL-layer file.
+
+**2026-11-27, with ADR-0018 amendment 6.** Where this record names `.ewpp` outputs, read production packages: the production package is one ZIP of the workshop's files with a manifest, not a `.ewpp` with data members and a permissive reader; the crates `ew-ewpp` and `ew-mfg` are not made, and the archive holds no package ([ADR-0018](0018-reports-forms-engine-and-machine-profiles.md) amendment 6).
 
 ## Consequences
 

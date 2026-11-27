@@ -653,7 +653,7 @@ governance belong to [19](19-open-source-governance.md).
    that links GPL crates directly.
 4. State that programs interacting through the CLI, MCP or the file format are separate works, and that interpreted
    inputs (projects, rhai scripts, SQL, rule packs, machine profiles, forms) and outputs (projects, PDFs, reports,
-   `.ewpp`, machine files; NFR-LIC-09) are not covered works merely because EW reads, runs or writes them.
+   production packages, machine files; NFR-LIC-09) are not covered works merely because EW reads, runs or writes them.
 5. Ship it as `LICENSES/LicenseRef-ElektraWatt-plugin-exception.txt` with SPDX headers
    `GPL-3.0-or-later WITH LicenseRef-ElektraWatt-plugin-exception`, or the SPDX 3.0 `AdditionRef-` form if
    reuse-tool and cargo-deny accept only that (ADR-0025 recommendation 5). It must be in the headers before the

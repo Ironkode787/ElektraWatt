@@ -115,7 +115,7 @@ flowchart TB
 | Library copies | `SymbolDef`, `FnDef`, `PartCopy`, `FormDef`, `MacroDef`, manufacturer records | symbol geometry, form layout | `lib/<kind>/<copy_id>.json` | [07](07-symbols-parts-macros.md) |
 | Physical model | `LayoutSpace`, `Enclosure`, `MountingSurface`, `Carrier`, `Placement3D`, `RouteOverride`, `RoutingPath`, `SurfaceFeature` | routing graph, routes (C), lengths (C), duct fill, collisions, surface features | `layout/<uuid>.jsonl` | §16, [12](12-panel-layout.md) |
 | Release, quality | `Revision`, `Transmittal`, `Waiver` | findings, page change status, revision diffs | `revisions.jsonl`, `waivers.jsonl` | §18–§19, [15](15-checks-revisions-collaboration.md) |
-| Manufacturing | settings in `Project` | wire records, wire ends, labels; `.ewpp` (X) | — | §17, [13](13-manufacturing-outputs.md) |
+| Manufacturing | settings in `Project` | wire records, wire ends, labels; the production package (X) | — | §17, [13](13-manufacturing-outputs.md) |
 
 ---
 
@@ -334,5 +334,5 @@ Every link field declares a delete policy, generated into `ew-model` (arch §4.6
 | Routed path, wire length | C | `RouteWires` output |
 | Frozen tag or wire number | F | `TagSpec.frozen`, `NumberSpec::Frozen` |
 | Findings | D (II for offline rules) | `checks(scope)` |
-| As-built archive, `.ewpp` | X | release and export jobs |
+| As-built archive, production package | X | release and export jobs |
 

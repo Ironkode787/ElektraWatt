@@ -784,9 +784,9 @@ Budgets hold on the baseline machine BM (4-core 2018+ x64, 8 GB RAM, integrated 
 | Placement legend, PART DATA, mounting list | `layout_legend`, `device_part_lines` | MVP (embedded) / 1.0 (page reports, FR-REP-023) | pages, XLSX, CSV |
 | BOM lines for enclosure, plate, rails, ducts, brackets | carriers, group accessories | MVP | `bom_rows` (FR-REP-007, D-04) |
 | Model views | `layout_scene`, cached part projections | 1.0 | pages |
-| Ways and lengths | `committed_route` records, `wire_record_set()` (§8.5, §9) | 1.0 | the wire list, the cut list, the consumables, the rework list, machine profiles, `.ewpp` ([13](13-manufacturing-outputs.md)) |
+| Ways and lengths | `committed_route` records, `wire_record_set()` (§8.5, §9) | 1.0 | the wire list, the cut list, the consumables, the rework list, the production package ([13](13-manufacturing-outputs.md)) |
 | Hole table, drilling template (PDF at full size), drilling DXF per surface | `surface_features` (§10.4) | 0.4.0 | [13](13-drilling.md) §9.1, §9.2; the cut list is [13](13-workshop-lists.md) §9.3 |
-| glTF (`.glb`, node names = placement UUIDs, DT and part in extras) and STL per layout space | `layout_scene`, written by `ew-panel` | 1.0 | FR-EXP-007, `.ewpp` layout member, wiring viewer |
+| glTF (`.glb`, node names = placement UUIDs, DT and part in extras) and STL per layout space | `layout_scene`, written by `ew-panel` | 1.0 | FR-EXP-007, wiring viewer |
 | STEP AP242 assembly named by DTs | worker `ExportStep` | 1.0 (Could) | FR-EXP-008 |
 | Thermal report | `thermal(space)` | 1.0 | FR-THM-009, design verification record |
 | SQL view `api_v1_placement` | projection | 1.0 | user reports, MCP (FR-EXT-007) |

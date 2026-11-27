@@ -1,6 +1,6 @@
 # ADR-0024: Licence set and the permissive/GPL crate boundary
 
-**Status:** Accepted · amended 2026-10-18, 2026-11-04 (amendment 6), 2026-11-23 (amendment 8, with ADR-0035) · **Date:** 2026-10-17 · **Deciders:** project owner (licence set, decided 2026-10-17); core
+**Status:** Accepted · amended 2026-10-18, 2026-11-04 (amendment 6), 2026-11-23 (amendment 8, with ADR-0035), 2026-11-27 (a line, with ADR-0018) · **Date:** 2026-10-17 · **Deciders:** project owner (licence set, decided 2026-10-17); core
 team (crate boundary)
 
 ## Context
@@ -136,6 +136,8 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    a permissive type, and a thing both layers need is written on the permissive side. Existing GPL code moves into
    a permissive crate only with the consent of its copyright holders, named in the commit; it is not kept twice
    with a test between the copies. Decision 4 is untouched.
+
+**2026-11-27, with ADR-0018 amendment 6.** `ew-ewpp` leaves the permissive set named by amendment 1, and outputs include the production package by that name: the production package is one ZIP of the workshop's files with a manifest, not a `.ewpp` with data members and a permissive reader; the crates `ew-ewpp` and `ew-mfg` are not made, and the archive holds no package ([ADR-0018](0018-reports-forms-engine-and-machine-profiles.md) amendment 6).
 
 ## Consequences
 

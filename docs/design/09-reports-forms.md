@@ -23,7 +23,7 @@ A chapter of [Reports, forms and page output](09-reports-forms-output.md), whose
 
 **Out of scope here, with owners:** row *content* of PLC, bus and fluid reports ([10](10-plc-and-bus.md),
 [11](11-fluid-power.md)); layout legends and model views ([12](12-panel-layout.md)); wire-list variants, labels,
-machine profiles and `.ewpp` ([13](13-manufacturing-outputs.md)); QET title-block and `graphics_table` import
+the label file's export profile and the production package ([13](13-manufacturing-outputs.md)); QET title-block and `graphics_table` import
 ([14](14-interop.md)); check-report content, revision comparison and the release gate
 ([15](15-checks-revisions-collaboration.md)); shell and dialogs ([16](16-ux-ui.md)); CLI catalogue and `api_v1`
 view schemas ([17](17-extensibility.md)). Frame *grid semantics* (cell lookup, xref anchors) are in
@@ -50,7 +50,7 @@ flowchart LR
   TB --> DL
   RS --> EMB["embedded blocks<br/>PART DATA, cover tables"] --> DL
   DL --> PDF["krilla PDF/A-2b"] & SVG["SVG"] & PNG["PNG (vello_cpu)"] & DXF["DXF AC1024"] & PRN["print adapters"]
-  RS --> XL["XLSX / CSV"] & EWPP[".ewpp (13)"]
+  RS --> XL["XLSX / CSV"] & EWPP["production package (13)"]
 ```
 
 ### 1.3 Crates
@@ -480,7 +480,7 @@ pdf.links = "xrefs+reports"           # xrefs | xrefs+reports | none
 pdf.partial_links = "plain"           # plain | companion (FR-OUT-020)
 colour = "colour"                     # colour | monochrome (FR-OUT-011)
 languages = ["en-GB"]                 # one PDF per entry (FR-I18N-005, 1.0)
-omit_personal_data = false            # FR-OUT-025 (CLI --omit-personal-data), FR-PRJ-024; AML, .ewpp: FR-EXP-009
+omit_personal_data = false            # FR-OUT-025 (CLI --omit-personal-data), FR-PRJ-024; AML, the production package: FR-EXP-009
 status_mark = "auto"                  # auto: "DRAFT <label>" on unreleased revisions (FR-OUT-021)
 date = "model"                        # model | fixed "2025-04-14" | source-date-epoch (FR-OUT-026)
 file_name = "{project.drawing_id}_{revision.current.label}_{lang}.pdf"

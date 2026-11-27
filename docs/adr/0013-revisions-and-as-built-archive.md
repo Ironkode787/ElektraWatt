@@ -1,6 +1,6 @@
 # ADR-0013: Revisions and the as-built archive outside the project directory
 
-**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-11-27 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -80,6 +80,8 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
 4. **Archive verification and rebuild** (2026-10-18; [project format](../design/05-project-format-and-persistence.md)
    §14). `ew archive verify <file>` checks sums, schema validity and PDF reproduction, and `ew archive rebuild
    <label>` recreates a missing archive from the git tag and marks it as rebuilt (FR-REV-025, 1.0).
+
+**2026-11-27, with ADR-0018 amendment 6.** The archive's "production package when present" has no case: the production package is one ZIP of the workshop's files with a manifest, not a `.ewpp` with data members and a permissive reader; the crates `ew-ewpp` and `ew-mfg` are not made, and the archive holds no package ([ADR-0018](0018-reports-forms-engine-and-machine-profiles.md) amendment 6).
 
 ## Consequences
 
