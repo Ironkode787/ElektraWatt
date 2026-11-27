@@ -3,15 +3,15 @@
 
 //! Output ▸ Workshop ▸ Labels… and Workshop settings (doc 13 §5.4, §12). Labels… lists the label files, one per label
 //! set and marker part, each with its count and a tick: every label, or the labels the rework list against a release
-//! names (Labels for these changes… of the Rework list…); the format (CSV or XLSX); the export profile's columns with
-//! Change… (Label file columns, a form of the labels list's columns with their headings and order, and the delimiter);
+//! names (Labels for these changes… of the Rework list…); the label file's export profile in a line with Change… (Label
+//! file, a form of the labels list's columns with their headings and order, the file's form and a CSV's delimiter);
 //! a line that counts the labels whose text does not fit their marker part. Export asks for a folder and writes the
 //! ticked files, each whole, and a toast names the folder with Show in folder. Workshop settings shows the project's
 //! Properties at its Workshop rows.
 
 use std::path::PathBuf;
 
-use ew_api::{LabelFileFormat, LabelScope, ReworkBase, ReworkRelease};
+use ew_api::{LabelScope, ReworkBase, ReworkRelease};
 use serde_json::{Map, Value, json};
 
 use super::{
@@ -54,12 +54,10 @@ pub struct LabelsDialog {
     pub releases: Vec<(ReworkRelease, String)>,
     /// Which labels.
     pub which: Which,
-    /// The format the files are written in.
-    pub format: LabelFileFormat,
     /// The files, or why there are none, in words.
     pub files: Result<Vec<LabelFileRow>, String>,
-    /// The export profile's headings, in their order.
-    pub columns: Vec<String>,
+    /// The label file's export profile in a line ("Excel · Text 1, Text 2, Text 3, Copies, For").
+    pub profile: String,
     /// The labels that do not fit their marker part, each its set, its marker part and its text in words.
     pub misfits: Vec<String>,
     /// Whether the dialog lists them (Show), else counts them only.
@@ -67,11 +65,6 @@ pub struct LabelsDialog {
 }
 
 impl LabelsDialog {
-    /// Whether the files are written as XLSX (else CSV).
-    pub fn xlsx(&self) -> bool {
-        self.format == LabelFileFormat::Xlsx
-    }
-
     /// The scope of the session's label files.
     fn scope(&self) -> LabelScope {
         match &self.which {
@@ -84,19 +77,90 @@ impl LabelsDialog {
     }
 }
 
-/// The files of `d` left unticked, by name.
-fn unticked(d: &LabelsDialog) -> Vec<String> {
+/// The files of `d` left unticked, each by its label set and marker part, which a change of the file's form keeps.
+fn unticked(d: &LabelsDialog) -> Vec<(String, String)> {
     d.files
         .iter()
         .flatten()
         .filter(|f| !f.on)
-        .map(|f| f.name.clone())
+        .map(|f| (f.set.clone(), f.marker_part.clone()))
         .collect()
+}
+
+/// The words of the columns of Label file…'s table: the tick, the heading, the order.
+fn column_words() -> [String; 3] {
+    [
+        strings::text(key!("list-columns-print")).to_owned(),
+        strings::text(key!("list-columns-heading")).to_owned(),
+        strings::text(key!("list-columns-order")).to_owned(),
+    ]
+}
+
+/// The labels list's column `c` in the window's words.
+fn column_label(c: ew_api::LabelColumn) -> String {
+    ew_api::label_column_words(c, Some(strings::locale()))
+}
+
+/// The form Label file… on the profile `profile`: every column of the labels list, one row each, ticked with its
+/// heading and place where the profile has it; the file's form and a CSV's delimiter.
+fn labels_form(profile: &ew_api::LabelProfile) -> FormDialog {
+    let words = column_words();
+    let rows = ew_api::LabelColumn::ALL
+        .into_iter()
+        .map(|c| {
+            let at = profile.columns.iter().position(|(k, _)| k == c.key());
+            FormRow {
+                key: column_label(c),
+                cells: vec![
+                    if at.is_some() { TICKED } else { "" }.to_owned(),
+                    at.map(|i| profile.columns[i].1.clone()).unwrap_or_default(),
+                    at.map(|i| (i + 1).to_string()).unwrap_or_default(),
+                ],
+            }
+        })
+        .collect();
+    FormDialog {
+        action: COLUMNS,
+        title_key: key!("labels-profile-title"),
+        ok_key: key!("dialog-apply"),
+        fields: vec![
+            FormField {
+                label: None,
+                name: "file".into(),
+                label_key: key!("field-project-settings-workshop-label-profile-file"),
+                choices: &super::choices::FILE_FORM,
+                options: Vec::new(),
+                value: profile.file.clone(),
+            },
+            FormField {
+                label: None,
+                name: "delimiter".into(),
+                label_key: key!("field-project-settings-workshop-label-profile-delimiter"),
+                choices: &super::choices::DELIMITER,
+                options: Vec::new(),
+                value: profile.delimiter.clone(),
+            },
+        ],
+        error: None,
+        table: Some(FormTable {
+            name: "columns",
+            heading_key: key!("list-columns-table"),
+            fixed: true,
+            key_label: key!("list-columns-column"),
+            add_key: key!("form-value-set-add"),
+            columns: vec![
+                (words[0].clone(), TICK.to_owned()),
+                (words[1].clone(), String::new()),
+                (words[2].clone(), String::new()),
+            ],
+            rows,
+        }),
+    }
 }
 
 /// The key of the first Workshop row of the project's Properties.
 const WORKSHOP_ROW: &str = "project/settings.workshop.ferrules";
-/// Label file columns…'s action.
+/// Label file…'s action.
 const COLUMNS: &str = "labels.columns";
 
 impl ShellModel {
@@ -127,14 +191,14 @@ impl ShellModel {
         self.act_props_row(&p)
     }
 
-    /// `labels.show {since?, archive?, format?}` (Output ▸ Workshop ▸ Labels…; Labels for these changes… of the Rework
-    /// list… with `since` or `archive`): opens the dialog on every label, or on the labels the rework list against the
-    /// release labelled `since` (or the archive file `archive`) names, as CSV unless `format` is `xlsx`; the open dialog
-    /// changes what it lists.
+    /// `labels.show {since?, archive?}` (Output ▸ Workshop ▸ Labels…; Labels for these changes… of the Rework list… with
+    /// `since` or `archive`): opens the dialog on every label, or on the labels the rework list against the release
+    /// labelled `since` (or the archive file `archive`) names, in the form of the label file's export profile; the open
+    /// dialog changes what it lists.
     pub(crate) fn act_labels_show(&mut self, p: &Map<String, Value>) -> Outcome {
         let releases = self.rework_releases();
         let open = match &self.dialog {
-            Some(Dialog::Labels(d)) => Some((d.which.clone(), d.format)),
+            Some(Dialog::Labels(d)) => Some(d.which.clone()),
             _ => None,
         };
         let open_show = matches!(&self.dialog, Some(Dialog::Labels(d)) if d.show_misfits);
@@ -146,21 +210,13 @@ impl ShellModel {
                 None => return failed(key!("error-rework-release"), &[label]),
             },
             (_, Ok(Some(path))) => Which::File(PathBuf::from(path)),
-            _ => open.as_ref().map_or(Which::All, |(w, _)| w.clone()),
-        };
-        let format = match string_param(p, "format") {
-            Err(e) => return e,
-            Ok(Some("xlsx")) => LabelFileFormat::Xlsx,
-            Ok(Some("csv")) => LabelFileFormat::Csv,
-            Ok(Some(_)) => return failed(key!("error-bad-param"), &["format"]),
-            Ok(None) => open.map_or(LabelFileFormat::Csv, |(_, f)| f),
+            _ => open.unwrap_or(Which::All),
         };
         let mut d = LabelsDialog {
             releases,
             which,
-            format,
             files: Ok(Vec::new()),
-            columns: Vec::new(),
+            profile: String::new(),
             misfits: Vec::new(),
             show_misfits: open_show,
         };
@@ -176,19 +232,13 @@ impl ShellModel {
         self.open_dialog(Dialog::Labels(Box::new(d)))
     }
 
-    /// The files, the columns and the misfits of `d`, from the session; a file `off` names stays unticked.
-    fn fill_labels(&self, d: &mut LabelsDialog, off: &[String]) {
+    /// The files, the profile and the misfits of `d`, from the session; a file `off` names stays unticked.
+    fn fill_labels(&self, d: &mut LabelsDialog, off: &[(String, String)]) {
         let Some(project) = &self.project else {
             return;
         };
-        d.columns = project
-            .session
-            .label_profile()
-            .0
-            .into_iter()
-            .map(|(_, h)| h)
-            .collect();
-        d.files = match project.session.label_files(&d.scope(), d.format, None) {
+        d.profile = strings::render(&project.session.label_profile().summary());
+        d.files = match project.session.label_files(&d.scope(), None, None) {
             Ok(files) => {
                 d.misfits = files
                     .iter()
@@ -202,12 +252,16 @@ impl ShellModel {
                     .collect();
                 Ok(files
                     .into_iter()
-                    .map(|f| LabelFileRow {
-                        on: !off.contains(&f.name),
-                        set: strings::render(&ew_api::label_set_text(f.set)),
-                        marker_part: f.marker_part.unwrap_or_default(),
-                        count: f.count,
-                        name: f.name,
+                    .map(|f| {
+                        let set = strings::render(&ew_api::label_set_text(f.set));
+                        let marker_part = f.marker_part.unwrap_or_default();
+                        LabelFileRow {
+                            on: !off.contains(&(set.clone(), marker_part.clone())),
+                            set,
+                            marker_part,
+                            count: f.count,
+                            name: f.name,
+                        }
                     })
                     .collect())
             }
@@ -264,14 +318,14 @@ impl ShellModel {
         if wanted.is_empty() {
             return Outcome::refused(key!("reason-labels-none"));
         }
-        let (scope, format) = (d.scope(), d.format);
+        let scope = d.scope();
         let dir = match string_param(p, "dir") {
             Err(e) => return e,
             Ok(Some(dir)) => PathBuf::from(dir),
             Ok(None) => return self.need_path("labels.write", Prompt::LabelFolder, "dir", p),
         };
         let project = or_return!(crate::shell::gated(&self.project));
-        let files = match project.session.label_files(&scope, format, None) {
+        let files = match project.session.label_files(&scope, None, None) {
             Ok(f) => f,
             Err(e) => return failed(key!("error-export"), &[&e.to_string()]),
         };
@@ -289,23 +343,25 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `labels.columns {columns?, delimiter?}` (Label file columns…, the dialog's Change…): without a parameter the
-    /// window opens the form: every column of the labels list, one row each in the window's words, with a tick to write
-    /// it, the heading the file prints and its order, and the delimiter. Apply sets the project's export profile in
-    /// one step (`project.settings.set workshop.label_profile`); the generic profile unchanged clears it. Refused in
-    /// words: no column ticked, an order that is not a whole number, a column ticked without a heading.
+    /// `labels.columns {columns?, file?, delimiter?, generic?}` (Label file…, the dialog's Change…, the Workshop row
+    /// Label file's Change…): without a parameter the window opens the form: every column of the labels list, one row
+    /// each in the window's words, with a tick to write it, the heading the file prints and its order; the file's form
+    /// (Excel, CSV) and a CSV's delimiter. `generic` (the form's Generic columns) fills the open form with the generic
+    /// profile and applies nothing. Apply sets the project's export profile in one step (`project.settings.set
+    /// workshop.label_profile`); the generic profile unchanged clears it. Refused in words: no column ticked, an order
+    /// that is not a whole number, a column ticked without a heading, two columns with one heading.
     pub(crate) fn act_labels_columns(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(project) = &self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        let (profile, delimiter_now) = project.session.label_profile();
-        let words = [
-            strings::text(key!("list-columns-print")).to_owned(),
-            strings::text(key!("list-columns-heading")).to_owned(),
-            strings::text(key!("list-columns-order")).to_owned(),
-        ];
-        let label =
-            |c: ew_api::LabelColumn| -> String { ew_api::label_column_words(c, Some(strings::locale())) };
+        let now = project.session.label_profile();
+        if p.get("generic").and_then(Value::as_bool) == Some(true) {
+            if !self.in_form_of(COLUMNS) {
+                return Outcome::refused(key!("reason-label-file-closed"));
+            }
+            self.dialog = Some(Dialog::Form(labels_form(&ew_api::LabelProfile::generic())));
+            return Outcome::Done;
+        }
         if p.is_empty() && !self.in_form_of(COLUMNS) {
             self.labels_under = match self.dialog.take() {
                 Some(Dialog::Labels(d)) => Some(d),
@@ -314,48 +370,15 @@ impl ShellModel {
                     None
                 }
             };
-            let rows = ew_api::LabelColumn::ALL
-                .into_iter()
-                .map(|c| {
-                    let at = profile.iter().position(|(k, _)| k == c.key());
-                    FormRow {
-                        key: label(c),
-                        cells: vec![
-                            if at.is_some() { TICKED } else { "" }.to_owned(),
-                            at.map(|i| profile[i].1.clone()).unwrap_or_default(),
-                            at.map(|i| (i + 1).to_string()).unwrap_or_default(),
-                        ],
-                    }
-                })
-                .collect();
-            return self.open_dialog(Dialog::Form(FormDialog {
-                action: COLUMNS,
-                title_key: key!("labels-columns-title"),
-                ok_key: key!("dialog-apply"),
-                fields: vec![FormField {
-                    label: None,
-                    name: "delimiter".into(),
-                    label_key: key!("field-project-settings-workshop-label-profile-delimiter"),
-                    choices: &super::choices::DELIMITER,
-                    options: Vec::new(),
-                    value: delimiter_now.clone(),
-                }],
-                error: None,
-                table: Some(FormTable {
-                    name: "columns",
-                    heading_key: key!("list-columns-table"),
-                    fixed: true,
-                    key_label: key!("list-columns-column"),
-                    add_key: key!("form-value-set-add"),
-                    columns: vec![
-                        (words[0].clone(), TICK.to_owned()),
-                        (words[1].clone(), String::new()),
-                        (words[2].clone(), String::new()),
-                    ],
-                    rows,
-                }),
-            }));
+            return self.open_dialog(Dialog::Form(labels_form(&now)));
         }
+        let ew_api::LabelProfile {
+            columns: profile,
+            delimiter: delimiter_now,
+            file: file_now,
+        } = now;
+        let words = column_words();
+        let label = column_label;
         let table = p
             .get("columns")
             .and_then(Value::as_array)
@@ -397,6 +420,12 @@ impl ShellModel {
                     }
                 }
             };
+            if let Some((_, _, (k, _))) = chosen.iter().find(|(_, _, (_, h))| *h == heading) {
+                let other = ew_api::LabelColumn::parse(k).map_or_else(|| k.clone(), label);
+                let message =
+                    strings::format(key!("error-label-heading-twice"), &[&heading, &other, &label(c)]);
+                return self.form_failed(COLUMNS, message);
+            }
             chosen.push((place, i, (c.key().to_owned(), heading)));
         }
         if chosen.is_empty() && !table.is_empty() {
@@ -416,12 +445,20 @@ impl ShellModel {
             Ok(Some(_)) => return failed(key!("error-bad-param"), &["delimiter"]),
             Ok(None) => None,
         };
+        // Likewise the file's form.
+        let file = match string_param(p, "file") {
+            Err(e) => return e,
+            Ok(Some(f)) if f == file_now => None,
+            Ok(Some(f)) if ew_api::FileForm::NAMES.contains(&f) => Some(f.to_owned()),
+            Ok(Some(_)) => return failed(key!("error-bad-param"), &["file"]),
+            Ok(None) => None,
+        };
         let Some(project) = &self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
         let value = match project
             .session
-            .label_profile_value(&columns, delimiter.as_deref())
+            .label_profile_value(&columns, delimiter.as_deref(), file.as_deref())
         {
             Ok(v) => v,
             Err(_) => return failed(key!("error-bad-param"), &["delimiter"]),

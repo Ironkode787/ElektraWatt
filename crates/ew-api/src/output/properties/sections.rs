@@ -325,6 +325,63 @@ fn workshop_defaults(built: &mut [Built]) {
     }
 }
 
+/// The row Label file of the workshop settings (doc 13-package §7.3): the label file's export profile in a line ("Excel ·
+/// Text 1, Text 2, Text 3, Copies, For") with Change…, which opens its form, in place of the stored profile's rows.
+fn label_file_row(q: &Q, built: &mut Vec<Built>) {
+    const PATH: &str = "settings.workshop.label_profile";
+    // It stands among the workshop's rows, as one of them, in the order of their paths.
+    let Some((category, depth)) = built
+        .iter()
+        .find(|b| b.row.path == "settings.workshop.ferrules")
+        .map(|b| (b.row.category, b.row.depth))
+    else {
+        return;
+    };
+    built.retain(|b| !b.row.path.starts_with(PATH));
+    let workshop = |b: &Built| b.row.path.starts_with("settings.workshop.") && b.row.depth == depth;
+    let at = built
+        .iter()
+        .position(|b| workshop(b) && b.row.path.as_str() > PATH)
+        .or_else(|| built.iter().rposition(workshop).map(|i| i + 1));
+    let held = q.project().settings.workshop.label_profile.is_some();
+    let text = crate::labels::LabelProfile::of(q).summary().to_string();
+    let mut row = derived(DerivedRow {
+        kind: "project",
+        name: "label_file",
+        partner: Some((
+            PATH,
+            EditRoute::ReadOnly(FieldReadOnly::Command {
+                command: "project.settings.set".to_owned(),
+                action: Some("labels.columns".to_owned()),
+            }),
+            false,
+        )),
+        category,
+        ty: FieldType::Text,
+        value: RowValue::One {
+            json: Value::String(text.clone()),
+            text,
+        },
+        provenance: if held {
+            Provenance::Authored
+        } else {
+            Provenance::Derived {
+                via: "project default".into(),
+            }
+        },
+        actions: Vec::new(),
+    });
+    row.row.key = format!("project/{PATH}");
+    row.row.depth = depth;
+    // A row of the stored settings, in their order, not a derived row first in its category.
+    row.derived = false;
+    row.row.link = Some(super::RowLink {
+        label: text!("label-file-change"),
+        actions: vec![("labels.columns", Value::Object(serde_json::Map::new()))],
+    });
+    built.insert(at.unwrap_or(built.len()), row);
+}
+
 /// The library provenance of a part reference: the embedded copy's library, item and version.
 fn library_provenance(q: &Q, json: &Value) -> Option<Provenance> {
     let copy = Uuid::parse_str(json.get("copy")?.as_str()?).ok()?;
@@ -527,6 +584,7 @@ impl Session {
         // A workshop setting that is not set shows the value that applies, as the project's default.
         if kind == Kind::Project {
             workshop_defaults(&mut built);
+            label_file_row(q, &mut built);
         }
         // A valve's position is its derived row, not the stored member a second time; an aspect's structure row (with
         // Override and Reset) stands for its stored member likewise, so two rows never share a label.

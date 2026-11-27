@@ -498,7 +498,7 @@ toast-labels-written = { $p0 ->
         [one] Wrote 1 label file to { $p1 }
        *[other] Wrote { $p0 } label files to { $p1 }
     }.
-toast-label-columns = The label files take the columns you chose.
+toast-label-columns = The label files take the columns and the form you chose.
 toast-back-to-editor = Back to the editor
 toast-route-done = { $p0 ->
         [one] Routed 1 wire: { $p1 }

@@ -89,8 +89,8 @@ markers EW-GEN-MRK-1.xlsx`; a set without a marker part, `SAMPLE-E Cable markers
 file's profile. Each file is written whole or not at all. The package holds the same files ([13](13-manufacturing-outputs.md) §8.2).
 
 **The columns and the form are the label file's export profile**, `WorkshopSettings.label_profile`
-([13](13-manufacturing-outputs.md) §7): each column of the `labels` list with the heading the file prints, Excel or
-CSV (a CSV with its delimiter and encoding), the decimal mark, the header row and the form of the values. Change…, in
+([13-package](13-package.md) §7): each column of the `labels` list with the heading the file prints, Excel or CSV,
+and a CSV's delimiter. Change…, in
 Labels… and in Project properties ▸ Workshop ▸ Label file, opens the form of [13](13-manufacturing-outputs.md) §7.3 on
 what the project holds: what this build does not know of the profile and of a column it keeps stays as it is. Without
 one of its own the project uses the **generic profile**, an Excel file with these columns, which every label program

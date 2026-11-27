@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Output ▸ Workshop ▸ Labels… and Workshop settings on a copy of the sample (doc 13 §5.4, §12): the dialog lists one
-//! label file per label set and marker part with its tick and count; Label file columns… changes the files' columns
-//! and comes back to the dialog; Export writes the ticked files into the folder, each whole, and the toast names the
+//! label file per label set and marker part with its tick and count, and the label file's profile in a line; Label
+//! file… changes the files' columns and form and comes back to the dialog; Export writes the ticked files into the folder, each whole, and the toast names the
 //! folder; Workshop settings shows the project's Properties at its Workshop rows.
 
 use crate::common;
@@ -33,7 +33,7 @@ fn labels_lists_the_files_changes_their_columns_and_writes_the_ticked_ones() {
         .expect("the wire markers' file");
     assert_eq!(wires.marker_part, "EW-GEN-MRK-1");
     assert!(wires.count > 0 && wires.on);
-    assert_eq!(d.columns, ["Text 1", "Text 2", "Text 3", "Copies", "For"]);
+    assert_eq!(d.profile, "Excel · Text 1, Text 2, Text 3, Copies, For");
     // Show lists the labels that do not fit, each with its set and marker part; Hide counts them only.
     assert!(!d.misfits.is_empty() && !d.show_misfits);
     done(&mut s, "labels.misfits", json!({}));
@@ -52,28 +52,52 @@ fn labels_lists_the_files_changes_their_columns_and_writes_the_ticked_ones() {
         .name
         .clone();
     done(&mut s, "labels.tick", json!({ "file": cables, "on": false }));
-    // Label file columns…: Text 1 alone, headed "Line", then the dialog again with that column.
+    // Label file…: Text 1 alone, headed "Line", as a CSV, then the dialog again with that profile. The Delimiter shows
+    // for a CSV only; two columns with one heading are refused in words.
     done(&mut s, "labels.columns", json!({}));
     let form = common::form(&s);
+    assert!(!form.shows("delimiter"), "Excel has no delimiter");
     let table = form.table.expect("the columns' table");
-    let rows: Vec<serde_json::Value> = table
-        .rows
-        .iter()
-        .map(|r| {
-            let on = r.key == "Text 1";
-            json!({"values": {
-                table.columns[0].0.clone(): if on { ew_viewmodel::shell::TICKED } else { "" },
-                table.columns[1].0.clone(): if on { "Line" } else { "" },
-                table.columns[2].0.clone(): "",
-            }})
-        })
-        .collect();
+    let rows = |headed: &[(&str, &str)]| -> Vec<serde_json::Value> {
+        table
+            .rows
+            .iter()
+            .map(|r| {
+                let heading = headed.iter().find(|(k, _)| *k == r.key).map(|(_, h)| *h);
+                json!({"values": {
+                    table.columns[0].0.clone(): if heading.is_some() { ew_viewmodel::shell::TICKED } else { "" },
+                    table.columns[1].0.clone(): heading.unwrap_or(""),
+                    table.columns[2].0.clone(): "",
+                }})
+            })
+            .collect()
+    };
+    let twice = rows(&[("Text 1", "Line"), ("Text 2", "Line")]);
+    let refusal = common::failed(
+        &mut s,
+        "labels.columns",
+        json!({ "columns": twice, "file": "csv" }),
+    );
+    assert!(refusal.contains("Line"), "{refusal}");
     done(
         &mut s,
         "labels.columns",
-        json!({ "columns": rows, "delimiter": "semicolon" }),
+        json!({ "columns": rows(&[("Text 1", "Line")]), "file": "csv", "delimiter": "semicolon" }),
     );
-    assert_eq!(labels(&s).columns, ["Line"]);
+    assert_eq!(labels(&s).profile, "CSV with semicolons · Line");
+    let csv = |set: &str| {
+        labels(&s)
+            .files
+            .clone()
+            .expect("the files")
+            .into_iter()
+            .find(|f| f.set == set)
+            .expect("the file")
+    };
+    let (wires, cables) = (csv("Wire markers"), csv("Cable markers"));
+    assert!(wires.name.ends_with(".csv") && wires.on, "{}", wires.name);
+    assert!(!cables.on, "an unticked file stays unticked in another form");
+    let cables = cables.name;
     let dir = tmp.0.join("labels");
     done(&mut s, "labels.write", json!({ "dir": dir.to_string_lossy() }));
     let written: Vec<String> = std::fs::read_dir(&dir)
@@ -93,15 +117,44 @@ fn labels_lists_the_files_changes_their_columns_and_writes_the_ticked_ones() {
         "reason-labels-none"
     );
     done(&mut s, "ui.dismiss", json!({}));
-    // Workshop settings: the project's Properties at its Workshop rows.
+    // Workshop settings: the project's Properties at its Workshop rows, the label file's among them in a line.
     done(&mut s, "workshop.settings", json!({}));
     let d = s.describe();
     assert!(d.contains("Ferrules"), "{d}");
+    assert!(d.contains("CSV with semicolons · Line"), "{d}");
+    // Generic columns fills the form with the generic profile; Apply gives the project the generic one back.
+    done(&mut s, "labels.columns", json!({}));
+    done(&mut s, "labels.columns", json!({ "generic": true }));
+    let form = common::form(&s);
+    let file = form.fields.iter().find(|f| f.name == "file").expect("File");
+    assert_eq!(file.value, "xlsx");
+    let table = form.table.clone().expect("the columns' table");
+    let rows: Vec<serde_json::Value> = table
+        .rows
+        .iter()
+        .map(|r| {
+            let values: serde_json::Map<String, serde_json::Value> = table
+                .columns
+                .iter()
+                .zip(&r.cells)
+                .map(|((c, _), v)| (c.clone(), json!(v)))
+                .collect();
+            json!({ "values": values })
+        })
+        .collect();
+    done(
+        &mut s,
+        "labels.columns",
+        json!({ "columns": rows, "file": "xlsx", "delimiter": "comma" }),
+    );
+    done(&mut s, "workshop.settings", json!({}));
+    let d = s.describe();
+    assert!(d.contains("Excel · Text 1, Text 2, Text 3, Copies, For"), "{d}");
 }
 
-/// Label file columns… keeps what this build does not know of the export profile (doc 13 §5.4): a delimiter of a newer
-/// format, which a project saved by a newer build holds, stays as it is when the person leaves it, and so do the
-/// profile's unknown members and those of a column it keeps.
+/// Label file… keeps what this build does not know of the export profile (doc 13 §5.4): a delimiter and a form of a
+/// newer format, which a project saved by a newer build holds, stay as they are when the person leaves them, and so do
+/// the profile's unknown members and those of a column it keeps.
 #[test]
 fn label_file_columns_keep_what_this_build_does_not_know() {
     let tmp = Tmp::new("labels-newer");
@@ -118,6 +171,7 @@ fn label_file_columns_keep_what_this_build_does_not_know() {
                 v["settings"]["workshop"]["label_profile"] = json!({
                     "columns": [{"key": "text_1", "heading": "Line", "width": 12}],
                     "delimiter": "tab",
+                    "file": "ods",
                     "printer": "label-2",
                 });
             }
@@ -136,7 +190,14 @@ fn label_file_columns_keep_what_this_build_does_not_know() {
     let mut s = tmp.sample_in(ew_viewmodel::shell::Mode::Gui, true, "101");
     done(&mut s, "labels.columns", json!({}));
     let form = common::form(&s);
-    let delimiter = form.fields[0].value.clone();
+    let value = |name: &str| {
+        form.fields
+            .iter()
+            .find(|f| f.name == name)
+            .map(|f| f.value.clone())
+            .expect("the field")
+    };
+    let (file, delimiter) = (value("file"), value("delimiter"));
     let table = form.table.expect("the columns' table");
     let rows: Vec<serde_json::Value> = table
         .rows
@@ -157,7 +218,7 @@ fn label_file_columns_keep_what_this_build_does_not_know() {
     done(
         &mut s,
         "labels.columns",
-        json!({ "columns": rows, "delimiter": delimiter }),
+        json!({ "columns": rows, "file": file, "delimiter": delimiter }),
     );
     done(&mut s, "file.save", json!({}));
     let (session, _) =
@@ -169,6 +230,7 @@ fn label_file_columns_keep_what_this_build_does_not_know() {
         json!({
             "columns": [{"key": "text_1", "heading": "Line", "width": 12}, {"key": "for", "heading": "For"}],
             "delimiter": "tab",
+            "file": "ods",
             "printer": "label-2",
         })
     );

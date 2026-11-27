@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The Labels… dialog's own content (doc 13 §5.4, §12; doc 16a §6.12): which labels (every one, or those changed since
-//! a release), the format, the export profile's columns with Change…, one row per label file with its tick, label set,
+//! a release), the label file's export profile in a line with Change…, one row per label file with its tick, label set,
 //! marker part and count, and the line that counts the labels that do not fit; or why there are no files. Export… and
 //! Close are the dialog's buttons.
 
@@ -68,22 +68,10 @@ pub(crate) fn body(ui: &mut Ui, d: &LabelsDialog, events: &mut Vec<Event>) {
             ui.end_row();
             ui.label(components::body_secondary(
                 &t,
-                strings::text(key!("labels-format")),
+                strings::text(key!("labels-profile")),
             ));
             ui.horizontal(|ui| {
-                for (xlsx, word) in [(false, "csv"), (true, "xlsx")] {
-                    if ui.radio(d.xlsx() == xlsx, word.to_uppercase()).clicked() && d.xlsx() != xlsx {
-                        events.push(Event::Action("labels.show", json!({ "format": word })));
-                    }
-                }
-            });
-            ui.end_row();
-            ui.label(components::body_secondary(
-                &t,
-                strings::text(key!("labels-columns")),
-            ));
-            ui.horizontal(|ui| {
-                ui.label(components::body(&t, d.columns.join(", ")));
+                ui.label(components::body(&t, &d.profile));
                 if ui.button(strings::text(key!("labels-change"))).clicked() {
                     events.push(Event::Action("labels.columns", json!({})));
                 }

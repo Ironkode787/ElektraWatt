@@ -534,7 +534,7 @@ pub struct CarrierFixing {
     pub extra: Extra,
 }
 
-/// The columns of a label file ([`WorkshopSettings::label_profile`], doc 13 §5.4).
+/// The columns and the form of a label file ([`WorkshopSettings::label_profile`], doc 13-package §7.1).
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct ExportProfile {
     /// The columns in file order: a column of the `labels` list and the heading the file prints.
@@ -543,6 +543,9 @@ pub struct ExportProfile {
     /// The CSV delimiter; absent: a comma.
     #[serde(default, skip_serializing_if = "is_default")]
     pub delimiter: Delimiter,
+    /// The form of the file; absent: Excel.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub file: Option<FileForm>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -579,6 +582,27 @@ pub enum Delimiter {
 impl Delimiter {
     /// Every delimiter this build knows, by its stored name, in order: what a choice list of the window offers.
     pub const NAMES: &'static [&'static str] = &["comma", "semicolon"];
+}
+
+/// The form of a label file ([`ExportProfile::file`], doc 13-package §7.2).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "FileForm")]
+pub enum FileForm {
+    /// An Excel workbook: one sheet named after the label set, a header row, text cells.
+    #[default]
+    Xlsx,
+    /// A CSV: a byte-order mark, CR LF, the profile's delimiter, values as they are.
+    Csv,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+impl FileForm {
+    /// Every form this build knows, by its stored name, in order: what a choice list of the window offers.
+    pub const NAMES: &'static [&'static str] = &["xlsx", "csv"];
 }
 
 /// Where a device's label goes ([`WorkshopSettings::device_labels`], doc 13 §5.3).
@@ -1310,6 +1334,7 @@ open_enum!(
     Marking,
     DeviceLabels,
     Delimiter,
+    FileForm,
 );
 
 #[cfg(test)]
@@ -1334,6 +1359,42 @@ mod delimiter_tests {
                 "{d:?}"
             );
         }
+    }
+
+    /// `FileForm::NAMES` is every known form by its stored name, as the delimiters' are.
+    #[test]
+    fn the_names_are_the_known_file_forms() {
+        use super::FileForm;
+        let name = |f: &FileForm| match f {
+            FileForm::Xlsx | FileForm::Csv => serde_json::to_value(f).expect("JSON"),
+            FileForm::Unknown(_) => panic!("not a known form"),
+        };
+        for n in FileForm::NAMES {
+            let f: FileForm = serde_json::from_value(serde_json::json!(n)).expect("a form");
+            assert_eq!(name(&f), serde_json::json!(n));
+        }
+        for f in [FileForm::Xlsx, FileForm::Csv] {
+            assert!(
+                FileForm::NAMES.iter().any(|n| name(&f) == serde_json::json!(n)),
+                "{f:?}"
+            );
+        }
+    }
+
+    /// A label file's form round-trips; one of a newer format is kept as it is; a profile without one has none.
+    #[test]
+    fn a_profile_keeps_its_file_form() {
+        use super::{ExportProfile, FileForm};
+        let csv = r#"{"columns":[{"key":"text_1","heading":"Line"}],"delimiter":"semicolon","file":"csv"}"#;
+        let p: ExportProfile = serde_json::from_str(csv).expect("a profile");
+        assert_eq!(p.file, Some(FileForm::Csv));
+        assert_eq!(serde_json::to_string(&p).expect("JSON"), csv);
+        let newer = r#"{"columns":[{"key":"text_1","heading":"Line"}],"file":"ods"}"#;
+        let p: ExportProfile = serde_json::from_str(newer).expect("a profile");
+        assert!(matches!(p.file, Some(FileForm::Unknown(_))));
+        assert_eq!(serde_json::to_string(&p).expect("JSON"), newer);
+        let none: ExportProfile = serde_json::from_str(r#"{"columns":[]}"#).expect("a profile");
+        assert_eq!(none.file, None);
     }
 }
 

@@ -344,10 +344,11 @@ only got another number, is not listed. Labels for these changes… opens Labels
 
 In the Workshop group. Lists the label files for your label program, one per label set (wire markers, terminal
 markers, device labels…) and marker part, each with how many labels it holds: every label, or only those changed since
-a release. Choose CSV or XLSX; Change… sets the columns a file has, their headings and order, and the CSV's delimiter.
-A line says how many labels do not fit their marker part. Export… writes the ticked files into a folder you choose.
-The CSV writes each value as it is, for your label program's import; opened in a spreadsheet, a value that starts
-with `-`, `+` or `=` is read as a formula, so open the XLSX there.
+a release. The line Label file says the form of the files (Excel unless the project says CSV) and their columns; Change…
+sets the columns a file has, their headings and order, Excel or CSV, and a CSV's delimiter, for the whole project
+(also Project properties ▸ Workshop ▸ Label file). A line says how many labels do not fit their marker part. Export…
+writes the ticked files into a folder you choose. A CSV writes each value as it is, for your label program's import;
+opened in a spreadsheet, a value that starts with `-`, `+` or `=` is read as a formula, so open an Excel file there.
 
 ### Hole tables
 

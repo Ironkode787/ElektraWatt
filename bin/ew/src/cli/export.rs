@@ -727,7 +727,8 @@ impl Leaf for LabelsCli {
 }
 
 /// `ew export labels`: the label files of every label, or of those the rework list since the release `--since` (or the
-/// archive file `--archive`) names, written into `--dir` as CSV or XLSX, each file whole.
+/// archive file `--archive`) names, written into `--dir` in the label file's form (`--format`, else the project's
+/// export profile's), each file whole.
 pub(super) fn run_export_labels(a: &LabelsCli, io: &mut Io<'_>) -> i32 {
     let folder = match a.folder() {
         Ok(f) => f,
@@ -751,11 +752,12 @@ pub(super) fn run_export_labels(a: &LabelsCli, io: &mut Io<'_>) -> i32 {
             None => return 2,
         },
     };
-    let format = match a.format {
-        Some(ReportPages::Xlsx) => ew_api::LabelFileFormat::Xlsx,
-        _ => ew_api::LabelFileFormat::Csv,
+    let form = match a.format {
+        Some(ReportPages::Xlsx) => Some(ew_api::FileForm::Xlsx),
+        Some(_) => Some(ew_api::FileForm::Csv),
+        None => None,
     };
-    let files = match session.label_files(&scope, format, None) {
+    let files = match session.label_files(&scope, form, None) {
         Ok(f) => f,
         Err(e) => {
             io.error(format_args!("{}: {e}", dir.display()));

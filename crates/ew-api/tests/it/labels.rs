@@ -122,11 +122,22 @@ fn a_terminal_marker_says_its_function_where_the_strip_prints_it() {
     assert_eq!(lines(&s), ["1", "24V"]);
 }
 
-/// The project's export profile gives the label files their columns and delimiter; a column the labels list does not
-/// have, and a profile without columns, are refused in words.
+/// The project's export profile gives the label files their columns, form and delimiter (doc 13-package §7): without
+/// one of its own the files are Excel; a column the labels list does not have, a profile without columns and a form
+/// this build does not know are refused in words.
 #[test]
 fn the_export_profile_gives_the_label_files_their_columns() {
     let mut s = common::sample();
+    let generic = s
+        .label_files(&ew_api::LabelScope::All, None, None)
+        .expect("the label files");
+    assert!(!generic.is_empty());
+    assert!(
+        generic
+            .iter()
+            .all(|f| f.name.ends_with(".xlsx") && f.bytes.starts_with(b"PK")),
+        "Excel without a profile of its own"
+    );
     let set = |s: &mut Session, value: serde_json::Value| {
         let cmd = AnyCommand {
             name: "project.settings.set".into(),
@@ -141,14 +152,21 @@ fn the_export_profile_gives_the_label_files_their_columns() {
         set(&mut s, json!({"columns": [{"key": "text_9", "heading": "T"}]})).expect_err("no such column");
     assert!(wrong.to_string().contains("text_9"), "{wrong}");
     assert!(set(&mut s, json!({"columns": []})).is_err());
+    let newer = set(
+        &mut s,
+        json!({"columns": [{"key": "text_1", "heading": "Line"}], "file": "ods"}),
+    )
+    .expect_err("a form this build does not know");
+    assert!(newer.to_string().contains("csv"), "{newer}");
     set(
         &mut s,
-        json!({"columns": [{"key": "text_1", "heading": "Line"}, {"key": "copies", "heading": "N"}], "delimiter": "semicolon"}),
+        json!({"columns": [{"key": "text_1", "heading": "Line"}, {"key": "copies", "heading": "N"}], "delimiter": "semicolon", "file": "csv"}),
     )
     .expect("a profile of its own");
     let files = s
-        .label_files(&ew_api::LabelScope::All, ew_api::LabelFileFormat::Csv, None)
+        .label_files(&ew_api::LabelScope::All, None, None)
         .expect("the label files");
+    assert!(files.iter().all(|f| f.name.ends_with(".csv")));
     let wires = files
         .iter()
         .find(|f| f.set == LabelSet::WireMarkers)

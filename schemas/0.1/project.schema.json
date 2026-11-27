@@ -232,7 +232,7 @@
     },
     "ExportProfile": {
       "additionalProperties": true,
-      "description": "The columns of a label file ([`WorkshopSettings::label_profile`], doc 13 §5.4).",
+      "description": "The columns and the form of a label file ([`WorkshopSettings::label_profile`], doc 13-package §7.1).",
       "properties": {
         "columns": {
           "description": "The columns in file order: a column of the `labels` list and the heading the file prints.",
@@ -244,6 +244,17 @@
         "delimiter": {
           "$ref": "#/$defs/Delimiter",
           "description": "The CSV delimiter; absent: a comma."
+        },
+        "file": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FileForm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The form of the file; absent: Excel."
         }
       },
       "type": "object"
@@ -259,6 +270,21 @@
         {
           "const": "not_into_spring_clamps",
           "description": "Every fine-stranded end but those into a spring or push-in clamp, which holds the strands itself: the default\n(the owner's shop rule, 2026-11-26).",
+          "type": "string"
+        }
+      ]
+    },
+    "FileForm": {
+      "description": "The form of a label file ([`ExportProfile::file`], doc 13-package §7.2).",
+      "oneOf": [
+        {
+          "const": "xlsx",
+          "description": "An Excel workbook: one sheet named after the label set, a header row, text cells.",
+          "type": "string"
+        },
+        {
+          "const": "csv",
+          "description": "A CSV: a byte-order mark, CR LF, the profile's delimiter, values as they are.",
           "type": "string"
         }
       ]

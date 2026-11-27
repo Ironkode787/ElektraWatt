@@ -715,3 +715,10 @@ part-start-tube = Tube
 part-start-tube-line = Its diameters and its pressure.
 part-start-fluid = Other pneumatic device
 part-start-fluid-line = A cylinder, an air service unit: drawn with a symbol.
+# The label file's export profile in a line (doc 13-package §7.3): its form, then its headings.
+label-file-summary = { $p0 } · { $p1 }
+label-file-xlsx = Excel
+label-file-csv-comma = CSV with commas
+label-file-csv-semicolon = CSV with semicolons
+label-file-csv-other = CSV with { $p0 }
+label-file-change = Change…

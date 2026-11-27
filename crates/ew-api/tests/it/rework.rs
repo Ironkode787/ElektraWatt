@@ -360,7 +360,7 @@ fn the_labels_for_the_changes_hold_a_new_strips_marker() {
     let files = now
         .label_files(
             &ew_api::LabelScope::Changes(ReworkBase::File(archive_of(&dir))),
-            ew_api::LabelFileFormat::Csv,
+            Some(ew_api::FileForm::Csv),
             None,
         )
         .expect("the label files");

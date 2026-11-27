@@ -118,6 +118,15 @@ pub const SETTABLE_WORKSHOP: &[&str] = &[
 /// The prefix of a member of [`SETTABLE_WORKSHOP`] in `project.settings.set`.
 pub const WORKSHOP_PREFIX: &str = "workshop.";
 
+/// Whether the profile `p`'s values of a newer format (its delimiter, its file form) are each the one the project holds
+/// in `held`, and it has at least one: a value set as it was read.
+fn newer_kept(p: &ew_schema::ExportProfile, held: Option<&ew_schema::ExportProfile>) -> bool {
+    let delimiter = matches!(p.delimiter, ew_schema::Delimiter::Unknown(_));
+    let file = matches!(p.file, Some(ew_schema::FileForm::Unknown(_)));
+    (delimiter || file)
+        && held.is_some_and(|h| (!delimiter || h.delimiter == p.delimiter) && (!file || h.file == p.file))
+}
+
 /// Sets the member `path` of [`SETTABLE_WORKSHOP`] of the project's workshop settings to `value`, the member's JSON form
 /// (`"not_into_spring_clamps"`); a value it does not take is refused at `/value` with the values it takes, and `null`
 /// gives the member back its default. Only the project record changes; the wire list's end cells follow.
@@ -141,19 +150,12 @@ pub(crate) fn set_member(tx: &mut TxBuilder<'_>, path: &str, value: &Value) -> R
         ("device_labels", false) => workshop.device_labels = member_value(&member, value)?,
         ("label_profile", true) => workshop.label_profile = None,
         ("label_profile", false) => {
-            // A delimiter of a newer format is taken where the project holds it already: the person left it as it is.
+            // A delimiter or a file form of a newer format is taken where the project holds it already: the person left
+            // it as it is. Any other value this build does not know is refused with the values it takes.
             let profile: ew_schema::ExportProfile = match member_value(&member, value) {
                 Ok(p) => p,
                 Err(refused) => match serde_json::from_value::<ew_schema::ExportProfile>(value.clone()) {
-                    Ok(p)
-                        if matches!(p.delimiter, ew_schema::Delimiter::Unknown(_))
-                            && workshop
-                                .label_profile
-                                .as_ref()
-                                .is_some_and(|s| s.delimiter == p.delimiter) =>
-                    {
-                        p
-                    }
+                    Ok(p) if newer_kept(&p, workshop.label_profile.as_ref()) => p,
                     _ => return Err(refused),
                 },
             };

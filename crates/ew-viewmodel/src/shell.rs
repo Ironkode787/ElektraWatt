@@ -417,7 +417,7 @@ pub enum Dialog {
     /// Output ▸ Workshop ▸ Rework list… (`rework.show`): what it compares with, the work in one line, the rows;
     /// Export… and Close.
     Rework(Box<rework::ReworkDialog>),
-    /// Output ▸ Workshop ▸ Labels… (`labels.show`): which labels, the files with their ticks, the format, the columns
+    /// Output ▸ Workshop ▸ Labels… (`labels.show`): which labels, the files with their ticks, the label file's profile
     /// with Change…, the labels that do not fit; Export and Close.
     Labels(Box<labels::LabelsDialog>),
     /// View, Workspace, Save layout as: a name typed by the user.
@@ -804,7 +804,7 @@ pub struct ShellModel {
     panes: workspaces::PaneLayoutState,
     /// The documentation page F1 asked for and the window has not opened yet.
     doc_request: Option<DocRequest>,
-    /// The Labels… dialog under its Label file columns… form, shown again when the form's Apply succeeds.
+    /// The Labels… dialog under its Label file… form, shown again when the form's Apply succeeds.
     labels_under: Option<Box<labels::LabelsDialog>>,
     /// A project the window opens in a second window of the program (a tutorial's practice project), taken once.
     window_request: Option<PathBuf>,
@@ -1142,10 +1142,21 @@ mod choice_word_tests {
             }
             // The accessory has one English word, "End bracket" (16a §8 item 4); the connection
             // grids read as the status bar writes them, "4 mm" and "QET 10 px"; a drawing's unit is its symbol, "mm";
-            // Supply's systems name their conductors, "Single phase: L, N, PE".
+            // Supply's systems name their conductors, "Single phase: L, N, PE"; a file's form reads "Excel" and "CSV".
             if !matches!(
                 v.as_str(),
-                "end_clamp" | "mm4" | "qet_10px" | "mm" | "cm" | "dm" | "um" | "in" | "ft" | "yd"
+                "end_clamp"
+                    | "mm4"
+                    | "qet_10px"
+                    | "mm"
+                    | "cm"
+                    | "dm"
+                    | "um"
+                    | "in"
+                    | "ft"
+                    | "yd"
+                    | "xlsx"
+                    | "csv"
             ) && !v.starts_with("supply_")
             {
                 assert_eq!(choice_text(v), choice_words(v), "{v}");

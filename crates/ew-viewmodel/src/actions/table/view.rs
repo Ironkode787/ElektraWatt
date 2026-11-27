@@ -434,9 +434,9 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     // Output ▸ Workshop ▸ Labels…: the label files, one per label set and marker part (doc 13 §5.4); the dialog's
-    // ticks, Export and Change… (Label file columns).
+    // ticks, Export and Change… (Label file).
     with_params(
-        "since?:text, archive?:path, format?:enum(csv|xlsx)",
+        "since?:text, archive?:path",
         placed(
             place(Group::Workshop, 6, CommandSize::Small, None),
             "sticker",
@@ -488,7 +488,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         )),
     ),
     with_params(
-        "columns?:json, delimiter?:enum(@DELIMITER)",
+        "columns?:json, file?:enum(@FILE_FORM), delimiter?:enum(@DELIMITER), generic?:bool",
         hidden(act(
             "labels.columns",
             Command,

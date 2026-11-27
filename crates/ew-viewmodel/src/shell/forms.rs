@@ -142,6 +142,17 @@ impl FormDialog {
             _ => strings::lookup(&format!("form-hint-{}-{field}", self.action).replace(['.', '_'], "-")),
         }
     }
+
+    /// Whether the field `field` shows for what the form holds now: Label file…'s Delimiter for a CSV only; every other
+    /// field always.
+    pub fn shows(&self, field: &str) -> bool {
+        match (self.action, field) {
+            ("labels.columns", "delimiter") => {
+                self.fields.iter().any(|f| f.name == "file" && f.value == "csv")
+            }
+            _ => true,
+        }
+    }
 }
 
 /// An editable table of a form (the value sets of Save as macro, doc 16a section 6.21's look): a named first

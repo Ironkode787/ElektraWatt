@@ -700,3 +700,10 @@ part-start-tube = Slang
 part-start-tube-line = Zijn diameters en zijn druk.
 part-start-fluid = Ander pneumatisch apparaat
 part-start-fluid-line = Een cilinder, een luchtbehandelingseenheid: getekend met een symbool.
+# The label file's export profile in a line (doc 13-package §7.3): its form, then its headings.
+label-file-summary = { $p0 } · { $p1 }
+label-file-xlsx = Excel
+label-file-csv-comma = CSV met komma's
+label-file-csv-semicolon = CSV met puntkomma's
+label-file-csv-other = CSV met { $p0 }
+label-file-change = Wijzigen…

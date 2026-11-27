@@ -11,7 +11,7 @@ use std::io;
 use std::path::Path;
 
 use ew_derive::{LabelRecord, LabelSet, LabelTarget, ReworkAction, ReworkItem, ReworkSubject};
-use ew_schema::Delimiter;
+use ew_schema::{Delimiter, FileForm};
 use ew_store::archive::sanitise;
 
 use crate::output::PdfDate;
@@ -26,15 +26,6 @@ pub enum LabelScope {
     /// labels of mounted or changed devices, terminals, strips and cables, and the marker of a new strip (one whose
     /// every terminal the list adds).
     Changes(ReworkBase),
-}
-
-/// The form of a label file.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum LabelFileFormat {
-    /// CSV: a byte-order mark, CR LF, the profile's delimiter, values as they are.
-    Csv,
-    /// XLSX: one sheet named after the set, a header row, text cells.
-    Xlsx,
 }
 
 /// One label file, made and not yet written.
@@ -129,52 +120,100 @@ pub fn label_column_words(c: ew_derive::LabelColumn, lang: Option<&str>) -> Stri
     ew_reports::kinds::label_column_words(c, lang.as_ref())
 }
 
-/// A delimiter's stored name (`comma`), one of [`Delimiter::NAMES`].
-fn delimiter_name(d: &Delimiter) -> String {
+/// The stored name of a delimiter or a file form (`comma`, `xlsx`), one of its `NAMES` or a newer format's.
+fn stored_name(d: &impl serde::Serialize) -> String {
     serde_json::to_value(d)
         .ok()
         .and_then(|v| v.as_str().map(str::to_owned))
         .unwrap_or_default()
 }
 
-/// Whether `columns` (key, heading) with the delimiter named `delimiter` are the generic export profile, which a project
-/// need not keep.
-fn is_generic_label_profile(columns: &[(String, String)], delimiter: &str) -> bool {
-    delimiter == delimiter_name(&Delimiter::default())
-        && columns.len() == ew_derive::GENERIC_PROFILE.len()
-        && columns
-            .iter()
-            .zip(ew_derive::GENERIC_PROFILE.iter())
-            .all(|((k, h), (c, g))| k == c.key() && h == g)
+/// Whether `columns` (key, heading) with the delimiter named `delimiter` and the form named `file` are the generic
+/// export profile, which a project need not keep.
+fn is_generic_label_profile(columns: &[(String, String)], delimiter: &str, file: &str) -> bool {
+    let generic = LabelProfile::generic();
+    generic.columns == columns && generic.delimiter == delimiter && generic.file == file
+}
+
+/// The label file's export profile as the window shows and changes it (doc 13-package §7.3).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct LabelProfile {
+    /// The columns as (key, heading), in file order.
+    pub columns: Vec<(String, String)>,
+    /// The delimiter's stored name (one of [`Delimiter::NAMES`], or a newer format's).
+    pub delimiter: String,
+    /// The file form's stored name (one of [`FileForm::NAMES`], or a newer format's); absent: `xlsx`.
+    pub file: String,
+}
+
+impl LabelProfile {
+    /// The export profile of the project `q` (its own, else the generic one).
+    pub(crate) fn of(q: &ew_derive::Q) -> LabelProfile {
+        let profile = ew_derive::label_profile(q);
+        LabelProfile {
+            columns: profile.columns.into_iter().map(|c| (c.key, c.heading)).collect(),
+            delimiter: stored_name(&profile.delimiter),
+            file: stored_name(&profile.file.unwrap_or_default()),
+        }
+    }
+
+    /// The generic profile (doc 13 §5.4), which Generic columns fills Label file… with.
+    pub fn generic() -> LabelProfile {
+        LabelProfile {
+            columns: ew_derive::GENERIC_PROFILE
+                .iter()
+                .map(|(c, heading)| (c.key().to_owned(), (*heading).to_owned()))
+                .collect(),
+            delimiter: stored_name(&Delimiter::default()),
+            file: stored_name(&FileForm::default()),
+        }
+    }
+
+    /// The profile in a line, as Labels…, the package and Project properties ▸ Workshop show it: its form, then its
+    /// headings in file order ("Excel · Text 1, Text 2, Text 3, Copies, For"); a form or a delimiter of a newer format
+    /// by its stored name.
+    pub fn summary(&self) -> crate::Text {
+        let form = match (self.file.as_str(), self.delimiter.as_str()) {
+            ("xlsx", _) => text!("label-file-xlsx"),
+            ("csv", "comma") => text!("label-file-csv-comma"),
+            ("csv", "semicolon") => text!("label-file-csv-semicolon"),
+            ("csv", other) => text!("label-file-csv-other", other),
+            (other, _) => crate::Text::bare(other),
+        };
+        let headings: Vec<&str> = self.columns.iter().map(|(_, h)| h.as_str()).collect();
+        text!("label-file-summary", form, headings.join(", "))
+    }
 }
 
 impl Session {
-    /// The project's export profile (its own, else the generic one): its columns as (key, heading) in file order, and
-    /// its delimiter's stored name (one of [`Delimiter::NAMES`]).
-    pub fn label_profile(&self) -> (Vec<(String, String)>, String) {
-        let profile = ew_derive::label_profile(&self.query());
-        (
-            profile.columns.into_iter().map(|c| (c.key, c.heading)).collect(),
-            delimiter_name(&profile.delimiter),
-        )
+    /// The project's export profile (its own, else the generic one).
+    pub fn label_profile(&self) -> LabelProfile {
+        LabelProfile::of(&self.query())
     }
 
-    /// The value `workshop.label_profile` takes for the export profile of `columns` (key, heading, in file order) and
-    /// the delimiter named `delimiter` (one of [`Delimiter::NAMES`]; `None`: the one it has), made on the project's
-    /// profile so that what this build does not know of it stays: a delimiter of a newer format left as it is, the
-    /// profile's unknown members and those of each column it keeps. `Null` for the generic profile with nothing more.
+    /// The value `workshop.label_profile` takes for the export profile of `columns` (key, heading, in file order), the
+    /// delimiter named `delimiter` (one of [`Delimiter::NAMES`]; `None`: the one it has) and the form named `file` (one
+    /// of [`FileForm::NAMES`]; `None`: the one it has), made on the project's profile so that what this build does not
+    /// know of it stays: a delimiter or a form of a newer format left as it is, the profile's unknown members and those
+    /// of each column it keeps. `Null` for the generic profile with nothing more.
     ///
     /// # Errors
     ///
-    /// A delimiter name this build does not know.
+    /// A delimiter or a form name this build does not know.
     pub fn label_profile_value(
         &self,
         columns: &[(String, String)],
         delimiter: Option<&str>,
+        file: Option<&str>,
     ) -> Result<serde_json::Value, serde_json::Error> {
         let mut profile = ew_derive::label_profile(&self.query());
         if let Some(name) = delimiter {
             profile.delimiter = serde_json::from_value(serde_json::Value::String(name.to_owned()))?;
+        }
+        if let Some(name) = file {
+            profile.file = Some(serde_json::from_value(serde_json::Value::String(
+                name.to_owned(),
+            ))?);
         }
         let kept = std::mem::take(&mut profile.columns);
         profile.columns = columns
@@ -190,14 +229,16 @@ impl Session {
             })
             .collect();
         let plain = profile.extra.is_empty() && profile.columns.iter().all(|c| c.extra.is_empty());
-        if plain && is_generic_label_profile(columns, &delimiter_name(&profile.delimiter)) {
+        let file = stored_name(&profile.file.clone().unwrap_or_default());
+        if plain && is_generic_label_profile(columns, &stored_name(&profile.delimiter), &file) {
             return Ok(serde_json::Value::Null);
         }
         serde_json::to_value(&profile)
     }
 
-    /// The label files of `scope` in `format` (doc 13 §5.4), one per label set and marker part that has labels, in the
-    /// order of their first label; an XLSX is dated `date`, else as the session's workbooks are.
+    /// The label files of `scope` (doc 13 §5.4), one per label set and marker part that has labels, in the order of
+    /// their first label, in the form `form`, else the export profile's (absent, or of a newer format: Excel); an
+    /// Excel file is dated `date`, else as the session's workbooks are.
     ///
     /// # Errors
     ///
@@ -206,7 +247,7 @@ impl Session {
     pub fn label_files(
         &self,
         scope: &LabelScope,
-        format: LabelFileFormat,
+        form: Option<FileForm>,
         date: Option<PdfDate>,
     ) -> Result<Vec<LabelFile>, LabelError> {
         let items = match scope {
@@ -215,6 +256,7 @@ impl Session {
         };
         let q = self.query();
         let profile = ew_derive::label_profile(&q);
+        let csv = form.or_else(|| profile.file.clone()) == Some(FileForm::Csv);
         let lang = ew_derive::print_language(&q);
         let drawing = q
             .project()
@@ -249,20 +291,19 @@ impl Session {
             let all: Vec<Vec<String>> = std::iter::once(file.header.clone())
                 .chain(file.rows.clone())
                 .collect();
-            let (extension, bytes) = match format {
-                LabelFileFormat::Csv => {
-                    let delimiter = if profile.delimiter == Delimiter::Semicolon {
-                        ';'
-                    } else {
-                        ','
-                    };
-                    ("csv", ew_reports::csv::label_csv(&all, delimiter).into_bytes())
-                }
-                LabelFileFormat::Xlsx => (
+            let (extension, bytes) = if csv {
+                let delimiter = if profile.delimiter == Delimiter::Semicolon {
+                    ';'
+                } else {
+                    ','
+                };
+                ("csv", ew_reports::csv::label_csv(&all, delimiter).into_bytes())
+            } else {
+                (
                     "xlsx",
                     ew_reports::xlsx::plain_xlsx(&set_words, &all, usize::MAX, self.workbook_meta(date).date)
                         .map_err(LabelError::Xlsx)?,
-                ),
+                )
             };
             out.push(LabelFile {
                 name: format!("{}.{extension}", stem.join(" ")),

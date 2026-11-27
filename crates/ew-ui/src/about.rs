@@ -491,7 +491,7 @@ fn form_fields(
         })
         .fold(0.0_f32, f32::max);
     let label_width = form_label_width(t.size_dialog_label, widest.ceil(), ui.available_width());
-    for f in &form.fields {
+    for f in form.fields.iter().filter(|f| form.shows(&f.name)) {
         // Surface…'s face: a table of the cabinet's faces, one chosen, across the body (doc 12 §3.8).
         if let Some((heads, rows)) = shell.surface_rows().filter(|_| f.name == "surface") {
             surface_table(

@@ -259,7 +259,7 @@ pub use ew_schema::{
 pub use ew_schema::{Conflict, ConflictBody, FILE_CONFLICT_KIND};
 /// The project's decimal separator (`settings.formatting.decimal_separator`): the shell writes millimetres
 /// with it.
-pub use ew_schema::{DecimalSeparator, Delimiter};
+pub use ew_schema::{DecimalSeparator, Delimiter, FileForm};
 /// The text styles (ADR-0032): what a new project starts with, the effective table, the faces, the groups and the
 /// cap height the Text styles page shows and edits.
 pub use ew_schema::{
@@ -282,7 +282,7 @@ pub use ew_store::{
 pub use ew_store::{archive, clock, cloud, ewz, external, file, git};
 pub use ew_zip as zip;
 pub use external_change::{DiskPoll, ExternalApplied, ExternalError};
-pub use labels::{LabelError, LabelFile, LabelFileFormat, LabelScope, label_column_words, label_set_text};
+pub use labels::{LabelError, LabelFile, LabelProfile, LabelScope, label_column_words, label_set_text};
 pub use new_project::{
     NewProjectKind, ProjectTemplate, SaveAsBasicError, TemplateSummary, shipped_frames, template_summary,
 };

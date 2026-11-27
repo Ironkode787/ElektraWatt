@@ -364,14 +364,16 @@ change here.
   wire end's marker that says another text), Re-label, Mount device, Add terminal and Add cable.
 - behaviour-change: `ew export labels --dir <folder> [--format csv|xlsx] [--since <revision> | --archive <file>]` writes
   the label files,
-  one per label set and marker part (`SAMPLE-E Wire markers EW-GEN-MRK-1.csv`), in the columns of the project's export
-  profile, else the generic one (Text 1, Text 2, Text 3, Copies, For); the CSV has a byte-order mark, CR LF and the
+  one per label set and marker part (`SAMPLE-E Wire markers EW-GEN-MRK-1.xlsx`), in the columns and the form of the
+  project's export profile, else the generic one (an Excel file with Text 1, Text 2, Text 3, Copies, For); `--format`
+  sets the form for that export; the CSV has a byte-order mark, CR LF and the
   profile's delimiter and its values as they are, never guarded; `--since` writes only the labels the rework list
   against that release names, `--archive` those against that archive file. Each file is written whole.
-- api-add: `project.settings.set` sets `workshop.label_profile` (`{columns: [{key, heading}], delimiter?}`), refusing in
-  words a column the labels list does not have and a profile without columns.
+- api-add: `project.settings.set` sets `workshop.label_profile` (`{columns: [{key, heading}], delimiter?, file?}`),
+  refusing in words a column the labels list does not have, a profile without columns and a form other than `xlsx` and
+  `csv`.
 - format-variant: `WorkshopSettings` gains `ferrules`, `two_wires`, `marking`, `mark_cores`, `mark_jumpers`,
-  `device_labels` and `label_profile` (`ExportProfile`, `ProfileColumn`, `Delimiter`); `WireOverrides` gains `end_a`
+  `device_labels` and `label_profile` (`ExportProfile`, `ProfileColumn`, `Delimiter`, `FileForm`); `WireOverrides` gains `end_a`
   and `end_b`; `ReportKind` gains `labels`; each absent when not set.
 - format-variant: report_block ReportKind labels
 - behaviour-change: An end set by hand that a wire keeps on another of its own connections than the first (as a

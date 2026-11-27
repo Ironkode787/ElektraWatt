@@ -558,14 +558,23 @@ fn export_wires_lists_the_wires_and_the_bridges() {
     assert_eq!(std::fs::read_to_string(&out).unwrap(), want);
 }
 
-/// `ew export labels` writes the sample's label files, one per label set and marker part, each as blessed in
-/// `tests/expected/labels`; `--format xlsx` writes the same files as workbooks; without `--dir` it is refused.
+/// `ew export labels --format csv` writes the sample's label files, one per label set and marker part, each as blessed
+/// in `tests/expected/labels`; without `--format` it writes the same files in the form of the project's label file,
+/// which without a profile of its own is Excel; without `--dir` it is refused.
 #[test]
 fn export_labels_writes_a_file_per_set_and_marker_part() {
     let t = Tmp::new("ew-outputs");
     let p = t.sample("sample.ew");
     let dir = t.0.join("labels");
-    let o = t.ew(&args([&"export", &"labels", &p, &"--dir", &dir]));
+    let o = t.ew(&args([
+        &"export",
+        &"labels",
+        &p,
+        &"--dir",
+        &dir,
+        &"--format",
+        &"csv",
+    ]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let written = files(&dir);
     let expected = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/expected/labels");
@@ -579,16 +588,14 @@ fn export_labels_writes_a_file_per_set_and_marker_part() {
         assert_eq!(written.keys().cloned().collect::<Vec<_>>(), blessed);
     }
     let xlsx = t.0.join("xlsx");
-    let o = t.ew(&args([
-        &"export",
-        &"labels",
-        &p,
-        &"--dir",
-        &xlsx,
-        &"--format",
-        &"xlsx",
-    ]));
+    let o = t.ew(&args([&"export", &"labels", &p, &"--dir", &xlsx]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert!(
+        files(&xlsx)
+            .iter()
+            .all(|(n, b)| n.ends_with(".xlsx") && b.starts_with(b"PK")),
+        "Excel by default"
+    );
     let stems = |m: &BTreeMap<String, Vec<u8>>| -> Vec<String> {
         m.keys()
             .map(|n| n.rsplit_once('.').map_or(n.clone(), |(s, _)| s.to_owned()))

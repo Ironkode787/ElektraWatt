@@ -168,7 +168,7 @@ pub struct WorkshopSettings {                 // ProjectSettings.workshop; absen
     pub reserve: Option<Nm>,                  // what the fitter adds at each end of a routed wire; absent: 50 mm (12-3d §9)
 }
 pub struct CarrierFixing { pub screw: Screw, pub pitch: Nm, pub from_end: Nm }   // Screw: m3 | m4 | m5 | m6 | m8
-// ExportProfile, ProfileColumn and MachineTakes: §7.1
+// ExportProfile, ProfileColumn and FileForm: 13-package §7.1
 pub struct EndOverride {                      // WireOverrides.end_a and .end_b: the end of this connection
     pub treatment: Option<TreatmentKind>,     // ferrule | twin_ferrule | ring_lug | bare
     pub part: Option<PartRef>,                // a ferrule or ring lug part the project holds

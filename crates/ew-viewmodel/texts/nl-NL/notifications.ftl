@@ -450,7 +450,7 @@ toast-labels-written = { $p0 ->
         [one] 1 labelbestand naar { $p1 } geschreven
        *[other] { $p0 } labelbestanden naar { $p1 } geschreven
     }.
-toast-label-columns = De labelbestanden krijgen de gekozen kolommen.
+toast-label-columns = De labelbestanden krijgen de gekozen kolommen en vorm.
 toast-back-to-editor = Terug naar de editor
 toast-route-done = { $p0 ->
         [one] 1 draad gerouteerd: { $p1 }

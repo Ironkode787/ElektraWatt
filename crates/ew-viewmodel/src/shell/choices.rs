@@ -64,8 +64,10 @@ macro_rules! closed_choices {
 closed_choices! {
     /// New page's page types.
     PAGE_TYPES = super::creation::PAGE_TYPES;
-    /// Label file columns…' delimiters of a label file's CSV.
+    /// Label file…' delimiters of a label file's CSV.
     DELIMITER = ew_api::Delimiter::NAMES;
+    /// Label file…' forms of a label file.
+    FILE_FORM = ew_api::FileForm::NAMES;
     /// New page's connection grids.
     PAGE_GRIDS = super::creation::PAGE_GRIDS;
     /// New structure node's aspects.

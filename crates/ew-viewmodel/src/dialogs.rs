@@ -1111,6 +1111,16 @@ fn recovery_spec(name: &str, transactions: usize, base_matches: bool, failed: Op
 /// A form of an action's fields: its OK button submits them, beside Cancel.
 fn form_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogSpec {
     let mut secondary = vec![cancel()];
+    // Label file… fills itself with the generic profile (doc 13-package §7.3).
+    if form.action == "labels.columns" {
+        secondary.insert(
+            0,
+            DialogButton::new(
+                key!("labels-generic"),
+                DialogAnswer::Action("labels.columns", json!({ "generic": true })),
+            ),
+        );
+    }
     // Create enclosure draws an enclosure the location has, and off a panel layout page makes the page.
     let choice = model.enclosure_choice();
     if let Some((_, _, true, _)) = &choice {
