@@ -52,7 +52,10 @@ fn of_kind<'a>(entries: &'a [Entry], kind: &str) -> Vec<&'a Entry> {
         .filter(|m| m["kind"] == kind)
         .filter_map(|m| m["path"].as_str())
         .collect();
-    entries.iter().filter(|e| paths.contains(&e.name.as_str())).collect()
+    entries
+        .iter()
+        .filter(|e| paths.contains(&e.name.as_str()))
+        .collect()
 }
 
 /// The one entry of the member kind `kind`.
@@ -100,7 +103,7 @@ fn released(edit: impl FnOnce(&Session, &mut Vec<Record>), without_ways: bool) -
 }
 
 /// -X1031 10 mm further along its rail, after its wires were laid: their ways no longer hold (EW-LAY-011, an error).
-fn move_x1031(probe: &Session, records: &mut Vec<Record>) {
+fn move_x1031(probe: &Session, records: &mut [Record]) {
     let x1031 = probe.resolve_reference("tag:-X1031").expect("-X1031");
     for r in records.iter_mut() {
         if let Record::Placement(p) = r
@@ -134,9 +137,12 @@ fn the_package_is_the_same_bytes_twice_and_its_manifest_names_each_entry() {
     for e in &old {
         if e.name.ends_with(".xlsx") {
             let parts = ew_zip::read(&e.data, &ZipLimits::default()).expect("a workbook");
-            let core = String::from_utf8(entry(&parts, |n| n == "docProps/core.xml").data.clone()).expect("UTF-8");
+            let core =
+                String::from_utf8(entry(&parts, |n| n == "docProps/core.xml").data.clone()).expect("UTF-8");
             for tag in ["created", "modified"] {
-                let at = format!("<dcterms:{tag} xsi:type=\"dcterms:W3CDTF\">2001-02-03T00:00:00Z</dcterms:{tag}>");
+                let at = format!(
+                    "<dcterms:{tag} xsi:type=\"dcterms:W3CDTF\">2001-02-03T00:00:00Z</dcterms:{tag}>"
+                );
                 assert!(core.contains(&at), "{}: {core}", e.name);
             }
             books += 1;
@@ -312,7 +318,7 @@ fn without_personal_data_no_entry_names_the_personal_parties() {
 /// were laid, so their ways no longer hold (EW-LAY-011).
 #[test]
 fn a_release_package_with_an_open_error_is_refused_naming_it() {
-    let s = released(move_x1031, false);
+    let s = released(|probe, records| move_x1031(probe, records), false);
     let plan = s.package_plan(&ask());
     assert!(plan.refused());
     match s.package_job(&ask()) {

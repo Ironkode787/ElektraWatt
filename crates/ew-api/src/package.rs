@@ -19,9 +19,9 @@ use ew_l10n::Text;
 use ew_mltext::LangTag;
 use serde::Serialize;
 
+use crate::labels::drawing_stem;
 use crate::output::print::{PrintOptions, in_print_language, print_set_hooked};
 use crate::output::{DrillingAsk, PdfDate, RowExport, RowsFormat, RowsOutput, row_output};
-use crate::labels::drawing_stem;
 use crate::{LabelScope, Session, checks};
 
 /// One member of the package (doc 13-package §8.2), declared once: the dialog's rows, the manifest's kinds, the lines
