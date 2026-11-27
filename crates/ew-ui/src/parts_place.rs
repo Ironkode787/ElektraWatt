@@ -506,8 +506,15 @@ fn strip_with(
         .inner_margin(egui::Margin::symmetric(t.space_4 as i8, t.space_2 as i8))
         .show(ui, |ui| {
             ui.set_width(ui.available_width());
+            // The sentence wraps in what the button leaves; it never runs under it.
+            let font = theme::font(&t.type_body);
+            let reserve = ui.painter().layout_no_wrap(button.to_owned(), font.clone(), theme::NONE).size().x
+                + 4.0 * t.space_4;
             ui.horizontal(|ui| {
-                ui.label(RichText::new(sentence).font(theme::font(&t.type_body)));
+                let room = egui::vec2((ui.available_width() - reserve).max(0.0), 0.0);
+                ui.allocate_ui(room, |ui| {
+                    ui.add(egui::Label::new(RichText::new(sentence).font(font)).wrap());
+                });
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if components::button(ui, components::Kind::Secondary, button, None, 0.0).clicked() {
                         events.push(Event::Action(action.0, action.1.clone()));

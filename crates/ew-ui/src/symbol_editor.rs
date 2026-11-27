@@ -1110,7 +1110,9 @@ fn piece_head(
     ui.add_space(t.space_2);
     ui.label(egui::RichText::new(label(key!("parts-drawn-as-head"))).strong());
     let kinds = ew_viewmodel::ew_api::part_pieces::piece_kinds();
-    egui::Grid::new("piece-head-drawn-as").num_columns(3).striped(true).show(ui, |ui| {
+    // Each column a third of the pane, a cell cut at it (its whole text on hover): the table never widens the pane.
+    let col = ((ui.available_width() - 2.0 * ui.spacing().item_spacing.x) / 3.0).max(0.0);
+    egui::Grid::new("piece-head-drawn-as").num_columns(3).striped(true).max_col_width(col).show(ui, |ui| {
         for head in [key!("parts-piece-what"), key!("parts-piece-pins"), key!("parts-piece-symbol")] {
             ui.label(crate::components::small_secondary(&t, label(head)));
         }
@@ -1137,9 +1139,9 @@ fn piece_head(
                 let text = egui::RichText::new(s);
                 if i == piece.index { text.color(t.accent.color32()) } else { text }
             };
-            ui.label(mark(what));
-            ui.label(mark(row.pins.clone()));
-            ui.label(mark(symbol));
+            for cell in [what, row.pins.clone(), symbol] {
+                ui.add(egui::Label::new(mark(cell)).truncate());
+            }
             ui.end_row();
         }
     });
