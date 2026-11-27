@@ -543,3 +543,5 @@ change here.
   wins), and the cut list takes a third page (913.2)
 - fix: a wire whose junction is dissolved, and a project made from a template, keep no stored way of a connection that
   is gone
+- behaviour-change: Route on a cabinet whose every wire has its way says so and opens its card with Route every wire
+  again ticked, so the whole cabinet can be laid again from the window

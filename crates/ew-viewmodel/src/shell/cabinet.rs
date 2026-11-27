@@ -146,10 +146,11 @@ impl ShellModel {
             Some(Err(e)) => return super::tools::command_failed(&e, &Value::Null),
             None => return Outcome::refused(key!("reason-route-page")),
         };
+        // Nothing is due: the toast says so and the card opens with its tick set, every wire planned again.
         if !all && route.lengths.is_empty() && route.typed.is_empty() && route.without.is_empty() {
             let text = strings::format(key!("toast-cabinet-all-hold"), &[&route.cabinet]);
             self.notify(text, false);
-            return Outcome::Done;
+            return self.cabinet_route_card(folio, true);
         }
         let ways = strings::format_count(
             count_key!("cabinet-route-ways"),

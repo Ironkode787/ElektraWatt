@@ -38,6 +38,16 @@ fn route_on_902_opens_the_cabinets_card_and_apply_stores_the_ways() {
         !hud(&shell).buttons.iter().any(|b| b.action == "layout.route"),
         "the sample is routed: nothing is due"
     );
+    // Route then says so, and its card opens with every wire planned again.
+    done(&mut shell, "layout.route", json!({}));
+    assert!(
+        toasts(&shell).iter().any(|t| t == "Every wire of +CAB has its way."),
+        "{:?}",
+        toasts(&shell)
+    );
+    assert!(cabinet_card(&shell).is_some_and(|c| c.route.all && !c.route.lengths.is_empty()));
+    done(&mut shell, "preview.cancel", json!({}));
+    assert!(cabinet_card(&shell).is_none());
 
     // -X1031 turned half round on its rail: its wires' ways no longer hold, and the toast offers Route.
     let t = shell.panel_tables().expect("902's tables");
