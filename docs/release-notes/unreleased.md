@@ -888,3 +888,6 @@ change here.
 - behaviour-change: a label file's count is the labels to print, each row as many times as its Copies, as the
   consumables order them: Labels…, the package's dialog and Contents, and `ew export labels` say "6 labels" for the
   sample's cable markers (3 cables, a marker at each end), where they counted the rows ("3 labels")
+- text-change: in Dutch the cut list is the Afkortlijst everywhere it is named (the list's title and file name, Output ▸
+  Werkplaats ▸ Afkortlijst openen and its bar label, the package's member, the guide), the tube cut list the
+  Slangenafkortlijst, and the cut increment Afkorten op; it was the Zaaglijst and Afzagen op

@@ -140,7 +140,7 @@ parts-stock-title = De werkplaatsvoorraad van dit project
 parts-stock-text = De draad-, adereindhuls-, merker- en wartelartikelen die de werkplaats houdt, in de volgorde van voorkeur. Sleep een rij in de lijst naar een andere plaats om de volgorde te wijzigen.
 parts-stock-add-mine = Uit mijn artikelen toevoegen…
 parts-stock-default = Deze voorraad gebruiken voor nieuwe projecten
-parts-stock-cut = Afzagen op (de lengte waarop een stuk naar boven wordt afgerond) is een instelling van het project: Projecteigenschappen ▸ Werkplaats.
+parts-stock-cut = Afkorten op (de lengte waarop een stuk naar boven wordt afgerond) is een instelling van het project: Projecteigenschappen ▸ Werkplaats.
 parts-stock-kept = { $p0 ->
     [one] Deze voorraad, { $p0 } artikel, wordt bewaard voor nieuwe projecten.
    *[other] Deze voorraad, { $p0 } artikelen in zijn volgorde, wordt bewaard voor nieuwe projecten.
