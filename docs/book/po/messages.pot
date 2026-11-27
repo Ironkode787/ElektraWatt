@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-27T00:36:04Z\n"
+"POT-Creation-Date: 2026-11-27T04:51:20+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -6998,10 +6998,26 @@ msgid ""
 msgstr ""
 
 #: src/reference/window/command-bar.md:352
-msgid "Workshop settings"
+msgid "Drilling…"
 msgstr ""
 
 #: src/reference/window/command-bar.md:354
+msgid ""
+"In the Workshop group. Exports the drawings for drilling: for each surface "
+"with holes (ticked in a list that names its page, its holes and the sheets "
+"its template takes) a template to print at full size (PDF) and a DXF for a "
+"machine, on A4 or A3, into a folder (Drilling, beside the project). The "
+"template lies in the surface's corner nearest its holes: lay its two thick "
+"edges against the surface's edges, tape the sheets together at their crosses "
+"and centre-punch each hole. Print it at actual size and measure its 100 mm "
+"bar. Greyed while no surface has holes."
+msgstr ""
+
+#: src/reference/window/command-bar.md:360
+msgid "Workshop settings"
+msgstr ""
+
+#: src/reference/window/command-bar.md:362
 msgid ""
 "In the Workshop group. Shows the project's Properties at its Workshop rows: "
 "the stock, the ferrules, two wires in one clamp, the marker text, the "
@@ -7010,125 +7026,125 @@ msgid ""
 "fixings, the web between holes and the corner the holes are measured from."
 msgstr ""
 
-#: src/reference/window/command-bar.md:359
+#: src/reference/window/command-bar.md:367
 msgid "View"
 msgstr ""
 
-#: src/reference/window/command-bar.md:361
+#: src/reference/window/command-bar.md:369
 msgid "Back"
 msgstr ""
 
-#: src/reference/window/command-bar.md:363
+#: src/reference/window/command-bar.md:371
 msgid ""
 "Goes back to the place shown before the last jump (a cross-reference "
 "followed, a page opened)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:365
+#: src/reference/window/command-bar.md:373
 msgid "Forward"
 msgstr ""
 
-#: src/reference/window/command-bar.md:367
+#: src/reference/window/command-bar.md:375
 msgid "Goes forward again after **Back**."
 msgstr ""
 
-#: src/reference/window/command-bar.md:369
+#: src/reference/window/command-bar.md:377
 msgid "Follow cross-reference"
 msgstr ""
 
-#: src/reference/window/command-bar.md:371
+#: src/reference/window/command-bar.md:379
 msgid ""
 "Goes to the place the cross-reference under the pointer or selected names."
 msgstr ""
 
-#: src/reference/window/command-bar.md:373
+#: src/reference/window/command-bar.md:381
 msgid "Zoom in"
 msgstr ""
 
-#: src/reference/window/command-bar.md:375
+#: src/reference/window/command-bar.md:383
 msgid "Shows the page larger, around the middle of the view."
 msgstr ""
 
-#: src/reference/window/command-bar.md:377
+#: src/reference/window/command-bar.md:385
 msgid "Zoom out"
 msgstr ""
 
-#: src/reference/window/command-bar.md:379
+#: src/reference/window/command-bar.md:387
 msgid "Shows the page smaller."
 msgstr ""
 
-#: src/reference/window/command-bar.md:381
+#: src/reference/window/command-bar.md:389
 msgid "Actual size"
 msgstr ""
 
-#: src/reference/window/command-bar.md:383
+#: src/reference/window/command-bar.md:391
 msgid "Shows the page at its printed size."
 msgstr ""
 
-#: src/reference/window/command-bar.md:385
+#: src/reference/window/command-bar.md:393
 msgid "Fit page"
 msgstr ""
 
-#: src/reference/window/command-bar.md:387
+#: src/reference/window/command-bar.md:395
 msgid "Shows the whole page in the view."
 msgstr ""
 
-#: src/reference/window/command-bar.md:389
+#: src/reference/window/command-bar.md:397
 msgid "Side by side"
 msgstr ""
 
-#: src/reference/window/command-bar.md:391
+#: src/reference/window/command-bar.md:399
 msgid "Shows two pages side by side, each in its own group of tabs."
 msgstr ""
 
-#: src/reference/window/command-bar.md:393
+#: src/reference/window/command-bar.md:401
 msgid "Grid"
 msgstr ""
 
-#: src/reference/window/command-bar.md:395
+#: src/reference/window/command-bar.md:403
 msgid "Shows or hides the drawing grid on the page."
 msgstr ""
 
-#: src/reference/window/command-bar.md:397
+#: src/reference/window/command-bar.md:405
 msgid "Theme"
 msgstr ""
 
-#: src/reference/window/command-bar.md:399
+#: src/reference/window/command-bar.md:407
 msgid ""
 "Chooses the window's colours. See "
 "[Appearance](../../how-to/application-window.md#appearance)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:401
+#: src/reference/window/command-bar.md:409
 msgid "Density"
 msgstr ""
 
-#: src/reference/window/command-bar.md:403
+#: src/reference/window/command-bar.md:411
 msgid "Chooses how close the window's rows and buttons stand."
 msgstr ""
 
-#: src/reference/window/command-bar.md:405
+#: src/reference/window/command-bar.md:413
 msgid "UI scale"
 msgstr ""
 
-#: src/reference/window/command-bar.md:407
+#: src/reference/window/command-bar.md:415
 msgid "Makes the whole window larger or smaller."
 msgstr ""
 
-#: src/reference/window/command-bar.md:409
+#: src/reference/window/command-bar.md:417
 msgid "Show tips"
 msgstr ""
 
-#: src/reference/window/command-bar.md:411
+#: src/reference/window/command-bar.md:419
 msgid ""
 "Shows or hides the tips the window gives on the canvas and in empty panels."
 msgstr ""
 
-#: src/reference/window/command-bar.md:413
+#: src/reference/window/command-bar.md:421
 msgid "Frame statistics"
 msgstr ""
 
-#: src/reference/window/command-bar.md:415
+#: src/reference/window/command-bar.md:423
 msgid ""
 "Shows how long the window takes to draw each frame, for a report of a slow "
 "window."
