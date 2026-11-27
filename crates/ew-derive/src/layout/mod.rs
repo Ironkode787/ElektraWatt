@@ -116,8 +116,8 @@ pub use template::{
 pub use ways::{
     CabinetWire, DOOR_LOOP, DuctGraph, DuctGraphV, DuctLine, Entry, FILL_LIMIT, Joint, NoWay, Planned,
     PlannedWire, RESERVE, RoutePlan, RouteScope, RouteStatus, StaleWhy, Way, cabinet_page, cabinet_wires,
-    door_loop, entries, fill_limit, measure, plan_routes, plate_of_space, reserve, route_status,
-    routed_length, space_of_wire, stored_way, way_points,
+    door_loop, entries, fill_limit, mark_ends, measure, plan_routes, plate_of_space, reserve, route_status,
+    routed_length, space_of_wire, stored_way, way_points, way_surface,
 };
 
 #[cfg(test)]

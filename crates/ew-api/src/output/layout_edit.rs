@@ -778,9 +778,17 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
             };
             rows.push(text_row(k, "front", text, derived_of("part"), None));
         }
-        if let Some(d) = ew_derive::layout::behind_door(q, id) {
-            let text = format!("{} mm", mm_text(q, i128::from(d.0)));
-            rows.push(text_row(k, "behind_door", text, derived_of("part"), None));
+        match ew_derive::layout::behind_door(q, id) {
+            Some(d) => {
+                let text = format!("{} mm", mm_text(q, i128::from(d.0)));
+                rows.push(text_row(k, "behind_door", text, derived_of("part"), None));
+            }
+            // A device in a door without a depth (doc 12 §7): the closed door is not checked for it.
+            None if s.kind == ew_schema::SurfaceKind::Door => {
+                let text = ew_derive::text!("placement-depth-unknown").to_string();
+                rows.push(text_row(k, "behind_door", text, derived_of("part"), None));
+            }
+            None => {}
         }
     }
     let [tx, ty, _] = p.pose.t;
@@ -858,17 +866,30 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
             _ => "none".to_owned(),
         };
         rows.push(text_row(k, "clearance", text, derived_of("part"), None));
-        let reach = ew_derive::layout::reach(q, id).map_or_else(
-            || ew_derive::text!("placement-depth-unknown"),
-            |n| ew_derive::text!("placement-reaches", mm_text(q, i128::from(n.0))),
-        );
-        rows.push(text_row(
-            k,
-            "reaches",
-            reach.to_string(),
-            derived_of("part"),
-            None,
-        ));
+        // On the plate: what it takes out of it, and the room to the closed door where the enclosure part gives it.
+        if face.is_none() {
+            let room = q
+                .table::<MountingSurface>()
+                .get(g.surface)
+                .and_then(|s| ew_derive::layout::enclosure_section(q, s.enclosure))
+                .and_then(|s| s.usable_depth);
+            let reach = match (ew_derive::layout::reach(q, id), room) {
+                (None, _) => ew_derive::text!("placement-depth-unknown"),
+                (Some(n), None) => ew_derive::text!("placement-reaches", mm_text(q, i128::from(n.0))),
+                (Some(n), Some(r)) => ew_derive::text!(
+                    "placement-reaches-room",
+                    mm_text(q, i128::from(n.0)),
+                    mm_text(q, i128::from(r.0))
+                ),
+            };
+            rows.push(text_row(
+                k,
+                "reaches",
+                reach.to_string(),
+                derived_of("part"),
+                None,
+            ));
+        }
     }
     if let Some(s) = placement_surface(q, id) {
         let pattern = ew_derive::layout::placement_holes(q, id);

@@ -19,7 +19,7 @@ use ew_ids::{Id, v5};
 use ew_rds::Aspect;
 use ew_schema::{
     Carrier, CarrierKind, CarrierParams, CommittedRoute, Connection, Device, DuctStretch, Enclosure, Extra,
-    Function, LayoutSpace, MountingSurface, Placement, RouteEnd, SurfaceKind, WayStep,
+    Function, Hinge, LayoutSpace, MountingSurface, Placement, RouteEnd, SurfaceKind, WayStep,
 };
 use ew_units::{Nm, Pt2, Rect};
 
@@ -191,16 +191,12 @@ impl DuctLine {
     }
 }
 
-/// The points of a stored or planned way in its surface's frame, for the window's marks (doc 12 §12.5): from the
-/// first pin into its duct, along the ducts and their joints, out to the other pin; a direct way across, then along.
+/// The points of a stored or planned way in the frame of the surface it is drawn on ([`way_surface`]), for the
+/// window's marks (doc 12 §12.5): from the first pin into its duct, along the ducts and their joints, out to the other
+/// pin; a direct way across, then along; an end in a door at the plate's edge on the hinge side ([`mark_ends`]).
 pub fn way_points(q: &Q, ends: &[RouteEnd; 2], way: &[WayStep]) -> Vec<Pt2> {
-    let pt = |(x, y): (i128, i128)| {
-        Pt2::new(
-            Nm(i64::try_from(x).unwrap_or(0)),
-            Nm(i64::try_from(y).unwrap_or(0)),
-        )
-    };
-    let mut out = vec![ends[0].at];
+    let [a, b] = mark_ends(q, ends, way);
+    let mut out = vec![a];
     let stretches: Vec<&DuctStretch> = way
         .iter()
         .filter_map(|s| match s {
@@ -209,7 +205,7 @@ pub fn way_points(q: &Q, ends: &[RouteEnd; 2], way: &[WayStep]) -> Vec<Pt2> {
         })
         .collect();
     if stretches.is_empty() {
-        out.push(Pt2::new(ends[1].at.x, ends[0].at.y));
+        out.push(Pt2::new(b.x, a.y));
     }
     for s in stretches {
         if let Some(line) = DuctLine::of(q, s.carrier) {
@@ -220,9 +216,90 @@ pub fn way_points(q: &Q, ends: &[RouteEnd; 2], way: &[WayStep]) -> Vec<Pt2> {
             );
         }
     }
-    out.push(ends[1].at);
+    out.push(b);
     out.dedup();
     out
+}
+
+/// A point of a surface's frame from integer nanometres (0 outside the `Nm` range).
+fn pt((x, y): (i128, i128)) -> Pt2 {
+    Pt2::new(
+        Nm(i64::try_from(x).unwrap_or(0)),
+        Nm(i64::try_from(y).unwrap_or(0)),
+    )
+}
+
+/// The surface a way is drawn on: its ducts' (the plate's), else its first end's (two devices of one door).
+pub fn way_surface(q: &Q, ends: &[RouteEnd; 2], way: &[WayStep]) -> Option<Id<MountingSurface>> {
+    let carriers = q.table::<Carrier>();
+    way.iter()
+        .find_map(|s| match s {
+            WayStep::Duct(d) => carriers.get(d.carrier).map(|c| c.surface),
+            _ => None,
+        })
+        .or(Some(ends[0].surface))
+}
+
+/// Where a way's marks draw its two ends, in the frame of [`way_surface`]: a pin's own place; an end in a door that the
+/// way crosses into, the point of the plate's edge on the door's hinge side level with where the way leaves its duct
+/// (the way's arrow to the hinge side).
+pub fn mark_ends(q: &Q, ends: &[RouteEnd; 2], way: &[WayStep]) -> [Pt2; 2] {
+    let into_door = |first: bool| {
+        let step = if first { way.first() } else { way.last() };
+        let WayStep::Door(door) = step? else {
+            return None;
+        };
+        let (plate, exit) = way_exit(q, way, first)?;
+        let (edge, _) = hinge_edges(q, plate, *door)?;
+        Some(pt((edge, exit.1)))
+    };
+    [
+        into_door(true).unwrap_or(ends[0].at),
+        into_door(false).unwrap_or(ends[1].at),
+    ]
+}
+
+/// The surface and the point where a way leaves its ducts at its first (`first`) or its last end, in that surface's
+/// frame.
+fn way_exit(q: &Q, way: &[WayStep], first: bool) -> Option<(Id<MountingSurface>, (i128, i128))> {
+    let mut ducts = way.iter().filter_map(|s| match s {
+        WayStep::Duct(d) => Some(d),
+        _ => None,
+    });
+    let s = if first { ducts.next() } else { ducts.last() }?;
+    let line = DuctLine::of(q, s.carrier)?;
+    let (_, p) = line.at(i128::from(if first { s.from.0 } else { s.to.0 }))?;
+    Some((q.table::<Carrier>().get(s.carrier)?.surface, p))
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// To the door
+
+/// The plate's edge on a door's hinge side, as `x` in the plate's frame, and the door's hinge edge, as `x` in the
+/// enclosure's front view: the left edges for a door hinged on the left (or on a hinge of a newer format), the right
+/// ones for one hinged on the right. `None` for a surface that is not a door, or without the two surfaces' sizes.
+fn hinge_edges(q: &Q, plate: Id<MountingSurface>, door: Id<MountingSurface>) -> Option<(i128, i128)> {
+    let surfaces = q.table::<MountingSurface>();
+    let (p, d) = (surfaces.get(plate)?, surfaces.get(door)?);
+    if d.kind != SurfaceKind::Door {
+        return None;
+    }
+    let right = matches!(d.hinge, Some(Hinge::Right));
+    let edge = |s: &MountingSurface| super::sheet_size(s).map(|(w, _)| if right { w } else { Nm::ZERO });
+    let hinge = super::to_enclosure(q, door, Pt2::new(edge(d)?, Nm::ZERO))?;
+    Some((i128::from(edge(p)?.0), i128::from(hinge.x.0)))
+}
+
+/// The rest of a way into a door from the point `exit` of a duct of the plate `plate` (doc 12 §8.1): in free air
+/// across to the plate's edge on the door's hinge side, along the door from its hinge edge to the pin (across plus up,
+/// the door's points and the plate's in one front view by `to_enclosure`), and up to the pin (its height, half what
+/// its device reaches behind the door). `None` for an end that is not in a door, or surfaces without their sizes.
+fn door_rest(q: &Q, plate: Id<MountingSurface>, exit: (i128, i128), end: &RouteEnd) -> Option<i128> {
+    let (edge, hinge) = hinge_edges(q, plate, end.surface)?;
+    let e = super::to_enclosure(q, plate, pt(exit))?;
+    let d = super::to_enclosure(q, end.surface, end.at)?;
+    let (ey, dx, dy) = (i128::from(e.y.0), i128::from(d.x.0), i128::from(d.y.0));
+    Some((exit.0 - edge).abs() + (dx - hinge).abs() + (dy - ey).abs() + i128::from(end.h.0))
 }
 
 /// A joint of two ducts (doc 12 §8.1): where their outlines touch or overlap, at the point of the one's centreline
@@ -423,8 +500,9 @@ fn hop(duct: &DuctLine, pos: i128, at: Pt2) -> Option<i128> {
 }
 
 /// The run of a way along today's ducts (doc 12 §8.5): from each end the distance to its duct's centreline and the climb
-/// to its half height, the stretches along the ducts, the joints between them; for a direct way (no steps) across
-/// plus along plus the difference of the two heights. `None` when a duct of the way is gone or no longer holds a
+/// to its half height, the stretches along the ducts, the joints between them, and for an end in a door the rest from
+/// where the way leaves its duct (free air to the hinge side, along the door, up to the pin); for a direct way (no
+/// steps; also two devices of one door) across plus along plus the difference of the two heights. `None` when a duct of the way is gone or no longer holds a
 /// position of it ([`StaleWhy::DuctGone`], [`StaleWhy::DuctChanged`]).
 pub fn measure(q: &Q, ends: &[RouteEnd; 2], way: &[WayStep]) -> Result<Nm, StaleWhy> {
     let stretches: Vec<&DuctStretch> = way
@@ -453,8 +531,20 @@ pub fn measure(q: &Q, ends: &[RouteEnd; 2], way: &[WayStep]) -> Result<Nm, Stale
         let changed = |c: Id<Carrier>| StaleWhy::DuctChanged(c);
         let (first, f) = &lines[0];
         let (last, l) = &lines[lines.len() - 1];
-        let mut run = hop(first, i128::from(f.from.0), e0.at).ok_or(changed(f.carrier))? + climb(e0, first);
-        run += hop(last, i128::from(l.to.0), e1.at).ok_or(changed(l.carrier))? + climb(e1, last);
+        // An end the way crosses a door's hinge to takes the rest into the door from where the way leaves its duct.
+        let end = |e: &RouteEnd, line: &DuctLine, s: &DuctStretch, pos: Nm, door: bool| {
+            let pos = i128::from(pos.0);
+            let rest = if door {
+                let plate = q.table::<Carrier>().get(s.carrier).map(|c| c.surface);
+                line.at(pos).and_then(|(_, p)| door_rest(q, plate?, p, e))
+            } else {
+                hop(line, pos, e.at).map(|h| h + climb(e, line))
+            };
+            rest.ok_or(changed(s.carrier))
+        };
+        let door = |step: Option<&WayStep>| matches!(step, Some(WayStep::Door(_)));
+        let mut run = end(e0, first, f, f.from, door(way.first()))?;
+        run += end(e1, last, l, l.to, door(way.last()))?;
         for (k, (line, s)) in lines.iter().enumerate() {
             let (from, to) = (i128::from(s.from.0), i128::from(s.to.0));
             let (_, pf) = line.at(from).ok_or(changed(s.carrier))?;
@@ -783,6 +873,7 @@ pub fn plate_of_space(q: &Q, space: Id<LayoutSpace>) -> Option<Id<MountingSurfac
 struct End {
     cp: (Id<Function>, u16),
     placement: Id<Placement>,
+    device: Id<Device>,
     spot: PinSpot,
     surface: Id<MountingSurface>,
     footprint: Rect,
@@ -935,9 +1026,17 @@ fn shortest(
     Some((stretches, cost))
 }
 
-/// The surfaces Route lays wires on in a space: its plate.
-fn route_surfaces(q: &Q, space: Id<LayoutSpace>) -> Vec<Id<MountingSurface>> {
-    plate_of_space(q, space).into_iter().collect()
+/// The doors of a plate's enclosure: the surfaces Route lays wires into beside the plate.
+fn doors_of(q: &Q, plate: Id<MountingSurface>) -> BTreeSet<Id<MountingSurface>> {
+    let surfaces = q.table::<MountingSurface>();
+    let Some(enclosure) = surfaces.get(plate).map(|s| s.enclosure) else {
+        return BTreeSet::new();
+    };
+    surfaces
+        .iter()
+        .filter(|(_, s)| s.enclosure == enclosure && s.kind == SurfaceKind::Door)
+        .map(|(id, _)| id)
+        .collect()
 }
 
 /// The footprints of the placements on `surface`.
@@ -982,8 +1081,7 @@ fn neighbours(q: &Q, a: Id<Placement>, b: Id<Placement>) -> bool {
 /// same. The ways not planned hold their room. Run by `layout.route` and by Route's preview.
 pub fn plan_routes(q: &Q, space: Id<LayoutSpace>, scope: &RouteScope) -> RoutePlan {
     let wires = cabinet_wires(q, space);
-    let surfaces = route_surfaces(q, space);
-    let Some(&plate) = surfaces.first() else {
+    let Some(plate) = plate_of_space(q, space) else {
         return RoutePlan {
             wires: wires
                 .into_iter()
@@ -1007,6 +1105,10 @@ pub fn plan_routes(q: &Q, space: Id<LayoutSpace>, scope: &RouteScope) -> RoutePl
         .map(|d| limit * inner_area(q, d.carrier).0)
         .collect();
     let footprints: Vec<Rect> = footprints_on(q, plate).into_iter().map(|(_, r)| r).collect();
+    let on = Surfaces {
+        plate,
+        doors: doors_of(q, plate),
+    };
     let planned = |r: &WireRecord| match scope {
         RouteScope::All => true,
         RouteScope::Wires(set) => set.contains(&r.wire.id),
@@ -1031,7 +1133,7 @@ pub fn plan_routes(q: &Q, space: Id<LayoutSpace>, scope: &RouteScope) -> RoutePl
             CabinetWire::Routed if !planned(&r) => Planned::Kept,
             CabinetWire::Routed => {
                 let area = wire_area(q, &r).map_or(0, |a| a.0);
-                match lay(q, &r, plate, &graph, &footprints, &room, area, &caps) {
+                match lay(q, &r, &on, &graph, &footprints, &room, area, &caps) {
                     Ok(way) => {
                         hold(&mut room, &graph, &way.steps, area);
                         Planned::Way(way)
@@ -1064,20 +1166,25 @@ fn hold(room: &mut Room, graph: &DuctGraphV, way: &[WayStep], area: i128) {
     }
 }
 
-/// Resolves an end of a wire on the layout.
-fn resolve(q: &Q, cp: (Id<Function>, u16), plate: Id<MountingSurface>) -> Result<End, NoWay> {
+/// The surfaces Route lays wires on in a cabinet: its plate and its doors.
+struct Surfaces {
+    plate: Id<MountingSurface>,
+    doors: BTreeSet<Id<MountingSurface>>,
+}
+
+/// Resolves an end of a wire on the layout: on the plate or in a door.
+fn resolve(q: &Q, cp: (Id<Function>, u16), on: &Surfaces) -> Result<End, NoWay> {
     let device = q.functions().get(cp.0).and_then(|f| f.device);
     let unplaced = || NoWay::Unplaced(device.unwrap_or(Id::from_uuid(ew_ids::Uuid::nil())));
     let placement = placement_of_function(q, cp.0).ok_or_else(unplaced)?;
     let spots = q.get::<PinSpots>(placement);
     let spots = spots.as_ref().as_ref().ok_or_else(unplaced)?;
-    if spots.surface != plate {
-        return Err(NoWay::OffPlate(
-            q.table::<Placement>().get(placement).map_or_else(
-                || device.unwrap_or(Id::from_uuid(ew_ids::Uuid::nil())),
-                |p| p.device,
-            ),
-        ));
+    let placed = q.table::<Placement>().get(placement).map_or_else(
+        || device.unwrap_or(Id::from_uuid(ew_ids::Uuid::nil())),
+        |p| p.device,
+    );
+    if spots.surface != on.plate && !on.doors.contains(&spots.surface) {
+        return Err(NoWay::OffPlate(placed));
     }
     let spot = spots.spot(cp).cloned().ok_or(NoWay::NoDuct {
         cp,
@@ -1086,18 +1193,35 @@ fn resolve(q: &Q, cp: (Id<Function>, u16), plate: Id<MountingSurface>) -> Result
     Ok(End {
         cp,
         placement,
+        device: placed,
         spot,
         surface: spots.surface,
         footprint: spots.footprint,
     })
 }
 
-/// Lays one wire: the shortest way with room, or the direct way where it is shorter, else the shortest way.
+/// The steps of a way through the ducts of `graph`.
+fn duct_steps(graph: &DuctGraphV, stretches: Stretches) -> Vec<WayStep> {
+    stretches
+        .into_iter()
+        .map(|(d, from, to)| {
+            WayStep::Duct(DuctStretch {
+                carrier: graph.ducts[d].carrier,
+                from: Nm(i64::try_from(from).unwrap_or(0)),
+                to: Nm(i64::try_from(to).unwrap_or(0)),
+                extra: Extra::new(),
+            })
+        })
+        .collect()
+}
+
+/// Lays one wire: the shortest way with room, or the direct way where it is shorter, else the shortest way; a wire
+/// into a door through the ducts and across the hinge ([`lay_door`]); two devices of one door directly.
 #[allow(clippy::too_many_arguments)]
 fn lay(
     q: &Q,
     r: &WireRecord,
-    plate: Id<MountingSurface>,
+    on: &Surfaces,
     graph: &DuctGraphV,
     footprints: &[Rect],
     room: &Room,
@@ -1105,26 +1229,29 @@ fn lay(
     caps: &[i128],
 ) -> Result<Way, NoWay> {
     let [a, b] = r.wire.ends.map(|e| (e.cp.function, e.cp.idx));
-    let (ea, eb) = (resolve(q, a, plate)?, resolve(q, b, plate)?);
+    let (ea, eb) = (resolve(q, a, on)?, resolve(q, b, on)?);
     let ends = [ea.record(), eb.record()];
+    match (ea.surface == on.plate, eb.surface == on.plate) {
+        (true, true) => {}
+        (false, false) if ea.surface == eb.surface => {
+            let run = measure(q, &ends, &[]).unwrap_or(Nm::ZERO);
+            return Ok(Way {
+                ends,
+                steps: Vec::new(),
+                run,
+            });
+        }
+        // Between two doors: Route lays no such wire.
+        (false, false) => return Err(NoWay::OffPlate(eb.device)),
+        (true, false) => return lay_door(q, &ea, &eb, false, on.plate, graph, footprints, room, area, caps),
+        (false, true) => return lay_door(q, &eb, &ea, true, on.plate, graph, footprints, room, area, caps),
+    }
     let direct = neighbours(q, ea.placement, eb.placement)
         .then(|| measure(q, &ends, &[]).ok())
         .flatten();
     let na = entries(graph, &ea.spot, ea.footprint, footprints);
     let nb = entries(graph, &eb.spot, eb.footprint, footprints);
-    let steps = |stretches: Stretches| -> Vec<WayStep> {
-        stretches
-            .into_iter()
-            .map(|(d, from, to)| {
-                WayStep::Duct(DuctStretch {
-                    carrier: graph.ducts[d].carrier,
-                    from: Nm(i64::try_from(from).unwrap_or(0)),
-                    to: Nm(i64::try_from(to).unwrap_or(0)),
-                    extra: Extra::new(),
-                })
-            })
-            .collect()
-    };
+    let steps = |stretches: Stretches| duct_steps(graph, stretches);
     let with_room = shortest(graph, &na, &nb, room, area, Some(caps));
     let chosen: Option<Vec<WayStep>> = match (with_room, direct) {
         (Some((s, c)), Some(d)) if i128::from(d.0) >= c => Some(steps(s)),
@@ -1142,6 +1269,64 @@ fn lay(
             cp: spot.cp,
             rail: rail_of(q, end.placement),
         });
+    };
+    let run = measure(q, &ends, &steps).unwrap_or(Nm::ZERO);
+    Ok(Way { ends, steps, run })
+}
+
+/// Lays a wire from the pin `plate_end` on the plate to the pin `door_end` in a door (doc 12 §8.1): through the ducts
+/// to the end or the corner of a duct from which the rest into the door is shortest ([`door_rest`]), with room where a
+/// way has it; `door_first` when the door's end is the wire's first.
+#[allow(clippy::too_many_arguments)]
+fn lay_door(
+    q: &Q,
+    plate_end: &End,
+    door_end: &End,
+    door_first: bool,
+    plate: Id<MountingSurface>,
+    graph: &DuctGraphV,
+    footprints: &[Rect],
+    room: &Room,
+    area: i128,
+    caps: &[i128],
+) -> Result<Way, NoWay> {
+    let into = door_end.record();
+    let from = entries(graph, &plate_end.spot, plate_end.footprint, footprints);
+    // Every end and corner of a duct, with the rest from there as its stub.
+    let exits: Vec<Entry> = graph
+        .ducts
+        .iter()
+        .enumerate()
+        .flat_map(|(i, d)| (0..d.path.len()).map(move |k| (i, d.start_of(k), d.path[k])))
+        .filter_map(|(duct, pos, p)| {
+            Some(Entry {
+                duct,
+                pos,
+                stub: door_rest(q, plate, p, &into)?,
+                climb: 0,
+            })
+        })
+        .collect();
+    let found = shortest(graph, &from, &exits, room, area, Some(caps))
+        .or_else(|| shortest(graph, &from, &exits, room, area, None));
+    let Some((stretches, _)) = found else {
+        return Err(NoWay::NoDuct {
+            cp: plate_end.cp,
+            rail: rail_of(q, plate_end.placement),
+        });
+    };
+    let mut steps = duct_steps(graph, stretches);
+    steps.push(WayStep::Door(door_end.surface));
+    let ends = if door_first {
+        steps.reverse();
+        for s in &mut steps {
+            if let WayStep::Duct(d) = s {
+                std::mem::swap(&mut d.from, &mut d.to);
+            }
+        }
+        [into, plate_end.record()]
+    } else {
+        [plate_end.record(), into]
     };
     let run = measure(q, &ends, &steps).unwrap_or(Nm::ZERO);
     Ok(Way { ends, steps, run })

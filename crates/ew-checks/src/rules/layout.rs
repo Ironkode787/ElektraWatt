@@ -805,8 +805,142 @@ impl Rule for Collision {
             };
             out.push(shown(f, q, surface));
         }
+        out.extend(closed_door(q));
         out
     }
+}
+
+/// A length as a finding prints it: exact, with its unit.
+fn mm(n: ew_units::Nm) -> String {
+    format!("{} mm", ew_derive::mm_exact(i128::from(n.0)))
+}
+
+/// A rectangle of `surface` in its enclosure's front view (`to_enclosure`); `None` for a face that is no plate or door.
+fn in_front(q: &Q, surface: Id<MountingSurface>, r: Rect) -> Option<Rect> {
+    let to = |p| ew_derive::layout::to_enclosure(q, surface, p);
+    Some(Rect::from_points(to(r.min())?, to(r.max())?))
+}
+
+/// EW-LAY-006, the closed door (doc 12 §7): per cabinet whose enclosure part gives the room between the plate and the
+/// closed door (`usable_depth`), a device or a duct of the plate that takes more than that room (`door_reach`: a
+/// device its rail's height, its depth and its front clearance, `reach`; a duct its height), and a device or a duct of
+/// the plate and a device of a door whose footprints overlap seen from the front and which together take more than
+/// the room (`door_meet`; the door's device what it reaches behind the door, `behind_door`). A device without a depth
+/// is not judged. Targets: the device and its placement (or the duct), and the door's device and placement;
+/// discriminators `door_reach` and `door_meet`.
+fn closed_door(q: &Q) -> Vec<Finding> {
+    let placements = q.table::<Placement>();
+    let carriers = q.table::<Carrier>();
+    let surfaces = q.table::<MountingSurface>();
+    let mut out = Vec::new();
+    for (enclosure, _) in q.table::<Enclosure>().iter() {
+        let Some(room) = ew_derive::layout::enclosure_section(q, enclosure).and_then(|s| s.usable_depth)
+        else {
+            continue;
+        };
+        let of_kind = |kind: SurfaceKind| -> Vec<Id<MountingSurface>> {
+            surfaces
+                .iter()
+                .filter(|(_, s)| s.enclosure == enclosure && s.kind == kind)
+                .map(|(id, _)| id)
+                .collect()
+        };
+        // What stands on the plate and what it takes: (its targets, its name, its surface, its footprint, its take).
+        let mut plate: Vec<(Vec<Target>, Named, Id<MountingSurface>, Rect, ew_units::Nm)> = Vec::new();
+        for s in of_kind(SurfaceKind::Plate) {
+            for (id, pl) in placements.iter() {
+                let Some(g) = q.get::<PlacementGeometry>(id).as_ref().clone() else {
+                    continue;
+                };
+                if g.surface != s {
+                    continue;
+                }
+                if let Some(take) = ew_derive::layout::reach(q, id) {
+                    plate.push((
+                        placement_targets(pl).to_vec(),
+                        device_name(q, pl.device),
+                        s,
+                        g.footprint,
+                        take,
+                    ));
+                }
+            }
+            for (id, c) in carriers.iter() {
+                let (CarrierKind::Duct, CarrierParams::Duct(d)) = (&c.kind, &c.params) else {
+                    continue;
+                };
+                let (Some(g), Some(label)) = (
+                    q.get::<CarrierGeometry>(id).as_ref().clone(),
+                    carrier_label(q, id),
+                ) else {
+                    continue;
+                };
+                if g.surface != s {
+                    continue;
+                }
+                let name: Named = ew_derive::text::carrier_label(label).into();
+                for r in &g.outline {
+                    plate.push((
+                        vec![Target::new(Kind::Carrier, id)],
+                        name.clone(),
+                        s,
+                        *r,
+                        d.height,
+                    ));
+                }
+            }
+        }
+        let mut reached: BTreeSet<Vec<Target>> = BTreeSet::new();
+        for (targets, name, s, _, take) in &plate {
+            if take.0 > room.0 && reached.insert(targets.clone()) {
+                let f = Finding::new(&COLLISION, targets.clone(), "door_reach", name.clone())
+                    .arg("form", "door_reach")
+                    .arg("device", name.clone())
+                    .arg("take", mm(*take))
+                    .arg("room", mm(room));
+                out.push(shown(f, q, Some(*s)));
+            }
+        }
+        let mut met: BTreeSet<(Vec<Target>, Id<Placement>)> = BTreeSet::new();
+        for door in of_kind(SurfaceKind::Door) {
+            for (id, pl) in placements.iter() {
+                let Some(g) = q.get::<PlacementGeometry>(id).as_ref().clone() else {
+                    continue;
+                };
+                let (true, Some(behind), Some(front)) = (
+                    g.surface == door,
+                    ew_derive::layout::behind_door(q, id),
+                    in_front(q, door, g.footprint),
+                ) else {
+                    continue;
+                };
+                for (targets, name, s, r, take) in &plate {
+                    let meets = in_front(q, *s, *r).is_some_and(|p| overlaps(p, front));
+                    if !meets
+                        || take.0.saturating_add(behind.0) <= room.0
+                        || !met.insert((targets.clone(), id))
+                    {
+                        continue;
+                    }
+                    let other = device_name(q, pl.device);
+                    let f = Finding::new(
+                        &COLLISION,
+                        targets.iter().copied().chain(placement_targets(pl)),
+                        "door_meet",
+                        name.clone(),
+                    )
+                    .arg("form", "door_meet")
+                    .arg("device", name.clone())
+                    .arg("other", other)
+                    .arg("a", mm(*take))
+                    .arg("b", mm(behind))
+                    .arg("room", mm(room));
+                    out.push(shown(f, q, Some(*s)));
+                }
+            }
+        }
+    }
+    out
 }
 
 // ---------------------------------------------------------------------------------------------------------

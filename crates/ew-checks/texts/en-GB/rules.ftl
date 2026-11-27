@@ -516,6 +516,8 @@ rule-ew-lay-006 = { $form ->
         [same] two placements of { $device } overlap; move one of them
         [limit] more footprints overlap on the mounting plate of { $enclosure }; the first { $listed } overlaps are listed
         [duct] { $device } overlaps the duct at { $duct }; move the device or the duct
+        [door_reach] { $device } reaches { $take } from the plate; the closed door is { $room } away
+        [door_meet] { $device } and { $other } in the door meet when the door is closed: they take { $a } and { $b } of the { $room } between the plate and the door
        *[rail] the rail at { $rail } overlaps the duct at { $duct }; move the rail or the duct
     }
     .title = Collision

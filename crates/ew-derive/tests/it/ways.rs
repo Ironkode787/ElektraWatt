@@ -651,3 +651,124 @@ fn a_way_whose_wire_is_gone_is_removed_by_the_next_route() {
     let p = plan(&Q::new(&m), &RouteScope::Due);
     assert_eq!(p.gone, [id(0x4999)]);
 }
+
+const DOOR: u128 = 0x29;
+const PART_LAMP: u128 = 0x604;
+const L1: u128 = 0xd6; // in the door at (300, 560)
+const L2: u128 = 0xd7; // in the door at (360, 560)
+const K6: u128 = 0xd8; // rail 2, s = 300
+const W7: u128 = 0x4007; // K2:1 → L1:1, through duct 1 and across the hinge
+const W8: u128 = 0x4008; // L1:2 → L2:1, on the door
+const W9: u128 = 0x4009; // L2:2 → K6:1, the door's end first
+
+/// The cabinet with a door hinged on `hinge` in front of the plate (both in one front view at the origin) and two lamps
+/// of a part made here in it (30 × 30, 40 mm behind the door).
+fn door_cabinet(hinge: &str) -> Fx {
+    let mut fx = cabinet(false);
+    let sheet = |w: i64, h: i64| json!([[0, 0], [mm(w), 0], [mm(w), mm(h)], [0, mm(h)]]);
+    fx.record(PLATE)["usable"] = sheet(500, 800);
+    fx.push(json!({"$k": "mounting_surface", "id": uid(DOOR), "enclosure": uid(ENCL), "kind": "door",
+                   "frame": {"t": [0, 0, mm(250)], "q": [1_000_000_000, 0, 0, 0]}, "hinge": hinge,
+                   "usable": sheet(600, 800)}));
+    let lamp = json!({"width": mm(30), "height": mm(30), "depth": mm(40), "mount_kind": "door_cutout"});
+    part(
+        &mut fx,
+        PART_LAMP,
+        lamp,
+        json!([{"idx": 0, "designation": "1"}, {"idx": 1, "designation": "2"}]),
+    );
+    device(&mut fx, L1, 6, Some(PART_LAMP), SYM_DOWN);
+    device(&mut fx, L2, 7, Some(PART_LAMP), SYM_DOWN);
+    device(&mut fx, K6, 8, Some(PART_K), SYM_DOWN);
+    for (d, u) in [(L1, 300), (L2, 360)] {
+        fx.push(json!({"$k": "placement", "id": uid(pl(d)), "device": uid(d), "carrier": {"surface": uid(DOOR)},
+                       "pose": {"t": [mm(u), mm(560), 0], "q": [1_000_000_000, 0, 0, 0]}}));
+    }
+    fx.push(json!({"$k": "placement", "id": uid(pl(K6)), "device": uid(K6), "carrier": {"carrier": uid(R2)},
+                   "pose": pose(mm(300), false)}));
+    wire(&mut fx, W7, cp(K2, 0), cp(L1, 0));
+    wire(&mut fx, W8, cp(L1, 1), cp(L2, 0));
+    wire(&mut fx, W9, cp(L2, 1), cp(K6, 0));
+    fx
+}
+
+/// A lamp's pin in the door: at its centre, half its 40 mm behind the door away from it.
+fn door_pin(q: &Q, lamp: u128) -> (i64, i64) {
+    let spots = q.get::<PinSpots>(id(pl(lamp)));
+    let spots = spots.as_ref().as_ref().expect("the lamp's pins");
+    let spot = &spots.spots[0];
+    assert!(spots.spots.iter().all(|s| s.at == spot.at && s.out == (0, 0)));
+    assert_eq!(spot.h, Nm(mm(20)));
+    (spot.at.x.0, spot.at.y.0)
+}
+
+/// Into a door (doc 12 §8.1, §9): a wire runs through the ducts to the duct's end on the hinge side, in free air to the
+/// plate's edge, along the door to the lamp and up half what the lamp reaches behind the door; its length adds the door
+/// loop. Two lamps of one door are joined directly; a wire whose door end is its first stores the door step first.
+/// Hinged on the right, the way leaves the duct at its right end.
+#[test]
+fn a_wire_into_the_door_crosses_the_hinge_and_runs_along_the_door() {
+    let base = routed(door_cabinet("left"));
+    let m = base.build();
+    let q = Q::new(&m);
+    let ((x1, y1), (x2, y2)) = (door_pin(&q, L1), door_pin(&q, L2));
+    let p = plan(&q, &RouteScope::All);
+    let Planned::Way(w7) = planned(&p, W7) else {
+        panic!("W7 has a way")
+    };
+    assert!(
+        matches!(&w7.steps[..], [WayStep::Duct(d), WayStep::Door(s)]
+            if d.carrier == id(D1) && d.from == Nm(mm(160)) && d.to == Nm(0) && *s == id(DOOR)),
+        "{:?}",
+        w7.steps
+    );
+    // K2's pin 1 back across its front 180, climb 7.5, along duct 1 to its end 160, free air 0, along the door, up 20.
+    let along = x1 + (y1 - mm(440)).abs();
+    assert_eq!(w7.run, Nm(mm(180) + 7_500_000 + mm(160) + along + mm(20)));
+    assert!(w7.door());
+    let Planned::Way(w8) = planned(&p, W8) else {
+        panic!("W8 has a way")
+    };
+    assert!(w8.steps.is_empty(), "two lamps of one door: direct");
+    assert_eq!(w8.run, Nm((x2 - x1).abs() + (y2 - y1).abs()));
+    let Planned::Way(w9) = planned(&p, W9) else {
+        panic!("W9 has a way")
+    };
+    assert!(
+        matches!(&w9.steps[..], [WayStep::Door(s), WayStep::Duct(d)]
+            if *s == id(DOOR) && d.from == Nm(0) && d.to == Nm(mm(300))),
+        "{:?}",
+        w9.steps
+    );
+    assert_eq!(
+        w9.run,
+        Nm(x2 + (y2 - mm(440)).abs() + mm(20) + mm(300) + mm(130) + 7_500_000)
+    );
+    assert_eq!(
+        status(&q, W7),
+        RouteStatus::Holds {
+            run: w7.run,
+            door: true
+        }
+    );
+    assert!(matches!(status(&q, W9), RouteStatus::Holds { door: true, .. }));
+    assert_eq!(
+        length(&q, W7).value(),
+        Some(ew_derive::layout::routed_length(&q, w7.run, true))
+    );
+    let loop_ = ew_derive::layout::routed_length(&q, w7.run, true).0
+        - ew_derive::layout::routed_length(&q, w7.run, false).0;
+    assert!((mm(295)..=mm(305)).contains(&loop_), "the 300 mm door loop");
+
+    let m = door_cabinet("right").build();
+    let q = Q::new(&m);
+    let Planned::Way(right) = planned(&plan(&q, &RouteScope::All), W7) else {
+        panic!("W7 has a way")
+    };
+    assert!(matches!(&right.steps[..], [WayStep::Duct(d), WayStep::Door(_)] if d.to == Nm(mm(500))));
+    let along = (x1 - mm(600)).abs() + (y1 - mm(440)).abs();
+    assert_eq!(
+        right.run,
+        Nm(mm(180) + 7_500_000 + mm(340) + along + mm(20))
+    );
+}

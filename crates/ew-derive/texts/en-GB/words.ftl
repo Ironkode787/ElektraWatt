@@ -158,6 +158,7 @@ duct-fill-over = { $p0 } % where fullest · over the limit of { $p1 } %
 duct-fill-default = with default diameters (unverified)
 duct-fill-without = { $p0 } without a diameter not counted
 placement-reaches = { $p0 } mm from the plate
+placement-reaches-room = { $p0 } mm from the plate; the closed door is { $p1 } mm away
 placement-depth-unknown = depth not known: the closed door is not checked for it
 
 ## The rework list: what the fitter does, and what changed

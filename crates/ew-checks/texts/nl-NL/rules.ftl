@@ -516,6 +516,8 @@ rule-ew-lay-006 = { $form ->
         [same] twee plaatsingen van { $device } overlappen; verplaats een van beide
         [limit] meer voetafdrukken overlappen op de montageplaat van { $enclosure }; de eerste { $listed } overlappingen staan vermeld
         [duct] { $device } overlapt de kabelgoot bij { $duct }; verplaats het apparaat of de kabelgoot
+        [door_reach] { $device } steekt { $take } uit de montageplaat; de gesloten deur staat er { $room } vanaf
+        [door_meet] { $device } en { $other } in de deur raken elkaar als de deur dicht is: ze nemen { $a } en { $b } van de { $room } tussen montageplaat en deur
        *[rail] de rail bij { $rail } overlapt de kabelgoot bij { $duct }; verplaats de rail of de kabelgoot
     }
     .title = Botsing

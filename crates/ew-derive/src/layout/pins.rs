@@ -9,13 +9,16 @@
 //! first page in page order that draws it: the top edge, any other: the bottom edge). The pins of one edge share it
 //! evenly in the order of the part's pins (of the function CPs where the part names none): the k-th of n at
 //! (k + ½)/n. A terminal's side pins stand on its own width within its strip. A pin's height above the surface is the
-//! rail's height plus half its device's depth (the rail's alone where the depth is not known).
+//! rail's height plus half its device's depth (the rail's alone where the depth is not known). A pin in a door stands
+//! at its device's centre, half what the device reaches behind the door (`behind_door`) away from it, with no way out
+//! of an edge.
 
 use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_schema::{
     Carrier, CarrierParams, CarrierRef, Device, Dir4, Function, MountingSurface, PartRef, PinFace, Placement,
+    SurfaceKind,
 };
 use ew_units::{Nm, Pt2, Rect};
 
@@ -31,7 +34,8 @@ pub struct PinSpot {
     pub cp: (Id<Function>, u16),
     /// Where it stands on its footprint's edge, in the surface's frame.
     pub at: Pt2,
-    /// The way out of its edge in the surface's frame: one of `(0, 1)`, `(0, −1)`, `(1, 0)`, `(−1, 0)`.
+    /// The way out of its edge in the surface's frame: one of `(0, 1)`, `(0, −1)`, `(1, 0)`, `(−1, 0)`; `(0, 0)` in a
+    /// door.
     pub out: (i8, i8),
     /// Its height above the surface.
     pub h: Nm,
@@ -190,6 +194,37 @@ fn spots(q: &Q, key: Id<Placement>) -> Option<PinSpotsV> {
     let turn = geom.turn;
     let (w, h) = if turn.k() % 2 == 1 { (fh, fw) } else { (fw, fh) };
     let rail = rail_height(q, &pl);
+    // A pin in a door stands at its device's centre, half what the device reaches behind the door (doc 12 §8.1).
+    if q.table::<MountingSurface>()
+        .get(geom.surface)
+        .is_some_and(|s| s.kind == SurfaceKind::Door)
+    {
+        let functions: Vec<Id<Function>> = match pl.function {
+            Some(f) => vec![f],
+            None => q.idx().functions_of_device(device.id).collect(),
+        };
+        let centre = Pt2::new(
+            Nm(fp.min().x.0 + fp.width().0 / 2),
+            Nm(fp.min().y.0 + fp.height().0 / 2),
+        );
+        let h = Nm(super::behind_door(q, key).map_or(0, |d| d.0.max(0) / 2));
+        let spots = pins_of(q, functions, false)
+            .into_iter()
+            .map(|pin| PinSpot {
+                cp: pin.cp,
+                at: centre,
+                out: (0, 0),
+                h,
+                face: pin.face,
+                drawn: pin.drawn,
+            })
+            .collect();
+        return Some(PinSpotsV {
+            surface: geom.surface,
+            footprint: fp,
+            spots,
+        });
+    }
     let mut placed: Vec<(Pin, (i128, i128))> = Vec::new();
     let mut depth_by_fn: Vec<(Id<Function>, Option<Nm>)> = Vec::new();
     if places_strip(q, &device, pl.part.as_ref()) {

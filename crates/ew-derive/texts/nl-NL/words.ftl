@@ -154,6 +154,7 @@ duct-fill-over = { $p0 } % waar het volst is · boven de grens van { $p1 } %
 duct-fill-default = met standaarddiameters (niet geverifieerd)
 duct-fill-without = { $p0 } zonder diameter niet meegeteld
 placement-reaches = { $p0 } mm vanaf de montageplaat
+placement-reaches-room = { $p0 } mm vanaf de montageplaat; de gesloten deur staat er { $p1 } mm vanaf
 placement-depth-unknown = diepte niet bekend: de gesloten deur wordt er niet op gecontroleerd
 
 ## The rework list: what the fitter does, and what changed

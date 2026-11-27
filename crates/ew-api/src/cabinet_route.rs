@@ -159,7 +159,8 @@ impl Session {
                 ew_derive::layout::placement_of_function(&q, e.cp.0)
                     .is_some_and(|p| placements.contains(&p.as_uuid()))
             });
-            if !at {
+            // A way is drawn on the page of its ducts' plate (of its door, between two devices of one door).
+            if !at || ew_derive::layout::way_surface(&q, &way.ends, &way.way) != Some(view.surface) {
                 continue;
             }
             let planned = ew_derive::layout::Way {
@@ -240,7 +241,7 @@ fn on_page(projection: Option<&ew_scene::panel::Projection>, (u, v): (i128, i128
 }
 
 /// A way's points on the page, each duct stretch shifted across its duct by `lane(carrier)`; a direct way across, then
-/// along.
+/// along; an end in a door at the plate's edge on the hinge side (`mark_ends`).
 fn page_points(
     q: &Q,
     projection: Option<&ew_scene::panel::Projection>,
@@ -250,7 +251,7 @@ fn page_points(
     use ew_derive::layout::DuctLine;
     use ew_schema::WayStep;
     let at = |p: Pt2| (i128::from(p.x.0), i128::from(p.y.0));
-    let (a, b) = (at(way.ends[0].at), at(way.ends[1].at));
+    let [a, b] = ew_derive::layout::mark_ends(q, &way.ends, &way.steps).map(at);
     let mut pts: Vec<(i128, i128)> = vec![a];
     let mut any = false;
     for step in &way.steps {
