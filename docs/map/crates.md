@@ -256,6 +256,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/rules/safety.rs` |  | The EW-SAF rules (doc 10 §2.9, §3.10; doc 15 §4.5.1), in the 1.0 content of the EW-PLC pack: EW-SAF-001 (the F-destination address), EW-SAF-002 (the 1oo2 pair) and EW-SAF-003 (the test pulse). |
 | `src/rules/system.rs` |  | The rule system's own finding (doc 15 §4.2): EW-CORE-083 "Rule not evaluated" for a rule that panicked. |
 | `src/rules/term.rs` | large | EW-TERM rules (doc 15 §4.4; content in doc 08 §6.8, §8.1). |
+| `src/rules/ways.rs` |  | The rules of a cabinet's ways and room (doc 15 §4.5.4, §4.5.5; doc 12 §7 to §9): EW-LAY-007, a footprint or a duct inside the room a device's part keeps free; EW-LAY-008, a duct over the fill limit where it is fullest; EW-LAY-011, ways that no longer hold, one finding per cause; EW-MFG-001, the wires of a cabinet without a length. |
 | `src/scheme.rs` |  | Check modes and the shipped schemes (doc 15 §2.4, §3.1, §3.2, §4.9; ADR-0019 decision 5, amendment 6). |
 
 ## ew-commands

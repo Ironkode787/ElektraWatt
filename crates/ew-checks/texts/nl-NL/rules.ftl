@@ -603,6 +603,41 @@ rule-ew-lay-018 = { $form ->
     .title = Kabelwartel
     .hint = Plaats de wartel van elke kabel waar de kabel zijn kast binnenkomt, en houd zijn gat op de maat van zijn wartel.
 
+rule-ew-lay-007 = { $device } houdt { $need } vrij { $side ->
+        [above] erboven
+        [below] eronder
+        [left] links ervan
+       *[right] rechts ervan
+    } (de vrije ruimte van zijn artikel); { $other } staat er { $at } vanaf, { $short } te dichtbij
+    .title = Vrije ruimte geschonden
+    .hint = Verplaats het apparaat of wat in zijn vrije ruimte staat tot de ruimte die zijn artikel vrijhoudt, vrij is.
+
+rule-ew-lay-008 = { $duct } ({ $size }) is { $fill } vol waar ze het volst is; de grens is { $limit }: neem een bredere of voeg een kabelgoot toe
+    .title = Vulling van de kabelgoot boven de grens
+    .hint = Kies een bredere kabelgoot, voeg er een tweede naast toe, of verhoog de vullingsgrens in Projecteigenschappen ▸ Werkplaats.
+
+rule-ew-lay-011 = { $form ->
+        [moved] { $count ->
+            [one] De loop van 1 draad bij { $at } klopt niet meer: het is verplaatst. Routeren geeft een nieuwe.
+           *[other] De lopen van { $count } draden bij { $at } kloppen niet meer: het is verplaatst. Routeren geeft nieuwe.
+        }
+        [unplaced] { $count ->
+            [one] De loop van 1 draad bij { $at } klopt niet meer: het is niet meer geplaatst. Routeren geeft een nieuwe.
+           *[other] De lopen van { $count } draden bij { $at } kloppen niet meer: het is niet meer geplaatst. Routeren geeft nieuwe.
+        }
+        [duct] { $count ->
+            [one] De loop van 1 draad door { $at } klopt niet meer: de kabelgoot is veranderd. Routeren geeft een nieuwe.
+           *[other] De lopen van { $count } draden door { $at } kloppen niet meer: de kabelgoot is veranderd. Routeren geeft nieuwe.
+        }
+        [gone] { $count ->
+            [one] De loop van 1 draad klopt niet meer: een kabelgoot ervan is weg. Routeren geeft een nieuwe.
+           *[other] De lopen van { $count } draden kloppen niet meer: een kabelgoot ervan is weg. Routeren geeft nieuwe.
+        }
+       *[end] De loop van { $at } klopt niet meer: het eind ging van { $from } naar { $to }. Routeren geeft een nieuwe.
+    }
+    .title = Verouderde loop
+    .hint = Routeer op de paneelpagina van de kast: dat legt deze draden opnieuw en geeft ze hun lengte.
+
 rule-ew-num-001 = { $frozen }: vastgezet, wijkt af van het nummeringsschema (afgeleide waarde { $derived })
     .title = Kenmerk wijkt af van het nummeringsschema
     .hint = Maak het kenmerk los om de afgeleide waarde over te nemen, of laat het vastgezet als de afwijking bedoeld is.
@@ -904,6 +939,13 @@ rule-ew-mfg-004 = De merker van { $wire } op { $at } past niet op zijn merkerart
     }
     .title = Merkertekst past niet
     .hint = Kies een merkerartikel uit de voorraad met langere of meer regels, zet de merker van het einde met de hand, of laat de merker het draadnummer dragen.
+
+rule-ew-mfg-001 = { $count ->
+        [one] 1 draad van { $cabinet } heeft geen lengte: Routeren geeft er een, of typ die
+       *[other] { $count } draden van { $cabinet } hebben geen lengte: Routeren geeft ze een, of typ die
+    }
+    .title = Draden zonder lengte
+    .hint = Routeer op de paneelpagina van de kast, of typ de lengte van een draad in de tabel Verbindingen.
 
 rule-ew-mfg-008 = Het einde van { $wire } op { $at } kan niet worden gemaakt: { $reason ->
        *[fine_into_idc] een fijndradige draad in een snijklem
@@ -1309,6 +1351,7 @@ rule-ew-imp-114 =
 fix-take-proposed-size = De voorgestelde doorsnede nemen
 fix-drop-override = overschrijving verwijderen
 fix-variant-own = Het eigen nummer van het artikel gebruiken
+fix-route = Routeren
 fix-next-free-address = Het volgende vrije adres geven, { $p0 }
 fix-anchor-graphics-centre = anker op het midden van de grafische elementen
 fix-renumber-newer = De nieuwere hernummeren

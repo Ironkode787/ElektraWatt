@@ -280,3 +280,11 @@ fn mfg004_reports_in_release_mode() {
         .count();
     assert_eq!(found, 2);
 }
+
+/// EW-MFG-001 asks a length only of a project with a panel layout: wires without one in a project without a layout
+/// are no finding (doc 12 §9).
+#[test]
+fn mfg001_is_quiet_in_a_project_without_a_layout() {
+    let m = clamp(&json!({}), 2);
+    assert!(findings_of(&m, "EW-MFG-001").is_empty());
+}

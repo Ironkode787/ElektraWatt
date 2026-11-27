@@ -25,9 +25,11 @@ pub mod holes;
 pub mod layout;
 // The rules of the wire's ends for the workshop (doc 13 §4.6)
 pub mod mfg;
+// The rules of a cabinet's ways and room (doc 12 §7 to §9): EW-LAY-007, 008, 011 and EW-MFG-001
 pub mod num;
 pub mod page;
 pub mod plc;
+pub mod ways;
 // The EW-PLC rules of the pack's 1.0 content
 pub mod plc_exchange;
 pub mod plc_wiring;

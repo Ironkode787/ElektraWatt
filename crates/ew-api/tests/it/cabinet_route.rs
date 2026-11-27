@@ -261,3 +261,179 @@ fn a_turned_strip_stales_its_wires_and_the_lists_say_so() {
     run(&mut s, "layout.route", json!({"space": space})).expect("Route again");
     assert!(row(&s, "103.5").contains(",routed,"));
 }
+
+/// The findings of `rule` on the session.
+fn findings(s: &Session, rule: &str) -> Vec<ew_checks::Finding> {
+    let q = s.query();
+    ew_checks::run(&q, &ew_checks::FULL, ew_checks::CheckMode::Online)
+        .findings
+        .into_iter()
+        .filter(|f| f.rule == rule)
+        .collect()
+}
+
+/// EW-MFG-001: before Route the sample's cabinet has wires without a length, one finding naming +CAB with them as its
+/// targets (101.9, not the field wire 104.4 nor a core of -101W1); after Route none.
+#[test]
+fn ew_mfg_001_counts_the_cabinets_wires_without_a_length() {
+    let mut s = common::sample();
+    let f = findings(&s, "EW-MFG-001");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert!(
+        f[0].message()
+            .contains(" wires of +CAB have no length: Route gives them one, or type it"),
+        "{}",
+        f[0].message()
+    );
+    let has = |n: &str| f[0].targets.iter().any(|t| t.id.as_uuid() == wire(&s, n));
+    assert!(
+        has("101.9") && !has("104.4"),
+        "the field wire 104.4 is the site's"
+    );
+    let q = s.query();
+    let cores: Vec<_> = q
+        .get::<ew_derive::WireRecordSet>(())
+        .iter()
+        .filter(|r| r.wire.core.is_some())
+        .map(|r| r.wire.id.as_uuid())
+        .collect();
+    assert!(
+        !cores.is_empty() && !f[0].targets.iter().any(|t| cores.contains(&t.id.as_uuid())),
+        "a core is its cable's"
+    );
+    drop(q);
+    let space = s.cabinet_of_folio("902").unwrap();
+    run(&mut s, "layout.route", json!({"space": space})).expect("Route");
+    assert!(findings(&s, "EW-MFG-001").is_empty());
+}
+
+/// EW-LAY-011: -X1031 turned after Route stales the ways of its wires: one finding at -X1031 with Route as its fix;
+/// one of them routed again leaves the finding with the same fingerprint.
+#[test]
+fn ew_lay_011_is_one_finding_per_cause_whatever_its_wires() {
+    let mut s = common::sample();
+    let space = s.cabinet_of_folio("902").unwrap();
+    run(&mut s, "layout.route", json!({"space": space})).expect("Route");
+    assert!(findings(&s, "EW-LAY-011").is_empty());
+    let q = s.query();
+    let (placement, p) = q
+        .table::<ew_schema::Placement>()
+        .iter()
+        .find(|(_, p)| ew_derive::short_tag(&q, p.device) == "-X1031")
+        .map(|(id, p)| (id, p.clone()))
+        .unwrap();
+    drop(q);
+    let t = p.pose.t.map(|n| n.0);
+    run(
+        &mut s,
+        "layout.move",
+        json!({"placement": placement.as_uuid(), "pose": {"t": t, "q": [0, 0, 0, 1_000_000_000]}}),
+    )
+    .expect("turned");
+    let f = findings(&s, "EW-LAY-011");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert!(
+        f[0].message()
+            .contains(" wires at +CAB-X1031 no longer hold: it moved. Route gives them new ones."),
+        "{}",
+        f[0].message()
+    );
+    assert_eq!(
+        f[0].fix.as_ref().map(|x| x.command.as_str()),
+        Some("layout.route")
+    );
+    let w = wire(&s, "103.5");
+    run(&mut s, "layout.route", json!({"space": space, "wires": [w]})).expect("103.5 again");
+    let again = findings(&s, "EW-LAY-011");
+    assert_eq!(again.len(), 1);
+    assert_eq!(
+        again[0].fingerprint, f[0].fingerprint,
+        "the cause keeps its finding"
+    );
+    assert!(again[0].targets.len() < f[0].targets.len());
+}
+
+/// EW-LAY-008: with a fill limit of 1 % duct 1 is over it once Route has laid its wires, in words.
+#[test]
+fn ew_lay_008_reports_a_duct_over_the_fill_limit() {
+    let mut s = common::sample();
+    let set = json!({"member": "workshop.fill_limit", "value": 1});
+    run(&mut s, "project.settings.set", set).expect("a limit");
+    assert!(
+        findings(&s, "EW-LAY-008").is_empty(),
+        "nothing is stored before Route"
+    );
+    let space = s.cabinet_of_folio("902").unwrap();
+    run(&mut s, "layout.route", json!({"space": space, "all": true})).expect("Route");
+    let f = findings(&s, "EW-LAY-008");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert!(
+        f[0].message().starts_with("Duct 1 (40×60) is ")
+            && f[0]
+                .message()
+                .ends_with("; the limit is 1 %: widen it or add a duct"),
+        "{}",
+        f[0].message()
+    );
+}
+
+/// EW-LAY-007 on a part of one's own: -101G1 given a power supply part made here that keeps 100 mm free below it and
+/// 10 mm in front: duct 1, 75 mm below it, is 25 mm too close; its own rail is not judged; the placement reaches
+/// 127.5 mm from the plate (7.5 of rail, 110 deep, 10 in front). A device of an unknown footprint keeps no zone.
+#[test]
+fn ew_lay_007_reports_a_duct_inside_a_parts_free_room() {
+    use ew_schema::{LibDocument, Record};
+    let (project, mut records, mut lib) = common::sample_records();
+    let psu = lib
+        .iter()
+        .find_map(|d| match d {
+            LibDocument::Part(c) if c.item.part_number.as_str() == "EW-GEN-PSU-1" => Some(c.clone()),
+            _ => None,
+        })
+        .expect("the starter power supply");
+    let mut own = psu.clone();
+    own.id = ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(0x0057_0001));
+    own.item_id = ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(0x0057_0002));
+    own.item.part_number = "MY-PSU-24".parse().unwrap();
+    let mech = own.item.mech.get_or_insert_with(Default::default);
+    mech.clearance = Some(ew_schema::Clearance {
+        bottom: ew_units::Nm::from_mm(100),
+        front: ew_units::Nm::from_mm(10),
+        ..Default::default()
+    });
+    lib.push(LibDocument::Part(own.clone()));
+    for r in &mut records {
+        match r {
+            Record::Device(d) if d.parts.iter().any(|u| u.part.copy == psu.id) => {
+                for u in &mut d.parts {
+                    u.part.copy = own.id;
+                }
+            }
+            Record::Placement(p) if p.part.as_ref().is_some_and(|u| u.copy == psu.id) => {
+                if let Some(u) = &mut p.part {
+                    u.copy = own.id;
+                }
+            }
+            _ => {}
+        }
+    }
+    let s = common::session_of(project, records, lib);
+    let f = findings(&s, "EW-LAY-007");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert!(
+        f[0].message().ends_with("-101G1 keeps 100 mm free below it (its part's clearance); duct 1 is 75 mm from it, 25 mm too close"),
+        "{}",
+        f[0].message()
+    );
+    let q = s.query();
+    let placement = q
+        .table::<ew_schema::Placement>()
+        .iter()
+        .find(|(_, p)| ew_derive::short_tag(&q, p.device) == "-101G1")
+        .map(|(id, _)| id)
+        .unwrap();
+    assert_eq!(
+        ew_derive::layout::reach(&q, placement),
+        Some(ew_units::Nm(127_500_000))
+    );
+}

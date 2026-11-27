@@ -603,6 +603,41 @@ rule-ew-lay-018 = { $form ->
     .title = Cable gland
     .hint = Place each cable's gland where the cable enters its cabinet, and keep its hole the size of its gland.
 
+rule-ew-lay-007 = { $device } keeps { $need } free { $side ->
+        [above] above it
+        [below] below it
+        [left] to its left
+       *[right] to its right
+    } (its part's clearance); { $other } is { $at } from it, { $short } too close
+    .title = Clearance violated
+    .hint = Move the device or what stands in its free room until the room its part keeps is free.
+
+rule-ew-lay-008 = { $duct } ({ $size }) is { $fill } full where it is fullest; the limit is { $limit }: widen it or add a duct
+    .title = Duct fill over limit
+    .hint = Choose a wider duct, add a second one beside it, or raise the fill limit in Project properties ▸ Workshop.
+
+rule-ew-lay-011 = { $form ->
+        [moved] { $count ->
+            [one] The way of 1 wire at { $at } no longer holds: it moved. Route gives it a new one.
+           *[other] The ways of { $count } wires at { $at } no longer hold: it moved. Route gives them new ones.
+        }
+        [unplaced] { $count ->
+            [one] The way of 1 wire at { $at } no longer holds: it is no longer placed. Route gives it a new one.
+           *[other] The ways of { $count } wires at { $at } no longer hold: it is no longer placed. Route gives them new ones.
+        }
+        [duct] { $count ->
+            [one] The way of 1 wire through { $at } no longer holds: the duct changed. Route gives it a new one.
+           *[other] The ways of { $count } wires through { $at } no longer hold: the duct changed. Route gives them new ones.
+        }
+        [gone] { $count ->
+            [one] The way of 1 wire no longer holds: a duct of it is gone. Route gives it a new one.
+           *[other] The ways of { $count } wires no longer hold: a duct of them is gone. Route gives them new ones.
+        }
+       *[end] The way of { $at } no longer holds: its end moved from { $from } to { $to }. Route gives it a new one.
+    }
+    .title = Stale way
+    .hint = Run Route on the cabinet's panel page: it lays these wires again and gives them their lengths.
+
 ## EW-NUM: numbering
 
 rule-ew-num-001 = { $frozen }: frozen, deviates from scheme (rule-derived value { $derived })
@@ -908,6 +943,13 @@ rule-ew-mfg-004 = The marker of { $wire } at { $at } does not fit its marker par
     }
     .title = Marker text does not fit
     .hint = Choose a marker part of the stock with longer or more lines, set the end's marker by hand, or mark the wire by its number.
+
+rule-ew-mfg-001 = { $count ->
+        [one] 1 wire of { $cabinet } has no length: Route gives it one, or type it
+       *[other] { $count } wires of { $cabinet } have no length: Route gives them one, or type it
+    }
+    .title = Wires without a length
+    .hint = Run Route on the cabinet's panel page, or type a wire's length in the Connections table.
 
 rule-ew-mfg-008 = The end of { $wire } at { $at } cannot be made: { $reason ->
        *[fine_into_idc] a fine-stranded wire into an insulation-displacement clamp
@@ -1329,6 +1371,7 @@ rule-ew-imp-114 =
 fix-take-proposed-size = Take the proposed size
 fix-drop-override = Drop override
 fix-variant-own = Use the part's own number
+fix-route = Route
 fix-next-free-address = Give it the next free address, { $p0 }
 fix-anchor-graphics-centre = Anchor at the graphics centre
 fix-renumber-newer = Renumber the newer

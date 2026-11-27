@@ -524,3 +524,8 @@ change here.
   defaults (50 mm, 60 %, 300 mm); the part editor's Pins table has the column Wired at (From the drawing, Top,
   Bottom; an empty cell shows the drawing's edge, "top · drawing"), its Size section the row Clearance in front, a
   wire part's section the row Outer diameter, and a duct part a section Duct with its inner width and height
+- behaviour-change: four new checks of a cabinet's ways (doc 15 §4.5.4, §4.5.5): EW-LAY-007 (warning) a footprint or a
+  duct inside the room a device's part keeps free, with the side and the amount; EW-LAY-008 (warning) a duct over the
+  fill limit where it is fullest; EW-LAY-011 (warning, an error at release) the ways that no longer hold, one finding
+  per moved device or changed duct with Route as its fix; EW-MFG-001 (info) the wires of a cabinet without a length,
+  in a project with a panel layout only, with Route as its fix

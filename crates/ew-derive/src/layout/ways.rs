@@ -547,7 +547,13 @@ pub fn route_status(q: &Q, wire: &PhysicalWire) -> RouteStatus {
         return stale(StaleWhy::EndChanged { from: *from, to: *to });
     }
     for end in &r.ends {
-        let device = q.functions().get(end.cp.0).and_then(|f| f.device);
+        // The device the layout places: a terminal's strip, else the function's device.
+        let device = q.functions().get(end.cp.0).and_then(|f| f.device).map(|d| {
+            q.devices()
+                .get(d)
+                .and_then(|x| x.aspects.terminal.as_ref().map(|t| t.strip))
+                .unwrap_or(d)
+        });
         let spots = placement_of_function(q, end.cp.0).and_then(|p| q.get::<PinSpots>(p).as_ref().clone());
         let Some(spots) = spots else {
             return match device {
