@@ -141,8 +141,19 @@ fn kind_word(kind: &ew_schema::SurfaceKind) -> &'static str {
 
 /// Millimetres as the project prints them: the shortest decimal, the project's separator.
 pub(crate) fn mm_text(q: &Q, nm: i128) -> String {
+    mm_words(nm, comma(q))
+}
+
+/// Millimetres as the shortest decimal, with a decimal comma where `comma` (`7.5`, `7,5`).
+fn mm_words(nm: i128, comma: bool) -> String {
     let text = ew_derive::mm_exact(nm);
-    if comma(q) { text.replace('.', ",") } else { text }
+    if comma { text.replace('.', ",") } else { text }
+}
+
+/// A length in words, with its unit (`250 mm`, `7,5 mm` where `comma`): the one text of a length a Properties row
+/// shows, set or unset, which its parser ([`parse_mm`]) reads back.
+pub(crate) fn mm_with_unit(nm: i128, comma: bool) -> String {
+    format!("{} mm", mm_words(nm, comma))
 }
 
 /// Whether the project prints a decimal comma ([`ew_derive::text::decimal_comma`] in its print language).
@@ -583,7 +594,7 @@ fn surface_rows(q: &Q, id: Id<MountingSurface>) -> Option<Vec<PropRow>> {
     let s = q.table::<MountingSurface>().get(id)?;
     let k = "mounting_surface";
     let cmd = Some("layout.surface.edit");
-    let mm = |n: ew_units::Nm| format!("{} mm", mm_text(q, i128::from(n.0)));
+    let mm = |n: ew_units::Nm| mm_with_unit(i128::from(n.0), comma(q));
     let mut rows = Vec::new();
     if let Some((w, h)) = ew_derive::layout::sheet_size(s) {
         rows.push(text_row(k, "width", mm(w), Provenance::Authored, cmd));
@@ -662,8 +673,8 @@ fn feature_rows(q: &Q, id: Id<ew_schema::SurfaceFeature>) -> Option<Vec<PropRow>
     Some(vec![
         choice_row(k, "kind", kind.to_owned(), kinds, cmd),
         text_row(k, "size", f.hole.to_string(), Provenance::Authored, cmd),
-        text_row(k, "x", format!("{} mm", mm_text(q, x)), Provenance::Authored, cmd),
-        text_row(k, "y", format!("{} mm", mm_text(q, y)), Provenance::Authored, cmd),
+        text_row(k, "x", mm_with_unit(x, comma(q)), Provenance::Authored, cmd),
+        text_row(k, "y", mm_with_unit(y, comma(q)), Provenance::Authored, cmd),
         text_row(k, "purpose", purpose, Provenance::Authored, cmd),
     ])
 }
@@ -756,7 +767,7 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
     if let (Some(s), Some(g)) = (&face, &geom) {
         let (x, y) = centre_from_datum(q, s, g.footprint);
         for (name, v) in [("centre_x", x), ("centre_y", y)] {
-            let text = format!("{} mm", mm_text(q, v));
+            let text = mm_with_unit(v, comma(q));
             rows.push(text_row(k, name, text, Provenance::Authored, Some("layout.move")));
         }
         let mech = g
@@ -780,7 +791,7 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
         }
         match ew_derive::layout::behind_door(q, id) {
             Some(d) => {
-                let text = format!("{} mm", mm_text(q, i128::from(d.0)));
+                let text = mm_with_unit(i128::from(d.0), comma(q));
                 rows.push(text_row(k, "behind_door", text, derived_of("part"), None));
             }
             // A device in a door without a depth (doc 12 §7): the closed door is not checked for it.
@@ -793,7 +804,7 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
     }
     let [tx, ty, _] = p.pose.t;
     let position = if on_rail {
-        format!("{} mm", mm_text(q, i128::from(tx.0)))
+        mm_with_unit(i128::from(tx.0), comma(q))
     } else {
         format!(
             "{}{}{} mm",
@@ -1138,7 +1149,7 @@ fn carrier_rows(q: &Q, id: Id<Carrier>) -> Option<Vec<PropRow>> {
                 rows.push(text_row(
                     k,
                     "length",
-                    format!("{} mm", mm_text(q, a.length)),
+                    mm_with_unit(a.length, comma(q)),
                     Provenance::Authored,
                     Some("layout.carrier.edit"),
                 ));
@@ -1147,7 +1158,7 @@ fn carrier_rows(q: &Q, id: Id<Carrier>) -> Option<Vec<PropRow>> {
                 rows.push(text_row(
                     k,
                     "free_length",
-                    format!("{} mm", mm_text(q, free)),
+                    mm_with_unit(free, comma(q)),
                     derived_of("rail length less placements and end brackets"),
                     None,
                 ));
@@ -1157,21 +1168,21 @@ fn carrier_rows(q: &Q, id: Id<Carrier>) -> Option<Vec<PropRow>> {
             rows.push(text_row(
                 k,
                 "width",
-                format!("{} mm", mm_text(q, i128::from(d.width.0))),
+                mm_with_unit(i128::from(d.width.0), comma(q)),
                 Provenance::Authored,
                 Some("layout.carrier.edit"),
             ));
             rows.push(text_row(
                 k,
                 "height",
-                format!("{} mm", mm_text(q, i128::from(d.height.0))),
+                mm_with_unit(i128::from(d.height.0), comma(q)),
                 Provenance::Authored,
                 Some("layout.carrier.edit"),
             ));
             rows.push(text_row(
                 k,
                 "length",
-                format!("{} mm", mm_text(q, length)),
+                mm_with_unit(length, comma(q)),
                 derived_of("path"),
                 None,
             ));

@@ -271,7 +271,7 @@ impl SectionCx<'_, '_> {
 /// The rows of the workshop settings that are not set (doc 13 §2.3: Ferrules, Two wires in one clamp, Marker text, Mark
 /// cable cores, Mark jumpers; doc 12 §12.5: Reserve per end, Duct fill limit, Door loop): the value that applies, its
 /// default, with the chip "project default".
-fn workshop_defaults(built: &mut [Built]) {
+fn workshop_defaults(cx: &SheetCx<'_>, built: &mut [Built]) {
     let defaults = [
         (
             "project/settings.workshop.ferrules",
@@ -308,10 +308,8 @@ fn workshop_defaults(built: &mut [Built]) {
         if let Some((_, Ok(json))) = defaults.iter().find(|(key, _)| *key == b.row.key) {
             let text = match json {
                 Value::String(word) => word.clone(),
-                // A length in millimetres, as its row prints a value set.
-                Value::Number(n) if *b.row.ty.inner() == FieldType::Nm => {
-                    format!("{} mm", ew_derive::mm_exact(i128::from(n.as_i64().unwrap_or(0))))
-                }
+                // A length, as its row prints a value set.
+                Value::Number(_) if *b.row.ty.inner() == FieldType::Nm => format_with(cx, &b.row.ty, json),
                 other => other.to_string(),
             };
             b.row.value = RowValue::One {
@@ -545,17 +543,6 @@ impl Session {
         {
             route_in_cells(q, Id::from_uuid(*c), &mut built);
         }
-        // A tube's length with its unit.
-        if fluid_lines {
-            for b in &mut built {
-                if b.row.path == crate::output::fields::TUBE_LENGTH
-                    && let RowValue::One { json, text } = &mut b.row.value
-                    && let Some(nm) = json.as_i64()
-                {
-                    *text = format!("{} mm", crate::output::layout_edit::mm_text(q, i128::from(nm)));
-                }
-            }
-        }
         if kind == Kind::Function {
             part_function_row(q, cx, &targets, &mut built);
             bus_address_in_words(&mut built);
@@ -583,7 +570,7 @@ impl Session {
         }
         // A workshop setting that is not set shows the value that applies, as the project's default.
         if kind == Kind::Project {
-            workshop_defaults(&mut built);
+            workshop_defaults(cx, &mut built);
             label_file_row(q, &mut built);
         }
         // A valve's position is its derived row, not the stored member a second time; an aspect's structure row (with

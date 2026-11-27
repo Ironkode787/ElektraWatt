@@ -113,6 +113,10 @@ impl DisplayCx for SheetCx<'_> {
         self.q.project().settings.formatting.date_format()
     }
 
+    fn decimal_comma(&self) -> bool {
+        crate::output::layout_edit::comma(self.q)
+    }
+
     fn cable_length(&self, source: &ew_schema::LengthSource) -> Option<String> {
         let opts = ew_reports::render::RenderOptions {
             lang: ew_derive::print_language(self.q),

@@ -639,3 +639,6 @@ change here.
   fix (Edit part… for a part's missing field), a line per reason for the wires without a length that no finding names,
   Open Messages, the revision (draft or released) and Without personal data; the file with Choose…. It runs as a job
   with its toast; a file of that name is asked about before it is replaced
+- behaviour-change: a length in Properties reads as the shortest millimetres with its unit and the project's decimal
+  separator, set or unset ("250 mm", "7,5 mm"); a set one read as a bare number with three decimals ("250.000"), as
+  the workshop's Cut to, Reserve per end and Door loop did

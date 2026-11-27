@@ -456,6 +456,10 @@ pub(crate) trait DisplayCx {
     fn cable_length(&self, _source: &ew_schema::LengthSource) -> Option<String> {
         None
     }
+    /// Whether the project writes a decimal comma (a length's `7,5 mm`); a point without a project.
+    fn decimal_comma(&self) -> bool {
+        false
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -642,11 +646,11 @@ mod tests {
         );
         assert_eq!(
             format_field_value(&FieldType::Nm, &Value::from(12_500_000)),
-            "12.500"
+            "12.5 mm"
         );
         assert_eq!(
             format_field_value(&FieldType::Nm, &Value::from(2_645_833)),
-            "2.645833"
+            "2.645833 mm"
         );
         assert_eq!(parse(FieldType::Colour, "BU").unwrap(), serde_json::json!(["BU"]));
         assert_eq!(

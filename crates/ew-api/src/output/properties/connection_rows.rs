@@ -511,12 +511,7 @@ fn length_row(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Built {
             }
         });
     }
-    let (mut value, provenance) = merge(cx, &FieldType::Nm, per);
-    if let RowValue::One { json, text } = &mut value
-        && let Some(nm) = json.as_i64()
-    {
-        *text = format!("{} mm", crate::output::layout_edit::mm_text(q, i128::from(nm)));
-    }
+    let (value, provenance) = merge(cx, &FieldType::Nm, per);
     let mut actions = Vec::new();
     if can_override && !shared {
         actions.push(RowAction::Override);

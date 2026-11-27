@@ -356,7 +356,7 @@ fn an_unset_workshop_setting_shows_its_default() {
 /// "300 mm" beside the reserve's "50 mm".
 #[test]
 fn an_unset_workshop_length_prints_in_millimetres() {
-    let s = common::sample();
+    let mut s = common::sample();
     let text = |s: &Session, key: &str| {
         let sheet = s.property_sheet(&[s.query().project().id.as_uuid()]);
         let row = (sheet.sections.iter().flat_map(|x| x.rows.iter()))
@@ -370,6 +370,22 @@ fn an_unset_workshop_length_prints_in_millimetres() {
     };
     assert_eq!(text(&s, "project/settings.workshop.door_loop"), "300 mm");
     assert_eq!(text(&s, "project/settings.workshop.reserve"), "50 mm");
+    // A length set reads as the unset one does, whether typed bare, with its millimetres or in centimetres; with the
+    // project's decimal comma, with that comma.
+    for typed in ["250", "250 mm", "25 cm"] {
+        let value = s
+            .parse_field_input("project", "settings.workshop.reserve", typed)
+            .expect("a length")
+            .value;
+        let set = json!({"member": "workshop.reserve", "value": value});
+        run(&mut s, "project.settings.set", set).expect("the reserve set");
+        assert_eq!(text(&s, "project/settings.workshop.reserve"), "250 mm", "{typed}");
+    }
+    let set = json!({"member": "workshop.door_loop", "value": 7_500_000});
+    run(&mut s, "project.settings.set", set).expect("the door loop set");
+    let comma = json!({"member": "languages", "value": {"source": "en-GB", "decimal_separator": "comma"}});
+    run(&mut s, "project.settings.set", comma).expect("a decimal comma");
+    assert_eq!(text(&s, "project/settings.workshop.door_loop"), "7,5 mm");
 }
 
 /// Each end's marker names the far end (doc 13 §5.1); a core and a jumper carry none; a long one is broken to the
