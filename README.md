@@ -58,11 +58,12 @@ sample itself, from a script of its own actions.
 free slot, the address range of each card and the page each is drawn on, and the catalogue of cards on the
 right](docs/images/window-plc-station.png)
 
-**The symbol editor.** Draw a symbol, give it connection points and text fields, and see it turned and mirrored
-before you save it.
+**Drawing a symbol.** New symbol on a page opens Parts on a drawing for that page at once: draw it, give it its pins,
+see it turned and mirrored, and Save and place puts it on the page.
 
-![The symbol editor with a copy of the starter coil: the drawing with its connection points A1 and A2 and its
-texts, and below it the coil in its eight turned and mirrored variants](docs/images/window-symbol-editor.png)
+![Parts with a new symbol drawn for page 102: its name and what it is on the left, the drawing with its pins 1 and 2
+and its texts, below it the symbol in its eight turned and mirrored variants, and Save and place on 102 at the top
+right](docs/images/window-symbol-editor.png)
 
 **The dark theme.**
 
