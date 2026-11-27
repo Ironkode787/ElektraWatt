@@ -3,7 +3,7 @@
 
 //! `open_items`: the open-items list (FR-REP-021).
 
-use ew_checks::{Finding, OPEN_ITEM_RULES, OpenItemRule, Severity, open_item_of, open_items};
+use ew_checks::{Finding, OPEN_ITEM_RULES, OpenItemRule, open_item_of, open_items};
 use ew_derive::{PageRef, Q};
 use ew_mltext::{NaturalKey, natural_key};
 use ew_schema::{Kind, ReportBlock, ReportKind};
@@ -115,12 +115,12 @@ fn row_of(columns: &[ColumnDef], f: &Finding, row: &OpenItemRule) -> Row {
         Cell::Text(ew_derive::langs(&f.message(), &dutch)),
     );
     put(columns, &mut cells, "rule", Cell::Ident(f.rule.to_owned()));
-    let severity = match f.severity {
-        Severity::Info => text!("cell-severity-info"),
-        Severity::Warning => text!("cell-severity-warning"),
-        Severity::Error => text!("cell-severity-error"),
-    };
-    put(columns, &mut cells, "severity", words_cell(&severity));
+    put(
+        columns,
+        &mut cells,
+        "severity",
+        words_cell(&crate::words::severity(f.severity)),
+    );
     if let Some(page) = f.page {
         put(columns, &mut cells, "page", Cell::Folio(PageRef::Drawn(page)));
     }

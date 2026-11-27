@@ -906,7 +906,7 @@ fn contents_txt(
             lines.push(format!(
                 "  {} {}: {}",
                 f.rule,
-                f.severity.name(),
+                ew_reports::words::text(&ew_reports::words::severity(f.severity), lang),
                 checks::render(f, tag)
             ));
         }

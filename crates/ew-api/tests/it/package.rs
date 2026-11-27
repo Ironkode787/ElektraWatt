@@ -77,6 +77,18 @@ fn released(edit: impl FnOnce(&Session, &mut Vec<Record>), without_ways: bool) -
     common::session_of(project, records, lib)
 }
 
+/// -X1031 10 mm further along its rail, after its wires were laid: their ways no longer hold (EW-LAY-011, an error).
+fn move_x1031(probe: &Session, records: &mut Vec<Record>) {
+    let x1031 = probe.resolve_reference("tag:-X1031").expect("-X1031");
+    for r in records.iter_mut() {
+        if let Record::Placement(p) = r
+            && p.device.as_uuid() == x1031
+        {
+            p.pose.t[0] = ew_units::Nm(p.pose.t[0].0 + 10_000_000);
+        }
+    }
+}
+
 /// Two packages of the sample are the same bytes; the manifest names every other entry once, with its kind, its size
 /// and its SHA-256, in byte order of the paths; the drawings, each workshop list, the label files and the drawings for
 /// drilling are there, in their folders; the sample's Contents is as blessed.
@@ -252,19 +264,7 @@ fn without_personal_data_no_entry_names_the_personal_parties() {
 /// were laid, so their ways no longer hold (EW-LAY-011).
 #[test]
 fn a_release_package_with_an_open_error_is_refused_naming_it() {
-    let s = released(
-        |probe, records| {
-            let x1031 = probe.resolve_reference("tag:-X1031").expect("-X1031");
-            for r in records.iter_mut() {
-                if let Record::Placement(p) = r
-                    && p.device.as_uuid() == x1031
-                {
-                    p.pose.t[0] = ew_units::Nm(p.pose.t[0].0 + 10_000_000);
-                }
-            }
-        },
-        false,
-    );
+    let s = released(move_x1031, false);
     let plan = s.package_plan(&ask());
     assert!(plan.refused());
     match s.package_job(&ask()) {
@@ -319,10 +319,14 @@ fn a_cable_marker_of_ones_own_prints_the_cable_markers() {
 }
 
 /// A project in Dutch names its package's folders and files in Dutch: `Inhoud.txt`, `Lijsten/` and each list by its
-/// kind's Dutch name, as Report block… names it.
+/// kind's Dutch name, as Report block… names it; its Contents says what stood in Dutch, the severity too (a draft whose
+/// -X1031 moved after its wires were laid: EW-LAY-011, an error, "fout").
 #[test]
 fn a_dutch_project_names_its_files_in_dutch() {
-    let mut s = common::sample();
+    let probe = common::sample();
+    let (project, mut records, lib) = common::sample_records();
+    move_x1031(&probe, &mut records);
+    let mut s = common::session_of(project, records, lib);
     common::run_cmd(
         &mut s,
         "project.settings.set",
@@ -336,6 +340,8 @@ fn a_dutch_project_names_its_files_in_dutch() {
         names.iter().any(|n| n.starts_with("Boortekeningen/")),
         "{names:?}"
     );
+    let contents = String::from_utf8(entry(&entries, |n| n == "Inhoud.txt").data.clone()).expect("UTF-8");
+    assert!(contents.contains("  EW-LAY-011 fout: "), "{contents}");
 }
 
 /// Without personal data on a released revision changes nothing but the parties left out (doc 13-package §8.7): the

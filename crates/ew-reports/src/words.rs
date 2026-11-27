@@ -19,6 +19,16 @@ pub fn text(t: &Text, lang: Option<&LangTag>) -> String {
     crate::catalogue().text_for(t, lang)
 }
 
+/// A finding's severity in words ("error", Dutch "fout"): the open-items list's Severity cell and the lines of the
+/// package's Contents.txt (render it with [`text`]).
+pub fn severity(s: ew_checks::Severity) -> Text {
+    match s {
+        ew_checks::Severity::Info => text!("cell-severity-info"),
+        ew_checks::Severity::Warning => text!("cell-severity-warning"),
+        ew_checks::Severity::Error => text!("cell-severity-error"),
+    }
+}
+
 /// The name of the list kind `kind` (its word, `terminal_diagram`) by its key `report-kind-<kind>`, and with `-words`
 /// the words it is also searched for by ("cable list" for the cable overview); `None` for a kind without them.
 fn kind_text(kind: &str, words: bool) -> Option<Text> {
