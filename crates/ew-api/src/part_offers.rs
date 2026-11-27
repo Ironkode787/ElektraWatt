@@ -273,12 +273,13 @@ fn held_rank(text: &str, part: &Part, manufacturer: &str, purpose: bool) -> Opti
         .filter_map(|l| part.description.get(l).map(str::to_owned))
         .chain(part.description.as_neutral().map(str::to_owned))
         .collect();
-    // The GTIN finds a held part as the libraries' index finds a library part by it.
+    // The order number, the GTIN and a property of its own find a held part as the libraries' index finds a library
+    // part by them (one list: `Part::search_keywords`).
     let hay = format!(
         "{} {} {} {} {}",
         part.part_number.as_str(),
         part.type_designation.as_ref().map_or("", |t| t.as_str()),
-        part.gtin.as_ref().map_or("", |t| t.as_str()),
+        part.search_keywords().join(" "),
         manufacturer,
         descriptions.join(" ")
     )

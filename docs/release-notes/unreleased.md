@@ -707,3 +707,11 @@ change here.
 - format-variant: a part's function template entry may name its symbol (`function_template[].symbol`, a library
   reference); a project or library without it reads as before
 - text-change: Dutch: the drawing's pin tool reads Aansluiting, as a part's pins are aansluitingen
+- behaviour-change: the pieces table names what a piece is as the starter's symbol of its function names it ("Check
+  valve", "Solenoid of a valve, internal coil"), never the function's category entries ("Standard check", "A1A2
+  coil"); the sheet's group of pins and clamps reads Connection points (Aansluitpunten), no longer the wires' word
+- behaviour-change: Parts finds a part of the project by its order number and by a property of its own, as the
+  libraries' search finds a library part (one list of a part's search words)
+- behaviour-change: the contents list of a part's sheet offers the groups a part of its kind may have and does not
+  show (+ Network ports, + PLC for a device made without them); one added shows, empty
+- api-add: `parts.row` takes `group` (`ports`, `plc`), a group the contents list offers

@@ -399,6 +399,32 @@ fn to_the_part_returns_to_the_sheet_and_keeps_the_drawing_in_hand() {
     assert!(kept.device_box().is_none() && kept.in_hand());
 }
 
+/// With no project open (Parts from the start page) a box of his own is arranged as the sheet is, and saved into My
+/// parts with its layout.
+#[test]
+fn a_box_is_arranged_with_no_project_open() {
+    let tmp = Tmp::new("device-box-alone");
+    let mine = ew_api::library::LibraryTiers::under(&tmp.0.join("data"), &tmp.0.join("cache"), vec![], vec![]);
+    let mut s = ShellModel::new(
+        ew_viewmodel::shell::Mode::Headless,
+        tmp.config().with_libraries(Some(mine)),
+    );
+    done(&mut s, "parts.open", json!({}));
+    assert!(s.parts_without_project());
+    new_box_part(&mut s, "PSU-ALONE", &["L", "N", "+", "-"]);
+    done(&mut s, "parts.draw", json!({"what": "box"}));
+    done(&mut s, "part.pin", json!({"pin": 0, "side": "left", "at": 4}));
+    done(&mut s, "parts.save", json!({}));
+    done(&mut s, "parts.save", json!({}));
+    let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the part");
+    assert!(!open.changed, "saved");
+    let layout = open.sheet.box_.as_ref().expect("its layout");
+    assert!(
+        layout.pins.iter().any(|p| p.idx == 0 && side_word(&p.side) == "left"),
+        "{layout:?}"
+    );
+}
+
 /// A PLC card's pins come from its channels: the box shows, and a change of its pins is refused with the sentence
 /// that says where they come from.
 #[test]

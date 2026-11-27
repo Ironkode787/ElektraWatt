@@ -256,10 +256,10 @@ impl PartSheet {
     /// The groups the sheet and its contents list, in the sheet's order: Identity and Technical data always; a group of
     /// declared rows or tables where a field of it holds for a part of the draft's kind; the pins where the kind has
     /// them; the cable's form for a cable; the network ports and the PLC section where the start asked for them
-    /// (doc 07 §5.5) or where they hold a value.
+    /// (doc 07 §5.5), where they hold a value, or where the person added them ([`PartSheet::groups_to_add`]).
     pub fn sections(&self) -> Vec<Group> {
         let part = self.of_kind();
-        let asks = |g: Group| self.start.is_some_and(|start| start.asks.contains(&g));
+        let asks = |g: Group| self.start.is_some_and(|start| start.asks.contains(&g)) || self.added.contains(&g);
         let mut out: Vec<Group> = ew_derive::part_fields::fields_of(&part)
             .into_iter()
             .filter(|f| match f.group {
@@ -282,6 +282,22 @@ impl PartSheet {
         out.sort();
         out.dedup();
         out
+    }
+
+    /// The groups a part of the draft's kind may have that the sheet does not show yet, which its contents list offers
+    /// to add: network ports and a PLC section, which a device shows only where it has them.
+    pub fn groups_to_add(&self) -> Vec<Group> {
+        let part = self.of_kind();
+        let shown = self.sections();
+        [Group::Ports, Group::Plc]
+            .into_iter()
+            .filter(|g| !shown.contains(g))
+            .filter(|g| {
+                ew_derive::part_fields::fields_of(&part)
+                    .iter()
+                    .any(|f| f.group == *g)
+            })
+            .collect()
     }
 
     /// The part as opened, of the kind its Kind field says now: what the declaration's [`ew_derive::part_fields::Has`]

@@ -137,6 +137,7 @@ impl Session {
             box_: None,
             outputs: Vec::new(),
             box_part: false,
+            added: Vec::new(),
             new: true,
             bus: Vec::<BusRow>::new(),
             to_library: true,

@@ -44,20 +44,35 @@ pub struct LevelRow {
 pub struct PieceKind {
     /// The starter function's key.
     pub key: &'static str,
-    /// Its words without pins (`Coil`, `NO contact`).
+    /// Its words without pins (`Check valve`, `Coil`).
     pub words: Text,
 }
 
 /// The most levels a terminal is made with here.
 pub const MOST_LEVELS: usize = 3;
 
-/// What a piece of a part can be: every starter function a piece is drawn with, in the starter's order, each by the
-/// word its function has without pins ("Coil", "NO contact"): a word in the table never carries another piece's pins.
-/// Where the starter draws two pieces with one function (a main and an auxiliary contact), that function's one word.
+/// What a piece of a part can be: every starter function a piece is drawn with, in the starter's order, each by what a
+/// person calls it: the name of the starter symbol that draws the function, in each language ("Check valve",
+/// "Terugslagklep"), else the word its function has without pins ("Coil"). A word in the table never carries another
+/// piece's pins. Where the starter draws two pieces with one function (a main and an auxiliary contact), that
+/// function's one word: their pins tell them apart.
 pub fn piece_kinds() -> Vec<PieceKind> {
     use ew_l10n::TextArg;
     crate::output::starter_piece_fndefs()
         .filter_map(|(key, c)| {
+            // In the window's languages, each as the symbol's name reads in it.
+            if let Some(name) = crate::output::starter_function_name(c.id) {
+                let named: Vec<(ew_mltext::LangTag, String)> = (crate::catalogue().tags().into_iter())
+                    .filter_map(|tag| {
+                        let lang: ew_mltext::LangTag = tag.parse().ok()?;
+                        let base: ew_mltext::LangTag = tag.split('-').next()?.parse().ok()?;
+                        let text = name.text_for(&lang).or_else(|| name.text_for(&base))?.to_owned();
+                        Some((lang, text))
+                    })
+                    .collect();
+                let words = Text::bare(TextArg::Ml(ew_mltext::MlText::from_langs(named)));
+                return Some(PieceKind { key, words });
+            }
             let cps: Vec<String> = c
                 .item
                 .cps

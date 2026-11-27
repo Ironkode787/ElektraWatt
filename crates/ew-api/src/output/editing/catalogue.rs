@@ -1311,6 +1311,15 @@ pub fn starter_piece_symbol(key: &str) -> Option<String> {
     })
 }
 
+/// The name of the first starter symbol that draws starter FnDef `def`, on a page of any kind, in each language it
+/// has: what a person calls the function (a piece's words, doc 07 §5.4).
+pub(crate) fn starter_function_name(def: Id<FnDef>) -> Option<ew_mltext::MlText> {
+    starter_docs().iter().find_map(|(_, _, d)| match d {
+        LibDocument::Symbol(c) if fndef_copy(&c.item.fndef) == def => Some(c.item.name.clone()),
+        _ => None,
+    })
+}
+
 /// The name of the starter symbol that draws starter FnDef `def` on a schematic page, in the language `lang`.
 pub(crate) fn starter_symbol_name(def: Id<FnDef>, lang: &str) -> Option<String> {
     starter_docs().iter().find_map(|(_, _, d)| match d {

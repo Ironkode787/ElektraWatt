@@ -935,7 +935,23 @@ impl ShellModel {
 
     /// `parts.row {table, remove?}`: adds a row to the open sheet's table `table` (`accessories`, `variants`,
     /// `mech.holes`, `sections.enclosure.doors`, …, `bus` the network ports), or removes row `remove` (1-based).
+    /// `parts.row {group}` adds a group of the contents list's offer (`ports`, `plc`: `PartSheet::groups_to_add`),
+    /// which the sheet then shows empty.
     pub(crate) fn act_parts_row(&mut self, p: &Map<String, Value>) -> Outcome {
+        if let Some(name) = or_return!(string_param(p, "group")) {
+            let Some(open) = self.open_mut() else {
+                return Outcome::refused(key!("reason-no-part-open"));
+            };
+            if !open.editable() {
+                return Outcome::refused(key!("reason-part-not-yours"));
+            }
+            let Some(group) = ew_api::part_fields::Group::named(name).filter(|g| open.sheet.groups_to_add().contains(g))
+            else {
+                return failed(key!("error-bad-param"), &["group"]);
+            };
+            open.sheet.added.push(group);
+            return Outcome::Done;
+        }
         let table = match string_param(p, "table") {
             Ok(Some(t)) => t.to_owned(),
             Ok(None) => return failed(key!("error-missing-param"), &["table"]),

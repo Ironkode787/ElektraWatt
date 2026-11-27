@@ -326,15 +326,22 @@ fn a_part_of_a_library_that_is_not_installed_is_only_in_this_project() {
     assert!(sheet.own, "his to change");
 }
 
-/// What a piece is reads in the function's word without pins, in both languages: a piece of the schematic table has
-/// its own pins, so "Coil", never "Coil A1-A2" beside the pins 1 and 2 (doc 07 §5.4).
+/// What a piece is reads as a person calls it, in both languages: the name of the starter symbol that draws its
+/// function, without pins (a piece of the schematic table has its own pins, so never "Coil A1-A2" beside the pins 1
+/// and 2), never the category's own entries ("A1A2 coil", "Standard check"; doc 07 §5.4).
 #[test]
 fn a_piece_kind_reads_without_its_functions_pins() {
     let say = |t: &ew_l10n::Text, lang| ew_api::catalogue().text_or_english(t, lang);
     let kinds = ew_api::part_pieces::piece_kinds();
     for (key, en, nl) in [
-        ("ew.fn.coil", "Coil", "Spoel"),
-        ("ew.fn.contact-co", "Changeover contact", "Wisselcontact"),
+        ("ew.fn.coil", "Coil, rectangular", "Spoel, rechthoekig"),
+        ("ew.fn.contact-co", "Contact, changeover", "Wisselcontact"),
+        ("ew.fn.check-valve", "Check valve", "Terugslagklep"),
+        (
+            "ew.fn.valve-solenoid",
+            "Solenoid of a valve, internal coil",
+            "Magneetspoel van een ventiel, interne spoel",
+        ),
     ] {
         let kind = kinds.iter().find(|k| k.key == key).expect("a piece");
         assert_eq!(say(&kind.words, "en-GB"), en);

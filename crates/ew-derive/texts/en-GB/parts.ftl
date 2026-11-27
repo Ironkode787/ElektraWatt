@@ -10,7 +10,7 @@
 part-group-identity = Identity
 part-group-schematic = On the schematic
 part-group-cabinet = In the cabinet
-part-group-connections = Connections
+part-group-connections = Connection points
 part-group-enclosure = Enclosure
 part-group-plate = Mounting plate
 part-group-rail = Rail

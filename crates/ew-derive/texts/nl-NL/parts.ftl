@@ -8,7 +8,7 @@
 part-group-identity = Identiteit
 part-group-schematic = Op het schema
 part-group-cabinet = In de kast
-part-group-connections = Verbindingen
+part-group-connections = Aansluitpunten
 part-group-enclosure = Kast
 part-group-plate = Montageplaat
 part-group-rail = Rail

@@ -111,9 +111,9 @@ A circuit protector, a power supply, a drive: a device the program has no symbol
 the edges. The part says which pins it has and where they stand.
 
 1. Under **On the schematic**, **Pins** lists the part's pins, each with its name and the potential it carries. **Add
-   pin** adds one, the cross at a row's end removes it; each pin has its row under **Connections** for its clamp. A
-   PLC card's pins come from its channels and a part drawn with a symbol takes that symbol's connections: the group
-   lists them and says so.
+   pin** adds one, the cross at a row's end removes it; each pin has its row under **Connection points** for its
+   clamp. A PLC card's pins come from its channels and a part drawn with a symbol takes that symbol's connections: the
+   group lists them and says so.
 2. Choose **Arrange…**. The box opens as the drawing of Parts: drag each pin along its edge or onto another edge, drag
    the box's edges to size it, choose **Done**, then **Save** the part
    ([The box of a part](../reference/symbol-editor.md#the-box-of-a-part)).

@@ -105,7 +105,7 @@ scopes All, In this project and My symbols.
 part at a glance: whether it is saved; where it lives; which devices of the open project use it (a click lists them).
 
 **The groups** are those the part's kind has, in this order, and no other (§2.5 says which fields each kind has):
-Identity; On the schematic; In the cabinet; Connections; the kind's own (Enclosure, Mounting plate, Rail, Duct,
+Identity; On the schematic; In the cabinet; Connection points; the kind's own (Enclosure, Mounting plate, Rail, Duct,
 Cable, Wire, Ferrule, Marker, Gland, Valve, Tube, PLC, Network ports); Technical data; Goes with it; About. A cabinet
 has no pins and is asked for none; a wire has no size in the cabinet.
 
@@ -116,7 +116,7 @@ that is not plain ("The strip length the wire list prints"), and in the warning 
 empty (§5.7). A text that cannot be read is refused under the field as it is typed, in words that name what was
 typed and what is expected ("“six” is not a length: type millimetres, such as 6.2"); the field keeps the text.
 
-**A table** is a list member with a column per field (Connections, Doors, Holes, Comes with, Also sold as): a row is
+**A table** is a list member with a column per field (Connection points, Doors, Holes, Comes with, Also sold as): a row is
 added by the link under the table and removed by its row's button; a cell is a field. Rows that hold the same values
 stand as one row naming their pins ("1, 3, 5"), which opens to change one of them.
 
@@ -141,7 +141,7 @@ contact data are in the record:
 **In the cabinet** holds the size, how it mounts, what is kept free round it and in front of it, its front (a
 rectangle, or round where the width equals the height, or an outline brought from a drawing, shown as "an outline
 of 4 lines" with Import outline… and Remove) and its holes (X and Y from the front's bottom-left corner, Kind and
-Size as two cells over one hole; a hole off the front is refused in words). **Connections** holds, per pin, the kind
+Size as two cells over one hole; a hole off the front is refused in words). **Connection points** holds, per pin, the kind
 of clamp, the cross-sections it takes, how many wires, whether a twin ferrule, and where a wire reaches it.
 **Technical data** holds the values the program computes with as fields of the part's kind, by their names (§2.5),
 and any other value as a free row of a name and a value. **Goes with it** holds what the part brings (Comes with)
@@ -321,7 +321,7 @@ My parts since this project took it. See changes…"); nothing changes in the pr
   saved until **Save n to My parts**.
 - **Several parts selected** in the list show the fields they share on one sheet: a value they all have, or "mixed".
   A value typed goes to all of them; Save saves them together, with one card for the devices of the open project.
-  The Connections table is shared too where the selected parts have the same pins; the other tables, the forms and
+  The Connection points table is shared too where the selected parts have the same pins; the other tables, the forms and
   the drawings are a single part's.
 - **A spreadsheet for a family.** Export as a table… writes the selected parts with the declared columns (CSV or
   Excel). Fifty terminals of one family are made there by copying rows; the import reads them back, new rows as new

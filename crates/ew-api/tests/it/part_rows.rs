@@ -612,6 +612,37 @@ fn a_member_that_is_no_field_is_shown_and_kept_when_the_part_is_saved() {
     );
 }
 
+/// Parts' list finds a part of the project by its order number and by a property of its own, as the libraries' search
+/// finds a library part by them (one list of a part's search words).
+#[test]
+fn a_held_part_is_found_by_its_order_number_and_a_property_of_its_own() {
+    let mut s = common::colleague_sample();
+    let copy = copy_of(&s, "EW-GEN-TRM-1");
+    let mut item = serde_json::to_value(
+        &s.query()
+            .parts()
+            .get(ew_ids::Id::from_uuid(copy))
+            .expect("held")
+            .item,
+    )
+    .unwrap();
+    item["order_number"] = json!("ORD-778899");
+    item["free_props"] = json!([{"key": "housing", "value": "grey-hx17"}]);
+    let edit = AnyCommand {
+        name: "part.edit_copy".into(),
+        params: json!({"copy": copy.to_string(), "part": item, "fork": s.next_fork_item(copy).to_string()}),
+    };
+    run(&mut s, &edit).expect("the part takes its order number and its property");
+    let found = |s: &Session, text: &str| -> Vec<String> {
+        s.parts_find(text, ew_api::parts::PartScope::Project, None, false, None, 50)
+            .into_iter()
+            .map(|f| f.offer.part_number)
+            .collect()
+    };
+    assert_eq!(found(&s, "ORD-778899"), ["EW-GEN-TRM-1"], "by its order number");
+    assert_eq!(found(&s, "grey-hx17"), ["EW-GEN-TRM-1"], "by its own property");
+}
+
 /// Viewing shows the whole part (doc 07 §5.1): a starter PLC card, which is not the person's own, lists its PLC group
 /// with its channels; a starter device without a PLC section does not.
 #[test]

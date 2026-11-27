@@ -104,6 +104,9 @@ pub struct PartSheet {
     pub outputs: Vec<u16>,
     /// Whether a device of the part is drawn as a box: its main function is a black box.
     pub box_part: bool,
+    /// The groups the person added from the contents list (doc 07 §5.4), which the sheet shows while they are still
+    /// empty: network ports or a PLC section for a device made without them.
+    pub added: Vec<ew_derive::part_fields::Group>,
     /// Whether the draft is a new part (`parts.new`): its bus section is edited here, and Save creates the part.
     pub new: bool,
     /// Whether the part is the person's own (a project-local copy, or a copy of My parts): its bus and PLC sections
@@ -790,6 +793,7 @@ impl Session {
                 .as_ref()
                 .map(|d| d.cps.iter().filter(|c| c.source_output).map(|c| c.idx).collect())
                 .unwrap_or_default(),
+            added: Vec::new(),
             box_part: main_def
                 .as_ref()
                 .is_some_and(|d| d.contact_kind == ew_schema::ContactKind::BlackBox),

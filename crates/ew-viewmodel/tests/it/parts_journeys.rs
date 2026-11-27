@@ -568,6 +568,41 @@ fn back_with_changes_not_saved_asks_save_discard_or_stay() {
     saved(&mut s, "SW-6");
 }
 
+/// A device made without network ports or a PLC section is given them later: the contents list offers the groups a
+/// part of its kind may have and does not show; one added shows, empty, and is offered no more.
+#[test]
+fn a_device_made_without_ports_is_given_them_from_the_contents() {
+    use ew_viewmodel::ew_api::part_fields::Group;
+    let tmp = Tmp::new("journey-add-group");
+    let mut s = project(&tmp);
+    done(&mut s, "parts.new", json!({"start": "device"}));
+    let sheet = |s: &ShellModel| {
+        s.parts_place()
+            .and_then(|p| p.sheet.as_ref())
+            .expect("the sheet")
+            .sheet
+            .clone()
+    };
+    let first = sheet(&s);
+    assert!(!first.sections().contains(&Group::Ports));
+    assert!(
+        first.groups_to_add().contains(&Group::Ports),
+        "{:?}",
+        first.groups_to_add()
+    );
+    done(&mut s, "parts.row", json!({"group": "ports"}));
+    let then = sheet(&s);
+    assert!(then.sections().contains(&Group::Ports), "the group shows");
+    assert!(!then.groups_to_add().contains(&Group::Ports), "and is offered no more");
+    assert!(
+        matches!(
+            s.dispatch("parts.row", &json!({"group": "ports"})),
+            ew_viewmodel::shell::Outcome::Failed { .. }
+        ),
+        "a group shown is not added twice"
+    );
+}
+
 /// Parts from the start page, no project open (doc 07 §5.8): the place works on the libraries alone, a new part is
 /// saved into My parts only and nothing offers to keep a part in a project; a project opened later finds it in My
 /// parts.

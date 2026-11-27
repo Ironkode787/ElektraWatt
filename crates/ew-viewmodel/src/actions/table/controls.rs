@@ -951,7 +951,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         )),
     ),
     with_params(
-        "table:text, remove?:uint",
+        "table?:text, remove?:uint, group?:text",
         hidden(act(
             "parts.row",
             View,

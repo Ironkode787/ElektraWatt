@@ -332,6 +332,21 @@ impl PlaceView {
                                 self.scroll_to = Some(*g);
                             }
                         }
+                        // The groups a part of its kind may have and does not show yet (network ports, a PLC section).
+                        if open.editable() {
+                            for g in open.sheet.groups_to_add() {
+                                let name = strings::text(strings::Key::run_time(g.word()));
+                                let words = strings::format(key!("parts-add-group"), &[name]);
+                                if ui
+                                    .add(egui::Button::new(
+                                        RichText::new(words).color(t.text_secondary.color32()),
+                                    ).frame(false))
+                                    .clicked()
+                                {
+                                    events.push(Event::Action("parts.row", json!({ "group": g.name() })));
+                                }
+                            }
+                        }
                     },
                 );
                 ui.add_space(t.space_4);
