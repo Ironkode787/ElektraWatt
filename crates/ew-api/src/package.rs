@@ -340,11 +340,18 @@ fn without_length(q: &Q) -> Vec<NoLength> {
         })
     };
     let mut out: Vec<NoLength> = Vec::new();
-    let site = records.iter().filter(|r| r.length == WireLength::Missing && r.flags.field).collect();
+    let site = records
+        .iter()
+        .filter(|r| r.length == WireLength::Missing && r.flags.field)
+        .collect();
     out.extend(group(NoLengthWhy::Site, None, site));
     let spaces: Vec<_> = q.table::<ew_schema::LayoutSpace>().ids().collect();
     if spaces.is_empty() {
-        out.extend(group(NoLengthWhy::NoLayout, None, records.iter().filter(missing).collect()));
+        out.extend(group(
+            NoLengthWhy::NoLayout,
+            None,
+            records.iter().filter(missing).collect(),
+        ));
     } else {
         let mut laid_by_route = std::collections::BTreeSet::new();
         for space in spaces {
@@ -355,7 +362,11 @@ fn without_length(q: &Q) -> Vec<NoLength> {
                 .collect();
             laid_by_route.extend(wires.iter().copied());
             let of_cabinet = records.iter().filter(|r| wires.contains(&r.wire.id)).collect();
-            out.extend(group(NoLengthWhy::NotLaid, Some(cabinet_name(q, space)), of_cabinet));
+            out.extend(group(
+                NoLengthWhy::NotLaid,
+                Some(cabinet_name(q, space)),
+                of_cabinet,
+            ));
         }
         let rest = records
             .iter()
@@ -364,7 +375,10 @@ fn without_length(q: &Q) -> Vec<NoLength> {
             .collect();
         out.extend(group(NoLengthWhy::NotLaid, None, rest));
     }
-    let stale = records.iter().filter(|r| matches!(r.length, WireLength::Stale { .. })).collect();
+    let stale = records
+        .iter()
+        .filter(|r| matches!(r.length, WireLength::Stale { .. }))
+        .collect();
     out.extend(group(NoLengthWhy::Stale, None, stale));
     out
 }
@@ -706,7 +720,7 @@ impl PackageJob {
                 path: format!("{folder}/{}.xlsx", file_words(&name)),
                 kind: m.member.key(),
                 bytes,
-                about: sentence(&m.holds.as_ref().map_or_else(|| m.member.words(&tag), &words)),
+                about: sentence(&m.holds.as_ref().map_or_else(|| m.member.words(&tag), words)),
             });
         }
         // The label files, in the form of the label file's profile.
@@ -828,7 +842,7 @@ fn leave_out(value: &mut serde_json::Value, path: &[&str]) -> bool {
         (Some(array), _) => o
             .get_mut(array)
             .and_then(serde_json::Value::as_array_mut)
-            .map_or(false, |items| {
+            .is_some_and(|items| {
                 items
                     .iter_mut()
                     .filter(|e| e.get("personal_data").and_then(serde_json::Value::as_bool) == Some(true))

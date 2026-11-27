@@ -90,7 +90,9 @@ fn the_dialog_lists_a_stale_way_first_and_its_fix_opens_route() {
     assert!(d.draft);
     // The field wires without a length, which no finding names, in a line with their count.
     assert!(
-        d.lengths.iter().any(|l| l.ends_with("wires have no length: one end of each is made on site.")),
+        d.lengths
+            .iter()
+            .any(|l| l.ends_with("wires have no length: one end of each is made on site.")),
         "{:?}",
         d.lengths
     );
@@ -161,7 +163,11 @@ fn a_finding_about_his_own_part_offers_edit_part_at_the_field() {
         .and_then(|p| p.sheet.as_ref())
         .expect("Parts on his lamp");
     assert_eq!(open.sheet.text("part_number"), "PL-22-GN");
-    assert!(open.field.is_some_and(|f| f.starts_with("mech.holes[].")), "{:?}", open.field);
+    assert!(
+        open.field.is_some_and(|f| f.starts_with("mech.holes[].")),
+        "{:?}",
+        open.field
+    );
     s.shutdown();
 }
 
@@ -179,7 +185,10 @@ fn a_missing_marker_part_offers_the_workshop_stock() {
         .find(|l| l.starts_with("lacks "))
         .map(str::to_owned)
         .expect("a lack");
-    assert!(lacks.contains("Cable markers") && lacks.ends_with("offers workshop.edit_stock"), "{lacks}");
+    assert!(
+        lacks.contains("Cable markers") && lacks.ends_with("offers workshop.edit_stock"),
+        "{lacks}"
+    );
     done(&mut s, "workshop.edit_stock", json!({}));
     assert!(matches!(s.dialog(), Some(Dialog::WorkshopStock(_))));
     s.shutdown();

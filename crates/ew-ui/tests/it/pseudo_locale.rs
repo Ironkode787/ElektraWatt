@@ -278,7 +278,12 @@ fn what_a_member_holds_stands_on_one_line_in_every_language() {
             Some(ew_viewmodel::shell::Dialog::Package(d)) => d
                 .rows
                 .iter()
-                .map(|r| (r.holds.clone(), r.member == ew_viewmodel::ew_api::PackageMember::Labels))
+                .map(|r| {
+                    (
+                        r.holds.clone(),
+                        r.member == ew_viewmodel::ew_api::PackageMember::Labels,
+                    )
+                })
                 .collect(),
             other => panic!("no Package… dialog: {other:?}"),
         };
@@ -297,9 +302,13 @@ fn what_a_member_holds_stands_on_one_line_in_every_language() {
                 .map(|b| b.height())
                 .unwrap_or_else(|| panic!("{tag}: no label {holds}"));
             let need = h.ctx.fonts_mut(|f| {
-                f.layout_no_wrap(holds.clone(), egui::FontId::proportional(14.0), egui::Color32::BLACK)
-                    .size()
-                    .x
+                f.layout_no_wrap(
+                    holds.clone(),
+                    egui::FontId::proportional(14.0),
+                    egui::Color32::BLACK,
+                )
+                .size()
+                .x
             });
             let width = h
                 .get_all_by_label(holds)

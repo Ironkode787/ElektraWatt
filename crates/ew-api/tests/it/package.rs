@@ -332,7 +332,10 @@ fn a_dutch_project_names_its_files_in_dutch() {
     let names: Vec<&str> = entries.iter().map(|e| e.name.as_str()).collect();
     assert!(names.contains(&"Inhoud.txt"), "{names:?}");
     assert!(names.contains(&"Lijsten/SAMPLE-E Draadlijst.xlsx"), "{names:?}");
-    assert!(names.iter().any(|n| n.starts_with("Boortekeningen/")), "{names:?}");
+    assert!(
+        names.iter().any(|n| n.starts_with("Boortekeningen/")),
+        "{names:?}"
+    );
 }
 
 /// Without personal data on a released revision changes nothing but the parties left out (doc 13-package §8.7): the
@@ -351,7 +354,11 @@ fn without_personal_data_a_release_stays_the_release() {
     for e in &left_out {
         if e.name.ends_with(".pdf") {
             for page in pdf_texts(&e.data) {
-                assert!(!page.contains("V2.0") && !page.contains("Draft"), "{}: {page}", e.name);
+                assert!(
+                    !page.contains("V2.0") && !page.contains("Draft"),
+                    "{}: {page}",
+                    e.name
+                );
             }
         }
     }
@@ -360,7 +367,10 @@ fn without_personal_data_a_release_stays_the_release() {
     assert_eq!(manifest["revision"]["state"], "released");
     assert_eq!(manifest["revision"]["label"], "V1.0");
     let contents = String::from_utf8(entry(&left_out, |n| n == "Contents.txt").data.clone()).expect("UTF-8");
-    assert!(contents.contains("revision V1.0, released on 2026-11-28"), "{contents}");
+    assert!(
+        contents.contains("revision V1.0, released on 2026-11-28"),
+        "{contents}"
+    );
     assert_eq!(kept.len(), left_out.len());
     for (a, b) in kept.iter().zip(&left_out) {
         assert_eq!(a.name, b.name);
@@ -394,7 +404,10 @@ fn a_project_without_a_layout_counts_its_wires_without_a_length() {
     let (_, entries) = package(&s, &ask());
     let contents = String::from_utf8(entry(&entries, |n| n == "Contents.txt").data.clone()).expect("UTF-8");
     assert!(
-        contents.contains(&format!("{} wires have no length: this project has no panel layout", none.count)),
+        contents.contains(&format!(
+            "{} wires have no length: this project has no panel layout",
+            none.count
+        )),
         "{contents}"
     );
 }
