@@ -337,9 +337,9 @@ pub(crate) fn treat(q: &Q, records: &mut [WireRecord]) {
 }
 
 /// The end of `wire` (0 its From end, 1 its To end) that its constituent `k` leads to through its endpoint `a` (`via_a`)
-/// or `b`: the end the connection lands on itself, else the end its neighbours on the wire's path lead to (the
-/// constituents run from the end the first of them lands on). What `end_a` and `end_b` of a connection mean: the wire's
-/// end reached through that endpoint, whichever way round the wire reads.
+/// or `b`: the end the connection lands on itself, else the end on the side the path enters it from ([`from_side`]).
+/// What `end_a` and `end_b` of a connection mean: the wire's end reached through that endpoint, whichever way round the
+/// wire reads.
 pub fn end_through(q: &Q, wire: &PhysicalWire, k: usize, via_a: bool) -> Option<usize> {
     let conns = q.connections();
     let at = |j: usize| -> Option<(Endpoint, Endpoint)> {
@@ -359,20 +359,62 @@ pub fn end_through(q: &Q, wire: &PhysicalWire, k: usize, via_a: bool) -> Option<
             return Some(1 - e);
         }
     }
-    let first = at(0)?;
-    let start = (0..2).find(|e| first.0 == cp(*e) || first.1 == cp(*e))?;
-    let touches = |j: Option<usize>, p: &Endpoint| j.and_then(at).is_some_and(|(x, y)| x == *p || y == *p);
-    let (before, after) = (
-        k.checked_sub(1),
-        (k + 1 < wire.constituents.len()).then_some(k + 1),
-    );
-    if touches(before, &near) || touches(after, &far) {
-        Some(start)
-    } else if touches(after, &near) || touches(before, &far) {
-        Some(1 - start)
-    } else {
-        None
+    // The end the constituents run from: the one the first lands on, else the one the last does not (an end beyond a
+    // pair of interruption points is landed on by no constituent; an end on a device always is).
+    let last = wire.constituents.len().checked_sub(1)?;
+    let lands = |j: usize, e: usize| at(j).is_some_and(|(x, y)| x == cp(e) || y == cp(e));
+    let start = (0..2)
+        .find(|e| lands(0, *e))
+        .or_else(|| (0..2).find(|e| lands(last, *e)).map(|e| 1 - e))?;
+    let a_first = from_side(&at, [cp(start), cp(1 - start)], &wire.ips, k)?;
+    Some(if a_first == via_a { start } else { 1 - start })
+}
+
+/// Whether a path from `ends[0]` to `ends[1]` through constituents `at(0)`, `at(1)` … (their endpoints), passing the
+/// interruption points `ips` in path order, enters its constituent `k` through its endpoint `a`, walked from `ends[0]`: a
+/// constituent is entered through the endpoint the one before it left by, else it leaves through the endpoint it shares
+/// with the next one, else (the last) through the one `ends[1]` is, else (between two pairs of interruption points)
+/// through the point the path passes later. The path need not start on an endpoint of its first constituent: a wire that
+/// ends open, or outside the project, at an interruption point whose partner it runs from starts at that point, across
+/// the pair. `None` where none of these tells.
+fn from_side(
+    at: &dyn Fn(usize) -> Option<(Endpoint, Endpoint)>,
+    ends: [Endpoint; 2],
+    ips: &[Id<ew_schema::Function>],
+    k: usize,
+) -> Option<bool> {
+    let passed = |p: &Endpoint| match p {
+        Endpoint::Cp(f, _) => ips.iter().position(|x| x == f),
+        _ => None,
+    };
+    let [first, end] = ends;
+    let mut came: Option<Endpoint> = Some(first);
+    let mut last = k;
+    while at(last + 1).is_some() {
+        last += 1;
     }
+    let mut side = None;
+    for j in 0..=k {
+        let (a, b) = at(j)?;
+        let next = (j < last).then(|| at(j + 1)).flatten();
+        let shares = |p: &Endpoint| next.as_ref().is_some_and(|(x, y)| x == p || y == p);
+        side = if came.as_ref() == Some(&a) {
+            Some(true)
+        } else if came.as_ref() == Some(&b) {
+            Some(false)
+        } else if next.is_some() && shares(&b) != shares(&a) {
+            Some(shares(&b))
+        } else if j == last && (a == end) != (b == end) {
+            Some(b == end)
+        } else {
+            match (passed(&a), passed(&b)) {
+                (Some(x), Some(y)) if x != y => Some(x < y),
+                _ => None,
+            }
+        };
+        came = side.map(|a_first| if a_first { b.clone() } else { a.clone() });
+    }
+    side
 }
 
 /// The pairing of doc 13 §4.3: on every CP two or more ferrule ends the rule decided land on, sorted by size (largest

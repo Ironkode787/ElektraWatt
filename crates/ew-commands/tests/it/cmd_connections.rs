@@ -1248,3 +1248,55 @@ fn a_junction_s_wiring_changed_keeps_each_wire_s_values() {
         Some((None, None, [None, Some("bare".into())]))
     );
 }
+
+/// A wire left open beyond an interruption point keeps its end set by hand at its clamp (doc 13 §2.3): -101F1:1 runs
+/// through the pair L-1 to a chain at -102F2:4 and -102F2:5; the wire on page 101 deleted, the wire to -102F2:4 starts
+/// open at the point, made of the arm from the pair's other point and the chain's arm, neither of which lands on
+/// -102F2:4 next to the point; it keeps its colour and the ring lug set by hand there, and loses its typed length.
+#[test]
+fn a_wire_left_open_beyond_an_interruption_point_keeps_its_end_at_its_clamp() {
+    let (p, mut records, _) = mini_project_parts();
+    let j: Id<Junction> = id(0x4300);
+    let arms: [Id<Connection>; 3] = [id(0x4301), id(0x4302), id(0x4303)];
+    records.retain(|r| !matches!(r, Record::Connection(c) if c.id == CON_W11B));
+    records.push(Record::Connection(connection(
+        arms[0],
+        Some(PAGE_102),
+        cp(FN_IP_102, 0),
+        Endpoint::Junction(j),
+    )));
+    records.push(Record::Connection(connection(
+        arms[1],
+        Some(PAGE_102),
+        Endpoint::Junction(j),
+        cp(FN_102F2, 4),
+    )));
+    records.push(Record::Connection(connection(
+        arms[2],
+        Some(PAGE_102),
+        Endpoint::Junction(j),
+        cp(FN_102F2, 5),
+    )));
+    let mut chain = junction(j, PAGE_102, arms.to_vec());
+    chain.style = JunctionStyle::Bevel(Default::default());
+    chain.wiring = Some(JunctionWiring::Chain);
+    records.push(Record::Junction(chain));
+    let model = Model::from_records(p, records, library()).expect("a wire through a pair to a chain");
+    let (feed, clamp) = (cp(FN_101F1, 1), cp(FN_102F2, 4));
+    let model = with_wire_values(
+        &model,
+        (&feed, &clamp),
+        400,
+        Some("BU"),
+        [Some("bare"), Some("ring_lug")],
+    );
+    let mut e = engine(model);
+    e.execute(&DeleteConnections {
+        connections: vec![CON_W11A],
+    })
+    .expect("the wire on page 101 deleted");
+    assert_eq!(
+        wire_seen(e.model(), &cp(FN_IP_101, 0), &clamp),
+        Some((None, colour("BU"), [None, Some("ring_lug".into())]))
+    );
+}
