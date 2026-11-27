@@ -271,7 +271,8 @@ impl PartSheet {
         t.origin = origin;
     }
 
-    /// The groups the sheet and its contents list, in the sheet's order: Identity and Technical data always; a group of
+    /// The groups the sheet and its contents list, in the sheet's order: Identity always, Technical data where it shows
+    /// a value ([`PartSheet::tech_rows`]: a ferrule's sheet, whose kind names none, has none); a group of
     /// declared rows or tables where a field of it holds for a part of the draft's kind; the pins where the kind has
     /// them; the cable's form for a cable; the network ports and the PLC section where the start asked for them
     /// (doc 07 §5.5), where they hold a value, or where the person added them ([`PartSheet::groups_to_add`]).
@@ -296,11 +297,32 @@ impl PartSheet {
                 },
             })
             .map(|f| f.group)
-            .chain([Group::Identity, Group::Technical])
+            .chain([Group::Identity])
+            .chain((!self.tech_rows().is_empty()).then_some(Group::Technical))
             .collect();
         out.sort();
         out.dedup();
         out
+    }
+
+    /// The technical values Technical data shows, as `(key, text)`: the named ones the draft's kind has (doc 07 §2.5,
+    /// decision 15: a field each, typed into where it is empty), in the declaration's order, then every other the draft
+    /// holds, in key order; a cable's outer diameter is its Cable group's. A part whose kind names none and that holds
+    /// none (a ferrule) has no such group.
+    pub fn tech_rows(&self) -> Vec<(String, String)> {
+        let part = self.of_kind();
+        let named: Vec<&str> = ew_derive::part_fields::PART_FIELDS
+            .iter()
+            .filter(|f| f.has.holds(&part))
+            .filter_map(|f| f.path.strip_prefix("tech_data."))
+            .collect();
+        let cable = self.text("kind") == "cable";
+        named
+            .iter()
+            .map(|k| ((*k).to_owned(), self.text(&format!("tech:{k}")).to_owned()))
+            .chain(self.tech.iter().filter(|(k, _)| !named.contains(&k.as_str())).cloned())
+            .filter(|(k, _)| !(cable && k == "outer_diameter"))
+            .collect()
     }
 
     /// The groups a part of the draft's kind may have that the sheet does not show yet, which its contents list offers

@@ -702,3 +702,25 @@ fn a_variant_row_without_its_name_is_refused_at_that_value() {
         other => panic!("{other:?}"),
     }
 }
+
+/// Technical data stands where it has a row: a ferrule's kind names no technical value and the sample's ferrule holds
+/// none, so its sheet has no such group; a terminal's sheet offers the named value its kind has (its colour) to type,
+/// whether it holds one or not.
+#[test]
+fn technical_data_stands_where_the_kind_names_a_value_or_the_part_holds_one() {
+    let s = common::sample();
+    let ferrule = s
+        .part_draft(copy_of(&s, "EW-GEN-FER-1.5"))
+        .expect("the ferrule's draft");
+    assert!(ferrule.tech_rows().is_empty(), "{:?}", ferrule.tech_rows());
+    assert!(!ferrule.sections().contains(&ew_api::part_fields::Group::Technical));
+    let terminal = s
+        .part_draft(copy_of(&s, "EW-GEN-TRM-1"))
+        .expect("the terminal's draft");
+    assert!(
+        terminal.tech_rows().iter().any(|(k, _)| k == "colour"),
+        "{:?}",
+        terminal.tech_rows()
+    );
+    assert!(terminal.sections().contains(&ew_api::part_fields::Group::Technical));
+}

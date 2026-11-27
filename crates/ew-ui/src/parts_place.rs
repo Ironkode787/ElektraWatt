@@ -1377,12 +1377,11 @@ fn tech_rows(ui: &mut Ui, e: &OpenSheet, events: &mut Vec<Event>) -> bool {
     use crate::parts_sheet::{Cell, grid};
     let d = &e.sheet;
     let editable = e.editable();
-    // A cable's outer diameter is a row of its cable section.
-    let cable = d.text("kind") == "cable";
-    let mut cells: Vec<Cell<'_>> = Vec::new();
-    for (k, v) in d.tech.iter().filter(|(k, _)| !(cable && k == "outer_diameter")) {
-        cells.push(tech_cell(d, k, (v, None), editable));
-    }
+    let rows = d.tech_rows();
+    let cells: Vec<Cell<'_>> = rows
+        .iter()
+        .map(|(k, v)| tech_cell(d, k, (v, None), editable))
+        .collect();
     grid(ui, cells, events)
 }
 

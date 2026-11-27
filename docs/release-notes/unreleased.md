@@ -824,3 +824,6 @@ change here.
 - behaviour-change: an older script's `file.import_eplan {how: update}` or `{how: library}` is refused in words that
   name the way into Parts (`parts.import`, Save, Update them…), not ignored; `parts.find`'s signature names the scope
   `stock`, read from the scopes' one list
+- behaviour-change: a part's Technical data offers the named values its kind has (a device's rated current, load
+  current, power and voltage, a terminal's colour) as fields to type into, also where the part holds none yet; a part
+  whose kind names none and that holds none (a ferrule) has no Technical data group
