@@ -291,7 +291,10 @@ fn a_single_glands_outline_stands_where_its_drop_snaps_to() {
         })
         .expect("the gland's outline");
     let near = |a: (i64, i64), b: (i64, i64)| (a.0 - b.0).abs() <= 2 && (a.1 - b.1).abs() <= 2;
-    assert!(near(centre, snapped), "the outline at {centre:?}, the drop's place {snapped:?}");
+    assert!(
+        near(centre, snapped),
+        "the outline at {centre:?}, the drop's place {snapped:?}"
+    );
     done(&mut s, "canvas.release", at(pointer, json!({})));
     let placed = s.panel_tables().expect("905's tables");
     assert!(

@@ -954,10 +954,14 @@ pub(super) fn layout_feature_add(live: &Live, rng: &mut SplitMix64) -> Option<St
     let cmd = |p: Value| Step::cmd("layout.feature.add", p);
     let (kind, size) = hole_kind_size(rng)?;
     match rng.below(8) {
-        0 => Some(cmd(json!({"surface": rng.uuid(), "at": hole_at(rng), "kind": kind, "size": size})).refuse()),
+        0 => {
+            Some(cmd(json!({"surface": rng.uuid(), "at": hole_at(rng), "kind": kind, "size": size})).refuse())
+        }
         1 => {
             let surface = rng.pick(&live.layout.surfaces)?;
-            Some(cmd(json!({"surface": surface, "at": [-LAY_MM, 0], "kind": kind, "size": size})))
+            Some(cmd(
+                json!({"surface": surface, "at": [-LAY_MM, 0], "kind": kind, "size": size}),
+            ))
         }
         _ => {
             let surface = rng.pick(&live.layout.surfaces)?;
@@ -1024,11 +1028,16 @@ pub(super) fn layout_glands_place(live: &Live, rng: &mut SplitMix64) -> Option<S
         0 => Some(cmd(json!({"surface": rng.uuid(), "at": hole_at(rng), "cables": [cable]})).refuse()),
         1 => {
             let surface = rng.pick(&live.layout.surfaces)?;
-            Some(cmd(json!({"surface": surface, "at": hole_at(rng), "cables": [cable]})))
+            Some(cmd(
+                json!({"surface": surface, "at": hole_at(rng), "cables": [cable]}),
+            ))
         }
         _ => {
             let surface = rng.pick(&live.layout.walls)?;
-            Some(cmd(json!({"surface": surface, "at": hole_at(rng), "cables": [cable]})).counts(&[(Table::Features, 1)]))
+            Some(
+                cmd(json!({"surface": surface, "at": hole_at(rng), "cables": [cable]}))
+                    .counts(&[(Table::Features, 1)]),
+            )
         }
     }
 }

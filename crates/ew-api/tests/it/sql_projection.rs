@@ -366,7 +366,10 @@ fn a_wires_length_and_its_source_are_the_wire_lists() {
             .unwrap();
         (set.rows[0][0].text(), set.rows[0][1].text())
     };
-    assert_eq!(row("number = '101.1'"), ("400000000".to_owned(), "typed".to_owned()));
+    assert_eq!(
+        row("number = '101.1'"),
+        ("400000000".to_owned(), "typed".to_owned())
+    );
     assert_eq!(row("number = '101.2'"), (length("101.2"), "routed".to_owned()));
     assert_eq!(row("cable_tag = '-101W1'").1, "cable");
     assert_eq!(row("number = '104.4'").1, "site");

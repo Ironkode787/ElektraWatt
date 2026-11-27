@@ -568,7 +568,11 @@ impl LayoutLive {
                 .map(|(id, _)| id_json(id))
                 .collect(),
             occupied,
-            features: q.table::<ew_schema::SurfaceFeature>().ids().map(id_json).collect(),
+            features: q
+                .table::<ew_schema::SurfaceFeature>()
+                .ids()
+                .map(id_json)
+                .collect(),
             gland_holes: q
                 .table::<ew_schema::SurfaceFeature>()
                 .iter()

@@ -53,7 +53,10 @@ fn nut_pitch(a: Nm, b: Nm, web: Nm) -> Nm {
 /// made for the hole's thread (its cable's gland, then the workshop stock's), else 1.4 × the thread. The hole is a
 /// fact, so a cable whose gland changed since still has the gland of its hole in it. `None` for a hole that is no
 /// gland's.
-pub fn hole_nut<'g>(hole: &ew_schema::Hole, mut glands: impl Iterator<Item = &'g GlandSection>) -> Option<Nm> {
+pub fn hole_nut<'g>(
+    hole: &ew_schema::Hole,
+    mut glands: impl Iterator<Item = &'g GlandSection>,
+) -> Option<Nm> {
     let ew_schema::Hole::Gland(thread) = hole else {
         return None;
     };

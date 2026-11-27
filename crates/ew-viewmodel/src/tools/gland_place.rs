@@ -29,7 +29,11 @@ pub struct GlandPlaceTool {
 
 impl GlandPlaceTool {
     /// The tool armed with the glands of `cables` laid as `row`, a single gland snapping by `snap`.
-    pub fn new(cables: String, row: Vec<(i128, i128)>, snap: Option<ew_api::output::GlandSnap>) -> GlandPlaceTool {
+    pub fn new(
+        cables: String,
+        row: Vec<(i128, i128)>,
+        snap: Option<ew_api::output::GlandSnap>,
+    ) -> GlandPlaceTool {
         GlandPlaceTool {
             cables,
             row,

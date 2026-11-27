@@ -427,6 +427,9 @@ fn a_direct_commit_says_its_commands_notices() {
         json!({"row": "device/parts", "value": "EW-GEN-DO-1"}),
     );
     let toast = common::toast(&s);
-    assert!(toast.starts_with("Attached to -") && toast.contains(" as module "), "{toast}");
+    assert!(
+        toast.starts_with("Attached to -") && toast.contains(" as module "),
+        "{toast}"
+    );
     s.shutdown();
 }

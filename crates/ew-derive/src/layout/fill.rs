@@ -269,7 +269,14 @@ mod tests {
     /// reads 60 % and is not, 7.57 % (the sample's duct) reads 8 %.
     #[test]
     fn a_fill_over_its_limit_never_reads_as_the_limit() {
-        for (area, inner) in [(604, 1000), (600, 1000), (601, 1000), (1545, 20400), (0, 1000), (5, 0)] {
+        for (area, inner) in [
+            (604, 1000),
+            (600, 1000),
+            (601, 1000),
+            (1545, 20400),
+            (0, 1000),
+            (5, 0),
+        ] {
             let f = filled(area, inner);
             assert_eq!(f.percent() > i128::from(f.limit), f.over(), "{area} of {inner}");
         }
