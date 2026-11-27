@@ -334,3 +334,38 @@ fn a_dutch_project_names_its_files_in_dutch() {
     assert!(names.contains(&"Lijsten/SAMPLE-E Draadlijst.xlsx"), "{names:?}");
     assert!(names.iter().any(|n| n.starts_with("Boortekeningen/")), "{names:?}");
 }
+
+/// Without personal data on a released revision changes nothing but the parties left out (doc 13-package §8.7): the
+/// copy is no edit of the project, so no revision opens in it. Every page and every drawing for drilling read the
+/// released V1.0 and none a draft or a V2.0; the manifest and Contents say V1.0 released; and every member is the same
+/// bytes as the package with personal data (the sample prints no personal party), the manifest aside.
+#[test]
+fn without_personal_data_a_release_stays_the_release() {
+    let s = released(|_, _| {}, false);
+    let kept = package(&s, &ask()).1;
+    let omit = PackageAsk {
+        omit_personal: true,
+        ..ask()
+    };
+    let (_, left_out) = package(&s, &omit);
+    for e in &left_out {
+        if e.name.ends_with(".pdf") {
+            for page in pdf_texts(&e.data) {
+                assert!(!page.contains("V2.0") && !page.contains("Draft"), "{}: {page}", e.name);
+            }
+        }
+    }
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&entry(&left_out, |n| n == "manifest.json").data).expect("JSON");
+    assert_eq!(manifest["revision"]["state"], "released");
+    assert_eq!(manifest["revision"]["label"], "V1.0");
+    let contents = String::from_utf8(entry(&left_out, |n| n == "Contents.txt").data.clone()).expect("UTF-8");
+    assert!(contents.contains("revision V1.0, released on 2026-11-28"), "{contents}");
+    assert_eq!(kept.len(), left_out.len());
+    for (a, b) in kept.iter().zip(&left_out) {
+        assert_eq!(a.name, b.name);
+        if a.name != "manifest.json" {
+            assert!(a.data == b.data, "{} differs", a.name);
+        }
+    }
+}

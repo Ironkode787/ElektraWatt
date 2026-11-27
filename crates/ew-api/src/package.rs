@@ -575,10 +575,14 @@ impl PackageJob {
     ///
     /// [`PackageError::Member`] when an export fails; [`PackageError::Cancelled`] at a checkpoint after a cancel.
     pub fn run(self, ctl: Option<&ew_jobs::JobCtl>) -> Result<Package, PackageError> {
-        let mut s = Session::new(self.model, crate::SessionOptions::default());
-        if self.ask.omit_personal {
-            leave_out_personal(&mut s)?;
-        }
+        // The snapshot's revision, which a workbook's metadata names whatever the copy below is.
+        let rev = self.model.rev().0;
+        let model = if self.ask.omit_personal {
+            without_personal(self.model)?
+        } else {
+            self.model
+        };
+        let s = Session::new(model, crate::SessionOptions::default());
         let checkpoint = |what: &'static str| -> Result<(), PackageError> {
             match ctl {
                 Some(ctl) => ctl.checkpoint(what).map_err(|_| PackageError::Cancelled),
@@ -622,7 +626,8 @@ impl PackageJob {
             });
         }
         // The workshop lists, each as `ew export report --kind <kind> --format xlsx` writes it.
-        let meta = s.workbook_meta(Some(plan.date));
+        let mut meta = s.workbook_meta(Some(plan.date));
+        meta.rev = rev;
         for m in &plan.members {
             let PackageMember::List(kind) = m.member else {
                 continue;
@@ -725,40 +730,59 @@ impl PackageJob {
     }
 }
 
-/// Empties the name and the address of each party of `s`'s project marked as personal data, in one `fields.set`.
-fn leave_out_personal(s: &mut Session) -> Result<(), PackageError> {
-    let q = s.query();
-    let project = q.project().id;
-    let mut parties =
-        serde_json::to_value(&q.project().parties).map_err(|e| PackageError::Member(e.to_string()))?;
-    drop(q);
-    let Some(list) = parties.as_array_mut() else {
-        return Ok(());
-    };
+/// The model `m` with the personal data of each party marked as personal data left out (doc 13-package §8.7): every
+/// member of the project's record that [`ew_schema::PERSONAL_DATA_FIELDS`] names, removed where the array element on
+/// its path is marked (`personal_data`). It is no edit of the project: the project's row is replaced in the copy alone,
+/// with no command, so no normaliser runs (no revision opens, no date is stamped) and nothing is saved.
+///
+/// # Errors
+///
+/// [`PackageError::Member`] when the record without them does not read back or the model refuses the row.
+fn without_personal(m: ew_model::Model) -> Result<ew_model::Model, PackageError> {
+    let failed = |e: &dyn std::fmt::Display| PackageError::Member(e.to_string());
+    let before = std::sync::Arc::clone(Q::new(&m).project());
+    let mut value = serde_json::to_value(&*before).map_err(|e| failed(&e))?;
     let mut changed = false;
-    for p in list.iter_mut() {
-        if p.get("personal_data").and_then(serde_json::Value::as_bool) == Some(true)
-            && let Some(o) = p.as_object_mut()
-        {
-            o.insert("name".to_owned(), serde_json::Value::String(String::new()));
-            o.remove("address");
-            changed = true;
+    for (kind, path) in ew_schema::PERSONAL_DATA_FIELDS {
+        if *kind == ew_schema::Kind::Project {
+            changed |= leave_out(&mut value, &path.split('.').collect::<Vec<_>>());
         }
     }
     if !changed {
-        return Ok(());
+        return Ok(m);
     }
-    let cmd = crate::AnyCommand {
-        name: "fields.set".to_owned(),
-        params: serde_json::json!({
-            "kind": "project", "targets": [project.to_string()], "path": "parties", "value": parties,
-        }),
+    let after: ew_schema::Project = serde_json::from_value(value).map_err(|e| failed(&e))?;
+    let op = ew_model::Op::update(
+        ew_model::AnyRow::Project(before),
+        ew_model::AnyRow::Project(std::sync::Arc::new(after)),
+    );
+    let rev = ew_model::Rev(m.rev().0 + 1);
+    m.apply_with(&[op], rev, &ew_model::ApplyOptions::default())
+        .map_err(|e| failed(&e))
+}
+
+/// Removes the member at `path` (`parties[]`, `name`) of `value`, walking into the elements of an array (`a[]`) that are
+/// marked as personal data; whether it removed one.
+fn leave_out(value: &mut serde_json::Value, path: &[&str]) -> bool {
+    let Some((first, rest)) = path.split_first() else {
+        return false;
     };
-    let done = match s.execute(&cmd) {
-        Err(crate::CmdError::NeedsPreview { .. }) => s.preview(&cmd).and_then(|p| s.commit(p)),
-        other => other,
+    let Some(o) = value.as_object_mut() else {
+        return false;
     };
-    done.map(drop).map_err(|e| PackageError::Member(e.to_string()))
+    match (first.strip_suffix("[]"), rest.is_empty()) {
+        (Some(array), _) => o
+            .get_mut(array)
+            .and_then(serde_json::Value::as_array_mut)
+            .map_or(false, |items| {
+                items
+                    .iter_mut()
+                    .filter(|e| e.get("personal_data").and_then(serde_json::Value::as_bool) == Some(true))
+                    .fold(false, |done, e| leave_out(e, rest) | done)
+            }),
+        (None, true) => o.remove(*first).is_some(),
+        (None, false) => o.get_mut(*first).is_some_and(|v| leave_out(v, rest)),
+    }
 }
 
 /// Contents.txt (doc 13-package §8.2): what the package is for, the revision, whether it is a draft and why, what stood
