@@ -1515,12 +1515,9 @@ impl ShellModel {
     }
 
     pub(crate) fn act_save(&mut self) -> Outcome {
-        // On the drawing, Save saves the symbol with his parts; its next step is the bar's.
+        // On the drawing, Save is the strip's: the symbol, the piece's symbol or the box that shows.
         if self.symbol_editor().is_some() {
-            return match self.symbol_save() {
-                Ok(_) => Outcome::Done,
-                Err(message) => Outcome::Failed { message },
-            };
+            return self.save_drawing();
         }
         self.save_project()
     }

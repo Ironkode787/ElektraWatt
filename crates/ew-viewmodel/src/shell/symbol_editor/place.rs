@@ -116,12 +116,9 @@ impl SymbolEditor {
         }
     }
 
-    /// Why the symbol cannot be saved now, in words: it is not his (Make my own from it), or the first thing To do
-    /// lists, which Save says above the drawing.
+    /// Why the symbol in hand cannot be saved now, in words: it is not his (Make my own from it), or the first thing
+    /// To do lists, which Save says above the drawing.
     pub fn save_refusal(&self) -> Option<String> {
-        if self.device_box.is_some() {
-            return None;
-        }
         if let Some(why) = &self.locked {
             return Some(why.clone());
         }
@@ -644,7 +641,7 @@ impl ShellModel {
         // The symbol is his and saved first: the parts name it by its address.
         let address = match self.symbol_editor().and_then(|e| e.published().map(str::to_owned)) {
             Some(a) => a,
-            None => match self.symbol_save() {
+            None => match self.symbol_save_checked() {
                 Ok(a) => a,
                 Err(message) => return Outcome::Failed { message },
             },
@@ -744,23 +741,10 @@ impl ShellModel {
         if editor.device_box.is_some() {
             return self.close_box();
         }
-        if let Some(why) = editor.save_refusal() {
-            if let Some(editor) = &mut self.symbol_editor {
-                editor.error = Some(why.clone());
-            }
-            self.said_at(crate::shell::said::Said::Editor);
-            return Outcome::Failed { message: why };
-        }
         let purpose = editor.purpose.clone();
-        let address = match self.symbol_save() {
+        let address = match self.symbol_save_checked() {
             Ok(a) => a,
-            Err(message) => {
-                if let Some(editor) = &mut self.symbol_editor {
-                    editor.error = Some(message.clone());
-                }
-                self.said_at(crate::shell::said::Said::Editor);
-                return Outcome::Failed { message };
-            }
+            Err(message) => return Outcome::Failed { message },
         };
         // What it is, kept for the next symbol he draws.
         if let Some(what) = self.symbol_editor.as_ref().and_then(SymbolEditor::what) {
@@ -780,6 +764,24 @@ impl ShellModel {
             }
             Drawing::Page(page) => self.place_saved(&address, &page),
         }
+    }
+
+    /// The symbol in hand saved with his parts, as every Save of it does (the strip's, Ctrl+S and File ▸ Save through
+    /// [`ShellModel::save_drawing`], a question's Save, Use it for every part): refused in words while it is not his
+    /// (Make my own from it) or To do lists a step, the refusal shown on the drawing. Its address.
+    pub(crate) fn symbol_save_checked(&mut self) -> Result<String, String> {
+        let editor = self.symbol_editor.as_ref().ok_or_else(|| words(key!("reason-no-drawing-in-hand")))?;
+        let saved = match editor.save_refusal() {
+            Some(why) => Err(why),
+            None => self.symbol_save(),
+        };
+        if let Err(message) = &saved {
+            if let Some(editor) = &mut self.symbol_editor {
+                editor.error = Some(message.clone());
+            }
+            self.said_at(crate::shell::said::Said::Editor);
+        }
+        saved
     }
 
     /// The saved symbol at `address` on the page it was drawn for: the place gives way to the page, and the Place tool

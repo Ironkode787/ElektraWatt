@@ -582,3 +582,29 @@ fn the_ways_into_parts_drawing_work_from_a_page() {
     done(&mut s, "parts.draw", json!({"piece": 0, "from": "new"}));
     assert!(s.symbol_editor().is_some(), "the piece's drawing");
 }
+
+/// Save by any way on the drawing is the strip's: Ctrl+S (File ▸ Save) on a starter symbol he only views publishes
+/// nothing into My parts and says why, and on a box he arranges finishes the box (Done), never the symbol in hand
+/// under it.
+#[test]
+fn file_save_on_the_drawing_is_the_strip_s_save() {
+    let tmp = Tmp::new("drawing-file-save");
+    let mut s = project(&tmp);
+    let coil = ew_viewmodel::ew_api::output::starter_piece_symbol("ew.fn.coil").expect("the starter coil");
+    done(&mut s, "parts.open", json!({"symbol": coil}));
+    let locked = s.symbol_editor().and_then(|e| e.locked.clone()).expect("a starter symbol is not his");
+    assert_eq!(crate::common::failed(&mut s, "file.save", json!({})), locked);
+    assert!(s.settings().symbols_recent.is_empty(), "nothing published into My parts");
+    done(&mut s, "parts.back", json!({"discard": true}));
+    // A symbol in hand, unnamed, under a box he arranges: Ctrl+S is the box's Done.
+    done(&mut s, "parts.new_symbol", json!({}));
+    done(&mut s, "parts.draw", json!({"done": true}));
+    done(&mut s, "parts.new", json!({"start": "box"}));
+    done(&mut s, "part.pin", json!({"add": true, "name": "L+"}));
+    done(&mut s, "parts.draw", json!({"what": "box"}));
+    done(&mut s, "part.pin", json!({"pin": 0, "side": "top"}));
+    done(&mut s, "file.save", json!({}));
+    assert!(s.symbol_editor().and_then(|e| e.device_box()).is_none(), "the box is done");
+    let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the part");
+    assert!(open.sheet.box_.is_some(), "its sheet took the box");
+}

@@ -2563,7 +2563,7 @@ impl ShellModel {
                     }
                     self.dispatch(pending.action, &params)
                 }
-                ConfirmAnswer::Save => match self.symbol_save() {
+                ConfirmAnswer::Save => match self.symbol_save_checked() {
                     Ok(_) => self.dispatch(pending.action, &params),
                     // The refusal shows on the drawing.
                     Err(message) => {
