@@ -1226,10 +1226,13 @@ impl Session {
         let symbol_of = |entry: &ew_schema::TemplateFn| -> Option<SymbolDef> {
             let def = fndef_copy(&entry.fndef);
             let draws = |s: &SymbolDef| s.rep_type == RepType::MultiLine && fndef_copy(&s.fndef) == def;
-            let own = entry.symbol.as_ref().and_then(|r| match self.libraries().resolve(r) {
-                Ok(LibDocument::Symbol(c)) if draws(&c.item) => Some((c.id.as_uuid(), c.item)),
-                _ => None,
-            });
+            let own = entry
+                .symbol
+                .as_ref()
+                .and_then(|r| match self.libraries().resolve(r) {
+                    Ok(LibDocument::Symbol(c)) if draws(&c.item) => Some((c.id.as_uuid(), c.item)),
+                    _ => None,
+                });
             let mut held: Vec<(Uuid, SymbolDef)> = q
                 .symbols()
                 .iter()

@@ -699,11 +699,11 @@ impl ShellModel {
             Some(_) => return failed(key!("error-bad-param"), &["shelf"]),
         };
         // The Symbols shelf keeps the scope he used last.
-        if shelf == Some(true) || self.parts.as_deref().is_some_and(|p| p.shelf_symbols) {
-            if let Some(s) = scope {
-                self.settings.symbols_scope = Some(s.word().to_owned());
-                self.save_settings();
-            }
+        if (shelf == Some(true) || self.parts.as_deref().is_some_and(|p| p.shelf_symbols))
+            && let Some(s) = scope
+        {
+            self.settings.symbols_scope = Some(s.word().to_owned());
+            self.save_settings();
         }
         let last_scope = (self.settings.symbols_scope.as_deref())
             .and_then(|w| PartScope::ALL.into_iter().find(|s| s.word() == w));
@@ -945,7 +945,8 @@ impl ShellModel {
             if !open.editable() {
                 return Outcome::refused(key!("reason-part-not-yours"));
             }
-            let Some(group) = ew_api::part_fields::Group::named(name).filter(|g| open.sheet.groups_to_add().contains(g))
+            let Some(group) =
+                ew_api::part_fields::Group::named(name).filter(|g| open.sheet.groups_to_add().contains(g))
             else {
                 return failed(key!("error-bad-param"), &["group"]);
             };

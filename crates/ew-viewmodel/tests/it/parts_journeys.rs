@@ -593,7 +593,10 @@ fn a_device_made_without_ports_is_given_them_from_the_contents() {
     done(&mut s, "parts.row", json!({"group": "ports"}));
     let then = sheet(&s);
     assert!(then.sections().contains(&Group::Ports), "the group shows");
-    assert!(!then.groups_to_add().contains(&Group::Ports), "and is offered no more");
+    assert!(
+        !then.groups_to_add().contains(&Group::Ports),
+        "and is offered no more"
+    );
     assert!(
         matches!(
             s.dispatch("parts.row", &json!({"group": "ports"})),

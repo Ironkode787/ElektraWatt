@@ -820,7 +820,10 @@ fn add_pin_on_a_part_s_box_opens_the_part_in_parts() {
         s.parts_place().and_then(|p| p.sheet.as_ref()).is_some(),
         "the part in Parts"
     );
-    assert!(s.symbol_editor().is_none(), "a starter part's box is not arranged");
+    assert!(
+        s.symbol_editor().is_none(),
+        "a starter part's box is not arranged"
+    );
     assert!(
         crate::common::toast(&s).starts_with("The pins of this box are its part's"),
         "{}",
@@ -930,10 +933,7 @@ fn a_drawn_box_s_pins_as_the_re_test_used_them() {
     select_ids(&mut s, &[rep.id.to_string()]);
     let menu = ew_viewmodel::command_bar::canvas_menu(&s, ew_viewmodel::command_bar::MenuSpot::Object, None);
     assert!(menu.iter().any(|i| i.label == "Add pin"), "{menu:?}");
-    assert!(
-        !menu.iter().any(|i| i.label == "Arrange its box…"),
-        "{menu:?}"
-    );
+    assert!(!menu.iter().any(|i| i.label == "Arrange its box…"), "{menu:?}");
     // Add pin from the bar: the pin follows the pointer along the nearest edge before the click.
     done(&mut s, "box.add_cp", json!({}));
     assert_eq!(s.tool().state(), "armed");

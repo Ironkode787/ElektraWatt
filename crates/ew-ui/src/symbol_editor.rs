@@ -430,7 +430,6 @@ fn next_step(ui: &mut Ui, shell: &ShellModel, words: String, events: &mut Vec<Ev
 }
 
 impl EditorView {
-
     /// The drawing in the middle of Parts: the short sheet and the outline, the drawing and Properties.
     pub fn show(&mut self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         self.sync(shell);
@@ -960,7 +959,6 @@ impl EditorView {
             });
         });
     }
-
 }
 
 /// The symbol's short sheet (doc 07 §5.6): Name and What it is, typed and chosen where they stand (`parts.field`), and
@@ -976,7 +974,8 @@ fn short_sheet(ui: &mut Ui, editor: &SymbolEditor, events: &mut Vec<Event>) {
             .show(ui, |ui| {
                 ui.set_width(ui.available_width());
                 ui.add(egui::Label::new(why).wrap());
-                if components::button(ui, Kind::Secondary, label(key!("parts-own-from")), None, 0.0).clicked() {
+                if components::button(ui, Kind::Secondary, label(key!("parts-own-from")), None, 0.0).clicked()
+                {
                     action(events, "parts.own", json!({}));
                 }
             });
@@ -995,7 +994,13 @@ fn short_sheet(ui: &mut Ui, editor: &SymbolEditor, events: &mut Vec<Event>) {
                 Value::String(s) => s.clone(),
                 other => other.to_string(),
             };
-            events.insert(0, Event::Action("parts.field", json!({ "field": format!("symbol.{key}"), "value": value })));
+            events.insert(
+                0,
+                Event::Action(
+                    "parts.field",
+                    json!({ "field": format!("symbol.{key}"), "value": value }),
+                ),
+            );
         }
     }
     let grid = editor.draft.symbol.grid;
@@ -1010,10 +1015,17 @@ fn short_sheet(ui: &mut Ui, editor: &SymbolEditor, events: &mut Vec<Event>) {
         });
     }
     // A saved symbol of his own starts a part drawn with it (`parts.new {symbol}`).
-    if let Some(address) = editor.published().filter(|_| editor.locked.is_none()) {
-        if components::button(ui, Kind::Secondary, label(key!("parts-new-part-with-it")), None, 0.0).clicked() {
-            action(events, "parts.new", json!({ "symbol": address }));
-        }
+    if let Some(address) = editor.published().filter(|_| editor.locked.is_none())
+        && components::button(
+            ui,
+            Kind::Secondary,
+            label(key!("parts-new-part-with-it")),
+            None,
+            0.0,
+        )
+        .clicked()
+    {
+        action(events, "parts.new", json!({ "symbol": address }));
     }
     ui.add_space(t.space_2);
 }

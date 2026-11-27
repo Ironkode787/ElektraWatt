@@ -125,11 +125,7 @@ fn new_draft(grid: (u64, u64), what: &str) -> Result<SymbolDraft, String> {
     let draft = SymbolDraft::new("", name).map_err(symbol_error)?;
     let mut d = serde_json::to_value(&draft).map_err(|e| e.to_string())?;
     d["symbol"]["grid"] = json!({"num": grid.0, "den": grid.1});
-    let (_, _, kind, category) = WHAT
-        .iter()
-        .find(|(w, ..)| *w == what)
-        .copied()
-        .unwrap_or(WHAT[0]);
+    let (_, _, kind, category) = WHAT.iter().find(|(w, ..)| *w == what).copied().unwrap_or(WHAT[0]);
     d["function"]["contact_kind"] = json!(kind);
     d["function"]["category"] = json!([category, "Generic", "Generic"]);
     // One text line under another: 6 mm, 4 mm on the QET grid (doc 07a).
@@ -138,7 +134,8 @@ fn new_draft(grid: (u64, u64), what: &str) -> Result<SymbolDraft, String> {
     } else {
         6_000_000
     };
-    let mut slots = vec![json!({"kind": "tag", "pos": [-1_000_000, 0], "align": "bottom_right", "visible": true})];
+    let mut slots =
+        vec![json!({"kind": "tag", "pos": [-1_000_000, 0], "align": "bottom_right", "visible": true})];
     if matches!(kind, "no" | "nc" | "co" | "coil") {
         slots.push(json!({"kind": "xref", "pos": [-1_000_000, line], "align": "top_right", "visible": true}));
     }
@@ -150,7 +147,10 @@ impl ShellModel {
     /// The page shown, as a new symbol is drawn for it: a drawn page with its grid and its words.
     fn page_drawing(&self) -> Option<PageDrawing> {
         let id = self.current_page()?;
-        let row = self.page_rows().iter().find(|r| crate::canvas::PageId::of(r) == id)?;
+        let row = self
+            .page_rows()
+            .iter()
+            .find(|r| crate::canvas::PageId::of(r) == id)?;
         let (num, den) = self.canvas()?.page().snapper.grid();
         Some(PageDrawing {
             page: row.id,
@@ -292,7 +292,9 @@ impl ShellModel {
         let selected = self.selected_symbol().map(|(_, _, tag)| tag);
         let with = |key, what: &Option<String>| match what {
             Some(w) => strings::format(key, &[w]),
-            None => strings::format(key, &[""]).trim_end_matches([' ', '·']).to_owned(),
+            None => strings::format(key, &[""])
+                .trim_end_matches([' ', '·'])
+                .to_owned(),
         };
         vec![
             (
@@ -303,7 +305,9 @@ impl ShellModel {
             (
                 "selected",
                 with(key!("new-symbol-like-selected"), &selected),
-                selected.is_none().then(|| words(key!("reason-no-symbol-selected"))),
+                selected
+                    .is_none()
+                    .then(|| words(key!("reason-no-symbol-selected"))),
             ),
             (
                 "hand",
@@ -446,7 +450,10 @@ impl ShellModel {
             .or_else(|| {
                 let session = self.parts_session()?;
                 let q = session.query();
-                let held = q.symbols().iter().find(|(id, _)| id.as_uuid().to_string() == source)?;
+                let held = q
+                    .symbols()
+                    .iter()
+                    .find(|(id, _)| id.as_uuid().to_string() == source)?;
                 Some(held.1.library_id.as_uuid())
             })
             .or_else(|| {
@@ -471,15 +478,21 @@ impl ShellModel {
             .and_then(|r| r.split_once(':'))
             .and_then(|(l, i)| {
                 let (l, i) = (l.parse::<Uuid>().ok()?, i.parse::<Uuid>().ok()?);
-                registry.documents(l, schema::Kind::Symbol).into_iter().find_map(|d| match d {
-                    schema::LibDocument::Symbol(s) if s.item_id.as_uuid() == i => key_of(&s.item),
-                    _ => None,
-                })
+                registry
+                    .documents(l, schema::Kind::Symbol)
+                    .into_iter()
+                    .find_map(|d| match d {
+                        schema::LibDocument::Symbol(s) if s.item_id.as_uuid() == i => key_of(&s.item),
+                        _ => None,
+                    })
             })
             .or_else(|| {
                 let session = self.parts_session()?;
                 let q = session.query();
-                let held = q.symbols().iter().find(|(id, _)| id.as_uuid().to_string() == source)?;
+                let held = q
+                    .symbols()
+                    .iter()
+                    .find(|(id, _)| id.as_uuid().to_string() == source)?;
                 key_of(&held.1.item)
             })
             .unwrap_or_else(|| source.to_owned());
@@ -489,7 +502,11 @@ impl ShellModel {
         };
         let mut draft = match draft {
             Ok(d) => d,
-            Err(e) => return Outcome::Failed { message: symbol_error(e) },
+            Err(e) => {
+                return Outcome::Failed {
+                    message: symbol_error(e),
+                };
+            }
         };
         let (home, locked) = match found {
             Some(l) if l.writable => (Some(l.id), None),
@@ -648,7 +665,11 @@ impl ShellModel {
         };
         let docs = match project.session.libraries().closure(&reference) {
             Ok(d) => d,
-            Err(e) => return Outcome::Failed { message: e.to_string() },
+            Err(e) => {
+                return Outcome::Failed {
+                    message: e.to_string(),
+                };
+            }
         };
         let symbol = ew_api::output::v5::lib_copy_id::<schema::SymbolDef>(library, item);
         let q = project.session.query();
@@ -672,7 +693,11 @@ impl ShellModel {
     /// The Symbols shelf (doc 07 §5.3): the symbols of the installed libraries and those only in the project, whose
     /// name or what it is holds every word of `query`, in `scope` (`project`: those the project holds; `mine`: his
     /// own); those he drew lately first, the rest by name.
-    pub(crate) fn symbols_found(&self, query: &str, scope: ew_api::parts::PartScope) -> Vec<super::super::parts_place::SymbolFound> {
+    pub(crate) fn symbols_found(
+        &self,
+        query: &str,
+        scope: ew_api::parts::PartScope,
+    ) -> Vec<super::super::parts_place::SymbolFound> {
         use super::super::parts_place::SymbolFound;
         use ew_api::parts::PartScope;
         use schema::{Kind, LibDocument};
@@ -686,7 +711,9 @@ impl ShellModel {
                 Ok(LibDocument::Fndef(f)) => f.item.category.0.as_str().to_owned(),
                 _ => String::new(),
             };
-            crate::tools::category_words(&category).unwrap_or_default().to_owned()
+            crate::tools::category_words(&category)
+                .unwrap_or_default()
+                .to_owned()
         };
         let terms: Vec<String> = query.split_whitespace().map(str::to_lowercase).collect();
         let hits = |name: &str, what: &str| {
@@ -763,7 +790,11 @@ impl ShellModel {
     /// `parts.back` on the drawing: from a page, back to it without the symbol, the drawing kept in hand (New symbol
     /// offers to go on with it); from a piece, back to the part; a symbol of his own, back to the list.
     pub(crate) fn back_from_drawing(&mut self) -> Outcome {
-        if self.symbol_editor.as_ref().is_some_and(|e| e.device_box.is_some()) {
+        if self
+            .symbol_editor
+            .as_ref()
+            .is_some_and(|e| e.device_box.is_some())
+        {
             return self.close_box();
         }
         let Some(editor) = &mut self.symbol_editor else {
@@ -771,7 +802,10 @@ impl ShellModel {
         };
         editor.shown = false;
         if matches!(editor.purpose, Drawing::Page(_))
-            && self.parts.as_deref().is_some_and(|p| p.origin == Origin::Project && p.sheet.is_none())
+            && self
+                .parts
+                .as_deref()
+                .is_some_and(|p| p.origin == Origin::Project && p.sheet.is_none())
         {
             self.parts = None;
             self.parts_alone = None;

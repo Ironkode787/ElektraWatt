@@ -29,13 +29,15 @@ mod supply;
 mod tables;
 pub(crate) use catalogue::catalogue_plc;
 pub(super) use catalogue::starter_fndef;
+pub use catalogue::starter_piece_symbol;
 pub use catalogue::{
     CatalogueAccessory, CatalogueInterface, CataloguePart, CataloguePlc, CatalogueSymbol,
     CatalogueTemplateFn, PlaceCatalogue, PlacedBy, PlcGroup, address_copy, bus_port_symbol_key,
     ip_direction_word, page_type_takes, part_interfaces,
 };
-pub use catalogue::starter_piece_symbol;
-pub(crate) use catalogue::{starter_fndef_by_key, starter_function_name, starter_piece_fndefs, starter_symbol_name};
+pub(crate) use catalogue::{
+    starter_fndef_by_key, starter_function_name, starter_piece_fndefs, starter_symbol_name,
+};
 pub(crate) use shape::dir_of;
 pub use shape::{ShapeCp, SymbolShape, exchange_map};
 pub use supply::SupplyPoint;

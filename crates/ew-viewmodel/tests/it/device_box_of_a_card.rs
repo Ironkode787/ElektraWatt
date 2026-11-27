@@ -71,7 +71,11 @@ fn a_card_s_pins_take_their_places_on_its_box_and_keep_their_names() {
     assert!(s.symbol_editor().is_none(), "the box gave way to the part");
     done(&mut s, "parts.save", json!({}));
     done(&mut s, "preview.apply", json!({}));
-    let saved = &s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the part").sheet;
+    let saved = &s
+        .parts_place()
+        .and_then(|p| p.sheet.as_ref())
+        .expect("the part")
+        .sheet;
     let layout = saved.box_.clone().expect("the part lays its box out");
     assert!(
         layout

@@ -259,7 +259,8 @@ impl PartSheet {
     /// (doc 07 §5.5), where they hold a value, or where the person added them ([`PartSheet::groups_to_add`]).
     pub fn sections(&self) -> Vec<Group> {
         let part = self.of_kind();
-        let asks = |g: Group| self.start.is_some_and(|start| start.asks.contains(&g)) || self.added.contains(&g);
+        let asks =
+            |g: Group| self.start.is_some_and(|start| start.asks.contains(&g)) || self.added.contains(&g);
         let mut out: Vec<Group> = ew_derive::part_fields::fields_of(&part)
             .into_iter()
             .filter(|f| match f.group {

@@ -229,7 +229,11 @@ impl crate::Session {
     ///
     /// # Errors
     /// What the piece is names no starter function.
-    pub fn piece_drawing(&self, row: &crate::part_pieces::PieceRow, name: &str) -> Result<SymbolDraft, Error> {
+    pub fn piece_drawing(
+        &self,
+        row: &crate::part_pieces::PieceRow,
+        name: &str,
+    ) -> Result<SymbolDraft, Error> {
         let def = crate::output::starter_fndef_by_key(&row.what)
             .ok_or_else(|| Error::Refused(text!("symbol-function-required")))?;
         let mut draft = SymbolDraft::new("", name)?;
@@ -237,11 +241,15 @@ impl crate::Session {
         draft.function = def.item.clone();
         let step: i64 = 4_000_000;
         let mut cps = Vec::new();
-        let mut slots = vec![json!({"kind": "tag", "pos": [-1_000_000, 0], "align": "bottom_right", "visible": true})];
+        let mut slots =
+            vec![json!({"kind": "tag", "pos": [-1_000_000, 0], "align": "bottom_right", "visible": true})];
         // A coil's or a contact's cross-reference under the tag, as the standard puts it (doc 07a).
         if matches!(
             def.item.contact_kind,
-            schema::ContactKind::No | schema::ContactKind::Nc | schema::ContactKind::Co | schema::ContactKind::Coil
+            schema::ContactKind::No
+                | schema::ContactKind::Nc
+                | schema::ContactKind::Co
+                | schema::ContactKind::Coil
         ) {
             slots.push(json!({"kind": "xref", "pos": [-1_000_000, 6_000_000], "align": "top_right", "visible": true}));
         }
@@ -253,10 +261,14 @@ impl crate::Session {
                 (schema::Dir4::Down, 4 * step)
             };
             let pos = [(at / 2) * 2 * step, y];
-            cps.push(json!({"idx": at, "fn_cp": pin.idx, "dir": dir, "discipline": pin.discipline, "pos": pos}));
+            cps.push(
+                json!({"idx": at, "fn_cp": pin.idx, "dir": dir, "discipline": pin.discipline, "pos": pos}),
+            );
             if let Some((off, rot, align)) = pin_text_place(&dir, pin.designation.as_str()) {
-                slots.push(json!({"kind": {"cp_designation": at}, "pos": [pos[0] + off.x.0, pos[1] + off.y.0],
-                    "rot": rot, "align": align, "visible": true}));
+                slots.push(
+                    json!({"kind": {"cp_designation": at}, "pos": [pos[0] + off.x.0, pos[1] + off.y.0],
+                    "rot": rot, "align": align, "visible": true}),
+                );
             }
         }
         let mut d = serde_json::to_value(&draft).map_err(input)?;

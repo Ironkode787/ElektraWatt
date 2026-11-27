@@ -266,12 +266,7 @@ fn new_symbol_in_parts_opens_the_drawing_at_once() {
     d.input(&click(d.find("New symbol").expect("New symbol in Parts")));
     d.settle();
     assert!(d.shell_mut().symbol_editor().is_some());
-    for name in [
-        "Line",
-        "Pin",
-        "Shapes (0)",
-        "What it is of New symbol",
-    ] {
+    for name in ["Line", "Pin", "Shapes (0)", "What it is of New symbol"] {
         assert!(d.find(name).is_some(), "{name}: {:?}", d.labels());
     }
     d.shell_mut().shutdown();
@@ -408,9 +403,7 @@ fn box_with_three_pins(tmp: &Tmp) -> Driver {
     d.settle();
     // The pins are a section of the editor (picture A): a click shows it.
     crate::own_parts::press(&mut d, "On the schematic section");
-    d.input(&click(
-        d.find("Arrange\u{2026}").expect("the sheet's button"),
-    ));
+    d.input(&click(d.find("Arrange\u{2026}").expect("the sheet's button")));
     assert!(d.shell_mut().dialog().is_none(), "Parts gave way");
     for _ in 0..3 {
         let add = d.labels().into_iter().find(|(l, _)| l == "Add pin").unwrap().1;

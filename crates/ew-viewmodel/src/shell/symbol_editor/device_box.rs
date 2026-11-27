@@ -409,7 +409,8 @@ impl ShellModel {
         let draft = open.sheet.clone();
         if self.symbol_editor.is_none() {
             // A drawing holds the box; nothing of a symbol is in hand under it.
-            let Ok(blank) = ew_api::symbols::SymbolDraft::new("", strings::text(key!("symbol-untitled"))) else {
+            let Ok(blank) = ew_api::symbols::SymbolDraft::new("", strings::text(key!("symbol-untitled")))
+            else {
                 return Outcome::refused(key!("reason-no-part-open"));
             };
             self.symbol_editor = Some(SymbolEditor::new(blank));

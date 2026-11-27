@@ -401,8 +401,8 @@ impl Settings {
         // A word, a grid or a scope this version does not offer reads as none.
         let what = crate::shell::symbol_editor::WHAT;
         self.symbol_last_kind = (self.symbol_last_kind.take()).filter(|w| what.iter().any(|(k, ..)| k == w));
-        self.symbol_drawing_grid = (self.symbol_drawing_grid)
-            .filter(|g| *g < crate::shell::symbol_editor::GRID_STEPS.len());
+        self.symbol_drawing_grid =
+            (self.symbol_drawing_grid).filter(|g| *g < crate::shell::symbol_editor::GRID_STEPS.len());
         self.symbols_scope = (self.symbols_scope.take())
             .filter(|s| ew_api::parts::PartScope::ALL.iter().any(|p| p.word() == s));
         // The template of a file written before the list (one path) is a list of that one.

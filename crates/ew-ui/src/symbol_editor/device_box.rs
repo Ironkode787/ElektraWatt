@@ -222,14 +222,22 @@ impl EditorView {
                 panels::sheet_rows(ui, &sheet.rows, &sheet.title, "symbol.prop", events, |_, _| {});
             });
             ui.add_space(t.space_3);
-            if !b.selection.is_empty() && b.pins_from().is_none() && panels::button(ui, key!("symbol-delete")) {
+            if !b.selection.is_empty() && b.pins_from().is_none() && panels::button(ui, key!("symbol-delete"))
+            {
                 action(events, "symbol.delete", json!({}));
             }
         });
     }
 
     /// The middle column: the box as a device of the part is drawn, its pins and edges dragged.
-    pub(super) fn box_drawing(&mut self, ui: &mut Ui, rect: Rect, editor: &SymbolEditor, b: &DeviceBox, events: &mut Vec<Event>) {
+    pub(super) fn box_drawing(
+        &mut self,
+        ui: &mut Ui,
+        rect: Rect,
+        editor: &SymbolEditor,
+        b: &DeviceBox,
+        events: &mut Vec<Event>,
+    ) {
         let t = theme::current(ui.ctx());
         let mut top = crate::parts_place::drawing_strip(ui, rect, editor, events);
         // Why the last action did nothing, and where the pins come from when they are not edited here.

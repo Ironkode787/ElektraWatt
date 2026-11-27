@@ -81,7 +81,7 @@ fn journey_4_a_symbol_nobody_has_is_drawn_from_the_page_and_placed_there() {
     assert!(strip.contains("101"), "{strip}");
     assert_eq!(editor.back_label(), "Back without it");
     assert_eq!(editor.save_label(), "Save and place on 101");
-    let grid = serde_json::to_value(&editor.draft.symbol.grid).unwrap();
+    let grid = serde_json::to_value(editor.draft.symbol.grid).unwrap();
     assert_eq!(
         (grid["num"].as_i64(), grid["den"].as_i64()),
         (Some(page_grid.0), Some(page_grid.1)),
@@ -103,7 +103,13 @@ fn journey_4_a_symbol_nobody_has_is_drawn_from_the_page_and_placed_there() {
     assert!(
         s.symbol_editor().unwrap().outline().todo.is_empty(),
         "ready to save: {:?}",
-        s.symbol_editor().unwrap().outline().todo.iter().map(|t| t.text.clone()).collect::<Vec<_>>()
+        s.symbol_editor()
+            .unwrap()
+            .outline()
+            .todo
+            .iter()
+            .map(|t| t.text.clone())
+            .collect::<Vec<_>>()
     );
     let key = s.symbol_editor().unwrap().draft.key.clone();
     // Save and place on 101.
@@ -117,7 +123,12 @@ fn journey_4_a_symbol_nobody_has_is_drawn_from_the_page_and_placed_there() {
     assert!(after.contains(&key), "{after:?}");
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(placed(&s), before, "Undo takes the placing back");
-    let address = s.settings().symbols_recent.first().cloned().expect("the saved symbol");
+    let address = s
+        .settings()
+        .symbols_recent
+        .first()
+        .cloned()
+        .expect("the saved symbol");
     assert!(address.starts_with("library:"), "{address}");
     assert_eq!(s.settings().symbol_last_kind.as_deref(), Some("contact-no"));
 }
@@ -247,10 +258,7 @@ fn a_contactor_of_his_own_is_drawn_with_the_symbols_he_draws_for_it() {
     let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the part");
     assert!(open.changed);
     assert!(
-        open.sheet
-            .pieces
-            .iter()
-            .all(|p| p.symbol.starts_with("library:")),
+        open.sheet.pieces.iter().all(|p| p.symbol.starts_with("library:")),
         "each piece names its symbol: {:?}",
         open.sheet.pieces
     );
@@ -263,7 +271,11 @@ fn a_contactor_of_his_own_is_drawn_with_the_symbols_he_draws_for_it() {
     done(&mut s, "tool.place", json!({}));
     done(&mut s, "place.pick", json!({"part": "CON-OWN"}));
     click(&mut s, (10, 10));
-    assert!(placed(&s).contains(&coil), "the coil is drawn with his symbol: {:?}", placed(&s));
+    assert!(
+        placed(&s).contains(&coil),
+        "the coil is drawn with his symbol: {:?}",
+        placed(&s)
+    );
 }
 
 /// Journey h: a network switch of his own drawn as a box, its supply pins L+ and M and one PROFINET interface of two

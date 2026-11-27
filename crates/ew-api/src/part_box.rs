@@ -23,8 +23,8 @@ use ew_schema::{BoxCp, CpData, Part, PotentialType, Representation, TemplateFn};
 pub use ew_schema::{Dir4, PartBox, PartBoxPin};
 use ew_units::{Grid, Nm, Pt2};
 
-use crate::part_editor::{PartDraftError, PartSheet, enum_words, message};
 use crate::Session;
+use crate::part_editor::{PartDraftError, PartSheet, enum_words, message};
 
 /// The connection grid's step the device box is edited on, in nanometres: the native 4 mm.
 pub const EDIT_STEP: i64 = 4_000_000;
@@ -711,8 +711,8 @@ impl Session {
                 record.box_.as_ref()?;
                 let page = q.pages().get(record.page)?;
                 let step = page.grid.at(1)?.0;
-                let (_, outline, cps) =
-                    steps(&pins, &[], Some(layout), step).on_page(page.grid, (record.pos.x.0, record.pos.y.0))?;
+                let (_, outline, cps) = steps(&pins, &[], Some(layout), step)
+                    .on_page(page.grid, (record.pos.x.0, record.pos.y.0))?;
                 Some(ReshapeBox {
                     rep,
                     outline: outline.into_iter().map(point).collect(),

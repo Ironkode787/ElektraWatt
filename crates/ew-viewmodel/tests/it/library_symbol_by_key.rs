@@ -50,11 +50,7 @@ fn a_library_symbol_is_named_by_its_key_and_its_address_before_and_after_its_fir
     done(&mut shell, "ui.dismiss", json!({}));
 
     // Before its first placement: by its key.
-    done(
-        &mut shell,
-        "place.pick",
-        json!({"symbol": key, "letter": "U"}),
-    );
+    done(&mut shell, "place.pick", json!({"symbol": key, "letter": "U"}));
     done(&mut shell, "cursor.set", json!({"x_mm": 40, "y_mm": 40}));
     done(&mut shell, "canvas.activate", json!({}));
     done(&mut shell, "ui.dismiss", json!({}));

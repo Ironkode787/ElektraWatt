@@ -523,11 +523,7 @@ fn a_device_rows_menu_offers_what_its_symbol_offers_and_goes_to_it() {
     settle(&mut h);
     let at = item_at(&h, "-103F1, device");
     right_click(&mut h, at);
-    for label in [
-        "Go to 103-C2",
-        "Choose part…",
-        "Properties of selection",
-    ] {
+    for label in ["Go to 103-C2", "Choose part…", "Properties of selection"] {
         entry(&h, at, label);
     }
     let shell = h.state().shell();

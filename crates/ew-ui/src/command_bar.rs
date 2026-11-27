@@ -639,7 +639,9 @@ fn tab_button(
         Some(why) => response.disabled_tip(why),
         None => response,
     };
-    let galley = ui.painter().layout_no_wrap(label.to_owned(), font, colour.color32());
+    let galley = ui
+        .painter()
+        .layout_no_wrap(label.to_owned(), font, colour.color32());
     let at = Align2::CENTER_CENTER.align_size_within_rect(galley.size(), r).min;
     ui.painter().galley(at, galley, colour.color32());
     if active {
@@ -954,7 +956,8 @@ impl CommandBarHost {
                     let active = *tab == model.tab;
                     // Without a project a tab that needs one is greyed with its reason.
                     let reason = ew_viewmodel::command_bar::tab_reason(shell, *tab);
-                    let response = tab_button(ui, t, r, tab_id(*tab), label, active, reason.map(str::to_owned));
+                    let response =
+                        tab_button(ui, t, r, tab_id(*tab), label, active, reason.map(str::to_owned));
                     if reason.is_some() {
                         // A greyed tab says why, as a greyed command does.
                         if response.clicked() {
@@ -981,7 +984,15 @@ impl CommandBarHost {
                     let w = widths.next().copied().unwrap_or_default();
                     let r = Rect::from_min_size(pos2(x, row.top()), vec2(w, t.size_tab_row));
                     x = r.right();
-                    let response = tab_button(ui, t, r, Id::unique(("place-tab", i)), &label, active, reason.clone());
+                    let response = tab_button(
+                        ui,
+                        t,
+                        r,
+                        Id::unique(("place-tab", i)),
+                        &label,
+                        active,
+                        reason.clone(),
+                    );
                     if response.clicked() && reason.is_none() && !active {
                         events.push(Event::Action("parts.draw", params));
                     } else if response.clicked() && reason.is_some() {

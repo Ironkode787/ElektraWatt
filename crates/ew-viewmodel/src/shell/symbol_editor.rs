@@ -721,7 +721,10 @@ impl ShellModel {
             return self.symbol_scratch();
         }
         // A drawing that is not his reads as it is: what changes it is refused with why.
-        let changes = !matches!(action, "tool" | "variant" | "validate" | "select" | "copy" | "export" | "grid");
+        let changes = !matches!(
+            action,
+            "tool" | "variant" | "validate" | "select" | "copy" | "export" | "grid"
+        );
         if changes && let Some(why) = self.symbol_editor.as_ref().and_then(|e| e.locked.clone()) {
             return Err(why);
         }

@@ -119,7 +119,9 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
 /// this page at once.
 fn new_symbol_foot(ui: &mut Ui, t: &Tokens, events: &mut Vec<Event>) {
     ui.horizontal(|ui| {
-        ui.label(RichText::new(strings::text(key!("picker-nobody-has-it"))).color(t.text_secondary.color32()));
+        ui.label(
+            RichText::new(strings::text(key!("picker-nobody-has-it"))).color(t.text_secondary.color32()),
+        );
         if components::button(
             ui,
             Kind::Secondary,
@@ -912,13 +914,7 @@ fn detail(ui: &mut Ui, t: &Tokens, picker: &Picker, events: &mut Vec<Event>) {
 /// Under the detail of a row that places a symbol (not in the strip chooser or a part's symbol choice): Open in Parts,
 /// where his own symbol is changed and another read and made his own; for a part drawn as a box, Arrange…, which
 /// arranges its box there.
-fn edit_buttons(
-    ui: &mut Ui,
-    t: &Tokens,
-    picker: &Picker,
-    row: PickerRow,
-    events: &mut Vec<Event>,
-) {
+fn edit_buttons(ui: &mut Ui, t: &Tokens, picker: &Picker, row: PickerRow, events: &mut Vec<Event>) {
     if picker.part.is_some() || picker.mode == PickerMode::Strip || picker.row_symbol(row).is_none() {
         return;
     }
@@ -942,7 +938,10 @@ fn edit_buttons(
         )
         .clicked()
         {
-            events.push(Event::Action("parts.draw", json!({ "what": "box", "part": target })));
+            events.push(Event::Action(
+                "parts.draw",
+                json!({ "what": "box", "part": target }),
+            ));
         }
         return;
     }

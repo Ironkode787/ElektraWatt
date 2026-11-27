@@ -276,7 +276,7 @@ fn the_symbol_and_the_device_browser_say_what_they_list_and_share_no_row() {
     d.shell_mut().shutdown();
 }
 
-//// A starter symbol opens in Parts from the symbol browser (Open in Parts) as it is, with a line that says why it
+/// A starter symbol opens in Parts from the symbol browser (Open in Parts) as it is, with a line that says why it
 /// cannot be changed and Make my own from it; his own copy saves into My parts, and opened again from the browser
 /// it is changed where it lives, under its own key.
 #[test]
@@ -290,7 +290,10 @@ fn the_browser_opens_a_starter_symbol_in_parts_and_his_copy_is_changed_where_it_
     d.settle();
     press(&mut d, "Open in Parts");
     {
-        let editor = d.shell_mut().symbol_editor().expect("the starter symbol in Parts");
+        let editor = d
+            .shell_mut()
+            .symbol_editor()
+            .expect("the starter symbol in Parts");
         assert!(editor.locked.is_some(), "a starter symbol is not changed");
     }
     assert!(

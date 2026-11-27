@@ -120,7 +120,13 @@ fn every_dialog(tmp: &Tmp) -> (ShellModel, Vec<Dialog>) {
 
 /// Closes whatever an action left open (a dialog, a picker, the palette, a card, the wizard, the first run, a drawing
 /// and Parts) and arms Select, so that the next action starts from the project view.
-const REST: &[&str] = &["wizard.cancel", "first_run.finish", "parts.back", "parts.back", "find.close"];
+const REST: &[&str] = &[
+    "wizard.cancel",
+    "first_run.finish",
+    "parts.back",
+    "parts.back",
+    "find.close",
+];
 
 fn back_to_rest(shell: &mut ShellModel) {
     for _ in 0..4 {

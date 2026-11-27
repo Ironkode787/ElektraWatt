@@ -404,7 +404,8 @@ fn to_the_part_returns_to_the_sheet_and_keeps_the_drawing_in_hand() {
 #[test]
 fn a_box_is_arranged_with_no_project_open() {
     let tmp = Tmp::new("device-box-alone");
-    let mine = ew_api::library::LibraryTiers::under(&tmp.0.join("data"), &tmp.0.join("cache"), vec![], vec![]);
+    let mine =
+        ew_api::library::LibraryTiers::under(&tmp.0.join("data"), &tmp.0.join("cache"), vec![], vec![]);
     let mut s = ShellModel::new(
         ew_viewmodel::shell::Mode::Headless,
         tmp.config().with_libraries(Some(mine)),
@@ -420,7 +421,10 @@ fn a_box_is_arranged_with_no_project_open() {
     assert!(!open.changed, "saved");
     let layout = open.sheet.box_.as_ref().expect("its layout");
     assert!(
-        layout.pins.iter().any(|p| p.idx == 0 && side_word(&p.side) == "left"),
+        layout
+            .pins
+            .iter()
+            .any(|p| p.idx == 0 && side_word(&p.side) == "left"),
         "{layout:?}"
     );
 }

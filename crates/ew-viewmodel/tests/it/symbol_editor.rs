@@ -48,7 +48,8 @@ fn a_saved_symbol_is_offered_by_the_picker_and_a_test_copy_keeps_its_own_identit
     let dir = tmp.0.join("project");
     // His user folder, where My parts lives.
     let config = || {
-        let mine = ew_api::library::LibraryTiers::under(&tmp.0.join("data"), &tmp.0.join("cache"), vec![], vec![]);
+        let mine =
+            ew_api::library::LibraryTiers::under(&tmp.0.join("data"), &tmp.0.join("cache"), vec![], vec![]);
         tmp.config().with_libraries(Some(mine))
     };
     let mut shell = ShellModel::new(Mode::Headless, config());
@@ -128,7 +129,10 @@ fn a_symbol_drawn_for_a_qet_page_keeps_its_grid_after_placing() {
     let dir = tmp.0.join("project");
     let mut shell = tmp.empty_shell(Mode::Headless);
     done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
-    for (number, grid) in [(2, json!({"num":7937500,"den":3})), (3, json!({"num":4000000,"den":1}))] {
+    for (number, grid) in [
+        (2, json!({"num":7937500,"den":3})),
+        (3, json!({"num":4000000,"den":1})),
+    ] {
         done(
             &mut shell,
             "command.run",
@@ -137,7 +141,7 @@ fn a_symbol_drawn_for_a_qet_page_keeps_its_grid_after_placing() {
     }
     done(&mut shell, "page.goto", json!({"folio":"2"}));
     done(&mut shell, "parts.new_symbol", json!({}));
-    let grid = serde_json::to_value(&shell.symbol_editor().unwrap().draft.symbol.grid).unwrap();
+    let grid = serde_json::to_value(shell.symbol_editor().unwrap().draft.symbol.grid).unwrap();
     assert_eq!(grid, json!({"num":7937500,"den":3}), "page 2's grid");
     done(
         &mut shell,
@@ -213,7 +217,16 @@ fn a_drawings_history_export_save_and_test_in_both_frontends() {
         done(&mut shell, "edit.undo", json!({}));
         assert_eq!(shell.symbol_editor().unwrap().draft, original);
         done(&mut shell, "edit.redo", json!({}));
-        let first = shell.symbol_editor().unwrap().draft.symbol.cps.iter().next().unwrap().pos;
+        let first = shell
+            .symbol_editor()
+            .unwrap()
+            .draft
+            .symbol
+            .cps
+            .iter()
+            .next()
+            .unwrap()
+            .pos;
         assert_eq!(first.x.0, 4_500_000);
         done(&mut shell, "edit.undo", json!({}));
         let file = tmp.0.join("power.symbol.json");
@@ -316,15 +329,14 @@ fn a_new_symbol_takes_its_key_from_its_name() {
     let mut shell = tmp.empty_shell(Mode::Headless);
     let key = |shell: &ShellModel| shell.symbol_editor().unwrap().draft.key.clone();
     let name = |shell: &mut ShellModel, name: &str| {
-        done(
-            shell,
-            "parts.field",
-            json!({"field":"symbol.name","value":name}),
-        );
+        done(shell, "parts.field", json!({"field":"symbol.name","value":name}));
     };
     done(&mut shell, "parts.open", json!({}));
     done(&mut shell, "parts.new_symbol", json!({}));
-    assert!(!shell.symbol_editor().unwrap().dirty(), "a new drawing is no change");
+    assert!(
+        !shell.symbol_editor().unwrap().dirty(),
+        "a new drawing is no change"
+    );
     let line = json!({"tool":"line","x":0,"y":0,"x2":0,"y2":4});
     done(&mut shell, "symbol.draw", line.clone());
     name(&mut shell, "Pump 3 (spare)");
@@ -843,10 +855,7 @@ fn a_refused_placement_on_a_new_page_leaves_no_empty_page() {
     let pages = labels(&shell);
     let folio = pages[shell.page_index()].clone();
     let refusal = failed(&mut shell, "symbol.new_page", json!({}));
-    assert!(
-        refusal.starts_with("No terminal strip to add to"),
-        "{refusal}"
-    );
+    assert!(refusal.starts_with("No terminal strip to add to"), "{refusal}");
     assert_eq!(labels(&shell), pages, "no page is left behind");
     assert_eq!(
         labels(&shell)[shell.page_index()],
@@ -1208,7 +1217,7 @@ fn new_symbol_over_unsaved_changes_asks_save_discard_or_cancel() {
     assert_eq!(shell.answer_confirm(ConfirmAnswer::Save), Outcome::Done);
     assert!(shell.dialog().is_none());
     assert_eq!(name(&shell), "New symbol");
-    assert!(shell.settings().symbols_recent.first().is_some(), "saved");
+    assert!(!shell.settings().symbols_recent.is_empty(), "saved");
     // A drawing without changes asks nothing.
     done(&mut shell, "parts.new_symbol", json!({}));
     assert!(shell.dialog().is_none());
@@ -1272,7 +1281,16 @@ fn the_selection_is_moved_copied_and_deleted_as_on_a_page() {
         graphics(&shell)[0]["rect"]["rect"],
         json!([[8_000_000, 0], [16_000_000, 8_000_000]])
     );
-    let cp = shell.symbol_editor().unwrap().draft.symbol.cps.iter().next().unwrap().pos;
+    let cp = shell
+        .symbol_editor()
+        .unwrap()
+        .draft
+        .symbol
+        .cps
+        .iter()
+        .next()
+        .unwrap()
+        .pos;
     assert_eq!((cp.x.0, cp.y.0), (4_000_000, 4_000_000));
     done(&mut shell, "symbol.undo", json!({}));
     assert_eq!(

@@ -583,16 +583,19 @@ fn button_of(meta: &'static ActionMeta, model: &ShellModel, size: CommandSize) -
     let kind = if meta.id == "parts.new_symbol" {
         // New symbol's menu: its starts, each the same action with its `like`.
         let mut starts = vec![item.clone()];
-        starts.extend(model.new_symbol_starts().into_iter().map(|(like, label, reason)| {
-            actions::ActionItem {
-                params: serde_json::json!({ "like": like }),
-                label,
-                shortcut: String::new(),
-                enabled: reason.is_none(),
-                reason,
-                ..item.clone()
-            }
-        }));
+        starts.extend(
+            model
+                .new_symbol_starts()
+                .into_iter()
+                .map(|(like, label, reason)| actions::ActionItem {
+                    params: serde_json::json!({ "like": like }),
+                    label,
+                    shortcut: String::new(),
+                    enabled: reason.is_none(),
+                    reason,
+                    ..item.clone()
+                }),
+        );
         ButtonKind::Split(starts)
     } else if let Some((_, variants)) = SPLITS.iter().find(|(id, _)| *id == meta.id) {
         ButtonKind::Split(

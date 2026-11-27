@@ -474,32 +474,32 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
                 strings::text(editor.state_key()),
             ],
         );
-        return [field(StatusKind::State, state.into(), Tone::Normal)]
-        .into_iter()
-        .chain(help)
-        .chain([
-            field(
-                StatusKind::Grid,
-                grid_words(
-                    editor.draft.symbol.grid.num() as i64,
-                    editor.draft.symbol.grid.den() as i64,
+        return [field(StatusKind::State, state, Tone::Normal)]
+            .into_iter()
+            .chain(help)
+            .chain([
+                field(
+                    StatusKind::Grid,
+                    grid_words(
+                        editor.draft.symbol.grid.num() as i64,
+                        editor.draft.symbol.grid.den() as i64,
+                    ),
+                    Tone::Normal,
                 ),
-                Tone::Normal,
-            ),
-            // An unedited new or imported draft is in no library yet, not "Saved".
-            field(
-                StatusKind::Save,
-                strings::text(editor.state_key()).into(),
-                if editor.dirty() {
-                    Tone::Strong
-                } else if editor.stored() {
-                    Tone::Success
-                } else {
-                    Tone::Normal
-                },
-            ),
-        ])
-        .collect();
+                // An unedited new or imported draft is in no library yet, not "Saved".
+                field(
+                    StatusKind::Save,
+                    strings::text(editor.state_key()).into(),
+                    if editor.dirty() {
+                        Tone::Strong
+                    } else if editor.stored() {
+                        Tone::Success
+                    } else {
+                        Tone::Normal
+                    },
+                ),
+            ])
+            .collect();
     }
     // A note the shell made for the open project stands in the state's place, else why a command did nothing while
     // its toast shows.
