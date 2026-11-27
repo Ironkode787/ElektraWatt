@@ -21,18 +21,8 @@ use serde_json::json;
 
 use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
-use crate::rules::Named;
-use crate::rules::term::full_tag;
-
-/// A device as printed: its full designation.
-fn device_name(q: &Q, device: Id<ew_schema::Device>) -> Named {
-    full_tag(q, device, text!("word-a-device-without-designation"))
-}
-
-/// A length in millimetres as printed: exact, without trailing zeros, with its unit.
-fn mm(nm: i128) -> String {
-    format!("{} mm", ew_derive::mm_exact(nm))
-}
+use crate::rules::layout::device_name;
+use crate::rules::term::mm;
 
 /// A duct inside a sentence: its label ("duct 1"); `None` for a carrier that is gone or of a newer kind.
 fn duct_name(q: &Q, c: Id<Carrier>) -> Option<TextArg> {
@@ -48,15 +38,6 @@ fn route_fix(space: Id<LayoutSpace>) -> QuickFix {
     }
 }
 
-/// A finding whose fingerprint is its rule's, its cause's ID and `discriminator`, with `more` targets added after it is
-/// made, so that the fingerprint does not move with them (a new wire at a moved device keeps the finding).
-fn with_more_targets(f: Finding, more: impl IntoIterator<Item = Target>) -> Finding {
-    let mut f = f;
-    f.targets.extend(more);
-    f.targets.sort();
-    f.targets.dedup();
-    f
-}
 
 // ---------------------------------------------------------------------------------------------------------
 // EW-LAY-007
@@ -350,7 +331,7 @@ pub const STALE_WAY: RuleMeta = RuleMeta {
 
 /// EW-LAY-011: the stored ways that no longer hold (doc 12 §8.5), one finding per cause and cabinet: a device that moved
 /// or is no longer placed, a duct that changed or is gone, a wire whose end moved to another pin. Its wires are its
-/// targets beside the cause, and its fingerprint is the cause's alone ([`with_more_targets`]), so a wire more or less
+/// targets beside the cause, and its fingerprint is keyed on the cause alone (`Finding::keyed_on`), so a wire more or less
 /// at the cause keeps the finding; quick fix Route.
 #[derive(Clone, Copy, Debug)]
 pub struct StaleWay;
@@ -372,13 +353,8 @@ impl Rule for StaleWay {
                     continue;
                 }
                 if let RouteStatus::Stale { why, .. } = route_status(q, &r.wire) {
-                    // A wire whose end moved is its own cause.
-                    let key = match why {
-                        StaleWhy::EndChanged { .. } => why,
-                        other => other,
-                    };
                     causes
-                        .entry(key)
+                        .entry(why)
                         .or_default()
                         .push((r.wire.id, crate::rules::pot::wire_text(q, &r.wire)));
                 }
@@ -420,27 +396,30 @@ impl Rule for StaleWay {
                         let Some(name) = duct_name(q, duct) else {
                             continue;
                         };
+                        let cause = Target::new(Kind::MountingSurface, door);
                         let f = Finding::new(
                             &STALE_WAY,
-                            [Target::new(Kind::MountingSurface, door)],
+                            std::iter::once(cause).chain(wire_targets),
                             door.as_uuid().to_string(),
                             name.clone(),
                         )
+                        .keyed_on(&[cause])
                         .arg("form", "door")
                         .arg("count", TextArg::Number(count))
                         .arg("at", name)
                         .arg("door", ew_derive::text::surface_words(q, door))
                         .with_fix(route_fix(space));
-                        out.push(with_more_targets(f, wire_targets));
+                        out.push(f);
                         continue;
                     }
                 };
                 let mut f = Finding::new(
                     &STALE_WAY,
-                    [cause],
+                    std::iter::once(cause).chain(wire_targets),
                     cause.id.as_uuid().to_string(),
                     subject.clone(),
                 )
+                .keyed_on(&[cause])
                 .arg("form", form)
                 .arg("count", TextArg::Number(count))
                 .arg("at", subject)
@@ -449,7 +428,7 @@ impl Rule for StaleWay {
                     let pin = |(f, i)| ew_derive::cp_label(q, ew_derive::CpRef::new(f, i));
                     f = f.arg("from", pin(from)).arg("to", pin(to));
                 }
-                out.push(with_more_targets(f, wire_targets));
+                out.push(f);
             }
         }
         out
@@ -499,22 +478,19 @@ impl Rule for NoLength {
                 continue;
             }
             let cabinet = cabinet_name(q, space);
+            let cause = Target::new(Kind::LayoutSpace, space);
+            let count = i64::try_from(wires.len()).unwrap_or(i64::MAX);
             let f = Finding::new(
                 &NO_LENGTH,
-                [Target::new(Kind::LayoutSpace, space)],
+                std::iter::once(cause).chain(wires.into_iter().map(|w| Target::new(Kind::Connection, w))),
                 "length",
                 cabinet.clone(),
             )
-            .arg(
-                "count",
-                TextArg::Number(i64::try_from(wires.len()).unwrap_or(i64::MAX)),
-            )
+            .keyed_on(&[cause])
+            .arg("count", TextArg::Number(count))
             .arg("cabinet", cabinet)
             .with_fix(route_fix(space));
-            out.push(with_more_targets(
-                f,
-                wires.into_iter().map(|w| Target::new(Kind::Connection, w)),
-            ));
+            out.push(f);
         }
         out
     }

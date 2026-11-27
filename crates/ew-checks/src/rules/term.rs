@@ -7,7 +7,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::{
     DeriveNote, DeviceTag, FunctionCps, NoteFact, PhysicalWiresOf, PotentialPartition, Q, RailTerminalOf,
-    StripBridges, StructurePath, WireNumbers, cp_point, drawn_path, on_segment,
+    StripBridges, WireNumbers, cp_point, drawn_path, on_segment,
 };
 use ew_ids::Id;
 use ew_mltext::CaseSensitivity;
@@ -41,13 +41,19 @@ pub(crate) fn full_tag(q: &Q, device: Id<Device>, fallback: impl Into<Named>) ->
         .map_or_else(|| fallback.into(), |t| t.full.clone().into())
 }
 
-/// A location as a designation prints it: `+` and its path's codes (`+J-E-2416`).
+/// A location as a designation prints it (`ew_derive::layout::location_text`: `+` and its path's codes, `+J-E-2416`),
+/// else the words "a location".
 pub(crate) fn location_text(q: &Q, node: Id<StructureNode>) -> Named {
-    let path = q.get::<StructurePath>(node);
-    if path.codes.is_empty() {
+    let text = ew_derive::layout::location_text(q, node);
+    if text.is_empty() {
         return text!("word-a-location").into();
     }
-    format!("+{}", path.codes.join("+")).into()
+    text.into()
+}
+
+/// A length in millimetres as a finding prints it: exact, without trailing zeros, with its unit.
+pub(crate) fn mm(nm: i128) -> String {
+    format!("{} mm", ew_derive::mm_exact(nm))
 }
 
 /// The `end` argument of EW-TERM-002's pattern: `named` for a strip with a printed designation, `untagged`

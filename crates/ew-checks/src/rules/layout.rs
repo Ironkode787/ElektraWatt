@@ -50,7 +50,7 @@ use ew_units::{Pt2, Rect};
 use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 use crate::rules::Named;
-use crate::rules::term::{full_tag, location_text};
+use crate::rules::term::{full_tag, location_text, mm};
 
 // ---------------------------------------------------------------------------------------------------------
 // Shared helpers
@@ -810,10 +810,6 @@ impl Rule for Collision {
     }
 }
 
-/// A length as a finding prints it: exact, with its unit.
-fn mm(n: ew_units::Nm) -> String {
-    format!("{} mm", ew_derive::mm_exact(i128::from(n.0)))
-}
 
 /// A rectangle of `surface` in its enclosure's front view (`to_enclosure`); `None` for a face that is no plate or door.
 fn in_front(q: &Q, surface: Id<MountingSurface>, r: Rect) -> Option<Rect> {
@@ -898,8 +894,8 @@ fn closed_door(q: &Q) -> Vec<Finding> {
                 let f = Finding::new(&COLLISION, targets.clone(), "door_reach", name.clone())
                     .arg("form", "door_reach")
                     .arg("device", name.clone())
-                    .arg("take", mm(*take))
-                    .arg("room", mm(room));
+                    .arg("take", mm(i128::from(take.0)))
+                    .arg("room", mm(i128::from(room.0)));
                 out.push(shown(f, q, Some(*s)));
             }
         }
@@ -934,9 +930,9 @@ fn closed_door(q: &Q) -> Vec<Finding> {
                     .arg("form", "door_meet")
                     .arg("device", name.clone())
                     .arg("other", other)
-                    .arg("a", mm(*take))
-                    .arg("b", mm(behind))
-                    .arg("room", mm(room));
+                    .arg("a", mm(i128::from(take.0)))
+                    .arg("b", mm(i128::from(behind.0)))
+                    .arg("room", mm(i128::from(room.0)));
                     out.push(shown(f, q, Some(*s)));
                 }
             }
