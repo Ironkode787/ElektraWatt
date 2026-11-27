@@ -369,9 +369,9 @@ way"; "No way yet: Route on page 902 gives it one, or type its length here"; "No
 - the rework list ([13](13-manufacturing-outputs.md) §3.5): Check length where a length changed since the release;
 - the check before an export for the workshop: the length and its source.
 
-**EW-MFG-001.** In a project with a panel layout, Check project and the check before an export report the cabinet's
-wires without a length, one finding: "12 wires of +CAB have no length: Route gives them one, or type it" (info), with
-Select them. Field wires and cores are not counted: the site and the cable give their lengths. A stale length is
+**EW-MFG-001.** In a project with a panel layout, Check project reports the cabinet's wires without a length, one
+finding per cabinet with the wires as its targets: "12 wires of +CAB have no length: Route gives them one, or type it"
+(info), with Route as its quick fix. Field wires and cores are not counted: the site and the cable give their lengths. A stale length is
 EW-LAY-011's (§8.5), not EW-MFG-001's.
 
 **Worked example** (the sample, its door devices in the door; `run` in mm):

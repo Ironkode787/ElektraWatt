@@ -39,7 +39,9 @@ Three groups, in this order:
 A field wire (an end outside the cabinet) counts the ferrule and the markers of the end the shop makes, but not its
 metres: it is cut on site. A cable's core is cut with its cable: its ends count, its metres are the cable's. The row prints the part's number and description, or the wire's size and colour as the
 lists print them; the For cell says what it serves ("12 wires", "2.5 mm²", "Wire markers"). Nothing is rounded here:
-a wire's length is the wire list's, and an order quantity belongs to the order list.
+a wire's length is the wire list's, and an order quantity belongs to the order list. A length along a way that no
+longer holds ([12-3d](12-3d-routing-thermal.md) §8.5) is summed as the wire list prints it, and the row's metres print
+after "≈" while every wire of the row has a length and one of them is such a length.
 
 ## 6. Terminal-strip assembly lists
 
@@ -114,7 +116,9 @@ A strip whose terminals have no part asks nothing of its end plate: the part dec
 A row prints the part number and description (or the wire's size and colour, the tube's material, size and colour),
 For (the carriers by label, "Rail 1, Rail 2"; the cables by tag; the wires by number, a run compressed), the pieces,
 the piece length in millimetres and the total in metres. Pieces without a length count on one row of their group
-with "length missing"; a field wire is cut on site and left out. The cut increment is the project's
+with "length missing"; a field wire is cut on site and left out. A wire's length along a way that no longer holds
+([12-3d](12-3d-routing-thermal.md) §8.5) prints after "≈", piece and total alike; wires of one key and one length share
+a row, which prints "≈" when one of them is such a length. The cut increment is the project's
 (`workshop.cut_increment`, [07](07-symbols-parts-macros.md) §2.5; Project properties ▸ Workshop ▸ Cut to), 5 mm
 unless set; a piece is rounded once, here, and its total is the sum of the rounded pieces. A cable's core is cut with
 its cable and is no wire row; a duct's cover is one piece of the duct's length per duct. Rails and ducts come from
