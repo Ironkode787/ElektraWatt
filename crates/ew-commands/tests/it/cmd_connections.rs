@@ -1407,17 +1407,24 @@ fn a_wire_through_two_pairs_keeps_its_ends_when_its_middle_is_drawn_again() {
     assert_eq!(wire_seen(e.model(), &feed, &clamp).map(|w| w.2), ends());
 }
 
-/// A bond whose `via` is a connection of a chain changes the wiring as a deleted connection does (doc 13 §2.3): the via
-/// leaves the chain's wires, and the wire the chain joins from -102F2:4 to -T2:1 instead keeps what divides of the two
-/// it is made from and each end set by hand at its clamp, but no typed length.
+/// A bond whose `via` is a connection of a chain, between that connection's own two ends, changes the wiring as a
+/// deleted connection does (doc 13 §2.3): the via leaves the chain's wires, and the wire the chain joins from -102F2:4
+/// to -T2:1 instead keeps what divides of the two it is made from and each end set by hand at its clamp, but no typed
+/// length.
 #[test]
 fn a_bond_through_a_chains_member_rewires_it_and_the_wires_keep_their_values() {
     let [x, _, t] = clamps3();
     let (model, ids) = t_model(JunctionStyle::Bevel(Default::default()), [true, false]);
     let mut e = engine(model);
+    let via = row(&e, ids[1]);
+    let end = |p: &ew_schema::Endpoint| match p {
+        ew_schema::Endpoint::Cp(f, i) => cp_param(*f, *i),
+        ew_schema::Endpoint::Junction(j) => EndpointParam::Junction { junction: *j },
+        other => panic!("{other:?}"),
+    };
     e.execute(&CreateBond {
-        a: cp_param(FN_102F2, 4),
-        b: cp_param(FN_T1, 1),
+        a: end(&via.a),
+        b: end(&via.b),
         kind: serde_json::from_value(serde_json::json!("shield")).expect("a bond kind"),
         via: Some(ids[1]),
     })

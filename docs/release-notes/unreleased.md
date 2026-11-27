@@ -659,3 +659,6 @@ change here.
 - behaviour-change: a wire selected with its every stretch (its row of the Connections table) reads as one wire in
   Properties: its section is headed "Connection (1)", not "Connections (3)", and its Wire number is the wire's, not
   "varies" over the numbers of the stretches it shares with other wires
+- behaviour-change: `bond.create` refuses a `via` wire that does not run between the bond's two ends, in words that
+  name the two points it joins; such a wire dropped out of the wiring and the wires around it formed anew. A bond a
+  saved project holds is read as before

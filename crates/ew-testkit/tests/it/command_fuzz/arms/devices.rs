@@ -984,6 +984,8 @@ pub(super) fn bond_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         _ => {
             let (a, b) = pick2(functions, rng)?;
             let mut p = json!({"a": cp_end(a, small_idx(rng)), "b": cp_end(b, small_idx(rng)), "kind": kind});
+            // A wire picked at random seldom runs between the two ends: the command refuses it, and the step takes
+            // that refusal (the counts are compared only for a step that commits).
             if rng.chance(3) {
                 p["via"] = rng.pick(&live.connections)?.clone();
             }

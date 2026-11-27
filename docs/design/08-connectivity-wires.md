@@ -383,7 +383,9 @@ potential_flow(potential):                              // memo per potential; t
 - **Bond cut.** A `Bond{a, b, kind, via}` adds a non-joining edge. Its `via` connection (the carrier of the bond
   wire) is left out of union at both levels. B1 (`Pelv0vPe`, via W27) keeps 0V and PE as two potentials (FR-CON-014,
   D-22). The bond wire is still a physical wire: physical-wire extraction runs on the full drawing graph, including
-  via connections (§3.8). The wire list shows W27 with potential "0V ⇄ PE".
+  via connections (§3.8). The wire list shows W27 with potential "0V ⇄ PE". `bond.create` refuses a `via` that does
+  not run between the bond's two ends, naming the two points it does join; a bond a saved project holds is read as it
+  is.
 - **The drawn bond.** A wire drawn on a page from a 0 V point to a protective-earth point is the
   bond itself: whoever draws it has declared it, and no second declaration is asked. `page_local_nets` joins the page
   without the connections that end on a PE-role CP first; then such a connection with exactly one end on a PE-role CP

@@ -202,14 +202,34 @@ fn cp_param(function: Id<Function>, idx: u16) -> EndpointParam {
 #[test]
 fn bond_create_inserts_the_bond() {
     let mut e = engine(mini_model());
-    let cmd = bond(cp_param(FN_102F2, 1), cp_param(FN_102G1, 1), Some(CON_W27));
+    // W27 runs from the junction J5 to -T2's first CP: the bond's wire, either way round.
+    let cmd = bond(cp_param(FN_T2, 0), EndpointParam::Junction { junction: J5 }, Some(CON_W27));
     let r = e.execute(&cmd).expect("bond.create");
     let id: Id<Bond> = primary(&r);
     let b = row(&e, id);
-    assert_eq!(b.a, cp(FN_102F2, 1));
-    assert_eq!(b.b, cp(FN_102G1, 1));
+    assert_eq!(b.a, cp(FN_T2, 0));
+    assert_eq!(b.b, ew_schema::Endpoint::Junction(J5));
     assert_eq!(b.kind, BondKind::Equipotential);
     assert_eq!(b.via, Some(CON_W27));
+    let plain = bond(cp_param(FN_102F2, 1), cp_param(FN_102G1, 1), None);
+    e.execute(&plain).expect("a bond without its wire");
+}
+
+/// A wire that does not run between the bond's two ends is refused, in words that name the two points it does join;
+/// nothing is written.
+#[test]
+fn bond_create_refuses_a_wire_between_other_points() {
+    let mut e = engine(mini_model());
+    let wrong = bond(cp_param(FN_102F2, 1), cp_param(FN_102G1, 1), Some(CON_W27));
+    let words = reason(e.execute(&wrong));
+    assert!(
+        words.contains("does not run between the bond's two ends") && words.contains("the junction at "),
+        "{words}"
+    );
+    // One end right is not enough.
+    let half = bond(cp_param(FN_T2, 0), cp_param(FN_102G1, 1), Some(CON_W27));
+    rejected(e.execute(&half));
+    assert_eq!(e.model().rev().0, 0);
 }
 
 #[test]

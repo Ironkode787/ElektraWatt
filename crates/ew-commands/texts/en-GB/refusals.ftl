@@ -18,6 +18,7 @@ refusal-words-symbol = the symbol of { $p0 }
 refusal-words-point = x { $p0 }, y { $p1 } mm on { $p2 }
 refusal-words-junction = the junction at { $p0 }
 refusal-words-junction-gone = a junction that is not in the project
+refusal-words-end-newer = an end of a newer format
 refusal-words-ip = interruption point { $p0 }
 refusal-words-position = x { $p0 }, y { $p1 } mm
 refusal-words-wire = wire { $p0 }
@@ -421,6 +422,7 @@ refusal-potential-define-twice = this point already defines the potential { $p0 
 refusal-bond-on-connection = a bond ends at a CP or a junction, not on a connection; name one of them
 refusal-bond-same-end = both ends of the bond are the same point; pick two different ends
 refusal-bond-unknown-kind = unknown bond kind
+refusal-bond-via-ends = { $p0 } does not run between the bond's two ends: it joins { $p1 } and { $p2 }; choose the wire that joins them, or none
 # connection.draw_to_ip.
 refusal-draw-to-ip-cp-count = the interruption point's function definition has { $p0 } connection points; a wire ends in an interruption point with exactly one
 refusal-draw-to-ip-fluid = a tube joins fluid ports only; an interruption point is not a fluid port

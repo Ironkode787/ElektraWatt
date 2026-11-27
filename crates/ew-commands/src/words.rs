@@ -311,6 +311,16 @@ pub(crate) fn junction(tx: &TxBuilder<'_>, id: ew_ids::Id<Junction>) -> Text {
     )
 }
 
+/// An end of a connection or a bond: a CP by its device's tag and designation ([`cp`]), a junction by its place
+/// ([`junction`]), an end of a newer format by those words.
+pub(crate) fn endpoint(tx: &TxBuilder<'_>, end: &ew_schema::Endpoint) -> Text {
+    match end {
+        ew_schema::Endpoint::Cp(f, idx) => cp(tx, *f, *idx),
+        ew_schema::Endpoint::Junction(j) => junction(tx, *j),
+        ew_schema::Endpoint::Unknown(_) => text!("refusal-words-end-newer"),
+    }
+}
+
 /// An interruption point by its name ("interruption point 0V"); a function that is no interruption point by
 /// its device's tag, as [`function`] names it.
 pub(crate) fn interruption_point(tx: &TxBuilder<'_>, id: ew_ids::Id<Function>) -> TextArg {

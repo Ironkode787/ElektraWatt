@@ -19,6 +19,7 @@ refusal-words-symbol = het symbool van { $p0 }
 refusal-words-point = x { $p0 }, y { $p1 } mm op { $p2 }
 refusal-words-junction = de aftakking op { $p0 }
 refusal-words-junction-gone = een aftakking die niet in het project staat
+refusal-words-end-newer = een uiteinde van een nieuwer formaat
 refusal-words-ip = onderbrekingspunt { $p0 }
 refusal-words-position = x { $p0 }, y { $p1 } mm
 refusal-words-wire = draad { $p0 }
@@ -422,6 +423,7 @@ refusal-potential-define-twice = dit punt definieert de potentiaal { $p0 } al; w
 refusal-bond-on-connection = een potentiaalverbinding eindigt op een aansluitpunt of een aftakking, niet op een verbinding; noem een van beide
 refusal-bond-same-end = beide uiteinden van de potentiaalverbinding zijn hetzelfde punt; kies twee verschillende uiteinden
 refusal-bond-unknown-kind = onbekende soort potentiaalverbinding
+refusal-bond-via-ends = { $p0 } loopt niet tussen de twee uiteinden van de potentiaalverbinding: hij verbindt { $p1 } en { $p2 }; kies de draad die ze verbindt, of geen
 # connection.draw_to_ip.
 refusal-draw-to-ip-cp-count = de functiedefinitie van het onderbrekingspunt heeft { $p0 } aansluitpunten; een draad eindigt in een onderbrekingspunt met precies één
 refusal-draw-to-ip-fluid = een slang verbindt alleen fluïdumpoorten; een onderbrekingspunt is geen fluïdumpoort

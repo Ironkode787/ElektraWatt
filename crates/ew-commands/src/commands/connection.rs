@@ -1139,7 +1139,8 @@ impl Command for DefinePotential {
 ///
 /// Creates `Bond {a, b, kind, via}`. `a` and `b` must each be a CP of an existing function or an existing
 /// junction (a point on a connection is rejected) and must differ; `via`, the connection that realises the
-/// bond, must exist when given. The bond's label (`B1`) is derived. Whether
+/// bond, must exist when given and run between `a` and `b` (either way round): another is refused in words that name
+/// the two points it joins. The bond's label (`B1`) is derived. Whether
 /// the two ends lie on different potentials, and the PELV rule of exactly one 0 V-PE bond, are checks
 /// (EW-POT-001, EW-POT-002), not refusals. Outcome: the bond.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -1184,6 +1185,17 @@ impl Command for CreateBond {
         refuse_fluid_port(tx, &b)?;
         if let Some(via) = self.via {
             tx.require::<Connection>(via)?;
+            // The wire that realises the bond runs between its two ends, in either direction.
+            if let Some(c) = tx.get::<Connection>(via)
+                && !((c.a == a && c.b == b) || (c.a == b && c.b == a))
+            {
+                return tx.reject(text!(
+                    "refusal-bond-via-ends",
+                    crate::words::wire(tx, via),
+                    crate::words::endpoint(tx, &c.a),
+                    crate::words::endpoint(tx, &c.b)
+                ));
+            }
         }
         let id: Id<Bond> = tx.mint();
         tx.insert(Bond {
