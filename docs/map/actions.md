@@ -506,6 +506,7 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `keymap.export` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_keymap_export` `crates/ew-viewmodel/src/shell/keymaps.rs` | `action-keymap-export`, `error-keymap-export` |
 | `parts.new_symbol` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_new_symbol` `crates/ew-viewmodel/src/shell/symbol_editor/place.rs` | `action-parts-new-symbol`, `parts-new-symbol` |
 | `parts.draw` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_draw` `crates/ew-viewmodel/src/shell/symbol_editor/place.rs` | `action-parts-draw` |
+| `parts.use_for_all` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_use_for_all` `crates/ew-viewmodel/src/shell/symbol_editor/place.rs` | `action-parts-use-for-all`, `parts-use-for-all`, `parts-use-for-all-card`, `parts-use-for-all-held`, `parts-use-for-all-none` |
 | `symbol.open` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_symbol` `crates/ew-viewmodel/src/shell/symbol_editor.rs` | `action-symbol-open` |
 | `symbol.candidate` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_symbol` `crates/ew-viewmodel/src/shell/symbol_editor.rs` | `action-symbol-candidate`, `symbol-candidate-invalid` |
 | `symbol.link` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_symbol` `crates/ew-viewmodel/src/shell/symbol_editor.rs` | `action-symbol-link`, `symbol-link`, `symbol-link-duplicate`, `symbol-link-line`, `symbol-link-named` |
