@@ -9520,9 +9520,9 @@ msgid ""
 "coil, a terminal in the terminal diagram) and where the browsers list it, "
 "which **Listed under** follows; the discipline follows from it and the page, "
 "and is not asked. A first symbol on an electrical page is a normally open "
-"contact, elsewhere a device box. **Other marks ▸ Cross-reference point at "
-"the drawing's centre** keeps that point at the centre whatever the drawing "
-"holds."
+"contact, elsewhere a device box. In **Other marks** on the Drawing tab, "
+"_Cross-reference point at the drawing's centre_ keeps that point at the "
+"centre whatever the drawing holds."
 msgstr ""
 
 #: src/reference/symbol-editor.md:97
