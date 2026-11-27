@@ -163,7 +163,7 @@ change here.
   the rail's end (doc 12 §2.6)
 - behaviour-change: a part says what it brings with it (doc 07 §2.5): the starter terminals bring their end plate per
   strip and their end bracket per rail group, the parts list and the enclosure legend list them, and a strip takes their
-  widths on its rail (the sample's -X1031 moves to rail 2); a device or strip may leave one off or take another part
+  widths on its rail; a device or strip may leave one off or take another part
 - behaviour-change: a part may have variants (the starter feed-through terminal in blue): a device's Variant row in
   Properties, the strip editor's Part cell and the place browser choose one, the lists print the variant's own number
   on a row of its own, and EW-CORE-085 names a variant the part does not have
@@ -222,7 +222,7 @@ change here.
   Length (`400 mm`; `cable` for a cable core, cut with its cable; `—` without one) and Length from (typed, cable,
   missing) in its CSV and XLSX and in List columns…, the Connections table's Length cell takes a length in
   millimetres or with its unit (`2 m`) and sets it on a connection of that wire alone, and a wire's Properties have a
-  Length row that says where its length comes from. The sample project has typed lengths on 101.1, 102.8 and 103.2.
+  Length row that says where its length comes from. The sample project has a typed length on 101.1.
 - text-change: The tube list says `typed` (in Dutch `getypt`) for a length typed by hand, as the wire list does, where
   it said `manual` (`handmatig`).
 - behaviour-change: The Output tab has a Workshop group with Wire list, which opens the first page of the project's
