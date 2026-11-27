@@ -518,6 +518,16 @@ pub(super) fn panel_page_shown(m: &ShellModel) -> Result<(), Text> {
     }
 }
 
+/// Drilling…: a surface of the project has holes.
+pub(super) fn has_holes(m: &ShellModel) -> Result<(), Text> {
+    has_pages(m)?;
+    if m.has_holes() {
+        Ok(())
+    } else {
+        Err(key!("reason-no-holes").into())
+    }
+}
+
 /// Surface…: a project that can be changed has a cabinet (an enclosure brings its plate).
 pub(super) fn surfaces_offered(m: &ShellModel) -> Result<(), Text> {
     has_pages(m)?;

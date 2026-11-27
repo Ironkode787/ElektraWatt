@@ -27,7 +27,7 @@ use ew_api::import::migration::ReportFormat;
 use ew_api::output::print::Paper;
 use ew_api::output::{CsvOptions, LineEnd, PageSelection, Preset};
 
-use super::export::{LabelsCli, ReworkCli};
+use super::export::{DrillingCli, LabelsCli, ReworkCli};
 use super::io::Io;
 use super::{
     CheckFormat, ExportArgs, ExportKind, ExportPagesArgs, ImportCsvArgs, ImportPartsArgs, ImportQetArgs,
@@ -982,6 +982,15 @@ pub(crate) enum ExportCli {
     /// are. Exit 0 when written, 2 on everything else (usage, open errors, no such release or its archive not found,
     /// write errors).
     Labels(LabelsCli),
+    /// Write the drawings for drilling: per surface with holes a template and a DXF.
+    ///
+    /// Writes into the folder `--dir` (required, made when missing), per surface with holes (doc 13 §9.1), its
+    /// template to print at full size (`<location> <surface> template.pdf`, A4 unless `--template a3`) and its DXF for a
+    /// machine (`<location> <surface>.dxf`, origin at the surface's datum corner, a layer per way of making a hole),
+    /// each written whole, in the project's language. `--surface` (repeatable) takes surfaces by their words ("Door")
+    /// or their ID; without it every surface with holes. `--no-template` and `--no-dxf` leave one kind out. Exit 0 when
+    /// written, 2 on everything else (usage, open errors, no surface with holes, an unknown surface, write errors).
+    Drilling(DrillingCli),
     /// Write one PNG file per page.
     ///
     /// Writes one `<folio>.png` per page into the directory `--out` (empty, or one an earlier PNG export wrote, which

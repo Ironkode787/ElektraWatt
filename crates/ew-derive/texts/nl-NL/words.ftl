@@ -221,6 +221,20 @@ hinge-left = Links
 hinge-right = Rechts
 hinge-word = Scharnier
 door-edge-word = Deurkant
+template-file = { $p0 } { $p1 } boormal
+template-edge-left = Linkerkant van de { $p0 }: leg deze kant ertegen
+template-edge-right = Rechterkant van de { $p0 }: leg deze kant ertegen
+template-edge-top = Bovenkant van de { $p0 }: leg deze kant ertegen
+template-edge-bottom = Onderkant van de { $p0 }: leg deze kant ertegen
+template-band-what = { $p0 } · { $p1 } { $p2 } · { $p3 }
+template-band-sheet = Blad { $p0 } van { $p1 }, rij { $p2 }, kolom { $p3 }: { $p4 }–{ $p5 } mm vanaf de { $p6 }, { $p7 }–{ $p8 } mm vanaf de { $p9 }
+template-band-datum = Gatentabel: X en Y vanaf de hoek { $p0 }, met 0 gemarkeerd
+template-bar = 100 mm: print op ware grootte (100 %) en meet deze balk
+drill-datum = 0,0: hoek { $p0 } van de { $p1 }, { $p2 }
+word-edge-left = linkerkant
+word-edge-right = rechterkant
+word-edge-top = bovenkant
+word-edge-bottom = onderkant
 
 ## Hoe een artikel gemonteerd wordt, en het label van een drager (doc 12 §2.5)
 

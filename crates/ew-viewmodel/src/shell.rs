@@ -96,6 +96,8 @@ mod layout;
 mod surfaces;
 // The holes of a surface: Add hole here… and Hole tables
 mod features;
+// Output ▸ Workshop ▸ Drilling… (doc 13 §9).
+mod drilling;
 // The message panel.
 mod messages;
 mod move_page;

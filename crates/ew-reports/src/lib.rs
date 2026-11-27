@@ -64,7 +64,7 @@ pub use arrange::{Arrangement, arrange};
 pub use kind::{
     EmbeddedLayout, KindParams, ParamDef, ParamKind, ParamValue, Registry, ReportKindDef, kind_params,
 };
-pub use kinds::{cable_length_words, length_source_cell};
+pub use kinds::{cable_length_words, hole_owner_words, length_source_cell};
 pub use layout::{Layouts, PageLayout};
 pub use paginate::{BlockSpec, Break, Continuation, Slice, paginate};
 pub use queries::{BlockPages, BlockRows, ReportEngine, arranged, engine, project_rows, rows_of};

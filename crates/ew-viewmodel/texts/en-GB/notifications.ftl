@@ -573,3 +573,7 @@ toast-list-rows = { $p0 ->
        *[other] The list { $p1 } holds { $p0 } rows of your own
     }.
 toast-list-rows-none = The list { $p0 } holds no rows of your own.
+toast-drilling-written = { $p0 ->
+        [one] Wrote 1 file to { $p1 }
+       *[other] Wrote { $p0 } files to { $p1 }
+    }.

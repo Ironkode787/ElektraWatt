@@ -45,6 +45,10 @@
 
 // The DXF set's attributes and block names (doc 09 §4.9).
 mod dxf_set;
+// The drawings for drilling (doc 13 §9.1).
+mod drilling;
+pub use drilling::{DrillingAsk, DrillingFile, DrillingSurface};
+pub use ew_derive::layout::Paper;
 mod editing;
 mod fields;
 // The export as a job.

@@ -17,6 +17,7 @@ mod device_list;
 mod enclosure_legend;
 mod fluid;
 mod hole_table;
+pub use hole_table::owner_words as hole_owner_words;
 mod io_list;
 mod labels;
 mod numbering_report;

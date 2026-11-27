@@ -51,7 +51,6 @@ version, the header, the handles and the number format of its page DXFs), from a
 | Item | How |
 |---|---|
 | Units and origin | millimetres (`$INSUNITS` 4); the origin at the surface's datum corner; x right and y up as the surface's page shows it (a door seen from outside), so nothing is mirrored |
-| `DATUM` | a cross at the origin and a `TEXT` that names the corner and the side: "0,0: bottom-left corner of the door, seen from outside" (the project's language) |
 | `OUTLINE` | the surface's sheet as a closed `LWPOLYLINE` |
 | `MARGIN` | the edge margin's inner line as a closed `LWPOLYLINE` |
 | `HOLE_<d>` | a hole drilled through, at its drill: `CIRCLE` of that diameter (`HOLE_4.5`) |
@@ -59,6 +58,7 @@ version, the header, the handles and the number format of its page DXFs), from a
 | `CUT_<d>` | a round cut-out or a gland hole: `CIRCLE` (`CUT_22.3`) |
 | `CUT_RECT` | a rectangle: a closed `LWPOLYLINE`, its corner radius as bulges |
 | `NUMBERS` | each hole's number as `TEXT`, 3 mm high, beside it |
+| `DATUM` | a cross at the origin and a `TEXT` that names the corner and the side: "0,0: bottom-left corner of the door, seen from outside" (the project's language) |
 | Order | by layer in this table's order, then by hole number; coordinates from nanometres to 0.001 mm |
 | Left out | devices, labels, carriers, the frame, the title block and dimensions |
 

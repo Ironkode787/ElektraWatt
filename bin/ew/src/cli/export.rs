@@ -1246,6 +1246,127 @@ impl ReworkCli {
     }
 }
 
+/// `ew export drilling`.
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct DrillingCli {
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
+    /// A surface by its words ("Door", "Bottom") or its ID; repeatable; absent: every surface with holes.
+    #[arg(long, value_name = "surface", allow_hyphen_values = true)]
+    pub(super) surface: Vec<String>,
+    /// The templates' paper: a4 (default) or a3.
+    #[arg(long, value_name = "paper", allow_hyphen_values = true)]
+    pub(super) template: Option<String>,
+    /// Leave the DXFs out.
+    #[arg(long)]
+    pub(super) no_dxf: bool,
+    /// Leave the templates out.
+    #[arg(long)]
+    pub(super) no_template: bool,
+    /// The folder to write into (required).
+    #[arg(long, value_name = "folder", allow_hyphen_values = true, overrides_with = "dir")]
+    pub(super) dir: Option<PathBuf>,
+}
+
+impl Leaf for DrillingCli {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "written"),
+        exit(
+            2,
+            "usage, open errors, no surface with holes, an unknown surface or paper, write errors",
+        ),
+    ];
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.dir.as_ref().map(drop).ok_or_else(|| {
+            usage_error(
+                &["export", "drilling"],
+                "`ew export drilling` writes files: give `--dir <folder>`",
+            )
+        })
+    }
+}
+
+/// `ew export drilling`: the drawings for drilling of the surfaces asked (every surface with holes without
+/// `--surface`), written into `--dir`, each file whole.
+pub(super) fn run_export_drilling(a: &DrillingCli, io: &mut Io<'_>) -> i32 {
+    let Some(folder) = a.dir.as_ref() else {
+        return 2;
+    };
+    let paper = match a.template.as_deref() {
+        None => ew_api::output::Paper::A4,
+        Some(w) => match ew_api::output::Paper::of_word(w) {
+            Some(p) => p,
+            None => {
+                io.error(format_args!("--template {w}: the paper is a4 or a3"));
+                return 2;
+            }
+        },
+    };
+    let Some(dir) = project_dir(a.project.as_ref(), io) else {
+        return 2;
+    };
+    let (session, _) = match open_reader(&dir, "export drilling", io) {
+        Ok(r) => r,
+        Err(e) => {
+            io.error(format_args!("{}: {e}", dir.display()));
+            return 2;
+        }
+    };
+    let offered = session.drilling_surfaces(paper);
+    if offered.is_empty() {
+        io.error(format_args!("{}: no surface of the project has holes", dir.display()));
+        return 2;
+    }
+    let mut surfaces = Vec::new();
+    for name in &a.surface {
+        let found = offered.iter().find(|o| {
+            o.surface.to_string() == *name
+                || ew_api::catalogue()
+                    .text_for(&o.words, None)
+                    .eq_ignore_ascii_case(name.trim())
+        });
+        match found {
+            Some(o) => surfaces.push(o.surface),
+            None => {
+                io.error(format_args!("--surface {name}: no surface with holes is called so"));
+                return 2;
+            }
+        }
+    }
+    if surfaces.is_empty() {
+        surfaces = offered.iter().map(|o| o.surface).collect();
+    }
+    let ask = ew_api::output::DrillingAsk {
+        surfaces,
+        paper,
+        template: !a.no_template,
+        dxf: !a.no_dxf,
+    };
+    let files = match session.drilling_files(&ask) {
+        Ok(f) => f,
+        Err(e) => {
+            io.error(format_args!("{}: {e}", dir.display()));
+            return 2;
+        }
+    };
+    if let Err(e) = ew_api::Session::write_drilling_files(folder, &files) {
+        io.error(format_args!("{}: {e}", folder.display()));
+        return 2;
+    }
+    for f in &files {
+        outln!(io, "{}", f.name);
+    }
+    outln!(
+        io,
+        "drawings for drilling written to {}: {}",
+        folder.display(),
+        plural(files.len(), "file", "files")
+    );
+    0
+}
+
 /// `ew export labels`.
 #[derive(Args, Clone, PartialEq, Eq, Debug)]
 pub(crate) struct LabelsCli {

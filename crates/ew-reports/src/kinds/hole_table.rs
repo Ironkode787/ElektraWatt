@@ -119,7 +119,7 @@ fn surface_rows(q: &Q, surface: ew_ids::Id<MountingSurface>, folio: &str, set: &
 
 /// An owner of a hole in words (doc 12-3d §10.4): a device by its tag, a rail or a duct by its label, a hole by hand
 /// by its purpose, a gland by its cable, else by its kind ("Gland M20").
-fn owner_words(
+pub fn owner_words(
     q: &Q,
     owner: &Owner,
     labels: &std::collections::BTreeMap<ew_ids::Id<Carrier>, ew_derive::layout::CarrierLabel>,

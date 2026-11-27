@@ -32,5 +32,6 @@ pub mod pdf_text;
 pub mod route;
 pub mod symbol;
 pub mod table;
+pub mod template;
 pub mod ticks;
 pub mod underlay;

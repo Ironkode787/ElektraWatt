@@ -1015,3 +1015,4 @@ action-frame-own-page = Give this page its own frame
 command-form-make_own = Make a frame or title block of its own
 command-frames-adopt = Use the frames of a template
 dialog-preview = Preview
+action-drilling-export = Drilling…

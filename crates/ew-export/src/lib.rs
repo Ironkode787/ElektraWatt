@@ -18,8 +18,8 @@ mod pdf;
 mod svg;
 
 pub use dxf::{
-    DXF_SET_EXTENSIONS, DxfAttribute, DxfFace, DxfFile, DxfLayers, DxfOptions, DxfPicture, DxfSet, DxfSheet,
-    FLATNESS_NM, dxf, dxf_file_name, is_line,
+    DXF_SET_EXTENSIONS, DrillEntity, DrillSheet, DxfAttribute, DxfFace, DxfFile, DxfLayers, DxfOptions, DxfPicture,
+    DxfSet, DxfSheet, FLATNESS_NM, drilling_dxf, dxf, dxf_file_name, is_line,
 };
 pub use font_subset::{MAX_COMPOSITE_DEPTH, MAX_FONT_BYTES, SubsetError, cmap_glyphs, subset_glyf};
 pub use parallel::{Parallelism, par_map};

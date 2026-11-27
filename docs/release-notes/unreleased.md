@@ -463,6 +463,14 @@ change here.
   (Place on the bottom, Edit part…, Choose gland…, Take M32, Remove the hole); a fix that opens a window runs at once,
   without a card, and joins no Fix all. EW-LAY-018's gland not placed is an error at a release, its other forms stay
   warnings (doc 15 §3.2)
+- behaviour-change: Output ▸ Workshop ▸ Drilling… exports the drawings for drilling of the surfaces with holes: per
+  surface a template to print at full size (`+CAB Door template.pdf`, A4 or A3, lying in the corner nearest the
+  holes, its sheets overlapping with crosses where they meet, each hole with its centre cross and its words, a 100 mm
+  bar) and a DXF for a machine (`+CAB Door.dxf`, origin at the datum corner, a layer per way of making a hole:
+  `HOLE_4.5`, `TAP_M5`, `CUT_22.3`, `CUT_RECT`, with `OUTLINE`, `MARGIN`, `NUMBERS` and `DATUM`), each file whole
+  (doc 13 §9.1)
+- api-add: `ew export drilling --dir <folder> [--surface <words or ID>]… [--template a4|a3] [--no-dxf]
+  [--no-template]` and the action `drilling.export {surfaces?, template?, dxf?, paper?, dir?}`
 - behaviour-change: Surface… lists the cabinet's faces as a table, each with its size and its page, one chosen with
   a radio button (it was a drop-down list)
 - api-add: `fields.set` takes a device's `gland`; `layout.glands_place` takes the sheet point `x_mm`, `y_mm`; `part.edit`

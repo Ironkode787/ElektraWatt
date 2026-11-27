@@ -374,3 +374,27 @@ hud-layout-glands = { $p0 ->
         [one] 1 gland to place
        *[other] { $p0 } glands to place
     }
+drilling-title = Export the drawings for drilling
+drilling-export = Export
+drilling-template = Template to print at full size (PDF)
+drilling-dxf = DXF for a machine
+drilling-paper = Paper
+drilling-dir = Folder
+drilling-folder = Drilling
+drilling-surfaces = Surfaces with holes
+drilling-surface = Surface
+drilling-tick = Export
+drilling-row = { $p0 } · page { $p1 } · { $p2 } · { $p3 }
+drilling-holes = { $p0 ->
+        [one] 1 hole
+       *[other] { $p0 } holes
+    }
+drilling-sheets = { $p0 ->
+        [one] 1 sheet
+       *[other] { $p0 } sheets
+    }
+drilling-nothing = Choose the template, the DXF or both.
+drilling-none-ticked = Tick at least one surface.
+reason-no-holes = No surface of this project has holes yet.
+choice-a4 = A4
+choice-a3 = A3

@@ -125,6 +125,7 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `labels.write` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_labels_write` `crates/ew-viewmodel/src/shell/labels.rs` | `action-labels-write` |
 | `labels.columns` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_labels_columns` `crates/ew-viewmodel/src/shell/labels.rs` | `action-labels-columns`, `labels-columns`, `labels-columns-title` |
 | `lists.holes` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_lists_holes` `crates/ew-viewmodel/src/shell/features.rs` | `action-lists-holes` |
+| `drilling.export` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_drilling_export` `crates/ew-viewmodel/src/shell/drilling.rs` | `action-drilling-export`, `drilling-export` |
 | `workshop.settings` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_workshop_settings` `crates/ew-viewmodel/src/shell/labels.rs` | `action-workshop-settings` |
 | `rework.archive` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_rework_archive` `crates/ew-viewmodel/src/shell/rework.rs` | `action-rework-archive`, `rework-archive-file` |
 | `rework.export` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_rework_export` `crates/ew-viewmodel/src/shell/rework.rs` | `action-rework-export`, `rework-export` |

@@ -225,6 +225,20 @@ hinge-left = Left
 hinge-right = Right
 hinge-word = Hinge
 door-edge-word = Door's edge
+template-file = { $p0 } { $p1 } template
+template-edge-left = Left edge of the { $p0 }: lay this edge on it
+template-edge-right = Right edge of the { $p0 }: lay this edge on it
+template-edge-top = Top edge of the { $p0 }: lay this edge on it
+template-edge-bottom = Bottom edge of the { $p0 }: lay this edge on it
+template-band-what = { $p0 } · { $p1 } { $p2 } · { $p3 }
+template-band-sheet = Sheet { $p0 } of { $p1 }, row { $p2 }, column { $p3 }: { $p4 }–{ $p5 } mm from the { $p6 }, { $p7 }–{ $p8 } mm from the { $p9 }
+template-band-datum = Hole table: X and Y from the { $p0 } corner, marked 0
+template-bar = 100 mm: print at actual size (100 %) and measure this bar
+drill-datum = 0,0: { $p0 } corner of the { $p1 }, { $p2 }
+word-edge-left = left edge
+word-edge-right = right edge
+word-edge-top = top edge
+word-edge-bottom = bottom edge
 
 ## How a part mounts, and a carrier's label (doc 12 §2.5)
 

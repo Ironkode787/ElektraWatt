@@ -525,3 +525,7 @@ toast-list-rows = { $p0 ->
        *[other] De lijst { $p1 } heeft { $p0 } eigen rijen
     }.
 toast-list-rows-none = De lijst { $p0 } heeft geen eigen rijen.
+toast-drilling-written = { $p0 ->
+        [one] 1 bestand geschreven naar { $p1 }
+       *[other] { $p0 } bestanden geschreven naar { $p1 }
+    }.

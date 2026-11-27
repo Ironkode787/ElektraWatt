@@ -27,8 +27,12 @@
 //! up from one start in file order; no date, user name or random GUID is written. The same pages give the same bytes
 //! on every platform.
 
+// The DXF for drilling a surface (doc 13 §9.1)
+mod drilling;
 mod picture;
 mod text;
+
+pub use drilling::{DrillEntity, DrillSheet, drilling_dxf};
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
@@ -1100,13 +1104,31 @@ fn page(sheet: &DxfSheet, opts: &DxfOptions, set: &Set, pictures: &mut Pictures)
         let name = set.names.get(id).cloned().unwrap_or_else(|| block_name(id));
         blocks.push((name, ents, !defs.is_empty()));
     }
+    let text = assemble(&mut w, model, blocks, opts.layers.all(), (sheet.width, sheet.height));
+    DxfFile {
+        name: dxf_file_name(&sheet.label),
+        text,
+        skipped_images: w.skipped_images,
+    }
+}
+
+/// The file of `model`'s entities and the `blocks` they insert, with the layers `layer_names` and the extents
+/// (0, 0)–(`width`, `height`): the header, the tables, the blocks, the entities and the objects every file of the
+/// writer has (handles from the writer's, the styles and line types it collected).
+fn assemble(
+    mut w: &mut Writer<'_>,
+    model: Vec<Ent>,
+    blocks: Vec<(String, Vec<Ent>, bool)>,
+    layer_names: Vec<String>,
+    (width, height): (Nm, Nm),
+) -> String {
     let mut s = String::new();
     let p = |s: &mut String, code: i32, v: &str| {
         let _ = write!(s, "{code:>3}\n{v}\n");
     };
     // Handles: the tables, the block records, the layouts and dictionaries first, so that the header's seed is
     // known when the file is assembled.
-    let (wd, ht) = (mm(sheet.width.0), mm(sheet.height.0));
+    let (wd, ht) = (mm(width.0), mm(height.0));
     let mut tables = String::new();
     let table = |w: &mut Writer<'_>, tables: &mut String, name: &str, entries: Vec<String>| {
         let h = w.handle();
@@ -1135,8 +1157,8 @@ fn page(sheet: &DxfSheet, opts: &DxfOptions, set: &Set, pictures: &mut Pictures)
         "VPORT",
         vec![format!(
             "100\nAcDbViewportTableRecord\n  2\n*Active\n 70\n0\n 10\n0\n 20\n0\n 11\n1\n 21\n1\n 12\n{}\n 22\n{}\n 13\n0\n 23\n0\n 14\n10\n 24\n10\n 15\n10\n 25\n10\n 16\n0\n 26\n0\n 36\n1\n 17\n0\n 27\n0\n 37\n0\n 40\n{ht}\n 41\n1.414\n 42\n50\n 43\n0\n 44\n0\n 50\n0\n 51\n0\n 71\n0\n 72\n100\n 73\n1\n 74\n3\n 75\n0\n 76\n0\n 77\n0\n 78\n0\n",
-            half(sheet.width),
-            half(sheet.height)
+            half(width),
+            half(height)
         )],
     );
     let mut ltypes = vec![
@@ -1169,7 +1191,7 @@ fn page(sheet: &DxfSheet, opts: &DxfOptions, set: &Set, pictures: &mut Pictures)
     table(&mut w, &mut tables, "LTYPE", ltypes);
     let mut layers =
         vec!["100\nAcDbLayerTableRecord\n  2\n0\n 70\n0\n 62\n7\n  6\nContinuous\n370\n-3\n".to_owned()];
-    for name in opts.layers.all() {
+    for name in layer_names {
         layers.push(format!(
             "100\nAcDbLayerTableRecord\n  2\n{}\n 70\n0\n 62\n7\n  6\nContinuous\n370\n-3\n",
             text::dxf_text(&name)
@@ -1184,7 +1206,7 @@ fn page(sheet: &DxfSheet, opts: &DxfOptions, set: &Set, pictures: &mut Pictures)
         let face = w.face(f);
         styles.push(format!(
             "100\nAcDbTextStyleTableRecord\n  2\n{}\n 70\n0\n 40\n0\n 41\n1\n 50\n0\n 71\n0\n 42\n2.5\n  3\n{}\n  4\n\n{}",
-            style_name(opts, f),
+            style_name(w.opts, f),
             text::dxf_text(&face.file),
             text::style_xdata(&face),
         ));
@@ -1363,11 +1385,7 @@ fn page(sheet: &DxfSheet, opts: &DxfOptions, set: &Set, pictures: &mut Pictures)
         p(&mut s, 0, "ENDSEC");
     }
     p(&mut s, 0, "EOF");
-    DxfFile {
-        name: dxf_file_name(&sheet.label),
-        text: s,
-        skipped_images: w.skipped_images,
-    }
+    s
 }
 
 /// The symbol geometries `items` insert, groups included.

@@ -72,6 +72,8 @@ closed_choices! {
     STRUCTURE_KINDS = super::creation::STRUCTURE_KINDS;
     /// A yes-or-no field (drawn as a check box).
     BOOL = super::bulk::BOOL_CHOICES;
+    /// Drilling…'s paper sizes.
+    PAPERS = &ew_api::output::Paper::WORDS;
     /// Renumber devices…' scopes.
     DEVICE_SCOPES = super::bulk::DEVICE_SCOPES;
     /// Renumber devices…' schemes.

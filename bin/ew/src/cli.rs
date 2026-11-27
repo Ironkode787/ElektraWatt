@@ -445,6 +445,7 @@ pub fn run(cmd: Top, io: &mut Io<'_>) -> i32 {
             ExportCli::Ewz(a) => run_export_ewz(&a, io),
             ExportCli::Rework(a) => export::run_export_rework(&a, io),
             ExportCli::Labels(a) => export::run_export_labels(&a, io),
+            ExportCli::Drilling(a) => export::run_export_drilling(&a, io),
             ExportCli::Png(a) => run_pages(a.export(), io),
             ExportCli::PlcAml(a) => run_plc_export("plc-aml", &a.plc, io),
             ExportCli::PlcXlsx(a) => run_plc_export("plc-xlsx", &a.plc, io),

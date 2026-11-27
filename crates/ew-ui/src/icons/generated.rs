@@ -11,7 +11,7 @@
 use super::Seg::{self, C, L, M, Q, Z};
 
 /// The number of icons in the table.
-pub const COUNT: usize = 157;
+pub const COUNT: usize = 158;
 
 /// One icon of the table, named by its key in `snake_case` (`ew_` for the project's own glyphs).
 #[allow(non_camel_case_types, missing_docs)]
@@ -59,6 +59,7 @@ pub enum IconId {
     copy,
     cpu,
     cpu_2,
+    crosshair,
     current_location,
     database_import,
     device_floppy,
@@ -221,6 +222,7 @@ impl IconId {
         IconId::copy,
         IconId::cpu,
         IconId::cpu_2,
+        IconId::crosshair,
         IconId::current_location,
         IconId::database_import,
         IconId::device_floppy,
@@ -383,6 +385,7 @@ pub const KEYS: [&str; COUNT] = [
     "copy",
     "cpu",
     "cpu-2",
+    "crosshair",
     "current-location",
     "database-import",
     "device-floppy",
@@ -1191,6 +1194,29 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(14.0, 19.0),
         M(10.0, 21.0),
         L(10.0, 19.0),
+    ],
+    // crosshair
+    &[
+        M(4.0, 8.0),
+        L(4.0, 6.0),
+        C(4.0, 4.895, 4.895, 4.0, 6.0, 4.0),
+        L(8.0, 4.0),
+        M(4.0, 16.0),
+        L(4.0, 18.0),
+        C(4.0, 19.105, 4.895, 20.0, 6.0, 20.0),
+        L(8.0, 20.0),
+        M(16.0, 4.0),
+        L(18.0, 4.0),
+        C(19.105, 4.0, 20.0, 4.895, 20.0, 6.0),
+        L(20.0, 8.0),
+        M(16.0, 20.0),
+        L(18.0, 20.0),
+        C(19.105, 20.0, 20.0, 19.105, 20.0, 18.0),
+        L(20.0, 16.0),
+        M(9.0, 12.0),
+        L(15.0, 12.0),
+        M(12.0, 9.0),
+        L(12.0, 15.0),
     ],
     // current-location
     &[

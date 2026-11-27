@@ -963,6 +963,76 @@ pub fn hinge_word() -> Text {
     text!("hinge-word")
 }
 
+/// A template's file name without its extension: "+CAB Door template" (doc 13 §9.1).
+pub fn template_file(location: &str, surface: &str) -> Text {
+    text!("template-file", location, surface)
+}
+
+/// The words of an edge at a template's corner (`left`, `right`, `top`, `bottom`) of the surface `surface` in lower
+/// case: "Left edge of the door: lay this edge on it".
+pub fn template_edge(edge: &str, surface: &str) -> Text {
+    match edge {
+        "right" => text!("template-edge-right", surface),
+        "top" => text!("template-edge-top", surface),
+        "bottom" => text!("template-edge-bottom", surface),
+        _ => text!("template-edge-left", surface),
+    }
+}
+
+/// A template sheet's first band line: "SAMPLE · +CAB Door, seen from outside · V1.0".
+pub fn template_band_what(project: &str, location: &str, caption: &str, revision: &str) -> Text {
+    text!("template-band-what", project, location, caption, revision)
+}
+
+/// A template sheet's place: "Sheet 4 of 5, row 2, column 1: 0–180 mm from the left edge, 255–510 mm from the top
+/// edge"; `x_edge` and `y_edge` are `left`/`right` and `top`/`bottom`.
+#[allow(clippy::too_many_arguments)]
+pub fn template_band_sheet(
+    n: u32,
+    of: usize,
+    row: u32,
+    col: u32,
+    (x0, x1): (&str, &str),
+    x_edge: &str,
+    (y0, y1): (&str, &str),
+    y_edge: &str,
+) -> Text {
+    let edge = |e: &str| match e {
+        "right" => text!("word-edge-right"),
+        "top" => text!("word-edge-top"),
+        "bottom" => text!("word-edge-bottom"),
+        _ => text!("word-edge-left"),
+    };
+    text!(
+        "template-band-sheet",
+        n.to_string(),
+        of.to_string(),
+        row.to_string(),
+        col.to_string(),
+        x0,
+        x1,
+        edge(x_edge),
+        y0,
+        y1,
+        edge(y_edge)
+    )
+}
+
+/// A template sheet's datum line: "Hole table: X and Y from the bottom-left corner, marked 0".
+pub fn template_band_datum(corner: &Corner) -> Text {
+    text!("template-band-datum", corner_in_sentence(corner))
+}
+
+/// The words of a template's 100 mm bar.
+pub fn template_bar() -> Text {
+    text!("template-bar")
+}
+
+/// A drilling DXF's datum text: "0,0: bottom-left corner of the door, seen from outside".
+pub fn drill_datum(corner: &Corner, surface: &str, seen: Text) -> Text {
+    text!("drill-datum", corner_in_sentence(corner), surface, seen)
+}
+
 /// The words the top's and the bottom's page write at the edge that meets the door: "Door's edge".
 pub fn door_edge_word() -> Text {
     text!("door-edge-word")

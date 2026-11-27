@@ -513,6 +513,23 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_lists_holes(),
         ),
     ),
+    // Output ▸ Workshop ▸ Drilling…: the drawings for drilling of the surfaces with holes (doc 13 §9).
+    with_params(
+        "surfaces?:json, template?:json, dxf?:json, paper?:text, dir?:path",
+        placed(
+            place(Group::Workshop, 9, CommandSize::Small, None),
+            "crosshair",
+            act(
+                "drilling.export",
+                View,
+                Menu::Output,
+                &[],
+                has_holes,
+                None,
+                |s, p| s.act_drilling_export(p),
+            ),
+        ),
+    ),
     // Output ▸ Workshop ▸ Workshop settings: the project's Properties at its Workshop rows (doc 13 §12).
     placed(
         place(Group::Workshop, 8, CommandSize::Small, None),

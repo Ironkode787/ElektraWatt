@@ -58,6 +58,8 @@ mod queries;
 mod surfaces;
 // The rail model and the mode resolution
 mod snap;
+// The template for drilling of a surface (doc 13 §9.1)
+mod template;
 
 pub use accessories::{Bracket, GroupAccessories, RailBrackets, rail_items};
 pub use assembly::{member_order, member_slot};
@@ -86,6 +88,10 @@ pub(crate) use queries::{shown_location, strip_terminals};
 pub use snap::{
     BracketRole, BracketSpan, RailItem, Resolution, SnapError, SnapMode, brackets, cascade, cascade_mirrored,
     end_gap, free_length, min_gap, next_fit, resolve, runs, start_gap,
+};
+pub use template::{
+    Paper, TEMPLATE_BAND, TEMPLATE_MARGIN, TEMPLATE_OVERLAP, TEMPLATE_PAST, TemplateSheets, TemplateTile, hole_boxes,
+    template_sheets,
 };
 pub use surfaces::{
     Face, behind_door, door_count, door_index, enclosure_section, face_of, face_size, from_datum, sheet_size,

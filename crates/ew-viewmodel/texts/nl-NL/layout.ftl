@@ -373,3 +373,27 @@ hud-layout-glands = { $p0 ->
         [one] 1 wartel te plaatsen
        *[other] { $p0 } wartels te plaatsen
     }
+drilling-title = Boortekeningen exporteren
+drilling-export = Exporteren
+drilling-template = Boormal om op ware grootte te printen (PDF)
+drilling-dxf = DXF voor een machine
+drilling-paper = Papier
+drilling-dir = Map
+drilling-folder = Boortekeningen
+drilling-surfaces = Vlakken met gaten
+drilling-surface = Vlak
+drilling-tick = Exporteren
+drilling-row = { $p0 } · pagina { $p1 } · { $p2 } · { $p3 }
+drilling-holes = { $p0 ->
+        [one] 1 gat
+       *[other] { $p0 } gaten
+    }
+drilling-sheets = { $p0 ->
+        [one] 1 blad
+       *[other] { $p0 } bladen
+    }
+drilling-nothing = Kies de boormal, de DXF of allebei.
+drilling-none-ticked = Vink ten minste één vlak aan.
+reason-no-holes = Geen vlak van dit project heeft al gaten.
+choice-a4 = A4
+choice-a3 = A3

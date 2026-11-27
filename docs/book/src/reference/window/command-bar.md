@@ -349,6 +349,14 @@ the cabinet (the mounting plate, a door, a side, the top, the bottom), surface b
 are made, with X and Y from the corner the surface's heading names, how each is made and what it is for. A project
 without a hole table opens Report block… on the hole table.
 
+### Drilling…
+
+In the Workshop group. Exports the drawings for drilling: for each surface with holes (ticked in a list that names its
+page, its holes and the sheets its template takes) a template to print at full size (PDF) and a DXF for a machine,
+on A4 or A3, into a folder (Drilling, beside the project). The template lies in the surface's corner nearest its holes:
+lay its two thick edges against the surface's edges, tape the sheets together at their crosses and centre-punch each
+hole. Print it at actual size and measure its 100 mm bar. Greyed while no surface has holes.
+
 ### Workshop settings
 
 In the Workshop group. Shows the project's Properties at its Workshop rows: the stock, the ferrules, two wires in one

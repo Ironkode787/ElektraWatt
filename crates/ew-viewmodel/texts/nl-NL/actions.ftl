@@ -982,3 +982,4 @@ action-frame-own-page = Deze pagina een eigen kader geven
 command-form-make_own = Een eigen kader of titelblok maken
 command-frames-adopt = De kaders van een sjabloon gebruiken
 dialog-preview = Voorbeeld
+action-drilling-export = Boren…

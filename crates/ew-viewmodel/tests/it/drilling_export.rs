@@ -1,0 +1,42 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! Output ▸ Workshop ▸ Drilling… (doc 13 §9): greyed in words in a project without holes; on the sample its form lists
+//! the surfaces with holes, each ticked, and Export writes the door's template and DXF into the folder chosen.
+
+use crate::common;
+
+use common::{Tmp, done};
+use ew_viewmodel::shell::{Dialog, Mode, Outcome};
+use serde_json::json;
+
+#[test]
+fn drilling_is_greyed_without_holes_and_writes_the_door_s_drawings() {
+    let tmp = Tmp::new("drilling");
+    let mut empty = common::new_project(&tmp);
+    assert_eq!(
+        common::refused(&mut empty, "drilling.export", json!({})),
+        "reason-no-holes"
+    );
+    empty.shutdown();
+
+    let mut s = tmp.sample_in(Mode::Gui, true, "904");
+    done(&mut s, "drilling.export", json!({}));
+    let Some(Dialog::Form(form)) = s.dialog().cloned() else {
+        panic!("the form: {:?}", s.dialog())
+    };
+    let table = form.table.expect("the surfaces");
+    assert!(table.rows.iter().any(|r| r.key.starts_with("Door")), "{:?}", table.rows);
+    let dir = tmp.path("drill");
+    assert!(form.fields.iter().any(|f| f.name == "dir"), "the folder");
+    s.set_form_field("dir", &dir.to_string_lossy());
+    assert_eq!(s.submit_form(), Outcome::Done);
+    let names: Vec<String> = std::fs::read_dir(&dir)
+        .expect("the folder is made")
+        .filter_map(|e| e.ok()?.file_name().into_string().ok())
+        .collect();
+    for ext in [".dxf", ".pdf"] {
+        assert!(names.iter().any(|n| n.contains("Door") && n.ends_with(ext)), "{names:?}");
+    }
+    s.shutdown();
+}
