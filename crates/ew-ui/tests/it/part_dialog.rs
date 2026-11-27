@@ -141,13 +141,13 @@ fn the_part_editor_by_keyboard() {
     for label in ["Maker", "Part number", "Description", "Sold by"] {
         let _ = field(&h, label);
     }
-    // The first text field has the focus; Tab moves to Description (after Part number, Type and Order number), End to
-    // its end, where " C4" is typed.
+    // The first text field has the focus; Tab moves to Description (after Part number, Type, Order number and GTIN),
+    // End to its end, where " C4" is typed.
     assert!(
         field(&h, "Maker").accesskit_node().is_focused(),
         "the first field has the focus"
     );
-    for _ in 0..4 {
+    for _ in 0..5 {
         h.key_press(Key::Tab);
         settle(&mut h);
     }
