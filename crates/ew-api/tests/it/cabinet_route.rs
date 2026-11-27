@@ -693,7 +693,10 @@ fn a_wire_selected_with_its_every_stretch_reads_as_that_wire() {
         .cloned()
         .expect("104.3");
     drop(q);
-    assert!(r.wire.constituents.len() > 1, "104.3 has stretches of its own and a shared one");
+    assert!(
+        r.wire.constituents.len() > 1,
+        "104.3 has stretches of its own and a shared one"
+    );
     let ids: Vec<Uuid> = r.wire.constituents.iter().map(|c| c.as_uuid()).collect();
     let sheet = s.property_sheet(&ids);
     assert_eq!(sheet.header.title, "104.3 · -104E1:X2 → -104A1-A1:M");
@@ -713,19 +716,27 @@ fn a_wire_selected_with_its_every_stretch_reads_as_that_wire() {
         "{length:?}"
     );
     assert!(
-        length.note.as_deref().is_some_and(|n| n.starts_with("Routed: ") && n.contains("door loop")),
+        length
+            .note
+            .as_deref()
+            .is_some_and(|n| n.starts_with("Routed: ") && n.contains("door loop")),
         "{:?}",
         length.note
     );
     let way = row("connection/derived.way");
     assert!(
-        way.note.as_deref().is_some_and(|n| n.starts_with("From -104E1:X2, across the hinge onto the plate, into duct 1")),
+        way.note
+            .as_deref()
+            .is_some_and(|n| n.starts_with("From -104E1:X2, across the hinge onto the plate, into duct 1")),
         "{:?}",
         way.note
     );
     let shown = s.ways_at("902", &ids);
     assert!(
-        shown.iter().any(|w| w.chip.as_ref().is_some_and(|(_, n, l)| n == "104.3" && *l == Some(length_value))
+        shown.iter().any(|w| w
+            .chip
+            .as_ref()
+            .is_some_and(|(_, n, l)| n == "104.3" && *l == Some(length_value))
             && w.door.as_ref().is_some_and(|(_, tag)| tag == "-104E1")),
         "{shown:?}"
     );
