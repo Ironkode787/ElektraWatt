@@ -255,14 +255,4 @@ impl Registry {
     pub fn names(&self) -> impl Iterator<Item = &'static str> + '_ {
         self.kinds.keys().copied()
     }
-
-    /// The names of the kinds the package for the workshop carries ([`ReportKindDef::workshop`]), in the order the
-    /// kinds are declared: the order the package lists them in.
-    pub fn workshop(&self) -> Vec<&'static str> {
-        kinds::builtin()
-            .into_iter()
-            .filter(|k| k.workshop())
-            .filter_map(|k| k.kind().name())
-            .collect()
-    }
 }

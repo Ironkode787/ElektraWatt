@@ -37,7 +37,7 @@ impl ShellModel {
         Some(
             dir.parent()
                 .unwrap_or(dir)
-                .join(strings::text(key!("drilling-folder"))),
+                .join(strings::render(&ew_api::output::drilling_folder())),
         )
     }
 

@@ -21,6 +21,7 @@ use serde::Serialize;
 
 use crate::output::print::{PrintOptions, in_print_language, print_set_hooked};
 use crate::output::{DrillingAsk, PdfDate, RowExport, RowsFormat, RowsOutput, row_output};
+use crate::labels::drawing_stem;
 use crate::{LabelScope, Session, checks};
 
 /// One member of the package (doc 13-package §8.2), declared once: the dialog's rows, the manifest's kinds, the lines
@@ -43,10 +44,7 @@ impl PackageMember {
     /// Every member, in the order the dialog and Contents list them: Contents, the drawings, the workshop lists in the
     /// order their kinds are declared, the label files, the drawings for drilling.
     pub fn all() -> Vec<PackageMember> {
-        let lists = ew_reports::Registry::builtin()
-            .workshop()
-            .into_iter()
-            .map(PackageMember::List);
+        let lists = ew_reports::kinds::workshop().into_iter().map(PackageMember::List);
         std::iter::once(PackageMember::Contents)
             .chain(std::iter::once(PackageMember::Pages))
             .chain(lists)
@@ -107,7 +105,7 @@ impl PackageMember {
             PackageMember::Contents | PackageMember::Pages => return None,
             PackageMember::List(_) => text!("package-folder-lists"),
             PackageMember::Labels => text!("package-folder-labels"),
-            PackageMember::Drilling => text!("package-folder-drilling"),
+            PackageMember::Drilling => crate::output::drilling_folder(),
         };
         Some(in_print_language(&t, lang))
     }
@@ -383,12 +381,6 @@ fn without_length(q: &Q) -> Vec<NoLength> {
     out
 }
 
-/// The drawing's name a file of the package starts with: the drawing number, else the object's, else `project`, as
-/// the label files are named.
-fn drawing_stem(q: &Q) -> String {
-    crate::labels::drawing_stem(q)
-}
-
 /// `name` as a file's name: each of its words made safe for a file system ([`ew_store::archive::sanitise`]), the
 /// spaces between them kept, as the label files are named.
 fn file_words(name: &str) -> String {
@@ -477,21 +469,10 @@ impl Session {
         let mut lacks = Vec::new();
         let (holds, why_not) = match m {
             PackageMember::Contents | PackageMember::Pages => (Some(text!("package-holds-pages")), None),
-            PackageMember::List(kind) => {
-                let rows = ew_schema::ReportKind::from_name(kind)
-                    .and_then(|k| ew_reports::project_rows(q, &k, None))
-                    .map_or(0, |set| set.rows.len());
-                if rows == 0 {
-                    let why = if kind == "hole_table" {
-                        text!("package-no-holes")
-                    } else {
-                        text!("package-no-rows")
-                    };
-                    (None, Some(why))
-                } else {
-                    (Some(self.list_holds(q, kind, rows)), None)
-                }
-            }
+            PackageMember::List(kind) => match self.list_holds(q, kind) {
+                Ok(holds) => (Some(holds), None),
+                Err(why) => (None, Some(why)),
+            },
             PackageMember::Labels => match self.label_files(&LabelScope::All, None, None) {
                 Ok(files) if !files.is_empty() => {
                     let labels: usize = files.iter().map(|f| f.count).sum();
@@ -532,30 +513,43 @@ impl Session {
     }
 
     /// What the workshop list `kind` holds, in words ("54 wires, 2 bridges"; "3 strips"; "3 surfaces, 20 holes"), else
-    /// its rows.
-    fn list_holds(&self, q: &Q, kind: &str, rows: usize) -> Text {
-        match kind {
-            "wire_list" => counted2(
+    /// its rows; `Err` with why it is not written, for a list without rows.
+    fn list_holds(&self, q: &Q, kind: &str) -> Result<Text, Text> {
+        use ew_schema::ReportKind as K;
+        let kind = K::from_name(kind);
+        let rows = kind
+            .as_ref()
+            .and_then(|k| ew_reports::project_rows(q, k, None))
+            .map_or(0, |set| set.rows.len());
+        if rows == 0 {
+            return Err(if kind == Some(K::HoleTable) {
+                text!("package-no-holes")
+            } else {
+                text!("package-no-rows")
+            });
+        }
+        Ok(match kind {
+            Some(K::WireList) => counted2(
                 key!("package-holds-wire-list"),
                 q.get::<WireRecordSet>(()).len(),
                 ew_reports::kinds::bridge_count(q),
             ),
-            "assembly_list" => counted(
+            Some(K::AssemblyList) => counted(
                 key!("package-holds-assembly-list"),
                 q.devices()
                     .iter()
                     .filter(|(_, d)| d.aspects.strip.is_some())
                     .count(),
             ),
-            "hole_table" => {
+            Some(K::HoleTable) => {
                 let surfaces = self.drilling_surfaces(ew_derive::layout::Paper::A4);
                 let holes: usize = surfaces.iter().map(|s| s.holes).sum();
                 counted2(key!("package-holds-hole-table"), surfaces.len(), holes)
             }
-            "cut_list" => text!("package-holds-cut-list"),
-            "consumables" => text!("package-holds-consumables"),
+            Some(K::CutList) => text!("package-holds-cut-list"),
+            Some(K::Consumables) => text!("package-holds-consumables"),
             _ => counted(key!("package-holds-rows"), rows),
-        }
+        })
     }
 
     /// The package of the current snapshot as a job (doc 13-package §8.4): the snapshot and its assets cross to the

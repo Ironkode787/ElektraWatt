@@ -380,7 +380,6 @@ drilling-template = Template to print at full size (PDF)
 drilling-dxf = DXF for a machine
 drilling-paper = Paper
 drilling-dir = Folder
-drilling-folder = Drilling
 drilling-surfaces = Surfaces with holes
 drilling-surface = Surface
 drilling-tick = Export

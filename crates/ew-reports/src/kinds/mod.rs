@@ -69,6 +69,16 @@ pub fn bridge_count(q: &ew_derive::Q) -> usize {
     conn::bridges(q).len()
 }
 
+/// The names of the kinds the package for the workshop carries ([`ReportKindDef::workshop`]), in the order the kinds are
+/// declared: the order the package lists them in.
+pub fn workshop() -> Vec<&'static str> {
+    builtin()
+        .into_iter()
+        .filter(|k| k.workshop())
+        .filter_map(|k| k.kind().name())
+        .collect()
+}
+
 /// Every built-in kind of this build.
 pub(crate) fn builtin() -> Vec<&'static dyn ReportKindDef> {
     vec![

@@ -379,7 +379,6 @@ drilling-template = Boormal om op ware grootte te printen (PDF)
 drilling-dxf = DXF voor een machine
 drilling-paper = Papier
 drilling-dir = Map
-drilling-folder = Boortekeningen
 drilling-surfaces = Vlakken met gaten
 drilling-surface = Vlak
 drilling-tick = Exporteren

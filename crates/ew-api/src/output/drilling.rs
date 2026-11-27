@@ -49,6 +49,12 @@ pub struct DrillingFile {
     pub bytes: Vec<u8>,
 }
 
+/// The name of the folder the drawings for drilling stand in ("Drilling", Dutch "Boortekeningen"): beside the project,
+/// where Drilling… writes them (in the window's language), and in the package (in the project's).
+pub fn drilling_folder() -> Text {
+    text!("drilling-folder")
+}
+
 /// What the drawings for drilling are made of.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DrillingAsk {

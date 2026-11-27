@@ -47,7 +47,7 @@
 mod dxf_set;
 // The drawings for drilling (doc 13 §9.1).
 mod drilling;
-pub use drilling::{DrillingAsk, DrillingFile, DrillingSurface};
+pub use drilling::{DrillingAsk, DrillingFile, DrillingSurface, drilling_folder};
 pub use ew_derive::layout::Paper;
 mod editing;
 mod fields;

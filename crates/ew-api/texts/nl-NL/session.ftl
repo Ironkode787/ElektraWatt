@@ -719,7 +719,7 @@ package-form-pdf = PDF
 package-form-drilling = PDF, DXF
 package-folder-lists = Lijsten
 package-folder-labels = Labels
-package-folder-drilling = Boortekeningen
+drilling-folder = Boortekeningen
 package-refused = { $count ->
         [one] 1 fout houdt een vrijgavepakket tegen
        *[many] { $n } fouten houden een vrijgavepakket tegen

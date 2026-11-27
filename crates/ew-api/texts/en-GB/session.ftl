@@ -734,7 +734,7 @@ package-form-pdf = PDF
 package-form-drilling = PDF, DXF
 package-folder-lists = Lists
 package-folder-labels = Labels
-package-folder-drilling = Drilling
+drilling-folder = Drilling
 package-refused = { $count ->
         [one] 1 error stops a release package
        *[many] { $n } errors stop a release package
