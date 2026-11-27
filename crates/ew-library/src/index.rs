@@ -985,13 +985,7 @@ fn insert_part(
         .as_ref()
         .map(|(a, b, c)| format!("{}\u{1F}{}\u{1F}{}", a.as_str(), b.as_str(), c.as_str()))
         .unwrap_or_default();
-    let mut keywords: Vec<String> = Vec::new();
-    keywords.extend(part.meta.key.as_ref().map(|k| k.as_str().to_owned()));
-    keywords.extend(part.order_number.as_ref().map(|k| k.as_str().to_owned()));
-    keywords.extend(part.gtin.as_ref().map(|k| k.as_str().to_owned()));
-    for p in part.free_props.iter() {
-        keywords.push(texts(&serde_json::to_value(&p.value).map_err(|x| x.to_string())?));
-    }
+    let keywords = part.search_keywords();
     tx.execute(
         "INSERT INTO part(lib, item, version, sha256, file, mfr_lib, mfr_item, mfr_fallback, pn, pn_norm, type, kind,
                           category, quality, status, licence, descr)

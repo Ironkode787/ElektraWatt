@@ -1406,6 +1406,26 @@ pub struct Part {
 pub const PLACEHOLDER_PART_NUMBER: &str = "TBD";
 
 impl Part {
+    /// The words a search finds the part by besides its number, type, maker and description: its key, its order
+    /// number, its GTIN and the value of each property of its own, in every language it has (doc 07 §5.3). The
+    /// libraries' index and the search of the parts a project holds both read them.
+    pub fn search_keywords(&self) -> Vec<String> {
+        let mut out: Vec<String> = Vec::new();
+        out.extend(self.meta.key.as_ref().map(|k| k.as_str().to_owned()));
+        out.extend(self.order_number.as_ref().map(|k| k.as_str().to_owned()));
+        out.extend(self.gtin.as_ref().map(|k| k.as_str().to_owned()));
+        for p in self.free_props.iter() {
+            let words: Vec<&str> = p
+                .value
+                .languages()
+                .filter_map(|l| p.value.get(l))
+                .chain(p.value.as_neutral())
+                .collect();
+            out.push(words.join(" / "));
+        }
+        out
+    }
+
     /// Whether the part is a placeholder: its number is [`PLACEHOLDER_PART_NUMBER`].
     pub fn is_placeholder(&self) -> bool {
         self.part_number.as_str() == PLACEHOLDER_PART_NUMBER
