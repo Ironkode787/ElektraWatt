@@ -81,7 +81,7 @@ present only on a connector or device with a termination switch (FR-BUS-004).
     its Properties, or "Use <tag>" in the new-station dialog) is a station of that PLC. A **network switch**, a device
     no part of which has a PLC section and one of whose interfaces has more than two sockets, belongs to the PLC with
     no rack: no station view opens, a toast with Undo names the PLC, and its menu offers no Rack…. Put it on a bus page
-    draws the station there as its one box (below) and makes a bus-topology page when the project has none; a
+    draws the station there with its bus symbol (below) and makes a bus-topology page when the project has none; a
     station whose part has no bus interface is refused in words. The starter valve terminals have their bus
     node as an interface: EW-GEN-VTM-1 PROFIBUS DP, EW-GEN-VTM-2 PROFINET.
   A part without pins whose first interface has a starter port function names that function as its main template
@@ -89,49 +89,55 @@ present only on a connector or device with a termination switch (FR-BUS-004).
   device-description import fills the same members: the interfaces, their roles and their socket counts. The PLC
   exchange exports the stations of a configuration project, so a switch or a device without a PLC section is left out
   of the AML file (no refusal).
-- **A device on a bus-topology page is one box,** whatever number of interfaces it has. The box is the black-box
-  frame of type `topology` drawing every port function of the device's bus part (`functions`, in the part's interface
-  order), with a socket per port: `P1` … `Pn` of an interface that counts n, else one socket, the port function's
-  first CP. A box CP names the function whose CP it is (`BoxCp.function`, an optional member; absent, the
-  representation's first function, so the box of a device with one interface carries none), and
-  `Representation::box_fn_cp` is the one rule by which every reader turns a box CP into a function CP
-  (`ew_derive::rep_drawn_cps`). Where the sockets stand is the part's box ([07](07-symbols-parts-macros.md) §2.5): a
-  socket listed there stands at its edge and distance, so a part arranged in Parts is placed with one click; a part
-  without a layout is drawn by two corners, its sockets laid out as an unarranged box's pins are (the first half on
-  top, the rest below, in the part's interface order). A schematic page draws the same box with its pins, a bus page
-  with its sockets: each page shows what is wired on it.
-  - **A socket reads** as the device prints it: on a box of one interface `P1` … `Pn` with the interface in the box's
-    middle, or the interface alone for its one socket ("DP"); on a box of two or more interfaces each socket is led by
-    its interface ("X1 P1", "X1 P2") and a single socket is the interface ("X2", "DP"), nothing in the middle.
-  - **The addresses** stand in the frame's `bus_address` slot, one line per interface with an address in the part's
-    order, led by the interface on a box of two or more ("X1: Node rio1 192.168.0.11", "DP: Node 2"); a box of one
-    interface prints its address alone ("Node 3"), and a passive interface prints none. The box prints the device's
-    tag, part and one cross-reference.
-  - **Placing.** `bus.place_ports` draws the box in one step: for a new device of a part (from the device browser, the
-    template functions made as `device.place` makes them, none drawn there) or an existing one (Place here, or Place
-    port `<interface>` on a station's row while a bus-topology page is shown, and the Bus panel's Ports not drawn yet).
-    Each interface takes the function that carries it, else a port-less bus-port function of the device, else a new
-    port function of its bus's starter FnDef (the PROFINET port's for a bus without one), whose port it gets as N5
-    gives one. `replace` names boxes of the same device on the page that the new box takes the place of, in the same
-    step: a bus line at one of their CPs keeps its end, and its route's last segment follows the new socket as a
-    dragged box's wires do. Place port on a page where the device's box stands draws that box again with every
-    interface. The box stands inside the frame's drawing area, moved in by whole grid steps where it would run past
-    the edge, and is refused in words where it would cover a device drawn on the page ("Another device stands here:
-    draw the box on a free place"), and with its size where it is larger than the area.
-  - **As one thing.** The box is selected, moved, sized (its grips, `box.reshape`) and deleted as any box; deleting it
-    deletes no function. Deleting one interface's function takes that interface's sockets off the box in the same step
-    and leaves the box for the others. Properties of the box shows a section per interface, Network port
-    `<interface>`, with its address, termination and nets. A part's Save redraws the box as it redraws any box of its
-    devices (doc 07 §2.5), each socket following its own function. Its supply pins are not on the bus page: they are
-    its box on a schematic page, which the device's unplaced function places there (the black box tool draws an
-    unplaced black-box function).
-  - **A page drawn with one box per interface,** as earlier versions drew a device with several interfaces, opens and
-    prints as it was, and a box of it dragged takes the other boxes of its device on that page with it (one
-    `rep.move`). *Draw as one box* (`bus.one_box`, in a box's menu, offered while a selected box belongs to a device
-    drawn as two or more boxes on the page shown) draws each selected device as its one box where its first box stood
-    (the leftmost, then the topmost), as large as that box or as its part's box needs, the old boxes replaced in one
-    undo step (`bus.place_ports` with `replace`); it is refused in words where the box would cover another device or
-    leave the drawing area. Nothing converts a page by itself.
+- **A device on a bus-topology page is drawn with its bus symbol:** one body for every interface it has. A part's
+  bus symbol is derived from its network ports (`ew_derive::bus_symbol`) and never stored. Its body holds a header
+  line with the device's tag and the part (maker and type), and under it a compartment per interface in the part's
+  order, each with the interface's name and its address (a PROFINET device name and IP address on two lines, a
+  station address after the name, nothing for a passive interface). Each compartment is as wide as its sockets need
+  and at least as wide as an IPv4 address; its sockets are `P1` … `Pn` of an interface that counts n, else one, the
+  first half on its top edge and the rest on its bottom edge, each labelled by its port inside the body (a single
+  socket unlabelled: its compartment names it). The size follows from the part alone, never from an address or a tag,
+  so typing an address moves no socket; a text longer than its room is cut with "…" and stands whole in Properties
+  and the lists.
+  - **On the page** a device is a representation of the built-in symbol `ew.gen.bus`: its `functions` are the
+    device's port functions in the part's interface order, and it carries neither `box` nor `pin_map`; a socket
+    stands for connection point k of the function that carries its interface (`ew_derive::rep_drawn_cps`). A part
+    changed in Parts is drawn changed at the next draw of every page; its Save names the devices whose sockets move
+    and moves the ends of their bus lines with them, in the one step of Save and update (doc 07 §2.5).
+  - **His own bus symbol.** Parts shows a part's bus symbol ("On a bus page") and offers Make my own from it…: the
+    derived symbol opened as a drawing of his own, kept with his parts and named by the part (`Part.bus_symbol`).
+    Its connection points keep the interface and port they draw (`SymbolCp.interface`, `SymbolCp.port_label`), its
+    address texts the interface they print (`TextSlot.interface` on a `bus_address` slot); he moves sockets to any
+    edge and texts anywhere inside the body. Every device of the part is then drawn with it. The program never
+    redraws it: when the part's network ports change, a socket it lacks, or one the part no longer has, is named on
+    the part's Save, in What it lacks and by EW-BUS-011, each with the way to the drawing; Use the program's symbol
+    again takes it away.
+  - **No text of a device lies on a cable.** A bus symbol prints every text of its device inside its body, in the
+    room its sockets' labels leave free (the bands along the edges that carry sockets); a cable ends at a socket's
+    stub outside the body, so no cable that comes to the device can cross its texts. The symbol editor refuses in
+    words a text of a bus symbol of one's own dragged outside the body or into a socket's band.
+  - **Placing.** `bus.place_ports` draws the symbol in one step, for a new device of a part (from the device browser,
+    the template functions made as `device.place` makes them, none drawn there) or an existing one (Place here, or
+    Place port `<interface>` on a station's row while a bus-topology page is shown, and the Bus panel's Ports not
+    drawn yet). Each interface takes the function that carries it, else a port-less bus-port function of the
+    device, else a new port function of its bus's starter FnDef (the PROFINET port's for a bus without one), whose
+    port it gets as N5 gives one. `replace` names representations of the same device on the page that the symbol
+    takes the place of, in the same step: a bus line at one of their connection points keeps its end, and its
+    route's last segment follows the new socket as a dragged symbol's wires do. The symbol stands inside the frame's
+    drawing area, moved in by whole grid steps where it would run past the edge, and is refused in words where it
+    would cover a device drawn on the page ("Another device stands here: place it on a free place").
+  - **As one thing.** The symbol is selected, moved, turned and deleted as any symbol; deleting it deletes no
+    function. Deleting one interface's function takes it out of the symbol's `functions` in the same step, and the
+    symbol draws the others. Properties of the symbol shows a section per interface, Network port `<interface>`,
+    with its address, termination and nets. Its supply pins are not on the bus page: they are its box on a
+    schematic page, which the device's unplaced function places there.
+  - **A page drawn with boxes,** as earlier versions drew a bus device (a box per interface, the boxes of one device
+    moving together), opens and prints as it was, its texts where the text placer puts a box's texts
+    ([06a](06a-drafting.md) §5.2), clear of the wires where any place is clear. *Draw as one symbol*
+    (`bus.one_symbol`, in a box's menu, offered while a selected box draws a port function on the page shown) draws
+    each selected device with its bus symbol where its first box stood (the leftmost, then the topmost), the old
+    boxes replaced in one undo step (`bus.place_ports` with `replace`), and is refused in words where the symbol
+    would cover another device or leave the drawing area. Nothing converts a page by itself.
   - **Its tag.** A device placed first on a bus page takes its tag from that page (no other page draws
     it); when its own box is drawn later on a schematic page (Place here, the device browser's unplaced function, Draw on
     a page…), its tag becomes that page's, by the numbering rule that a device's tag names the page of its main function

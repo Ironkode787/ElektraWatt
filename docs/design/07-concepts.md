@@ -214,6 +214,7 @@ rectangle's `shadow` is the filled drop shadow of FR-SYM-003 (2.61 mm on the PAR
   ([ADR-0032](../adr/0032-per-project-text-styles.md)) against the project's effective table, so it may name a key the project's `text_styles` adds; the scene resolves keys through `ew_text::TextStyleTable::from_rows` over the rows its caller passes (the first row of a duplicated key wins).
 - **Built-in symbols.** The interruption point `ew.gen.ip`, the black-box frame `ew.gen.blackbox` (its outline and
   CPs live in the representation's `box: BoxSpec`, [03](03-domain-model.md) §6, [06](06-schematic-editor.md) §2.7),
+  the bus symbol `ew.gen.bus` (a device on a bus page, drawn from its part's network ports, [10](10-plc-and-bus.md) §2.7),
   the junction dot and bevel, and the derived linkage are system symbols with fixed keys. Importers and the engine
   rely on these keys.
 - **Keys and item IDs of the starter library**. An item ID is v5(library, key), and a symbol
@@ -440,11 +441,12 @@ A cable part carries what the features read: its cores, each with its own cross-
   placed box is the page's: its edges and pins are still dragged there (`box.reshape`), and a later change of the
   part's layout asks before it redraws, naming each box and why. A part with a PLC section or network ports takes
   its pins from its channels and ports: what is the pin's own on the box is its place, and its name, what it
-  carries, its channel and its address are the channel's and the port's. **A network port's sockets stand on the
-  same box:** a `box.pins[]` entry that names an `interface` (and its `port_label`, optional members) is socket `idx`
-  of that interface (`P1` is 0; an interface without a socket count has the one socket 0), laid out by the same rule
-  as a pin. A schematic page draws the box with its pins, a bus page with its sockets, on one outline
-  ([10](10-plc-and-bus.md) §2.7). `box` is an optional member without cascade semantics (ADR-0011 amendment 6).
+  carries, its channel and its address are the channel's and the port's. `box` is an optional member without
+  cascade semantics (ADR-0011 amendment 6). On a bus page a part with network ports is drawn with its bus symbol,
+  derived from its ports ([10](10-plc-and-bus.md) §2.7), or with a symbol of the person's own that `Part.bus_symbol`
+  names (an optional reference): its connection points name the interface and port they draw (`SymbolCp.interface`,
+  `SymbolCp.port_label`) and its address texts the interface they print (`TextSlot.interface`); the embed closure of
+  a part includes it.
 
 **Confidence and where a datum came from.** `ItemMeta.sources` lists where each section came from (a data sheet, a
 parts file's hash, a table, typed by hand) and `ItemMeta.confidence` marks a section `verified`, `unverified` or
