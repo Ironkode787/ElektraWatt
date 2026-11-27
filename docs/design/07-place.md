@@ -205,18 +205,22 @@ sentence what is being drawn and for what. Done returns to the sheet; nothing is
   row, a row typed moves the pin. A place typed between two steps of 4 mm, or on a corner, goes to the nearest step
   clear of the corners, and a note says where it stands. What a pin takes from a PLC channel or a network port (its
   name, what it carries, its address) is changed in that group and is shown here; its place on the box is the
-  box's.
+  box's. A box part is laid out when it is saved, so a device of it is drawn with one click; the Save of a part whose
+  box was arranged draws the part's placed boxes anew in the same step (`library.update` and `part.edit_copy` carry
+  them as `redraw`, each a `box.reshape`), and its card names each box drawn anew.
 - **A symbol for a piece.** The Symbol cell of a Drawn as row offers the symbols that draw what the piece is with
   that many pins, the starter's first, and two more: **Change it for this part…** opens a copy of the piece's symbol,
   and **Draw a new symbol…** an empty drawing on which the piece's pins stand already, named as the piece names
   them. Either is the person's own symbol, kept with his parts, and it draws that piece of that part
   (`TemplateFn.symbol`, §2.5); the symbol it came from stays as it is. What the symbol is, where it is listed and
-  which function it stands for follow from the piece and are not asked. Use it for every part with this piece… on
-  the strip makes it the symbol of that kind of piece for his parts.
+  which function it stands for follow from the piece and are not asked. Done saves the symbol with his parts at once
+  and gives the piece its address; the part that names it waits for its own Save. Use it for every part with this
+  piece… on the strip makes it the symbol of that kind of piece for his parts.
 - **A symbol that belongs to no part** (a symbol of a standard, a symbol placed before a part is chosen) is opened
   from the Symbols shelf, or made with New symbol. It has a short sheet (Name, What it is, Listed under, its pins)
   and the drawing. What it is asks in a panel builder's words and sets what the program needs under it. Its sheet
-  lists Parts drawn with it. A symbol that is not his is not changed: Make my own from it.
+  lists Parts drawn with it and offers New part drawn with it… once it is saved. A symbol that is not
+  his is not changed: Make my own from it. Save answers with the first thing To do lists, above the drawing.
 - **A new symbol, in the middle of a page.** Drawing a symbol of one's own is a thing a person does often, so it is
   one click from a page and its way back finishes the errand. New symbol (the Draw tab, Ctrl+I, the picker's foot)
   opens Parts on a new drawing at once, with no question first; the strip says "A new symbol for page 102 Control

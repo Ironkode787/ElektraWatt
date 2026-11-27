@@ -63,13 +63,13 @@ the hand:
 
 1. what the pointer rests on: a button of the command bar or a menu entry (the page of its command), a row of
    Properties (what that row means, in [Properties](../reference/properties.md)), a row of a list (what its thing
-   is; a finding its rule's page), a card of a station's view, a part of the symbol editor, or a thing on the page by
+   is; a finding its rule's page), a card of a station's view, a part of a drawing in Parts, or a thing on the page by
    what it is: a contactor's coil the devices', a wire the wires', a cable's mark the cables' section of
    [Things on a page](../reference/window/things.md);
 2. else what has the keys: the row of a list or of Properties the cursor is on;
 3. else what is selected on the page;
 4. else the active tool;
-5. else the screen: an open dialog or wizard (those come first), the symbol editor, a station's view, the guide of
+5. else the screen: an open dialog or wizard (those come first), Parts and its drawing, a station's view, the guide of
    the page's kind (a fluid, bus-topology or panel layout page), the project view or the start page.
 
 While the pointer rests on something, the status bar says what `F1` opens there, such as "F1: Wires", and a button's

@@ -679,3 +679,31 @@ change here.
   names no place
 - behaviour-change: the sample project has a created and an edited date (2026-11-02, set by its script): its title
   blocks show Creation and Saved, and its package is named and dated by that day, not 1980-01-01
+- behaviour-change: a symbol is drawn in Parts (doc 07 §5.6): the symbol editor's screen, its start card and its
+  Library folder go. Draw ▸ Place ▸ New symbol (`Ctrl+I`), the symbol picker's foot (Nobody has it? New symbol…) and
+  a placed symbol's Draw one like it… open a new drawing at once, for the page in front: its connection grid, What it
+  is as you left it (a normally open contact the first time), the device tag's text (and a contact's or a coil's
+  cross-reference) where the standard puts them, your drawing grid and Snap. Its next step reads Save and place on
+  102 (the Place tool armed with it) or Save and use for -102S1 (the symbol on the page exchanged, its wires kept);
+  New symbol's menu has Like the last one, Like the selected one and Go on with the drawing in hand
+- behaviour-change: a symbol is saved with your parts, in My parts, its key made from its name; you never choose a
+  folder, a function type, a key or a library. Parts gains a Symbols shelf (Lately drawn first, All, In this project,
+  My symbols); a symbol that is not yours opens as it is with Make my own from it; a saved one of yours offers New part
+  drawn with it…. Save says the first thing To do lists above the drawing
+- behaviour-change: a piece of a part names the symbol that draws it (the Symbol cell of Drawn as): Draw a new
+  symbol… (the piece's pins standing on the drawing already) and Change it for this part… (your copy of its symbol);
+  a page draws the piece with it where the page has it, else with the first symbol of its function
+- behaviour-change: a part's box is arranged in Parts (Arrange…, Arrange its box… and Add pin on a placed box): the
+  device box editor goes, the pins are the sheet's one list, Done gives the part the box and nothing is saved until
+  the part is; a box part is laid out when it is saved, and Save's card names each placed box of the part it draws
+  anew (its Apply redraws them in one undo step; Redraw them goes)
+- api-break: `parts.new_symbol {like?}` and `parts.draw {what?, part?, piece?, from?, done?}` are new, `parts.open`
+  takes `symbol` and `parts.find` takes `shelf`; `symbol.new`, `symbol.start`, `symbol.edit`, `symbol.fork`,
+  `symbol.copy_edit`, `symbol.replace`, `symbol.save`, `symbol.close`, `symbol.directory`, `symbol.function`,
+  `symbol.map_cp`, `symbol.discipline`, `symbol.role`, `part.box`, `part.box_details` and `part.redraw_boxes` go
+  (`symbol.prop` sets a pin's discipline and potential; `parts.field symbol.name` and `symbol.what` the symbol's own)
+- api-break: the command `box.redraw` goes; `library.update` and `part.edit_copy` take `redraw`, the boxes a part's new
+  layout draws anew
+- format-variant: a part's function template entry may name its symbol (`function_template[].symbol`, a library
+  reference); a project or library without it reads as before
+- text-change: Dutch: the drawing's pin tool reads Aansluiting, as a part's pins are aansluitingen

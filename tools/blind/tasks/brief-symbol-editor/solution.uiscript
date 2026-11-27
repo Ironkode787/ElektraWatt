@@ -1,5 +1,8 @@
 {"$schema": "ew.uiscript/1", "label": "Supply symbol authoring reference solution"}
-{"action": "symbol.new", "params": {"key": "example.supply-block", "name": "Supply block"}}
+{"action": "parts.open"}
+{"action": "parts.new_symbol"}
+{"action": "parts.field", "params": {"field": "symbol.name", "value": "Supply block"}}
+{"action": "parts.field", "params": {"field": "symbol.what", "value": "supply"}}
 {"action": "symbol.draw", "params": {"tool": "line", "x": 0, "y": 0, "x2": 11, "y2": 0}}
 {"action": "symbol.draw", "params": {"tool": "line", "x": 13, "y": 0, "x2": 19, "y2": 0}}
 {"action": "symbol.draw", "params": {"tool": "line", "x": 21, "y": 0, "x2": 27, "y2": 0}}
@@ -60,15 +63,19 @@
 {"action": "symbol.draw", "params": {"tool": "line", "x": 51, "y": 14, "x2": 53, "y2": 14}}
 {"action": "symbol.draw", "params": {"tool": "line", "x": 51.5, "y": 15, "x2": 52.5, "y2": 15}}
 {"action": "symbol.cp", "params": {"idx": 6, "x": 60, "y": 12, "designation": "FE", "direction": "right"}}
-{"action": "symbol.role", "params": {"cp": 1, "role": "m"}}
-{"action": "symbol.role", "params": {"cp": 2, "role": "m"}}
-{"action": "symbol.role", "params": {"cp": 3, "role": "pe"}}
-{"action": "symbol.role", "params": {"cp": 4, "role": "l_plus"}}
-{"action": "symbol.role", "params": {"cp": 5, "role": "l_plus"}}
-{"action": "symbol.role", "params": {"cp": 6, "role": "fe"}}
+{"action": "symbol.select", "params": {"items": ["cp:0"]}}
+{"action": "symbol.prop", "params": {"key": "role", "value": "m"}}
+{"action": "symbol.select", "params": {"items": ["cp:1"]}}
+{"action": "symbol.prop", "params": {"key": "role", "value": "m"}}
+{"action": "symbol.select", "params": {"items": ["cp:2"]}}
+{"action": "symbol.prop", "params": {"key": "role", "value": "pe"}}
+{"action": "symbol.select", "params": {"items": ["cp:3"]}}
+{"action": "symbol.prop", "params": {"key": "role", "value": "l_plus"}}
+{"action": "symbol.select", "params": {"items": ["cp:4"]}}
+{"action": "symbol.prop", "params": {"key": "role", "value": "l_plus"}}
+{"action": "symbol.select", "params": {"items": ["cp:5"]}}
+{"action": "symbol.prop", "params": {"key": "role", "value": "fe"}}
 {"action": "symbol.draw", "params": {"tool": "text", "x": 18, "y": 14, "text": "Supply block"}}
-{"action": "symbol.slot", "params": {"kind": "tag", "x": -12, "y": -8}}
-{"action": "symbol.slot", "params": {"kind": "xref", "x": -12, "y": -2}}
 {"action": "symbol.draw", "params": {"tool": "anchor", "x": 0, "y": 10}}
 {"action": "symbol.validate", "params": {}}
 {"action": "symbol.variant", "params": {"variant": 0}}
@@ -80,8 +87,8 @@
 {"action": "symbol.variant", "params": {"variant": 6}}
 {"action": "symbol.variant", "params": {"variant": 7}}
 {"action": "symbol.variant", "params": {"variant": 0}}
-{"action": "symbol.save", "params": {"directory": "symbols.ewlib"}}
+{"action": "parts.save"}
 {"action": "symbol.export", "params": {"file": "supply.symbol.json"}}
 {"action": "symbol.scratch", "params": {}}
-{"action": "symbol.close", "params": {}}
+{"action": "parts.back"}
 {"action": "file.save", "params": {}}

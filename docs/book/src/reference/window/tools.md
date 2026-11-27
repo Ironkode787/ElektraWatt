@@ -62,18 +62,19 @@ Measure.
 Places a symbol from the library. A symbol is a drawing without a part; the symbol browser lists the symbols alone
 (the parts are the device browser's, the terminals Terminal's). Double-click the symbol in the browser (its
 categories at the left, a picture of the chosen row at the right), then click where it goes; each click places one
-more until you finish. Under the picture, **Edit symbol** opens the symbol in the symbol editor, where its next
-version is saved to its library; a symbol of a read-only library (the starter's) or one only the project holds offers
-**Copy and edit** alone, which opens a copy that is saved to your own library. Open it with Draw ▸ Place ▸ Symbol….
+more until you finish. Under the picture, **Open in Parts** opens the symbol in Parts: yours to change and save, or one
+of a library you cannot write (the starter's) or only in this project as it is, with **Make my own from it**. When no
+symbol fits, the list's foot offers **New symbol…**, a new drawing for the page
+([Drawing a symbol](../symbol-editor.md)). Open it with Draw ▸ Place ▸ Symbol….
 See [A first schematic page](../../tutorials/first-page.md).
 
 ## Device from part
 
 Places a device from a part of the library, so that the device has its part from the start. A device is a part of
 the catalogue with its functions. The browser lists one row per part; a part with several functions opens to them
-with its arrow (or Right). Edit symbol and Copy and edit act on the symbol of the chosen row, as in the symbol
-browser; a part drawn as a box offers **Pins and box…** instead, which opens its device box in the symbol editor (a
-copy of your own for a part you cannot change). Open it with Draw ▸ Place ▸ Device from part…. See [Choose parts](../../how-to/choose-parts.md).
+with its arrow (or Right). **Open in Parts** opens the symbol of the chosen row, as in the symbol browser; a part drawn
+as a box offers **Arrange…** instead, which opens its box in Parts (a part you cannot change opens as it is, with
+**Make my own from it**). Open it with Draw ▸ Place ▸ Device from part…. See [Choose parts](../../how-to/choose-parts.md).
 
 ## Terminal
 
@@ -101,7 +102,7 @@ wire drawn to the box's edge where no pin is asks for a pin there in the same wa
 to rename it; right-click it for **Remove pin**, offered while no wire holds it. Each is one Undo step. The box goes
 no narrower than its pins need and no lower than its longest top pin name and its longest bottom pin name need (those
 two sides' names are turned a quarter, reading from bottom to top; the left and right sides' are horizontal). A box
-of a part draws the part's pins: its Add pin opens the part's device box, where they are edited.
+of a part draws the part's pins: its Add pin opens the part in Parts and arranges its box, where they are placed.
 
 ## Tool step back
 

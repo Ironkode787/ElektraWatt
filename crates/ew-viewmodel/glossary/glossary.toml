@@ -56,6 +56,19 @@ en-GB = "A manufacturer's article from a library; a project holds a copy of each
 nl-NL = "Een artikel van een fabrikant uit een bibliotheek; een project bewaart een kopie van elk gebruikt artikel, gekoppeld aan apparaten."
 
 [[term]]
+ew = "Symbol"
+actions = ["parts.new_symbol", "tool.place"]
+[term.words]
+en-GB = ["symbol editor", "new symbol", "draw a symbol", "own symbol"]
+nl-NL = ["symbooleditor", "nieuw symbool", "symbool tekenen", "eigen symbool"]
+[term.labels]
+en-GB = "Symbol"
+nl-NL = "Symbool"
+[term.definition]
+en-GB = "How a part, or one piece of it, is drawn on a schematic page; a symbol of your own is drawn in Parts (New symbol) and kept with your parts."
+nl-NL = "Hoe een artikel, of één deel ervan, op een schemapagina getekend wordt; een eigen symbool tekent u in Artikelen (Nieuw symbool) en het wordt bij uw artikelen bewaard."
+
+[[term]]
 ew = "Stand-in part"
 actions = ["part.placeholder"]
 [term.words]

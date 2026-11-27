@@ -190,8 +190,7 @@ libraries-update-count = { $p0 ->
        *[other] Update { $p0 } items…
     }
 libraries-update-tip = Shows the changes in the Preview first; Apply makes them.
-part-pins-and-box = Pins and box…
-part-pins-and-box-how = Which pins the device has and where they stand on the box it is drawn as
+part-pins-and-box-how = Where the pins stand on the box the device is drawn as
 part-pins = Pins
 part-pin-add = Add pin
 part-pin-name = Name of pin { $p0 }

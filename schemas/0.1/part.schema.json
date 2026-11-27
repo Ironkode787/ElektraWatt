@@ -3621,6 +3621,17 @@
         "main": {
           "description": "The main function of the part.",
           "type": "boolean"
+        },
+        "symbol": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LibRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The symbol that draws this function of this part (doc 07 §2.5); absent: any symbol of the function."
         }
       },
       "required": [

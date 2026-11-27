@@ -280,7 +280,7 @@ refusal-box-cp-index-twice = two box CPs have the same function CP index
 refusal-box-reshape-too-small = { $p0 } is too small for its pins: a side with { $p1 } pins needs at least { $p2 } grid steps; make the box larger
 refusal-box-reshape-cp-on-corner = a pin cannot stand on a corner of the box; put it at least one grid step along a side
 refusal-box-reshape-cp-shared = two pins cannot stand on one point of the box; put the pin on a free point of its side
-refusal-box-pin-of-part = the pins of a part's box are the part's; edit them in its device box (right-click the box, Add pin)
+refusal-box-pin-of-part = the pins of a part's box are the part's; arrange them in Parts (right-click the box, Add pin)
 # box.structure.
 refusal-box-structure-few-vertices = a structure box's outline needs at least three vertices, not { $p0 }
 refusal-box-structure-node-gone = structure node { $p0 } does not exist

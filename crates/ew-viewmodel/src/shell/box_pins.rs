@@ -56,20 +56,8 @@ impl ShellModel {
             Err(reason) => return Outcome::refused(reason),
         };
         if !b.own_pins {
-            let opened = self.dispatch("parts.open", &json!({}));
-            if opened != Outcome::Done {
-                return opened;
-            }
-            let mine = self
-                .parts_place()
-                .and_then(|place| place.sheet.as_ref())
-                .is_some_and(crate::shell::parts_place::OpenSheet::editable);
-            if !mine {
-                self.notify(strings::text(key!("toast-box-pin-not-yours")).to_owned(), false);
-                return Outcome::Done;
-            }
             let out = self.arrange_box(None);
-            if out == Outcome::Done {
+            if out == Outcome::Done && self.symbol_editor().is_some() {
                 self.notify(strings::text(key!("toast-box-pin-part")).to_owned(), false);
             }
             return out;

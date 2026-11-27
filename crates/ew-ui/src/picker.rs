@@ -936,7 +936,7 @@ fn edit_buttons(
         if components::button(
             ui,
             Kind::Secondary,
-            strings::text(key!("part-pins-and-box")),
+            strings::text(key!("parts-arrange")),
             None,
             0.0,
         )

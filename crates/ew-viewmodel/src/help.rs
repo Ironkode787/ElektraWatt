@@ -61,13 +61,7 @@ pub static ANCHORS: &[Anchor] = &[
     on(
         "reference/symbol-editor.md",
         "symbol-editor",
-        "symbol-editor-and-automated-authoring",
-    ),
-    // The symbol editor's Function type and Ready-made function (F24).
-    on(
-        "reference/symbol-editor.md",
-        "symbol-editor-function",
-        "function-type-and-ready-made-functions",
+        "drawing-a-symbol-and-automated-authoring",
     ),
     on("introduction.md", "home", ""),
     on(WINDOW, "start-page", "start-page"),
@@ -176,10 +170,9 @@ pub static ANCHORS: &[Anchor] = &[
     on(SYMBOL_EDITOR, "symbol-editor-screen", "the-screen"),
     on(SYMBOL_EDITOR, "symbol-editor-selecting", "selecting-and-moving"),
     on(SYMBOL_EDITOR, "symbol-editor-drawing", "drawing"),
-    on(SYMBOL_EDITOR, "symbol-editor-device-box", "the-device-box"),
-    // Their own places: the editor's start card, outline, a shape, a connection point and a pin of a box; a
-    // valve terminal's positions.
-    on(SYMBOL_EDITOR, "symbol-editor-start", "the-start-card"),
+    on(SYMBOL_EDITOR, "symbol-editor-device-box", "the-box-of-a-part"),
+    // Their own places: the drawing's outline, a shape, a connection point and a pin of a box; a valve terminal's
+    // positions.
     on(SYMBOL_EDITOR, "symbol-editor-outline", "the-outline"),
     on(SYMBOL_EDITOR, "symbol-editor-shape", "a-shape"),
     on(SYMBOL_EDITOR, "symbol-editor-cp", "a-connection-point"),

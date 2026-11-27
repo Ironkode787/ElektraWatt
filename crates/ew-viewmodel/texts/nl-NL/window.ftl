@@ -30,7 +30,6 @@ bar-move-down = Omlaag
 bar-go-to = Ga naar
 bar-follow-reference = Verwijzing volgen
 bar-device = Apparaat
-bar-symbol-editor = Symbooleditor
 bar-new-symbol = Nieuw symbool
 new-symbol-like-last = Zoals het vorige · { $p0 }
 new-symbol-like-selected = Zoals het geselecteerde · { $p0 }

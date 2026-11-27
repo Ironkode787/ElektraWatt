@@ -281,7 +281,7 @@ refusal-box-cp-index-twice = twee aansluitpunten van de box hebben dezelfde aans
 refusal-box-reshape-too-small = { $p0 } is te klein voor zijn aansluitingen: een zijde met { $p1 } aansluitingen heeft ten minste { $p2 } rasterstappen nodig; maak de box groter
 refusal-box-reshape-cp-on-corner = een aansluiting kan niet op een hoek van de box staan; zet hem ten minste één rasterstap langs een zijde
 refusal-box-reshape-cp-shared = twee aansluitingen kunnen niet op één punt van de box staan; zet de aansluiting op een vrij punt van haar zijde
-refusal-box-pin-of-part = de aansluitingen van de box van een artikel zijn die van het artikel; bewerk ze in zijn apparaatkast (rechtsklik op de box, Aansluiting toevoegen)
+refusal-box-pin-of-part = de aansluitingen van de kast van een artikel zijn die van het artikel; schik ze in Artikelen (rechtsklik op de kast, Aansluiting toevoegen)
 # box.structure.
 refusal-box-structure-few-vertices = de omtrek van een structuurkader heeft ten minste drie hoekpunten nodig, niet { $p0 }
 refusal-box-structure-node-gone = structuurknooppunt { $p0 } bestaat niet

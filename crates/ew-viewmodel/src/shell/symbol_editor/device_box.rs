@@ -383,25 +383,27 @@ fn outcome_words(out: Outcome) -> Result<(), String> {
 }
 
 impl ShellModel {
-    /// `parts.draw {what: box, part?}` (Arrange… on the box of Parts' pictures; Edit this device's box… on a placed
-    /// box, Pins and box… in the device browser and Add pin on a box of a part name it by `part`, or by the device in
-    /// Properties): the open part's box as the drawing of the place, its pins the sheet's. A part that is not his is
-    /// refused in words: he makes his own from it first.
+    /// `parts.draw {what: box, part?}` (Arrange… under the part's pins in Parts and in the device browser, which names
+    /// it by `part`; Arrange its box… and Add pin on a placed box, which name it by the device in Properties): the
+    /// part's box as the drawing of the place, its pins the sheet's. A part that is not his opens in Parts as it is,
+    /// and a line says that Make my own from it is the way to its pins; on the open sheet it is refused in words.
     pub(crate) fn arrange_box(&mut self, part: Option<&str>) -> Outcome {
-        let opened = match part {
-            Some(part) => self.dispatch("parts.open", &json!({ "part": part })),
-            None if self.parts.as_deref().and_then(|p| p.sheet.as_ref()).is_none() => {
-                self.dispatch("parts.open", &json!({}))
+        let open_here = part.is_some() || self.parts.as_deref().and_then(|p| p.sheet.as_ref()).is_none();
+        if open_here {
+            let named = part.map_or_else(|| json!({}), |part| json!({ "part": part }));
+            let opened = self.dispatch("parts.open", &named);
+            if opened != Outcome::Done {
+                return opened;
             }
-            None => Outcome::Done,
-        };
-        if opened != Outcome::Done {
-            return opened;
         }
         let Some(open) = self.parts.as_deref().and_then(|p| p.sheet.as_ref()) else {
             return Outcome::refused(key!("reason-no-part-open"));
         };
         if !open.editable() {
+            if open_here {
+                self.notify(strings::text(key!("toast-box-pin-not-yours")).to_owned(), false);
+                return Outcome::Done;
+            }
             return Outcome::refused(key!("reason-part-not-yours"));
         }
         let draft = open.sheet.clone();

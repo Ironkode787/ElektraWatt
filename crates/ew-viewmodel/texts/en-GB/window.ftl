@@ -29,7 +29,6 @@ bar-move-down = Move down
 bar-go-to = Go to
 bar-follow-reference = Follow reference
 bar-device = Device
-bar-symbol-editor = Symbol editor
 bar-new-symbol = New symbol
 new-symbol-like-last = Like the last one · { $p0 }
 new-symbol-like-selected = Like the selected one · { $p0 }

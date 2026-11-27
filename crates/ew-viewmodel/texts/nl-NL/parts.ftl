@@ -185,8 +185,7 @@ libraries-update-count = { $p0 ->
        *[other] { $p0 } items bijwerken…
     }
 libraries-update-tip = Toont eerst de wijzigingen in het voorbeeld; Toepassen voert ze door.
-part-pins-and-box = Pennen en kast…
-part-pins-and-box-how = Welke pennen het apparaat heeft en waar ze staan op de kast waarmee het wordt getekend
+part-pins-and-box-how = Waar de aansluitingen staan op de kast waarmee het apparaat wordt getekend
 part-pins = Pennen
 part-pin-add = Pen toevoegen
 part-pin-name = Naam van pen { $p0 }

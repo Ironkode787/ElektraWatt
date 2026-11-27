@@ -114,23 +114,24 @@ the edges. The part says which pins it has and where they stand.
    pin** adds one, the cross at a row's end removes it; each pin has its row under **Connections** for its clamp. A
    PLC card's pins come from its channels and a part drawn with a symbol takes that symbol's connections: the group
    lists them and says so.
-2. Choose **Pins and box…**. The device box opens on the symbol editor's screen: drag each pin along its edge or onto
-   another edge, drag the box's right or bottom edge to size it, and choose **Save**
-   ([The device box](../reference/symbol-editor.md#the-device-box)).
+2. Choose **Arrange…**. The box opens as the drawing of Parts: drag each pin along its edge or onto another edge, drag
+   the box's edges to size it, choose **Done**, then **Save** the part
+   ([The box of a part](../reference/symbol-editor.md#the-box-of-a-part)).
 3. **Draw ▸ Place ▸ Device from part…** then places the part's box with one click, laid out as you drew it. On the page
    the box's edges and pins can still be dragged. When you drag an edge, the pins of each side stay centred on it with
    their spacing; the box goes no smaller than its pins need (one grid step each and one to spare at each corner), and
    no lower than its pin names need, and the status line says so. **Centre the pins** in the box's right-click menu
    centres them without a resize. The pin names of the top and bottom sides are turned a quarter, reading from bottom
    to top; those of the left and right sides are horizontal.
-4. To change the box of a device already drawn, choose **Edit this device's box…** in its menu. The message of the
-   save says how many boxes of the part are drawn and offers **Redraw them**.
+4. To change the box of a device already drawn, choose **Arrange its box…** in its menu. Save's card names each box of
+   the part it draws anew, and its Apply redraws them.
 
 ## A part drawn with your own symbol
 
-In the [symbol editor](../reference/symbol-editor.md), save the symbol with **Save**, then open **Draft** and choose
-**Make a part for this symbol…**. Parts opens on a new part drawn with that symbol; a device placed from the part is
-drawn with it.
+A piece's **Symbol** cell, under **On the schematic ▸ Drawn as**, offers the symbols of what the piece is; **Draw a new
+symbol…** draws one for it, its pins standing on the drawing already, and **Change it for this part…** draws your copy
+of the one it has. **Done** gives the piece the symbol; a device placed from the part is drawn with it. A symbol you
+saved on its own offers **New part drawn with it…** under its name ([Drawing a symbol](../reference/symbol-editor.md)).
 
 The PLC exchange with PLC software exports the stations of a configuration project; a switch or a device without a PLC
 section is not in the exported file. See [Work in the PLC workspace](plc-workspace.md) for the navigators, the rack

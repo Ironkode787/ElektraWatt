@@ -677,8 +677,8 @@ fn tutorial_6_importing_a_qelectrotech_project_runs_as_its_page_says() {
     );
 }
 
-/// The symbol editor's tutorial (G-M2.5-05; M25-p3#2): a six-pin power block drawn in the symbol editor,
-/// refused off the grid in words, saved to a library, exported, tested on a new page, the project saved and the
+/// The drawing's tutorial (G-M2.5-05; M25-p3#2): a six-pin power block drawn in Parts,
+/// refused off the grid in words, saved into My parts, exported, tested on a new page, the project saved and the
 /// exported draft reopened: every step done, the end state the page names, and the page passes the lint.
 #[test]
 fn tutorial_draw_a_six_pin_power_block_runs_as_its_page_says() {
@@ -686,25 +686,25 @@ fn tutorial_draw_a_six_pin_power_block_runs_as_its_page_says() {
     let out = run_tutorial(&tmp, "symbol-editor");
     let transcript = all_done(&out);
     let [drawn, off_grid, saved, reopened] = <[String; 4]>::try_from(describes(&transcript)).unwrap();
-    let editor = ["dialog ", "field ", "error "];
-    // Step 5: "The validation says Ready to save" (no finding).
+    let editor = ["drawing ", "field ", "error "];
+    // Step 5: "To do says Ready to save" (no finding).
     assert_eq!(
         lines_of(&drawn, &editor),
-        ["dialog \"Symbol editor\"", "field \"Key\": \"example.power\""]
+        ["drawing \"\"", "field \"Name\": \"Power block\""]
     );
     // Step 7: the refusal in words.
     assert_eq!(
         lines_of(&off_grid, &editor),
         [
-            "dialog \"Symbol editor\"",
-            "field \"Key\": \"example.power\"",
+            "drawing \"\"",
+            "field \"Name\": \"Power block\"",
             "error \"Connection point 1 is off the connection grid. Move it onto the grid before saving.\"",
         ]
     );
-    // Steps 8 to 11: the library, the portable draft and the saved project with its new page. A name without a
+    // Steps 8 to 11: My parts, the portable drawing and the saved project with its new page. A file name without a
     // folder is read from the user library folder, never the working directory.
-    assert!(!tmp.path("symbols.ewlib").exists() && !tmp.path("power.symbol.json").exists());
-    let library = find_named(&tmp.path(""), "symbols.ewlib").expect("the library");
+    assert!(!tmp.path("power.symbol.json").exists());
+    let library = find_named(&tmp.path(""), "user-parts.ewlib").expect("My parts");
     assert!(library.is_dir());
     let user = library.parent().unwrap();
     assert_eq!(user.file_name().unwrap(), "libraries");
@@ -713,10 +713,10 @@ fn tutorial_draw_a_six_pin_power_block_runs_as_its_page_says() {
         lines_of(&saved, &["title:"]),
         ["title: symbol-scratch.ew - ElektraWatt"]
     );
-    // What you learnt: the exported draft opens again, without a finding.
+    // What you learnt: the exported drawing opens again, without a finding.
     assert_eq!(
         lines_of(&reopened, &editor),
-        ["dialog \"Symbol editor\"", "field \"Key\": \"example.power\""]
+        ["drawing \"\"", "field \"Name\": \"Power block\""]
     );
     let items = items(&tmp);
     assert_eq!(

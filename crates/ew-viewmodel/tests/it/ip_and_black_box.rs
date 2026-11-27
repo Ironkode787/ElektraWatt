@@ -885,7 +885,7 @@ fn plain_box(tmp: &Tmp) -> (ShellModel, TableRep) {
 /// A re-test of a drawn box's pins, as the person did it:
 /// - "24V Tab 24V Tab 0V Tab 0V Enter" gives four pins 24V, 24V, 0V, 0V: two pins may share a name, as a part's do;
 /// - an empty name is said under the field, whole, and the field stays open to type on (no banner);
-/// - Add pin stands on the Draw tab's Arrange group, and a box without a part offers no dead "Edit this device's box…";
+/// - Add pin stands on the Draw tab's Arrange group, and a box without a part offers no dead "Arrange its box…";
 /// - Add pin without a point lets the new pin follow the pointer along the nearest edge, the status line says so, and
 ///   a click puts it there;
 /// - the box's height stops where the texts of its top and bottom sides would touch, as its width does;
@@ -931,7 +931,7 @@ fn a_drawn_box_s_pins_as_the_re_test_used_them() {
     let menu = ew_viewmodel::command_bar::canvas_menu(&s, ew_viewmodel::command_bar::MenuSpot::Object, None);
     assert!(menu.iter().any(|i| i.label == "Add pin"), "{menu:?}");
     assert!(
-        !menu.iter().any(|i| i.label == "Edit this device's box…"),
+        !menu.iter().any(|i| i.label == "Arrange its box…"),
         "{menu:?}"
     );
     // Add pin from the bar: the pin follows the pointer along the nearest edge before the click.
