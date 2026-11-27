@@ -116,7 +116,7 @@ fn the_entry_prompts_and_save_writes_the_set_into_my_parts() {
     assert_eq!(
         toast(&h),
         Some(format!(
-            "parts.csv: {new} new parts and 0 changed ones saved to My parts."
+            "parts.csv saved to My parts: {new} new, 0 changed."
         ))
     );
     assert!(!h.state().shell().can_undo(), "nothing went into the project");
@@ -223,7 +223,7 @@ fn the_set_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
     h.step();
     assert_eq!(
         toast(&h).as_deref(),
-        Some("parts.csv: 2 new parts and 0 changed ones saved to My parts.")
+        Some("parts.csv saved to My parts: 2 new, 0 changed.")
     );
     h.state_mut().shell_mut().shutdown();
 }

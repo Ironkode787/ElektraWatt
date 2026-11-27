@@ -535,7 +535,7 @@ toast-route-kept = { $p0 ->
 toast-lists-frame = Every list of the project, the table of contents among them, now prints on { $p0 }; the frames of the drawn pages and the section dividers stay as they were.
 toast-drawing-imported = Imported { $p0 } as page { $p1 }.
 toast-underlay-placed = Placed { $p0 } under page { $p1 }.
-toast-parts-set-saved = { $p0 }: { $p1 } new parts and { $p2 } changed ones saved to My parts.
+toast-parts-set-saved = { $p0 } saved to My parts: { $p1 } new, { $p2 } changed.
 toast-eplan-report-imported = Imported { $p0 } as a new project with { $p1 } devices.
 # The project changed while a report was read, and Cancel kept it.
 toast-report-read-dropped = The report was not imported: the project changed while it was read and stays open; import the report again to make its project.

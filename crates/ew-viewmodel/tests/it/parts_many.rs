@@ -261,6 +261,11 @@ fn export_after_the_save_dialog_s_replace_writes_the_file() {
     params.insert(prompt.param.to_owned(), json!(path.to_string_lossy()));
     done(&mut s, prompt.action, serde_json::Value::Object(params));
     assert!(std::fs::read_to_string(&path).unwrap().contains("FT-4"));
+    // One part is one part, in the toast's words.
+    assert!(
+        s.notifications().entries().any(|n| n.text == "1 part written to family.csv."),
+        "the toast counts one part"
+    );
     s.shutdown();
 }
 

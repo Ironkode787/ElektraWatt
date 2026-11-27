@@ -107,7 +107,8 @@ impl Session {
     /// Saves the changed parts of My parts among `sheets` (doc 07 §5.9, one Save): each as its library item's next
     /// patch version, written into its library in one write, and the one `library.update` that brings the project's
     /// copies of them to their new versions (Bulk: its card names the parts' changed fields and the devices; one undo
-    /// step). `None` where the project holds none of them. A part that did not change is not written again.
+    /// step), with how many parts were written. The plan is `None` where the project holds none of them. A part that did
+    /// not change is not written again.
     ///
     /// # Errors
     ///
@@ -116,7 +117,7 @@ impl Session {
     pub fn own_parts_update(
         &mut self,
         sheets: &[&PartSheet],
-    ) -> Result<Option<crate::library_ops::UpdatePlan>, (usize, PartDraftError)> {
+    ) -> Result<(usize, Option<crate::library_ops::UpdatePlan>), (usize, PartDraftError)> {
         let mut written: BTreeMap<Uuid, Vec<LibDocument>> = BTreeMap::new();
         let mut held_docs = Vec::new();
         for (i, draft) in sheets.iter().enumerate() {
@@ -235,7 +236,7 @@ impl Session {
             done.extend(numbers(docs));
         }
         if held_docs.is_empty() {
-            return Ok(None);
+            return Ok((done.len(), None));
         }
         let plan = self.update_from_documents(&held_docs, &[]).map_err(|e| {
             (
@@ -243,7 +244,7 @@ impl Session {
                 PartDraftError::Field(message("part", key!("error-part-library"), &["", &e.to_string()])),
             )
         })?;
-        Ok(Some(plan))
+        Ok((done.len(), Some(plan)))
     }
 }
 

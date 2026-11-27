@@ -147,7 +147,10 @@ parts-stock-text = The wire, ferrule, marker and gland parts the shop keeps, in 
 parts-stock-add-mine = Add from my parts…
 parts-stock-default = Use this stock for new projects
 parts-stock-cut = Cut to (the length a piece is rounded up to) is a setting of the project: Project properties ▸ Workshop.
-parts-stock-kept = This stock, { $p0 } parts in its order, is kept for new projects.
+parts-stock-kept = { $p0 ->
+    [one] This stock, { $p0 } part, is kept for new projects.
+   *[other] This stock, { $p0 } parts in its order, is kept for new projects.
+    }
 part-deleted = { $p0 } deleted. Undo brings it back.
 part-removed-own = Removed { $p0 } from your parts library: the next projects no longer offer it.
 part-removed-own-kept = Removed { $p0 } from your parts library: the next projects no longer offer it. This project keeps its copy for { $p1 }.
@@ -474,13 +477,25 @@ parts-set-unread = it does not read as a part.
 parts-set-field = in column { $p0 }: { $p1 }
 parts-set-like = its Like column names { $p0 }, which is no part of My parts or of a library.
 parts-export = Export
-parts-exported = { $p0 } parts written to { $p1 }.
-parts-exported-saved = { $p0 } parts written to { $p1 } as they are saved: what was typed and not saved is not in it.
-parts-many-title = { $p0 } parts
+parts-exported = { $p0 ->
+    [one] { $p0 } part written to { $p1 }.
+   *[other] { $p0 } parts written to { $p1 }.
+    }
+parts-exported-saved = { $p0 ->
+    [one] { $p0 } part written to { $p1 } as it is saved: what was typed and not saved is not in it.
+   *[other] { $p0 } parts written to { $p1 } as they are saved: what was typed and not saved is not in it.
+    }
+parts-many-title = { $p0 ->
+    [one] { $p0 } part
+   *[other] { $p0 } parts
+    }
 parts-many-line = { $p0 } parts selected. A value typed goes to all of them; a field they hold different values in reads mixed, and Save leaves it as each has it.
 parts-many-mixed = mixed
 parts-many-refused = { $p0 } is not saved: { $p1 }
-parts-many-saved = { $p0 } parts saved to My parts.
+parts-many-saved = { $p0 ->
+    [one] { $p0 } part saved to My parts.
+   *[other] { $p0 } parts saved to My parts.
+    }
 parts-many-parts = The parts selected
 parts-many-own = Make my own from { $p0 }
 parts-many-cells = They have the same pins. A cell they differ in is empty and stays as each has it.

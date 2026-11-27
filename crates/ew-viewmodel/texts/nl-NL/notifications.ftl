@@ -487,7 +487,7 @@ toast-route-kept = { $p0 ->
 toast-lists-frame = Elke lijst van het project, ook de inhoudsopgave, wordt nu afgedrukt op { $p0 }; de kaders van de getekende pagina's en de sectiescheidingen blijven zoals ze waren.
 toast-drawing-imported = { $p0 } geïmporteerd als pagina { $p1 }.
 toast-underlay-placed = { $p0 } onder pagina { $p1 } gelegd.
-toast-parts-set-saved = { $p0 }: { $p1 } nieuwe artikelen en { $p2 } gewijzigde opgeslagen in Mijn artikelen.
+toast-parts-set-saved = { $p0 } opgeslagen in Mijn artikelen: { $p1 } nieuw, { $p2 } gewijzigd.
 toast-eplan-report-imported = { $p0 } geïmporteerd als nieuw project met { $p1 } apparaten.
 # het project veranderde terwijl een rapport werd gelezen, en Annuleren hield het open.
 toast-report-read-dropped = Het rapport is niet geïmporteerd: het project veranderde terwijl het werd gelezen en blijft open; importeer het rapport opnieuw om zijn project te maken.

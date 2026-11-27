@@ -95,7 +95,7 @@ fn an_edz_asks_the_terms_once_then_its_set_updates_the_part_copy_and_fills_my_pa
     let toast = h.state().shell().toast().map(|t| t.text.clone());
     assert_eq!(
         toast.as_deref(),
-        Some("psu.edz: 1 new parts and 0 changed ones saved to My parts.")
+        Some("psu.edz saved to My parts: 1 new, 0 changed.")
     );
     assert!(
         tmp.0

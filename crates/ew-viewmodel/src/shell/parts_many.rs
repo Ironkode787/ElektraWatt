@@ -285,13 +285,12 @@ impl ShellModel {
                 ),
             };
         }
-        let count = many.sheets.len();
         let sheets: Vec<PartSheet> = many.sheets.iter().map(|(s, _)| s.clone()).collect();
         let (Some(session), _) = self.parts_session_mut() else {
             return Outcome::refused(key!("reason-no-parts-place"));
         };
         let refs: Vec<&PartSheet> = sheets.iter().collect();
-        let plan = match session.own_parts_update(&refs) {
+        let (count, plan) = match session.own_parts_update(&refs) {
             Ok(p) => p,
             Err((i, e)) => {
                 let number = sheets
@@ -317,7 +316,7 @@ impl ShellModel {
         self.libraries_changed();
         let Some(plan) = plan else {
             self.notify(
-                strings::format(key!("parts-many-saved"), &[&count.to_string()]),
+                strings::format_count(crate::count_key!("parts-many-saved"), count),
                 false,
             );
             return self.reopen_many();
@@ -325,7 +324,7 @@ impl ShellModel {
         let devices = plan.devices.iter().map(|d| self.tag_of(d.as_uuid())).collect();
         let fields = plan.copies.iter().flat_map(|c| card_fields(&c.fields)).collect();
         let card = PartCard {
-            title: strings::format(key!("parts-many-title"), &[&count.to_string()]),
+            title: strings::format_count(crate::count_key!("parts-many-title"), count),
             fields,
             devices,
             removed: plan.bom_removed,
@@ -448,12 +447,12 @@ impl ShellModel {
             return failed(key!("error-export"), &[&e.to_string()]);
         }
         let said = if typed {
-            key!("parts-exported-saved")
+            crate::count_key!("parts-exported-saved")
         } else {
-            key!("parts-exported")
+            crate::count_key!("parts-exported")
         };
         self.notify(
-            strings::format(said, &[&sheets.len().to_string(), &name]),
+            strings::format_counted(said, sheets.len(), &[&name]),
             false,
         );
         Outcome::Done

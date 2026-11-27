@@ -50,7 +50,7 @@ fn a_value_typed_into_several_parts_is_saved_into_each_and_mixed_is_left_as_each
         s.set_draft_field(sheet, "mech.depth", "45").expect("the depth");
     }
     assert!(
-        s.own_parts_update(&[&a, &b]).expect("saved").is_none(),
+        matches!(s.own_parts_update(&[&a, &b]).expect("saved"), (2, None)),
         "no project holds them"
     );
     let lib = a.source.expect("from My parts").0;
@@ -64,4 +64,9 @@ fn a_value_typed_into_several_parts_is_saved_into_each_and_mixed_is_left_as_each
         );
         assert_ne!(now.version, sheet.version, "its next version");
     }
+    // Only the parts that changed are written, and counted.
+    let mut a = s.library_part_draft(lib, a.source.unwrap().1).expect("saved");
+    let b = s.library_part_draft(lib, b.source.unwrap().1).expect("saved");
+    s.set_draft_field(&mut a, "mech.depth", "46").expect("the depth");
+    assert!(matches!(s.own_parts_update(&[&a, &b]).expect("saved"), (1, None)));
 }

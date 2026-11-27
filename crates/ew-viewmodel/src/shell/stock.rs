@@ -96,7 +96,7 @@ impl ShellModel {
                 self.settings.shop_stock = items.iter().map(|(l, i)| format!("{l}/{i}")).collect();
                 self.save_settings();
                 self.notify(
-                    strings::format(key!("parts-stock-kept"), &[&items.len().to_string()]),
+                    strings::format_count(crate::count_key!("parts-stock-kept"), items.len()),
                     false,
                 );
                 return Outcome::Done;

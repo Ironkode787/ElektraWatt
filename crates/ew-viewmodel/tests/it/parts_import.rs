@@ -124,7 +124,7 @@ fn a_maker_s_table_comes_into_parts_as_a_set_and_save_writes_my_parts() {
     assert!(shell.import_set().is_none(), "the set went into My parts");
     assert_eq!(
         common::state(&shell)["toast"]["text"],
-        "example-parts.csv: 2 new parts and 0 changed ones saved to My parts."
+        "example-parts.csv saved to My parts: 2 new, 0 changed."
     );
     done(
         &mut shell,

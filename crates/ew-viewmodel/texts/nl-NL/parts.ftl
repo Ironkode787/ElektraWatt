@@ -141,7 +141,10 @@ parts-stock-text = De draad-, adereindhuls-, merker- en wartelartikelen die de w
 parts-stock-add-mine = Uit mijn artikelen toevoegen…
 parts-stock-default = Deze voorraad gebruiken voor nieuwe projecten
 parts-stock-cut = Afzagen op (de lengte waarop een stuk naar boven wordt afgerond) is een instelling van het project: Projecteigenschappen ▸ Werkplaats.
-parts-stock-kept = Deze voorraad, { $p0 } artikelen in zijn volgorde, wordt bewaard voor nieuwe projecten.
+parts-stock-kept = { $p0 ->
+    [one] Deze voorraad, { $p0 } artikel, wordt bewaard voor nieuwe projecten.
+   *[other] Deze voorraad, { $p0 } artikelen in zijn volgorde, wordt bewaard voor nieuwe projecten.
+    }
 part-deleted = { $p0 } verwijderd. Ongedaan maken brengt het terug.
 part-removed-own = { $p0 } is uit uw artikelbibliotheek verwijderd: volgende projecten bieden het niet meer aan.
 part-removed-own-kept = { $p0 } is uit uw artikelbibliotheek verwijderd: volgende projecten bieden het niet meer aan. Dit project houdt zijn kopie voor { $p1 }.
@@ -468,13 +471,25 @@ parts-set-unread = hij leest niet als een artikel.
 parts-set-field = in kolom { $p0 }: { $p1 }
 parts-set-like = zijn kolom Zoals noemt { $p0 }, wat geen artikel van Mijn artikelen of van een bibliotheek is.
 parts-export = Exporteren
-parts-exported = { $p0 } artikelen geschreven naar { $p1 }.
-parts-exported-saved = { $p0 } artikelen geschreven naar { $p1 } zoals ze zijn opgeslagen: wat getypt en niet opgeslagen is, staat er niet in.
-parts-many-title = { $p0 } artikelen
+parts-exported = { $p0 ->
+    [one] { $p0 } artikel geschreven naar { $p1 }.
+   *[other] { $p0 } artikelen geschreven naar { $p1 }.
+    }
+parts-exported-saved = { $p0 ->
+    [one] { $p0 } artikel geschreven naar { $p1 } zoals het is opgeslagen: wat getypt en niet opgeslagen is, staat er niet in.
+   *[other] { $p0 } artikelen geschreven naar { $p1 } zoals ze zijn opgeslagen: wat getypt en niet opgeslagen is, staat er niet in.
+    }
+parts-many-title = { $p0 ->
+    [one] { $p0 } artikel
+   *[other] { $p0 } artikelen
+    }
 parts-many-line = { $p0 } artikelen geselecteerd. Een getypte waarde gaat naar alle; een veld waarin ze verschillende waarden hebben leest gemengd, en Opslaan laat het zoals elk het heeft.
 parts-many-mixed = gemengd
 parts-many-refused = { $p0 } is niet opgeslagen: { $p1 }
-parts-many-saved = { $p0 } artikelen opgeslagen in Mijn artikelen.
+parts-many-saved = { $p0 ->
+    [one] { $p0 } artikel opgeslagen in Mijn artikelen.
+   *[other] { $p0 } artikelen opgeslagen in Mijn artikelen.
+    }
 parts-many-parts = De geselecteerde artikelen
 parts-many-own = Mijn eigen maken van { $p0 }
 parts-many-cells = Ze hebben dezelfde aansluitingen. Een cel waarin ze verschillen is leeg en blijft zoals elk het heeft.
