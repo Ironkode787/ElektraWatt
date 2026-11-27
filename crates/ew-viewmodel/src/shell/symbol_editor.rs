@@ -1361,8 +1361,12 @@ impl ShellModel {
             .map(|l| l.name)
             .unwrap_or_default();
         self.config.libraries = Some(tiers);
+        // The libraries the place reads, the project's or (no project) its own over the libraries alone, are those it
+        // was saved into: a piece takes it, the Symbols shelf lists it.
         if let Some(project) = &mut self.project {
             *project.session.libraries_mut() = registry;
+        } else if let Some(alone) = &mut self.parts_alone {
+            *alone.libraries_mut() = registry;
         }
         // The draft's history publishes the same items from now on, under the key the library took.
         let history = editor.undo.iter_mut().chain(editor.redo.iter_mut());

@@ -633,3 +633,27 @@ fn save_and_place_keeps_a_part_sheet_open_in_parts() {
     assert!(open.changed, "with its typing");
     assert_eq!(open.title(), "HALF-TYPED");
 }
+
+/// With no project open (Parts from the start page), Done on a piece's new symbol gives the piece the symbol it saved,
+/// and the Symbols shelf lists it: the libraries the place reads are those the symbol was saved into.
+#[test]
+fn a_piece_s_new_symbol_is_given_to_it_with_no_project_open() {
+    let tmp = Tmp::new("journey-piece-no-project");
+    let mine = LibraryTiers::under(&tmp.0.join("data"), &tmp.0.join("cache"), Vec::new(), Vec::new());
+    let mut s = ShellModel::new(Mode::Headless, tmp.config().with_libraries(Some(mine)));
+    done(&mut s, "parts.open", json!({}));
+    own_contactor(&mut s, "MY-CON-5");
+    done(&mut s, "parts.draw", json!({"piece": 0, "from": "new"}));
+    done(
+        &mut s,
+        "symbol.draw",
+        json!({"tool": "rectangle", "x": -4, "y": 4, "x2": 12, "y2": 12}),
+    );
+    done(&mut s, "parts.save", json!({}));
+    let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the part");
+    let symbol = open.sheet.pieces[0].symbol.clone();
+    assert!(symbol.starts_with("library:"), "the coil names its new symbol: {:?}", open.sheet.pieces);
+    done(&mut s, "parts.find", json!({"shelf": "symbols", "text": "MY-CON-5"}));
+    let shelf: Vec<String> = s.parts_place().map(|p| p.symbols.iter().map(|f| f.address.clone()).collect()).unwrap_or_default();
+    assert!(shelf.contains(&symbol), "the shelf lists it: {shelf:?}");
+}
