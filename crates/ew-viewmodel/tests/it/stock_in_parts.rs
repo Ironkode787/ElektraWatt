@@ -65,3 +65,26 @@ fn the_stock_is_changed_on_a_parts_sheet_one_step_each() {
     assert_ne!(s.dispatch("command.run", &cut(json!(0))), Outcome::Done);
     s.shutdown();
 }
+
+/// A practice project is the same on every PC (review finding 15 of lane 3): a tutorial's new project starts with the
+/// starter's generic stock, not with the stock kept for new projects.
+#[test]
+fn a_tutorial_project_starts_with_the_starter_stock_not_the_one_kept_here() {
+    let tmp = Tmp::new("stock-tutorial");
+    let mut s = tmp.new_project_in(Mode::Headless, &[]);
+    done(&mut s, "parts.stock", json!({}));
+    let generic = stock(&s);
+    let first = s.parts_place().unwrap().found[0].param();
+    done(&mut s, "parts.open", json!({"part": first}));
+    done(&mut s, "parts.stock", json!({"op": "remove"}));
+    done(&mut s, "parts.stock", json!({"op": "default"}));
+    let dir = tmp.0.join("first.ew");
+    done(
+        &mut s,
+        "help.tutorials",
+        json!({"tutorial": "first-page", "dir": dir.to_string_lossy()}),
+    );
+    let (tutorial, _) = ew_viewmodel::ew_api::Session::open_read_only(&dir, "0.0.0-test").expect("the tutorial");
+    assert_eq!(tutorial.stock().len(), generic.len());
+    s.shutdown();
+}

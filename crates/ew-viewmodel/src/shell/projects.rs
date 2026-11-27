@@ -413,7 +413,12 @@ impl ShellModel {
             Some(sample) => ProjectTemplate::Directory(sample),
             None => ProjectTemplate::Builtin,
         };
-        let session = match Session::new_project(from, NewProjectKind::Schematic, self.session_options()) {
+        // A practice project is the same on every PC, as its page tells it: the starter's stock, not one kept here.
+        let options = SessionOptions {
+            stock: Vec::new(),
+            ..self.session_options()
+        };
+        let session = match Session::new_project(from, NewProjectKind::Schematic, options) {
             Ok(s) => s,
             Err(e) => {
                 let message = strings::format(key!("error-new"), &[strings::text(open_error_key(&e))]);
