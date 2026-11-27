@@ -616,7 +616,7 @@ fn changing_one_piece_keeps_another_piece_s_symbol_the_project_alone_holds() {
             && c.item
                 .function_template
                 .iter()
-                .all(|t| t.fndef.extra.get("key").is_some())
+                .all(|t| t.fndef.extra.contains_key("key"))
         {
             c.library_id = ew_ids::Id::from_uuid(gone);
             c.item.function_template[0].symbol = Some(symbol.clone());

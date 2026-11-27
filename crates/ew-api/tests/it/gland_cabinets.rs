@@ -91,7 +91,7 @@ fn field_cabinet(s: &mut Session) -> Id<MountingSurface> {
         .find(|o| o.number == "EW-GEN-ENC-1" && o.copies.is_empty())
         .expect("the project's enclosure part")
         .part;
-    let field = node(&s, "FLD");
+    let field = node(s, "FLD");
     run(
         s,
         "layout.enclosure.create_from_part",
@@ -213,7 +213,7 @@ fn a_gland_of_a_cable_without_an_outer_diameter_is_refused_with_the_lack() {
             .table::<ew_schema::Device>()
             .get(Id::from_uuid(cable))
             .expect("the cable");
-        ew_derive::layout::cable_part_use(&q, &device).expect("its cable part")
+        ew_derive::layout::cable_part_use(&q, device).expect("its cable part")
     };
     // Its gland in +FLD, where it waits: not known.
     let refused = run(
