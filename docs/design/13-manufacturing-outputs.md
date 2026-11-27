@@ -323,7 +323,9 @@ To marker are editable there (§12).
 - **A tag prints without the structure its two ends share.** Inside one location a wire reads `-104A1-A2` to
   `-104E1`; where its ends lie in two locations each end prints its own, `+FLD-104B1` and `+CAB-104A1-A2`, so the list
   says that the wire leaves the cabinet and where it goes. Such an end, outside the cabinet's location, is a site end
-  (§2.1): the shop makes the other end, cuts the wire long enough and leaves this end for the site.
+  (§2.1): the wire is cut on site, so the cut list leaves it out and the consumables count no metres of it
+  ([the workshop lists](13-workshop-lists.md) §3.6, §9.3); the shop makes the cabinet's end (its ferrule and marker)
+  and leaves this end for the site.
 - **A door end** (a device placed in the door, [12](12-panel-layout.md)) prints `(door)` after its tag, so that the
   fitter takes the wire through the hinge loop.
 - **A core** is a row of the wire list: the fitter treats, lands and (where the shop does) marks its ends. It is cut
