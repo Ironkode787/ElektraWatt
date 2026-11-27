@@ -125,6 +125,8 @@ length-source-typed = typed
 length-source-cable = cable
 length-source-from-part = from part
 length-source-missing = missing
+length-source-routed = routed
+length-source-stale = stale
 
 ## The rework list: what the fitter does, and what changed
 

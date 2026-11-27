@@ -121,6 +121,8 @@ length-source-typed = getypt
 length-source-cable = kabel
 length-source-from-part = uit artikel
 length-source-missing = ontbreekt
+length-source-routed = gerouteerd
+length-source-stale = verouderd
 
 ## The rework list: what the fitter does, and what changed
 

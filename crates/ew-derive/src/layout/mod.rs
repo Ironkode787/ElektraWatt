@@ -33,6 +33,10 @@
 //! | [`GroupAccessories`], [`RailBrackets`] | `group_accessories(carrier)`: the derived end brackets of a rail and their count per strip (FR-LAY-060) |
 //! | [`member_order`], [`member_slot`] | The member order of an assembly, shared with EW-LAY-016, and where a member is pushed in |
 //! | [`next_fit`] | Where a fill places an item: the first fit at or after a floor |
+//! | [`PinSpots`] | `pin_spots(p)`: where a placed device's pins stand, their way out and height (doc 12 §8.1) |
+//! | [`DuctGraph`], [`plan_routes`], [`measure`], [`route_status`] | The ducts as a graph, Route's pass, a stored way's run and status (doc 12 §8) |
+//! | [`DuctFill`], [`WIRE_OD`], [`INNER_SHARE`] | `duct_fill(duct)`: the fill of a duct's pieces (doc 12 §8.6) |
+//! | [`reserve`], [`fill_limit`], [`door_loop`], [`routed_length`] | The shop's numbers of doc 12 §9 and a routed wire's length |
 //!
 //! Frames (doc 12 §2.1): a surface's `u` grows to the right and `v` upwards; a rail's pose `t = (s, 0, 0)` is the part's
 //! clip point at distance `s` from `path[0]` along the axis; a surface pose `t = (u, v, 0)` is the part origin, the
@@ -44,6 +48,8 @@ mod accessories;
 // The member order of an assembly
 mod assembly;
 mod carrier;
+// How full a duct is (doc 12 §8.6)
+mod fill;
 mod fit;
 // The cable glands of a cabinet (doc 12 §3.9)
 mod glands;
@@ -51,6 +57,8 @@ mod glands;
 mod holes;
 // The layout legend and the surface of a panel page
 mod legend;
+// Where a placed device's pins stand (doc 12 §8.1)
+mod pins;
 mod pose;
 // The layout queries (doc 12 §2.6)
 mod queries;
@@ -60,10 +68,15 @@ mod surfaces;
 mod snap;
 // The template for drilling of a surface (doc 13 §9.1)
 mod template;
+// The ways of a cabinet (doc 12 §8, §9)
+mod ways;
 
 pub use accessories::{Bracket, GroupAccessories, RailBrackets, rail_items};
 pub use assembly::{member_order, member_slot};
 pub use carrier::{PathError, RailAxis, check_path, path_length};
+pub use fill::{
+    DuctFill, DuctFillV, FillPiece, INNER_SHARE, InnerFrom, WIRE_OD, inner_area, wire_area, wire_od,
+};
 pub use fit::{Fit, Profile, RAIL_FITS, fits_rail, fits_surface};
 pub use glands::{
     CableGland, CableGlands, NoGland, cable_outer_diameter, cable_part_use, gland_nut, gland_pitch,
@@ -79,6 +92,7 @@ pub use legend::{
     carrier_length, carrier_order, carriers_in_order, layout_legend, legend_layout_page, metres_of_nm,
     page_surface, surface_pages,
 };
+pub use pins::{PinSpot, PinSpots, PinSpotsV, drawn_face, pin_face, placement_of_function};
 pub use pose::{PoseError, PoseOn, Quarter, check_pose, clip_offset, plate_frame, rehome_pose};
 pub use queries::{
     CarrierGeom, CarrierGeometry, Exempt, LabelMode, LayoutLabel, MountAs, Mountability, Mountable, Occupied,
@@ -98,6 +112,12 @@ pub use surfaces::{
 pub use template::{
     Paper, TEMPLATE_BAND, TEMPLATE_MARGIN, TEMPLATE_OVERLAP, TEMPLATE_PAST, TemplateSheets, TemplateTile,
     drawable, hole_boxes, template_sheets,
+};
+pub use ways::{
+    CabinetWire, DOOR_LOOP, DuctGraph, DuctGraphV, DuctLine, Entry, FILL_LIMIT, Joint, NoWay, Planned,
+    PlannedWire, RESERVE, RoutePlan, RouteScope, RouteStatus, StaleWhy, Way, cabinet_wires, door_loop,
+    entries, fill_limit, measure, plan_routes, plate_of_space, reserve, route_status, routed_length,
+    stored_way,
 };
 
 #[cfg(test)]

@@ -541,6 +541,17 @@ impl Cell {
         }
     }
 
+    /// `cell` as a value that no longer holds when `stale` (a wire's length along a way that no longer holds, doc 12
+    /// §8.5): printed after "≈". The one wrapper of the wire list's, the cut list's and the consumables' lengths; a
+    /// stale way stores no revision, so the cell names none.
+    pub fn stale_if(cell: Cell, stale: bool) -> Cell {
+        if stale {
+            Cell::Stale(Box::new(cell), Rev(0))
+        } else {
+            cell
+        }
+    }
+
     /// A length in metres to the millimetre, cut toward zero: the cable overview's and the fluid list's lengths.
     pub fn metres(n: Nm) -> Cell {
         Cell::Qty(Dec3(n.0 / 1_000_000), QtyUnit::Unit(Unit::M))

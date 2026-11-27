@@ -442,6 +442,7 @@
     - [`mounting_surface`](reference/format/mounting_surface.md)
     - [`carrier`](reference/format/carrier.md)
     - [`placement`](reference/format/placement.md)
+    - [`committed_route`](reference/format/committed_route.md)
     - [`surface_feature`](reference/format/surface_feature.md)
     - [`revision`](reference/format/revision.md)
     - [`waiver`](reference/format/waiver.md)

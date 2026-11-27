@@ -478,6 +478,13 @@ fn length_row(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Built {
                     via: format!("cut with its cable {}", device_tag_text(q, cable)),
                 },
             ),
+            WireLength::Routed { length, .. } | WireLength::Stale { length, .. } => {
+                can_override = true;
+                (
+                    Some(Value::from(length.0)),
+                    Provenance::Derived { via: "routed".into() },
+                )
+            }
             WireLength::Missing => {
                 can_override = true;
                 (

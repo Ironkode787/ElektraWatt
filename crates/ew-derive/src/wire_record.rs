@@ -19,6 +19,7 @@ use ew_rds::Aspect;
 use ew_schema::{ColourSpec, Connection, Csa, Device, LayoutSpace, Part, PartRef, StructureNode};
 use ew_units::Nm;
 
+use crate::layout::{RouteStatus, StaleWhy, route_status, routed_length};
 use crate::marking::{MarkedBy, MarkerText, NotMarked, mark};
 use crate::numbering::{WireNumbers, orient_wire};
 use crate::potentials::PotentialPartition;
@@ -66,22 +67,44 @@ impl AsRef<PhysicalWire> for WireRecord {
     }
 }
 
-/// A wire's length (doc 13 §3.3). The layout adds the lengths it estimates and routes.
+/// A wire's length (doc 13 §3.3, doc 12 §9), first match wins.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum WireLength {
     /// Typed by hand: a constituent connection's `WireOverrides.length`, as the wire reads it ([`PhysicalWire::overrides`]).
     Typed(Nm),
     /// A cable's core: cut with its cable.
     WithCable(Id<Device>),
-    /// Neither.
+    /// Laid by Route along a stored way that holds: the length made from its run ([`crate::layout::routed_length`]).
+    Routed {
+        /// The length, rounded once.
+        length: Nm,
+        /// The way's run.
+        run: Nm,
+        /// Whether the way crosses into a door (its loop is in the length).
+        door: bool,
+    },
+    /// A stored way that no longer holds: the length it gave, printed with "≈".
+    Stale {
+        /// The length, rounded once.
+        length: Nm,
+        /// The way's run.
+        run: Nm,
+        /// Whether the way crosses into a door.
+        door: bool,
+        /// Why it no longer holds.
+        why: StaleWhy,
+    },
+    /// None of these.
     Missing,
 }
 
 impl WireLength {
-    /// The length in nanometres, when there is one.
+    /// The length in nanometres, when there is one (a stale one too).
     pub fn value(self) -> Option<Nm> {
         match self {
-            WireLength::Typed(n) => Some(n),
+            WireLength::Typed(n)
+            | WireLength::Routed { length: n, .. }
+            | WireLength::Stale { length: n, .. } => Some(n),
             WireLength::WithCable(_) | WireLength::Missing => None,
         }
     }
@@ -120,14 +143,28 @@ pub struct EndRecord {
     pub marker_fits: bool,
 }
 
-/// The length of a wire (doc 13 §3.3): typed, else a core's cable, else missing.
+/// The length of a wire (doc 13 §3.3, doc 12 §9): typed, else a core's cable, else its stored way's (routed, or stale
+/// where the way no longer holds), else missing. A typed length is never rounded; a routed one is rounded once, here.
 pub fn wire_length(q: &Q, w: &PhysicalWire) -> WireLength {
     if let Some(n) = w.overrides.length {
         return WireLength::Typed(n);
     }
-    match w.core.and_then(|c| q.conductors().get(c)) {
-        Some(core) => WireLength::WithCable(core.cable),
-        None => WireLength::Missing,
+    if let Some(core) = w.core.and_then(|c| q.conductors().get(c)) {
+        return WireLength::WithCable(core.cable);
+    }
+    match route_status(q, w) {
+        RouteStatus::Holds { run, door } => WireLength::Routed {
+            length: routed_length(q, run, door),
+            run,
+            door,
+        },
+        RouteStatus::Stale { run, door, why } => WireLength::Stale {
+            length: routed_length(q, run, door),
+            run,
+            door,
+            why,
+        },
+        RouteStatus::None => WireLength::Missing,
     }
 }
 

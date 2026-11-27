@@ -309,11 +309,13 @@ pub fn line_kind(kind: &LineKind) -> Text {
     }
 }
 
-/// Where a wire's length comes from (doc 13 §3.3): "typed", "cable", "missing".
+/// Where a wire's length comes from (doc 13 §3.3, doc 12 §9): "typed", "cable", "routed", "stale", "missing".
 pub fn wire_length_source(length: &WireLength) -> Text {
     match length {
         WireLength::Typed(_) => text!("length-source-typed"),
         WireLength::WithCable(_) => text!("length-source-cable"),
+        WireLength::Routed { .. } => text!("length-source-routed"),
+        WireLength::Stale { .. } => text!("length-source-stale"),
         WireLength::Missing => text!("length-source-missing"),
     }
 }
@@ -393,10 +395,20 @@ pub fn rework_change(change: &ReworkChange) -> Text {
         ReworkChange::Length(b, a) => {
             let value = |l: &WireLength, unit: bool| -> TextArg {
                 match l {
-                    WireLength::Typed(n) if unit => format!("{} mm", mm_exact(i128::from(n.0))).into(),
-                    WireLength::Typed(n) => mm_exact(i128::from(n.0)).into(),
                     WireLength::WithCable(_) => wire_length_source(l).into(),
                     WireLength::Missing => NONE.into(),
+                    _ => {
+                        let n = l.value().map_or(0, |n| i128::from(n.0));
+                        let n = if unit {
+                            format!("{} mm", mm_exact(n))
+                        } else {
+                            mm_exact(n)
+                        };
+                        match l {
+                            WireLength::Stale { .. } => format!("≈ {n}").into(),
+                            _ => n.into(),
+                        }
+                    }
                 }
             };
             text!("rework-change-length", value(b, false), value(a, true))

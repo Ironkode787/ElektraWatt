@@ -372,7 +372,12 @@ fn changes(
             ));
         }
     }
-    if b.length != a.length {
+    // A length is compared by its value: a way laid again to the same length, or one gone stale, is no change.
+    let changed = match (b.length.value(), a.length.value()) {
+        (None, None) => b.length != a.length,
+        (x, y) => x != y,
+    };
+    if changed {
         out.push(ReworkChange::Length(b.length, a.length));
     }
     out

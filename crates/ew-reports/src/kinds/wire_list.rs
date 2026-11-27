@@ -252,11 +252,16 @@ pub(super) fn wire_no(q: &Q, rec: &WireRecord) -> Option<String> {
     }
 }
 
-/// A wire's length as the Length cell prints it (doc 13 §3.3): in millimetres as typed, `cable` for a core, `—`
-/// without one.
+/// A wire's length as the Length cell prints it (doc 13 §3.3, doc 12 §9): in millimetres as typed or routed, after "≈"
+/// along a way that no longer holds, `cable` for a core, `—` without one.
 fn length_cell(length: WireLength) -> Cell {
     match length {
-        WireLength::Typed(n) => Cell::Qty(Dec3(n.0 / 1_000), QtyUnit::Unit(Unit::Mm)),
+        WireLength::Typed(n) | WireLength::Routed { length: n, .. } | WireLength::Stale { length: n, .. } => {
+            Cell::stale_if(
+                Cell::Qty(Dec3(n.0 / 1_000), QtyUnit::Unit(Unit::Mm)),
+                matches!(length, WireLength::Stale { .. }),
+            )
+        }
         WireLength::WithCable(_) => Cell::Text(ew_derive::text::in_languages(
             &ew_derive::text::wire_length_source(&length),
         )),

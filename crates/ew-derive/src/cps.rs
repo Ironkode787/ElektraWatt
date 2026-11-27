@@ -15,7 +15,7 @@ use std::sync::Arc;
 use ew_ids::{Id, v5};
 use ew_mltext::MlText;
 use ew_schema::{
-    ClampKey, ClampType, CpData, CpDef, Discipline, FluidPortRole, FnDef, Function, FunctionKind,
+    ClampKey, ClampType, CpData, CpDef, Discipline, FluidPortRole, FnDef, Function, FunctionKind, PinFace,
     PotentialType, Representation, Side, TemplateFn, template_entry_of,
 };
 use ew_units::Dec3;
@@ -59,6 +59,9 @@ pub struct Cp {
     /// The clamp data of the part pattern entry the CP is drawn as (FR-PRT-008); `None` for a CP no part pattern
     /// gives, and for one whose entry names none.
     pub clamp_data: Option<ClampData>,
+    /// The part pattern entry the CP is drawn as: its index in the part's pins (`CpData.idx`) and the edge the part
+    /// says a wire leaves it at (`CpData.face`, doc 12 §8.1); `None` for a CP no part pattern gives.
+    pub pin: Option<(u16, Option<PinFace>)>,
 }
 
 /// What a part says of a CP's clamp (FR-PRT-008, `CpData`): what the end treatment and EW-POT-010 read (doc 13 §4.1).
@@ -308,6 +311,7 @@ fn fndef_cps(q: &Q, function: &Function) -> Vec<Cp> {
                     port_role: c.port_role.clone(),
                     overridden: false,
                     clamp_data: None,
+                    pin: None,
                 })
                 .collect()
         })
@@ -385,6 +389,7 @@ fn template_cps(q: &Q, function: &Function) -> Option<Vec<Cp>> {
             port_role: def_cp.and_then(|f| f.port_role.clone()),
             overridden: false,
             clamp_data: ClampData::of(c),
+            pin: Some((c.idx, c.face.clone())),
         })
         .collect();
     (!cps.is_empty()).then_some(cps)
@@ -421,6 +426,7 @@ fn box_pin_cps(q: &Q, f: Id<Function>, cps: &mut Vec<Cp>) {
                 port_role: None,
                 overridden: false,
                 clamp_data: None,
+                pin: None,
             });
         }
     }
@@ -454,6 +460,7 @@ fn pattern_cps(q: &Q, function: &Function) -> Option<Vec<Cp>> {
                     port_role: None,
                     overridden: false,
                     clamp_data: ClampData::of(c),
+                    pin: Some((c.idx, c.face.clone())),
                 })
                 .collect()
         })

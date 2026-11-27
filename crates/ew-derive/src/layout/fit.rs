@@ -5,6 +5,7 @@
 //! fits.
 
 use ew_schema::{MountKind, SurfaceKind};
+use ew_units::Nm;
 
 /// A rail profile (doc 12 §2.4: `profile: Ts35x7_5 | Ts35x15 | Ts32 | Ts15`), the rail kinds of [`MountKind`].
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -39,6 +40,17 @@ impl Profile {
             Profile::Ts32 => 32_000_000,
             Profile::Ts15 => 15_000_000,
         }
+    }
+
+    /// The height of a rail of the profile above its surface, in nanometres (doc 12 §7): what a device on it stands
+    /// out of the plate before its own depth. TS 35 × 7.5 and TS 35 × 15 by their names (EN 60715); TS 32 15 mm and
+    /// TS 15 5.5 mm are unverified.
+    pub fn height(self) -> Nm {
+        Nm(match self {
+            Profile::Ts35x7_5 => 7_500_000,
+            Profile::Ts35x15 | Profile::Ts32 => 15_000_000,
+            Profile::Ts15 => 5_500_000,
+        })
     }
 
     /// The profile's stored name (the serde name of its [`MountKind`]).
