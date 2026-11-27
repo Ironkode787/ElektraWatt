@@ -11,7 +11,7 @@ Every other wire has its length in the wire list; a cable core has its cable's.
 What the files lack of the workshop stock and of its parts' data:
   No ring lug of the workshop stock takes 2.5 mm²: those ends are listed without a part.
   No wire part of the workshop stock matches 0.75 mm² BK, 0.75 mm² BU, 0.75 mm² DBU, 0.75 mm² GNYE, 1.5 mm² BK, 1.5 mm² BU, 2.5 mm² BK, 2.5 mm² BU, 2.5 mm² DBU, 2.5 mm² GNYE: the lists name no part for those wires.
-  Cable markers: no marker part in the stock marks cables; the label program asks which to print on
+  Cable markers: no marker part in the stock marks cables; the label program asks which to print on.
 
 What is in it
 

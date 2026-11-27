@@ -803,7 +803,7 @@ package-holds-pages = elke pagina in paginavolgorde, zoals bij PDF exporteren
 package-no-holes = Nog geen vlak van dit project heeft gaten
 package-no-rows = Nog niets te vermelden
 package-no-labels = Het project heeft nog geen labels
-package-lacks-marker = { $p0 }: de voorraad heeft geen markeringsartikel voor { $p1 }; het labelprogramma vraagt waarop het afdrukt
+package-lacks-marker = { $p0 }: de voorraad heeft geen markeringsartikel voor { $p1 }; het labelprogramma vraagt waarop het afdrukt.
 package-lacks-part = { $p0 }: { $p1 }
 package-holds-labels = { $count ->
         [one] 1 bestand

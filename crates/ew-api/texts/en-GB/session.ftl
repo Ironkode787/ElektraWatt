@@ -818,7 +818,7 @@ package-holds-pages = every page in page order, as Export PDF writes them
 package-no-holes = No surface of this project has holes yet
 package-no-rows = Nothing to list yet
 package-no-labels = The project has no labels yet
-package-lacks-marker = { $p0 }: no marker part in the stock marks { $p1 }; the label program asks which to print on
+package-lacks-marker = { $p0 }: no marker part in the stock marks { $p1 }; the label program asks which to print on.
 package-lacks-part = { $p0 }: { $p1 }
 package-holds-labels = { $count ->
         [one] 1 file
