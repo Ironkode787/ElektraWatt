@@ -33,7 +33,7 @@ use std::collections::BTreeSet;
 
 use ew_ids::Id;
 use ew_model::{AnyRow, EndpointKey};
-use ew_schema::{Bond, Connection, Endpoint, Junction, Kind, NumberSpec};
+use ew_schema::{Bond, CommittedRoute, Connection, Endpoint, Junction, Kind, NumberSpec};
 use ew_units::Pt2;
 
 use crate::error::CmdError;
@@ -73,7 +73,8 @@ fn candidates(tx: &TxBuilder<'_>) -> BTreeSet<Id<Junction>> {
 /// Removes a connection: drops it from the sequence of junctions at its ends, clears `via` of bonds realised
 /// by it, and takes it out of the wire markers that list it: with `carrier` (a dissolving junction's kept
 /// member, which carries the wire on) a marker lists the carrier in its place; a marker left empty is removed
-/// (EW-INV-023).
+/// (EW-INV-023). The stored ways of the wire it carried go with it (`committed_route.wire`, cascade): the wire
+/// the kept member carries on is a wire without a way until Route lays it again (doc 12-3d §8.5).
 fn remove_connection(
     tx: &mut TxBuilder<'_>,
     id: Id<Connection>,
@@ -95,6 +96,11 @@ fn remove_connection(
         }
     }
     tx.unlink_markers(id, carrier, None);
+    for r in tx.iter::<CommittedRoute>() {
+        if r.wire == id {
+            tx.remove_row((Kind::CommittedRoute, r.id.cast()));
+        }
+    }
     tx.remove_row((Kind::Connection, id.cast()));
     Ok(())
 }

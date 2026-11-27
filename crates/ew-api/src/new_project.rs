@@ -786,7 +786,7 @@ fn copy_template(
             .and_then(|s| Uuid::parse_str(s).ok())
     };
     for (v, record) in values.iter().zip(&records) {
-        if matches!(record, Record::Channel(_)) {
+        if matches!(record, Record::Channel(_) | Record::CommittedRoute(_)) {
             continue;
         }
         if let Some(old) = id_of(v) {
@@ -802,6 +802,17 @@ fn copy_template(
         let module = map.get(&channel.module.as_uuid()).copied();
         if let (Some(old), Some(module)) = (id_of(v), module) {
             let new: Id<()> = v5::plc_channel_id(Id::<()>::from_uuid(module), channel.number);
+            map.insert(old, new.as_uuid());
+        }
+    }
+    // A stored way's ID is derived from its wire's: `v5(wire, "route")` (doc 12-3d §8.5).
+    for (v, record) in values.iter().zip(&records) {
+        let Record::CommittedRoute(route) = record else {
+            continue;
+        };
+        let wire = map.get(&route.wire.as_uuid()).copied();
+        if let (Some(old), Some(wire)) = (id_of(v), wire) {
+            let new: Id<()> = v5::route_id(Id::<()>::from_uuid(wire));
             map.insert(old, new.as_uuid());
         }
     }
