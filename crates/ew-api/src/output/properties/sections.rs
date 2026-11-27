@@ -269,8 +269,8 @@ impl SectionCx<'_, '_> {
 }
 
 /// The rows of the workshop settings that are not set (doc 13 §2.3: Ferrules, Two wires in one clamp, Marker text, Mark
-/// cable cores, Mark jumpers; doc 12 §12.5: Reserve per end, Duct fill limit, Door loop): the value that applies, its
-/// default, with the chip "project default".
+/// cable cores, Mark jumpers; doc 12 §12.5: Reserve per end, Duct fill limit, Door loop; doc 07 §2.5: Cut to): the value
+/// that applies, its default, with the chip "project default".
 fn workshop_defaults(cx: &SheetCx<'_>, built: &mut [Built]) {
     let defaults = [
         (
@@ -302,6 +302,10 @@ fn workshop_defaults(cx: &SheetCx<'_>, built: &mut [Built]) {
         (
             "project/settings.workshop.door_loop",
             Ok(Value::from(ew_derive::layout::DOOR_LOOP.0)),
+        ),
+        (
+            "project/settings.workshop.cut_increment",
+            Ok(Value::from(ew_derive::CUT_INCREMENT.0)),
         ),
     ];
     for b in built.iter_mut().filter(|b| b.row.value == RowValue::Absent) {

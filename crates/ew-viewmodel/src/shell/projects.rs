@@ -1414,6 +1414,14 @@ impl ShellModel {
             libraries,
             // A new project's created date.
             today: self.today_date(),
+            // A new project's stock: the one kept for new projects.
+            stock: self
+                .settings
+                .shop_stock
+                .iter()
+                .filter_map(|e| e.split_once('/'))
+                .filter_map(|(l, i)| Some((l.parse().ok()?, i.parse().ok()?)))
+                .collect(),
             ..SessionOptions::default()
         }
     }

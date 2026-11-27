@@ -199,6 +199,10 @@ pub struct Settings {
     /// The scope the Symbols shelf of Parts showed last (`all`, `project`, `mine`; `symbols_scope`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub symbols_scope: Option<String>,
+    /// The workshop stock a new project starts with (Use this stock for new projects, doc 07 §2.5): its parts as
+    /// `<library ID>/<item ID>`, in its order (`shop_stock`); empty: the starter's generic stock. Written only when set.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub shop_stock: Vec<String>,
     /// Keys this version does not know, kept and written back.
     #[serde(flatten)]
     extra: toml::Table,
@@ -237,6 +241,7 @@ impl Default for Settings {
             symbol_drawing_grid: None,
             symbol_snap: None,
             symbols_scope: None,
+            shop_stock: Vec::new(),
             terminal_spacing: None,
             extra: toml::Table::new(),
         }
@@ -1175,6 +1180,7 @@ mod tests {
             symbol_drawing_grid: Some(1),
             symbol_snap: Some(false),
             symbols_scope: Some("mine".to_owned()),
+            shop_stock: vec!["c/3".to_owned()],
             extra: toml::Table::new(),
         };
         let written = full.to_toml();
@@ -1183,7 +1189,7 @@ mod tests {
             "author_name = \"A. Engineer\"\nbasic_project = \"/w/t.ew\"\ncanvas_backend = \"cpu\"\n\
             comes_from = \"eplan\"\ndensity = \"compact\"\ndwg_converter = \"/opt/oda\"\nfirst_run_done = true\n\
             keymap = \"kicad\"\nlanguage = \"nl\"\nmin_font_pt = 14\nrecent_projects = [\"/w/a.ew\"]\n\
-            reduce_motion = false\nsymbol_drawing_grid = 1\nsymbol_last_kind = \"ew.fn.coil\"\nsymbol_snap = false\n\
+            reduce_motion = false\nshop_stock = [\"c/3\"]\nsymbol_drawing_grid = 1\nsymbol_last_kind = \"ew.fn.coil\"\nsymbol_snap = false\n\
             symbols_recent = [\"library:l:s\"]\nsymbols_scope = \"mine\"\nterminal_spacing = 4\ntheme = \"dark\"\n\
             tips = false\ntips_seen = [\"wheel\"]\nui_scale = 1.25\nupdate_check = true\nversion = 1\n\
             wheel_scrolls = true\nworkspace = \"PLC\"\n\n[parts]\nfavourites = [\"a/1\"]\nrecent = [\"b/2\"]\n\n\

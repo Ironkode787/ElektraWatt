@@ -269,7 +269,7 @@ pub(crate) fn generic_stock() -> (Vec<ew_schema::PartRef>, Vec<Value>) {
 }
 
 /// `model` with the starter's generic ferrules, markers and glands as its workshop stock ([`generic_stock`]), through the
-/// command the stock dialog runs.
+/// command the Workshop stock of Parts runs.
 fn with_generic_stock(model: Model) -> Result<Model, OpenError> {
     let refused = |e: CmdError| OpenError::Format(format!("the generic stock cannot be set: {e}"));
     let (stock, copies) = generic_stock();
@@ -277,6 +277,25 @@ fn with_generic_stock(model: Model) -> Result<Model, OpenError> {
     let cmd = AnyCommand {
         name: "workshop.stock".into(),
         params: serde_json::json!({ "stock": stock, "copies": copies }),
+    };
+    let preview = scratch.preview(&cmd).map_err(refused)?;
+    scratch.commit(preview).map_err(refused)?;
+    Ok(scratch.engine.model().clone())
+}
+
+/// `model` with the stock `options` keeps for new projects ([`SessionOptions::stock`], its items read from its
+/// libraries), else the starter's generic stock ([`with_generic_stock`]).
+fn with_stock(model: Model, options: &SessionOptions) -> Result<Model, OpenError> {
+    let refused = |e: CmdError| OpenError::Format(format!("the stock for new projects cannot be set: {e}"));
+    let mut scratch = Session::new(
+        model,
+        SessionOptions {
+            libraries: options.libraries.clone(),
+            ..SessionOptions::default()
+        },
+    );
+    let Some(cmd) = scratch.items_stock_command(&options.stock) else {
+        return with_generic_stock(scratch.engine.model().clone());
     };
     let preview = scratch.preview(&cmd).map_err(refused)?;
     scratch.commit(preview).map_err(refused)?;
@@ -356,10 +375,10 @@ impl Session {
         if let (ProjectTemplate::Builtin, NewProjectKind::Schematic) = (template, kind) {
             model = with_shipped_frames(model)?;
         }
-        // A project or a basic project made from the built-in one starts with the generic stock; one made from a basic
-        // project directory keeps that project's.
+        // A project or a basic project made from the built-in one starts with the stock kept for new projects, else the
+        // generic stock; one made from a basic project directory keeps that project's.
         if let ProjectTemplate::Builtin = template {
-            model = with_generic_stock(model)?;
+            model = with_stock(model, &options)?;
         }
         if let ProjectTemplate::DirectoryWithoutPages(_) = template {
             let refused =

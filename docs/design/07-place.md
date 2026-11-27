@@ -347,11 +347,16 @@ My parts since this project took it. See changes…"); nothing changes in the pr
 
 ### 5.10 The workshop stock
 
-The stock of the open project (§2.5) is a view of the list: In this project, narrowed to Workshop stock, in the
-shop's order of preference under a heading per kind that says the rule ("Ferrules and lugs · the first that fits").
-A row is dragged to another place; Add from my parts… and Add the generic stock add to it. The sheet of a wire, a
-ferrule, a marker or a gland says whether it is in the stock and where, with Up, Down and Take out, or Add to the
-stock. **Use this stock for new projects** keeps the stock, in its order, as the one a new project starts with.
+The stock of the open project (§2.5) is a view of the list: In this project, narrowed to Workshop stock (the scope
+`stock` of `parts.find`, a chip beside the scopes), in the shop's order of preference under a heading per kind that
+says the rule ("Ferrules · the first that fits"), each row numbered among its kind. A row is dragged to another place
+among its kind; Add from my parts… (My parts: a part opened there is added from its sheet) and Add the generic stock
+add to it. The sheet of a wire, a ferrule, a marker or a gland says whether it is in the stock and where, with Up, Down
+and Take out, or Add to the stock (`parts.stock {op}`; each change one `workshop.stock`, one undo step). Project ▸ Edit
+stock…, the project's Properties and the package dialog's Workshop stock… open the view (`parts.stock`). **Use this
+stock for new projects** keeps the stock, in its order, as the window's setting `shop_stock`, which a new project from
+the built-in basic project starts with (an item no longer found is left out; none found: the generic stock). Cut to is
+the row `workshop.cut_increment` of Project properties ▸ Workshop.
 
 ### 5.11 Choosing a part for a device
 

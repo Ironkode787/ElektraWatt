@@ -31,7 +31,7 @@ use crate::tag::short_tag;
 use crate::wire_record::{WireLength, WireRecordSet};
 
 /// The cut increment when the project sets none (doc 13 §9.3): 5 mm.
-const CUT_INCREMENT: i128 = 5_000_000;
+pub const CUT_INCREMENT: ew_units::Nm = ew_units::Nm(5_000_000);
 
 /// A length in nanometres rounded up to the project's cut increment (`workshop.cut_increment`, else 5 mm, doc 13 §9.3);
 /// a length of zero or less as it is.
@@ -43,7 +43,7 @@ pub fn cut_to(q: &Q, nm: i128) -> i128 {
         .cut_increment
         .map(|n| i128::from(n.0))
         .filter(|n| *n > 0)
-        .unwrap_or(CUT_INCREMENT);
+        .unwrap_or(i128::from(CUT_INCREMENT.0));
     if nm <= 0 {
         return nm;
     }

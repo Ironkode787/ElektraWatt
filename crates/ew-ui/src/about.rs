@@ -138,7 +138,7 @@ pub fn show(
         // New project's starts and the templates' list grow with the window.
         Dialog::NewProject(_) | Dialog::Templates(_) => Some(crate::dialog::form_width(&t, window)),
         // The table of text styles is a wide one: it grows with the window as the print pre-dialog does.
-        Dialog::TextStyles(_) | Dialog::WorkshopStock(_) => Some(crate::dialog::preview_width(&t, window)),
+        Dialog::TextStyles(_) => Some(crate::dialog::preview_width(&t, window)),
         // The rework list's rows take the width a wide table needs, as the text styles do.
         Dialog::Rework(_) => Some(crate::dialog::preview_width(&t, window)),
         Dialog::Labels(_) => Some(crate::dialog::form_width(&t, window)),
@@ -357,7 +357,6 @@ pub fn show(
             Dialog::NewProject(d) => submit |= crate::templates::new_project(ui, d, just_opened, events),
             Dialog::Templates(d) => crate::templates::templates(ui, d, events),
             Dialog::TextStyles(d) => crate::text_styles::text_styles(ui, shell, d, just_opened, events),
-            Dialog::WorkshopStock(d) => crate::stock::stock(ui, d, events),
             Dialog::Rework(d) => crate::rework::body(ui, d, events),
             Dialog::Labels(d) => crate::labels::body(ui, d, events),
             Dialog::Package(d) => crate::package::body(ui, d, events),

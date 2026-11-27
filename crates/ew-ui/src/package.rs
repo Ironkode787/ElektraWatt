@@ -166,7 +166,7 @@ fn goes_in(ui: &mut Ui, t: &Tokens, d: &PackageDialog, events: &mut Vec<Event>) 
             });
         });
         // What it lacks of part data, under what it holds, with the way to it: Workshop stock…, where a person adds a
-        // marker that marks the set (Project ▸ Edit stock… until Parts holds the stock).
+        // marker that marks the set (Parts on the Workshop stock, `parts.stock`).
         for lack in &r.lacks {
             ui.horizontal_top(|ui| {
                 ui.spacing_mut().item_spacing.x = gap;
@@ -178,7 +178,7 @@ fn goes_in(ui: &mut Ui, t: &Tokens, d: &PackageDialog, events: &mut Vec<Event>) 
                     });
                 });
                 if ui.link(offer).clicked() {
-                    events.push(Event::Action("workshop.edit_stock", json!({})));
+                    events.push(Event::Action("parts.stock", json!({})));
                 }
             });
         }

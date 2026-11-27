@@ -785,3 +785,17 @@ change here.
 - behaviour-change: Export in the bar of Parts writes the selected parts, or the open one, as a table (CSV or Excel)
   that Import reads back: unchanged, every row is the same
 - api-add: `parts.open` takes `add` and `range` (Ctrl and Shift in the list); `parts.export {path?, replace?}` is new
+- behaviour-change: the workshop stock is a view of Parts (doc 07 §5.10): Project ▸ Edit stock…, the project's
+  Properties and the package dialog's Workshop stock… open In this project narrowed to Workshop stock, its parts in
+  their order under a heading per kind with its rule, numbered, a row dragged to another place among its kind. The
+  sheet of a wire, a ferrule, a marker or a gland says where it stands in the stock with Up, Down and Take out, or Add
+  to the stock; each change is one undo step. The stock dialog goes: its rows, Add by number and Apply are the view
+  and the sheet's line; its Cut to is the row Cut to of the project's Properties under Workshop
+- behaviour-change: Use this stock for new projects keeps the stock, in its order, as a window setting (`shop_stock`);
+  a new project from the built-in basic project starts with it, else with the starter's generic stock as before
+- behaviour-change: Undo and Redo in Parts bring its list up to date (the stock's order, a part the project holds)
+- api-break: `parts.stock {op?, part?, to?}` replaces `workshop.edit_stock`, `workshop.stock_row`,
+  `workshop.stock_add`, `workshop.stock_cut` and `workshop.stock_apply`; `parts.find` takes the scope `stock`;
+  `project.settings.set` takes the member `workshop.cut_increment`
+- text-change: a wire, ferrule or marker named as an accessory is refused with the way to the stock on its sheet in
+  Parts, not Project properties

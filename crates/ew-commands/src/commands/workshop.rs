@@ -22,7 +22,7 @@ use crate::tx::TxBuilder;
 /// preference (`ProjectSettings.workshop.stock`), and, when given, what the cut list cuts to
 /// (`ProjectSettings.workshop.cut_increment`: a length sets it, `null` clears it, absent keeps it), embedding the copies
 /// the command carries (the part and its closure, as `part.assign` embeds them). A new project's generic stock, Add
-/// the generic stock and the stock dialog each send it.
+/// the generic stock and the Workshop stock of Parts each send it.
 ///
 /// Rejected, with the pointer: a document of `copies` as `library.embed` refuses it, or another version of a held copy
 /// (`/copies/i`); a stock entry whose copy the project does not hold, a part that is no wire, ferrule or marker, or a
@@ -100,8 +100,9 @@ impl Command for SetWorkshopStock {
 
 /// The members of the workshop settings that `project.settings.set` sets one by one, as `workshop.<member>` (doc 13
 /// §2.3): which fine-stranded ends take a ferrule, what two wires of one size on one clamp take, what a marker says,
-/// whether cores and jumpers carry one, where a device's label goes and the columns of a label file; and the layout's
-/// numbers (doc 12 §8.6, §9): the reserve per end of a routed wire, the duct fill limit and the door loop.
+/// whether cores and jumpers carry one, where a device's label goes and the columns of a label file; the layout's
+/// numbers (doc 12 §8.6, §9): the reserve per end of a routed wire, the duct fill limit and the door loop; and what the
+/// cut list cuts to (doc 07 §2.5, Project properties ▸ Workshop).
 pub const SETTABLE_WORKSHOP: &[&str] = &[
     "ferrules",
     "two_wires",
@@ -113,6 +114,7 @@ pub const SETTABLE_WORKSHOP: &[&str] = &[
     "reserve",
     "fill_limit",
     "door_loop",
+    "cut_increment",
 ];
 
 /// The prefix of a member of [`SETTABLE_WORKSHOP`] in `project.settings.set`.
@@ -191,6 +193,17 @@ pub(crate) fn set_member(tx: &mut TxBuilder<'_>, path: &str, value: &Value) -> R
             } else {
                 workshop.door_loop = Some(n);
             }
+        }
+        ("cut_increment", true) => workshop.cut_increment = None,
+        ("cut_increment", false) => {
+            let n: ew_units::Nm = member_value(&member, value)?;
+            if n.0 <= 0 {
+                return Err(settings_bad(
+                    "/value",
+                    text!("refusal-stock-cut", ew_derive::mm_exact(i128::from(n.0))),
+                ));
+            }
+            workshop.cut_increment = Some(n);
         }
         ("fill_limit", true) => workshop.fill_limit = None,
         ("fill_limit", false) => {

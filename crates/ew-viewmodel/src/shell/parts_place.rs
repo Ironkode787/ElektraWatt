@@ -321,7 +321,7 @@ impl PartsPlace {
 }
 
 /// A part named by `parts.open`'s `part`: a copy the project holds, or a library's part.
-enum Named {
+pub(super) enum Named {
     Held(Uuid),
     Library(Uuid, Uuid),
 }
@@ -364,7 +364,7 @@ impl ShellModel {
     /// The part `parts.open`'s `part` names: `id:<copy>`, `lib:<library>/<item>`, or a part number the project holds;
     /// without it, the Libraries navigator's part row when it has the focus, else the property grid's device's first
     /// part use, else that navigator's cursor row.
-    fn named_part(&self, p: &Map<String, Value>) -> Result<Option<Named>, Outcome> {
+    pub(super) fn named_part(&self, p: &Map<String, Value>) -> Result<Option<Named>, Outcome> {
         let Some(session) = self.parts_session() else {
             return Ok(None);
         };

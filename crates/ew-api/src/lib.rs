@@ -117,9 +117,8 @@ pub mod part_box;
 mod part_cable;
 mod part_editor;
 mod part_rows;
-mod stock;
+pub mod stock;
 pub use part_rows::{DraftRow, DraftTable, HOLE_KIND, HOLE_SIZE};
-pub use stock::StockRow;
 mod part_new;
 mod part_offers;
 pub mod part_pieces;
@@ -368,6 +367,10 @@ pub struct SessionOptions {
     /// (the window's today). `None` (tests, scripts): no date is written, so no output depends on the day it is made.
     /// The edited date a save writes is [`Session::set_today`]'s.
     pub today: Option<ew_schema::Date>,
+    /// The workshop stock a new project from the built-in basic project starts with, as library items `(library,
+    /// item)` in its order (Use this stock for new projects, doc 07 §2.5); empty, or none of them found: the starter's
+    /// generic stock.
+    pub stock: Vec<(ew_ids::Uuid, ew_ids::Uuid)>,
 }
 
 /// How a session's derived values are evaluated (ADR-0002 decisions 2–3, amendment 4).
@@ -394,6 +397,7 @@ impl Default for SessionOptions {
             memo: MemoMode::default(),
             libraries: None,
             today: None,
+            stock: Vec::new(),
         }
     }
 }

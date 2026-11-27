@@ -41,14 +41,21 @@ manufacturer reference.
 
 ## The workshop stock
 
-The workshop stock is the list of wire, ferrule and marker parts your shop keeps, in the order you prefer them. A
-wire takes the first wire part of its size and colour, a wire end the first ferrule that fits it, a label the first
-marker made for it; the workshop lists count them from the wires.
+The workshop stock is the list of wire, ferrule, marker and cable gland parts your shop keeps, in the order you prefer
+them. A wire takes the first wire part of its size and colour, a wire end the first ferrule that fits it, a label the
+first marker made for it, a cable that leaves the cabinet the first gland that seals it; the workshop lists count them
+from the wires.
 
-Open it with **Project ▸ Edit stock…**, or with the Edit stock… link under the project's Properties. Each row can move
-up or down or be removed; type a part number and press **Add** to add a part, held or from a library. **Cut to** is
-what the cut list rounds every rail, duct, cable and tube up to; leave it empty for 5 mm. **Apply** writes the stock in
-one step.
+Open it with **Project ▸ Edit stock…**, with the Edit stock… link under the project's Properties, or in Parts with
+**Workshop stock** beside the scopes: the list shows the stock's parts in their order, under a heading per kind that
+says the rule ("Ferrules · the first that fits"). Drag a row to another place among its kind to change the order.
 
-A new project starts with the starter's generic ferrules and markers. A project made before has none: **Add the generic
-stock** (in the dialog, or Project ▸ Add the generic stock) adds those the stock lacks, after its own parts.
+Open a part of the stock: a line under its heading says where it stands ("number 1 of the 13 of its kind"), with
+**Up**, **Down** and **Take out**. A wire, ferrule, marker or gland not in the stock, your own or a starter part, says so
+there with **Add to the stock**. Each change is one step, which **Undo** takes back. **Add from my parts…** shows My
+parts to open one of yours; **Add the generic stock** (also Project ▸ Add the generic stock) adds the starter's
+ferrules, markers and glands the stock lacks, after its own parts.
+
+**Use this stock for new projects** keeps the stock, in its order, for every project you make next; until you use it
+a new project starts with the starter's generic ferrules, markers and glands. **Cut to**, what the cut list rounds
+every rail, duct, cable and tube up to, is a row of the project's Properties under Workshop; empty, it is 5 mm.

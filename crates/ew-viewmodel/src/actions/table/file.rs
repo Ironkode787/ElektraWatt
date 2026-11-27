@@ -189,64 +189,24 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_workshop_add_generic(),
         ),
     ),
-    // Project, Edit stock…: the workshop stock dialog (doc 07 §2.5).
-    with_icon(
-        "packages",
-        act(
-            "workshop.edit_stock",
-            Command,
-            Menu::Project,
-            &[],
-            project_open,
-            slot(Menu::Project),
-            |s, _| s.act_workshop_edit_stock(),
+    // Project, Edit stock…: the Workshop stock view of Parts (doc 07 §5.10); with `op` a change of the stock there: the
+    // open part (or `part`) added, taken out or moved to place `to` among its kind, the generic stock added, or the
+    // stock kept for new projects. Each change of the stock is one `workshop.stock`, one undo step.
+    with_params(
+        "op?:enum(add|remove|move|generic|default), part?:text, to?:uint",
+        with_icon(
+            "packages",
+            act(
+                "parts.stock",
+                Command,
+                Menu::Project,
+                &[],
+                project_open,
+                slot(Menu::Project),
+                |s, p| s.act_parts_stock(p),
+            ),
         ),
     ),
-    with_params(
-        "row:uint, op:enum(up|down|remove)",
-        hidden(act(
-            "workshop.stock_row",
-            View,
-            Menu::Project,
-            &[],
-            project_open,
-            None,
-            |s, p| s.act_workshop_stock_row(p),
-        )),
-    ),
-    with_params(
-        "part:text",
-        hidden(act(
-            "workshop.stock_add",
-            View,
-            Menu::Project,
-            &[],
-            project_open,
-            None,
-            |s, p| s.act_workshop_stock_add(p),
-        )),
-    ),
-    with_params(
-        "text:text",
-        hidden(act(
-            "workshop.stock_cut",
-            View,
-            Menu::Project,
-            &[],
-            project_open,
-            None,
-            |s, p| s.act_workshop_stock_cut(p),
-        )),
-    ),
-    hidden(act(
-        "workshop.stock_apply",
-        Command,
-        Menu::Project,
-        &[],
-        writable,
-        None,
-        |s, _| s.act_workshop_stock_apply(),
-    )),
     // The column mapping: a table's in Parts (the set follows each change), else the EPLAN report's card; the card's
     // Import button.
     with_params(

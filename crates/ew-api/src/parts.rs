@@ -46,15 +46,18 @@ pub enum PartScope {
     Mine,
     /// The set an import has just brought, while it applies (doc 07 §5.9): its rows, not found by a search.
     Import,
+    /// The project's workshop stock (doc 07 §5.10): the parts of In this project that stand in it, in its order.
+    Stock,
 }
 
 impl PartScope {
     /// The scopes, in the list's order.
-    pub const ALL: [PartScope; 4] = [
+    pub const ALL: [PartScope; 5] = [
         PartScope::All,
         PartScope::Project,
         PartScope::Mine,
         PartScope::Import,
+        PartScope::Stock,
     ];
 
     /// The scope's word in `parts.find`.
@@ -64,6 +67,7 @@ impl PartScope {
             PartScope::Project => "project",
             PartScope::Mine => "mine",
             PartScope::Import => "import",
+            PartScope::Stock => "stock",
         }
     }
 }
@@ -160,7 +164,7 @@ impl Session {
 
     /// The list of Parts: the parts that match `text` (as the choosers match it) in `scope`, of `kind` when given,
     /// only those that lack something with `lacking`, each with where it lives; at most `limit` rows. The scope of an
-    /// import's set finds nothing: its rows are the set's.
+    /// import's set finds nothing: its rows are the set's; the stock's finds its parts in its order.
     pub fn parts_find(
         &self,
         text: &str,
@@ -177,7 +181,7 @@ impl Session {
             text: text.to_owned(),
             // Every kind, a cable gland too, which a device's choosers leave out.
             kinds: kind.map_or_else(crate::part_kinds, |k| vec![k.to_owned()]),
-            view: if scope == PartScope::Project {
+            view: if matches!(scope, PartScope::Project | PartScope::Stock) {
                 OfferView::Project
             } else {
                 OfferView::All
@@ -218,9 +222,16 @@ impl Session {
                 copy,
                 lacks,
             });
-            if out.len() >= limit {
+            if out.len() >= limit && scope != PartScope::Stock {
                 break;
             }
+        }
+        // The stock: its parts in its order of preference.
+        if scope == PartScope::Stock {
+            let stock = self.stock();
+            out.retain(|f| stock.contains(&f.copy));
+            out.sort_by_key(|f| stock.iter().position(|c| *c == f.copy));
+            out.truncate(limit);
         }
         out
     }

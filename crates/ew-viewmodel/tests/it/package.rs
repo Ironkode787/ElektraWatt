@@ -171,8 +171,8 @@ fn a_finding_about_his_own_part_offers_edit_part_at_the_field() {
     s.shutdown();
 }
 
-/// The cable markers' line says the stock has no marker that marks cables and offers Workshop stock…, which opens the
-/// stock's editor in the dialog's place.
+/// The cable markers' line says the stock has no marker that marks cables and offers Workshop stock…, which opens Parts
+/// on the stock in the dialog's place.
 #[test]
 fn a_missing_marker_part_offers_the_workshop_stock() {
     let tmp = Tmp::new("package-stock");
@@ -186,10 +186,13 @@ fn a_missing_marker_part_offers_the_workshop_stock() {
         .map(str::to_owned)
         .expect("a lack");
     assert!(
-        lacks.contains("Cable markers") && lacks.ends_with("offers workshop.edit_stock"),
+        lacks.contains("Cable markers") && lacks.ends_with("offers parts.stock"),
         "{lacks}"
     );
-    done(&mut s, "workshop.edit_stock", json!({}));
-    assert!(matches!(s.dialog(), Some(Dialog::WorkshopStock(_))));
+    done(&mut s, "parts.stock", json!({}));
+    assert!(s.dialog().is_none(), "{:?}", s.dialog());
+    let place = s.parts_place().expect("Parts");
+    assert_eq!(place.scope, ew_viewmodel::ew_api::parts::PartScope::Stock);
+    assert!(!place.found.is_empty(), "the sample's stock");
     s.shutdown();
 }

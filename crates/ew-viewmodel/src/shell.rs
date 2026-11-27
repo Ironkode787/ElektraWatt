@@ -413,8 +413,6 @@ pub enum Dialog {
     /// Project ▸ Text styles… (`text_styles.open`): the project's text styles by what they print, each with its height,
     /// typeface, bold and a sample; Standard sizes, Reset all, Close.
     TextStyles(Box<text_styles::TextStylesDialog>),
-    /// The workshop stock (Project ▸ Edit stock…).
-    WorkshopStock(Box<stock::StockDialog>),
     /// Output ▸ Workshop ▸ Rework list… (`rework.show`): what it compares with, the work in one line, the rows;
     /// Export… and Close.
     Rework(Box<rework::ReworkDialog>),
@@ -2341,6 +2339,8 @@ impl ShellModel {
                     }
                 }
                 self.refresh_rows();
+                // Parts' list follows the step (the stock's order, a part the project holds).
+                self.parts_refresh();
                 // The tool's marks belong to the revision undone or redone (window check): the overlay
                 // and the preview go; the next pointer or cursor move draws them again.
                 self.tools.overlay = crate::tools::Overlay::default();

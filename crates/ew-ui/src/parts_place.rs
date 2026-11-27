@@ -27,6 +27,7 @@ use crate::theme;
 mod many;
 mod pins;
 mod set;
+mod stock;
 mod strip;
 mod symbols;
 
@@ -487,7 +488,7 @@ fn dot(ui: &mut Ui, colour: egui::Color32) {
 /// The heading of the sheet: the part number over its description and maker, with where it lives, whether it is
 /// saved and which devices use it at its right; the lock line under it for a part that is not the person's.
 fn heading(ui: &mut Ui, shell: &ShellModel, place: &PartsPlace, open: &OpenSheet, events: &mut Vec<Event>) {
-    let _ = (shell, place);
+    let _ = place;
     let t = theme::current(ui.ctx());
     ui.horizontal(|ui| {
         ui.vertical(|ui| {
@@ -560,6 +561,8 @@ fn heading(ui: &mut Ui, shell: &ShellModel, place: &PartsPlace, open: &OpenSheet
                 });
             });
     }
+    // A wire, a ferrule, a marker or a gland: where it stands in the project's workshop stock.
+    stock::strip(ui, shell, open.read_only, events);
     ui.add_space(t.space_4);
 }
 
@@ -755,9 +758,9 @@ fn list_column(
                     if alone && scope == PartScope::Project {
                         continue;
                     }
-                    if ui
-                        .selectable_label(place.scope == scope, strings::text(key))
-                        .clicked()
+                    // The Workshop stock is In this project narrowed to the stock.
+                    let on = place.scope == scope || (scope == PartScope::Project && place.scope == PartScope::Stock);
+                    if ui.selectable_label(on, strings::text(key)).clicked()
                     {
                         events.push(Event::Action("parts.find", json!({ "scope": scope.word() })));
                     }
@@ -774,12 +777,17 @@ fn list_column(
                 {
                     events.push(Event::Action("parts.find", json!({ "scope": "import" })));
                 }
+                // The project's workshop stock (doc 07 §5.10).
+                if !alone && !place.shelf_symbols {
+                    stock::chip(ui, place, events);
+                }
             });
             if place.shelf_symbols {
                 symbol_shelf(ui, place, events);
                 return;
             }
-            ui.horizontal(|ui| {
+            // The filters, wrapped where a language's words take more room than the list has.
+            ui.horizontal_wrapped(|ui| {
                 let kind = place.kind.as_deref().map_or_else(
                     || strings::text(key!("parts-filter-kind")).to_owned(),
                     ew_viewmodel::shell::part_dialog::part_kind_word,
@@ -854,6 +862,10 @@ fn list_column(
                     events.push(Event::Action("parts.find", json!({ "lacking": !place.lacking })));
                 }
             });
+            if place.scope == PartScope::Stock {
+                stock::list(ui, place, events);
+                return;
+            }
             if let (PartScope::Import, Some(shown)) = (place.scope, place.set.as_deref()) {
                 set::list(ui, place, shown, events);
                 return;
@@ -900,7 +912,7 @@ fn list_column(
                                 let param = row.param();
                                 let chosen = open == Some(row.copy)
                                     || place.many.as_ref().is_some_and(|m| m.parts.contains(&param));
-                                let r = list_row(ui, row, chosen);
+                                let r = list_row(ui, row, chosen, None);
                                 if r.clicked() {
                                     // Ctrl takes a row into or out of a selection of several, Shift the rows up to it.
                                     let mods = ui.input(|i| i.modifiers);
@@ -953,19 +965,23 @@ fn list_group(ui: &mut Ui, word: &str, count: usize, shut: bool) -> egui::Respon
         vec2(t.icon_sm, t.icon_sm),
     );
     crate::icons::paint(&painter, icon, at, t.text_secondary.color32(), t.icon_stroke);
-    painter.text(
-        pos2(at.right() + t.space_2, rect.center().y),
-        egui::Align2::LEFT_CENTER,
-        word,
-        theme::font(&t.type_body_strong),
-        t.text_primary.color32(),
-    );
-    painter.text(
+    let counted = painter.text(
         pos2(rect.right() - t.space_2, rect.center().y),
         egui::Align2::RIGHT_CENTER,
         count.to_string(),
         theme::font(&t.type_small),
         t.text_secondary.color32(),
+    );
+    // The word in the room the count leaves, elided past it.
+    let strong = theme::font(&t.type_body_strong);
+    let room = counted.left() - t.space_2 - (at.right() + t.space_2);
+    let shown = elide_to(word, room, |s| components::text_width(ui, s, strong.clone()));
+    painter.text(
+        pos2(at.right() + t.space_2, rect.center().y),
+        egui::Align2::LEFT_CENTER,
+        shown,
+        strong,
+        t.text_primary.color32(),
     );
     let name = format!("{word} {count}");
     r.widget_info(|| egui::WidgetInfo::selected(egui::Role::TreeItem, true, !shut, &name));
@@ -984,8 +1000,8 @@ fn chip_word(lives: &Lives) -> String {
 }
 
 /// One row of the list: the part number and the maker, the description under them, where it lives as a chip at the
-/// right and a dot before it where it lacks something.
-fn list_row(ui: &mut Ui, row: &PartFound, open: bool) -> egui::Response {
+/// right and a dot before it where it lacks something; `place` before the number in the Workshop stock.
+fn list_row(ui: &mut Ui, row: &PartFound, open: bool, place: Option<usize>) -> egui::Response {
     let t = theme::current(ui.ctx());
     let width = ui.available_width();
     let (rect, r) = ui.allocate_exact_size(vec2(width, 2.0 * t.size_row), Sense::click());
@@ -1003,8 +1019,18 @@ fn list_row(ui: &mut Ui, row: &PartFound, open: bool) -> egui::Response {
     let body = theme::font(&t.type_body);
     let strong = theme::font(&t.type_body_strong);
     let small = theme::font(&t.type_small);
-    let x = rect.left() + t.space_2;
+    let mut x = rect.left() + t.space_2;
     let top = rect.top() + t.space_1;
+    if let Some(n) = place {
+        let at = painter.text(
+            pos2(x, top),
+            egui::Align2::LEFT_TOP,
+            n.to_string(),
+            body.clone(),
+            t.text_secondary.color32(),
+        );
+        x = at.right() + t.space_2;
+    }
     let number = painter.text(
         pos2(x, top),
         egui::Align2::LEFT_TOP,
@@ -1083,7 +1109,12 @@ fn pictures_column(ui: &mut Ui, shell: &ShellModel, place: &PartsPlace, events: 
             });
         return;
     }
+    // The Workshop stock: its card heads the column, the pictures give way (a stock part has neither).
+    let stock_view = place.scope == PartScope::Stock;
     let Some(open) = &place.sheet else {
+        if stock_view {
+            stock::card(ui, shell, events);
+        }
         return;
     };
     ScrollArea::vertical()
@@ -1094,6 +1125,11 @@ fn pictures_column(ui: &mut Ui, shell: &ShellModel, place: &PartsPlace, events: 
                 crate::preview::show(ui, shell, events);
                 ui.add_space(t.space_4);
             }
+            if stock_view {
+                stock::card(ui, shell, events);
+                ui.add_space(t.space_4);
+            }
+            if !stock_view {
             picture_card(ui, key!("part-group-schematic"), |ui| {
                 match shell.part_schematic(&open.sheet) {
                     Some((list, size)) => {
@@ -1134,6 +1170,7 @@ fn pictures_column(ui: &mut Ui, shell: &ShellModel, place: &PartsPlace, events: 
                 }
             });
             ui.add_space(t.space_4);
+            }
             ready_for(ui, strings::text(key!("parts-ready-for")), &open.ready);
         });
 }

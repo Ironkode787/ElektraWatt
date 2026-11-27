@@ -47,15 +47,36 @@ fn member_step(member: &str, value: Value) -> Step {
     Step::cmd("project.settings.set", json!({"member": member, "value": value}))
 }
 
-/// `project.settings.set`: a member of the settable table, the drawing settings, the frame defaults, the languages or
-/// a member of the supply, by the weights 1, 1, 1, 1 and 2.
+/// `project.settings.set`: a member of the settable table, the drawing settings, the frame defaults, the languages, a
+/// member of the supply or the workshop's cut increment, by the weights 1, 1, 1, 1, 2 and 1.
 pub(super) fn project_settings_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
-    match rng.below(6) {
+    match rng.below(7) {
         0 => settings_member_set(live, rng),
         1 => project_drawing_set(live, rng),
         2 => project_frames_set(live, rng),
         3 => project_languages_set(live, rng),
+        4 => workshop_cut_set(rng),
         _ => project_supply_set(live, rng),
+    }
+}
+
+/// `project.settings.set` of `workshop.cut_increment` (Cut to, doc 07 §2.5): a length above zero sets it, `null` clears
+/// it, none is refused.
+fn workshop_cut_set(rng: &mut SplitMix64) -> Option<Step> {
+    match rng.below(4) {
+        0 => Some(member_step("workshop.cut_increment", json!(0)).refuse()),
+        1 => Some(member_step("workshop.cut_increment", Value::Null)),
+        _ => {
+            let n = i64::try_from(1 + rng.below(20)).ok()? * 1_000_000;
+            Some(
+                member_step("workshop.cut_increment", json!(n)).check(move |_, after| {
+                    let have = after.project().settings.workshop.cut_increment.map(|c| c.0);
+                    (have == Some(n))
+                        .then_some(())
+                        .ok_or_else(|| format!("cut_increment is {have:?}, not {n}"))
+                }),
+            )
+        }
     }
 }
 

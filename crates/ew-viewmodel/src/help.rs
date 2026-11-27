@@ -915,7 +915,6 @@ pub fn dialog_topic(dialog: &Dialog) -> &'static str {
         Dialog::NewProject(_) => "new-project",
         Dialog::Templates(_) => "templates",
         Dialog::TextStyles(_) => "text-styles",
-        Dialog::WorkshopStock(_) => "guide-parts",
         // Rework list…: its button's section of the command bar page.
         Dialog::Rework(_) => action_topic("rework.show").unwrap_or("dialog-form"),
         // Labels…: its button's section of the command bar page.

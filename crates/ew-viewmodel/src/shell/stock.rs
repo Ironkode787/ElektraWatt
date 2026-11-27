@@ -1,196 +1,145 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The workshop stock dialog (doc 07 §2.5, Project ▸ Edit stock…): the wire, ferrule and marker parts the shop keeps in
-//! its order of preference, each moved up or down or removed, a part added by its number, the starter's generic
-//! stock added, and what the cut list cuts to; Apply is one `workshop.stock`, one undo step.
+//! The workshop stock in Parts (doc 07 §2.5, §5.10). Project ▸ Edit stock…, the package dialog's Workshop stock… and the
+//! project's Properties (`parts.stock`) open Parts on In this project narrowed to Workshop stock: its parts in its order
+//! of preference, under a heading per kind that says the rule. On the sheet of a wire, a ferrule, a marker or a gland
+//! the part is added, moved up or down or taken out (`parts.stock {op}`), each one `workshop.stock`, one undo step; Use
+//! this stock for new projects keeps it as the window's setting `shop_stock`.
 
+use ew_api::parts::PartScope;
+use ew_api::stock::StockChange;
 use serde_json::{Map, Value, json};
 
+use super::parts_place::Named;
 use super::{Dialog, Outcome, ShellModel, failed, string_param};
 use crate::{key, strings};
 
-/// The stock dialog's state.
-#[derive(Clone, PartialEq, Debug)]
-pub struct StockDialog {
-    /// The stock in its order of preference.
-    pub rows: Vec<ew_api::StockRow>,
-    /// The library documents the parts added from a library need.
-    pub docs: Vec<Value>,
-    /// The cut increment in millimetres as typed; empty: none (5 mm).
-    pub cut: String,
-    /// The refusal of the last gesture, in words.
-    pub error: Option<String>,
+/// Where the open part stands in the project's workshop stock.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum StockPlace {
+    /// It stands in it: its place among the stock's parts of its kind (from 1), and how many of its kind there are.
+    In {
+        /// Its place, from 1: the first is taken first.
+        place: usize,
+        /// How many parts of its kind the stock holds.
+        of: usize,
+    },
+    /// It is of a kind the stock holds and is not in it.
+    Out,
+}
+
+/// The rule of the stock's kind `kind` (as the file spells it) in words, the heading's second half ("the first that
+/// fits"); `None` for a kind the stock does not hold.
+pub fn stock_rule(kind: &str) -> Option<&'static str> {
+    Some(strings::text(match kind {
+        "wire" => key!("parts-stock-rule-wire"),
+        "ferrule" => key!("parts-stock-rule-ferrule"),
+        "marker" => key!("parts-stock-rule-marker"),
+        "gland" => key!("parts-stock-rule-gland"),
+        _ => return None,
+    }))
 }
 
 impl ShellModel {
     /// How many parts the project's workshop stock holds (the project's Properties say so beside Edit stock…).
     pub fn workshop_stock_count(&self) -> Option<usize> {
-        Some(self.project.as_ref()?.session.stock_rows().len())
+        Some(self.project.as_ref()?.session.stock().len())
     }
 
-    /// `workshop.edit_stock` (Project ▸ Edit stock…): opens the stock dialog on the project's stock.
-    pub(crate) fn act_workshop_edit_stock(&mut self) -> Outcome {
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
-        let dialog = StockDialog {
-            rows: project.session.stock_rows(),
-            docs: Vec::new(),
-            cut: project.session.stock_cut(),
-            error: None,
-        };
-        self.open_dialog(Dialog::WorkshopStock(Box::new(dialog)))
-    }
-
-    /// The open stock dialog.
-    fn stock_dialog(&mut self) -> Result<&mut StockDialog, Outcome> {
-        match &mut self.dialog {
-            Some(Dialog::WorkshopStock(d)) => Ok(d),
-            _ => Err(Outcome::refused(key!("reason-no-stock-dialog"))),
+    /// Where the open part of Parts stands in the open project's workshop stock; `None` without a project, or for a part
+    /// of a kind the stock does not hold.
+    pub fn open_stock_place(&self) -> Option<StockPlace> {
+        let project = self.project.as_ref()?;
+        let open = self.parts.as_deref()?.sheet.as_ref()?;
+        if open.sheet.new {
+            return None;
         }
+        let kind = serde_json::from_value(json!(open.sheet.text("kind"))).ok()?;
+        if !ew_api::stock::holds(&kind) {
+            return None;
+        }
+        Some(match project.session.stock_place(open.sheet.copy) {
+            Some((place, of)) => StockPlace::In { place, of },
+            None => StockPlace::Out,
+        })
     }
 
-    /// `workshop.stock_row {row, op}`: moves row `row` (1-based) `up` or `down`, or `remove`s it.
-    pub(crate) fn act_workshop_stock_row(&mut self, p: &Map<String, Value>) -> Outcome {
-        let row = match p
-            .get("row")
-            .and_then(Value::as_u64)
-            .and_then(|r| usize::try_from(r).ok())
-        {
-            Some(r) if r >= 1 => r - 1,
-            _ => return failed(key!("error-bad-param"), &["row"]),
-        };
+    /// `parts.stock {op?, part?, to?}` (Project ▸ Edit stock…, the Workshop stock view, module documentation): without
+    /// `op` Parts opens on the Workshop stock; `add`, `remove` and `move` (to place `to` among its kind) change it by the
+    /// open part, or the part `part` names as `parts.open` names it; `generic` adds the starter's generic stock;
+    /// `default` keeps the stock, in its order, for new projects.
+    pub(crate) fn act_parts_stock(&mut self, p: &Map<String, Value>) -> Outcome {
         let op = match string_param(p, "op") {
-            Ok(Some(o)) => o.to_owned(),
-            Ok(None) => return failed(key!("error-missing-param"), &["op"]),
             Err(e) => return e,
-        };
-        let d = match self.stock_dialog() {
-            Ok(d) => d,
-            Err(e) => return e,
-        };
-        if row >= d.rows.len() {
-            return failed(key!("error-bad-param"), &["row"]);
-        }
-        match op.as_str() {
-            "up" if row > 0 => d.rows.swap(row, row - 1),
-            "down" if row + 1 < d.rows.len() => d.rows.swap(row, row + 1),
-            "up" | "down" => {}
-            "remove" => {
-                d.rows.remove(row);
-            }
-            _ => return failed(key!("error-bad-param"), &["op"]),
-        }
-        d.error = None;
-        Outcome::Done
-    }
-
-    /// `workshop.stock_add {part}`: adds the part numbered `part` (a wire, ferrule or marker, held or from a library)
-    /// after the stock; refused in words under the table for another part, one already in it, or none of that number.
-    pub(crate) fn act_workshop_stock_add(&mut self, p: &Map<String, Value>) -> Outcome {
-        let number = match string_param(p, "part") {
-            Ok(Some(n)) => n.to_owned(),
-            Ok(None) => return failed(key!("error-missing-param"), &["part"]),
-            Err(e) => return e,
+            Ok(op) => op.map(str::to_owned),
         };
         let Some(project) = &self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        let found = project.session.stock_part(&number);
-        let d = match self.stock_dialog() {
-            Ok(d) => d,
-            Err(e) => return e,
-        };
-        match found {
-            Ok((row, docs)) => {
-                if d.rows.iter().any(|r| r.copy == row.copy) {
-                    let text = strings::format(key!("stock-twice"), &[&row.number]);
-                    d.error = Some(text.clone());
-                    return Outcome::Failed { message: text };
+        let change = match op.as_deref() {
+            None => {
+                // The package dialog's Workshop stock… leads away from it.
+                if matches!(self.dialog, Some(Dialog::Package(_))) {
+                    self.dialog = None;
                 }
-                d.rows.push(row);
-                d.docs.extend(docs);
-                d.error = None;
-                Outcome::Done
+                self.enter_place();
+                return self.dispatch("parts.find", &json!({ "scope": PartScope::Stock.word() }));
             }
-            Err(why) => {
-                let text = strings::render(&why);
-                d.error = Some(text.clone());
-                Outcome::Failed { message: text }
+            Some("generic") => {
+                let out = self.act_workshop_add_generic();
+                self.parts_refresh();
+                return out;
             }
-        }
-    }
-
-    /// `workshop.stock_cut {text}`: what the cut list cuts to, in millimetres; empty: 5 mm.
-    pub(crate) fn act_workshop_stock_cut(&mut self, p: &Map<String, Value>) -> Outcome {
-        let text = match string_param(p, "text") {
-            Ok(t) => t.unwrap_or_default().to_owned(),
-            Err(e) => return e,
-        };
-        let d = match self.stock_dialog() {
-            Ok(d) => d,
-            Err(e) => return e,
-        };
-        d.cut = text;
-        d.error = None;
-        Outcome::Done
-    }
-
-    /// Add the generic stock inside the open dialog: the starter's ferrules and markers it lacks join the rows.
-    pub(crate) fn stock_dialog_add_generic(&mut self) -> Option<Outcome> {
-        let (rows, docs) = self.project.as_ref()?.session.generic_stock_rows();
-        let Ok(d) = self.stock_dialog() else { return None };
-        let before = d.rows.len();
-        for r in rows {
-            if !d.rows.iter().any(|x| x.copy == r.copy) {
-                d.rows.push(r);
+            Some("default") => {
+                let items = project.session.stock_items();
+                self.settings.shop_stock = items.iter().map(|(l, i)| format!("{l}/{i}")).collect();
+                self.save_settings();
+                self.notify(
+                    strings::format(key!("parts-stock-kept"), &[&items.len().to_string()]),
+                    false,
+                );
+                return Outcome::Done;
             }
-        }
-        d.docs.extend(docs);
-        if d.rows.len() == before {
-            return Some(Outcome::refused(key!("reason-workshop-generic-held")));
-        }
-        Some(Outcome::Done)
-    }
-
-    /// `workshop.stock_apply` (Apply): the dialog's stock and cut increment as one `workshop.stock`; a cut increment
-    /// that is no length stays in the dialog with its words.
-    pub(crate) fn act_workshop_stock_apply(&mut self) -> Outcome {
-        let d = match self.stock_dialog() {
-            Ok(d) => d.clone(),
-            Err(e) => return e,
+            Some(op) => op.to_owned(),
         };
-        let cut = d.cut.trim();
-        let cut = if cut.is_empty() {
-            Value::Null
+        if !self.is_writable() {
+            return Outcome::refused(key!("reason-read-only"));
+        }
+        // The part: the one `part` names, else the open one.
+        let (copy, source) = if p.contains_key("part") {
+            match self.named_part(p) {
+                Ok(Some(Named::Held(c))) => (c, None),
+                Ok(Some(Named::Library(l, i))) => (
+                    ew_api::output::v5::lib_copy_id::<ew_api::symbols::schema::Part>(l, i).as_uuid(),
+                    Some((l, i)),
+                ),
+                Ok(None) => return failed(key!("error-bad-param"), &["part"]),
+                Err(out) => return out,
+            }
         } else {
-            match ew_api::output::parse_mm(cut).filter(|n| *n > 0) {
-                Some(n) => json!(n),
-                None => {
-                    let text = strings::format(key!("stock-cut-length"), &[cut]);
-                    if let Ok(d) = self.stock_dialog() {
-                        d.error = Some(text.clone());
-                    }
-                    return Outcome::Failed { message: text };
-                }
+            match self.parts.as_deref().and_then(|p| p.sheet.as_ref()) {
+                Some(open) if !open.sheet.new => (open.sheet.copy, open.sheet.source),
+                _ => return Outcome::refused(key!("reason-no-part-open")),
             }
         };
-        let stock: Vec<Value> = d
-            .rows
-            .iter()
-            .map(|r| json!({ "copy": r.copy.to_string() }))
-            .collect();
-        let cmd = ew_api::AnyCommand {
-            name: "workshop.stock".into(),
-            params: json!({ "stock": stock, "copies": d.docs, "cut_increment": cut }),
+        let change = match change.as_str() {
+            "add" => StockChange::Add { copy, source },
+            "remove" => StockChange::Remove(copy),
+            _ => match p.get("to").and_then(Value::as_u64).and_then(|t| usize::try_from(t).ok()) {
+                Some(to) if to >= 1 => StockChange::Move { copy, to },
+                _ => return failed(key!("error-missing-param"), &["to"]),
+            },
+        };
+        let Some(project) = &self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let cmd = match project.session.stock_command(change) {
+            Ok(cmd) => cmd,
+            Err(reason) => return Outcome::Refused { reason },
         };
         let out = self.run_commit(&cmd);
-        if out == Outcome::Done {
-            self.dialog = None;
-        } else if let (Outcome::Failed { message }, Ok(d)) = (&out, self.stock_dialog()) {
-            d.error = Some(message.clone());
-        }
+        self.parts_refresh();
         out
     }
 }

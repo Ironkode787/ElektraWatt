@@ -125,14 +125,9 @@ fn form_offers(s: &mut ShellModel, action: &str, number: &str) -> bool {
     offered
 }
 
-/// Whether the project's workshop stock takes part `number`.
+/// Whether the project's workshop stock takes part `number`, from its sheet in Parts (Add to the stock).
 fn stock_takes(s: &mut ShellModel, number: &str) -> bool {
-    done(s, "parts.back", json!({}));
-    done(s, "workshop.edit_stock", json!({}));
-    let took =
-        s.dispatch("workshop.stock_add", &json!({"part": number})) == ew_viewmodel::shell::Outcome::Done;
-    done(s, "ui.dismiss", json!({}));
-    took
+    s.dispatch("parts.stock", &json!({"op": "add", "part": number})) == ew_viewmodel::shell::Outcome::Done
 }
 
 /// Journey a: a cabinet with its mounting plate, made in passing from the plate's field (New plate…: Save returns to
@@ -333,7 +328,8 @@ type Journey = (
     Feature,
 );
 
-/// Journeys f and k: a wire, a ferrule, a marker and a cable gland; the workshop stock takes each.
+/// Journeys f and k: a wire, a ferrule, a marker and a cable gland; the workshop stock takes each, and the next project
+/// starts with that stock once it is kept for new projects.
 #[test]
 fn a_wire_a_ferrule_a_marker_and_a_gland_for_the_stock() {
     let tmp = Tmp::new("journey-f");
@@ -386,6 +382,21 @@ fn a_wire_a_ferrule_a_marker_and_a_gland_for_the_stock() {
         lacks_none(&lacks, &[feature]);
         assert!(stock_takes(&mut s, number), "{number}");
     }
+    // Use this stock for new projects: the next project starts with it, his parts in it as they stand.
+    let stock = |s: &mut ShellModel| -> Vec<String> {
+        done(s, "parts.stock", json!({}));
+        let place = s.parts_place().expect("Parts");
+        place.found.iter().map(|f| f.offer.part_number.clone()).collect()
+    };
+    let kept = stock(&mut s);
+    done(&mut s, "parts.stock", json!({"op": "default"}));
+    done(&mut s, "parts.back", json!({}));
+    done(
+        &mut s,
+        "file.new",
+        json!({"dir": tmp.0.join("q.ew"), "template": "builtin", "discard": true}),
+    );
+    assert_eq!(stock(&mut s), kept);
 }
 
 /// Journey g: a rail of its profile and a wiring duct of its size; Rail and Duct offer them.

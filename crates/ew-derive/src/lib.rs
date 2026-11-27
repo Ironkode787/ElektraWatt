@@ -138,7 +138,7 @@ pub use cp_point::{
     strip_terminal_end, terminal_drawn_function,
 };
 pub use cps::{ClampData, Cp, FunctionCps, terminal_levels};
-pub use cut_list::{CutFor, CutGroup, CutRow, CutWhat, cut_rows, cut_to};
+pub use cut_list::{CUT_INCREMENT, CutFor, CutGroup, CutRow, CutWhat, cut_rows, cut_to};
 pub use drawn_path::{
     dir_vertical, drawn_path, on_segment, oriented_dir, page_grid, read_connection, read_junction,
     stored_path,

@@ -1,152 +1,198 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The workshop stock dialog's rows (doc 07 §2.5 "The workshop stock", Project ▸ Edit stock…): each stock part
-//! with what it is for, read from its own sections; a part typed by its number, held or from a library, with the
-//! documents that embed it.
+//! The workshop stock as Parts shows it (doc 07 §2.5 "The workshop stock", §5.10): the kinds a stock holds, where a part
+//! stands in it, and the one `workshop.stock` of each change (a part added, taken out or moved to another place), one
+//! undo step; and the stock a new project starts with (Use this stock for new projects).
 
-use ew_ids::{Id, Uuid};
-use ew_schema::{LibDocument, Part, PartKind};
-use serde_json::Value;
+use ew_commands::AnyCommand;
+use ew_ids::{Id, Uuid, v5};
+use ew_schema::{LibDocument, Part, PartKind, PartRef};
+use serde_json::{Value, json};
 
 use crate::Session;
+use crate::part_offers::lib_ref;
 
-/// One row of the stock dialog.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct StockRow {
-    /// The part copy (the ID it has or will have once embedded).
-    pub copy: Uuid,
-    /// The part kind as the file spells it (`wire`, `ferrule`, `marker`).
-    pub kind: String,
-    /// The part number.
-    pub number: String,
-    /// The description's neutral text, else its first language's.
-    pub description: String,
-    /// What it is for, in numbers: a wire's or a ferrule's cross-section (`1.5`, `0.5 – 1`, a twin ferrule's
-    /// `2 × 1.5`), in mm²; empty for a marker.
-    pub size: String,
-    /// A marker's marks word (`wire`, `terminal`, `device`, `cable`); empty for the others.
-    pub marks: String,
-    /// Its colour codes (`BK`, `GNYE`), empty without one.
-    pub colour: String,
+/// The kinds a stock holds, in the order the Workshop stock view lists them: wires, ferrules and lugs, markers, cable
+/// glands.
+pub const STOCK_KINDS: [PartKind; 4] = [PartKind::Wire, PartKind::Ferrule, PartKind::Marker, PartKind::Gland];
+
+/// Whether a part of `kind` may stand in the stock.
+pub fn holds(kind: &PartKind) -> bool {
+    STOCK_KINDS.contains(kind)
 }
 
-/// The row of part `p` under the copy ID `copy`.
-fn row_of(copy: Uuid, p: &Part) -> StockRow {
-    let s = &p.sections;
-    let colour = |c: Option<&ew_schema::ColourSpec>| {
-        c.and_then(|c| serde_json::to_value(c).ok())
-            .map(|v| match v {
-                Value::Array(a) => a.iter().filter_map(Value::as_str).collect::<String>(),
-                Value::String(t) => t,
-                _ => String::new(),
-            })
-            .unwrap_or_default()
-    };
-    let (size, marks, colour) = if let Some(w) = &s.wire {
-        (w.csa.to_string(), String::new(), colour(w.colour.as_ref()))
-    } else if let Some(f) = &s.ferrule {
-        let range = if f.csa_min == f.csa_max {
-            f.csa_min.to_string()
-        } else {
-            format!("{} \u{2013} {}", f.csa_min, f.csa_max)
-        };
-        let size = if f.twin {
-            format!("2 \u{d7} {range}")
-        } else {
-            range
-        };
-        (size, String::new(), colour(f.colour.as_ref()))
-    } else if let Some(m) = &s.marker {
-        (
-            String::new(),
-            crate::part_editor::stored_word(&m.marks),
-            String::new(),
-        )
-    } else {
-        (String::new(), String::new(), String::new())
-    };
-    StockRow {
-        copy,
-        kind: crate::part_editor::stored_word(&p.kind),
-        number: p.part_number.as_str().to_owned(),
-        description: p.description.neutral_or_first().unwrap_or_default().to_owned(),
-        size,
-        marks,
-        colour,
-    }
+/// A change of the stock, as Parts makes it.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum StockChange {
+    /// The part of the project's copy `copy` added after the stock; where the project does not hold it, the library
+    /// item `source` is embedded with it.
+    Add {
+        /// The copy the part has, or will have, in the project.
+        copy: Uuid,
+        /// The library and the item it comes from, for a part the project does not hold yet.
+        source: Option<(Uuid, Uuid)>,
+    },
+    /// The part of copy `copy` taken out of the stock.
+    Remove(Uuid),
+    /// The part of copy `copy` moved to place `to` among the stock's parts of its kind (1 is the first, which is taken
+    /// first).
+    Move {
+        /// The copy.
+        copy: Uuid,
+        /// Its new place among its kind, from 1; a place past the last is the last.
+        to: usize,
+    },
 }
 
 impl Session {
-    /// The project's workshop stock as the dialog's rows, in its order of preference.
-    pub fn stock_rows(&self) -> Vec<StockRow> {
+    /// The project's workshop stock, its copies in its order of preference.
+    pub fn stock(&self) -> Vec<Uuid> {
         let q = self.query();
         q.project()
             .settings
             .workshop
             .stock
             .iter()
-            .filter_map(|r| q.parts().get(r.copy).map(|c| row_of(r.copy.as_uuid(), &c.item)))
+            .map(|r| r.copy.as_uuid())
             .collect()
     }
 
-    /// The project's cut increment in millimetres as the dialog shows it; empty for none (5 mm).
-    pub fn stock_cut(&self) -> String {
+    /// The kind of the project's copy `copy`, if it holds it.
+    fn held_kind(&self, copy: Uuid) -> Option<PartKind> {
         self.query()
-            .project()
-            .settings
-            .workshop
-            .cut_increment
-            .map(|n| ew_derive::mm_exact(i128::from(n.0)))
-            .unwrap_or_default()
+            .parts()
+            .get(Id::<Part>::from_uuid(copy))
+            .map(|c| c.item.kind.clone())
     }
 
-    /// The part numbered `number` as a stock row, with the library documents that embed it when the project does not
-    /// hold it.
+    /// Where the project's copy `copy` stands in the stock: its place among the stock's parts of its kind (from 1) and
+    /// how many of its kind the stock holds; `None` where it is not in the stock.
+    pub fn stock_place(&self, copy: Uuid) -> Option<(usize, usize)> {
+        let kind = self.held_kind(copy)?;
+        let same: Vec<Uuid> = self
+            .stock()
+            .into_iter()
+            .filter(|c| self.held_kind(*c).as_ref() == Some(&kind))
+            .collect();
+        let at = same.iter().position(|c| *c == copy)?;
+        Some((at + 1, same.len()))
+    }
+
+    /// The `workshop.stock` that makes `change`, the cut increment kept; the command refuses what the stock cannot
+    /// hold in its words.
     ///
     /// # Errors
     ///
-    /// The refusal in words: no part has the number (`error-part-accessory`), or it is no wire, ferrule, marker or gland
-    /// (`refusal-stock-kind`, the command's words).
-    pub fn stock_part(&self, number: &str) -> Result<(StockRow, Vec<Value>), crate::Text> {
-        let q = self.query();
-        let t = number.trim();
-        let Some((r, kind, docs)) = self.part_by_number(&q, t) else {
-            return Err(text!("error-part-accessory", t));
-        };
-        if !kind.is_consumable() && kind != PartKind::Gland {
-            return Err(text!("error-stock-kind", t));
+    /// The refusal in words: a part added that is no wire, ferrule, marker or gland (`error-stock-kind`), or one the
+    /// project does not hold whose library has it no more (`error-stock-gone`).
+    pub fn stock_command(&self, change: StockChange) -> Result<AnyCommand, crate::Text> {
+        let mut stock = self.stock();
+        let mut copies: Vec<Value> = Vec::new();
+        match change {
+            StockChange::Add { copy, source } => {
+                let kind = match (self.held_kind(copy), source) {
+                    (Some(kind), _) => kind,
+                    (None, Some((library, item))) => {
+                        let r = lib_ref(library, item);
+                        let docs = self
+                            .closure_docs(std::slice::from_ref(&r))
+                            .map_err(|_| text!("error-stock-gone"))?;
+                        let kind = docs.iter().find_map(|d| match d {
+                            LibDocument::Part(c) if c.item_id.as_uuid() == item => {
+                                Some((c.item.kind.clone(), c.item.part_number.as_str().to_owned()))
+                            }
+                            _ => None,
+                        });
+                        let Some((kind, number)) = kind else {
+                            return Err(text!("error-stock-gone"));
+                        };
+                        if !holds(&kind) {
+                            return Err(text!("error-stock-kind", number));
+                        }
+                        copies = docs
+                            .iter()
+                            .map(|d| serde_json::to_value(d).expect("a library document has a JSON form"))
+                            .collect();
+                        stock.push(v5::lib_copy_id::<Part>(library, item).as_uuid());
+                        return Ok(stock_cmd(&stock, copies));
+                    }
+                    (None, None) => return Err(text!("error-stock-gone")),
+                };
+                if !holds(&kind) {
+                    let number = self
+                        .query()
+                        .parts()
+                        .get(Id::<Part>::from_uuid(copy))
+                        .map(|c| c.item.part_number.as_str().to_owned())
+                        .unwrap_or_default();
+                    return Err(text!("error-stock-kind", number));
+                }
+                stock.push(copy);
+            }
+            StockChange::Remove(copy) => stock.retain(|c| *c != copy),
+            StockChange::Move { copy, to } => {
+                let kind = self.held_kind(copy);
+                stock.retain(|c| *c != copy);
+                let same: Vec<usize> = (0..stock.len())
+                    .filter(|i| self.held_kind(stock[*i]) == kind)
+                    .collect();
+                let at = match same.get(to.saturating_sub(1)) {
+                    Some(i) => *i,
+                    None => same.last().map_or(stock.len(), |i| i + 1),
+                };
+                stock.insert(at, copy);
+            }
         }
-        let copy: Id<Part> = ew_ids::v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid());
-        let part = match q.parts().get(copy) {
-            Some(c) => c.item.clone(),
-            None => docs
-                .iter()
-                .find_map(|d| match LibDocument::from_value(d.clone()) {
-                    Ok(LibDocument::Part(c)) if c.id == copy => Some(c.item),
-                    _ => None,
-                })
-                .ok_or_else(|| text!("error-part-accessory", t))?,
-        };
-        Ok((row_of(copy.as_uuid(), &part), docs))
+        Ok(stock_cmd(&stock, copies))
+    }
+
+    /// The stock's parts as the library items they are copies of (Use this stock for new projects): `(library, item)`
+    /// in the stock's order.
+    pub fn stock_items(&self) -> Vec<(Uuid, Uuid)> {
+        let q = self.query();
+        self.stock()
+            .into_iter()
+            .filter_map(|c| q.parts().get(Id::<Part>::from_uuid(c)))
+            .map(|c| (c.library_id.as_uuid(), c.item_id.as_uuid()))
+            .collect()
+    }
+
+    /// The `workshop.stock` of a new project whose stock is the library items `items` (Use this stock for new
+    /// projects), with the documents that embed them; an item that no longer resolves, or is no part the stock holds,
+    /// is left out. `None` where none is left.
+    pub(crate) fn items_stock_command(&self, items: &[(Uuid, Uuid)]) -> Option<AnyCommand> {
+        let refs: Vec<_> = items
+            .iter()
+            .map(|(l, i)| lib_ref(*l, *i))
+            .filter(|r| {
+                matches!(self.libraries().resolve(r), Ok(LibDocument::Part(c)) if holds(&c.item.kind))
+            })
+            .collect();
+        if refs.is_empty() {
+            return None;
+        }
+        let docs = self.closure_docs(&refs).ok()?;
+        let stock: Vec<Uuid> = refs
+            .iter()
+            .map(|r| v5::lib_copy_id::<Part>(r.library.as_uuid(), r.item.as_uuid()).as_uuid())
+            .collect();
+        let copies = docs
+            .iter()
+            .map(|d| serde_json::to_value(d).expect("a library document has a JSON form"))
+            .collect();
+        Some(stock_cmd(&stock, copies))
     }
 }
 
-impl Session {
-    /// The starter's generic ferrules and markers as stock rows ([`crate::new_project`]'s generic stock), with the
-    /// documents that embed them: Add the generic stock in the stock dialog.
-    pub fn generic_stock_rows(&self) -> (Vec<StockRow>, Vec<Value>) {
-        let (stock, docs) = crate::new_project::generic_stock();
-        let rows = stock
-            .iter()
-            .filter_map(|r| {
-                docs.iter()
-                    .find_map(|d| match LibDocument::from_value(d.clone()) {
-                        Ok(LibDocument::Part(c)) if c.id == r.copy => Some(row_of(r.copy.as_uuid(), &c.item)),
-                        _ => None,
-                    })
-            })
-            .collect();
-        (rows, docs)
+/// `workshop.stock` of `stock` with the documents `copies`; the cut increment is kept.
+fn stock_cmd(stock: &[Uuid], copies: Vec<Value>) -> AnyCommand {
+    let stock: Vec<PartRef> = stock
+        .iter()
+        .map(|c| PartRef::new(Id::<Part>::from_uuid(*c)))
+        .collect();
+    AnyCommand {
+        name: "workshop.stock".into(),
+        params: json!({ "stock": stock, "copies": copies }),
     }
 }

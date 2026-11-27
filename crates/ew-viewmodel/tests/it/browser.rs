@@ -258,35 +258,3 @@ fn the_browser_chooses_a_variant_and_says_what_no_symbol_draws() {
     s.shutdown();
 }
 
-/// The workshop stock dialog: it opens on the sample's stock, moves and removes a row, refuses a part that is no wire,
-/// ferrule or marker, and Apply writes the stock and the cut increment in one step.
-#[test]
-fn the_stock_dialog_edits_the_stock_in_one_step() {
-    use ew_viewmodel::shell::Dialog;
-    let tmp = Tmp::new("stock-dialog");
-    let mut s = tmp.sample_in(Mode::Headless, true, "101");
-    done(&mut s, "workshop.edit_stock", json!({}));
-    let rows = |s: &ew_viewmodel::shell::ShellModel| match s.dialog() {
-        Some(Dialog::WorkshopStock(d)) => d.rows.iter().map(|r| r.number.clone()).collect::<Vec<_>>(),
-        other => panic!("the stock dialog: {other:?}"),
-    };
-    let before = rows(&s);
-    assert_eq!(before.first().map(String::as_str), Some("EW-GEN-FER-0.5"));
-    done(&mut s, "workshop.stock_row", json!({"row": 1, "op": "down"}));
-    assert_eq!(rows(&s)[1], before[0]);
-    done(&mut s, "workshop.stock_row", json!({"row": 1, "op": "remove"}));
-    assert!(matches!(
-        s.dispatch("workshop.stock_add", &json!({"part": "EW-GEN-MCB-1"})),
-        ew_viewmodel::shell::Outcome::Failed { .. }
-    ));
-    done(&mut s, "workshop.stock_cut", json!({"text": "10"}));
-    done(&mut s, "workshop.stock_apply", json!({}));
-    assert!(s.dialog().is_none(), "Apply closes the dialog");
-    done(&mut s, "workshop.edit_stock", json!({}));
-    assert_eq!(rows(&s).len(), before.len() - 1);
-    match s.dialog() {
-        Some(Dialog::WorkshopStock(d)) => assert_eq!(d.cut, "10"),
-        other => panic!("{other:?}"),
-    }
-    s.shutdown();
-}

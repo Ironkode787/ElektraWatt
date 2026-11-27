@@ -2269,6 +2269,12 @@ pub fn describe(model: &ShellModel) -> String {
         wizard(model, &mut lines);
     } else if let Some(place) = model.parts_place().filter(|_| model.symbol_editor().is_none()) {
         parts_lines(place, &mut lines);
+        // Where the open part stands in the project's workshop stock.
+        match model.open_stock_place() {
+            Some(crate::shell::stock::StockPlace::In { place, of }) => lines.push(format!("  stock {place} of {of}")),
+            Some(crate::shell::stock::StockPlace::Out) => lines.push("  stock out".to_owned()),
+            None => {}
+        }
         // The card of what Save changes stands beside the sheet.
         card_and_toast_lines(model, &mut lines);
     } else if let Some(editor) = model.symbol_editor() {

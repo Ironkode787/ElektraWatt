@@ -1731,12 +1731,12 @@ fn project_sections(ui: &mut Ui, shell: &ShellModel, sheet: &PropertySheet, even
                     ));
                     if ui
                         .add(egui::Link::new(small(
-                            strings::text(key!("action-workshop-edit-stock")),
+                            strings::text(key!("action-parts-stock")),
                             t.accent,
                         )))
                         .clicked()
                     {
-                        events.push(Event::Action("workshop.edit_stock", serde_json::Value::Null));
+                        events.push(Event::Action("parts.stock", serde_json::Value::Null));
                     }
                 }
             });

@@ -178,9 +178,20 @@ fn column_widths(ui: &egui::Ui, map: &PartsMap) -> (f32, f32, f32) {
             })
             .fold(narrow, f32::max)
     };
+    // The Column name column is as wide as its widest name or its heading ("Column in the file").
+    let heading = ui
+        .painter()
+        .layout_no_wrap(
+            strings::text(key!("parts-map-column")).to_owned(),
+            crate::theme::font(&t.type_label),
+            t.text_primary.color32(),
+        )
+        .size()
+        .x;
     let names = widest(crate::theme::font(&t.type_body), &|i| {
         map.columns[i].header.clone()
-    });
+    })
+    .max(heading);
     let samples = widest(crate::theme::font(&t.type_small), &|i| {
         map.columns[i].sample.clone()
     });
@@ -220,8 +231,10 @@ pub(crate) fn columns(ui: &mut egui::Ui, map: &PartsMap, rows: f32, events: &mut
     // a long sample is shown whole where the window has room and elides past that.
     let (names, _, combo) = column_widths(ui, map);
     let narrow = t.size_dialog_label * 0.6;
-    let sample =
-        (ui.available_width() - names - combo - 2.0 * t.space_4 - ui.spacing().scroll.bar_width).max(narrow);
+    let room = ui.available_width() - names - 2.0 * t.space_4 - ui.spacing().scroll.bar_width;
+    // A drop-down never takes the First value column below its narrowest; its chosen words elide past that.
+    let combo = combo.min(room - narrow).max(narrow);
+    let sample = (room - combo).max(narrow);
     egui::ScrollArea::vertical()
         .id_salt("parts-map-columns")
         .max_height(t.size_control * rows)
@@ -258,11 +271,14 @@ pub(crate) fn columns(ui: &mut egui::Ui, map: &PartsMap, rows: f32, events: &mut
                             .member
                             .as_deref()
                             .map_or_else(|| none.to_owned(), |m| map.member_words(m, &c.header));
-                        let combo = crate::components::choice(
+                        let at = Vec2::new(combo, t.size_control);
+                        let combo = ui.allocate_ui_with_layout(at, Layout::left_to_right(Align::Center), |ui| {
+                        crate::components::choice(
                             ui,
                             egui::ComboBox::from_id_salt(("parts-map-member", i))
                                 .selected_text(shown)
-                                .width(combo),
+                                .width(combo)
+                                .truncate(),
                             |ui| {
                                 if ui.selectable_label(c.member.is_none(), none).clicked() {
                                     events.push(Event::Action(
@@ -285,7 +301,9 @@ pub(crate) fn columns(ui: &mut egui::Ui, map: &PartsMap, rows: f32, events: &mut
                                     }
                                 }
                             },
-                        );
+                        )
+                        })
+                        .inner;
                         // Named "Imports as <header>" (every focusable node has a name, ADR-0014 amendment 2).
                         let name = format!("{} {}", strings::text(key!("parts-map-member")), c.header);
                         ui.ctx()

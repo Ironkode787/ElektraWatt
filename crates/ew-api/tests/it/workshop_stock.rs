@@ -169,7 +169,7 @@ fn a_wire_takes_its_stock_part_and_a_part_of_another_size_is_reported() {
     assert!(english.contains(&comma), "{english}");
 }
 
-/// What the cut list cuts to: a length sets it, a command without it keeps it, and `null` (the stock dialog's empty
+/// What the cut list cuts to: a length sets it, a command without it keeps it, and `null` (an empty
 /// Cut to) clears it, so the 5 mm of an unset increment holds again.
 #[test]
 fn an_empty_cut_to_clears_the_cut_increment() {
