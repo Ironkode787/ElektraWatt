@@ -721,7 +721,9 @@ derived value, and Length from says "routed". (5) A wire selected there or on a 
 panel page: a 2-px accent line from pin to pin, its pins as connection-point rings, and a chip with its number and
 length ("104.3 · 1,175 mm"); a device selected on the panel page shows the ways of its wires. Properties of the wire
 show Length with its source chip and the explanation of §9, and the row Way ("Duct 1, door", "direct") with Show on
-902.
+902. A wire selected with its every stretch (its row of the Connections table) reads as that one wire throughout: the
+header names its number and its ends, its section counts one ("Connection (1)") and its Wire number is the wire's, not
+one per stretch.
 
 **The tenth job.** His basic project carries his reserve, his fill limit and his door loop, and his company library
 the edge of every pin his drawings do not show the way his parts are built. He places the devices, draws the ducts,

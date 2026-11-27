@@ -308,10 +308,13 @@ fn a_wire_selected_in_the_table_is_headed_by_its_number_and_ends() {
         "navigator.select",
         json!({"kind": "connections", "keys": ["104.3"]}),
     );
-    let title = shell
-        .properties()
-        .sheet()
-        .map(|s| s.header.title.clone())
-        .unwrap_or_default();
-    assert_eq!(title, "104.3 · -104E1:X2 → -104A1-A1:M");
+    let sheet = shell.properties().sheet().expect("a sheet");
+    assert_eq!(sheet.header.title, "104.3 · -104E1:X2 → -104A1-A1:M");
+    // Its section counts the wire, not its stretches.
+    let section = &sheet.sections[0];
+    assert!(section.targets.len() > 1, "the wire's stretches");
+    assert_eq!(
+        ew_viewmodel::properties::section_title(sheet, section),
+        "Connection (1)"
+    );
 }

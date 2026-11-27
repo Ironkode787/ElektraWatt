@@ -656,3 +656,6 @@ change here.
   to earth, no device, so no tag"
 - api-break: `ew_api::output::Provenance`'s `Inherited::from`, `Derived::via`, `Overridden::note` and `Frozen::note`
   are texts by key (`ew_api::Text`), `Provenance::Told` goes into `Derived`, and `PropRow::note` is a text
+- behaviour-change: a wire selected with its every stretch (its row of the Connections table) reads as one wire in
+  Properties: its section is headed "Connection (1)", not "Connections (3)", and its Wire number is the wire's, not
+  "varies" over the numbers of the stretches it shares with other wires

@@ -340,7 +340,28 @@ impl Session {
         let mut per = Vec::new();
         let mut any_frozen = false;
         let mut any_free = false;
-        for (c, j) in conns.iter().zip(jsons) {
+        // A wire's every stretch is one wire: its number is that of the wire's first own connection (where its number
+        // is frozen), not one per stretch; a stretch it shares with other wires carries another's. A wire without a
+        // connection of its own shows the number of its record.
+        let records = q.get::<WireRecordSet>(());
+        let one = one_wire(&records, &conns);
+        let own = one
+            .and_then(|r| r.own().first().copied())
+            .filter(|w| conns.contains(w));
+        if let (Some(r), None) = (one, own) {
+            let number = r.number.clone().unwrap_or_else(|| "?".to_owned());
+            per.push((
+                Some(Value::String(number)),
+                Provenance::Derived {
+                    via: text!("via-wire-numbering"),
+                },
+            ));
+        }
+        for (c, j) in conns
+            .iter()
+            .zip(jsons)
+            .filter(|(c, _)| one.is_none() || own == Some(**c))
+        {
             // A cable's core has no wire number (FR-NUM-019): its cable and core name it (`-1W1 BN`), never `?`.
             let core = match q.connections().get(*c).map(|conn| conn.kind.clone()) {
                 Some(ew_schema::ConnectionKind::Core(x)) => record_title(q, x.as_uuid(), None),

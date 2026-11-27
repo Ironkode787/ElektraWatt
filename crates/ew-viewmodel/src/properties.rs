@@ -1633,6 +1633,18 @@ pub fn section_header(kind: &str, n: usize) -> String {
     format!("{} ({n})", strings::kinds_heading(kind))
 }
 
+/// The header of `section` of `sheet` ([`section_header`]): its kind counted as the sheet's header counts the selected
+/// records of that kind (a wire's every stretch is one wire, "Connection (1)"), else by its targets.
+pub fn section_title(sheet: &PropertySheet, section: &SheetSection) -> String {
+    let n = sheet
+        .header
+        .kinds
+        .iter()
+        .find(|(kind, _)| *kind == section.kind)
+        .map_or(section.targets.len(), |(_, n)| *n);
+    section_header(&section.kind, n)
+}
+
 /// What a sheet without a section says in place of its rows, in the UI language: that what it showed is gone, that
 /// nothing is selected, or that the selected records share no field, each kind with its count and its word ("No
 /// common fields: the selection holds 2 symbols, 1 page item").

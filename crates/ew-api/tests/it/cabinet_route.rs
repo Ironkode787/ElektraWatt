@@ -786,6 +786,13 @@ fn a_wire_selected_with_its_every_stretch_reads_as_that_wire() {
         "{:?}",
         length.note
     );
+    // Its number is the wire's, not one per stretch (a shared stretch carries another wire's number).
+    assert!(
+        matches!(&row("connection/derived.number").value,
+            ew_api::output::RowValue::One { text, .. } if text == "104.3"),
+        "{:?}",
+        row("connection/derived.number").value
+    );
     let way = row("connection/derived.way");
     assert!(
         way.note
