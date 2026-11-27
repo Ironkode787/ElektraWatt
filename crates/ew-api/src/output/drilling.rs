@@ -220,8 +220,8 @@ impl Session {
     pub fn drilling_files(&self, ask: &DrillingAsk) -> Result<Vec<DrillingFile>, String> {
         let q = self.query();
         let lang = print_language(&q);
-        // Every word of the drawings is the derivation's, rendered from its own texts in the project's language.
-        let words = |t: &Text| ew_derive::text::name_in(t, lang.as_ref());
+        // Every word of the drawings in the project's language, as a page prints it.
+        let words = |t: &Text| super::print::in_print_language(t, lang.as_ref());
         let mut out = Vec::new();
         for id in &ask.surfaces {
             let id: Id<MountingSurface> = Id::from_uuid(*id);
@@ -237,9 +237,8 @@ impl Session {
             }
             let location = location_of(&q, &s);
             let surface = ew_derive::text::surface_word(&face.kind, face.door, face.doors);
+            // The files are named in the project's language too (doc 13-package §8.2).
             let surface_words = words(&surface);
-            // The files are named in the project's language, from the one home of each name (doc 13-package §8.2).
-            let surface_name = ew_derive::text::name_in(&surface, lang.as_ref());
             let lower = surface_words.to_lowercase();
             let seen = ew_derive::text::surface_seen(&face.kind);
             let corner = surface_datum(&q, &s);
@@ -323,7 +322,7 @@ impl Session {
                     ],
                 ));
                 let file = ew_export::drilling_dxf(&DrillSheet {
-                    name: format!("{} {surface_name}.dxf", location).trim().to_owned(),
+                    name: format!("{} {surface_words}.dxf", location).trim().to_owned(),
                     extent: (lo, hi),
                     layers,
                 });
@@ -497,10 +496,7 @@ impl Session {
                         placement: None,
                     });
                 }
-                let stem = ew_derive::text::name_in(
-                    &ew_derive::text::template_file(&location, &surface_name),
-                    lang.as_ref(),
-                );
+                let stem = words(&ew_derive::text::template_file(&location, &surface_words));
                 let mut options =
                     ew_export::PdfOptions::new(ask.date.unwrap_or_else(|| super::model_date(&q)));
                 options.title = Some(stem.clone());

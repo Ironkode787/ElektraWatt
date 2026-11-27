@@ -400,6 +400,9 @@ One path, from the place a thing is found to the words on a screen or a page.
    heading. The type is the guard: a `String` for a person exists only after rendering.
 4. **Rendering happens once, at the edge:** `ew_l10n::render(text, language)`. The window renders in the window's
    language; a page, a list, an export and a stamp in the project's language; the command line in English. en-GB is the mandatory language and the fallback, and every language holds every key.
+   A `Text` carries the catalogue of the crate that owns its key (`text!` gives it), so a text that an edge prints
+   through a catalogue that does not hold its key, alone or as an argument, is rendered by its owner's words in the
+   reader's language: a word of one crate never falls back to English because another prints it.
 5. **Keys are checked when the code is built.** Each owning crate declares its text folder once; the one generator
    of `ew-l10n` writes the key table, and `text!` and `key!` fail the build on an unknown key or a wrong argument.
    A key is named through the macro of the crate that owns it, so a search finds the owner. A closed set names

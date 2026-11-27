@@ -2127,7 +2127,12 @@ mod ft779 {
 
     /// The text of `key` with `args`, as a command builds it with `text!`.
     fn keyed(key: &'static str, args: Vec<ew_api::TextArg>) -> ew_api::Text {
-        ew_api::Text::checked_by_macro(key, ew_commands::text_english(key).unwrap_or("?"), args)
+        ew_api::Text::checked_by_macro(
+            key,
+            ew_commands::text_english(key).unwrap_or("?"),
+            Some(ew_commands::catalogue),
+            args,
+        )
     }
 
     /// The toast of an invalid parameter names the field in words: a field set by `fields.set` by its label,

@@ -86,7 +86,7 @@ pub enum CmdLogError {
         message: String,
         /// What is wrong by key, for the window's language; `None` for a tag form of `plc.bind_channel`, which
         /// only a script writes.
-        text: Option<crate::Text>,
+        text: Option<Box<crate::Text>>,
         /// How many lines were committed before it.
         committed: usize,
     },
@@ -319,7 +319,7 @@ impl Session {
                 .map_err(|(message, text)| CmdLogError::Reference {
                     line: *line,
                     message,
-                    text,
+                    text: text.map(Box::new),
                     committed: receipts.len(),
                 })?;
             let cmd = AnyCommand {

@@ -274,7 +274,8 @@ impl Session {
         let mut out = Vec::new();
         for file in ew_reports::kinds::label_files(&q, &profile, keep) {
             // The set's name in the project's language, from its one home (doc 13-package §8.2).
-            let set_words = ew_derive::text::name_in(&ew_derive::text::label_set(file.set), lang.as_ref());
+            let set_words =
+                crate::output::print::in_print_language(&ew_derive::text::label_set(file.set), lang.as_ref());
             let number = file
                 .marker_part
                 .and_then(|p| q.parts().get(p))

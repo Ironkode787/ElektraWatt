@@ -307,10 +307,40 @@ impl Catalogue {
             .map(|(_, language)| language)
     }
 
+    /// Whether its en-GB files hold the message `key`.
+    fn holds(&self, key: &str) -> bool {
+        self.language(DEFAULT_LANGUAGE)
+            .is_some_and(|l| l.has_message(key))
+    }
+
+    /// The catalogue that renders `t` in place of this one: its home ([`Text::home`]) when this catalogue does not
+    /// hold its key, so that a word of another crate prints in the reader's language wherever it is printed.
+    fn elsewhere(&self, t: &Text) -> Option<&'static Catalogue> {
+        t.home()
+            .filter(|home| !std::ptr::eq(*home, self) && !t.is_bare() && !self.holds(t.key()))
+    }
+
+    /// `t` in the language `tag` with `on_error`, a nested text whose key this catalogue does not hold rendered by its
+    /// home in `tag` by `home_form`.
+    fn in_language(
+        &self,
+        t: &Text,
+        tag: &str,
+        on_error: OnError,
+        home_form: fn(&Catalogue, &Text, &str) -> String,
+    ) -> Option<String> {
+        let own = |n: &Text| self.elsewhere(n).map(|home| home_form(home, n, tag));
+        self.language(tag)?.text_with(t, on_error, &own)
+    }
+
     /// `t` in the language `tag`: its pattern there where it resolves, else en-GB's, else its English as the key
-    /// table holds it.
+    /// table holds it. A text whose key this catalogue does not hold, and an argument that is such a text, is rendered
+    /// by its home ([`Text::home`]).
     pub fn text_or_english(&self, t: &Text, tag: &str) -> String {
-        let lookup = |tag: &str| self.language(tag)?.text(t, OnError::Miss);
+        if let Some(home) = self.elsewhere(t) {
+            return home.text_or_english(t, tag);
+        }
+        let lookup = |tag: &str| self.in_language(t, tag, OnError::Miss, Catalogue::text_or_english);
         lookup(tag)
             .or_else(|| lookup(DEFAULT_LANGUAGE))
             .unwrap_or_else(|| t.to_string())
@@ -322,10 +352,13 @@ impl Catalogue {
         self.text_or_english(t, language_for(lang, &self.tags()))
     }
 
-    /// `t` in the language `tag`, a pattern that resolves with an error as Fluent writes it; else its English.
+    /// `t` in the language `tag`, a pattern that resolves with an error as Fluent writes it; else its English. A text
+    /// of another crate's, and an argument that is one, is rendered by its home as [`Catalogue::text_or_english`] does.
     pub fn text_kept(&self, t: &Text, tag: &str) -> String {
-        self.language(tag)
-            .and_then(|language| language.text(t, OnError::Keep))
+        if let Some(home) = self.elsewhere(t) {
+            return home.text_kept(t, tag);
+        }
+        self.in_language(t, tag, OnError::Keep, Catalogue::text_kept)
             .unwrap_or_else(|| t.to_string())
     }
 
@@ -454,14 +487,14 @@ mod tests {
             &[],
             true,
         );
-        let word = |key| Text::checked_by_macro(key, "device", Vec::new());
-        let sep = |key, english| Text::checked_by_macro(key, english, Vec::new());
+        let word = |key| Text::checked_by_macro(key, "device", None, Vec::new());
+        let sep = |key, english| Text::checked_by_macro(key, english, None, Vec::new());
         let items = List::new(
             vec!["-K1".into(), word("word").into(), "-K3".into()],
             sep("comma", ", "),
             sep("and", " and "),
         );
-        let text = Text::checked_by_macro("msg", "?", Vec::new())
+        let text = Text::checked_by_macro("msg", "?", None, Vec::new())
             .with("who", word("word"))
             .with("items", items.clone())
             .with("nth", TextArg::Number(3));
@@ -475,6 +508,56 @@ mod tests {
         assert!(
             nl.text(&missing, OnError::Keep)
                 .is_some_and(|s| s.starts_with("device heeft"))
+        );
+    }
+
+    /// The catalogue of a crate that owns the key `set-word`, in English and Dutch.
+    fn home() -> &'static Catalogue {
+        static HOME: std::sync::OnceLock<Catalogue> = std::sync::OnceLock::new();
+        HOME.get_or_init(|| {
+            Catalogue::new(
+                &[&[
+                    ("en-GB", "set-word = Wire markers\n"),
+                    ("nl-NL", "set-word = Draadmerkers\n"),
+                ]],
+                &[],
+                false,
+            )
+        })
+    }
+
+    /// A text of another crate's printed through a catalogue that lacks its key, alone or as an argument, is in the
+    /// reader's language by its home: it does not fall back to English unseen. A text without a home still does.
+    #[test]
+    fn a_text_of_another_crate_is_rendered_by_its_home() {
+        let printer = Catalogue::new(
+            &[&[
+                ("en-GB", "for-word = For { $p0 }\n"),
+                ("nl-NL", "for-word = Voor { $p0 }\n"),
+            ]],
+            &[],
+            false,
+        );
+        let set = Text::checked_by_macro("set-word", "Wire markers", Some(home), Vec::new());
+        let for_set = |set: Text| Text::checked_by_macro("for-word", "For {0}", None, vec![set.into()]);
+        assert_eq!(printer.text_or_english(&set, "nl-NL"), "Draadmerkers");
+        assert_eq!(printer.text_kept(&set, "nl-NL"), "Draadmerkers");
+        assert_eq!(
+            printer.text_or_english(&for_set(set.clone()), "nl-NL"),
+            "Voor Draadmerkers"
+        );
+        assert_eq!(
+            printer.text_kept(&for_set(set.clone()), "nl-NL"),
+            "Voor Draadmerkers"
+        );
+        assert_eq!(
+            printer.text_or_english(&for_set(set.clone()), "en-GB"),
+            "For Wire markers"
+        );
+        let homeless = Text::checked_by_macro("set-word", "Wire markers", None, Vec::new());
+        assert_eq!(
+            printer.text_or_english(&for_set(homeless), "nl-NL"),
+            "For Wire markers"
         );
     }
 }

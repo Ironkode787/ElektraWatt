@@ -2673,7 +2673,7 @@ impl ShellModel {
                 ..
             }) => failed(
                 key!("error-command"),
-                &[&tools::rejected_words(&message, Some(&why))],
+                &[&tools::rejected_words(&message, Some(&*why))],
             ),
             Err(e) => failed(key!("error-command"), &[&e.to_string()]),
         };

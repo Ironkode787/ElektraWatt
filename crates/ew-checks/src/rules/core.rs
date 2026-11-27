@@ -922,10 +922,14 @@ impl Rule for ConflictRecords {
                         ConflictSide::Unknown(_) => "other",
                     };
                     let (file_form, name) = conflict_file(q, path);
-                    let subject =
-                        ew_l10n::Text::checked_by_macro(key!("subject-conflict-file"), "?", Vec::new())
-                            .with("file", file_form)
-                            .with("name", name.clone());
+                    let subject = ew_l10n::Text::checked_by_macro(
+                        key!("subject-conflict-file"),
+                        "?",
+                        Some(crate::catalogue),
+                        Vec::new(),
+                    )
+                    .with("file", file_form)
+                    .with("name", name.clone());
                     Finding::new(&CONFLICT_RECORDS, [], "file", subject)
                         .arg("form", "file")
                         .arg("side", side)
@@ -1145,7 +1149,12 @@ fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> (ew_l10n::Text, Vec<(&'stat
     args.push(("target", target.into()));
     args.push(("kind", kind_words.into()));
     let subject = args.iter().fold(
-        ew_l10n::Text::checked_by_macro(key!("subject-conflict-target"), "?", Vec::new()),
+        ew_l10n::Text::checked_by_macro(
+            key!("subject-conflict-target"),
+            "?",
+            Some(crate::catalogue),
+            Vec::new(),
+        ),
         |t, (name, value)| t.with(name, value.clone()),
     );
     (subject, args)

@@ -1119,6 +1119,7 @@ impl PreventHook for NoDevices {
                 text: Box::new(ew_l10n::Text::checked_by_macro(
                     "test-devices-locked",
                     "devices are locked",
+                    None,
                     Vec::new(),
                 )),
             });

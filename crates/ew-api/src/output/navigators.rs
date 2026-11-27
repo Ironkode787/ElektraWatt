@@ -948,7 +948,12 @@ fn lowered(key: &'static str) -> crate::Text {
 
 /// The text of a key of the session's texts that the code names (`key!`).
 fn key_text(key: &'static str) -> crate::Text {
-    crate::Text::checked_by_macro(key, crate::text_english(key).unwrap_or("?"), Vec::new())
+    crate::Text::checked_by_macro(
+        key,
+        crate::text_english(key).unwrap_or("?"),
+        Some(crate::catalogue),
+        Vec::new(),
+    )
 }
 
 /// Words with a capital, unless their first word holds a digit ("3P-motor") or does not start with a lower-case

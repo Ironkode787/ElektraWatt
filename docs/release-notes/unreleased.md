@@ -832,3 +832,7 @@ change here.
   as a table writes the parts as they are saved and says that what was typed is not in the file
 - text-change: Parts counts one part as one ("1 part written to …"), an import's Save reads "<file> saved to My
   parts: 2 new, 0 changed", and Save of several parts counts the parts it wrote
+- behaviour-change: in a Dutch project the program's own words that one part of the program says and another prints
+  are Dutch wherever they are printed: a panel page's caption under a door and "Deurkant", the assembly list's end
+  plate and end bracket, the consumables' set names in For, a tube marker's "… op …", a circuit's class; they were
+  printed in English. A text is rendered by the words of the part that owns it, so none falls back to English unseen

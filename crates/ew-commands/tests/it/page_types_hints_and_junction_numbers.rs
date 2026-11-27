@@ -336,6 +336,7 @@ impl PreventHook for RejectAll {
             text: Box::new(ew_l10n::Text::checked_by_macro(
                 "test-no-candidate",
                 "no candidate passes",
+                None,
                 Vec::new(),
             )),
         })

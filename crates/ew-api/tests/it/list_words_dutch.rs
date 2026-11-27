@@ -111,6 +111,11 @@ fn cells(s: &Session, kind: &str) -> Vec<String> {
 
 /// The texts the boxes on folio `folio` print.
 fn box_texts(s: &Session, folio: &str) -> Vec<String> {
+    page_texts(s, folio, &[Layer::Tables])
+}
+
+/// The texts folio `folio` prints on `layers`.
+fn page_texts(s: &Session, folio: &str, layers: &[Layer]) -> Vec<String> {
     let q = s.query();
     let page = q
         .get::<PageOrder>(())
@@ -119,13 +124,18 @@ fn box_texts(s: &Session, folio: &str) -> Vec<String> {
         .find(|e| e.folio == folio && matches!(e.page, PageRef::Drawn(_)))
         .map(|e| e.page)
         .unwrap_or_else(|| panic!("folio {folio}"));
-    page_layer(&q, page, Layer::Tables)
-        .list
-        .items
+    layers
         .iter()
-        .filter_map(|i| match &i.kind {
-            ItemKind::Glyphs(run) => Some(run.text.clone()),
-            _ => None,
+        .flat_map(|l| {
+            page_layer(&q, page, *l)
+                .list
+                .items
+                .iter()
+                .filter_map(|i| match &i.kind {
+                    ItemKind::Glyphs(run) => Some(run.text.clone()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
         })
         .collect()
 }
@@ -155,6 +165,11 @@ const WORDS: &[(&str, &str, &str)] = &[
     ("network_address_list", "yes", "ja"),
     ("network_address_list", "no", "nee"),
     ("parts_list", "pc", "st."),
+    // The derivation's words, printed through the lists' catalogue, which does not hold them (their home renders them).
+    ("assembly_list", "End plate", "Eindplaat"),
+    ("assembly_list", "End bracket", "Eindsteun"),
+    ("consumables", "Wire markers", "Draadmerkers"),
+    ("consumables", "Tube markers", "Slangmerkers"),
 ];
 
 /// A Dutch project's lists hold the Dutch word in each cell where the English one stood, and none of the English; the
@@ -189,6 +204,45 @@ fn a_dutch_projects_lists_print_the_programs_own_words_in_dutch() {
     let configs = |s: &Session| cells_of(s, "part_data", Some(terminal));
     assert!(configs(&english).iter().any(|c| c == "Order Code 1"));
     assert!(configs(&dutch).iter().any(|c| c == "Bestelcode 1"));
+    // A tube marker's For: the tube's ends (a text of the derivation) inside the lists' words "… at …".
+    let tube_for = |s: &Session| -> Vec<String> {
+        cells(s, "labels")
+            .into_iter()
+            .filter(|c| c.contains(" → "))
+            .collect()
+    };
+    let (en_for, nl_for) = (tube_for(&english), tube_for(&dutch));
+    assert!(en_for.iter().any(|c| c.contains(" at ")), "{en_for:?}");
+    assert!(
+        !nl_for.is_empty() && nl_for.iter().all(|c| !c.contains(" at ")),
+        "{nl_for:?}"
+    );
+    assert!(nl_for.iter().any(|c| c.contains(" op ")), "{nl_for:?}");
+}
+
+/// A panel page prints the derivation's words of its surface in the project's language: the caption under a door and
+/// the word for the door's edge.
+#[test]
+fn a_dutch_projects_panel_pages_print_the_surfaces_words_in_dutch() {
+    let ((english, _), (dutch, _)) = (sample(false), sample(true));
+    let texts = |s: &Session| -> Vec<String> {
+        ["904", "905"]
+            .into_iter()
+            .flat_map(|folio| page_texts(s, folio, &Layer::ALL))
+            .collect()
+    };
+    let (en, nl) = (texts(&english), texts(&dutch));
+    for (word, dutch_word) in [
+        ("Door, seen from outside", "Deur, van buiten gezien"),
+        ("Door's edge", "Deurkant"),
+    ] {
+        assert!(en.iter().any(|t| t.contains(word)), "{word} in {en:?}");
+        assert!(
+            nl.iter().any(|t| t.contains(dutch_word)),
+            "{dutch_word} in {nl:?}"
+        );
+        assert!(!nl.iter().any(|t| t.contains(word)), "{word} in {nl:?}");
+    }
 }
 
 /// The boxes on a drawn page print their titles and their headers in the project's language: the legend and the PART

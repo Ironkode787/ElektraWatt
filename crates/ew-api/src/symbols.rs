@@ -159,7 +159,12 @@ fn input(e: impl std::fmt::Display) -> Error {
 fn eplan_refusal(e: impl std::fmt::Display) -> Error {
     let e = e.to_string();
     match crate::TEXTS.iter().find(|(key, _)| *key == e) {
-        Some((key, english)) => Error::Refused(crate::Text::checked_by_macro(key, english, Vec::new())),
+        Some((key, english)) => Error::Refused(crate::Text::checked_by_macro(
+            key,
+            english,
+            Some(crate::catalogue),
+            Vec::new(),
+        )),
         None => Error::Input(e),
     }
 }

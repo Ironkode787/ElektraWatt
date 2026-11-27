@@ -121,7 +121,12 @@ fn segment_text(entry: &str) -> Option<Text> {
         .binary_search_by(|(k, _)| (*k).cmp(key.as_str()))
         .ok()?;
     let (key, english) = crate::TEXTS[i];
-    Some(Text::checked_by_macro(key, english, Vec::new()))
+    Some(Text::checked_by_macro(
+        key,
+        english,
+        Some(crate::catalogue),
+        Vec::new(),
+    ))
 }
 
 /// The parts that are not empty, joined by spaces.

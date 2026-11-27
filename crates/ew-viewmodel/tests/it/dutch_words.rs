@@ -1394,7 +1394,7 @@ fn a_misfit_sentence_writes_its_sizes_in_the_windows_language() {
         .into_iter()
         .map(|a| ew_api::TextArg::Plain(a.to_owned()))
         .collect();
-    let text = ew_api::Text::checked_by_macro("misfit-clamp", "", args);
+    let text = ew_api::Text::checked_by_macro("misfit-clamp", "", None, args);
     assert_eq!(
         strings::shipped_renders(&text),
         [

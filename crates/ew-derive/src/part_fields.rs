@@ -439,7 +439,12 @@ impl Lack {
 
 /// The text of a declared key (a word, a group's, a feature's): checked when the declaration was built.
 pub fn word(key: &'static str) -> Text {
-    Text::checked_by_macro(key, crate::text_english(key).unwrap_or("?"), Vec::new())
+    Text::checked_by_macro(
+        key,
+        crate::text_english(key).unwrap_or("?"),
+        Some(crate::catalogue),
+        Vec::new(),
+    )
 }
 
 /// The word of a field as a sentence takes it (`width`, not `Width`): its key's `-in` form, which the text files give
@@ -460,7 +465,7 @@ fn sentence(says: &'static str, fields: TextArg) -> Text {
     } else {
         Vec::new()
     };
-    Text::checked_by_macro(says, english, args)
+    Text::checked_by_macro(says, english, Some(crate::catalogue), args)
 }
 
 /// A reader of `feature` that does `without` and says `says`, of every part that has the field.
@@ -2374,6 +2379,7 @@ impl Ready {
             Readiness::Ready(given) => vec![Text::checked_by_macro(
                 key!("part-ready-given"),
                 crate::text_english("part-ready-given").unwrap_or("?"),
+                Some(crate::catalogue),
                 vec![TextArg::List(ew_l10n::List::new(
                     given.iter().map(|f| TextArg::Text(word_in(f.word))).collect(),
                     text!("part-fields-between"),

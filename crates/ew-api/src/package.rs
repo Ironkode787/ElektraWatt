@@ -283,9 +283,14 @@ impl std::error::Error for PackageError {}
 
 /// The text of the key `key` with the count `n`: its `$n`, and `$count` `one` or `many`, which its pattern selects on.
 fn counted(key: &'static str, n: usize) -> Text {
-    Text::checked_by_macro(key, crate::text_english(key).unwrap_or(key), Vec::new())
-        .with("count", if n == 1 { "one" } else { "many" })
-        .with("n", n.to_string())
+    Text::checked_by_macro(
+        key,
+        crate::text_english(key).unwrap_or(key),
+        Some(crate::catalogue),
+        Vec::new(),
+    )
+    .with("count", if n == 1 { "one" } else { "many" })
+    .with("n", n.to_string())
 }
 
 /// The text of the key `key` with two counts: `$n` and `$count` of the first, `$m` and `$count2` of the second.

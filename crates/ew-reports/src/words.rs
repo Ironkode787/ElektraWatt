@@ -38,7 +38,12 @@ fn kind_text(kind: &str, words: bool) -> Option<Text> {
         if words { "-words" } else { "" }
     );
     let (key, english) = crate::TEXTS.iter().find(|(k, _)| *k == key)?;
-    Some(Text::checked_by_macro(key, english, Vec::new()))
+    Some(Text::checked_by_macro(
+        key,
+        english,
+        Some(crate::catalogue),
+        Vec::new(),
+    ))
 }
 
 /// The name of the list kind `kind` (its word) in the shipped language `tag` (`nl-NL`; en-GB where it has none), as
@@ -69,7 +74,7 @@ pub fn kind_names(kind: &str) -> Vec<(&'static str, String)> {
 /// The text of the key `key` whose pattern selects on its arguments (a message of several lines, which `text!` does
 /// not build), its arguments to be given by name ([`Text::with`]).
 pub(crate) fn selecting(key: &'static str) -> Text {
-    Text::checked_by_macro(key, "?", Vec::new())
+    Text::checked_by_macro(key, "?", Some(crate::catalogue), Vec::new())
 }
 
 /// `t` in every language of this crate's text files, each decimal point between two digits written as the list prints a

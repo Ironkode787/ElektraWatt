@@ -201,6 +201,7 @@ impl Finding {
             text: Text::checked_by_macro(
                 rule.message,
                 crate::text_english(rule.message).unwrap_or("?"),
+                Some(crate::catalogue),
                 Vec::new(),
             ),
             fix: None,

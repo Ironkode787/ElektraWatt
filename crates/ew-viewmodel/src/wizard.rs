@@ -1594,7 +1594,7 @@ pub(crate) fn run_commands(
                     message,
                     text: Some(t),
                     ..
-                } => crate::shell::tools::rejected_words(message, Some(t)),
+                } => crate::shell::tools::rejected_words(message, Some(&**t)),
                 other => other.to_string(),
             };
             strings::format(key!("wizard-error-command"), &[cmd, &why])

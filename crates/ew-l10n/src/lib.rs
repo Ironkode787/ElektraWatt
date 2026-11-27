@@ -29,7 +29,14 @@ pub struct Text {
     /// The English of the key in its crate's table, the arguments written `{0}`, `{1}`, …; `?` for a key the table
     /// does not hold. A key has one entry in one crate, so it follows from the key: equality and `Debug` leave it out.
     english: &'static str,
+    /// The catalogue of the crate whose text files hold the key: whichever catalogue a text is printed through, a key
+    /// that catalogue lacks is rendered by this one ([`render::Catalogue::text_or_english`]). `None` for a bare value
+    /// and for a key of a front end's own files. It follows from the key as `english` does.
+    home: Option<Home>,
 }
+
+/// The catalogue of the crate that owns a key: its `catalogue()`, which `texts!` gives it.
+pub type Home = fn() -> &'static render::Catalogue;
 
 /// An argument of a [`Text`]: a value written as it is (a tag, a name), a name a person wrote in several languages, a
 /// number, a text by key, or a list of them.
@@ -73,14 +80,21 @@ impl List {
 
 impl Text {
     /// The constructor behind the `text!` macro of a crate's [`texts!`], which checks the key and the number of
-    /// arguments and passes the key's English from the crate's table; call the macro instead.
+    /// arguments and passes the key's English from the crate's table and the crate's catalogue as its `home`; call the
+    /// macro instead.
     #[doc(hidden)]
-    pub fn checked_by_macro(key: &'static str, english: &'static str, args: Vec<TextArg>) -> Text {
+    pub fn checked_by_macro(
+        key: &'static str,
+        english: &'static str,
+        home: Option<Home>,
+        args: Vec<TextArg>,
+    ) -> Text {
         Text {
             key,
             args,
             named: Vec::new(),
             english,
+            home,
         }
     }
 
@@ -92,6 +106,7 @@ impl Text {
             args: vec![value.into()],
             named: Vec::new(),
             english: "{0}",
+            home: None,
         }
     }
 
@@ -125,6 +140,11 @@ impl Text {
     /// The arguments by name, in the order they were given.
     pub fn named(&self) -> &[(&'static str, TextArg)] {
         &self.named
+    }
+
+    /// The catalogue of the crate that owns its key; `None` for a bare value and a key of a front end's own files.
+    pub fn home(&self) -> Option<&'static render::Catalogue> {
+        self.home.map(|home| home())
     }
 }
 
@@ -391,7 +411,12 @@ macro_rules! texts {
                     );
                     ($d k, template)
                 };
-                $crate::Text::checked_by_macro(key, english, vec![$d($crate::TextArg::from($d a)),*])
+                $crate::Text::checked_by_macro(
+                    key,
+                    english,
+                    Some($d $c::catalogue),
+                    vec![$d($crate::TextArg::from($d a)),*],
+                )
             }};
         }
 
@@ -427,7 +452,7 @@ mod tests {
 
     /// The text of `key` in [`TABLE`] with `args`, built by hand.
     fn text(key: &'static str, args: Vec<TextArg>) -> Text {
-        Text::checked_by_macro(key, english_in(TABLE, key).unwrap_or("?"), args)
+        Text::checked_by_macro(key, english_in(TABLE, key).unwrap_or("?"), None, args)
     }
 
     /// A hand-built text (the macro refuses both at compile time) writes `?` for a missing argument and for
@@ -449,7 +474,10 @@ mod tests {
     #[test]
     fn a_text_is_its_key_and_its_arguments() {
         let t = text("words-page", vec!["101".into()]);
-        assert_eq!(t, Text::checked_by_macro("words-page", "?", vec!["101".into()]));
+        assert_eq!(
+            t,
+            Text::checked_by_macro("words-page", "?", None, vec!["101".into()])
+        );
         assert_eq!(
             format!("{t:?}"),
             "Text { key: \"words-page\", args: [Plain(\"101\")] }"

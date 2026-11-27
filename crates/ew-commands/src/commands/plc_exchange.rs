@@ -674,7 +674,12 @@ pub fn object_text(object: &ExchangeObject) -> Text {
 /// The words of a key that `ew-plc` names (`ew_plc::object_key`, `State::key`, `ew_plc::field_name`), with its English
 /// from this crate's table: `ew-plc` writes the key and cannot check it, so it is looked up when the text is made.
 fn plc_words(key: &'static str) -> Text {
-    Text::checked_by_macro(key, crate::text_english(key).unwrap_or("?"), Vec::new())
+    Text::checked_by_macro(
+        key,
+        crate::text_english(key).unwrap_or("?"),
+        Some(crate::catalogue),
+        Vec::new(),
+    )
 }
 
 /// A field of an exchanged object in words, by its key (`ew_plc::field_name`): a comment in a language with the

@@ -808,7 +808,7 @@ pub fn format(key: Key<'_>, args: &[&str]) -> String {
 /// a reason of the shell with its arguments, which [`render`] shows in the UI language. Its English is the key's
 /// en-GB text.
 pub fn keyed(key: Key<'static>, args: Vec<ew_api::TextArg>) -> ew_api::Text {
-    ew_api::Text::checked_by_macro(key.as_str(), source_text(key.as_str()).unwrap_or("?"), args)
+    ew_api::Text::checked_by_macro(key.as_str(), source_text(key.as_str()).unwrap_or("?"), None, args)
 }
 
 /// A key as its text without arguments ([`keyed`]).
@@ -832,15 +832,37 @@ pub fn render(text: &ew_api::Text) -> String {
 
 /// `text`, a text of the session, the commands or the shell, in the UI language through `ew_l10n`'s renderer (en-GB
 /// where the language has no words for its key; the pseudo-locale accents the en-GB words), with the words `own`
-/// gives for an argument that is a text in place of its pattern; `?` for a key without a text.
+/// gives for an argument that is a text in place of its pattern; `?` for a key without a text. A text of a crate whose
+/// files the window does not load, and an argument that is one, is rendered by the catalogue of its home
+/// (`ew_l10n::Text::home`).
 pub fn render_with(text: &ew_api::Text, own: &dyn Fn(&ew_api::Text) -> Option<String>) -> String {
-    let in_language = |l: &Locale| l.language.as_ref()?.text_with(text, OnError::Keep, own);
+    let in_language = |l: &Locale| in_locale(l, text, own);
     let now = current();
     match &now.language {
         Some(_) => in_language(now).or_else(|| in_language(en_gb())),
         None => in_language(en_gb()).map(|s| ew_l10n::render::pseudo(&s)),
     }
     .unwrap_or_else(|| "?".to_owned())
+}
+
+/// `text` in the loaded language `l` ([`render_with`]): a text whose key the window's files do not hold, and an
+/// argument that is one, by its home's catalogue in `l`'s language.
+fn in_locale(
+    l: &Locale,
+    text: &ew_api::Text,
+    own: &dyn Fn(&ew_api::Text) -> Option<String>,
+) -> Option<String> {
+    let elsewhere = |t: &ew_api::Text| {
+        let home = t
+            .home()
+            .filter(|_| !t.is_bare() && !en_gb().texts.contains_key(t.key()))?;
+        Some(home.text_for(t, l.tag.parse().ok().as_ref()))
+    };
+    elsewhere(text).or_else(|| {
+        l.language
+            .as_ref()?
+            .text_with(text, OnError::Keep, &|t| own(t).or_else(|| elsewhere(t)))
+    })
 }
 
 /// A sentence `text` without its closing full stop, so that another part can follow it inside the same sentence
@@ -1001,6 +1023,46 @@ mod tests {
         ] {
             assert_eq!(sentence_start(part), shown, "{part}");
         }
+    }
+
+    /// The catalogue of a crate whose files the window does not load, owning the key `test-elsewhere-word`.
+    fn elsewhere() -> &'static ew_l10n::render::Catalogue {
+        static HOME: OnceLock<ew_l10n::render::Catalogue> = OnceLock::new();
+        HOME.get_or_init(|| {
+            ew_l10n::render::Catalogue::new(
+                &[&[
+                    ("en-GB", "test-elsewhere-word = Wire markers\n"),
+                    ("nl-NL", "test-elsewhere-word = Draadmerkers\n"),
+                ]],
+                &[],
+                false,
+            )
+        })
+    }
+
+    /// A text of a crate whose files the window does not load, and an argument that is one, reads in the window's
+    /// language by its home's catalogue, not as "?" or its English.
+    #[test]
+    fn a_text_the_window_does_not_hold_is_rendered_by_its_home() {
+        let word = ew_api::Text::checked_by_macro(
+            "test-elsewhere-word",
+            "Wire markers",
+            Some(elsewhere),
+            Vec::new(),
+        );
+        assert_eq!(
+            in_locale(nl_nl(), &word, &|_| None).as_deref(),
+            Some("Draadmerkers")
+        );
+        assert_eq!(
+            in_locale(en_gb(), &word, &|_| None).as_deref(),
+            Some("Wire markers")
+        );
+        let inside = ew_api::Text::bare(word);
+        assert_eq!(
+            in_locale(nl_nl(), &inside, &|_| None).as_deref(),
+            Some("Draadmerkers")
+        );
     }
 
     /// Whether `name` stands in `text` as a key's name: not inside a word, a chord (`+`), a tag (`-X1`) or a key.
