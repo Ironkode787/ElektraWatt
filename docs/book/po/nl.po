@@ -91,59 +91,75 @@ msgstr ""
 msgid "Draw a panel layout"
 msgstr ""
 
-#: src/SUMMARY.md:28 src/how-to/plc-workspace.md:1
+#: src/SUMMARY.md:28 src/how-to/cabinet-surfaces.md:1
+msgid "Place devices in the door, and make holes and cable glands"
+msgstr "Apparaten in de deur plaatsen, en gaten en kabelwartels maken"
+
+#: src/SUMMARY.md:29 src/how-to/route-wires.md:1
+msgid "Route the cabinet's wires and give them their lengths"
+msgstr "De draden van de kast routeren en hun lengte geven"
+
+#: src/SUMMARY.md:30 src/how-to/workshop-lists.md:1
+msgid "Print the workshop's lists"
+msgstr "De lijsten voor de werkplaats afdrukken"
+
+#: src/SUMMARY.md:31 src/how-to/workshop-package.md:1
+msgid "Export the labels, the drilling drawings and the package"
+msgstr "De labels, de boortekeningen en het pakket exporteren"
+
+#: src/SUMMARY.md:32 src/how-to/plc-workspace.md:1
 msgid "Work in the PLC workspace"
 msgstr ""
 
-#: src/SUMMARY.md:29 src/how-to/own-parts.md:1
+#: src/SUMMARY.md:33 src/how-to/own-parts.md:1
 msgid "Make your own parts"
 msgstr ""
 
-#: src/SUMMARY.md:30 src/how-to/fluid-workspace.md:1
+#: src/SUMMARY.md:34 src/how-to/fluid-workspace.md:1
 msgid "Work in the Fluid workspace"
 msgstr ""
 
-#: src/SUMMARY.md:31 src/how-to/upgrade-a-project.md:1
+#: src/SUMMARY.md:35 src/how-to/upgrade-a-project.md:1
 msgid "Upgrade a project"
 msgstr ""
 
-#: src/SUMMARY.md:33 src/SUMMARY.md:35 src/reference/index.md:1
+#: src/SUMMARY.md:37 src/SUMMARY.md:39 src/reference/index.md:1
 msgid "Reference"
 msgstr ""
 
-#: src/SUMMARY.md:36 src/reference/window/tools.md:1
+#: src/SUMMARY.md:40 src/reference/window/tools.md:1
 msgid "Tools"
 msgstr ""
 
-#: src/SUMMARY.md:37 src/reference/window/command-bar.md:1
+#: src/SUMMARY.md:41 src/reference/window/command-bar.md:1
 msgid "The command bar's buttons"
 msgstr ""
 
-#: src/SUMMARY.md:38 src/reference/window/dialogs.md:1
+#: src/SUMMARY.md:42 src/reference/window/dialogs.md:1
 msgid "Dialogs"
 msgstr ""
 
-#: src/SUMMARY.md:39 src/reference/window/panels.md:1
+#: src/SUMMARY.md:43 src/reference/window/panels.md:1
 msgid "Panels"
 msgstr ""
 
-#: src/SUMMARY.md:40 src/reference/window/things.md:1
+#: src/SUMMARY.md:44 src/reference/window/things.md:1
 msgid "Things on a page"
 msgstr ""
 
-#: src/SUMMARY.md:41 src/reference/symbol-editor.md:1
+#: src/SUMMARY.md:45 src/reference/symbol-editor.md:1
 msgid "Drawing a symbol, and automated authoring"
 msgstr ""
 
-#: src/SUMMARY.md:43 src/SUMMARY.md:45 src/explanation/index.md:1
+#: src/SUMMARY.md:47 src/SUMMARY.md:49 src/explanation/index.md:1
 msgid "Explanation"
 msgstr ""
 
-#: src/SUMMARY.md:46 src/explanation/eplan-and-ew.md:1
+#: src/SUMMARY.md:50 src/explanation/eplan-and-ew.md:1
 msgid "EPLAN and EW"
 msgstr ""
 
-#: src/SUMMARY.md:47 src/explanation/qet-and-ew.md:1
+#: src/SUMMARY.md:51 src/explanation/qet-and-ew.md:1
 msgid "QElectroTech and EW"
 msgstr ""
 
@@ -2714,34 +2730,86 @@ msgstr ""
 msgid ""
 "[Use the command line on the sample project](headless-workflow.md): the `ew` "
 "program checks a project, writes its pages as PDF and SVG, exports the cable "
-"list and the bill of materials, and queries it in SQL. You need a checkout "
-"of the repository and the `ew` program."
+"list and the bill of materials, queries it in SQL, and writes the wire list, "
+"the workshop's lists, the label files, the drawings for drilling and the "
+"package. You need a checkout of the repository and the `ew` program."
 msgstr ""
 "[De opdrachtregel gebruiken op het voorbeeldproject](headless-workflow.md): "
 "het programma `ew` controleert een project, schrijft de pagina's als PDF en "
-"SVG, exporteert de kabellijst en de stuklijst en bevraagt het project in "
-"SQL. U hebt een checkout van de repository nodig en het programma `ew`."
+"SVG, exporteert de kabellijst en de stuklijst, bevraagt het in SQL, en "
+"schrijft de draadlijst, de lijsten voor de werkplaats, de labelbestanden, de "
+"boortekeningen en het pakket. U hebt een checkout van de repository en het "
+"programma `ew` nodig."
 
-#: src/how-to/index.md:22
+#: src/how-to/index.md:23
 msgid ""
 "[Define a supply potential](define-supply-potential.md): a potential's name, "
 "type and voltage from a selected wire, junction or terminal."
 msgstr ""
 
-#: src/how-to/index.md:24
+#: src/how-to/index.md:25
 msgid ""
 "[Choose parts](choose-parts.md): a device's part from the property grid or "
 "the part selection, a device placed from its part, and where the parts are "
 "listed."
 msgstr ""
 
-#: src/how-to/index.md:26
+#: src/how-to/index.md:27
 msgid ""
 "[Draw a panel layout](panel-layout.md): a panel layout page, its enclosure "
 "and mounting plate, rails and ducts, and the devices placed on them."
 msgstr ""
 
-#: src/how-to/index.md:28
+#: src/how-to/index.md:29
+msgid ""
+"[Place devices in the door, and make holes and cable "
+"glands](cabinet-surfaces.md): the door and the other surfaces of a cabinet, "
+"the holes and cut-outs a part brings and those you add, the checks of a "
+"hole, the cable glands and the hole table."
+msgstr ""
+"[Apparaten in de deur plaatsen, en gaten en kabelwartels "
+"maken](cabinet-surfaces.md): de deur en de andere vlakken van een kast, de "
+"gaten en uitsparingen die een artikel meebrengt en die u zelf toevoegt, de "
+"controles van een gat, de kabelwartels en de gatentabel."
+
+#: src/how-to/index.md:32
+msgid ""
+"[Route the cabinet's wires and give them their lengths](route-wires.md): "
+"Route on the cabinet's page and its card, a wire's way and length, the duct "
+"fill, the reserve and the door loop, a wire made on site, a length typed by "
+"hand, and a way that no longer holds."
+msgstr ""
+"[De draden van de kast routeren en hun lengte geven](route-wires.md): "
+"Routeren op de pagina van de kast en zijn kaart, de loop en de lengte van "
+"een draad, de vulgraad van een kabelgoot, de reserve en de deurlus, een "
+"draad die ter plaatse wordt gemaakt, een met de hand getypte lengte, en een "
+"loop die niet meer klopt."
+
+#: src/how-to/index.md:35
+msgid ""
+"[Print the workshop's lists](workshop-lists.md): the wire list and its "
+"columns, the assembly lists, the cut list, the consumables and the workshop "
+"stock they read, the rework list after a release, printing and handing them "
+"over."
+msgstr ""
+"[De lijsten voor de werkplaats afdrukken](workshop-lists.md): de draadlijst "
+"en haar kolommen, de montagelijsten, de zaaglijst, de verbruiksmaterialen en "
+"de werkplaatsvoorraad die ze lezen, de wijzigingslijst na een vrijgave, "
+"afdrukken en overdragen."
+
+#: src/how-to/index.md:37
+msgid ""
+"[Export the labels, the drilling drawings and the "
+"package](workshop-package.md): the label files for your label program, the "
+"templates and DXF files for drilling, and the package for the workshop with "
+"what is in it."
+msgstr ""
+"[De labels, de boortekeningen en het pakket "
+"exporteren](workshop-package.md): de labelbestanden voor uw labelprogramma, "
+"de boormallen en DXF-bestanden om te boren, en het pakket voor de werkplaats "
+"met wat erin zit."
+
+#: src/how-to/index.md:39
 msgid ""
 "[Work in the PLC workspace](plc-workspace.md): what a station, a rack, a "
 "slot, a channel and a symbol are, the jobs of TIA Portal and where they are "
@@ -2749,39 +2817,39 @@ msgid ""
 "their nets, and the exchange with PLC software."
 msgstr ""
 
-#: src/how-to/index.md:31
+#: src/how-to/index.md:42
 msgid ""
 "[Make your own parts](own-parts.md): a terminal, a cable, a cabinet, a card, "
 "a head station such as an IM 152, a switch such as a SCALANCE or a device on "
 "PROFINET, typed from its data sheet in Parts and kept in My parts."
 msgstr ""
 
-#: src/how-to/index.md:33
+#: src/how-to/index.md:44
 msgid ""
 "[Work in the Fluid workspace](fluid-workspace.md): a circuit on a fluid "
 "page, its medium, a valve's solenoid on an electrical page, the two kinds of "
 "valve terminal, and the tubes and the tube list."
 msgstr ""
 
-#: src/how-to/index.md:35
+#: src/how-to/index.md:46
 msgid ""
 "[Upgrade a project](upgrade-a-project.md): what a release reads and writes, "
 "opening a project of an older format, the backup of the first save, `ew "
 "upgrade`, and what changes in the format from 0.1.0."
 msgstr ""
 
-#: src/how-to/index.md:38
+#: src/how-to/index.md:49
 msgid ""
 "More follow the [command-line how-to](headless-workflow.md), for example "
 "replaying a command log with `ew apply`, checking a project in a CI job, and "
 "exporting for a single page range."
 msgstr ""
 
-#: src/how-to/index.md:41
+#: src/how-to/index.md:52
 msgid "Writing a how-to guide"
 msgstr ""
 
-#: src/how-to/index.md:43
+#: src/how-to/index.md:54
 msgid ""
 "A guide names its goal in the title (\"Export one page range as SVG\"), "
 "lists what you need, gives numbered steps and ends when the goal is met. "
@@ -3926,17 +3994,21 @@ msgstr ""
 msgid ""
 "Here you use the `ew` command-line program on the sample project: you check "
 "the project, write its pages as PDF and SVG, export the cable list and the "
-"bill of materials, and ask the project questions in SQL. Nothing needs the "
+"bill of materials, ask the project questions in SQL, and write what the "
+"workshop builds the cabinet from: the wire list, the workshop's lists, the "
+"label files, the drawings for drilling and the package. Nothing needs the "
 "desktop application, and nothing leaves your machine: `ew` never uses the "
 "network."
 msgstr ""
 "Hier gebruikt u het opdrachtregelprogramma `ew` op het voorbeeldproject: u "
 "controleert het project, schrijft de pagina's als PDF en SVG, exporteert de "
-"kabellijst en de stuklijst, en stelt het project vragen in SQL. Niets heeft "
+"kabellijst en de stuklijst, stelt het project vragen in SQL, en schrijft "
+"waarmee de werkplaats de kast bouwt: de draadlijst, de lijsten voor de "
+"werkplaats, de labelbestanden, de boortekeningen en het pakket. Niets heeft "
 "de desktopapplicatie nodig, en niets verlaat uw computer: `ew` gebruikt "
 "nooit het netwerk."
 
-#: src/how-to/headless-workflow.md:7
+#: src/how-to/headless-workflow.md:8
 msgid ""
 "The sample project is a small conveyor drive with a pneumatic clamp: a 400 V "
 "supply, a 24 V DC control circuit, a motor starter, a PLC with its cards on "
@@ -3953,15 +4025,15 @@ msgstr ""
 "een plaatsaanduiding zoals `Sample Customer`. U leest het hier alleen; geen "
 "van de stappen verandert het."
 
-#: src/how-to/headless-workflow.md:12
+#: src/how-to/headless-workflow.md:13
 msgid "Before you start"
 msgstr "Voordat u begint"
 
-#: src/how-to/headless-workflow.md:14
+#: src/how-to/headless-workflow.md:15
 msgid "You need:"
 msgstr "U hebt nodig:"
 
-#: src/how-to/headless-workflow.md:16
+#: src/how-to/headless-workflow.md:17
 msgid ""
 "a checkout of the ElektraWatt repository, which holds the project in "
 "`fixtures/sample/`;"
@@ -3969,7 +4041,7 @@ msgstr ""
 "een checkout van de repository van ElektraWatt, die het project in "
 "`fixtures/sample/` bevat;"
 
-#: src/how-to/headless-workflow.md:17
+#: src/how-to/headless-workflow.md:18
 msgid ""
 "the `ew` program, built from the checkout with `cargo build --release -p "
 "ew`. It is then `target/release/ew` (`target\\release\\ew.exe` on Windows). "
@@ -3981,7 +4053,7 @@ msgstr ""
 "De voorbeelden schrijven gewoon `ew`; zet het programma in uw `PATH` of typ "
 "het pad ervan."
 
-#: src/how-to/headless-workflow.md:21
+#: src/how-to/headless-workflow.md:22
 msgid ""
 "Run every command from the root of the checkout. Check that `ew` works; it "
 "prints its name and its version:"
@@ -3989,15 +4061,15 @@ msgstr ""
 "Voer elke opdracht uit vanuit de hoofdmap van de checkout. Controleer dat "
 "`ew` werkt; het toont zijn naam en zijn versie:"
 
-#: src/how-to/headless-workflow.md:27
+#: src/how-to/headless-workflow.md:28
 msgid "Then make a directory for the results:"
 msgstr "Maak daarna een map voor de resultaten:"
 
-#: src/how-to/headless-workflow.md:33
+#: src/how-to/headless-workflow.md:34
 msgid "Where the project comes from"
 msgstr "Waar het project vandaan komt"
 
-#: src/how-to/headless-workflow.md:35
+#: src/how-to/headless-workflow.md:36
 msgid ""
 "EW makes the sample project itself. The script "
 "`fixtures/sample/sample.uiscript` holds the window's own actions in order, "
@@ -4013,7 +4085,7 @@ msgstr ""
 "en schrijft het project `fixtures/sample/sample.ew`, en een test controleert "
 "dat het ingecheckte project is wat het script maakt."
 
-#: src/how-to/headless-workflow.md:39
+#: src/how-to/headless-workflow.md:40
 msgid ""
 "A project is a directory, here `fixtures/sample/sample.ew`. Every `ew` "
 "command that works on a project takes it as its first argument."
@@ -4021,11 +4093,11 @@ msgstr ""
 "Een project is een map, hier `fixtures/sample/sample.ew`. Elke opdracht van "
 "`ew` die met een project werkt, neemt het als eerste argument."
 
-#: src/how-to/headless-workflow.md:42
+#: src/how-to/headless-workflow.md:43
 msgid "Step 1: check the project"
 msgstr "Stap 1: het project controleren"
 
-#: src/how-to/headless-workflow.md:44
+#: src/how-to/headless-workflow.md:45
 msgid ""
 "`ew check` runs the check rules over the project and prints what it finds, "
 "one finding per line:"
@@ -4033,14 +4105,18 @@ msgstr ""
 "`ew check` voert de controleregels uit op het project en toont wat het "
 "vindt, één bevinding per regel:"
 
-#: src/how-to/headless-workflow.md:52
+#: src/how-to/headless-workflow.md:53
 msgid ""
 "The sample project is clean, so only the counts print. In a project with "
 "findings each one is a line before them, for example a tag that is frozen "
 "and differs from what the numbering scheme would give:"
 msgstr ""
+"Het voorbeeldproject is schoon, dus alleen de tellingen worden afgedrukt. In "
+"een project met bevindingen staat elke bevinding op een regel ervoor, "
+"bijvoorbeeld een kenmerk dat vastgezet is en afwijkt van wat het "
+"nummeringsschema zou geven:"
 
-#: src/how-to/headless-workflow.md:59
+#: src/how-to/headless-workflow.md:60
 msgid ""
 "Each line gives the severity, the rule ID, the rule's six-digit code, the "
 "thing the finding is about and a message. The last line counts the findings, "
@@ -4051,11 +4127,11 @@ msgstr ""
 "bevindingen, en de standaardfoutuitvoer herhaalt het aantal met de naam van "
 "het schema."
 
-#: src/how-to/headless-workflow.md:62
+#: src/how-to/headless-workflow.md:63
 msgid "Look at the exit code:"
 msgstr "Bekijk de afsluitcode:"
 
-#: src/how-to/headless-workflow.md:69
+#: src/how-to/headless-workflow.md:70
 msgid ""
 "`ew` exits with 0 when the project has no unwaived errors, 1 when it has "
 "some and 2 when it could not run the check at all (a project that cannot be "
@@ -4072,7 +4148,7 @@ msgstr ""
 "[doc 17 "
 "§3.2](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#32-exit-codes)."
 
-#: src/how-to/headless-workflow.md:74
+#: src/how-to/headless-workflow.md:75
 msgid ""
 "Each rule has a page in the reference: "
 "[`EW-NUM-001`](../reference/rules/ew-num-001.md) is the information that a "
@@ -4086,7 +4162,7 @@ msgstr ""
 "geven, en [`EW-CORE-033`](../reference/rules/ew-core-033.md) is de fout van "
 "een kabel zonder lengte, die het voorbeeldproject niet heeft."
 
-#: src/how-to/headless-workflow.md:78
+#: src/how-to/headless-workflow.md:79
 msgid ""
 "`ew check` takes a scheme and a mode. The default is the `pre-delivery` "
 "scheme in `release` mode; `--format json` and `--format md` change the "
@@ -4096,11 +4172,11 @@ msgstr ""
 "`pre-delivery` in de modus `release`; `--format json` en `--format md` "
 "veranderen de uitvoer, en `--out <file>` schrijft die naar een bestand."
 
-#: src/how-to/headless-workflow.md:81
+#: src/how-to/headless-workflow.md:82
 msgid "Step 2: write the pages as PDF and SVG"
 msgstr "Stap 2: de pagina's als PDF en SVG schrijven"
 
-#: src/how-to/headless-workflow.md:83
+#: src/how-to/headless-workflow.md:84
 msgid ""
 "`ew export pdf` writes every page of the project into one PDF/A-2b file, "
 "with an outline, page labels and cross-reference links:"
@@ -4109,7 +4185,7 @@ msgstr ""
 "PDF/A-2b-bestand, met een inhoudsopgave, paginalabels en links voor de "
 "kruisverwijzingen:"
 
-#: src/how-to/headless-workflow.md:92
+#: src/how-to/headless-workflow.md:93
 msgid ""
 "The second line, on the standard error stream, counts remarks about the "
 "rendering of single pages and says what they are: here, fields of the title "
@@ -4121,7 +4197,7 @@ msgstr ""
 "titelblokken die het project leeg laat. Ze houden de export niet tegen. De "
 "map van `--out` moet bestaan; daarom hebt u eerst `out` gemaakt."
 
-#: src/how-to/headless-workflow.md:96
+#: src/how-to/headless-workflow.md:97
 msgid ""
 "`ew export svg` writes one SVG file per page into a directory. Use `--pages` "
 "to select folios; this writes the drawn pages 101 to 105:"
@@ -4129,7 +4205,7 @@ msgstr ""
 "`ew export svg` schrijft één SVG-bestand per pagina in een map. Kies folio's "
 "met `--pages`; dit schrijft de getekende pagina's 101 tot en met 105:"
 
-#: src/how-to/headless-workflow.md:105
+#: src/how-to/headless-workflow.md:106
 msgid ""
 "The directory now holds `101.svg` to `105.svg`. Both ends of a range are "
 "folio labels of the project. `ew` replaces the directory as a whole, so it "
@@ -4143,7 +4219,7 @@ msgstr ""
 "`.elektrawatt-export` erin zegt dat); een oude pagina van een eerdere export "
 "kan er niet in achterblijven, en een map met eigen bestanden wordt geweigerd."
 
-#: src/how-to/headless-workflow.md:109
+#: src/how-to/headless-workflow.md:110
 msgid ""
 "The same export always gives the same bytes. The only date in the output "
 "comes from the project, or from the environment variable `SOURCE_DATE_EPOCH` "
@@ -4155,21 +4231,21 @@ msgstr ""
 "die zet, nooit uit de klok van uw computer; `--threads <n>` verandert de "
 "snelheid en nooit het resultaat."
 
-#: src/how-to/headless-workflow.md:113
+#: src/how-to/headless-workflow.md:114
 msgid "Step 3: export the cable list and the bill of materials"
 msgstr "Stap 3: de kabellijst en de stuklijst exporteren"
 
-#: src/how-to/headless-workflow.md:115
+#: src/how-to/headless-workflow.md:116
 msgid "Two more exports write the rows of a report as CSV:"
 msgstr "Nog twee exports schrijven de rijen van een rapport als CSV:"
 
-#: src/how-to/headless-workflow.md:124
+#: src/how-to/headless-workflow.md:125
 msgid ""
 "Open `out/cables.csv` in a text editor or a spreadsheet. It starts like this:"
 msgstr ""
 "Open `out/cables.csv` in een teksteditor of een spreadsheet. Het begint zo:"
 
-#: src/how-to/headless-workflow.md:134
+#: src/how-to/headless-workflow.md:135
 msgid ""
 "The supply cable `-101W1` comes in from outside the cabinet, so it has no "
 "From end; the motor cable `-103W1` runs from the strip `-X1031` to the "
@@ -4183,7 +4259,7 @@ msgstr ""
 "heeft de lengte die in zijn Eigenschappen is getypt. Onder deze regels "
 "volgen de aders van elke kabel, één regel per ader."
 
-#: src/how-to/headless-workflow.md:138
+#: src/how-to/headless-workflow.md:139
 msgid ""
 "`--mode` of `ew export bom` is `parts` (the default; every component part) "
 "or `assembly`, which replaces the parts a configured product covers by one "
@@ -4202,11 +4278,11 @@ msgstr ""
 "de rijen van het hele project schrijft, zoals `ew export report --kind "
 "cable_overview_diagrams`."
 
-#: src/how-to/headless-workflow.md:144
+#: src/how-to/headless-workflow.md:145
 msgid "Step 4: ask the project questions with SQL"
 msgstr "Stap 4: het project vragen stellen met SQL"
 
-#: src/how-to/headless-workflow.md:146
+#: src/how-to/headless-workflow.md:147
 msgid ""
 "`ew sql` runs one read-only `SELECT` over the project's SQL views, which are "
 "named `api_v1_...`:"
@@ -4214,7 +4290,7 @@ msgstr ""
 "`ew sql` voert één alleen-lezen `SELECT` uit op de SQL-views van het "
 "project, die `api_v1_...` heten:"
 
-#: src/how-to/headless-workflow.md:148
+#: src/how-to/headless-workflow.md:149
 msgid ""
 "```console\n"
 "$ ew sql fixtures/sample/sample.ew \"SELECT count(*) FROM api_v1_terminal\"\n"
@@ -4230,7 +4306,7 @@ msgstr ""
 "1 rows\n"
 "```"
 
-#: src/how-to/headless-workflow.md:155
+#: src/how-to/headless-workflow.md:156
 msgid ""
 "The result is CSV with a header line, on the standard output; the row count "
 "goes to the standard error stream. Ask for the cables and where their "
@@ -4240,7 +4316,7 @@ msgstr ""
 "rijen gaat naar de standaardfoutuitvoer. Vraag naar de kabels en waar hun "
 "lengtes vandaan komen:"
 
-#: src/how-to/headless-workflow.md:158
+#: src/how-to/headless-workflow.md:159
 msgid ""
 "```console\n"
 "$ ew sql fixtures/sample/sample.ew \"SELECT tag, cores, length_source FROM "
@@ -4262,7 +4338,7 @@ msgstr ""
 "3 rows\n"
 "```"
 
-#: src/how-to/headless-workflow.md:167
+#: src/how-to/headless-workflow.md:168
 msgid ""
 "`ew sql schema` prints every view with its columns. Only `SELECT`, `WITH` "
 "and `VALUES` statements run; anything else, such as `ATTACH`, is refused and "
@@ -4272,29 +4348,241 @@ msgstr ""
 "`SELECT`, `WITH` en `VALUES` worden uitgevoerd; al het andere, zoals "
 "`ATTACH`, wordt geweigerd en de afsluitcode is 2."
 
-#: src/how-to/headless-workflow.md:170
+#: src/how-to/headless-workflow.md:171
+msgid "Step 5: route the cabinet and export the wire list"
+msgstr "Stap 5: de kast routeren en de draadlijst exporteren"
+
+#: src/how-to/headless-workflow.md:173
+msgid ""
+"`ew route` on the cabinet's panel layout page runs the window's Route on the "
+"cabinet: it lays every wire through the ducts and gives it its length. "
+"`--dry-run` prints the plan and saves nothing:"
+msgstr ""
+"`ew route` op de paneellayoutpagina van de kast voert Routeren van het "
+"venster uit op de kast: het legt elke draad door de kabelgoten en geeft hem "
+"zijn lengte. `--dry-run` drukt het plan af en slaat niets op:"
+
+#: src/how-to/headless-workflow.md:181
+msgid ""
+"The sample is routed already, so nothing is planned. In a cabinet with wires "
+"to lay, the plan lists them, and without `--dry-run` it is saved. `ew export "
+"wires` writes the wire list with every column:"
+msgstr ""
+"Het voorbeeld is al gerouteerd, dus er wordt niets gepland. In een kast met "
+"draden die nog gelegd moeten worden, noemt het plan ze, en zonder "
+"`--dry-run` wordt het opgeslagen. `ew export wires` schrijft de draadlijst "
+"met elke kolom:"
+
+#: src/how-to/headless-workflow.md:189
+msgid ""
+"Open `out/wires.csv` in a text editor or a spreadsheet. It starts like this:"
+msgstr ""
+"Open `out/wires.csv` in een teksteditor of een spreadsheet. Het begint zo:"
+
+#: src/how-to/headless-workflow.md:202
+msgid ""
+"The cores of the supply cable `-101W1` come first: each is cut with its "
+"cable, so its length says `cable`, and the end that comes in from outside "
+"(`ext. L1`) gets nothing in the cabinet. The wire 101.1 has a length typed "
+"by hand, 101.2 the length Route gave it. Each end has its treatment, its "
+"ferrule part and its strip length, and the marker the fitter puts on it "
+"names the far end. A wire with an end outside the cabinet prints `—` with "
+"Length from `site`. `--format xlsx` writes the same rows as an Excel file. "
+"The window's wire list page prints the fitter's columns only; see [Print the "
+"workshop's lists](workshop-lists.md)."
+msgstr ""
+"De aders van de voedingskabel `-101W1` komen eerst: elke ader wordt met zijn "
+"kabel op lengte gezaagd, dus zijn lengte zegt `cable`, en het einde dat van "
+"buiten binnenkomt (`ext. L1`) krijgt niets in de kast. De draad 101.1 heeft "
+"een met de hand getypte lengte, 101.2 de lengte die Routeren hem gaf. Elk "
+"einde heeft zijn afwerking, het artikel van zijn adereindhuls en zijn "
+"striplengte, en de merker die de monteur erop zet, noemt het andere einde. "
+"Een draad met een einde buiten de kast drukt `—` af, met `site` in Length "
+"from. `--format xlsx` schrijft dezelfde rijen als Excel-bestand. De "
+"draadlijstpagina van het venster drukt alleen de kolommen van de monteur af; "
+"zie [De lijsten voor de werkplaats afdrukken](workshop-lists.md)."
+
+#: src/how-to/headless-workflow.md:209
+msgid "Step 6: export the workshop's lists"
+msgstr "Stap 6: de lijsten voor de werkplaats exporteren"
+
+#: src/how-to/headless-workflow.md:211
+msgid ""
+"The other lists of the workshop are report pages of the project: the "
+"assembly lists from page 912, the cut list from 913, the consumables from "
+"914 and the hole table on 925. `ew export report --block` takes a list by "
+"its first folio and writes its rows:"
+msgstr ""
+"De andere lijsten van de werkplaats zijn rapportpagina's van het project: de "
+"montagelijsten vanaf pagina 912, de zaaglijst vanaf 913, de "
+"verbruiksmaterialen vanaf 914 en de gatentabel op 925. `ew export report "
+"--block` neemt een lijst bij haar eerste folio en schrijft haar rijen:"
+
+#: src/how-to/headless-workflow.md:222
+msgid "Open `out/holes.csv` in a text editor. It starts like this:"
+msgstr "Open `out/holes.csv` in een teksteditor. Het begint zo:"
+
+#: src/how-to/headless-workflow.md:224
+msgid ""
+"```text\n"
+"row,Surface,No.,X mm,Y mm,Hole,What,For\n"
+"heading,\"Mounting plate, page 902, seen from the front, measured from the "
+"bottom-left corner\",,,,,,\n"
+"data,Mounting plate,H1,50,440,\"Ø 3.3, tap M4\",Fixing M4,Duct 1\n"
+"```"
+msgstr ""
+"```text\n"
+"row,Surface,No.,X mm,Y mm,Hole,What,For\n"
+"heading,\"Mounting plate, page 902, seen from the front, measured from the "
+"bottom-left corner\",,,,,,\n"
+"data,Mounting plate,H1,50,440,\"Ø 3.3, tap M4\",Fixing M4,Duct 1\n"
+"```"
+
+#: src/how-to/headless-workflow.md:230
+msgid ""
+"Each surface starts with a heading row that names its page, the side it is "
+"seen from and the corner its holes are measured from; each hole has its "
+"number in the order it is made, its place, how it is made and what it is "
+"for. With `--format pdf` the command writes the list's pages as a PDF "
+"instead, ready to print."
+msgstr ""
+"Elk vlak begint met een kopregel die zijn pagina noemt, de kant waarvan het "
+"wordt bekeken en de hoek waarvandaan zijn gaten worden gemeten; elk gat "
+"heeft zijn nummer in de volgorde waarin het wordt gemaakt, zijn plaats, hoe "
+"het wordt gemaakt en waarvoor het is. Met `--format pdf` schrijft de "
+"opdracht in plaats daarvan de pagina's van de lijst als PDF, klaar om af te "
+"drukken."
+
+#: src/how-to/headless-workflow.md:234
+msgid ""
+"The rework list compares the project with a release. The sample has none "
+"yet, so it is refused:"
+msgstr ""
+"De wijzigingslijst vergelijkt het project met een vrijgave. Het voorbeeld "
+"heeft er nog geen, dus de opdracht wordt geweigerd:"
+
+#: src/how-to/headless-workflow.md:243
+msgid ""
+"After a release, `--since <revision>` names the release to compare with, and "
+"`--archive <file>` an archive file."
+msgstr ""
+"Na een vrijgave noemt `--since <revision>` de vrijgave om mee te "
+"vergelijken, en `--archive <file>` een archiefbestand."
+
+#: src/how-to/headless-workflow.md:245
+msgid "Step 7: write the label files and the drawings for drilling"
+msgstr "Stap 7: de labelbestanden en de boortekeningen schrijven"
+
+#: src/how-to/headless-workflow.md:247
+msgid ""
+"`ew export labels` writes one file per label set and marker part into a "
+"folder, which it makes when it is missing:"
+msgstr ""
+"`ew export labels` schrijft één bestand per labelset en merkerartikel in een "
+"map, die het maakt als ze ontbreekt:"
+
+#: src/how-to/headless-workflow.md:253
+msgid ""
+"It prints one line per file with its count of labels, such as `SAMPLE-E Wire "
+"markers EW-GEN-MRK-1.xlsx`, and then the folder and the number of files. The "
+"files are in the project's label file form, Excel on the sample, with the "
+"columns Text 1, Text 2, Text 3, Copies and For; `--format csv` writes CSV "
+"files, and `--since <revision>` only the labels that changed since a release."
+msgstr ""
+"Het drukt per bestand een regel af met het aantal labels, zoals `SAMPLE-E "
+"Wire markers EW-GEN-MRK-1.xlsx`, en daarna de map en het aantal bestanden. "
+"De bestanden hebben de vorm van het labelbestand van het project, Excel bij "
+"het voorbeeld, met de kolommen Text 1, Text 2, Text 3, Copies en For; "
+"`--format csv` schrijft CSV-bestanden, en `--since <revision>` alleen de "
+"labels die sinds een vrijgave zijn gewijzigd."
+
+#: src/how-to/headless-workflow.md:258
+msgid ""
+"`ew export drilling` writes, for each surface with holes, a template to "
+"print at full size and a DXF for a machine:"
+msgstr ""
+"`ew export drilling` schrijft voor elk vlak met gaten een boormal om op ware "
+"grootte af te drukken en een DXF voor een machine:"
+
+#: src/how-to/headless-workflow.md:267
+msgid ""
+"The door's and the bottom's files follow, and the last line counts the "
+"files. `--surface Door` takes one surface, `--template a3` prints the "
+"templates on A3, and `--no-dxf` or `--no-template` leaves one kind out."
+msgstr ""
+"De bestanden van de deur en de onderkant volgen, en de laatste regel telt de "
+"bestanden. `--surface Door` neemt één vlak, `--template a3` drukt de "
+"boormallen af op A3, en `--no-dxf` of `--no-template` laat één soort weg."
+
+#: src/how-to/headless-workflow.md:270
+msgid "Step 8: write the package"
+msgstr "Stap 8: het pakket schrijven"
+
+#: src/how-to/headless-workflow.md:272
+msgid ""
+"`ew export package` writes the package for the workshop: one ZIP file with "
+"the drawings, the lists, the label files and the drawings for drilling."
+msgstr ""
+"`ew export package` schrijft het pakket voor de werkplaats: één ZIP-bestand "
+"met de tekeningen, de lijsten, de labelbestanden en de boortekeningen."
+
+#: src/how-to/headless-workflow.md:281
+msgid ""
+"It prints each finding of the release check (the sample has none) and then a "
+"line that says it wrote a draft package, with its number of files: the "
+"sample's revision V1.0 is open, so every page of its drawings says \"Draft "
+"V1.0: not released\". The ZIP holds `Contents.txt`, the drawings as one PDF, "
+"the folders `Lists`, `Labels` and `Drilling`, and `manifest.json` with a "
+"SHA-256 of each file. Its `Contents.txt` names the wires without a length, "
+"on the sample those with an end made on site; a wire without a length stops "
+"nothing. `--leave-out labels` leaves a member out (the members are `pages`, "
+"`wire_list`, `assembly_list`, `cut_list`, `consumables`, `hole_table`, "
+"`labels` and `drilling`), and `--omit-personal-data` leaves out the name and "
+"the address of each party marked as personal data. A package of a released "
+"revision is refused, with exit code 2, while an error of the release check "
+"stands."
+msgstr ""
+"Het drukt elke bevinding van de vrijgavecontrole af (het voorbeeld heeft er "
+"geen) en daarna een regel die zegt dat het een conceptpakket heeft "
+"geschreven, met het aantal bestanden: de revisie V1.0 van het voorbeeld is "
+"open, dus op elke pagina van zijn tekeningen staat \"Draft V1.0: not "
+"released\". Het ZIP-bestand bevat `Contents.txt`, de tekeningen als één PDF, "
+"de mappen `Lists`, `Labels` en `Drilling`, en `manifest.json` met een "
+"SHA-256 van elk bestand. Zijn `Contents.txt` noemt de draden zonder lengte, "
+"bij het voorbeeld die met een einde dat ter plaatse wordt gemaakt; een draad "
+"zonder lengte houdt niets tegen. `--leave-out labels` laat een deel weg (de "
+"delen zijn `pages`, `wire_list`, `assembly_list`, `cut_list`, `consumables`, "
+"`hole_table`, `labels` en `drilling`), en `--omit-personal-data` laat de "
+"naam en het adres weg van elke partij die als persoonsgegevens is "
+"gemarkeerd. Een pakket van een vrijgegeven revisie wordt geweigerd, met "
+"afsluitcode 2, zolang er een fout van de vrijgavecontrole staat."
+
+#: src/how-to/headless-workflow.md:290
 msgid "What you have done"
 msgstr "Wat u hebt gedaan"
 
-#: src/how-to/headless-workflow.md:172
+#: src/how-to/headless-workflow.md:292
 msgid ""
 "You checked a project and read the exit code, wrote its pages as PDF and "
-"SVG, exported a cable list and a bill of materials, and queried the project "
-"in SQL, all from the terminal. The same commands run in a script or a CI "
-"job, because they read the project without locking it and never need a "
-"display."
+"SVG, exported a cable list and a bill of materials, queried the project in "
+"SQL, and wrote the wire list, the workshop's lists, the label files, the "
+"drawings for drilling and the package, all from the terminal. The same "
+"commands run in a script or a CI job, because they read the project without "
+"locking it and never need a display."
 msgstr ""
-"U hebt een project gecontroleerd en de afsluitcode gelezen, de pagina's als "
-"PDF en SVG geschreven, een kabellijst en een stuklijst geëxporteerd en het "
-"project in SQL bevraagd, alles vanuit de terminal. Dezelfde opdrachten "
-"draaien in een script of een CI-taak, omdat ze het project lezen zonder het "
-"te vergrendelen en nooit een beeldscherm nodig hebben."
+"U hebt een project gecontroleerd en de afsluitcode gelezen, zijn pagina's "
+"als PDF en SVG geschreven, een kabellijst en een stuklijst geëxporteerd, het "
+"project in SQL bevraagd, en de draadlijst, de lijsten voor de werkplaats, de "
+"labelbestanden, de boortekeningen en het pakket geschreven, alles vanuit de "
+"terminal. Dezelfde opdrachten werken in een script of een CI-taak, omdat ze "
+"het project lezen zonder het te vergrendelen en nooit een beeldscherm nodig "
+"hebben."
 
-#: src/how-to/headless-workflow.md:176
+#: src/how-to/headless-workflow.md:297
 msgid "Where to go next"
 msgstr "Waar u verder kunt"
 
-#: src/how-to/headless-workflow.md:178
+#: src/how-to/headless-workflow.md:299
 msgid ""
 "The [command reference](../reference/commands/index.md) lists the commands "
 "that change a project, and the [rule reference](../reference/rules/index.md) "
@@ -4304,7 +4592,7 @@ msgstr ""
 "een project veranderen, en de [regelnaslag](../reference/rules/index.md) de "
 "regels die `ew check` uitvoert."
 
-#: src/how-to/headless-workflow.md:180
+#: src/how-to/headless-workflow.md:301
 msgid ""
 "More [how-to guides](index.md) for single tasks, such as checking a project "
 "in a CI job, will follow this one."
@@ -4312,7 +4600,7 @@ msgstr ""
 "Meer [instructies](index.md) voor losse taken, zoals een project controleren "
 "in een CI-taak, volgen na deze."
 
-#: src/how-to/headless-workflow.md:181
+#: src/how-to/headless-workflow.md:302
 msgid ""
 "The [explanation](../explanation/index.md) section links the design of the "
 "model and of the check engine."
@@ -4725,8 +5013,1091 @@ msgstr ""
 #: src/how-to/panel-layout.md:78
 msgid ""
 "The tools are described one by one in the [tool "
-"reference](../reference/window/tools.md): Place device, Rail and Duct."
+"reference](../reference/window/tools.md): Place device, Rail and Duct. The "
+"door, the other surfaces, their holes and the cable glands are in [Place "
+"devices in the door, and make holes and cable glands](cabinet-surfaces.md); "
+"the wires' ways and lengths in [Route the cabinet's wires and give them "
+"their lengths](route-wires.md)."
 msgstr ""
+"De gereedschappen worden een voor een beschreven in de "
+"[gereedschapsreferentie](../reference/window/tools.md): Apparaat plaatsen, "
+"Rail en Kabelgoot. De deur, de andere vlakken, hun gaten en de kabelwartels "
+"staan in [Apparaten in de deur plaatsen, en gaten en kabelwartels "
+"maken](cabinet-surfaces.md); de lopen en de lengtes van de draden in [De "
+"draden van de kast routeren en hun lengte geven](route-wires.md)."
+
+#: src/how-to/cabinet-surfaces.md:3
+msgid ""
+"A cabinet has more surfaces than its mounting plate: the door, the two "
+"sides, the top and the bottom. Each one is a panel layout page of its own, "
+"drawn as you see it from the side you work it from: the door from outside, "
+"the bottom from below. What you place on a surface brings its holes and "
+"cut-outs, and the hole table lists them for the workshop."
+msgstr ""
+"Een kast heeft meer vlakken dan zijn montageplaat: de deur, de twee "
+"zijwanden, de bovenkant en de onderkant. Elk vlak is een eigen "
+"paneellayoutpagina, getekend zoals u het ziet van de kant waarvan u het "
+"bewerkt: de deur van buiten, de onderkant van onderen. Wat u op een vlak "
+"plaatst, brengt zijn gaten en uitsparingen mee, en de gatentabel noemt ze "
+"voor de werkplaats."
+
+#: src/how-to/cabinet-surfaces.md:7
+msgid ""
+"You need a panel layout page with its enclosure and its devices, as [Draw a "
+"panel layout](panel-layout.md) makes it. The sample project has its mounting "
+"plate on page 902, its door on page 904 and its bottom on page 905."
+msgstr ""
+"U hebt een paneellayoutpagina met haar kast en haar apparaten nodig, zoals "
+"[Een paneellayout tekenen](panel-layout.md) die maakt. Het voorbeeldproject "
+"heeft zijn montageplaat op pagina 902, zijn deur op pagina 904 en zijn "
+"onderkant op pagina 905."
+
+#: src/how-to/cabinet-surfaces.md:10
+msgid "Open the door's page"
+msgstr "De pagina van de deur openen"
+
+#: src/how-to/cabinet-surfaces.md:12
+msgid ""
+"On the plate's page, the HUD says when devices wait for the door, such as "
+"\"2 devices go in a cut-out\", with the button **Door**. A pushbutton or a "
+"lamp dropped on the plate is refused with \"-102S1 goes in a cut-out of a "
+"door or a wall: place it on the door's page.\", and the toast offers **Open "
+"the door**."
+msgstr ""
+"Op de pagina van de plaat zegt de HUD wanneer apparaten op de deur wachten, "
+"zoals \"2 apparaten komen in een uitsparing\", met de knop **Deur**. Een "
+"drukknop of een lamp die u op de plaat laat vallen, wordt geweigerd met "
+"\"-102S1 komt in een uitsparing van een deur of een wand: plaats het op de "
+"pagina van de deur.\", en de toast biedt **Deur openen** aan."
+
+#: src/how-to/cabinet-surfaces.md:15
+msgid ""
+"Choose **Door** or **Open the door**. The door's page opens; a door on no "
+"page yet gets one, after the plate's page and with its legend page, in one "
+"step of Undo. For any surface, choose **Surface…** in the menu of "
+"Enclosure's arrow on the Draw tab, or the surface in the page's right-click "
+"menu (**Surface: Door**). Surface… asks \"Which surface of -UC1?\" and lists "
+"each surface with its size and its page, such as \"Door · 600 × 800 mm · "
+"hinged left · page 904\"; its button reads **Go to page 904**, or **Draw on "
+"a new page** for a surface on no page yet."
+msgstr ""
+"Kies **Deur** of **Deur openen**. De pagina van de deur opent; een deur die "
+"nog op geen pagina staat, krijgt er een, na de pagina van de plaat en met "
+"haar legendapagina, als één stap voor Ongedaan maken. Voor elk vlak kiest u "
+"**Vlak…** in het menu van het pijltje van Kast op het tabblad Tekenen, of "
+"het vlak in het rechtermuisknopmenu van de pagina (**Vlak: Deur**). Vlak… "
+"vraagt \"Welk vlak van -UC1?\" en noemt elk vlak met zijn maat en zijn "
+"pagina, zoals \"Deur · 600 × 800 mm · … · pagina 904\"; zijn knop luidt "
+"**Naar pagina 904**, of **Tekenen op een nieuwe pagina** voor een vlak dat "
+"nog op geen pagina staat."
+
+#: src/how-to/cabinet-surfaces.md:22
+msgid "Place devices in the door"
+msgstr "Apparaten in de deur plaatsen"
+
+#: src/how-to/cabinet-surfaces.md:24
+msgid ""
+"Show **View ▸ Panels ▸ Navigators ▸ Unplaced devices** and drag a pushbutton "
+"or a lamp onto the door. The door's page shows the plate's devices faintly "
+"behind the door, on the screen only, so that you see what stands behind. The "
+"cut-out shows under the device, and it lines up with the centres and edges "
+"of the others. `R` turns it by a quarter turn."
+msgstr ""
+"Toon **Beeld ▸ Panelen ▸ Navigators ▸ Ongeplaatste apparaten** en sleep een "
+"drukknop of een lamp op de deur. De pagina van de deur toont de apparaten "
+"van de plaat vaag achter de deur, alleen op het scherm, zodat u ziet wat "
+"erachter staat. De uitsparing verschijnt onder het apparaat, en het lijnt "
+"uit op de middens en de randen van de andere. `R` draait het een kwartslag."
+
+#: src/how-to/cabinet-surfaces.md:28
+msgid ""
+"A device with one part in the door and one on the plate, such as a main "
+"switch with its door coupling handle, is listed once per part to place. Put "
+"the handle on the door in front of its switch."
+msgstr ""
+"Een apparaat met één artikel in de deur en één op de plaat, zoals een "
+"hoofdschakelaar met zijn deurkoppelingsgreep, staat eenmaal per te plaatsen "
+"artikel in de lijst. Zet de greep op de deur, voor zijn schakelaar."
+
+#: src/how-to/cabinet-surfaces.md:31
+msgid "Holes and cut-outs"
+msgstr "Gaten en uitsparingen"
+
+#: src/how-to/cabinet-surfaces.md:33
+msgid ""
+"A part brings its holes: a pushbutton its cut-out, a rail and a duct their "
+"fixing holes. Select the device, the rail or the duct: Properties shows the "
+"section **Holes**, one row per hole with its place from the surface's corner "
+"(\"270, 480 mm\") and, in its chip, its number and how it is made (\"H3 · Ø "
+"22.3\")."
+msgstr ""
+"Een artikel brengt zijn gaten mee: een drukknop zijn uitsparing, een rail en "
+"een kabelgoot hun bevestigingsgaten. Selecteer het apparaat, de rail of de "
+"kabelgoot: Eigenschappen toont de sectie **Gaten**, één rij per gat met zijn "
+"plaats vanaf de hoek van het vlak (\"270, 480 mm\") en, in zijn chip, zijn "
+"nummer en hoe het wordt gemaakt (\"H3 · Ø 22.3\")."
+
+#: src/how-to/cabinet-surfaces.md:36
+msgid ""
+"To move one of these holes, type another place into its row: the chip then "
+"says \"moved\", and **Reset** puts the hole back. Tick **Leave out** below a "
+"hole you do not make; it is then drawn and listed nowhere."
+msgstr ""
+"Om een van deze gaten te verplaatsen, typt u een andere plaats in zijn rij: "
+"de chip zegt dan \"verplaatst\", en **Herstellen** zet het gat terug. Vink "
+"**Weglaten** aan onder een gat dat u niet maakt; het wordt dan nergens "
+"getekend of vermeld."
+
+#: src/how-to/cabinet-surfaces.md:38
+msgid ""
+"To add a hole of your own, right-click the surface where it goes and choose "
+"**Add hole here…**. The form \"Add a hole to -UC1 door\" asks for the "
+"**Kind** (Hole, Fixing, Cut-out, Gland or Rectangle), the **Size**, **X "
+"(mm)** and **Y (mm)** from the corner the surface is measured from (the "
+"point you clicked) and what it is **For**, such as \"Earth stud\". Choose "
+"**Add**. A size that does not read is refused in words: \"Give the hole's "
+"size: a diameter for a hole, M3 to M8 for a fixing, 16, 22 or 30 for a "
+"cut-out, M12 to M63 for a gland, width × height for a rectangle.\""
+msgstr ""
+"Om zelf een gat toe te voegen, klikt u met de rechtermuisknop op het vlak "
+"waar het komt en kiest u **Hier een gat toevoegen…**. Het formulier \"Een "
+"gat toevoegen aan -UC1 deur\" vraagt de **Soort** (Gat, Bevestiging, "
+"Uitsparing, Wartel of Rechthoek), de **Grootte**, **X (mm)** en **Y (mm)** "
+"vanaf de hoek waarvandaan het vlak wordt gemeten (het punt waar u klikte) en "
+"waar het **Voor** is, zoals \"Aardbout\". Kies **Toevoegen**. Een grootte "
+"die niet te lezen is, wordt in woorden geweigerd: \"Geef de grootte van het "
+"gat: een diameter voor een gat, M3 tot M8 voor een bevestiging, 16, 22 of 30 "
+"voor een uitsparing, M12 tot M63 voor een wartel, breedte × hoogte voor een "
+"rechthoek.\""
+
+#: src/how-to/cabinet-surfaces.md:43
+msgid ""
+"A hole of your own is dragged with Select, its rows are Kind, Size, X, Y and "
+"For in Properties, and `Delete` removes it."
+msgstr ""
+"Een eigen gat sleept u met Selecteren, zijn rijen in Eigenschappen zijn "
+"Soort, Grootte, X, Y en Voor, en `Delete` verwijdert het."
+
+#: src/how-to/cabinet-surfaces.md:45
+msgid ""
+"Choose **Check ▸ Check project**. **Holes too close** (EW-LAY-012) names "
+"both holes and how far apart they are, such as \"… is 3 mm from … on …: keep "
+"at least 5 mm between holes\", a hole inside a door's edge margin (\"… lies "
+"12 mm from the edge of …, inside its 30 mm margin and the 5 mm web; move it "
+"inward\"), and a hole off the sheet. Move one of the holes. **Holes not "
+"known** (EW-LAY-017) names a part in a cut-out that has no holes: **Edit "
+"part…** opens it in Parts, where you give it its holes under **In the "
+"cabinet** ([Make your own parts](own-parts.md))."
+msgstr ""
+"Kies **Controle ▸ Project controleren**. **Gaten te dicht bij elkaar** "
+"(EW-LAY-012) noemt beide gaten en hoe ver ze uit elkaar liggen, zoals \"… "
+"ligt 3 mm van … op …: houd minstens 5 mm tussen gaten\", een gat in de "
+"randstrook van een deur (\"… ligt 12 mm van de rand van …, binnen de "
+"randstrook van 30 mm en de ruimte van 5 mm; schuif het naar binnen\"), en "
+"een gat buiten de plaat. Verschuif een van de gaten. **Gaten niet bekend** "
+"(EW-LAY-017) noemt een artikel in een uitsparing dat geen gaten heeft: "
+"**Artikel bewerken…** opent het in Artikelen, waar u het zijn gaten geeft "
+"onder **In de kast** ([Eigen artikelen maken](own-parts.md))."
+
+#: src/how-to/cabinet-surfaces.md:51
+msgid "Cable glands"
+msgstr "Kabelwartels"
+
+#: src/how-to/cabinet-surfaces.md:53
+msgid ""
+"A cable that leaves the cabinet, such as the supply cable or a motor cable, "
+"brings its cable gland, chosen from the workshop stock by the cable's outer "
+"diameter. While glands wait, the plate's HUD says \"2 glands to place\" with "
+"the button **Bottom**, which goes to the bottom's page."
+msgstr ""
+"Een kabel die de kast verlaat, zoals de voedingskabel of een motorkabel, "
+"brengt zijn kabelwartel mee, gekozen uit de werkplaatsvoorraad op de "
+"buitendiameter van de kabel. Zolang er wartels wachten, zegt de HUD van de "
+"plaat \"2 wartels te plaatsen\" met de knop **Onderkant**, die naar de "
+"pagina van de onderkant gaat."
+
+#: src/how-to/cabinet-surfaces.md:56
+msgid ""
+"On the bottom's page the HUD offers **Place cable glands**, which places "
+"every gland that waits in a row. Or drag them from Unplaced devices, where "
+"they are listed under **Glands** by their cable's tag (\"gland M25\"): "
+"several dropped together stand in a row, each as far from the next as their "
+"nuts need, and the outline of each nut follows the pointer until you let go. "
+"A gland goes in a side, the top or the bottom; the door and the plate refuse "
+"it."
+msgstr ""
+"Op de pagina van de onderkant biedt de HUD **Kabelwartels plaatsen** aan, "
+"dat elke wachtende wartel in een rij plaatst. Of sleep ze uit Ongeplaatste "
+"apparaten, waar ze onder **Wartels** staan bij het kenmerk van hun kabel "
+"(\"wartel M25\"): meerdere die u samen laat vallen, staan in een rij, elk zo "
+"ver van de volgende als hun moeren nodig hebben, en de omtrek van elke moer "
+"volgt de aanwijzer tot u loslaat. Een wartel gaat in een zijwand, de "
+"bovenkant of de onderkant; de deur en de plaat weigeren hem."
+
+#: src/how-to/cabinet-surfaces.md:61
+msgid ""
+"Select the cable: in Properties, under its part, **Gland** names the gland "
+"part with the chip \"proposed for 12.5 mm\", and **Gland hole** names its "
+"hole, \"H2\" with \"on page 905\", or says \"not placed\". Type another "
+"gland part of the project into Gland to choose it; an empty Gland takes the "
+"proposal back."
+msgstr ""
+"Selecteer de kabel: in Eigenschappen, onder zijn artikel, noemt **Wartel** "
+"het wartelartikel met de chip \"voorgesteld voor 12.5 mm\", en **Wartelgat** "
+"noemt zijn gat, \"H2\" met \"op pagina 905\", of zegt \"niet geplaatst\". "
+"Typ een ander wartelartikel van het project in Wartel om het te kiezen; een "
+"lege Wartel neemt het voorstel terug."
+
+#: src/how-to/cabinet-surfaces.md:64
+msgid ""
+"Check project names a gland that waits (**Cable gland**, EW-LAY-018, an "
+"error when you release) with **Place on the bottom**. A cable whose gland "
+"changes keeps the hole you made, and the finding offers **Take** with the "
+"new size, such as **Take M32**. A gland hole whose cable is gone offers "
+"**Remove the hole**; to keep it as a spare entry, right-click the hole and "
+"choose **Keep it as a hole**."
+msgstr ""
+"Project controleren noemt een wachtende wartel (**Kabelwartel**, EW-LAY-018, "
+"een fout bij de vrijgave) met **Op de onderkant plaatsen**. Een kabel "
+"waarvan de wartel verandert, houdt het gat dat u maakte, en de bevinding "
+"biedt de nieuwe maat aan, zoals **M32 nemen**. Een wartelgat waarvan de "
+"kabel weg is, biedt **Het gat verwijderen** aan; om het als reserve-invoer "
+"te houden, klikt u met de rechtermuisknop op het gat en kiest u **Als gat "
+"houden**."
+
+#: src/how-to/cabinet-surfaces.md:69
+msgid "The hole table"
+msgstr "De gatentabel"
+
+#: src/how-to/cabinet-surfaces.md:71
+msgid ""
+"Choose **Output ▸ Workshop ▸ Hole tables**. The hole table page lists every "
+"hole and cut-out of each surface, surface by surface, numbered in the order "
+"they are made, with X and Y from the corner its heading names (such as "
+"\"Door, page 904, seen from outside, measured from the bottom-left "
+"corner\"), how each is made (\"Ø 4.2, tap M5\", \"Ø 22.3\") and what it is "
+"for. A project without a hole table opens **Report block…** on it."
+msgstr ""
+"Kies **Uitvoer ▸ Werkplaats ▸ Gatentabellen**. De pagina van de gatentabel "
+"noemt elk gat en elke uitsparing van elk vlak, vlak voor vlak, genummerd in "
+"de volgorde waarin ze worden gemaakt, met X en Y vanaf de hoek die de kop "
+"noemt (zoals \"Door, page 904, seen from outside, measured from the "
+"bottom-left corner\" in het Engelse voorbeeldproject), hoe elk wordt gemaakt "
+"(\"Ø 4.2, tap M5\", \"Ø 22.3\") en waarvoor het is. Een project zonder "
+"gatentabel opent **Rapportblok…** op de gatentabel."
+
+#: src/how-to/cabinet-surfaces.md:76
+msgid ""
+"The drawings for drilling, the template to print at full size and the DXF, "
+"are in [Export the labels, the drilling drawings and the "
+"package](workshop-package.md). The rules are in the [rule "
+"reference](../reference/rules/ew-layout.md)."
+msgstr ""
+"De boortekeningen, de boormal om op ware grootte af te drukken en de DXF, "
+"staan in [De labels, de boortekeningen en het pakket "
+"exporteren](workshop-package.md). De regels staan in de "
+"[regelreferentie](../reference/rules/ew-layout.md)."
+
+#: src/how-to/route-wires.md:3
+msgid ""
+"Route lays each wire of the cabinet through the ducts of the mounting plate "
+"and gives it a length: its way, a reserve at each end and, into the door, a "
+"loop across the hinge, rounded up to what the shop cuts to. The wire list, "
+"the cut list and the consumables read that length."
+msgstr ""
+"Routeren legt elke draad van de kast door de kabelgoten van de montageplaat "
+"en geeft hem een lengte: zijn loop, een reserve aan elk eind en, naar de "
+"deur, een lus over het scharnier, naar boven afgerond op wat de werkplaats "
+"afzaagt. De draadlijst, de zaaglijst en de verbruiksmaterialen lezen die "
+"lengte."
+
+#: src/how-to/route-wires.md:7
+msgid ""
+"You need the cabinet's panel layout page with its devices placed and its "
+"ducts drawn ([Draw a panel layout](panel-layout.md)), and the devices of the "
+"door in the door ([Place devices in the door](cabinet-surfaces.md)). The "
+"sample project's plate is page 902."
+msgstr ""
+"U hebt de paneellayoutpagina van de kast nodig, met haar apparaten geplaatst "
+"en haar kabelgoten getekend ([Een paneellayout tekenen](panel-layout.md)), "
+"en de apparaten van de deur in de deur ([Apparaten in de deur "
+"plaatsen](cabinet-surfaces.md)). De plaat van het voorbeeldproject is pagina "
+"902."
+
+#: src/how-to/route-wires.md:11
+msgid "Route the cabinet"
+msgstr "De kast routeren"
+
+#: src/how-to/route-wires.md:13
+msgid ""
+"With every device placed, the plate's HUD names the next step: \"Next: Route "
+"gives each wire its way through the ducts and its length\", with the button "
+"**Route**. Route is also **Draw ▸ Connect ▸ Route**: on the plate's page it "
+"routes the cabinet; on a schematic page the same button routes the drawing. "
+"With nothing selected it plans the wires that have no way and those whose "
+"way no longer holds; with devices, ducts or wires selected, the wires at "
+"them."
+msgstr ""
+"Als elk apparaat geplaatst is, noemt de HUD van de plaat de volgende stap: "
+"\"Volgende stap: Routeren geeft elke draad zijn loop door de kabelgoot en "
+"zijn lengte\", met de knop **Routeren**. Routeren staat ook onder **Tekenen "
+"▸ Verbinden ▸ Routeren**: op de pagina van de plaat routeert het de kast; op "
+"een schemapagina routeert dezelfde knop de tekening. Zonder selectie plant "
+"het de draden zonder loop en die waarvan de loop niet meer klopt; met "
+"apparaten, kabelgoten of draden geselecteerd, de draden daarbij."
+
+#: src/how-to/route-wires.md:18
+msgid ""
+"Nothing changes yet. The page shows the whole cabinet with each planned way, "
+"the wires to the door as one arrow to the hinge side (\"… wires to the "
+"door\") and on each duct a chip with its fill. The card says, under its "
+"lead, such as \"Route: cabinet +CAB. 41 wires get a way through the ducts; 3 "
+"are made on site. Nothing has changed yet.\":"
+msgstr ""
+"Er verandert nog niets. De pagina toont de hele kast met elke geplande loop, "
+"de draden naar de deur als één pijl naar de kant van het scharnier (\"… "
+"draden naar de deur\") en op elke kabelgoot een chip met haar vulgraad. De "
+"kaart zegt, onder haar aanhef, zoals \"Routeren: kast +CAB. 41 draden "
+"krijgen een loop door de kabelgoot; 3 worden ter plaatse gemaakt. Er is nog "
+"niets veranderd.\":"
+
+#: src/how-to/route-wires.md:21
+msgid ""
+"**Ducts**: each duct with its wires, its fullest piece and the fill limit "
+"(\"limit 60 %\");"
+msgstr ""
+"**Per kabelgoot**: elke kabelgoot met haar draden, haar volste stuk en de "
+"maximale vulgraad (\"maximale vulgraad 60 %\");"
+
+#: src/how-to/route-wires.md:22
+msgid "**Lengths**: each wire with its ends and its length;"
+msgstr "**Lengtes**: elke draad met zijn einden en zijn lengte;"
+
+#: src/how-to/route-wires.md:23
+msgid ""
+"**Typed by hand**: each wire that keeps the length typed for it, such as "
+"101.1 with \"keeps 400 mm; Route gives …\";"
+msgstr ""
+"**Met de hand getypt**: elke draad die de voor hem getypte lengte houdt, "
+"zoals 101.1 met \"houdt 400 mm; Routeren geeft …\";"
+
+#: src/how-to/route-wires.md:25
+msgid ""
+"**Made on site**: each wire with an end outside the cabinet, such as \"its "
+"end … is in +FLD\";"
+msgstr ""
+"**Ter plaatse gemaakt**: elke draad met een einde buiten de kast, zoals "
+"\"het eind … zit in +FLD\";"
+
+#: src/how-to/route-wires.md:26
+msgid ""
+"**Without a way**: each wire Route cannot lay, with what to do, such as "
+"\"-102S1 is not placed: place it, then route again\" or \"… meets no duct: "
+"draw a duct above or below …, or type the length\";"
+msgstr ""
+"**Zonder loop**: elke draad die Routeren niet kan leggen, met wat u doet, "
+"zoals \"-102S1 is niet geplaatst: plaats het en routeer opnieuw\" of \"… "
+"komt bij geen kabelgoot: teken een kabelgoot boven of onder …, of typ de "
+"lengte\";"
+
+#: src/how-to/route-wires.md:28
+msgid ""
+"the tick **Route every wire again**, which plans the wires whose ways hold "
+"as well."
+msgstr ""
+"het vinkje **Alle draden opnieuw routeren**, dat ook de draden plant waarvan "
+"de lopen kloppen."
+
+#: src/how-to/route-wires.md:30
+msgid "Point at a row, or select it, to see that wire's way alone."
+msgstr ""
+"Wijs een rij aan, of selecteer haar, om alleen de loop van die draad te zien."
+
+#: src/how-to/route-wires.md:31
+msgid ""
+"Choose **Apply**: every way is stored in one step of Undo, and the toast "
+"says \"Routed 41 wires of +CAB.\". **Cancel** leaves the project as it was. "
+"On a cabinet whose every wire has its way, Route says \"Every wire of +CAB "
+"has its way.\" and its card plans them all again."
+msgstr ""
+"Kies **Toepassen**: elke loop wordt opgeslagen als één stap voor Ongedaan "
+"maken, en de toast zegt \"41 draden van +CAB gerouteerd.\". **Annuleren** "
+"laat het project zoals het was. Bij een kast waarvan elke draad zijn loop "
+"heeft, zegt Routeren \"Elke draad van +CAB heeft zijn loop.\" en plant zijn "
+"kaart ze allemaal opnieuw."
+
+#: src/how-to/route-wires.md:35
+msgid "See a wire's way and its length"
+msgstr "De loop en de lengte van een draad zien"
+
+#: src/how-to/route-wires.md:37
+msgid ""
+"Show **View ▸ Panels ▸ Navigators ▸ Connections** and choose its **Table** "
+"button. The Length column holds each wire's length, and Length from says "
+"where it comes from: routed, typed, cable (a cable's core, cut with its "
+"cable), stale, missing, or site."
+msgstr ""
+"Toon **Beeld ▸ Panelen ▸ Navigators ▸ Verbindingen** en kies de knop "
+"**Tabel**. De kolom Lengte bevat de lengte van elke draad, en Lengte uit "
+"zegt waar die vandaan komt: gerouteerd, getypt, kabel (een ader van een "
+"kabel, met zijn kabel gezaagd), verouderd, ontbreekt, of ter plaatse."
+
+#: src/how-to/route-wires.md:40
+msgid ""
+"Select a wire's row: the plate's page shows its way, a line from pin to pin "
+"with a chip of its number and length, and for a wire into the door, such as "
+"104.3, \"to -104E1 in the door\"."
+msgstr ""
+"Selecteer de rij van een draad: de pagina van de plaat toont zijn loop, een "
+"lijn van aansluitpunt tot aansluitpunt met een chip met zijn nummer en zijn "
+"lengte, en voor een draad naar de deur, zoals 104.3, \"naar -104E1 in de "
+"deur\"."
+
+#: src/how-to/route-wires.md:42
+msgid ""
+"The wire's Properties show **Length** with the words of where it comes from, "
+"such as \"Routed: … of way, 50 mm reserve at each end and a 300 mm door "
+"loop, rounded up to …\", and **Way**: the ducts it runs along, \"door\" "
+"where it crosses into the door, or \"direct\" over the fronts, with **Show "
+"on 902**."
+msgstr ""
+"De eigenschappen van de draad tonen **Lengte** met de woorden van waar die "
+"vandaan komt, zoals \"Gerouteerd: … draadloop, 50 mm reserve aan elk eind en "
+"een deurlus van 300 mm, naar boven afgerond op …\", en **Loop**: de "
+"kabelgoten waarlangs hij loopt, \"deur\" waar hij naar de deur oversteekt, "
+"of \"direct\" over de fronten, met **Toon op 902**."
+
+#: src/how-to/route-wires.md:46
+msgid "The duct fill"
+msgstr "De vulgraad van de kabelgoot"
+
+#: src/how-to/route-wires.md:48
+msgid ""
+"Select a duct: its Properties show its **Fill**, such as \"8 % where fullest "
+"· the limit is 60 %\", with \"with default diameters (unverified)\" where "
+"the wires' parts give no outer diameter, and its **Wires** with **Select "
+"them**."
+msgstr ""
+"Selecteer een kabelgoot: haar eigenschappen tonen haar **Vulling**, zoals "
+"\"vulgraad 8 % waar ze het volst is · maximale vulgraad 60 %\", met \"met "
+"standaarddiameters (niet geverifieerd)\" waar de artikelen van de draden "
+"geen buitendiameter geven, en haar draden met **Selecteer ze**."
+
+#: src/how-to/route-wires.md:51
+msgid ""
+"Route lays a wire another way where a duct is full, if there is one. A duct "
+"over the limit is reported by **Check ▸ Check project** (EW-LAY-008), such "
+"as \"Duct 1 (40×60) is 72 % full where it is fullest; the limit is 60 %: "
+"widen it or add a duct\"."
+msgstr ""
+"Routeren legt een draad anders waar een kabelgoot vol is, als er een andere "
+"loop is. Een kabelgoot boven het maximum meldt **Controle ▸ Project "
+"controleren** (EW-LAY-008), zoals \"Kabelgoot 1 (40×60) heeft een vulgraad "
+"van 72 % waar ze het volst is; de maximale vulgraad is 60 %: neem een "
+"bredere of voeg een kabelgoot toe\"."
+
+#: src/how-to/route-wires.md:55
+msgid "The reserve, the door loop and the fill limit"
+msgstr "De reserve, de deurlus en de maximale vulgraad"
+
+#: src/how-to/route-wires.md:57
+msgid ""
+"Choose **Output ▸ Workshop ▸ Workshop settings**. Among the Workshop rows "
+"are **Reserve per end** (50 mm when empty), **Door loop** (300 mm), **Duct "
+"fill limit** (60 %) and **Cut to** (5 mm), each one step of Undo. A change "
+"takes effect at once: every routed length and every fill follows it, and you "
+"need not route again."
+msgstr ""
+"Kies **Uitvoer ▸ Werkplaats ▸ Werkplaatsinstellingen**. Onder de rijen van "
+"Werkplaats staan **Reserve per eind** (50 mm als het leeg is), **Deurlus** "
+"(300 mm), **Maximale vulgraad kabelgoot** (60 %) en **Afzagen op** (5 mm), "
+"elk één stap voor Ongedaan maken. Een wijziging werkt meteen: elke "
+"gerouteerde lengte en elke vulgraad volgt haar, en u hoeft niet opnieuw te "
+"routeren."
+
+#: src/how-to/route-wires.md:61
+msgid "A wire made on site, and a length typed by hand"
+msgstr ""
+"Een draad die ter plaatse wordt gemaakt, en een met de hand getypte lengte"
+
+#: src/how-to/route-wires.md:63
+msgid ""
+"A wire with an end outside the cabinet, such as 104.4 to the sensor "
+"+FLD-104B1, is made on site: Route gives it no way, the wire list prints "
+"\"—\" with Length from \"site\", and the fitter makes the cabinet's end."
+msgstr ""
+"Een draad met een einde buiten de kast, zoals 104.4 naar de sensor "
+"+FLD-104B1, wordt ter plaatse gemaakt: Routeren geeft hem geen loop, de "
+"draadlijst drukt \"—\" af met Lengte uit \"ter plaatse\", en de monteur "
+"maakt het einde in de kast."
+
+#: src/how-to/route-wires.md:65
+msgid ""
+"To give a wire a length of your own, type it into its Length cell in the "
+"Connections table, or into the Length row of its Properties, in millimetres "
+"or with its unit (\"2 m\"). Length from then says \"typed\". Route still "
+"lays the wire, so that its duct counts it, and its Properties say \"Typed by "
+"hand. Route gives it …: clear the length to take it.\" Clear the cell to "
+"take Route's length."
+msgstr ""
+"Om een draad een eigen lengte te geven, typt u die in zijn cel Lengte in de "
+"tabel Verbindingen, of in de rij Lengte van zijn eigenschappen, in "
+"millimeters of met de eenheid (\"2 m\"). Lengte uit zegt dan \"getypt\". "
+"Routeren legt de draad nog steeds, zodat zijn kabelgoot hem meetelt, en zijn "
+"eigenschappen zeggen \"Met de hand getypt. Routeren geeft …: maak de lengte "
+"leeg om die te nemen.\" Maak de cel leeg om de lengte van Routeren te nemen."
+
+#: src/how-to/route-wires.md:70
+msgid "After a device moves"
+msgstr "Nadat een apparaat is verplaatst"
+
+#: src/how-to/route-wires.md:72
+msgid ""
+"Move or turn a device on the plate, or change a duct: the ways of its wires "
+"no longer hold. The toast says so, such as \"Moved -X1031. The ways of 5 "
+"wires no longer hold.\", with **Undo** and **Route**; the HUD says \"The "
+"ways of 5 wires no longer hold: Route gives them new ones\"; and Check "
+"project reports it (EW-LAY-011, an error when you release)."
+msgstr ""
+"Verplaats of draai een apparaat op de plaat, of wijzig een kabelgoot: de "
+"lopen van zijn draden kloppen niet meer. De toast zegt het, zoals \"-X1031 "
+"verplaatst. De lopen van 5 draden kloppen niet meer.\", met **Ongedaan "
+"maken** en **Routeren**; de HUD zegt \"De lopen van 5 draden kloppen niet "
+"meer: Routeren geeft nieuwe\"; en Project controleren meldt het (EW-LAY-011, "
+"een fout bij de vrijgave)."
+
+#: src/how-to/route-wires.md:76
+msgid ""
+"A way that no longer holds is **stale**. Its wire keeps its length, which "
+"the lists print after \"≈\", and Length from says \"stale\". Choose "
+"**Route**: with nothing selected it plans only those wires. **Apply** makes "
+"their lengths fresh again."
+msgstr ""
+"Een loop die niet meer klopt, is **verouderd**. Zijn draad houdt zijn "
+"lengte, die de lijsten afdrukken na \"≈\", en Lengte uit zegt \"verouderd\". "
+"Kies **Routeren**: zonder selectie plant het alleen die draden. "
+"**Toepassen** maakt hun lengtes weer actueel."
+
+#: src/how-to/route-wires.md:80
+msgid ""
+"The rules are in the [rule reference](../reference/rules/ew-layout.md): "
+"EW-LAY-008, EW-LAY-011 and, for the wires without a length, "
+"[EW-MFG-001](../reference/rules/ew-mfg-001.md)."
+msgstr ""
+"De regels staan in de [regelreferentie](../reference/rules/ew-layout.md): "
+"EW-LAY-008, EW-LAY-011 en, voor de draden zonder lengte, "
+"[EW-MFG-001](../reference/rules/ew-mfg-001.md)."
+
+#: src/how-to/workshop-lists.md:3
+msgid ""
+"The workshop builds the cabinet from five lists beside the drawings: the "
+"wire list, the fitter's sheet; the assembly list of each terminal strip; the "
+"cut list of rails, ducts, cables, wires and tubes; the consumables to order; "
+"and, after a release, the rework list. Each is made from the project and "
+"follows it when it changes: you type nothing into a list."
+msgstr ""
+"De werkplaats bouwt de kast met vijf lijsten naast de tekeningen: de "
+"draadlijst, het blad van de monteur; de montagelijst van elke klemmenstrook; "
+"de zaaglijst van rails, kabelgoten, kabels, draden en slangen; de "
+"verbruiksmaterialen om te bestellen; en, na een vrijgave, de "
+"wijzigingslijst. Elke lijst wordt uit het project gemaakt en volgt het als "
+"het verandert: u typt niets in een lijst."
+
+#: src/how-to/workshop-lists.md:8
+msgid ""
+"You need a checked schematic. None of the lists needs a panel layout, but "
+"without one a wire has a length only where one is typed, the assembly list "
+"names no rail and the cut list holds no rails or ducts ([Route the cabinet's "
+"wires](route-wires.md) gives the wires their lengths). The commands are in "
+"the Workshop group of the Output tab."
+msgstr ""
+"U hebt een gecontroleerd schema nodig. Geen van de lijsten heeft een "
+"paneellayout nodig, maar zonder layout heeft een draad alleen een lengte "
+"waar die getypt is, noemt de montagelijst geen rail en bevat de zaaglijst "
+"geen rails of kabelgoten ([De draden van de kast routeren](route-wires.md) "
+"geeft de draden hun lengte). De opdrachten staan in de groep Werkplaats van "
+"het tabblad Uitvoer."
+
+#: src/how-to/workshop-lists.md:13
+msgid "The wire list"
+msgstr "De draadlijst"
+
+#: src/how-to/workshop-lists.md:15
+msgid ""
+"Choose **Output ▸ Workshop ▸ Wire list**. The first page of the project's "
+"wire list opens (907 on the sample): per wire its number, its two ends with "
+"their pins or clamps, its colour, its size, its length, what goes on each "
+"end (such as \"ferrule 1.5 BK\", or \"twin 2.5 BU · 101.6\" where two wires "
+"share a twin ferrule), the marker of each end and its pages. A device in the "
+"door prints \"(door)\" after its tag, a cable's core prints its cable and "
+"core (such as \"-101W1 BN\") and \"cable\" for its length, and a wire "
+"without a length prints \"—\"."
+msgstr ""
+"Kies **Uitvoer ▸ Werkplaats ▸ Draadlijst**. De eerste pagina van de "
+"draadlijst van het project opent (907 bij het voorbeeld): per draad zijn "
+"nummer, zijn twee einden met hun aansluitpunten of klemmen, zijn aderkleur, "
+"zijn doorsnede, zijn lengte, wat op elk einde komt (zoals \"ferrule 1.5 "
+"BK\", of \"twin 2.5 BU · 101.6\" waar twee draden een twin-adereindhuls "
+"delen), de merker van elk einde en zijn pagina's. Een apparaat in de deur "
+"drukt \"(door)\" af na zijn kenmerk, een ader van een kabel drukt zijn kabel "
+"en ader af (zoals \"-101W1 BN\") en \"cable\" als lengte, en een draad "
+"zonder lengte drukt \"—\" af; dit zijn de woorden van het Engelse "
+"voorbeeldproject."
+
+#: src/how-to/workshop-lists.md:20
+msgid ""
+"To print the engineering columns as well, choose **Output ▸ List columns…** "
+"on the list's page and tick them: Potential, Source, Via, Wire part, Length "
+"from, and the parts and strip lengths of the ends."
+msgstr ""
+"Om ook de engineeringkolommen af te drukken, kiest u **Uitvoer ▸ "
+"Lijstkolommen…** op de pagina van de lijst en vinkt u ze aan: Potentiaal, "
+"Bron, Via, Draadartikel, Lengte uit, en de artikelen en striplengtes van de "
+"einden."
+
+#: src/how-to/workshop-lists.md:22
+msgid ""
+"A project without a wire list opens **Report block…** on the wire list "
+"instead; **Create** makes it."
+msgstr ""
+"Een project zonder draadlijst opent in plaats daarvan **Rapportblok…** op de "
+"draadlijst; **Maken** maakt haar."
+
+#: src/how-to/workshop-lists.md:24
+msgid "The assembly lists, the cut list and the consumables"
+msgstr "De montagelijsten, de zaaglijst en de verbruiksmaterialen"
+
+#: src/how-to/workshop-lists.md:26
+msgid ""
+"Choose **Output ▸ Workshop ▸ Assembly lists**. Each strip starts with a line "
+"that says where it goes and how long it is, such as \"-X1011 · on rail 1 "
+"from 0 to 48.2 mm · rail cut to 470 mm · 5 terminals · 48.2 mm with its end "
+"brackets\", then every item in the order the fitter mounts it: end bracket, "
+"terminals with their part, colour and marker, end plate, end bracket; then "
+"its bridges."
+msgstr ""
+"Kies **Uitvoer ▸ Werkplaats ▸ Montagelijsten**. Elke klemmenstrook begint "
+"met een regel die zegt waar ze komt en hoe lang ze is, zoals \"-X1011 · on "
+"rail 1 from 0 to 48.2 mm · rail cut to 470 mm · 5 terminals · 48.2 mm with "
+"its end brackets\" in het Engelse voorbeeldproject, daarna alles in de "
+"volgorde waarin de monteur het monteert: eindsteun, klemmen met hun artikel, "
+"kleur en merker, eindplaat, eindsteun; daarna haar bruggen."
+
+#: src/how-to/workshop-lists.md:30
+msgid ""
+"Choose **Output ▸ Workshop ▸ Cut list**. Under Rails, Ducts, Cables, Wires "
+"and Tubes it lists each piece to cut with its part or its size and colour, "
+"what it is for, the pieces, the piece length and the total. Each piece is "
+"rounded up to **Cut to** (5 mm unless the project sets another); a wire is "
+"as long as the wire list says."
+msgstr ""
+"Kies **Uitvoer ▸ Werkplaats ▸ Zaaglijst**. Per groep, rails, kabelgoten, "
+"kabels, draden en slangen, noemt ze elk stuk om af te zagen met zijn artikel "
+"of zijn doorsnede en kleur, waarvoor het is, het aantal stukken, de "
+"stuklengte en het totaal. Elk stuk wordt naar boven afgerond op **Afzagen "
+"op** (5 mm, tenzij het project iets anders zet); een draad is zo lang als de "
+"draadlijst zegt."
+
+#: src/how-to/workshop-lists.md:33
+msgid ""
+"Choose **Output ▸ Workshop ▸ Consumables**: the metres of each wire, the "
+"ferrules and lugs per part, and the markers per label set, to order beside "
+"the parts list."
+msgstr ""
+"Kies **Uitvoer ▸ Werkplaats ▸ Verbruiksmaterialen**: de meters van elke "
+"draad, de adereindhulzen en kabelschoenen per artikel, en de merkers per "
+"labelset, om naast de stuklijst te bestellen."
+
+#: src/how-to/workshop-lists.md:35
+msgid ""
+"The ferrules, the wire parts and the markers these lists name come from the "
+"**workshop stock**, the parts your shop keeps, in the order you prefer them. "
+"Choose **Project ▸ Edit stock…** to see and change it: **Add** a part by its "
+"number, **Up**, **Down** and **Remove** to order it, **Add the generic "
+"stock** for the starter's ferrules and markers. A part of your own for the "
+"stock is made in Parts ([Make your own parts](own-parts.md))."
+msgstr ""
+"De adereindhulzen, de draadartikelen en de merkers die deze lijsten noemen, "
+"komen uit de **werkplaatsvoorraad**: de artikelen die uw werkplaats op "
+"voorraad heeft, in de volgorde waarin u ze verkiest. Kies **Project ▸ "
+"Voorraad bewerken…** om haar te zien en te wijzigen: **Toevoegen** voegt een "
+"artikel toe bij zijn nummer, **Omhoog**, **Omlaag** en **Verwijderen** "
+"zetten haar op volgorde, en **Algemene voorraad toevoegen** voegt de "
+"adereindhulzen en merkers van de starter toe. Een eigen artikel voor de "
+"voorraad maakt u in Artikelen ([Eigen artikelen maken](own-parts.md))."
+
+#: src/how-to/workshop-lists.md:39
+msgid ""
+"The rows of the workshop settings are under **Output ▸ Workshop ▸ Workshop "
+"settings**: Marker text, Ferrules, Two wires in one clamp and the others. A "
+"change shows in the lists at once."
+msgstr ""
+"De rijen van de werkplaatsinstellingen staan onder **Uitvoer ▸ Werkplaats ▸ "
+"Werkplaatsinstellingen**: Merkertekst, Adereindhulzen, Twee draden in één "
+"klem en de andere. Een wijziging verschijnt meteen in de lijsten."
+
+#: src/how-to/workshop-lists.md:42
+msgid "The rework list after a release"
+msgstr "De wijzigingslijst na een vrijgave"
+
+#: src/how-to/workshop-lists.md:44
+msgid ""
+"After a release, a change to the project is work in the built cabinet. "
+"Choose **Output ▸ Workshop ▸ Rework list…**. It compares the project as it "
+"is now with the newest release whose archive is in the folder beside the "
+"project; **Compare with** chooses another release, and **Archive file…** an "
+"archive file."
+msgstr ""
+"Na een vrijgave is een wijziging van het project werk in de gebouwde kast. "
+"Kies **Uitvoer ▸ Werkplaats ▸ Wijzigingslijst…**. Ze vergelijkt het project "
+"zoals het nu is met de nieuwste vrijgave waarvan het archief in de map naast "
+"het project staat; **Vergelijken met** kiest een andere vrijgave, en "
+"**Archiefbestand…** een archiefbestand."
+
+#: src/how-to/workshop-lists.md:47
+msgid ""
+"A line counts the work, then one row per thing the fitter does, in the order "
+"he does it: Pull, Replace, Move end, Re-make end, Check length, Re-mark, "
+"Re-label, Remove device, Mount device, Add and the others, each with what "
+"changes. \"Not listed: wires that only moved on a page or took another "
+"route, and a new wire number.\""
+msgstr ""
+"Een regel telt het werk, daarna volgt één rij per handeling van de monteur, "
+"in de volgorde waarin hij ze doet: Uittrekken, Vervangen, Einde verleggen, "
+"Einde opnieuw afwerken, Lengte nakijken, Merker vervangen, Label vervangen, "
+"Apparaat verwijderen, Apparaat monteren, Toevoegen en de andere, elk met wat "
+"er verandert. \"Niet vermeld: draden die alleen op een pagina verschoven of "
+"een andere route kregen, en een nieuw draadnummer.\""
+
+#: src/how-to/workshop-lists.md:50
+msgid ""
+"**Export…** writes the rework list as an Excel file or a CSV; **Labels for "
+"these changes…** opens Labels… on the labels the list names. A project "
+"without a release says \"This project has no released revision yet: the "
+"rework list compares with a release. Release it on the Check tab, or choose "
+"an archive file.\""
+msgstr ""
+"**Exporteren…** schrijft de wijzigingslijst als Excel-bestand of als CSV; "
+"**Labels voor deze wijzigingen…** opent Labels… op de labels die de lijst "
+"noemt. Een project zonder vrijgave zegt \"Dit project heeft nog geen "
+"vrijgegeven revisie: de wijzigingslijst vergelijkt met een vrijgave. Geef "
+"het vrij op het tabblad Controle, of kies een archiefbestand.\""
+
+#: src/how-to/workshop-lists.md:54
+msgid "Print the lists, or hand them over as files"
+msgstr "De lijsten afdrukken, of ze als bestanden overdragen"
+
+#: src/how-to/workshop-lists.md:56
+msgid ""
+"To print a list, choose **Output ▸ Print…**, set **Range** to **Pages** and "
+"type the list's folios, such as `907-907.2`; or open the list's page and "
+"choose **Current page**. **Export PDF…** writes every page, the lists among "
+"them."
+msgstr ""
+"Om een lijst af te drukken, kiest u **Uitvoer ▸ Afdrukken…**, zet u "
+"**Bereik** op **Pagina's** en typt u de folio's van de lijst, zoals "
+"`907-907.2`; of open de pagina van de lijst en kies **Huidige pagina**. "
+"**PDF exporteren…** schrijft elke pagina, de lijsten erbij."
+
+#: src/how-to/workshop-lists.md:59
+msgid ""
+"To hand the lists over as files, write the package: it holds each workshop "
+"list as an Excel file ([Export the labels, the drilling drawings and the "
+"package](workshop-package.md)). On the command line, `ew export wires` and "
+"`ew export report` write one list as CSV or Excel ([Use the command line on "
+"the sample project](headless-workflow.md))."
+msgstr ""
+"Om de lijsten als bestanden over te dragen, schrijft u het pakket: het bevat "
+"elke lijst voor de werkplaats als Excel-bestand ([De labels, de "
+"boortekeningen en het pakket exporteren](workshop-package.md)). Op de "
+"opdrachtregel schrijven `ew export wires` en `ew export report` één lijst "
+"als CSV of Excel ([De opdrachtregel gebruiken op het "
+"voorbeeldproject](headless-workflow.md))."
+
+#: src/how-to/workshop-lists.md:64
+msgid ""
+"What each command does is in the [command bar "
+"reference](../reference/window/command-bar.md#output)."
+msgstr ""
+"Wat elke opdracht doet, staat in de [referentie van de "
+"opdrachtbalk](../reference/window/command-bar.md#output)."
+
+#: src/how-to/workshop-package.md:3
+msgid ""
+"Three exports take the cabinet to the workshop: the label files for your "
+"shop's label program, the drawings for drilling the plate, the door and the "
+"walls, and the package, one ZIP file that holds them with the drawings and "
+"the workshop's lists. All three are in the Workshop group of the Output tab."
+msgstr ""
+"Drie exports brengen de kast naar de werkplaats: de labelbestanden voor het "
+"labelprogramma van uw werkplaats, de boortekeningen voor de plaat, de deur "
+"en de wanden, en het pakket, één ZIP-bestand dat ze bevat met de tekeningen "
+"en de lijsten voor de werkplaats. Alle drie staan in de groep Werkplaats van "
+"het tabblad Uitvoer."
+
+#: src/how-to/workshop-package.md:7
+msgid ""
+"You need the project's lists ([Print the workshop's "
+"lists](workshop-lists.md)); for the drawings for drilling, the holes of the "
+"cabinet's surfaces ([Place devices in the door, and make holes and cable "
+"glands](cabinet-surfaces.md))."
+msgstr ""
+"U hebt de lijsten van het project nodig ([De lijsten voor de werkplaats "
+"afdrukken](workshop-lists.md)); voor de boortekeningen de gaten van de "
+"vlakken van de kast ([Apparaten in de deur plaatsen, en gaten en "
+"kabelwartels maken](cabinet-surfaces.md))."
+
+#: src/how-to/workshop-package.md:10
+msgid "The label files"
+msgstr "De labelbestanden"
+
+#: src/how-to/workshop-package.md:12
+msgid ""
+"Choose **Output ▸ Workshop ▸ Labels…**. The dialog lists one file per label "
+"set and marker part (Wire markers, Terminal markers, Strip markers, Cable "
+"markers, Device labels, Tube markers, Plates), each with its marker part, "
+"its count of labels and a tick. A file is named by the drawing number, the "
+"label set and the marker part, such as `SAMPLE-E Wire markers "
+"EW-GEN-MRK-1.xlsx`."
+msgstr ""
+"Kies **Uitvoer ▸ Werkplaats ▸ Labels…**. Het venster noemt één bestand per "
+"labelset en merkerartikel (Draadmerkers, Klemmerkers, Klemmenstrookmerkers, "
+"Kabelmerkers, Apparaatlabels, Slangmerkers, Frontplaatjes), elk met zijn "
+"merkerartikel, het aantal labels en een vinkje. Een bestand heet naar het "
+"tekeningnummer, de labelset en het merkerartikel, zoals `SAMPLE-E Wire "
+"markers EW-GEN-MRK-1.xlsx` in het Engelse voorbeeldproject."
+
+#: src/how-to/workshop-package.md:16
+msgid ""
+"Under **Labels**, choose **Every label**, or, after a release, only those "
+"changed since it (**Changed since V1.0**)."
+msgstr ""
+"Kies onder **Labels** **Alle labels**, of, na een vrijgave, alleen de labels "
+"die sinds die vrijgave zijn gewijzigd (**Gewijzigd sinds V1.0**)."
+
+#: src/how-to/workshop-package.md:18
+msgid ""
+"The line **Label file** says the form of the files and their columns, such "
+"as \"Excel · Text 1, Text 2, Text 3, Copies, For\". **Change…** sets, for "
+"the whole project, the columns a file has, their headings and their order, "
+"Excel or CSV, and a CSV's delimiter; **Generic columns** puts the generic "
+"ones back. Your label program imports the Excel file and maps its columns "
+"once."
+msgstr ""
+"De regel **Labelbestand** zegt de vorm van de bestanden en hun kolommen, "
+"zoals \"Excel · Text 1, Text 2, Text 3, Copies, For\". **Wijzigen…** zet "
+"voor het hele project de kolommen die een bestand heeft, hun koppen en hun "
+"volgorde, Excel of CSV, en het scheidingsteken van een CSV; **Algemene "
+"kolommen** zet de algemene terug. Uw labelprogramma importeert het "
+"Excel-bestand en koppelt zijn kolommen één keer."
+
+#: src/how-to/workshop-package.md:22
+msgid ""
+"A line such as \"1 label does not fit its marker part\" counts the labels "
+"too long for their marker; **Show** lists them."
+msgstr ""
+"Een regel zoals \"1 label past niet op zijn merkerartikel\" telt de labels "
+"die te lang zijn voor hun merker; **Tonen** noemt ze."
+
+#: src/how-to/workshop-package.md:24
+msgid ""
+"Untick the files you do not need and choose **Export…**, then the folder. "
+"The toast says, for example, \"Wrote 6 label files to …\". A CSV writes each "
+"value as it is, for the label program; opened in a spreadsheet, a value that "
+"starts with `-`, `+` or `=` is read as a formula, so open the Excel file "
+"there."
+msgstr ""
+"Vink de bestanden uit die u niet nodig hebt en kies **Exporteren…**, daarna "
+"de map. De toast zegt bijvoorbeeld \"6 labelbestanden naar … geschreven\". "
+"Een CSV schrijft elke waarde zoals ze is, voor het labelprogramma; in een "
+"spreadsheet geopend, wordt een waarde die begint met `-`, `+` of `=` als "
+"formule gelezen, dus open daar het Excel-bestand."
+
+#: src/how-to/workshop-package.md:28
+msgid "The drawings for drilling"
+msgstr "De boortekeningen"
+
+#: src/how-to/workshop-package.md:30
+msgid ""
+"Choose **Output ▸ Workshop ▸ Drilling…** (greyed with \"No surface of this "
+"project has holes yet.\" while no surface has any). The form \"Export the "
+"drawings for drilling\" lists the **Surfaces with holes**, each with its "
+"page, its holes and the sheets its template takes, such as \"Door · page 904 "
+"· 8 holes · 5 sheets\", with a tick."
+msgstr ""
+"Kies **Uitvoer ▸ Werkplaats ▸ Boren…** (grijs, met \"Geen vlak van dit "
+"project heeft al gaten.\", zolang geen vlak gaten heeft). Het formulier "
+"\"Boortekeningen exporteren\" noemt de **Vlakken met gaten**, elk met zijn "
+"pagina, zijn gaten en de bladen die zijn boormal nodig heeft, zoals \"Deur · "
+"pagina 904 · 8 gaten · 5 bladen\", met een vinkje."
+
+#: src/how-to/workshop-package.md:33
+msgid ""
+"Choose **Template to print at full size (PDF)**, **DXF for a machine** or "
+"both, the **Paper** (A4 or A3) and the **Folder** (Drilling, beside the "
+"project), and choose **Export**. Each surface gets its files, such as `+CAB "
+"Door template.pdf` and `+CAB Door.dxf`; the toast says \"Wrote 6 files to "
+"…\"."
+msgstr ""
+"Kies **Boormal om op ware grootte te printen (PDF)**, **DXF voor een "
+"machine** of beide, het **Papier** (A4 of A3) en de **Map** (Boortekeningen, "
+"naast het project), en kies **Exporteren**. Elk vlak krijgt zijn bestanden, "
+"zoals `+CAB Door template.pdf` en `+CAB Door.dxf` in het Engelse "
+"voorbeeldproject; de toast zegt \"6 bestanden geschreven naar …\"."
+
+#: src/how-to/workshop-package.md:36
+msgid ""
+"Print a template at actual size, not fitted to the page, and measure its 100 "
+"mm bar. Tape the sheets together at their crosses, lay the template's two "
+"thick edges against the surface's edges and centre-punch each hole. The DXF "
+"has its 0,0 at the corner the surface's holes are measured from, and a layer "
+"for each way of making a hole."
+msgstr ""
+"Druk een boormal af op ware grootte, niet passend gemaakt op het papier, en "
+"meet zijn balk van 100 mm. Plak de bladen aan elkaar bij hun kruisjes, leg "
+"de twee dikke randen van de boormal tegen de randen van het vlak en körner "
+"elk gat. De DXF heeft zijn 0,0 in de hoek waarvandaan de gaten van het vlak "
+"worden gemeten, en een laag voor elke manier om een gat te maken."
+
+#: src/how-to/workshop-package.md:40
+msgid "The package"
+msgstr "Het pakket"
+
+#: src/how-to/workshop-package.md:42
+msgid ""
+"Choose **Output ▸ Workshop ▸ Package** (**Package…** in the menu and the "
+"command palette). The dialog \"Package for the workshop\" has two panes."
+msgstr ""
+"Kies **Uitvoer ▸ Werkplaats ▸ Pakket** (**Pakket…** in het menu en het "
+"opdrachtpalet). Het venster \"Pakket voor de werkplaats\" heeft twee delen."
+
+#: src/how-to/workshop-package.md:44
+msgid ""
+"On the left, **What goes in**: the drawings, the wire list, the assembly "
+"lists, the cut list, the consumables, the hole table, the label files and "
+"the drawings for drilling, each ticked and with what it holds, such as \"54 "
+"wires, 2 bridges\". Untick what the shop does not need. A member without "
+"content has no tick, such as the drawings for drilling of a cabinet without "
+"holes. A line says what a member lacks, such as a marker part for cables in "
+"the workshop stock, with **Workshop stock…**; **Change…** changes the label "
+"file's form."
+msgstr ""
+"Links, **Wat erin gaat**: de tekeningen, de draadlijst, de montagelijsten, "
+"de zaaglijst, de verbruiksmaterialen, de gatentabel, de labelbestanden en de "
+"boortekeningen, elk aangevinkt en met wat het bevat, zoals \"54 draden, 2 "
+"bruggen\". Vink uit wat de werkplaats niet nodig heeft. Een deel zonder "
+"inhoud heeft geen vinkje, zoals de boortekeningen van een kast zonder gaten. "
+"Een regel zegt wat een deel mist, zoals een merkerartikel voor kabels in de "
+"werkplaatsvoorraad, met **Werkplaatsvoorraad…**; **Wijzigen…** wijzigt de "
+"vorm van het labelbestand."
+
+#: src/how-to/workshop-package.md:49
+msgid ""
+"On the right, always in view, **Before it goes to the workshop** shows the "
+"release check: \"Ready: nothing stands in the way.\", or what stands, such "
+"as \"3 things: 1 stops a release, 2 are warnings.\". An error stops only a "
+"package of a released revision; a warning or an info is shown and stops "
+"nothing. **Show** lists a finding's wires or devices, its button mends it, "
+"and **Open Messages** shows them all."
+msgstr ""
+"Rechts, altijd in beeld, toont **Voordat het naar de werkplaats gaat** de "
+"vrijgavecontrole: \"Klaar: niets staat in de weg.\", of wat in de weg staat, "
+"zoals \"3 punten: 1 houdt een vrijgave tegen, 2 zijn waarschuwingen.\". Een "
+"fout houdt alleen een pakket van een vrijgegeven revisie tegen; een "
+"waarschuwing of een melding wordt getoond en houdt niets tegen. **Tonen** "
+"noemt de draden of apparaten van een bevinding, haar knop herstelt haar, en "
+"**Meldingen openen** toont ze allemaal."
+
+#: src/how-to/workshop-package.md:53
+msgid ""
+"A wire without a length stops nothing. The right pane and the package's "
+"contents name the wires without a length and say why, such as \"3 wires have "
+"no length: one end of each is made on site\", or that Route gives a wire of "
+"the cabinet one."
+msgstr ""
+"Een draad zonder lengte houdt niets tegen. Het rechterdeel en de inhoud van "
+"het pakket noemen de draden zonder lengte en zeggen waarom, zoals \"3 draden "
+"hebben geen lengte: van elk wordt één einde ter plaatse gemaakt\", of dat "
+"Routeren een draad van de kast er een geeft."
+
+#: src/how-to/workshop-package.md:56
+msgid ""
+"Below, the revision decides draft or release. While a revision is open, such "
+"as \"V1.0 is open, not released.\", the package is a draft: \"The package is "
+"a draft: every page of the drawings says \"Draft V1.0: not released\", and "
+"so do its manifest and Contents.\" The package of a released revision "
+"carries no mark, and a second package of it is the same file."
+msgstr ""
+"Daaronder bepaalt de revisie of het pakket een concept is of een vrijgave. "
+"Zolang een revisie open is, zoals \"V1.0 is open, niet vrijgegeven.\", is "
+"het pakket een concept: \"Het pakket is een concept: op elke pagina van de "
+"tekeningen staat \"Concept V1.0: niet vrijgegeven\", en dat zeggen ook het "
+"manifest en het inhoudsbestand.\" Het pakket van een vrijgegeven revisie "
+"draagt geen markering, en een tweede pakket ervan is hetzelfde bestand."
+
+#: src/how-to/workshop-package.md:60
+msgid ""
+"To hand the package to someone outside the company, tick **Without personal "
+"data**: it leaves out the name and the address of each party marked as "
+"personal data; companies stay. A project without one says \"No party of this "
+"project is marked as personal data (Project properties ▸ Parties)\"."
+msgstr ""
+"Om het pakket aan iemand buiten het bedrijf te geven, vinkt u **Zonder "
+"persoonsgegevens** aan: het laat de naam en het adres weg van elke partij "
+"die als persoonsgegevens is gemarkeerd; bedrijven blijven staan. Een project "
+"zonder zo'n partij zegt \"Geen partij van dit project is gemarkeerd als "
+"persoonsgegevens (Projecteigenschappen ▸ Partijen)\"."
+
+#: src/how-to/workshop-package.md:63
+msgid ""
+"Under **File**, **Choose…** sets where the ZIP goes, such as `SAMPLE-E V1.0 "
+"draft package.zip`. Choose **Write draft package** (or **Write package** for "
+"a release). A file of that name is asked about first (\"… exists. Replace "
+"it?\"). The package is written as a job, and the toast names the file with "
+"**Show in folder**."
+msgstr ""
+"Onder **Bestand** zet **Kiezen…** waar het ZIP-bestand komt, zoals `SAMPLE-E "
+"V1.0 conceptpakket.zip`. Kies **Conceptpakket schrijven** (of **Pakket "
+"schrijven** voor een vrijgave). Bestaat er al een bestand met die naam, dan "
+"wordt eerst gevraagd (\"… bestaat al. Vervangen?\"). Het pakket wordt "
+"geschreven als taak, en de toast noemt het bestand met **In map tonen**."
+
+#: src/how-to/workshop-package.md:67
+msgid "What the shop finds in the ZIP"
+msgstr "Wat de werkplaats in het ZIP-bestand vindt"
+
+#: src/how-to/workshop-package.md:69
+msgid ""
+"At the top, `Contents.txt`, which says the revision, whether it is a draft, "
+"what the release check found, which wires have no length and why, and what "
+"each file is; and the drawings as one PDF, every page in page order."
+msgstr ""
+"Bovenaan het inhoudsbestand, dat de revisie noemt, zegt of het pakket een "
+"concept is, wat de vrijgavecontrole vond, welke draden geen lengte hebben en "
+"waarom, en wat elk bestand is; en de tekeningen als één PDF, elke pagina in "
+"paginavolgorde."
+
+#: src/how-to/workshop-package.md:71
+msgid ""
+"In `Lists`, each workshop list as an Excel file; in `Labels`, the label "
+"files; in `Drilling`, the template and the DXF of each surface with holes; "
+"and `manifest.json`, the same list for a program, with a SHA-256 of each "
+"file."
+msgstr ""
+"In een map voor elk soort: de lijsten van de werkplaats, elk als "
+"Excel-bestand; de labelbestanden; en per vlak met gaten de boormal en de "
+"DXF. Daarnaast `manifest.json`, dezelfde lijst voor een programma, met een "
+"SHA-256 van elk bestand."
+
+#: src/how-to/workshop-package.md:74
+msgid ""
+"The same three exports run on the command line: `ew export labels`, `ew "
+"export drilling` and `ew export package` ([Use the command line on the "
+"sample project](headless-workflow.md))."
+msgstr ""
+"Dezelfde drie exports werken op de opdrachtregel: `ew export labels`, `ew "
+"export drilling` en `ew export package` ([De opdrachtregel gebruiken op het "
+"voorbeeldproject](headless-workflow.md))."
 
 #: src/how-to/plc-workspace.md:3
 msgid ""
