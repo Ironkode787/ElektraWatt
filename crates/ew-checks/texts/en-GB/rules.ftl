@@ -588,6 +588,15 @@ rule-ew-lay-017 = { $form ->
     }
     .title = Holes not known
     .hint = Give the part its holes in the part editor (Front view and holes), or choose the device's part.
+rule-ew-lay-018 = { $form ->
+        [no_diameter] the gland of { $cable } is not known: its cable part gives no outer diameter; give it one, or choose the gland in the cable's Properties
+        [none_seals] no gland of the workshop stock seals { $cable }, { DECIMAL($od) } mm across: add one to the stock, or choose the gland in the cable's Properties
+        [differs] the gland hole of { $cable } on { $surface } is { $hole }; its gland is now { $gland }
+        [no_cable] the hole { $hole } on { $surface } was made for a cable that is gone: remove the hole, or keep it as a hole
+       *[unplaced] the cable gland of { $cable } is not placed: place it on the bottom, the top or a side of its cabinet
+    }
+    .title = Cable gland
+    .hint = Place each cable's gland where the cable enters its cabinet, and keep its hole the size of its gland.
 
 ## EW-NUM: numbering
 

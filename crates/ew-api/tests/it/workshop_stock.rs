@@ -67,7 +67,7 @@ fn a_new_project_starts_with_the_generic_stock() {
     assert!(
         numbers
             .iter()
-            .all(|n| matches!(n.1, PartKind::Ferrule | PartKind::Marker)),
+            .all(|n| matches!(n.1, PartKind::Ferrule | PartKind::Marker | PartKind::Gland)),
         "{numbers:?}"
     );
 }
@@ -125,7 +125,9 @@ fn a_wire_takes_its_stock_part_and_a_part_of_another_size_is_reported() {
     )
     .unwrap_err();
     assert!(
-        refused.to_string().contains("is no wire, ferrule or marker"),
+        refused
+            .to_string()
+            .contains("is no wire, ferrule, marker or cable gland"),
         "{refused}"
     );
     // The wire given the 16 mm² part.

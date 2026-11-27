@@ -8,12 +8,14 @@
 
 error-part-length = "{ $p0 }" is geen lengte: geef millimeters, zoals 45 of 22,5.
 error-part-hole-incomplete = Gat { $p0 } heeft zijn X, zijn Y, zijn soort en zijn maat nodig.
+error-part-gland-incomplete = Een wartel heeft zijn schroefdraad nodig en de kleinste en grootste kabel die hij afdicht.
+error-part-gland-range = De grootste kabel die een wartel afdicht kan niet kleiner zijn dan de kleinste.
 error-part-hole-off = Gat { $p0 } op { $p1 }, { $p2 } mm ligt buiten de voorkant, die { $p3 } × { $p4 } mm is: het midden wordt gemeten vanaf de linkeronderhoek van de voorkant.
 error-part-front-round = Een ronde voorkant heeft dezelfde breedte en hoogte nodig: geef beide bij Afmetingen en montage, of kies Rechthoek.
 error-part-outline-locked = Een artikel uit een bibliotheek houdt zijn vooraanzicht: Contour importeren… wijzigt een eigen artikel van het project of een nieuw artikel.
 error-part-outline-unreadable = { $p0 } is niet te lezen: { $p1 }
 error-part-accessory = Geen artikel heeft nummer { $p0 }
-error-stock-kind = { $p0 } is geen draad, adereindhuls of merker: de voorraad houdt alleen die
+error-stock-kind = { $p0 } is geen draad, adereindhuls, merker of kabelwartel: de voorraad houdt alleen die
 error-part-accessory-kind = { $p0 } is geen toebehoren: een draad, adereindhuls of merker wordt van de draden geteld. Noem het in plaats daarvan in de werkplaatsvoorraad (Projecteigenschappen ▸ Werkplaats).
 reason-no-terminal-def = Het project heeft geen klemdefinitie om in te voegen
 reason-no-accessory-part = Het project heeft geen artikel voor dit toebehoren; sluit er eerst een in

@@ -549,20 +549,27 @@ fn two_uc1_plates_read_by_their_full_designations_and_the_choice_sets_the_one_ch
         .into_iter()
         .map(|(id, w)| (id, w.to_string()))
         .collect();
-    // The plates, then +CAB's door (the sample's page 904 shows it).
+    // The plates, then +CAB's door and bottom (the sample's pages 904 and 905 show them).
     let door = choices[2].0;
+    let bottom = choices[3].0;
     assert_eq!(
         choices,
         [
             (first, "+CAB-UC1 mounting plate".to_owned()),
             (second, "+FLD-UC1 mounting plate".to_owned()),
             (door, "+CAB-UC1 door".to_owned()),
+            (bottom, "+CAB-UC1 bottom".to_owned()),
         ]
     );
     // The row offers the surfaces by their IDs; the window names each in its language.
     assert_eq!(
         options_of(&s, page, "page/derived.surface"),
-        [first.to_string(), second.to_string(), door.to_string()]
+        [
+            first.to_string(),
+            second.to_string(),
+            door.to_string(),
+            bottom.to_string()
+        ]
     );
     assert_eq!(
         text_of(&s, page, "page/derived.surface"),
@@ -1154,4 +1161,50 @@ fn a_hole_by_hand_is_refused_in_words_or_made() {
     let before = plate_holes(&s).len();
     run(&mut s, &add([100_000_000, 100_000_000], "M6"));
     assert_eq!(plate_holes(&s).len(), before + 1);
+}
+
+/// The sample's two glands stand in a row on the bottom, 35 mm apart (their nuts of 27 and 33 mm and the 5 mm web,
+/// doc 12 §3.9); placing one again, or a gland on the door, is refused in words.
+#[test]
+fn the_sample_glands_stand_in_a_row_and_a_second_place_or_the_door_is_refused() {
+    let mut s = common::sample();
+    let q = s.query();
+    let glands: Vec<(i64, i64)> = q
+        .table::<ew_schema::SurfaceFeature>()
+        .iter()
+        .filter(|(_, f)| f.cable.is_some())
+        .map(|(_, f)| (f.at.x.0 / 1_000_000, f.at.y.0 / 1_000_000))
+        .collect();
+    let mut sorted = glands.clone();
+    sorted.sort();
+    assert_eq!(sorted, [(80, 125), (115, 125)]);
+    let surface = |kind: ew_schema::SurfaceKind| {
+        q.table::<MountingSurface>()
+            .iter()
+            .find(|(_, m)| m.kind == kind)
+            .map(|(id, _)| id.as_uuid())
+            .expect("the surface")
+    };
+    let (bottom, door) = (
+        surface(ew_schema::SurfaceKind::Bottom),
+        surface(ew_schema::SurfaceKind::Door),
+    );
+    let cable = q
+        .devices()
+        .iter()
+        .find(|(id, _)| ew_derive::short_tag(&q, *id) == "-101W1")
+        .map(|(id, _)| id.as_uuid())
+        .expect("-101W1");
+    drop(q);
+    let place = |on: Uuid| AnyCommand {
+        name: "layout.glands_place".into(),
+        params: json!({"surface": on.to_string(), "at": [200_000_000, 125_000_000], "cables": [cable.to_string()]}),
+    };
+    let again = s.execute(&place(bottom)).unwrap_err().to_string();
+    assert!(again.contains("The gland of -101W1 is placed already"), "{again}");
+    let in_door = s.execute(&place(door)).unwrap_err().to_string();
+    assert!(
+        in_door.contains("not in a door or the mounting plate"),
+        "{in_door}"
+    );
 }

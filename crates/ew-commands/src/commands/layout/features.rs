@@ -282,3 +282,95 @@ impl Command for HoleChoiceEdit {
         }
     }
 }
+
+/// `layout.glands_place` (`PlaceGlands`, doc 12 §3.9): the glands of `cables` as holes of `surface` (a side, the top or
+/// the bottom), a row to the right from `at` at the pitch of their nuts and the workshop's web between holes, each a
+/// `SurfaceFeature` of its cable with the hole of its gland's thread, in one step. Rejected in words: a door or the
+/// mounting plate, a cable that does not leave the cabinet or whose gland is placed, a cable whose gland is not known.
+/// Interactive. Outcome: the first feature.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct PlaceGlands {
+    /// The surface.
+    #[schemars(with = "UuidS")]
+    pub surface: Id<MountingSurface>,
+    /// The first gland's centre, in the surface's frame.
+    #[schemars(with = "SurfacePt2S")]
+    pub at: Pt2,
+    /// The cables, in the row's order.
+    #[schemars(with = "Vec<UuidS>")]
+    pub cables: Vec<Id<ew_schema::Device>>,
+}
+
+impl Command for PlaceGlands {
+    const NAME: &'static str = "layout.glands_place";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let Some(surface) = tx.get::<MountingSurface>(self.surface) else {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/surface",
+                text!("refusal-params-surface-gone"),
+            ));
+        };
+        if matches!(
+            surface.kind,
+            ew_schema::SurfaceKind::Plate | ew_schema::SurfaceKind::Door
+        ) {
+            return tx.reject(text!("refusal-layout-gland-face"));
+        }
+        let q = Q::new(tx.base_model());
+        let space = q
+            .table::<ew_schema::Enclosure>()
+            .get(surface.enclosure)
+            .map(|e| e.space);
+        let glands = space
+            .map(|s| q.get::<ew_derive::layout::CableGlands>(s))
+            .unwrap_or_default();
+        let web = q.project().settings.workshop.min_web.unwrap_or(Nm(5_000_000));
+        let mut at = self.at;
+        let mut before: Option<ew_schema::GlandSection> = None;
+        let mut first = None;
+        for cable in &self.cables {
+            let tag = ew_derive::short_tag(&q, *cable);
+            let Some(g) = glands.iter().find(|g| g.cable == *cable) else {
+                return tx.reject(text!("refusal-layout-gland-stays", tag));
+            };
+            if g.placed.is_some() {
+                return tx.reject(text!("refusal-layout-gland-placed", tag));
+            }
+            let Some(section) = g
+                .part
+                .as_ref()
+                .ok()
+                .and_then(|p| ew_derive::layout::gland_section(&q, p))
+            else {
+                return tx.reject(text!("refusal-layout-gland-unknown", tag));
+            };
+            if let Some(b) = &before {
+                let pitch = ew_derive::layout::gland_pitch(b, &section, web);
+                at = Pt2::new(Nm(at.x.0.saturating_add(pitch.0)), at.y);
+            }
+            on_sheet(Self::NAME, &surface, at)?;
+            let id: Id<SurfaceFeature> = tx.mint();
+            tx.insert(SurfaceFeature {
+                id,
+                v: 1,
+                surface: self.surface,
+                at,
+                hole: Hole::Gland(section.thread.clone()),
+                purpose: MlText::default(),
+                cable: Some(*cable),
+                for_cable: true,
+                extra: Default::default(),
+            })?;
+            first.get_or_insert((Kind::SurfaceFeature, id.cast()));
+            before = Some(section);
+        }
+        Ok(first.map(Outcome::primary).unwrap_or_default())
+    }
+}

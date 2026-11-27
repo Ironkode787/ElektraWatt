@@ -71,6 +71,9 @@ pub enum LineSource {
     Fitting,
     /// The plug at a bus line's end on a port of the device (`BusLine.plug_a`, `plug_b`; doc 10 §2.7), one piece each.
     Plug,
+    /// A cable's gland where it enters a cabinet ([`crate::layout::CableGlands`], doc 12 §3.9), one piece per cabinet,
+    /// placed or not.
+    Gland,
 }
 
 /// One part line of one device.
@@ -191,6 +194,23 @@ impl Query for DevicePartLines {
                 }
                 (_, Some(metres)) if i == 0 && by_metre => push(&u.part, metres, LineSource::Device),
                 _ => push(&u.part, u.qty, LineSource::Device),
+            }
+        }
+        // A cable's glands, one where it enters each cabinet.
+        if dev.aspects.cable.is_some() {
+            let mut spaces: Vec<Id<ew_schema::LayoutSpace>> =
+                q.table::<ew_schema::LayoutSpace>().ids().collect();
+            spaces.sort();
+            for s in spaces {
+                for g in q
+                    .get::<crate::layout::CableGlands>(s)
+                    .iter()
+                    .filter(|g| g.cable == *key)
+                {
+                    if let Ok(part) = &g.part {
+                        push(part, Dec3::ONE, LineSource::Gland);
+                    }
+                }
             }
         }
         if let Some(strip) = &dev.aspects.strip {

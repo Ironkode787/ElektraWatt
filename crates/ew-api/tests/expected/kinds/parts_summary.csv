@@ -62,3 +62,5 @@ data,33,5,m,Generic,EW-GEN-CBL-25,"Cable 4G2.5 mm², cores brown, black, grey an
 data,34,0.47,m,Generic,EW-GEN-COV-40,"Duct cover, 40 mm wide",-UC1,902
 data,35,6,pc,Generic,EW-GEN-EB-1,End bracket for TS 35,"-X1011, -X1021, -X1031",902
 data,36,3,pc,Generic,EW-GEN-EP-1,End plate for 5.2 mm feed-through and PE terminals,"-X1011, -X1021, -X1031",101–103
+data,37,1,pc,Generic,EW-GEN-GLD-M20,"Cable gland M20, polyamide",-101W1,
+data,38,1,pc,Generic,EW-GEN-GLD-M25,"Cable gland M25, polyamide",-103W1,

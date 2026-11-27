@@ -216,8 +216,9 @@ fn with_shipped_frames(model: Model) -> Result<Model, OpenError> {
     Ok(scratch.engine.model().clone())
 }
 
-/// The starter's generic stock (doc 07 §2.5 "The workshop stock", §9.2): every starter part of kind ferrule or marker,
-/// by part number in natural order, as stock entries, with the documents that embed them and their closure.
+/// The starter's generic stock (doc 07 §2.5 "The workshop stock", §9.2): every starter part of kind ferrule, marker or
+/// gland, by part number in natural order (the glands last), as stock entries, with the documents that embed them and
+/// their closure.
 pub(crate) fn generic_stock() -> (Vec<ew_schema::PartRef>, Vec<Value>) {
     let reg = crate::library::Registry::starter_only();
     let library = crate::library::starter_parts_library();
@@ -228,7 +229,7 @@ pub(crate) fn generic_stock() -> (Vec<ew_schema::PartRef>, Vec<Value>) {
             ew_schema::LibDocument::Part(c)
                 if matches!(
                     c.item.kind,
-                    ew_schema::PartKind::Ferrule | ew_schema::PartKind::Marker
+                    ew_schema::PartKind::Ferrule | ew_schema::PartKind::Marker | ew_schema::PartKind::Gland
                 ) =>
             {
                 Some(c)
@@ -236,7 +237,14 @@ pub(crate) fn generic_stock() -> (Vec<ew_schema::PartRef>, Vec<Value>) {
             _ => None,
         })
         .collect();
-    parts.sort_by_cached_key(|c| (ew_mltext::natural_key(c.item.part_number.as_str()), c.id));
+    // The glands after the ferrules and markers, which keep their order.
+    parts.sort_by_cached_key(|c| {
+        (
+            c.item.kind == ew_schema::PartKind::Gland,
+            ew_mltext::natural_key(c.item.part_number.as_str()),
+            c.id,
+        )
+    });
     let mut copies: Vec<Value> = Vec::new();
     let mut seen: Vec<Uuid> = Vec::new();
     for c in &parts {
@@ -260,7 +268,7 @@ pub(crate) fn generic_stock() -> (Vec<ew_schema::PartRef>, Vec<Value>) {
     (stock, copies)
 }
 
-/// `model` with the starter's generic ferrules and markers as its workshop stock ([`generic_stock`]), through the
+/// `model` with the starter's generic ferrules, markers and glands as its workshop stock ([`generic_stock`]), through the
 /// command the stock dialog runs.
 fn with_generic_stock(model: Model) -> Result<Model, OpenError> {
     let refused = |e: CmdError| OpenError::Format(format!("the generic stock cannot be set: {e}"));

@@ -149,6 +149,43 @@ fn cable(
     }
 }
 
+/// `def` with the cable's outer diameter `od` mm (doc 12 §3.9: what its gland must seal; test data).
+fn with_diameter(mut def: Def, od: &str) -> Def {
+    if let Some(sections) = def.sections.as_mut() {
+        sections["cable"] = json!({"outer_diameter": mm(od)});
+    }
+    def
+}
+
+/// A polyamide cable gland of the thread `thread` (`m20`) that seals a cable of `clamp` mm (min, max), its nut `nut`
+/// mm across (a typical polyamide gland's sizes, unverified).
+fn gland(
+    number: &'static str,
+    description: [&'static str; 2],
+    thread: &str,
+    clamp: (&str, &str),
+    nut: &str,
+) -> Def {
+    Def {
+        number,
+        kind: Some("gland"),
+        description,
+        cps: Vec::new(),
+        template: Vec::new(),
+        contacts: Vec::new(),
+        tech: Vec::new(),
+        plc: None,
+        mech: None,
+        sections: Some(json!({"gland": {
+            "thread": thread,
+            "clamp_min": mm(clamp.0),
+            "clamp_max": mm(clamp.1),
+            "nut": mm(nut),
+        }})),
+        unit: None,
+    }
+}
+
 /// A 24 V signal lamp of a cabinet door in the colour `colour` (IEC 60757 code), drawn as the pilot lamp.
 fn lamp(number: &'static str, description: [&'static str; 2], colour: &str) -> Def {
     Def {
@@ -740,15 +777,18 @@ pub(crate) fn defs() -> Vec<Def> {
             "2.5",
             false,
         ),
-        cable(
-            "EW-GEN-CBL-17",
-            [
-                "Cable 5G2.5 mm², cores brown, black, grey, blue and green-yellow",
-                "Kabel 5G2,5 mm², aders bruin, zwart, grijs, blauw en groen-geel",
-            ],
-            "BN BK GY BU GNYE",
-            "2.5",
-            false,
+        with_diameter(
+            cable(
+                "EW-GEN-CBL-17",
+                [
+                    "Cable 5G2.5 mm², cores brown, black, grey, blue and green-yellow",
+                    "Kabel 5G2,5 mm², aders bruin, zwart, grijs, blauw en groen-geel",
+                ],
+                "BN BK GY BU GNYE",
+                "2.5",
+                false,
+            ),
+            "10.5",
         ),
         cable(
             "EW-GEN-CBL-18",
@@ -820,15 +860,18 @@ pub(crate) fn defs() -> Vec<Def> {
             "1.5",
             true,
         ),
-        cable(
-            "EW-GEN-CBL-25",
-            [
-                "Cable 4G2.5 mm², cores brown, black, grey and green-yellow, shielded",
-                "Kabel 4G2,5 mm², aders bruin, zwart, grijs en groen-geel, afgeschermd",
-            ],
-            "BN BK GY GNYE",
-            "2.5",
-            true,
+        with_diameter(
+            cable(
+                "EW-GEN-CBL-25",
+                [
+                    "Cable 4G2.5 mm², cores brown, black, grey and green-yellow, shielded",
+                    "Kabel 4G2,5 mm², aders bruin, zwart, grijs en groen-geel, afgeschermd",
+                ],
+                "BN BK GY GNYE",
+                "2.5",
+                true,
+            ),
+            "12.5",
         ),
         Def {
             number: "EW-GEN-MOT-1",
@@ -1945,6 +1988,42 @@ pub(crate) fn defs() -> Vec<Def> {
             1,
             12,
         ),
+        // The generic cable glands of the workshop stock (doc 12 §3.9).
+        gland(
+            "EW-GEN-GLD-M16",
+            ["Cable gland M16, polyamide", "Kabelwartel M16, polyamide"],
+            "m16",
+            ("4.5", "10"),
+            "22",
+        ),
+        gland(
+            "EW-GEN-GLD-M20",
+            ["Cable gland M20, polyamide", "Kabelwartel M20, polyamide"],
+            "m20",
+            ("6", "12"),
+            "27",
+        ),
+        gland(
+            "EW-GEN-GLD-M25",
+            ["Cable gland M25, polyamide", "Kabelwartel M25, polyamide"],
+            "m25",
+            ("9", "16"),
+            "33",
+        ),
+        gland(
+            "EW-GEN-GLD-M32",
+            ["Cable gland M32, polyamide", "Kabelwartel M32, polyamide"],
+            "m32",
+            ("13", "20"),
+            "41",
+        ),
+        gland(
+            "EW-GEN-GLD-M40",
+            ["Cable gland M40, polyamide", "Kabelwartel M40, polyamide"],
+            "m40",
+            ("18", "25"),
+            "50",
+        ),
         // A generic cable, so that a new project creates a cable from the starter set alone (tutorial 2).
         Def {
             number: "EW-GEN-CBL-1",
@@ -1985,7 +2064,7 @@ pub(crate) fn defs() -> Vec<Def> {
                 {"core": "A", "colour": ["GN"]},
                 {"core": "B", "colour": ["RD"]},
                 {"core": "SHIELD", "shield": true},
-            ]})),
+            ], "cable": {"outer_diameter": mm("8")}})),
             unit: Some("m"),
         },
         Def {

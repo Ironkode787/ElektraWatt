@@ -431,3 +431,17 @@ change here.
 - api-add: `layout.feature.add {surface, at, kind, size, purpose?}`, `layout.feature.edit {feature, at?, kind?, size?,
   purpose?, for_cable?}` and `layout.hole_choice {placement | carrier, index, offset?, omit?}`; the normaliser
   `stale_hole_choices` drops a placement's or a carrier's hole choices when its pattern changes
+- behaviour-change: every cable with an end in a cabinet and an end outside it gets a cable gland where it enters the
+  cabinet: the first gland of the workshop stock whose clamping range holds the cable's outer diameter (or the one
+  chosen for it), on the cable's line of the parts list, in the legend of the surface it is placed in, and in the hole
+  table as its gland hole; Draw ▸ Place cable glands puts the cabinet's waiting glands in a row on the side, the top
+  or the bottom shown, their nuts apart by the web between holes. EW-LAY-018 Cable gland says what is not placed, not
+  known or no longer fits (doc 12 §3.9)
+- behaviour-change: the starter library's cable glands EW-GEN-GLD-M16 to -M40 (kind gland, with their thread,
+  clamping range and nut) are in a new project's workshop stock after its ferrules and markers, and the stock takes a
+  gland; the cables EW-GEN-CBL-2, -17 and -25 give their outer diameter. The part editor has a Gland section for a
+  gland's thread, clamping range and nut, on a new part and a part of one's own; a cable type's Diameter is kept in
+  its cable section (an older part's technical value `outer_diameter` is still read, and Save moves it there). A gland
+  is offered by the part chooser only where a gland is asked for
+- behaviour-change: the sample's cabinet has its bottom on page 905 with the glands of -101W1 and -103W1
+- api-add: `layout.glands_place {surface, at, cables}` and the action `layout.glands_place {cables?, x?, y?}`

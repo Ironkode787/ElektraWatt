@@ -358,7 +358,6 @@ impl PartDraft {
         }
         if let Some((m, row)) = crate::part_cable::cable_field(field) {
             return match (m, row) {
-                ("diameter", _) => self.text("tech:outer_diameter"),
                 ("core", Some(i)) => self.cable.table.get(i).map_or("", |r| r.0.as_str()),
                 ("colour", Some(i)) => self.cable.table.get(i).map_or("", |r| r.1.as_str()),
                 _ => self.cable.text(m),
@@ -796,7 +795,7 @@ impl Session {
                 .as_ref()
                 .map(crate::part_plc::rows_of)
                 .unwrap_or_else(crate::part_plc::PlcRows::new_part),
-            cable: crate::part_cable::rows_of(&p.sections.cable_cores, p.sections.bus.as_ref()),
+            cable: crate::part_cable::rows_of_part(p),
             drawn_with: None,
             fndef: None,
             manufacturer: (p.manufacturer.clone(), Vec::new()),
@@ -867,19 +866,19 @@ impl Session {
             if !draft.new && !draft.own {
                 return Err(PartDraftError::Refused(key!("error-part-field")));
             }
-            let found = self.set_cable_field(&mut draft.cable, &mut draft.tech, f, text);
-            draft.messages.retain(|x| {
-                crate::part_cable::cable_field(&x.field).is_none() && x.field != "tech:outer_diameter"
-            });
+            let found = self.set_cable_field(&mut draft.cable, f, text);
+            draft
+                .messages
+                .retain(|x| crate::part_cable::cable_field(&x.field).is_none());
             draft.messages.extend(found);
+            // The outer diameter is a length in millimetres above zero.
             if f.0 == "diameter"
                 && !text.trim().is_empty()
-                && let Err(m) = self.tech_value("outer_diameter", draft.text("tech:outer_diameter"))
+                && crate::output::parse_mm(text).is_none_or(|n| n <= 0)
             {
-                draft.messages.push(DraftMessage {
-                    field: field.to_owned(),
-                    ..m
-                });
+                draft
+                    .messages
+                    .push(message(field, key!("error-part-length"), &[text.trim()]));
             }
             return match draft.message(field) {
                 Some(m) => Err(PartDraftError::Field(m.clone())),

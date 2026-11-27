@@ -49,7 +49,7 @@ mod features;
 
 use assemblies::rail_in_sentence;
 pub use assemblies::{AutoFill, FillOrder, PlaceAssembly};
-pub use features::{AddFeature, EditFeature, HoleChoiceEdit};
+pub use features::{AddFeature, EditFeature, HoleChoiceEdit, PlaceGlands};
 
 /// The layout deletes are `Bulk` when they remove or rehome more than this many placements.
 pub const LAYOUT_BULK_ABOVE: usize = 200;

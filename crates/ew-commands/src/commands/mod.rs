@@ -295,4 +295,5 @@ commands! {
     layout::AddFeature,
     layout::EditFeature,
     layout::HoleChoiceEdit,
+    layout::PlaceGlands,
 }

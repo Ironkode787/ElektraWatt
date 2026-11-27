@@ -847,7 +847,7 @@ fn a_basic_project_without_devices_keeps_only_the_layout_space() {
     let sample_layout: Vec<(&str, usize)> = vec![
         ("layout_space", 1),
         ("enclosure", 1),
-        ("mounting_surface", 2),
+        ("mounting_surface", 3),
         ("carrier", 3),
         ("placement", 26),
     ];

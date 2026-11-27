@@ -2207,6 +2207,25 @@ impl Session {
         }
     }
 
+    /// The cables whose glands wait to be placed in the cabinet of `surface` and have a gland (doc 12 §3.9), in
+    /// natural order of their tags.
+    pub fn waiting_glands(&self, surface: Uuid) -> Vec<Uuid> {
+        let q = self.query();
+        let Some(space) = q
+            .table::<MountingSurface>()
+            .get(Id::from_uuid(surface))
+            .and_then(|s| q.table::<Enclosure>().get(s.enclosure))
+            .map(|e| e.space)
+        else {
+            return Vec::new();
+        };
+        q.get::<ew_derive::layout::CableGlands>(space)
+            .iter()
+            .filter(|g| g.placed.is_none() && g.part.is_ok())
+            .map(|g| g.cable.as_uuid())
+            .collect()
+    }
+
     /// A surface after its cabinet's tag, in words ("-UC1 door"), as the page's Surface row names it.
     pub fn surface_in_words(&self, surface: Uuid) -> Option<crate::Text> {
         let q = self.query();

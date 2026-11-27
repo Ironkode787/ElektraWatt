@@ -24,6 +24,8 @@ navigator "Pages" mode section sort folio filter ""
   row level 2 page "903" "Terminal Diagram 1" generated changed "V1.0"
   row level 2 page "904" "Door" badge "QET 10 px" changed "V1.0"
   row level 2 page "904.1" "Legend of layout 904" generated changed "V1.0"
+  row level 2 page "905" "Bottom" badge "QET 10 px" changed "V1.0"
+  row level 2 page "905.1" "Legend of layout 905" generated changed "V1.0"
   row level 2 page "906" "Cable Overview and Diagrams" generated changed "V1.0"
   row level 2 page "907" "Wire List 1" generated changed "V1.0"
   row level 2 page "907.1" "Wire List 2" generated changed "V1.0"
@@ -79,6 +81,8 @@ navigator "Pages" mode flat sort folio filter ""
   row level 1 page "903" "Terminal Diagram 1" generated changed "V1.0"
   row level 1 page "904" "Door" badge "QET 10 px" changed "V1.0"
   row level 1 page "904.1" "Legend of layout 904" generated changed "V1.0"
+  row level 1 page "905" "Bottom" badge "QET 10 px" changed "V1.0"
+  row level 1 page "905.1" "Legend of layout 905" generated changed "V1.0"
   row level 1 page "906" "Cable Overview and Diagrams" generated changed "V1.0"
   row level 1 page "907" "Wire List 1" generated changed "V1.0"
   row level 1 page "907.1" "Wire List 2" generated changed "V1.0"
@@ -101,7 +105,7 @@ folios 1 100 200 900 101 102 103 104 105 201 902 2 2.1 901 901.1 902.1 902.2 903
 folios 1 100 200 900 101 102 103 104 105 201 902 904 2 2.1 901 901.1 902.1 902.2 903 904.1 906 907 907.1 907.2 908 908.1 909 909.1 910 910.1 911
   row level 1 page "915" "Hole table" generated changed "V1.0"
 ## flat view by type
-folios 1 100 200 900 101 102 103 104 105 201 902 904 2 2.1 901 901.1 902.1 902.2 903 904.1 906 907 907.1 907.2 908 908.1 909 909.1 910 910.1 911 915
+folios 1 100 200 900 101 102 103 104 105 201 902 904 905 2 2.1 901 901.1 902.1 902.2 903 904.1 905.1 906 907 907.1 907.2 908 908.1 909 909.1 910 910.1 911 915
 ## 103 shown, cursor moved down
 +   row level 2 page "1" "Title page" badge "QET 10 px" changed "V1.0"
 +   row level 2 page "103" "Motor" badge "QET 10 px" changed "V1.0" current

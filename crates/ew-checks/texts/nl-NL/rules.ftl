@@ -588,6 +588,15 @@ rule-ew-lay-017 = { $form ->
     }
     .title = Gaten niet bekend
     .hint = Geef het artikel zijn gaten in de artikeleditor (Vooraanzicht en gaten), of kies het artikel van het apparaat.
+rule-ew-lay-018 = { $form ->
+        [no_diameter] de wartel van { $cable } is niet bekend: zijn kabelartikel geeft geen buitendiameter; geef er een, of kies de wartel in de eigenschappen van de kabel
+        [none_seals] geen wartel van de werkplaatsvoorraad dicht { $cable } af, { DECIMAL($od) } mm dik: voeg er een toe aan de voorraad, of kies de wartel in de eigenschappen van de kabel
+        [differs] het wartelgat van { $cable } in { $surface } is { $hole }; zijn wartel is nu { $gland }
+        [no_cable] het gat { $hole } in { $surface } is gemaakt voor een kabel die weg is: verwijder het gat, of houd het als gat
+       *[unplaced] de kabelwartel van { $cable } is niet geplaatst: plaats hem in de onderkant, de bovenkant of een zijwand van zijn kast
+    }
+    .title = Kabelwartel
+    .hint = Plaats de wartel van elke kabel waar de kabel zijn kast binnenkomt, en houd zijn gat op de maat van zijn wartel.
 
 rule-ew-num-001 = { $frozen }: vastgezet, wijkt af van het nummeringsschema (afgeleide waarde { $derived })
     .title = Kenmerk wijkt af van het nummeringsschema

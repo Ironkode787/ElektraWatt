@@ -70,7 +70,7 @@ pub fn space_of_location(q: &Q, location: Id<StructureNode>) -> Option<Id<Layout
 }
 
 /// The device's own location node (its resolved `+` aspect); `None` without one or on a structure cycle.
-fn location_of(q: &Q, device: Id<Device>) -> Option<Id<StructureNode>> {
+pub(crate) fn location_of(q: &Q, device: Id<Device>) -> Option<Id<StructureNode>> {
     q.try_get::<StructureOf>(device).ok()?.node(Aspect::Location)
 }
 

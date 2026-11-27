@@ -198,6 +198,17 @@ pub const PART_SECTIONS: &[PartSection] = &[
         shown: Shown::Own,
     },
     PartSection {
+        word: "gland",
+        rows: &[
+            row("sections.gland.thread"),
+            size("sections.gland.clamp_min"),
+            size("sections.gland.clamp_max"),
+            size("sections.gland.nut"),
+        ],
+        table: None,
+        shown: Shown::Own,
+    },
+    PartSection {
         word: "marker",
         rows: &[
             row("sections.marker.marks"),
@@ -339,11 +350,12 @@ impl PartDraft {
     }
 
     /// Whether the rows of section `word` may be changed: a kind's own section (a wire's, a ferrule's, a marker's)
-    /// only on a project-local part, which `part.edit_copy` lets change them; the size and the front view and holes
-    /// on a part of one's own or a new one (a library part's fork keeps its mechanical data); the others on any part
-    /// the editor saves.
+    /// only on a project-local part, which `part.edit_copy` lets change them; a gland's, the size and the front view
+    /// and holes on a part of one's own or a new one (a library part's fork keeps its mechanical data and its gland
+    /// data); the others on any part the editor saves.
     pub fn section_editable(&self, word: &str) -> bool {
         match part_section(word) {
+            Some(s) if s.word == "gland" => self.own || self.new,
             Some(s) if s.shown == Shown::Own => self.own && !self.fork,
             Some(s) if s.word == "size" || s.word == "front" => self.own || self.new,
             _ => true,
@@ -494,6 +506,27 @@ fn hole_of(field: &str, kind: &str, size: &str) -> Result<Option<Hole>, DraftMes
         let args: Vec<&str> = args.iter().map(String::as_str).collect();
         message(field, why.key(), &args)
     })
+}
+
+/// A gland's section, once begun, needs its thread and its clamping range, the smaller first (doc 12 §3.9).
+fn check_gland(json: &Value) -> Result<(), PartDraftError> {
+    let Some(g) = value_at(json, "sections.gland") else {
+        return Ok(());
+    };
+    let refuse = |field: &str, k: &'static str| Err(PartDraftError::Field(message(field, k, &[])));
+    for m in ["thread", "clamp_min", "clamp_max"] {
+        if g.get(m).is_none_or(Value::is_null) {
+            return refuse(
+                &format!("sections.gland.{m}"),
+                key!("error-part-gland-incomplete"),
+            );
+        }
+    }
+    let n = |m: &str| g.get(m).and_then(Value::as_i64).unwrap_or_default();
+    if n("clamp_min") > n("clamp_max") {
+        return refuse("sections.gland.clamp_max", key!("error-part-gland-range"));
+    }
+    Ok(())
 }
 
 /// Front view and holes written into the part's `json` (doc 07 §5): the imported outline where Import outline… or
@@ -910,6 +943,9 @@ impl Session {
         }
         if draft.section_editable("front") {
             apply_front(draft, &mut json)?;
+        }
+        if draft.section_editable("gland") {
+            check_gland(&json)?;
         }
         *p = serde_json::from_value(json).map_err(|e| {
             PartDraftError::Field(message("rows", key!("error-part-value"), &[&e.to_string()]))

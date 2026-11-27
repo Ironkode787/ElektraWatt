@@ -852,7 +852,10 @@ fn a_file_with_a_scale_of_one_to_zero_opens_and_draws_one_to_one() {
             edited += 1;
         }
     }
-    assert_eq!(edited, 2, "902's and 904's lines are the ones with a scale");
+    assert_eq!(
+        edited, 3,
+        "902's, 904's and 905's lines are the ones with a scale"
+    );
     let mut options = StoreOptions::new("panel-scale-0");
     options.state_dir = Some(state.0.clone());
     let (mut s, _) = Session::open(&dir, options, SessionOptions::default(), Recovery::Discard)

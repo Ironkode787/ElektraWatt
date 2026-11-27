@@ -134,9 +134,9 @@ pub(crate) fn jb4_the_export_script_is_byte_identical_twice_writes_the_cli_pdf_a
         );
         assert!(
             d.contains(&format!(
-                "notifications 1\n  notification 1 \"Exported out.pdf: 9 drawing pages, 3 section divider pages and {} \
+                "notifications 1\n  notification 1 \"Exported out.pdf: 10 drawing pages, 3 section divider pages and {} \
                  report pages, ",
-                pages - 12
+                pages - 13
             )),
             "{d}"
         );
@@ -150,9 +150,9 @@ pub(crate) fn jb4_the_export_script_is_byte_identical_twice_writes_the_cli_pdf_a
         // P-2: the second export of the same file says "again".
         assert!(
             d.contains(&format!(
-                "notification 2 \"Exported out.pdf again: 9 drawing pages, 3 section divider pages and {} report \
+                "notification 2 \"Exported out.pdf again: 10 drawing pages, 3 section divider pages and {} report \
                  pages, ",
-                pages - 12
+                pages - 13
             )),
             "{d}"
         );

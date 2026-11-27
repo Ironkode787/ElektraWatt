@@ -292,3 +292,94 @@ impl Rule for HolesNotKnown {
         out
     }
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// EW-LAY-018
+
+/// EW-LAY-018 "Cable gland" (doc 15): completeness, o r, warning, cabinet (as built: project) (doc 12 §3.9).
+pub const CABLE_GLAND: RuleMeta = RuleMeta {
+    id: "EW-LAY-018",
+    message: key!("rule-ew-lay-018"),
+    code: "130018",
+    kind: RuleKind::Completeness,
+    modes: Modes::letters("or"),
+    severity: Severity::Warning,
+    release_severity: None,
+    scope: ScopeKind::Project,
+    supersedes: &[],
+    release: Release::Mvp,
+};
+
+/// EW-LAY-018: a cable that leaves a cabinet whose gland is not placed (form `unplaced`), whose gland is not known
+/// (`no_diameter`: its part gives no outer diameter; `none_seals`: no stock gland seals it), whose placed hole is not
+/// its gland's thread (`differs`), and a hole made for a cable that serves none any more (`no_cable`).
+#[derive(Clone, Copy, Debug)]
+pub struct CableGland;
+
+impl Rule for CableGland {
+    fn meta(&self) -> &'static RuleMeta {
+        &CABLE_GLAND
+    }
+
+    fn run(&self, q: &Q, scope: &Scope) -> Vec<Finding> {
+        if *scope != Scope::Project {
+            return Vec::new();
+        }
+        let mut out = Vec::new();
+        let features = q.table::<SurfaceFeature>();
+        let hole_text = |h: &ew_schema::Hole| TextArg::Text(ew_derive::text::hole_what(h));
+        for (space, _) in q.table::<ew_schema::LayoutSpace>().iter() {
+            for g in q.get::<ew_derive::layout::CableGlands>(space).iter() {
+                let cable = device_name(q, g.cable);
+                let base = |form: &str, key: String| {
+                    Finding::new(
+                        &CABLE_GLAND,
+                        [Target::new(Kind::Device, g.cable)],
+                        key,
+                        cable.clone(),
+                    )
+                    .arg("form", form)
+                    .arg("cable", cable.clone())
+                };
+                let section = match &g.part {
+                    Err(ew_derive::layout::NoGland::NoDiameter) => {
+                        out.push(base("no_diameter", "no_diameter".to_owned()));
+                        continue;
+                    }
+                    Err(ew_derive::layout::NoGland::NoneSeals { od }) => {
+                        let od = ew_derive::mm_tenth_short(i128::from(od.0));
+                        out.push(base("none_seals", "none_seals".to_owned()).arg("od", od));
+                        continue;
+                    }
+                    Ok(p) => ew_derive::layout::gland_section(q, p),
+                };
+                let Some(f) = g.placed.and_then(|id| features.get(id)) else {
+                    out.push(base("unplaced", "unplaced".to_owned()));
+                    continue;
+                };
+                let wanted = section.map(|s| ew_schema::Hole::Gland(s.thread));
+                if wanted.as_ref().is_some_and(|w| *w != f.hole) {
+                    let w = wanted.expect("a gland");
+                    let finding = base("differs", "differs".to_owned())
+                        .arg("surface", surface_words(q, Some(f.surface)))
+                        .arg("hole", hole_text(&f.hole))
+                        .arg("gland", hole_text(&w));
+                    out.push(shown(finding, q, Some(f.surface)));
+                }
+            }
+        }
+        for (id, f) in features.iter().filter(|(_, f)| f.for_cable && f.cable.is_none()) {
+            let finding = Finding::new(
+                &CABLE_GLAND,
+                [Target::new(Kind::SurfaceFeature, id)],
+                "no_cable",
+                hole_text(&f.hole),
+            )
+            .arg("form", "no_cable")
+            .arg("hole", hole_text(&f.hole))
+            .arg("surface", surface_words(q, Some(f.surface)));
+            out.push(shown(finding, q, Some(f.surface)));
+        }
+        out
+    }
+}

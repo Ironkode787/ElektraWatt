@@ -85,6 +85,7 @@ static IMPLEMENTED: &[&dyn Rule] = &[
     &shipped::layout::AssemblyOrder,
     &shipped::holes::HolesTooClose,
     &shipped::holes::HolesNotKnown,
+    &shipped::holes::CableGland,
     &shipped::mfg::MarkerDoesNotFit,
     &shipped::mfg::EndCannotBeMade,
     &shipped::mfg::EndSetByHandMisfits,

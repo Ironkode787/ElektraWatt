@@ -11,7 +11,7 @@ use crate::common;
 
 use ew_api::{AnyCommand, PartDraftError, Session};
 use ew_ids::Uuid;
-use serde_json::json;
+use serde_json::{Value, json};
 
 fn run(s: &mut Session, cmd: &AnyCommand) -> Result<ew_api::Receipt, ew_api::CmdError> {
     match s.execute(cmd) {
@@ -336,4 +336,122 @@ fn a_parts_front_view_and_holes_are_read_checked_and_saved() {
     ));
     assert!(s.draft_outline_import(&mut lib, &dxf).is_err());
     assert!(!lib.remove_outline());
+}
+
+/// The held copy numbered `number` in `s`.
+fn held(s: &Session, number: &str) -> ew_schema::Part {
+    let q = s.query();
+    q.parts()
+        .iter()
+        .find(|(_, c)| c.item.part_number.as_str() == number)
+        .map(|(_, c)| c.item.clone())
+        .unwrap_or_else(|| panic!("{number} is held"))
+}
+
+/// A gland of one's own made in the part editor (its Gland section's rows), put first in the workshop stock, is the
+/// gland the program proposes for the sample's -101W1 (10.5 mm); a clamping range the wrong way round is refused in
+/// words.
+#[test]
+fn a_gland_of_ones_own_is_made_in_the_editor_and_proposed_for_a_cable() {
+    let mut s = common::sample();
+    let mut d = s.new_part_draft().expect("a new part");
+    d.to_library = false;
+    for (f, v) in [
+        ("manufacturer", "Acme"),
+        ("part_number", "OWN-GLD"),
+        ("kind", "gland"),
+    ] {
+        s.set_draft_field(&mut d, f, v).expect(f);
+    }
+    assert!(d.sections().iter().any(|x| x.word == "gland"));
+    for (f, v) in [
+        ("sections.gland.thread", "m20"),
+        ("sections.gland.clamp_min", "10"),
+        ("sections.gland.clamp_max", "9"),
+        ("sections.gland.nut", "26"),
+    ] {
+        s.set_draft_field(&mut d, f, v).expect(f);
+    }
+    match s.new_part_command(&d) {
+        Err(PartDraftError::Field(m)) => assert_eq!(m.key, "error-part-gland-range"),
+        other => panic!("refused in words: {:?}", other.map(|_| ())),
+    }
+    s.set_draft_field(&mut d, "sections.gland.clamp_max", "11")
+        .expect("a range");
+    let made = s.new_part_command(&d).expect("the new part's command");
+    run(&mut s, &made.command).expect("the part is made");
+    let own = copy_of(&s, "OWN-GLD");
+    let q = s.query();
+    let stock: Vec<Value> = std::iter::once(json!({"copy": own.to_string()}))
+        .chain(
+            q.project()
+                .settings
+                .workshop
+                .stock
+                .iter()
+                .map(|r| json!({"copy": r.copy.to_string()})),
+        )
+        .collect();
+    drop(q);
+    run(
+        &mut s,
+        &AnyCommand {
+            name: "workshop.stock".into(),
+            params: json!({"stock": stock}),
+        },
+    )
+    .expect("the stock");
+    let q = s.query();
+    let space = q
+        .table::<ew_schema::LayoutSpace>()
+        .ids()
+        .next()
+        .expect("the sample's space");
+    let cable = q
+        .devices()
+        .iter()
+        .find(|(id, _)| ew_derive::short_tag(&q, *id) == "-101W1")
+        .map(|(id, _)| id)
+        .expect("-101W1");
+    let glands = q.get::<ew_derive::layout::CableGlands>(space);
+    let g = glands
+        .iter()
+        .find(|g| g.cable == cable)
+        .expect("-101W1 leaves the cabinet");
+    assert_eq!(g.part.as_ref().map(|p| p.copy.as_uuid()), Ok(own));
+}
+
+/// A cable type of one's own: the cable form's Diameter writes `sections.cable.outer_diameter`, which the one reader
+/// gives back, and no technical value; a diameter that is no length is refused in words.
+#[test]
+fn a_cables_outer_diameter_is_kept_in_its_cable_section() {
+    let mut s = common::sample();
+    let mut d = s.new_part_draft().expect("a new part");
+    d.to_library = false;
+    for (f, v) in [
+        ("manufacturer", "Acme"),
+        ("part_number", "OWN-CBL"),
+        ("kind", "cable"),
+    ] {
+        s.set_draft_field(&mut d, f, v).expect(f);
+    }
+    assert_eq!(
+        field_key(s.set_draft_field(&mut d, "cable.diameter", "thick")),
+        "error-part-length"
+    );
+    s.set_draft_field(&mut d, "cable.diameter", "14")
+        .expect("a diameter");
+    let made = s.new_part_command(&d).expect("the new part's command");
+    run(&mut s, &made.command).expect("the part is made");
+    let part = held(&s, "OWN-CBL");
+    let fourteen = ew_units::Nm::from_mm(14);
+    assert_eq!(
+        part.sections.cable.as_ref().and_then(|c| c.outer_diameter),
+        Some(fourteen)
+    );
+    assert!(part.tech_data.iter().all(|t| t.key.as_str() != "outer_diameter"));
+    assert_eq!(ew_derive::layout::cable_outer_diameter(&part), Some(fourteen));
+    // The editor opens it with its diameter.
+    let draft = s.part_draft(copy_of(&s, "OWN-CBL")).expect("its draft");
+    assert_eq!(draft.text("cable.diameter"), "14");
 }

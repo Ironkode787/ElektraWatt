@@ -68,7 +68,9 @@ const VERSION: &str = "0.1.0";
 /// -10, the duct cover EW-GEN-COV-40, the ferrules EW-GEN-FER-… and the markers EW-GEN-MRK-1 to -3) and the terminals,
 /// the duct and the breakers name their accessories, their colour, their variant and their clamps (doc 07 §9.2), 0.22.0
 /// since the pushbuttons and the lamps go in a 22 mm cut-out of a door with their round fronts, the enclosure names its
-/// door, edge margin and usable depth, and the door coupling handle EW-GEN-HDL-1 was added (doc 12 §3.8).
+/// door, edge margin and usable depth, and the door coupling handle EW-GEN-HDL-1 was added (doc 12 §3.8); the cable
+/// glands EW-GEN-GLD-M16 to -M40 were added and the cables EW-GEN-CBL-2, -17 and -25 give their outer diameter (doc 12
+/// §3.9).
 const LIBRARY_VERSION: &str = "0.22.0";
 /// The version of a part not in [`BUMPED`]: 0.1.1 since every part gained its Dutch description.
 const PART_VERSION: &str = "0.1.1";
@@ -109,6 +111,9 @@ const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-LMP-3", "0.1.2"),
     ("EW-GEN-LMP-4", "0.1.2"),
     ("EW-GEN-ENC-1", "0.1.2"),
+    ("EW-GEN-CBL-2", "0.1.2"),
+    ("EW-GEN-CBL-17", "0.1.2"),
+    ("EW-GEN-CBL-25", "0.1.2"),
 ];
 
 /// The accessories of part `number` (doc 07 §2.5, §9.2): the terminals' end plate per strip and end bracket per rail
@@ -632,9 +637,10 @@ fn every_generic_part_is_usable() {
     for doc in parts() {
         let LibDocument::Part(c) = doc else { panic!() };
         let p = &c.item;
-        // A mechanical part a device carries beside its own (the door coupling handle) has no pins and no function.
+        // A mechanical part a device carries beside its own (the door coupling handle) has no pins and no function,
+        // nor has a cable's gland, numbered by its thread (EW-GEN-GLD-M20).
         let mechanical = p.cp_pattern.is_empty() && p.function_template.is_empty() && p.mech.is_some();
-        if is_layout(&p.kind) || mechanical {
+        if is_layout(&p.kind) || mechanical || p.kind == ew_schema::PartKind::Gland {
             continue;
         }
         let n = p.part_number.as_str();

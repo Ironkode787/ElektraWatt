@@ -6,7 +6,7 @@
 //! documents that embed it.
 
 use ew_ids::{Id, Uuid};
-use ew_schema::{LibDocument, Part};
+use ew_schema::{LibDocument, Part, PartKind};
 use serde_json::Value;
 
 use crate::Session;
@@ -106,7 +106,7 @@ impl Session {
     ///
     /// # Errors
     ///
-    /// The refusal in words: no part has the number (`error-part-accessory`), or it is no wire, ferrule or marker
+    /// The refusal in words: no part has the number (`error-part-accessory`), or it is no wire, ferrule, marker or gland
     /// (`refusal-stock-kind`, the command's words).
     pub fn stock_part(&self, number: &str) -> Result<(StockRow, Vec<Value>), crate::Text> {
         let q = self.query();
@@ -114,7 +114,7 @@ impl Session {
         let Some((r, kind, docs)) = self.part_by_number(&q, t) else {
             return Err(text!("error-part-accessory", t));
         };
-        if !kind.is_consumable() {
+        if !kind.is_consumable() && kind != PartKind::Gland {
             return Err(text!("error-stock-kind", t));
         }
         let copy: Id<Part> = ew_ids::v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid());

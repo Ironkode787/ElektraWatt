@@ -34,3 +34,6 @@ data,3,-102S1,Generic,EW-GEN-PB-1,Pushbutton with one normally open contact,1,pc
 data,4,-102S2,Generic,EW-GEN-PB-2,Pushbutton with one normally closed contact,1,pc
 data,5,-104E1,Generic,EW-GEN-LMP-3,"Signal lamp, green",1,pc
 data,6,-104E2,Generic,EW-GEN-LMP-2,"Signal lamp, red",1,pc
+heading,Layout 905,,,,,,
+data,1,-101W1,Generic,EW-GEN-GLD-M20,"Cable gland M20, polyamide",1,pc
+data,2,-103W1,Generic,EW-GEN-GLD-M25,"Cable gland M25, polyamide",1,pc

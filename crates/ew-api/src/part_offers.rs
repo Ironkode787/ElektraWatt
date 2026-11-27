@@ -458,11 +458,13 @@ impl Session {
         let recent_pos = |k: Option<(Uuid, Uuid)>| k.and_then(|k| q.recent.iter().position(|r| *r == k));
         let mut rows: Vec<(Key, PartOffer)> = Vec::new();
         let mut held_items: BTreeSet<(Uuid, Uuid)> = BTreeSet::new();
+        // A cable gland is no device's part (doc 12 §3.9): offered only where a gland is asked for.
+        let glands = q.kinds.iter().any(|k| k == "gland");
         for (id, c) in query.parts().iter() {
             held_items.insert((c.library_id.as_uuid(), c.item_id.as_uuid()));
             let p = &c.item;
             let kind = kind_word(&p.kind);
-            if !q.kinds.is_empty() && !q.kinds.contains(&kind) {
+            if !q.kinds.is_empty() && !q.kinds.contains(&kind) || p.kind == PartKind::Gland && !glands {
                 continue;
             }
             if !category_matches(p.category.as_ref(), &q.category) {
@@ -546,7 +548,7 @@ impl Session {
                 })
             };
             for (pos, h) in hits.into_iter().enumerate() {
-                if held_items.contains(&(h.library, h.item)) {
+                if held_items.contains(&(h.library, h.item)) || h.kind == PartKind::Gland && !glands {
                     continue;
                 }
                 let fit = match (h.same_fndef, h.compatible) {

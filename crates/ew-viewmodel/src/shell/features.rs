@@ -108,6 +108,55 @@ impl ShellModel {
         self.layout_form_done(ACTION, out)
     }
 
+    /// `layout.glands_place {cables?, x?, y?}` (doc 12 §3.9): the glands of `cables` (references separated by commas,
+    /// `tag:-101W1`; absent: every gland that waits in the cabinet) as one `layout.glands_place` on the focused panel
+    /// page's surface, a row to the right from `x`, `y` mm measured from the surface's datum (absent: 10 mm in from its
+    /// bottom-left edge margin). Refused in words as the command refuses.
+    pub(crate) fn act_layout_glands_place(&mut self, p: &Map<String, Value>) -> Outcome {
+        let Some(tables) = self.panel_tables() else {
+            return Outcome::refused(key!("reason-no-panel-page"));
+        };
+        let Some(session) = self.project.as_ref().map(|x| &x.session) else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let text = |name: &str| {
+            p.get(name)
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|t| !t.is_empty())
+        };
+        let cables: Vec<String> = match text("cables") {
+            Some(list) => {
+                let mut out = Vec::new();
+                for r in list.split(',').map(str::trim).filter(|r| !r.is_empty()) {
+                    match session.resolve_reference(r) {
+                        Ok(id) => out.push(id.to_string()),
+                        Err(why) => return Outcome::Refused { reason: why },
+                    }
+                }
+                out
+            }
+            None => session
+                .waiting_glands(tables.surface)
+                .iter()
+                .map(ToString::to_string)
+                .collect(),
+        };
+        if cables.is_empty() {
+            return Outcome::refused(key!("reason-no-glands"));
+        }
+        let mm = |name: &str| text(name).and_then(ew_api::output::parse_mm);
+        let measured = (mm("x").unwrap_or(40_000_000), mm("y").unwrap_or(40_000_000));
+        let (u, v) = session.surface_measured(tables.surface, measured);
+        let (Ok(u), Ok(v)) = (i64::try_from(u), i64::try_from(v)) else {
+            return failed(key!("error-bad-param"), &["x"]);
+        };
+        self.host_create(
+            "layout.glands_place",
+            json!({"surface": tables.surface.to_string(), "at": [u, v], "cables": cables}),
+        )
+    }
+
     /// The title of Add hole here…: "Add a hole to -UC1 door".
     pub fn feature_form_title(&self) -> String {
         let words = self

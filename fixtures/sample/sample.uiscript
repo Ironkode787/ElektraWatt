@@ -806,6 +806,8 @@
 {"action":"ui.dismiss","params":{}}
 {"action":"page.goto","params":{"folio":"902"}}
 {"action":"layout.feature_add","params":{"kind":"fixing","size":"M6","x":"490","y":"40","purpose":"Earth stud"}}
+{"action":"layout.surface_page","params":{"surface":"bottom"}}
+{"action":"layout.glands_place","params":{"cables":"tag:-101W1, tag:-103W1","x":"80","y":"125"}}
 {"action":"report_block.new","params":{"kind":"hole_table","folio":"915"}}
 {"action":"navigator.show","params":{"kind":"connections"}}
 {"action":"navigator.table","params":{"kind":"connections","on":true}}

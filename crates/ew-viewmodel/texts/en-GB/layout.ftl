@@ -344,6 +344,7 @@ feature-form-purpose = For
 feature-form-xy = Give X and Y in millimetres from the corner the surface is measured from.
 feature-form-size-missing = Give the hole's size: a diameter for a hole, M3 to M8 for a fixing, 16, 22 or 30 for a cut-out, M12 to M63 for a gland, width × height for a rectangle.
 reason-no-hole-table = The project has no hole table yet: add one with Report block… (Hole table).
+reason-no-glands = No cable gland of this cabinet waits to be placed.
 surface-chooser-title-of = Which surface of { $p0 }?
 surface-chooser-text = A surface is drawn on a page of its own, as it is seen from the side it is worked from.
 surface-chooser-field = Surface

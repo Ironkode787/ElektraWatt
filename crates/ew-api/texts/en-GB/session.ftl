@@ -7,12 +7,14 @@
 
 error-part-length = "{ $p0 }" is not a length: give millimetres, as 45 or 22.5.
 error-part-hole-incomplete = Hole { $p0 } needs its X, its Y, its kind and its size.
+error-part-gland-incomplete = A gland needs its thread and the smallest and largest cable it seals.
+error-part-gland-range = The largest cable a gland seals cannot be smaller than the smallest.
 error-part-hole-off = Hole { $p0 } at { $p1 }, { $p2 } mm lies off the front, which is { $p3 } × { $p4 } mm: its centre is measured from the front's bottom-left corner.
 error-part-front-round = A round front needs the same Width and Height: give both in Size and mounting, or choose Rectangle.
 error-part-outline-locked = A part from a library keeps its front view: Import outline… changes a project's own part or a new one.
 error-part-outline-unreadable = { $p0 } cannot be read: { $p1 }
 error-part-accessory = No part is numbered { $p0 }
-error-stock-kind = { $p0 } is no wire, ferrule or marker: the stock keeps only those
+error-stock-kind = { $p0 } is no wire, ferrule, marker or cable gland: the stock keeps only those
 error-part-accessory-kind = { $p0 } is no accessory: a wire, ferrule or marker is counted from the wires. Name it in the workshop stock instead (Project properties ▸ Workshop).
 reason-no-terminal-def = The project has no terminal definition to insert
 reason-no-accessory-part = The project has no part for this accessory; embed one first

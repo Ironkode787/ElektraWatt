@@ -1,0 +1,18 @@
+{
+  "$k": "part",
+  "id": "94950e82-8b1d-5afa-95c7-b309fcf9b9e8",
+  "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+  "item_id": "4d2f9701-da81-5ccf-b37d-255d11e68d9e",
+  "version": "0.1.1",
+  "sha256": "sha256:f1c8241f88168bac58df422a1e1ce6429d100680de7b98cc5d6b1683fd502513",
+  "meta": {"key": "EW-GEN-GLD-M25", "licence": "CC0-1.0", "sources": ["ew.original"]},
+  "kind": "gland",
+  "manufacturer": {
+    "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+    "item": "f4260253-4a2b-5c11-a3d6-b01e2aa5efe6",
+    "version_req": "^0.1"
+  },
+  "part_number": "EW-GEN-GLD-M25",
+  "description": {"en": "Cable gland M25, polyamide", "nl": "Kabelwartel M25, polyamide"},
+  "sections": {"gland": {"thread": "m25", "clamp_min": 9000000, "clamp_max": 16000000, "nut": 33000000}}
+}

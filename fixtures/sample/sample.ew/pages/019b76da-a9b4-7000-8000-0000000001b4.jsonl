@@ -1,0 +1,2 @@
+{"$k":"page","id":"019b76da-a9b4-7000-8000-0000000001b4","folio":{"section":"3fe22b07-a984-5440-9502-a377f5109346","number":905},"kind":"panel_layout","structure":{"location":"019b76da-a807-7000-8000-000000000007"},"title":"Bottom","scale":{"one_to":5},"grid":{"num":7937500,"den":3}}
+{"$k":"page_item","id":"019b76da-a9b5-7000-8000-0000000001b5","page":"019b76da-a9b4-7000-8000-0000000001b4","kind":{"surface_view":{"surface":"019b76da-a9b2-7000-8000-0000000001b2","datum_at":[79394675,115306038]}}}

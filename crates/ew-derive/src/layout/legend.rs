@@ -195,6 +195,8 @@ pub enum LegendItem {
     Carrier(Id<Carrier>),
     /// A placement on one of the surface's carriers or on the surface itself.
     Placement(Id<Placement>),
+    /// A cable's gland placed in the surface (doc 12 §3.9): its device the cable, its part the gland.
+    Gland(Id<ew_schema::SurfaceFeature>),
     /// The layout-only accessories of one part (doc 12 §5.4): the derived end brackets on the surface's rails and
     /// what its carriers' parts bring with them (a duct's cover); one row per part (and variant), quantity the number of
     /// brackets plus the carriers' accessories.
@@ -343,6 +345,25 @@ pub fn layout_legend(q: &Q, surface: Id<MountingSurface>) -> Vec<LegendRow> {
     keyed.dedup_by_key(|k| k.2);
     for (_, device, p, part) in keyed {
         push(LegendItem::Placement(p), Some(device), part, Some(Dec3::ONE));
+    }
+
+    // 4a. The cables' glands placed in the surface, in their cables' order.
+    let space = q.table::<Enclosure>().get(s.enclosure).map(|e| e.space);
+    if let Some(space) = space {
+        for g in q.get::<super::CableGlands>(space).iter() {
+            let Some(f) = g
+                .placed
+                .filter(|f| q.idx().features_of_surface(surface).any(|x| x == *f))
+            else {
+                continue;
+            };
+            push(
+                LegendItem::Gland(f),
+                Some(g.cable),
+                g.part.clone().ok(),
+                Some(Dec3::ONE),
+            );
+        }
     }
 
     // 5. The layout-only accessories, one row per part: the end brackets and the carriers' accessories.

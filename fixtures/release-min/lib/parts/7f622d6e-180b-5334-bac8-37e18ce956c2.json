@@ -1,0 +1,18 @@
+{
+  "$k": "part",
+  "id": "7f622d6e-180b-5334-bac8-37e18ce956c2",
+  "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+  "item_id": "2283f055-b4d6-5c9d-8324-95c8f820f506",
+  "version": "0.1.1",
+  "sha256": "sha256:315aa42837a79608ad3b29045db6501183994099b3bbacd4dff26e781ec88c8a",
+  "meta": {"key": "EW-GEN-GLD-M40", "licence": "CC0-1.0", "sources": ["ew.original"]},
+  "kind": "gland",
+  "manufacturer": {
+    "library": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+    "item": "f4260253-4a2b-5c11-a3d6-b01e2aa5efe6",
+    "version_req": "^0.1"
+  },
+  "part_number": "EW-GEN-GLD-M40",
+  "description": {"en": "Cable gland M40, polyamide", "nl": "Kabelwartel M40, polyamide"},
+  "sections": {"gland": {"thread": "m40", "clamp_min": 18000000, "clamp_max": 25000000, "nut": 50000000}}
+}

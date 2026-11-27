@@ -22,9 +22,9 @@ use ew_mltext::MlText;
 use ew_schema::Record;
 use ew_schema::{ReportBlock, ReportKind, ReportSource};
 
-/// The sample's pages without the report engine: the title page, the eight drawn pages and the three section
+/// The sample's pages without the report engine: the title page, the nine drawn pages and the three section
 /// dividers.
-const PAGES_WITHOUT_REPORTS: usize = 12;
+const PAGES_WITHOUT_REPORTS: usize = 13;
 
 /// The ID of the sample's table of contents block (folio 2).
 fn toc_block() -> Id<ReportBlock> {
@@ -67,6 +67,8 @@ fn the_sample_page_order_includes_the_generated_pages_with_two_toc_pages() {
     }
     assert_eq!(labels.last(), Some(&"914.1"));
     for f in ["903", "904", "906", "907", "908", "909", "910", "911", "915"] {
+        "903", "904", "905", "906", "907", "908", "909", "910", "911", "915",
+    ] {
         assert!(labels.contains(&f), "folio {f} is missing");
     }
     assert_eq!(labels.last(), Some(&"915"));
@@ -76,7 +78,7 @@ fn the_sample_page_order_includes_the_generated_pages_with_two_toc_pages() {
     // into 908 and 908.1 (24 channels), the potential overview, the device tag overview and the three workshop lists
     // (912 to 914) into two pages each.
     // The whole order: the sample's pages. The parts list 901 paginates into 901 and 901.1, the legend of the layout
-    // 902 into 902.1 and 902.2, the door's 904 has its legend 904.1, the wire list 907 into 907, 907.1 and 907.2, the
+    // 902 into 902.1 and 902.2, the door's 904 has its legend 904.1 and the bottom's 905 its 905.1, the wire list 907 into 907, 907.1 and 907.2, the
     // PLC overview 908 into 908 and 908.1 (24 channels), the potential overview and the device tag overview into two
     // pages each; the hole table is 915.
     assert_eq!(
@@ -87,6 +89,8 @@ fn the_sample_page_order_includes_the_generated_pages_with_two_toc_pages() {
             "910", "910.1", "911", "912", "912.1", "913", "913.1", "914", "914.1",
             "902", "902.1", "902.2", "903", "904", "904.1", "906", "907", "907.1", "907.2", "908", "908.1",
             "909", "909.1", "910", "910.1", "911", "915",
+            "902", "902.1", "902.2", "903", "904", "904.1", "905", "905.1", "906", "907", "907.1", "907.2",
+            "908", "908.1", "909", "909.1", "910", "910.1", "911", "915",
         ]
     );
 

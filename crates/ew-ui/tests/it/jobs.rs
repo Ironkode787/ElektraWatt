@@ -60,7 +60,7 @@ fn the_save_dialogs_answer_replaces_an_existing_file_through_a_job() {
     let bytes = std::fs::read(&pdf).unwrap();
     assert!(bytes.starts_with(b"%PDF-"), "the file was replaced");
     let kib = bytes.len().div_ceil(1024);
-    // The pages by kind: the sample's title page and its eight drawn pages, the dividers of its three sections, and
+    // The pages by kind: the sample's title page and its nine drawn pages, the dividers of its three sections, and
     // its generated pages, as many as its reports run to.
     let rows = h.state().shell().page_rows().to_vec();
     let reports = rows
@@ -68,7 +68,7 @@ fn the_save_dialogs_answer_replaces_an_existing_file_through_a_job() {
         .filter(|r| ew_viewmodel::ew_api::output::page_kind_name(&r.kind) == "report")
         .count();
     let text = format!(
-        "Exported out.pdf: 9 drawing pages, 3 section divider pages and {reports} report pages, {kib} KiB, in {}.",
+        "Exported out.pdf: 10 drawing pages, 3 section divider pages and {reports} report pages, {kib} KiB, in {}.",
         tmp.0.display()
     );
     assert!(h.query_by_label(&text).is_some(), "the toast");

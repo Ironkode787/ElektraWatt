@@ -259,10 +259,24 @@ impl Session {
         }
         // A cable part's cores from its section, a section left as it was byte for byte; a new one without a
         // description reads as the cable does ("3G1.5 · BN BU GNYE").
-        let held_cable =
-            crate::part_cable::rows_of(&original.sections.cable_cores, original.sections.bus.as_ref());
+        let held_cable = crate::part_cable::rows_of_part(original);
         if p.kind == ew_schema::PartKind::Cable && (draft.new || draft.cable != held_cable) {
             p.sections.cable_cores = self.cable_cores(&draft.cable).map_err(PartDraftError::Field)?;
+            // The outer diameter's one home is the cable section (doc 12 §3.9); an older part's technical value goes.
+            let diameter = crate::output::parse_mm(&draft.cable.diameter)
+                .filter(|n| *n > 0)
+                .and_then(|n| i64::try_from(n).ok())
+                .map(ew_units::Nm);
+            let mut cable = p.sections.cable.take().unwrap_or_default();
+            cable.outer_diameter = diameter;
+            p.sections.cable = (cable != ew_schema::CableSection::default()).then_some(cable);
+            let old = p
+                .tech_data
+                .iter()
+                .filter(|t| t.key.as_str() != crate::part_cable::OLD_DIAMETER)
+                .cloned()
+                .collect();
+            p.tech_data = ew_schema::KeyedList::from_vec(old).unwrap_or_default();
             // The bus systems the cable is made for (New bus cable…), beside the ports the section keeps.
             let cable_for: Vec<ew_schema::BusSystem> = draft
                 .cable

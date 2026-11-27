@@ -3,7 +3,9 @@
 
 //! The cable section of a cable part as a form (New cable type…): the number of cores, the cross-section, with
 //! or without a protective conductor, how the cores are marked, shielded or not, as texts checked one by one, and the
-//! cable as it will read (`3G1.5 · BN BU GNYE`). The outer diameter is the technical value `outer_diameter`.
+//! cable as it will read (`3G1.5 · BN BU GNYE`). The outer diameter is the part's `sections.cable.outer_diameter`, read
+//! through `ew_derive::layout::cable_outer_diameter` (which takes an older part's technical value `outer_diameter`); Save
+//! writes the section and leaves the technical value out.
 //!
 //! **How the cores are marked.** `hd308`: the harmonised colours of HD 308 S2 up to five cores, numbered black cores
 //! beyond (the Cable form's written type, [`crate::window::written_cores`]); `numbers`: numbered black cores, the
@@ -67,8 +69,8 @@ fn paired(bus: &str) -> bool {
 /// How the cores of a cable are marked, as `cable.marking` spells it.
 pub const CABLE_MARKINGS: [&str; 3] = ["hd308", "numbers", "own"];
 
-/// The technical value that holds a cable's outer diameter.
-const DIAMETER: &str = "outer_diameter";
+/// The technical value that held a cable's outer diameter before its section did: Save leaves it out.
+pub(crate) const OLD_DIAMETER: &str = "outer_diameter";
 
 /// The most cores the form takes.
 const MAX_CORES: usize = 99;
@@ -90,6 +92,8 @@ pub struct CableRows {
     pub shield: bool,
     /// The bus systems the cable is made for, as the file spells them, separated by spaces; empty for none.
     pub bus: String,
+    /// The outer diameter in millimetres, as typed; empty for none.
+    pub diameter: String,
 }
 
 impl CableRows {
@@ -103,6 +107,7 @@ impl CableRows {
             table: Vec::new(),
             shield: false,
             bus: String::new(),
+            diameter: String::new(),
         }
     }
 
@@ -137,6 +142,7 @@ impl CableRows {
             "pe" => yes(self.pe),
             "marking" => &self.marking,
             "shield" => yes(self.shield),
+            "diameter" => &self.diameter,
             _ => "",
         }
     }
@@ -269,6 +275,16 @@ pub(crate) fn cable_field(field: &str) -> Option<(&'static str, Option<usize>)> 
     CABLE_MEMBERS.into_iter().find(|x| *x == rest).map(|m| (m, None))
 }
 
+/// The cable section of a held part ([`rows_of`]) with its outer diameter in millimetres.
+pub(crate) fn rows_of_part(p: &ew_schema::Part) -> CableRows {
+    CableRows {
+        diameter: ew_derive::layout::cable_outer_diameter(p)
+            .map(|d| ew_derive::mm_exact(i128::from(d.0)))
+            .unwrap_or_default(),
+        ..rows_of(&p.sections.cable_cores, p.sections.bus.as_ref())
+    }
+}
+
 /// The cable section of a held part's cores (`cable_cores`): the count and the common cross-section of its cores, a
 /// green-yellow core as the protective conductor, the marking that gives exactly these cores (else the own marking
 /// with them in its table), a shield, and the bus systems of its bus section's `cable_for`.
@@ -317,6 +333,7 @@ pub(crate) fn rows_of(cores: &[CableCore], bus: Option<&BusSection>) -> CableRow
             .collect(),
         shield: cores.iter().any(|c| c.shield),
         bus,
+        diameter: String::new(),
     };
     let held: Vec<(String, Vec<String>)> = plain
         .iter()
@@ -338,12 +355,10 @@ pub(crate) fn rows_of(cores: &[CableCore], bus: Option<&BusSection>) -> CableRow
 
 impl Session {
     /// Sets member `m` (row `row` of the own marking's table) of the cable section `rows` to `text`, the table kept in
-    /// step with the count and the marking; the diameter is set as the technical value `outer_diameter` of `tech`
-    /// (a bare number in millimetres). Every member's message again, in the form's order.
+    /// step with the count and the marking. Every member's message again, in the form's order.
     pub(crate) fn set_cable_field(
         &self,
         rows: &mut CableRows,
-        tech: &mut Vec<(String, String)>,
         (m, row): (&str, Option<usize>),
         text: &str,
     ) -> Vec<DraftMessage> {
@@ -366,18 +381,7 @@ impl Session {
             ("pe", _) => rows.pe = t == "true",
             ("shield", _) => rows.shield = t == "true",
             ("marking", _) => rows.marking = t.to_owned(),
-            ("diameter", _) => {
-                tech.retain(|(k, _)| k != DIAMETER);
-                if !t.is_empty() {
-                    let mm = if t.chars().all(|c| c.is_ascii_digit() || c == '.' || c == ',') {
-                        format!("{} mm", t.replace(',', "."))
-                    } else {
-                        t.to_owned()
-                    };
-                    tech.push((DIAMETER.to_owned(), mm));
-                    tech.sort_by(|a, b| a.0.cmp(&b.0));
-                }
-            }
+            ("diameter", _) => rows.diameter = text.to_owned(),
             ("core", Some(i)) => {
                 if let Some(r) = rows.table.get_mut(i) {
                     r.0 = text.to_owned();

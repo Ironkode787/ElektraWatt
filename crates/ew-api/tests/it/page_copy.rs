@@ -247,11 +247,12 @@ fn a_copy_of_three_pages_keeps_its_devices_strips_cables_and_bond_together() {
     );
     drop(q);
     // No rule finds on the copy what it does not find on the original, but that the copy's devices are not in the
-    // cabinet layout of 902 (EW-LAY-001), which a copy of pages leaves to be laid out on its own (doc 06 §3.6).
+    // cabinet layout of 902 (EW-LAY-001) and its cables' glands are not placed (EW-LAY-018), which a copy of pages
+    // leaves to be laid out on its own (doc 06 §3.6).
     let after_rules = rules(&s);
     let new: Vec<&String> = after_rules.difference(&before_rules).collect();
     assert!(
-        new.iter().all(|r| *r == "EW-LAY-001"),
+        new.iter().all(|r| *r == "EW-LAY-001" || *r == "EW-LAY-018"),
         "new kinds of finding: {new:?}"
     );
     // One undo step takes the copy away.

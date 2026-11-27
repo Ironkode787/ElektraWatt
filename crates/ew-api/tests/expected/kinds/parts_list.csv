@@ -1,6 +1,8 @@
 row,Device,Qty,Unit,Manufacturer,Part number,Description
 data,-101W1,10,m,Generic,EW-GEN-CBL-17,"Cable 5G2.5 mm², cores brown, black, grey, blue and green-yellow"
+data,-101W1,1,pc,Generic,EW-GEN-GLD-M20,"Cable gland M20, polyamide"
 data,-103W1,5,m,Generic,EW-GEN-CBL-25,"Cable 4G2.5 mm², cores brown, black, grey and green-yellow, shielded"
+data,-103W1,1,pc,Generic,EW-GEN-GLD-M25,"Cable gland M25, polyamide"
 data,-105W1,8,m,Generic,EW-GEN-CBL-2,"PROFIBUS cable, 2 cores green and red, shielded"
 data,-101F1,1,pc,Generic,EW-GEN-MCB-4,"Miniature circuit breaker, 2 poles"
 data,-101G1,1,pc,Generic,EW-GEN-PSU-1,"Power supply unit, AC to DC"

@@ -343,6 +343,7 @@ feature-form-purpose = Voor
 feature-form-xy = Geef X en Y in millimeter vanaf de hoek waarvandaan het vlak gemeten wordt.
 feature-form-size-missing = Geef de grootte van het gat: een diameter voor een gat, M3 tot M8 voor een bevestiging, 16, 22 of 30 voor een uitsparing, M12 tot M63 voor een wartel, breedte × hoogte voor een rechthoek.
 reason-no-hole-table = Het project heeft nog geen gatentabel: voeg er een toe met Rapportblok… (Gatentabel).
+reason-no-glands = Geen kabelwartel van deze kast wacht op plaatsing.
 surface-chooser-title-of = Welk vlak van { $p0 }?
 surface-chooser-text = Een vlak wordt op een eigen pagina getekend, gezien vanaf de kant waar eraan gewerkt wordt.
 surface-chooser-field = Vlak

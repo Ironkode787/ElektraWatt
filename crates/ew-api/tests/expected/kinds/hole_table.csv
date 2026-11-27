@@ -19,3 +19,6 @@ data,Door,H5,360,560,Ø 22.3,Cut-out 22 mm,-104E2
 data,Door,H6,300,560,Ø 22.3,Cut-out 22 mm,-104E1
 data,Door,H7,240,560,Ø 22.3,Cut-out 22 mm,-102E1
 data,Door,H8,137.5,622.5,Ø 22.3,Cut-out 22 mm,-101Q1
+heading,"Bottom, page 905, seen from below; the door's edge at the top, measured from the bottom-left corner",,,,,,
+data,Bottom,H1,80,125,Ø 20.5,Gland M20,-101W1
+data,Bottom,H2,115,125,Ø 25.5,Gland M25,-103W1

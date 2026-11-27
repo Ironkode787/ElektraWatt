@@ -271,6 +271,7 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<ew_derive::layout::PlacementGeometry>(memo, cold, keys.placements.iter().copied(), o);
     // The holes of every surface (doc 12-3d §10.4).
     check::<ew_derive::layout::SurfaceFeatures>(memo, cold, keys.surfaces.iter().copied(), o);
+    check::<ew_derive::layout::CableGlands>(memo, cold, keys.spaces.iter().copied(), o);
     check::<ew_derive::layout::LayoutLabel>(
         memo,
         cold,

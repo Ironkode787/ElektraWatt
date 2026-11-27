@@ -324,7 +324,7 @@ fn create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosure()
         json!({"kind": "location", "designation": "J-E-999"}),
     );
     let surfaces_before = surfaces(&s);
-    assert_eq!(surfaces_before.len(), 2, "-UC1's plate and door");
+    assert_eq!(surfaces_before.len(), 3, "-UC1's plate, door and bottom");
     let rev = s.revision();
     done(
         &mut s,
@@ -333,7 +333,7 @@ fn create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosure()
     );
     assert!(s.dialog().is_none());
     let plates = surfaces(&s);
-    assert_eq!(plates.len(), 3, "one plate more: {plates:?}");
+    assert_eq!(plates.len(), 4, "one plate more: {plates:?}");
     let plate = plates
         .iter()
         .find(|n| !surfaces_before.contains(n))
@@ -1251,4 +1251,9 @@ fn the_surface_row_chooses_a_surface_by_its_id() {
 }
 
 /// The Surface row's choices on the sample with the enclosure of +J-E-999 added.
-const SURFACE_WORDS: [&str; 3] = ["-UC1 mounting plate", "-UC1 door", "-UC2 mounting plate"];
+const SURFACE_WORDS: [&str; 4] = [
+    "-UC1 mounting plate",
+    "-UC1 door",
+    "-UC1 bottom",
+    "-UC2 mounting plate",
+];

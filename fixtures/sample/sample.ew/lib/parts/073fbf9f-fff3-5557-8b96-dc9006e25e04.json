@@ -3,8 +3,8 @@
   "id": "073fbf9f-fff3-5557-8b96-dc9006e25e04",
   "library_id": "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
   "item_id": "a955327b-5852-5e8c-a6dc-a2be640e1fb8",
-  "version": "0.1.1",
-  "sha256": "sha256:73a4f382673cc47b8f1488b40e77711dde2e3f3a2991b29d35d7fd9444854370",
+  "version": "0.1.2",
+  "sha256": "sha256:7891b264e3c28129508d36b43ec8642ca55edcdd06b6412366006725217917dc",
   "meta": {"key": "EW-GEN-CBL-25", "licence": "CC0-1.0", "sources": ["ew.original"]},
   "kind": "cable",
   "manufacturer": {
@@ -25,6 +25,7 @@
       {"core": "GY", "colour": ["GY"], "csa": "2.5"},
       {"core": "GNYE", "colour": ["GN", "YE"], "csa": "2.5"},
       {"core": "SHIELD", "shield": true}
-    ]
+    ],
+    "cable": {"outer_diameter": 12500000}
   }
 }
