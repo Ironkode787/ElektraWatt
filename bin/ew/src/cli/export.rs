@@ -1524,7 +1524,7 @@ pub(crate) struct LabelsCli {
     /// Only the labels the rework list against this archive file names.
     #[arg(long, value_name = "file", allow_hyphen_values = true)]
     pub(super) archive: Option<PathBuf>,
-    /// The format: csv (default) or xlsx.
+    /// The format: csv or xlsx (default: the label file's profile, Excel unless it says CSV).
     #[arg(long, value_name = "format", allow_hyphen_values = true, overrides_with = "format", value_parser = table_format())]
     pub(super) format: Option<ReportPages>,
     /// The folder to write into (required).

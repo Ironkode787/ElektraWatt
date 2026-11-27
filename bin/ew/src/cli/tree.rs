@@ -978,9 +978,9 @@ pub(crate) enum ExportCli {
     /// Writes the project's labels (doc 13 §5.4) into the folder `--dir` (required, made when missing): one file per
     /// label set and marker part, named by the drawing's number, the set and the marker part's number, in the columns
     /// of the project's export profile (else the generic one: Text 1, Text 2, Text 3, Copies, For), each written whole.
-    /// `--since <revision>` writes only the labels the rework list against that release names. `--format xlsx` writes
-    /// workbooks of one sheet; the CSV has a byte-order mark, CR LF and the profile's delimiter, its values as they
-    /// are. Exit 0 when written, 2 on everything else (usage, open errors, no such release or its archive not found,
+    /// `--since <revision>` writes only the labels the rework list against that release names. The files are in the
+    /// profile's form, Excel unless the profile says CSV; `--format csv|xlsx` sets it for this export. A workbook has
+    /// one sheet; a CSV has a byte-order mark, CR LF and the profile's delimiter, its values as they are. Exit 0 when written, 2 on everything else (usage, open errors, no such release or its archive not found,
     /// write errors).
     Labels(LabelsCli),
     /// Write the drawings for drilling: per surface with holes a template and a DXF.
