@@ -231,7 +231,8 @@ fn a_part_of_one_s_own_puts_its_holes_on_the_door_s_drawings() {
 }
 
 /// In a Dutch project the label files and the drawings for drilling are named in Dutch, in the words the window uses
-/// for the same things, as the lists' files are: no English name is left in them.
+/// for the same things, as the lists' files are: no English name is left in them; the template's sheets and the DXF
+/// write their words in Dutch as well.
 #[test]
 fn a_dutch_project_names_its_label_files_and_drawings_for_drilling_in_dutch() {
     let mut s = common::sample();
@@ -255,12 +256,8 @@ fn a_dutch_project_names_its_label_files_and_drawings_for_drilling_in_dutch() {
         dxf: true,
         date: None,
     };
-    let drilling: Vec<String> = s
-        .drilling_files(&ask)
-        .expect("the drawings")
-        .into_iter()
-        .map(|f| f.name)
-        .collect();
+    let files = s.drilling_files(&ask).expect("the drawings");
+    let drilling: Vec<String> = files.iter().map(|f| f.name.clone()).collect();
     assert!(
         drilling.iter().any(|n| n.ends_with(" Deur boormal.pdf")),
         "{drilling:?}"
@@ -271,4 +268,30 @@ fn a_dutch_project_names_its_label_files_and_drawings_for_drilling_in_dutch() {
             .any(|n| n.contains("Door") || n.contains("template")),
         "{drilling:?}"
     );
+    // The template's sheets print their words in Dutch: the sheet's place, the hole table's corner, the 100 mm bar and
+    // the edges to lay it on; the DXF's datum too.
+    let pdf = files
+        .iter()
+        .find(|f| f.name.ends_with(".pdf"))
+        .expect("the template");
+    let runs: Vec<String> = crate::pdf_read::PdfFile::parse(&pdf.bytes)
+        .and_then(|f| f.pages())
+        .expect("the template reads back")
+        .into_iter()
+        .flat_map(|p| p.runs.into_iter().map(|r| r.text))
+        .collect();
+    for dutch in [
+        "Blad 1 van 5, rij ",
+        "Gatentabel: X en Y vanaf de hoek",
+        "100 mm: print op ware grootte",
+        "kant van de deur: leg deze kant ertegen",
+    ] {
+        assert!(runs.iter().any(|r| r.contains(dutch)), "{dutch}: {runs:#?}");
+    }
+    for english in ["Sheet ", "Hole table", "actual size", "lay this edge"] {
+        assert!(!runs.iter().any(|r| r.contains(english)), "{english}: {runs:#?}");
+    }
+    let dxf = files.iter().find(|f| f.name.ends_with(".dxf")).expect("the DXF");
+    let dxf = String::from_utf8(dxf.bytes.clone()).expect("UTF-8");
+    assert!(dxf.contains("0,0: hoek "), "the datum in Dutch");
 }

@@ -32,7 +32,8 @@ The command line: `ew export drilling --dir <folder> [--surface <words or ID>]â€
 ### 9.1 The drawings for drilling (FR-MFG-028)
 
 **The template**, `<location> <surface> template.pdf` ("+CAB Door template.pdf", in the project's language), is the
-surface at full size (1:1 on paper), seen from the side its page shows it, over as many sheets as it needs:
+surface at full size (1:1 on paper), seen from the side its page shows it, over as many sheets as it needs; every word
+on its sheets is in the project's language:
 
 | Item | How |
 |---|---|

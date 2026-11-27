@@ -21,7 +21,6 @@ use ew_l10n::{List, Text, TextArg};
 use ew_schema::{Corner, Enclosure, Hinge, LayoutSpace, MountingSurface, SurfaceKind};
 use ew_units::{Nm, Pt2, Rect};
 
-use super::print::in_print_language;
 use crate::Session;
 
 /// A surface the Drilling… dialog offers: its words, its page, how many holes and how many printed sheets its
@@ -221,7 +220,8 @@ impl Session {
     pub fn drilling_files(&self, ask: &DrillingAsk) -> Result<Vec<DrillingFile>, String> {
         let q = self.query();
         let lang = print_language(&q);
-        let words = |t: &Text| in_print_language(t, lang.as_ref());
+        // Every word of the drawings is the derivation's, rendered from its own texts in the project's language.
+        let words = |t: &Text| ew_derive::text::name_in(t, lang.as_ref());
         let mut out = Vec::new();
         for id in &ask.surfaces {
             let id: Id<MountingSurface> = Id::from_uuid(*id);
