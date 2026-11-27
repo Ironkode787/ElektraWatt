@@ -217,6 +217,19 @@ fn set_at(v: &mut Value, path: &str, value: Value) {
     set(v, &members, value);
 }
 
+/// Whether a sheet's group shown on demand holds a value.
+type Holds = fn(&PartSheet) -> bool;
+
+/// The groups a sheet shows only on demand (doc 07 §5.4), each with whether it holds a value: the network ports and the
+/// PLC section, which a part shows where its start asked for them, where they hold a value or where the person added
+/// them from the contents list ([`PartSheet::groups_to_add`]).
+static ON_DEMAND: [(Group, Holds); 2] = [
+    (Group::Ports, |s| !s.bus.is_empty()),
+    (Group::Plc, |s| {
+        !s.plc.role.is_empty() || s.original.sections.plc.is_some()
+    }),
+];
+
 impl PartSheet {
     /// The pins' table of Connections follows the pins (doc 07 §5.4): one row per pin in the pins' order, named by it; a
     /// pin's row keeps its texts, a new pin's row is empty but for its name, and a pin removed takes its row with it.
@@ -258,6 +271,7 @@ impl PartSheet {
     /// them; the cable's form for a cable; the network ports and the PLC section where the start asked for them
     /// (doc 07 §5.5), where they hold a value, or where the person added them ([`PartSheet::groups_to_add`]).
     pub fn sections(&self) -> Vec<Group> {
+        // A group shown on demand: where the start asks for it or the person added it, else where it holds a value.
         let part = self.of_kind();
         let asks =
             |g: Group| self.start.is_some_and(|start| start.asks.contains(&g)) || self.added.contains(&g);
@@ -266,16 +280,15 @@ impl PartSheet {
             .filter(|f| match f.group {
                 Group::Identity | Group::Technical | Group::About => false,
                 Group::Schematic | Group::Cable => true,
-                Group::Ports => asks(Group::Ports) || !self.bus.is_empty(),
-                Group::Plc => {
-                    asks(Group::Plc) || !self.plc.role.is_empty() || self.original.sections.plc.is_some()
-                }
-                _ => {
-                    declared_rows().any(|r| r.path == f.path)
-                        || declared_tables()
-                            .iter()
-                            .any(|t| f.path.starts_with(&format!("{}[]", t.path)))
-                }
+                g => match ON_DEMAND.iter().find(|(d, _)| *d == g) {
+                    Some((_, holds)) => asks(g) || holds(self),
+                    None => {
+                        declared_rows().any(|r| r.path == f.path)
+                            || declared_tables()
+                                .iter()
+                                .any(|t| f.path.starts_with(&format!("{}[]", t.path)))
+                    }
+                },
             })
             .map(|f| f.group)
             .chain([Group::Identity, Group::Technical])
@@ -286,12 +299,13 @@ impl PartSheet {
     }
 
     /// The groups a part of the draft's kind may have that the sheet does not show yet, which its contents list offers
-    /// to add: network ports and a PLC section, which a device shows only where it has them.
+    /// to add: the groups shown on demand ([`ON_DEMAND`]) that it has not.
     pub fn groups_to_add(&self) -> Vec<Group> {
         let part = self.of_kind();
         let shown = self.sections();
-        [Group::Ports, Group::Plc]
-            .into_iter()
+        ON_DEMAND
+            .iter()
+            .map(|(g, _)| *g)
             .filter(|g| !shown.contains(g))
             .filter(|g| {
                 ew_derive::part_fields::fields_of(&part)
