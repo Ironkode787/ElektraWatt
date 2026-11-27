@@ -766,8 +766,9 @@ pub struct ShellModel {
     field_renamed: Option<String>,
     /// The title block's cell whose Shows asked New field of your own…: the field made is given to it.
     frame_field_cell: Option<usize>,
-    /// The import and re-import cards and their jobs.
-    import: projects::ImportState,
+    /// The import and re-import cards and their jobs; on the heap, as the first-run flow's state, so that a shell
+    /// moved by value (a test holds many) stays small.
+    import: Box<projects::ImportState>,
     /// Bumped on every opening of a dialog: the window gives a dialog opened again, even as the same kind, its first
     /// focus.
     dialog_gen: u64,
@@ -780,8 +781,8 @@ pub struct ShellModel {
     record: Record,
     quit: bool,
     origin_file: String,
-    /// The first-run flow, the start-up offer and the company-standard wizard.
-    onboarding: onboarding::OnboardingState,
+    /// The first-run flow, the start-up offer and the company-standard wizard, on the heap.
+    onboarding: Box<onboarding::OnboardingState>,
     /// The dock layout of the project view and the workspace it belongs to.
     panes: workspaces::PaneLayoutState,
     /// The documentation page F1 asked for and the window has not opened yet.
@@ -1246,7 +1247,7 @@ impl ShellModel {
             form_target: None,
             field_renamed: None,
             frame_field_cell: None,
-            import: projects::ImportState::default(),
+            import: Box::default(),
             dialog_gen: 0,
             dialog_refusal: None,
             reported: said::Reported::default(),
@@ -1254,7 +1255,7 @@ impl ShellModel {
             record: Record::default(),
             quit: false,
             origin_file: "ui-script".to_owned(),
-            onboarding: onboarding::OnboardingState::default(),
+            onboarding: Box::default(),
             panes: workspaces::PaneLayoutState {
                 layout: Layout::schematic(),
                 bottom_closed: Vec::new(),
