@@ -376,7 +376,19 @@ impl Command for PlaceGlands {
                 .ok()
                 .and_then(|p| ew_derive::layout::gland_section(&q, p))
             else {
-                return tx.reject(text!("refusal-layout-gland-unknown", tag));
+                // What the gland's part lacks for it, else the cable's part (its outer diameter): Edit part… opens it.
+                let copies = q.table::<ew_schema::LibCopy<ew_schema::Part>>();
+                let of = |p: &ew_schema::PartRef| {
+                    let c = copies.get(p.copy)?;
+                    ew_derive::part_fields::PartLack::of(p.copy, &c.item, ew_derive::part_fields::Feature::GlandChoice)
+                };
+                let lack = match &g.part {
+                    Ok(p) => of(p),
+                    Err(_) => (q.table::<ew_schema::Device>().get(*cable))
+                        .and_then(|d| ew_derive::layout::cable_part_use(&q, &d))
+                        .and_then(|p| of(&p)),
+                };
+                return tx.reject_lacking(text!("refusal-layout-gland-unknown", tag), lack);
             };
             sections.push(section);
         }
