@@ -1633,6 +1633,30 @@ pub fn section_header(kind: &str, n: usize) -> String {
     format!("{} ({n})", strings::kinds_heading(kind))
 }
 
+/// What a sheet without a section says in place of its rows, in the UI language: that what it showed is gone, that
+/// nothing is selected, or that the selected records share no field, each kind with its count and its word ("No
+/// common fields: the selection holds 2 symbols, 1 page item").
+pub fn empty_sheet_text(sheet: &PropertySheet) -> String {
+    if sheet.missing > 0 && sheet.header.items == 0 {
+        return strings::text(key!("props-gone-title")).to_owned();
+    }
+    if sheet.header.items == 0 {
+        return strings::text(key!("props-empty")).to_owned();
+    }
+    let kinds: Vec<String> = sheet
+        .header
+        .kinds
+        .iter()
+        .map(|(kind, n)| {
+            strings::format(
+                key!("props-header-many"),
+                &[&n.to_string(), &kind_plural(kind, *n)],
+            )
+        })
+        .collect();
+    strings::format(key!("props-none"), &[&kinds.join(", ")])
+}
+
 /// The default value of a new list item of type `ty` (`props.list` `add`).
 pub fn item_default(ty: &FieldType) -> Value {
     match ty.inner() {
@@ -2221,7 +2245,8 @@ pub fn header_in_words(sheet: &mut PropertySheet) {
     // A selection of several records is titled by its first section's count and kind in the UI
     // language ("2 apparaten"), as the card lines are (FT52i), or by its count when it has no section.
     let picked: usize = sheet.header.kinds.iter().map(|(_, n)| n).sum();
-    if picked > 1 {
+    // Nothing picked ("0 items") is counted in words too.
+    if picked != 1 {
         sheet.header.title = match sheet.sections.first() {
             Some(s) => strings::format(
                 key!("props-header-many"),
@@ -2713,6 +2738,40 @@ mod tests {
             [section_header("device", 2), section_header("potential_def", 3)],
             ["Apparaten (2)", "Potentiaaldefinities (3)"]
         );
+        assert!(strings::set_locale("en"));
+    }
+
+    /// A selection whose records share no field names each kind with its count in the UI language, never by its code
+    /// word; nothing selected is counted in words as well.
+    #[test]
+    fn a_selection_without_common_fields_names_its_kinds_in_words() {
+        let sheet = |kinds: Vec<(&str, usize)>| PropertySheet {
+            rev: 0,
+            header: ew_api::output::SheetHeader {
+                title: "0 items".to_owned(),
+                items: kinds.iter().map(|(_, n)| n).sum(),
+                kinds: kinds.into_iter().map(|(k, n)| (k.to_owned(), n)).collect(),
+                ..Default::default()
+            },
+            sections: Vec::new(),
+            missing: 0,
+            read_only: None,
+            languages: Vec::new(),
+        };
+        let mixed = sheet(vec![("representation", 2), ("page_item", 1)]);
+        assert_eq!(
+            empty_sheet_text(&mixed),
+            "No common fields: the selection holds 2 symbols, 1 page item"
+        );
+        assert!(strings::set_locale("nl"));
+        let words = empty_sheet_text(&mixed);
+        assert!(
+            !words.contains("page_item") && !words.contains("representation"),
+            "{words}"
+        );
+        let mut none = sheet(Vec::new());
+        header_in_words(&mut none);
+        assert_eq!(none.header.title, "0 elementen");
         assert!(strings::set_locale("en"));
     }
 

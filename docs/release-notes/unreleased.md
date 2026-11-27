@@ -642,3 +642,6 @@ change here.
 - behaviour-change: a length in Properties reads as the shortest millimetres with its unit and the project's decimal
   separator, set or unset ("250 mm", "7,5 mm"); a set one read as a bare number with three decimals ("250.000"), as
   the workshop's Cut to, Reserve per end and Door loop did
+- text-change: a selection whose records share no field names each kind with its count in the window's language
+  ("No common fields: the selection holds 2 symbols, 1 page item"); it listed the kinds' code words
+  (`representation, page_item`), and nothing selected reads "0 elementen" in Dutch, not "0 items"

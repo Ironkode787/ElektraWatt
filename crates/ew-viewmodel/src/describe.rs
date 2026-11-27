@@ -695,14 +695,7 @@ fn properties_lines(model: &ShellModel, lines: &mut Vec<String>) {
         lines.push(format!("properties missing {}", sheet.missing));
     }
     if sheet.sections.is_empty() {
-        let reason = if sheet.missing > 0 && sheet.header.items == 0 {
-            strings::text(key!("props-gone-title")).to_owned()
-        } else if sheet.header.items == 0 {
-            strings::text(key!("props-empty")).to_owned()
-        } else {
-            let kinds: Vec<String> = sheet.header.kinds.iter().map(|(k, _)| k.clone()).collect();
-            strings::format(key!("props-none"), &[&kinds.join(", ")])
-        };
+        let reason = crate::properties::empty_sheet_text(sheet);
         lines.push(format!("properties none \"{}\"", user(&reason)));
     }
     let collapsed = model.properties_collapsed();

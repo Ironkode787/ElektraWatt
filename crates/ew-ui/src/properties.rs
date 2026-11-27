@@ -232,15 +232,7 @@ impl PropertiesPane {
                 self.filter_field(ui, shell, events);
             }
             if sheet.sections.is_empty() {
-                let text = if sheet.missing > 0 && sheet.header.items == 0 {
-                    strings::text(key!("props-gone-title")).to_owned()
-                } else if sheet.header.items == 0 {
-                    strings::text(key!("props-empty")).to_owned()
-                } else {
-                    let kinds: Vec<String> = sheet.header.kinds.iter().map(|(k, _)| k.clone()).collect();
-                    strings::format(key!("props-none"), &[&kinds.join(", ")])
-                };
-                ui.label(text);
+                ui.label(ew_viewmodel::properties::empty_sheet_text(sheet));
                 return;
             }
             let focused = shell.properties_row();
