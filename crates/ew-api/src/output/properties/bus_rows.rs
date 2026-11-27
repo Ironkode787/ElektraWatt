@@ -70,7 +70,10 @@ impl Session {
     pub fn next_free_address(&self, function: Uuid) -> Option<Value> {
         let q = self.query();
         let address = crate::checks::rules::bus::next_free_address(&q, Id::from_uuid(function))?;
-        serde_json::to_value(ew_schema::AddrValue::Value(ew_schema::NetAddress::Profibus(address))).ok()
+        serde_json::to_value(ew_schema::AddrValue::Value(ew_schema::NetAddress::Profibus(
+            address,
+        )))
+        .ok()
     }
 }
 

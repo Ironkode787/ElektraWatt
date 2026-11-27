@@ -1094,7 +1094,9 @@ impl ShellModel {
                 }
                 RowMenuItem::FunctionOverPath => self.dispatch("text.function_over_path", &Value::Null),
                 RowMenuItem::NextFreeAddress => {
-                    let port = self.props_find(&row).and_then(|(s, _)| s.targets.first().copied());
+                    let port = self
+                        .props_find(&row)
+                        .and_then(|(s, _)| s.targets.first().copied());
                     let value = port.and_then(|p| self.project.as_ref()?.session.next_free_address(p));
                     match value {
                         Some(value) => self.commit_value(&row, value, String::new(), Vec::new()),

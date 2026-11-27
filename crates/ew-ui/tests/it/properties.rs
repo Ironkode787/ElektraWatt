@@ -192,10 +192,7 @@ fn a_wires_colour_through_the_editor_and_undo() {
     press(&mut h, Key::Enter);
     assert_eq!(
         row(&h, "connection/derived.colour"),
-        (
-            "BU".to_owned(),
-            "! overridden · override (CDP)".to_owned()
-        )
+        ("BU".to_owned(), "! overridden · override (CDP)".to_owned())
     );
     // Undo: derived DBU again.
     h.key_press_modifiers(Modifiers::COMMAND, Key::Z);
@@ -231,7 +228,8 @@ fn the_description_override_from_the_keyboard() {
         row(&h, "page/derived.description"),
         (
             "Control Cabinet Expansion".to_owned(),
-            "! overridden · override · project description is 'Conveyor drive with a pneumatic clamp'".to_owned()
+            "! overridden · override · project description is 'Conveyor drive with a pneumatic clamp'"
+                .to_owned()
         )
     );
     let findings = &h.state().shell().properties().sheet().unwrap().header.findings;
@@ -407,10 +405,7 @@ fn a_choice_editor_option_is_picked_with_the_mouse() {
     );
     assert_eq!(
         row(&h, "connection/derived.colour"),
-        (
-            "BU".to_owned(),
-            "! overridden · override (CDP)".to_owned()
-        )
+        ("BU".to_owned(), "! overridden · override (CDP)".to_owned())
     );
 }
 

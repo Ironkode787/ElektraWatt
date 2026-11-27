@@ -1471,14 +1471,21 @@ fn a_carrier_reads_in_the_windows_language() {
 fn every_phrase_of_a_properties_chip_reads_in_dutch() {
     let tmp = Tmp::new("ft2334");
     let mut shell = tmp.sample_in(Mode::Headless, true, "102");
-    done(&mut shell, "select.set", json!({"refs": ["wire:-102F1:2 -> -X1021:1/a"]}));
+    done(
+        &mut shell,
+        "select.set",
+        json!({"refs": ["wire:-102F1:2 -> -X1021:1/a"]}),
+    );
     done(&mut shell, "view.language", json!({ "value": "nl" }));
     let chip = {
         let sheet = shell.properties().sheet().expect("a sheet");
         let (_, row) = ew_viewmodel::properties::find_row(sheet, "connection/derived.csa").expect("the row");
         ew_viewmodel::properties::chip_text(&row.provenance)
     };
-    assert!(chip.contains("beveiligd door -102F1") && !chip.contains("protected by"), "{chip}");
+    assert!(
+        chip.contains("beveiligd door -102F1") && !chip.contains("protected by"),
+        "{chip}"
+    );
     done(&mut shell, "view.language", json!({ "value": "en" }));
     shell.shutdown();
 }

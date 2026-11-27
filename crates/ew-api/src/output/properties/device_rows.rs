@@ -605,10 +605,10 @@ impl Session {
         // draws it while it is not) and the PLC output that drives it.
         if let [one] = devices.as_slice() {
             for (k, s) in crate::output::rack::solenoids(q, *one).into_iter().enumerate() {
-                let via = s
-                    .output
-                    .as_ref()
-                    .map_or_else(|| text!("via-no-plc-output"), |o| text!("via-plc-output", o.clone()));
+                let via = s.output.as_ref().map_or_else(
+                    || text!("via-no-plc-output"),
+                    |o| text!("via-plc-output", o.clone()),
+                );
                 // A terminal valve's solenoid says where it is driven from: an output inside the terminal,
                 // or a pin of a multipin terminal's plug; the window words it.
                 let seat = match &s.seat {

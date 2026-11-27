@@ -72,11 +72,13 @@ impl ShellModel {
             out.push(RowMenuItem::FunctionOverPath);
         }
         // A bus port's Address row: Next free address, where its bus numbers its stations and its range has one free.
-        if let ([port], true) = (section.targets.as_slice(), writable && row.key == NEXT_FREE_ADDRESS_ROW)
-            && self
-                .project
-                .as_ref()
-                .is_some_and(|p| p.session.next_free_address(*port).is_some())
+        if let ([port], true) = (
+            section.targets.as_slice(),
+            writable && row.key == NEXT_FREE_ADDRESS_ROW,
+        ) && self
+            .project
+            .as_ref()
+            .is_some_and(|p| p.session.next_free_address(*port).is_some())
         {
             out.push(RowMenuItem::NextFreeAddress);
         }

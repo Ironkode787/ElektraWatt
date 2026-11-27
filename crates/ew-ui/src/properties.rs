@@ -303,7 +303,7 @@ impl PropertiesPane {
                         if sheet.sections.len() > 1 {
                             ui.label(
                                 RichText::new(ew_viewmodel::properties::section_title(sheet, section))
-                                .font(crate::theme::font(&t.type_body_strong)),
+                                    .font(crate::theme::font(&t.type_body_strong)),
                             );
                         }
                         for (group, rows) in groups(section, advanced) {
@@ -720,8 +720,12 @@ impl PropertiesPane {
             ui.horizontal_top(|ui| {
                 ui.add_space(value_left - rect.left() + t.space_icon);
                 ui.add(
-                    egui::Label::new(crate::components::styled(&strings::render(note), &t.type_small, t.text_secondary))
-                        .wrap(),
+                    egui::Label::new(crate::components::styled(
+                        &strings::render(note),
+                        &t.type_small,
+                        t.text_secondary,
+                    ))
+                    .wrap(),
                 );
             });
         }

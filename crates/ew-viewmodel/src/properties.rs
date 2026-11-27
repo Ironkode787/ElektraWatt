@@ -2506,7 +2506,9 @@ pub fn chip_text(p: &Provenance) -> String {
         Provenance::Authored => strings::text(key!("chip-authored")).to_owned(),
         Provenance::Inherited { from } => strings::format(key!("chip-inherited"), &[&strings::render(from)]),
         Provenance::Derived { via } => strings::format(key!("chip-derived"), &[&strings::render(via)]),
-        Provenance::Overridden { note } => strings::format(key!("chip-overridden"), &[&strings::render(note)]),
+        Provenance::Overridden { note } => {
+            strings::format(key!("chip-overridden"), &[&strings::render(note)])
+        }
         Provenance::Frozen { note } => strings::format(key!("chip-frozen"), &[&strings::render(note)]),
         Provenance::Library { item } => strings::format(key!("chip-library"), &[item]),
         Provenance::Generated { block } => strings::format(key!("chip-generated"), &[block]),
@@ -2688,7 +2690,10 @@ mod tests {
             chip_word(&inherited(ew_api::text!("via-structure-box-on-page", "103"))),
             "page"
         );
-        assert_eq!(chip_word(&inherited(ew_api::text!("via-project-description"))), "inherited");
+        assert_eq!(
+            chip_word(&inherited(ew_api::text!("via-project-description"))),
+            "inherited"
+        );
         assert_eq!(chip_word(&inherited(ew_api::Text::bare("-X1"))), "inherited");
         assert_eq!(chip_word(&derived(ew_api::text!("via-numbering"))), "derived");
         // The source is read from the phrase's keys, also where it joins others.
@@ -2698,7 +2703,10 @@ mod tests {
             ew_api::text!("via-no-supply")
         );
         assert_eq!(chip_word(&derived(unfed)), "no supply");
-        assert_eq!(chip_word(&derived(ew_api::text!("via-project-default"))), "default");
+        assert_eq!(
+            chip_word(&derived(ew_api::text!("via-project-default"))),
+            "default"
+        );
         assert_eq!(
             chip_word(&Provenance::Overridden {
                 note: ew_api::text!("via-override")

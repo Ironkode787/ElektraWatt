@@ -75,7 +75,10 @@ fn a_wire_no_protective_device_sizes_says_why_at_its_size() {
     done(&mut shell, "edit.delete_selection", json!({}));
     let unfed = page_vias(&mut shell)
         .into_iter()
-        .find(|v| v.to_string().ends_with("no supply found upstream, so no protective device sizes it"))
+        .find(|v| {
+            v.to_string()
+                .ends_with("no supply found upstream, so no protective device sizes it")
+        })
         .expect("a wire behind the breaker that does not end on it");
     assert_eq!(
         ew_viewmodel::properties::chip_word(&Provenance::Derived { via: unfed }),
@@ -89,7 +92,11 @@ fn a_wire_behind_an_unfed_breaker_says_why_its_rating_is_not_used() {
     let tmp = Tmp::new("csa-unfed");
     let mut shell = tmp.sample_in(Mode::Headless, true, "102");
     done(&mut shell, "select.set", json!({"refs": [W29]}));
-    assert!(!csa_via(&shell).to_string().contains("no supply"), "fed: {}", csa_via(&shell));
+    assert!(
+        !csa_via(&shell).to_string().contains("no supply"),
+        "fed: {}",
+        csa_via(&shell)
+    );
     // The breaker's feed taken away: the wires at its input.
     let feed: Vec<String> = tables(&shell)
         .cps
@@ -103,7 +110,8 @@ fn a_wire_behind_an_unfed_breaker_says_why_its_rating_is_not_used() {
     done(&mut shell, "select.set", json!({"refs": [W29]}));
     let via = csa_via(&shell);
     assert!(
-        via.to_string().ends_with("no supply found upstream of -102F1, so its rating is not used"),
+        via.to_string()
+            .ends_with("no supply found upstream of -102F1, so its rating is not used"),
         "{via}"
     );
     // The row's chip says it where it shows, the whole text on hover.
@@ -125,7 +133,8 @@ fn a_wire_behind_an_unfed_breaker_says_why_its_rating_is_not_used() {
         .1;
     match &row.provenance {
         Provenance::Overridden { note } => assert!(
-            note.to_string().ends_with("no supply found upstream of -102F1, so its rating is not used"),
+            note.to_string()
+                .ends_with("no supply found upstream of -102F1, so its rating is not used"),
             "{note}"
         ),
         other => panic!("{other:?}"),

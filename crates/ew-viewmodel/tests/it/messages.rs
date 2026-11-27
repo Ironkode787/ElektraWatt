@@ -901,7 +901,11 @@ fn the_address_row_offers_the_next_free_address() {
     let tmp = Tmp::new("ft2257");
     let mut shell = tmp.sample_in(Mode::Headless, true, "101");
     done(&mut shell, "navigator.show", json!({"kind": "bus"}));
-    done(&mut shell, "navigator.select", json!({"kind": "bus", "keys": ["-201K1 DP"]}));
+    done(
+        &mut shell,
+        "navigator.select",
+        json!({"kind": "bus", "keys": ["-201K1 DP"]}),
+    );
     done(&mut shell, "props.set", json!({"row": ROW, "value": "TBD"}));
     let menu = shell.row_menu(ROW);
     let at = menu
@@ -923,6 +927,9 @@ fn the_address_row_offers_the_next_free_address() {
         ew_viewmodel::properties::RowValue::One { text, .. } => text.clone(),
         other => panic!("{other:?}"),
     };
-    assert!(text.parse::<u8>().is_ok_and(|a| a > 0), "a station address: {text}");
+    assert!(
+        text.parse::<u8>().is_ok_and(|a| a > 0),
+        "a station address: {text}"
+    );
     shell.shutdown();
 }

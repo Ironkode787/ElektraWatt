@@ -203,7 +203,11 @@ fn cp_param(function: Id<Function>, idx: u16) -> EndpointParam {
 fn bond_create_inserts_the_bond() {
     let mut e = engine(mini_model());
     // W27 runs from the junction J5 to -T2's first CP: the bond's wire, either way round.
-    let cmd = bond(cp_param(FN_T2, 0), EndpointParam::Junction { junction: J5 }, Some(CON_W27));
+    let cmd = bond(
+        cp_param(FN_T2, 0),
+        EndpointParam::Junction { junction: J5 },
+        Some(CON_W27),
+    );
     let r = e.execute(&cmd).expect("bond.create");
     let id: Id<Bond> = primary(&r);
     let b = row(&e, id);

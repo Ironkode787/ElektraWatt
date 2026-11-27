@@ -114,7 +114,11 @@ pub struct BusAddress;
 /// A port whose range is full, or holds no station address (its minimum above its maximum or above 255), gets none.
 /// The one rule of EW-BUS-001's quick fix (the open ports of a net) and of an Address row's Next free address
 /// ([`next_free_address`]).
-fn next_free_addresses(q: &Q, members: &[Id<Function>], asking: &[Id<Function>]) -> BTreeMap<Id<Function>, u8> {
+fn next_free_addresses(
+    q: &Q,
+    members: &[Id<Function>],
+    asking: &[Id<Function>],
+) -> BTreeMap<Id<Function>, u8> {
     let functions = q.functions();
     let mut taken: BTreeSet<u16> = members
         .iter()

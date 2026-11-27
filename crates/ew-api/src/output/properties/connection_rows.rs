@@ -490,7 +490,12 @@ fn length_row(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Built {
         let record = match wire_of_selection(q, &records, conns, *c) {
             Err(()) => {
                 shared = true;
-                per.push((None, Provenance::Derived { via: shared_stretch() }));
+                per.push((
+                    None,
+                    Provenance::Derived {
+                        via: shared_stretch(),
+                    },
+                ));
                 continue;
             }
             Ok(r) => r,
@@ -584,7 +589,9 @@ fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
         for c in conns {
             let Some(record) = wire_of(c) else {
                 let p = if shared {
-                    Provenance::Derived { via: shared_stretch() }
+                    Provenance::Derived {
+                        via: shared_stretch(),
+                    }
                 } else {
                     Provenance::Authored
                 };
@@ -832,7 +839,7 @@ fn length_note(q: &Q, r: &ew_derive::WireRecord) -> crate::Text {
         CabinetWire, Planned, RouteScope, RouteStatus, cabinet_page, plan_routes, route_status,
         routed_length, space_of_wire,
     };
-    let text = match r.length {
+    match r.length {
         WireLength::Typed(_) => match route_status(q, &r.wire) {
             RouteStatus::Holds { run, door } | RouteStatus::Stale { run, door, .. } => ew_derive::text!(
                 "length-typed-routed",
@@ -862,8 +869,7 @@ fn length_note(q: &Q, r: &ew_derive::WireRecord) -> crate::Text {
             }
             _ => ew_derive::text!("length-none"),
         },
-    };
-    text
+    }
 }
 
 /// The chip text of a wire property's source below level 7, in the words of the derivation's `prop-via-*` texts (the

@@ -725,7 +725,10 @@ fn ew_bus_001_offers_no_address_from_a_range_that_holds_none() {
 fn the_next_free_address_of_a_port_follows_its_parts_range() {
     use ew_ids::Id;
     let next = |m: &ew_model::Model, port: u128| {
-        ew_checks::rules::bus::next_free_address(&ew_derive::Q::new(m), Id::from_uuid(ew_ids::Uuid::from_u128(port + 1)))
+        ew_checks::rules::bus::next_free_address(
+            &ew_derive::Q::new(m),
+            Id::from_uuid(ew_ids::Uuid::from_u128(port + 1)),
+        )
     };
     let m = bus(
         &json!({}),
@@ -735,7 +738,11 @@ fn the_next_free_address_of_a_port_follows_its_parts_range() {
         None,
     );
     assert_eq!(next(&m, P_B), Some(26), "the open port");
-    assert_eq!(next(&m, P_A), Some(20), "the port that holds 25: none other is taken");
+    assert_eq!(
+        next(&m, P_A),
+        Some(20),
+        "the port that holds 25: none other is taken"
+    );
     let m = bus(
         &json!({"bus": "profinet"}),
         &json!({"bus": "profinet"}),
@@ -743,7 +750,11 @@ fn the_next_free_address_of_a_port_follows_its_parts_range() {
         &json!({}),
         None,
     );
-    assert_eq!(next(&m, P_A), None, "a PROFINET port has a name, no station number");
+    assert_eq!(
+        next(&m, P_A),
+        None,
+        "a PROFINET port has a name, no station number"
+    );
 }
 
 /// EW-BUS-003 (FR-BUS-017): two stations at 192.168.0.10, a device name with an underscore, an address outside the

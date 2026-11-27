@@ -792,12 +792,24 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
         match ew_derive::layout::behind_door(q, id) {
             Some(d) => {
                 let text = mm_with_unit(i128::from(d.0), comma(q));
-                rows.push(text_row(k, "behind_door", text, derived_of(text!("via-part")), None));
+                rows.push(text_row(
+                    k,
+                    "behind_door",
+                    text,
+                    derived_of(text!("via-part")),
+                    None,
+                ));
             }
             // A device in a door without a depth (doc 12 §7): the closed door is not checked for it.
             None if s.kind == ew_schema::SurfaceKind::Door => {
                 let text = ew_derive::text!("placement-depth-unknown").to_string();
-                rows.push(text_row(k, "behind_door", text, derived_of(text!("via-part")), None));
+                rows.push(text_row(
+                    k,
+                    "behind_door",
+                    text,
+                    derived_of(text!("via-part")),
+                    None,
+                ));
             }
             None => {}
         }
@@ -855,7 +867,13 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
         } else {
             format!("{} \u{d7} {} mm", mm_text(q, w), mm_text(q, h))
         };
-        rows.push(text_row(k, "footprint", text, derived_of(text!("via-part")), None));
+        rows.push(text_row(
+            k,
+            "footprint",
+            text,
+            derived_of(text!("via-part")),
+            None,
+        ));
         let clearance = g
             .part
             .as_ref()
@@ -876,7 +894,13 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
             }
             _ => "none".to_owned(),
         };
-        rows.push(text_row(k, "clearance", text, derived_of(text!("via-part")), None));
+        rows.push(text_row(
+            k,
+            "clearance",
+            text,
+            derived_of(text!("via-part")),
+            None,
+        ));
         // On the plate: what it takes out of it, and the room to the closed door where the enclosure part gives it.
         if face.is_none() {
             let room = q
