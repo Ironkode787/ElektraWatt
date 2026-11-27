@@ -386,9 +386,14 @@ fn a_row_commits_once_and_save_takes_what_was_typed() {
         );
     }
     // The save's message stands over the header: he closes it.
-    let dismiss = d.find(ew_viewmodel::strings::text(ew_viewmodel::key!("toast-dismiss"))).expect("the message's Close");
+    let dismiss = d
+        .find(ew_viewmodel::strings::text(ew_viewmodel::key!("toast-dismiss")))
+        .expect("the message's Close");
     d.input(&click(dismiss));
-    assert!(d.shell_mut().notifications().visible().is_empty(), "the message is gone");
+    assert!(
+        d.shell_mut().notifications().visible().is_empty(),
+        "the message is gone"
+    );
     d.input(&click(d.find("Back").unwrap()));
     assert!(d.shell_mut().symbol_editor().is_none());
     d.shell_mut().shutdown();

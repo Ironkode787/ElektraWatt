@@ -128,13 +128,16 @@ pub struct Outline {
 /// What it is's word for a device box with pins of its own: the symbol keeps a function of its own, its pins as drawn.
 pub const BOX: &str = "box";
 
+/// What it is's list: each kind as (its word, its words).
+type Kinds = Vec<(String, String)>;
+
 /// What a symbol can stand for, as the What it is list offers it, each as (its word, its words): a device box with pins
 /// of its own ([`BOX`], what a first symbol of a fluid or bus page is), then every starter function with pins by its key
 /// (`ew.fn.coil`), from the functions' one home ([`ew_api::part_pieces::symbol_kinds`], which the pieces table reads
 /// too), whatever the discipline: a function chosen is the one the symbol draws, its pins standing for the function's.
 pub fn what_kinds() -> Vec<(String, String)> {
     // Built once per language (every frame of the drawing reads it): the starter's functions do not change.
-    static KINDS: std::sync::Mutex<Option<(u64, Vec<(String, String)>)>> = std::sync::Mutex::new(None);
+    static KINDS: std::sync::Mutex<Option<(u64, Kinds)>> = std::sync::Mutex::new(None);
     let generation = strings::generation();
     let mut kinds = KINDS.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
     if let Some((g, list)) = kinds.as_ref()

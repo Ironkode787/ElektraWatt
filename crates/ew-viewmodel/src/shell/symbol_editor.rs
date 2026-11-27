@@ -121,7 +121,10 @@ pub const FILE_EXTENSIONS: [&str; 12] = [
 ];
 
 /// Parts drawn with a symbol, read for its address and a project revision.
-type DrawnParts = ((Option<String>, Option<u64>), Vec<ew_api::piece_symbols::DrawnPart>);
+type DrawnParts = (
+    (Option<String>, Option<u64>),
+    Vec<ew_api::piece_symbols::DrawnPart>,
+);
 
 /// Editable document state. History never shares the project's undo stack.
 #[derive(Debug)]
