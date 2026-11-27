@@ -19,7 +19,7 @@ use crate::components;
 use crate::theme::Tokens;
 
 /// The left pane's share of the panes' width.
-const LEFT_SHARE: f32 = 0.6;
+const LEFT_SHARE: f32 = 0.66;
 
 /// The dialog's content.
 pub(crate) fn body(ui: &mut Ui, d: &PackageDialog, events: &mut Vec<Event>) {
@@ -78,9 +78,6 @@ fn heading(ui: &mut Ui, t: &Tokens, key: ew_viewmodel::strings::Key<'static>) {
     ui.add_space(t.space_2);
 }
 
-/// The shares of the left pane's width its columns take: the member with its tick, what it holds, its form.
-const COLUMNS: [f32; 3] = [0.27, 0.45, 0.13];
-
 /// A cell `width` wide at the row's top, its content wrapped in it.
 fn cell<R>(ui: &mut Ui, width: f32, add: impl FnOnce(&mut Ui) -> R) -> R {
     ui.allocate_ui_with_layout(
@@ -94,14 +91,39 @@ fn cell<R>(ui: &mut Ui, width: f32, add: impl FnOnce(&mut Ui) -> R) -> R {
     .inner
 }
 
-/// Left: What goes in: a row per member, divided by a line.
+/// The widest of the texts in the font, rounded up.
+fn widest(ui: &Ui, font: &egui::FontId, texts: &mut dyn Iterator<Item = &str>) -> f32 {
+    texts
+        .map(|x| components::text_width(ui, x, font.clone()))
+        .fold(0.0_f32, f32::max)
+        .ceil()
+}
+
+/// Left: What goes in: a row per member, divided by a line. The member with its tick, its form and Change… take the
+/// width their words need; what a member holds takes the rest, so that it stands on one line.
 fn goes_in(ui: &mut Ui, t: &Tokens, d: &PackageDialog, events: &mut Vec<Event>) {
     ui.set_width(ui.available_width());
     heading(ui, t, key!("package-goes-in"));
     let gap = t.space_3;
     let full = ui.available_width();
-    let [w1, w2, w3] = COLUMNS.map(|share| (full * share).floor());
-    let w4 = (full - w1 - w2 - w3 - 3.0 * gap).max(0.0);
+    let body = crate::theme::font(&t.type_body);
+    let tick = ui.spacing().icon_width + ui.spacing().icon_spacing;
+    let w1 = tick + widest(ui, &body, &mut d.rows.iter().map(|r| r.words.as_str()));
+    let w3 = widest(
+        ui,
+        &body,
+        &mut d
+            .rows
+            .iter()
+            .filter(|r| r.member != PackageMember::Labels)
+            .map(|r| r.form.as_str()),
+    );
+    // The label files' Change… stands in the form column, where the other rows have their form.
+    let change = strings::text(key!("package-change"));
+    let w3 = w3.max(widest(ui, &body, &mut std::iter::once(change)));
+    let offer = strings::text(key!("package-workshop-stock"));
+    let link = widest(ui, &body, &mut std::iter::once(offer));
+    let w2 = (full - w1 - w3 - 2.0 * gap).max(0.0);
     for r in &d.rows {
         ui.horizontal_top(|ui| {
             ui.spacing_mut().item_spacing.x = gap;
@@ -137,25 +159,26 @@ fn goes_in(ui: &mut Ui, t: &Tokens, d: &PackageDialog, events: &mut Vec<Event>) 
             cell(ui, w3, |ui| {
                 if !labels {
                     ui.add(egui::Label::new(components::body_secondary(t, &r.form)).wrap());
-                }
-            });
-            cell(ui, w4, |ui| {
-                if labels && ui.link(strings::text(key!("package-change"))).clicked() {
+                } else if ui.link(change).clicked() {
                     events.push(Event::Action("labels.columns", json!({})));
                 }
             });
         });
-        // What it lacks of part data, under what it holds.
+        // What it lacks of part data, under what it holds, with the way to it: Workshop stock…, where a person adds a
+        // marker that marks the set (Project ▸ Edit stock… until Parts holds the stock).
         for lack in &r.lacks {
             ui.horizontal_top(|ui| {
                 ui.spacing_mut().item_spacing.x = gap;
                 cell(ui, w1, |_| {});
-                cell(ui, w2 + gap + w3, |ui| {
+                cell(ui, (w2 + w3 - link).max(0.0), |ui| {
                     ui.horizontal_top(|ui| {
                         icon(ui, t, crate::icons::IconId::alert_triangle, t.warning);
                         ui.add(egui::Label::new(components::small_secondary(t, lack)).wrap());
                     });
                 });
+                if ui.link(offer).clicked() {
+                    events.push(Event::Action("workshop.edit_stock", json!({})));
+                }
             });
         }
         ui.separator();

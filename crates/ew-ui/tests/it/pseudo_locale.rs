@@ -263,3 +263,58 @@ fn view_language_nederlands_and_back_in_the_window() {
     assert!(h.query_by_label("Beeld").is_none());
     h.state_mut().shell_mut().shutdown();
 }
+
+/// Package… at 1920 × 1080 (doc 13-package §8.5): what each member holds stands on one line in English, Dutch and the
+/// pseudo-locale; only the label files' row, which adds the profile and what it lacks, takes more.
+#[test]
+fn what_a_member_holds_stands_on_one_line_in_every_language() {
+    let tmp = support::Tmp::new();
+    let mut h = support::on_sample(&tmp, "907");
+    for tag in ["en", "nl", strings::PSEUDO] {
+        assert!(strings::set_locale(tag));
+        support::dispatch(&mut h, "package.export", json!({}));
+        support::settle(&mut h);
+        let rows: Vec<(String, bool)> = match h.state().shell().dialog() {
+            Some(ew_viewmodel::shell::Dialog::Package(d)) => d
+                .rows
+                .iter()
+                .map(|r| (r.holds.clone(), r.member == ew_viewmodel::ew_api::PackageMember::Labels))
+                .collect(),
+            other => panic!("no Package… dialog: {other:?}"),
+        };
+        // The height of one line: the dialog's title's.
+        let line = h
+            .get_all_by_label(strings::text(ew_viewmodel::key!("package-goes-in")))
+            .next()
+            .and_then(|n| n.accesskit_node().raw_bounds())
+            .map(|b| b.height())
+            .expect("the heading");
+        for (holds, _) in rows.iter().filter(|(_, labels)| !labels) {
+            let height = h
+                .get_all_by_label(holds)
+                .next()
+                .and_then(|n| n.accesskit_node().raw_bounds())
+                .map(|b| b.height())
+                .unwrap_or_else(|| panic!("{tag}: no label {holds}"));
+            let need = h.ctx.fonts_mut(|f| {
+                f.layout_no_wrap(holds.clone(), egui::FontId::proportional(14.0), egui::Color32::BLACK)
+                    .size()
+                    .x
+            });
+            let width = h
+                .get_all_by_label(holds)
+                .next()
+                .and_then(|n| n.accesskit_node().raw_bounds())
+                .map(|b| b.width())
+                .unwrap_or_default();
+            assert!(
+                height < 1.5 * line,
+                "{tag}: \"{holds}\" folds: {width} wide, it needs about {need}"
+            );
+        }
+        support::dispatch(&mut h, "ui.dismiss", json!({}));
+        support::settle(&mut h);
+    }
+    assert!(strings::set_locale("en"));
+    h.state_mut().shell_mut().shutdown();
+}

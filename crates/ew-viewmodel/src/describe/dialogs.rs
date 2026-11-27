@@ -183,8 +183,9 @@ pub(super) fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                     r.holds,
                     r.form
                 ));
+                // Each with its way to the stock: Workshop stock… (`workshop.edit_stock`).
                 for lack in &r.lacks {
-                    lines.push(format!("    lacks \"{lack}\""));
+                    lines.push(format!("    lacks \"{lack}\" offers workshop.edit_stock"));
                 }
             }
             lines.push(format!("  check \"{}\"", d.ready));

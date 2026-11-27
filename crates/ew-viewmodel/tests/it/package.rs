@@ -121,3 +121,60 @@ fn the_dialog_lists_a_stale_way_first_and_its_fix_opens_route() {
     assert_eq!(card.preview.name, "layout.route");
     s.shutdown();
 }
+
+/// A finding that names one part's missing field offers Edit part… in the dialog, by the one path Messages takes: his
+/// own pilot lamp, made here without its hole and given to -102E1 in the door, makes EW-LAY-017; its button opens his
+/// lamp in Parts at the holes, and the dialog closes.
+#[test]
+fn a_finding_about_his_own_part_offers_edit_part_at_the_field() {
+    let tmp = Tmp::new("package-edit-part");
+    let mut s = tmp.sample_in(Mode::Gui, true, "904");
+    common::own_of(&mut s, "EW-GEN-LMP-1", "PL-22-GN");
+    done(&mut s, "parts.open", json!({"part": "PL-22-GN"}));
+    done(&mut s, "parts.row", json!({"table": "mech.holes", "remove": 1}));
+    done(&mut s, "parts.save", json!({}));
+    if s.properties().card().is_some() {
+        done(&mut s, "preview.apply", json!({}));
+    }
+    done(&mut s, "parts.back", json!({}));
+    done(&mut s, "select.set", json!({"refs": ["tag:-102E1"]}));
+    done(&mut s, "part.choose", json!({"use": 0}));
+    done(&mut s, "part.pick", json!({"part": "PL-22-GN"}));
+    done(&mut s, "package.export", json!({}));
+    let finding = package(&s)
+        .findings
+        .iter()
+        .find(|f| f.rule == "EW-LAY-017")
+        .cloned()
+        .expect("EW-LAY-017 about his lamp");
+    assert_eq!(finding.fix.as_deref(), Some("Edit part\u{2026}"));
+    done(&mut s, "package.fix", json!({ "key": finding.key }));
+    assert!(s.dialog().is_none(), "the dialog closes");
+    let open = s
+        .parts_place()
+        .and_then(|p| p.sheet.as_ref())
+        .expect("Parts on his lamp");
+    assert_eq!(open.sheet.text("part_number"), "PL-22-GN");
+    assert!(open.field.is_some_and(|f| f.starts_with("mech.holes[].")), "{:?}", open.field);
+    s.shutdown();
+}
+
+/// The cable markers' line says the stock has no marker that marks cables and offers Workshop stock…, which opens the
+/// stock's editor in the dialog's place.
+#[test]
+fn a_missing_marker_part_offers_the_workshop_stock() {
+    let tmp = Tmp::new("package-stock");
+    let mut s = tmp.sample_in(Mode::Gui, true, "907");
+    done(&mut s, "package.export", json!({}));
+    let lacks = s
+        .describe()
+        .lines()
+        .map(str::trim_start)
+        .find(|l| l.starts_with("lacks "))
+        .map(str::to_owned)
+        .expect("a lack");
+    assert!(lacks.contains("Cable markers") && lacks.ends_with("offers workshop.edit_stock"), "{lacks}");
+    done(&mut s, "workshop.edit_stock", json!({}));
+    assert!(matches!(s.dialog(), Some(Dialog::WorkshopStock(_))));
+    s.shutdown();
+}

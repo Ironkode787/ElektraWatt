@@ -197,10 +197,12 @@ impl ShellModel {
                         .iter()
                         .filter_map(|t| session.record_label(t.kind, t.id.as_uuid()))
                         .collect(),
-                    fix: f
-                        .fix
-                        .as_ref()
-                        .map(|q| ew_api::checks::messages::fix_label(q, lang)),
+                    // The quick fix's words, else Edit part… of a finding from a part's missing datum, as Messages.
+                    fix: match (&f.fix, &f.part_lack) {
+                        (Some(q), _) => Some(ew_api::checks::messages::fix_label(q, lang)),
+                        (None, Some(_)) => Some(ew_api::checks::messages::lack_label(lang)),
+                        (None, None) => None,
+                    },
                     shown: shown(&key),
                     key,
                 }
