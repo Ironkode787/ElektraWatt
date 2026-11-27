@@ -204,6 +204,27 @@ pub struct PartsPlace {
     pub set: Option<Box<ImportSet>>,
     /// Several parts selected in the list, shown on one sheet of the fields they share (doc 07 §5.9).
     pub many: Option<Box<super::parts_many::ManySheet>>,
+    /// The list's groups folded shut, by their ids ([`ListGroup::id`]).
+    pub folded: std::collections::BTreeSet<String>,
+}
+
+/// A group of the list (doc 07 §5.3): Lately opened, then the parts by what they are.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum ListGroup {
+    /// Lately opened.
+    Recent,
+    /// The parts of a kind, as the file spells it.
+    Kind(String),
+}
+
+impl ListGroup {
+    /// The group's id, which `parts.find {fold}` names: `recent`, or the kind.
+    pub fn id(&self) -> &str {
+        match self {
+            ListGroup::Recent => "recent",
+            ListGroup::Kind(k) => k,
+        }
+    }
 }
 
 /// The set an import brought into Parts and its first step (doc 07 §5.9): a table's column map, the rows read through
@@ -263,6 +284,51 @@ pub struct SymbolFound {
 }
 
 impl PartsPlace {
+    /// The list's groups as the window shows them, each with its rows as indices into [`PartsPlace::found`] and whether
+    /// it is folded: Lately opened, then a group per kind in the kinds' order.
+    pub fn list_groups(&self) -> Vec<(ListGroup, Vec<usize>, bool)> {
+        let mut out = Vec::new();
+        let recent: Vec<usize> = (self.recent.iter())
+            .filter_map(|c| self.found.iter().position(|f| f.copy == *c))
+            .collect();
+        if !recent.is_empty() {
+            out.push((ListGroup::Recent, recent));
+        }
+        let mut kinds: Vec<&str> = self.found.iter().map(|f| f.offer.kind.as_str()).collect();
+        kinds.sort_unstable();
+        kinds.dedup();
+        for k in kinds {
+            let rows = (0..self.found.len())
+                .filter(|i| self.found[*i].offer.kind == k)
+                .collect();
+            out.push((ListGroup::Kind(k.to_owned()), rows));
+        }
+        out.into_iter()
+            .map(|(g, rows)| {
+                let shut = self.folded.contains(g.id());
+                (g, rows, shut)
+            })
+            .collect()
+    }
+
+    /// The parts as the list shows them, from its top, as `parts.open` names them: the rows of the groups that are
+    /// open, a part that stands in two groups once, where it shows first.
+    pub fn shown_order(&self) -> Vec<String> {
+        let mut out: Vec<String> = Vec::new();
+        for (_, rows, shut) in self.list_groups() {
+            if shut {
+                continue;
+            }
+            for i in rows {
+                let p = self.found[i].param();
+                if !out.contains(&p) {
+                    out.push(p);
+                }
+            }
+        }
+        out
+    }
+
     /// The strip's sentence over the sheet: where the person came from with a purpose; `None` from the project's window.
     pub fn strip(&self) -> Option<String> {
         if let Some((under, field)) = self.under.last() {
@@ -479,6 +545,7 @@ impl ShellModel {
             aside: false,
             set: None,
             many: None,
+            folded: std::collections::BTreeSet::new(),
         }));
         self.parts_refresh();
     }
@@ -796,6 +863,7 @@ impl ShellModel {
         };
         let kind = or_return!(string_param(p, "kind")).map(str::to_owned);
         let maker = or_return!(string_param(p, "maker")).map(str::to_owned);
+        let fold = or_return!(string_param(p, "fold")).map(str::to_owned);
         let shelf = match or_return!(string_param(p, "shelf")) {
             None => None,
             Some("parts") => Some(false),
@@ -848,6 +916,12 @@ impl ShellModel {
         }
         if let Some(v) = p.get("lacking") {
             place.lacking = v.as_bool().unwrap_or(false);
+        }
+        // A group of the list folded shut, or opened again.
+        if let Some(id) = fold {
+            if !place.folded.remove(&id) {
+                place.folded.insert(id);
+            }
         }
         self.parts_refresh();
         Outcome::Done

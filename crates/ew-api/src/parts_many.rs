@@ -19,18 +19,14 @@ use crate::parts_set::SHARED_SIZES;
 /// another (the maker, the number, the order number, the GTIN).
 const SHARED_IDENTITY: [&str; 4] = ["type_designation", "description", "unit", "category"];
 
-/// The fields a table of parts is written with, in its order, before the declared fields of the parts: what tells a
-/// part and how it is read back.
-const TABLE_IDENTITY: [&str; 8] = [
-    "manufacturer",
-    "part_number",
-    "kind",
-    "type_designation",
-    "order_number",
-    "gtin",
-    "description",
-    "unit",
-];
+/// The identity's fields a table of parts is written with, in the sheet's order, before the declared fields of the
+/// parts: every one a column of a table reads back ([`crate::parts_set::field_columns`]).
+fn table_identity() -> Vec<&'static str> {
+    let columns = crate::parts_set::field_columns();
+    crate::part_editor::identity_fields()
+        .filter(|f| columns.contains(f))
+        .collect()
+}
 
 /// The declared fields typed as one value that a sheet has rows for, and the named technical values, as the sheet's
 /// field names (`mech.width`, `tech:rated_current`), in the declaration's order.
@@ -184,13 +180,52 @@ impl Session {
         if written.is_empty() {
             return Err((0, PartDraftError::Refused(key!("reason-part-unchanged"))));
         }
+        // Every library is checked before the first is written: one that cannot be written refuses them all.
+        let infos = self.libraries().libraries();
+        let name = |lib: &Uuid| {
+            infos
+                .iter()
+                .find(|l| l.id == *lib)
+                .map_or_else(String::new, |l| l.name.clone())
+        };
+        if let Some(lib) = written.keys().find(|l| !infos.iter().any(|i| i.id == **l && i.writable)) {
+            return Err((
+                0,
+                PartDraftError::Field(message("part", key!("error-part-library"), &[&name(lib), &crate::library::LibraryError::ReadOnly.to_string()])),
+            ));
+        }
+        // Two libraries are no one write: when a later one fails, the message names the parts written and those not.
+        let numbers = |docs: &[LibDocument]| -> Vec<String> {
+            docs.iter()
+                .filter_map(|d| match d {
+                    LibDocument::Part(c) => Some(c.item.part_number.as_str().to_owned()),
+                    _ => None,
+                })
+                .collect()
+        };
+        let mut done: Vec<String> = Vec::new();
         for (lib, docs) in &written {
-            self.libraries_mut().write(*lib, docs).map_err(|e| {
-                (
+            if let Err(e) = self.libraries_mut().write(*lib, docs) {
+                let why = message("part", key!("error-part-library"), &[&name(lib), &e.to_string()]);
+                let rest: Vec<String> = written
+                    .iter()
+                    .skip_while(|(l, _)| *l != lib)
+                    .flat_map(|(_, d)| numbers(d))
+                    .collect();
+                return Err((
                     0,
-                    PartDraftError::Field(message("part", key!("error-part-library"), &["", &e.to_string()])),
-                )
-            })?;
+                    PartDraftError::Field(if done.is_empty() {
+                        why
+                    } else {
+                        message(
+                            "part",
+                            key!("error-parts-written-partly"),
+                            &[&done.join(", "), &rest.join(", "), &e.to_string()],
+                        )
+                    }),
+                ));
+            }
+            done.extend(numbers(docs));
         }
         if held_docs.is_empty() {
             return Ok(None);
@@ -209,7 +244,7 @@ impl Session {
 /// back, then every declared field one of the parts has a text for (a size several kinds share once, by its word), each
 /// as the member Import… maps it to and each part's text in the sheet's words, which Import… types back as they are.
 pub fn table_columns(sheets: &[PartSheet]) -> Vec<(String, Vec<String>)> {
-    let mut out: Vec<(String, Vec<String>)> = TABLE_IDENTITY
+    let mut out: Vec<(String, Vec<String>)> = table_identity()
         .iter()
         .map(|f| {
             (

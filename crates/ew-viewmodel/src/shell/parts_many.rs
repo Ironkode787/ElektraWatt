@@ -140,7 +140,8 @@ impl ShellModel {
                 .collect(),
             (None, None) => Vec::new(),
         };
-        let order: Vec<String> = place.found.iter().map(ew_api::parts::PartFound::param).collect();
+        // The rows as the list shows them: a range takes no row the list does not show between its ends.
+        let order = place.shown_order();
         if range {
             let from = chosen.last().and_then(|c| order.iter().position(|o| o == c));
             let to = order.iter().position(|o| o == part);
@@ -357,7 +358,12 @@ impl ShellModel {
         let path = match string_param(p, "path") {
             Err(e) => return e,
             Ok(Some(path)) => std::path::PathBuf::from(path),
-            Ok(None) => return self.need_path("parts.export", Prompt::SaveTable, "path", p),
+            // The native save dialog asks about an existing file itself, so its answer carries `replace`.
+            Ok(None) => {
+                let mut rest = p.clone();
+                rest.insert("replace".to_owned(), Value::Bool(true));
+                return self.need_path("parts.export", Prompt::SaveTable, "path", &rest);
+            }
         };
         let sheets: Vec<PartSheet> = match (
             self.many_sheet(),

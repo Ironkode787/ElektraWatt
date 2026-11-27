@@ -912,7 +912,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     with_params(
-        "text?:text, shelf?:text, scope?:enum(all|project|mine|import), kind?:text, maker?:text, lacking?:bool",
+        "text?:text, shelf?:text, scope?:enum(all|project|mine|import), kind?:text, maker?:text, lacking?:bool, fold?:text",
         hidden(act(
             "parts.find",
             View,

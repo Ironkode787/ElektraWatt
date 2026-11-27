@@ -513,58 +513,7 @@ impl Session {
         &mut self,
         draft: &PartSheet,
     ) -> Result<Option<crate::library_ops::UpdatePlan>, PartDraftError> {
-        let item = self.sectioned_item(draft)?;
-        if item == draft.original {
-            return Err(PartDraftError::Refused(key!("reason-part-unchanged")));
-        }
-        let held = self
-            .query()
-            .parts()
-            .get(Id::from_uuid(draft.copy))
-            .map(|c| (**c).clone());
-        let in_project = held.is_some();
-        let held = match (held, draft.source) {
-            (Some(h), _) => h,
-            (None, Some((library, item))) => match self.libraries().resolve(&lib_ref(library, item)) {
-                Ok(LibDocument::Part(c)) => c,
-                _ => return Err(PartDraftError::Refused(key!("reason-part-edit-target"))),
-            },
-            (None, None) => return Err(PartDraftError::Refused(key!("reason-part-edit-target"))),
-        };
-        let lib = held.library_id.as_uuid();
-        let name = draft.library.clone().unwrap_or_default();
-        let failed =
-            |e: String| PartDraftError::Field(message("part", key!("error-part-library"), &[&name, &e]));
-        // The library's own version of the item: a later one written meanwhile is the base of the next.
-        let current = self
-            .libraries()
-            .documents(lib, Kind::Part)
-            .into_iter()
-            .find_map(|d| match d {
-                LibDocument::Part(c) if c.item_id == held.item_id => Some(c.version),
-                _ => None,
-            })
-            .unwrap_or_else(|| held.version.clone());
-        let version = ew_schema::next_patch(&current).ok_or_else(|| failed(current.clone()))?;
-        let copy = finish(
-            LibCopy {
-                version,
-                item,
-                ..held
-            },
-            LibDocument::Part,
-        );
-        let doc = LibDocument::Part(copy);
-        self.libraries_mut()
-            .write(lib, std::slice::from_ref(&doc))
-            .map_err(|e| failed(e.to_string()))?;
-        if !in_project {
-            return Ok(None);
-        }
-        let plan = self
-            .update_from_documents(std::slice::from_ref(&doc), &[])
-            .map_err(|e| failed(e.to_string()))?;
-        Ok(Some(plan))
+        self.own_parts_update(&[draft]).map_err(|(_, e)| e)
     }
 
     /// The part number of part `item` when My parts, the person's own writable library, is `library` and holds it:

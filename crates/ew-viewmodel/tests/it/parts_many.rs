@@ -205,3 +205,48 @@ fn a_cable_with_its_own_cores_is_exported_and_read_back_the_same() {
     assert_eq!(cores(&s), made);
     s.shutdown();
 }
+
+/// Shift takes the rows the list shows between its two ends: two terminals under Terminals, not the device whose number
+/// sorts between them (it stands under its own kind); a folded group's rows are not shown, so not taken.
+#[test]
+fn shift_takes_the_rows_shown_between_its_ends() {
+    let tmp = Tmp::new("parts-many-range");
+    let mut s = shell(&tmp);
+    done(&mut s, "parts.open", json!({}));
+    terminal(&mut s, "FT-4", "60");
+    done(&mut s, "parts.new", json!({"start": "device"}));
+    for (f, v) in [("manufacturer", "Example"), ("part_number", "FT-5")] {
+        done(&mut s, "parts.field", json!({"field": f, "value": v}));
+    }
+    done(&mut s, "parts.save", json!({}));
+    terminal(&mut s, "FT-6", "70");
+    let (a, b) = (row(&mut s, "FT-4"), row(&mut s, "FT-6"));
+    // Lately opened folded: the parts stand under their kinds alone.
+    done(&mut s, "parts.find", json!({"fold": "recent"}));
+    done(&mut s, "parts.open", json!({"part": a}));
+    done(&mut s, "parts.open", json!({"part": b, "range": true}));
+    assert_eq!(lines_with(&s, "many "), ["many \"FT-4\" \"FT-6\""]);
+    s.shutdown();
+}
+
+/// Export in the window: the save dialog asks about an existing file itself, so its answer replaces it.
+#[test]
+fn export_after_the_save_dialog_s_replace_writes_the_file() {
+    let tmp = Tmp::new("parts-many-replace");
+    let mine = LibraryTiers::under(&tmp.0.join("data"), &tmp.0.join("cache"), Vec::new(), Vec::new());
+    let mut s = ShellModel::new(Mode::Gui, tmp.config().with_libraries(Some(mine)));
+    common::make_project(&mut s, &tmp.0.join("p.ew"), &[]);
+    done(&mut s, "parts.open", json!({}));
+    terminal(&mut s, "FT-4", "60");
+    let part = row(&mut s, "FT-4");
+    done(&mut s, "parts.open", json!({"part": part}));
+    let path = tmp.0.join("family.csv");
+    std::fs::write(&path, "old").unwrap();
+    done(&mut s, "parts.export", json!({}));
+    let prompt = s.take_prompt().expect("the save dialog");
+    let mut params = prompt.params.as_object().cloned().unwrap_or_default();
+    params.insert(prompt.param.to_owned(), json!(path.to_string_lossy()));
+    done(&mut s, prompt.action, serde_json::Value::Object(params));
+    assert!(std::fs::read_to_string(&path).unwrap().contains("FT-4"));
+    s.shutdown();
+}

@@ -8,6 +8,7 @@
 error-part-length = "{ $p0 }" is not a length: give millimetres, as 45 or 22.5.
 error-part-hole-incomplete = Hole { $p0 } needs its X, its Y, its kind and its size.
 error-part-cell-needed = Row { $p0 } needs a value here: only a value that may stay empty can be left out.
+error-parts-written-partly = { $p0 } saved; { $p1 } not saved, as their library could not be written: { $p2 }
 error-part-gland-incomplete = A gland needs its thread and the smallest and largest cable it seals.
 error-part-gland-range = The largest cable a gland seals cannot be smaller than the smallest.
 error-part-hole-off = Hole { $p0 } at { $p1 }, { $p2 } mm lies off the front, which is { $p3 } × { $p4 } mm: its centre is measured from the front's bottom-left corner.

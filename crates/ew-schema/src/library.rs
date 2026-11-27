@@ -1640,7 +1640,16 @@ pub enum PartKind {
     Unknown(Value),
 }
 
+/// The kinds a workshop stock holds (doc 07 §2.5), in the order Parts' Workshop stock lists them: wires, ferrules and
+/// lugs, markers, cable glands.
+pub const STOCK_KINDS: [PartKind; 4] = [PartKind::Wire, PartKind::Ferrule, PartKind::Marker, PartKind::Gland];
+
 impl PartKind {
+    /// Whether a part of the kind may stand in the workshop stock ([`STOCK_KINDS`]).
+    pub fn in_stock(&self) -> bool {
+        STOCK_KINDS.contains(self)
+    }
+
     /// Whether a wire consumes the part (a wire, a ferrule, a marker): the consumables count it from the wires, and it
     /// is no accessory of another part (doc 07 §2.5).
     pub fn is_consumable(&self) -> bool {

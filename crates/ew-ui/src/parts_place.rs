@@ -57,8 +57,6 @@ pub(crate) struct PlaceView {
     scroll_to: Option<Group>,
     /// The open part the view last showed, so that a part opened at a group scrolls there once.
     seen: Option<(Uuid, u64, Option<Group>)>,
-    /// The list's groups folded shut, by their names (`recent`, a kind's word as the file spells it).
-    folded: std::collections::BTreeSet<String>,
 }
 
 /// One command of the place's bar: a large or small button by its action and label; greyed with `reason`.
@@ -286,7 +284,7 @@ impl PlaceView {
             pos2(pictures.left(), full.bottom()),
         );
         ui.scope_builder(UiBuilder::new().max_rect(list), |ui| {
-            list_column(ui, place, shell.parts_without_project(), &mut self.folded, events)
+            list_column(ui, place, shell.parts_without_project(), events)
         });
         ui.scope_builder(
             UiBuilder::new().max_rect(middle.shrink2(vec2(t.space_4, t.space_3))),
@@ -695,7 +693,6 @@ fn list_column(
     ui: &mut Ui,
     place: &PartsPlace,
     alone: bool,
-    folded: &mut std::collections::BTreeSet<String>,
     events: &mut Vec<Event>,
 ) {
     let t = theme::current(ui.ctx());
@@ -885,61 +882,41 @@ fn list_column(
             ));
             ui.add_space(t.space_2);
             let open = place.sheet.as_ref().map(|o| o.sheet.copy);
-            // Lately opened, then the parts by what they are, each group with its count and folding.
-            let recent: Vec<&PartFound> = place
-                .recent
-                .iter()
-                .filter_map(|c| place.found.iter().find(|f| f.copy == *c))
-                .collect();
-            let mut kinds: Vec<&str> = place.found.iter().map(|f| f.offer.kind.as_str()).collect();
-            kinds.sort_unstable();
-            kinds.dedup();
+            // Lately opened, then the parts by what they are, each group with its count and folding (the view model's
+            // one order of the shown rows).
             ScrollArea::vertical()
                 .id_salt("parts-list")
                 .auto_shrink([false, false])
                 .show(ui, |ui| {
-                    let mut group = |ui: &mut Ui, id: String, word: String, rows: Vec<&PartFound>| {
-                        let shut = folded.contains(&id);
+                    for (group, rows, shut) in place.list_groups() {
+                        let word = match &group {
+                            ew_viewmodel::shell::parts_place::ListGroup::Recent => {
+                                strings::text(key!("parts-group-recent")).to_owned()
+                            }
+                            ew_viewmodel::shell::parts_place::ListGroup::Kind(k) => {
+                                ew_viewmodel::shell::part_dialog::part_kind_plural(k)
+                            }
+                        };
                         if list_group(ui, &word, rows.len(), shut).clicked() {
-                            if shut {
-                                folded.remove(&id);
-                            } else {
-                                folded.insert(id);
+                            events.push(Event::Action("parts.find", json!({ "fold": group.id() })));
+                        }
+                        if shut {
+                            continue;
+                        }
+                        for row in rows.into_iter().map(|i| &place.found[i]) {
+                            let param = row.param();
+                            let chosen = open == Some(row.copy)
+                                || place.many.as_ref().is_some_and(|m| m.parts.contains(&param));
+                            let r = list_row(ui, row, chosen, None);
+                            if r.clicked() {
+                                // Ctrl takes a row into or out of a selection of several, Shift the rows up to it.
+                                let mods = ui.input(|i| i.modifiers);
+                                events.push(Event::Action(
+                                    "parts.open",
+                                    json!({ "part": param, "add": mods.command, "range": mods.shift }),
+                                ));
                             }
                         }
-                        if !shut {
-                            for row in rows {
-                                let param = row.param();
-                                let chosen = open == Some(row.copy)
-                                    || place.many.as_ref().is_some_and(|m| m.parts.contains(&param));
-                                let r = list_row(ui, row, chosen, None);
-                                if r.clicked() {
-                                    // Ctrl takes a row into or out of a selection of several, Shift the rows up to it.
-                                    let mods = ui.input(|i| i.modifiers);
-                                    events.push(Event::Action(
-                                        "parts.open",
-                                        json!({ "part": param, "add": mods.command, "range": mods.shift }),
-                                    ));
-                                }
-                            }
-                        }
-                    };
-                    if !recent.is_empty() {
-                        group(
-                            ui,
-                            "recent".to_owned(),
-                            strings::text(key!("parts-group-recent")).to_owned(),
-                            recent,
-                        );
-                    }
-                    for kind in kinds {
-                        let rows = place.found.iter().filter(|f| f.offer.kind == kind).collect();
-                        group(
-                            ui,
-                            kind.to_owned(),
-                            ew_viewmodel::shell::part_dialog::part_kind_plural(kind),
-                            rows,
-                        );
                     }
                 });
         },

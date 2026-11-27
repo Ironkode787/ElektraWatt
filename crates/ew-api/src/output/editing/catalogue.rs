@@ -1118,7 +1118,7 @@ impl Session {
         for (id, copy) in q.parts().iter() {
             // The parts a wire consumes (the workshop stock's wires, ferrules and markers) and a cable's gland are no
             // device to place.
-            if copy.item.kind.is_consumable() || copy.item.kind == ew_schema::PartKind::Gland {
+            if copy.item.kind.in_stock() {
                 continue;
             }
             if let Some(row) = catalogue_part(&q, set, &rows, id.as_uuid(), &copy.item, None, &page) {

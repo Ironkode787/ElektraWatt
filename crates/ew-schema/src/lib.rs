@@ -144,6 +144,7 @@ pub use layout::{
     Enclosure, Hinge, HoleChoice, LayoutSpace, MountingSurface, Placement, RailParams, RouteEnd,
     SurfaceFeature, SurfaceKind, WayStep,
 };
+pub use library::STOCK_KINDS;
 pub use library::{
     AccessoryPer, Actuation, Actuator, Align, AlternativeKind, AlternativeRef, AnchorPolicy, ArcPrim,
     Arrangement, CategoryKey, CirclePrim, ClampKey, ClampType, Clearance, Colour, Confidence, Configured,

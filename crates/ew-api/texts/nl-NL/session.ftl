@@ -9,6 +9,7 @@
 error-part-length = "{ $p0 }" is geen lengte: geef millimeters, zoals 45 of 22,5.
 error-part-hole-incomplete = Gat { $p0 } heeft zijn X, zijn Y, zijn soort en zijn maat nodig.
 error-part-cell-needed = Rij { $p0 } heeft hier een waarde nodig: alleen een waarde die leeg mag blijven kan worden weggelaten.
+error-parts-written-partly = { $p0 } opgeslagen; { $p1 } niet opgeslagen, omdat hun bibliotheek niet geschreven kon worden: { $p2 }
 error-part-gland-incomplete = Een wartel heeft zijn schroefdraad nodig en de kleinste en grootste kabel die hij afdicht.
 error-part-gland-range = De grootste kabel die een wartel afdicht kan niet kleiner zijn dan de kleinste.
 error-part-hole-off = Gat { $p0 } op { $p1 }, { $p2 } mm ligt buiten de voorkant, die { $p3 } × { $p4 } mm is: het midden wordt gemeten vanaf de linkeronderhoek van de voorkant.

@@ -70,7 +70,7 @@ impl Command for SetWorkshopStock {
                 return Err(bad(at, text!("refusal-stock-missing", entry.copy.to_string())));
             };
             let number = copy.item.part_number.as_str().to_owned();
-            if !copy.item.kind.is_consumable() && copy.item.kind != ew_schema::PartKind::Gland {
+            if !copy.item.kind.in_stock() {
                 return Err(bad(at, text!("refusal-stock-kind", number)));
             }
             if !seen.insert(entry.copy) {

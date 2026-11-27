@@ -19,9 +19,6 @@ use crate::components;
 use crate::icons::IconId;
 use crate::theme;
 
-/// The kinds of the stock, in the view's order, as the file spells them.
-const KINDS: [&str; 4] = ["wire", "ferrule", "marker", "gland"];
-
 /// A stock row being dragged: its part, as `parts.open` names it, and its kind.
 #[derive(Clone)]
 struct StockDrag {
@@ -56,7 +53,8 @@ pub(super) fn list(ui: &mut Ui, place: &PartsPlace, events: &mut Vec<Event>) {
         .id_salt("parts-stock-list")
         .auto_shrink([false, false])
         .show(ui, |ui| {
-            for kind in KINDS {
+            for kind in ew_viewmodel::ew_api::stock::stock_kind_words() {
+                let kind = kind.as_str();
                 let rows: Vec<&PartFound> = place.found.iter().filter(|f| f.offer.kind == kind).collect();
                 if rows.is_empty() {
                     continue;

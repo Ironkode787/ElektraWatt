@@ -13,18 +13,17 @@ use serde_json::{Value, json};
 use crate::Session;
 use crate::part_offers::lib_ref;
 
-/// The kinds a stock holds, in the order the Workshop stock view lists them: wires, ferrules and lugs, markers, cable
-/// glands.
-pub const STOCK_KINDS: [PartKind; 4] = [
-    PartKind::Wire,
-    PartKind::Ferrule,
-    PartKind::Marker,
-    PartKind::Gland,
-];
+/// The kinds a stock holds, in the order the Workshop stock view lists them (declared once in `ew-schema`).
+pub use ew_schema::STOCK_KINDS;
+
+/// The kinds of [`STOCK_KINDS`] as the file spells them (`wire`, `ferrule`, `marker`, `gland`), in that order.
+pub fn stock_kind_words() -> Vec<String> {
+    STOCK_KINDS.iter().map(crate::part_editor::stored_word).collect()
+}
 
 /// Whether a part of `kind` may stand in the stock.
 pub fn holds(kind: &PartKind) -> bool {
-    STOCK_KINDS.contains(kind)
+    kind.in_stock()
 }
 
 /// A change of the stock, as Parts makes it.
