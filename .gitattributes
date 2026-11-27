@@ -7,3 +7,5 @@
 crates/*/tests/fixtures/*-exporters/** -text
 # The label files a label program reads: kept byte for byte (CR LF and a byte-order mark, doc 13 §5.4).
 bin/ew/tests/expected/labels/** -text
+# The package's Contents.txt: kept byte for byte (CR LF and a byte-order mark, doc 13-package §8.2).
+crates/ew-api/tests/expected/package/** -text
