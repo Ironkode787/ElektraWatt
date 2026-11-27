@@ -890,6 +890,7 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
                 None,
             ));
         }
+        rows.extend(ways_row(q, id));
     }
     if let Some(s) = placement_surface(q, id) {
         let pattern = ew_derive::layout::placement_holes(q, id);
@@ -1233,6 +1234,51 @@ fn fill_rows(q: &Q, id: Id<Carrier>, d: &ew_schema::DuctParams) -> Vec<PropRow> 
     ]
 }
 
+/// A placement's Ways row (doc 12-3d §12.5): how many of the ways laid for its wires hold, or how many no longer hold,
+/// with Route ("5 no longer hold · Route"); none for a placement without a laid way.
+fn ways_row(q: &Q, id: Id<Placement>) -> Option<PropRow> {
+    use ew_derive::layout::{RouteStatus, placement_of_function, route_status, stored_way};
+    let records = q.get::<ew_derive::WireRecordSet>(());
+    let (mut laid, mut stale) = (0i64, 0i64);
+    for r in records.iter() {
+        let Some(way) = stored_way(q, &r.wire) else {
+            continue;
+        };
+        if !way
+            .ends
+            .iter()
+            .any(|e| placement_of_function(q, e.cp.0) == Some(id))
+        {
+            continue;
+        }
+        laid += 1;
+        if matches!(route_status(q, &r.wire), RouteStatus::Stale { .. }) {
+            stale += 1;
+        }
+    }
+    if laid == 0 {
+        return None;
+    }
+    let text = match (stale, laid) {
+        (1, _) => ew_derive::text!("placement-ways-stale-one"),
+        (0, 1) => ew_derive::text!("placement-ways-hold-one"),
+        (0, n) => ew_derive::text!("placement-ways-hold", n.to_string()),
+        (n, _) => ew_derive::text!("placement-ways-stale", n.to_string()),
+    };
+    let mut row = text_row(
+        "placement",
+        "ways",
+        text.to_string(),
+        derived_of("stored ways"),
+        None,
+    );
+    row.link = (stale > 0).then(|| super::properties::RowLink {
+        label: ew_derive::text!("way-route"),
+        actions: vec![("layout.route", Value::Null)],
+    });
+    Some(row)
+}
+
 /// A duct's inner area in words, with where it comes from (doc 12-3d §8.6): "2040 mm² · the part's inner size",
 /// "2040 mm² · 0.85 × 40 × 60: the part gives no inner size". Properties of a duct and Route's card say it.
 pub(crate) fn duct_inner_words(
@@ -1260,7 +1306,10 @@ pub(crate) fn duct_fill_notes(fill: &ew_derive::layout::DuctFillV) -> Vec<crate:
         out.push(ew_derive::text!("duct-fill-default"));
     }
     if fill.without_diameter > 0 {
-        out.push(ew_derive::text!("duct-fill-without", fill.without_diameter.to_string()));
+        out.push(ew_derive::text!(
+            "duct-fill-without",
+            fill.without_diameter.to_string()
+        ));
     }
     out
 }

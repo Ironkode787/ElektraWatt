@@ -85,13 +85,18 @@ pub struct CardWire {
 }
 
 impl CardWire {
-    /// Why the wire gets no way, as `ew route --json` names it: `unplaced`, `no_duct` or `off_plate`.
+    /// Why the wire gets no way, as `ew route --json` names it: `unplaced`, `no_duct`, `ducts_apart`, `off_plate`,
+    /// `other_plate`, `two_doors` or `door_size`.
     pub fn reason_key(&self) -> Option<&'static str> {
         use ew_derive::layout::NoWay;
         self.reason.as_ref().map(|(why, _)| match why {
             NoWay::Unplaced(_) => "unplaced",
             NoWay::NoDuct { .. } => "no_duct",
-            NoWay::OffPlate(_) => "off_plate",
+            NoWay::OffPlate { .. } => "off_plate",
+            NoWay::OtherPlate { .. } => "other_plate",
+            NoWay::TwoDoors(..) => "two_doors",
+            NoWay::DuctsApart { .. } => "ducts_apart",
+            NoWay::DoorWithoutSize(_) => "door_size",
         })
     }
 }
@@ -182,7 +187,7 @@ impl Session {
         let records = q.get::<WireRecordSet>(());
         let mut out = Vec::new();
         for r in records.iter() {
-            let Some(way) = ew_derive::layout::stored_way(&q, r.wire.id) else {
+            let Some(way) = ew_derive::layout::stored_way(&q, &r.wire) else {
                 continue;
             };
             let at = ids.contains(&r.wire.id.as_uuid())
@@ -232,8 +237,14 @@ impl Session {
                 let line = ew_derive::layout::DuctLine::of(&q, c)?;
                 let pts = line.stretch(piece.from, piece.to);
                 let half = i128::from(d.width.0) / 2;
-                let (x0, x1) = (pts.iter().map(|p| p.0).min()? - half, pts.iter().map(|p| p.0).max()? + half);
-                let (y0, y1) = (pts.iter().map(|p| p.1).min()? - half, pts.iter().map(|p| p.1).max()? + half);
+                let (x0, x1) = (
+                    pts.iter().map(|p| p.0).min()? - half,
+                    pts.iter().map(|p| p.0).max()? + half,
+                );
+                let (y0, y1) = (
+                    pts.iter().map(|p| p.1).min()? - half,
+                    pts.iter().map(|p| p.1).max()? + half,
+                );
                 let (_, mid) = line.at((piece.from + piece.to) / 2)?;
                 let (area, inner) = fill.fill();
                 Some(DuctMark {
@@ -539,7 +550,10 @@ fn card(
                 over: fill.over(),
                 chip,
                 wires: fill.wires.len(),
-                fullest: fill.fullest.and_then(|i| fill.pieces.get(i)).map_or(0, |p| p.wires),
+                fullest: fill
+                    .fullest
+                    .and_then(|i| fill.pieces.get(i))
+                    .map_or(0, |p| p.wires),
                 inner: crate::output::layout_edit::duct_inner_words(after, &fill, d),
                 notes: crate::output::layout_edit::duct_fill_notes(&fill),
             });

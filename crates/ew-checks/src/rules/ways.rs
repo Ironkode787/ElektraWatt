@@ -408,6 +408,32 @@ impl Rule for StaleWay {
                         let (w, text) = wires[0].clone();
                         (Target::new(Kind::Connection, w), "end", text.into())
                     }
+                    StaleWhy::PinMoved(cp) => match q.functions().get(cp.0).and_then(|f| f.device) {
+                        Some(d) => (
+                            Target::new(Kind::Device, d),
+                            "pin",
+                            ew_derive::cp_label(q, ew_derive::CpRef::new(cp.0, cp.1)).into(),
+                        ),
+                        None => continue,
+                    },
+                    StaleWhy::DuctOrDoor { duct, door } => {
+                        let Some(name) = duct_name(q, duct) else {
+                            continue;
+                        };
+                        let f = Finding::new(
+                            &STALE_WAY,
+                            [Target::new(Kind::MountingSurface, door)],
+                            door.as_uuid().to_string(),
+                            name.clone(),
+                        )
+                        .arg("form", "door")
+                        .arg("count", TextArg::Number(count))
+                        .arg("at", name)
+                        .arg("door", ew_derive::text::surface_words(q, door))
+                        .with_fix(route_fix(space));
+                        out.push(with_more_targets(f, wire_targets));
+                        continue;
+                    }
                 };
                 let mut f = Finding::new(
                     &STALE_WAY,

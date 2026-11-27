@@ -1246,6 +1246,25 @@ pub fn stale_why(q: &crate::Q, why: crate::layout::StaleWhy) -> Text {
             None => text!("way-duct-gone"),
         },
         StaleWhy::DuctGone(_) => text!("way-duct-gone"),
+        StaleWhy::PinMoved(cp) => text!("way-pin-moved", pin(cp)),
+        StaleWhy::DuctOrDoor { duct, door } => match crate::layout::carrier_label(q, duct) {
+            Some(l) => text!("way-duct-or-door", carrier_in_sentence(l), surface_words(q, door)),
+            None => text!("way-duct-gone"),
+        },
+    }
+}
+
+/// A surface of a cabinet inside a sentence, after its enclosure's tag ("-UC1 door", "-UC1 left side").
+pub fn surface_words(q: &crate::Q, surface: ew_ids::Id<ew_schema::MountingSurface>) -> TextArg {
+    let face = crate::layout::face_of(q, surface);
+    let tag = q
+        .table::<ew_schema::MountingSurface>()
+        .get(surface)
+        .and_then(|s| q.table::<ew_schema::Enclosure>().get(s.enclosure))
+        .map(|e| crate::short_tag(q, e.device));
+    match (face, tag) {
+        (Some(f), Some(t)) => surface_of(t, &f.kind, f.door, f.doors).into(),
+        _ => text!("surface-other").into(),
     }
 }
 
@@ -1263,7 +1282,27 @@ pub fn no_way(q: &crate::Q, why: crate::layout::NoWay) -> Text {
                 None => text!("no-way-no-duct-here", pin),
             }
         }
-        NoWay::OffPlate(d) => text!("no-way-off-plate", crate::short_tag(q, d)),
+        NoWay::OffPlate { device, surface } => {
+            text!(
+                "no-way-off-plate",
+                crate::short_tag(q, device),
+                surface_words(q, surface)
+            )
+        }
+        NoWay::OtherPlate { device, surface } => {
+            text!(
+                "no-way-other-plate",
+                crate::short_tag(q, device),
+                surface_words(q, surface)
+            )
+        }
+        NoWay::TwoDoors(a, b) => text!("no-way-two-doors", crate::short_tag(q, a), crate::short_tag(q, b)),
+        NoWay::DuctsApart { a, b } => text!(
+            "no-way-ducts-apart",
+            crate::cp_label(q, crate::CpRef::new(a.0, a.1)),
+            crate::cp_label(q, crate::CpRef::new(b.0, b.1))
+        ),
+        NoWay::DoorWithoutSize(door) => text!("no-way-door-size", surface_words(q, door)),
     }
 }
 
@@ -1323,12 +1362,8 @@ pub fn way_words(q: &crate::Q, way: &[ew_schema::WayStep]) -> String {
 /// word ([`wire_length_source`]), and "site" for a field wire without a length of a cabinet Route has laid (a cabinet
 /// without a stored way prints "missing" as before).
 pub fn wire_length_from(q: &crate::Q, r: &crate::WireRecord) -> Text {
-    use crate::layout::{CabinetWire, space_of_wire};
-    let routed = |space| {
-        q.table::<ew_schema::CommittedRoute>()
-            .iter()
-            .any(|(_, c)| c.space == space)
-    };
+    use crate::layout::{CabinetWire, LaidSpaces, space_of_wire};
+    let routed = |space| q.get::<LaidSpaces>(()).contains(&space);
     match (r.length, r.flags.field, space_of_wire(q, r)) {
         (WireLength::Missing, true, Some((space, CabinetWire::Site))) if routed(space) => {
             text!("length-source-site")

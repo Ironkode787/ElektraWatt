@@ -721,14 +721,13 @@ frame-row-adopt = Templates
 frame-template = Template
 
 # Route on a panel page: the card of a cabinet's plan (doc 12 §12.5).
-cabinet-route-lead = Route: cabinet { $p0 }. { $p1 }; { $p2 }. Nothing has changed yet.
-cabinet-route-ways = { $p0 ->
-        [one] 1 wire gets a way through the ducts
-       *[other] { $p0 } wires get a way through the ducts
+cabinet-route-lead = { $p0 ->
+        [one] Route: cabinet { $p1 }. 1 wire gets a way through the ducts; { $p2 } are made on site. Nothing has changed yet.
+       *[other] Route: cabinet { $p1 }. { $p0 } wires get a way through the ducts; { $p2 } are made on site. Nothing has changed yet.
     }
-cabinet-route-site = { $p0 ->
-        [one] 1 is made on site
-       *[other] { $p0 } are made on site
+cabinet-route-lead-one-site = { $p0 ->
+        [one] Route: cabinet { $p1 }. 1 wire gets a way through the ducts; 1 is made on site. Nothing has changed yet.
+       *[other] Route: cabinet { $p1 }. { $p0 } wires get a way through the ducts; 1 is made on site. Nothing has changed yet.
     }
 cabinet-route-ducts = Ducts
 cabinet-route-lengths = Lengths

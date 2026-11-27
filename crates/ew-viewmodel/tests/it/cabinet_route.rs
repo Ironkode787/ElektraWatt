@@ -125,7 +125,7 @@ fn route_on_902_opens_the_cabinets_card_and_apply_stores_the_ways() {
     assert!(
         toasts(&shell)
             .iter()
-            .any(|t| t.starts_with("The ways of ") && t.ends_with(" wires no longer hold.")),
+            .any(|t| t.contains("The ways of ") && t.ends_with(" wires no longer hold.")),
         "{:?}",
         toasts(&shell)
     );
@@ -133,12 +133,10 @@ fn route_on_902_opens_the_cabinets_card_and_apply_stores_the_ways() {
         shell.selected_ways(0).iter().all(|(_, stale)| *stale),
         "drawn dashed"
     );
-    let offered = shell
-        .notifications()
-        .visible()
-        .iter()
-        .any(|n| n.text.starts_with("The ways of ") && n.label("route") == "Route");
-    assert!(offered, "the toast offers Route");
+    let offered = shell.notifications().visible().iter().any(|n| {
+        n.text.starts_with("Turned -X1031. The ways of ") && n.label("route") == "Route" && !n.label("undo").is_empty()
+    });
+    assert!(offered, "the toast says the turn and offers Undo and Route: {:?}", toasts(&shell));
 
     // Route plans the wires whose ways no longer hold: the card, the canvas's ways and the duct's chip.
     done(&mut shell, "layout.route", json!({}));

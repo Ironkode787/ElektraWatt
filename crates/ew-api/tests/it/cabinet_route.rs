@@ -370,6 +370,23 @@ fn ew_lay_011_is_one_finding_per_cause_whatever_its_wires() {
         "{}",
         f[0].message()
     );
+    // The strip's Properties say how many of its ways no longer hold, with Route.
+    let ways = s
+        .property_sheet(&[placement.as_uuid()])
+        .sections
+        .iter()
+        .flat_map(|sec| &sec.rows)
+        .find(|r| r.key == "placement/derived.ways")
+        .cloned()
+        .expect("a Ways row");
+    assert!(
+        matches!(&ways.value, ew_api::output::RowValue::One { text, .. } if text.ends_with(" no longer hold")),
+        "{ways:?}"
+    );
+    assert_eq!(
+        ways.link.map(|l| (l.label.to_string(), l.actions)),
+        Some(("Route".to_owned(), vec![("layout.route", Value::Null)]))
+    );
     assert_eq!(
         f[0].fix.as_ref().map(|x| x.command.as_str()),
         Some("layout.route")
@@ -563,4 +580,98 @@ fn ew_lay_006_reports_what_the_closed_door_meets() {
         reaches(&s, "-101G1"),
         "117.5 mm from the plate; the closed door is 100 mm away"
     );
+}
+
+/// A routed wire its cabinet no longer routes has no way read anywhere (doc 12-3d §8.5): re-wired to a field device, to
+/// an external point, or become a core, 101.8 has no length (made on site, or its cable's), its duct no longer counts
+/// it, and Route's next run removes its record in its one undo step.
+#[test]
+fn a_wire_the_cabinet_no_longer_routes_keeps_no_way() {
+    use ew_schema::{ConnectionKind, Endpoint, Record};
+    let s = common::sample();
+    let carrier = wire(&s, "101.8");
+    let q = s.query();
+    let id = ew_ids::Id::<ew_schema::Connection>::from_uuid(carrier);
+    let route = ew_ids::v5::route_id::<_, ew_schema::CommittedRoute>(id);
+    assert!(q.table::<ew_schema::CommittedRoute>().contains(route), "the sample lays 101.8");
+    let duct = q
+        .table::<ew_schema::Carrier>()
+        .iter()
+        .find(|(_, c)| c.kind == ew_schema::CarrierKind::Duct)
+        .map(|(c, _)| c)
+        .unwrap();
+    let in_duct = |q: &ew_derive::Q| {
+        q.get::<ew_derive::layout::DuctFill>(duct)
+            .as_ref()
+            .as_ref()
+            .is_some_and(|f| f.wires.contains(&id))
+    };
+    assert!(in_duct(&q));
+    // A field device's pin, an external point (the end of -101W1's core at ext. L1), and a core of -101W1.
+    let field = q
+        .functions()
+        .iter()
+        .find(|(_, f)| f.device.is_some_and(|d| ew_derive::short_tag(&q, d) == "-104B1"))
+        .map(|(f, _)| Endpoint::Cp(f, 0))
+        .expect("-104B1");
+    let records = q.get::<ew_derive::WireRecordSet>(());
+    let core_wire = records
+        .iter()
+        .find(|r| r.wire.core.is_some() && r.wire.ends.iter().any(|e| e.kind == ew_derive::EndKind::External))
+        .expect("a core of -101W1 from an external point");
+    let external = core_wire
+        .wire
+        .ends
+        .iter()
+        .find(|e| e.kind == ew_derive::EndKind::External)
+        .map(|e| Endpoint::Cp(e.cp.function, e.cp.idx))
+        .expect("ext. L1");
+    let conductor = core_wire.wire.core.expect("a core");
+    drop(records);
+    drop(q);
+    let changed = |change: &dyn Fn(&mut ew_schema::Connection)| {
+        let (project, mut records, lib) = common::sample_records();
+        for r in &mut records {
+            if let Record::Connection(c) = r
+                && c.id == id
+            {
+                change(c);
+            }
+        }
+        common::session_of(project, records, lib)
+    };
+    for (what, mut s) in [
+        ("field", changed(&|c| c.b = field.clone())),
+        ("external", changed(&|c| c.b = external.clone())),
+        ("core", changed(&|c| c.kind = ConnectionKind::Core(conductor))),
+    ] {
+        let q = s.query();
+        let r = q
+            .get::<ew_derive::WireRecordSet>(())
+            .iter()
+            .find(|r| r.wire.id == id)
+            .cloned()
+            .expect("101.8");
+        assert!(
+            !matches!(
+                r.length,
+                ew_derive::WireLength::Routed { .. } | ew_derive::WireLength::Stale { .. }
+            ),
+            "{what}: {:?}",
+            r.length
+        );
+        assert_eq!(
+            ew_derive::layout::route_status(&q, &r.wire),
+            ew_derive::layout::RouteStatus::None,
+            "{what}"
+        );
+        assert!(!in_duct(&q), "{what}: the duct no longer counts it");
+        drop(q);
+        let space = s.cabinet_of_folio("902").unwrap();
+        run(&mut s, "layout.route", json!({"space": space})).expect("Route");
+        assert!(
+            !s.query().table::<ew_schema::CommittedRoute>().contains(route),
+            "{what}: Route removed the leftover"
+        );
+    }
 }

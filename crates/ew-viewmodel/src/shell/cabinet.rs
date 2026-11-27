@@ -46,7 +46,10 @@ impl CabinetCard {
             cells,
             note: None,
             picked: self.picked == Some(w.wire),
-            action: Some(("layout.route_card", serde_json::json!({ "wire": w.wire.to_string() }))),
+            action: Some((
+                "layout.route_card",
+                serde_json::json!({ "wire": w.wire.to_string() }),
+            )),
         };
         let group = |heading: Key<'static>, rows: Vec<CardGroupRow>| CardGroup {
             heading: strings::text(heading).to_owned(),
@@ -111,7 +114,10 @@ impl CabinetCard {
             .site
             .iter()
             .map(|w| {
-                let why = w.site_end.as_ref().map_or_else(|| w.ends.clone(), strings::render);
+                let why = w
+                    .site_end
+                    .as_ref()
+                    .map_or_else(|| w.ends.clone(), strings::render);
                 row(w, vec![name(w), why])
             })
             .collect();
@@ -179,6 +185,17 @@ pub struct CabinetMarks {
     pub notes: Vec<((i64, i64), String)>,
 }
 
+/// What a selection's marks were worked out for: the revision, the page's folio and the selected IDs.
+pub(super) type MarksKey = (u64, String, Vec<Uuid>);
+
+/// What the selection shows on a panel page: the ways of its wires (page nm, and whether each no longer holds) and the
+/// fullest pieces of its ducts.
+#[derive(Debug)]
+pub(super) struct SelectionMarks {
+    ways: Vec<(Vec<(i64, i64)>, bool)>,
+    ducts: Vec<DuctPieceMark>,
+}
+
 /// The fullest piece of a duct selected on its panel page (doc 12-3d §12.5): its corners (page nm), hatched, and its fill
 /// chip where (page nm) and with its words.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -207,12 +224,17 @@ impl ShellModel {
             self.notify(text, false);
             return self.cabinet_route_card(folio, true);
         }
-        let ways = strings::format_count(
-            count_key!("cabinet-route-ways"),
+        // One text with its arguments; the words for one wire made on site are a text of their own.
+        let lead_key = if route.site.len() == 1 {
+            count_key!("cabinet-route-lead-one-site")
+        } else {
+            count_key!("cabinet-route-lead")
+        };
+        let lead = strings::format_counted(
+            lead_key,
             route.lengths.len() + route.typed.len(),
+            &[&route.cabinet, &route.site.len().to_string()],
         );
-        let site = strings::format_count(count_key!("cabinet-route-site"), route.site.len());
-        let lead = strings::format(key!("cabinet-route-lead"), &[&route.cabinet, &ways, &site]);
         let params = route.command.params.clone();
         self.preview_host_card_as(
             "layout.route",
@@ -276,40 +298,52 @@ impl ShellModel {
         {
             return Vec::new();
         }
-        let (Some(_), Some(folio)) = (self.canvas_of(group), self.current_folio()) else {
-            return Vec::new();
-        };
-        let ids: Vec<Uuid> = self.tools.selection.items.iter().map(|e| e.0).collect();
-        if ids.is_empty() {
-            return Vec::new();
-        }
-        self.project_session()
-            .map(|s| s.ways_at(folio, &ids))
+        self.selection_marks(group)
+            .map(|m| m.ways.clone())
             .unwrap_or_default()
     }
 
     /// The fullest pieces of the ducts selected on the panel page of canvas `group`, hatched, with their fill chips
     /// (doc 12-3d §12.5).
     pub fn selected_duct_marks(&self, group: usize) -> Vec<DuctPieceMark> {
-        let (Some(_), Some(folio)) = (self.canvas_of(group), self.current_folio()) else {
-            return Vec::new();
+        self.selection_marks(group)
+            .map(|m| m.ducts.clone())
+            .unwrap_or_default()
+    }
+
+    /// What the selection shows on the panel page of canvas `group`, worked out once per revision, page and selection
+    /// (the window asks for it on every frame).
+    fn selection_marks(&self, group: usize) -> Option<std::sync::Arc<SelectionMarks>> {
+        let (Some(_), Some(folio), Some(rev)) =
+            (self.canvas_of(group), self.current_folio(), self.revision())
+        else {
+            return None;
         };
         let ids: Vec<Uuid> = self.tools.selection.items.iter().map(|e| e.0).collect();
         if ids.is_empty() {
-            return Vec::new();
+            return None;
         }
-        let marks = self
-            .project_session()
-            .map(|s| s.duct_marks(folio, &ids))
-            .unwrap_or_default();
-        marks
-            .into_iter()
-            .map(|m| DuctPieceMark {
-                piece: m.piece,
-                chip: m.chip,
-                words: chip_words(m.percent, m.limit, m.over),
-            })
-            .collect()
+        let key: MarksKey = (rev, folio.to_owned(), ids);
+        if let Some((k, marks)) = &*self.marks_cache.borrow()
+            && *k == key
+        {
+            return Some(marks.clone());
+        }
+        let session = self.project_session()?;
+        let marks = std::sync::Arc::new(SelectionMarks {
+            ways: session.ways_at(&key.1, &key.2),
+            ducts: session
+                .duct_marks(&key.1, &key.2)
+                .into_iter()
+                .map(|m| DuctPieceMark {
+                    piece: m.piece,
+                    chip: m.chip,
+                    words: chip_words(m.percent, m.limit, m.over),
+                })
+                .collect(),
+        });
+        *self.marks_cache.borrow_mut() = Some((key, marks.clone()));
+        Some(marks)
     }
 
     /// The wire of the `i`-th way of an open cabinet card (the order of [`CabinetMarks::ways`]).

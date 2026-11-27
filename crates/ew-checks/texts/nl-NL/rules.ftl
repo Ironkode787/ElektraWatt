@@ -614,9 +614,9 @@ rule-ew-lay-007 = { $device } houdt { $need } vrij { $side ->
     .title = Vrije ruimte geschonden
     .hint = Verplaats het apparaat of wat in zijn vrije ruimte staat tot de ruimte die zijn artikel vrijhoudt, vrij is.
 
-rule-ew-lay-008 = { $duct } ({ $size }) is { $fill } vol waar ze het volst is; de grens is { $limit }: neem een bredere of voeg een kabelgoot toe
-    .title = Vulling van de kabelgoot boven de grens
-    .hint = Kies een bredere kabelgoot, voeg er een tweede naast toe, of verhoog de vullingsgrens in Projecteigenschappen ▸ Werkplaats.
+rule-ew-lay-008 = { $duct } ({ $size }) heeft een vulgraad van { $fill } waar ze het volst is; de maximale vulgraad is { $limit }: neem een bredere of voeg een kabelgoot toe
+    .title = Vulgraad van de kabelgoot boven het maximum
+    .hint = Kies een bredere kabelgoot, voeg er een tweede naast toe, of verhoog de maximale vulgraad in Projecteigenschappen ▸ Werkplaats.
 
 rule-ew-lay-011 = { $form ->
         [moved] { $count ->
@@ -634,6 +634,14 @@ rule-ew-lay-011 = { $form ->
         [gone] { $count ->
             [one] De loop van 1 draad klopt niet meer: een kabelgoot ervan is weg. Routeren geeft een nieuwe.
            *[other] De lopen van { $count } draden kloppen niet meer: een kabelgoot ervan is weg. Routeren geeft nieuwe.
+        }
+        [pin] { $count ->
+            [one] De loop van 1 draad bij { $at } klopt niet meer: de aansluiting staat elders op het apparaat (het artikel of de tekening is veranderd). Routeren geeft een nieuwe.
+           *[other] De lopen van { $count } draden bij { $at } kloppen niet meer: de aansluiting staat elders op het apparaat (het artikel of de tekening is veranderd). Routeren geeft nieuwe.
+        }
+        [door] { $count ->
+            [one] De loop van 1 draad door { $at } naar { $door } klopt niet meer: de kabelgoot of de deur is veranderd. Routeren geeft een nieuwe.
+           *[other] De lopen van { $count } draden door { $at } naar { $door } kloppen niet meer: de kabelgoot of de deur is veranderd. Routeren geeft nieuwe.
         }
        *[end] De loop van { $at } klopt niet meer: het eind ging van { $from } naar { $to }. Routeren geeft een nieuwe.
     }

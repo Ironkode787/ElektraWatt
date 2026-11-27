@@ -754,7 +754,7 @@ fn way_row(q: &Q, conns: &[Id<Connection>]) -> Option<Built> {
         .filter(|r| conns.iter().all(|c| r.wire.constituents.contains(c)))
         .collect();
     let [r] = wires.as_slice() else { return None };
-    let way = ew_derive::layout::stored_way(q, r.wire.id)?;
+    let way = ew_derive::layout::stored_way(q, &r.wire)?;
     let text = ew_derive::text::way_words(q, &way.way);
     // Show on 902: the cabinet's panel page, with the wire selected, which shows its way there.
     let folio = ew_derive::layout::cabinet_page(q, way.space)

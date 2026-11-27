@@ -534,6 +534,8 @@ toast-cabinet-routed = { $p0 ->
        *[other] { $p0 } draden van { $p1 } gerouteerd
     }.
 toast-cabinet-all-hold = Elke draad van { $p0 } heeft zijn loop.
+toast-layout-turned = { $p0 } gedraaid.
+toast-layout-moved = { $p0 } verplaatst.
 toast-ways-stale = { $p0 ->
         [one] De loop van 1 draad klopt niet meer
        *[other] De lopen van { $p0 } draden kloppen niet meer

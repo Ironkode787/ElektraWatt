@@ -583,6 +583,16 @@ pub enum StaleWhy {
     DuctChanged(Id<Carrier>),
     /// A duct of its way is gone.
     DuctGone(Id<Carrier>),
+    /// A pin of an end stands elsewhere on its device, which did not move: its part or its drawing gave it another
+    /// edge or place.
+    PinMoved((Id<Function>, u16)),
+    /// A way into a door measures another run, its stretches still on their ducts: the duct or the door changed.
+    DuctOrDoor {
+        /// The duct.
+        duct: Id<Carrier>,
+        /// The door.
+        door: Id<MountingSurface>,
+    },
 }
 
 /// The status of a wire's stored way ([`route_status`]).
@@ -608,18 +618,62 @@ pub enum RouteStatus {
     },
 }
 
-/// The stored way of a wire, when one is read: the record `v5(wire, "route")` whose wire is that wire and whose
-/// space exists.
-pub fn stored_way(q: &Q, wire: Id<Connection>) -> Option<Arc<CommittedRoute>> {
-    let r = q.table::<CommittedRoute>().get(v5::route_id(wire))?;
-    (r.wire == wire && q.table::<LayoutSpace>().contains(r.space)).then(|| r.clone())
+/// The way the cabinet lays for a wire (doc 12-3d §8.5), the one question every reader of a stored way asks (the wire
+/// record and its length, the lists, Properties, the fill, the rules, the window's marks): the record
+/// `v5(wire, "route")` of that wire, when its space exists and the wire is one that space's cabinet routes (both ends
+/// on its devices, no cable's core). A record of a wire Route no longer lays (an end re-wired to the field or to an
+/// external point, a wire become a core) is a leftover: nothing reads it, and Route's next run on that cabinet removes
+/// it in the same undo step as its other changes ([`RoutePlan::gone`]). It changes nothing a person sees until then,
+/// so no check names it.
+pub fn stored_way(q: &Q, wire: &PhysicalWire) -> Option<Arc<CommittedRoute>> {
+    let r = q.table::<CommittedRoute>().get(v5::route_id(wire.id))?;
+    let loc = location_of_space(q, r.space)?;
+    (r.wire == wire.id && classify(q, wire, loc) == Some(CabinetWire::Routed)).then(|| r.clone())
+}
+
+/// Whether another pin of the device of `cp` that a stored way ends at still stands on the edge it stood on (the line
+/// of that edge, across the way out of it), its device's spots `spots` as they are now.
+fn others_on_their_edges(q: &Q, cp: (Id<Function>, u16), spots: &super::PinSpotsV) -> bool {
+    let placement = placement_of_function(q, cp.0);
+    q.table::<CommittedRoute>().iter().any(|(_, r)| {
+        r.ends.iter().any(|e| {
+            if e.cp == cp || placement_of_function(q, e.cp.0) != placement {
+                return false;
+            }
+            spots.spot(e.cp).is_some_and(|s| match s.out {
+                (0, _) => s.at.y == e.at.y,
+                _ => s.at.x == e.at.x,
+            })
+        })
+    })
+}
+
+/// The layout spaces whose cabinet has a way laid for at least one of its wires ([`stored_way`]), built once per
+/// snapshot: what the wire list's Length from reads per row ("site" for a field wire of a cabinet Route has laid).
+#[derive(Debug)]
+pub struct LaidSpaces;
+
+impl Query for LaidSpaces {
+    type Key = ();
+    type Value = BTreeSet<Id<LayoutSpace>>;
+    const FAMILY: &'static str = "laid_spaces";
+    const POLICY: Policy = Policy::Cold;
+
+    fn run(q: &Q, _key: &()) -> Arc<BTreeSet<Id<LayoutSpace>>> {
+        Arc::new(
+            q.get::<WireRecordSet>(())
+                .iter()
+                .filter_map(|r| stored_way(q, &r.wire).map(|w| w.space))
+                .collect(),
+        )
+    }
 }
 
 /// `route_status(wire)`: whether the wire's stored way holds (doc 12 §8.5): its ends are the pins as they are now, and
 /// its run, measured again along its steps over today's ducts, is the run it stored. The first cause found is named:
 /// an end that moved to another pin, a device no longer placed, a pin that moved, a duct gone, a duct changed.
 pub fn route_status(q: &Q, wire: &PhysicalWire) -> RouteStatus {
-    let Some(r) = stored_way(q, wire.id) else {
+    let Some(r) = stored_way(q, wire) else {
         return RouteStatus::None;
     };
     let door = r.way.iter().any(|s| matches!(s, WayStep::Door(_)));
@@ -657,6 +711,16 @@ pub fn route_status(q: &Q, wire: &PhysicalWire) -> RouteStatus {
         let same = spots.surface == end.surface
             && spots.spot(end.cp).is_some_and(|s| s.at == end.at && s.h == end.h);
         if !same {
+            // The pin on its other edge, the device where it was: its part or its drawing gave the pin another edge.
+            // A device turned half round puts a pin there too; it is told apart by its other pins, which a turn takes
+            // to their other edges as well, while another pin's edge leaves them on theirs.
+            let flipped = spots.surface == end.surface
+                && spots
+                    .spot(end.cp)
+                    .is_some_and(|s| s.flipped == end.at && s.h == end.h);
+            if flipped && others_on_their_edges(q, end.cp, &spots) {
+                return stale(StaleWhy::PinMoved(end.cp));
+            }
             if let Some(d) = device {
                 return stale(StaleWhy::Moved(d));
             }
@@ -665,8 +729,20 @@ pub fn route_status(q: &Q, wire: &PhysicalWire) -> RouteStatus {
     match measure(q, &r.ends, &r.way) {
         Ok(run) if run == r.run => RouteStatus::Holds { run: r.run, door },
         Ok(_) => {
+            // A way into a door whose stretches all still lie on their ducts: the duct or the door (its size, its
+            // hinge, where it hangs) changed, and the stored way does not say which.
+            let door_of = r.way.iter().find_map(|s| match s {
+                WayStep::Door(d) => Some(*d),
+                _ => None,
+            });
             let duct = r.way.iter().find_map(|s| match s {
-                WayStep::Duct(d) => Some(StaleWhy::DuctChanged(d.carrier)),
+                WayStep::Duct(d) => Some(match door_of {
+                    Some(door) => StaleWhy::DuctOrDoor {
+                        duct: d.carrier,
+                        door,
+                    },
+                    None => StaleWhy::DuctChanged(d.carrier),
+                }),
                 _ => None,
             });
             // A direct way's run is its ends': one that differs was stored by another rule; its first end names it.
@@ -725,16 +801,16 @@ pub fn cabinet_wires(q: &Q, space: Id<LayoutSpace>) -> Vec<(WireRecord, CabinetW
     };
     q.get::<WireRecordSet>(())
         .iter()
-        .filter_map(|r| Some((r.clone(), classify(q, r, loc)?)))
+        .filter_map(|r| Some((r.clone(), classify(q, &r.wire, loc)?)))
         .collect()
 }
 
 /// What a wire is to the cabinet of the location `loc`; `None` for a wire with no end in it.
-fn classify(q: &Q, r: &WireRecord, loc: Id<ew_schema::StructureNode>) -> Option<CabinetWire> {
-    let inside = r.wire.ends.map(|e| end_in(q, e.kind, e.cp.function, loc));
+fn classify(q: &Q, wire: &PhysicalWire, loc: Id<ew_schema::StructureNode>) -> Option<CabinetWire> {
+    let inside = wire.ends.map(|e| end_in(q, e.kind, e.cp.function, loc));
     Some(match inside {
         [false, false] => return None,
-        _ if r.wire.core.is_some() => CabinetWire::Core,
+        _ if wire.core.is_some() => CabinetWire::Core,
         [true, true] => CabinetWire::Routed,
         _ => CabinetWire::Site,
     })
@@ -744,7 +820,7 @@ fn classify(q: &Q, r: &WireRecord, loc: Id<ew_schema::StructureNode>) -> Option<
 pub fn space_of_wire(q: &Q, r: &WireRecord) -> Option<(Id<LayoutSpace>, CabinetWire)> {
     q.table::<LayoutSpace>()
         .iter()
-        .find_map(|(space, s)| Some((space, classify(q, r, s.location)?)))
+        .find_map(|(space, s)| Some((space, classify(q, &r.wire, s.location)?)))
 }
 
 /// The first panel page in page order that shows a space's plate: where Route runs for its cabinet.
@@ -785,8 +861,31 @@ pub enum NoWay {
         /// The rail of its device, if it stands on one.
         rail: Option<Id<Carrier>>,
     },
-    /// An end's device stands on a surface Route does not lay wires on (a side wall).
-    OffPlate(Id<Device>),
+    /// An end's device stands on a face Route lays no wires on (a side, the top, the bottom): the device and the face.
+    OffPlate {
+        /// The device.
+        device: Id<Device>,
+        /// The face it stands on.
+        surface: Id<MountingSurface>,
+    },
+    /// An end's device stands on another mounting plate of the cabinet than the one Route lays wires on.
+    OtherPlate {
+        /// The device.
+        device: Id<Device>,
+        /// The plate it stands on.
+        surface: Id<MountingSurface>,
+    },
+    /// The two ends stand in two doors: Route lays no wire from door to door.
+    TwoDoors(Id<Device>, Id<Device>),
+    /// Both pins meet a duct, but no way through the ducts joins them.
+    DuctsApart {
+        /// The first pin.
+        a: (Id<Function>, u16),
+        /// The other pin.
+        b: (Id<Function>, u16),
+    },
+    /// A door gives no size, so the way into it finds no hinge edge.
+    DoorWithoutSize(Id<MountingSurface>),
 }
 
 /// A way laid for a wire: its ends, its steps and its run.
@@ -1120,7 +1219,7 @@ pub fn plan_routes(q: &Q, space: Id<LayoutSpace>, scope: &RouteScope) -> RoutePl
         if *kind != CabinetWire::Routed || planned(r) {
             continue;
         }
-        let (Some(way), Some((area, _))) = (stored_way(q, r.wire.id), wire_area(q, r)) else {
+        let (Some(way), Some((area, _))) = (stored_way(q, &r.wire), wire_area(q, r)) else {
             continue;
         };
         hold(&mut room, &graph, &way.way, area);
@@ -1144,7 +1243,12 @@ pub fn plan_routes(q: &Q, space: Id<LayoutSpace>, scope: &RouteScope) -> RoutePl
         };
         out.push(PlannedWire { wire: r, planned: p });
     }
-    let current: BTreeSet<Id<Connection>> = out.iter().map(|w| w.wire.wire.id).collect();
+    // A stored way is current for a wire the cabinet routes; any other record of the space is a leftover to remove.
+    let current: BTreeSet<Id<Connection>> = out
+        .iter()
+        .filter(|w| !matches!(w.planned, Planned::Site | Planned::Core))
+        .map(|w| w.wire.wire.id)
+        .collect();
     let gone = q
         .table::<CommittedRoute>()
         .iter()
@@ -1184,7 +1288,21 @@ fn resolve(q: &Q, cp: (Id<Function>, u16), on: &Surfaces) -> Result<End, NoWay> 
         |p| p.device,
     );
     if spots.surface != on.plate && !on.doors.contains(&spots.surface) {
-        return Err(NoWay::OffPlate(placed));
+        let plate = q
+            .table::<MountingSurface>()
+            .get(spots.surface)
+            .is_some_and(|s| s.kind == SurfaceKind::Plate);
+        return Err(if plate {
+            NoWay::OtherPlate {
+                device: placed,
+                surface: spots.surface,
+            }
+        } else {
+            NoWay::OffPlate {
+                device: placed,
+                surface: spots.surface,
+            }
+        });
     }
     let spot = spots.spot(cp).cloned().ok_or(NoWay::NoDuct {
         cp,
@@ -1242,7 +1360,7 @@ fn lay(
             });
         }
         // Between two doors: Route lays no such wire.
-        (false, false) => return Err(NoWay::OffPlate(eb.device)),
+        (false, false) => return Err(NoWay::TwoDoors(ea.device, eb.device)),
         (true, false) => return lay_door(q, &ea, &eb, false, on.plate, graph, footprints, room, area, caps),
         (false, true) => return lay_door(q, &eb, &ea, true, on.plate, graph, footprints, room, area, caps),
     }
@@ -1260,13 +1378,19 @@ fn lay(
         (None, None) => shortest(graph, &na, &nb, room, area, None).map(|(s, _)| steps(s)),
     };
     let Some(steps) = chosen else {
-        let (end, spot) = if na.is_empty() {
-            (&ea, &ea.spot)
-        } else {
-            (&eb, &eb.spot)
+        // A pin that meets no duct, else two pins whose ducts no way joins.
+        let end = match (na.is_empty(), nb.is_empty()) {
+            (true, _) => &ea,
+            (_, true) => &eb,
+            _ => {
+                return Err(NoWay::DuctsApart {
+                    a: ea.spot.cp,
+                    b: eb.spot.cp,
+                });
+            }
         };
         return Err(NoWay::NoDuct {
-            cp: spot.cp,
+            cp: end.spot.cp,
             rail: rail_of(q, end.placement),
         });
     };
@@ -1310,9 +1434,13 @@ fn lay_door(
     let found = shortest(graph, &from, &exits, room, area, Some(caps))
         .or_else(|| shortest(graph, &from, &exits, room, area, None));
     let Some((stretches, _)) = found else {
-        return Err(NoWay::NoDuct {
-            cp: plate_end.cp,
-            rail: rail_of(q, plate_end.placement),
+        return Err(if from.is_empty() {
+            NoWay::NoDuct {
+                cp: plate_end.cp,
+                rail: rail_of(q, plate_end.placement),
+            }
+        } else {
+            NoWay::DoorWithoutSize(door_end.surface)
         });
     };
     let mut steps = duct_steps(graph, stretches);

@@ -775,3 +775,91 @@ fn a_wire_into_the_door_crosses_the_hinge_and_runs_along_the_door() {
     let along = (x1 - mm(600)).abs() + (y1 - mm(440)).abs();
     assert_eq!(right.run, Nm(mm(180) + 7_500_000 + mm(340) + along + mm(20)));
 }
+
+/// A wire Route no longer lays (its end re-wired to a device of another location) has no way read anywhere: no status,
+/// no length, not in its duct's fill; Route's next run removes its record (doc 12-3d §8.5).
+#[test]
+fn a_stored_way_of_a_wire_the_cabinet_no_longer_routes_is_read_nowhere_and_route_removes_it() {
+    let base = routed(cabinet(false));
+    let m = base.build();
+    let q = Q::new(&m);
+    assert!(matches!(status(&q, W1), RouteStatus::Holds { .. }));
+    let fill = |q: &Q| q.get::<DuctFill>(id(D1)).as_ref().clone().expect("a fill").wires;
+    assert!(fill(&q).contains(&id(W1)));
+    // K3 moves to the field: W1 is made on site now.
+    let mut field = base.clone();
+    field.node(0x11, "location", "FLD", None);
+    field.record(K3)["structure"] = json!({"location": uid(0x11)});
+    let m = field.build();
+    let q = Q::new(&m);
+    assert_eq!(status(&q, W1), RouteStatus::None, "nothing read from the leftover");
+    assert_eq!(length(&q, W1), WireLength::Missing);
+    assert!(!fill(&q).contains(&id(W1)), "not in its duct");
+    let route_of_w1: Id<ew_schema::CommittedRoute> = v5::route_id(id::<ew_schema::Connection>(W1));
+    assert!(plan(&q, &RouteScope::Due).gone.contains(&route_of_w1), "Route's next run removes it");
+}
+
+/// The reasons a wire gets no way are its own (doc 12 §8.2): two pins whose ducts do not meet; two devices in two doors;
+/// a device on a second plate.
+#[test]
+fn a_wire_without_a_way_is_told_its_own_reason() {
+    // Duct 1 cut in two: K1 (s 100) and K4 (s 400) each meet a duct, but the ducts do not meet.
+    let mut fx = cabinet(false);
+    fx.record(D1)["path"] = json!([[0, mm(440)], [mm(150), mm(440)]]);
+    fx.push(duct(0x2a, &[(300, 440), (500, 440)], 40, 60));
+    let m = fx.build();
+    assert_eq!(
+        planned(&plan(&Q::new(&m), &RouteScope::All), W4),
+        Planned::NoWay(NoWay::DuctsApart {
+            a: (id(f(K1)), 1),
+            b: (id(f(K4)), 1)
+        })
+    );
+    // L2 in a second door, K6 on a second plate.
+    let mut fx = door_cabinet("left");
+    fx.push(json!({"$k": "mounting_surface", "id": uid(0x2b), "enclosure": uid(ENCL), "kind": "door",
+                   "frame": {"t": [mm(600), 0, mm(250)], "q": [1_000_000_000, 0, 0, 0]}, "hinge": "right",
+                   "usable": [[0, 0], [mm(600), 0], [mm(600), mm(800)], [0, mm(800)]]}));
+    fx.record(pl(L2))["carrier"] = json!({"surface": uid(0x2b)});
+    fx.push(json!({"$k": "mounting_surface", "id": uid(0x2c), "enclosure": uid(ENCL), "kind": "plate",
+                   "frame": {"t": [0, 0, mm(10)], "q": [1_000_000_000, 0, 0, 0]}}));
+    fx.record(pl(K6))["carrier"] = json!({"surface": uid(0x2c)});
+    fx.record(pl(K6))["pose"] = json!({"t": [mm(300), mm(300), 0], "q": [1_000_000_000, 0, 0, 0]});
+    let m = fx.build();
+    let p = plan(&Q::new(&m), &RouteScope::All);
+    assert_eq!(planned(&p, W8), Planned::NoWay(NoWay::TwoDoors(id(L1), id(L2))));
+    assert!(
+        matches!(planned(&p, W9), Planned::NoWay(NoWay::OtherPlate { device, .. }) if device == id(K6)),
+        "{:?}",
+        planned(&p, W9)
+    );
+}
+
+/// The cause a stale way names is the one a person acts on (doc 12 §8.5): a pin its part puts on another edge, the
+/// device unmoved; a door way whose door moved, its stretches still on the duct.
+#[test]
+fn a_stale_way_names_its_own_cause() {
+    let base = routed(cabinet(false));
+    let mut edge = base.clone();
+    // K's pin 1 at the bottom now, by its part.
+    edge.lib.iter_mut().for_each(|r| {
+        if r["$k"] == "part" && r["part_number"] == json!(format!("P{PART_K}")) {
+            r["cp_pattern"][0]["face"] = json!("bottom");
+        }
+    });
+    let stale = |fx: &Fx, wire: u128| match status(&Q::new(&fx.build()), wire) {
+        RouteStatus::Stale { why, .. } => Some(why),
+        _ => None,
+    };
+    assert_eq!(stale(&edge, W1), Some(StaleWhy::PinMoved((id(f(K1)), 0))));
+    let door = routed(door_cabinet("left"));
+    let mut hung = door.clone();
+    hung.record(DOOR)["hinge"] = json!("right");
+    assert_eq!(
+        stale(&hung, W7),
+        Some(StaleWhy::DuctOrDoor {
+            duct: id(D1),
+            door: id(DOOR)
+        })
+    );
+}

@@ -284,6 +284,7 @@ fn a_placements_locked_and_rotation_rows_commit_their_commands() {
             "placement/derived.footprint",
             "placement/derived.clearance",
             "placement/derived.reaches",
+            "placement/derived.ways",
         ]
     );
     // Auto-fill puts the schematic's first devices, 101's and 102's, on rail 1.

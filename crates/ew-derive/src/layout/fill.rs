@@ -166,7 +166,7 @@ impl Query for DuctFill {
         let (mut default_diameter, mut without) = (false, 0);
         for (_, route) in q.table::<CommittedRoute>().iter() {
             let Some(r) = by_id.get(&route.wire) else { continue };
-            if stored_way(q, route.wire).is_none_or(|w| w.id != route.id) {
+            if stored_way(q, &r.wire).is_none_or(|w| w.id != route.id) {
                 continue;
             }
             let along: Vec<(i128, i128)> = route

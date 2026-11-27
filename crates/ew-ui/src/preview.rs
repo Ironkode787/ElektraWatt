@@ -312,7 +312,10 @@ fn card_group(
         let text = |s: &str| components::styled(s, &t.type_small, colour);
         let response = ui
             .horizontal(|ui| {
-                let (first, rest) = r.cells.split_first().map_or((None, &[][..]), |(f, r)| (Some(f), r));
+                let (first, rest) = r
+                    .cells
+                    .split_first()
+                    .map_or((None, &[][..]), |(f, r)| (Some(f), r));
                 if let Some(f) = first {
                     ui.add(egui::Label::new(text(f)).extend());
                 }

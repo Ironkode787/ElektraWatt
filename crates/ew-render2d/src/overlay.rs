@@ -671,7 +671,10 @@ pub fn build(input: &OverlayInput<'_>) -> Overlay {
             }
             ToolMark::Hatch { r, token } => {
                 rect_px(t, *r, (0, 0), width, Dash::Solid, &pane, &mut px);
-                let (a, b) = (screen((r.min().x.0, r.min().y.0)), screen((r.max().x.0, r.max().y.0)));
+                let (a, b) = (
+                    screen((r.min().x.0, r.min().y.0)),
+                    screen((r.max().x.0, r.max().y.0)),
+                );
                 let (lx, hx) = (a.0.min(b.0), a.0.max(b.0));
                 let (ly, hy) = (a.1.min(b.1), a.1.max(b.1));
                 let step = (HATCH_PT * ppp).max(2.0);

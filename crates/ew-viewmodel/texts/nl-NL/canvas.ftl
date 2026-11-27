@@ -673,14 +673,13 @@ frame-row-adopt = Sjablonen
 frame-template = Sjabloon
 
 # Route on a panel page: the card of a cabinet's plan (doc 12 §12.5).
-cabinet-route-lead = Routeren: kast { $p0 }. { $p1 }; { $p2 }. Er is nog niets veranderd.
-cabinet-route-ways = { $p0 ->
-        [one] 1 draad krijgt een loop door de kabelgoot
-       *[other] { $p0 } draden krijgen een loop door de kabelgoot
+cabinet-route-lead = { $p0 ->
+        [one] Routeren: kast { $p1 }. 1 draad krijgt een loop door de kabelgoot; { $p2 } worden ter plaatse gemaakt. Er is nog niets veranderd.
+       *[other] Routeren: kast { $p1 }. { $p0 } draden krijgen een loop door de kabelgoot; { $p2 } worden ter plaatse gemaakt. Er is nog niets veranderd.
     }
-cabinet-route-site = { $p0 ->
-        [one] 1 wordt ter plaatse gemaakt
-       *[other] { $p0 } worden ter plaatse gemaakt
+cabinet-route-lead-one-site = { $p0 ->
+        [one] Routeren: kast { $p1 }. 1 draad krijgt een loop door de kabelgoot; 1 wordt ter plaatse gemaakt. Er is nog niets veranderd.
+       *[other] Routeren: kast { $p1 }. { $p0 } draden krijgen een loop door de kabelgoot; 1 wordt ter plaatse gemaakt. Er is nog niets veranderd.
     }
 cabinet-route-ducts = Per kabelgoot
 cabinet-route-lengths = Lengtes
@@ -691,7 +690,7 @@ cabinet-route-duct-wires = { $p0 ->
         [one] 1 draad · volste stuk { $p1 }
        *[other] { $p0 } draden · volste stuk { $p1 }
     }
-cabinet-route-duct-limit = grens { $p0 } %
+cabinet-route-duct-limit = maximale vulgraad { $p0 } %
 cabinet-route-typed-row = houdt { $p0 }; Routeren geeft { $p1 }
 cabinet-route-to-door = { $p0 ->
         [one] 1 draad naar de deur

@@ -542,7 +542,8 @@ impl ShellModel {
                 },
             }),
         };
-        self.commit_layout("layout.move", cmd)
+        let said = strings::format(key!("toast-layout-moved"), &[&row.tag]);
+        self.commit_layout_said("layout.move", cmd, Some(said))
     }
 
     /// `layout.rotate` (R) and `layout.flip` (X) on a panel page: to a floating ghost, its turn; to the selected
@@ -571,7 +572,8 @@ impl ShellModel {
                 return self.refuse_with(text, key!("reason-layout-turn"));
             }
         };
-        self.commit_layout("layout.move", cmd)
+        let said = strings::format(key!("toast-layout-turned"), &[&row.tag]);
+        self.commit_layout_said("layout.move", cmd, Some(said))
     }
 
     /// The words of a refused turn (R on a rail, X on the plate) with the keys of the keymap: the text of
@@ -988,9 +990,15 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// Commits a `layout.*` command built by the host. A commit that leaves ways of the cabinet's wires no longer
-    /// holding says so, with Route (doc 12 §12.5: "The ways of 5 wires no longer hold.").
+    /// Commits a `layout.*` command built by the host ([`ShellModel::commit_layout_said`] without words of its own).
     fn commit_layout(&mut self, name: &str, params: Value) -> Outcome {
+        self.commit_layout_said(name, params, None)
+    }
+
+    /// Commits a `layout.*` command built by the host. A commit that leaves ways of the cabinet's wires no longer
+    /// holding says so, after `said` (what the step did: "Turned -X1031."), with Undo and Route (doc 12-3d §12.5:
+    /// "Turned -X1031. The ways of 5 wires no longer hold.").
+    fn commit_layout_said(&mut self, name: &str, params: Value, said: Option<String>) -> Outcome {
         let cmd = AnyCommand {
             name: name.into(),
             params,
@@ -1011,7 +1019,10 @@ impl ShellModel {
                 key!("action-layout-route"),
                 vec![("layout.route", Value::Null)],
             );
-            self.notify_offer(text, route);
+            let undo = self.undo_offer();
+            let sentences: Vec<String> = said.into_iter().chain([text]).collect();
+            self.notes
+                .push(crate::notifications::Note::of("edit", sentences).offering([undo, route]));
         }
         out
     }

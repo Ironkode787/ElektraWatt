@@ -635,6 +635,14 @@ rule-ew-lay-011 = { $form ->
             [one] The way of 1 wire no longer holds: a duct of it is gone. Route gives it a new one.
            *[other] The ways of { $count } wires no longer hold: a duct of them is gone. Route gives them new ones.
         }
+        [pin] { $count ->
+            [one] The way of 1 wire at { $at } no longer holds: the pin stands elsewhere on its device (its part or its drawing changed). Route gives it a new one.
+           *[other] The ways of { $count } wires at { $at } no longer hold: the pin stands elsewhere on its device (its part or its drawing changed). Route gives them new ones.
+        }
+        [door] { $count ->
+            [one] The way of 1 wire through { $at } into { $door } no longer holds: the duct or the door changed. Route gives it a new one.
+           *[other] The ways of { $count } wires through { $at } into { $door } no longer hold: the duct or the door changed. Route gives them new ones.
+        }
        *[end] The way of { $at } no longer holds: its end moved from { $from } to { $to }. Route gives it a new one.
     }
     .title = Stale way

@@ -908,6 +908,9 @@ pub struct ShellModel {
     /// per group of tabs.
     #[allow(clippy::type_complexity)]
     station_cache: std::cell::RefCell<Vec<(station::StationKey, std::sync::Arc<station::StationShown>)>>,
+    /// What the selection shows on a panel page (the ways of its wires, a duct's fullest piece), kept for the revision,
+    /// the page and the selection it was worked out for: once per change, not once per frame.
+    marks_cache: std::cell::RefCell<Option<(cabinet::MarksKey, std::sync::Arc<cabinet::SelectionMarks>)>>,
     /// The station a module was last given to (a rack opened, a module attached): the default of the station chooser.
     last_station: Option<ew_api::output::Uuid>,
     /// The wires whose reasoned potential was declined in this session: it is not offered again.
@@ -1330,6 +1333,7 @@ impl ShellModel {
             offer_cache: std::cell::RefCell::new(None),
             rack_cache: std::cell::RefCell::default(),
             station_cache: std::cell::RefCell::new(Vec::new()),
+            marks_cache: std::cell::RefCell::new(None),
             last_station: None,
             declined_offers: std::collections::BTreeSet::new(),
             wire_colours: wire_colours::WireColourState::default(),

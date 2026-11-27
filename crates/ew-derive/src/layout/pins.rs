@@ -43,6 +43,9 @@ pub struct PinSpot {
     pub face: PinFace,
     /// Whether the edge is the drawing's (the part names none).
     pub drawn: bool,
+    /// Where it would stand on its device's other edge, the device and its other pins as they are: a stored way whose
+    /// end stands there was laid before the pin's part or drawing gave it this edge (the cause a stale way names).
+    pub flipped: Pt2,
 }
 
 /// The value of [`PinSpots`]: the surface, the footprint and the pins of one placement.
@@ -184,6 +187,41 @@ fn spread(pins: Vec<Pin>, x0: i128, width: i128, h: i128, out: &mut Vec<(Pin, (i
     }
 }
 
+/// [`spread`], each pin with where it would stand on its other edge, the other pins as they are.
+fn spread_both(
+    pins: Vec<Pin>,
+    x0: i128,
+    width: i128,
+    h: i128,
+    out: &mut Vec<(Pin, (i128, i128), (i128, i128))>,
+) {
+    let mut here = Vec::new();
+    spread(pins.clone(), x0, width, h, &mut here);
+    for (pin, at) in here {
+        let other: Vec<Pin> = pins
+            .iter()
+            .cloned()
+            .map(|mut p| {
+                if p.cp == pin.cp {
+                    p.face = if p.face == PinFace::Top {
+                        PinFace::Bottom
+                    } else {
+                        PinFace::Top
+                    };
+                }
+                p
+            })
+            .collect();
+        let mut there = Vec::new();
+        spread(other, x0, width, h, &mut there);
+        let flipped = there
+            .into_iter()
+            .find(|(p, _)| p.cp == pin.cp)
+            .map_or(at, |(_, xy)| xy);
+        out.push((pin, at, flipped));
+    }
+}
+
 fn spots(q: &Q, key: Id<Placement>) -> Option<PinSpotsV> {
     let pl = q.table::<Placement>().get(key)?.clone();
     let geom = q.get::<PlacementGeometry>(key);
@@ -217,6 +255,7 @@ fn spots(q: &Q, key: Id<Placement>) -> Option<PinSpotsV> {
                 h,
                 face: pin.face,
                 drawn: pin.drawn,
+                flipped: centre,
             })
             .collect();
         return Some(PinSpotsV {
@@ -225,7 +264,7 @@ fn spots(q: &Q, key: Id<Placement>) -> Option<PinSpotsV> {
             spots,
         });
     }
-    let mut placed: Vec<(Pin, (i128, i128))> = Vec::new();
+    let mut placed: Vec<(Pin, (i128, i128), (i128, i128))> = Vec::new();
     let mut depth_by_fn: Vec<(Id<Function>, Option<Nm>)> = Vec::new();
     if places_strip(q, &device, pl.part.as_ref()) {
         for item in q.get::<StripLayout>(device.id).iter() {
@@ -235,7 +274,7 @@ fn spots(q: &Q, key: Id<Placement>) -> Option<PinSpotsV> {
             let functions: Vec<Id<Function>> = q.idx().functions_of_device(t).collect();
             let depth = depth_of(q, item.part.as_ref());
             depth_by_fn.extend(functions.iter().map(|f| (*f, depth)));
-            spread(
+            spread_both(
                 pins_of(q, functions, true),
                 item.s,
                 item.width.unwrap_or(0),
@@ -250,18 +289,25 @@ fn spots(q: &Q, key: Id<Placement>) -> Option<PinSpotsV> {
         };
         let depth = depth_of(q, geom.part.as_ref());
         depth_by_fn.extend(functions.iter().map(|f| (*f, depth)));
-        spread(pins_of(q, functions, false), 0, w, h, &mut placed);
+        spread_both(pins_of(q, functions, false), 0, w, h, &mut placed);
     }
     // The part's frame on the surface: its origin is the footprint's corner the turned `(w, h)` points away from.
     let (a, b) = turn.rotate((w, h));
     let (min, max) = (fp.min(), fp.max());
     let ox = i128::from(if a >= 0 { min.x.0 } else { max.x.0 });
     let oy = i128::from(if b >= 0 { min.y.0 } else { max.y.0 });
+    let on_surface = |(x, y): (i128, i128)| {
+        let (du, dv) = turn.rotate((x, y));
+        Some(Pt2::new(
+            Nm(i64::try_from(ox + du).ok()?),
+            Nm(i64::try_from(oy + dv).ok()?),
+        ))
+    };
     let spots = placed
         .into_iter()
-        .filter_map(|(pin, (x, y))| {
-            let (du, dv) = turn.rotate((x, y));
-            let at = Pt2::new(Nm(i64::try_from(ox + du).ok()?), Nm(i64::try_from(oy + dv).ok()?));
+        .filter_map(|(pin, xy, other)| {
+            let at = on_surface(xy)?;
+            let flipped = on_surface(other)?;
             let up = if pin.face == PinFace::Top { 1 } else { -1 };
             let (ou, ov) = turn.rotate((0, up));
             let depth = depth_by_fn
@@ -275,6 +321,7 @@ fn spots(q: &Q, key: Id<Placement>) -> Option<PinSpotsV> {
                 h: height(rail, depth),
                 face: pin.face,
                 drawn: pin.drawn,
+                flipped,
             })
         })
         .collect();

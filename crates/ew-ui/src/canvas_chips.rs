@@ -310,11 +310,19 @@ pub fn plan(ui: &Ui, input: &ChipInput<'_>, canvas: &CanvasModel, shell: &ShellM
         .selected_duct_marks(input.group)
         .into_iter()
         .map(|m| (m.chip, m.words));
-    for (at, words) in marks.chips.into_iter().chain(marks.notes).chain(selected) {
+    for (at, words) in marks.chips.into_iter().chain(selected) {
         placer.put_centred(
             ChipKind::Label,
             words,
             screen(canvas.page().snapper.page_to_sheet(at)),
+        );
+    }
+    // A note stands beside its point, clear of the chips placed before it.
+    for (at, words) in marks.notes {
+        placer.put(
+            ChipKind::Label,
+            words,
+            point(screen(canvas.page().snapper.page_to_sheet(at))),
         );
     }
     placer.out
