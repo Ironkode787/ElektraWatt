@@ -207,15 +207,15 @@ has no offline mode: the 3D half is 1.0. AC-21's compared subset admits EW-LAYOU
 #### 4.5.5 EW-MFG
 
 EW-MFG-004, 008 and 009 judge the project before a print, online and in release mode; EW-MFG-001 judges it where a
-length can be computed: online and in release mode in a project with a panel layout, an error in release mode, so the
-release and the check before an export for the workshop, which is the release check ([13](13-manufacturing-outputs.md)
-§8.6), ask a length of every wire Route lays. EW-MFG-002, 003, 005, 006 and 010 are retired: what a machine cannot take
-is no finding but the reason a wire goes to the list for the hand (13 §7.3); no export mapping and no bundles are
-built, and an unverified table says so where its value is shown.
+length can be computed: online and in release mode in a project with a panel layout, an info in both, so a wire
+without a length stops no release; the check before an export for the workshop is the release check
+([13](13-manufacturing-outputs.md) §8.6), which names such wires. EW-MFG-002, 003, 005, 006 and 010 are retired with
+the `manufacturing` scheme: no machine file, export mapping or bundle is built that would read them, and an unverified
+table says so where its value is shown.
 
 | ID | Name | Checks | Kind | Modes | Severity | Scope | Rel | Req. | D (defects) | Def. |
 |---|---|---|---|---|---|---|---|---|---|---|
-| EW-MFG-001 | Wires without a length | One finding per cabinet while a wire of it that is no core and no field wire has no length (the wire list prints —), its targets the layout space and those wires, its fingerprint the space's, Route its quick fix; only in a project that has a panel layout, none in a project without a layout; a stale length is EW-LAY-011's; supersedes EW-REL-002 for lengths | completeness | o r | info / error | project | 1.0 | FR-MFG-024, FR-MFG-051, FR-CHK-058 | D-19 | 13 §4.6 |
+| EW-MFG-001 | Wires without a length | One finding per cabinet while a wire of it that is no core and no field wire has no length (the wire list prints —), its targets the layout space and those wires, its fingerprint the space's, Route its quick fix; only in a project that has a panel layout, none in a project without a layout; a stale length is EW-LAY-011's; supersedes EW-REL-002 for lengths | completeness | o r | info | project | 1.0 | FR-MFG-024, FR-MFG-051, FR-CHK-058 | D-19 | 13 §4.6 |
 | EW-MFG-004 | Marker text does not fit | A marker text that does not fit its stock after the shortening of 13 §5.2 (characters per line, lines) | conflict | o r | warning | potential | 1.0 | FR-MFG-011, FR-MFG-024 | — | 13 §4.6 |
 | EW-MFG-008 | End cannot be made | A wire end the rule table cannot decide: a fine-stranded wire into an insulation-displacement clamp | completeness | o r | warning | potential | 1.0 | FR-MFG-005, FR-CHK-058 | — | 13 §4.6 |
 | EW-MFG-009 | End set by hand does not fit | An end set by hand whose ferrule part fits another size, a twin ferrule with no second wire on its clamp, or a ferrule of another collar colour than the workshop stock's ferrule of that size | conflict | o r | warning | potential | 1.0 | FR-MFG-007, FR-MFG-042 | — | 13 §4.6 |

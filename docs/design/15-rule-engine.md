@@ -345,8 +345,7 @@ on commit of transaction tx, producing revision r':
   every shipped `.sql` against the current projection ([04](04-architecture.md) §13).
 - **Export rules** run inside an exporter: the PLC exchange's EW-PLC-005 blocks its file ([10](10-plc-and-bus.md)).
   The files for the workshop ask no export mode: the check before them is the release check (§3.2,
-  [13](13-manufacturing-outputs.md) §8.6), and what a machine cannot take is a reason in the list for the hand, no
-  finding (13 §7.3).
+  [13](13-manufacturing-outputs.md) §8.6).
 
 ### 3.5 Prevent rules, strict and lenient
 

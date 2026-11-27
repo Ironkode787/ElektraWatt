@@ -382,7 +382,7 @@ Specified and not built:
 |---|---|---|---|
 | `ew find <pattern> [--kind …]` | Tags, part numbers, texts → entities | MVP | FR-UI-020 |
 | `ew import io-list`; `ew import qet --batch <dir> --out <dir>` | I/O list; batch migration ([14](14-interop.md) §13) | MVP (Should); 1.0 | FR-EXT-008 |
-| `ew export package --out <file.zip> [--leave-out <member>]… [--machine] [--omit-personal-data]`; `--omit-personal-data` on every export that writes project content | The production package ([13](13-manufacturing-outputs.md) §8.5) | 1.0 | FR-EXT-003 |
+| `ew export package --out <file.zip> [--leave-out <member>]… [--omit-personal-data]`; `--omit-personal-data` on every export that writes project content | The production package ([13](13-manufacturing-outputs.md) §8.5) | 1.0 | FR-EXT-003 |
 | `ew review <base> <head> [--out dir]` | Visual comparison ([15](15-checks-revisions-collaboration.md) §6.6) | 1.0 | FR-COL-017 |
 | `ew script run <file.rhai> [--param k=v] [--preview]` | Automation script (§5.5) | 1.0 | FR-EXT-012 |
 | `ew jobs run <file.ewjobs> [--keep-going]` | Jobset (§3.6) | 1.0 | FR-EXT-010 |

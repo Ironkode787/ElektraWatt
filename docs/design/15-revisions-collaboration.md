@@ -97,8 +97,7 @@ The first two are the release check (`ew_checks::gate::release_check`), which is
 the workshop ([13](13-manufacturing-outputs.md) §8.6). The gate's named blockers are release-scheme rules at error
 severity (§4.8): EW-CORE-047 (device without schematic
 representation), EW-LAY-001 (device without layout placement, only where its location has a layout space),
-EW-CORE-033 (cable without length), in a cabinet with a panel layout EW-MFG-001 (a wire Route lays without a length)
-and EW-LAY-011 (a way that no longer holds), the `Tbd` rules, EW-REL-001 (author = checker, missing or stale sign-off) and
+EW-CORE-033 (cable without length), the `Tbd` rules, EW-REL-001 (author = checker, missing or stale sign-off) and
 EW-REL-002 (stale committed computations). EW-REL-002 is not registered yet: it waits until a committed computation
 has an input hash to compare (1.0, [15](15-rule-catalogue.md) §4.8).
 

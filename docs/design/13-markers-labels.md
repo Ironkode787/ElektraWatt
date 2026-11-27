@@ -91,7 +91,7 @@ file's profile. Each file is written whole or not at all. The package holds the 
 **The columns and the form are the label file's export profile**, `WorkshopSettings.label_profile`
 ([13](13-manufacturing-outputs.md) §7): each column of the `labels` list with the heading the file prints, Excel or
 CSV (a CSV with its delimiter and encoding), the decimal mark, the header row and the form of the values. Change…, in
-Labels… and in Project properties ▸ Workshop ▸ Label file, opens the form of [13](13-manufacturing-outputs.md) §7.4 on
+Labels… and in Project properties ▸ Workshop ▸ Label file, opens the form of [13](13-manufacturing-outputs.md) §7.3 on
 what the project holds: what this build does not know of the profile and of a column it keeps stays as it is. Without
 one of its own the project uses the **generic profile**, an Excel file with these columns, which every label program
 that imports a table takes, mapping its columns once in its import; Excel because the label program of the shop the
@@ -116,8 +116,8 @@ does not fit their marker part, with Show. The form of the files is the profile'
 own; `ew export labels --format csv|xlsx` sets it for that one export.
 
 **Presets of named label programs** are left out: a preset that names a program's columns is made from that program's
-published import format, when it is at hand ([13](13-manufacturing-outputs.md) §7.6). The export profile is the one
-record of an export by profile; the wire file for a machine is its second kind ([13](13-manufacturing-outputs.md) §7).
+published import format, when it is at hand ([13](13-manufacturing-outputs.md) §7.4). The export profile is the one
+record of an export by profile; a file for a wire machine would be its second kind ([13](13-manufacturing-outputs.md) §7.4).
 
 **Labels for changes.** From the Rework list…, Labels for these changes… writes the same files with only the labels the
 rework list names: the markers of new, replaced and changed wire ends, the labels of mounted or changed devices,

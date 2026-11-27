@@ -152,25 +152,26 @@ these entries refine it.
    *Alternatives that lost:* a production list beside the wire list (a copy of its rows and columns); TOML label
    profiles embedded as library copies (a format, an embedding and a trust rule for a list of columns that one
    setting holds).
-6. **Machine profiles are the export profile; the package is a ZIP of the workshop's files** (2026-11-27, the design
-   of the production package and the export profiles, accepted with it; [13](../design/13-manufacturing-outputs.md)
-   §7, §8). Decision 6 is replaced. The wire file for a machine takes its columns and its form from a second kind of
-   amendment 5's export profile (`WorkshopSettings.machine_profile`), which gains the form of a file (Excel or CSV, the
-   delimiter, UTF-8 with or without a byte-order mark, the decimal mark, the header row, values as printed or as
-   numbers) and what a machine takes (the sizes, the end treatments, the columns it requires). There is no TOML, row
-   source, filter, transform, magazine or trust rule, and no shipped preset until a machine's import format is
-   published. The pre-flight rules EW-MFG-002, 003, 005, 006 and 010 are retired: a wire a machine cannot take goes to
-   the list for the hand with its reason, and the check before an export for the workshop is the release check (the
-   release gate's run without its EW-REL rules), in which EW-MFG-001 is an error. Decision 5's package is one ZIP of
-   the files the program's exports already write (the drawings, the workshop lists, the label files, the drawings for
-   drilling, the wire file) with a contents text and a manifest of SHA-256 per member; it carries no data members, no
-   package ID and no 3D model, needs no permissive reader crate (`ew-ewpp` and `ew-mfg` are not made), and the as-built
-   archive keeps no copy of it, so ADR-0013's "the production package when present" has no case.
+6. **No machine profile is built; the package is a ZIP of the workshop's files** (2026-11-27, the design of the
+   production package and the label file's export profile, accepted with it, the owner answering its questions;
+   [13](../design/13-package.md) §7, §8). Decision 6 is set aside: no shop of ours has a wire machine and no machine's
+   import format has been read, so no machine profile, wire file or list for the hand is built; when one is, it is a
+   second kind of amendment 5's export profile, never a TOML format. The label file's profile gains one member, the
+   form of its file (Excel by default, or CSV), which Labels…, the command line and the package write by. The
+   pre-flight rules EW-MFG-002, 003, 005, 006 and 010 and the `manufacturing` scheme are retired, as nothing built
+   reads them; the check before an export for the workshop is the release check (the release gate's run without its
+   EW-REL rules): its errors stop a package of a released revision, and a wire without a length (EW-MFG-001, an info)
+   stops nothing and is named. Decision 5's package is one ZIP of the files the program's exports already write (the
+   drawings, the workshop lists, the label files, the drawings for drilling) in a folder per kind, with a contents text
+   and a manifest of SHA-256 per member; it carries no data members, no package ID and no 3D model, needs no
+   permissive reader crate (`ew-ewpp` and `ew-mfg` are not made), and the as-built archive keeps no copy of it, so
+   ADR-0013's "the production package when present" has no case.
    *Alternatives that lost:* a TOML machine profile with filter expressions and transforms (a format, a parser and a
-   trust rule ahead of any machine that has read its file); findings for what a machine cannot take (they would report
-   a shop's machine as a fault of the project); a package of JSON data members with a content hash and a stamped
-   package ID (data no reader of ours reads, and a hash scheme that only a viewer needs); a mode of the check engine of
-   its own for exports (a third severity column to keep beside the release one).
+   trust rule ahead of any machine that has read its file); a wire file and a list for the hand with the generic
+   profile (a file for a machine the shop does not have); a wire without a length as an error at release (the fitter
+   measures it on the cabinet, and a project of 0.3.5 with a layout would stop releasing); a package of JSON data
+   members with a content hash and a stamped package ID (data no reader of ours reads); a mode of the check engine of
+   its own for exports (a third severity column beside the release one).
 
 ## Consequences
 

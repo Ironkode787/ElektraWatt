@@ -4,7 +4,7 @@
 
 **Purpose.** This document designs everything ElektraWatt (EW) hands to the panel shop: the wire list as the fitter
 works from it, the treatment of each wire end, markers and the label files, the rework list after a change,
-terminal-strip assembly lists, the export profiles of a label file and of a wire file for a machine, drilling and cut
+terminal-strip assembly lists, the label file's export profile, drilling and cut
 data, verification checklists, the production package, the read-only wiring viewer and the as-built feedback loop. It
 elaborates the MFG rows of
 [02b](02b-requirements-extended.md) §6 on top of the accepted [architecture](04-architecture.md) and the
@@ -95,8 +95,7 @@ flowchart LR
 - `ew-api`: opening the archive a rework list compares with, writing the label files, the rows of Properties and the
   editable cells of the Connections table. `ew-viewmodel` and `ew-ui`: the commands and dialogs of §12.
 
-An export profile (§7) is a member of `WorkshopSettings`; its file and the list for the hand are written by
-`ew-reports` from the rows of the list the profile names. The package (§8) is composed in `ew-api` from the files the
+The label file's export profile (§7) is a member of `WorkshopSettings`. The package (§8) is composed in `ew-api` from the files the
 program's exports already write; the check before it is the release check of `ew-checks` (§8.6).
 
 ---
@@ -120,8 +119,7 @@ program's exports already write; the check before it is the release check of `ew
 | Wire annotation | The text a schematic page prints beside a wire: its number, cross-section and colours ([08](08-connections-terminals-cables.md) §4.5). It is no marker (§5.1) |
 | Label | Any printed mark of the workshop: a wire marker, a terminal or strip marker, a cable marker, a device label, a tube marker, a plate |
 | Label set | The labels of one kind (wire markers, terminal markers, …), printed on the marker part of the stock that marks them; one label file per label set and marker part |
-| Export profile | How a file for another program is written from a list's rows: its columns with their headings, the file's form and, for a machine, what the machine takes; project data (§7) |
-| Wire file | The wire list's rows a wire-processing machine makes, in the machine profile's columns; every other wire stands in the list for the hand, with the reason (§7.3) |
+| Export profile | How a label file is written from the labels list's rows: its columns with their headings, its delimiter and Excel or CSV; project data (§7) |
 | Package | One ZIP of the workshop's files for a job, with its contents and a manifest (§8) |
 | Rework list | What the fitter changes in a built cabinet between a release and now (§3.5) |
 
@@ -160,7 +158,6 @@ pub struct WorkshopSettings {                 // ProjectSettings.workshop; absen
     pub two_wires: TwoWires,                  // twin_ferrule (default) | ferrule_each
     pub device_labels: DeviceLabels,          // on_device (default) | on_device_and_beside
     pub label_profile: Option<ExportProfile>, // the label file's; absent: the generic one (§5.4, §7)
-    pub machine_profile: Option<ExportProfile>, // the wire file's for a machine; absent: the generic one (§7)
     pub fixing: FixingRule,                   // a fixing hole in the plate: tapped (default) | self_tapping | through (12-3d §10.3)
     pub rail_fixing: Option<CarrierFixing>,   // absent: M5, at most 300 mm apart, 25 mm from each end
     pub duct_fixing: Option<CarrierFixing>,   // absent: M4, at most 300 mm apart, 25 mm from each end
@@ -261,7 +258,6 @@ lists it prints into its archive (FR-REV-011).
 | the rework list | two `wire_record_set()` and two `label_rows()`, one of them read from an archive | computed when asked, in a job | II (the archive is a file) |
 | `assembly_rows(strip)`, `consumables`, `cut_list` | [the workshop lists](13-workshop-lists.md) | Memo, cold | I |
 | `checklist_rows(kind, scope)` | potentials, protective devices, PLC rows, the rework list | Memo | I |
-| the wire file and the list for the hand (§7.3) | the `wire_list` rows, `wire_record_set()`, the machine profile | cold, when a package is planned or written | I |
 | the package (§8) | the files of the exports above, on the job's copy of the snapshot | job | II (the file is outside the project) |
 
 A Class I list is always current; nothing is updated by hand. The rework list reads a file outside the project, so it
@@ -346,7 +342,7 @@ To marker are editable there (§12).
 The table is [12-3d](12-3d-routing-thermal.md) §9's, which makes L from the stored way's run, the reserve at each end and
 a door way's loop; nothing is estimated. **Rounding happens once**: a length the program computes is rounded up to the project's cut increment
 (`workshop.cut_increment`, 5 mm when absent) in `wire_record_set()`, and a typed length prints as it was typed. The
-list, the labels, the cut list and a machine profile read the record and never round a wire's length again (§7.1).
+list, the labels, the cut list and the package read the record and never round a wire's length again.
 
 A length is typed in the Length cell of the Connections table or in the wire's Length row (Properties), in mm or with
 its unit ("2 m"); an empty value clears it. Properties says where a length comes from in words: "Typed by hand", "Cut
@@ -357,8 +353,7 @@ have none; in a project without a panel layout the wire list prints — and no r
 ### 3.4 Order and grouping
 
 The list is in the numbering order. A block may group it by the device or strip of the From end (its `group` member,
-[09](09-reports-forms-output.md) §3.3), with a heading per device, for a shop that wires device by device. The wire
-file of a machine keeps the numbering order (§7.3).
+[09](09-reports-forms-output.md) §3.3), with a heading per device, for a shop that wires device by device.
 
 ### 3.5 The rework list
 
@@ -496,15 +491,14 @@ The rules that say before a print what the fitter would ask. They run online and
 
 | Rule | Says | Severity | Fix |
 |---|---|---|---|
-| EW-MFG-001 | How many of a cabinet's wires have no length, one finding per cabinet with the wires as its targets; raised by Check project where a panel layout gives lengths, never without a layout. A field wire and a core are not counted (the site and the cable give their lengths); a stale length is EW-LAY-011's | info; error in release mode, so a release and a package of it have a length for every wire Route lays (§8.6) | Route |
+| EW-MFG-001 | How many of a cabinet's wires have no length, one finding per cabinet with the wires as its targets; raised by Check project where a panel layout gives lengths, never without a layout. A field wire and a core are not counted (the site and the cable give their lengths); a stale length is EW-LAY-011's | info, in the release check too: a wire without a length stops no release and no package, which name it (§8.6) | Route |
 | EW-MFG-004 | "The marker of 104.4 at -104B1:13 does not fit its marker part: +CAB-104A1-A2:L+ needs 16 characters on a line of 12", per end | warning | — |
 | EW-MFG-008 | "The end of 104.4 at -104B1:13 cannot be made: a fine-stranded wire into an insulation-displacement clamp", per end | warning | Set the end by hand |
 | EW-MFG-009 | "The end of 101.7 at -101F1:3 set by hand does not fit: a ferrule for 1.5 mm² on a 2.5 mm² wire" (also: a twin ferrule with no second wire; a ferrule of another collar colour than the stock's ferrule of that size), per end | warning | Reset to the rule |
 | EW-POT-010 | "-X1011:PE clamp a takes 1 conductor; 2 land on it", per clamp, only where the part names its capacity; "-X1011:PE clamp a takes 0.5–1.5 mm²; 101.4 of 2.5 mm² lands on it", per wire, only where the part names the range | error | — |
 
-A wire part that does not match the wire is EW-MFG-022 ([07](07-symbols-parts-macros.md) §2.5). What a machine cannot
-take is no finding: the wire goes to the list for the hand with its reason (§7.3). Before a package, the release check
-judges the project with these rules and the others (§8.6); EW-MFG-001 is an error there.
+A wire part that does not match the wire is EW-MFG-022 ([07](07-symbols-parts-macros.md) §2.5). Before a package, the
+release check judges the project with these rules and the others (§8.6).
 
 ---
 
@@ -524,15 +518,14 @@ says (§6.3).
 
 ## 7. Export profiles
 
-In [export profiles and the package](13-package.md) §7: what a profile is (§7.1), the form of a file (§7.2), the wire
-file for a machine and the list for the hand (§7.3), where a profile is seen and changed (§7.4), the generic profiles
-(§7.5), and presets and what a profile does not express (§7.6).
+In [the label file's export profile and the package](13-package.md) §7: what a profile is (§7.1), the form of a file
+(§7.2), where it is seen and changed (§7.3), and what is not built: presets and a wire file for a machine (§7.4).
 
 ---
 
 ## 8. The production package
 
-In [export profiles and the package](13-package.md) §8: what it is (§8.1), its members (§8.2), the manifest (§8.3),
+In [the label file's export profile and the package](13-package.md) §8: what it is (§8.1), its members (§8.2), the manifest (§8.3),
 draft and release (§8.4), where it is in the window (§8.5), the check before export (§8.6), without personal data
 (§8.7), the same bytes (§8.8), homes and the licence (§8.9).
 
@@ -746,11 +739,11 @@ the sheet, and Labels for these changes… only the new and changed labels.
 | The wire list's pages | §3.1; Output ▸ List columns… chooses the printed columns of the list on show |
 | Connections navigator, table mode | Every column of §3.1. Length takes a length (§3.3); From end and To end a treatment or the rule's (§4.5); From marker and To marker a text, "none" or the setting's (§5.1). A value set by hand prints in the text colour, a derived one in the secondary colour ([16a](16a-design-language.md) §6.21); each edit is one `fields.set` and one undo step |
 | Properties of a wire | Length, with a chip that says where it comes from (§3.3); sections From end and To end, each named by its place ("From end · -X1011:L1 a"), with the rows End, Part and Marker; a derived value's chip says why ("rule: fine-stranded wire, clamp kind not known"), a value set by hand has the chip "set by hand" and Reset |
-| Project properties ▸ Workshop | Beside Cut to and the stock ([07](07-symbols-parts-macros.md) §2.5), the rows Marker text, Mark cable cores, Mark jumpers, Ferrules, Two wires in one clamp, Device labels, Fixing holes (Tapped, Self-tapping screws, Through, with a nut), Rail fixing and Duct fixing (each a screw, at most how far apart and how far from each end), Web between holes, Measured from, Reserve per end, Duct fill limit and Door loop ([12-3d](12-3d-routing-thermal.md) §12.5), and Label file and Wire file for a machine (each its profile's summary; Change… opens the form of §7.4). Each change is one `project.settings.set` and one undo step; Output ▸ Workshop ▸ Workshop settings shows these rows |
-| Output ▸ Workshop ▸ Labels… | A form dialog: which labels (all, or those changed since a release), one row per file with its label set, marker part and count, a tick each; the label file's profile on one line (its form and columns, "Excel · Text 1, Text 2, Text 3, Copies, For") with Change… (§7.4); the folder. A line under the files names the findings of the labels ("1 marker does not fit its marker part") with Show. Export writes the files as a job; its toast names the folder with Open folder |
+| Project properties ▸ Workshop | Beside Cut to and the stock ([07](07-symbols-parts-macros.md) §2.5), the rows Marker text, Mark cable cores, Mark jumpers, Ferrules, Two wires in one clamp, Device labels, Fixing holes (Tapped, Self-tapping screws, Through, with a nut), Rail fixing and Duct fixing (each a screw, at most how far apart and how far from each end), Web between holes, Measured from, Reserve per end, Duct fill limit and Door loop ([12-3d](12-3d-routing-thermal.md) §12.5), and Label file (the profile's summary; Change… opens the form of §7.3). Each change is one `project.settings.set` and one undo step; Output ▸ Workshop ▸ Workshop settings shows these rows |
+| Output ▸ Workshop ▸ Labels… | A form dialog: which labels (all, or those changed since a release), one row per file with its label set, marker part and count, a tick each; the label file's profile on one line (its form and columns, "Excel · Text 1, Text 2, Text 3, Copies, For") with Change… (§7.3); the folder. A line under the files names the findings of the labels ("1 marker does not fit its marker part") with Show. Export writes the files as a job; its toast names the folder with Open folder |
 | Output ▸ Workshop ▸ Rework list… | A dialog: Compare with (the released revisions whose archive is found, newest first; Archive file…), one line that counts the work ("1 device to remove, 3 wires to pull, …"), the rows of §3.5, Export… (XLSX or CSV) and Labels for these changes…. Without a release: "This project has no released revision yet: the rework list compares with a release. Release it on the Check tab, or choose an archive file" |
 | Output ▸ Workshop ▸ Hole tables, Drilling… | The hole table page and the drawings for drilling (§9) |
-| Output ▸ Workshop ▸ Package… | The form dialog "Package for the workshop": the revision and whether the package is a draft, what the check before export found with Show and Open Messages, the members with a tick each and what each holds, Without personal data, the file; Write draft package or Write package runs a job (§8.5) |
+| Output ▸ Workshop ▸ Package… | The dialog "Package for the workshop" in two panes: on the left the members, a tick each and what each holds; on the right, always in view, what the check before export found (each finding with Show and its fix, the wires without a length among them), the revision and whether the package is a draft, and Without personal data; below, the file; Write draft package or Write package runs a job (§8.5) |
 | Messages | The rules of §4.6 with their fixes |
 | Draw ▸ Annotation | The drawing's wire annotation tool (§5.1); its project setting reads Wire annotations |
 
@@ -770,11 +763,10 @@ is §8.5's and the drilling export §9's.
 | Labels list, tube labels | PDF pages, XLSX, CSV | `labels`, `tube_labels` (§5.3) |
 | Rework list | XLSX, CSV | two `wire_record_set()` and two `label_rows()` (§3.5) |
 | Assembly list, cut list, consumables summary | PDF pages, XLSX, CSV | `assembly_list`, `cut_list`, `consumables` ([the workshop lists](13-workshop-lists.md)) |
-| Wire file for a machine; the list for the hand | CSV or Excel by the machine profile; Excel | `wire_list` (§7.3) |
 | Hole table; drilling template and DXF per surface | PDF pages, XLSX, CSV; PDF at full size; DXF | `hole_table` over `surface_features`; the drawings from the same (§9) |
 | Checklists | PDF, JSON | `checklist_rows` (§10) |
 | Rating plate data | label, report block | project properties (§10.4) |
-| Package | ZIP of the files above, `Contents.txt` and `manifest.json` | the drawings, the workshop lists, the label files, the drawings for drilling, the wire file (§8) |
+| Package | ZIP of the files above, `Contents.txt` and `manifest.json` | the drawings, the workshop lists, the label files, the drawings for drilling (§8) |
 | Viewer | binary | the package (§11.1) |
 | As-built package | ZIP | package and order folder (§11.5) |
 | Status log, feedback import, codes | JSONL, CSV | order folder (§11) |
@@ -793,23 +785,22 @@ is §8.5's and the drilling export §9's.
 | 6 | A wire that leaves the cabinet | Each end prints its location (`+FLD-104B1`); the far end is a site end; the marker at the cabinet end names it with its location (§5.2) |
 | 7 | Ferrule colours mixed (DIN grey and another scheme's blue at 0.75 mm²) | A ferrule's colour is its part's; an end takes the stock's first ferrule of its size; an end set by hand to another collar colour of that size is EW-MFG-009 (§4.4) |
 | 8 | The rule table and part data not verified | The table says unverified (§4.2); an end decided under an assumption says which in Properties; a rule reading them reports at most a warning |
-| 9 | A program that reads only Windows-1252 | Not served: a profile writes UTF-8 with or without a byte-order mark (§7.2); an encoding comes with a shop whose machine needs it (§7.6) |
+| 9 | A label program that reads only Windows-1252 | Not served: a label file's CSV is UTF-8 with a byte-order mark, its Excel file Unicode (§5.4); an encoding comes with a program that needs it |
 | 10 | Excel turns "-X1031:1" into a formula or "1-2" into a date | XLSX writes text as text cells; the Excel CSV presets guard formulas; a label file never does, since a label program would print the guard (§5.4) |
 | 11 | Two ends whose marker texts would read alike | Tags are unique in a project, and a text keeps the structure its two ends do not share (§5.2) |
 | 12 | A marker longer than its marker part | The steps of §5.2, then EW-MFG-004 with the whole text; never a cut text |
-| 13 | Stale lengths after a device move | A stale length prints after `≈` and EW-LAY-011 names its cause ([12-3d](12-3d-routing-thermal.md) §8.5); a release and its package are refused (EW-LAY-011 is an error in the release check, §8.6); a draft package carries the length with `≈`, sends the wire to the hand in the wire file, and says draft on every page (§8.4) |
-| 14 | Rounding per segment, or per profile, accumulates error or splits the wire list from the machine file | Round once, where the record is made, to the cut increment; a typed length is not rounded; a profile writes the record's length and never rounds (§3.3, §7.3) |
+| 13 | Stale lengths after a device move | A stale length prints after `≈` and EW-LAY-011 names its cause ([12-3d](12-3d-routing-thermal.md) §8.5); a release and its package are refused (EW-LAY-011 is an error in the release check, §8.6); a draft package carries the length with `≈`, names the stale wires in its contents, and says draft on every page (§8.4) |
+| 14 | Rounding per segment, or per list, accumulates error or splits one list from another | Round once, where the record is made, to the cut increment; a typed length is not rounded; no list rounds a wire's length again (§3.3) |
 | 15 | Non-determinism (thread order, wall clock, ZIP times, float formatting) | Ordered maps, stable tie-breaks, decimal strings, dates from the release or the model, the package's entries in byte order at a fixed date and level (§8.8, NFR-REL-07) |
-| 16 | Personal data in packages leaving the company Without personal data leaves out the names and addresses of the parties marked personal (§8.7); technician codes are pseudonyms |
+| 16 | Personal data in packages leaving the company | Without personal data leaves out the names and addresses of the parties marked personal (§8.7); technician codes are pseudonyms |
 | 17 | Package edited after export | The manifest's SHA-256 per member (§8.3); the viewer's banner (§11.1) |
 | 18 | Labels printed for a release, then the cabinet is changed | The rework list's Labels for these changes… prints the new and changed labels only (§5.4) |
 | 19 | A core has no wire number | Its No. cell prints its cable and core (`-103W1 BN`); a number is never invented |
 | 20 | Spare terminals that are fed | State "spare (fed)" in the assembly list |
 | 21 | Door wiring | The end prints `(door)` (§3.2); the door loop is the layout's (`workshop.door_loop`, [12-3d](12-3d-routing-thermal.md) §9) |
 | 22 | Devices without parts | No clamp data: the clamp is taken as not known and the wire as fine-stranded, which the end says (§4.2); the device gets no device label |
-| 23 | Twin-ferrule and lug ends on a wire-by-wire machine | The machine profile's ends; a wire with an end the machine does not make goes to the hand with that end named (§7.3) |
-| 24 | A jumper between two pins of one device | A wire row with its ends and treatments; no markers unless the shop marks jumpers (§5.1) |
-| 25 | A renumber while ends are marked with the wire number | Every marker of a renumbered wire changes; the rework list lists each as Re-mark |
+| 23 | A jumper between two pins of one device | A wire row with its ends and treatments; no markers unless the shop marks jumpers (§5.1) |
+| 24 | A renumber while ends are marked with the wire number | Every marker of a renumbered wire changes; the rework list lists each as Re-mark |
 
 ---
 
@@ -829,6 +820,6 @@ The tests open the sample project (`fixtures/sample/`).
 | D-09 | Wire list with numbers, terminal assembly lists, cable markers and machine files exist |
 | D-11, D-12 | Terminal markers print unique designations; ends carry level and clamp; EW-POT-015 rejects duplicate wire numbers in the model |
 | D-17 | Core colours are enum codes; markers and core lists print BN |
-| D-19 | EW-MFG-001, an error in the release check, stops a release and its package with a cabinet's wire without a length; EW-CORE-033 a cable without one |
+| D-19 | EW-MFG-001 names a cabinet's wires without a length, the package's check and contents say them, and EW-CORE-033 stops a release with a cable without one |
 | D-21 | The 18.2.2 list traces PE through rails and plate |
 | D-22 | The bond wire W27 is listed as a wire, while 0V and PE stay separate potentials |
