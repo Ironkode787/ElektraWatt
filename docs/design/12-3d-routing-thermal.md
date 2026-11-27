@@ -739,8 +739,10 @@ the accent. In the Preview tab the card:
 
 - the lead: "Route: cabinet +CAB. 41 wires get a way through the ducts; 3 are made on site. Nothing has changed
   yet.";
-- **Ducts:** per duct its label, size and fill where fullest ("Duct 1 · 40×60 · 8 % of 2,040 mm²"), one over the
-  limit first;
+- **Ducts:** per duct, one over the limit first, its label, its size, its wires with those of its fullest piece and
+  its fill where fullest ("Duct 1 · 40×60 · 23 wires · fullest piece 18 · 8 %"; over the limit "72 % · over 60 %"),
+  and under it its inner area with where it comes from, the limit and what the fill assumed ("2040 mm² · 0.85 × 40 ×
+  60: the part gives no inner size · limit 60 % · with default diameters (unverified)");
 - **Lengths:** per wire its number, its ends and its length, a wire whose way changes as "475 → 445 mm";
 - **Typed by hand:** the wires that keep their typed length, with what Route gives ("101.1 keeps 400 mm; Route gives
   180 mm");
