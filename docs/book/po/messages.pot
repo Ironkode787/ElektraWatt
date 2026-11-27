@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-27T09:13:58Z\n"
+"POT-Creation-Date: 2026-11-27T09:39:56Z\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -97,7 +97,7 @@ msgid "Work in the PLC workspace"
 msgstr ""
 
 #: src/SUMMARY.md:29 src/how-to/own-parts.md:1
-msgid "Make your own PLC or bus part"
+msgid "Make your own parts"
 msgstr ""
 
 #: src/SUMMARY.md:30 src/how-to/fluid-workspace.md:1
@@ -413,8 +413,7 @@ msgid ""
 "[A bus network](bus-network.md): a bus-topology page with a CPU, a remote "
 "I/O station and a switch from the generic parts, the bus lines, the node "
 "addresses, a bus cable with its plugs, a frequency converter of your own "
-"made in the part editor, and the check. You need EW installed and an empty "
-"folder."
+"made in Parts, and the check. You need EW installed and an empty folder."
 msgstr ""
 
 #: src/tutorials/index.md:35
@@ -717,16 +716,16 @@ msgstr ""
 #: src/tutorials/terminal-strip-and-cable.md:65
 msgid ""
 "**New cable type…**, the last entry of the form's **Cable type** list, makes "
-"a cable part of your own in a small form: the maker, the type, the part "
-"number, the cores and their cross-section, with or without green-yellow, the "
-"cores' colours (HD 308), numbers or your own, a shield and the outer "
-"diameter. It reads the cable as it will show (`3G1.5 · BN BU GNYE`); **Save "
-"and add another size** keeps all but the part number and the size, and Save "
-"comes back to the Cable form with the new type chosen. A part of kind Cable "
-"shows the same section in the part editor."
+"a cable part of your own in Parts: the maker, the type, the part number, the "
+"cores and their cross-section, with or without green-yellow, the cores' "
+"colours (HD 308), numbers or your own, a shield and the outer diameter. It "
+"reads the cable as it will show (`3G1.5 · BN BU GNYE`); **Save and add "
+"another size** keeps all but the part number and the size, and Save comes "
+"back to the Cable form with the new type chosen. A cable part opened in "
+"Parts shows the same group."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:70
+#: src/tutorials/terminal-strip-and-cable.md:69
 msgid ""
 "A cable's mark is drawn as panel builders draw it: one line across the "
 "cable's wires, a stroke on each core with its number or colour beside it, "
@@ -735,13 +734,13 @@ msgid ""
 "pages gets a mark on each."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:73
+#: src/tutorials/terminal-strip-and-cable.md:72
 msgid ""
 "The strip editor and the Cables navigator show what passes through each "
 "terminal and each core, from the drawing."
 msgstr ""
 
-#: src/tutorials/terminal-strip-and-cable.md:74
+#: src/tutorials/terminal-strip-and-cable.md:73
 msgid ""
 "The reports that list them, the terminal diagram and the cable list, are the "
 "subject of [Reports and PDF](reports-and-pdf.md)."
@@ -1383,9 +1382,9 @@ msgid ""
 "In this tutorial you draw a small PROFINET network on a bus-topology page: a "
 "CPU, a remote I/O station with an input module and an unmanaged switch, all "
 "from the generic starter parts, then a frequency converter of your own that "
-"you type into the part editor. You give the nodes their names and IP "
-"addresses, set the cable and its plugs on one bus line, and check the "
-"network. It takes about fifteen minutes."
+"you type into Parts. You give the nodes their names and IP addresses, set "
+"the cable and its plugs on one bus line, and check the network. It takes "
+"about fifteen minutes."
 msgstr ""
 
 #: src/tutorials/bus-network.md:8
@@ -1481,19 +1480,19 @@ msgid ""
 "\"Cable -2W1 carries the bus line.\" The line carries the cable's mark: its "
 "tag with its type under it, which you can move as any tag; the cable and its "
 "two plugs go into the parts list. The lists of cables and plugs end in **New "
-"bus cable…** and **New plug…**: a short form makes a part of your own for "
-"the bus (a cable's cores come as the bus has them) and chooses it at once."
+"bus cable…** and **New plug…**: a new part of your own for the bus opens in "
+"Parts (a cable's cores come as the bus has them) and chooses it at once."
 msgstr ""
 
 #: src/tutorials/bus-network.md:59
 msgid ""
-"Choose **Edit ▸ New part…**. Type the **Manufacturer** `Example`, the **Part "
-"number** `FC-PN-2` and the **Description** `Frequency converter with "
-"PROFINET, 2 ports`. Under **Bus interfaces** choose **Add interface**: it "
-"proposes the interface `X1` on **PROFINET** with the role **Device**; type "
-"**Ports** `2`. Choose **Save**. The toast says \"Part FC-PN-2 is in the "
-"project.\" With **Also add to my parts library** ticked, your next project "
-"has it too."
+"Choose **Edit ▸ New part…** and, under **What is it?**, **Device drawn as a "
+"box**. Type the **Maker** `Example`, the **Part number** `FC-PN-2` and the "
+"**Description** `Frequency converter with PROFINET, 2 ports`. Under "
+"**Network ports** choose **Add interface**: it proposes the interface `X1` "
+"on **PROFINET** with the role **Device**; type **Ports** `2`. Choose "
+"**Save**. The toast says \"Part FC-PN-2 is in the project and in My "
+"parts.\": your next project has it too. Choose **Back**."
 msgstr ""
 
 #: src/tutorials/bus-network.md:64
@@ -1543,9 +1542,8 @@ msgstr ""
 
 #: src/tutorials/bus-network.md:85
 msgid ""
-"A device of your own with its ports is typed from its data sheet in the part "
-"editor; [Make your own PLC or bus part](../how-to/own-parts.md) has the "
-"whole of it."
+"A device of your own with its ports is typed from its data sheet in Parts; "
+"[Make your own parts](../how-to/own-parts.md) has the whole of it."
 msgstr ""
 
 #: src/tutorials/bus-network.md:88
@@ -1918,9 +1916,9 @@ msgstr ""
 
 #: src/how-to/index.md:31
 msgid ""
-"[Make your own PLC or bus part](own-parts.md): a card, a head station such "
-"as an IM 152, a switch such as a SCALANCE or a device on PROFINET, typed "
-"from its data sheet in the part editor and kept in My parts."
+"[Make your own parts](own-parts.md): a terminal, a cable, a cabinet, a card, "
+"a head station such as an IM 152, a switch such as a SCALANCE or a device on "
+"PROFINET, typed from its data sheet in Parts and kept in My parts."
 msgstr ""
 
 #: src/how-to/index.md:33
@@ -3533,53 +3531,54 @@ msgstr ""
 #: src/how-to/choose-parts.md:19
 msgid ""
 "The device's **Parts** row now shows the part, and the warning EW-CORE-041 "
-"for the device disappears from the Messages pane. **Edit ▸ Edit part…** "
-"changes the project's copy of the part."
+"for the device disappears from the Messages pane. **Project ▸ Parts** (`F9`) "
+"opens the part in Parts, where a part of your own is changed and a starter "
+"part is made your own."
 msgstr ""
 
-#: src/how-to/choose-parts.md:22
+#: src/how-to/choose-parts.md:23
 msgid "Place a device with its part"
 msgstr ""
 
-#: src/how-to/choose-parts.md:24
+#: src/how-to/choose-parts.md:25
 msgid ""
 "When you know the part before you draw, place the device from it, so that "
 "the device has its part from the start:"
 msgstr ""
 
-#: src/how-to/choose-parts.md:26
+#: src/how-to/choose-parts.md:27
 msgid "Choose **Draw ▸ Place ▸ Device from part…** (`Shift+I`)."
 msgstr ""
 
-#: src/how-to/choose-parts.md:27
+#: src/how-to/choose-parts.md:28
 msgid ""
 "In the browser, double-click the part, for example the terminal "
 "EW-GEN-TRM-1; its row places the part's main function. To place another "
 "function, open the part with its arrow and double-click the function."
 msgstr ""
 
-#: src/how-to/choose-parts.md:29
+#: src/how-to/choose-parts.md:30
 msgid "Click where the device goes on the page."
 msgstr ""
 
-#: src/how-to/choose-parts.md:31
+#: src/how-to/choose-parts.md:32
 msgid "Read the parts list"
 msgstr ""
 
-#: src/how-to/choose-parts.md:33
+#: src/how-to/choose-parts.md:34
 msgid ""
 "**Output ▸ Open parts list** opens the parts-list page of the project, when "
 "it has one: a project made from a template of the template wizard (**Project "
 "▸ New template…**), and the sample project, have one."
 msgstr ""
 
-#: src/how-to/choose-parts.md:35
+#: src/how-to/choose-parts.md:36
 msgid ""
 "**View ▸ Panels ▸ Navigators ▸ Parts in use** lists the parts the project "
 "uses with their devices, in any project."
 msgstr ""
 
-#: src/how-to/choose-parts.md:37
+#: src/how-to/choose-parts.md:38
 msgid ""
 "The part data comes from the library: [Edit "
 "part](../reference/window/dialogs.md#edit-part) changes the project's copy, "
@@ -3587,11 +3586,11 @@ msgid ""
 "EPLAN's article and QElectroTech's manufacturer reference."
 msgstr ""
 
-#: src/how-to/choose-parts.md:41
+#: src/how-to/choose-parts.md:42
 msgid "The workshop stock"
 msgstr ""
 
-#: src/how-to/choose-parts.md:43
+#: src/how-to/choose-parts.md:44
 msgid ""
 "The workshop stock is the list of wire, ferrule and marker parts your shop "
 "keeps, in the order you prefer them. A wire takes the first wire part of its "
@@ -3599,7 +3598,7 @@ msgid ""
 "first marker made for it; the workshop lists count them from the wires."
 msgstr ""
 
-#: src/how-to/choose-parts.md:47
+#: src/how-to/choose-parts.md:48
 msgid ""
 "Open it with **Project ▸ Edit stock…**, or with the Edit stock… link under "
 "the project's Properties. Each row can move up or down or be removed; type a "
@@ -3608,7 +3607,7 @@ msgid ""
 "leave it empty for 5 mm. **Apply** writes the stock in one step."
 msgstr ""
 
-#: src/how-to/choose-parts.md:52
+#: src/how-to/choose-parts.md:53
 msgid ""
 "A new project starts with the starter's generic ferrules and markers. A "
 "project made before has none: **Add the generic stock** (in the dialog, or "
@@ -3843,7 +3842,7 @@ msgstr ""
 msgid "What it is"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:25 src/reference/window/command-bar.md:136
+#: src/how-to/plc-workspace.md:25 src/reference/window/command-bar.md:143
 #: src/reference/window/panels.md:111
 msgid "PLC"
 msgstr ""
@@ -4059,7 +4058,7 @@ msgstr ""
 msgid ""
 "Double-click its head in the **Catalogue** at the right: the CPU, the "
 "interface module of a remote station, the valve terminal. **New part…** "
-"under the catalogue opens the part editor set for that kind; the part you "
+"under the catalogue opens Parts on a new part of that kind; the part you "
 "save is in the catalogue when you come back, and it is the head when you "
 "clicked the empty **Head** first."
 msgstr ""
@@ -4179,7 +4178,7 @@ msgid ""
 "**The catalogue** at the right lists the parts that fit the station, by "
 "kind, under a filter. Parts that do not fit the selected slot are greyed and "
 "say why, as is a library part that nothing can draw yet because it has no "
-"pins, with what to do in the part editor."
+"pins, with what to do in Parts."
 msgstr ""
 
 #: src/how-to/plc-workspace.md:115
@@ -4445,7 +4444,7 @@ msgid ""
 "The starter parts hold a CPU with PROFINET and PROFIBUS DP, a remote I/O "
 "head, an unmanaged and a managed switch, a PROFINET device, PROFIBUS and "
 "Ethernet cables and their plugs. Your own devices with their ports are made "
-"in the part editor: see [Make your own PLC or bus part](own-parts.md)."
+"in Parts: see [Make your own parts](own-parts.md)."
 msgstr ""
 
 #: src/how-to/plc-workspace.md:215
@@ -4514,58 +4513,96 @@ msgstr ""
 
 #: src/how-to/own-parts.md:3
 msgid ""
-"Your own hardware, a card, a head station, a switch or a drive on PROFINET, "
-"is a part you type from its data sheet in the part editor. Save puts it into "
-"the project and into your own parts library, **My parts**, so that your next "
-"project has it too. Nothing here depends on what ElektraWatt knows about a "
-"manufacturer's product: you type what the data sheet says."
+"Every part, the starter parts and your own, lives in one place: **Parts** "
+"(**Project ▸ Parts**, `F9`). On the left is the list with its search and its "
+"filters, in the middle the open part's sheet, on the right its pictures and "
+"**Ready for**. A part you make is typed from its data sheet: nothing here "
+"depends on what ElektraWatt knows about a manufacturer's product. **Save** "
+"puts it into the project and into your own parts library, **My parts**, so "
+"that your next project has it too."
 msgstr ""
 
-#: src/how-to/own-parts.md:8
+#: src/how-to/own-parts.md:9
 msgid "You need an open project."
 msgstr ""
 
-#: src/how-to/own-parts.md:10
+#: src/how-to/own-parts.md:11
 msgid "Start a new part"
 msgstr ""
 
-#: src/how-to/own-parts.md:12
+#: src/how-to/own-parts.md:13
 msgid ""
-"Choose **Edit ▸ New part…**, or **New part…** in the device browser (**Draw "
-"▸ Place ▸ Device from part…**, `Shift+I`) or in the part dialog (**Choose "
-"part…**). The part editor opens on a new part."
+"Choose **New part** in the bar of Parts, or **New part…** in the device "
+"browser (**Draw ▸ Place ▸ Device from part…**, `Shift+I`) or in the part "
+"dialog (**Choose part…**)."
 msgstr ""
 
-#: src/how-to/own-parts.md:14
+#: src/how-to/own-parts.md:15
 msgid ""
-"Type the **Manufacturer** and the **Part number**, and a **Description**. A "
-"manufacturer the project and your libraries do not have yet is made with the "
-"part."
-msgstr ""
-
-#: src/how-to/own-parts.md:16
-msgid ""
-"Leave **Also add to my parts library** ticked to keep the part for later "
-"projects; untick it to keep the part in this project alone."
-msgstr ""
-
-#: src/how-to/own-parts.md:19
-msgid ""
-"A field that does not read is refused under it, in words; **Save** says the "
-"first such field again."
+"The sheet asks first: **What is it?** Its cards stand in four groups, "
+"Devices; Terminals, cables and wiring; Cabinet; Pneumatics, each with a line "
+"of what it will ask for. Choose the card of your part: **Device with "
+"symbols** for a contactor or a breaker, **Device drawn as a box** for a "
+"power supply or a device on a bus, **PLC card or station**, **Pushbutton or "
+"lamp in a door**, **Terminal**, **Cable**, **Wire**, **Ferrule or lug**, "
+"**Marker**, **Cable gland**, **Enclosure**, **Mounting plate**, **Rail**, "
+"**Wiring duct**, **End bracket or accessory**, **Valve**, **Tube** or "
+"**Other pneumatic device**."
 msgstr ""
 
 #: src/how-to/own-parts.md:21
-msgid "A card such as a digital input card"
-msgstr ""
-
-#: src/how-to/own-parts.md:23
 msgid ""
-"Under **PLC**, choose **PLC role ▸ Module**, **Channel kind ▸ DI** and type "
-"**Channels** `8`."
+"The sheet shows what that kind needs and nothing else. Type the **Maker**, "
+"the **Part number** and a **Description**: these are all a part needs to be "
+"saved. A maker your libraries do not have yet is made with the part."
 msgstr ""
 
 #: src/how-to/own-parts.md:24
+msgid ""
+"Type what the data sheet gives: a terminal's clamps and width, a cable's "
+"cores and outer diameter, a cabinet's size, plate and doors. **Ready for** "
+"on the right says, per feature, what the part still lacks and what follows "
+"from it (for the cabinet layout, a part without its size stands on the "
+"layout as a 20 × 20 mm square marked unknown size); a group of the sheet "
+"that lacks something has a dot in the list of groups. Leave what you do not "
+"know: the part saves without it, and Ready for keeps saying it."
+msgstr ""
+
+#: src/how-to/own-parts.md:29
+msgid ""
+"**Save**. From the part dialog the button reads **Save and use for -102Q1**: "
+"the part goes to the devices you were choosing for, and you are back on the "
+"page."
+msgstr ""
+
+#: src/how-to/own-parts.md:32
+msgid ""
+"A field that does not read is refused under it, in words. Save is refused "
+"only when the part has no maker or no number, or when My parts or the "
+"project has a part of that maker and number already: open that one from the "
+"list instead."
+msgstr ""
+
+#: src/how-to/own-parts.md:35
+msgid ""
+"**A part like it…**, the card under the others, or **Like this** in the bar "
+"with a part open, starts a new part with everything the other part has but "
+"its number. A cable type sold in several sizes has **Save and add another "
+"size** beside Save: the next size opens with everything but the number and "
+"the cross-section."
+msgstr ""
+
+#: src/how-to/own-parts.md:39
+msgid "A card such as a digital input card"
+msgstr ""
+
+#: src/how-to/own-parts.md:41
+msgid ""
+"Choose **PLC card or station**. Under **PLC**, the role is **Module**; "
+"choose **Channel kind ▸ DI** and type **Channels** `8`."
+msgstr ""
+
+#: src/how-to/own-parts.md:43
 msgid ""
 "The **Pin pattern** gives the pin of channel n: `{n+1}` gives the pins 1 to "
 "8, `X2:{n+1}` gives X2:1 to X2:8. The line under it shows the first and the "
@@ -4574,14 +4611,14 @@ msgid ""
 "the card occupies."
 msgstr ""
 
-#: src/how-to/own-parts.md:27
+#: src/how-to/own-parts.md:46
 msgid ""
 "Type the supply pins (**Supply L+ pin**, **Supply M pin**) when the card has "
 "them, and the **Allowed slots** (`1-8, 10`) when the data sheet restricts "
 "them. **Save**."
 msgstr ""
 
-#: src/how-to/own-parts.md:29
+#: src/how-to/own-parts.md:48
 msgid ""
 "Place the card beside the CPU from the device browser: it stands as a box "
 "with its pins, joins the project's CPU, and its channels are addressed and "
@@ -4589,31 +4626,31 @@ msgid ""
 "as a module."
 msgstr ""
 
-#: src/how-to/own-parts.md:33
+#: src/how-to/own-parts.md:52
 msgid ""
 "A part has channels of one kind: a card with 16 inputs and 16 outputs is two "
 "parts, one for each."
 msgstr ""
 
-#: src/how-to/own-parts.md:35
+#: src/how-to/own-parts.md:54
 msgid "A head station such as an IM 152"
 msgstr ""
 
-#: src/how-to/own-parts.md:37
+#: src/how-to/own-parts.md:56
 msgid ""
-"Choose **PLC role ▸ Station**, type the supply pins and **Most modules** "
-"(`32`)."
+"Choose **PLC card or station**, then **PLC role ▸ Station**; type the supply "
+"pins and **Most modules** (`32`)."
 msgstr ""
 
-#: src/how-to/own-parts.md:38
+#: src/how-to/own-parts.md:57
 msgid ""
-"Under **Bus interfaces**, choose **Add interface**: type the interface `DP`, "
+"Under **Network ports**, choose **Add interface**: type the interface `DP`, "
 "choose **Bus ▸ PROFIBUS DP** and **Role ▸ Slave**. Its PROFINET sister has "
 "the interface `X1`, **Bus ▸ PROFINET**, **Role ▸ Device** and **Ports** `2`. "
 "**Save**."
 msgstr ""
 
-#: src/how-to/own-parts.md:41
+#: src/how-to/own-parts.md:60
 msgid ""
 "Place it from the device browser on a bus-topology page: it stands there as "
 "a box with its DP socket, and its supply pins wait for a schematic page "
@@ -4624,30 +4661,38 @@ msgid ""
 "only answers on the bus is a head station."
 msgstr ""
 
-#: src/how-to/own-parts.md:47
+#: src/how-to/own-parts.md:66
+msgid ""
+"**New part…** at the foot of a station's catalogue starts the part the rack "
+"asks for: a CPU, a remote station, a valve terminal, a compact device or a "
+"module."
+msgstr ""
+
+#: src/how-to/own-parts.md:69
 msgid "A switch such as a SCALANCE, or a device on PROFINET"
 msgstr ""
 
-#: src/how-to/own-parts.md:49
+#: src/how-to/own-parts.md:71
 msgid ""
-"Leave the PLC role at **None**. Under **Bus interfaces**, **Add interface**: "
-"`X1`, **PROFINET**, and the number of **Ports** (sockets) of the data sheet."
+"Choose **Device drawn as a box**. Under **Network ports**, **Add "
+"interface**: `X1`, **PROFINET**, and the number of **Ports** (sockets) of "
+"the data sheet."
 msgstr ""
 
-#: src/how-to/own-parts.md:51
+#: src/how-to/own-parts.md:73
 msgid ""
 "An **unmanaged** switch has the role **Passive**: no address, it passes the "
 "net through."
 msgstr ""
 
-#: src/how-to/own-parts.md:52
+#: src/how-to/own-parts.md:74
 msgid ""
 "A **managed** switch and a drive, an HMI or a gateway have the role "
 "**Device**: one PROFINET name and IP address for the whole interface, "
 "however many sockets it has."
 msgstr ""
 
-#: src/how-to/own-parts.md:54
+#: src/how-to/own-parts.md:76
 msgid ""
 "**Save**, then place it from the device browser on a bus-topology page: it "
 "stands as a box with a connection point per socket, P1, P2 …. A device with "
@@ -4660,77 +4705,83 @@ msgid ""
 "while it is open."
 msgstr ""
 
-#: src/how-to/own-parts.md:62
+#: src/how-to/own-parts.md:84
 msgid ""
 "The starter parts hold such parts to begin with: EW-GEN-ESW-5 (unmanaged "
 "switch, 5 ports), EW-GEN-ESW-8 (managed switch, 8 ports) and EW-GEN-PND-1 (a "
 "PROFINET device, 2 ports)."
 msgstr ""
 
-#: src/how-to/own-parts.md:65
-msgid "Correct a part you made"
+#: src/how-to/own-parts.md:87
+msgid "Change a part"
 msgstr ""
 
-#: src/how-to/own-parts.md:67
+#: src/how-to/own-parts.md:89
 msgid ""
-"Select a device of the part and choose **Edit ▸ Edit part…** (or **Edit "
-"part…** in the menu of the **Parts** row of its Properties). A part of your "
-"own, in My parts or kept to the project, opens with the same forms and what "
-"you saved: change the number of ports, the pin pattern or any field and "
-"**Save**."
+"Open the part in Parts: from the list (type a part of its number, maker or "
+"description), or select a device and choose **Edit ▸ Parts**, which opens on "
+"the device's part."
 msgstr ""
 
-#: src/how-to/own-parts.md:70
+#: src/how-to/own-parts.md:91
 msgid ""
-"A part of My parts is saved there as its next version, and the Preview tab "
-"lists what changes in words (\"Interface X1: 8 ports → 6 ports\", "
-"\"Channels: 8 → 16\", the parts list row's changed column) and the devices "
-"that use it; **Apply** brings the project's copy to it. A part kept to the "
-"project changes in place, with the same card."
+"A part of your own, in My parts or only in this project, opens ready to "
+"change. A starter part or a part of another library is not yours to change: "
+"its fields show what it is, and **Make my own** starts a part of your own "
+"with its data, which you save under a part number of your own."
 msgstr ""
 
-#: src/how-to/own-parts.md:73
+#: src/how-to/own-parts.md:94
 msgid ""
-"A device already drawn follows the correction, in both cases: its box shows "
-"the pins and sockets the part still has, and its bus port keeps its bus, "
-"role and address. A bus line at a socket the part no longer has keeps its "
-"end there; the card names it before **Apply**, so that you draw it to "
-"another socket. A pin or socket the part adds stands after the last one of "
-"its edge, the box growing to take it; a box that would then run past the "
-"drawing area (into the title block) goes back along that edge until it fits, "
-"its wires with it. The card names each box drawn anew and its page before "
-"**Apply**, and says which went back. A turned box takes the new pin when it "
-"is drawn again: delete it and draw it again, or, for a part with a device "
-"box, choose **Redraw them** after saving the box (below)."
+"Change what you need and **Save**. A part of My parts is saved there as its "
+"next version, and the card beside the sheet lists what changes in words "
+"(\"Interface X1: 8 ports → 6 ports\", \"Channels: 8 → 16\", the parts list "
+"row's changed column) and the devices that use it; **Apply** brings the "
+"project's copy to it. A part only in this project changes in place, with the "
+"same card. **Discard** drops what you typed."
 msgstr ""
 
-#: src/how-to/own-parts.md:82
+#: src/how-to/own-parts.md:98
 msgid ""
-"A starter part or a part of another library is not yours to change: its "
-"editor says so and offers **Copy as a part of your own…**, a new part with "
-"its data, which you save under a part number of your own."
+"A device already drawn follows the correction: its box shows the pins and "
+"sockets the part still has, and its bus port keeps its bus, role and "
+"address. A bus line at a socket the part no longer has keeps its end there; "
+"the card names it before **Apply**, so that you draw it to another socket. A "
+"pin or socket the part adds stands after the last one of its edge, the box "
+"growing to take it; a box that would then run past the drawing area goes "
+"back along that edge until it fits, its wires with it. The card names each "
+"box drawn anew and its page before **Apply**."
 msgstr ""
 
-#: src/how-to/own-parts.md:85
+#: src/how-to/own-parts.md:104
+msgid ""
+"A part only in this project has **Keep in my parts** in the bar: it is "
+"written into My parts, and the project's devices take that copy. **Remove** "
+"takes a part of your own out of My parts (it asks first); a project that "
+"uses it keeps its copy. **Back** returns to where you came from."
+msgstr ""
+
+#: src/how-to/own-parts.md:108
 msgid "A device that is a box with pins"
 msgstr ""
 
-#: src/how-to/own-parts.md:87
+#: src/how-to/own-parts.md:110
 msgid ""
 "A circuit protector, a power supply, a drive: a device the program has no "
 "symbol for is drawn as a box with its pins on the edges. The part says which "
 "pins it has and where they stand."
 msgstr ""
 
-#: src/how-to/own-parts.md:90
+#: src/how-to/own-parts.md:113
 msgid ""
-"In the part editor, **Pins** lists the part's pins, each with its name and "
-"the potential it carries. **Add pin** adds one, the cross at a row's end "
-"removes it. A PLC card's pins come from its channels and a part drawn with a "
-"symbol takes that symbol's connections: the section lists them and says so."
+"Under **On the schematic**, **Pins** lists the part's pins, each with its "
+"name and the potential it carries. **Add pin** adds one, the cross at a "
+"row's end removes it; each pin has its row under **Connections** for its "
+"clamp. A PLC card's pins come from its channels and a part drawn with a "
+"symbol takes that symbol's connections: the group lists them and says so."
 msgstr ""
 
-#: src/how-to/own-parts.md:93
+#: src/how-to/own-parts.md:117
 msgid ""
 "Choose **Pins and box…**. The device box opens on the symbol editor's "
 "screen: drag each pin along its edge or onto another edge, drag the box's "
@@ -4738,7 +4789,7 @@ msgid ""
 "box](../reference/symbol-editor.md#the-device-box))."
 msgstr ""
 
-#: src/how-to/own-parts.md:96
+#: src/how-to/own-parts.md:120
 msgid ""
 "**Draw ▸ Place ▸ Device from part…** then places the part's box with one "
 "click, laid out as you drew it. On the page the box's edges and pins can "
@@ -4751,33 +4802,26 @@ msgid ""
 "left and right sides are horizontal."
 msgstr ""
 
-#: src/how-to/own-parts.md:102
+#: src/how-to/own-parts.md:126
 msgid ""
 "To change the box of a device already drawn, choose **Edit this device's "
-"box…** in its menu. A library's part becomes the project's own copy when you "
-"save, and the devices that used it follow. The message of the save says how "
-"many boxes of the part are drawn and offers **Redraw them**."
+"box…** in its menu. The message of the save says how many boxes of the part "
+"are drawn and offers **Redraw them**."
 msgstr ""
 
-#: src/how-to/own-parts.md:106
-msgid ""
-"A part cannot be removed from My parts in the window yet: it stays, unused, "
-"until you delete it from the library folder."
-msgstr ""
-
-#: src/how-to/own-parts.md:108
+#: src/how-to/own-parts.md:129
 msgid "A part drawn with your own symbol"
 msgstr ""
 
-#: src/how-to/own-parts.md:110
+#: src/how-to/own-parts.md:131
 msgid ""
 "In the [symbol editor](../reference/symbol-editor.md), save the symbol with "
 "**Save**, then open **Draft** and choose **Make a part for this symbol…**. "
-"The part editor opens on a new part drawn with that symbol; a device placed "
-"from the part is drawn with it."
+"Parts opens on a new part drawn with that symbol; a device placed from the "
+"part is drawn with it."
 msgstr ""
 
-#: src/how-to/own-parts.md:114
+#: src/how-to/own-parts.md:135
 msgid ""
 "The PLC exchange with PLC software exports the stations of a configuration "
 "project; a switch or a device without a PLC section is not in the exported "
@@ -6309,35 +6353,49 @@ msgid ""
 msgstr ""
 
 #: src/reference/window/command-bar.md:27
-msgid "Page"
+msgid "Parts"
 msgstr ""
 
 #: src/reference/window/command-bar.md:29
+msgid ""
+"Opens Parts (`F9`), the one place where a part of every kind is looked up, "
+"seen whole, changed and made: the list of your parts, the project's and the "
+"libraries', the open part's sheet with its groups, and beside it how the "
+"part is drawn and what the program's features still lack of it. **Back** "
+"returns to where you were. See [Make your own "
+"parts](../../how-to/own-parts.md) and [Parts ▸ Fields](../part-fields.md)."
+msgstr ""
+
+#: src/reference/window/command-bar.md:34
+msgid "Page"
+msgstr ""
+
+#: src/reference/window/command-bar.md:36
 msgid "New page…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:31
+#: src/reference/window/command-bar.md:38
 msgid ""
 "Makes a page: its number, its type (multi-line, single-line, panel layout, "
 "fluid, report and others), its title and its grid. See "
 "[Pages](panels.md#pages)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:34
+#: src/reference/window/command-bar.md:41
 msgid "New section…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:36
+#: src/reference/window/command-bar.md:43
 msgid ""
 "Makes a section of the drawing set: a range of page numbers with a title, "
 "such as 100 to 199 \"Power\". New pages in that range belong to it."
 msgstr ""
 
-#: src/reference/window/command-bar.md:39
+#: src/reference/window/command-bar.md:46
 msgid "Connection grid…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:41
+#: src/reference/window/command-bar.md:48
 msgid ""
 "Changes the grid of the page shown. It asks for the grid and says what the "
 "change does to what the page holds; with a fit, the symbols and junctions "
@@ -6347,37 +6405,37 @@ msgid ""
 "See [Pages](panels.md#pages)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:46
+#: src/reference/window/command-bar.md:53
 msgid "Renumber pages…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:48
+#: src/reference/window/command-bar.md:55
 msgid ""
 "Gives the pages new numbers in their order, in steps you choose, keeping the "
 "cross-references right."
 msgstr ""
 
-#: src/reference/window/command-bar.md:50
+#: src/reference/window/command-bar.md:57
 msgid "Move page up"
 msgstr ""
 
-#: src/reference/window/command-bar.md:52
+#: src/reference/window/command-bar.md:59
 msgid "Moves the page shown one place up in the page order."
 msgstr ""
 
-#: src/reference/window/command-bar.md:54
+#: src/reference/window/command-bar.md:61
 msgid "Move page down"
 msgstr ""
 
-#: src/reference/window/command-bar.md:56
+#: src/reference/window/command-bar.md:63
 msgid "Moves the page shown one place down in the page order."
 msgstr ""
 
-#: src/reference/window/command-bar.md:58
+#: src/reference/window/command-bar.md:65
 msgid "Copy pages…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:60
+#: src/reference/window/command-bar.md:67
 msgid ""
 "Copies the marked pages (else the page shown) for a second, identical "
 "installation: each device with all its functions, so a coil and its contacts "
@@ -6391,11 +6449,11 @@ msgid ""
 "and which section it makes; Apply makes the copy in one undo step."
 msgstr ""
 
-#: src/reference/window/command-bar.md:68
+#: src/reference/window/command-bar.md:75
 msgid "Move to page…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:70
+#: src/reference/window/command-bar.md:77
 msgid ""
 "Moves the selected symbols to another schematic page, or to a new page in "
 "the section of the schematic pages, titled as the page they come from. It "
@@ -6406,33 +6464,33 @@ msgid ""
 "it too. See [Interruption points](things.md#interruption-points)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:76
+#: src/reference/window/command-bar.md:83
 msgid "Add legend"
 msgstr ""
 
-#: src/reference/window/command-bar.md:78
+#: src/reference/window/command-bar.md:85
 msgid ""
 "On a panel layout page, puts the legend beside the layout: each item number "
 "of the page with its tag, quantity, part number and description. See [Draw a "
 "panel layout](../../how-to/panel-layout.md)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:81
+#: src/reference/window/command-bar.md:88
 msgid "Report block…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:83
+#: src/reference/window/command-bar.md:90
 msgid ""
 "Puts a list on a page: a parts list, a terminal diagram, a cable list and "
 "the others, generated from the project and kept up to date. See [Lists on a "
 "page](things.md#lists-on-a-page)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:86
+#: src/reference/window/command-bar.md:93
 msgid "List columns…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:88
+#: src/reference/window/command-bar.md:95
 msgid ""
 "On a page of a list (the Output tab's Reports group): which columns the list "
 "prints, in what order, with what heading and width, a caption above the "
@@ -6440,11 +6498,11 @@ msgid ""
 "page](things.md#lists-on-a-page)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:91
+#: src/reference/window/command-bar.md:98
 msgid "Rows of your own…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:93
+#: src/reference/window/command-bar.md:100
 msgid ""
 "On a page of a list (the Output tab's Reports group): rows the model does "
 "not hold, such as a spare terminal or a note; they stay in the list however "
@@ -6452,25 +6510,25 @@ msgid ""
 "page](things.md#lists-on-a-page)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:97
+#: src/reference/window/command-bar.md:104
 msgid "Open parts list"
 msgstr ""
 
-#: src/reference/window/command-bar.md:99
+#: src/reference/window/command-bar.md:106
 msgid ""
 "Shows the project's parts list: every part with its quantity, its "
 "description and the tags of its devices."
 msgstr ""
 
-#: src/reference/window/command-bar.md:101
+#: src/reference/window/command-bar.md:108
 msgid "Draw"
 msgstr ""
 
-#: src/reference/window/command-bar.md:103
+#: src/reference/window/command-bar.md:110
 msgid "Supply"
 msgstr ""
 
-#: src/reference/window/command-bar.md:105
+#: src/reference/window/command-bar.md:112
 msgid ""
 "Places the supply that comes in from the mains in one go: its form asks what "
 "comes in (single phase L, N, PE; three phase with or without N; 24 V DC; "
@@ -6479,42 +6537,42 @@ msgid ""
 "then asks what each carries. See [Supply comes in here](things.md)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:110
+#: src/reference/window/command-bar.md:117
 msgid "Cable…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:112
+#: src/reference/window/command-bar.md:119
 msgid ""
 "Makes a cable of the selected wires, or gives a wire's cable its part, and "
 "draws the cable's mark across them. See [Cables and their "
 "marks](things.md#cables-and-their-marks)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:115
+#: src/reference/window/command-bar.md:122
 msgid "Renumber devices…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:117
+#: src/reference/window/command-bar.md:124
 msgid ""
 "Gives the devices new numbers by their place in the drawings "
 "(`Ctrl+Shift+N`)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:119
+#: src/reference/window/command-bar.md:126
 msgid "Symbol editor…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:121
+#: src/reference/window/command-bar.md:128
 msgid ""
 "Opens the symbol editor: a new symbol, a copy of a library symbol, or the "
 "box of a device. See [Symbol editor](../symbol-editor.md)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:124
+#: src/reference/window/command-bar.md:131
 msgid "Auto-fill rail…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:126
+#: src/reference/window/command-bar.md:133
 msgid ""
 "On a panel layout page, places the cabinet's devices that are not placed yet "
 "on a rail, in the order of the schematic or of their tags. Devices without a "
@@ -6522,11 +6580,11 @@ msgid ""
 "layout](../../how-to/panel-layout.md)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:130
+#: src/reference/window/command-bar.md:137
 msgid "Add pin"
 msgstr ""
 
-#: src/reference/window/command-bar.md:132
+#: src/reference/window/command-bar.md:139
 msgid ""
 "On a selected box drawn without a part, puts a new pin on its edge: the pin "
 "follows the pointer along the edge nearest it, a click puts it there, and a "
@@ -6534,367 +6592,367 @@ msgid ""
 "[Black box](tools.md#black-box)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:138
+#: src/reference/window/command-bar.md:145
 msgid "New station…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:140
+#: src/reference/window/command-bar.md:147
 msgid ""
 "Makes a PLC station: a CPU or a head station with its rack, chosen from the "
 "catalogue. See [Make a "
 "station](../../how-to/plc-workspace.md#make-a-station)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:143
+#: src/reference/window/command-bar.md:150
 msgid "Rack…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:145
+#: src/reference/window/command-bar.md:152
 msgid ""
 "Opens the selected station's view: its rack with a card per slot, the "
 "catalogue beside it, and the module's channels. See [Read and change a "
 "rack](../../how-to/plc-workspace.md#read-and-change-a-rack)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:148
+#: src/reference/window/command-bar.md:155
 msgid "Attach modules without a station"
 msgstr ""
 
-#: src/reference/window/command-bar.md:150
+#: src/reference/window/command-bar.md:157
 msgid ""
 "Gives the modules that have no station yet (cards made on their own) the "
 "selected CPU's station."
 msgstr ""
 
-#: src/reference/window/command-bar.md:152
+#: src/reference/window/command-bar.md:159
 msgid "Preview PLC addressing"
 msgstr ""
 
-#: src/reference/window/command-bar.md:154
+#: src/reference/window/command-bar.md:161
 msgid ""
 "Shows the addresses the channels get before they are given: the old and the "
 "new address of each channel. See "
 "[Addresses](../../how-to/plc-workspace.md#addresses)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:157
+#: src/reference/window/command-bar.md:164
 msgid "Symbol policy…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:159
+#: src/reference/window/command-bar.md:166
 msgid ""
 "Sets how the channels' symbol names are made: by hand, or from a template "
 "such as `{target.dt}_{pin}`. See [The PLC grid and the "
 "symbols](../../how-to/plc-workspace.md#the-plc-grid-and-the-symbols)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:162
+#: src/reference/window/command-bar.md:169
 msgid "Process-tag scheme…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:164
+#: src/reference/window/command-bar.md:171
 msgid ""
 "Sets the form of the process tags the instrument list and the channels carry."
 msgstr ""
 
-#: src/reference/window/command-bar.md:166
+#: src/reference/window/command-bar.md:173
 msgid "Channel addresses at terminals"
 msgstr ""
 
-#: src/reference/window/command-bar.md:168
+#: src/reference/window/command-bar.md:175
 msgid ""
 "Prints a channel's address (`I0.0`) at the terminals its wire runs through, "
 "on or off for the project."
 msgstr ""
 
-#: src/reference/window/command-bar.md:170
+#: src/reference/window/command-bar.md:177
 msgid "Export to PLC software…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:172
+#: src/reference/window/command-bar.md:179
 msgid ""
 "Writes the project's stations, modules and symbols to a file the PLC "
 "software reads. See [Exchange with the PLC "
 "software](../../how-to/plc-workspace.md#exchange-with-the-plc-software)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:175
+#: src/reference/window/command-bar.md:182
 msgid "Import from PLC software…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:177
+#: src/reference/window/command-bar.md:184
 msgid ""
 "Reads a file of the PLC software and shows what it would change before it "
 "does. See [Exchange with the PLC "
 "software](../../how-to/plc-workspace.md#exchange-with-the-plc-software)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:180
+#: src/reference/window/command-bar.md:187
 msgid "Import instrument list…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:182
+#: src/reference/window/command-bar.md:189
 msgid ""
 "Reads an instrument list (a table of the field devices with their signals) "
 "and shows the channels and devices it would make before it does."
 msgstr ""
 
-#: src/reference/window/command-bar.md:185
+#: src/reference/window/command-bar.md:192
 msgid "New bus page…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:187
+#: src/reference/window/command-bar.md:194
 msgid ""
 "Makes a bus topology page, where the bus devices and their ports are drawn. "
 "See [Bus ports and nets](../../how-to/plc-workspace.md#bus-ports-and-nets)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:190
+#: src/reference/window/command-bar.md:197
 msgid "Place port"
 msgstr ""
 
-#: src/reference/window/command-bar.md:192
+#: src/reference/window/command-bar.md:199
 msgid ""
 "Places a port of a bus device that is not drawn yet on the bus page. See "
 "[Bus ports and nets](../../how-to/plc-workspace.md#bus-ports-and-nets)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:195
+#: src/reference/window/command-bar.md:202
 msgid "Bus panel"
 msgstr ""
 
-#: src/reference/window/command-bar.md:197
+#: src/reference/window/command-bar.md:204
 msgid ""
 "Shows the Bus panel: the bus nets and the ports on them. See "
 "[Bus](panels.md#bus)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:199 src/reference/window/panels.md:128
+#: src/reference/window/command-bar.md:206 src/reference/window/panels.md:128
 msgid "PLC grid"
 msgstr ""
 
-#: src/reference/window/command-bar.md:201
+#: src/reference/window/command-bar.md:208
 msgid ""
 "Shows the PLC grid in the bottom dock: every channel in a row, with its "
 "address, its symbol and its device. A column that cuts a text grows to show "
 "it. See [PLC grid](panels.md#plc-grid)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:204
+#: src/reference/window/command-bar.md:211
 msgid "PLC workspace"
 msgstr ""
 
-#: src/reference/window/command-bar.md:206
+#: src/reference/window/command-bar.md:213
 msgid ""
 "Arranges the window for PLC work: the PLC panel on the left, the PLC grid "
 "below. See [Open the "
 "workspace](../../how-to/plc-workspace.md#open-the-workspace)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:209
+#: src/reference/window/command-bar.md:216
 msgid "PLC guide"
 msgstr ""
 
-#: src/reference/window/command-bar.md:211
+#: src/reference/window/command-bar.md:218
 msgid ""
 "Opens the guide to the PLC workspace: [Work in the PLC "
 "workspace](../../how-to/plc-workspace.md)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:213 src/reference/window/panels.md:149
+#: src/reference/window/command-bar.md:220 src/reference/window/panels.md:149
 msgid "Fluid"
 msgstr ""
 
-#: src/reference/window/command-bar.md:215
+#: src/reference/window/command-bar.md:222
 msgid "New fluid page…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:217
+#: src/reference/window/command-bar.md:224
 msgid ""
 "Makes a fluid page, where the pneumatic or hydraulic circuit is drawn. See "
 "[Draw a circuit](../../how-to/fluid-workspace.md#draw-a-circuit)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:220
+#: src/reference/window/command-bar.md:227
 msgid "Fluid symbol…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:222
+#: src/reference/window/command-bar.md:229
 msgid ""
 "Places a fluid symbol on the fluid page: a valve, a cylinder, a service unit "
 "and the others. See [Valves and cylinders](things.md#valves-and-cylinders)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:225
+#: src/reference/window/command-bar.md:232
 msgid "Valve terminal…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:227
+#: src/reference/window/command-bar.md:234
 msgid ""
 "Makes a valve terminal with its positions, or draws a station's valve "
 "terminal on the fluid page. See [Valve "
 "terminals](../../how-to/fluid-workspace.md#valve-terminals)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:230
+#: src/reference/window/command-bar.md:237
 msgid "Air supply…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:232
+#: src/reference/window/command-bar.md:239
 msgid "Places the air supply: where the compressed air enters the circuit."
 msgstr ""
 
-#: src/reference/window/command-bar.md:234
+#: src/reference/window/command-bar.md:241
 msgid "Generate overview…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:236
+#: src/reference/window/command-bar.md:243
 msgid ""
 "Makes the overview page of the selected valve terminal: its positions with "
 "their valves and order codes."
 msgstr ""
 
-#: src/reference/window/command-bar.md:238
+#: src/reference/window/command-bar.md:245
 msgid "Draw the plug on an electrical page…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:240
+#: src/reference/window/command-bar.md:247
 msgid ""
 "Draws the multipin plug of the selected valve terminal on an electrical "
 "page, with a pin for each solenoid."
 msgstr ""
 
-#: src/reference/window/command-bar.md:242
+#: src/reference/window/command-bar.md:249
 msgid "Plug the open ports"
 msgstr ""
 
-#: src/reference/window/command-bar.md:244
+#: src/reference/window/command-bar.md:251
 msgid ""
 "Plugs the open working ports of the selected valves in one step, so that no "
 "port is left open."
 msgstr ""
 
-#: src/reference/window/command-bar.md:246
+#: src/reference/window/command-bar.md:253
 msgid "New medium…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:248
+#: src/reference/window/command-bar.md:255
 msgid ""
 "Defines a medium (compressed air, hydraulic oil) with its colour and "
 "pattern. See [The medium](../../how-to/fluid-workspace.md#the-medium)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:251 src/reference/window/panels.md:164
+#: src/reference/window/command-bar.md:258 src/reference/window/panels.md:164
 msgid "Medium table"
 msgstr ""
 
-#: src/reference/window/command-bar.md:253
+#: src/reference/window/command-bar.md:260
 msgid ""
 "Shows the media of the project and the tube each medium takes. See [Medium "
 "table](panels.md#medium-table)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:255 src/reference/window/panels.md:157
+#: src/reference/window/command-bar.md:262 src/reference/window/panels.md:157
 msgid "Tube table"
 msgstr ""
 
-#: src/reference/window/command-bar.md:257
+#: src/reference/window/command-bar.md:264
 msgid ""
 "Shows the tubes of the project with their medium, size and length. See [Tube "
 "table](panels.md#tube-table)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:259
+#: src/reference/window/command-bar.md:266
 msgid "Fluid settings…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:261
+#: src/reference/window/command-bar.md:268
 msgid ""
 "Sets the fluid defaults of the project: the default tube of every line and "
 "how the tubes are numbered."
 msgstr ""
 
-#: src/reference/window/command-bar.md:263
+#: src/reference/window/command-bar.md:270
 msgid "Fluid workspace"
 msgstr ""
 
-#: src/reference/window/command-bar.md:265
+#: src/reference/window/command-bar.md:272
 msgid ""
 "Arranges the window for fluid work: the Fluid panel on the left, the tube "
 "table below. See [Open the "
 "workspace](../../how-to/fluid-workspace.md#open-the-workspace)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:268
+#: src/reference/window/command-bar.md:275
 msgid "Fluid power guide"
 msgstr ""
 
-#: src/reference/window/command-bar.md:270
+#: src/reference/window/command-bar.md:277
 msgid ""
 "Opens the guide to the Fluid workspace: [Work in the Fluid "
 "workspace](../../how-to/fluid-workspace.md)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:272
+#: src/reference/window/command-bar.md:279
 msgid "Check"
 msgstr ""
 
-#: src/reference/window/command-bar.md:274
+#: src/reference/window/command-bar.md:281
 msgid "Check project"
 msgstr ""
 
-#: src/reference/window/command-bar.md:276
+#: src/reference/window/command-bar.md:283
 msgid ""
 "Checks the project now and lists the findings in the Messages panel, with "
 "the change since the last check. See [Messages](panels.md#messages)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:279
+#: src/reference/window/command-bar.md:286
 msgid "Next finding"
 msgstr ""
 
-#: src/reference/window/command-bar.md:281
+#: src/reference/window/command-bar.md:288
 msgid ""
 "Goes to the next finding of the Messages panel and selects its things on the "
 "page."
 msgstr ""
 
-#: src/reference/window/command-bar.md:283
+#: src/reference/window/command-bar.md:290
 msgid "Previous finding"
 msgstr ""
 
-#: src/reference/window/command-bar.md:285
+#: src/reference/window/command-bar.md:292
 msgid "Goes to the previous finding of the Messages panel."
 msgstr ""
 
-#: src/reference/window/command-bar.md:287
+#: src/reference/window/command-bar.md:294
 msgid "Highlight"
 msgstr ""
 
-#: src/reference/window/command-bar.md:289
+#: src/reference/window/command-bar.md:296
 msgid ""
 "Marks the thing of the selected row of a list (a potential, a wire, a "
 "medium) on the pages, in a colour, until **Clear highlights** "
 "(`Ctrl+Shift+H`)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:292
+#: src/reference/window/command-bar.md:299
 msgid "Clear highlights"
 msgstr ""
 
-#: src/reference/window/command-bar.md:294
+#: src/reference/window/command-bar.md:301
 msgid "Removes every highlight from the pages."
 msgstr ""
 
-#: src/reference/window/command-bar.md:296
+#: src/reference/window/command-bar.md:303
 msgid "Output"
 msgstr ""
 
-#: src/reference/window/command-bar.md:298
+#: src/reference/window/command-bar.md:305
 msgid "Export DXF…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:300
+#: src/reference/window/command-bar.md:307
 msgid ""
 "Writes every page as an AutoCAD 2010 DXF file into a folder you choose, with "
 "the title block's picture as a file beside them: a symbol is a block, and a "
@@ -6903,11 +6961,11 @@ msgid ""
 "files in your CAD program or a converter."
 msgstr ""
 
-#: src/reference/window/command-bar.md:304
+#: src/reference/window/command-bar.md:311
 msgid "Open wire list"
 msgstr ""
 
-#: src/reference/window/command-bar.md:306
+#: src/reference/window/command-bar.md:313
 msgid ""
 "In the Workshop group. Shows the first page of the project's wire list, the "
 "fitter's sheet: per wire its ends, its colour, its cross-section, its length "
@@ -6916,11 +6974,11 @@ msgid ""
 "on the wire list."
 msgstr ""
 
-#: src/reference/window/command-bar.md:310
+#: src/reference/window/command-bar.md:317
 msgid "Open assembly lists"
 msgstr ""
 
-#: src/reference/window/command-bar.md:312
+#: src/reference/window/command-bar.md:319
 msgid ""
 "In the Workshop group. Shows the first page of the project's assembly lists: "
 "per terminal strip first where it goes on its rail and how long it is, then "
@@ -6929,11 +6987,11 @@ msgid ""
 "without assembly lists opens Report block… on them."
 msgstr ""
 
-#: src/reference/window/command-bar.md:316
+#: src/reference/window/command-bar.md:323
 msgid "Open cut list"
 msgstr ""
 
-#: src/reference/window/command-bar.md:318
+#: src/reference/window/command-bar.md:325
 msgid ""
 "In the Workshop group. Shows the first page of the project's cut list: the "
 "rails, the ducts with their covers, the cables, the wires and the tubes to "
@@ -6942,11 +7000,11 @@ msgid ""
 "list opens Report block… on it."
 msgstr ""
 
-#: src/reference/window/command-bar.md:322
+#: src/reference/window/command-bar.md:329
 msgid "Open consumables"
 msgstr ""
 
-#: src/reference/window/command-bar.md:324
+#: src/reference/window/command-bar.md:331
 msgid ""
 "In the Workshop group. Shows the first page of the project's consumables: "
 "the metres of each wire, the ferrules and lugs per part and the markers per "
@@ -6954,11 +7012,11 @@ msgid ""
 "Report block… on it."
 msgstr ""
 
-#: src/reference/window/command-bar.md:328
+#: src/reference/window/command-bar.md:335
 msgid "Rework list…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:330
+#: src/reference/window/command-bar.md:337
 msgid ""
 "In the Workshop group. Compares the project as it is with a release and "
 "lists what the fitter changes in the built cabinet, in the order he does it: "
@@ -6970,11 +7028,11 @@ msgid ""
 "changes… opens Labels… on the labels the list names."
 msgstr ""
 
-#: src/reference/window/command-bar.md:336
+#: src/reference/window/command-bar.md:343
 msgid "Labels…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:338
+#: src/reference/window/command-bar.md:345
 msgid ""
 "In the Workshop group. Lists the label files for your label program, one per "
 "label set (wire markers, terminal markers, device labels…) and marker part, "
@@ -6987,11 +7045,11 @@ msgid ""
 "a formula, so open the XLSX there."
 msgstr ""
 
-#: src/reference/window/command-bar.md:345
+#: src/reference/window/command-bar.md:352
 msgid "Hole tables"
 msgstr ""
 
-#: src/reference/window/command-bar.md:347
+#: src/reference/window/command-bar.md:354
 msgid ""
 "In the Workshop group. Shows the first page of the project's hole table: "
 "every hole and cut-out of each surface of the cabinet (the mounting plate, a "
@@ -7001,11 +7059,11 @@ msgid ""
 "opens Report block… on the hole table."
 msgstr ""
 
-#: src/reference/window/command-bar.md:352
+#: src/reference/window/command-bar.md:359
 msgid "Drilling…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:354
+#: src/reference/window/command-bar.md:361
 msgid ""
 "In the Workshop group. Exports the drawings for drilling: for each surface "
 "with holes (ticked in a list that names its page, its holes and the sheets "
@@ -7017,11 +7075,11 @@ msgid ""
 "bar. Greyed while no surface has holes."
 msgstr ""
 
-#: src/reference/window/command-bar.md:360
+#: src/reference/window/command-bar.md:367
 msgid "Workshop settings"
 msgstr ""
 
-#: src/reference/window/command-bar.md:362
+#: src/reference/window/command-bar.md:369
 msgid ""
 "In the Workshop group. Shows the project's Properties at its Workshop rows: "
 "the stock, the ferrules, two wires in one clamp, the marker text, the "
@@ -7030,125 +7088,125 @@ msgid ""
 "fixings, the web between holes and the corner the holes are measured from."
 msgstr ""
 
-#: src/reference/window/command-bar.md:367
+#: src/reference/window/command-bar.md:374
 msgid "View"
 msgstr ""
 
-#: src/reference/window/command-bar.md:369
+#: src/reference/window/command-bar.md:376
 msgid "Back"
 msgstr ""
 
-#: src/reference/window/command-bar.md:371
+#: src/reference/window/command-bar.md:378
 msgid ""
 "Goes back to the place shown before the last jump (a cross-reference "
 "followed, a page opened)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:373
+#: src/reference/window/command-bar.md:380
 msgid "Forward"
 msgstr ""
 
-#: src/reference/window/command-bar.md:375
+#: src/reference/window/command-bar.md:382
 msgid "Goes forward again after **Back**."
 msgstr ""
 
-#: src/reference/window/command-bar.md:377
+#: src/reference/window/command-bar.md:384
 msgid "Follow cross-reference"
 msgstr ""
 
-#: src/reference/window/command-bar.md:379
+#: src/reference/window/command-bar.md:386
 msgid ""
 "Goes to the place the cross-reference under the pointer or selected names."
 msgstr ""
 
-#: src/reference/window/command-bar.md:381
+#: src/reference/window/command-bar.md:388
 msgid "Zoom in"
 msgstr ""
 
-#: src/reference/window/command-bar.md:383
+#: src/reference/window/command-bar.md:390
 msgid "Shows the page larger, around the middle of the view."
 msgstr ""
 
-#: src/reference/window/command-bar.md:385
+#: src/reference/window/command-bar.md:392
 msgid "Zoom out"
 msgstr ""
 
-#: src/reference/window/command-bar.md:387
+#: src/reference/window/command-bar.md:394
 msgid "Shows the page smaller."
 msgstr ""
 
-#: src/reference/window/command-bar.md:389
+#: src/reference/window/command-bar.md:396
 msgid "Actual size"
 msgstr ""
 
-#: src/reference/window/command-bar.md:391
+#: src/reference/window/command-bar.md:398
 msgid "Shows the page at its printed size."
 msgstr ""
 
-#: src/reference/window/command-bar.md:393
+#: src/reference/window/command-bar.md:400
 msgid "Fit page"
 msgstr ""
 
-#: src/reference/window/command-bar.md:395
+#: src/reference/window/command-bar.md:402
 msgid "Shows the whole page in the view."
 msgstr ""
 
-#: src/reference/window/command-bar.md:397
+#: src/reference/window/command-bar.md:404
 msgid "Side by side"
 msgstr ""
 
-#: src/reference/window/command-bar.md:399
+#: src/reference/window/command-bar.md:406
 msgid "Shows two pages side by side, each in its own group of tabs."
 msgstr ""
 
-#: src/reference/window/command-bar.md:401
+#: src/reference/window/command-bar.md:408
 msgid "Grid"
 msgstr ""
 
-#: src/reference/window/command-bar.md:403
+#: src/reference/window/command-bar.md:410
 msgid "Shows or hides the drawing grid on the page."
 msgstr ""
 
-#: src/reference/window/command-bar.md:405
+#: src/reference/window/command-bar.md:412
 msgid "Theme"
 msgstr ""
 
-#: src/reference/window/command-bar.md:407
+#: src/reference/window/command-bar.md:414
 msgid ""
 "Chooses the window's colours. See "
 "[Appearance](../../how-to/application-window.md#appearance)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:409
+#: src/reference/window/command-bar.md:416
 msgid "Density"
 msgstr ""
 
-#: src/reference/window/command-bar.md:411
+#: src/reference/window/command-bar.md:418
 msgid "Chooses how close the window's rows and buttons stand."
 msgstr ""
 
-#: src/reference/window/command-bar.md:413
+#: src/reference/window/command-bar.md:420
 msgid "UI scale"
 msgstr ""
 
-#: src/reference/window/command-bar.md:415
+#: src/reference/window/command-bar.md:422
 msgid "Makes the whole window larger or smaller."
 msgstr ""
 
-#: src/reference/window/command-bar.md:417
+#: src/reference/window/command-bar.md:424
 msgid "Show tips"
 msgstr ""
 
-#: src/reference/window/command-bar.md:419
+#: src/reference/window/command-bar.md:426
 msgid ""
 "Shows or hides the tips the window gives on the canvas and in empty panels."
 msgstr ""
 
-#: src/reference/window/command-bar.md:421
+#: src/reference/window/command-bar.md:428
 msgid "Frame statistics"
 msgstr ""
 
-#: src/reference/window/command-bar.md:423
+#: src/reference/window/command-bar.md:430
 msgid ""
 "Shows how long the window takes to draw each frame, for a report of a slow "
 "window."
@@ -7295,31 +7353,21 @@ msgid ""
 msgstr ""
 
 #: src/reference/window/dialogs.md:65
-msgid "Edit part"
-msgstr ""
-
-#: src/reference/window/dialogs.md:67
-msgid ""
-"The part editor: change the members of the project's copy of a part and save "
-"them. Open it with Edit ▸ Edit part…."
-msgstr ""
-
-#: src/reference/window/dialogs.md:69
 msgid "Print"
 msgstr ""
 
-#: src/reference/window/dialogs.md:71
+#: src/reference/window/dialogs.md:67
 msgid ""
 "The print options beside a preview of the print set; Print… hands the set to "
 "the printer, Open in PDF viewer opens it there. Open it with Output ▸ "
 "Print…. See [Reports and PDF](../../tutorials/reports-and-pdf.md)."
 msgstr ""
 
-#: src/reference/window/dialogs.md:74
+#: src/reference/window/dialogs.md:70
 msgid "Changes on disk"
 msgstr ""
 
-#: src/reference/window/dialogs.md:76
+#: src/reference/window/dialogs.md:72
 msgid ""
 "The project changed on disk while you have unsaved edits to the same fields: "
 "each colliding field with its base, your value and the value on disk. Choose "
@@ -7327,11 +7375,11 @@ msgid ""
 "by itself; File ▸ Check for changes on disk looks again."
 msgstr ""
 
-#: src/reference/window/dialogs.md:80
+#: src/reference/window/dialogs.md:76
 msgid "Upgrade the format"
 msgstr ""
 
-#: src/reference/window/dialogs.md:82
+#: src/reference/window/dialogs.md:78
 msgid ""
 "The first save of a project in an older format: Upgrade and save writes a "
 "backup beside the project, then saves in the current format; Cancel saves "
@@ -7339,44 +7387,44 @@ msgid ""
 "project](../../how-to/upgrade-a-project.md)."
 msgstr ""
 
-#: src/reference/window/dialogs.md:85
+#: src/reference/window/dialogs.md:81
 msgid "Re-import a matched file"
 msgstr ""
 
-#: src/reference/window/dialogs.md:87
+#: src/reference/window/dialogs.md:83
 msgid ""
 "A QElectroTech file that matches an earlier import of this project by its "
 "items: Re-import compares it with that import; Cancel stops. Open it with "
 "Project ▸ Re-import QElectroTech project…."
 msgstr ""
 
-#: src/reference/window/dialogs.md:90
+#: src/reference/window/dialogs.md:86
 msgid "Re-import QElectroTech project"
 msgstr ""
 
-#: src/reference/window/dialogs.md:92
+#: src/reference/window/dialogs.md:88
 msgid ""
 "The re-import card: the records the source added, changed, changed on both "
 "sides and removed, in words. Apply takes them over as one undo step; Cancel "
 "changes nothing. The migration report then lists what needs a decision."
 msgstr ""
 
-#: src/reference/window/dialogs.md:95
+#: src/reference/window/dialogs.md:91
 msgid "Open .ewz"
 msgstr ""
 
-#: src/reference/window/dialogs.md:97
+#: src/reference/window/dialogs.md:93
 msgid ""
 "An `.ewz` archive of a project: Extract and open unpacks it into a new "
 "folder beside it, Open read-only opens it without unpacking. Open it with "
 "File ▸ Import…, which takes a QElectroTech project as well."
 msgstr ""
 
-#: src/reference/window/dialogs.md:100
+#: src/reference/window/dialogs.md:96
 msgid "Import a drawing"
 msgstr ""
 
-#: src/reference/window/dialogs.md:102
+#: src/reference/window/dialogs.md:98
 msgid ""
 "A DXF or DWG drawing, or a PDF, chosen with File ▸ Import…. Add as page "
 "makes the drawing a new graphic page after the last page. Place under page "
@@ -7389,11 +7437,11 @@ msgid ""
 "for it."
 msgstr ""
 
-#: src/reference/window/dialogs.md:109
+#: src/reference/window/dialogs.md:105
 msgid "Import EPLAN data"
 msgstr ""
 
-#: src/reference/window/dialogs.md:111
+#: src/reference/window/dialogs.md:107
 msgid ""
 "An EPLAN part package (`.edz`), a parts XML (`.xml`) or a report spreadsheet "
 "(`.xlsx`, `.csv`), chosen with File ▸ Import…. Before the first EDZ of a "
@@ -7402,7 +7450,7 @@ msgid ""
 "records the file and its SHA-256 on every part."
 msgstr ""
 
-#: src/reference/window/dialogs.md:115
+#: src/reference/window/dialogs.md:111
 msgid ""
 "For parts, the dialog says how many parts the file holds, how many of them "
 "the project has a copy of (matched by part number) and how many of those "
@@ -7413,7 +7461,7 @@ msgid ""
 "it."
 msgstr ""
 
-#: src/reference/window/dialogs.md:120
+#: src/reference/window/dialogs.md:116
 msgid ""
 "For a report, the dialog offers the mappings that fit the file's column "
 "headers: your saved one, and the shipped German and English ones for a "
@@ -7424,22 +7472,22 @@ msgid ""
 "imported as a parts table."
 msgstr ""
 
-#: src/reference/window/dialogs.md:124
+#: src/reference/window/dialogs.md:120
 msgid "Set up merge driver"
 msgstr ""
 
-#: src/reference/window/dialogs.md:126
+#: src/reference/window/dialogs.md:122
 msgid ""
 "Sets up the repository's git configuration so that git merges the project's "
 "files record by record. It asks first and writes nothing on Cancel. Open it "
 "with Project ▸ Set up merge driver."
 msgstr ""
 
-#: src/reference/window/dialogs.md:129
+#: src/reference/window/dialogs.md:125
 msgid "PLC import"
 msgstr ""
 
-#: src/reference/window/dialogs.md:131
+#: src/reference/window/dialogs.md:127
 msgid ""
 "**PLC ▸ Import from PLC software…** asks for an AutomationML file or a TIA "
 "Portal \"PLC Tags\" workbook and shows what it would change in the project's "
@@ -8454,19 +8502,19 @@ msgid ""
 "**Save** writes the symbol and its own function to the library named by "
 "**Library folder** (a `.ewlib` folder; a name without a folder is a library "
 "in your user library folder, and **Choose folder…** picks one). **Make a "
-"part for this symbol…**, in the **Draft** menu, then opens the part editor "
-"on a new part drawn with it: its identity, bus interfaces and PLC data are "
-"typed there ([Make your own PLC or bus part](../how-to/own-parts.md)), and a "
-"device placed from the part is drawn with the symbol. The window remembers "
-"that folder. Its symbols appear under **Draw ▸ Place ▸ Symbol…** (`I`), with "
-"the library name; the page must use the symbol's connection grid. Already "
-"embedded copies stay at their existing version until you explicitly update "
-"them. Repeated placement keeps the authored outline and pins. A new symbol "
-"takes its key from its name (`user.power-block` for **Power block**), and "
-"the key follows the name until you type one. The first save gives the draft "
-"its own identity, and later saves of that draft update the same symbol: "
-"changed content is saved as the next patch version (1.0.1 after 1.0.0), and "
-"a version you type below the library's is refused. The symbol's own function "
+"part for this symbol…**, in the **Draft** menu, then opens Parts on a new "
+"part drawn with it: its identity, network ports and PLC data are typed there "
+"([Make your own parts](../how-to/own-parts.md)), and a device placed from "
+"the part is drawn with the symbol. The window remembers that folder. Its "
+"symbols appear under **Draw ▸ Place ▸ Symbol…** (`I`), with the library "
+"name; the page must use the symbol's connection grid. Already embedded "
+"copies stay at their existing version until you explicitly update them. "
+"Repeated placement keeps the authored outline and pins. A new symbol takes "
+"its key from its name (`user.power-block` for **Power block**), and the key "
+"follows the name until you type one. The first save gives the draft its own "
+"identity, and later saves of that draft update the same symbol: changed "
+"content is saved as the next patch version (1.0.1 after 1.0.0), and a "
+"version you type below the library's is refused. The symbol's own function "
 "keeps its version while it is unchanged. A library that already holds a key "
 "you typed for a different symbol refuses the save: choose another key, or "
 "copy that symbol to change it; a key made from the name takes the next free "
@@ -8502,12 +8550,12 @@ msgid ""
 "where they stand on its box. The editor edits that box on the same screen. "
 "Its ways in are **Device box for a part…** on the start card (every part "
 "drawn as a box, of the project and of the libraries, placed or not, or a new "
-"part), **Pins and box…** in the part editor and under such a part in the "
-"device browser, and **Edit this device's box…** in the menu of a box placed "
-"on a page. A part you cannot change (a starter or sample part) opens as a "
-"copy of your own, and a line over the box says what Save makes: the "
-"project's own copy, which its devices take, or, for a part not yet in the "
-"project, a new part in your own library. The original stays as it is."
+"part), **Pins and box…** in Parts and under such a part in the device "
+"browser, and **Edit this device's box…** in the menu of a box placed on a "
+"page. A part you cannot change (a starter or sample part) opens as a copy of "
+"your own, and a line over the box says what Save makes: the project's own "
+"copy, which its devices take, or, for a part not yet in the project, a new "
+"part in your own library. The original stays as it is."
 msgstr ""
 
 #: src/reference/symbol-editor.md:135
@@ -8515,10 +8563,10 @@ msgid ""
 "**The pin table**, on the left, lists the pins in the order they stand on "
 "the box, each with its name, the potential it carries and its edge. **Add "
 "pin** adds one; a row dragged onto another takes its place there. **Add bus "
-"interface…** opens the part editor on **Bus interfaces** with a new "
-"interface (a PROFIBUS or PROFINET port, say); the box then takes its ports "
-"from its interfaces as every bus device's does. A library's part keeps the "
-"interfaces its library gives it."
+"interface…** opens Parts on **Network ports** with a new interface (a "
+"PROFIBUS or PROFINET port, say); the box then takes its ports from its "
+"interfaces as every bus device's does. A library's part keeps the interfaces "
+"its library gives it."
 msgstr ""
 
 #: src/reference/symbol-editor.md:140
@@ -8537,8 +8585,8 @@ msgid ""
 "<a id=\"a-pin-of-the-box\"></a>**Properties** shows the selected pin's "
 "**Name**, **Potential**, **Edge** and its place **Along the edge**; with no "
 "pin selected the part's number, manufacturer and description (typed here for "
-"a new part; **Part data…** opens the part editor for the rest) and the box's "
-"width and height."
+"a new part; **Part data…** opens the part in Parts for the rest) and the "
+"box's width and height."
 msgstr ""
 
 #: src/reference/symbol-editor.md:149
