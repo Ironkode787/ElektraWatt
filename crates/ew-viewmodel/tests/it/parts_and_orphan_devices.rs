@@ -412,3 +412,21 @@ fn the_first_terminal_of_a_new_strip_from_its_part() {
         "the new terminal carries EW-GEN-TRM-1 ({before} -> {after})"
     );
 }
+
+/// A direct Properties commit of one record says what its command did beside the row, as a card says it before Apply:
+/// -102S1 given the PLC output card's part becomes a module of the one CPU, and the toast says "Attached to … as
+/// module …". It said nothing.
+#[test]
+fn a_direct_commit_says_its_commands_notices() {
+    let tmp = Tmp::new("props-notices");
+    let mut s = writable(&tmp, "101");
+    done(&mut s, "select.set", json!({"refs": ["tag:-102S1"]}));
+    done(
+        &mut s,
+        "props.set",
+        json!({"row": "device/parts", "value": "EW-GEN-DO-1"}),
+    );
+    let toast = common::toast(&s);
+    assert!(toast.starts_with("Attached to -") && toast.contains(" as module "), "{toast}");
+    s.shutdown();
+}

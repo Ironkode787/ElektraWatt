@@ -717,19 +717,32 @@ impl ShellModel {
                 self.props.tag_proposal = None;
                 self.props.choices = None;
                 self.props.popup = None;
+                // The toast: the count of a change of several records, then what the command did beside the row (its
+                // outcome's notices, which a card lists before Apply), each a sentence of its own, with Undo.
+                let mut sentences: Vec<String> = Vec::new();
                 if edit.targets.len() > 1 {
-                    self.notify(
-                        strings::format(
-                            key!("toast-set"),
-                            &[
-                                // Sentence case, as the table's toast.
-                                &strings::in_sentence(&edit.label),
-                                &edit.targets.len().to_string(),
-                                &kind_plural(&edit.kind, edit.targets.len()),
-                            ],
-                        ),
-                        true,
-                    );
+                    sentences.push(strings::format(
+                        key!("toast-set"),
+                        &[
+                            // Sentence case, as the table's toast.
+                            &strings::in_sentence(&edit.label),
+                            &edit.targets.len().to_string(),
+                            &kind_plural(&edit.kind, edit.targets.len()),
+                        ],
+                    ));
+                }
+                sentences.extend(self.tools.commit_notices.iter().map(|n| {
+                    let n = strings::sentence_start(n);
+                    if n.ends_with(['.', '!', '?']) {
+                        n.into_owned()
+                    } else {
+                        format!("{n}.")
+                    }
+                }));
+                if !sentences.is_empty() {
+                    let undo = self.undo_offer();
+                    self.notes
+                        .push(crate::notifications::Note::of("edit", sentences).offering([undo]));
                 }
             }
             Outcome::Failed { message } => {

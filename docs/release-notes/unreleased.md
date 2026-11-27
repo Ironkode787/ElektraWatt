@@ -878,3 +878,6 @@ change here.
 - behaviour-change: a single cable gland dragged near a row of glands placed already floats its outline where its drop
   snaps to, at the row's end, not under the pointer; the row's glands are pitched by the gland their drilled hole takes,
   not by a gland their cable was given since
+- behaviour-change: a change made in Properties to one record says in its toast what the command did beside the row
+  (a module attached to its station, a bus port that keeps its role under its new part), as a change of several
+  records and a card already did; it said nothing
