@@ -26,6 +26,11 @@ what the owner's test of 0.3.5 finds is added here.
 - FT-2255 `ew-commands, ew-viewmodel`: A new accessory or variant row of the part editor that is left empty is refused with the reader's own message ("missing field `qty`") and not in words. A row that lacks a value says which one, as the other forms do.
 - FT-2256 `ew-derive, ew-commands`: A part that names an accessory keeps counting the library's copy after the accessory's part is corrected in the project: the devices that used the library's copy take the project's own copy, a declaration by another part does not. A declared accessory resolves to the project's own copy of that item where the project has made one.
 - FT-2257 `ew-viewmodel`: Next free address is offered only as the quick fix of the finding for an open PROFIBUS port. A person looks for it at the Address row of the port: the row's menu offers it, for every bus whose part gives an address range.
+- FT-2330 `ew-viewmodel, ew-ui`: A hole on a surface is moved by typing its X and Y in Properties; Select does not drag it, and a gland dragged from Unplaced shows nothing under the pointer until it is dropped.
+- FT-2331 `ew-commands`: `bond.create` takes a wire as the bond's conductor that does not run between the bond's two ends; the wire then drops out of the wiring and the wires around it form anew. Such a bond is refused in words that name the two points the wire does join.
+- FT-2332 `ew-api, ew-viewmodel`: A wire selected with its every stretch is headed by its number and its ends, and its Length and Way read as the wire's; the rows under them still speak of the stretches ("Connections (3)", a Wire number that "varies"). The sheet of a wire reads as one wire throughout.
+- FT-2333 `ew-derive`: A wire's length is a member of the one wire record set, so every edit of a layout builds every wire record again (not measured). The length as a query of its own per wire, which the lists, Properties and the checks read.
+- FT-2334 `ew-api, ew-viewmodel`: In Properties the older phrases that say how a value is had (beside a derived value) are English in the Dutch window; the newer ones are texts with arguments. All of them are.
 
 #### The page's drawing
 
