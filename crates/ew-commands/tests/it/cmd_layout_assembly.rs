@@ -120,6 +120,9 @@ struct Spec {
     many: u32,
     /// Whether the enclosure part gives its depth.
     depth: bool,
+    /// Whether the enclosure part lists two doors, the left hinged left and the right hinged right (else none: one
+    /// door over the whole front).
+    two_doors: bool,
 }
 
 const FULL: Spec = Spec {
@@ -127,6 +130,7 @@ const FULL: Spec = Spec {
     enclosure_copies: true,
     many: 0,
     depth: true,
+    two_doors: false,
 };
 
 fn model(spec: &Spec) -> Model {
@@ -226,6 +230,17 @@ fn model(spec: &Spec) -> Model {
             && let Some(sec) = &mut enclosure.item.sections.enclosure
         {
             sec.depth = None;
+        }
+        if spec.two_doors
+            && let Some(sec) = &mut enclosure.item.sections.enclosure
+        {
+            sec.doors = [ew_schema::Hinge::Left, ew_schema::Hinge::Right]
+                .map(|hinge| ew_schema::DoorSpec {
+                    hinge,
+                    width: None,
+                    extra: Default::default(),
+                })
+                .to_vec();
         }
         lib.extend([enclosure, plate_copy()].map(LibDocument::Part));
     }
@@ -737,6 +752,7 @@ fn an_enclosure_from_its_part() {
         enclosure_copies: false,
         many: 0,
         depth: true,
+        two_doors: false,
     }));
     let before = lines(e.model());
     let cursor = e.history().cursor();
@@ -816,6 +832,7 @@ fn create_from_part_refusals_and_reuse() {
         enclosure_copies: false,
         many: 0,
         depth: true,
+        two_doors: false,
     }));
     let no_section = CreateEnclosureFromPart {
         part: copy_id(ITEM_MCB),
@@ -1286,4 +1303,29 @@ fn a_surface_is_made_from_the_part_and_refused_in_words() {
     assert_eq!(get(&f.e, door).unwrap().datum, Some(ew_schema::Corner::TopLeft));
     f.e.execute(&edit(None)).unwrap();
     assert_eq!(get(&f.e, door).unwrap().datum, None);
+}
+
+/// Of two doors each is made once (doc 12 §2.8): door `i` is the record at its left edge, so the left door asked for
+/// twice is refused as made, and the right door is still made, at the middle of the 750 mm front and hinged as the part
+/// lists it.
+#[test]
+fn of_two_doors_each_is_made_once() {
+    let mut f = fx_with(&Spec {
+        two_doors: true,
+        ..FULL
+    });
+    let left: Id<MountingSurface> = made(f.e.execute(&face(f.enclosure, FaceParam::Door, Some(0))).unwrap());
+    assert_eq!(get(&f.e, left).unwrap().hinge, Some(ew_schema::Hinge::Left));
+    assert_eq!(
+        reason(f.e.execute(&face(f.enclosure, FaceParam::Door, Some(0)))),
+        "-UC1 left door is made already"
+    );
+    let right: Id<MountingSurface> = made(f.e.execute(&face(f.enclosure, FaceParam::Door, Some(1))).unwrap());
+    let r = get(&f.e, right).unwrap();
+    assert_eq!(r.frame.t[0], Nm(375 * MM));
+    assert_eq!(r.hinge, Some(ew_schema::Hinge::Right));
+    assert_eq!(
+        reason(f.e.execute(&face(f.enclosure, FaceParam::Door, Some(1)))),
+        "-UC1 right door is made already"
+    );
 }

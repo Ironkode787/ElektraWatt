@@ -91,7 +91,8 @@ pub use snap::{
     end_gap, free_length, min_gap, next_fit, resolve, runs, start_gap,
 };
 pub use surfaces::{
-    Face, behind_door, door_count, door_index, enclosure_section, face_of, face_size, from_datum, sheet_size,
+    Face, behind_door, door_count, door_hinge, door_index, door_left, enclosure_section, face_of, face_size, from_datum,
+    sheet_size,
     surface_datum, surface_frame, surface_page, surfaces, to_enclosure,
 };
 pub use template::{

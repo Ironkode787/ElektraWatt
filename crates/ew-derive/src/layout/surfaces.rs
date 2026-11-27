@@ -86,9 +86,15 @@ fn door_span(section: &EnclosureSection, i: usize) -> Option<(Nm, Nm)> {
     Some((left, width(i)))
 }
 
+/// Door `i`'s left edge in the enclosure (`x`), where its record's frame stands ([`surface_frame`]); zero where the part
+/// gives no width. A door record is door `i` when its frame stands there.
+pub fn door_left(section: &EnclosureSection, i: usize) -> Nm {
+    door_span(section, i).map_or(Nm::ZERO, |(l, _)| l)
+}
+
 /// A door's hinge as the part gives it: the door's own, else one door on the left; of two, the left on the left and the
-/// right on the right.
-fn door_hinge(section: &EnclosureSection, i: usize) -> Hinge {
+/// right on the right. What `surfaces` offers and `layout.surface.add` stores.
+pub fn door_hinge(section: &EnclosureSection, i: usize) -> Hinge {
     match section.doors.get(i) {
         Some(d) => d.hinge.clone(),
         None if i > 0 && i + 1 == door_count(section) => Hinge::Right,
@@ -126,7 +132,7 @@ pub fn surface_frame(
     let quat = |w, x, y| Quat9::new(w, x, y, 0).ok();
     let (t, q) = match kind {
         SurfaceKind::Door => {
-            let left = door_span(section, door.unwrap_or(0)).map_or(Nm::ZERO, |(l, _)| l);
+            let left = door_left(section, door.unwrap_or(0));
             ([left, Nm::ZERO, depth], Quat9::IDENTITY)
         }
         SurfaceKind::Left => ([Nm::ZERO; 3], quat(HALF_SQRT2, 0, -HALF_SQRT2)?),

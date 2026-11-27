@@ -2387,8 +2387,16 @@ impl Command for AddSurface {
             .filter(|s| s.enclosure == self.enclosure && s.kind == kind)
             .map(|s| (*s).clone())
             .collect();
-        // One record per face; of the doors, one per door the part lists.
-        if made.len() >= door.map_or(1, |_| doors) {
+        // One record per face; of the doors, one per door the part lists: door `i` is the record whose frame stands at
+        // its left edge, and no more door records than the part lists doors.
+        let made: Vec<MountingSurface> = match door {
+            Some(i) if made.len() < doors => {
+                let left = ew_derive::layout::door_left(&section, i);
+                made.into_iter().filter(|s| s.frame.t[0] == left).collect()
+            }
+            _ => made,
+        };
+        if !made.is_empty() {
             let word = ew_derive::text::surface_of(tag.clone(), &kind, door, doors);
             let page = {
                 let q = Q::new(tx.base_model());
@@ -2423,16 +2431,7 @@ impl Command for AddSurface {
             let word = ew_derive::text::surface_word(&kind, door, doors);
             return tx.reject(text!("refusal-layout-surface-no-size", tag, word));
         };
-        let hinge = door.map(|i| {
-            section.doors.get(i).map_or(
-                if i > 0 && i + 1 == doors {
-                    ew_schema::Hinge::Right
-                } else {
-                    ew_schema::Hinge::Left
-                },
-                |d| d.hinge.clone(),
-            )
-        });
+        let hinge = door.map(|i| ew_derive::layout::door_hinge(&section, i));
         let id: Id<MountingSurface> = tx.mint();
         tx.insert(MountingSurface {
             id,
