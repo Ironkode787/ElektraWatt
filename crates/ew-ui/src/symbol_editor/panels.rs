@@ -304,8 +304,10 @@ fn sheet_row(ui: &mut Ui, r: &SheetRow, label_w: f32, owner: &str) -> Option<Val
                 let mut chosen = value.clone();
                 crate::components::choice(
                     ui,
+                    // A long choice is cut at the field's width rather than widening the pane under every row.
                     egui::ComboBox::from_id_salt(("sheet", r.key))
                         .selected_text(shown)
+                        .truncate()
                         .width(width)
                         .height(t.size_chooser_rows as f32 * 1.5 * t.size_row),
                     |ui| {
