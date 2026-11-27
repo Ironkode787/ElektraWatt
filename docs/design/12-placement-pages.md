@@ -385,8 +385,10 @@ snap_on_rail(rail, device, cursor, mode):
   before the run and one after each strip, each attributed to the strip it follows (the first to the run's first
   strip), so k abutting strips need k + 1. A strip's end bracket is, first match wins: its own choice
   (`Device.accessory_choices`), an end bracket it holds as a part use (a project made before), the `rail_group`
-  accessory of the first of its terminals whose part names one ([07](07-symbols-parts-macros.md) §2.5); a strip
-  without one has no brackets and declares no width to the rail. A strip on no rail is a run of its own and takes two,
+  accessory of the first of its terminals whose part names one ([07](07-symbols-parts-macros.md) §2.5). An end plate
+  and an end bracket a declaration names are the project's own copy of that item where the project has corrected it
+  ([07](07-concepts.md) "Accessories"): the strip is as long and its brackets as wide as that copy, on every panel
+  page that shows it. A strip without one has no brackets and declares no width to the rail. A strip on no rail is a run of its own and takes two,
   so the parts list and the assembly list count brackets before a layout is drawn. On the sample, -X1011, -X1021 and
   -X1031 stand on their rails between other devices: two brackets each, six in the parts list. Bridges are no
   accessory of a terminal: their parts are on their `BridgeSpec` connections ([08](08-connections-terminals-cables.md)

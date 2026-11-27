@@ -198,6 +198,60 @@ fn a_strip_takes_its_end_plate_once_after_the_last_terminal_that_names_it() {
     );
 }
 
+/// A declared accessory counts the project's own copy of its item where the project has made one (the end plate and
+/// the end bracket corrected in the project: `meta.source.fork_of` names the library's item): the strip's end plate,
+/// its end brackets and their width are the corrected parts', while a choice stays keyed by the declared copy.
+#[test]
+fn a_declared_accessory_counts_the_projects_own_copy_of_its_item() {
+    const OWN: u128 = 0x7100; // the project's own copies
+    let own = |n: u128| ew_ids::v5::lib_copy_id::<Part>(Uuid::from_u128(OWN), Uuid::from_u128(n));
+    let mut fx = base();
+    for (n, of, width) in [(0x1e1, EP, 4), (0x1e2, EB, 12)] {
+        fx.lib(json!({
+            "$k": "part", "id": own(n).to_string(), "library_id": uid(OWN), "item_id": uid(n),
+            "version": "1.0.0", "sha256": common::sha((n % 251) as u8),
+            "kind": if of == EB { "end_bracket" } else { "accessory" }, "part_number": format!("OWN{n:x}"),
+            "manufacturer": {"library": uid(LIBRARY), "item": uid(0x9000), "version_req": "^1"},
+            "mech": {"width": width * MM, "height": 45 * MM, "mount_kind": "ts35x7_5"},
+            "meta": {"source": {"fork_of": {"library": uid(LIBRARY), "item": uid(of), "version": "1.0.0"}}},
+        }));
+    }
+    strip(&mut fx, 0xa0, 1, &[(0xa1, T_A)], json!({}));
+    strip(
+        &mut fx,
+        0xb0,
+        2,
+        &[(0xb1, T_A)],
+        json!({"accessory_choices": [{"of": copy(EP).to_string()}]}),
+    );
+    let model = fx.build();
+    let q = Q::new(&model);
+    let parts: Vec<Id<Part>> = accessories(&q, 0xa0).into_iter().map(|a| a.0).collect();
+    assert_eq!(parts, [own(0x1e1), own(0x1e2)]);
+    let strip_a = q.devices().get(common::id(0xa0)).cloned().unwrap();
+    let bracket = strip_bracket(&q, &strip_a).expect("the declared bracket");
+    assert_eq!(
+        (bracket.part.copy, bracket.width),
+        (own(0x1e2), i128::from(12 * MM))
+    );
+    // The parts list counts the corrected copies, and the end plate stands in the strip at its corrected width.
+    let lines: Vec<Id<Part>> = q
+        .get::<DevicePartLines>(common::id(0xa0))
+        .iter()
+        .map(|l| l.part)
+        .collect();
+    assert_eq!(lines, [own(0x1e1), own(0x1e2)]);
+    let plate = q
+        .get::<StripLayout>(common::id(0xa0))
+        .iter()
+        .find(|i| matches!(i.kind, StripItemKind::Accessory(_)))
+        .and_then(|i| i.width);
+    assert_eq!(plate, Some(i128::from(4 * MM)));
+    // The choice that takes the end plate off is keyed by the declared copy, as before.
+    let parts: Vec<Id<Part>> = accessories(&q, 0xb0).into_iter().map(|a| a.0).collect();
+    assert_eq!(parts, [own(0x1e2)]);
+}
+
 /// Two abutting strips on a rail take three end brackets (k + 1), each strip's footprint holds its end plate, and
 /// a strip that holds an end bracket as a part use keeps its count on that line and asks its terminals for none.
 #[test]

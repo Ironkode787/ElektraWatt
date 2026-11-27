@@ -735,3 +735,7 @@ change here.
 - behaviour-change: the contents list of a part's sheet offers the groups a part of its kind may have and does not
   show (+ Network ports, + PLC for a device made without them); one added shows, empty
 - api-add: `parts.row` takes `group` (`ports`, `plc`), a group the contents list offers
+- behaviour-change: an end plate, an end bracket or any accessory a part names that the project has corrected (a
+  part of a library of your own changed in the project) is counted as the corrected part: the parts list, the
+  assembly list, the checks and the strips on the panel pages read it, so an existing project with such a part now
+  counts it and draws its strips as long as the corrected plate and bracket make them; the library's part was counted

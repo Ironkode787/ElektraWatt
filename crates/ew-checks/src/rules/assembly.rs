@@ -5,7 +5,7 @@
 //! EW-MFG-021, a bridge without a part.
 
 use ew_derive::layout::{StripItemKind, StripLayout};
-use ew_derive::{Q, accessory_copy, bridge_groups};
+use ew_derive::{Q, accessory_part, bridge_groups};
 use ew_schema::{AccessoryKind, AccessoryPer, Kind};
 
 use crate::finding::{Finding, QuickFix, Severity, Target};
@@ -97,7 +97,7 @@ impl Rule for NoEndPlate {
         let declared = terminals.iter().flat_map(|t| t.parts.iter()).find_map(|u| {
             parts.get(u.part.copy)?.item.accessories.iter().find_map(|a| {
                 (a.per == AccessoryPer::Strip && a.kind == Some(AccessoryKind::EndPlate))
-                    .then(|| accessory_copy(a))
+                    .then(|| accessory_part(q, a))
                     .filter(|copy| parts.contains(*copy))
             })
         });

@@ -498,7 +498,10 @@ plate, Marker carrier, Cover): the assembly list prints it and the check finds t
 an accessory a person may take that the part does not need; no list counts it until he takes it. A part of kind wire,
 ferrule or marker is never an accessory: the consumables count it ([13](13-manufacturing-outputs.md) §3.6), and its
 row under Goes with it refuses it in words. The accessory is a library reference, so embedding a part embeds its accessories
-(its closure, §3.1).
+(its closure, §3.1). A declaration counts the project's own copy of the item it names where the project has corrected
+that item (a fork, §3.1, whose `meta.source.fork_of` names that library and item; the first in copy ID order), else
+the copy it names: the parts list, the assembly list, the checks and the strip on its rail (its length and its end
+brackets' width) all count through that one resolver (`ew_derive::accessory_part`).
 
 Two hands write it, the second above the first: the part (its sheet's Goes with it, §5.4); and, for one device,
 that device's choice, `Device.accessory_choices: Vec<AccessoryChoice{of: Id<Part>, part?: PartRef}>` (a cable's gland is no accessory: it follows from the cable's diameter and the stock, and a cable's own choice of gland is `Device.gland`, [12](12-placement-pages.md) §3.9). A choice names the accessory

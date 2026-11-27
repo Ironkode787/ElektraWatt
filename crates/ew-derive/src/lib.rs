@@ -119,7 +119,7 @@ mod xref_format;
 
 pub use accessories::{
     BracketFrom, DeclaredBracket, DerivedAccessory, PartAccessories, StripBracket, accessory_copy,
-    carrier_accessories, placed_brackets, strip_accessories, strip_bracket,
+    accessory_part, carrier_accessories, placed_brackets, strip_accessories, strip_bracket,
 };
 pub use assembly::{
     AssemblyBreakMarks, BreakSide, assembly_members, device_descendants, order_code_part, order_code_text,

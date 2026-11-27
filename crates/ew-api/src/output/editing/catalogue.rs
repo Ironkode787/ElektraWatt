@@ -812,7 +812,7 @@ fn catalogue_part(
                     .unwrap_or_default(),
                 number: q
                     .parts()
-                    .get(ew_derive::accessory_copy(a))
+                    .get(ew_derive::accessory_part(q, a))
                     .map(|c| c.item.part_number.as_str().to_owned())
                     .unwrap_or_default(),
                 qty: a.qty.to_string(),

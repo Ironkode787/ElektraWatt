@@ -10,7 +10,8 @@
 //! counted per rail group by `group_accessories`, two on no rail). The parts list, the strip's length on its rail
 //! (`strip_layout`), the end brackets of the layout and the checks read it and nothing else.
 //!
-//! An accessory whose copy the project does not hold is left out (a reference that names nothing, doc 05 §13.2), as
+//! A declaration counts the project's own copy of the item it names where the project has corrected that item
+//! ([`accessory_part`]). An accessory whose copy the project does not hold is left out (a reference that names nothing, doc 05 §13.2), as
 //! a part line whose copy is missing is.
 
 use std::collections::BTreeSet;
@@ -30,7 +31,7 @@ use crate::query::{Policy, Query};
 /// One accessory of a device ([`PartAccessories`]).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DerivedAccessory {
-    /// The part counted: the choice's part, else the accessory copy the declaration names.
+    /// The part counted: the choice's part, else the part the declaration counts ([`accessory_part`]).
     pub part: PartRef,
     /// The accessory copy the declaration names (what a choice is keyed by).
     pub of: Id<Part>,
@@ -52,14 +53,34 @@ pub fn accessory_copy(a: &PartAccessory) -> Id<Part> {
     ew_ids::v5::lib_copy_id(a.part.library.as_uuid(), a.part.item.as_uuid())
 }
 
-/// What `choices` make of the declared accessory `a`: the part counted, or `None` when it is not taken (a choice
-/// without a part, or an optional accessory nobody took).
-fn taken(choices: &[AccessoryChoice], a: &PartAccessory) -> Option<PartRef> {
+/// The part a declared accessory counts: the project's own copy of the item the declaration names where the project
+/// has made one (a part corrected in the project, whose `meta.source.fork_of` names that library and item; the first
+/// in copy ID order), else the copy the declaration names ([`accessory_copy`]). The one resolver of a declaration:
+/// the parts list, the consumables, a strip's length and end brackets and the checks count through it, while a choice
+/// stays keyed by the declared copy.
+pub fn accessory_part(q: &Q, a: &PartAccessory) -> Id<Part> {
+    let (library, item) = (
+        a.part.library.as_uuid().to_string(),
+        a.part.item.as_uuid().to_string(),
+    );
+    q.parts()
+        .iter()
+        .find(|(_, c)| {
+            let fork = c.item.meta.extra.get("source").and_then(|s| s.get("fork_of"));
+            let named = |k: &str| fork.and_then(|f| f.get(k)).and_then(serde_json::Value::as_str);
+            named("library") == Some(library.as_str()) && named("item") == Some(item.as_str())
+        })
+        .map_or_else(|| accessory_copy(a), |(id, _)| id)
+}
+
+/// What `choices` make of the declared accessory `a`: the part counted ([`accessory_part`] where no choice names
+/// one), or `None` when it is not taken (a choice without a part, or an optional accessory nobody took).
+fn taken(q: &Q, choices: &[AccessoryChoice], a: &PartAccessory) -> Option<PartRef> {
     let of = accessory_copy(a);
     match choices.iter().find(|c| c.of == of) {
         Some(c) => c.part.clone(),
         None if a.optional => None,
-        None => Some(PartRef::new(of)),
+        None => Some(PartRef::new(accessory_part(q, a))),
     }
 }
 
@@ -79,7 +100,7 @@ fn unit_accessories(
         .iter()
         .filter(|a| a.per == AccessoryPer::Unit)
         .filter_map(|a| {
-            let counted = taken(choices, a)?;
+            let counted = taken(q, choices, a)?;
             parts.get(counted.copy)?;
             Some(DerivedAccessory {
                 part: counted,
@@ -145,7 +166,7 @@ pub fn strip_accessories(q: &Q, strip: &Device) -> Vec<DerivedAccessory> {
                     }
                     None => vec![u.part.copy],
                 };
-                let Some(counted) = taken(&strip.accessory_choices, a) else {
+                let Some(counted) = taken(q, &strip.accessory_choices, a) else {
                     continue;
                 };
                 if parts.get(counted.copy).is_none() {
@@ -208,7 +229,7 @@ pub struct DeclaredBracket {
 /// `strip_bracket(strip)`: the end bracket of a strip (doc 12 §3.4), first match wins: the strip's choice of the
 /// bracket its terminals declare (a choice without a part: no bracket), an end bracket it holds as a part use (a
 /// project made before accessories), the `rail_group` accessory of the first of its terminals (in strip order) whose
-/// part names one. `None` for a strip without one, which then has no brackets and declares no width to its rail, and for
+/// part names one, as the part that declaration counts ([`accessory_part`]). `None` for a strip without one, which then has no brackets and declares no width to its rail, and for
 /// a device that is not a strip.
 pub fn strip_bracket(q: &Q, strip: &Device) -> Option<StripBracket> {
     strip.aspects.strip.as_ref()?;
@@ -268,10 +289,11 @@ pub fn strip_bracket(q: &Q, strip: &Device) -> Option<StripBracket> {
         return None;
     }
     let of = accessory_copy(&a);
-    parts.get(of)?;
+    let counted = accessory_part(q, &a);
+    parts.get(counted)?;
     Some(StripBracket {
-        part: PartRef::new(of),
-        width: width(of),
+        part: PartRef::new(counted),
+        width: width(counted),
         from: BracketFrom::Declared,
         declared: Some(DeclaredBracket {
             of,
