@@ -15,7 +15,10 @@ use serde_json::json;
 
 /// The open part's number and the field it was opened at.
 fn opened_at(s: &ShellModel) -> (String, Option<&'static str>) {
-    let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("Parts on a part");
+    let open = s
+        .parts_place()
+        .and_then(|p| p.sheet.as_ref())
+        .expect("Parts on a part");
     (open.sheet.text("part_number").to_owned(), open.field)
 }
 
@@ -53,7 +56,9 @@ fn a_finding_about_his_lamp_without_holes_opens_parts_at_the_holes() {
     let place = s.parts_place().expect("Parts");
     assert!(matches!(place.origin, Origin::Finding { .. }));
     assert!(
-        place.strip().is_some_and(|t| t.starts_with("Opened from a finding on page 904")),
+        place
+            .strip()
+            .is_some_and(|t| t.starts_with("Opened from a finding on page 904")),
         "{:?}",
         place.strip()
     );
@@ -126,7 +131,11 @@ fn a_refusal_for_his_cabinet_without_a_depth_opens_parts_at_depth() {
         |s| s.dispatch("layout.surface_page", &json!({"surface": bottom})),
         |_| false,
     );
-    assert_ne!(out, ew_viewmodel::shell::Outcome::Done, "a bottom without a depth");
+    assert_ne!(
+        out,
+        ew_viewmodel::shell::Outcome::Done,
+        "a bottom without a depth"
+    );
     let toast = s.toast().cloned().expect("the refusal's toast");
     assert_eq!(toast.actions(), ["edit_part"]);
     assert_eq!(toast.label("edit_part"), "Edit part\u{2026}");

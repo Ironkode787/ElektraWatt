@@ -120,7 +120,11 @@ impl CmdError {
     }
 
     /// A refusal by a command for a part's missing datum `lack`: its English text is `text`'s.
-    pub fn lacking(source: impl Into<String>, text: Text, lack: ew_derive::part_fields::PartLack) -> CmdError {
+    pub fn lacking(
+        source: impl Into<String>,
+        text: Text,
+        lack: ew_derive::part_fields::PartLack,
+    ) -> CmdError {
         CmdError::Rejected {
             source: source.into(),
             text: Box::new(text),

@@ -194,7 +194,9 @@ impl PartsPlace {
         }
         match &self.origin {
             Origin::Project | Origin::Station | Origin::Browser => None,
-            Origin::Finding { page: Some(page) } => Some(strings::format(key!("parts-strip-finding-page"), &[page])),
+            Origin::Finding { page: Some(page) } => {
+                Some(strings::format(key!("parts-strip-finding-page"), &[page]))
+            }
             Origin::Finding { page: None } => Some(strings::text(key!("parts-strip-finding")).to_owned()),
             Origin::Chooser(c) => Some(strings::format(key!("parts-strip-choosing"), &[&c.target_text])),
             Origin::Form(f) => Some(strings::format(

@@ -408,7 +408,10 @@ impl Rule for CableGland {
                             .get(g.cable)
                             .and_then(|d| ew_derive::layout::cable_part_use(q, d))
                             .and_then(|part| {
-                                let copy = q.table::<ew_schema::LibCopy<ew_schema::Part>>().get(part.copy).cloned()?;
+                                let copy = q
+                                    .table::<ew_schema::LibCopy<ew_schema::Part>>()
+                                    .get(part.copy)
+                                    .cloned()?;
                                 PartLack::of(part.copy, &copy.item, PartFeature::GlandChoice)
                             });
                         out.push(base("no_diameter", "no_diameter".to_owned()).lacking(lack));
