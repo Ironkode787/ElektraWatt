@@ -1158,11 +1158,13 @@ impl Session {
             crate::parts::Lives::OnlyHere | crate::parts::Lives::New => {}
         }
         let (mut part, copies) = self.draft_part(draft)?;
-        // A project-local part of the person's own takes its forms' sections too; any part its pins and device box.
+        // A project-local part of the person's own takes its forms' sections too; any part its pins, its device box and
+        // its pieces.
         if draft.own && !draft.fork {
             part = self.sectioned_item(draft)?;
         } else {
             self.apply_pins(draft, &mut part)?;
+            self.apply_pieces(draft, &mut part)?;
         }
         if part == draft.original {
             return Err(PartDraftError::Refused(key!("reason-part-unchanged")));

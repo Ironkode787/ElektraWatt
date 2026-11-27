@@ -117,18 +117,26 @@ fn names(p: &Part, cps: &[u16]) -> String {
 
 /// The pieces part `p` is drawn as: each entry of its template but a box's, by its function's key.
 pub(crate) fn pieces_of(p: &Part) -> Vec<PieceRow> {
+    piece_entries(p).into_iter().map(|(row, _)| row).collect()
+}
+
+/// The pieces of part `p`, each with the template entry it is.
+fn piece_entries(p: &Part) -> Vec<(PieceRow, &TemplateFn)> {
     p.function_template
         .iter()
         .filter_map(|t| {
             let key = t.fndef.extra.get("key").and_then(|v| v.as_str())?;
-            (key != ew_schema::starter::FN_BLACKBOX).then(|| PieceRow {
-                what: key.to_owned(),
-                pins: names(p, &t.cps),
-                symbol: t
-                    .symbol
-                    .as_ref()
-                    .map(|s| format!("library:{}:{}", s.library.as_uuid(), s.item.as_uuid()))
-                    .unwrap_or_default(),
+            (key != ew_schema::starter::FN_BLACKBOX).then(|| {
+                let row = PieceRow {
+                    what: key.to_owned(),
+                    pins: names(p, &t.cps),
+                    symbol: t
+                        .symbol
+                        .as_ref()
+                        .map(|s| format!("library:{}:{}", s.library.as_uuid(), s.item.as_uuid()))
+                        .unwrap_or_default(),
+                };
+                (row, t)
             })
         })
         .collect()
@@ -433,11 +441,26 @@ impl Session {
                 p.category = Some(def.item.category.clone());
             }
         } else if draft.drawn_as_pieces() && draft.pieces != pieces_of(&draft.original) {
+            // A piece as it was keeps its entry; one whose symbol is as it was keeps that symbol (also one only the
+            // project holds, which no library resolves): nothing of a part is lost by changing another piece.
+            let before = piece_entries(&draft.original);
             let mut template = Vec::new();
             for (i, row) in draft.pieces.iter().enumerate() {
                 if row.what.is_empty() {
                     continue;
                 }
+                let was = before.get(i);
+                if let Some((_, t)) = was.filter(|(r, _)| r == row) {
+                    template.push(TemplateFn {
+                        main: template.is_empty(),
+                        ..(*t).clone()
+                    });
+                    continue;
+                }
+                let symbol = match was {
+                    Some((r, t)) if r.symbol == row.symbol => t.symbol.clone(),
+                    _ => self.library_symbol_ref(&row.symbol),
+                };
                 let def = crate::output::starter_fndef_by_key(&row.what).ok_or_else(|| {
                     PartDraftError::Field(message(
                         &format!("pieces[{i}].what"),
@@ -449,7 +472,7 @@ impl Session {
                     fndef: crate::part_new::fndef_ref(def),
                     main: template.is_empty(),
                     cps: split(&row.pins).filter_map(|n| idx_of(p, n)).collect(),
-                    symbol: self.library_symbol_ref(&row.symbol),
+                    symbol,
                     extra: Default::default(),
                 });
             }
