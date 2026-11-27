@@ -84,7 +84,8 @@ fn a_tutorial_project_starts_with_the_starter_stock_not_the_one_kept_here() {
         "help.tutorials",
         json!({"tutorial": "first-page", "dir": dir.to_string_lossy()}),
     );
-    let (tutorial, _) = ew_viewmodel::ew_api::Session::open_read_only(&dir, "0.0.0-test").expect("the tutorial");
+    let (tutorial, _) =
+        ew_viewmodel::ew_api::Session::open_read_only(&dir, "0.0.0-test").expect("the tutorial");
     assert_eq!(tutorial.stock().len(), generic.len());
     s.shutdown();
 }

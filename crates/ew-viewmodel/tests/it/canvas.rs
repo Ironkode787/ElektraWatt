@@ -719,7 +719,12 @@ fn the_status_bar_says_nothing_of_the_page_while_parts_is_shown() {
     let page_fields = |shell: &ShellModel| {
         bar(shell, false)
             .into_iter()
-            .filter(|f| matches!(f.kind, StatusKind::Grid | StatusKind::Zoom | StatusKind::Selection | StatusKind::Cursor))
+            .filter(|f| {
+                matches!(
+                    f.kind,
+                    StatusKind::Grid | StatusKind::Zoom | StatusKind::Selection | StatusKind::Cursor
+                )
+            })
             .count()
     };
     assert!(page_fields(&shell) > 0, "the page's grid and zoom");

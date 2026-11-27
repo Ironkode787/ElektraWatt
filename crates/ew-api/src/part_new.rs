@@ -513,7 +513,9 @@ impl Session {
         &mut self,
         draft: &PartSheet,
     ) -> Result<Option<crate::library_ops::UpdatePlan>, PartDraftError> {
-        self.own_parts_update(&[draft]).map(|(_, plan)| plan).map_err(|(_, e)| e)
+        self.own_parts_update(&[draft])
+            .map(|(_, plan)| plan)
+            .map_err(|(_, e)| e)
     }
 
     /// The part number of part `item` when My parts, the person's own writable library, is `library` and holds it:

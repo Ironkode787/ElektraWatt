@@ -172,9 +172,11 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         Dialog::ConfirmJournalDiscard => journal_discard_spec(),
         Dialog::ConfirmPurge { files, .. } => purge_spec(files),
         Dialog::ConfirmRemovePart { number } => remove_part_spec(number),
-        Dialog::ConfirmLeavePart { number, next } => {
-            leave_part_spec(number, next.as_ref(), model.many_sheet().is_some_and(|m| m.changed))
-        }
+        Dialog::ConfirmLeavePart { number, next } => leave_part_spec(
+            number,
+            next.as_ref(),
+            model.many_sheet().is_some_and(|m| m.changed),
+        ),
         Dialog::ConfirmReplaceDxf { dir, folder, files } => replace_dxf_spec(dir, folder, *files),
         // Choose (Enter, the active row) and Cancel; the list and the filters are the dialog's.
         // An empty search is said once, in the list (not here); Choose is disabled while the list is

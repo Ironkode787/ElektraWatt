@@ -115,9 +115,7 @@ fn the_entry_prompts_and_save_writes_the_set_into_my_parts() {
     assert!(h.state().shell().import_set().is_none(), "saved");
     assert_eq!(
         toast(&h),
-        Some(format!(
-            "parts.csv saved to My parts: {new} new, 0 changed."
-        ))
+        Some(format!("parts.csv saved to My parts: {new} new, 0 changed."))
     );
     assert!(!h.state().shell().can_undo(), "nothing went into the project");
     h.state_mut().shell_mut().shutdown();

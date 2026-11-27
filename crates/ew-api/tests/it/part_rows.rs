@@ -713,7 +713,11 @@ fn technical_data_stands_where_the_kind_names_a_value_or_the_part_holds_one() {
         .part_draft(copy_of(&s, "EW-GEN-FER-1.5"))
         .expect("the ferrule's draft");
     assert!(ferrule.tech_rows().is_empty(), "{:?}", ferrule.tech_rows());
-    assert!(!ferrule.sections().contains(&ew_api::part_fields::Group::Technical));
+    assert!(
+        !ferrule
+            .sections()
+            .contains(&ew_api::part_fields::Group::Technical)
+    );
     let terminal = s
         .part_draft(copy_of(&s, "EW-GEN-TRM-1"))
         .expect("the terminal's draft");
@@ -722,5 +726,9 @@ fn technical_data_stands_where_the_kind_names_a_value_or_the_part_holds_one() {
         "{:?}",
         terminal.tech_rows()
     );
-    assert!(terminal.sections().contains(&ew_api::part_fields::Group::Technical));
+    assert!(
+        terminal
+            .sections()
+            .contains(&ew_api::part_fields::Group::Technical)
+    );
 }

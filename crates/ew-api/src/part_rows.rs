@@ -320,7 +320,12 @@ impl PartSheet {
         named
             .iter()
             .map(|k| ((*k).to_owned(), self.text(&format!("tech:{k}")).to_owned()))
-            .chain(self.tech.iter().filter(|(k, _)| !named.contains(&k.as_str())).cloned())
+            .chain(
+                self.tech
+                    .iter()
+                    .filter(|(k, _)| !named.contains(&k.as_str()))
+                    .cloned(),
+            )
             .filter(|(k, _)| !(cable && k == "outer_diameter"))
             .collect()
     }

@@ -30,8 +30,11 @@ pub(super) fn middle(ui: &mut Ui, many: &ManySheet, width: f32, events: &mut Vec
             .show(ui, |ui| {
                 let count = many.sheets.len().to_string();
                 ui.label(
-                    RichText::new(strings::format_count(ew_viewmodel::count_key!("parts-many-title"), many.sheets.len()))
-                        .font(theme::font(&t.type_title)),
+                    RichText::new(strings::format_count(
+                        ew_viewmodel::count_key!("parts-many-title"),
+                        many.sheets.len(),
+                    ))
+                    .font(theme::font(&t.type_title)),
                 );
                 let numbers: Vec<String> = many.numbers().into_iter().map(|(n, _)| n).collect();
                 ui.label(components::body_secondary(&t, numbers.join(" \u{b7} ")));

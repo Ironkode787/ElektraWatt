@@ -370,10 +370,9 @@ impl ShellModel {
             self.parts.as_deref().and_then(|p| p.sheet.as_ref()),
         ) {
             (Some(m), _) => (m.parts.clone(), m.changed),
-            (None, Some(open)) if !open.sheet.new => (
-                self.sheet_param(&open.sheet).into_iter().collect(),
-                open.changed,
-            ),
+            (None, Some(open)) if !open.sheet.new => {
+                (self.sheet_param(&open.sheet).into_iter().collect(), open.changed)
+            }
             _ => return Outcome::refused(key!("reason-no-part-open")),
         };
         let Some(sheets) = named
@@ -451,10 +450,7 @@ impl ShellModel {
         } else {
             crate::count_key!("parts-exported")
         };
-        self.notify(
-            strings::format_counted(said, sheets.len(), &[&name]),
-            false,
-        );
+        self.notify(strings::format_counted(said, sheets.len(), &[&name]), false);
         Outcome::Done
     }
 }
