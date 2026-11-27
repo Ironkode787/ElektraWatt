@@ -55,6 +55,7 @@ mod accessories;
 mod assembly;
 mod bom;
 mod bond_carrier;
+pub mod box_edges;
 mod bus;
 mod cell;
 mod channel_index;

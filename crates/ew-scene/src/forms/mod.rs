@@ -72,7 +72,7 @@ pub use geometry::{
     title_block_origin,
 };
 pub use sheet::{PPB_ONE, SheetMap, grid_index_near};
-pub use text::{CELL_PADDING, ELLIPSIS, OverflowKind};
+pub use text::{CELL_PADDING, ELLIPSIS, OverflowKind, ellipsis_cut};
 
 use std::sync::Arc;
 

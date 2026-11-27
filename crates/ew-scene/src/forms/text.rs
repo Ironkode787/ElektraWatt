@@ -20,6 +20,28 @@ pub const CELL_PADDING: Nm = Nm(529_167);
 /// The ellipsis appended by [`Overflow::Ellipsis`].
 pub const ELLIPSIS: &str = "\u{2026}";
 
+/// `text` cut to `avail` as `width` measures it: the longest prefix (cut at a char boundary, trailing whitespace
+/// trimmed) whose "…"-terminated text fits, or the bare ellipsis when none does. A shorter prefix is never wider, so a
+/// binary search over the cut index finds the cut that dropping one char at a time would, with O(log n) measures
+/// instead of O(n). The caller cuts only a text that does not fit whole.
+pub fn ellipsis_cut(text: &str, avail: Nm, width: impl Fn(&str) -> Nm) -> String {
+    let chars: Vec<(usize, char)> = text.char_indices().collect();
+    let candidate = |keep: usize| {
+        let cut = chars.get(keep).map_or(text.len(), |c| c.0);
+        format!("{}{ELLIPSIS}", text[..cut].trim_end())
+    };
+    let (mut lo, mut hi) = (0, chars.len().saturating_sub(1));
+    while lo < hi {
+        let mid = lo + (hi - lo).div_ceil(2);
+        if width(&candidate(mid)) <= avail {
+            lo = mid;
+        } else {
+            hi = mid - 1;
+        }
+    }
+    candidate(lo)
+}
+
 /// How the text of a box ended up relative to its policy.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum OverflowKind {
@@ -176,25 +198,7 @@ pub(crate) fn lay_out(fonts: &FontSet, text: &str, style: &TextStyle, spec: &Box
                 shaped = shape(text, &style, None);
             }
             Some(Overflow::Ellipsis) => {
-                // The longest prefix (cut at a char boundary, trailing whitespace trimmed) whose
-                // "…"-terminated text fits, or the bare ellipsis when none does. A shorter prefix is never
-                // wider, so a binary search over the cut index finds the cut that dropping one char at a
-                // time would, with O(log n) shapings instead of O(n).
-                let chars: Vec<(usize, char)> = text.char_indices().collect();
-                let candidate = |keep: usize| {
-                    let cut = chars.get(keep).map_or(text.len(), |c| c.0);
-                    format!("{}{ELLIPSIS}", text[..cut].trim_end())
-                };
-                let (mut lo, mut hi) = (0, chars.len().saturating_sub(1));
-                while lo < hi {
-                    let mid = lo + (hi - lo).div_ceil(2);
-                    if shape(&candidate(mid), &style, None).advance() <= avail_w {
-                        lo = mid;
-                    } else {
-                        hi = mid - 1;
-                    }
-                }
-                shown = candidate(lo);
+                shown = ellipsis_cut(text, avail_w, |s| shape(s, &style, None).advance());
                 shaped = shape(&shown, &style, None);
                 overflow = Some(OverflowKind::Truncated);
             }
