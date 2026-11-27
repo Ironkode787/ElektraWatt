@@ -75,20 +75,19 @@ impl PackageMember {
         self != PackageMember::Contents
     }
 
-    /// Its words ("Wire list", "Label files"), as the window names it.
-    pub fn words(self) -> Text {
-        match self {
+    /// Its words ("Wire list", "Label files") in the language `tag` (`nl-NL`; en-GB where it has none): a list by its
+    /// kind's name, as Report block… names it.
+    pub fn words(self, tag: &str) -> String {
+        let t = match self {
             PackageMember::Contents => text!("package-member-contents"),
             PackageMember::Pages => text!("package-member-pages"),
-            PackageMember::List(kind) => Text::bare(
-                ew_reports::words::kind_names(kind)
-                    .into_iter()
-                    .next()
-                    .map_or_else(|| kind.to_owned(), |(_, w)| w),
-            ),
+            PackageMember::List(kind) => {
+                return ew_reports::words::kind_name(kind, tag).unwrap_or_else(|| kind.to_owned());
+            }
             PackageMember::Labels => text!("package-member-labels"),
             PackageMember::Drilling => text!("package-member-drilling"),
-        }
+        };
+        crate::catalogue().text_or_english(&t, tag)
     }
 
     /// Its form ("PDF", "Excel", "PDF, DXF"); the label files' is the profile's ([`crate::LabelProfile::summary`]).
@@ -590,6 +589,8 @@ impl PackageJob {
         let q = s.query();
         let lang = print_language(&q);
         let words = |t: &Text| in_print_language(t, lang.as_ref());
+        // The project's language as a tag of the text files, which names a list's file.
+        let tag = ew_l10n::render::language_for(lang.as_ref(), &crate::catalogue().tags()).to_owned();
         let left_out = |m: PackageMember| self.ask.leave_out.contains(&m);
         let mut entries: Vec<Entry> = Vec::new();
         // The labels the label files hold, which Contents counts.
@@ -641,12 +642,12 @@ impl PackageJob {
                 continue;
             };
             let folder = m.member.folder(lang.as_ref()).unwrap_or_default();
-            let name = format!("{} {}", drawing_stem(&q), words(&m.member.words()));
+            let name = format!("{} {}", drawing_stem(&q), m.member.words(&tag));
             entries.push(Entry {
                 path: format!("{folder}/{}.xlsx", file_words(&name)),
                 kind: m.member.key(),
                 bytes,
-                about: sentence(&words(&m.holds.clone().unwrap_or_else(|| m.member.words()))),
+                about: sentence(&m.holds.as_ref().map_or_else(|| m.member.words(&tag), &words)),
             });
         }
         // The label files, in the form of the label file's profile.

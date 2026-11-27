@@ -726,7 +726,7 @@ package-refused = { $count ->
     }
 package-file-name = { $p0 } { $p1 } pakket.zip
 package-file-name-draft = { $p0 } { $p1 } conceptpakket.zip
-package-holds-pages = elke pagina in paginavolgorde, zoals PDF exporteren ze schrijft
+package-holds-pages = elke pagina in paginavolgorde, zoals bij PDF exporteren
 package-no-holes = Geen vlak van dit project heeft al gaten
 package-no-rows = Nog niets te vermelden
 package-no-labels = Het project heeft nog geen labels

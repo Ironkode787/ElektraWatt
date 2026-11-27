@@ -317,3 +317,20 @@ fn a_cable_marker_of_ones_own_prints_the_cable_markers() {
         entries.iter().map(|e| &e.name).collect::<Vec<_>>()
     );
 }
+
+/// A project in Dutch names its package's folders and files in Dutch: `Inhoud.txt`, `Lijsten/` and each list by its
+/// kind's Dutch name, as Report block… names it.
+#[test]
+fn a_dutch_project_names_its_files_in_dutch() {
+    let mut s = common::sample();
+    common::run_cmd(
+        &mut s,
+        "project.settings.set",
+        serde_json::json!({"member": "languages", "value": {"source": "nl-NL"}}),
+    );
+    let (_, entries) = package(&s, &ask());
+    let names: Vec<&str> = entries.iter().map(|e| e.name.as_str()).collect();
+    assert!(names.contains(&"Inhoud.txt"), "{names:?}");
+    assert!(names.contains(&"Lijsten/SAMPLE-E Draadlijst.xlsx"), "{names:?}");
+    assert!(names.iter().any(|n| n.starts_with("Boortekeningen/")), "{names:?}");
+}

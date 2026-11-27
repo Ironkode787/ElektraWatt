@@ -169,7 +169,7 @@ impl ShellModel {
             .iter()
             .map(|m| PackageRow {
                 member: m.member,
-                words: strings::render(&m.member.words()),
+                words: m.member.words(lang),
                 holds: strings::render(
                     m.holds
                         .as_ref()
