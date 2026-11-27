@@ -175,6 +175,7 @@ command-fluid-length-set = Slanglengte instellen
 command-part-edit_copy = Artikel bewerken
 command-workshop-stock = Werkplaatsvoorraad instellen
 command-part-delete = Een eigen artikel van het project verwijderen
+command-part-keep = Een artikel in Mijn artikelen bewaren
 command-layout-space-create = Layoutruimte maken
 command-layout-space-delete = Layoutruimte verwijderen
 command-layout-enclosure-create = Kast plaatsen

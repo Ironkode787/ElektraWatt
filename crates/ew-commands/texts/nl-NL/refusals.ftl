@@ -919,6 +919,7 @@ refusal-part-edit-manufacturer-missing = het project bevat geen fabrikant { $p0 
 refusal-part-edit-needs-fork = een kopie uit een bibliotheek wordt afgesplitst: geef `fork`, de item-ID van de kopie van het project
 refusal-part-edit-no-manufacturer = een artikel heeft een fabrikant nodig
 refusal-part-edit-no-number = een artikel heeft een artikelnummer nodig
+refusal-part-edit-starter = Een startartikel wordt nooit gewijzigd: maak er een eigen artikel van (Mijn eigen maken in Artikelen)
 refusal-part-edit-local-fork = een projecteigen kopie wordt ter plekke bewerkt; geef geen `fork`
 refusal-part-edit-not-object = geen artikelitem: geef de velden van het artikel als object
 refusal-part-edit-tech-data-list = de technische gegevens zijn een lijst

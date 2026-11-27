@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The part dialog's and the part editor's flows, headless, as
+//! The part dialog's and the sheet's flows, headless, as
 //! `ew.uiscript/1` scripts through the built binary, each on its own copy of the sample with an empty `EW_DATA_DIR`
 //! (the shipped tier only: the compiled-in starter parts and the libraries of `EW_CONTENT_DIR`, the sample parts
 //! library among them) and its own `EW_CONFIG_DIR`. Per gate one run; the deep nightly runs each
@@ -217,7 +217,7 @@ pub(crate) fn ps4_the_choose_script_is_deterministic_and_replays_case(twice: boo
     );
 }
 
-/// PS5: the part editor's refusals: an empty manufacturer shows under its field and refuses Save; the history is
+/// PS5: the sheet's refusals: an empty manufacturer shows under its field and refuses Save; the history is
 /// unchanged.
 #[test]
 fn the_editor_refusal_script_is_deterministic() {
@@ -235,7 +235,7 @@ pub(crate) fn ps5_the_editor_refusal_script_is_deterministic_case(twice: bool) {
             ("parts.field", json!({"field": "part_number", "value": "MCB-OWN"})),
             ("script.expect_refused", json!({"action": "parts.save"})),
             ("ui.describe", json!({})),
-            ("ui.dismiss", json!({})),
+            ("parts.back", json!({"discard": true})),
             ("parts.open", json!({})),
             ("script.expect_refused", json!({"action": "parts.save"})),
             ("ui.dismiss", json!({})),

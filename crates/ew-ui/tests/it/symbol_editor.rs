@@ -394,7 +394,7 @@ fn a_row_commits_once_and_save_takes_what_was_typed() {
     d.shell_mut().shutdown();
 }
 
-/// The device box of a new part DRV-1, opened by Pins and box… in the part editor, with three pins added by Add pin.
+/// The device box of a new part DRV-1, opened by Pins and box… in Parts, with three pins added by Add pin.
 fn box_with_three_pins(tmp: &Tmp) -> Driver {
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
@@ -418,9 +418,9 @@ fn box_with_three_pins(tmp: &Tmp) -> Driver {
     // The pins are a section of the editor (picture A): a click shows it.
     crate::own_parts::press(&mut d, "On the schematic section");
     d.input(&click(
-        d.find("Pins and box\u{2026}").expect("the part editor's button"),
+        d.find("Pins and box\u{2026}").expect("the sheet's button"),
     ));
-    assert!(d.shell_mut().dialog().is_none(), "the part editor gave way");
+    assert!(d.shell_mut().dialog().is_none(), "Parts gave way");
     for _ in 0..3 {
         let add = d.labels().into_iter().find(|(l, _)| l == "Add pin").unwrap().1;
         d.input(&click(add));
@@ -454,7 +454,7 @@ fn box_now(d: &mut Driver) -> ((i64, i64), Vec<PinPlace>) {
     ((steps.w, steps.h), pins)
 }
 
-/// The device box through the window: Pins and box… in the part editor opens it on the part being made; Add pin puts
+/// The device box through the window: Pins and box… in Parts opens it on the part being made; Add pin puts
 /// a pin on the box; a pin dragged to the right edge stands there.
 #[test]
 fn a_pin_is_added_and_dragged_onto_another_edge_of_the_box() {

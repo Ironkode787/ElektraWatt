@@ -128,6 +128,7 @@
     - [`part.assign`](reference/commands/part.assign.md)
     - [`part.delete`](reference/commands/part.delete.md)
     - [`part.edit_copy`](reference/commands/part.edit_copy.md)
+    - [`part.keep`](reference/commands/part.keep.md)
     - [`part.placeholder`](reference/commands/part.placeholder.md)
     - [`parts.import`](reference/commands/parts.import.md)
     - [`plc.add_module`](reference/commands/plc.add_module.md)

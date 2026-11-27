@@ -56,6 +56,7 @@ mod page;
 mod page_copy;
 mod part_delete;
 mod part_edit;
+mod part_keep;
 mod parts;
 mod paste;
 mod placeholder;
@@ -258,6 +259,7 @@ commands! {
     macro_insert::InsertMacro,
     join::JoinDevice,
     part_edit::EditPartCopy,
+    part_keep::KeepPart,
     part_delete::DeletePartCopy,
     // A frame or title block changed on the page
     form_edit::EditForm,

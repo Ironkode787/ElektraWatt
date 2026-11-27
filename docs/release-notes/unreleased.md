@@ -41,6 +41,20 @@ change here.
   refused with its maker and number ("Example CON-18-24 is in My parts or in this project already")
 - api-break: `parts.new` takes `start` (a card's or a form's start: `device`, `terminal`, `cpu`, `plug`, …) and
   `like`; its `kind`, `from`, `plc`, `cable` and `plug` go
+- behaviour-change: the sheet of Parts is built from the design language's components (doc 16a §6.27): fields two to
+  a line with the unit after the value, a group's one line beside its heading, the room kept free as one line of four;
+  a part drawn with symbols is a table of its pieces (what it is, its pins, its symbol) and a terminal a grid of its
+  levels, each written into the part's functions on Save; Connections puts pins with the same clamp on one row
+- behaviour-change: the list of Parts counts its parts, groups them (Lately opened, then by what they are) and filters
+  them by maker; the heading names the devices that use the part, each a way to it; Back with changes not saved asks
+  Save, Discard or Stay; a cabinet's mounting plate is made in passing from its field (New plate…)
+- behaviour-change: Ready for names every feature that reads the part, with a tick, what it lacks, or why it does not
+  apply; a feature no longer says a part lacks what its kind is never read for (a contactor's PLC ratings, a
+  cylinder's coil, a plug's footprint)
+- behaviour-change: a part of a library that is not installed is only in this project, his to change and to keep;
+  Keep in my parts moves every use of the part with what it chose (a device's variant included), in one undo step
+- api-break: `part.edit_copy` refuses a starter part ("make a part of your own from it"); `part.keep` is new;
+  `parts.back` takes `save`, `discard` and `show`, `parts.find` takes `maker`, `parts.new` takes `for_field`
 - behaviour-change: a wire that ends open, or outside the project, at an interruption point across its pair, with a
   chain or a star behind the pair, shows and takes its ends set by hand at its clamps and keeps them through a change
   of the wiring; they read as the rule's and went at the next change (doc 13 §2.3)

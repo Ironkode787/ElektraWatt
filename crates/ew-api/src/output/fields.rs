@@ -514,7 +514,7 @@ pub(crate) fn generic_path(row_path: &str) -> String {
 
 impl crate::Session {
     /// A text by the property grid's quantity rule (`4 A`, `0.75 mm²`; [`FieldType::Quantity`]), as the quantity's
-    /// JSON form: the part editor's technical values.
+    /// JSON form: the sheet's technical values.
     pub(crate) fn parse_quantity_text(&self, text: &str) -> Result<Value, InputError> {
         let q = self.query();
         let cx = super::properties::SheetCx::new(&q);

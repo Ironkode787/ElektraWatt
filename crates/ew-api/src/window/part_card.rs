@@ -59,7 +59,7 @@ pub struct PartCard {
     /// Whether its data are checked against a source: every section's confidence verified (`Some(true)`), one not
     /// (`Some(false)`), none stated (`None`).
     pub checked: Option<bool>,
-    /// Whether the project holds the part (it can be edited in the part editor then).
+    /// Whether the project holds the part (it can be edited in Parts then).
     pub held: bool,
 }
 

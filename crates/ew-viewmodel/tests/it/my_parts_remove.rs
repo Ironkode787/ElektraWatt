@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A part taken out of My parts (doc 07 §2.5): the part editor of a part of My parts offers Remove from my
+//! A part taken out of My parts (doc 07 §2.5): Parts of a part of My parts offers Remove from my
 //! parts library; the next project no longer offers the part, and the project that uses it keeps its copy, which its
 //! device keeps and the toast names.
 

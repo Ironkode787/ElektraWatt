@@ -136,7 +136,7 @@ pub enum Has {
     /// A part that stands in a cabinet with a size of its own: every kind but those a wire consumes, a cable, a tube,
     /// a cabinet, a plate, a rail and a gland, whose sizes are their own groups'.
     Mounted,
-    /// A mounted part that is placed on a rail or a surface: a mounted part but a duct.
+    /// A mounted part that is placed on a rail or a surface by itself: a mounted part but a duct and an accessory.
     Placed,
     /// A part that mounts in a cut-out of a door or a wall.
     Cutout,
@@ -148,6 +148,10 @@ pub enum Has {
     Drawn,
     /// A part with a pneumatic section (a valve, a valve terminal, a regulator).
     Fluid,
+    /// A part with solenoids in its pneumatic section: a solenoid valve.
+    Solenoids,
+    /// A part with a PLC section: a module or a station.
+    Plc,
 }
 
 impl Has {
@@ -169,7 +173,8 @@ impl Has {
                     | K::Rail
                     | K::Gland
             ),
-            Has::Placed => Has::Mounted.holds(p) && p.kind != K::Duct,
+            // An accessory (a plug, a bridge, an end plate) is placed with what it goes with, never on its own.
+            Has::Placed => Has::Mounted.holds(p) && !matches!(p.kind, K::Duct | K::Accessory),
             Has::Cutout => {
                 p.mech.as_ref().and_then(|m| m.mount_kind.as_ref()) == Some(&MountKind::DoorCutout)
             }
@@ -180,6 +185,8 @@ impl Has {
             Has::HasPins => !p.cp_pattern.is_empty(),
             Has::Drawn => matches!(p.kind, K::Device | K::Terminal | K::Configured),
             Has::Fluid => p.sections.fluid.is_some(),
+            Has::Solenoids => p.sections.fluid.as_ref().is_some_and(|f| !f.solenoids.is_empty()),
+            Has::Plc => p.sections.plc.is_some(),
         }
     }
 }
@@ -412,7 +419,10 @@ impl Lack {
     /// The sentence, the fields lacking joined in the reader's language where it names them.
     pub fn text(&self) -> Text {
         let words = TextArg::List(ew_l10n::List::new(
-            self.fields.iter().map(|f| TextArg::Text(word(f.word))).collect(),
+            self.fields
+                .iter()
+                .map(|f| TextArg::Text(word_in(f.word)))
+                .collect(),
             text!("part-fields-between"),
             text!("part-fields-and"),
         ));
@@ -423,6 +433,16 @@ impl Lack {
 /// The text of a declared key (a word, a group's, a feature's): checked when the declaration was built.
 pub fn word(key: &'static str) -> Text {
     Text::checked_by_macro(key, crate::text_english(key).unwrap_or("?"), Vec::new())
+}
+
+/// The word of a field as a sentence takes it (`width`, not `Width`): its key's `-in` form, which the text files give
+/// beside every field's label, else the label.
+pub fn word_in(key: &'static str) -> Text {
+    let wanted = format!("{key}-in");
+    match crate::KEYS.iter().find(|k| **k == wanted) {
+        Some(k) => word(k),
+        None => word(key),
+    }
 }
 
 /// The sentence `says` of a reader, `fields` its argument where its English takes one.
@@ -555,12 +575,19 @@ const FERRULE: &[Reader] = &[r(Ft::FerruleChoice, Refused, key!("part-says-ferru
 const FERRULE_DATA: &[Reader] = &[r(Ft::WireEnds, Printed, key!("part-says-ferrule-data"))];
 const MARKER_SIZE: &[Reader] = &[r(Ft::MarkerFit, Skipped, key!("part-says-marker-size"))];
 const GLAND: &[Reader] = &[r(Ft::GlandChoice, Refused, key!("part-says-gland"))];
-const COIL: &[Reader] = &[r(Ft::CoilCheck, Skipped, key!("part-says-coil"))];
+/// The coil check reads the coil of a valve with solenoids (EW-FL-009), not of a cylinder or a regulator.
+const COIL: &[Reader] = &[r_on(
+    Ft::CoilCheck,
+    Skipped,
+    key!("part-says-coil"),
+    Has::Solenoids,
+)];
 const FLUID: &[Reader] = &[r(Ft::Fluid, Printed, key!("part-says-fluid"))];
 const TUBE: &[Reader] = &[r(Ft::TubeFit, Skipped, key!("part-says-tube"))];
 const TUBE_DATA: &[Reader] = &[r(Ft::TubeFit, Printed, key!("part-says-tube-data"))];
 const PLC: &[Reader] = &[r(Ft::Plc, Printed, key!("part-says-plc"))];
-const RATINGS: &[Reader] = &[r(Ft::OutputLoad, Skipped, key!("part-says-ratings"))];
+/// The output load check reads the ratings of a PLC module or station, not of every device.
+const RATINGS: &[Reader] = &[r_on(Ft::OutputLoad, Skipped, key!("part-says-ratings"), Has::Plc)];
 const BUS: &[Reader] = &[r(Ft::Bus, Printed, key!("part-says-bus"))];
 const TECH: &[Reader] = &[r(Ft::PartsList, Printed, key!("part-says-tech"))];
 const LOAD: &[Reader] = &[r(Ft::SupplyLoad, Printed, key!("part-says-load"))];
@@ -669,7 +696,8 @@ pub static PART_FIELDS: &[PartField] = &[
         G::Schematic,
         Has::Drawn,
         F(Form::Pieces),
-        PIECES,
+        // A flag: absent is "not the main piece", never a lack.
+        &[r(Ft::Placing, Printed, key!("part-says-main"))],
     ),
     f(
         "function_template[].cps[]",
@@ -677,7 +705,8 @@ pub static PART_FIELDS: &[PartField] = &[
         G::Schematic,
         Has::Drawn,
         F(Form::Pieces),
-        PIECES,
+        // A piece without pins (a cylinder's, an air service unit's) is placed as it is: nothing lacks.
+        PINS,
     ),
     f(
         "contacts[].kind",
@@ -2261,6 +2290,110 @@ pub fn lacking(p: &Part, feature: Feature) -> Vec<&'static PartField> {
         .collect()
 }
 
+/// How one feature stands for a part (Ready for, doc 07 §5.7).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum Readiness {
+    /// Nothing it reads is missing: the fields it reads that the part gives, in the sheet's order.
+    Ready(Vec<&'static PartField>),
+    /// What it lacks, one entry per reader's sentence.
+    Lacks(Vec<Lack>),
+    /// It reads fields of this kind of part, but none of this part: why, as the readers' [`Reader::on`].
+    NotHere(Has),
+}
+
+/// A feature and how it stands for a part.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Ready {
+    /// The feature.
+    pub feature: Feature,
+    /// How it stands.
+    pub state: Readiness,
+}
+
+impl Ready {
+    /// Its line under the feature: what it reads that is given, why it does not apply, or each lack's sentence.
+    pub fn lines(&self) -> Vec<Text> {
+        match &self.state {
+            Readiness::Ready(given) if given.is_empty() => vec![text!("part-ready-nothing")],
+            Readiness::Ready(given) => vec![Text::checked_by_macro(
+                key!("part-ready-given"),
+                crate::text_english("part-ready-given").unwrap_or("?"),
+                vec![TextArg::List(ew_l10n::List::new(
+                    given.iter().map(|f| TextArg::Text(word_in(f.word))).collect(),
+                    text!("part-fields-between"),
+                    text!("part-fields-and"),
+                ))],
+            )],
+            Readiness::Lacks(lacks) => lacks.iter().map(Lack::text).collect(),
+            Readiness::NotHere(has) => vec![word(has.not_here())],
+        }
+    }
+}
+
+impl Has {
+    /// The sentence that says a reader does not read this part: it is not of the parts the predicate names.
+    pub fn not_here(self) -> &'static str {
+        match self {
+            Has::Every | Has::Kinds(_) => key!("part-not-here-kind"),
+            Has::Mounted => key!("part-not-here-mounted"),
+            Has::Placed => key!("part-not-here-placed"),
+            Has::Cutout => key!("part-not-here-cutout"),
+            Has::Pinned | Has::HasPins => key!("part-not-here-pins"),
+            Has::Drawn => key!("part-not-here-drawn"),
+            Has::Fluid => key!("part-not-here-fluid"),
+            Has::Solenoids => key!("part-not-here-solenoids"),
+            Has::Plc => key!("part-not-here-plc"),
+        }
+    }
+}
+
+/// Every feature that reads a field part `p` has, in the order of the sheet, one entry each: what it lacks, else what
+/// it reads that is given, else why it reads nothing of this part.
+pub fn ready_for(p: &Part) -> Vec<Ready> {
+    let json = serde_json::to_value(p).unwrap_or(Value::Null);
+    let mut out: Vec<Ready> = Vec::new();
+    for field in fields_of(p) {
+        if matches!(field.entry, Entry::Stored(_)) {
+            continue;
+        }
+        let given = present(&json, field.path);
+        for reader in field.readers {
+            let at = match out.iter().position(|r| r.feature == reader.feature) {
+                Some(i) => i,
+                None => {
+                    out.push(Ready {
+                        feature: reader.feature,
+                        state: Readiness::NotHere(reader.on),
+                    });
+                    out.len() - 1
+                }
+            };
+            if !reader.on.holds(p) {
+                continue;
+            }
+            let state = &mut out[at].state;
+            if matches!(state, Readiness::NotHere(_)) {
+                *state = Readiness::Ready(Vec::new());
+            }
+            if let Readiness::Ready(fields) = state
+                && given
+                && !fields.contains(&field)
+            {
+                fields.push(field);
+            }
+        }
+    }
+    for lack in lacks(p) {
+        if let Some(r) = out.iter_mut().find(|r| r.feature == lack.feature) {
+            match &mut r.state {
+                Readiness::Lacks(l) => l.push(lack),
+                state => *state = Readiness::Lacks(vec![lack]),
+            }
+        }
+    }
+    out
+}
+
 /// Whether the member at `path` has a value in `json`: a list's item member in every item of a list that has items, a
 /// list of values when it has one, a named technical value when the technical data has its key.
 fn present(json: &Value, path: &str) -> bool {
@@ -2396,7 +2529,7 @@ mod tests {
         assert_eq!(paths, ["sections.enclosure.width", "sections.enclosure.height"]);
         assert_eq!(
             cabinet[0].text().to_string(),
-            "Without Width and Height the cabinet's outline, its doors and its walls have no size on the layout."
+            "Without width and height the cabinet's outline, its doors and its walls have no size on the layout."
         );
     }
 

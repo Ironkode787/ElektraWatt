@@ -74,7 +74,7 @@ fn f1_in_a_dialog_opens_its_section() {
 /// F1 leads to the guide
 /// of the thing in front: the PLC panel and the PLC tab to the PLC guide, the Bus panel and a bus-topology page to its
 /// bus part, the Fluid panel, a fluid page and the Fluid tab to the fluid guide, a panel layout page to the panel
-/// layout guide, the part editor to "your own parts"; the guide buttons of the tabs open the same pages.
+/// layout guide, Parts to "your own parts"; the guide buttons of the tabs open the same pages.
 #[test]
 fn f1_and_the_guide_buttons_lead_to_the_guide_of_the_discipline() {
     let tmp = Tmp::new("f1-guides");

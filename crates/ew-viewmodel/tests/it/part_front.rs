@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Front view and holes through the part editor's actions (doc 07 §5): a part of My parts made with a round front and
+//! Front view and holes through the sheet's actions (doc 07 §5): a part of My parts made with a round front and
 //! a 22 mm cut-out opens at the section with its hole as kind and size, takes a fixing and the outline of a DXF
 //! drawing, and the update Save previews gives the project's copy both; Remove takes the outline away again.
 
@@ -19,7 +19,7 @@ fn fields(s: &mut ShellModel, values: &[(&str, &str)]) {
     }
 }
 
-/// The part editor's holes as (kind, size) and the number of the outline's lines, of LAMP-22 opened again.
+/// The sheet's holes as (kind, size) and the number of the outline's lines, of LAMP-22 opened again.
 fn front_of(s: &mut ShellModel) -> (Vec<(String, String)>, usize) {
     done(s, "parts.open", json!({"part": "LAMP-22"}));
     let Some(editor) = s.parts_place().and_then(|p| p.sheet.as_ref()) else {

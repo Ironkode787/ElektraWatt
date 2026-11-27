@@ -802,7 +802,7 @@ fn tutorial_a_plc_with_its_modules_runs_as_its_page_says() {
 }
 
 /// The bus tutorial: a bus-topology page with the generic CPU, remote I/O station and switch, the bus
-/// lines, the node addresses, a bus cable, a PROFINET device of one's own made in the part editor, the check and the
+/// lines, the node addresses, a bus cable, a PROFINET device of one's own made in Parts, the check and the
 /// save: every step done, the end state the page names, and the page passes the lint. The plugs of step 10 are chosen
 /// in the window only (a script names a plug by its record, not its part number).
 #[test]

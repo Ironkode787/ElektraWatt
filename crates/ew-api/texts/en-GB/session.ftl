@@ -669,6 +669,8 @@ via-gland-hole-not-placed = not placed
 
 ## Keep in my parts (doc 07 §5.8)
 reason-part-keep = Only a part that is only in this project is kept in My parts.
+reason-part-edit-not-yours = This part is not yours to change: make a part of your own from it (Make my own in Parts)
+reason-part-edit-mine = This part is in My parts: change it in Parts, where Save gives its next version
 
 ## New part…'s first question, What is it? (doc 07 §5.5): its groups, and each start's card with the line of what it
 ## will be asked for
@@ -703,7 +705,7 @@ part-start-plate-line = Its size.
 part-start-rail = Rail
 part-start-rail-line = Its profile.
 part-start-duct = Wiring duct
-part-start-duct-line = Its outer and inner size.
+part-start-duct-line = Its outer size.
 part-start-accessory = End bracket or accessory
 part-start-accessory-line = An end plate, a cover, a bridge: counted with what it comes with.
 part-start-valve = Valve

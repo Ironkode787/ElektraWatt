@@ -1112,7 +1112,7 @@ pub fn hole_table_heading(surface: Text, folio: &str, seen: Text, corner: &Corne
     )
 }
 
-/// Why a hole's text does not parse ([`ew_schema::Hole::parse`]), as the part editor's Holes table and the forms that
+/// Why a hole's text does not parse ([`ew_schema::Hole::parse`]), as the sheet's Holes table and the forms that
 /// take a hole say it: "\"M7\" is no screw size: type one of M3, M4, M5, M6, M8".
 pub fn hole_error(e: &ew_schema::HoleParseError) -> Text {
     use ew_schema::{Cutout, Gland, HoleParseError, Screw};

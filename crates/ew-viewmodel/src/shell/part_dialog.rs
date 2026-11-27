@@ -175,17 +175,17 @@ pub fn declared_word(field: &str) -> Option<String> {
     Some(strings::text(Key::run_time(f.word)).to_owned())
 }
 
-/// The label of the part editor's identity field `field`: its declared word.
+/// The label of the sheet's identity field `field`: its declared word.
 pub fn draft_label(field: &str) -> String {
     declared_word(field).unwrap_or_default()
 }
 
-/// The label of the part editor's PLC member `member` (`part-plc-<member>`).
+/// The label of the sheet's PLC member `member` (`part-plc-<member>`).
 pub fn plc_label(member: &str) -> &'static str {
     strings::text(Key::run_time(&format!("part-plc-{member}")))
 }
 
-/// The label of the part editor's cable member `member` (`part-cable-<member>`).
+/// The label of the sheet's cable member `member` (`part-cable-<member>`).
 pub fn cable_label(member: &str) -> &'static str {
     strings::text(Key::run_time(&format!("part-cable-{member}")))
 }
@@ -195,7 +195,7 @@ pub fn marking_word(marking: &str) -> &'static str {
     strings::text(Key::run_time(&format!("part-cable-marking-{marking}")))
 }
 
-/// The label of the part editor's bus member `member` (`part-bus-<member>`).
+/// The label of the sheet's bus member `member` (`part-bus-<member>`).
 pub fn bus_label(member: &str) -> &'static str {
     strings::text(Key::run_time(&format!("part-bus-{member}")))
 }
@@ -680,17 +680,7 @@ impl ShellModel {
 /// label, the sections as the interfaces and PLC fields that change ([`section_changes`]), the pins made again as
 /// their designations (their function template following them, unlisted).
 pub(super) fn card_fields(fields: &[ew_api::FieldChange]) -> Vec<(String, String, String)> {
-    let text = |v: &Option<Value>| match v {
-        None => String::new(),
-        Some(Value::String(s)) => s.clone(),
-        Some(Value::Object(m)) if m.values().all(Value::is_string) && m.len() == 1 => m
-            .values()
-            .next()
-            .and_then(Value::as_str)
-            .unwrap_or_default()
-            .to_owned(),
-        Some(other) => other.to_string(),
-    };
+    let text = |v: &Option<Value>| v.as_ref().map(value_words).unwrap_or_default();
     let pins = fields.iter().any(|f| f.member == "cp_pattern");
     fields
         .iter()
@@ -705,6 +695,33 @@ pub(super) fn card_fields(fields: &[ew_api::FieldChange]) -> Vec<(String, String
             member => vec![(member_label(member), text(&f.old), text(&f.new))],
         })
         .collect()
+}
+
+/// A member's value as the part card says it, never as JSON: a text in several languages in the window's language (else
+/// English, else its first), a list its items joined, a group of members each by its word with its value.
+fn value_words(v: &Value) -> String {
+    match v {
+        Value::Null => String::new(),
+        Value::String(s) => s.clone(),
+        Value::Bool(b) => strings::text(if *b { key!("props-yes") } else { key!("props-no") }).to_owned(),
+        Value::Number(n) => n.to_string(),
+        Value::Array(items) => items.iter().map(value_words).collect::<Vec<_>>().join(", "),
+        Value::Object(m)
+            if !m.is_empty() && m.values().all(Value::is_string) && m.keys().all(|k| k.len() <= 5) =>
+        {
+            let lang = strings::rule_language().split('-').next().unwrap_or("en");
+            m.get(lang)
+                .or_else(|| m.get("en"))
+                .or_else(|| m.values().next())
+                .map(value_words)
+                .unwrap_or_default()
+        }
+        Value::Object(m) => m
+            .iter()
+            .map(|(k, v)| format!("{} {}", member_label(k), value_words(v)))
+            .collect::<Vec<_>>()
+            .join(", "),
+    }
 }
 
 /// A member of a part as the part card names it: its declared word, else its field label.
@@ -790,7 +807,7 @@ fn interface_words(p: &Value) -> String {
 
 /// The changes of a part's `sections` in words (never as JSON): per interface of the bus
 /// section that comes, goes or changes, "Interface X1: 8 ports → 6 ports" (its socket count alone when nothing else
-/// of it changes, else its bus, role and count); per field of the PLC section the part editor shows ("Channels: 8 →
+/// of it changes, else its bus, role and count); per field of the PLC section Parts shows ("Channels: 8 →
 /// 16", "Pin pattern: {n+1} → X2:{n+1}"), the I/O ranges and bit map that follow the channels left out; anything else
 /// as one line "Other part data".
 fn section_changes(old: Option<&Value>, new: Option<&Value>) -> Vec<(String, String, String)> {

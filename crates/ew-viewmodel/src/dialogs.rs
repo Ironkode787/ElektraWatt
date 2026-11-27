@@ -172,6 +172,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         Dialog::ConfirmJournalDiscard => journal_discard_spec(),
         Dialog::ConfirmPurge { files, .. } => purge_spec(files),
         Dialog::ConfirmRemovePart { part, number } => remove_part_spec(part, number),
+        Dialog::ConfirmLeavePart { number } => leave_part_spec(number),
         Dialog::ConfirmReplaceDxf { dir, folder, files } => replace_dxf_spec(dir, folder, *files),
         // Choose (Enter, the active row) and Cancel; the list and the filters are the dialog's.
         // An empty search is said once, in the list (not here); Choose is disabled while the list is
@@ -651,6 +652,25 @@ fn remove_part_spec(_part: &str, number: &str) -> DialogSpec {
             vec![strings::text(key!("confirm-part-remove-text")).to_owned()],
             cancel(),
         )
+    }
+}
+
+/// Back of Parts with the open part `number`'s changes not saved: Save the Primary, Stay, and Discard apart.
+fn leave_part_spec(number: &str) -> DialogSpec {
+    DialogSpec {
+        title: strings::format(key!("confirm-part-leave-title"), &[number]),
+        body: vec![strings::text(key!("confirm-part-leave-text")).to_owned()],
+        primary: DialogButton::new(
+            key!("dialog-save"),
+            DialogAnswer::Action("parts.back", json!({ "save": true })),
+        ),
+        secondary: vec![DialogButton::new(key!("dialog-stay"), DialogAnswer::Dismiss)],
+        danger: Some(DialogButton::new(
+            key!("dialog-discard"),
+            DialogAnswer::Action("parts.back", json!({ "discard": true })),
+        )),
+        asks: true,
+        form: false,
     }
 }
 

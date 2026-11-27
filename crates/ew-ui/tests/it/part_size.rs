@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A part has a size that can be typed (F23): the part editor's Size and mounting, for a new part and a saved one.
+//! A part has a size that can be typed (F23): the sheet's Size and mounting, for a new part and a saved one.
 //! The window's own path on a new project.
 
 use crate::own_parts::{fill, new_project, press, records};
@@ -27,7 +27,7 @@ fn a_new_part_takes_its_size_and_a_saved_one_changes_it_through_the_card() {
     fill(&mut d, "Part number", "RL-22");
     fill(&mut d, "Description", "Interface relay, 1 changeover");
     press(&mut d, "In the cabinet section");
-    fill(&mut d, "Width (mm)", "six");
+    fill(&mut d, "Width", "six");
     assert!(
         d.texts()
             .iter()
@@ -38,9 +38,9 @@ fn a_new_part_takes_its_size_and_a_saved_one_changes_it_through_the_card() {
     for _ in 0..3 {
         d.input(&key("Backspace"));
     }
-    fill(&mut d, "Width (mm)", "6,2");
-    fill(&mut d, "Height (mm)", "90");
-    fill(&mut d, "Depth (mm)", "70");
+    fill(&mut d, "Width", "6,2");
+    fill(&mut d, "Height", "90");
+    fill(&mut d, "Depth", "70");
     // Below the fold of the editor's scrolled body: the action the fields send.
     for (field, value) in [("mech.clearance.top", "10"), ("mech.mount_kind", "ts35x7_5")] {
         let set = json!({"field": field, "value": value});
@@ -99,11 +99,11 @@ fn a_message_of_a_new_part_moves_no_field() {
     };
     fill(&mut d, "Maker", "Acme");
     press(&mut d, "In the cabinet section");
-    let before = at(&d, "Width (mm)");
-    fill(&mut d, "Width (mm)", "six");
+    let before = at(&d, "Width");
+    fill(&mut d, "Width", "six");
     assert!(
         d.texts().iter().any(|t| t.starts_with("Width: ")),
         "the foot names the field"
     );
-    assert_eq!(at(&d, "Width (mm)"), before, "the message moves no field");
+    assert_eq!(at(&d, "Width"), before, "the message moves no field");
 }

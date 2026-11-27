@@ -34,7 +34,7 @@ or when My parts or the project has a part of that maker and number already: ope
 
 **A part like it…**, the card under the others, or **Like this** in the bar with a part open, starts a new part with
 everything the other part has but its number. A cable type sold in several sizes has **Save and add another size**
-under its Cable group: the next size opens with everything but the number and the cross-section.
+beside Save: the next size opens with everything but the number and the cross-section.
 
 ## A card such as a digital input card
 

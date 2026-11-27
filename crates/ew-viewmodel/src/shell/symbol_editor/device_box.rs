@@ -3,7 +3,7 @@
 
 //! The device box, the symbol editor's second kind of thing (doc 07 §2.5): a part that is drawn as a box with
 //! pins. The editor holds the part's draft: its pins (added, removed, renamed, given a potential) and where each
-//! stands on the box (its edge and its place along it), and the box's size. Save saves the part as the part editor
+//! stands on the box (its edge and its place along it), and the box's size. Save saves the part as Parts
 //! does (a new part, a part of the project corrected in place, a part of My parts as its next version, a library's
 //! part as the project's own copy), and offers to redraw the boxes of it that are drawn already.
 
@@ -75,7 +75,7 @@ pub struct DeviceBox {
     pub revision: u64,
     /// Why the last action did nothing.
     pub error: Option<String>,
-    /// Whether the box was opened from the project (a placed box, the part editor): closing it returns there, not to
+    /// Whether the box was opened from the project (a placed box, Parts): closing it returns there, not to
     /// the editor's ways in.
     from_project: bool,
     /// The part number of the part a new part's draft copies (the start card's part of a library that the project
@@ -442,8 +442,8 @@ impl ShellModel {
             .map(|o| &mut o.sheet)
     }
 
-    /// `part.box {part?, new?}` (Pins and box… in the part editor, Edit this device's box… on a placed box, Device
-    /// box for a part… on the start card): the device box editor on the part editor's draft when it is open, on the
+    /// `part.box {part?, new?}` (Pins and box… in Parts, Edit this device's box… on a placed box, Device
+    /// box for a part… on the start card): the device box editor on the sheet's draft when it is open, on the
     /// part named (`id:<copy>`, or a part number as `part.edit` reads it), on a new part with `new`, else on the part
     /// of the selected device. A box with unsaved changes is refused unless `discard` (the window asks first).
     pub(crate) fn act_part_box(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -567,7 +567,7 @@ impl ShellModel {
             .map_err(|_| target())
     }
 
-    /// `part.box_details {bus?}` (Part data… in the device box editor): the part editor on the box's draft, with its
+    /// `part.box_details {bus?}` (Part data… in the device box editor): Parts on the box's draft, with its
     /// pins and box as they are now; its Save saves the part, and Pins and box… returns here. With `bus` (Add bus
     /// interface…, FT-2208) it opens on Bus interfaces with a new interface row; refused in words for a library's part
     /// ([`DeviceBox::bus_refusal`]).
@@ -1077,7 +1077,7 @@ impl ShellModel {
         result
     }
 
-    /// Save: the part saved as the part editor saves it, the editor then on the saved part; where boxes of it are
+    /// Save: the part saved as Parts saves it, the editor then on the saved part; where boxes of it are
     /// drawn already and its pins or layout changed, a message offers to redraw them and says how many.
     fn box_save(&mut self) -> Result<(), String> {
         let b = self
@@ -1103,7 +1103,7 @@ impl ShellModel {
             .ok_or_else(|| words(key!("reason-no-project")))?;
         let command = if draft.new {
             project.session.new_part_command(&draft).map(|made| made.command)
-        } else if draft.own && draft.fork {
+        } else if project.session.sheet_lives(&draft) == ew_api::parts::Lives::Mine {
             project.session.own_part_update(&draft).and_then(|plan| {
                 plan.map(|p| p.command).ok_or(ew_api::PartDraftError::Refused(
                     key!("reason-part-edit-target").as_str(),

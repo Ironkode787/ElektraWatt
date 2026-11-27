@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The person's own parts, made in the window from nothing: New part… in the device browser opens
-//! the part editor on a new part, whose bus interfaces are a form; Save puts the part into the project and into My
+//! Parts on a new part, whose bus interfaces are a form; Save puts the part into the project and into My
 //! parts. The window's own path: clicks and keys on a new project at 1920 × 1080. Not here: a module part nothing
 //! draws, greyed in the next project's station catalogue (`ew-viewmodel`'s `own_parts.rs`).
 
@@ -41,7 +41,7 @@ pub(crate) fn fill(d: &mut Driver, name: &str, text: &str) {
     d.settle();
 }
 
-/// The open part editor's draft.
+/// The open sheet's draft.
 fn draft(d: &mut Driver) -> ew_viewmodel::ew_api::PartSheet {
     match d.shell_mut().parts_place().and_then(|p| p.sheet.as_ref()) {
         Some(e) => e.sheet.clone(),
@@ -332,7 +332,7 @@ fn a_switch_joins_a_cpu_and_two_devices_in_one_net() {
     );
 }
 
-/// Makes a part with one PROFINET interface of role device and `ports` sockets in the part editor (New part… in the
+/// Makes a part with one PROFINET interface of role device and `ports` sockets in Parts (New part… in the
 /// device browser), and saves it.
 pub(crate) fn make_port_device(d: &mut Driver, number: &str, description: &str, ports: &str) {
     d.input(&key("Shift+I"));
@@ -350,7 +350,7 @@ pub(crate) fn make_port_device(d: &mut Driver, number: &str, description: &str, 
 }
 
 /// From nothing: a managed switch such as a SCALANCE (eight sockets, one PROFINET name for the whole switch)
-/// and a drive with two sockets, each typed in the part editor, placed as boxes with their sockets beside the CPU,
+/// and a drive with two sockets, each typed in Parts, placed as boxes with their sockets beside the CPU,
 /// and joined CPU → switch → drive. The switch is a node of the one net (its row has an address, it passes nothing
 /// without being in the net), the drive is listed with the others, and with the three names given no EW-BUS rule
 /// speaks.
@@ -438,7 +438,7 @@ fn a_managed_switch_and_a_drive_made_in_the_window_are_nodes_of_one_net() {
     );
 }
 
-/// Makes the input card "DI 8 × 24 V" in the part editor: a PLC module of eight digital inputs whose pins the pattern
+/// Makes the input card "DI 8 × 24 V" in Parts: a PLC module of eight digital inputs whose pins the pattern
 /// `{n+1}` gives (the preview says channel 0 → pin 1 … channel 7 → pin 8 before Save), allowed in slots `slots`.
 pub(crate) fn make_card(d: &mut Driver, number: &str, slots: &str) {
     d.input(&key("Shift+I"));
@@ -570,7 +570,7 @@ fn plc_parts_stand_under_plc_and_bus_in_the_device_browser() {
     assert_eq!(other, Vec::<&str>::new());
 }
 
-/// Makes a head station such as an IM 152 in the part editor (New part… in the device browser) and saves it: a PLC
+/// Makes a head station such as an IM 152 in Parts (New part… in the device browser) and saves it: a PLC
 /// station with the supply pins L+ and M, at most 32 modules and one PROFIBUS DP slave interface `DP`.
 pub(crate) fn make_head_station(d: &mut Driver, number: &str) {
     d.input(&key("Shift+I"));
@@ -663,7 +663,7 @@ fn a_head_station_made_in_the_window_takes_its_cards_and_its_dp_port() {
 }
 
 /// Item 5, the way from the symbol editor: a symbol saved to a library offers Make a part for this symbol…, which
-/// opens the part editor on a new part drawn with it; saved, the part's main function is the symbol's function
+/// opens Parts on a new part drawn with it; saved, the part's main function is the symbol's function
 /// definition, so the device browser places the part with that symbol.
 #[test]
 fn the_symbol_editor_makes_a_part_for_its_saved_symbol() {
@@ -731,10 +731,7 @@ fn a_part_of_ones_own_is_corrected_and_the_next_placement_takes_it() {
     let held = draft(&mut d);
     assert!(held.own, "a part of My parts is the person's own");
     assert_eq!(held.bus[0].ports, "8", "the form shows what was saved");
-    let said = d
-        .texts()
-        .into_iter()
-        .any(|t| t == "1 device of this project uses it");
+    let said = d.texts().into_iter().any(|t| t.ends_with(" uses it"));
     assert!(said, "the heading says which devices use the part");
     press(&mut d, "Network ports section");
     press(&mut d, "Ports 1");
@@ -796,7 +793,7 @@ fn a_starter_part_is_copied_as_a_part_of_ones_own() {
 }
 
 /// A part a person made in one project is there in the next, wherever parts are offered. The first project makes
-/// an input card in the part editor and a cable type (both into My parts); the next project, in the same person's
+/// an input card in Parts and a cable type (both into My parts); the next project, in the same person's
 /// folders, holds neither, and yet the device browser lists the card, the station view's catalogue offers it for the
 /// CPU's rack, the Cable form's type list offers the cable type, and the part dialog of a cable without a part lists
 /// it.

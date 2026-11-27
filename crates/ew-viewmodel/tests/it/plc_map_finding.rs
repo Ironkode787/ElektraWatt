@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! EW-PLC-012, a binding or an address that differs from the part's map, offers the fix its rule's catalogue names
-//! beside the command fix: the module's part opened in the part editor, whose PLC section holds the map.
+//! beside the command fix: the module's part opened in Parts, whose PLC section holds the map.
 
 use crate::common::{Tmp, actual_size, done};
 use ew_viewmodel::ew_api::output::NavRole;

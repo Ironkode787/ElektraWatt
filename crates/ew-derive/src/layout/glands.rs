@@ -177,7 +177,7 @@ fn cable_part<'q>(q: &'q Q, device: &Device) -> Option<&'q LibCopy<Part>> {
 }
 
 /// A cable's part use of kind cable: the part whose outer diameter its gland is proposed from, and where a person
-/// enters that diameter (the part editor's Cable section); `None` without one.
+/// enters that diameter (the sheet's Cable section); `None` without one.
 pub fn cable_part_use(q: &Q, device: &Device) -> Option<PartRef> {
     let copies = q.table::<LibCopy<Part>>();
     device

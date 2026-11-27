@@ -125,6 +125,7 @@ pub use editing::{
 /// The style a text without one prints with (`text.normal`): a free text's Style row names it.
 pub use ew_text::DEFAULT_STYLE_KEY;
 // A valve port's side of EW-FL-012, which the page tables and symbol shapes carry for autoconnect.
+pub(crate) use editing::{starter_fndef_by_key, starter_piece_fndefs, starter_symbol_name};
 pub use ew_derive::ValvePort;
 pub use ew_export::{
     DXF_SET_EXTENSIONS, DxfFile, DxfLayers, Parallelism, PdfDate, PdfReport, SvgFile, dxf_file_name,

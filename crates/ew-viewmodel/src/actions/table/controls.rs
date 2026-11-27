@@ -825,7 +825,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_page_describe(p),
         )),
     ),
-    // The part selection dialog and the part editor.
+    // The part selection dialog and Parts.
     with_params(
         "target?:enum(parts|bridge_part|accessory_part), use?:uint, add?:bool, strip?:text, cable?:text",
         enabled_when_named(
@@ -904,14 +904,14 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 View,
                 Menu::Edit,
                 &["F9"],
-                writable,
+                project_open,
                 slot(Menu::Edit),
                 |s, p| s.act_parts_open(p),
             ),
         ),
     ),
     with_params(
-        "text?:text, scope?:enum(all|project|mine), kind?:text, lacking?:bool",
+        "text?:text, scope?:enum(all|project|mine), kind?:text, maker?:text, lacking?:bool",
         hidden(act(
             "parts.find",
             View,
@@ -926,7 +926,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // a card of What is it?, Like this, New cable type… and a bus line's New bus cable… and New plug…, and New
     // station…'s split on the PLC tab (each names its start).
     with_params(
-        "start?:text, like?:bool, symbol?:text, bus?:text, field?:text",
+        "start?:text, like?:bool, symbol?:text, bus?:text, field?:text, for_field?:text",
         act(
             "parts.new",
             View,
@@ -1025,15 +1025,18 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_parts_remove(p),
         ),
     ),
-    hidden(act(
-        "parts.back",
-        View,
-        Menu::Edit,
-        &[],
-        parts_shown,
-        None,
-        |s, _| s.act_parts_back(),
-    )),
+    with_params(
+        "save?:bool, discard?:bool, show?:text",
+        hidden(act(
+            "parts.back",
+            View,
+            Menu::Edit,
+            &[],
+            parts_shown,
+            None,
+            |s, p| s.act_parts_back(p),
+        )),
+    ),
     // The device box (doc 07 §2.5): a part's pins and where they stand on its box, edited on the symbol
     // editor's screen.
     with_params(

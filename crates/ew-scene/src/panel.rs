@@ -707,7 +707,7 @@ fn longest(rects: &[Rect]) -> Option<(Pt2, bool)> {
 
 /// The centre of a rectangle (halving toward −∞).
 /// A part's front drawn in `r` (doc 12 §5.2): its rectangle, or for a round front the rectangle's inscribed circle; the
-/// panel page's placements and the part editor's preview ([`part_front`]) draw it so.
+/// panel page's placements and the sheet's preview ([`part_front`]) draw it so.
 fn front_path(r: Rect, round: bool) -> Path {
     if round {
         let half = Nm((r.max().x.0 - r.min().x.0).min(r.max().y.0 - r.min().y.0) / 2);
@@ -717,10 +717,10 @@ fn front_path(r: Rect, round: bool) -> Path {
     }
 }
 
-/// The margin round a part's front in the part editor's preview: 5 mm.
+/// The margin round a part's front in the sheet's preview: 5 mm.
 pub const FRONT_MARGIN: Nm = Nm(5_000_000);
 
-/// A part's front as the part editor's preview draws it (doc 07 §5, Front view and holes): its imported outline
+/// A part's front as the sheet's preview draws it (doc 07 §5, Front view and holes): its imported outline
 /// (`front_2d`), else its rectangle or round front as the panel page draws a placement, in the footprints' pen; its
 /// holes ([`ew_schema::PartHole`]) at their nominal sizes (a fixing's screw, a cut-out's class, a gland's thread),
 /// thin. The list is on a sheet of the front's size and [`FRONT_MARGIN`] on every side, the part frame's `y` up
@@ -1382,6 +1382,39 @@ pub fn label_fit(
         f @ (LabelFit::Horizontal | LabelFit::Turned) => Some(f),
         LabelFit::Above | LabelFit::Below | LabelFit::Moved => None,
     }
+}
+
+/// The length of a pin's stub outside a part's box in its picture.
+const BOX_STUB: Nm = Nm(2_500_000);
+
+/// A part's device box as the place's picture draws it (doc 07 §5.6, a part drawn as a box): the box's outline and a
+/// stub at each pin on its edge, on a sheet with [`FRONT_MARGIN`] round it; `None` for a box without a size.
+pub fn part_box(b: &ew_schema::PartBox) -> Option<(ew_dl::DisplayList, (Nm, Nm))> {
+    use ew_schema::Dir4;
+    let (w, h) = (b.width.0, b.height.0);
+    if w <= 0 || h <= 0 {
+        return None;
+    }
+    let m = FRONT_MARGIN.0;
+    let sheet = (Nm(w.checked_add(2 * m)?), Nm(h.checked_add(2 * m)?));
+    let p = |x: i64, y: i64| Some(Pt2::new(Nm(x.checked_add(m)?), Nm(y.checked_add(m)?)));
+    let mut list = ew_dl::DisplayList::new();
+    let pen = Stroke::pen(Pen::P026);
+    let outline = Rect::from_points(p(0, 0)?, p(w, h)?);
+    list.push(Item::path(Path::rect(outline), Some(pen.clone()), None));
+    let s = BOX_STUB.0;
+    for pin in &b.pins {
+        let at = pin.at.0;
+        let (a, z) = match pin.side {
+            Dir4::Up => (p(at, 0)?, p(at, -s)?),
+            Dir4::Down => (p(at, h)?, p(at, h + s)?),
+            Dir4::Left => (p(0, at)?, p(-s, at)?),
+            Dir4::Right => (p(w, at)?, p(w + s, at)?),
+            Dir4::Unknown(_) => continue,
+        };
+        list.push(Item::path(Path::line(a, z), Some(pen.clone()), None));
+    }
+    Some((list, sheet))
 }
 
 #[cfg(test)]

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Remove from my parts library… asks first (doc 16a §6.12): undo does not bring a part back into My parts,
-//! so the part editor's button opens a confirmation whose Primary is Cancel; Cancel returns to the part editor and
+//! so the sheet's button opens a confirmation whose Primary is Cancel; Cancel returns to Parts and
 //! leaves the part in My parts, Remove takes it out. The window's own path: clicks on a new project at 1920 × 1080.
 
 use crate::own_parts::{edit_part, new_project, press};

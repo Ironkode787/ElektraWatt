@@ -31,7 +31,7 @@ mod messages_scripts;
 /// Two renumberings of the sample through the renumber actions, the Preview tab and the history panel headless (PV2).
 mod preview_scripts;
 
-/// The part dialog's and the part editor's flows headless (PS1, PS4, PS5 and PS7).
+/// The part dialog's and the sheet's flows headless (PS1, PS4, PS5 and PS7).
 mod parts_scripts;
 
 /// The binary run with `args` in `tmp`, its working folder, as a script run is: a path under it is written `.` in the

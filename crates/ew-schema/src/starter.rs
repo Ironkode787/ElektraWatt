@@ -12,6 +12,15 @@ use ew_ids::Uuid;
 /// ([`ew_ids::v5::library_item_id`]) and its copy ID `ew_ids::v5::lib_copy_id(LIBRARY, item)` (doc 05 §13.2).
 pub const LIBRARY: Uuid = Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);
 
+/// The key of the shipped system library of starter parts, `content/libraries/ew-starter-parts.ewlib`.
+pub const PARTS_KEY: &str = "ew-starter-parts";
+
+/// The ID of the system library of starter parts: `v5(LIBRARY, PARTS_KEY)`. A starter part is never changed; a
+/// person makes his own from it (doc 07 §5.8).
+pub fn parts_library() -> Uuid {
+    ew_ids::v5::imported_id::<()>(LIBRARY, PARTS_KEY).as_uuid()
+}
+
 /// The `version_req` of a reference to a starter function definition, which are version `0.1`.
 pub const VERSION_REQ: &str = "^0.1";
 

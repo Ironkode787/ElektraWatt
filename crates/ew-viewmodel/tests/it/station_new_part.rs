@@ -9,7 +9,7 @@ use crate::common::{Tmp, done, new_project};
 use ew_viewmodel::shell::ShellModel;
 use serde_json::json;
 
-/// The open part editor's bus rows.
+/// The open sheet's bus rows.
 fn bus_rows(s: &ShellModel) -> Vec<ew_viewmodel::ew_api::BusRow> {
     match s.parts_place().and_then(|p| p.sheet.as_ref()) {
         Some(e) => e.sheet.bus.clone(),

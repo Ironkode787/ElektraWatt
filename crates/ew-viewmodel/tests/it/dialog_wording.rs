@@ -66,6 +66,10 @@ fn every_dialog(tmp: &Tmp) -> (ShellModel, Vec<Dialog>) {
             part: "id:0".into(),
             number: "SW-6".into(),
         },
+        // Leaving a part with changes not saved.
+        Dialog::ConfirmLeavePart {
+            number: "SW-6".into(),
+        },
         // Replacing an earlier DXF set.
         Dialog::ConfirmReplaceDxf {
             dir: "dxf".into(),

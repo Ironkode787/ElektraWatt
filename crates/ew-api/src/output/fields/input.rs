@@ -85,7 +85,7 @@ pub enum InputError {
 
 impl InputError {
     /// The English sentence of an [`InputError::Invalid`] or [`InputError::NotOneOf`], for a front-end without the
-    /// shell's strings (the table round trip, the part editor); `None` for the others.
+    /// shell's strings (the table round trip, Parts); `None` for the others.
     pub fn text(&self) -> Option<String> {
         match self {
             InputError::Invalid(why) => Some(why.to_string()),

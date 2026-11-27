@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Below the shell: the part selection dialog's offers, the command a choice
-//! compiles to and the part editor's draft, refusals, in-place edit and fork, over
+//! compiles to and the sheet's draft, refusals, in-place edit and fork, over
 //! The sample and a project made by the wizard, with the fixture catalogue "Fixture parts" written into a temporary user
 //! tier. No test pins the number of offers or of starter parts: they assert named rows and their order.
 
@@ -145,6 +145,14 @@ fn options(libraries: Option<LibraryTiers>) -> SessionOptions {
 pub(crate) fn sample(tiers: Option<LibraryTiers>) -> Session {
     let (project, records, lib) = crate::common::sample_records();
     Session::from_records(project, records, lib, options(tiers)).unwrap()
+}
+
+/// The sample whose parts are copies of a colleague's library that is not installed: his to change, so an edit forks
+/// them (a starter part is never changed).
+fn colleague_sample() -> Session {
+    let (project, records, mut lib) = crate::common::sample_records();
+    crate::common::as_colleagues(&mut lib);
+    Session::from_records(project, records, lib, options(None)).unwrap()
 }
 
 fn device(s: &Session, tag: &str) -> Uuid {
@@ -562,7 +570,7 @@ fn the_part_editor_refuses_with_a_message() {
 /// unchanged and the hash recomputed.
 #[test]
 fn an_edit_in_place_is_previewed() {
-    let mut s = sample(None);
+    let mut s = colleague_sample();
     let f55 = device(&s, "-102F1");
     // The sample holds library copies only: -102F1's is forked first (PS7), and the fork is edited in place.
     let library_copy = copy_of(&s, "EW-GEN-MCB-1");
@@ -625,29 +633,10 @@ fn an_edit_in_place_is_previewed() {
 /// Libraries status says Local fork; undo restores; a second edit of the fork is in place.
 #[test]
 fn a_library_copy_forks() {
-    let mut s = sample(None);
+    let mut s = colleague_sample();
     let f55 = device(&s, "-102F1");
-    let mcb = copy_of(&s, "EW-GEN-MCB-1");
-    let generic = s
-        .part_offers(&PartOfferQuery {
-            text: "EW-GEN-MCB-2".into(),
-            ..PartOfferQuery::default()
-        })
-        .into_iter()
-        .find(|o| o.part_number == "EW-GEN-MCB-2")
-        .unwrap()
-        .pick;
-    let cmd = s
-        .part_pick_command(
-            &PartTarget::Devices {
-                devices: vec![f55],
-                mode: AssignMode::Replace { from: mcb },
-            },
-            &generic,
-        )
-        .unwrap();
-    s.execute(&cmd).unwrap();
-    let original = copy_of(&s, "EW-GEN-MCB-2");
+    // -102F1's part is a copy of a colleague's library: his to change, so an edit forks it.
+    let original = copy_of(&s, "EW-GEN-MCB-1");
     let held = s
         .query()
         .parts()

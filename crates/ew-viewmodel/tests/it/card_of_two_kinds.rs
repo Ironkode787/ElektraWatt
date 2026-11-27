@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A card of two channel kinds (doc 10 §2.6): a part made in the part editor with four inputs and four
+//! A card of two channel kinds (doc 10 §2.6): a part made in Parts with four inputs and four
 //! outputs is one card, its outputs numbered on after its inputs and each kind addressed from bit 0 of its own range;
 //! the first kind again is refused in words at its field. A card of inputs and analogue inputs is one card too:
 //! the analogue words follow the inputs' bits in the one input range, from the next word.
@@ -61,7 +61,7 @@ fn a_card_of_inputs_and_outputs_is_one_part() {
         ),
         None => panic!("the part stays open in Parts"),
     }
-    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "parts.back", json!({ "discard": true }));
     // Four inputs and four outputs.
     card(
         &mut s,

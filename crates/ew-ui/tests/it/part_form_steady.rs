@@ -188,7 +188,7 @@ fn the_form_opened_again_starts_at_its_top_on_its_first_field() {
     });
     settle(&mut h);
     assert!(role(&h).is_none_or(|y| y < before), "the section scrolled");
-    dispatch(&mut h, "ui.dismiss", json!({}));
+    dispatch(&mut h, "parts.back", json!({ "discard": true }));
     settle(&mut h);
     assert!(h.state().shell().dialog().is_none(), "the form is closed");
     open(&mut h);

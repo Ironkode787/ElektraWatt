@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A new part made in the window (`part.new`): [`Session::new_part_draft`] opens the part editor on an empty
+//! A new part made in the window (`part.new`): [`Session::new_part_draft`] opens Parts on an empty
 //! draft; [`Session::new_part_command`] turns the draft into the part and the one command that brings it into the
 //! project.
 //!
@@ -110,6 +110,8 @@ impl Session {
         Ok(PartSheet {
             source: None,
             start: None,
+            pieces: Vec::new(),
+            levels: Vec::new(),
             copy: item,
             fields,
             tech: Vec::new(),
@@ -314,6 +316,7 @@ impl Session {
             }
         }
         self.apply_pins(draft, &mut p)?;
+        self.apply_pieces(draft, &mut p)?;
         Ok(p)
     }
 
@@ -605,6 +608,8 @@ impl Session {
         draft.tables = held.tables.clone();
         draft.outline = held.outline.clone();
         draft.start = held.start;
+        draft.pieces = held.pieces.clone();
+        draft.levels = held.levels.clone();
         // The held item keeps what the forms do not show (pins, template, other sections); a new item ID and key.
         let mut original = held.original.clone();
         original.meta = Default::default();

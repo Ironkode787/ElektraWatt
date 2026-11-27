@@ -133,7 +133,7 @@ fn a_cable_type_is_made_in_the_cable_form_and_chosen_there() {
     d.shell_mut().shutdown();
 }
 
-/// The part editor shows a cable part's section where a device part has its pins: a new part made a cable offers its
+/// Parts shows a cable part's section where a device part has its pins: a new part made a cable offers its
 /// cores.
 #[test]
 fn a_new_part_of_kind_cable_has_the_cable_section() {

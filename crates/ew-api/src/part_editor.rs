@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The part editor's draft (FR-PRT-022). [`Session::part_draft`] reads a held part
+//! The sheet's draft (FR-PRT-022). [`Session::part_draft`] reads a held part
 //! copy into texts; [`Session::set_draft_field`] checks each field as it is typed; [`Session::part_edit_plan`] builds
 //! `part.edit_copy` (in place for a project-local copy, a fork of a copy from a library) with what the card shows: the
 //! field diff, the devices that use the copy and the component BOM rows that change, read from a preview on a fork of
@@ -66,7 +66,7 @@ pub enum PartDraftError {
     Field(DraftMessage),
 }
 
-/// The part editor's draft: the editable members as texts, their messages, and the read-only members the
+/// The sheet's draft: the editable members as texts, their messages, and the read-only members the
 /// editor shows.
 #[derive(Clone, PartialEq, Debug)]
 pub struct PartSheet {
@@ -76,8 +76,8 @@ pub struct PartSheet {
     pub fields: Vec<(&'static str, String)>,
     /// The technical data: (key, value text), in key order.
     pub tech: Vec<(String, String)>,
-    /// The declared rows of the sections ([`crate::part_rows::PART_SECTIONS`]): Size and mounting, a wire's, a
-    /// ferrule's and a marker's own data.
+    /// The declared rows of the sheet ([`ew_derive::part_fields`]): In the cabinet, a wire's, a ferrule's and a
+    /// marker's own data, and the other groups' rows.
     pub rows: Vec<crate::part_rows::DraftRow>,
     /// The declared tables: the pins' clamps, the accessories, the variants, the front's holes.
     pub tables: Vec<crate::part_rows::DraftTable>,
@@ -133,6 +133,10 @@ pub struct PartSheet {
     /// The start a new part began as (doc 07 §5.5), which decides the groups of a device it asks for; `None` for a part
     /// opened.
     pub start: Option<&'static crate::parts::Start>,
+    /// The pieces a part drawn with symbols is drawn as (On the schematic), each what it is with its pins.
+    pub pieces: Vec<crate::part_pieces::PieceRow>,
+    /// A terminal's levels, each with its left and right clamp.
+    pub levels: Vec<crate::part_pieces::LevelRow>,
     pub(crate) original: Part,
     pub(crate) manufacturer: (LibRef, Vec<Value>),
 }
@@ -698,8 +702,10 @@ impl Session {
         let project = q.project().id.as_uuid();
         let lib = c.library_id.as_uuid();
         let p = &c.item;
-        // The person's own part: project-local, or a copy of the writable library My parts.
+        // The person's own part: project-local, a copy of a library that is not installed (the project carries it), or
+        // a copy of the writable library My parts.
         let own = lib == project
+            || !self.installed(lib)
             || self
                 .libraries()
                 .libraries()
@@ -758,6 +764,8 @@ impl Session {
         PartSheet {
             source: Some((lib, c.item_id.as_uuid())),
             start: None,
+            pieces: crate::part_pieces::pieces_of(p),
+            levels: crate::part_pieces::levels_of(p),
             copy,
             fields,
             tech,
@@ -907,6 +915,9 @@ impl Session {
                 Some(m) => Err(PartDraftError::Field(m.clone())),
                 None => Ok(()),
             };
+        }
+        if let Some(result) = self.set_piece_field(draft, field, text) {
+            return result;
         }
         if let Some(result) = self.set_row_text(draft, field, text) {
             return result;
@@ -1129,6 +1140,17 @@ impl Session {
     /// [`PartDraftError::Field`] for the first field that does not parse; [`PartDraftError::Refused`]
     /// (`reason-part-unchanged`) when the part equals the copy's.
     pub fn part_edit_command(&self, draft: &PartSheet) -> Result<AnyCommand, PartDraftError> {
+        // A starter part, or a part of a library he cannot write, is never changed: he makes his own from it. A part of
+        // My parts changes there, as its next version (`own_part_update`), never forked inside the project.
+        match self.sheet_lives(draft) {
+            crate::parts::Lives::NotMine { .. } => {
+                return Err(PartDraftError::Refused(key!("reason-part-edit-not-yours")));
+            }
+            crate::parts::Lives::Mine => {
+                return Err(PartDraftError::Refused(key!("reason-part-edit-mine")));
+            }
+            crate::parts::Lives::OnlyHere | crate::parts::Lives::New => {}
+        }
         let (mut part, copies) = self.draft_part(draft)?;
         // A project-local part of the person's own takes its forms' sections too; any part its pins and device box.
         if draft.own && !draft.fork {

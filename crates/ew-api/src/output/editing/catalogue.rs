@@ -1256,3 +1256,45 @@ impl Session {
         (x > 0).then(|| (list, (ew_units::Nm(x), ew_units::Nm(height.max(1)))))
     }
 }
+
+/// The starter functions a piece of a part drawn with symbols can be (doc 07 §5.4, Drawn as): each starter FnDef with
+/// connection points that is not a box, a bus port or a terminal, by its key, with its pins' designations, in the
+/// starter's order.
+pub(crate) fn starter_piece_fndefs() -> impl Iterator<Item = (&'static str, &'static LibCopy<FnDef>)> {
+    use ew_schema::ContactKind;
+    starter_docs().iter().filter_map(|(key, _, d)| match d {
+        LibDocument::Fndef(c)
+            if !c.item.cps.is_empty()
+                && !matches!(
+                    c.item.contact_kind,
+                    ContactKind::BlackBox | ContactKind::BusPort | ContactKind::Terminal
+                ) =>
+        {
+            Some((*key, c))
+        }
+        _ => None,
+    })
+}
+
+/// The starter FnDef of key `key` (`ew.fn.coil`).
+pub(crate) fn starter_fndef_by_key(key: &str) -> Option<&'static LibCopy<FnDef>> {
+    starter_docs().iter().find_map(|(k, _, d)| match d {
+        LibDocument::Fndef(c) if *k == key => Some(c),
+        _ => None,
+    })
+}
+
+/// The name of the starter symbol that draws starter FnDef `def` on a schematic page, in the language `lang`.
+pub(crate) fn starter_symbol_name(def: Id<FnDef>, lang: &str) -> Option<String> {
+    starter_docs().iter().find_map(|(_, _, d)| match d {
+        LibDocument::Symbol(c)
+            if c.item.rep_type == RepType::MultiLine && fndef_copy(&c.item.fndef) == def =>
+        {
+            let lang: Option<ew_mltext::LangTag> = lang.parse().ok();
+            lang.and_then(|l| c.item.name.text_for(&l))
+                .or_else(|| c.item.name.neutral_or_first())
+                .map(str::to_owned)
+        }
+        _ => None,
+    })
+}

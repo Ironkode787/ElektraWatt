@@ -363,6 +363,7 @@ pub fn show(
             Dialog::ConfirmDiscard { .. }
             | Dialog::ConfirmJournalDiscard
             | Dialog::ConfirmRemovePart { .. }
+            | Dialog::ConfirmLeavePart { .. }
             | Dialog::ConfirmReplaceDxf { .. } => {}
         },
     );

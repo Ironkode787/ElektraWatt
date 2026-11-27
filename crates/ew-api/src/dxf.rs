@@ -378,7 +378,7 @@ pub fn import_part_outline(
 }
 
 /// The front outline of the DXF drawing `bytes` named `name` (read in `unit` when its header names none) through the
-/// front door, as `mech.front_2d` holds it: the command line's outline import and the part editor's Import outline….
+/// front door, as `mech.front_2d` holds it: the command line's outline import and the sheet's Import outline….
 ///
 /// # Errors
 ///

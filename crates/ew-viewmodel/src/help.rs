@@ -91,7 +91,7 @@ pub static ANCHORS: &[Anchor] = &[
     ),
     on("tutorials/index.md", "tutorials", ""),
     // The how-to guides of the disciplines: the PLC, Fluid and Workspace buttons' Guide, F1 on their
-    // tabs, navigators and pages, the part editor and a panel layout page.
+    // tabs, navigators and pages, Parts and a panel layout page.
     on(PLC_GUIDE, "guide-plc", ""),
     on(PLC_GUIDE, "guide-bus", "bus-ports-and-nets"),
     on("how-to/fluid-workspace.md", "guide-fluid", ""),
@@ -942,7 +942,7 @@ pub fn dialog_topic(dialog: &Dialog) -> &'static str {
         Dialog::ConfirmReplaceDxf { .. } => action_topic("file.export_dxf").unwrap_or("dialog-form"),
         Dialog::PartChoose(_) => "dialog-part-choose",
         // Remove… of Parts takes a part out of My parts: the guide that walks through your own parts.
-        Dialog::ConfirmRemovePart { .. } => "guide-own-parts",
+        Dialog::ConfirmRemovePart { .. } | Dialog::ConfirmLeavePart { .. } => "guide-own-parts",
         Dialog::Print(_) => "dialog-print",
         Dialog::ExternalChange { .. } => "dialog-external-change",
         Dialog::ConfirmUpgrade { .. } => "dialog-upgrade",
@@ -1279,6 +1279,7 @@ mod tests {
                 part: text(),
                 number: text(),
             },
+            Dialog::ConfirmLeavePart { number: text() },
             Dialog::ConfirmReplaceDxf {
                 dir: text(),
                 folder: text(),

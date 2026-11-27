@@ -147,9 +147,9 @@ fn the_assign_and_update_verbs_change_part_uses_and_copies() {
     );
 }
 
-/// The DSL verb `part_edit_copy`: the sample's copies come from the starter library, so the 1-pole breaker's copy is
-/// first forked (a project-local copy); the fork's edit is then in place (the same copy ID, the new description, the
-/// hash of the new item), and a fork of it is refused at `/fork`.
+/// The DSL verb `part_edit_copy`: a starter part is never changed, so the 1-pole breaker's starter copy is refused at
+/// `/copy`; the person's own copy of it, only in this project, is edited in place (the same copy ID, the new
+/// description, the hash of the new item), and a fork of it is refused at `/fork`.
 #[test]
 fn part_edit_copy_edits_a_project_local_copy_in_place() {
     let mut s = sample();
@@ -159,13 +159,24 @@ fn part_edit_copy_edits_a_project_local_copy_in_place() {
     };
     let mut edited = serde_json::to_value(&c.item).unwrap();
     edited["description"] = json!("MCB 1P C4");
-    let local = {
+    {
         let mut sink = Sink(&mut s);
         let mut b = Builder::new(&mut sink);
-        b.part_edit_copy(c.id, edited.clone(), Some(Uuid::from_u128(7)), &[])
-            .expect("the library copy forks")
-    };
-    assert_ne!(local, c.id, "the fork is a copy of its own");
+        let e = b
+            .part_edit_copy(c.id, edited, Some(Uuid::from_u128(7)), &[])
+            .unwrap_err();
+        assert!(e.message.contains("refusal-part-edit-starter"), "{e}");
+    }
+    // His own copy of it, only in this project (Make my own, kept to the project).
+    let mut own = s
+        .new_part_draft_copying(&s.part_draft(c.id.as_uuid()).unwrap())
+        .unwrap();
+    own.to_library = false;
+    s.set_draft_field(&mut own, "manufacturer", "Example").unwrap();
+    s.set_draft_field(&mut own, "part_number", "MCB-OWN").unwrap();
+    let made = s.new_part_command(&own).unwrap();
+    Sink(&mut s).run(&made.command.name, made.command.params).unwrap();
+    let local = copy_id(&part(&s, "MCB-OWN"));
     let mut edited = serde_json::to_value(&s.query().parts().get(local).unwrap().item).unwrap();
     edited["description"] = json!("MCB 1P C6");
     {

@@ -654,6 +654,8 @@ via-gland-hole-not-placed = niet geplaatst
 
 ## Bewaren in Mijn artikelen (doc 07 §5.8)
 reason-part-keep = Alleen een artikel dat alleen in dit project staat, wordt in Mijn artikelen bewaard.
+reason-part-edit-not-yours = Dit artikel is niet het uwe om te wijzigen: maak er een eigen artikel van (Mijn eigen maken in Artikelen)
+reason-part-edit-mine = Dit artikel staat in Mijn artikelen: wijzig het in Artikelen, waar Opslaan er de volgende versie van maakt
 
 ## De eerste vraag van Nieuw artikel…, Wat is het? (doc 07 §5.5): de groepen, en per begin de kaart met de regel van
 ## wat erna gevraagd wordt
@@ -688,7 +690,7 @@ part-start-plate-line = Zijn maten.
 part-start-rail = Rail
 part-start-rail-line = Zijn profiel.
 part-start-duct = Kabelgoot
-part-start-duct-line = Zijn buiten- en binnenmaat.
+part-start-duct-line = Zijn buitenmaat.
 part-start-accessory = Eindsteun of toebehoren
 part-start-accessory-line = Een eindplaat, een deksel, een brug: geteld met waar het bij hoort.
 part-start-valve = Ventiel

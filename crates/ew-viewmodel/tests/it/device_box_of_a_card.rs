@@ -108,7 +108,8 @@ fn a_card_s_pins_take_their_places_on_its_box_and_keep_their_names() {
 fn an_untouched_card_s_box_saves_nothing_and_a_placed_pin_lays_it_out() {
     let tmp = Tmp::new("device-box-card-untouched");
     let mut s = actual_size(&tmp, "102");
-    done(&mut s, "part.box", json!({"part": "EW-GEN-DI-1"}));
+    crate::common::own_of(&mut s, "EW-GEN-DI-1", "DI-OWN");
+    done(&mut s, "part.box", json!({"part": "DI-OWN"}));
     let laid_out = |s: &ShellModel| {
         s.symbol_editor()
             .and_then(|e| e.device_box())

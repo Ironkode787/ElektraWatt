@@ -918,6 +918,7 @@ refusal-part-edit-manufacturer-missing = the project holds no manufacturer { $p0
 refusal-part-edit-needs-fork = a copy from a library is forked: give `fork`, the item ID of the project's copy
 refusal-part-edit-no-manufacturer = a part needs a manufacturer
 refusal-part-edit-no-number = a part needs a part number
+refusal-part-edit-starter = A starter part is never changed: make a part of your own from it (Make my own in Parts)
 refusal-part-edit-local-fork = a project-local copy is edited in place; give no `fork`
 refusal-part-edit-not-object = not a part item: give the part's members as an object
 refusal-part-edit-tech-data-list = the technical data are a list

@@ -287,7 +287,7 @@ pub enum CardOrigin {
     /// A macro's insertion from the Macros navigator (`macro.insert`, FR-MAC-005): the card in the Preview tab
     /// with the conflicts the user decides on before Apply; a refused preview (a prevent rule) still shows them.
     Macro(Box<MacroInsert>),
-    /// The part editor's Save (`part.edit_copy`): the card in the Preview tab with the field diff, the devices
+    /// The sheet's Save (`part.edit_copy`): the card in the Preview tab with the field diff, the devices
     /// that use the copy, the BOM rows that change and, for a fork, the fork note.
     Part(Box<PartCard>),
     /// The paste choice: a paste whose fragment carries another version of a held library copy; the card in

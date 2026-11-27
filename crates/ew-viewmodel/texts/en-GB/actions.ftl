@@ -126,6 +126,7 @@ command-fluid-length-set = Set tube length
 command-part-edit_copy = Edit part
 command-workshop-stock = Set the workshop stock
 command-part-delete = Delete a part of the project's own
+command-part-keep = Keep a part in My parts
 command-layout-space-create = Create layout space
 command-layout-space-delete = Delete layout space
 command-layout-enclosure-create = Place enclosure

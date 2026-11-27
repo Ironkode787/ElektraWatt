@@ -795,7 +795,7 @@ fn a_left_off_end_plate_stays_off_when_its_parts_are_forked() {
         &["EW-GEN-TRM-1"],
         &["EW-GEN-EP-1", "EW-GEN-TRM-1"],
     ] {
-        let mut s = common::sample();
+        let mut s = common::colleague_sample();
         let x = strip(&s, "-X1031");
         let of = held(&s, "EW-GEN-EP-1");
         let cmd = s

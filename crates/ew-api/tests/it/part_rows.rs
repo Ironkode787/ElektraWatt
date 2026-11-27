@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The part editor's sections and declared rows (doc 07 §5, picture A): a terminal lists its accessories and
+//! The sheet's sections and declared rows (doc 07 §5, picture A): a terminal lists its accessories and
 //! variants, not a ferrule's or a wire's section; a row's text is checked by its schema type (a new part's size above zero, a
 //! part number a part has, no ferrule as an accessory); a draft left as opened saves nothing; a changed cell writes
 //! only its member; `part.delete` deletes a part of the project's own and refuses a library's; Front view and holes
@@ -39,7 +39,7 @@ fn field_key(r: Result<(), PartDraftError>) -> &'static str {
 
 #[test]
 fn a_terminals_sections_rows_and_tables_are_read_checked_and_saved() {
-    let mut s = common::sample();
+    let s = common::sample();
     let copy = copy_of(&s, "EW-GEN-TRM-1");
     let mut d = s.part_draft(copy).expect("the terminal's draft");
     let words: Vec<&str> = d.sections().iter().map(|x| x.name()).collect();
@@ -73,17 +73,22 @@ fn a_terminals_sections_rows_and_tables_are_read_checked_and_saved() {
         .position(|r| r[col("part")] == "EW-GEN-EP-1")
         .expect("the end plate row");
     assert_eq!(acc.rows[plate][col("per")], "strip");
-    // Nothing changed: nothing to save.
+    // A starter part is never changed: its sheet refuses Save in words that say what to do instead.
     assert!(matches!(
         s.part_edit_command(&d),
-        Err(PartDraftError::Refused(k)) if k == "reason-part-unchanged"
+        Err(PartDraftError::Refused(k)) if k == "reason-part-edit-not-yours"
     ));
     // A size of zero, a number no part has, a ferrule as an accessory: each refused in words under its field.
-    // A library part's fork keeps its size: the rows are refused; a new part's size of zero is refused in words.
+    // A starter part's rows are not typed into.
     assert!(matches!(
         s.set_draft_field(&mut d, "mech.width", "9"),
         Err(PartDraftError::Refused(_))
     ));
+    // The same part of a colleague's library is his: Save forks it into the project. A new part's size of zero is
+    // refused in words.
+    let mut s = common::colleague_sample();
+    let copy = copy_of(&s, "EW-GEN-TRM-1");
+    let mut d = s.part_draft(copy).expect("its sheet");
     let mut new = s.new_part_draft().expect("a new part");
     assert_eq!(
         field_key(s.set_draft_field(&mut new, "mech.width", "0")),
@@ -355,7 +360,7 @@ fn held(s: &Session, number: &str) -> ew_schema::Part {
         .unwrap_or_else(|| panic!("{number} is held"))
 }
 
-/// A gland of one's own made in the part editor (its Gland section's rows), put first in the workshop stock, is the
+/// A gland of one's own made in Parts (its Gland section's rows), put first in the workshop stock, is the
 /// gland the program proposes for the sample's -101W1 (10.5 mm); a clamping range the wrong way round is refused in
 /// words.
 #[test]
@@ -525,7 +530,7 @@ fn an_enclosure_of_ones_own_takes_its_size_and_door_in_the_editor() {
 /// A member that is no field (a GTIN) is shown under Also stored and written back unchanged when the part is saved.
 #[test]
 fn a_gtin_is_shown_and_kept_when_the_part_is_saved() {
-    let mut s = common::sample();
+    let mut s = common::colleague_sample();
     let copy = copy_of(&s, "EW-GEN-TRM-1");
     let mut item = serde_json::to_value(
         &s.query()

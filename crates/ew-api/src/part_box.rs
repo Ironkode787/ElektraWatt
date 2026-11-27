@@ -4,7 +4,7 @@
 //! The device box of a part (doc 07 §2.5, "The device box"): the pins a part of one's own has and where they stand
 //! on the box a device of it is drawn as.
 //!
-//! **The pins** are the part's CP pattern, drawn by its main function, a black box. The part editor's draft holds
+//! **The pins** are the part's CP pattern, drawn by its main function, a black box. The sheet's draft holds
 //! them as rows ([`PinRow`]: name and potential) which a person adds to, removes from and renames; Save writes the
 //! pattern and the main template entry's pins. A part with a PLC section, with bus interfaces, or drawn with a
 //! symbol of its own keeps its pins: they come from its channels, its ports or its symbol ([`PinsFrom`]). Where a
@@ -766,6 +766,22 @@ impl Session {
             centre: false,
         })
         .ok()
+    }
+}
+
+impl PartSheet {
+    /// The picture of a part drawn as a box (doc 07 §5.6): its box with a stub at each pin, laid out as Save would
+    /// lay it out; `None` for a part drawn with symbols or as a terminal's levels, or without pins.
+    pub fn box_picture(&self) -> Option<(ew_dl::DisplayList, (ew_units::Nm, ew_units::Nm))> {
+        let boxed = self.box_part || self.original.function_template.is_empty();
+        if self.drawn_as_pieces() || self.drawn_as_levels() || self.pins.is_empty() || !boxed {
+            return None;
+        }
+        let layout = self
+            .box_
+            .clone()
+            .unwrap_or_else(|| self.box_steps().layout(EDIT_STEP));
+        ew_scene::panel::part_box(&layout)
     }
 }
 

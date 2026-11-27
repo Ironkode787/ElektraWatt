@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The part editor's groups and their declared rows (doc 07 §5.4): the editor lists the groups of the part's sheet
+//! The sheet's groups and their declared rows (doc 07 §5.4): the editor lists the groups of the part's sheet
 //! ([`ew_derive::part_fields::Group`]) on its left and shows one at a time. Its rows and tables are the declaration's
 //! ([`ew_derive::part_fields::PART_FIELDS`]): a field typed in the sheet is a row, the item members of a list are a
 //! table's columns, and each value type is the part schema's ([`crate::output::library_fields`]), so a text is read
@@ -391,9 +391,15 @@ impl PartSheet {
             .row("mech.front_shape")
             .map(|r| r.text.as_str())
             .unwrap_or_default();
+        // A cabinet's front is its own size, its enclosure's; any other part's its size in the cabinet.
+        let (width, height) = if self.text("kind") == "enclosure" {
+            ("sections.enclosure.width", "sections.enclosure.height")
+        } else {
+            ("mech.width", "mech.height")
+        };
         let mech = ew_schema::MechData {
-            width: mm("mech.width"),
-            height: mm("mech.height"),
+            width: mm(width),
+            height: mm(height),
             front_shape: (shape == "round").then_some(ew_schema::FrontShape::Round),
             front_2d: self.outline.clone(),
             holes,

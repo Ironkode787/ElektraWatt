@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Window-check findings at shell level, on the sample: the palette's `:` refusal and the
-//! title after a folio, the form's hint, Edit ▸ Delete with nothing selected, the part editor's kind words and the
+//! title after a folio, the form's hint, Edit ▸ Delete with nothing selected, the sheet's kind words and the
 //! Place HUD's symbol name.
 
 use crate::common;
@@ -84,7 +84,7 @@ fn delete_is_disabled_with_nothing_selected() {
     assert_eq!((meta.enabled)(&shell), Ok(()));
 }
 
-/// The part editor's kind words: every offered kind reads as a word, never with an underscore.
+/// The sheet's kind words: every offered kind reads as a word, never with an underscore.
 #[test]
 fn part_kinds_read_as_words() {
     use ew_viewmodel::shell::part_dialog::{part_kind_word, part_kinds};

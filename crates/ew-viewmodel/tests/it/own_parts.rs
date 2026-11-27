@@ -18,9 +18,9 @@ fn new_project(tmp: &Tmp, tiers: LibraryTiers, name: &str) -> ShellModel {
     s
 }
 
-/// A module part that nothing draws (its channels have no pins, so the part editor gave it no function), in a library
+/// A module part that nothing draws (its channels have no pins, so Parts gave it no function), in a library
 /// installed for the next project, which holds no copy of it: the station's catalogue lists it greyed with what to do
-/// in the part editor, not left out silently, and taking it is refused with the same words. The library is the first
+/// in Parts, not left out silently, and taking it is refused with the same words. The library is the first
 /// project's My parts, installed as the installation's own.
 #[test]
 fn a_module_part_nothing_draws_is_listed_greyed_with_what_to_do() {

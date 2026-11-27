@@ -122,6 +122,7 @@ pub use part_rows::{DraftRow, DraftTable, HOLE_KIND, HOLE_SIZE};
 pub use stock::StockRow;
 mod part_new;
 mod part_offers;
+pub mod part_pieces;
 mod part_plc;
 pub mod parts;
 pub mod plc_exchange;

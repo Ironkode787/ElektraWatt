@@ -225,7 +225,6 @@ part-plug-description = { $p0 } plug
 part-plug-with-socket = programming socket
 part-plug-with-resistor = switchable terminating resistor
 part-section-name = { $p0 } section
-part-row-mm = { $p0 } (mm)
 part-hint-accessories = What this part brings with it. Per piece: for each terminal or device of this part. Per strip: once for each strip whose terminals use this part, after the last of them. Per rail group: the end brackets of a run of strips on one rail, one before it and one after each strip.
 part-hint-variants = The colours or versions of this part that a device chooses in Properties. Each gives its own part number, order number or description, so that a list tells them apart.
 part-hint-connections = The clamps of the pins: the wires each takes. A clamp without a range takes any wire.
@@ -287,9 +286,10 @@ parts-count = { $p0 ->
    *[other] { $p0 } parts
     }
 parts-used-by = { $p0 ->
-    [one] { $p0 } device of this project uses it
-   *[other] { $p0 } devices of this project use it
+    [one] { $p0 } more uses it
+   *[other] { $p0 } more use it
     }
+parts-uses-it = { $p0 } uses it
 parts-changed = Changed, not saved
 parts-lives-mine = Mine · in My parts
 parts-lives-starter = Starter part
@@ -313,3 +313,55 @@ reason-part-remove-used = { $p0 ->
     [one] { $p0 } device of this project uses the part.
    *[other] { $p0 } devices of this project use the part.
     }
+
+## The sheet of Parts (doc 16a §6.27): a group's one line beside its heading, and the room kept free round a part
+part-line-schematic = How the pages draw it: its pieces or its box, and its pins
+part-line-cabinet = Its size, how it mounts, its front and its holes
+part-line-connections = Pins with the same clamp stand on one row; open a row to change one pin
+part-line-ports = One row per interface of the data sheet
+part-line-plc = What it is in the PLC: a station with a rack, or a module in a slot
+part-line-technical = The values the program computes with
+part-line-goes-with = What it brings with it, and the forms it is sold in
+parts-free = Keep free
+parts-free-top = above
+parts-free-bottom = below
+parts-free-left = left
+parts-free-right = right
+parts-count-line = { $p0 } · { $p1 } mine · { $p2 } in this project
+parts-group-recent = Lately opened
+parts-chip-mine = mine
+parts-chip-starter = starter
+parts-chip-here = only this project
+parts-filter-maker = Maker
+parts-filter-maker-all = Every maker
+parts-lock-read-only = This project is open read-only: its parts are shown here, and none is changed.
+
+## On the schematic as tables (doc 07 §5.4): a part's pieces and a terminal's levels
+parts-pieces-none = No piece yet: add what the part is drawn as, a coil, a contact, a lamp, each with its pins.
+parts-piece-what = What it is
+parts-piece-pins = Pins
+parts-piece-symbol = Symbol
+parts-piece-choose = Choose what it is
+parts-piece-what-of = What piece { $p0 } is
+parts-piece-pins-of = Pins of piece { $p0 }
+parts-piece-starter = { $p0 } · starter
+parts-piece-add = Add a piece
+parts-levels = Levels
+parts-levels-n = { $p0 } levels
+parts-level = Level
+parts-level-left = Left clamp
+parts-level-right = Right clamp
+parts-level-joined = Joined inside
+parts-level-left-of = Left clamp of level { $p0 }
+parts-level-right-of = Right clamp of level { $p0 }
+parts-levels-note = Each level passes through on its own. The terminal diagram prints a row per level.
+parts-filter-maker-name = Filter by maker
+parts-strip-in-passing = A new part for { $p0 }, its { $p1 }.
+parts-new-plate = New plate…
+parts-size-mm = { $p0 } mm
+parts-size-mount-depth = { $p0 } · { $p1 } mm deep
+parts-size-depth = { $p0 } mm deep
+parts-connections-pins = Pins
+parts-connections-open = Open the row of pins { $p0 }
+parts-connections-close = Close the row of pins { $p0 }
+parts-unit-mm = mm

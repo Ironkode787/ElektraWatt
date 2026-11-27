@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Through the text interface: the part dialog and the part editor on
+//! Through the text interface: the part dialog and Parts on
 //! writable copies of the sample, with the compiled-in starter catalogue (the viewmodel names no schema types, so the
 //! fixture catalogue is written by the `ew-api` tests; these tests assert the starter's named rows). No test
 //! pins the number of offers: they assert named rows and their order.
@@ -509,9 +509,19 @@ fn the_part_editor_refuses_with_a_message() {
     let tmp = Tmp::new("part-sel-5r");
     let mut s = tmp.sample_shell("101");
     select(&mut s, "-102F1");
+    // A read-only project's parts are viewed in Parts: every field read, none typed.
+    done(&mut s, "parts.open", json!({}));
+    let open = s
+        .parts_place()
+        .and_then(|p| p.sheet.as_ref())
+        .expect("-102F1's part is open");
+    assert!(open.read_only && !open.editable());
     assert!(
-        !matches!(s.dispatch("parts.open", &json!({})), Outcome::Done),
-        "a read-only project refuses Parts"
+        !matches!(
+            s.dispatch("parts.field", &json!({ "field": "description", "value": "x" })),
+            Outcome::Done
+        ),
+        "nothing is typed"
     );
 }
 
@@ -672,7 +682,7 @@ fn the_empty_search_says_it_once_and_chooses_nothing() {
 }
 
 /// The Parts row's actions menu lists Choose part…, Add part… and Edit part… after its row actions; each
-/// opens the part dialog (replace the first use, append) or the part editor.
+/// opens the part dialog (replace the first use, append) or Parts.
 #[test]
 fn the_parts_row_menu_opens_the_dialog_and_the_editor() {
     let tmp = Tmp::new("part-sel-menu");

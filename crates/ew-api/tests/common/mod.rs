@@ -495,3 +495,24 @@ pub fn add_a_fourth_strip(records: &mut Vec<Record>) {
     assert_eq!(extra.len(), 6, "-X1031 and its five terminals");
     records.extend(extra);
 }
+
+/// The sample's library documents as copies of a colleague's library that is not installed: each starter part's copy
+/// names another library. Such a part is only in this project (doc 07 §5.8), his to change, so an edit forks it, which
+/// a starter part never is (its copy ID stays: the records name it).
+pub fn as_colleagues(lib: &mut [LibDocument]) {
+    let colleague = ew_ids::Uuid::from_u128(0xc011_ea90_0000_4000_8000_0000_0000_0001);
+    for doc in lib {
+        if let LibDocument::Part(c) = doc
+            && c.library_id.as_uuid() == ew_schema::starter::parts_library()
+        {
+            c.library_id = ew_ids::Id::from_uuid(colleague);
+        }
+    }
+}
+
+/// The sample as [`sample_records`] reads it, its parts copies of a colleague's library ([`as_colleagues`]).
+pub fn colleague_sample() -> Session {
+    let (project, records, mut lib) = sample_records();
+    as_colleagues(&mut lib);
+    session_of(project, records, lib)
+}

@@ -220,7 +220,6 @@ part-plug-description = { $p0 }-stekker
 part-plug-with-socket = programmeeraansluiting
 part-plug-with-resistor = schakelbare afsluitweerstand
 part-section-name = Sectie { $p0 }
-part-row-mm = { $p0 } (mm)
 part-hint-accessories = Wat dit artikel meebrengt. Per stuk: voor elke klem of elk apparaat van dit artikel. Per klemmenstrook: eenmaal voor elke strook waarvan de klemmen dit artikel gebruiken, na de laatste. Per railgroep: de eindsteunen van een rij stroken op één rail, één ervoor en één na elke strook.
 part-hint-variants = De kleuren of uitvoeringen van dit artikel die een apparaat kiest in Eigenschappen. Elk heeft een eigen artikelnummer, bestelnummer of omschrijving, zodat een lijst ze uit elkaar houdt.
 part-hint-connections = De klemmen van de aansluitingen: de draden die elk opneemt. Een klem zonder bereik neemt elke draad.
@@ -282,9 +281,10 @@ parts-count = { $p0 ->
    *[other] { $p0 } artikelen
     }
 parts-used-by = { $p0 ->
-    [one] { $p0 } apparaat van dit project gebruikt het
-   *[other] { $p0 } apparaten van dit project gebruiken het
+    [one] nog { $p0 } gebruikt het
+   *[other] nog { $p0 } gebruiken het
     }
+parts-uses-it = { $p0 } gebruikt het
 parts-changed = Gewijzigd, niet opgeslagen
 parts-lives-mine = Van mij · in Mijn artikelen
 parts-lives-starter = Startartikel
@@ -308,3 +308,55 @@ reason-part-remove-used = { $p0 ->
     [one] { $p0 } apparaat van dit project gebruikt het artikel.
    *[other] { $p0 } apparaten van dit project gebruiken het artikel.
     }
+
+## Het blad van Artikelen (doc 16a §6.27): de ene regel van een groep naast zijn kop, en de ruimte die vrij blijft
+part-line-schematic = Hoe de pagina's het tekenen: zijn delen of zijn blok, en zijn aansluitingen
+part-line-cabinet = Zijn maten, hoe het gemonteerd wordt, zijn voorkant en zijn gaten
+part-line-connections = Aansluitingen met dezelfde klem staan op één rij; open een rij om één aansluiting te wijzigen
+part-line-ports = Eén rij per interface van het datablad
+part-line-plc = Wat het in de PLC is: een station met een rek, of een module in een sleuf
+part-line-technical = De waarden waarmee het programma rekent
+part-line-goes-with = Wat het meebrengt, en de vormen waarin het verkocht wordt
+parts-free = Vrij houden
+parts-free-top = boven
+parts-free-bottom = onder
+parts-free-left = links
+parts-free-right = rechts
+parts-count-line = { $p0 } · { $p1 } van mij · { $p2 } in dit project
+parts-group-recent = Pas geopend
+parts-chip-mine = van mij
+parts-chip-starter = start
+parts-chip-here = alleen dit project
+parts-filter-maker = Fabrikant
+parts-filter-maker-all = Elke fabrikant
+parts-lock-read-only = Dit project is alleen-lezen geopend: de artikelen staan hier, en geen ervan wordt gewijzigd.
+
+## Op het schema als tabellen (doc 07 §5.4): de delen van een artikel en de niveaus van een klem
+parts-pieces-none = Nog geen deel: voeg toe waarmee het artikel getekend wordt, een spoel, een contact, een lamp, elk met zijn aansluitingen.
+parts-piece-what = Wat het is
+parts-piece-pins = Aansluitingen
+parts-piece-symbol = Symbool
+parts-piece-choose = Kies wat het is
+parts-piece-what-of = Wat deel { $p0 } is
+parts-piece-pins-of = Aansluitingen van deel { $p0 }
+parts-piece-starter = { $p0 } · start
+parts-piece-add = Een deel toevoegen
+parts-levels = Niveaus
+parts-levels-n = { $p0 } niveaus
+parts-level = Niveau
+parts-level-left = Linker klem
+parts-level-right = Rechter klem
+parts-level-joined = Binnen verbonden
+parts-level-left-of = Linker klem van niveau { $p0 }
+parts-level-right-of = Rechter klem van niveau { $p0 }
+parts-levels-note = Elk niveau verbindt op zichzelf door. Het klemmenschema drukt per niveau een rij.
+parts-filter-maker-name = Filteren op fabrikant
+parts-strip-in-passing = Een nieuw artikel voor { $p0 }, de { $p1 }.
+parts-new-plate = Nieuwe plaat…
+parts-size-mm = { $p0 } mm
+parts-size-mount-depth = { $p0 } · { $p1 } mm diep
+parts-size-depth = { $p0 } mm diep
+parts-connections-pins = Aansluitingen
+parts-connections-open = De rij van aansluitingen { $p0 } openen
+parts-connections-close = De rij van aansluitingen { $p0 } sluiten
+parts-unit-mm = mm

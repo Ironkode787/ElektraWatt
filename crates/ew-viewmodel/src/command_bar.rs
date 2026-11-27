@@ -1034,7 +1034,7 @@ pub fn navigator_row_menu(
             .flatten()
             .collect()
         }
-        // A device the layout cannot place to size: Give it a size… opens its part in the part editor (F23).
+        // A device the layout cannot place to size: Give it a size… opens its part in Parts (F23).
         (NavKind::Unplaced, NavRole::Device, Some(device))
             if node.badges.iter().any(|b| b == "unknown size") =>
         {

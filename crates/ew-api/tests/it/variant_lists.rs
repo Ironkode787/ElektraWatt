@@ -15,10 +15,10 @@ use ew_ids::Id;
 use ew_schema::Device;
 use serde_json::json;
 
-/// The sample with the part of the device `tag` forked as the project's own with a variant `bu` of the number
+/// The sample, its parts a colleague's, with the part of the device `tag` forked as the project's own with a variant `bu` of the number
 /// `<number>-BU`, which the device takes; and that number.
 fn with_variant(tag: &str) -> (Session, String) {
-    let mut s = common::sample();
+    let mut s = common::colleague_sample();
     let device = s.resolve_reference(&format!("tag:{tag}")).expect("the device");
     let copy = s
         .query()

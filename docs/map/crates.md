@@ -174,11 +174,12 @@ The `Session` facade shared by every front-end.
 | `src/page_copy.rs` |  | A copy of pages in the session (doc 06 §3.6, "A copy of pages"): [`Session::copy_pages`] composes `page.copy` from the pages and the rule. |
 | `src/part_box.rs` |  | The device box of a part (doc 07 §2.5, "The device box"): the pins a part of one's own has and where they stand on the box a device of it is drawn as. |
 | `src/part_cable.rs` |  | The cable section of a cable part as a form (New cable type…): the number of cores, the cross-section, with or without a protective conductor, how the cores are marked, shielded or not, as texts checked one by one, and the cable as it will read (`3G1.5 · BN BU GNYE`). |
-| `src/part_editor.rs` | large | The part editor's draft (FR-PRT-022). |
-| `src/part_new.rs` |  | A new part made in the window (`part.new`): [`Session::new_part_draft`] opens the part editor on an empty draft; [`Session::new_part_command`] turns the draft into the part and the one command that brings it into the project. |
+| `src/part_editor.rs` | large | The sheet's draft (FR-PRT-022). |
+| `src/part_new.rs` |  | A new part made in the window (`part.new`): [`Session::new_part_draft`] opens Parts on an empty draft; [`Session::new_part_command`] turns the draft into the part and the one command that brings it into the project. |
 | `src/part_offers.rs` |  | The part selection dialog's data. |
+| `src/part_pieces.rs` |  | On the schematic, as tables of the sheet (doc 07 §5.4): a part drawn with symbols is drawn as its **pieces** (a coil, a main contact), each what it is (a starter function) with its pins, and a terminal as its **levels**, each with its left and right clamp. |
 | `src/part_plc.rs` |  | The PLC section of a new part as a form (doc 10 §2.6): what the part is in the PLC model, its channels, the pin pattern, the supply pins, the allowed slots and a station's module limit, as texts checked one by one. |
-| `src/part_rows.rs` | large | The part editor's groups and their declared rows (doc 07 §5.4): the editor lists the groups of the part's sheet ([`ew_derive::part_fields::Group`]) on its left and shows one at a time. |
+| `src/part_rows.rs` | large | The sheet's groups and their declared rows (doc 07 §5.4): the editor lists the groups of the part's sheet ([`ew_derive::part_fields::Group`]) on its left and shows one at a time. |
 | `src/parts.rs` |  | Parts, the one place for parts (doc 07 §5): what its list finds ([`Session::parts_find`]), where a part lives ([`Lives`], doc 07 §5.8), what the open sheet lacks ([`Session::sheet_lacks`]) and Keep in my parts ([`Session::keep_in_my_parts`]). |
 | `src/plc_exchange.rs` |  | The PLC exchange of a session (doc 10 §4, §7): the files a configuration project is exported as, the preview of a file that comes back, the exchange status and the instrument list. |
 | `src/qet_collection.rs` |  | A QElectroTech element collection into a user library, on demand (doc 07 §3.6, FR-SYM-029): the `.elmt` files of a directory (the user's QET installation) become symbols and function definitions of a writable library, each on the QET 10 px grid with its source path, under the licence `LicenseRef-QET-elements` and the flag `foreign_terms`. |
@@ -313,8 +314,9 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/commands/overview.rs` |  | `valve_terminal.generate_overview` (`GenerateOverview`, doc 11 §5.5, FR-FLU-033): creates or refreshes the assembly-overview pages of a valve terminal. |
 | `src/commands/page.rs` | large | Page commands (doc 06 §3.1): `page.create`, `page.delete`, `page.renumber`, `page.reorder`; and `page.surface_view.set`, the view of a panel-layout page. |
 | `src/commands/page_copy.rs` |  | `page.copy` (doc 06 §3.6, "A copy of pages"): whole pages copied for a second installation in one transaction, by the rule a person gives: new folios (an offset, or after a page), a structure node of the copy's own, renamed frozen tags and interruption-point names. |
-| `src/commands/part_delete.rs` |  | `part.delete` (`DeletePartCopy`): Delete part… of the part editor (doc 07 §5). |
-| `src/commands/part_edit.rs` |  | `part.edit_copy` (`EditPartCopy`): the part editor's command, always previewed. |
+| `src/commands/part_delete.rs` |  | `part.delete` (`DeletePartCopy`): Delete part… of Parts (doc 07 §5). |
+| `src/commands/part_edit.rs` |  | `part.edit_copy` (`EditPartCopy`): the sheet's command, always previewed. |
+| `src/commands/part_keep.rs` |  | `part.keep` (`KeepPart`): Keep in my parts (doc 07 §5.8), the project's side. |
 | `src/commands/parts.rs` |  | `parts.import` (`ImportParts`): inserts project-local part copies that a parts table produced (`ew_import_tables::parse_parts_tables`), with the manufacturer copies they name, skipping what the project has already. |
 | `src/commands/paste.rs` |  | `edit.paste`: pastes a project fragment (`#ew-fragment v1`, the project-fragment format of architecture §5.5) onto a page in one transaction. |
 | `src/commands/paste/insertion.rs` | large | The insertion engine of `edit.paste`, `macro.insert` and `page.copy` (effects 1 to 7 of `PasteFragment`). |
@@ -1188,6 +1190,7 @@ The window of the desktop program in egui: it paints the shell model of `ew-view
 | `src/parts_card.rs` |  | The inline preview card of File, Import, Parts table…: a card floating at the top centre while the card's origin is an import. |
 | `src/parts_map.rs` |  | The column mapping step of File, Import, Parts table…: a card floating in the window's centre, where a dialog stands (at the top of the window it read as a strip left behind), while `ShellModel::parts_map` is open, before the import card (doc 16a §6.9, `elevation.1`). |
 | `src/parts_place.rs` | large | Parts, the one place for parts (doc 07 §5, doc 16a §6.27): its command row (the Part tab), the list with its scopes and filters, the open part's sheet (the strip of where the person came from, the heading, the lock line of a part that is not his, the contents list and the groups one under another, in two columns at 2560 × 1440), and the pictures beside it (the schematic, the front in the cabinet) with Ready for, or the card of what Save changes. |
+| `src/parts_sheet.rs` |  | The components of the sheet of Parts (doc 16a §6.27), each built once: the fields' grid, a sheet field (a value with its unit, read as text until it is changed), a group's heading with its one line. |
 | `src/picker.rs` | large | The device and symbol browser: one overlay for Insert symbol, Insert device, Change symbol, Insert black box and the strip chooser, over a backdrop, the window less `space.6` on each side and most of its height. |
 | `src/preview.rs` |  | The Preview tab (FR-UI-022), restyled to doc 16a §6.23. |
 | `src/print_dialog.rs` |  | The print pre-dialog (doc 16a §6.12): the options on the left on §6.12's form rows, the preview of the print set on the right at the page's aspect ratio, `<n> of <m>` with Previous and Next under it, the stamp visible. |

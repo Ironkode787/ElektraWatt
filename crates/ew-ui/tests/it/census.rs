@@ -270,6 +270,7 @@ enum DialogKind {
     ConfirmPurge,
     PartChoose,
     ConfirmRemovePart,
+    ConfirmLeavePart,
     ConfirmReplaceDxf,
     Print,
     ExternalChange,
@@ -308,7 +309,8 @@ impl DialogKind {
             Self::Recovery => Self::ConfirmPurge,
             Self::ConfirmPurge => Self::PartChoose,
             Self::PartChoose => Self::ConfirmRemovePart,
-            Self::ConfirmRemovePart => Self::ConfirmReplaceDxf,
+            Self::ConfirmRemovePart => Self::ConfirmLeavePart,
+            Self::ConfirmLeavePart => Self::ConfirmReplaceDxf,
             Self::ConfirmReplaceDxf => Self::Print,
             Self::Print => Self::ExternalChange,
             Self::ExternalChange => Self::ConfirmUpgrade,
@@ -352,6 +354,7 @@ fn kind(d: &Dialog) -> DialogKind {
         Dialog::ConfirmPurge { .. } => DialogKind::ConfirmPurge,
         Dialog::PartChoose(_) => DialogKind::PartChoose,
         Dialog::ConfirmRemovePart { .. } => DialogKind::ConfirmRemovePart,
+        Dialog::ConfirmLeavePart { .. } => DialogKind::ConfirmLeavePart,
         Dialog::ConfirmReplaceDxf { .. } => DialogKind::ConfirmReplaceDxf,
         Dialog::Print(_) => DialogKind::Print,
         Dialog::ExternalChange { .. } => DialogKind::ExternalChange,
@@ -470,7 +473,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             dispatch(&mut h, "part.choose", json!({"use": 0}));
             h
         }
-        // A part of My parts, made here, whose part editor asks before it is taken out.
+        // A part of My parts, made here, whose sheet asks before it is taken out.
         DialogKind::ConfirmRemovePart => {
             let tiers = ew_viewmodel::ew_api::library::LibraryTiers::under(
                 &tmp.0.join("data"),
@@ -497,6 +500,25 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             let mut h = harness_with(shell, Scripted::default(), None);
             h.set_size(egui::Vec2::new(1920.0, 1080.0));
             h.run_ok();
+            h
+        }
+        // A new part with a field typed: Back asks before its changes go.
+        DialogKind::ConfirmLeavePart => {
+            let mut h = harness(tmp, Scripted::default(), None);
+            h.set_size(egui::Vec2::new(1920.0, 1080.0));
+            h.run_ok();
+            dispatch(
+                &mut h,
+                "file.new",
+                json!({"dir": tmp.0.join("leave.ew"), "template": "builtin"}),
+            );
+            dispatch(&mut h, "parts.new", json!({"start": "device"}));
+            dispatch(
+                &mut h,
+                "parts.field",
+                json!({"field": "part_number", "value": "SW-6"}),
+            );
+            dispatch(&mut h, "parts.back", json!({}));
             h
         }
         DialogKind::Recovery | DialogKind::ConfirmJournalDiscard => {

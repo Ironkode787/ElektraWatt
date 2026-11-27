@@ -417,7 +417,7 @@ fn each_end_is_marked_with_its_far_end() {
 /// that an end names is not deleted: the delete policy refuses it, naming the wire.
 #[test]
 fn the_part_of_an_end_set_by_hand_is_a_link() {
-    let mut s = common::sample();
+    let mut s = common::colleague_sample();
     let copy = stock(&s, "EW-GEN-FER-2.5");
     let (holder, member) = end_of(&s, "101.4", 0);
     run(

@@ -176,7 +176,11 @@ fn the_part_editor_by_keyboard() {
     dispatch(&mut h, "parts.open", json!({}));
     settle(&mut h);
     settle(&mut h);
-    let _ = field(&h, "Rated current");
+    // The starter part's values read as text: its rows are named in words, never typed into.
+    assert!(
+        h.get_all_by_label("Rated current").next().is_some(),
+        "the technical value named in words"
+    );
     assert!(
         h.get_all_by_role(egui::Role::TextInput)
             .all(|n| n.accesskit_node().label().as_deref() != Some("rated_current")),

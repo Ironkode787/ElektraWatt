@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `part.delete` (`DeletePartCopy`): Delete part… of the part editor (doc 07 §5).
+//! `part.delete` (`DeletePartCopy`): Delete part… of Parts (doc 07 §5).
 
 use ew_ids::Id;
 use ew_schema::{Kind, LibCopy, Part};

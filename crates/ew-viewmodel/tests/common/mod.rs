@@ -607,3 +607,22 @@ pub fn strip_cursor(shell: &ShellModel) -> String {
 pub fn strip_at(shell: &mut ShellModel, key: &str) {
     done(shell, "table.cell", json!({"kind": "strips", "row": key}));
 }
+
+/// Makes the person's own part `own` from the starter part `starter` in Parts (a starter part is never changed): Make
+/// my own, its number, Save, Back.
+pub fn own_of(shell: &mut ShellModel, starter: &str, own: &str) {
+    done(shell, "parts.open", json!({ "part": starter }));
+    done(shell, "parts.own", json!({}));
+    done(
+        shell,
+        "parts.field",
+        json!({ "field": "manufacturer", "value": "Example" }),
+    );
+    done(
+        shell,
+        "parts.field",
+        json!({ "field": "part_number", "value": own }),
+    );
+    done(shell, "parts.save", json!({}));
+    done(shell, "parts.back", json!({}));
+}

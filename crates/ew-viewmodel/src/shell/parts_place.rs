@@ -63,6 +63,10 @@ pub struct OpenSheet {
     pub lives: Lives,
     /// What it lacks, as the texts give it now (Ready for, the dots of the contents list).
     pub lacks: Vec<Lack>,
+    /// Ready for: every feature that reads the part, one entry each, as the texts give it now.
+    pub ready: Vec<ew_api::part_fields::Ready>,
+    /// The project's devices that use the part, each with its tag (the heading's chip "-102Q1 uses it").
+    pub used_by: Vec<(Uuid, String)>,
     /// The makers the Maker field offers.
     pub manufacturers: Vec<String>,
     /// The refusal of the last Save, in words.
@@ -75,12 +79,14 @@ pub struct OpenSheet {
     pub changed: bool,
     /// The number of this opening among all the place's openings: the window shows a part opened anew from its top.
     pub opened: u64,
+    /// Whether the project is open read-only: every part is shown, none changed.
+    pub read_only: bool,
 }
 
 impl OpenSheet {
-    /// Whether the person may change the part's fields: his own, or new.
+    /// Whether the person may change the part's fields: his own, or new, in a project he can write.
     pub fn editable(&self) -> bool {
-        matches!(self.lives, Lives::Mine | Lives::OnlyHere | Lives::New)
+        !self.read_only && matches!(self.lives, Lives::Mine | Lives::OnlyHere | Lives::New)
     }
 
     /// The heading: the part number, or New part.
@@ -118,6 +124,20 @@ pub enum Asking {
     LikeWhich,
 }
 
+/// The numbers of the list's count line ("1,284 parts · 214 mine · 50 in this project").
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct ListCounts {
+    /// Every part the list finds.
+    pub all: usize,
+    /// Those of My parts.
+    pub mine: usize,
+    /// Those the project holds.
+    pub project: usize,
+}
+
+/// How many parts Lately opened keeps.
+const RECENT: usize = 5;
+
 /// The place's state.
 #[derive(Clone, PartialEq, Debug)]
 pub struct PartsPlace {
@@ -131,17 +151,39 @@ pub struct PartsPlace {
     pub kind: Option<String>,
     /// Whether the list shows only the parts that lack something.
     pub lacking: bool,
-    /// The list's rows.
+    /// The list's maker filter.
+    pub maker: Option<String>,
+    /// The list's rows, at most [`LIST_ROWS`].
     pub found: Vec<PartFound>,
+    /// What the list holds before it is cut to [`LIST_ROWS`] (the count line): every part, those of My parts, those
+    /// the project holds.
+    pub counts: ListCounts,
+    /// The makers of the parts the list finds without its maker filter, in their order: the Maker filter's choices.
+    pub makers: Vec<String>,
+    /// The parts opened lately, the latest first, by the copy each has or would have in the project (the list's group
+    /// Lately opened).
+    pub recent: Vec<Uuid>,
     /// The open part.
     pub sheet: Option<OpenSheet>,
     /// What New part… asks while no sheet is open.
     pub asking: Option<Asking>,
+    /// The sheets waiting under a part made in passing (doc 07 §5.5: a cabinet's mounting plate made from its field),
+    /// each with the field that takes the new part: Save returns to it with the part chosen, Back without it.
+    pub under: Vec<(OpenSheet, String)>,
 }
 
 impl PartsPlace {
     /// The strip's sentence over the sheet: where the person came from with a purpose; `None` from the project's window.
     pub fn strip(&self) -> Option<String> {
+        if let Some((under, field)) = self.under.last() {
+            let word = ew_api::part_fields::field(field)
+                .map(|f| strings::render(&ew_api::part_fields::word_in(f.word)))
+                .unwrap_or_default();
+            return Some(strings::format(
+                key!("parts-strip-in-passing"),
+                &[&under.title(), &word],
+            ));
+        }
         match &self.origin {
             Origin::Project | Origin::Station | Origin::Browser => None,
             Origin::Chooser(c) => Some(strings::format(key!("parts-strip-choosing"), &[&c.target_text])),
@@ -154,6 +196,9 @@ impl PartsPlace {
 
     /// The label of the way back: Back without choosing, Back to the form, Back.
     pub fn back_label(&self) -> &'static str {
+        if !self.under.is_empty() {
+            return strings::text(key!("parts-back-without-it"));
+        }
         match &self.origin {
             Origin::Project | Origin::Station | Origin::Browser => strings::text(key!("parts-back")),
             Origin::Chooser(_) => strings::text(key!("parts-back-without-choosing")),
@@ -292,7 +337,12 @@ impl ShellModel {
             scope: PartScope::All,
             kind: None,
             lacking: false,
+            maker: None,
             found: Vec::new(),
+            counts: ListCounts::default(),
+            makers: Vec::new(),
+            recent: Vec::new(),
+            under: Vec::new(),
             sheet: None,
             asking: None,
         }));
@@ -307,16 +357,34 @@ impl ShellModel {
         let Some(place) = self.parts.as_deref_mut() else {
             return;
         };
-        place.found = project.session.parts_find(
+        let mut found = project.session.parts_find(
             &place.query,
             place.scope,
             place.kind.as_deref(),
             place.lacking,
             Some(strings::rule_language().to_owned()),
-            LIST_ROWS,
+            usize::MAX,
         );
+        let mut makers: Vec<String> = found.iter().map(|f| f.offer.manufacturer.clone()).collect();
+        makers.sort_by_key(|m| m.to_lowercase());
+        makers.dedup();
+        place.makers = makers;
+        if let Some(m) = &place.maker {
+            found.retain(|f| &f.offer.manufacturer == m);
+        }
+        place.counts = ListCounts {
+            all: found.len(),
+            mine: found.iter().filter(|f| f.lives == Lives::Mine).count(),
+            project: found
+                .iter()
+                .filter(|f| matches!(f.offer.pick, PartPick::Held(_)))
+                .count(),
+        };
+        found.truncate(LIST_ROWS);
+        place.found = found;
         if let Some(open) = &mut place.sheet {
             open.lacks = project.session.sheet_lacks(&open.sheet);
+            open.ready = project.session.sheet_ready(&open.sheet);
         }
     }
 
@@ -327,21 +395,36 @@ impl ShellModel {
         };
         let lives = project.session.sheet_lives(&sheet);
         let lacks = project.session.sheet_lacks(&sheet);
+        let ready = project.session.sheet_ready(&sheet);
+        let used_by = if sheet.new {
+            Vec::new()
+        } else {
+            project.session.part_users(sheet.copy)
+        };
         let manufacturers = project.session.part_manufacturers();
+        let read_only = !self.is_writable();
         self.parts_opened = self.parts_opened.wrapping_add(1);
         let opened = self.parts_opened;
         if let Some(place) = self.parts.as_deref_mut() {
             place.asking = None;
+            if !sheet.new {
+                place.recent.retain(|r| *r != sheet.copy);
+                place.recent.insert(0, sheet.copy);
+                place.recent.truncate(RECENT);
+            }
             place.sheet = Some(OpenSheet {
                 opened,
                 sheet,
                 lives,
                 lacks,
+                ready,
+                used_by,
                 manufacturers,
                 error: None,
                 bus_part,
                 group: None,
                 changed: false,
+                read_only,
             });
         }
     }
@@ -409,6 +492,7 @@ impl ShellModel {
             },
         };
         let kind = or_return!(string_param(p, "kind")).map(str::to_owned);
+        let maker = or_return!(string_param(p, "maker")).map(str::to_owned);
         let Some(place) = self.parts.as_deref_mut() else {
             return Outcome::refused(key!("reason-no-parts-place"));
         };
@@ -420,6 +504,9 @@ impl ShellModel {
         }
         if let Some(k) = kind {
             place.kind = (k != "all").then_some(k);
+        }
+        if let Some(m) = maker {
+            place.maker = (m != "all").then_some(m);
         }
         if let Some(v) = p.get("lacking") {
             place.lacking = v.as_bool().unwrap_or(false);
@@ -444,6 +531,7 @@ impl ShellModel {
             },
         };
         let like = flag(p, "like");
+        let for_field = or_return!(string_param(p, "for_field")).map(str::to_owned);
         let project = or_return!(crate::shell::gated(&self.project));
         let open = self.parts.as_deref().and_then(|p| p.sheet.as_ref());
         let made = match (&symbol, start, like) {
@@ -504,6 +592,13 @@ impl ShellModel {
                 Some(made)
             }
         };
+        // A part made in passing: the open sheet waits under it with the field that takes it.
+        if let Some(field) = for_field
+            && let Some(place) = self.parts.as_deref_mut()
+            && let Some(waiting) = place.sheet.take()
+        {
+            place.under.push((waiting, field));
+        }
         // From the symbol editor, its view is left with its draft kept (as Close editor does).
         if symbol.is_some()
             && let Some(editor) = &mut self.symbol_editor
@@ -528,7 +623,12 @@ impl ShellModel {
         if let Some(open) = self.parts.as_deref_mut().and_then(|p| p.sheet.as_mut()) {
             open.changed = true;
             open.error = None;
-            open.lacks = project.session.sheet_lacks(&open.sheet);
+            // While a field's text does not read, Ready for stays as it was: it says what the part lacks, not what a
+            // half-typed text would make of it (and the sheet does not jump).
+            if open.sheet.messages.is_empty() {
+                open.lacks = project.session.sheet_lacks(&open.sheet);
+                open.ready = project.session.sheet_ready(&open.sheet);
+            }
         }
     }
 
@@ -629,6 +729,14 @@ impl ShellModel {
                     true
                 }
                 Some(i) => open.sheet.remove_bus_row(i),
+            }
+        } else if table == "pieces" {
+            match remove {
+                None => {
+                    open.sheet.add_piece();
+                    true
+                }
+                Some(i) => open.sheet.remove_piece(i),
             }
         } else {
             let editable = open
@@ -750,10 +858,7 @@ impl ShellModel {
         let out = self.run_commit(&cmd);
         if out == Outcome::Done {
             self.libraries_changed();
-            let kept = cmd.params["part"]
-                .as_str()
-                .or_else(|| cmd.params["copies"][0]["id"].as_str())
-                .and_then(|s| s.parse::<Uuid>().ok());
+            let kept = cmd.params["to"].as_str().and_then(|s| s.parse::<Uuid>().ok());
             if let (Some(project), Some(kept)) = (&self.project, kept)
                 && let Ok(sheet) = project.session.part_draft(kept)
             {
@@ -764,16 +869,47 @@ impl ShellModel {
         out
     }
 
-    /// `parts.back`: returns to where the person came from: the part dialog with the open part under its cursor, the
-    /// form that asked for a part, else the project's window. Refused in words while the open part has unsaved
-    /// changes: Save or Discard first.
-    pub(crate) fn act_parts_back(&mut self) -> Outcome {
+    /// `parts.back {save?, discard?, show?}`: returns to where the person came from: the part dialog with the open part
+    /// under its cursor, the form that asked for a part, else the project's window; with `show`, that device on its page
+    /// (the heading's "-102Q1 uses it"). While the open part has changes not saved the window asks Save, Discard or
+    /// Stay first (a script is refused in words); `save` saves and then leaves, `discard` leaves without them.
+    pub(crate) fn act_parts_back(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(place) = self.parts.as_deref() else {
             return Outcome::refused(key!("reason-no-parts-place"));
         };
-        if place.sheet.as_ref().is_some_and(|o| o.changed) {
-            return Outcome::refused(key!("reason-parts-unsaved"));
+        if let Some(open) = place.sheet.as_ref().filter(|o| o.changed) {
+            if flag(p, "save") {
+                // Save, then leave once it saved; a refusal stays on the sheet, said under it.
+                self.dialog = None;
+                let out = self.act_parts_save(&Map::new());
+                if out != Outcome::Done
+                    || self
+                        .parts
+                        .as_deref()
+                        .and_then(|p| p.sheet.as_ref())
+                        .is_some_and(|o| o.changed && o.sheet.new)
+                {
+                    return out;
+                }
+                if self.parts.is_none() {
+                    // Save and use for, or a form's part: the place gave way already.
+                    return Outcome::Done;
+                }
+            } else if !flag(p, "discard") {
+                return match self.mode {
+                    crate::shell::Mode::Headless => Outcome::refused(key!("reason-parts-unsaved")),
+                    crate::shell::Mode::Gui => {
+                        let number = open.title();
+                        self.open_dialog(Dialog::ConfirmLeavePart { number })
+                    }
+                };
+            }
         }
+        self.dialog = None;
+        if let Some((waiting, field)) = self.parts.as_deref_mut().and_then(|p| p.under.pop()) {
+            return self.back_to_waiting(waiting, &field, None);
+        }
+        let show = string_param(p, "show").ok().flatten().map(str::to_owned);
         let place = *self.parts.take().expect("checked");
         match place.origin {
             Origin::Project | Origin::Station | Origin::Browser => {}
@@ -786,6 +922,10 @@ impl ShellModel {
                 self.dialog = Some(Dialog::Form(*f));
                 self.dialog_gen += 1;
             }
+        }
+        // The heading's "-102Q1 uses it": the device on its page.
+        if let Some(device) = show {
+            return self.act_nav_show(&Map::from_iter([("record".to_owned(), Value::String(device))]));
         }
         Outcome::Done
     }
@@ -1044,6 +1184,9 @@ impl ShellModel {
         if another {
             return self.parts_new_like(open);
         }
+        if let Some((waiting, field)) = self.parts.as_deref_mut().and_then(|p| p.under.pop()) {
+            return self.back_to_waiting(waiting, &field, Some(&number));
+        }
         let origin = self
             .parts
             .as_deref()
@@ -1106,6 +1249,22 @@ impl ShellModel {
         }
     }
 
+    /// The sheet that waited under a part made in passing, open again: its field `field` takes the part numbered
+    /// `number` when it was saved.
+    fn back_to_waiting(&mut self, waiting: OpenSheet, field: &str, number: Option<&str>) -> Outcome {
+        if let Some(place) = self.parts.as_deref_mut() {
+            place.sheet = Some(waiting);
+        }
+        if let Some(number) = number {
+            let _ = self.act_parts_field(&Map::from_iter([
+                ("field".to_owned(), Value::String(field.to_owned())),
+                ("value".to_owned(), Value::String(number.to_owned())),
+            ]));
+        }
+        self.parts_refresh();
+        Outcome::Done
+    }
+
     /// A new part like the saved `saved` but for its number and its cross-section (Save and add another size): its own
     /// item ID, the form's way back kept.
     fn parts_new_like(&mut self, saved: OpenSheet) -> Outcome {
@@ -1134,6 +1293,9 @@ impl ShellModel {
         sheet: &PartSheet,
     ) -> Option<(ew_dl::DisplayList, (ew_units::Nm, ew_units::Nm))> {
         let session = &self.project.as_ref()?.session;
-        session.part_schematic(&session.sheet_part(sheet))
+        // A part drawn as a box: its box with its pins, as the page lays it out; else its pieces' symbols.
+        sheet
+            .box_picture()
+            .or_else(|| session.part_schematic(&session.sheet_part(sheet)))
     }
 }

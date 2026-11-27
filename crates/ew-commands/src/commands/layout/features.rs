@@ -3,7 +3,7 @@
 
 //! The holes of a surface (doc 12 §3.7, doc 12-3d §10.6): a hole by hand (`layout.feature.add`,
 //! `layout.feature.edit`) and the choice that moves a derived hole or leaves it out (`layout.hole_choice`). A hole's
-//! kind and size are read by [`Hole::parse`], the one parser of the part editor's cells, the Add hole form and the
+//! kind and size are read by [`Hole::parse`], the one parser of the sheet's cells, the Add hole form and the
 //! command line; its refusal is its words.
 
 use ew_derive::Q;

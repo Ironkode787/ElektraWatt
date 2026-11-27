@@ -451,13 +451,18 @@ pub enum Dialog {
         /// The assets they hold (the parameter of the purge).
         assets: Vec<String>,
     },
-    /// Remove from my parts library…: the part taken out of My parts, which undo does not bring back;
-    /// Remove (`part.remove_own` with `confirm`) or Cancel (Escape), which returns to the part editor it was asked
-    /// from.
+    /// Remove… of Parts: the part taken out of My parts, which undo does not bring back; Remove (`parts.remove` with
+    /// `confirm`) or Cancel (Escape), which returns to the part's sheet it was asked from.
     ConfirmRemovePart {
-        /// The part as `part.remove_own` takes it (`id:<copy>`).
+        /// The part as `parts.open` names it (`id:<copy>`).
         part: String,
         /// Its part number.
+        number: String,
+    },
+    /// Back of Parts with changes not saved: Save (`parts.back` with `save`), Discard (`parts.back` with `discard`)
+    /// or Stay (Escape), which returns to the sheet.
+    ConfirmLeavePart {
+        /// The open part's heading: its number, or New part.
         number: String,
     },
     /// Export DXF… into a folder that holds an earlier DXF set (doc 09 §4.9): its files go, with a person's later
@@ -616,7 +621,7 @@ pub enum Prompt {
     OpenImage,
     /// A font file of one typeface, TTF or OTF (Text styles' Choose a font file…).
     OpenFont,
-    /// A DXF drawing of a part's front (the part editor's Import outline…).
+    /// A DXF drawing of a part's front (the sheet's Import outline…).
     OpenOutline,
     /// An existing keymap file (the keymap editor's Import…).
     OpenKeymap,
@@ -865,7 +870,7 @@ pub struct ShellModel {
     /// The history's marker lines of the open project session (exports, recoveries), by revision.
     markers: Vec<HistoryMarker>,
     /// The recovery dialog that Discard… replaced with its confirmation, the import card that the unsaved-changes
-    /// question of its Apply replaced, or the part editor that Remove from my parts library… replaced: Cancel returns
+    /// question of its Apply replaced, or Parts that Remove from my parts library… replaced: Cancel returns
     /// to it.
     recovery_stash: Option<Dialog>,
     /// The message panel's view state: the editing page, the scheme of its table, the quick fixes' origin annotations.
@@ -1083,7 +1088,7 @@ mod choice_word_tests {
     /// Every value of the closed sets the window shows through `choice_text` has
     /// its `choice-<value>` in en-GB and nl-NL: every `enum(…)` and `bool` of an `ACTIONS` signature, whatever its
     /// form plan, the form dialogs' choices (New page's types, New structure node's aspects, the yes-or-no fields,
-    /// Renumber devices…' scopes and schemes, Save as macro's kinds, the revision forms' roles), the part editor's
+    /// Renumber devices…' scopes and schemes, Save as macro's kinds, the revision forms' roles), the sheet's
     /// kinds and every page type of the format (the Properties pane's Kind). The en-GB words are the ones derived
     /// before; the Dutch ones their own.
     #[test]
@@ -2382,15 +2387,10 @@ impl ShellModel {
         if self.supply_panel.take().is_some() {
             return Outcome::Done;
         }
-        // Escape in Parts with nothing over it is its way back (doc 07 §5.2); a new part not saved goes with it, as a
-        // form's Cancel drops what was typed.
+        // Escape in Parts with nothing over it is its way back (doc 07 §5.2), which asks first while the part has
+        // changes not saved.
         if self.dialog.is_none() && self.palette().is_none() && self.screen() == Screen::Parts {
-            if let Some(place) = self.parts.as_deref_mut()
-                && place.sheet.as_ref().is_some_and(|o| o.sheet.new)
-            {
-                place.sheet = None;
-            }
-            return self.act_parts_back();
+            return self.act_parts_back(&Map::new());
         }
         // Escape in the confirmation that Discard… opened returns to the recovery dialog.
         // And Escape in the unsaved-changes question of the import card's Apply returns to the card.
@@ -2400,6 +2400,7 @@ impl ShellModel {
                 Dialog::ConfirmJournalDiscard
                     | Dialog::ConfirmDiscard { .. }
                     | Dialog::ConfirmRemovePart { .. }
+                    | Dialog::ConfirmLeavePart { .. }
             )
         ) && let Some(stashed) = self.recovery_stash.take()
         {

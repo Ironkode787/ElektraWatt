@@ -1533,7 +1533,7 @@ pub struct PartVariant {
 
 impl PartVariant {
     /// Whether the variant gives at least one of its own part number, order number or description, so that a parts
-    /// list can tell it from its part (the part editor and `part.edit_copy` refuse a variant without).
+    /// list can tell it from its part (Parts and `part.edit_copy` refuse a variant without).
     pub fn has_own_number(&self) -> bool {
         self.part_number.is_some() || self.order_number.is_some() || !self.description.is_empty()
     }

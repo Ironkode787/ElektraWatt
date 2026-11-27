@@ -9,7 +9,7 @@
 use ew_derive::part_fields::{Group as G, Lack};
 use ew_ids::{Id, Uuid, v5};
 use ew_library::Tier;
-use ew_schema::{Device, Kind, LibCopy, LibDocument, Part, Sha256};
+use ew_schema::{Kind, LibCopy, LibDocument, Part, Sha256};
 use serde_json::{Value, json};
 
 use crate::part_editor::{PartDraftError, PartSheet, message};
@@ -85,7 +85,8 @@ impl PartFound {
 
 impl Session {
     /// Where a part of library `library` lives: My parts, the project, or a library he cannot write (the starter's
-    /// one of them).
+    /// one of them). A copy of a library that is not installed (a colleague's parts, a library removed) is only in this
+    /// project: the project carries it, and it is his to change and to keep (doc 07 §5.8).
     pub(crate) fn lives_in(&self, library: Uuid) -> Lives {
         if library == self.query().project().id.as_uuid() {
             return Lives::OnlyHere;
@@ -97,11 +98,13 @@ impl Session {
                 starter: l.key == ew_library::STARTER_PARTS_KEY || l.tier == Tier::System,
                 library: l.name,
             },
-            None => Lives::NotMine {
-                library: library.to_string(),
-                starter: false,
-            },
+            None => Lives::OnlyHere,
         }
+    }
+
+    /// Whether library `library` is installed.
+    pub(crate) fn installed(&self, library: Uuid) -> bool {
+        self.libraries().libraries().iter().any(|l| l.id == library)
     }
 
     /// Where the open sheet's part lives.
@@ -127,6 +130,24 @@ impl Session {
     /// What the open sheet's part lacks, as Ready for and the fields show it.
     pub fn sheet_lacks(&self, sheet: &PartSheet) -> Vec<Lack> {
         ew_derive::part_fields::lacks(&self.sheet_part(sheet))
+    }
+
+    /// The devices of the project that use the held copy `copy`, each with its tag, in the tags' order.
+    pub fn part_users(&self, copy: Uuid) -> Vec<(Uuid, String)> {
+        let q = self.query();
+        let mut out: Vec<(Uuid, String)> = q
+            .devices()
+            .iter()
+            .filter(|(_, d)| d.parts.iter().any(|u| u.part.copy.as_uuid() == copy))
+            .map(|(id, _)| (id.as_uuid(), ew_derive::short_tag(&q, id)))
+            .collect();
+        out.sort_by(|a, b| ew_mltext::natural_cmp(&a.1, &b.1));
+        out
+    }
+
+    /// Ready for of the open sheet's part: every feature that reads it, one entry each.
+    pub fn sheet_ready(&self, sheet: &PartSheet) -> Vec<ew_derive::part_fields::Ready> {
+        ew_derive::part_fields::ready_for(&self.sheet_part(sheet))
     }
 
     /// The list of Parts: the parts that match `text` (as the choosers match it) in `scope`, of `kind` when given,
@@ -192,9 +213,9 @@ impl Session {
         out
     }
 
-    /// Keep in my parts (doc 07 §5.8): the part of the project's own copy `copy` written into My parts as an item of
-    /// its own, and the command that gives the project that copy: `part.assign` (replace) for the devices that use the
-    /// project's copy, else `library.embed`. The project's own copy stays, unused, until purged.
+    /// Keep in my parts (doc 07 §5.8): the part of the project's copy `copy` (only in this project) written into My parts
+    /// as an item of its own, and the `part.keep` that embeds it and moves every use of the project's copy to it with
+    /// what it chose. The project's own copy stays, unused, until purged.
     ///
     /// # Errors
     ///
@@ -205,7 +226,10 @@ impl Session {
             let q = self.query();
             q.parts()
                 .get(Id::from_uuid(copy))
-                .filter(|c| c.library_id.as_uuid() == q.project().id.as_uuid())
+                .filter(|c| {
+                    c.library_id.as_uuid() == q.project().id.as_uuid()
+                        || !self.installed(c.library_id.as_uuid())
+                })
                 .map(|c| (**c).clone())
         };
         let held = held.ok_or(PartDraftError::Refused(key!("reason-part-keep")))?;
@@ -263,30 +287,10 @@ impl Session {
             .closure_docs(&[lib_ref(lib, item_id)])
             .map_err(|e| failed(e.to_string()))?;
         let copies: Vec<Value> = docs.iter().filter_map(|d| serde_json::to_value(d).ok()).collect();
-        let users: Vec<Id<Device>> = {
-            let q = self.query();
-            q.devices()
-                .iter()
-                .filter(|(_, d)| d.parts.iter().any(|u| u.part.copy == held.id))
-                .map(|(id, _)| id)
-                .collect()
-        };
-        let command = if users.is_empty() {
-            AnyCommand {
-                name: "library.embed".into(),
-                params: json!({ "copies": copies }),
-            }
-        } else {
-            AnyCommand {
-                name: "part.assign".into(),
-                params: json!({
-                    "devices": users,
-                    "part": kept.id,
-                    "copies": copies,
-                    "mode": "replace",
-                    "from": held.id,
-                }),
-            }
+        // Every use of the project's copy moves to the kept one with what it chose, in one undo step.
+        let command = AnyCommand {
+            name: "part.keep".into(),
+            params: json!({ "from": held.id, "to": kept.id, "copies": copies }),
         };
         Ok(command)
     }
@@ -325,6 +329,15 @@ impl StartGroup {
     }
 }
 
+/// The section a start begins a part with.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum StartSection {
+    /// The pneumatic section: a valve's ports and coil, a cylinder's ports.
+    Fluid,
+    /// The enclosure section: a cabinet's size, plate and doors.
+    Enclosure,
+}
+
 /// A start's card of the first question: its group, its title, the line of what it will be asked for, its icon.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct StartCard {
@@ -352,10 +365,14 @@ pub struct Start {
     /// The groups of a device it asks for that a device without data in them does not show: what it is in the PLC,
     /// its network ports.
     pub asks: &'static [G],
-    /// Whether the part has a pneumatic section (its ports, a valve's coil).
-    pub fluid: bool,
+    /// The section of its kind the part starts with, empty: its group asks for it, and the feature that reads it
+    /// takes the part (Enclosure… offers a cabinet before its size is typed).
+    pub section: Option<StartSection>,
     /// The role of the one network port it starts with (`X1`, PROFINET), if any.
     pub port: Option<&'static str>,
+    /// Whether a device of it is drawn as its pieces, each a symbol (On the schematic asks what each piece is and its
+    /// pins); else as a box with its pins.
+    pub pieces: bool,
 }
 
 const fn card(
@@ -382,8 +399,9 @@ const fn start(
         card,
         presets,
         asks: &[],
-        fluid: false,
+        section: None,
         port: None,
+        pieces: false,
     }
 }
 
@@ -392,16 +410,19 @@ const PLC_ASKS: &[G] = &[G::Plc, G::Ports];
 
 /// Every start of the place, the cards in the question's order (doc 07 §5.5).
 pub static STARTS: &[Start] = &[
-    start(
-        "device",
-        card(
-            StartGroup::Devices,
-            key!("part-start-device"),
-            key!("part-start-device-line"),
-            "circuit-switch-open",
-        ),
-        &[("kind", "device")],
-    ),
+    Start {
+        pieces: true,
+        ..start(
+            "device",
+            card(
+                StartGroup::Devices,
+                key!("part-start-device"),
+                key!("part-start-device-line"),
+                "circuit-switch-open",
+            ),
+            &[("kind", "device")],
+        )
+    },
     Start {
         asks: &[G::Ports],
         ..start(
@@ -428,16 +449,19 @@ pub static STARTS: &[Start] = &[
             &[("kind", "device"), ("plc.role", "module")],
         )
     },
-    start(
-        "door",
-        card(
-            StartGroup::Devices,
-            key!("part-start-door"),
-            key!("part-start-door-line"),
-            "circle-dot",
-        ),
-        &[("kind", "device"), ("mech.mount_kind", "door_cutout")],
-    ),
+    Start {
+        pieces: true,
+        ..start(
+            "door",
+            card(
+                StartGroup::Devices,
+                key!("part-start-door"),
+                key!("part-start-door-line"),
+                "circle-dot",
+            ),
+            &[("kind", "device"), ("mech.mount_kind", "door_cutout")],
+        )
+    },
     start(
         "terminal",
         card(
@@ -446,7 +470,7 @@ pub static STARTS: &[Start] = &[
             key!("part-start-terminal-line"),
             "ew-terminal-strip",
         ),
-        &[("kind", "terminal")],
+        &[("kind", "terminal"), ("levels", "1")],
     ),
     start(
         "cable",
@@ -498,16 +522,19 @@ pub static STARTS: &[Start] = &[
         ),
         &[("kind", "gland")],
     ),
-    start(
-        "enclosure",
-        card(
-            StartGroup::Cabinet,
-            key!("part-start-enclosure"),
-            key!("part-start-enclosure-line"),
-            "door",
-        ),
-        &[("kind", "enclosure")],
-    ),
+    Start {
+        section: Some(StartSection::Enclosure),
+        ..start(
+            "enclosure",
+            card(
+                StartGroup::Cabinet,
+                key!("part-start-enclosure"),
+                key!("part-start-enclosure-line"),
+                "door",
+            ),
+            &[("kind", "enclosure")],
+        )
+    },
     start(
         "plate",
         card(
@@ -549,7 +576,8 @@ pub static STARTS: &[Start] = &[
         &[("kind", "accessory")],
     ),
     Start {
-        fluid: true,
+        section: Some(StartSection::Fluid),
+        pieces: true,
         ..start(
             "valve",
             card(
@@ -572,7 +600,8 @@ pub static STARTS: &[Start] = &[
         &[("kind", "tube"), ("unit", "m")],
     ),
     Start {
-        fluid: true,
+        section: Some(StartSection::Fluid),
+        pieces: true,
         ..start(
             "fluid",
             card(
@@ -646,8 +675,11 @@ impl Session {
     /// As [`Session::new_part_draft`].
     pub fn start_sheet(&self, start: &'static Start) -> Result<PartSheet, PartDraftError> {
         let mut sheet = self.new_part_draft()?;
-        if start.fluid {
-            sheet.original.sections.fluid = Some(Default::default());
+        if let Some(section) = start.section {
+            match section {
+                StartSection::Fluid => sheet.original.sections.fluid = Some(Default::default()),
+                StartSection::Enclosure => sheet.original.sections.enclosure = Some(Default::default()),
+            }
             (sheet.rows, sheet.tables) = self.part_rows(&self.query(), &sheet.original);
         }
         sheet.start = Some(start);

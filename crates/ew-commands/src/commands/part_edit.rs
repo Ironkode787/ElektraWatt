@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `part.edit_copy` (`EditPartCopy`): the part editor's command, always previewed.
+//! `part.edit_copy` (`EditPartCopy`): the sheet's command, always previewed.
 
 use std::collections::BTreeSet;
 
@@ -199,6 +199,47 @@ where
     Ok(())
 }
 
+/// Re-points every reference to the part copy `from` to the copy `to`: each part-copy link of the link table
+/// (`ew_model::LINKS`: the part uses with their variants, a strip accessory's part, an assembly configuration's part, a
+/// connection's `overrides.wire_part`, a potential definition's `props.wire_part`, a carrier's part) and a placement's
+/// `part` (the part use it realises). Only the copy changes: what each use chose stays. A fork (`part.edit_copy`) and
+/// Keep in my parts (`part.keep`) move every use with it.
+pub(crate) fn repoint_part_copy(
+    tx: &mut TxBuilder<'_>,
+    from: Id<Part>,
+    to: Id<Part>,
+) -> Result<(), CmdError> {
+    for link in LINKS.iter().filter(|l| l.to == Kind::Part && !l.lib_ref) {
+        match link.from {
+            Kind::Device => repoint_kind::<Device>(tx, link.field, from, to)?,
+            Kind::Connection => repoint_kind::<Connection>(tx, link.field, from, to)?,
+            Kind::PotentialDef => repoint_kind::<PotentialDef>(tx, link.field, from, to)?,
+            Kind::Carrier => repoint_kind::<ew_schema::Carrier>(tx, link.field, from, to)?,
+            Kind::Function => repoint_kind::<ew_schema::Function>(tx, link.field, from, to)?,
+            Kind::Junction => repoint_kind::<ew_schema::Junction>(tx, link.field, from, to)?,
+            Kind::Medium => repoint_kind::<ew_schema::Medium>(tx, link.field, from, to)?,
+            Kind::Project => {
+                let path: Vec<&str> = link.field.split('.').collect();
+                let mut v =
+                    serde_json::to_value(&*tx.project()).map_err(|e| CmdError::internal(e.to_string()))?;
+                if repoint_at(&mut v, &path, &from.to_string(), &to.to_string()) {
+                    let project = serde_json::from_value(v).map_err(|e| CmdError::internal(e.to_string()))?;
+                    tx.set_project(project)?;
+                }
+            }
+            other => {
+                return Err(CmdError::internal(format!(
+                    "a part copy's uses are not re-pointed along the part-copy link {other}.{}",
+                    link.field
+                )));
+            }
+        }
+    }
+    // A placement names the part use it realises by its copy (not a link); it follows the use, as a replaced part
+    // follows in `part.assign`.
+    repoint_kind::<ew_schema::Placement>(tx, "part.copy", from, to)
+}
+
 /// Whether the command re-points a part-copy link of the link table: `true` for the kinds [`repoint_kind`] is
 /// called with in `run`. A link from another kind fails `part_copy_links_are_all_repointed`.
 #[cfg(test)]
@@ -230,6 +271,10 @@ impl Command for EditPartCopy {
                 text!("refusal-part-edit-copy-missing", self.copy.to_string()),
             ));
         };
+        // A starter part is never changed (doc 07 §5.8): a person makes his own from it.
+        if held.library_id.as_uuid() == ew_schema::starter::parts_library() {
+            return Err(bad("/copy", text!("refusal-part-edit-starter")));
+        }
         let mut part = read_part(&self.part)?;
         let project = tx.project().id.as_uuid();
         let local = held.library_id.as_uuid() == project;
@@ -345,36 +390,7 @@ impl Command for EditPartCopy {
                 };
                 copy.sha256 = hash(&copy)?;
                 tx.insert(copy)?;
-                for link in LINKS.iter().filter(|l| l.to == Kind::Part && !l.lib_ref) {
-                    match link.from {
-                        Kind::Device => repoint_kind::<Device>(tx, link.field, self.copy, id)?,
-                        Kind::Connection => repoint_kind::<Connection>(tx, link.field, self.copy, id)?,
-                        Kind::PotentialDef => repoint_kind::<PotentialDef>(tx, link.field, self.copy, id)?,
-                        Kind::Carrier => repoint_kind::<ew_schema::Carrier>(tx, link.field, self.copy, id)?,
-                        Kind::Function => repoint_kind::<ew_schema::Function>(tx, link.field, self.copy, id)?,
-                        Kind::Junction => repoint_kind::<ew_schema::Junction>(tx, link.field, self.copy, id)?,
-                        Kind::Medium => repoint_kind::<ew_schema::Medium>(tx, link.field, self.copy, id)?,
-                        Kind::Project => {
-                            let path: Vec<&str> = link.field.split('.').collect();
-                            let mut v = serde_json::to_value(&*tx.project())
-                                .map_err(|e| CmdError::internal(e.to_string()))?;
-                            if repoint_at(&mut v, &path, &self.copy.to_string(), &id.to_string()) {
-                                let project = serde_json::from_value(v)
-                                    .map_err(|e| CmdError::internal(e.to_string()))?;
-                                tx.set_project(project)?;
-                            }
-                        }
-                        other => {
-                            return Err(CmdError::internal(format!(
-                                "part.edit_copy does not re-point the part-copy link {other}.{}",
-                                link.field
-                            )));
-                        }
-                    }
-                }
-                // A placement names the part use it realises by its copy (not a link); it follows the
-                // use to the fork, as a replaced part follows in `part.assign`.
-                repoint_kind::<ew_schema::Placement>(tx, "part.copy", self.copy, id)?;
+                repoint_part_copy(tx, self.copy, id)?;
                 id
             }
         };

@@ -49,7 +49,8 @@ fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
     let tmp = Tmp::new("device-box-library-part");
     let mut s = actual_size(&tmp, "102");
     page_150(&mut s);
-    done(&mut s, "part.box", json!({"part": "EW-GEN-PSU-1"}));
+    crate::common::own_of(&mut s, "EW-GEN-PSU-1", "PSU-OWN");
+    done(&mut s, "part.box", json!({"part": "PSU-OWN"}));
     // The box as it was always drawn: the first half of the pins on top, the rest below.
     let before = pins(&s);
     assert_eq!(before.len(), 7);
@@ -179,7 +180,7 @@ fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
     );
 }
 
-/// Add bus interface… in the device box (FT-2208): a part of one's own opens in the part editor on Bus interfaces with
+/// Add bus interface… in the device box (FT-2208): a part of one's own opens in Parts on Bus interfaces with
 /// a new interface row; a library's part the project holds keeps its library's interfaces, refused in words.
 #[test]
 fn add_bus_interface_opens_the_part_editor_on_a_new_interface() {
@@ -538,7 +539,7 @@ fn a_plc_card_s_pins_are_not_edited_on_the_box() {
         json!({"field": "part_number", "value": "DI-8"}),
     );
     done(&mut s, "part.box", json!({}));
-    assert!(s.dialog().is_none(), "the part editor gave way to the box");
+    assert!(s.dialog().is_none(), "Parts gave way to the box");
     let why = device_box(&s).pins_from().expect("the sentence");
     assert!(why.contains("PLC card"), "{why}");
     assert_eq!(

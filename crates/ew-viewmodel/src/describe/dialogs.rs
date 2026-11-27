@@ -43,6 +43,7 @@ pub(super) fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
         }
         Dialog::ConfirmJournalDiscard
         | Dialog::ConfirmRemovePart { .. }
+        | Dialog::ConfirmLeavePart { .. }
         | Dialog::ConfirmReplaceDxf { .. } => {
             for line in &spec.body {
                 lines.push(format!("  label \"{line}\""));
