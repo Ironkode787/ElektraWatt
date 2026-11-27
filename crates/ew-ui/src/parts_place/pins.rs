@@ -16,7 +16,12 @@ use crate::theme;
 
 /// On the schematic of a terminal (doc 07 §5.4, picture v4): how many levels, then a row per level from the top, its
 /// left and right clamp and that the two are joined inside. The levels make the terminal's pins, each at its level.
-pub(super) fn levels_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartSheet, editable: bool, events: &mut Vec<Event>) {
+pub(super) fn levels_section(
+    ui: &mut Ui,
+    d: &ew_viewmodel::ew_api::PartSheet,
+    editable: bool,
+    events: &mut Vec<Event>,
+) {
     use ew_viewmodel::ew_api::part_pieces::MOST_LEVELS;
     let t = theme::current(ui.ctx());
     ui.horizontal(|ui| {
