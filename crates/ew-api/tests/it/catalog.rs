@@ -472,7 +472,10 @@ fn the_mapping_steps_accessors() {
         assert_eq!(got, key, "{file}");
         assert!(catalog::check_source_key(&got).is_ok(), "{file}");
     }
-    let plain: Vec<catalog::Member> = catalog::Member::PLAIN.iter().map(|f| catalog::Member::field(f)).collect();
+    let plain: Vec<catalog::Member> = catalog::Member::PLAIN
+        .iter()
+        .map(|f| catalog::Member::field(f))
+        .collect();
     assert_eq!(catalog::Member::PLAIN[..2], ["manufacturer", "part_number"]);
     assert!(plain.iter().filter(|m| m.required()).count() == 2);
     let input = ew_interop_api::ImportInput::new("l.csv", LIST.as_bytes().to_vec()).unwrap();

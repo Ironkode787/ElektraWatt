@@ -19,7 +19,8 @@ use ew_schema::{Kind, LibCopy, LibDocument, Manufacturer, Part};
 use serde_json::{Map, Value};
 
 use crate::catalog::{
-    CatalogError, CatalogTarget, ColumnMap, ImportInput, Limits, PartsImport, manufacturer_master, table_limits,
+    CatalogError, CatalogTarget, ColumnMap, ImportInput, Limits, PartsImport, manufacturer_master,
+    table_limits,
 };
 use crate::eplan::FndefMap;
 use crate::part_editor::{DraftMessage, PartDraftError, PartSheet};
@@ -220,7 +221,11 @@ impl SetTarget {
     }
 
     /// The target of the importer's placer over this part of the registry.
-    fn target<'a>(&'a self, existing: &'a dyn Fn(Uuid) -> Option<LibCopy<Part>>, limits: Limits) -> CatalogTarget<'a> {
+    fn target<'a>(
+        &'a self,
+        existing: &'a dyn Fn(Uuid) -> Option<LibCopy<Part>>,
+        limits: Limits,
+    ) -> CatalogTarget<'a> {
         CatalogTarget {
             library: self.library,
             as_of: None,
@@ -237,7 +242,11 @@ impl SetTarget {
     /// # Errors
     ///
     /// The front door's refusal of a file refused as a whole or an importer that panicked.
-    pub fn read_eplan(&self, input: &ImportInput, fndefs: &FndefMap) -> Result<PartsImport, crate::import::Refusal> {
+    pub fn read_eplan(
+        &self,
+        input: &ImportInput,
+        fndefs: &FndefMap,
+    ) -> Result<PartsImport, crate::import::Refusal> {
         let held = |item| self.held.get(&item).cloned();
         let target = self.target(&held, Limits::default());
         let sizes = [input.bytes().len() as u64];
@@ -288,7 +297,8 @@ impl Session {
         input: &ImportInput,
         map: &ColumnMap,
     ) -> Result<(PartsImport, Vec<SetRefusal>), CatalogError> {
-        let headers: BTreeMap<Member, String> = map.columns().map(|(m, h)| (m.clone(), h.to_owned())).collect();
+        let headers: BTreeMap<Member, String> =
+            map.columns().map(|(m, h)| (m.clone(), h.to_owned())).collect();
         let refused: RefCell<Vec<SetRefusal>> = RefCell::new(Vec::new());
         let build = |texts: &BTreeMap<Member, String>, held: Option<&LibCopy<Part>>| {
             self.row_part(texts, held, &headers).map_err(|why| {
@@ -520,7 +530,11 @@ impl Session {
             }))
             .map(|m| {
                 let name = crate::part_offers::text_of(&m.item.name);
-                let name = if name.is_empty() { m.item.key.to_string() } else { name };
+                let name = if name.is_empty() {
+                    m.item.key.to_string()
+                } else {
+                    name
+                };
                 ((m.library_id.as_uuid(), m.item_id.as_uuid()), name)
             })
             .collect();
@@ -543,14 +557,18 @@ impl Session {
                     RowStatus::Updated { .. } => SetStatus::Changed,
                     RowStatus::Unchanged => SetStatus::Same,
                     RowStatus::Duplicate { of_line } => SetStatus::Repeats(*of_line),
-                    RowStatus::Rejected(RowRefusal::Host(_)) => {
-                        SetStatus::Refused(host.next().cloned().unwrap_or(SetRefusal::Read(RowRefusal::NoPartNumber)))
-                    }
+                    RowStatus::Rejected(RowRefusal::Host(_)) => SetStatus::Refused(
+                        host.next()
+                            .cloned()
+                            .unwrap_or(SetRefusal::Read(RowRefusal::NoPartNumber)),
+                    ),
                     RowStatus::Rejected(why) => SetStatus::Refused(SetRefusal::Read(why.clone())),
                 };
                 let maker = part
                     .as_ref()
-                    .and_then(|p| makers.get(&(p.manufacturer.library.as_uuid(), p.manufacturer.item.as_uuid())))
+                    .and_then(|p| {
+                        makers.get(&(p.manufacturer.library.as_uuid(), p.manufacturer.item.as_uuid()))
+                    })
                     .cloned()
                     .unwrap_or_default();
                 SetRow {
@@ -606,7 +624,10 @@ impl Session {
         let named: Vec<(Uuid, Uuid)> = parts
             .iter()
             .filter_map(|d| match d {
-                LibDocument::Part(p) => Some((p.item.manufacturer.library.as_uuid(), p.item.manufacturer.item.as_uuid())),
+                LibDocument::Part(p) => Some((
+                    p.item.manufacturer.library.as_uuid(),
+                    p.item.manufacturer.item.as_uuid(),
+                )),
                 _ => None,
             })
             .collect();

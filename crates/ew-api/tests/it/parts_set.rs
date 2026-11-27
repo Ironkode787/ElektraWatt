@@ -104,11 +104,26 @@ fn a_maker_s_table_brings_new_parts_one_the_same_and_one_refused_with_its_reason
         (enclosure.width, enclosure.height, enclosure.depth),
         (mm(800), mm(1000), mm(300))
     );
-    assert_eq!(row("MP-8-10").part.clone().expect("a part").sections.mounting_plate.expect("a plate").width, mm(760));
+    assert_eq!(
+        row("MP-8-10")
+            .part
+            .clone()
+            .expect("a part")
+            .sections
+            .mounting_plate
+            .expect("a plate")
+            .width,
+        mm(760)
+    );
     let contactor = row("CON-09-24").part.clone().expect("a part");
     let mech = contactor.mech.clone().expect("its size");
     assert_eq!((mech.width, mech.height, mech.depth), (mm(45), mm(85), mm(80)));
-    assert!(contactor.tech_data.iter().any(|t| t.key.as_str() == "rated_current"));
+    assert!(
+        contactor
+            .tech_data
+            .iter()
+            .any(|t| t.key.as_str() == "rated_current")
+    );
     assert_eq!(
         serde_json::to_value(&contactor.description).unwrap()["nl"],
         "Magneetschakelaar 9 A, spoel 24 V DC"

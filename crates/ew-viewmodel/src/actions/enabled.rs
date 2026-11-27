@@ -1102,11 +1102,7 @@ pub(super) fn find_writable(m: &ShellModel) -> Result<(), Text> {
 pub(super) fn card_shown(m: &ShellModel) -> Result<(), Text> {
     project_open(m)?;
     // The Preview tab shows every card: a table card is in its navigator.
-    if m.properties_shown()
-        || m.find_shown()
-        || m.preview_shown()
-        || m.table_gesture().is_some()
-    {
+    if m.properties_shown() || m.find_shown() || m.preview_shown() || m.table_gesture().is_some() {
         Ok(())
     } else {
         Err(key!("reason-no-sheet").into())
@@ -1349,7 +1345,11 @@ pub(super) fn part_savable(m: &ShellModel) -> Result<(), Text> {
         };
     }
     // An import's set: Save writes its new and changed parts into My parts.
-    if let Some(set) = m.parts_place().filter(|p| p.set_shown()).and_then(|p| p.set.as_deref()) {
+    if let Some(set) = m
+        .parts_place()
+        .filter(|p| p.set_shown())
+        .and_then(|p| p.set.as_deref())
+    {
         parts_writable(m)?;
         return if set.to_save() > 0 {
             Ok(())

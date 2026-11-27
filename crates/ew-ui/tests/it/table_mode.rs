@@ -204,12 +204,17 @@ fn the_strip_editor_and_its_chooser_list() {
     )
     .expect("the parts table");
     // Read for the sample's project, as `ew import parts` reads a table into it.
-    let (sample, _) = ew_viewmodel::ew_api::Session::open_read_only(std::path::Path::new(ew_testdir::SAMPLE), "test")
-        .expect("the sample");
+    let (sample, _) =
+        ew_viewmodel::ew_api::Session::open_read_only(std::path::Path::new(ew_testdir::SAMPLE), "test")
+            .expect("the sample");
     let read = ew_viewmodel::ew_api::import::read_parts_tables(&csv, &sample).expect("the row read");
     {
         let shell = h.state_mut().shell_mut();
-        done(shell, "command.run", json!({"cmd": "parts.import", "params": read.params()}));
+        done(
+            shell,
+            "command.run",
+            json!({"cmd": "parts.import", "params": read.params()}),
+        );
         done(shell, "strip.edit", json!({"strip": "-X1021"}));
         let k8 = strips_row(shell, "Terminal", "8");
         done(shell, "table.cell", json!({"kind": "strips", "row": k8}));

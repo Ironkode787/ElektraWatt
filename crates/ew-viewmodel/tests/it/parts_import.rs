@@ -63,14 +63,24 @@ fn a_maker_s_table_comes_into_parts_as_a_set_and_save_writes_my_parts() {
     let file = table(&tmp);
     let mut shell = with_my_parts(&tmp, Mode::Headless);
     common::make_project(&mut shell, &tmp.0.join("proj.ew"), &[]);
-    done(&mut shell, "parts.import", json!({"path": file.to_string_lossy()}));
+    done(
+        &mut shell,
+        "parts.import",
+        json!({"path": file.to_string_lossy()}),
+    );
     assert_eq!(shell.screen(), ew_viewmodel::shell::Screen::Parts);
     let place = shell.parts_place().expect("Parts");
     assert_eq!(place.scope, ew_viewmodel::ew_api::parts::PartScope::Import);
     // Maker, Kind and Description name their fields; Article, W, H and D are his to map.
     let columns = lines_with(&shell, "column ");
-    assert!(columns.contains(&"column \"Maker\" \"Example\" manufacturer".to_owned()), "{columns:?}");
-    assert!(columns.contains(&"column \"Price\" \"412.00\" -".to_owned()), "{columns:?}");
+    assert!(
+        columns.contains(&"column \"Maker\" \"Example\" manufacturer".to_owned()),
+        "{columns:?}"
+    );
+    assert!(
+        columns.contains(&"column \"Price\" \"412.00\" -".to_owned()),
+        "{columns:?}"
+    );
     assert_eq!(
         lines_with(&shell, "refused \""),
         ["refused \"Map a column to Identity \u{25b8} Part number\""]
@@ -81,7 +91,11 @@ fn a_maker_s_table_comes_into_parts_as_a_set_and_save_writes_my_parts() {
         ("H", "height"),
         ("D", "depth"),
     ] {
-        done(&mut shell, "parts.map", json!({"column": column, "member": member}));
+        done(
+            &mut shell,
+            "parts.map",
+            json!({"column": column, "member": member}),
+        );
     }
     assert!(lines_with(&shell, "refused \"").is_empty());
     assert_eq!(
@@ -91,12 +105,15 @@ fn a_maker_s_table_comes_into_parts_as_a_set_and_save_writes_my_parts() {
     let sentences = lines_with(&shell, "\"Row ");
     assert_eq!(
         sentences,
-        ["\"Row 4 is refused: it has no part number. Give it one in the file and read it again, or leave it out.\""]
+        [
+            "\"Row 4 is refused: it has no part number. Give it one in the file and read it again, or leave it out.\""
+        ]
     );
     // The cabinet's row shows its outer size as it will be.
     done(&mut shell, "parts.open", json!({"row": 0}));
     assert!(
-        lines_with(&shell, "as-it-will-be sections.enclosure.width").contains(&"as-it-will-be sections.enclosure.width \"800\"".to_owned()),
+        lines_with(&shell, "as-it-will-be sections.enclosure.width")
+            .contains(&"as-it-will-be sections.enclosure.width \"800 mm\"".to_owned()),
         "{}",
         shell.describe()
     );
@@ -109,19 +126,38 @@ fn a_maker_s_table_comes_into_parts_as_a_set_and_save_writes_my_parts() {
         common::state(&shell)["toast"]["text"],
         "example-parts.csv: 2 new parts and 0 changed ones saved to My parts."
     );
-    done(&mut shell, "parts.find", json!({"text": "ENC-8-10-3", "scope": "mine"}));
-    assert!(shell.parts_place().unwrap().found.iter().any(|f| f.offer.part_number == "ENC-8-10-3"));
+    done(
+        &mut shell,
+        "parts.find",
+        json!({"text": "ENC-8-10-3", "scope": "mine"}),
+    );
+    assert!(
+        shell
+            .parts_place()
+            .unwrap()
+            .found
+            .iter()
+            .any(|f| f.offer.part_number == "ENC-8-10-3")
+    );
     // Nothing went into the project: a project takes a part when a device uses it.
     assert!(!shell.can_undo());
     // The map is saved for the source and fills the next table of it: the same parts, now the same.
-    let map = ew_api::catalog::load_column_map(&tmp.0.join("config"), "example-parts").expect("the map is saved");
+    let map =
+        ew_api::catalog::load_column_map(&tmp.0.join("config"), "example-parts").expect("the map is saved");
     assert_eq!(map.header(&ew_api::catalog::Member::field("width")), Some("W"));
-    done(&mut shell, "parts.import", json!({"path": file.to_string_lossy()}));
+    done(
+        &mut shell,
+        "parts.import",
+        json!({"path": file.to_string_lossy()}),
+    );
     assert_eq!(
         lines_with(&shell, "set \""),
         ["set \"example-parts.csv\" new 0 changed 0 same 2 refused 1"]
     );
-    assert_eq!(refused(&mut shell, "parts.save", json!({})), "reason-set-nothing-new");
+    assert_eq!(
+        refused(&mut shell, "parts.save", json!({})),
+        "reason-set-nothing-new"
+    );
     done(&mut shell, "parts.discard", json!({}));
     assert!(shell.import_set().is_none());
     shell.shutdown();
@@ -134,9 +170,17 @@ fn a_set_is_saved_without_a_project_and_refused_on_a_read_only_one() {
     let tmp = Tmp::new("parts-set-alone");
     let file = table(&tmp);
     let mut shell = with_my_parts(&tmp, Mode::Headless);
-    done(&mut shell, "parts.import", json!({"path": file.to_string_lossy()}));
+    done(
+        &mut shell,
+        "parts.import",
+        json!({"path": file.to_string_lossy()}),
+    );
     assert!(shell.parts_without_project());
-    done(&mut shell, "parts.map", json!({"column": "Article", "member": "part_number"}));
+    done(
+        &mut shell,
+        "parts.map",
+        json!({"column": "Article", "member": "part_number"}),
+    );
     done(&mut shell, "parts.save", json!({}));
     assert!(!shell.has_project(), "no project is made");
     shell.shutdown();
@@ -144,8 +188,16 @@ fn a_set_is_saved_without_a_project_and_refused_on_a_read_only_one() {
     let tmp = Tmp::new("parts-set-read-only");
     let file = table(&tmp);
     let mut shell = tmp.sample_shell("101");
-    done(&mut shell, "parts.import", json!({"path": file.to_string_lossy()}));
-    done(&mut shell, "parts.map", json!({"column": "Article", "member": "part_number"}));
+    done(
+        &mut shell,
+        "parts.import",
+        json!({"path": file.to_string_lossy()}),
+    );
+    done(
+        &mut shell,
+        "parts.map",
+        json!({"column": "Article", "member": "part_number"}),
+    );
     assert_eq!(refused(&mut shell, "parts.save", json!({})), "reason-read-only");
     shell.shutdown();
 }
@@ -222,7 +274,11 @@ fn the_picker_lists_the_project_s_parts_by_manufacturer_in_part_number_order() {
     let (session, _) = Session::open_read_only(&dir, VERSION).unwrap();
     let read = read_parts_tables(&table_parts(), &session).unwrap();
     drop(session);
-    done(&mut shell, "command.run", json!({"cmd": "parts.import", "params": read.params()}));
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "parts.import", "params": read.params()}),
+    );
     done(&mut shell, "tool.place_part", json!({}));
     let picker = shell.picker().expect("the picker is open");
     let rows: Vec<(&str, &str, bool)> = picker
@@ -231,7 +287,11 @@ fn the_picker_lists_the_project_s_parts_by_manufacturer_in_part_number_order() {
         .filter_map(|r| match r {
             PickerRow::Part(p) => {
                 let part = &picker.catalogue.parts[*p];
-                Some((part.manufacturer.as_str(), part.part_number.as_str(), part.library.is_some()))
+                Some((
+                    part.manufacturer.as_str(),
+                    part.part_number.as_str(),
+                    part.library.is_some(),
+                ))
             }
             _ => None,
         })
@@ -240,6 +300,9 @@ fn the_picker_lists_the_project_s_parts_by_manufacturer_in_part_number_order() {
     let mut sorted = keys.clone();
     sorted.sort_unstable();
     assert_eq!(keys, sorted, "manufacturer, then part-number order");
-    assert!(rows.iter().any(|r| !r.2) && rows.iter().any(|r| r.2), "both groups listed");
+    assert!(
+        rows.iter().any(|r| !r.2) && rows.iter().any(|r| r.2),
+        "both groups listed"
+    );
     shell.shutdown();
 }

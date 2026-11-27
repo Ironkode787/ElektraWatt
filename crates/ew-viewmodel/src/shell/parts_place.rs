@@ -516,7 +516,12 @@ impl ShellModel {
         let set_makers = (place.scope == PartScope::Import)
             .then(|| place.set.as_deref().and_then(|s| s.set.as_ref()))
             .flatten()
-            .map(|s| s.rows.iter().filter(|r| !r.maker.is_empty()).map(|r| r.maker.clone()));
+            .map(|s| {
+                s.rows
+                    .iter()
+                    .filter(|r| !r.maker.is_empty())
+                    .map(|r| r.maker.clone())
+            });
         let mut makers: Vec<String> = match set_makers {
             Some(m) => m.collect(),
             None => found.iter().map(|f| f.offer.manufacturer.clone()).collect(),

@@ -266,8 +266,9 @@ pub fn import_parts(harness: &mut Harness<'_, App>, tmp: &Tmp, rows: &[String]) 
     std::fs::write(&file, format!("{header}\n{}\n", rows.join("\n"))).unwrap();
     // The copy is the sample's project: its parts are read for the sample, as `ew import parts` reads them (the window's
     // Import… puts a table's parts into My parts).
-    let (sample, _) = ew_viewmodel::ew_api::Session::open_read_only(std::path::Path::new(ew_testdir::SAMPLE), "test")
-        .expect("the sample");
+    let (sample, _) =
+        ew_viewmodel::ew_api::Session::open_read_only(std::path::Path::new(ew_testdir::SAMPLE), "test")
+            .expect("the sample");
     let read = ew_viewmodel::ew_api::import::read_parts_tables(&file, &sample).expect("the rows read");
     dispatch(
         harness,

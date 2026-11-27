@@ -333,7 +333,9 @@ fn refusal_words(why: &SetRefusal) -> String {
             R::NoPartNumber => strings::text(key!("parts-set-no-number")).to_owned(),
             R::NoManufacturer => strings::text(key!("parts-set-no-maker")).to_owned(),
             R::ErrorCell { column, error } => strings::format(key!("parts-set-error-cell"), &[column, error]),
-            R::Ambiguous { maker, keys } => strings::format(key!("parts-set-maker-ambiguous"), &[maker, &keys.join(", ")]),
+            R::Ambiguous { maker, keys } => {
+                strings::format(key!("parts-set-maker-ambiguous"), &[maker, &keys.join(", ")])
+            }
             R::MakerWithoutLetters(t) => strings::format(key!("parts-set-maker-letters"), &[t]),
             R::NumberWithoutLetters(t) => strings::format(key!("parts-set-number-letters"), &[t]),
             R::Repeats { line } => strings::format(key!("parts-set-repeats-other"), &[&line.to_string()]),
@@ -360,7 +362,10 @@ pub fn row_sentence(row: &ew_api::parts_set::SetRow) -> Option<String> {
             key!("parts-set-refused-line"),
             &[&line, &refusal_words(why)],
         )),
-        SetStatus::Same => Some(strings::format(key!("parts-set-same-line"), &[&line, &row.number])),
+        SetStatus::Same => Some(strings::format(
+            key!("parts-set-same-line"),
+            &[&line, &row.number],
+        )),
         SetStatus::Repeats(of) => Some(strings::format(
             key!("parts-set-repeats-line"),
             &[&line, &row.number, &of.to_string()],
@@ -434,8 +439,8 @@ impl ShellModel {
                 .map(|e| e.to_string_lossy().to_ascii_lowercase())
                 .unwrap_or_default()
         });
-        let drawing = self.symbol_editor().is_some()
-            || self.parts.as_deref().is_some_and(|place| place.shelf_symbols);
+        let drawing =
+            self.symbol_editor().is_some() || self.parts.as_deref().is_some_and(|place| place.shelf_symbols);
         let parts_too = |e: &str| matches!(e, "csv" | "xlsx" | "dxf") || super::EplanKind::of(e).is_some();
         let symbol = match extension.as_deref() {
             Some(e) if super::symbol_editor::FILE_EXTENSIONS.contains(&e) && !parts_too(e) => true,
@@ -617,7 +622,9 @@ impl ShellModel {
         let name = file.clone();
         self.start_read(&file, move |_| {
             let Ok(input) = catalog::read_input(&path, &catalog::table_limits()) else {
-                return Ok(Box::new(move |_: &mut ShellModel| failed(key!("error-import-read"), &[&name])) as Finish);
+                return Ok(
+                    Box::new(move |_: &mut ShellModel| failed(key!("error-import-read"), &[&name])) as Finish,
+                );
             };
             // The notice belongs to an EDZ whatever the file is called.
             let edz = eplan::is_edz(input.bytes());
@@ -636,7 +643,10 @@ impl ShellModel {
                 let held = project.and_then(|p| p.run(&input, &fndefs).ok());
                 Ok(EplanRead { set, held, fndefs })
             });
-            Ok(Box::new(move |s: &mut ShellModel| s.eplan_set_read(&name, input, edz && terms, read)) as Finish)
+            Ok(
+                Box::new(move |s: &mut ShellModel| s.eplan_set_read(&name, input, edz && terms, read))
+                    as Finish,
+            )
         })
     }
 
@@ -686,12 +696,20 @@ impl ShellModel {
         };
         let plan = match project.session.update_parts_from_import(held) {
             Ok(u) => u.plan,
-            Err(e) => return Outcome::Failed { message: e.to_string() },
+            Err(e) => {
+                return Outcome::Failed {
+                    message: e.to_string(),
+                };
+            }
         };
         let Some(plan) = plan else {
             return Outcome::refused(key!("reason-eplan-no-change"));
         };
-        self.preview_host_card(&plan.command.name, plan.command.params, key!("reason-library-update"))
+        self.preview_host_card(
+            &plan.command.name,
+            plan.command.params,
+            key!("reason-library-update"),
+        )
     }
 
     /// Save of the set (Save n to My parts): its new and changed parts written into My parts, read again as My parts is
@@ -708,7 +726,9 @@ impl ShellModel {
             && let Ok(columns) = map.column_map()
             && let Err(e) = catalog::save_column_map(dir, &map.source, &columns)
         {
-            return Outcome::Failed { message: e.to_string() };
+            return Outcome::Failed {
+                message: e.to_string(),
+            };
         }
         let (Some(session), _) = self.parts_session_mut() else {
             return Outcome::refused(key!("reason-no-parts-place"));
@@ -795,8 +815,14 @@ impl ShellModel {
             .config_dir
             .as_deref()
             .is_some_and(|dir| catalog::load_column_map(dir, &catalog::source_key_for(&file)).is_ok());
-        let named: Vec<String> = columns.iter().filter_map(|c| PartsMap::named_by(&c.header)).collect();
-        saved || ["manufacturer", "part_number"].iter().all(|m| named.iter().any(|n| n == m))
+        let named: Vec<String> = columns
+            .iter()
+            .filter_map(|c| PartsMap::named_by(&c.header))
+            .collect();
+        saved
+            || ["manufacturer", "part_number"]
+                .iter()
+                .all(|m| named.iter().any(|n| n == m))
     }
 
     /// Fills a report's members from the mapping saved for the source key (and takes its kind).

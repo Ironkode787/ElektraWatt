@@ -20,7 +20,10 @@ use crate::theme;
 /// Whether `row` passes the list's filters: the kind, the maker, Lacks something.
 fn passes(place: &PartsPlace, row: &SetRow) -> bool {
     let kind = row.part.as_ref().map(|_| row.kind.clone());
-    place.kind.as_ref().is_none_or(|k| kind.as_deref() == Some(k.as_str()))
+    place
+        .kind
+        .as_ref()
+        .is_none_or(|k| kind.as_deref() == Some(k.as_str()))
         && place.maker.as_ref().is_none_or(|m| *m == row.maker)
         && (!place.lacking || row.lacks())
 }
@@ -107,7 +110,11 @@ fn list_row(ui: &mut Ui, row: &SetRow, open: bool) -> egui::Response {
     let chip_rect = egui::Rect::from_min_size(pos2(rect.right() - t.space_2 - size.x, top), size);
     if refused {
         painter.rect_filled(chip_rect, theme::radius(t.radius_sm), t.warning_subtle.color32());
-        painter.galley(chip_rect.center() - galley.size() / 2.0, galley, t.warning.color32());
+        painter.galley(
+            chip_rect.center() - galley.size() / 2.0,
+            galley,
+            t.warning.color32(),
+        );
     } else {
         components::paint_caption_chip(&painter, &t, chip_rect, galley);
     }
@@ -253,11 +260,15 @@ fn columns(ui: &mut Ui, map: &ew_viewmodel::shell::PartsMap, events: &mut Vec<Ev
         None,
     );
     ui.horizontal(|ui| {
-        let label = ui.label(components::body_secondary(&t, strings::text(key!("parts-set-saved-as-label"))));
+        let label = ui.label(components::body_secondary(
+            &t,
+            strings::text(key!("parts-set-saved-as-label")),
+        ));
         let id = egui::Id::unique("parts-set-source");
         let focused = ui.memory(|m| m.has_focus(id.with("edit")));
         let mut text = if focused {
-            ui.data(|d| d.get_temp::<String>(id)).unwrap_or_else(|| map.source.clone())
+            ui.data(|d| d.get_temp::<String>(id))
+                .unwrap_or_else(|| map.source.clone())
         } else {
             map.source.clone()
         };
@@ -275,12 +286,21 @@ fn columns(ui: &mut Ui, map: &ew_viewmodel::shell::PartsMap, events: &mut Vec<Ev
             components::caption_badge(ui, strings::text(key!("parts-map-saved")));
         }
     });
-    ui.label(components::small_secondary(&t, strings::text(key!("parts-set-saved-as"))));
+    ui.label(components::small_secondary(
+        &t,
+        strings::text(key!("parts-set-saved-as")),
+    ));
     ui.add_space(t.space_2);
     // The sheet scrolls; the table is shown whole.
     crate::parts_map::columns(ui, map, f32::INFINITY, events);
     ui.add_space(t.space_2);
-    ui.add(egui::Label::new(components::small_secondary(&t, strings::text(key!("parts-set-sizes")))).wrap());
+    ui.add(
+        egui::Label::new(components::small_secondary(
+            &t,
+            strings::text(key!("parts-set-sizes")),
+        ))
+        .wrap(),
+    );
     if let Some(e) = map.error_text() {
         components::live_line(ui, &e, true);
     }
@@ -297,7 +317,10 @@ fn what_was_read(ui: &mut Ui, shown: &ImportSet) {
         .filter_map(|r| row_sentence(r).map(|l| (matches!(r.status, SetStatus::Refused(_)), l)))
         .collect();
     if lines.is_empty() {
-        ui.label(components::body_secondary(&t, strings::text(key!("parts-set-all-read"))));
+        ui.label(components::body_secondary(
+            &t,
+            strings::text(key!("parts-set-all-read")),
+        ));
     }
     for (refused, line) in lines {
         ui.horizontal_top(|ui| {
@@ -349,5 +372,9 @@ pub(super) fn as_it_will_be(ui: &mut Ui, shown: &ImportSet) {
                 });
         });
     ui.add_space(t.space_4);
-    super::ready_for(ui, &strings::format(key!("parts-set-ready-for"), &[&row.number]), &shown.ready);
+    super::ready_for(
+        ui,
+        &strings::format(key!("parts-set-ready-for"), &[&row.number]),
+        &shown.ready,
+    );
 }

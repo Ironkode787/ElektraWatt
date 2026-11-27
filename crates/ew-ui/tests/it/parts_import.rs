@@ -282,7 +282,10 @@ fn an_answer_from_the_dialog_thread_shows_the_set_in_the_next_frame() {
         h.ctx.cumulative_pass_nr() > pass,
         "the window keeps painting while the dialog is open"
     );
-    assert!(h.state().shell().import_set().is_none(), "no set before the answer");
+    assert!(
+        h.state().shell().import_set().is_none(),
+        "no set before the answer"
+    );
     assert_eq!(platform.started.get(), 1, "no second dialog while one is open");
     assert!(
         h.query_by_label("Import…").is_none(),

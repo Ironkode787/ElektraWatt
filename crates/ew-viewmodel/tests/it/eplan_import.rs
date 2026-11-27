@@ -66,7 +66,11 @@ fn an_edz_under_another_name_stops_at_the_terms_through_either_door() {
     // The notice's Continue closes it, and the file's set stands in Parts.
     done(&mut s, "file.import_eplan", json!({ "file": file }));
     s.wait_jobs();
-    done(&mut s, "file.import_eplan", json!({ "file": file, "terms": true }));
+    done(
+        &mut s,
+        "file.import_eplan",
+        json!({ "file": file, "terms": true }),
+    );
     s.wait_jobs();
     assert!(s.dialog().is_none(), "{:?}", s.dialog());
     assert!(s.import_set().is_some());
@@ -80,9 +84,14 @@ fn the_project_s_copy_of_an_edz_s_part_is_updated_from_its_set() {
     let tmp = Tmp::new("eplan-update");
     let mut s = on_sample(&tmp);
     // The sample holds no copy of the EDZ's part: the test tables' row gives it one whose fields the EDZ changes.
-    let table = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tables/parts.csv"))
-        .unwrap();
-    let row = table.lines().find(|l| l.contains("2904602")).expect("the test tables' row");
+    let table = std::fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tables/parts.csv"),
+    )
+    .unwrap();
+    let row = table
+        .lines()
+        .find(|l| l.contains("2904602"))
+        .expect("the test tables' row");
     crate::common::import_parts(&mut s, &tmp, &format!("{row}\n"));
     done(&mut s, "parts.import", json!({"path": EDZ, "terms": true}));
     s.wait_jobs();
@@ -103,12 +112,24 @@ fn an_edz_s_parts_come_into_parts_as_a_set_and_save_writes_my_parts() {
     let set = s.import_set().and_then(|i| i.set.clone()).expect("the set");
     let (new, changed, _, _) = set.counts();
     assert!(new > 0 && changed == 0, "{:#?}", set.rows);
-    assert!(s.import_set().unwrap().map.is_none(), "an EPLAN file has no columns to map");
+    assert!(
+        s.import_set().unwrap().map.is_none(),
+        "an EPLAN file has no columns to map"
+    );
     done(&mut s, "parts.save", json!({}));
-    assert!(tmp.0.join("data").join("libraries").join("user-parts.ewlib").exists());
+    assert!(
+        tmp.0
+            .join("data")
+            .join("libraries")
+            .join("user-parts.ewlib")
+            .exists()
+    );
     done(&mut s, "parts.import", json!({"path": EDZ}));
     s.wait_jobs();
-    let again = s.import_set().and_then(|i| i.set.clone()).expect("the set read again");
+    let again = s
+        .import_set()
+        .and_then(|i| i.set.clone())
+        .expect("the set read again");
     let (new, changed, same, _) = again.counts();
     assert_eq!((new, changed), (0, 0), "{:#?}", again.rows);
     assert!(same > 0);

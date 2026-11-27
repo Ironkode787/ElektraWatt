@@ -171,15 +171,9 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         "path?:path, index?:uint, key?:text, discard?:bool, terms?:bool, update?:bool",
         in_symbol_editor(with_icon(
             "database-import",
-            act(
-                "parts.import",
-                Command,
-                Menu::Edit,
-                &[],
-                always,
-                None,
-                |s, p| s.act_parts_import(p),
-            ),
+            act("parts.import", Command, Menu::Edit, &[], always, None, |s, p| {
+                s.act_parts_import(p)
+            }),
         )),
     ),
     // Project, Add the generic stock: the starter's ferrules and markers the workshop stock lacks (doc 07 §2.5).

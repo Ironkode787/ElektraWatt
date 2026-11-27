@@ -953,111 +953,111 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
                 }
             }
             Ok(_) => {
-                    let mut line = format!(
-                        "card {} \"{}\" targets {} changes {} tags {} xrefs {}",
-                        card.preview.status(rev).word(),
-                        user(&card.preview.name),
-                        card.targets,
-                        card.changes,
-                        card.preview.derived.tags.len(),
-                        card.preview.derived.xrefs.len()
-                    );
-                    // The reorder card names its origin and its folio changes.
-                    if let crate::properties::CardOrigin::Reorder { notices } = &card.origin {
-                        line.push_str(" reorder");
-                        for n in notices {
-                            line.push_str(&format!(" \"{}\"", user(n)));
+                let mut line = format!(
+                    "card {} \"{}\" targets {} changes {} tags {} xrefs {}",
+                    card.preview.status(rev).word(),
+                    user(&card.preview.name),
+                    card.targets,
+                    card.changes,
+                    card.preview.derived.tags.len(),
+                    card.preview.derived.xrefs.len()
+                );
+                // The reorder card names its origin and its folio changes.
+                if let crate::properties::CardOrigin::Reorder { notices } = &card.origin {
+                    line.push_str(" reorder");
+                    for n in notices {
+                        line.push_str(&format!(" \"{}\"", user(n)));
+                    }
+                }
+                // The route card names its origin, its lead and its unrouted rows.
+                if let crate::properties::CardOrigin::Route { lead, rows, .. } = &card.origin {
+                    line.push_str(&format!(" route \"{}\"", user(lead)));
+                    for r in rows {
+                        line.push_str(&format!(" \"{}\"", user(r)));
+                    }
+                }
+                // A cabinet's Route card names its origin, its lead and its rows by group.
+                if let crate::properties::CardOrigin::Cabinet(c) = &card.origin {
+                    line.push_str(&format!(" cabinet \"{}\"", user(&c.lead)));
+                    for g in c.columns().groups() {
+                        if !g.heading.is_empty() {
+                            line.push_str(&format!(" \"{}\"", user(&g.heading)));
+                        }
+                        for r in &g.rows {
+                            line.push_str(&format!(" \"{}\"", user(&r.cells.join(" · "))));
+                        }
+                        if let Some(t) = &g.tick {
+                            line.push_str(&format!(" \"{}\"", user(&t.words)));
                         }
                     }
-                    // The route card names its origin, its lead and its unrouted rows.
-                    if let crate::properties::CardOrigin::Route { lead, rows, .. } = &card.origin {
-                        line.push_str(&format!(" route \"{}\"", user(lead)));
-                        for r in rows {
-                            line.push_str(&format!(" \"{}\"", user(r)));
-                        }
+                }
+                // The Arrange and route card names its origin, its lead, its figures and its rows.
+                if let crate::properties::CardOrigin::Arrange(a) = &card.origin {
+                    line.push_str(&format!(
+                        " arrange \"{}\" \"{}\" \"{}\"",
+                        user(&a.lead),
+                        user(&a.now),
+                        user(&a.then)
+                    ));
+                    for r in a.parts.iter().chain(&a.wires) {
+                        let tick = if r.ticked { "[x]" } else { "[ ]" };
+                        line.push_str(&format!(" {tick} \"{}\" \"{}\"", user(&r.name), user(&r.words)));
                     }
-                    // A cabinet's Route card names its origin, its lead and its rows by group.
-                    if let crate::properties::CardOrigin::Cabinet(c) = &card.origin {
-                        line.push_str(&format!(" cabinet \"{}\"", user(&c.lead)));
-                        for g in c.columns().groups() {
-                            if !g.heading.is_empty() {
-                                line.push_str(&format!(" \"{}\"", user(&g.heading)));
-                            }
-                            for r in &g.rows {
-                                line.push_str(&format!(" \"{}\"", user(&r.cells.join(" · "))));
-                            }
-                            if let Some(t) = &g.tick {
-                                line.push_str(&format!(" \"{}\"", user(&t.words)));
-                            }
-                        }
+                    for r in &a.left {
+                        line.push_str(&format!(" left \"{}\" \"{}\"", user(&r.name), user(&r.words)));
                     }
-                    // The Arrange and route card names its origin, its lead, its figures and its rows.
-                    if let crate::properties::CardOrigin::Arrange(a) = &card.origin {
-                        line.push_str(&format!(
-                            " arrange \"{}\" \"{}\" \"{}\"",
-                            user(&a.lead),
-                            user(&a.now),
-                            user(&a.then)
+                    for w in &a.ways {
+                        line.push_str(&format!(" \"{}\"", user(w)));
+                    }
+                }
+                // The quick-fix card names its origin and the finding's rule.
+                if let crate::properties::CardOrigin::QuickFix { rule } = &card.origin {
+                    line.push_str(&format!(" fix \"{}\"", user(rule)));
+                }
+                // The table card names its origin.
+                if matches!(card.origin, crate::properties::CardOrigin::Table { .. }) {
+                    line.push_str(" table");
+                }
+                lines.push(line);
+                // The part card names its origin, the field diff, the devices, the BOM
+                // rows and a fork's note.
+                if let crate::properties::CardOrigin::Part(p) = &card.origin {
+                    if let Some(last) = lines.last_mut() {
+                        last.push_str(" part");
+                    }
+                    for (member, old, new) in &p.fields {
+                        lines.push(format!(
+                            "  field \"{}\" \"{}\" \"{}\"",
+                            user(member),
+                            user(old),
+                            user(new)
                         ));
-                        for r in a.parts.iter().chain(&a.wires) {
-                            let tick = if r.ticked { "[x]" } else { "[ ]" };
-                            line.push_str(&format!(" {tick} \"{}\" \"{}\"", user(&r.name), user(&r.words)));
-                        }
-                        for r in &a.left {
-                            line.push_str(&format!(" left \"{}\" \"{}\"", user(&r.name), user(&r.words)));
-                        }
-                        for w in &a.ways {
-                            line.push_str(&format!(" \"{}\"", user(w)));
-                        }
                     }
-                    // The quick-fix card names its origin and the finding's rule.
-                    if let crate::properties::CardOrigin::QuickFix { rule } = &card.origin {
-                        line.push_str(&format!(" fix \"{}\"", user(rule)));
+                    for d in &p.devices {
+                        lines.push(format!("  device \"{}\"", user(d)));
                     }
-                    // The table card names its origin.
-                    if matches!(card.origin, crate::properties::CardOrigin::Table { .. }) {
-                        line.push_str(" table");
+                    for r in &p.removed {
+                        lines.push(format!("  removed \"{}\"", user(r)));
                     }
-                    lines.push(line);
-                    // The part card names its origin, the field diff, the devices, the BOM
-                    // rows and a fork's note.
-                    if let crate::properties::CardOrigin::Part(p) = &card.origin {
-                        if let Some(last) = lines.last_mut() {
-                            last.push_str(" part");
-                        }
-                        for (member, old, new) in &p.fields {
-                            lines.push(format!(
-                                "  field \"{}\" \"{}\" \"{}\"",
-                                user(member),
-                                user(old),
-                                user(new)
-                            ));
-                        }
-                        for d in &p.devices {
-                            lines.push(format!("  device \"{}\"", user(d)));
-                        }
-                        for r in &p.removed {
-                            lines.push(format!("  removed \"{}\"", user(r)));
-                        }
-                        for r in &p.added {
-                            lines.push(format!("  added \"{}\"", user(r)));
-                        }
-                        for r in &p.changed {
-                            lines.push(format!("  changed \"{}\"", user(r)));
-                        }
-                        for r in &p.lost {
-                            lines.push(format!("  lost \"{}\"", user(r)));
-                        }
-                        for r in &p.boxes {
-                            lines.push(format!("  box \"{}\"", user(r)));
-                        }
-                        if p.fork {
-                            lines.push(format!(
-                                "  note \"{}\"",
-                                strings::text(key!("part-edit-fork-note"))
-                            ));
-                        }
+                    for r in &p.added {
+                        lines.push(format!("  added \"{}\"", user(r)));
                     }
+                    for r in &p.changed {
+                        lines.push(format!("  changed \"{}\"", user(r)));
+                    }
+                    for r in &p.lost {
+                        lines.push(format!("  lost \"{}\"", user(r)));
+                    }
+                    for r in &p.boxes {
+                        lines.push(format!("  box \"{}\"", user(r)));
+                    }
+                    if p.fork {
+                        lines.push(format!(
+                            "  note \"{}\"",
+                            strings::text(key!("part-edit-fork-note"))
+                        ));
+                    }
+                }
             }
         }
         // The table card's invalid and ambiguous cells, numbered by their place in the gesture.
@@ -2017,7 +2017,11 @@ fn set_lines(shown: &crate::shell::parts_place::ImportSet, middle: bool, lines: 
         return;
     }
     if let Some(map) = &shown.map {
-        lines.push(format!("  map source \"{}\"{}", user(&map.source), if map.saved { " saved" } else { "" }));
+        lines.push(format!(
+            "  map source \"{}\"{}",
+            user(&map.source),
+            if map.saved { " saved" } else { "" }
+        ));
         for c in &map.columns {
             lines.push(format!(
                 "    column \"{}\" \"{}\" {}",

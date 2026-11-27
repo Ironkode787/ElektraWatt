@@ -77,7 +77,10 @@ fn an_edz_asks_the_terms_once_then_its_set_updates_the_part_copy_and_fills_my_pa
     // The notice closes; the file's part stands in Parts as a set; the project's copy of it is offered its update.
     assert!(h.state().shell().dialog().is_none());
     assert_eq!(h.state().shell().screen(), Screen::Parts);
-    assert_eq!(h.state().shell().import_set().and_then(|s| s.project), Some((1, 1)));
+    assert_eq!(
+        h.state().shell().import_set().and_then(|s| s.project),
+        Some((1, 1))
+    );
     h.get_by_label_contains("This project holds copies of 1 of these parts");
     support::assert_accessible(&h);
     h.get_by_label("Update them…").click();

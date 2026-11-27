@@ -195,7 +195,11 @@ pub fn import_parts(s: &mut ShellModel, tmp: &Tmp, rows: &str) {
     // The copy is the sample's project: its parts are read for the sample.
     let (sample, _) = ew_api::Session::open_read_only(Path::new(SAMPLE), "test").expect("the sample");
     let read = ew_api::import::read_parts_tables(&csv, &sample).expect("the rows read");
-    done(s, "command.run", json!({"cmd": "parts.import", "params": read.params()}));
+    done(
+        s,
+        "command.run",
+        json!({"cmd": "parts.import", "params": read.params()}),
+    );
 }
 
 /// The bridge BRIDGE-1 as an [`import_parts`] row (the sample holds no bridge part; its end bracket is the starter's

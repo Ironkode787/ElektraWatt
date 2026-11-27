@@ -172,8 +172,12 @@ impl std::fmt::Display for RowRefusal {
                 "the manufacturer `{maker}` is ambiguous: it names {}",
                 keys.join(", ")
             ),
-            RowRefusal::MakerWithoutLetters(t) => write!(f, "the manufacturer `{t}` has no letters or digits"),
-            RowRefusal::NumberWithoutLetters(t) => write!(f, "the part number `{t}` has no letters or digits"),
+            RowRefusal::MakerWithoutLetters(t) => {
+                write!(f, "the manufacturer `{t}` has no letters or digits")
+            }
+            RowRefusal::NumberWithoutLetters(t) => {
+                write!(f, "the part number `{t}` has no letters or digits")
+            }
             RowRefusal::Repeats { line } => write!(
                 f,
                 "same manufacturer and part number as line {line}, with other content"

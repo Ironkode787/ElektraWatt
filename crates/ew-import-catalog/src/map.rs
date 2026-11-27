@@ -119,7 +119,8 @@ impl Member {
         let segment = |s: &str| {
             !s.is_empty()
                 && s.starts_with(|c: char| c.is_ascii_lowercase())
-                && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
+                && s.bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
         };
         let segments: Vec<&str> = name.split('.').collect();
         if segments.len() > 4 || !segments.iter().all(|s| segment(s)) {
