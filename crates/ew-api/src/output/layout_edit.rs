@@ -1196,21 +1196,11 @@ fn carrier_rows(q: &Q, id: Id<Carrier>) -> Option<Vec<PropRow>> {
 /// A duct's fill rows (doc 12 §8.6, §12.5): its inner area with where it comes from, its fill where fullest against
 /// the limit (with the note that it read default diameters) and the wires along it.
 fn fill_rows(q: &Q, id: Id<Carrier>, d: &ew_schema::DuctParams) -> Vec<PropRow> {
-    use ew_derive::layout::{DuctFill, InnerFrom};
+    use ew_derive::layout::DuctFill;
     let Some(fill) = q.get::<DuctFill>(id).as_ref().clone() else {
         return Vec::new();
     };
     let k = "carrier";
-    let mm2 = |a: i128| ew_units::arith::div_round_ties_away(a, 1_000_000_000_000).to_string();
-    let inner = match fill.inner.1 {
-        InnerFrom::Part => ew_derive::text!("duct-inner-area-part", mm2(fill.inner.0)),
-        InnerFrom::Share => ew_derive::text!(
-            "duct-inner-area-share",
-            mm2(fill.inner.0),
-            mm_text(q, i128::from(d.width.0)),
-            mm_text(q, i128::from(d.height.0))
-        ),
-    };
     let (area, of) = fill.fill();
     let percent = ew_units::arith::div_round_ties_away(area * 100, of.max(1)).to_string();
     let limit = fill.limit.to_string();
@@ -1219,26 +1209,60 @@ fn fill_rows(q: &Q, id: Id<Carrier>, d: &ew_schema::DuctParams) -> Vec<PropRow> 
     } else {
         ew_derive::text!("duct-fill", percent, limit).to_string()
     };
+    for note in duct_fill_notes(&fill) {
+        words = format!("{words} · {note}");
+    }
+    // Select them: the duct's wires selected, for the Connections table and for their ways on the page.
+    let ids: Vec<Uuid> = fill.wires.iter().map(|w| w.as_uuid()).collect();
+    let mut wires = text_row(
+        k,
+        "wires",
+        fill.wires.len().to_string(),
+        derived_of("stored ways"),
+        None,
+    );
+    wires.link = (!ids.is_empty()).then(|| super::properties::RowLink {
+        label: ew_derive::text!("duct-wires-select"),
+        actions: vec![("select.set", json!({ "ids": ids }))],
+    });
+    let inner = duct_inner_words(q, &fill, d).to_string();
+    vec![
+        text_row(k, "inner_area", inner, derived_of("part"), None),
+        text_row(k, "fill", words, derived_of("stored ways"), None),
+        wires,
+    ]
+}
+
+/// A duct's inner area in words, with where it comes from (doc 12-3d §8.6): "2040 mm² · the part's inner size",
+/// "2040 mm² · 0.85 × 40 × 60: the part gives no inner size". Properties of a duct and Route's card say it.
+pub(crate) fn duct_inner_words(
+    q: &Q,
+    fill: &ew_derive::layout::DuctFillV,
+    d: &ew_schema::DuctParams,
+) -> crate::Text {
+    let mm2 = ew_units::arith::div_round_ties_away(fill.inner.0, 1_000_000_000_000).to_string();
+    match fill.inner.1 {
+        ew_derive::layout::InnerFrom::Part => ew_derive::text!("duct-inner-area-part", mm2),
+        ew_derive::layout::InnerFrom::Share => ew_derive::text!(
+            "duct-inner-area-share",
+            mm2,
+            mm_text(q, i128::from(d.width.0)),
+            mm_text(q, i128::from(d.height.0))
+        ),
+    }
+}
+
+/// What a duct's fill assumed or left out (doc 12-3d §8.6): "with default diameters (unverified)", "1 without a
+/// diameter not counted". Properties of a duct and Route's card say it.
+pub(crate) fn duct_fill_notes(fill: &ew_derive::layout::DuctFillV) -> Vec<crate::Text> {
+    let mut out = Vec::new();
     if fill.default_diameter {
-        words = format!("{words} · {}", ew_derive::text!("duct-fill-default"));
+        out.push(ew_derive::text!("duct-fill-default"));
     }
     if fill.without_diameter > 0 {
-        words = format!(
-            "{words} · {}",
-            ew_derive::text!("duct-fill-without", fill.without_diameter.to_string())
-        );
+        out.push(ew_derive::text!("duct-fill-without", fill.without_diameter.to_string()));
     }
-    vec![
-        text_row(k, "inner_area", inner.to_string(), derived_of("part"), None),
-        text_row(k, "fill", words, derived_of("stored ways"), None),
-        text_row(
-            k,
-            "wires",
-            fill.wires.len().to_string(),
-            derived_of("stored ways"),
-            None,
-        ),
-    ]
+    out
 }
 
 /// The panel page's Surface view rows: Surface (the project's surfaces by "<enclosure tag> plate"), Label mode,

@@ -105,6 +105,20 @@ pub fn marks_of(
             }),
     );
     out.extend(cabinet_marks(shell, group, hovered));
+    // A selected duct's fullest piece, hatched (doc 12-3d §12.5).
+    if let Some(c) = shell.canvas_of(group) {
+        let snapper = &c.page().snapper;
+        out.extend(shell.selected_duct_marks(group).into_iter().map(|m| {
+            let [a, b] = m.piece.map(|p| snapper.page_to_sheet(p));
+            ToolMark::Hatch {
+                r: ew_units::Rect::from_points(
+                    ew_units::Pt2::new(ew_units::Nm(a.0), ew_units::Nm(a.1)),
+                    ew_units::Pt2::new(ew_units::Nm(b.0), ew_units::Nm(b.1)),
+                ),
+                token: ToolToken::Stale,
+            }
+        }));
+    }
     // The ways of the wires at the selected placements, in the selection's accent; one that no longer holds dashed.
     if let Some(c) = shell.canvas_of(group) {
         let snapper = &c.page().snapper;

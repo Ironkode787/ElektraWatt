@@ -744,21 +744,29 @@ fn source_link(q: &Q, source: &PropSource, name: &str) -> SourceLink {
 }
 
 /// A wire's Way row (doc 12 §12.5): the ducts its stored way runs along and "door" where it crosses into one ("Duct 1,
-/// door"), "direct" over the fronts, with the chip "routed" or "stale"; none for connections of no wire, of several
-/// wires, or of a wire without a stored way.
+/// door"), "direct" over the fronts, with the chip "routed" or "stale", and Show on its cabinet's page; for the
+/// connections of one wire (the Connections table selects a wire's every stretch, a trunk it shares included), none
+/// for connections of several wires or of no wire, or of a wire without a stored way.
 fn way_row(q: &Q, conns: &[Id<Connection>]) -> Option<Built> {
     let records = q.get::<WireRecordSet>(());
-    let mut wires: Vec<&ew_derive::WireRecord> = Vec::new();
-    for c in conns {
-        let r = wire_alone(q, &records, *c).ok().flatten()?;
-        if !wires.iter().any(|w| w.wire.id == r.wire.id) {
-            wires.push(r);
-        }
-    }
+    let wires: Vec<&ew_derive::WireRecord> = records
+        .iter()
+        .filter(|r| conns.iter().all(|c| r.wire.constituents.contains(c)))
+        .collect();
     let [r] = wires.as_slice() else { return None };
     let way = ew_derive::layout::stored_way(q, r.wire.id)?;
     let text = ew_derive::text::way_words(q, &way.way);
-    Some(derived(DerivedRow {
+    // Show on 902: the cabinet's panel page, with the wire selected, which shows its way there.
+    let folio = ew_derive::layout::cabinet_page(q, way.space)
+        .and_then(|p| q.pages().get(p).map(|p| ew_derive::folio_label(p)));
+    let link = folio.map(|folio| super::RowLink {
+        label: ew_derive::text!("way-show-on", folio.clone()),
+        actions: vec![
+            ("page.goto", serde_json::json!({ "folio": folio })),
+            ("select.set", serde_json::json!({ "ids": [r.wire.id.as_uuid()] })),
+        ],
+    });
+    let mut built = derived(DerivedRow {
         kind: "connection",
         name: "way",
         partner: None,
@@ -772,7 +780,9 @@ fn way_row(q: &Q, conns: &[Id<Connection>]) -> Option<Built> {
             via: ew_derive::text::wire_length_source(&r.length).to_string(),
         },
         actions: Vec::new(),
-    }))
+    });
+    built.row.link = link;
+    Some(built)
 }
 
 /// The chip of a wire's Length row (doc 12 §9): how its length is made, in the words of the derivation, in English.

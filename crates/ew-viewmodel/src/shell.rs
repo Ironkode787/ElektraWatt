@@ -1810,6 +1810,8 @@ impl ShellModel {
         }
         // A state banner follows its state, and the UI language.
         self.refresh_state_banner();
+        // A preview card open over a panel page shows the page's surface whole.
+        self.sync_card_view();
         // The browser's picture follows its current row.
         self.refresh_picker_preview();
         // Tip 3 on an editing tool's, Paste's, a move's or a reorder's generated-page refusal.

@@ -492,6 +492,7 @@ impl ShellModel {
                 source: None,
                 named_reference: false,
                 label: None,
+                link: None,
                 ..model
             });
         }

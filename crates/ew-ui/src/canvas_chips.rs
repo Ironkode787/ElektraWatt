@@ -303,8 +303,14 @@ pub fn plan(ui: &Ui, input: &ChipInput<'_>, canvas: &CanvasModel, shell: &ShellM
     if input.focused {
         preview(&mut placer, input, canvas, shell, &screen);
     }
-    // An open cabinet Route card's chip on each duct: its fill where fullest (doc 12 §12.5).
-    for (at, words) in shell.cabinet_marks(input.group).chips {
+    // An open cabinet Route card's chip on each duct, its fill where fullest, and the note of the wires that leave for
+    // the door where they leave the plate; a selected duct's fill chip on its fullest piece (doc 12-3d §12.5).
+    let marks = shell.cabinet_marks(input.group);
+    let selected = shell
+        .selected_duct_marks(input.group)
+        .into_iter()
+        .map(|m| (m.chip, m.words));
+    for (at, words) in marks.chips.into_iter().chain(marks.notes).chain(selected) {
         placer.put_centred(
             ChipKind::Label,
             words,

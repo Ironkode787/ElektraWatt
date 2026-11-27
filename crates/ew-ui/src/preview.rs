@@ -253,43 +253,117 @@ fn paste_block(ui: &mut Ui, c: &ew_viewmodel::properties::PasteChoice, events: &
 /// site and Without a way, each a small tertiary heading over its rows; a row hovered or clicked shows its way alone on
 /// the canvas (a click keeps it); the tick Route every wire again under them.
 fn cabinet_block(ui: &mut Ui, c: &ew_viewmodel::shell::cabinet::CabinetCard, events: &mut Vec<Event>) {
-    let t = components::tokens(ui);
-    let mut hovered = None;
-    for (heading, rows) in c.sections() {
-        ui.add_space(t.space_2);
-        ui.label(crate::components::small_tertiary(&t, &heading));
-        for (wire, words) in rows {
-            let picked = wire.is_some() && wire == c.picked;
-            let text = RichText::new(&words)
-                .font(theme::font(&t.type_small))
-                .color(if picked {
-                    t.accent.color32()
-                } else {
-                    t.text_primary.color32()
-                });
-            let r = ui.add(egui::Label::new(text).wrap().sense(egui::Sense::click()));
-            if let Some(w) = wire {
-                if r.hovered() {
-                    hovered = Some(w);
-                }
-                if r.clicked() {
-                    events.push(Event::Action(
-                        "layout.route_card",
-                        json!({ "wire": w.to_string() }),
-                    ));
-                }
-            }
-        }
-    }
+    let hovered = card_columns(ui, &c.columns(), events);
     ui.ctx()
         .data_mut(|d| d.insert_temp(egui::Id::unique(CABINET_HOVER), hovered));
-    ui.add_space(t.space_2);
-    let mut on = c.route.all;
-    if ui
-        .checkbox(&mut on, crate::components::small_secondary(&t, c.tick()))
-        .changed()
-    {
-        events.push(Event::Action("layout.route_card", json!({ "all": on })));
+}
+
+/// The width a column of a card's groups takes at least, in points: below it for each column the groups stand one
+/// under the other.
+const CARD_COLUMN_MIN: f32 = 260.0;
+
+/// A card's groups in columns (doc 16a §6.9): side by side where the card has [`CARD_COLUMN_MIN`] points for each
+/// column, so that a wider window gives each column more room, else one under the other. Returns the row under the
+/// pointer, by what it is of.
+fn card_columns(
+    ui: &mut Ui,
+    columns: &ew_viewmodel::properties::CardColumns,
+    events: &mut Vec<Event>,
+) -> Option<ew_viewmodel::ew_api::output::Uuid> {
+    let t = components::tokens(ui);
+    let n = columns.0.len().max(1);
+    let mut hovered = None;
+    if ui.available_width() >= CARD_COLUMN_MIN * n as f32 {
+        ui.columns(n, |cols| {
+            for (ui, groups) in cols.iter_mut().zip(&columns.0) {
+                for g in groups {
+                    card_group(ui, &t, g, events, &mut hovered);
+                }
+            }
+        });
+    } else {
+        for g in columns.groups() {
+            card_group(ui, &t, g, events, &mut hovered);
+        }
+    }
+    hovered
+}
+
+/// One group of a card: its heading with its count, its rows (the first cell, the middle ones cut at the room left,
+/// the last at the right; a line under a row in the secondary colour), and its tick.
+fn card_group(
+    ui: &mut Ui,
+    t: &theme::Tokens,
+    g: &ew_viewmodel::properties::CardGroup,
+    events: &mut Vec<Event>,
+    hovered: &mut Option<ew_viewmodel::ew_api::output::Uuid>,
+) {
+    if !g.heading.is_empty() {
+        ui.add_space(t.space_2);
+        ui.horizontal(|ui| {
+            ui.label(components::small_tertiary(t, &g.heading));
+            if let Some(n) = g.count {
+                ui.label(components::small_secondary(t, n.to_string()));
+            }
+        });
+    }
+    for r in &g.rows {
+        let colour = if r.picked { t.accent } else { t.text_primary };
+        let text = |s: &str| components::styled(s, &t.type_small, colour);
+        let response = ui
+            .horizontal(|ui| {
+                let (first, rest) = r.cells.split_first().map_or((None, &[][..]), |(f, r)| (Some(f), r));
+                if let Some(f) = first {
+                    ui.add(egui::Label::new(text(f)).extend());
+                }
+                let (middle, last) = match rest {
+                    [] => (&[][..], None),
+                    [one] => (&[][..], Some(one)),
+                    [m @ .., l] => (m, Some(l)),
+                };
+                let last_w = last.map_or(0.0, |l| {
+                    ui.painter()
+                        .layout_no_wrap(l.clone(), theme::font(&t.type_small), colour.color32())
+                        .size()
+                        .x
+                });
+                if !middle.is_empty() {
+                    let w = (ui.available_width() - last_w - t.space_2).max(0.0);
+                    ui.allocate_ui(egui::vec2(w, ui.available_height()), |ui| {
+                        ui.add(egui::Label::new(text(&middle.join(" · "))).truncate());
+                    });
+                }
+                if let Some(l) = last {
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        ui.add(egui::Label::new(text(l)).extend());
+                    });
+                }
+            })
+            .response;
+        if let Some(note) = &r.note {
+            ui.add(egui::Label::new(components::small_secondary(t, note)).wrap());
+        }
+        let response = response.interact(egui::Sense::click());
+        if response.hovered() {
+            *hovered = r.id.or(*hovered);
+        }
+        if response.clicked()
+            && let Some((action, params)) = &r.action
+        {
+            events.push(Event::Action(*action, params.clone()));
+        }
+    }
+    if let Some(tick) = &g.tick {
+        ui.add_space(t.space_2);
+        let mut on = tick.on;
+        if ui
+            .checkbox(&mut on, components::small_secondary(t, &tick.words))
+            .changed()
+        {
+            let mut params = serde_json::Map::new();
+            params.insert(tick.param.to_owned(), Value::Bool(on));
+            events.push(Event::Action(tick.action, Value::Object(params)));
+        }
     }
 }
 

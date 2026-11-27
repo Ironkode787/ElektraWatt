@@ -598,6 +598,61 @@ impl CardOrigin {
     }
 }
 
+/// A card's groups in columns (doc 16a §6.9): the groups of a column one under the other, the columns side by side where
+/// the card is wide enough for them, else one under the other. The layout a card declares for its groups, which the
+/// window draws for every card that has one.
+#[derive(Clone, PartialEq, Debug, Default)]
+pub struct CardColumns(pub Vec<Vec<CardGroup>>);
+
+/// One group of a card's rows: its heading with its count, its rows, and a tick under them.
+#[derive(Clone, PartialEq, Debug)]
+pub struct CardGroup {
+    /// The heading ("Lengths"); empty for a group of a tick alone.
+    pub heading: String,
+    /// The count beside the heading.
+    pub count: Option<usize>,
+    /// The rows.
+    pub rows: Vec<CardGroupRow>,
+    /// A tick under the rows.
+    pub tick: Option<CardTick>,
+}
+
+/// One row of a [`CardGroup`]: its cells (the last stands at the right), a line under it in the secondary colour,
+/// whether it is the row picked, and the action a click on it runs.
+#[derive(Clone, PartialEq, Debug)]
+pub struct CardGroupRow {
+    /// What the row is of (a wire), which a pointer over it names.
+    pub id: Option<ew_api::output::Uuid>,
+    /// The cells.
+    pub cells: Vec<String>,
+    /// The line under it.
+    pub note: Option<String>,
+    /// Whether it is the row picked.
+    pub picked: bool,
+    /// The action a click runs, with its parameters.
+    pub action: Option<(&'static str, Value)>,
+}
+
+/// A tick of a card: its words, whether it is on, and the action that sets it (`{<param>: bool}`).
+#[derive(Clone, PartialEq, Debug)]
+pub struct CardTick {
+    /// Its words.
+    pub words: String,
+    /// Whether it is on.
+    pub on: bool,
+    /// The action.
+    pub action: &'static str,
+    /// The parameter the action takes the tick's state as.
+    pub param: &'static str,
+}
+
+impl CardColumns {
+    /// Every group, column by column.
+    pub fn groups(&self) -> impl Iterator<Item = &CardGroup> {
+        self.0.iter().flatten()
+    }
+}
+
 /// The inline preview card.
 #[derive(Debug)]
 pub struct Card {

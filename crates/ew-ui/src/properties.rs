@@ -1124,6 +1124,19 @@ impl PropertiesPane {
         } else {
             shown.clone()
         };
+        // A link the row offers beside its value ("Select them", "Show on 902"), in the accent, after the value.
+        let row_link = (!header).then_some(row.link.as_ref()).flatten().map(|l| {
+            let words = strings::render(&l.label);
+            let galley = child.painter().layout_no_wrap(
+                words.clone(),
+                crate::theme::font(&t.type_body),
+                t.accent.color32(),
+            );
+            (l, words, galley)
+        });
+        if let Some((_, _, g)) = &row_link {
+            text_right -= g.size().x + t.space_2;
+        }
         let mut job = egui::text::LayoutJob::single_section(painted, format);
         let text_width = (text_right - cell.left() - t.space_icon).max(0.0);
         job.wrap = match prose {
@@ -1136,11 +1149,32 @@ impl PropertiesPane {
             Some(_) => cell.top(),
             None => cell.center().y - galley.size().y / 2.0,
         };
+        let value_end = cell.left() + t.space_icon + galley.size().x;
         child.painter().galley(
             egui::pos2(cell.left() + t.space_icon, top),
             galley,
             colour.color32(),
         );
+        if let Some((l, words, g)) = row_link {
+            let at = egui::pos2(value_end + t.space_2, cell.center().y - g.size().y / 2.0);
+            let rect = egui::Rect::from_min_size(at, g.size());
+            let link = child.interact(rect, p.group_id.with("row-link"), Sense::click());
+            link.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Link, true, &words));
+            if link.hovered() {
+                child.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+                child.painter().hline(
+                    rect.x_range(),
+                    rect.bottom(),
+                    crate::theme::stroke(t.border_width, t.accent),
+                );
+            }
+            child.painter().galley(at, g, t.accent.color32());
+            if link.clicked() {
+                for (action, params) in &l.actions {
+                    events.push(Event::Action(*action, params.clone()));
+                }
+            }
+        }
         // The tooltip: the chip's whole text over the chip, else a long value's whole text, a read-only value's reason
         // under it.
         let long = (cut || (prose.is_none() && value.chars().count() > MAX_SHOWN)).then(|| value.to_owned());

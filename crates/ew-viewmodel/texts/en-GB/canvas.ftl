@@ -735,12 +735,20 @@ cabinet-route-lengths = Lengths
 cabinet-route-typed = Typed by hand
 cabinet-route-site-heading = Made on site
 cabinet-route-without = Without a way
-cabinet-route-duct = { $p0 } · { $p1 } · { $p2 } % of { $p3 } mm²
-cabinet-route-duct-over = { $p0 } · { $p1 } · { $p2 } % · over { $p3 } %
-cabinet-route-typed-row = { $p0 } keeps { $p1 }; Route gives { $p2 }
+cabinet-route-duct-wires = { $p0 ->
+        [one] 1 wire · fullest piece { $p1 }
+       *[other] { $p0 } wires · fullest piece { $p1 }
+    }
+cabinet-route-duct-limit = limit { $p0 } %
+cabinet-route-typed-row = keeps { $p0 }; Route gives { $p1 }
+cabinet-route-to-door = { $p0 ->
+        [one] 1 wire to the door
+       *[other] { $p0 } wires to the door
+    }
 cabinet-route-chip = { $p0 } %
 cabinet-route-chip-over = { $p0 } % · over { $p1 } %
 cabinet-route-all = { $p0 ->
-        [one] Route every wire again (1 holds)
-       *[other] Route every wire again ({ $p0 } hold)
+        [one] Route every wire again (1 more, whose way holds)
+       *[other] Route every wire again ({ $p0 } more, whose ways hold)
     }
+cabinet-route-all-on = Route every wire again (0 more: every wire is planned)

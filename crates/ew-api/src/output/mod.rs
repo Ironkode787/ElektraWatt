@@ -57,7 +57,7 @@ mod job;
 pub(crate) mod join;
 mod layers;
 // Properties for layout records and the Surface view rows.
-mod layout_edit;
+pub(crate) mod layout_edit;
 // What a list page prints: its columns, caption, legend and rows of its own (doc 09 §3.8).
 mod list_look;
 mod navigation;
@@ -185,8 +185,8 @@ pub use preview::PreviewEntity;
 pub use project_diff::textconv;
 pub use properties::{
     CABLE_SOURCE_ROW, CompanyColour, DeviceMedia, FindingChip, PropRow, PropertySheet, Provenance, RowAction,
-    RowValue, SelectionWords, SheetHeader, SheetSection, SheetWhat, SourceLink, UNNUMBERED_WIRE, WireColours,
-    WireEnd,
+    RowLink, RowValue, SelectionWords, SheetHeader, SheetSection, SheetWhat, SourceLink, UNNUMBERED_WIRE,
+    WireColours, WireEnd,
 };
 pub(crate) use rack::card_pins;
 pub use rack::{

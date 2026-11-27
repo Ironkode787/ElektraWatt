@@ -43,6 +43,7 @@ pub fn canvas_theme(t: &crate::theme::Tokens) -> Theme {
         rubber_band: c(t.canvas_selection),
         casing: c(t.canvas_sheet),
         open_cp: c(t.canvas_open_cp),
+        stale: c(t.canvas_stale),
     }
 }
 

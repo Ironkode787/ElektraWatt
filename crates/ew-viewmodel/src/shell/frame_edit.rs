@@ -569,6 +569,7 @@ impl ShellModel {
                 source: None,
                 named_reference: false,
                 label: Some(label),
+                link: None,
             };
         let text = |k: crate::strings::Key<'static>| strings::text(k).to_owned();
         let mut header = ew_api::output::SheetHeader::default();

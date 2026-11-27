@@ -39,6 +39,7 @@ fn route_on_902_opens_the_cabinets_card_and_apply_stores_the_ways() {
         "the sample is routed: nothing is due"
     );
     // Route then says so, and its card opens with every wire planned again.
+    let before = shell.canvas().unwrap().viewport();
     done(&mut shell, "layout.route", json!({}));
     assert!(
         toasts(&shell)
@@ -47,9 +48,54 @@ fn route_on_902_opens_the_cabinets_card_and_apply_stores_the_ways() {
         "{:?}",
         toasts(&shell)
     );
-    assert!(cabinet_card(&shell).is_some_and(|c| c.route.all && !c.route.lengths.is_empty()));
+    let card = cabinet_card(&shell).expect("the card");
+    assert!(card.route.all && !card.route.lengths.is_empty());
+    // Its groups in three columns: Ducts; Lengths; Typed by hand, Made on site, Without a way and the tick.
+    let columns: Vec<Vec<String>> = card
+        .columns()
+        .0
+        .iter()
+        .map(|c| c.iter().map(|g| g.heading.clone()).collect())
+        .collect();
+    assert_eq!(
+        columns,
+        [
+            vec!["Ducts".to_owned()],
+            vec!["Lengths".to_owned()],
+            vec![
+                "Typed by hand".to_owned(),
+                "Made on site".to_owned(),
+                "Without a way".to_owned(),
+                String::new()
+            ]
+        ]
+    );
+    let groups: Vec<_> = card.columns().groups().cloned().collect();
+    let typed = groups[2].rows.iter().find(|r| r.cells[0] == "101.1").expect("101.1");
+    assert!(typed.cells[1].starts_with("keeps 400 mm; Route gives "), "{:?}", typed.cells);
+    let site = groups[3].rows.iter().find(|r| r.cells[0] == "104.4").expect("104.4");
+    assert!(site.cells[1].starts_with("its end ") && site.cells[1].ends_with(" is in +FLD"), "{:?}", site.cells);
+    let duct = &groups[0].rows[0];
+    assert!(
+        duct.cells[2].contains(" wires · fullest piece ")
+            && duct.note.as_deref().is_some_and(|n| n.contains("limit 60 %")),
+        "{duct:?}"
+    );
+    assert_eq!(
+        groups[5].tick.as_ref().map(|t| t.words.as_str()),
+        Some("Route every wire again (0 more: every wire is planned)")
+    );
+    // The canvas shows the cabinet whole while the card is open; the view comes back when it closes.
+    assert!(shell.canvas().unwrap().region().is_some(), "the cabinet whole");
+    let marks = shell.cabinet_marks(0);
+    assert!(
+        marks.notes.iter().any(|(_, w)| w.ends_with(" wires to the door")),
+        "{marks:?}"
+    );
     done(&mut shell, "preview.cancel", json!({}));
     assert!(cabinet_card(&shell).is_none());
+    assert!(shell.canvas().unwrap().region().is_none());
+    assert_eq!(shell.canvas().unwrap().viewport(), before);
 
     // -X1031 turned half round on its rail: its wires' ways no longer hold, and the toast offers Route.
     let t = shell.panel_tables().expect("902's tables");
@@ -98,10 +144,9 @@ fn route_on_902_opens_the_cabinets_card_and_apply_stores_the_ways() {
     done(&mut shell, "layout.route", json!({}));
     let card = cabinet_card(&shell).expect("the cabinet's card");
     assert!(card.lead.starts_with("Route: cabinet +CAB. "), "{}", card.lead);
-    let sections: Vec<String> = card.sections().into_iter().map(|(h, _)| h).collect();
     assert!(
-        sections.contains(&"Ducts".to_owned()) && sections.contains(&"Lengths".to_owned()),
-        "{sections:?}"
+        card.columns().groups().any(|g| g.heading == "Lengths" && g.count == Some(g.rows.len())),
+        "{card:?}"
     );
     let marks = shell.cabinet_marks(0);
     assert!(

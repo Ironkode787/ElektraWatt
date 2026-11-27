@@ -687,12 +687,20 @@ cabinet-route-lengths = Lengtes
 cabinet-route-typed = Met de hand getypt
 cabinet-route-site-heading = Ter plaatse gemaakt
 cabinet-route-without = Zonder loop
-cabinet-route-duct = { $p0 } · { $p1 } · { $p2 } % van { $p3 } mm²
-cabinet-route-duct-over = { $p0 } · { $p1 } · { $p2 } % · boven { $p3 } %
-cabinet-route-typed-row = { $p0 } houdt { $p1 }; Routeren geeft { $p2 }
+cabinet-route-duct-wires = { $p0 ->
+        [one] 1 draad · volste stuk { $p1 }
+       *[other] { $p0 } draden · volste stuk { $p1 }
+    }
+cabinet-route-duct-limit = grens { $p0 } %
+cabinet-route-typed-row = houdt { $p0 }; Routeren geeft { $p1 }
+cabinet-route-to-door = { $p0 ->
+        [one] 1 draad naar de deur
+       *[other] { $p0 } draden naar de deur
+    }
 cabinet-route-chip = { $p0 } %
 cabinet-route-chip-over = { $p0 } % · boven { $p1 } %
 cabinet-route-all = { $p0 ->
-        [one] Alle draden opnieuw routeren (1 houdt)
-       *[other] Alle draden opnieuw routeren ({ $p0 } houden)
+        [one] Alle draden opnieuw routeren (1 meer, waarvan de loop klopt)
+       *[other] Alle draden opnieuw routeren ({ $p0 } meer, waarvan de lopen kloppen)
     }
+cabinet-route-all-on = Alle draden opnieuw routeren (0 meer: elke draad is gepland)

@@ -185,6 +185,19 @@ pub struct PropRow {
     /// Its label in a person's own words (a field of the project's own, doc 09 §2.10), which stands for the label its
     /// path gives; `None` for every other row.
     pub label: Option<String>,
+    /// A link the row offers beside its value (doc 12-3d §12.5: a duct's Wires row "Select them", a wire's Way row
+    /// "Show on 902"); `None` for every other row.
+    pub link: Option<RowLink>,
+}
+
+/// A link a Properties row offers beside its value: its words, and the window's actions it runs, in order (the page to
+/// go to, then the selection to make).
+#[derive(Clone, PartialEq, Debug)]
+pub struct RowLink {
+    /// Its words ("Select them", "Show on 902").
+    pub label: crate::Text,
+    /// The actions and their parameters.
+    pub actions: Vec<(&'static str, Value)>,
 }
 
 /// A derived row (`<kind>/derived.<name>`) as a property sheet builds it: what it shows, and the authored row a write
@@ -239,6 +252,7 @@ impl DerivedRow<'_> {
             source: None,
             named_reference: false,
             label: None,
+            link: None,
         }
     }
 }

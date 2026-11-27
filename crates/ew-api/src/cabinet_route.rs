@@ -36,6 +36,31 @@ pub struct CardDuct {
     pub over: bool,
     /// Where its chip stands on the page: the middle of its fullest piece (page nm).
     pub chip: (i64, i64),
+    /// How many wires run along it.
+    pub wires: usize,
+    /// How many of them run along its fullest piece.
+    pub fullest: usize,
+    /// Its inner area in words, with where it comes from ("2040 mm² · 0.85 × 40 × 60: the part gives no inner size").
+    pub inner: Text,
+    /// What its fill assumed or left out ("with default diameters (unverified)").
+    pub notes: Vec<Text>,
+}
+
+/// A duct's fullest piece on its page (doc 12-3d §12.5: a selected duct shows it hatched with its fill chip).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct DuctMark {
+    /// The duct.
+    pub carrier: Uuid,
+    /// The fullest piece's two corners on the page (page nm), across the duct's whole width.
+    pub piece: [(i64, i64); 2],
+    /// Where the chip stands: above the piece's middle (page nm).
+    pub chip: (i64, i64),
+    /// The fill of the fullest piece in whole percent.
+    pub percent: i128,
+    /// The fill limit, in percent.
+    pub limit: u8,
+    /// Whether the fullest piece is over the limit.
+    pub over: bool,
 }
 
 /// One wire of Route's card.
@@ -55,6 +80,8 @@ pub struct CardWire {
     pub typed: Option<Nm>,
     /// Why it gets no way (Without a way), and its words.
     pub reason: Option<(ew_derive::layout::NoWay, Text)>,
+    /// Why a wire is made on site (Made on site): its end outside the cabinet ("its end -104B1:13 is in +FLD").
+    pub site_end: Option<Text>,
 }
 
 impl CardWire {
@@ -81,6 +108,8 @@ pub struct CardWay {
     pub page: Vec<(i64, i64)>,
     /// Whether it crosses into a door.
     pub door: bool,
+    /// Where it leaves the plate for the door, on the page (page nm): the plate's edge on the hinge side.
+    pub door_at: Option<(i64, i64)>,
 }
 
 /// Route's card of a cabinet (doc 12 §12.5): what the plan does, before anything changes.
@@ -138,10 +167,11 @@ impl Session {
         cabinet_of_page(&q, page).map(|(space, _)| space.as_uuid())
     }
 
-    /// The stored ways of the wires at the placements `placements` on the panel page labelled `folio` (doc 12 §12.5: a
-    /// device selected on the panel page shows the ways of its wires): each way's points on the page and whether it no
+    /// The stored ways of the wires at the placements among `ids`, and of the wires among them, on the panel page
+    /// labelled `folio` (doc 12 §12.5: a device selected on the panel page shows the ways of its wires, a wire selected
+    /// in the Connections table or on a schematic page its way): each way's points on the page and whether it no
     /// longer holds (drawn dashed).
-    pub fn ways_at(&self, folio: &str, placements: &[Uuid]) -> Vec<(Vec<(i64, i64)>, bool)> {
+    pub fn ways_at(&self, folio: &str, ids: &[Uuid]) -> Vec<(Vec<(i64, i64)>, bool)> {
         let q = self.query();
         let Some(PageRef::Drawn(page)) = q.get::<PageOrder>(()).by_folio(folio).map(|e| e.page) else {
             return Vec::new();
@@ -155,10 +185,11 @@ impl Session {
             let Some(way) = ew_derive::layout::stored_way(&q, r.wire.id) else {
                 continue;
             };
-            let at = way.ends.iter().any(|e| {
-                ew_derive::layout::placement_of_function(&q, e.cp.0)
-                    .is_some_and(|p| placements.contains(&p.as_uuid()))
-            });
+            let at = ids.contains(&r.wire.id.as_uuid())
+                || way.ends.iter().any(|e| {
+                    ew_derive::layout::placement_of_function(&q, e.cp.0)
+                        .is_some_and(|p| ids.contains(&p.as_uuid()))
+                });
             // A way is drawn on the page of its ducts' plate (of its door, between two devices of one door).
             if !at || ew_derive::layout::way_surface(&q, &way.ends, &way.way) != Some(view.surface) {
                 continue;
@@ -173,6 +204,49 @@ impl Session {
             out.push((points, stale));
         }
         out
+    }
+
+    /// The fullest pieces of the ducts among `ids` on the panel page labelled `folio`, each with its fill (doc 12-3d
+    /// §12.5: a selected duct shows its fullest piece hatched and its fill chip); a duct without ways along it has none.
+    pub fn duct_marks(&self, folio: &str, ids: &[Uuid]) -> Vec<DuctMark> {
+        let q = self.query();
+        let Some(PageRef::Drawn(page)) = q.get::<PageOrder>(()).by_folio(folio).map(|e| e.page) else {
+            return Vec::new();
+        };
+        let Some(view) = q.get::<crate::output::PageSurfaceView>(page).as_ref().clone() else {
+            return Vec::new();
+        };
+        let projection = Some(&view.projection);
+        ids.iter()
+            .filter_map(|id| {
+                let c = Id::<ew_schema::Carrier>::from_uuid(*id);
+                let carrier = q.table::<ew_schema::Carrier>().get(c)?.clone();
+                let CarrierParams::Duct(d) = &carrier.params else {
+                    return None;
+                };
+                if carrier.surface != view.surface {
+                    return None;
+                }
+                let fill = q.get::<DuctFill>(c).as_ref().clone()?;
+                let piece = fill.fullest.and_then(|i| fill.pieces.get(i))?;
+                let line = ew_derive::layout::DuctLine::of(&q, c)?;
+                let pts = line.stretch(piece.from, piece.to);
+                let half = i128::from(d.width.0) / 2;
+                let (x0, x1) = (pts.iter().map(|p| p.0).min()? - half, pts.iter().map(|p| p.0).max()? + half);
+                let (y0, y1) = (pts.iter().map(|p| p.1).min()? - half, pts.iter().map(|p| p.1).max()? + half);
+                let (_, mid) = line.at((piece.from + piece.to) / 2)?;
+                let (area, inner) = fill.fill();
+                Some(DuctMark {
+                    carrier: *id,
+                    piece: [on_page(projection, (x0, y0)), on_page(projection, (x1, y1))],
+                    // The chip stands above the piece, clear of its hatch.
+                    chip: on_page(projection, (mid.0, mid.1 + 2 * half)),
+                    percent: ew_units::arith::div_round_ties_away(area * 100, inner.max(1)),
+                    limit: fill.limit,
+                    over: fill.over(),
+                })
+            })
+            .collect()
     }
 
     /// What Route has to do on the panel page labelled `folio` (doc 12 §12.5, the HUD's next step): the wires of its
@@ -286,6 +360,28 @@ fn page_points(
     out
 }
 
+/// Why a wire of a cabinet is made on site (doc 12 §8.1): its first end outside the cabinet's location, and where that
+/// end is ("its end -104B1:13 is in +FLD"; "… is outside the cabinet" for an end of no location).
+fn site_end(q: &Q, space: Id<LayoutSpace>, r: &ew_derive::WireRecord) -> Option<Text> {
+    let cabinet = q.table::<LayoutSpace>().get(space)?.location;
+    r.wire.ends.iter().find_map(|e| {
+        let node = q
+            .functions()
+            .get(e.cp.function)
+            .and_then(|f| f.device)
+            .and_then(|d| q.try_get::<ew_derive::StructureOf>(d).ok())
+            .and_then(|s| s.node(ew_rds::Aspect::Location));
+        if node == Some(cabinet) {
+            return None;
+        }
+        let pin = cp_label(q, e.cp);
+        Some(match node {
+            Some(n) => ew_derive::text!("way-site-end-in", pin, ew_derive::layout::location_text(q, n)),
+            None => ew_derive::text!("way-site-end", pin),
+        })
+    })
+}
+
 /// The card of the plan of `space` on the snapshot `now`, its stored state `after`; its marks on the page of
 /// `projection`.
 fn card(
@@ -351,14 +447,23 @@ fn card(
             length: None,
             typed: None,
             reason: None,
+            site_end: None,
         };
         match &w.planned {
             Planned::Way(way) => {
+                let page = page_points(now, projection, way, |c| lane_of(r.wire.id, c));
+                // The end in the door is drawn at the plate's edge on the hinge side.
+                let door_at = match (way.steps.first(), way.steps.last()) {
+                    (Some(ew_schema::WayStep::Door(_)), _) => page.first().copied(),
+                    (_, Some(ew_schema::WayStep::Door(_))) => page.last().copied(),
+                    _ => None,
+                };
                 out.ways.push(CardWay {
                     wire: r.wire.id.as_uuid(),
                     points: way_points(now, &way.ends, &way.steps),
-                    page: page_points(now, projection, way, |c| lane_of(r.wire.id, c)),
+                    page,
                     door: way.door(),
+                    door_at,
                 });
                 if let WireLength::Typed(n) = r.length {
                     out.typed.push(CardWire {
@@ -386,7 +491,10 @@ fn card(
                 reason: Some((*why, ew_derive::text::no_way(now, *why))),
                 ..row
             }),
-            Planned::Site => out.site.push(row),
+            Planned::Site => out.site.push(CardWire {
+                site_end: site_end(now, space, r),
+                ..row
+            }),
             Planned::Core => {}
         }
     }
@@ -430,6 +538,10 @@ fn card(
                 limit: fill.limit,
                 over: fill.over(),
                 chip,
+                wires: fill.wires.len(),
+                fullest: fill.fullest.and_then(|i| fill.pieces.get(i)).map_or(0, |p| p.wires),
+                inner: crate::output::layout_edit::duct_inner_words(after, &fill, d),
+                notes: crate::output::layout_edit::duct_fill_notes(&fill),
             });
         }
         out.ducts.sort_by_key(|d| !d.over);

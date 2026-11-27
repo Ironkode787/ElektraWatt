@@ -82,6 +82,7 @@ impl ShellModel {
                 source: None,
                 named_reference: false,
                 label: Some(label),
+                link: None,
                 ..model.clone()
             };
             let mut rows = Vec::new();

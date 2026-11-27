@@ -602,6 +602,9 @@ pub struct CanvasModel {
     arrival: Option<((i64, i64), u64)>,
     /// Whether the view is a page's first view: while fitted it fits again as one, until Fit page.
     first: bool,
+    /// The sheet rectangle `[x0, y0, x1, y1]` a card open over the page shows whole, with the view it replaced
+    /// ([`CanvasModel::show_region`]).
+    region: Option<([i64; 4], Viewport)>,
 }
 
 /// The serial of the next jump's arrival: a new jump to the same point is a new mark.
@@ -624,6 +627,7 @@ impl CanvasModel {
             hover_link: None,
             arrival: None,
             first: true,
+            region: None,
         };
         m.refit();
         m
@@ -765,8 +769,52 @@ impl CanvasModel {
         self.first && self.fitted
     }
 
-    /// Fits the view again as it was fitted: a page's first view as [`CanvasModel::first_view`], else Fit page.
+    /// Shows the sheet rectangle `r` (`[x0, y0, x1, y1]`) whole in the pane, centred, and keeps it so while the pane
+    /// changes (a card opened in the dock below the canvas takes its room); the view it replaces comes back with
+    /// [`CanvasModel::release_region`]. A zoom or a pan leaves the region, as it leaves a fitted view.
+    pub fn show_region(&mut self, r: [i64; 4]) {
+        let before = match self.region.take() {
+            Some((_, v)) => v,
+            None => self.viewport(),
+        };
+        self.region = Some((r, before));
+        self.fit_region();
+    }
+
+    /// The view [`CanvasModel::show_region`] replaced, back; nothing without a region.
+    pub fn release_region(&mut self) {
+        if let Some((_, v)) = self.region.take() {
+            self.set_viewport(&v);
+        }
+    }
+
+    /// The region shown while a card is open.
+    pub fn region(&self) -> Option<[i64; 4]> {
+        self.region.map(|(r, _)| r)
+    }
+
+    /// The region whole in the pane with [`FIT_MARGIN_PT`] on each side, centred; fitted, so a new pane fits it again.
+    fn fit_region(&mut self) {
+        let Some(([x0, y0, x1, y1], _)) = self.region else {
+            return;
+        };
+        let pt = POINTS_PER_INCH / NM_PER_INCH / self.ui_scale;
+        let (rw, rh) = ((x1 - x0).max(1) as f64 * pt, (y1 - y0).max(1) as f64 * pt);
+        let z = ((self.pane.0 - 2.0 * FIT_MARGIN_PT) / rw).min((self.pane.1 - 2.0 * FIT_MARGIN_PT) / rh);
+        self.zoom = clamp_zoom(if z.is_finite() && z > 0.0 { z } else { ZOOM_MIN });
+        self.centre = (x0 + (x1 - x0) / 2, y0 + (y1 - y0) / 2);
+        self.clamp_centre();
+        self.fitted = true;
+        self.update_hover();
+    }
+
+    /// Fits the view again as it was fitted: the region a card shows, a page's first view as
+    /// [`CanvasModel::first_view`], else Fit page.
     fn refit(&mut self) {
+        if self.region.is_some() {
+            self.fit_region();
+            return;
+        }
         if self.first {
             self.first_view();
         } else {

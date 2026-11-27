@@ -97,8 +97,10 @@ fn routes_card_on_902_and_its_apply() {
     );
 }
 
-/// After Route a wire's Length row says how its length is made and its Way row where it runs; a typed length says what
-/// Route gives; before Route the row says that Route on 902 gives one. A duct's rows give its inner area and its fill.
+/// After Route a wire's Length row says how its length is made and its Way row where it runs, with Show on 902 (the
+/// page, then the wire selected, whose way 902 then draws); a typed length says what Route gives; before Route the row
+/// says that Route on 902 gives one. A duct's rows give its inner area and its fill, its Wires row Select them, and its
+/// fullest piece is the duct's mark on 902.
 #[test]
 fn a_routed_wires_length_and_way_rows_and_a_ducts_fill() {
     let mut s = common::sample_without_ways();
@@ -121,6 +123,25 @@ fn a_routed_wires_length_and_way_rows_and_a_ducts_fill() {
     );
     let (way, chip) = wire_row(&s, "101.9", "way").expect("a Way row");
     assert_eq!((way.as_str(), chip.as_str()), ("Duct 1", "routed"));
+    let w = wire(&s, "101.9");
+    let link = |s: &Session, id: Uuid, key: &str| {
+        s.property_sheet(&[id])
+            .sections
+            .iter()
+            .flat_map(|sec| &sec.rows)
+            .find(|r| r.key == key)
+            .and_then(|r| r.link.clone())
+    };
+    let show = link(&s, w, "connection/derived.way").expect("Show on 902");
+    assert_eq!(show.label.to_string(), "Show on 902");
+    assert_eq!(
+        show.actions,
+        [
+            ("page.goto", json!({"folio": "902"})),
+            ("select.set", json!({"ids": [w]})),
+        ]
+    );
+    assert_eq!(s.ways_at("902", &[w]).len(), 1, "the selected wire's way on 902");
     let (text, chip) = wire_row(&s, "101.1", "length").unwrap();
     assert!(
         text == "400 mm" && chip.starts_with("Typed by hand. Route gives it "),
@@ -153,6 +174,17 @@ fn a_routed_wires_length_and_way_rows_and_a_ducts_fill() {
     let fill = text("carrier/derived.fill");
     assert!(fill.contains("% where fullest · the limit is 60 %"), "{fill}");
     assert!(fill.ends_with("with default diameters (unverified)"), "{fill}");
+    let select = link(&s, duct, "carrier/derived.wires").expect("Select them");
+    assert_eq!(select.label.to_string(), "Select them");
+    assert!(
+        matches!(&select.actions[..], [("select.set", p)] if p["ids"].as_array().is_some_and(|ids| ids.contains(&json!(w)))),
+        "{select:?}"
+    );
+    let marks = s.duct_marks("902", &[duct]);
+    assert!(
+        matches!(&marks[..], [m] if m.piece[0] != m.piece[1] && !m.over && m.limit == 60),
+        "{marks:?}"
+    );
 }
 
 /// `layout.route` refuses a space that does not exist and a wire Route does not lay (the field wire 104.4), in words;

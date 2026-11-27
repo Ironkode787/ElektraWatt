@@ -52,6 +52,45 @@ impl ShellModel {
         self.canvas()?.page().panel.clone()
     }
 
+    /// While the preview card of a layout command (`layout.*`: Route; a delete of a space, an enclosure or a carrier
+    /// that takes many placements with it) is open over a panel page, the focused canvas shows the page's surface whole
+    /// in the room the card leaves it (doc 12-3d §12.5: Route's card shows the cabinet whole); when the card closes the
+    /// view the person had comes back. A card of another command (a frame's grid, an edit in Properties) keeps the whole
+    /// page, as a fitted view refits to the smaller pane. Run after every action.
+    pub(super) fn sync_card_view(&mut self) {
+        let layout = self
+            .props
+            .card
+            .as_ref()
+            .is_some_and(|c| c.preview.name.starts_with("layout."));
+        let region = if layout {
+            self.panel_tables().and_then(|t| {
+                let snapper = &self.canvas()?.page().snapper;
+                let sheet: Vec<(i64, i64)> = t
+                    .usable
+                    .iter()
+                    .map(|&(u, v)| snapper.page_to_sheet(t.to_page((i128::from(u), i128::from(v)))))
+                    .collect();
+                let (x0, x1) = (sheet.iter().map(|p| p.0).min()?, sheet.iter().map(|p| p.0).max()?);
+                let (y0, y1) = (sheet.iter().map(|p| p.1).min()?, sheet.iter().map(|p| p.1).max()?);
+                // A tenth more on each side: the enclosure's outline around the surface, and the ways' marks at its edge.
+                let (mx, my) = ((x1 - x0) / 10, (y1 - y0) / 10);
+                Some([x0 - mx, y0 - my, x1 + mx, y1 + my])
+            })
+        } else {
+            None
+        };
+        let group = self.area.as_ref().map_or(0, |a| a.focused);
+        let Some(canvas) = self.canvas_mut(group) else {
+            return;
+        };
+        match region {
+            Some(r) if canvas.region() != Some(r) => canvas.show_region(r),
+            Some(_) => {}
+            None => canvas.release_region(),
+        }
+    }
+
     /// How many placements of the panel page shown the selection holds.
     pub fn selected_placements(&self) -> usize {
         let Some(c) = self.canvas() else { return 0 };

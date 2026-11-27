@@ -66,6 +66,8 @@ pub struct Theme {
     pub casing: Color,
     /// The open marker of a connection point without a connection (`canvas.open_cp`).
     pub open_cp: Color,
+    /// The hatch of a thing that needs a look (`canvas.stale`: a duct's fullest piece).
+    pub stale: Color,
 }
 
 const fn rgb(r: u8, g: u8, b: u8) -> Color {
@@ -97,6 +99,13 @@ pub const LIGHT: Theme = Theme {
     // A subdued neutral ink (slate-400 #868E99, 3.3:1 on the white sheet), never the accent: an open CP
     // must not read as a selection handle.
     open_cp: rgb(0x86, 0x8E, 0x99),
+    // `canvas.stale`: slate-400 at 30 %.
+    stale: Color {
+        r: 0x86,
+        g: 0x8E,
+        b: 0x99,
+        a: 77,
+    },
 };
 
 /// The dark theme's canvas tokens (doc 16a §4.6); the sheet and the marks on it stay as in [`LIGHT`].
@@ -150,6 +159,8 @@ pub enum ToolToken {
     RubberBand,
     /// A mark of the selection's accent: the one way of a Route card a person picked.
     Selection,
+    /// The hatch of a thing that needs a look (`canvas.stale`): a selected duct's fullest piece.
+    Stale,
 }
 
 impl Theme {
@@ -161,6 +172,7 @@ impl Theme {
             ToolToken::Measure => self.measure,
             ToolToken::RubberBand => self.rubber_band,
             ToolToken::Selection => self.selection,
+            ToolToken::Stale => self.stale,
         }
     }
 }
@@ -255,7 +267,18 @@ pub enum ToolMark {
         /// The rectangle.
         r: Rect,
     },
+    /// A rectangle hatched with diagonal lines [`HATCH_PT`] apart, with its outline (doc 16a §7: a duct's fullest piece
+    /// in `canvas.stale`).
+    Hatch {
+        /// The rectangle.
+        r: Rect,
+        /// The colour token.
+        token: ToolToken,
+    },
 }
+
+/// The distance between the lines of a hatch, in logical points.
+pub const HATCH_PT: f64 = 6.0;
 
 /// The opacity of the paper laid over a faded drawing (two thirds: the drawing shows at a third).
 pub const FADE_ALPHA: u8 = 170;
@@ -644,6 +667,23 @@ pub fn build(input: &OverlayInput<'_>) -> Overlay {
             }
             ToolMark::Rect { r, dash, token } => {
                 rect_px(t, *r, (0, 0), width, *dash, &pane, &mut px);
+                *token
+            }
+            ToolMark::Hatch { r, token } => {
+                rect_px(t, *r, (0, 0), width, Dash::Solid, &pane, &mut px);
+                let (a, b) = (screen((r.min().x.0, r.min().y.0)), screen((r.max().x.0, r.max().y.0)));
+                let (lx, hx) = (a.0.min(b.0), a.0.max(b.0));
+                let (ly, hy) = (a.1.min(b.1), a.1.max(b.1));
+                let step = (HATCH_PT * ppp).max(2.0);
+                // The lines y = x − c, clipped to the rectangle.
+                let mut c = lx - hy;
+                while c <= hx - ly {
+                    let (xa, xb) = (lx.max(ly + c), hx.min(hy + c));
+                    if xa <= xb {
+                        line_px((xa, xa - c), (xb, xb - c), width, s, Dash::Solid, &pane, &mut px);
+                    }
+                    c += step;
+                }
                 *token
             }
             ToolMark::Ghost { rects, offset } => {
@@ -1248,6 +1288,7 @@ mod tests {
             rubber_band: rgb(9, 9, 9),
             casing: rgb(10, 10, 10),
             open_cp: rgb(11, 11, 11),
+            stale: rgb(12, 12, 12),
         }
     }
 
