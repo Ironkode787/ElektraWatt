@@ -76,4 +76,6 @@ the parts list and the enclosure legend read it from there.
     right-click menu puts every label of the page back.
 
 The tools are described one by one in the [tool reference](../reference/window/tools.md): Place device, Rail and
-Duct.
+Duct. The door, the other surfaces, their holes and the cable glands are in
+[Place devices in the door, and make holes and cable glands](cabinet-surfaces.md); the wires' ways and lengths in
+[Route the cabinet's wires and give them their lengths](route-wires.md).

@@ -17,14 +17,25 @@ pages, start with a tutorial.
 - [Draw a page from the text interface](text-interface.md): reading a page as text, placing, autoconnect, frozen tags,
   terminal strips, external points, wires and junctions, delete and export, without a screen.
 - [Use the command line on the sample project](headless-workflow.md): the `ew` program checks a project, writes its
-  pages as PDF and SVG, exports the cable list and the bill of materials, and queries it in SQL. You need a checkout
-  of the repository and the `ew` program.
+  pages as PDF and SVG, exports the cable list and the bill of materials, queries it in SQL, and writes the wire list,
+  the workshop's lists, the label files, the drawings for drilling and the package. You need a checkout of the
+  repository and the `ew` program.
 - [Define a supply potential](define-supply-potential.md): a potential's name, type and voltage from a selected wire,
   junction or terminal.
 - [Choose parts](choose-parts.md): a device's part from the property grid or the part selection, a device placed
   from its part, and where the parts are listed.
 - [Draw a panel layout](panel-layout.md): a panel layout page, its enclosure and mounting plate, rails and ducts,
   and the devices placed on them.
+- [Place devices in the door, and make holes and cable glands](cabinet-surfaces.md): the door and the other surfaces
+  of a cabinet, the holes and cut-outs a part brings and those you add, the checks of a hole, the cable glands and
+  the hole table.
+- [Route the cabinet's wires and give them their lengths](route-wires.md): Route on the cabinet's page and its card,
+  a wire's way and length, the duct fill, the reserve and the door loop, a wire made on site, a length typed by hand,
+  and a way that no longer holds.
+- [Print the workshop's lists](workshop-lists.md): the wire list and its columns, the assembly lists, the cut list,
+  the consumables and the workshop stock they read, the rework list after a release, printing and handing them over.
+- [Export the labels, the drilling drawings and the package](workshop-package.md): the label files for your label
+  program, the templates and DXF files for drilling, and the package for the workshop with what is in it.
 - [Work in the PLC workspace](plc-workspace.md): what a station, a rack, a slot, a channel and a symbol are, the
   jobs of TIA Portal and where they are here, making and changing a station, addresses, the PLC grid, bus pages and
   their nets, and the exchange with PLC software.

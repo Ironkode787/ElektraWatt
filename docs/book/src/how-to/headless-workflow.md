@@ -1,8 +1,9 @@
 # Use the command line on the sample project
 
 Here you use the `ew` command-line program on the sample project: you check the project, write its pages as PDF and
-SVG, export the cable list and the bill of materials, and ask the project questions in SQL. Nothing needs the desktop
-application, and nothing leaves your machine: `ew` never uses the network.
+SVG, export the cable list and the bill of materials, ask the project questions in SQL, and write what the workshop
+builds the cabinet from: the wire list, the workshop's lists, the label files, the drawings for drilling and the
+package. Nothing needs the desktop application, and nothing leaves your machine: `ew` never uses the network.
 
 The sample project is a small conveyor drive with a pneumatic clamp: a 400 V supply, a 24 V DC control circuit, a
 motor starter, a PLC with its cards on a PROFIBUS DP line, a valve terminal with two cylinders, the panel layout and
@@ -167,10 +168,130 @@ tag,cores,length_source
 `ew sql schema` prints every view with its columns. Only `SELECT`, `WITH` and `VALUES` statements run; anything else, such
 as `ATTACH`, is refused and the exit code is 2.
 
+## Step 5: route the cabinet and export the wire list
+
+`ew route` on the cabinet's panel layout page runs the window's Route on the cabinet: it lays every wire through the
+ducts and gives it its length. `--dry-run` prints the plan and saves nothing:
+
+```console
+$ ew route fixtures/sample/sample.ew --page 902 --dry-run
+Every wire of +CAB has its way.
+```
+
+The sample is routed already, so nothing is planned. In a cabinet with wires to lay, the plan lists them, and without
+`--dry-run` it is saved. `ew export wires` writes the wire list with every column:
+
+```console
+$ ew export wires fixtures/sample/sample.ew --out out/wires.csv
+export written to out/wires.csv
+```
+
+Open `out/wires.csv` in a text editor or a spreadsheet. It starts like this:
+
+```text
+row,No.,From,CP,To,CP,Potential,Colour,mm²,Source,Via,Wire part,Pages,Length,Length from,From end,To end,From part,To part,From strip length,To strip length,From marker,To marker
+data,-101W1 BN,ext. L1,,-X1011:L1,b,L1,BN,2.5 mm²,core,,,101,cable,cable,—,ferrule 2.5 BU,,EW-GEN-FER-2.5,,10 mm,,
+data,-101W1 BK,ext. L2,,-X1011:L2,b,L2,BK,2.5 mm²,core,,,101,cable,cable,—,ferrule 2.5 BU,,EW-GEN-FER-2.5,,10 mm,,
+data,-101W1 GY,ext. L3,,-X1011:L3,b,L3,GY,2.5 mm²,core,,,101,cable,cable,—,ferrule 2.5 BU,,EW-GEN-FER-2.5,,10 mm,,
+data,-101W1 GNYE,ext. PE,,-X1011:PE,b,PE,GNYE,2.5 mm²,core,,,101,cable,cable,—,ferrule 2.5 BU,,EW-GEN-FER-2.5,,10 mm,,
+data,-101W1 BU,ext. N,,-X1011:N,b,N,BU,2.5 mm²,core,,,101,cable,cable,—,ferrule 2.5 BU,,EW-GEN-FER-2.5,,10 mm,,
+data,101.1,-X1011:L1,a,-101Q1,1,L1,BK,1.5 mm²,rule,,,101,400 mm,typed,ferrule 1.5 BK,ferrule 1.5 BK,EW-GEN-FER-1.5,EW-GEN-FER-1.5,8 mm,8 mm,-101Q1:1,-X1011:L1
+data,101.2,-X1011:L2,a,-101Q1,3,L2,BK,1.5 mm²,rule,,,101,190 mm,routed,ferrule 1.5 BK,ferrule 1.5 BK,EW-GEN-FER-1.5,EW-GEN-FER-1.5,8 mm,8 mm,-101Q1:3,-X1011:L2
+```
+
+The cores of the supply cable `-101W1` come first: each is cut with its cable, so its length says `cable`, and the
+end that comes in from outside (`ext. L1`) gets nothing in the cabinet. The wire 101.1 has a length typed by hand,
+101.2 the length Route gave it. Each end has its treatment, its ferrule part and its strip length, and the marker the
+fitter puts on it names the far end. A wire with an end outside the cabinet prints `—` with Length from `site`.
+`--format xlsx` writes the same rows as an Excel file. The window's wire list page prints the fitter's columns only;
+see [Print the workshop's lists](workshop-lists.md).
+
+## Step 6: export the workshop's lists
+
+The other lists of the workshop are report pages of the project: the assembly lists from page 912, the cut list from
+913, the consumables from 914 and the hole table on 925. `ew export report --block` takes a list by its first
+folio and writes its rows:
+
+```console
+$ ew export report fixtures/sample/sample.ew --block 925 --out out/holes.csv
+export written to out/holes.csv
+$ ew export report fixtures/sample/sample.ew --block 912 --format xlsx --out out/assembly.xlsx
+export written to out/assembly.xlsx
+```
+
+Open `out/holes.csv` in a text editor. It starts like this:
+
+```text
+row,Surface,No.,X mm,Y mm,Hole,What,For
+heading,"Mounting plate, page 902, seen from the front, measured from the bottom-left corner",,,,,,
+data,Mounting plate,H1,50,440,"Ø 3.3, tap M4",Fixing M4,Duct 1
+```
+
+Each surface starts with a heading row that names its page, the side it is seen from and the corner its holes are
+measured from; each hole has its number in the order it is made, its place, how it is made and what it is for. With
+`--format pdf` the command writes the list's pages as a PDF instead, ready to print.
+
+The rework list compares the project with a release. The sample has none yet, so it is refused:
+
+```console
+$ ew export rework fixtures/sample/sample.ew --out out/rework.csv
+error: fixtures/sample/sample.ew: this project has no released revision yet: the rework list compares with a release; release it, or choose an archive file
+$ echo $?
+2
+```
+
+After a release, `--since <revision>` names the release to compare with, and `--archive <file>` an archive file.
+
+## Step 7: write the label files and the drawings for drilling
+
+`ew export labels` writes one file per label set and marker part into a folder, which it makes when it is missing:
+
+```console
+$ ew export labels fixtures/sample/sample.ew --dir out/labels
+```
+
+It prints one line per file with its count of labels, such as `SAMPLE-E Wire markers EW-GEN-MRK-1.xlsx`, and then
+the folder and the number of files. The files are in the project's label file form, Excel on the sample, with the
+columns Text 1, Text 2, Text 3, Copies and For; `--format csv` writes CSV files, and `--since <revision>` only the
+labels that changed since a release.
+
+`ew export drilling` writes, for each surface with holes, a template to print at full size and a DXF for a machine:
+
+```console
+$ ew export drilling fixtures/sample/sample.ew --dir out/drilling
++CAB Mounting plate.dxf
++CAB Mounting plate template.pdf
+...
+```
+
+The door's and the bottom's files follow, and the last line counts the files. `--surface Door` takes one surface,
+`--template a3` prints the templates on A3, and `--no-dxf` or `--no-template` leaves one kind out.
+
+## Step 8: write the package
+
+`ew export package` writes the package for the workshop: one ZIP file with the drawings, the lists, the label files
+and the drawings for drilling.
+
+```console
+$ ew export package fixtures/sample/sample.ew --out out/package.zip
+$ echo $?
+0
+```
+
+It prints each finding of the release check (the sample has none) and then a line that says it wrote a draft package,
+with its number of files: the sample's revision V1.0 is open, so every page of its drawings says "Draft V1.0: not
+released". The ZIP holds `Contents.txt`, the drawings as one PDF, the folders `Lists`, `Labels` and `Drilling`, and
+`manifest.json` with a SHA-256 of each file. Its `Contents.txt` names the wires without a length, on the sample those
+with an end made on site; a wire without a length stops nothing. `--leave-out labels` leaves a member out (the members are
+`pages`, `wire_list`, `assembly_list`, `cut_list`, `consumables`, `hole_table`, `labels` and `drilling`), and
+`--omit-personal-data` leaves out the name and the address of each party marked as personal data. A package of a
+released revision is refused, with exit code 2, while an error of the release check stands.
+
 ## What you have done
 
 You checked a project and read the exit code, wrote its pages as PDF and SVG, exported a cable list and a bill of
-materials, and queried the project in SQL, all from the terminal. The same commands run in a script or a CI job,
+materials, queried the project in SQL, and wrote the wire list, the workshop's lists, the label files, the drawings for
+drilling and the package, all from the terminal. The same commands run in a script or a CI job,
 because they read the project without locking it and never need a display.
 
 ## Where to go next
