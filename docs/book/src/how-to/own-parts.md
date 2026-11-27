@@ -87,7 +87,7 @@ switch, 8 ports) and EW-GEN-PND-1 (a PROFINET device, 2 ports).
 ## Change a part
 
 1. Open the part in Parts: from the list (type a part of its number, maker or description), or select a device and
-   choose **Edit ▸ Parts**, which opens on the device's part.
+   choose **Project ▸ Parts**, which opens on the device's part.
 2. A part of your own, in My parts or only in this project, opens ready to change. A starter part or a part of another
    library is not yours to change: its fields show what it is, and **Make my own** starts a part of your own with its
    data, which you save under a part number of your own.

@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-27T23:38:29Z\n"
+"POT-Creation-Date: 2026-11-28T00:48:52+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -5671,8 +5671,8 @@ msgstr ""
 #: src/how-to/own-parts.md:89
 msgid ""
 "Open the part in Parts: from the list (type a part of its number, maker or "
-"description), or select a device and choose **Edit ▸ Parts**, which opens on "
-"the device's part."
+"description), or select a device and choose **Project ▸ Parts**, which opens "
+"on the device's part."
 msgstr ""
 
 #: src/how-to/own-parts.md:91
