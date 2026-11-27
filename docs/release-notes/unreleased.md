@@ -626,6 +626,14 @@ change here.
   unfinished: Route's card names it under Without a way with its reason ("its end at the interruption point L-1 is
   open: …", "its end -103F1:1 is on a device without a location: …"; `ew route --json` `open_end`, `no_location`), no
   longer under Made on site; the lists count it as a wire without a length, and its cable takes no gland for that end
+- behaviour-change: Project properties ▸ Workshop sets the holes (doc 12-3d §10.3): Fixing holes (Tapped, Self-tapping
+  screws, Through, with a nut), Rail fixing and Duct fixing (Screw, At most apart, From each end), Web between holes and
+  Measured from, each shown at its default while unset; a web or a pitch of nothing, a pitch longer than the project's
+  longest rail or straight run of duct and a distance from the ends below nothing are refused in words. A changed
+  fixing resets the holes moved or left out whose fixing hole no longer stands where it stood, in the same undo step,
+  and its card says how many on which rails and ducts before Apply
+- api-add: `project.settings.set` sets `workshop.fixing`, `workshop.rail_fixing.screw`, `.pitch` and `.from_end`, the
+  same of `workshop.duct_fixing`, `workshop.min_web` and `workshop.datum`; `null` gives each its default
 - text-change: a wire without a way says its own reason (the ducts at two pins do not meet, two devices in two doors,
   a device on a second plate or on a named face, a door without a size), and a way that no longer holds its own cause
   (a pin its part or drawing put elsewhere, the duct or the door changed); EW-LAY-011 has these forms; `ew route

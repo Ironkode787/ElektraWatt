@@ -142,3 +142,5 @@ notice-valve-second-settings = the settings of the second port { $p0 } of { $p1 
 notice-valve-closure-gone = the closure at port { $p0 } of { $p1 } went: the new valve has no port { $p0 }
 notice-valve-function = { $p0 } has the valve function of its new part; exchange the symbol to draw the new valve type
 notice-valve-line-gone = the line at port { $p0 } of { $p1 } went: the new valve has no port { $p0 }
+notice-fixing-choice-dropped = 1 hole moved or left out on { $p0 } is reset: the new fixing puts the holes elsewhere
+notice-fixing-choices-dropped = { $p1 } holes moved or left out on { $p0 } are reset: the new fixing puts the holes elsewhere

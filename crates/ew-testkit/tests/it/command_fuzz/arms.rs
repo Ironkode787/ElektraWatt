@@ -530,6 +530,12 @@ pub const ARMS: &[Arm] = &[
         weight: 1,
         build: part_keep,
     },
+    // After it, for the same reason: the workshop's hole settings.
+    Arm {
+        command: "project.settings.set",
+        weight: 1,
+        build: workshop_hole_set,
+    },
 ];
 
 /// The representation types a page type allows (`allowed_rep_types` of `ew-commands`, in JSON form).

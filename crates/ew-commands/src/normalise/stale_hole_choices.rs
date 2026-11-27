@@ -9,13 +9,18 @@
 //!   has other holes than in the base snapshot, by the part's `mech.holes`: the placement or its device changed, or
 //!   the part's copy changed (Front view and holes saved on an own part, a library update replacing the copy), the
 //!   base copy read from the base snapshot; a carrier whose path's pieces have other lengths (a lengthened rail gets
-//!   another fixing hole). A moved placement or carrier keeps its choices.
-//! - **Effect.** The triggered placement's choices without a named hole and the triggered carrier's choices go.
+//!   another fixing hole); the project's Rail fixing or Duct fixing changed (doc 12-3d §10.3). A moved placement or
+//!   carrier keeps its choices.
+//! - **Effect.** The triggered placement's choices without a named hole and the triggered carrier's choices go; of a
+//!   changed fixing, a carrier's choice goes where the hole at its index no longer stands where it stood, and the
+//!   outcome says how many went and on which rails and ducts, so that a hole moved or left out never lands on another
+//!   fixing hole in silence.
 //!
 //! Idempotent: an owner without such choices is left alone.
 
 use ew_ids::Id;
 use ew_schema::{Carrier, Device, HoleChoice, Kind, LibCopy, Part, PartHole, Placement};
+use ew_units::Pt2;
 
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
@@ -92,8 +97,58 @@ impl Normaliser for StaleHoleChoices {
             tx.update::<Carrier>(c, |x| x.hole_choices.clear())?;
             changed = true;
         }
+        changed |= fixing_changed(tx)?;
         Ok(changed)
     }
+}
+
+/// The choices of the rails and ducts whose fixing the project's settings changed: a choice stays where the hole at its
+/// index stands where it stood, else it goes, with the notice of how many went on which carriers. Whether one went.
+fn fixing_changed(tx: &mut TxBuilder<'_>) -> Result<bool, CmdError> {
+    let before = tx.base_model().project().settings.workshop.clone();
+    let now = tx.project().settings.workshop.clone();
+    if before.rail_fixing == now.rail_fixing && before.duct_fixing == now.duct_fixing {
+        return Ok(false);
+    }
+    let q = ew_derive::Q::new(tx.base_model());
+    let (mut went, mut on) = (0usize, Vec::new());
+    for c in tx.iter::<Carrier>() {
+        if c.hole_choices.is_empty() {
+            continue;
+        }
+        let at = |settings| -> Vec<Pt2> {
+            ew_derive::layout::carrier_fixings(&c, settings)
+                .into_iter()
+                .map(|(at, _)| at)
+                .collect()
+        };
+        let (was, is) = (at(&before), at(&now));
+        let kept: Vec<HoleChoice> = c
+            .hole_choices
+            .iter()
+            .filter(|h| {
+                let i = usize::from(h.index);
+                was.get(i).is_some_and(|w| is.get(i) == Some(w))
+            })
+            .cloned()
+            .collect();
+        if kept.len() == c.hole_choices.len() {
+            continue;
+        }
+        went += c.hole_choices.len() - kept.len();
+        on.extend(ew_derive::layout::carrier_label(&q, c.id).map(|l| ew_derive::text::carrier_in_sentence(l).into()));
+        tx.update::<Carrier>(c.id, move |x| x.hole_choices = kept)?;
+    }
+    if went == 0 {
+        return Ok(false);
+    }
+    let on = crate::words::and_list(on);
+    tx.notice(if went == 1 {
+        text!("notice-fixing-choice-dropped", on)
+    } else {
+        text!("notice-fixing-choices-dropped", on, went.to_string())
+    });
+    Ok(true)
 }
 
 /// The holes of the part a placement realises: its `part`, else its device's first part use whose part has a mount

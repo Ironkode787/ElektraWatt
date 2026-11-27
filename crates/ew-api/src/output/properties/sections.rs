@@ -171,7 +171,11 @@ impl SectionCx<'_, '_> {
                 let supply = self.kind == "project"
                     && (rpath == "supply" || rpath.starts_with("supply."))
                     && self.cx.q.project().kind == ew_schema::ProjectKind::Schematic;
-                if value == RowValue::Absent && (spec.ty.is_optional() || device_aspect) && !supply {
+                // The workshop's Rail fixing and Duct fixing show their members while unset, at their defaults:
+                // setting one sets the fixing (doc 12-3d §10.3).
+                let fixing = self.kind == "project"
+                    && matches!(rpath, "settings.workshop.rail_fixing" | "settings.workshop.duct_fixing");
+                if value == RowValue::Absent && (spec.ty.is_optional() || device_aspect) && !supply && !fixing {
                     return;
                 }
                 if device_aspect && values.iter().any(Option::is_none) {
@@ -272,6 +276,10 @@ impl SectionCx<'_, '_> {
 /// cable cores, Mark jumpers; doc 12 §12.5: Reserve per end, Duct fill limit, Door loop; doc 07 §2.5: Cut to): the value
 /// that applies, its default, with the chip "project default".
 fn workshop_defaults(cx: &SheetCx<'_>, built: &mut [Built]) {
+    let (rail, duct) = (
+        ew_derive::layout::rail_fixing_default(),
+        ew_derive::layout::duct_fixing_default(),
+    );
     let defaults = [
         (
             "project/settings.workshop.ferrules",
@@ -290,6 +298,32 @@ fn workshop_defaults(cx: &SheetCx<'_>, built: &mut [Built]) {
         (
             "project/settings.workshop.device_labels",
             serde_json::to_value(ew_schema::DeviceLabels::default()),
+        ),
+        // The holes (doc 12-3d §10.3, doc 12 §2.8): Fixing holes, Rail fixing, Duct fixing, Web between holes,
+        // Measured from.
+        (
+            "project/settings.workshop.fixing",
+            serde_json::to_value(ew_schema::FixingRule::default()),
+        ),
+        (
+            "project/settings.workshop.rail_fixing.screw",
+            serde_json::to_value(&rail.screw),
+        ),
+        ("project/settings.workshop.rail_fixing.pitch", Ok(Value::from(rail.pitch.0))),
+        ("project/settings.workshop.rail_fixing.from_end", Ok(Value::from(rail.from_end.0))),
+        (
+            "project/settings.workshop.duct_fixing.screw",
+            serde_json::to_value(&duct.screw),
+        ),
+        ("project/settings.workshop.duct_fixing.pitch", Ok(Value::from(duct.pitch.0))),
+        ("project/settings.workshop.duct_fixing.from_end", Ok(Value::from(duct.from_end.0))),
+        (
+            "project/settings.workshop.min_web",
+            Ok(Value::from(crate::checks::rules::holes::DEFAULT_WEB.0)),
+        ),
+        (
+            "project/settings.workshop.datum",
+            serde_json::to_value(ew_schema::Corner::default()),
         ),
         (
             "project/settings.workshop.reserve",

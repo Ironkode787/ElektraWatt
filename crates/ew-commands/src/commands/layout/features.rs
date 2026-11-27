@@ -423,3 +423,98 @@ impl Command for PlaceGlands {
         Ok(first.map(Outcome::primary).unwrap_or_default())
     }
 }
+
+/// Sets one of the workshop's hole settings (doc 12-3d §10.3, doc 12 §2.8) on `workshop`: a member of
+/// `project.settings.set` as `workshop.<path>` (`member`), `value` its JSON form, `null` its default. `fixing` how a
+/// fixing in the plate is made; `rail_fixing.<screw|pitch|from_end>` and `duct_fixing.<…>` one number of a rail's or a
+/// duct's fixing, the others kept (a fixing back at its default is stored as none, so the project reads as before it
+/// was set); `min_web` the web kept between holes; `datum` the corner holes are measured from. Refused in words at
+/// `/value`: a value of no choice, a web or a pitch of nothing or less, a pitch longer than the project's longest
+/// straight piece of a rail or a duct of that kind, a distance from the ends below nothing. The hole choices the moved
+/// fixing holes no longer name go in the same step (`stale_hole_choices`).
+pub(crate) fn hole_member(
+    tx: &TxBuilder<'_>,
+    workshop: &mut ew_schema::WorkshopSettings,
+    member: &str,
+    path: &str,
+    value: &serde_json::Value,
+) -> Result<(), CmdError> {
+    use crate::commands::settings::{SetProjectSettings, member_value};
+    let refused = |t: ew_l10n::Text| Err(CmdError::invalid_params(SetProjectSettings::NAME, "/value", t));
+    let mm = |n: i128| ew_derive::mm_exact(n);
+    let clear = value.is_null();
+    match path {
+        "fixing" if clear => workshop.fixing = Default::default(),
+        "fixing" => workshop.fixing = member_value(member, value)?,
+        "datum" if clear => workshop.datum = None,
+        "datum" => workshop.datum = Some(member_value(member, value)?),
+        "min_web" if clear => workshop.min_web = None,
+        "min_web" => {
+            let n: Nm = member_value(member, value)?;
+            if n.0 <= 0 {
+                return refused(text!("refusal-workshop-web", mm(i128::from(n.0))));
+            }
+            workshop.min_web = Some(n);
+        }
+        _ => {
+            let (slot, default, kind) = match path.split_once('.').map(|(c, _)| c) {
+                Some("rail_fixing") => (
+                    &mut workshop.rail_fixing,
+                    ew_derive::layout::rail_fixing_default(),
+                    ew_schema::CarrierKind::Rail,
+                ),
+                Some("duct_fixing") => (
+                    &mut workshop.duct_fixing,
+                    ew_derive::layout::duct_fixing_default(),
+                    ew_schema::CarrierKind::Duct,
+                ),
+                _ => return Err(CmdError::internal(format!("{member} is no hole setting"))),
+            };
+            let mut fixing = slot.clone().unwrap_or_else(|| default.clone());
+            match (path.split_once('.').map_or("", |(_, m)| m), clear) {
+                ("screw", true) => fixing.screw = default.screw.clone(),
+                ("screw", false) => fixing.screw = member_value(member, value)?,
+                ("pitch", true) => fixing.pitch = default.pitch,
+                ("pitch", false) => {
+                    let n: Nm = member_value(member, value)?;
+                    let pitch = i128::from(n.0);
+                    if pitch <= 0 {
+                        return refused(text!("refusal-workshop-pitch", mm(pitch)));
+                    }
+                    // The longest straight piece of a carrier of this kind: a longer pitch leaves only the end holes.
+                    let longest = tx
+                        .iter::<Carrier>()
+                        .iter()
+                        .filter(|c| c.kind == kind)
+                        .flat_map(|c| {
+                            c.path.windows(2).map(|w| {
+                                let dx = (i128::from(w[1].x.0) - i128::from(w[0].x.0)).abs();
+                                let dy = (i128::from(w[1].y.0) - i128::from(w[0].y.0)).abs();
+                                dx.max(dy)
+                            })
+                        })
+                        .max();
+                    if let Some(l) = longest.filter(|l| pitch > *l) {
+                        return refused(if kind == ew_schema::CarrierKind::Rail {
+                            text!("refusal-workshop-pitch-rail", mm(pitch), mm(l))
+                        } else {
+                            text!("refusal-workshop-pitch-duct", mm(pitch), mm(l))
+                        });
+                    }
+                    fixing.pitch = n;
+                }
+                ("from_end", true) => fixing.from_end = default.from_end,
+                ("from_end", false) => {
+                    let n: Nm = member_value(member, value)?;
+                    if n.0 < 0 {
+                        return refused(text!("refusal-workshop-length-negative"));
+                    }
+                    fixing.from_end = n;
+                }
+                _ => return Err(CmdError::internal(format!("{member} is no hole setting"))),
+            }
+            *slot = (fixing != default).then_some(fixing);
+        }
+    }
+    Ok(())
+}

@@ -53,6 +53,7 @@ mod route;
 use assemblies::rail_in_sentence;
 pub use assemblies::{AutoFill, FillOrder, PlaceAssembly};
 pub use features::{AddFeature, EditFeature, HoleChoiceEdit, PlaceGlands};
+pub(crate) use features::hole_member;
 pub use route::LayoutRoute;
 
 /// The layout deletes are `Bulk` when they remove or rehome more than this many placements.

@@ -111,6 +111,16 @@ pub const SETTABLE_WORKSHOP: &[&str] = &[
     "mark_jumpers",
     "device_labels",
     "label_profile",
+    // How the holes are made and measured (doc 12-3d §10.3, doc 12 §2.8; `hole_member`).
+    "fixing",
+    "rail_fixing.screw",
+    "rail_fixing.pitch",
+    "rail_fixing.from_end",
+    "duct_fixing.screw",
+    "duct_fixing.pitch",
+    "duct_fixing.from_end",
+    "min_web",
+    "datum",
     "reserve",
     "fill_limit",
     "door_loop",
@@ -212,6 +222,9 @@ pub(crate) fn set_member(tx: &mut TxBuilder<'_>, path: &str, value: &Value) -> R
                 return Err(settings_bad("/value", text!("refusal-workshop-fill-limit")));
             };
             workshop.fill_limit = Some(limit);
+        }
+        (p, _) if matches!(p, "fixing" | "min_web" | "datum") || p.contains("_fixing.") => {
+            crate::commands::layout::hole_member(tx, workshop, &member, path, value)?;
         }
         _ => {
             return Err(CmdError::internal(format!(

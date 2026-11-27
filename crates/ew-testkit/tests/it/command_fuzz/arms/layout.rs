@@ -854,3 +854,52 @@ pub(super) fn layout_route(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         _ => Some(cmd(json!({"space": rng.pick(&live.layout.spaces)?}))),
     }
 }
+
+/// `project.settings.set` of a hole setting of the workshop (doc 12-3d §10.3, doc 12 §2.8): Fixing holes through or back
+/// to tapped, a rail's or a duct's screw, pitch or distance from the ends, the web between holes or the corner holes are
+/// measured from (accepted; a fixing that moves holes resets the choices it no longer matches); refused: a web or a
+/// pitch of nothing, a corner of no name. After a commit no carrier's choice names a hole its fixing does not have.
+pub(super) fn workshop_hole_set(_live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let cmd = |member: String, value: Value| {
+        Step::cmd(
+            "project.settings.set",
+            json!({"member": format!("workshop.{member}"), "value": value}),
+        )
+    };
+    let fixing = *rng.pick(&["rail_fixing", "duct_fixing"])?;
+    let length = |rng: &mut SplitMix64| i64::try_from(rng.below(400)).ok().map(|n| (n + 1) * LAY_MM);
+    let step = match rng.below(9) {
+        0 => cmd("min_web".into(), json!(0)).refuse(),
+        1 => cmd(format!("{fixing}.pitch"), json!(0)).refuse(),
+        2 => cmd("datum".into(), json!("nowhere")).refuse(),
+        3 => cmd("fixing".into(), if rng.chance(2) { json!("through") } else { Value::Null }),
+        4 => cmd(
+            format!("{fixing}.screw"),
+            serde_json::to_value(rng.pick(&ew_schema::Screw::ALL)?).ok()?,
+        ),
+        5 => cmd(format!("{fixing}.pitch"), json!(length(rng)?)),
+        6 => cmd(format!("{fixing}.from_end"), json!(length(rng)? / 4)),
+        7 => cmd("min_web".into(), json!(length(rng)? / 40 + LAY_MM)),
+        _ => cmd(
+            "datum".into(),
+            serde_json::to_value(rng.pick(&ew_schema::Corner::ALL)?).ok()?,
+        ),
+    };
+    Some(step.check(|_, after| choices_name_fixings(after)))
+}
+
+/// Every carrier's hole choice names a fixing hole its carrier has.
+fn choices_name_fixings(q: &ew_derive::Q) -> Result<(), String> {
+    let workshop = &q.project().settings.workshop;
+    for (id, c) in q.table::<ew_schema::Carrier>().iter() {
+        let holes = ew_derive::layout::carrier_fixings(c, workshop).len();
+        if let Some(h) = c.hole_choices.iter().find(|h| usize::from(h.index) >= holes) {
+            return Err(format!(
+                "carrier {} has a choice of hole {} of {holes}",
+                id_text(&id_json(id)),
+                h.index
+            ));
+        }
+    }
+    Ok(())
+}

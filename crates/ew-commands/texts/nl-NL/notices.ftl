@@ -141,3 +141,5 @@ notice-valve-second-settings = de instellingen van de tweede poort { $p0 } van {
 notice-valve-closure-gone = de afsluiting op poort { $p0 } van { $p1 } is vervallen: het nieuwe ventiel heeft geen poort { $p0 }
 notice-valve-function = { $p0 } heeft de ventielfunctie van zijn nieuwe artikel; wissel het symbool om het nieuwe ventieltype te tekenen
 notice-valve-line-gone = de leiding op poort { $p0 } van { $p1 } is vervallen: het nieuwe ventiel heeft geen poort { $p0 }
+notice-fixing-choice-dropped = 1 verplaatst of weggelaten gat op { $p0 } wordt teruggezet: de nieuwe bevestiging zet de gaten elders
+notice-fixing-choices-dropped = { $p1 } verplaatste of weggelaten gaten op { $p0 } worden teruggezet: de nieuwe bevestiging zet de gaten elders

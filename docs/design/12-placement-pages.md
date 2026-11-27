@@ -277,7 +277,7 @@ is drawn as a person sees it from the side it is worked from, standing in front 
   to cross to the door ([12-3d](12-3d-routing-thermal.md) §8).
 - **The datum** differs from job to job, so it is a setting: the surface's Properties ▸ Measured from (Bottom left,
   Bottom right, Top left, Top right, or "The project's: Bottom left", which clears it), and for every surface of the
-  project at once Project properties ▸ Workshop ▸ Holes ▸ Measured from (bottom left when not set), so a shop that
+  project at once Project properties ▸ Workshop ▸ Measured from (bottom left when not set), so a shop that
   always measures from the top-left sets it once. The hole table's heading, the template's band and the DXF's origin
   and its `DATUM` layer say which corner it is ([13](13-drilling.md) §9); the page marks it with its "0" (§5.2).
 - **Seen from outside, a door lies in front of the plate as drawn:** its `x`, `y` are the plate's, shifted by the

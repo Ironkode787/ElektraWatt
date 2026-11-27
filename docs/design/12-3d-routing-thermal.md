@@ -435,8 +435,8 @@ out.
    top). Unplaced devices lists under Glands "-101W1 · gland M20" and "-103W1 · gland M25"; he selects both and drops
    them near the bottom's left: they stand in a row 35 mm apart, so their nuts clear each other
    ([12](12-placement-pages.md) §3.9). -103W1's Properties say "Gland: EW-GEN-GLD-M25, proposed: 12.5 mm, in its 9 …
-   16 mm · Bottom of -UC1, H2". His shop measures this job from the top-left: Project properties ▸ Workshop ▸ Holes ▸
-   Measured from: Top left, once for every surface (a surface's own Measured from, in its Properties, still wins).
+   16 mm · Bottom of -UC1, H2". His shop measures this job from the top-left: Project properties ▸ Workshop ▸ Measured
+   from: Top left, once for every surface (a surface's own Measured from, in its Properties, still wins).
 8. Output ▸ Workshop ▸ **Hole tables** opens page 915: the plate's 10 holes, the door's 8 and the bottom's 2, each
    with its number, its X and Y from the corner the surface's heading names, what to make ("Ø 4.2, tap M5", "Ø 22.3",
    "Ø 25.5") and what it is for (a rail, a device, a cable).
@@ -448,7 +448,7 @@ out.
    record is unchanged and only the placement moved. A rail lengthened by 100 mm gets its fourth fixing hole. A new
    cable to a sensor in the field is one more gland to place; -103W1 given a thicker part keeps its M25 hole and
    EW-LAY-018 offers Take M32. **The tenth job:** his parts carry their holes and his basic project sets the workshop's
-   Holes rows once; he lays out the door and the bottom and goes straight to step 8.
+   hole rows once (§10.3); he lays out the door and the bottom and goes straight to step 8.
 
 ### 10.2 The sizes of the named holes
 
@@ -478,6 +478,18 @@ diameters a gland seals are not this table's: they are each gland part's data ([
   given distance `e` from each end and `n − 2` between them, evenly spaced, `n = ⌈(L − 2e) / p⌉ + 1`, each place
   rounded to the whole millimetre (half up). A piece shorter than `2e` gets one hole at its middle. The sample's
   470 mm rails and duct have three holes each, at 25, 235 and 445 mm from their start.
+- **Where he sets them:** Project properties ▸ Workshop has the rows Fixing holes, Rail fixing and Duct fixing (each
+  with Screw, At most apart and From each end, shown at their defaults while unset), Web between holes (5 mm unless
+  set) and Measured from (§10.1 step 7), each one `project.settings.set` (`workshop.fixing`,
+  `workshop.rail_fixing.pitch`, …, `workshop.min_web`, `workshop.datum`) and one undo step. A fixing set back to its
+  defaults is stored as none, so a project reads as it did until he changes one. A value that cannot be is refused in
+  words: a web or a pitch of nothing or less ("0 mm is no web between holes"), a pitch longer than the project's longest
+  rail or straight run of duct (its holes would stand at the ends only), a distance from the ends below nothing.
+- **A changed fixing moves the holes of every rail or duct of its kind.** A hole he moved or left out is a choice by
+  its index along the path (§10.4); where the hole at that index no longer stands where it stood, the choice is reset in
+  the same undo step, and the card of the change says so before Apply: "1 hole moved or left out on rail 2 is reset:
+  the new fixing puts the holes elsewhere". A choice whose hole stays (the first hole, a new screw) is kept. A hole
+  moved or left out never lands on another fixing hole in silence.
 
 ### 10.4 The features of a surface
 
@@ -532,7 +544,7 @@ hand by its purpose ("Earth stud"), a gland by its cable ("-103W1"), else by its
   running as after typing X and Y), shows Kind, Size, X, Y and For in Properties, and Delete removes it.
 - **Properties of a surface** (a click on its outline or its free area): Width, Height, Hinge, Edge margin, Measured
   from (Bottom left, Bottom right, Top left, Top right, or "The project's: Bottom left"; the project's is Project
-  properties ▸ Workshop ▸ Holes ▸ Measured from), the count of its holes with Hole table, and its page.
+  properties ▸ Workshop ▸ Measured from), the count of its holes with Hole table, and its page.
 
 **Left out**, each with its reason ([backlog-later](../plan/backlog-later.md)): the anti-rotation notch of a 22 mm
 cut-out (no starter part needs one); slots, keyholes and free outlines as holes; a hole under another device as a
