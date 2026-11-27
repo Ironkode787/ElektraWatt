@@ -48,20 +48,16 @@ impl CabinetCard {
             .ducts
             .iter()
             .map(|d| {
+                let label = strings::render(&d.label);
                 let words = if d.over {
                     strings::format(
                         key!("cabinet-route-duct-over"),
-                        &[&d.label, &d.size, &d.percent.to_string(), &d.limit.to_string()],
+                        &[&label, &d.size, &d.percent.to_string(), &d.limit.to_string()],
                     )
                 } else {
                     strings::format(
                         key!("cabinet-route-duct"),
-                        &[
-                            &d.label,
-                            &d.size,
-                            &d.percent.to_string(),
-                            &d.inner_mm2.to_string(),
-                        ],
+                        &[&label, &d.size, &d.percent.to_string(), &d.inner_mm2.to_string()],
                     )
                 };
                 (None, words)

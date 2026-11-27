@@ -1231,11 +1231,6 @@ fn mm_unit(n: Nm) -> String {
     format!("{} mm", mm_exact(i128::from(n.0)))
 }
 
-/// A duct inside a sentence ("duct 1"); "a duct" for one that is gone.
-fn duct_words(q: &crate::Q, carrier: ew_ids::Id<ew_schema::Carrier>) -> String {
-    crate::layout::carrier_label(q, carrier).map_or_else(|| "a duct".to_owned(), |l| l.in_sentence())
-}
-
 /// Why a stored way no longer holds, in words (doc 12 §8.5): "-X1031 moved", "its end moved from -102Q1:2 to
 /// -102Q1:4", "-102S1 is no longer placed", "duct 1 changed", "a duct of its way is gone". EW-LAY-011, a wire's
 /// Properties, the toast and Route's card print it.
@@ -1246,7 +1241,10 @@ pub fn stale_why(q: &crate::Q, why: crate::layout::StaleWhy) -> Text {
         StaleWhy::Moved(d) => text!("way-moved", crate::short_tag(q, d)),
         StaleWhy::EndChanged { from, to } => text!("way-end-moved", pin(from), pin(to)),
         StaleWhy::Unplaced(d) => text!("way-unplaced", crate::short_tag(q, d)),
-        StaleWhy::DuctChanged(c) => text!("way-duct-changed", duct_words(q, c)),
+        StaleWhy::DuctChanged(c) => match crate::layout::carrier_label(q, c) {
+            Some(l) => text!("way-duct-changed", carrier_in_sentence(l)),
+            None => text!("way-duct-gone"),
+        },
         StaleWhy::DuctGone(_) => text!("way-duct-gone"),
     }
 }
@@ -1261,7 +1259,7 @@ pub fn no_way(q: &crate::Q, why: crate::layout::NoWay) -> Text {
         NoWay::NoDuct { cp, rail } => {
             let pin = crate::cp_label(q, crate::CpRef::new(cp.0, cp.1));
             match rail.and_then(|r| crate::layout::carrier_label(q, r)) {
-                Some(l) => text!("no-way-no-duct", pin, l.in_sentence()),
+                Some(l) => text!("no-way-no-duct", pin, carrier_in_sentence(l)),
                 None => text!("no-way-no-duct-here", pin),
             }
         }
@@ -1302,7 +1300,9 @@ pub fn way_words(q: &crate::Q, way: &[ew_schema::WayStep]) -> String {
     let mut parts: Vec<String> = Vec::new();
     for step in way {
         let part = match step {
-            ew_schema::WayStep::Duct(d) => crate::layout::carrier_label(q, d.carrier).map(|l| l.label()),
+            ew_schema::WayStep::Duct(d) => {
+                crate::layout::carrier_label(q, d.carrier).map(|l| carrier_label(l).to_string())
+            }
             ew_schema::WayStep::Door(_) => Some(text!("way-door").to_string()),
             ew_schema::WayStep::Unknown(_) => None,
         };

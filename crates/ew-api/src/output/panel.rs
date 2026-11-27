@@ -21,8 +21,8 @@ use std::sync::Arc;
 
 use ew_derive::layout::{
     CarrierGeometry, GroupAccessories, LabelMode, LayoutLabel, PlacementGeometry, Profile, Quarter, RailAxis,
-    RailExtent, RailItem, Unplaced, brackets, carrier_labels, free_length, member_order, member_slot,
-    location_text, primary_part, rail_extent, rail_items, runs,
+    RailExtent, RailItem, Unplaced, brackets, carrier_labels, free_length, location_text, member_order,
+    member_slot, primary_part, rail_extent, rail_items, runs,
 };
 use ew_derive::{DeviceTag, PageRef, Policy, Q, Query, Tag};
 use ew_ids::{Id, Uuid};

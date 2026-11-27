@@ -80,6 +80,7 @@ The `Session` facade shared by every front-end.
 
 | File | Size | What it holds |
 |---|---|---|
+| `src/cabinet_route.rs` |  | Route on a panel page (doc 12 §8.5, §12.5): the cabinet's plan as Route's preview shows it, from a preview of the `layout.route` that stores it (ADR-0008's fork), so the card's lengths and fills are those the stored ways give. |
 | `src/catalog.rs` |  | The parts import's front door: the column maps saved per source, the input read with its size checked first, the manufacturer master from the libraries, and the two targets: |
 | `src/cli_results.rs` | large | The JSON results of the `ew` subcommands (doc 17 §3.1, FR-EXT-024). |
 | `src/cmdlog.rs` |  | Command logs (`.ewcmd`, doc 17 §3.5): JSON Lines, one header, then one command per line, replayed by [`Session::run_script`]. |
@@ -177,7 +178,7 @@ The `Session` facade shared by every front-end.
 | `src/part_new.rs` |  | A new part made in the window (`part.new`): [`Session::new_part_draft`] opens the part editor on an empty draft; [`Session::new_part_command`] turns the draft into the part and the one command that brings it into the project. |
 | `src/part_offers.rs` |  | The part selection dialog's data. |
 | `src/part_plc.rs` |  | The PLC section of a new part as a form (doc 10 §2.6): what the part is in the PLC model, its channels, the pin pattern, the supply pins, the allowed slots and a station's module limit, as texts checked one by one. |
-| `src/part_rows.rs` |  | The part editor's sections and their declared rows (doc 07 §5, picture A of the parts design): the editor lists [`PART_SECTIONS`] on its left and shows one at a time. |
+| `src/part_rows.rs` | large | The part editor's sections and their declared rows (doc 07 §5, picture A of the parts design): the editor lists [`PART_SECTIONS`] on its left and shows one at a time. |
 | `src/plc_exchange.rs` |  | The PLC exchange of a session (doc 10 §4, §7): the files a configuration project is exported as, the preview of a file that comes back, the exchange status and the instrument list. |
 | `src/qet_collection.rs` |  | A QElectroTech element collection into a user library, on demand (doc 07 §3.6, FR-SYM-029): the `.elmt` files of a directory (the user's QET installation) become symbols and function definitions of a writable library, each on the QET 10 px grid with its source path, under the licence `LicenseRef-QET-elements` and the flag `foreign_terms`. |
 | `src/queries.rs` | large | The public queries of `ew query` (doc 17 §3.3 and §3.4, FR-EXT-005). |
@@ -301,6 +302,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/commands/layout.rs` | large | The `layout.*` commands (doc 12 §3): layout spaces, enclosures with their plate, carriers and placements, each one undo step. |
 | `src/commands/layout/assemblies.rs` |  | The layout's commands that place an assembly with its members, and the auto-fill of a rail. |
 | `src/commands/layout/features.rs` |  | The holes of a surface (doc 12 §3.7, doc 12-3d §10.6): a hole by hand (`layout.feature.add`, `layout.feature.edit`) and the choice that moves a derived hole or leaves it out (`layout.hole_choice`). |
+| `src/commands/layout/route.rs` |  | `layout.route`: Route on a panel page, which stores the ways of a cabinet's wires (doc 12 §8.5). |
 | `src/commands/library.rs` |  | `library.embed` (`EmbedLibraryCopies`): embeds library items into the project as copies with their lineage (doc 05 §13.2, doc 07 §3.1). |
 | `src/commands/library_update.rs` | large | `library.update` (`UpdateLibraryCopies`, FR-PRT-014, FR-SYM-016) and the update classification of doc 07 §4.5 ([`classify_update`]), which the session's update plan shows on the card. |
 | `src/commands/macro_insert.rs` |  | `macro.insert` (doc 07 §3.5, §4.6): inserts a window or page macro in one transaction, with its values, its placeholder groups and its closure as parameters, so a command log replays the insertion exactly on a machine with no library installed. |
@@ -401,11 +403,13 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/layout/accessories.rs` |  | The items of a rail and its derived end brackets (FR-LAY-060, doc 12 §3.4): [`rail_items`] turns `rail_occupancy` into the rail model's items (the strips with their bracket widths, [`crate::strip_bracket`]), and the memo query [`GroupAccessories`] (`group_accessories(carrier)`) lists the end brackets the strips need. |
 | `src/layout/assembly.rs` |  | The member order of an assembly or PLC station (FR-LAY-061): one function shared by `layout.place_assembly`, `layout.auto_fill` and EW-LAY-016, so that the layout and the check cannot disagree. |
 | `src/layout/carrier.rs` |  | Carrier paths: the axis-parallel check, the length and a rail's axis. |
+| `src/layout/fill.rs` |  | `duct_fill(duct)`: how full a duct is with the ways stored through it (doc 12 §8.6), and the two tables it reads: a wire's outer diameter by its cross-section ([`WIRE_OD`]) and the share of a duct's nominal size that is its inner area where its part gives none ([`INNER_SHARE`]). |
 | `src/layout/fit.rs` |  | The mount-kind compatibility table (doc 12 §2.5, §3.3): which rail profiles and which surfaces a part's mount kind fits. |
 | `src/layout/glands.rs` |  | The cable glands of a cabinet (doc 12 §3.9): every cable that leaves the cabinet's location gets one gland, the part its Properties chose or the first gland of the workshop stock whose clamping range holds the cable's outer diameter; placed, it is a `SurfaceFeature` of the cable. |
 | `src/layout/holes.rs` |  | The holes of a surface (doc 12-3d §10): the sizes the named holes are made at ([`HOLE_SIZES`]), how a hole is made ([`made`]), a rail's and a duct's fixing holes ([`carrier_fixings`]) and [`SurfaceFeatures`], every hole of a surface with its owners, numbered in drilling order. |
 | `src/layout/legend.rs` |  | The layout legend of a mounting surface (doc 12 §5.4), the surface a panel page shows, and the legend order of carriers that the BOM's carrier lines share (part 4). |
 | `src/layout/mod.rs` |  | The layout's pure geometry (doc 12 §2.1–§2.4, §3.3): carrier paths, the mount-kind compatibility table and the pose validator, shared by the `layout.*` commands (`ew-commands`) and part 5's EW-LAY-010. |
+| `src/layout/pins.rs` |  | `pin_spots(p)`: where the pins of a placed device stand on its surface, the way out of each and its height (doc 12 §8.1). |
 | `src/layout/pose.rs` |  | Poses on carriers (doc 12 §2.3): quarter turns about `w`, the degrees of freedom per carrier kind, the surface pose equivalent to a rail pose and the frame of a plate centred in its enclosure. |
 | `src/layout/queries.rs` | large | The layout queries of the MVP (doc 12 §2.6): `mountable(dev)`, `unplaced(space)`, `placement_geometry(p)`, `rail_occupancy(carrier)`, `layout_label(p)` (D10's text) and `carrier_geometry(carrier)`. |
 | `src/layout/snap.rs` |  | The rail model and the mode resolution (doc 12 §3.3, §3.4): pure functions over the items of one rail, shared by the layout tool's ghost (part 3) and the `layout.place` and `layout.move` commands, so the ghost and the commit agree by construction. |
@@ -413,6 +417,7 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/layout/surfaces.rs` |  | The surfaces of a cabinet (doc 12 §2.8): the mounting plate and the six faces, each seen from the side it is worked from, with its sheet, its frame in the enclosure, a door's hinge, the edge margin and the datum its holes are measured from. |
 | `src/layout/template.rs` |  | The template for drilling of a surface (doc 13 §9.1), as numbers: the corner it lies in, what it covers and the paper sheets it takes, which of them print and their numbers. |
 | `src/layout/tests.rs` |  | The layout geometry and the compatibility table of doc 12 §3.3. |
+| `src/layout/ways.rs` | large | The ways of a cabinet (doc 12 §8, §9): the ducts of a surface as a graph ([`DuctGraph`]), the one pass that lays the cabinet's wires ([`plan_routes`]), the run of a stored way measured again ([`measure`]) and whether a stored way still holds ([`route_status`]). |
 | `src/lib.rs` |  | All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-0003). |
 | `src/links.rs` |  | Per-function and per-terminal inputs of the stitch graph, as memoised families: |
 | `src/marking.rs` |  | The marker of a wire's end (doc 13 §5.1, §5.2): what the printed sleeve on each end says, by the shop's marking (`WorkshopSettings.marking`, the far end by default), unless a person set it by hand (`EndOverride.marker`), and the rule that shortens a text to the wire markers' part of the workshop stock (`sections.marker.lines`, `chars`). |
@@ -996,7 +1001,7 @@ The persisted record type of every entity kind (plain serde structs), the kind r
 | `src/hole.rs` |  | A hole in a surface of a cabinet (doc 12 §2.5): a part's drilling pattern (`MechData.holes`) and a hole by hand (`SurfaceFeature.hole`) name it the same way, and [`Hole::parse`] is the one reader of its text form for the part editor's cells, the Add hole form and the command line. |
 | `src/json.rs` |  | Shared serde helpers: the `extra` map, the number rule for unknown content, default predicates and the [`Open`] wrapper that gives a foreign enum its `Unknown` catch-all. |
 | `src/kind.rs` |  | The kind registry (doc 05 §2.2): every `$k` name with its fixed rank, its ownership (file) rule and whether v0 implements it; the per-kind schema versions and the personal-data field table. |
-| `src/layout.rs` |  | The panel layout records (doc 03 §16, doc 12 §2.2): `layout_space` (rank 50), `enclosure` (51), `mounting_surface` (52), `carrier` (53), `placement` (54) and `surface_feature` (58), all in `layout/<space>.jsonl`. |
+| `src/layout.rs` |  | The panel layout records (doc 03 §16, doc 12 §2.2): `layout_space` (rank 50), `enclosure` (51), `mounting_surface` (52), `carrier` (53), `placement` (54), `committed_route` (56) and `surface_feature` (58), all in `layout/<space>.jsonl`. |
 | `src/lib.rs` |  | The persisted record type of every entity kind (plain serde structs), the kind registry, per-kind schema versions and JSON Schemas. |
 | `src/library.rs` | large | Library documents embedded in a project under `lib/` (doc 05 §3.4, §13.2; doc 07 §2; doc 09 §2.5): `part` (the part copy), `symbol`, `fndef`, `form`, `manufacturer` and `macro`, each a [`LibCopy`] of its item; and the project record `macro_instance` that a placed macro leaves (doc 03 §7). |
 | `src/list_area.rs` |  | Where a list's table stands on its frame, and how many rows a page of it holds (doc 09 §3.8): one exact, integer rule that the pagination of `ew-reports` and the table `ew-scene` draws both read, so a page never holds a row it cannot draw. |

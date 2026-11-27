@@ -34,9 +34,9 @@ fn mm(nm: i128) -> String {
     format!("{} mm", ew_derive::mm_exact(nm))
 }
 
-/// A duct inside a sentence: its label ("duct 1").
-fn duct_name(q: &Q, c: Id<Carrier>) -> String {
-    carrier_label(q, c).map_or_else(|| "a duct".to_owned(), |l| l.in_sentence())
+/// A duct inside a sentence: its label ("duct 1"); `None` for a carrier that is gone or of a newer kind.
+fn duct_name(q: &Q, c: Id<Carrier>) -> Option<TextArg> {
+    carrier_label(q, c).map(|l| ew_derive::text::carrier_in_sentence(l).into())
 }
 
 /// Route as a finding's quick fix: `layout.route` over the space.
@@ -212,8 +212,10 @@ impl Rule for Clearance {
                     continue;
                 }
                 if let Some(g) = q.get::<ew_derive::layout::CarrierGeometry>(cid).as_ref() {
-                    for r in &g.outline {
-                        intruders.push((*r, Target::new(Kind::Carrier, cid), duct_name(q, cid).into()));
+                    if let Some(name) = duct_name(q, cid) {
+                        for r in &g.outline {
+                            intruders.push((*r, Target::new(Kind::Carrier, cid), name.clone()));
+                        }
                     }
                 }
             }
@@ -307,7 +309,10 @@ impl Rule for FillOver {
                 ),
                 _ => String::new(),
             };
-            let label = carrier_label(q, id).map_or_else(|| "A duct".to_owned(), |l| l.label());
+            let Some(label) = carrier_label(q, id) else {
+                continue;
+            };
+            let label = TextArg::Text(ew_derive::text::carrier_label(label));
             out.push(
                 Finding::new(
                     &FILL_OVER,
@@ -386,12 +391,19 @@ impl Rule for StaleWay {
                     StaleWhy::Unplaced(d) => {
                         (Target::new(Kind::Device, d), "unplaced", device_name(q, d).into())
                     }
-                    StaleWhy::DuctChanged(c) => {
-                        (Target::new(Kind::Carrier, c), "duct", duct_name(q, c).into())
-                    }
-                    StaleWhy::DuctGone(c) => {
-                        (Target::new(Kind::Carrier, c), "gone", "a duct".to_owned().into())
-                    }
+                    StaleWhy::DuctChanged(c) => match duct_name(q, c) {
+                        Some(name) => (Target::new(Kind::Carrier, c), "duct", name),
+                        None => (
+                            Target::new(Kind::Carrier, c),
+                            "gone",
+                            ew_derive::text::stale_why(q, why).into(),
+                        ),
+                    },
+                    StaleWhy::DuctGone(c) => (
+                        Target::new(Kind::Carrier, c),
+                        "gone",
+                        ew_derive::text::stale_why(q, why).into(),
+                    ),
                     StaleWhy::EndChanged { .. } => {
                         let (w, text) = wires[0].clone();
                         (Target::new(Kind::Connection, w), "end", text.into())

@@ -23,7 +23,7 @@ pub struct CardDuct {
     /// The duct.
     pub carrier: Uuid,
     /// Its label ("Duct 1").
-    pub label: String,
+    pub label: crate::Text,
     /// Its nominal size ("40×60").
     pub size: String,
     /// Its fill where fullest, in whole percent.
@@ -405,7 +405,7 @@ fn card(
             ) else {
                 continue;
             };
-            let CarrierParams::Duct(d) = &carrier.params else {
+            let (CarrierParams::Duct(d), Some(label)) = (&carrier.params, carrier_label(after, c)) else {
                 continue;
             };
             let (area, inner) = fill.fill();
@@ -418,7 +418,7 @@ fn card(
                 .unwrap_or_default();
             out.ducts.push(CardDuct {
                 carrier: c.as_uuid(),
-                label: carrier_label(after, c).map(|l| l.label()).unwrap_or_default(),
+                label: ew_derive::text::carrier_label(label),
                 size: format!(
                     "{}×{}",
                     ew_derive::mm_exact(i128::from(d.width.0)),

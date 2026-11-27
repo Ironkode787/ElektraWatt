@@ -372,7 +372,9 @@ impl PartDraft {
         match part_section(word) {
             Some(s) if s.word == "gland" => self.own || self.new,
             Some(s) if s.shown == Shown::Own => self.own && !self.fork,
-            Some(s) if s.word == "size" || s.word == "front" || s.shown == Shown::Duct => self.own || self.new,
+            Some(s) if s.word == "size" || s.word == "front" || s.shown == Shown::Duct => {
+                self.own || self.new
+            }
             _ => true,
         }
     }

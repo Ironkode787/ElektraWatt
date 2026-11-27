@@ -14,7 +14,8 @@ use std::cmp::Reverse;
 use ew_ids::Id;
 use ew_mltext::{NaturalKey, natural_key};
 use ew_schema::{
-    Carrier, CarrierKind, CarrierRef, Device, Enclosure, LayoutSpace, LibCopy, MountingSurface, Page, PageItemKind, PageType, Part, PartRef, Placement, ReportBlock, StructureNode, SurfaceKind,
+    Carrier, CarrierKind, Device, Enclosure, LayoutSpace, LibCopy, MountingSurface, Page, PageItemKind,
+    PageType, Part, PartRef, Placement, ReportBlock, StructureNode, SurfaceKind,
 };
 use ew_units::Dec3;
 
