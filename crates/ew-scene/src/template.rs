@@ -249,8 +249,19 @@ pub fn template_sheet(v: &TemplateView, fonts: &FontSet, styles: &ew_text::TextS
             &Align::BottomLeft,
         );
     }
-    // The holes at true size, each with its centre cross and its words.
-    for h in &v.holes {
+    // The holes at true size, each with its centre cross and its words, which stand clear of every other hole and of
+    // the words placed before them.
+    let paper_box = |h: &TemplateHole| {
+        let (hw, hh) = (h.size.0.0 / 2, h.size.1.0 / 2);
+        let c = at(h.at);
+        Rect::from_points(
+            Pt2::new(Nm(c.x.0 - hw), Nm(c.y.0 - hh)),
+            Pt2::new(Nm(c.x.0 + hw), Nm(c.y.0 + hh)),
+        )
+    };
+    let hole_boxes: Vec<Rect> = v.holes.iter().map(paper_box).collect();
+    let mut taken: Vec<Rect> = Vec::new();
+    for (i, h) in v.holes.iter().enumerate() {
         let (hw, hh) = (h.size.0.0 / 2, h.size.1.0 / 2);
         let r = Rect::from_points(
             Pt2::new(Nm(h.at.x.0 - hw), Nm(h.at.y.0 - hh)),
@@ -277,13 +288,17 @@ pub fn template_sheet(v: &TemplateView, fonts: &FontSet, styles: &ew_text::TextS
             .line_to(Pt2::new(c.x, Nm(c.y.0 + ry)))
             .build();
         push(&mut b, cross, Some(thin.clone()), None);
-        text(
-            &mut b,
-            &h.words,
-            Pt2::new(Nm(c.x.0 + hw + 1_000_000), Nm(c.y.0 - hh - 1_000_000)),
-            Angle2::ZERO,
-            &Align::BottomLeft,
-        );
+        let advance = fonts.shape(&h.words, &style, None).advance();
+        let others: Vec<Rect> = hole_boxes
+            .iter()
+            .enumerate()
+            .filter(|(j, _)| *j != i)
+            .map(|(_, r)| *r)
+            .chain(taken.iter().copied())
+            .collect();
+        let (anchor, align, words_box) = words_place(c, (hw, hh), (advance.0, WORDS_HEIGHT.0), &others, content);
+        taken.push(words_box);
+        text(&mut b, &h.words, anchor, Angle2::ZERO, &align);
     }
     // The crosses where four sheets meet.
     for j in v.joins.iter().filter(|j| a.contains(**j)) {
@@ -332,7 +347,7 @@ pub fn template_sheet(v: &TemplateView, fonts: &FontSet, styles: &ew_text::TextS
         this: (this_r, this_c),
         printed,
     } = &v.map;
-    let cell = 2_500_000i64;
+    let cell = map_cell(*rows, *cols);
     let mw = cell * i64::from(*cols);
     let (mx, my) = (pw.0 - MARGIN.0 - mw, top + 1_000_000);
     for r in 0..*rows {
@@ -355,4 +370,93 @@ pub fn template_sheet(v: &TemplateView, fonts: &FontSet, styles: &ew_text::TextS
         }
     }
     b.finish().list
+}
+
+/// The height a hole's words take on paper: their text and its descenders.
+const WORDS_HEIGHT: Nm = Nm(2_600_000);
+/// The gap between a hole's edge and its words.
+const WORDS_GAP: i64 = 1_000_000;
+/// The largest cell of the band's map of the sheets.
+const MAP_CELL: i64 = 2_500_000;
+/// The widest the band's map may be: the rest of the band holds its words and the bar.
+const MAP_WIDTH: i64 = 50_000_000;
+
+/// The side of one cell of the band's map of `rows` × `cols` sheets: 2.5 mm, smaller where the map would not fit the
+/// band's height less 1 mm above and below it, or [`MAP_WIDTH`].
+fn map_cell(rows: u32, cols: u32) -> i64 {
+    let fit = |room: i64, n: u32| room / i64::from(n.max(1));
+    MAP_CELL
+        .min(fit(BAND.0 - 2_000_000, rows))
+        .min(fit(MAP_WIDTH, cols))
+        .max(1)
+}
+
+/// Where a hole's words stand (paper, y down): beside the hole at centre `c` with half sizes `half`, `size` their width
+/// and height. The first of above right, below right, above left and below left whose box meets no box of `others`
+/// (the other holes, the words placed before) and lies on the sheet's `content`; else the first that meets none; else
+/// above right. Its anchor, its alignment and its box.
+fn words_place(c: Pt2, half: (i64, i64), size: (i64, i64), others: &[Rect], content: Rect) -> (Pt2, Align, Rect) {
+    let (hw, hh) = half;
+    let (w, h) = size;
+    let (right, left) = (c.x.0 + hw + WORDS_GAP, c.x.0 - hw - WORDS_GAP);
+    let (above, below) = (c.y.0 - hh - WORDS_GAP, c.y.0 + hh + WORDS_GAP);
+    let placed = |x: i64, y: i64, align: Align| {
+        let (x0, y0) = match align {
+            Align::BottomLeft => (x, y - h),
+            Align::TopLeft => (x, y),
+            Align::BottomRight => (x - w, y - h),
+            _ => (x - w, y),
+        };
+        let r = Rect::from_points(Pt2::new(Nm(x0), Nm(y0)), Pt2::new(Nm(x0 + w), Nm(y0 + h)));
+        (Pt2::new(Nm(x), Nm(y)), align, r)
+    };
+    let tries = [
+        placed(right, above, Align::BottomLeft),
+        placed(right, below, Align::TopLeft),
+        placed(left, above, Align::BottomRight),
+        placed(left, below, Align::TopRight),
+    ];
+    let clear = |r: &Rect| !others.iter().any(|o| o.intersects(*r));
+    let on_sheet = |r: &Rect| content.contains(r.min()) && content.contains(r.max());
+    tries
+        .iter()
+        .find(|(_, _, r)| clear(r) && on_sheet(r))
+        .or_else(|| tries.iter().find(|(_, _, r)| clear(r)))
+        .unwrap_or(&tries[0])
+        .clone()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const MM: i64 = 1_000_000;
+
+    /// Door sheet 1: H1, the handle's left fixing (Ø 4.5), stands 24 mm left of H8, its cut-out (Ø 22.3), on one line.
+    /// H1's words, 30 mm long, would run into H8 above its right; they stand above its left instead.
+    #[test]
+    fn a_hole_s_words_stand_clear_of_the_hole_beside_it() {
+        let content = Rect::from_points(Pt2::new(Nm(10 * MM), Nm(10 * MM)), Pt2::new(Nm(200 * MM), Nm(275 * MM)));
+        let h1 = Pt2::new(Nm(113 * MM), Nm(150 * MM));
+        let h8 = Rect::from_points(Pt2::new(Nm(126 * MM), Nm(139 * MM)), Pt2::new(Nm(149 * MM), Nm(161 * MM)));
+        let half = (2_250_000, 2_250_000);
+        let (_, align, words) = words_place(h1, half, (30 * MM, 2_600_000), &[h8], content);
+        assert!(!words.intersects(h8), "{words:?}");
+        assert_eq!(align, Align::BottomRight);
+        // With nothing beside it, above right, as before.
+        let (at, align, _) = words_place(h1, half, (30 * MM, 2_600_000), &[], content);
+        assert_eq!(align, Align::BottomLeft);
+        assert_eq!(at, Pt2::new(Nm(113 * MM + 3_250_000), Nm(150 * MM - 3_250_000)));
+    }
+
+    /// The map of a tall door's nine rows of sheets fits the band (12 mm, 1 mm kept above and below), and a map of a
+    /// few sheets keeps its 2.5 mm cells.
+    #[test]
+    fn the_map_of_many_sheets_fits_the_band() {
+        assert_eq!(map_cell(2, 3), MAP_CELL);
+        for rows in [5, 9, 30] {
+            assert!(map_cell(rows, 3) * i64::from(rows) <= BAND.0 - 2 * MM, "{rows} rows");
+        }
+        assert!(map_cell(2, 40) * 40 <= MAP_WIDTH);
+    }
 }
