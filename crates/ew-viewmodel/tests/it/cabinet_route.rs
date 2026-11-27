@@ -41,7 +41,9 @@ fn route_on_902_opens_the_cabinets_card_and_apply_stores_the_ways() {
     // Route then says so, and its card opens with every wire planned again.
     done(&mut shell, "layout.route", json!({}));
     assert!(
-        toasts(&shell).iter().any(|t| t == "Every wire of +CAB has its way."),
+        toasts(&shell)
+            .iter()
+            .any(|t| t == "Every wire of +CAB has its way."),
         "{:?}",
         toasts(&shell)
     );
