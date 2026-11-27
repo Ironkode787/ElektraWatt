@@ -133,6 +133,16 @@ pub(super) fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
     let w = &rec.wire;
     let (from, from_cp) = end_cells(q, &w.ends[0], &w.ends[1]);
     let (to, to_cp) = end_cells(q, &w.ends[1], &w.ends[0]);
+    // A door end prints "(door)" after its tag (doc 13 §3.2), so that the fitter takes the wire through the hinge loop.
+    let door_end = |cell: Cell, end: &ew_derive::WireEnd| match cell {
+        Cell::Ident(tag)
+            if end.kind == ew_derive::EndKind::Device && ew_derive::layout::in_door(q, end.cp.function) =>
+        {
+            words_cell(&text!("cell-end-in-door", tag))
+        }
+        other => other,
+    };
+    let (from, to) = (door_end(from, &w.ends[0]), door_end(to, &w.ends[1]));
     // The parts of the Via column: only the junction's and the chains' words are in a language.
     let (junction, daisy) = join_texts(q, w);
     let mut via: Vec<TextArg> = junction.into_iter().chain(daisy).map(TextArg::from).collect();

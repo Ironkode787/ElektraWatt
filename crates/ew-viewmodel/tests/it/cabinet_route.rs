@@ -211,3 +211,24 @@ fn route_on_a_schematic_page_routes_the_drawing() {
         "no cabinet card on a schematic page"
     );
 }
+
+/// A row of the Connections table selected beside 902 (doc 12-3d §12.5): the panel page shows the surface whole, the
+/// wire's way with its chip and the device in the door it leaves for; the view comes back when the selection goes.
+#[test]
+fn a_wire_selected_in_the_table_shows_its_way_on_902() {
+    let tmp = Tmp::new("vm-cabinet-route-v2");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "902");
+    let before = shell.canvas().unwrap().viewport();
+    done(&mut shell, "navigator.show", json!({"kind": "connections"}));
+    done(&mut shell, "navigator.select", json!({"kind": "connections", "keys": ["104.3"]}));
+    let labels: Vec<String> = shell.selected_way_labels(0).into_iter().map(|(_, w)| w).collect();
+    assert!(
+        labels.iter().any(|w| w.starts_with("104.3 · ") && w.ends_with(" mm"))
+            && labels.iter().any(|w| w == "to -104E1 in the door"),
+        "{labels:?}"
+    );
+    assert!(shell.canvas().unwrap().region().is_some(), "the surface whole");
+    done(&mut shell, "select.set", json!({"ids": []}));
+    assert!(shell.canvas().unwrap().region().is_none());
+    assert_eq!(shell.canvas().unwrap().viewport(), before);
+}

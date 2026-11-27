@@ -691,6 +691,8 @@ cabinet-route-duct-wires = { $p0 ->
        *[other] { $p0 } draden · volste stuk { $p1 }
     }
 cabinet-route-duct-limit = maximale vulgraad { $p0 } %
+way-chip = { $p0 } · { $p1 }
+way-to-door = naar { $p0 } in de deur
 cabinet-route-typed-row = houdt { $p0 }; Routeren geeft { $p1 }
 cabinet-route-to-door = { $p0 ->
         [one] 1 draad naar de deur

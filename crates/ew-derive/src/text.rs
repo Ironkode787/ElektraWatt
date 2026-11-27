@@ -1333,6 +1333,52 @@ pub fn length_words(q: &crate::Q, length: WireLength) -> Option<Text> {
     }
 }
 
+/// A stored way told along its course (a wire's Way row, under it): "From -104A1-A1:M, into duct 1, along it to its end,
+/// across the hinge to -104E1"; "From -101G1:+#1 straight to -101G1:+#2" for a way over the fronts. Each kind of step is
+/// a text of its own.
+pub fn way_line(q: &crate::Q, way: &ew_schema::CommittedRoute) -> Text {
+    let pin = |e: &ew_schema::RouteEnd| crate::cp_label(q, crate::CpRef::new(e.cp.0, e.cp.1));
+    let device = |e: &ew_schema::RouteEnd| {
+        q.functions()
+            .get(e.cp.0)
+            .and_then(|f| f.device)
+            .map(|d| crate::short_tag(q, d))
+            .unwrap_or_default()
+    };
+    let [a, b] = &way.ends;
+    if way.way.is_empty() {
+        return text!("way-line-direct", pin(a), pin(b));
+    }
+    let mut parts: Vec<String> = vec![text!("way-line-from", pin(a)).to_string()];
+    let last = way.way.len() - 1;
+    for (i, step) in way.way.iter().enumerate() {
+        match step {
+            ew_schema::WayStep::Duct(d) => {
+                let duct = crate::layout::carrier_label(q, d.carrier)
+                    .map_or_else(|| text!("way-duct-gone"), carrier_in_sentence);
+                parts.push(text!("way-line-into", duct).to_string());
+                let at_end = crate::layout::DuctLine::of(q, d.carrier)
+                    .is_some_and(|l| d.to.0 == 0 || i128::from(d.to.0) == l.len);
+                parts.push(
+                    if at_end {
+                        text!("way-line-along-end")
+                    } else {
+                        text!("way-line-along")
+                    }
+                    .to_string(),
+                );
+            }
+            ew_schema::WayStep::Door(_) if i == 0 => parts.push(text!("way-line-hinge").to_string()),
+            ew_schema::WayStep::Door(_) => parts.push(text!("way-line-hinge-to", device(b)).to_string()),
+            ew_schema::WayStep::Unknown(_) => {}
+        }
+        if i == last && !matches!(step, ew_schema::WayStep::Door(_)) {
+            parts.push(text!("way-line-to", pin(b)).to_string());
+        }
+    }
+    text!("way-line", parts.join(", "))
+}
+
 /// A way in words (a wire's Way row): the ducts it runs along by their labels, then "door" where it crosses into one
 /// ("Duct 1, door"); "direct" for a way over the fronts.
 pub fn way_words(q: &crate::Q, way: &[ew_schema::WayStep]) -> String {

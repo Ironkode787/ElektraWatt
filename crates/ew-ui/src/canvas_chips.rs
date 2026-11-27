@@ -317,8 +317,13 @@ pub fn plan(ui: &Ui, input: &ChipInput<'_>, canvas: &CanvasModel, shell: &ShellM
             screen(canvas.page().snapper.page_to_sheet(at)),
         );
     }
-    // A note stands beside its point, clear of the chips placed before it.
-    for (at, words) in marks.notes {
+    // A note stands beside its point, clear of the chips placed before it: Route's door note, and a selected wire's
+    // chip and its door label.
+    for (at, words) in marks
+        .notes
+        .into_iter()
+        .chain(shell.selected_way_labels(input.group))
+    {
         placer.put(
             ChipKind::Label,
             words,

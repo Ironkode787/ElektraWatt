@@ -247,6 +247,7 @@ cell-join-chain = { $p0 } keten
 cell-join-chain-on = { $p0 } keten op { $p1 }
 cell-daisy-chain = keten op { $p0 }
 cell-via-between = { "; " }
+cell-end-in-door = { $p0 } (deur)
 cell-bridge-plug-in = insteekbrug
 cell-bridge-saddle = zadelbrug
 cell-bridge-wire = draadbrug

@@ -739,6 +739,8 @@ cabinet-route-duct-wires = { $p0 ->
        *[other] { $p0 } wires · fullest piece { $p1 }
     }
 cabinet-route-duct-limit = limit { $p0 } %
+way-chip = { $p0 } · { $p1 }
+way-to-door = to { $p0 } in the door
 cabinet-route-typed-row = keeps { $p0 }; Route gives { $p1 }
 cabinet-route-to-door = { $p0 ->
         [one] 1 wire to the door

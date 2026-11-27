@@ -678,3 +678,55 @@ fn a_wire_the_cabinet_no_longer_routes_keeps_no_way() {
         );
     }
 }
+
+/// A wire's every stretch selected (one row of the Connections table) reads as that wire (doc 12-3d §12.5): headed by
+/// its number and its ends, its Length the routed length with the sentence that makes it under the row, its Way row with
+/// the way told along its course; on 902 its way carries its chip and the device in the door it leaves for.
+#[test]
+fn a_wire_selected_with_its_every_stretch_reads_as_that_wire() {
+    let s = common::sample();
+    let q = s.query();
+    let r = q
+        .get::<ew_derive::WireRecordSet>(())
+        .iter()
+        .find(|r| r.number.as_deref() == Some("104.3"))
+        .cloned()
+        .expect("104.3");
+    drop(q);
+    assert!(r.wire.constituents.len() > 1, "104.3 has stretches of its own and a shared one");
+    let ids: Vec<Uuid> = r.wire.constituents.iter().map(|c| c.as_uuid()).collect();
+    let sheet = s.property_sheet(&ids);
+    assert_eq!(sheet.header.title, "104.3 · -104E1:X2 → -104A1-A1:M");
+    let row = |key: &str| {
+        sheet
+            .sections
+            .iter()
+            .flat_map(|sec| &sec.rows)
+            .find(|row| row.key == key)
+            .cloned()
+            .unwrap_or_else(|| panic!("no row {key}"))
+    };
+    let length = row("connection/derived.length");
+    let length_value = ew_derive::WireLength::value(r.length).expect("a routed length");
+    assert!(
+        matches!(&length.value, ew_api::output::RowValue::One { json, .. } if json.as_i64() == Some(length_value.0)),
+        "{length:?}"
+    );
+    assert!(
+        length.note.as_deref().is_some_and(|n| n.starts_with("Routed: ") && n.contains("door loop")),
+        "{:?}",
+        length.note
+    );
+    let way = row("connection/derived.way");
+    assert!(
+        way.note.as_deref().is_some_and(|n| n.starts_with("From -104E1:X2, across the hinge onto the plate, into duct 1")),
+        "{:?}",
+        way.note
+    );
+    let shown = s.ways_at("902", &ids);
+    assert!(
+        shown.iter().any(|w| w.chip.as_ref().is_some_and(|(_, n, l)| n == "104.3" && *l == Some(length_value))
+            && w.door.as_ref().is_some_and(|(_, tag)| tag == "-104E1")),
+        "{shown:?}"
+    );
+}

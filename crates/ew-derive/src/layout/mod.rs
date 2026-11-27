@@ -92,7 +92,7 @@ pub use legend::{
     carrier_labels, carrier_length, carrier_order, carriers_in_order, layout_legend, legend_layout_page,
     location_text, metres_of_nm, page_surface, surface_pages,
 };
-pub use pins::{PinSpot, PinSpots, PinSpotsV, drawn_face, pin_face, placement_of_function, reach};
+pub use pins::{PinSpot, PinSpots, PinSpotsV, drawn_face, in_door, pin_face, placement_of_function, reach};
 pub use pose::{PoseError, PoseOn, Quarter, check_pose, clip_offset, plate_frame, rehome_pose};
 pub use queries::{
     CarrierGeom, CarrierGeometry, Exempt, LabelMode, LayoutLabel, MountAs, Mountability, Mountable, Occupied,

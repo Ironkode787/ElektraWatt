@@ -41,7 +41,7 @@ use crate::Session;
 
 mod bus_rows;
 mod connection_rows;
-pub(crate) use connection_rows::{end_holder, wire_alone};
+pub(crate) use connection_rows::{end_holder, one_wire, wire_of_selection};
 mod context;
 mod device_rows;
 mod fluid_rows;
@@ -188,6 +188,9 @@ pub struct PropRow {
     /// A link the row offers beside its value (doc 12-3d §12.5: a duct's Wires row "Select them", a wire's Way row
     /// "Show on 902"); `None` for every other row.
     pub link: Option<RowLink>,
+    /// A line under the row that says how its value is made (doc 12-3d §9: "Routed: 821 mm of way, 50 mm reserve at
+    /// each end and a 300 mm door loop, rounded up to 1225 mm"; the way in words); `None` for every other row.
+    pub note: Option<String>,
 }
 
 /// A link a Properties row offers beside its value: its words, and the window's actions it runs, in order (the page to
@@ -253,6 +256,7 @@ impl DerivedRow<'_> {
             named_reference: false,
             label: None,
             link: None,
+            note: None,
         }
     }
 }

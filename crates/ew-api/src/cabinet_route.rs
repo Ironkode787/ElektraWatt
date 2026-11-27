@@ -5,8 +5,8 @@
 //! `layout.route` that stores it (ADR-0008's fork), so the card's lengths and fills are those the stored ways give.
 
 use ew_derive::layout::{
-    DuctFill, Planned, RouteScope, RouteStatus, cabinet_name, carrier_label, carriers_in_order, page_surface,
-    plan_routes, route_status, routed_length, way_points,
+    DuctFill, Planned, PlannedWire, RouteScope, RouteStatus, cabinet_name, carrier_label, carriers_in_order,
+    page_surface, plan_routes, route_status, routed_length, way_points,
 };
 use ew_derive::{PageOrder, PageRef, Q, WireLength, WireRecordSet, cp_label};
 use ew_ids::{Id, Uuid};
@@ -44,6 +44,21 @@ pub struct CardDuct {
     pub inner: Text,
     /// What its fill assumed or left out ("with default diameters (unverified)").
     pub notes: Vec<Text>,
+}
+
+/// A stored way the panel page draws for the selection (doc 12 §12.5): its points on the page, whether it no longer
+/// holds, and for a wire selected itself its chip and, where it leaves for a door, its door label.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ShownWay {
+    /// The points (page nm).
+    pub points: Vec<(i64, i64)>,
+    /// Whether it no longer holds (drawn dashed).
+    pub stale: bool,
+    /// For a wire selected itself: where its chip stands (page nm), its number and its length.
+    pub chip: Option<((i64, i64), String, Option<Nm>)>,
+    /// For a wire selected itself whose way crosses into a door: where it leaves the plate (page nm) and the device in
+    /// the door.
+    pub door: Option<((i64, i64), String)>,
 }
 
 /// A duct's fullest piece on its page (doc 12-3d §12.5: a selected duct shows it hatched with its fill chip).
@@ -176,7 +191,7 @@ impl Session {
     /// labelled `folio` (doc 12 §12.5: a device selected on the panel page shows the ways of its wires, a wire selected
     /// in the Connections table or on a schematic page its way): each way's points on the page and whether it no
     /// longer holds (drawn dashed).
-    pub fn ways_at(&self, folio: &str, ids: &[Uuid]) -> Vec<(Vec<(i64, i64)>, bool)> {
+    pub fn ways_at(&self, folio: &str, ids: &[Uuid]) -> Vec<ShownWay> {
         let q = self.query();
         let Some(PageRef::Drawn(page)) = q.get::<PageOrder>(()).by_folio(folio).map(|e| e.page) else {
             return Vec::new();
@@ -185,12 +200,16 @@ impl Session {
             return Vec::new();
         };
         let records = q.get::<WireRecordSet>(());
+        // The wire a selection of its stretches stands for (one row of the Connections table).
+        let conns: Vec<Id<ew_schema::Connection>> = ids.iter().map(|u| Id::from_uuid(*u)).collect();
+        let one = crate::output::properties::one_wire(&records, &conns).map(|r| r.wire.id);
         let mut out = Vec::new();
         for r in records.iter() {
             let Some(way) = ew_derive::layout::stored_way(&q, &r.wire) else {
                 continue;
             };
-            let at = ids.contains(&r.wire.id.as_uuid())
+            let itself = one == Some(r.wire.id) || ids.contains(&r.wire.id.as_uuid());
+            let at = itself
                 || way.ends.iter().any(|e| {
                     ew_derive::layout::placement_of_function(&q, e.cp.0)
                         .is_some_and(|p| ids.contains(&p.as_uuid()))
@@ -206,7 +225,32 @@ impl Session {
             };
             let points = page_points(&q, Some(&view.projection), &planned, |_| 0);
             let stale = matches!(route_status(&q, &r.wire), RouteStatus::Stale { .. });
-            out.push((points, stale));
+            // A wire selected itself: its chip at the middle of the longest stretch of its line, and the device in the
+            // door where the way leaves the plate.
+            let chip = itself.then(|| {
+                let at = points
+                    .windows(2)
+                    .max_by_key(|w| (w[0].0 - w[1].0).abs() + (w[0].1 - w[1].1).abs())
+                    .map_or((0, 0), |w| ((w[0].0 + w[1].0) / 2, (w[0].1 + w[1].1) / 2));
+                (at, r.number.clone().unwrap_or_default(), r.length.value())
+            });
+            let door = itself
+                .then(|| {
+                    let (end, at) = match (way.way.first(), way.way.last()) {
+                        (Some(ew_schema::WayStep::Door(_)), _) => (&way.ends[0], points.first()),
+                        (_, Some(ew_schema::WayStep::Door(_))) => (&way.ends[1], points.last()),
+                        _ => return None,
+                    };
+                    let device = q.functions().get(end.cp.0).and_then(|f| f.device)?;
+                    Some((*at?, ew_derive::short_tag(&q, device)))
+                })
+                .flatten();
+            out.push(ShownWay {
+                points,
+                stale,
+                chip,
+                door,
+            });
         }
         out
     }
@@ -393,6 +437,58 @@ fn site_end(q: &Q, space: Id<LayoutSpace>, r: &ew_derive::WireRecord) -> Option<
     })
 }
 
+/// What Route's plan does for each wire of the cabinet of `space`, read from what the previewed `layout.route` stored
+/// (`after`): the cabinet is planned once, by the command. A wire it plans gets the way it stored; one it leaves
+/// without a way is laid alone once more, for the reason in words; the others it keeps, makes on site or cuts with
+/// their cable.
+fn planned_by(now: &Q, after: &Q, space: Id<LayoutSpace>, all: bool) -> Vec<PlannedWire> {
+    use ew_derive::layout::{CabinetWire, Way, cabinet_wires, stored_way};
+    let stored = after.get::<WireRecordSet>(());
+    let by_id: std::collections::BTreeMap<_, _> = stored.iter().map(|r| (r.wire.id, r)).collect();
+    let mut without = std::collections::BTreeSet::new();
+    let mut out: Vec<PlannedWire> = cabinet_wires(now, space)
+        .into_iter()
+        .map(|(r, kind)| {
+            let planned = match kind {
+                CabinetWire::Site => Planned::Site,
+                CabinetWire::Core => Planned::Core,
+                CabinetWire::Routed
+                    if !all && matches!(route_status(now, &r.wire), RouteStatus::Holds { .. }) =>
+                {
+                    Planned::Kept
+                }
+                CabinetWire::Routed => {
+                    let laid = by_id
+                        .get(&r.wire.id)
+                        .filter(|a| matches!(route_status(after, &a.wire), RouteStatus::Holds { .. }))
+                        .and_then(|a| stored_way(after, &a.wire));
+                    match laid {
+                        Some(w) => Planned::Way(Way {
+                            ends: w.ends.clone(),
+                            steps: w.way.clone(),
+                            run: w.run,
+                        }),
+                        None => {
+                            without.insert(r.wire.id);
+                            Planned::Kept
+                        }
+                    }
+                }
+            };
+            PlannedWire { wire: r, planned }
+        })
+        .collect();
+    if !without.is_empty() {
+        let why = plan_routes(now, space, &RouteScope::Wires(without.clone()));
+        for w in out.iter_mut().filter(|w| without.contains(&w.wire.wire.id)) {
+            if let Some(p) = why.wires.iter().find(|p| p.wire.wire.id == w.wire.wire.id) {
+                w.planned = p.planned.clone();
+            }
+        }
+    }
+    out
+}
+
 /// The card of the plan of `space` on the snapshot `now`, its stored state `after`; its marks on the page of
 /// `projection`.
 fn card(
@@ -403,8 +499,7 @@ fn card(
     all: bool,
     projection: Option<&ew_scene::panel::Projection>,
 ) -> CabinetRoute {
-    let scope = if all { RouteScope::All } else { RouteScope::Due };
-    let plan = plan_routes(now, space, &scope);
+    let plan = planned_by(now, after, space, all);
     let surface = ew_derive::layout::plate_of_space(now, space);
     let records = after.get::<WireRecordSet>(());
     let after_length = |wire| records.iter().find(|r| r.wire.id == wire).map(|r| r.length);
@@ -427,7 +522,7 @@ fn card(
         Id<ew_schema::Carrier>,
         Vec<ew_ids::Id<ew_schema::Connection>>,
     > = std::collections::BTreeMap::new();
-    for w in &plan.wires {
+    for w in &plan {
         if let Planned::Way(way) = &w.planned {
             for step in &way.steps {
                 if let ew_schema::WayStep::Duct(d) = step {
@@ -448,7 +543,7 @@ fn card(
         let k = i128::try_from(k).unwrap_or(0);
         width(c) * (2 * k + 2 - (n + 1)) / (2 * (n + 1))
     };
-    for w in &plan.wires {
+    for w in &plan {
         let r = &w.wire;
         let row = CardWire {
             wire: r.wire.id.as_uuid(),
@@ -512,7 +607,6 @@ fn card(
     // Every wire with a stored way that holds counts for the tick, also one the plan lays again with it.
     if all {
         out.holding = plan
-            .wires
             .iter()
             .filter(|w| matches!(route_status(now, &w.wire.wire), RouteStatus::Holds { .. }))
             .count();

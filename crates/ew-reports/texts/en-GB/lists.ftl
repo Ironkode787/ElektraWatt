@@ -247,6 +247,7 @@ cell-join-chain = { $p0 } chain
 cell-join-chain-on = { $p0 } chain on { $p1 }
 cell-daisy-chain = chain on { $p0 }
 cell-via-between = { "; " }
+cell-end-in-door = { $p0 } (door)
 cell-bridge-plug-in = plug-in
 cell-bridge-saddle = saddle
 cell-bridge-wire = wire

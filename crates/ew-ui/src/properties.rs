@@ -725,6 +725,16 @@ impl PropertiesPane {
         } else {
             Self::value_and_actions(&mut child, shell, &parts, events);
         }
+        // Below the row: the line that says how its value is made (doc 12-3d §9), under the value cell in the secondary
+        // colour, wrapped.
+        if let Some(note) = row.note.as_ref().filter(|_| !header) {
+            ui.horizontal_top(|ui| {
+                ui.add_space(value_left - rect.left() + t.space_icon);
+                ui.add(
+                    egui::Label::new(crate::components::styled(note, &t.type_small, t.text_secondary)).wrap(),
+                );
+            });
+        }
         // Below the row: its error (doc 16a §6.1: the icon and the message in `color.error`, `type.small`), its choices, the
         // notes of the last commit, the popups.
         if let Some(e) = error {

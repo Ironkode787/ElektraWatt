@@ -158,6 +158,7 @@ impl SectionCx<'_, '_> {
                 named_reference: false,
                 label: None,
                 link: None,
+                note: None,
             },
             derived: false,
         });

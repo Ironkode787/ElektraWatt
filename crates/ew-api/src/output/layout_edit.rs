@@ -1559,11 +1559,19 @@ impl Session {
             // table writes it, the wire's first own connection (`WireRecord::own`); an empty text clears it there.
             ("connection", "length") => {
                 let records = q.get::<ew_derive::WireRecordSet>(());
-                let Some(holder) = super::properties::wire_alone(&q, &records, Id::from_uuid(edit.target))
-                    .ok()
-                    .flatten()
-                    .and_then(|r| r.own().first().copied())
-                else {
+                let selection: Vec<Id<ew_schema::Connection>> = std::iter::once(edit.target)
+                    .chain(edit.others.iter().copied())
+                    .map(Id::from_uuid)
+                    .collect();
+                let Some(holder) = super::properties::wire_of_selection(
+                    &q,
+                    &records,
+                    &selection,
+                    Id::from_uuid(edit.target),
+                )
+                .ok()
+                .flatten()
+                .and_then(|r| r.own().first().copied()) else {
                     return invalid(text!("refusal-end-no-holder"));
                 };
                 let value = if text.is_empty() {
@@ -1584,9 +1592,15 @@ impl Session {
             // the rule's back. One `fields.set` of the `end_a` or `end_b` of the wire's own connection that holds it.
             ("connection", "from_end" | "to_end" | "from_part" | "to_part" | "from_marker" | "to_marker") => {
                 let end = usize::from(name.starts_with("to_"));
-                let Some((holder, at_a, current)) =
-                    super::properties::end_holder(&q, Id::from_uuid(edit.target), end)
-                else {
+                let Some((holder, at_a, current)) = super::properties::end_holder(
+                    &q,
+                    &std::iter::once(edit.target)
+                        .chain(edit.others.iter().copied())
+                        .map(Id::from_uuid)
+                        .collect::<Vec<_>>(),
+                    Id::from_uuid(edit.target),
+                    end,
+                ) else {
                     return invalid(text!("refusal-end-no-holder"));
                 };
                 let mut value = current

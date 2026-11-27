@@ -90,6 +90,21 @@ pub(in crate::output) fn record_title(q: &Q, id: Uuid, source: Option<&str>) -> 
     })
 }
 
+/// The one wire a selection of connections stands for ([`super::one_wire`]): every picked record a connection, all of
+/// them stretches of one wire.
+fn one_wire_of(q: &Q, picked: &[Picked]) -> Option<ew_derive::WireRecord> {
+    if picked.len() < 2 || picked.iter().any(|p| p.kind != Kind::Connection) {
+        return None;
+    }
+    let conns: Vec<Id<ew_schema::Connection>> = picked
+        .iter()
+        .filter_map(|p| p.reach.get(&Kind::Connection)?.iter().next().copied())
+        .map(Id::from_uuid)
+        .collect();
+    let records = q.get::<ew_derive::WireRecordSet>(());
+    super::one_wire(&records, &conns).cloned()
+}
+
 /// What `device` is, for the header ([`SheetWhat`]).
 fn sheet_what(q: &Q, device: Id<Device>) -> SheetWhat {
     let symbol = (*q.get::<MainRep>(device))
@@ -170,6 +185,15 @@ impl Session {
                     .map(str::to_owned)
                     .or_else(|| id.and_then(|id| record_title(q, id, source)))
                     .unwrap_or_else(|| one.kind.name().to_owned())
+            }
+            // A wire's every stretch (one row of the Connections table) reads as that wire: its number and its ends.
+            _ if let Some(r) = one_wire_of(q, picked) => {
+                let [a, b] = r.wire.ends.map(|e| ew_derive::cp_label(q, e.cp).to_string());
+                let number = r
+                    .number
+                    .clone()
+                    .unwrap_or_else(|| super::UNNUMBERED_WIRE.to_owned());
+                format!("{number} · {a} → {b}")
             }
             _ => match sections.first() {
                 Some(s) => format!("{} {}", s.targets.len(), kind_plural(&s.kind)),

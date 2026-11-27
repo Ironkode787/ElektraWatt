@@ -56,14 +56,18 @@ impl ShellModel {
     /// that takes many placements with it) is open over a panel page, the focused canvas shows the page's surface whole
     /// in the room the card leaves it (doc 12-3d §12.5: Route's card shows the cabinet whole); when the card closes the
     /// view the person had comes back. A card of another command (a frame's grid, an edit in Properties) keeps the whole
-    /// page, as a fitted view refits to the smaller pane. Run after every action.
+    /// page, as a fitted view refits to the smaller pane. A wire selected itself whose way the page draws (doc 12-3d
+    /// §12.5: a row of the Connections table beside the page) shows the surface whole too. Run after every action.
     pub(super) fn sync_card_view(&mut self) {
+        let group = self.area.as_ref().map_or(0, |a| a.focused);
         let layout = self
             .props
             .card
             .as_ref()
             .is_some_and(|c| c.preview.name.starts_with("layout."));
-        let region = if layout {
+        // So does a wire selected itself (a row of the Connections table) whose way the panel page draws.
+        let wire = self.props.card.is_none() && self.shown_ways(group).iter().any(|w| w.chip.is_some());
+        let region = if layout || wire {
             self.panel_tables().and_then(|t| {
                 let snapper = &self.canvas()?.page().snapper;
                 let sheet: Vec<(i64, i64)> = t
@@ -80,7 +84,6 @@ impl ShellModel {
         } else {
             None
         };
-        let group = self.area.as_ref().map_or(0, |a| a.focused);
         let Some(canvas) = self.canvas_mut(group) else {
             return;
         };

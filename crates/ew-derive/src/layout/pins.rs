@@ -329,6 +329,15 @@ fn spots(q: &Q, key: Id<Placement>) -> Option<PinSpotsV> {
     })
 }
 
+/// Whether the device of `function` is placed in a door, the face of its placement asked once (doc 13 §3.2: the wire
+/// list prints "(door)" after such an end, so that the fitter takes the wire through the hinge loop).
+pub fn in_door(q: &Q, function: Id<Function>) -> bool {
+    placement_of_function(q, function)
+        .and_then(|p| q.get::<PlacementGeometry>(p).as_ref().as_ref().map(|g| g.surface))
+        .and_then(|s| super::face_of(q, s))
+        .is_some_and(|f| f.kind == SurfaceKind::Door)
+}
+
 /// The placement that stands for the device of the function `function` on the layout: a placement of that function
 /// on its own, else one of its whole device (the smallest ID), else, for a terminal, its strip's.
 pub fn placement_of_function(q: &Q, function: Id<Function>) -> Option<Id<Placement>> {

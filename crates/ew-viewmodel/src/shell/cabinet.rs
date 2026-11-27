@@ -188,11 +188,10 @@ pub struct CabinetMarks {
 /// What a selection's marks were worked out for: the revision, the page's folio and the selected IDs.
 pub(super) type MarksKey = (u64, String, Vec<Uuid>);
 
-/// What the selection shows on a panel page: the ways of its wires (page nm, and whether each no longer holds) and the
-/// fullest pieces of its ducts.
+/// What the selection shows on a panel page: the ways of its wires and the fullest pieces of its ducts.
 #[derive(Debug)]
 pub(super) struct SelectionMarks {
-    ways: Vec<(Vec<(i64, i64)>, bool)>,
+    ways: Vec<ew_api::cabinet_route::ShownWay>,
     ducts: Vec<DuctPieceMark>,
 }
 
@@ -290,6 +289,31 @@ impl ShellModel {
     /// selected (in the Connections table, by a Way row's Show on), each with whether it no longer holds (doc 12
     /// §12.5); none while a cabinet card is open.
     pub fn selected_ways(&self, group: usize) -> Vec<(Vec<(i64, i64)>, bool)> {
+        self.shown_ways(group)
+            .into_iter()
+            .map(|w| (w.points, w.stale))
+            .collect()
+    }
+
+    /// The labels of the ways of the wires selected themselves on the panel page of canvas `group` (doc 12 §12.5): the
+    /// chip "104.3 · 1175 mm" on the way, and "to -104E1 in the door" where it leaves for a door; page nm and words.
+    pub fn selected_way_labels(&self, group: usize) -> Vec<((i64, i64), String)> {
+        let mm = |n: ew_units::Nm| format!("{} mm", super::layout::mm_text(i128::from(n.0), false));
+        let mut out = Vec::new();
+        for w in self.shown_ways(group) {
+            if let Some((at, number, length)) = w.chip {
+                let length = length.map_or_else(|| strings::text(key!("props-empty-value")).to_owned(), mm);
+                out.push((at, strings::format(key!("way-chip"), &[&number, &length])));
+            }
+            if let Some((at, tag)) = w.door {
+                out.push((at, strings::format(key!("way-to-door"), &[&tag])));
+            }
+        }
+        out
+    }
+
+    /// The ways the panel page of canvas `group` draws for the selection; none while a cabinet card is open.
+    pub(super) fn shown_ways(&self, group: usize) -> Vec<ew_api::cabinet_route::ShownWay> {
         if self
             .props
             .card

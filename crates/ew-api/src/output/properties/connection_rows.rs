@@ -416,6 +416,37 @@ impl Session {
 const SHARED_STRETCH: &str =
     "several wires share this stretch: set a wire's own values in the Connections table";
 
+/// The one wire every connection of `conns` is a stretch of: a selection of a wire's stretches (the Connections table
+/// selects a wire's every stretch, a trunk it shares with other wires included) reads as that wire; `None` for an
+/// empty selection, one that spans several wires, or a lone stretch several wires share.
+pub(crate) fn one_wire<'a>(
+    records: &'a [ew_derive::WireRecord],
+    conns: &[Id<Connection>],
+) -> Option<&'a ew_derive::WireRecord> {
+    if conns.is_empty() {
+        return None;
+    }
+    let mut of = records
+        .iter()
+        .filter(|r| conns.iter().all(|c| r.wire.constituents.contains(c)));
+    let one = of.next()?;
+    of.next().is_none().then_some(one)
+}
+
+/// The wire whose own values a row shows and sets for connection `c` of the selection `conns` (doc 13 §2.3): the
+/// selection's one wire ([`one_wire`]), else the one wire `c` stands for ([`wire_alone`]).
+pub(crate) fn wire_of_selection<'a>(
+    q: &Q,
+    records: &'a [ew_derive::WireRecord],
+    conns: &[Id<Connection>],
+    c: Id<Connection>,
+) -> Result<Option<&'a ew_derive::WireRecord>, ()> {
+    match one_wire(records, conns) {
+        Some(r) => Ok(Some(r)),
+        None => wire_alone(q, records, c),
+    }
+}
+
 /// The wire whose own values a row of connection `c` shows and sets (doc 13 §2.3): the one wire `c` stands for;
 /// `Err(())` on a stretch several wires share; `Ok(None)` for a connection of no wire.
 pub(crate) fn wire_alone<'a>(
@@ -440,7 +471,7 @@ fn length_row(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Built {
     let mut per = Vec::new();
     let (mut can_override, mut can_reset, mut shared) = (false, false, false);
     for c in conns {
-        let record = match wire_alone(q, &records, *c) {
+        let record = match wire_of_selection(q, &records, conns, *c) {
             Err(()) => {
                 shared = true;
                 per.push((
@@ -493,7 +524,9 @@ fn length_row(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Built {
     if can_reset && !shared {
         actions.push(RowAction::Reset);
     }
-    derived(DerivedRow {
+    // For one wire, the sentence that makes its number stands under the row.
+    let note = one_wire(&records, conns).map(|r| length_note(q, r));
+    let mut built = derived(DerivedRow {
         kind: "connection",
         name: "length",
         partner: (!shared).then(|| {
@@ -510,7 +543,9 @@ fn length_row(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Built {
         value,
         provenance,
         actions,
-    })
+    });
+    built.row.note = note;
+    built
 }
 
 /// A wire's From end and To end (doc 13 §4.5), each a treatment row and a part row under its own heading: the treatment
@@ -522,8 +557,10 @@ fn length_row(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Built {
 /// so.
 fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
     let records = q.get::<WireRecordSet>(());
-    let shared = conns.iter().any(|c| wire_alone(q, &records, *c).is_err());
-    let wire_of = |c: &Id<Connection>| wire_alone(q, &records, *c).ok().flatten();
+    let shared = conns
+        .iter()
+        .any(|c| wire_of_selection(q, &records, conns, *c).is_err());
+    let wire_of = |c: &Id<Connection>| wire_of_selection(q, &records, conns, *c).ok().flatten();
     let mut wires: Vec<Id<Connection>> = conns
         .iter()
         .filter_map(|c| wire_of(c).map(|r| r.wire.id))
@@ -679,11 +716,12 @@ fn rule_words(row: u8, class: bool, clamp: bool) -> &'static str {
 /// (`EndRecord::hand_at`): the wire's own connection that holds it, whether in `end_a`, and what it holds now.
 pub(crate) fn end_holder(
     q: &Q,
+    selection: &[Id<Connection>],
     c: Id<Connection>,
     end: usize,
 ) -> Option<(Id<Connection>, bool, Option<ew_schema::EndOverride>)> {
     let records = q.get::<WireRecordSet>(());
-    let (holder, at_a) = wire_alone(q, &records, c)
+    let (holder, at_a) = wire_of_selection(q, &records, selection, c)
         .ok()
         .flatten()?
         .ends
@@ -749,11 +787,7 @@ fn source_link(q: &Q, source: &PropSource, name: &str) -> SourceLink {
 /// for connections of several wires or of no wire, or of a wire without a stored way.
 fn way_row(q: &Q, conns: &[Id<Connection>]) -> Option<Built> {
     let records = q.get::<WireRecordSet>(());
-    let wires: Vec<&ew_derive::WireRecord> = records
-        .iter()
-        .filter(|r| conns.iter().all(|c| r.wire.constituents.contains(c)))
-        .collect();
-    let [r] = wires.as_slice() else { return None };
+    let r = one_wire(&records, conns)?;
     let way = ew_derive::layout::stored_way(q, &r.wire)?;
     let text = ew_derive::text::way_words(q, &way.way);
     // Show on 902: the cabinet's panel page, with the wire selected, which shows its way there.
@@ -782,6 +816,7 @@ fn way_row(q: &Q, conns: &[Id<Connection>]) -> Option<Built> {
         actions: Vec::new(),
     });
     built.row.link = link;
+    built.row.note = Some(ew_derive::text::way_line(q, &way).to_string());
     Some(built)
 }
 
