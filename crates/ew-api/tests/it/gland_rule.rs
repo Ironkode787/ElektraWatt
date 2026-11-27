@@ -61,3 +61,45 @@ fn a_gland_not_placed_is_an_error_at_a_release_and_its_fix_opens_the_bottom() {
             .is_some_and(|v| v.ends_with("/bottom"))
     );
 }
+
+/// A cable whose part gives no outer diameter: EW-LAY-018's Edit part… opens that part at a section its editor shows,
+/// the Cable section where the diameter is typed (doc 12 §3.9).
+#[test]
+fn edit_part_of_a_cable_without_a_diameter_opens_its_cable_section() {
+    let (project, records, mut lib) = common::sample_records();
+    for doc in &mut lib {
+        if let ew_schema::LibDocument::Part(c) = doc
+            && c.item.kind == ew_schema::PartKind::Cable
+        {
+            c.item.sections.cable = None;
+            let kept: Vec<_> = c
+                .item
+                .tech_data
+                .iter()
+                .filter(|t| t.key.as_str() != "outer_diameter")
+                .cloned()
+                .collect();
+            c.item.tech_data = ew_schema::KeyedList::from_vec(kept).expect("the other values");
+        }
+    }
+    let s = common::session_of(project, records, lib);
+    let fixes: Vec<_> = s
+        .check(&PRE_DELIVERY, CheckMode::Online)
+        .findings
+        .into_iter()
+        .filter(|f| f.rule == "EW-LAY-018")
+        .filter_map(|f| f.fix)
+        .filter(|x| x.command == "part.edit")
+        .collect();
+    assert!(!fixes.is_empty(), "the sample's cables that leave lack a diameter");
+    for fix in fixes {
+        let copy: ew_ids::Uuid = fix.params["part"].as_str().expect("a part").parse().expect("an ID");
+        let section = fix.params["section"].as_str().expect("a section");
+        let draft = s.part_draft(copy).expect("the cable's part");
+        assert_eq!(draft.text("kind"), "cable");
+        assert!(
+            draft.sections().iter().any(|x| x.word == section),
+            "the editor of a cable part has no section `{section}`"
+        );
+    }
+}

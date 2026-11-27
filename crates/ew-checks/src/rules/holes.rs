@@ -7,7 +7,7 @@
 use std::collections::BTreeMap;
 
 use ew_derive::Q;
-use ew_derive::layout::{Feature, Owner, SurfaceFeatures, carrier_labels, primary_part, sheet_size};
+use ew_derive::layout::{Feature, Owner, SurfaceFeatures, carrier_labels, sheet_size};
 use ew_ids::Id;
 use ew_l10n::TextArg;
 use ew_schema::{CarrierRef, Kind, MountKind, MountingSurface, Placement, SurfaceFeature, SurfaceKind};
@@ -409,9 +409,13 @@ impl Rule for CableGland {
                 let section = match &g.part {
                     Err(ew_derive::layout::NoGland::NoDiameter) => {
                         let mut f = base("no_diameter", "no_diameter".to_owned());
-                        // The cable's part gives its outer diameter in its cable section.
-                        if let Some(part) = q.devices().get(g.cable).and_then(|d| primary_part(q, d)) {
-                            f = f.with_fix(edit_part(&part, "wire"));
+                        // The cable's part gives its outer diameter in the part editor's Cable section.
+                        if let Some(part) = q
+                            .devices()
+                            .get(g.cable)
+                            .and_then(|d| ew_derive::layout::cable_part_use(q, d))
+                        {
+                            f = f.with_fix(edit_part(&part, "cable"));
                         }
                         out.push(f);
                         continue;

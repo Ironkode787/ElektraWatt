@@ -66,7 +66,7 @@ pub use assembly::{member_order, member_slot};
 pub use carrier::{PathError, RailAxis, check_path, path_length};
 pub use fit::{Fit, Profile, RAIL_FITS, fits_rail, fits_surface};
 pub use glands::{
-    CableGland, CableGlands, NoGland, cable_outer_diameter, gland_nut, gland_pitch, gland_section,
+    CableGland, CableGlands, NoGland, cable_outer_diameter, cable_part_use, gland_nut, gland_pitch, gland_section,
 };
 pub use holes::{
     Feature, HOLE_SIZES, HoleSizes, Made, Owner, SizeFamily, SurfaceFeatures, carrier_fixings, choice_for,

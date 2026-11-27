@@ -171,12 +171,20 @@ fn cable_glands(q: &Q, space: Id<LayoutSpace>) -> Vec<CableGland> {
 /// The cable's part copy: its first part use of kind cable.
 fn cable_part<'q>(q: &'q Q, device: &Device) -> Option<&'q LibCopy<Part>> {
     let copies = q.table::<LibCopy<Part>>();
+    cable_part_use(q, device)
+        .and_then(|p| copies.get(p.copy))
+        .map(|c| &**c)
+}
+
+/// A cable's part use of kind cable: the part whose outer diameter its gland is proposed from, and where a person
+/// enters that diameter (the part editor's Cable section); `None` without one.
+pub fn cable_part_use(q: &Q, device: &Device) -> Option<PartRef> {
+    let copies = q.table::<LibCopy<Part>>();
     device
         .parts
         .iter()
-        .filter_map(|u| copies.get(u.part.copy))
-        .find(|c| c.item.kind == PartKind::Cable)
-        .map(|c| &**c)
+        .find(|u| copies.get(u.part.copy).is_some_and(|c| c.item.kind == PartKind::Cable))
+        .map(|u| u.part.clone())
 }
 
 /// The first gland of the stock whose clamping range holds `od`.
