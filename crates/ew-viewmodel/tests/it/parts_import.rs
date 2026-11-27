@@ -366,3 +366,38 @@ fn a_description_s_language_is_named_in_the_window_s_language() {
     assert!(ew_viewmodel::strings::set_locale("en"));
     assert!(dutch.ends_with(", Engels"), "{dutch}");
 }
+
+/// The column map is saved with the set it read: a Save whose write fails leaves no map for the source (review finding
+/// 14 of lane 3), and the set stays to be saved again.
+#[test]
+fn a_set_whose_write_fails_saves_no_map() {
+    let tmp = Tmp::new("parts-set-write-fails");
+    let file = table(&tmp);
+    let mut shell = with_my_parts(&tmp, Mode::Headless);
+    common::make_project(&mut shell, &tmp.0.join("proj.ew"), &[]);
+    // My parts is made by a part saved on its sheet; then its folder's manifest is spoilt, so its next write fails.
+    done(&mut shell, "parts.new", json!({"start": "terminal"}));
+    for (f, v) in [("manufacturer", "Example"), ("part_number", "DL-2.5")] {
+        done(&mut shell, "parts.field", json!({"field": f, "value": v}));
+    }
+    done(&mut shell, "parts.save", json!({}));
+    let my_parts = tmp.0.join("data").join("libraries").join("user-parts.ewlib");
+    std::fs::write(my_parts.join("library.json"), "not a manifest").unwrap();
+    done(
+        &mut shell,
+        "parts.import",
+        json!({"path": file.to_string_lossy()}),
+    );
+    done(
+        &mut shell,
+        "parts.map",
+        json!({"column": "Article", "member": "part_number"}),
+    );
+    common::failed(&mut shell, "parts.save", json!({}));
+    assert!(
+        ew_api::catalog::load_column_map(&tmp.0.join("config"), "example-parts").is_err(),
+        "no map is saved for a set that was not written"
+    );
+    assert!(shell.import_set().is_some(), "the set stays");
+    shell.shutdown();
+}
