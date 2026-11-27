@@ -47,7 +47,11 @@ impl PropertiesPane {
                 .iter()
                 .map(|(severity, of)| chip(crate::messages::count_words(*severity, of.len())))
                 .sum();
-            let gaps = t.space_1 * groups.len().saturating_sub(1) as f32;
+            // The chip that says where every value is from stands in the same line, with its gap.
+            let shared = ew_viewmodel::properties::shared_provenance(sheet).map_or(0.0, |p| {
+                crate::components::caption_chip_layout(ui, &t, chip_word(p)).1.x + t.space_1
+            });
+            let gaps = t.space_1 * groups.len().saturating_sub(1) as f32 + shared;
             // The title elides first (whole in its tooltip), down to its first three
             // characters and the ellipsis; only past that do the chips lose their words.
             let shortest: String = sheet
@@ -266,4 +270,120 @@ pub(super) fn glyph_chip(
         );
     }
     response.tip(crate::messages::chip_tip(severity, &lines))
+}
+
+#[cfg(test)]
+mod tests {
+    use egui_kittest::Harness;
+    use egui_kittest::kittest::Queryable as _;
+    use ew_viewmodel::ew_api::output::{FindingChip, SheetHeader};
+    use ew_viewmodel::properties::{Category, EditRoute, FieldReadOnly, FieldType};
+
+    use super::*;
+
+    /// A generated page's sheet: its one row's source is the header's chip "generated", and it has one warning.
+    fn generated_sheet() -> PropertySheet {
+        let row = PropRow {
+            key: "page/title".to_owned(),
+            path: "title".to_owned(),
+            category: Category::Identity,
+            depth: 0,
+            ty: FieldType::Text,
+            value: RowValue::One {
+                json: serde_json::Value::String("Wire list".to_owned()),
+                text: "Wire list".to_owned(),
+            },
+            provenance: Provenance::Generated {
+                block: "Wire list".to_owned(),
+            },
+            actions: Vec::new(),
+            route: EditRoute::ReadOnly(FieldReadOnly::Identity),
+            identifier: false,
+            source: None,
+            named_reference: false,
+            label: None,
+            link: None,
+            note: None,
+        };
+        PropertySheet {
+            rev: 0,
+            header: SheetHeader {
+                title: "907 Wire list".to_owned(),
+                items: 1,
+                kinds: vec![("page".to_owned(), 1)],
+                findings: vec![FindingChip {
+                    rule: "EW-CORE-001".to_owned(),
+                    severity: ew_viewmodel::ew_api::checks::Severity::Warning,
+                    message: "a warning".to_owned(),
+                    pending_on: None,
+                }],
+                ..Default::default()
+            },
+            sections: vec![SheetSection {
+                kind: "page".to_owned(),
+                targets: Vec::new(),
+                rows: vec![row],
+            }],
+            missing: 0,
+            read_only: None,
+            languages: Vec::new(),
+        }
+    }
+
+    /// The header drawn `width` wide: its warning chip's width and its word's, the source chip's width and the title's
+    /// shortest form's.
+    fn header_at(width: f32) -> (f32, f32, f32, f32) {
+        let t = crate::theme::tokens(crate::theme::Theme::Light, crate::theme::Density::Comfortable);
+        let sheet = generated_sheet();
+        let mut ready = false;
+        let mut h = Harness::builder()
+            .with_size(egui::vec2(width + 200.0, 200.0))
+            .build_ui(move |ui| {
+                // The fonts apply from the next pass: the first draws nothing.
+                if !ready {
+                    crate::fonts::install(ui.ctx());
+                    crate::theme::install(ui.ctx(), &t);
+                    ready = true;
+                    return;
+                }
+                ui.allocate_ui(egui::vec2(width, 100.0), |ui| {
+                    PropertiesPane::header(ui, &sheet, None, None, None, &mut Vec::new());
+                });
+            });
+        h.run();
+        let chip = h.get_by_label_contains("a warning").rect().width();
+        let source = h.get_by_label("generated").rect().width();
+        let t = crate::theme::current(&h.ctx);
+        let measure = |text: String, font: &crate::theme::TypeToken| {
+            h.ctx.fonts_mut(|f| {
+                f.layout_no_wrap(text, crate::theme::font(font), egui::Color32::WHITE)
+                    .size()
+                    .x
+            })
+        };
+        let word = measure(
+            crate::messages::count_words(crate::messages::Severity::Warning, 1),
+            &t.type_caption,
+        );
+        // The title's shortest form: its first three characters and the ellipsis.
+        let title = measure("907\u{2026}".to_owned(), &t.type_title);
+        (chip, word, source, title)
+    }
+
+    /// The width that decides whether the header goes compact counts the chip that says where every value is from: a
+    /// pane where the title's shortest form and the worded chips fit without that chip, and not with it, shows the
+    /// warning as its glyph rather than cutting the title.
+    #[test]
+    fn the_compact_header_counts_the_source_chip() {
+        let (chip, word, source, title) = header_at(1200.0);
+        assert!(chip > word, "wide, the chip keeps its word");
+        let t = crate::theme::tokens(crate::theme::Theme::Light, crate::theme::Density::Comfortable);
+        // Wider than the title and the worded chip need, narrower than that with the source chip beside them.
+        let width = 2.0 * t.space_4 + title + t.space_2 + chip + source / 2.0;
+        let (chip, word, _, _) = header_at(width);
+        assert!(
+            chip < word,
+            "at {width} the warning chip keeps its word and the title is cut"
+        );
+    }
 }

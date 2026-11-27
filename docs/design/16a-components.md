@@ -145,7 +145,7 @@ a device's are tag, function text, part, location, a source's medium, any other 
 each carries, a valve's solenoids and position. The rows only a rare case needs stand in a last group **More** per
 section, closed until opened (its open state is remembered); the filter searches closed groups too.
 
-The header shows one count chip per severity, also for one finding ("1 Warning", "2 Warnings"); glyphs replace the words when the title does not fit. An edit field opened on its stored value starts with the whole text selected, so typing replaces it.
+The header shows one count chip per severity, also for one finding ("1 Warning", "2 Warnings"); glyphs replace the words when the title does not fit beside them and the chip that says where every value is from. An edit field opened on its stored value starts with the whole text selected, so typing replaces it.
 
 **The label column fits its labels,
 then gives way to a value.** It is as wide as the widest label of the rows on show, from `size.property_label` up to

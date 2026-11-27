@@ -645,3 +645,5 @@ change here.
 - text-change: a selection whose records share no field names each kind with its count in the window's language
   ("No common fields: the selection holds 2 symbols, 1 page item"); it listed the kinds' code words
   (`representation, page_item`), and nothing selected reads "0 elementen" in Dutch, not "0 items"
+- behaviour-change: the Properties header shows its finding chips as glyphs before the title is cut when the chip
+  that says where every value is from ("generated") stands beside them; that chip was left out of the measure
