@@ -324,6 +324,7 @@ mod tests {
                 kind: "page".to_owned(),
                 targets: Vec::new(),
                 rows: vec![row],
+                port: None,
             }],
             missing: 0,
             read_only: None,

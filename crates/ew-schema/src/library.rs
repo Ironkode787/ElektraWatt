@@ -760,6 +760,16 @@ pub struct SymbolCp {
     /// Discipline; default electrical.
     #[serde(default, skip_serializing_if = "is_default")]
     pub discipline: Discipline,
+    /// The bus interface whose socket `fn_cp` this CP draws, on a bus symbol (doc 10 §2.7): it stands for CP
+    /// `fn_cp` of the drawn function whose bus port carries this interface and [`port_label`](Self::port_label);
+    /// absent, the CP draws as any symbol's (its pin-map entry, else the first function's).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub interface: Option<Ident>,
+    /// The port label of an interface listed port by port ("P1R"), beside [`interface`](Self::interface).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub port_label: Option<Ident>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -800,6 +810,16 @@ pub struct TextSlot {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<IdentS>")]
     pub solenoid: Option<Ident>,
+    /// The bus interface whose address a `bus_address` slot of a bus symbol prints (doc 10 §2.7), in the symbol's
+    /// form (a PROFINET name and its IP address on two lines); absent, the slot prints the drawn first function's
+    /// address as before.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub interface: Option<Ident>,
+    /// The port label of an interface listed port by port ("P1R"), beside [`interface`](Self::interface).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub port_label: Option<Ident>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

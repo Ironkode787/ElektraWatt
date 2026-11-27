@@ -389,7 +389,9 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/assembly.rs` |  | Assemblies (doc 03 §7, FR-DEV-020 … FR-DEV-023, D-36, D-41): the break marks of an overview drawn over several pages and the order-code text of an assembly device. |
 | `src/bom.rs` |  | The bill of materials: `device_part_lines(dev)` → `bom_rows(mode)` (ARCH §6.4, FR-REP-004 … FR-REP-006, D-04, D-36). |
 | `src/bond_carrier.rs` |  | The carrier of a 0 V–PE bond: `bond_carrier(potential)` (doc 08 §3.7; FR-CON-014). |
+| `src/box_edges.rs` |  | Where the pins of a box nobody arranged stand on its edges (doc 07 §2.5, "The device box"): the rule a part's box without a layout, the black box tool and a bus symbol's sockets (doc 10 §2.7) share. |
 | `src/bus.rs` |  | The bus model's derived data (doc 10 §2.7, §2.10, §3.8): the segments of a physical net (`bus_segments(pnet)`, algorithm A5), the members of a logical net (`net_members(lnet)`), the texts of a bus port (its station address and termination, FR-BUS-004, FR-BUS-006) and the member count of a potential that a bus segment carries (folio 909). |
+| `src/bus_symbol.rs` |  | The bus symbol (doc 10 §2.7): a device on a bus-topology page is one body, derived from its part's network ports at every draw and never stored. |
 | `src/cell.rs` |  | Frame cells: `cell_of(point, page)` and `rep_anchor_cell(rep)` (doc 06 §5.1, FR-PAG-020, FR-SYM-010, FR-XRF-005, D-14). |
 | `src/channel_index.rs` |  | The channel indexes (doc 10 §2.4, §3.2 step 4, §3.3): a channels-by-module index and a connection-point → channel index, as memoised derived families. |
 | `src/component.rs` |  | The incremental maintenance of the potential partition (ADR-0002 amendment 4, ARCH §6.1 "incremental connectivity"): the components an edit touched are recomputed from the per-page nets, every other component is kept as it is. |

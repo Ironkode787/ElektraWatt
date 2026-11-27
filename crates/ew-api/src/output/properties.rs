@@ -143,6 +143,9 @@ pub struct SheetSection {
     pub targets: Vec<Uuid>,
     /// The rows.
     pub rows: Vec<PropRow>,
+    /// The interface a section of one port function stands for, in words ("X1"): a bus symbol that draws two or more
+    /// port functions shows a section per function (doc 10 §2.7); `None` for every other section.
+    pub port: Option<String>,
 }
 
 /// The row a wire's cross-section or colour that its cable core gives goes to: the cable's Parts row, whose part gives
@@ -980,6 +983,28 @@ impl Session {
                 .collect();
             let mut targets: Vec<Uuid> = targets.into_iter().collect();
             order_records(&q, kind, &mut targets, source.as_deref());
+            // One bus symbol drawing two or more port functions: a section per function, in the symbol's order, named by
+            // its interface (doc 10 §2.7).
+            if kind == Kind::Function && ports_only && picked.len() == 1 && targets.len() > 1 {
+                let drawn: Vec<Uuid> = picked[0]
+                    .reach
+                    .get(&Kind::Representation)
+                    .and_then(|r| r.first())
+                    .and_then(|r| q.reps().get(Id::from_uuid(*r)))
+                    .map(|r| r.functions.iter().map(|f| f.as_uuid()).collect())
+                    .unwrap_or_default();
+                targets.sort_by_key(|t| drawn.iter().position(|d| d == t));
+                for f in targets {
+                    let mut section = self.section(&q, &cx, kind, vec![f], generated_block.as_deref());
+                    section.port = q
+                        .functions()
+                        .get(Id::from_uuid(f))
+                        .and_then(|x| x.bus_port.clone())
+                        .map(|p| ew_derive::interface_words(&p.interface, p.port_label.as_ref()));
+                    sections.push(section);
+                }
+                continue;
+            }
             sections.push(self.section(&q, &cx, kind, targets, generated_block.as_deref()));
         }
         // One generated page's Title row is the title it prints ("Legend of layout 920"), not its block's format with

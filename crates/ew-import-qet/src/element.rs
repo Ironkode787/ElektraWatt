@@ -412,6 +412,8 @@ pub(crate) fn read_on_stack(
                 pos: t.pos,
                 dir: t.dir.clone(),
                 discipline: Discipline::Electrical,
+                interface: None,
+                port_label: None,
                 extra,
             })
         })

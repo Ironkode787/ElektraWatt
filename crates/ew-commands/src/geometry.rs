@@ -125,7 +125,7 @@ pub(crate) fn rep_body(tx: &TxBuilder<'_>, rep: &Representation) -> Option<[i64;
     let corners: Vec<Pt2> = match rep.box_.as_ref().filter(|b| !b.outline.is_empty()) {
         Some(b) => b.outline.iter().map(|p| rep.orient.apply(*p)).collect(),
         None => {
-            let (lo, hi) = tx.get::<LibCopy<SymbolDef>>(rep.symbol)?.item.graphic_bounds()?;
+            let (lo, hi) = drawn(tx, rep)?.0.graphic_bounds()?;
             vec![rep.orient.apply(lo), rep.orient.apply(hi)]
         }
     };
@@ -543,10 +543,49 @@ pub(crate) fn require_rep_on_grid(
     require_on_grid(tx, page, rep.pos, field)
 }
 
+/// The symbol a page draws `rep` with and the representation as it draws it: `ew_derive::drawn`'s rule over a
+/// transaction (a representation of the bus symbol `ew.gen.bus` drawn with its device's bus part's symbol and the pin
+/// map its sockets draw by). `None` when the symbol copy is not embedded.
+pub(crate) fn drawn(tx: &TxBuilder<'_>, rep: &Representation) -> Option<(Arc<SymbolDef>, Representation)> {
+    let copy: Arc<LibCopy<SymbolDef>> = tx.get::<LibCopy<SymbolDef>>(rep.symbol)?;
+    let port = |f: Id<Function>| {
+        let p = tx.get::<Function>(f)?.bus_port.clone()?;
+        Some((p.interface, p.port_label))
+    };
+    let symbol = if ew_derive::is_bus_copy(&copy.item) {
+        let grid = tx.get::<Page>(rep.page).map_or(Grid::MM4, |p| p.grid);
+        let device = rep.functions.first().and_then(|f| tx.get::<Function>(*f)?.device);
+        let part =
+            device.and_then(|d| crate::normalise::bus_ports::bus_part(tx, &tx.get::<Device>(d)?.parts));
+        let derived = match part {
+            Some(p) => ew_derive::bus_symbol(&p.item, grid),
+            // A device without a bus part: the interfaces its drawn functions carry, a socket each.
+            None => ew_derive::carried_symbol(
+                rep.functions
+                    .iter()
+                    .filter_map(|f| tx.get::<Function>(*f)?.bus_port.clone()),
+                grid,
+            ),
+        };
+        Arc::new(SymbolDef {
+            meta: copy.item.meta.clone(),
+            name: copy.item.name.clone(),
+            keywords: copy.item.keywords.clone(),
+            fndef: copy.item.fndef.clone(),
+            ..derived
+        })
+    } else {
+        Arc::new(copy.item.clone())
+    };
+    let rep = ew_derive::bus_pins(rep, &symbol, port).into_owned();
+    Some((symbol, rep))
+}
+
 fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRange>> {
-    let Some(symbol): Option<Arc<LibCopy<SymbolDef>>> = tx.get::<LibCopy<SymbolDef>>(rep.symbol) else {
+    let Some((symbol, rep)) = drawn(tx, rep) else {
         return Vec::new();
     };
+    let rep = &rep;
     // A point within 1 nm of a grid position is the grid's own number for it (`Grid::settle_point`, doc 06a §2.1).
     // The commands place a CP within ±`MAX_SAFE_INTEGER`: a local place or a page point beyond it is `OutOfRange`, and a
     // settled point beyond it keeps the unsettled one.
@@ -572,7 +611,7 @@ fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRa
         };
         Some(Pt2::new(Nm(x), Nm(y)))
     };
-    ew_derive::rep_drawn_cps(rep, &symbol.item)
+    ew_derive::rep_drawn_cps(rep, &symbol)
         .into_iter()
         .map(|cp| {
             placed(cp.local).map(|pos| RepCp {

@@ -171,6 +171,7 @@ pub struct PlacedText {
 /// Lowers `def` in `variant`.
 pub fn lower(def: &SymbolDef, variant: Orient2) -> SymbolGeometry {
     let t = Transform::from_orient(variant);
+    let bus = ew_derive::is_bus_symbol(def);
     let mut graphics = DisplayList::new();
     let mut texts = Vec::new();
     let mut points: Vec<Pt2> = Vec::new();
@@ -181,11 +182,19 @@ pub fn lower(def: &SymbolDef, variant: Orient2) -> SymbolGeometry {
             graphics.push(item);
         }
         if let Primitive::Text(text) = prim {
+            let (angle, align) = if bus {
+                turned_with_body(&text.align, text.angle, variant)
+            } else {
+                (
+                    upright_angle(text.angle),
+                    placed_align(&text.align, text.angle, variant),
+                )
+            };
             texts.push(PlacedText {
                 source: TextSource::Static(text.text.clone()),
                 pos: variant.apply(text.pos),
-                angle: upright_angle(text.angle),
-                align: placed_align(&text.align, text.angle, variant),
+                angle,
+                align,
                 style_key: Some(
                     text.style
                         .as_ref()
@@ -201,7 +210,7 @@ pub fn lower(def: &SymbolDef, variant: Orient2) -> SymbolGeometry {
         texts.push(PlacedText {
             source: TextSource::Slot(slot.kind.clone()),
             pos,
-            angle: upright_angle(slot.rot),
+            angle: slot_angle(def, slot.rot, variant),
             align,
             style_key: slot.style.as_ref().map(|s| s.as_str().to_owned()),
             max_width: slot.max_width,
@@ -425,6 +434,57 @@ pub fn upright_angle(angle: Angle2) -> Angle2 {
     readable(angle).0
 }
 
+/// The angle a slot of `def` drawn at `angle` in the symbol frame prints at on a symbol in `variant`: [`upright_angle`],
+/// except on a bus symbol, whose texts turn with its body ([`turned_with_body`]).
+pub fn slot_angle(def: &SymbolDef, angle: Angle2, variant: Orient2) -> Angle2 {
+    if ew_derive::is_bus_symbol(def) {
+        turned_with_body(&Align::TopLeft, angle, variant).0
+    } else {
+        upright_angle(angle)
+    }
+}
+
+/// Where a text of a bus symbol (doc 10 §2.7), drawn at `angle` and aligned `align` in the symbol frame, prints on the
+/// symbol in `variant`: its texts stand inside its body, so they turn with it, still reading from the bottom or the
+/// right. Its angle is its line's once the variant has turned it, made readable ([`upright_angle`]); its alignment keeps
+/// its box on the side of its anchor that the variant maps it to, read in the printed text's frame. An alignment of a
+/// newer format is kept, the text then printed as [`placed_align`] prints it.
+pub fn turned_with_body(align: &Align, angle: Angle2, variant: Orient2) -> (Angle2, Align) {
+    let Some((h, v)) = align_parts(align) else {
+        return (upright_angle(angle), align.clone());
+    };
+    const R: i64 = 1_000_000;
+    let base = |a: Angle2| ew_dl::num::arc_point(Pt2::ORIGIN, Nm(R), Nm(R), a);
+    let down = |b: Pt2| Pt2::new(Nm(-b.y.0), b.x);
+    let (upright, turned) = readable(angle);
+    let (b0, d0) = (base(upright), down(base(upright)));
+    // Into the box, in the symbol frame, then on the sheet.
+    let (dx, dy) = if turned { (h, v) } else { (-h, -v) };
+    // Every value is at most 2·R, so the sheet vector fits `i64`.
+    let into = |a: Nm, b: Nm| Nm((dx * i128::from(a.0) + dy * i128::from(b.0)) as i64);
+    let moved = variant.apply(Pt2::new(into(b0.x, d0.x), into(b0.y, d0.y)));
+    // The printed line: of the quarter turns of the text's angle and their mirror images, the one along the turned line.
+    let line = variant.apply(b0);
+    let near = |p: Pt2| (p.x.0 - line.x.0).abs() <= 2 && (p.y.0 - line.y.0).abs() <= 2;
+    let Some(printed) = (0..4)
+        .flat_map(|k| [upright.0 + k * 90_000, 180_000 - upright.0 + k * 90_000])
+        .map(|a| upright_angle(Angle2(a)))
+        .find(|a| near(base(*a)) || near(Pt2::new(Nm(-base(*a).x.0), Nm(-base(*a).y.0))))
+    else {
+        return (upright_angle(angle), placed_align(align, angle, variant));
+    };
+    let (bp, dp) = (base(printed), down(base(printed)));
+    let dot = |a: Pt2| i128::from(moved.x.0) * i128::from(a.x.0) + i128::from(moved.y.0) * i128::from(a.y.0);
+    let side = |c: i128| {
+        if 2 * c.abs() < i128::from(R) * i128::from(R) {
+            0
+        } else {
+            c.signum()
+        }
+    };
+    (printed, align_of(-side(dot(bp)), -side(dot(dp))))
+}
+
 /// The readable angle of `angle` and whether the readability turn of 180° was applied to reach it.
 fn readable(angle: Angle2) -> (Angle2, bool) {
     let a = i64::from(angle.normalized().0);
@@ -519,6 +579,14 @@ pub fn slot_align(def: &SymbolDef, slot: &TextSlot, angle: Angle2, variant: Orie
 /// step clear of the body and a line from the one before it, in the order they stand down the unturned symbol; a line
 /// is a step and a half, and only the slots that `shown` takes take one. A pin's designation keeps its place at its pin.
 pub fn slot_places(def: &SymbolDef, variant: Orient2, shown: impl Fn(usize) -> bool) -> Vec<(Pt2, Align)> {
+    // A bus symbol's texts stand inside its body and turn with it (doc 10 §2.7).
+    if ew_derive::is_bus_symbol(def) {
+        return def
+            .text_slots
+            .iter()
+            .map(|s| (variant.apply(s.pos), turned_with_body(&s.align, s.rot, variant).1))
+            .collect();
+    }
     let mut places: Vec<(Pt2, Align)> = def
         .text_slots
         .iter()

@@ -779,6 +779,8 @@ impl Builder<'_> {
             });
             let one_pin = def.cps.len() == 1;
             let terminal = rv.terminal;
+            // A bus symbol's texts stand where it puts them, inside its body (doc 10 §2.7): never moved onto a cable.
+            let bus = ew_derive::is_bus_symbol(def);
             let frame = ew_derive::text_frame(rep, def);
             let origin = ctx.origins.get(&rep.id.as_uuid()).copied().unwrap_or_default();
             let mut values: Vec<_> = rv.slots.iter().collect();
@@ -817,7 +819,11 @@ impl Builder<'_> {
                         None if turned => frame.origin + frame.orient.apply(slot.pos),
                         None => frame.origin + place,
                     },
-                    angle: symbol::upright_angle(rot),
+                    angle: if turned {
+                        symbol::upright_angle(rot)
+                    } else {
+                        symbol::slot_angle(def, rot, frame.orient)
+                    },
                     // An angle a person set (or an import) is the sheet's: the text keeps its own alignment.
                     align: if turned {
                         symbol::placed_align(&slot.align, rot, Orient2::R0)
@@ -847,7 +853,7 @@ impl Builder<'_> {
                     unknown: unknown.map(str::to_owned),
                     conflict,
                 };
-                if moved || turned {
+                if moved || turned || bus {
                     self.fixed(ctx, text, Some(record));
                     continue;
                 }

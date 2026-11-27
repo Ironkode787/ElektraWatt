@@ -510,6 +510,8 @@ pub fn dynamic_text(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed)
         style: style.filter(|_| ctx.instance_texts),
         fallback: None,
         solenoid: None,
+        interface: None,
+        port_label: None,
         extra,
     });
     Ok(())
@@ -566,6 +568,8 @@ pub fn input(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed) -> Res
         style: style.filter(|_| ctx.instance_texts),
         fallback: None,
         solenoid: None,
+        interface: None,
+        port_label: None,
         extra,
     });
     Ok(())

@@ -50,7 +50,7 @@ pub struct BusPorts;
 pub(crate) fn bus_part(tx: &TxBuilder<'_>, parts: &[PartUse]) -> Option<Arc<LibCopy<Part>>> {
     parts.iter().find_map(|u| {
         tx.get::<LibCopy<Part>>(u.part.copy)
-            .filter(|c| c.item.sections.bus.as_ref().is_some_and(|b| !b.ports.is_empty()))
+            .filter(|c| ew_derive::has_bus_ports(&c.item))
     })
 }
 

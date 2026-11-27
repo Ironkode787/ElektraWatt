@@ -49,6 +49,8 @@ fn ip_symbol(symbol: Id<SymbolDef>, library: Uuid, item: Uuid) -> LibCopy<Symbol
         pos: pt(0, 0),
         dir: Dir4::Left,
         discipline: Default::default(),
+        interface: None,
+        port_label: None,
         extra: Extra::new(),
     }])
     .expect("one CP");

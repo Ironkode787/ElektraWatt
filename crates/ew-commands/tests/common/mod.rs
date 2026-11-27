@@ -57,6 +57,8 @@ pub fn symbol_two() -> ew_schema::LibCopy<SymbolDef> {
             pos: pt(0, 0),
             dir: Dir4::Up,
             discipline: Default::default(),
+            interface: None,
+            port_label: None,
             extra: Extra::new(),
         },
         SymbolCp {
@@ -65,6 +67,8 @@ pub fn symbol_two() -> ew_schema::LibCopy<SymbolDef> {
             pos: pt(0, MM10),
             dir: Dir4::Down,
             discipline: Default::default(),
+            interface: None,
+            port_label: None,
             extra: Extra::new(),
         },
     ])

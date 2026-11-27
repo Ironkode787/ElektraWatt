@@ -567,6 +567,7 @@ impl Session {
                 kind: name.to_owned(),
                 targets,
                 rows,
+                port: None,
             };
         }
         let mut listed: Vec<&str> = Vec::new();
@@ -730,6 +731,7 @@ impl Session {
             kind: name.to_owned(),
             targets,
             rows: built.into_iter().map(|b| b.row).collect(),
+            port: None,
         }
     }
 

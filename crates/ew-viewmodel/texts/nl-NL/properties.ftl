@@ -41,6 +41,7 @@ props-options = Opties van { $p0 }
 props-gone-title = Object bestaat niet meer
 props-none = Geen gemeenschappelijke velden: de selectie bevat { $p0 }
 props-header-many = { $p0 } { $p1 }
+props-section-network-port = Netwerkpoort { $p0 }
 props-empty = Niets te tonen
 props-member-varies = Het veld verschilt tussen de geselecteerde records; stel eerst de hele waarde in
 props-cannot-compose = Deze waarde kan hier niet worden ingesteld

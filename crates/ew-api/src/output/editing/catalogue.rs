@@ -942,15 +942,18 @@ fn symbol_row(
         fndef_key,
         rep_type: rep_type_word(&symbol.rep_type),
         letter: letter_of(set, def.as_deref()),
-        black_box: symbol.meta.key.as_ref().is_some_and(|key| {
-            starter_symbol(key.as_str()).is_some_and(|s| {
-                copy.is_none_or(|id| id == s.id.as_uuid())
-                    && s.item.fndef.library == symbol.fndef.library
-                    && s.item.fndef.item == symbol.fndef.item
+        // The bus symbol is drawn from a part's network ports, never as a box (doc 10 §2.7).
+        black_box: !ew_derive::is_bus_copy(symbol)
+            && symbol.meta.key.as_ref().is_some_and(|key| {
+                starter_symbol(key.as_str()).is_some_and(|s| {
+                    copy.is_none_or(|id| id == s.id.as_uuid())
+                        && s.item.fndef.library == symbol.fndef.library
+                        && s.item.fndef.item == symbol.fndef.item
+                })
             })
-        }) && def
-            .as_ref()
-            .is_some_and(|d| d.item.contact_kind == ContactKind::BlackBox),
+            && def
+                .as_ref()
+                .is_some_and(|d| d.item.contact_kind == ContactKind::BlackBox),
         // A PE terminal (`TerminalEarth`) is placed into a strip like every terminal.
         terminal: def
             .as_ref()

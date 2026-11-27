@@ -75,6 +75,8 @@ pub fn cp(idx: u16, fn_cp: u16, pos: Pt2, dir: Dir4) -> SymbolCp {
         pos,
         dir,
         discipline: Discipline::Electrical,
+        interface: None,
+        port_label: None,
         extra: Extra::new(),
     }
 }
@@ -91,6 +93,8 @@ pub fn slot(kind: SlotKind, pos: Pt2, rot: Angle2, align: Align) -> TextSlot {
         style: None,
         fallback: None,
         solenoid: None,
+        interface: None,
+        port_label: None,
         extra: Extra::new(),
     }
 }

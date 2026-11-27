@@ -67,11 +67,15 @@ impl Query for PageRepsOf {
     fn run(q: &Q, key: &Id<Page>) -> Arc<Vec<RepView>> {
         let mut out = Vec::new();
         for rid in q.idx().reps_by_page(*key) {
-            let Some(rep) = q.reps().get(rid).cloned() else {
+            let Some(stored) = q.reps().get(rid).cloned() else {
                 continue;
             };
-            let symbol = q.symbols().get(rep.symbol).map(|s| Arc::new(s.item.clone()));
-            let terminals = segment_terminals(q, &rep);
+            let terminals = segment_terminals(q, &stored);
+            // The symbol the page draws it with, and the pin map a bus symbol's sockets draw by (`ew_derive::drawn`).
+            let (symbol, rep) = match ew_derive::drawn(q, &stored) {
+                Some((symbol, rep)) => (Some(Arc::new(symbol.into_owned())), Arc::new(rep.into_owned())),
+                None => (None, stored),
+            };
             let rep = match &symbol {
                 Some(def) => addresses_in_cell(q, *key, rep, def),
                 None => rep,
@@ -104,14 +108,14 @@ impl Query for PageSlotsOf {
     fn run(q: &Q, key: &Id<Page>) -> Arc<Self::Value> {
         let mut out = Vec::new();
         for rid in q.idx().reps_by_page(*key) {
-            let Some(rep) = q.reps().get(rid).cloned() else {
+            let Some(stored) = q.reps().get(rid) else {
                 continue;
             };
-            let Some(symbol) = q.symbols().get(rep.symbol) else {
+            let Some((symbol, rep)) = ew_derive::drawn(q, stored) else {
                 continue;
             };
-            let slots = slot_values(q, *key, &rep, &symbol.item);
-            let pins = pin_texts(q, &rep, &symbol.item);
+            let slots = slot_values(q, *key, &rep, &symbol);
+            let pins = pin_texts(q, &rep, &symbol);
             if !slots.is_empty() || !pins.is_empty() {
                 out.push((rep.id, slots, pins));
             }
@@ -314,6 +318,7 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
         .filter(|_| rep.rep_type != RepType::StripSegment)
         .and_then(|d| terminal_label(q, d, rep));
     let mut out = Vec::new();
+    let bus = ew_derive::is_bus_symbol(def);
     for (i, slot) in def.text_slots.iter().enumerate() {
         let mut item_links = Vec::new();
         let text = match &slot.kind {
@@ -384,6 +389,17 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
                 // (the chooser and the tables keep the word; `manufacturer_name` is unchanged).
                 .filter(|p| p.item.manufacturer.item.as_uuid() != ew_library::STARTER_GENERIC_MANUFACTURER)
                 .map(|p| manufacturer_name(q, &p.item.manufacturer)),
+            // A bus symbol's part is its maker and its number in one text (doc 10 §2.7), the starter's "Generic" left out.
+            SlotKind::PartNumber if bus => device.and_then(|d| main_part(q, d)).map(|p| {
+                let number = p.item.part_number.as_str();
+                let maker = (p.item.manufacturer.item.as_uuid() != ew_library::STARTER_GENERIC_MANUFACTURER)
+                    .then(|| manufacturer_name(q, &p.item.manufacturer))
+                    .filter(|m| !m.is_empty());
+                match maker {
+                    Some(m) => format!("{m} {number}"),
+                    None => number.to_owned(),
+                }
+            }),
             SlotKind::PartNumber => device
                 .and_then(|d| main_part(q, d))
                 .map(|p| p.item.part_number.as_str().to_owned()),
@@ -404,6 +420,13 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
                     .collect();
                 Some(x.text.clone())
             }
+            // A bus symbol's compartment prints its interface's address (doc 10 §2.7).
+            SlotKind::BusAddress if slot.interface.is_some() => rep
+                .functions
+                .iter()
+                .filter_map(|f| q.functions().get(*f)?.bus_port.clone())
+                .find(|p| Some(&p.interface) == slot.interface.as_ref() && p.port_label == slot.port_label)
+                .and_then(|p| ew_derive::compartment_address(&p)),
             // The drawn function's bus port, its station address and its termination (FR-BUS-004).
             SlotKind::BusAddress => f
                 .as_ref()
@@ -429,6 +452,11 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
             }),
             _ => None,
         };
+        // A bus symbol's text longer than its slot's room is cut, line by line: its size follows from the part alone.
+        let text = match (text, slot.max_width) {
+            (Some(t), Some(room)) if bus => Some(cut_lines(q, def, slot, &t, room)),
+            (t, _) => t,
+        };
         if let Some(text) = text.filter(|t| !t.is_empty()) {
             out.push(SlotValue {
                 slot: u16::try_from(i).unwrap_or(u16::MAX),
@@ -439,6 +467,27 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
         }
     }
     out
+}
+
+/// Each line of `text`, printed in `slot`'s style, cut with "…" to `room` where it is wider (doc 10 §2.7).
+fn cut_lines(q: &Q, def: &SymbolDef, slot: &ew_schema::TextSlot, text: &str, room: ew_units::Nm) -> String {
+    let styles = crate::output::text_style_table(q);
+    let fonts = crate::output::fonts(q);
+    let terminal = ew_derive::terminal_symbol(q, def);
+    let Some(style) = styles.resolve(ew_scene::symbol::slot_style_key(terminal, slot, &styles).0) else {
+        return text.to_owned();
+    };
+    let width = |s: &str| fonts.shape(s, &style, None).advance();
+    text.split('\n')
+        .map(|line| {
+            if width(line) <= room {
+                line.to_owned()
+            } else {
+                ew_scene::forms::ellipsis_cut(line, room, width)
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 /// The label a terminal's own representation `rep` prints in its tag slot (doc 08 §6.1, FR-TRM-021):

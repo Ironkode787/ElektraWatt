@@ -755,6 +755,7 @@ impl ShellModel {
                 kind: FRAME_KIND.to_owned(),
                 targets: Vec::new(),
                 rows,
+                port: None,
             }],
             missing: 0,
             read_only,

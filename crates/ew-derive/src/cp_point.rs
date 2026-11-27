@@ -7,8 +7,9 @@
 //! derived query (the wire numbers) can order wires by the frame cell of their ends:
 //!
 //! - A symbol CP `c` of a representation sits at `pos + orient(c.pos)` and draws the function CP of its
-//!   `pin_map` entry, else `(functions[0], c.fn_cp)`. When several representations on the page draw the same
-//!   function CP, the smallest representation ID wins.
+//!   `pin_map` entry, else `(functions[0], c.fn_cp)`; a representation of the bus symbol is drawn with its derived
+//!   symbol and pin map ([`crate::drawn`]). When several representations on the page draw the same function CP, the
+//!   smallest representation ID wins.
 //! - A **black box** (a symbol without CPs on a representation that carries `Representation.box`) draws box
 //!   CP `c` of its first function at `pos + orient(c.pos)`.
 //! - A **strip segment** draws the terminals of its strip (doc 08 §6.7): segment
@@ -53,8 +54,8 @@ pub fn cp_end(q: &Q, function: Id<Function>, idx: u16, page: Id<Page>) -> Option
     reps.sort();
     reps.into_iter()
         .find_map(|rid| {
-            let rep = q.reps().get(rid)?;
-            rep_cp_end(rep, &q.symbols().get(rep.symbol)?.item, grid, function, idx)
+            let (symbol, rep) = crate::drawn(q, q.reps().get(rid)?)?;
+            rep_cp_end(&rep, &symbol, grid, function, idx)
         })
         .or_else(|| segment_cp_end(q, function, idx, page).map(|(p, dir)| (grid.settle_point(p), dir)))
 }

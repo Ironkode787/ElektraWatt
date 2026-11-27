@@ -101,7 +101,8 @@ present only on a connector or device with a termination switch (FR-BUS-004).
   and the lists.
   - **On the page** a device is a representation of the built-in symbol `ew.gen.bus`: its `functions` are the
     device's port functions in the part's interface order, and it carries neither `box` nor `pin_map`; a socket
-    stands for connection point k of the function that carries its interface (`ew_derive::rep_drawn_cps`). A part
+    stands for connection point k of the function that carries its interface, by the pin map the page draws the
+    representation with (`ew_derive::drawn`, the one rule of the scene, `cp_point` and the commands). A part
     changed in Parts is drawn changed at the next draw of every page; its Save names the devices whose sockets move
     and moves the ends of their bus lines with them, in the one step of Save and update (doc 07 §2.5).
   - **His own bus symbol.** Parts shows a part's bus symbol ("On a bus page") and offers Make my own from it…: the

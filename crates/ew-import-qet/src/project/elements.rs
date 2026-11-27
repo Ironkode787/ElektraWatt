@@ -977,6 +977,8 @@ impl Mx<'_, '_> {
                     style,
                     fallback: None,
                     solenoid: None,
+                    interface: None,
+                    port_label: None,
                     extra: BTreeMap::new(),
                 });
                 extra.len() - 1

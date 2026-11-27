@@ -15,6 +15,8 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- format-variant: `SymbolCp` gains `interface` and `port_label`, `TextSlot` gains `interface` and `port_label`, each
+  absent unless set; the starter library gains the bus symbol `ew.gen.bus` (ADR-0011 amendment 8, entry 2)
 - behaviour-change: the sheet of Parts lists a part's groups (Identity, On the schematic,
   In the cabinet, Connections, the kind's own group, Technical data, Goes with it), each with the fields one declaration
   of a part's fields gives (doc 07 §2.5); an enclosure, a mounting plate and a rail of one's own now have their

@@ -1623,8 +1623,12 @@ pub fn section_header(kind: &str, n: usize) -> String {
 }
 
 /// The header of `section` of `sheet` ([`section_header`]): its kind counted as the sheet's header counts the selected
-/// records of that kind (a wire's every stretch is one wire, "Connection (1)"), else by its targets.
+/// records of that kind (a wire's every stretch is one wire, "Connection (1)"), else by its targets. A section of one
+/// network port of a bus symbol is named by its interface ("Network port X1").
 pub fn section_title(sheet: &PropertySheet, section: &SheetSection) -> String {
+    if let Some(port) = &section.port {
+        return strings::format(key!("props-section-network-port"), &[port]);
+    }
     let n = sheet
         .header
         .kinds

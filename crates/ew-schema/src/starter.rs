@@ -74,10 +74,17 @@ keys! {
     /// elements reference instead of a generated one (doc 07 §2.3, doc 14 §4.3). `ew.gen.ip` is the key of the
     /// interruption point's *symbol*, never of a function definition.
     FN_IP = "ew.fn.ip";
+    /// The function definition of the program's own graphics (a junction, a cable mark, the bus symbol).
+    FN_GRAPHIC = "ew.fn.graphic";
     /// The black box's symbol.
     GEN_BLACKBOX = "ew.gen.blackbox";
     /// The black box's symbol, QElectroTech edition (what [`for_grid`] names on that grid).
     GEN_BLACKBOX_QET10 = "ew.gen.blackbox@qet10";
+    /// The bus symbol: a device on a bus-topology page, whose body and sockets are derived from its part's network
+    /// ports (`ew_derive::bus_symbol`, doc 10 §2.7); the copy holds no graphics.
+    GEN_BUS = "ew.gen.bus";
+    /// The bus symbol, QElectroTech edition (what [`for_grid`] names on that grid).
+    GEN_BUS_QET10 = "ew.gen.bus@qet10";
     /// The wide module of an overview.
     OVW_MODULE_WIDE = "ew.ovw.module-wide";
     /// The wide module of an overview, QElectroTech edition (what [`for_grid`] names on that grid).

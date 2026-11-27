@@ -226,10 +226,14 @@ pub struct Representation {
 
 impl Representation {
     /// The function CP `(function, idx)` that the symbol CP `cp` of this representation's symbol stands for: its
-    /// `pin_map` entry, else CP `cp.fn_cp` of the first function; `None` when neither names a function.
+    /// `pin_map` entry, else CP `cp.fn_cp` of the first function; `None` when neither names a function, and for a CP
+    /// of a bus symbol that names its interface ([`SymbolCp::interface`]) without a pin-map entry: only the drawn
+    /// functions' bus ports tell its function, which the pin map a page draws the representation with holds
+    /// (`ew_derive::bus_pins`).
     pub fn fn_cp_of(&self, cp: &SymbolCp) -> Option<(Id<Function>, u16)> {
         match self.pin_map.get(&cp.idx) {
             Some(p) => Some((p.function, p.idx)),
+            None if cp.interface.is_some() => None,
             None => Some((*self.functions.first()?, cp.fn_cp)),
         }
     }

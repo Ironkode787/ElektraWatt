@@ -1218,6 +1218,28 @@
           "minimum": 0,
           "type": "integer"
         },
+        "interface": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The bus interface whose socket `fn_cp` this CP draws, on a bus symbol (doc 10 §2.7): it stands for CP\n`fn_cp` of the drawn function whose bus port carries this interface and [`port_label`](Self::port_label);\nabsent, the CP draws as any symbol's (its pin-map entry, else the first function's)."
+        },
+        "port_label": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The port label of an interface listed port by port (\"P1R\"), beside [`interface`](Self::interface)."
+        },
         "pos": {
           "$ref": "#/$defs/Pt2",
           "description": "Position on the connection grid."
@@ -1289,6 +1311,17 @@
           ],
           "description": "What the slot prints when its own value is empty (doc 11 §3.1); absent means nothing."
         },
+        "interface": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The bus interface whose address a `bus_address` slot of a bus symbol prints (doc 10 §2.7), in the symbol's\nform (a PROFINET name and its IP address on two lines); absent, the slot prints the drawn first function's\naddress as before."
+        },
         "kind": {
           "$ref": "#/$defs/SlotKind",
           "description": "What the slot prints."
@@ -1303,6 +1336,17 @@
             }
           ],
           "description": "Maximum width before shrinking."
+        },
+        "port_label": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The port label of an interface listed port by port (\"P1R\"), beside [`interface`](Self::interface)."
         },
         "pos": {
           "$ref": "#/$defs/Pt2",

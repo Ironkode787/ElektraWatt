@@ -62,7 +62,9 @@ impl Builder<'_> {
     /// key of its own (`SymbolGeomId.extra`: a 16-bit value derived from the outline, probed upwards past a key that
     /// holds other geometry), so it is never shared with another box of that symbol. A box whose outline equals the
     /// rectangle keeps the symbol's own instance (the output is byte-equal). The text slots stay
-    /// where the symbol puts them (a follow-up moves them with a wider box).
+    /// where the symbol puts them (a follow-up moves them with a wider box). **A bus symbol** (doc 10 §2.7) is derived
+    /// per part under the one copy `ew.gen.bus`: a drawing that differs from the one its key holds takes the next free
+    /// `extra` key, as an outline does.
     pub(super) fn symbols(&mut self, view: &PageView) {
         for rv in sorted_reps(view) {
             let rep = &rv.rep;
@@ -72,38 +74,23 @@ impl Builder<'_> {
             };
             let outlined = boxed(def, rep);
             let lowered = symbol::lower(outlined.as_ref().unwrap_or(def), rep.orient);
-            let key = match &outlined {
-                None => {
-                    let key = SymbolGeomId {
-                        symbol: rep.symbol.as_uuid(),
-                        variant: rep.orient,
-                        extra: None,
-                    };
-                    self.out
-                        .geometry
-                        .entry(key)
-                        .or_insert_with(|| Arc::new(lowered.graphics.clone()));
-                    key
-                }
-                Some(_) => {
-                    let mut k = outline_key(&rep.box_.as_ref().map_or(Vec::new(), |b| b.outline.clone()));
-                    loop {
-                        let key = SymbolGeomId {
-                            symbol: rep.symbol.as_uuid(),
-                            variant: rep.orient,
-                            extra: Some(k),
-                        };
-                        match self.out.geometry.get(&key) {
-                            Some(g) if **g == lowered.graphics => break key,
-                            Some(_) => k = k.wrapping_add(1),
-                            None => {
-                                self.out.geometry.insert(key, Arc::new(lowered.graphics.clone()));
-                                break key;
-                            }
-                        }
+            let mut key = SymbolGeomId {
+                symbol: rep.symbol.as_uuid(),
+                variant: rep.orient,
+                extra: outlined
+                    .as_ref()
+                    .map(|_| outline_key(&rep.box_.as_ref().map_or(Vec::new(), |b| b.outline.clone()))),
+            };
+            loop {
+                match self.out.geometry.get(&key) {
+                    Some(g) if **g == lowered.graphics => break,
+                    Some(_) => key.extra = Some(key.extra.map_or(0, |k| k.wrapping_add(1))),
+                    None => {
+                        self.out.geometry.insert(key, Arc::new(lowered.graphics.clone()));
+                        break;
                     }
                 }
-            };
+            }
             let entity = EntityRef(rep.id.as_uuid());
             self.push(
                 Item::instance(key, Transform::from_translation(rep.pos))

@@ -82,6 +82,8 @@ fn cp_lib(idx: u16, fn_cp: u16, pos: Pt2, dir: Dir4) -> SymbolCp {
         pos,
         dir,
         discipline: Default::default(),
+        interface: None,
+        port_label: None,
         extra: Extra::new(),
     }
 }
@@ -97,6 +99,8 @@ fn slot(kind: SlotKind) -> TextSlot {
         style: None,
         fallback: None,
         solenoid: None,
+        interface: None,
+        port_label: None,
         extra: Extra::new(),
     }
 }

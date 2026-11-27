@@ -41,6 +41,8 @@ props-options = Options of { $p0 }
 props-gone-title = Object no longer exists
 props-none = No common fields: the selection holds { $p0 }
 props-header-many = { $p0 } { $p1 }
+# The section of one network port of a bus symbol: its interface ("X1").
+props-section-network-port = Network port { $p0 }
 props-empty = Nothing to show
 props-member-varies = The member differs between the selected records; set the whole value first
 props-cannot-compose = This value cannot be set here

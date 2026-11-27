@@ -57,6 +57,7 @@ mod bom;
 mod bond_carrier;
 pub mod box_edges;
 mod bus;
+mod bus_symbol;
 mod cell;
 mod channel_index;
 mod component;
@@ -171,6 +172,10 @@ pub use bus::{
     BusSegment, BusSegments, NetMaster, NetMembers, NetMembersOf, SegmentMember, bus_address_text,
     bus_core_ends, bus_core_pins, bus_end_label, bus_termination_text, bus_word, cable_bus_line,
     external_partner_text, net_address_text, potential_member_count, station_bus_address,
+};
+pub use bus_symbol::{
+    BusInterface, bus_interfaces, bus_pins, bus_symbol, carried_symbol, compartment_address, drawn,
+    has_bus_ports, interface_words, is_bus_copy, is_bus_symbol,
 };
 pub use flow::{Flow, FlowBfs, Load, PotentialFlow, Upstream};
 pub use flow_distance::{CpFlowDistanceOf, CpFlowDistances};

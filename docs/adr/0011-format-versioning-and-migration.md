@@ -220,6 +220,13 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
       unchanged. 0.3.0's reader takes both members as required: it opens a project with a reference without them for
       editing, sets that reference's line aside as a schema violation (EW-CORE-007), reports the points that name it,
       and writes the line back unchanged on save.
+   2. *A device on a bus page is drawn with its bus symbol* (0.4.0, FT-1904; [bus](../design/10-bus.md) §2.7). A
+      representation names the built-in symbol `ew.gen.bus`, whose body a page derives from the device's part; a
+      symbol's connection point may name the interface and port it draws (`SymbolCp.interface`, `.port_label`) and a
+      `bus_address` slot the interface whose address it prints (`TextSlot.interface`, `.port_label`), all optional. A
+      project of 0.3.5 holds none of them and reads unchanged. 0.3.5's reader keeps the members in `extra` and draws such a
+      representation as its embedded copy holds it: no body and no connection point, so the device is not seen on the
+      page and its bus lines end where the copy draws nothing.
 9. **The `min_reader` stamp is the format** (2026-11-23, [ADR-0035](0035-homes-order-texts-shell.md) decision 17;
    in force: the record is accepted, and the owner's ruling of 2026-11-22 that the latest version leads covers
    the item of its plan's list). The

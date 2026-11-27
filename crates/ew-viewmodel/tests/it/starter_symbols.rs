@@ -37,7 +37,8 @@ enum Path {
     /// No starter part names the symbol, which is drawn as a box (an overview module): `place.pick symbol=<key>
     /// letter=<letter>` arms the box tool on the page of that type, two clicks.
     DeviceBox(&'static str, &'static str),
-    /// A drawing aid, no device (a junction, a marker, a strip segment): it is not placed as a device.
+    /// A drawing aid, no device (a junction, a marker, a strip segment), or the bus symbol, which a device's part draws
+    /// on a bus page: it is not placed from the picker.
     Aid,
 }
 
@@ -52,6 +53,7 @@ const PATHS: &[(&str, Path)] = &[
     ("ew.bus.dp-port@qet10", Path::Device("A", BUS)),
     ("ew.bus.pn-port@qet10", Path::Device("A", BUS)),
     ("ew.gen.blackbox@qet10", Path::BlackBox("EW-GEN-PSU-1")),
+    ("ew.gen.bus@qet10", Path::Aid),
     ("ew.gen.cable-marker@qet10", Path::Aid),
     ("ew.gen.external-arrow@qet10", Path::Device("A", MULTI)),
     ("ew.gen.ip@qet10", Path::Device("A", MULTI)),
