@@ -8,9 +8,10 @@ use std::collections::BTreeMap;
 
 use ew_derive::Q;
 use ew_derive::layout::{Feature, Owner, SurfaceFeatures, carrier_labels, sheet_size};
+use ew_derive::part_fields::{Feature as PartFeature, PartLack};
 use ew_ids::Id;
 use ew_l10n::TextArg;
-use ew_schema::{CarrierRef, Kind, MountKind, MountingSurface, Placement, SurfaceFeature, SurfaceKind};
+use ew_schema::{CarrierRef, Kind, MountingSurface, Placement, SurfaceFeature, SurfaceKind};
 use ew_units::Nm;
 
 use super::layout::{device_name, mount_of, part_name, realised_part, shown, surface_words};
@@ -20,11 +21,13 @@ use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 /// The web between two holes when the workshop sets none (doc 12-3d §10.5; the program's assumption): 5 mm.
 pub const DEFAULT_WEB: Nm = Nm(5_000_000);
 
-/// The parts without holes EW-LAY-017 reports: each with its part use, its devices and the first surface it is on.
+/// The parts without holes EW-LAY-017 reports: each with its part use, what it lacks, its devices and the first surface
+/// it is on.
 type PartsWithoutHoles = BTreeMap<
     Id<ew_schema::Part>,
     (
         ew_schema::PartRef,
+        PartLack,
         Vec<Id<ew_schema::Device>>,
         Id<MountingSurface>,
     ),
@@ -261,20 +264,20 @@ impl Rule for HolesNotKnown {
                 out.push(shown(f, q, Some(surface)));
                 continue;
             };
-            let (mount, copy) = mount_of(q, Some(&part));
-            let needs = matches!(mount, Some(MountKind::DoorCutout | MountKind::Screw));
-            let empty = copy
+            // What the part lacks for the hole table, as the declaration of its fields says (a part in a cut-out or
+            // screwed on, without holes).
+            let (_, copy) = mount_of(q, Some(&part));
+            let lack = copy
                 .as_ref()
-                .and_then(|c| c.item.mech.as_ref())
-                .is_none_or(|m| m.holes.is_empty());
-            if needs && empty {
+                .and_then(|c| PartLack::of(part.copy, &c.item, PartFeature::HoleTable));
+            if let Some(lack) = lack {
                 let entry = by_part
                     .entry(part.copy)
-                    .or_insert_with(|| (part.clone(), Vec::new(), surface));
-                entry.1.push(pl.device);
+                    .or_insert_with(|| (part.clone(), lack, Vec::new(), surface));
+                entry.2.push(pl.device);
             }
         }
-        for (copy, (part, mut devices, surface)) in by_part {
+        for (copy, (part, lack, mut devices, surface)) in by_part {
             devices.sort_by_key(|d| ew_derive::short_tag(q, *d));
             devices.dedup();
             let names: Vec<TextArg> = devices.iter().map(|d| device_name(q, *d).into()).collect();
@@ -292,7 +295,7 @@ impl Rule for HolesNotKnown {
                 ew_l10n::Text::bare(ew_l10n::List::new(names, between(), between())),
             )
             .arg("surface", surface_words(q, Some(surface)))
-            .with_fix(edit_part(&part, "mech.holes[].hole"));
+            .lacking(Some(lack));
             out.push(shown(f, q, Some(surface)));
         }
         // A hole moved or left out whose part no longer has that hole (its holes edited, its copy replaced): the
@@ -336,20 +339,6 @@ impl Rule for HolesNotKnown {
             out.push(shown(f, q, surface));
         }
         out
-    }
-}
-
-/// The quick fix Edit part…: Parts on `part` (window action `parts.open`), at the group of its sheet where the field
-/// at `path` is entered, as the declaration of a part's fields places it.
-fn edit_part(part: &ew_schema::PartRef, path: &str) -> QuickFix {
-    let mut params = serde_json::json!({"part": part.copy.as_uuid().to_string()});
-    if let Some(group) = ew_derive::part_fields::Group::of(path) {
-        params["section"] = group.name().into();
-    }
-    QuickFix {
-        label: text!("fix-edit-part"),
-        command: "parts.open".to_owned(),
-        params,
     }
 }
 
@@ -413,16 +402,16 @@ impl Rule for CableGland {
                 };
                 let section = match &g.part {
                     Err(ew_derive::layout::NoGland::NoDiameter) => {
-                        let mut f = base("no_diameter", "no_diameter".to_owned());
-                        // Edit part… opens the cable's part where its outer diameter is entered.
-                        if let Some(part) = q
+                        // What the cable's part lacks for a gland, which Edit part… opens it at.
+                        let lack = q
                             .devices()
                             .get(g.cable)
                             .and_then(|d| ew_derive::layout::cable_part_use(q, d))
-                        {
-                            f = f.with_fix(edit_part(&part, "sections.cable.outer_diameter"));
-                        }
-                        out.push(f);
+                            .and_then(|part| {
+                                let copy = q.table::<ew_schema::LibCopy<ew_schema::Part>>().get(part.copy).cloned()?;
+                                PartLack::of(part.copy, &copy.item, PartFeature::GlandChoice)
+                            });
+                        out.push(base("no_diameter", "no_diameter".to_owned()).lacking(lack));
                         continue;
                     }
                     Err(ew_derive::layout::NoGland::NoneSeals { od }) => {

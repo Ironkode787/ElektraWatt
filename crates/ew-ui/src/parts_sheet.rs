@@ -235,6 +235,25 @@ pub(crate) fn choice(
     })
     .inner
 }
+/// A field or a table ringed in the warning colour (doc 07 §5.7): the one an outcome's Edit part… opened the sheet at,
+/// while the part lacks it; `body` drawn plainly where `on` is off.
+pub(crate) fn ringed<R>(ui: &mut Ui, on: bool, body: impl FnOnce(&mut Ui) -> R) -> R {
+    if !on {
+        return body(ui);
+    }
+    let t = theme::current(ui.ctx());
+    let inner = egui::Frame::NONE
+        .inner_margin(egui::Margin::same(t.space_1 as i8))
+        .show(ui, body);
+    ui.painter().rect_stroke(
+        inner.response.rect,
+        theme::radius(t.radius_md),
+        theme::stroke(t.focus_width, t.warning),
+        egui::StrokeKind::Outside,
+    );
+    inner.inner
+}
+
 // What stands under a field: a warning or an error line with its icon, indented to the value.
 pub(crate) fn under(ui: &mut Ui, under: Option<Under>) {
     let Some(u) = under else {

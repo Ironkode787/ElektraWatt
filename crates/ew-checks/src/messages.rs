@@ -152,6 +152,18 @@ pub fn fix_label(fix: &crate::finding::QuickFix, lang: &str) -> String {
         .unwrap_or_else(|| fix.label.to_string())
 }
 
+/// The label of the offer a finding from a part's missing datum makes (Edit part…, [`Finding::part_lack`]) in `lang`,
+/// falling back to en-GB.
+///
+/// [`Finding::part_lack`]: crate::finding::Finding::part_lack
+pub fn lack_label(lang: &str) -> String {
+    let label = text!("fix-edit-part");
+    let lookup = |tag: &str| bundle(tag)?.text(&label, OnError::Miss);
+    lookup(lang)
+        .or_else(|| lookup(DEFAULT_LANGUAGE))
+        .unwrap_or_else(|| label.to_string())
+}
+
 /// A rule's title in `lang` (`.title`), falling back to en-GB.
 pub fn title(rule: &str, lang: &str) -> Option<String> {
     attribute(rule, "title", lang)

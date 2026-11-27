@@ -138,7 +138,7 @@ pub enum Has {
     Mounted,
     /// A mounted part that is placed on a rail or a surface by itself: a mounted part but a duct and an accessory.
     Placed,
-    /// A part that mounts in a cut-out of a door or a wall.
+    /// A part that needs holes made for it: it mounts in a cut-out of a door or a wall, or is screwed on.
     Cutout,
     /// A part whose devices have pins: a device, a terminal, a busbar, an accessory, a configured product.
     Pinned,
@@ -175,9 +175,10 @@ impl Has {
             ),
             // An accessory (a plug, a bridge, an end plate) is placed with what it goes with, never on its own.
             Has::Placed => Has::Mounted.holds(p) && !matches!(p.kind, K::Duct | K::Accessory),
-            Has::Cutout => {
-                p.mech.as_ref().and_then(|m| m.mount_kind.as_ref()) == Some(&MountKind::DoorCutout)
-            }
+            Has::Cutout => matches!(
+                p.mech.as_ref().and_then(|m| m.mount_kind.as_ref()),
+                Some(MountKind::DoorCutout | MountKind::Screw)
+            ),
             Has::Pinned => matches!(
                 p.kind,
                 K::Device | K::Terminal | K::Busbar | K::Accessory | K::Configured
@@ -2316,6 +2317,24 @@ pub fn lacking(p: &Part, feature: Feature) -> Vec<&'static PartField> {
         .filter(|l| l.feature == feature)
         .flat_map(|l| l.fields)
         .collect()
+}
+
+/// A part's missing datum that an outcome comes from (doc 07 §5.7): a finding or a refusal carries it, and the window
+/// offers Edit part… for it, which opens Parts on the part at the field.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct PartLack {
+    /// The part's copy in the project.
+    pub copy: ew_ids::Id<Part>,
+    /// The field it lacks first.
+    pub field: &'static str,
+}
+
+impl PartLack {
+    /// What part `p` (the project's copy `copy`) lacks first that `feature` reads; `None` where it lacks nothing.
+    pub fn of(copy: ew_ids::Id<Part>, p: &Part, feature: Feature) -> Option<PartLack> {
+        let field = lacking(p, feature).first()?.path;
+        Some(PartLack { copy, field })
+    }
 }
 
 /// How one feature stands for a part (Ready for, doc 07 §5.7).

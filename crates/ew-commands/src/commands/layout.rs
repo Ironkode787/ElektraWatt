@@ -19,6 +19,7 @@ use ew_derive::layout::{
     check_path, check_pose, clip_offset, fits_rail, member_order, member_slot, min_gap, next_fit,
     plate_frame, rail_extent, rail_items, rehome_pose, resolve,
 };
+use ew_derive::part_fields::{Feature as PartFeature, PartLack};
 use ew_derive::{DeviceTag, DrawnPageOrder, PageRef, StructureOf, StructurePath};
 use ew_ids::Id;
 use ew_mltext::{Ident, natural_key};
@@ -2044,10 +2045,14 @@ impl Command for CreateEnclosureFromPart {
             ));
         };
         let Some(section) = copy.item.sections.enclosure.clone() else {
-            return tx.reject(text!(
-                "refusal-layout-no-enclosure-section",
-                copy.item.part_number.as_str()
-            ));
+            let lack = PartLack::of(self.part, &copy.item, PartFeature::Cabinet);
+            return tx.reject_lacking(
+                text!(
+                    "refusal-layout-no-enclosure-section",
+                    copy.item.part_number.as_str()
+                ),
+                lack,
+            );
         };
         if let Some(f) = self.function {
             let Some(fnode) = tx.get::<StructureNode>(f) else {
@@ -2421,18 +2426,26 @@ impl Command for AddSurface {
             }
         }
         let part_size = ew_derive::layout::face_size(&section, &kind, door);
+        // A face whose size the cabinet's part does not give: Edit part… opens the part at the size it lacks.
+        let no_size = |tx: &TxBuilder<'_>| {
+            let word = ew_derive::text::surface_word(&kind, door, doors);
+            let lack = tx.get::<Device>(enclosure.device).and_then(|d| {
+                d.parts.iter().find_map(|u| {
+                    let c = part_copy(tx, u.part.copy)?;
+                    PartLack::of(u.part.copy, &c.item, PartFeature::Cabinet)
+                        .or_else(|| PartLack::of(u.part.copy, &c.item, PartFeature::Surfaces))
+                })
+            });
+            tx.reject_lacking(text!("refusal-layout-surface-no-size", tag.clone(), word), lack)
+        };
         let size = match (self.width, self.height, part_size) {
             (Some(w), Some(h), _) => (w, h),
             (w, h, Some((pw, ph))) => (w.unwrap_or(pw), h.unwrap_or(ph)),
-            _ => {
-                let word = ew_derive::text::surface_word(&kind, door, doors);
-                return tx.reject(text!("refusal-layout-surface-no-size", tag, word));
-            }
+            _ => return no_size(tx),
         };
         let Some((frame, usable)) = ew_derive::layout::surface_frame(&section, &kind, door, Some(size))
         else {
-            let word = ew_derive::text::surface_word(&kind, door, doors);
-            return tx.reject(text!("refusal-layout-surface-no-size", tag, word));
+            return no_size(tx);
         };
         let hinge = door.map(|i| ew_derive::layout::door_hinge(&section, i));
         let id: Id<MountingSurface> = tx.mint();

@@ -114,11 +114,12 @@ impl ShellModel {
                 .find(|f| f.fingerprint.to_string() == d.fingerprint)
             {
                 d.message = ew_api::checks::messages::render(f, lang);
-                // The quick fix's label by its key.
-                d.fix = f
-                    .fix
-                    .as_ref()
-                    .map(|q| ew_api::checks::messages::fix_label(q, lang));
+                // The quick fix's label by its key, else Edit part… of a finding from a part's missing datum.
+                d.fix = match (&f.fix, &f.part_lack) {
+                    (Some(q), _) => Some(ew_api::checks::messages::fix_label(q, lang)),
+                    (None, Some(_)) => Some(ew_api::checks::messages::lack_label(lang)),
+                    (None, None) => None,
+                };
             }
         }
         // The message stands on its own line, so it starts with a capital.
@@ -682,7 +683,8 @@ impl ShellModel {
     // Quick fixes
 
     /// `messages.fix {key?}`: previews the quick fix of a finding row (default the cursor row) and opens its card in the
-    /// Messages pane, whatever FR-UI-044's policy would say; a finding without one refuses `reason-no-fix`.
+    /// Messages pane, whatever FR-UI-044's policy would say; a finding from a part's missing datum opens Parts at the
+    /// field (Edit part…); a finding without either refuses `reason-no-fix`.
     pub(crate) fn act_messages_fix(&mut self, p: &Map<String, Value>) -> Outcome {
         let key = match string_param(p, "key") {
             Err(e) => return e,
@@ -712,6 +714,13 @@ impl ShellModel {
         let Some(finding) = self.finding_of(&fp) else {
             return Outcome::refused(key!("reason-no-fix"));
         };
+        // A finding from a part's missing datum: Edit part…, Parts at the field, Back to Messages.
+        if finding.fix.is_none()
+            && let Some(lack) = finding.part_lack
+        {
+            let page = finding.page.and_then(|p| self.page_words(p.as_uuid()));
+            return self.open_at_lack(lack, Some(super::parts_place::Origin::Finding { page }));
+        }
         let Some(fix) = finding.fix.clone() else {
             return Outcome::refused(key!("reason-no-fix"));
         };

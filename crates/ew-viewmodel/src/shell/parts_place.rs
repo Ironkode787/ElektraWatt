@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Parts, the one place for parts (doc 07 §5): a screen of its own ([`Screen::Parts`](super::Screen::Parts)) with the
-//! list, the open part's sheet and its pictures. `parts.open {part?, section?}` opens it on a part (or on the list),
-//! from wherever a part is met; `parts.find` changes the list; `parts.new` makes a part (it asks What is it? first,
+//! list, the open part's sheet and its pictures. `parts.open {part?, field?}` opens it on a part (or on the list),
+//! from wherever a part is met, at the field an outcome's Edit part… names; `parts.find` changes the list; `parts.new` makes a part (it asks What is it? first,
 //! or a form names its start; like another part; for a symbol); `parts.field` and `parts.row` change the open sheet; `parts.save`
 //! saves it where it lives (a new part into My parts, a part of My parts as its next version with the card of what
 //! changes for the project, a part only in this project in place); `parts.discard` drops the changes; `parts.own`
@@ -12,7 +12,7 @@
 //! from.
 
 use ew_api::output::{NavKind, NavRole, Uuid};
-use ew_api::part_fields::{Group, Lack};
+use ew_api::part_fields::{Group, Lack, PartLack};
 use ew_api::parts::{Lives, PartFound, PartScope, start_named};
 use ew_api::{OfferView, PartDraftError, PartOfferQuery, PartPick, PartSheet};
 use serde_json::{Map, Value};
@@ -52,6 +52,11 @@ pub enum Origin {
     /// A station's view, whose catalogue asked for a new card or head: Save returns to it with the new part in the
     /// catalogue (its head when the empty head was chosen).
     Station,
+    /// A finding's Edit part… in Messages, on the page in words where the finding is shown: Back returns to Messages.
+    Finding {
+        /// The page ("904 Door"), where the finding is shown on one.
+        page: Option<String>,
+    },
 }
 
 /// The open part of the place.
@@ -73,8 +78,11 @@ pub struct OpenSheet {
     pub error: Option<String>,
     /// New bus cable… or New plug… of a bus line's Cable form: what the part is made as.
     pub bus_part: Option<BusPart>,
-    /// The group the place shows first (a quick fix's Edit part… at In the cabinet).
+    /// The group the place shows first: the one the field it was opened at stands in.
     pub group: Option<Group>,
+    /// The field an outcome's Edit part… opened it at (doc 07 §5.7): ringed, with its sentence under it, while the
+    /// part lacks it.
+    pub field: Option<&'static str>,
     /// Whether a text was typed since it was opened or saved.
     pub changed: bool,
     /// The number of this opening among all the place's openings: the window shows a part opened anew from its top.
@@ -186,6 +194,8 @@ impl PartsPlace {
         }
         match &self.origin {
             Origin::Project | Origin::Station | Origin::Browser => None,
+            Origin::Finding { page: Some(page) } => Some(strings::format(key!("parts-strip-finding-page"), &[page])),
+            Origin::Finding { page: None } => Some(strings::text(key!("parts-strip-finding")).to_owned()),
             Origin::Chooser(c) => Some(strings::format(key!("parts-strip-choosing"), &[&c.target_text])),
             Origin::Form(f) => Some(strings::format(
                 key!("parts-strip-form"),
@@ -201,6 +211,7 @@ impl PartsPlace {
         }
         match &self.origin {
             Origin::Project | Origin::Station | Origin::Browser => strings::text(key!("parts-back")),
+            Origin::Finding { .. } => strings::text(key!("parts-back-to-messages")),
             Origin::Chooser(_) => strings::text(key!("parts-back-without-choosing")),
             Origin::Form(_) => strings::text(key!("parts-back-without-it")),
         }
@@ -449,14 +460,16 @@ impl ShellModel {
                 error: None,
                 bus_part,
                 group: None,
+                field: None,
                 changed: false,
                 read_only,
             });
         }
     }
 
-    /// `parts.open {part?, section?}` (Parts, Edit part…, Open part): shows the place, on the part named (see
-    /// [`ShellModel::named_part`]) when there is one, else on its list; with `section`, at that group of the sheet.
+    /// `parts.open {part?, field?}` (Parts, Edit part…, Open part): shows the place, on the part named (see
+    /// [`ShellModel::named_part`]) when there is one, else on its list; with `field` (a field's path, as an outcome's
+    /// part lack names it), at that field, ringed.
     pub(crate) fn act_parts_open(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.parts_session().is_none() {
             // No project and no place: the place over the libraries alone (one a closed project left goes).
@@ -467,10 +480,10 @@ impl ShellModel {
             Ok(n) => n,
             Err(e) => return e,
         };
-        let group = match string_param(p, "section") {
-            Ok(Some(word)) => match Group::named(word) {
-                Some(g) => Some(g),
-                None => return failed(key!("error-bad-param"), &["section"]),
+        let field = match string_param(p, "field") {
+            Ok(Some(path)) => match ew_api::part_fields::field(path) {
+                Some(f) => Some(f.path),
+                None => return failed(key!("error-bad-param"), &["field"]),
             },
             Ok(None) => None,
             Err(e) => return e,
@@ -507,10 +520,70 @@ impl ShellModel {
             }
             self.open_sheet(sheet, None);
             if let Some(open) = self.parts.as_deref_mut().and_then(|p| p.sheet.as_mut()) {
-                open.group = group;
+                open.group = field.and_then(Group::of);
+                open.field = field;
             }
         }
         Outcome::Done
+    }
+
+    /// Edit part… of an outcome that comes from a part's missing datum (a finding, a refusal): Parts on the part at the
+    /// field, ringed; opened from a finding in Messages (`origin`), its strip says so and Back returns there.
+    pub(crate) fn open_at_lack(&mut self, lack: PartLack, origin: Option<Origin>) -> Outcome {
+        let shown = self.parts.is_some();
+        let out = self.dispatch(
+            "parts.open",
+            &serde_json::json!({"part": format!("id:{}", lack.copy), "field": lack.field}),
+        );
+        if out == Outcome::Done
+            && !shown
+            && let (Some(origin), Some(place)) = (origin, self.parts.as_deref_mut())
+        {
+            place.origin = origin;
+        }
+        out
+    }
+
+    /// The outcome `out` of a commit that command error `e` refused: a refusal for a part's missing datum is said in a
+    /// toast that offers Edit part… ([`ShellModel::say_lacking`]).
+    pub(crate) fn command_refused(&mut self, e: &ew_api::CmdError, out: Outcome) -> Outcome {
+        if let (Some(lack), Outcome::Failed { message }) = (e.part_lack(), &out) {
+            self.say_lacking(message.clone(), lack);
+        }
+        out
+    }
+
+    /// A command refused for a part's missing datum `lack` (doc 07 §5.7): its `message` in a toast that offers Edit
+    /// part…, which then is where the refusal is said (no banner beside it).
+    fn say_lacking(&mut self, message: String, lack: PartLack) {
+        let Some(epoch) = self.project.as_ref().map(|p| p.epoch) else {
+            return;
+        };
+        let offer = crate::notifications::Offer::new(
+            "edit_part",
+            ew_api::checks::messages::lack_label(strings::rule_language()),
+            crate::notifications::Validity::Session { epoch },
+            crate::notifications::Run::Steps {
+                steps: vec![(
+                    "parts.open",
+                    serde_json::json!({"part": format!("id:{}", lack.copy), "field": lack.field}),
+                )],
+                once: false,
+                keeps: false,
+            },
+        );
+        self.notes.push(
+            crate::notifications::Note::new("refusal", message)
+                .offering([Some(offer)])
+                .toned(crate::notifications::NoteTone::Warning),
+        );
+        self.said_at(super::said::Said::Toast);
+    }
+
+    /// Page `page` in words as the page list names it: its folio and its title ("904 Door").
+    pub(crate) fn page_words(&self, page: Uuid) -> Option<String> {
+        let row = self.page_rows().iter().find(|r| r.id == page)?;
+        Some(format!("{} {}", row.folio, row.title).trim().to_owned())
     }
 
     /// The card of the open part's Save that waits (what the Save changes in the project) belongs to that part: before
@@ -983,7 +1056,7 @@ impl ShellModel {
         let place = *self.parts.take().expect("checked");
         self.parts_alone = None;
         match place.origin {
-            Origin::Project | Origin::Station | Origin::Browser => {}
+            Origin::Project | Origin::Station | Origin::Browser | Origin::Finding { .. } => {}
             Origin::Chooser(c) => {
                 self.dialog = Some(Dialog::PartChoose(c));
                 self.dialog_gen += 1;
@@ -1309,7 +1382,7 @@ impl ShellModel {
                 }
                 Outcome::Done
             }
-            Origin::Project => {
+            Origin::Project | Origin::Finding { .. } => {
                 let saved = self.parts_session().and_then(|session| match mine {
                     Some(lib) => session.library_part_draft(lib, item).ok(),
                     None => {

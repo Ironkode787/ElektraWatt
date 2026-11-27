@@ -40,6 +40,9 @@ pub enum CmdError {
         source: String,
         /// Cause and remedy, by key: the window renders it in its language, the command line in English.
         text: Box<Text>,
+        /// The part's missing datum the refusal comes from, where it comes from one: the window offers Edit part… for
+        /// it (doc 07 §5.7).
+        lack: Option<ew_derive::part_fields::PartLack>,
     },
     /// The origin may not submit a command of this exposure class (doc 17 §2.3, FR-EXT-030).
     Exposure {
@@ -112,6 +115,24 @@ impl CmdError {
         CmdError::Rejected {
             source: source.into(),
             text: Box::new(text),
+            lack: None,
+        }
+    }
+
+    /// A refusal by a command for a part's missing datum `lack`: its English text is `text`'s.
+    pub fn lacking(source: impl Into<String>, text: Text, lack: ew_derive::part_fields::PartLack) -> CmdError {
+        CmdError::Rejected {
+            source: source.into(),
+            text: Box::new(text),
+            lack: Some(lack),
+        }
+    }
+
+    /// The part's missing datum a refusal comes from, where it comes from one.
+    pub fn part_lack(&self) -> Option<ew_derive::part_fields::PartLack> {
+        match self {
+            CmdError::Rejected { lack, .. } => *lack,
+            _ => None,
         }
     }
 
@@ -154,7 +175,7 @@ impl fmt::Display for CmdError {
                 write!(f, "{command}: invalid parameters at `{path}`: {text}")
             }
             CmdError::NotFound { key } => write!(f, "no record {}:{}", key.0, key.1),
-            CmdError::Rejected { source, text } => write!(f, "{source}: {text}"),
+            CmdError::Rejected { source, text, .. } => write!(f, "{source}: {text}"),
             CmdError::Exposure {
                 command,
                 exposure,

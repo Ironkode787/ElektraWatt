@@ -62,6 +62,14 @@ change here.
   groups read in the plural; the sheet lists network ports and the PLC section where the start asked for them or they
   hold a value
 - api-break: `parts.open` and `parts.new` take `card` (`apply`, `cancel`); `parts.open` needs no project
+- behaviour-change: a finding or a refusal that comes from a part's missing datum offers Edit part… (doc 07 §5.7): the
+  Messages row of EW-LAY-017 (holes) and EW-LAY-018 (a cable without an outer diameter), and the toast of Surface…
+  or Enclosure… refused for a cabinet's missing size; it opens Parts at the field, ringed, with "Opened from a finding
+  on page …" and Back to Messages. EW-LAY-017's part without holes, and Ready for's holes, take a part screwed on as
+  well as one in a cut-out
+- api-break: `parts.open` takes `field` (a field's path, as `mech.holes[].x`) for its `section`; a finding's quick
+  fix `parts.open` goes: a finding and a command's refusal carry the part and the field it lacks (`part_lack` in
+  `ew check --json`)
 - behaviour-change: a bond made, removed or given another via connection, where it changes the wires through the via,
   keeps each wire's own values with the wire as every other change of the wiring does; a wire it joined anew kept the
   typed length of one it was made from (doc 13 §2.3)

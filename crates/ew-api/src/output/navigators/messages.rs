@@ -202,7 +202,7 @@ impl Session {
                     })
                     .collect();
                 let mut badges = vec![findings.len().to_string()];
-                // A fix that is a window action (Edit part…) is no command a Fix all could join.
+                // A fix that is a window action (Choose part…) is no command a Fix all could join.
                 let commands = findings
                     .iter()
                     .all(|f| f.fix.as_ref().is_some_and(|x| registry.get(&x.command).is_some()));
@@ -326,16 +326,17 @@ fn finding_node(
     let waived = matches!(f.state, crate::checks::FindingState::Waived { .. });
     let state = if waived { "waived" } else { "open" };
     let word = f.severity.name();
-    // The message and the quick fix's label in each language.
+    // The message and the quick fix's label in each language; a finding from a part's missing datum offers Edit part….
     let cells = vec![
         plain(word),
         plain(f.rule),
         in_each(|tag| crate::checks::messages::render(f, tag)),
         plain(f.subject_english()),
         plain(page_cell),
-        match &f.fix {
-            Some(x) => in_each(|tag| crate::checks::messages::fix_label(x, tag)),
-            None => plain(""),
+        match (&f.fix, &f.part_lack) {
+            (Some(x), _) => in_each(|tag| crate::checks::messages::fix_label(x, tag)),
+            (None, Some(_)) => in_each(crate::checks::messages::lack_label),
+            (None, None) => plain(""),
         },
         plain(state),
     ];
@@ -343,7 +344,7 @@ fn finding_node(
     if waived {
         badges.push("waived".to_owned());
     }
-    if f.fix.is_some() {
+    if f.fix.is_some() || f.part_lack.is_some() {
         badges.push("fix".to_owned());
     }
     let mut facets = Vec::new();

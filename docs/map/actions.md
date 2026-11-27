@@ -485,7 +485,7 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `parts.own` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_own` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-own`, `parts-own`, `parts-own-from` |
 | `parts.keep` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_keep` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-keep`, `parts-keep` |
 | `parts.remove` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_remove` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-remove`, `parts-remove` |
-| `parts.back` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_back` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-back`, `parts-back`, `parts-back-without-choosing`, `parts-back-without-it` |
+| `parts.back` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_back` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-back`, `parts-back`, `parts-back-to-messages`, `parts-back-without-choosing`, `parts-back-without-it` |
 | `part.box` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_part_box` `crates/ew-viewmodel/src/shell/symbol_editor/device_box.rs` | `action-part-box` |
 | `part.pin` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_part_pin` `crates/ew-viewmodel/src/shell/symbol_editor/device_box.rs` | `action-part-pin`, `error-part-pin-name`, `error-part-pin-role`, `error-part-pin-unknown`, `part-pin-add`, `part-pin-name`, `part-pin-remove`, `part-pin-role` |
 | `part.box_size` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_part_box_size` `crates/ew-viewmodel/src/shell/symbol_editor/device_box.rs` | `action-part-box-size` |

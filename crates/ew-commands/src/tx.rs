@@ -877,6 +877,18 @@ impl<'a> TxBuilder<'a> {
         Err(CmdError::rejected(self.source, text))
     }
 
+    /// A refusal by the current command for a part's missing datum `lack`, a plain refusal where it is `None`.
+    pub fn reject_lacking<T>(
+        &self,
+        text: ew_l10n::Text,
+        lack: Option<ew_derive::part_fields::PartLack>,
+    ) -> Result<T, CmdError> {
+        Err(match lack {
+            Some(lack) => CmdError::lacking(self.source, text, lack),
+            None => CmdError::rejected(self.source, text),
+        })
+    }
+
     // -----------------------------------------------------------------------------------------------------
     // State
 

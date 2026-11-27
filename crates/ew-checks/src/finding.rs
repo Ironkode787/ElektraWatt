@@ -154,6 +154,9 @@ pub struct Finding {
     pub text: Text,
     /// A quick fix, where the rule offers one.
     pub fix: Option<QuickFix>,
+    /// The part's missing datum the finding comes from, where it comes from one: the window offers Edit part… for it
+    /// (doc 07 §5.7).
+    pub part_lack: Option<ew_derive::part_fields::PartLack>,
     /// The severity at a release of a finding whose form's differs from its rule's (EW-LAY-018: a gland not placed is
     /// an error at a release, its other forms stay warnings); `None`: the rule's.
     pub release_severity: Option<Severity>,
@@ -201,6 +204,7 @@ impl Finding {
                 Vec::new(),
             ),
             fix: None,
+            part_lack: None,
             release_severity: None,
             unverified_data: false,
             origin: None,
@@ -259,6 +263,13 @@ impl Finding {
     #[must_use]
     pub fn with_fix(mut self, fix: QuickFix) -> Finding {
         self.fix = Some(fix);
+        self
+    }
+
+    /// The same finding, coming from the part's missing datum `lack` (none where it is `None`).
+    #[must_use]
+    pub fn lacking(mut self, lack: Option<ew_derive::part_fields::PartLack>) -> Finding {
+        self.part_lack = lack;
         self
     }
 

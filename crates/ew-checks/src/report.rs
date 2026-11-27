@@ -247,6 +247,19 @@ pub struct ResultFinding {
     /// The quick fix, where the rule offers one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fix: Option<ResultFix>,
+    /// The part's missing datum the finding comes from, where it comes from one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub part_lack: Option<ResultLack>,
+}
+
+/// The part's missing datum of a [`ResultFinding`]: what `ew part show` and Parts (`parts.open`) open.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ResultLack {
+    /// The part's copy ID in the project.
+    pub part: String,
+    /// The field it lacks (`mech.holes[].hole`).
+    pub field: String,
 }
 
 /// One target record of a [`ResultFinding`].
@@ -303,6 +316,10 @@ fn finding_result(f: &Finding, lang: &str) -> ResultFinding {
             label: crate::messages::fix_label(fix, crate::messages::DEFAULT_LANGUAGE),
             command: fix.command.clone(),
             params: fix.params.clone(),
+        }),
+        part_lack: f.part_lack.map(|l| ResultLack {
+            part: l.copy.to_string(),
+            field: l.field.to_owned(),
         }),
     }
 }

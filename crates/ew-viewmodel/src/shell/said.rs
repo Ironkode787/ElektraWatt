@@ -32,6 +32,8 @@ pub(super) enum Said {
     Station,
     /// With the symbol editor's draft.
     Editor,
+    /// In a toast that offers the way on (a refusal for a part's missing datum: Edit part…).
+    Toast,
 }
 
 impl ShellModel {
@@ -141,12 +143,13 @@ impl ShellModel {
             _ => return,
         };
         // What the step said itself, under the palette's form, under a drawn Properties row (a `props.*` action's),
-        // under a station's rack or with the symbol editor's draft, is not made a banner as well (P3).
+        // under a station's rack, with the symbol editor's draft or in a toast that offers the way on, is not made a
+        // banner as well (P3).
         match self.reported.placed.take() {
             Some(Said::Row(row)) if action.is_some_and(|a| a.starts_with("props.")) && drew_row(&row) => {
                 return;
             }
-            Some(Said::Form | Said::Station | Said::Editor) => return,
+            Some(Said::Form | Said::Station | Said::Editor | Said::Toast) => return,
             _ => {}
         }
         if refused {

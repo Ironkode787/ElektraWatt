@@ -596,7 +596,9 @@ fn group_fields(
                 if table.key.is_some() {
                     connections_table(ui, d, table, editable, events);
                 } else {
-                    declared_table(ui, d, table, editable, events);
+                    crate::parts_sheet::ringed(ui, ringed_at(open, table.path), |ui| {
+                        declared_table(ui, d, table, editable, events);
+                    });
                 }
                 ui.add_space(t.space_3);
             }
@@ -1094,6 +1096,13 @@ fn under_of(e: &OpenSheet, path: &str) -> Option<crate::parts_sheet::Under> {
     (!says.is_empty()).then(|| Under::Lacks(says.join(" ")))
 }
 
+/// Whether the field at `path` (a table's item member `mech.holes[].hole` for the table `mech.holes`) is ringed: an
+/// outcome's Edit part… opened the sheet at it, and the part still lacks it (doc 07 §5.7).
+fn ringed_at(e: &OpenSheet, path: &str) -> bool {
+    let at = |f: &str| f == path || f.strip_prefix(path).is_some_and(|rest| rest.starts_with('['));
+    e.field.is_some_and(at) && e.lacks.iter().any(|l| l.fields.iter().any(|f| at(f.path)))
+}
+
 /// Whether the field at `path` is drawn as a field of the grid, where its lack stands under it.
 fn shown_as_field(d: &ew_viewmodel::ew_api::PartSheet, path: &str) -> bool {
     ew_viewmodel::ew_api::identity_fields().any(|f| f == path) || d.rows.iter().any(|r| r.path == path)
@@ -1133,21 +1142,24 @@ fn identity_rows(ui: &mut Ui, e: &OpenSheet, just_opened: bool, events: &mut Vec
         }
         let focus = std::mem::take(&mut first);
         let under = under_of(e, f);
+        let ring = ringed_at(e, f);
         cells.push(Box::new(move |ui, ev| {
-            text_value(
-                ui,
-                Value {
-                    field: f,
-                    label: &label,
-                    text: d.text(f),
-                    unit: None,
-                    help: None,
-                    under,
-                    editable,
-                    focus,
-                },
-                ev,
-            )
+            crate::parts_sheet::ringed(ui, ring, |ui| {
+                text_value(
+                    ui,
+                    Value {
+                        field: f,
+                        label: &label,
+                        text: d.text(f),
+                        unit: None,
+                        help: None,
+                        under,
+                        editable,
+                        focus,
+                    },
+                    ev,
+                )
+            })
         }));
     }
     grid(ui, cells, events)
@@ -1340,7 +1352,7 @@ fn row_cell<'a>(
     use ew_viewmodel::ew_api::output::FieldType;
     let label = ew_viewmodel::shell::part_dialog::field_label(row.path);
     let field = row.path;
-    match row.ty.inner() {
+    let cell: crate::parts_sheet::Cell<'a> = match row.ty.inner() {
         FieldType::Enum { options } => {
             let choices: Vec<String> = row
                 .ty
@@ -1410,6 +1422,11 @@ fn row_cell<'a>(
                 )
             })
         }
+    };
+    if ringed_at(e, field) {
+        Box::new(move |ui, ev| crate::parts_sheet::ringed(ui, true, |ui| cell(ui, ev)))
+    } else {
+        cell
     }
 }
 
@@ -1626,7 +1643,9 @@ fn front_section(ui: &mut Ui, e: &OpenSheet, editable: bool, events: &mut Vec<Ev
     let save = crate::parts_sheet::grid(ui, cells, events);
     ui.add_space(t.space_3);
     if let Some(table) = d.table("mech.holes") {
-        declared_table(ui, d, table, editable, events);
+        crate::parts_sheet::ringed(ui, ringed_at(e, table.path), |ui| {
+            declared_table(ui, d, table, editable, events);
+        });
     }
     save
 }

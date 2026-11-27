@@ -1518,12 +1518,15 @@ impl ShellModel {
                 });
                 Outcome::Done
             }
-            Err(e) => match card {
-                Some(section) => Outcome::Failed {
-                    message: self.refusal(&e, section),
-                },
-                None => command_failed(&e, &json),
-            },
+            Err(e) => {
+                let out = match card {
+                    Some(section) => Outcome::Failed {
+                        message: self.refusal(&e, section),
+                    },
+                    None => command_failed(&e, &json),
+                };
+                self.command_refused(&e, out)
+            }
         };
         self.refresh_rows();
         outcome

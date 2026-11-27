@@ -408,6 +408,7 @@ pub fn part_uses(library: u128, items: &[u128]) -> Vec<PartUse> {
 /// An enclosure part (750 × 1000 × 420 mm) whose plate part is `plate_item`.
 pub fn enclosure_part(library: u128, item: u128, plate_item: u128, number: &str) -> LibCopy<Part> {
     let mut c = lib_part(library, item, number);
+    c.item.kind = ew_schema::PartKind::Enclosure;
     c.item.sections.enclosure = Some(EnclosureSection {
         width: Some(Nm(750 * MM)),
         height: Some(Nm(1000 * MM)),

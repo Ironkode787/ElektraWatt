@@ -1144,10 +1144,13 @@ fn a_part_without_holes_on_a_surface_is_reported_once_with_its_devices() {
     let found = messages(&m, "EW-LAY-017");
     assert_eq!(found.len(), 1, "{found:#?}");
     assert!(found[0].contains("+J-E-2416-E1, +J-E-2416-E2"), "{}", found[0]);
-    // Edit part… opens the part at In the cabinet, where its front and its holes are.
-    let fix = findings_of(&m, "EW-LAY-017")[0].fix.clone().expect("Edit part…");
-    assert_eq!(fix.command, "parts.open");
-    assert_eq!(fix.params["section"], "cabinet");
+    // The finding comes from the part's missing holes, which Edit part… opens it at (In the cabinet).
+    let lack = findings_of(&m, "EW-LAY-017")[0].part_lack.expect("a part's missing datum");
+    assert!(lack.field.starts_with("mech.holes[]."), "{lack:?}");
+    assert_eq!(
+        ew_derive::part_fields::Group::of(lack.field),
+        Some(ew_derive::part_fields::Group::Cabinet)
+    );
     assert!(
         findings_of(&plate().build(), "EW-LAY-017").is_empty(),
         "a part on a rail needs no holes"

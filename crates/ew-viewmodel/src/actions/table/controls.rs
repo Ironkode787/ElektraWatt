@@ -893,10 +893,10 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         )),
     ),
     // Parts, the one place for parts (doc 07 §5): a screen of its own, from the Project tab, F9, the menus, every
-    // place a part is met and the start page (no project: the libraries alone). `card` settles the card of the open
-    // part's Save before another part opens.
+    // place a part is met and the start page (no project: the libraries alone); an outcome's Edit part… names the
+    // `field` the part lacks. `card` settles the card of the open part's Save before another part opens.
     with_params(
-        "part?:text, section?:text, card?:enum(apply|cancel)",
+        "part?:text, field?:text, card?:enum(apply|cancel)",
         placed(
             place(Group::Parts, 0, CommandSize::Large, Some(key!("bar-parts"))),
             "packages",

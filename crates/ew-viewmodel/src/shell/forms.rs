@@ -561,7 +561,10 @@ impl ShellModel {
         self.count(|c| c.preview_with += 1);
         let preview = match result {
             Ok(p) => p,
-            Err(e) => return (super::tools::command_failed(&e, &json), Vec::new()),
+            Err(e) => {
+                let out = super::tools::command_failed(&e, &json);
+                return (self.command_refused(&e, out), Vec::new());
+            }
         };
         let notices = super::tools::notices_words(&preview.outcome().notices);
         // A tool's own kept preview (the armed Place tool's ghost) is put back: it is stale after the commit and the

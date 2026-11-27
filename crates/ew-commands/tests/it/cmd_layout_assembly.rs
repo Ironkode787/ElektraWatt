@@ -1278,7 +1278,8 @@ fn face(enclosure: Id<Enclosure>, kind: FaceParam, door: Option<u16>) -> AddSurf
 
 /// `layout.surface.add` makes a face from the enclosure part (doc 12 §3.7): the door of the 750 × 1000 mm cabinet,
 /// hinged left, at the front; refused in words: the plate, a second door, a door the part does not list, and a face
-/// whose size neither the part nor the act gives. `layout.surface.edit` sets the datum and clears it again.
+/// whose size neither the part nor the act gives (from the part's missing depth). `layout.surface.edit` sets the
+/// datum and clears it again.
 #[test]
 fn a_surface_is_made_from_the_part_and_refused_in_words() {
     let mut f = fx();
@@ -1304,6 +1305,15 @@ fn a_surface_is_made_from_the_part_and_refused_in_words() {
     assert_eq!(
         reason(flat.e.execute(&face(flat.enclosure, FaceParam::Bottom, None))),
         "the part of -UC1 gives no size for its Bottom: type its width and height"
+    );
+    // The refusal comes from the part's missing depth, where the window's Edit part… opens it (doc 07 §5.7).
+    let refused = flat
+        .e
+        .execute(&face(flat.enclosure, FaceParam::Bottom, None))
+        .expect_err("no size");
+    assert_eq!(
+        refused.part_lack().map(|l| l.field),
+        Some("sections.enclosure.depth")
     );
     let bottom: Id<MountingSurface> = made(
         flat.e

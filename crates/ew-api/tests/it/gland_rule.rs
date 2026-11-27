@@ -62,8 +62,9 @@ fn a_gland_not_placed_is_an_error_at_a_release_and_its_fix_opens_the_bottom() {
     );
 }
 
-/// A cable whose part gives no outer diameter: EW-LAY-018's Edit part… opens that part in Parts at a group its sheet
-/// shows, the Cable group where the diameter is typed (doc 12 §3.9).
+/// A cable whose part gives no outer diameter: EW-LAY-018's finding comes from that part's missing outer diameter, whose
+/// Edit part… opens the part in Parts at a group its sheet shows, the Cable group where the diameter is typed (doc 12
+/// §3.9, doc 07 §5.7).
 #[test]
 fn edit_part_of_a_cable_without_a_diameter_opens_its_cable_section() {
     let (project, records, mut lib) = common::sample_records();
@@ -83,30 +84,25 @@ fn edit_part_of_a_cable_without_a_diameter_opens_its_cable_section() {
         }
     }
     let s = common::session_of(project, records, lib);
-    let fixes: Vec<_> = s
+    let lacks: Vec<_> = s
         .check(&PRE_DELIVERY, CheckMode::Online)
         .findings
         .into_iter()
         .filter(|f| f.rule == "EW-LAY-018")
-        .filter_map(|f| f.fix)
-        .filter(|x| x.command == "parts.open")
+        .filter_map(|f| f.part_lack)
         .collect();
     assert!(
-        !fixes.is_empty(),
+        !lacks.is_empty(),
         "the sample's cables that leave lack a diameter"
     );
-    for fix in fixes {
-        let copy: ew_ids::Uuid = fix.params["part"]
-            .as_str()
-            .expect("a part")
-            .parse()
-            .expect("an ID");
-        let section = fix.params["section"].as_str().expect("a section");
-        let draft = s.part_draft(copy).expect("the cable's part");
+    for lack in lacks {
+        assert_eq!(lack.field, "sections.cable.outer_diameter");
+        let group = ew_api::part_fields::Group::of(lack.field).expect("a declared field");
+        let draft = s.part_draft(lack.copy.as_uuid()).expect("the cable's part");
         assert_eq!(draft.text("kind"), "cable");
         assert!(
-            draft.sections().iter().any(|g| g.name() == section),
-            "the sheet of a cable part has no group `{section}`"
+            draft.sections().contains(&group),
+            "the sheet of a cable part has no group {group:?}"
         );
     }
 }

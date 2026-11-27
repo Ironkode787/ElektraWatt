@@ -2647,7 +2647,7 @@ impl ShellModel {
             // The one line's command error as every other shell path shows it; a malformed line or an
             // unresolved reference as the log prints it.
             Err(CmdLogError::Failed { error, .. } | CmdLogError::Refused { error, .. }) => {
-                tools::command_failed(&error, &params)
+                self.command_refused(&error, tools::command_failed(&error, &params))
             }
             // An unresolved reference by its reason in the window's language.
             Err(CmdLogError::Reference {
