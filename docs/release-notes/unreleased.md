@@ -15,6 +15,9 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: a bond made, removed or given another via connection, where it changes the wires through the via,
+  keeps each wire's own values with the wire as every other change of the wiring does; a wire it joined anew kept the
+  typed length of one it was made from (doc 13 §2.3)
 - behaviour-change: a wire that ends open, or outside the project, at an interruption point across its pair, with a
   chain or a star behind the pair, shows and takes its ends set by hand at its clamps and keeps them through a change
   of the wiring; they read as the rule's and went at the next change (doc 13 §2.3)

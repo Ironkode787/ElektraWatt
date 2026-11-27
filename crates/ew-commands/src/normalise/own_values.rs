@@ -11,7 +11,7 @@
 //! the command and the state after it, whatever the command was.
 //!
 //! It runs when the transaction changed the wiring (a connection made, removed, or given other ends or another kind; a
-//! junction; an interruption point), over the potentials that holds, after `connection_split` and `junction_cleanup`,
+//! junction; a bond, whose via the potentials leave out; an interruption point), over the potentials that holds, after `connection_split` and `junction_cleanup`,
 //! whose results it reads. Each wire after the command wants ([`want`]):
 //!
 //! - a wire with the same two clamps as a wire before (`ew_derive::wire_changes`): that wire's values, each end the
@@ -49,7 +49,7 @@ use crate::tx::TxBuilder;
 pub struct OwnValues;
 
 /// What the transaction changed of the wiring: the endpoints of the connections it made, removed or gave other ends or
-/// another kind (before and after), its junctions, and its interruption points.
+/// another kind (before and after), its junctions, the ends of its bonds and of their vias, and its interruption points.
 fn touched(tx: &TxBuilder<'_>) -> (BTreeSet<EndpointKey>, BTreeSet<Id<Function>>) {
     let mut keys = BTreeSet::new();
     let mut ips = BTreeSet::new();
@@ -74,6 +74,25 @@ fn touched(tx: &TxBuilder<'_>) -> (BTreeSet<EndpointKey>, BTreeSet<Id<Function>>
             }
             Kind::Junction => {
                 keys.insert(EndpointKey::Junction(key.1.cast()));
+            }
+            // A bond's `via` is left out of the union of the potentials (doc 08 §3.7), so a bond made, removed or given
+            // another via changes the wires through it: its ends and the ends of its via, before and after.
+            Kind::Bond => {
+                let bond = |r: &Option<AnyRow>| match r {
+                    Some(AnyRow::Bond(b)) => Some(b.clone()),
+                    _ => None,
+                };
+                for b in [bond(&before), bond(&after)].into_iter().flatten() {
+                    keys.extend([&b.a, &b.b].into_iter().filter_map(EndpointKey::of));
+                    if let Some(via) = b.via {
+                        let vk = (Kind::Connection, via.cast());
+                        for c in [tx.base_row(&vk), tx.row(&vk)].into_iter().flatten() {
+                            if let AnyRow::Connection(c) = c {
+                                keys.extend([&c.a, &c.b].into_iter().filter_map(EndpointKey::of));
+                            }
+                        }
+                    }
+                }
             }
             Kind::Function => {
                 let ip = |r: &Option<AnyRow>| match r {
