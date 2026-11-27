@@ -1213,6 +1213,7 @@ choice-aml = AML
 choice-ecad = Schematic
 choice-export = Export
 choice-import = Import
+choice-stock = Stock
 choice-instrument = Instrument
 choice-module-starts = Module starts
 choice-node = Bus node

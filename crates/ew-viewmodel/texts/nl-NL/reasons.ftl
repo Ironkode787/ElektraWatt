@@ -578,6 +578,7 @@ error-command-internal = Een interne fout stopte de opdracht: { $p0 }
 reason-symbol-grid = Dit symbool is getekend op het verbindingsraster { $p0 }, en deze pagina gebruikt { $p1 }. Plaats het op een pagina met zijn raster.
 reason-route = De routes worden eerst als voorbeeld getoond
 reason-eplan-no-change = Geen artikelkopie van het project zou veranderen
+reason-eplan-how-parts = Een EPLAN-artikelbestand wordt nu in Artikelen gelezen: parts.import met het bestand zet zijn artikelen daar als een set, Opslaan schrijft ze in Mijn artikelen, en Ze bijwerken… (parts.import met update) werkt de kopieën ervan in dit project bij
 error-not-a-card-bus = { $p0 } is geen PLC-module: het is een busapparaat. Klik het met rechts aan en kies Aan PLC toevoegen om er een eigen station van te maken.
 reason-rack-made = Het station is al gemaakt: wijzig zijn modules in zijn rek
 reason-rack-draft = Het station is nog niet gemaakt: kies eerst Maken

@@ -1203,6 +1203,7 @@ choice-aml = AML
 choice-ecad = Schema
 choice-export = Export
 choice-import = Import
+choice-stock = Voorraad
 choice-instrument = Instrument
 choice-module-starts = Beginadressen van modules
 choice-node = Busknooppunt

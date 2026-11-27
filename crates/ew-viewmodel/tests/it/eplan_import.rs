@@ -135,3 +135,19 @@ fn an_edz_s_parts_come_into_parts_as_a_set_and_save_writes_my_parts() {
     assert!(same > 0);
     s.shutdown();
 }
+
+/// An older script's step of an EPLAN parts file (`how` `update` or `library`, which Parts took over) is refused in words
+/// that name the way there, not done otherwise without a word (review finding 10 of lane 3).
+#[test]
+fn an_older_script_s_parts_step_is_refused_with_the_way_into_parts() {
+    let tmp = Tmp::new("eplan-how-old");
+    let mut s = on_sample(&tmp);
+    for how in ["update", "library"] {
+        assert_eq!(
+            crate::common::refused(&mut s, "file.import_eplan", json!({"file": EDZ, "how": how})),
+            "reason-eplan-how-parts"
+        );
+    }
+    assert!(s.import_set().is_none());
+    s.shutdown();
+}

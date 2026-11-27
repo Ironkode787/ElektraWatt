@@ -613,6 +613,7 @@ error-command-internal = An internal error stopped the command: { $p0 }
 reason-symbol-grid = This symbol is drawn on the { $p0 } connection grid, and this page uses { $p1 }. Place it on a page with its grid.
 reason-route = The routes are previewed first
 reason-eplan-no-change = No part copy of the project would change
+reason-eplan-how-parts = An EPLAN parts file is read in Parts now: parts.import with the file puts its parts there as a set, Save writes them into My parts, and Update them… (parts.import with update) updates this project's copies of them
 error-not-a-card-bus = { $p0 } is no PLC module: it is a bus device. Right-click it and choose Add to PLC to make it a station of its own.
 reason-rack-made = The station is made already: change its modules in its rack
 reason-rack-draft = The station is not made yet: choose Create first

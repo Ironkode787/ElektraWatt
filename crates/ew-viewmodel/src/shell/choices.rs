@@ -78,6 +78,8 @@ closed_choices! {
     PAPERS = &ew_api::output::Paper::WORDS;
     /// Renumber devices…' scopes.
     DEVICE_SCOPES = super::bulk::DEVICE_SCOPES;
+    /// The scopes of the list of Parts (`parts.find`'s `scope`).
+    PART_SCOPES = &ew_api::parts::PartScope::WORDS;
     /// Renumber devices…' schemes.
     SCHEMES = super::bulk::SCHEMES;
     /// Save as macro's kinds.

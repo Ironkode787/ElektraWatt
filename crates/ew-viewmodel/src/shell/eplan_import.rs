@@ -70,6 +70,10 @@ impl ShellModel {
     /// (`parts.import`, with `terms`); a report without `how` opens the dialog of the file, with it the report's import
     /// (`report`), its column mapper (`map`) or Parts for the table as a parts table (`parts`).
     pub(crate) fn act_import_eplan(&mut self, p: &Map<String, Value>) -> Outcome {
+        // The parts file's steps of before (`update`, `library`) are Parts' now: an older script is told the way there.
+        if matches!(string_param(p, "how"), Ok(Some("update" | "library"))) {
+            return Outcome::refused(key!("reason-eplan-how-parts"));
+        }
         let file = match string_param(p, "file") {
             Err(e) => return e,
             Ok(Some(file)) => PathBuf::from(file),

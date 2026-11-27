@@ -821,3 +821,6 @@ change here.
   part exists says it is not used
 - behaviour-change: Shift in the list of Parts takes the rows shown between its ends (a folded group's rows are not
   shown); Export after the save dialog's Replace writes the file; a tick box several parts differ in shows mixed
+- behaviour-change: an older script's `file.import_eplan {how: update}` or `{how: library}` is refused in words that
+  name the way into Parts (`parts.import`, Save, Update them…), not ignored; `parts.find`'s signature names the scope
+  `stock`, read from the scopes' one list

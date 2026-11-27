@@ -60,8 +60,19 @@ impl PartScope {
         PartScope::Stock,
     ];
 
+    /// The scopes' words, in the list's order: the closed set `parts.find`'s `scope` takes.
+    pub const WORDS: [&'static str; 5] = {
+        let mut out = [""; 5];
+        let mut i = 0;
+        while i < out.len() {
+            out[i] = PartScope::ALL[i].word();
+            i += 1;
+        }
+        out
+    };
+
     /// The scope's word in `parts.find`.
-    pub fn word(self) -> &'static str {
+    pub const fn word(self) -> &'static str {
         match self {
             PartScope::All => "all",
             PartScope::Project => "project",
