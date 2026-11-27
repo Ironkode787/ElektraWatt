@@ -1062,6 +1062,10 @@ impl SymbolDraft {
         };
         let mut draft = Self::new(key, key)?;
         draft.identity = kept_identity(symbol, &function, key);
+        // The same item keeps the version its library holds, which Save steps from; a new item starts at the first.
+        if draft.identity.is_some() {
+            draft.version.clone_from(&symbol.version);
+        }
         draft.symbol = symbol.item.clone();
         draft.function = function.item;
         draft.symbol.meta.key = Some(key.parse().map_err(input)?);

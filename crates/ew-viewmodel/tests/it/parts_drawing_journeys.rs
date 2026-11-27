@@ -992,3 +992,35 @@ fn open_in_parts_opens_the_library_s_current_version_of_a_placed_symbol() {
         ))),
     );
 }
+
+/// The Version row reads the version a symbol has in its library: his symbol saved twice reads 1.0.1 when opened
+/// again (with its Licence and Source), and a symbol not saved yet reads the version Save gives it.
+#[test]
+fn the_version_row_reads_the_library_s_version() {
+    use ew_viewmodel::shell::symbol_editor::RowValue;
+    let tmp = Tmp::new("symbol-version-row");
+    let mut s = project(&tmp);
+    let row = |s: &ShellModel, key: &str| {
+        let editor = s.symbol_editor().expect("the drawing");
+        let mut rows = editor.symbol_rows().into_iter().chain(editor.terms_rows());
+        rows.find(|r| r.key == key).map(|r| r.value)
+    };
+    done(&mut s, "parts.open", json!({}));
+    done(&mut s, "parts.new_symbol", json!({}));
+    assert_eq!(row(&s, "version"), Some(RowValue::Text(Some("1.0.0".into()))), "what Save gives a new one");
+    done(&mut s, "parts.field", json!({"field": "symbol.name", "value": "Versioned"}));
+    done(&mut s, "parts.field", json!({"field": "symbol.licence", "value": "CC0-1.0"}));
+    draw_contact(&mut s);
+    done(&mut s, "parts.save", json!({}));
+    done(
+        &mut s,
+        "symbol.draw",
+        json!({"tool": "rectangle", "x": -4, "y": 4, "x2": 4, "y2": 8}),
+    );
+    done(&mut s, "parts.save", json!({}));
+    let address = s.settings().symbols_recent.first().cloned().expect("saved");
+    done(&mut s, "parts.back", json!({"discard": true}));
+    done(&mut s, "parts.open", json!({"symbol": address}));
+    assert_eq!(row(&s, "version"), Some(RowValue::Text(Some("1.0.1".into()))), "its library's version");
+    assert_eq!(row(&s, "licence"), Some(RowValue::Text(Some("CC0-1.0".into()))));
+}
