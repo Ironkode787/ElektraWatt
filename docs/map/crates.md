@@ -1479,6 +1479,7 @@ The development commands of ElektraWatt: one command that checks a change, one t
 | `src/deps.rs` | large | The rule `layers`: the rules between crates of `ci/dep-rules.toml`. |
 | `src/design_docs.rs` |  | The rule of `cargo xtask rules` that a design document says what is (docs/design/04-architecture.md §19): no file of `docs/design` holds a note headed "As built", a dated amendment (the word "amended" or "amendment" with a date on its line), the words in any case, or the number of a backlog row, a decision of the owner's list or a work package (`FT-`, `ID-`, `WP-`); and none is larger than [`CEILING`], but the documents read by identifier ([`BY_IDENTIFIER`]). |
 | `src/docs_gen.rs` | large | `docs-gen`: the generated reference pages of the user documentation book (NFR-DOC-06). |
+| `src/docs_gen/part_fields.rs` |  | The page of a part's fields, `reference/part-fields.md` (Parts ▸ Fields), from `part-fields.json` of `ew-derive`. |
 | `src/features.rs` |  | The feature rule of `cargo xtask rules`: the feature bans of 18 §5.2 CI-PR-09, driven by `[[banned_features]]` and `banned_crates` in `ci/dep-rules.toml`. |
 | `src/generate.rs` |  | `gen [--check]`: every generated file of the repository, written by one command in one order. |
 | `src/greyed.rs` |  | The rule of `cargo xtask rules` that a greyed control says why (docs/design/04-architecture.md §13.3). |

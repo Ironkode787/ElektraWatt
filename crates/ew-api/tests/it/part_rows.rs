@@ -54,7 +54,14 @@ fn a_terminals_sections_rows_and_tables_are_read_checked_and_saved() {
     let ferrule = s.part_draft(ferrule).expect("the ferrule's draft");
     let theirs: Vec<&str> = ferrule.sections().iter().map(|x| x.name()).collect();
     assert!(theirs.contains(&"ferrule"), "{theirs:?}");
-    for w in ["schematic", "cabinet", "connections", "goes_with", "wire", "marker"] {
+    for w in [
+        "schematic",
+        "cabinet",
+        "connections",
+        "goes_with",
+        "wire",
+        "marker",
+    ] {
         assert!(!theirs.contains(&w), "{theirs:?}");
     }
     // The accessories read as part numbers and words.
@@ -473,7 +480,10 @@ fn an_enclosure_of_ones_own_takes_its_size_and_door_in_the_editor() {
         s.set_draft_field(&mut d, f, v).expect(f);
     }
     assert!(d.sections().contains(&Group::Enclosure), "{:?}", d.sections());
-    assert!(!d.sections().contains(&Group::Cabinet), "a cabinet's size is its own");
+    assert!(
+        !d.sections().contains(&Group::Cabinet),
+        "a cabinet's size is its own"
+    );
     for (f, v) in [
         ("sections.enclosure.width", "800"),
         ("sections.enclosure.height", "1000"),
@@ -509,5 +519,51 @@ fn an_enclosure_of_ones_own_takes_its_size_and_door_in_the_editor() {
             .iter()
             .any(|o| o.number == "ENC-8-10-3"),
         "Enclosure… offers it"
+    );
+}
+
+/// A member that is no field (a GTIN) is shown under Also stored and written back unchanged when the part is saved.
+#[test]
+fn a_gtin_is_shown_and_kept_when_the_part_is_saved() {
+    let mut s = common::sample();
+    let copy = copy_of(&s, "EW-GEN-TRM-1");
+    let mut item = serde_json::to_value(
+        &s.query()
+            .parts()
+            .get(ew_ids::Id::from_uuid(copy))
+            .expect("held")
+            .item,
+    )
+    .unwrap();
+    item["gtin"] = json!("4011111222233");
+    let edit = AnyCommand {
+        name: "part.edit_copy".into(),
+        params: json!({"copy": copy.to_string(), "part": item, "fork": s.next_fork_item(copy).to_string()}),
+    };
+    run(&mut s, &edit).expect("the part takes a GTIN");
+    let with_gtin = |s: &Session, description: Option<&str>| {
+        s.query()
+            .parts()
+            .iter()
+            .find(|(_, c)| {
+                c.item.gtin.as_ref().map(|g| g.as_str()) == Some("4011111222233")
+                    && description.is_none_or(|d| c.item.description.neutral_or_first() == Some(d))
+            })
+            .map(|(id, _)| id.as_uuid())
+    };
+    let fork = with_gtin(&s, None).expect("the project's own part with its GTIN");
+    let mut d = s.part_draft(fork).expect("its draft");
+    assert!(
+        d.also_stored().iter().any(|(_, v)| v == "4011111222233"),
+        "{:?}",
+        d.also_stored()
+    );
+    s.set_draft_field(&mut d, "description", "Feed-through terminal, grey")
+        .expect("a description");
+    let cmd = s.part_edit_command(&d).expect("Save");
+    run(&mut s, &cmd).expect("saved");
+    assert!(
+        with_gtin(&s, Some("Feed-through terminal, grey")).is_some(),
+        "the saved part keeps its GTIN"
     );
 }

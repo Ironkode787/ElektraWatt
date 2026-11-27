@@ -2027,7 +2027,11 @@ fn part_edit_lines(e: &crate::shell::part_dialog::PartEditor, lines: &mut Vec<St
     // The groups the editor lists and the shown one, then the declared rows and tables of the listed groups.
     if e.sectioned() {
         let words: Vec<&str> = d.sections().iter().map(|s| s.name()).collect();
-        lines.push(format!("  sections {} shown {}", words.join(" "), e.section.name()));
+        lines.push(format!(
+            "  sections {} shown {}",
+            words.join(" "),
+            e.section.name()
+        ));
     }
     let listed = d.sections();
     for row in d.rows.iter().filter(|r| listed.contains(&r.group)) {
@@ -2107,6 +2111,13 @@ fn part_edit_lines(e: &crate::shell::part_dialog::PartEditor, lines: &mut Vec<St
         strings::text(key!("part-field-cps")),
         user(&cps)
     ));
+    for (word, value) in d.also_stored() {
+        lines.push(format!(
+            "  read-only \"{}\" \"{}\"",
+            strings::text(Key::run_time(word)),
+            user(&value)
+        ));
+    }
     let source = match &d.library {
         Some(name) => format!("library \"{}\"", user(name)),
         None => "project".to_owned(),

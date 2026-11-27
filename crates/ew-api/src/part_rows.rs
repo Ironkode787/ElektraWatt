@@ -236,7 +236,9 @@ impl PartDraft {
                 Group::Plc => mine,
                 _ => {
                     declared_rows().any(|r| r.path == f.path)
-                        || declared_tables().iter().any(|t| f.path.starts_with(&format!("{}[]", t.path)))
+                        || declared_tables()
+                            .iter()
+                            .any(|t| f.path.starts_with(&format!("{}[]", t.path)))
                 }
             })
             .map(|f| f.group)
@@ -266,6 +268,38 @@ impl PartDraft {
         }
         self.outline.clear();
         true
+    }
+
+    /// Also stored: each member nothing reads ([`Entry::Stored`]) that the part has a value of, by its word's key with
+    /// its value as text (a list's values joined). Shown, never typed: Save starts from the part as opened, so these
+    /// are written back as they were.
+    pub fn also_stored(&self) -> Vec<(&'static str, String)> {
+        let json = serde_json::to_value(&self.original).unwrap_or(Value::Null);
+        PART_FIELDS
+            .iter()
+            .filter(|f| matches!(f.entry, Entry::Stored(_)) && f.has.holds(&self.original))
+            .filter_map(|f| {
+                let ty = field_type(f.path)?;
+                let mut values: Vec<&Value> = vec![&json];
+                for segment in f.path.split('.') {
+                    let (name, list) = match segment.strip_suffix("[]") {
+                        Some(n) => (n, true),
+                        None => (segment, false),
+                    };
+                    values = values
+                        .into_iter()
+                        .filter_map(|v| v.get(name))
+                        .flat_map(|v| match (list, v.as_array()) {
+                            (true, Some(items)) => items.iter().collect(),
+                            _ => vec![v],
+                        })
+                        .filter(|v| !v.is_null())
+                        .collect();
+                }
+                let texts: Vec<String> = values.into_iter().map(|v| display(&ty, v)).collect();
+                (!texts.is_empty()).then(|| (f.word, texts.join(", ")))
+            })
+            .collect()
     }
 
     /// The front as Front view and holes previews it ([`ew_scene::panel::part_front`]): the width, height and shape as
@@ -867,7 +901,10 @@ mod tests {
         let own = schema["properties"].as_object().expect("the part's members");
         let member = |path: &str| own.contains_key(path.split(['.', '[']).next().unwrap_or(path));
         let part_ref = |path: &str| catalogue.iter().any(|f| f.path == path && is_part_ref(&f.ty));
-        for f in catalogue.iter().filter(|f| member(&f.path) && !f.ty.is_container()) {
+        for f in catalogue
+            .iter()
+            .filter(|f| member(&f.path) && !f.ty.is_container())
+        {
             let parent = f.path.rsplit_once('.').map(|(p, _)| p).filter(|p| part_ref(p));
             let rows = PART_FIELDS
                 .iter()

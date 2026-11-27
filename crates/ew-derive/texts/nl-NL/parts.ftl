@@ -8,11 +8,11 @@
 part-group-identity = Identiteit
 part-group-schematic = Op het schema
 part-group-cabinet = In de kast
-part-group-connections = Aansluitingen
+part-group-connections = Verbindingen
 part-group-enclosure = Kast
 part-group-plate = Montageplaat
 part-group-rail = Rail
-part-group-duct = Bedradingsgoot
+part-group-duct = Kabelgoot
 part-group-cable = Kabel
 part-group-wire = Draad
 part-group-ferrule = Adereindhuls of kabelschoen
@@ -57,7 +57,7 @@ part-field-macros-macro = Macro
 ## Op het schema
 
 part-field-function-template-fndef = Wat het is
-part-field-function-template-main = Draagt de aanduiding
+part-field-function-template-main = Draagt het kenmerk
 part-field-function-template-cps = Aansluitingen van het deel
 part-field-contacts-kind = Contact
 part-field-contacts-cps = Aansluitingen van het contact
@@ -257,8 +257,8 @@ part-field-variants-gtin = Eigen GTIN
 part-field-variants-tech-key = Eigen technische waarde
 part-field-variants-tech-value = Eigen waarde
 part-field-configured-order-code = Bestelcode
-part-field-configured-part = Onderdeel
-part-field-configured-qty = Aantal van het onderdeel
+part-field-configured-part = Samenstellend artikel
+part-field-configured-qty = Aantal van het samenstellend artikel
 
 ## De functies die een artikel lezen
 
@@ -270,7 +270,7 @@ part-feature-placing = Schema
 part-feature-contact-image = Contactspiegel
 part-feature-potentials = Potentialen
 part-feature-terminals = Klemmenschema
-part-feature-footprint = Kastindeling
+part-feature-footprint = Kastlayout
 part-feature-rail-fit = Rails
 part-feature-clearance = Ruimte eromheen
 part-feature-surfaces = Deuren en wanden
@@ -279,7 +279,7 @@ part-feature-hole-table = Gatentabel
 part-feature-part-card = Artikelkaart
 part-feature-cabinet = Kast
 part-feature-plate-frame = Montageplaat
-part-feature-duct-size = Bedradingsgoten
+part-feature-duct-size = Kabelgoot tekenen
 part-feature-wire-ends = Draadeinden en adereindhulzen
 part-feature-clamp-fit = Klemcontrole
 part-feature-ferrule-choice = Keuze van de adereindhuls
@@ -313,12 +313,12 @@ part-says-pins = De aansluitingen die een apparaat van het artikel heeft, op naa
 part-says-carries = De potentiaal die de aansluiting voert.
 part-says-levels = Het klemmenschema tekent elk niveau, elk met een eigen doorgang.
 part-says-box = Getekend als kader met zijn aansluitingen waar ze staan.
-part-says-footprint = Zonder { $p0 } staat het in de kastindeling als een vierkant van 20 × 20 mm met onbekende maat.
-part-says-duct-size = Zonder { $p0 } wordt de goot getekend op de maat die de velden van Goot tekenen geven.
+part-says-footprint = Zonder { $p0 } staat het in de layout als een vierkant van 20 × 20 mm met onbekende maat.
+part-says-duct-size = Zonder { $p0 } wordt de kabelgoot getekend op de maat die de velden van het tekenen van een kabelgoot geven.
 part-says-depth = Zonder diepte wordt niet getekend wat het achter een deur of een wand inneemt.
-part-says-mount = Zonder hoe het gemonteerd wordt, kan de indeling niet zeggen of het op een rail past.
+part-says-mount = Zonder hoe het gemonteerd wordt, kan de layout niet zeggen of het op een rail past.
 part-says-mass = Afgedrukt op de artikelkaart.
-part-says-clearance = Vrij gehouden naast het artikel in de indeling.
+part-says-clearance = Vrij gehouden naast het artikel in de layout.
 part-says-rail-line = Waar het op zijn rail klikt.
 part-says-front = Hoe zijn voorkant op een deur of een wand wordt getekend.
 part-says-holes = Het komt in een uitsparing maar heeft geen gaten, dus de gatentabel en de boortekeningen missen ze.
@@ -326,7 +326,7 @@ part-says-clamp-type = Zonder klemsoort laat de draadlijst de behandeling van de
 part-says-clamp-range = Zonder klembereik slaat de controle of een draad in zijn klem past deze aansluitingen over.
 part-says-clamp-wires = Zonder aantal draden slaat de controle of een klem de draden erop neemt deze aansluitingen over.
 part-says-twin = Of twee draden hier een twin-adereindhuls mogen delen.
-part-says-cabinet = Zonder { $p0 } hebben de omtrek, de deuren en de wanden van de kast geen maat in de indeling.
+part-says-cabinet = Zonder { $p0 } hebben de omtrek, de deuren en de wanden van de kast geen maat in de layout.
 part-says-cabinet-depth = Zonder diepte heeft de kast geen zijwanden, boven- of onderkant om te boren.
 part-says-plate = Zonder montageplaat heeft de plaat van de kast geen ruimte om apparaten op te plaatsen.
 part-says-doors = Er is geen deur gegeven: de kast heeft één deur met het scharnier links.
@@ -359,7 +359,7 @@ part-says-load = Geteld in de belasting van de PLC-uitgang die het stuurt.
 part-says-terminal-colour = Afgedrukt in de montagelijst.
 part-says-accessories = Met het artikel geteld in de stuklijst.
 part-says-variants = Gekozen in Eigenschappen; elke variant drukt zijn eigen nummer af.
-part-says-configured = Afgedrukt in de stuklijst als bestelcode met zijn onderdelen.
+part-says-configured = Afgedrukt in de stuklijst als bestelcode met zijn samenstellende artikelen.
 
 ## Waarom een lid niet gevraagd wordt
 

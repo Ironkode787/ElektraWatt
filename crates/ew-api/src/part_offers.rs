@@ -422,7 +422,8 @@ impl Session {
                 let q = self.query();
                 !devices.is_empty()
                     && devices.iter().all(|d| {
-                        q.devices().get(Id::<Device>::from_uuid(*d)).is_some() && self.main_function(*d).is_none()
+                        q.devices().get(Id::<Device>::from_uuid(*d)).is_some()
+                            && self.main_function(*d).is_none()
                     })
             }
             Ok(PartKind::EndBracket | PartKind::Rail | PartKind::Duct) => false,

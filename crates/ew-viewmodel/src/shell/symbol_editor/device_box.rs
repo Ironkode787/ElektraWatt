@@ -598,7 +598,11 @@ impl ShellModel {
         self.leave_box(b.from_project);
         self.open_dialog(Dialog::PartEdit(Box::new(
             crate::shell::part_dialog::PartEditor {
-                section: if bus { ew_api::part_fields::Group::Ports } else { ew_api::part_fields::Group::Identity },
+                section: if bus {
+                    ew_api::part_fields::Group::Ports
+                } else {
+                    ew_api::part_fields::Group::Identity
+                },
                 draft: b.draft,
                 name,
                 manufacturers,

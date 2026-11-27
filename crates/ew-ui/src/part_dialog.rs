@@ -523,14 +523,23 @@ fn tech_rows(ui: &mut Ui, e: &PartEditor, events: &mut Vec<Event>) -> bool {
 /// In the cabinet, from the declared rows of the group: each with its hint, and the outline as typed, to scale over a
 /// 35 mm rail; the front's shape, its outline, its holes and its preview after them. `true` when Enter was pressed in a
 /// field.
-fn cabinet_rows(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, editable: bool, events: &mut Vec<Event>) -> bool {
+fn cabinet_rows(
+    ui: &mut Ui,
+    d: &ew_viewmodel::ew_api::PartDraft,
+    editable: bool,
+    events: &mut Vec<Event>,
+) -> bool {
     use ew_viewmodel::ew_api::part_fields::Group;
     let t = theme::current(ui.ctx());
     let mut save = false;
     let hint = |ui: &mut Ui, k: strings::Key<'static>| {
         ui.add(egui::Label::new(crate::components::small_secondary(&t, strings::text(k))).wrap());
     };
-    for row in d.rows.iter().filter(|r| r.group == Group::Cabinet && r.path != "mech.front_shape") {
+    for row in d
+        .rows
+        .iter()
+        .filter(|r| r.group == Group::Cabinet && r.path != "mech.front_shape")
+    {
         save |= declared_row(ui, row, editable, events);
         match row.path {
             "mech.depth" => {
@@ -825,7 +834,12 @@ fn section_list(ui: &mut Ui, e: &PartEditor, events: &mut Vec<Event>) {
             Group::Technical => d.tech.len(),
             Group::Schematic => d.pins.len(),
             Group::Ports => d.bus.len(),
-            _ => d.tables.iter().filter(|x| x.group == g).map(|x| x.rows.len()).sum(),
+            _ => d
+                .tables
+                .iter()
+                .filter(|x| x.group == g)
+                .map(|x| x.rows.len())
+                .sum(),
         };
         let name = strings::text(strings::Key::run_time(g.word()));
         let shown = e.section == g;
@@ -862,7 +876,12 @@ fn section_body(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec
     let t = theme::current(ui.ctx());
     let d = &e.draft;
     let listed = d.sections();
-    let Some(group) = listed.iter().copied().find(|g| *g == e.section).or(listed.first().copied()) else {
+    let Some(group) = listed
+        .iter()
+        .copied()
+        .find(|g| *g == e.section)
+        .or(listed.first().copied())
+    else {
         return false;
     };
     let title = strings::text(strings::Key::run_time(group.word()));
@@ -913,7 +932,12 @@ fn section_body(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec
 /// The front (doc 07 §5.4): the Shape row, the outline line with Import outline… and Remove, the Holes table with its
 /// Kind and Size cells, and the preview of the front and its holes as the panel page draws them. `true` when Enter was
 /// pressed in a field.
-fn front_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, editable: bool, events: &mut Vec<Event>) -> bool {
+fn front_section(
+    ui: &mut Ui,
+    d: &ew_viewmodel::ew_api::PartDraft,
+    editable: bool,
+    events: &mut Vec<Event>,
+) -> bool {
     let t = theme::current(ui.ctx());
     let mut save = false;
     if let Some(row) = d.row("mech.front_shape") {
@@ -1064,6 +1088,10 @@ fn read_only_facts(ui: &mut Ui, e: &PartEditor) {
         ),
     };
     read_only(ui, strings::text(key!("part-field-source")), source);
+    // Also stored: what the part holds that nothing asks for (a GTIN), shown and written back as it is.
+    for (word, value) in d.also_stored() {
+        read_only(ui, strings::text(strings::Key::run_time(word)), value);
+    }
 }
 
 /// The part editor's body: a new cable type and a new plug as their small forms; any other part as its sections
@@ -1714,8 +1742,7 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, just_opened: bo
         // The columns share the row; the remove button keeps its own width.
         let gap = t.space_2;
         let remove_w = if d.new || d.own { t.size_control } else { 0.0 };
-        let cell = ((ui.available_width() - remove_w - gap * members.len() as f32)
-            / members.len() as f32)
+        let cell = ((ui.available_width() - remove_w - gap * members.len() as f32) / members.len() as f32)
             .max(t.size_control);
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = gap;
