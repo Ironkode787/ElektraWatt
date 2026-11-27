@@ -12,6 +12,8 @@
 {"action":"props.set","params":{"row":"project/master.project_ref","value":"SAMPLE"}}
 {"action":"props.set","params":{"row":"project/master.drawing_id","value":"SAMPLE-E"}}
 {"action":"props.set","params":{"row":"project/master.description","value":"Conveyor drive with a pneumatic clamp"}}
+{"action":"props.set","params":{"row":"project/master.created","value":"2026-11-02"}}
+{"action":"command.run","params":{"cmd":"fields.set","params":{"kind":"project","targets":["019b76da-a801-7000-8000-000000000001"],"path":"master.edited","value":"2026-11-02"}}}
 {"action":"props.set","params":{"row":"project/people.customer","value":"Sample Customer"}}
 {"action":"props.set","params":{"row":"project/people.end_user","value":"Sample End User"}}
 {"action":"props.set","params":{"row":"project/people.author","value":"Sample Designer"}}

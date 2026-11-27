@@ -677,3 +677,5 @@ change here.
 - text-change: the guide's tutorial scripts wire by pin names (`cursor.set {pin}`), so a moved layout no longer breaks
   them; placing a symbol, drawing a box's corners and a wire's end on the grid stay in millimetres, where the driver
   names no place
+- behaviour-change: the sample project has a created and an edited date (2026-11-02, set by its script): its title
+  blocks show Creation and Saved, and its package is named and dated by that day, not 1980-01-01

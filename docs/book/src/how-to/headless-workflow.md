@@ -86,7 +86,7 @@ cross-reference links:
 ```console
 $ ew export pdf fixtures/sample/sample.ew --out out/sample.pdf
 PDF written to out/sample.pdf: 41 pages, 212 links
-302 page findings: 302 empty fields in a frame or title block
+218 page findings: 218 empty fields in a frame or title block
 ```
 
 The second line, on the standard error stream, counts remarks about the rendering of single pages and says what
@@ -99,7 +99,7 @@ pages 101 to 105:
 ```console
 $ ew export svg fixtures/sample/sample.ew --out out/svg --pages 101-105
 SVG written to out/svg: 5 files
-35 page findings: 35 empty fields in a frame or title block
+25 page findings: 25 empty fields in a frame or title block
 ```
 
 The directory now holds `101.svg` to `105.svg`. Both ends of a range are folio labels of the project. `ew` replaces

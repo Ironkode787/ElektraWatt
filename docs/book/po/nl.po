@@ -7193,10 +7193,22 @@ msgid ""
 msgstr ""
 
 #: src/reference/window/tools.md:424
-msgid "Rail"
+msgid "Place glands"
 msgstr ""
 
 #: src/reference/window/tools.md:426
+msgid ""
+"On a panel layout page of the bottom, the top or a side, places the cable "
+"glands dragged from Glands in the Unplaced devices navigator: while you "
+"drag, the outline of each gland's nut follows the pointer, in the row they "
+"stand in; let go to place them."
+msgstr ""
+
+#: src/reference/window/tools.md:430
+msgid "Rail"
+msgstr ""
+
+#: src/reference/window/tools.md:432
 msgid ""
 "On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail. The "
 "page shows an enclosure first: Project ▸ Setup ▸ Enclosure… puts the new "
@@ -7204,19 +7216,19 @@ msgid ""
 "layout](../../how-to/panel-layout.md))."
 msgstr ""
 
-#: src/reference/window/tools.md:429
+#: src/reference/window/tools.md:435
 msgid "Duct"
 msgstr ""
 
-#: src/reference/window/tools.md:431
+#: src/reference/window/tools.md:437
 msgid "On a panel layout page, draws a wiring duct. Open it with Draw ▸ Duct."
 msgstr ""
 
-#: src/reference/window/tools.md:433
+#: src/reference/window/tools.md:439
 msgid "Edit frame"
 msgstr ""
 
-#: src/reference/window/tools.md:435
+#: src/reference/window/tools.md:441
 msgid ""
 "Changes the page's frame and its title block on the page. Open it with Page "
 "▸ Frame ▸ Edit frame, a double click on the title block or on the column "
@@ -7238,7 +7250,7 @@ msgid ""
 "so once."
 msgstr ""
 
-#: src/reference/window/tools.md:448
+#: src/reference/window/tools.md:454
 msgid ""
 "With nothing chosen, Properties shows the frame: its paper, its title block "
 "(Shared with the other frames, or Its own: a copy of the block for this "
