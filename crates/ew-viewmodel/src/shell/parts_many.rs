@@ -365,13 +365,25 @@ impl ShellModel {
                 return self.need_path("parts.export", Prompt::SaveTable, "path", &rest);
             }
         };
-        let sheets: Vec<PartSheet> = match (
+        // The parts as they are saved: what was typed and not saved is not in the file, and the toast says so.
+        let (named, typed): (Vec<String>, bool) = match (
             self.many_sheet(),
             self.parts.as_deref().and_then(|p| p.sheet.as_ref()),
         ) {
-            (Some(m), _) => m.sheets.iter().map(|(s, _)| s.clone()).collect(),
-            (None, Some(open)) if !open.sheet.new => vec![open.sheet.clone()],
+            (Some(m), _) => (m.parts.clone(), m.changed),
+            (None, Some(open)) if !open.sheet.new => (
+                self.sheet_param(&open.sheet).into_iter().collect(),
+                open.changed,
+            ),
             _ => return Outcome::refused(key!("reason-no-part-open")),
+        };
+        let Some(sheets) = named
+            .iter()
+            .map(|n| self.sheet_named(n))
+            .collect::<Option<Vec<PartSheet>>>()
+            .filter(|s| !s.is_empty())
+        else {
+            return Outcome::refused(key!("reason-part-edit-target"));
         };
         if path.exists() && !flag(p, "replace") {
             return Outcome::refused(key!("reason-file-exists"));
@@ -435,8 +447,13 @@ impl ShellModel {
             let _ = std::fs::remove_file(&part);
             return failed(key!("error-export"), &[&e.to_string()]);
         }
+        let said = if typed {
+            key!("parts-exported-saved")
+        } else {
+            key!("parts-exported")
+        };
         self.notify(
-            strings::format(key!("parts-exported"), &[&sheets.len().to_string(), &name]),
+            strings::format(said, &[&sheets.len().to_string(), &name]),
             false,
         );
         Outcome::Done

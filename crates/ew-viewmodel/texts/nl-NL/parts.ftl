@@ -469,6 +469,7 @@ parts-set-field = in kolom { $p0 }: { $p1 }
 parts-set-like = zijn kolom Zoals noemt { $p0 }, wat geen artikel van Mijn artikelen of van een bibliotheek is.
 parts-export = Exporteren
 parts-exported = { $p0 } artikelen geschreven naar { $p1 }.
+parts-exported-saved = { $p0 } artikelen geschreven naar { $p1 } zoals ze zijn opgeslagen: wat getypt en niet opgeslagen is, staat er niet in.
 parts-many-title = { $p0 } artikelen
 parts-many-line = { $p0 } artikelen geselecteerd. Een getypte waarde gaat naar alle; een veld waarin ze verschillende waarden hebben leest gemengd, en Opslaan laat het zoals elk het heeft.
 parts-many-mixed = gemengd

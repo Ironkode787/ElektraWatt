@@ -263,3 +263,55 @@ fn export_after_the_save_dialog_s_replace_writes_the_file() {
     assert!(std::fs::read_to_string(&path).unwrap().contains("FT-4"));
     s.shutdown();
 }
+
+/// Values typed into several parts and not saved are never dropped unasked (review finding 8 of lane 3): Export writes
+/// the parts as they are saved and says that what was typed is not in the file; New part… is refused until they are
+/// saved or dropped, and its `card` answer saves them (`apply`) or drops them (`cancel`) before the new part opens.
+#[test]
+fn values_typed_into_several_parts_are_not_dropped_unasked() {
+    let tmp = Tmp::new("parts-many-unsaved");
+    let mut s = shell(&tmp);
+    done(&mut s, "parts.open", json!({}));
+    terminal(&mut s, "FT-4", "60");
+    terminal(&mut s, "FT-6", "70");
+    let (a, b) = (row(&mut s, "FT-4"), row(&mut s, "FT-6"));
+    let select = |s: &mut ShellModel| {
+        done(s, "parts.open", json!({"part": a}));
+        done(s, "parts.open", json!({"part": b, "add": true}));
+        done(s, "parts.field", json!({"field": "mech.depth", "value": "47"}));
+    };
+    select(&mut s);
+    let path = tmp.0.join("family.csv");
+    done(&mut s, "parts.export", json!({"path": path.to_string_lossy()}));
+    let written = std::fs::read_to_string(&path).unwrap();
+    assert!(written.contains("FT-4") && !written.contains("47"), "{written}");
+    assert!(
+        s.notifications()
+            .entries()
+            .any(|n| n.text == "2 parts written to family.csv as they are saved: what was typed and not saved is not in it."),
+        "the toast says what is not in the file"
+    );
+    // New part… waits for the typed values: dropped, the new part opens and the parts keep what they had.
+    assert_eq!(
+        refused(&mut s, "parts.new", json!({"start": "terminal"})),
+        "reason-parts-unsaved"
+    );
+    done(&mut s, "parts.new", json!({"start": "terminal", "card": "cancel"}));
+    assert!(s.many_sheet().is_none());
+    done(&mut s, "parts.discard", json!({}));
+    let depth = |s: &mut ShellModel, part: &str| {
+        done(s, "parts.open", json!({"part": part}));
+        let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("its sheet");
+        open.sheet.text("mech.depth").to_owned()
+    };
+    assert_ne!(depth(&mut s, &a), "47");
+    // Saved: the card of the project's copies then waits, and its Apply opens the new part; both took the value.
+    select(&mut s);
+    done(&mut s, "parts.new", json!({"start": "terminal", "card": "apply"}));
+    assert!(s.properties().card().is_some(), "the card of the project's copies");
+    done(&mut s, "parts.new", json!({"start": "terminal", "card": "apply"}));
+    assert!(s.many_sheet().is_none());
+    done(&mut s, "parts.discard", json!({}));
+    assert_eq!(depth(&mut s, &b), "47");
+    s.shutdown();
+}

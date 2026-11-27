@@ -461,8 +461,9 @@ pub enum Dialog {
     },
     /// Back of Parts with changes not saved: Save (`parts.back` with `save`), Discard (`parts.back` with `discard`)
     /// or Stay (Escape), which returns to the sheet. With `next`, another part opened (`parts.open`, `parts.new`) while
-    /// the card of the open part's Save waits: Save applies the card and Discard cancels it (the action's `card`), each
-    /// then running the action.
+    /// the card of the open part's Save waits, or New part… while values typed into several parts are not saved: Save
+    /// applies the card (saves the values) and Discard cancels it (drops them), the action's `card`, each then running
+    /// the action.
     ConfirmLeavePart {
         /// The open part's heading: its number, or New part.
         number: String,

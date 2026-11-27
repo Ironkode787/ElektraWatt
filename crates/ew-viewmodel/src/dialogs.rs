@@ -172,7 +172,9 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         Dialog::ConfirmJournalDiscard => journal_discard_spec(),
         Dialog::ConfirmPurge { files, .. } => purge_spec(files),
         Dialog::ConfirmRemovePart { number } => remove_part_spec(number),
-        Dialog::ConfirmLeavePart { number, next } => leave_part_spec(number, next.as_ref()),
+        Dialog::ConfirmLeavePart { number, next } => {
+            leave_part_spec(number, next.as_ref(), model.many_sheet().is_some_and(|m| m.changed))
+        }
         Dialog::ConfirmReplaceDxf { dir, folder, files } => replace_dxf_spec(dir, folder, *files),
         // Choose (Enter, the active row) and Cancel; the list and the filters are the dialog's.
         // An empty search is said once, in the list (not here); Choose is disabled while the list is
@@ -658,8 +660,10 @@ fn remove_part_spec(number: &str) -> DialogSpec {
 fn leave_part_spec(
     number: &str,
     next: Option<&(&'static str, serde_json::Map<String, Value>)>,
+    typed: bool,
 ) -> DialogSpec {
-    // Another part opened while the open part's card waits: the action again, the card applied or cancelled first.
+    // Another part opened while the open part's card waits, or while values typed into several parts are not saved:
+    // the action again, the card applied or cancelled (the values saved or dropped) first.
     let answer = |back: Value, card: &str| match next {
         None => DialogAnswer::Action("parts.back", back),
         Some((action, params)) => {
@@ -669,8 +673,8 @@ fn leave_part_spec(
         }
     };
     let text = match next {
-        None => key!("confirm-part-leave-text"),
-        Some(_) => key!("confirm-part-card-text"),
+        Some(_) if !typed => key!("confirm-part-card-text"),
+        _ => key!("confirm-part-leave-text"),
     };
     DialogSpec {
         title: strings::format(key!("confirm-part-leave-title"), &[number]),

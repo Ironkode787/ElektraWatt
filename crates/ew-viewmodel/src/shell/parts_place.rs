@@ -850,6 +850,39 @@ impl ShellModel {
         None
     }
 
+    /// Values typed into the sheet of several parts and not saved, before `action` opens another part: `card` `apply`
+    /// saves them first (where the project holds them their card then waits, and the action stops there), `cancel`
+    /// drops them; without it the window asks Save, Discard or Stay and a script is refused in words. `None` where
+    /// `action` goes on.
+    fn settle_many(&mut self, action: &'static str, p: &Map<String, Value>) -> Option<Outcome> {
+        let many = self.many_sheet().filter(|m| m.changed)?;
+        let numbers: Vec<String> = many.numbers().into_iter().map(|(n, _)| n).collect();
+        match string_param(p, "card") {
+            Err(e) => Some(e),
+            Ok(Some("apply")) => {
+                self.dialog = None;
+                let out = self.save_many();
+                let waits = matches!(self.props.card().map(|c| &c.origin), Some(CardOrigin::Part(_)));
+                (out != Outcome::Done || waits).then_some(out)
+            }
+            Ok(Some("cancel")) => {
+                self.dialog = None;
+                if let Some(place) = self.parts.as_deref_mut() {
+                    place.many = None;
+                }
+                None
+            }
+            Ok(Some(_)) => Some(failed(key!("error-bad-param"), &["card"])),
+            Ok(None) => Some(match self.mode {
+                crate::shell::Mode::Headless => Outcome::refused(key!("reason-parts-unsaved")),
+                crate::shell::Mode::Gui => self.open_dialog(Dialog::ConfirmLeavePart {
+                    number: numbers.join(", "),
+                    next: Some((action, p.clone())),
+                }),
+            }),
+        }
+    }
+
     /// `parts.find {text?, scope?, kind?, maker?, lacking?, shelf?}`: the list's search, scope (`all`, `project`,
     /// `mine`), kind filter (`all` for none), maker, Lacks something, and the shelf it shows (`parts`, `symbols`).
     pub(crate) fn act_parts_find(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -945,6 +978,9 @@ impl ShellModel {
         let like = flag(p, "like");
         let for_field = or_return!(string_param(p, "for_field")).map(str::to_owned);
         if let Some(out) = self.settle_part_card("parts.new", p) {
+            return out;
+        }
+        if let Some(out) = self.settle_many("parts.new", p) {
             return out;
         }
         let Some(session) = self.parts_session() else {
