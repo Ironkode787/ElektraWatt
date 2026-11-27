@@ -294,3 +294,52 @@ fn plan_commits(m: &Model, ops: &[Op]) {
         .expect("the plan commits");
     assert!(BaseIndexes::rebuild(&after).same_entries(after.indexes()));
 }
+
+fn route(wire: Id<ew_schema::Connection>) -> ew_schema::CommittedRoute {
+    let end = |f| ew_schema::RouteEnd {
+        cp: (f, 0),
+        surface: SURF,
+        at: Pt2::new(Nm(0), Nm(0)),
+        h: Nm(0),
+        extra: Extra::new(),
+    };
+    ew_schema::CommittedRoute {
+        id: ew_ids::v5::route_id(wire),
+        v: 1,
+        space: SPACE,
+        wire,
+        ends: [end(FN_101F1), end(FN_102G1)],
+        way: vec![ew_schema::WayStep::Duct(ew_schema::DuctStretch {
+            carrier: EMPTY_RAIL,
+            from: Nm(0),
+            to: Nm(1),
+            extra: Extra::new(),
+        })],
+        run: Nm(1),
+        extra: Extra::new(),
+    }
+}
+
+/// A stored way goes with its wire and with its space (cascade), and never with what it was laid from: deleting a
+/// carrier on its way keeps it, to be read as stale. A way whose wire is gone (an older build kept it) loads.
+#[test]
+fn a_stored_way_goes_with_its_wire_and_its_space() {
+    let (project, mut records, lib) = mini_project_parts();
+    // Without the placements, which keep their carriers from going.
+    records.extend(
+        layout_records()
+            .into_iter()
+            .filter(|r| !matches!(r, Record::Placement(_))),
+    );
+    records.push(Record::CommittedRoute(route(CON_W22)));
+    let gone: Id<ew_schema::Connection> = Id::from_uuid(Uuid::from_u128(0x9599));
+    records.push(Record::CommittedRoute(route(gone)));
+    let m = Model::from_records(project, records, lib).expect("a way whose wire is gone loads");
+    let way = key::<ew_schema::CommittedRoute>(ew_ids::v5::route_id(CON_W22));
+    let ops = m.delete_plan(&key::<ew_schema::Connection>(CON_W22)).unwrap();
+    assert!(removes(&ops, way), "{ops:?}");
+    let ops = m.delete_plan(&key::<LayoutSpace>(SPACE)).unwrap();
+    assert!(removes(&ops, way), "{ops:?}");
+    let ops = m.delete_plan(&key::<Carrier>(EMPTY_RAIL)).unwrap();
+    assert!(!removes(&ops, way), "{ops:?}");
+}

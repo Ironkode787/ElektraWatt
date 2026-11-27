@@ -22,10 +22,10 @@ use crate::track::{
 };
 use crate::value::Endpoint;
 use crate::{
-    Bond, Carrier, CarrierRef, Channel, Conductor, Connection, Device, DeviceLink, Enclosure, ExternalRef,
-    Function, ImportLineage, ImportRun, Junction, LayoutSpace, LogicalNet, MountingSurface, Page, PageItem,
-    PhysicalNet, Placement, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Revision,
-    SchemaError, Section, StructureBox, StructureNode, SurfaceFeature, Waiver,
+    Bond, Carrier, CarrierRef, Channel, CommittedRoute, Conductor, Connection, Device, DeviceLink, Enclosure,
+    ExternalRef, Function, ImportLineage, ImportRun, Junction, LayoutSpace, LogicalNet, MountingSurface,
+    Page, PageItem, PhysicalNet, Placement, PlcConfigProject, PotentialDef, Project, ReportBlock,
+    Representation, Revision, SchemaError, Section, StructureBox, StructureNode, SurfaceFeature, Waiver,
 };
 
 /// `$k` first, then the record's own members in declaration order.
@@ -212,6 +212,8 @@ pub enum Record {
     Carrier(Carrier),
     /// `placement` (54).
     Placement(Placement),
+    /// `committed_route` (56).
+    CommittedRoute(CommittedRoute),
     /// `surface_feature` (58).
     SurfaceFeature(SurfaceFeature),
     /// `revision` (60).
@@ -264,6 +266,7 @@ impl Record {
             Record::MountingSurface(_) => Kind::MountingSurface,
             Record::Carrier(_) => Kind::Carrier,
             Record::Placement(_) => Kind::Placement,
+            Record::CommittedRoute(_) => Kind::CommittedRoute,
             Record::SurfaceFeature(_) => Kind::SurfaceFeature,
             Record::Revision(_) => Kind::Revision,
             Record::Waiver(_) => Kind::Waiver,
@@ -316,6 +319,7 @@ impl Record {
             Record::MountingSurface(r) => r.id.as_uuid(),
             Record::Carrier(r) => r.id.as_uuid(),
             Record::Placement(r) => r.id.as_uuid(),
+            Record::CommittedRoute(r) => r.id.as_uuid(),
             Record::SurfaceFeature(r) => r.id.as_uuid(),
             Record::Revision(r) => r.id.as_uuid(),
             Record::Waiver(r) => r.id.as_uuid(),
@@ -384,6 +388,7 @@ impl Record {
                 CarrierRef::Surface(s) => AnchorRef::SpaceOfSurface(*s),
                 CarrierRef::Unknown(_) => AnchorRef::Unknown,
             },
+            Record::CommittedRoute(r) => AnchorRef::Direct(r.space.as_uuid()),
             Record::SurfaceFeature(r) => AnchorRef::SpaceOfSurface(r.surface),
             // The file of its target (or its `path`), which `ew-format` resolves.
             Record::Conflict(_) | Record::Unknown(_) => AnchorRef::Unknown,
@@ -454,6 +459,7 @@ impl Serialize for Record {
             Record::MountingSurface(r) => tagged(Kind::MountingSurface, r, serializer),
             Record::Carrier(r) => tagged(Kind::Carrier, r, serializer),
             Record::Placement(r) => tagged(Kind::Placement, r, serializer),
+            Record::CommittedRoute(r) => tagged(Kind::CommittedRoute, r, serializer),
             Record::SurfaceFeature(r) => tagged(Kind::SurfaceFeature, r, serializer),
             Record::Revision(r) => tagged(Kind::Revision, r, serializer),
             Record::Waiver(r) => tagged(Kind::Waiver, r, serializer),
@@ -585,6 +591,7 @@ impl Record {
             Kind::MountingSurface => Record::MountingSurface(typed(kind, map, |r: &MountingSurface| r.v)?),
             Kind::Carrier => Record::Carrier(typed(kind, map, |r: &Carrier| r.v)?),
             Kind::Placement => Record::Placement(typed(kind, map, |r: &Placement| r.v)?),
+            Kind::CommittedRoute => Record::CommittedRoute(typed(kind, map, |r: &CommittedRoute| r.v)?),
             Kind::SurfaceFeature => Record::SurfaceFeature(typed(kind, map, |r: &SurfaceFeature| r.v)?),
             Kind::Revision => Record::Revision(typed(kind, map, |r: &Revision| r.v)?),
             Kind::Waiver => Record::Waiver(typed(kind, map, |r: &Waiver| r.v)?),

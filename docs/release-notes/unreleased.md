@@ -488,3 +488,7 @@ change here.
 - format-variant: placement `hole_choices[].hole` (the part's hole a choice names; doc 12 §2.2)
 - api-add: `fields.set` takes a device's `gland`; `layout.glands_place` takes the sheet point `x_mm`, `y_mm`; `part.edit`
   takes `section`
+- format-variant: the kind `committed_route` (rank 56) is typed, the stored way of a wire in its cabinet
+  (`CommittedRoute`, `RouteEnd`, `WayStep`, `DuctStretch`; doc 05 §2); `CpData` gains `face` (`PinFace`),
+  `WireSection` gains `outer_diameter`, `WorkshopSettings` gains `door_loop`, `fill_limit` and `reserve`; each absent
+  when not set.

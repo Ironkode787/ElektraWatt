@@ -238,6 +238,7 @@ pub fn exists(q: &Q, key: (Kind, ew_schema::AnyId)) -> bool {
         Kind::MountingSurface => q.table::<ew_schema::MountingSurface>().contains(id.cast()),
         Kind::Carrier => q.table::<ew_schema::Carrier>().contains(id.cast()),
         Kind::Placement => q.table::<ew_schema::Placement>().contains(id.cast()),
+        Kind::CommittedRoute => q.table::<ew_schema::CommittedRoute>().contains(id.cast()),
         // A kind no command creates (the project row, the reserved kinds): nothing to say.
         _ => true,
     }

@@ -484,6 +484,17 @@ pub struct WorkshopSettings {
     /// The corner every surface's holes are measured from where the surface sets none; absent: bottom left.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub datum: Option<crate::Corner>,
+    /// The loop a wire into a door keeps across its hinge (doc 12 §9); absent: 300 mm.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub door_loop: Option<Nm>,
+    /// The fill a duct's fullest piece may reach, in percent of its inner area (doc 12 §8.6); absent: 60.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fill_limit: Option<u8>,
+    /// What the fitter adds to a routed wire at each end (doc 12 §9); absent: 50 mm.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub reserve: Option<Nm>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

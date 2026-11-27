@@ -146,3 +146,39 @@ fn the_project_settings_hold_the_workshop_stock() {
     assert_eq!(s.workshop.cut_increment, Some(Nm::from_mm(5)));
     assert_eq!(serde_json::to_string(&ProjectSettings::default()).unwrap(), "{}");
 }
+
+/// The members the wire ways read (doc 12 §8.1, §8.6, §9): a pin's face, a wire's outer diameter and the shop's
+/// reserve, fill limit and door loop read typed and write back in member order; absent, they are not written; a
+/// face of a newer format is kept.
+#[test]
+fn the_wire_way_members_are_typed_and_absent_stays_absent() {
+    let line = fill(concat!(
+        r#"{"$k":"part","id":"@PART_MECH","library_id":"@LIB","item_id":"@ITEM_PSU","version":"0.1.1","sha256":"@HASH","#,
+        r#""kind":"wire","manufacturer":{"library":"@LIB","item":"@ITEM_MFR","version_req":"^0.1"},"#,
+        r#""part_number":"X","cp_pattern":[{"idx":0,"designation":"L","face":"bottom"},{"idx":1,"designation":"N","face":"left"},"#,
+        r#"{"idx":2,"designation":"PE"}],"sections":{"wire":{"csa":"1.5","outer_diameter":3100000}}}"#
+    ));
+    let (doc, p) = part(&line);
+    assert_eq!(serde_json::to_string(&doc).unwrap(), line, "not canonical");
+    assert_eq!(p.cp_pattern[0].face, Some(ew_schema::PinFace::Bottom));
+    assert!(matches!(
+        p.cp_pattern[1].face,
+        Some(ew_schema::PinFace::Unknown(_))
+    ));
+    assert_eq!(p.cp_pattern[2].face, None);
+    let wire = p.sections.wire.as_ref().expect("wire");
+    assert_eq!(wire.outer_diameter, Some(Nm(3_100_000)));
+
+    let json =
+        r#"{"workshop":{"cut_increment":5000000,"door_loop":250000000,"fill_limit":70,"reserve":80000000}}"#;
+    let s: ProjectSettings = serde_json::from_str(json).unwrap();
+    assert_eq!(serde_json::to_string(&s).unwrap(), json);
+    let w = &s.workshop;
+    assert_eq!(
+        (w.reserve, w.fill_limit, w.door_loop),
+        (Some(Nm::from_mm(80)), Some(70), Some(Nm::from_mm(250)))
+    );
+    let only = r#"{"workshop":{"cut_increment":5000000}}"#;
+    let s: ProjectSettings = serde_json::from_str(only).unwrap();
+    assert_eq!(serde_json::to_string(&s).unwrap(), only);
+}

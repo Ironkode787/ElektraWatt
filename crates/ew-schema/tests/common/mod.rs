@@ -136,6 +136,8 @@ pub const IDS: &[(&str, &str)] = &[
     ("FEAT_E1", "5b3e9c71-0d2a-5f48-a6c1-7e9d2b40f3a8"),
     ("DEV_UC1", "93e0b4a6-1c7f-5d28-a5e9-8b3d6f0c1a72"),
     ("DEV_PLATE", "5b7d0e3a-8f26-5c91-9d4b-a1e6c2f08b37"),
+    ("ROUTE_W7", "37583fb8-7f16-5b61-9af8-6c7be7d67d69"),
+    ("SURF_DOOR", "4c1e9a27-6b3d-5f08-a2c7-e9d05b18f364"),
 ];
 
 /// A fixed SHA-256 for library-copy fixtures.

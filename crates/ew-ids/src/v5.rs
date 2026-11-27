@@ -40,6 +40,7 @@
 //! | [`macro_thumbnail_instance_id`] | `v5(copy, "thumbnail")` | `"thumbnail"` |
 //! | [`instance_member_id`] | `v5(instance, local)` | `"<local>"` |
 //! | [`drives_link_id`] | `v5(valve, "drives", device)` | `"drives\u{1F}<device>"` |
+//! | [`route_id`] | `v5(wire, "route")` | `"route"` |
 //! | [`valve_glyph_entity`] | `v5(representation, device)` | the device UUID's 16 bytes |
 //! | [`valve_position_entity`] | `v5(representation, "position", n)` | `"position\u{1F}1"` |
 //!
@@ -326,6 +327,12 @@ pub fn drives_link_id(valve: Uuid, device: Uuid) -> Uuid {
     Uuid::new_v5(&valve, format!("drives{SEP}{}", device.hyphenated()).as_bytes())
 }
 
+/// The ID of the stored way of a wire in its cabinet (`committed_route`, doc 12 §8.5): `v5(wire, "route")`, `wire`
+/// being the physical wire's carrier connection. One way per wire, so Route again replaces it.
+pub fn route_id<W, R>(wire: Id<W>) -> Id<R> {
+    v5(wire.as_uuid(), "route")
+}
+
 /// The entity of the glyph of the valve `device` on the overview representation `rep`: `v5(rep, device)` over
 /// the device UUID's 16 bytes. Never stored.
 pub fn valve_glyph_entity(rep: Uuid, device: Uuid) -> Uuid {
@@ -418,6 +425,7 @@ mod tests {
             s(revision_withdrawal_id(id(REVISION))),
             "c5147bfd-2854-507d-92aa-c18d958f88a0"
         );
+        assert_eq!(s(route_id(id(FUNCTION))), "37583fb8-7f16-5b61-9af8-6c7be7d67d69");
         assert_eq!(NS_CONFLICT.to_string(), "62f02f37-42d2-48ec-8f0d-692fb85254a0");
         assert_eq!(
             s(conflict_file_id(

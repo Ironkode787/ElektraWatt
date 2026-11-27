@@ -175,6 +175,7 @@ pub fn record_file(record: &Record, anchors: &dyn Anchors) -> Result<FilePath, F
             CarrierRef::Surface(s) => space_of_surface(s.cast(), anchors),
             CarrierRef::Unknown(_) => r.id.cast(),
         }),
+        Record::CommittedRoute(r) => FilePath::layout(r.space.cast()),
         Record::Conflict(c) => conflict_file(c, anchors),
         Record::Unknown(value) => unknown_record_file(value).ok_or_else(|| no_file(record))?,
     };

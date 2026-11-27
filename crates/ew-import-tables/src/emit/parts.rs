@@ -334,6 +334,7 @@ pub(crate) fn emit(
                 csa_max: None,
                 max_conductors: None,
                 twin_ferrule: false,
+                face: None,
                 extra: Default::default(),
             });
         }

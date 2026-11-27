@@ -321,7 +321,7 @@ impl Kind {
             Kind::Carrier => ("carrier", Some(53), F::LayoutFile, I),
             Kind::Placement => ("placement", Some(54), F::LayoutFile, I),
             Kind::RouteOverride => ("route_override", Some(55), F::LayoutFile, R),
-            Kind::CommittedRoute => ("committed_route", Some(56), F::LayoutFile, R),
+            Kind::CommittedRoute => ("committed_route", Some(56), F::LayoutFile, I),
             Kind::RoutingPath => ("routing_path", Some(57), F::LayoutFile, R),
             Kind::SurfaceFeature => ("surface_feature", Some(58), F::LayoutFile, I),
             Kind::Revision => ("revision", Some(60), F::RootFile("revisions.jsonl"), I),

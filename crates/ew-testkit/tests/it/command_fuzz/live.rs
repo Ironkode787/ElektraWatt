@@ -413,6 +413,10 @@ fn all_ids(q: &Q) -> Vec<(&'static str, Value)> {
     ));
     out.extend(rows(Kind::Carrier, q.table::<ew_schema::Carrier>().ids()));
     out.extend(rows(Kind::Placement, q.table::<ew_schema::Placement>().ids()));
+    out.extend(rows(
+        Kind::CommittedRoute,
+        q.table::<ew_schema::CommittedRoute>().ids(),
+    ));
     out.extend(rows(Kind::Part, q.parts().ids()));
     out.extend(rows(Kind::Symbol, q.symbols().ids()));
     out.extend(rows(Kind::Fndef, q.fndefs().ids()));

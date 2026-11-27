@@ -80,6 +80,11 @@ pub struct WireSection {
     /// The conductor class of IEC 60228 (1, 2, 5, 6).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub class: Option<u8>,
+    /// The outer diameter over the insulation, which a duct's fill reads (doc 12 §8.6); absent: the table of
+    /// default diameters by cross-section.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub outer_diameter: Option<Nm>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

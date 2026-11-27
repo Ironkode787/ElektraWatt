@@ -1437,6 +1437,17 @@
           "$ref": "#/$defs/DeviceLabels",
           "description": "Where a device's label goes (doc 13 §5.3); absent: on the device."
         },
+        "door_loop": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The loop a wire into a door keeps across its hinge (doc 12 §9); absent: 300 mm."
+        },
         "duct_fixing": {
           "anyOf": [
             {
@@ -1451,6 +1462,16 @@
         "ferrules": {
           "$ref": "#/$defs/FerruleRule",
           "description": "Which fine-stranded ends take a ferrule (doc 13 §4.2); absent: every one but those into a spring or push-in\nclamp."
+        },
+        "fill_limit": {
+          "description": "The fill a duct's fullest piece may reach, in percent of its inner area (doc 12 §8.6); absent: 60.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "fixing": {
           "$ref": "#/$defs/FixingRule",
@@ -1500,6 +1521,17 @@
             }
           ],
           "description": "How a rail is fixed; absent: M5, at most 300 mm apart, 25 mm from each end."
+        },
+        "reserve": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "What the fitter adds to a routed wire at each end (doc 12 §9); absent: 50 mm."
         },
         "stock": {
           "description": "The wire, ferrule and marker parts the shop keeps, in its order of preference: a wire takes the first stock\nwire part of its size and colour, an end the first stock ferrule that fits it, a label kind the first stock\nmarker that marks it.",

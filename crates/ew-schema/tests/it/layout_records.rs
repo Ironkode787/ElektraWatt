@@ -11,7 +11,7 @@ use crate::common;
 use common::fill;
 use ew_schema::{
     AnchorRef, CarrierKind, CarrierParams, CarrierRef, FileRule, Kind, KindStatus, MountKind, Record,
-    SurfaceKind,
+    SurfaceKind, WayStep,
 };
 use ew_units::{Nm, Quat9};
 
@@ -32,6 +32,7 @@ fn the_layout_kinds_are_implemented_layout_file_kinds() {
         (Kind::MountingSurface, 52),
         (Kind::Carrier, 53),
         (Kind::Placement, 54),
+        (Kind::CommittedRoute, 56),
         (Kind::SurfaceFeature, 58),
     ] {
         assert_eq!(kind.status(), KindStatus::Implemented, "{kind}");
@@ -39,8 +40,8 @@ fn the_layout_kinds_are_implemented_layout_file_kinds() {
         assert_eq!(kind.schema_version(), 1);
         assert_eq!(kind.file_rule(), FileRule::LayoutFile);
     }
-    // The routing kinds stay reserved.
-    for kind in [Kind::RouteOverride, Kind::CommittedRoute, Kind::RoutingPath] {
+    // The other routing kinds stay reserved.
+    for kind in [Kind::RouteOverride, Kind::RoutingPath] {
         assert_eq!(kind.status(), KindStatus::Reserved, "{kind}");
     }
 }
@@ -264,4 +265,41 @@ fn a_record_written_while_reserved_reads_typed() {
             r#"{"$k":"placement","id":"@PL_G1","device":"@DEV_G1","carrier":{"carrier":"@CAR_R1"},"pose":{"t":[96000000,0,0],"q":[1000000000,0,0,0]}}"#
         )
     );
+}
+
+/// The stored way of a wire (doc 12 §8.5) round-trips byte for byte, a direct way with its empty steps; it lives in
+/// the layout file of its space; a step of a newer format and newer members are kept verbatim.
+#[test]
+fn a_committed_route_round_trips_and_keeps_what_it_does_not_know() {
+    let end = |fun: &str, at: &str| {
+        format!(r#"{{"cp":["@{fun}",1],"surface":"@SURF_PLATE","at":{at},"h":42500000}}"#)
+    };
+    let (a, b) = (
+        end("FN_F1", "[82200000,537500000]"),
+        end("FN_G1", "[419000000,622500000]"),
+    );
+    let line = |way: &str, run: &str| {
+        format!(
+            r#"{{"$k":"committed_route","id":"@ROUTE_W7","space":"@SPACE_JE2416","wire":"@CON_W7","ends":[{a},{b}],"way":{way},"run":{run}}}"#
+        )
+    };
+    let Record::CommittedRoute(r) = canonical(&line(
+        r#"[{"duct":{"carrier":"@CAR_D1","from":57200000,"to":394000000}},{"door":"@SURF_DOOR"}]"#,
+        "641800000",
+    )) else {
+        panic!("a committed route")
+    };
+    assert!(matches!(&r.way[..], [WayStep::Duct(d), WayStep::Door(_)] if d.to == Nm(394 * MM)));
+    assert_eq!((r.run, r.ends[1].h), (Nm(641_800_000), Nm(42_500_000)));
+    let id = fill("@SPACE_JE2416").parse::<ew_ids::Uuid>().unwrap();
+    assert_eq!(Record::CommittedRoute(r).anchor_ref(), AnchorRef::Direct(id));
+
+    let direct = canonical(&line("[]", "15000000"));
+    assert!(matches!(direct, Record::CommittedRoute(r) if r.way.is_empty()));
+
+    let later = line(r#"[{"hole":{"at":[1,2]}}]"#, r#"1,"bundle":3"#);
+    let Record::CommittedRoute(later) = canonical(&later) else {
+        panic!("a committed route")
+    };
+    assert!(matches!(&later.way[..], [WayStep::Unknown(_)]) && later.extra.contains_key("bundle"));
 }

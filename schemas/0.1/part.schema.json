@@ -730,6 +730,17 @@
           "$ref": "#/$defs/Ident",
           "description": "Designation."
         },
+        "face": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PinFace"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The edge of the part's footprint a wire leaves the pin at, in the part's frame (doc 12 §8.1); absent: where\nthe drawing shows it."
+        },
         "idx": {
           "description": "Index.",
           "format": "uint16",
@@ -2826,6 +2837,21 @@
       ],
       "type": "object"
     },
+    "PinFace": {
+      "description": "The edge of a part's footprint a pin is wired at ([`CpData::face`], doc 12 §8.1).",
+      "oneOf": [
+        {
+          "const": "top",
+          "description": "The top edge.",
+          "type": "string"
+        },
+        {
+          "const": "bottom",
+          "description": "The bottom edge.",
+          "type": "string"
+        }
+      ]
+    },
     "PinMap": {
       "anyOf": [
         {
@@ -3850,6 +3876,17 @@
         "csa": {
           "$ref": "#/$defs/Dec3",
           "description": "The cross-section in mm²."
+        },
+        "outer_diameter": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The outer diameter over the insulation, which a duct's fill reads (doc 12 §8.6); absent: the table of\ndefault diameters by cross-section."
         }
       },
       "required": [

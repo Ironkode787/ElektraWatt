@@ -93,6 +93,9 @@
       "$ref": "placement.schema.json"
     },
     {
+      "$ref": "committed_route.schema.json"
+    },
+    {
       "$ref": "surface_feature.schema.json"
     },
     {

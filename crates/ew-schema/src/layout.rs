@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 //! The panel layout records (doc 03 §16, doc 12 §2.2): `layout_space` (rank 50), `enclosure` (51),
-//! `mounting_surface` (52), `carrier` (53), `placement` (54) and `surface_feature` (58), all in
+//! `mounting_surface` (52), `carrier` (53), `placement` (54), `committed_route` (56) and
+//! `surface_feature` (58), all in
 //! `layout/<space>.jsonl`.
 //!
 //! Typed within the unreleased format 0.1 under ADR-0011 amendment 4: the kinds were reserved
@@ -447,4 +448,109 @@ pub enum CarrierRef {
     Unknown(Value),
 }
 
-open_enum!(SurfaceKind, Hinge, Corner, CarrierKind, CarrierParams, CarrierRef);
+// ---------------------------------------------------------------------------------------------------------
+// Committed route
+
+/// The stored way of one wire in its cabinet (doc 12 §8.5, doc 05 §2, rank 56, the layout file of its `space`):
+/// written only by Route (`layout.route`), ID `v5(wire, "route")` ([`ew_ids::v5::route_id`]). The way holds while
+/// its `ends` are the pins as they are now and its `run`, measured again along its `way` over today's ducts, is the
+/// run it stored (ADR-0003 amendment 4); the length is made from `run`, and no rounded length, reserve or fill is
+/// stored.
+///
+/// ```
+/// use ew_schema::{Record, WayStep};
+///
+/// let line = r#"{"$k":"committed_route","id":"0193a2c4-9b10-5e21-8c44-1d2e3f405162","space":"0193a2b0-41c2-7d0a-9f11-2a3b4c5d6e71","wire":"0192f1c4-5a10-7c3e-8b21-6f0d9a4e2b11","ends":[{"cp":["0192f1c4-5a10-7c3e-8b21-6f0d9a4e2b12",1],"surface":"0193a2b0-41c2-7d0a-9f11-2a3b4c5d6e72","at":[82200000,537500000],"h":42500000},{"cp":["0192f1c4-5a10-7c3e-8b21-6f0d9a4e2b13",0],"surface":"0193a2b0-41c2-7d0a-9f11-2a3b4c5d6e72","at":[419000000,622500000],"h":42500000}],"way":[{"duct":{"carrier":"0193a2b0-41c2-7d0a-9f11-2a3b4c5d6e73","from":57200000,"to":394000000}}],"run":641800000}"#;
+/// let record: Record = serde_json::from_str(line).unwrap();
+/// let Record::CommittedRoute(r) = &record else { panic!("a committed route") };
+/// assert!(matches!(r.way[..], [WayStep::Duct(_)]));
+/// assert_eq!(serde_json::to_string(&record).unwrap(), line);
+/// ```
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct CommittedRoute {
+    /// The record ID, `v5(wire, "route")`.
+    #[schemars(with = "UuidS")]
+    pub id: Id<CommittedRoute>,
+    /// Per-kind schema version `$v`, omitted when 1.
+    #[serde(rename = "$v", default = "v1", skip_serializing_if = "is_v1")]
+    pub v: u16,
+    /// The layout space whose cabinet the way runs in (delete policy cascade).
+    #[schemars(with = "UuidS")]
+    pub space: Id<LayoutSpace>,
+    /// The physical wire, by its carrier connection (doc 08 §3.8; delete policy cascade).
+    #[schemars(with = "UuidS")]
+    pub wire: Id<crate::Connection>,
+    /// The two ends, the wire's From end first.
+    pub ends: [RouteEnd; 2],
+    /// The steps of the way in order, from the first end; empty for a direct way.
+    #[serde(default)]
+    pub way: Vec<WayStep>,
+    /// The way's length as computed, before any reserve or loop is added or anything rounded.
+    #[schemars(with = "NmS")]
+    pub run: Nm,
+    /// Unknown members and plugin keys.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// One end of a [`CommittedRoute`]: the pin it was laid from, as it was.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct RouteEnd {
+    /// The connection point, in a connection endpoint's form `[function, idx]`.
+    #[schemars(with = "(UuidS, u16)")]
+    pub cp: (Id<Function>, u16),
+    /// The surface the pin was on.
+    #[schemars(with = "UuidS")]
+    pub surface: Id<MountingSurface>,
+    /// The pin's place in that surface's frame.
+    #[schemars(with = "SurfacePt2S")]
+    pub at: Pt2,
+    /// The pin's height above the surface.
+    #[schemars(with = "NmS")]
+    pub h: Nm,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// One step of a stored way: `{"duct": {carrier, from, to}}` or `{"door": surface}`.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "WayStep")]
+pub enum WayStep {
+    /// A stretch along a duct.
+    Duct(DuctStretch),
+    /// The crossing of a door's hinge onto that door.
+    Door(#[schemars(with = "UuidS")] Id<MountingSurface>),
+    /// A step of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// A stretch of a duct between two positions along its path (from its first vertex), in nanometres.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct DuctStretch {
+    /// The duct.
+    #[schemars(with = "UuidS")]
+    pub carrier: Id<Carrier>,
+    /// Where the wire enters it, along its path.
+    #[schemars(with = "NmS")]
+    pub from: Nm,
+    /// Where the wire leaves it, along its path.
+    #[schemars(with = "NmS")]
+    pub to: Nm,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+open_enum!(
+    SurfaceKind,
+    Hinge,
+    Corner,
+    CarrierKind,
+    CarrierParams,
+    CarrierRef,
+    WayStep
+);

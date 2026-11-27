@@ -269,9 +269,9 @@
       "file": "layout/<space>.jsonl",
       "kind": "committed_route",
       "rank": 56,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "committed_route.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "layout/<space>.jsonl",

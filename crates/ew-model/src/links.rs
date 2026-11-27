@@ -1008,6 +1008,17 @@ pub static LINKS: &[LinkDecl] = &[
         }
         Some(AnyRow::SurfaceFeature(Arc::new(f)))
     })),
+    // committed_route (doc 12 §8.5): the way goes with its space and with its wire. Load-tolerant: an older build
+    // keeps the kind verbatim and does not delete it, and this build reads a record whose wire or space is gone as
+    // none; the next Route removes it. Its ends and steps are the inputs it was laid from (NOT_LINKS).
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(CommittedRoute."space" -> LayoutSpace, Cascade, None, |v, out| id(v.space, out))
+    },
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(CommittedRoute."wire" -> Connection, Cascade, None, |v, out| id(v.wire, out))
+    },
     // revision (`page_notes[].page` is not a link: NOT_LINKS)
     link!(Revision."withdraws" -> Revision, Forbid, None, |v, out| opt(v.withdraws, out)),
     // The exchange snapshot of a configuration project goes with it; load-tolerant, because an older
@@ -1227,6 +1238,30 @@ const OWN_NOT_LINKS: &[(&str, &str, &str)] = &[
         "placement",
         "part.copy",
         "the part use a placement realises (no delete policy): a placement whose part use left its          device keeps naming the copy, which EW-LAY-003 reports and `part.assign` replace follows (D7); the copy          itself is kept alive by the device's part uses, never by the placement",
+    ),
+    (
+        "committed_route",
+        "ends[].cp[0]",
+        "the inputs a way was laid from, compared as they are now (ADR-0003 amendment 4): a pin that is gone stales \
+         the way, it never deletes it",
+    ),
+    (
+        "committed_route",
+        "ends[].surface",
+        "the inputs a way was laid from, compared as they are now (ADR-0003 amendment 4): a surface that is gone \
+         stales the way, it never deletes it",
+    ),
+    (
+        "committed_route",
+        "way[].duct.carrier",
+        "the inputs a way was laid from, compared as they are now (ADR-0003 amendment 4): a duct that is gone stales \
+         the way, it never deletes it",
+    ),
+    (
+        "committed_route",
+        "way[].door",
+        "the inputs a way was laid from, compared as they are now (ADR-0003 amendment 4): a door that is gone stales \
+         the way, it never deletes it",
     ),
     (
         "project",

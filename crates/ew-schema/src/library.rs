@@ -1712,9 +1712,28 @@ pub struct CpData {
     /// The clamp takes a twin ferrule.
     #[serde(default, skip_serializing_if = "is_false")]
     pub twin_ferrule: bool,
+    /// The edge of the part's footprint a wire leaves the pin at, in the part's frame (doc 12 §8.1); absent: where
+    /// the drawing shows it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub face: Option<PinFace>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+/// The edge of a part's footprint a pin is wired at ([`CpData::face`], doc 12 §8.1).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "PinFace")]
+pub enum PinFace {
+    /// The top edge.
+    Top,
+    /// The bottom edge.
+    Bottom,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// The kind of a CP's clamp (FR-PRT-008, doc 12 §2.5).
@@ -2833,6 +2852,7 @@ keyed!(PartVariant, key: Ident);
 
 open_enum!(
     Confidence,
+    PinFace,
     ItemStatus,
     Pen,
     Dash,

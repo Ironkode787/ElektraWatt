@@ -314,6 +314,7 @@ mod tests {
                 Kind::MountingSurface => $f::<ew_schema::MountingSurface>($($arg),*),
                 Kind::Carrier => $f::<ew_schema::Carrier>($($arg),*),
                 Kind::Placement => $f::<ew_schema::Placement>($($arg),*),
+                Kind::CommittedRoute => $f::<ew_schema::CommittedRoute>($($arg),*),
                 Kind::Revision => $f::<ew_schema::Revision>($($arg),*),
                 Kind::Waiver => $f::<ew_schema::Waiver>($($arg),*),
                 Kind::ExchangeRecord => $f::<ew_schema::ExchangeRecord>($($arg),*),
@@ -348,7 +349,7 @@ mod tests {
     const ABSENT: u128 = 0xdead;
 
     /// The kinds with a table, in the order of the `by_kind!` macro.
-    const TABLE_KINDS: [Kind; 35] = [
+    const TABLE_KINDS: [Kind; 36] = [
         Kind::PlcConfigProject,
         Kind::ImportLineage,
         Kind::StructureNode,
@@ -375,6 +376,7 @@ mod tests {
         Kind::MountingSurface,
         Kind::Carrier,
         Kind::Placement,
+        Kind::CommittedRoute,
         Kind::Revision,
         Kind::Waiver,
         Kind::ExchangeRecord,

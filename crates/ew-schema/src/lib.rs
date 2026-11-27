@@ -140,8 +140,9 @@ pub use kind::{
     PERSONAL_DATA_FIELDS, RELEASED_FORMATS, SCHEMA_VERSIONS, parse_format, parse_format_lenient,
 };
 pub use layout::{
-    Carrier, CarrierKind, CarrierParams, CarrierRef, Corner, DuctParams, Enclosure, Hinge, HoleChoice,
-    LayoutSpace, MountingSurface, Placement, RailParams, SurfaceFeature, SurfaceKind,
+    Carrier, CarrierKind, CarrierParams, CarrierRef, CommittedRoute, Corner, DuctParams, DuctStretch,
+    Enclosure, Hinge, HoleChoice, LayoutSpace, MountingSurface, Placement, RailParams, RouteEnd,
+    SurfaceFeature, SurfaceKind, WayStep,
 };
 pub use library::{
     AccessoryPer, Actuation, Actuator, Align, AlternativeKind, AlternativeRef, AnchorPolicy, ArcPrim,
@@ -152,7 +153,7 @@ pub use library::{
     HOUSE_ROW_HEIGHT, HOUSE_ROWS_PER_PAGE, ImagePrim, InternalKind, InternalLinkDef, ItemMeta, ItemStatus,
     LibCopy, LibItem, Library, LinePrim, MacroDef, MacroInstance, MacroKind, MacroLink, MacroVariant,
     Manufacturer, MechData, MountKind, NamedPoint, OrderUnit, Overflow, PLACEHOLDER_PART_NUMBER, Part,
-    PartAccessory, PartBox, PartBoxPin, PartHole, PartKind, PartVariant, PassThroughSpec, Pen,
+    PartAccessory, PartBox, PartBoxPin, PartHole, PartKind, PartVariant, PassThroughSpec, Pen, PinFace,
     PlaceholderGroup, PlcAllocation, PlcAllocationStart, PlcAreaMnemonics, PlcMnemonics, PlcParse,
     PlcProfileDef, PlcProfilePin, PlcRender, PlcSizeMnemonics, PolygonPrim, PolylinePrim, Primitive,
     RectPrim, RepType, Rgb, RowTemplate, RowTemplates, SheetSpec, SheetTransform, ShrinkSpec, Side,

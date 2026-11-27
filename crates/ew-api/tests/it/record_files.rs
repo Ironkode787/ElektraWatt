@@ -77,6 +77,19 @@ fn merge_resolve_the_writer_and_the_loader_put_every_record_in_one_file() {
         "$k": "structure_box", "id": "5a0c1e2d-3b4f-5a61-8000-000000000005", "page": page_id,
         "outline": [[0, 0], [10, 0], [10, 10], [0, 10]], "style": "dash_dot", "assigns": {}
     })));
+    // A stored way of a wire, in the layout file of its space (Route has not run on the sample).
+    let space = records
+        .iter()
+        .find_map(|r| match r {
+            Record::LayoutSpace(s) => Some(s.id.to_string()),
+            _ => None,
+        })
+        .expect("the sample's layout space");
+    let end = json!({"cp": [connection, 0], "surface": space, "at": [0, 0], "h": 0});
+    records.push(record(json!({
+        "$k": "committed_route", "id": "2d8f4b16-0a3e-5c97-b1d5-7e9a3c0f6b28", "space": space, "wire": connection,
+        "ends": [end, end], "way": [], "run": 0
+    })));
     // The window's bus tools make no physical net.
     records.push(record(json!({
         "$k": "physical_net", "id": "cc7f9a8a-c6fe-5687-aa61-ae25ef141801", "name": "DP", "medium": "copper"

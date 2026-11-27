@@ -10,10 +10,10 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_schema::{
-    AnyId, Bond, Carrier, Channel, Conductor, Conflict, Connection, Device, DeviceLink, Enclosure,
-    ExchangeRecord, ExternalRef, FnDef, ForeignId, FormDef, Function, ImportLineage, ImportRun, Junction,
-    Kind, LayoutSpace, LibCopy, LibDocument, LogicalNet, MacroDef, MacroInstance, Manufacturer, Medium,
-    MediumDef, MountingSurface, Page, PageItem, Part, PhysicalNet, Placement, PlcConfigProject,
+    AnyId, Bond, Carrier, Channel, CommittedRoute, Conductor, Conflict, Connection, Device, DeviceLink,
+    Enclosure, ExchangeRecord, ExternalRef, FnDef, ForeignId, FormDef, Function, ImportLineage, ImportRun,
+    Junction, Kind, LayoutSpace, LibCopy, LibDocument, LogicalNet, MacroDef, MacroInstance, Manufacturer,
+    Medium, MediumDef, MountingSurface, Page, PageItem, Part, PhysicalNet, Placement, PlcConfigProject,
     PlcProfileDef, PotentialDef, Project, Record, ReportBlock, Representation, Revision, Section,
     StructureBox, StructureNode, SurfaceFeature, SymbolDef, Waiver,
 };
@@ -389,6 +389,7 @@ entities! {
     MountingSurface: MountingSurface, MountingSurface, mounting_surfaces;
     Carrier: Carrier, Carrier, carriers;
     Placement: Placement, Placement, placements;
+    CommittedRoute: CommittedRoute, CommittedRoute, committed_routes;
     SurfaceFeature: SurfaceFeature, SurfaceFeature, surface_features;
     Revision: Revision, Revision, revisions;
     Waiver: Waiver, Waiver, waivers;

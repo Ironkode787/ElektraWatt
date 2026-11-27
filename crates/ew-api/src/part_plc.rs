@@ -558,6 +558,7 @@ pub(crate) fn plc_section(rows: &PlcRows) -> Option<(PlcSection, Vec<CpData>)> {
             csa_max: None,
             max_conductors: None,
             twin_ferrule: false,
+            face: None,
             extra: Default::default(),
         });
     };
