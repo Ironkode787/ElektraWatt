@@ -303,6 +303,27 @@ fn a_turned_strip_stales_its_wires_and_the_lists_say_so() {
     }
 }
 
+/// With 103.5 alone routed before -X1031 turns, its consumables row sums a stale length beside wires without one: the
+/// metres print after "≈" with the wires without a length beside them.
+#[test]
+fn a_sum_beside_wires_without_a_length_is_approximate_when_it_holds_a_stale_one() {
+    use ew_api::output::{RowExport, row_export};
+    let mut s = common::sample_without_ways();
+    let space = s.cabinet_of_folio("902").unwrap();
+    let w = wire(&s, "103.5");
+    run(&mut s, "layout.route", json!({"space": space, "wires": [w]})).expect("Route 103.5");
+    turn_x1031(&mut s);
+    let q = s.query();
+    let csv = row_export(&q, &RowExport::Kind("consumables".to_owned()), None)
+        .expect("consumables")
+        .csv;
+    assert!(
+        csv.lines()
+            .any(|l| l.contains(",≈ ") && l.contains(" wires without a length")),
+        "{csv}"
+    );
+}
+
 /// The findings of `rule` on the session.
 fn findings(s: &Session, rule: &str) -> Vec<ew_checks::Finding> {
     let q = s.query();

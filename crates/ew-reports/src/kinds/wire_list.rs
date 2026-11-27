@@ -269,7 +269,7 @@ fn length_cell(length: WireLength) -> Cell {
         WireLength::Typed(n) | WireLength::Routed { length: n, .. } | WireLength::Stale { length: n, .. } => {
             Cell::stale_if(
                 Cell::Qty(Dec3(n.0 / 1_000), QtyUnit::Unit(Unit::Mm)),
-                matches!(length, WireLength::Stale { .. }),
+                !length.exact(),
             )
         }
         WireLength::WithCable(_) => Cell::Text(ew_derive::text::in_languages(

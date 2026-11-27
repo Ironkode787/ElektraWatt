@@ -129,7 +129,7 @@ pub fn consumable_rows(q: &Q) -> Consumables {
                 }
             };
             row.wires += 1;
-            row.stale |= matches!(r.length, WireLength::Stale { .. });
+            row.stale |= !r.length.exact();
             match r.length.value() {
                 Some(n) => row.length = row.length.saturating_add(i128::from(n.0)),
                 None => row.without_length += 1,

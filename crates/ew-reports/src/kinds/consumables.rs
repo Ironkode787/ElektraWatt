@@ -18,7 +18,8 @@ use crate::words::selecting;
 ///
 /// - Wire: per wire part (else size and colour) the wires (For) and their summed lengths in metres exact to the
 ///   millimetre; with wires without a length "0.45 and 7 wires without a length", with none "length missing for 7
-///   wires".
+///   wires"; the metres after "≈" when a length of the sum is not exact (`WireLength::exact`), beside wires without a
+///   length too.
 /// - Ferrules and lugs: per part the ends it is crimped on (a twin ferrule once), For the wires' sizes ("2 × 0.75 mm²"
 ///   for a twin ferrule); ends the stock has no part for under their size, "no ferrule found".
 /// - Markers: per label set and marker part the labels, For the set ("Wire markers").
@@ -61,11 +62,16 @@ impl ReportKindDef for Consumables {
                     (missing, all) if missing == all => {
                         words_cell(&selecting(key!("cell-length-missing-for")).with("count", count(missing)))
                     }
-                    (missing, _) => measured_cell(
-                        q,
-                        &selecting(key!("cell-metres-and-missing"))
-                            .with("metres", metres.to_string())
-                            .with("count", count(missing)),
+                    // The metres of the wires with a length, after "≈" when one of them is not exact, and beside them
+                    // the wires without one.
+                    (missing, _) => Cell::stale_if(
+                        measured_cell(
+                            q,
+                            &selecting(key!("cell-metres-and-missing"))
+                                .with("metres", metres.to_string())
+                                .with("count", count(missing)),
+                        ),
+                        w.stale,
                     ),
                 };
                 cells(

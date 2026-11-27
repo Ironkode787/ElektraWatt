@@ -41,7 +41,9 @@ metres: it is cut on site. A cable's core is cut with its cable: its ends count,
 lists print them; the For cell says what it serves ("12 wires", "2.5 mm²", "Wire markers"). Nothing is rounded here:
 a wire's length is the wire list's, and an order quantity belongs to the order list. A length along a way that no
 longer holds ([12-3d](12-3d-routing-thermal.md) §8.5) is summed as the wire list prints it, and the row's metres print
-after "≈" while every wire of the row has a length and one of them is such a length.
+after "≈" when one of them is such a length, beside the wires without a length too ("≈ 0.45 and 6 wires without a
+length"). Whether a length is exact is asked in one place, the wire record's length, which the wire list's "≈" reads
+as well.
 
 ## 6. Terminal-strip assembly lists
 

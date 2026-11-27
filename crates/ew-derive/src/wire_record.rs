@@ -99,6 +99,13 @@ pub enum WireLength {
 }
 
 impl WireLength {
+    /// Whether the length is the one the wire is cut to (doc 12-3d §9): a length along a way that no longer holds is
+    /// not, and every list prints it, and a sum that holds it, after "≈"; a typed, routed or cable's length is, and so
+    /// is no length at all. The one home of that question for the wire list, the cut list and the consumables.
+    pub fn exact(self) -> bool {
+        !matches!(self, WireLength::Stale { .. })
+    }
+
     /// The length in nanometres, when there is one (a stale one too).
     pub fn value(self) -> Option<Nm> {
         match self {

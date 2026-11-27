@@ -282,7 +282,7 @@ fn wire_rows(q: &Q) -> Vec<CutRow> {
             ),
         };
         let entry = (key, r.length.value().map(|n| i128::from(n.0)));
-        let stale = matches!(r.length, WireLength::Stale { .. });
+        let stale = !r.length.exact();
         match groups.iter_mut().find(|g| g.0 == entry) {
             Some(g) => {
                 g.1 += 1;

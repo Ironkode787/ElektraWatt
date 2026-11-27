@@ -365,7 +365,8 @@ way"; "No way yet: Route on page 902 gives it one, or type its length here"; "No
 
 - the wire list ([13](13-manufacturing-outputs.md) §3.1): Length and Length from, a stale length with "≈";
 - the cut list's wires and the consumables' metres ([the workshop lists](13-workshop-lists.md) §3.6, §9.3): the
-  record's length as it is, a stale one with "≈", a sum that holds one with "≈";
+  record's length as it is, a stale one with "≈", a sum that holds one with "≈", and a sum beside wires without a
+  length says them ("≈ 0.45 and 6 wires without a length");
 - the rework list ([13](13-manufacturing-outputs.md) §3.5): Check length where a length changed since the release;
 - the check before an export for the workshop: the length and its source.
 
