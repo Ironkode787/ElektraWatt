@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-27T23:06:14Z\n"
+"POT-Creation-Date: 2026-11-27T23:38:29Z\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3481,11 +3481,12 @@ msgstr ""
 
 #: src/how-to/headless-workflow.md:253
 msgid ""
-"It prints one line per file with its count of labels, such as `SAMPLE-E Wire "
-"markers EW-GEN-MRK-1.xlsx`, and then the folder and the number of files. The "
-"files are in the project's label file form, Excel on the sample, with the "
-"columns Text 1, Text 2, Text 3, Copies and For; `--format csv` writes CSV "
-"files, and `--since <revision>` only the labels that changed since a release."
+"It prints one line per file with the number of labels to print, its copies "
+"counted, such as `SAMPLE-E Wire markers EW-GEN-MRK-1.xlsx`, and then the "
+"folder and the number of files. The files are in the project's label file "
+"form, Excel on the sample, with the columns Text 1, Text 2, Text 3, Copies "
+"and For; `--format csv` writes CSV files, and `--since <revision>` only the "
+"labels that changed since a release."
 msgstr ""
 
 #: src/how-to/headless-workflow.md:258
@@ -3519,20 +3520,21 @@ msgid ""
 "V1.0: not released\". The ZIP holds `Contents.txt`, the drawings as one PDF, "
 "the folders `Lists`, `Labels` and `Drilling`, and `manifest.json` with a "
 "SHA-256 of each file. Its `Contents.txt` names the wires without a length, "
-"on the sample those with an end made on site; a wire without a length stops "
-"nothing. `--leave-out labels` leaves a member out (the members are `pages`, "
-"`wire_list`, `assembly_list`, `cut_list`, `consumables`, `hole_table`, "
-"`labels` and `drilling`), and `--omit-personal-data` leaves out the name and "
-"the address of each party marked as personal data. A package of a released "
-"revision is refused, with exit code 2, while an error of the release check "
-"stands."
+"on the sample those with an end made on site, and what the files lack of the "
+"workshop stock and of its parts' data, such as a size no wire part of the "
+"stock matches; neither stops anything. `--leave-out labels` leaves a member "
+"out (the members are `pages`, `wire_list`, `assembly_list`, `cut_list`, "
+"`consumables`, `hole_table`, `labels` and `drilling`), and "
+"`--omit-personal-data` leaves out the name and the address of each party "
+"marked as personal data. A package of a released revision is refused, with "
+"exit code 2, while an error of the release check stands."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:290
+#: src/how-to/headless-workflow.md:291
 msgid "What you have done"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:292
+#: src/how-to/headless-workflow.md:293
 msgid ""
 "You checked a project and read the exit code, wrote its pages as PDF and "
 "SVG, exported a cable list and a bill of materials, queried the project in "
@@ -3542,24 +3544,24 @@ msgid ""
 "locking it and never need a display."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:297
+#: src/how-to/headless-workflow.md:298
 msgid "Where to go next"
 msgstr ""
 
-#: src/how-to/headless-workflow.md:299
+#: src/how-to/headless-workflow.md:300
 msgid ""
 "The [command reference](../reference/commands/index.md) lists the commands "
 "that change a project, and the [rule reference](../reference/rules/index.md) "
 "the rules that `ew check` runs."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:301
+#: src/how-to/headless-workflow.md:302
 msgid ""
 "More [how-to guides](index.md) for single tasks, such as checking a project "
 "in a CI job, will follow this one."
 msgstr ""
 
-#: src/how-to/headless-workflow.md:302
+#: src/how-to/headless-workflow.md:303
 msgid ""
 "The [explanation](../explanation/index.md) section links the design of the "
 "model and of the check engine."
@@ -4069,15 +4071,22 @@ msgstr ""
 msgid ""
 "To move one of these holes, type another place into its row: the chip then "
 "says \"moved\", and **Reset** puts the hole back. Tick **Leave out** below a "
-"hole you do not make; it is then drawn and listed nowhere. Your shop's way "
-"of fixing is set once in Project properties ▸ Workshop (Fixing holes, Rail "
-"fixing, Duct fixing, Web between holes, Measured from). When a new Rail "
+"hole you do not make; it is then drawn and listed nowhere."
+msgstr ""
+
+#: src/how-to/cabinet-surfaces.md:38
+msgid ""
+"Your shop's way of making holes is set once, in **Project properties ▸ "
+"Workshop**: **Fixing holes** (Tapped, Self-tapping screws, or Through, with "
+"a nut), **Rail fixing** and **Duct fixing** (the screw, at most how far "
+"apart and how far from each end), **Web between holes** and **Measured "
+"from**, the corner every surface's holes are measured from. When a new Rail "
 "fixing or Duct fixing puts a rail's or a duct's holes elsewhere, a hole you "
 "moved or left out there is reset, and the card of the change says how many "
 "and on which rails and ducts before you apply it."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:42
+#: src/how-to/cabinet-surfaces.md:44
 msgid ""
 "To add a hole of your own, right-click the surface where it goes and choose "
 "**Add hole here…**. The form \"Add a hole to -UC1 door\" asks for the "
@@ -4089,29 +4098,29 @@ msgid ""
 "cut-out, M12 to M63 for a gland, width × height for a rectangle.\""
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:47
+#: src/how-to/cabinet-surfaces.md:49
 msgid ""
 "A hole of your own is dragged with Select, its rows are Kind, Size, X, Y and "
 "For in Properties, and `Delete` removes it."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:49
+#: src/how-to/cabinet-surfaces.md:51
 msgid ""
 "Choose **Check ▸ Check project**. **Holes too close** (EW-LAY-012) names "
 "both holes and how far apart they are, such as \"… is 3 mm from … on …: keep "
 "at least 5 mm between holes\", a hole inside a door's edge margin (\"… lies "
 "12 mm from the edge of …, inside its 30 mm margin and the 5 mm web; move it "
-"inward\"), and a hole off the sheet. Move one of the holes. **Holes not "
-"known** (EW-LAY-017) names a part in a cut-out that has no holes: **Edit "
-"part…** opens it in Parts, where you give it its holes under **In the "
-"cabinet** ([Make your own parts](own-parts.md))."
+"inward\"), and a hole off the sheet. Move one of the holes, or set the web "
+"your shop keeps (step 7). **Holes not known** (EW-LAY-017) names a part in a "
+"cut-out that has no holes: **Edit part…** opens it in Parts, where you give "
+"it its holes under **In the cabinet** ([Make your own parts](own-parts.md))."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:55
+#: src/how-to/cabinet-surfaces.md:58
 msgid "Cable glands"
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:57
+#: src/how-to/cabinet-surfaces.md:60
 msgid ""
 "A cable that leaves the cabinet, such as the supply cable or a motor cable, "
 "brings its cable gland, chosen from the workshop stock by the cable's outer "
@@ -4119,7 +4128,7 @@ msgid ""
 "the button **Bottom**, which goes to the bottom's page."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:60
+#: src/how-to/cabinet-surfaces.md:63
 msgid ""
 "On the bottom's page the HUD offers **Place cable glands**, which places "
 "every gland that waits in a row. Or drag them from Unplaced devices, where "
@@ -4130,7 +4139,7 @@ msgid ""
 "it."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:65
+#: src/how-to/cabinet-surfaces.md:68
 msgid ""
 "Select the cable: in Properties, under its part, **Gland** names the gland "
 "part with the chip \"proposed for 12.5 mm\", and **Gland hole** names its "
@@ -4139,7 +4148,7 @@ msgid ""
 "proposal back."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:68
+#: src/how-to/cabinet-surfaces.md:71
 msgid ""
 "Check project names a gland that waits (**Cable gland**, EW-LAY-018, an "
 "error when you release) with **Place on the bottom**. A cable whose gland "
@@ -4149,11 +4158,11 @@ msgid ""
 "choose **Keep it as a hole**."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:73
+#: src/how-to/cabinet-surfaces.md:76
 msgid "The hole table"
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:75
+#: src/how-to/cabinet-surfaces.md:78
 msgid ""
 "Choose **Output ▸ Workshop ▸ Hole tables**. The hole table page lists every "
 "hole and cut-out of each surface, surface by surface, numbered in the order "
@@ -4163,7 +4172,7 @@ msgid ""
 "for. A project without a hole table opens **Report block…** on it."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:80
+#: src/how-to/cabinet-surfaces.md:83
 msgid ""
 "The drawings for drilling, the template to print at full size and the DXF, "
 "are in [Export the labels, the drilling drawings and the "
@@ -4229,28 +4238,36 @@ msgstr ""
 
 #: src/how-to/route-wires.md:25
 msgid ""
-"**Made on site**: each wire with an end outside the cabinet, such as \"its "
-"end … is in +FLD\";"
+"**Made on site**: each wire with an end outside the cabinet, in the field or "
+"in another cabinet, such as \"its end … is in +FLD\";"
 msgstr ""
 
-#: src/how-to/route-wires.md:26
+#: src/how-to/route-wires.md:27
 msgid ""
 "**Without a way**: each wire Route cannot lay, with what to do, such as "
 "\"-102S1 is not placed: place it, then route again\" or \"… meets no duct: "
-"draw a duct above or below …, or type the length\";"
+"draw a duct above or below …, or type the length\". An unfinished wire "
+"stands here too, with its reason: \"its end at the interruption point … is "
+"open: give the point its partner, or type the length\", or \"its end … is on "
+"a device without a location: give the device its location, then route "
+"again\";"
 msgstr ""
 
-#: src/how-to/route-wires.md:28
+#: src/how-to/route-wires.md:31
 msgid ""
 "the tick **Route every wire again**, which plans the wires whose ways hold "
 "as well."
 msgstr ""
 
-#: src/how-to/route-wires.md:30
-msgid "Point at a row, or select it, to see that wire's way alone."
+#: src/how-to/route-wires.md:33
+msgid ""
+"Point at a row, or select it, to see that wire's way alone. Where the "
+"cabinet holds stored ways of wires it no longer lays (a wire deleted, or no "
+"longer the cabinet's), the card names them before you apply: \"… ways of "
+"wires +CAB no longer lays are removed: …\"."
 msgstr ""
 
-#: src/how-to/route-wires.md:31
+#: src/how-to/route-wires.md:36
 msgid ""
 "Choose **Apply**: every way is stored in one step of Undo, and the toast "
 "says \"Routed 41 wires of +CAB.\". **Cancel** leaves the project as it was. "
@@ -4258,11 +4275,11 @@ msgid ""
 "has its way.\" and its card plans them all again."
 msgstr ""
 
-#: src/how-to/route-wires.md:35
+#: src/how-to/route-wires.md:40
 msgid "See a wire's way and its length"
 msgstr ""
 
-#: src/how-to/route-wires.md:37
+#: src/how-to/route-wires.md:42
 msgid ""
 "Show **View ▸ Panels ▸ Navigators ▸ Connections** and choose its **Table** "
 "button. The Length column holds each wire's length, and Length from says "
@@ -4270,14 +4287,14 @@ msgid ""
 "cable), stale, missing, or site."
 msgstr ""
 
-#: src/how-to/route-wires.md:40
+#: src/how-to/route-wires.md:45
 msgid ""
 "Select a wire's row: the plate's page shows its way, a line from pin to pin "
 "with a chip of its number and length, and for a wire into the door, such as "
 "104.3, \"to -104E1 in the door\"."
 msgstr ""
 
-#: src/how-to/route-wires.md:42
+#: src/how-to/route-wires.md:47
 msgid ""
 "The wire's Properties show **Length** with the words of where it comes from, "
 "such as \"Routed: … of way, 50 mm reserve at each end and a 300 mm door "
@@ -4286,11 +4303,11 @@ msgid ""
 "on 902**."
 msgstr ""
 
-#: src/how-to/route-wires.md:46
+#: src/how-to/route-wires.md:51
 msgid "The duct fill"
 msgstr ""
 
-#: src/how-to/route-wires.md:48
+#: src/how-to/route-wires.md:53
 msgid ""
 "Select a duct: its Properties show its **Fill**, such as \"8 % where fullest "
 "· the limit is 60 %\", with \"with default diameters (unverified)\" where "
@@ -4298,7 +4315,7 @@ msgid ""
 "them**."
 msgstr ""
 
-#: src/how-to/route-wires.md:51
+#: src/how-to/route-wires.md:56
 msgid ""
 "Route lays a wire another way where a duct is full, if there is one. A duct "
 "over the limit is reported by **Check ▸ Check project** (EW-LAY-008), such "
@@ -4306,11 +4323,11 @@ msgid ""
 "widen it or add a duct\"."
 msgstr ""
 
-#: src/how-to/route-wires.md:55
+#: src/how-to/route-wires.md:60
 msgid "The reserve, the door loop and the fill limit"
 msgstr ""
 
-#: src/how-to/route-wires.md:57
+#: src/how-to/route-wires.md:62
 msgid ""
 "Choose **Output ▸ Workshop ▸ Workshop settings**. Among the Workshop rows "
 "are **Reserve per end** (50 mm when empty), **Door loop** (300 mm), **Duct "
@@ -4319,18 +4336,19 @@ msgid ""
 "need not route again."
 msgstr ""
 
-#: src/how-to/route-wires.md:61
+#: src/how-to/route-wires.md:66
 msgid "A wire made on site, and a length typed by hand"
 msgstr ""
 
-#: src/how-to/route-wires.md:63
+#: src/how-to/route-wires.md:68
 msgid ""
 "A wire with an end outside the cabinet, such as 104.4 to the sensor "
-"+FLD-104B1, is made on site: Route gives it no way, the wire list prints "
-"\"—\" with Length from \"site\", and the fitter makes the cabinet's end."
+"+FLD-104B1, or a wire between two cabinets, is made on site: Route gives it "
+"no way, the wire list prints \"—\" with Length from \"site\", and the fitter "
+"makes the end in this cabinet."
 msgstr ""
 
-#: src/how-to/route-wires.md:65
+#: src/how-to/route-wires.md:71
 msgid ""
 "To give a wire a length of your own, type it into its Length cell in the "
 "Connections table, or into the Length row of its Properties, in millimetres "
@@ -4340,11 +4358,11 @@ msgid ""
 "take Route's length."
 msgstr ""
 
-#: src/how-to/route-wires.md:70
+#: src/how-to/route-wires.md:76
 msgid "After a device moves"
 msgstr ""
 
-#: src/how-to/route-wires.md:72
+#: src/how-to/route-wires.md:78
 msgid ""
 "Move or turn a device on the plate, or change a duct: the ways of its wires "
 "no longer hold. The toast says so, such as \"Moved -X1031. The ways of 5 "
@@ -4353,7 +4371,7 @@ msgid ""
 "project reports it (EW-LAY-011, an error when you release)."
 msgstr ""
 
-#: src/how-to/route-wires.md:76
+#: src/how-to/route-wires.md:82
 msgid ""
 "A way that no longer holds is **stale**. Its wire keeps its length, which "
 "the lists print after \"≈\", and Length from says \"stale\". Choose "
@@ -4361,7 +4379,7 @@ msgid ""
 "their lengths fresh again."
 msgstr ""
 
-#: src/how-to/route-wires.md:80
+#: src/how-to/route-wires.md:86
 msgid ""
 "The rules are in the [rule reference](../reference/rules/ew-layout.md): "
 "EW-LAY-008, EW-LAY-011 and, for the wires without a length, "
@@ -4447,26 +4465,27 @@ msgstr ""
 
 #: src/how-to/workshop-lists.md:35
 msgid ""
-"The ferrules, the wire parts and the markers these lists name come from the "
-"**workshop stock**, the parts your shop keeps, in the order you prefer them. "
-"Choose **Project ▸ Edit stock…** to see and change it: **Add** a part by its "
-"number, **Up**, **Down** and **Remove** to order it, **Add the generic "
-"stock** for the starter's ferrules and markers. A part of your own for the "
-"stock is made in Parts ([Make your own parts](own-parts.md))."
+"The wire parts, the ferrules, the markers and the glands these lists name "
+"come from the **workshop stock**, the parts your shop keeps, in the order "
+"you prefer them. Choose **Project ▸ Edit stock…**: Parts opens on the "
+"project's stock, kind by kind. On a stock part's sheet, **Up**, **Down** and "
+"**Take out** change it; another wire, ferrule, marker or gland part has "
+"**Add to the stock**. How, and how to keep the stock for new projects, is in "
+"[Choose parts](choose-parts.md#the-workshop-stock)."
 msgstr ""
 
-#: src/how-to/workshop-lists.md:39
+#: src/how-to/workshop-lists.md:40
 msgid ""
 "The rows of the workshop settings are under **Output ▸ Workshop ▸ Workshop "
-"settings**: Marker text, Ferrules, Two wires in one clamp and the others. A "
-"change shows in the lists at once."
+"settings**: Cut to, Marker text, Ferrules, Two wires in one clamp and the "
+"others. A change shows in the lists at once."
 msgstr ""
 
-#: src/how-to/workshop-lists.md:42
+#: src/how-to/workshop-lists.md:43
 msgid "The rework list after a release"
 msgstr ""
 
-#: src/how-to/workshop-lists.md:44
+#: src/how-to/workshop-lists.md:45
 msgid ""
 "After a release, a change to the project is work in the built cabinet. "
 "Choose **Output ▸ Workshop ▸ Rework list…**. It compares the project as it "
@@ -4475,7 +4494,7 @@ msgid ""
 "archive file."
 msgstr ""
 
-#: src/how-to/workshop-lists.md:47
+#: src/how-to/workshop-lists.md:48
 msgid ""
 "A line counts the work, then one row per thing the fitter does, in the order "
 "he does it: Pull, Replace, Move end, Re-make end, Check length, Re-mark, "
@@ -4484,7 +4503,7 @@ msgid ""
 "route, and a new wire number.\""
 msgstr ""
 
-#: src/how-to/workshop-lists.md:50
+#: src/how-to/workshop-lists.md:51
 msgid ""
 "**Export…** writes the rework list as an Excel file or a CSV; **Labels for "
 "these changes…** opens Labels… on the labels the list names. A project "
@@ -4493,11 +4512,11 @@ msgid ""
 "an archive file.\""
 msgstr ""
 
-#: src/how-to/workshop-lists.md:54
+#: src/how-to/workshop-lists.md:55
 msgid "Print the lists, or hand them over as files"
 msgstr ""
 
-#: src/how-to/workshop-lists.md:56
+#: src/how-to/workshop-lists.md:57
 msgid ""
 "To print a list, choose **Output ▸ Print…**, set **Range** to **Pages** and "
 "type the list's folios, such as `907-907.2`; or open the list's page and "
@@ -4505,16 +4524,20 @@ msgid ""
 "them."
 msgstr ""
 
-#: src/how-to/workshop-lists.md:59
+#: src/how-to/workshop-lists.md:60
 msgid ""
-"To hand the lists over as files, write the package: it holds each workshop "
-"list as an Excel file ([Export the labels, the drilling drawings and the "
-"package](workshop-package.md)). On the command line, `ew export wires` and "
-"`ew export report` write one list as CSV or Excel ([Use the command line on "
-"the sample project](headless-workflow.md))."
+"To hand one list over as a file, open its page and choose **Output ▸ "
+"Workshop ▸ Export list…** (also in the menu of the list's page). It writes "
+"the list on show as an Excel file in the project's language, or, for a file "
+"name that ends in `.csv`, a CSV in English for a program. A size or a length "
+"is a number under a heading that carries its unit, such as \"Length mm\". "
+"The package holds every workshop list as an Excel file ([Export the labels, "
+"the drilling drawings and the package](workshop-package.md)), and on the "
+"command line `ew export wires` and `ew export report` write one list ([Use "
+"the command line on the sample project](headless-workflow.md))."
 msgstr ""
 
-#: src/how-to/workshop-lists.md:64
+#: src/how-to/workshop-lists.md:68
 msgid ""
 "What each command does is in the [command bar "
 "reference](../reference/window/command-bar.md#output)."
@@ -4545,9 +4568,9 @@ msgid ""
 "Choose **Output ▸ Workshop ▸ Labels…**. The dialog lists one file per label "
 "set and marker part (Wire markers, Terminal markers, Strip markers, Cable "
 "markers, Device labels, Tube markers, Plates), each with its marker part, "
-"its count of labels and a tick. A file is named by the drawing number, the "
-"label set and the marker part, such as `SAMPLE-E Wire markers "
-"EW-GEN-MRK-1.xlsx`."
+"the number of labels to print (their copies counted) and a tick. A file is "
+"named by the drawing number, the label set and the marker part, such as "
+"`SAMPLE-E Wire markers EW-GEN-MRK-1.xlsx`."
 msgstr ""
 
 #: src/how-to/workshop-package.md:16
@@ -4629,8 +4652,9 @@ msgid ""
 "the drawings for drilling, each ticked and with what it holds, such as \"54 "
 "wires, 2 bridges\". Untick what the shop does not need. A member without "
 "content has no tick, such as the drawings for drilling of a cabinet without "
-"holes. A line says what a member lacks, such as a marker part for cables in "
-"the workshop stock, with **Workshop stock…**; **Change…** changes the label "
+"holes. A line says what a member lacks of a part or of the workshop stock, "
+"such as a marker part for cables or a ring lug for a size, with **Workshop "
+"stock…**, which opens the stock in Parts; **Change…** changes the label "
 "file's form."
 msgstr ""
 
@@ -4685,11 +4709,12 @@ msgstr ""
 #: src/how-to/workshop-package.md:69
 msgid ""
 "At the top, `Contents.txt`, which says the revision, whether it is a draft, "
-"what the release check found, which wires have no length and why, and what "
-"each file is; and the drawings as one PDF, every page in page order."
+"what the release check found, which wires have no length and why, what the "
+"files lack of the workshop stock and of its parts' data, and what each file "
+"is; and the drawings as one PDF, every page in page order."
 msgstr ""
 
-#: src/how-to/workshop-package.md:71
+#: src/how-to/workshop-package.md:72
 msgid ""
 "In `Lists`, each workshop list as an Excel file; in `Labels`, the label "
 "files; in `Drilling`, the template and the DXF of each surface with holes; "
@@ -4697,7 +4722,7 @@ msgid ""
 "file."
 msgstr ""
 
-#: src/how-to/workshop-package.md:74
+#: src/how-to/workshop-package.md:75
 msgid ""
 "The same three exports run on the command line: `ew export labels`, `ew "
 "export drilling` and `ew export package` ([Use the command line on the "

@@ -11,7 +11,7 @@ holes of the cabinet's surfaces ([Place devices in the door, and make holes and 
 
 1. Choose **Output ▸ Workshop ▸ Labels…**. The dialog lists one file per label set and marker part (Wire markers,
    Terminal markers, Strip markers, Cable markers, Device labels, Tube markers, Plates), each with its marker part,
-   its count of labels and a tick. A file is named by the drawing number, the label set and the marker part, such as
+   the number of labels to print (their copies counted) and a tick. A file is named by the drawing number, the label set and the marker part, such as
    `SAMPLE-E Wire markers EW-GEN-MRK-1.xlsx`.
 2. Under **Labels**, choose **Every label**, or, after a release, only those changed since it (**Changed since
    V1.0**).
@@ -44,8 +44,8 @@ holes of the cabinet's surfaces ([Place devices in the door, and make holes and 
 10. On the left, **What goes in**: the drawings, the wire list, the assembly lists, the cut list, the consumables, the
     hole table, the label files and the drawings for drilling, each ticked and with what it holds, such as "54 wires,
     2 bridges". Untick what the shop does not need. A member without content has no tick, such as the drawings for
-    drilling of a cabinet without holes. A line says what a member lacks, such as a marker part for cables in the
-    workshop stock, with **Workshop stock…**; **Change…** changes the label file's form.
+    drilling of a cabinet without holes. A line says what a member lacks of a part or of the workshop stock, such as
+    a marker part for cables or a ring lug for a size, with **Workshop stock…**, which opens the stock in Parts; **Change…** changes the label file's form.
 11. On the right, always in view, **Before it goes to the workshop** shows the release check: "Ready: nothing stands
     in the way.", or what stands, such as "3 things: 1 stops a release, 2 are warnings.". An error stops only a package
     of a released revision; a warning or an info is shown and stops nothing. **Show** lists a finding's wires or
@@ -67,7 +67,8 @@ holes of the cabinet's surfaces ([Place devices in the door, and make holes and 
 ## What the shop finds in the ZIP
 
 16. At the top, `Contents.txt`, which says the revision, whether it is a draft, what the release check found, which
-    wires have no length and why, and what each file is; and the drawings as one PDF, every page in page order.
+    wires have no length and why, what the files lack of the workshop stock and of its parts' data, and what each
+    file is; and the drawings as one PDF, every page in page order.
 17. In `Lists`, each workshop list as an Excel file; in `Labels`, the label files; in `Drilling`, the template and the
     DXF of each surface with holes; and `manifest.json`, the same list for a program, with a SHA-256 of each file.
 

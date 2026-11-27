@@ -250,7 +250,7 @@ After a release, `--since <revision>` names the release to compare with, and `--
 $ ew export labels fixtures/sample/sample.ew --dir out/labels
 ```
 
-It prints one line per file with its count of labels, such as `SAMPLE-E Wire markers EW-GEN-MRK-1.xlsx`, and then
+It prints one line per file with the number of labels to print, its copies counted, such as `SAMPLE-E Wire markers EW-GEN-MRK-1.xlsx`, and then
 the folder and the number of files. The files are in the project's label file form, Excel on the sample, with the
 columns Text 1, Text 2, Text 3, Copies and For; `--format csv` writes CSV files, and `--since <revision>` only the
 labels that changed since a release.
@@ -282,7 +282,8 @@ It prints each finding of the release check (the sample has none) and then a lin
 with its number of files: the sample's revision V1.0 is open, so every page of its drawings says "Draft V1.0: not
 released". The ZIP holds `Contents.txt`, the drawings as one PDF, the folders `Lists`, `Labels` and `Drilling`, and
 `manifest.json` with a SHA-256 of each file. Its `Contents.txt` names the wires without a length, on the sample those
-with an end made on site; a wire without a length stops nothing. `--leave-out labels` leaves a member out (the members are
+with an end made on site, and what the files lack of the workshop stock and of its parts' data, such as a size no
+wire part of the stock matches; neither stops anything. `--leave-out labels` leaves a member out (the members are
 `pages`, `wire_list`, `assembly_list`, `cut_list`, `consumables`, `hole_table`, `labels` and `drilling`), and
 `--omit-personal-data` leaves out the name and the address of each party marked as personal data. A package of a
 released revision is refused, with exit code 2, while an error of the release check stands.

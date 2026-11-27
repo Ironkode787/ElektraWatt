@@ -22,12 +22,17 @@ You need the cabinet's panel layout page with its devices placed and its ducts d
    - **Lengths**: each wire with its ends and its length;
    - **Typed by hand**: each wire that keeps the length typed for it, such as 101.1 with "keeps 400 mm; Route gives
      …";
-   - **Made on site**: each wire with an end outside the cabinet, such as "its end … is in +FLD";
+   - **Made on site**: each wire with an end outside the cabinet, in the field or in another cabinet, such as "its
+     end … is in +FLD";
    - **Without a way**: each wire Route cannot lay, with what to do, such as "-102S1 is not placed: place it, then
-     route again" or "… meets no duct: draw a duct above or below …, or type the length";
+     route again" or "… meets no duct: draw a duct above or below …, or type the length". An unfinished wire stands
+     here too, with its reason: "its end at the interruption point … is open: give the point its partner, or type the
+     length", or "its end … is on a device without a location: give the device its location, then route again";
    - the tick **Route every wire again**, which plans the wires whose ways hold as well.
 
-   Point at a row, or select it, to see that wire's way alone.
+   Point at a row, or select it, to see that wire's way alone. Where the cabinet holds stored ways of wires it no
+   longer lays (a wire deleted, or no longer the cabinet's), the card names them before you apply: "… ways of wires
+   +CAB no longer lays are removed: …".
 3. Choose **Apply**: every way is stored in one step of Undo, and the toast says "Routed 41 wires of +CAB.".
    **Cancel** leaves the project as it was. On a cabinet whose every wire has its way, Route says "Every wire of +CAB
    has its way." and its card plans them all again.
@@ -60,8 +65,9 @@ You need the cabinet's panel layout page with its devices placed and its ducts d
 
 ## A wire made on site, and a length typed by hand
 
-10. A wire with an end outside the cabinet, such as 104.4 to the sensor +FLD-104B1, is made on site: Route gives it no
-    way, the wire list prints "—" with Length from "site", and the fitter makes the cabinet's end.
+10. A wire with an end outside the cabinet, such as 104.4 to the sensor +FLD-104B1, or a wire between two cabinets,
+    is made on site: Route gives it no way, the wire list prints "—" with Length from "site", and the fitter makes the
+    end in this cabinet.
 11. To give a wire a length of your own, type it into its Length cell in the Connections table, or into the Length
     row of its Properties, in millimetres or with its unit ("2 m"). Length from then says "typed". Route still lays
     the wire, so that its duct counts it, and its Properties say "Typed by hand. Route gives it …: clear the length

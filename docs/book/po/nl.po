@@ -89,7 +89,7 @@ msgstr ""
 
 #: src/SUMMARY.md:27 src/how-to/panel-layout.md:1
 msgid "Draw a panel layout"
-msgstr ""
+msgstr "Een paneellayout tekenen"
 
 #: src/SUMMARY.md:28 src/how-to/cabinet-surfaces.md:1
 msgid "Place devices in the door, and make holes and cable glands"
@@ -113,7 +113,7 @@ msgstr ""
 
 #: src/SUMMARY.md:33 src/how-to/own-parts.md:1
 msgid "Make your own parts"
-msgstr ""
+msgstr "Eigen artikelen maken"
 
 #: src/SUMMARY.md:34 src/how-to/fluid-workspace.md:1
 msgid "Work in the Fluid workspace"
@@ -4483,18 +4483,19 @@ msgstr ""
 
 #: src/how-to/headless-workflow.md:253
 msgid ""
-"It prints one line per file with its count of labels, such as `SAMPLE-E Wire "
-"markers EW-GEN-MRK-1.xlsx`, and then the folder and the number of files. The "
-"files are in the project's label file form, Excel on the sample, with the "
-"columns Text 1, Text 2, Text 3, Copies and For; `--format csv` writes CSV "
-"files, and `--since <revision>` only the labels that changed since a release."
+"It prints one line per file with the number of labels to print, its copies "
+"counted, such as `SAMPLE-E Wire markers EW-GEN-MRK-1.xlsx`, and then the "
+"folder and the number of files. The files are in the project's label file "
+"form, Excel on the sample, with the columns Text 1, Text 2, Text 3, Copies "
+"and For; `--format csv` writes CSV files, and `--since <revision>` only the "
+"labels that changed since a release."
 msgstr ""
-"Het drukt per bestand een regel af met het aantal labels, zoals `SAMPLE-E "
-"Wire markers EW-GEN-MRK-1.xlsx`, en daarna de map en het aantal bestanden. "
-"De bestanden hebben de vorm van het labelbestand van het project, Excel bij "
-"het voorbeeld, met de kolommen Text 1, Text 2, Text 3, Copies en For; "
-"`--format csv` schrijft CSV-bestanden, en `--since <revision>` alleen de "
-"labels die sinds een vrijgave zijn gewijzigd."
+"Het drukt per bestand een regel af met het aantal labels om af te drukken, "
+"de kopieën meegeteld, zoals `SAMPLE-E Wire markers EW-GEN-MRK-1.xlsx`, en "
+"daarna de map en het aantal bestanden. De bestanden hebben de vorm van het "
+"labelbestand van het project, Excel bij het voorbeeld, met de kolommen Text "
+"1, Text 2, Text 3, Copies en For; `--format csv` schrijft CSV-bestanden, en "
+"`--since <revision>` alleen de labels die sinds een vrijgave zijn gewijzigd."
 
 #: src/how-to/headless-workflow.md:258
 msgid ""
@@ -4534,13 +4535,14 @@ msgid ""
 "V1.0: not released\". The ZIP holds `Contents.txt`, the drawings as one PDF, "
 "the folders `Lists`, `Labels` and `Drilling`, and `manifest.json` with a "
 "SHA-256 of each file. Its `Contents.txt` names the wires without a length, "
-"on the sample those with an end made on site; a wire without a length stops "
-"nothing. `--leave-out labels` leaves a member out (the members are `pages`, "
-"`wire_list`, `assembly_list`, `cut_list`, `consumables`, `hole_table`, "
-"`labels` and `drilling`), and `--omit-personal-data` leaves out the name and "
-"the address of each party marked as personal data. A package of a released "
-"revision is refused, with exit code 2, while an error of the release check "
-"stands."
+"on the sample those with an end made on site, and what the files lack of the "
+"workshop stock and of its parts' data, such as a size no wire part of the "
+"stock matches; neither stops anything. `--leave-out labels` leaves a member "
+"out (the members are `pages`, `wire_list`, `assembly_list`, `cut_list`, "
+"`consumables`, `hole_table`, `labels` and `drilling`), and "
+"`--omit-personal-data` leaves out the name and the address of each party "
+"marked as personal data. A package of a released revision is refused, with "
+"exit code 2, while an error of the release check stands."
 msgstr ""
 "Het drukt elke bevinding van de vrijgavecontrole af (het voorbeeld heeft er "
 "geen) en daarna een regel die zegt dat het een conceptpakket heeft "
@@ -4549,19 +4551,22 @@ msgstr ""
 "released\". Het ZIP-bestand bevat `Contents.txt`, de tekeningen als één PDF, "
 "de mappen `Lists`, `Labels` en `Drilling`, en `manifest.json` met een "
 "SHA-256 van elk bestand. Zijn `Contents.txt` noemt de draden zonder lengte, "
-"bij het voorbeeld die met een einde dat ter plaatse wordt gemaakt; een draad "
-"zonder lengte houdt niets tegen. `--leave-out labels` laat een deel weg (de "
-"delen zijn `pages`, `wire_list`, `assembly_list`, `cut_list`, `consumables`, "
-"`hole_table`, `labels` en `drilling`), en `--omit-personal-data` laat de "
-"naam en het adres weg van elke partij die als persoonsgegevens is "
-"gemarkeerd. Een pakket van een vrijgegeven revisie wordt geweigerd, met "
-"afsluitcode 2, zolang er een fout van de vrijgavecontrole staat."
+"bij het voorbeeld die met een einde dat ter plaatse wordt gemaakt, en wat de "
+"bestanden missen van de werkplaatsvoorraad en van de gegevens van haar "
+"artikelen, zoals een doorsnede waar geen draadartikel van de voorraad bij "
+"past; geen van beide houdt iets tegen. `--leave-out labels` laat een deel "
+"weg (de delen zijn `pages`, `wire_list`, `assembly_list`, `cut_list`, "
+"`consumables`, `hole_table`, `labels` en `drilling`), en "
+"`--omit-personal-data` laat de naam en het adres weg van elke partij die als "
+"persoonsgegevens is gemarkeerd. Een pakket van een vrijgegeven revisie wordt "
+"geweigerd, met afsluitcode 2, zolang er een fout van de vrijgavecontrole "
+"staat."
 
-#: src/how-to/headless-workflow.md:290
+#: src/how-to/headless-workflow.md:291
 msgid "What you have done"
 msgstr "Wat u hebt gedaan"
 
-#: src/how-to/headless-workflow.md:292
+#: src/how-to/headless-workflow.md:293
 msgid ""
 "You checked a project and read the exit code, wrote its pages as PDF and "
 "SVG, exported a cable list and a bill of materials, queried the project in "
@@ -4578,11 +4583,11 @@ msgstr ""
 "het project lezen zonder het te vergrendelen en nooit een beeldscherm nodig "
 "hebben."
 
-#: src/how-to/headless-workflow.md:297
+#: src/how-to/headless-workflow.md:298
 msgid "Where to go next"
 msgstr "Waar u verder kunt"
 
-#: src/how-to/headless-workflow.md:299
+#: src/how-to/headless-workflow.md:300
 msgid ""
 "The [command reference](../reference/commands/index.md) lists the commands "
 "that change a project, and the [rule reference](../reference/rules/index.md) "
@@ -4592,7 +4597,7 @@ msgstr ""
 "een project veranderen, en de [regelnaslag](../reference/rules/index.md) de "
 "regels die `ew check` uitvoert."
 
-#: src/how-to/headless-workflow.md:301
+#: src/how-to/headless-workflow.md:302
 msgid ""
 "More [how-to guides](index.md) for single tasks, such as checking a project "
 "in a CI job, will follow this one."
@@ -4600,7 +4605,7 @@ msgstr ""
 "Meer [instructies](index.md) voor losse taken, zoals een project controleren "
 "in een CI-taak, volgen na deze."
 
-#: src/how-to/headless-workflow.md:302
+#: src/how-to/headless-workflow.md:303
 msgid ""
 "The [explanation](../explanation/index.md) section links the design of the "
 "model and of the check engine."
@@ -4875,10 +4880,15 @@ msgid ""
 "project's own: a device of the schematic is placed once, and the panel "
 "layout, the parts list and the enclosure legend read it from there."
 msgstr ""
+"Een paneellayoutpagina toont de montageplaat van een kast op schaal, met "
+"haar rails, haar kabelgoten en de apparaten die erop geplaatst zijn. De "
+"apparaten zijn die van het project: een apparaat van het schema wordt één "
+"keer geplaatst, en de paneellayout, de stuklijst en de legenda van de kast "
+"lezen het daar."
 
 #: src/how-to/panel-layout.md:7
 msgid "Make the page"
-msgstr ""
+msgstr "De pagina maken"
 
 #: src/how-to/panel-layout.md:9
 msgid ""
@@ -4886,10 +4896,13 @@ msgid ""
 "title such as \"Panel layout\", and choose **Create**. The page opens empty "
 "and names its first step: start with an enclosure."
 msgstr ""
+"Kies **Pagina ▸ Nieuwe pagina…**, zet **Type** op Paneellayout, geef de "
+"pagina een titel zoals \"Paneellayout\" en kies **Maken**. De pagina opent "
+"leeg en noemt haar eerste stap: begin met een kast."
 
 #: src/how-to/panel-layout.md:12
 msgid "Add the enclosure"
-msgstr ""
+msgstr "De kast toevoegen"
 
 #: src/how-to/panel-layout.md:14
 msgid ""
@@ -4912,6 +4925,25 @@ msgid ""
 "plate…** in the menu of Enclosure's arrow or the command search, which opens "
 "that row whatever Properties showed."
 msgstr ""
+"Kies **Kast** in de groep Layout van het tabblad Tekenen (ook **Project ▸ "
+"Inrichting ▸ Kast…**). Een kast hoort bij een locatie (`+CAB1`), de kast "
+"zelf. Het venster stelt de locatie van de pagina voor, anders de eerste van "
+"het project; in een project zonder locatie stelt het **Nieuwe locatie** "
+"voor, de eerste keuze van de lijst Locatie, met een code zoals `CAB1` die u "
+"kunt wijzigen. Het stelt het eerste kastartikel van het project of van een "
+"geïnstalleerde bibliotheek voor, zoals \"Wall enclosure 600 × 800 × 250 "
+"mm\"; kies desgewenst andere uit de lijsten en kies dan **Maken**. De pagina "
+"toont nu de kast en haar montageplaat, gecentreerd op het hele blad op de "
+"schaal die past, en de layout krijgt haar legenda: een lijstpagina direct na "
+"de layoutpagina (902.1 na 902) met het nummer, het kenmerk, het aantal, het "
+"artikelnummer en de beschrijving van elk item, die doorloopt over zoveel "
+"pagina's als nodig. Elk apparaat toont zijn kenmerk waar dat erin past, en "
+"een genummerde ballon waar het niet past (een klem, een klein artikel). Een "
+"nieuwe locatie, de kast, en de plaat op de pagina met haar legendapagina "
+"zijn drie stappen voor Ongedaan maken. Een andere plaat komt op de pagina "
+"via de rij **Vlak** van de pagina in Eigenschappen, of via **Montageplaat…** "
+"in het menu van het pijltje van Kast of in het opdrachtpalet, dat die rij "
+"opent, wat Eigenschappen ook toonde."
 
 #: src/how-to/panel-layout.md:27
 msgid ""
@@ -4923,10 +4955,18 @@ msgid ""
 "panel layout page after the page shown and draws the enclosure there. "
 "**Create only** beside it makes the enclosure without drawing it."
 msgstr ""
+"Een locatie die haar kast al heeft (gemaakt vanaf een andere pagina), wordt "
+"niet twee keer gemaakt: met die locatie gekozen luidt de knop van het "
+"venster **Teken -UC1 van +CAB1 op deze pagina** en zet die de montageplaat "
+"op de pagina. Op een pagina die geen paneellayoutpagina is, luidt de knop "
+"**Maken en tekenen op een nieuwe paneellayoutpagina** (of **Teken … op een "
+"nieuwe paneellayoutpagina**): die maakt de paneellayoutpagina na de getoonde "
+"pagina en tekent de kast daar. **Alleen maken** ernaast maakt de kast zonder "
+"haar te tekenen."
 
 #: src/how-to/panel-layout.md:33
 msgid "Rails and ducts"
-msgstr ""
+msgstr "Rails en kabelgoten"
 
 #: src/how-to/panel-layout.md:35
 msgid ""
@@ -4934,6 +4974,10 @@ msgid ""
 "plate (a rail runs across or up and down); the tool's card offers the rail "
 "part and the grid step. Draw as many rails as the cabinet needs."
 msgstr ""
+"Kies **Tekenen ▸ Layout ▸ Rail** en klik het begin en het eind van de rail "
+"op de plaat (een rail loopt dwars of van boven naar beneden); de kaart van "
+"het gereedschap biedt het railartikel en de rasterstap aan. Teken zoveel "
+"rails als de kast nodig heeft."
 
 #: src/how-to/panel-layout.md:37
 msgid ""
@@ -4941,10 +4985,14 @@ msgid ""
 "point; a double click or `Enter` finishes it (`Esc` cancels it). The card "
 "asks for a duct's size when its part gives none."
 msgstr ""
+"Kies **Tekenen ▸ Layout ▸ Kabelgoot** en klik het eerste punt van een "
+"kabelgoot en elk volgend punt; een dubbelklik of `Enter` maakt haar af "
+"(`Esc` annuleert). De kaart vraagt de maat van een kabelgoot als haar "
+"artikel er geen geeft."
 
 #: src/how-to/panel-layout.md:40
 msgid "Place the devices"
-msgstr ""
+msgstr "De apparaten plaatsen"
 
 #: src/how-to/panel-layout.md:42
 msgid ""
@@ -4954,6 +5002,12 @@ msgid ""
 "many at once: in the Devices list, mark their rows (or their group "
 "\"(none)\"), right-click and choose **Location…**."
 msgstr ""
+"Toon **Beeld ▸ Panelen ▸ Navigators ▸ Ongeplaatste apparaten**. Het noemt de "
+"apparaten van de locatie van de pagina die nog geen plaats hebben. Een "
+"apparaat zonder locatie staat er niet in: geef het de locatie in "
+"Eigenschappen, onder Structuur, of geef er veel tegelijk: markeer in de "
+"lijst Apparaten hun rijen (of hun groep \"(none)\"), klik met de "
+"rechtermuisknop en kies **Locatie…**."
 
 #: src/how-to/panel-layout.md:46
 msgid ""
@@ -4961,6 +5015,10 @@ msgid ""
 "and click the place. On a rail it snaps to its neighbour, the rail's ends or "
 "the plate grid; a device mounted by screws goes on the plate."
 msgstr ""
+"Sleep een apparaat uit de lijst op een rail, of selecteer zijn rij, druk op "
+"`Enter` en klik de plaats. Op een rail klikt het vast tegen zijn buur, de "
+"einden van de rail of het raster van de plaat; een apparaat dat met "
+"schroeven wordt bevestigd, gaat op de plaat."
 
 #: src/how-to/panel-layout.md:48
 msgid ""
@@ -4975,10 +5033,21 @@ msgid ""
 "of Undo), and a toast says what did not fit. When there is nothing to place, "
 "the dialog says why."
 msgstr ""
+"Om een rail in één keer te vullen, selecteert u de rail en kiest u **Tekenen "
+"▸ Layout ▸ Rail automatisch vullen…**: het noemt de ongeplaatste apparaten "
+"van de kast en de apparaten zonder locatie, elk met een vinkje. De apparaten "
+"die u in de lijst markeerde, staan aangevinkt; anders de eigen apparaten van "
+"de kast en die waarvan het artikel op een rail gaat, terwijl sensoren, "
+"cilinders, motoren en ventieleilanden zonder locatie niet aangevinkt staan. "
+"Vink uit wat in het veld staat en kies **Vullen**: de aangevinkte apparaten "
+"worden geplaatst in de volgorde van het schema of van hun kenmerken, een "
+"aangevinkt apparaat zonder locatie neemt die van de kast (één stap voor "
+"Ongedaan maken), en een toast zegt wat niet paste. Is er niets te plaatsen, "
+"dan zegt het venster waarom."
 
 #: src/how-to/panel-layout.md:56
 msgid "Labels and the legend"
-msgstr ""
+msgstr "Labels en de legenda"
 
 #: src/how-to/panel-layout.md:58
 msgid ""
@@ -4992,6 +5061,16 @@ msgid ""
 "move apart, above and below the row, with a line to their device. On the "
 "cabinet's own layout the tags leave out the cabinet's location."
 msgstr ""
+"Het rechtermuisknopmenu van de pagina (**Labels: Kenmerken**, **Labels: "
+"Positienummers**, **Labels: Beide**, **Labels: Kenmerken of nummers**) en, "
+"zonder selectie, de rij **Labels** van de pagina in Eigenschappen kiezen wat "
+"elk apparaat toont: zijn kenmerk, zijn positienummer in een ballon, beide, "
+"of zijn kenmerk waar het past en zijn ballon waar het niet past (wat een "
+"nieuwe layout toont). De legenda noemt elk item, wat de labels ook tonen. "
+"Een legenda die is toegevoegd terwijl de apparaten hun kenmerken tonen, "
+"biedt **Positienummers tonen** aan. Labels die elkaar zouden raken, schuiven "
+"uit elkaar, boven en onder de rij, met een lijn naar hun apparaat. Op de "
+"eigen layout van de kast laten de kenmerken de locatie van de kast weg."
 
 #: src/how-to/panel-layout.md:64
 msgid ""
@@ -5007,6 +5086,19 @@ msgid ""
 "columns and caption are chosen as any list's: **Output ▸ List columns…** on "
 "its page."
 msgstr ""
+"Een layout zonder legenda krijgt er een via **Legenda toevoegen** in het "
+"rechtermuisknopmenu van de pagina (ook **Pagina ▸ Volgorde ▸ Legenda "
+"toevoegen**): in de vrije ruimte naast de layout waar elke rij en elke tekst "
+"er heel in past, één tabel zo breed als haar blok en zo lang als haar rijen; "
+"anders, zoals een toast zegt, op een eigen pagina na de layoutpagina. Klik "
+"een legenda naast de layout om haar te selecteren, sleep haar om haar te "
+"verplaatsen, en sleep een van haar hoeken om haar breder of smaller te "
+"maken. **Legenda naar een eigen pagina verplaatsen** in haar "
+"rechtermuisknopmenu (ook **Pagina ▸ Volgorde**) maakt van zo'n legenda, of "
+"van een van een eerder gemaakt project, de legendapagina van de layout, in "
+"één stap voor Ongedaan maken. De kolommen en het opschrift van de "
+"legendapagina kiest u als die van elke lijst: **Uitvoer ▸ Lijstkolommen…** "
+"op haar pagina."
 
 #: src/how-to/panel-layout.md:71
 msgid ""
@@ -5014,6 +5106,10 @@ msgid ""
 "the device selected, goes to its row on the legend page; a click on a row's "
 "tag goes back to the device on the layout, in an exported PDF too."
 msgstr ""
+"**Verwijzing volgen** (`F`) boven een apparaat, zijn kenmerk of zijn ballon, "
+"of met het apparaat geselecteerd, gaat naar zijn rij op de legendapagina; "
+"een klik op het kenmerk van een rij gaat terug naar het apparaat op de "
+"layout, ook in een geëxporteerde PDF."
 
 #: src/how-to/panel-layout.md:73
 msgid ""
@@ -5023,6 +5119,13 @@ msgid ""
 "position** in the device's right-click menu puts it back; **Reset label "
 "positions** in the page's right-click menu puts every label of the page back."
 msgstr ""
+"Een label of een ballon kan op zichzelf worden gesleept: een naast zijn "
+"apparaat meteen, een op zijn apparaat zodra het apparaat geselecteerd is "
+"(het label toont dan een gestippeld kader met een greep). Zijn lijn volgt "
+"het naar het apparaat. **Labelpositie herstellen** in het "
+"rechtermuisknopmenu van het apparaat zet het terug; **Labelposities "
+"herstellen** in het rechtermuisknopmenu van de pagina zet elk label van de "
+"pagina terug."
 
 #: src/how-to/panel-layout.md:78
 msgid ""
@@ -5155,25 +5258,35 @@ msgstr ""
 msgid ""
 "To move one of these holes, type another place into its row: the chip then "
 "says \"moved\", and **Reset** puts the hole back. Tick **Leave out** below a "
-"hole you do not make; it is then drawn and listed nowhere. Your shop's way "
-"of fixing is set once in Project properties ▸ Workshop (Fixing holes, Rail "
-"fixing, Duct fixing, Web between holes, Measured from). When a new Rail "
-"fixing or Duct fixing puts a rail's or a duct's holes elsewhere, a hole you "
-"moved or left out there is reset, and the card of the change says how many "
-"and on which rails and ducts before you apply it."
+"hole you do not make; it is then drawn and listed nowhere."
 msgstr ""
 "Om een van deze gaten te verplaatsen, typt u een andere plaats in zijn rij: "
 "de chip zegt dan \"verplaatst\", en **Herstellen** zet het gat terug. Vink "
 "**Weglaten** aan onder een gat dat u niet maakt; het wordt dan nergens "
-"getekend of vermeld. Hoe uw werkplaats bevestigt, stelt u eenmaal in bij "
-"Projecteigenschappen ▸ Werkplaats (Bevestigingsgaten, Railbevestiging, "
-"Kabelgootbevestiging, Ruimte tussen gaten, Gemeten vanaf). Zet een nieuwe "
-"Railbevestiging of Kabelgootbevestiging de gaten van een rail of een "
-"kabelgoot elders, dan wordt een gat dat u daar verplaatste of wegliet "
-"teruggezet, en de kaart van de wijziging zegt hoeveel en op welke rails en "
-"kabelgoten voordat u de wijziging toepast."
+"getekend of vermeld."
 
-#: src/how-to/cabinet-surfaces.md:42
+#: src/how-to/cabinet-surfaces.md:38
+msgid ""
+"Your shop's way of making holes is set once, in **Project properties ▸ "
+"Workshop**: **Fixing holes** (Tapped, Self-tapping screws, or Through, with "
+"a nut), **Rail fixing** and **Duct fixing** (the screw, at most how far "
+"apart and how far from each end), **Web between holes** and **Measured "
+"from**, the corner every surface's holes are measured from. When a new Rail "
+"fixing or Duct fixing puts a rail's or a duct's holes elsewhere, a hole you "
+"moved or left out there is reset, and the card of the change says how many "
+"and on which rails and ducts before you apply it."
+msgstr ""
+"Hoe uw werkplaats gaten maakt, zet u één keer, in Projecteigenschappen ▸ "
+"Werkplaats: **Bevestigingsgaten** (Getapt, Zelftappende schroeven, of "
+"Doorgaand, met moer), **Railbevestiging** en **Kabelgootbevestiging** (de "
+"schroef, hoe ver hoogstens uit elkaar en hoe ver van elk eind), **Ruimte "
+"tussen gaten** en **Gemeten vanaf**, de hoek waarvandaan de gaten van elk "
+"vlak worden gemeten. Zet een nieuwe Railbevestiging of Kabelgootbevestiging "
+"de gaten van een rail of een kabelgoot ergens anders, dan wordt een gat dat "
+"u daar verplaatste of wegliet, hersteld, en de kaart van de wijziging zegt "
+"hoeveel en op welke rails en kabelgoten voordat u toepast."
+
+#: src/how-to/cabinet-surfaces.md:44
 msgid ""
 "To add a hole of your own, right-click the surface where it goes and choose "
 "**Add hole here…**. The form \"Add a hole to -UC1 door\" asks for the "
@@ -5195,7 +5308,7 @@ msgstr ""
 "voor een uitsparing, M12 tot M63 voor een wartel, breedte × hoogte voor een "
 "rechthoek.\""
 
-#: src/how-to/cabinet-surfaces.md:47
+#: src/how-to/cabinet-surfaces.md:49
 msgid ""
 "A hole of your own is dragged with Select, its rows are Kind, Size, X, Y and "
 "For in Properties, and `Delete` removes it."
@@ -5203,32 +5316,33 @@ msgstr ""
 "Een eigen gat sleept u met Selecteren, zijn rijen in Eigenschappen zijn "
 "Soort, Grootte, X, Y en Voor, en `Delete` verwijdert het."
 
-#: src/how-to/cabinet-surfaces.md:49
+#: src/how-to/cabinet-surfaces.md:51
 msgid ""
 "Choose **Check ▸ Check project**. **Holes too close** (EW-LAY-012) names "
 "both holes and how far apart they are, such as \"… is 3 mm from … on …: keep "
 "at least 5 mm between holes\", a hole inside a door's edge margin (\"… lies "
 "12 mm from the edge of …, inside its 30 mm margin and the 5 mm web; move it "
-"inward\"), and a hole off the sheet. Move one of the holes. **Holes not "
-"known** (EW-LAY-017) names a part in a cut-out that has no holes: **Edit "
-"part…** opens it in Parts, where you give it its holes under **In the "
-"cabinet** ([Make your own parts](own-parts.md))."
+"inward\"), and a hole off the sheet. Move one of the holes, or set the web "
+"your shop keeps (step 7). **Holes not known** (EW-LAY-017) names a part in a "
+"cut-out that has no holes: **Edit part…** opens it in Parts, where you give "
+"it its holes under **In the cabinet** ([Make your own parts](own-parts.md))."
 msgstr ""
 "Kies **Controle ▸ Project controleren**. **Gaten te dicht bij elkaar** "
 "(EW-LAY-012) noemt beide gaten en hoe ver ze uit elkaar liggen, zoals \"… "
 "ligt 3 mm van … op …: houd minstens 5 mm tussen gaten\", een gat in de "
 "randstrook van een deur (\"… ligt 12 mm van de rand van …, binnen de "
 "randstrook van 30 mm en de ruimte van 5 mm; schuif het naar binnen\"), en "
-"een gat buiten de plaat. Verschuif een van de gaten. **Gaten niet bekend** "
-"(EW-LAY-017) noemt een artikel in een uitsparing dat geen gaten heeft: "
-"**Artikel bewerken…** opent het in Artikelen, waar u het zijn gaten geeft "
-"onder **In de kast** ([Eigen artikelen maken](own-parts.md))."
+"een gat buiten de plaat. Verschuif een van de gaten, of zet de ruimte die uw "
+"werkplaats aanhoudt (stap 7). **Gaten niet bekend** (EW-LAY-017) noemt een "
+"artikel in een uitsparing dat geen gaten heeft: **Artikel bewerken…** opent "
+"het in Artikelen, waar u het zijn gaten geeft onder **In de kast** ([Eigen "
+"artikelen maken](own-parts.md))."
 
-#: src/how-to/cabinet-surfaces.md:55
+#: src/how-to/cabinet-surfaces.md:58
 msgid "Cable glands"
 msgstr "Kabelwartels"
 
-#: src/how-to/cabinet-surfaces.md:57
+#: src/how-to/cabinet-surfaces.md:60
 msgid ""
 "A cable that leaves the cabinet, such as the supply cable or a motor cable, "
 "brings its cable gland, chosen from the workshop stock by the cable's outer "
@@ -5241,7 +5355,7 @@ msgstr ""
 "plaat \"2 wartels te plaatsen\" met de knop **Onderkant**, die naar de "
 "pagina van de onderkant gaat."
 
-#: src/how-to/cabinet-surfaces.md:60
+#: src/how-to/cabinet-surfaces.md:63
 msgid ""
 "On the bottom's page the HUD offers **Place cable glands**, which places "
 "every gland that waits in a row. Or drag them from Unplaced devices, where "
@@ -5259,7 +5373,7 @@ msgstr ""
 "volgt de aanwijzer tot u loslaat. Een wartel gaat in een zijwand, de "
 "bovenkant of de onderkant; de deur en de plaat weigeren hem."
 
-#: src/how-to/cabinet-surfaces.md:65
+#: src/how-to/cabinet-surfaces.md:68
 msgid ""
 "Select the cable: in Properties, under its part, **Gland** names the gland "
 "part with the chip \"proposed for 12.5 mm\", and **Gland hole** names its "
@@ -5273,7 +5387,7 @@ msgstr ""
 "Typ een ander wartelartikel van het project in Wartel om het te kiezen; een "
 "lege Wartel neemt het voorstel terug."
 
-#: src/how-to/cabinet-surfaces.md:68
+#: src/how-to/cabinet-surfaces.md:71
 msgid ""
 "Check project names a gland that waits (**Cable gland**, EW-LAY-018, an "
 "error when you release) with **Place on the bottom**. A cable whose gland "
@@ -5290,11 +5404,11 @@ msgstr ""
 "te houden, klikt u met de rechtermuisknop op het gat en kiest u **Als gat "
 "houden**."
 
-#: src/how-to/cabinet-surfaces.md:73
+#: src/how-to/cabinet-surfaces.md:76
 msgid "The hole table"
 msgstr "De gatentabel"
 
-#: src/how-to/cabinet-surfaces.md:75
+#: src/how-to/cabinet-surfaces.md:78
 msgid ""
 "Choose **Output ▸ Workshop ▸ Hole tables**. The hole table page lists every "
 "hole and cut-out of each surface, surface by surface, numbered in the order "
@@ -5311,7 +5425,7 @@ msgstr ""
 "(\"Ø 4.2, tap M5\", \"Ø 22.3\") en waarvoor het is. Een project zonder "
 "gatentabel opent **Rapportblok…** op de gatentabel."
 
-#: src/how-to/cabinet-surfaces.md:80
+#: src/how-to/cabinet-surfaces.md:83
 msgid ""
 "The drawings for drilling, the template to print at full size and the DXF, "
 "are in [Export the labels, the drilling drawings and the "
@@ -5408,24 +5522,30 @@ msgstr ""
 
 #: src/how-to/route-wires.md:25
 msgid ""
-"**Made on site**: each wire with an end outside the cabinet, such as \"its "
-"end … is in +FLD\";"
+"**Made on site**: each wire with an end outside the cabinet, in the field or "
+"in another cabinet, such as \"its end … is in +FLD\";"
 msgstr ""
-"**Ter plaatse gemaakt**: elke draad met een einde buiten de kast, zoals "
-"\"het eind … zit in +FLD\";"
+"**Ter plaatse gemaakt**: elke draad met een einde buiten de kast, in het "
+"veld of in een andere kast, zoals \"het eind … zit in +FLD\";"
 
-#: src/how-to/route-wires.md:26
+#: src/how-to/route-wires.md:27
 msgid ""
 "**Without a way**: each wire Route cannot lay, with what to do, such as "
 "\"-102S1 is not placed: place it, then route again\" or \"… meets no duct: "
-"draw a duct above or below …, or type the length\";"
+"draw a duct above or below …, or type the length\". An unfinished wire "
+"stands here too, with its reason: \"its end at the interruption point … is "
+"open: give the point its partner, or type the length\", or \"its end … is on "
+"a device without a location: give the device its location, then route "
+"again\";"
 msgstr ""
 "**Zonder loop**: elke draad die Routeren niet kan leggen, met wat u doet, "
 "zoals \"-102S1 is niet geplaatst: plaats het en routeer opnieuw\" of \"… "
 "komt bij geen kabelgoot: teken een kabelgoot boven of onder …, of typ de "
-"lengte\";"
+"lengte\". Ook een onafgemaakte draad staat hier, met zijn reden: een open "
+"einde bij een onderbrekingspunt, of een einde op een apparaat zonder "
+"locatie, elk met wat u doet;"
 
-#: src/how-to/route-wires.md:28
+#: src/how-to/route-wires.md:31
 msgid ""
 "the tick **Route every wire again**, which plans the wires whose ways hold "
 "as well."
@@ -5433,12 +5553,19 @@ msgstr ""
 "het vinkje **Alle draden opnieuw routeren**, dat ook de draden plant waarvan "
 "de lopen kloppen."
 
-#: src/how-to/route-wires.md:30
-msgid "Point at a row, or select it, to see that wire's way alone."
+#: src/how-to/route-wires.md:33
+msgid ""
+"Point at a row, or select it, to see that wire's way alone. Where the "
+"cabinet holds stored ways of wires it no longer lays (a wire deleted, or no "
+"longer the cabinet's), the card names them before you apply: \"… ways of "
+"wires +CAB no longer lays are removed: …\"."
 msgstr ""
-"Wijs een rij aan, of selecteer haar, om alleen de loop van die draad te zien."
+"Wijs een rij aan, of selecteer haar, om alleen de loop van die draad te "
+"zien. Bewaart de kast lopen van draden die ze niet meer legt (een draad "
+"verwijderd, of niet meer van deze kast), dan noemt de kaart ze voordat u "
+"toepast."
 
-#: src/how-to/route-wires.md:31
+#: src/how-to/route-wires.md:36
 msgid ""
 "Choose **Apply**: every way is stored in one step of Undo, and the toast "
 "says \"Routed 41 wires of +CAB.\". **Cancel** leaves the project as it was. "
@@ -5451,11 +5578,11 @@ msgstr ""
 "heeft, zegt Routeren \"Elke draad van +CAB heeft zijn loop.\" en plant zijn "
 "kaart ze allemaal opnieuw."
 
-#: src/how-to/route-wires.md:35
+#: src/how-to/route-wires.md:40
 msgid "See a wire's way and its length"
 msgstr "De loop en de lengte van een draad zien"
 
-#: src/how-to/route-wires.md:37
+#: src/how-to/route-wires.md:42
 msgid ""
 "Show **View ▸ Panels ▸ Navigators ▸ Connections** and choose its **Table** "
 "button. The Length column holds each wire's length, and Length from says "
@@ -5467,7 +5594,7 @@ msgstr ""
 "zegt waar die vandaan komt: gerouteerd, getypt, kabel (een ader van een "
 "kabel, met zijn kabel gezaagd), verouderd, ontbreekt, of ter plaatse."
 
-#: src/how-to/route-wires.md:40
+#: src/how-to/route-wires.md:45
 msgid ""
 "Select a wire's row: the plate's page shows its way, a line from pin to pin "
 "with a chip of its number and length, and for a wire into the door, such as "
@@ -5478,7 +5605,7 @@ msgstr ""
 "lengte, en voor een draad naar de deur, zoals 104.3, \"naar -104E1 in de "
 "deur\"."
 
-#: src/how-to/route-wires.md:42
+#: src/how-to/route-wires.md:47
 msgid ""
 "The wire's Properties show **Length** with the words of where it comes from, "
 "such as \"Routed: … of way, 50 mm reserve at each end and a 300 mm door "
@@ -5492,11 +5619,11 @@ msgstr ""
 "kabelgoten waarlangs hij loopt, \"deur\" waar hij naar de deur oversteekt, "
 "of \"direct\" over de fronten, met **Toon op 902**."
 
-#: src/how-to/route-wires.md:46
+#: src/how-to/route-wires.md:51
 msgid "The duct fill"
 msgstr "De vulgraad van de kabelgoot"
 
-#: src/how-to/route-wires.md:48
+#: src/how-to/route-wires.md:53
 msgid ""
 "Select a duct: its Properties show its **Fill**, such as \"8 % where fullest "
 "· the limit is 60 %\", with \"with default diameters (unverified)\" where "
@@ -5508,7 +5635,7 @@ msgstr ""
 "standaarddiameters (niet geverifieerd)\" waar de artikelen van de draden "
 "geen buitendiameter geven, en haar draden met **Selecteer ze**."
 
-#: src/how-to/route-wires.md:51
+#: src/how-to/route-wires.md:56
 msgid ""
 "Route lays a wire another way where a duct is full, if there is one. A duct "
 "over the limit is reported by **Check ▸ Check project** (EW-LAY-008), such "
@@ -5521,11 +5648,11 @@ msgstr ""
 "van 72 % waar ze het volst is; de maximale vulgraad is 60 %: neem een "
 "bredere of voeg een kabelgoot toe\"."
 
-#: src/how-to/route-wires.md:55
+#: src/how-to/route-wires.md:60
 msgid "The reserve, the door loop and the fill limit"
 msgstr "De reserve, de deurlus en de maximale vulgraad"
 
-#: src/how-to/route-wires.md:57
+#: src/how-to/route-wires.md:62
 msgid ""
 "Choose **Output ▸ Workshop ▸ Workshop settings**. Among the Workshop rows "
 "are **Reserve per end** (50 mm when empty), **Door loop** (300 mm), **Duct "
@@ -5540,23 +5667,24 @@ msgstr ""
 "gerouteerde lengte en elke vulgraad volgt haar, en u hoeft niet opnieuw te "
 "routeren."
 
-#: src/how-to/route-wires.md:61
+#: src/how-to/route-wires.md:66
 msgid "A wire made on site, and a length typed by hand"
 msgstr ""
 "Een draad die ter plaatse wordt gemaakt, en een met de hand getypte lengte"
 
-#: src/how-to/route-wires.md:63
+#: src/how-to/route-wires.md:68
 msgid ""
 "A wire with an end outside the cabinet, such as 104.4 to the sensor "
-"+FLD-104B1, is made on site: Route gives it no way, the wire list prints "
-"\"—\" with Length from \"site\", and the fitter makes the cabinet's end."
+"+FLD-104B1, or a wire between two cabinets, is made on site: Route gives it "
+"no way, the wire list prints \"—\" with Length from \"site\", and the fitter "
+"makes the end in this cabinet."
 msgstr ""
 "Een draad met een einde buiten de kast, zoals 104.4 naar de sensor "
-"+FLD-104B1, wordt ter plaatse gemaakt: Routeren geeft hem geen loop, de "
-"draadlijst drukt \"—\" af met Lengte uit \"ter plaatse\", en de monteur "
-"maakt het einde in de kast."
+"+FLD-104B1, of een draad tussen twee kasten, wordt ter plaatse gemaakt: "
+"Routeren geeft hem geen loop, de draadlijst drukt \"—\" af met Lengte uit "
+"\"ter plaatse\", en de monteur maakt het einde in deze kast."
 
-#: src/how-to/route-wires.md:65
+#: src/how-to/route-wires.md:71
 msgid ""
 "To give a wire a length of your own, type it into its Length cell in the "
 "Connections table, or into the Length row of its Properties, in millimetres "
@@ -5572,11 +5700,11 @@ msgstr ""
 "eigenschappen zeggen \"Met de hand getypt. Routeren geeft …: maak de lengte "
 "leeg om die te nemen.\" Maak de cel leeg om de lengte van Routeren te nemen."
 
-#: src/how-to/route-wires.md:70
+#: src/how-to/route-wires.md:76
 msgid "After a device moves"
 msgstr "Nadat een apparaat is verplaatst"
 
-#: src/how-to/route-wires.md:72
+#: src/how-to/route-wires.md:78
 msgid ""
 "Move or turn a device on the plate, or change a duct: the ways of its wires "
 "no longer hold. The toast says so, such as \"Moved -X1031. The ways of 5 "
@@ -5591,7 +5719,7 @@ msgstr ""
 "meer: Routeren geeft nieuwe\"; en Project controleren meldt het (EW-LAY-011, "
 "een fout bij de vrijgave)."
 
-#: src/how-to/route-wires.md:76
+#: src/how-to/route-wires.md:82
 msgid ""
 "A way that no longer holds is **stale**. Its wire keeps its length, which "
 "the lists print after \"≈\", and Length from says \"stale\". Choose "
@@ -5603,7 +5731,7 @@ msgstr ""
 "Kies **Routeren**: zonder selectie plant het alleen die draden. "
 "**Toepassen** maakt hun lengtes weer actueel."
 
-#: src/how-to/route-wires.md:80
+#: src/how-to/route-wires.md:86
 msgid ""
 "The rules are in the [rule reference](../reference/rules/ew-layout.md): "
 "EW-LAY-008, EW-LAY-011 and, for the wires without a length, "
@@ -5735,37 +5863,40 @@ msgstr ""
 
 #: src/how-to/workshop-lists.md:35
 msgid ""
-"The ferrules, the wire parts and the markers these lists name come from the "
-"**workshop stock**, the parts your shop keeps, in the order you prefer them. "
-"Choose **Project ▸ Edit stock…** to see and change it: **Add** a part by its "
-"number, **Up**, **Down** and **Remove** to order it, **Add the generic "
-"stock** for the starter's ferrules and markers. A part of your own for the "
-"stock is made in Parts ([Make your own parts](own-parts.md))."
+"The wire parts, the ferrules, the markers and the glands these lists name "
+"come from the **workshop stock**, the parts your shop keeps, in the order "
+"you prefer them. Choose **Project ▸ Edit stock…**: Parts opens on the "
+"project's stock, kind by kind. On a stock part's sheet, **Up**, **Down** and "
+"**Take out** change it; another wire, ferrule, marker or gland part has "
+"**Add to the stock**. How, and how to keep the stock for new projects, is in "
+"[Choose parts](choose-parts.md#the-workshop-stock)."
 msgstr ""
-"De adereindhulzen, de draadartikelen en de merkers die deze lijsten noemen, "
-"komen uit de **werkplaatsvoorraad**: de artikelen die uw werkplaats op "
-"voorraad heeft, in de volgorde waarin u ze verkiest. Kies **Project ▸ "
-"Voorraad bewerken…** om haar te zien en te wijzigen: **Toevoegen** voegt een "
-"artikel toe bij zijn nummer, **Omhoog**, **Omlaag** en **Verwijderen** "
-"zetten haar op volgorde, en **Algemene voorraad toevoegen** voegt de "
-"adereindhulzen en merkers van de starter toe. Een eigen artikel voor de "
-"voorraad maakt u in Artikelen ([Eigen artikelen maken](own-parts.md))."
+"De draadartikelen, de adereindhulzen, de merkers en de wartels die deze "
+"lijsten noemen, komen uit de **werkplaatsvoorraad**: de artikelen die uw "
+"werkplaats op voorraad heeft, in de volgorde waarin u ze verkiest. Kies "
+"**Project ▸ Voorraad bewerken…**: Artikelen opent op de voorraad van het "
+"project, soort voor soort. Op het blad van een voorraadartikel wijzigen "
+"**Omhoog**, **Omlaag** en **Eruit halen** haar; een ander draad-, "
+"adereindhuls-, merker- of wartelartikel heeft **Aan de voorraad toevoegen**. "
+"Hoe, en hoe u de voorraad voor nieuwe projecten bewaart, staat in [Artikelen "
+"kiezen](choose-parts.md#the-workshop-stock)."
 
-#: src/how-to/workshop-lists.md:39
+#: src/how-to/workshop-lists.md:40
 msgid ""
 "The rows of the workshop settings are under **Output ▸ Workshop ▸ Workshop "
-"settings**: Marker text, Ferrules, Two wires in one clamp and the others. A "
-"change shows in the lists at once."
+"settings**: Cut to, Marker text, Ferrules, Two wires in one clamp and the "
+"others. A change shows in the lists at once."
 msgstr ""
 "De rijen van de werkplaatsinstellingen staan onder **Uitvoer ▸ Werkplaats ▸ "
-"Werkplaatsinstellingen**: Merkertekst, Adereindhulzen, Twee draden in één "
-"klem en de andere. Een wijziging verschijnt meteen in de lijsten."
+"Werkplaatsinstellingen**: Afkorten op, Merkertekst, Adereindhulzen, Twee "
+"draden in één klem en de andere. Een wijziging verschijnt meteen in de "
+"lijsten."
 
-#: src/how-to/workshop-lists.md:42
+#: src/how-to/workshop-lists.md:43
 msgid "The rework list after a release"
 msgstr "De wijzigingslijst na een vrijgave"
 
-#: src/how-to/workshop-lists.md:44
+#: src/how-to/workshop-lists.md:45
 msgid ""
 "After a release, a change to the project is work in the built cabinet. "
 "Choose **Output ▸ Workshop ▸ Rework list…**. It compares the project as it "
@@ -5779,7 +5910,7 @@ msgstr ""
 "het project staat; **Vergelijken met** kiest een andere vrijgave, en "
 "**Archiefbestand…** een archiefbestand."
 
-#: src/how-to/workshop-lists.md:47
+#: src/how-to/workshop-lists.md:48
 msgid ""
 "A line counts the work, then one row per thing the fitter does, in the order "
 "he does it: Pull, Replace, Move end, Re-make end, Check length, Re-mark, "
@@ -5794,7 +5925,7 @@ msgstr ""
 "er verandert. \"Niet vermeld: draden die alleen op een pagina verschoven of "
 "een andere route kregen, en een nieuw draadnummer.\""
 
-#: src/how-to/workshop-lists.md:50
+#: src/how-to/workshop-lists.md:51
 msgid ""
 "**Export…** writes the rework list as an Excel file or a CSV; **Labels for "
 "these changes…** opens Labels… on the labels the list names. A project "
@@ -5808,11 +5939,11 @@ msgstr ""
 "vrijgegeven revisie: de wijzigingslijst vergelijkt met een vrijgave. Geef "
 "het vrij op het tabblad Controle, of kies een archiefbestand.\""
 
-#: src/how-to/workshop-lists.md:54
+#: src/how-to/workshop-lists.md:55
 msgid "Print the lists, or hand them over as files"
 msgstr "De lijsten afdrukken, of ze als bestanden overdragen"
 
-#: src/how-to/workshop-lists.md:56
+#: src/how-to/workshop-lists.md:57
 msgid ""
 "To print a list, choose **Output ▸ Print…**, set **Range** to **Pages** and "
 "type the list's folios, such as `907-907.2`; or open the list's page and "
@@ -5824,22 +5955,30 @@ msgstr ""
 "`907-907.2`; of open de pagina van de lijst en kies **Huidige pagina**. "
 "**PDF exporteren…** schrijft elke pagina, de lijsten erbij."
 
-#: src/how-to/workshop-lists.md:59
+#: src/how-to/workshop-lists.md:60
 msgid ""
-"To hand the lists over as files, write the package: it holds each workshop "
-"list as an Excel file ([Export the labels, the drilling drawings and the "
-"package](workshop-package.md)). On the command line, `ew export wires` and "
-"`ew export report` write one list as CSV or Excel ([Use the command line on "
-"the sample project](headless-workflow.md))."
+"To hand one list over as a file, open its page and choose **Output ▸ "
+"Workshop ▸ Export list…** (also in the menu of the list's page). It writes "
+"the list on show as an Excel file in the project's language, or, for a file "
+"name that ends in `.csv`, a CSV in English for a program. A size or a length "
+"is a number under a heading that carries its unit, such as \"Length mm\". "
+"The package holds every workshop list as an Excel file ([Export the labels, "
+"the drilling drawings and the package](workshop-package.md)), and on the "
+"command line `ew export wires` and `ew export report` write one list ([Use "
+"the command line on the sample project](headless-workflow.md))."
 msgstr ""
-"Om de lijsten als bestanden over te dragen, schrijft u het pakket: het bevat "
+"Om één lijst als bestand over te dragen, opent u haar pagina en kiest u "
+"**Uitvoer ▸ Werkplaats ▸ Lijst exporteren…** (ook in het menu van de pagina "
+"van de lijst). Het schrijft de getoonde lijst als Excel-bestand in de taal "
+"van het project, of, voor een bestandsnaam die op `.csv` eindigt, als CSV in "
+"het Engels voor een programma. Een doorsnede of een lengte is een getal "
+"onder een kop die haar eenheid draagt, zoals \"Lengte mm\". Het pakket bevat "
 "elke lijst voor de werkplaats als Excel-bestand ([De labels, de "
-"boortekeningen en het pakket exporteren](workshop-package.md)). Op de "
+"boortekeningen en het pakket exporteren](workshop-package.md)), en op de "
 "opdrachtregel schrijven `ew export wires` en `ew export report` één lijst "
-"als CSV of Excel ([De opdrachtregel gebruiken op het "
-"voorbeeldproject](headless-workflow.md))."
+"([De opdrachtregel gebruiken op het voorbeeldproject](headless-workflow.md))."
 
-#: src/how-to/workshop-lists.md:64
+#: src/how-to/workshop-lists.md:68
 msgid ""
 "What each command does is in the [command bar "
 "reference](../reference/window/command-bar.md#output)."
@@ -5881,16 +6020,17 @@ msgid ""
 "Choose **Output ▸ Workshop ▸ Labels…**. The dialog lists one file per label "
 "set and marker part (Wire markers, Terminal markers, Strip markers, Cable "
 "markers, Device labels, Tube markers, Plates), each with its marker part, "
-"its count of labels and a tick. A file is named by the drawing number, the "
-"label set and the marker part, such as `SAMPLE-E Wire markers "
-"EW-GEN-MRK-1.xlsx`."
+"the number of labels to print (their copies counted) and a tick. A file is "
+"named by the drawing number, the label set and the marker part, such as "
+"`SAMPLE-E Wire markers EW-GEN-MRK-1.xlsx`."
 msgstr ""
 "Kies **Uitvoer ▸ Werkplaats ▸ Labels…**. Het venster noemt één bestand per "
 "labelset en merkerartikel (Draadmerkers, Klemmerkers, Klemmenstrookmerkers, "
 "Kabelmerkers, Apparaatlabels, Slangmerkers, Frontplaatjes), elk met zijn "
-"merkerartikel, het aantal labels en een vinkje. Een bestand heet naar het "
-"tekeningnummer, de labelset en het merkerartikel, zoals `SAMPLE-E Wire "
-"markers EW-GEN-MRK-1.xlsx` in het Engelse voorbeeldproject."
+"merkerartikel, het aantal labels om af te drukken (hun kopieën meegeteld) en "
+"een vinkje. Een bestand heet naar het tekeningnummer, de labelset en het "
+"merkerartikel, zoals `SAMPLE-E Wire markers EW-GEN-MRK-1.xlsx` in het "
+"Engelse voorbeeldproject."
 
 #: src/how-to/workshop-package.md:16
 msgid ""
@@ -6003,8 +6143,9 @@ msgid ""
 "the drawings for drilling, each ticked and with what it holds, such as \"54 "
 "wires, 2 bridges\". Untick what the shop does not need. A member without "
 "content has no tick, such as the drawings for drilling of a cabinet without "
-"holes. A line says what a member lacks, such as a marker part for cables in "
-"the workshop stock, with **Workshop stock…**; **Change…** changes the label "
+"holes. A line says what a member lacks of a part or of the workshop stock, "
+"such as a marker part for cables or a ring lug for a size, with **Workshop "
+"stock…**, which opens the stock in Parts; **Change…** changes the label "
 "file's form."
 msgstr ""
 "Links, **Wat erin gaat**: de tekeningen, de draadlijst, de montagelijsten, "
@@ -6012,9 +6153,10 @@ msgstr ""
 "de boortekeningen, elk aangevinkt en met wat het bevat, zoals \"54 draden, 2 "
 "bruggen\". Vink uit wat de werkplaats niet nodig heeft. Een deel zonder "
 "inhoud heeft geen vinkje, zoals de boortekeningen van een kast zonder gaten. "
-"Een regel zegt wat een deel mist, zoals een merkerartikel voor kabels in de "
-"werkplaatsvoorraad, met **Werkplaatsvoorraad…**; **Wijzigen…** wijzigt de "
-"vorm van het labelbestand."
+"Een regel zegt wat een deel mist van een artikel of van de "
+"werkplaatsvoorraad, zoals een merkerartikel voor kabels of een kabelschoen "
+"voor een doorsnede, met **Werkplaatsvoorraad…**, dat de voorraad in "
+"Artikelen opent; **Wijzigen…** wijzigt de vorm van het labelbestand."
 
 #: src/how-to/workshop-package.md:49
 msgid ""
@@ -6094,15 +6236,17 @@ msgstr "Wat de werkplaats in het ZIP-bestand vindt"
 #: src/how-to/workshop-package.md:69
 msgid ""
 "At the top, `Contents.txt`, which says the revision, whether it is a draft, "
-"what the release check found, which wires have no length and why, and what "
-"each file is; and the drawings as one PDF, every page in page order."
+"what the release check found, which wires have no length and why, what the "
+"files lack of the workshop stock and of its parts' data, and what each file "
+"is; and the drawings as one PDF, every page in page order."
 msgstr ""
 "Bovenaan het inhoudsbestand, dat de revisie noemt, zegt of het pakket een "
 "concept is, wat de vrijgavecontrole vond, welke draden geen lengte hebben en "
-"waarom, en wat elk bestand is; en de tekeningen als één PDF, elke pagina in "
-"paginavolgorde."
+"waarom, wat de bestanden missen van de werkplaatsvoorraad en van de gegevens "
+"van haar artikelen, en wat elk bestand is; en de tekeningen als één PDF, "
+"elke pagina in paginavolgorde."
 
-#: src/how-to/workshop-package.md:71
+#: src/how-to/workshop-package.md:72
 msgid ""
 "In `Lists`, each workshop list as an Excel file; in `Labels`, the label "
 "files; in `Drilling`, the template and the DXF of each surface with holes; "
@@ -6114,7 +6258,7 @@ msgstr ""
 "DXF. Daarnaast `manifest.json`, dezelfde lijst voor een programma, met een "
 "SHA-256 van elk bestand."
 
-#: src/how-to/workshop-package.md:74
+#: src/how-to/workshop-package.md:75
 msgid ""
 "The same three exports run on the command line: `ew export labels`, `ew "
 "export drilling` and `ew export package` ([Use the command line on the "
@@ -6868,14 +7012,22 @@ msgid ""
 "puts it into the project and into your own parts library, **My parts**, so "
 "that your next project has it too."
 msgstr ""
+"Elk artikel, de starterartikelen en uw eigen, staat op één plaats: "
+"**Artikelen** (**Project ▸ Artikelen**, `F9`). Links staat de lijst met haar "
+"zoekveld en haar filters, in het midden het blad van het geopende artikel, "
+"rechts zijn afbeeldingen en **Klaar voor**. Een artikel dat u maakt, typt u "
+"over uit zijn datasheet: niets hier hangt af van wat ElektraWatt weet over "
+"het product van een fabrikant. **Opslaan** zet het in het project en in uw "
+"eigen artikelbibliotheek, **Mijn artikelen**, zodat uw volgende project het "
+"ook heeft."
 
 #: src/how-to/own-parts.md:9
 msgid "You need an open project."
-msgstr ""
+msgstr "U hebt een geopend project nodig."
 
 #: src/how-to/own-parts.md:11
 msgid "Start a new part"
-msgstr ""
+msgstr "Een nieuw artikel beginnen"
 
 #: src/how-to/own-parts.md:13
 msgid ""
@@ -6883,6 +7035,9 @@ msgid ""
 "browser (**Draw ▸ Place ▸ Device from part…**, `Shift+I`) or in the part "
 "dialog (**Choose part…**)."
 msgstr ""
+"Kies **Nieuw artikel** in de balk van Artikelen, of **Nieuw artikel…** in de "
+"apparaatbrowser (**Tekenen ▸ Plaatsen ▸ Apparaat uit artikel…**, `Shift+I`) "
+"of in het artikelvenster (**Artikel kiezen…**)."
 
 #: src/how-to/own-parts.md:15
 msgid ""
@@ -6896,6 +7051,15 @@ msgid ""
 "**Wiring duct**, **End bracket or accessory**, **Valve**, **Tube** or "
 "**Other pneumatic device**."
 msgstr ""
+"Het blad vraagt eerst: **Wat is het?** Zijn kaarten staan in vier groepen, "
+"Apparaten; Klemmen, kabels en bedrading; Kastopbouw; Pneumatiek, elk met een "
+"regel over wat het zal vragen. Kies de kaart van uw artikel: **Apparaat met "
+"symbolen** voor een magneetschakelaar of een installatieautomaat, **Apparaat "
+"getekend als blok** voor een voeding of een apparaat op een bus, **PLC-kaart "
+"of station**, **Drukknop of lamp in een deur**, **Klem**, **Kabel**, "
+"**Draad**, **Adereindhuls of kabelschoen**, **Merker**, **Kabelwartel**, "
+"**Kast**, **Montageplaat**, **Rail**, **Kabelgoot**, **Eindsteun of "
+"toebehoren**, **Ventiel**, **Slang** of **Ander pneumatisch apparaat**."
 
 #: src/how-to/own-parts.md:21
 msgid ""
@@ -6903,6 +7067,10 @@ msgid ""
 "the **Part number** and a **Description**: these are all a part needs to be "
 "saved. A maker your libraries do not have yet is made with the part."
 msgstr ""
+"Het blad toont wat die soort nodig heeft en verder niets. Typ de "
+"**Fabrikant**, het **Artikelnummer** en een **Beschrijving**: meer heeft een "
+"artikel niet nodig om te worden opgeslagen. Een fabrikant die uw "
+"bibliotheken nog niet hebben, wordt met het artikel gemaakt."
 
 #: src/how-to/own-parts.md:24
 msgid ""
@@ -6914,6 +7082,14 @@ msgid ""
 "that lacks something has a dot in the list of groups. Leave what you do not "
 "know: the part saves without it, and Ready for keeps saying it."
 msgstr ""
+"Typ wat de datasheet geeft: de klemmen en de breedte van een klem, de aders "
+"en de buitendiameter van een kabel, de maat, de plaat en de deuren van een "
+"kast. **Klaar voor** rechts zegt per functie wat het artikel nog mist en wat "
+"daaruit volgt (voor de kastlayout staat een artikel zonder maat op de layout "
+"als een vierkant van 20 × 20 mm, gemarkeerd als onbekende maat); een groep "
+"van het blad die iets mist, heeft een stip in de lijst van groepen. Laat weg "
+"wat u niet weet: het artikel wordt zonder opgeslagen, en Klaar voor blijft "
+"het zeggen."
 
 #: src/how-to/own-parts.md:29
 msgid ""
@@ -6921,6 +7097,9 @@ msgid ""
 "the part goes to the devices you were choosing for, and you are back on the "
 "page."
 msgstr ""
+"**Opslaan**. Vanuit het artikelvenster luidt de knop **Opslaan en gebruiken "
+"voor -102Q1**: het artikel gaat naar de apparaten waarvoor u koos, en u bent "
+"terug op de pagina."
 
 #: src/how-to/own-parts.md:32
 msgid ""
@@ -6929,6 +7108,10 @@ msgid ""
 "project has a part of that maker and number already: open that one from the "
 "list instead."
 msgstr ""
+"Een veld dat niet te lezen is, wordt eronder geweigerd, in woorden. Opslaan "
+"wordt alleen geweigerd als het artikel geen fabrikant of geen nummer heeft, "
+"of als Mijn artikelen of het project al een artikel van die fabrikant en dat "
+"nummer heeft: open dat dan uit de lijst."
 
 #: src/how-to/own-parts.md:35
 msgid ""
@@ -6938,16 +7121,23 @@ msgid ""
 "size** beside Save: the next size opens with everything but the number and "
 "the cross-section."
 msgstr ""
+"**Een artikel zoals dit…**, de kaart onder de andere, of **Zoals dit** in de "
+"balk met een artikel geopend, begint een nieuw artikel met alles wat het "
+"andere artikel heeft behalve zijn nummer. Een kabeltype dat in meerdere "
+"doorsneden wordt verkocht, heeft **Opslaan en nog een maat** naast Opslaan: "
+"de volgende maat opent met alles behalve het nummer en de doorsnede."
 
 #: src/how-to/own-parts.md:39
 msgid "A card such as a digital input card"
-msgstr ""
+msgstr "Een kaart zoals een digitale ingangskaart"
 
 #: src/how-to/own-parts.md:41
 msgid ""
 "Choose **PLC card or station**. Under **PLC**, the role is **Module**; "
 "choose **Channel kind ▸ DI** and type **Channels** `8`."
 msgstr ""
+"Kies **PLC-kaart of station**. Onder **PLC** is de rol **Module**; kies "
+"**Kanaalsoort** **DI** en typ bij **Kanalen** `8`."
 
 #: src/how-to/own-parts.md:43
 msgid ""
@@ -6957,6 +7147,11 @@ msgid ""
 "pattern shows before you save, and the next line the input or output bits "
 "the card occupies."
 msgstr ""
+"Het **Aansluitpatroon** geeft de pen van kanaal n: `{n+1}` geeft de pennen 1 "
+"tot 8, `X2:{n+1}` geeft X2:1 tot X2:8. De regel eronder toont de eerste en "
+"de laatste pen (\"Channel 0 → pin 1 … channel 7 → pin 8\"), zodat een "
+"verkeerd patroon opvalt voordat u opslaat, en de volgende regel de ingangs- "
+"of uitgangsbits die de kaart inneemt."
 
 #: src/how-to/own-parts.md:46
 msgid ""
@@ -6964,6 +7159,9 @@ msgid ""
 "them, and the **Allowed slots** (`1-8, 10`) when the data sheet restricts "
 "them. **Save**."
 msgstr ""
+"Typ de voedingspennen (**Voeding L+-pen**, **Voeding M-pen**) als de kaart "
+"ze heeft, en de **Toegestane slots** (`1-8, 10`) als de datasheet ze "
+"beperkt. **Opslaan**."
 
 #: src/how-to/own-parts.md:48
 msgid ""
@@ -6972,22 +7170,30 @@ msgid ""
 "bound to their pins. The catalogue of a station's rack (**Rack…**) offers it "
 "as a module."
 msgstr ""
+"Plaats de kaart naast de CPU vanuit de apparaatbrowser: ze staat er als blok "
+"met haar pennen, sluit aan bij de CPU van het project, en haar kanalen "
+"krijgen hun adressen en worden aan hun pennen gekoppeld. De catalogus van "
+"het rek van een station (**Rek…**) biedt haar aan als module."
 
 #: src/how-to/own-parts.md:52
 msgid ""
 "A part has channels of one kind: a card with 16 inputs and 16 outputs is two "
 "parts, one for each."
 msgstr ""
+"Een artikel heeft kanalen van één soort: een kaart met 16 ingangen en 16 "
+"uitgangen zijn twee artikelen, één voor elk."
 
 #: src/how-to/own-parts.md:54
 msgid "A head station such as an IM 152"
-msgstr ""
+msgstr "Een kopstation zoals een IM 152"
 
 #: src/how-to/own-parts.md:56
 msgid ""
 "Choose **PLC card or station**, then **PLC role ▸ Station**; type the supply "
 "pins and **Most modules** (`32`)."
 msgstr ""
+"Kies **PLC-kaart of station**, dan bij de PLC-rol **Station**; typ de "
+"voedingspennen en **Maximaal aantal modules** (`32`)."
 
 #: src/how-to/own-parts.md:57
 msgid ""
@@ -6996,6 +7202,10 @@ msgid ""
 "the interface `X1`, **Bus ▸ PROFINET**, **Role ▸ Device** and **Ports** `2`. "
 "**Save**."
 msgstr ""
+"Kies onder **Netwerkpoorten** **Interface toevoegen**: typ de interface "
+"`DP`, kies bij **Bus** **PROFIBUS DP** en bij **Rol** **Slave**. Zijn "
+"PROFINET-zuster heeft de interface `X1`, de bus **PROFINET**, de rol "
+"**Apparaat** en **Poorten** `2`. **Opslaan**."
 
 #: src/how-to/own-parts.md:60
 msgid ""
@@ -7007,6 +7217,14 @@ msgid ""
 "navigator. Add its cards in its rack (**Rack…** on that row). A station that "
 "only answers on the bus is a head station."
 msgstr ""
+"Plaats het vanuit de apparaatbrowser op een bustopologiepagina: het staat "
+"daar als blok met zijn DP-aansluiting, en zijn voedingspennen wachten op een "
+"schemapagina (sleep zijn ongeplaatste functie uit de lijst **Apparaten** "
+"daarheen en teken het blok met zijn pennen). Eerst op een schemapagina "
+"geplaatst, krijgt het zijn poortblok op een bustopologiepagina via **Poort "
+"DP plaatsen** op zijn rij in de PLC-navigator. Voeg zijn kaarten toe in zijn "
+"rek (**Rek…** op die rij). Een station dat alleen op de bus antwoordt, is "
+"een kopstation."
 
 #: src/how-to/own-parts.md:66
 msgid ""
@@ -7014,10 +7232,13 @@ msgid ""
 "asks for: a CPU, a remote station, a valve terminal, a compact device or a "
 "module."
 msgstr ""
+"**Nieuw artikel…** onderaan de catalogus van een station begint het artikel "
+"waar het rek om vraagt: een CPU, een decentraal station, een ventieleiland, "
+"een compact apparaat of een module."
 
 #: src/how-to/own-parts.md:69
 msgid "A switch such as a SCALANCE, or a device on PROFINET"
-msgstr ""
+msgstr "Een switch zoals een SCALANCE, of een apparaat op PROFINET"
 
 #: src/how-to/own-parts.md:71
 msgid ""
@@ -7025,12 +7246,17 @@ msgid ""
 "interface**: `X1`, **PROFINET**, and the number of **Ports** (sockets) of "
 "the data sheet."
 msgstr ""
+"Kies **Apparaat getekend als blok**. Onder **Netwerkpoorten**, **Interface "
+"toevoegen**: `X1`, **PROFINET**, en het aantal **Poorten** (aansluitingen) "
+"van de datasheet."
 
 #: src/how-to/own-parts.md:73
 msgid ""
 "An **unmanaged** switch has the role **Passive**: no address, it passes the "
 "net through."
 msgstr ""
+"Een **unmanaged** switch heeft de rol **Passief**: geen adres, hij geeft het "
+"net door."
 
 #: src/how-to/own-parts.md:74
 msgid ""
@@ -7038,6 +7264,9 @@ msgid ""
 "**Device**: one PROFINET name and IP address for the whole interface, "
 "however many sockets it has."
 msgstr ""
+"Een **managed** switch en een aandrijving, een HMI of een gateway hebben de "
+"rol **Apparaat**: één PROFINET-naam en IP-adres voor de hele interface, "
+"hoeveel aansluitingen die ook heeft."
 
 #: src/how-to/own-parts.md:76
 msgid ""
@@ -7051,6 +7280,16 @@ msgid ""
 "column): the box prints it (\"Node switch-1 192.168.0.2\"), and \"Node TBD\" "
 "while it is open."
 msgstr ""
+"**Opslaan**, en plaats het dan vanuit de apparaatbrowser op een "
+"bustopologiepagina: het staat er als blok met een aansluitpunt per "
+"aansluiting, P1, P2 …. Een apparaat met meerdere interfaces, zoals de "
+"starter-CPU met DP en X1, staat er als een blok per interface, naast elkaar. "
+"Teken de buslijnen met **Tekenen ▸ Draad**: de CPU, de apparaten en de "
+"managed switch zijn één netwerk, en een unmanaged switch staat erin met "
+"\"passes the net through\" in de navigator **Bus**. Typ de naam van elk "
+"knooppunt in de tabel van de navigator (zijn kolom **Adres**): het blok "
+"drukt hem af (\"Node switch-1 192.168.0.2\"), en \"Node TBD\" zolang hij "
+"open is."
 
 #: src/how-to/own-parts.md:84
 msgid ""
@@ -7058,10 +7297,13 @@ msgid ""
 "switch, 5 ports), EW-GEN-ESW-8 (managed switch, 8 ports) and EW-GEN-PND-1 (a "
 "PROFINET device, 2 ports)."
 msgstr ""
+"De starterartikelen bevatten zulke artikelen om mee te beginnen: "
+"EW-GEN-ESW-5 (unmanaged switch, 5 poorten), EW-GEN-ESW-8 (managed switch, 8 "
+"poorten) en EW-GEN-PND-1 (een PROFINET-apparaat, 2 poorten)."
 
 #: src/how-to/own-parts.md:87
 msgid "Change a part"
-msgstr ""
+msgstr "Een artikel wijzigen"
 
 #: src/how-to/own-parts.md:89
 msgid ""
@@ -7069,6 +7311,9 @@ msgid ""
 "description), or select a device and choose **Edit ▸ Parts**, which opens on "
 "the device's part."
 msgstr ""
+"Open het artikel in Artikelen: uit de lijst (typ een deel van zijn nummer, "
+"fabrikant of beschrijving), of selecteer een apparaat en kies **Project ▸ "
+"Artikelen**, dat op het artikel van het apparaat opent."
 
 #: src/how-to/own-parts.md:91
 msgid ""
@@ -7077,6 +7322,11 @@ msgid ""
 "its fields show what it is, and **Make my own** starts a part of your own "
 "with its data, which you save under a part number of your own."
 msgstr ""
+"Een eigen artikel, in Mijn artikelen of alleen in dit project, opent klaar "
+"om te wijzigen. Een starterartikel of een artikel van een andere bibliotheek "
+"is niet het uwe om te wijzigen: zijn velden tonen wat het is, en **Mijn "
+"eigen maken** begint een eigen artikel met zijn gegevens, dat u onder een "
+"eigen artikelnummer opslaat."
 
 #: src/how-to/own-parts.md:94
 msgid ""
@@ -7087,6 +7337,13 @@ msgid ""
 "project's copy to it. A part only in this project changes in place, with the "
 "same card. **Discard** drops what you typed."
 msgstr ""
+"Wijzig wat u nodig hebt en kies **Opslaan**. Een artikel van Mijn artikelen "
+"wordt daar opgeslagen als zijn volgende versie, en de kaart naast het blad "
+"noemt in woorden wat verandert (\"Interface X1: 8 ports → 6 ports\", "
+"\"Channels: 8 → 16\", de gewijzigde kolom van de rij van de stuklijst) en de "
+"apparaten die het gebruiken; **Toepassen** brengt de kopie van het project "
+"erop. Een artikel dat alleen in dit project staat, verandert ter plaatse, "
+"met dezelfde kaart. **Verwerpen** laat vallen wat u typte."
 
 #: src/how-to/own-parts.md:98
 msgid ""
@@ -7099,6 +7356,15 @@ msgid ""
 "back along that edge until it fits, its wires with it. The card names each "
 "box drawn anew and its page before **Apply**."
 msgstr ""
+"Een apparaat dat al getekend is, volgt de correctie: zijn blok toont de "
+"pennen en aansluitingen die het artikel nog heeft, en zijn buspoort houdt "
+"zijn bus, rol en adres. Een buslijn bij een aansluiting die het artikel niet "
+"meer heeft, houdt haar einde daar; de kaart noemt haar vóór **Toepassen**, "
+"zodat u haar naar een andere aansluiting tekent. Een pen of aansluiting die "
+"het artikel toevoegt, komt na de laatste van zijn rand, en het blok groeit "
+"mee; een blok dat dan buiten het tekengebied zou lopen, schuift langs die "
+"rand terug tot het past, zijn draden mee. De kaart noemt elk blok dat "
+"opnieuw wordt getekend en zijn pagina vóór **Toepassen**."
 
 #: src/how-to/own-parts.md:104
 msgid ""
@@ -7107,16 +7373,23 @@ msgid ""
 "takes a part of your own out of My parts (it asks first); a project that "
 "uses it keeps its copy. **Back** returns to where you came from."
 msgstr ""
+"Een artikel dat alleen in dit project staat, heeft **In mijn artikelen "
+"bewaren** in de balk: het wordt in Mijn artikelen geschreven, en de "
+"apparaten van het project nemen die kopie. **Verwijderen** haalt een eigen "
+"artikel uit Mijn artikelen (het vraagt eerst); een project dat het gebruikt, "
+"houdt zijn kopie. **Terug** gaat terug naar waar u vandaan kwam."
 
 #: src/how-to/own-parts.md:108
 msgid "Bring parts in from a file"
-msgstr ""
+msgstr "Artikelen uit een bestand binnenhalen"
 
 #: src/how-to/own-parts.md:110
 msgid ""
 "**Import** in the bar of Parts reads a file of parts; **File ▸ Import…** "
 "goes on to Parts for one too."
 msgstr ""
+"**Importeren** in de balk van Artikelen leest een bestand met artikelen; "
+"**Bestand ▸ Importeren…** gaat daarvoor ook naar Artikelen."
 
 #: src/how-to/own-parts.md:112
 msgid ""
@@ -7137,6 +7410,25 @@ msgid ""
 "cell leaves its cores as they are. The map is saved under the name in "
 "**Saved as**, and the next table of that source is read the same way."
 msgstr ""
+"**Een tabel** (CSV of Excel), zoals de lijst van een fabrikant of een "
+"familie van uw eigen artikelen: Artikelen toont **Welke kolom wat is**, elke "
+"kolom van het bestand met haar eerste waarde en het veld waar ze naartoe "
+"**Gaat**, gekozen uit de velden bij hun woorden (**Identiteit** › "
+"**Artikelnummer**, **Breedte**, **Technische gegevens** › **Nominale "
+"stroom**). Een kolom waarvan de kop een veld noemt, is al gekoppeld; een "
+"kolom die geen veld houdt, blijft **Niet geïmporteerd**. **Breedte**, "
+"**Hoogte** en **Diepte** gaan naar het veld van die naam dat de soort van de "
+"rij heeft: de buitenmaat van een kast, de maat van een plaat, de maat van "
+"een apparaat in de kast. Een kolom gekoppeld aan **Zoals** noemt een artikel "
+"bij zijn nummer: een nieuwe rij begint als dat artikel (zijn pennen, waarmee "
+"het getekend wordt, zijn klemmen, wat erbij hoort) en neemt haar eigen "
+"kolommen eroverheen, zodat een familie één artikel is dat op zijn blad wordt "
+"gemaakt en een tabel van de andere. Een kolom gekoppeld aan **Kabel** › "
+"**Aantal aders** (een kolom met de naam Cores is al gekoppeld) geeft een "
+"kabel zoveel genummerde aders, van de doorsnede die een kolom gekoppeld aan "
+"**Kabel** › **Doorsnede** geeft; een lege cel laat zijn aders zoals ze zijn. "
+"De koppeling wordt opgeslagen onder de naam bij **Opgeslagen als**, en de "
+"volgende tabel van die bron wordt op dezelfde manier gelezen."
 
 #: src/how-to/own-parts.md:123
 msgid ""
@@ -7146,12 +7438,20 @@ msgid ""
 "a line says how many and how many would change, and **Update them…** shows "
 "the changed fields before anything changes."
 msgstr ""
+"**Een EPLAN-artikelbestand** (een EDZ, of een artikel-XML): vóór de eerste "
+"EDZ van een sessie zegt een melding dat de voorwaarden van het EPLAN Data "
+"Portal zijn gegevens beperken tot EPLAN-producten. Waar het geopende project "
+"kopieën van de artikelen van het bestand heeft, zegt een regel hoeveel en "
+"hoeveel er zouden veranderen, en **Ze bijwerken…** toont de gewijzigde "
+"velden voordat er iets verandert."
 
 #: src/how-to/own-parts.md:126
 msgid ""
 "**An outline drawing** (DXF) gives the open part its front outline, as "
 "**Import outline…** does."
 msgstr ""
+"**Een maattekening** (DXF) geeft het geopende artikel zijn frontcontour, "
+"zoals **Contour importeren…** doet."
 
 #: src/how-to/own-parts.md:127
 msgid ""
@@ -7159,6 +7459,9 @@ msgid ""
 "QElectroTech element, an EPLAN symbol file or a DXF drawing opens as a "
 "drawing of your own."
 msgstr ""
+"**Een symboolbestand**, op de plank **Symbolen** of op de tekening: een "
+"QElectroTech-element, een EPLAN-symboolbestand of een DXF-tekening opent als "
+"een eigen tekening."
 
 #: src/how-to/own-parts.md:130
 msgid ""
@@ -7171,10 +7474,19 @@ msgid ""
 "new and the changed parts; a project takes a part when a device uses it. "
 "**Discard** drops the set."
 msgstr ""
+"Wat een tabel of een artikelbestand brengt, staat in de lijst als **Deze "
+"import**: elke rij **nieuw**, **gewijzigd**, **hetzelfde** als het artikel "
+"in Mijn artikelen, of **geweigerd** met haar reden onder **Wat er gelezen "
+"is** (\"Row 9 is refused: it has no part number\"), en een stip waar het "
+"artikel iets mist. Een rij staat rechts zoals ze zal worden, met **Klaar "
+"voor**. Wijzig de koppeling en de lijst volgt. Niets wordt opgeslagen tot "
+"**12 opslaan in Mijn artikelen**, dat de nieuwe en de gewijzigde artikelen "
+"schrijft; een project neemt een artikel als een apparaat het gebruikt. "
+"**Verwerpen** laat de set vallen."
 
 #: src/how-to/own-parts.md:136
 msgid "Change many parts at once"
-msgstr ""
+msgstr "Veel artikelen tegelijk wijzigen"
 
 #: src/how-to/own-parts.md:138
 msgid ""
@@ -7182,6 +7494,9 @@ msgid ""
 "of the selection, or hold **Shift** and click to take the rows from the open "
 "part to that one."
 msgstr ""
+"Houd in de lijst van Artikelen **Ctrl** ingedrukt en klik elk artikel om het "
+"in of uit de selectie te nemen, of houd **Shift** ingedrukt en klik om de "
+"rijen van het geopende artikel tot dat ene te nemen."
 
 #: src/how-to/own-parts.md:140
 msgid ""
@@ -7189,12 +7504,18 @@ msgid ""
 "**mixed** under a field they differ in. Where they have the same pins, the "
 "**Connections** table's cells are there too (\"Pin 1 · Clamp\")."
 msgstr ""
+"Het blad toont de velden die de artikelen delen: een waarde die ze allemaal "
+"hebben, of **gemengd** onder een veld waarin ze verschillen. Waar ze "
+"dezelfde pennen hebben, staan ook de cellen van de tabel **Aansluitpunten** "
+"er (\"Pin 1 · Clamp\")."
 
 #: src/how-to/own-parts.md:142
 msgid ""
 "Type a value: it goes to all of them. A field you leave **mixed** stays as "
 "each part has it."
 msgstr ""
+"Typ een waarde: ze gaat naar alle artikelen. Een veld dat u **gemengd** "
+"laat, blijft zoals elk artikel het heeft."
 
 #: src/how-to/own-parts.md:143
 msgid ""
@@ -7204,6 +7525,11 @@ msgid ""
 "them in one step, which one **Undo** takes back in the project (My parts "
 "keeps what you saved)."
 msgstr ""
+"**Opslaan** slaat elk artikel op als zijn volgende versie in Mijn artikelen. "
+"Waar het geopende project ze gebruikt, noemt de kaart naast het blad hoeveel "
+"artikelen en welke velden veranderen, met de apparaten; **Toepassen** brengt "
+"de kopieën van het project erop in één stap, die één keer **Ongedaan maken** "
+"in het project terugdraait (Mijn artikelen houdt wat u opsloeg)."
 
 #: src/how-to/own-parts.md:147
 msgid ""
@@ -7211,6 +7537,10 @@ msgid ""
 "**Make my own from** it starts a part of your own from it. A part only in "
 "this project is kept in My parts first (**Keep in my parts**)."
 msgstr ""
+"Een starterartikel ertussen is niet het uwe om te wijzigen: een regel noemt "
+"het, en **Mijn eigen maken van** dat artikel begint er een eigen artikel "
+"mee. Een artikel dat alleen in dit project staat, wordt eerst in Mijn "
+"artikelen bewaard (**In mijn artikelen bewaren**)."
 
 #: src/how-to/own-parts.md:150
 msgid ""
@@ -7222,10 +7552,18 @@ msgid ""
 "rows as changes. A table imported as it was exported brings every row as "
 "**the same**."
 msgstr ""
+"**Exporteren** in de balk van Artikelen schrijft de geselecteerde artikelen, "
+"of het geopende, als tabel (CSV, of Excel voor een naam die op `.xlsx` "
+"eindigt), één kolom per veld in de woorden van het venster. Een familie van "
+"vijftig klemmen maakt u daarmee in een spreadsheet: kopieer een rij, wijzig "
+"haar nummer en haar waarden, en **Importeren** leest de tabel terug, haar "
+"nieuwe rijen als nieuwe artikelen en haar gewijzigde rijen als wijzigingen. "
+"Een tabel die wordt geïmporteerd zoals ze is geëxporteerd, brengt elke rij "
+"als **hetzelfde**."
 
 #: src/how-to/own-parts.md:155
 msgid "A device that is a box with pins"
-msgstr ""
+msgstr "Een apparaat dat een blok met pennen is"
 
 #: src/how-to/own-parts.md:157
 msgid ""
@@ -7233,6 +7571,10 @@ msgid ""
 "symbol for is drawn as a box with its pins on the edges. The part says which "
 "pins it has and where they stand."
 msgstr ""
+"Een beveiligingsautomaat, een voeding, een aandrijving: een apparaat "
+"waarvoor het programma geen symbool heeft, wordt getekend als een blok met "
+"zijn pennen op de randen. Het artikel zegt welke pennen het heeft en waar ze "
+"staan."
 
 #: src/how-to/own-parts.md:160
 msgid ""
@@ -7242,6 +7584,13 @@ msgid ""
 "its clamp. A PLC card's pins come from its channels and a part drawn with a "
 "symbol takes that symbol's connections: the group lists them and says so."
 msgstr ""
+"Onder **Op het schema** noemt **Pennen** de pennen van het artikel, elk met "
+"zijn naam en de potentiaal die het voert. **Pen toevoegen** voegt er een "
+"toe, het kruisje aan het eind van een rij verwijdert er een; elke pen heeft "
+"zijn rij onder **Aansluitpunten** voor zijn klem. De pennen van een "
+"PLC-kaart komen uit haar kanalen, en een artikel dat met een symbool wordt "
+"getekend, neemt de aansluitingen van dat symbool: de groep noemt ze en zegt "
+"dat."
 
 #: src/how-to/own-parts.md:164
 msgid ""
@@ -7250,6 +7599,11 @@ msgid ""
 "**Done**, then **Save** the part ([The box of a "
 "part](../reference/symbol-editor.md#the-box-of-a-part))."
 msgstr ""
+"Kies **Schikken…**. Het blok opent als de tekening van Artikelen: sleep elke "
+"pen langs zijn rand of naar een andere rand, sleep de randen van het blok om "
+"het op maat te maken, kies **Klaar**, en kies dan **Opslaan** voor het "
+"artikel ([Het blok van een "
+"artikel](../reference/symbol-editor.md#the-box-of-a-part))."
 
 #: src/how-to/own-parts.md:167
 msgid ""
@@ -7263,6 +7617,16 @@ msgid ""
 "bottom sides are turned a quarter, reading from bottom to top; those of the "
 "left and right sides are horizontal."
 msgstr ""
+"**Tekenen ▸ Plaatsen ▸ Apparaat uit artikel…** plaatst daarna het blok van "
+"het artikel met één klik, opgezet zoals u het tekende. Op de pagina kunnen "
+"de randen en de pennen van het blok nog worden gesleept. Sleept u een rand, "
+"dan blijven de pennen van elke zijde erop gecentreerd met hun tussenruimte; "
+"het blok wordt niet kleiner dan zijn pennen nodig hebben (één rasterstap elk "
+"en één extra bij elke hoek), en niet lager dan de namen van zijn pennen "
+"nodig hebben, en de statusregel zegt dat. **Aansluitingen centreren** in het "
+"rechtermuisknopmenu van het blok centreert ze zonder de maat te wijzigen. De "
+"pennamen van de boven- en onderzijde staan een kwartslag gedraaid, van onder "
+"naar boven te lezen; die van de linker- en rechterzijde staan horizontaal."
 
 #: src/how-to/own-parts.md:173
 msgid ""
@@ -7270,10 +7634,13 @@ msgid ""
 "its menu. Save's card names each box of the part it draws anew, and its "
 "Apply redraws them."
 msgstr ""
+"Om het blok van een apparaat dat al getekend is te wijzigen, kiest u **Zijn "
+"kast schikken…** in zijn menu. De kaart van Opslaan noemt elk blok van het "
+"artikel dat ze opnieuw tekent, en haar Toepassen tekent ze opnieuw."
 
 #: src/how-to/own-parts.md:176
 msgid "A part drawn with your own symbol"
-msgstr ""
+msgstr "Een artikel getekend met uw eigen symbool"
 
 #: src/how-to/own-parts.md:178
 msgid ""
@@ -7285,6 +7652,14 @@ msgid ""
 "**New part drawn with it…** under its name ([Drawing a "
 "symbol](../reference/symbol-editor.md))."
 msgstr ""
+"De cel **Symbool** van een stuk, onder **Op het schema** › **Getekend als**, "
+"biedt de symbolen aan van wat het stuk is; **Teken een nieuw symbool…** "
+"tekent er een voor, met zijn pennen al op de tekening, en **Wijzig het voor "
+"dit artikel…** tekent uw kopie van het symbool dat het heeft. **Klaar** "
+"geeft het stuk het symbool; een apparaat dat uit het artikel wordt "
+"geplaatst, wordt ermee getekend. Een symbool dat u apart opsloeg, biedt "
+"**Nieuw artikel dat ermee getekend wordt…** aan onder zijn naam ([Een "
+"symbool tekenen](../reference/symbol-editor.md))."
 
 #: src/how-to/own-parts.md:183
 msgid ""
@@ -7293,6 +7668,11 @@ msgid ""
 "file. See [Work in the PLC workspace](plc-workspace.md) for the navigators, "
 "the rack editor and the exchange."
 msgstr ""
+"De uitwisseling met PLC-software exporteert de stations van een "
+"configuratieproject; een switch of een apparaat zonder PLC-sectie staat niet "
+"in het geëxporteerde bestand. Zie [Werken in de "
+"PLC-werkruimte](plc-workspace.md) voor de navigators, de rekeditor en de "
+"uitwisseling."
 
 #: src/how-to/fluid-workspace.md:3
 msgid ""
@@ -12413,12 +12793,58 @@ msgstr ""
 #~ msgid ""
 #~ "To move one of these holes, type another place into its row: the chip then "
 #~ "says \"moved\", and **Reset** puts the hole back. Tick **Leave out** below a "
-#~ "hole you do not make; it is then drawn and listed nowhere."
+#~ "hole you do not make; it is then drawn and listed nowhere. Your shop's way "
+#~ "of fixing is set once in Project properties ▸ Workshop (Fixing holes, Rail "
+#~ "fixing, Duct fixing, Web between holes, Measured from). When a new Rail "
+#~ "fixing or Duct fixing puts a rail's or a duct's holes elsewhere, a hole you "
+#~ "moved or left out there is reset, and the card of the change says how many "
+#~ "and on which rails and ducts before you apply it."
 #~ msgstr ""
 #~ "Om een van deze gaten te verplaatsen, typt u een andere plaats in zijn rij: "
 #~ "de chip zegt dan \"verplaatst\", en **Herstellen** zet het gat terug. Vink "
 #~ "**Weglaten** aan onder een gat dat u niet maakt; het wordt dan nergens "
-#~ "getekend of vermeld."
+#~ "getekend of vermeld. Hoe uw werkplaats bevestigt, stelt u eenmaal in bij "
+#~ "Projecteigenschappen ▸ Werkplaats (Bevestigingsgaten, Railbevestiging, "
+#~ "Kabelgootbevestiging, Ruimte tussen gaten, Gemeten vanaf). Zet een nieuwe "
+#~ "Railbevestiging of Kabelgootbevestiging de gaten van een rail of een "
+#~ "kabelgoot elders, dan wordt een gat dat u daar verplaatste of wegliet "
+#~ "teruggezet, en de kaart van de wijziging zegt hoeveel en op welke rails en "
+#~ "kabelgoten voordat u de wijziging toepast."
+
+#~ msgid "Point at a row, or select it, to see that wire's way alone."
+#~ msgstr ""
+#~ "Wijs een rij aan, of selecteer haar, om alleen de loop van die draad te zien."
+
+#~ msgid ""
+#~ "The ferrules, the wire parts and the markers these lists name come from the "
+#~ "**workshop stock**, the parts your shop keeps, in the order you prefer them. "
+#~ "Choose **Project ▸ Edit stock…** to see and change it: **Add** a part by its "
+#~ "number, **Up**, **Down** and **Remove** to order it, **Add the generic "
+#~ "stock** for the starter's ferrules and markers. A part of your own for the "
+#~ "stock is made in Parts ([Make your own parts](own-parts.md))."
+#~ msgstr ""
+#~ "De adereindhulzen, de draadartikelen en de merkers die deze lijsten noemen, "
+#~ "komen uit de **werkplaatsvoorraad**: de artikelen die uw werkplaats op "
+#~ "voorraad heeft, in de volgorde waarin u ze verkiest. Kies **Project ▸ "
+#~ "Voorraad bewerken…** om haar te zien en te wijzigen: **Toevoegen** voegt een "
+#~ "artikel toe bij zijn nummer, **Omhoog**, **Omlaag** en **Verwijderen** "
+#~ "zetten haar op volgorde, en **Algemene voorraad toevoegen** voegt de "
+#~ "adereindhulzen en merkers van de starter toe. Een eigen artikel voor de "
+#~ "voorraad maakt u in Artikelen ([Eigen artikelen maken](own-parts.md))."
+
+#~ msgid ""
+#~ "To hand the lists over as files, write the package: it holds each workshop "
+#~ "list as an Excel file ([Export the labels, the drilling drawings and the "
+#~ "package](workshop-package.md)). On the command line, `ew export wires` and "
+#~ "`ew export report` write one list as CSV or Excel ([Use the command line on "
+#~ "the sample project](headless-workflow.md))."
+#~ msgstr ""
+#~ "Om de lijsten als bestanden over te dragen, schrijft u het pakket: het bevat "
+#~ "elke lijst voor de werkplaats als Excel-bestand ([De labels, de "
+#~ "boortekeningen en het pakket exporteren](workshop-package.md)). Op de "
+#~ "opdrachtregel schrijven `ew export wires` en `ew export report` één lijst "
+#~ "als CSV of Excel ([De opdrachtregel gebruiken op het "
+#~ "voorbeeldproject](headless-workflow.md))."
 
 #~ msgid ""
 #~ "Choose **Draw ▸ Place ▸ Symbol editor…**. The editor takes the place of the "

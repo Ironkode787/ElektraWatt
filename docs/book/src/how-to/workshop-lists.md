@@ -32,12 +32,13 @@ the Output tab.
    rounded up to **Cut to** (5 mm unless the project sets another); a wire is as long as the wire list says.
 6. Choose **Output ▸ Workshop ▸ Open consumables**: the metres of each wire, the ferrules and lugs per part, and the
    markers per label set, to order beside the parts list.
-7. The ferrules, the wire parts and the markers these lists name come from the **workshop stock**, the parts your
-   shop keeps, in the order you prefer them. Choose **Project ▸ Edit stock…** to see and change it: **Add** a part
-   by its number, **Up**, **Down** and **Remove** to order it, **Add the generic stock** for the starter's ferrules
-   and markers. A part of your own for the stock is made in Parts ([Make your own parts](own-parts.md)).
-8. The rows of the workshop settings are under **Output ▸ Workshop ▸ Workshop settings**: Marker text, Ferrules, Two
-   wires in one clamp and the others. A change shows in the lists at once.
+7. The wire parts, the ferrules, the markers and the glands these lists name come from the **workshop stock**, the
+   parts your shop keeps, in the order you prefer them. Choose **Project ▸ Edit stock…**: Parts opens on the
+   project's stock, kind by kind. On a stock part's sheet, **Up**, **Down** and **Take out** change it; another wire,
+   ferrule, marker or gland part has **Add to the stock**. How, and how to keep the stock for new projects, is in
+   [Choose parts](choose-parts.md#the-workshop-stock).
+8. The rows of the workshop settings are under **Output ▸ Workshop ▸ Workshop settings**: Cut to, Marker text,
+   Ferrules, Two wires in one clamp and the others. A change shows in the lists at once.
 
 ## The rework list after a release
 
@@ -56,9 +57,12 @@ the Output tab.
 12. To print a list, choose **Output ▸ Print…**, set **Range** to **Pages** and type the list's folios, such as
     `907-907.2`; or open the list's page and choose **Current page**. **Export PDF…** writes every page, the lists
     among them.
-13. To hand the lists over as files, write the package: it holds each workshop list as an Excel file
-    ([Export the labels, the drilling drawings and the package](workshop-package.md)). On the command line,
-    `ew export wires` and `ew export report` write one list as CSV or Excel
+13. To hand one list over as a file, open its page and choose **Output ▸ Workshop ▸ Export list…** (also in the
+    menu of the list's page). It writes the list on show as an Excel file in the project's language, or, for a file
+    name that ends in `.csv`, a CSV in English for a program. A size or a length is a number under a heading that
+    carries its unit, such as "Length mm". The package holds every workshop list as an Excel file
+    ([Export the labels, the drilling drawings and the package](workshop-package.md)), and on the command line
+    `ew export wires` and `ew export report` write one list
     ([Use the command line on the sample project](headless-workflow.md)).
 
 What each command does is in the [command bar reference](../reference/window/command-bar.md#output).
