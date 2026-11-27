@@ -2334,7 +2334,7 @@ pub fn lacking(p: &Part, feature: Feature) -> Vec<&'static PartField> {
 }
 
 /// What the ferrule choice ([`Feature::FerruleChoice`]) does where the workshop stock holds no part of `form` for the
-/// sizes `sizes` ("1.5 mm², 2.5 mm²"): the wire list names no part for those ends (doc 13 §4.4).
+/// sizes `sizes` ("1.5 mm², 2.5 mm²"): those ends are listed without a part (doc 13 §4.4).
 pub fn no_stock_end(form: crate::EndForm, sizes: &str) -> Text {
     match form {
         crate::EndForm::Ferrule => text!("part-stock-no-ferrule", sizes),

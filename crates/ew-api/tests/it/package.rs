@@ -525,17 +525,21 @@ fn what_the_lists_lack_of_the_stock_is_said() {
     let wires = lacks_of(PackageMember::List("wire_list"));
     for said in [
         "MY-FER-075: Without a sleeve length the wire list prints no strip length.",
-        "No ring lug of the workshop stock takes 2.5 mm²: the wire list names no part for those ends.",
+        "No ring lug of the workshop stock takes 2.5 mm²: those ends are listed without a part.",
     ] {
         assert!(wires.iter().any(|l| l == said), "{said}: {wires:#?}");
     }
     assert!(
-        wires.iter().any(|l| l.starts_with("No wire part of the workshop stock matches ")),
+        wires
+            .iter()
+            .any(|l| l.starts_with("No wire part of the workshop stock matches ")),
         "{wires:#?}"
     );
     let labels = lacks_of(PackageMember::Labels);
     assert!(
-        labels.iter().any(|l| l.starts_with("MY-WM: Without ") && l.contains("characters")),
+        labels
+            .iter()
+            .any(|l| l.starts_with("MY-WM: Without ") && l.contains("characters")),
         "{labels:#?}"
     );
     let (_, entries) = package(&s, &ask());

@@ -182,7 +182,7 @@ fn a_missing_marker_part_offers_the_workshop_stock() {
         .describe()
         .lines()
         .map(str::trim_start)
-        .find(|l| l.starts_with("lacks "))
+        .find(|l| l.starts_with("lacks ") && l.contains("Cable markers"))
         .map(str::to_owned)
         .expect("a lack");
     assert!(

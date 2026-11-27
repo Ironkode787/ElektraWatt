@@ -311,7 +311,11 @@ fn wire_list_lacks(q: &Q) -> Vec<Text> {
         .iter()
         .filter(|e| e.part.is_none())
         .map(|e| {
-            let sizes: Vec<String> = e.sizes.iter().filter_map(ew_derive::text::csa_with_unit).collect();
+            let sizes: Vec<String> = e
+                .sizes
+                .iter()
+                .filter_map(ew_derive::text::csa_with_unit)
+                .collect();
             part_fields::no_stock_end(e.form, &sizes.join(", "))
         })
         .collect();
@@ -326,7 +330,8 @@ fn wire_list_lacks(q: &Q) -> Vec<Text> {
     if !kinds.is_empty() {
         out.push(part_fields::no_stock_wire(&kinds.join(", ")));
     }
-    let parts = (c.ends.iter().filter_map(|e| e.part)).chain(c.wires.iter().filter_map(|w| w.part.as_ref().map(|p| p.copy)));
+    let parts = (c.ends.iter().filter_map(|e| e.part))
+        .chain(c.wires.iter().filter_map(|w| w.part.as_ref().map(|p| p.copy)));
     out.extend(part_lacks(
         q,
         parts,
@@ -338,7 +343,11 @@ fn wire_list_lacks(q: &Q) -> Vec<Text> {
 /// What the parts `parts` (the project's copies; each once) lack that `features` read, as the package names it: the
 /// part's number and the reader's sentence ("EW-OWN-FER-1: Without a sleeve length the wire list prints no strip
 /// length.").
-fn part_lacks(q: &Q, parts: impl Iterator<Item = ew_ids::Id<ew_schema::Part>>, features: &[PartFeature]) -> Vec<Text> {
+fn part_lacks(
+    q: &Q,
+    parts: impl Iterator<Item = ew_ids::Id<ew_schema::Part>>,
+    features: &[PartFeature],
+) -> Vec<Text> {
     let mut seen = Vec::new();
     let mut out = Vec::new();
     for id in parts {
@@ -349,8 +358,15 @@ fn part_lacks(q: &Q, parts: impl Iterator<Item = ew_ids::Id<ew_schema::Part>>, f
         let Some(copy) = q.parts().get(id) else {
             continue;
         };
-        for lack in part_fields::lacks(&copy.item).iter().filter(|l| features.contains(&l.feature)) {
-            out.push(text!("package-lacks-part", copy.item.part_number.as_str(), lack.text()));
+        for lack in part_fields::lacks(&copy.item)
+            .iter()
+            .filter(|l| features.contains(&l.feature))
+        {
+            out.push(text!(
+                "package-lacks-part",
+                copy.item.part_number.as_str(),
+                lack.text()
+            ));
         }
     }
     out
@@ -549,7 +565,11 @@ impl Session {
                             marks_words(f.set)
                         ));
                     }
-                    let markers = ew_derive::consumable_rows(q).markers.iter().filter_map(|m| m.part).collect::<Vec<_>>();
+                    let markers = ew_derive::consumable_rows(q)
+                        .markers
+                        .iter()
+                        .filter_map(|m| m.part)
+                        .collect::<Vec<_>>();
                     lacks.extend(part_lacks(q, markers.into_iter(), &[PartFeature::MarkerFit]));
                     (
                         Some(counted2(key!("package-holds-labels"), files.len(), labels)),

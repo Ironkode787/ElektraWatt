@@ -184,7 +184,7 @@ wide as the print pre-dialog (`size.dialog.preview`: 1248 px at 1920, [16a](16a-
   the stock, [07](07-place.md) §5.10), where a person adds a marker of his own (kind Marker: Marks cables, Lines,
   Characters per line); a reason that names one part's missing field offers **Edit part…** at that field
   ([07](07-place.md) §5.7). The wire list's row names the ends no ferrule or ring lug of the stock takes ("No ring lug
-  of the workshop stock takes 2.5 mm²: the wire list names no part for those ends"), the wires no wire part of the
+  of the workshop stock takes 2.5 mm²: those ends are listed without a part"), the wires no wire part of the
   stock matches, and each field a ferrule, a lug or a wire part it reads lacks ("MY-FER-075: Without a sleeve length
   the wire list prints no strip length."); the label files' row each field a marker part lacks (its characters per
   line). Each is the sentence `ew_derive::part_fields` declares for its reader, and Contents lists them all.
