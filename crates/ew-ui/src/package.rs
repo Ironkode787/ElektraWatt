@@ -218,6 +218,14 @@ fn before(ui: &mut Ui, t: &Tokens, d: &PackageDialog, events: &mut Vec<Event>) {
         ui.add_space(t.space_2);
         finding(ui, t, f, events);
     }
+    // The wires without a length that no finding names, a line per reason.
+    for l in &d.lengths {
+        ui.add_space(t.space_2);
+        ui.horizontal_top(|ui| {
+            icon(ui, t, crate::icons::IconId::info_circle, t.text_secondary);
+            ui.add(egui::Label::new(components::body(t, l)).wrap());
+        });
+    }
     ui.add_space(t.space_2);
     ui.add(
         egui::Label::new(components::small_secondary(

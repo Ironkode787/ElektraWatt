@@ -70,6 +70,9 @@ pub struct PackageDialog {
     pub clean: bool,
     /// The release check's findings, errors first.
     pub findings: Vec<PackageFinding>,
+    /// The wires without a length that no finding names, a line per reason with its count (an end made on site, a
+    /// project without a panel layout), as Contents says them.
+    pub lengths: Vec<String>,
     /// Whether the package is a draft (its chip, its Primary).
     pub draft: bool,
     /// The revision's line ("V1.0 is open, not released.") and what it means for the package.
@@ -271,7 +274,14 @@ impl ShellModel {
                 .parent()
                 .map_or_else(|| PathBuf::from(&plan.file_name), |d| d.join(&plan.file_name))
         });
+        let lengths = plan
+            .without_length
+            .iter()
+            .filter(|n| !n.in_a_finding())
+            .map(|n| strings::render(&n.line()))
+            .collect();
         Some(PackageDialog {
+            lengths,
             rows,
             clean: findings.is_empty(),
             ready,

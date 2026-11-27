@@ -823,18 +823,28 @@ package-contents-stood = Before it went to the workshop the project was checked:
         [one] 1 thing stood
        *[many] { $n } things stood
     }. An error stops a release; a warning or an info stops nothing.
-package-contents-no-length-site = { $count ->
+package-no-length-site = { $count ->
         [one] 1 wire has no length: one end of it is made on site
        *[many] { $n } wires have no length: one end of each is made on site
-    } ({ $wires }).
-package-contents-no-length-not-laid = { $count ->
-        [one] 1 wire has no length yet: Route gives it one, or type it
-       *[many] { $n } wires have no length yet: Route gives them one, or type it
-    } ({ $wires }).
-package-contents-no-length-stale = { $count ->
+    }
+package-no-length-not-laid-in = { $count ->
+        [one] 1 wire of { $cabinet } has no length yet: Route gives it one, or type it
+       *[many] { $n } wires of { $cabinet } have no length yet: Route gives them one, or type it
+    }
+package-no-length-not-laid = { $count ->
+        [one] 1 wire has no length yet: type it
+       *[many] { $n } wires have no length yet: type them
+    }
+package-no-length-no-layout = { $count ->
+        [one] 1 wire has no length: this project has no panel layout; type it, or lay out the cabinet and Route
+       *[many] { $n } wires have no length: this project has no panel layout; type them, or lay out the cabinet and Route
+    }
+package-no-length-stale = { $count ->
         [one] 1 wire has a length along a way that no longer holds, printed after "≈": Route gives it a new one
        *[many] { $n } wires have a length along a way that no longer holds, printed after "≈": Route gives them new ones
-    } ({ $wires }).
+    }
+package-contents-no-length = { $p0 } ({ $p1 }).
+package-no-length-line = { $p0 }.
 package-contents-every-length = Every wire has its length in the wire list; a cable core has its cable's.
 package-contents-other-lengths = Every other wire has its length in the wire list; a cable core has its cable's.
 package-contents-what = What is in it

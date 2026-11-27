@@ -88,6 +88,12 @@ fn the_dialog_lists_a_stale_way_first_and_its_fix_opens_route() {
     done(&mut s, "package.export", json!({}));
     let d = package(&s);
     assert!(d.draft);
+    // The field wires without a length, which no finding names, in a line with their count.
+    assert!(
+        d.lengths.iter().any(|l| l.ends_with("wires have no length: one end of each is made on site.")),
+        "{:?}",
+        d.lengths
+    );
     assert!(d.rows.iter().filter(|r| r.content).all(|r| r.on));
     let first = d.findings.first().expect("a finding");
     assert_eq!(first.rule, "EW-LAY-011");

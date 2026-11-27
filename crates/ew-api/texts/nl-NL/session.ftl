@@ -808,18 +808,28 @@ package-contents-stood = Voor het naar de werkplaats ging is het project gecontr
         [one] 1 punt stond open
        *[many] { $n } punten stonden open
     }. Een fout houdt een vrijgave tegen; een waarschuwing of een melding houdt niets tegen.
-package-contents-no-length-site = { $count ->
+package-no-length-site = { $count ->
         [one] 1 draad heeft geen lengte: één einde ervan wordt op locatie gemaakt
        *[many] { $n } draden hebben geen lengte: van elk wordt één einde op locatie gemaakt
-    } ({ $wires }).
-package-contents-no-length-not-laid = { $count ->
-        [one] 1 draad heeft nog geen lengte: Routeren geeft hem er een, of typ hem
-       *[many] { $n } draden hebben nog geen lengte: Routeren geeft ze er een, of typ ze
-    } ({ $wires }).
-package-contents-no-length-stale = { $count ->
+    }
+package-no-length-not-laid-in = { $count ->
+        [one] 1 draad van { $cabinet } heeft nog geen lengte: Routeren geeft hem er een, of typ hem
+       *[many] { $n } draden van { $cabinet } hebben nog geen lengte: Routeren geeft ze er een, of typ ze
+    }
+package-no-length-not-laid = { $count ->
+        [one] 1 draad heeft nog geen lengte: typ hem
+       *[many] { $n } draden hebben nog geen lengte: typ ze
+    }
+package-no-length-no-layout = { $count ->
+        [one] 1 draad heeft geen lengte: dit project heeft geen paneellayout; typ hem, of maak de paneellayout en routeer
+       *[many] { $n } draden hebben geen lengte: dit project heeft geen paneellayout; typ ze, of maak de paneellayout en routeer
+    }
+package-no-length-stale = { $count ->
         [one] 1 draad heeft een lengte langs een weg die niet meer klopt, afgedrukt na "≈": Routeren geeft hem een nieuwe
        *[many] { $n } draden hebben een lengte langs een weg die niet meer klopt, afgedrukt na "≈": Routeren geeft ze nieuwe
-    } ({ $wires }).
+    }
+package-contents-no-length = { $p0 } ({ $p1 }).
+package-no-length-line = { $p0 }.
 package-contents-every-length = Elke draad heeft zijn lengte in de draadlijst; een kabelader heeft die van zijn kabel.
 package-contents-other-lengths = Elke andere draad heeft zijn lengte in de draadlijst; een kabelader heeft die van zijn kabel.
 package-contents-what = Wat erin zit

@@ -133,8 +133,11 @@ pub struct PackageAsk {
 pub enum NoLengthWhy {
     /// An end of each is made on site: the fitter measures it there.
     Site,
-    /// Route has laid no way for them yet, and none is typed.
+    /// Route has laid no way for them yet, and none is typed: wires of the cabinet [`NoLength::cabinet`] names, or of
+    /// no cabinet (an end in another location) without one.
     NotLaid,
+    /// The project has no panel layout, so Route lays none of them, and none is typed.
+    NoLayout,
     /// The way Route laid no longer holds: their length is printed after "≈".
     Stale,
 }
@@ -144,10 +147,41 @@ pub enum NoLengthWhy {
 pub struct NoLength {
     /// Why.
     pub why: NoLengthWhy,
+    /// The cabinet whose Route lays them ("+CAB"), for wires not laid yet; `None` for every other reason.
+    pub cabinet: Option<String>,
     /// Their numbers, in the wire list's order (a wire drawn on no page has none and is counted only).
     pub numbers: Vec<String>,
     /// How many.
     pub count: usize,
+}
+
+impl NoLength {
+    /// The reason in a sentence without its wires ("3 wires have no length: one end of each is made on site"): the one
+    /// home of the words Contents writes, after which it lists the wires, and the dialog shows.
+    pub fn sentence(&self) -> Text {
+        let key = match (self.why, &self.cabinet) {
+            (NoLengthWhy::Site, _) => key!("package-no-length-site"),
+            (NoLengthWhy::NotLaid, Some(_)) => key!("package-no-length-not-laid-in"),
+            (NoLengthWhy::NotLaid, None) => key!("package-no-length-not-laid"),
+            (NoLengthWhy::NoLayout, _) => key!("package-no-length-no-layout"),
+            (NoLengthWhy::Stale, _) => key!("package-no-length-stale"),
+        };
+        counted(key, self.count).with("cabinet", self.cabinet.clone().unwrap_or_default())
+    }
+
+    /// The reason as the dialog says it under the check's findings, without its wires: the sentence with its full stop.
+    pub fn line(&self) -> Text {
+        text!("package-no-length-line", self.sentence())
+    }
+
+    /// Whether a finding of the release check names these wires already: EW-MFG-001 a cabinet's wires not laid yet,
+    /// EW-LAY-011 those whose way no longer holds. The dialog says the other reasons in a line of their own.
+    pub fn in_a_finding(&self) -> bool {
+        matches!(
+            (self.why, &self.cabinet),
+            (NoLengthWhy::NotLaid, Some(_)) | (NoLengthWhy::Stale, _)
+        )
+    }
 }
 
 /// One member as the package of the project would hold it.
@@ -290,28 +324,48 @@ fn model_day(q: &Q) -> ew_schema::Date {
         .unwrap_or_else(|_| ew_schema::Date::new(1980, 1, 1).expect("a date"))
 }
 
-/// The wires without a length that holds, by why: an end made on site, not laid yet, a way that no longer holds.
+/// The wires without a length that holds, by why: an end made on site; not laid yet, per cabinet as EW-MFG-001 counts
+/// them (the cabinet's wires that Route lays), then those of no cabinet; every one in a project without a panel layout;
+/// a way that no longer holds.
 fn without_length(q: &Q) -> Vec<NoLength> {
+    use ew_derive::layout::{CabinetWire, cabinet_name, cabinet_wires};
     let records = q.get::<WireRecordSet>(());
+    let missing = |r: &&ew_derive::WireRecord| r.length == WireLength::Missing && !r.flags.field;
+    let group = |why, cabinet, wires: Vec<&ew_derive::WireRecord>| {
+        (!wires.is_empty()).then(|| NoLength {
+            why,
+            cabinet,
+            numbers: wires.iter().filter_map(|r| r.number.clone()).collect(),
+            count: wires.len(),
+        })
+    };
     let mut out: Vec<NoLength> = Vec::new();
-    for why in [NoLengthWhy::Site, NoLengthWhy::NotLaid, NoLengthWhy::Stale] {
-        let wires: Vec<_> = records
-            .iter()
-            .filter(|r| match (r.length, why) {
-                (WireLength::Missing, NoLengthWhy::Site) => r.flags.field,
-                (WireLength::Missing, NoLengthWhy::NotLaid) => !r.flags.field,
-                (WireLength::Stale { .. }, NoLengthWhy::Stale) => true,
-                _ => false,
-            })
-            .collect();
-        if !wires.is_empty() {
-            out.push(NoLength {
-                why,
-                numbers: wires.iter().filter_map(|r| r.number.clone()).collect(),
-                count: wires.len(),
-            });
+    let site = records.iter().filter(|r| r.length == WireLength::Missing && r.flags.field).collect();
+    out.extend(group(NoLengthWhy::Site, None, site));
+    let spaces: Vec<_> = q.table::<ew_schema::LayoutSpace>().ids().collect();
+    if spaces.is_empty() {
+        out.extend(group(NoLengthWhy::NoLayout, None, records.iter().filter(missing).collect()));
+    } else {
+        let mut laid_by_route = std::collections::BTreeSet::new();
+        for space in spaces {
+            let wires: Vec<_> = cabinet_wires(q, space)
+                .into_iter()
+                .filter(|(r, k)| *k == CabinetWire::Routed && r.length == WireLength::Missing)
+                .map(|(r, _)| r.wire.id)
+                .collect();
+            laid_by_route.extend(wires.iter().copied());
+            let of_cabinet = records.iter().filter(|r| wires.contains(&r.wire.id)).collect();
+            out.extend(group(NoLengthWhy::NotLaid, Some(cabinet_name(q, space)), of_cabinet));
         }
+        let rest = records
+            .iter()
+            .filter(missing)
+            .filter(|r| !laid_by_route.contains(&r.wire.id))
+            .collect();
+        out.extend(group(NoLengthWhy::NotLaid, None, rest));
     }
+    let stale = records.iter().filter(|r| matches!(r.length, WireLength::Stale { .. })).collect();
+    out.extend(group(NoLengthWhy::Stale, None, stale));
     out
 }
 
@@ -845,12 +899,11 @@ fn contents_txt(
     }
     lines.push(String::new());
     for n in &plan.without_length {
-        let key = match n.why {
-            NoLengthWhy::Site => key!("package-contents-no-length-site"),
-            NoLengthWhy::NotLaid => key!("package-contents-no-length-not-laid"),
-            NoLengthWhy::Stale => key!("package-contents-no-length-stale"),
-        };
-        lines.push(words(&counted(key, n.count).with("wires", n.numbers.join(", "))));
+        lines.push(words(&text!(
+            "package-contents-no-length",
+            n.sentence(),
+            n.numbers.join(", ")
+        )));
     }
     lines.push(words(&if plan.without_length.is_empty() {
         text!("package-contents-every-length")

@@ -200,6 +200,9 @@ pub(super) fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                     lines.push(format!("    shows \"{}\"", f.targets.join(", ")));
                 }
             }
+            for l in &d.lengths {
+                lines.push(format!("  length \"{l}\""));
+            }
             lines.push(format!("  revision \"{}\"", d.revision.0));
             let personal = if d.personal { "[x]" } else { "[ ]" };
             lines.push(format!("  personal {personal}"));

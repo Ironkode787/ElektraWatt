@@ -369,3 +369,32 @@ fn without_personal_data_a_release_stays_the_release() {
         }
     }
 }
+
+/// A project without a panel layout: Route lays none of its wires, so Contents counts every wire without a length under
+/// that reason, and the release check names none of them (no EW-MFG-001).
+#[test]
+fn a_project_without_a_layout_counts_its_wires_without_a_length() {
+    let (project, mut records, lib) = common::sample_records();
+    // The layout's records go, and what shows them on a page (a surface's view, a legend).
+    records.retain(|r| {
+        r.kind()
+            .is_none_or(|k| ew_schema::Kind::file_rule(k) != ew_schema::FileRule::LayoutFile)
+            && !matches!(r, Record::PageItem(i) if format!("{:?}", i.kind).starts_with("SurfaceView"))
+            && !matches!(r, Record::ReportBlock(b) if b.layout_page.is_some())
+    });
+    let s = common::session_of(project, records, lib);
+    let plan = s.package_plan(&ask());
+    let none = plan
+        .without_length
+        .iter()
+        .find(|n| n.why == ew_api::NoLengthWhy::NoLayout)
+        .expect("the wires of a project without a layout");
+    assert!(!none.in_a_finding());
+    assert!(plan.findings().iter().all(|f| f.rule != "EW-MFG-001"));
+    let (_, entries) = package(&s, &ask());
+    let contents = String::from_utf8(entry(&entries, |n| n == "Contents.txt").data.clone()).expect("UTF-8");
+    assert!(
+        contents.contains(&format!("{} wires have no length: this project has no panel layout", none.count)),
+        "{contents}"
+    );
+}
