@@ -661,6 +661,13 @@ impl ShellModel {
             }
             // The Supply tool's click places its marks in one undo step.
             ToolOutput::Host(crate::tools::HostStep::SupplyPlace { at }) => self.supply_place_from_tool(at),
+            // The glands' drop places them as `layout.glands_place` does at a drop point.
+            // The glands' drop places them as `layout.glands_place` does at a drop point; the tool gives way to Select.
+            ToolOutput::Host(crate::tools::HostStep::GlandsPlace { cables, at }) => {
+                let out = self.glands_place(Some(&cables), Some(at), (None, None));
+                let _ = self.act_tool("select");
+                out
+            }
             ToolOutput::Host(crate::tools::HostStep::PinForWire { rep, pin }) => self.pin_for_wire(rep, pin),
             // The Edit frame tool's click, released drag and double click.
             ToolOutput::Host(crate::tools::HostStep::FrameChoose { choice }) => self.frame_choose(choice),

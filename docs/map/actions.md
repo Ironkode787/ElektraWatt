@@ -206,6 +206,7 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `canvas.activate_alt` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_canvas_activate_alt` `crates/ew-viewmodel/src/shell.rs` | `action-canvas-activate-alt` |
 | `tool.next_proposal` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `send_proposal_key` `crates/ew-viewmodel/src/shell/wiring.rs` | `action-tool-next-proposal` |
 | `tool.place_layout` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_place_layout` `crates/ew-viewmodel/src/shell/layout.rs` | `action-tool-place-layout` |
+| `tool.place_glands` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_place_glands` `crates/ew-viewmodel/src/shell/features.rs` | `action-tool-place-glands` |
 | `layout.next` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_step` `crates/ew-viewmodel/src/shell/layout.rs` | `action-layout-next` |
 | `layout.previous` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_step` `crates/ew-viewmodel/src/shell/layout.rs` | `action-layout-previous` |
 | `layout.nudge` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_nudge` `crates/ew-viewmodel/src/shell/layout.rs` | `action-layout-nudge` |

@@ -665,3 +665,9 @@ change here.
 - behaviour-change: the Address row of a PROFIBUS DP port offers Next free address in its menu, by the rule EW-BUS-001's
   quick fix uses (the part's address range, else 1–125), whatever address the port holds; it was offered only as the
   quick fix of an open port's finding
+- behaviour-change: Select drags a hole by hand on a panel page: its outline follows the pointer on the grid (free
+  with Shift), and the drop moves it in one undo step, its rules running as after typing X and Y; a gland's row dragged
+  from Unplaced devices shows the outline of its glands' nuts under the pointer, in the row they are placed in, until
+  it is dropped
+- api-add: the window's action `tool.place_glands {cables}` (the gland place tool a drag arms), `Session::gland_row`,
+  `ew_derive::layout::gland_row`; `PanelTables::features` holds each hole by hand with its centre (`PanelFeature`)

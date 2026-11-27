@@ -832,8 +832,17 @@ pub struct PanelTables {
     pub decimal_comma: bool,
     /// The report blocks embedded on the page (its legend), by ID: what Select picks, drags and resizes there.
     pub blocks: Vec<PanelBlock>,
-    /// The surface's holes by hand, by ID: what Delete takes off it.
-    pub features: Vec<Uuid>,
+    /// The surface's holes by hand, by ID: what Delete takes off it and Select drags.
+    pub features: Vec<PanelFeature>,
+}
+
+/// A hole by hand of a panel page's surface: its ID and its centre, surface nm.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct PanelFeature {
+    /// The feature's ID.
+    pub id: Uuid,
+    /// Its centre in the surface's frame.
+    pub at: (i64, i64),
 }
 
 /// A report block embedded on a panel page (a legend), page nm.
@@ -851,6 +860,11 @@ impl PanelTables {
     /// The embedded block with the ID `id`.
     pub fn block(&self, id: Uuid) -> Option<&PanelBlock> {
         self.blocks.iter().find(|b| b.id == id)
+    }
+
+    /// The hole by hand with the ID `id`.
+    pub fn feature(&self, id: Uuid) -> Option<&PanelFeature> {
+        self.features.iter().find(|f| f.id == id)
     }
 
     /// The placement row with the ID `id`.
@@ -1195,7 +1209,10 @@ pub(crate) fn panel_tables_of(q: &Q, folio: &str, page: Id<Page>) -> Option<Pane
             .table::<ew_schema::SurfaceFeature>()
             .iter()
             .filter(|(_, f)| f.surface == surface.id)
-            .map(|(id, _)| id.as_uuid())
+            .map(|(id, f)| PanelFeature {
+                id: id.as_uuid(),
+                at: (f.at.x.0, f.at.y.0),
+            })
             .collect(),
     })
 }

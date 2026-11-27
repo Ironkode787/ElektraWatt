@@ -58,6 +58,7 @@ mod chooser;
 pub mod duct_draw;
 mod exchange;
 pub mod frame;
+pub mod gland_place;
 pub mod graphic;
 // The guides of a symbol placed by hand (docs/design/06a-drafting.md §6).
 mod guides;
@@ -88,6 +89,7 @@ pub use black_box::{BlackBoxTool, BoxTarget, PortTarget};
 pub use chooser::{Chooser, ChooserRow, ChooserValue};
 pub use duct_draw::DuctDrawTool;
 pub use exchange::ExchangeTool;
+pub use gland_place::GlandPlaceTool;
 pub use graphic::{GraphicShape, GraphicTool};
 pub use image::{ImageAsset, ImageTool, fit_rect};
 pub use ip::{IpDir, IpExternal, IpMemory, IpTool, ProjectIps};
@@ -469,6 +471,13 @@ pub enum HostStep {
     /// comes in.
     SupplyPlace {
         /// The snapped point of the first mark, page nm.
+        at: (i64, i64),
+    },
+    /// The glands' drop on a panel page: `layout.glands_place` of `cables` at `at`, as the action places them.
+    GlandsPlace {
+        /// The cables, as the dragged row names them.
+        cables: String,
+        /// The drop point, sheet nm.
         at: (i64, i64),
     },
     /// The Wire tool's click on the edge of a box whose pins are its own where no pin is: the host asks for the
@@ -1118,7 +1127,7 @@ pub fn page_entity_kind(page: &CanvasPage, e: EntityRef) -> Option<EntityKind> {
             Some(EntityKind::Carrier)
         } else if panel.block(e.0).is_some() {
             Some(EntityKind::Block)
-        } else if panel.features.contains(&e.0) {
+        } else if panel.feature(e.0).is_some() {
             Some(EntityKind::Feature)
         } else {
             None

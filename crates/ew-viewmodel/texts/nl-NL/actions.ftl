@@ -734,6 +734,7 @@ action-revision-set-author = Auteur van revisie instellen…
 action-revision-incomplete = De onvolledige vrijgave afhandelen…
 submenu-revision = Revisie
 action-tool-place-layout = Apparaat plaatsen
+action-tool-place-glands = Wartels plaatsen
 action-layout-next = Volgende plaatsing op de rail
 action-layout-previous = Vorige plaatsing op de rail
 action-layout-nudge = Plaatsing verschuiven

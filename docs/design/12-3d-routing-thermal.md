@@ -511,8 +511,9 @@ hand by its purpose ("Earth stud"), a gland by its cable ("-103W1"), else by its
 - **Add hole here…** (the panel page's context menu; `layout.feature_add`): a form, "Add a hole to the door", with
   Kind (Hole, Fixing, Cut-out, Gland, Rectangle), Size (its choices for a named kind, a length for a hole, width ×
   height and a corner radius for a rectangle), X and Y from the datum (the click's point, on whole millimetres) and For.
-  Add is one `layout.feature.add`. A hole by hand drags with Select (1 mm steps, 5 mm with the coarse grid), shows Kind,
-  Size, X, Y and For in Properties, and Delete removes it.
+  Add is one `layout.feature.add`. A hole by hand drags with Select (1 mm steps, 5 mm with the coarse grid, free with
+  Shift; its outline follows the pointer, and the drop is one `layout.feature.edit` of its centre, the rules of a hole
+  running as after typing X and Y), shows Kind, Size, X, Y and For in Properties, and Delete removes it.
 - **Properties of a surface** (a click on its outline or its free area): Width, Height, Hinge, Edge margin, Measured
   from (Bottom left, Bottom right, Top left, Top right, or "The project's: Bottom left"; the project's is Project
   properties ▸ Workshop ▸ Holes ▸ Measured from), the count of its holes with Hole table, and its page.

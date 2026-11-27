@@ -495,8 +495,9 @@ schematic symbol.
   through a wall of the cabinet: place it on the bottom, the top or a side"). Several dropped together stand in a row
   from the drop to the right, in the list's order, each **at the pitch the program proposes so that the nuts clear each
   other**: half of each neighbour's nut and the workshop's web between holes (`nut` absent: 1.4 × the thread). A single
-  gland snaps to the row of the glands placed already at that pitch. One drop is one undo step
-  (`layout.glands_place {surface, at, cables}`).
+  gland snaps to the row of the glands placed already at that pitch. While the row is dragged over the page, the
+  outline of each gland's nut, in that row, floats under the pointer, as a device dragged from Unplaced floats its
+  footprint. One drop is one undo step (`layout.glands_place {surface, at, cables}`).
 - **What a placed gland stores** is a `SurfaceFeature` with its `cable`, `for_cable` and its `hole`, the hole of its
   gland's thread when he placed it: a hole he has drilled is a fact, so it does not change behind him when the cable
   does (a value frozen on purpose, which the check holds against the derived one).

@@ -45,6 +45,20 @@ pub fn gland_pitch(a: &GlandSection, b: &GlandSection, web: Nm) -> Nm {
     Nm(gland_nut(a).0 / 2 + gland_nut(b).0 / 2 + web.0)
 }
 
+/// The centres of a row of glands along the surface's first axis, from the first's (0), each one pitch from the one
+/// before it ([`gland_pitch`]): the row `layout.glands_place` lays, and the outline a drag of the glands floats.
+pub fn gland_row(sections: &[GlandSection], web: Nm) -> Vec<i64> {
+    let mut at = 0_i64;
+    let mut out = Vec::with_capacity(sections.len());
+    for (i, s) in sections.iter().enumerate() {
+        if let Some(before) = i.checked_sub(1).and_then(|b| sections.get(b)) {
+            at = at.saturating_add(gland_pitch(before, s, web).0);
+        }
+        out.push(at);
+    }
+    out
+}
+
 /// Why a cable has no gland the program can propose.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum NoGland {

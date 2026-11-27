@@ -2486,6 +2486,43 @@ impl Session {
             .collect()
     }
 
+    /// The glands of `cables` in the row `layout.glands_place` lays them on `surface` ([`ew_derive::layout::gland_row`]):
+    /// each one's centre along the surface's first axis from the first's and its nut across its flats, surface nm;
+    /// empty when a cable has no gland that waits in the cabinet: the outline a drag of the glands floats.
+    pub fn gland_row(&self, surface: Uuid, cables: &[Uuid]) -> Vec<(i128, i128)> {
+        let q = self.query();
+        let Some(space) = q
+            .table::<MountingSurface>()
+            .get(Id::from_uuid(surface))
+            .and_then(|s| q.table::<Enclosure>().get(s.enclosure))
+            .map(|e| e.space)
+        else {
+            return Vec::new();
+        };
+        let glands = q.get::<ew_derive::layout::CableGlands>(space);
+        let sections: Option<Vec<ew_schema::GlandSection>> = cables
+            .iter()
+            .map(|c| {
+                let g = glands.iter().find(|g| g.cable.as_uuid() == *c && g.placed.is_none())?;
+                ew_derive::layout::gland_section(&q, g.part.as_ref().ok()?)
+            })
+            .collect();
+        let Some(sections) = sections else {
+            return Vec::new();
+        };
+        let web = q
+            .project()
+            .settings
+            .workshop
+            .min_web
+            .unwrap_or(crate::checks::rules::holes::DEFAULT_WEB);
+        ew_derive::layout::gland_row(&sections, web)
+            .into_iter()
+            .zip(&sections)
+            .map(|(at, s)| (i128::from(at), i128::from(ew_derive::layout::gland_nut(s).0)))
+            .collect()
+    }
+
     /// Where the gland of `cable` dropped alone at `at` (the surface frame) goes on `surface` (doc 12 §3.9): at an end
     /// of a row of glands placed there already, at the pitch of the two nuts and the workshop's web between holes,
     /// where the drop lies within one pitch of that place (the nearest such end); else at the drop.

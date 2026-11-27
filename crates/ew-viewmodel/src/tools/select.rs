@@ -385,6 +385,9 @@ struct PanelPress {
     label_dragged: bool,
     /// A press on a legend (an embedded report block): a drag moves or resizes it.
     block: Option<BlockPress>,
+    /// A press on a hole by hand: its centre in the surface's frame; a drag moves it on the grid, as a carrier's does,
+    /// and its drop is `layout.feature.edit` of that centre, as typing X and Y is.
+    hole: Option<(i64, i64)>,
 }
 
 /// A press on a panel page's legend: a drag moves it; a drag of one of its corners, with the legend selected,
@@ -647,6 +650,31 @@ fn carrier_ghost(
     }]))
 }
 
+/// The ghost of the hole `feature` (centred at `centre`, surface nm) dragged by `d` (surface nm): its drawn outline
+/// moved, on the sheet.
+fn hole_ghost(
+    cx: &ToolCx<'_>,
+    panel: &ew_api::output::PanelTables,
+    feature: EntityRef,
+    centre: (i64, i64),
+    d: (i128, i128),
+) -> ToolOutput {
+    let from = (i128::from(centre.0), i128::from(centre.1));
+    let a = super::layout::sheet_of_surface(cx, panel, from);
+    let b = super::layout::sheet_of_surface(cx, panel, (from.0 + d.0, from.1 + d.1));
+    let rects = cx
+        .page
+        .entities
+        .iter()
+        .filter(|(e, _)| *e == feature)
+        .map(|(_, r)| *r)
+        .collect();
+    ToolOutput::Transient(super::Overlay::new(vec![super::OverlayItem::Ghost {
+        rects,
+        offset: (b.0 - a.0, b.1 - a.1),
+    }]))
+}
+
 /// A plain click (no Shift, no Ctrl) of the Select tool: where it pressed, on which page and revision, and the entity
 /// it selected.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -848,6 +876,7 @@ impl SelectTool {
                             corner: Some(k),
                             dragged: false,
                         }),
+                        hole: None,
                     });
                     return Some(ToolOutput::None);
                 }
@@ -864,6 +893,7 @@ impl SelectTool {
                         label: Some(bx),
                         label_dragged: false,
                         block: None,
+                        hole: None,
                     });
                     return Some(ToolOutput::None);
                 }
@@ -871,7 +901,7 @@ impl SelectTool {
                 let kind = super::page_entity_kind(cx.page, entity)?;
                 if !matches!(
                     kind,
-                    EntityKind::Placement | EntityKind::Carrier | EntityKind::Block
+                    EntityKind::Placement | EntityKind::Carrier | EntityKind::Block | EntityKind::Feature
                 ) {
                     return None;
                 }
@@ -893,6 +923,7 @@ impl SelectTool {
                     label: None,
                     label_dragged: false,
                     block,
+                    hole: panel.feature(entity.0).map(|f| f.at),
                 });
                 Some(ToolOutput::None)
             }
@@ -918,6 +949,15 @@ impl SelectTool {
                     }
                     press.label_dragged = true;
                     return Some(label_ghost(cx, bx, press.at, *at));
+                }
+                if let Some(centre) = press.hole {
+                    // A hole's drag: its outline moved on the grid.
+                    if press.moved.is_none() && cx.within(press.at, *at, CLICK_SLOP_PT) {
+                        return Some(ToolOutput::None);
+                    }
+                    let d = carrier_offset(cx, panel, press.at, *at, mods.shift);
+                    press.moved = Some(d);
+                    return Some(hole_ghost(cx, panel, press.entity, centre, d));
                 }
                 if !press.placement {
                     // A carrier's drag.
@@ -976,6 +1016,23 @@ impl SelectTool {
                         return Some(ToolOutput::Cancel);
                     };
                     return Some(label_move(cx, panel, placement, bx, press.at, *at));
+                }
+                // A hole's drop moves it there (`layout.feature.edit`), one undo step whose rules run as typing X and Y
+                // does; a click selects it.
+                if let Some((u, v)) = press.hole {
+                    if press.moved.is_none() {
+                        let last = self.last;
+                        return Some(self.click(last, press.entity, press.at, press.mods, cx));
+                    }
+                    let d = carrier_offset(cx, panel, press.at, *at, mods.shift);
+                    if d == (0, 0) {
+                        return Some(ToolOutput::Cancel);
+                    }
+                    let at = [i128::from(u) + d.0, i128::from(v) + d.1];
+                    return Some(ToolOutput::Commit(Box::new(ew_api::AnyCommand {
+                        name: "layout.feature.edit".into(),
+                        params: serde_json::json!({"feature": press.entity.0.to_string(), "at": at}),
+                    })));
                 }
                 // A carrier's drop translates its path (`layout.carrier.edit`).
                 if press.moved.is_some() {

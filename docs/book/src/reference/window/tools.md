@@ -421,6 +421,12 @@ Places an image file (SVG, PNG or JPEG) on the page. Open it with Draw ▸ Annot
 On a panel layout page, places a device of the location on a rail or the mounting plate. Open it from the Unplaced
 devices navigator, which lists the devices of the location that have no place yet.
 
+## Place glands
+
+On a panel layout page of the bottom, the top or a side, places the cable glands dragged from Glands in the Unplaced
+devices navigator: while you drag, the outline of each gland's nut follows the pointer, in the row they stand in; let
+go to place them.
+
 ## Rail
 
 On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail. The page shows an enclosure first: Project ▸

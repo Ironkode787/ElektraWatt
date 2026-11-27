@@ -358,9 +358,7 @@ impl Command for PlaceGlands {
             .map(|s| q.get::<ew_derive::layout::CableGlands>(s))
             .unwrap_or_default();
         let web = q.project().settings.workshop.min_web.unwrap_or(Nm(5_000_000));
-        let mut at = self.at;
-        let mut before: Option<ew_schema::GlandSection> = None;
-        let mut first = None;
+        let mut sections = Vec::with_capacity(self.cables.len());
         for (i, cable) in self.cables.iter().enumerate() {
             let tag = ew_derive::short_tag(&q, *cable);
             if self.cables[..i].contains(cable) {
@@ -380,10 +378,12 @@ impl Command for PlaceGlands {
             else {
                 return tx.reject(text!("refusal-layout-gland-unknown", tag));
             };
-            if let Some(b) = &before {
-                let pitch = ew_derive::layout::gland_pitch(b, &section, web);
-                at = Pt2::new(Nm(at.x.0.saturating_add(pitch.0)), at.y);
-            }
+            sections.push(section);
+        }
+        let mut first = None;
+        let row = ew_derive::layout::gland_row(&sections, web);
+        for ((cable, section), du) in self.cables.iter().zip(sections).zip(row) {
+            let at = Pt2::new(Nm(self.at.x.0.saturating_add(du)), self.at.y);
             on_sheet(Self::NAME, &surface, at)?;
             let id: Id<SurfaceFeature> = tx.mint();
             tx.insert(SurfaceFeature {
@@ -398,7 +398,6 @@ impl Command for PlaceGlands {
                 extra: Default::default(),
             })?;
             first.get_or_insert((Kind::SurfaceFeature, id.cast()));
-            before = Some(section);
         }
         Ok(first.map(Outcome::primary).unwrap_or_default())
     }

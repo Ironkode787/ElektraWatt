@@ -495,7 +495,9 @@ var-type-tag-counter = tag counter
 var-type-device-ref = device
 macro-failed-value = The macro cannot be inserted with the value typed for { $p0 }.
 tool-layout_place = Place device
+tool-gland_place = Place glands
 hint-layout-place = Click or release to place; { $p0 } ends
+hint-gland-place = Release to place the glands; { $p0 } ends
 hint-layout-idle = Drag a device from Unplaced devices onto the page
 hud-layout-place = Place { $p0 } · Ctrl pushes · Alt swaps · Shift no snap · { $p1 } done
 

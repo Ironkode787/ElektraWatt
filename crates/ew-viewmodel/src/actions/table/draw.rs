@@ -595,6 +595,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_place_layout(p),
         )),
     ),
+    // Glands dragged from Unplaced devices over a panel page float their outline until the drop.
+    with_params(
+        "cables:text",
+        hidden(act(
+            "tool.place_glands",
+            Command,
+            Menu::Draw,
+            &[],
+            panel_page,
+            None,
+            |s, p| s.act_place_glands(p),
+        )),
+    ),
     hidden(in_canvas(act(
         "layout.next",
         View,

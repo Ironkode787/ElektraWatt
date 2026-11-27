@@ -6,7 +6,7 @@
 
 use serde_json::{Map, Value, json};
 
-use super::{Mode, Outcome, ShellModel, failed};
+use super::{Mode, Outcome, ShellModel, failed, string_param};
 use crate::key;
 use crate::strings;
 
@@ -115,44 +115,98 @@ impl ShellModel {
     /// dropped near a row of glands placed already snaps to its end (`Session::gland_snap`). Refused in words as the
     /// command refuses.
     pub(crate) fn act_layout_glands_place(&mut self, p: &Map<String, Value>) -> Outcome {
-        let Some(tables) = self.panel_tables() else {
-            return Outcome::refused(key!("reason-no-panel-page"));
-        };
-        let Some(session) = self.project.as_ref().map(|x| &x.session) else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
         let text = |name: &str| {
             p.get(name)
                 .and_then(Value::as_str)
                 .map(str::trim)
                 .filter(|t| !t.is_empty())
         };
-        let cables: Vec<String> = match text("cables") {
+        let dropped = match super::canvas_actions::point_mm(p) {
+            Ok(at) => at,
+            Err(out) => return out,
+        };
+        let mm = |name: &str| text(name).and_then(ew_api::output::parse_mm);
+        self.glands_place(text("cables"), dropped, (mm("x"), mm("y")))
+    }
+
+    /// The cables of `list` (references separated by commas; absent: every gland that waits in the cabinet of the
+    /// focused panel page's surface), resolved to their IDs; the refusal of a reference that names none, or of no
+    /// cable at all.
+    fn gland_cables(&self, surface: ew_api::output::Uuid, list: Option<&str>) -> Result<Vec<String>, Outcome> {
+        let Some(session) = self.project.as_ref().map(|x| &x.session) else {
+            return Err(Outcome::refused(key!("reason-no-project")));
+        };
+        let cables: Vec<String> = match list {
             Some(list) => {
                 let mut out = Vec::new();
                 for r in list.split(',').map(str::trim).filter(|r| !r.is_empty()) {
                     match session.resolve_reference(r) {
                         Ok(id) => out.push(id.to_string()),
-                        Err(why) => return Outcome::Refused { reason: why },
+                        Err(why) => return Err(Outcome::Refused { reason: why }),
                     }
                 }
                 out
             }
             None => session
-                .waiting_glands(tables.surface)
+                .waiting_glands(surface)
                 .iter()
                 .map(ToString::to_string)
                 .collect(),
         };
         if cables.is_empty() {
-            return Outcome::refused(key!("reason-no-glands"));
+            return Err(Outcome::refused(key!("reason-no-glands")));
         }
-        let dropped = match super::canvas_actions::point_mm(p) {
-            Ok(at) => {
-                at.and_then(|s| Some(tables.to_surface(self.canvas()?.page().snapper.sheet_to_page(s))))
-            }
+        Ok(cables)
+    }
+
+    /// `tool.place_glands {cables}` (a gland's row of Unplaced devices dragged over a panel page, as a device's row
+    /// arms the layout place tool): arms the tool that floats the outline of their glands, in the row
+    /// `layout.glands_place` lays (`Session::gland_row`), under the pointer and places them on release.
+    pub(crate) fn act_place_glands(&mut self, p: &Map<String, Value>) -> Outcome {
+        let Some(tables) = self.panel_tables() else {
+            return Outcome::refused(key!("reason-no-panel-page"));
+        };
+        let list = match string_param(p, "cables") {
+            Ok(Some(list)) => list.to_owned(),
+            Ok(None) => return failed(key!("error-missing-param"), &["cables"]),
+            Err(e) => return e,
+        };
+        let cables = match self.gland_cables(tables.surface, Some(&list)) {
+            Ok(c) => c,
             Err(out) => return out,
         };
+        let ids: Vec<ew_api::output::Uuid> = cables.iter().filter_map(|c| c.parse().ok()).collect();
+        let row = self
+            .project
+            .as_ref()
+            .map(|x| x.session.gland_row(tables.surface, &ids))
+            .unwrap_or_default();
+        self.activate_tool(Box::new(crate::tools::GlandPlaceTool::new(list, row)));
+        Outcome::Done
+    }
+
+    /// The glands of the cables of `list` ([`ShellModel::gland_cables`]) as one `layout.glands_place` on the focused
+    /// panel page's surface: from the sheet point `dropped` (a single gland near a row of glands placed already snaps
+    /// to its end, `Session::gland_snap`), else from `measured`, millimetres from the surface's datum (absent: 40 mm
+    /// in from it).
+    pub(crate) fn glands_place(
+        &mut self,
+        list: Option<&str>,
+        dropped: Option<(i64, i64)>,
+        measured: (Option<i128>, Option<i128>),
+    ) -> Outcome {
+        let Some(tables) = self.panel_tables() else {
+            return Outcome::refused(key!("reason-no-panel-page"));
+        };
+        let cables = match self.gland_cables(tables.surface, list) {
+            Ok(c) => c,
+            Err(out) => return out,
+        };
+        let Some(session) = self.project.as_ref().map(|x| &x.session) else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let dropped =
+            dropped.and_then(|s| Some(tables.to_surface(self.canvas()?.page().snapper.sheet_to_page(s))));
         let (u, v) = match (dropped, cables.as_slice()) {
             (Some(at), [one]) => match one.parse() {
                 Ok(cable) => session.gland_snap(tables.surface, cable, at),
@@ -160,9 +214,8 @@ impl ShellModel {
             },
             (Some(at), _) => at,
             (None, _) => {
-                let mm = |name: &str| text(name).and_then(ew_api::output::parse_mm);
-                let measured = (mm("x").unwrap_or(40_000_000), mm("y").unwrap_or(40_000_000));
-                session.surface_measured(tables.surface, measured)
+                let at = (measured.0.unwrap_or(40_000_000), measured.1.unwrap_or(40_000_000));
+                session.surface_measured(tables.surface, at)
             }
         };
         let (Ok(u), Ok(v)) = (i64::try_from(u), i64::try_from(v)) else {
@@ -195,7 +248,7 @@ impl ShellModel {
             return None;
         };
         let session = &self.project.as_ref()?.session;
-        (panel.features.contains(&one.0) && session.feature_for_cable(one.0)).then_some(one.0)
+        (panel.feature(one.0).is_some() && session.feature_for_cable(one.0)).then_some(one.0)
     }
 
     /// The title of Add hole here…: "Add a hole to -UC1 door".

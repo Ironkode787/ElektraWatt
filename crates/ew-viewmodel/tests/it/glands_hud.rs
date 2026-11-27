@@ -27,7 +27,7 @@ fn the_hud_counts_the_glands_that_wait_and_offers_their_page_or_their_placing() 
     assert!(h.buttons.is_empty(), "{:?}", h.buttons);
 
     // A gland hole selected alone: its context menu offers Keep it as a hole beside Delete.
-    let one = s.panel_tables().expect("905's tables").features[0];
+    let one = s.panel_tables().expect("905's tables").features[0].id;
     done(&mut s, "select.set", json!({"ids": [one.to_string()]}));
     let menu: Vec<String> = canvas_menu(&s, MenuSpot::Object, None)
         .into_iter()
@@ -168,4 +168,82 @@ fn row_value(shell: &ew_viewmodel::shell::ShellModel, key: &str) -> (String, ser
         other => panic!("{key}: {other:?}"),
     };
     (ew_viewmodel::properties::value_text(row), json)
+}
+
+/// Select drags a hole by hand on a surface (doc 12-3d §10.6): its outline follows the pointer on the grid, and its
+/// drop moves it in one undo step through `layout.feature.edit`, as typing its X and Y does; a click still selects it.
+#[test]
+fn select_drags_a_hole_on_its_surface() {
+    let tmp = Tmp::new("hole-drag");
+    let mut s = tmp.sample_in(Mode::Gui, true, "905");
+    let t = s.panel_tables().expect("905's tables");
+    let hole = t.features[0];
+    let sheet = |u: i128, v: i128| {
+        s.canvas()
+            .unwrap()
+            .page()
+            .snapper
+            .page_to_sheet(t.to_page((u, v)))
+    };
+    let (u, v) = (i128::from(hole.at.0), i128::from(hole.at.1));
+    let (from, to) = (sheet(u, v), sheet(u + 20 * MM, v));
+    let steps = s.recorded_commands().len();
+    done(&mut s, "canvas.press", at(from, json!({})));
+    done(&mut s, "canvas.pointer", at(to, json!({})));
+    assert!(
+        s.tool_overlay()
+            .items
+            .iter()
+            .any(|i| matches!(i, ew_viewmodel::tools::OverlayItem::Ghost { .. })),
+        "the hole's outline follows the pointer"
+    );
+    done(&mut s, "canvas.release", at(to, json!({})));
+    assert_eq!(s.recorded_commands().len(), steps + 1, "one undo step");
+    let moved = s.panel_tables().expect("905's tables");
+    let now = moved.feature(hole.id).expect("the hole").at;
+    assert_eq!(
+        (i128::from(now.0) - u, i128::from(now.1) - v),
+        (20 * MM, 0),
+        "moved 20 mm along the surface"
+    );
+    s.shutdown();
+}
+
+/// A gland's row dragged from Unplaced devices floats the outline of its glands' nuts under the pointer, in the row
+/// they are placed in, until the drop places them (the means a device's row has: a tool armed for the drag).
+#[test]
+fn glands_dragged_from_unplaced_show_their_outline_until_dropped() {
+    let tmp = Tmp::new("glands-ghost");
+    let mut s = tmp.sample_in(Mode::Gui, true, "905");
+    let t = s.panel_tables().expect("905's tables");
+    let sheet = |u: i128, v: i128| {
+        s.canvas()
+            .unwrap()
+            .page()
+            .snapper
+            .page_to_sheet(t.to_page((u * MM, v * MM)))
+    };
+    let (from, to, drop) = (sheet(50, 155), sheet(145, 95), sheet(80, 125));
+    done(&mut s, "canvas.press", at(from, json!({})));
+    done(&mut s, "canvas.pointer", at(to, json!({})));
+    done(&mut s, "canvas.release", at(to, json!({})));
+    done(&mut s, "edit.delete_selection", json!({}));
+    assert_eq!(hud(&s).prompt, "2 glands to place");
+    done(
+        &mut s,
+        "tool.place_glands",
+        json!({"cables": "tag:-101W1,tag:-103W1"}),
+    );
+    done(&mut s, "canvas.pointer", at(drop, json!({})));
+    let outlines = s
+        .tool_overlay()
+        .items
+        .iter()
+        .filter(|i| matches!(i, ew_viewmodel::tools::OverlayItem::Polyline { .. }))
+        .count();
+    assert_eq!(outlines, 2, "each gland's nut under the pointer");
+    done(&mut s, "canvas.release", at(drop, json!({})));
+    assert!(!hud(&s).prompt.contains("glands to place"), "{}", hud(&s).prompt);
+    assert_eq!(s.tool().name(), "select");
+    s.shutdown();
 }

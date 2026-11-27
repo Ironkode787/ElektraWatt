@@ -758,6 +758,7 @@ action-revision-set-author = Set revision author…
 action-revision-incomplete = Settle the incomplete release…
 submenu-revision = Revision
 action-tool-place-layout = Place device
+action-tool-place-glands = Place glands
 action-layout-next = Next placement on the rail
 action-layout-previous = Previous placement on the rail
 action-layout-nudge = Nudge placement

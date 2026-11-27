@@ -89,16 +89,6 @@ impl CanvasHost {
             p["key"] = json!(key.0);
             events.push(Event::Action("macros.place", p));
         }
-        // A gland's row of Unplaced devices dropped on this canvas places the glands it carries at the drop point.
-        if let Some(pos) = dropped
-            && rect.contains(pos)
-            && egui::DragAndDrop::has_payload_of_type::<crate::navigator::GlandDrag>(ui.ctx())
-            && let Some(cables) = egui::DragAndDrop::take_payload::<crate::navigator::GlandDrag>(ui.ctx())
-        {
-            let mut p = point_with(group, Self::sheet_point(rect, canvas, pos), Modifiers::NONE);
-            p["cables"] = json!(cables.0);
-            events.push(Event::Action("layout.glands_place", p));
-        }
         // A station's or a bus device's row dropped on this canvas puts it on the bus page at the drop point.
         if let Some(pos) = dropped
             && rect.contains(pos)
@@ -121,21 +111,29 @@ impl CanvasHost {
         events: &mut Vec<Event>,
     ) {
         // An Unplaced devices row dragged over this canvas floats its device (the layout place
-        // tool, armed once per drag), follows the pointer with the modifiers held, and drops it on release.
+        // tool, armed once per drag), follows the pointer with the modifiers held, and drops it on release; a gland's
+        // row floats the outline of the glands it carries the same way (the gland place tool).
         let armed_id = egui::Id::unique(("layout-drag-armed", group));
-        match egui::DragAndDrop::payload::<crate::navigator::DeviceDrag>(ui.ctx()) {
-            Some(device) => {
+        let device = egui::DragAndDrop::payload::<crate::navigator::DeviceDrag>(ui.ctx())
+            .map(|d| (d.0.clone(), "tool.place_layout", json!({"device": d.0})));
+        let gland = || {
+            egui::DragAndDrop::payload::<crate::navigator::GlandDrag>(ui.ctx())
+                .map(|g| (g.0.clone(), "tool.place_glands", json!({"cables": g.0})))
+        };
+        match device.or_else(gland) {
+            Some((key, arm, params)) => {
                 let over = ui.input(|i| i.pointer.latest_pos()).filter(|p| rect.contains(*p));
                 if let Some(pos) = over {
                     let at = Self::sheet_point(rect, canvas, pos);
                     let armed = ui.data(|d| d.get_temp::<String>(armed_id));
-                    if armed.as_deref() != Some(device.0.as_str()) {
-                        ui.data_mut(|d| d.insert_temp(armed_id, device.0.clone()));
-                        events.push(Event::Action("tool.place_layout", json!({"device": device.0})));
+                    if armed.as_deref() != Some(key.as_str()) {
+                        ui.data_mut(|d| d.insert_temp(armed_id, key));
+                        events.push(Event::Action(arm, params));
                     }
                     events.push(Event::Action("canvas.pointer", point_with(group, at, mods)));
                     if dropped.is_some() {
                         let _ = egui::DragAndDrop::take_payload::<crate::navigator::DeviceDrag>(ui.ctx());
+                        let _ = egui::DragAndDrop::take_payload::<crate::navigator::GlandDrag>(ui.ctx());
                         ui.data_mut(|d| d.remove::<String>(armed_id));
                         events.push(Event::Action("canvas.release", point_with(group, at, mods)));
                     }
