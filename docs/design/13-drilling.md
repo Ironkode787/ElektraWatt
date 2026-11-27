@@ -20,7 +20,7 @@ Assembly lists, Cut list and Consumables:
   that kind, whose Create makes it (one undo step), as Wire list and the workshop lists do.
 - **Drilling…** (`drilling.export`) is the form dialog "Export the drawings for drilling": one row per surface that has
   holes (its words, its page, its hole count, the sheets its template takes), each ticked; Template to print at full
-  size (PDF) and DXF for a machine, both ticked; Paper, A4 or A3 (the print settings' size first); the folder
+  size (PDF) and DXF for a machine, both ticked; Paper, A4 or A3; the folder
   (Drilling, beside the project, as Labels… proposes its own). A line under the rows names the findings of the holes
   ("1 hole is closer to another than 5 mm") with Show. Export writes the files as a job; its toast says "Wrote 6 files
   to Drilling." with Open folder. A surface without holes is not offered; with none at all the button is greyed: "No
