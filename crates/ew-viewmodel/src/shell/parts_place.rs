@@ -9,7 +9,8 @@
 //! changes for the project, a part only in this project in place); `parts.discard` drops the changes; `parts.own`
 //! makes a part of one's own from a part that is not; `parts.keep` puts a part only in this project into My parts;
 //! `parts.remove` takes a part out of My parts or out of the project; `parts.back` returns to where the person came
-//! from.
+//! from. A symbol is drawn in the same place, on its Drawing tab (`shell::symbol_editor`'s `place`); the list's Symbols
+//! shelf lists the symbols to open.
 
 use ew_api::output::{NavKind, NavRole, Uuid};
 use ew_api::part_fields::{Group, Lack, PartLack};
@@ -32,6 +33,16 @@ pub fn lives_word(lives: &Lives) -> String {
         Lives::OnlyHere => strings::text(key!("parts-lives-here")).to_owned(),
         Lives::New => strings::text(key!("parts-lives-new")).to_owned(),
     }
+}
+
+/// The symbols each piece of `sheet` can be drawn with, in the window's language ([`ew_api::Session::piece_symbols`]).
+fn piece_symbols_of(session: &ew_api::Session, sheet: &PartSheet) -> Vec<Vec<(String, String)>> {
+    let lang = strings::rule_language().split('-').next().unwrap_or("en");
+    sheet
+        .pieces
+        .iter()
+        .map(|p| session.piece_symbols(&p.what, lang))
+        .collect()
 }
 
 /// The most rows the list shows at once.
@@ -74,6 +85,9 @@ pub struct OpenSheet {
     pub used_by: Vec<(Uuid, String)>,
     /// The makers the Maker field offers.
     pub manufacturers: Vec<String>,
+    /// The symbols each piece can be drawn with, by its address and its name, the starter's first
+    /// (`Session::piece_symbols`): the Symbol cell's choices.
+    pub piece_symbols: Vec<Vec<(String, String)>>,
     /// The refusal of the last Save, in words.
     pub error: Option<String>,
     /// New bus cable… or New plug… of a bus line's Cable form: what the part is made as.
@@ -178,6 +192,30 @@ pub struct PartsPlace {
     /// The sheets waiting under a part made in passing (doc 07 §5.5: a cabinet's mounting plate made from its field),
     /// each with the field that takes the new part: Save returns to it with the part chosen, Back without it.
     pub under: Vec<(OpenSheet, String)>,
+    /// Whether the list shows the Symbols shelf (doc 07 §5.3), else the parts.
+    pub shelf_symbols: bool,
+    /// The Symbols shelf's rows, Lately drawn first.
+    pub symbols: Vec<SymbolFound>,
+    /// Whether the place stepped aside for a test placement of the drawing on a page: the page shows, the place and
+    /// its drawing wait, and Back to the drawing returns.
+    pub aside: bool,
+}
+
+/// A row of the Symbols shelf: a symbol by its address, its name, what it is and where it lives.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct SymbolFound {
+    /// What `parts.open {symbol}` takes: `library:<library>:<item>`, or `id:<copy>` of a symbol only in the project.
+    pub address: String,
+    /// Its name in the window's language.
+    pub name: String,
+    /// What it is, in words (where the browsers list it).
+    pub what: String,
+    /// Where it lives, in words: Mine, Starter, a library's name, Only in this project.
+    pub lives: String,
+    /// Whether it is his (My parts or another library he can write).
+    pub mine: bool,
+    /// Whether he drew it lately (the shelf's group Lately drawn).
+    pub recent: bool,
 }
 
 impl PartsPlace {
@@ -334,19 +372,11 @@ impl ShellModel {
         Ok(grid.or_else(lib_row).map(Named::Held))
     }
 
-    /// The copy a part action names (`id:<copy>`, a part number the project holds, else the Libraries navigator's or
-    /// the selected device's part); `None` for none or a library's part the project does not hold.
-    pub(crate) fn named_copy(&self, p: &Map<String, Value>) -> Result<Option<Uuid>, Outcome> {
-        Ok(match self.named_part(p)? {
-            Some(Named::Held(c)) => Some(c),
-            _ => None,
-        })
-    }
-
     /// The place shown over the project, from where the person is now: the part dialog (the strip names its target)
     /// or a form that needs a part; it keeps its list when it is shown already.
     pub(crate) fn enter_place(&mut self) {
-        if self.parts.is_some() {
+        if let Some(place) = self.parts.as_deref_mut() {
+            place.aside = false;
             return;
         }
         let origin = match self.dialog.take() {
@@ -385,12 +415,33 @@ impl ShellModel {
             under: Vec::new(),
             sheet: None,
             asking: None,
+            shelf_symbols: false,
+            symbols: Vec::new(),
+            aside: false,
         }));
         self.parts_refresh();
     }
 
+    /// The place steps aside for the page (a test placement of the drawing): the page shows, the place and its drawing
+    /// wait.
+    pub(crate) fn step_aside(&mut self) {
+        if let Some(place) = self.parts.as_deref_mut() {
+            place.aside = true;
+        }
+    }
+
     /// The list again, from the place's query.
     pub(crate) fn parts_refresh(&mut self) {
+        // The Symbols shelf, while it shows.
+        if let Some((query, scope)) = (self.parts.as_deref())
+            .filter(|p| p.shelf_symbols)
+            .map(|p| (p.query.clone(), p.scope))
+        {
+            let found = self.symbols_found(&query, scope);
+            if let Some(place) = self.parts.as_deref_mut() {
+                place.symbols = found;
+            }
+        }
         let (Some(session), Some(place)) = self.parts_session_mut() else {
             return;
         };
@@ -440,6 +491,7 @@ impl ShellModel {
             session.part_users(sheet.copy)
         };
         let manufacturers = session.part_manufacturers();
+        let piece_symbols = piece_symbols_of(session, &sheet);
         // The libraries alone are his to write; a project only where it can be written.
         let read_only = !self.parts_without_project() && !self.is_writable();
         self.parts_opened = self.parts_opened.wrapping_add(1);
@@ -459,6 +511,7 @@ impl ShellModel {
                 ready,
                 used_by,
                 manufacturers,
+                piece_symbols,
                 error: None,
                 bus_part,
                 group: None,
@@ -477,6 +530,13 @@ impl ShellModel {
             // No project and no place: the place over the libraries alone (one a closed project left goes).
             self.parts = None;
             self.enter_place();
+        }
+        // A symbol of the Symbols shelf, in the drawing.
+        if let Some(address) = or_return!(string_param(p, "symbol")).map(str::to_owned) {
+            if let Some(out) = self.in_hand_asks("parts.open", p) {
+                return out;
+            }
+            return self.open_symbol(&address);
         }
         let named = match self.named_part(p) {
             Ok(n) => n,
@@ -632,9 +692,32 @@ impl ShellModel {
         };
         let kind = or_return!(string_param(p, "kind")).map(str::to_owned);
         let maker = or_return!(string_param(p, "maker")).map(str::to_owned);
+        let shelf = match or_return!(string_param(p, "shelf")) {
+            None => None,
+            Some("parts") => Some(false),
+            Some("symbols") => Some(true),
+            Some(_) => return failed(key!("error-bad-param"), &["shelf"]),
+        };
+        // The Symbols shelf keeps the scope he used last.
+        if shelf == Some(true) || self.parts.as_deref().is_some_and(|p| p.shelf_symbols) {
+            if let Some(s) = scope {
+                self.settings.symbols_scope = Some(s.word().to_owned());
+                self.save_settings();
+            }
+        }
+        let last_scope = (self.settings.symbols_scope.as_deref())
+            .and_then(|w| PartScope::ALL.into_iter().find(|s| s.word() == w));
         let Some(place) = self.parts.as_deref_mut() else {
             return Outcome::refused(key!("reason-no-parts-place"));
         };
+        if let Some(symbols) = shelf
+            && symbols != place.shelf_symbols
+        {
+            place.shelf_symbols = symbols;
+            if symbols && let Some(s) = last_scope {
+                place.scope = s;
+            }
+        }
         if let Some(t) = text {
             place.query = t;
         }
@@ -760,7 +843,7 @@ impl ShellModel {
     }
 
     /// After a text of the open sheet changed: changed, and what it lacks again.
-    fn sheet_changed(&mut self) {
+    pub(crate) fn sheet_changed(&mut self) {
         let (Some(session), Some(place)) = self.parts_session_mut() else {
             return;
         };
@@ -773,6 +856,7 @@ impl ShellModel {
                 open.lacks = session.sheet_lacks(&open.sheet);
                 open.ready = session.sheet_ready(&open.sheet);
             }
+            open.piece_symbols = piece_symbols_of(session, &open.sheet);
         }
     }
 
@@ -785,6 +869,15 @@ impl ShellModel {
             (_, Ok(None)) => return failed(key!("error-missing-param"), &["value"]),
             (Err(e), _) | (_, Err(e)) => return e,
         };
+        // The drawing's short sheet: its name and what it is.
+        if let Some(key) = field.strip_prefix("symbol.")
+            && self.symbol_editor().is_some()
+        {
+            return match self.set_symbol_field(key, &value) {
+                Ok(()) => Outcome::Done,
+                Err(message) => Outcome::Failed { message },
+            };
+        }
         let (Some(session), Some(place)) = self.parts_session_mut() else {
             return Outcome::refused(key!("reason-no-parts-place"));
         };
@@ -933,6 +1026,9 @@ impl ShellModel {
 
     /// `parts.discard`: the open part as it was opened (a new part's sheet closes).
     pub(crate) fn act_parts_discard(&mut self) -> Outcome {
+        if self.symbol_editor().is_some() {
+            return self.discard_drawing();
+        }
         let Some(open) = self.parts.as_deref().and_then(|p| p.sheet.as_ref()) else {
             return Outcome::refused(key!("reason-no-part-open"));
         };
@@ -963,6 +1059,9 @@ impl ShellModel {
     /// `parts.own` (Make my own from it): a new part's sheet with everything the open part has but its number and
     /// maker, which are his to give; Save makes it a part of My parts.
     pub(crate) fn act_parts_own(&mut self) -> Outcome {
+        if self.symbol_editor().is_some() {
+            return self.own_drawing();
+        }
         let Some(open) = self.parts.as_deref().and_then(|p| p.sheet.as_ref()) else {
             return Outcome::refused(key!("reason-no-part-open"));
         };
@@ -1019,6 +1118,9 @@ impl ShellModel {
     /// (the heading's "-102Q1 uses it"). While the open part has changes not saved the window asks Save, Discard or
     /// Stay first (a script is refused in words); `save` saves and then leaves, `discard` leaves without them.
     pub(crate) fn act_parts_back(&mut self, p: &Map<String, Value>) -> Outcome {
+        if self.symbol_editor().is_some() {
+            return self.back_from_drawing();
+        }
         let Some(place) = self.parts.as_deref() else {
             return Outcome::refused(key!("reason-no-parts-place"));
         };
@@ -1057,6 +1159,10 @@ impl ShellModel {
         let show = string_param(p, "show").ok().flatten().map(str::to_owned);
         let place = *self.parts.take().expect("checked");
         self.parts_alone = None;
+        // A drawing in hand stays in hand, not shown.
+        if let Some(editor) = &mut self.symbol_editor {
+            editor.shown = false;
+        }
         match place.origin {
             Origin::Project | Origin::Station | Origin::Browser | Origin::Finding { .. } => {}
             Origin::Chooser(c) => {
@@ -1169,6 +1275,9 @@ impl ShellModel {
     /// opens the card of its correction. A field that does not parse refuses at its field; a part that is not his is
     /// refused in words.
     pub(crate) fn act_parts_save(&mut self, p: &Map<String, Value>) -> Outcome {
+        if self.symbol_editor().is_some() {
+            return self.save_drawing();
+        }
         let Some(open) = self.parts.as_deref().and_then(|p| p.sheet.as_ref()) else {
             return Outcome::refused(key!("reason-no-part-open"));
         };

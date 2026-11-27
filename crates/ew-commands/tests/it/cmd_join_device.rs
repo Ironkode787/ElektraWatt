@@ -81,6 +81,7 @@ fn entry(item: Uuid, main: bool, cps: Vec<u16>) -> TemplateFn {
         fndef: lib_ref_to(LIBRARY_X, item),
         main,
         cps,
+        symbol: None,
         extra: Extra::new(),
     }
 }

@@ -2206,11 +2206,12 @@ pub fn describe(model: &ShellModel) -> String {
         // The card of what Save changes stands beside the sheet.
         card_and_toast_lines(model, &mut lines);
     } else if let Some(editor) = model.symbol_editor() {
-        lines.push(format!("dialog \"{}\"", strings::text(key!("symbol-title"))));
+        // The drawing in Parts: its strip, its name and what keeps it from being saved.
+        lines.push(format!("drawing \"{}\"", editor.strip().unwrap_or_default()));
         lines.push(format!(
             "  field \"{}\": \"{}\"",
-            strings::text(key!("symbol-key")),
-            editor.draft.key
+            strings::text(key!("symbol-name")),
+            crate::shell::symbol_editor::display_name(&editor.draft)
         ));
         for issue in editor.draft.validate() {
             lines.push(format!(

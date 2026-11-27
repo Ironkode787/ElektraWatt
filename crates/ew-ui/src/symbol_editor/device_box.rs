@@ -1,13 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The device box on the symbol editor's screen (doc 07 §2.5): on the left the pin table (name, what the pin
+//! A part's box arranged in Parts (doc 07 §2.5, §5.6): on the left the pin table, the sheet's (name, what the pin
 //! carries, its edge; a row dragged onto another takes its place; Add pin), in the middle the box as a device of the
-//! part is drawn, on the right Properties of the selected pins or of the part and its box. A pin is dragged along
-//! its edge or onto another one, any edge or corner of the box is dragged to size it; the page's keys act on the
-//! selected pins.
+//! part is drawn, on the right Properties of the selected pins or of the box. A pin is dragged along its edge or onto
+//! another one, any edge or corner of the box is dragged to size it; the page's keys act on the selected pins.
 
-use super::{EditorView, action, ask, bar_command, divider, label, panels, stacked};
+use super::{EditorView, action, back_command, bar_command, divider, label, next_step, panels};
 use crate::app::Event;
 use crate::components::{self, Kind};
 use crate::theme;
@@ -16,7 +15,7 @@ use ew_viewmodel::command_bar::CommandSize;
 use ew_viewmodel::ew_api::part_box::{Dir4, EDIT_STEP};
 use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
-use ew_viewmodel::shell::symbol_editor::{DeviceBox, side_word, side_words};
+use ew_viewmodel::shell::symbol_editor::{DeviceBox, SymbolEditor, side_word, side_words};
 use ew_viewmodel::strings;
 use serde_json::json;
 
@@ -58,30 +57,18 @@ const PIN_REACH_EXTRA_PT: f32 = 2.0;
 const GHOST_RING_PT: f32 = 5.0;
 
 impl EditorView {
-    /// The command row while a device box is edited: Add pin, and at the right end Test on a page, Save and Close box.
+    /// The Drawing tab's row while a box is arranged: To the part, Select and Add pin, and at the right end Done.
     pub(super) fn box_toolbar(
         &mut self,
         ui: &mut Ui,
         shell: &ShellModel,
+        editor: &SymbolEditor,
         b: &DeviceBox,
         events: &mut Vec<Event>,
     ) {
-        let t = theme::current(ui.ctx());
         let add_refusal = b.pins_from();
         ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-            if bar_command(
-                ui,
-                ("symbol.start", key!("symbol-start"), "file-plus"),
-                CommandSize::Large,
-                [false, false],
-                None,
-                String::new(),
-                Some(label(key!("symbol-start-how"))),
-            )
-            .clicked()
-            {
-                ask(events, "symbol.start", json!({}));
-            }
+            back_command(ui, editor, events);
             divider(ui);
             bar_command(
                 ui,
@@ -107,56 +94,7 @@ impl EditorView {
                 action(events, "part.pin", json!({ "add": true }));
             }
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                if components::button(ui, Kind::Primary, label(key!("box-close")), None, 0.0).clicked() {
-                    ask(events, "symbol.close", json!({}));
-                }
-                ui.add_space(t.space_2);
-                let save_key = ew_viewmodel::actions::find("file.save")
-                    .map(|m| shell.shortcut_text(m))
-                    .unwrap_or_default();
-                if bar_command(
-                    ui,
-                    ("symbol.save", key!("symbol-save"), "device-floppy"),
-                    CommandSize::Large,
-                    [false, false],
-                    None,
-                    save_key,
-                    Some(label(key!("box-save-how"))),
-                )
-                .clicked()
-                {
-                    action(events, "symbol.save", json!({}));
-                }
-                stacked(ui, |ui| {
-                    ui.with_layout(Layout::top_down(Align::Max), |ui| {
-                        if bar_command(
-                            ui,
-                            ("symbol.scratch", key!("symbol-scratch"), "eye"),
-                            CommandSize::Small,
-                            [false, false],
-                            None,
-                            String::new(),
-                            Some(label(key!("box-test-how"))),
-                        )
-                        .clicked()
-                        {
-                            action(events, "symbol.scratch", json!({}));
-                        }
-                        if bar_command(
-                            ui,
-                            (key!("box-part-data").as_str(), key!("box-part-data"), "package"),
-                            CommandSize::Small,
-                            [false, false],
-                            None,
-                            String::new(),
-                            Some(label(key!("box-part-data-how"))),
-                        )
-                        .clicked()
-                        {
-                            action(events, "part.box_details", json!({}));
-                        }
-                    });
-                });
+                next_step(ui, shell, editor.save_label(), events);
             });
         });
     }
@@ -249,18 +187,6 @@ impl EditorView {
                     {
                         action(events, "part.pin", json!({ "add": true }));
                     }
-                    let refusal = b.bus_refusal();
-                    if components::button(
-                        ui,
-                        Kind::Secondary,
-                        label(key!("box-add-bus")),
-                        refusal.as_deref(),
-                        0.0,
-                    )
-                    .clicked()
-                    {
-                        action(events, "part.box_details", json!({ "bus": true }));
-                    }
                 });
             }
             ui.add_space(t.space_3);
@@ -296,27 +222,18 @@ impl EditorView {
                 panels::sheet_rows(ui, &sheet.rows, &sheet.title, "symbol.prop", events, |_, _| {});
             });
             ui.add_space(t.space_3);
-            if b.selection.is_empty() {
-                if panels::button(ui, key!("box-part-data")) {
-                    action(events, "part.box_details", json!({}));
-                }
-            } else if b.pins_from().is_none() && panels::button(ui, key!("symbol-delete")) {
+            if !b.selection.is_empty() && b.pins_from().is_none() && panels::button(ui, key!("symbol-delete")) {
                 action(events, "symbol.delete", json!({}));
             }
         });
     }
 
     /// The middle column: the box as a device of the part is drawn, its pins and edges dragged.
-    pub(super) fn box_drawing(&mut self, ui: &mut Ui, rect: Rect, b: &DeviceBox, events: &mut Vec<Event>) {
+    pub(super) fn box_drawing(&mut self, ui: &mut Ui, rect: Rect, editor: &SymbolEditor, b: &DeviceBox, events: &mut Vec<Event>) {
         let t = theme::current(ui.ctx());
-        let mut top = rect.top();
-        // Why the last action did nothing, where the pins come from when they are not edited here, and what Save makes
-        // of a part that is not the person's own.
-        for (text, error) in [
-            (b.error.clone(), true),
-            (b.pins_from(), false),
-            (b.copy_line(), false),
-        ] {
+        let mut top = crate::parts_place::drawing_strip(ui, rect, editor, events);
+        // Why the last action did nothing, and where the pins come from when they are not edited here.
+        for (text, error) in [(b.error.clone(), true), (b.pins_from(), false)] {
             let Some(text) = text else { continue };
             let banner = ui.scope_builder(
                 UiBuilder::new().max_rect(Rect::from_min_max(Pos2::new(rect.left(), top), rect.max)),

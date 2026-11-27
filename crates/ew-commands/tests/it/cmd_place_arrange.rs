@@ -149,6 +149,7 @@ fn template(item: Uuid, main: bool) -> TemplateFn {
         fndef: lib_ref_to(LIBRARY_X, item),
         main,
         cps: vec![],
+        symbol: None,
         extra: Extra::new(),
     }
 }

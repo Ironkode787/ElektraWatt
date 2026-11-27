@@ -626,6 +626,7 @@ impl Session {
                         fndef: crate::part_new::fndef_ref(&def),
                         main: true,
                         cps: pins,
+                        symbol: None,
                         extra: Default::default(),
                     }];
                     if p.category.is_none() {

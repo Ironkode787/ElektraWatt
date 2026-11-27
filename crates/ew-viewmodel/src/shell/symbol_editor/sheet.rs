@@ -6,7 +6,7 @@
 //! nothing selected. `symbol.prop` sets a row, for every selected thing that has it.
 
 use super::selection::{bounds, translate, value_mut, value_of};
-use super::{Item, ROLES, SymbolEditor, function_kinds, name_words, role_words, text_style_words, words};
+use super::{Item, ROLES, SymbolEditor, name_words, role_words, text_style_words, words};
 use crate::shell::ShellModel;
 use crate::{key, strings};
 use ew_api::symbols;
@@ -156,7 +156,7 @@ pub const WHAT: [(&str, &str, &str, &str); 24] = [
 ];
 
 /// The letter of [`WHAT`]'s disciplines for `discipline`.
-fn what_group(discipline: &str) -> char {
+pub(super) fn what_group(discipline: &str) -> char {
     match discipline {
         "pneumatic" | "vacuum" | "hydraulic" => 'f',
         "bus" => 'b',
@@ -802,10 +802,10 @@ impl SymbolEditor {
         }
     }
 
-    /// The rows of the symbol itself, which Properties shows with nothing selected.
-    fn symbol_rows(&self) -> Vec<SheetRow> {
+    /// The rows of the symbol itself, its short sheet (doc 07 §5.6): its name and what it is, in a panel builder's
+    /// words; where it is listed and which function it stands for follow from what it is and are not asked.
+    pub fn symbol_rows(&self) -> Vec<SheetRow> {
         let d = &self.draft;
-        let f = serde_json::to_value(&d.function).unwrap_or_default();
         let locked = d.function_ref.is_some().then(|| label("symbol-function-locked"));
         let group = what_group(self.discipline());
         let mut what: Vec<(String, String)> = WHAT
@@ -821,86 +821,32 @@ impl SymbolEditor {
             },
             |w| w,
         );
-        let categories: Vec<(String, String)> = crate::tools::function_categories()
-            .into_iter()
-            .map(|(k, w)| (k.to_owned(), w.to_owned()))
-            .collect();
-        let kind = f["contact_kind"].as_str().unwrap_or("");
-        let kinds = function_kinds(self.discipline())
-            .iter()
-            .map(|k| ((*k).to_owned(), label(&format!("symbol-kind-{k}"))))
-            .collect();
-        let mut functions = vec![(String::new(), label("symbol-function-own"))];
-        functions.extend(self.functions.iter().map(|f| (f.source.clone(), f.words())));
-        let function = d
-            .function_ref
-            .as_ref()
-            .map(|r| format!("library:{}:{}", r.library, r.item))
-            .unwrap_or_default();
         let text = |s: &str| RowValue::Text(Some(s.to_owned()));
-        let more = |r: SheetRow| SheetRow { more: true, ..r };
-        let disciplines = super::DISCIPLINES
-            .iter()
-            .map(|w| ((*w).to_owned(), strings::choice_text(w)))
-            .collect();
         vec![
             row("name", "symbol-name", text(&name_words(&d.symbol.name))),
             SheetRow {
-                locked: locked.clone(),
+                locked,
                 ..row("what", "symbol-what", choice(current, what))
             },
-            SheetRow {
-                locked: locked.clone(),
-                ..row(
-                    "discipline",
-                    "symbol-discipline",
-                    choice(self.discipline(), disciplines),
-                )
-            },
-            SheetRow {
-                locked: locked.clone(),
-                ..row(
-                    "category",
-                    "symbol-category",
-                    choice(f["category"][0].as_str().unwrap_or(""), categories),
-                )
-            },
-            row("folder", "symbol-library-folder", text(&self.directory)),
-            more(row("function", "symbol-assign", choice(&function, functions))),
-            more(SheetRow {
-                locked,
-                ..row("function_kind", "symbol-function-kind", choice(kind, kinds))
-            }),
-            more(row("key", "symbol-key", text(&d.key))),
-            more(row("version", "symbol-version", text(&d.version))),
-            more(row(
-                "licence",
-                "symbol-licence",
-                text(d.symbol.meta.licence.as_deref().unwrap_or("")),
-            )),
-            more(row(
-                "source",
-                "symbol-source",
-                text(d.symbol.meta.sources.first().map_or("", String::as_str)),
-            )),
-            more(row(
-                "centre",
-                "symbol-centre",
-                RowValue::Flag(Some(matches!(
-                    d.symbol.anchor,
-                    symbols::schema::AnchorPolicy::GraphicCentre
-                ))),
-            )),
         ]
     }
 
-    /// The editor's Properties: the rows the selected things share, or the symbol's own with nothing selected.
+    /// Where the symbol is listed, in words: the browsers' category of what it is.
+    pub fn listed_under(&self) -> String {
+        let f = serde_json::to_value(&self.draft.function).unwrap_or_default();
+        crate::tools::category_words(f["category"][0].as_str().unwrap_or(""))
+            .unwrap_or_default()
+            .to_owned()
+    }
+
+    /// The drawing's Properties: the rows the selected things share; with nothing selected, none (the symbol's own
+    /// stand on its short sheet).
     pub fn sheet(&self, styles: &symbols::TextStyleTable) -> Sheet {
         if self.selection.is_empty() {
             return Sheet {
-                title: name_words(&self.draft.symbol.name),
-                line: self.outline().what,
-                rows: self.symbol_rows(),
+                title: label("symbol-the-symbol"),
+                line: label("symbol-nothing-selected"),
+                rows: Vec::new(),
             };
         }
         let doc = serde_json::to_value(&self.draft).unwrap_or_default();
@@ -1113,7 +1059,8 @@ impl SymbolEditor {
         }
     }
 
-    /// Sets property `key` of the symbol itself in `doc`; whether it is one of the symbol's document.
+    /// Sets field `key` of the symbol's short sheet in `doc` (its name, what it is) or the import's review; whether it
+    /// is one and `value` fits it.
     fn set_symbol(&self, doc: &mut Value, key: &str, value: &Value) -> bool {
         let text = value.as_str();
         let own_function = self.draft.function_ref.is_none();
@@ -1126,37 +1073,10 @@ impl SymbolEditor {
                 doc["function"]["contact_kind"] = json!(kind);
                 doc["function"]["category"] = json!([category, "Generic", "Generic"]);
             }
-            ("category", Some(s), _) if own_function && !s.is_empty() => {
-                doc["function"]["category"] = json!([s, "Generic", "Generic"]);
-            }
-            ("function_kind", Some(s), _) if own_function => doc["function"]["contact_kind"] = json!(s),
-            ("key", Some(s), _) => doc["key"] = json!(s.trim()),
-            ("version", Some(s), _) => doc["version"] = json!(s.trim()),
-            ("licence", Some(s), _) => doc["symbol"]["meta"]["licence"] = json!(s),
-            ("source", Some(s), _) => doc["symbol"]["meta"]["sources"] = json!([s]),
-            ("centre", _, Value::Bool(on)) => {
-                doc["symbol"]["anchor"] = json!(if *on { "graphic_centre" } else { "origin" });
-            }
             ("reviewed", _, Value::Bool(on)) => doc["import_reviewed"] = json!(on),
             _ => return false,
         }
         true
-    }
-}
-
-impl super::SymbolFunctionChoice {
-    /// The function as the Ready-made function list names it: its category, its type, its pins and its library.
-    pub fn words(&self) -> String {
-        let kind = serde_json::to_value(&self.kind).unwrap_or_default();
-        strings::format(
-            key!("symbol-function-choice"),
-            &[
-                &self.category,
-                &label(&format!("symbol-kind-{}", kind.as_str().unwrap_or("unknown"))),
-                &self.pins.join(", "),
-                &self.library,
-            ],
-        )
     }
 }
 
@@ -1178,8 +1098,29 @@ impl ShellModel {
         Some(editor.sheet(&self.symbol_text_styles()))
     }
 
-    /// `symbol.prop {key, value}`: sets a row of the editor's Properties, for every selected thing that has it, or of
-    /// the symbol itself with nothing selected; one undo step. A value the row does not take is refused in words.
+    /// `parts.field {field: symbol.<key>, value}` on the drawing: sets a field of the symbol's short sheet (`name`,
+    /// `what`; `reviewed`, an import's review); one undo step. A value it does not take is refused in words.
+    pub(crate) fn set_symbol_field(&mut self, key: &str, value: &str) -> Result<(), String> {
+        let editor = self
+            .symbol_editor
+            .as_mut()
+            .ok_or_else(|| words(key!("symbol-not-open")))?;
+        if let Some(why) = &editor.locked {
+            return Err(why.clone());
+        }
+        let value = match key {
+            "reviewed" => Value::Bool(value == "true"),
+            _ => Value::String(value.to_owned()),
+        };
+        let mut doc = serde_json::to_value(&editor.draft).map_err(|e| e.to_string())?;
+        if !editor.set_symbol(&mut doc, key, &value) {
+            return Err(words(key!("symbol-prop-invalid")));
+        }
+        editor.take(&doc)
+    }
+
+    /// `symbol.prop {key, value}`: sets a row of the drawing's Properties for every selected thing that has it; one
+    /// undo step. A value the row does not take, or nothing selected, is refused in words.
     pub(super) fn symbol_prop(&mut self, p: &Map<String, Value>) -> Result<(), String> {
         let key = super::text(p, "key");
         let value = p.get("value").cloned().unwrap_or(Value::Null);
@@ -1190,18 +1131,8 @@ impl ShellModel {
             .ok_or_else(|| words(key!("symbol-not-open")))?;
         let selection = editor.selection.clone();
         let param = |pairs: Value| pairs.as_object().cloned().unwrap_or_default();
-        // The rows other actions set already: the library folder, the ready-made function, the discipline, and a
-        // connection point's function pin.
+        // The rows other operations set: a connection point's discipline and function pin.
         match (key, selection.as_slice()) {
-            ("folder", []) => {
-                return self.symbol_operation("directory", &param(json!({ "directory": value })));
-            }
-            ("function", []) => {
-                return self.symbol_operation("function", &param(json!({ "key": value })));
-            }
-            ("discipline", []) => {
-                return self.symbol_operation("discipline", &param(json!({ "discipline": value })));
-            }
             ("discipline" | "pin", items) if !items.is_empty() => {
                 let (original, history) = (editor.draft.clone(), editor.undo.clone());
                 for item in items {
@@ -1245,9 +1176,7 @@ impl ShellModel {
             .ok_or_else(|| words(key!("symbol-not-open")))?;
         let mut doc = serde_json::to_value(&editor.draft).map_err(|e| e.to_string())?;
         if selection.is_empty() {
-            if !editor.set_symbol(&mut doc, key, &value) {
-                return Err(refused());
-            }
+            return Err(refused());
         } else {
             let mut any = false;
             for item in &selection {

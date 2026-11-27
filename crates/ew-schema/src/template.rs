@@ -129,6 +129,7 @@ mod tests {
             .expect("a LibRef"),
             main: false,
             cps: cps.to_vec(),
+            symbol: None,
             extra: Default::default(),
         }
     }

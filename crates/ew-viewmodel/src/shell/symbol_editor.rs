@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The symbol editor's independent draft, history and GUI/headless actions.
+//! The drawing of a symbol in Parts (doc 07 §5.6): its draft, its history and its actions. Where the drawing opens
+//! and what its next step does is [`place`]'s.
 
 use super::{Mode, Outcome, Prompt, ShellModel, failed};
 use crate::notifications::{Note, NoteTone, back_to_editor};
@@ -11,9 +12,11 @@ use serde_json::{Map, Value, json};
 use std::path::{Path, PathBuf};
 
 mod device_box;
+mod place;
 mod selection;
 mod sheet;
 pub use device_box::{DeviceBox, PinLine, SIDES, side_word, side_words};
+pub use place::{Drawing, PageDrawing};
 pub use selection::{Clipboard, Item, bounds, grips, role_words};
 pub use sheet::{Outline, OutlineGroup, OutlineRow, RowValue, Sheet, SheetRow, Todo, WHAT, trim_mm};
 
@@ -117,43 +120,6 @@ pub const FILE_EXTENSIONS: [&str; 12] = [
     "json", "elmt", "edz", "pxf", "ema", "ems", "esl", "slk", "xml", "zip", "7z", "dxf",
 ];
 
-/// A named symbol that can be forked without changing its source.
-#[derive(Debug)]
-pub struct SymbolSource {
-    /// Source key, or embedded copy identity; passed to `symbol.fork`.
-    pub source: String,
-    /// Source library name; an embedded project copy has no library here.
-    pub library: Option<String>,
-    /// Optional stable key, retained for searching and automation.
-    pub key: Option<String>,
-    /// Human-readable symbol name.
-    pub name: symbols::MlText,
-    /// Connection grid, so native and imported versions can be distinguished.
-    pub grid: symbols::units::Grid,
-    /// The first level of its function's category (`Relay`), which the symbol browser files it under; empty when
-    /// its function does not resolve.
-    pub category: String,
-    /// The symbol copy whose shape the start card's preview draws (`Session::symbol_shape`).
-    pub copy: Option<ew_api::output::Uuid>,
-}
-
-/// A function definition offered by the editor's library chooser.
-#[derive(Debug)]
-pub struct SymbolFunctionChoice {
-    /// Library/item address passed to `symbol.function`.
-    pub source: String,
-    /// Human-readable source library name.
-    pub library: String,
-    /// Stable key, retained for display and legacy automation.
-    pub key: String,
-    /// Electrical function type.
-    pub kind: symbols::schema::ContactKind,
-    /// Source category path, distinguishing functions with the same kind and pins.
-    pub category: String,
-    /// Printed connection designations, in function-pin order.
-    pub pins: Vec<String>,
-}
-
 /// Editable document state. History never shares the project's undo stack.
 #[derive(Debug)]
 pub struct SymbolEditor {
@@ -165,8 +131,15 @@ pub struct SymbolEditor {
     saved: Option<SymbolDraft>,
     /// Whether that state was exported or published (an import or a new draft is in no library yet).
     stored: bool,
-    /// Whether the editor's view shows; a draft left with Close is kept with its history.
+    /// Whether Parts shows the drawing (its Drawing tab); a drawing left is kept in hand with its history.
     pub(crate) shown: bool,
+    /// What the drawing is drawn for: its strip and its next step.
+    pub purpose: Drawing,
+    /// The library Save saves it back to: his own that it came from; `None`, My parts.
+    home: Option<ew_api::output::Uuid>,
+    /// Why the drawing is not his to change (a symbol of the starter or of a library he cannot write): it reads as it
+    /// is, with Make my own from it; `None` for his own.
+    pub locked: Option<String>,
     undo: Vec<SymbolDraft>,
     redo: Vec<SymbolDraft>,
     /// Current orientation of the live preview (A–H).
@@ -181,45 +154,22 @@ pub struct SymbolEditor {
     published: Option<(SymbolDraft, String)>,
     /// The text style last chosen for a text of the draft, which a new text takes.
     pub text_style: Option<String>,
-    /// Suggested writable library directory.
-    pub directory: String,
     /// Other drawings recovered from the same input; selecting one is an explicit replacement.
     pub candidates: Vec<SymbolDraft>,
-    /// Available embedded and installed symbols, read when the editor opens.
-    pub sources: Vec<SymbolSource>,
-    /// Installed function definitions, read when the editor opens.
-    pub functions: Vec<SymbolFunctionChoice>,
-    /// The parts drawn as a box, read with the symbols ([`ShellModel::box_parts`]).
-    box_sources: Vec<(String, String, String)>,
-    /// The discipline chosen last, which a symbol without connection points is drawn for.
+    /// The discipline the symbol is drawn for while it has no connection point: its page's.
     chosen_discipline: Option<&'static str>,
     /// What is selected in the drawing, in the order it was selected: the outline's rows, the drawing and Properties
     /// show the same things.
     pub selection: Vec<Item>,
     /// The drawing grid lines, shapes, texts and link points snap to: an index into [`GRID_STEPS`]. The person's
-    /// choice for the session, kept from one draft to the next.
+    /// choice, kept from one drawing to the next (`Settings::symbol_drawing_grid`).
     pub grid: usize,
-    /// Whether the drawing tools snap to the drawing grid (off: to 0.01 mm).
+    /// Whether the drawing tools snap to the drawing grid (off: to 0.01 mm; `Settings::symbol_snap`).
     pub snap: bool,
     /// Counts the changes of the draft, so the window reads what it measured of the drawing again.
     pub revision: u64,
-    /// Whether the start card shows in the drawing's place: the ways in (a new symbol, a copy of a library symbol, a
-    /// device box, an import) and the symbols edited lately.
-    pub start: bool,
-    /// A part's device box, edited in the drawing's place; the symbol draft waits under it.
+    /// A part's device box, arranged in the drawing's place; the symbol draft waits under it.
     device_box: Option<DeviceBox>,
-}
-
-/// A library or project symbol that Edit symbol or Copy and edit opens.
-struct EditTarget {
-    /// What `symbol.fork` reads it from: its library address, or the project copy's ID.
-    source: String,
-    /// Its own key (empty for a project copy without one).
-    key: String,
-    /// Its name in words.
-    name: String,
-    /// The folder of the writable library that holds it, else why it can only be copied.
-    folder: Result<PathBuf, String>,
 }
 
 /// The key a draft takes from its name while the user has given it none: `user.` and the name's letters and digits
@@ -245,8 +195,8 @@ fn key_from_name(draft: &SymbolDraft) -> bool {
 }
 
 impl SymbolEditor {
-    fn new(mut draft: SymbolDraft, directory: String) -> Self {
-        // A person names a symbol; its key is made from the name until they type one (the Library tab).
+    fn new(mut draft: SymbolDraft) -> Self {
+        // A person names a symbol; its key is made from the name, never asked for.
         if draft.key.is_empty() && draft.identity.is_none() {
             draft.key = key_of_name(&name_words(&draft.symbol.name));
         }
@@ -256,6 +206,9 @@ impl SymbolEditor {
             saved: Some(draft.clone()),
             stored: false,
             shown: true,
+            purpose: Drawing::Symbol,
+            home: None,
+            locked: None,
             undo: Vec::new(),
             redo: Vec::new(),
             variant: 0,
@@ -264,17 +217,12 @@ impl SymbolEditor {
             offer_new_page: false,
             published: None,
             text_style: None,
-            directory,
             candidates: Vec::new(),
-            sources: Vec::new(),
-            functions: Vec::new(),
-            box_sources: Vec::new(),
             chosen_discipline: None,
             selection: Vec::new(),
             grid: 0,
             snap: true,
             revision: 0,
-            start: false,
             device_box: None,
         }
     }
@@ -377,8 +325,6 @@ impl SymbolEditor {
         }
         self.redo.clear();
         self.error = None;
-        // A change of the draft is work in hand: the start card gives way to it.
-        self.start = false;
         self.revision = self.revision.wrapping_add(1);
         self.prune_selection();
     }
@@ -422,43 +368,9 @@ pub fn display_name(draft: &SymbolDraft) -> String {
     name_words(&draft.symbol.name)
 }
 
-impl SymbolSource {
-    /// The symbol as a list names it: its name with its connection grid ("Lamp (4 mm grid)"), and where it is from
-    /// (its library, or "Project copy").
-    pub fn words(&self) -> (String, String) {
-        let from = self
-            .library
-            .clone()
-            .unwrap_or_else(|| words(key!("symbol-project-copy")));
-        // The name says its grid: the starter library holds most symbols on both (two rows read "Lamp").
-        let grid = crate::status::grid_words(self.grid.num() as i64, self.grid.den() as i64);
-        let name = strings::format(key!("symbol-source-grid"), &[&name_words(&self.name), &grid]);
-        (name, from)
-    }
-}
-
 /// The style a new free text takes when none was chosen in the draft: the small style pin designations use
 /// (`ew_scene`'s default for a connection point's designation).
 pub const NEW_TEXT_STYLE: &str = "cp.small";
-
-/// The style of a free text of `after` that differs from the same text of `before`, or is new with a style: the style
-/// a person chose last.
-fn chosen_text_style(before: &SymbolDraft, after: &SymbolDraft) -> Option<String> {
-    let styles = |d: &SymbolDraft| -> Vec<Option<String>> {
-        serde_json::to_value(&d.symbol.graphics)
-            .ok()
-            .and_then(|v| v.as_array().cloned())
-            .unwrap_or_default()
-            .iter()
-            .map(|g| g.get("text")?.get("style")?.as_str().map(str::to_owned))
-            .collect()
-    };
-    let (old, new) = (styles(before), styles(after));
-    new.iter()
-        .enumerate()
-        .find(|(i, s)| s.is_some() && old.get(*i) != Some(s))
-        .and_then(|(_, s)| s.clone())
-}
 
 /// A text style's name in the window's words, as the Text styles page names it (`ew_derive::text::text_style_name`); a
 /// project's own style by its key, so that two of them stay apart in the choice.
@@ -497,15 +409,6 @@ pub(crate) fn name_words(name: &symbols::MlText) -> String {
             .or_else(|| map.iter().next())
             .map(|(_, v)| v.to_string())
             .unwrap_or_default(),
-    }
-}
-
-/// A refusal in the window's words (part 3's nit: never a raw member name).
-/// The first level of the category of the FnDef `fndef` names, as the library resolves it; empty when it does not.
-fn category_of(registry: &ew_api::library::Registry, fndef: &symbols::schema::LibRef) -> String {
-    match registry.resolve(fndef) {
-        Ok(symbols::schema::LibDocument::Fndef(f)) => f.item.category.0.as_str().to_owned(),
-        _ => String::new(),
     }
 }
 
@@ -586,12 +489,14 @@ fn edit_error(e: symbols::Error) -> String {
 }
 
 impl ShellModel {
-    /// The symbol editor while its view shows, independent of the current project.
+    /// The drawing while Parts shows it, on its Drawing tab.
     pub fn symbol_editor(&self) -> Option<&SymbolEditor> {
-        self.symbol_editor.as_ref().filter(|e| e.shown)
+        self.symbol_editor
+            .as_ref()
+            .filter(|e| e.shown && self.parts.as_deref().is_some_and(|p| !p.aside))
     }
 
-    /// The symbol editor's draft and history, also while the view is left (Close keeps them).
+    /// The drawing in hand with its history, also while Parts does not show it.
     pub fn kept_symbol_editor(&self) -> Option<&SymbolEditor> {
         self.symbol_editor.as_ref()
     }
@@ -636,13 +541,12 @@ impl ShellModel {
             })
     }
 
-    /// New/import/replace/edit/history/save/place share this action implementation.
+    /// The drawing's actions: an import, its history, its tools and selection, a test placement.
     pub(crate) fn act_symbol(&mut self, action: &str, p: &Map<String, Value>) -> Outcome {
-        // In the window a missing path opens the house file or folder picker.
+        // In the window a missing path opens the house file picker.
         let prompt = match action {
             "open" => Some(("symbol.open", Prompt::OpenSymbol, "file")),
             "export" => Some(("symbol.export", Prompt::SaveSymbol, "file")),
-            "directory" => Some(("symbol.directory", Prompt::LibraryFolder, "directory")),
             _ => None,
         };
         if let Some((name, prompt, param)) = prompt
@@ -685,161 +589,9 @@ impl ShellModel {
         }
     }
 
-    /// The symbol `symbol.edit` and `symbol.copy_edit` act on: the one named by `symbol` (its key, copy ID or
-    /// `library:<library>:<item>` address), else the one the browser's current row places.
-    fn edit_target(&self, p: &Map<String, Value>) -> Result<EditTarget, String> {
-        let named = text(p, "symbol");
-        let given = if named.is_empty() {
-            let picker = self.tools.picker.as_ref();
-            let row = picker.and_then(|k| Some((k, *k.rows.get(k.row)?)));
-            let symbol = row.and_then(|(k, r)| k.row_symbol(r));
-            match symbol {
-                Some(s) => s.copy.map_or_else(|| s.key.clone(), |c| c.to_string()),
-                None => return Err(strings::text(key!("reason-no-picker-row")).to_owned()),
-            }
-        } else {
-            named.to_owned()
-        };
-        let fallback;
-        let registry = match &self.project {
-            Some(project) => project.session.libraries(),
-            None => {
-                fallback = match &self.configured_libraries() {
-                    Some(tiers) => ew_api::library::Registry::open(tiers).map_err(|e| e.to_string())?,
-                    None => ew_api::library::Registry::starter_only(),
-                };
-                &fallback
-            }
-        };
-        // A copy the project embeds names the library item it was copied from by its key.
-        let project_copy = self.project.as_ref().and_then(|project| {
-            let q = project.session.query();
-            q.symbols()
-                .iter()
-                .find(|(id, _)| id.to_string() == given)
-                .map(|(_, s)| s.clone())
-        });
-        let wanted = project_copy
-            .as_ref()
-            .and_then(|s| s.item.meta.key.as_ref().map(ToString::to_string))
-            .unwrap_or_else(|| given.clone());
-        for library in registry.libraries() {
-            for doc in registry.documents(library.id, symbols::schema::Kind::Symbol) {
-                let symbols::schema::LibDocument::Symbol(s) = doc else {
-                    continue;
-                };
-                let address = format!("library:{}:{}", s.library_id, s.item_id);
-                let key = s
-                    .item
-                    .meta
-                    .key
-                    .as_ref()
-                    .map(ToString::to_string)
-                    .unwrap_or_default();
-                if address != wanted && key != wanted && s.id.to_string() != wanted {
-                    continue;
-                }
-                let folder = match &library.path {
-                    Some(path) if library.writable => Ok(path.clone()),
-                    _ => Err(strings::format(key!("symbol-edit-read-only"), &[&library.name])),
-                };
-                return Ok(EditTarget {
-                    source: address,
-                    key,
-                    name: name_words(&s.item.name),
-                    folder,
-                });
-            }
-        }
-        // A symbol the project holds alone (an import's) is copied from the project.
-        let Some(copy) = project_copy else {
-            return Err(strings::text(key!("reason-unknown-symbol")).to_owned());
-        };
-        Ok(EditTarget {
-            source: given,
-            key: copy
-                .item
-                .meta
-                .key
-                .as_ref()
-                .map(ToString::to_string)
-                .unwrap_or_default(),
-            name: name_words(&copy.item.name),
-            folder: Err(strings::text(key!("symbol-edit-project-only")).to_owned()),
-        })
-    }
-
-    /// Why the browser's current row offers Copy and edit alone: its library is read-only, or the project
-    /// alone holds it; `None` when Edit symbol is offered too, or the row places no symbol.
-    pub fn symbol_edit_refusal(&self) -> Option<String> {
-        self.edit_target(&Map::new()).ok()?.folder.err()
-    }
-
-    /// Why Edit symbol cannot open the symbol `p` names (`symbol`: its key, copy ID or library address): its library
-    /// is read-only, the project alone holds it, or it is not found; `None` when it can (the canvas menu).
-    pub(super) fn symbol_edit_reason(&self, p: &Map<String, Value>) -> Option<String> {
-        match self.edit_target(p) {
-            Ok(t) => t.folder.err(),
-            Err(why) => Some(why),
-        }
-    }
-
-    /// `symbol.edit` and, with `copy`, `symbol.copy_edit`: the symbol editor on the symbol of the browser's
-    /// current row (or the one `symbol` names), the browser closed. Edit symbol opens the symbol itself, under its own
-    /// key, saving to its library (a new version there); a symbol of a read-only library, or one the project alone
-    /// holds, is refused in words. Copy and edit opens a copy under a key made from its name, saving to the user's
-    /// library under a free key. Unsaved changes of the kept draft are refused unless `discard` (the window asks first).
-    pub(crate) fn act_symbol_edit(&mut self, p: &Map<String, Value>, copy: bool) -> Outcome {
-        let target = match self.edit_target(p) {
-            Ok(t) => t,
-            Err(message) => return Outcome::Failed { message },
-        };
-        let folder = match (&target.folder, copy) {
-            (Err(why), false) => return Outcome::Failed { message: why.clone() },
-            (Ok(folder), false) => Some(folder.clone()),
-            (_, true) => None,
-        };
-        let key = if copy {
-            key_of_name(&target.name)
-        } else {
-            target.key.clone()
-        };
-        if key.is_empty() {
-            return failed(key!("symbol-key-required"), &[]);
-        }
-        let mut params = Map::new();
-        params.insert("source".into(), Value::String(target.source));
-        params.insert("key".into(), Value::String(key));
-        if let Some(discard) = p.get("discard") {
-            params.insert("discard".into(), discard.clone());
-        }
-        let out = self.act_symbol("fork", &params);
-        if out != Outcome::Done {
-            return out;
-        }
-        self.tools.picker = None;
-        if let Some(editor) = &mut self.symbol_editor {
-            match folder {
-                // The library that holds the symbol is where Save writes its new version; unchanged, the draft is
-                // that library's symbol.
-                Some(folder) => {
-                    editor.directory = folder.to_string_lossy().into_owned();
-                    editor.stored = true;
-                    self.settings.record_symbol_edit(text(&params, "source"));
-                }
-                // A copy is a new item: no identity of its source, so Save gives it a free key of its name.
-                None => {
-                    editor.draft.identity = None;
-                    editor.saved = Some(editor.draft.clone());
-                }
-            }
-        }
-        Outcome::Done
-    }
-
-    /// The window's way to an editor action that drops the draft (New symbol, Open or import, Fork, a candidate,
-    /// Discard draft): with unsaved changes it asks Save symbol, Discard or Cancel in the house dialog first, the
-    /// action then running with `discard`; otherwise the action runs at once.
+    /// The window's way to an action that drops the drawing in hand (New symbol, Open or import, a candidate): with
+    /// unsaved changes it asks Save symbol, Discard or Cancel in the house dialog first, the action then running with
+    /// `discard`; otherwise the action runs at once.
     pub fn ask_symbol_discard(&mut self, action: &'static str, params: Value) -> Outcome {
         // While a device box is edited the action is the box's: only its own changes are asked about (a symbol draft
         // under it stays in hand).
@@ -860,12 +612,10 @@ impl ShellModel {
         self.dispatch(action, &params)
     }
 
-    /// After a test placement the editor's view closes and the page shows with the symbol selected; the toast offers
-    /// the way back to the kept draft.
+    /// After a test placement Parts steps aside and the page shows with the symbol selected; the toast offers the way
+    /// back to the drawing in hand.
     fn after_test_placement(&mut self, scratch: bool) {
-        if let Some(editor) = &mut self.symbol_editor {
-            editor.shown = false;
-        }
+        self.step_aside();
         if let Some(id) = self.tools.last_primary.clone() {
             let _ = self.dispatch("select.set", &json!({ "ids": [id] }));
         }
@@ -900,10 +650,8 @@ impl ShellModel {
         let back = self.current_folio().map(str::to_owned);
         self.new_page_with_grid(grid, None)?;
         let page = self.tools.last_primary.clone();
-        // The editor steps aside first, as after a test placement: the Place tool works on the project's page.
-        if let Some(editor) = &mut self.symbol_editor {
-            editor.shown = false;
-        }
+        // Parts steps aside first, as after a test placement: the Place tool works on the project's page.
+        self.step_aside();
         // The canvas and the tool's context follow the new page, so the placement's tool is not escaped by it.
         self.sync_views();
         self.sync_tool_context();
@@ -919,8 +667,8 @@ impl ShellModel {
             };
             // The page was made for this symbol alone: a refused placement takes it back.
             self.take_back_new_page(back.as_deref());
-            if let Some(editor) = &mut self.symbol_editor {
-                editor.shown = true;
+            if let Some(place) = self.parts.as_deref_mut() {
+                place.aside = false;
             }
             return Err(refusal);
         }
@@ -966,51 +714,34 @@ impl ShellModel {
         if let Some(done) = self.box_operation(action, p) {
             return done;
         }
-        if matches!(action, "new" | "open" | "fork" | "close") {
-            return self.symbol_open_close(action, p);
-        }
-        if action == "start" {
-            return self.symbol_start(p);
+        if action == "open" {
+            return self.symbol_import(p);
         }
         if action == "scratch" {
             return self.symbol_scratch();
         }
+        // A drawing that is not his reads as it is: what changes it is refused with why.
+        let changes = !matches!(action, "tool" | "variant" | "validate" | "select" | "copy" | "export" | "grid");
+        if changes && let Some(why) = self.symbol_editor.as_ref().and_then(|e| e.locked.clone()) {
+            return Err(why);
+        }
         if action == "prop" {
             return self.symbol_prop(p);
         }
-        let configured_libraries = self.configured_libraries();
-        // The paths are resolved, and an empty one refused, before the draft is borrowed.
+        // The path is resolved, and an empty one refused, before the draft is borrowed.
         let file_path = matches!(action, "export")
             .then(|| self.symbol_path(text(p, "file"), key!("symbol-file-required")))
             .transpose()?;
-        let directory_path = match action {
-            // A Library folder typed empty is refused; Save without one takes the editor's.
-            "save" | "directory" => Some(self.symbol_path(
-                if action == "save" && text(p, "directory").is_empty() {
-                    self.symbol_editor.as_ref().map_or("", |e| e.directory.as_str())
-                } else {
-                    text(p, "directory")
-                },
-                key!("symbol-directory-required"),
-            )?),
-            _ => None,
-        };
-        let tiers = matches!(action, "save").then(|| self.symbol_tiers()).flatten();
         let editor = self
             .symbol_editor
             .as_mut()
             .ok_or_else(|| strings::text(key!("symbol-not-open")).to_owned())?;
         match action {
+            // A connection point's function pin and discipline, which its Properties rows set.
             "map_cp" => Self::symbol_map_cp(editor, p)?,
             "discipline" => Self::symbol_discipline(editor, p)?,
-            // The potential role of the function pin a connection point draws; `none` clears it (part 3's nit).
-            "role" => Self::symbol_role(editor, p)?,
             "path" => Self::symbol_add_path(editor, p)?,
             "candidate" => Self::symbol_candidate(editor, &mut self.symbol_editor_generation, p)?,
-            "function" => {
-                Self::symbol_function(editor, self.project.as_ref(), configured_libraries.as_ref(), p)?;
-            }
-            "replace" => Self::symbol_replace(editor, p)?,
             "undo" => {
                 if let Some(d) = editor.undo.pop() {
                     editor.redo.push(std::mem::replace(&mut editor.draft, d));
@@ -1071,7 +802,13 @@ impl ShellModel {
             }
             "align" => editor.align(p)?,
             "grip" => editor.grip(p)?,
-            "grid" => editor.set_grid(p)?,
+            "grid" => {
+                editor.set_grid(p)?;
+                // His drawing grid and Snap are the next drawing's.
+                self.settings.symbol_drawing_grid = Some(editor.grid);
+                self.settings.symbol_snap = Some(editor.snap);
+                self.save_settings();
+            }
             "draw" => Self::symbol_draw(editor, p)?,
             "cp" => Self::symbol_cp(editor, p)?,
             "slot" => Self::symbol_slot(editor, p)?,
@@ -1083,11 +820,6 @@ impl ShellModel {
                 editor.saved = Some(editor.draft.clone());
                 editor.stored = true;
             }
-            "directory" => {
-                let path = directory_path.ok_or_else(damaged)?;
-                editor.directory = path.to_string_lossy().into_owned();
-            }
-            "save" => self.symbol_save(directory_path, tiers)?,
             "place" => {
                 let draft = editor.draft.clone();
                 let variant = editor.variant;
@@ -1098,231 +830,30 @@ impl ShellModel {
         Ok(())
     }
 
-    /// New, Open or import, Fork and Close: a new editor with a fresh draft, the kept draft shown again, or the
-    /// editor's view left (its draft dropped with `discard`).
-    fn symbol_open_close(&mut self, action: &str, p: &Map<String, Value>) -> Result<(), String> {
+    /// `symbol.open {file, key?}` (a symbol file: a QElectroTech element, an EPLAN symbol file, a DXF drawing): its
+    /// first drawing as the drawing in Parts, a symbol of his own, the file's other drawings beside it. The drawing in
+    /// hand with unsaved changes is kept unless `discard` (the window asks first).
+    fn symbol_import(&mut self, p: &Map<String, Value>) -> Result<(), String> {
         let discard = p.get("discard") == Some(&Value::Bool(true));
-        // Close leaves the view and keeps the draft and its history; Discard drops them, explicitly.
-        if action == "close" {
-            if discard {
-                self.symbol_editor = None;
-            } else if let Some(editor) = &mut self.symbol_editor {
-                editor.shown = false;
-            }
-            return Ok(());
-        }
-        // Reopening the editor without naming a new symbol returns to the kept draft; `discard` starts a fresh one.
-        if action == "new"
-            && !discard
-            && text(p, "key").is_empty()
-            && text(p, "name").is_empty()
-            && let Some(editor) = &mut self.symbol_editor
-        {
-            editor.shown = true;
-            return Ok(());
-        }
         if self.symbol_editor.as_ref().is_some_and(SymbolEditor::dirty) && !discard {
             return Err(strings::text(key!("symbol-unsaved")).into());
         }
-        // No shared default key: a new draft starts without one, an import takes its file's name.
-        let key = text(p, "key");
-        if action == "fork" && key.is_empty() {
-            return Err(strings::text(key!("symbol-key-required")).into());
-        }
-        let (draft, candidates) = self.symbol_start_draft(action, key, p)?;
-        // Without a folder given, Save to library saves to the default user library, which the field
-        // shows, so "Ready to save" holds.
-        let dir = self
-            .symbol_tiers()
-            .map(|t| t.user.join("symbols.ewlib"))
-            .map(|p| std::path::absolute(&p).unwrap_or(p))
-            .map(|p| p.to_string_lossy().into_owned())
-            .unwrap_or_default();
-        let mut editor = SymbolEditor::new(draft, dir);
-        if let Some(before) = &self.symbol_editor {
-            (editor.grid, editor.snap) = (before.grid, before.snap);
-        }
-        self.symbol_editor_generation = self.symbol_editor_generation.wrapping_add(1);
-        editor.generation = self.symbol_editor_generation;
-        editor.candidates = candidates;
-        // Opened with nothing in hand and nothing named, the editor shows the ways in first.
-        editor.start = action == "new" && !discard && key.is_empty() && text(p, "name").is_empty();
-        self.symbol_editor_sources(&mut editor)?;
-        self.symbol_editor = Some(editor);
-        Ok(())
-    }
-
-    /// `symbol.start {leave?}`: shows the start card in the drawing's place, the editor opened when it was not; with
-    /// `leave`, back to the draft in hand, and with nothing in hand the editor closes.
-    fn symbol_start(&mut self, p: &Map<String, Value>) -> Result<(), String> {
-        let leave = p.get("leave") == Some(&Value::Bool(true));
-        match &mut self.symbol_editor {
-            Some(editor) if leave && editor.in_hand() => editor.start = false,
-            Some(_) if leave => self.symbol_editor = None,
-            Some(editor) => {
-                editor.shown = true;
-                editor.start = true;
-                // The card lists what the libraries hold now: a symbol saved since the editor opened too.
-                self.refresh_symbol_sources()?;
-            }
-            None if leave => {}
-            None => return self.symbol_open_close("new", &Map::new()),
+        let path = self.symbol_path(text(p, "file"), key!("symbol-file-required"))?;
+        let key = match text(p, "key") {
+            "" => symbols::file_key(&path),
+            key => key.to_owned(),
+        };
+        let candidates =
+            symbols::open(&path, &key).map_err(|e| file_error(e, key!("symbol-file-unreadable")))?;
+        let draft = candidates
+            .first()
+            .cloned()
+            .ok_or_else(|| strings::text(key!("eplan-no-symbols")).to_owned())?;
+        self.open_drawing(draft, Drawing::Symbol, None, None);
+        if let Some(editor) = &mut self.symbol_editor {
+            editor.candidates = candidates;
         }
         Ok(())
-    }
-
-    /// Reads the editor's choices (the symbols to copy, the ready-made functions) again.
-    fn refresh_symbol_sources(&mut self) -> Result<(), String> {
-        let Some(mut editor) = self.symbol_editor.take() else {
-            return Ok(());
-        };
-        editor.sources.clear();
-        editor.functions.clear();
-        let read = self.symbol_editor_sources(&mut editor);
-        self.symbol_editor = Some(editor);
-        read
-    }
-
-    /// The symbols edited lately that a library still holds, most recent first: each as (its address for
-    /// `symbol.edit`, its name, its library).
-    pub fn symbol_recents(&self) -> Vec<(String, String, String)> {
-        let Some(editor) = self.symbol_editor() else {
-            return Vec::new();
-        };
-        self.settings
-            .symbols_recent
-            .iter()
-            .filter_map(|address| {
-                let source = editor.sources.iter().find(|s| s.source == *address)?;
-                let (name, library) = source.words();
-                Some((address.clone(), name, library))
-            })
-            .collect()
-    }
-
-    /// The draft a new editor starts with, and the other drawings of an imported file: the file's first drawing
-    /// (Open), a copy of a project or library symbol under `key` (Fork), else a new empty draft.
-    fn symbol_start_draft(
-        &self,
-        action: &str,
-        key: &str,
-        p: &Map<String, Value>,
-    ) -> Result<(SymbolDraft, Vec<SymbolDraft>), String> {
-        let mut candidates = Vec::new();
-        let draft = if action == "open" {
-            let path = self.symbol_path(text(p, "file"), key!("symbol-file-required"))?;
-            let key = if key.is_empty() {
-                symbols::file_key(&path)
-            } else {
-                key.to_owned()
-            };
-            candidates =
-                symbols::open(&path, &key).map_err(|e| file_error(e, key!("symbol-file-unreadable")))?;
-            candidates
-                .first()
-                .cloned()
-                .ok_or_else(|| strings::text(key!("eplan-no-symbols")).to_owned())?
-        } else if action == "fork" {
-            if let Some(project) = &self.project {
-                project
-                    .session
-                    .symbol_draft(text(p, "source"), key)
-                    .map_err(symbol_error)?
-            } else {
-                let registry = match &self.configured_libraries() {
-                    Some(tiers) => ew_api::library::Registry::open(tiers).map_err(|e| e.to_string())?,
-                    None => ew_api::library::Registry::starter_only(),
-                };
-                SymbolDraft::from_library(&registry, text(p, "source"), key).map_err(symbol_error)?
-            }
-        } else {
-            let name = if text(p, "name").is_empty() {
-                strings::text(key!("symbol-untitled"))
-            } else {
-                text(p, "name")
-            };
-            SymbolDraft::new(key, name).map_err(symbol_error)?
-        };
-        Ok((draft, candidates))
-    }
-
-    /// A new editor's choices: the project's embedded symbols, every library's symbols, and the libraries' function
-    /// definitions sorted by key.
-    fn symbol_editor_sources(&self, editor: &mut SymbolEditor) -> Result<(), String> {
-        let fallback;
-        editor.box_sources = self.read_box_parts();
-        let registry = if let Some(project) = &self.project {
-            let libraries = project.session.libraries();
-            for (id, s) in project.session.query().symbols().iter() {
-                editor.sources.push(SymbolSource {
-                    source: id.to_string(),
-                    library: None,
-                    key: s.item.meta.key.as_ref().map(ToString::to_string),
-                    name: s.item.name.clone(),
-                    grid: s.item.grid,
-                    category: category_of(libraries, &s.item.fndef),
-                    copy: Some(id.as_uuid()),
-                });
-            }
-            project.session.libraries()
-        } else {
-            fallback = match &self.configured_libraries() {
-                Some(tiers) => ew_api::library::Registry::open(tiers).map_err(|e| e.to_string())?,
-                None => ew_api::library::Registry::starter_only(),
-            };
-            &fallback
-        };
-        for library in registry.libraries() {
-            for doc in registry.documents(library.id, symbols::schema::Kind::Symbol) {
-                if let symbols::schema::LibDocument::Symbol(s) = doc {
-                    editor.sources.push(SymbolSource {
-                        source: format!("library:{}:{}", s.library_id, s.item_id),
-                        library: Some(library.name.clone()),
-                        key: s.item.meta.key.as_ref().map(ToString::to_string),
-                        category: category_of(registry, &s.item.fndef),
-                        copy: Some(s.id.as_uuid()),
-                        name: s.item.name,
-                        grid: s.item.grid,
-                    });
-                }
-            }
-            for doc in registry.documents(library.id, symbols::schema::Kind::Fndef) {
-                if let symbols::schema::LibDocument::Fndef(f) = doc
-                    && let Some(key) = &f.item.meta.key
-                {
-                    editor.functions.push(SymbolFunctionChoice {
-                        source: format!("library:{}:{}", f.library_id, f.item_id),
-                        library: library.name.clone(),
-                        key: key.to_string(),
-                        kind: f.item.contact_kind,
-                        category: format!(
-                            "{} / {} / {}",
-                            f.item.category.0, f.item.category.1, f.item.category.2
-                        ),
-                        pins: f.item.cps.iter().map(|p| p.designation.to_string()).collect(),
-                    });
-                }
-            }
-        }
-        editor.functions.sort_by(|a, b| a.key.cmp(&b.key));
-        editor.functions.dedup_by(|a, b| a.source == b.source);
-        // In the symbol browser's order (Copy a library symbol was one long list without order): by the
-        // words of the function category the browser files a symbol under, Other last, then by name.
-        editor.sources.sort_by_cached_key(|s| {
-            let filed = crate::tools::category_words(&s.category);
-            (
-                filed.is_none(),
-                filed.unwrap_or_default().to_lowercase(),
-                s.words().0.to_lowercase(),
-            )
-        });
-        Ok(())
-    }
-
-    /// The shape of the start card's symbol `source` for its preview: the copy's outline and connection
-    /// points as the symbol browser draws them; `None` without a project or for a symbol no copy is read for.
-    pub fn symbol_source_shape(&self, source: &SymbolSource) -> Option<ew_api::output::SymbolShape> {
-        self.project.as_ref()?.session.symbol_shape(source.copy?)
     }
 
     /// Test on a new page: the draft checked, a page with its grid and the draft's name made, and the draft placed
@@ -1450,43 +981,6 @@ impl ShellModel {
         Ok(())
     }
 
-    /// Sets the potential role of the function pin connection point `cp` draws, or clears it with `none`; refused
-    /// while the draft uses a library's function definition.
-    fn symbol_role(editor: &mut SymbolEditor, p: &Map<String, Value>) -> Result<(), String> {
-        let cp = p.get("cp").and_then(Value::as_u64);
-        let fn_cp = editor
-            .draft
-            .symbol
-            .cps
-            .iter()
-            .find(|c| Some(u64::from(c.idx)) == cp)
-            .map(|c| u64::from(c.fn_cp))
-            .ok_or_else(|| {
-                strings::format(key!("symbol-cp-unknown"), &[&cp.unwrap_or_default().to_string()])
-            })?;
-        if editor.draft.function_ref.is_some() {
-            return Err(words(key!("symbol-role-assigned")));
-        }
-        let mut d = serde_json::to_value(&editor.draft).map_err(|e| e.to_string())?;
-        let pin = d["function"]["cps"]
-            .as_array_mut()
-            .and_then(|pins| pins.iter_mut().find(|v| v["idx"] == fn_cp))
-            .and_then(Value::as_object_mut)
-            .ok_or_else(damaged)?;
-        match text(p, "role") {
-            "none" => {
-                pin.remove("potential_role");
-            }
-            role => {
-                pin.insert("potential_role".into(), json!(role));
-            }
-        }
-        editor.replace(
-            SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(edit_error)?,
-        );
-        Ok(())
-    }
-
     /// Adds a polyline, or a polygon when `closed`, through `points`.
     fn symbol_add_path(editor: &mut SymbolEditor, p: &Map<String, Value>) -> Result<(), String> {
         let points = p
@@ -1550,76 +1044,6 @@ impl ShellModel {
         editor.stored = false;
         *generation = generation.wrapping_add(1);
         editor.generation = *generation;
-        Ok(())
-    }
-
-    /// Gives the draft the library function definition `key` (its library address or its own key), referenced and
-    /// copied into the draft. An empty `key` takes an assigned definition off (Take off, F24): the draft keeps its
-    /// copy, whose function type and connection points can be changed again.
-    fn symbol_function(
-        editor: &mut SymbolEditor,
-        project: Option<&super::Project>,
-        configured_libraries: Option<&ew_api::library::LibraryTiers>,
-        p: &Map<String, Value>,
-    ) -> Result<(), String> {
-        if text(p, "key").is_empty() && editor.draft.function_ref.is_some() {
-            let mut draft = editor.draft.clone();
-            draft.function_ref = None;
-            editor.replace(draft);
-            return Ok(());
-        }
-        let fallback;
-        let registry = if let Some(project) = project {
-            project.session.libraries()
-        } else {
-            fallback = match configured_libraries {
-                Some(tiers) => ew_api::library::Registry::open(tiers).map_err(|e| e.to_string())?,
-                None => ew_api::library::Registry::starter_only(),
-            };
-            &fallback
-        };
-        let f = registry
-            .libraries()
-            .iter()
-            .flat_map(|l| registry.documents(l.id, symbols::schema::Kind::Fndef))
-            .find_map(|d| match d {
-                symbols::schema::LibDocument::Fndef(f)
-                    if format!("library:{}:{}", f.library_id, f.item_id) == text(p, "key")
-                        || f.item
-                            .meta
-                            .key
-                            .as_ref()
-                            .is_some_and(|k| k.as_str() == text(p, "key")) =>
-                {
-                    Some(f)
-                }
-                _ => None,
-            })
-            .ok_or_else(|| strings::text(key!("symbol-function-required")).to_owned())?;
-        let mut draft = editor.draft.clone();
-        draft.function_ref = Some(
-            serde_json::from_value(
-                json!({"library":f.library_id,"item":f.item_id,"version_req":format!("^{}",f.version)}),
-            )
-            .map_err(|e| e.to_string())?,
-        );
-        draft.function = f.item;
-        editor.replace(draft);
-        Ok(())
-    }
-
-    /// Replaces the draft with the whole `document`, keeping the text style it chose last.
-    fn symbol_replace(editor: &mut SymbolEditor, p: &Map<String, Value>) -> Result<(), String> {
-        let bytes = serde_json::to_vec(
-            p.get("document")
-                .ok_or_else(|| words(key!("symbol-document-required")))?,
-        )
-        .map_err(|e| e.to_string())?;
-        let draft = SymbolDraft::parse(&bytes).map_err(edit_error)?;
-        if let Some(style) = chosen_text_style(&editor.draft, &draft) {
-            editor.text_style = Some(style);
-        }
-        editor.replace(draft);
         Ok(())
     }
 
@@ -1834,47 +1258,31 @@ impl ShellModel {
         Ok(())
     }
 
-    /// Save to library: the valid draft published to the library at `directory_path` (made when missing), the tiers
-    /// and settings updated, and the draft and its history marked as saved there.
-    fn symbol_save(
-        &mut self,
-        directory_path: Option<PathBuf>,
-        tiers: Option<ew_api::library::LibraryTiers>,
-    ) -> Result<(), String> {
+    /// Saves the drawing with his parts (doc 07 §5.6): the valid draft published to the library it came from where
+    /// he can write it, else to My parts (made when missing); the draft and its history marked as saved there. Its
+    /// address (`library:<library>:<item>`), which the Insert symbol picker and a piece name it by.
+    pub(crate) fn symbol_save(&mut self) -> Result<String, String> {
+        let tiers = self
+            .symbol_tiers()
+            .ok_or_else(|| strings::text(key!("error-part-no-my-parts")).to_owned())?;
         let editor = self
             .symbol_editor
             .as_mut()
             .ok_or_else(|| strings::text(key!("symbol-not-open")).to_owned())?;
         let mut draft = editor.draft.clone();
-        let path = directory_path.ok_or_else(damaged)?;
-        let directory = path.to_string_lossy().into_owned();
         let issues = draft.validate();
         if !issues.is_empty() {
             return Err(symbol_error(symbols::Error::Invalid(issues)));
         }
-        let mut tiers = tiers.ok_or_else(|| strings::text(key!("symbol-directory-required")).to_owned())?;
-        // A library of the user tier opens from it; any other destination is a writable company path.
-        let user_tier = path.extension().is_some_and(|e| e == "ewlib")
-            && path.parent() == std::path::absolute(&tiers.user).ok().as_deref();
-        if !user_tier && !tiers.company.contains(&path) {
-            tiers.company.push(path.clone());
-        }
         let mut registry = ew_api::library::Registry::open(&tiers).map_err(|e| e.to_string())?;
         draft.check_function(&registry).map_err(symbol_error)?;
-        let target = match registry
-            .libraries()
-            .into_iter()
-            .find(|l| l.path.as_ref() == Some(&path))
-        {
-            Some(l) => l.id,
-            None => registry
-                .create(
-                    &path,
-                    "user-symbols",
-                    strings::text(key!("symbol-user-library")),
-                    draft.symbol.meta.licence.as_deref().unwrap_or("CC-BY-SA-4.0"),
-                )
-                .map_err(|e| e.to_string())?,
+        let home = editor
+            .home
+            .filter(|h| registry.libraries().iter().any(|l| l.id == *h && l.writable));
+        let target = match home {
+            Some(h) => h,
+            None => ew_api::eplan::user_parts_library(&mut registry)
+                .map_err(|_| strings::text(key!("error-part-no-my-parts")).to_owned())?,
         };
         let before = draft.identity.clone();
         // The writer's version refusals in words, the item named by the symbol, without its UUID.
@@ -1946,7 +1354,7 @@ impl ShellModel {
         }
         editor.draft.version.clone_from(&draft.version);
         let saved_version = (draft.version != version).then(|| draft.version.clone());
-        editor.directory = directory;
+        editor.home = Some(target);
         // The published symbol as the Insert symbol picker addresses it, while the draft is this one.
         editor.published = draft
             .identity
@@ -1955,13 +1363,12 @@ impl ShellModel {
         editor.saved = Some(draft);
         editor.stored = true;
         editor.error = None;
-        if let Some((_, address)) = &editor.published {
-            self.settings.record_symbol_edit(address);
-        }
-        if !user_tier {
-            self.settings
-                .remember_library(&path, self.config.config_dir.as_deref());
-        }
+        let address = editor
+            .published
+            .as_ref()
+            .map(|(_, a)| a.clone())
+            .ok_or_else(damaged)?;
+        self.settings.record_symbol_edit(&address);
         self.save_settings();
         self.libraries_changed();
         // What was saved where, and how it gets onto a page: the click's answer.
@@ -1972,7 +1379,7 @@ impl ShellModel {
             }),
             NoteTone::Success,
         );
-        Ok(())
+        Ok(address)
     }
 
     /// Test placement: a copy of `draft` under a key its content derives, placed at `x`/`y` on the current page in

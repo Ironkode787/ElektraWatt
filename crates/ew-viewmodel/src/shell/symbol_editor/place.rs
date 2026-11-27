@@ -1,0 +1,756 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! The drawing of a symbol in Parts (doc 07 §5.6): it opens in the middle of the place, on its Drawing tab, for what
+//! it is drawn for ([`Drawing`]): a symbol of his own (the Symbols shelf, New symbol in the place), a piece of the open
+//! part (Draw a new symbol…, Change it for this part…), or a page (New symbol on the Draw tab and `Ctrl+I`, the symbol
+//! picker's foot, Draw one like it…). `parts.new_symbol`, `parts.draw` and `parts.open {symbol}` open it, ready to draw
+//! on: the page's connection grid, What it is as he chose it last, the texts its kind needs where the standard puts
+//! them, his drawing grid and Snap. `parts.save` saves the symbol with his parts (My parts, or the library he can write
+//! that it came from) and finishes the errand: placed on the page with the Place tool armed, exchanged for the selected
+//! symbol, or given to the piece. `parts.back` leaves the drawing, which stays in hand.
+
+use super::{SymbolEditor, WHAT, name_words, symbol_error, words};
+use crate::shell::parts_place::Origin;
+use crate::shell::{Outcome, ShellModel, failed, string_param};
+use crate::{key, strings};
+use ew_api::output::Uuid;
+use ew_api::symbols::{SymbolDraft, schema};
+use serde_json::{Map, Value, json};
+
+/// What a drawing in Parts is drawn for: what its strip says, what its next step does.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum Drawing {
+    /// A symbol of his own, opened from the Symbols shelf or made with New symbol in the place: Save saves it.
+    Symbol,
+    /// A new symbol for a page: Save and place on it, or Save and use for the symbol `exchange` names.
+    Page(PageDrawing),
+    /// The symbol of piece `0` (its index) of the open part: Done saves it and gives the piece the symbol.
+    Piece(usize),
+}
+
+/// The page a new symbol is drawn for.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PageDrawing {
+    /// The page.
+    pub page: Uuid,
+    /// Its folio ("102").
+    pub folio: String,
+    /// The page in words ("102 Control 24 V DC").
+    pub words: String,
+    /// Its connection grid, nanometres per step as `(num, den)`.
+    pub grid: (u64, u64),
+    /// The placed symbol a drawing like it is for (Draw one like it…), which Save exchanges: its representation and
+    /// its device's tag.
+    pub exchange: Option<(Uuid, String)>,
+}
+
+impl SymbolEditor {
+    /// The strip over the drawing: what is drawn and for what; `None` for a symbol of his own.
+    pub fn strip(&self) -> Option<String> {
+        if let Some(b) = &self.device_box {
+            return Some(strings::format(key!("parts-strip-box"), &[&b.title()]));
+        }
+        match &self.purpose {
+            Drawing::Symbol => None,
+            Drawing::Page(p) => Some(match &p.exchange {
+                Some((_, tag)) => strings::format(key!("parts-strip-symbol-like"), &[tag, &p.words]),
+                None => strings::format(key!("parts-strip-symbol-page"), &[&p.words]),
+            }),
+            Drawing::Piece(i) => Some(strings::format(
+                key!("parts-strip-symbol-piece"),
+                &[&(i + 1).to_string()],
+            )),
+        }
+    }
+
+    /// The way back's label: Back without it from a page, To the part from a piece, else Back.
+    pub fn back_label(&self) -> &'static str {
+        if self.device_box.is_some() {
+            return strings::text(key!("parts-to-the-part"));
+        }
+        match &self.purpose {
+            Drawing::Page(_) => strings::text(key!("parts-back-without-it")),
+            Drawing::Piece(_) => strings::text(key!("parts-to-the-part")),
+            Drawing::Symbol => strings::text(key!("parts-back")),
+        }
+    }
+
+    /// The next step's label: Save and place on the page, Save and use for the symbol, Done for a piece, else Save.
+    pub fn save_label(&self) -> String {
+        if self.device_box.is_some() {
+            return strings::text(key!("parts-done")).to_owned();
+        }
+        match &self.purpose {
+            Drawing::Page(PageDrawing {
+                exchange: Some((_, tag)),
+                ..
+            }) => strings::format(key!("parts-save-use"), &[tag]),
+            Drawing::Page(p) => strings::format(key!("parts-save-place"), &[&p.folio]),
+            Drawing::Piece(_) => strings::text(key!("parts-done")).to_owned(),
+            Drawing::Symbol => strings::text(key!("parts-save")).to_owned(),
+        }
+    }
+
+    /// Why the symbol cannot be saved now, in words: it is not his (Make my own from it), or what To do lists.
+    pub fn save_refusal(&self) -> Option<String> {
+        if self.device_box.is_some() {
+            return None;
+        }
+        if let Some(why) = &self.locked {
+            return Some(why.clone());
+        }
+        (!self.draft.validate().is_empty()).then(|| words(key!("reason-symbol-to-do")))
+    }
+}
+
+/// What it is, by its [`WHAT`] word, for a drawing of `discipline`: the word given where the discipline offers it, else
+/// the first it offers.
+fn what_for(word: Option<&str>, discipline: &str) -> &'static str {
+    let group = super::sheet::what_group(discipline);
+    WHAT.iter()
+        .filter(|(_, groups, ..)| groups.contains(group))
+        .find(|(w, ..)| Some(*w) == word)
+        .or_else(|| WHAT.iter().find(|(_, groups, ..)| groups.contains(group)))
+        .map_or(WHAT[0].0, |(w, ..)| w)
+}
+
+/// A new drawing on connection grid `grid`, as what `what` is: its function set as what it is, and the texts its kind
+/// needs already where the standard puts them (doc 07a): the device tag at the upper left, and under it the
+/// cross-reference of a coil or a contact. Its points take the discipline of its page as they are drawn.
+fn new_draft(grid: (u64, u64), what: &str) -> Result<SymbolDraft, String> {
+    let name = strings::text(key!("symbol-untitled"));
+    let draft = SymbolDraft::new("", name).map_err(symbol_error)?;
+    let mut d = serde_json::to_value(&draft).map_err(|e| e.to_string())?;
+    d["symbol"]["grid"] = json!({"num": grid.0, "den": grid.1});
+    let (_, _, kind, category) = WHAT
+        .iter()
+        .find(|(w, ..)| *w == what)
+        .copied()
+        .unwrap_or(WHAT[0]);
+    d["function"]["contact_kind"] = json!(kind);
+    d["function"]["category"] = json!([category, "Generic", "Generic"]);
+    // One text line under another: 6 mm, 4 mm on the QET grid (doc 07a).
+    let line: i64 = if grid == (ew_units::Grid::QET_10PX.num(), ew_units::Grid::QET_10PX.den()) {
+        4_000_000
+    } else {
+        6_000_000
+    };
+    let mut slots = vec![json!({"kind": "tag", "pos": [-1_000_000, 0], "align": "bottom_right", "visible": true})];
+    if matches!(kind, "no" | "nc" | "co" | "coil") {
+        slots.push(json!({"kind": "xref", "pos": [-1_000_000, line], "align": "top_right", "visible": true}));
+    }
+    d["symbol"]["text_slots"] = json!(slots);
+    SymbolDraft::parse(&serde_json::to_vec(&d).map_err(|e| e.to_string())?).map_err(symbol_error)
+}
+
+impl ShellModel {
+    /// The page shown, as a new symbol is drawn for it: a drawn page with its grid and its words.
+    fn page_drawing(&self) -> Option<PageDrawing> {
+        let id = self.current_page()?;
+        let row = self.page_rows().iter().find(|r| crate::canvas::PageId::of(r) == id)?;
+        let (num, den) = self.canvas()?.page().snapper.grid();
+        Some(PageDrawing {
+            page: row.id,
+            folio: row.folio.clone(),
+            words: self.page_words(row.id)?,
+            grid: (num.unsigned_abs(), den.unsigned_abs()),
+            exchange: None,
+        })
+    }
+
+    /// The discipline a symbol for page `page` is drawn for: pneumatic on a fluid page, else electrical.
+    fn page_discipline(&self, page: Uuid) -> &'static str {
+        let fluid = self
+            .page_rows()
+            .iter()
+            .find(|r| r.id == page)
+            .is_some_and(|r| r.kind == ew_api::PageType::Fluid);
+        if fluid { "pneumatic" } else { "electrical" }
+    }
+
+    /// Opens `draft` as the drawing of the place, for `purpose`: the place shows over the project (entered when it was
+    /// not), on its Drawing tab, with the drawing grid, Snap and the tool he left the last time; `home` is the library
+    /// it is saved back to (his own, writable; `None`: My parts), `locked` why it is not his to change.
+    pub(crate) fn open_drawing(
+        &mut self,
+        draft: SymbolDraft,
+        purpose: Drawing,
+        home: Option<Uuid>,
+        locked: Option<String>,
+    ) {
+        let mut editor = SymbolEditor::new(draft);
+        let (grid, snap) = (
+            self.settings.symbol_drawing_grid.unwrap_or(0),
+            self.settings.symbol_snap.unwrap_or(true),
+        );
+        editor.grid = grid.min(super::GRID_STEPS.len() - 1);
+        editor.snap = snap;
+        if let Some(before) = &self.symbol_editor {
+            editor.tool = before.tool;
+        }
+        editor.purpose = purpose;
+        editor.home = home;
+        editor.locked = locked;
+        self.symbol_editor_generation = self.symbol_editor_generation.wrapping_add(1);
+        editor.generation = self.symbol_editor_generation;
+        self.symbol_editor = Some(editor);
+        self.tools.picker = None;
+        self.enter_place();
+        if let Some(place) = self.parts.as_deref_mut() {
+            place.aside = false;
+        }
+    }
+
+    /// `parts.new_symbol {like?}` (New symbol: the Draw tab and `Ctrl+I`, the symbol picker's foot, the Part tab of
+    /// Parts): a new drawing at once, with no question first. From a page it is drawn for that page, on its connection
+    /// grid, and its next step places it there; in Parts it is a symbol of his own. `like`: `last`, a copy of the symbol
+    /// he saved last, its name ready to type over; `selected` (Draw one like it…), a copy of the symbol selected on the
+    /// page, which Save then exchanges; `hand`, the drawing in hand again.
+    pub(crate) fn act_parts_new_symbol(&mut self, p: &Map<String, Value>) -> Outcome {
+        let like = match string_param(p, "like") {
+            Ok(l) => l.map(str::to_owned),
+            Err(e) => return e,
+        };
+        if like.as_deref() == Some("hand") {
+            return match &mut self.symbol_editor {
+                Some(editor) => {
+                    editor.shown = true;
+                    self.enter_place();
+                    if let Some(place) = self.parts.as_deref_mut() {
+                        place.aside = false;
+                    }
+                    Outcome::Done
+                }
+                None => Outcome::refused(key!("reason-no-drawing-in-hand")),
+            };
+        }
+        if let Some(out) = self.in_hand_asks("parts.new_symbol", p) {
+            return out;
+        }
+        // From a page shown in the project's window; in Parts a symbol of his own.
+        let page = (self.parts.is_none() || self.parts.as_deref().is_some_and(|p| p.aside))
+            .then(|| self.page_drawing())
+            .flatten();
+        let made = match like.as_deref() {
+            None => {
+                let (grid, discipline) = match &page {
+                    Some(p) => (p.grid, self.page_discipline(p.page)),
+                    None => ((4_000_000, 1), "electrical"),
+                };
+                let what = what_for(self.settings.symbol_last_kind.as_deref(), discipline);
+                new_draft(grid, what).map(|d| (d, None))
+            }
+            Some("last") => match self.settings.symbols_recent.first().cloned() {
+                Some(address) => self.copy_draft(&address).map(|d| (d, None)),
+                None => return Outcome::refused(key!("reason-no-symbol-saved")),
+            },
+            Some("selected") => match self.selected_symbol() {
+                Some((rep, copy, tag)) => self.copy_draft(&copy.to_string()).map(|d| (d, Some((rep, tag)))),
+                None => return Outcome::refused(key!("reason-no-symbol-selected")),
+            },
+            Some(_) => return failed(key!("error-bad-param"), &["like"]),
+        };
+        let (draft, exchange) = match made {
+            Ok(made) => made,
+            Err(message) => return Outcome::Failed { message },
+        };
+        let purpose = match page {
+            Some(mut p) => {
+                p.exchange = exchange;
+                Drawing::Page(p)
+            }
+            None => Drawing::Symbol,
+        };
+        let discipline = match &purpose {
+            Drawing::Page(p) => self.page_discipline(p.page),
+            _ => "electrical",
+        };
+        self.open_drawing(draft, purpose, None, None);
+        if let Some(editor) = &mut self.symbol_editor {
+            editor.chosen_discipline = Some(discipline);
+        }
+        Outcome::Done
+    }
+
+    /// New symbol's menu (doc 07 §5.6): Like the last one (the symbol he saved last, by name), Like the selected one
+    /// (Draw one like it…), and Go on with the drawing in hand; each as its `like`, its words and why it cannot be
+    /// chosen now.
+    pub fn new_symbol_starts(&self) -> Vec<(&'static str, String, Option<String>)> {
+        let last = self.settings.symbols_recent.first().and_then(|address| {
+            let registry = self.symbol_registry().ok()?;
+            let draft = SymbolDraft::from_library(&registry, address, "user.symbol").ok()?;
+            Some(name_words(&draft.symbol.name))
+        });
+        let hand = self
+            .symbol_editor
+            .as_ref()
+            .filter(|e| e.in_hand())
+            .map(|e| name_words(&e.draft.symbol.name));
+        let selected = self.selected_symbol().map(|(_, _, tag)| tag);
+        let with = |key, what: &Option<String>| match what {
+            Some(w) => strings::format(key, &[w]),
+            None => strings::format(key, &[""]).trim_end_matches([' ', '·']).to_owned(),
+        };
+        vec![
+            (
+                "last",
+                with(key!("new-symbol-like-last"), &last),
+                last.is_none().then(|| words(key!("reason-no-symbol-saved"))),
+            ),
+            (
+                "selected",
+                with(key!("new-symbol-like-selected"), &selected),
+                selected.is_none().then(|| words(key!("reason-no-symbol-selected"))),
+            ),
+            (
+                "hand",
+                with(key!("new-symbol-in-hand"), &hand),
+                hand.is_none().then(|| words(key!("reason-no-drawing-in-hand"))),
+            ),
+        ]
+    }
+
+    /// The symbol selected on the page: its representation, its symbol copy and its device's tag.
+    fn selected_symbol(&self) -> Option<(Uuid, Uuid, String)> {
+        let session = self.project_session()?;
+        let q = session.query();
+        self.tools.selection.items.iter().find_map(|e| {
+            let rep = q.reps().get(e.0.to_string().parse().ok()?)?;
+            let device = rep
+                .functions
+                .first()
+                .and_then(|f| q.functions().get(*f))
+                .and_then(|f| f.device)?;
+            let tag = session.device_tag(device.as_uuid())?;
+            Some((e.0, rep.symbol.as_uuid(), tag))
+        })
+    }
+
+    /// A copy of the symbol `source` (a library address, a starter key or a copy the project holds) as a new symbol
+    /// of his own: a key from its name, no identity of its source, its name ready to type over.
+    fn copy_draft(&self, source: &str) -> Result<SymbolDraft, String> {
+        let key = "user.symbol";
+        let mut draft = match self.parts_session() {
+            Some(session) => session.symbol_draft(source, key),
+            None => SymbolDraft::from_library(&self.symbol_registry()?, source, key),
+        }
+        .map_err(symbol_error)?;
+        draft.identity = None;
+        draft.key = super::key_of_name(&name_words(&draft.symbol.name));
+        Ok(draft)
+    }
+
+    /// The libraries a drawing reads and saves through: the configured tiers', else the settings folder's.
+    fn symbol_registry(&self) -> Result<ew_api::library::Registry, String> {
+        match self.symbol_tiers() {
+            Some(tiers) => ew_api::library::Registry::open(&tiers).map_err(|e| e.to_string()),
+            None => Ok(ew_api::library::Registry::starter_only()),
+        }
+    }
+
+    /// `parts.draw {what?, part?, piece?, from?, done?}` (Draw a new symbol… and Change it for this part… of a piece's
+    /// Symbol cell, Arrange… of a box, the place's Drawing tab): `what` `box` arranges the open part's box (`part` opens
+    /// Parts on that part first); else the drawing of piece `piece` of the open part, `from` `new` (an empty drawing of
+    /// the piece's function, its pins standing on it already) or `change` (a copy of the symbol that draws the piece
+    /// now); without a piece, the drawing in hand on the Drawing tab again. `done` leaves the drawing for the Part tab,
+    /// the drawing in hand kept.
+    pub(crate) fn act_parts_draw(&mut self, p: &Map<String, Value>) -> Outcome {
+        if crate::shell::flag(p, "done") {
+            if let Some(editor) = &mut self.symbol_editor {
+                editor.shown = false;
+            }
+            return Outcome::Done;
+        }
+        match string_param(p, "what") {
+            Ok(Some("box")) => {
+                let part = string_param(p, "part").ok().flatten().map(str::to_owned);
+                return self.arrange_box(part.as_deref());
+            }
+            Ok(Some("symbol") | None) => {}
+            Ok(Some(_)) => return failed(key!("error-bad-param"), &["what"]),
+            Err(e) => return e,
+        }
+        let Some(piece) = p.get("piece").and_then(Value::as_u64) else {
+            return match &mut self.symbol_editor {
+                Some(editor) if self.parts.is_some() => {
+                    editor.shown = true;
+                    Outcome::Done
+                }
+                _ => Outcome::refused(key!("reason-no-drawing-in-hand")),
+            };
+        };
+        let Some(open) = self.parts.as_deref().and_then(|p| p.sheet.as_ref()) else {
+            return Outcome::refused(key!("reason-no-part-open"));
+        };
+        if !open.editable() {
+            return Outcome::refused(key!("reason-part-not-yours"));
+        }
+        let i = usize::try_from(piece).unwrap_or(usize::MAX);
+        let Some(row) = open.sheet.pieces.get(i).cloned() else {
+            return failed(key!("error-bad-param"), &["piece"]);
+        };
+        if let Some(out) = self.in_hand_asks("parts.draw", p) {
+            return out;
+        }
+        let Some(session) = self.parts_session() else {
+            return Outcome::refused(key!("reason-no-parts-place"));
+        };
+        let made = match string_param(p, "from") {
+            Ok(Some("change")) => {
+                let source = if row.symbol.is_empty() {
+                    match ew_api::output::starter_piece_symbol(&row.what) {
+                        Some(key) => key,
+                        None => return Outcome::refused(key!("reason-piece-no-symbol")),
+                    }
+                } else {
+                    row.symbol.clone()
+                };
+                self.copy_draft(&source)
+            }
+            Ok(Some("new") | None) => session
+                .piece_drawing(&row, strings::text(key!("symbol-untitled")))
+                .map_err(symbol_error),
+            Ok(Some(_)) => return failed(key!("error-bad-param"), &["from"]),
+            Err(e) => return e,
+        };
+        match made {
+            Ok(draft) => {
+                self.open_drawing(draft, Drawing::Piece(i), None, None);
+                Outcome::Done
+            }
+            Err(message) => Outcome::Failed { message },
+        }
+    }
+
+    /// `parts.open {symbol}`: the symbol at `address` (a library address, or `id:<copy>` of the project's) in the
+    /// drawing of the place, as a symbol of his own: his own (My parts, or another library he can write) is changed
+    /// where it lives; another reads as it is, with Make my own from it.
+    pub(crate) fn open_symbol(&mut self, address: &str) -> Outcome {
+        let registry = match self.symbol_registry() {
+            Ok(r) => r,
+            Err(message) => return Outcome::Failed { message },
+        };
+        let source = address.strip_prefix("id:").unwrap_or(address);
+        // The library it lives in: named by its address, the project's copy's own, else the one that holds its key.
+        let home = address
+            .strip_prefix("library:")
+            .and_then(|r| r.split_once(':'))
+            .and_then(|(l, _)| l.parse::<Uuid>().ok())
+            .or_else(|| {
+                let session = self.parts_session()?;
+                let q = session.query();
+                let held = q.symbols().iter().find(|(id, _)| id.as_uuid().to_string() == source)?;
+                Some(held.1.library_id.as_uuid())
+            })
+            .or_else(|| {
+                registry.libraries().into_iter().find_map(|l| {
+                    registry
+                        .documents(l.id, schema::Kind::Symbol)
+                        .into_iter()
+                        .any(|d| match d {
+                            schema::LibDocument::Symbol(s) => {
+                                s.item.meta.key.as_ref().is_some_and(|k| k.as_str() == source)
+                            }
+                            _ => false,
+                        })
+                        .then_some(l.id)
+                })
+            });
+        let found = home.and_then(|l| registry.libraries().into_iter().find(|i| i.id == l));
+        let draft = match self.parts_session() {
+            Some(session) => session.symbol_draft(source, "user.symbol"),
+            None => SymbolDraft::from_library(&registry, source, "user.symbol"),
+        };
+        let mut draft = match draft {
+            Ok(d) => d,
+            Err(e) => return Outcome::Failed { message: symbol_error(e) },
+        };
+        let (home, locked) = match found {
+            Some(l) if l.writable => (Some(l.id), None),
+            Some(l) => (
+                None,
+                Some(if l.id == schema::starter::LIBRARY {
+                    words(key!("parts-symbol-lock-starter"))
+                } else {
+                    strings::format(key!("parts-symbol-lock-library"), &[&l.name])
+                }),
+            ),
+            None => (None, Some(words(key!("parts-symbol-lock-project")))),
+        };
+        if home.is_none() {
+            draft.identity = None;
+        }
+        self.open_drawing(draft, Drawing::Symbol, home, locked);
+        if let Some(editor) = &mut self.symbol_editor {
+            editor.stored = home.is_some();
+        }
+        Outcome::Done
+    }
+
+    /// Make my own from it, on a drawing that is not his: the same drawing as a new symbol of his own, a key from its
+    /// name, saved into My parts.
+    pub(crate) fn own_drawing(&mut self) -> Outcome {
+        let Some(editor) = &mut self.symbol_editor else {
+            return Outcome::refused(key!("reason-no-drawing-in-hand"));
+        };
+        if editor.locked.take().is_none() {
+            return Outcome::refused(key!("reason-symbol-is-yours"));
+        }
+        editor.draft.identity = None;
+        editor.draft.key = super::key_of_name(&name_words(&editor.draft.symbol.name));
+        editor.home = None;
+        editor.stored = false;
+        editor.saved = None;
+        Outcome::Done
+    }
+
+    /// Discard on the drawing: its changes since it was opened or saved go.
+    pub(crate) fn discard_drawing(&mut self) -> Outcome {
+        let Some(editor) = &mut self.symbol_editor else {
+            return Outcome::refused(key!("reason-no-drawing-in-hand"));
+        };
+        let Some(saved) = editor.saved.clone().filter(|s| *s != editor.draft) else {
+            return Outcome::refused(key!("reason-part-not-changed"));
+        };
+        editor.replace(saved);
+        Outcome::Done
+    }
+
+    /// Before a way in replaces the drawing in hand that has changes not saved: the window asks Save symbol, Discard
+    /// or Cancel (the action then runs with `discard`), a script is refused in words; `None` where the action goes on.
+    pub(crate) fn in_hand_asks(&mut self, action: &'static str, p: &Map<String, Value>) -> Option<Outcome> {
+        let unsaved = self.symbol_editor.as_ref().is_some_and(SymbolEditor::dirty);
+        if !unsaved || crate::shell::flag(p, "discard") {
+            return None;
+        }
+        Some(match self.mode {
+            crate::shell::Mode::Headless => failed(key!("symbol-unsaved"), &[]),
+            crate::shell::Mode::Gui => self.open_dialog(crate::shell::Dialog::ConfirmDiscard {
+                pending: crate::shell::Pending {
+                    action,
+                    params: Value::Object(p.clone()),
+                    cancelled: None,
+                },
+                symbol: true,
+            }),
+        })
+    }
+
+    /// `parts.save` on the drawing: the symbol saved with his parts, then its errand finished: placed on the page it
+    /// was drawn for with the Place tool armed (`Save and place on 102`), exchanged for the symbol it was drawn like
+    /// (`Save and use for -102S1`), given to the piece it was drawn for (`Done`); a symbol of his own stays open.
+    pub(crate) fn save_drawing(&mut self) -> Outcome {
+        let Some(editor) = &self.symbol_editor else {
+            return Outcome::refused(key!("reason-no-drawing-in-hand"));
+        };
+        if editor.device_box.is_some() {
+            return self.close_box();
+        }
+        if let Some(why) = editor.save_refusal() {
+            if let Some(editor) = &mut self.symbol_editor {
+                editor.error = Some(why.clone());
+            }
+            self.said_at(crate::shell::said::Said::Editor);
+            return Outcome::Failed { message: why };
+        }
+        let purpose = editor.purpose.clone();
+        let address = match self.symbol_save() {
+            Ok(a) => a,
+            Err(message) => {
+                if let Some(editor) = &mut self.symbol_editor {
+                    editor.error = Some(message.clone());
+                }
+                self.said_at(crate::shell::said::Said::Editor);
+                return Outcome::Failed { message };
+            }
+        };
+        // What it is, kept for the next symbol he draws.
+        if let Some(what) = self.symbol_editor.as_ref().and_then(SymbolEditor::what) {
+            self.settings.symbol_last_kind = Some(what.to_owned());
+            self.save_settings();
+        }
+        match purpose {
+            Drawing::Symbol => Outcome::Done,
+            Drawing::Piece(i) => {
+                if let Some(editor) = &mut self.symbol_editor {
+                    editor.shown = false;
+                }
+                self.dispatch(
+                    "parts.field",
+                    &json!({"field": format!("pieces[{i}].symbol"), "value": address}),
+                )
+            }
+            Drawing::Page(page) => self.place_saved(&address, &page),
+        }
+    }
+
+    /// The saved symbol at `address` on the page it was drawn for: the place gives way to the page, and the Place tool
+    /// is armed with the symbol (on the page's grid, as the picker places one of another grid); drawn like a placed
+    /// symbol, that symbol is exchanged for it instead, its wires kept.
+    fn place_saved(&mut self, address: &str, page: &PageDrawing) -> Outcome {
+        if let Some(editor) = &mut self.symbol_editor {
+            editor.shown = false;
+        }
+        self.parts = None;
+        self.parts_alone = None;
+        self.show_page_by_id(&page.page.to_string());
+        self.sync_views();
+        self.sync_tool_context();
+        if let Some((rep, _)) = &page.exchange {
+            return self.exchange_saved(address, *rep);
+        }
+        self.dispatch("place.pick", &json!({ "symbol": address }))
+    }
+
+    /// Exchanges representation `rep` for the saved symbol at `address` (`rep.exchange_symbol` with the symbol and its
+    /// function embedded), its wires kept by the exchange's rule.
+    fn exchange_saved(&mut self, address: &str, rep: Uuid) -> Outcome {
+        let Some(project) = &self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let Some((library, item)) = address
+            .strip_prefix("library:")
+            .and_then(|r| r.split_once(':'))
+            .and_then(|(l, i)| Some((l.parse::<Uuid>().ok()?, i.parse::<Uuid>().ok()?)))
+        else {
+            return failed(key!("error-bad-param"), &["symbol"]);
+        };
+        let Ok(reference) = serde_json::from_value::<schema::LibRef>(
+            json!({"library": library, "item": item, "version_req": "*"}),
+        ) else {
+            return failed(key!("error-bad-param"), &["symbol"]);
+        };
+        let docs = match project.session.libraries().closure(&reference) {
+            Ok(d) => d,
+            Err(e) => return Outcome::Failed { message: e.to_string() },
+        };
+        let symbol = ew_api::output::v5::lib_copy_id::<schema::SymbolDef>(library, item);
+        let q = project.session.query();
+        let copies: Vec<Value> = docs
+            .iter()
+            .filter(|d| match d {
+                schema::LibDocument::Symbol(s) => !q.symbols().contains(s.id),
+                schema::LibDocument::Fndef(f) => q.fndefs().get(f.id).is_none(),
+                _ => false,
+            })
+            .filter_map(|d| serde_json::to_value(d).ok())
+            .collect();
+        drop(q);
+        let command = ew_api::AnyCommand {
+            name: "rep.exchange_symbol".to_owned(),
+            params: json!({"rep": rep.to_string(), "symbol": symbol.as_uuid().to_string(), "copies": copies}),
+        };
+        self.run_commit(&command)
+    }
+
+    /// The Symbols shelf (doc 07 §5.3): the symbols of the installed libraries and those only in the project, whose
+    /// name or what it is holds every word of `query`, in `scope` (`project`: those the project holds; `mine`: his
+    /// own); those he drew lately first, the rest by name.
+    pub(crate) fn symbols_found(&self, query: &str, scope: ew_api::parts::PartScope) -> Vec<super::super::parts_place::SymbolFound> {
+        use super::super::parts_place::SymbolFound;
+        use ew_api::parts::PartScope;
+        use schema::{Kind, LibDocument};
+        let Some(session) = self.parts_session() else {
+            return Vec::new();
+        };
+        let registry = session.libraries();
+        let q = session.query();
+        let what = |fndef: &schema::LibRef| {
+            let category = match registry.resolve(fndef) {
+                Ok(LibDocument::Fndef(f)) => f.item.category.0.as_str().to_owned(),
+                _ => String::new(),
+            };
+            crate::tools::category_words(&category).unwrap_or_default().to_owned()
+        };
+        let terms: Vec<String> = query.split_whitespace().map(str::to_lowercase).collect();
+        let hits = |name: &str, what: &str| {
+            let text = format!("{name} {what}").to_lowercase();
+            terms.iter().all(|w| text.contains(w))
+        };
+        let recent = &self.settings.symbols_recent;
+        let mut out: Vec<SymbolFound> = Vec::new();
+        for library in registry.libraries() {
+            if scope == PartScope::Mine && !library.writable {
+                continue;
+            }
+            for doc in registry.documents(library.id, Kind::Symbol) {
+                let LibDocument::Symbol(s) = doc else { continue };
+                let address = ew_api::part_pieces::library_address(&s);
+                let copy = ew_api::output::v5::lib_copy_id::<schema::SymbolDef>(
+                    s.library_id.as_uuid(),
+                    s.item_id.as_uuid(),
+                );
+                if scope == PartScope::Project && !q.symbols().contains(copy) {
+                    continue;
+                }
+                let name = name_words(&s.item.name);
+                let what = what(&s.item.fndef);
+                if !hits(&name, &what) {
+                    continue;
+                }
+                let lives = if library.writable {
+                    words(key!("parts-lives-mine"))
+                } else if library.id == schema::starter::LIBRARY {
+                    words(key!("parts-lives-starter"))
+                } else {
+                    library.name.clone()
+                };
+                out.push(SymbolFound {
+                    recent: recent.contains(&address),
+                    address,
+                    name,
+                    what,
+                    lives,
+                    mine: library.writable,
+                });
+            }
+        }
+        // The project's own symbols that no installed library holds (an import's, a colleague's).
+        if scope != PartScope::Mine {
+            for (id, s) in q.symbols().iter() {
+                let held = registry
+                    .libraries()
+                    .iter()
+                    .any(|l| l.id == s.library_id.as_uuid());
+                let name = name_words(&s.item.name);
+                let what = what(&s.item.fndef);
+                if held || !hits(&name, &what) {
+                    continue;
+                }
+                out.push(SymbolFound {
+                    address: format!("id:{}", id.as_uuid()),
+                    name,
+                    what,
+                    lives: words(key!("parts-lives-here")),
+                    mine: false,
+                    recent: false,
+                });
+            }
+        }
+        out.sort_by_cached_key(|s| {
+            let at = recent.iter().position(|a| *a == s.address).unwrap_or(usize::MAX);
+            (at, s.name.to_lowercase())
+        });
+        out
+    }
+
+    /// `parts.back` on the drawing: from a page, back to it without the symbol, the drawing kept in hand (New symbol
+    /// offers to go on with it); from a piece, back to the part; a symbol of his own, back to the list.
+    pub(crate) fn back_from_drawing(&mut self) -> Outcome {
+        if self.symbol_editor.as_ref().is_some_and(|e| e.device_box.is_some()) {
+            return self.close_box();
+        }
+        let Some(editor) = &mut self.symbol_editor else {
+            return Outcome::refused(key!("reason-no-drawing-in-hand"));
+        };
+        editor.shown = false;
+        if matches!(editor.purpose, Drawing::Page(_))
+            && self.parts.as_deref().is_some_and(|p| p.origin == Origin::Project && p.sheet.is_none())
+        {
+            self.parts = None;
+            self.parts_alone = None;
+        }
+        Outcome::Done
+    }
+}

@@ -723,6 +723,15 @@ pub static PART_FIELDS: &[PartField] = &[
         PINS,
     ),
     f(
+        "function_template[].symbol",
+        key!("part-field-function-template-symbol"),
+        G::Schematic,
+        Has::Drawn,
+        F(Form::Pieces),
+        // Absent: any symbol of the piece's function draws it, never a lack.
+        &[r(Ft::Placing, Printed, key!("part-says-piece-symbol"))],
+    ),
+    f(
         "contacts[].kind",
         key!("part-field-contacts-kind"),
         G::Schematic,

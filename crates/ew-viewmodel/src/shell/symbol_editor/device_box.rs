@@ -1,17 +1,15 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The device box, the symbol editor's second kind of thing (doc 07 §2.5): a part that is drawn as a box with
-//! pins. The editor holds the part's draft: its pins (added, removed, renamed, given a potential) and where each
-//! stands on the box (its edge and its place along it), and the box's size. Save saves the part as Parts
-//! does (a new part, a part of the project corrected in place, a part of My parts as its next version, a library's
-//! part as the project's own copy), and offers to redraw the boxes of it that are drawn already.
+//! The box of a part drawn as a box with pins, arranged in Parts (doc 07 §2.5, §5.6: Arrange…): the drawing shows the
+//! box as a device of the part is drawn; a pin is dragged along its edge or onto another edge, an edge to size the
+//! box. There is one list of pins, the open sheet's: the box works on a copy of the sheet, which Done and To the part
+//! give back to it, so a pin dragged is its row changed; nothing is saved until the part is (its Save's card names
+//! the boxes it draws anew).
 
 use super::{Outline, OutlineGroup, RowValue, Sheet, SheetRow, SymbolEditor, Todo, role_words, words};
-use crate::notifications::{Note, NoteTone, Offer, Validity, back_to_editor};
 use crate::shell::{Outcome, ShellModel};
 use crate::{key, strings};
-use ew_api::output::Uuid;
 use ew_api::part_box::{BoxSteps, Dir4, EDIT_STEP, PinsFrom};
 use ew_api::{PartDraftError, PartSheet};
 use serde_json::{Map, Value, json};
@@ -75,12 +73,6 @@ pub struct DeviceBox {
     pub revision: u64,
     /// Why the last action did nothing.
     pub error: Option<String>,
-    /// Whether the box was opened from the project (a placed box, Parts): closing it returns there, not to
-    /// the editor's ways in.
-    from_project: bool,
-    /// The part number of the part a new part's draft copies (the start card's part of a library that the project
-    /// does not hold): the line over the box says that Save keeps a copy of the person's own.
-    copy_of: Option<String>,
     /// The pin table's order held while the same pins are edited (a pin given another edge jumped to that
     /// edge's rows under the pointer): the selection it was taken for and the pins in that order.
     held: Option<(Vec<u16>, Vec<u16>)>,
@@ -96,21 +88,8 @@ impl DeviceBox {
             selection: Vec::new(),
             revision: 0,
             error: None,
-            from_project: false,
-            copy_of: None,
             held: None,
         }
-    }
-
-    /// What Save makes of a part that is not the person's own, in a line over the box: a copy of his own, the
-    /// original staying as it is.
-    pub fn copy_line(&self) -> Option<String> {
-        let d = &self.draft;
-        if let Some(from) = &self.copy_of {
-            return Some(strings::format(key!("box-copy-new"), &[from]));
-        }
-        (!d.new && !d.own)
-            .then(|| strings::format(key!("box-copy-fork"), &[d.library.as_deref().unwrap_or_default()]))
     }
 
     /// Whether the box has changes that are not saved.
@@ -141,12 +120,6 @@ impl DeviceBox {
     /// Where the pins come from when they are not added, named and removed here, in a sentence; `None` when they are.
     pub fn pins_from(&self) -> Option<String> {
         self.draft.pins_from().map(from_words)
-    }
-
-    /// Why Add bus interface… is refused, in a sentence: a library's part keeps the interfaces its library gives it;
-    /// `None` for a new part and a part of the project's own.
-    pub fn bus_refusal(&self) -> Option<String> {
-        (!(self.draft.new || self.draft.own)).then(|| words(key!("box-bus-library")))
     }
 
     /// Whether the pins' places on the box and the box's size are edited here: also on a PLC card's or a bus
@@ -232,27 +205,17 @@ impl DeviceBox {
         }
     }
 
-    /// What keeps the part from being saved.
+    /// What a pin's text that cannot be read says, under the box.
     fn todo(&self) -> Vec<Todo> {
-        let mut out = Vec::new();
         let d = &self.draft;
-        if d.new {
-            let empty = |f: &str| {
-                let t = d.text(f).trim();
-                t.is_empty() || t == "-"
-            };
-            if empty("part_number") {
-                out.push(words(key!("box-todo-number")));
-            }
-            if empty("manufacturer") {
-                out.push(words(key!("box-todo-manufacturer")));
-            }
-        }
-        out.extend(d.messages.iter().map(|m| {
-            let args: Vec<&str> = m.args.iter().map(String::as_str).collect();
-            strings::format(strings::Key::run_time(m.key), &args)
-        }));
-        out.into_iter().map(|text| Todo { text, item: None }).collect()
+        d.messages
+            .iter()
+            .map(|m| {
+                let args: Vec<&str> = m.args.iter().map(String::as_str).collect();
+                let text = strings::format(strings::Key::run_time(m.key), &args);
+                Todo { text, item: None }
+            })
+            .collect()
     }
 
     /// The box as the left panel lists it: the part, and what is left to do; the pins are the pin table's.
@@ -287,19 +250,8 @@ impl DeviceBox {
         let b = self.steps();
         let mm = |steps: i64| RowValue::Mm(Some((steps * EDIT_STEP) as f64 / 1e6));
         if self.selection.is_empty() {
-            let d = &self.draft;
-            let identity = (!d.new).then(|| words(key!("box-identity-in-part-editor")));
-            let mut rows: Vec<SheetRow> = [
-                ("part_number", key!("part-field-part-number")),
-                ("manufacturer", key!("part-field-manufacturer")),
-                ("description", key!("part-field-description")),
-            ]
-            .into_iter()
-            .map(|(field, label)| SheetRow {
-                locked: identity.clone(),
-                ..text(field, label, d.text(field).to_owned())
-            })
-            .collect();
+            // The part's identity is its sheet's; here the box's size.
+            let mut rows: Vec<SheetRow> = Vec::new();
             for (key, label, steps) in [
                 ("width", key!("symbol-width-mm"), b.w),
                 ("height", key!("symbol-height-mm"), b.h),
@@ -431,7 +383,72 @@ fn outcome_words(out: Outcome) -> Result<(), String> {
 }
 
 impl ShellModel {
-    /// The draft of the part the pin actions change: the device box editor's, else the open sheet of Parts.
+    /// `parts.draw {what: box, part?}` (Arrange… on the box of Parts' pictures; Edit this device's box… on a placed
+    /// box, Pins and box… in the device browser and Add pin on a box of a part name it by `part`, or by the device in
+    /// Properties): the open part's box as the drawing of the place, its pins the sheet's. A part that is not his is
+    /// refused in words: he makes his own from it first.
+    pub(crate) fn arrange_box(&mut self, part: Option<&str>) -> Outcome {
+        let opened = match part {
+            Some(part) => self.dispatch("parts.open", &json!({ "part": part })),
+            None if self.parts.as_deref().and_then(|p| p.sheet.as_ref()).is_none() => {
+                self.dispatch("parts.open", &json!({}))
+            }
+            None => Outcome::Done,
+        };
+        if opened != Outcome::Done {
+            return opened;
+        }
+        let Some(open) = self.parts.as_deref().and_then(|p| p.sheet.as_ref()) else {
+            return Outcome::refused(key!("reason-no-part-open"));
+        };
+        if !open.editable() {
+            return Outcome::refused(key!("reason-part-not-yours"));
+        }
+        let draft = open.sheet.clone();
+        if self.symbol_editor.is_none() {
+            // A drawing holds the box; nothing of a symbol is in hand under it.
+            let Ok(blank) = ew_api::symbols::SymbolDraft::new("", strings::text(key!("symbol-untitled"))) else {
+                return Outcome::refused(key!("reason-no-part-open"));
+            };
+            self.symbol_editor = Some(SymbolEditor::new(blank));
+        }
+        self.symbol_editor_generation = self.symbol_editor_generation.wrapping_add(1);
+        let generation = self.symbol_editor_generation;
+        if let Some(editor) = &mut self.symbol_editor {
+            editor.shown = true;
+            editor.generation = generation;
+            editor.device_box = Some(DeviceBox::new(draft));
+        }
+        self.enter_place();
+        Outcome::Done
+    }
+
+    /// Done and To the part on the box: the open sheet takes the box's pins and their places (a part with pins of its
+    /// own that had no layout takes the one drawn here), and the place shows the part again; a drawing of a symbol in
+    /// hand under the box stays in hand.
+    pub(crate) fn close_box(&mut self) -> Outcome {
+        let Some(b) = self.symbol_editor.as_mut().and_then(|e| e.device_box.take()) else {
+            return Outcome::refused(key!("reason-no-device-box"));
+        };
+        let changed = b.dirty();
+        let mut draft = b.draft;
+        if changed && draft.box_.is_none() && draft.pins_from().is_none() && !draft.pins.is_empty() {
+            draft.box_ = Some(draft.box_steps().layout(EDIT_STEP));
+        }
+        if let Some(editor) = &mut self.symbol_editor {
+            editor.shown = false;
+            if !editor.in_hand() {
+                self.symbol_editor = None;
+            }
+        }
+        if changed && let Some(open) = self.parts.as_deref_mut().and_then(|p| p.sheet.as_mut()) {
+            open.sheet = draft;
+            self.sheet_changed();
+        }
+        Outcome::Done
+    }
+
+    /// The draft of the part the pin actions change: the box's while it is arranged, else the open sheet of Parts.
     fn pin_draft(&mut self) -> Option<&mut PartSheet> {
         if let Some(b) = self.symbol_editor.as_mut().and_then(|e| e.device_box.as_mut()) {
             return Some(&mut b.draft);
@@ -440,224 +457,6 @@ impl ShellModel {
             .as_deref_mut()
             .and_then(|p| p.sheet.as_mut())
             .map(|o| &mut o.sheet)
-    }
-
-    /// `part.box {part?, new?}` (Pins and box… in Parts, Edit this device's box… on a placed box, Device
-    /// box for a part… on the start card): the device box editor on the sheet's draft when it is open, on the
-    /// part named (`id:<copy>`, or a part number as `parts.open` reads it), on a new part with `new`, else on the part
-    /// of the selected device. A box with unsaved changes is refused unless `discard` (the window asks first).
-    pub(crate) fn act_part_box(&mut self, p: &Map<String, Value>) -> Outcome {
-        let discard = p.get("discard") == Some(&Value::Bool(true));
-        let open = self
-            .symbol_editor
-            .as_ref()
-            .and_then(|e| e.device_box.as_ref())
-            .is_some_and(DeviceBox::dirty);
-        if open && !discard {
-            return Outcome::Failed {
-                message: words(key!("box-unsaved")),
-            };
-        }
-        // A part of a library (`library:<library>:<item>`, the start card's), which the project need not hold.
-        let library = p
-            .get("part")
-            .and_then(Value::as_str)
-            .and_then(|s| s.strip_prefix("library:"))
-            .map(|rest| {
-                let (l, i) = rest.split_once(':')?;
-                Some((l.parse::<Uuid>().ok()?, i.parse::<Uuid>().ok()?))
-            });
-        let mut copy_of = None;
-        // The open part of Parts goes into the box, and Parts gives way to it (Part data… brings it back).
-        let draft = if let Some(open) = self.parts.as_deref().and_then(|p| p.sheet.as_ref()) {
-            let draft = open.sheet.clone();
-            self.parts = None;
-            draft
-        } else if let Some(at) = library {
-            let Some((library, item)) = at else {
-                return crate::shell::failed(key!("error-bad-param"), &["part"]);
-            };
-            match self.library_box_draft(library, item) {
-                Ok((d, from)) => {
-                    copy_of = from;
-                    d
-                }
-                Err(out) => return out,
-            }
-        } else {
-            let project = or_return!(crate::shell::gated(&self.project));
-            let made = if p.get("new") == Some(&Value::Bool(true)) {
-                project.session.new_part_draft()
-            } else {
-                let copy = match self.named_copy(p) {
-                    Ok(Some(c)) => c,
-                    Ok(None) => return Outcome::refused(key!("reason-part-edit-target")),
-                    Err(e) => return e,
-                };
-                project
-                    .session
-                    .part_draft(copy)
-                    .map_err(|_| PartDraftError::Refused("reason-part-edit-target"))
-            };
-            match made {
-                Ok(d) => d,
-                Err(e) => {
-                    return Outcome::Failed {
-                        message: draft_words(e),
-                    };
-                }
-            }
-        };
-        // The editor's screen, with the box in the drawing's place; a symbol draft in hand waits under it.
-        let from_project = self.symbol_editor().is_none();
-        if self.symbol_editor.is_none() {
-            let made = self.symbol_operation("new", &Map::new());
-            if let Err(message) = made {
-                return Outcome::Failed { message };
-            }
-        }
-        self.tools.picker = None;
-        if let Some(editor) = &mut self.symbol_editor {
-            editor.shown = true;
-            editor.start = false;
-            editor.device_box = Some(DeviceBox {
-                from_project,
-                copy_of,
-                ..DeviceBox::new(draft)
-            });
-        }
-        Outcome::Done
-    }
-
-    /// The draft the device box of library `library`'s part `item` opens on, and the library a new part's draft
-    /// copies: the project's copy when it holds one; a part of the person's own library is brought into the project
-    /// first (one undo step), so Save makes its next version; any other part is copied into a new part of his own,
-    /// the original staying as it is.
-    fn library_box_draft(
-        &mut self,
-        library: Uuid,
-        item: Uuid,
-    ) -> Result<(PartSheet, Option<String>), Outcome> {
-        let target = || Outcome::refused(key!("reason-part-edit-target"));
-        let project = self
-            .project
-            .as_ref()
-            .ok_or_else(|| Outcome::refused(key!("reason-no-project")))?;
-        let session = &project.session;
-        let d = session.library_part_draft(library, item).map_err(|_| target())?;
-        if session.part_draft(d.copy).is_ok() {
-            return Ok((d, None));
-        }
-        if !d.own {
-            let copy = session.new_part_draft_copying(&d).map_err(|e| Outcome::Failed {
-                message: draft_words(e),
-            })?;
-            return Ok((copy, Some(d.text("part_number").to_owned())));
-        }
-        let embed = session.library_part_embed(library, item).map_err(|_| target())?;
-        let out = self.run_commit(&embed);
-        if out != Outcome::Done {
-            return Err(out);
-        }
-        let project = self.project.as_ref().ok_or_else(target)?;
-        project
-            .session
-            .part_draft(d.copy)
-            .map(|d| (d, None))
-            .map_err(|_| target())
-    }
-
-    /// `part.box_details {bus?}` (Part data… in the device box editor): Parts on the box's draft, with its
-    /// pins and box as they are now; its Save saves the part, and Pins and box… returns here. With `bus` (Add bus
-    /// interface…, FT-2208) it opens on Bus interfaces with a new interface row; refused in words for a library's part
-    /// ([`DeviceBox::bus_refusal`]).
-    pub(crate) fn act_part_box_details(&mut self, p: &Map<String, Value>) -> Outcome {
-        let project = or_return!(crate::shell::gated(&self.project));
-        let bus = p.get("bus") == Some(&Value::Bool(true));
-        let Some(device_box) = self.symbol_editor.as_ref().and_then(|e| e.device_box.as_ref()) else {
-            return Outcome::refused(key!("reason-no-device-box"));
-        };
-        if bus && let Some(message) = device_box.bus_refusal() {
-            return Outcome::Failed { message };
-        }
-        let Some(mut b) = self.symbol_editor.as_mut().and_then(|e| e.device_box.take()) else {
-            return Outcome::refused(key!("reason-no-device-box"));
-        };
-        if bus {
-            b.draft.add_bus_row();
-        }
-        let _ = project;
-        self.leave_box(b.from_project);
-        self.enter_place();
-        self.open_sheet(b.draft, None);
-        if let Some(open) = self.parts.as_deref_mut().and_then(|p| p.sheet.as_mut()) {
-            open.changed = true;
-            open.group = Some(if bus {
-                ew_api::part_fields::Group::Ports
-            } else {
-                ew_api::part_fields::Group::Schematic
-            });
-        }
-        Outcome::Done
-    }
-
-    /// After the box is closed: back where it was opened from, the project or the editor's ways in (which offer the
-    /// symbol draft in hand to continue; Close box does not land in that draft, as if it had been opened again).
-    fn leave_box(&mut self, from_project: bool) {
-        let Some(editor) = &mut self.symbol_editor else {
-            return;
-        };
-        editor.start = true;
-        if from_project {
-            editor.shown = false;
-            if !editor.in_hand() {
-                self.symbol_editor = None;
-            }
-        }
-    }
-
-    /// The parts drawn as a box with pins of their own, for the start card's Device box for a part…, as the editor
-    /// read them when it opened or its start card was shown last: each as (what `part.box` takes, its part number,
-    /// its manufacturer, description and where it is from). Read in place: the start card asks every frame.
-    pub fn box_parts(&self) -> &[(String, String, String)] {
-        self.symbol_editor
-            .as_ref()
-            .map_or(&[], |e| e.box_sources.as_slice())
-    }
-
-    /// Reads [`ShellModel::box_parts`]: the project's parts and every installed library's, the project's first.
-    pub(super) fn read_box_parts(&self) -> Vec<(String, String, String)> {
-        let Some(project) = &self.project else {
-            return Vec::new();
-        };
-        let mut out: Vec<(bool, String, String, String)> = project
-            .session
-            .box_parts()
-            .into_iter()
-            .map(|(pick, d)| {
-                let from = d
-                    .library
-                    .clone()
-                    .unwrap_or_else(|| words(key!("picker-group-project")));
-                let detail = [d.text("manufacturer"), d.text("description"), &from]
-                    .iter()
-                    .map(|s| s.trim())
-                    .filter(|s| !s.is_empty())
-                    .collect::<Vec<_>>()
-                    .join(" \u{b7} ");
-                let (held, part) = match pick {
-                    ew_api::PartPick::Held(copy) => (true, format!("id:{copy}")),
-                    ew_api::PartPick::Library { library, item } => {
-                        (false, format!("library:{library}:{item}"))
-                    }
-                };
-                (held, part, d.text("part_number").to_owned(), detail)
-            })
-            .collect();
-        out.sort_by_key(|a| (!a.0, a.2.to_lowercase()));
-        out.into_iter()
-            .map(|(_, part, number, detail)| (part, number, detail))
-            .collect()
     }
 
     /// `part.pin {add?, name?, remove?, pin?, role?, side?, at?, before?}`: the pins of the part being edited. `add`
@@ -764,7 +563,7 @@ impl ShellModel {
             change(draft)
         };
         if let (Ok(_), Some((typed, stands))) = (&result, taken.get()) {
-            self.notes.push(Note::new(
+            self.notes.push(crate::notifications::Note::new(
                 "part",
                 strings::format(
                     key!("box-pin-on-step"),
@@ -904,29 +703,8 @@ impl ShellModel {
                 Ok(())
             }
             "prop" => return Some(self.box_prop(p)),
-            "save" => return Some(self.box_save()),
-            "scratch" => return Some(self.box_test()),
-            "close" => {
-                let discard = p.get("discard") == Some(&Value::Bool(true));
-                if b.dirty() && !discard {
-                    Err(words(key!("box-unsaved")))
-                } else {
-                    let from_project = b.from_project;
-                    self.symbol_editor.as_mut()?.device_box = None;
-                    self.leave_box(from_project);
-                    Ok(())
-                }
-            }
-            "start" => {
-                if b.dirty() && p.get("discard") != Some(&Value::Bool(true)) {
-                    Err(words(key!("box-unsaved")))
-                } else {
-                    let editor = self.symbol_editor.as_mut()?;
-                    editor.device_box = None;
-                    editor.start = true;
-                    Ok(())
-                }
-            }
+            // A device of the part is placed from the device browser once the part is saved.
+            "scratch" => Err(words(key!("box-test-save-first"))),
             // The clipboard holds pins: their names, what they carry and their edges; a pasted pin stands last on its
             // edge, and the pasted pins are selected.
             "copy" | "cut" | "duplicate" | "paste" if b.draft.pins_from().is_some() => {
@@ -1016,27 +794,6 @@ impl ShellModel {
                 "width" | "height" => outcome_words(
                     self.act_part_box_size(&json!({ key: value }).as_object().cloned().unwrap_or_default()),
                 ),
-                "part_number" | "manufacturer" | "description" => {
-                    let text = value.as_str().ok_or_else(invalid)?.to_owned();
-                    let project = self
-                        .project
-                        .as_ref()
-                        .ok_or_else(|| words(key!("reason-no-project")))?;
-                    let b = self
-                        .symbol_editor
-                        .as_mut()
-                        .and_then(|e| e.device_box.as_mut())
-                        .ok_or_else(invalid)?;
-                    if !b.draft.new {
-                        return Err(words(key!("box-identity-in-part-editor")));
-                    }
-                    let session = &project.session;
-                    b.edit(|d| {
-                        // The text is kept either way; a text that does not fit shows as what is left to do.
-                        let _ = session.set_draft_field(d, key, &text);
-                    });
-                    Ok(())
-                }
                 _ => Err(invalid()),
             };
         }
@@ -1077,187 +834,4 @@ impl ShellModel {
         result
     }
 
-    /// Save: the part saved as Parts saves it, the editor then on the saved part; where boxes of it are
-    /// drawn already and its pins or layout changed, a message offers to redraw them and says how many.
-    fn box_save(&mut self) -> Result<(), String> {
-        let b = self
-            .symbol_editor
-            .as_ref()
-            .and_then(|e| e.device_box.as_ref())
-            .ok_or_else(|| words(key!("symbol-not-open")))?;
-        let mut draft = b.draft.clone();
-        if let Some(todo) = b.todo().first() {
-            return Err(todo.text.clone());
-        }
-        // The box is saved as the screen shows it: a part with pins of its own that had no layout takes the one drawn
-        // here. A card's or a bus device's box takes a layout only from a pin a person placed or a size a person gave
-        // (`relayout`): untouched, Draw on a page draws it as a card (doc 06a §7.5), and Save changes nothing.
-        if draft.box_.is_none() && draft.pins_from().is_none() && !draft.pins.is_empty() {
-            draft.box_ = Some(draft.box_steps().layout(EDIT_STEP));
-        }
-        let from_project = b.from_project;
-        let layout_changed = (&draft.pins, &draft.box_) != (&b.saved.pins, &b.saved.box_);
-        let project = self
-            .project
-            .as_mut()
-            .ok_or_else(|| words(key!("reason-no-project")))?;
-        let command = if draft.new {
-            project.session.new_part_command(&draft).map(|made| made.command)
-        } else if project.session.sheet_lives(&draft) == ew_api::parts::Lives::Mine {
-            project.session.own_part_update(&draft).and_then(|plan| {
-                plan.map(|p| p.command).ok_or(ew_api::PartDraftError::Refused(
-                    key!("reason-part-edit-target").as_str(),
-                ))
-            })
-        } else {
-            project.session.part_edit_command(&draft)
-        }
-        .map_err(draft_words)?;
-        outcome_words(self.run_commit(&command))?;
-        // The saved part is the project's copy of the draft's item: the part itself, or the fork that Save made.
-        let project = self
-            .project
-            .as_ref()
-            .ok_or_else(|| words(key!("reason-no-project")))?;
-        let session = &project.session;
-        let number = draft.text("part_number").trim().to_owned();
-        let fork = command
-            .params
-            .get("fork")
-            .and_then(Value::as_str)
-            .and_then(|s| s.parse().ok());
-        let copy = match (fork, draft.new) {
-            (Some(item), _) => session.part_copy_of_item(item),
-            (None, true) => session.part_copy_of_item(draft.copy),
-            (None, false) => Some(draft.copy),
-        }
-        .ok_or_else(|| words(key!("reason-part-edit-target")))?;
-        let saved = session
-            .part_draft(copy)
-            .map_err(|_| words(key!("reason-part-edit-target")))?;
-        let drawn = if layout_changed && saved.box_.is_some() {
-            session.boxes_of_part(copy).len()
-        } else {
-            0
-        };
-        let epoch = project.epoch;
-        if let Some(b) = self.symbol_editor.as_mut().and_then(|e| e.device_box.as_mut()) {
-            *b = DeviceBox {
-                from_project,
-                ..DeviceBox::new(saved)
-            };
-        }
-        self.refresh_rows();
-        // The start card lists the part as it is saved now.
-        let parts = self.read_box_parts();
-        if let Some(editor) = &mut self.symbol_editor {
-            editor.box_sources = parts;
-        }
-        if drawn > 0 {
-            let redraw = Offer::steps(
-                "redraw_boxes",
-                key!("box-redraw"),
-                Validity::Session { epoch },
-                vec![(
-                    "part.redraw_boxes",
-                    serde_json::json!({ "part": format!("id:{copy}") }),
-                )],
-            );
-            self.notes.push(
-                Note::new(
-                    "part",
-                    strings::format(key!("box-saved-redraw"), &[&number, &drawn.to_string()]),
-                )
-                .offering([Some(redraw)]),
-            );
-        } else {
-            // A later Save, or Redraw them, says what is true then: its toast takes this one's place.
-            self.notes.push(
-                Note::new("part", strings::format(key!("box-saved"), &[&number])).toned(NoteTone::Success),
-            );
-        }
-        Ok(())
-    }
-
-    /// `part.redraw_boxes {part}`: every box drawn of a device of the part redrawn as the part's layout says, where
-    /// it stands; its wires follow their pins. One undo step for all of them (`box.redraw`), all or none.
-    pub(crate) fn act_part_redraw_boxes(&mut self, p: &Map<String, Value>) -> Outcome {
-        let copy = match self.named_copy(p) {
-            Ok(Some(c)) => c,
-            Ok(None) => return Outcome::refused(key!("reason-part-edit-target")),
-            Err(e) => return e,
-        };
-        let project = or_return!(crate::shell::gated(&self.project));
-        let boxes: Vec<Value> = project
-            .session
-            .boxes_of_part(copy)
-            .into_iter()
-            .filter_map(|rep| project.session.redraw_box_command(copy, rep))
-            .map(|c| c.params)
-            .collect();
-        let count = boxes.len();
-        if count > 0 {
-            let command = ew_api::AnyCommand {
-                name: "box.redraw".to_owned(),
-                params: json!({ "boxes": boxes }),
-            };
-            let out = self.run_commit(&command);
-            if out != Outcome::Done {
-                return out;
-            }
-        }
-        self.notes.push(
-            Note::new(
-                "part",
-                strings::format(key!("box-redrawn"), &[&count.to_string()]),
-            )
-            .toned(NoteTone::Success),
-        );
-        Outcome::Done
-    }
-
-    /// Test on a page: the box saved, then the Device tool armed with the part on the page in front, the editor
-    /// stepping aside as after a symbol's test placement: a click places the box as it is laid out.
-    fn box_test(&mut self) -> Result<(), String> {
-        let dirty = self
-            .symbol_editor
-            .as_ref()
-            .and_then(|e| e.device_box.as_ref())
-            .is_some_and(|b| b.dirty() || b.draft.new);
-        if dirty {
-            self.box_save()?;
-        }
-        let (number, copy, template) = self
-            .symbol_editor
-            .as_ref()
-            .and_then(|e| e.device_box.as_ref())
-            .map(|b| {
-                (
-                    b.draft.text("part_number").trim().to_owned(),
-                    b.draft.copy,
-                    b.draft.main_entry(),
-                )
-            })
-            .unwrap_or_default();
-        if let Some(editor) = &mut self.symbol_editor {
-            editor.shown = false;
-        }
-        self.sync_views();
-        self.sync_tool_context();
-        let placed = outcome_words(self.dispatch(
-            "place.pick",
-            &json!({ "part": copy.to_string(), "template": template }),
-        ));
-        if placed.is_err()
-            && let Some(editor) = &mut self.symbol_editor
-        {
-            editor.shown = true;
-        }
-        placed?;
-        let back = back_to_editor();
-        self.notes.push(
-            Note::new("symbol", strings::format(key!("box-test-armed"), &[&number])).offering([Some(back)]),
-        );
-        Ok(())
-    }
 }

@@ -793,8 +793,8 @@ pub fn context_topic(model: &ShellModel) -> String {
     }
 }
 
-/// The part of the symbol editor's screen on show: the device box (a selected pin's own place), the start card,
-/// drawing with a tool, the selection's first connection point or shape, else the editor's page.
+/// The part of the drawing in Parts on show: a box (a selected pin's own place), drawing with a tool, the selection's
+/// first connection point or shape, else the drawing's page.
 fn symbol_editor_topic(editor: &crate::shell::symbol_editor::SymbolEditor) -> &'static str {
     if let Some(b) = editor.device_box() {
         if b.selection.is_empty() {
@@ -802,8 +802,6 @@ fn symbol_editor_topic(editor: &crate::shell::symbol_editor::SymbolEditor) -> &'
         } else {
             "symbol-editor-pin"
         }
-    } else if editor.start {
-        "symbol-editor-start"
     } else if editor.tool != "select" {
         "symbol-editor-drawing"
     } else {
@@ -830,12 +828,12 @@ pub enum EditorPart {
     Drawing,
     /// The outline on the left.
     Outline,
-    /// Anything else: Properties, the command bar's room, the start card.
+    /// Anything else: Properties, the command bar's room.
     Other,
 }
 
 /// The topic of a part of the symbol editor's screen under the pointer (F1 on any part opened the editor's
-/// general page): the device box (a selected pin's own place), the start card; the outline and the drawing by the
+/// general page): a box (a selected pin's own place); the outline and the drawing by the
 /// selection (a connection point, a shape: F1 on a point selected in the outline opened the outline's section),
 /// else the outline its own section and the drawing by the tool in hand (Select its selecting and moving,
 /// another its drawing); Properties the screen's section.
@@ -847,7 +845,6 @@ pub fn symbol_editor_part(
         return symbol_editor_topic(editor);
     }
     match part {
-        _ if editor.start => "symbol-editor-start",
         EditorPart::Outline => selected_part(editor).unwrap_or("symbol-editor-outline"),
         EditorPart::Other => "symbol-editor-screen",
         EditorPart::Drawing if editor.tool != "select" => "symbol-editor-drawing",

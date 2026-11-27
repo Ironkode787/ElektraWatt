@@ -53,6 +53,12 @@ pub(crate) fn starter_doc(key: &str) -> Option<LibDocument> {
 
 /// The reference to starter FnDef copy `c`, with its key for the reader and the caret requirement of its version.
 pub(crate) fn fndef_ref(c: &LibCopy<ew_schema::FnDef>) -> LibRef {
+    copy_ref(c, c.item.meta.key.as_ref())
+}
+
+/// The reference to library copy `c` of key `key`: its library and item, the versions of its minor version, its key
+/// beside them.
+pub(crate) fn copy_ref<T>(c: &LibCopy<T>, key: Option<&ew_mltext::Ident>) -> LibRef {
     let minor = c.version.split('.').take(2).collect::<Vec<_>>().join(".");
     let mut r = LibRef {
         library: Id::from_uuid(c.library_id.as_uuid()),
@@ -60,7 +66,7 @@ pub(crate) fn fndef_ref(c: &LibCopy<ew_schema::FnDef>) -> LibRef {
         version_req: format!("^{minor}"),
         extra: Default::default(),
     };
-    if let Some(key) = &c.item.meta.key {
+    if let Some(key) = key {
         r.extra
             .insert("key".into(), Value::String(key.as_str().to_owned()));
     }
@@ -238,6 +244,7 @@ impl Session {
                     fndef: fndef_ref(&def),
                     main: true,
                     cps: p.cp_pattern.iter().map(|c| c.idx).collect(),
+                    symbol: None,
                     extra: Default::default(),
                 }];
                 if p.category.is_none() {
@@ -253,6 +260,7 @@ impl Session {
                 fndef: r.clone(),
                 main: true,
                 cps: Vec::new(),
+                symbol: None,
                 extra: Default::default(),
             }];
             if p.category.is_none()
@@ -309,6 +317,7 @@ impl Session {
                 fndef: fndef_ref(&def),
                 main: true,
                 cps: Vec::new(),
+                symbol: None,
                 extra: Default::default(),
             }];
             if p.category.is_none() {

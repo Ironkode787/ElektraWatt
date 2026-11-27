@@ -896,7 +896,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // place a part is met and the start page (no project: the libraries alone); an outcome's Edit part… names the
     // `field` the part lacks. `card` settles the card of the open part's Save before another part opens.
     with_params(
-        "part?:text, field?:text, card?:enum(apply|cancel)",
+        "part?:text, symbol?:text, field?:text, card?:enum(apply|cancel), discard?:bool",
         placed(
             place(Group::Parts, 0, CommandSize::Large, Some(key!("bar-parts"))),
             "packages",
@@ -912,7 +912,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     with_params(
-        "text?:text, scope?:enum(all|project|mine), kind?:text, maker?:text, lacking?:bool",
+        "text?:text, shelf?:enum(parts|symbols), scope?:enum(all|project|mine), kind?:text, maker?:text, lacking?:bool",
         hidden(act(
             "parts.find",
             View,
@@ -974,17 +974,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_parts_outline(p),
         )),
     ),
+    // Save, the next step: on the drawing Save and place on the page, Save and use for a symbol, Done for a piece
+    // (`Ctrl+Enter` there).
     with_params(
         "another?:bool",
-        hidden(act(
+        in_drawing(hidden(act(
             "parts.save",
             Command,
             Menu::Edit,
-            &[],
+            &["Ctrl+Enter"],
             part_savable,
             None,
             |s, p| s.act_parts_save(p),
-        )),
+        ))),
     ),
     hidden(act(
         "parts.discard",
@@ -1038,14 +1040,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_parts_back(p),
         )),
     ),
-    // The device box (doc 07 §2.5): a part's pins and where they stand on its box, edited on the symbol
-    // editor's screen.
-    with_params(
-        "part?:text, new?:bool, discard?:bool",
-        hidden(act("part.box", View, Menu::Edit, &[], writable, None, |s, p| {
-            s.act_part_box(p)
-        })),
-    ),
+    // The box of a part (doc 07 §2.5), arranged in Parts (`parts.draw {what: box}`): its pins, its size and what is
+    // selected.
     with_params(
         "add?:bool, name?:text, remove?:uint, pin?:uint, role?:text, side?:enum(top|bottom|left|right), at?:mm, before?:uint",
         hidden(act("part.pin", View, Menu::Edit, &[], always, None, |s, p| {
@@ -1075,31 +1071,6 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_part_box_select(p),
         )),
-    ),
-    with_params(
-        "bus?:bool",
-        hidden(act(
-            "part.box_details",
-            View,
-            Menu::Edit,
-            &[],
-            writable,
-            None,
-            |s, p| s.act_part_box_details(p),
-        )),
-    ),
-    // Redraw the boxes, which the device box's Save in the symbol editor offers in one.
-    with_params(
-        "part:text",
-        in_symbol_editor(hidden(act(
-            "part.redraw_boxes",
-            Command,
-            Menu::Edit,
-            &[],
-            writable,
-            None,
-            |s, p| s.act_part_redraw_boxes(p),
-        ))),
     ),
     with_params(
         "choice:enum(adapt|update)",
@@ -1186,48 +1157,44 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_keymap_export(p),
         )),
     ),
-    // The editor has an entry of its own on the Draw tab, named for what it is and alone in its column (a
-    // button named "Symbols" under Black box was not found); the group's two Large buttons are Symbol and Device.
-    // The Place group holds its menu entry and palette row.
+    // New symbol (doc 07 §5.6): a new drawing at once, one click from a page; on the Draw tab beside Symbol, in the
+    // column over Parts, so the bar gains no column; its menu's starts are `like`'s. The picker's foot, the Part tab of
+    // Parts and a placed symbol's Draw one like it… call it too.
     with_params(
-        "key?:text, name?:text, discard?:bool",
+        "like?:enum(last|selected|hand), discard?:bool",
         placed(
-            place(
-                Group::Place,
-                5,
-                CommandSize::Small,
-                Some(key!("bar-symbol-editor")),
-            ),
+            place(Group::Place, 5, CommandSize::Small, Some(key!("bar-new-symbol"))),
             "pencil",
             act(
-                "symbol.new",
+                "parts.new_symbol",
                 View,
                 Menu::Edit,
-                &[],
+                &["Ctrl+I"],
                 always,
                 slot(Menu::Edit),
-                |s, p| s.act_symbol("new", p),
+                |s, p| s.act_parts_new_symbol(p),
             ),
         ),
+    ),
+    // The drawing of a piece's symbol (Draw a new symbol…, Change it for this part…), the drawing in hand again (the
+    // Drawing tab), or back to the Part tab (`done`).
+    with_params(
+        "what?:enum(symbol|box), part?:text, piece?:uint, from?:enum(new|change), done?:bool, discard?:bool",
+        hidden(act(
+            "parts.draw",
+            View,
+            Menu::Edit,
+            &[],
+            parts_shown,
+            None,
+            |s, p| s.act_parts_draw(p),
+        )),
     ),
     with_params(
         "file?:path, key?:text, discard?:bool",
         hidden(act("symbol.open", View, Menu::Edit, &[], always, None, |s, p| {
             s.act_symbol("open", p)
         })),
-    ),
-    // The Library folder, typed or from the folder picker.
-    with_params(
-        "directory?:path",
-        hidden(act(
-            "symbol.directory",
-            View,
-            Menu::Edit,
-            &[],
-            always,
-            None,
-            |s, p| s.act_symbol("directory", p),
-        )),
     ),
     with_params(
         "index:uint, discard?:bool",
@@ -1242,50 +1209,6 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         )),
     ),
     with_params(
-        "key:text",
-        hidden(act(
-            "symbol.function",
-            View,
-            Menu::Edit,
-            &[],
-            always,
-            None,
-            |s, p| s.act_symbol("function", p),
-        )),
-    ),
-    with_params(
-        "cp:uint, fn_cp:uint",
-        hidden(act(
-            "symbol.map_cp",
-            View,
-            Menu::Edit,
-            &[],
-            always,
-            None,
-            |s, p| s.act_symbol("map_cp", p),
-        )),
-    ),
-    // The discipline the symbol is drawn for, or with `cp` one point's.
-    with_params(
-        "discipline:enum(electrical|pneumatic|vacuum|hydraulic|bus), cp?:uint",
-        hidden(act(
-            "symbol.discipline",
-            View,
-            Menu::Edit,
-            &[],
-            always,
-            None,
-            |s, p| s.act_symbol("discipline", p),
-        )),
-    ),
-    // Part 3's nit: a connection point's potential role, for scripts and AI tools as for the role list.
-    with_params(
-        "cp:uint, role:enum(none|l1|l2|l3|l|n|pe|pen|fe|l_plus|l_minus|m|signal|undefined)",
-        hidden(act("symbol.role", View, Menu::Edit, &[], always, None, |s, p| {
-            s.act_symbol("role", p)
-        })),
-    ),
-    with_params(
         "name:text, x:mm, y:mm",
         hidden(act("symbol.link", View, Menu::Edit, &[], always, None, |s, p| {
             s.act_symbol("link", p)
@@ -1296,56 +1219,6 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         hidden(act("symbol.path", View, Menu::Edit, &[], always, None, |s, p| {
             s.act_symbol("path", p)
         })),
-    ),
-    with_params(
-        "source:text, key:text, discard?:bool",
-        hidden(act("symbol.fork", View, Menu::Edit, &[], always, None, |s, p| {
-            s.act_symbol("fork", p)
-        })),
-    ),
-    // The browsers' Edit symbol and Copy and edit, on the symbol named (its key, copy ID or library address)
-    // or the browser's current row; a row's context menu calls them too.
-    with_params(
-        "symbol?:text, discard?:bool",
-        hidden(act("symbol.edit", View, Menu::Edit, &[], always, None, |s, p| {
-            s.act_symbol_edit(p, false)
-        })),
-    ),
-    with_params(
-        "symbol?:text, discard?:bool",
-        hidden(act(
-            "symbol.copy_edit",
-            View,
-            Menu::Edit,
-            &[],
-            always,
-            None,
-            |s, p| s.act_symbol_edit(p, true),
-        )),
-    ),
-    with_params(
-        "discard?:bool",
-        hidden(act(
-            "symbol.close",
-            View,
-            Menu::Edit,
-            &[],
-            always,
-            None,
-            |s, p| s.act_symbol("close", p),
-        )),
-    ),
-    with_params(
-        "document:json",
-        hidden(act(
-            "symbol.replace",
-            View,
-            Menu::Edit,
-            &[],
-            always,
-            None,
-            |s, p| s.act_symbol("replace", p),
-        )),
     ),
     hidden(act("symbol.undo", View, Menu::Edit, &[], always, None, |s, p| {
         s.act_symbol("undo", p)
@@ -1449,19 +1322,6 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             s.act_symbol("grid", p)
         })),
     ),
-    // The start card: the ways in, in the drawing's place; `leave` returns to the draft in hand.
-    with_params(
-        "leave?:bool",
-        hidden(act(
-            "symbol.start",
-            View,
-            Menu::Edit,
-            &[],
-            always,
-            None,
-            |s, p| s.act_symbol("start", p),
-        )),
-    ),
     // A row of the editor's Properties: of the selection, or of the symbol itself with nothing selected.
     with_params(
         "key:text, value:json",
@@ -1518,18 +1378,6 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             always,
             None,
             |s, p| s.act_symbol("export", p),
-        )),
-    ),
-    with_params(
-        "directory?:path",
-        hidden(act(
-            "symbol.save",
-            Command,
-            Menu::Edit,
-            &[],
-            always,
-            None,
-            |s, p| s.act_symbol("save", p),
         )),
     ),
     with_params(

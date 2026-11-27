@@ -80,7 +80,7 @@ pub(crate) enum Validity {
         /// Its revision.
         rev: u64,
     },
-    /// Back to the editor: while the symbol editor keeps a draft.
+    /// Back to the drawing: while a drawing is in hand.
     SymbolDraft,
 }
 
@@ -196,13 +196,13 @@ impl Offer {
     }
 }
 
-/// Back to the symbol editor and its kept draft, after a test placement (`symbol.new`), while the draft is kept.
+/// Back to the drawing in hand in Parts, after a test placement on a page, while it is in hand.
 pub(crate) fn back_to_editor() -> Offer {
     Offer::steps(
         "edit",
         key!("toast-back-to-editor"),
         Validity::SymbolDraft,
-        vec![("symbol.new", serde_json::json!({}))],
+        vec![("parts.new_symbol", serde_json::json!({ "like": "hand" }))],
     )
 }
 

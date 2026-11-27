@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The symbol editor's screen (doc 07 §5): the main window's command bar with the drawing tools; on the left
-//! the outline of what is edited, in the middle the drawing, on the right Properties, as in the main window. With
-//! nothing in hand it shows a start card: the ways in. A part's device box is edited on the same screen
-//! ([`device_box`]). Every edit dispatches the shared headless actions.
+//! The drawing of Parts (doc 07 §5.6): the Drawing tab's command row with the way back, the drawing tools and the next
+//! step; on the left the symbol's short sheet and what it consists of, in the middle the drawing, on the right
+//! Properties, as in the main window. A part's box is arranged in the same place ([`device_box`]). Every edit
+//! dispatches the shared headless actions.
 
 mod canvas;
 mod device_box;
@@ -42,20 +42,7 @@ fn ask(events: &mut Vec<Event>, name: &'static str, value: Value) {
     events.push(Event::SymbolAsk(name, value));
 }
 
-/// The start card's page.
-#[derive(Clone, Copy, PartialEq, Eq, Default)]
-enum StartPage {
-    /// The ways in.
-    #[default]
-    Ways,
-    /// The library's symbols, to copy one.
-    Copy,
-    /// The project's parts that are drawn as a box, to edit one's device box, or a new part.
-    Box,
-}
-
-/// What the window keeps of the editor between frames: its view of the drawing, a tool's half-made shape and its
-/// options, and the start card's page.
+/// What the window keeps of the drawing between frames: its view, a tool's half-made shape and its options.
 #[derive(Default)]
 pub(crate) struct EditorView {
     generation: Option<u64>,
@@ -83,11 +70,6 @@ pub(crate) struct EditorView {
     direction: usize,
     slot_kind: String,
     link_name: String,
-    /// The whole document as text, under More.
-    advanced: String,
-    json_error: bool,
-    start_page: StartPage,
-    source_filter: String,
     /// The drawing's top right corner in the last frame: the toasts stand under it, on the drawing, never over
     /// Properties.
     pub(crate) toast_corner: Option<Pos2>,
@@ -97,44 +79,10 @@ pub(crate) struct EditorView {
         OutlineKey,
         std::rc::Rc<ew_viewmodel::shell::symbol_editor::Outline>,
     )>,
-    /// The start card's list on show under its filter ([`start_rows`]).
-    start_rows: Option<(StartKey, std::rc::Rc<StartRows>)>,
-    /// The symbol the Copy page's preview shows (the row the pointer is on, else the first) and its shape, read once
-    /// per symbol.
-    copy_preview: Option<(
-        String,
-        Option<std::rc::Rc<ew_viewmodel::ew_api::output::SymbolShape>>,
-    )>,
 }
 
 /// What the outline is made for: the draft's generation and revision, the language and the discipline.
 type OutlineKey = (u64, u64, u64, &'static str);
-
-/// What a start card's list is made for: the list (`copy`, `box`), the editor's generation, the list's length and
-/// the filter typed; with the language.
-type StartKey = (&'static str, u64, usize, String, u64);
-
-/// A start card's rows: the index in its list, the row's words and its detail.
-type StartRows = Vec<(usize, String, String)>;
-
-/// The rows of a start card's list as `key` names them: made by `make` when the list, the filter or the language
-/// changed since they were made, else those made then. A frame or a pointer move lays out the rows on show only, and
-/// does not word every symbol or part of the libraries again.
-fn start_rows(
-    cache: &mut Option<(StartKey, std::rc::Rc<StartRows>)>,
-    (list, generation, len, filter): (&'static str, u64, usize, String),
-    make: impl FnOnce() -> StartRows,
-) -> std::rc::Rc<StartRows> {
-    let key = (list, generation, len, filter, strings::generation());
-    match cache {
-        Some((k, rows)) if *k == key => std::rc::Rc::clone(rows),
-        _ => {
-            let rows = std::rc::Rc::new(make());
-            *cache = Some((key, std::rc::Rc::clone(&rows)));
-            rows
-        }
-    }
-}
 
 /// The drawing tools of the bar: the action's word, the caption's key and the icon. Each has `symbol-tip-<word>`,
 /// what it does and how.
@@ -326,7 +274,8 @@ impl EditorView {
         clicked
     }
 
-    /// The editor's command row: the tools, the grid, and at the right end Test on a page, Save and Close editor.
+    /// The Drawing tab's command row (doc 07 §5.1): the way back; Select, the shapes and Text; Pin, Text field and the
+    /// other marks; the drawing grid and Snap; Test on a page; and at the right end the next step, its key beside it.
     pub(crate) fn toolbar(&mut self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         self.sync(shell);
         let Some(editor) = shell.symbol_editor() else {
@@ -335,189 +284,154 @@ impl EditorView {
         let t = theme::current(ui.ctx());
         ui.spacing_mut().item_spacing = Vec2::new(t.space_1, t.space_1);
         if let Some(b) = editor.device_box() {
-            self.box_toolbar(ui, shell, b, events);
+            self.box_toolbar(ui, shell, editor, b, events);
             return;
         }
         ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-            if !editor.start {
-                // The ways in: another symbol, a copy, a device box, an import.
+            back_command(ui, editor, events);
+            divider(ui);
+            self.tool_button(ui, shell, editor, "select", CommandSize::Large, events);
+            stacked(ui, |ui| {
+                self.tool_button(ui, shell, editor, "line", CommandSize::Small, events);
+                self.tool_button(ui, shell, editor, "rectangle", CommandSize::Small, events);
+            });
+            stacked(ui, |ui| {
+                self.tool_button(ui, shell, editor, "circle", CommandSize::Small, events);
+                let more = ["ellipse", "arc", "polyline", "polygon"];
+                let menu = bar_command(
+                    ui,
+                    (
+                        key!("symbol-more-shapes").as_str(),
+                        key!("symbol-more-shapes"),
+                        "category",
+                    ),
+                    CommandSize::Small,
+                    [more.contains(&editor.tool), true],
+                    None,
+                    String::new(),
+                    None,
+                );
+                let items = tool_items(shell, editor, &more);
+                egui::Popup::menu(&menu).show(|ui| crate::menu::items(ui, &items, events));
+            });
+            stacked(ui, |ui| {
+                self.tool_button(ui, shell, editor, "text", CommandSize::Small, events);
+            });
+            divider(ui);
+            self.tool_button(ui, shell, editor, "cp", CommandSize::Large, events);
+            stacked(ui, |ui| {
+                self.tool_button(ui, shell, editor, "slot", CommandSize::Small, events);
+                // The marks a rare symbol needs: its cross-reference point, a mechanical link point.
+                let more = ["anchor", "link"];
+                let menu = bar_command(
+                    ui,
+                    (
+                        key!("symbol-more-marks").as_str(),
+                        key!("symbol-more-marks"),
+                        "dots",
+                    ),
+                    CommandSize::Small,
+                    [more.contains(&editor.tool), true],
+                    None,
+                    String::new(),
+                    None,
+                );
+                let items = tool_items(shell, editor, &more);
+                egui::Popup::menu(&menu).show(|ui| crate::menu::items(ui, &items, events));
+            });
+            divider(ui);
+            grid_controls(ui, editor, events);
+            divider(ui);
+            let scratch = refusal(shell, "symbol.scratch");
+            let can_scratch = scratch.is_none();
+            stacked(ui, |ui| {
                 if bar_command(
                     ui,
-                    ("symbol.start", key!("symbol-start"), "file-plus"),
-                    CommandSize::Large,
+                    ("symbol.scratch", key!("symbol-scratch"), "flask"),
+                    CommandSize::Small,
+                    [false, false],
+                    scratch,
+                    String::new(),
+                    Some(label(key!("symbol-scratch-how"))),
+                )
+                .clicked()
+                    && can_scratch
+                {
+                    action(events, "symbol.scratch", json!({}));
+                }
+                if bar_command(
+                    ui,
+                    ("symbol.export", key!("symbol-export"), "file-arrow-right"),
+                    CommandSize::Small,
                     [false, false],
                     None,
                     String::new(),
-                    Some(label(key!("symbol-start-how"))),
-                )
-                .clicked()
-                {
-                    action(events, "symbol.start", json!({}));
-                }
-                divider(ui);
-                self.tool_button(ui, shell, editor, "select", CommandSize::Large, events);
-                stacked(ui, |ui| {
-                    self.tool_button(ui, shell, editor, "line", CommandSize::Small, events);
-                    self.tool_button(ui, shell, editor, "rectangle", CommandSize::Small, events);
-                });
-                stacked(ui, |ui| {
-                    self.tool_button(ui, shell, editor, "circle", CommandSize::Small, events);
-                    let more = ["ellipse", "arc", "polyline", "polygon"];
-                    let menu = bar_command(
-                        ui,
-                        (
-                            key!("symbol-more-shapes").as_str(),
-                            key!("symbol-more-shapes"),
-                            "category",
-                        ),
-                        CommandSize::Small,
-                        [more.contains(&editor.tool), true],
-                        None,
-                        String::new(),
-                        None,
-                    );
-                    let items = tool_items(shell, editor, &more);
-                    egui::Popup::menu(&menu).show(|ui| crate::menu::items(ui, &items, events));
-                });
-                stacked(ui, |ui| {
-                    self.tool_button(ui, shell, editor, "text", CommandSize::Small, events);
-                });
-                divider(ui);
-                self.tool_button(ui, shell, editor, "cp", CommandSize::Large, events);
-                stacked(ui, |ui| {
-                    self.tool_button(ui, shell, editor, "slot", CommandSize::Small, events);
-                    // The marks a rare symbol needs: its cross-reference point, a mechanical link point.
-                    let more = ["anchor", "link"];
-                    let menu = bar_command(
-                        ui,
-                        (
-                            key!("symbol-more-marks").as_str(),
-                            key!("symbol-more-marks"),
-                            "dots",
-                        ),
-                        CommandSize::Small,
-                        [more.contains(&editor.tool), true],
-                        None,
-                        String::new(),
-                        None,
-                    );
-                    let items = tool_items(shell, editor, &more);
-                    egui::Popup::menu(&menu).show(|ui| crate::menu::items(ui, &items, events));
-                });
-                divider(ui);
-                grid_controls(ui, editor, events);
-            }
-            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                // Close editor is the way back to the project: the editor's one primary button, in the corner the eye
-                // goes to for it. It keeps the draft and its history.
-                if components::button(ui, Kind::Primary, label(key!("symbol-close")), None, 0.0).clicked() {
-                    action(events, "symbol.close", json!({}));
-                }
-                if editor.start {
-                    return;
-                }
-                ui.add_space(t.space_2);
-                let save_key = ew_viewmodel::actions::find("file.save")
-                    .map(|m| shell.shortcut_text(m))
-                    .unwrap_or_default();
-                if bar_command(
-                    ui,
-                    ("symbol.save", key!("symbol-save"), "device-floppy"),
-                    CommandSize::Large,
-                    [false, false],
                     None,
-                    save_key,
-                    Some(label(key!("symbol-save-how"))),
                 )
                 .clicked()
                 {
-                    action(events, "symbol.save", json!({}));
+                    action(events, "symbol.export", json!({}));
                 }
-                // Why an action of the editor's is refused now, the shell's answer.
-                let refusal = |id: &str| {
-                    ew_viewmodel::actions::find(id)
-                        .and_then(|m| m.enabled_now(shell).err())
-                        .map(|r| strings::render(&r))
-                };
-                stacked(ui, |ui| {
-                    ui.with_layout(Layout::top_down(Align::Max), |ui| {
-                        let scratch = refusal("symbol.scratch");
-                        let can_scratch = scratch.is_none();
-                        if bar_command(
-                            ui,
-                            ("symbol.scratch", key!("symbol-scratch"), "eye"),
-                            CommandSize::Small,
-                            [false, false],
-                            scratch,
-                            String::new(),
-                            Some(label(key!("symbol-scratch-how"))),
-                        )
-                        .clicked()
-                            && can_scratch
-                        {
-                            action(events, "symbol.scratch", json!({}));
-                        }
-                        let menu = bar_command(
-                            ui,
-                            (
-                                key!("symbol-draft-menu").as_str(),
-                                key!("symbol-draft-menu"),
-                                "dots",
-                            ),
-                            CommandSize::Small,
-                            [false, true],
-                            None,
-                            String::new(),
-                            None,
-                        );
-                        // The way from a symbol to a device: a part whose main function the saved symbol draws;
-                        // the draft exported; Discard draft, the explicit way to drop the draft (Close editor keeps
-                        // it), which asks first.
-                        let make_part = refusal("parts.new");
-                        let symbol = editor.published().unwrap_or_default();
-                        let items = [
-                            (
-                                "parts.new",
-                                json!({ "symbol": symbol }),
-                                key!("symbol-make-part"),
-                                make_part,
-                            ),
-                            ("symbol.export", json!({}), key!("symbol-export"), None),
-                            (
-                                "symbol.close",
-                                json!({"discard": true}),
-                                key!("symbol-discard-draft"),
-                                None,
-                            ),
-                        ]
-                        .map(|(id, params, words, reason)| {
-                            ew_viewmodel::actions::ActionItem {
-                                id,
-                                params,
-                                label: label(words).to_owned(),
-                                shortcut: String::new(),
-                                enabled: reason.is_none(),
-                                reason,
-                                checked: false,
-                                topic: None,
-                            }
-                        });
-                        egui::Popup::menu(&menu).show(|ui| {
-                            let from = events.len();
-                            crate::menu::items(ui, &items, events);
-                            for e in &mut events[from..] {
-                                if let Event::Action("symbol.close", params) = e {
-                                    *e = Event::SymbolAsk("symbol.close", params.take());
-                                }
-                            }
-                        });
-                    });
-                });
+            });
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                next_step(ui, shell, editor.save_label(), events);
             });
         });
     }
+}
 
-    /// The editor in the page's place: the outline, the drawing and Properties, or the start card.
+/// The shell's reason why action `id` cannot run now, in words.
+fn refusal(shell: &ShellModel, id: &str) -> Option<String> {
+    ew_viewmodel::actions::find(id)
+        .and_then(|m| m.enabled_now(shell).err())
+        .map(|r| strings::render(&r))
+}
+
+/// The Drawing tab's way back, at its left end: Back without it from a page, To the part from a piece or a box.
+fn back_command(ui: &mut Ui, editor: &SymbolEditor, events: &mut Vec<Event>) {
+    let words = editor.back_label();
+    if crate::command_bar::inline_command(
+        ui,
+        &CommandButton {
+            id: "parts.back",
+            label: words.to_owned(),
+            bar_label: words.to_owned(),
+            icon: "arrow-left",
+            size: CommandSize::Large,
+            shortcut: String::new(),
+            enabled: true,
+            reason: None,
+            checked: false,
+            topic: Some("symbol-editor"),
+            kind: ButtonKind::Plain,
+        },
+    )
+    .clicked()
+    {
+        action(events, "parts.back", json!({}));
+    }
+}
+
+/// The Drawing tab's next step at its right end (doc 16a §5.2): the one Primary button, `words` (Save and place on
+/// 102, Save and use for -102S1, Done, Save), greyed with the shell's reason, its key beside it.
+fn next_step(ui: &mut Ui, shell: &ShellModel, words: String, events: &mut Vec<Event>) {
+    let t = theme::current(ui.ctx());
+    let why = refusal(shell, "parts.save");
+    if components::button(ui, Kind::Primary, &words, why.as_deref(), 0.0).clicked() && why.is_none() {
+        action(events, "parts.save", json!({}));
+    }
+    let key = ew_viewmodel::actions::find("parts.save")
+        .map(|m| shell.shortcut_text(m))
+        .unwrap_or_default();
+    if !key.is_empty() {
+        ui.add_space(t.space_2);
+        components::caption_chip(ui, &ew_viewmodel::keymap::short_display(&key));
+    }
+}
+
+impl EditorView {
+
+    /// The drawing in the middle of Parts: the short sheet and the outline, the drawing and Properties.
     pub fn show(&mut self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         self.sync(shell);
         let Some(editor) = shell.symbol_editor() else {
@@ -526,8 +440,8 @@ impl EditorView {
         let t = theme::current(ui.ctx());
         let full = ui.max_rect();
         ui.allocate_rect(full, Sense::hover());
-        // F1 on a part of the screen (the start card, the outline, the drawing, Properties, the device box): its
-        // section of the editor's page.
+        // F1 on a part of the screen (the outline, the drawing, Properties, the box): its section of the drawing's
+        // page.
         let help = |ui: &Ui, rect: Rect, part: ew_viewmodel::help::EditorPart| {
             crate::help::offer(ui, rect, || {
                 let topic = ew_viewmodel::help::symbol_editor_part(editor, part);
@@ -535,11 +449,6 @@ impl EditorView {
             });
         };
         help(ui, full, ew_viewmodel::help::EditorPart::Other);
-        if editor.start && editor.device_box().is_none() {
-            self.toast_corner = Some(full.right_top());
-            self.start_card(ui, full, shell, editor, events);
-            return;
-        }
         let styles = shell.symbol_text_styles();
         // The side panels keep their width; the drawing takes the room (doc 16a §2).
         let left_w = (t.size_panel_left + 2.0 * t.space_4)
@@ -575,7 +484,7 @@ impl EditorView {
             });
             ui.scope_builder(UiBuilder::new().max_rect(centre), |ui| {
                 ui.set_clip_rect(centre.intersect(ui.clip_rect()));
-                self.box_drawing(ui, centre, b, events);
+                self.box_drawing(ui, centre, editor, b, events);
             });
             if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape))
                 && !b.selection.is_empty()
@@ -625,12 +534,12 @@ impl EditorView {
         events: &mut Vec<Event>,
     ) {
         let t = theme::current(ui.ctx());
-        let mut top = rect.top();
+        let mut top = crate::parts_place::drawing_strip(ui, rect, editor, events);
         // Why the last action did nothing, above the drawing: a refused Save or Test must answer where the eye is.
         if let Some(error) = &editor.error {
             let banner = ui.scope_builder(
                 UiBuilder::new().max_rect(Rect::from_min_max(
-                    rect.min,
+                    Pos2::new(rect.left(), top),
                     Pos2::new(rect.right(), rect.bottom()),
                 )),
                 |ui| {
@@ -884,7 +793,9 @@ impl EditorView {
             });
     }
 
-    /// The left panel: what the symbol consists of, each row a click to the thing, and what is left to do.
+    /// The left panel (doc 07 §5.6): the symbol's short sheet (Name, What it is, where it is listed, the grid of its
+    /// pins), the line that says why it is not his to change, what it consists of (each row a click to the thing),
+    /// and what is left to do.
     fn outline(&mut self, ui: &mut Ui, editor: &SymbolEditor, events: &mut Vec<Event>) {
         let t = theme::current(ui.ctx());
         let key = (
@@ -903,7 +814,7 @@ impl EditorView {
         };
         panels::panel_header(ui, label(key!("symbol-outline")));
         panels::body(ui, "symbol-outline", |ui| {
-            panels::title_lines(ui, &outline.title, &outline.what);
+            short_sheet(ui, editor, events);
             let mods = ui.input(|i| i.modifiers);
             let mode = if mods.shift {
                 "add"
@@ -963,8 +874,8 @@ impl EditorView {
                     {
                         action(
                             events,
-                            "symbol.prop",
-                            json!({ "key": "reviewed", "value": reviewed }),
+                            "parts.field",
+                            json!({ "field": "symbol.reviewed", "value": reviewed.to_string() }),
                         );
                     }
                 }
@@ -1008,25 +919,11 @@ impl EditorView {
             panels::title_lines(ui, &sheet.title, &sheet.line);
             // The rows belong to the selection: another selection shows its own, never a field's leftover typing.
             let salt: Vec<String> = editor.selection.iter().map(|i| i.word()).collect();
-            let symbol = editor.selection.is_empty();
             ui.push_id(salt, |ui| {
-                panels::sheet_rows(
-                    ui,
-                    &sheet.rows,
-                    &sheet.title,
-                    "symbol.prop",
-                    events,
-                    |ui, events| {
-                        // The folder picker, under the Library folder row.
-                        if symbol && panels::button(ui, key!("symbol-choose-folder")) {
-                            action(events, "symbol.directory", json!({}));
-                        }
-                    },
-                );
+                panels::sheet_rows(ui, &sheet.rows, &sheet.title, "symbol.prop", events, |_, _| {});
             });
             ui.add_space(t.space_3);
-            if symbol {
-                self.whole_document(ui, editor, events);
+            if editor.selection.is_empty() {
                 return;
             }
             // What is done with the selection, beside its keys.
@@ -1064,396 +961,55 @@ impl EditorView {
         });
     }
 
-    /// The whole draft as its document, for what the rows do not show (other text arrangements, an import's extra
-    /// members): an expert's way, closed until opened.
-    fn whole_document(&mut self, ui: &mut Ui, editor: &SymbolEditor, events: &mut Vec<Event>) {
-        let id = ui.make_persistent_id("symbol-whole-document");
-        if !components::section_header(ui, id, label(key!("symbol-advanced")), None, false) {
-            self.advanced.clear();
-            return;
-        }
-        if self.advanced.is_empty() {
-            self.advanced = serde_json::to_string_pretty(&editor.draft).unwrap_or_default();
-        }
-        let advanced = ui.add(
-            egui::TextEdit::multiline(&mut self.advanced)
-                .code_editor()
-                .desired_rows(12)
-                .desired_width(ui.available_width()),
-        );
-        let name = label(key!("symbol-advanced"));
-        ui.ctx()
-            .accesskit_node_builder(advanced.id, |n| n.set_label(name));
-        ui.horizontal_wrapped(|ui| {
-            if panels::button(ui, key!("symbol-refresh")) {
-                self.advanced = serde_json::to_string_pretty(&editor.draft).unwrap_or_default();
-                self.json_error = false;
-            }
-            if panels::button(ui, key!("symbol-apply")) {
-                match serde_json::from_str::<Value>(&self.advanced) {
-                    Ok(value) => {
-                        action(events, "symbol.replace", json!({ "document": value }));
-                        self.json_error = false;
-                    }
-                    Err(_) => self.json_error = true,
-                }
-            }
-        });
-        if self.json_error {
-            ui.colored_label(
-                theme::current(ui.ctx()).error.color32(),
-                label(key!("symbol-json-invalid")),
-            );
-        }
-    }
-
-    /// The start card: with nothing in hand the editor shows the ways in, not an empty drawing with thirteen
-    /// tools.
-    fn start_card(
-        &mut self,
-        ui: &mut Ui,
-        full: Rect,
-        shell: &ShellModel,
-        editor: &SymbolEditor,
-        events: &mut Vec<Event>,
-    ) {
-        let t = theme::current(ui.ctx());
-        // A third of a wide window: the lists of parts and symbols use the room of 2560 points.
-        let width = crate::dialog::grown(
-            t.size_dialog_form,
-            crate::theme::shares::SYMBOL_CARD_SHARE,
-            full.width(),
-        )
-        .min(full.width() - 2.0 * t.space_6);
-        let card = Rect::from_min_size(
-            Pos2::new(full.center().x - width / 2.0, full.top() + t.space_7),
-            Vec2::new(width, full.height() - 2.0 * t.space_7),
-        );
-        ui.scope_builder(UiBuilder::new().max_rect(card), |ui| {
-            components::card_frame(&t).show(ui, |ui| {
-                ui.set_width(width - 2.0 * t.space_4);
-                ui.spacing_mut().item_spacing.y = t.space_2;
-                match self.start_page {
-                    StartPage::Ways => self.start_ways(ui, shell, editor, events),
-                    StartPage::Copy => self.start_copy(ui, shell, editor, events),
-                    StartPage::Box => self.start_box(ui, shell, events),
-                }
-            });
-        });
-        if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape)) {
-            if self.start_page == StartPage::Ways {
-                action(events, "symbol.start", json!({ "leave": true }));
-            } else {
-                self.start_page = StartPage::Ways;
-            }
-        }
-    }
-
-    fn start_ways(
-        &mut self,
-        ui: &mut Ui,
-        shell: &ShellModel,
-        editor: &SymbolEditor,
-        events: &mut Vec<Event>,
-    ) {
-        let t = theme::current(ui.ctx());
-        ui.label(crate::components::title(&t, label(key!("symbol-start-title"))));
-        ui.label(crate::components::body_secondary(
-            &t,
-            label(key!("symbol-start-line")),
-        ));
-        ui.add_space(t.space_3);
-        if way(
-            ui,
-            IconId::file_plus,
-            label(key!("symbol-new-symbol")),
-            label(key!("symbol-start-new-line")),
-        )
-        .clicked()
-        {
-            ask(events, "symbol.new", json!({ "discard": true }));
-        }
-        if way(
-            ui,
-            IconId::files,
-            label(key!("symbol-start-copy")),
-            label(key!("symbol-start-copy-line")),
-        )
-        .clicked()
-        {
-            self.start_page = StartPage::Copy;
-            self.source_filter.clear();
-        }
-        if way(
-            ui,
-            IconId::package,
-            label(key!("symbol-start-box")),
-            label(key!("symbol-start-box-line")),
-        )
-        .clicked()
-        {
-            self.start_page = StartPage::Box;
-            self.source_filter.clear();
-        }
-        if way(
-            ui,
-            IconId::file_import,
-            label(key!("symbol-start-import")),
-            label(key!("symbol-start-import-line")),
-        )
-        .clicked()
-        {
-            ask(events, "symbol.open", json!({}));
-        }
-        // The draft in hand after the ways in, which keep their places (on top it moved every entry down
-        // after a save); the editor keeps it until it is saved or discarded.
-        if editor.in_hand() {
-            let name = strings::format(
-                key!("symbol-start-continue"),
-                &[&ew_viewmodel::shell::symbol_editor::display_name(&editor.draft)],
-            );
-            if way(ui, IconId::pencil, &name, label(editor.state_key())).clicked() {
-                action(events, "symbol.start", json!({ "leave": true }));
-            }
-        }
-        let recent = shell.symbol_recents();
-        if !recent.is_empty() {
-            ui.add_space(t.space_3);
-            ui.label(
-                egui::RichText::new(label(key!("symbol-start-recent")))
-                    .font(theme::font(&theme::TypeToken {
-                        semibold: true,
-                        ..t.type_small
-                    }))
-                    .color(t.text_secondary.color32()),
-            );
-            for (address, name, library) in recent {
-                if panels::list_row(ui, &name, &library, false).clicked() {
-                    ask(events, "symbol.edit", json!({ "symbol": address }));
-                }
-            }
-        }
-        if let Some(error) = &editor.error {
-            ui.add_space(t.space_2);
-            ui.colored_label(t.error.color32(), error);
-        }
-    }
-
-    /// The project's parts that are drawn as a box with pins of their own, to edit one's device box, and a new part.
-    fn start_box(&mut self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
-        let t = theme::current(ui.ctx());
-        ui.horizontal(|ui| {
-            if components::icon_button(ui, IconId::arrow_left, label(key!("symbol-start-back"))).clicked() {
-                self.start_page = StartPage::Ways;
-            }
-            ui.label(crate::components::title(&t, label(key!("symbol-start-box"))));
-        });
-        ui.label(crate::components::body_secondary(
-            &t,
-            label(key!("symbol-start-box-line")),
-        ));
-        if !shell.has_project() {
-            ui.label(
-                egui::RichText::new(label(key!("symbol-start-box-no-project")))
-                    .color(t.text_secondary.color32()),
-            );
-            return;
-        }
-        if way(
-            ui,
-            IconId::file_plus,
-            label(key!("symbol-start-box-new")),
-            label(key!("symbol-start-box-new-line")),
-        )
-        .clicked()
-        {
-            action(events, "part.box", json!({ "new": true }));
-        }
-        ui.add_space(t.space_2);
-        // Typed at once, as the symbols' list is.
-        let filter = components::filter_field(
-            ui,
-            &mut self.source_filter,
-            label(key!("symbol-start-box-filter")),
-        );
-        if !filter.has_focus() && self.source_filter.is_empty() && ui.memory(|m| m.focused().is_none()) {
-            filter.request_focus();
-        }
-        let wanted = self.source_filter.to_lowercase();
-        let parts = shell.box_parts();
-        let generation = shell.symbol_editor().map_or(0, |e| e.generation);
-        let key = ("box", generation, parts.len(), wanted.clone());
-        let rows = start_rows(&mut self.start_rows, key, || {
-            parts
-                .iter()
-                .enumerate()
-                .filter(|(_, (_, number, detail))| {
-                    number.to_lowercase().contains(&wanted) || detail.to_lowercase().contains(&wanted)
-                })
-                .map(|(i, (_, number, detail))| (i, number.clone(), detail.clone()))
-                .collect()
-        });
-        // Why a part is missing, above the list, which takes the card's height.
-        let note = if parts.is_empty() {
-            key!("symbol-start-box-none")
-        } else if rows.is_empty() {
-            key!("symbol-start-box-no-match")
-        } else {
-            key!("symbol-start-box-elsewhere")
-        };
-        ui.add(egui::Label::new(crate::components::small_secondary(&t, label(note))).wrap());
-        ui.spacing_mut().scroll.floating = false;
-        egui::ScrollArea::vertical()
-            .id_salt("symbol-start-parts")
-            .auto_shrink([false, false])
-            .show_rows(ui, t.size_row, rows.len(), |ui, range| {
-                for (i, number, detail) in &rows[range] {
-                    if panels::list_row(ui, number, detail, false).clicked()
-                        && let Some((part, _, _)) = parts.get(*i)
-                    {
-                        action(events, "part.box", json!({ "part": part }));
-                    }
-                }
-            });
-    }
-
-    /// The library's symbols, to copy one: the original stays as it is.
-    fn start_copy(
-        &mut self,
-        ui: &mut Ui,
-        shell: &ShellModel,
-        editor: &SymbolEditor,
-        events: &mut Vec<Event>,
-    ) {
-        let t = theme::current(ui.ctx());
-        ui.horizontal(|ui| {
-            if components::icon_button(ui, IconId::arrow_left, label(key!("symbol-start-back"))).clicked() {
-                self.start_page = StartPage::Ways;
-            }
-            ui.label(crate::components::title(&t, label(key!("symbol-start-copy"))));
-        });
-        ui.label(crate::components::body_secondary(
-            &t,
-            label(key!("symbol-start-copy-line")),
-        ));
-        let filter =
-            components::filter_field(ui, &mut self.source_filter, label(key!("symbol-source-filter")));
-        if !filter.has_focus() && self.source_filter.is_empty() && ui.memory(|m| m.focused().is_none()) {
-            filter.request_focus();
-        }
-        let wanted = self.source_filter.to_lowercase();
-        let key = ("copy", editor.generation, editor.sources.len(), wanted.clone());
-        let rows = start_rows(&mut self.start_rows, key, || {
-            editor
-                .sources
-                .iter()
-                .enumerate()
-                .map(|(i, s)| (i, s, s.words()))
-                .filter(|(_, s, (name, _))| {
-                    name.to_lowercase().contains(&wanted)
-                        || s.key
-                            .as_deref()
-                            .is_some_and(|k| k.to_lowercase().contains(&wanted))
-                })
-                // In the browser's order (the editor sorts its sources so), each row naming what it is filed under.
-                .map(|(i, s, (name, library))| {
-                    let filed = ew_viewmodel::tools::category_words(&s.category)
-                        .unwrap_or_else(|| label(key!("category-other")));
-                    (i, name, format!("{filed} \u{b7} {library}"))
-                })
-                .collect()
-        });
-        ui.spacing_mut().scroll.floating = false;
-        // The list at the left, the symbol the pointer is on at the right, as the symbol browser shows it.
-        let mut hovered: Option<usize> = None;
-        let preview_w =
-            (ui.available_width() * crate::theme::shares::SYMBOL_PREVIEW_SHARE).max(t.size_dialog_form / 3.0);
-        ui.horizontal_top(|ui| {
-            let list_w = ui.available_width() - preview_w - t.space_3;
-            ui.allocate_ui(Vec2::new(list_w, ui.available_height()), |ui| {
-                egui::ScrollArea::vertical()
-                    .id_salt("symbol-start-sources")
-                    .auto_shrink([false, false])
-                    .show_rows(ui, t.size_row, rows.len(), |ui, range| {
-                        for (i, name, detail) in &rows[range] {
-                            let row = panels::list_row(ui, name, detail, false);
-                            if row.hovered() {
-                                hovered = Some(*i);
-                            }
-                            if row.clicked()
-                                && let Some(source) = editor.sources.get(*i)
-                            {
-                                ask(events, "symbol.copy_edit", json!({ "symbol": source.source }));
-                            }
-                        }
-                    });
-            });
-            let shown = hovered.or_else(|| rows.first().map(|r| r.0));
-            if let Some(source) = shown.and_then(|i| editor.sources.get(i)) {
-                if self
-                    .copy_preview
-                    .as_ref()
-                    .is_none_or(|(s, _)| *s != source.source)
-                {
-                    let shape = shell.symbol_source_shape(source).map(std::rc::Rc::new);
-                    self.copy_preview = Some((source.source.clone(), shape));
-                }
-                let side = preview_w.min(ui.available_height());
-                let (rect, _) = ui.allocate_exact_size(Vec2::splat(side), Sense::hover());
-                let shape = self.copy_preview.as_ref().and_then(|(_, s)| s.as_deref());
-                crate::picker::picture(ui, &t, rect, shape);
-            }
-        });
-        if rows.is_empty() {
-            ui.label(
-                egui::RichText::new(label(key!("symbol-start-no-match"))).color(t.text_secondary.color32()),
-            );
-        }
-    }
 }
 
-/// One way in on the start card: an icon, what it starts in `type.body.strong` and a sentence under it; a button the
-/// whole row wide.
-fn way(ui: &mut Ui, icon: IconId, title: &str, sentence: &str) -> egui::Response {
+/// The symbol's short sheet (doc 07 §5.6): Name and What it is, typed and chosen where they stand (`parts.field`), and
+/// what follows from them, not asked: where it is listed and the grid of its pins; a symbol that is not his reads as
+/// text, with one line that says why and Make my own from it.
+fn short_sheet(ui: &mut Ui, editor: &SymbolEditor, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
-    let height = 2.0 * t.size_row;
-    let (rect, response) = ui.allocate_exact_size(Vec2::new(ui.available_width(), height), Sense::click());
-    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, title));
-    ui.painter().rect_stroke(
-        rect,
-        theme::radius(t.radius_md),
-        theme::stroke(t.border_width, t.border_subtle),
-        egui::StrokeKind::Inside,
-    );
-    crate::command_bar::state_overlay(ui, &t, &response, true, t.radius_md);
-    components::focus_ring(ui, &response, t.radius_md);
-    let icon_rect = Rect::from_center_size(
-        Pos2::new(rect.left() + t.space_4 + t.icon_lg / 2.0, rect.center().y),
-        Vec2::splat(t.icon_lg),
-    );
-    crate::icons::paint(
-        ui.painter(),
-        icon,
-        icon_rect,
-        t.accent.color32(),
-        t.icon_stroke_lg,
-    );
-    let left = icon_rect.right() + t.space_4;
-    ui.painter().text(
-        Pos2::new(left, rect.center().y - 1.0),
-        egui::Align2::LEFT_BOTTOM,
-        title,
-        theme::font(&t.type_body_strong),
-        t.text_primary.color32(),
-    );
-    ui.painter().text(
-        Pos2::new(left, rect.center().y + 1.0),
-        egui::Align2::LEFT_TOP,
-        sentence,
-        theme::font(&t.type_small),
-        t.text_secondary.color32(),
-    );
-    response
+    if let Some(why) = &editor.locked {
+        egui::Frame::NONE
+            .fill(t.surface_sunken.color32())
+            .corner_radius(theme::radius(t.radius_md))
+            .inner_margin(egui::Margin::symmetric(t.space_3 as i8, t.space_2 as i8))
+            .show(ui, |ui| {
+                ui.set_width(ui.available_width());
+                ui.add(egui::Label::new(why).wrap());
+                if components::button(ui, Kind::Secondary, label(key!("parts-own-from")), None, 0.0).clicked() {
+                    action(events, "parts.own", json!({}));
+                }
+            });
+        ui.add_space(t.space_2);
+    }
+    let rows = editor.symbol_rows();
+    let from = events.len();
+    panels::sheet_rows(ui, &rows, &label(key!("symbol-the-symbol")), "symbol.prop", events, |_, _| {});
+    // A field of the short sheet is the symbol's own (`parts.field symbol.<key>`), not a selected thing's.
+    for e in &mut events[from..] {
+        if let Event::Action(name, params) = e
+            && *name == "symbol.prop"
+        {
+            let key = params["key"].as_str().unwrap_or_default().to_owned();
+            let value = match &params["value"] {
+                Value::String(s) => s.clone(),
+                other => other.to_string(),
+            };
+            *e = Event::Action("parts.field", json!({ "field": format!("symbol.{key}"), "value": value }));
+        }
+    }
+    let grid = editor.draft.symbol.grid;
+    let pins_on = ew_viewmodel::status::grid_words(grid.num() as i64, grid.den() as i64);
+    for (caption, value) in [
+        (label(key!("symbol-category")), editor.listed_under()),
+        (label(key!("symbol-pins-on")), pins_on),
+    ] {
+        ui.horizontal(|ui| {
+            ui.label(crate::components::small_secondary(&t, caption));
+            ui.label(value);
+        });
+    }
+    ui.add_space(t.space_2);
 }
 
 /// The drawing grid's step and Snap to grid; the tooltip names the connection grid that connection points

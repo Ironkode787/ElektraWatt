@@ -558,6 +558,13 @@ const fn in_symbol_editor(mut a: ActionMeta) -> ActionMeta {
     a
 }
 
+/// Marks a command of the drawing in Parts: it goes while the drawing shows, and its key is the drawing's.
+const fn in_drawing(mut a: ActionMeta) -> ActionMeta {
+    a.in_symbol_editor = true;
+    a.context = Context::SymbolEditor;
+    a
+}
+
 /// Marks an action whose dispatch leaves the banner standing.
 const fn keeps_banner(mut a: ActionMeta) -> ActionMeta {
     a.keeps_banner = true;

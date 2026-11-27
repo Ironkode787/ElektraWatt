@@ -2003,6 +2003,9 @@ pub struct TemplateFn {
     /// Indices into `cp_pattern`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub cps: Vec<u16>,
+    /// The symbol that draws this function of this part (doc 07 §2.5); absent: any symbol of the function.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub symbol: Option<LibRef>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

@@ -383,6 +383,7 @@ fn a_plate_given_another_part_takes_that_parts_template_functions() {
                 fndef: lib_ref_to(LIBRARY_VALVE, *item),
                 main: i == 0,
                 cps: vec![],
+                symbol: None,
                 extra: ew_schema::Extra::new(),
             })
             .collect();

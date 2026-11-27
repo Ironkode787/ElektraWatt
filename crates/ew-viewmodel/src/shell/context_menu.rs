@@ -23,7 +23,7 @@
 //! ([`ShellModel::row_fits`]).
 
 use ew_api::output::{Drawable, NavKind, NavNode, NavRole, TableRep, Uuid};
-use serde_json::{Map, Value, json};
+use serde_json::{Value, json};
 
 use super::ShellModel;
 use crate::actions::{self, ActionItem};
@@ -580,33 +580,23 @@ impl ShellModel {
             out.extend(self.menu_item("place.join"));
         }
         out.extend(self.menu_item("part.choose"));
-        // A device drawn as a box: its part's pins and where they stand on the box; a box drawn without a part
-        // has pins of its own, added with Add pin beside it (the entry answered with a toast there).
+        // A device drawn as a box: its part's pins and where they stand on the box, arranged in Parts; a box drawn
+        // without a part has pins of its own, added with Add pin beside it (the entry answered with a toast there).
         if thing
             .here
             .is_some_and(|rep| rep.black_box.as_ref().is_some_and(|b| !b.own_pins))
         {
             out.extend(self.aimed(
-                "part.box",
-                json!({}),
+                "parts.draw",
+                json!({"what": "box"}),
                 strings::text(key!("context-edit-box")).to_owned(),
             ));
-        }
-        if let Some(symbol) = thing.symbol {
-            let symbol = Map::from_iter([("symbol".to_owned(), Value::String(symbol.to_string()))]);
-            let refusal = self.symbol_edit_reason(&symbol);
-            out.extend(self.menu_item("symbol.edit").map(|mut i| {
-                i.params = Value::Object(symbol.clone());
-                if let Some(why) = refusal {
-                    i.enabled = false;
-                    i.reason = Some(why);
-                }
-                i
-            }));
+        } else if thing.here.is_some() && thing.symbol.is_some() {
+            // Draw one like it…: a new symbol of his own like this one, which Save then puts in its place.
             out.extend(self.aimed(
-                "symbol.copy_edit",
-                Value::Object(symbol),
-                strings::text(key!("action-symbol-copy-edit")).to_owned(),
+                "parts.new_symbol",
+                json!({"like": "selected"}),
+                strings::text(key!("context-draw-like-it")).to_owned(),
             ));
         }
         if thing.here.is_some() && self.potential_point().is_ok() {

@@ -47,14 +47,15 @@ impl ShellModel {
 
     /// `box.add_cp {x_mm?, y_mm?}` (Add pin, the box's right-click, and the Draw tab's Arrange group): on a box whose
     /// pins are its own, a new pin on the free grid point of its outline nearest the point, its name then asked in
-    /// place; without a point the pin follows the pointer along the edge until a click puts it; on a box of a part, its device box opens, where the part's pins are edited.
+    /// place; without a point the pin follows the pointer along the edge until a click puts it; on a box of a part,
+    /// Parts arranges the part's box, where the part's pins are edited.
     pub(crate) fn act_box_add_cp(&mut self, p: &Map<String, Value>) -> Outcome {
         let (rep, b) = match self.selected_box() {
             Ok(one) => one,
             Err(reason) => return Outcome::refused(reason),
         };
         if !b.own_pins {
-            let out = self.act_part_box(&Map::new());
+            let out = self.arrange_box(None);
             if out == Outcome::Done {
                 self.notify(strings::text(key!("toast-box-pin-part")).to_owned(), false);
             }

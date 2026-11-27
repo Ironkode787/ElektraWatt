@@ -454,7 +454,10 @@ impl App {
             match screen {
                 Screen::FirstRun => first_run::show(ui, &self.shell, events),
                 Screen::Wizard => wizard::show(ui, &self.shell, &mut self.preview_view, events),
-                Screen::SymbolEditor => self.symbol_editor_view.show(ui, &self.shell, events),
+                // The drawing takes the middle of Parts while it shows (doc 07 §5.6).
+                Screen::Parts if self.shell.symbol_editor().is_some() => {
+                    self.symbol_editor_view.show(ui, &self.shell, events);
+                }
                 Screen::Parts => self.parts_view.show(ui, &self.shell, events),
                 Screen::Project => {
                     let App {

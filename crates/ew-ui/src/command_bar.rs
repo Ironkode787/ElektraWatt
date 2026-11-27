@@ -609,6 +609,51 @@ fn menu_button(ui: &Ui, t: &Tokens, id: Id, rect: Rect, label: &str, icon: &str)
     response
 }
 
+/// One tab of the tab row at `r`: its label, bold and underlined while it is the active one, greyed with `reason`
+/// while it cannot be chosen; a Tab node for a screen reader.
+fn tab_button(
+    ui: &mut Ui,
+    t: &Tokens,
+    r: Rect,
+    id: Id,
+    label: &str,
+    active: bool,
+    reason: Option<String>,
+) -> Response {
+    let enabled = reason.is_none();
+    let response = ui.interact(r, id, Sense::click());
+    let name = label.to_owned();
+    response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Tab, enabled, active, &name));
+    // A tab is selected, not toggled (egui maps `selected` to AccessKit's toggled state).
+    ui.ctx()
+        .accesskit_node_builder(response.id, |n| n.set_selected(active));
+    state_overlay(ui, t, &response, enabled, t.radius_md);
+    let (font, colour) = if active {
+        (theme::font(&t.type_body_strong), t.text_primary)
+    } else if enabled {
+        (theme::font(&t.type_body), t.text_secondary)
+    } else {
+        (theme::font(&t.type_body), t.text_disabled)
+    };
+    let response = match reason {
+        Some(why) => response.disabled_tip(why),
+        None => response,
+    };
+    let galley = ui.painter().layout_no_wrap(label.to_owned(), font, colour.color32());
+    let at = Align2::CENTER_CENTER.align_size_within_rect(galley.size(), r).min;
+    ui.painter().galley(at, galley, colour.color32());
+    if active {
+        let line = Rect::from_min_max(
+            // The 2-px underline (`space.1` high), inset `space.4` from both ends.
+            pos2(r.left() + t.space_4, r.bottom() - t.space_1),
+            pos2(r.right() - t.space_4, r.bottom()),
+        );
+        ui.painter()
+            .rect_filled(line, theme::radius(t.radius_mark), t.accent.color32());
+    }
+    response
+}
+
 /// A 1-px vertical line from `top` to `bottom` at `x`.
 fn vline(ui: &Ui, x: f32, top: f32, bottom: f32, colour: theme::Rgba, width: f32) {
     ui.painter()
@@ -867,12 +912,31 @@ impl CommandBarHost {
         }
         separator(ui, &mut x);
         // The tabs: a TabList of Tab nodes; the label width is the SemiBold one, so the active tab does not move the
-        // others.
+        // others. Over Parts, its two: Part and Drawing (doc 07 §5.1).
         let font = theme::font(&t.type_body_strong);
-        let widths: Vec<f32> = model
-            .tabs
-            .iter()
-            .map(|(_, l)| crate::components::text_width(ui, l, font.clone()) + 2.0 * t.space_4)
+        let place: Vec<(String, bool, Option<String>, Value)> = model
+            .place_tabs
+            .as_ref()
+            .map(|p| {
+                vec![
+                    (
+                        strings::text(key!("parts-tab-part")).to_owned(),
+                        !p.drawing,
+                        None,
+                        json!({ "done": true }),
+                    ),
+                    (
+                        strings::text(key!("parts-tab-drawing")).to_owned(),
+                        p.drawing,
+                        p.drawing_reason.clone(),
+                        json!({}),
+                    ),
+                ]
+            })
+            .unwrap_or_default();
+        let widths: Vec<f32> = (model.tabs.iter().map(|(_, l)| l))
+            .chain(place.iter().map(|(l, ..)| l))
+            .map(|l| crate::components::text_width(ui, l, font.clone()) + 2.0 * t.space_4)
             .collect();
         let tabs_rect = Rect::from_min_size(pos2(x, row.top()), vec2(widths.iter().sum(), t.size_tab_row));
         let list_id = Id::unique("command-tabs");
@@ -882,44 +946,15 @@ impl CommandBarHost {
         ui.scope_builder(
             UiBuilder::new().max_rect(tabs_rect).accessibility_parent(list_id),
             |ui| {
-                for ((tab, label), w) in model.tabs.iter().zip(&widths) {
-                    let r = Rect::from_min_size(pos2(x, row.top()), vec2(*w, t.size_tab_row));
+                let mut widths = widths.iter();
+                for (tab, label) in &model.tabs {
+                    let w = widths.next().copied().unwrap_or_default();
+                    let r = Rect::from_min_size(pos2(x, row.top()), vec2(w, t.size_tab_row));
                     x = r.right();
                     let active = *tab == model.tab;
                     // Without a project a tab that needs one is greyed with its reason.
                     let reason = ew_viewmodel::command_bar::tab_reason(shell, *tab);
-                    let enabled = reason.is_none();
-                    let response = ui.interact(r, tab_id(*tab), Sense::click());
-                    let name = label.clone();
-                    response
-                        .widget_info(|| egui::WidgetInfo::selected(egui::Role::Tab, enabled, active, &name));
-                    // A tab is selected, not toggled (egui maps `selected` to AccessKit's toggled state).
-                    ui.ctx()
-                        .accesskit_node_builder(response.id, |n| n.set_selected(active));
-                    state_overlay(ui, t, &response, enabled, t.radius_md);
-                    let (font, colour) = if active {
-                        (theme::font(&t.type_body_strong), t.text_primary)
-                    } else if enabled {
-                        (theme::font(&t.type_body), t.text_secondary)
-                    } else {
-                        (theme::font(&t.type_body), t.text_disabled)
-                    };
-                    let response = match reason {
-                        Some(why) => response.disabled_tip(why),
-                        None => response,
-                    };
-                    let galley = ui.painter().layout_no_wrap(label.clone(), font, colour.color32());
-                    let at = Align2::CENTER_CENTER.align_size_within_rect(galley.size(), r).min;
-                    ui.painter().galley(at, galley, colour.color32());
-                    if active {
-                        let line = Rect::from_min_max(
-                            // The 2-px underline (`space.1` high), inset `space.4` from both ends.
-                            pos2(r.left() + t.space_4, r.bottom() - t.space_1),
-                            pos2(r.right() - t.space_4, r.bottom()),
-                        );
-                        ui.painter()
-                            .rect_filled(line, theme::radius(t.radius_mark), t.accent.color32());
-                    }
+                    let response = tab_button(ui, t, r, tab_id(*tab), label, active, reason.map(str::to_owned));
                     if reason.is_some() {
                         // A greyed tab says why, as a greyed command does.
                         if response.clicked() {
@@ -939,6 +974,18 @@ impl CommandBarHost {
                         if !active {
                             events.push(Event::Action("view.command_tab", json!({ "tab": tab.word() })));
                         }
+                    }
+                }
+                // Parts' Part and Drawing: the drawing in hand shown, or left for the part's sheet.
+                for (i, (label, active, reason, params)) in place.into_iter().enumerate() {
+                    let w = widths.next().copied().unwrap_or_default();
+                    let r = Rect::from_min_size(pos2(x, row.top()), vec2(w, t.size_tab_row));
+                    x = r.right();
+                    let response = tab_button(ui, t, r, Id::unique(("place-tab", i)), &label, active, reason.clone());
+                    if response.clicked() && reason.is_none() && !active {
+                        events.push(Event::Action("parts.draw", params));
+                    } else if response.clicked() && reason.is_some() {
+                        events.push(Event::DisabledClick("parts.draw", params));
                     }
                 }
             },

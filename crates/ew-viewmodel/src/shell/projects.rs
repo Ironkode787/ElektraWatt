@@ -1515,8 +1515,12 @@ impl ShellModel {
     }
 
     pub(crate) fn act_save(&mut self) -> Outcome {
+        // On the drawing, Save saves the symbol with his parts; its next step is the bar's.
         if self.symbol_editor().is_some() {
-            return self.act_symbol("save", &Map::new());
+            return match self.symbol_save() {
+                Ok(_) => Outcome::Done,
+                Err(message) => Outcome::Failed { message },
+            };
         }
         self.save_project()
     }

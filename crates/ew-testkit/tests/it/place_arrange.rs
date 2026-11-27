@@ -736,6 +736,7 @@ fn from_part_gives_a_device_with_a_black_box_and_a_contact_that_is_not_drawn() {
             },
             main: false,
             cps: vec![4, 5],
+            symbol: None,
             extra: ew_schema::Extra::new(),
         },
     ];

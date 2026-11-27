@@ -13,7 +13,7 @@ use ew_viewmodel::ew_api::output::Uuid;
 use ew_viewmodel::ew_api::part_fields::Group;
 use ew_viewmodel::ew_api::parts::{Lives, PartFound, PartScope};
 use ew_viewmodel::shell::ShellModel;
-use ew_viewmodel::shell::parts_place::{Asking, OpenSheet, PartsPlace, lives_word};
+use ew_viewmodel::shell::parts_place::{Asking, LIST_ROWS, OpenSheet, PartsPlace, lives_word};
 use ew_viewmodel::{count_key, key, strings};
 use serde_json::json;
 
@@ -131,6 +131,19 @@ pub(crate) fn toolbar(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) 
         .clicked()
         {
             events.push(Event::Action("parts.new", json!({ "like": true })));
+        }
+        // A symbol of his own, drawn at once (doc 07 §5.6).
+        if place_command(
+            ui,
+            "parts.new_symbol",
+            strings::text(key!("parts-new-symbol")),
+            "pencil",
+            CommandSize::Large,
+            refusal(shell, "parts.new_symbol"),
+        )
+        .clicked()
+        {
+            push(events, "parts.new_symbol");
         }
         bar_divider(ui);
         for (id, key, icon) in [
@@ -386,6 +399,25 @@ fn dot(ui: &mut Ui, colour: egui::Color32) {
     ui.painter().circle_filled(rect.center(), 3.5, colour);
 }
 
+/// The strip over the drawing (doc 07 §5.6): what is drawn and for what, and the way back; the bottom of what it took
+/// of `rect` (its top where the drawing has no strip).
+pub(crate) fn drawing_strip(
+    ui: &mut Ui,
+    rect: egui::Rect,
+    editor: &ew_viewmodel::shell::symbol_editor::SymbolEditor,
+    events: &mut Vec<Event>,
+) -> f32 {
+    let Some(sentence) = editor.strip() else {
+        return rect.top();
+    };
+    ui.scope_builder(UiBuilder::new().max_rect(rect), |ui| {
+        strip(ui, &sentence, editor.back_label(), events);
+    })
+    .response
+    .rect
+    .bottom()
+}
+
 /// The strip over the sheet (doc 16a §6.27): where the person came from, and the way back.
 fn strip(ui: &mut Ui, sentence: &str, back: &str, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
@@ -559,7 +591,7 @@ fn group_fields(
         Group::Identity => save |= identity_rows(ui, open, anew && open.editable(), events),
         Group::Technical => save |= tech_rows(ui, open, events),
         Group::Schematic if d.drawn_as_levels() => levels_section(ui, d, editable, events),
-        Group::Schematic if d.drawn_as_pieces() => pieces_section(ui, d, editable, events),
+        Group::Schematic if d.drawn_as_pieces() => pieces_section(ui, open, editable, events),
         Group::Schematic => pins_section(ui, d, events),
         Group::Cabinet => save |= cabinet_rows(ui, open, editable, events),
         Group::Ports => bus_section(ui, d, anew, events),
@@ -628,7 +660,25 @@ fn list_column(
     ui.scope_builder(
         UiBuilder::new().max_rect(rect.shrink2(vec2(t.space_3, t.space_3))),
         |ui| {
-            ui.label(RichText::new(strings::text(key!("parts-title"))).font(theme::font(&t.type_label)));
+            // The list's head: Parts | Symbols (doc 07 §5.3).
+            ui.horizontal(|ui| {
+                ui.label(RichText::new(strings::text(key!("parts-title"))).font(theme::font(&t.type_label)));
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    for (symbols, key) in [
+                        (true, key!("parts-shelf-symbols")),
+                        (false, key!("parts-shelf-parts")),
+                    ] {
+                        if ui
+                            .selectable_label(place.shelf_symbols == symbols, strings::text(key))
+                            .clicked()
+                            && place.shelf_symbols != symbols
+                        {
+                            let shelf = if symbols { "symbols" } else { "parts" };
+                            events.push(Event::Action("parts.find", json!({ "shelf": shelf })));
+                        }
+                    }
+                });
+            });
             ui.add_space(t.space_2);
             let mut query = place.query.clone();
             let r = ui.add(
@@ -646,7 +696,14 @@ fn list_column(
                 for (scope, key) in [
                     (PartScope::All, key!("parts-scope-all")),
                     (PartScope::Project, key!("parts-scope-project")),
-                    (PartScope::Mine, key!("parts-scope-mine")),
+                    (
+                        PartScope::Mine,
+                        if place.shelf_symbols {
+                            key!("parts-scope-my-symbols")
+                        } else {
+                            key!("parts-scope-mine")
+                        },
+                    ),
                 ] {
                     if alone && scope == PartScope::Project {
                         continue;
@@ -659,6 +716,10 @@ fn list_column(
                     }
                 }
             });
+            if place.shelf_symbols {
+                symbol_shelf(ui, place, events);
+                return;
+            }
             ui.horizontal(|ui| {
                 let kind = place.kind.as_deref().map_or_else(
                     || strings::text(key!("parts-filter-kind")).to_owned(),
@@ -799,6 +860,72 @@ fn list_column(
                 });
         },
     );
+}
+
+/// The Symbols shelf (doc 07 §5.3): the symbols by name, those he drew lately first under Lately drawn, each with
+/// what it is and where it lives; a click opens it in the drawing.
+fn symbol_shelf(ui: &mut Ui, place: &PartsPlace, events: &mut Vec<Event>) {
+    let t = theme::current(ui.ctx());
+    ui.label(components::small_secondary(
+        &t,
+        strings::format_count(count_key!("parts-symbols-count"), place.symbols.len()),
+    ));
+    ui.add_space(t.space_2);
+    ScrollArea::vertical()
+        .id_salt("parts-symbols")
+        .auto_shrink([false, false])
+        .show(ui, |ui| {
+            let (recent, rest): (Vec<_>, Vec<_>) = place.symbols.iter().take(LIST_ROWS).partition(|s| s.recent);
+            for (word, rows) in [
+                (strings::text(key!("parts-group-drawn-lately")), recent),
+                (strings::text(key!("parts-group-symbols")), rest),
+            ] {
+                if rows.is_empty() {
+                    continue;
+                }
+                let _ = list_group(ui, word, rows.len(), false);
+                for s in rows {
+                    if symbol_row(ui, s).clicked() {
+                        events.push(Event::Action("parts.open", json!({ "symbol": s.address })));
+                    }
+                }
+            }
+        });
+}
+
+/// A row of the Symbols shelf: the symbol's name and what it is, where it lives at the right.
+fn symbol_row(ui: &mut Ui, s: &ew_viewmodel::shell::parts_place::SymbolFound) -> egui::Response {
+    let t = theme::current(ui.ctx());
+    let (rect, r) = ui.allocate_exact_size(vec2(ui.available_width(), 2.0 * t.size_row), Sense::click());
+    let painter = ui.painter_at(rect);
+    if r.hovered() {
+        painter.rect_filled(rect, theme::SQUARE, t.state_hover.color32());
+    }
+    let left = rect.left() + t.space_3;
+    painter.text(
+        pos2(left, rect.top() + t.space_2),
+        egui::Align2::LEFT_TOP,
+        &s.name,
+        theme::font(&t.type_body_strong),
+        t.text_primary.color32(),
+    );
+    painter.text(
+        pos2(left, rect.center().y + t.space_1),
+        egui::Align2::LEFT_TOP,
+        &s.what,
+        theme::font(&t.type_small),
+        t.text_secondary.color32(),
+    );
+    painter.text(
+        pos2(rect.right() - t.space_3, rect.top() + t.space_2),
+        egui::Align2::RIGHT_TOP,
+        &s.lives,
+        theme::font(&t.type_small),
+        t.text_secondary.color32(),
+    );
+    let name = format!("{}, {}", s.name, s.what);
+    r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
+    r.on_hover_cursor(egui::CursorIcon::PointingHand)
 }
 
 /// A group's row of the list (doc 16a §6.6): its chevron, its word and its count at the right; a click folds it.
@@ -1835,9 +1962,9 @@ fn read_only_facts(ui: &mut Ui, e: &OpenSheet) {
     }
 }
 
-/// The part's pins: each with its name and the potential it carries, added and removed here, and Pins and
-/// box…, which opens the device box on the symbol editor's screen to say where they stand. A part whose pins come
-/// from its channels, its ports or its symbol lists them, with the sentence that says where they come from.
+/// The part's pins: each with its name and the potential it carries, added and removed here, and Arrange…, which
+/// opens its box as the drawing of the place to say where they stand (doc 07 §5.6). A part whose pins come from its
+/// channels, its ports or its symbol lists them, with the sentence that says where they come from.
 fn pins_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartSheet, events: &mut Vec<Event>) {
     use ew_viewmodel::ew_api::part_box::{PinsFrom, pin_roles};
     use ew_viewmodel::shell::symbol_editor::role_words;
@@ -1848,14 +1975,14 @@ fn pins_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartSheet, events: &mut V
         if crate::components::button(
             ui,
             crate::components::Kind::Secondary,
-            strings::text(key!("part-pins-and-box")),
+            strings::text(key!("parts-arrange")),
             None,
             0.0,
         )
         .tip(strings::text(key!("part-pins-and-box-how")))
         .clicked()
         {
-            events.push(Event::Action("part.box", json!({})));
+            events.push(Event::Action("parts.draw", json!({ "what": "box" })));
         }
     });
     if let Some(from) = d.pins_from() {
@@ -2677,8 +2804,9 @@ fn table_text(ui: &mut Ui, value: &str, name: &str, width: f32) -> Option<String
 /// On the schematic of a part drawn with symbols (doc 07 §5.4, picture A): its pieces as a table that reads, What it is,
 /// Pins and the Symbol that draws it (the starter's for that function), and Add a piece. The pieces make the part's
 /// pins and, on Save, its template.
-fn pieces_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartSheet, editable: bool, events: &mut Vec<Event>) {
-    use ew_viewmodel::ew_api::part_pieces::{piece_kinds, piece_symbol};
+fn pieces_section(ui: &mut Ui, open: &OpenSheet, editable: bool, events: &mut Vec<Event>) {
+    use ew_viewmodel::ew_api::part_pieces::piece_kinds;
+    let d = &open.sheet;
     let t = theme::current(ui.ctx());
     let kinds: Vec<(String, String)> = piece_kinds()
         .into_iter()
@@ -2690,7 +2818,6 @@ fn pieces_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartSheet, editable: bo
             |(_, w)| w.clone(),
         )
     };
-    let lang = strings::rule_language().split('-').next().unwrap_or("en");
     if d.pieces.is_empty() {
         ui.label(RichText::new(strings::text(key!("parts-pieces-none"))).color(t.text_secondary.color32()));
     } else {
@@ -2741,10 +2868,7 @@ fn pieces_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartSheet, editable: bo
                         ui.label(words(&row.what));
                         ui.label(&row.pins);
                     }
-                    let symbol = piece_symbol(&row.what, lang)
-                        .map(|s| strings::format(key!("parts-piece-starter"), &[&s]))
-                        .unwrap_or_else(|| "\u{2014}".to_owned());
-                    ui.label(RichText::new(symbol).color(t.text_secondary.color32()));
+                    piece_symbol_cell(ui, open, i, editable, events);
                     if editable {
                         let remove = strings::format(key!("part-table-remove"), &[&n]);
                         if ui.small_button("\u{d7}").on_hover_text(&remove).clicked() {
@@ -2769,6 +2893,65 @@ fn pieces_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartSheet, editable: bo
             events.push(Event::Action("parts.row", json!({ "table": "pieces" })));
         }
     }
+}
+
+/// The Symbol cell of piece `i` (doc 07 §5.6): the symbol that draws it, the starter's marked as such; on a part of
+/// his own a choice of the symbols of what the piece is, and Change it for this part… and Draw a new symbol…, which
+/// open the drawing for this piece.
+fn piece_symbol_cell(ui: &mut Ui, open: &OpenSheet, i: usize, editable: bool, events: &mut Vec<Event>) {
+    let t = theme::current(ui.ctx());
+    let choices = open.piece_symbols.get(i).map(Vec::as_slice).unwrap_or_default();
+    let chosen = open.sheet.pieces.get(i).map_or("", |p| p.symbol.as_str());
+    let words = |address: &str| {
+        choices
+            .iter()
+            .find(|(a, _)| a == address)
+            .map(|(a, name)| {
+                if a.is_empty() {
+                    strings::format(key!("parts-piece-starter"), &[name])
+                } else {
+                    name.clone()
+                }
+            })
+            .unwrap_or_else(|| "\u{2014}".to_owned())
+    };
+    if !editable {
+        ui.label(RichText::new(words(chosen)).color(t.text_secondary.color32()));
+        return;
+    }
+    let mut picked: Option<Event> = None;
+    let name = strings::format(key!("parts-piece-symbol-of"), &[&(i + 1).to_string()]);
+    components::choice(
+        ui,
+        egui::ComboBox::from_id_salt(("part-piece-symbol", i))
+            .selected_text(words(chosen))
+            .width(t.size_control * 7.0),
+        |ui| {
+            for (a, _) in choices {
+                if ui.selectable_label(a == chosen, words(a)).clicked() {
+                    picked = Some(Event::Action(
+                        "parts.field",
+                        json!({ "field": format!("pieces[{i}].symbol"), "value": a }),
+                    ));
+                }
+            }
+            ui.separator();
+            for (from, key) in [
+                ("change", key!("parts-piece-change")),
+                ("new", key!("parts-piece-draw-new")),
+            ] {
+                if ui.button(strings::text(key)).clicked() {
+                    picked = Some(Event::Action(
+                        "parts.draw",
+                        json!({ "piece": i, "from": from }),
+                    ));
+                }
+            }
+        },
+    )
+    .response
+    .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, &name));
+    events.extend(picked);
 }
 
 /// On the schematic of a terminal (doc 07 §5.4, picture v4): how many levels, then a row per level from the top, its

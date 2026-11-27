@@ -35,10 +35,6 @@ pub(crate) const PART_LIST_SHARE: f32 = 0.35;
 /// up to a share of the window, so it grows at 1920 × 1080).
 pub(crate) const KEYMAP_LIST_SHARE: f32 = 0.5;
 
-/// The share of the symbol editor's canvas the start card takes once that is wider than `size.dialog.form`: a third
-/// of a wide window, so the lists of parts and symbols use the room of 2560 points.
-pub(crate) const SYMBOL_CARD_SHARE: f32 = 1.0 / 3.0;
-
 /// The share of a station view's pane the catalogue takes at its right, within [`CATALOGUE_MIN`] and
 /// [`CATALOGUE_MAX`] and never more than [`CATALOGUE_MOST_SHARE`].
 pub(crate) const CATALOGUE_SHARE: f32 = 0.26;
@@ -76,9 +72,6 @@ pub(crate) const PRINT_PROGRESS_SHARE: f32 = 0.6;
 
 /// The share of the symbol editor's room a side panel takes at most; the drawing takes the rest.
 pub(crate) const SYMBOL_PANEL_SHARE: f32 = 0.3;
-
-/// The share of the symbol list's room the symbol the pointer is on takes beside it.
-pub(crate) const SYMBOL_PREVIEW_SHARE: f32 = 0.4;
 
 /// The share of a part card its label column takes; the value stands beside it.
 pub(crate) const PART_CARD_LABEL_SHARE: f32 = 0.45;

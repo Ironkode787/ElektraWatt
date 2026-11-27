@@ -6,7 +6,8 @@
 //! with its left and right clamp. The tables make the part's pins (the Connections table follows them) and, on Save,
 //! its function template: a piece's row is a template entry of its starter function, a terminal's levels one entry of
 //! the starter terminal with every pin, each pin at its level. What a part is drawn with is read by placing it
-//! (`Feature::Placing`); the symbol a function is drawn with stays the starter's until the symbol has its place.
+//! (`Feature::Placing`); a piece is drawn by the symbol it names (`TemplateFn.symbol`, his own or another of its
+//! function), else by the first symbol of its function, the starter's.
 
 use ew_l10n::Text;
 use ew_mltext::Ident;
@@ -16,14 +17,17 @@ use crate::Session;
 use crate::part_box::PinRow;
 use crate::part_editor::{PartDraftError, PartSheet, message};
 
-/// A piece of a part drawn with symbols: what it is, as a starter function's key (`ew.fn.coil`), and its pins' names
-/// as typed (`A1, A2`).
+/// A piece of a part drawn with symbols: what it is, as a starter function's key (`ew.fn.coil`), its pins' names as
+/// typed (`A1, A2`), and the symbol it is drawn with.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PieceRow {
     /// The starter function's key; empty until chosen.
     pub what: String,
     /// The pins' names, joined by commas.
     pub pins: String,
+    /// The symbol that draws it, by its library address (`library:<library>:<item>`); empty: the first symbol of what
+    /// it is, the starter's.
+    pub symbol: String,
 }
 
 /// A terminal's level: the names of its left and its right clamp.
@@ -79,10 +83,9 @@ pub fn piece_kinds() -> Vec<PieceKind> {
         .collect()
 }
 
-/// The name of the starter symbol that draws the piece `key` on a schematic page, in language `lang` (`en`).
-pub fn piece_symbol(key: &str, lang: &str) -> Option<String> {
-    let def = crate::output::starter_fndef_by_key(key)?;
-    crate::output::starter_symbol_name(def.id, lang)
+/// The library address of library copy `c` (`library:<library>:<item>`), as a piece names its symbol.
+pub fn library_address<T>(c: &ew_schema::LibCopy<T>) -> String {
+    format!("library:{}:{}", c.library_id.as_uuid(), c.item_id.as_uuid())
 }
 
 /// The names of `p`'s pins with the indexes `cps`, joined by commas.
@@ -103,6 +106,11 @@ pub(crate) fn pieces_of(p: &Part) -> Vec<PieceRow> {
             (key != ew_schema::starter::FN_BLACKBOX).then(|| PieceRow {
                 what: key.to_owned(),
                 pins: names(p, &t.cps),
+                symbol: t
+                    .symbol
+                    .as_ref()
+                    .map(|s| format!("library:{}:{}", s.library.as_uuid(), s.item.as_uuid()))
+                    .unwrap_or_default(),
             })
         })
         .collect()
@@ -226,9 +234,55 @@ impl PartSheet {
 }
 
 impl Session {
+    /// The symbols a piece of what `key` is (a starter function's key) can be drawn with (doc 07 §5.6): first the
+    /// starter's, which the empty address means, then every symbol of another installed library that draws the same
+    /// function on a schematic page, his own among them; each by its address and its name in language `lang` (`en`).
+    pub fn piece_symbols(&self, key: &str, lang: &str) -> Vec<(String, String)> {
+        use ew_schema::{Kind, LibDocument, RepType};
+        let Some(def) = crate::output::starter_fndef_by_key(key) else {
+            return Vec::new();
+        };
+        let tag: Option<ew_mltext::LangTag> = lang.parse().ok();
+        let name = |s: &ew_schema::SymbolDef| {
+            tag.as_ref()
+                .and_then(|l| s.name.text_for(l))
+                .or_else(|| s.name.neutral_or_first())
+                .unwrap_or_default()
+                .to_owned()
+        };
+        let mut out = vec![(
+            String::new(),
+            crate::output::starter_symbol_name(def.id, lang).unwrap_or_default(),
+        )];
+        let registry = self.libraries();
+        for library in registry.libraries() {
+            if library.id == ew_schema::starter::LIBRARY {
+                continue;
+            }
+            for doc in registry.documents(library.id, Kind::Symbol) {
+                let LibDocument::Symbol(s) = doc else { continue };
+                let draws: ew_ids::Id<ew_schema::FnDef> =
+                    ew_ids::v5::lib_copy_id(s.item.fndef.library.as_uuid(), s.item.fndef.item.as_uuid());
+                if s.item.rep_type == RepType::MultiLine && draws == def.id {
+                    out.push((library_address(&s), name(&s.item)));
+                }
+            }
+        }
+        out
+    }
+
+    /// The name of the symbol piece `row` is drawn with, in language `lang` (`en`): its own, else the starter's of
+    /// what it is.
+    pub fn piece_symbol_name(&self, row: &PieceRow, lang: &str) -> Option<String> {
+        self.piece_symbols(&row.what, lang)
+            .into_iter()
+            .find(|(a, _)| *a == row.symbol)
+            .map(|(_, n)| n)
+    }
+
     /// A field of the pieces or the levels typed into the sheet: `pieces[i].what` (a starter function's key),
-    /// `pieces[i].pins` (names joined by commas), `levels` (how many), `levels[i].left` and `levels[i].right`. `None`
-    /// for another field.
+    /// `pieces[i].pins` (names joined by commas), `pieces[i].symbol` (an address of [`Session::piece_symbols`], empty
+    /// for the starter's), `levels` (how many), `levels[i].left` and `levels[i].right`. `None` for another field.
     pub(crate) fn set_piece_field(
         &self,
         draft: &mut PartSheet,
@@ -256,13 +310,26 @@ impl Session {
         } else if let Some(rest) = field.strip_prefix("pieces[") {
             let (i, member) = rest.split_once("].")?;
             let i: usize = i.parse().ok()?;
+            let symbols = (member == "symbol")
+                .then(|| draft.pieces.get(i).map(|r| self.piece_symbols(&r.what, "en")))
+                .flatten()
+                .unwrap_or_default();
             let row = draft.pieces.get_mut(i)?;
             match member {
                 "what" if t.is_empty() || piece_kinds().iter().any(|k| k.key == t) => {
+                    // Another kind of piece is drawn by a symbol of its own function.
+                    if row.what != t {
+                        row.symbol.clear();
+                    }
                     t.clone_into(&mut row.what);
                     Ok(())
                 }
                 "what" => Err(bad(t)),
+                "symbol" if symbols.iter().any(|(a, _)| a == t) => {
+                    t.clone_into(&mut row.symbol);
+                    Ok(())
+                }
+                "symbol" => Err(bad(t)),
                 "pins" => match names_ok(t) {
                     Ok(()) => {
                         text.clone_into(&mut row.pins);
@@ -296,6 +363,22 @@ impl Session {
         Some(result)
     }
 
+    /// The reference a template entry names its symbol by: of the library symbol at `address`; `None` for the empty
+    /// address (the starter's) or one no installed library holds.
+    pub(crate) fn library_symbol_ref(&self, address: &str) -> Option<ew_schema::LibRef> {
+        let (library, item) = address.strip_prefix("library:")?.split_once(':')?;
+        let (library, item): (ew_ids::Uuid, ew_ids::Uuid) = (library.parse().ok()?, item.parse().ok()?);
+        self.libraries()
+            .documents(library, ew_schema::Kind::Symbol)
+            .into_iter()
+            .find_map(|d| match d {
+                ew_schema::LibDocument::Symbol(s) if s.item_id.as_uuid() == item => {
+                    Some(crate::part_new::copy_ref(&s, s.item.meta.key.as_ref()))
+                }
+                _ => None,
+            })
+    }
+
     /// The template the pieces or the levels make, on Save: a piece's row is an entry of its starter function with
     /// its pins (the first the main one), a terminal's levels one entry of the starter terminal with every pin, each
     /// pin at its level. A sheet whose rows are as opened leaves the template as it was.
@@ -325,6 +408,7 @@ impl Session {
                 fndef: crate::part_new::fndef_ref(def),
                 main: true,
                 cps,
+                symbol: None,
                 extra: Default::default(),
             }];
             if p.category.is_none() {
@@ -347,6 +431,7 @@ impl Session {
                     fndef: crate::part_new::fndef_ref(def),
                     main: template.is_empty(),
                     cps: split(&row.pins).filter_map(|n| idx_of(p, n)).collect(),
+                    symbol: self.library_symbol_ref(&row.symbol),
                     extra: Default::default(),
                 });
             }

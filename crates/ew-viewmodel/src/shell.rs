@@ -311,9 +311,7 @@ pub enum Screen {
     FirstRun,
     /// The company-standard wizard.
     Wizard,
-    /// The symbol editor (over the project, when one is open).
-    SymbolEditor,
-    /// Parts, the one place for parts (doc 07 §5), over the project.
+    /// Parts, the one place for parts and symbols (doc 07 §5), over the project.
     Parts,
     /// The open project: its pages, navigators and panes.
     Project,
@@ -1455,15 +1453,15 @@ impl ShellModel {
     }
 
     /// Which screen the window shows (architecture §9.1): the first run while it lasts, else the company-standard
-    /// wizard, else the symbol editor, else Parts, else the open project, else the start page.
+    /// wizard, else Parts (unless it stepped aside for a page), else the open project, else the start page.
     pub fn screen(&self) -> Screen {
         if self.first_run().is_some() {
             Screen::FirstRun
         } else if self.wizard().is_some() {
             Screen::Wizard
-        } else if self.symbol_editor().is_some() {
-            Screen::SymbolEditor
-        } else if self.parts.is_some() && (self.has_project() || self.parts_alone.is_some()) {
+        } else if self.parts.as_deref().is_some_and(|p| !p.aside)
+            && (self.has_project() || self.parts_alone.is_some())
+        {
             Screen::Parts
         } else if self.has_project() {
             Screen::Project
@@ -2565,14 +2563,15 @@ impl ShellModel {
                     }
                     self.dispatch(pending.action, &params)
                 }
-                ConfirmAnswer::Save => match self.act_symbol("save", &Map::new()) {
-                    Outcome::Done => self.dispatch(pending.action, &params),
-                    // The refusal shows in the editor, on its draft.
-                    other => {
+                ConfirmAnswer::Save => match self.symbol_save() {
+                    Ok(_) => self.dispatch(pending.action, &params),
+                    // The refusal shows on the drawing.
+                    Err(message) => {
                         if let Some(editor) = &mut self.symbol_editor {
                             editor.shown = true;
+                            editor.error = Some(message.clone());
                         }
-                        other
+                        Outcome::Failed { message }
                     }
                 },
             };

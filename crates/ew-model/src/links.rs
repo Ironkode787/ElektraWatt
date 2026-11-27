@@ -1047,6 +1047,14 @@ pub static LINKS: &[LinkDecl] = &[
             lib_ref(&t.fndef, out);
         }
     }),
+    // The symbol a part's piece is drawn with (doc 07 §2.5): the part that names it keeps it in the project.
+    lib_ref_link!(Part."function_template[].symbol.item" -> Symbol, |v, out| {
+        for t in &v.item.function_template {
+            if let Some(s) = &t.symbol {
+                lib_ref(s, out);
+            }
+        }
+    }),
     // An accessory a part declares (doc 07 §2.5): the part that names it keeps it in the project.
     lib_ref_link!(Part."accessories[].part.item" -> Part, |v, out| {
         for a in &v.item.accessories {
@@ -1213,6 +1221,11 @@ const OWN_NOT_LINKS: &[(&str, &str, &str)] = &[
         "part",
         "function_template[].fndef.library",
         "the library half of the LibRef link part.function_template[].fndef.item (the copy ID is v5(NS_LIBCOPY, library ‖ item))",
+    ),
+    (
+        "part",
+        "function_template[].symbol.library",
+        "the library half of the LibRef link part.function_template[].symbol.item (the copy ID is v5(NS_LIBCOPY, library ‖ item))",
     ),
     (
         "symbol",

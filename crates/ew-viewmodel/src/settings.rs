@@ -185,6 +185,20 @@ pub struct Settings {
     /// recent first, at most [`MAX_RECENT`] (`symbols_recent`, written only once one was edited).
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub symbols_recent: Vec<String>,
+    /// What the symbol he saved last is, by its word of What it is (`coil`), which a new symbol starts as
+    /// (`symbol_last_kind`, doc 07 §5.6); `None` until one was saved, a new symbol is then a normally open contact.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub symbol_last_kind: Option<String>,
+    /// The drawing grid he drew a symbol on last, an index of the drawing grids offered (0: 0.5 mm) (`symbol_drawing_grid`);
+    /// `None` until one was chosen.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub symbol_drawing_grid: Option<usize>,
+    /// Whether the drawing snapped to its grid when he drew last (`symbol_snap`); `None` until chosen: on.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub symbol_snap: Option<bool>,
+    /// The scope the Symbols shelf of Parts showed last (`all`, `project`, `mine`; `symbols_scope`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub symbols_scope: Option<String>,
     /// Keys this version does not know, kept and written back.
     #[serde(flatten)]
     extra: toml::Table,
@@ -219,6 +233,10 @@ impl Default for Settings {
             tips: true,
             tips_seen: Vec::new(),
             symbols_recent: Vec::new(),
+            symbol_last_kind: None,
+            symbol_drawing_grid: None,
+            symbol_snap: None,
+            symbols_scope: None,
             terminal_spacing: None,
             extra: toml::Table::new(),
         }
@@ -380,6 +398,13 @@ impl Settings {
         dedup(&mut self.tips_seen);
         dedup(&mut self.symbols_recent);
         self.symbols_recent.truncate(MAX_RECENT);
+        // A word, a grid or a scope this version does not offer reads as none.
+        let what = crate::shell::symbol_editor::WHAT;
+        self.symbol_last_kind = (self.symbol_last_kind.take()).filter(|w| what.iter().any(|(k, ..)| k == w));
+        self.symbol_drawing_grid = (self.symbol_drawing_grid)
+            .filter(|g| *g < crate::shell::symbol_editor::GRID_STEPS.len());
+        self.symbols_scope = (self.symbols_scope.take())
+            .filter(|s| ew_api::parts::PartScope::ALL.iter().any(|p| p.word() == s));
         // The template of a file written before the list (one path) is a list of that one.
         if let Some(dir) = self.basic_project.clone() {
             self.add_template(&dir, None);
@@ -498,30 +523,6 @@ impl Settings {
                 }
             })
             .collect()
-    }
-
-    /// Remember an explicitly chosen publication directory using the existing library setting.
-    pub(crate) fn remember_library(&mut self, path: &Path, config_dir: Option<&Path>) {
-        let mut paths = self.company_libraries(config_dir);
-        if !paths.iter().any(|p| p == path) {
-            paths.push(path.to_owned());
-        }
-        let libraries = self
-            .extra
-            .entry("libraries")
-            .or_insert_with(|| toml::Value::Table(toml::Table::new()));
-        if !libraries.is_table() {
-            *libraries = toml::Value::Table(toml::Table::new());
-        }
-        libraries.as_table_mut().expect("table above").insert(
-            "company".into(),
-            toml::Value::Array(
-                paths
-                    .into_iter()
-                    .map(|p| toml::Value::String(p.to_string_lossy().into_owned()))
-                    .collect(),
-            ),
-        );
     }
 
     /// The TOML text of the settings: `version`, the known keys and the kept unknown ones, keys sorted.

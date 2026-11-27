@@ -497,6 +497,18 @@ pub struct CommandBarModel {
     pub groups: Vec<GroupModel>,
     /// The tab's next step.
     pub next: Option<CommandButton>,
+    /// Over Parts, its two tabs in place of the project's (doc 07 §5.1): Part and Drawing, which is greyed with its
+    /// reason while nothing is drawn.
+    pub place_tabs: Option<PlaceTabs>,
+}
+
+/// The tabs of Parts: Part and Drawing.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PlaceTabs {
+    /// Whether the Drawing tab is the one shown.
+    pub drawing: bool,
+    /// Why the Drawing tab cannot be chosen now: nothing is drawn.
+    pub drawing_reason: Option<String>,
 }
 
 /// One choice of the tab row's workspace switch: a click loads it (`view.workspace_load {name}`).
@@ -568,7 +580,21 @@ fn button_of(meta: &'static ActionMeta, model: &ShellModel, size: CommandSize) -
         Some(key) => strings::text(key).to_owned(),
         None => short_label(&item.label),
     };
-    let kind = if let Some((_, variants)) = SPLITS.iter().find(|(id, _)| *id == meta.id) {
+    let kind = if meta.id == "parts.new_symbol" {
+        // New symbol's menu: its starts, each the same action with its `like`.
+        let mut starts = vec![item.clone()];
+        starts.extend(model.new_symbol_starts().into_iter().map(|(like, label, reason)| {
+            actions::ActionItem {
+                params: serde_json::json!({ "like": like }),
+                label,
+                shortcut: String::new(),
+                enabled: reason.is_none(),
+                reason,
+                ..item.clone()
+            }
+        }));
+        ButtonKind::Split(starts)
+    } else if let Some((_, variants)) = SPLITS.iter().find(|(id, _)| *id == meta.id) {
         ButtonKind::Split(
             variants
                 .iter()
@@ -650,6 +676,7 @@ pub fn command_bar_of(model: &ShellModel, tab: Tab) -> CommandBarModel {
         workspaces: workspace_choices(model),
         groups,
         next,
+        place_tabs: None,
     }
 }
 
@@ -663,14 +690,15 @@ pub fn command_bar(model: &ShellModel) -> CommandBarModel {
 pub fn shown_command_bar(model: &ShellModel) -> CommandBarModel {
     let mut bar = command_bar(model);
     bar.collapsed = shown_collapsed(model);
-    if model.symbol_editor().is_some() {
+    if model.screen() == crate::shell::Screen::Parts {
         bar.collapsible = false;
-        bar.tabs = vec![(bar.tab, strings::text(key!("symbol-title")).to_owned())];
+        bar.tabs.clear();
         bar.workspaces.clear();
-    } else if model.screen() == crate::shell::Screen::Parts {
-        bar.collapsible = false;
-        bar.tabs = vec![(bar.tab, strings::text(key!("parts-tab-part")).to_owned())];
-        bar.workspaces.clear();
+        bar.place_tabs = Some(PlaceTabs {
+            drawing: model.symbol_editor().is_some(),
+            drawing_reason: (model.kept_symbol_editor().is_none())
+                .then(|| strings::text(key!("reason-no-drawing-in-hand")).to_owned()),
+        });
     }
     bar
 }

@@ -455,6 +455,7 @@ pub(crate) fn emit(
                     fndef: lib_ref.clone(),
                     main: *main,
                     cps: idxs.clone(),
+                    symbol: None,
                     extra: Default::default(),
                 })
                 .collect(),

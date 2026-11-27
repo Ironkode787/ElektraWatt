@@ -89,6 +89,7 @@ mod pages;
 pub mod part_fields;
 mod part_fit;
 mod part_text;
+mod piece_symbol;
 mod pattern;
 mod plc;
 mod potentials;
@@ -143,6 +144,7 @@ pub use drawn_path::{
     stored_path,
 };
 pub use part_fit::{Misfit, fit_report, part_fit};
+pub use piece_symbol::{piece_symbol_copy, placed_symbol};
 // The derived-index families of the connectivity (ARCH §6.3 rule 5) and the interruption-point
 // pairing split out of the stitch graph.
 pub use index::{

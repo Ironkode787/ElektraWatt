@@ -532,6 +532,7 @@ pub fn part_using(part_id: Id<Part>, part_number: &str, library: Uuid, item: Uui
         fndef: lib_ref_to(library, item),
         main: true,
         cps: vec![],
+        symbol: None,
         extra: Extra::new(),
     }];
     copy
@@ -581,6 +582,7 @@ pub fn solenoid_valve_part(part_id: Id<Part>, part_number: &str, solenoids: &[&s
             fndef: lib_ref_to(LIBRARY_VALVE, item),
             main,
             cps: vec![],
+            symbol: None,
             extra: Extra::new(),
         })
         .collect();

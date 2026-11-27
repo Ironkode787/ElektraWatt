@@ -466,11 +466,15 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
         )
     });
     if let Some(editor) = model.symbol_editor() {
-        return [field(
-            StatusKind::State,
-            strings::text(crate::key!("symbol-title")).into(),
-            Tone::Normal,
-        )]
+        // The drawing's name and its state: not saved yet, changed, saved.
+        let state = strings::format(
+            crate::key!("status-drawing"),
+            &[
+                &crate::shell::symbol_editor::display_name(&editor.draft),
+                strings::text(editor.state_key()),
+            ],
+        );
+        return [field(StatusKind::State, state.into(), Tone::Normal)]
         .into_iter()
         .chain(help)
         .chain([

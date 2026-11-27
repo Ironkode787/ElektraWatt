@@ -215,6 +215,44 @@ impl crate::Session {
     }
 }
 
+impl crate::Session {
+    /// A new drawing named `name` for piece `row` of a part (Draw a new symbol…, doc 07 §5.6): the piece's function
+    /// as the starter gives it, its pins standing on the drawing already on the 4 mm grid (the first leaving up, the
+    /// next down, pair by pair side by side), each with the text that writes its name where a page prints it, and
+    /// the device tag at the upper left.
+    ///
+    /// # Errors
+    /// What the piece is names no starter function.
+    pub fn piece_drawing(&self, row: &crate::part_pieces::PieceRow, name: &str) -> Result<SymbolDraft, Error> {
+        let def = crate::output::starter_fndef_by_key(&row.what)
+            .ok_or_else(|| Error::Refused(text!("symbol-function-required")))?;
+        let mut draft = SymbolDraft::new("", name)?;
+        draft.function_ref = Some(crate::part_new::fndef_ref(def));
+        draft.function = def.item.clone();
+        let step: i64 = 4_000_000;
+        let mut cps = Vec::new();
+        let mut slots = vec![json!({"kind": "tag", "pos": [-1_000_000, 0], "align": "bottom_right", "visible": true})];
+        for (i, pin) in def.item.cps.iter().enumerate() {
+            let at = i64::try_from(i).unwrap_or(0);
+            let (dir, y) = if at % 2 == 0 {
+                (schema::Dir4::Up, 0)
+            } else {
+                (schema::Dir4::Down, 4 * step)
+            };
+            let pos = [(at / 2) * 2 * step, y];
+            cps.push(json!({"idx": at, "fn_cp": pin.idx, "dir": dir, "discipline": pin.discipline, "pos": pos}));
+            if let Some((off, rot, align)) = pin_text_place(&dir, pin.designation.as_str()) {
+                slots.push(json!({"kind": {"cp_designation": at}, "pos": [pos[0] + off.x.0, pos[1] + off.y.0],
+                    "rot": rot, "align": align, "visible": true}));
+            }
+        }
+        let mut d = serde_json::to_value(&draft).map_err(input)?;
+        d["symbol"]["cps"] = json!(cps);
+        d["symbol"]["text_slots"] = json!(slots);
+        SymbolDraft::parse(&serde_json::to_vec(&d).map_err(input)?)
+    }
+}
+
 impl SymbolDraft {
     /// Fork an installed symbol by its library/item address, or by its legacy library key.
     ///

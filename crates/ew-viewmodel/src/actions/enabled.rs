@@ -1317,8 +1317,15 @@ pub(super) fn part_editable(m: &ShellModel) -> Result<(), Text> {
     }
 }
 
-/// Save: the open part is his to change and was changed (a new part always is).
+/// Save: the open part is his to change and was changed (a new part always is); on the drawing, the symbol is his and
+/// has nothing left to do.
 pub(super) fn part_savable(m: &ShellModel) -> Result<(), Text> {
+    if let Some(editor) = m.symbol_editor() {
+        return match editor.save_refusal() {
+            Some(why) => Err(ew_api::Text::bare(ew_api::TextArg::Plain(why))),
+            None => Ok(()),
+        };
+    }
     part_editable(m)?;
     let open = open_sheet(m)?;
     if open.changed || open.sheet.new {
@@ -1328,8 +1335,15 @@ pub(super) fn part_savable(m: &ShellModel) -> Result<(), Text> {
     }
 }
 
-/// Discard: the open part was changed since it was opened or saved.
+/// Discard: the open part was changed since it was opened or saved; on the drawing, the symbol.
 pub(super) fn part_changed(m: &ShellModel) -> Result<(), Text> {
+    if let Some(editor) = m.symbol_editor() {
+        return if editor.dirty() {
+            Ok(())
+        } else {
+            Err(key!("reason-part-not-changed").into())
+        };
+    }
     let open = open_sheet(m)?;
     if open.changed || open.sheet.new {
         Ok(())
@@ -1338,8 +1352,14 @@ pub(super) fn part_changed(m: &ShellModel) -> Result<(), Text> {
     }
 }
 
-/// Make my own from it: the open part is not his.
+/// Make my own from it: the open part is not his; on the drawing, the symbol.
 pub(super) fn part_not_mine(m: &ShellModel) -> Result<(), Text> {
+    if let Some(editor) = m.symbol_editor() {
+        return match editor.locked {
+            Some(_) => Ok(()),
+            None => Err(key!("reason-symbol-is-yours").into()),
+        };
+    }
     match open_sheet(m)?.lives {
         ew_api::parts::Lives::NotMine { .. } => Ok(()),
         _ => Err(key!("reason-part-own-already").into()),

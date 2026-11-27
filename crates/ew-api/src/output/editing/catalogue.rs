@@ -667,14 +667,18 @@ fn catalogue_part(
                         .collect()
                 })
                 .unwrap_or_default();
-            let symbol = rows
+            // The piece's own symbol where the page has it, else the first of its function (doc 07 §5.6).
+            let of_function = rows
                 .iter()
-                .find(|(r, f)| sockets.is_none() && *f == def_id && r.allowed)
+                .filter(|(r, f)| sockets.is_none() && *f == def_id && r.allowed)
+                .map(|(r, _)| (r.copy.or_else(|| address_copy(&r.key)).unwrap_or_default(), r));
+            let symbol = ew_derive::placed_symbol(t, of_function)
                 .or_else(|| {
                     rows.iter()
                         .find(|(r, _)| is_black_box && r.black_box && r.allowed)
+                        .map(|(r, _)| r)
                 })
-                .map(|(r, _)| r.key.clone());
+                .map(|r| r.key.clone());
             // The CPs a function placed from the entry gets: the rule `function_cps` derives.
             let pattern: Vec<u16> = part.cp_pattern.iter().map(|c| c.idx).collect();
             let def_cps: Vec<u16> = def
@@ -1213,29 +1217,36 @@ fn strips_of(q: &Q, page: Id<Page>) -> Vec<CatalogueStrip> {
 const PIECE_GAP: ew_units::Nm = ew_units::Nm(8_000_000);
 
 impl Session {
-    /// The schematic picture of `part` (doc 07 §5.6): each piece of its function template drawn by a symbol of its
-    /// function (the project's of the lowest ID, else the starter's), left to right in template order, as a page draws
-    /// a symbol's lines; with the picture's width and height. `None` when no piece has a symbol.
+    /// The schematic picture of `part` (doc 07 §5.6): each piece of its function template drawn by its own symbol
+    /// (`TemplateFn.symbol`, from the project or an installed library), else by a symbol of its function (the project's
+    /// of the lowest ID, else the starter's), left to right in template order, as a page draws a symbol's lines; with
+    /// the picture's width and height. `None` when no piece has a symbol.
     pub fn part_schematic(&self, part: &Part) -> Option<(ew_dl::DisplayList, (ew_units::Nm, ew_units::Nm))> {
         let q = self.query();
-        let symbol_of = |def: Id<FnDef>| -> Option<SymbolDef> {
+        let symbol_of = |entry: &ew_schema::TemplateFn| -> Option<SymbolDef> {
+            let def = fndef_copy(&entry.fndef);
             let draws = |s: &SymbolDef| s.rep_type == RepType::MultiLine && fndef_copy(&s.fndef) == def;
-            q.symbols()
+            let own = entry.symbol.as_ref().and_then(|r| match self.libraries().resolve(r) {
+                Ok(LibDocument::Symbol(c)) if draws(&c.item) => Some((c.id.as_uuid(), c.item)),
+                _ => None,
+            });
+            let mut held: Vec<(Uuid, SymbolDef)> = q
+                .symbols()
                 .iter()
                 .filter(|(_, s)| draws(&s.item))
-                .min_by_key(|(id, _)| *id)
-                .map(|(_, s)| s.item.clone())
-                .or_else(|| {
-                    starter_docs().iter().find_map(|(_, _, d)| match d {
-                        LibDocument::Symbol(c) if draws(&c.item) => Some(c.item.clone()),
-                        _ => None,
-                    })
-                })
+                .map(|(id, s)| (id.as_uuid(), s.item.clone()))
+                .collect();
+            held.sort_by_key(|(id, _)| *id);
+            let starter = starter_docs().iter().filter_map(|(_, _, d)| match d {
+                LibDocument::Symbol(c) if draws(&c.item) => Some((c.id.as_uuid(), c.item.clone())),
+                _ => None,
+            });
+            ew_derive::placed_symbol(entry, own.into_iter().chain(held).chain(starter))
         };
         let mut list = ew_dl::DisplayList::new();
         let (mut x, mut height) = (0i64, 0i64);
         for entry in &part.function_template {
-            let Some(def) = symbol_of(fndef_copy(&entry.fndef)) else {
+            let Some(def) = symbol_of(entry) else {
                 continue;
             };
             let geometry = ew_scene::symbol::lower(&def, ew_units::Orient2::R0);
@@ -1280,6 +1291,22 @@ pub(crate) fn starter_piece_fndefs() -> impl Iterator<Item = (&'static str, &'st
 pub(crate) fn starter_fndef_by_key(key: &str) -> Option<&'static LibCopy<FnDef>> {
     starter_docs().iter().find_map(|(k, _, d)| match d {
         LibDocument::Fndef(c) if *k == key => Some(c),
+        _ => None,
+    })
+}
+
+/// The key of the starter symbol that draws a piece of what `key` is (a starter function's key) on a schematic page
+/// on the native grid: what Change it for this part… copies (doc 07 §5.6).
+pub fn starter_piece_symbol(key: &str) -> Option<String> {
+    let def = starter_fndef_by_key(key)?;
+    starter_docs().iter().find_map(|(k, _, d)| match d {
+        LibDocument::Symbol(c)
+            if c.item.rep_type == RepType::MultiLine
+                && fndef_copy(&c.item.fndef) == def.id
+                && !k.ends_with(ew_schema::starter::QET10_EDITION) =>
+        {
+            Some((*k).to_owned())
+        }
         _ => None,
     })
 }

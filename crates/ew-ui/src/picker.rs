@@ -79,7 +79,10 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                 // Not while a dialog over it has the keys (the New terminal strip form).
                 let focus = shell.dialog().is_none() && (just_opened || pane == Pane::Filter);
                 filter(ui, picker, focus, pane, events);
-                let rest = ui.available_size();
+                // The symbol picker's foot: a symbol nobody has is drawn from here (doc 07 §5.6).
+                let foot = picker.mode == PickerMode::Place;
+                let foot_h = if foot { t.size_control + t.space_3 } else { 0.0 };
+                let rest = ui.available_size() - Vec2::new(0.0, foot_h);
                 ui.horizontal_top(|ui| {
                     ui.spacing_mut().item_spacing.x = t.space_4;
                     // The tree and the detail take a share of the width within the left panel's bounds; the
@@ -102,11 +105,33 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                         table(ui, &t, picker, pane, events);
                     });
                     column(ui, Vec2::new(detail_w, rest.y), |ui| {
-                        detail(ui, &t, shell, picker, events);
+                        detail(ui, &t, picker, events);
                     });
                 });
+                if foot {
+                    new_symbol_foot(ui, &t, events);
+                }
             });
         });
+}
+
+/// The symbol picker's foot (doc 07 §5.6, picture v12): Nobody has it? and New symbol…, which draws one in Parts for
+/// this page at once.
+fn new_symbol_foot(ui: &mut Ui, t: &Tokens, events: &mut Vec<Event>) {
+    ui.horizontal(|ui| {
+        ui.label(RichText::new(strings::text(key!("picker-nobody-has-it"))).color(t.text_secondary.color32()));
+        if components::button(
+            ui,
+            Kind::Secondary,
+            strings::text(key!("picker-new-symbol")),
+            None,
+            0.0,
+        )
+        .clicked()
+        {
+            events.push(Event::Action("parts.new_symbol", json!({})));
+        }
+    });
 }
 
 /// The browser's keys, consumed before the filter field sees them; not while a dialog over it has them (Enter in the
@@ -728,7 +753,7 @@ fn table_header(ui: &mut Ui, t: &Tokens, headers: &[&str; 4], columns: &[f32; 3]
 /// What the current row places: the picture, its name, part number and ratings, its connection points, the reason
 /// of a greyed row and the Primary Place (Change symbol, Choose a symbol…); for a symbol on another connection grid
 /// Place on a new page with its grid.
-fn detail(ui: &mut Ui, t: &Tokens, shell: &ShellModel, picker: &Picker, events: &mut Vec<Event>) {
+fn detail(ui: &mut Ui, t: &Tokens, picker: &Picker, events: &mut Vec<Event>) {
     let Some(&row) = picker.rows.get(picker.row) else {
         return;
     };
@@ -881,16 +906,15 @@ fn detail(ui: &mut Ui, t: &Tokens, shell: &ShellModel, picker: &Picker, events: 
     if let Some(note) = &grid_note {
         line(ui, note, &t.type_small, t.text_secondary);
     }
-    edit_buttons(ui, t, shell, picker, row, events);
+    edit_buttons(ui, t, picker, row, events);
 }
 
-/// Edit symbol and Copy and edit under the detail of a row that places a symbol (not in the strip chooser
-/// or a part's symbol choice). Edit symbol is greyed with the reason where the symbol's library is read-only or the
-/// project alone holds it; either asks first when the symbol editor's kept draft has unsaved changes.
+/// Under the detail of a row that places a symbol (not in the strip chooser or a part's symbol choice): Open in Parts,
+/// where his own symbol is changed and another read and made his own; for a part drawn as a box, Pins and box…, which
+/// arranges its box there.
 fn edit_buttons(
     ui: &mut Ui,
     t: &Tokens,
-    shell: &ShellModel,
     picker: &Picker,
     row: PickerRow,
     events: &mut Vec<Event>,
@@ -898,14 +922,14 @@ fn edit_buttons(
     if picker.part.is_some() || picker.mode == PickerMode::Strip || picker.row_symbol(row).is_none() {
         return;
     }
-    // A part drawn as a box: its pins and where they stand are the part's, edited in its device box (a copy of the
-    // person's own for a part he cannot change), not in the frame symbol every box shares.
+    // A part drawn as a box: its pins and where they stand are the part's, arranged in Parts (for a part he cannot
+    // change, once he made his own from it), not in the frame symbol every box shares.
     if let PickerRow::Part(p) | PickerRow::PartFn(p, _) = row
         && let Some(part) = picker.catalogue.parts.get(p)
         && picker.part_main(p).is_some_and(|k| part.functions[k].black_box)
     {
         let target = match part.library {
-            Some((library, item)) => format!("library:{library}:{item}"),
+            Some((library, item)) => format!("lib:{library}/{item}"),
             None => format!("id:{}", part.copy),
         };
         ui.add_space(t.space_2);
@@ -918,38 +942,28 @@ fn edit_buttons(
         )
         .clicked()
         {
-            events.push(Event::Action("part.box", json!({ "part": target })));
+            events.push(Event::Action("parts.draw", json!({ "what": "box", "part": target })));
         }
         return;
     }
-    let refusal = shell.symbol_edit_refusal();
+    // A symbol opens in Parts: his own to change, another to read and make his own from.
+    let Some(symbol) = picker.row_symbol(row) else {
+        return;
+    };
+    let address = symbol
+        .copy
+        .map_or_else(|| symbol.key.clone(), |c| format!("id:{c}"));
     ui.add_space(t.space_2);
-    ui.horizontal_wrapped(|ui| {
-        let edit = components::button(
-            ui,
-            Kind::Secondary,
-            strings::text(key!("action-symbol-edit")),
-            refusal.as_deref(),
-            0.0,
-        );
-        if edit.clicked() {
-            events.push(Event::SymbolAsk("symbol.edit", json!({})));
-        }
-        if components::button(
-            ui,
-            Kind::Secondary,
-            strings::text(key!("action-symbol-copy-edit")),
-            None,
-            0.0,
-        )
-        .clicked()
-        {
-            events.push(Event::SymbolAsk("symbol.copy_edit", json!({})));
-        }
-    });
-    // The reason stands under the buttons too, where the eye is after the click.
-    if let Some(why) = refusal {
-        ui.add(egui::Label::new(crate::components::small_secondary(t, why)).wrap());
+    if components::button(
+        ui,
+        Kind::Secondary,
+        strings::text(key!("picker-open-in-parts")),
+        None,
+        0.0,
+    )
+    .clicked()
+    {
+        events.push(Event::Action("parts.open", json!({ "symbol": address })));
     }
 }
 
